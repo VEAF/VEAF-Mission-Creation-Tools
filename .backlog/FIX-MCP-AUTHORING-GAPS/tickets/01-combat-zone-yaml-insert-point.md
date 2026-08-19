@@ -1,6 +1,11 @@
 # 01 — `create_combat_zone` appends its zones below the trailing comments
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-19. The comment was attached to the **last key of the last list item**,
+not to the sequence, so a plain `append` wrote below it — and worse than reported: the comment ended
+up wedged *inside* the list. Fixed by detaching it and re-attaching it to the new last item
+(`mission_tools.mission_yaml_editor.append_to_sequence`). **The same defect was one function away,
+twice**: `_append_qra_definition` and `_append_cap_mission` append to `mission.yaml` lists the same
+way, so all three now go through the helper.
 Type: fix
 Files: the `create_combat_zone` implementation under `src/python/veaf-tools/veaf_mission_mcp/`, tests
 

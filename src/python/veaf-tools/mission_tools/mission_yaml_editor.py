@@ -12,7 +12,7 @@ actions (see ``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md``).
 from pathlib import Path
 
 from ruamel.yaml import YAML
-from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from mission_tools.miz_backup import backup_before_write
 
@@ -62,3 +62,72 @@ def save_yaml(path: Path, data: CommentedMap) -> Path:
     with path.open("w", encoding="utf-8") as handle:
         _yaml().dump(data, handle)
     return backup_path
+
+
+#: Where ruamel stores a comment on a node: [pre, _, post, _] on a mapping key, [post, ...] on a
+#: sequence index. Named so the index juggling below reads as intent rather than as magic numbers.
+_MAP_POST = 2
+_SEQ_POST = 0
+
+
+def append_to_sequence(sequence: list, entry: object) -> None:
+    """Append `entry` after a sequence's last **item**, not after the comment block trailing it.
+
+    ruamel attaches a comment to the node it follows, so a commented-out block sitting under the
+    last list item belongs to *that item*. A plain ``list.append`` then writes the new entry below
+    the comment: the value parses fine (comments do not interrupt a sequence), and the file reads as
+    if the entry belonged to whatever section the comment introduces. Measured on 2026-08-18 while
+    building ``verify-mission-c``, where two combat zones landed 54 lines below their own list, under
+    the community-scripts heading — and ``mission.yaml`` is a file mission makers edit by hand, so an
+    entry under the wrong heading is one they move or delete.
+
+    The trailing comment is therefore detached from the old last item and re-attached to the new one.
+
+    Args:
+        sequence: The round-trip sequence to append to.
+        entry: The value to append. A plain ``dict`` is wrapped so the comment can be re-attached to
+            its last key, which is where ruamel renders a *following* comment for a mapping item.
+    """
+    if not isinstance(sequence, CommentedSeq):
+        # A list this call just created carries no comments, so there is nothing to step over.
+        sequence.append(entry)
+        return
+
+    owner, key, slot = _trailing_comment(sequence)
+    token = None
+    if owner is not None:
+        token = owner.ca.items[key][slot]
+        owner.ca.items[key][slot] = None
+
+    sequence.append(CommentedMap(entry) if isinstance(entry, dict) and not isinstance(entry, CommentedMap) else entry)
+
+    if token is not None:
+        last_index = len(sequence) - 1
+        last = sequence[last_index]
+        if isinstance(last, CommentedMap) and last:
+            last.ca.items.setdefault(list(last.keys())[-1], [None, None, None, None])[_MAP_POST] = token
+        else:
+            sequence.ca.items.setdefault(last_index, [None, None, None, None])[_SEQ_POST] = token
+
+
+def _trailing_comment(sequence: CommentedSeq) -> tuple[CommentedMap | CommentedSeq | None, object, int]:
+    """Locate the comment following a sequence's last item.
+
+    Args:
+        sequence: The sequence to inspect.
+
+    Returns:
+        ``(owner, key, slot)`` identifying the comment's storage, or ``(None, None, 0)`` when the
+        last item has nothing after it.
+    """
+    if not sequence:
+        return None, None, 0
+    last_index = len(sequence) - 1
+    last = sequence[last_index]
+    if isinstance(last, CommentedMap) and last:
+        last_key = list(last.keys())[-1]
+        if last.ca.items.get(last_key, [None, None, None, None])[_MAP_POST] is not None:
+            return last, last_key, _MAP_POST
+    if sequence.ca.items.get(last_index, [None, None, None, None])[_SEQ_POST] is not None:
+        return sequence, last_index, _SEQ_POST
+    return None, None, 0

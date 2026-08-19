@@ -10,8 +10,7 @@ through the backup helper; not deduplicated.
 from pathlib import Path
 from typing import Any
 
-from mission_tools.miz_backup import backup_before_write
-from mission_tools.miz_tools import read_miz, write_miz
+from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 
 # DCS circular trigger zone; a neutral translucent white fill by default.
 _ZONE_TYPE_CIRCULAR = 0
@@ -43,18 +42,13 @@ def add_trigger_zone(
     Raises:
         ValueError: If the archive is not a valid mission.
     """
-    mission = read_miz(miz_path)
-    if mission.mission_content is None:
-        raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
+    mission, content = open_mission(miz_path)
 
-    zone_id = insert_trigger_zone(
-        mission.mission_content, name=name, position=position, radius=radius, hidden=hidden, color=color
-    )
+    zone_id = insert_trigger_zone(content, name=name, position=position, radius=radius, hidden=hidden, color=color)
 
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path)
+    durable = commit_mission(mission, miz_path)["durable"]
 
-    return {"zone_id": zone_id, "name": name}
+    return {"zone_id": zone_id, "name": name, "durable": durable}
 
 
 def insert_trigger_zone(

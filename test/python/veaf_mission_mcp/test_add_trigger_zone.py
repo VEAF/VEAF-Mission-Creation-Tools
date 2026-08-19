@@ -46,5 +46,6 @@ class TestAddTriggerZone:
         with zipfile.ZipFile(miz, "w") as zf:
             zf.writestr("options", b"options = {\n}\n")
 
-        with pytest.raises(ValueError, match="Not a valid DCS mission archive"):
+        # "archive" left the message when the action started accepting a mission folder too.
+        with pytest.raises(ValueError, match="Not a valid DCS mission"):
             add_trigger_zone(miz, name="Z", position={"x": 0.0, "y": 0.0}, radius=100)

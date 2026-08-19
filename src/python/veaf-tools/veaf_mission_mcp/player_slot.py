@@ -31,6 +31,7 @@ from mission_tools.group_insertion import air_category_for_type_verbose
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 
+from veaf_mission_mcp.aircraft_payload import build_aircraft_payload
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 #: Unit conversions (mission file stores metres and m/s; the caller speaks feet and knots).
@@ -69,6 +70,8 @@ def add_player_slot(
     frequency_mhz: float = 251.0,
     onboard_num: str = "010",
     task: str = _DEFAULT_TASK,
+    fuel: float | None = None,
+    fuel_fraction: float | None = None,
 ) -> dict[str, Any]:
     """Create a flyable player slot in a mission, in place, backed up first.
 
@@ -91,13 +94,17 @@ def add_player_slot(
             inherited ``communication = false`` was the second defect of the 2026-08-14 slot.
         onboard_num: The tail number, as text so a leading zero survives.
         task: The aircraft-group task (default ``"Nothing"``).
+        fuel: Explicit fuel load in KILOGRAMS. Defaults to the type's full internal fuel, read
+            from the shipped units database — an air-start slot written with none falls out of
+            the sky, and a ground start only hides it because the airfield fuels the aircraft.
+        fuel_fraction: Fraction of internal capacity, in ]0, 1] — an alternative to ``fuel``.
 
     Returns:
         ``{"group_id": <int>, "name": <str>, "durable": <bool>, "start": <str>}``.
 
     Raises:
-        ValueError: If the target is not a valid mission, `start` is unknown, or a ground start is
-            asked for without a full parking spot.
+        ValueError: If the target is not a valid mission, `start` is unknown, a ground start is
+            asked for without a full parking spot, or the fuel load cannot be resolved for this type.
     """
     if start not in _START_WAYPOINT:
         raise ValueError(f"Unknown start {start!r} (expected one of {tuple(_START_WAYPOINT)})")
@@ -113,6 +120,8 @@ def add_player_slot(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission (missing 'mission' content): {target}")
 
+    payload, fuel_warning = build_aircraft_payload(unit_type, fuel=fuel, fuel_fraction=fuel_fraction)
+
     group = _build_slot_group(
         name=name,
         unit_type=unit_type,
@@ -127,6 +136,7 @@ def add_player_slot(
         frequency_mhz=frequency_mhz,
         onboard_num=onboard_num,
         task=task,
+        payload=payload,
     )
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
@@ -154,8 +164,9 @@ def add_player_slot(
         "start": start,
         "category": category,
     }
-    if category_warning:
-        result["warnings"] = [category_warning]
+    warnings = [w for w in (category_warning, fuel_warning) if w]
+    if warnings:
+        result["warnings"] = warnings
     return result
 
 
@@ -174,6 +185,7 @@ def _build_slot_group(
     frequency_mhz: float,
     onboard_num: str,
     task: str,
+    payload: dict[str, Any],
 ) -> dict[str, Any]:
     """Build the aircraft group dict for a player slot (ids are assigned by the shared writer)."""
     is_ground = start in _GROUND_MODES
@@ -192,7 +204,7 @@ def _build_slot_group(
         "speed": speed_mps,
         "skill": "Client",
         "onboard_num": onboard_num,
-        "payload": {"fuel": 0, "flare": 0, "chaff": 0, "gun": 100, "pylons": {}},
+        "payload": payload,
     }
     if is_ground:
         unit["parking"] = parking

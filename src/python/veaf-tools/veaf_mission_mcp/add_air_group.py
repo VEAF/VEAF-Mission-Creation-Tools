@@ -31,6 +31,7 @@ from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.dcs_parking import ParkingStand, aircraft_stands_for_airbase, has_theatre, stands_for_airbase
 from veaf_libs.mission_table import indexed
 
+from veaf_mission_mcp.aircraft_payload import build_aircraft_payload
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 #: Unit conversions (mission file stores metres and m/s; the caller speaks feet and knots).
@@ -68,6 +69,8 @@ def add_air_group(
     frequency_mhz: float = 251.0,
     task: str = "CAS",
     parking: list[str] | None = None,
+    fuel: float | None = None,
+    fuel_fraction: float | None = None,
 ) -> dict[str, Any]:
     """Insert an aircraft flight into a mission, resolving its parking, in place, backed up first.
 
@@ -93,13 +96,17 @@ def add_air_group(
         parking: Optional explicit stand numbers (one per aircraft) overriding automatic selection.
             When given, it also **sets the flight size** — one aircraft per stand — so it can never
             disagree with ``count``.
+        fuel: Explicit fuel load in KILOGRAMS. Defaults to the type's full internal fuel, read from
+            the shipped units database.
+        fuel_fraction: Fraction of internal capacity, in ]0, 1] — an alternative to ``fuel``.
 
     Returns:
         ``{"group_id", "name", "durable", "start", "stands": [...], "airdrome_id"}``.
 
     Raises:
         ValueError: unknown start; missing airfield/position; unknown airfield or uncaptured theatre;
-            not enough free stands; or a requested stand already occupied.
+            not enough free stands; a requested stand already occupied; or a fuel load that cannot
+            be resolved for this type.
     """
     if start not in _START_WAYPOINT:
         raise ValueError(f"Unknown start {start!r} (expected one of {tuple(_START_WAYPOINT)})")
@@ -131,6 +138,10 @@ def add_air_group(
     if start == "air" and (position is None or "x" not in position or "y" not in position):
         raise ValueError("an air start needs a position {x, y}")
 
+    # Resolved once for the flight -- every aircraft is the same type -- and before the stands are
+    # committed, so a bad explicit value fails without having half-written the mission.
+    payload, fuel_warning = build_aircraft_payload(unit_type, fuel=fuel, fuel_fraction=fuel_fraction)
+
     group = _build_air_group(
         name=name,
         unit_type=unit_type,
@@ -145,6 +156,7 @@ def add_air_group(
         skill=skill,
         frequency_mhz=frequency_mhz,
         task=task,
+        payload=payload,
     )
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
@@ -174,8 +186,9 @@ def add_air_group(
         "airdrome_id": airdrome_id,
         "stands": [s.parking for s in stands],
     }
-    if category_warning:
-        result["warnings"] = [category_warning]
+    warnings = [w for w in (category_warning, fuel_warning) if w]
+    if warnings:
+        result["warnings"] = warnings
     return result
 
 
@@ -298,6 +311,7 @@ def _build_air_group(
     skill: str,
     frequency_mhz: float,
     task: str,
+    payload: dict[str, Any],
 ) -> dict[str, Any]:
     """Build the aircraft group dict (ids are assigned by the shared writer)."""
     speed_mps = float(speed_kt) * _MPS_PER_KT
@@ -333,7 +347,7 @@ def _build_air_group(
             "speed": speed_mps,
             "skill": skill,
             "onboard_num": f"{10 + i:02d}",
-            "payload": {"fuel": 0, "flare": 0, "chaff": 0, "gun": 100, "pylons": {}},
+            "payload": dict(payload),
         }
         if is_parking:
             # parking_id equals parking: the editor's own value is not in the capture and, measured

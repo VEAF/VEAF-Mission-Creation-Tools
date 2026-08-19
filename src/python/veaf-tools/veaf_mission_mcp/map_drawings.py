@@ -39,9 +39,7 @@ drawing the editor silently drops — the failure ``FIX-MAPRESOURCE-KEY`` and
 from pathlib import Path
 from typing import Any
 
-from mission_tools.miz_backup import backup_before_write
-from mission_tools.miz_tools import read_miz, write_miz
-
+from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.mission_table import indexed, listed
 
 #: The layers DCS ships, measured across the fixtures. A drawing on the wrong one is invisible to the
@@ -137,11 +135,9 @@ def add_map_drawing(
     _check_layer(layer)
     _check_shape(shape)
 
-    mission = read_miz(miz_path)
-    if mission.mission_content is None:
-        raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
+    mission, content = open_mission(miz_path)
 
-    objects = _layer_objects(mission.mission_content, layer)
+    objects = _layer_objects(content, layer)
     for existing in objects:
         if isinstance(existing, dict) and str(existing.get("name", "")) == name:
             raise ValueError(
@@ -164,10 +160,9 @@ def add_map_drawing(
 
     objects.append(drawing)
 
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path)
+    durable = commit_mission(mission, miz_path)["durable"]
 
-    return {"layer": layer, "name": name, "shape": shape, "anchor": anchor}
+    return {"layer": layer, "name": name, "shape": shape, "anchor": anchor, "durable": durable}
 
 
 def edit_map_drawing(
@@ -202,11 +197,9 @@ def edit_map_drawing(
     if not remove and all(value is None for value in (new_name, position, text)):
         raise ValueError("no change given — pass at least one of new_name, position, text, remove")
 
-    mission = read_miz(miz_path)
-    if mission.mission_content is None:
-        raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
+    mission, content = open_mission(miz_path)
 
-    objects = _layer_objects(mission.mission_content, layer)
+    objects = _layer_objects(content, layer)
     drawing = _find_drawing(objects, layer, name)
 
     changed: dict[str, Any] = {}
@@ -235,10 +228,9 @@ def edit_map_drawing(
             changed["name"] = {"from": drawing.get("name"), "to": new_name}
             drawing["name"] = new_name
 
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path)
+    durable = commit_mission(mission, miz_path)["durable"]
 
-    return {"layer": layer, "name": new_name or name, "changed": changed}
+    return {"layer": layer, "name": new_name or name, "changed": changed, "durable": durable}
 
 
 def _check_layer(layer: str) -> None:

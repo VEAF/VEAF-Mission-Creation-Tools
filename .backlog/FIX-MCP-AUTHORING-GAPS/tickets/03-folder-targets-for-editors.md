@@ -1,6 +1,18 @@
 # 03 — The editing actions refuse a mission folder, so durable edits get hand-written
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-19. `open_mission` / `commit_mission` in `veaf_mission_mcp.mission_folder`
+carry the folder-or-`.miz` decision for all seven editing actions, and each now returns `durable` so a
+caller can tell which it got — the creating actions always did.
+
+Two things the ticket did not predict. **`validate_group_name` reads the mission too**, through
+`set_group_properties`'s own target, so a folder read as a zip would have *silently returned no zones*
+— losing the combat-zone capture check rather than failing it; it takes a folder now as well. And the
+shared `"Not a valid DCS mission archive"` message had to drop the word *archive*, since the accepted
+input is no longer only an archive — one existing test asserted on that wording.
+
+The parameter is still named `miz_path`. Renaming it across seven actions, their schemas, their
+docstrings and their tests is churn this ticket did not ask for; the schema description now names both
+forms, which is what the calling agent reads.
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/actions.py` (parameter plumbing), the affected action
 modules, the mission-maker action catalogue (both languages), tests

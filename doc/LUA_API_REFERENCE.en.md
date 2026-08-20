@@ -2887,6 +2887,10 @@ Respawn asset group.
 
 - Respawns asset group
 - Respawns all linked groups
+- **Repairs its escort's `Escort` task** — the group named `<name> escort`, if there is one. DCS
+  invalidates that task as soon as the escorted group is recreated, and the escort then leaves to
+  land after about ten minutes. See
+  [Escorting an asset](mission-maker/scripts/veafAssets.en.md#escorting-an-asset)
 - Starts JTAC if configured
 
 **Example:**

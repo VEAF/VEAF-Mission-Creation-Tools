@@ -7,6 +7,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.7] — 2026-08-20
+
+### Fixed
+
+- **A respawned tanker keeps its escort.** Respawning an asset from the F10 menu gave it a new DCS
+  group id, which silently invalidated the `Escort` task of its escort: the escort held for a while,
+  then flew out its route and landed after about ten minutes
+  ([#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107)). The teleport path
+  (`_move tanker … teleport`) had always repaired this, which is why the same escort stayed put for
+  thirty minutes when teleported and gave up when respawned — measured in game on 2026-08-18. The
+  repair is now **one shared implementation** used by both paths, so the next DCS quirk of this kind
+  has one place to be fixed rather than two to diverge.
+  [#101](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/101) is closed with it, as not
+  reproducible: the teleport it reported as broken works, and is what this fix is ported from.
+
+### Documentation
+
+- **An asset's escort is the group named `<asset> escort`** — a convention the framework has always
+  relied on and that nothing told a mission maker about. Now on the ASSETS page in both languages,
+  including what it is *not*: `linked` lists groups to respawn alongside an asset and has nothing to
+  do with declaring an escort. The page also names the symptom, since that is how a mission maker
+  arrives on it — an escort that goes home after ten minutes.
+
+---
+
 ## [6.15.6] — 2026-08-20
 
 ### Fixed

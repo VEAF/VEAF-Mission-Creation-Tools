@@ -57,7 +57,7 @@ modules:
 | `assets[].name` | string | — | Yes | Internal identifier |
 | `assets[].description` | string | — | Yes | Label shown in the F10 menu |
 | `assets[].information` | string | — | No | Info text displayed to players — use single-quoted YAML `'line1\nline2'` or `"line1\\nline2"` (double-quoted) to get a `\n` Lua escape |
-| `assets[].linked` | string | `null` | No | Name of a linked asset (e.g. a carrier linked to its escort) |
+| `assets[].linked` | string | `null` | No | Name of a group to respawn along with the asset. ⚠️ This is **not** what declares an escort — see [Escorting an asset](#escorting-an-asset) |
 | `assets[].jtac` | number | `null` | No | Laser code: the asset is a JTAC that automatically lases with this code (requires CTLD) |
 | `assets[].freq` | number | `null` | No | Override frequency for the info display (MHz) |
 | `assets[].mod` | string | `null` | No | Radio modulation override (`AM` or `FM`) |
@@ -120,6 +120,28 @@ veafAssets.Assets = {
 | `disposable` | boolean | No | Allow authorised players to despawn the asset |
 
 > Carriers are handled by the separate [veafCarrierOperations](veafCarrierOperations.en.md) module, not by `veafAssets`.
+
+---
+
+## Escorting an asset {#escorting-an-asset}
+
+An asset's escort is the group named **`<asset name> escort`**. That name is not decorative: it is
+what lets the framework find the escort in order to **repair its `Escort` task**, which DCS
+invalidates every time the escorted group is recreated — by a respawn as much as by a teleport
+(`_move tanker … teleport`).
+
+In practice: set the `Escort` task on the **last waypoint** of the escort's route, in the Mission
+Editor, as you normally would. The rest is automatic.
+
+> ⚠️ **`linked` is not what makes a group an escort.** The two mechanisms are independent: `linked`
+> lists groups to **respawn along with** the asset, while the naming convention is what allows the
+> escort task to be repaired. An escort need not be in `linked` — and its task still has to be
+> repaired, because what breaks it is the **escorted** group's id changing, not the escort's.
+
+**The symptom when the name does not follow the convention**: the escort takes off with its charge,
+holds for a while, then **leaves to land after about ten minutes**. That is not the AI giving up: it
+is an escort whose task points at a group that no longer exists, so it flies out its route and goes
+home.
 
 ---
 

@@ -56,7 +56,7 @@ modules:
 | `assets[].name` | string | — | Oui | Identifiant interne |
 | `assets[].description` | string | — | Oui | Libellé affiché dans le menu F10 |
 | `assets[].information` | string | — | Non | Texte d'info affiché aux joueurs — utiliser du YAML entre guillemets simples `'ligne1\nligné2'` ou `"ligne1\\nligne2"` (double-quoté) pour obtenir un `\n` Lua valide |
-| `assets[].linked` | string | `null` | Non | Nom d'une ressource liée (ex : un porte-avions lié à son escorte) |
+| `assets[].linked` | string | `null` | Non | Nom d'un groupe à faire réapparaître en même temps que la ressource. ⚠️ Ce n'est **pas** ce qui déclare une escorte — voir [Escorter une ressource](#escorting-an-asset) |
 | `assets[].jtac` | nombre | `null` | Non | Code laser : la ressource est un JTAC qui illumine automatiquement avec ce code (nécessite CTLD) |
 | `assets[].freq` | nombre | `null` | Non | Fréquence de remplacement pour l'affichage infos (MHz) |
 | `assets[].mod` | string | `null` | Non | Modulation radio de remplacement (`AM` ou `FM`) |
@@ -119,6 +119,29 @@ veafAssets.Assets = {
 | `disposable` | boolean | Non | Permettre aux joueurs autorisés de désactiver la ressource |
 
 > Les porte-avions sont gérés par le module séparé [veafCarrierOperations](veafCarrierOperations.md), pas par `veafAssets`.
+
+---
+
+## Escorter une ressource {#escorting-an-asset}
+
+L'escorte d'une ressource est le groupe nommé **`<nom de la ressource> escort`**. Ce nom n'est pas
+décoratif : c'est ce qui permet au framework de retrouver l'escorte pour **réparer sa tâche
+`Escort`**, que DCS invalide chaque fois que le groupe escorté est recréé — réapparition
+(*Respawn*) comme téléportation (`_move tanker … teleport`).
+
+Concrètement : configurez la tâche `Escort` sur le **dernier waypoint** de la route de l'escorte,
+dans l'éditeur de mission, comme d'habitude. Le reste est automatique.
+
+> ⚠️ **`linked` n'est pas ce qui fait d'un groupe une escorte.** Les deux mécanismes sont
+> indépendants : `linked` liste les groupes à faire **réapparaître en même temps** que la ressource,
+> alors que la convention de nom est ce qui permet de réparer la tâche d'escorte. Une escorte n'a pas
+> besoin d'être dans `linked` — et il faut malgré tout réparer sa tâche, puisque c'est le changement
+> d'identifiant du groupe **escorté** qui la casse, pas celui de l'escorte.
+
+**Symptôme si le nom ne suit pas la convention** : l'escorte décolle avec sa protégée, tient un
+moment, puis **part atterrir au bout d'une dizaine de minutes**. Ce n'est pas un abandon de l'IA :
+c'est une escorte dont la tâche pointe vers un groupe qui n'existe plus, qui vole donc sa route
+jusqu'au bout puis rentre.
 
 ---
 

@@ -208,6 +208,25 @@ just its `mission` file). Each shape is then a table entry, not an investigation
 
 </details>
 
+## 10. Watch a respawned escort for longer than ten minutes
+
+[`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but
+the defect is a DCS behaviour the mocks do not model: an `Escort` task whose `groupId` no longer
+resolves. Only the game can say whether the repair takes.
+
+Rerun **check 9 of `verify-mission-c`**: F10 → Assets → Respawn Arco, then watch its escort.
+
+- **Before the fix**: the escort holds for a while, then leaves to land after ~10 minutes.
+- **Expected now**: it stays with the tanker. David watched the teleport path hold for 30 minutes on
+  2026-08-18, so that is the bar.
+
+⚠️ **Watch past the ten-minute mark.** The failure is a *delayed* RTB — a short look would have called
+the old behaviour fixed. That is the whole reason this cannot be a five-minute check.
+
+Also worth a glance in `dcs.log`: `Re-establishing the escort task of <group> onto group id <n>`. If
+that line is absent, the escort group is not named `<asset> escort` and the convention is what to
+check first (it is now documented on the ASSETS page).
+
 ## 3. Confirm a rebuilt checklist picture is not served stale
 
 [`FEAT-ASSIST-FOLLOWUP` 01](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) shipped the fix: a checklist image's

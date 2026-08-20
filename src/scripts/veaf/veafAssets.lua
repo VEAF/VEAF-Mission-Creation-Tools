@@ -174,6 +174,16 @@ function veafAssets.respawn(name)
         mist.respawnGroup(linkedGroup, true)
       end
     end
+    -- Respawning the asset gave it a new DCS group id, which silently invalidates the Escort task of
+    -- its escort -- the escort keeps flying, runs out of route and goes home about ten minutes later
+    -- (#107). This is the repair the teleport path has always done; keyed on the escort's name, not
+    -- on `linked`, because the escort does not have to be respawned for its task to break.
+    -- Guarded on veafMove's presence: the shipped bundle always carries it, but a mission that loads
+    -- a hand-picked subset of the scripts through `custom_scripts` may not, and a nil index here
+    -- would kill the respawn outright.
+    if veafMove then
+      veafMove.reestablishEscortTask(name)
+    end
     local text = veaf.t("assets.respawned", theAsset.description)
     if theAsset.jtac then
       if veaf.isCtldReady() then

@@ -3,6 +3,7 @@
 import zipfile
 from pathlib import Path
 
+import pytest
 from mission_tools.miz_tools import list_members, read_member, rewrite_miz_members
 
 
@@ -66,3 +67,29 @@ class TestRewriteMizMembers:
         rewrite_miz_members(miz, {"l10n/DEFAULT/veaf-config.lua": b"-- new cfg\n"})
 
         assert read_member(miz, "mission") == quirky
+
+
+class TestRewriteSurvivesATransientLock:
+    """The second atomic write of the same kind needs the same guard as `write_miz`."""
+
+    def test_a_single_denied_rename_is_survived(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        import os
+
+        miz = _make_miz(tmp_path)
+        real_replace = os.replace
+        calls: list[int] = []
+
+        def flaky(src: object, dst: object) -> None:
+            calls.append(1)
+            if len(calls) == 1:
+                raise PermissionError(5, "Access is denied")
+            real_replace(src, dst)
+
+        monkeypatch.setattr(os, "replace", flaky)
+        monkeypatch.setattr("veaf_libs.atomic_replace.time.sleep", lambda _s: None)
+
+        rewrite_miz_members(miz, {"options": b"options = {new}\n"})
+
+        assert len(calls) == 2, "rewrite_miz_members did not retry the rename"
+        assert read_member(miz, "options") == b"options = {new}\n"
+        assert not list(tmp_path.glob("veaf_mission_*.miz")), "a temp file was left in the folder"

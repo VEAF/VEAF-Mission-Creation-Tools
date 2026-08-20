@@ -1,11 +1,14 @@
 # 01 — Survive a transient lock on the final rename
 
-Status: ⬜ ready — **blocked on the PRD's open question**: option 1, 2 or 3 is David's call
+Status: ✅ done 2026-08-20 — option 1, extended to all three atomic writes (see the PRD)
 Type: fix
-Files: `src/python/veaf-tools/mission_tools/miz_tools.py`,
-`test/python/mission_tools/test_miz_tools.py`
+Files: `src/python/veaf-tools/veaf_libs/atomic_replace.py` (new),
+`src/python/veaf-tools/mission_tools/miz_tools.py`,
+`src/python/veaf-tools/veaf-tools-updater.py`,
+`test/python/veaf_libs/test_atomic_replace.py` (new),
+`test/python/mission_tools/test_miz_tools.py`, `test/python/mission_tools/test_miz_members.py`
 
-## The change, if option 1 is chosen
+## The change
 
 Wrap the `os.replace(temp_zip_path, miz_file_path)` of `write_miz` in a bounded retry: a few
 attempts with a short backoff, and **the original exception re-raised** when they run out, so a

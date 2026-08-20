@@ -97,6 +97,16 @@ function TestVeafMoveFindEscortTask:test_the_escort_task_is_found_on_the_last_wa
   luaunit.assertEquals(escortTask.params.groupId, 11, "the stale id must be returned as-is")
 end
 
+function TestVeafMoveFindEscortTask:test_the_route_points_are_returned_too()
+  -- So no caller re-walks the route to find them: one traversal, one thing to keep in step.
+  _mission({ ["Arco escort"] = _groupData(20, 11) })
+
+  local _, _, points = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertNotNil(points, "the points walked to find the task must be handed back")
+  luaunit.assertEquals(#points, 2)
+end
+
 function TestVeafMoveFindEscortTask:test_a_group_with_no_escort_task_returns_nil()
   _mission({ ["Arco escort"] = _groupData(20, nil) })
 

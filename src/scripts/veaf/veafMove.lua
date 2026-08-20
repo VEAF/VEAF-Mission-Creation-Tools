@@ -565,6 +565,9 @@ end
 -- @param groupName_escort, string, the name of the escort group itself (see EscortGroupNameSuffix)
 -- @return escortData, table, the escort's group data (nil when there is no Escort task to be found)
 -- @return task_escort, table, the Escort task inside it, ready to have its groupId reassigned
+-- @return points_escort, table, the route points already walked to find it -- returned rather than
+--         left to the caller to recompute, because two traversals of this structure would be two
+--         things to keep in step, which is the whole reason this lookup was extracted
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafMove.findEscortTask(groupName_escort)
   local escortData = veaf.getGroupData(groupName_escort)
@@ -594,11 +597,13 @@ function veafMove.findEscortTask(groupName_escort)
       veaf.loggers
         .get(veafMove.Id)
         :trace("findEscortTask: found an Escort task on %s, stored groupId=%s", groupName_escort, task.params.groupId)
-      return escortData, task
+      return escortData, task, points_escort
     end
   end
 
-  veaf.loggers.get(veafMove.Id):debug("findEscortTask: no enabled Escort task on %s", groupName_escort)
+  -- No log here: every caller reports this at info, where the context ("we were trying to repair
+  -- this escort") makes it actionable for a mission maker. Two lines at two levels for one condition
+  -- is noise in dcs.log.
   return nil
 end
 
@@ -698,12 +703,12 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
 
   -- Same lookup the respawn path uses (reestablishEscortTask): one implementation of where an Escort
   -- task lives and what a valid one looks like.
-  local EscortData, task_escort = veafMove.findEscortTask(groupName_escort)
+  local EscortData, task_escort, points_escort = veafMove.findEscortTask(groupName_escort)
   if not task_escort then
+    veaf.loggers.get(veafMove.Id):info(groupName_escort .. " carries no Escort task ; cannot move its escort")
     return false
   end
 
-  local points_escort = veaf.findInTable(veaf.findInTable(EscortData, "route"), "points")
   if #points_escort < 2 then
     -- The teleport rewrites the last two waypoints; with a single one there is nothing to rewrite.
     -- findEscortTask accepts a one-point route on purpose: repairing the task needs no waypoints.

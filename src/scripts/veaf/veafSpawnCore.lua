@@ -426,22 +426,40 @@ function veafSpawn.executeCommand(
                 mist.goRoute(groupObject, route)
               end
               -- add the group to the IADS, if there is one
-              if veafSkynet and not veafSkynet.DynamicSpawn and options.skynet then -- only add static stuff like sam groups and sam batteries, not mobile groups and convoys -- and do not do that if DynamicSpawn is active in VeafSkynet
-                veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.lp(options.skynet))
-                if type(options.skynet) == "boolean" then --it means options.skynet is true
-                  options.skynet = veafSkynet.defaultIADS[tostring(options.side)]
-                end
-                veaf.loggers.get(veafSpawn.Id):trace("Adding spawned group to skynet, networkName= %s", veaf.lp(options.skynet))
+              if veafSkynet then
+                -- Tell veafSkynet what this spawn asked for, so that its birth-event handler honours
+                -- the `skynet` option instead of integrating every eligible group it sees. Without
+                -- this, a convoy spawned with `skynet false` still joined the IADS as soon as dynamic
+                -- spawn integration was on — the shortcuts pass `skynet false` on convoys precisely to
+                -- avoid that. Declared here because the group name only exists once the handler ran.
+                veafSkynet.declareSpawn(spawnedGroup, options.skynet)
+
+                -- Only add static stuff like sam groups and sam batteries, not mobile groups and
+                -- convoys. The two integration paths are exclusive: when the target network integrates
+                -- dynamic spawns, its birth-event handler does the work (honouring the declaration
+                -- above), so doing it here as well would integrate the same group twice. Asking the
+                -- *network* rather than the module-level flag, which is only the value a network is
+                -- created with and can be changed per network during the mission.
                 local networkName = options.skynet
-                if veafSkynet.addGroupToNetwork(networkName, groupObject, options.forceEwr, options.pointDefense, nil, bypassSecurity) then
-                  veaf.loggers.get(veafSpawn.Id):trace("Group Added to IADS network")
-                  if not bypassSecurity then
-                    trigger.action.outText(veaf.t("spawn.iads_group_added", options.skynet), 15)
-                  end
-                else
-                  veaf.loggers.get(veafSpawn.Id):trace("Could not find IADS network or group is not supported by IADS")
-                  if not bypassSecurity then
-                    trigger.action.outText(veaf.t("spawn.iads_group_not_added", options.skynet), 15)
+                if type(networkName) == "boolean" then --it means options.skynet is true
+                  networkName = veafSkynet.defaultIADS[tostring(options.side)]
+                end
+                if options.skynet and not veafSkynet.integratesDynamicSpawns(networkName) then
+                  veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.lp(options.skynet))
+                  options.skynet = networkName
+                  veaf.loggers.get(veafSpawn.Id):trace("Adding spawned group to skynet, networkName= %s", veaf.lp(networkName))
+                  if
+                    veafSkynet.addGroupToNetwork(networkName, groupObject, options.forceEwr, options.pointDefense, nil, bypassSecurity)
+                  then
+                    veaf.loggers.get(veafSpawn.Id):trace("Group Added to IADS network")
+                    if not bypassSecurity then
+                      trigger.action.outText(veaf.t("spawn.iads_group_added", options.skynet), 15)
+                    end
+                  else
+                    veaf.loggers.get(veafSpawn.Id):trace("Could not find IADS network or group is not supported by IADS")
+                    if not bypassSecurity then
+                      trigger.action.outText(veaf.t("spawn.iads_group_not_added", options.skynet), 15)
+                    end
                   end
                 end
               end

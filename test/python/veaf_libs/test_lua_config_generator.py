@@ -191,6 +191,51 @@ def test_ctld_disabled_emits_no_start_up_call():
 
 
 # ---------------------------------------------------------------------------
+# External modules — SKYNET
+# ---------------------------------------------------------------------------
+
+
+def test_skynet_dynamic_spawn_reaches_the_generated_config():
+    """FIX-SKYNET-DYNAMICSPAWN-SCOPE / #151.
+
+    ``veafSkynet.DynamicSpawn`` was reachable only through the ``module_settings:`` migration
+    hatch, so a mission maker had no way of turning dynamic IADS integration on — which is the
+    whole of #151: the combat-zone path worked, the flag was simply off and invisible.
+    """
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "dynamic_spawn": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.DynamicSpawn = true" in lua
+
+
+def test_skynet_dynamic_spawn_defaults_to_false():
+    """It arms a birth-event handler on every spawn of the mission, so it is opt-in."""
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.DynamicSpawn = false" in lua
+
+
+def test_skynet_dynamic_spawn_is_set_before_initialize():
+    """Ordering is the point: ``createNetwork`` reads the flag when it creates each network, which
+    happens inside the deferred work ``initialize()`` schedules. Setting it after the call would
+    still work by luck; asserting the order keeps it deliberate."""
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "dynamic_spawn": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert lua.index("veafSkynet.DynamicSpawn = true") < lua.index("veafSkynet.initialize(")
+
+
+def test_skynet_disabled_emits_no_dynamic_spawn():
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": False, "dynamic_spawn": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.DynamicSpawn" not in lua
+
+
+def test_mission_yaml_template_documents_dynamic_spawn():
+    """A key nobody can discover is the defect #151 reported, so the template has to name it."""
+    template = generate_mission_yaml_template()
+    assert "dynamic_spawn" in template
+
+
+# ---------------------------------------------------------------------------
 # External modules — CSAR
 # ---------------------------------------------------------------------------
 

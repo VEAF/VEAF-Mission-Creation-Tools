@@ -7,6 +7,44 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.8] — 2026-08-20
+
+### Added
+
+- **`dynamic_spawn` is now a `mission.yaml` field** under `modules.SKYNET`, so a mission can ask the
+  IADS to take in the SAMs that appear while it runs. That was the whole of
+  [#151](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/151) (*"combat-zone SAMs are not in
+  the IADS"*): measured in game on 2026-08-18, the path **works** — a combat zone's SA-6 does join the
+  red network. The flag that enables it was simply off, and reachable only through the
+  `module_settings:` migration hatch, which is a compatibility path and not an interface. Documented
+  in both languages with what it costs: a birth-event handler on every spawn of the mission, which is
+  why it stays off by default.
+- **`veafSkynet.activateNetworkOfCoalition`** — the half of the API that was missing. Since a
+  deactivated network now stays deactivated (below), there had to be a way back that is not a full
+  reinitialisation. Everything attached while the network was down comes up with it.
+
+### Fixed
+
+- **A network switched off on purpose stays off.** Spawning a single SAM into a deactivated IADS
+  brought the whole network back up ([#261](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/261),
+  confirmed in game 2026-08-18 with the chain measured end to end). `addGroupToNetwork` finished with
+  an unconditional `delayedActivate`, and nothing anywhere recorded that the network had been switched
+  off deliberately. The group is still attached — that is what `skynet true` asks for — it just no
+  longer wakes the network up.
+- **Deactivating one coalition's network no longer disarms the other's.** `deactivateNetwork` removed
+  the birth-event handler *shared by every network*, and nothing ever re-armed it: switching off red
+  silently stopped blue from integrating anything it spawned for the rest of the mission. The setting
+  is now per network, and the shared handler stays armed as long as some network wants it.
+- **A spawn's `skynet` option is honoured on the dynamic path.** `skynet true|false|<network>` has
+  always been a per-spawn option, and the birth-event handler never looked at it: it integrated every
+  eligible group it saw. So with dynamic integration on, `-hv_convoy_red` — which passes `skynet false`
+  precisely to stay out — joined the IADS anyway, its Tor and Tunguska being enough to qualify. A
+  network name now also wins over the coalition default, which that path used to ignore. A group no
+  VEAF command declared, placed in the Mission Editor or created by a third-party script, still joins
+  its coalition's network: that is what the feature is for.
+
+---
+
 ## [6.15.7] — 2026-08-20
 
 ### Fixed

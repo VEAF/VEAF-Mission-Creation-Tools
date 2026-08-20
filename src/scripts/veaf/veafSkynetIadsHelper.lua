@@ -29,6 +29,14 @@ veafSkynet.DelayForStartup = 1
 -- delay before restarting the IADS when adding a single group
 veafSkynet.DelayForRestart = 20
 
+-- delay before a dynamically spawned group is integrated into its network.
+-- This exists so integration does not depend on whether DCS emits S_EVENT_BIRTH before or after
+-- veafSpawn has had a chance to declare what the spawn asked for (see veafSkynet.declareSpawn):
+-- the group name is only known once the spawn handler returns, so the declaration cannot be made
+-- ahead of the birth event. Integration ends in delayedActivate, which waits DelayForRestart
+-- seconds anyway, so this delay costs nothing observable.
+veafSkynet.DelayForDynamicIntegration = 1
+
 -- maximum x or y (z in DCS) between a SAM site and it's point defenses in meters
 veafSkynet.MaxPointDefenseDistanceFromSite = 10000
 
@@ -69,6 +77,9 @@ veafSkynet.PointDefenceModes = {
 }
 veafSkynet.PointDefenceMode = veafSkynet.PointDefenceModes.None -- no point defences by default
 
+-- Value each network is *created* with. The live setting is per network, in
+-- veafSkynet.structure[networkName].dynamicSpawn, so that deactivating one coalition's network does
+-- not disable dynamic integration for the other one (#261).
 veafSkynet.DynamicSpawn = false -- false by default
 
 veafSkynet.SkynetElementStates = {
@@ -79,7 +90,13 @@ veafSkynet.SkynetElementStates = {
 
 --table containing the structure of each IADS network, first level is accessed with the IADS name. This contains the .coalitionID of the network, the IADS network (.iads), the groups added to the network (.groups) stored by groupName,
 --wether this network should appear on the radio menu (.includeInRadio) and lastly if this network is in debug mode (.debugFlag). The groups store whether the group was .forceEwr or .pointDefense.
+--It also carries .dynamicSpawn (does this network integrate groups spawned during the mission) and .deactivated (was this network switched off on purpose, in which case nothing may bring it back up implicitly).
 veafSkynet.structure = {}
+
+--What a veafSpawn command asked for, per group name, so that the birth-event handler can honour the
+--per-spawn `skynet` option instead of integrating every eligible group it sees. Values are `false`
+--(stay out of every network) or a network name. Entries are consumed on integration.
+veafSkynet.declaredSpawns = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -240,6 +257,13 @@ function veafSkynet.delayedActivate(networkName)
   veaf.loggers.get(veafSkynet.Id):debug("veafSkynet.delayedActivate(%s)", veaf.lp(networkName))
   local network = veafSkynet.structure[networkName]
   if network then
+    -- #261: a network switched off on purpose must stay off. Adding a group to it used to schedule an
+    -- activation unconditionally, so any spawn integrated into a deactivated network woke it back up.
+    -- Only a deliberate call to veafSkynet.activateNetwork (or a full reinitialisation) clears this.
+    if network.deactivated then
+      veaf.loggers.get(veafSkynet.Id):debug(string.format("IADS %s was deactivated on purpose, not activating it", veaf.p(networkName)))
+      return
+    end
     if network.delayedActivation then
       veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS %s already has a delayed activation", veaf.p(networkName)))
     else
@@ -258,6 +282,14 @@ function veafSkynet._activateIADS(networkName)
   local network = veafSkynet.structure[networkName]
   if network then
     network.delayedActivation = nil
+    -- #261, belt to delayedActivate's braces: an activation scheduled *before* the network was
+    -- deactivated must not fire after it. Checked here too, since the schedule is already pending.
+    if network.deactivated then
+      veaf.loggers
+        .get(veafSkynet.Id)
+        :debug(string.format("IADS %s was deactivated on purpose, dropping the pending activation", veaf.p(networkName)))
+      return
+    end
     local iads = network.iads
     if iads then
       veaf.loggers.get(veafSkynet.Id):debug("calling iads:activate()")
@@ -497,6 +529,88 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 veafSkynet.monitorDynamicSpawnHandlerId = nil
 
+-- Record what a veafSpawn command asked for, so the birth-event handler can honour the per-spawn
+-- `skynet` option. The group name is only known once the spawn handler returns, hence
+-- veafSkynet.DelayForDynamicIntegration: the declaration may land after the birth event.
+-- `skynetOption` is what the parser produced: false, true, or a network name.
+function veafSkynet.declareSpawn(groupName, skynetOption)
+  if not groupName then
+    return
+  end
+  if skynetOption == nil or skynetOption == true then
+    -- nothing to override: `true` means "the coalition's default network", which is what the
+    -- dynamic-spawn handler does on its own.
+    return
+  end
+  veaf.loggers.get(veafSkynet.Id):trace("declareSpawn(%s, %s)", veaf.p(groupName), veaf.p(skynetOption))
+  veafSkynet.declaredSpawns[groupName] = skynetOption
+end
+
+-- Does this network integrate groups spawned during the mission on its own? Callers use this to know
+-- whether they must integrate a group themselves or leave it to the birth-event handler — doing both
+-- would integrate it twice. An unknown network answers false, so a spawn targeting a network that does
+-- not exist still takes the explicit path and reports its failure to the player.
+function veafSkynet.integratesDynamicSpawns(networkName)
+  local network = veafSkynet.getNetwork(networkName)
+  return (network ~= nil) and (network.dynamicSpawn == true)
+end
+
+-- Which network a dynamically spawned group should join, honouring what the spawn declared.
+-- Returns nil when the group must stay out of every network.
+function veafSkynet.resolveDynamicSpawnNetwork(groupName, coalitionId)
+  local declared = veafSkynet.declaredSpawns[groupName]
+  if declared ~= nil then
+    veafSkynet.declaredSpawns[groupName] = nil -- consumed
+    if declared == false then
+      veaf.loggers
+        .get(veafSkynet.Id)
+        :debug(string.format("group %s was spawned with `skynet false`, keeping it out of the IADS", veaf.p(groupName)))
+      return nil
+    end
+    return declared -- an explicit network name wins over the coalition default
+  end
+
+  -- Nobody declared this group: it comes from the Mission Editor or a third-party script, which is
+  -- exactly what dynamic spawn integration is for.
+  return veafSkynet.defaultIADS[tostring(coalitionId)]
+end
+
+function veafSkynet._integrateDynamicSpawn(groupName, coalitionId)
+  local dcsGroup = Group.getByName(groupName)
+  if not dcsGroup then
+    veaf.loggers.get(veafSkynet.Id):trace(string.format("group %s no longer exists, not integrating it", veaf.p(groupName)))
+    veafSkynet.declaredSpawns[groupName] = nil
+    return
+  end
+
+  local networkName = veafSkynet.resolveDynamicSpawnNetwork(groupName, coalitionId)
+  if not networkName then
+    return
+  end
+
+  local network = veafSkynet.getNetwork(networkName)
+  if not network then
+    veaf.loggers
+      .get(veafSkynet.Id)
+      :debug(string.format("no IADS network named %s to integrate %s into", veaf.p(networkName), veaf.p(groupName)))
+    return
+  end
+  -- #261: the flag is per network, so one coalition switching dynamic integration off leaves the
+  -- other one working.
+  if not network.dynamicSpawn then
+    veaf.loggers.get(veafSkynet.Id):trace(string.format("network %s does not integrate dynamically spawned groups", veaf.p(networkName)))
+    return
+  end
+
+  veaf.loggers
+    .get(veafSkynet.Id)
+    :debug(string.format("DYNAMIC SPAWN adding spawned group [%s] to IADS network [%s]", groupName, networkName))
+  if veafSkynet.addGroupToNetwork(networkName, dcsGroup, false, false) then
+    veafSkynet.initializePointDefences(network)
+    --iads:buildRadarCoverage()
+  end
+end
+
 function veafSkynet.OnDynamicSpawn(event)
   if not veafSkynet.initialized then
     return
@@ -518,26 +632,20 @@ function veafSkynet.OnDynamicSpawn(event)
     return
   end
 
-  local coalition = dcsGroup:getCoalition()
-  local networkName = veafSkynet.defaultIADS[tostring(coalition)]
-  if not networkName then
-    veaf.loggers.get(veafSkynet.Id):error("No default IADS network for coalition " .. coalition)
+  local coalitionId = dcsGroup:getCoalition()
+  if not veafSkynet.defaultIADS[tostring(coalitionId)] then
+    veaf.loggers.get(veafSkynet.Id):error("No default IADS network for coalition " .. tostring(coalitionId))
     return
   end
 
-  veaf.loggers.get(veafSkynet.Id):debug(
-    "DYNAMIC SPAWN adding spawned group ["
-      .. dcsGroup:getName()
-      .. "] [id="
-      .. dcsGroup:getID()
-      .. "] to IADS network ["
-      .. networkName
-      .. "]"
+  -- Deferred on purpose: veafSpawn can only declare the spawn's `skynet` option once its handler has
+  -- returned a group name, which may be after DCS emits the birth event. Deciding here would race it.
+  local groupName = dcsGroup:getName()
+  mist.scheduleFunction(
+    veafSkynet._integrateDynamicSpawn,
+    { groupName, coalitionId },
+    timer.getTime() + veafSkynet.DelayForDynamicIntegration
   )
-  if veafSkynet.addGroupToNetwork(networkName, dcsGroup, false, false) then
-    veafSkynet.initializePointDefences(veafSkynet.getNetwork(networkName))
-    --iads:buildRadarCoverage()
-  end
 end
 
 function veafSkynet.monitorDynamicSpawn(bMonitor)
@@ -555,6 +663,33 @@ function veafSkynet.monitorDynamicSpawn(bMonitor)
     mist.removeEventHandler(veafSkynet.monitorDynamicSpawnHandlerId)
     veafSkynet.monitorDynamicSpawnHandlerId = nil
   end
+end
+
+-- Arm the birth-event handler if *any* network integrates dynamic spawns, disarm it when none does.
+-- The handler is shared by every network, so it can only be removed once nobody wants it — which is
+-- why deactivating a single network must not call monitorDynamicSpawn(false) directly (#261).
+function veafSkynet.refreshDynamicSpawnMonitoring()
+  local wanted = false
+  for _, network in pairs(veafSkynet.structure) do
+    if network.dynamicSpawn then
+      wanted = true
+      break
+    end
+  end
+  veafSkynet.monitorDynamicSpawn(wanted)
+end
+
+-- Turn dynamic spawn integration on or off for one network.
+function veafSkynet.setDynamicSpawn(networkName, bEnabled)
+  local network = veafSkynet.getNetwork(networkName)
+  if not network then
+    veaf.loggers.get(veafSkynet.Id):debug(string.format("no IADS network named %s", veaf.p(networkName)))
+    return false
+  end
+  network.dynamicSpawn = bEnabled and true or false
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("network %s dynamicSpawn=%s", veaf.p(networkName), veaf.p(network.dynamicSpawn)))
+  veafSkynet.refreshDynamicSpawnMonitoring()
+  return true
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -918,6 +1053,8 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
           veafSkynet.structure[networkName].includeInRadio = includeInRadio
           veafSkynet.structure[networkName].debugFlag = debugFlag
           veafSkynet.structure[networkName].groups = {}
+          -- the module-level flag is the value a network is created with; from then on it is per network
+          veafSkynet.structure[networkName].dynamicSpawn = veafSkynet.DynamicSpawn
         end
         veafSkynet.structure[networkName].iads = iads
 
@@ -964,6 +1101,10 @@ function veafSkynet.reinitializeNetwork(networkName)
       end
       networkStructure.iads:deactivate()
     end
+    -- rebuilding a network from scratch is a deliberate act, so it clears the "switched off on
+    -- purpose" mark — otherwise initializeIADS's own delayedActivate at the end would be refused
+    -- and the reinitialised network would stay dark (#261).
+    networkStructure.deactivated = nil
     createNetwork(networkName, networkStructure.coalitionID, true)
   end
 end
@@ -1054,9 +1195,8 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
     veafSkynet.CommandCentersPreinitialize = {}
   end
 
-  if veafSkynet.DynamicSpawn then
-    veafSkynet.monitorDynamicSpawn(true)
-  end
+  -- arms the shared birth handler if any network was created wanting dynamic integration
+  veafSkynet.refreshDynamicSpawnMonitoring()
 
   veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
 end
@@ -1176,7 +1316,15 @@ function veafSkynet.deactivateNetwork(veafSkynetNetwork, elementStates)
     end
   end
 
-  veafSkynet.monitorDynamicSpawn(false)
+  -- #261: this used to call veafSkynet.monitorDynamicSpawn(false), which removes the event handler
+  -- *shared by every network* — so switching off one coalition's IADS disarmed the other one's
+  -- dynamic integration too, and nothing ever re-armed it.
+  --
+  -- Marking the network instead. Note that `dynamicSpawn` is deliberately left alone: a group
+  -- spawned with `skynet true` into a deactivated network still gets attached — that is what the
+  -- option asks for — it simply must not wake the network up, which delayedActivate now refuses.
+  -- The group lights up with the rest when someone reactivates the network on purpose.
+  veafSkynetNetwork.deactivated = true
   iads:deactivate()
 
   local ewrs = iads:getEarlyWarningRadars()
@@ -1218,11 +1366,49 @@ function veafSkynet.deactivateNetworkOfCoalition(iCoalitionId, elementStates)
   veafSkynet.deactivateNetwork(veafSkynetNetwork, elementStates)
 end
 
+-- Bring a deliberately deactivated network back up. This is the symmetric half of
+-- deactivateNetwork, which the API was missing: since #261 a deactivated network stays down, so
+-- without this there would be no way back short of reinitializing it.
+-- Everything attached while the network was down comes up with it.
+function veafSkynet.activateNetwork(veafSkynetNetwork)
+  if not veafSkynetNetwork then
+    veaf.loggers.get(veafSkynet.Id):debug("no network to activate")
+    return false
+  end
+
+  local networkName = nil
+  for name, network in pairs(veafSkynet.structure) do
+    if network == veafSkynetNetwork then
+      networkName = name
+      break
+    end
+  end
+  if not networkName then
+    veaf.loggers.get(veafSkynet.Id):warn("cannot tell which network this is, not activating it")
+    return false
+  end
+
+  veafSkynetNetwork.deactivated = nil
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("activating network %s on purpose", veaf.p(networkName)))
+  veafSkynet.delayedActivate(networkName)
+  return true
+end
+
+function veafSkynet.activateNetworkOfCoalition(iCoalitionId)
+  local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(iCoalitionId)])
+  return veafSkynet.activateNetwork(veafSkynetNetwork)
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Load module
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 veaf.loggers.get(veafSkynet.Id):info(veaf.loggers.get(veafSkynet.Id):getVersionInfo())
 
+-- Note on `dynamic_spawn` (#151): the build writes it as `veafSkynet.DynamicSpawn = <bool>` into
+-- veaf-config.lua, right before its initialize() call, rather than as a veaf.setConfig key read here.
+-- The generated block calls initialize() directly and so bypasses this callback, so a second source
+-- of truth could overwrite the first depending on load order. createNetwork reads the variable when
+-- it creates each network, which is after the generated block has run.
 veaf.registerModule(veafSkynet.Id, function()
   local cfg = veaf.getConfig(veafSkynet.Id)
   veafSkynet.initialize(cfg.includeRedInRadio, cfg.debugRed, cfg.includeBlueInRadio, cfg.debugBlue)

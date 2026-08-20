@@ -1,6 +1,10 @@
 # FIX-SKYNET-DYNAMICSPAWN-SCOPE — one global boolean answers two issues badly
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
+
+Written, unit-tested and shipped in 6.15.8. Waiting on checks 6 and 7 of `verify-mission-c`, which
+need DCS started — the workstation this was written on has it, so it is one session away, not a
+blocker. See [DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).
 
 Origin: `CHORE-ISSUE-VERIFY-SESSION` checks 6 and 7, run in DCS on 2026-08-18. Closes
 [#151](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/151) and
@@ -31,18 +35,47 @@ and scoping the flag without exposing it hides the fix.
 - A deactivated network **stays** deactivated until something reactivates it deliberately.
   `addGroupToNetwork` calling `delayedActivate` unconditionally is what makes that impossible.
 
-## Open question for whoever takes it
+## The open question, answered 2026-08-20 — and it removed itself
 
-What should happen to a group spawned **into** a deactivated network — refused, integrated but left
-dark, or queued until reactivation? The issue does not say, and the answer decides how a mission
-maker uses this. Ask David before choosing.
+Asked which of *refused* / *integrated but dark* / *queued* should happen to a group spawned into a
+deactivated network, David answered with a question:
+
+> on a une option pour dire si on veut que le sam soit attaché à IADS ou pas, non ?
+
+He was right, and it settles it without an arbitration. `skynet` is a **per-spawn** option
+([`veafSpawnParser.lua:45`](../../src/scripts/veaf/veafSpawnParser.lua:45)) taking `true`, `false`, or a
+network name; every SAM shortcut passes `skynet true`, convoys and sanctuaries pass `skynet false`. The
+mission maker has already said whether the group belongs to the IADS, so there was no second question
+to ask: the group is attached, and the attachment simply must not wake the network up.
+
+## A fourth defect, found by checking that answer
+
+Taking the question seriously and going to look at what the option *does* on the dynamic path turned up
+a defect the PRD did not know about: it does nothing at all. `OnDynamicSpawn` takes a raw DCS birth
+event, never consults the option, and integrates every eligible group. So with `dynamic_spawn` on,
+`-hv_convoy_red` — `skynet false`, and carrying a Tor, a Tunguska and a Strela, all in Skynet's
+database — joined the IADS against its own declaration. Same family as #261 and #290: a global setting
+overriding a per-call option. Filed as ticket 04 and fixed with the rest.
+
+## Two things that had to come with it
+
+- **`veafSkynet.activateNetworkOfCoalition`**, because the API had `deactivateNetwork` with no
+  symmetric half. Once a deactivated network stays down, "stays down" would have meant "forever".
+- **The exclusivity of the two integration paths now asks the network**, not the module-level flag,
+  which is only the value a network is *created* with. Otherwise a network whose integration was
+  switched off mid-mission would have had `skynet true` silently dropped by both paths.
 
 ## Definition of done
 
-- [ ] `dynamic_spawn` configurable from `mission.yaml`, documented in both languages
-- [ ] Deactivating one network does not disable dynamic integration for the other
-- [ ] A network deactivated stays down when a group spawns into it, per the decision above
-- [ ] Lua tests covering both networks and both flag states
+- [x] `dynamic_spawn` configurable from `mission.yaml`, documented in both languages
+- [x] Deactivating one network does not disable dynamic integration for the other
+- [x] A network deactivated stays down when a group spawns into it — the group is attached, the
+      network does not wake up, and a deliberate reactivation brings it up with everything attached
+- [x] The dynamic path honours the per-spawn `skynet` option, network names included (ticket 04)
+- [x] Lua tests covering both networks and both flag states — 48 new ones, and the three guards were
+      **mutation-checked**: each was neutralised in turn to prove a test fails. That pass caught two
+      of my own tests passing for the wrong reason (`_makeGroupWithUnits` hardcodes BLUE, so a RED
+      network made them pass on a coalition mismatch rather than on the guard under test)
 - [ ] Re-run checks 6 and 7 of `verify-mission-c` — the instrumentation (`group added / delayedActivate
       / reactivation` counters) is already in its `mission-script.lua`
 - [ ] #151 and #261 closed citing the measurements

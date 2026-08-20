@@ -208,6 +208,34 @@ just its `mission` file). Each shape is then a table entry, not an investigation
 
 </details>
 
+## 11. Re-run checks 6 and 7 of `verify-mission-c` — the Skynet IADS fixes
+
+[`FIX-SKYNET-DYNAMICSPAWN-SCOPE`](.backlog/FIX-SKYNET-DYNAMICSPAWN-SCOPE/PRD.md) shipped in 6.15.8:
+written, 48 new unit tests, three guards mutation-checked. What no unit test can see is Skynet's own
+behaviour inside a running DCS, so the two checks that measured the defects are what confirm the fixes.
+The instrumentation is **already in the mission's `mission-script.lua`** — the `group added /
+delayedActivate / reactivation` counters that produced the original measurements.
+
+The mission needs `dynamic_spawn: true` under `modules.SKYNET` — that field is new, and it replaces the
+`module_settings: { veafSkynet.DynamicSpawn: true }` hatch the verification mission used. Rebuild it
+before the session or the run measures 6.15.7.
+
+- **Check 6 (#151)** — activate a combat zone holding a standard DCS SAM group, read the Skynet monitor.
+  Expected: the SAM joins the red network, as it already did. This one is a **regression check**: the
+  path worked, and the lot must not have broken it while making the flag reachable.
+- **Check 7 (#261)** — deactivate the red network, then `-samlr, country russia` by map marker nearby.
+  - **Before**: `group added → delayedActivate called → RED IADS REACTIVATED`.
+  - **Expected now**: `group added`, and **no** `delayedActivate`, **no** reactivation. The SAM is
+    attached; the network stays down. Then `veafSkynet.activateNetworkOfCoalition(coalition.side.RED)`
+    brings it up **with** that SAM in it.
+- **Worth adding while there, since it is the fourth defect and has never been in game**: with
+  `dynamic_spawn` on, drop a `-hv_convoy_red`. Its Tor and Tunguska are in Skynet's database, and the
+  shortcut passes `skynet false`. Expected: the convoy does **not** appear in the network's element
+  list. Before the fix it did.
+- ⚠️ **Do not read an element's `isActive()`** to decide whether a network is up — it reports whether
+  that radar is emitting, a Skynet SAM stays dark by design until it has a contact, and
+  `SkynetIADS:deactivate()` never touches that state. That cost two rounds during the original session.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

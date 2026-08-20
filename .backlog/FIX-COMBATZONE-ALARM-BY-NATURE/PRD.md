@@ -12,7 +12,7 @@ it before anyone sees it is still open.
 
 ## What we did yesterday, and what it cost
 
-[`FIX-COMBATZONE-CONVOY-ALARM`](../archive/FIX-COMBATZONE-CONVOY-ALARM.md) (PR #762, 6.15.5) fixed
+`FIX-COMBATZONE-CONVOY-ALARM` ([PR #762](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/762), 6.15.5) fixed
 [#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290), open since April 2025: a combat
 zone put **every** group it spawned on RED alert, and a DCS ground group on red alert holds position, so
 convoys never drove their route. The fix introduced `veafCombatZone.DefaultAlarmState = 0` (AUTO).

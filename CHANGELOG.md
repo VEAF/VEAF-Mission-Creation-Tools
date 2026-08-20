@@ -11,7 +11,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **A combat zone's air defences are no longer silent.** 6.15.5 gave every group a zone spawns the AUTO
+- **A combat zone's air defences are no longer silent.** 6.15.5 gave every group that a zone spawns the AUTO
   alarm state so that convoys would finally drive their route
   ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)) — but a SAM battery on AUTO
   keeps its radars down, so the same change made every air defence inside a combat zone go quiet. One

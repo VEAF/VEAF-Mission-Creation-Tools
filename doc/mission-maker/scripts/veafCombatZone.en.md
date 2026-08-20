@@ -263,6 +263,14 @@ CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
 
 This lets you set up complex spawns (SA-11 battery, convoys with AI routes) without any Lua code.
 
+**A delayed command's groups belong to their zone.** A command can carry a delay in three ways — `-samsr!30` (an alias delay), a `-spawn`'s `delay` option, or a repeat. In all of them the command returns **before** anything has been spawned. What appears afterwards still belongs to the zone: deactivating the zone destroys those groups like any other.
+
+Before 6.15.9 it did not. The zone read the list of what it had created too early, so a delayed group was registered nowhere and **outlived the zone that spawned it**.
+
+> If the zone is deactivated while the delay is running, the group that appears afterwards is destroyed straight away — nothing can cancel an already scheduled spawn, so this is the outcome the deactivation would have produced.
+
+Note that `#spawndelay` never had this problem: it delays the zone element itself, which registers on the way through.
+
 ---
 
 ## Module Constants

@@ -7,6 +7,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.9] — 2026-08-20
+
+### Fixed
+
+- **A combat zone's delayed command no longer leaves a group behind.** A zone can carry a VEAF command
+  on a fake unit, and that command can be delayed — `-samsr!30`. The zone passed a collection table
+  down and read it on the very next line, but a delayed command hands its work to a scheduler and
+  returns immediately: the table was empty, the group was registered nowhere, and deactivating the zone
+  could not destroy it. The SAM outlived the zone that spawned it
+  ([#66](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/66), open since the v5 era,
+  confirmed in game on 2026-08-18).
+
+  **Two things widened this beyond the report.** The table was never lost — it is passed by reference
+  into the deferred call and *is* filled later; nobody read it again. And there are **three** deferring
+  paths, not one: an alias delay, a spawn's `delay` option, and a spawn's repeats. A zone therefore also
+  lost the groups of every repeat past the first. A caller can now ask to be told about each group as it
+  appears, so all three are fixed at once. `#spawndelay` never had the problem and is untouched.
+
+  A group that appears *after* its zone was deactivated is now destroyed rather than registered:
+  nothing can cancel an already scheduled spawn, so that is the outcome the deactivation would have
+  produced.
+
+---
+
 ## [6.15.8] — 2026-08-20
 
 ### Added

@@ -218,26 +218,34 @@ Unit and group names in the DCS Mission Editor can carry special tags that contr
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Override the spawn group name (useful to target a named template) |
 | `#spawndelay=N` | `#spawndelay=120` | Delay in seconds before this group spawns after zone activation |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Execute a VEAF command instead of spawning this group; the unit acts as a trigger and is destroyed |
-| `#alarm=N` | `#alarm=2` | Alarm state given to this group: `0` AUTO (default), `1` GREEN, `2` RED |
+| `#alarm=N` | `#alarm=2` | Alarm state given to this group: `0` AUTO, `1` GREEN, `2` RED. Without the tag, the state follows the group's nature — see [`#alarm`](#alarm-state) |
 
 ### `#alarm` — making a group hold its ground {#alarm-state}
 
-A ground group on **RED** alert stops and deploys: right for a SAM battery, wrong for a convoy, which then never leaves. Zones therefore spawn every group on **AUTO**, where DCS raises the group's own alert level when it detects something — a convoy drives its route, and a defence still fires once it sees a target.
+The ground alarm state decides two things at once, and both matter: a group on **RED** stops and deploys — radars up, ready to fire — while on **AUTO** it drives and lets DCS raise its alert on detection. Right for a SAM battery in one case, right for a convoy in the other, and never the same one.
 
-Use `#alarm=2` on the groups you want dug in from the first second, typically air defence you would rather have radars up before the first pass:
+**The zone therefore chooses by the nature of the group**, without you saying anything:
+
+| The group | State it gets | Why |
+|---|---|---|
+| has a route to drive (more than one waypoint) | **AUTO** | so it leaves: on RED it would never move |
+| stays put | **RED** | so it fights: on AUTO a SAM battery keeps its radars down |
+
+`#alarm=N` still wins, in both directions — to pin a convoy in place (`#alarm=2`) as much as to keep a defence quiet until first contact (`#alarm=0`):
 
 ```
-ALPHA-SA6-BATTERY #alarm=2
-ALPHA-SUPPLY-CONVOY
+ALPHA-SA6-BATTERY              ← RED, with nothing written
+ALPHA-SUPPLY-CONVOY            ← AUTO, with nothing written
+ALPHA-SA6-AMBUSH #alarm=0      ← quiet on purpose
 ```
 
-An unreadable or out-of-range value (`#alarm=7`, `#alarm=x`) falls back to AUTO rather than failing the zone.
+An unreadable or out-of-range value (`#alarm=7`, `#alarm=x`) falls back to RED and says so in the log, rather than failing the zone.
 
 !!! note "Only for mission groups"
     The tag applies to groups the zone spawns itself. On a `#command=` unit, pass the alarm state inside the command instead (`-spawn ..., alarm 2`), since the spawn is handled by the VEAF marker interpreter.
 
-!!! warning "Behaviour change"
-    Zones used to spawn **every** group on RED, which is why convoys placed in a combat zone never moved ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). If a zone of yours relied on that — air defence that must be hot at activation — add `#alarm=2` to those groups.
+!!! warning "How this behaved before"
+    Up to 6.15.4 zones spawned **every** group on RED, which is why a convoy placed in a zone never moved ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). The fix went through a single AUTO default, which sorted the convoys **and made the zones' air defences go silent** — a battery on AUTO does not light its radars. Hence the per-nature choice above. If you added `#alarm=2` to your batteries in the meantime, they still work and are now redundant: the default does the same thing.
 
 ### Practical example — MANPADS ambush
 

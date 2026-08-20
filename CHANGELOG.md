@@ -7,6 +7,34 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.13] — 2026-08-20
+
+### Fixed
+
+- **A combat zone's air defences are no longer silent.** 6.15.5 gave every group a zone spawns the AUTO
+  alarm state so that convoys would finally drive their route
+  ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)) — but a SAM battery on AUTO
+  keeps its radars down, so the same change made every air defence inside a combat zone go quiet. One
+  defect traded for another, on a version that was **never published**, which is the only reason nobody
+  outside the repository saw it.
+
+  The zone now picks the state from the **nature of the group** instead of applying one default to all:
+  a group with a route to drive gets AUTO, so it leaves; a group that stays put gets RED, so it fights.
+  `#alarm=N` still overrides both, in either direction.
+
+  The trade was named in the previous fix's own PRD — *"right for a SAM battery, wrong for a convoy"* —
+  and answered with a single default plus `#alarm=N` as the escape hatch. An escape hatch that every
+  mission maker has to apply to every existing battery is a regression, not an option; hence choosing per
+  group. A `#alarm=2` added on a battery in the meantime still works and is now redundant.
+
+  Criterion and its alternative, recorded because it is a judgement call: **more than one waypoint means
+  the group is meant to move**, which is the reason AUTO exists here at all. Asking instead whether the
+  group *contains* a SAM launcher would be more precise about air defence but answers the wrong question
+  — a supply convoy with an escort SAM would come out "air defence" and stop moving, which is the very
+  bug #290 was about.
+
+---
+
 ## [6.15.12] — 2026-08-20
 
 ### Fixed

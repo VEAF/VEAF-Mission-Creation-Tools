@@ -293,6 +293,22 @@ rather than declaring it, so a leak would show up there rather than at the top.
 - If a mission logs `unknown FARP-like type [...]`, that is the new warning doing its job — send me the
   type name, it belongs in `veafGrass.FARP_PLATFORM_TYPES`.
 
+## 16. The combat zone alarm state — both natures, before publishing
+
+[`FIX-COMBATZONE-ALARM-BY-NATURE`](.backlog/FIX-COMBATZONE-ALARM-BY-NATURE/PRD.md), 6.15.13. This one
+gates the release: #290 was measured in game, and this changes what that measurement produced.
+
+In a combat zone holding **both** a SAM battery and a convoy, activate the zone:
+
+- **The convoy must still drive its route.** That is #290, fixed in 6.15.5, and the regression to watch —
+  it matters more than the new half.
+- **The battery must light its radars and engage.** On 6.15.5 through 6.15.12 it stayed silent, which is
+  the defect being fixed here.
+- Then `#alarm=0` on the battery: it should go quiet again, since an explicit tag still wins.
+
+Worth knowing while looking: this is **not** Tripack's report. He saw silent zone SAMs on 6.15.2, which
+predates the AUTO default entirely, so his case is still unexplained and this check does not close it.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

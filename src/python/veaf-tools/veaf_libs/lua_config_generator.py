@@ -1602,12 +1602,18 @@ def generate_config_lua(
         debug_red = skynet_cfg.get("debug_red", False)
         include_blue = skynet_cfg.get("include_blue_in_radio", False)
         debug_blue = skynet_cfg.get("debug_blue", False)
+        dynamic_spawn = skynet_cfg.get("dynamic_spawn", False)
         r = "true" if include_red else "false"
         dr = "true" if debug_red else "false"
         b = "true" if include_blue else "false"
         db = "true" if debug_blue else "false"
+        ds = "true" if dynamic_spawn else "false"
         lines.append("-- ── Skynet-IADS ──────────────────────────────────────────────────────────────")
         lines.append("if veafSkynet then")
+        # Set before initialize(): each network is created with this value, and createNetwork reads it
+        # when initialize()'s deferred work runs. Without it, the only way to turn dynamic spawn
+        # integration on was the `module_settings:` migration hatch (#151).
+        lines.append(f"    veafSkynet.DynamicSpawn = {ds}")
         lines.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
         lines.append("end")
         lines.append("")
@@ -1780,6 +1786,7 @@ def generate_mission_yaml_template(
                 "  #   debug_red: false",
                 "  #   include_blue_in_radio: false",
                 "  #   debug_blue: false",
+                "  #   dynamic_spawn: false     # integrate groups spawned during the mission into the IADS",
             ]
         elif upper == "CTLD":
             # CTLD 2 takes no settings here: its configuration is the mission's

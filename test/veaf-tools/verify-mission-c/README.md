@@ -13,8 +13,14 @@ are all driven from the F10 menu and a map marker, so none of them needs its own
 | 10 | [#101](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/101) | Does a **teleported** escort still defend? |
 | 12 | [#87](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/87) | Can red run carrier ops, and can red stop blue's? |
 
-**Check 11 (#128) is not here.** It needs a real multiplayer server with a game-master client; a
-solo session cannot answer it.
+**Check 11 (#128) IS here now, and the sentence that used to stand here was wrong.** It read *"it needs
+a real multiplayer server with a game-master client; a solo session cannot answer it"* — which came from
+reading DCS's Lua rather than from trying, and David refuted it the same day by taking the game-master
+role in a solo session and finding the carrier menu **empty**. That is the reproduction of #128.
+
+It was answered on **2026-08-20** by a probe carried here for one session, since deleted. The results
+are in [`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](../../../docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md);
+see [check 11](#check-11) for what is left to measure.
 
 ## What was decided before launching DCS
 
@@ -203,6 +209,20 @@ sees none of these commands (see above).
 - **Red can act on the blue carrier** → confirmed, and the cause is already located (see above): both
   submenus are created without a coalition, so neither is filtered.
 - **Red can run its own** → the other half of the issue is already fixed; say so when closing.
+
+### 7 · #128 — what a game master and a spectator actually are (check 11) {#check-11}
+
+**Answered for the game master on 2026-08-20** (DCS 2.9.28.26385, single player) — full write-up in
+[`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](../../../docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md).
+In short: he is invisible to the scripting API and raises no event, yet the global **and** the
+coalition-scoped menu paths reach him, while `USAGE_ForGroup` never can.
+
+**Two things still worth a sample**, if the probe is ever rebuilt (it was deleted, per its ticket):
+
+- **A spectator**, taking no slot. He has no side, so coalition scoping probably cannot reach him and only
+  the global path could — a hypothesis, not a result.
+- **A contrasting `humanGroups` reading with a slot taken**, so the zeros measured for the game master sit
+  against a known-good value rather than standing alone.
 
 ## Recording the outcome
 

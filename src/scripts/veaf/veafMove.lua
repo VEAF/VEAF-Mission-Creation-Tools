@@ -30,6 +30,12 @@ veaf.loggers.new(veafMove.Id, veafMove.LogLevel)
 --- Key phrase to look for in the mark text which triggers the command.
 veafMove.Keyphrase = "_move"
 
+--- The escort of a group is the group with this suffix appended to its name.
+--- This convention is what lets the framework find an escort in order to repair its Escort task,
+--- which DCS invalidates whenever the escorted group is recreated (teleported or respawned).
+--- Documented for mission makers on the ASSETS page.
+veafMove.EscortGroupNameSuffix = " escort"
+
 veafMove.RadioMenuName = "menu.move.root"
 
 veafMove.tankerMissionParameters = {
@@ -549,6 +555,127 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Finds the Escort task of an escort group, in the group data DCS keeps for it.
+--
+-- The task lives on the **last** waypoint of the escort's route, which is where a mission maker sets
+-- it up in the editor. Returns nil as soon as any link of that chain is missing -- no group data, no
+-- route, no task table, no enabled Escort task -- because that is the ordinary case for a group that
+-- simply has no escort, not an error to report.
+--
+-- @param groupName_escort, string, the name of the escort group itself (see EscortGroupNameSuffix)
+-- @return escortData, table, the escort's group data (nil when there is no Escort task to be found)
+-- @return task_escort, table, the Escort task inside it, ready to have its groupId reassigned
+-- @return points_escort, table, the route points already walked to find it -- returned rather than
+--         left to the caller to recompute, because two traversals of this structure would be two
+--         things to keep in step, which is the whole reason this lookup was extracted
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.findEscortTask(groupName_escort)
+  local escortData = veaf.getGroupData(groupName_escort)
+  if not escortData then
+    veaf.loggers.get(veafMove.Id):debug("findEscortTask: no group data for %s", groupName_escort)
+    return nil
+  end
+
+  local points_escort = veaf.findInTable(veaf.findInTable(escortData, "route"), "points")
+  if not points_escort or #points_escort == 0 then
+    veaf.loggers.get(veafMove.Id):debug("findEscortTask: %s has no route points", groupName_escort)
+    return nil
+  end
+
+  -- Last waypoint: where the escort task has to be set up in the editor.
+  local task2_escort = veaf.findInTable(points_escort[#points_escort], "task")
+  if not (task2_escort and task2_escort.params and task2_escort.params.tasks) then
+    veaf.loggers.get(veafMove.Id):debug("findEscortTask: last WP of %s carries no tasks", groupName_escort)
+    return nil
+  end
+
+  for _, task in pairs(task2_escort.params.tasks) do
+    -- The groupId stored in the mission has nothing to do with the id DCS needs at runtime, so it is
+    -- not checked here -- only that this is an enabled Escort task. Group.getID() supplies the real
+    -- one, and that is exactly what reestablishEscortTask writes back into it.
+    if task.enabled and task.id and task.id == "Escort" and task.params then
+      veaf.loggers
+        .get(veafMove.Id)
+        :trace("findEscortTask: found an Escort task on %s, stored groupId=%s", groupName_escort, task.params.groupId)
+      return escortData, task, points_escort
+    end
+  end
+
+  -- No log here: every caller reports this at info, where the context ("we were trying to repair
+  -- this escort") makes it actionable for a mission maker. Two lines at two levels for one condition
+  -- is noise in dcs.log.
+  return nil
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Repairs the Escort task of a group's escort after the escorted group has been recreated.
+--
+-- DCS destroys the link the moment the escorted group is recreated -- respawned or teleported -- and
+-- it does so silently: the escort keeps flying, runs out of route and goes home, which reads as an
+-- escort that quit after ten minutes rather than as a broken task (#107, measured in game
+-- 2026-08-18). The repair is to write the escorted group's **current** id into the task and push the
+-- mission back to the controller.
+--
+-- Unlike teleportEscort, nothing is moved here: the escort is where it was, only the id it points at
+-- has changed. That is why the respawn path needs this and nothing more.
+--
+-- The id is read inside the scheduled call rather than before it, because a respawn that has not
+-- landed yet would still hand back the id that just died.
+--
+-- @param escorted_groupName, string, the group that was just recreated
+-- @optional param delay, integer, seconds to wait for the respawn to land (default 1, as replaceMission)
+-- @return boolean, true when a repair was scheduled; false when this group has no escort to repair
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.reestablishEscortTask(escorted_groupName, delay)
+  local groupName_escort = escorted_groupName .. veafMove.EscortGroupNameSuffix
+
+  if not Group.getByName(groupName_escort) then
+    veaf.loggers.get(veafMove.Id):trace("reestablishEscortTask: %s has no escort", escorted_groupName)
+    return false
+  end
+
+  local escortData, task_escort = veafMove.findEscortTask(groupName_escort)
+  if not task_escort then
+    veaf.loggers.get(veafMove.Id):info(groupName_escort .. " exists but carries no Escort task ; nothing to repair")
+    return false
+  end
+
+  mist.scheduleFunction(
+    veafMove.actualReestablishEscortTask,
+    { escorted_groupName, groupName_escort, escortData, task_escort },
+    timer.getTime() + (delay or 1)
+  )
+  return true
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- The scheduled half of reestablishEscortTask -- separate so the id is read after the respawn.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.actualReestablishEscortTask(escorted_groupName, groupName_escort, escortData, task_escort)
+  local unitGroup = Group.getByName(escorted_groupName)
+  if not unitGroup then
+    veaf.loggers.get(veafMove.Id):info("Cannot repair the escort of " .. escorted_groupName .. " ; that group does not exist (any more)")
+    return false
+  end
+
+  local unitGroup_escort = Group.getByName(groupName_escort)
+  if not unitGroup_escort then
+    veaf.loggers.get(veafMove.Id):info("Cannot repair " .. groupName_escort .. " ; that group does not exist (any more)")
+    return false
+  end
+
+  -- This and only this is the id DCS wants; what the mission file stores does not correspond.
+  task_escort.params.groupId = Group.getID(unitGroup)
+  veaf.loggers
+    .get(veafMove.Id)
+    :debug("Re-establishing the escort task of %s onto group id %s", groupName_escort, task_escort.params.groupId)
+
+  -- No further delay: the respawn has landed by the time this runs.
+  veafMove.replaceMission(unitGroup_escort, escortData, 0)
+  return true
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Escort move method, only called internally
 -- @param escorted_groupName, string, corresponds to the groupname of the aicraft being escorted
 -- @param movePoint, vec3 + speed, corresponds to the first waypoint that the escorted aircraft will take after it was moved
@@ -567,58 +694,30 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
 
   --verify the existence of the escort and proper configuration
   local escortedId = Group.getID(unitGroup) --this and only this serves as a groupID, what is given in EscortData does not correspond on the DCS side
-  local groupName_escort = escorted_groupName .. " escort" --standardized escort groupName
-  local unitGroup_escort = Group.getByName(groupName_escort)
-  local escort_flag = false --indicates the go ahead for teleport/replaceMission calls
-  local route_escort = {}
-  local points_escort = {}
-  local idxPoint1_escort = nil
-  local idxPoint2_escort = nil
-  local point1_escort = {}
-  local point2_escort = {}
-  local task2_escort = {}
-  local tasks_escort = {}
-  local task_escort = {}
-  local EscortData = {}
-  if unitGroup_escort ~= nil then
-    EscortData = veaf.getGroupData(groupName_escort)
-    if not EscortData then
-      local text = "Cannot move Escort " .. groupName_escort .. " ; no group data"
-      veaf.loggers.get(veafMove.Id):info(text)
-    else
-      veaf.loggers.get(veafMove.Id):trace("EscortData : %s", veaf.lp(EscortData))
-      route_escort = veaf.findInTable(EscortData, "route")
-      points_escort = veaf.findInTable(route_escort, "points")
+  local groupName_escort = escorted_groupName .. veafMove.EscortGroupNameSuffix --standardized escort groupName
 
-      if points_escort then
-        veaf.loggers.get(veafMove.Id):debug("Escort has WP")
-        idxPoint1_escort = #points_escort - 1 --second to last waypoint
-        idxPoint2_escort = #points_escort --last waypoint where the escort has to be set up in the editor
-        point1_escort = points_escort[idxPoint1_escort]
-        point2_escort = points_escort[idxPoint2_escort]
-        task2_escort = veaf.findInTable(point2_escort, "task")
-        if task2_escort and task2_escort.params and task2_escort.params.tasks then
-          veaf.loggers.get(veafMove.Id):debug("Last escort WP has tasks")
-          tasks_escort = task2_escort.params.tasks
-          for k, task in pairs(tasks_escort) do
-            --if task.enabled and task.id and task.id == "Escort" and task.params and task.params.groupId == unitGroup_Id then --this line should be used to verify proper configuration of the escort but as it turns out the groupId stored in params has nothing to do with the groupId DCS needs for the escort task, use Group.getID(groupClass) instead to get the correct ID required for DCS, but no way to derive it from EscortData
-            if task.enabled and task.id and task.id == "Escort" and task.params then
-              veaf.loggers.get(veafMove.Id):trace("Found correct escort Tasking ! Extracted Escorted ID : %s", task.params.groupId)
-              veaf.loggers.get(veafMove.Id):trace("Required escort ID : %s", escortedId)
-              escort_flag = true
-              task_escort = task --recover the escort task table to insert the "new" escorted ID, even though it's the same but it seems DCS destroys it after the escorted group respawns
-            end
-          end
-        end
-      end
-    end
-  else
+  if not Group.getByName(groupName_escort) then
     veaf.loggers.get(veafMove.Id):info(groupName_escort .. " not found for move tanker escort command")
-  end
-
-  if not escort_flag then
     return false
   end
+
+  -- Same lookup the respawn path uses (reestablishEscortTask): one implementation of where an Escort
+  -- task lives and what a valid one looks like.
+  local EscortData, task_escort, points_escort = veafMove.findEscortTask(groupName_escort)
+  if not task_escort then
+    veaf.loggers.get(veafMove.Id):info(groupName_escort .. " carries no Escort task ; cannot move its escort")
+    return false
+  end
+
+  if #points_escort < 2 then
+    -- The teleport rewrites the last two waypoints; with a single one there is nothing to rewrite.
+    -- findEscortTask accepts a one-point route on purpose: repairing the task needs no waypoints.
+    veaf.loggers.get(veafMove.Id):info(groupName_escort .. " has fewer than two waypoints ; cannot move its escort")
+    return false
+  end
+  local point1_escort = points_escort[#points_escort - 1] --second to last waypoint
+  local point2_escort = points_escort[#points_escort] --last waypoint where the escort has to be set up in the editor
+  veaf.loggers.get(veafMove.Id):trace("Required escort ID : %s", escortedId)
 
   --distances by which the escort is offseted from the escorted group in the map's referential, task_escort provides relative spacing
   local escort_offset = {}
@@ -649,8 +748,8 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
 
   veaf.loggers.get(veafMove.Id):debug("Teleport the escort")
   local vars_escort = { groupName = groupName_escort, point = teleportPoint_escort, action = "teleport" }
-  local grp_escort = mist.teleportToPoint(vars_escort)
-  unitGroup_escort = Group.getByName(groupName_escort)
+  mist.teleportToPoint(vars_escort)
+  local unitGroup_escort = Group.getByName(groupName_escort)
 
   veafMove.replaceMission(unitGroup_escort, EscortData)
   --this method appears to not work very well, the escort just doesn't defend the group

@@ -2887,6 +2887,10 @@ Respawne un groupe d'asset.
 
 - Respawne le groupe d'asset
 - Respawne tous les groupes liés
+- **Répare la tâche `Escort` de son escorte** — le groupe nommé `<nom> escort`, s'il existe. DCS
+  invalide cette tâche dès que le groupe escorté est recréé, et l'escorte part alors atterrir au bout
+  d'une dizaine de minutes. Voir
+  [Escorter une ressource](mission-maker/scripts/veafAssets.md#escorting-an-asset)
 - Démarre le JTAC si configuré
 
 **Exemple :**

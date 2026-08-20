@@ -8,6 +8,7 @@
 dcs_mocks = {}
 dcs_mocks.currentTime = 0
 dcs_mocks.logs = {} -- captured log lines
+dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
 
 local function _log(level, text)
   table.insert(dcs_mocks.logs, { level = level, text = tostring(text) })
@@ -571,6 +572,7 @@ end
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.logs = {}
+  dcs_mocks.tasksSet = {}
   dcs_mocks.messages = {}
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.cockpitArguments = {}
@@ -907,6 +909,11 @@ function dcs_mocks.addGroup(name, data)
     local _ctrl = {
       setCommand = function() end,
       pushTask = function() end,
+      -- Recorded rather than dropped: replaceMission pushes a whole Mission task through setTask,
+      -- and asserting what it contains is the only way to see an escort task being repaired.
+      setTask = function(_self, task)
+        table.insert(dcs_mocks.tasksSet, { group = name, task = task })
+      end,
       getDetectedTargets = function()
         return {}
       end,
@@ -929,6 +936,12 @@ end
 -- Group.getUnits(group) — delegates to the instance method so addGroup's getUnits stub is used.
 Group.getUnits = function(grp)
   return grp:getUnits()
+end
+
+-- Group.getID(group) — the static form, which is what the escort-task repair uses: only this id is
+-- the one DCS wants for an Escort task, and what a mission file stores does not correspond to it.
+Group.getID = function(grp)
+  return grp:getID()
 end
 
 -- ---------------------------------------------------------------------------

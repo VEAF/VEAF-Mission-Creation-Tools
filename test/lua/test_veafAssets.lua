@@ -4,6 +4,9 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+-- veafMove too: veafAssets.respawn calls into it to repair a respawned asset's escort task
+-- (FIX-ESCORT-RESPAWN-TASK), so a test that omits it would exercise the guarded-out branch only.
+dofile(src .. "/veafMove.lua")
 dofile(src .. "/veafAssets.lua")
 
 -- ---------------------------------------------------------------------------
@@ -185,6 +188,58 @@ function TestVeafAssetsOps:test_buildRadioMenu_empty_assets()
   veafAssets.assets = {}
   veafAssets.buildRadioMenu()
   luaunit.assertTrue(true)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafAssetsRespawnRepairsEscort — FIX-ESCORT-RESPAWN-TASK ticket 01
+--
+-- Respawning an asset gives it a new DCS group id, which silently invalidates its escort's Escort
+-- task: the escort flies out its route and lands about ten minutes later (#107). The repair lives in
+-- veafMove; what is asserted here is that the respawn path actually calls it, because a guard nobody
+-- calls is worth nothing.
+-- ---------------------------------------------------------------------------
+TestVeafAssetsRespawnRepairsEscort = {}
+
+function TestVeafAssetsRespawnRepairsEscort:setUp()
+  dcs_mocks.reset()
+  self._reestablish = veafMove.reestablishEscortTask
+  self._calls = {}
+  local calls = self._calls
+  veafMove.reestablishEscortTask = function(name)
+    table.insert(calls, name)
+    return true
+  end
+  veafAssets.Assets = {
+    { name = "testTanker", description = "KC-135T", unitType = "KC-135 MPRS", side = 1 },
+  }
+  veafAssets.assets = {}
+  veafAssets.buildAssetsDatabase()
+end
+
+function TestVeafAssetsRespawnRepairsEscort:tearDown()
+  veafMove.reestablishEscortTask = self._reestablish
+end
+
+function TestVeafAssetsRespawnRepairsEscort:test_respawning_an_asset_repairs_its_escort_task()
+  veafAssets.respawn("testTanker")
+
+  luaunit.assertEquals(self._calls, { "testTanker" })
+end
+
+function TestVeafAssetsRespawnRepairsEscort:test_respawning_an_unknown_asset_repairs_nothing()
+  veafAssets.respawn("noSuchAsset")
+
+  luaunit.assertEquals(#self._calls, 0)
+end
+
+function TestVeafAssetsRespawnRepairsEscort:test_the_repair_is_keyed_on_the_asset_not_on_its_linked_groups()
+  -- The escort does not have to be in `linked` for its task to break: only the escorted group's id
+  -- changes. So the repair is asked for the asset, once, whatever `linked` contains.
+  veafAssets.assets["testTanker"].linked = { "someOtherGroup" }
+
+  veafAssets.respawn("testTanker")
+
+  luaunit.assertEquals(self._calls, { "testTanker" })
 end
 
 os.exit(luaunit.LuaUnit.run())

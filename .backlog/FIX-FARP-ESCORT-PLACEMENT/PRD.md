@@ -1,6 +1,10 @@
 # FIX-FARP-ESCORT-PLACEMENT — the FARP escort lands on whatever is already there
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
+
+Written, unit-tested and shipped in 6.15.11. Waiting on the in-game confirmation on
+`test/veaf-tools/verify-mission-a`, the mission that reproduced it — see
+[DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).
 
 Origin: [#232](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/232), Sharko, 2023.
 **Reproduced in game by David on 2026-08-17**, on the verification mission built for it — screenshot
@@ -66,7 +70,7 @@ Things to settle while implementing:
 
 ## Definition of done
 
-- [ ] An `-farp` next to a static FARP puts its escort on clear ground, close to the FARP
-- [ ] The same call far from anything is unchanged (regression — 150 m is correct there)
-- [ ] An unknown FARP type no longer silently falls back to 75 m
+- [x] An `-farp` next to a static FARP puts its escort on clear ground, close to the FARP
+- [x] The same call far from anything is unchanged (regression — 150 m is correct there): the original bearing is tried first
+- [x] An unknown FARP type no longer silently falls back to 75 m — and `FARP_T`, which **was** falling back, is fixed (ticket 02)
 - [ ] Verified in game on the mission that reproduced it, `test/veaf-tools/verify-mission-a`

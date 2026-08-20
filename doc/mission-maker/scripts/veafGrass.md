@@ -51,6 +51,20 @@ Pour habiller un FARP :
 
 Au démarrage, `veafGrass.buildFarpsUnits(hiddenOnMFD)` ajoute un décor de FARP autour de chaque unité reconnue (via `veafGrass.buildFarpUnits`).
 
+### Où le décor est posé {#farp-layout}
+
+Le décor (tentes, dépôts, escorte) est placé à distance fixe du FARP, dans la direction de son cap. Depuis la 6.15.11, **si l'emplacement prévu est déjà occupé par une unité ou un objet statique, le module tourne autour du FARP jusqu'à trouver du terrain libre** — il garde la distance et change la direction, pour que l'escorte reste près du FARP qu'elle sert.
+
+C'est le cas courant plus qu'un cas limite : on pose un FARP statique dans la mission (c'est lui qui autorise l'apparition sur ce FARP une fois la zone prise), puis on lance `-farp` par-dessus. Avant, l'escorte se posait sur les plateformes, assez près pour qu'un hélicoptère qui atterrit y trouve un camion.
+
+Deux précisions :
+
+- **Un FARP dégagé ne bouge pas.** La direction d'origine est essayée en premier, donc une mission qui fonctionne garde exactement son décor.
+- Le groupe entier est vérifié, pas seulement son premier véhicule : l'escorte occupe une ligne d'une trentaine de mètres, et un emplacement libre dont la queue dépasse bloquerait quand même une plateforme.
+- Si aucune direction n'est libre, le FARP est construit quand même, à sa position d'origine. Un FARP qui refuserait d'exister parce que l'endroit est encombré serait pire.
+
+> Les marqueurs des `Invisible FARP` sont volontairement collés au centre pour matérialiser le FARP : ils ne se déplacent pas.
+
 ### Réapprovisionnement des entrepôts
 
 Depuis DCS 2.8, les FARP créés apparaissent avec un entrepôt vide. Le module fournit des fonctions pour les réapprovisionner :

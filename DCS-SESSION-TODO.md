@@ -273,6 +273,26 @@ Worth one extra look while there, because it is what the fix leans on: open the 
 carrier's own submenu and its commands. Those are children of the scoped menu and inherit the scope
 rather than declaring it, so a leak would show up there rather than at the top.
 
+## 14. The FARP escort, on the mission that reproduced it
+
+[`FIX-FARP-ESCORT-PLACEMENT`](.backlog/FIX-FARP-ESCORT-PLACEMENT/PRD.md) shipped in 6.15.11. Use
+`test/veaf-tools/verify-mission-a`, the mission the defect was reproduced on 2026-08-17 (screenshot on
+[#232](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/232)).
+
+- **The case that failed**: drop a `-farp` marker ~150 m from the static FARP, as before.
+  - **Before**: the escort came down on the static FARP's pads, the lead `M 818` close enough to a
+    helipad to meet a landing helicopter.
+  - **Expected now**: the escort is on clear ground, still close to the FARP. `dcs.log` shows
+    `findClearBearing: moved from … to …`.
+- **The regression that matters more than the fix**: drop a `-farp` in **open ground**, far from
+  anything. It must look exactly as it always did — 150 m out on the FARP's heading, no message in the
+  log. The original bearing is tried first precisely so that working missions do not move.
+- **Worth a look while there, never seen in game**: a `FARP_T` unit. Its props used to be laid out at the
+  non-FARP distances (escort 75 m, tent 100 m, windsock 50 m/45°); it should now measure like any other
+  FARP (150 / 200 / 120 m). This is the second defect of the lot and no pilot has ever exercised it.
+- If a mission logs `unknown FARP-like type [...]`, that is the new warning doing its job — send me the
+  type name, it belongs in `veafGrass.FARP_PLATFORM_TYPES`.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

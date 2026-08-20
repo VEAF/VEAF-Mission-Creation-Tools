@@ -7,6 +7,36 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.12] — 2026-08-20
+
+### Fixed
+
+- **A tanker's orbit is found wherever it is in the route.** `veafMove` looked for it on the
+  second-to-last waypoint, which is true of VEAF's own templates — whose route is [approach, orbit, leg
+  end] — and false of a DCS-Liberation tanker, whose longer route ends with a landing point. Both tanker
+  commands then refused with *"has no ORBIT task defined"*
+  ([#248](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/248), reported by Maveric). The
+  orbit is now searched for by its task rather than counted backwards from the end.
+
+  Maveric's postscript — *"potentiellement le faire pour les autres manipulations de tanker"* — is
+  covered: there are two, `_move tanker` and `_move tankermission`, and they already shared the helper,
+  so both are fixed at one point.
+
+  Decisions recorded, since the issue left them open: **the first orbit wins** when a route carries
+  several (it is the one the tanker reaches first, so the one active or imminent); a route with **no**
+  orbit is refused with a message rather than adjusted on a guess; and the waypoints before and after
+  the orbit became **optional**, so an orbit on the first or last waypoint of a route is no longer
+  refused for being in the wrong place.
+
+  One trap avoided rather than fixed: `_move tanker` **overwrites** the waypoint after the orbit, using
+  it as the far end of the refuelling leg. That is right by DCS's own semantics for a `Race-Track` orbit,
+  which flies between the task's waypoint and the next one — but a `Circle` orbit turns around a single
+  point and gives that waypoint no role, so overwriting it would silently redraw the route, and on a
+  Liberation tanker it could be the landing point. `Circle` orbits now leave it alone, and `_move tanker`
+  asks for `distance` and `hdg` when it cannot work the leg out.
+
+---
+
 ## [6.15.11] — 2026-08-20
 
 ### Fixed

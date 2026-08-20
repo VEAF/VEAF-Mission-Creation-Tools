@@ -546,6 +546,10 @@ veaf.i18nCatalog = {
     fr = "Impossible de déplacer le ravitailleur %s : aucune tâche ORBIT définie",
     en = "Cannot move tanker %s because it has no ORBIT task defined",
   },
+  ["move.tanker_move_no_leg"] = {
+    fr = "Impossible de déduire la branche de ravitaillement du ravitailleur %s : précisez « distance » et « hdg »",
+    en = "Cannot work out tanker %s's refuelling leg: give « distance » and « hdg »",
+  },
   ["move.help"] = {
     fr = "Créez un marqueur et tapez « _move <group|tanker|afac>, name <groupname> » dans le texte\n"
       .. "Cela envoie un ordre de déplacement au groupe spécifié dans DCS\n"

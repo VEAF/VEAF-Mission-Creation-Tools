@@ -234,7 +234,7 @@ mission =
                 units = {
                   [1] = {
                     unitId = 1,
-                    name = "SmokeZone-SmokeArmor Unit #001",
+                    name = "SmokeZone-SmokeArmor Unit #001 #alarm=2",
                     type = "M-1 Abrams",
                     skill = "Average",
                     coldAtStart = false,
@@ -245,7 +245,7 @@ mission =
                   },
                   [2] = {
                     unitId = 2,
-                    name = "SmokeZone-SmokeArmor Unit #002",
+                    name = "SmokeZone-SmokeArmor Unit #002 #alarm=2",
                     type = "M-1 Abrams",
                     skill = "Average",
                     coldAtStart = false,

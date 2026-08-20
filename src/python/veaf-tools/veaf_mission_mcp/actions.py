@@ -577,7 +577,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "type": "string",
                                     "description": "Optional explicit unit name (else auto-named). Carry a "
                                     "combat-zone marker here, e.g. '#command=\"-armor ...\"' for a spawn "
-                                    "fake-unit (#command/#spawngroup/#spawnradius/#spawncount/#spawnchance/#spawndelay).",
+                                    "fake-unit (#command/#spawngroup/#spawnradius/#spawncount/#spawnchance/#spawndelay/#alarm).",
                                 },
                             },
                             "required": ["type"],

@@ -199,7 +199,7 @@ _NAMING_CONVENTIONS: list[dict[str, Any]] = [
     {
         "id": "combat_zone_unit_markers",
         "rule": "Unit-name markers '#command=', '#spawngroup=', '#spawnradius=', '#spawncount=', "
-        "'#spawnchance=', '#spawndelay=' tune combat-zone spawn behaviour.",
+        "'#spawnchance=', '#spawndelay=', '#alarm=' tune combat-zone spawn behaviour.",
         "module": "veafCombatZone",
         "reserved": True,
     },

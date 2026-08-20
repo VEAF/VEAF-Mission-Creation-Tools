@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.group_naming import validate_group_name
 
@@ -30,6 +31,23 @@ def test_placeholder_prefix_warns() -> None:
 
 def test_interpreter_marker_warns() -> None:
     assert "interpreter_command" in _conventions(validate_group_name('x #veafInterpreter["_spawn convoy"]'))
+
+
+@pytest.mark.parametrize(
+    "marker",
+    [
+        "#command=",
+        "#spawngroup=",
+        "#spawnradius=",
+        "#spawncount=",
+        "#spawnchance=",
+        "#spawndelay=",
+        "#alarm=",
+    ],
+)
+def test_every_combat_zone_unit_marker_warns(marker: str) -> None:
+    """The whole reserved-marker family is flagged, not a sample of it."""
+    assert "combat_zone_unit_markers" in _conventions(validate_group_name(f"convoy {marker}2"))
 
 
 def test_leading_dash_warns_qra_deploy() -> None:

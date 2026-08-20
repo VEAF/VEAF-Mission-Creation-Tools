@@ -2800,4 +2800,54 @@ function TestVeafCtldLanguage:test_no_mission_language_leaves_the_engine_default
   luaunit.assertEquals(ctld.i18n_lang, "en")
 end
 
+-- ===========================================================================
+-- veaf.readyForCombat
+-- FIX-COMBATZONE-CONVOY-ALARM depends on AUTO (0) surviving the parameter guard: in Lua `0` is
+-- truthy, so `if not alarm` does not catch it — but that is subtle enough to be "fixed" by someone
+-- reading the guard alone, which would silently restore RED for every combat-zone group.
+-- ===========================================================================
+TestVeafReadyForCombat = {}
+
+local function _spyGroup(name)
+  local calls = {}
+  local ctrl = {
+    setOnOff = function() end,
+    setOption = function(_, id, value)
+      calls[id] = value
+    end,
+  }
+  dcs_mocks.addGroup(name, {
+    getController = function()
+      return ctrl
+    end,
+  })
+  return calls
+end
+
+function TestVeafReadyForCombat:test_auto_is_applied_not_swallowed_by_the_nil_guard()
+  local calls = _spyGroup("__rfc_auto__")
+  veaf.readyForCombat("__rfc_auto__", 0)
+  luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], 0)
+end
+
+function TestVeafReadyForCombat:test_every_valid_state_reaches_the_controller()
+  for _, state in ipairs({ 0, 1, 2 }) do
+    local calls = _spyGroup("__rfc_state__" .. state)
+    veaf.readyForCombat("__rfc_state__" .. state, state)
+    luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], state)
+  end
+end
+
+function TestVeafReadyForCombat:test_absent_or_out_of_range_falls_back_to_the_module_default()
+  for i, bad in ipairs({ -1, 3, 99 }) do
+    local groupName = "__rfc_bad__" .. i
+    local calls = _spyGroup(groupName)
+    veaf.readyForCombat(groupName, bad)
+    luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], veaf.defaultAlarmState)
+  end
+  local calls = _spyGroup("__rfc_nil__")
+  veaf.readyForCombat("__rfc_nil__", nil)
+  luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], veaf.defaultAlarmState)
+end
+
 os.exit(luaunit.LuaUnit.run())

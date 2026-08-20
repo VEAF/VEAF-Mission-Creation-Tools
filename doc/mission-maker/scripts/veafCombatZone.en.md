@@ -218,6 +218,26 @@ Unit and group names in the DCS Mission Editor can carry special tags that contr
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Override the spawn group name (useful to target a named template) |
 | `#spawndelay=N` | `#spawndelay=120` | Delay in seconds before this group spawns after zone activation |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Execute a VEAF command instead of spawning this group; the unit acts as a trigger and is destroyed |
+| `#alarm=N` | `#alarm=2` | Alarm state given to this group: `0` AUTO (default), `1` GREEN, `2` RED |
+
+### `#alarm` — making a group hold its ground {#alarm-state}
+
+A ground group on **RED** alert stops and deploys: right for a SAM battery, wrong for a convoy, which then never leaves. Zones therefore spawn every group on **AUTO**, where DCS raises the group's own alert level when it detects something — a convoy drives its route, and a defence still fires once it sees a target.
+
+Use `#alarm=2` on the groups you want dug in from the first second, typically air defence you would rather have radars up before the first pass:
+
+```
+ALPHA-SA6-BATTERY #alarm=2
+ALPHA-SUPPLY-CONVOY
+```
+
+An unreadable or out-of-range value (`#alarm=7`, `#alarm=x`) falls back to AUTO rather than failing the zone.
+
+!!! note "Only for mission groups"
+    The tag applies to groups the zone spawns itself. On a `#command=` unit, pass the alarm state inside the command instead (`-spawn ..., alarm 2`), since the spawn is handled by the VEAF marker interpreter.
+
+!!! warning "Behaviour change"
+    Zones used to spawn **every** group on RED, which is why convoys placed in a combat zone never moved ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). If a zone of yours relied on that — air defence that must be hot at activation — add `#alarm=2` to those groups.
 
 ### Practical example — MANPADS ambush
 

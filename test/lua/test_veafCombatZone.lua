@@ -151,6 +151,86 @@ function TestVeafCombatZoneElement:test_spawnDelay_string_coercion()
   luaunit.assertEquals(self.el:getSpawnDelay(), 60)
 end
 
+-- FIX-COMBATZONE-CONVOY-ALARM: the zone used to put every group it spawned on red alert, which
+-- immobilised convoys (#290). The default is now AUTO, and `#alarm=` is the only way to override it.
+
+function TestVeafCombatZoneElement:test_alarmState_defaults_to_auto()
+  luaunit.assertEquals(self.el:getAlarmState(), 0)
+  luaunit.assertEquals(veafCombatZone.DefaultAlarmState, 0)
+end
+
+function TestVeafCombatZoneElement:test_alarmState_accepts_every_valid_state()
+  for _, state in ipairs({ 0, 1, 2 }) do
+    self.el:setAlarmState(state)
+    luaunit.assertEquals(self.el:getAlarmState(), state)
+  end
+end
+
+function TestVeafCombatZoneElement:test_alarmState_string_coercion()
+  self.el:setAlarmState("2")
+  luaunit.assertEquals(self.el:getAlarmState(), 2)
+end
+
+function TestVeafCombatZoneElement:test_alarmState_rejects_out_of_range_and_garbage()
+  -- every rejected shape falls back to the default rather than reaching setOption with it
+  for _, bad in ipairs({ 3, 42, -1, "", "red", "1.5" }) do
+    self.el:setAlarmState(2)
+    self.el:setAlarmState(bad)
+    luaunit.assertEquals(self.el:getAlarmState(), veafCombatZone.DefaultAlarmState)
+  end
+end
+
+function TestVeafCombatZoneElement:test_alarmState_rejects_nil()
+  self.el:setAlarmState(2)
+  self.el:setAlarmState(nil)
+  luaunit.assertEquals(self.el:getAlarmState(), veafCombatZone.DefaultAlarmState)
+end
+
+function TestVeafCombatZoneElement:test_alarm_out_of_range_is_reported_not_swallowed()
+  -- Sourcery's review point: a fallback nobody is told about makes `#alarm=7` look like a choice.
+  local warned = {}
+  local logger = veaf.loggers.get(veafCombatZone.Id)
+  local originalWarn = logger.warn
+  logger.warn = function(_, text, ...)
+    table.insert(warned, text)
+  end
+  self.el:setAlarmState(7)
+  logger.warn = originalWarn
+  luaunit.assertEquals(self.el:getAlarmState(), veafCombatZone.DefaultAlarmState)
+  luaunit.assertEquals(#warned, 1)
+end
+
+function TestVeafCombatZoneElement:test_alarm_tag_pattern_reads_the_state()
+  -- the parser lowercases the unit name before matching, so the tag is case-insensitive
+  local cases = {
+    ["convoy #alarm=0"] = "0",
+    ["CONVOY #ALARM=2"] = "2",
+    ["sam #alarm = 1"] = "1",
+    ["sam #alarm=  2"] = "2",
+    ["mixed #spawndelay=30 #alarm=2 #spawnchance=50"] = "2",
+  }
+  for unitName, expected in pairs(cases) do
+    local _, _, found = unitName:lower():find(veafCombatZone.ALARM_TAG_PATTERN)
+    luaunit.assertEquals(found, expected, "unit name: " .. unitName)
+  end
+end
+
+function TestVeafCombatZoneElement:test_alarm_tag_pattern_absent_or_malformed()
+  -- `#alarmstate=2` is included on purpose: the tag is `#alarm=`, and the pattern requires the `=`
+  -- right after it, so a near-miss spelling reads as no tag at all rather than as a state.
+  for _, unitName in ipairs({
+    "plain convoy",
+    "convoy #alarm",
+    "convoy #alarm=",
+    "convoy #alarm=x",
+    "convoy #alarmstate=2",
+    "convoy #alarm=-1",
+  }) do
+    local _, _, found = unitName:lower():find(veafCombatZone.ALARM_TAG_PATTERN)
+    luaunit.assertNil(found, "unit name: " .. unitName)
+  end
+end
+
 function TestVeafCombatZoneElement:test_chaining_setters()
   local result = self.el:setName("chain"):setDcsStatic(true):setSpawnRadius(100):setSpawnChance(50)
   -- chaining returns self (or same instance)

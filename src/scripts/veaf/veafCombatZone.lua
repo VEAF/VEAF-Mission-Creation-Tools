@@ -37,6 +37,16 @@ veafCombatZone.DefaultSpawnRadiusForUnits = 50
 
 veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
+-- Alarm state a spawned group gets unless its unit name carries `#alarm=`. AUTO (0) rather than
+-- RED (2): a ground group on red alert holds position, so the previous global RED immobilised every
+-- convoy a zone spawned (#290). AUTO lets DCS raise the group's own alert on contact.
+-- Values are AI.Option.Ground.val.ALARM_STATE: 0 AUTO, 1 GREEN, 2 RED.
+veafCombatZone.DefaultAlarmState = 0
+
+-- Pattern matching the `#alarm=` tag in a unit name. A module constant rather than an inline literal
+-- so the tests exercise the same pattern the parser uses.
+veafCombatZone.ALARM_TAG_PATTERN = "#alarm%s*=%s*(%d+)"
+
 -- Coalition a zone considers hostile unless told otherwise: red, i.e. blue players
 -- clearing a red zone. Set per zone with VeafCombatZone:setEnemyCoalition().
 veafCombatZone.DEFAULT_ENEMY_COALITION = 1
@@ -122,6 +132,8 @@ function VeafCombatZoneElement:new(objectToCopy)
   objectToCreate.spawnGroup = nil
   -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
   objectToCreate.spawnCount = 1
+  -- alarm state applied to the spawned group (0 AUTO, 1 GREEN, 2 RED); set with the `#alarm=` tag
+  objectToCreate.alarmState = veafCombatZone.DefaultAlarmState
 
   return objectToCreate
 end
@@ -239,6 +251,26 @@ end
 
 function VeafCombatZoneElement:getSpawnCount()
   return self.spawnCount
+end
+
+function VeafCombatZoneElement:setAlarmState(value)
+  local alarmState = tonumber(value)
+  -- an out-of-range or unparsable tag falls back to the default rather than reaching setOption -- and
+  -- says so, because a silent fallback makes a typo indistinguishable from a deliberate AUTO
+  if alarmState ~= 0 and alarmState ~= 1 and alarmState ~= 2 then
+    veaf.loggers.get(veafCombatZone.Id):warn(
+      "#alarm=%s is not one of 0 (AUTO), 1 (GREEN), 2 (RED); falling back to %s",
+      veaf.p(value),
+      veaf.p(veafCombatZone.DefaultAlarmState)
+    )
+    alarmState = veafCombatZone.DefaultAlarmState
+  end
+  self.alarmState = alarmState
+  return self
+end
+
+function VeafCombatZoneElement:getAlarmState()
+  return self.alarmState
 end
 
 ---
@@ -792,13 +824,14 @@ function VeafCombatZone:initialize()
     local unitName = unit:getName()
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing unit [%s] of coalition [%d]", unitName, unit:getCoalition()))
     zoneElement:setPosition(unit:getPosition().p)
-    local spawnRadius, command, spawnChance, spawnGroup, spawnCount, spawnDelay
+    local spawnRadius, command, spawnChance, spawnGroup, spawnCount, spawnDelay, alarmState
     _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
     _, _, command = unitName:lower():find('#command%s*=%s*"([^"]+)"')
     _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
     _, _, spawnGroup = unitName:lower():find('#spawngroup%s*=%s*"([^"]+)"')
     _, _, spawnCount = unitName:lower():find("#spawncount%s*=%s*(%d+)")
     _, _, spawnDelay = unitName:lower():find("#spawndelay%s*=%s*(%d+)")
+    _, _, alarmState = unitName:lower():find(veafCombatZone.ALARM_TAG_PATTERN)
     if spawnRadius then
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnRadius = [%d]", spawnRadius))
       zoneElement:setSpawnRadius(spawnRadius)
@@ -818,6 +851,16 @@ function VeafCombatZone:initialize()
     if spawnDelay then
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnDelay = [%s]", spawnDelay))
       zoneElement:setSpawnDelay(spawnDelay)
+    end
+    if alarmState then
+      veaf.loggers.get(veafCombatZone.Id):trace(string.format("alarmState = [%s]", alarmState))
+      zoneElement:setAlarmState(alarmState)
+    elseif unitName:lower():find("#alarm", 1, true) then
+      -- the tag is there but the pattern read no number out of it (`#alarm=`, `#alarm=x`, `#alarm=-1`):
+      -- without this the unit silently keeps the default and the typo is invisible
+      veaf.loggers
+        .get(veafCombatZone.Id)
+        :warn("unit [%s] carries an unreadable #alarm tag; expected #alarm=0, #alarm=1 or #alarm=2", veaf.p(unitName))
     end
     if command then
       -- it's a fake unit transporting a VEAF command
@@ -1102,7 +1145,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
           .get(veafCombatZone.Id)
           :trace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
         self:addSpawnedGroup(newGroup.name)
-        veaf.readyForCombat(newGroup.name)
+        veaf.readyForCombat(newGroup.name, zoneElement:getAlarmState())
       else
         veaf.loggers
           .get(veafCombatZone.Id)

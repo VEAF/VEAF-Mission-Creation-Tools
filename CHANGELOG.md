@@ -7,6 +7,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.5] — 2026-08-20
+
+### Fixed
+
+- **A convoy placed in a combat zone finally drives its route.** Activating a zone put every group it
+  spawned on **RED** alert, and a DCS ground group on red alert holds position and deploys — right for
+  a SAM battery, wrong for a convoy, which never left its start point
+  ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290), open since April 2025).
+  Zones now spawn groups on **AUTO**, where DCS raises the group's own alert level on contact: the
+  convoy moves and a defence still fires once it detects a target.
+
+### Added
+
+- **`#alarm=N` unit-name tag for combat zones.** Sets a single group's alarm state (`0` AUTO, `1`
+  GREEN, `2` RED) instead of inheriting the zone's default, so air defence that must be hot from the
+  first second can be marked `#alarm=2`. An unreadable or out-of-range value falls back to AUTO rather
+  than failing the zone — and **says so in the log**, since a silent fallback makes a typo
+  indistinguishable from a deliberate AUTO. Documented in both languages, and added to the
+  reserved-marker set the MCP server warns about.
+
+---
+
 ## [6.15.4] — 2026-08-19
 
 ### Fixed
@@ -20,6 +42,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A packaged-only failure can no longer ship unnoticed.** The CI builds the executable and runs it
   on every Python change; until now every test ran from a checkout, where the missing imports resolve
   perfectly — which is why this shipped, and the two bundled-data defects before it.
+
+---
 
 ## [6.15.3] — 2026-08-19
 

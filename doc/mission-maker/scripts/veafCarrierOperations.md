@@ -117,6 +117,8 @@ Pendant les opérations, les deux items *Start* sont remplacés par :
 
 > Par défaut les items *Start*/*End* sont sécurisés : le groupe agit au niveau de son occupant le moins gradé (voir [veafSecurity](veafSecurity.md)). Positionnez `veafCarrierOperations.DisableSecurity = true` pour les rendre accessibles à tous.
 
+**Chaque camp ne voit que son propre sous-menu.** Un pilote rouge ne voit pas **CARRIER OPS - BLUE**, et réciproquement. Avant la 6.15.10, les deux sous-menus étaient visibles de tous : un rouge pouvait démarrer et arrêter les opérations du porte-avions bleu. Le menu **CARRIER OPS** de premier niveau reste commun, parce qu'il porte l'aide.
+
 ---
 
 ## Voir aussi

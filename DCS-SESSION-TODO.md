@@ -257,6 +257,22 @@ exercised:
   be destroyed on sight rather than left running — look for `spawned […] after its zone was deactivated`
   in `dcs.log`.
 
+## 13. Check 12 of `verify-mission-c` — the carrier menu, from the red side
+
+[`FIX-CARRIER-MENU-COALITION`](.backlog/FIX-CARRIER-MENU-COALITION/PRD.md) shipped in 6.15.10. Take the
+**red A-10 at Palmyra** — the slot the defect was measured from on 2026-08-18 — and open the F10 menu.
+
+- **Before**: *CARRIER OPS* held both **CARRIER OPS - BLUE** and **CARRIER OPS - RED**, and the red pilot
+  could start and stop the blue carrier's recovery window.
+- **Expected now**: only **CARRIER OPS - RED**. The shared *CARRIER OPS* root is still there (it carries
+  the help entry), and so is its help command.
+
+Then take a blue slot and confirm the mirror image: **CARRIER OPS - BLUE** only.
+
+Worth one extra look while there, because it is what the fix leans on: open the red menu down to a
+carrier's own submenu and its commands. Those are children of the scoped menu and inherit the scope
+rather than declaring it, so a leak would show up there rather than at the top.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

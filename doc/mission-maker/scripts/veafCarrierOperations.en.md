@@ -118,6 +118,8 @@ While operations are running, the two *Start* items are replaced by:
 
 > By default the *Start*/*End* items are secured: the group acts at the level of its lowest-graded occupant (see [veafSecurity](veafSecurity.en.md)). Set `veafCarrierOperations.DisableSecurity = true` to make them open to everyone.
 
+**Each side sees only its own submenu.** A red pilot does not see **CARRIER OPS - BLUE**, and the other way round. Before 6.15.10 both submenus were visible to everyone, so a red player could start and stop the blue carrier's operations. The top-level **CARRIER OPS** menu stays shared, since it carries the help entry.
+
 ---
 
 ## See Also

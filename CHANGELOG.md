@@ -7,6 +7,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.10] — 2026-08-20
+
+### Fixed
+
+- **A red pilot no longer runs blue's carrier operations.** Opening *Carrier operations* showed both
+  sides' submenus to everyone, so a red player could start and stop the blue carrier's recovery window
+  ([#87](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/87), measured in game on 2026-08-18
+  from a red A-10 at Palmyra). The per-side menus already existed and the renderer already filters on a
+  coalition — the two menus were simply created without stating theirs. The other half of #87, *"red
+  cannot run its own"*, was **already fixed** and is closed as such. Each carrier's own submenu sits
+  under its side's menu and inherits the scope, so the shared **CARRIER OPS** root stays common: it
+  carries the help entry.
+
+  The sweep this came with is worth recording, since a menu built per side and rendered to everyone is a
+  defect *shape*: all **43** `addSubMenu` call sites were enumerated rather than hand-picked, of which 40
+  are callers and exactly one was already scoped. No other module builds a menu per side, so this defect
+  had two sites and no siblings. Two suspicions the enumeration raised were checked and turned out fine —
+  scope inheritance is transitive across generations (now pinned by a test, since this fix depends on it)
+  and pagination already scopes its overflow pages.
+
+---
+
 ## [6.15.9] — 2026-08-20
 
 ### Fixed

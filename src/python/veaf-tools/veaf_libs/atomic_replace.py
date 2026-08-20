@@ -39,8 +39,8 @@ DEFAULT_DELAY = 0.05
 
 
 def atomic_replace(
-    source: Path | str,
-    target: Path | str,
+    source: str | os.PathLike[str],
+    target: str | os.PathLike[str],
     *,
     attempts: int = DEFAULT_ATTEMPTS,
     delay: float = DEFAULT_DELAY,
@@ -48,8 +48,10 @@ def atomic_replace(
     """Rename *source* onto *target*, retrying while the failure looks like a transient lock.
 
     Args:
-        source: The temp file to move into place. It must sit on the same volume as *target*,
-            which is what makes the rename atomic; callers create it in the target's own directory.
+        source: The temp file to move into place. Anything ``os.replace`` accepts — a ``str`` (what
+            ``tempfile.mkstemp`` hands back) or any path-like object. It must sit on the same volume
+            as *target*, which is what makes the rename atomic; callers create it in the target's
+            own directory.
         target: The final path. Overwritten, as ``os.replace`` does.
         attempts: How many times to try the rename. Must be at least 1.
         delay: Seconds before the second attempt, multiplied by the attempt number for each one

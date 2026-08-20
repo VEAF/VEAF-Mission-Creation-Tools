@@ -512,12 +512,22 @@ function TestVeafMoveAdvanced:tearDown()
   dcs_mocks.removeGroup("TKR_WITH_ORBIT")
 end
 
--- Covers _getTankerRouteData body (lines 274-290) via a registered group.
+-- Covers _getTankerRouteData body via a registered group.
 function TestVeafMoveAdvanced:test_getTankerRouteData_returns_valid_data()
-  local r, err = veafMove._getTankerRouteData("TKR_NO_ORBIT")
+  local r, err = veafMove._getTankerRouteData("TKR_WITH_ORBIT")
   luaunit.assertNotNil(r)
   luaunit.assertNil(err)
   luaunit.assertEquals(#r.points, 3)
+end
+
+-- Was asserted the other way round until FIX-MOVE-ORBIT-SEARCH: the helper used to hand back the last
+-- three waypoints of *any* route, orbit or no orbit, leaving each caller to discover the absence for
+-- itself. It now refuses here, which is the point of #248 — "moving a tanker to the wrong place is
+-- worse than telling the player it cannot be done".
+function TestVeafMoveAdvanced:test_getTankerRouteData_refuses_a_route_with_no_orbit()
+  local r, err = veafMove._getTankerRouteData("TKR_NO_ORBIT")
+  luaunit.assertNil(r)
+  luaunit.assertStrContains(err, "ORBIT")
 end
 
 -- Covers moveTanker body up to "no orbit task" early return (lines 421-554).
@@ -604,6 +614,158 @@ function TestVeafMoveNonNumericValues:test_a_numeric_value_is_still_parsed()
   local r = self:_analyse("_move group, name SomeGroup, speed 250")
 
   luaunit.assertEquals(r.speed, 250)
+end
+
+-------------------------------------------------------------------------------------------------
+-- FIX-MOVE-ORBIT-SEARCH — #248, reported by Maveric
+--
+-- The orbit was looked for on the second-to-last waypoint. True of VEAF's own templates, whose route
+-- is [approach, orbit, leg end]; false of a DCS-Liberation tanker, whose longer route ends with a
+-- landing point — so both tanker commands refused with "has no ORBIT task defined".
+--
+-- The orbit is now searched for wherever it is.
+-------------------------------------------------------------------------------------------------
+
+TestVeafMoveOrbitSearch = {}
+
+--- A waypoint carrying an Orbit task, optionally with a pattern.
+local function _orbitPoint(x, pattern)
+  local params = { speed = 200, altitude = 6000 }
+  if pattern then
+    params.pattern = pattern
+  end
+  return {
+    x = x,
+    y = 0,
+    speed = 200,
+    alt = 6000,
+    task = { params = { tasks = { { id = "Orbit", params = params } } } },
+  }
+end
+
+local function _plainPoint(x)
+  return { x = x, y = 0, speed = 200, alt = 6000 }
+end
+
+function TestVeafMoveOrbitSearch:test_a_veaf_template_still_finds_its_orbit()
+  -- [approach, orbit, leg end] — the shape that always worked, asserted so it keeps working
+  local points = { _plainPoint(0), _orbitPoint(100000), _plainPoint(200000) }
+  local index, task = veafMove._findOrbitWaypoint(points)
+  luaunit.assertEquals(index, 2)
+  luaunit.assertNotNil(task)
+end
+
+-- The defect of #248, in one assertion: a Liberation route whose orbit is nowhere near the end.
+function TestVeafMoveOrbitSearch:test_an_orbit_in_the_middle_of_a_long_route_is_found()
+  local points = {
+    _plainPoint(0), -- take-off
+    _plainPoint(10000),
+    _orbitPoint(100000), -- the working orbit
+    _plainPoint(110000), -- leg end
+    _plainPoint(200000),
+    _plainPoint(300000), -- landing
+  }
+  luaunit.assertEquals(veafMove._findOrbitWaypoint(points), 3)
+end
+
+function TestVeafMoveOrbitSearch:test_no_orbit_anywhere_returns_nil()
+  local points = { _plainPoint(0), _plainPoint(1), _plainPoint(2) }
+  luaunit.assertNil(veafMove._findOrbitWaypoint(points))
+end
+
+-- Recorded decision: the first orbit wins. A tanker route has one working orbit; if several exist the
+-- first is the one the tanker reaches first, so the one that is active or imminent.
+function TestVeafMoveOrbitSearch:test_the_first_orbit_wins()
+  local points = { _plainPoint(0), _orbitPoint(100000), _plainPoint(150000), _orbitPoint(200000) }
+  luaunit.assertEquals(veafMove._findOrbitWaypoint(points), 2)
+end
+
+function TestVeafMoveOrbitSearch:test_an_orbit_on_the_first_waypoint_is_found()
+  local points = { _orbitPoint(0), _plainPoint(100000) }
+  luaunit.assertEquals(veafMove._findOrbitWaypoint(points), 1)
+end
+
+function TestVeafMoveOrbitSearch:test_an_orbit_on_the_last_waypoint_is_found()
+  local points = { _plainPoint(0), _orbitPoint(100000) }
+  luaunit.assertEquals(veafMove._findOrbitWaypoint(points), 2)
+end
+
+-- ---------------------------------------------------------------------------
+-- The neighbours of the orbit, which callers read and overwrite
+-- ---------------------------------------------------------------------------
+TestVeafMoveOrbitNeighbours = {}
+
+function TestVeafMoveOrbitNeighbours:setUp()
+  self._getGroupData = veaf.getGroupData
+end
+
+function TestVeafMoveOrbitNeighbours:tearDown()
+  veaf.getGroupData = self._getGroupData
+end
+
+--- Make _getTankerRouteData see exactly this route.
+function TestVeafMoveOrbitNeighbours:_routeOf(points)
+  veaf.getGroupData = function()
+    return { route = { points = points } }
+  end
+  return veafMove._getTankerRouteData("TANKER")
+end
+
+function TestVeafMoveOrbitNeighbours:test_the_neighbours_of_a_mid_route_orbit()
+  local points = { _plainPoint(0), _plainPoint(1), _orbitPoint(2), _plainPoint(3), _plainPoint(4) }
+  local r = self:_routeOf(points)
+  luaunit.assertEquals(r.orbitIndex, 3)
+  luaunit.assertIs(r.point1, points[2])
+  luaunit.assertIs(r.point2, points[3])
+  luaunit.assertIs(r.point3, points[4])
+end
+
+-- point1 is optional: an orbit on the first waypoint has no approach point before it, and refusing
+-- such a route would trade one false refusal for another.
+function TestVeafMoveOrbitNeighbours:test_no_point1_when_the_orbit_is_first()
+  local r = self:_routeOf({ _orbitPoint(0), _plainPoint(1) })
+  luaunit.assertNil(r.point1)
+  luaunit.assertNotNil(r.point2)
+  luaunit.assertNotNil(r.point3)
+end
+
+function TestVeafMoveOrbitNeighbours:test_no_point3_when_the_orbit_is_last()
+  local r = self:_routeOf({ _plainPoint(0), _orbitPoint(1) })
+  luaunit.assertNotNil(r.point1)
+  luaunit.assertNil(r.point3)
+end
+
+-- A Race-Track orbit flies between its waypoint and the next one, which is DCS's own semantics and
+-- the reason callers may overwrite point3 — on a long route as much as on a VEAF template.
+function TestVeafMoveOrbitNeighbours:test_a_race_track_orbit_keeps_its_leg_end()
+  local points = { _plainPoint(0), _orbitPoint(1, "Race-Track"), _plainPoint(2) }
+  local r = self:_routeOf(points)
+  luaunit.assertIs(r.point3, points[3])
+end
+
+-- A Circle orbit turns around a single point and gives the next waypoint no orbit role, so handing it
+-- over as point3 would let a caller silently redraw the route — on a Liberation tanker, that waypoint
+-- could be the landing.
+function TestVeafMoveOrbitNeighbours:test_a_circle_orbit_withholds_the_next_waypoint()
+  local r = self:_routeOf({ _plainPoint(0), _orbitPoint(1, "Circle"), _plainPoint(2) })
+  luaunit.assertNil(r.point3)
+  luaunit.assertNotNil(r.point2, "the orbit itself is still returned")
+end
+
+function TestVeafMoveOrbitNeighbours:test_the_orbit_task_is_returned_with_the_route()
+  local r = self:_routeOf({ _plainPoint(0), _orbitPoint(1), _plainPoint(2) })
+  luaunit.assertNotNil(r.orbitTask)
+  luaunit.assertEquals(r.orbitTask.id, "Orbit")
+end
+
+-- A one-waypoint route that *is* the orbit is legal and no longer refused for being too short: the
+-- old helper wanted three waypoints because it counted backwards from the end.
+function TestVeafMoveOrbitNeighbours:test_a_single_waypoint_orbit_is_accepted()
+  local r, err = self:_routeOf({ _orbitPoint(0) })
+  luaunit.assertNotNil(r)
+  luaunit.assertNil(err)
+  luaunit.assertNil(r.point1)
+  luaunit.assertNil(r.point3)
 end
 
 os.exit(luaunit.LuaUnit.run())

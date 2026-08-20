@@ -232,8 +232,40 @@ end
 -- Tanker route helpers (shared by changeTanker and moveTanker)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Extract the last 3 waypoints and tankerData for a named tanker group.
---- Returns a table {tankerData, points, point1, point2, point3} or nil + error message.
+--- Locate the waypoint carrying the tanker's orbit task.
+--- Returns its index and the task, or nil when the route has no orbit at all.
+---
+--- #248: this used to be "the second-to-last waypoint", which is true of VEAF's own templates — whose
+--- route is [approach, orbit, leg end] — and false of a DCS-Liberation tanker, whose longer route ends
+--- with a landing point. Both tanker commands then refused with "has no ORBIT task defined".
+---
+--- **The first orbit wins** when a route carries several. A tanker route has one working orbit; if
+--- there are several, the first is the one the tanker reaches first, so it is the one that is active or
+--- imminent, which is what a player asking to change tanker parameters means. "The one nearest the
+--- requested position" was rejected: appealing for moveTanker, meaningless for changeTanker which moves
+--- nothing, and two commands disagreeing about which orbit they mean would be worse.
+function veafMove._findOrbitWaypoint(points)
+  for index = 1, #points do
+    local task = veafMove._findOrbitTaskInPoint(points[index])
+    if task then
+      return index, task
+    end
+  end
+  return nil, nil
+end
+
+--- Extract the tanker's orbit waypoint, its neighbours, and tankerData for a named tanker group.
+--- Returns a table {tankerData, points, orbitIndex, orbitTask, point1, point2, point3} or nil + message.
+---
+--- `point2` is the orbit itself. `point1` (the waypoint before) and `point3` (the waypoint after) are
+--- **optional**: an orbit on the first or last waypoint of a route is legal, and refusing such a route
+--- would trade one false refusal for another.
+---
+--- `point3` is the far end of the refuelling leg, which is why callers overwrite it — that is DCS's own
+--- semantics for a `Race-Track` orbit: it flies between the waypoint carrying the task and the next
+--- one. It therefore holds on a Liberation route just as on a VEAF template. A `Circle` orbit is the
+--- exception: it turns around a single point and gives the next waypoint no orbit role, so `point3` is
+--- withheld there rather than letting a caller redraw the route. See ticket 01 of FIX-MOVE-ORBIT-SEARCH.
 function veafMove._getTankerRouteData(groupName)
   local tankerData = veaf.getGroupData(groupName)
   if not tankerData then
@@ -241,15 +273,30 @@ function veafMove._getTankerRouteData(groupName)
   end
   local route = veaf.findInTable(tankerData, "route")
   local points = veaf.findInTable(route, "points")
-  if not points or #points < 3 then
-    return nil, "Cannot find a valid route (need at least 3 waypoints) for tanker " .. groupName
+  if not points or #points < 1 then
+    return nil, "Cannot find a valid route for tanker " .. groupName
   end
+
+  local orbitIndex, orbitTask = veafMove._findOrbitWaypoint(points)
+  if not orbitIndex then
+    return nil, "Cannot find an ORBIT task in the route of tanker " .. groupName
+  end
+
+  local point3 = points[orbitIndex + 1]
+  local pattern = orbitTask.params and orbitTask.params.pattern
+  if pattern == "Circle" and point3 then
+    veaf.loggers.get(veafMove.Id):debug("tanker %s orbits a single point (Circle); leaving the waypoint after it alone", veaf.lp(groupName))
+    point3 = nil
+  end
+
   return {
     tankerData = tankerData,
     points = points,
-    point1 = points[#points - 2],
-    point2 = points[#points - 1],
-    point3 = points[#points],
+    orbitIndex = orbitIndex,
+    orbitTask = orbitTask,
+    point1 = points[orbitIndex - 1],
+    point2 = points[orbitIndex],
+    point3 = point3,
   },
     nil
 end
@@ -316,31 +363,31 @@ function veafMove.changeTanker(eventPos, speed, alt)
 
   veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
 
-  -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude
-  veaf.loggers.get(veafMove.Id):trace("found point1")
-  -- set speed
-  if speed > -1 then
-    point1.speed = speed / 1.94384 -- in m/s
+  -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude.
+  -- Optional since #248: the orbit is now found wherever it is in the route, and it may be the very
+  -- first waypoint, in which case there is no waypoint before it. A caller passing -1 asks to *read*
+  -- the current speed or altitude, so that read falls back to the orbit waypoint, which always exists.
+  local referencePoint = point1 or point2
+  if point1 then
+    if speed > -1 then
+      point1.speed = speed / 1.94384 -- in m/s
+    end
+    if alt > -1 then
+      point1.alt = alt * 0.3048 -- in meters
+    end
+    veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
   else
-    speed = point1.speed * 1.94384 -- in knots
+    veaf.loggers.get(veafMove.Id):debug("tanker %s orbits on its first waypoint; no approach point to adjust", veaf.lp(tankerGroupName))
   end
-  -- set altitude
-  if alt > -1 then
-    point1.alt = alt * 0.3048 -- in meters
-  else
-    alt = point1.alt / 0.3048 -- in feet
+  if speed <= -1 then
+    speed = referencePoint.speed * 1.94384 -- in knots
   end
-  veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
+  if alt <= -1 then
+    alt = referencePoint.alt / 0.3048 -- in feet
+  end
 
   -- point 2 is the start of the tanking Orbit ; we'll change the speed and altitude
-  veaf.loggers.get(veafMove.Id):trace("found point2")
-  local orbitTask = veafMove._findOrbitTaskInPoint(point2)
-  if not orbitTask then
-    local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
-    veaf.loggers.get(veafMove.Id):info(text)
-    trigger.action.outText(veaf.t("move.tanker_set_no_orbit", tankerGroupName), 10)
-    return false
-  end
+  local orbitTask = routeData.orbitTask
   veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. tankerGroupName)
   if speed > -1 then
     orbitTask.params.speed = speed / 1.94384 -- in m/s
@@ -351,17 +398,20 @@ function veafMove.changeTanker(eventPos, speed, alt)
     point2.alt = alt * 0.3048 -- in meters
   end
 
-  -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude
-  veaf.loggers.get(veafMove.Id):trace("found point3")
-  -- change speed
-  if speed > -1 then
-    point3.speed = speed / 1.94384 -- in m/s
+  -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude.
+  -- Optional since #248: absent when the orbit is the last waypoint of the route, and withheld for a
+  -- Circle orbit, which turns around one point and gives the next waypoint no orbit role.
+  if point3 then
+    if speed > -1 then
+      point3.speed = speed / 1.94384 -- in m/s
+    end
+    if alt > -1 then
+      point3.alt = alt * 0.3048 -- in meters
+    end
+    veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
+  else
+    veaf.loggers.get(veafMove.Id):debug("tanker %s has no leg-end waypoint to adjust", veaf.lp(tankerGroupName))
   end
-  -- change altitude
-  if alt > -1 then
-    point3.alt = alt * 0.3048 -- in meters
-  end
-  veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
 
   -- replace whole mission
   veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
@@ -419,6 +469,19 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   veaf.loggers.get(veafMove.Id):trace(string.format("point1=%s", veaf.p(point1)))
   veaf.loggers.get(veafMove.Id):trace(string.format("point2=%s", veaf.p(point2)))
   veaf.loggers.get(veafMove.Id):trace(string.format("point3=%s", veaf.p(point3)))
+
+  -- Moving a tanker is a geometric operation on its refuelling leg, whose far end is point3. Since
+  -- #248 that waypoint may be absent — the orbit is the route's last point, or it is a Circle orbit,
+  -- which turns around a single point and has no leg. Refusing beats inventing a leg the mission maker
+  -- never drew: "moving a tanker to the wrong place is worse than telling the player it cannot be
+  -- done". A player who wants it moved anyway says where, with `distance` and `hdg`.
+  if not point3 and (distance == nil or hdg == nil) then
+    veaf.loggers
+      .get(veafMove.Id)
+      :info("Cannot work out the refuelling leg of tanker " .. groupName .. " without a waypoint after its orbit")
+    trigger.action.outText(veaf.t("move.tanker_move_no_leg", groupName), 10)
+    return false
+  end
 
   -- if distance is not set, compute distance between point2 and point3
   local distance = distance
@@ -503,20 +566,20 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   veaf.loggers.get(veafMove.Id):trace(string.format("movePoint=%s", veaf.p(movePoint)))
 
   -- set point1 to the computed movePoint
-  point1.x = movePoint.x
-  point1.y = movePoint.y
-  point1.alt = movePoint.alt
-  point1.speed = movePoint.speed
-  veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
+  -- Optional since #248: absent when the orbit is the route's first waypoint, in which case there is
+  -- no approach point to bring in front of the leg.
+  if point1 then
+    point1.x = movePoint.x
+    point1.y = movePoint.y
+    point1.alt = movePoint.alt
+    point1.speed = movePoint.speed
+    veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
+  else
+    veaf.loggers.get(veafMove.Id):debug("tanker %s orbits on its first waypoint; no approach point to move", veaf.lp(groupName))
+  end
 
   -- set point2 to the start of the tanking Orbit (startLegPoint)
-  local orbitTask = veafMove._findOrbitTaskInPoint(point2)
-  if not orbitTask then
-    local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
-    veaf.loggers.get(veafMove.Id):info(text)
-    trigger.action.outText(veaf.t("move.tanker_move_no_orbit", groupName), 10)
-    return false
-  end
+  local orbitTask = routeData.orbitTask
   veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. groupName)
   orbitTask.params.speed = speed
   orbitTask.params.altitude = alt
@@ -526,12 +589,17 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   point2.speed = startLegPoint.speed
   veaf.loggers.get(veafMove.Id):trace(string.format("newPoint2=%s", veaf.p(point2)))
 
-  -- set point2 to the end of the tanking Orbit (endLegPoint)
-  point3.x = endLegPoint.x
-  point3.y = endLegPoint.y
-  point3.alt = endLegPoint.alt
-  point3.speed = endLegPoint.speed
-  veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
+  -- set point3 to the end of the tanking Orbit (endLegPoint). This is the far end of a Race-Track
+  -- orbit by DCS's own semantics — it flies between the task's waypoint and the next one — which is
+  -- why overwriting it is right, on a long route as much as on a VEAF template. Guaranteed present
+  -- here: the leg check above refused earlier if it was missing and the player gave no distance/hdg.
+  if point3 then
+    point3.x = endLegPoint.x
+    point3.y = endLegPoint.y
+    point3.alt = endLegPoint.alt
+    point3.speed = endLegPoint.speed
+    veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
+  end
 
   --actually move the group
   local delay = 0

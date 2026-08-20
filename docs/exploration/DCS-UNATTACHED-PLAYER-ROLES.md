@@ -94,6 +94,43 @@ open to him — but the commands this lot was about are menu-only, so using it w
 carrier operations as marker commands, widening the lot past what the report asked. Recorded here as the
 door that exists, for whoever wants to walk through it later.
 
+## The server hook: it lifts one wall, not the other
+
+Asked afterwards whether the hook route could work — RexAttaque named it in 2022 as *"the only way ...
+which is really not ideal"* — the answer is worth recording, because **the pipe already exists in this
+repository** and someone will find it and assume it settles the question.
+
+[`VEAF-Server-hook.lua:285`](../../src/scripts/Hooks/VEAF-Server-hook.lua:285) implements
+`onPlayerChangeSlot`: it reads `net.get_player_info`, resolves the slot to a unit name, and injects the
+result into the mission with `net.dostring_in("mission", …)`, which lands in
+[`veafRemote.registerUserSlot`](../../src/scripts/veaf/veafRemote.lua:249). So the mission can be told a
+player's **name and UCID** even when he holds no unit — and a name resolves to a pilot level through
+`veaf-pilots.txt`.
+
+**That lifts the identity wall.** It does not lift the other one:
+
+| Wall | Does the hook help? |
+|---|---|
+| *Who is connected, and what is he allowed to do?* | **Yes** — name + UCID + level, unit or no unit |
+| *Who clicked this F10 command?* | **No.** DCS does not report the author of a menu click to anyone, hook included. |
+
+So a secured F10 command would still have to guess: "only one unattached player on blue, therefore it
+was him". That holds to within one player and collapses at two — and for commands that hand over control
+of the mission, "probably him" is not a security model. Which is the objection that closed the lot in the
+first place.
+
+Two further caveats before anyone builds on this:
+
+- **The hook is deployed by hand**, server by server, with no pipeline. Anything depending on it works on
+  VEAF servers and nowhere else. Arguably acceptable for a game master, which is a server-side role by
+  nature — but it is a constraint, not a detail.
+- **None of this was measured in multiplayer.** Everything on this page is a single-player session.
+
+A defect found while instructing this, unrelated to the lot and outliving it:
+[`FIX-REMOTE-SLOT-NIL-UNIT`](../../.backlog/FIX-REMOTE-SLOT-NIL-UNIT/PRD.md) — the hook sends the literal
+string `"nil"` for "no unit", which is truthy, so a player between slots is filed under a unit named
+`nil` and `veafSecurity.getUnitNameForPlayer` hands that string back to its callers.
+
 ## What this measurement paid for anyway
 
 - The mechanism of [#128](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/128) is **known**

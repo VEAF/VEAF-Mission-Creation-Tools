@@ -219,26 +219,34 @@ Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter d
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Remplace le nom du groupe d'apparition (utile pour cibler un modèle nommé) |
 | `#spawndelay=N` | `#spawndelay=120` | Délai en secondes avant l'apparition de ce groupe après l'activation de la zone |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Exécute une commande VEAF au lieu de faire apparaître ce groupe ; l'unité sert de déclencheur et est détruite |
-| `#alarm=N` | `#alarm=2` | État d'alerte donné à ce groupe : `0` AUTO (défaut), `1` VERT, `2` ROUGE |
+| `#alarm=N` | `#alarm=2` | État d'alerte donné à ce groupe : `0` AUTO, `1` VERT, `2` ROUGE. Sans ce tag, l'état dépend de la nature du groupe — voir [`#alarm`](#alarm-state) |
 
 ### `#alarm` — faire tenir sa position à un groupe {#alarm-state}
 
-Un groupe terrestre en alerte **ROUGE** s'arrête et se déploie : c'est juste pour une batterie SAM, faux pour un convoi, qui ne part alors jamais. Les zones font donc apparaître tous leurs groupes en **AUTO**, où DCS élève lui-même le niveau d'alerte du groupe quand il détecte quelque chose — un convoi roule sur sa route, et une défense tire quand même dès qu'elle voit une cible.
+L'état d'alerte terrestre décide de deux choses à la fois, et les deux comptent : un groupe en **ROUGE** s'arrête et se déploie — radars allumés, prêt à tirer — tandis qu'en **AUTO** il roule et laisse DCS élever son alerte à la détection. Juste pour une batterie SAM dans un cas, juste pour un convoi dans l'autre, et jamais le même.
 
-Utilisez `#alarm=2` sur les groupes que vous voulez retranchés dès la première seconde, typiquement une défense anti-aérienne dont vous préférez que les radars soient allumés avant le premier passage :
+**La zone choisit donc selon la nature du groupe**, sans que vous ayez à le dire :
+
+| Le groupe | État reçu | Pourquoi |
+|---|---|---|
+| a une route à parcourir (plus d'un point de passage) | **AUTO** | pour qu'il parte : en ROUGE il ne bougerait jamais |
+| reste sur place | **ROUGE** | pour qu'il se batte : en AUTO une batterie SAM garde ses radars éteints |
+
+`#alarm=N` reste maître et l'emporte dans les deux sens — pour clouer un convoi sur place (`#alarm=2`) comme pour laisser une défense discrète jusqu'au premier contact (`#alarm=0`) :
 
 ```
-ALPHA-SA6-BATTERY #alarm=2
-ALPHA-SUPPLY-CONVOY
+ALPHA-SA6-BATTERY              ← ROUGE, sans rien écrire
+ALPHA-SUPPLY-CONVOY            ← AUTO, sans rien écrire
+ALPHA-SA6-AMBUSH #alarm=0      ← discrète volontairement
 ```
 
-Une valeur illisible ou hors bornes (`#alarm=7`, `#alarm=x`) retombe sur AUTO plutôt que de faire échouer la zone.
+Une valeur illisible ou hors bornes (`#alarm=7`, `#alarm=x`) retombe sur ROUGE et l'écrit dans le log, plutôt que de faire échouer la zone.
 
 !!! note "Uniquement pour les groupes de mission"
     Le tag s'applique aux groupes que la zone fait apparaître elle-même. Sur une unité `#command=`, passez l'état d'alerte dans la commande (`-spawn ..., alarm 2`), l'apparition étant gérée par l'interpréteur de marqueurs VEAF.
 
-!!! warning "Changement de comportement"
-    Les zones faisaient apparaître **tous** les groupes en ROUGE, ce qui explique qu'un convoi placé dans une zone de combat ne bougeait jamais ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). Si une de vos zones comptait là-dessus — une défense anti-aérienne qui doit être active dès l'activation — ajoutez `#alarm=2` à ces groupes.
+!!! warning "Historique du comportement"
+    Jusqu'à la 6.15.4 les zones faisaient apparaître **tous** leurs groupes en ROUGE, ce qui explique qu'un convoi placé dans une zone ne bougeait jamais ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). La correction est passée par un défaut unique en AUTO, ce qui a réglé les convois **et rendu muettes les défenses anti-aériennes des zones** — une batterie en AUTO n'allume pas ses radars. D'où le choix par nature décrit ci-dessus. Si vous avez ajouté des `#alarm=2` sur vos batteries entre-temps, ils restent valides et inutiles : le défaut fait maintenant la même chose.
 
 ### Exemple pratique — embuscade MANPADS
 

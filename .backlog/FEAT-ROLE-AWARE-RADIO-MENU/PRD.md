@@ -25,6 +25,25 @@ The one escape route was the marker channel — a marker carries its author, and
 resolves that into a pilot level. It would have meant exposing the carrier operations as marker
 commands, which widened the lot past what the report asked for. David chose to stop instead.
 
+## The modest version was considered too, and also dropped (2026-08-20)
+
+RexAttaque's own proposal on #128 was smaller than what this lot attempted — *"I vote for simply cleaning
+up the empty radio menus (carrier ops and such) for game masters only if possible"*. His trailing "if
+possible" turns out to be the whole problem:
+
+**A DCS submenu is one object for everybody.** Per-group commands are attached *inside* it and each is
+visible only to its group, so a menu whose commands are all `USAGE_ForGroup` looks empty to anyone with
+no group — but not creating it removes it from **everyone**, pilots included. There is no per-player
+menu to clean up.
+
+The only version that would work — not creating a submenu when nothing at all will be attached to it —
+covers exactly the case where **no pilot is connected**. With pilots and a game master together, which is
+the situation the issue was written about, the empty menu comes back. Making it work there means creating
+those submenus per group (`addSubMenuForGroup`), which is a rewrite of the renderer: one logical node
+would project to N DCS nodes, touching pagination, `delSubmenu`, and the references modules hold.
+
+David's call: not worth a renderer rewrite to hide an empty menu. **Left as is.**
+
 ## What was gained anyway
 
 - The mechanism of #128 is now **known and written down** rather than suspected: the carrier submenu

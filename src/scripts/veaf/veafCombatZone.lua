@@ -37,11 +37,32 @@ veafCombatZone.DefaultSpawnRadiusForUnits = 50
 
 veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
--- Alarm state a spawned group gets unless its unit name carries `#alarm=`. AUTO (0) rather than
--- RED (2): a ground group on red alert holds position, so the previous global RED immobilised every
--- convoy a zone spawned (#290). AUTO lets DCS raise the group's own alert on contact.
--- Values are AI.Option.Ground.val.ALARM_STATE: 0 AUTO, 1 GREEN, 2 RED.
-veafCombatZone.DefaultAlarmState = 0
+-- Alarm states, as AI.Option.Ground.val.ALARM_STATE: 0 AUTO, 1 GREEN, 2 RED.
+veafCombatZone.ALARM_STATE_AUTO = 0
+veafCombatZone.ALARM_STATE_GREEN = 1
+veafCombatZone.ALARM_STATE_RED = 2
+
+-- Alarm state a spawned group gets unless its unit name carries `#alarm=`, **chosen by the nature of
+-- the group** rather than fixed for all of them. The two defaults below are both right, for opposite
+-- groups, which is why one global value could not serve:
+--
+--  * A group with a route to drive wants AUTO. On RED a DCS ground group holds position, so the global
+--    RED this module used to apply immobilised every convoy a zone spawned (#290, open since April
+--    2025).
+--  * A group that stays put wants RED, so it fights on sight. On AUTO a SAM battery keeps its radar
+--    down — which is what the global AUTO of PR #762 cost: fixing the convoys made every air defence
+--    inside a combat zone go quiet.
+--
+-- PR #762's own PRD named this trade ("right for a SAM battery, wrong for a convoy") and picked a single
+-- default anyway, leaving `#alarm=N` as the escape hatch. An escape hatch every mission maker has to
+-- apply to every existing battery is a regression, not an option — hence choosing per group.
+veafCombatZone.DefaultAlarmStateMobile = veafCombatZone.ALARM_STATE_AUTO
+veafCombatZone.DefaultAlarmStateStatic = veafCombatZone.ALARM_STATE_RED
+
+-- Kept as the value an unreadable `#alarm=` tag falls back to, and as what a caller gets when the
+-- group's nature cannot be determined: RED is the safer of the two, since a group that fights when it
+-- should have driven is visible, while one that stays silent when it should have fired is not.
+veafCombatZone.DefaultAlarmState = veafCombatZone.ALARM_STATE_RED
 
 -- Pattern matching the `#alarm=` tag in a unit name. A module constant rather than an inline literal
 -- so the tests exercise the same pattern the parser uses.
@@ -132,8 +153,10 @@ function VeafCombatZoneElement:new(objectToCopy)
   objectToCreate.spawnGroup = nil
   -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
   objectToCreate.spawnCount = 1
-  -- alarm state applied to the spawned group (0 AUTO, 1 GREEN, 2 RED); set with the `#alarm=` tag
-  objectToCreate.alarmState = veafCombatZone.DefaultAlarmState
+  -- Alarm state applied to the spawned group (0 AUTO, 1 GREEN, 2 RED), set with the `#alarm=` tag.
+  -- **nil means "not stated"**, which is what lets the state be chosen by the group's nature at spawn
+  -- time. Defaulting it here would make a deliberate `#alarm=0` indistinguishable from silence.
+  objectToCreate.alarmState = nil
 
   return objectToCreate
 end
@@ -271,6 +294,48 @@ end
 
 function VeafCombatZoneElement:getAlarmState()
   return self.alarmState
+end
+
+--- Has this group somewhere to drive to?
+--- More than one waypoint means it is meant to move, and "meant to move" is the whole reason AUTO
+--- exists here (#290). A zone element only carries a route of its own when it is a `#command` fake
+--- unit, so a native group's route is read from the mission, the same way the parser reads it.
+--- Anything unreadable answers false: a group that fights when it should have driven is a visible
+--- mistake, one that stays silent when it should have fired is not.
+function VeafCombatZoneElement:isMobile()
+  local route = self:getRoute()
+  if not route then
+    local name = self:getName()
+    if not name or not mist or not mist.getGroupRoute then
+      return false
+    end
+    -- pcall: mist raises on a group it cannot find, and a zone element may name a group that was
+    -- destroyed or renamed since the zone was parsed.
+    local ok, found = pcall(mist.getGroupRoute, name, "task")
+    route = ok and found or nil
+  end
+  if type(route) ~= "table" then
+    return false
+  end
+  local waypoints = 0
+  for _ in pairs(route) do
+    waypoints = waypoints + 1
+  end
+  return waypoints > 1
+end
+
+--- The alarm state to apply to this element's group when it spawns.
+--- An explicit `#alarm=` tag wins; otherwise the group's nature decides — see the two
+--- DefaultAlarmState* constants for why one global value could not serve both.
+function VeafCombatZoneElement:resolveAlarmState()
+  local stated = self:getAlarmState()
+  if stated ~= nil then
+    return stated
+  end
+  if self:isMobile() then
+    return veafCombatZone.DefaultAlarmStateMobile
+  end
+  return veafCombatZone.DefaultAlarmStateStatic
 end
 
 ---
@@ -1167,7 +1232,10 @@ function VeafCombatZone:spawnElement(zoneElement, now)
           .get(veafCombatZone.Id)
           :trace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
         self:addSpawnedGroup(newGroup.name)
-        veaf.readyForCombat(newGroup.name, zoneElement:getAlarmState())
+        -- resolveAlarmState, not getAlarmState: the state is decided here, from the group's nature,
+        -- unless its unit name stated one. A single default served the convoys of #290 and silenced
+        -- every SAM battery in a combat zone (PR #762).
+        veaf.readyForCombat(newGroup.name, zoneElement:resolveAlarmState())
       else
         veaf.loggers
           .get(veafCombatZone.Id)

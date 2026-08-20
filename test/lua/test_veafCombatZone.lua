@@ -152,11 +152,12 @@ function TestVeafCombatZoneElement:test_spawnDelay_string_coercion()
 end
 
 -- FIX-COMBATZONE-CONVOY-ALARM: the zone used to put every group it spawned on red alert, which
--- immobilised convoys (#290). The default is now AUTO, and `#alarm=` is the only way to override it.
+-- immobilised convoys (#290). FIX-COMBATZONE-ALARM-BY-NATURE then showed one global default could not
+-- serve both natures — AUTO silences a SAM battery's radar — so the state is now resolved per group and
+-- `alarmState` holds **nil** until a `#alarm=` tag states one.
 
-function TestVeafCombatZoneElement:test_alarmState_defaults_to_auto()
-  luaunit.assertEquals(self.el:getAlarmState(), 0)
-  luaunit.assertEquals(veafCombatZone.DefaultAlarmState, 0)
+function TestVeafCombatZoneElement:test_alarmState_is_unstated_by_default()
+  luaunit.assertNil(self.el:getAlarmState(), "nil is what lets the nature of the group decide")
 end
 
 function TestVeafCombatZoneElement:test_alarmState_accepts_every_valid_state()
@@ -1480,4 +1481,106 @@ end
 -- ============================================================================
 -- Run
 -- ============================================================================
+
+-------------------------------------------------------------------------------------------------
+-- FIX-COMBATZONE-ALARM-BY-NATURE
+--
+-- PR #762 gave every group a zone spawns the AUTO alert state, so convoys would drive (#290). A SAM
+-- battery on AUTO keeps its radar down, so the same edit silenced every air defence inside a combat
+-- zone. Its own PRD had named the trade -- "right for a SAM battery, wrong for a convoy" -- and picked
+-- one default anyway. The state is now resolved from the group's nature.
+-------------------------------------------------------------------------------------------------
+
+TestVeafCombatZoneAlarmByNature = {}
+
+function TestVeafCombatZoneAlarmByNature:setUp()
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("SomeGroup")
+  self._getGroupRoute = mist.getGroupRoute
+  mist.getGroupRoute = function()
+    return nil
+  end
+end
+
+function TestVeafCombatZoneAlarmByNature:tearDown()
+  mist.getGroupRoute = self._getGroupRoute
+end
+
+-- The constants exist as a pair on purpose: both defaults are right, for opposite groups.
+function TestVeafCombatZoneAlarmByNature:test_the_two_defaults_are_auto_and_red()
+  luaunit.assertEquals(veafCombatZone.DefaultAlarmStateMobile, veafCombatZone.ALARM_STATE_AUTO)
+  luaunit.assertEquals(veafCombatZone.DefaultAlarmStateStatic, veafCombatZone.ALARM_STATE_RED)
+end
+
+-- The defect this lot fixes, in one assertion: a battery that stays put must fight.
+function TestVeafCombatZoneAlarmByNature:test_a_group_with_no_route_gets_red()
+  luaunit.assertFalse(self.el:isMobile())
+  luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_RED)
+end
+
+-- ... and the regression guard on #290: a convoy must still drive.
+function TestVeafCombatZoneAlarmByNature:test_a_group_with_a_route_gets_auto()
+  self.el:setRoute({ { x = 0 }, { x = 1 }, { x = 2 } })
+  luaunit.assertTrue(self.el:isMobile())
+  luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_AUTO)
+end
+
+-- A single waypoint is where a group sits, not somewhere to go.
+function TestVeafCombatZoneAlarmByNature:test_a_single_waypoint_is_not_mobile()
+  self.el:setRoute({ { x = 0 } })
+  luaunit.assertFalse(self.el:isMobile())
+  luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_RED)
+end
+
+function TestVeafCombatZoneAlarmByNature:test_an_empty_route_is_not_mobile()
+  self.el:setRoute({})
+  luaunit.assertFalse(self.el:isMobile())
+end
+
+-- A native zone group carries no route of its own -- only a `#command` fake unit does -- so the route
+-- has to come from the mission.
+function TestVeafCombatZoneAlarmByNature:test_a_native_group_route_is_read_from_the_mission()
+  mist.getGroupRoute = function(name, task)
+    luaunit.assertEquals(name, "SomeGroup")
+    return { { x = 0 }, { x = 1 } }
+  end
+  luaunit.assertTrue(self.el:isMobile())
+  luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_AUTO)
+end
+
+-- mist raises on a group it cannot find, and a zone element may name one destroyed since parsing.
+function TestVeafCombatZoneAlarmByNature:test_a_raising_mist_does_not_break_the_spawn()
+  mist.getGroupRoute = function()
+    error("group not found")
+  end
+  local ok, mobile = pcall(function()
+    return self.el:isMobile()
+  end)
+  luaunit.assertTrue(ok)
+  luaunit.assertFalse(mobile)
+  luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_RED)
+end
+
+function TestVeafCombatZoneAlarmByNature:test_an_element_with_no_name_is_not_mobile()
+  local el = VeafCombatZoneElement:new()
+  luaunit.assertFalse(el:isMobile())
+end
+
+-- An explicit tag beats the nature, in both directions.
+function TestVeafCombatZoneAlarmByNature:test_an_explicit_tag_wins_over_the_nature()
+  self.el:setRoute({ { x = 0 }, { x = 1 } }) -- mobile, so AUTO by nature
+  self.el:setAlarmState(2)
+  luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_RED)
+end
+
+function TestVeafCombatZoneAlarmByNature:test_an_explicit_auto_on_a_static_group_wins_too()
+  self.el:setAlarmState(0) -- static by nature, so RED, but the mission maker said AUTO
+  luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_AUTO)
+end
+
+function TestVeafCombatZoneAlarmByNature:test_an_explicit_green_is_honoured()
+  self.el:setAlarmState(1)
+  luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_GREEN)
+end
+
 os.exit(luaunit.LuaUnit.run())

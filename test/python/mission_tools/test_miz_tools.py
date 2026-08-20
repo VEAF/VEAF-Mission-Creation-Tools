@@ -581,3 +581,58 @@ class TestWriteMissionFolderPersistsWarehouses:
         write_mission_folder(mission, folder)
         assert read_mission_folder(folder).mission_content["theatre"] == "Kola"
         assert not (folder / "src" / "mission" / "warehouses").exists()
+
+
+# ---------------------------------------------------------------------------
+# The transient Windows lock on the final rename (FIX-WRITE-MIZ-REPLACE-FLAKE)
+# ---------------------------------------------------------------------------
+
+
+class TestWriteSurvivesATransientLock:
+    """`write_miz` must not lose a mission because a scanner held the file for 50 ms.
+
+    The helper's own contract is covered in `test_atomic_replace.py`; what is asserted here is that
+    `write_miz` actually goes through it — the guard is worthless if the call site was missed.
+    """
+
+    def test_a_single_denied_rename_is_survived(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        import os
+
+        miz = _make_minimal_miz(tmp_path)
+        mission = read_miz(miz)
+        mission.mission_content["theatre"] = "Syria"
+
+        real_replace = os.replace
+        calls: list[int] = []
+
+        def flaky(src: object, dst: object) -> None:
+            calls.append(1)
+            if len(calls) == 1:
+                raise PermissionError(5, "Access is denied")
+            real_replace(src, dst)
+
+        monkeypatch.setattr(os, "replace", flaky)
+        monkeypatch.setattr("veaf_libs.atomic_replace.time.sleep", lambda _s: None)
+
+        write_miz(mission, miz)
+
+        assert len(calls) == 2, "write_miz did not retry the rename"
+        assert read_miz(miz).mission_content["theatre"] == "Syria"
+        assert not list(tmp_path.glob("veaf_mission_*.miz")), "a temp file was left in the folder"
+
+    def test_a_permanent_denial_still_fails_and_leaves_nothing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import os
+
+        miz = _make_minimal_miz(tmp_path)
+        mission = read_miz(miz)
+        mission.mission_content["theatre"] = "Kola"
+
+        monkeypatch.setattr(os, "replace", lambda _s, _d: (_ for _ in ()).throw(PermissionError(5, "Access is denied")))
+        monkeypatch.setattr("veaf_libs.atomic_replace.time.sleep", lambda _s: None)
+
+        with pytest.raises(PermissionError):
+            write_miz(mission, miz)
+
+        assert not list(tmp_path.glob("veaf_mission_*.miz")), "a failed write littered the folder"

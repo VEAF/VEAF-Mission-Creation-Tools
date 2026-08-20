@@ -7,6 +7,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.6] — 2026-08-20
+
+### Fixed
+
+- **A save no longer fails because a virus scanner was reading the file.** Every atomic write ends by
+  renaming a temp file onto its target, and on Windows that rename fails intermittently with
+  `PermissionError: [WinError 5]` while something outside the process still holds the file just
+  written. Measured with a probe involving no VEAF code at all: **8 failures in 300 writes**, the
+  target never read-only, and **a single retry 50 ms later cleared every one of them**. The three
+  atomic writes now retry instead of giving up — writing a `.miz` (`write_miz`), rewriting one of its
+  members (`rewrite_miz_members`), and installing a downloaded executable in the updater, which is the
+  most exposed of the three since a fresh `.exe` is what a scanner is most certain to open. A genuine
+  permission problem still fails, with its own message, and a failed write still leaves no temp file
+  behind.
+
+---
+
 ## [6.15.5] — 2026-08-20
 
 ### Fixed

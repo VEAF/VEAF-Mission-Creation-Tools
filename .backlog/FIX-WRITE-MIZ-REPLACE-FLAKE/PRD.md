@@ -1,6 +1,6 @@
 # FIX-WRITE-MIZ-REPLACE-FLAKE — `write_miz` fails at random on Windows, and only in a full suite
 
-Status: ⬜ ready — **one decision to take before code**, see the open question below
+Status: ✅ done — 2026-08-20. **David chose option 1** (a bounded retry inside the writer) the day it was proposed
 
 Origin: found in passing during the 2026-08-19 session and recorded in that day's handoff without a
 lot; reproduced on 2026-08-20 while unblocking PR #762, which is what finally produced the error
@@ -76,19 +76,40 @@ it. The measurement above narrows the cost of each answer:
 3. **Nothing, and document it** — records the cause so nobody re-investigates a red suite. A full
    Windows run stays a coin toss (2 failures in one run, measured).
 
-The recommendation is **1**, and the measurement is what makes it cheap: one retry after 50 ms
+The recommendation was **1**, and the measurement is what made it cheap: one retry after 50 ms
 cleared all 8 failures out of 300 writes, so the guard costs nothing on a healthy write and turns a
-lost mission edit into a 50 ms pause. To be arbitrated before any code.
+lost mission edit into a 50 ms pause. **David chose 1 on 2026-08-20.**
+
+## What was widened, and why — a decision taken alone
+
+The ticket named one call site, `write_miz`. Enumerating `os.replace` across the tooling found
+**three** atomic writes of exactly the same shape, all vulnerable to the same window:
+
+| Site | What it writes |
+|---|---|
+| `miz_tools.py` — `write_miz` | a `.miz`, the reported case |
+| `miz_tools.py` — `rewrite_miz_members` | a `.miz`, byte-for-byte member swap — same file, same window |
+| `veaf-tools-updater.py` — `_install_binary` | a **freshly downloaded `.exe`**, the file a scanner is most certain to open, and the rename that installs an update |
+
+Fixing only the reported one would have left two armed traps, one of them more exposed than the
+original — the same reasoning `FIX-CTLD-NEVER-INITIALIZED` ticket 02 recorded when its guard went
+from 1 site to 9. So the retry went into a shared `veaf_libs/atomic_replace.py` and all three call
+it. That is an extension of the agreed scope, decided alone, and open to review.
+
+Left alone on purpose: `write_mission_folder` and the YAML writers, which do not rename anything —
+they write in place, so they have no such window.
 
 ## Scope
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Survive a transient lock on the final rename](tickets/01-retry-atomic-replace.md) | ⬜ |
+| 01 | [Survive a transient lock on the final rename](tickets/01-retry-atomic-replace.md) | ✅ |
 
 ## Out of scope
 
 - **Changing the atomic-write shape.** The `mkstemp` + `os.replace` pair is the fix for VMR-053 and
-  stays.
-- **The other writers.** `write_mission_folder` and the YAML writers do not go through this path.
-  If the same lock class hits them, that is a separate measurement, not an assumption to act on here.
+  stays untouched — the guard wraps it, it does not replace it.
+- **Naming the process that holds the handle.** It would need `handle.exe` at the moment of failure
+  and would not change what the fix does.
+- **A platform check.** None is needed: the retry only fires on `PermissionError`, which this rename
+  does not raise on Linux, so the CI never sleeps and no `sys.platform` test had to be written.

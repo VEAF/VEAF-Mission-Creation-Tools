@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import IO, Any
 
 import luadata
+from veaf_libs.atomic_replace import atomic_replace
 from veaf_libs.logger import logger
 from veaf_libs.safe_zip import safe_extract_all, safe_read_member
 
@@ -451,8 +452,10 @@ def write_miz(mission: DcsMission, miz_file_path: Path | None, additional_files:
             logger.exception(e)
 
         # Move the temp file to its final location. Once it is renamed there is nothing of ours
-        # left on disk.
-        os.replace(temp_zip_path, miz_file_path)
+        # left on disk. `atomic_replace` rather than `os.replace`: on Windows the rename fails
+        # intermittently while something outside the process still holds the file we just wrote
+        # (FIX-WRITE-MIZ-REPLACE-FLAKE, measured at 8 failures in 300 writes).
+        atomic_replace(temp_zip_path, miz_file_path)
         path_to_clean_up = None
     finally:
         if path_to_clean_up:
@@ -519,7 +522,9 @@ def rewrite_miz_members(miz_file_path: Path, replacements: dict[str, bytes]) -> 
             logger.exception(e)
             temp_zip_path = None
     if temp_zip_path:
-        os.replace(temp_zip_path, miz_file_path)
+        # Same transient-lock guard as `write_miz`: this is the second atomic write of the same
+        # kind, on the same kind of file, so it needs the same protection.
+        atomic_replace(temp_zip_path, miz_file_path)
 
 
 #: Archive members already carried by the JSON export object; skipped by :func:`extract_resources`.

@@ -72,6 +72,9 @@ Optional body — wrap at 100 chars.
 ## Pull request process
 
 - Keep PRs focused — one concern per PR
+- **Split a diff over ~150 000 characters into sequenced PRs** (the shared groundwork first).
+  Sourcery, which reviews every PR automatically, refuses a diff past that size — PR #759 measured
+  172 905 characters and shipped with no third-party review at all
 - Title follows the commit convention above
 - Fill in the PR template (auto-populated when you open a PR)
 - Link any related issue in the PR description (`Closes #123`)

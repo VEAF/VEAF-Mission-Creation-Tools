@@ -43,7 +43,7 @@ language would trade a wrong language for a flooded log.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Align CTLD's language on the mission's](tickets/01-align-language.md) | ✅ |
+| 01 | Align CTLD's language on the mission's | ✅ |
 
 ## A test that nearly did not run
 
@@ -51,3 +51,14 @@ The four Lua tests were first appended to the end of `test_veaf.lua` — **after
 `os.exit(luaunit.LuaUnit.run())`, so they never executed while reporting a green suite. Caught by
 comparing the test count (346, unchanged) rather than by reading "OK". Anything appended to a luaunit
 file has to go above that line.
+
+## What the ticket changed
+
+**01 — Align CTLD's language on the mission's.** `src/scripts/veaf/veaf.lua`, `test/lua/dcs_mocks.lua`,
+`test/lua/test_veaf.lua`, `doc/mission-maker/GUIDE.md` + `.en.md`.
+
+Three guards, each for a measured reason: no `veaf.config.language` leaves the engine default alone;
+no `ctld.i18n` table means the engine is not the version expected, so nothing is written; no
+dictionary for that language logs once at info and keeps the default, because `ctld.tr()` warns per
+unresolved string. Four Lua tests, and the `ctld` mock gained `i18n_lang` plus the four dictionaries
+the engine ships (`en`, `fr`, `es`, `ko`) so the unknown-language case is real rather than mocked away.

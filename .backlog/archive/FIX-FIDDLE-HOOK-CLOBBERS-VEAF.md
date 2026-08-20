@@ -55,7 +55,7 @@ someone flies a mission, and the file is vendored from upstream and re-synced.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Rename the hook's global table](tickets/01-rename-hook-global.md) | ✅ |
+| 01 | Rename the hook's global table | ✅ |
 
 ## What is left
 
@@ -63,3 +63,14 @@ The installed hook is a **hand-deployed copy** at
 `%USERPROFILE%\Saved Games\DCS\Scripts\Hooks\dcs-fiddle-server.lua` — no pipeline copies it — so the
 fix reaches a workstation only when someone copies it over. David's confirmation run needs that copy
 first; the command is in the ticket.
+
+## What the ticket changed
+
+**01 — Rename the hook's global table.** `src/scripts/other/dcs-fiddle-server.lua`,
+`test/python/veaf_libs/test_dcs_fiddle_token.py`.
+
+`veaf = {}` becomes `veafFiddle = {}`, and its five functions follow: `sanitizedModule`,
+`tokenFilePath`, `generateToken`, `writeToken`, `readToken`. A comment at the declaration says why the
+name matters, because whoever next re-syncs this file from upstream will re-apply the VEAF patch.
+`sanitizedModule` was grepped across `*.lua`, `*.py` and `*.md` and appears only in the hook itself,
+its own prose and the changelog. `FIDDLE.USERNAME = 'veaf'` is a string and stays.

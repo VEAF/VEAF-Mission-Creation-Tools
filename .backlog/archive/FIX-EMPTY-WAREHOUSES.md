@@ -49,8 +49,8 @@ that cannot work. `apply_warehouses` **configures** airports it finds; it has ne
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Populate the airfield table at build time](tickets/01-populate-airports.md) | ✅ |
-| 02 | [Persist a warehouses change to disk](tickets/02-persist-warehouses.md) | ✅ |
+| 01 | Populate the airfield table at build time | ✅ |
+| 02 | Persist a warehouses change to disk | ✅ |
 
 ## Measured after the fix
 
@@ -78,3 +78,25 @@ Rebuilt from a fresh folder, with the fabrication script asserting exactly two h
 with distinct unit names before building, **both slots are takeable**. The lesson is small and
 sharp: a mission folder an action partially failed on is contaminated, and the assertion belongs in
 the script that builds the test fixture, not in the eyes of whoever flies it.
+
+## What each ticket changed
+
+**01 — Populate the airfield table at build time.** New
+`mission_builder/warehouses_bootstrap.py` and its test module, plus
+`mission_builder/mission_builder_worker.py` and both locale files.
+
+`ensure_airports_populated(warehouses_content, theatre=…)` fills an empty `warehouses.airports` with
+one entry per airfield of the theatre, keyed by numeric airdrome id, read from the bundled
+`airdromes.yaml` — the same runtime-sourced table `set_airbase_coalition` and the warehouses injector
+already resolve names against. Called right after `ensure_coalitions_populated()`, which is the exact
+precedent: same shape of defect (a mission that cannot work because a table DCS expects is empty),
+same fix (the build supplies it), same reason (a mission maker should not have to know).
+
+**02 — Persist a warehouses change to disk.** `mission_tools/miz_tools.py`,
+`test/python/mission_tools/test_miz_tools.py`.
+
+`set_airbase_coalition` reported `"durable": true` and changed nothing: the folder's `warehouses` file
+was **69 bytes before and after** the call. The cause is one sentence in `write_mission_folder`'s own
+docstring — *"Rewrites only the `mission` file … leaving the rest of `src/mission/` untouched"*. The
+action mutates `mission.warehouses_content`, and an airfield's coalition lives in `warehouses`, so the
+only thing the action existed to do was the one thing that could not reach the disk.

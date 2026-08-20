@@ -37,7 +37,7 @@ report the `category` they chose.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Resolve the category from the aircraft type](tickets/01-resolve-category-from-type.md) | ✅ |
+| 01 | Resolve the category from the aircraft type | ✅ |
 
 ## What this says about the tests
 
@@ -45,3 +45,14 @@ Nine tests were added, but the interesting number is the one that was already th
 green while the feature was broken for a whole category of aircraft, because **no assertion looked
 at the category at all**. The new tests assert the group is under `helicopter` *and absent from*
 `plane` — a one-sided assertion would have passed before the fix too.
+
+## What the ticket changed
+
+**01 — Resolve the aircraft category from the type.** New `veaf_libs/dcs_units_data.py`, plus
+`mission_tools/group_insertion.py`, `veaf_mission_mcp/add_air_group.py`,
+`veaf_mission_mcp/player_slot.py` and their three test modules.
+
+`air_category_for_type_verbose(unit_type) -> (category, warning)` sits beside `GROUP_CATEGORIES`,
+where the category vocabulary already lives; a thin `air_category_for_type()` serves callers that
+surface the warning elsewhere. Both actions call it instead of passing a literal, and both return the
+resolved `category` so a caller can see what was decided. Nine tests.

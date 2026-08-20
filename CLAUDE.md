@@ -140,6 +140,10 @@ For every action requested by the user, execute these steps in order:
 After pushing a branch and creating a PR:
 - **Do NOT request a Copilot review.** Sourcery reviews PRs automatically.
 - Request a review only if Sourcery posts a comment stating it cannot review the PR.
+- **One lot per PR stays the rule, but Sourcery stops reviewing past ~150 000 characters of diff.**
+  If a lot is heading over that, split it into sequenced PRs with the shared groundwork first.
+  Measured on PR #759 (172 905 characters), which merged with no third-party review; the two lots
+  after it were split on purpose and were reviewed.
 
 ---
 

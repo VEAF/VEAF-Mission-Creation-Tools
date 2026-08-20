@@ -40,9 +40,9 @@ FEAT-CTLD2-INTEGRATION replaced `veaf.ctld_initialize_replacement` with the modu
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Generate the CTLD start-up call](tickets/01-generate-ctld-startup-call.md) | ✅ |
-| 02 | [Fail loudly instead of crashing on an unstarted CTLD](tickets/02-guard-unstarted-ctld.md) | ✅ |
-| 03 | [Documentation and upstream report](tickets/03-docs-and-upstream.md) | ✅ |
+| 01 | Generate the CTLD start-up call | ✅ |
+| 02 | Fail loudly instead of crashing on an unstarted CTLD | ✅ |
+| 03 | Documentation and upstream report | ✅ |
 
 ## What ticket 02 widened, and why
 
@@ -91,3 +91,35 @@ Until a rebuild with the fix, add to the mission's `mission-script.lua`:
 ```lua
 if ctld then veaf.ctld_initialize() end
 ```
+
+## What each ticket changed
+
+**01 — Generate the CTLD start-up call in `veaf-config.lua`.**
+`veaf_libs/lua_config_generator.py`, `test/python/test_lua_config_generator*.py`.
+
+The generator emits an `if ctld then veaf.ctld_initialize() end` block, the way it already does for
+Skynet, CSAR and TUM, and only when `_community_enabled(mission_yaml, "ctld")` is true — the same rule
+that decides whether `CTLD.lua` is injected at all, so the call can never target an absent script. The
+`if ctld then` guard stays anyway: a mission can ship its own CTLD through `custom_scripts`. Verified
+end to end on a real build (CTLD line 26, `veafGrass` 190, `veafAssets` 200).
+
+**02 — Fail loudly instead of crashing on an unstarted CTLD.** `veaf.lua`, `veafAssets.lua`,
+`veafGrass.lua`, `veafSpawnAircraft.lua`, `veafSpawnEffects.lua`, `veafSpawnGround.lua`, plus
+`dcs_mocks.lua`, `test_veaf.lua`, `test_veafSpawn.lua`.
+
+`spawnFob` already refused to build when CTLD was absent or its module disabled; it did not cover the
+third state — **CTLD present, module enabled, engine never started** — where it walked into
+`CTLDZoneManager.getInstance()` and handed the mission maker a stack trace inside a vendored script.
+The probe is `CTLDConfig.get().isLoaded`, the flag `ctld.initialize()` sets: the exact condition the
+crash depends on, not a proxy such as "does the radio menu exist". The shared `veaf.isCtldReady()`
+closed all 9 call sites rather than the 1 reported.
+
+**03 — Documentation, stale comments, and the upstream report.** ADR 0016, `lua_config_generator.py`,
+`config_migrator.py`, the `doc/` CTLD pages, `CHANGELOG.md`; upstream filed as VEAF/CTLD#125.
+
+Two code comments stated as fact something that stopped being true after FEAT-CTLD2-INTEGRATION, and
+both had already sent this investigation the wrong way: `lua_config_generator.py:1578` said CTLD was
+*"started by `veaf.lua`"* (it is **registered** there; the generated file starts it), and
+`config_migrator.py:490` said `veaf.initialize()` in `veaf-config.lua` calls all module init
+functions (the generated file never calls it — the migrator's behaviour was right, only its stated
+reason wrong).

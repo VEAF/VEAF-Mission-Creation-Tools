@@ -236,6 +236,27 @@ before the session or the run measures 6.15.7.
   that radar is emitting, a Skynet SAM stays dark by design until it has a contact, and
   `SkynetIADS:deactivate()` never touches that state. That cost two rounds during the original session.
 
+## 12. Check 8 of `verify-mission-c` — a delayed `#command` dies with its zone
+
+[`FIX-COMBATZONE-DELAYED-COMMAND`](.backlog/FIX-COMBATZONE-DELAYED-COMMAND/PRD.md) shipped in 6.15.9.
+The zone `DelayZone` of that mission already carries **one fake unit per delay mechanism**, side by
+side, which is what makes the difference observable rather than argued.
+
+Activate the zone, wait past the delay so both SAMs are up, then **deactivate it**.
+
+- **Before**: the `#command="-samsr!30"` SAM stayed alive after deactivation; the `#spawndelay` one died.
+- **Expected now**: both die.
+
+Two more, worth a minute each since they are the paths #66 never mentioned and no pilot has ever
+exercised:
+
+- a `#command="-spawn group, name sa6, delay 30"` — same expectation, different deferring path.
+- a `#command` with a repeat (`repeat 3, delay 10`): **every** spawned group must die with the zone, not
+  just the first. That one was lost before and nobody had noticed.
+- and the race: activate, then deactivate **during** the delay. The group that appears afterwards must
+  be destroyed on sight rather than left running — look for `spawned […] after its zone was deactivated`
+  in `dcs.log`.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

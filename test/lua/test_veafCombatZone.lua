@@ -1339,6 +1339,145 @@ function TestVeafCombatZoneRadioMenuCoalition:test_menu_is_created_for_that_side
 end
 
 -- ============================================================================
+-- FIX-COMBATZONE-DELAYED-COMMAND — #66
+--
+-- `#command="-samsr!30"` spawns 30 seconds late. The zone used to iterate the collection table on the
+-- line after the call, so it was empty, the group was registered nowhere, and desactivate() — which
+-- destroys getSpawnedGroups() — could not destroy it. The SAM outlived its zone.
+--
+-- The zone now registers a hook, which fires whenever the group actually appears.
+-- ============================================================================
+TestVeafCombatZoneDelayedCommand = {}
+
+function TestVeafCombatZoneDelayedCommand:setUp()
+  self.z = VeafCombatZone:new()
+  self.z:setMissionEditorZoneName("DelayZone")
+  self.z:setFriendlyName("Delay Zone")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("FakeUnit")
+  self.el:setPosition({ x = 0, y = 0, z = 0 })
+  self.el:setCoalition(coalition.side.RED)
+  self.el:setVeafCommand("-samsr!30")
+
+  -- Stand in for the interpreter: capture the collection table and spawn NOTHING, which is exactly
+  -- what a delayed command does — mist.scheduleFunction takes the work and the call returns.
+  self._captured = nil
+  local this = self
+  veafInterpreter = {
+    execute = function(command, position, coa, route, spawnedGroups)
+      this._captured = spawnedGroups
+      return true
+    end,
+  }
+
+  self._goRoute = mist.goRoute
+  self.routed = {}
+  mist.goRoute = function(groupName, route)
+    table.insert(self.routed, groupName)
+  end
+end
+
+function TestVeafCombatZoneDelayedCommand:tearDown()
+  mist.goRoute = self._goRoute
+  veafInterpreter = nil
+end
+
+-- The defect, as one assertion: nothing is known right after the call...
+function TestVeafCombatZoneDelayedCommand:test_the_zone_knows_nothing_right_after_a_delayed_command()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(#self.z:getSpawnedGroups(), 0)
+  luaunit.assertNotNil(self._captured, "the interpreter must have received a collection table")
+end
+
+-- ... and the fix: the group is registered when it eventually appears.
+function TestVeafCombatZoneDelayedCommand:test_a_delayed_group_is_registered_when_it_appears()
+  self.z:spawnElement(self.el, true)
+  veaf.collectSpawnedGroup(self._captured, "DelayedSAM")
+  luaunit.assertEquals(self.z:getSpawnedGroups(), { "DelayedSAM" })
+end
+
+function TestVeafCombatZoneDelayedCommand:test_a_delayed_group_is_sent_on_its_route()
+  self.el:setRoute({ wp1 = { x = 1, z = 2 } })
+  self.z:spawnElement(self.el, true)
+  veaf.collectSpawnedGroup(self._captured, "DelayedSAM")
+  luaunit.assertEquals(self.routed, { "DelayedSAM" })
+end
+
+-- Nominal path must not regress: a command with no delay spawns synchronously, and the hook is what
+-- registers it now, so this proves the immediate case still works.
+function TestVeafCombatZoneDelayedCommand:test_an_immediate_group_is_still_registered()
+  veafInterpreter.execute = function(command, position, coa, route, spawnedGroups)
+    veaf.collectSpawnedGroup(spawnedGroups, "ImmediateSAM")
+    return true
+  end
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self.z:getSpawnedGroups(), { "ImmediateSAM" })
+end
+
+function TestVeafCombatZoneDelayedCommand:test_several_delayed_groups_are_all_registered()
+  self.z:spawnElement(self.el, true)
+  veaf.collectSpawnedGroup(self._captured, "SAM-1")
+  veaf.collectSpawnedGroup(self._captured, "SAM-2")
+  luaunit.assertEquals(self.z:getSpawnedGroups(), { "SAM-1", "SAM-2" })
+end
+
+-- A group appearing after its zone was switched off has to be destroyed, not registered: nothing can
+-- unschedule that deferred spawn, since desactivate() only knows its own `#spawndelay` schedules.
+function TestVeafCombatZoneDelayedCommand:test_a_group_appearing_after_deactivation_is_destroyed()
+  local destroyed = {}
+  local previous = Group.getByName
+  Group.getByName = function(name)
+    return {
+      getName = function()
+        return name
+      end,
+      destroy = function()
+        table.insert(destroyed, name)
+      end,
+    }
+  end
+
+  self.z:spawnElement(self.el, true)
+  self.z:setActive(false)
+  veaf.collectSpawnedGroup(self._captured, "TooLateSAM")
+
+  Group.getByName = previous
+  luaunit.assertEquals(destroyed, { "TooLateSAM" })
+  luaunit.assertEquals(#self.z:getSpawnedGroups(), 0, "an inactive zone must not register a group")
+end
+
+TestVeafCombatZoneDestroySpawnedGroup = {}
+
+function TestVeafCombatZoneDestroySpawnedGroup:test_an_unknown_group_does_not_raise()
+  local z = VeafCombatZone:new()
+  local ok = pcall(function()
+    z:destroySpawnedGroup("no such group")
+  end)
+  luaunit.assertTrue(ok)
+end
+
+function TestVeafCombatZoneDestroySpawnedGroup:test_a_static_is_destroyed_when_no_group_matches()
+  local destroyed = {}
+  local previousStatic = StaticObject.getByName
+  StaticObject.getByName = function(name)
+    return {
+      getName = function()
+        return name
+      end,
+      destroy = function()
+        table.insert(destroyed, name)
+      end,
+    }
+  end
+  local z = VeafCombatZone:new()
+  z:destroySpawnedGroup("SomeStatic")
+  StaticObject.getByName = previousStatic
+  luaunit.assertEquals(destroyed, { "SomeStatic" })
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

@@ -1103,6 +1103,28 @@ function VeafCombatZone:getInformation(unitName)
   return message
 end
 
+--- Destroy one group (or static) this zone spawned.
+-- Extracted from desactivate() because the deferred-command hook needs the same operation: a group
+-- that appears *after* its zone was deactivated has to be destroyed rather than registered, which is
+-- what the deactivation would have done to it had it existed in time.
+function VeafCombatZone:destroySpawnedGroup(groupName)
+  veaf.loggers.get(veafCombatZone.Id):trace(string.format("trying to destroy group [%s]", groupName))
+  ---@type Group|StaticObject|nil
+  local group = Group.getByName(groupName)
+  if not group then
+    group = StaticObject.getByName(groupName)
+    if group then
+      veaf.loggers.get(veafCombatZone.Id):trace(string.format("found static [%s]", group:getName()))
+    else
+      veaf.loggers.get(veafCombatZone.Id):info(string.format("cannot find static [%s]", groupName))
+    end
+  end
+  if group then
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("destroying group [%s]", group:getName()))
+    group:destroy()
+  end
+end
+
 function VeafCombatZone:spawnElement(zoneElement, now)
   veaf.loggers
     .get(veafCombatZone.Id)
@@ -1157,17 +1179,33 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       veaf.loggers
         .get(veafCombatZone.Id)
         :trace(string.format("executing command [%s] at position [%s]", zoneElement:getVeafCommand(), veaf.vecToString(position)))
+      -- #66: registering a hook instead of iterating the table after the call. A command carrying a
+      -- delay (`-samsr!30`, or a `delay` option, or repeats) returns *before* it spawns anything, so
+      -- the table this used to read was still empty and the group ended up registered nowhere — which
+      -- meant desactivate() could not destroy it and the SAM outlived its zone. The hook fires whether
+      -- the group appears now or in thirty seconds.
       local spawnedGroups = {}
-      veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
-      for _, newGroup in pairs(spawnedGroups) do
+      veaf.registerSpawnedGroupsHook(spawnedGroups, function(newGroup)
+        -- The zone may have been deactivated while the command was waiting out its delay. Nothing can
+        -- unschedule that deferred spawn — desactivate() only knows about its own `#spawndelay`
+        -- schedules — so the group is destroyed here instead of being registered with a zone that is
+        -- no longer running.
+        if not self:isActive() then
+          veaf.loggers
+            .get(veafCombatZone.Id)
+            :debug(string.format("[%s] spawned [%s] after its zone was deactivated, destroying it", zoneElement:getName(), newGroup))
+          self:destroySpawnedGroup(newGroup)
+          return
+        end
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
         self:addSpawnedGroup(newGroup)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("newGroup = [%s]", newGroup))
         local route = zoneElement:getRoute()
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("got route"))
-        local result = mist.goRoute(newGroup, route)
+        mist.goRoute(newGroup, route)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
-      end
+      end)
+      veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
     end
   end
 end
@@ -1259,21 +1297,7 @@ function VeafCombatZone:desactivate()
   self:clearDelayedSpawners()
 
   for _, groupName in pairs(self:getSpawnedGroups()) do
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("trying to destroy group [%s]", groupName))
-    ---@type Group|StaticObject|nil
-    local group = Group.getByName(groupName)
-    if not group then
-      group = StaticObject.getByName(groupName)
-      if group then
-        veaf.loggers.get(veafCombatZone.Id):trace(string.format("found static [%s]", group:getName()))
-      else
-        veaf.loggers.get(veafCombatZone.Id):info(string.format("cannot find static [%s]", groupName))
-      end
-    end
-    if group then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("destroying group [%s]", group:getName()))
-      group:destroy()
-    end
+    self:destroySpawnedGroup(groupName)
   end
   self:clearSpawnedGroups()
 

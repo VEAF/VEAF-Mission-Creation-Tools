@@ -466,7 +466,11 @@ function veafSpawn.executeCommand(
             end
             --might need to specify the if a group was static in here so that people on the other end know
             if spawnedGroups then
-              table.insert(spawnedGroups, spawnedGroup)
+              -- Through veaf.collectSpawnedGroup rather than table.insert, so that a caller which
+              -- registered a hook hears about this group even when the spawn was deferred and it has
+              -- long since stopped reading the table (#66). This is the only insertion point in the
+              -- repository, which is why the notification lives here rather than in every signature.
+              veaf.collectSpawnedGroup(spawnedGroups, spawnedGroup)
             end
           end
         end

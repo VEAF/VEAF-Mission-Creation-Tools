@@ -4508,6 +4508,55 @@ function veaf.getNameForSpawnedGroup(pCoalition, pBaseName, pCombatZoneName)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- collecting the groups a command spawns
+--
+-- A caller that wants to know what a VEAF command created passes it a table, which the spawn fills.
+-- That works only when the spawn happens synchronously — and three paths defer it: an alias delay
+-- (`-samsr!30`), a spawn's `delay` option, and a spawn's repeats. In all three the call returns
+-- before the table is filled, so a caller reading it on the next line sees nothing and never looks
+-- again. That is #66: a combat zone could not destroy a group it had spawned, because it had never
+-- learned the group existed.
+--
+-- So a caller may instead register a hook and be told about each group as it appears, whether that is
+-- now or in thirty seconds. The hook is kept **outside** the table, in this weak-keyed registry:
+-- eleven call sites iterate group tables with `pairs`, and a field on the table would surface in
+-- every one of them. Weak keys let a finished collection be collected.
+--
+-- Note for anyone tempted by a metatable instead: in Lua 5.1 `table.insert` bypasses `__newindex`
+-- (measured — only a plain assignment triggers it), so an observer metatable would see nothing.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veaf.spawnedGroupsHooks = setmetatable({}, { __mode = "k" })
+
+--- Ask to be notified of every group collected into `spawnedGroupsTable`.
+-- @param spawnedGroupsTable table the collection passed down to the command
+-- @param fn function called with the group name for each group, as it is created
+function veaf.registerSpawnedGroupsHook(spawnedGroupsTable, fn)
+  if type(spawnedGroupsTable) ~= "table" or type(fn) ~= "function" then
+    return false
+  end
+  veaf.spawnedGroupsHooks[spawnedGroupsTable] = fn
+  return true
+end
+
+--- Record a spawned group into a caller's collection, notifying its hook if it has one.
+-- Always inserts, so a caller that registered no hook keeps reading the table as before.
+function veaf.collectSpawnedGroup(spawnedGroupsTable, groupName)
+  if type(spawnedGroupsTable) ~= "table" or not groupName then
+    return
+  end
+  table.insert(spawnedGroupsTable, groupName)
+  local hook = veaf.spawnedGroupsHooks[spawnedGroupsTable]
+  if hook then
+    -- A hook is mission code: a failure in it must not abort the spawn that is half done.
+    local ok, err = pcall(hook, groupName)
+    if not ok then
+      veaf.loggers.get(veaf.Id):error("a spawned-groups hook raised: %s", veaf.p(err))
+    end
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- lines and figures on the map
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 

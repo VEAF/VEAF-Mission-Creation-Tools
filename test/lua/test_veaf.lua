@@ -2850,4 +2850,122 @@ function TestVeafReadyForCombat:test_absent_or_out_of_range_falls_back_to_the_mo
   luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], veaf.defaultAlarmState)
 end
 
+-------------------------------------------------------------------------------------------------
+-- FIX-COMBATZONE-DELAYED-COMMAND — #66
+--
+-- A caller passes a table down to a VEAF command to learn what it created, and reads it on the next
+-- line. Three paths defer the spawn — an alias delay (`-samsr!30`), a spawn's `delay` option, and its
+-- repeats — and in all three the call returns before anything is spawned. The caller sees an empty
+-- table and never looks again: that is how a combat zone ended up unable to destroy a group it had
+-- itself spawned.
+--
+-- So the notification lives at the single insertion point instead: `veaf.collectSpawnedGroup` inserts
+-- and tells whoever registered a hook, whether that happens now or in thirty seconds.
+-------------------------------------------------------------------------------------------------
+
+TestVeafCollectSpawnedGroup = {}
+
+function TestVeafCollectSpawnedGroup:test_a_group_is_inserted_with_no_hook_registered()
+  local t = {}
+  veaf.collectSpawnedGroup(t, "Group A")
+  luaunit.assertEquals(t[1], "Group A")
+end
+
+function TestVeafCollectSpawnedGroup:test_a_hook_is_told_about_the_group()
+  local t, seen = {}, {}
+  veaf.registerSpawnedGroupsHook(t, function(name)
+    table.insert(seen, name)
+  end)
+  veaf.collectSpawnedGroup(t, "Group A")
+  luaunit.assertEquals(seen, { "Group A" })
+end
+
+-- The point of the whole fix: the hook fires on an insertion that happens long after the caller
+-- stopped reading the table.
+function TestVeafCollectSpawnedGroup:test_a_hook_fires_on_a_later_insertion()
+  local t, seen = {}, {}
+  veaf.registerSpawnedGroupsHook(t, function(name)
+    table.insert(seen, name)
+  end)
+  -- the caller reads nothing here, as a combat zone used to
+  luaunit.assertEquals(#t, 0)
+  -- ... and the deferred spawn lands afterwards
+  veaf.collectSpawnedGroup(t, "DelayedSAM")
+  luaunit.assertEquals(seen, { "DelayedSAM" })
+end
+
+function TestVeafCollectSpawnedGroup:test_every_group_is_reported()
+  local t, seen = {}, {}
+  veaf.registerSpawnedGroupsHook(t, function(name)
+    table.insert(seen, name)
+  end)
+  veaf.collectSpawnedGroup(t, "A")
+  veaf.collectSpawnedGroup(t, "B")
+  veaf.collectSpawnedGroup(t, "C")
+  luaunit.assertEquals(seen, { "A", "B", "C" })
+  luaunit.assertEquals(#t, 3)
+end
+
+-- A hook is mission code. It must not be able to abort a spawn that is already half done.
+function TestVeafCollectSpawnedGroup:test_a_raising_hook_does_not_break_the_spawn()
+  local t = {}
+  veaf.registerSpawnedGroupsHook(t, function()
+    error("mission code blew up")
+  end)
+  local ok = pcall(veaf.collectSpawnedGroup, t, "Group A")
+  luaunit.assertTrue(ok, "a raising hook must not propagate out of collectSpawnedGroup")
+  luaunit.assertEquals(t[1], "Group A", "the group must still be collected")
+end
+
+-- The hook is deliberately NOT a field on the table: eleven call sites iterate group tables with
+-- `pairs`, and a field would show up in all of them.
+function TestVeafCollectSpawnedGroup:test_the_hook_is_not_visible_in_the_table()
+  local t = {}
+  veaf.registerSpawnedGroupsHook(t, function() end)
+  veaf.collectSpawnedGroup(t, "Group A")
+  local count = 0
+  for _, v in pairs(t) do
+    count = count + 1
+    luaunit.assertEquals(type(v), "string", "pairs() must only yield group names")
+  end
+  luaunit.assertEquals(count, 1)
+end
+
+function TestVeafCollectSpawnedGroup:test_hooks_are_per_table()
+  local t1, t2, seen = {}, {}, {}
+  veaf.registerSpawnedGroupsHook(t1, function(name)
+    table.insert(seen, name)
+  end)
+  veaf.collectSpawnedGroup(t2, "Other")
+  luaunit.assertEquals(#seen, 0)
+  luaunit.assertEquals(t2[1], "Other")
+end
+
+function TestVeafCollectSpawnedGroup:test_a_nil_group_name_is_a_noop()
+  local t, called = {}, false
+  veaf.registerSpawnedGroupsHook(t, function()
+    called = true
+  end)
+  veaf.collectSpawnedGroup(t, nil)
+  luaunit.assertEquals(#t, 0)
+  luaunit.assertFalse(called)
+end
+
+function TestVeafCollectSpawnedGroup:test_a_missing_table_is_a_noop()
+  local ok = pcall(veaf.collectSpawnedGroup, nil, "Group A")
+  luaunit.assertTrue(ok)
+end
+
+function TestVeafCollectSpawnedGroup:test_registering_rejects_a_non_function()
+  luaunit.assertFalse(veaf.registerSpawnedGroupsHook({}, "not a function"))
+end
+
+function TestVeafCollectSpawnedGroup:test_registering_rejects_a_non_table()
+  luaunit.assertFalse(veaf.registerSpawnedGroupsHook("not a table", function() end))
+end
+
+function TestVeafCollectSpawnedGroup:test_registering_returns_true_on_success()
+  luaunit.assertTrue(veaf.registerSpawnedGroupsHook({}, function() end))
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -63,6 +63,17 @@ until he gave his version: 6.15.2 predates #762, so his groups are on RED and th
 His report is still unexplained and must not be closed by this lot. What it did give us is the
 discriminator — *inside a zone it fails, outside it works* — which is what led here.
 
+## ⚠️ Its in-game check is blocked by a DCS defect (2026-08-20)
+
+**Ground SAMs do not fire at all in DCS 2.9.28.26385.** Sharko reproduced it on a bare map with three
+SAMs and **no scripts**, and reports the same on the BFR server. So the half of this lot's verification
+that reads "the battery lights its radars and engages" cannot conclude while that lasts, and **a silent
+SAM must not be read as a regression of ours**. See the warning at the top of
+[DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).
+
+The **convoy half stays measurable** — a convoy either drives its route or it does not — and that is the
+regression half, the one that matters more. It can be checked now; the battery half waits for DCS.
+
 ## Definition of done
 
 - [x] A SAM battery in a combat zone comes up on RED and lights its radar

@@ -13,6 +13,33 @@ come first.
 
 ---
 
+## ⚠️ READ FIRST — SAMs do not fire in DCS 2.9.28 (2026-08-20)
+
+**Ground SAMs do not engage at all in the current DCS build.** Not a VEAF defect, not a Skynet defect:
+Sharko reproduced it on a bare map with **three SAMs and no scripts whatsoever** — *"j'ai reproduit le
+bug sans script aucun, juste 3 sams sur une carte"* — and reports the same on the BFR server, where
+nothing fires any more. It appeared with the latest DCS update. Measured build here: **2.9.28.26385**.
+
+Tripack's report of silent SAMs in combat zones is the same thing seen from inside a mission. His
+discriminator — works outside a zone, fails inside — looked meaningful and was a coincidence.
+
+**What this blocks, and it is the point of this warning:**
+
+| Item | Why it cannot conclude right now |
+|---|---|
+| **11** — Skynet checks 6 and 7 | both read whether a SAM joins a network *and behaves*; a SAM that never fires cannot show it |
+| **16** — the combat zone alarm state | its whole point is "the battery must light its radars and engage" |
+
+Do **not** read a silent SAM as a regression of ours while this lasts. The convoy half of item 16 is
+still measurable — a convoy either drives or it does not — so that one can be checked and the battery
+half deferred.
+
+**Before trusting either item again:** put three SAMs on an empty map with no scripts and fly at them.
+If they fire, DCS is fixed and the items are measurable. If they do not, nothing on this page about SAMs
+means anything.
+
+---
+
 ## A mission is ready for items 0 and 0b
 
 `D:\dev\_VEAF\tmp\dcs-session-2026-08-14\TestMenuFR.miz` — Caucasus, `language: fr`, with the modules

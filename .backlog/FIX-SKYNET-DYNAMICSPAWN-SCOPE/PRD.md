@@ -65,6 +65,14 @@ overriding a per-call option. Filed as ticket 04 and fixed with the rest.
   which is only the value a network is *created* with. Otherwise a network whose integration was
   switched off mid-mission would have had `skynet true` silently dropped by both paths.
 
+## ⚠️ Its in-game check is blocked by a DCS defect (2026-08-20)
+
+**Ground SAMs do not fire at all in DCS 2.9.28.26385.** Sharko reproduced it on a bare map with three
+SAMs and **no scripts**, and reports the same on the BFR server. So the half of this lot's verification
+that reads "the battery lights its radars and engages" cannot conclude while that lasts, and **a silent
+SAM must not be read as a regression of ours**. See the warning at the top of
+[DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).
+
 ## Definition of done
 
 - [x] `dynamic_spawn` configurable from `mission.yaml`, documented in both languages

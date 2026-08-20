@@ -174,6 +174,15 @@ world = {
   getAirbases = function(coalition_id)
     return {}
   end,
+  -- Search volume shapes, as taken by world.searchObjects and world.removeJunk. Both were already
+  -- called by the runtime (veafCombatZone's junk cleanup, veafGrass's occupancy probe) while this
+  -- enum was missing from the mock, so any test reaching those lines died on a nil index.
+  VolumeType = {
+    SEGMENT = 0,
+    BOX = 1,
+    SPHERE = 2,
+    PYRAMID = 3,
+  },
   searchObjects = function(category, volume, fn) end,
   getMarkPanels = function()
     return {}

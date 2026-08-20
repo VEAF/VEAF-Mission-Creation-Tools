@@ -7,6 +7,38 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.11] — 2026-08-20
+
+### Fixed
+
+- **A FARP's escort no longer lands on whatever is already there.** `-farp` placed its escort, tents and
+  props at a fixed distance on a fixed bearing, with **no test of whether that spot was free**
+  ([#232](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/232), Sharko 2023, reproduced in
+  game 2026-08-17). Beside a static FARP the trucks came down on its pads, the lead `M 818` close enough
+  to a helipad that a helicopter landing there met it. And that is the **nominal** use, not an edge case:
+  the static FARP is what unlocks spawning on it once the zone is captured, so `-farp` is run on top of
+  one on purpose.
+
+  The module now walks around the FARP until the ground is clear — **keeping the distance and changing
+  the bearing**, since growing the radius would push the escort away from the FARP it serves. The whole
+  group is tested rather than its origin, because the escort sits on a ~30 m line and a clear origin with
+  an overhanging tail still blocks a pad. **A FARP with clear ground around it does not move at all**:
+  the original bearing is tried first, so no working mission changes. If nothing is clear the FARP is
+  still built, at its original position.
+
+- **A `FARP_T` is laid out as the FARP it is.** The list of FARP platform types existed **four times** in
+  `veafGrass.lua`, and commit `a454c577` (2025-08-08) added `FARP_T` to exactly one of them — the one
+  that *recognises* FARP units. So a `FARP_T` was processed as a FARP and then measured as if it were
+  not: escort at 75 m instead of 150, tent at 100 instead of 200, windsock at 50 m/45° instead of
+  120 m/0° — which put its escort straight onto the pads by a second route. The four copies are now one
+  predicate, and a FARP-looking type that is **not** in it says so in the log instead of silently taking
+  the default distances.
+
+  Visible consequence: a `FARP_T` in an existing mission has its props move outwards to the FARP
+  distances. That is the fix, not a side effect.
+
+---
+
 ## [6.15.10] — 2026-08-20
 
 ### Fixed

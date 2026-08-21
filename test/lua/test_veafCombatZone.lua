@@ -2372,4 +2372,124 @@ function TestVeafCombatZoneReferenceUnit:test_the_rest_of_the_element_is_unchang
   luaunit.assertEquals(element:getSpawnGroup(), "ALPHA-CONVOY")
 end
 
+-- ============================================================================
+-- FEAT-INTERPRETER-PARITY ticket 02 — a numeric tag accepts a range
+--
+-- #25 asked for the randomisable parameters (`veaf.getRandomizableNumeric`) to reach combat-zone
+-- elements. They could not even be *written*: `TAG_PATTERNS` captured `(%d+)`, so `#spawnradius=100-300`
+-- matched `100` and the `-300` was never seen — the mission maker got the lower bound and no warning.
+--
+-- Two things are pinned below beyond the feature: that a plain value is untouched, and that widening the
+-- pattern did not open a hole. The setters convert with `tonumber`, which returns **nil** on "100-300",
+-- and `getSpawnRadius() > 0` on nil raises — so a range reaching a setter unconverted is a crash, not a
+-- wrong number.
+-- ============================================================================
+TestVeafCombatZoneRangeTags = {}
+
+local RANGE_TAGS = {
+  { tag = "#spawnradius=100-300", key = "spawnRadius", low = 100, high = 300 },
+  { tag = "#spawnchance=20-80", key = "spawnChance", low = 20, high = 80 },
+  { tag = "#spawncount=2-5", key = "spawnCount", low = 2, high = 5 },
+  { tag = "#spawndelay=30-90", key = "spawnDelay", low = 30, high = 90 },
+}
+
+-- parseTags stays a raw reader: it hands back the text, conversion happens where the tag is applied.
+function TestVeafCombatZoneRangeTags:test_a_range_is_read_whole_instead_of_truncated()
+  for _, t in ipairs(RANGE_TAGS) do
+    local tags = veafCombatZone.parseTags("ALPHA " .. t.tag)
+    luaunit.assertStrContains(tags[t.key], "-", t.key .. " must keep its range, not just the lower bound")
+  end
+end
+
+function TestVeafCombatZoneRangeTags:test_a_plain_value_is_unchanged()
+  local tags = veafCombatZone.parseTags("ALPHA #spawnradius=200 #spawnchance=50 #spawncount=3 #spawndelay=60")
+  luaunit.assertEquals(tags.spawnRadius, "200")
+  luaunit.assertEquals(tags.spawnChance, "50")
+  luaunit.assertEquals(tags.spawnCount, "3")
+  luaunit.assertEquals(tags.spawnDelay, "60")
+end
+
+--- Build a one-static element carrying `tagText`, which is the shortest path to applyCollectedTags.
+local function elementWithTag(tagText)
+  return veafCombatZone.buildGroupElement({
+    getCoalition = function()
+      return coalition.side.RED
+    end,
+    getPosition = function()
+      return { p = { x = 0, y = 0, z = 0 } }
+    end,
+    getName = function()
+      return "ALPHA-1"
+    end,
+  }, { name = "ALPHA-1", isStatic = true, units = {}, unitNames = { "ALPHA-1" } }, veafCombatZone.parseTags("ALPHA-1 " .. tagText))
+end
+
+-- The one that matters, and it has to be discriminating: asserting "inside the range" passes on the
+-- **unfixed** code too, since the truncated lower bound is inside its own range. So the draw is forced
+-- to the top of the range — a value of 100 for `100-300` then means the range never reached the
+-- converter.
+function TestVeafCombatZoneRangeTags:test_the_element_gets_a_value_drawn_from_the_whole_range()
+  local saved = veaf.getRandomizableNumeric
+  veaf.getRandomizableNumeric = function(val)
+    local s = tostring(val)
+    local dash = s:find("%-")
+    if dash then
+      return tonumber(s:sub(dash + 1)) -- always the upper bound, so the assertion is exact
+    end
+    return tonumber(s)
+  end
+  local ok, err = pcall(function()
+    for _, t in ipairs(RANGE_TAGS) do
+      local element = elementWithTag(t.tag)
+      local value = ({
+        spawnRadius = element:getSpawnRadius(),
+        spawnChance = element:getSpawnChance(),
+        spawnCount = element:getSpawnCount(),
+        spawnDelay = element:getSpawnDelay(),
+      })[t.key]
+      luaunit.assertEquals(value, t.high, t.key .. ": the whole range must reach the converter")
+    end
+  end)
+  veaf.getRandomizableNumeric = saved
+  if not ok then
+    error(err, 0)
+  end
+end
+
+-- And the real converter still yields something usable: a number in range, never nil. A nil here is a
+-- crash rather than a wrong value — `getSpawnRadius() > 0` compares it.
+function TestVeafCombatZoneRangeTags:test_the_real_converter_yields_a_number_in_range()
+  for _, t in ipairs(RANGE_TAGS) do
+    local element = elementWithTag(t.tag)
+    local value = ({
+      spawnRadius = element:getSpawnRadius(),
+      spawnChance = element:getSpawnChance(),
+      spawnCount = element:getSpawnCount(),
+      spawnDelay = element:getSpawnDelay(),
+    })[t.key]
+    luaunit.assertIsNumber(value, t.key .. " must be a number, not nil")
+    luaunit.assertTrue(value >= t.low and value <= t.high, t.key .. " = " .. tostring(value) .. " is outside its range")
+  end
+end
+
+-- A plain value must survive the same path untouched.
+function TestVeafCombatZoneRangeTags:test_a_plain_value_reaches_the_element_unchanged()
+  local element = elementWithTag("#spawnradius=200 #spawndelay=60")
+  luaunit.assertEquals(element:getSpawnRadius(), 200)
+  luaunit.assertEquals(element:getSpawnDelay(), 60)
+end
+
+-- An enumeration is not a range. `#alarm=0-2` is a mistake, not a random alarm state, so the tag must
+-- not accept it — and the existing out-of-bounds path already tells the mission maker.
+function TestVeafCombatZoneRangeTags:test_the_alarm_state_tag_refuses_a_range()
+  local tags = veafCombatZone.parseTags("ALPHA #alarm=0-2")
+  luaunit.assertNotEquals(tags.alarmState, "0-2", "an alarm state is an enumeration, not a range")
+end
+
+-- `spawnGroup` is a name, and names contain dashes: widening the numeric patterns must not have touched it.
+function TestVeafCombatZoneRangeTags:test_a_group_name_tag_keeps_its_dashes()
+  local tags = veafCombatZone.parseTags('ALPHA #spawngroup="SA-11-BATTERY"')
+  luaunit.assertEquals(tags.spawnGroup, "sa-11-battery")
+end
+
 os.exit(luaunit.LuaUnit.run())

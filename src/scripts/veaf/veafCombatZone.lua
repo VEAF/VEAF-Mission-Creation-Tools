@@ -72,12 +72,22 @@ veafCombatZone.ALARM_TAG_PATTERN = "#alarm%s*=%s*(%d+)"
 -- literals: anything working on "all the tags" cannot then silently miss one.
 -- Names are lowercased before matching, so a quoted value comes back lowercased too — long-standing
 -- behaviour that `#command` aliases and `#spawngroup` names rely on.
+-- The four count/distance tags read `100-300` as well as `200`, and the value is converted by
+-- `veaf.getRandomizableNumeric` where the tag is applied — the same function marker commands use, so a
+-- range means the same thing in both places (#25).
+--
+-- Before this, the pattern was `(%d+)`: `#spawnradius=100-300` matched **`100`** and the `-300` was
+-- never seen, so a mission maker who wrote a range silently got its lower bound.
+--
+-- `alarmState` keeps its own pattern and takes no range: it is an enumeration (0 AUTO, 1 GREEN, 2 RED),
+-- and a range over an enumeration is a mistake rather than a random value. `spawnGroup` and `command`
+-- are strings, and their values legitimately contain dashes.
 veafCombatZone.TAG_PATTERNS = {
-  spawnRadius = "#spawnradius%s*=%s*(%d+)",
-  spawnChance = "#spawnchance%s*=%s*(%d+)",
-  spawnCount = "#spawncount%s*=%s*(%d+)",
+  spawnRadius = "#spawnradius%s*=%s*([%d%-]+)",
+  spawnChance = "#spawnchance%s*=%s*([%d%-]+)",
+  spawnCount = "#spawncount%s*=%s*([%d%-]+)",
   spawnGroup = '#spawngroup%s*=%s*"([^"]+)"',
-  spawnDelay = "#spawndelay%s*=%s*(%d+)",
+  spawnDelay = "#spawndelay%s*=%s*([%d%-]+)",
   command = '#command%s*=%s*"([^"]+)"',
   alarmState = veafCombatZone.ALARM_TAG_PATTERN,
 }
@@ -467,21 +477,38 @@ end
 
 --- Apply a group's collected tags to one of its zone elements.
 --- Only the tags actually stated are applied, so an element keeps its own defaults otherwise.
+--- Convert a numeric tag's raw text, which may be a range, into the number the element stores.
+---
+--- Goes through `veaf.getRandomizableNumeric` so `100-300` means in a tag what it means in a marker
+--- command. Not optional plumbing: the setters convert with `tonumber`, which returns **nil** on
+--- "100-300", and a nil `spawnRadius` raises where `spawnElement` compares it — a range reaching a
+--- setter unconverted is a crash, not a wrong number.
+---
+--- The draw happens **here**, when tags are read, which is once per mission at `initialize`. Every
+--- activation of the zone then uses the same value. Redrawing on each activation would be a different
+--- feature, and a surprising one for a dispersion radius.
+local function numericTag(value)
+  if value == nil then
+    return nil
+  end
+  return veaf.getRandomizableNumeric(value)
+end
+
 local function applyCollectedTags(element, tags)
   if tags.spawnRadius then
-    element:setSpawnRadius(tags.spawnRadius)
+    element:setSpawnRadius(numericTag(tags.spawnRadius))
   end
   if tags.spawnChance then
-    element:setSpawnChance(tags.spawnChance)
+    element:setSpawnChance(numericTag(tags.spawnChance))
   end
   if tags.spawnCount then
-    element:setSpawnCount(tags.spawnCount)
+    element:setSpawnCount(numericTag(tags.spawnCount))
   end
   if tags.spawnGroup then
     element:setSpawnGroup(tags.spawnGroup)
   end
   if tags.spawnDelay then
-    element:setSpawnDelay(tags.spawnDelay)
+    element:setSpawnDelay(numericTag(tags.spawnDelay))
   end
   if tags.alarmState then
     element:setAlarmState(tags.alarmState)

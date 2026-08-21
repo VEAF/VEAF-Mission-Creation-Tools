@@ -272,6 +272,22 @@ Ce qui posait problème, c'est que la zone s'ancrait sur la **première unité q
 
 Depuis la 6.15.21, l'ancrage est toujours la **première unité du groupe**, qu'elle soit dans le cercle ou non. Un groupe à cheval sur le bord apparaît donc à l'endroit où vous l'avez dessiné. Si vous aviez compensé ce décalage à la main en déplaçant vos unités, retirez la compensation.
 
+#### Une valeur au hasard dans un intervalle {#tag-ranges}
+
+Les quatre tags qui portent un nombre — `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` — acceptent un intervalle au lieu d'une valeur fixe, avec la même écriture que dans les commandes de marqueur :
+
+```
+ALPHA-CONVOY #spawnradius=100-300 #spawndelay=30-90
+```
+
+La valeur est tirée **une fois par mission**, à la lecture des noms au démarrage. Toutes les activations de la zone utilisent donc la même valeur : c'est un placement varié d'une partie à l'autre, pas un placement qui bouge à chaque réactivation.
+
+!!! warning "Avant la 6.15.23, l'intervalle était tronqué en silence"
+    `#spawnradius=100-300` était lu comme `100`, sans message : vous obteniez la borne basse en croyant avoir un intervalle. Si vous en avez écrit, ils prennent effet maintenant — et le rayon peut donc être plus grand qu'avant.
+
+!!! note "`#alarm` n'accepte pas d'intervalle"
+    L'état d'alerte est une énumération (`0` AUTO, `1` VERT, `2` ROUGE) : `#alarm=0-2` n'est pas un état au hasard, c'est une faute de frappe. Le tag la refuse comme il refuse déjà une valeur hors bornes.
+
 ### Où les tags sont lus {#tag-sources}
 
 Les tags d'un groupe sont ceux portés par **son propre nom et par les noms de toutes ses unités**. Taguer un seul camion d'un convoi suffit donc, quel que soit le camion — inutile de taguer les quatre, et inutile de deviner lequel DCS traitera en premier.

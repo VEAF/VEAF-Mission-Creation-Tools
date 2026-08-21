@@ -3556,6 +3556,15 @@ function veaf.getRandomizableNumeric_random(val)
       if upper == nil then
         upper = MAX
       end
+      -- An upper bound below the lower one means the lower one. Without this, `100-` reaches
+      -- `math.random(100, 99)` — "interval is empty", a raised Lua error rather than a wrong number —
+      -- and so does any reversed range like `5-2`. Reachable from every marker command that takes a
+      -- number, and found while FEAT-INTERPRETER-PARITY widened the combat-zone tag patterns onto the
+      -- same converter.
+      if upper < lower then
+        veaf.loggers.get(veaf.Id):warn("range [%s] has no usable upper bound; using %s", veaf.p(val), veaf.p(lower))
+        upper = lower
+      end
       nVal = math.random(lower, upper)
       veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.lp(nVal))
     end

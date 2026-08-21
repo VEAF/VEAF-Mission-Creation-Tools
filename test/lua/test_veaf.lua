@@ -553,6 +553,45 @@ function TestVeafGetRandomizableNumericRandom:test_rangeUpperBound()
   end
 end
 
+-- FEAT-INTERPRETER-PARITY found this while widening the combat-zone tag patterns, but it is not a new
+-- defect: an open-ended range raises **today** from any marker command, since the missing upper bound
+-- falls back to MAX = 99 and `math.random(100, 99)` is "interval is empty".
+--
+--   _spawn group, name x, size 100-      →  bad argument #2 to 'random' (interval is empty)
+--
+-- An upper bound below the lower one now means the lower one, warned about rather than raised on. Same
+-- for a reversed range, which is a typo with an obvious intent.
+TestVeafRandomizableNumericDegenerateRanges = {}
+
+function TestVeafRandomizableNumericDegenerateRanges:test_an_open_range_above_the_default_max_does_not_raise()
+  local v = veaf.getRandomizableNumeric_random("100-")
+  luaunit.assertEquals(v, 100, "an absent upper bound cannot mean less than the lower one")
+end
+
+function TestVeafRandomizableNumericDegenerateRanges:test_an_open_range_below_the_default_max_still_draws()
+  for _ = 1, 20 do
+    local v = veaf.getRandomizableNumeric_random("10-")
+    luaunit.assertTrue(v >= 10 and v <= 99, "value " .. tostring(v) .. " out of [10,99]")
+  end
+end
+
+function TestVeafRandomizableNumericDegenerateRanges:test_a_reversed_range_yields_its_lower_bound()
+  luaunit.assertEquals(veaf.getRandomizableNumeric_random("5-2"), 5)
+end
+
+function TestVeafRandomizableNumericDegenerateRanges:test_a_single_value_range_is_that_value()
+  luaunit.assertEquals(veaf.getRandomizableNumeric_random("7-7"), 7)
+end
+
+-- The degenerate forms the widened tag pattern can capture, enumerated rather than sampled: every one
+-- of them must return a number, because the callers store it and compare it.
+function TestVeafRandomizableNumericDegenerateRanges:test_every_dash_only_form_returns_a_number()
+  for _, form in ipairs({ "-", "--", "-300", "0-0", "100-", "3-1" }) do
+    local v = veaf.getRandomizableNumeric_random(form)
+    luaunit.assertIsNumber(v, "form '" .. form .. "' must yield a number, not nil and not an error")
+  end
+end
+
 -- ===========================================================================
 -- veaf.ifnn (safe field accessor)
 -- ===========================================================================

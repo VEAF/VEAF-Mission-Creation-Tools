@@ -271,6 +271,22 @@ What went wrong is that the zone anchored itself on **the first unit it could se
 
 Since 6.15.21 the anchor is always the group's **first unit**, inside the circle or not. A group straddling the edge therefore appears where you drew it. If you had compensated for the offset by hand by moving your units, remove the compensation.
 
+#### A value drawn from a range {#tag-ranges}
+
+The four tags carrying a number — `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` — accept a range instead of a fixed value, written the same way as in marker commands:
+
+```
+ALPHA-CONVOY #spawnradius=100-300 #spawndelay=30-90
+```
+
+The value is drawn **once per mission**, when names are read at startup. Every activation of the zone therefore uses the same value: this varies placement from one game to the next, not from one activation to the next.
+
+!!! warning "Before 6.15.23 a range was silently truncated"
+    `#spawnradius=100-300` was read as `100`, with no message: you got the lower bound while believing you had a range. If you wrote any, they take effect now — so the radius may be larger than it used to be.
+
+!!! note "`#alarm` takes no range"
+    The alarm state is an enumeration (`0` AUTO, `1` GREEN, `2` RED): `#alarm=0-2` is not a random state, it is a typo. The tag refuses it as it already refuses an out-of-bounds value.
+
 ### Where tags are read from {#tag-sources}
 
 A group's tags are the ones carried by **its own name and by the names of all its units**. Tagging a single truck of a convoy is therefore enough, whichever truck it is — no need to tag all four, and no need to guess which one DCS will process first.

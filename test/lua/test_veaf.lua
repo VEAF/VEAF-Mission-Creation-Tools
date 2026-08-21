@@ -2968,4 +2968,122 @@ function TestVeafCollectSpawnedGroup:test_registering_returns_true_on_success()
   luaunit.assertTrue(veaf.registerSpawnedGroupsHook({}, function() end))
 end
 
+-- ============================================================================
+-- FIX-COMBATZONE-ZONE-TYPE-SILENT
+--
+-- Three modules branched on a trigger zone's type with `if type == 0 ... elseif type == 2 ... end` and
+-- no `else`: veafCombatZone, veafAirWaves and veafQraCore. Any other value — **nil included** — left
+-- the unit list untouched, so the zone found nobody and nothing said so. Each failure was silent in its
+-- own way: a combat zone activated, reported nothing to kill and declared itself won; an air wave never
+-- triggered; a QRA never scrambled.
+--
+-- The branch lives in one place now, and an unexpected type is an error naming the zone and the value.
+-- nil rather than an empty table is returned on purpose: "unusable" and "legitimately empty" are
+-- different answers, and a caller that cannot tell them apart is how this defect started.
+-- ============================================================================
+TestVeafGetUnitsInTriggerZone = {}
+
+function TestVeafGetUnitsInTriggerZone:setUp()
+  self._savedZones = veaf.triggerZones
+  veaf.triggerZones = {
+    CIRCLE = { name = "CIRCLE", type = 0, x = 0, y = 0, radius = 1000 },
+    QUAD = { name = "QUAD", type = 2, x = 0, y = 0, verticies = { { x = 0, y = 0 }, { x = 1, y = 0 } } },
+    ODD = { name = "ODD", type = 7, x = 0, y = 0 },
+    TYPELESS = { name = "TYPELESS", x = 0, y = 0 },
+  }
+  self._savedInZones = mist.getUnitsInZones
+  self._savedInPolygon = mist.getUnitsInPolygon
+  self.calls = {}
+  local calls = self.calls
+  mist.getUnitsInZones = function(unitNames, zoneNames)
+    table.insert(calls, { how = "zones", unitNames = unitNames, zoneNames = zoneNames })
+    return { "unit-from-circle" }
+  end
+  mist.getUnitsInPolygon = function(unitNames, verticies)
+    table.insert(calls, { how = "polygon", unitNames = unitNames, verticies = verticies })
+    return { "unit-from-polygon" }
+  end
+  self._logger = veaf.loggers.get(veaf.Id)
+  self._savedError = self._logger.error
+  self.errors = {}
+  local errors = self.errors
+  self._logger.error = function(_, text, ...)
+    table.insert(errors, { text = text, args = { ... } })
+  end
+end
+
+function TestVeafGetUnitsInTriggerZone:tearDown()
+  veaf.triggerZones = self._savedZones
+  mist.getUnitsInZones = self._savedInZones
+  mist.getUnitsInPolygon = self._savedInPolygon
+  self._logger.error = self._savedError
+end
+
+function TestVeafGetUnitsInTriggerZone:test_a_circular_zone_goes_through_getUnitsInZones()
+  local units = veaf.getUnitsInTriggerZone("CIRCLE", { "A", "B" }, veaf.Id)
+  luaunit.assertEquals(units, { "unit-from-circle" })
+  luaunit.assertEquals(self.calls[1].how, "zones")
+  luaunit.assertEquals(self.calls[1].zoneNames, { "CIRCLE" })
+  luaunit.assertEquals(self.calls[1].unitNames, { "A", "B" })
+  luaunit.assertEquals(#self.errors, 0)
+end
+
+function TestVeafGetUnitsInTriggerZone:test_a_quad_zone_goes_through_getUnitsInPolygon()
+  local units = veaf.getUnitsInTriggerZone("QUAD", { "A" }, veaf.Id)
+  luaunit.assertEquals(units, { "unit-from-polygon" })
+  luaunit.assertEquals(self.calls[1].how, "polygon")
+  luaunit.assertEquals(self.calls[1].verticies, veaf.triggerZones.QUAD.verticies)
+  luaunit.assertEquals(#self.errors, 0)
+end
+
+-- The defect, both shapes of it.
+function TestVeafGetUnitsInTriggerZone:test_an_unknown_type_is_an_error_not_an_empty_list()
+  local units = veaf.getUnitsInTriggerZone("ODD", { "A" }, veaf.Id)
+  luaunit.assertNil(units, "nil says unusable; an empty table would say the zone holds nobody")
+  luaunit.assertEquals(#self.errors, 1)
+  luaunit.assertEquals(#self.calls, 0, "neither MiST call may run on an unknown type")
+end
+
+function TestVeafGetUnitsInTriggerZone:test_a_missing_type_is_an_error_too()
+  -- the likelier of the two: a hand-edited mission, a zone written by a tool, a renamed DCS field
+  local units = veaf.getUnitsInTriggerZone("TYPELESS", { "A" }, veaf.Id)
+  luaunit.assertNil(units)
+  luaunit.assertEquals(#self.errors, 1)
+end
+
+function TestVeafGetUnitsInTriggerZone:test_the_error_names_the_zone_and_the_value()
+  -- what makes the log actionable: without the value, the next reader repeats the investigation
+  veaf.getUnitsInTriggerZone("ODD", { "A" }, veaf.Id)
+  local reported = table.concat({ self.errors[1].text, tostring(self.errors[1].args[1]), tostring(self.errors[1].args[2]) }, " ")
+  luaunit.assertNotNil(reported:find("ODD", 1, true), "the zone name must be in the message")
+  luaunit.assertNotNil(reported:find("7", 1, true), "the unexpected type must be in the message")
+end
+
+function TestVeafGetUnitsInTriggerZone:test_an_unknown_zone_is_an_error()
+  local units = veaf.getUnitsInTriggerZone("NO-SUCH-ZONE", { "A" }, veaf.Id)
+  luaunit.assertNil(units)
+  luaunit.assertEquals(#self.errors, 1)
+end
+
+function TestVeafGetUnitsInTriggerZone:test_no_zone_name_is_an_error_rather_than_a_crash()
+  local ok, units = pcall(veaf.getUnitsInTriggerZone, nil, { "A" }, veaf.Id)
+  luaunit.assertTrue(ok)
+  luaunit.assertNil(units)
+end
+
+-- The module id is what makes the error land in the log of whoever asked, which is the whole point of
+-- sharing the branch instead of copying it three times.
+function TestVeafGetUnitsInTriggerZone:test_the_error_goes_to_the_caller_s_logger()
+  local combatZoneErrors = {}
+  local czLogger = veaf.loggers.get("COMBATZONE")
+  local saved = czLogger.error
+  czLogger.error = function(_, text, ...)
+    table.insert(combatZoneErrors, text)
+  end
+  veaf.getUnitsInTriggerZone("ODD", { "A" }, "COMBATZONE")
+  czLogger.error = saved
+  luaunit.assertEquals(#combatZoneErrors, 1)
+  luaunit.assertEquals(#self.errors, 0, "nothing may land in veaf's own logger when a module id is given")
+end
+
 os.exit(luaunit.LuaUnit.run())

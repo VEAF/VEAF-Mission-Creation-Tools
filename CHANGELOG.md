@@ -7,6 +7,53 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.16] — 2026-08-21
+
+### Added
+
+- **A combat zone can keep its units' original names.** Sharko's
+  [#289](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289), open since February 2025:
+  renaming a zone's units sequentially is useful once a map is finished and gets in the way while
+  debugging a `.miz`, because the name typed in the Mission Editor is gone and the unit can no longer be
+  found in the logs. `renameUnitsSequentially = true` was hard-coded in the `mist.teleportToPoint` call —
+  the single occurrence of that field in the whole runtime — so there was nothing to set and the answer
+  was no.
+
+  `rename_units_sequentially: false` on a combat zone in `mission.yaml` now keeps the original names. It
+  is a **per-zone** setting rather than a global debug switch, which is what the request asked for and
+  one less thing to remember to put back before shipping. The default stays `true`, so no existing
+  mission changes and generated Lua stays byte-identical.
+
+  A v5 mission that turned renaming off converts: the migrator reads the setter like the other six of its
+  family. Documented in both languages — **along with the four keys of that family that had never been
+  documented at all** (`show_units_list`, `show_zone_position_info`, `smoke_and_flare`,
+  `radio_menu_disabled`): the generator accepted them and the reference table did not list them.
+
+### Fixed
+
+- **A trigger zone of an unexpected type no longer fails in silence, in any of the three modules that
+  read one.** `if type == 0 … elseif type == 2 … end` with no `else` left the unit list untouched for any
+  other value, **`nil` included** — a hand-edited mission, a zone written by a tool, a renamed DCS field.
+  Each module then failed quietly in its own way:
+
+  | Module | What it looked like |
+  |---|---|
+  | `veafCombatZone` | the zone activates, has nothing to kill, and the first watchdog tick announces it won |
+  | `veafAirWaves` | no player is ever detected, so the wave never triggers |
+  | `veafQraCore` | zero units in the zone, so the QRA never scrambles |
+
+  The branch now lives in one place, `veaf.getUnitsInTriggerZone`, which logs an error naming the zone
+  and the value into the log of whoever asked. It returns **nil** rather than an empty table for a zone
+  it cannot read: "unusable" and "legitimately empty" are different answers, and a caller unable to tell
+  them apart is how this defect started. No fallback shape is guessed — assuming circular for an unknown
+  type would put the silent wrong answer back one level down.
+
+  The lot was written for `veafCombatZone` alone; the sweep its own definition of done demanded turned up
+  the other two. Neither of the two files the PRD had guessed at (`veafSanctuary`, the MCP's `edit_zone`)
+  reads a zone's type at all.
+
+---
+
 ## [6.15.15] — 2026-08-21
 
 ### Fixed

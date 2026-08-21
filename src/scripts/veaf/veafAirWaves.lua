@@ -819,11 +819,7 @@ function AirWaveZone:check()
     local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
     local humanUnits = nil
     if triggerZone then
-      if triggerZone.type == 0 then -- circular
-        humanUnits = mist.getUnitsInZones(unitNames, { self.triggerZoneName })
-      elseif triggerZone.type == 2 then -- quad point
-        humanUnits = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
-      end
+      humanUnits = veaf.getUnitsInTriggerZone(self.triggerZoneName, unitNames, veafAirWaves.Id)
     elseif self.zoneCenter then
       humanUnits = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
     else

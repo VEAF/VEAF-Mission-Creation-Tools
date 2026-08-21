@@ -4903,6 +4903,48 @@ function veaf.getTriggerZone(zoneName)
   return veaf.triggerZones[zoneName]
 end
 
+--- Which of the given units are inside a trigger zone.
+---
+--- DCS ships two zone shapes and each needs a different MiST call. Three modules used to branch on
+--- `triggerZone.type` themselves, with `if type == 0 ... elseif type == 2 ... end` and **no else** — so
+--- any other value, `nil` included, left the unit list untouched and the zone found nobody in silence.
+--- Each module failed in its own quiet way: a combat zone activated with nothing to kill and declared
+--- itself won, an air wave never triggered, a QRA never scrambled
+--- (FIX-COMBATZONE-ZONE-TYPE-SILENT).
+---
+--- Returns **nil** rather than an empty table for a zone it cannot read: "unusable" and "legitimately
+--- empty" are different answers, and a caller unable to tell them apart is how the defect started. No
+--- fallback shape is guessed — picking circular for an unknown type would put the silent wrong answer
+--- back one level down.
+---
+--- @param zoneName name of the DCS trigger zone
+--- @param unitNames names of the units to test
+--- @param moduleId logger id of the caller, so the error lands in the log of whoever asked
+--- @return table of units, or nil when the zone is missing or its type is not one we can read
+function veaf.getUnitsInTriggerZone(zoneName, unitNames, moduleId)
+  local logger = veaf.loggers.get(moduleId or veaf.Id)
+  if not zoneName then
+    logger:error("veaf.getUnitsInTriggerZone called with no zone name")
+    return nil
+  end
+  local triggerZone = veaf.getTriggerZone(zoneName)
+  if not triggerZone then
+    logger:error("trigger zone [%s] does not exist in the mission", veaf.p(zoneName))
+    return nil
+  end
+  if triggerZone.type == 0 then -- circular
+    return mist.getUnitsInZones(unitNames, { zoneName })
+  elseif triggerZone.type == 2 then -- quad point
+    return mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+  end
+  logger:error(
+    "trigger zone [%s] has an unexpected type [%s]; expected 0 (circular) or 2 (quad point), so its units cannot be read",
+    veaf.p(zoneName),
+    veaf.p(triggerZone.type)
+  )
+  return nil
+end
+
 --- Reads a raw trigger-zone property, as typed by the mission maker in the editor
 -- DCS stores them as an array of { key = "…", value = "…" } pairs, never a map, and every
 -- value is a string. Discovered zones have carried them since veaf._discoverTriggerZones,

@@ -910,6 +910,25 @@ def test_combatzone_completable_default_emits_nothing():
         assert "setCompletable" not in generate_config_lua(yaml_data)
 
 
+def test_combatzone_rename_units_sequentially_false_emits_setter():
+    """``rename_units_sequentially: false`` keeps a respawned group's original unit names (#289)."""
+    yaml_data: dict = {
+        "mission": {"name": "Test"},
+        "lua_modules": {"COMBATZONE": {"combat_zones": [{"zone_name": "CZ", "rename_units_sequentially": False}]}},
+    }
+    assert ":setRenameUnitsSequentially(false)" in generate_config_lua(yaml_data)
+
+
+def test_combatzone_rename_units_sequentially_default_emits_nothing():
+    """Absent or true, nothing is emitted, so an existing mission's generated Lua does not move."""
+    for zone in ({"zone_name": "CZ"}, {"zone_name": "CZ", "rename_units_sequentially": True}):
+        yaml_data: dict = {
+            "mission": {"name": "Test"},
+            "lua_modules": {"COMBATZONE": {"combat_zones": [zone]}},
+        }
+        assert "setRenameUnitsSequentially" not in generate_config_lua(yaml_data)
+
+
 def _combatzone_yaml(zone: dict) -> dict:
     """Build a minimal mission carrying a single combat *zone*."""
     return {

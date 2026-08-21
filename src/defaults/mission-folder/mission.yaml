@@ -151,6 +151,8 @@ modules:
   #         training: false
   #         active_at_start: true   # activate this zone automatically at mission start
   #         completable: true       # false = never auto-completes on its own
+  #         rename_units_sequentially: true   # false = keep the Mission Editor unit names
+  #                                           # (useful while debugging a .miz)
   #         enemy_coalition: RED    # RED | BLUE — the hostile side; BLUE = zone played from the red side
   #         radio_menu_coalition: ALL   # RED | BLUE | ALL — who is offered the F10 menu
   #                                     # (default: the side playing the zone; ALL = both)

@@ -1738,6 +1738,7 @@ class ConfigMigrator:
             ("setShowUnitsList", "show_units_list"),
             ("setShowZonePositionInfo", "show_zone_position_info"),
             ("setEnableSmokeAndFlare", "smoke_and_flare"),
+            ("setRenameUnitsSequentially", "rename_units_sequentially"),
         ):
             m = re.search(rf":{setter}\s*\(\s*(true|false)\s*\)", chain_text)
             if m and m.group(1) == "false":

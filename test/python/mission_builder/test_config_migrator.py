@@ -1053,6 +1053,14 @@ class TestCombatZoneSettingsTheSchemaLacked(unittest.TestCase):
     def test_disable_radio_menu_is_extracted(self) -> None:
         self.assertIs(self._zone("        :disableRadioMenu()\n")["radio_menu_disabled"], True)
 
+    def test_rename_units_sequentially_is_extracted(self) -> None:
+        # FIX-COMBATZONE-RENAME-OPTION added the seventh setting of this family (#289). It reads the
+        # same way as its neighbours, so a v5 mission that turned renaming off keeps it off.
+        self.assertIs(self._zone("        :setRenameUnitsSequentially(false)\n")["rename_units_sequentially"], False)
+
+    def test_rename_units_sequentially_true_says_nothing(self) -> None:
+        self.assertNotIn("rename_units_sequentially", self._zone("        :setRenameUnitsSequentially(true)\n"))
+
     def test_set_enable_user_activation_false_reuses_the_existing_key(self) -> None:
         # setEnableUserActivation(false) and disableUserActivation() write the SAME runtime field
         # (veafCombatZone.lua:344 and :355), so a second YAML key would mean two ways to say one
@@ -1065,7 +1073,13 @@ class TestCombatZoneSettingsTheSchemaLacked(unittest.TestCase):
 
     def test_a_zone_using_none_of_them_gains_no_key(self) -> None:
         zone = self._zone("")
-        for key in ("completable", "show_units_list", "show_zone_position_info", "smoke_and_flare"):
+        for key in (
+            "completable",
+            "show_units_list",
+            "show_zone_position_info",
+            "smoke_and_flare",
+            "rename_units_sequentially",
+        ):
             self.assertNotIn(key, zone)
 
     def test_removing_the_setter_removes_the_key(self) -> None:

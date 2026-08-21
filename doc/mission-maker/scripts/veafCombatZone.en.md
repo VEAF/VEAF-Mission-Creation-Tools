@@ -86,11 +86,31 @@ modules:
 | `briefing` | string | — | No | Briefing text shown to players |
 | `training` | boolean | `false` | No | Training mode: no security, verbose status |
 | `completable` | boolean | `true` | No | `false`: the zone never completes (nor deactivates) on its own |
+| `show_units_list` | boolean | `true` | No | `false`: the F10 report does not list the remaining units |
+| `show_zone_position_info` | boolean | `true` | No | `false`: the F10 report shows neither the zone's coordinates nor its weather |
+| `smoke_and_flare` | boolean | `true` | No | `false`: the zone offers neither smoke nor flare to mark itself |
+| `radio_menu_disabled` | boolean | `false` | No | `true`: the zone does not appear in the F10 menu at all |
+| `rename_units_sequentially` | boolean | `true` | No | `false`: units keep their original names when spawned instead of being renamed in sequence. See [below](#rename-units) |
 | `enemy_coalition` | `RED` \| `BLUE` | `RED` | No | The **hostile** coalition: its units are the ones that must be destroyed for the zone to complete, and the ones the F10 report calls "enemies". Use `BLUE` for a zone played from the **red side** (see below) |
 | `radio_menu_coalition` | `RED` \| `BLUE` \| `ALL` | *(the side playing the zone)* | No | Which coalition is offered the zone's F10 menu. Defaults to the opposite of `enemy_coalition`. `ALL` shows it to both sides (see below) |
 | `active_at_start` | boolean | `false` | No | Automatically activate the zone at mission start (`veafCombatZone.ActivateZone` after `initialize()`) |
 | `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
 | `chained_delay` | integer | `0` | No | Seconds before chained zones fire |
+
+### `rename_units_sequentially` — keeping the original unit names {#rename-units}
+
+When a group spawns, a combat zone renames its units in sequence. That helps on a finished map — the names become readable and consistent — and **gets in the way while debugging** a `.miz`: the name you gave the unit in the Mission Editor is gone, and you can no longer find it in the logs.
+
+```yaml
+combat_zones:
+  - zone_name: CZ-Alpha
+    rename_units_sequentially: false   # units keep their Mission Editor names
+```
+
+The setting is **per zone**, not a global debug switch: that is what the
+[original request](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289) asked for, and a global one would be one more thing to remember to put back before shipping.
+
+The default stays `true`, so no existing mission changes.
 
 ### `combat_zones[]` fields — type `operation`
 

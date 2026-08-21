@@ -648,6 +648,11 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
         lines.append(f"{indent}    :setShowZonePositionInfo(false)")
     if zone_def.get("smoke_and_flare", True) is False:
         lines.append(f"{indent}    :setEnableSmokeAndFlare(false)")
+    # `rename_units_sequentially: false` keeps a respawned group's original unit names. Sharko's #289:
+    # renaming helps on a finished map and hides the name you need while debugging a `.miz`. Same rule
+    # again — the framework default is `true`, so only a `false` is emitted.
+    if zone_def.get("rename_units_sequentially", True) is False:
+        lines.append(f"{indent}    :setRenameUnitsSequentially(false)")
     # 171 zones were hidden on purpose and reappeared in the F10 menu under the placeholder names
     # their authors gave them precisely because nobody was meant to see them.
     if zone_def.get("radio_menu_disabled"):

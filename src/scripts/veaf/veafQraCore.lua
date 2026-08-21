@@ -724,11 +724,7 @@ function VeafQRACore:check()
         end
         unitsInZone = {}
         if triggerZone then
-          if triggerZone.type == 0 then -- circular
-            unitsInZone = mist.getUnitsInZones(unitNames, { self.triggerZoneName })
-          elseif triggerZone.type == 2 then -- quad point
-            unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
-          end
+          unitsInZone = veaf.getUnitsInTriggerZone(self.triggerZoneName, unitNames, veafQraManager.Id) or {}
         elseif self.zoneCenter then
           unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
         else

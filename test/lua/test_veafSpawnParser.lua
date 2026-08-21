@@ -528,4 +528,58 @@ function TestSpawnParserNonNegativeKeywords:test_a_readable_delayed_is_honoured(
   luaunit.assertEquals(r.delayedStart, 30)
 end
 
+-- ---------------------------------------------------------------------------
+-- FEAT-CONVOY-WAYPOINTS ticket 01 — `dest` repeated builds an itinerary
+--
+-- `veaf.parseMarkerText` walks keyphrases with `ipairs` precisely so that a repeated keyword is
+-- ordered rather than arbitrary, so accumulating is enough. `destination` keeps holding the FIRST
+-- point: every caller of `spawnConvoy` reads it, and a one-point itinerary must stay byte-identical
+-- to what a single `dest` produced before this lot.
+-- ---------------------------------------------------------------------------
+TestSpawnParserItinerary = {}
+
+function TestSpawnParserItinerary:test_one_dest_still_sets_destination()
+  local r = analyse("_spawn convoy, dest KOBULETI")
+  luaunit.assertEquals(r.destination, "KOBULETI")
+end
+
+function TestSpawnParserItinerary:test_one_dest_is_a_one_point_itinerary()
+  local r = analyse("_spawn convoy, dest KOBULETI")
+  luaunit.assertEquals(r.itinerary, { "KOBULETI" })
+end
+
+function TestSpawnParserItinerary:test_several_dest_accumulate_in_the_order_written()
+  local r = analyse("_spawn convoy, dest KOBULETI, dest BATUMI, dest POTI")
+  luaunit.assertEquals(r.itinerary, { "KOBULETI", "BATUMI", "POTI" })
+end
+
+-- The compatibility promise: whatever the itinerary, `destination` is its first point, because that
+-- is the leg the convoy leaves on and what every existing caller passes to spawnConvoy.
+function TestSpawnParserItinerary:test_destination_is_the_first_point_not_the_last()
+  local r = analyse("_spawn convoy, dest KOBULETI, dest BATUMI")
+  luaunit.assertEquals(r.destination, "KOBULETI")
+end
+
+-- The side effects `dest` carries (auto alarm state, tight spacing, no dispersion) are what make a
+-- convoy leave at all; they must be applied once and not depend on how many points were written.
+function TestSpawnParserItinerary:test_the_convoy_side_effects_survive_several_points()
+  local r = analyse("_spawn convoy, dest KOBULETI, dest BATUMI")
+  luaunit.assertEquals(r.AlarmState, 0)
+  luaunit.assertEquals(r.spacing, 1)
+  luaunit.assertEquals(r.radius, 1)
+end
+
+-- `dest` and its alias `destination` are the same keyword, so mixing them still builds one itinerary.
+function TestSpawnParserItinerary:test_the_alias_and_the_full_keyword_accumulate_together()
+  local r = analyse("_spawn convoy, destination KOBULETI, dest BATUMI")
+  luaunit.assertEquals(r.itinerary, { "KOBULETI", "BATUMI" })
+end
+
+-- A convoy with no `dest` has no itinerary rather than an empty one: spawnConvoy already refuses a
+-- missing destination, and an empty list would read as "an itinerary that finished".
+function TestSpawnParserItinerary:test_no_dest_leaves_no_itinerary()
+  local r = analyse("_spawn convoy")
+  luaunit.assertNil(r.itinerary)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -626,6 +626,45 @@ veaf.i18nCatalog = {
     fr = " - %s a été détruit",
     en = " - %s has been destroyed",
   },
+  -- FEAT-CONVOY-WAYPOINTS. The wording carries the distinction the feature is about: "hold" says
+  -- *where* the convoy will park and that it is still rolling, "stop" says it has halted on the spot.
+  -- Two entries that read alike would make the useful one unusable, which is the whole point.
+  ["spawn.convoy_advancing_to"] = {
+    fr = "%s repart vers %s",
+    en = "%s is setting off for %s",
+  },
+  ["spawn.convoy_will_hold_at"] = {
+    fr = "%s terminera son trajet et attendra les ordres à %s",
+    en = "%s will finish its leg and await orders at %s",
+  },
+  ["spawn.convoy_holding_at"] = {
+    fr = "%s est arrivé à %s et attend les ordres",
+    en = "%s has reached %s and is awaiting orders",
+  },
+  ["spawn.convoy_cannot_hold"] = {
+    fr = "%s est sur la dernière étape de son trajet : il n'y a pas de point suivant où l'arrêter",
+    en = "%s is on the last leg of its itinerary: there is no next point to hold it at",
+  },
+  ["spawn.convoy_itinerary_finished"] = {
+    fr = "%s a parcouru tout son trajet",
+    en = "%s has walked its whole itinerary",
+  },
+  ["spawn.convoy_halted_here"] = {
+    fr = "%s s'arrête sur place",
+    en = "%s is halting where it stands",
+  },
+  ["spawn.convoy_resumed"] = {
+    fr = "%s reprend sa route",
+    en = "%s is on its way again",
+  },
+  ["spawn.convoy_already_halted"] = {
+    fr = "%s est déjà à l'arrêt",
+    en = "%s has already halted",
+  },
+  ["spawn.convoy_already_rolling"] = {
+    fr = "%s roule déjà",
+    en = "%s is already rolling",
+  },
   ["spawn.afac_template_not_found"] = {
     fr = "Le modèle d'avion AFAC est introuvable pour « %s »",
     en = 'The AFAC aircraft template could not be found for "%s"',
@@ -1405,13 +1444,21 @@ veaf.i18nCatalog = {
     fr = "Marquer la route du convoi le plus proche",
     en = "Mark closest convoy route",
   },
+  ["menu.spawn.convoy_advance"] = {
+    fr = "Envoyer le convoi le plus proche au point suivant",
+    en = "Send closest convoy to its next point",
+  },
+  ["menu.spawn.convoy_hold"] = {
+    fr = "Faire attendre les ordres au convoi le plus proche (au point suivant)",
+    en = "Hold closest convoy at its next point",
+  },
   ["menu.spawn.convoy_move"] = {
-    fr = "Faire repartir le convoi le plus proche",
-    en = "Make closest convoy move",
+    fr = "Faire repartir le convoi le plus proche (après un arrêt)",
+    en = "Resume closest convoy after a halt",
   },
   ["menu.spawn.convoy_stop"] = {
-    fr = "Arrêter le convoi le plus proche",
-    en = "Stop closest convoy",
+    fr = "Arrêter le convoi le plus proche sur place",
+    en = "Halt closest convoy where it stands",
   },
   ["menu.transportmission.flare_done"] = {
     fr = "Zone de largage éclairée par fusée",

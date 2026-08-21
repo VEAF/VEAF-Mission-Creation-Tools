@@ -943,6 +943,20 @@ function veafSpawn.buildRadioMenu()
       nil,
       veafRadio.USAGE_ForGroup
     )
+    -- FEAT-CONVOY-WAYPOINTS: four commands, in the order a game master reaches for them — push it on,
+    -- park it at the next point, halt it on the spot, send it off again. `hold` and `stop` sit next to
+    -- each other on purpose: their labels have to be readable *against* one another, since that is
+    -- where the two get confused.
+    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_advance"), veafSpawn.rootPath)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_advance"),
+      menuPath,
+      veafSpawn.advanceClosestConvoy,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
+    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_hold"), veafSpawn.rootPath)
+    veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_hold"), menuPath, veafSpawn.holdClosestConvoy, nil, veafRadio.USAGE_ForGroup)
     local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_stop"), veafSpawn.rootPath)
     veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_stop"), menuPath, veafSpawn.stopClosestConvoy, nil, veafRadio.USAGE_ForGroup)
     local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_move"), veafSpawn.rootPath)

@@ -165,9 +165,14 @@ end
 --- `mist.getUnitsInZones` followed by `pairs()`, so tie-breaking on it would be the coin toss this
 --- replaces, and it is not something a mission maker can see in the mission editor.
 ---
+--- `#command` is not merged — it is a one-shot trigger attached to an object, not a setting of the
+--- group — so it comes back separately, keyed by the name that carried it. That second return value is
+--- what keeps every name parsed exactly once: the caller never has to read a name's tags again.
+---
 --- @param groupName name of the group; a static object is its own group
 --- @param unitNames names of the group's units, in any order
 --- @return table of tag key to raw string value, `command` excluded (see veafCombatZone.MERGED_TAGS)
+--- @return table mapping a source name to the `#command` it carries, empty when none does
 function veafCombatZone.collectTags(groupName, unitNames)
   local sources = {}
   if groupName then
@@ -186,10 +191,14 @@ function veafCombatZone.collectTags(groupName, unitNames)
 
   local tags = {}
   local statedBy = {}
+  local commandsBySource = {}
   local sawAlarmTag = false
   for _, source in ipairs(sources) do
     local parsed = veafCombatZone.parseTags(source)
     sawAlarmTag = sawAlarmTag or source:lower():find("#alarm", 1, true) ~= nil
+    if parsed.command then
+      commandsBySource[source] = parsed.command
+    end
     for _, key in ipairs(veafCombatZone.MERGED_TAGS) do
       local value = parsed[key]
       if value then
@@ -219,7 +228,7 @@ function veafCombatZone.collectTags(groupName, unitNames)
       .get(veafCombatZone.Id)
       :warn("group [%s] carries an unreadable #alarm tag; expected #alarm=0, #alarm=1 or #alarm=2", veaf.p(groupName))
   end
-  return tags
+  return tags, commandsBySource
 end
 
 --- The group an object found in a trigger zone belongs to.
@@ -1090,17 +1099,17 @@ function VeafCombatZone:initialize()
   -- much as one on the first — which is what FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY was about.
   for _, groupName in ipairs(groupOrder) do
     local group = groupsByName[groupName]
-    local tags = veafCombatZone.collectTags(groupName, group.unitNames)
+    local tags, commandsBySource = veafCombatZone.collectTags(groupName, group.unitNames)
     veaf.loggers.get(veafCombatZone.Id):trace("processing group [%s] (%s units)", veaf.p(groupName), veaf.p(#group.units))
 
-    local groupCommand = veafCombatZone.parseTags(groupName).command
+    local groupCommand = commandsBySource[groupName]
     if groupCommand then
       -- the command is on the group's own name, so the group is one trigger and not one per unit
       self:addZoneElement(veafCombatZone.buildCommandElement(group.units[1], group, tags, groupCommand, self:getMissionEditorZoneName()))
     else
       local plainUnits = {}
       for _, unit in ipairs(group.units) do
-        local unitCommand = veafCombatZone.parseTags(unit:getName()).command
+        local unitCommand = commandsBySource[unit:getName()]
         if unitCommand then
           -- it's a fake unit transporting a VEAF command
           self:addZoneElement(veafCombatZone.buildCommandElement(unit, group, tags, unitCommand, self:getMissionEditorZoneName()))

@@ -230,7 +230,7 @@ Les sources sont lues dans un ordre fixe :
 1. le nom du **groupe** ;
 2. les noms des **unités**, par ordre **alphabétique**.
 
-La première valeur trouvée pour un tag l'emporte. Si une source suivante annonce une valeur *différente* pour le même tag, elle est ignorée et le log l'écrit — deux camions du même convoi portant `#alarm=0` et `#alarm=2` ne tirent pas à la pièce, l'un gagne et vous êtes prévenu. Répéter la *même* valeur sur plusieurs unités ne produit aucun message : c'est la façon ordinaire de faire.
+La première valeur trouvée pour un tag l'emporte. Si une source suivante annonce une valeur *différente* pour le même tag, elle est ignorée et le log l'écrit — deux camions du même convoi portant `#alarm=0` et `#alarm=2` ne tirent pas à pile ou face, l'un gagne et vous êtes prévenu. Répéter la *même* valeur sur plusieurs unités ne produit aucun message : c'est la façon ordinaire de faire.
 
 !!! note "`#command` fait exception"
     `#command` reste attaché à l'objet qui le porte : chaque unité qui en porte un devient un déclencheur distinct, ce qui permet à un groupe de transporter plusieurs commandes. Posé sur le nom du **groupe**, il fait de ce groupe un **unique** déclencheur, pas un par unité.

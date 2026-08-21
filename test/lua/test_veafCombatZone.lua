@@ -1739,6 +1739,32 @@ function TestVeafCombatZoneTagCollection:test_command_is_not_merged()
   luaunit.assertEquals(#self.warned, 0)
 end
 
+-- Sourcery's review point on the first cut: `initialize` was parsing each name a second time just to
+-- read its `#command` back. The commands come out of the same pass now, keyed by the name that carried
+-- one, so a name is read exactly once and there is a single place that reads it.
+function TestVeafCombatZoneTagCollection:test_commands_come_back_keyed_by_their_source()
+  local _, commands = veafCombatZone.collectTags("ALPHA-PAIR", {
+    'ALPHA-PAIR-1 #command="-spawn sa-11"',
+    'ALPHA-PAIR-2 #command="-spawn sa-6"',
+    "ALPHA-PAIR-3",
+  })
+  luaunit.assertEquals(commands, {
+    ['ALPHA-PAIR-1 #command="-spawn sa-11"'] = "-spawn sa-11",
+    ['ALPHA-PAIR-2 #command="-spawn sa-6"'] = "-spawn sa-6",
+  })
+end
+
+function TestVeafCombatZoneTagCollection:test_a_command_on_the_group_name_comes_back_under_it()
+  local groupName = 'ALPHA-GRPCMD #command="-spawn sa-11"'
+  local _, commands = veafCombatZone.collectTags(groupName, { "ALPHA-GRPCMD-1" })
+  luaunit.assertEquals(commands[groupName], "-spawn sa-11")
+end
+
+function TestVeafCombatZoneTagCollection:test_no_command_means_an_empty_table_not_nil()
+  local _, commands = veafCombatZone.collectTags("ALPHA-CONVOY", { "ALPHA-CONVOY-1", "ALPHA-CONVOY-2" })
+  luaunit.assertEquals(commands, {})
+end
+
 function TestVeafCombatZoneTagCollection:test_an_unreadable_alarm_tag_is_still_reported()
   -- FIX-COMBATZONE-CONVOY-ALARM's warning, moved to the collection step and keeping its meaning
   for _, bad in ipairs({ "#alarm", "#alarm=", "#alarm=x", "#alarm=-1" }) do

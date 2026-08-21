@@ -5,7 +5,7 @@ Status: ⬜ ready
 Follow-up to [`FEAT-GROUP-COMBAT-INEFFECTIVE`](../FEAT-GROUP-COMBAT-INEFFECTIVE/PRD.md), which shipped
 `veaf.isGroupCombatEffective` in 6.15.24 and deliberately adopted it in **one** place — the F10 zone
 report, because that changes no mission behaviour. The analysis of the other two callers lives in that
-PRD; this lot is the acting on it.
+PRD; this lot acts on it.
 
 ## Skynet first, because it is safe
 

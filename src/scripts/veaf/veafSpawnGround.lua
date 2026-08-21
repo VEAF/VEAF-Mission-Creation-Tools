@@ -672,6 +672,11 @@ function veafSpawn.spawnConvoy(
       route = route,
       name = groupName,
       itinerary = itinerary,
+      -- The index of the point the convoy is driving **toward**, not the one it left. It starts at 1
+      -- because the departure route goes to `itinerary[1]`. Read the other way round, every message and
+      -- every check here is off by one — a reviewer of PR #781 read it that way and proposed naming
+      -- `legIndex + 1` in the hold message, which would have named the point *after* the one the convoy
+      -- parks at. A test pins the correct reading.
       legIndex = 1,
       speed = speed,
       offroad = offroad,

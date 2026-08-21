@@ -2059,4 +2059,31 @@ function TestConvoyHoldAndStop:test_stopping_a_stopped_convoy_is_refused()
   luaunit.assertFalse(veafSpawn.stopClosestConvoy("player-1"))
 end
 
+-- Sourcery raised both of these on PR #781. Both readings were wrong, and both are now pinned by a
+-- test rather than by an argument — the second one especially, because the "fix" it suggested would
+-- have made the message name the wrong point.
+
+-- Claim: `if not point or convoy.legIndex >= #convoy.itinerary` throws when `itinerary` is nil.
+-- It does not: Lua short-circuits `or`, so with `point` nil the length operator is never reached.
+-- A convoy with no itinerary is what a spawn that failed its destination leaves behind, so the path
+-- is reachable and worth a test either way.
+function TestConvoyHoldAndStop:test_holding_a_convoy_with_no_itinerary_is_refused_not_a_crash()
+  convoy().itinerary = nil
+  luaunit.assertFalse(veafSpawn.holdClosestConvoy("player-1"))
+  luaunit.assertEquals(#self.said, 1, "the player is told, rather than nothing happening")
+end
+
+-- Claim: the hold message names the *current* leg while the docs promise the *next* point.
+-- It names `itinerary[legIndex]`, and `legIndex` is the index of the point the convoy is **driving
+-- toward** — set to 1 at spawn, when the route goes to `itinerary[1]`. So that IS the next point it
+-- will reach, and the message is right. Naming `legIndex + 1` would name the point *after* the one it
+-- parks at, which is why this is pinned: the suggested change looks like a fix and is a defect.
+function TestConvoyHoldAndStop:test_hold_names_the_point_being_driven_to_not_the_one_after_it()
+  convoy().legIndex = 2 -- driving toward BATUMI, having left KOBULETI
+  veafSpawn.holdClosestConvoy("player-1")
+  luaunit.assertStrContains(self.said[1], "BATUMI")
+  luaunit.assertNotStrContains(self.said[1], "POTI", "POTI is where it goes next, not where it parks")
+  luaunit.assertNotStrContains(self.said[1], "KOBULETI", "KOBULETI is behind it")
+end
+
 os.exit(luaunit.LuaUnit.run())

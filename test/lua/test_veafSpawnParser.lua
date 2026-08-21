@@ -582,4 +582,35 @@ function TestSpawnParserItinerary:test_no_dest_leaves_no_itinerary()
   luaunit.assertNil(r.itinerary)
 end
 
+-- ---------------------------------------------------------------------------
+-- FEAT-INTERPRETER-PARITY ticket 01 — the randomisable numerics #25 asked for
+--
+-- #25 asked that `veaf.getRandomizableNumeric` reach interpreter elements. It already does, and this
+-- records *why*: an interpreter command is a marker command, `veaf.markerRules.number` converts through
+-- that very function, and the spawn parser's numeric keywords all use it. So the feature was delivered
+-- by REFACTOR-MARKER-PARSER without the issue being closed.
+--
+-- Kept as a test rather than a note, because it is the kind of thing a later refactor can quietly
+-- remove: swap `_num` for `safeNumber` anywhere here and these fail.
+-- ---------------------------------------------------------------------------
+TestSpawnParserRandomisableNumerics = {}
+
+function TestSpawnParserRandomisableNumerics:test_a_range_draws_inside_its_bounds()
+  for _ = 1, 20 do
+    local r = analyse("_spawn group, name x, size 3-8")
+    luaunit.assertTrue(r.size >= 3 and r.size <= 8, "size " .. tostring(r.size) .. " out of [3,8]")
+  end
+end
+
+function TestSpawnParserRandomisableNumerics:test_a_plain_value_is_untouched()
+  luaunit.assertEquals(analyse("_spawn group, name x, size 5").size, 5)
+end
+
+-- The open-ended form that used to raise inside the converter, reachable from here.
+function TestSpawnParserRandomisableNumerics:test_an_open_range_does_not_raise()
+  local ok, r = pcall(analyse, "_spawn group, name x, size 100-")
+  luaunit.assertTrue(ok, "an open range must not raise out of the parser")
+  luaunit.assertEquals(r.size, 100)
+end
+
 os.exit(luaunit.LuaUnit.run())

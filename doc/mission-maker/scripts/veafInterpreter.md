@@ -24,6 +24,25 @@ La position de l'unité devient la position de la commande — parfait pour des 
 
 Si l'unité hôte appartient à un groupe doté de **points de passage**, ces points de passage sont transmis aux groupes générés. Les convois et patrouilles générés ainsi suivront la route que vous avez tracée dans l'éditeur.
 
+### Faire disparaître l'unité déclencheuse {#hiding-the-trigger}
+
+L'unité qui porte la balise n'est là que pour marquer un endroit. Deux façons de l'empêcher de polluer votre mission, et les deux fonctionnent :
+
+- **Activation différée** (case « Activation différée » de l'éditeur) : l'unité n'existe jamais dans le monde. L'interpréteur lit alors sa position dans les données de la mission et exécute quand même la commande. Avant la 6.15.23, sa commande était **ignorée en silence**.
+- **Masquée sur le MFD** (case « Hidden on MFD ») : l'interpréteur ne lit ni ne modifie cet attribut, donc cochez-la librement.
+
+Une unité en activation différée n'est pas détruite après coup : il n'y a rien à détruire.
+
+### Valeurs au hasard dans les commandes {#randomisable-values}
+
+Une commande d'interpréteur est une commande de marqueur, donc **tous ses paramètres numériques acceptent un intervalle** :
+
+```
+#veafInterpreter["_spawn group, name sa6, size 3-8"]
+```
+
+La valeur est tirée au démarrage de la mission, ce qui donne une mission différente à chaque partie sans rien changer dans l'éditeur.
+
 ---
 
 ## Convention de nommage des unités

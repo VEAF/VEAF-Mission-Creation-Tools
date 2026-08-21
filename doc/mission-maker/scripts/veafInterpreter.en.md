@@ -24,6 +24,25 @@ The unit's position becomes the command position — perfect for JTAC setups, co
 
 If the hosting unit belongs to a group with **waypoints**, those waypoints are passed to the spawned groups. Convoys and patrols spawned this way will follow the route you drew in the editor.
 
+### Getting the trigger unit out of the way {#hiding-the-trigger}
+
+The unit carrying the tag is only there to mark a spot. Two ways to keep it from cluttering your mission, and both work:
+
+- **Late activation** (the editor's "Late activation" box): the unit never exists in the world at all. The interpreter then reads its position from the mission data and runs the command anyway. Before 6.15.23 its command was **silently dropped**.
+- **Hidden on MFD** (the editor's "Hidden on MFD" box): the interpreter neither reads nor writes that flag, so tick it freely.
+
+A late-activated unit is not destroyed afterwards: there is nothing to destroy.
+
+### Random values in commands {#randomisable-values}
+
+An interpreter command is a marker command, so **every numeric parameter accepts a range**:
+
+```
+#veafInterpreter["_spawn group, name sa6, size 3-8"]
+```
+
+The value is drawn when the mission starts, which gives a different mission each game without touching anything in the editor.
+
 ---
 
 ## Unit naming convention

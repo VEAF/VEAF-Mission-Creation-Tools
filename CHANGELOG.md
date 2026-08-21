@@ -7,6 +7,53 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.23] — 2026-08-21
+
+### Added
+
+- **A combat-zone numeric tag accepts a range**, closing the half of
+  [#25](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/25) that was still open:
+
+  ```
+  ALPHA-CONVOY #spawnradius=100-300 #spawndelay=30-90
+  ```
+
+  `#spawnradius`, `#spawnchance`, `#spawncount` and `#spawndelay` draw a value through the same
+  `veaf.getRandomizableNumeric` marker commands use, so a range means the same thing in both places. The
+  draw happens once per mission, when names are read: placement varies from one game to the next, not
+  from one activation to the next.
+
+  **This was silently truncated before, not unsupported.** The patterns captured `(%d+)`, so
+  `#spawnradius=100-300` matched `100` and the `-300` was never seen — a mission maker who wrote a range
+  got its lower bound and no message. Existing missions carrying one will see it take effect.
+
+  `#alarm` deliberately takes no range: an alarm state is an enumeration, so `#alarm=0-2` is a typo
+  rather than a random state.
+
+### Fixed
+
+- **An interpreter trigger the world does not hand back now still fires**, closing
+  [#123](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/123). A unit carrying
+  `#veafInterpreter["…"]` is only there to mark a spot, so a mission maker wants it out of the way —
+  late-activated, never existing in the world. `executeCommandOnUnit` read the position from the running
+  world only, so such a unit reached neither of its branches and its command was **dropped in silence**.
+
+  `_initialize` already holds every unit's mission record, so it is passed down as a fallback: the
+  trigger fires whether or not DCS resolves a late-activated unit by name — a question that cannot be
+  settled from a workstation, and now does not need to be. Nothing is destroyed on that path, there
+  being no world object to destroy.
+
+  Ticking "hidden on MFD" always worked and now says so in the documentation: the interpreter neither
+  reads nor writes that flag.
+
+- **An open-ended or reversed numeric range no longer raises.** With no upper bound the fallback is 99,
+  so `size 100-` reached `math.random(100, 99)` — *"interval is empty"*, a Lua error rather than a wrong
+  number — and so did any reversed range like `5-2`. Reachable from **every** marker command taking a
+  number, and found while widening the combat-zone tag patterns onto the same converter. An upper bound
+  below the lower one now means the lower one, with a warning.
+
+---
+
 ## [6.15.22] — 2026-08-21
 
 ### Added

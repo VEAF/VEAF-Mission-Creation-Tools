@@ -227,6 +227,25 @@ VeafCombatZone:new()
 
 ---
 
+### Groupes hors de combat {#out-of-action}
+
+Un groupe n'est pas seulement vivant ou mort. Une batterie S-300 dont le radar de tir est détruit garde ses lanceurs, ses camions et son équipage — mais elle ne peut plus tirer.
+
+Le rapport de zone le signale désormais :
+
+```
+HORS DE COMBAT (ne peuvent plus tirer) : ALPHA-SA10
+```
+
+Un groupe entièrement détruit n'apparaît pas là : il est simplement absent des effectifs restants. Cette ligne ne concerne que les groupes **encore debout** et devenus inoffensifs.
+
+!!! note "Cela ne change pas la fin d'une zone"
+    Pour l'instant, l'information est purement indicative : une zone se termine toujours quand **toutes** les unités ennemies sont détruites, lanceurs inutiles compris. Faire terminer la zone plus tôt est une décision de conception à part, pas encore prise.
+
+**Comment un groupe est jugé.** Par défaut, un groupe est considéré hors de combat s'il est un site SAM (il lui reste un radar de veille ou un lanceur) et qu'il n'a plus aucun radar de tir. Un véhicule qui est à lui seul radar et lanceur — Tunguska, Tor, Osa — reste opérationnel tant qu'il vit. Un convoi, lui, n'a pas de radar : il reste une menace tant qu'il roule.
+
+Pour les sites dont les attributs DCS ne suffisent pas à décrire la composition, une table de motifs (`veaf.ImportantUnitsByGroupPattern`, dans `veaf.lua`) déclare les ensembles d'unités indispensables et la vie minimale, en pourcentage, qu'il leur faut. Le S-300 y figure déjà.
+
 ## Tags de nom d'unité et de groupe
 
 Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter des tags spéciaux qui contrôlent la façon dont VEAF les traite à l'activation de la zone. Les tags sont intégrés dans le nom et n'affectent pas DCS lui-même.

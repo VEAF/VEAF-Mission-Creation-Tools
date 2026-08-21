@@ -20,6 +20,10 @@ dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
 -- The i18n catalog: `veaf.reportUnknownParameters` builds a localised message, so the tests below
 -- need the entries rather than the raw keys.
 dofile(_base .. "/../../src/scripts/veaf/veafI18n.lua")
+-- The generated DCS unit database, for the one test that checks the real attributes agree with
+-- what veaf.isGroupCombatEffective relies on. Every other test in that class swaps in a minimal
+-- stand-in, so this only has to be loadable.
+dofile(_base .. "/../../src/scripts/veaf/dcsUnits.lua")
 
 -- ---------------------------------------------------------------------------
 -- Helper
@@ -3288,6 +3292,278 @@ function TestVeafReportUnknownParameters:test_the_message_is_localised()
   veaf.config.language = "fr"
   veaf.reportUnknownParameters({ unknownParameters = { { key = "banana" } } }, "move", nil)
   luaunit.assertNotNil(self.reported[1].message:find("inconnu", 1, true))
+end
+
+-- ===========================================================================
+-- FEAT-GROUP-COMBAT-INEFFECTIVE — veaf.isGroupCombatEffective
+--
+-- #177: a group is not only alive or dead. An S-300 whose tracking radar is destroyed still has
+-- launchers and crew, counts as alive everywhere in our code, and in play is finished.
+--
+-- Two paths. A **pattern** in `veaf.ImportantUnitsByGroupPattern` declares which sets of units a group
+-- of that kind owns; losing a whole set finishes it. With no pattern, the **DCS attributes** decide: a
+-- group carrying a living `SAM LL` or `SAM SR` is a SAM site, and is finished once nothing living
+-- carries `SAM TR`.
+--
+-- The limit is real and pinned below: dead units vanish from `Group:getUnits()`, so the default cannot
+-- know a group *had* a radar. The pattern table is what carries that knowledge.
+-- ===========================================================================
+TestVeafGroupCombatEffective = {}
+
+function TestVeafGroupCombatEffective:setUp()
+  self._patterns = veaf.ImportantUnitsByGroupPattern
+  self._db = dcsUnits
+  self._getByName = Group.getByName
+  -- a minimal stand-in for the generated database; a separate test checks the real one agrees
+  dcsUnits = {
+    DcsUnitsDatabase = {
+      ["S-300PS 40B6M tr"] = { attribute = { ["SAM TR"] = true } },
+      ["S-300PS 40B6MD sr"] = { attribute = { ["SAM SR"] = true } },
+      ["S-300PS 54K6 cp"] = { attribute = {} },
+      ["S-300PS 5P85C ln"] = { attribute = { ["SAM LL"] = true } },
+      ["2S6 Tunguska"] = { attribute = { ["SAM SR"] = true, ["SAM TR"] = true, ["SAM LL"] = true } },
+      ["Ural-375"] = { attribute = { ["Trucks"] = true } },
+    },
+  }
+end
+
+function TestVeafGroupCombatEffective:tearDown()
+  veaf.ImportantUnitsByGroupPattern = self._patterns
+  dcsUnits = self._db
+  Group.getByName = self._getByName
+end
+
+--- A unit stub: alive, at full life unless `life` says otherwise.
+local function ceUnit(typeName, life)
+  return {
+    getTypeName = function()
+      return typeName
+    end,
+    isExist = function()
+      return true
+    end,
+    isActive = function()
+      return true
+    end,
+    getLife = function()
+      return life or 100
+    end,
+    getLife0 = function()
+      return 100
+    end,
+  }
+end
+
+--- Register a group of the given units under `name`, so Group.getByName finds it.
+local function ceGroup(name, units)
+  local group = {
+    getName = function()
+      return name
+    end,
+    isExist = function()
+      return true
+    end,
+    getUnits = function()
+      return units
+    end,
+  }
+  Group.getByName = function(n)
+    if n == name then
+      return group
+    end
+    return nil
+  end
+  return group
+end
+
+local S300_PATTERN = {
+  [".*s300.*"] = {
+    minimumLife = 80,
+    importantSets = {
+      TR = { "S-300PS 40B6M tr" },
+      SR = { "S-300PS 40B6MD sr" },
+      CP = { "S-300PS 54K6 cp" },
+    },
+  },
+}
+
+-- ---------------------------------------------------------------------------
+-- The pattern path
+-- ---------------------------------------------------------------------------
+function TestVeafGroupCombatEffective:test_a_complete_s300_is_effective()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-s300-SITE", {
+    ceUnit("S-300PS 40B6M tr"),
+    ceUnit("S-300PS 40B6MD sr"),
+    ceUnit("S-300PS 54K6 cp"),
+    ceUnit("S-300PS 5P85C ln"),
+  })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- The defect the issue describes: launchers and crew remain, the tracking radar does not.
+function TestVeafGroupCombatEffective:test_an_s300_without_its_tracking_radar_is_finished()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-s300-SITE", {
+    ceUnit("S-300PS 40B6MD sr"),
+    ceUnit("S-300PS 54K6 cp"),
+    ceUnit("S-300PS 5P85C ln"),
+    ceUnit("S-300PS 5P85C ln"),
+  })
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_losing_any_declared_set_finishes_the_group()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local all = { "S-300PS 40B6M tr", "S-300PS 40B6MD sr", "S-300PS 54K6 cp" }
+  for _, missing in ipairs(all) do
+    local units = {}
+    for _, typeName in ipairs(all) do
+      if typeName ~= missing then
+        table.insert(units, ceUnit(typeName))
+      end
+    end
+    local g = ceGroup("RED-s300-SITE", units)
+    luaunit.assertFalse(veaf.isGroupCombatEffective(g), "losing " .. missing .. " must finish the group")
+  end
+end
+
+-- minimumLife is a percentage of the unit initial life, read through veaf.getUnitLifeRelative.
+function TestVeafGroupCombatEffective:test_a_radar_below_minimum_life_does_not_count()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-s300-SITE", {
+    ceUnit("S-300PS 40B6M tr", 50), -- 50% of 100, below the 80 the table asks for
+    ceUnit("S-300PS 40B6MD sr"),
+    ceUnit("S-300PS 54K6 cp"),
+  })
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_a_radar_at_exactly_minimum_life_counts()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-s300-SITE", {
+    ceUnit("S-300PS 40B6M tr", 80),
+    ceUnit("S-300PS 40B6MD sr"),
+    ceUnit("S-300PS 54K6 cp"),
+  })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- One survivor per set is enough: a site does not need both of its search radars.
+function TestVeafGroupCombatEffective:test_one_survivor_per_set_is_enough()
+  veaf.ImportantUnitsByGroupPattern = {
+    [".*s300.*"] = { minimumLife = 80, importantSets = { SR = { "S-300PS 40B6MD sr", "S-300PS 64H6E sr" } } },
+  }
+  local g = ceGroup("RED-s300-SITE", { ceUnit("S-300PS 40B6MD sr") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_the_pattern_match_is_case_insensitive()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-S300-SITE", { ceUnit("S-300PS 5P85C ln") })
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g), "an uppercase name must match the pattern too")
+end
+
+-- ---------------------------------------------------------------------------
+-- The attribute default
+-- ---------------------------------------------------------------------------
+function TestVeafGroupCombatEffective:test_a_sam_site_with_no_tracking_radar_is_finished_by_default()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-SA10", { ceUnit("S-300PS 5P85C ln"), ceUnit("S-300PS 40B6MD sr") })
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_a_sam_site_keeping_a_tracking_radar_is_effective()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-SA10", { ceUnit("S-300PS 5P85C ln"), ceUnit("S-300PS 40B6M tr") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- A Tunguska is its own radar and launcher, so one vehicle is a working SAM.
+function TestVeafGroupCombatEffective:test_a_self_contained_sam_is_effective_alone()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-TUNGUSKA", { ceUnit("2S6 Tunguska") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- Not everything is a SAM: a convoy has no radars and is a problem as long as it exists.
+function TestVeafGroupCombatEffective:test_a_convoy_is_effective_while_it_lives()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-CONVOY", { ceUnit("Ural-375"), ceUnit("Ural-375") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- ---------------------------------------------------------------------------
+-- Degenerate inputs
+-- ---------------------------------------------------------------------------
+function TestVeafGroupCombatEffective:test_an_empty_group_is_not_effective()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-GONE", {})
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_an_unknown_group_name_is_not_effective_and_does_not_raise()
+  veaf.ImportantUnitsByGroupPattern = {}
+  Group.getByName = function()
+    return nil
+  end
+  local ok, result = pcall(veaf.isGroupCombatEffective, "NO-SUCH-GROUP")
+  luaunit.assertTrue(ok, "an unknown group must not raise")
+  luaunit.assertFalse(result)
+end
+
+function TestVeafGroupCombatEffective:test_a_nil_argument_is_not_effective()
+  luaunit.assertFalse(veaf.isGroupCombatEffective(nil))
+end
+
+-- A group name is accepted as well as a group, like veaf.getAveragePosition does.
+function TestVeafGroupCombatEffective:test_a_group_name_works_like_a_group()
+  veaf.ImportantUnitsByGroupPattern = {}
+  ceGroup("RED-BY-NAME", { ceUnit("Ural-375") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective("RED-BY-NAME"))
+end
+
+-- An unknown unit type must not decide anything: the database is generated from a datamine and can lag
+-- a DCS update, so a missing entry means "no attributes", not "not a SAM".
+function TestVeafGroupCombatEffective:test_an_unknown_unit_type_is_ignored_rather_than_deciding()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-MYSTERY", { ceUnit("SomeUnitShippedYesterday") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- The generated database is the predicate's only source of attributes, and it is regenerated from a
+-- datamine by a scheduled job. If a regeneration ever dropped the `SAM TR` attribute, the default rule
+-- would quietly declare every SAM site finished — a silent, mission-wide behaviour change. This is the
+-- test that would go red instead.
+TestVeafCombatEffectiveAgainstRealData = {}
+
+function TestVeafCombatEffectiveAgainstRealData:test_the_real_database_carries_the_attributes_the_rule_reads()
+  luaunit.assertNotNil(dcsUnits, "the generated database must load")
+  luaunit.assertNotNil(dcsUnits.DcsUnitsDatabase, "the generated database must expose DcsUnitsDatabase")
+  -- a tracking radar, a search radar, a launcher and a self-contained SAM
+  luaunit.assertTrue(veaf.unitTypeHasAttribute("S-300PS 40B6M tr", "SAM TR"), "the S-300 tracking radar")
+  luaunit.assertTrue(veaf.unitTypeHasAttribute("S-300PS 40B6MD sr", "SAM SR"), "the S-300 search radar")
+  luaunit.assertTrue(veaf.unitTypeHasAttribute("2S6 Tunguska", "SAM TR"), "a Tunguska is its own tracker")
+end
+
+function TestVeafCombatEffectiveAgainstRealData:test_the_patterns_name_types_the_database_knows()
+  -- a typo in the table would make a set unmatchable, and a group of that kind permanently ineffective
+  for pattern, rule in pairs(veaf.ImportantUnitsByGroupPattern) do
+    for setName, types in pairs(rule.importantSets or {}) do
+      for _, typeName in ipairs(types) do
+        luaunit.assertNotNil(
+          dcsUnits.DcsUnitsDatabase[typeName],
+          "pattern [" .. pattern .. "] set [" .. setName .. "] names an unknown type: " .. typeName
+        )
+      end
+    end
+  end
+end
+
+function TestVeafCombatEffectiveAgainstRealData:test_an_ordinary_truck_is_not_taken_for_a_sam()
+  luaunit.assertFalse(veaf.unitTypeHasAttribute("Ural-375", "SAM TR"))
+  luaunit.assertFalse(veaf.unitTypeHasAttribute("Ural-375", "SAM SR"))
+  luaunit.assertFalse(veaf.unitTypeHasAttribute("Ural-375", "SAM LL"))
 end
 
 os.exit(luaunit.LuaUnit.run())

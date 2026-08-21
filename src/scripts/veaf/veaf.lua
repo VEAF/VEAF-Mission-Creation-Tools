@@ -3774,6 +3774,159 @@ function veaf.getUnitLifeRelative(unit)
   end
 end
 
+--- Which units make a group of a given kind able to fight, keyed by a Lua pattern on the group name.
+---
+--- From #177: a group is not only alive or dead. An S-300 whose tracking radar is destroyed still has
+--- launchers and crew, counts as alive everywhere else in this codebase, and in play is finished.
+---
+--- Each entry declares `importantSets`: sets of unit types the group of that kind **owns**. Losing a
+--- whole set finishes the group. `minimumLife` is a **percentage** of a unit initial life, compared
+--- through `veaf.getUnitLifeRelative` — reading it as absolute hit points would mean a different
+--- threshold per unit type, which nobody can reason about.
+---
+--- A pattern is matched case-insensitively against the group name. Adding an entry is how a mission
+--- maker teaches the predicate about a site whose composition the DCS attributes cannot describe.
+veaf.ImportantUnitsByGroupPattern = {
+  [".*s300.*"] = {
+    minimumLife = 80,
+    importantSets = {
+      TR = { "S-300PS 40B6M tr" },
+      SR = { "S-300PS 40B6MD sr", "S-300PS 64H6E sr" },
+      CP = { "S-300PS 54K6 cp" },
+    },
+  },
+}
+
+--- DCS attributes the default rule reads. `SAM TR` is a tracking radar — what a site needs to engage;
+--- `SAM SR` a search radar and `SAM LL` a launcher, either of which marks the group as a SAM site.
+veaf.SAM_TRACKING_RADAR_ATTRIBUTE = "SAM TR"
+veaf.SAM_SITE_ATTRIBUTES = { "SAM SR", "SAM LL" }
+
+--- Does this unit type carry `attributeName`, according to the generated DCS database?
+---
+--- Reads `dcsUnits.DcsUnitsDatabase` rather than calling `Unit.getDesc()`: same data, no DCS call, and
+--- a type can be asked about without a living unit to ask through. A type the database does not know
+--- answers false — the database is generated from a datamine and can lag a DCS update, so a missing
+--- entry means "no attributes known", never "not a SAM".
+---
+--- @param typeName string DCS unit type id
+--- @param attributeName string
+--- @return boolean
+function veaf.unitTypeHasAttribute(typeName, attributeName)
+  if not typeName or not attributeName then
+    return false
+  end
+  if not dcsUnits or not dcsUnits.DcsUnitsDatabase then
+    return false
+  end
+  local record = dcsUnits.DcsUnitsDatabase[typeName]
+  if not record or not record.attribute then
+    return false
+  end
+  return record.attribute[attributeName] == true
+end
+
+--- Is this group still a problem — as opposed to merely still alive?
+---
+--- #177. Two paths:
+---
+--- 1. **A pattern** in `veaf.ImportantUnitsByGroupPattern` matches the group name. The group is
+---    effective only while **every** declared set still has a member alive and above `minimumLife`.
+---    The pattern asserts the group owns those sets, which is what lets this work at all — see the
+---    limit below.
+--- 2. **No pattern**: the DCS attributes decide. A group with a living `SAM SR` or `SAM LL` *is* a SAM
+---    site, and is finished once no living unit carries `SAM TR`. Anything else is a problem while
+---    anything of it lives.
+---
+--- **The limit, stated rather than hidden.** Dead units vanish from `Group:getUnits()`, so this cannot
+--- know a group *had* a radar it has since lost. The pattern table carries that knowledge; the default
+--- cannot, so a SAM site stripped of its radars *and* its launchers reads as an ordinary group. By then
+--- there is nothing dangerous left of it, which is why that is acceptable rather than merely tolerated.
+---
+--- @param groupOrName table|string a DCS group, or its name
+--- @return boolean false when the group is gone, empty, or no longer able to fight
+function veaf.isGroupCombatEffective(groupOrName)
+  if not groupOrName then
+    return false
+  end
+  local group = groupOrName
+  local groupName = nil
+  if type(groupOrName) == "string" then
+    groupName = groupOrName
+    group = Group.getByName(groupOrName)
+  end
+  if not group then
+    return false
+  end
+  if not groupName then
+    groupName = group:getName()
+  end
+
+  -- `Group:getUnits()` already returns only the units that exist: DCS drops a destroyed one from the
+  -- group. So this is the list of survivors, and re-filtering it through `veaf.isUnitAlive` would only
+  -- add an `isExist`/`isActive` requirement on the caller's objects for no gain.
+  local living = group:getUnits() or {}
+  if #living == 0 then
+    return false
+  end
+
+  local rule = nil
+  local loweredName = (groupName or ""):lower()
+  for pattern, candidate in pairs(veaf.ImportantUnitsByGroupPattern or {}) do
+    if loweredName:find(pattern) then
+      rule = candidate
+      break
+    end
+  end
+
+  if rule and rule.importantSets then
+    local minimumRatio = (rule.minimumLife or 0) / 100
+    for setName, types in pairs(rule.importantSets) do
+      local setHasSurvivor = false
+      for _, unit in pairs(living) do
+        local typeName = unit:getTypeName()
+        for _, wanted in pairs(types) do
+          if typeName == wanted and veaf.getUnitLifeRelative(unit) >= minimumRatio then
+            setHasSurvivor = true
+            break
+          end
+        end
+        if setHasSurvivor then
+          break
+        end
+      end
+      if not setHasSurvivor then
+        veaf.loggers
+          .get(veaf.Id)
+          :debug("group [%s] has lost its whole [%s] set: no longer combat-effective", veaf.p(groupName), veaf.p(setName))
+        return false
+      end
+    end
+    return true
+  end
+
+  -- the attribute default
+  local isSamSite = false
+  local hasTrackingRadar = false
+  for _, unit in pairs(living) do
+    local typeName = unit:getTypeName()
+    if veaf.unitTypeHasAttribute(typeName, veaf.SAM_TRACKING_RADAR_ATTRIBUTE) then
+      hasTrackingRadar = true
+      isSamSite = true
+    end
+    for _, attribute in pairs(veaf.SAM_SITE_ATTRIBUTES) do
+      if veaf.unitTypeHasAttribute(typeName, attribute) then
+        isSamSite = true
+      end
+    end
+  end
+  if isSamSite and not hasTrackingRadar then
+    veaf.loggers.get(veaf.Id):debug("group [%s] is a SAM site with no tracking radar left", veaf.p(groupName))
+    return false
+  end
+  return true
+end
+
 function veaf.setServerName(value)
   veaf.config.SERVER_NAME = value
 end

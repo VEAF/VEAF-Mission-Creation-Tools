@@ -113,6 +113,26 @@ These are pure data files — no initialisation needed.
 
 ---
 
+## A misspelt option is refused, not ignored {#unknown-options}
+
+When a marker command carries an option no rule recognises — almost always a typo — the command is **refused** and the option is named back to you, with a suggestion when it is close to a real one:
+
+```
+_spawn group, name sa6, headng 270
+      ↓
+VEAF SPAWN: unknown parameter(s), command aborted: 'headng' (did you mean 'heading'?)
+```
+
+Refusing rather than running is deliberate: an unknown option does nothing, so the command would spawn or move something other than what you asked for, and nothing would tell you. The marker is left in place — fix it and drop it again.
+
+Applies to the **`SPAWN`, `CASMISSION`, `MOVE`, `RADIO`, `TRANSPORTMISSION`, `GROUNDAI`** commands, artillery orders included. The name shown is the one the module also uses to prefix its DCS log lines, so the message and the log line up.
+
+!!! note "Aliases are excluded"
+    An alias (`-sa6`, `-samsr`) carries the parameters of the command it expands into rather than its own, so checking there would warn about perfectly valid options. A typo inside an alias is caught by the final command instead.
+
+!!! tip "Artillery orders: the separator is a semicolon"
+    An artillery order travels as the **value** of an `order` key, inside a marker that is already split on commas — hence the `;`: `aim; shells 10; radius 50`. Use a comma and the check now tells you, instead of silently losing the rest of the order.
+
 ## Shortcuts
 
 | Module | File | What it does |

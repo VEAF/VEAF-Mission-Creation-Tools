@@ -36,16 +36,19 @@ end
 
 function TestVeafI18n:test_unknown_language_falls_back_to_french()
   veaf.config.language = "de" -- not in the catalog -> fall back to fr
-  luaunit.assertEquals(veaf.t("spawn.did_you_mean", "heading"), " (vouliez-vous dire « heading » ?)")
+  luaunit.assertEquals(veaf.t("marker.did_you_mean", "heading"), " (vouliez-vous dire « heading » ?)")
 end
 
 function TestVeafI18n:test_format_interpolation()
   veaf.config.language = "en"
-  luaunit.assertEquals(veaf.t("spawn.unknown_parameters", "'wibble'"), "VEAF spawn: unknown parameter(s): 'wibble'")
+  luaunit.assertEquals(
+    veaf.t("marker.unknown_parameters", "spawn", "'wibble'"),
+    "VEAF spawn: unknown parameter(s), command aborted: 'wibble'"
+  )
 end
 
 function TestVeafI18n:test_did_you_mean_french()
-  luaunit.assertEquals(veaf.t("spawn.did_you_mean", "heading"), " (vouliez-vous dire « heading » ?)")
+  luaunit.assertEquals(veaf.t("marker.did_you_mean", "heading"), " (vouliez-vous dire « heading » ?)")
 end
 
 function TestVeafI18n:test_missing_key_with_args_does_not_crash()

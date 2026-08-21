@@ -262,12 +262,15 @@ function TestVeafCasCharacterisation:test_the_keyphrase_is_case_insensitive()
   luaunit.assertNotNil(veafCasMission.markTextAnalysis("_CAS"))
 end
 
--- An unknown keyword is ignored in silence: no report, no effect on the defaults.
-function TestVeafCasCharacterisation:test_unknown_keyword_is_ignored_silently()
+-- FEAT-SPAWN-OPTION-VALIDATION renamed this: an unknown keyword is no longer ignored, it is
+-- collected so the caller can name it to the pilot and abort. What the original test proved and
+-- this one still proves: the **recognised** options are untouched by the presence of a bad one.
+function TestVeafCasCharacterisation:test_an_unknown_keyword_is_collected_not_ignored()
   local r = veafCasMission.markTextAnalysis("_cas, banana 3")
   luaunit.assertNotNil(r)
   luaunit.assertEquals(r.size, 1)
-  luaunit.assertNil(r.unknownParameters)
+  luaunit.assertEquals(r.unknownParameters[1].key, "banana")
+  luaunit.assertEquals(#r.unknownParameters, 1)
 end
 
 function TestVeafCasCharacterisation:test_empty_text_returns_nil()

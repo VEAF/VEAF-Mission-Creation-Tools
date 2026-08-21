@@ -17,6 +17,9 @@ local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
 luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
+-- The i18n catalog: `veaf.reportUnknownParameters` builds a localised message, so the tests below
+-- need the entries rather than the raw keys.
+dofile(_base .. "/../../src/scripts/veaf/veafI18n.lua")
 
 -- ---------------------------------------------------------------------------
 -- Helper
@@ -3084,6 +3087,168 @@ function TestVeafGetUnitsInTriggerZone:test_the_error_goes_to_the_caller_s_logge
   czLogger.error = saved
   luaunit.assertEquals(#combatZoneErrors, 1)
   luaunit.assertEquals(#self.errors, 0, "nothing may land in veaf's own logger when a module id is given")
+end
+
+-- ============================================================================
+-- FEAT-SPAWN-OPTION-VALIDATION — #33, open since 2021
+--
+-- `veaf.parseMarkerText` has collected unrecognised keys with a nearest-match suggestion since
+-- UXPILOT-003, but **one** spec out of eight switched it on. The other seven let a misspelt option do
+-- nothing at all, so a pilot could not tell a typo from a feature that does not exist.
+--
+-- Two things had to exist before the flag could be turned on elsewhere:
+--   * a command **verb** must not read as an unknown option. `_spawn`-style keyphrases escape because
+--     they start with "_", which the collector already skips; the artillery verbs (`aim`, `fire`) are
+--     bare words, so all nine valid orders measured were flagged before this.
+--   * the report itself had to leave veafSpawnCore, or the block would be copied six times.
+-- ============================================================================
+TestVeafMarkerSpecCommandVerbs = {}
+
+--- A spec shaped like the artillery one: bare verbs, semicolon separator.
+local function verbSpec()
+  return {
+    defaults = function(options)
+      options.verb = nil
+    end,
+    commands = {
+      {
+        match = "aim",
+        init = function(options)
+          options.verb = "aim"
+        end,
+      },
+      {
+        match = "fire",
+        init = function(options)
+          options.verb = "fire"
+        end,
+      },
+    },
+    parameters = {
+      { keys = { "shells" }, apply = veaf.markerRules.number("shells") },
+      { keys = { "radius" }, apply = veaf.markerRules.number("radius") },
+    },
+    separator = ";",
+    valueWhenAbsent = "",
+    reportUnknownKeys = true,
+  }
+end
+
+local function flaggedKeys(options)
+  local keys = {}
+  for _, p in ipairs((options or {}).unknownParameters or {}) do
+    table.insert(keys, p.key)
+  end
+  return keys
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_a_command_verb_is_a_known_key()
+  -- the whole point: the verb names the command, so it is not an option the pilot mistyped
+  local spec = verbSpec()
+  veaf.prepareMarkerSpec(spec)
+  luaunit.assertTrue(spec._knownKeySet["aim"])
+  luaunit.assertTrue(spec._knownKeySet["fire"])
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_a_verb_only_order_flags_nothing()
+  for _, text in ipairs({ "aim", "fire", "fire aim" }) do
+    luaunit.assertEquals(flaggedKeys(veaf.parseMarkerText(text, verbSpec())), {}, text)
+  end
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_a_full_order_flags_nothing()
+  local options = veaf.parseMarkerText("aim; shells 5; radius 100", verbSpec())
+  luaunit.assertEquals(flaggedKeys(options), {})
+  luaunit.assertEquals(options.shells, 5)
+  luaunit.assertEquals(options.radius, 100)
+end
+
+-- The witness the lot's definition of done asks for: a real typo is still caught, with its suggestion.
+function TestVeafMarkerSpecCommandVerbs:test_a_typo_is_still_flagged_with_a_suggestion()
+  local options = veaf.parseMarkerText("aim; shels 5", verbSpec())
+  luaunit.assertEquals(flaggedKeys(options), { "shels" })
+  luaunit.assertEquals(options.unknownParameters[1].suggestion, "shells")
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_an_unrelated_key_is_flagged_without_a_suggestion()
+  local options = veaf.parseMarkerText("aim; banana 3", verbSpec())
+  luaunit.assertEquals(flaggedKeys(options), { "banana" })
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_an_empty_match_is_not_added_as_a_key()
+  -- veafShortcuts' alias spec uses `commands = { { match = "" } }`; the empty string must not become a
+  -- known key, which would be meaningless
+  local spec = { commands = { { match = "" } }, parameters = { { keys = { "name" }, apply = veaf.markerRules.text("name") } } }
+  veaf.prepareMarkerSpec(spec)
+  luaunit.assertNil(spec._knownKeySet[""])
+end
+
+-- ============================================================================
+-- The shared report: it used to live inside veafSpawnCore, so six other modules could not use it.
+-- ============================================================================
+TestVeafReportUnknownParameters = {}
+
+function TestVeafReportUnknownParameters:setUp()
+  self._report = veaf.reportToPilot
+  self.reported = {}
+  local reported = self.reported
+  veaf.reportToPilot = function(message, duration, coalitionSide)
+    table.insert(reported, { message = message, duration = duration, coalition = coalitionSide })
+  end
+  self._lang = veaf.config.language
+  veaf.config.language = "en"
+end
+
+function TestVeafReportUnknownParameters:tearDown()
+  veaf.reportToPilot = self._report
+  veaf.config.language = self._lang
+end
+
+function TestVeafReportUnknownParameters:test_no_unknown_parameters_reports_nothing()
+  luaunit.assertFalse(veaf.reportUnknownParameters({}, "move", nil))
+  luaunit.assertEquals(#self.reported, 0)
+end
+
+function TestVeafReportUnknownParameters:test_a_nil_options_table_is_tolerated()
+  luaunit.assertFalse(veaf.reportUnknownParameters(nil, "move", nil))
+end
+
+function TestVeafReportUnknownParameters:test_an_unknown_parameter_is_named_to_the_pilot()
+  local options = { unknownParameters = { { key = "banana" } } }
+  luaunit.assertTrue(veaf.reportUnknownParameters(options, "move", nil))
+  luaunit.assertEquals(#self.reported, 1)
+  luaunit.assertNotNil(self.reported[1].message:find("banana", 1, true))
+end
+
+function TestVeafReportUnknownParameters:test_the_module_is_named_so_the_pilot_knows_what_refused()
+  veaf.reportUnknownParameters({ unknownParameters = { { key = "banana" } } }, "move", nil)
+  luaunit.assertNotNil(self.reported[1].message:find("move", 1, true))
+end
+
+function TestVeafReportUnknownParameters:test_a_suggestion_is_included()
+  veaf.reportUnknownParameters({ unknownParameters = { { key = "shels", suggestion = "shells" } } }, "artillery", nil)
+  luaunit.assertNotNil(self.reported[1].message:find("shells", 1, true))
+end
+
+-- Aggregated on purpose: three wrong keys must not be three messages on the pilot's screen.
+function TestVeafReportUnknownParameters:test_several_unknowns_make_one_message()
+  local options = { unknownParameters = { { key = "a" }, { key = "b" }, { key = "c" } } }
+  veaf.reportUnknownParameters(options, "spawn", nil)
+  luaunit.assertEquals(#self.reported, 1)
+  for _, key in ipairs({ "a", "b", "c" }) do
+    luaunit.assertNotNil(self.reported[1].message:find("'" .. key .. "'", 1, true))
+  end
+end
+
+function TestVeafReportUnknownParameters:test_the_requester_coalition_is_honoured()
+  veaf.reportUnknownParameters({ unknownParameters = { { key = "banana" } } }, "spawn", coalition.side.BLUE)
+  luaunit.assertEquals(self.reported[1].coalition, coalition.side.BLUE)
+end
+
+function TestVeafReportUnknownParameters:test_the_message_is_localised()
+  veaf.config.language = "fr"
+  veaf.reportUnknownParameters({ unknownParameters = { { key = "banana" } } }, "move", nil)
+  luaunit.assertNotNil(self.reported[1].message:find("inconnu", 1, true))
 end
 
 os.exit(luaunit.LuaUnit.run())

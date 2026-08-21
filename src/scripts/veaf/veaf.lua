@@ -2573,6 +2573,40 @@ function veaf.reportToPilot(message, duration, coalition)
   end
 end
 
+--- Tell the pilot about parameters his command carried that no rule recognises, and say whether any
+--- were found.
+---
+--- Lifted out of `veafSpawn.executeCommand`, where it was the only copy, so that the seven other marker
+--- parsers could report the same way instead of letting a typo do nothing at all (#33, open since 2021).
+---
+--- Aggregated into **one** message: three wrong keys must not be three lines on a pilot's screen.
+---
+--- @param options the parsed options table; nil is tolerated
+--- @param moduleLabel the calling module's `Id` — the same string its log lines are prefixed with, so a
+---        pilot who reads the message can find the matching lines in the DCS log. Pass the constant
+---        (`veafMove.Id`), never a literal: an invented label drifts away from the module it names
+--- @param requesterCoalition side to show the message to, or nil for everyone. Pass the side that
+---        **issued** the command, never the side units spawn for
+--- @return true when something was reported, which is the caller's signal to abort
+function veaf.reportUnknownParameters(options, moduleLabel, requesterCoalition)
+  if type(options) ~= "table" or not options.unknownParameters then
+    return false
+  end
+  local hints = {}
+  for _, p in ipairs(options.unknownParameters) do
+    local hint = "'" .. tostring(p.key) .. "'"
+    if p.suggestion then
+      hint = hint .. veaf.t("marker.did_you_mean", tostring(p.suggestion))
+    end
+    table.insert(hints, hint)
+  end
+  if #hints == 0 then
+    return false
+  end
+  veaf.reportToPilot(veaf.t("marker.unknown_parameters", tostring(moduleLabel), table.concat(hints, ", ")), 15, requesterCoalition)
+  return true
+end
+
 --- The coalition that issued a command, normalized for pilot feedback.
 --- Use this for messages addressed to whoever placed the marker / carried the
 --- interpreter command (reportToPilot), NOT for deciding the side of spawned
@@ -3363,6 +3397,18 @@ function veaf.prepareMarkerSpec(spec)
         spec._knownKeySet[keyLower] = true
         table.insert(spec.knownKeys, keyLower)
       end
+    end
+  end
+  -- A command **verb** is not an option the pilot mistyped, so it counts as a known key. Keyphrase-style
+  -- commands (`_spawn`, `_move`) escape the unknown-key collector because it skips anything starting
+  -- with "_", but a bare verb does not: every one of the nine valid artillery orders measured was
+  -- flagged before this (FEAT-SPAWN-OPTION-VALIDATION). An empty match is skipped — `veafShortcuts`
+  -- uses `match = ""` to mean "always", and "" is not a key.
+  for _, command in ipairs(spec.commands or {}) do
+    local matchLower = command.match and command.match:lower() or ""
+    if matchLower ~= "" and not spec._knownKeySet[matchLower] then
+      spec._knownKeySet[matchLower] = true
+      table.insert(spec.knownKeys, matchLower)
     end
   end
   spec._prepared = true

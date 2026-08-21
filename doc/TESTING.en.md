@@ -143,14 +143,14 @@ luaunit.assertIsTrue(ok, err)
 
 | Suite | Tests | What it covers |
 |-------|-------|----------------|
-| `test_veaf.lua` | 346 | Core utilities, string/table/vector helpers, logging |
+| `test_veaf.lua` | 393 | Core utilities, string/table/vector helpers, logging |
 | `test_veafCacheManager.lua` | 12 | Cache get/set/invalidate |
 | `test_veafInterpreter.lua` | 12 | Mark text tokenizer |
 | `test_veafTime.lua` | 71 | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | 79 | Security levels, admin management |
 | `test_veafServerHook.lua` | 14 | Server hook: chat-command parsing and dispatch |
 | `test_veafNamedPoints.lua` | 25 | Point registration, lookup, ATC helpers |
-| `test_veafShortcuts.lua` | 74 | Shortcut registration and resolution |
+| `test_veafShortcuts.lua` | 77 | Shortcut registration and resolution |
 | `test_veafWeather.lua` | 107 | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | 29 | Unit data export utilities |
 | `test_veafCombatMission.lua` | 116 | Base combat mission lifecycle |
@@ -173,7 +173,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafCasMission.lua` | 51 | CAS threat package generation |
 | `test_veafTransportMission.lua` | 52 | Transport mission setup |
 | `test_veafCarrierOperations.lua` | 47 | Carrier recovery sequence |
-| `test_veafMove.lua` | 78 | Move/teleport command parsing |
+| `test_veafMove.lua` | 95 | Move/teleport command parsing |
 | `test_veafGrass.lua` | 16 | Grass runway initialization |
 | `test_veafSpawn.lua` | 184 | Spawn commands, mark text analysis, laser freq conversion |
 | `test_veafSpawnParser.lua` | 70 | Deterministic spawn mark-text parsing (`markTextAnalysis`) |

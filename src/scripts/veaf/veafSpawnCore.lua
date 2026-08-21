@@ -235,24 +235,9 @@ function veafSpawn.executeCommand(
     local options = veafSpawn.markTextAnalysis(eventText)
 
     if options then
-      -- Hint the pilot about unrecognized parameters (likely typos) — UXPILOT-003.
-      -- Aggregate into a single message to avoid spamming when several keys are wrong.
-      if options.unknownParameters then
-        local hints = {}
-        for _, p in ipairs(options.unknownParameters) do
-          local hint = "'" .. tostring(p.key) .. "'"
-          if p.suggestion then
-            hint = hint .. veaf.t("spawn.did_you_mean", tostring(p.suggestion))
-          end
-          table.insert(hints, hint)
-        end
-        -- Address the hint to the requester (the pilot who issued the command), not
-        -- to `coalition` (the side the units spawn for). nil => shown to everyone.
-        veaf.reportToPilot(veaf.t("spawn.unknown_parameters", table.concat(hints, ", ")), 15, requesterCoalition)
-        -- An unrecognized parameter is an error: report it and ABORT, so a typo
-        -- never silently spawns something the pilot did not intend. The marker is
-        -- left in place so the pilot can fix the typo. (Known keys are derived from
-        -- ParameterRules, so a flagged key is one that would have done nothing.)
+      -- A typo aborts rather than spawning something else — see veaf.reportUnknownParameters. The report
+      -- goes to the **requester**, not to `coalition`, which is the side the units spawn for.
+      if veaf.reportUnknownParameters(options, veafSpawn.Id, requesterCoalition) then
         return false
       end
 

@@ -386,12 +386,19 @@ Activate `SmokeZone` and look at where the groups come up:
 If a placement needs to be exact, `#spawnradius=0` on the group is the escape hatch — worth trying once
 on `SmokeZone-SmokeArmor` to confirm it still pins the group.
 
-**One thing you will see that is not a failure of this item.** Reviving the default also revives
-[`FIX-COMBATZONE-SPAWN-ROUTE-OFFSET`](.backlog/FIX-COMBATZONE-SPAWN-ROUTE-OFFSET/PRD.md), dormant since
-2023 because a zero delta left nothing to offset: `spawnElement` never asks MiST to translate the route,
-so `SmokeZone-ConvoyBlue` will walk from where it came up back to an **undisplaced waypoint 1** before
-driving its leg. Expected, already filed, still ⬜ ready. Worth noting how far the detour looks in
-practice — that measurement is what the lot's `offsetRoute` vs `offsetWP1` decision is missing.
+**Second thing to look at, now that it is fixed rather than expected.**
+[`FIX-COMBATZONE-SPAWN-ROUTE-OFFSET`](.backlog/FIX-COMBATZONE-SPAWN-ROUTE-OFFSET/PRD.md) shipped in
+6.15.20: waypoint 1 now follows the group, so `SmokeZone-ConvoyBlue` should **set off along its route
+from wherever it came up**, with no detour back to its editor position first. That detour is what the
+defect looked like, and seeing it would mean the fix did not take.
+
+The rest of the track is deliberately **not** moved, so check the convoy still joins the drawn route
+rather than driving a track shifted sideways.
+
+While you are there: does the group come up on its drawn position give or take the dispersion, or
+noticeably further? A group displaced well beyond 50 m would be
+[`FIX-COMBATZONE-SPAWN-REFERENCE-UNIT`](.backlog/FIX-COMBATZONE-SPAWN-REFERENCE-UNIT/PRD.md), filed but
+unmeasured — and `SmokeZone-ConvoyBlue` with `#spawnradius=0` would answer it outright.
 
 ## 10. Watch a respawned escort for longer than ten minutes
 

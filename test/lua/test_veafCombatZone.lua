@@ -2167,4 +2167,90 @@ function TestVeafCombatZoneUnreadableTriggerZone:test_the_flag_starts_clear()
   luaunit.assertFalse(zoneNamed("GOODZONE"):hasUnreadableTriggerZone())
 end
 
+-- ============================================================================
+-- FIX-COMBATZONE-SPAWN-ROUTE-OFFSET — a zone dropped a group beside its route
+--
+-- MiST translates a respawned group's route by the teleport delta only when one of `offsetRoute`,
+-- `offsetWP1` or `initTasks` is set (mist.lua:4561). `spawnElement` set none of them, so a group that
+-- came up displaced kept a waypoint 1 at its editor position and drove back to it first.
+--
+-- The choice is `offsetWP1`. The delta is a local random displacement around the drawn position, so
+-- `offsetRoute` would move waypoints placed on roads and bridges, and draw a different track on every
+-- activation. As with the rename option, the assertions are on the **vars handed to MiST**: the value
+-- has to reach the call, not merely exist.
+-- ============================================================================
+TestVeafCombatZoneSpawnRouteOffset = {}
+
+function TestVeafCombatZoneSpawnRouteOffset:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Offset Zone"):setMissionEditorZoneName("OFFSETZONE")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("OFFSETZONE-CONVOY")
+  self.el:setPosition({ x = 0, y = 0, z = 0 })
+  self.el:setCoalition(coalition.side.RED)
+  self.el:setDcsGroup(true)
+
+  self._teleport = mist.teleportToPoint
+  self.vars = nil
+  local this = self
+  mist.teleportToPoint = function(vars)
+    this.vars = vars
+    return nil
+  end
+end
+
+function TestVeafCombatZoneSpawnRouteOffset:tearDown()
+  mist.teleportToPoint = self._teleport
+end
+
+function TestVeafCombatZoneSpawnRouteOffset:test_a_spawn_asks_mist_to_move_waypoint_1()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNotNil(self.vars, "mist.teleportToPoint must have been called")
+  luaunit.assertTrue(self.vars.offsetWP1)
+end
+
+-- The decision, pinned. `offsetRoute` would translate every waypoint of a track the mission maker
+-- drew on the terrain, and differently on each activation; if someone sets it later it should be
+-- because they meant to, not because this line drifted.
+function TestVeafCombatZoneSpawnRouteOffset:test_the_rest_of_the_route_is_left_where_it_was_drawn()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNil(self.vars.offsetRoute)
+  luaunit.assertNil(self.vars.initTasks, "initTasks would delete every waypoint past the first")
+end
+
+-- Unconditional on purpose. The delta is not only the dispersion: MiST measures it against the
+-- mission table's unit 1, while the element's position comes from the first unit the zone met, so a
+-- group met out of editor order carries a delta even with no dispersion at all.
+function TestVeafCombatZoneSpawnRouteOffset:test_a_group_with_no_dispersion_still_asks_for_the_offset()
+  self.el:setSpawnRadius(0)
+  self.z:spawnElement(self.el, true)
+  luaunit.assertTrue(self.vars.offsetWP1)
+end
+
+function TestVeafCombatZoneSpawnRouteOffset:test_a_dispersed_group_asks_for_the_offset()
+  self.el:setSpawnRadius(50)
+  self.z:spawnElement(self.el, true)
+  luaunit.assertTrue(self.vars.offsetWP1)
+end
+
+-- A static goes down the same branch. It has no route to speak of, but the var must not be
+-- conditional on the element's kind — a conditional is what would rot.
+function TestVeafCombatZoneSpawnRouteOffset:test_a_static_element_takes_the_same_path()
+  self.el:setDcsGroup(false)
+  self.el:setDcsStatic(true)
+  self.z:spawnElement(self.el, true)
+  luaunit.assertTrue(self.vars.offsetWP1)
+end
+
+-- The vars this lot did not touch must still arrive: this call site is the single place a combat zone
+-- respawns anything, and a fix that dropped one of them would be silent.
+function TestVeafCombatZoneSpawnRouteOffset:test_the_neighbouring_vars_are_untouched()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self.vars.gpName, "OFFSETZONE-CONVOY")
+  luaunit.assertEquals(self.vars.action, "respawn")
+  luaunit.assertNotNil(self.vars.point)
+  luaunit.assertTrue(self.vars.renameUnitsSequentially)
+end
+
 os.exit(luaunit.LuaUnit.run())

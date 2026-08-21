@@ -256,6 +256,14 @@ Une unité `#command=` n'est **jamais** dispersée, avec ou sans défaut : la co
 !!! warning "Ce comportement change les missions existantes"
     De mars 2023 à la 6.15.14 le défaut de 50 m était **inatteignable** : la constante existait, le code censé l'appliquer ne s'exécutait jamais, et tous les groupes d'une zone de combat apparaissaient exactement sur leur position enregistrée. Une mission construite pendant ces trois ans verra donc ses groupes bouger d'une cinquantaine de mètres. Si un placement était volontairement précis, écrivez `#spawnradius=0`.
 
+#### Le premier point de passage suit le groupe {#waypoint-follows-group}
+
+Un groupe dispersé n'apparaît plus sur son premier point de passage, et c'est de là que le groupe part. Le premier point est donc **déplacé avec lui**, de la même distance et dans la même direction.
+
+**Le reste du tracé ne bouge pas.** Vous avez posé vos points de passage sur des routes, des ponts, des cols ; les décaler de cinquante mètres au hasard les mettrait à côté, et le tracé serait différent à chaque activation. Un groupe part donc de l'endroit où il apparaît et rejoint la route que vous avez dessinée.
+
+Avant la 6.15.20, le premier point restait à la position d'éditeur : un convoi dispersé revenait d'abord le chercher, en parcourant une patte que personne n'avait dessinée. Visible surtout depuis la 6.15.15, qui a rendu la dispersion de 50 m effective.
+
 ### Où les tags sont lus {#tag-sources}
 
 Les tags d'un groupe sont ceux portés par **son propre nom et par les noms de toutes ses unités**. Taguer un seul camion d'un convoi suffit donc, quel que soit le camion — inutile de taguer les quatre, et inutile de deviner lequel DCS traitera en premier.

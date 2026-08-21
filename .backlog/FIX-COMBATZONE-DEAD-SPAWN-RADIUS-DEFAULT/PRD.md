@@ -48,6 +48,13 @@ now walks back to an undisplaced waypoint 1 before starting its leg.
 Not a reason to hold this lot: the leg is walked, not lost, and the 50 m default is the documented
 intent. But the two want to ship close together, and item 18 of the session will see both at once.
 
+**Corrected 2026-08-21, after the route lot measured where the delta comes from:** "invisible for three
+years" is too strong. MiST measures the delta against the mission table's unit 1 while the zone's element
+takes its position from the first unit it *met*, so a group met out of editor order carried a delta with
+no dispersion at all — see
+[`FIX-COMBATZONE-SPAWN-REFERENCE-UNIT`](../FIX-COMBATZONE-SPAWN-REFERENCE-UNIT/PRD.md). Reviving the
+default makes the route defect systematic rather than making it appear.
+
 ## Tickets
 
 | # | Ticket | Status |

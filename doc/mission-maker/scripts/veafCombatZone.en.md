@@ -226,6 +226,25 @@ VeafCombatZone:new()
 
 ---
 
+### Groups out of action {#out-of-action}
+
+A group is not only alive or dead. An S-300 battery whose tracking radar is destroyed keeps its launchers, its trucks and its crew — and cannot fire.
+
+The zone report now says so:
+
+```
+OUT OF ACTION (can no longer fight): ALPHA-SA10
+```
+
+A group that has been wiped out does not appear there: it is simply gone from the remaining tallies. This line is only about groups **still standing** that have become harmless.
+
+!!! note "This does not change when a zone ends"
+    For now the information is advisory only: a zone still completes when **every** enemy unit is destroyed, useless launchers included. Ending the zone sooner is a separate design decision, not yet taken.
+
+**How a group is judged.** By default a group counts as out of action if it is a SAM site (a search radar or a launcher is still standing) and no tracking radar is left. A vehicle that is its own radar and launcher — Tunguska, Tor, Osa — stays operational as long as it lives. A convoy has no radar at all: it remains a threat while it rolls.
+
+For sites whose composition the DCS attributes cannot describe, a pattern table (`veaf.ImportantUnitsByGroupPattern`, in `veaf.lua`) declares the sets of units a site cannot do without and the minimum life, as a percentage, they need. The S-300 is already in it.
+
 ## Unit and Group Name Tags
 
 Unit and group names in the DCS Mission Editor can carry special tags that control how VEAF handles them when the zone activates. Tags are embedded in the name and do not affect DCS itself.

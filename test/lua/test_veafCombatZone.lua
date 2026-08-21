@@ -2492,4 +2492,134 @@ function TestVeafCombatZoneRangeTags:test_a_group_name_tag_keeps_its_dashes()
   luaunit.assertEquals(tags.spawnGroup, "sa-11-battery")
 end
 
+-- ============================================================================
+-- FEAT-GROUP-COMBAT-INEFFECTIVE ticket 02 — the F10 report adopts the predicate
+--
+-- The PRD asks for **one** caller to adopt `veaf.isGroupCombatEffective`, and warns that
+-- `completionCheck` is "the visible one and therefore the riskiest" — adopting it changes when zones
+-- complete, in every existing mission. So the report goes first: it adds information and removes none,
+-- and no mission behaviour changes at all.
+--
+-- The distinction that matters below: a group with nothing left is **destroyed**, not "no longer able to
+-- fight". Listing a dead group as out of action would be noise, and the predicate answers false for both.
+-- ============================================================================
+TestVeafCombatZoneReportEffectiveness = {}
+
+function TestVeafCombatZoneReportEffectiveness:setUp()
+  self._getByName = Group.getByName
+  self._static = StaticObject.getByName
+  self._findUnit = veafUnits.findUnit
+  self._effective = veaf.isGroupCombatEffective
+
+  self.z = VeafCombatZone:new():setFriendlyName("Report Zone"):setMissionEditorZoneName("REPORTZONE")
+  self.z:setActive(true)
+  self.z:setShowZonePositionInfo(false)
+
+  veafUnits.findUnit = function()
+    return { vehicle = true }
+  end
+  StaticObject.getByName = function()
+    return nil
+  end
+end
+
+function TestVeafCombatZoneReportEffectiveness:tearDown()
+  Group.getByName = self._getByName
+  StaticObject.getByName = self._static
+  veafUnits.findUnit = self._findUnit
+  veaf.isGroupCombatEffective = self._effective
+end
+
+--- Register groups by name, each with `count` living red vehicles.
+function TestVeafCombatZoneReportEffectiveness:_groups(spec)
+  local registry = {}
+  for name, count in pairs(spec) do
+    local units = {}
+    for i = 1, count do
+      table.insert(units, {
+        getCoalition = function()
+          return 1
+        end,
+        getTypeName = function()
+          return "Ural-375"
+        end,
+        getName = function()
+          return name .. "-" .. i
+        end,
+        isExist = function()
+          return true
+        end,
+        isActive = function()
+          return true
+        end,
+      })
+    end
+    registry[name] = {
+      getName = function()
+        return name
+      end,
+      isExist = function()
+        return true
+      end,
+      getUnits = function()
+        return units
+      end,
+    }
+    self.z:addSpawnedGroup(name)
+  end
+  Group.getByName = function(n)
+    return registry[n]
+  end
+end
+
+function TestVeafCombatZoneReportEffectiveness:test_an_all_effective_zone_says_nothing_extra()
+  self:_groups({ ["REPORTZONE-CONVOY"] = 3 })
+  veaf.isGroupCombatEffective = function()
+    return true
+  end
+  local info = self.z:getInformation(nil)
+  luaunit.assertNil(info:find("REPORTZONE%-CONVOY"), "an effective group must not be named")
+end
+
+function TestVeafCombatZoneReportEffectiveness:test_an_ineffective_group_is_named()
+  self:_groups({ ["REPORTZONE-SA10"] = 3 })
+  veaf.isGroupCombatEffective = function()
+    return false
+  end
+  local info = self.z:getInformation(nil)
+  luaunit.assertNotNil(info:find("REPORTZONE%-SA10"), "the group that can no longer fight must be named")
+end
+
+-- The one that keeps the feature honest: a wiped-out group is destroyed, not "out of action". The
+-- predicate says false for both, so the report has to tell them apart itself.
+function TestVeafCombatZoneReportEffectiveness:test_a_destroyed_group_is_not_reported_as_out_of_action()
+  self:_groups({ ["REPORTZONE-DEAD"] = 0 })
+  veaf.isGroupCombatEffective = function()
+    return false
+  end
+  local info = self.z:getInformation(nil)
+  luaunit.assertNil(info:find("REPORTZONE%-DEAD"), "a group with nothing left is dead, not out of action")
+end
+
+function TestVeafCombatZoneReportEffectiveness:test_several_ineffective_groups_are_all_named()
+  self:_groups({ ["REPORTZONE-SA10"] = 2, ["REPORTZONE-SA6"] = 2 })
+  veaf.isGroupCombatEffective = function()
+    return false
+  end
+  local info = self.z:getInformation(nil)
+  luaunit.assertNotNil(info:find("REPORTZONE%-SA10"))
+  luaunit.assertNotNil(info:find("REPORTZONE%-SA6"))
+end
+
+-- An inactive zone reports nothing about its contents at all, and that must not change.
+function TestVeafCombatZoneReportEffectiveness:test_an_inactive_zone_reports_nothing_about_groups()
+  self:_groups({ ["REPORTZONE-SA10"] = 2 })
+  veaf.isGroupCombatEffective = function()
+    return false
+  end
+  self.z:setActive(false)
+  local info = self.z:getInformation(nil)
+  luaunit.assertNil(info:find("REPORTZONE%-SA10"))
+end
+
 os.exit(luaunit.LuaUnit.run())

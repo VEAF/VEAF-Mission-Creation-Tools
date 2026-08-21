@@ -7,6 +7,53 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.24] — 2026-08-21
+
+### Added
+
+- **A combat zone now reports the groups that can no longer fight**, closing
+  [#177](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/177) from 2023. A group is not only
+  alive or dead: an S-300 whose tracking radar is destroyed keeps its launchers, trucks and crew, counts
+  as alive everywhere in the code, and in play is finished.
+
+  ```
+  OUT OF ACTION (can no longer fight): ALPHA-SA10
+  ```
+
+  The judgement lives in a new `veaf.isGroupCombatEffective`, and it works two ways. A **pattern table**
+  (`veaf.ImportantUnitsByGroupPattern`) declares the sets of units a kind of site cannot do without —
+  the S-300 entry from the issue body ships as the first one — with a `minimumLife` expressed as a
+  **percentage** rather than hit points, because absolute points mean a different threshold per unit
+  type. With no pattern, the **DCS attributes** decide: a group with a living search radar or launcher
+  *is* a SAM site, and is finished once nothing living carries a tracking radar. A Tunguska, which is its
+  own radar and launcher, stays operational alone; a convoy has no radar and remains a threat while it
+  rolls.
+
+  Attributes are read from the repository's own generated `dcsUnits` database rather than through
+  `Unit.getDesc()` — the same data, no DCS call, and a unit type can be asked about without a living unit
+  to ask through, which is what makes it testable. A test checks the real database still carries the
+  attributes the rule reads, because a regeneration that dropped them would quietly declare every SAM
+  site finished.
+
+  **Adopted in exactly one place, on purpose.** The report *adds* information and removes none, so no
+  mission behaviour changes: a zone still completes only when every enemy unit is destroyed, useless
+  launchers included. Adopting the predicate where zones complete would change every existing mission
+  and is a design question rather than a technical one — it is analysed in the lot's PRD and filed as a
+  follow-up.
+
+  **The limit is documented rather than hidden**: destroyed units vanish from `Group:getUnits()`, so the
+  default cannot know a group *had* a radar it has since lost. The pattern table is what carries that
+  knowledge.
+
+### Fixed
+
+- **`dcsUnits` no longer counts toward Lua coverage.** It is a generated data table — 13 600 lines of
+  literals with no logic — and a test that merely loads it counted every line as covered, inflating the
+  total by about 8 points. Left alone, that inflation would have been baked into the ratchet floor and
+  collapsed the moment the load went away.
+
+---
+
 ## [6.15.23] — 2026-08-21
 
 ### Added

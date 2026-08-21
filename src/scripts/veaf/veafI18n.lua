@@ -888,6 +888,13 @@ veaf.i18nCatalog = {
     fr = "ENNEMIS : %s restants.\n",
     en = "ENEMIES: %s remaining.\n",
   },
+  -- FEAT-GROUP-COMBAT-INEFFECTIVE (#177): a group still standing that can no longer fight — a SAM site
+  -- whose tracking radar is gone still has launchers and crew. Worded as "no longer able to fight"
+  -- rather than "destroyed", which is a different thing and already covered by the tallies above.
+  ["combatzone.out_of_action"] = {
+    fr = "HORS DE COMBAT (ne peuvent plus tirer) : %s\n",
+    en = "OUT OF ACTION (can no longer fight): %s\n",
+  },
   ["combatzone.not_active"] = {
     fr = "la zone n'est pas encore active.",
     en = "zone is not yet active.",

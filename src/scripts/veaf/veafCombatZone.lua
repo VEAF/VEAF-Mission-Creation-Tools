@@ -1262,10 +1262,20 @@ function VeafCombatZone:getInformation(unitName)
     local nbStaticsB = 0
     local unitsByTypeR = {}
     local unitsByTypeB = {}
+    -- FEAT-GROUP-COMBAT-INEFFECTIVE: groups that still exist but can no longer fight. The first adopter
+    -- of `veaf.isGroupCombatEffective`, chosen because it *adds* information and removes none — no
+    -- mission behaviour changes, unlike adopting it in completionCheck (see the lot's PRD).
+    local outOfActionGroups = {}
 
     for _, groupName in pairs(self:getSpawnedGroups()) do
       local group = Group.getByName(groupName)
       if group then
+        -- A group with nothing left is **destroyed**, not "out of action", and the predicate answers
+        -- false for both — so the living-unit check is what tells them apart. Naming a wiped-out group
+        -- here would be noise on every report for the rest of the mission.
+        if #group:getUnits() > 0 and not veaf.isGroupCombatEffective(group) then
+          table.insert(outOfActionGroups, groupName)
+        end
         for _, u in pairs(group:getUnits()) do
           local coa = u:getCoalition()
           if Object.getCategory(u) == 3 then
@@ -1367,6 +1377,10 @@ function VeafCombatZone:getInformation(unitName)
 
     appendTally(self:getFriendlyCoalition(), "combatzone.friends")
     appendTally(self:getEnemyCoalition(), "combatzone.enemies")
+    if #outOfActionGroups > 0 and self:isShowUnitsList() then
+      table.sort(outOfActionGroups) -- a stable order: `getSpawnedGroups` is not one a player can predict
+      message = message .. veaf.t("combatzone.out_of_action", table.concat(outOfActionGroups, ", "))
+    end
     message = message .. "\n"
 
     if self:isShowZonePositionInfo() then

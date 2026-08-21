@@ -235,14 +235,9 @@ function veafSpawn.executeCommand(
     local options = veafSpawn.markTextAnalysis(eventText)
 
     if options then
-      -- Hint the pilot about unrecognized parameters (likely typos) — UXPILOT-003, generalised to every
-      -- marker module by FEAT-SPAWN-OPTION-VALIDATION. The report is addressed to the **requester**,
-      -- not to `coalition` (the side the units spawn for).
-      --
-      -- An unrecognized parameter aborts: a typo must never silently spawn something the pilot did not
-      -- intend. The marker is left in place so he can fix it. Known keys are derived from
-      -- ParameterRules, so a flagged key is one that would have done nothing.
-      if veaf.reportUnknownParameters(options, "spawn", requesterCoalition) then
+      -- A typo aborts rather than spawning something else — see veaf.reportUnknownParameters. The report
+      -- goes to the **requester**, not to `coalition`, which is the side the units spawn for.
+      if veaf.reportUnknownParameters(options, veafSpawn.Id, requesterCoalition) then
         return false
       end
 

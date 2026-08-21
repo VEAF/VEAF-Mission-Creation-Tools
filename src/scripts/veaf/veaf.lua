@@ -2582,7 +2582,9 @@ end
 --- Aggregated into **one** message: three wrong keys must not be three lines on a pilot's screen.
 ---
 --- @param options the parsed options table; nil is tolerated
---- @param moduleLabel short name shown to the pilot, so he knows which command refused ("spawn", "move")
+--- @param moduleLabel the calling module's `Id` — the same string its log lines are prefixed with, so a
+---        pilot who reads the message can find the matching lines in the DCS log. Pass the constant
+---        (`veafMove.Id`), never a literal: an invented label drifts away from the module it names
 --- @param requesterCoalition side to show the message to, or nil for everyone. Pass the side that
 ---        **issued** the command, never the side units spawn for
 --- @return true when something was reported, which is the caller's signal to abort

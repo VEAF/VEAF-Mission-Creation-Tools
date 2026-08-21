@@ -109,12 +109,12 @@ Quand une commande de marqueur porte une option qu'aucune règle ne reconnaît �
 ```
 _spawn group, name sa6, headng 270
       ↓
-VEAF spawn : paramètre(s) inconnu(s), commande abandonnée : 'headng' (vouliez-vous dire « heading » ?)
+VEAF SPAWN : paramètre(s) inconnu(s), commande abandonnée : 'headng' (vouliez-vous dire « heading » ?)
 ```
 
 Refuser plutôt qu'exécuter est délibéré : une option inconnue ne fait rien, donc la commande ferait apparaître ou déplacerait autre chose que ce que vous avez demandé — sans que rien ne vous le dise. Le marqueur reste en place, vous corrigez et vous replacez.
 
-S'applique aux commandes de **`SPAWN`, `CAS`, `MOVE`, `RADIO`, `TRANSPORT`, `GROUNDAI`** et aux ordres d'artillerie.
+S'applique aux commandes de **`SPAWN`, `CASMISSION`, `MOVE`, `RADIO`, `TRANSPORTMISSION`, `GROUNDAI`** (ordres d'artillerie compris). Le nom affiché est celui que le module utilise aussi comme préfixe dans le log DCS, pour que le message et le log se recoupent.
 
 !!! note "Les alias sont exclus"
     Un alias (`-sa6`, `-samsr`) transporte les paramètres de la commande qu'il déploie, et non les siens : la vérification y signalerait des options parfaitement valides. Les fautes de frappe dans un alias sont donc attrapées par la commande finale, pas par l'alias.

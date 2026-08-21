@@ -819,7 +819,8 @@ end
 
 function TestVeafMoveUnknownParameterAborts:test_the_message_names_the_module()
   veafMove.executeCommand({ x = 0, y = 0, z = 0 }, "_move group, name test, banana 3", true)
-  luaunit.assertNotNil(self.reported[1]:find("move", 1, true))
+  -- the label is veafMove.Id, the same string the module's log lines carry
+  luaunit.assertNotNil(self.reported[1]:find(veafMove.Id, 1, true))
 end
 
 os.exit(luaunit.LuaUnit.run())

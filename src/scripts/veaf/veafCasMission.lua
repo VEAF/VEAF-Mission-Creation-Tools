@@ -422,9 +422,8 @@ function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, b
     local options = veafCasMission.markTextAnalysis(eventText)
 
     if options then
-      -- An unrecognised parameter aborts rather than running a command the pilot did not ask for
-      -- (FEAT-SPAWN-OPTION-VALIDATION). nil coalition: this handler is not given the requester's side.
-      if veaf.reportUnknownParameters(options, "CAS", nil) then
+      -- A typo aborts — see veaf.reportUnknownParameters. nil: this handler is not given the requester.
+      if veaf.reportUnknownParameters(options, veafCasMission.Id, nil) then
         return false
       end
       -- Check options commands

@@ -120,12 +120,12 @@ When a marker command carries an option no rule recognises — almost always a t
 ```
 _spawn group, name sa6, headng 270
       ↓
-VEAF spawn: unknown parameter(s), command aborted: 'headng' (did you mean 'heading'?)
+VEAF SPAWN: unknown parameter(s), command aborted: 'headng' (did you mean 'heading'?)
 ```
 
 Refusing rather than running is deliberate: an unknown option does nothing, so the command would spawn or move something other than what you asked for, and nothing would tell you. The marker is left in place — fix it and drop it again.
 
-Applies to the **`SPAWN`, `CAS`, `MOVE`, `RADIO`, `TRANSPORT`, `GROUNDAI`** commands and to artillery orders.
+Applies to the **`SPAWN`, `CASMISSION`, `MOVE`, `RADIO`, `TRANSPORTMISSION`, `GROUNDAI`** commands, artillery orders included. The name shown is the one the module also uses to prefix its DCS log lines, so the message and the log line up.
 
 !!! note "Aliases are excluded"
     An alias (`-sa6`, `-samsr`) carries the parameters of the command it expands into rather than its own, so checking there would warn about perfectly valid options. A typo inside an alias is caught by the final command instead.

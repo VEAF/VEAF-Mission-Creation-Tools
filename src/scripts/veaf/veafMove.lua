@@ -96,9 +96,8 @@ function veafMove.executeCommand(eventPos, eventText, bypassSecurity)
     local result = false
 
     if options then
-      -- An unrecognised parameter aborts rather than moving something the pilot did not ask for
-      -- (FEAT-SPAWN-OPTION-VALIDATION). nil coalition: this handler is not given the requester's side.
-      if veaf.reportUnknownParameters(options, "move", nil) then
+      -- A typo aborts — see veaf.reportUnknownParameters. nil: this handler is not given the requester.
+      if veaf.reportUnknownParameters(options, veafMove.Id, nil) then
         return false
       end
       -- Check options commands

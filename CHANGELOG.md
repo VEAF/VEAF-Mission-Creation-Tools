@@ -22,8 +22,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   module and aggregates every bad key into a single line:
 
   ```
-  VEAF spawn: unknown parameter(s), command aborted: 'headng' (did you mean 'heading'?)
+  VEAF SPAWN: unknown parameter(s), command aborted: 'headng' (did you mean 'heading'?)
   ```
+
+  The name in the message is the module's own `Id` — the string it already prefixes its DCS log lines
+  with — so a pilot's message and the log line up, and no invented label can drift away from the module
+  it names.
 
   The command **aborts**. An unknown option would otherwise run a half-understood command, which is what
   `_spawn` has refused to do since UXPILOT-003; the marker is left in place so the typo can be fixed.

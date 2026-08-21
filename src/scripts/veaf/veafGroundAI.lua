@@ -428,10 +428,9 @@ function ArtilleryUnitHandler:orderTextAnalysis(text)
   if not options then
     return nil
   end
-  -- An unrecognised parameter aborts rather than firing on a half-understood order
-  -- (FEAT-SPAWN-OPTION-VALIDATION). An artillery order arrives through the radio menu or as the value
-  -- of a `_ground` marker, and neither path carries the requester's side, so the message goes to all.
-  if veaf.reportUnknownParameters(options, "artillery", nil) then
+  -- A typo aborts — see veaf.reportUnknownParameters. An artillery order arrives through the radio menu
+  -- or as the value of a `_ground` marker, and neither path carries the requester's side.
+  if veaf.reportUnknownParameters(options, veafGroundAI.Id, nil) then
     return nil
   end
 

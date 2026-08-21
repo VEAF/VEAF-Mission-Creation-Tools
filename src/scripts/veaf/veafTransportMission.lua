@@ -119,9 +119,8 @@ function veafTransportMission.onEventMarkChange(eventPos, event)
     local options = veafTransportMission.markTextAnalysis(event.text)
 
     if options then
-      -- An unrecognised parameter aborts rather than running a transport the pilot did not ask for
-      -- (FEAT-SPAWN-OPTION-VALIDATION). nil coalition: this handler is not given the requester's side.
-      if veaf.reportUnknownParameters(options, "transport", nil) then
+      -- A typo aborts — see veaf.reportUnknownParameters. nil: this handler is not given the requester.
+      if veaf.reportUnknownParameters(options, veafTransportMission.Id, nil) then
         return false
       end
       -- Check options commands

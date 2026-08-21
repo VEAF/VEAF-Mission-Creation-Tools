@@ -163,9 +163,8 @@ function veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSec
     local options = veafRadio.markTextAnalysis(eventText)
 
     if options then
-      -- An unrecognised parameter aborts rather than acting on a half-understood command
-      -- (FEAT-SPAWN-OPTION-VALIDATION). The event coalition is the requester's here.
-      if veaf.reportUnknownParameters(options, "radio", eventCoalition) then
+      -- A typo aborts — see veaf.reportUnknownParameters. The event coalition is the requester's here.
+      if veaf.reportUnknownParameters(options, veafRadio.Id, eventCoalition) then
         return false
       end
       veaf.loggers.get(veafRadio.Id):trace(string.format("options.path=%s", veaf.p(options.path)))

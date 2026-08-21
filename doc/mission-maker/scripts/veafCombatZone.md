@@ -85,11 +85,31 @@ modules:
 | `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
 | `training` | booléen | `false` | Non | Mode entraînement : pas de sécurité, statut verbeux |
 | `completable` | booléen | `true` | Non | `false` : la zone ne se termine (et ne se désactive) jamais d'elle-même |
+| `show_units_list` | booléen | `true` | Non | `false` : le rapport F10 n'énumère pas les unités restantes |
+| `show_zone_position_info` | booléen | `true` | Non | `false` : le rapport F10 n'affiche ni les coordonnées de la zone ni sa météo |
+| `smoke_and_flare` | booléen | `true` | Non | `false` : la zone ne propose ni fumigène ni fusée éclairante pour se signaler |
+| `radio_menu_disabled` | booléen | `false` | Non | `true` : la zone n'apparaît pas du tout dans le menu F10 |
+| `rename_units_sequentially` | booléen | `true` | Non | `false` : les unités gardent leur nom d'origine à l'apparition, au lieu d'être renommées en séquence. Voir [ci-dessous](#rename-units) |
 | `enemy_coalition` | `RED` \| `BLUE` | `RED` | Non | Coalition **hostile** : ses unités sont celles qu'il faut détruire pour terminer la zone, et celles que le rapport F10 annonce comme « ennemis ». `BLUE` pour une zone jouée **côté rouge** (voir ci-dessous) |
 | `radio_menu_coalition` | `RED` \| `BLUE` \| `ALL` | *(camp qui joue la zone)* | Non | Coalition à qui le menu F10 de la zone est proposé. Par défaut : le camp opposé à `enemy_coalition`. `ALL` le montre aux deux camps (voir ci-dessous) |
 | `active_at_start` | booléen | `false` | Non | Active automatiquement la zone au démarrage de la mission (`veafCombatZone.ActivateZone` après `initialize()`) |
 | `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
 | `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |
+
+### `rename_units_sequentially` — garder les noms d'unités d'origine {#rename-units}
+
+À l'apparition d'un groupe, une zone de combat renomme ses unités en séquence. C'est utile sur une carte terminée — les noms deviennent lisibles et cohérents — et **gênant pendant la mise au point** d'un `.miz` : le nom que vous avez donné à l'unité dans l'éditeur de mission a disparu, et vous ne pouvez plus la retrouver dans les journaux.
+
+```yaml
+combat_zones:
+  - zone_name: CZ-Alpha
+    rename_units_sequentially: false   # les unités gardent le nom de l'éditeur
+```
+
+Le réglage est **par zone**, et non un interrupteur global de débogage : c'est ce que demandait la
+[demande d'origine](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289), et un interrupteur global serait une chose de plus à penser à remettre avant de livrer.
+
+Le défaut reste `true`, donc aucune mission existante ne change.
 
 ### Champs de `combat_zones[]` — type `operation`
 

@@ -584,6 +584,13 @@ function VeafCombatZone:new(objectToCopy)
   objectToCreate.showZonePositionInfo = true
   -- zone is completable (i.e. disable it when all ennemies are dead)
   objectToCreate.completable = true
+  -- rename the units of a respawned group sequentially (Group-1, Group-2, …). Useful on a finished
+  -- map, in the way while debugging a `.miz`: the original unit name is gone (#289). Default true,
+  -- which is what every mission built before 6.15.16 got.
+  objectToCreate.renameUnitsSequentially = true
+  -- set when the trigger zone's shape could not be read, so the zone is *unusable* rather than empty.
+  -- A zone that cannot say what it holds must not announce that everything in it is dead.
+  objectToCreate.unreadableTriggerZone = false
   -- coalition whose units must be destroyed for the zone to complete (1 = red, 2 = blue).
   -- Defaults to red: the players are blue and the zone holds the red opposition.
   objectToCreate.enemyCoalition = veafCombatZone.DEFAULT_ENEMY_COALITION
@@ -750,12 +757,32 @@ function VeafCombatZone:setShowZonePositionInfo(value)
   return self
 end
 
+--- Can this zone complete on its own?
+--- A zone whose trigger zone could not be read answers **no**, whatever the mission asked for: it does
+--- not know what it holds, so it cannot honestly report that all of it is dead — which is the worst
+--- symptom FIX-COMBATZONE-ZONE-TYPE-SILENT was about. It gates both the watchdog and the check itself.
 function VeafCombatZone:isCompletable()
-  return self.completable
+  return self.completable and not self.unreadableTriggerZone
+end
+
+function VeafCombatZone:hasUnreadableTriggerZone()
+  return self.unreadableTriggerZone
 end
 
 function VeafCombatZone:setCompletable(value)
   self.completable = value
+  return self
+end
+
+function VeafCombatZone:isRenameUnitsSequentially()
+  return self.renameUnitsSequentially
+end
+
+--- Whether a respawned group's units are renamed sequentially.
+--- Sharko's #289: renaming is useful once a map is finished and gets in the way while debugging a
+--- `.miz`, since the original unit name is gone. Set it to false to keep the names.
+function VeafCombatZone:setRenameUnitsSequentially(value)
+  self.renameUnitsSequentially = value
   return self
 end
 
@@ -1375,7 +1402,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       vars.route = zoneElement:getRoute()
       vars.action = "respawn"
       vars.point = position
-      vars.renameUnitsSequentially = true
+      vars.renameUnitsSequentially = self:isRenameUnitsSequentially()
       local newGroup = mist.teleportToPoint(vars)
       if type(newGroup) == "table" then
         veaf.loggers
@@ -1800,10 +1827,13 @@ function VeafCombatZone:findUnitsInCombatZone()
   veaf.loggers.get(veafCombatZone.Id):trace("#unitsNames=%s", veaf.lp(#unitsNames))
 
   veaf.loggers.get(veafCombatZone.Id):trace("triggerZone.type=%s", veaf.lp(triggerZone.type))
-  if triggerZone.type == 0 then -- circular
-    units = mist.getUnitsInZones(unitsNames, { self:getMissionEditorZoneName() })
-  elseif triggerZone.type == 2 then -- quad point
-    units = mist.getUnitsInPolygon(unitsNames, triggerZone.verticies)
+  -- nil means the zone's shape could not be read, and the error is already in the log; an empty list
+  -- means it really holds nobody. The difference is not cosmetic: an unusable zone is marked so that it
+  -- never completes, instead of quietly reporting that everything in it is dead.
+  units = veaf.getUnitsInTriggerZone(self:getMissionEditorZoneName(), unitsNames, veafCombatZone.Id)
+  if not units then
+    self.unreadableTriggerZone = true
+    return { {}, {} }
   end
 
   veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.lp(#units))

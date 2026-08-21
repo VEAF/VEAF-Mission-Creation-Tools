@@ -30,9 +30,18 @@ veafSpawn.ParameterRules = {
   { keys = { "name" }, apply = _str("name") },
   { keys = { "czname" }, apply = _str("czName") },
   {
+    -- FEAT-CONVOY-WAYPOINTS: `dest` may be written several times, and the convoy walks the points in
+    -- the order they appear. Ordering is safe to rely on — `veaf.parseMarkerText` iterates keyphrases
+    -- with `ipairs` by design, and says so where it does it.
+    --
+    -- `destination` keeps holding the **first** point rather than the last: it is the leg the convoy
+    -- departs on, and every caller of `spawnConvoy` reads that field, so a single `dest` behaves
+    -- exactly as it did before.
     keys = { "destination", "dest" },
     apply = function(options, val)
-      options.destination = val
+      options.itinerary = options.itinerary or {}
+      table.insert(options.itinerary, val)
+      options.destination = options.itinerary[1]
       options.AlarmState = 0 -- leave on auto: some units won't move at alarm state red
       options.spacing = 1 -- compress the convoy so it isn't extremely long at departure
       options.radius = 1 -- spawn exactly on the marker (avoid spawning in trees etc.)

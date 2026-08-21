@@ -4,6 +4,9 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+-- The catalog, not just the runtime: FEAT-CONVOY-WAYPOINTS asserts on the *messages* a convoy command
+-- gives the player, and `veaf.t` hands back the bare key when the catalog was never loaded.
+dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafSpawn.lua")
 
 -- ---------------------------------------------------------------------------
@@ -914,9 +917,10 @@ function TestVeafSpawnGroundSceneryAware:test_no_position_anywhere_aborts_before
   local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, false, false)
   luaunit.assertNil(result)
   luaunit.assertEquals(#self.centres, 0, "placeGroup must not run when no centre was found")
-  -- veafI18n is not loaded by this suite, so veaf.t echoes the key — same convention as
-  -- test_veafAssist.lua asserting on "step.one".
-  luaunit.assertEquals(#dcs_mocks.messagesContaining("spawn.no_position_group"), 1, "exactly one message, not one per unit")
+  -- The suite loads veafI18n since FEAT-CONVOY-WAYPOINTS (its tests assert on the messages a convoy
+  -- command gives the player), so `veaf.t` resolves rather than echoing the key. Matching on the
+  -- rendered text keeps the assertion on what a player actually reads.
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(veaf.t("spawn.no_position_group")), 1, "exactly one message, not one per unit")
 end
 
 function TestVeafSpawnGroundSceneryAware:test_silent_failure_says_nothing_to_the_players()
@@ -1583,6 +1587,476 @@ function TestSecrev2ClosestConvoy:test_no_convoy_has_a_position_returns_nil()
   veafSpawn.spawnedConvoys = { ["convoy-dead"] = {} }
   _positionConvoysExcept({ ["convoy-dead"] = true }, {})
   luaunit.assertNil(veafSpawn._findClosestConvoy("player-1"))
+end
+
+-------------------------------------------------------------------------------------------------
+-- FEAT-CONVOY-WAYPOINTS ticket 01/02 — a convoy walks an itinerary
+--
+-- `veafSpawn.advanceConvoy` moves a convoy onto the next leg of its itinerary, whether the arrival
+-- watchdog or a player asked. A leg's route is generated from **where the convoy is now**, not from
+-- the original spawn point: the convoy has driven since, and re-using the old origin would send it
+-- back to the start before setting off again — the same defect
+-- FIX-COMBATZONE-SPAWN-ROUTE-OFFSET fixed for combat zones.
+-------------------------------------------------------------------------------------------------
+
+TestConvoyItinerary = {}
+
+function TestConvoyItinerary:setUp()
+  dcs_mocks.reset()
+  self._route = veaf.generateVehiclesRoute
+  self._goRoute = mist.goRoute
+  self._avg = veaf.getAveragePosition
+  self._outText = trigger.action.outText
+
+  self.generated = {}
+  veaf.generateVehiclesRoute = function(startPoint, destination, onRoad, speed, patrol, groupName)
+    table.insert(self.generated, {
+      startPoint = startPoint,
+      destination = destination,
+      onRoad = onRoad,
+      speed = speed,
+      patrol = patrol,
+      groupName = groupName,
+    })
+    return { { name = "generated for " .. tostring(destination) } }
+  end
+  self.routed = {}
+  mist.goRoute = function(name, route)
+    table.insert(self.routed, { name = name, route = route })
+  end
+  veaf.getAveragePosition = function()
+    return { x = 500, y = 0, z = 600 }
+  end
+  trigger.action.outText = function() end
+
+  veafSpawn.spawnedConvoys = {
+    ["CONVOY-1"] = {
+      name = "CONVOY-1",
+      route = { { name = "initial" } },
+      itinerary = { "KOBULETI", "BATUMI", "POTI" },
+      legIndex = 1,
+      speed = 40,
+      offroad = false,
+      patrol = false,
+    },
+  }
+end
+
+function TestConvoyItinerary:tearDown()
+  veaf.generateVehiclesRoute = self._route
+  mist.goRoute = self._goRoute
+  veaf.getAveragePosition = self._avg
+  trigger.action.outText = self._outText
+  veafSpawn.spawnedConvoys = {}
+end
+
+function TestConvoyItinerary:test_advancing_moves_to_the_next_point()
+  luaunit.assertTrue(veafSpawn.advanceConvoy("CONVOY-1"))
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].legIndex, 2)
+  luaunit.assertEquals(self.generated[1].destination, "BATUMI")
+end
+
+-- The leg starts from where the convoy stands, not from where it was spawned.
+function TestConvoyItinerary:test_the_new_leg_starts_from_the_convoys_current_position()
+  veafSpawn.advanceConvoy("CONVOY-1")
+  luaunit.assertEquals(self.generated[1].startPoint.x, 500)
+  luaunit.assertEquals(self.generated[1].startPoint.z, 600)
+end
+
+function TestConvoyItinerary:test_the_route_is_issued_and_remembered()
+  veafSpawn.advanceConvoy("CONVOY-1")
+  luaunit.assertEquals(#self.routed, 1)
+  luaunit.assertEquals(self.routed[1].name, "CONVOY-1")
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].route, self.routed[1].route)
+end
+
+function TestConvoyItinerary:test_advancing_twice_walks_the_whole_itinerary()
+  veafSpawn.advanceConvoy("CONVOY-1")
+  veafSpawn.advanceConvoy("CONVOY-1")
+  luaunit.assertEquals(self.generated[1].destination, "BATUMI")
+  luaunit.assertEquals(self.generated[2].destination, "POTI")
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].legIndex, 3)
+end
+
+-- The end of the itinerary is a refusal, not a crash and not a silent no-op: the caller has to be
+-- able to tell "moved on" from "there is nowhere left to go", because the watchdog stops on it.
+function TestConvoyItinerary:test_the_last_point_refuses_to_advance()
+  veafSpawn.spawnedConvoys["CONVOY-1"].legIndex = 3
+  luaunit.assertFalse(veafSpawn.advanceConvoy("CONVOY-1"))
+  luaunit.assertEquals(#self.generated, 0)
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].legIndex, 3)
+end
+
+function TestConvoyItinerary:test_an_unknown_convoy_is_refused()
+  luaunit.assertFalse(veafSpawn.advanceConvoy("NO-SUCH-CONVOY"))
+end
+
+-- A convoy with no position left (every vehicle destroyed) cannot start a leg from nowhere.
+function TestConvoyItinerary:test_a_convoy_with_no_position_is_refused()
+  veaf.getAveragePosition = function()
+    return nil
+  end
+  luaunit.assertFalse(veafSpawn.advanceConvoy("CONVOY-1"))
+  luaunit.assertEquals(#self.generated, 0)
+end
+
+-- `patrol` belongs to the end of the itinerary. Patrolling between two waypoints would contradict
+-- the itinerary, so intermediate legs are never patrols and the final one is.
+function TestConvoyItinerary:test_patrol_applies_only_on_the_last_leg()
+  veafSpawn.spawnedConvoys["CONVOY-1"].patrol = true
+  veafSpawn.advanceConvoy("CONVOY-1") -- leg to BATUMI, not the last
+  luaunit.assertFalse(self.generated[1].patrol)
+  veafSpawn.advanceConvoy("CONVOY-1") -- leg to POTI, the last
+  luaunit.assertTrue(self.generated[2].patrol)
+end
+
+-- `offroad` is stored as written and handed to the route builder inverted, as the spawn does.
+function TestConvoyItinerary:test_offroad_is_honoured_on_a_later_leg()
+  veafSpawn.spawnedConvoys["CONVOY-1"].offroad = true
+  veafSpawn.advanceConvoy("CONVOY-1")
+  luaunit.assertFalse(self.generated[1].onRoad)
+end
+
+function TestConvoyItinerary:test_the_speed_travels_to_the_next_leg()
+  veafSpawn.advanceConvoy("CONVOY-1")
+  luaunit.assertEquals(self.generated[1].speed, 40)
+end
+
+-- A one-point itinerary is what a single `dest` produces, and it has no next leg at all.
+function TestConvoyItinerary:test_a_one_point_itinerary_never_advances()
+  veafSpawn.spawnedConvoys["CONVOY-1"].itinerary = { "KOBULETI" }
+  luaunit.assertFalse(veafSpawn.advanceConvoy("CONVOY-1"))
+end
+
+-------------------------------------------------------------------------------------------------
+-- FEAT-CONVOY-WAYPOINTS ticket 02 — arrival advances the convoy
+--
+-- The watchdog reschedules itself and advances the convoy when it has reached the point it was
+-- heading for. Modelled on `veaf.PatrolWatchdog`, which is proven in play, with one deliberate
+-- difference: it reads the convoy's **average** position rather than its lead vehicle's.
+--
+-- That difference answers one of the two things the PRD said to measure — "what is arrival when the
+-- lead vehicle is destroyed?" — by removing the question instead of answering it. An average has no
+-- lead vehicle to lose, and it returns nil exactly when there is nothing left alive, which is the
+-- signal to stop watching.
+--
+-- Time and positions are injected, so nothing here waits 30 seconds.
+-------------------------------------------------------------------------------------------------
+
+TestConvoyArrivalWatchdog = {}
+
+function TestConvoyArrivalWatchdog:setUp()
+  dcs_mocks.reset()
+  self._avg = veaf.getAveragePosition
+  self._schedule = mist.scheduleFunction
+  self._goRoute = mist.goRoute
+  self._route = veaf.generateVehiclesRoute
+  self._getByName = Group.getByName
+  self._outText = trigger.action.outText
+
+  self.scheduled = {}
+  mist.scheduleFunction = function(fn, args, at)
+    table.insert(self.scheduled, { fn = fn, args = args, at = at })
+    return #self.scheduled
+  end
+  self.routed = {}
+  mist.goRoute = function(name, route)
+    table.insert(self.routed, { name = name, route = route })
+  end
+  veaf.generateVehiclesRoute = function(_, destination)
+    return { { x = 0, y = 0 }, { x = 0, y = 0 }, { x = 9000, y = 9000, name = tostring(destination) } }
+  end
+  Group.getByName = function()
+    return {
+      getName = function()
+        return "CONVOY-1"
+      end,
+    }
+  end
+  trigger.action.outText = function() end
+
+  -- the convoy is heading for a waypoint at mission-table (x=1000, y=2000) — note `y` is the easting
+  veafSpawn.spawnedConvoys = {
+    ["CONVOY-1"] = {
+      name = "CONVOY-1",
+      route = { { x = 0, y = 0 }, { x = 500, y = 500 }, { x = 1000, y = 2000, name = "END" } },
+      itinerary = { "KOBULETI", "BATUMI" },
+      legIndex = 1,
+      speed = 40,
+      offroad = false,
+      patrol = false,
+    },
+  }
+  self:_placeConvoyAt(0, 0)
+end
+
+function TestConvoyArrivalWatchdog:tearDown()
+  veaf.getAveragePosition = self._avg
+  mist.scheduleFunction = self._schedule
+  mist.goRoute = self._goRoute
+  veaf.generateVehiclesRoute = self._route
+  Group.getByName = self._getByName
+  trigger.action.outText = self._outText
+  veafSpawn.spawnedConvoys = {}
+end
+
+--- Place the convoy at a runtime position: `x` northing, `z` easting.
+function TestConvoyArrivalWatchdog:_placeConvoyAt(x, z)
+  veaf.getAveragePosition = function()
+    return { x = x, y = 0, z = z }
+  end
+end
+
+function TestConvoyArrivalWatchdog:test_far_from_the_point_it_does_not_advance()
+  self:_placeConvoyAt(0, 0)
+  veafSpawn.convoyArrivalWatchdog("CONVOY-1")
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].legIndex, 1)
+  luaunit.assertEquals(#self.routed, 0)
+end
+
+-- The waypoint's `y` is the easting, so the convoy standing at runtime z = 2000 is *at* it. Getting
+-- this backwards is the silent-coordinate mistake docs/agents/dcs-coordinates.md is about.
+function TestConvoyArrivalWatchdog:test_on_the_point_it_advances()
+  self:_placeConvoyAt(1000, 2000)
+  veafSpawn.convoyArrivalWatchdog("CONVOY-1")
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].legIndex, 2)
+  luaunit.assertEquals(#self.routed, 1)
+end
+
+function TestConvoyArrivalWatchdog:test_it_reschedules_itself_while_the_convoy_lives()
+  veafSpawn.convoyArrivalWatchdog("CONVOY-1")
+  luaunit.assertEquals(#self.scheduled, 1)
+  luaunit.assertEquals(self.scheduled[1].args[1], "CONVOY-1")
+end
+
+-- Reaching the last point ends the watch: nothing left to advance to, so nothing left to check.
+function TestConvoyArrivalWatchdog:test_the_last_point_stops_the_watch()
+  veafSpawn.spawnedConvoys["CONVOY-1"].legIndex = 2
+  self:_placeConvoyAt(1000, 2000)
+  veafSpawn.convoyArrivalWatchdog("CONVOY-1")
+  luaunit.assertEquals(#self.scheduled, 0, "no point rescheduling a watch that can never act again")
+end
+
+function TestConvoyArrivalWatchdog:test_a_convoy_removed_from_the_registry_stops_the_watch()
+  veafSpawn.spawnedConvoys = {}
+  veafSpawn.convoyArrivalWatchdog("CONVOY-1")
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+-- Every vehicle destroyed: `getAveragePosition` returns nil, and the watch must end rather than
+-- reschedule forever on a convoy that no longer exists.
+function TestConvoyArrivalWatchdog:test_a_destroyed_convoy_stops_the_watch()
+  veaf.getAveragePosition = function()
+    return nil
+  end
+  veafSpawn.convoyArrivalWatchdog("CONVOY-1")
+  luaunit.assertEquals(#self.scheduled, 0)
+  luaunit.assertEquals(#self.routed, 0)
+end
+
+-- A player-stopped convoy is not advanced, but the watch stays alive: he may resume it.
+function TestConvoyArrivalWatchdog:test_a_stopped_convoy_is_not_advanced_but_is_still_watched()
+  veafSpawn.spawnedConvoys["CONVOY-1"].stopped = true
+  self:_placeConvoyAt(1000, 2000)
+  veafSpawn.convoyArrivalWatchdog("CONVOY-1")
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].legIndex, 1)
+  luaunit.assertEquals(#self.scheduled, 1)
+end
+
+-------------------------------------------------------------------------------------------------
+-- FEAT-CONVOY-WAYPOINTS ticket 03 — advance, hold and stop as three different things
+--
+-- David's arbitration, and the part he was explicit about: `hold until further orders` lets the
+-- current leg finish and parks at the next point; `stop` halts where it stands. "hold paces a
+-- mission, stop rescues one going wrong; naming them alike would make the useful one unusable."
+--
+-- So the assertions below are as much about what each command *refuses* and what it *says* as about
+-- what it sets: a hold that silently did nothing at the last point would be exactly the failure the
+-- arbitration warns about.
+-------------------------------------------------------------------------------------------------
+
+TestConvoyHoldAndStop = {}
+
+function TestConvoyHoldAndStop:setUp()
+  dcs_mocks.reset()
+  self._avg = veaf.getAveragePosition
+  self._goRoute = mist.goRoute
+  self._route = veaf.generateVehiclesRoute
+  self._outForUnit = veaf.outTextForUnit
+  self._closest = veafSpawn._findClosestConvoy
+  -- Two tests below override Group.getByName in their own body. Saving it here is not belt and braces:
+  -- without it the binding leaked into TestVeafSpawnAircraft and broke three of its tests. Sourcery
+  -- flagged exactly this risk on PR #780 and was right about the risk, if not about the mechanism —
+  -- luaunit does run tearDown after a failure, but it cannot restore what tearDown never saved.
+  self._getByName = Group.getByName
+
+  self.said = {}
+  veaf.outTextForUnit = function(unitName, text, duration)
+    table.insert(self.said, text)
+  end
+  veaf.getAveragePosition = function()
+    return { x = 0, y = 0, z = 0 }
+  end
+  mist.goRoute = function() end
+  veaf.generateVehiclesRoute = function()
+    return { { x = 0, y = 0 }, { x = 1, y = 1 } }
+  end
+  veafSpawn._findClosestConvoy = function()
+    return "CONVOY-1"
+  end
+
+  veafSpawn.spawnedConvoys = {
+    ["CONVOY-1"] = {
+      name = "CONVOY-1",
+      route = { { x = 0, y = 0 }, { x = 1000, y = 2000 } },
+      itinerary = { "KOBULETI", "BATUMI", "POTI" },
+      legIndex = 1,
+      speed = 40,
+    },
+  }
+end
+
+function TestConvoyHoldAndStop:tearDown()
+  veaf.getAveragePosition = self._avg
+  mist.goRoute = self._goRoute
+  veaf.generateVehiclesRoute = self._route
+  veaf.outTextForUnit = self._outForUnit
+  veafSpawn._findClosestConvoy = self._closest
+  Group.getByName = self._getByName
+  veafSpawn.spawnedConvoys = {}
+end
+
+local function convoy()
+  return veafSpawn.spawnedConvoys["CONVOY-1"]
+end
+
+-- `hold` does NOT brake. It marks the convoy so that the *arrival* leaves it parked.
+function TestConvoyHoldAndStop:test_hold_lets_the_current_leg_finish()
+  veafSpawn.holdClosestConvoy("player-1")
+  luaunit.assertTrue(convoy().holding)
+  luaunit.assertNotEquals(convoy().stopped, true, "hold must not stop the convoy where it stands")
+end
+
+function TestConvoyHoldAndStop:test_hold_names_the_point_it_will_park_at()
+  veafSpawn.holdClosestConvoy("player-1")
+  luaunit.assertEquals(#self.said, 1)
+  luaunit.assertStrContains(self.said[1], "KOBULETI")
+end
+
+-- The refusal the arbitration implies: on the last leg there is no next point to park at, and saying
+-- nothing would leave a game master believing the convoy is under orders.
+function TestConvoyHoldAndStop:test_hold_on_the_last_leg_says_so_instead_of_doing_nothing()
+  convoy().legIndex = 3
+  veafSpawn.holdClosestConvoy("player-1")
+  luaunit.assertNotEquals(convoy().holding, true)
+  luaunit.assertEquals(#self.said, 1, "the player is told why nothing happened")
+end
+
+function TestConvoyHoldAndStop:test_a_held_convoy_can_be_released_by_advancing_it()
+  veafSpawn.holdClosestConvoy("player-1")
+  veafSpawn.advanceClosestConvoy("player-1")
+  luaunit.assertNotEquals(convoy().holding, true)
+  luaunit.assertEquals(convoy().legIndex, 2)
+end
+
+-- advance is the radio half of "both advance a convoy": same implementation as the watchdog's.
+function TestConvoyHoldAndStop:test_advance_starts_the_next_leg_now()
+  veafSpawn.advanceClosestConvoy("player-1")
+  luaunit.assertEquals(convoy().legIndex, 2)
+  luaunit.assertEquals(#self.said, 1)
+  luaunit.assertStrContains(self.said[1], "BATUMI")
+end
+
+function TestConvoyHoldAndStop:test_advance_at_the_end_of_the_itinerary_says_so()
+  convoy().legIndex = 3
+  veafSpawn.advanceClosestConvoy("player-1")
+  luaunit.assertEquals(convoy().legIndex, 3)
+  luaunit.assertEquals(#self.said, 1)
+end
+
+-- The pair that must stay distinguishable: the two commands leave different state AND say different
+-- things. A test on the state alone would pass on two menu entries reading identically.
+function TestConvoyHoldAndStop:test_hold_and_stop_are_not_the_same_command()
+  veafSpawn.holdClosestConvoy("player-1")
+  local heldMessage = self.said[1]
+  veafSpawn.spawnedConvoys["CONVOY-1"].holding = false
+  self.said = {}
+  veafSpawn.stopClosestConvoy("player-1")
+  luaunit.assertNotEquals(self.said[1], heldMessage, "hold and stop must not report the same thing")
+end
+
+-- The three cases the tickets' definitions of done name explicitly, and which the tests above did not
+-- cover. Written rather than assumed: a ticked box with no test behind it is how
+-- FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT lived for three years next to a test that asserted the
+-- constant and never its application.
+
+-- Ticket 01: a point name that resolves to nothing. `generateVehiclesRoute` warns the player and
+-- returns nil, so the leg must be refused *without* moving the convoy onto it — otherwise the itinerary
+-- silently loses a point and the convoy stops one leg early.
+function TestConvoyItinerary:test_an_unresolvable_point_does_not_consume_the_leg()
+  veaf.generateVehiclesRoute = function()
+    return nil
+  end
+  luaunit.assertFalse(veafSpawn.advanceConvoy("CONVOY-1"))
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].legIndex, 1, "the leg is not consumed")
+  luaunit.assertEquals(#self.routed, 0)
+end
+
+-- Ticket 02: the convoy lost its lead vehicle. The watch reads the group's *average* position, so
+-- there is no lead vehicle to lose — this pins that property rather than the arithmetic.
+function TestConvoyArrivalWatchdog:test_losing_the_lead_vehicle_does_not_stop_the_advance()
+  local asked = {}
+  veaf.getAveragePosition = function(name)
+    table.insert(asked, name)
+    return { x = 1000, y = 0, z = 2000 }
+  end
+  Group.getByName = function()
+    -- a group whose first unit is gone: getUnit(1) is the survivor, and nothing here asks for it
+    return {
+      getUnit = function()
+        return nil
+      end,
+    }
+  end
+  veafSpawn.convoyArrivalWatchdog("CONVOY-1")
+  luaunit.assertEquals(veafSpawn.spawnedConvoys["CONVOY-1"].legIndex, 2, "arrival is judged on the average, not the lead")
+  luaunit.assertTrue(#asked > 0, "the average position is what was consulted")
+end
+
+-- Ticket 03: stop then resume, the pair that existed before this lot and must keep working.
+function TestConvoyHoldAndStop:test_stop_then_resume_still_works()
+  local pushed = {}
+  Group.getByName = function()
+    return {
+      getController = function()
+        return {
+          pushTask = function(_, task)
+            table.insert(pushed, task)
+          end,
+        }
+      end,
+    }
+  end
+  veafSpawn.stopClosestConvoy("player-1")
+  luaunit.assertTrue(convoy().stopped)
+  luaunit.assertEquals(#pushed, 1)
+  luaunit.assertEquals(pushed[1].id, "Hold")
+
+  veafSpawn.moveClosestConvoy("player-1")
+  luaunit.assertFalse(convoy().stopped)
+end
+
+-- And the refusals: neither command may report success on a convoy already in that state.
+function TestConvoyHoldAndStop:test_stopping_a_stopped_convoy_is_refused()
+  convoy().stopped = true
+  Group.getByName = function()
+    return {
+      getController = function()
+        return { pushTask = function() end }
+      end,
+    }
+  end
+  luaunit.assertFalse(veafSpawn.stopClosestConvoy("player-1"))
 end
 
 os.exit(luaunit.LuaUnit.run())

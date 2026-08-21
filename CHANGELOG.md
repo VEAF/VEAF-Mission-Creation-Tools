@@ -7,6 +7,50 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.22] — 2026-08-21
+
+### Added
+
+- **A convoy can be given an itinerary, walks it unaided, and takes orders on the way.**
+  [#153](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/153), open since 2022. `dest` may
+  now be written several times, and the convoy visits the points in the order written:
+
+  ```
+  _spawn convoy, dest KOBULETI, dest BATUMI, dest POTI, speed 40
+  ```
+
+  A single `dest` is a one-point itinerary and behaves exactly as before — no existing marker changes
+  meaning, and no watchdog is started for it.
+
+  Reaching a point starts the next leg on its own, and the leg is generated from **where the convoy is**
+  rather than where it spawned: it has been driving since, and re-using the old origin would send it back
+  to the start first — the same defect `FIX-COMBATZONE-SPAWN-ROUTE-OFFSET` fixed for combat zones.
+
+  Four F10 commands, and the two brakes are deliberately not interchangeable:
+
+  | Command | Effect |
+  |---|---|
+  | Send to next point | starts the next leg at once |
+  | **Hold at next point** | lets the leg finish, then parks there and waits |
+  | **Halt where it stands** | stops on the spot, mid-road if need be |
+  | Resume after a halt | picks the current leg back up |
+
+  `hold` chooses **where** a convoy stops, `stop` chooses **when** — one paces a mission, the other
+  rescues one going wrong. They carry different labels and different messages, and a test fails if the
+  two ever report the same thing. `hold` on the last leg says there is no next point rather than
+  silently doing nothing.
+
+  `patrol` now applies to the **last** leg only: patrolling between two points of an itinerary would
+  contradict the itinerary.
+
+  **Both things the backlog said to measure were removed rather than assumed.** Whether a stopped group
+  resumes its route: the question does not arise, since every resume and every leg re-issues the route,
+  and #290 — suspected of being the same root cause — was diagnosed as the alarm state, not a lost
+  route. What "arrival" means when the lead vehicle dies: the watch reads the convoy's **average**
+  position, which has no lead to lose and returns nothing exactly when nothing is left alive.
+
+---
+
 ## [6.15.21] — 2026-08-21
 
 ### Fixed

@@ -118,6 +118,14 @@ Les points nommés peuvent être utilisés comme destinations dans les commandes
 _spawn convoy, dest Alpha, speed 40
 ```
 
+Un convoi accepte plusieurs `dest` et parcourt les points dans l'ordre écrit, ce qui permet de composer un trajet à partir de points nommés :
+
+```
+_spawn convoy, dest Alpha, dest Bravo, dest Charlie, speed 40
+```
+
+Voir [veafSpawn](veafSpawn.md#convoy-itinerary).
+
 ---
 
 ## Voir aussi

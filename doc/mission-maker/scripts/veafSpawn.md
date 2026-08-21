@@ -123,6 +123,36 @@ _spawn convoy, dest [NOM_MARQUEUR_DEST], speed 50, defense 2, armor 2, size 3
 - `patrol` — retour à la position de départ
 - `offroad` — autoriser le déplacement hors route
 
+#### Plusieurs étapes : écrire `dest` autant de fois qu'il faut {#convoy-itinerary}
+
+`dest` peut être répété. Le convoi parcourt les points **dans l'ordre où vous les écrivez**, et repart de lui-même à chaque arrivée :
+
+```
+_spawn convoy, dest KOBULETI, dest BATUMI, dest POTI, speed 40
+```
+
+Un seul `dest` reste un trajet à une étape : rien ne change pour les marqueurs que vous utilisez déjà.
+
+Deux précisions utiles :
+
+- **`patrol` ne s'applique qu'à la dernière étape.** Patrouiller entre deux points d'un trajet contredirait le trajet lui-même.
+- **Une étape part de l'endroit où le convoi se trouve**, pas de son point d'apparition — il a roulé entre-temps.
+
+#### Les quatre commandes radio {#convoy-radio-commands}
+
+Le menu F10 propose quatre commandes, qui font quatre choses différentes. Les deux freins en particulier ne sont pas interchangeables :
+
+| Commande | Effet | Quand s'en servir |
+|---|---|---|
+| **Envoyer au point suivant** | passe à l'étape suivante immédiatement, sans attendre l'arrivée | pour accélérer une mission qui traîne |
+| **Faire attendre les ordres (au point suivant)** | laisse le convoi **terminer son étape**, puis il se gare au point d'arrivée et attend | pour cadencer une mission : le convoi s'arrête à un endroit choisi |
+| **Arrêter sur place** | le convoi s'immobilise **là où il est**, au milieu de la route s'il le faut | pour rattraper une mission qui part de travers |
+| **Faire repartir (après un arrêt)** | reprend l'étape en cours, là où elle avait été interrompue | après un arrêt sur place |
+
+« Faire attendre les ordres » et « Arrêter sur place » se ressemblent de loin et ne se remplacent pas : le premier choisit **où** le convoi s'arrête, le second choisit **quand**. Chaque commande annonce ce qu'elle a fait, en nommant le point concerné.
+
+Sur la dernière étape, « Faire attendre les ordres » vous répond qu'il n'y a pas de point suivant, plutôt que de ne rien faire.
+
 ### Faire apparaître de la fumée
 
 ```

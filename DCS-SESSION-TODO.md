@@ -406,6 +406,28 @@ If `verify-mission-a` has no group straddling a zone edge, that case is untested
 truck of `SmokeZone-ConvoyBlue` just outside the zone before the run would cover it, and the group
 should still come up on its drawn position rather than a truck-length away.
 
+## 19. A convoy walking an itinerary — new in 6.15.22, and cheap to check
+
+[`FEAT-CONVOY-WAYPOINTS`](.backlog/FEAT-CONVOY-WAYPOINTS/PRD.md). Both things its PRD wanted measured in
+game turned out to be dependencies the lot could simply not have (see the PRD), so what is left is the
+ordinary check: does a real convoy on real terrain actually get where it is going?
+
+Place two markers and drop this on the first:
+
+```
+_spawn convoy, dest <second marker>, dest <a third point>, speed 40
+```
+
+- The convoy **sets off again by itself** on reaching the first point. The watch runs every 30 s and the
+  arrival radius is 150 m, so allow up to half a minute after it stops before concluding anything.
+- **"Hold at next point"** must let it finish the leg it is on and park *there* — not brake on the spot.
+  **"Halt where it stands"** must stop it immediately, mid-road. Those two are the point of the feature;
+  if they feel the same in play, the wording needs work, not the code.
+- On the last leg, "Hold at next point" should tell you there is no next point.
+
+Worth noting how the 150 m radius feels on a long column: if a convoy visibly parks well short of its
+point and still counts as arrived, that number wants revisiting.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

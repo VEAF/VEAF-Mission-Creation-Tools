@@ -7,6 +7,34 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.21] — 2026-08-21
+
+### Fixed
+
+- **A combat zone anchored a group on the first unit it could see, so a group straddling the zone's
+  edge appeared offset from where it was drawn.** A zone adopts a group as soon as one of its units
+  stands inside the circle, then destroys and recreates the whole group — but it took the group's
+  position from the first unit `mist.getUnitsInZones` returned, and that call returns **only the units
+  inside the zone**. With unit 1 outside, unit 2 became the anchor.
+
+  That matters because `mist.teleportToPoint` computes the displacement as
+  `newCoord - newGroupData.units[1]` (`mist.lua:4470`) — the mission table's unit 1 — and applies it to
+  every unit. Anchoring on any other unit therefore fed the displacement the **spacing between the two
+  units**, translating the entire group by it: a truck-length for a convoy, with no dispersion asked for
+  and even with `#spawnradius=0` written.
+
+  The anchor is now the group's first unit, inside the circle or not, through a named
+  `veafCombatZone.referencePositionOf`. A static is skipped — it is its own group of one — and a group
+  DCS cannot produce a unit 1 for falls back on the unit at hand, saying so in the log, since an
+  element with no position spawns nothing at all.
+
+  **The backlog's diagnosis was wrong and the measurement corrected it.** It recorded the encounter
+  order as a `pairs()` lottery; read end to end, every step preserves editor order, and the trigger is
+  the zone's own filtering. A test written before the fix pinned it: a convoy spaced 30 m apart,
+  anchored on unit 2, produced an element 30 m from unit 1.
+
+---
+
 ## [6.15.20] — 2026-08-21
 
 ### Fixed

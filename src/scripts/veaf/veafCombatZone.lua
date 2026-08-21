@@ -513,6 +513,39 @@ function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZo
   return element
 end
 
+--- The position a group is anchored on: its **unit 1**, not the first unit the zone happened to meet.
+---
+--- The two are not interchangeable, and that is the whole point. `mist.teleportToPoint` computes the
+--- displacement as `newCoord - newGroupData.units[1]` (mist.lua:4470) — the *mission table's* unit 1 —
+--- then applies it to every unit of the group. Hand it the position of any other unit and the
+--- displacement silently carries the spacing between the two, translating the whole group by it.
+---
+--- The zone does meet units in editor order (`veaf.getUnitsNamesOfCoalition` and
+--- `mist.getUnitsInZones` both walk indexed loops), so this only bites when unit 1 is **filtered out**:
+--- a group straddling the trigger zone's edge with its first unit outside. Then unit 2 arrives as "the
+--- first one", and a convoy comes up a truck-length down the road from where it was drawn — with
+--- `#spawnradius=0` written and no dispersion asked for.
+---
+--- Falls back on the unit it was handed when DCS cannot produce unit 1, since an element with no
+--- position spawns nothing at all, which is worse than spawning thirty metres off.
+---
+--- @param unit the unit the caller had, used as the fallback
+--- @param group the group, as built by VeafCombatZone:initialize
+--- @return table a runtime vec3
+function veafCombatZone.referencePositionOf(unit, group)
+  if not group.isStatic then
+    local dcsGroup = Group.getByName(group.name)
+    local firstUnit = dcsGroup and dcsGroup:getUnit(1)
+    if firstUnit then
+      return firstUnit:getPosition().p
+    end
+    veaf.loggers
+      .get(veafCombatZone.Id)
+      :warn("group [%s] gave no unit 1; anchoring on [%s] instead", veaf.p(group.name), veaf.p(unit:getName()))
+  end
+  return unit:getPosition().p
+end
+
 --- Build the zone element of a group the zone spawns itself.
 ---
 --- The dispersion default is decided from whether `#spawnradius=` was **written**, not from the value
@@ -528,7 +561,7 @@ end
 function veafCombatZone.buildGroupElement(unit, group, tags)
   local element = VeafCombatZoneElement:new()
   element:setCoalition(unit:getCoalition())
-  element:setPosition(unit:getPosition().p)
+  element:setPosition(veafCombatZone.referencePositionOf(unit, group))
   element:setName(group.name)
   applyCollectedTags(element, tags)
   if group.isStatic then
@@ -1112,8 +1145,10 @@ function VeafCombatZone:initialize()
   local units
   units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
 
-  -- Group what was found, keeping the order the units were met in: a group's element takes its
-  -- position and coalition from the first of its units, as it always has.
+  -- Group what was found, keeping the order the units were met in. The element's **coalition** comes
+  -- from the first of those units, as it always has — every unit of a group shares it. Its
+  -- **position** does not: see veafCombatZone.referencePositionOf, which anchors on the group's unit 1
+  -- whether or not the zone could see it.
   local groupsByName = {}
   local groupOrder = {}
   for _, unit in pairs(units) do

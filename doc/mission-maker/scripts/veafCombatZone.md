@@ -264,6 +264,14 @@ Un groupe dispersé n'apparaît plus sur son premier point de passage, et c'est 
 
 Avant la 6.15.20, le premier point restait à la position d'éditeur : un convoi dispersé revenait d'abord le chercher, en parcourant une patte que personne n'avait dessinée. Visible surtout depuis la 6.15.15, qui a rendu la dispersion de 50 m effective.
 
+#### Un groupe à cheval sur le bord de la zone {#group-straddling-the-edge}
+
+Un groupe est pris en charge par la zone dès qu'**une seule** de ses unités se trouve dans le cercle : il est alors détruit et recréé en entier, les unités restées dehors comprises. C'est voulu, et ça évite d'avoir à cadrer une zone au mètre près autour d'un convoi.
+
+Ce qui posait problème, c'est que la zone s'ancrait sur la **première unité qu'elle voyait**, donc sur la deuxième du groupe quand la première était hors du cercle. Le groupe entier apparaissait alors décalé de l'écart entre ces deux unités — la longueur d'un camion pour un convoi — sans dispersion demandée et même avec `#spawnradius=0`.
+
+Depuis la 6.15.21, l'ancrage est toujours la **première unité du groupe**, qu'elle soit dans le cercle ou non. Un groupe à cheval sur le bord apparaît donc à l'endroit où vous l'avez dessiné. Si vous aviez compensé ce décalage à la main en déplaçant vos unités, retirez la compensation.
+
 ### Où les tags sont lus {#tag-sources}
 
 Les tags d'un groupe sont ceux portés par **son propre nom et par les noms de toutes ses unités**. Taguer un seul camion d'un convoi suffit donc, quel que soit le camion — inutile de taguer les quatre, et inutile de deviner lequel DCS traitera en premier.

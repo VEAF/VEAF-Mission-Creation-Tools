@@ -2253,4 +2253,123 @@ function TestVeafCombatZoneSpawnRouteOffset:test_the_neighbouring_vars_are_untou
   luaunit.assertTrue(self.vars.renameUnitsSequentially)
 end
 
+-- ============================================================================
+-- FIX-COMBATZONE-SPAWN-REFERENCE-UNIT — the group's position came from the wrong unit
+--
+-- A zone's element took its position from the first unit the zone *met*, while MiST measures the
+-- teleport delta against the mission table's **unit 1** (`diff = newCoord - newGroupData.units[1]`,
+-- mist.lua:4470) and applies it to every unit. When those are not the same unit, the delta carries
+-- the group's own intra-group spacing and the whole group is translated by it.
+--
+-- The trigger is not a `pairs()` lottery — `mist.getUnitsInZones` and `veaf.getUnitsNamesOfCoalition`
+-- both preserve order. It is the **filtering**: getUnitsInZones only returns units inside the zone, so
+-- a group straddling the zone boundary with its unit 1 outside hands over unit 2 as "the first one".
+-- ============================================================================
+TestVeafCombatZoneReferenceUnit = {}
+
+--- A unit stub with just what buildGroupElement reads off it.
+local function refUnit(name, x, z)
+  return {
+    getName = function()
+      return name
+    end,
+    getCoalition = function()
+      return coalition.side.RED
+    end,
+    getPosition = function()
+      return { p = { x = x, y = 42, z = z } }
+    end,
+  }
+end
+
+function TestVeafCombatZoneReferenceUnit:setUp()
+  self.unit1 = refUnit("ALPHA-CONVOY-1", 1000, 2000)
+  self.unit2 = refUnit("ALPHA-CONVOY-2", 1030, 2000) -- 30 m down the road, as a convoy is
+  self.group = {
+    name = "ALPHA-CONVOY",
+    isStatic = false,
+    units = { self.unit1, self.unit2 },
+    unitNames = { "ALPHA-CONVOY-1", "ALPHA-CONVOY-2" },
+  }
+  self._getByName = Group.getByName
+  local this = self
+  Group.getByName = function(name)
+    if name ~= "ALPHA-CONVOY" then
+      return nil
+    end
+    return {
+      getUnit = function(_, index)
+        return this.group.units[index]
+      end,
+    }
+  end
+end
+
+function TestVeafCombatZoneReferenceUnit:tearDown()
+  Group.getByName = self._getByName
+end
+
+-- The defect. The zone met unit 2 first because unit 1 sits outside the trigger zone; the element must
+-- still be anchored on unit 1, the unit MiST will subtract.
+function TestVeafCombatZoneReferenceUnit:test_the_position_comes_from_unit_1_not_the_first_unit_met()
+  local element = veafCombatZone.buildGroupElement(self.unit2, self.group, {})
+  luaunit.assertEquals(element:getPosition().x, 1000, "anchored on unit 1, not on the first unit met")
+  luaunit.assertEquals(element:getPosition().z, 2000)
+end
+
+-- The nominal case must not move: when the zone did meet unit 1 first, nothing changes.
+function TestVeafCombatZoneReferenceUnit:test_the_nominal_case_is_unchanged()
+  local element = veafCombatZone.buildGroupElement(self.unit1, self.group, {})
+  luaunit.assertEquals(element:getPosition().x, 1000)
+  luaunit.assertEquals(element:getPosition().z, 2000)
+end
+
+-- A group DCS cannot hand back falls back on the unit the caller passed, rather than losing its
+-- position: a zone with no position spawns at nil, which is worse than spawning 30 m off.
+function TestVeafCombatZoneReferenceUnit:test_an_unknown_group_falls_back_on_the_unit_passed()
+  Group.getByName = function()
+    return nil
+  end
+  local element = veafCombatZone.buildGroupElement(self.unit2, self.group, {})
+  luaunit.assertEquals(element:getPosition().x, 1030)
+end
+
+-- Same for a group that exists but hands back no unit 1.
+function TestVeafCombatZoneReferenceUnit:test_a_group_with_no_first_unit_falls_back_too()
+  Group.getByName = function()
+    return {
+      getUnit = function()
+        return nil
+      end,
+    }
+  end
+  local element = veafCombatZone.buildGroupElement(self.unit2, self.group, {})
+  luaunit.assertEquals(element:getPosition().x, 1030)
+end
+
+-- A static is its own group of one, so there is no reference unit to look up and no Group to ask.
+-- It must keep taking the position it was handed.
+function TestVeafCombatZoneReferenceUnit:test_a_static_keeps_the_position_it_was_handed()
+  local staticGroup = { name = "ALPHA-DEPOT", isStatic = true, units = { self.unit2 }, unitNames = { "ALPHA-DEPOT" } }
+  local element = veafCombatZone.buildGroupElement(self.unit2, staticGroup, {})
+  luaunit.assertEquals(element:getPosition().x, 1030)
+  luaunit.assertTrue(element:isDcsStatic())
+end
+
+-- The altitude comes along with the position it was read from, whichever unit that was.
+function TestVeafCombatZoneReferenceUnit:test_the_altitude_travels_with_the_position()
+  local element = veafCombatZone.buildGroupElement(self.unit2, self.group, {})
+  luaunit.assertEquals(element:getPosition().y, 42)
+end
+
+-- Everything else buildGroupElement does must be untouched by the position change.
+function TestVeafCombatZoneReferenceUnit:test_the_rest_of_the_element_is_unchanged()
+  local element = veafCombatZone.buildGroupElement(self.unit2, self.group, {})
+  luaunit.assertEquals(element:getName(), "ALPHA-CONVOY")
+  luaunit.assertEquals(element:getCoalition(), coalition.side.RED)
+  luaunit.assertTrue(element:isDcsGroup())
+  luaunit.assertEquals(element:getSpawnRadius(), veafCombatZone.DefaultSpawnRadiusForUnits)
+  luaunit.assertEquals(element:getSpawnGroup(), "ALPHA-CONVOY")
+end
+
 os.exit(luaunit.LuaUnit.run())

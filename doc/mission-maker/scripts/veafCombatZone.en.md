@@ -263,6 +263,14 @@ A scattered group no longer appears on its first waypoint, and the first waypoin
 
 Before 6.15.20 the first waypoint stayed at the editor position, so a scattered convoy drove back to fetch it first, walking a leg nobody had drawn. Mostly visible since 6.15.15, which made the 50 m dispersion effective.
 
+#### A group straddling the zone's edge {#group-straddling-the-edge}
+
+A zone adopts a group as soon as **one** of its units stands inside the circle: the whole group is then destroyed and recreated, units left outside included. That is deliberate, and it spares you having to frame a zone to the metre around a convoy.
+
+What went wrong is that the zone anchored itself on **the first unit it could see** — so on the group's second unit whenever the first sat outside the circle. The entire group then appeared offset by the gap between those two units, a truck-length for a convoy, with no dispersion asked for and even with `#spawnradius=0`.
+
+Since 6.15.21 the anchor is always the group's **first unit**, inside the circle or not. A group straddling the edge therefore appears where you drew it. If you had compensated for the offset by hand by moving your units, remove the compensation.
+
 ### Where tags are read from {#tag-sources}
 
 A group's tags are the ones carried by **its own name and by the names of all its units**. Tagging a single truck of a convoy is therefore enough, whichever truck it is — no need to tag all four, and no need to guess which one DCS will process first.

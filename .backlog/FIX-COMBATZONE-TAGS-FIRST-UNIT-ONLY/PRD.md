@@ -1,6 +1,9 @@
 # FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY — a unit-name tag counts only on the first unit met
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
+
+Written, unit-tested and shipped in 6.15.14. Waiting on one in-game look at `verify-mission-a`, which
+needs DCS started — see [DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).
 
 Origin: found on 2026-08-19 while adding `#alarm=` in `FIX-COMBATZONE-CONVOY-ALARM`, and opened at
 David's request. Affects **all seven** combat-zone tags, not the new one.
@@ -45,7 +48,33 @@ can carry special tags"* (`doc/mission-maker/scripts/veafCombatZone.md:212`), bu
 ever reads `unitName`. A tag on the group name is silently ignored. So the doc promises two things
 that are not true — group names, and any unit of the group.
 
-## What this lot has to decide
+## Tickets
+
+| # | Ticket | Status |
+|---|--------|--------|
+| 01 | [A group's tags are read off every name that carries them](tickets/01-read-the-tags-off-every-name.md) | ✅ |
+| 02 | [Two units disagreeing about a tag is reported, not tossed](tickets/02-a-conflict-is-reported-not-tossed.md) | ✅ |
+| 03 | [Make the documentation's group-name promise true, and stop the verification mission dodging the case](tickets/03-make-the-doc-true-and-retag-the-mission.md) | ✅ |
+
+## The decision taken
+
+**Read every name.** The alternative — one unit only, but deterministic and documented — was rejected
+because "the group's first unit as DCS orders them" is not visible in the mission editor, so it
+documents the lottery rather than removing it, for the same implementation cost.
+
+> A group's tags are the tags carried by its own name and by the names of all its units. Sources are read
+> group name first, then unit names in **alphabetical** order, and the first value found for a tag wins.
+> A later source stating a different value is ignored with a warning.
+
+Alphabetical, not encounter order: the encounter order *is* `pairs()`, so tie-breaking on it would
+reinstate the coin toss.
+
+`#command` is excluded from the merge and keeps its current rule — it is a one-shot trigger attached to an
+object, not a setting of the group, and merging it would silently drop the second command of a group
+carrying two. A `#command` on a **group** name now makes that group one single trigger, which honours the
+documentation's claim without duplicating the command per unit.
+
+## What this lot had to decide
 
 - **Which names are read.** The obvious shape: gather the tags from *every* unit of the group **and**
   from the group name, so any of them works. Then a conflict rule is needed — two units of one group
@@ -57,13 +86,29 @@ that are not true — group names, and any unit of the group.
   unit, and here is the tie-break".
 - Either way the doc's "and group names" claim gets made true or removed.
 
+## Two things the implementation turned up
+
+**The verification mission could not have shown the fix, even re-tagged.** `SmokeZone-SmokeArmor` had a
+single waypoint, so `FIX-COMBATZONE-ALARM-BY-NATURE` already gives it RED by default and `#alarm=2` was
+indistinguishable from no tag at all. Moving the tag to one Abrams would have proved nothing. The group
+was given a **second waypoint**, which makes its nature-based default AUTO — so RED can now only come
+from the tag, and "the tanks stay put" is a real verdict.
+
+**The 50 m default spawn dispersion has been dead since 2023.** An element starts at `spawnRadius = 0`
+and the guard applying the per-category default reads `if not element:getSpawnRadius()`, which is false
+for 0 in Lua. `DefaultSpawnRadiusForUnits = 50` is unreachable and every group a combat zone spawns
+appears exactly on its recorded position. Out of scope here — the fix is one line but it moves every
+existing mission's zone groups — so it is filed as
+[FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT](../FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT/PRD.md), and the
+Lua test pins today's behaviour with a pointer to that lot.
+
 ## Definition of done
 
-- [ ] A tag on any unit of a multi-unit group takes effect — or the rule is deterministic, documented
+- [x] A tag on any unit of a multi-unit group takes effect — or the rule is deterministic, documented
       and the doc's group-name claim corrected
-- [ ] Conflicting tags within one group produce a warning rather than a coin toss
-- [ ] Lua tests covering a two-unit group tagged on the second unit, and a tag conflict
-- [ ] Applies to all seven tags (`#command`, `#spawngroup`, `#spawnradius`, `#spawncount`,
+- [x] Conflicting tags within one group produce a warning rather than a coin toss
+- [x] Lua tests covering a two-unit group tagged on the second unit, and a tag conflict
+- [x] Applies to all seven tags (`#command`, `#spawngroup`, `#spawnradius`, `#spawncount`,
       `#spawnchance`, `#spawndelay`, `#alarm`), not just the one that surfaced it
-- [ ] `verify-mission-a` re-tagged on a single Abrams once fixed, so the mission proves the case
-      instead of dodging it
+- [x] `verify-mission-a` re-tagged on a single Abrams, and given a route so the tag is observable
+- [ ] Looked at in game: activate `SmokeZone` and the two Abrams must stay put

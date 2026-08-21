@@ -192,7 +192,7 @@ Cette approche vous donne une conception entièrement visuelle dans l'éditeur t
 
 1. **Créez une trigger zone** — définissez la zone de combat. Nommez-la, par exemple `ZONE-ALPHA`.
 2. **Placez des groupes d'unités** à l'intérieur de la zone. Mettez-les dans n'importe quelle coalition — VEAF gère leur cycle de vie.
-3. **Utilisez les tags de nom d'unité** (voir ci-dessous) pour personnaliser le comportement d'apparition par groupe.
+3. **Utilisez les tags de nom d'unité ou de groupe** (voir ci-dessous) pour personnaliser le comportement d'apparition par groupe.
 4. **Enregistrez la zone** dans `mission-script.lua` :
 
 ```lua
@@ -207,7 +207,7 @@ VeafCombatZone:new()
 
 ---
 
-## Tags de nom d'unité
+## Tags de nom d'unité et de groupe
 
 Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter des tags spéciaux qui contrôlent la façon dont VEAF les traite à l'activation de la zone. Les tags sont intégrés dans le nom et n'affectent pas DCS lui-même.
 
@@ -220,6 +220,23 @@ Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter d
 | `#spawndelay=N` | `#spawndelay=120` | Délai en secondes avant l'apparition de ce groupe après l'activation de la zone |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Exécute une commande VEAF au lieu de faire apparaître ce groupe ; l'unité sert de déclencheur et est détruite |
 | `#alarm=N` | `#alarm=2` | État d'alerte donné à ce groupe : `0` AUTO, `1` VERT, `2` ROUGE. Sans ce tag, l'état dépend de la nature du groupe — voir [`#alarm`](#alarm-state) |
+
+### Où les tags sont lus {#tag-sources}
+
+Les tags d'un groupe sont ceux portés par **son propre nom et par les noms de toutes ses unités**. Taguer un seul camion d'un convoi suffit donc, quel que soit le camion — inutile de taguer les quatre, et inutile de deviner lequel DCS traitera en premier.
+
+Les sources sont lues dans un ordre fixe :
+
+1. le nom du **groupe** ;
+2. les noms des **unités**, par ordre **alphabétique**.
+
+La première valeur trouvée pour un tag l'emporte. Si une source suivante annonce une valeur *différente* pour le même tag, elle est ignorée et le log l'écrit — deux camions du même convoi portant `#alarm=0` et `#alarm=2` ne tirent pas à la pièce, l'un gagne et vous êtes prévenu. Répéter la *même* valeur sur plusieurs unités ne produit aucun message : c'est la façon ordinaire de faire.
+
+!!! note "`#command` fait exception"
+    `#command` reste attaché à l'objet qui le porte : chaque unité qui en porte un devient un déclencheur distinct, ce qui permet à un groupe de transporter plusieurs commandes. Posé sur le nom du **groupe**, il fait de ce groupe un **unique** déclencheur, pas un par unité.
+
+!!! warning "Avant la 6.15.14"
+    Seuls les tags portés par l'unité que le moteur rencontrait la première comptaient, et ceux posés sur un nom de groupe étaient ignorés en silence. L'ordre de rencontre n'étant pas garanti, un tag posé sur un camion donné fonctionnait ou non sans raison visible.
 
 ### `#alarm` — faire tenir sa position à un groupe {#alarm-state}
 

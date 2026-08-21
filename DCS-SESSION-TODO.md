@@ -336,6 +336,33 @@ In a combat zone holding **both** a SAM battery and a convoy, activate the zone:
 Worth knowing while looking: this is **not** Tripack's report. He saw silent zone SAMs on 6.15.2, which
 predates the AUTO default entirely, so his case is still unexplained and this check does not close it.
 
+## 17. A tag on one unit of a group — `verify-mission-a`, and it is cheap
+
+[`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY/PRD.md), 6.15.14.
+Same mission as item 14, so it costs nothing extra once that one is loaded. **Not blocked by the SAM
+problem** — nothing here needs anything to fire.
+
+`SmokeZone-SmokeArmor` is two M-1 Abrams with a two-point route, and only the **second** unit carries
+`#alarm=2`:
+
+```
+SmokeZone-SmokeArmor Unit #001
+SmokeZone-SmokeArmor Unit #002 #alarm=2
+```
+
+Activate `SmokeZone` from the F10 menu and watch those two tanks for 60 seconds:
+
+- **they stay put** → the tag on unit #002 reached the group. Fix confirmed.
+- **they drive off** towards `(-30220, 407386)` → the tag was ignored and the group fell back to AUTO.
+
+Why the route was added on 2026-08-21, since it changes what the mission holds: with a single waypoint
+the group counts as static, so `FIX-COMBATZONE-ALARM-BY-NATURE` already gives it RED and `#alarm=2` was
+indistinguishable from no tag. Both Abrams were tagged before, too, which dodged the very defect the
+check was supposed to expose. Now the default is AUTO and RED can only come from the tag.
+
+While there, `SmokeZone-ConvoyBlue` (3 M 818) still has no tag and must still drive — that is item 2 of
+the mission's own README and the regression to watch.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

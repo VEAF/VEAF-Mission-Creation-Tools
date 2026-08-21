@@ -68,6 +68,25 @@ veafCombatZone.DefaultAlarmState = veafCombatZone.ALARM_STATE_RED
 -- so the tests exercise the same pattern the parser uses.
 veafCombatZone.ALARM_TAG_PATTERN = "#alarm%s*=%s*(%d+)"
 
+-- Every tag a mission maker can embed in a unit or group name, as a table rather than seven inline
+-- literals: anything working on "all the tags" cannot then silently miss one.
+-- Names are lowercased before matching, so a quoted value comes back lowercased too — long-standing
+-- behaviour that `#command` aliases and `#spawngroup` names rely on.
+veafCombatZone.TAG_PATTERNS = {
+  spawnRadius = "#spawnradius%s*=%s*(%d+)",
+  spawnChance = "#spawnchance%s*=%s*(%d+)",
+  spawnCount = "#spawncount%s*=%s*(%d+)",
+  spawnGroup = '#spawngroup%s*=%s*"([^"]+)"',
+  spawnDelay = "#spawndelay%s*=%s*(%d+)",
+  command = '#command%s*=%s*"([^"]+)"',
+  alarmState = veafCombatZone.ALARM_TAG_PATTERN,
+}
+
+-- The tags that describe the *group*, and are therefore collected from every name carrying one.
+-- `command` is absent on purpose: it turns one object into a one-shot trigger, so merging it would
+-- silently drop the second command of a group carrying two.
+veafCombatZone.MERGED_TAGS = { "spawnRadius", "spawnChance", "spawnCount", "spawnGroup", "spawnDelay", "alarmState" }
+
 -- Coalition a zone considers hostile unless told otherwise: red, i.e. blue players
 -- clearing a red zone. Set per zone with VeafCombatZone:setEnemyCoalition().
 veafCombatZone.DEFAULT_ENEMY_COALITION = 1
@@ -118,6 +137,101 @@ veafCombatZone.radioGroupsDict = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local messageSeparator = "\n=====================================================\n"
+
+--- Read the tags embedded in one unit or group name.
+--- @param name unit or group name as typed in the mission editor; nil is tolerated
+--- @return table mapping tag key (see veafCombatZone.TAG_PATTERNS) to its raw string value; empty
+---         when the name carries no tag at all
+function veafCombatZone.parseTags(name)
+  local tags = {}
+  if not name then
+    return tags
+  end
+  local lowered = name:lower()
+  for key, pattern in pairs(veafCombatZone.TAG_PATTERNS) do
+    local _, _, value = lowered:find(pattern)
+    if value then
+      tags[key] = value
+    end
+  end
+  return tags
+end
+
+--- Collect a group's tags from its own name and from the names of all its units.
+---
+--- Sources are read in a fixed order — the group name first, then the unit names in **alphabetical**
+--- order — and the first value found for a tag wins; a later source stating a different value is
+--- ignored with a warning. Alphabetical rather than the order the units were met in: that order is
+--- `mist.getUnitsInZones` followed by `pairs()`, so tie-breaking on it would be the coin toss this
+--- replaces, and it is not something a mission maker can see in the mission editor.
+---
+--- @param groupName name of the group; a static object is its own group
+--- @param unitNames names of the group's units, in any order
+--- @return table of tag key to raw string value, `command` excluded (see veafCombatZone.MERGED_TAGS)
+function veafCombatZone.collectTags(groupName, unitNames)
+  local sources = {}
+  if groupName then
+    table.insert(sources, groupName)
+  end
+  local sortedUnitNames = {}
+  for _, unitName in pairs(unitNames or {}) do
+    if unitName ~= groupName then -- a static object's unit name *is* its group name; read it once
+      table.insert(sortedUnitNames, unitName)
+    end
+  end
+  table.sort(sortedUnitNames)
+  for _, unitName in ipairs(sortedUnitNames) do
+    table.insert(sources, unitName)
+  end
+
+  local tags = {}
+  local statedBy = {}
+  local sawAlarmTag = false
+  for _, source in ipairs(sources) do
+    local parsed = veafCombatZone.parseTags(source)
+    sawAlarmTag = sawAlarmTag or source:lower():find("#alarm", 1, true) ~= nil
+    for _, key in ipairs(veafCombatZone.MERGED_TAGS) do
+      local value = parsed[key]
+      if value then
+        if tags[key] == nil then
+          tags[key] = value
+          statedBy[key] = source
+        elseif tags[key] ~= value then
+          veaf.loggers.get(veafCombatZone.Id):warn(
+            "group [%s]: [%s] sets %s to [%s] while [%s] already set it to [%s]; keeping [%s]",
+            veaf.p(groupName),
+            veaf.p(source),
+            key,
+            veaf.p(value),
+            veaf.p(statedBy[key]),
+            veaf.p(tags[key]),
+            veaf.p(tags[key])
+          )
+        end
+      end
+    end
+  end
+
+  if not tags.alarmState and sawAlarmTag then
+    -- the tag is there but no source produced a number out of it (`#alarm=`, `#alarm=x`, `#alarm=-1`):
+    -- without this the group silently keeps the default and the typo is invisible
+    veaf.loggers
+      .get(veafCombatZone.Id)
+      :warn("group [%s] carries an unreadable #alarm tag; expected #alarm=0, #alarm=1 or #alarm=2", veaf.p(groupName))
+  end
+  return tags
+end
+
+--- The group an object found in a trigger zone belongs to.
+--- @param unit DCS unit, static object or cargo
+--- @return string group name, and true when the object is a static (which is its own group)
+function veafCombatZone.getGroupNameOfUnit(unit)
+  local objectCategory = Object.getCategory(unit)
+  if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
+    return unit:getName(), true
+  end
+  return unit:getGroup():getName(), false
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatZoneElement object
@@ -341,6 +455,80 @@ end
 ---
 --- other methods
 ---
+
+--- Apply a group's collected tags to one of its zone elements.
+--- Only the tags actually stated are applied, so an element keeps its own defaults otherwise.
+local function applyCollectedTags(element, tags)
+  if tags.spawnRadius then
+    element:setSpawnRadius(tags.spawnRadius)
+  end
+  if tags.spawnChance then
+    element:setSpawnChance(tags.spawnChance)
+  end
+  if tags.spawnCount then
+    element:setSpawnCount(tags.spawnCount)
+  end
+  if tags.spawnGroup then
+    element:setSpawnGroup(tags.spawnGroup)
+  end
+  if tags.spawnDelay then
+    element:setSpawnDelay(tags.spawnDelay)
+  end
+  if tags.alarmState then
+    element:setAlarmState(tags.alarmState)
+  end
+end
+
+--- Build the zone element of a `#command` object: a one-shot trigger running a VEAF command at the
+--- object's position. The zone name is appended to the command so the interpreter can attribute what
+--- it spawns back to the zone.
+--- @param unit the object carrying the command
+--- @param group the group it belongs to, as built by VeafCombatZone:initialize
+--- @param tags the group's collected tags
+--- @param command the raw command read out of the name
+--- @param combatZoneName name of the combat zone, appended to the command
+--- @return VeafCombatZoneElement
+function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZoneName)
+  local element = VeafCombatZoneElement:new()
+  element:setCoalition(unit:getCoalition())
+  element:setPosition(unit:getPosition().p)
+  element:setName(group.name)
+  applyCollectedTags(element, tags)
+  element:setVeafCommand(command .. ", czName " .. combatZoneName)
+  element:setRoute(mist.getGroupRoute(group.name, "task"))
+  if not element:getSpawnGroup() then
+    element:setSpawnGroup(group.name) -- default the spawn group to the group name
+  end
+  return element
+end
+
+--- Build the zone element of a group the zone spawns itself.
+--- @param unit the group's first unit, which gives the element its position and coalition
+--- @param group the group, as built by VeafCombatZone:initialize
+--- @param tags the group's collected tags
+--- @return VeafCombatZoneElement
+function veafCombatZone.buildGroupElement(unit, group, tags)
+  local element = VeafCombatZoneElement:new()
+  element:setCoalition(unit:getCoalition())
+  element:setPosition(unit:getPosition().p)
+  element:setName(group.name)
+  applyCollectedTags(element, tags)
+  if group.isStatic then
+    element:setDcsStatic(true)
+    if not element:getSpawnRadius() then
+      element:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForStatics)
+    end
+  else
+    element:setDcsGroup(true)
+    if not element:getSpawnRadius() then
+      element:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForUnits)
+    end
+  end
+  if not element:getSpawnGroup() then
+    element:setSpawnGroup(group.name) -- default the spawn group to the group name
+  end
+  return element
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatZone object
@@ -881,103 +1069,49 @@ function VeafCombatZone:initialize()
   local units
   units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
 
-  -- process special commands in the units
-  local alreadyAddedGroups = {}
+  -- Group what was found, keeping the order the units were met in: a group's element takes its
+  -- position and coalition from the first of its units, as it always has.
+  local groupsByName = {}
+  local groupOrder = {}
   for _, unit in pairs(units) do
-    local zoneElement = VeafCombatZoneElement:new()
-    zoneElement:setCoalition(unit:getCoalition())
-    local unitName = unit:getName()
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing unit [%s] of coalition [%d]", unitName, unit:getCoalition()))
-    zoneElement:setPosition(unit:getPosition().p)
-    local spawnRadius, command, spawnChance, spawnGroup, spawnCount, spawnDelay, alarmState
-    _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
-    _, _, command = unitName:lower():find('#command%s*=%s*"([^"]+)"')
-    _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
-    _, _, spawnGroup = unitName:lower():find('#spawngroup%s*=%s*"([^"]+)"')
-    _, _, spawnCount = unitName:lower():find("#spawncount%s*=%s*(%d+)")
-    _, _, spawnDelay = unitName:lower():find("#spawndelay%s*=%s*(%d+)")
-    _, _, alarmState = unitName:lower():find(veafCombatZone.ALARM_TAG_PATTERN)
-    if spawnRadius then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnRadius = [%d]", spawnRadius))
-      zoneElement:setSpawnRadius(spawnRadius)
+    local groupName, isStatic = veafCombatZone.getGroupNameOfUnit(unit)
+    local group = groupsByName[groupName]
+    if not group then
+      group = { name = groupName, isStatic = isStatic, units = {}, unitNames = {} }
+      groupsByName[groupName] = group
+      table.insert(groupOrder, groupName)
     end
-    if spawnChance then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnChance = [%d]", spawnChance))
-      zoneElement:setSpawnChance(spawnChance)
-    end
-    if spawnCount then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d]", spawnCount))
-      zoneElement:setSpawnCount(spawnCount)
-    end
-    if spawnGroup then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnGroup = [%s]", spawnGroup))
-      zoneElement:setSpawnGroup(spawnGroup)
-    end
-    if spawnDelay then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnDelay = [%s]", spawnDelay))
-      zoneElement:setSpawnDelay(spawnDelay)
-    end
-    if alarmState then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("alarmState = [%s]", alarmState))
-      zoneElement:setAlarmState(alarmState)
-    elseif unitName:lower():find("#alarm", 1, true) then
-      -- the tag is there but the pattern read no number out of it (`#alarm=`, `#alarm=x`, `#alarm=-1`):
-      -- without this the unit silently keeps the default and the typo is invisible
-      veaf.loggers
-        .get(veafCombatZone.Id)
-        :warn("unit [%s] carries an unreadable #alarm tag; expected #alarm=0, #alarm=1 or #alarm=2", veaf.p(unitName))
-    end
-    if command then
-      -- it's a fake unit transporting a VEAF command
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("command = [%s]", command))
-      command = command .. ", czName " .. self:getMissionEditorZoneName() -- add the combat zone name to the command
-      zoneElement:setVeafCommand(command)
-      local groupName = unit:getGroup():getName()
-      zoneElement:setName(groupName)
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = [%s]", groupName))
-      local route = mist.getGroupRoute(groupName, "task")
-      zoneElement:setRoute(route)
-      if not zoneElement:getSpawnGroup() then
-        zoneElement:setSpawnGroup(groupName)
-      end -- default the spawn group to the group name in case there is no spawn group  defined
-    else
-      -- it's a group or a static unit
-      local groupName = nil
-      local objectCategory = Object.getCategory(unit)
-      veaf.loggers.get(veafCombatZone.Id):trace("objectCategory=%s", veaf.lp(objectCategory))
-      if objectCategory == 1 then
-        local unitCategory = Unit.getCategory(unit)
-        veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.lp(unitCategory))
-      end
-      if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
-        groupName = unitName -- default for static objects = groups themselves
-        zoneElement:setDcsStatic(true)
-        if not zoneElement:getSpawnRadius() then
-          zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForStatics)
-        end
-      else
-        groupName = unit:getGroup():getName()
-        zoneElement:setDcsGroup(true)
-        if not zoneElement:getSpawnRadius() then
-          zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForUnits)
-        end
-      end
-      if not zoneElement:getSpawnGroup() then
-        zoneElement:setSpawnGroup(groupName)
-      end -- default the spawn group to the group name in case there is no spawn group  defined
-      if not alreadyAddedGroups[groupName] then
-        -- add a group element
-        veaf.loggers.get(veafCombatZone.Id):trace(string.format("adding group [%s]", groupName))
-        alreadyAddedGroups[groupName] = groupName
-        zoneElement:setName(groupName)
-      else
-        veaf.loggers.get(veafCombatZone.Id):trace(string.format("skipping group [%s]", groupName))
-        zoneElement = nil -- don't add this element, it's a group that has already been added
-      end
-    end
+    table.insert(group.units, unit)
+    table.insert(group.unitNames, unit:getName())
+  end
 
-    if zoneElement then
-      self:addZoneElement(zoneElement)
+  -- Build the zone elements, one per group plus one per `#command` object. A group's tags are
+  -- collected from every name that carries one, so a tag on the second truck of a convoy counts as
+  -- much as one on the first — which is what FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY was about.
+  for _, groupName in ipairs(groupOrder) do
+    local group = groupsByName[groupName]
+    local tags = veafCombatZone.collectTags(groupName, group.unitNames)
+    veaf.loggers.get(veafCombatZone.Id):trace("processing group [%s] (%s units)", veaf.p(groupName), veaf.p(#group.units))
+
+    local groupCommand = veafCombatZone.parseTags(groupName).command
+    if groupCommand then
+      -- the command is on the group's own name, so the group is one trigger and not one per unit
+      self:addZoneElement(veafCombatZone.buildCommandElement(group.units[1], group, tags, groupCommand, self:getMissionEditorZoneName()))
+    else
+      local plainUnits = {}
+      for _, unit in ipairs(group.units) do
+        local unitCommand = veafCombatZone.parseTags(unit:getName()).command
+        if unitCommand then
+          -- it's a fake unit transporting a VEAF command
+          self:addZoneElement(veafCombatZone.buildCommandElement(unit, group, tags, unitCommand, self:getMissionEditorZoneName()))
+        else
+          table.insert(plainUnits, unit)
+        end
+      end
+      if #plainUnits > 0 then
+        -- it's a group or a static unit
+        self:addZoneElement(veafCombatZone.buildGroupElement(plainUnits[1], group, tags))
+      end
     end
   end
 
@@ -1659,17 +1793,8 @@ function VeafCombatZone:findUnitsInCombatZone()
   veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.lp(#units))
 
   for _, unit in pairs(units) do
-    local unitName = unit:getName()
-    local objectCategory = Object.getCategory(unit)
-    local groupName = nil
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing unit [%s]", unitName))
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("objectCategory = [%d]", objectCategory))
-    if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
-      groupName = unitName -- default for static objects = groups themselves
-    else
-      groupName = unit:getGroup():getName()
-    end
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = %s", groupName))
+    local groupName = veafCombatZone.getGroupNameOfUnit(unit)
+    veaf.loggers.get(veafCombatZone.Id):trace("processing unit [%s] of group [%s]", veaf.p(unit:getName()), veaf.p(groupName))
     if string.sub(groupName:upper(), 1, string.len(upperTriggerzoneName)) == upperTriggerzoneName then
       resultUnits[#resultUnits + 1] = unit
       if not alreadyAddedGroups[groupName] then

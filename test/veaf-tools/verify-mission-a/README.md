@@ -16,7 +16,8 @@ this verification sits there:
 
 | Object | Position | For |
 |--------|----------|-----|
-| `SmokeZone-ConvoyTest` — 3 BTR-80, red, route of two points | `(-32220, 405386)` → `(-30220, 407386)` | #290 |
+| `SmokeZone-ConvoyBlue` — 3 M 818, blue, route of two points | `(-32820, 405386)` → `(-30820, 407386)` | #290 |
+| `SmokeZone-SmokeArmor` — 2 M-1 Abrams, blue, route of two points, `#alarm=2` on unit #002 | `(-32220, 405386)` → `(-30220, 407386)` | the tag check below |
 | `StaticFarpAlpha` — a static FARP, blue | `(-30000, 404000)` | #232 |
 | `SmokeZone` trigger zone + client slot | inherited | both |
 
@@ -63,11 +64,37 @@ Place a marker next to the static FARP and type `-farp`.
 
 ### 2 · #290 — convoy movement
 
-Activate the combat zone from the F10 menu and watch the convoy for a full **60 seconds**.
+Activate the combat zone from the F10 menu and watch `SmokeZone-ConvoyBlue` for a full **60
+seconds** — the Abrams of check 3 are also mobile now, so name the group you are watching.
 
 - **Nothing moves** → confirmed. The watchdog David proposed on the issue is the likely fix.
 - **It drives** → try again after a zone deactivation/reactivation cycle: the issue says *in certain
   conditions*, and a first activation may not be the failing case.
+
+### 3 · A tag on one unit of a group — `FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`
+
+`SmokeZone-SmokeArmor` is two M-1 Abrams, and **only the second one** carries the tag:
+
+```
+SmokeZone-SmokeArmor Unit #001
+SmokeZone-SmokeArmor Unit #002 #alarm=2
+```
+
+Both carried it until 2026-08-21, which made the check pass without proving anything: the tags of every
+unit of a group but the first were parsed and thrown away, so tagging both dodged the defect instead of
+exposing it. A group's tags are now collected from every name that carries one, and one tag is enough.
+
+**The group was also given a second waypoint on 2026-08-21, and that is what makes the check
+readable.** With a single waypoint the group is *static*, so the nature-based default is already RED
+(`FIX-COMBATZONE-ALARM-BY-NATURE`) and `#alarm=2` was indistinguishable from no tag at all — nothing
+observable turned on it. With a route the default becomes AUTO, and RED has to come from the tag:
+
+| What the tanks do | What it means |
+|---|---|
+| they **stay put** | the tag on unit #002 reached the group — collection works |
+| they **drive off** towards `(-30220, 407386)` | the tag was ignored, the group fell back to AUTO |
+
+Activate the zone from the F10 menu and watch for 60 seconds, as for check 2.
 
 ## Recording the outcome
 

@@ -7,6 +7,41 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.14] — 2026-08-21
+
+### Fixed
+
+- **A combat-zone tag now counts wherever it is written.** `#alarm=`, `#spawnradius=`, `#spawnchance=`,
+  `#spawncount=`, `#spawngroup=` and `#spawndelay=` were read off every unit of a group, applied to a
+  zone element, and then thrown away for every unit but the one the engine happened to meet first. That
+  order comes from `mist.getUnitsInZones` followed by `pairs()`, so it is not the mission editor's order
+  and is not promised at all: tagging one truck of a convoy worked or did not work for no visible
+  reason. A tag written on a **group** name — which the documentation has always offered — was never
+  read.
+
+  A group's tags are now collected from **its own name and from the names of all its units**. Sources
+  are read group name first, then unit names in alphabetical order, and the first value found for a tag
+  wins. A later source stating a *different* value is ignored with a warning in the log, so two trucks
+  disagreeing no longer toss a coin; repeating the same value on several units stays silent, since that
+  is the ordinary way of tagging a convoy.
+
+  Alphabetical rather than the order the units were met in, deliberately: that order *is* `pairs()`, so
+  tie-breaking on it would have reinstated the very lottery this removes, and it is not something a
+  mission maker can see in the editor.
+
+  `#command` is left out of the merge and keeps its rule: it turns one object into a one-shot trigger,
+  not a setting of the group, so each unit carrying one is still its own trigger and a group can still
+  carry several commands. Written on a **group** name it now makes that group one single trigger, which
+  is what the documentation promised. The six settings tags do reach a `#command` element, so a
+  `#spawndelay=` on the group name now applies to a command unit that carries none.
+
+  The verification mission `verify-mission-a` was set up by tagging **both** M-1 Abrams to dodge this
+  defect, so its in-game pass proved nothing about the single-unit case. It now carries the tag on one
+  Abrams only, and the group was given a second waypoint so that `#alarm=2` is actually observable —
+  with a single waypoint the nature-based default was already RED and nothing turned on the tag.
+
+---
+
 ## [6.15.13] — 2026-08-20
 
 ### Fixed

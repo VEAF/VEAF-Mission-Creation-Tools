@@ -40,6 +40,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Abrams only, and the group was given a second waypoint so that `#alarm=2` is actually observable —
   with a single waypoint the nature-based default was already RED and nothing turned on the tag.
 
+### Changed
+
+- The Lua coverage floor moves from **73% to 74%**, the CI having measured 74.68% with this lot's tests
+  in. The ratchet only ever goes up.
+
 ---
 
 ## [6.15.13] — 2026-08-20

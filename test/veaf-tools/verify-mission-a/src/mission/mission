@@ -226,6 +226,26 @@ mission =
                       x = -32220,
                       y = 405386,
                     },
+                    [2] = {
+                      name = "",
+                      type = "Turning Point",
+                      task = {
+                        id = "ComboTask",
+                        params = {
+                          tasks = {},
+                        },
+                      },
+                      action = "Off Road",
+                      alt = 0,
+                      alt_type = "BARO",
+                      ETA = 0,
+                      ETA_locked = true,
+                      formation_template = "",
+                      speed = 5.5555555555556,
+                      speed_locked = true,
+                      x = -30220,
+                      y = 407386,
+                    },
                   },
                 },
                 start_time = 0,
@@ -234,7 +254,7 @@ mission =
                 units = {
                   [1] = {
                     unitId = 1,
-                    name = "SmokeZone-SmokeArmor Unit #001 #alarm=2",
+                    name = "SmokeZone-SmokeArmor Unit #001",
                     type = "M-1 Abrams",
                     skill = "Average",
                     coldAtStart = false,

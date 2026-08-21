@@ -1583,4 +1583,376 @@ function TestVeafCombatZoneAlarmByNature:test_an_explicit_green_is_honoured()
   luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_GREEN)
 end
 
+-- ============================================================================
+-- FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY
+--
+-- `initialize` read the seven tags off each unit's name, built an element, then threw the element away
+-- for every unit of a group but the first one the loop met — and that order comes from
+-- `mist.getUnitsInZones` followed by `pairs()`, which promises nothing. Tagging one truck of a convoy
+-- worked or did not work depending on an order the mission maker cannot see. A tag on a **group** name,
+-- which the documentation has always promised, was never read at all.
+--
+-- A group's tags are now collected from its own name and from all its unit names, group name first then
+-- unit names alphabetically, first value found winning and a later disagreement warned about.
+-- `#command` is deliberately left out of the merge: it is a one-shot trigger attached to an object, not
+-- a setting of the group.
+-- ============================================================================
+TestVeafCombatZoneTagCollection = {}
+
+-- Every settings tag, with a second value to conflict against. Enumerated rather than sampled: the
+-- defect hit all of them, so each assertion below runs over the whole family.
+local SETTINGS_TAGS = {
+  { key = "spawnRadius", tag = "#spawnradius=200", value = "200", other = "#spawnradius=300", otherValue = "300" },
+  { key = "spawnChance", tag = "#spawnchance=50", value = "50", other = "#spawnchance=75", otherValue = "75" },
+  { key = "spawnCount", tag = "#spawncount=3", value = "3", other = "#spawncount=4", otherValue = "4" },
+  { key = "spawnGroup", tag = '#spawngroup="sam"', value = "sam", other = '#spawngroup="convoy"', otherValue = "convoy" },
+  { key = "spawnDelay", tag = "#spawndelay=120", value = "120", other = "#spawndelay=60", otherValue = "60" },
+  { key = "alarmState", tag = "#alarm=2", value = "2", other = "#alarm=0", otherValue = "0" },
+}
+
+function TestVeafCombatZoneTagCollection:setUp()
+  self._logger = veaf.loggers.get(veafCombatZone.Id)
+  self._originalWarn = self._logger.warn
+  self:captureWarnings()
+end
+
+--- Point the logger's `warn` at a fresh list, and return it.
+function TestVeafCombatZoneTagCollection:captureWarnings()
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, { text = text, args = { ... } })
+  end
+  return self.warned
+end
+
+function TestVeafCombatZoneTagCollection:tearDown()
+  self._logger.warn = self._originalWarn
+end
+
+function TestVeafCombatZoneTagCollection:test_every_tag_has_a_pattern()
+  -- the seven tags the documentation lists, as a table, so a sweep over "all the tags" is enumerable
+  local everyTag = { "spawnRadius", "spawnChance", "spawnCount", "spawnGroup", "spawnDelay", "command", "alarmState" }
+  for _, key in ipairs(everyTag) do
+    luaunit.assertNotNil(veafCombatZone.TAG_PATTERNS[key], "no pattern for " .. key)
+  end
+end
+
+function TestVeafCombatZoneTagCollection:test_alarm_keeps_its_published_pattern()
+  -- ALARM_TAG_PATTERN is asserted on directly by other tests; the table must reuse it, not fork it
+  luaunit.assertEquals(veafCombatZone.TAG_PATTERNS.alarmState, veafCombatZone.ALARM_TAG_PATTERN)
+end
+
+function TestVeafCombatZoneTagCollection:test_parseTags_reads_every_tag_off_one_name()
+  local name = 'ALPHA-SAM #spawnradius=200 #spawnchance=50 #spawncount=3 #spawngroup="sam" #spawndelay=120 #alarm=2 #command="-spawn sa-11"'
+  local tags = veafCombatZone.parseTags(name)
+  luaunit.assertEquals(tags.spawnRadius, "200")
+  luaunit.assertEquals(tags.spawnChance, "50")
+  luaunit.assertEquals(tags.spawnCount, "3")
+  luaunit.assertEquals(tags.spawnGroup, "sam")
+  luaunit.assertEquals(tags.spawnDelay, "120")
+  luaunit.assertEquals(tags.alarmState, "2")
+  luaunit.assertEquals(tags.command, "-spawn sa-11")
+end
+
+function TestVeafCombatZoneTagCollection:test_parseTags_is_case_insensitive()
+  -- the name is lowercased before matching, which is what makes `#ALARM=2` work and also why a
+  -- `#command` value comes back lowercased — long-standing behaviour, pinned here on purpose
+  local tags = veafCombatZone.parseTags('ALPHA #SPAWNRADIUS=200 #COMMAND="-Spawn SA-11"')
+  luaunit.assertEquals(tags.spawnRadius, "200")
+  luaunit.assertEquals(tags.command, "-spawn sa-11")
+end
+
+function TestVeafCombatZoneTagCollection:test_parseTags_finds_nothing_in_a_plain_name()
+  luaunit.assertEquals(veafCombatZone.parseTags("ALPHA-CONVOY-1"), {})
+end
+
+function TestVeafCombatZoneTagCollection:test_parseTags_tolerates_no_name()
+  luaunit.assertEquals(veafCombatZone.parseTags(nil), {})
+end
+
+-- The defect itself, over the whole family: the tag is on the second unit of the group.
+function TestVeafCombatZoneTagCollection:test_a_tag_on_any_unit_of_the_group_counts()
+  for _, t in ipairs(SETTINGS_TAGS) do
+    local tags = veafCombatZone.collectTags("ALPHA-CONVOY", { "ALPHA-CONVOY-TRUCK-1", "ALPHA-CONVOY-TRUCK-2 " .. t.tag })
+    luaunit.assertEquals(tags[t.key], t.value, t.key .. " on the second unit")
+  end
+end
+
+-- The documentation's other promise: a tag on the group's own name.
+function TestVeafCombatZoneTagCollection:test_a_tag_on_the_group_name_counts()
+  for _, t in ipairs(SETTINGS_TAGS) do
+    local tags = veafCombatZone.collectTags("ALPHA-CONVOY " .. t.tag, { "ALPHA-CONVOY-TRUCK-1", "ALPHA-CONVOY-TRUCK-2" })
+    luaunit.assertEquals(tags[t.key], t.value, t.key .. " on the group name")
+  end
+end
+
+function TestVeafCombatZoneTagCollection:test_a_group_with_no_units_still_reads_its_own_name()
+  local tags = veafCombatZone.collectTags("ALPHA-STATIC #spawnradius=0", {})
+  luaunit.assertEquals(tags.spawnRadius, "0")
+end
+
+function TestVeafCombatZoneTagCollection:test_the_group_name_wins_over_a_unit()
+  for _, t in ipairs(SETTINGS_TAGS) do
+    local tags = veafCombatZone.collectTags("ALPHA-CONVOY " .. t.tag, { "ALPHA-CONVOY-TRUCK-1 " .. t.other })
+    luaunit.assertEquals(tags[t.key], t.value, t.key .. ": the group name is read first")
+  end
+end
+
+-- Alphabetical, not encounter order: encounter order *is* `pairs()`, so tie-breaking on it would
+-- reinstate the coin toss. The units are handed over in reverse on purpose.
+function TestVeafCombatZoneTagCollection:test_the_first_unit_alphabetically_wins()
+  for _, t in ipairs(SETTINGS_TAGS) do
+    local units = { "ALPHA-CONVOY-TRUCK-B " .. t.other, "ALPHA-CONVOY-TRUCK-A " .. t.tag }
+    local tags = veafCombatZone.collectTags("ALPHA-CONVOY", units)
+    luaunit.assertEquals(tags[t.key], t.value, t.key .. ": A comes before B whatever the order given")
+  end
+end
+
+function TestVeafCombatZoneTagCollection:test_a_disagreement_is_reported()
+  for _, t in ipairs(SETTINGS_TAGS) do
+    local warned = self:captureWarnings()
+    veafCombatZone.collectTags("ALPHA-CONVOY", { "ALPHA-CONVOY-TRUCK-A " .. t.tag, "ALPHA-CONVOY-TRUCK-B " .. t.other })
+    luaunit.assertEquals(#warned, 1, t.key .. ": a disagreement must be reported once")
+  end
+end
+
+function TestVeafCombatZoneTagCollection:test_units_repeating_the_same_value_are_silent()
+  -- tagging every truck of a convoy identically is the ordinary way of doing it; one log line per
+  -- truck would make the honest case noisy
+  for _, t in ipairs(SETTINGS_TAGS) do
+    local tags = veafCombatZone.collectTags("ALPHA-CONVOY", {
+      "ALPHA-CONVOY-TRUCK-A " .. t.tag,
+      "ALPHA-CONVOY-TRUCK-B " .. t.tag,
+      "ALPHA-CONVOY-TRUCK-C " .. t.tag,
+    })
+    luaunit.assertEquals(tags[t.key], t.value)
+  end
+  luaunit.assertEquals(#self.warned, 0)
+end
+
+function TestVeafCombatZoneTagCollection:test_command_is_not_merged()
+  -- a `#command` is a trigger attached to an object, not a setting of the group: merging it would
+  -- silently drop the second command of a group carrying two, which works today
+  local tags = veafCombatZone.collectTags("ALPHA-TRIGGER", { 'ALPHA-TRIGGER-1 #command="-spawn sa-11"' })
+  luaunit.assertNil(tags.command)
+  luaunit.assertEquals(#self.warned, 0)
+end
+
+-- Sourcery's review point on the first cut: `initialize` was parsing each name a second time just to
+-- read its `#command` back. The commands come out of the same pass now, keyed by the name that carried
+-- one, so a name is read exactly once and there is a single place that reads it.
+function TestVeafCombatZoneTagCollection:test_commands_come_back_keyed_by_their_source()
+  local _, commands = veafCombatZone.collectTags("ALPHA-PAIR", {
+    'ALPHA-PAIR-1 #command="-spawn sa-11"',
+    'ALPHA-PAIR-2 #command="-spawn sa-6"',
+    "ALPHA-PAIR-3",
+  })
+  luaunit.assertEquals(commands, {
+    ['ALPHA-PAIR-1 #command="-spawn sa-11"'] = "-spawn sa-11",
+    ['ALPHA-PAIR-2 #command="-spawn sa-6"'] = "-spawn sa-6",
+  })
+end
+
+function TestVeafCombatZoneTagCollection:test_a_command_on_the_group_name_comes_back_under_it()
+  local groupName = 'ALPHA-GRPCMD #command="-spawn sa-11"'
+  local _, commands = veafCombatZone.collectTags(groupName, { "ALPHA-GRPCMD-1" })
+  luaunit.assertEquals(commands[groupName], "-spawn sa-11")
+end
+
+function TestVeafCombatZoneTagCollection:test_no_command_means_an_empty_table_not_nil()
+  local _, commands = veafCombatZone.collectTags("ALPHA-CONVOY", { "ALPHA-CONVOY-1", "ALPHA-CONVOY-2" })
+  luaunit.assertEquals(commands, {})
+end
+
+function TestVeafCombatZoneTagCollection:test_an_unreadable_alarm_tag_is_still_reported()
+  -- FIX-COMBATZONE-CONVOY-ALARM's warning, moved to the collection step and keeping its meaning
+  for _, bad in ipairs({ "#alarm", "#alarm=", "#alarm=x", "#alarm=-1" }) do
+    local warned = self:captureWarnings()
+    local tags = veafCombatZone.collectTags("ALPHA-SAM", { "ALPHA-SAM-1 " .. bad })
+    luaunit.assertNil(tags.alarmState, bad)
+    luaunit.assertEquals(#warned, 1, bad .. " must be reported")
+  end
+end
+
+function TestVeafCombatZoneTagCollection:test_a_readable_alarm_elsewhere_in_the_group_silences_the_warning()
+  -- the point of collecting: one unit's typo is answered by another unit's readable tag
+  local tags = veafCombatZone.collectTags("ALPHA-SAM", { "ALPHA-SAM-1 #alarm=x", "ALPHA-SAM-2 #alarm=2" })
+  luaunit.assertEquals(tags.alarmState, "2")
+  luaunit.assertEquals(#self.warned, 0)
+end
+
+function TestVeafCombatZoneTagCollection:test_a_plain_group_produces_no_tags_and_no_noise()
+  luaunit.assertEquals(veafCombatZone.collectTags("ALPHA-CONVOY", { "ALPHA-CONVOY-1", "ALPHA-CONVOY-2" }), {})
+  luaunit.assertEquals(#self.warned, 0)
+end
+
+-- ============================================================================
+-- The same, end to end through `initialize` — the tests above prove the merge, these prove the merged
+-- tags actually reach the zone element instead of being discarded with it.
+-- ============================================================================
+TestVeafCombatZoneInitializeTags = {}
+
+--- A unit as `initialize` consumes one: a name, a coalition, a position and a group.
+local function fakeUnit(unitName, groupName)
+  return {
+    getName = function()
+      return unitName
+    end,
+    getCoalition = function()
+      return coalition.side.RED
+    end,
+    getPosition = function()
+      return { p = { x = 10, y = 0, z = 20 } }
+    end,
+    getGroup = function()
+      return {
+        getName = function()
+          return groupName
+        end,
+      }
+    end,
+  }
+end
+
+--- Build a zone holding exactly the units given, and initialize it.
+local function initializedZone(units)
+  local z = VeafCombatZone:new():setFriendlyName("Tag Zone"):setMissionEditorZoneName("TAGZONE")
+  local groupNames = {}
+  local seen = {}
+  for _, unit in ipairs(units) do
+    local groupName = unit:getGroup():getName()
+    if not seen[groupName] then
+      seen[groupName] = true
+      table.insert(groupNames, groupName)
+    end
+  end
+  z.findUnitsInCombatZone = function()
+    return { units, groupNames }
+  end
+  return z:initialize()
+end
+
+local function elementNamed(zone, name)
+  for _, element in pairs(zone:getZoneElements()) do
+    if element:getName() == name then
+      return element
+    end
+  end
+  return nil
+end
+
+local function commandsOf(zone)
+  local commands = {}
+  for _, element in pairs(zone:getZoneElements()) do
+    if element:getVeafCommand() then
+      commands[element:getVeafCommand()] = true
+    end
+  end
+  return commands
+end
+
+function TestVeafCombatZoneInitializeTags:setUp()
+  veaf.triggerZones["TAGZONE"] = { name = "TAGZONE", type = 0, radius = 1000, x = 0, y = 0 }
+  dcs_mocks.clearUnitsAndGroups()
+end
+
+function TestVeafCombatZoneInitializeTags:tearDown()
+  veaf.triggerZones["TAGZONE"] = nil
+  dcs_mocks.clearUnitsAndGroups()
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_tag_on_the_second_unit_reaches_the_element()
+  local z = initializedZone({
+    fakeUnit("TAGZONE-CONVOY-1", "TAGZONE-CONVOY"),
+    fakeUnit("TAGZONE-CONVOY-2 #alarm=2 #spawnchance=50", "TAGZONE-CONVOY"),
+  })
+  local element = elementNamed(z, "TAGZONE-CONVOY")
+  luaunit.assertNotNil(element, "the group must produce one element")
+  luaunit.assertEquals(element:getAlarmState(), 2)
+  luaunit.assertEquals(element:getSpawnChance(), 50)
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_tag_on_the_group_name_reaches_the_element()
+  local groupName = "TAGZONE-CONVOY #alarm=0 #spawnradius=300"
+  local z = initializedZone({ fakeUnit("TAGZONE-CONVOY-1", groupName), fakeUnit("TAGZONE-CONVOY-2", groupName) })
+  local element = elementNamed(z, groupName)
+  luaunit.assertNotNil(element)
+  luaunit.assertEquals(element:getAlarmState(), 0)
+  luaunit.assertEquals(element:getSpawnRadius(), 300)
+end
+
+function TestVeafCombatZoneInitializeTags:test_one_element_per_group_whatever_the_unit_count()
+  local z = initializedZone({
+    fakeUnit("TAGZONE-CONVOY-1", "TAGZONE-CONVOY"),
+    fakeUnit("TAGZONE-CONVOY-2", "TAGZONE-CONVOY"),
+    fakeUnit("TAGZONE-CONVOY-3", "TAGZONE-CONVOY"),
+  })
+  luaunit.assertEquals(#z:getZoneElements(), 1)
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_command_unit_still_gets_its_own_element()
+  local z = initializedZone({ fakeUnit('TAGZONE-TRIGGER #command="-spawn sa-11"', "TAGZONE-TRIGGER") })
+  luaunit.assertEquals(#z:getZoneElements(), 1)
+  luaunit.assertEquals(z:getZoneElements()[1]:getVeafCommand(), "-spawn sa-11, czName TAGZONE")
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_command_unit_and_a_plain_group_coexist()
+  -- long-standing behaviour: the command unit is its own element and the rest of the group is another
+  local z = initializedZone({
+    fakeUnit('TAGZONE-MIXED-1 #command="-spawn sa-11"', "TAGZONE-MIXED"),
+    fakeUnit("TAGZONE-MIXED-2", "TAGZONE-MIXED"),
+  })
+  luaunit.assertEquals(#z:getZoneElements(), 2)
+  luaunit.assertEquals(commandsOf(z), { ["-spawn sa-11, czName TAGZONE"] = true })
+end
+
+function TestVeafCombatZoneInitializeTags:test_two_command_units_in_one_group_keep_both_commands()
+  -- why `#command` is left out of the merge: merging would drop one of these silently
+  local z = initializedZone({
+    fakeUnit('TAGZONE-PAIR-1 #command="-spawn sa-11"', "TAGZONE-PAIR"),
+    fakeUnit('TAGZONE-PAIR-2 #command="-spawn sa-6"', "TAGZONE-PAIR"),
+  })
+  luaunit.assertEquals(commandsOf(z), {
+    ["-spawn sa-11, czName TAGZONE"] = true,
+    ["-spawn sa-6, czName TAGZONE"] = true,
+  })
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_command_on_the_group_name_makes_one_trigger()
+  -- the documentation's group-name promise, honoured without duplicating the command per unit
+  local groupName = 'TAGZONE-GRPCMD #command="-spawn sa-11"'
+  local z = initializedZone({ fakeUnit("TAGZONE-GRPCMD-1", groupName), fakeUnit("TAGZONE-GRPCMD-2", groupName) })
+  luaunit.assertEquals(#z:getZoneElements(), 1)
+  luaunit.assertEquals(z:getZoneElements()[1]:getVeafCommand(), "-spawn sa-11, czName TAGZONE")
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_settings_tag_on_the_group_reaches_a_command_element()
+  -- a consequence of collecting: the group's `#spawndelay` now reaches a `#command` unit that had none
+  local groupName = "TAGZONE-DELAYED #spawndelay=120"
+  local z = initializedZone({ fakeUnit('TAGZONE-DELAYED-1 #command="-spawn sa-11"', groupName) })
+  luaunit.assertEquals(z:getZoneElements()[1]:getSpawnDelay(), 120)
+end
+
+-- Pinning what the code does, which is **not** what `DefaultSpawnRadiusForUnits = 50` suggests: an
+-- element starts at `spawnRadius = 0` and `if not element:getSpawnRadius()` is never true, because 0
+-- is truthy in Lua. So the 50 m default has been unreachable since 2023-03-04 and every group of a
+-- combat zone spawns exactly on its recorded position. Found while writing these tests, out of scope
+-- here, filed as FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT — this assertion flips when that lot lands.
+function TestVeafCombatZoneInitializeTags:test_a_group_element_spawn_radius_is_left_at_zero()
+  local z = initializedZone({ fakeUnit("TAGZONE-PLAIN-1", "TAGZONE-PLAIN") })
+  luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnRadius(), 0)
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_tagged_spawn_radius_is_honoured()
+  -- and the tag path, which is the one that works, still does
+  local z = initializedZone({ fakeUnit("TAGZONE-PLAIN-1 #spawnradius=200", "TAGZONE-PLAIN") })
+  luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnRadius(), 200)
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_group_element_defaults_its_spawn_group_to_its_name()
+  local z = initializedZone({ fakeUnit("TAGZONE-PLAIN-1", "TAGZONE-PLAIN") })
+  luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnGroup(), "TAGZONE-PLAIN")
+end
+
 os.exit(luaunit.LuaUnit.run())

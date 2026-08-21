@@ -191,7 +191,7 @@ This approach gives you full visual design in the editor while keeping the zone 
 
 1. **Create a trigger zone** — define the combat area. Name it, e.g. `ZONE-ALPHA`.
 2. **Place unit groups** inside the zone. Set them to any coalition — VEAF will handle their lifecycle.
-3. **Use unit name tags** (see below) to customise spawn behaviour per group.
+3. **Use unit or group name tags** (see below) to customise spawn behaviour per group.
 4. **Register the zone** in `mission-script.lua`:
 
 ```lua
@@ -206,7 +206,7 @@ VeafCombatZone:new()
 
 ---
 
-## Unit Name Tags
+## Unit and Group Name Tags
 
 Unit and group names in the DCS Mission Editor can carry special tags that control how VEAF handles them when the zone activates. Tags are embedded in the name and do not affect DCS itself.
 
@@ -219,6 +219,23 @@ Unit and group names in the DCS Mission Editor can carry special tags that contr
 | `#spawndelay=N` | `#spawndelay=120` | Delay in seconds before this group spawns after zone activation |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Execute a VEAF command instead of spawning this group; the unit acts as a trigger and is destroyed |
 | `#alarm=N` | `#alarm=2` | Alarm state given to this group: `0` AUTO, `1` GREEN, `2` RED. Without the tag, the state follows the group's nature — see [`#alarm`](#alarm-state) |
+
+### Where tags are read from {#tag-sources}
+
+A group's tags are the ones carried by **its own name and by the names of all its units**. Tagging a single truck of a convoy is therefore enough, whichever truck it is — no need to tag all four, and no need to guess which one DCS will process first.
+
+Sources are read in a fixed order:
+
+1. the **group** name;
+2. the **unit** names, in **alphabetical** order.
+
+The first value found for a tag wins. A later source stating a *different* value for the same tag is ignored and the log says so — two trucks of one convoy carrying `#alarm=0` and `#alarm=2` do not toss a coin: one wins and you are told. Repeating the *same* value on several units produces no message at all: that is the ordinary way of doing it.
+
+!!! note "`#command` is the exception"
+    `#command` stays attached to the object carrying it: every unit carrying one becomes its own trigger, which is what lets a group carry several commands. Put on the **group** name, it makes that group a **single** trigger rather than one per unit.
+
+!!! warning "Before 6.15.14"
+    Only the tags carried by whichever unit the engine met first counted, and tags on a group name were silently ignored. Since that order is not guaranteed, a tag put on a given truck worked or did not work for no visible reason.
 
 ### `#alarm` — making a group hold its ground {#alarm-state}
 

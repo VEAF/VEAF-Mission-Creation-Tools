@@ -492,6 +492,15 @@ mist = {
     mpsToKnots = function(mps)
       return mps * 1.94384
     end,
+    -- Centre of a trigger zone as a vec3. The real MiST reads the mission's zone table; a test
+    -- registers its zone in `veaf.triggerZones` and overrides this when the position matters.
+    zoneToVec3 = function(zoneName)
+      local zone = veaf.triggerZones and veaf.triggerZones[zoneName]
+      if not zone then
+        return nil
+      end
+      return { x = zone.x or 0, y = 0, z = zone.y or 0 }
+    end,
     get2DDist = function(v1, v2)
       local dx = (v1.x or 0) - (v2.x or 0)
       local dz = (v1.z or 0) - (v2.z or 0)
@@ -530,6 +539,11 @@ Unit.destroy = function(unit) end
 -- which returns an Object.Category. Default to AIRPLANE; tests override per unit.
 Unit.getCategoryEx = function(unit)
   return (unit and unit._categoryEx) or Unit.Category.AIRPLANE
+end
+-- getCategory() returns an Object.Category, which is the trap FIX-EVENTHANDLER-UNITCATEGORY was
+-- about: it looks like it answers "airplane or ground unit?" and does not.
+Unit.getCategory = function(unit)
+  return (unit and unit._category) or Object.Category.UNIT
 end
 StaticObject.destroy = function(obj) end
 Group.destroy = function(obj) end

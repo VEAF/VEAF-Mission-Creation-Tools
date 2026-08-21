@@ -157,12 +157,16 @@ end
 
 -- An unrecognised key is ignored in silence, and — unlike a recognised one — leaves the
 -- defaults intact. Only veafSpawn reports unknown keys; generalising that is ticket 02's job.
-function TestVeafRadioCharacterisation:test_unknown_keyword_is_ignored_silently()
+-- FEAT-SPAWN-OPTION-VALIDATION renamed this: an unknown keyword is no longer ignored, it is
+-- collected so the caller can name it to the pilot and abort. What the original test proved and
+-- this one still proves: the **recognised** options are untouched by the presence of a bad one.
+function TestVeafRadioCharacterisation:test_an_unknown_keyword_is_collected_not_ignored()
   local r = veafRadio.markTextAnalysis("_radio transmit, banana 3")
   luaunit.assertNotNil(r)
   luaunit.assertTrue(r.transmit)
   luaunit.assertEquals(r.frequencies, "251")
-  luaunit.assertNil(r.unknownParameters)
+  luaunit.assertEquals(r.unknownParameters[1].key, "banana")
+  luaunit.assertEquals(#r.unknownParameters, 1)
 end
 
 -- FIXED (ticket 03): a *recognised* keyword with no value used to overwrite its default with

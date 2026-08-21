@@ -96,6 +96,11 @@ function veafMove.executeCommand(eventPos, eventText, bypassSecurity)
     local result = false
 
     if options then
+      -- An unrecognised parameter aborts rather than moving something the pilot did not ask for
+      -- (FEAT-SPAWN-OPTION-VALIDATION). nil coalition: this handler is not given the requester's side.
+      if veaf.reportUnknownParameters(options, "move", nil) then
+        return false
+      end
       -- Check options commands
       if options.moveGroup then
         result = veafMove.moveGroup(eventPos, options.groupName, options.speed, options.altitude)
@@ -134,6 +139,8 @@ end
 --- via the `-1` sentinel, and an AFAC gets 150 knots at 15000 feet. Order matters —
 --- `tankermission` MUST be tested before `tanker`, or it could never match.
 veafMove.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.moveGroup = false
     options.moveTanker = false

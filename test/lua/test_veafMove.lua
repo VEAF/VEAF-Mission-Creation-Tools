@@ -4,6 +4,9 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+-- The i18n catalog: the unknown-parameter report is a localised message, so the tests that read it
+-- need the entries rather than the raw key.
+dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafMove.lua")
 
 -- ---------------------------------------------------------------------------
@@ -279,12 +282,15 @@ function TestVeafMoveCharacterisation:test_an_unreadable_speed_keeps_the_group_d
   luaunit.assertEquals(veafMove.markTextAnalysis("_move group, name A, speed banana").speed, 20)
 end
 
--- An unknown keyword is ignored in silence and leaves the seeded defaults alone.
-function TestVeafMoveCharacterisation:test_unknown_keyword_is_ignored_silently()
+-- FEAT-SPAWN-OPTION-VALIDATION renamed this: an unknown keyword is no longer ignored, it is
+-- collected so the caller can name it to the pilot and abort. What the original test proved and
+-- this one still proves: the **recognised** options are untouched by the presence of a bad one.
+function TestVeafMoveCharacterisation:test_an_unknown_keyword_is_collected_not_ignored()
   local r = veafMove.markTextAnalysis("_move group, name A, banana 3")
   luaunit.assertNotNil(r)
   luaunit.assertEquals(r.speed, 20)
-  luaunit.assertNil(r.unknownParameters)
+  luaunit.assertEquals(r.unknownParameters[1].key, "banana")
+  luaunit.assertEquals(#r.unknownParameters, 1)
 end
 
 function TestVeafMoveCharacterisation:test_empty_text_returns_nil()
@@ -766,6 +772,54 @@ function TestVeafMoveOrbitNeighbours:test_a_single_waypoint_orbit_is_accepted()
   luaunit.assertNil(err)
   luaunit.assertNil(r.point1)
   luaunit.assertNil(r.point3)
+end
+
+-- ============================================================================
+-- FEAT-SPAWN-OPTION-VALIDATION — the abort, at the handler level
+--
+-- David's arbitration, 2026-08-21: warn and ABORT, consistent with `_spawn`, which has done that since
+-- UXPILOT-003. A typo must never run a half-understood command.
+-- ============================================================================
+TestVeafMoveUnknownParameterAborts = {}
+
+function TestVeafMoveUnknownParameterAborts:setUp()
+  self._report = veaf.reportToPilot
+  self.reported = {}
+  local reported = self.reported
+  veaf.reportToPilot = function(message)
+    table.insert(reported, message)
+  end
+  self._moveGroup = veafMove.moveGroup
+  self.moved = 0
+  veafMove.moveGroup = function()
+    self.moved = self.moved + 1
+    return true
+  end
+end
+
+function TestVeafMoveUnknownParameterAborts:tearDown()
+  veaf.reportToPilot = self._report
+  veafMove.moveGroup = self._moveGroup
+end
+
+function TestVeafMoveUnknownParameterAborts:test_a_good_command_still_moves()
+  local result = veafMove.executeCommand({ x = 0, y = 0, z = 0 }, "_move group, name test", true)
+  luaunit.assertEquals(self.moved, 1)
+  luaunit.assertEquals(#self.reported, 0)
+  luaunit.assertTrue(result)
+end
+
+function TestVeafMoveUnknownParameterAborts:test_a_typo_aborts_and_is_named()
+  local result = veafMove.executeCommand({ x = 0, y = 0, z = 0 }, "_move group, name test, banana 3", true)
+  luaunit.assertEquals(self.moved, 0, "nothing may move on a half-understood command")
+  luaunit.assertEquals(#self.reported, 1)
+  luaunit.assertNotNil(self.reported[1]:find("banana", 1, true))
+  luaunit.assertFalse(result)
+end
+
+function TestVeafMoveUnknownParameterAborts:test_the_message_names_the_module()
+  veafMove.executeCommand({ x = 0, y = 0, z = 0 }, "_move group, name test, banana 3", true)
+  luaunit.assertNotNil(self.reported[1]:find("move", 1, true))
 end
 
 os.exit(luaunit.LuaUnit.run())

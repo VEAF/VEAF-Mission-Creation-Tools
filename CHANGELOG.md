@@ -7,6 +7,43 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.18] — 2026-08-21
+
+### Added
+
+- **A misspelt marker option is now refused and named, in every command rather than only `_spawn`.**
+  [#33](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/33), open since 2021: an option no
+  rule recognises does nothing, so the command spawned or moved something other than what was asked and
+  nothing said so — a pilot could not tell his own typo from a feature that does not exist.
+
+  The collector already existed (UXPILOT-003), complete with a nearest-match suggestion. What was missing
+  is that **one** spec out of eight switched it on. Six do now — `SPAWN`, `CAS`, `MOVE`, `RADIO`,
+  `TRANSPORT`, `GROUNDAI` and artillery orders — each reporting through one shared message that names the
+  module and aggregates every bad key into a single line:
+
+  ```
+  VEAF spawn: unknown parameter(s), command aborted: 'headng' (did you mean 'heading'?)
+  ```
+
+  The command **aborts**. An unknown option would otherwise run a half-understood command, which is what
+  `_spawn` has refused to do since UXPILOT-003; the marker is left in place so the typo can be fixed.
+
+  `veafShortcuts`' alias spec is deliberately left out. Measured over 228 valid marker texts it flags
+  **52** keys where the six switched-on specs flag none — an alias carries the parameters of the command
+  it expands into and declares only its own three. A typo inside an alias is caught by the final command.
+
+### Fixed
+
+- **A command verb no longer reads as a mistyped option.** Keyphrase commands (`_spawn`, `_move`) were
+  skipped by the collector because they start with `_`; the artillery verbs `aim` and `fire` are bare
+  words and were not, so all nine valid orders measured were flagged. `veaf.prepareMarkerSpec` adds every
+  command verb to the known-key set.
+
+  A side effect worth having: an artillery order written with a **comma** instead of the semicolon it
+  requires now reports `'aim,'` and suggests `aim`. It used to drop the rest of the order in silence.
+
+---
+
 ## [6.15.17] — 2026-08-21
 
 ### Fixed

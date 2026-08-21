@@ -422,6 +422,11 @@ function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, b
     local options = veafCasMission.markTextAnalysis(eventText)
 
     if options then
+      -- An unrecognised parameter aborts rather than running a command the pilot did not ask for
+      -- (FEAT-SPAWN-OPTION-VALIDATION). nil coalition: this handler is not given the requester's side.
+      if veaf.reportUnknownParameters(options, "CAS", nil) then
+        return false
+      end
       -- Check options commands
       if options.casmission then
         if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
@@ -473,6 +478,8 @@ end
 --- predicates: the flag is set before the loop and the function returns nil when the keyphrase is
 --- absent, so all five were always true.
 veafCasMission.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.casmission = false
     options.size = 1 -- ranges from 1 to 5, 5 being the biggest

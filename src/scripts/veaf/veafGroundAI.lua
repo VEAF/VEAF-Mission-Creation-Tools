@@ -371,6 +371,8 @@ ArtilleryUnitHandler.VERB_FIRE_FOREFFECT = 2
 --- codebase that **validates its own input**, dropping a coordinate string `computeLLFromString`
 --- cannot read instead of storing it.
 ArtilleryUnitHandler.OrderSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
     options.target = nil -- the coordinates of the target
@@ -424,6 +426,12 @@ function ArtilleryUnitHandler:orderTextAnalysis(text)
 
   local options = veaf.parseMarkerText(text, ArtilleryUnitHandler.OrderSpec)
   if not options then
+    return nil
+  end
+  -- An unrecognised parameter aborts rather than firing on a half-understood order
+  -- (FEAT-SPAWN-OPTION-VALIDATION). An artillery order arrives through the radio menu or as the value
+  -- of a `_ground` marker, and neither path carries the requester's side, so the message goes to all.
+  if veaf.reportUnknownParameters(options, "artillery", nil) then
     return nil
   end
 
@@ -713,6 +721,8 @@ veafGroundAI.VERB_STATUS = 7
 --- the marker's position and coalition and it reads the game world, which a text parser has no
 --- business doing. The shared parser handles the text; `markTextAnalysis` handles the world.
 veafGroundAI.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.verb = veafGroundAI.VERB_SET
     options.group = nil -- the DCS group concerned by "set" and "unset"

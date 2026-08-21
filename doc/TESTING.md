@@ -143,14 +143,14 @@ luaunit.assertIsTrue(ok, err)
 
 | Suite | Tests | Ce qu'elle couvre |
 |-------|-------|-------------------|
-| `test_veaf.lua` | 346 | Utilitaires de base, helpers string/table/vecteur, logging |
+| `test_veaf.lua` | 393 | Utilitaires de base, helpers string/table/vecteur, logging |
 | `test_veafCacheManager.lua` | 12 | Cache get/set/invalidate |
 | `test_veafInterpreter.lua` | 12 | Tokeniseur de texte marqueur |
 | `test_veafTime.lua` | 71 | Parsing de temps, formatage, helpers temps DCS |
 | `test_veafSecurity.lua` | 79 | Niveaux de sécurité, gestion des admins |
 | `test_veafServerHook.lua` | 14 | Hook serveur : parsing et dispatch des commandes chat |
 | `test_veafNamedPoints.lua` | 25 | Enregistrement de points, recherche, helpers ATC |
-| `test_veafShortcuts.lua` | 74 | Enregistrement et résolution des raccourcis |
+| `test_veafShortcuts.lua` | 77 | Enregistrement et résolution des raccourcis |
 | `test_veafWeather.lua` | 107 | Parsing météo, calculs QNH/vent |
 | `test_dcsDataExport.lua` | 29 | Utilitaires d'export de données unités |
 | `test_veafCombatMission.lua` | 116 | Cycle de vie d'une mission de combat |
@@ -173,7 +173,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafCasMission.lua` | 51 | Génération de packages de menaces CAS |
 | `test_veafTransportMission.lua` | 52 | Setup de mission de transport |
 | `test_veafCarrierOperations.lua` | 47 | Séquence de recovery porte-avions |
-| `test_veafMove.lua` | 78 | Parsing de commandes de déplacement/téléportation |
+| `test_veafMove.lua` | 95 | Parsing de commandes de déplacement/téléportation |
 | `test_veafGrass.lua` | 16 | Initialisation de pistes en herbe |
 | `test_veafSpawn.lua` | 184 | Commandes spawn, analyse de texte marqueur, conversion fréquence laser |
 | `test_veafSpawnParser.lua` | 70 | Parsing déterministe du texte marqueur de spawn (`markTextAnalysis`) |

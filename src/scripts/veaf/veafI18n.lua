@@ -39,11 +39,13 @@ veaf.i18nCatalog = {
     fr = "VEAF : votre commande de marqueur a échoué (voir le log DCS pour les détails).",
     en = "VEAF: your marker command failed (see the DCS log for details).",
   },
-  ["spawn.unknown_parameters"] = {
-    fr = "VEAF spawn : paramètre(s) inconnu(s) : %s",
-    en = "VEAF spawn: unknown parameter(s): %s",
+  -- Renamed from `spawn.*` when the report left veafSpawnCore: every marker module reports this way
+  -- now, so the module name is a parameter rather than baked into the sentence.
+  ["marker.unknown_parameters"] = {
+    fr = "VEAF %s : paramètre(s) inconnu(s), commande abandonnée : %s",
+    en = "VEAF %s: unknown parameter(s), command aborted: %s",
   },
-  ["spawn.did_you_mean"] = {
+  ["marker.did_you_mean"] = {
     fr = " (vouliez-vous dire « %s » ?)",
     en = " (did you mean '%s'?)",
   },

@@ -584,4 +584,32 @@ function TestShortcutsInlineParserCharacterisation:test_the_parsed_password_is_t
   luaunit.assertEquals(self.calls[1].name, "Alpha")
 end
 
+-- ============================================================================
+-- FEAT-SPAWN-OPTION-VALIDATION deliberately leaves the alias spec OUT
+--
+-- Measured 2026-08-21 over 228 valid marker texts harvested from the suites: with the flag on, this spec
+-- flags **52** distinct keys on correct commands, where the six specs that were switched on flag none.
+--
+-- The cause is by design. An alias carries the parameters of the command it expands into — `size`,
+-- `defense`, `freq`, `speed`, … — and declares only the three it consumes itself. Reporting here would
+-- warn a pilot about options that are perfectly valid for the aliased command.
+-- ============================================================================
+TestVeafShortcutsAliasSpecReportsNothing = {}
+
+function TestVeafShortcutsAliasSpecReportsNothing:test_the_alias_spec_does_not_report_unknown_keys()
+  luaunit.assertNotEquals(veafShortcuts.AliasParameterSpec.reportUnknownKeys, true)
+end
+
+function TestVeafShortcutsAliasSpecReportsNothing:test_a_target_command_parameter_is_not_flagged()
+  -- `size` belongs to the aliased command, not to the alias syntax; it must pass through in silence
+  local options = veaf.parseMarkerText("-sa6, size 3, defense 4", veafShortcuts.AliasParameterSpec)
+  luaunit.assertNil(options.unknownParameters)
+end
+
+function TestVeafShortcutsAliasSpecReportsNothing:test_the_three_alias_keys_still_apply()
+  local options = veaf.parseMarkerText("-sa6, name mySam, silent", veafShortcuts.AliasParameterSpec)
+  luaunit.assertEquals(options.name, "mySam")
+  luaunit.assertTrue(options.silent)
+end
+
 os.exit(luaunit.LuaUnit.run())

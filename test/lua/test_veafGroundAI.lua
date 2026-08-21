@@ -399,11 +399,15 @@ function TestVeafGroundAICharacterisation:test_a_repeated_keyword_keeps_the_last
   luaunit.assertEquals(analyse("_ground status, name H, name J").name, "J")
 end
 
-function TestVeafGroundAICharacterisation:test_unknown_keyword_is_ignored_silently()
+-- FEAT-SPAWN-OPTION-VALIDATION renamed this: an unknown keyword is no longer ignored, it is
+-- collected so the caller can name it to the pilot and abort. What the original test proved and
+-- this one still proves: the **recognised** options are untouched by the presence of a bad one.
+function TestVeafGroundAICharacterisation:test_an_unknown_keyword_is_collected_not_ignored()
   local r = analyse("_ground status, name H, banana 3")
   luaunit.assertNotNil(r)
   luaunit.assertEquals(r.name, "H")
-  luaunit.assertNil(r.unknownParameters)
+  luaunit.assertEquals(r.unknownParameters[1].key, "banana")
+  luaunit.assertEquals(#r.unknownParameters, 1)
 end
 
 function TestVeafGroundAICharacterisation:test_empty_text_returns_nil()
@@ -427,9 +431,18 @@ function TestArtilleryOrderTextCharacterisation:test_the_separator_is_a_semicolo
   luaunit.assertEquals(self.ah:orderTextAnalysis("aim; shells 5").shells, 5)
 end
 
--- A comma is NOT a separator here, so "shells 5" is never seen as a keyword.
-function TestArtilleryOrderTextCharacterisation:test_a_comma_does_not_separate()
-  luaunit.assertNil(self.ah:orderTextAnalysis("aim, shells 5").shells)
+-- A comma is NOT a separator here, so "shells 5" is never seen as a keyword. Until
+-- FEAT-SPAWN-OPTION-VALIDATION that was silent — the pilot's `shells 5` simply vanished. The order is
+-- now refused and the verb comes back as the unknown key `'aim,'` with `aim` suggested, which is the
+-- most useful thing the parser can say to someone who forgot the separator is a semicolon.
+function TestArtilleryOrderTextCharacterisation:test_a_comma_is_refused_rather_than_mis_parsed()
+  luaunit.assertNil(self.ah:orderTextAnalysis("aim, shells 5"))
+end
+
+function TestArtilleryOrderTextCharacterisation:test_the_wrong_separator_names_itself()
+  local options = veaf.parseMarkerText("aim, shells 5", ArtilleryUnitHandler.OrderSpec)
+  luaunit.assertEquals(options.unknownParameters[1].key, "aim,")
+  luaunit.assertEquals(options.unknownParameters[1].suggestion, "aim")
 end
 
 function TestArtilleryOrderTextCharacterisation:test_several_keywords_apply()

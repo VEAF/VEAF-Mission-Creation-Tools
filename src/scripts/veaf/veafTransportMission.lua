@@ -119,6 +119,11 @@ function veafTransportMission.onEventMarkChange(eventPos, event)
     local options = veafTransportMission.markTextAnalysis(event.text)
 
     if options then
+      -- An unrecognised parameter aborts rather than running a transport the pilot did not ask for
+      -- (FEAT-SPAWN-OPTION-VALIDATION). nil coalition: this handler is not given the requester's side.
+      if veaf.reportUnknownParameters(options, "transport", nil) then
+        return false
+      end
       -- Check options commands
       if options.transportmission then
         -- Check security. The marker id is what identifies the author, so a listed pilot's own
@@ -157,6 +162,8 @@ end
 --- translated into `when` predicates: the flag is set before the loop and the function returns nil
 --- when the keyphrase is absent, so all four were always true.
 veafTransportMission.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.transportmission = false
     options.size = 1 -- number of cargo to be transported

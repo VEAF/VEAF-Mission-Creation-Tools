@@ -37,6 +37,17 @@ So the default worked for the first three years and has been dead for the last t
 because `test_defaultSpawnRadii` asserts the **constant**, never its application — the test and the
 defect coexist happily.
 
+## What reviving it wakes up
+
+Noted 2026-08-21. A dead default meant a zero teleport delta, which is why
+[`FIX-COMBATZONE-SPAWN-ROUTE-OFFSET`](../FIX-COMBATZONE-SPAWN-ROUTE-OFFSET/PRD.md) — `spawnElement` sets
+none of MiST's `offsetRoute`/`offsetWP1` — has been **invisible** for the same three years: there was no
+displacement for the route to fail to follow. This fix supplies one, so a scattered group with a route
+now walks back to an undisplaced waypoint 1 before starting its leg.
+
+Not a reason to hold this lot: the leg is walked, not lost, and the 50 m default is the documented
+intent. But the two want to ship close together, and item 18 of the session will see both at once.
+
 ## Tickets
 
 | # | Ticket | Status |

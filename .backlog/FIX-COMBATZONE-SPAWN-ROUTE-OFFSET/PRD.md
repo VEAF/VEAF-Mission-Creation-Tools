@@ -28,6 +28,22 @@ Observed in game on 2026-08-17: the convoy did drive its route once its alarm st
 simply routes the group to waypoint 1 first. So this is **not** a blocking defect; it is a group
 walking a leg nobody drew.
 
+## Latent until 6.15.15, and now it is not
+
+Noted 2026-08-21, after both PRDs were written and neither said it.
+[`FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT`](../FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT/PRD.md) measured
+that `DefaultSpawnRadiusForUnits = 50` had been **dead since 2023-03-04**: every group came up at
+`spawnRadius = 0`, so the teleport delta was zero and there was **nothing to offset**. The missing
+`offsetRoute` could not be seen.
+
+6.15.15 makes the 50 m default apply again — which turns this defect from dormant to observable in the
+same release. The 2026-08-17 sighting above happened with an explicit `#spawnradius=`, the one path that
+was alive.
+
+**Consequence for the DCS session:** item 18 checks the dispersion on `verify-mission-a`, so it is the
+first look at a scattered group *with a route*. Expect `SmokeZone-ConvoyBlue` to walk back to an
+undisplaced waypoint 1 before starting its leg — that is this lot, not a regression of item 18.
+
 ## The question this lot has to answer
 
 Setting `offsetRoute = true` translates the whole route by the spawn delta, which is almost certainly

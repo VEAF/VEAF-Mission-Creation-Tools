@@ -386,6 +386,13 @@ Activate `SmokeZone` and look at where the groups come up:
 If a placement needs to be exact, `#spawnradius=0` on the group is the escape hatch — worth trying once
 on `SmokeZone-SmokeArmor` to confirm it still pins the group.
 
+**One thing you will see that is not a failure of this item.** Reviving the default also revives
+[`FIX-COMBATZONE-SPAWN-ROUTE-OFFSET`](.backlog/FIX-COMBATZONE-SPAWN-ROUTE-OFFSET/PRD.md), dormant since
+2023 because a zero delta left nothing to offset: `spawnElement` never asks MiST to translate the route,
+so `SmokeZone-ConvoyBlue` will walk from where it came up back to an **undisplaced waypoint 1** before
+driving its leg. Expected, already filed, still ⬜ ready. Worth noting how far the detour looks in
+practice — that measurement is what the lot's `offsetRoute` vs `offsetWP1` decision is missing.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

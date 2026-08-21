@@ -524,8 +524,10 @@ mist = {
 -- ---------------------------------------------------------------------------
 -- Object helpers
 -- ---------------------------------------------------------------------------
+-- Defaults to UNIT; a test that needs a static or a piece of cargo sets `_category` on its fake,
+-- which is how combat-zone tests tell a static object from a vehicle.
 Object.getCategory = function(obj)
-  return Object.Category.UNIT
+  return (obj and obj._category) or Object.Category.UNIT
 end
 
 -- ---------------------------------------------------------------------------

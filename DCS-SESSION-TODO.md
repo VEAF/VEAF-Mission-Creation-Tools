@@ -363,6 +363,29 @@ check was supposed to expose. Now the default is AUTO and RED can only come from
 While there, `SmokeZone-ConvoyBlue` (3 M 818) still has no tag and must still drive — that is item 2 of
 the mission's own README and the regression to watch.
 
+## 18. The dispersion nothing has had since 2023 — same mission again
+
+[`FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT`](.backlog/FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT/PRD.md),
+6.15.15. Third check on `verify-mission-a`, after items 14 and 17, so it costs nothing extra. **Not
+blocked by the SAM problem.**
+
+`DefaultSpawnRadiusForUnits = 50` was dead from 2023-03-04 to 2026-08-21, so every group of every combat
+zone appeared exactly on its recorded position. It applies again, and the one thing a unit test cannot
+answer is whether 50 m of dispersion drops a unit somewhere impossible.
+
+Activate `SmokeZone` and look at where the groups come up:
+
+- **`SmokeZone-ConvoyBlue` and `SmokeZone-SmokeArmor` are scattered**, not lined up on their editor
+  positions → the default applies.
+- **Nothing is inside scenery** — no truck in a building, no tank on a slope it cannot leave. The
+  anchor `(-32220, 405386)` is documented empty desert, so a failure here would be a surprise worth
+  reporting.
+- Deactivate and reactivate: the groups should come up in *different* spots. That is the point of
+  dispersion, and it is the only way to see it is really random rather than a fixed offset.
+
+If a placement needs to be exact, `#spawnradius=0` on the group is the escape hatch — worth trying once
+on `SmokeZone-SmokeArmor` to confirm it still pins the group.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

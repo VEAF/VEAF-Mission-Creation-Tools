@@ -7,6 +7,35 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.15] — 2026-08-21
+
+### Fixed
+
+- **A combat zone disperses its groups again.** `veafCombatZone.DefaultSpawnRadiusForUnits = 50` has
+  existed since 2020 and has been **unreachable since 2023-03-04**: an element is created with
+  `spawnRadius = 0`, and the code applying the per-category default asked
+  `if not element:getSpawnRadius()` — false for 0 in Lua. So the branch never ran and every group a
+  combat zone spawned appeared exactly on its recorded position, with no dispersion at all. `#spawnradius=`
+  worked and was the only thing that did.
+
+  The default is now decided from whether the **tag was written**, which the builder knows exactly,
+  rather than from the value the element happens to hold. That keeps `#spawnradius=0` meaning "no
+  dispersion" — any scheme reading 0 as "unstated" would have taken that away from the mission maker —
+  and it leaves the constructor at 0, so nothing can reach `spawnElement`'s `getSpawnRadius() > 0` with
+  a nil.
+
+  A `#command` object is still never scattered, and that is deliberate: the command runs *at its
+  position*, so dispersing it would move whatever it spawns. An explicit `#spawnradius=` still applies.
+
+  **This changes where existing missions' zone groups appear.** Three years of missions were built and
+  flown against no dispersion, so a group may now come up some fifty metres from where it used to. A
+  placement that was precise on purpose wants `#spawnradius=0`.
+
+  Nothing caught this for three years because `test_defaultSpawnRadii` asserts the **constant** and never
+  its application — the test and the defect coexisted happily. The new tests assert the applied radius.
+
+---
+
 ## [6.15.14] — 2026-08-21
 
 ### Fixed

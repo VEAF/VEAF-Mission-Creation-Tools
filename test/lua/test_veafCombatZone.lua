@@ -1815,6 +1815,13 @@ local function fakeUnit(unitName, groupName)
   }
 end
 
+--- A static object as `initialize` consumes one: its own group, and category 3 rather than 1.
+local function fakeStatic(name)
+  local static = fakeUnit(name, name)
+  static._category = Object.Category.STATIC
+  return static
+end
+
 --- Build a zone holding exactly the units given, and initialize it.
 local function initializedZone(units)
   local z = VeafCombatZone:new():setFriendlyName("Tag Zone"):setMissionEditorZoneName("TAGZONE")
@@ -1934,20 +1941,65 @@ function TestVeafCombatZoneInitializeTags:test_a_settings_tag_on_the_group_reach
   luaunit.assertEquals(z:getZoneElements()[1]:getSpawnDelay(), 120)
 end
 
--- Pinning what the code does, which is **not** what `DefaultSpawnRadiusForUnits = 50` suggests: an
--- element starts at `spawnRadius = 0` and `if not element:getSpawnRadius()` is never true, because 0
--- is truthy in Lua. So the 50 m default has been unreachable since 2023-03-04 and every group of a
--- combat zone spawns exactly on its recorded position. Found while writing these tests, out of scope
--- here, filed as FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT — this assertion flips when that lot lands.
-function TestVeafCombatZoneInitializeTags:test_a_group_element_spawn_radius_is_left_at_zero()
+-- FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT — the assertion the previous lot left pinned to the broken
+-- behaviour, flipped now that the default is reachable again.
+--
+-- `DefaultSpawnRadiusForUnits = 50` was dead from 2023-03-04 to 2026-08-21: an element starts at
+-- `spawnRadius = 0` and the guard read `if not element:getSpawnRadius()`, false for 0 in Lua. The
+-- default is now decided from whether the **tag was written**, which the builder knows exactly, so
+-- `#spawnradius=0` keeps meaning "no dispersion" and no consumer can ever see nil.
+--
+-- These assertions are on the **applied** radius, not on the constant. `test_defaultSpawnRadii` asserts
+-- the constant and happily coexisted with the defect for three years, which is the gap being closed.
+function TestVeafCombatZoneInitializeTags:test_an_untagged_group_gets_the_unit_default()
   local z = initializedZone({ fakeUnit("TAGZONE-PLAIN-1", "TAGZONE-PLAIN") })
-  luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnRadius(), 0)
+  luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnRadius(), veafCombatZone.DefaultSpawnRadiusForUnits)
+end
+
+function TestVeafCombatZoneInitializeTags:test_an_untagged_static_gets_the_static_default()
+  local z = initializedZone({ fakeStatic("TAGZONE-STATIC-FARP") })
+  luaunit.assertEquals(elementNamed(z, "TAGZONE-STATIC-FARP"):getSpawnRadius(), veafCombatZone.DefaultSpawnRadiusForStatics)
 end
 
 function TestVeafCombatZoneInitializeTags:test_a_tagged_spawn_radius_is_honoured()
-  -- and the tag path, which is the one that works, still does
   local z = initializedZone({ fakeUnit("TAGZONE-PLAIN-1 #spawnradius=200", "TAGZONE-PLAIN") })
   luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnRadius(), 200)
+end
+
+-- The reason the default is read off the tag's presence and not off the value: `#spawnradius=0` is how
+-- a mission maker asks for no dispersion, and it has to survive the default.
+function TestVeafCombatZoneInitializeTags:test_an_explicit_zero_means_no_dispersion()
+  local z = initializedZone({ fakeUnit("TAGZONE-PLAIN-1 #spawnradius=0", "TAGZONE-PLAIN") })
+  luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnRadius(), 0)
+end
+
+function TestVeafCombatZoneInitializeTags:test_a_zero_on_another_unit_of_the_group_counts_too()
+  -- the collection of the previous lot and the default of this one, together
+  local z = initializedZone({
+    fakeUnit("TAGZONE-PLAIN-1", "TAGZONE-PLAIN"),
+    fakeUnit("TAGZONE-PLAIN-2 #spawnradius=0", "TAGZONE-PLAIN"),
+  })
+  luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnRadius(), 0)
+end
+
+-- A command element is a one-shot trigger running a command *at its position*; scattering it would move
+-- what the command spawns, so it keeps no dispersion, as it always has.
+function TestVeafCombatZoneInitializeTags:test_a_command_element_is_never_scattered()
+  local z = initializedZone({ fakeUnit('TAGZONE-TRIGGER #command="-spawn sa-11"', "TAGZONE-TRIGGER") })
+  luaunit.assertEquals(z:getZoneElements()[1]:getSpawnRadius(), 0)
+end
+
+-- And nothing may reach `spawnElement`'s `getSpawnRadius() > 0` with a nil, which is why the
+-- constructor still starts at 0 rather than at nil.
+function TestVeafCombatZoneInitializeTags:test_every_element_carries_a_number()
+  local z = initializedZone({
+    fakeUnit('TAGZONE-MIX-1 #command="-spawn sa-11"', "TAGZONE-MIX"),
+    fakeUnit("TAGZONE-MIX-2", "TAGZONE-MIX"),
+    fakeStatic("TAGZONE-STATIC-FARP"),
+  })
+  for _, element in pairs(z:getZoneElements()) do
+    luaunit.assertIsNumber(element:getSpawnRadius(), "element " .. tostring(element:getName()))
+  end
 end
 
 function TestVeafCombatZoneInitializeTags:test_a_group_element_defaults_its_spawn_group_to_its_name()

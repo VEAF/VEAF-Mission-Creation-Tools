@@ -16,7 +16,7 @@ Documentation for the VEAF Lua unit test suite and CI/CD pipeline.
 
 ## Overview
 
-The project covers the runtime modules with 36 Lua test suites (the exceptions are listed at the end of the "Test Suite" section). Tests run with plain **Lua 5.1** using the [luaunit](https://github.com/bluebird75/luaunit) framework. No DCS installation is required — the DCS API is stubbed out by `dcs_mocks.lua`.
+The project covers the runtime modules with one Lua test suite per module — the "Test Suite" section lists them all, and ends with what is deliberately left uncovered. Tests run with plain **Lua 5.1** using the [luaunit](https://github.com/bluebird75/luaunit) framework. No DCS installation is required — the DCS API is stubbed out by `dcs_mocks.lua`.
 
 ---
 
@@ -100,7 +100,7 @@ test/lua/
 ├── luaunit.lua         # Test framework (bundled)
 ├── dcs_mocks.lua       # DCS API stubs
 ├── veaf_loader.lua     # Module loader for src/scripts/veaf/
-└── test_*.lua          # One file per module (36 files)
+└── test_*.lua          # One file per module
 ```
 
 ### dcs_mocks.lua
@@ -141,44 +141,45 @@ luaunit.assertIsTrue(ok, err)
 
 ## Test Suite
 
-| Suite | Tests | What it covers |
-|-------|-------|----------------|
-| `test_veaf.lua` | 393 | Core utilities, string/table/vector helpers, logging |
-| `test_veafCacheManager.lua` | 12 | Cache get/set/invalidate |
-| `test_veafInterpreter.lua` | 12 | Mark text tokenizer |
-| `test_veafTime.lua` | 71 | Time parsing, formatting, DCS time helpers |
-| `test_veafSecurity.lua` | 79 | Security levels, admin management |
-| `test_veafServerHook.lua` | 14 | Server hook: chat-command parsing and dispatch |
-| `test_veafNamedPoints.lua` | 25 | Point registration, lookup, ATC helpers |
-| `test_veafShortcuts.lua` | 77 | Shortcut registration and resolution |
-| `test_veafWeather.lua` | 107 | Weather parsing, QNH/wind calculations |
-| `test_dcsDataExport.lua` | 29 | Unit data export utilities |
-| `test_veafCombatMission.lua` | 116 | Base combat mission lifecycle |
-| `test_veafAirbases.lua` | 31 | Airbase data lookup |
-| `test_veafCombatZone.lua` | 138 | Zone activation, scoring, state machine |
-| `test_veafUnits.lua` | 67 | Unit template lookup, category filtering |
-| `test_veafAssets.lua` | 26 | Asset registration, state tracking |
-| `test_veafAssist.lua` | 67 | Pilot assistance: checklists, progression, menus |
-| `test_veafRemote.lua` | 37 | Remote command parsing |
-| `test_veafMarkers.lua` | 18 | Marker event handling |
-| `test_veafEventHandler.lua` | 21 | Event dispatch, handler registration |
-| `test_veafSkynetIadsHelper.lua` | 68 | Skynet IADS integration helpers |
-| `test_veafSkynetIadsMonitor.lua` | 41 | Skynet monitor state |
-| `test_veafGroundAI.lua` | 83 | Ground AI behavior flags |
-| `test_veafRadio.lua` | 127 | Radio menu tree construction |
-| `test_veafQraManager.lua` | 99 | QRA state machine, zone management |
-| `test_veafAirWaves.lua` | 135 | Wave scheduling, group assignment |
-| `test_veafSanctuary.lua` | 49 | Sanctuary zone detection |
-| `test_veafMissileGuardian.lua` | 38 | Missile intercept logic |
-| `test_veafCasMission.lua` | 51 | CAS threat package generation |
-| `test_veafTransportMission.lua` | 52 | Transport mission setup |
-| `test_veafCarrierOperations.lua` | 47 | Carrier recovery sequence |
-| `test_veafMove.lua` | 95 | Move/teleport command parsing |
-| `test_veafGrass.lua` | 16 | Grass runway initialization |
-| `test_veafSpawn.lua` | 184 | Spawn commands, mark text analysis, laser freq conversion |
-| `test_veafSpawnParser.lua` | 70 | Deterministic spawn mark-text parsing (`markTextAnalysis`) |
-| `test_veafCommands.lua` | 17 | Command registry: priority ordering and dispatch |
-| `test_veafI18n.lua` | 32 | Lua runtime i18n layer (`veaf.t`, `veafI18n` catalog) |
+| Suite | What it covers |
+|-------|----------------|
+| `test_veaf.lua` | Core utilities, string/table/vector helpers, logging |
+| `test_veafCacheManager.lua` | Cache get/set/invalidate |
+| `test_veafInterpreter.lua` | Mark text tokenizer |
+| `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
+| `test_veafSecurity.lua` | Security levels, admin management |
+| `test_veafServerHook.lua` | Server hook: chat-command parsing and dispatch |
+| `test_veafNamedPoints.lua` | Point registration, lookup, ATC helpers |
+| `test_veafShortcuts.lua` | Shortcut registration and resolution |
+| `test_veafWeather.lua` | Weather parsing, QNH/wind calculations |
+| `test_dcsDataExport.lua` | Unit data export utilities |
+| `test_veafCombatMission.lua` | Base combat mission lifecycle |
+| `test_veafAirbases.lua` | Airbase data lookup |
+| `test_veafCombatZone.lua` | Zone activation, scoring, state machine |
+| `test_veafUnits.lua` | Unit template lookup, category filtering |
+| `test_veafAssets.lua` | Asset registration, state tracking |
+| `test_veafAssist.lua` | Pilot assistance: checklists, progression, menus |
+| `test_veafRemote.lua` | Remote command parsing |
+| `test_veafMarkers.lua` | Marker event handling |
+| `test_veafEventHandler.lua` | Event dispatch, handler registration |
+| `test_veafSkynetIadsHelper.lua` | Skynet IADS integration helpers |
+| `test_veafSkynetIadsMonitor.lua` | Skynet monitor state |
+| `test_veafGroundAI.lua` | Ground AI behavior flags |
+| `test_veafRadio.lua` | Radio menu tree construction |
+| `test_veafQraManager.lua` | QRA state machine, zone management |
+| `test_veafAirWaves.lua` | Wave scheduling, group assignment |
+| `test_veafSanctuary.lua` | Sanctuary zone detection |
+| `test_veafMissileGuardian.lua` | Missile intercept logic |
+| `test_veafCasMission.lua` | CAS threat package generation |
+| `test_veafTransportMission.lua` | Transport mission setup |
+| `test_veafCarrierOperations.lua` | Carrier recovery sequence |
+| `test_veafMove.lua` | Move/teleport command parsing |
+| `test_veafMove_escort.lua` | Escort-task recovery after the escorted group is recreated |
+| `test_veafGrass.lua` | Grass runway initialization |
+| `test_veafSpawn.lua` | Spawn commands, mark text analysis, laser freq conversion |
+| `test_veafSpawnParser.lua` | Deterministic spawn mark-text parsing (`markTextAnalysis`) |
+| `test_veafCommands.lua` | Command registry: priority ordering and dispatch |
+| `test_veafI18n.lua` | Lua runtime i18n layer (`veaf.t`, `veafI18n` catalog) |
 
 **Module not covered**:
 

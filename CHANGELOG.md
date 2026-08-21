@@ -7,6 +7,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.19] — 2026-08-21
+
+### Changed
+
+- **The testing page no longer counts the tests, and can no longer be wrong about them.**
+  `doc/TESTING.md` and its English twin carried a hand-typed "how many tests each Lua suite has"
+  column. Measured against `test-lua` on the day it was dropped: **12 of 36 rows wrong** —
+  `test_veafCombatZone.lua` documented at 138 for 214 actual, `test_veafGrass.lua` at 16 for 36 — and
+  `test_veafMove_escort.lua` missing from the table entirely, silently, since the suite shipped.
+
+  The backlog had measured **16** wrong four days earlier. Four rows were repaired by hand in the
+  meantime, by the two lots that happened to touch them — which is the argument for this change rather
+  than against it: correcting the column fixes the day it is done and nothing after it.
+
+  The column is gone rather than corrected. Nothing decides anything on those numbers; what the table
+  is for is "which suite covers what", and the real coverage figure is measured by luacov behind its
+  own ratchet gate. The two other hand-written counts on the page — "36 Lua test suites" in the
+  overview and "(36 files)" in the file layout, both also wrong — went with it.
+
+  What replaced them is a check rather than a number: `docs-check` now reports a Lua suite absent from
+  either testing page, using the `CoverageRule` mechanism the repository already had for MCP actions,
+  marker aliases and CLI commands. A suite nobody documented is coverage nobody knows exists, which is
+  worth a gate; an arithmetic total is not.
+
+---
+
 ## [6.15.18] — 2026-08-21
 
 ### Added

@@ -724,6 +724,8 @@ function VeafQRACore:check()
         end
         unitsInZone = {}
         if triggerZone then
+          -- `or {}`, deliberately: a QRA that cannot read its zone must not scramble, which is what an
+          -- empty list already gives. The error naming the zone is in the log either way.
           unitsInZone = veaf.getUnitsInTriggerZone(self.triggerZoneName, unitNames, veafQraManager.Id) or {}
         elseif self.zoneCenter then
           unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)

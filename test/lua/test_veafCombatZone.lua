@@ -2080,4 +2080,91 @@ function TestVeafCombatZoneRenameOption:test_one_zone_declining_does_not_affect_
   luaunit.assertTrue(other:isRenameUnitsSequentially())
 end
 
+-- ============================================================================
+-- FIX-COMBATZONE-ZONE-TYPE-SILENT, second pass — Sourcery's review point on #775.
+--
+-- The helper returned nil for "I cannot read this zone" and the caller wrote `or {}`, so the
+-- distinction had no observable effect: an unusable zone still behaved exactly like an empty one. It
+-- does something now, and it is the worst symptom the lot named — a zone that cannot say what it holds
+-- must not announce that everything in it is dead.
+-- ============================================================================
+TestVeafCombatZoneUnreadableTriggerZone = {}
+
+function TestVeafCombatZoneUnreadableTriggerZone:setUp()
+  self._savedZones = veaf.triggerZones
+  veaf.triggerZones = {
+    GOODZONE = { name = "GOODZONE", type = 0, x = 0, y = 0, radius = 500 },
+    ODDZONE = { name = "ODDZONE", type = 7, x = 0, y = 0 },
+  }
+  self._savedInZones = mist.getUnitsInZones
+  mist.getUnitsInZones = function()
+    return {}
+  end
+  self._savedNames = veaf.getUnitsNamesOfCoalition
+  veaf.getUnitsNamesOfCoalition = function()
+    return {}
+  end
+  self._logger = veaf.loggers.get(veafCombatZone.Id)
+  self._savedError = self._logger.error
+  self._logger.error = function() end
+end
+
+function TestVeafCombatZoneUnreadableTriggerZone:tearDown()
+  veaf.triggerZones = self._savedZones
+  mist.getUnitsInZones = self._savedInZones
+  veaf.getUnitsNamesOfCoalition = self._savedNames
+  self._logger.error = self._savedError
+end
+
+--- A zone standing where `initialize` would have left it: `findUnitsInCombatZone` reads
+--- `self.triggerZone`, which `initialize` fills in, so a zone that never went through it returns early
+--- and reaches none of the code under test.
+local function zoneNamed(name)
+  local z = VeafCombatZone:new():setFriendlyName(name):setMissionEditorZoneName(name)
+  z.triggerZone = veaf.getTriggerZone(name)
+  return z
+end
+
+function TestVeafCombatZoneUnreadableTriggerZone:test_a_readable_zone_is_not_flagged()
+  local z = zoneNamed("GOODZONE")
+  z:findUnitsInCombatZone()
+  luaunit.assertFalse(z:hasUnreadableTriggerZone())
+  luaunit.assertTrue(z:isCompletable())
+end
+
+function TestVeafCombatZoneUnreadableTriggerZone:test_an_unreadable_zone_is_flagged()
+  local z = zoneNamed("ODDZONE")
+  z:findUnitsInCombatZone()
+  luaunit.assertTrue(z:hasUnreadableTriggerZone())
+end
+
+-- The point of the whole thing: no completion, so no "all enemies destroyed" for a zone that never
+-- knew what it held.
+function TestVeafCombatZoneUnreadableTriggerZone:test_an_unreadable_zone_never_completes()
+  local z = zoneNamed("ODDZONE")
+  luaunit.assertTrue(z:isCompletable(), "before reading the zone, nothing is known")
+  z:findUnitsInCombatZone()
+  luaunit.assertFalse(z:isCompletable())
+end
+
+function TestVeafCombatZoneUnreadableTriggerZone:test_an_unreadable_zone_returns_the_empty_shape()
+  -- the two-slot shape callers unpack, so the flag costs nobody a crash
+  local z = zoneNamed("ODDZONE")
+  local units, groupNames = veaf.safeUnpack(z:findUnitsInCombatZone())
+  luaunit.assertEquals(units, {})
+  luaunit.assertEquals(groupNames, {})
+end
+
+function TestVeafCombatZoneUnreadableTriggerZone:test_a_zone_the_mission_declared_uncompletable_stays_so()
+  -- the flag only ever removes completability; it must not hand it back
+  local z = zoneNamed("GOODZONE")
+  z:setCompletable(false)
+  z:findUnitsInCombatZone()
+  luaunit.assertFalse(z:isCompletable())
+end
+
+function TestVeafCombatZoneUnreadableTriggerZone:test_the_flag_starts_clear()
+  luaunit.assertFalse(zoneNamed("GOODZONE"):hasUnreadableTriggerZone())
+end
+
 os.exit(luaunit.LuaUnit.run())

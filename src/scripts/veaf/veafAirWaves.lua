@@ -819,6 +819,8 @@ function AirWaveZone:check()
     local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
     local humanUnits = nil
     if triggerZone then
+      -- nil is left as is: the loop below reads `humanUnits or {}`, so an unreadable zone triggers no
+      -- wave — the safe conduct, and the same one an empty zone gets. The error is in the log.
       humanUnits = veaf.getUnitsInTriggerZone(self.triggerZoneName, unitNames, veafAirWaves.Id)
     elseif self.zoneCenter then
       humanUnits = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)

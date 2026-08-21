@@ -52,9 +52,9 @@ are runtime modules with the identical `if 0 … elseif 2 … end` and no `else`
 | [`veafAirWaves.lua:822`](../../src/scripts/veaf/veafAirWaves.lua:822) | `humanUnits` stays **nil**, so no player is ever detected and the wave never triggers |
 | [`veafQraCore.lua:727`](../../src/scripts/veaf/veafQraCore.lua:727) | zero units in the zone, so the QRA never scrambles — indistinguishable from a design choice |
 
-All three fail the same way: nothing happens and nothing says so. Fixing one and documenting the other
-two would have been the "hors scope commode" — so the branch moved into one shared helper and all three
-call it.
+All three fail the same way: nothing happens and nothing says so. Fixing one and merely recording the
+other two would have been the convenient narrowing of a general instruction — so the branch moved into
+one shared helper and all three call it.
 
 ## Scope
 

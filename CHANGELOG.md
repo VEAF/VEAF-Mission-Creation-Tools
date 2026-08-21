@@ -48,6 +48,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   them apart is how this defect started. No fallback shape is guessed — assuming circular for an unknown
   type would put the silent wrong answer back one level down.
 
+  **And the difference is not cosmetic.** A combat zone whose shape could not be read is marked unusable,
+  so it never completes: a zone that cannot say what it holds must not announce that everything in it is
+  dead, which was the worst of the three symptoms. For a QRA and an air wave, "unusable" and "empty" lead
+  to the same safe conduct — no scramble, no wave — and the code now says so where it relies on it.
+
   The lot was written for `veafCombatZone` alone; the sweep its own definition of done demanded turned up
   the other two. Neither of the two files the PRD had guessed at (`veafSanctuary`, the MCP's `edit_zone`)
   reads a zone's type at all.

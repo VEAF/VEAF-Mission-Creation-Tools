@@ -588,6 +588,9 @@ function VeafCombatZone:new(objectToCopy)
   -- map, in the way while debugging a `.miz`: the original unit name is gone (#289). Default true,
   -- which is what every mission built before 6.15.16 got.
   objectToCreate.renameUnitsSequentially = true
+  -- set when the trigger zone's shape could not be read, so the zone is *unusable* rather than empty.
+  -- A zone that cannot say what it holds must not announce that everything in it is dead.
+  objectToCreate.unreadableTriggerZone = false
   -- coalition whose units must be destroyed for the zone to complete (1 = red, 2 = blue).
   -- Defaults to red: the players are blue and the zone holds the red opposition.
   objectToCreate.enemyCoalition = veafCombatZone.DEFAULT_ENEMY_COALITION
@@ -754,8 +757,16 @@ function VeafCombatZone:setShowZonePositionInfo(value)
   return self
 end
 
+--- Can this zone complete on its own?
+--- A zone whose trigger zone could not be read answers **no**, whatever the mission asked for: it does
+--- not know what it holds, so it cannot honestly report that all of it is dead — which is the worst
+--- symptom FIX-COMBATZONE-ZONE-TYPE-SILENT was about. It gates both the watchdog and the check itself.
 function VeafCombatZone:isCompletable()
-  return self.completable
+  return self.completable and not self.unreadableTriggerZone
+end
+
+function VeafCombatZone:hasUnreadableTriggerZone()
+  return self.unreadableTriggerZone
 end
 
 function VeafCombatZone:setCompletable(value)
@@ -1817,8 +1828,13 @@ function VeafCombatZone:findUnitsInCombatZone()
 
   veaf.loggers.get(veafCombatZone.Id):trace("triggerZone.type=%s", veaf.lp(triggerZone.type))
   -- nil means the zone's shape could not be read, and the error is already in the log; an empty list
-  -- means it really holds nobody. Telling them apart is the point of FIX-COMBATZONE-ZONE-TYPE-SILENT.
-  units = veaf.getUnitsInTriggerZone(self:getMissionEditorZoneName(), unitsNames, veafCombatZone.Id) or {}
+  -- means it really holds nobody. The difference is not cosmetic: an unusable zone is marked so that it
+  -- never completes, instead of quietly reporting that everything in it is dead.
+  units = veaf.getUnitsInTriggerZone(self:getMissionEditorZoneName(), unitsNames, veafCombatZone.Id)
+  if not units then
+    self.unreadableTriggerZone = true
+    return { {}, {} }
+  end
 
   veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.lp(#units))
 

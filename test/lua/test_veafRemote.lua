@@ -214,21 +214,11 @@ function TestVeafRemoteExecuteCommandFromRemote:test_no_handler_returns_false()
 end
 
 -- ============================================================================
--- FIX-REMOTE-SLOT-NIL-UNIT — a player who leaves his slot was registered in a unit called "nil"
+-- FIX-REMOTE-SLOT-NIL-UNIT — a player in no unit must leave no trace, whatever the hook sent
 --
--- Two halves, each written correctly, and neither doing what its comment says. The server hook sent
--- `tostring(unitName or "nil")` — the four-character **string** — and this side guarded with
--- `if not unitName`, which never fires for a truthy string. So a spectator or a game master was
--- registered as occupying a unit named `nil`:
---
---     veafRemote.remoteUnitsPilots["nil"] = remoteUser
---
--- Costs: `veafSecurity.getUnitNameForPlayer` returned the string "nil" for him, the elevation refusal
--- then logged "cannot resolve a group for unit [nil]" — a correct refusal with a fictional reason —
--- and two players in the same state disagreed, since one table slot held one of them.
---
--- The hook sends "" now, but the mission must accept the old payload too: the hook is deployed by hand,
--- server by server, so a new mission meeting an old hook is the normal state of affairs here.
+-- Every shape of "no unit" is swept rather than sampled, because an old hook and a new one send
+-- different ones and both reach this code: the hook is deployed by hand, server by server. Why the
+-- literal "nil" has to be accepted, and what that costs, is on `veafRemote.normalizeUnitName`.
 -- ============================================================================
 TestVeafRemoteSlotWithNoUnit = {}
 
@@ -252,6 +242,38 @@ function TestVeafRemoteSlotWithNoUnit:test_normalizeUnitName_reads_every_absence
     luaunit.assertNil(veafRemote.normalizeUnitName(value), label)
   end
   luaunit.assertNil(veafRemote.normalizeUnitName(nil))
+end
+
+-- Sourcery's review point: anything that is not a string used to be read as "no unit" in silence, which
+-- is the same shape of defect as the one this lot fixes. It is reported now, and still answered safely.
+function TestVeafRemoteSlotWithNoUnit:test_an_unexpected_type_is_reported_and_read_as_absence()
+  local logger = veaf.loggers.get(veafRemote.Id)
+  local saved = logger.warn
+  local warned = {}
+  logger.warn = function(_, text, ...)
+    table.insert(warned, text)
+  end
+  for _, bad in ipairs({ 42, true, {}, print }) do
+    luaunit.assertNil(veafRemote.normalizeUnitName(bad))
+  end
+  logger.warn = saved
+  luaunit.assertEquals(#warned, 4)
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_nil_and_the_empty_string_are_not_reported()
+  -- they are the ordinary "no unit" payloads, not mistakes: warning on them would make every slot
+  -- change of every spectator noisy
+  local logger = veaf.loggers.get(veafRemote.Id)
+  local saved = logger.warn
+  local warned = {}
+  logger.warn = function(_, text, ...)
+    table.insert(warned, text)
+  end
+  veafRemote.normalizeUnitName(nil)
+  veafRemote.normalizeUnitName("")
+  veafRemote.normalizeUnitName("nil")
+  logger.warn = saved
+  luaunit.assertEquals(#warned, 0)
 end
 
 function TestVeafRemoteSlotWithNoUnit:test_a_player_taking_a_slot_is_registered()

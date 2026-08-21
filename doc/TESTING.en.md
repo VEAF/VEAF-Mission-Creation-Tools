@@ -159,7 +159,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafUnits.lua` | 67 | Unit template lookup, category filtering |
 | `test_veafAssets.lua` | 26 | Asset registration, state tracking |
 | `test_veafAssist.lua` | 67 | Pilot assistance: checklists, progression, menus |
-| `test_veafRemote.lua` | 35 | Remote command parsing |
+| `test_veafRemote.lua` | 37 | Remote command parsing |
 | `test_veafMarkers.lua` | 18 | Marker event handling |
 | `test_veafEventHandler.lua` | 21 | Event dispatch, handler registration |
 | `test_veafSkynetIadsHelper.lua` | 68 | Skynet IADS integration helpers |

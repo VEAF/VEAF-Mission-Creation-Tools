@@ -159,7 +159,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafUnits.lua` | 67 | Recherche de templates d'unités, filtrage par catégorie |
 | `test_veafAssets.lua` | 26 | Enregistrement d'assets, suivi d'état |
 | `test_veafAssist.lua` | 67 | Assistance pilote : checklists, progression, menus |
-| `test_veafRemote.lua` | 35 | Parsing de commandes distantes |
+| `test_veafRemote.lua` | 37 | Parsing de commandes distantes |
 | `test_veafMarkers.lua` | 18 | Gestion des événements marqueur |
 | `test_veafEventHandler.lua` | 21 | Dispatch d'événements, enregistrement de handlers |
 | `test_veafSkynetIadsHelper.lua` | 68 | Helpers d'intégration Skynet IADS |

@@ -257,10 +257,18 @@ end
 --- The trade, stated rather than hidden: a unit genuinely named `nil` is indistinguishable from absence.
 --- That is the price of accepting the old payload, and no mission has ever been seen to pay it.
 ---
+--- A value that is neither nil nor a string is reported: the hook always sends a string through `%q`, so
+--- anything else is a caller's mistake, and reading it as "no unit" in silence would be the same shape of
+--- defect this whole lot is about. It still answers nil, which is the safe conduct.
+---
 --- @param unitName the third value of a slot payload; nil is tolerated
 --- @return the unit name, or nil for nil, an empty or blank string, or the literal "nil"
 function veafRemote.normalizeUnitName(unitName)
-  if type(unitName) ~= "string" then
+  if unitName ~= nil and type(unitName) ~= "string" then
+    veaf.loggers.get(veafRemote.Id):warn("normalizeUnitName got a %s instead of a unit name; reading it as no unit", veaf.p(type(unitName)))
+    return nil
+  end
+  if unitName == nil then
     return nil
   end
   local trimmed = unitName:match("^%s*(.-)%s*$")

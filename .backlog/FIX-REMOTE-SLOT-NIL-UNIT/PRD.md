@@ -1,6 +1,9 @@
 # FIX-REMOTE-SLOT-NIL-UNIT — a player who leaves his slot is registered in a unit called "nil"
 
-Status: ⬜ ready
+Status: ✅ done
+
+Shipped in 6.15.17. Closed outright: both sides are covered by unit tests and nothing here needs DCS —
+the defect is in string handling, not in anything the game does.
 
 Found on 2026-08-20 while instructing whether the server hook could carry a game master's identity
 (`FEAT-ROLE-AWARE-RADIO-MENU`, cancelled). This defect is **independent of that lot** and survives its
@@ -63,12 +66,29 @@ with no pipeline. A mission built from a newer framework will meet an older hook
 someone to copy a file, so the mission side has to be robust to the old payload rather than assume the
 new one.
 
+## What shipped, and one thing found next door
+
+`veafRemote.normalizeUnitName` reads `nil`, `""`, a blank string and the literal `"nil"` (any case) as
+"no unit", and `registerUserSlot` represents that state by **absence**: it unregisters and registers
+nothing. The hook sends `""` rather than a real `nil` because the three payload values go through `%q` in
+the template, and the mission has to normalise every shape anyway.
+
+**The hook assertions were mutation-tested**, since they passed first try and a test that never failed
+proves nothing: restoring `tostring(unitName or "nil")` turns three of them red, and the fix turns them
+green again.
+
+**Found next door and deliberately not touched**: in `registerUserSlot`, the `remoteUser` built for a
+player who is *not* in `veaf-pilots.txt` is never stored in `veafRemote.remoteUsers` — only in
+`remoteUnitsPilots`. So such a player is findable by unit and not by name. Storing it would create a user
+with no `level`, which is a security-relevant change and not this lot's business. Worth its own lot if
+anyone cares; nothing observed depends on it today.
+
 ## Definition of done
 
-- [ ] A player leaving his slot leaves no entry behind in `remoteUnitsPilots`
-- [ ] `getUnitNameForPlayer` returns nil for him, not `"nil"`
-- [ ] Two players leaving their slots in sequence behave identically
-- [ ] The hook no longer sends the literal string for an absent unit
-- [ ] The mission still handles the **old** hook payload correctly (an older hook against a newer mission
+- [x] A player leaving his slot leaves no entry behind in `remoteUnitsPilots`
+- [x] `getUnitNameForPlayer` returns nil for him, not `"nil"` — by construction, the entry is gone
+- [x] Two players leaving their slots in sequence behave identically
+- [x] The hook no longer sends the literal string for an absent unit
+- [x] The mission still handles the **old** hook payload correctly (an older hook against a newer mission
       is the normal state of affairs here, not an edge case)
-- [ ] Lua tests on both paths
+- [x] Lua tests on both paths — `test_veafRemote` 23 → 35, `test_veafServerHook` 9 → 14

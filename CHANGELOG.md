@@ -7,6 +7,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.20] — 2026-08-21
+
+### Fixed
+
+- **A combat zone's group now sets off along its route from where it appeared, instead of driving back
+  to its editor position first.** MiST translates a respawned group's route by the teleport delta only
+  when asked to (`mist.lua:4561`), and `spawnElement` never asked — so a group that came up displaced
+  kept a waypoint 1 at its recorded position and walked a leg nobody had drawn.
+
+  The fix asks for **`offsetWP1`, not `offsetRoute`**, against what the backlog had assumed. The delta
+  is a *local, random* displacement around the drawn position, not a relocation: translating the whole
+  route by it would move waypoints a mission maker placed on roads, bridges and passes, and would draw
+  a different track on every activation. Waypoint 1 is not a design choice — it is where the group
+  starts — so it is the one that follows the group, and the rest of the track stays where it was drawn.
+
+  **The offset is unconditional, including with no dispersion at all**, and that is the finding rather
+  than a detail: the delta is not only the dispersion. MiST measures it against the mission table's
+  **unit 1**, while a zone's element takes its position from the first unit the zone happened to
+  **meet**. When those differ, the delta carries the group's own intra-group spacing — tens of metres
+  for a convoy, with `#spawnradius=0` written. Gating the offset on `spawnRadius > 0` would have been
+  exactly wrong. The reference-unit mismatch is filed separately as
+  `FIX-COMBATZONE-SPAWN-REFERENCE-UNIT`; it moves where groups appear, which this fix does not.
+
+---
+
 ## [6.15.19] — 2026-08-21
 
 ### Changed

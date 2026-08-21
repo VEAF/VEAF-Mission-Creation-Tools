@@ -255,6 +255,14 @@ A `#command=` unit is **never** scattered, default or not: the command runs *at 
 !!! warning "This changes existing missions"
     From March 2023 to 6.15.14 the 50 m default was **unreachable**: the constant existed, the code meant to apply it never ran, and every group of a combat zone appeared exactly on its recorded position. A mission built during those three years will therefore see its groups move by about fifty metres. If a placement was precise on purpose, write `#spawnradius=0`.
 
+#### The first waypoint follows the group {#waypoint-follows-group}
+
+A scattered group no longer appears on its first waypoint, and the first waypoint is where a group sets off from. So it **moves with the group**, by the same distance in the same direction.
+
+**The rest of the track stays put.** You placed those waypoints on roads, bridges and passes; shifting them fifty random metres would put them beside those features, and would draw a different track on every activation. A group therefore leaves from where it appeared and joins the route you drew.
+
+Before 6.15.20 the first waypoint stayed at the editor position, so a scattered convoy drove back to fetch it first, walking a leg nobody had drawn. Mostly visible since 6.15.15, which made the 50 m dispersion effective.
+
 ### Where tags are read from {#tag-sources}
 
 A group's tags are the ones carried by **its own name and by the names of all its units**. Tagging a single truck of a convoy is therefore enough, whichever truck it is — no need to tag all four, and no need to guess which one DCS will process first.

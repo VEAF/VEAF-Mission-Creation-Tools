@@ -1403,6 +1403,20 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       vars.action = "respawn"
       vars.point = position
       vars.renameUnitsSequentially = self:isRenameUnitsSequentially()
+      -- The group's first waypoint follows the group. MiST translates a route by the teleport delta
+      -- only when asked (mist.lua:4561), and nothing here asked, so a scattered group came up beside
+      -- a waypoint 1 still at its editor position and drove back to it before starting its leg.
+      --
+      -- `offsetWP1`, not `offsetRoute`: the delta is a *local, random* displacement around the drawn
+      -- position, so translating the whole route by it would move waypoints the mission maker placed
+      -- on roads, bridges and passes, and would draw a different track on every activation. Waypoint 1
+      -- is not a design choice — it is where the group starts — so it is the one that must move.
+      --
+      -- Unconditional, including when spawnRadius is 0: the delta is *not* only the dispersion. MiST
+      -- measures it against the mission table's unit 1, while the element's position comes from the
+      -- first unit the zone happened to meet (see buildGroupElement), so a group whose units were not
+      -- met in editor order carries a delta of its own intra-group spacing.
+      vars.offsetWP1 = true
       local newGroup = mist.teleportToPoint(vars)
       if type(newGroup) == "table" then
         veaf.loggers

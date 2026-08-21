@@ -395,10 +395,16 @@ defect looked like, and seeing it would mean the fix did not take.
 The rest of the track is deliberately **not** moved, so check the convoy still joins the drawn route
 rather than driving a track shifted sideways.
 
-While you are there: does the group come up on its drawn position give or take the dispersion, or
-noticeably further? A group displaced well beyond 50 m would be
-[`FIX-COMBATZONE-SPAWN-REFERENCE-UNIT`](.backlog/FIX-COMBATZONE-SPAWN-REFERENCE-UNIT/PRD.md), filed but
-unmeasured — and `SmokeZone-ConvoyBlue` with `#spawnradius=0` would answer it outright.
+**Third thing, and it needs no extra setup.** Does the group come up on its drawn position give or take
+the dispersion, or noticeably further? A displacement well beyond 50 m was
+[`FIX-COMBATZONE-SPAWN-REFERENCE-UNIT`](.backlog/FIX-COMBATZONE-SPAWN-REFERENCE-UNIT/PRD.md), fixed in
+6.15.21: a zone anchored a group on the first unit it could *see*, so a group with its unit 1 outside
+the trigger zone came up offset by its own intra-group spacing. Both fixes are unit-tested; what no test
+can say is whether a group now lands somewhere impossible.
+
+If `verify-mission-a` has no group straddling a zone edge, that case is untested in game — dragging one
+truck of `SmokeZone-ConvoyBlue` just outside the zone before the run would cover it, and the group
+should still come up on its drawn position rather than a truck-length away.
 
 ## 10. Watch a respawned escort for longer than ten minutes
 

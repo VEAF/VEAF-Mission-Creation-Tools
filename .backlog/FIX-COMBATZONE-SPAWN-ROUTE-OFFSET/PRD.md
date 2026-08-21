@@ -88,8 +88,10 @@ is not necessarily zero**, and the reason is worth recording:
 
 - `vars.point` comes from `zoneElement:getPosition()`, set in `buildGroupElement(plainUnits[1], …)` —
   the position of **the first unit the zone happened to meet**. `initialize`'s own comment says so:
-  *"a group's element takes its position and coalition from the first of its units, as it always has"*,
-  and that order comes from `pairs()` over `mist.getUnitsInZones`.
+  *"a group's element takes its position and coalition from the first of its units, as it always has"*.
+  (Written here as "order from `pairs()`"; the follow-up lot measured that the order is in fact
+  preserved and the real trigger is unit 1 being **filtered out** of the zone — see
+  [`FIX-COMBATZONE-SPAWN-REFERENCE-UNIT`](../FIX-COMBATZONE-SPAWN-REFERENCE-UNIT/PRD.md).)
 - MiST computes the delta against **the mission table's unit 1**:
   `diff = newCoord - newGroupData.units[1]` (`mist.lua:4470`), `newGroupData` being
   `mist.getGroupData(gpName)`.

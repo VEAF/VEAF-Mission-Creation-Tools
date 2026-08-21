@@ -16,7 +16,7 @@ Documentation de la suite de tests unitaires Lua VEAF et du pipeline CI/CD.
 
 ## Vue d'ensemble
 
-Le projet couvre les modules runtime par 36 suites de tests Lua (les exceptions sont listées en fin de section « Suite de tests »). Les tests s'exécutent en **Lua 5.1** standard avec le framework [luaunit](https://github.com/bluebird75/luaunit). Aucune installation de DCS n'est requise — l'API DCS est simulée par `dcs_mocks.lua`.
+Le projet couvre les modules runtime par une suite de tests Lua par module — la section « Suite de tests » les énumère toutes, et liste à sa fin ce qui n'est délibérément pas couvert. Les tests s'exécutent en **Lua 5.1** standard avec le framework [luaunit](https://github.com/bluebird75/luaunit). Aucune installation de DCS n'est requise — l'API DCS est simulée par `dcs_mocks.lua`.
 
 ---
 
@@ -100,7 +100,7 @@ test/lua/
 ├── luaunit.lua         # Framework de test (embarqué)
 ├── dcs_mocks.lua       # Stubs de l'API DCS
 ├── veaf_loader.lua     # Chargeur de modules pour src/scripts/veaf/
-└── test_*.lua          # Un fichier par module (36 fichiers)
+└── test_*.lua          # Un fichier par module
 ```
 
 ### dcs_mocks.lua
@@ -141,44 +141,45 @@ luaunit.assertIsTrue(ok, err)
 
 ## Suite de tests
 
-| Suite | Tests | Ce qu'elle couvre |
-|-------|-------|-------------------|
-| `test_veaf.lua` | 393 | Utilitaires de base, helpers string/table/vecteur, logging |
-| `test_veafCacheManager.lua` | 12 | Cache get/set/invalidate |
-| `test_veafInterpreter.lua` | 12 | Tokeniseur de texte marqueur |
-| `test_veafTime.lua` | 71 | Parsing de temps, formatage, helpers temps DCS |
-| `test_veafSecurity.lua` | 79 | Niveaux de sécurité, gestion des admins |
-| `test_veafServerHook.lua` | 14 | Hook serveur : parsing et dispatch des commandes chat |
-| `test_veafNamedPoints.lua` | 25 | Enregistrement de points, recherche, helpers ATC |
-| `test_veafShortcuts.lua` | 77 | Enregistrement et résolution des raccourcis |
-| `test_veafWeather.lua` | 107 | Parsing météo, calculs QNH/vent |
-| `test_dcsDataExport.lua` | 29 | Utilitaires d'export de données unités |
-| `test_veafCombatMission.lua` | 116 | Cycle de vie d'une mission de combat |
-| `test_veafAirbases.lua` | 31 | Recherche de données aérodromes |
-| `test_veafCombatZone.lua` | 138 | Activation de zone, scoring, machine à états |
-| `test_veafUnits.lua` | 67 | Recherche de templates d'unités, filtrage par catégorie |
-| `test_veafAssets.lua` | 26 | Enregistrement d'assets, suivi d'état |
-| `test_veafAssist.lua` | 67 | Assistance pilote : checklists, progression, menus |
-| `test_veafRemote.lua` | 37 | Parsing de commandes distantes |
-| `test_veafMarkers.lua` | 18 | Gestion des événements marqueur |
-| `test_veafEventHandler.lua` | 21 | Dispatch d'événements, enregistrement de handlers |
-| `test_veafSkynetIadsHelper.lua` | 68 | Helpers d'intégration Skynet IADS |
-| `test_veafSkynetIadsMonitor.lua` | 41 | État du moniteur Skynet |
-| `test_veafGroundAI.lua` | 83 | Flags de comportement IA sol |
-| `test_veafRadio.lua` | 127 | Construction de l'arbre de menus radio |
-| `test_veafQraManager.lua` | 99 | Machine à états QRA, gestion de zones |
-| `test_veafAirWaves.lua` | 135 | Planification de waves, assignation de groupes |
-| `test_veafSanctuary.lua` | 49 | Détection de zone sanctuaire |
-| `test_veafMissileGuardian.lua` | 38 | Logique d'interception de missiles |
-| `test_veafCasMission.lua` | 51 | Génération de packages de menaces CAS |
-| `test_veafTransportMission.lua` | 52 | Setup de mission de transport |
-| `test_veafCarrierOperations.lua` | 47 | Séquence de recovery porte-avions |
-| `test_veafMove.lua` | 95 | Parsing de commandes de déplacement/téléportation |
-| `test_veafGrass.lua` | 16 | Initialisation de pistes en herbe |
-| `test_veafSpawn.lua` | 184 | Commandes spawn, analyse de texte marqueur, conversion fréquence laser |
-| `test_veafSpawnParser.lua` | 70 | Parsing déterministe du texte marqueur de spawn (`markTextAnalysis`) |
-| `test_veafCommands.lua` | 17 | Registre de commandes : ordonnancement par priorité et dispatch |
-| `test_veafI18n.lua` | 32 | Couche i18n runtime Lua (`veaf.t`, catalogue `veafI18n`) |
+| Suite | Ce qu'elle couvre |
+|-------|-------------------|
+| `test_veaf.lua` | Utilitaires de base, helpers string/table/vecteur, logging |
+| `test_veafCacheManager.lua` | Cache get/set/invalidate |
+| `test_veafInterpreter.lua` | Tokeniseur de texte marqueur |
+| `test_veafTime.lua` | Parsing de temps, formatage, helpers temps DCS |
+| `test_veafSecurity.lua` | Niveaux de sécurité, gestion des admins |
+| `test_veafServerHook.lua` | Hook serveur : parsing et dispatch des commandes chat |
+| `test_veafNamedPoints.lua` | Enregistrement de points, recherche, helpers ATC |
+| `test_veafShortcuts.lua` | Enregistrement et résolution des raccourcis |
+| `test_veafWeather.lua` | Parsing météo, calculs QNH/vent |
+| `test_dcsDataExport.lua` | Utilitaires d'export de données unités |
+| `test_veafCombatMission.lua` | Cycle de vie d'une mission de combat |
+| `test_veafAirbases.lua` | Recherche de données aérodromes |
+| `test_veafCombatZone.lua` | Activation de zone, scoring, machine à états |
+| `test_veafUnits.lua` | Recherche de templates d'unités, filtrage par catégorie |
+| `test_veafAssets.lua` | Enregistrement d'assets, suivi d'état |
+| `test_veafAssist.lua` | Assistance pilote : checklists, progression, menus |
+| `test_veafRemote.lua` | Parsing de commandes distantes |
+| `test_veafMarkers.lua` | Gestion des événements marqueur |
+| `test_veafEventHandler.lua` | Dispatch d'événements, enregistrement de handlers |
+| `test_veafSkynetIadsHelper.lua` | Helpers d'intégration Skynet IADS |
+| `test_veafSkynetIadsMonitor.lua` | État du moniteur Skynet |
+| `test_veafGroundAI.lua` | Flags de comportement IA sol |
+| `test_veafRadio.lua` | Construction de l'arbre de menus radio |
+| `test_veafQraManager.lua` | Machine à états QRA, gestion de zones |
+| `test_veafAirWaves.lua` | Planification de waves, assignation de groupes |
+| `test_veafSanctuary.lua` | Détection de zone sanctuaire |
+| `test_veafMissileGuardian.lua` | Logique d'interception de missiles |
+| `test_veafCasMission.lua` | Génération de packages de menaces CAS |
+| `test_veafTransportMission.lua` | Setup de mission de transport |
+| `test_veafCarrierOperations.lua` | Séquence de recovery porte-avions |
+| `test_veafMove.lua` | Parsing de commandes de déplacement/téléportation |
+| `test_veafMove_escort.lua` | Récupération de la tâche Escort après recréation du groupe escorté |
+| `test_veafGrass.lua` | Initialisation de pistes en herbe |
+| `test_veafSpawn.lua` | Commandes spawn, analyse de texte marqueur, conversion fréquence laser |
+| `test_veafSpawnParser.lua` | Parsing déterministe du texte marqueur de spawn (`markTextAnalysis`) |
+| `test_veafCommands.lua` | Registre de commandes : ordonnancement par priorité et dispatch |
+| `test_veafI18n.lua` | Couche i18n runtime Lua (`veaf.t`, catalogue `veafI18n`) |
 
 **Module non couvert** :
 

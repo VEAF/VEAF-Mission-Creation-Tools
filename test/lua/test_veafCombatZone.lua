@@ -1942,15 +1942,11 @@ function TestVeafCombatZoneInitializeTags:test_a_settings_tag_on_the_group_reach
 end
 
 -- FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT — the assertion the previous lot left pinned to the broken
--- behaviour, flipped now that the default is reachable again.
+-- behaviour, flipped now that the default is reachable again. Why the rule is what it is lives on
+-- `buildGroupElement`; the history lives in the PRD.
 --
--- `DefaultSpawnRadiusForUnits = 50` was dead from 2023-03-04 to 2026-08-21: an element starts at
--- `spawnRadius = 0` and the guard read `if not element:getSpawnRadius()`, false for 0 in Lua. The
--- default is now decided from whether the **tag was written**, which the builder knows exactly, so
--- `#spawnradius=0` keeps meaning "no dispersion" and no consumer can ever see nil.
---
--- These assertions are on the **applied** radius, not on the constant. `test_defaultSpawnRadii` asserts
--- the constant and happily coexisted with the defect for three years, which is the gap being closed.
+-- These assert the **applied** radius, never the constant: `test_defaultSpawnRadii` asserts the constant
+-- and coexisted with the defect for three years, which is the gap being closed here.
 function TestVeafCombatZoneInitializeTags:test_an_untagged_group_gets_the_unit_default()
   local z = initializedZone({ fakeUnit("TAGZONE-PLAIN-1", "TAGZONE-PLAIN") })
   luaunit.assertEquals(elementNamed(z, "TAGZONE-PLAIN"):getSpawnRadius(), veafCombatZone.DefaultSpawnRadiusForUnits)

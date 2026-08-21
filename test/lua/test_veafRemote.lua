@@ -213,4 +213,116 @@ function TestVeafRemoteExecuteCommandFromRemote:test_no_handler_returns_false()
   luaunit.assertFalse(result)
 end
 
+-- ============================================================================
+-- FIX-REMOTE-SLOT-NIL-UNIT — a player who leaves his slot was registered in a unit called "nil"
+--
+-- Two halves, each written correctly, and neither doing what its comment says. The server hook sent
+-- `tostring(unitName or "nil")` — the four-character **string** — and this side guarded with
+-- `if not unitName`, which never fires for a truthy string. So a spectator or a game master was
+-- registered as occupying a unit named `nil`:
+--
+--     veafRemote.remoteUnitsPilots["nil"] = remoteUser
+--
+-- Costs: `veafSecurity.getUnitNameForPlayer` returned the string "nil" for him, the elevation refusal
+-- then logged "cannot resolve a group for unit [nil]" — a correct refusal with a fictional reason —
+-- and two players in the same state disagreed, since one table slot held one of them.
+--
+-- The hook sends "" now, but the mission must accept the old payload too: the hook is deployed by hand,
+-- server by server, so a new mission meeting an old hook is the normal state of affairs here.
+-- ============================================================================
+TestVeafRemoteSlotWithNoUnit = {}
+
+function TestVeafRemoteSlotWithNoUnit:setUp()
+  veafRemote.remoteUsers = {}
+  veafRemote.remoteUnitsPilots = {}
+  veafRemote.registerUser("Zip", 10, "ucid-zip")
+  veafRemote.registerUser("Sharko", 10, "ucid-sharko")
+end
+
+--- Every shape that means "this player occupies no unit", including the two an old hook can send.
+--- A real `nil` cannot live in a table, so it is asserted separately everywhere below.
+local NO_UNIT = { empty = "", blank = "   ", legacy_literal = "nil", legacy_upper = "NIL" }
+
+function TestVeafRemoteSlotWithNoUnit:test_normalizeUnitName_reads_a_real_name()
+  luaunit.assertEquals(veafRemote.normalizeUnitName("Bandit-1-1"), "Bandit-1-1")
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_normalizeUnitName_reads_every_absence_as_absence()
+  for label, value in pairs(NO_UNIT) do
+    luaunit.assertNil(veafRemote.normalizeUnitName(value), label)
+  end
+  luaunit.assertNil(veafRemote.normalizeUnitName(nil))
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_a_player_taking_a_slot_is_registered()
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-1-1")
+  luaunit.assertEquals(veafRemote.remoteUnitsPilots["Bandit-1-1"].name, "Zip")
+end
+
+-- The defect itself, over every shape of "no unit".
+function TestVeafRemoteSlotWithNoUnit:test_leaving_a_slot_leaves_no_entry_behind()
+  for label, value in pairs(NO_UNIT) do
+    veafRemote.remoteUnitsPilots = {}
+    veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-1-1")
+    veafRemote.registerUserSlot("Zip", "ucid-zip", value)
+    luaunit.assertEquals(veafRemote.remoteUnitsPilots, {}, label)
+  end
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_leaving_a_slot_with_a_real_nil_leaves_no_entry_behind()
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-1-1")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", nil)
+  luaunit.assertEquals(veafRemote.remoteUnitsPilots, {})
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_no_unit_is_ever_registered_under_the_string_nil()
+  -- the assertion that would have caught this on day one
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "nil")
+  luaunit.assertNil(veafRemote.remoteUnitsPilots["nil"])
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_the_user_no_longer_claims_a_unit()
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-1-1")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "nil")
+  luaunit.assertNil(veafRemote.getRemoteUser("Zip").unitName)
+end
+
+-- "Two players in the same state disagree": with one table slot holding whoever moved last, the first
+-- of them stopped being findable. Both must be equally absent.
+function TestVeafRemoteSlotWithNoUnit:test_two_players_leaving_in_sequence_behave_identically()
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-1-1")
+  veafRemote.registerUserSlot("Sharko", "ucid-sharko", "Bandit-1-2")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "nil")
+  veafRemote.registerUserSlot("Sharko", "ucid-sharko", "nil")
+  luaunit.assertEquals(veafRemote.remoteUnitsPilots, {})
+  luaunit.assertNil(veafRemote.getRemoteUser("Zip").unitName)
+  luaunit.assertNil(veafRemote.getRemoteUser("Sharko").unitName)
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_changing_slot_releases_the_previous_unit()
+  -- non-regression: the mechanism that already worked
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-1-1")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-2-1")
+  luaunit.assertNil(veafRemote.remoteUnitsPilots["Bandit-1-1"])
+  luaunit.assertEquals(veafRemote.remoteUnitsPilots["Bandit-2-1"].name, "Zip")
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_a_player_returning_to_a_slot_is_registered_again()
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-1-1")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Bandit-1-1")
+  luaunit.assertEquals(veafRemote.remoteUnitsPilots["Bandit-1-1"].name, "Zip")
+end
+
+function TestVeafRemoteSlotWithNoUnit:test_no_username_is_still_refused()
+  luaunit.assertFalse(veafRemote.registerUserSlot(nil, "ucid", "Bandit-1-1"))
+end
+
+-- A unit genuinely named `nil` is indistinguishable from absence, and that is the price of accepting
+-- the old payload. Pinned so the trade is visible rather than discovered.
+function TestVeafRemoteSlotWithNoUnit:test_a_unit_actually_named_nil_is_read_as_absence()
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "nil")
+  luaunit.assertEquals(veafRemote.remoteUnitsPilots, {})
+end
+
 os.exit(luaunit.LuaUnit.run())

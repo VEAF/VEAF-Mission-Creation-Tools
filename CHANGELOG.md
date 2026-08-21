@@ -7,6 +7,37 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.17] — 2026-08-21
+
+### Fixed
+
+- **A player who leaves his slot is no longer registered in a unit called `nil`.** Two halves, each
+  written for the right case and neither doing it. The server hook formatted the absent unit as
+  `tostring(unitName or "nil")` — the four-character **string** — and the mission guarded with
+  `if not unitName`, which never fires for a truthy string. So a spectator or a game master ended up as
+  `veafRemote.remoteUnitsPilots["nil"]`, and both sides' comments described behaviour that never happened.
+
+  What it cost: `veafSecurity.getUnitNameForPlayer` returned the string `"nil"` for such a player, the
+  elevation refusal then logged *"cannot resolve a group for unit [nil]"* — a correct refusal with a
+  fictional reason, the kind of message that costs someone an evening — and **two players in the same
+  state disagreed**, since one table entry held whichever of them moved last, making the other
+  unfindable.
+
+  Both sides ship, deliberately. The hook now sends an empty string; the mission reads `nil`, `""`, blank
+  and the literal `"nil"` alike as "no unit" and represents that state by **absence**, which is what the
+  code already claimed to do. Fixing only the hook would have been tempting and wrong: the hook is
+  deployed **by hand**, server by server, with no pipeline, so a mission built from a newer framework
+  meets an older hook for as long as it takes someone to copy a file.
+
+  The trade is stated rather than hidden: a unit genuinely named `nil` is indistinguishable from absence.
+  That is the price of accepting the old payload, and there is a test pinning it so the next reader finds
+  it on purpose.
+
+  Server owners: copying the new hook is worth doing but is **not** required for the fix — the mission
+  side handles the old payload.
+
+---
+
 ## [6.15.16] — 2026-08-21
 
 ### Added

@@ -148,7 +148,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafInterpreter.lua` | 12 | Tokeniseur de texte marqueur |
 | `test_veafTime.lua` | 71 | Parsing de temps, formatage, helpers temps DCS |
 | `test_veafSecurity.lua` | 79 | Niveaux de sécurité, gestion des admins |
-| `test_veafServerHook.lua` | 9 | Hook serveur : parsing et dispatch des commandes chat |
+| `test_veafServerHook.lua` | 14 | Hook serveur : parsing et dispatch des commandes chat |
 | `test_veafNamedPoints.lua` | 25 | Enregistrement de points, recherche, helpers ATC |
 | `test_veafShortcuts.lua` | 74 | Enregistrement et résolution des raccourcis |
 | `test_veafWeather.lua` | 107 | Parsing météo, calculs QNH/vent |
@@ -159,7 +159,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafUnits.lua` | 67 | Recherche de templates d'unités, filtrage par catégorie |
 | `test_veafAssets.lua` | 26 | Enregistrement d'assets, suivi d'état |
 | `test_veafAssist.lua` | 67 | Assistance pilote : checklists, progression, menus |
-| `test_veafRemote.lua` | 23 | Parsing de commandes distantes |
+| `test_veafRemote.lua` | 35 | Parsing de commandes distantes |
 | `test_veafMarkers.lua` | 18 | Gestion des événements marqueur |
 | `test_veafEventHandler.lua` | 21 | Dispatch d'événements, enregistrement de handlers |
 | `test_veafSkynetIadsHelper.lua` | 68 | Helpers d'intégration Skynet IADS |

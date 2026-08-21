@@ -245,27 +245,54 @@ function veafRemote.registerUser(username, userpower, ucid)
   veafRemote.remoteUsers[username:lower()] = { name = username, level = tonumber(userpower or "-1"), ucid = ucid }
 end
 
+--- The unit a slot payload actually names, or nil when it names none.
+---
+--- The server hook used to send `tostring(unitName or "nil")` for a player in no unit — the
+--- four-character **string**, which is truthy in Lua, so a guard reading `if not unitName` never fired
+--- and the player was registered as occupying a unit called `nil`
+--- (FIX-REMOTE-SLOT-NIL-UNIT). The hook sends an empty string now, but this has to keep reading the old
+--- payload: the hook is deployed **by hand**, server by server, with no pipeline, so a mission built
+--- from a newer framework meets an older hook for as long as it takes someone to copy a file.
+---
+--- The trade, stated rather than hidden: a unit genuinely named `nil` is indistinguishable from absence.
+--- That is the price of accepting the old payload, and no mission has ever been seen to pay it.
+---
+--- @param unitName the third value of a slot payload; nil is tolerated
+--- @return the unit name, or nil for nil, an empty or blank string, or the literal "nil"
+function veafRemote.normalizeUnitName(unitName)
+  if type(unitName) ~= "string" then
+    return nil
+  end
+  local trimmed = unitName:match("^%s*(.-)%s*$")
+  if trimmed == "" or trimmed:lower() == "nil" then
+    return nil
+  end
+  return trimmed
+end
+
 -- register a user slot from the server; called when the player changes slot
 function veafRemote.registerUserSlot(username, ucid, unitName)
   veaf.loggers
     .get(veafRemote.Id)
     :debug(string.format("veafRemote.registerUserSlot([%s], [%s], [%s])", veaf.p(username), veaf.p(ucid), veaf.p(unitName)))
-  if not username or not unitName then
+  if not username then
     return false
   end
   local remoteUser = veafRemote.remoteUsers[username:lower()]
   if not remoteUser then
     remoteUser = { name = username, ucid = ucid }
   end
+  -- "occupies nothing" is represented by **absence**, which is what the code always claimed to do
+  local occupiedUnit = veafRemote.normalizeUnitName(unitName)
   local previousUnit = remoteUser.unitName
-  remoteUser.unitName = unitName -- can be nil if the player got out of the unit
+  remoteUser.unitName = occupiedUnit -- nil when the player got out of his unit
   -- unregister the previous unit, if any
   if previousUnit then
     veafRemote.remoteUnitsPilots[previousUnit] = nil
   end
   -- register the current unit, if any
-  if unitName then
-    veafRemote.remoteUnitsPilots[unitName] = remoteUser
+  if occupiedUnit then
+    veafRemote.remoteUnitsPilots[occupiedUnit] = remoteUser
   end
 end
 

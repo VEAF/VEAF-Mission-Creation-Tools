@@ -148,7 +148,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafInterpreter.lua` | 12 | Mark text tokenizer |
 | `test_veafTime.lua` | 71 | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | 79 | Security levels, admin management |
-| `test_veafServerHook.lua` | 9 | Server hook: chat-command parsing and dispatch |
+| `test_veafServerHook.lua` | 14 | Server hook: chat-command parsing and dispatch |
 | `test_veafNamedPoints.lua` | 25 | Point registration, lookup, ATC helpers |
 | `test_veafShortcuts.lua` | 74 | Shortcut registration and resolution |
 | `test_veafWeather.lua` | 107 | Weather parsing, QNH/wind calculations |
@@ -159,7 +159,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafUnits.lua` | 67 | Unit template lookup, category filtering |
 | `test_veafAssets.lua` | 26 | Asset registration, state tracking |
 | `test_veafAssist.lua` | 67 | Pilot assistance: checklists, progression, menus |
-| `test_veafRemote.lua` | 23 | Remote command parsing |
+| `test_veafRemote.lua` | 35 | Remote command parsing |
 | `test_veafMarkers.lua` | 18 | Marker event handling |
 | `test_veafEventHandler.lua` | 21 | Event dispatch, handler registration |
 | `test_veafSkynetIadsHelper.lua` | 68 | Skynet IADS integration helpers |

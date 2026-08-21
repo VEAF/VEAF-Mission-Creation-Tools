@@ -503,6 +503,8 @@ function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZo
   element:setPosition(unit:getPosition().p)
   element:setName(group.name)
   applyCollectedTags(element, tags)
+  -- no dispersion default here, deliberately: the command runs *at this position*, so scattering it
+  -- would move whatever the command spawns. `#spawnradius=` still applies if the mission maker wrote one.
   element:setVeafCommand(command .. ", czName " .. combatZoneName)
   element:setRoute(mist.getGroupRoute(group.name, "task"))
   if not element:getSpawnGroup() then
@@ -512,6 +514,13 @@ function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZo
 end
 
 --- Build the zone element of a group the zone spawns itself.
+---
+--- The dispersion default is decided from whether `#spawnradius=` was **written**, not from the value
+--- the element happens to hold. Asking the element (`if not element:getSpawnRadius()`) is what killed
+--- the default for three years: an element starts at 0, and `not 0` is false in Lua. Reading the tag's
+--- presence is exact, and it leaves `#spawnradius=0` meaning "no dispersion" instead of being
+--- indistinguishable from silence.
+---
 --- @param unit the group's first unit, which gives the element its position and coalition
 --- @param group the group, as built by VeafCombatZone:initialize
 --- @param tags the group's collected tags
@@ -524,14 +533,12 @@ function veafCombatZone.buildGroupElement(unit, group, tags)
   applyCollectedTags(element, tags)
   if group.isStatic then
     element:setDcsStatic(true)
-    if not element:getSpawnRadius() then
-      element:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForStatics)
-    end
   else
     element:setDcsGroup(true)
-    if not element:getSpawnRadius() then
-      element:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForUnits)
-    end
+  end
+  if not tags.spawnRadius then
+    local default = group.isStatic and veafCombatZone.DefaultSpawnRadiusForStatics or veafCombatZone.DefaultSpawnRadiusForUnits
+    element:setSpawnRadius(default)
   end
   if not element:getSpawnGroup() then
     element:setSpawnGroup(group.name) -- default the spawn group to the group name

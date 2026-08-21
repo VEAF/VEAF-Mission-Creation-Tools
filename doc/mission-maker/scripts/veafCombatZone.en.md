@@ -212,13 +212,28 @@ Unit and group names in the DCS Mission Editor can carry special tags that contr
 
 | Tag | Example | Description |
 |-----|---------|-------------|
-| `#spawnradius=N` | `#spawnradius=200` | Scatter radius in metres around the zone centre for this group |
+| `#spawnradius=N` | `#spawnradius=200` | Scatter radius in metres around the group's recorded position. Without the tag, see [`#spawnradius`](#spawn-radius) |
 | `#spawnchance=N` | `#spawnchance=50` | Percentage chance (0–100) this group will actually spawn |
 | `#spawncount=N` | `#spawncount=3` | Number of instances to spawn (can be >1 for repeated units) |
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Override the spawn group name (useful to target a named template) |
 | `#spawndelay=N` | `#spawndelay=120` | Delay in seconds before this group spawns after zone activation |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Execute a VEAF command instead of spawning this group; the unit acts as a trigger and is destroyed |
 | `#alarm=N` | `#alarm=2` | Alarm state given to this group: `0` AUTO, `1` GREEN, `2` RED. Without the tag, the state follows the group's nature — see [`#alarm`](#alarm-state) |
+
+### `#spawnradius` — the default dispersion {#spawn-radius}
+
+With no tag, a group appears **scattered by 50 m** around its recorded position, and a static object appears **exactly** on its own. Dispersion exists so that a group does not respawn on the same metre twice; a static, on the other hand, is usually placed somewhere precise — a parking spot, a quay — where moving it would make no sense.
+
+| What you write | What the group gets |
+|---|---|
+| nothing | 50 m for a group, 0 m for a static |
+| `#spawnradius=200` | 200 m |
+| `#spawnradius=0` | no dispersion — this is how you turn it off |
+
+A `#command=` unit is **never** scattered, default or not: the command runs *at its position*, so moving it would move whatever it spawns. An explicitly written `#spawnradius=` does still apply to it.
+
+!!! warning "This changes existing missions"
+    From March 2023 to 6.15.14 the 50 m default was **unreachable**: the constant existed, the code meant to apply it never ran, and every group of a combat zone appeared exactly on its recorded position. A mission built during those three years will therefore see its groups move by about fifty metres. If a placement was precise on purpose, write `#spawnradius=0`.
 
 ### Where tags are read from {#tag-sources}
 

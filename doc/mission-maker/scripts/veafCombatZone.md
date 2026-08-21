@@ -213,13 +213,28 @@ Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter d
 
 | Tag | Exemple | Description |
 |-----|---------|-------------|
-| `#spawnradius=N` | `#spawnradius=200` | Rayon de dispersion en mètres autour du centre de la zone pour ce groupe |
+| `#spawnradius=N` | `#spawnradius=200` | Rayon de dispersion en mètres autour de la position enregistrée du groupe. Sans ce tag, voir [`#spawnradius`](#spawn-radius) |
 | `#spawnchance=N` | `#spawnchance=50` | Probabilité en pourcentage (0–100) que ce groupe apparaisse réellement |
 | `#spawncount=N` | `#spawncount=3` | Nombre d'exemplaires à faire apparaître (peut être >1 pour des unités répétées) |
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Remplace le nom du groupe d'apparition (utile pour cibler un modèle nommé) |
 | `#spawndelay=N` | `#spawndelay=120` | Délai en secondes avant l'apparition de ce groupe après l'activation de la zone |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Exécute une commande VEAF au lieu de faire apparaître ce groupe ; l'unité sert de déclencheur et est détruite |
 | `#alarm=N` | `#alarm=2` | État d'alerte donné à ce groupe : `0` AUTO, `1` VERT, `2` ROUGE. Sans ce tag, l'état dépend de la nature du groupe — voir [`#alarm`](#alarm-state) |
+
+### `#spawnradius` — la dispersion par défaut {#spawn-radius}
+
+Sans tag, un groupe apparaît **dispersé de 50 m** autour de sa position enregistrée, et un objet statique apparaît **exactement** sur la sienne. La dispersion existe pour qu'un groupe ne réapparaisse pas deux fois au même mètre près ; un statique, lui, est souvent posé à un endroit précis (un parking, un quai) où le déplacer n'aurait pas de sens.
+
+| Ce que vous écrivez | Ce que le groupe reçoit |
+|---|---|
+| rien | 50 m pour un groupe, 0 m pour un statique |
+| `#spawnradius=200` | 200 m |
+| `#spawnradius=0` | aucune dispersion — c'est ainsi qu'on la désactive |
+
+Une unité `#command=` n'est **jamais** dispersée, avec ou sans défaut : la commande s'exécute *à sa position*, donc la déplacer déplacerait ce qu'elle fait apparaître. Un `#spawnradius=` écrit explicitement s'y applique tout de même.
+
+!!! warning "Ce comportement change les missions existantes"
+    De mars 2023 à la 6.15.14 le défaut de 50 m était **inatteignable** : la constante existait, le code censé l'appliquer ne s'exécutait jamais, et tous les groupes d'une zone de combat apparaissaient exactement sur leur position enregistrée. Une mission construite pendant ces trois ans verra donc ses groupes bouger d'une cinquantaine de mètres. Si un placement était volontairement précis, écrivez `#spawnradius=0`.
 
 ### Où les tags sont lus {#tag-sources}
 

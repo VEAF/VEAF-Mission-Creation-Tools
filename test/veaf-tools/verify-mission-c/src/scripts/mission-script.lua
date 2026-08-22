@@ -65,16 +65,24 @@ local verifyC_delayedCalls = 0 -- delayedActivate calls
 --- What the MENU knows, because the menu is what triggers it. Skynet exposes no network state
 --- at all, so the two readings David compared (before/after deactivation) were identical by
 --- construction: nothing in them could ever have differed.
+local verifyC_deactivatedFromMenu = false
 local verifyC_status = "running normally (never deactivated from this menu)"
 local verifyC_verdict = "#261: deactivate the network first, then spawn a SAM"
 
 if veafSkynet and veafSkynet.addGroupToNetwork then
   local originalAdd = veafSkynet.addGroupToNetwork
-  veafSkynet.addGroupToNetwork = function(networkName, ...)
-    local added = originalAdd(networkName, ...)
+  veafSkynet.addGroupToNetwork = function(networkName, groupName, ...)
+    local added = originalAdd(networkName, groupName, ...)
     if networkName == RED_IADS and added then
       verifyC_adds = verifyC_adds + 1
-      trigger.action.outText(string.format("VERIFY C: group added to RED network (%d)", verifyC_adds), 15)
+      -- Name the group. A bare counter cannot say *what* joined, and on 2026-08-22 two groups were
+      -- integrated before the zone was even activated -- expected, since `dynamic_spawn` makes the
+      -- birth events of the mission's own starting groups reach the monitor, but indistinguishable
+      -- from a defect without the name.
+      trigger.action.outText(
+        string.format("VERIFY C: group added to RED network (%d): %s", verifyC_adds, tostring(groupName)),
+        15
+      )
     end
     return added
   end
@@ -100,10 +108,14 @@ if veafSkynet and veafSkynet._activateIADS then
         verifyC_status = string.format("REACTIVATED %dx since it was deactivated", verifyC_reactivations)
         verifyC_verdict = "#261 CONFIRMED -- a spawn woke a network that was switched off"
       end
-      trigger.action.outText(
-        string.format("VERIFY C: RED IADS REACTIVATED (%d since the last deactivation)", verifyC_reactivations),
-        20
-      )
+      -- Say which of the two situations this is. The old wording claimed "since the last
+      -- deactivation" unconditionally, so an activation on a network that had never been switched
+      -- off read as the very defect #261 is about. It misled a real reading on 2026-08-22.
+      local context = "network was NOT deactivated -- this is normal startup/integration traffic"
+      if verifyC_deactivatedFromMenu then
+        context = string.format("%d since it was deactivated -- THIS IS #261", verifyC_reactivations)
+      end
+      trigger.action.outText(string.format("VERIFY C: RED IADS activate() called (%s)", context), 20)
     end
     return originalActivate(networkName)
   end
@@ -167,6 +179,7 @@ local function verifyC_deactivateRedIads()
   local iads = verifyC_getRedIads()
   if iads then
     iads:deactivate()
+    verifyC_deactivatedFromMenu = true
     verifyC_reactivations = 0
     verifyC_status = "DEACTIVATED from this menu, nothing has reactivated it since"
     verifyC_verdict = "#261: now spawn a SAM -- marker text  -samsr, country russia"
@@ -178,6 +191,7 @@ local function verifyC_activateRedIads()
   local iads = verifyC_getRedIads()
   if iads then
     iads:activate()
+    verifyC_deactivatedFromMenu = false
     verifyC_status = "activated by hand from this menu"
     verifyC_verdict = "#261: deactivate the network first, then spawn a SAM"
     trigger.action.outText("VERIFY C: RED IADS activated", 15)

@@ -53,11 +53,32 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 | — · un marqueur simple renvoyait une erreur | ✅ **corrigé**, PR #789 — onze jours de régression, sans lien avec la session |
 | 2a · `#command` retardé meurt avec sa zone | ✅ |
 | 2b · menu porte-avions côté rouge | ✅ |
-| 2c · le SA-6 | 🔎 locke, lève, se rétracte, 5 fois, sans tirer — **cause trouvée dans Skynet**, voir ci-dessous |
+| 2c · check 6 — le SAM de la zone rejoint le réseau | ✅ `group added to RED network (3)` après activation, et le SA-6 a abattu l'observateur : il était bien opérationnel dans le réseau |
+| 2c · check 7 — un spawn ne réveille pas un réseau éteint | ⏳ **pas exécuté** : il manque « Deactivate RED IADS » avant le marqueur, voir ci-dessous |
+| 2c bis · le cycle allumé/éteint | 🔎 **10 s mesurées** = deux cycles de 5 s, comme prédit depuis le code. Cause dans Skynet, lot déposé |
 | 0bis · SA-6 complet, carte nue, sans script | ✅ **il a tiré** → il n'y a jamais eu de bug SAM dans DCS |
 | 2d · alarme par nature | ✅ pour ce qui était testable : le convoi roule. Les chars n'ont **qu'un waypoint** dans la mission C, donc aucune route — leur immobilité est la donnée, pas un défaut |
 
-### 2c — la cause, trouvée dans le code de Skynet
+### 2c — check 7 : ce qui manque, et l'instrument qui t'a trompé
+
+**Le check 7 n'a pas été exécuté.** Son énoncé est « désactive le réseau, *puis* fais apparaître un SAM » :
+sans la désactivation, un `delayedActivate` à chaque ajout est le comportement **normal**, pas le défaut.
+Il faut passer par le menu **VERIFY C → « Deactivate RED IADS »** avant de poser le marqueur.
+
+**Et l'instrument t'a induit en erreur, c'est mon défaut.** Le message
+*« RED IADS REACTIVATED (1 since the last deactivation) »* s'affichait alors qu'aucune désactivation
+n'avait eu lieu : le compteur montait à chaque `_activateIADS`, et la phrase affirmait un contexte faux.
+Autrement dit il criait le défaut de #261 sur du trafic de démarrage parfaitement normal. Corrigé : le
+message distingue maintenant les deux situations, et il **nomme le groupe** ajouté — un compteur nu ne
+peut pas dire *ce qui* a rejoint le réseau.
+
+Tes deux ajouts avant activation sont d'ailleurs attendus : `dynamic_spawn` est actif depuis ce matin,
+donc les événements de naissance des groupes rouges de la mission (l'EWR et le SA-6 statique) atteignent
+le moniteur. Le nouveau message te le confirmera par leur nom.
+
+**Mission C reconstruite** — recharge-la avant de refaire le check 7.
+
+### 2c bis — la cause du cycle, trouvée dans le code de Skynet
 
 Ton test l'a tranché : un **SA-6 complet dans un seul groupe**, sur carte nue, sans aucun script, **tire**.
 Donc il n'y a jamais eu de bug SAM dans DCS — ni sur les autonomes (tes SA-15), ni sur les sites
@@ -76,11 +97,14 @@ Donc un site qui vient de s'allumer est actif, donc exclu de la collecte, donc j
 éteint au cycle suivant. Allumé, éteint, allumé, éteint. Un site qui détecte sa cible **tout seul** ne
 s'en sort pas non plus : ses contacts sont versés dans l'IADS mais on ne l'en informe jamais.
 
-**Ce que tu peux vérifier en dix secondes, et qui confirme ou tue l'analyse :** chronomètre l'intervalle
-entre deux bascules. L'explication prédit **~5 secondes**, quoi que fasse ton avion.
+**Mesuré : toutes les 10 secondes.** Un cycle complet — lever, rétracter, relever — c'est **deux**
+passages d'évaluation : 5 s allumé plus 5 s éteint font exactement 10 s entre deux états identiques. La
+prédiction était faite depuis le code *avant* la mesure, pas ajustée après.
 
-- ~5 s → c'est ça, et le reste est du travail de code.
-- irrégulier, ou lié à la distance → c'est autre chose et mon analyse est fausse. Dis-le-moi.
+Correction que je dois à ton dernier retour : le SA-6 **t'a abattu** après activation de la zone. Donc le
+cycle **dégrade** l'engagement, il ne l'interdit pas — un site allumé la moitié du temps finit par tirer
+si tu restes à portée. Cinq cycles perdus puis un tir, c'est exactement ça. Mon PRD affirmait « il ne
+garde jamais son radar assez longtemps pour tirer » : c'était trop fort, c'est corrigé.
 
 Réserve que je préfère énoncer : un défaut aussi central dans un script mûr et très utilisé est
 suspect — ça voudrait dire que tous les SAM Skynet cyclent toutes les 5 s chez tout le monde. Mais tu as

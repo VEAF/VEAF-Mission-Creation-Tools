@@ -1,6 +1,6 @@
 # FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING — a SAM site is switched off every other cycle
 
-Status: ⬜ ready — cause traced in the code, one timing observation left to confirm it
+Status: ⬜ ready — cause traced in the code and the 10 s period measured; the fix route needs David's call
 
 Observed in game on 2026-08-22 in `verify-mission-c`, on the SA-6 (`Kub 1S91 str` × 1 +
 `Kub 2P25 ln` × 2):
@@ -56,9 +56,17 @@ Put together, for a site under EW coverage:
 | N+1 | **active** | **no — filtered out at `:1616`** | false | **goes dark** |
 | N+2 | inactive | yes | true | goes live |
 
-A site alternates live/dark on every evaluation, and it never keeps its radar long enough to complete a
-launch. Note step 2's own consequence: a site that detects its target *by itself* has its contacts
-merged into the IADS (`:1590`) but is **never** told about them, so self-detection cannot keep it alive.
+A site alternates live/dark on every evaluation. Note step 2's own consequence: a site that detects its
+target *by itself* has its contacts merged into the IADS (`:1590`) but is **never** told about them, so
+self-detection cannot keep it alive.
+
+**Correction, from the same session.** An earlier draft of this PRD said the site "never keeps its radar
+long enough to complete a launch". That is too strong and the mission disproved it: after the IADS combat
+zone was activated, the SA-6 **shot the observer down**. So the effect is a *degraded, intermittent*
+engagement — roughly half the time with the radar off — not an impossibility. Five wasted cycles followed
+by a kill is exactly what a 5-seconds-on / 5-seconds-off site would produce against an aircraft that
+stays in range. That matters for the fix's justification: this is a serious degradation of every Skynet
+SAM, not a total failure, which is also why it could go unnoticed upstream.
 
 ## The observation that confirms or kills this
 
@@ -66,11 +74,14 @@ merged into the IADS (`:1590`) but is **never** told about them, so self-detecti
 (`:1825`). So this explanation predicts the state changes are **~5 seconds apart**, regardless of what
 the aircraft does.
 
-- **~5 s between each raise and each retraction** → confirmed, and the reasoning above is the whole story
-- **irregular, or correlated with range or aspect** → something else drives it, most likely engagement
-  range hysteresis, and this analysis is wrong
+**Measured 2026-08-22: "toutes les 10 secondes".** A full period — raise, retract, raise again — spans
+**two** evaluation cycles, so 5 s live plus 5 s dark is exactly 10 s between two identical states. The
+prediction holds, and it was made from the code before the measurement rather than fitted to it.
 
-That is a stopwatch, not a debug session, so it comes before any code.
+One residual ambiguity worth closing when convenient: 10 s is the period if it was measured between two
+*raises*; if it was measured between a raise and the next retraction, the interval would be 10 s where
+this analysis predicts 5, and the interval would then be `contactUpdateInterval` × 2 for some other
+reason. Either way the mechanism is the same shape; only the constant would move.
 
 ## Reservation, stated rather than buried
 
@@ -100,7 +111,8 @@ predates every alarm-state change we have made since.
 
 ## Definition of done
 
-- [ ] The 5-second prediction checked in game, result recorded here
+- [x] The timing prediction checked in game — **10 s between identical states**, i.e. two 5 s
+      evaluation cycles, as predicted from the code
 - [ ] If confirmed: fixed by route 1 or 2, never by editing the compiled file in place
 - [ ] A SAM site that has acquired a target keeps its radar long enough to launch
 - [ ] Checked against Tripack's case, and his report closed or kept open on evidence

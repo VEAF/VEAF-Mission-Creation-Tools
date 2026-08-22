@@ -75,11 +75,18 @@ Options:
 |--------|-------|---------|-------------|
 | `size` | 1–5 | 1 | Number of target units |
 | `defense` | 0–5 | 1 | AA defence level (0=none, 5=heavy SAM) |
-| `armor` | 0–5 | 1 | Armour level (0=infantry, 5=heavy MBT) |
+| `armor` | 0–5 | 1 | Armour level (0=infantry, 5=heavy MBT) — see [what a tier holds](#armour-tiers) |
 | `spacing` | 1–5 | 1 | Spacing between the group's units |
 | `side` | blue/red | *(marker coalition)* | Coalition of targets |
 | `disperse` | seconds | — | Targets disperse when attacked; a bare `disperse` = 15 seconds |
 | `password` | text | — | Security password (see [veafSecurity](veafSecurity.en.md)) |
+
+
+### What an armour tier holds {#armour-tiers}
+
+Each tier draws at random from a list of vehicle types, picked by coalition and by the mission's era. Those lists are maintained by hand: a tier expresses *relative* power, which the DCS database does not carry — it states neither a vehicle's period nor its place on any scale.
+
+Since 6.15.25 the modern armour DCS has added is in them: the T-84 Oplot-M and Stryker CV on the blue side, the T-90M and BMPT Terminator on the red one, among others. An automated check now verifies that **every** type named in those lists actually exists in the database — before it, an entry gone stale simply spawned nothing, and never said so.
 
 ---
 

@@ -7,6 +7,42 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.25] — 2026-08-21
+
+### Fixed
+
+- **A blue cold-war platoon has been drawing from a list where one entry in three spawned nothing.**
+  `"APC TPz Fuchs"` appeared in six places across the platoon composition tables and resolved to
+  **nothing** — silently, the only trace being a log line. The name DCS ships is `'APC TPz Fuchs '`, with
+  a **trailing space**, and the unit lookup compared it untrimmed. Two of the 873 units in the generated
+  database have one; no type id does.
+
+  `veafUnits.findDcsUnit` now compares trimmed values, which also rescues a mission maker who reads a
+  name off the mission editor and types it — the space being invisible there too.
+
+  Found by the enumerated sweep added for #296 below, on its first run, before a single unit was added.
+
+### Added
+
+- **The Currenthill armour units can appear in a spawned platoon**, closing
+  [#296](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/296). All nine of them, placed by
+  role and period: `CHAP_T84OplotM` (Oplot-M) at the top of blue modern, `CHAP_T90M` and `CHAP_BMPT`
+  (T-90M, Terminator) at the top of red modern, `CHAP_M1130` and `CHAP_MATV` filling out blue modern, and
+  the two CVR(T)s in blue cold war.
+
+  **The tiers stay hand-written, and the data decided that** rather than a preference: a generated record
+  carries `type`, `name`, `kind`, `category` and DCS attributes, and **neither an era nor a tier**. A tier
+  is an editorial judgement of relative power, an era a judgement of period; deriving them would mean
+  inventing the data first.
+
+  So what stops this recurring is not derivation but a **test that enumerates every entry of all four
+  type tables** and checks each against the database. A type DCS renames or drops now fails the build
+  instead of quietly spawning nothing — which is exactly how the Fuchs above survived. Entries now use
+  the DCS type id where it differs from the display name, a type id being stable and a display name being
+  what carried the space.
+
+---
+
 ## [6.15.24] — 2026-08-21
 
 ### Added

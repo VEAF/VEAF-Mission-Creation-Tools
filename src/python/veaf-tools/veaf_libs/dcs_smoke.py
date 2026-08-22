@@ -177,6 +177,11 @@ def _disposition_avoids_scenery(value: Any) -> bool:
         return False
 
 
+#: The spot classifications the CSAR-over-water checks ask for. Shared by the chunk builder and the
+#: verdict so a mode can never be accepted that no check emits.
+_CSAR_WATER_MODES: frozenset[str] = frozenset({"open", "coast"})
+
+
 def _csar_stayed_dry(value: Any) -> bool:
     """Whether the CSAR pilot was placed on something other than water.
 
@@ -184,16 +189,31 @@ def _csar_stayed_dry(value: Any) -> bool:
         value: The check's reply, ``mode:<open|coast> surface:<id> dry:<0|1>``.
 
     Returns:
-        ``True`` only for an answer that says the pilot ended up dry.
+        ``True`` only for a **complete** answer saying the pilot ended up dry.
 
-    Everything else is a failure **including the cases where the question could not be asked** —
-    ``no-water-found``, ``csar-absent``, ``no-group``. A harness check that goes green when it never
-    managed to ask is the vacuous pass this module exists to avoid, and it would close #245 on nothing.
+    Everything else is a failure, and that covers three different kinds of "no":
+
+    * the question could not be asked — ``csar-absent``, ``no-water-found-open``, ``no-group``;
+    * the pilot got wet — ``dry:0``;
+    * the reply is **malformed or partial** — ``mode:bogus dry:1``, or a ``mode:open dry:1`` with no
+      surface at all.
+
+    That last kind is the one worth spelling out. An earlier version accepted anything starting with
+    ``mode:`` that carried ``dry:1``, so a truncated or half-populated bridge reply passed while proving
+    nothing — the vacuous pass this whole module is written against, in the check meant to settle #245.
+    Caught in review (Sourcery, PR #785). Every field is now validated: the mode must be one this check
+    actually asked for, the surface must be a number DCS returned, and ``dry`` must be exactly 0 or 1.
     """
-    if not isinstance(value, str) or not value.startswith("mode:"):
+    if not isinstance(value, str):
         return False
     parts = dict(p.split(":", 1) for p in value.split() if ":" in p)
-    return parts.get("dry") == "1"
+    if parts.get("mode") not in _CSAR_WATER_MODES:
+        return False
+    if not parts.get("surface", "").isdigit():
+        return False
+    if parts.get("dry") not in {"0", "1"}:
+        return False
+    return parts["dry"] == "1"
 
 
 def _csar_water_check_lua(mode: str) -> str:
@@ -242,14 +262,21 @@ def _csar_water_check_lua(mode: str) -> str:
         "local ok, g = pcall(csar.spawnGroup, coalition.side.BLUE, country.id.USA, target, nil) "
         "if not ok then return 'raised: ' .. tostring(g) end "
         "if not g then return 'no-group' end "
+        # Every post-spawn read happens inside a pcall so the destroy below runs whatever they do. Any of
+        # getUnits / getPoint / getSurfaceType can raise on a group DCS invalidated between the spawn and
+        # the read, and leaving the chunk early would leak a CSAR pilot into the mission — contaminating
+        # every later check and every repeat run. Caught in review (Sourcery, PR #785).
+        "local measured, result = pcall(function() "
         "local units = g:getUnits() "
-        "if not units or not units[1] then g:destroy() return 'no-unit' end "
+        "if not units or not units[1] then return 'no-unit' end "
         # getPoint() is a runtime vec3: its `z` is the easting getSurfaceType wants as `y`.
         "local p = units[1]:getPoint() "
         "local s = land.getSurfaceType({x = p.x, y = p.z}) "
-        "g:destroy() "
         f"return 'mode:{mode}"
-        "' .. ' surface:' .. tostring(s) .. ' dry:' .. tostring((s ~= W and s ~= S) and 1 or 0)"
+        "' .. ' surface:' .. tostring(s) .. ' dry:' .. tostring((s ~= W and s ~= S) and 1 or 0) end) "
+        "g:destroy() "
+        "if not measured then return 'raised: ' .. tostring(result) end "
+        "return result"
     )
     return chunk
 

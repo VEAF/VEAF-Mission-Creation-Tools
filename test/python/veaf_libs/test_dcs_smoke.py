@@ -696,12 +696,49 @@ class TestCsarOverWater:
             assert "world.getAirbases()" in lua
             assert "getPoint()" in lua
 
-    def test_the_spawned_group_is_always_cleaned_up(self):
+    def test_the_spawned_group_is_cleaned_up_exactly_once_unconditionally(self):
         # It runs inside a real mission: a check that leaves a group behind changes what the next one
-        # measures.
+        # measures. This asserted `count >= 2` while the chunk had a destroy per exit path — a shape
+        # assertion that the better structure broke, since wrapping the reads in a pcall leaves exactly
+        # one destroy that always runs. One unconditional call is stronger than several conditional ones.
         for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
             lua = self._check(name).lua
-            assert lua.count("destroy()") >= 2, f"{name} must destroy the group on the failure paths too"
+            assert lua.count("g:destroy()") == 1, f"{name}: one destroy, not one per exit path"
+
+    def test_a_malformed_or_partial_reply_fails(self):
+        # The gap Sourcery found: accepting anything that started with `mode:` and carried `dry:1` meant a
+        # truncated bridge reply passed while proving nothing — in the check meant to settle #245.
+        check = self._check("csar-avoids-water-open-sea")
+        for reply in (
+            "mode:bogus dry:1",  # a mode no check emits
+            "mode:open dry:1",  # no surface: nothing was actually read
+            "mode:open surface: dry:1",  # surface present but empty
+            "mode:open surface:water dry:1",  # surface not a number DCS returned
+            "mode:open surface:1 dry:yes",  # verdict not a flag
+            "mode:open surface:1",  # no verdict at all
+            "surface:1 dry:1",  # no mode
+        ):
+            assert check.expect(reply) is False, f"{reply!r} must not pass"
+
+    def test_both_modes_are_accepted_and_only_those(self):
+        check = self._check("csar-avoids-water-coast")
+        assert check.expect("mode:coast surface:1 dry:1") is True
+        assert check.expect("mode:open surface:1 dry:1") is True, "the verdict is shared by both checks"
+        assert check.expect("mode:lake surface:1 dry:1") is False
+
+    def test_the_group_is_destroyed_even_if_a_reading_raises(self):
+        # A leaked CSAR pilot contaminates every later check and every repeat run, so the destroy must not
+        # sit behind a call that can raise. Asserting on the shape is all that is possible without DCS:
+        # the reads are inside a pcall, and the destroy comes after it, unconditionally.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            reads = lua.index("local measured, result = pcall(function()")
+            destroy = lua.index("g:destroy()", reads)
+            assert "getUnits()" in lua[reads:destroy], f"{name}: the reads must be inside the pcall"
+            assert "getSurfaceType" in lua[reads:destroy]
+            # nothing between the pcall closing and the destroy that could return first
+            between = lua[lua.index("end) ", reads) : destroy]
+            assert "return" not in between, f"{name}: something can return before the group is destroyed"
 
     def test_it_runs_where_the_mission_scripts_do(self):
         # `csar` is a mission-environment global loaded by mission-script.lua, so the hook environment

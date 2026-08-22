@@ -13,26 +13,37 @@ come first.
 
 ---
 
-## ⚠️ READ FIRST — SAMs do not fire in DCS 2.9.28 (2026-08-20)
+## ⚠️ READ FIRST — the SAM problem is narrower than it looked (updated 2026-08-22)
 
-**Ground SAMs do not engage at all in the current DCS build.** Not a VEAF defect, not a Skynet defect:
-Sharko reproduced it on a bare map with **three SAMs and no scripts whatsoever** — *"j'ai reproduit le
-bug sans script aucun, juste 3 sams sur une carte"* — and reports the same on the BFR server, where
-nothing fires any more. It appeared with the latest DCS update. Measured build here: **2.9.28.26385**.
+**A self-contained SAM does fire.** David put three **SA-15 (Tor 9A331)** on a bare map with no scripts
+at all, in red, alarm red, ROE fire-at-will: they locked and shot. Measured on build **2.9.28.26385** —
+*the same build* on which Sharko reproduced silent SAMs. Nothing was patched in between.
 
-Tripack's report of silent SAMs in combat zones is the same thing seen from inside a mission. His
-discriminator — works outside a zone, fails inside — looked meaningful and was a coincidence.
+So the earlier reading — "ground SAMs do not engage at all in the current DCS build" — is **wrong as
+stated**. What is established is narrower:
 
-**What this blocks, and it is the point of this warning:**
-
-| Item | Why it cannot conclude right now |
+| Established | Still open |
 |---|---|
-| **11** — Skynet checks 6 and 7 | both read whether a SAM joins a network *and behaves*; a SAM that never fires cannot show it |
-| **16** — the combat zone alarm state | its whole point is "the battery must light its radars and engage" |
+| A SAM carrying its own tracking radar engages (Tor tested) | A **multi-unit site**, where launchers depend on a separate tracking radar, is untested |
 
-Do **not** read a silent SAM as a regression of ours while this lasts. The convoy half of item 16 is
-still measurable — a convoy either drives or it does not — so that one can be checked and the battery
-half deferred.
+That distinction matters because Sharko reported *"3 sams sur une carte"* without saying which types, and
+the two families behave differently: a `Kub 2P25 ln` cannot engage without its `Kub 1S91 str`, whereas a
+Tor needs nothing. A test that used incomplete sites, or launchers alone, would look exactly like a
+DCS-wide failure.
+
+**What this means for the items below:**
+
+| Item | Where it stands |
+|---|---|
+| **11** — Skynet checks 6 and 7 | **Do them.** `verify-mission-c` runs a complete SA-6 — 4 `Kub 2P25 ln` + 2 `Kub 1S91 str` — so it exercises the untested family. Read it twice: if the site is silent while a Tor shoots, that is the real shape of the DCS problem, not a Skynet defect |
+| **16** — the combat zone alarm state | **Do the battery half too.** Note which SAM type the zone uses before concluding |
+
+Tripack's report of silent SAMs inside combat zones is no longer explained away as "DCS is broken for
+everyone". If it turns out multi-unit sites are the affected family, his discriminator deserves a second
+look — and so does whatever the zone spawns.
+
+Do not read a silent SAM as a regression of ours without first checking whether the site has a living
+tracking radar. `veaf.isGroupCombatEffective` (6.15.29) answers exactly that question.
 
 **Before trusting either item again:** put three SAMs on an empty map with no scripts and fly at them.
 If they fire, DCS is fixed and the items are measurable. If they do not, nothing on this page about SAMs
@@ -339,8 +350,8 @@ predates the AUTO default entirely, so his case is still unexplained and this ch
 ## 17. A tag on one unit of a group — `verify-mission-a`, and it is cheap
 
 [`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY/PRD.md), 6.15.14.
-Same mission as item 14, so it costs nothing extra once that one is loaded. **Not blocked by the SAM
-problem** — nothing here needs anything to fire.
+Same mission as item 14, so it costs nothing extra once that one is loaded. Independent of the SAM
+question entirely — nothing here needs anything to fire.
 
 `SmokeZone-SmokeArmor` is two M-1 Abrams with a two-point route, and only the **second** unit carries
 `#alarm=2`:
@@ -366,8 +377,8 @@ the mission's own README and the regression to watch.
 ## 18. The dispersion nothing has had since 2023 — same mission again
 
 [`FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT`](.backlog/FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT/PRD.md),
-6.15.15. Third check on `verify-mission-a`, after items 14 and 17, so it costs nothing extra. **Not
-blocked by the SAM problem.**
+6.15.15. Third check on `verify-mission-a`, after items 14 and 17, so it costs nothing extra, and
+independent of the SAM question.
 
 `DefaultSpawnRadiusForUnits = 50` was dead from 2023-03-04 to 2026-08-21, so every group of every combat
 zone appeared exactly on its recorded position. It applies again, and the one thing a unit test cannot

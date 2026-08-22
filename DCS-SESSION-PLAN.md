@@ -51,6 +51,33 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 | 1b · escorte du FARP | ❌ **échec** — tout se pose sur le FARP statique. Cause racine trouvée, lot rouvert, voir ci-dessous |
 | 1c · convoi sur itinéraire | ✅ les commandes fonctionnent. Réserve d'ergonomie : chaque commande est enfermée dans un sous-menu à un seul élément |
 | — · un marqueur simple renvoyait une erreur | ✅ **corrigé**, PR #789 — onze jours de régression, sans lien avec la session |
+| 2a · `#command` retardé meurt avec sa zone | ✅ |
+| 2b · menu porte-avions côté rouge | ✅ |
+| 2c · le SA-6 | 🔎 locke, lève, se rétracte, 5 fois, sans tirer — **mon hypothèse DCS est morte**, voir ci-dessous |
+| 2d · alarme par nature | ✅ pour ce qui était testable : le convoi roule. Les chars n'ont **qu'un waypoint** dans la mission C, donc aucune route — leur immobilité est la donnée, pas un défaut |
+
+### 2c — pourquoi ton observation tue l'hypothèse DCS
+
+J'avais annoncé qu'un SA-6 muet serait « la vraie forme du bug DCS ». C'est faux, et c'est ton
+observation qui le montre : un site qui **acquiert, oriente ses lanceurs et lève ses missiles** n'est pas
+un site que DCS empêche de fonctionner. C'est un site qu'on **éteint** entre l'acquisition et le tir.
+Cinq cycles propres, c'est une boucle de contrôle, pas un engagement cassé.
+
+Et cette boucle, c'est Skynet : `goLive()` / `goDark()` sont appelés depuis `setActAsEW`,
+`resetAutonomousState`, `goAutonomous`, et depuis la **défense HARM** — qui fait plonger un site sur une
+*probabilité* par type (30 à 90 % dans la base). Donc c'est très probablement chez nous.
+
+Le test qui tranche, et il coûte 5 minutes : un **SA-6 complet** sur carte nue, sans aucun script, alarme
+rouge, ROE ouvrir le feu — exactement la forme de ton test des SA-15.
+
+- **Il tire** → Skynet éteint le site en pleine action. À nous, et la défense HARM est le premier suspect.
+- **Même cycle** → c'est DCS après tout, et propre aux sites dont le radar de tir est un véhicule séparé.
+  Ce qui expliquerait aussi le rapport de Tripack sur les SAM muets en zone.
+
+Note pour 2c lui-même : les checks 6 et 7 ne lisent **pas** un tir, ils lisent les compteurs affichés à
+l'écran (`group added`, `delayedActivate`, `RED IADS REACTIVATED`). C'est ça leur verdict. Le tir était
+mon ajout, et il a fait dériver la lecture.
+
 
 ### 1b — pourquoi ça a échoué, et ce n'est pas mesurable autrement
 

@@ -102,7 +102,7 @@ Deux marqueurs, dans cet ordre :
       plus que le fix.
 - [ ] Si le log dit `unknown FARP-like type [...]`, envoie-moi le nom du type.
 
-### 1d · Item 19 — un convoi qui suit un itinéraire (nouveau, #781)
+### 1d · Un convoi qui suit un itinéraire
 
 Pose trois marqueurs. Sur le premier, tape :
 
@@ -110,16 +110,25 @@ Pose trois marqueurs. Sur le premier, tape :
 _spawn convoy, dest <2e marqueur>, dest <3e marqueur>, speed 40
 ```
 
-- [ ] Le convoi part vers le 2e point, **puis repart seul** vers le 3e. La surveillance tourne toutes les
-      30 s et le rayon d'arrivée est de 150 m : laisse-lui une demi-minute après l'arrêt avant de
-      conclure.
-- [ ] **« Faire attendre les ordres (au point suivant) »** au menu F10 : il doit **terminer son étape** et
-      se garer là. Pas freiner sur place.
-- [ ] **« Arrêter sur place »** : il s'immobilise immédiatement, au milieu de la route s'il le faut.
-- [ ] Ces deux-là doivent se **sentir différents en jeu**. Si ce n'est pas le cas, c'est le vocabulaire
-      qu'il faut revoir, pas le code — dis-le-moi.
-- [ ] Sur la dernière étape, « Faire attendre les ordres » doit te répondre qu'il n'y a pas de point
-      suivant.
+Les libellés du menu F10 sont **exactement** ceux-ci — je te les donne au mot près, j'ai déjà perdu du
+temps à te faire chercher un nom approximatif :
+
+| Commande F10 | Ce qu'elle doit faire | Le message attendu |
+|---|---|---|
+| **Envoyer le convoi le plus proche au point suivant** | saute à l'étape suivante tout de suite | — |
+| **Faire attendre les ordres au convoi le plus proche (au point suivant)** | il **termine son étape** et se gare là | « *… va terminer son étape et attendre les ordres à …* » puis, à l'arrivée, « *… est arrivé à … et attend les ordres* » |
+| **Arrêter le convoi le plus proche sur place** | immobilisation immédiate, en pleine route | « *… s'arrête sur place* » |
+| **Faire repartir le convoi le plus proche (après un arrêt)** | il reprend | « *… reprend sa route* » |
+
+- [ ] Il part vers le 2e point, **puis repart seul** vers le 3e. La surveillance tourne toutes les 30 s
+      et le rayon d'arrivée est de 150 m : laisse-lui une demi-minute après l'arrêt avant de conclure.
+- [ ] Les deux commandes « attendre » et « arrêter » doivent se **sentir différentes en jeu**. Si ce
+      n'est pas le cas, c'est le vocabulaire qu'il faut revoir, pas le code — dis-le-moi.
+- [ ] Sur la **dernière étape**, « Faire attendre les ordres » doit répondre : « *… est sur la dernière
+      étape de son trajet : il n'y a pas de point suivant où l'arrêter* ».
+- [ ] À la fin du trajet : « *… a parcouru tout son trajet* ».
+- [ ] En passant : si le convoi se gare **visiblement loin** de son point et compte quand même comme
+      arrivé, le rayon de 150 m est à revoir. C'est le genre de chose qu'aucun test ne peut me dire.
 
 ---
 
@@ -143,6 +152,15 @@ plupart de ces vérifications lui sont invisibles (c'est la reproduction de #128
       tu vois les tiennes. C'est #87.
 
 ### 2c · Item 11 — Skynet, et au passage la vraie forme du bug SAM
+
+> **Mission C reconstruite le 22/08, et sans ça ce check ne valait rien.** Son `dynamic_spawn` était
+> réglé par une trappe (`module_settings:`) que le générateur écrase depuis le 20/08 : le fichier de
+> config produit contenait `DynamicSpawn = true` ligne 19 **puis `= false` ligne 164**, juste avant
+> `initialize()`. La mission tournait donc avec la fonctionnalité coupée, et les checks 6 et 7 auraient
+> mesuré le comportement par défaut en le présentant comme un verdict. Réglé dans le bloc `SKYNET:`,
+> reconstruit, vérifié : une seule affectation, `true`, juste avant `initialize`.
+> Le silence du générateur est déposé comme lot à part.
+
 
 Checks 6 et 7 du README de la mission C. **À faire**, puisque les SAM tirent — mais lis le résultat sur
 deux plans, parce que cette mission utilise un **SA-6 Kub complet** : 4 lanceurs `Kub 2P25 ln` et
@@ -205,15 +223,30 @@ vérification.
 
 ---
 
-## Étape 4 — si tu as encore de l'énergie
+## Étape 4 — le reste, classé par ce qu'il coûte vraiment
 
-Ces items ne dépendent d'aucune des deux missions et sont indépendants entre eux.
+Ces items ne dépendent d'aucune des deux missions. J'ai retiré la formule « si tu as de l'énergie » :
+elle mélangeait un check de dix minutes et deux chantiers de préparation.
 
-- [ ] **Item 10** — regarder une escorte respawnée pendant **plus de dix minutes**. Le défaut se
-      manifestait vers la dixième. C'est le seul qui demande de la patience.
-- [ ] **Item 9** — d'où vient `parking_id` ? Débloque un ticket MCP.
-- [ ] **Items 3, 4, 5** — l'image de checklist qui pourrait être servie périmée, le chargement échelonné
-      des scripts, la checklist de démarrage du F-14B(U).
+**Faisable tout de suite, mais long :**
+
+- [ ] **Item 10 — l'escorte respawnée.** Mission C, F10 → Assets → Respawn Arco, puis tu la regardes
+      **plus de dix minutes**. Le défaut est un retour à la base *retardé* : un coup d'œil rapide
+      aurait déclaré l'ancien comportement corrigé. Attendu : elle reste avec le ravitailleur. Tu avais
+      tenu 30 minutes sur le chemin téléport le 18/08, c'est la barre.
+
+**Pas des checks rapides — de la préparation d'abord, dis-moi si tu les veux et je prépare :**
+
+- **Item 3 — l'image de checklist servie périmée.** Il faut éditer le texte d'une étape, reconstruire,
+  et revoler **sans redémarrer DCS**. Je peux préparer l'édition et le build ; seul le vol est à toi.
+- **Item 4 — le chargement échelonné.** Demande de construire un Foothold adopté, ce qui n'est pas fait.
+  La lecture ensuite est dans `dcs.log` (6 scripts au départ, 5 vers +3 s, AIEN à +12 s) — je la ferai.
+
+**Ce ne sont pas des tests, ce sont des avis à me donner :**
+
+- **Item 5 — la checklist de démarrage du F-14B(U).** Ses quatre étapes automatiques sont déjà vérifiées ;
+  il ne reste que ton verdict sur la procédure elle-même.
+- **Item 9 — d'où vient `parking_id`.** Une investigation, pas une vérification. Débloque un ticket MCP.
 
 ---
 

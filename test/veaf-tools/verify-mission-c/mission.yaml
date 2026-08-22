@@ -250,6 +250,10 @@ modules:
     debug_red: false
     include_blue_in_radio: false
     debug_blue: false
+    # ON, and it MUST be set here rather than through `module_settings:` -- see the note below.
+    # Checks 6 and 7 both need it: their premise is a group spawned during the mission reaching
+    # the IADS. With it off they re-measure the documented default and prove nothing.
+    dynamic_spawn: true
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 
 # Note: SKYNET, CSAR and QRA are configured entirely inside the `modules:` block
@@ -345,16 +349,15 @@ modules:
 #       weather: true
 
 # ── Module settings ──────────────────────────────────────────────────────────
-# `veafSkynet.DynamicSpawn` is NOT exposed as a YAML field, and it defaults to false -- meaning
-# groups spawned during the mission never join an IADS network. Testing #151 at that default
-# would only re-measure what the doc already states, so this mission turns it ON: the question
-# worth a DCS session is whether a combat-zone spawn reaches the dynamic path at all.
-# It is also what #261 needs: its whole premise is a dynamically integrated group waking a
-# network that was just deactivated.
+# `veafSkynet.DynamicSpawn` used to live here, and the note that stood at this spot claimed it
+# worked because it lands in the generated Lua before `veafSkynet.initialize()`. That stopped
+# being true on 2026-08-20, when `dynamic_spawn` became a field of the `SKYNET:` block: the
+# generator now writes `veafSkynet.DynamicSpawn = <bool>` unconditionally, right before
+# `initialize()`, so a `false` default silently overwrote the `true` set here.
 #
-# This lands in the generated Lua BEFORE veafSkynet.initialize(), which is why it works.
-module_settings:
-  veafSkynet.DynamicSpawn: true
+# Found on 2026-08-22, before the session that would have measured the wrong thing and reported
+# it as a verdict. The setting now lives in the `SKYNET:` block above, where it survives.
+# The generator's own silence is filed as FIX-MODULE-SETTINGS-OVERWRITTEN.
 
 # ── Security ─────────────────────────────────────────────────────────────────
 # OFF, and it must stay off on every verification mission: a check that asks for a password is

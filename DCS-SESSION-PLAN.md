@@ -54,29 +54,35 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 | 2a · `#command` retardé meurt avec sa zone | ✅ |
 | 2b · menu porte-avions côté rouge | ✅ |
 | 2c · check 6 — le SAM de la zone rejoint le réseau | ✅ `group added to RED network (3)` après activation, et le SA-6 a abattu l'observateur : il était bien opérationnel dans le réseau |
-| 2c · check 7 — un spawn ne réveille pas un réseau éteint | ⏳ **pas exécuté** : il manque « Deactivate RED IADS » avant le marqueur, voir ci-dessous |
+| 2c · check 7 — un spawn ne réveille pas un réseau éteint | ⏳ **à refaire** : exécuté correctement, mais l'instrument mesurait à côté — il désactivait par une route que le correctif ne peut pas voir. Corrigé, mission reconstruite |
 | 2c bis · le cycle allumé/éteint | 🔎 **10 s mesurées** = deux cycles de 5 s, comme prédit depuis le code. Cause dans Skynet, lot déposé |
 | 0bis · SA-6 complet, carte nue, sans script | ✅ **il a tiré** → il n'y a jamais eu de bug SAM dans DCS |
 | 2d · alarme par nature | ✅ pour ce qui était testable : le convoi roule. Les chars n'ont **qu'un waypoint** dans la mission C, donc aucune route — leur immobilité est la donnée, pas un défaut |
 
-### 2c — check 7 : ce qui manque, et l'instrument qui t'a trompé
+### 2c — check 7 : ton test était bon, mon instrument mesurait à côté
 
-**Le check 7 n'a pas été exécuté.** Son énoncé est « désactive le réseau, *puis* fais apparaître un SAM » :
-sans la désactivation, un `delayedActivate` à chaque ajout est le comportement **normal**, pas le défaut.
-Il faut passer par le menu **VERIFY C → « Deactivate RED IADS »** avant de poser le marqueur.
+Tu as tout fait dans le bon ordre : désactivation, marqueur, lecture. Et l'instrument a affiché
+**« #261 CONFIRMED »**. C'est faux, et c'est mon défaut.
 
-**Et l'instrument t'a induit en erreur, c'est mon défaut.** Le message
-*« RED IADS REACTIVATED (1 since the last deactivation) »* s'affichait alors qu'aucune désactivation
-n'avait eu lieu : le compteur montait à chaque `_activateIADS`, et la phrase affirmait un contexte faux.
-Autrement dit il criait le défaut de #261 sur du trafic de démarrage parfaitement normal. Corrigé : le
-message distingue maintenant les deux situations, et il **nomme le groupe** ajouté — un compteur nu ne
-peut pas dire *ce qui* a rejoint le réseau.
+Le correctif de #261 s'appuie sur un drapeau `network.deactivated`, posé par
+**`veafSkynet.deactivateNetwork`** (`veafSkynetIadsHelper.lua:1344`) et inconnu de Skynet lui-même. Or
+mon instrument appelait `iads:deactivate()`, la méthode brute de Skynet. Il éteignait donc le réseau par
+une route que le correctif **ne peut pas voir**, puis rapportait très correctement qu'un spawn l'avait
+réveillé : il mesurait l'absence d'un garde-fou qu'il venait lui-même de contourner. Un produit qui
+marche, déclaré cassé.
 
-Tes deux ajouts avant activation sont d'ailleurs attendus : `dynamic_spawn` est actif depuis ce matin,
-donc les événements de naissance des groupes rouges de la mission (l'EWR et le SA-6 statique) atteignent
-le moniteur. Le nouveau message te le confirmera par leur nom.
+Les vraies routes de désactivation passent toutes par l'API VEAF (`deactivateNetwork`,
+`deactivateNetworkOfCoalition`) ; `iads` est un objet interne qu'aucune mission n'atteint. Corrigé : le
+menu passe maintenant par l'API, dans les deux sens.
 
-**Mission C reconstruite** — recharge-la avant de refaire le check 7.
+Corrigé aussi, le `table: 0000016AB83D4588` que tu as vu à la place du nom : le deuxième argument de
+`addGroupToNetwork` est un **objet groupe DCS**, pas un nom.
+
+Ce que ta liste apprend quand même, et qui est solide : le réseau rouge contenait bien **3 éléments** —
+l'EWR `RedIadsEwr` en radar LIVE, le `RedIadsSa6Static`, et le SA-15 que ton marqueur venait de créer.
+Donc **l'intégration dynamique fonctionne** : c'est le check 6, et il passe.
+
+**Mission C reconstruite** — recharge-la pour refaire le check 7.
 
 ### 2c bis — la cause du cycle, trouvée dans le code de Skynet
 

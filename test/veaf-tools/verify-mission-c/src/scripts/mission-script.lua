@@ -71,16 +71,27 @@ local verifyC_verdict = "#261: deactivate the network first, then spawn a SAM"
 
 if veafSkynet and veafSkynet.addGroupToNetwork then
   local originalAdd = veafSkynet.addGroupToNetwork
-  veafSkynet.addGroupToNetwork = function(networkName, groupName, ...)
-    local added = originalAdd(networkName, groupName, ...)
+  -- The second argument is a **DCS group object**, not a name: `addGroupToNetwork(networkName,
+  -- dcsGroup, ...)`. Printing it directly gave "table: 0000016AB83D4588" in game on 2026-08-22.
+  veafSkynet.addGroupToNetwork = function(networkName, dcsGroup, ...)
+    local added = originalAdd(networkName, dcsGroup, ...)
     if networkName == RED_IADS and added then
       verifyC_adds = verifyC_adds + 1
-      -- Name the group. A bare counter cannot say *what* joined, and on 2026-08-22 two groups were
-      -- integrated before the zone was even activated -- expected, since `dynamic_spawn` makes the
-      -- birth events of the mission's own starting groups reach the monitor, but indistinguishable
-      -- from a defect without the name.
+      -- Name the group. A bare counter cannot say *what* joined, and two groups were integrated
+      -- before the zone was even activated -- expected, since `dynamic_spawn` makes the birth events
+      -- of the mission's own starting groups reach the monitor, but indistinguishable from a defect
+      -- without the name.
+      local name = "?"
+      if dcsGroup and dcsGroup.getName then
+        local ok, value = pcall(function()
+          return dcsGroup:getName()
+        end)
+        if ok then
+          name = tostring(value)
+        end
+      end
       trigger.action.outText(
-        string.format("VERIFY C: group added to RED network (%d): %s", verifyC_adds, tostring(groupName)),
+        string.format("VERIFY C: group added to RED network (%d): %s", verifyC_adds, name),
         15
       )
     end
@@ -175,10 +186,25 @@ local function verifyC_listRedIads()
   trigger.action.outText(table.concat(lines, "\n"), 30)
 end
 
+--- Deactivate through **veafSkynet.deactivateNetwork**, never `iads:deactivate()`.
+---
+--- This instrument called the raw Skynet method until 2026-08-22, and that silently invalidated the
+--- whole of check 7: the #261 fix keys off `network.deactivated`, a flag set by
+--- `veafSkynet.deactivateNetwork` (veafSkynetIadsHelper.lua:1344) and unknown to Skynet itself. So the
+--- check switched the network off by a route the fix cannot see, then correctly reported that a spawn
+--- woke it up — measuring the absence of a guard it had bypassed. It printed
+--- "#261 CONFIRMED" on a working product.
+---
+--- The real deactivation paths all go through the VEAF API (`deactivateNetwork`,
+--- `deactivateNetworkOfCoalition`); `iads` is an internal object no mission reaches.
 local function verifyC_deactivateRedIads()
-  local iads = verifyC_getRedIads()
-  if iads then
-    iads:deactivate()
+  local network = veafSkynet and veafSkynet.getNetwork(RED_IADS)
+  if not network then
+    trigger.action.outText("VERIFY C: no [" .. RED_IADS .. "] network", 15)
+    return
+  end
+  do
+    veafSkynet.deactivateNetwork(network)
     verifyC_deactivatedFromMenu = true
     verifyC_reactivations = 0
     verifyC_status = "DEACTIVATED from this menu, nothing has reactivated it since"
@@ -188,9 +214,14 @@ local function verifyC_deactivateRedIads()
 end
 
 local function verifyC_activateRedIads()
-  local iads = verifyC_getRedIads()
-  if iads then
-    iads:activate()
+  local network = veafSkynet and veafSkynet.getNetwork(RED_IADS)
+  if not network then
+    trigger.action.outText("VERIFY C: no [" .. RED_IADS .. "] network", 15)
+    return
+  end
+  do
+    -- Symmetrically: only `veafSkynet.activateNetwork` clears the `deactivated` flag.
+    veafSkynet.activateNetwork(network)
     verifyC_deactivatedFromMenu = false
     verifyC_status = "activated by hand from this menu"
     verifyC_verdict = "#261: deactivate the network first, then spawn a SAM"

@@ -262,7 +262,11 @@ before the session or the run measures 6.15.7.
 - **Check 6 (#151)** — activate a combat zone holding a standard DCS SAM group, read the Skynet monitor.
   Expected: the SAM joins the red network, as it already did. This one is a **regression check**: the
   path worked, and the lot must not have broken it while making the flag reachable.
-- **Check 7 (#261)** — deactivate the red network, then `-samlr, country russia` by map marker nearby.
+- **Check 7 (#261)** — deactivate the red network **from the VERIFY C radio menu** (`Deactivate RED
+  IADS`), then `-samlr, country russia` by map marker nearby. Both halves matter: without the
+  deactivation a `delayedActivate` per add is the normal behaviour and proves nothing, and without
+  `country russia` the battery is built for USA and joins the **blue** network instead, leaving red
+  untouched. `-samLR` already carries `skynet true`.
   - **Before**: `group added → delayedActivate called → RED IADS REACTIVATED`.
   - **Expected now**: `group added`, and **no** `delayedActivate`, **no** reactivation. The SAM is
     attached; the network stays down. Then `veafSkynet.activateNetworkOfCoalition(coalition.side.RED)`

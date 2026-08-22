@@ -1,6 +1,6 @@
 # FEAT-COMBAT-EFFECTIVE-ADOPTION — adopt the combat-effectiveness predicate beyond the report
 
-Status: ⬜ ready
+Status: ✅ done — shipped in 6.15.29
 
 Follow-up to [`FEAT-GROUP-COMBAT-INEFFECTIVE`](../FEAT-GROUP-COMBAT-INEFFECTIVE/PRD.md), which shipped
 `veaf.isGroupCombatEffective` in 6.15.24 and deliberately adopted it in **one** place — the F10 zone
@@ -41,8 +41,30 @@ a mission guarding a decapitated S-300 while a live one goes undefended.
 Invisible to a player until it matters, and it cannot end a mission early — which is why it survives the
 refusal above. This lot is now only that.
 
+## What shipped
+
+Three lines in `findClosestSkynetElementInList`: a site whose group can no longer fight is passed over
+when a point defence looks for something to protect. So a Tor does not spend a mission guarding a
+decapitated S-300 while a live site next door goes undefended.
+
+## The regression this could have been, and the measurement that ruled it out
+
+`veaf.isGroupCombatEffective`'s default rule declares a **SAM site with no tracking radar left** finished.
+An early-warning radar never has one — so if an EWR carried `SAM SR`, this change would have stopped
+**every EWR from ever being defended**, quietly, in every mission with an IADS.
+
+Measured against the generated database rather than assumed: **no EWR carries `SAM SR`, `SAM TR` or
+`SAM LL`** (1L13, 55G6, FPS-117 and its domed variant, FuMG-401, FuSe-65). The predicate therefore does
+not read one as a SAM site and never declares it finished.
+
+The same sweep confirmed the rule bites where it should: of the 52 units carrying any SAM attribute, 27
+have `SAM TR` — the tracking radars and the self-contained vehicles (Tor, Pantsir, Tunguska, Gepard) — and
+**11 launchers have none**, depending on a separate radar (`Hawk ln`, `Kub 2P25 ln`, `5p73 s-125 ln`, …).
+A Hawk site that loses its `Hawk tr` keeps launchers and a search radar, and is correctly finished.
+
 ## Definition of done
 
 - [x] The `completionCheck` question put to David, and his answer recorded here — **refused**: everything
       must be destroyed
-- [ ] Skynet skips ineffective sites when choosing what to defend, with tests
+- [x] Skynet skips ineffective sites when choosing what to defend, with tests — six, including a distant
+      live site beating a close dead one, and that the point defence itself is never judged

@@ -7,6 +7,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.29] — 2026-08-22
+
+### Changed
+
+- **A point defence no longer guards a site that can no longer fight.** When Skynet picks which site a
+  point-defence group protects, it now passes over groups `veaf.isGroupCombatEffective` reports as
+  finished — so a Tor does not spend a mission covering a decapitated S-300 while a live site next door
+  goes undefended.
+
+  Invisible to a player until it matters, and it cannot end a mission early. That last point is why this
+  half shipped and the other did not: adopting the same predicate in `completionCheck` would have let a
+  zone announce itself complete with intact launchers still standing, and **David refused it** — a zone
+  completes only when everything is destroyed.
+
+  The regression this could have been was ruled out by measurement rather than reasoning. The predicate's
+  default rule declares a SAM site with no tracking radar finished, and an early-warning radar never has
+  one — so an EWR carrying `SAM SR` would have stopped **every EWR from ever being defended**, quietly.
+  No EWR in the generated database carries `SAM SR`, `SAM TR` or `SAM LL`, so none is read as a SAM site.
+
+---
+
 ## [6.15.28] — 2026-08-22
 
 ### Fixed

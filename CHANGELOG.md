@@ -7,6 +7,58 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.27] — 2026-08-22
+
+### Added
+
+- **A briefing can show the weather the mission was built with.**
+  [#40](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/40), open since 2021. Write
+  `${METAR}` in the briefing and the build replaces it with **that variant's** weather, so seven weather
+  variants give seven different briefings with nothing retyped:
+
+  ```
+  Weather at departure: ${METAR}
+  ```
+
+  The issue explained why hand-typing it never worked: a mission is rebuilt from its sources on every
+  build, so the text is overwritten next time. The weather was known at build time and simply never
+  reached the text a pilot reads.
+
+  Both things the backlog said to check first turned out to matter. **The prose lives in the l10n
+  dictionary**, with `mission` holding only a key — a substitution pass over `mission` alone would have
+  found that key and replaced nothing at all, on every mission ever saved by the DCS editor. And the
+  substitution runs **per variant**, inside the loop the weather injector already had.
+
+  All four description fields are covered — the situation plus the three per-coalition tasks — because
+  `${METAR}` in the blue task has no reason to behave differently.
+
+  **An unsupplied token is left exactly as written**, never blanked. A variant built from individual
+  `weather:` parameters has no METAR string in existence, so `${METAR}` survives and a warning names it:
+  a hole in player-facing text reads as the build having eaten the prose, while a visible token says what
+  to fix. Same for a misspelt `${METRA}`.
+
+  The ICAO fetch is only made when the briefing actually asks for `${METAR}`, so an unused variable costs
+  no network call.
+
+### Fixed
+
+- **A weather variant declaring only `airport_icao` never had its weather injected.** From the weather
+  feature's first commit (2025-11-25) until now, the gate read `version.weather or version.metar`, so a
+  variant asking for live weather silently kept the base mission's — nine months, with
+  `_inject_weather` perfectly able to fetch it and simply never called. Found while reviewing the
+  briefing feature above: a briefing claiming the live weather is what made the inconsistency visible.
+
+- **The live METAR is fetched once, not twice.** The weather table and the briefing's `${METAR}` are two
+  consumers of the same report, and two independent requests meant a station publishing between them
+  would put a METAR in the briefing contradicting the weather actually injected — besides being a second
+  chance to be rate-limited. The fetch is memoised per ICAO, so seven variants sharing a station make one
+  request.
+
+- **The `versions[]` reference was missing its `airport_icao` row.** The field is read by the build and
+  documented nowhere, which mattered here because `${METAR}` resolves through it.
+
+---
+
 ## [6.15.26] — 2026-08-22
 
 ### Added

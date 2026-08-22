@@ -3,6 +3,7 @@
 import json
 import re
 import traceback
+from functools import lru_cache
 from typing import Any
 
 from veaf_libs.i18n import t
@@ -122,6 +123,35 @@ class DCSWeatherConverter:
             raise
 
 
+def fetch_metar_string(airport_icao: str) -> str:
+    """The raw METAR text for *airport_icao*, for showing to a pilot.
+
+    Args:
+        airport_icao: Airport ICAO code.
+
+    Returns:
+        The METAR as the station published it, or ``""`` when it cannot be had.
+
+    Derived from the **same** fetch that builds the DCS weather table, not a second request. That matters
+    twice over (caught in review, Sourcery PR #786): a station publishing a new report between two
+    requests would put a METAR in the briefing that contradicts the weather actually injected, and a
+    second request is a second chance to be rate-limited or to fail.
+
+    ``${METAR}`` in a briefing wants what a pilot would read, so this is the published text rather than a
+    reconstruction of it from the parsed values.
+    """
+    return str(_fetch_live_metar(airport_icao).get("raw", "") or "")
+
+
+def clear_metar_cache() -> None:
+    """Forget the fetched reports.
+
+    For tests, and for a caller that deliberately wants a fresh look at the weather.
+    """
+    _fetch_live_metar.cache_clear()
+
+
+@lru_cache(maxsize=32)
 def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
     """
     Fetch live METAR data from avwx-engine by airport ICAO code.
@@ -131,15 +161,25 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
 
     Returns:
         Dictionary with keys: temperature, wind_speed, wind_direction,
-        visibility, cloud_type, cloud_height
+        visibility, cloud_type, cloud_height, and ``raw`` — the published text.
+
+    **Memoised per ICAO**, so a station is asked once per process however many places want it. Two
+    consumers exist — the weather table and the briefing's ``${METAR}`` — and they must agree: a station
+    publishing between two requests would otherwise have the briefing contradict the weather the mission
+    was actually built with (Sourcery, PR #786). It also keeps seven variants sharing one ICAO down to a
+    single request instead of seven.
+
+    The cached dict is returned by reference and callers only read it. :func:`clear_metar_cache` exists
+    for tests and for a caller that wants a deliberately fresh look.
     """
-    result = {
+    result: dict[str, Any] = {
         "temperature": 15.0,  # Default
         "wind_speed": 5.0,  # m/s
         "wind_direction": 0.0,  # degrees
         "visibility": 10000.0,  # meters
         "cloud_type": 0,  # Clear
         "cloud_height": 2000.0,  # meters
+        "raw": "",  # the published text, for a briefing to show
     }
 
     if not airport_icao or not AVWX_AVAILABLE:
@@ -159,6 +199,8 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
         if not metar.update():  # type: ignore[attr-defined]
             logger.warning(t("weather.converter.metar_fetch_empty", icao=airport_icao))
             return result
+
+        result["raw"] = str(getattr(metar, "raw", "") or "")
 
         if metar.temperature and metar.temperature.value is not None:  # type: ignore[attr-defined]
             result["temperature"] = metar.temperature.value  # type: ignore[attr-defined]

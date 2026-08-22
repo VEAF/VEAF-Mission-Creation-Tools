@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+import weather_injector.weather.dcs_weather_converter as converter_module
 from weather_injector.weather import dcs_weather_converter as conv
 
 
@@ -37,6 +38,9 @@ class _FakeMetar:
         self.wind_direction: _Value | None = None
         self.visibility: list[_Value] | None = None
         self.clouds: list[Any] | None = None
+        # avwx exposes the published text as `.raw`; the briefing's ${METAR} shows it verbatim, so the
+        # fake has to have one for the single-fetch tests below to mean anything.
+        self.raw = ""
         _FakeMetar.instances.append(self)
 
     def update(self) -> bool:
@@ -48,12 +52,17 @@ class _FakeMetar:
         self.wind_direction = _Value(270)
         self.visibility = [_Value(8000.0)]
         self.clouds = [("BKN", _Value(1200.0))]
+        self.raw = f"{self.icao} 121030Z 27010KT 8000 BKN040 21/12 Q1015"
         return True
 
 
 @pytest.fixture(autouse=True)
 def _reset() -> None:
     _FakeMetar.instances = []
+    # `_fetch_live_metar` is memoised per ICAO since FEAT-BRIEFING-METAR, so a previous test's answer
+    # would otherwise be served to the next one — which is exactly how two tests in this file started
+    # failing when the cache landed.
+    conv.clear_metar_cache()
 
 
 def _install(monkeypatch: pytest.MonkeyPatch, *, update_returns: bool = True) -> None:
@@ -117,3 +126,48 @@ class TestFallbackAnnouncesItself:
             message = t("weather.converter.metar_fetch_empty", locale=locale, icao="LFPG")
             assert message != "weather.converter.metar_fetch_empty"
             assert "LFPG" in message
+
+
+class TestOneFetchServesBoth:
+    """The weather table and the briefing must see the *same* report, from one request.
+
+    Sourcery, PR #786: two independent fetches meant a station publishing between them would put a METAR
+    in the briefing contradicting the weather actually injected, and gave a second chance to be
+    rate-limited or to fail. So the text is derived from the same memoised fetch as the parsed values.
+    """
+
+    def test_the_text_comes_from_the_same_fetch_as_the_values(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _install(monkeypatch)
+        values = conv._fetch_live_metar("LFRS")
+        text = conv.fetch_metar_string("LFRS")
+        assert text == values["raw"]
+        assert text.startswith("LFRS ")
+        assert len(_FakeMetar.instances) == 1, "one station, one request — the second consumer reuses the first"
+
+    def test_the_published_text_is_shown_verbatim_not_rebuilt(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # ${METAR} shows what a pilot would read, so it must be the station's own text rather than a
+        # reconstruction from the parsed values.
+        _install(monkeypatch)
+        assert conv.fetch_metar_string("URSS") == "URSS 121030Z 27010KT 8000 BKN040 21/12 Q1015"
+
+    def test_a_second_icao_is_its_own_request(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _install(monkeypatch)
+        conv.fetch_metar_string("LFRS")
+        conv.fetch_metar_string("URSS")
+        assert [m.icao for m in _FakeMetar.instances] == ["LFRS", "URSS"]
+
+    def test_a_failed_update_yields_no_text(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # A failed fetch must not put a half-answer in a briefing; the caller leaves the token written.
+        _install(monkeypatch, update_returns=False)
+        assert conv.fetch_metar_string("LFRS") == ""
+
+    def test_avwx_absent_yields_no_text_rather_than_raising(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(conv, "AVWX_AVAILABLE", False)
+        assert conv.fetch_metar_string("LFRS") == ""
+
+    def test_clearing_the_cache_asks_again(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _install(monkeypatch)
+        conv.fetch_metar_string("LFRS")
+        conv.clear_metar_cache()
+        conv.fetch_metar_string("LFRS")
+        assert len(_FakeMetar.instances) == 2

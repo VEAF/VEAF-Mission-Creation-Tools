@@ -1,9 +1,33 @@
 # FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY — a unit-name tag counts only on the first unit met
 
-Status: 🧑 waiting-human
+Status: ✅ done — shipped in 6.15.14, closed 2026-08-22 on unit coverage
 
-Written, unit-tested and shipped in 6.15.14. Waiting on one in-game look at `verify-mission-a`, which
-needs DCS started — see [DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).
+Written, unit-tested and shipped in 6.15.14. The in-game gate is **withdrawn, not skipped**: the check
+that guarded it could not come out either way.
+
+## Why the in-game check was dropped
+
+It said: activate the zone, watch two M-1 Abrams — *they stay put* means the tag on unit #002 reached the
+group, *they drive off* means it did not. Run on 2026-08-22, the tanks drove off.
+
+That is not a verdict. `#alarm=2` reduces to `setOption(AI.Option.Ground.id.ALARM_STATE, 2)` in
+`veaf.readyForCombat` (`veaf.lua:2117`), reached from `veafCombatZone.lua:1505`. Nothing on that path
+immobilises anything. A mobile group with a route drives it under RED exactly as under AUTO — the two
+states the check meant to distinguish are **visually identical for this group**, so the observation could
+neither fail nor succeed. The criterion came from an untested assumption about DCS, written into a session
+plan as if it were behaviour.
+
+What the game would have added over the tests is only "DCS honours the option it was given", which is not
+our code and not what this lot changed. What *is* ours — reading a tag off any unit of a group instead of
+the first one met — is covered by enumerated tests across the whole tag family with the tag on the
+**second** unit (`test/lua/test_veafCombatZone.lua:1674`, `:1872`).
+
+The episode cost more than the check was worth: two waypoints were added to the group on 2026-08-21 purely
+to make it possible, and the hand-copied second waypoint is what later made the DCS editor refuse to save
+`verify-mission-a` — filed as
+[`FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS`](../FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS/PRD.md), since
+`mission validate` reported that same file clean. An in-game check earns a session only if it can come out
+both ways.
 
 Origin: found on 2026-08-19 while adding `#alarm=` in `FIX-COMBATZONE-CONVOY-ALARM`, and opened at
 David's request. Affects **all seven** combat-zone tags, not the new one.

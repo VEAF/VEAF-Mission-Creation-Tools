@@ -42,7 +42,7 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 
 ---
 
-## Étape 1 — `VerifyMissionA_noon.miz` (4 vérifications, une seule charge)
+## Étape 1 — `VerifyMissionA_noon.miz` (3 vérifications, une seule charge)
 
 ```
 test/veaf-tools/verify-mission-a/missions/VerifyMissionA_noon.miz
@@ -56,17 +56,24 @@ test/veaf-tools/verify-mission-a/missions/VerifyMissionA_noon.miz
 
 Prends le slot, roule ou décolle, puis tout se fait au marqueur F10 et au menu radio.
 
-### 1a · Item 17 — un tag sur une seule unité du groupe
+### 1a · ~~Le tag sur une seule unité du groupe~~ — retiré, le critère était faux
 
-Active `SmokeZone` au menu F10, puis regarde les **deux M-1 Abrams** de `SmokeZone-SmokeArmor` pendant
-60 secondes. Seule l'unité **#002** porte `#alarm=2`.
+**Rien à faire ici.** Deux erreurs de ma part, trouvées par ton retour :
 
-- [ ] **Ils restent sur place** → le tag a été lu. Fix confirmé.
-- [ ] **Ils partent vers le nord-est** → le tag a été ignoré, retour au défaut AUTO. Dis-le-moi.
+- La zone s'appelle **« Convoy Test Zone »** au menu radio. `SmokeZone` est son nom technique de zone de
+  déclenchement, pas ce que tu vois. La correction vaut pour tout ce document.
+- **« ils restent sur place » n'était pas la signature du tag.** `#alarm=2` se réduit à
+  `setOption(ALARM_STATE, 2)` (`veaf.lua:2117`) ; rien dans notre code n'immobilise un groupe. Deux chars
+  qui roulent est le comportement normal, tag lu ou pas — le test ne discriminait rien, quel que soit le
+  résultat.
+
+Ce que le jeu aurait ajouté : uniquement « DCS honore l'option », qui n'est pas notre code. La lecture du
+tag est prouvée par des tests énumérés sur toute la famille des tags, tag posé sur la deuxième unité
+(`test/lua/test_veafCombatZone.lua:1674` et `:1872`). Lot fermé sur cette base.
 
 ### 1b · Item 18 — la dispersion revenue, et le départ sans détour
 
-Même activation, regarde maintenant `SmokeZone-ConvoyBlue` et `SmokeZone-SmokeArmor` :
+Active **« Convoy Test Zone »** et regarde `SmokeZone-ConvoyBlue` et `SmokeZone-SmokeArmor` :
 
 - [ ] **Les groupes sont éparpillés**, pas alignés sur leur position d'éditeur → le défaut de 50 m est
       bien réactivé.
@@ -160,7 +167,7 @@ natures qu'il faut, dans deux zones distinctes : `IadsZone` tient la batterie SA
 Le ticket décrivait une zone unique tenant les deux — deux zones testent la même règle, puisque le défaut
 s'applique par nature de groupe, pas par zone.
 
-- [ ] Active `SmokeZone` : **le convoi doit rouler sa route.** C'est #290, corrigé en 6.15.5, et c'est la
+- [ ] Active **« Convoy Test Zone »** : **le convoi doit rouler sa route.** C'est #290, corrigé en 6.15.5, et c'est la
       régression à surveiller — elle compte plus que la moitié neuve.
 - [ ] Active `IadsZone` : **la batterie doit allumer ses radars et engager.** De 6.15.5 à 6.15.12 elle
       restait muette, c'est le défaut corrigé ici. Même double lecture que 2c : si elle est muette,

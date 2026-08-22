@@ -428,6 +428,29 @@ _spawn convoy, dest <second marker>, dest <a third point>, speed 40
 Worth noting how the 150 m radius feels on a long column: if a convoy visibly parks well short of its
 point and still counts as arrived, that number wants revisiting.
 
+## 20. Run the two CSAR-over-water checks — no aircraft needed
+
+[`FEAT-SMOKE-CSAR-WATER`](.backlog/FEAT-SMOKE-CSAR-WATER/PRD.md), 6.15.26. **Not a flying item**: it is
+the smoke harness, so it needs DCS running with a mission loaded and nothing else. It is on this page
+only because launching a run in your DCS is yours to do.
+
+```bash
+poetry run veaf-tools dcs smoke-test
+```
+
+The two new checks are `csar-avoids-water-open-sea` and `csar-avoids-water-coast`. They anchor on the
+first airbase, sweep outwards for water, spawn a CSAR pilot there, read back what is under him, and
+destroy the group.
+
+**The prediction on record, so the result means something either way:** reading `csar.spawnGroup` says
+the pilot is placed at a fixed `+50/+50` offset with no surface test, so **both** should fail. If the
+coast check passes while the sea one fails, that reading is wrong and something else places the pilot —
+which is more interesting than being right.
+
+Either outcome closes #245: fixed, or confirmed with a reproduction that stays as the regression guard.
+The fix itself is filed as [`FIX-CSAR-SPAWNS-ON-WATER`](.backlog/FIX-CSAR-SPAWNS-ON-WATER/PRD.md) and
+carries one question for you — what a pilot ditching over open ocean should do.
+
 ## 10. Watch a respawned escort for longer than ten minutes
 
 [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but

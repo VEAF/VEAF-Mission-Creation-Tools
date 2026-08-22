@@ -625,3 +625,86 @@ class TestReport:
         assert "1/2 checks passed" in text
         assert "[FAIL] b" in text
         assert "not necessarily a defect" in text
+
+
+class TestCsarOverWater:
+    """FEAT-SMOKE-CSAR-WATER — #245 answered by an assertion rather than a pilot.
+
+    Deciding whether a CSAR pilot lands in the water needs three scripting calls and no aircraft:
+    trigger the spawn, read the position back, ask what is underneath. These tests cover the parts that
+    are decidable without DCS — the verdict logic and the shape of the chunk. The measurement itself
+    needs a running DCS and is recorded in the lot's PRD.
+    """
+
+    def _check(self, name: str) -> smoke.Check:
+        return next(c for c in CHECKS if c.name == name)
+
+    def test_a_dry_placement_passes(self):
+        check = self._check("csar-avoids-water-open-sea")
+        assert check.expect("mode:open surface:1 dry:1") is True
+
+    def test_a_wet_placement_fails(self):
+        check = self._check("csar-avoids-water-open-sea")
+        assert check.expect("mode:open surface:3 dry:0") is False
+
+    def test_every_could_not_ask_answer_fails_rather_than_passing_vacuously(self):
+        # The failure mode this whole module is written against: a check that goes green when it never
+        # managed to ask closes #245 on nothing at all.
+        check = self._check("csar-avoids-water-open-sea")
+        for reply in (
+            "csar-absent",
+            "no-airbases",
+            "no-water-found-open",
+            "no-group",
+            "no-unit",
+            "raised: attempt to index a nil value",
+            "",
+            "dry:1",  # untagged: no mode, so not an answer from this check
+        ):
+            assert check.expect(reply) is False, f"{reply!r} must not pass"
+
+    def test_both_positions_are_checked_because_they_ask_different_questions(self):
+        # Open sea is the reported case; the coast is the one that tells us whether CSAR goes through
+        # veaf.findSpawnPoint at all. A pass at sea with a failure inshore means it has its own path.
+        names = {c.name for c in CHECKS}
+        assert "csar-avoids-water-open-sea" in names
+        assert "csar-avoids-water-coast" in names
+
+    def test_the_two_chunks_classify_the_spot_differently(self):
+        openly = self._check("csar-avoids-water-open-sea").lua
+        coast = self._check("csar-avoids-water-coast").lua
+        assert openly != coast, "both modes generated the same chunk, so one of them asks nothing"
+        assert "if water_near then" in openly
+        assert "if land_near then" in coast
+        assert "mode:open" in openly and "mode:coast" in coast
+
+    def test_the_surface_is_read_with_the_easting_in_y(self):
+        # docs/agents/dcs-coordinates.md: `land.getSurfaceType` takes a vec2 whose `y` is the easting,
+        # while `getPoint()` is a vec3 whose `y` is the altitude. Passing `y = p.y` reads the surface a
+        # hundred kilometres away and reports it cheerfully — no error, just a wrong answer. This is the
+        # one line of the chunk that cannot be checked any other way without DCS.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert "{x = p.x, y = p.z}" in lua, f"{name} must feed the easting as the vec2 y"
+            assert "y = p.y" not in lua, f"{name} passes an altitude where an easting belongs"
+
+    def test_no_coordinate_is_hard_coded_so_the_check_travels_between_theatres(self):
+        # The smoke mission's theatre is not this check's business: it anchors on the first airbase and
+        # sweeps for water. A literal coordinate would silently pass or fail depending on the map.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert "world.getAirbases()" in lua
+            assert "getPoint()" in lua
+
+    def test_the_spawned_group_is_always_cleaned_up(self):
+        # It runs inside a real mission: a check that leaves a group behind changes what the next one
+        # measures.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert lua.count("destroy()") >= 2, f"{name} must destroy the group on the failure paths too"
+
+    def test_it_runs_where_the_mission_scripts_do(self):
+        # `csar` is a mission-environment global loaded by mission-script.lua, so the hook environment
+        # would report `csar-absent` for a mission that has it — a false negative on the whole lot.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            assert self._check(name).transport is smoke.Transport.BRIDGE

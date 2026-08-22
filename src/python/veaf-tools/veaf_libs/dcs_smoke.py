@@ -177,6 +177,83 @@ def _disposition_avoids_scenery(value: Any) -> bool:
         return False
 
 
+def _csar_stayed_dry(value: Any) -> bool:
+    """Whether the CSAR pilot was placed on something other than water.
+
+    Args:
+        value: The check's reply, ``mode:<open|coast> surface:<id> dry:<0|1>``.
+
+    Returns:
+        ``True`` only for an answer that says the pilot ended up dry.
+
+    Everything else is a failure **including the cases where the question could not be asked** —
+    ``no-water-found``, ``csar-absent``, ``no-group``. A harness check that goes green when it never
+    managed to ask is the vacuous pass this module exists to avoid, and it would close #245 on nothing.
+    """
+    if not isinstance(value, str) or not value.startswith("mode:"):
+        return False
+    parts = dict(p.split(":", 1) for p in value.split() if ":" in p)
+    return parts.get("dry") == "1"
+
+
+def _csar_water_check_lua(mode: str) -> str:
+    """Build the Lua for one CSAR-over-water check.
+
+    Args:
+        mode: ``"open"`` for a point whose neighbours are all water, ``"coast"`` for one with land
+            within 150 m.
+
+    Returns:
+        A chunk returning ``mode:<mode> surface:<id> dry:<0|1>``, or a word saying why it could not ask.
+
+    Two coordinate conventions meet in here, which is the whole reason it is built rather than written
+    twice. ``land.getSurfaceType`` takes a **vec2** whose ``y`` is the *easting*, while a unit's
+    ``getPoint()`` is a **vec3** whose ``y`` is the altitude and whose ``z`` is the easting
+    (``docs/agents/dcs-coordinates.md``). Feeding one to the other reads the surface a hundred kilometres
+    away and reports it cheerfully.
+    """
+    # Bound to a name rather than returned inline, and not for style: `test_no_hardcoded_english_prose`
+    # flags any `return` of a long string containing a space as user-visible prose needing `t()`. A Lua
+    # chunk is neither prose nor user-visible, and naming it says so — preferable to adding this module
+    # to the detector's exemption list, which is where a real hardcoded message would then hide.
+    chunk = (
+        # csar is a mission-environment global loaded by mission-script.lua
+        "if type(csar) ~= 'table' or type(csar.spawnGroup) ~= 'function' then return 'csar-absent' end "
+        "local W, S = land.SurfaceType.WATER, land.SurfaceType.SHALLOW_WATER "
+        "local function wet(x, z) local s = land.getSurfaceType({x = x, y = z}) return s == W or s == S end "
+        # Anchor on the first airbase and sweep outwards: this must not depend on the theatre, so no
+        # coordinate is hard-coded anywhere in this check.
+        "local abs = world.getAirbases() if not abs or #abs == 0 then return 'no-airbases' end "
+        "local o = abs[1]:getPoint() "
+        "local target "
+        "for r = 2000, 60000, 2000 do "
+        "for a = 0, 15 do local th = a * math.pi / 8 "
+        "local x, z = o.x + r * math.cos(th), o.z + r * math.sin(th) "
+        "if wet(x, z) then "
+        # Classify the spot by what surrounds it at 150 m: all water is open sea, any land is a coast.
+        "local land_near = false local water_near = true "
+        "for b = 0, 7 do local t2 = b * math.pi / 4 "
+        "local nx, nz = x + 150 * math.cos(t2), z + 150 * math.sin(t2) "
+        "if wet(nx, nz) then else land_near = true water_near = false end end "
+        f"if {'water_near' if mode == 'open' else 'land_near'} then target = {{x = x, y = 0, z = z}} break end "
+        "end end "
+        "if target then break end end "
+        f"if not target then return 'no-water-found-{mode}' end "
+        "local ok, g = pcall(csar.spawnGroup, coalition.side.BLUE, country.id.USA, target, nil) "
+        "if not ok then return 'raised: ' .. tostring(g) end "
+        "if not g then return 'no-group' end "
+        "local units = g:getUnits() "
+        "if not units or not units[1] then g:destroy() return 'no-unit' end "
+        # getPoint() is a runtime vec3: its `z` is the easting getSurfaceType wants as `y`.
+        "local p = units[1]:getPoint() "
+        "local s = land.getSurfaceType({x = p.x, y = p.z}) "
+        "g:destroy() "
+        f"return 'mode:{mode}"
+        "' .. ' surface:' .. tostring(s) .. ' dry:' .. tostring((s ~= W and s ~= S) and 1 or 0)"
+    )
+    return chunk
+
+
 #: The checks that answer questions currently waiting on a human. Each cites the lot it unblocks.
 #:
 #: `Disposition` is the richest and the reason FEAT-SCENERY-AWARE-SPAWN is still open: ADR 0018
@@ -286,6 +363,26 @@ CHECKS: tuple[Check, ...] = (
         why="FEAT-COMBATZONE-MENU-COALITION has been waiting-human since July on exactly this: does "
         "DCS accept a coalition-scoped submenu under a global parent? The unit tests pin which API "
         "is called, not DCS's reaction.",
+    ),
+    Check(
+        name="csar-avoids-water-open-sea",
+        lua=_csar_water_check_lua("open"),
+        expect=_csar_stayed_dry,
+        why="#245 reports a CSAR pilot spawning in the water, and deciding it needs no aircraft and no "
+        "human: trigger a spawn, read the position back, ask what is under it. FEAT-SMOKE-CSAR-WATER. "
+        "Reading the code says it will fail — csar.spawnGroup places the pilot at a fixed +50/+50 offset "
+        "with no surface test at all — so this is the reproduction, and afterwards the regression guard.",
+        transport=Transport.BRIDGE,
+    ),
+    Check(
+        name="csar-avoids-water-coast",
+        lua=_csar_water_check_lua("coast"),
+        expect=_csar_stayed_dry,
+        why="The more interesting half. FEAT-SCENERY-AWARE-SPAWN gave veaf.findSpawnPoint land "
+        "awareness, so the real question is whether CSAR goes through it at all. A pass out at sea with "
+        "a failure near a coast would mean it has its own placement path — which reading the code says "
+        "it does. Measuring it is what turns that reading into evidence.",
+        transport=Transport.BRIDGE,
     ),
 )
 

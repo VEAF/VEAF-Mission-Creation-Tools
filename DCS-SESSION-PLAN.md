@@ -48,6 +48,12 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 test/veaf-tools/verify-mission-a/missions/VerifyMissionA_noon.miz
 ```
 
+> **Réparée et reconstruite le 22/08 après ton retour.** L'éditeur refusait de la sauvegarder :
+> `SmokeZone-SmokeArmor` avait ses deux waypoints avec temps *et* vitesse verrouillés — le second point,
+> ajouté hier, avait été copié du premier avec ses verrous. Corrigé à la source, `.miz` reconstruit,
+> vérifié. Le balayage de **toutes** les routes des deux missions n'a trouvé que celle-là ; la mission C
+> est saine. **Recharge le fichier**, celui que tu avais ouvert est l'ancien.
+
 Prends le slot, roule ou décolle, puis tout se fait au marqueur F10 et au menu radio.
 
 ### 1a · Item 17 — un tag sur une seule unité du groupe

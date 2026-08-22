@@ -7,6 +7,9 @@ Follow-up to [`FEAT-GROUP-COMBAT-INEFFECTIVE`](../FEAT-GROUP-COMBAT-INEFFECTIVE/
 report, because that changes no mission behaviour. The analysis of the other two callers lives in that
 PRD; this lot acts on it.
 
+**Half of it is already answered: `completionCheck` is refused** (see below), so what remains is the
+Skynet half alone.
+
 ## Skynet first, because it is safe
 
 `veafSkynet.findSkynetElementToDefend` (`veafSkynetIadsHelper.lua:404`) picks which site a point-defence
@@ -15,23 +18,31 @@ a mission guarding a decapitated S-300 while a live one goes undefended.
 
 Invisible to a player until it matters, and it cannot end a mission early. Ship this half on its own.
 
-## `completionCheck` needs a decision, not an implementation
+## `completionCheck` — asked and refused, 2026-08-22
 
-Today it counts units of the hostile coalition and completes the zone at zero. With the predicate it
-would count only units of groups still effective, and the consequence is a **design** question:
+Put to David with the case that decides it: a player kills an S-300's tracking radar and leaves, leaving
+four intact launchers, a search radar and three trucks alive and visible.
 
-> A zone announcing "all enemies destroyed" while a player can see four intact launchers is either a
-> welcome shortcut or a bug, depending on what the mission maker meant.
+> **"non, tout doit être détruit"**
 
-It also changes **every existing mission** holding a SAM site — a player who used to have to hunt every
-launcher would stop having to.
+So `completionCheck` keeps counting living hostile units, and a zone completes only when there is nothing
+left. Not a deferral and not a per-zone switch — the answer is no, and the guess this PRD carried (a
+switch defaulting to today) is **withdrawn** rather than left looking like a plan.
 
-**Put to David before building.** The likely shape is a per-zone switch defaulting to today's behaviour,
-following the convention `FIX-COMBATZONE-RENAME-OPTION` established for exactly this kind of change; but
-that is a guess, and the arbitration is his.
+That also settles what the predicate is *for*: telling a player what can no longer fight, not deciding
+when his work is done. Clearing a zone means clearing it.
+
+## What is left: Skynet, and it needs no arbitration
+
+`veafSkynet.findSkynetElementToDefend` (`veafSkynetIadsHelper.lua:404`) picks which site a point-defence
+group protects. With the predicate it would skip sites that can no longer fight, so a Tor does not spend
+a mission guarding a decapitated S-300 while a live one goes undefended.
+
+Invisible to a player until it matters, and it cannot end a mission early — which is why it survives the
+refusal above. This lot is now only that.
 
 ## Definition of done
 
+- [x] The `completionCheck` question put to David, and his answer recorded here — **refused**: everything
+      must be destroyed
 - [ ] Skynet skips ineffective sites when choosing what to defend, with tests
-- [ ] The `completionCheck` question put to David, and his answer recorded here before any code
-- [ ] Whatever is decided for `completionCheck`, documented in both languages — it is visible to players

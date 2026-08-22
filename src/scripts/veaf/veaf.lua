@@ -3927,6 +3927,42 @@ function veaf.isGroupCombatEffective(groupOrName)
   return true
 end
 
+--- How far a downed pilot may be moved to find dry ground, in metres.
+---
+--- David's arbitration, 2026-08-22, on #245: **within 500 m of dry ground, put him there; otherwise he
+--- counts as dead.** No raft and no walk inland — moving a survivor kilometres inland stops being a
+--- rescue and becomes teleportation, and leaving him floating creates a CSAR nobody can complete.
+veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES = 500
+
+--- Where a downed pilot should actually appear.
+---
+--- @param point table the position the survivor would otherwise be placed at, a runtime vec3
+--- @return table|nil the point to use, or **nil** meaning the pilot is lost — no CSAR at all
+---
+--- A dry point is returned unchanged. That matters: `veaf.findSpawnPoint` jitters, so searching around
+--- every ejection would shift each land rescue by tens of metres for no reason. The search only happens
+--- when the intended spot is water.
+---
+--- Shallow water counts as dry, as it does everywhere else here — `acceptableGroundPoint` rejects
+--- `WATER` only. A survivor wading a few metres off a beach is rescuable, and calling that open sea
+--- would declare him dead next to dry land.
+---
+--- Coordinates: `land.getSurfaceType` takes a **vec2 whose `y` is the easting**, while the point handed
+--- in is a runtime vec3 whose `y` is the altitude (`docs/agents/dcs-coordinates.md`). Passing `y = y`
+--- asks about a spot a hundred kilometres away and answers without complaint.
+function veaf.resolveCsarSurvivorPoint(point)
+  if type(point) ~= "table" or not point.x or not point.z then
+    return nil
+  end
+  if land.getSurfaceType({ x = point.x, y = point.z }) ~= land.SurfaceType.WATER then
+    return point
+  end
+  veaf.loggers
+    .get(veaf.Id)
+    :debug("CSAR survivor would land in water; looking for dry ground within %sm", veaf.p(veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES))
+  return veaf.findSpawnPoint(point, veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES)
+end
+
 function veaf.setServerName(value)
   veaf.config.SERVER_NAME = value
 end
@@ -5464,6 +5500,83 @@ end
 
 ---The VEAF replacement function that wraps up around ctld.initialize
 ---@param configurationCallback function? a callback that will be called before calling the vanilla csar.initialize function
+--- The fixed offset `csar.spawnGroup` adds to the position it is handed, in metres on both axes.
+---
+--- `csar.createUnit(_pos.x + 50, _pos.z + 50, …)` — `CSAR.lua:1041`. Naming it here rather than writing
+--- 50 twice is what makes the compensation below readable, and what will fail loudly if a vendored
+--- update changes it: the wrapper's tests assert the round trip, not the constant.
+veaf.CSAR_SPAWN_OFFSET_METRES = 50
+
+--- Replace `csar.addCsar` so a downed pilot never appears in the water.
+---
+--- **Nothing in `CSAR.lua` is modified.** It is vendored `adapted` from `VEAF/DCS-CSAR` and its update
+--- procedure re-applies VEAF adaptations onto a fresh upstream copy, so an edit made there would be
+--- erased by the next update, silently. This function already replaces seven other things in the `csar`
+--- table — its four loggers, its id, its `p`, its init flag — and this is the eighth.
+---
+--- Why `addCsar` and not `spawnGroup`, which is where the placement actually happens: `addCsar`
+--- dereferences the spawned group immediately (`addSpecialParametersToGroup`, then `getCoalition()`), so
+--- returning nil from `spawnGroup` raises. Deciding before anything is created is the only way to honour
+--- "otherwise he counts as dead" — which means **no CSAR object at all**: no MAYDAY, no ADF beacon, no
+--- wounded group sitting on the seabed for the rest of the mission.
+---
+--- The wart, documented rather than hidden: `spawnGroup` will add its own `+50/+50` after us, so the
+--- point handed to the original is **pre-compensated** by that offset. It is the price of not touching
+--- the vendored file.
+function veaf.replaceCsarAddCsar()
+  if type(csar) ~= "table" or type(csar.addCsar) ~= "function" then
+    return
+  end
+  -- Posed once, whatever happens. `veaf.csar_initialize_replacement` sets `veaf.csar_initialized` but
+  -- nothing reads it, so a mission calling it twice is possible — and stacking this wrapper would
+  -- compensate the spawn offset twice, putting the survivor 50 m the wrong way and resolving a point
+  -- that was already resolved. Caught because the first test asserting this passed by accident: its
+  -- stub resolver ignored its input, so a doubled compensation cancelled itself out.
+  if csar._veafAddCsarReplaced then
+    return
+  end
+  local originalAddCsar = csar.addCsar
+  csar._veafAddCsarReplaced = true
+  local offset = veaf.CSAR_SPAWN_OFFSET_METRES
+
+  -- Parameter names carry no leading underscore, unlike CSAR's own: `.luacheckrc` reads that prefix as
+  -- "deliberately unused", and these are all used. Copying the vendored naming failed the Lua gate.
+  ---@diagnostic disable-next-line: duplicate-set-field
+  csar.addCsar = function(coalitionSide, country, point, typeName, unitName, playerName, freq, noMessage, description)
+    if type(point) == "table" and point.x and point.z then
+      -- where the survivor would actually end up, offset included
+      local intended = { x = point.x + offset, y = point.y, z = point.z + offset }
+      local resolved = veaf.resolveCsarSurvivorPoint(intended)
+      if not resolved then
+        veaf.loggers
+          .get(csar.Id)
+          :info("no dry ground within %sm of the ejection: the pilot is lost", veaf.p(veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES))
+        -- The ejection still happened, so CSAR's bookkeeping for it must still run: `handleEjectOrCrash`
+        -- is what disables the aircraft (mode 1) or the pilot (mode 2) for `disableTimeoutTime` minutes.
+        -- Skipping it would make ditching at sea the *cheapest* way to lose an aircraft — the opposite of
+        -- "he counts as dead". Caught in review (Sourcery, PR #787).
+        --
+        -- Protected because the call is wrong upstream, not here: `addCsar` passes a **player name**
+        -- where `handleEjectOrCrash(_unit, _crashed)` indexes a unit, so it raises as soon as a mission
+        -- sets `csar.csarMode` to 1 or 2 (the default 0 does nothing at all). Reproducing the original
+        -- call faithfully is right; letting our new path be the one that dies from an upstream defect is
+        -- not. See FIX-CSAR-HANDLE-EJECT-ARGUMENT.
+        local ok, err = pcall(csar.handleEjectOrCrash, playerName, false)
+        if not ok then
+          veaf.loggers.get(csar.Id):warn("csar.handleEjectOrCrash raised for a lost pilot: %s", veaf.p(err))
+        end
+        if noMessage ~= true then
+          trigger.action.outTextForCoalition(coalitionSide, veaf.t("csar.pilot_lost_at_sea", typeName or "aircraft"), 10)
+        end
+        return
+      end
+      -- undo the offset the original will add, so the survivor lands on the point we chose
+      point = { x = resolved.x - offset, y = resolved.y, z = resolved.z - offset }
+    end
+    return originalAddCsar(coalitionSide, country, point, typeName, unitName, playerName, freq, noMessage, description)
+  end
+end
+
 function veaf.csar_initialize_replacement(configurationCallback)
   if csar then
     veaf.loggers.get(veaf.Id):info(string.format("Setting up CSAR"))
@@ -5508,6 +5621,10 @@ function veaf.csar_initialize_replacement(configurationCallback)
     csar.enableAllslots = true
     csar.useprefix = false
     csar.radioSound = "csar-beacon.ogg"
+
+    -- FIX-CSAR-SPAWNS-ON-WATER (#245): keep a downed pilot out of the sea. Replaced here, like the
+    -- loggers above, rather than edited in the vendored CSAR.lua.
+    veaf.replaceCsarAddCsar()
 
     if configurationCallback and type(configurationCallback) == "function" then
       -- a configuration callback has been set, call it

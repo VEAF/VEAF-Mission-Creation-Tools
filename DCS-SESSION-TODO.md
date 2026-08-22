@@ -442,14 +442,18 @@ The two new checks are `csar-avoids-water-open-sea` and `csar-avoids-water-coast
 first airbase, sweep outwards for water, spawn a CSAR pilot there, read back what is under him, and
 destroy the group.
 
-**The prediction on record, so the result means something either way:** reading `csar.spawnGroup` says
-the pilot is placed at a fixed `+50/+50` offset with no surface test, so **both** should fail. If the
-coast check passes while the sea one fails, that reading is wrong and something else places the pilot —
-which is more interesting than being right.
+**The prediction has flipped, and that is the point of running it now.** When these checks were written,
+reading `csar.spawnGroup` said both would fail: a fixed `+50/+50` offset with no surface test. The fix
+shipped in 6.15.28 — [`FIX-CSAR-SPAWNS-ON-WATER`](.backlog/FIX-CSAR-SPAWNS-ON-WATER/PRD.md), on your
+arbitration of 500 m or dead — so **both should now pass**.
 
-Either outcome closes #245: fixed, or confirmed with a reproduction that stays as the regression guard.
-The fix itself is filed as [`FIX-CSAR-SPAWNS-ON-WATER`](.backlog/FIX-CSAR-SPAWNS-ON-WATER/PRD.md) and
-carries one question for you — what a pilot ditching over open ocean should do.
+A failure here means the replacement of `csar.addCsar` is not taking effect in a real mission, which unit
+tests cannot tell you: they prove the decision, not that DCS loads the wrapper.
+
+One thing to watch on the open-sea check: with nothing dry within 500 m the pilot is now **lost**, so
+there is no group to inspect. The check reports `no-group` in that case, which is a *pass* for the
+arbitration and a *failure* for the assertion as written — if you see it, tell me and I will teach the
+check the difference rather than have you interpret it.
 
 ## 10. Watch a respawned escort for longer than ten minutes
 

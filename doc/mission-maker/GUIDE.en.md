@@ -615,6 +615,24 @@ modules:
 
 VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`.
 
+### A pilot ejecting over water {#csar-over-water}
+
+When an aircraft goes down, CSAR spawns the surviving pilot to be rescued. His position came from a fixed 50 m offset from the aircraft, with nothing looking at what was there — so ejecting near a shoreline put the survivor **in the water**, unreachable ([#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245)).
+
+Since 6.15.28 there are two outcomes and nothing in between:
+
+| Where the ejection happened | What the mission gets |
+|---|---|
+| dry ground, or water with dry ground within **500 m** | a CSAR at the nearest dry point |
+| open water, nothing dry within 500 m | **no CSAR at all** — the pilot is lost, and his coalition is told |
+
+That second case is not "a CSAR you cannot reach": it is the absence of one. No MAYDAY, no ADF beacon, no wounded group sitting on the seabed for the rest of the mission. A flight is not left waiting for a rescue that does not exist.
+
+Shallow water is not open sea: a survivor standing a few metres off a beach stays rescuable where he is.
+
+!!! note "`CSAR.lua` is not modified"
+    The CSAR script is a vendored third-party component; fixing it in place would be erased by its next update. VEAF replaces `csar.addCsar` from its own code, as it already replaces CSAR's loggers.
+
 ### Loading order in the DCS trigger chain
 
 The build produces this chain for you; it is written out here so you can read it back in the Mission Editor:

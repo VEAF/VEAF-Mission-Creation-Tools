@@ -7,7 +7,7 @@ Status: ⬜ ready
 The symmetric case, already understood on the MCP side. DCS refuses to save a route where **no** waypoint
 has a locked time: *"Route has no waypoints with locked time!"*.
 
-[`FIX-WAYPOINTS-ETA-LOCKED`](../archive/FIX-WAYPOINTS-ETA-LOCKED.md) taught `edit_route.py` to relock the
+[`FIX-WAYPOINTS-ETA-LOCKED`](../../archive/FIX-WAYPOINTS-ETA-LOCKED.md) taught `edit_route.py` to relock the
 first waypoint when an edit removes the last lock (`_restore_eta_lock`). That protects routes the MCP
 edits. It does nothing for a mission whose data came from anywhere else.
 

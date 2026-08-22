@@ -31,7 +31,7 @@ is a one-off authoring slip — not a family of broken data. It is the *silence*
 
 ## Why this is worth a lot of its own
 
-This is the same shape as [`FIX-WAYPOINTS-ETA-LOCKED`](archive/FIX-WAYPOINTS-ETA-LOCKED.md), which
+This is the same shape as [`FIX-WAYPOINTS-ETA-LOCKED`](../archive/FIX-WAYPOINTS-ETA-LOCKED.md), which
 handled the **symmetric** case — a route with *no* locked-time waypoint, which DCS also refuses. That lot
 taught the MCP to repair its own edits. Nothing teaches the **validator** to notice either case in data it
 did not write.

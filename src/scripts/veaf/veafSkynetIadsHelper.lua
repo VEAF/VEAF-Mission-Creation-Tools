@@ -426,6 +426,23 @@ function veafSkynet.findSkynetElementToDefend(skynetElementPointDefence, skynetD
         local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(skynetElementList[i])
         local position = veaf.getAveragePosition(dcsGroup)
 
+        -- FEAT-COMBAT-EFFECTIVE-ADOPTION: do not spend a point defence on a **SAM site** that cannot
+        -- fight any more. An S-300 whose tracking radar is gone still has launchers, a position and an
+        -- entry in the IADS, so without this a Tor could guard it for a whole mission while a live site
+        -- next door goes undefended.
+        --
+        -- **Early-warning radars are exempt, and not out of caution.** An EWR is defended because it
+        -- *sees*, not because it shoots, so asking "can this still fight" about one is a category error —
+        -- the comment above has always said they are always defencible. Judging them would also have made
+        -- a **mixed group** — a mission maker putting a 55G6 and a launcher in one group — lose its
+        -- defence silently, since such a group carries `SAM LL` with no tracking radar. Caught in review
+        -- (Sourcery, PR #788), and it also removes this code's dependence on no EWR type ever gaining a
+        -- SAM attribute in a datamine update.
+        if position and skynetData["type"] ~= "ewr" and not veaf.isGroupCombatEffective(dcsGroup) then
+          veaf.loggers.get(veafSkynet.Id):trace("skipping a SAM site that can no longer fight")
+          position = nil
+        end
+
         if position then
           local iDistance = math.sqrt((position.x - pointDefencePosition.x) ^ 2 + (position.z - pointDefencePosition.z) ^ 2)
 

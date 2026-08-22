@@ -1247,5 +1247,155 @@ function TestVeafSkynetOnDynamicSpawn:test_a_later_unit_of_the_group_is_ignored(
   restore()
   luaunit.assertEquals(#calls, 0)
 end
+-- ---------------------------------------------------------------------------
+-- FEAT-COMBAT-EFFECTIVE-ADOPTION — a point defence does not guard a dead SAM site
+--
+-- Second adopter of `veaf.isGroupCombatEffective`, and the safe one: `findSkynetElementToDefend` picks
+-- which site a point-defence group protects, so skipping SAM sites that can no longer fight stops a Tor
+-- spending a mission guarding a decapitated S-300 while a live one goes undefended. Invisible to a player
+-- until it matters, and it cannot end a mission early — unlike `completionCheck`, which David refused for
+-- exactly that reason ("tout doit être détruit").
+--
+-- **Early-warning radars are exempt**, and the first version of these tests got that wrong: every case
+-- used `type = "ewr"`, so they exercised precisely what must *not* be filtered and would all have passed
+-- on a rule scoped the wrong way. An EWR is defended because it sees, not because it shoots.
+-- ---------------------------------------------------------------------------
+TestVeafSkynetDefendsOnlyLiveSites = {}
+
+function TestVeafSkynetDefendsOnlyLiveSites:setUp()
+  self._effective = veaf.isGroupCombatEffective
+  self._avg = veaf.getAveragePosition
+  self._fromElement = veafSkynet.getDcsGroupFromSkynetElement
+  self._data = veafSkynet.getSkynetData
+  self._describe = veafSkynet.getStringSkynetElement
+
+  -- the trace log reads element.dcsRepresentation, which these stand-ins do not have; the descriptor is
+  -- not what is under test
+  veafSkynet.getStringSkynetElement = function(element)
+    return tostring(element and element.groupName)
+  end
+  -- an element declares its own kind, so a test can be about a SAM site or about an EWR
+  veafSkynet.getSkynetData = function(element)
+    return { type = element.kind or "complex" }
+  end
+  veafSkynet.getDcsGroupFromSkynetElement = function(element)
+    return element.groupName
+  end
+  veaf.getAveragePosition = function(groupName)
+    if groupName == "POINT-DEFENCE" then
+      return { x = 0, y = 0, z = 0 }
+    end
+    return { x = 100, y = 0, z = 0 }
+  end
+end
+
+function TestVeafSkynetDefendsOnlyLiveSites:tearDown()
+  veaf.isGroupCombatEffective = self._effective
+  veaf.getAveragePosition = self._avg
+  veafSkynet.getDcsGroupFromSkynetElement = self._fromElement
+  veafSkynet.getSkynetData = self._data
+  veafSkynet.getStringSkynetElement = self._describe
+end
+
+--- A point-defence element over an IADS offering `ewrs` and `sams`.
+local function _defence(ewrs, sams)
+  return {
+    groupName = "POINT-DEFENCE",
+    iads = {
+      getEarlyWarningRadars = function()
+        return ewrs or {}
+      end,
+      getSAMSites = function()
+        return sams or {}
+      end,
+    },
+  }
+end
+
+--- A SAM site candidate, which is what the predicate judges.
+local function _sam(name)
+  return { groupName = name, kind = "complex" }
+end
+
+--- An early-warning radar candidate, which it must not judge.
+local function _ewr(name)
+  return { groupName = name, kind = "ewr" }
+end
+
+function TestVeafSkynetDefendsOnlyLiveSites:test_a_live_sam_site_is_still_chosen()
+  veaf.isGroupCombatEffective = function()
+    return true
+  end
+  local found = veafSkynet.findSkynetElementToDefend(_defence({}, { _sam("SAM-ALIVE") }), { type = "single" })
+  luaunit.assertNotNil(found)
+  luaunit.assertEquals(found.groupName, "SAM-ALIVE")
+end
+
+function TestVeafSkynetDefendsOnlyLiveSites:test_a_sam_site_that_can_no_longer_fight_is_skipped()
+  veaf.isGroupCombatEffective = function()
+    return false
+  end
+  local found = veafSkynet.findSkynetElementToDefend(_defence({}, { _sam("SAM-DEAD") }), { type = "single" })
+  luaunit.assertNil(found, "a point defence must not be spent on a site that cannot fight")
+end
+
+-- The case the lot is about: a live site further away beats a dead one next door.
+function TestVeafSkynetDefendsOnlyLiveSites:test_a_distant_live_site_wins_over_a_close_dead_one()
+  veaf.getAveragePosition = function(groupName)
+    if groupName == "POINT-DEFENCE" then
+      return { x = 0, y = 0, z = 0 }
+    elseif groupName == "SAM-DEAD" then
+      return { x = 100, y = 0, z = 0 }
+    end
+    return { x = 5000, y = 0, z = 0 }
+  end
+  veaf.isGroupCombatEffective = function(groupName)
+    return groupName ~= "SAM-DEAD"
+  end
+  local found = veafSkynet.findSkynetElementToDefend(_defence({}, { _sam("SAM-DEAD"), _sam("SAM-ALIVE") }), { type = "single" })
+  luaunit.assertNotNil(found)
+  luaunit.assertEquals(found.groupName, "SAM-ALIVE")
+end
+
+-- The exemption, and the reason it is not mere caution: an EWR is defended because it *sees*. A mixed
+-- group — a 55G6 and a launcher together — carries `SAM LL` with no tracking radar, so judging it would
+-- silently strip an early-warning radar of its defence.
+function TestVeafSkynetDefendsOnlyLiveSites:test_an_ewr_is_defended_even_when_judged_ineffective()
+  veaf.isGroupCombatEffective = function()
+    return false
+  end
+  local found = veafSkynet.findSkynetElementToDefend(_defence({ _ewr("EWR-1") }, {}), { type = "single" })
+  luaunit.assertNotNil(found, "an EWR is defended because it sees, not because it shoots")
+  luaunit.assertEquals(found.groupName, "EWR-1")
+end
+
+function TestVeafSkynetDefendsOnlyLiveSites:test_the_predicate_is_never_asked_about_an_ewr()
+  local asked = {}
+  veaf.isGroupCombatEffective = function(groupName)
+    table.insert(asked, groupName)
+    return true
+  end
+  veafSkynet.findSkynetElementToDefend(_defence({ _ewr("EWR-1") }, {}), { type = "single" })
+  luaunit.assertEquals(asked, {}, "asking whether a radar can fight is a category error")
+end
+
+-- The predicate is asked about the site, never about the point defence itself: a Tor with its own radar
+-- shot out still has a gun, and refusing to place it would be a different decision than this lot's.
+function TestVeafSkynetDefendsOnlyLiveSites:test_the_point_defence_itself_is_not_judged()
+  local asked = {}
+  veaf.isGroupCombatEffective = function(groupName)
+    table.insert(asked, groupName)
+    return true
+  end
+  veafSkynet.findSkynetElementToDefend(_defence({}, { _sam("SAM-1") }), { type = "single" })
+  luaunit.assertEquals(asked, { "SAM-1" })
+end
+
+function TestVeafSkynetDefendsOnlyLiveSites:test_no_sites_at_all_is_still_nil()
+  veaf.isGroupCombatEffective = function()
+    return true
+  end
+  luaunit.assertNil(veafSkynet.findSkynetElementToDefend(_defence({}, {}), { type = "single" }))
+end
 
 os.exit(luaunit.LuaUnit.run())

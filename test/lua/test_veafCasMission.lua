@@ -425,22 +425,51 @@ function TestVeafCasMissionTypesExist:test_the_units_296_asked_for_can_be_spawne
   end
 end
 
--- A tier is drawn from at random, so an empty one below tier 0 would spawn nothing at all.
-function TestVeafCasMissionTypesExist:test_no_tier_above_zero_is_empty()
+--- Is this node a flat list of type names, rather than a table of tiers?
+---
+--- The two shapes coexist on purpose: `INFANTRY_TYPES` is side → era → names, while the other three are
+--- side → era → tier → names. Telling them apart matters more than it looks — a traversal that assumed
+--- tiers everywhere did **not** raise on the flat one (Lua's `#` on a string is its length, so
+--- `#"Soldier RPG" > 0` is happily true) and quietly asserted nothing at all about infantry.
+local function isFlatTypeList(node)
+  if type(node) ~= "table" or #node == 0 then
+    return false
+  end
+  for _, value in ipairs(node) do
+    if type(value) ~= "string" then
+      return false
+    end
+  end
+  return true
+end
+
+-- A tier is drawn from at random, so an empty one above tier 0 would spawn nothing at all. The flat
+-- shape has the same requirement without the tier: an empty list spawns nothing either.
+function TestVeafCasMissionTypesExist:test_no_list_a_spawn_draws_from_is_empty()
+  local checkedTiers, checkedFlat = 0, 0
   for tableName, tbl in pairs(TYPE_TABLES) do
     for side, byEra in pairs(tbl) do
-      for era, byTier in pairs(byEra) do
-        for tier, types in pairs(byTier) do
-          if type(tier) == "number" and tier > 0 then
-            luaunit.assertTrue(
-              #types > 0,
-              string.format("%s[%s][%s][%d] is empty: it would spawn nothing", tableName, tostring(side), tostring(era), tier)
-            )
+      for era, node in pairs(byEra) do
+        local where = string.format("%s[%s][%s]", tableName, tostring(side), tostring(era))
+        if isFlatTypeList(node) then
+          checkedFlat = checkedFlat + 1
+          luaunit.assertTrue(#node > 0, where .. " is empty: it would spawn nothing")
+        else
+          for tier, types in pairs(node) do
+            if type(tier) == "number" and tier > 0 then
+              checkedTiers = checkedTiers + 1
+              luaunit.assertEquals(type(types), "table", string.format("%s[%d] is not a list of types", where, tier))
+              luaunit.assertTrue(#types > 0, string.format("%s[%d] is empty: it would spawn nothing", where, tier))
+            end
           end
         end
       end
     end
   end
+  -- Both shapes must actually have been visited, or this test passes by never looking. Which is what it
+  -- used to do for the flat one.
+  luaunit.assertTrue(checkedTiers > 20, "only " .. checkedTiers .. " tiers visited")
+  luaunit.assertTrue(checkedFlat >= 6, "only " .. checkedFlat .. " flat lists visited; INFANTRY_TYPES has 6")
 end
 
 -- The guard in `veafUnits.findDcsUnit` exists because DCS ships two units whose display name has a

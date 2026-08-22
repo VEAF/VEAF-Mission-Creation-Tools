@@ -114,20 +114,11 @@ function veafRemote.addNiodCallback(name, parameters, code)
   end
 end
 
-function veafRemote.addNiodCommand(name, command)
-  veafRemote.addNiodCallback(name, {
-    parameters = { mandatory = false, type = "string" },
-    x = { mandatory = false, type = "number" },
-    y = { mandatory = false, type = "number" },
-    z = { mandatory = false, type = "number" },
-    silent = { mandatory = false, type = "boolean" },
-  }, function(parameters, x, y, z, silent)
-    veaf.loggers
-      .get(veafRemote.Id)
-      :debug(string.format("niod->command %s (%s, %s, %s, %s, %s)", veaf.p(parameters), veaf.p(x), veaf.p(y), veaf.p(z), veaf.p(silent)))
-    return veafRemote.executeCommand({ x = x or 0, y = y or 0, z = z or 0 }, command .. parameters)
-  end)
-end
+-- `veafRemote.addNiodCommand` stood here. It exposed a marker-style command string to NIOD by handing
+-- it to `veafRemote.executeCommand`, removed with that mechanism on 2026-08-11 (9a20c50c). It had **no
+-- caller** anywhere in the scripts, the tests or the documentation, so unlike the handler below it never
+-- raised: it was the second half of a removal left unfinished. Adding a NIOD command today means
+-- `addNiodCallback` with a real function, which is what every entry in `buildDefaultList` does.
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- default endpoints list
@@ -331,9 +322,16 @@ end
 function veafRemote.initialize()
   veaf.loggers.get(veafRemote.Id):info("Initializing module")
   veafRemote.buildDefaultList()
-  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
-    return veafRemote.executeCommand(pos, event.text)
-  end, veafCommands.PRIORITY_REMOTE, veafCommands.SECURITY_HANDLED)
+  -- No marker command handler is registered any more, and that is deliberate.
+  --
+  -- This module used to answer marker text carrying a shared password, through
+  -- `veafRemote.executeCommand`. That mechanism was removed on 2026-08-11 (9a20c50c, the security
+  -- review) in favour of `registerRemoteModule` / `executeCommandFromRemote`, which authenticates a
+  -- named user instead of trusting a string typed on the map. The handler registration was left
+  -- behind, so from that day every marker carrying any text at all raised
+  -- "attempt to call field 'executeCommand' (a nil value)": `veafMarkers.onEvent` calls every
+  -- registered handler under `pcall`, so a pilot dropping a plain annotation was told
+  -- "VEAF: your marker command failed". Eleven days, reported in game on 2026-08-22.
 end
 
 veaf.loggers.get(veafRemote.Id):info(veaf.loggers.get(veafRemote.Id):getVersionInfo())

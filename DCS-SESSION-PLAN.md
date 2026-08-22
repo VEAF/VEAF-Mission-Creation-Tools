@@ -42,6 +42,43 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 
 ---
 
+## Résultats de la session — au 22/08
+
+| Vérification | Résultat |
+|---|---|
+| 0 · SAM autonome (Tor) | ✅ locke et tire — voir la nuance sur les sites multi-unités ci-dessus |
+| 1a · dispersion + départ sans détour | ✅ tout comme prévu |
+| 1b · escorte du FARP | ❌ **échec** — tout se pose sur le FARP statique. Cause racine trouvée, lot rouvert, voir ci-dessous |
+| 1c · convoi sur itinéraire | ✅ les commandes fonctionnent. Réserve d'ergonomie : chaque commande est enfermée dans un sous-menu à un seul élément |
+| — · un marqueur simple renvoyait une erreur | ✅ **corrigé**, PR #789 — onze jours de régression, sans lien avec la session |
+
+### 1b — pourquoi ça a échoué, et ce n'est pas mesurable autrement
+
+Deux causes, toutes deux lisibles dans le code, et la seconde aurait survécu à un correctif de la
+première :
+
+1. **Un FARP n'est pas un objet statique.** `isSpotOccupied` sonde `world.searchObjects` sur `UNIT` et
+   `STATIC` seulement. Le dépôt lui-même montre ce qu'est un FARP : une **airbase**
+   (`Airbase.Category.HELIPAD`, cf. `veafAirbases.lua:191`), et le log DCS le confirme —
+   `NO ATC COMM HELIPAD + StaticFarpAlpha-1`. La sonde ne pouvait pas voir le seul objet qui compte.
+2. **`searchObjects` compare des positions, pas des emprises.** La tolérance est de **12 m** et un FARP
+   fait plusieurs dizaines de mètres : une escorte posée sur son **bord** — le cas exact de #232 — laisse
+   le centre du FARP largement hors de la sphère.
+
+Les tests unitaires simulaient `isSpotOccupied`, donc ils prouvaient que la recherche de cap réagit à un
+emplacement occupé, sans que rien ne prouve qu'un vrai FARP en soit un. Un test juste sur une prémisse
+fausse.
+
+### 1c — le sous-menu à un seul élément
+
+Ta remarque est fondée, et la convention est **gratuite** : `veafCarrierOperations` met plusieurs
+commandes `USAGE_ForGroup` dans un même sous-menu, et `convoy_cleanup` s'ajoute directement à la racine
+juste à côté. Rien ne l'impose. À noter : le motif **préexiste** au lot convoi — `convoy_mark`, plus
+ancien, fait déjà pareil — donc les six commandes du menu sont à aplatir ensemble. Je le fais après tes
+vérifications, pour ne pas te changer le terrain en cours de route.
+
+---
+
 ## Étape 1 — `VerifyMissionA_noon.miz` (3 vérifications, une seule charge)
 
 ```

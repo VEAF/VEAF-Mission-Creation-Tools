@@ -7,6 +7,41 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.30] — 2026-08-22
+
+### Fixed
+
+- **Any map marker carrying text answered "your marker command failed".** Dropping a plain annotation
+  — a name, an arrow, a note to a wingman — reported a VEAF error to the pilot who placed it.
+
+  `veafRemote.initialize()` registered a marker command handler calling `veafRemote.executeCommand`,
+  and that function was deleted on 2026-08-11 with the shared-password marker mechanism it belonged to
+  (replaced by `registerRemoteModule` / `executeCommandFromRemote`, which authenticates a named user
+  instead of trusting a string typed on the map). The registration outlived it. Since
+  `veafMarkers.onEvent` calls every registered handler under `pcall` and surfaces any failure to the
+  pilot, every marker with text hit it — for eleven days, until a pilot said so.
+
+  The pilot-facing message was not the cause. It is what made a silent breakage visible, which is what
+  it was added for.
+
+  `veafRemote.addNiodCommand` went with it: it called the same deleted function and had no caller
+  anywhere, so it never raised — the other half of a removal left unfinished.
+
+### Added
+
+- **A repo-wide sweep for calls that reach nothing** (`test/python/test_lua_module_calls_resolve.py`).
+  Every `veafX.y(...)` in the scripts must resolve to a function something defines. Lua cannot catch
+  this class on its own: a missing table field is `nil` until called, and that call dies inside a
+  `pcall` nobody reads.
+
+  Proven against the real defect rather than assumed — re-introducing the dead call makes the sweep
+  name it. Strings and comments are stripped first, because three of the first five candidates were log
+  labels and code inside a `[[ ]]` block. Across 1166 defined symbols it leaves exactly one known
+  offender, `veafMissileGuardian.GetGuardian`, listed in a shrink-only ratchet and filed as its own lot
+  rather than skipped.
+
+---
+
 ## [6.15.29] — 2026-08-22
 
 ### Changed

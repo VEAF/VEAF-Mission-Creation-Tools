@@ -42,6 +42,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A weather variant declaring only `airport_icao` never had its weather injected.** From the weather
+  feature's first commit (2025-11-25) until now, the gate read `version.weather or version.metar`, so a
+  variant asking for live weather silently kept the base mission's — nine months, with
+  `_inject_weather` perfectly able to fetch it and simply never called. Found while reviewing the
+  briefing feature above: a briefing claiming the live weather is what made the inconsistency visible.
+
+- **The live METAR is fetched once, not twice.** The weather table and the briefing's `${METAR}` are two
+  consumers of the same report, and two independent requests meant a station publishing between them
+  would put a METAR in the briefing contradicting the weather actually injected — besides being a second
+  chance to be rate-limited. The fetch is memoised per ICAO, so seven variants sharing a station make one
+  request.
+
 - **The `versions[]` reference was missing its `airport_icao` row.** The field is read by the build and
   documented nowhere, which mattered here because `${METAR}` resolves through it.
 

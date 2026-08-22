@@ -819,3 +819,69 @@ class TestBriefingMetarPerVariant(unittest.TestCase):
             worker = _make_worker(Path(tmp))
             worker.mission_data = None
             worker._substitute_briefing_variables(VersionConfig(name="day", metar="X"))
+
+
+class TestIcaoOnlyVariantGetsItsWeather(unittest.TestCase):
+    """A variant declaring only `airport_icao` must have its weather injected.
+
+    It did not, from the weather feature's first commit (21f3f386, 2025-11-25) until now: the gate read
+    `version.weather or version.metar`, so an ICAO-only variant silently kept the base mission's weather
+    while asking for live weather. Nine months, and nothing said so — `_inject_weather` was perfectly
+    able to fetch it and was simply never called.
+
+    Found in review of FEAT-BRIEFING-METAR (Sourcery, PR #786): a briefing claiming the live weather is
+    what made the inconsistency visible.
+    """
+
+    def test_an_icao_only_variant_reaches_the_weather_injection(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("no tokens")
+            injected: list[str] = []
+            with unittest.mock.patch.object(
+                WeatherInjectorWorker, "_inject_weather", lambda self, v: injected.append(v.name)
+            ):
+                with unittest.mock.patch.object(WeatherInjectorWorker, "_substitute_briefing_variables"):
+                    with unittest.mock.patch("weather_injector.weather_injector_worker.read_miz"):
+                        with unittest.mock.patch("weather_injector.weather_injector_worker.write_miz"):
+                            with unittest.mock.patch.object(Path, "exists", return_value=True):
+                                worker._create_mission_version(VersionConfig(name="live", airport_icao="LFRS"))
+            self.assertEqual(injected, ["live"], "an ICAO-only variant must have weather injected")
+
+    def test_the_three_ways_of_declaring_weather_all_reach_it(self) -> None:
+        # Enumerated rather than sampled: each of the three sources must open the gate.
+        cases = (
+            VersionConfig(name="a", metar="LFRS 121030Z"),
+            VersionConfig(name="b", weather={"temperature": 20}),
+            VersionConfig(name="c", airport_icao="LFRS"),
+        )
+        for version in cases:
+            with tempfile.TemporaryDirectory() as tmp:
+                worker = _make_worker(Path(tmp))
+                worker.mission_data = _mission_with_briefing("no tokens")
+                injected: list[str] = []
+                with unittest.mock.patch.object(
+                    WeatherInjectorWorker, "_inject_weather", lambda self, v: injected.append(v.name)
+                ):
+                    with unittest.mock.patch.object(WeatherInjectorWorker, "_substitute_briefing_variables"):
+                        with unittest.mock.patch("weather_injector.weather_injector_worker.read_miz"):
+                            with unittest.mock.patch("weather_injector.weather_injector_worker.write_miz"):
+                                with unittest.mock.patch.object(Path, "exists", return_value=True):
+                                    worker._create_mission_version(version)
+                self.assertEqual(injected, [version.name], f"{version.name} must reach the injection")
+
+    def test_a_variant_declaring_no_weather_at_all_still_skips_it(self) -> None:
+        # The gate must stay a gate: a time-only variant has nothing to inject.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("no tokens")
+            injected: list[str] = []
+            with unittest.mock.patch.object(
+                WeatherInjectorWorker, "_inject_weather", lambda self, v: injected.append(v.name)
+            ):
+                with unittest.mock.patch.object(WeatherInjectorWorker, "_substitute_briefing_variables"):
+                    with unittest.mock.patch("weather_injector.weather_injector_worker.read_miz"):
+                        with unittest.mock.patch("weather_injector.weather_injector_worker.write_miz"):
+                            with unittest.mock.patch.object(Path, "exists", return_value=True):
+                                worker._create_mission_version(VersionConfig(name="noon", time="12:00"))
+            self.assertEqual(injected, [])

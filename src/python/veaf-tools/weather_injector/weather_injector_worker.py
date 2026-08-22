@@ -168,7 +168,12 @@ class WeatherInjectorWorker(BaseWorker):
         if version.time or version.date:
             self._update_mission_time_and_date(version)
 
-        if version.weather or version.metar:
+        # `airport_icao` belongs in this condition and was missing from it since the weather feature
+        # shipped (21f3f386, 2025-11-25): a variant declaring only an ICAO got **no weather injected at
+        # all** and silently kept the base mission's, while `_inject_weather` was perfectly capable of
+        # fetching it. Found in review of FEAT-BRIEFING-METAR (Sourcery, PR #786), because a briefing
+        # claiming the live weather made the inconsistency visible for the first time.
+        if version.weather or version.metar or version.airport_icao:
             self._inject_weather(version)
 
         # FEAT-BRIEFING-METAR (#40): the weather is known here and never reached the text a pilot reads,

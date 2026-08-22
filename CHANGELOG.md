@@ -7,6 +7,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.28] — 2026-08-22
+
+### Fixed
+
+- **A downed pilot no longer appears in the water**, closing
+  [#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245). CSAR placed the survivor at a
+  fixed 50 m offset from the aircraft that went down, with no surface test at all — so ejecting near a
+  shoreline put him in the sea, unreachable.
+
+  David's arbitration: **within 500 m of dry ground, put him there; otherwise he counts as dead.** Two
+  outcomes and nothing in between, and the second is the absence of a CSAR rather than an unreachable
+  one — no MAYDAY, no ADF beacon, no wounded group sitting on the seabed for the rest of the mission. His
+  coalition is told he is lost, unless the caller asked for silence.
+
+  Shallow water is not open sea: a survivor wading a few metres off a beach stays rescuable where he is.
+
+  **Not a line of `CSAR.lua` changed.** It is a vendored third-party script whose update procedure
+  re-applies VEAF adaptations onto a fresh upstream copy, so an edit there would be erased silently.
+  `veaf.csar_initialize_replacement` already replaces seven things in the `csar` table — its loggers, its
+  id — and now replaces `csar.addCsar` as well. It has to be `addCsar` and not `spawnGroup`, where the
+  placement happens: `addCsar` dereferences the spawned group immediately, so refusing to spawn from
+  there raises.
+
+---
+
 ## [6.15.27] — 2026-08-22
 
 ### Added

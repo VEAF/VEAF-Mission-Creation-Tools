@@ -614,6 +614,24 @@ modules:
 
 VEAF génère les assignations `csar.xxx = value` et l'appel `csar.initialize()` dans `veaf-config.lua`. Pour les paramètres complexes comme `aircraftType` (une table par appareil), continuez à utiliser le pattern callback Lua dans `mission-script.lua`.
 
+### Un pilote abattu au-dessus de l'eau {#csar-over-water}
+
+Quand un appareil est descendu, CSAR fait apparaître le pilote survivant à récupérer. Sa position venait d'un décalage fixe de 50 m par rapport à l'appareil, sans que rien ne regarde ce qu'il y avait là : une éjection près d'un rivage mettait donc le survivant **dans l'eau**, injoignable ([#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245)).
+
+Depuis la 6.15.28, deux issues et rien entre les deux :
+
+| Où l'éjection a eu lieu | Ce que la mission obtient |
+|---|---|
+| au sec, ou dans l'eau avec du sec à moins de **500 m** | un CSAR au point sec le plus proche |
+| en pleine eau, rien de sec à moins de 500 m | **aucun CSAR** — le pilote est perdu, et un message le dit à sa coalition |
+
+Le second cas n'est pas « un CSAR inaccessible » : c'est l'absence de CSAR. Pas de MAYDAY, pas de balise ADF, pas de groupe de blessé posé au fond de l'eau jusqu'à la fin de la mission. Un flight n'attend donc pas un sauvetage qui n'existe pas.
+
+L'eau peu profonde ne compte pas comme la pleine mer : un survivant qui a pied à quelques mètres d'une plage reste récupérable là où il est.
+
+!!! note "`CSAR.lua` n'est pas modifié"
+    Le script CSAR est un composant tiers embarqué : le corriger sur place serait effacé à sa prochaine mise à jour. VEAF remplace `csar.addCsar` depuis son propre code, comme il remplace déjà les journaux de CSAR.
+
 ### Ordre de chargement dans la chaîne de triggers DCS
 
 Le build produit cette chaîne pour vous ; elle est décrite ici pour que vous puissiez la relire dans l'éditeur de mission :

@@ -3566,4 +3566,256 @@ function TestVeafCombatEffectiveAgainstRealData:test_an_ordinary_truck_is_not_ta
   luaunit.assertFalse(veaf.unitTypeHasAttribute("Ural-375", "SAM LL"))
 end
 
+-- ===========================================================================
+-- FIX-CSAR-SPAWNS-ON-WATER — where a downed pilot ends up (#245)
+--
+-- The survivor to be rescued, not the rescue helicopter's crew: `S_EVENT_EJECTION` hands CSAR the
+-- position of the *aircraft*, and `csar.spawnGroup` places a "Downed Pilot" group at a fixed +50/+50
+-- from it with no surface test at all. Ejecting near a shoreline puts him in the water.
+--
+-- David's arbitration, 2026-08-22: **within 500 m of dry ground, put him there; otherwise he counts as
+-- dead.** No raft, and no walk inland — so `nil` here means "no CSAR at all", not "a CSAR far away".
+--
+-- Nothing in `CSAR.lua` is touched. The decision lives in veaf.lua and is applied by replacing
+-- `csar.addCsar` from `veaf.csar_initialize_replacement`, which already replaces seven other things in
+-- that table.
+-- ===========================================================================
+TestVeafCsarSurvivorPoint = {}
+
+function TestVeafCsarSurvivorPoint:setUp()
+  self._surface = land.getSurfaceType
+  self._findSpawnPoint = veaf.findSpawnPoint
+end
+
+function TestVeafCsarSurvivorPoint:tearDown()
+  land.getSurfaceType = self._surface
+  veaf.findSpawnPoint = self._findSpawnPoint
+end
+
+--- Make everything water, or everything land.
+function TestVeafCsarSurvivorPoint:_allSurface(surfaceType)
+  land.getSurfaceType = function()
+    return surfaceType
+  end
+end
+
+function TestVeafCsarSurvivorPoint:test_a_pilot_on_dry_ground_is_left_exactly_where_he_is()
+  -- The common case by far, and it must not move him: `findSpawnPoint` jitters, so calling it
+  -- unconditionally would shift every land ejection by tens of metres for no reason.
+  self:_allSurface(land.SurfaceType.LAND)
+  local moved = false
+  veaf.findSpawnPoint = function()
+    moved = true
+    return { x = 999, y = 0, z = 999 }
+  end
+  local point = { x = 100, y = 50, z = 200 }
+  local resolved = veaf.resolveCsarSurvivorPoint(point)
+  luaunit.assertEquals(resolved.x, 100)
+  luaunit.assertEquals(resolved.z, 200)
+  luaunit.assertFalse(moved, "a dry ejection point must not be searched around")
+end
+
+function TestVeafCsarSurvivorPoint:test_a_pilot_over_water_is_moved_to_the_dry_point_found()
+  self:_allSurface(land.SurfaceType.WATER)
+  veaf.findSpawnPoint = function(centre, radius)
+    luaunit.assertEquals(radius, veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES)
+    return { x = centre.x + 300, y = 0, z = centre.z }
+  end
+  local resolved = veaf.resolveCsarSurvivorPoint({ x = 0, y = 0, z = 0 })
+  luaunit.assertEquals(resolved.x, 300)
+end
+
+-- The arbitration's second half: nothing dry within reach means no CSAR at all.
+function TestVeafCsarSurvivorPoint:test_a_pilot_with_no_dry_ground_within_range_is_lost()
+  self:_allSurface(land.SurfaceType.WATER)
+  veaf.findSpawnPoint = function()
+    return nil
+  end
+  luaunit.assertNil(veaf.resolveCsarSurvivorPoint({ x = 0, y = 0, z = 0 }))
+end
+
+function TestVeafCsarSurvivorPoint:test_the_search_radius_is_the_500_m_that_was_arbitrated()
+  luaunit.assertEquals(veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES, 500)
+end
+
+-- Shallow water counts as dry here, as it does everywhere else in this codebase
+-- (`acceptableGroundPoint` rejects WATER only). A survivor wading a few metres offshore is rescuable;
+-- treating it as open sea would declare him dead next to a beach.
+function TestVeafCsarSurvivorPoint:test_shallow_water_is_not_treated_as_open_sea()
+  self:_allSurface(land.SurfaceType.SHALLOW_WATER)
+  local searched = false
+  veaf.findSpawnPoint = function()
+    searched = true
+    return nil
+  end
+  local resolved = veaf.resolveCsarSurvivorPoint({ x = 10, y = 0, z = 20 })
+  luaunit.assertNotNil(resolved, "shallow water must not be a death sentence")
+  luaunit.assertFalse(searched)
+end
+
+-- The coordinate trap: land.getSurfaceType takes a vec2 whose `y` is the **easting**, while the point
+-- handed in is a runtime vec3 whose `y` is the altitude. Reading `y` as the easting asks about a spot a
+-- hundred kilometres away and answers cheerfully.
+function TestVeafCsarSurvivorPoint:test_the_surface_is_asked_about_the_right_spot()
+  local asked = {}
+  land.getSurfaceType = function(vec2)
+    table.insert(asked, vec2)
+    return land.SurfaceType.LAND
+  end
+  veaf.resolveCsarSurvivorPoint({ x = 1000, y = 4000, z = 2000 })
+  luaunit.assertEquals(#asked, 1)
+  luaunit.assertEquals(asked[1].x, 1000, "northing")
+  luaunit.assertEquals(asked[1].y, 2000, "the easting belongs in the vec2 y, not the altitude")
+end
+
+function TestVeafCsarSurvivorPoint:test_a_nil_point_is_refused_rather_than_raising()
+  luaunit.assertNil(veaf.resolveCsarSurvivorPoint(nil))
+end
+
+-- ===========================================================================
+-- FIX-CSAR-SPAWNS-ON-WATER — the replacement of csar.addCsar
+--
+-- The subtle half. `csar.spawnGroup` adds its own +50/+50 to whatever position it is given, so the point
+-- handed to the original has to be pre-compensated for the survivor to land where we decided. Asserting
+-- the **round trip** rather than the constant is what will catch a vendored update changing that offset.
+-- ===========================================================================
+TestVeafCsarAddCsarReplacement = {}
+
+function TestVeafCsarAddCsarReplacement:setUp()
+  self._csar = csar
+  self._resolve = veaf.resolveCsarSurvivorPoint
+  self._outText = trigger.action.outTextForCoalition
+
+  self.calls = {}
+  self.messages = {}
+  -- a fresh csar table per test, so the "already replaced" marker does not leak between them
+  csar = {
+    Id = "CSAR",
+    addCsar = function(coa, country, point, typeName, unitName, playerName, freq, noMessage, description)
+      table.insert(self.calls, { coalition = coa, point = point, typeName = typeName, noMessage = noMessage })
+    end,
+  }
+  trigger.action.outTextForCoalition = function(coa, text, duration)
+    table.insert(self.messages, { coalition = coa, text = text })
+  end
+end
+
+function TestVeafCsarAddCsarReplacement:tearDown()
+  csar = self._csar
+  veaf.resolveCsarSurvivorPoint = self._resolve
+  trigger.action.outTextForCoalition = self._outText
+end
+
+--- Pretend the resolver returns `point` unchanged, or nil for "lost".
+function TestVeafCsarAddCsarReplacement:_resolveTo(result)
+  veaf.resolveCsarSurvivorPoint = function(intended)
+    self.intended = intended
+    if result == "same" then
+      return intended
+    end
+    return result
+  end
+end
+
+function TestVeafCsarAddCsarReplacement:test_the_resolver_is_asked_about_where_the_pilot_would_really_land()
+  -- Not the position handed in: the survivor ends up +50/+50 from it, and that is the spot whose surface
+  -- matters. Asking about the aircraft's position instead would clear an ejection whose survivor lands
+  -- in the water fifty metres away.
+  self:_resolveTo("same")
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 100, y = 10, z = 200 }, "F-16C")
+  luaunit.assertEquals(self.intended.x, 100 + veaf.CSAR_SPAWN_OFFSET_METRES)
+  luaunit.assertEquals(self.intended.z, 200 + veaf.CSAR_SPAWN_OFFSET_METRES)
+end
+
+function TestVeafCsarAddCsarReplacement:test_the_survivor_lands_where_the_resolver_chose()
+  -- The round trip: whatever we pass, `spawnGroup` will add the offset back, so point + offset must
+  -- equal the resolved point exactly.
+  self:_resolveTo({ x = 4000, y = 12, z = 8000 })
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C")
+  luaunit.assertEquals(#self.calls, 1)
+  local handed = self.calls[1].point
+  luaunit.assertEquals(handed.x + veaf.CSAR_SPAWN_OFFSET_METRES, 4000)
+  luaunit.assertEquals(handed.z + veaf.CSAR_SPAWN_OFFSET_METRES, 8000)
+end
+
+function TestVeafCsarAddCsarReplacement:test_a_lost_pilot_creates_no_csar_at_all()
+  -- The arbitration's second half. Not "a CSAR far away" — nothing: no group, no MAYDAY, no ADF beacon.
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C")
+  luaunit.assertEquals(#self.calls, 0, "the original must not be called for a lost pilot")
+end
+
+function TestVeafCsarAddCsarReplacement:test_a_lost_pilot_is_announced_to_his_coalition()
+  -- A silent loss would leave a flight waiting for a rescue mission that does not exist.
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C")
+  luaunit.assertEquals(#self.messages, 1)
+  luaunit.assertEquals(self.messages[1].coalition, 2)
+  luaunit.assertStrContains(self.messages[1].text, "F-16C")
+end
+
+function TestVeafCsarAddCsarReplacement:test_a_silent_csar_stays_silent_even_when_lost()
+  -- `noMessage` is how a mission spawns a CSAR without announcing it; losing the pilot must not become
+  -- the one case that talks.
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", nil, nil, nil, true)
+  luaunit.assertEquals(#self.messages, 0)
+end
+
+function TestVeafCsarAddCsarReplacement:test_every_argument_is_passed_through_untouched()
+  self:_resolveTo("same")
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(1, "RUS", { x = 0, y = 0, z = 0 }, "Su-25", "unit-1", "Zip", 123.45, false, "desc")
+  luaunit.assertEquals(self.calls[1].coalition, 1)
+  luaunit.assertEquals(self.calls[1].typeName, "Su-25")
+  luaunit.assertEquals(self.calls[1].noMessage, false)
+end
+
+-- A caller handing something that is not a position must not be second-guessed: pass it on and let the
+-- original deal with it, exactly as before.
+function TestVeafCsarAddCsarReplacement:test_a_positionless_call_is_forwarded_unchanged()
+  local asked = false
+  veaf.resolveCsarSurvivorPoint = function()
+    asked = true
+    return nil
+  end
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", nil, "F-16C")
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertFalse(asked)
+end
+
+-- Replacing twice must not stack wrappers: `csar_initialize_replacement` sets `veaf.csar_initialized`
+-- but nothing reads it, so a mission calling it twice is possible — and a doubled wrapper would
+-- compensate the offset twice, putting the survivor 50 m the wrong way.
+--
+-- The first version of this test passed on a **non**-idempotent wrapper: its stub resolver returned a
+-- fixed point regardless of input, so the double compensation cancelled itself out. The stub here moves
+-- the point it is given, which is what makes the assertion mean anything.
+function TestVeafCsarAddCsarReplacement:test_replacing_twice_does_not_double_the_compensation()
+  local resolveCalls = 0
+  veaf.resolveCsarSurvivorPoint = function(intended)
+    resolveCalls = resolveCalls + 1
+    return { x = intended.x + 1000, y = intended.y, z = intended.z }
+  end
+  veaf.replaceCsarAddCsar()
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C")
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(resolveCalls, 1, "resolved twice means the wrapper was stacked")
+  -- one offset added by the (mocked) original, one resolution of +1000
+  luaunit.assertEquals(self.calls[1].point.x + veaf.CSAR_SPAWN_OFFSET_METRES, 1000 + veaf.CSAR_SPAWN_OFFSET_METRES)
+end
+
+function TestVeafCsarAddCsarReplacement:test_no_csar_module_is_not_a_crash()
+  csar = nil
+  local ok = pcall(veaf.replaceCsarAddCsar)
+  luaunit.assertTrue(ok)
+end
+
 os.exit(luaunit.LuaUnit.run())

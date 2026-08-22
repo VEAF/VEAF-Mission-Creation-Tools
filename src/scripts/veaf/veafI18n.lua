@@ -629,6 +629,13 @@ veaf.i18nCatalog = {
   -- FEAT-CONVOY-WAYPOINTS. The wording carries the distinction the feature is about: "hold" says
   -- *where* the convoy will park and that it is still rolling, "stop" says it has halted on the spot.
   -- Two entries that read alike would make the useful one unusable, which is the whole point.
+  -- FIX-CSAR-SPAWNS-ON-WATER (#245). David's arbitration: beyond 500 m from dry ground the pilot counts
+  -- as dead, so no CSAR is created at all. Saying so matters — a MAYDAY that never arrives would leave a
+  -- flight waiting for a rescue mission that does not exist.
+  ["csar.pilot_lost_at_sea"] = {
+    fr = "Un %s est tombé en mer, trop loin de toute côte : le pilote est perdu.",
+    en = "A %s went down at sea, too far from any shore: the pilot is lost.",
+  },
   ["spawn.convoy_advancing_to"] = {
     fr = "%s repart vers %s",
     en = "%s is setting off for %s",

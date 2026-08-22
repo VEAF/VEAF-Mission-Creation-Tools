@@ -47,15 +47,35 @@ Three lines in `findClosestSkynetElementInList`: a site whose group can no longe
 when a point defence looks for something to protect. So a Tor does not spend a mission guarding a
 decapitated S-300 while a live site next door goes undefended.
 
-## The regression this could have been, and the measurement that ruled it out
+## Early-warning radars are exempt, and that is the interesting part
 
-`veaf.isGroupCombatEffective`'s default rule declares a **SAM site with no tracking radar left** finished.
-An early-warning radar never has one — so if an EWR carried `SAM SR`, this change would have stopped
-**every EWR from ever being defended**, quietly, in every mission with an IADS.
+The first version judged every candidate, EWRs included, resting on a measurement: no EWR in the
+generated database carries `SAM SR`, `SAM TR` or `SAM LL` (1L13, 55G6, FPS-117 and its domed variant,
+FuMG-401, FuSe-65), so the predicate never read one as a finished SAM site.
 
-Measured against the generated database rather than assumed: **no EWR carries `SAM SR`, `SAM TR` or
-`SAM LL`** (1L13, 55G6, FPS-117 and its domed variant, FuMG-401, FuSe-65). The predicate therefore does
-not read one as a SAM site and never declares it finished.
+That measurement is true and was the wrong thing to lean on. **An EWR is defended because it *sees*, not
+because it shoots** — asking "can this still fight" about a radar is a category error, and the code's own
+comment has always said EWRs are always defencible. Two consequences followed from judging them anyway:
+
+- a **mixed group** — a mission maker putting a 55G6 and a launcher in one group — carries `SAM LL` with
+  no tracking radar, so it would have lost its defence **silently**, today, with no datamine update
+  needed;
+- the behaviour depended on no EWR type ever gaining a SAM attribute upstream, which is not a property
+  anyone here controls.
+
+So the predicate is applied to SAM sites only. Caught in review (Sourcery, PR #788), filed under
+"nitpick" and worth more than that.
+
+**The first version of the tests got it wrong the same way**: all six used `type = "ewr"`, so they
+exercised precisely what must *not* be filtered, and would have passed on a rule scoped either way. Now
+two of them pin the exemption, and removing it fails them.
+
+## The measurement is still worth keeping
+
+The same sweep confirmed the rule bites where it should: of the 52 units carrying any SAM attribute, 27
+have `SAM TR` — the tracking radars and the self-contained vehicles (Tor, Pantsir, Tunguska, Gepard) — and
+**11 launchers have none**, depending on a separate radar (`Hawk ln`, `Kub 2P25 ln`, `5p73 s-125 ln`, …).
+A Hawk site that loses its `Hawk tr` keeps launchers and a search radar, and is correctly finished.
 
 The same sweep confirmed the rule bites where it should: of the 52 units carrying any SAM attribute, 27
 have `SAM TR` — the tracking radars and the self-contained vehicles (Tor, Pantsir, Tunguska, Gepard) — and
@@ -66,5 +86,6 @@ A Hawk site that loses its `Hawk tr` keeps launchers and a search radar, and is 
 
 - [x] The `completionCheck` question put to David, and his answer recorded here — **refused**: everything
       must be destroyed
-- [x] Skynet skips ineffective sites when choosing what to defend, with tests — six, including a distant
-      live site beating a close dead one, and that the point defence itself is never judged
+- [x] Skynet skips ineffective **SAM sites** when choosing what to defend, with tests — seven, including a
+      distant live site beating a close dead one, that an EWR is defended even when judged ineffective,
+      and that the point defence itself is never judged

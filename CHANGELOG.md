@@ -21,10 +21,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   zone announce itself complete with intact launchers still standing, and **David refused it** — a zone
   completes only when everything is destroyed.
 
-  The regression this could have been was ruled out by measurement rather than reasoning. The predicate's
-  default rule declares a SAM site with no tracking radar finished, and an early-warning radar never has
-  one — so an EWR carrying `SAM SR` would have stopped **every EWR from ever being defended**, quietly.
-  No EWR in the generated database carries `SAM SR`, `SAM TR` or `SAM LL`, so none is read as a SAM site.
+  **Early-warning radars are exempt**, and not out of caution: an EWR is defended because it *sees*, not
+  because it shoots, so asking whether one can still fight is a category error. Judging them would also
+  have let a **mixed group** — a 55G6 and a launcher together — lose its defence silently, since such a
+  group carries `SAM LL` with no tracking radar.
 
 ---
 

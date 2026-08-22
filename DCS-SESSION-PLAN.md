@@ -53,56 +53,47 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 | — · un marqueur simple renvoyait une erreur | ✅ **corrigé**, PR #789 — onze jours de régression, sans lien avec la session |
 | 2a · `#command` retardé meurt avec sa zone | ✅ |
 | 2b · menu porte-avions côté rouge | ✅ |
-| 2c · le SA-6 | 🔎 locke, lève, se rétracte, 5 fois, sans tirer — **mon hypothèse DCS est morte**, voir ci-dessous |
+| 2c · le SA-6 | 🔎 locke, lève, se rétracte, 5 fois, sans tirer — **cause trouvée dans Skynet**, voir ci-dessous |
+| 0bis · SA-6 complet, carte nue, sans script | ✅ **il a tiré** → il n'y a jamais eu de bug SAM dans DCS |
 | 2d · alarme par nature | ✅ pour ce qui était testable : le convoi roule. Les chars n'ont **qu'un waypoint** dans la mission C, donc aucune route — leur immobilité est la donnée, pas un défaut |
 
-### 2c — pourquoi ton observation tue l'hypothèse DCS
+### 2c — la cause, trouvée dans le code de Skynet
 
-J'avais annoncé qu'un SA-6 muet serait « la vraie forme du bug DCS ». C'est faux, et c'est ton
-observation qui le montre : un site qui **acquiert, oriente ses lanceurs et lève ses missiles** n'est pas
-un site que DCS empêche de fonctionner. C'est un site qu'on **éteint** entre l'acquisition et le tir.
-Cinq cycles propres, c'est une boucle de contrôle, pas un engagement cassé.
+Ton test l'a tranché : un **SA-6 complet dans un seul groupe**, sur carte nue, sans aucun script, **tire**.
+Donc il n'y a jamais eu de bug SAM dans DCS — ni sur les autonomes (tes SA-15), ni sur les sites
+multi-unités. L'avertissement que ce document portait depuis deux jours était faux, il est retiré.
 
-Et cette boucle, c'est Skynet : `goLive()` / `goDark()` sont appelés depuis `setActAsEW`,
-`resetAutonomousState`, `goAutonomous`, et depuis la **défense HARM** — qui fait plonger un site sur une
-*probabilité* par type (30 à 90 % dans la base). Donc c'est très probablement chez nous.
+Et ça déplace le problème chez nous. `SkynetIADS.evaluateContacts` tourne toutes les **5 secondes** et, à
+chaque passage :
 
-Le test qui tranche, et il coûte 5 minutes : un **SA-6 complet** sur carte nue, sans aucun script, alarme
-rouge, ROE ouvrir le feu — exactement la forme de ton test des SA-15.
+1. remet `targetsInRange = false` sur chaque site, **inconditionnellement** ;
+2. ne collecte, parmi les sites sous couverture radar, que ceux qui sont **inactifs** ;
+3. n'appelle `informOfContact` que sur ceux-là — et c'est le **seul** endroit du fichier qui remet
+   `targetsInRange` à `true` ;
+4. éteint en fin de cycle tout site dont `targetsInRange` est resté `false`.
 
-- **Il tire** → Skynet éteint le site en pleine action. À nous, et la défense HARM est le premier suspect.
-- **Même cycle** → c'est DCS après tout, et propre aux sites dont le radar de tir est un véhicule séparé.
-  Ce qui expliquerait aussi le rapport de Tripack sur les SAM muets en zone.
+Donc un site qui vient de s'allumer est actif, donc exclu de la collecte, donc jamais informé, donc
+éteint au cycle suivant. Allumé, éteint, allumé, éteint. Un site qui détecte sa cible **tout seul** ne
+s'en sort pas non plus : ses contacts sont versés dans l'IADS mais on ne l'en informe jamais.
 
-Note pour 2c lui-même : les checks 6 et 7 ne lisent **pas** un tir, ils lisent les compteurs affichés à
-l'écran (`group added`, `delayedActivate`, `RED IADS REACTIVATED`). C'est ça leur verdict. Le tir était
-mon ajout, et il a fait dériver la lecture.
+**Ce que tu peux vérifier en dix secondes, et qui confirme ou tue l'analyse :** chronomètre l'intervalle
+entre deux bascules. L'explication prédit **~5 secondes**, quoi que fasse ton avion.
 
+- ~5 s → c'est ça, et le reste est du travail de code.
+- irrégulier, ou lié à la distance → c'est autre chose et mon analyse est fausse. Dis-le-moi.
 
-### 1b — pourquoi ça a échoué, et ce n'est pas mesurable autrement
+Réserve que je préfère énoncer : un défaut aussi central dans un script mûr et très utilisé est
+suspect — ça voudrait dire que tous les SAM Skynet cyclent toutes les 5 s chez tout le monde. Mais tu as
+vu les lanceurs se rétracter physiquement, donc l'effet est réel, et ce chemin de code n'a pas d'autre
+sortie.
 
-Deux causes, toutes deux lisibles dans le code, et la seconde aurait survécu à un correctif de la
-première :
+Skynet est vendu **compilé** depuis le fork Regroupement-Patrouille : pas question de patcher le fichier
+en place, il serait écrasé au prochain build. La route sera une remontée amont ou un remplacement de
+méthode au chargement, comme on fait pour CSAR.
 
-1. **Un FARP n'est pas un objet statique.** `isSpotOccupied` sonde `world.searchObjects` sur `UNIT` et
-   `STATIC` seulement. Le dépôt lui-même montre ce qu'est un FARP : une **airbase**
-   (`Airbase.Category.HELIPAD`, cf. `veafAirbases.lua:191`), et le log DCS le confirme —
-   `NO ATC COMM HELIPAD + StaticFarpAlpha-1`. La sonde ne pouvait pas voir le seul objet qui compte.
-2. **`searchObjects` compare des positions, pas des emprises.** La tolérance est de **12 m** et un FARP
-   fait plusieurs dizaines de mètres : une escorte posée sur son **bord** — le cas exact de #232 — laisse
-   le centre du FARP largement hors de la sphère.
-
-Les tests unitaires simulaient `isSpotOccupied`, donc ils prouvaient que la recherche de cap réagit à un
-emplacement occupé, sans que rien ne prouve qu'un vrai FARP en soit un. Un test juste sur une prémisse
-fausse.
-
-### 1c — le sous-menu à un seul élément
-
-Ta remarque est fondée, et la convention est **gratuite** : `veafCarrierOperations` met plusieurs
-commandes `USAGE_ForGroup` dans un même sous-menu, et `convoy_cleanup` s'ajoute directement à la racine
-juste à côté. Rien ne l'impose. À noter : le motif **préexiste** au lot convoi — `convoy_mark`, plus
-ancien, fait déjà pareil — donc les six commandes du menu sont à aplatir ensemble. Je le fais après tes
-vérifications, pour ne pas te changer le terrain en cours de route.
+**Et ça rouvre le rapport de Tripack** sur les SAM muets en zone de combat en 6.15.2, qu'on avait classé
+« DCS est cassé pour tout le monde ». C'est un candidat sérieux : même symptôme, même mécanisme, et il
+précède tous nos changements d'état d'alarme.
 
 ---
 

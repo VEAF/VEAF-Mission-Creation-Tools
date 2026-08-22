@@ -1,61 +1,106 @@
-# FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING — a SAM site locks, raises, then stands down without firing
+# FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING — a SAM site is switched off every other cycle
 
-Status: ⬜ ready — needs one 5-minute control test before any code is written
+Status: ⬜ ready — cause traced in the code, one timing observation left to confirm it
 
-Observed in game on 2026-08-22, in `verify-mission-c`, on the SA-6 (`Kub 2P25 ln` × 4 +
-`Kub 1S91 str` × 2):
+Observed in game on 2026-08-22 in `verify-mission-c`, on the SA-6 (`Kub 1S91 str` × 1 +
+`Kub 2P25 ln` × 2):
 
 > *"je me fais locker mais les lanceurs alternent entre une phase active (ils lèvent leurs missiles et
 > tournent vers moi) et passive (ils se remettent en mode route, les missiles à plat droit devant) sans
 > tirer (5 fois de suite)"*
 
-## Why this is almost certainly ours, not the DCS bug
+## It is not DCS, and that was established rather than assumed
 
-The session had been chasing a DCS-side theory: ground SAMs not engaging in 2.9.28. Three SA-15 on a
-bare map with no scripts locked and fired, which narrowed it to "maybe multi-unit sites are affected".
-This observation **rules that reading out**, and it is worth stating plainly because it was the working
-hypothesis an hour earlier:
+The session spent two days on a DCS-side theory: ground SAMs not engaging in 2.9.28. Two control tests
+on a bare map with **no scripts at all** closed it:
 
-A site that acquires, slews its launchers and elevates its missiles is not a site DCS is preventing from
-working. It is a site that is being **switched off** between acquisition and launch. Five clean cycles is
-a control loop, not a broken engagement.
-
-Skynet drives exactly that loop. `SkynetIADSAbstractRadarElement:goLive()` / `goDark()`
-(`skynet-iads-compiled.lua:2794` / `:2820`) are called from `setActAsEW`, `resetAutonomousState`,
-`goAutonomous`, `goDarkIfOutOfAmmo`, and from the HARM defence — which stands a site down on a
-*probability* per type (`harm_detection_chance`, 30–90 across the database). Any of those firing
-mid-engagement produces what was seen.
-
-`veafSkynet.deactivateNetwork` also calls `goDark`/`goAutonomous`, but only on an explicit network
-deactivation, so it is not the loop.
-
-## The control test, before touching anything
-
-A **complete SA-6** on a bare map, no scripts at all, alarm red, ROE fire-at-will — the same shape as
-the SA-15 test that cleared DCS's name. Five minutes.
-
-| Result | Meaning |
+| Control | Result |
 |---|---|
-| **It fires** | Skynet is standing the site down mid-engagement. Ours to fix, and the HARM defence is the first suspect |
-| **Same cycle** | DCS after all, and specific to sites whose tracking radar is a separate vehicle — which would also explain Tripack's report of silent zone SAMs |
+| Three SA-15 (Tor 9A331), alarm red, ROE fire-at-will | locked and **fired** |
+| A complete SA-6 — 2 × `1S91 str` + 4 × `2P25 ln` **in one group** — alarm red, ROE fire-at-will | **fired** |
 
-Do not skip this. The session already lost a check to a criterion written from an untested assumption
-about DCS behaviour, and this PRD is one assumption away from the same mistake.
+The SA-6 is the multi-unit family, the one whose launchers depend on a separate tracking radar. It
+engages normally without scripts. So a site that stands down mid-engagement *with* Skynet running is
+being switched off by Skynet.
 
-## If it is Skynet
+(The SA-6 control test failed on its first attempt — locked, launchers inert — because its six vehicles
+were in six one-unit groups. In DCS a SAM site **is** a group: the group's controller hands a target
+from the radar to a launcher. That failure mode is indistinguishable from "DCS is broken" unless you
+look at the group structure, and it is worth asking Sharko how his three SAMs were placed.)
 
-Order of suspicion, cheapest first:
+## The cause, traced in `skynet-iads-compiled.lua`
 
-- **HARM defence.** It is probabilistic and per-type, so it produces intermittent stand-downs that look
-  exactly like this. Check whether it triggers with no anti-radiation weapon anywhere in the mission
-- **Engagement-zone hysteresis** — a target near the boundary makes the site cycle live/dark. Would show
-  as cycles correlated with range rather than with time
-- **Autonomous state churn** — losing and regaining the link to the command centre or EWR calls
-  `resetAutonomousState`, which goes dark unconditionally
+`SkynetIADS.evaluateContacts` runs on a timer and, per cycle:
+
+1. `samSite:targetCycleUpdateStart()` sets `self.targetsInRange = false` — **unconditionally**, every
+   cycle (`:3755`)
+2. for each EW radar with contacts, the sites under its coverage are collected — but **only those that
+   are not already active**:
+   ```lua
+   if samSiteUnterCoverage:isActive() == false then
+     samSitesToTrigger[samSiteUnterCoverage:getDCSName()] = samSiteUnterCoverage
+   end
+   ```
+   (`:1616`)
+3. only those collected sites get `informOfContact`, and that is the **only** place in the whole file
+   that sets `targetsInRange = true` (`:3779` — verified, one occurrence)
+4. `samSite:targetCycleUpdateEnd()` calls `goDark()` when `targetsInRange == false`, the site is not
+   acting as EW, is not autonomous, and its autonomous behaviour is `AUTONOMOUS_STATE_DCS_AI` — which
+   is the **default** for a SAM site (`:3759`, default at `:2285`)
+
+Put together, for a site under EW coverage:
+
+| Cycle | State at start | Informed? | `targetsInRange` | End of cycle |
+|---|---|---|---|---|
+| N | inactive | yes — it is inactive | true | stays live |
+| N+1 | **active** | **no — filtered out at `:1616`** | false | **goes dark** |
+| N+2 | inactive | yes | true | goes live |
+
+A site alternates live/dark on every evaluation, and it never keeps its radar long enough to complete a
+launch. Note step 2's own consequence: a site that detects its target *by itself* has its contacts
+merged into the IADS (`:1590`) but is **never** told about them, so self-detection cannot keep it alive.
+
+## The observation that confirms or kills this
+
+`contactUpdateInterval = 5` seconds (`:1303`), and `evaluateContacts` is scheduled at that interval
+(`:1825`). So this explanation predicts the state changes are **~5 seconds apart**, regardless of what
+the aircraft does.
+
+- **~5 s between each raise and each retraction** → confirmed, and the reasoning above is the whole story
+- **irregular, or correlated with range or aspect** → something else drives it, most likely engagement
+  range hysteresis, and this analysis is wrong
+
+That is a stopwatch, not a debug session, so it comes before any code.
+
+## Reservation, stated rather than buried
+
+A defect this central in a mature, widely used script is suspicious: it would mean every Skynet SAM
+cycles every 5 seconds for everyone. Two things could soften it in practice — `goDark()` does not always
+kill a radar that is actively tracking (our own code notes this), and `getUsableSAMSites` may not return
+every site. But the launchers were seen physically retracting, so the effect is real here, and the code
+path above has no other exit.
+
+## Route, once confirmed
+
+Skynet is `vendoring: compiled` from the Regroupement-Patrouille fork (`vendored.yaml`), so the file is
+**not** ours to patch in place — a rebuild would erase it. Options, in order of preference:
+
+1. **Upstream to the RP fork**, since that is where we take it from and this is a plain defect, not a
+   VEAF policy
+2. **Replace the two methods** from `veafSkynet` after load, the way `veaf.csar_initialize_replacement`
+   handles CSAR — cheap, survives a recompile, and keeps VEAF missions working meanwhile
+3. `setUpdateInterval` to something long enough that a launch completes between cycles — a mitigation,
+   not a fix, and it degrades the IADS everywhere else
+
+## What this also reopens
+
+**Tripack's** report of silent SAMs inside combat zones on 6.15.2 was filed under "DCS is broken for
+everyone". It never was, and this is a candidate explanation for it: same symptom, same mechanism, and it
+predates every alarm-state change we have made since.
 
 ## Definition of done
 
-- [ ] The control test run and its result recorded here
-- [ ] If ours: the stand-down reason identified from Skynet's own state, not guessed
-- [ ] A SAM site that has acquired a target is not switched off before it can launch
-- [ ] Recorded whether this is what Tripack saw (silent zone SAMs on 6.15.2), which is still unexplained
+- [ ] The 5-second prediction checked in game, result recorded here
+- [ ] If confirmed: fixed by route 1 or 2, never by editing the compiled file in place
+- [ ] A SAM site that has acquired a target keeps its radar long enough to launch
+- [ ] Checked against Tripack's case, and his report closed or kept open on evidence

@@ -13,43 +13,44 @@ come first.
 
 ---
 
-## ⚠️ READ FIRST — the SAM problem is narrower than it looked (updated 2026-08-22)
+## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)
 
-**A self-contained SAM does fire.** David put three **SA-15 (Tor 9A331)** on a bare map with no scripts
-at all, in red, alarm red, ROE fire-at-will: they locked and shot. Measured on build **2.9.28.26385** —
-*the same build* on which Sharko reproduced silent SAMs. Nothing was patched in between.
+**Ground SAMs fire in 2.9.28.26385.** Measured twice on a bare map with no scripts whatsoever:
 
-So the earlier reading — "ground SAMs do not engage at all in the current DCS build" — is **wrong as
-stated**. What is established is narrower:
-
-| Established | Still open |
+| Control test | Result |
 |---|---|
-| A SAM carrying its own tracking radar engages (Tor tested) | A **multi-unit site**, where launchers depend on a separate tracking radar, is untested |
+| Three **SA-15 (Tor 9A331)**, red, alarm red, ROE fire-at-will | locked and fired |
+| A complete **SA-6** — 2 × `Kub 1S91 str` + 4 × `Kub 2P25 ln` **in one group** — alarm red, ROE fire-at-will | **fired** |
 
-That distinction matters because Sharko reported *"3 sams sur une carte"* without saying which types, and
-the two families behave differently: a `Kub 2P25 ln` cannot engage without its `Kub 1S91 str`, whereas a
-Tor needs nothing. A test that used incomplete sites, or launchers alone, would look exactly like a
-DCS-wide failure.
+So the theory this page carried for two days — *"ground SAMs do not engage at all in the current DCS
+build"* — was wrong, and the second test is what closes it: the SA-6 is the multi-unit family, the one
+whose launchers depend on a separate tracking radar, and it engages normally.
 
-**What this means for the items below:**
+### What the first attempt at that test taught, which is the transferable part
 
-| Item | Where it stands |
-|---|---|
-| **11** — Skynet checks 6 and 7 | **Do them.** `verify-mission-c` runs a complete SA-6 — 4 `Kub 2P25 ln` + 2 `Kub 1S91 str` — so it exercises the untested family. Read it twice: if the site is silent while a Tor shoots, that is the real shape of the DCS problem, not a Skynet defect |
-| **16** — the combat zone alarm state | **Do the battery half too.** Note which SAM type the zone uses before concluding |
+The SA-6 control test **failed on its first run**: locked, launchers inert. The mission had the six
+vehicles in **six separate groups**, one unit each. In DCS a SAM site *is* a group — the group's
+controller is what hands a target from the radar to a launcher. Four launchers alone have no radar and
+never fire; a lone `1S91` has its own radar and locks perfectly with nothing to command. That is
+precisely what was seen, and it is indistinguishable from "DCS is broken" unless you look at the group
+structure.
 
-Tripack's report of silent SAMs inside combat zones is no longer explained away as "DCS is broken for
-everyone". If it turns out multi-unit sites are the affected family, his discriminator deserves a second
-look — and so does whatever the zone spawns.
+Which raises a question worth putting to Sharko rather than assuming: his report was *"j'ai reproduit le
+bug sans script aucun, juste 3 sams sur une carte"*, with no mention of how they were placed. If they
+were dropped as individual units — the natural thing to do when throwing a quick test together — his
+mission had no SAM sites in it at all. **Unverified**, and his to answer.
 
-Do not read a silent SAM as a regression of ours without first checking whether the site has a living
-tracking radar. `veaf.isGroupCombatEffective` (6.15.29) answers exactly that question.
+### What this moves onto us
 
-**Before trusting either item again:** put three SAMs on an empty map with no scripts and fly at them.
-If they fire, DCS is fixed and the items are measurable. If they do not, nothing on this page about SAMs
-means anything.
+The cycling seen inside `verify-mission-c` — the SA-6 locks, slews, elevates, then returns to travel
+state, five times, without firing — is therefore **ours**. A site that behaves correctly with no scripts
+and stands down mid-engagement with Skynet running is being switched off by Skynet. See
+[`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md).
 
----
+It also reopens **Tripack's** report of silent zone SAMs on 6.15.2, which had been filed under "DCS is
+broken for everyone". It never was.
+
+Items **11** and **16** are fully measurable, with no double reading and no caveat.
 
 ## A mission is ready for items 0 and 0b
 

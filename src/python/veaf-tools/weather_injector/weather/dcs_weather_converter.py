@@ -122,6 +122,45 @@ class DCSWeatherConverter:
             raise
 
 
+def fetch_metar_string(airport_icao: str) -> str:
+    """Fetch the raw METAR text for *airport_icao*, for showing to a pilot.
+
+    Args:
+        airport_icao: Airport ICAO code.
+
+    Returns:
+        The METAR as the station published it, or ``""`` when it cannot be had — avwx missing, the
+        service down, an unknown station.
+
+    Separate from :func:`_fetch_live_metar`, which returns *parsed values* for building the DCS weather
+    table and has no use for the original text. This returns the text and nothing else, because
+    ``${METAR}`` in a briefing wants what a pilot would read, not a reconstruction of it.
+
+    **Called only when the briefing actually asks for it** (FEAT-BRIEFING-METAR). A build that never
+    mentions ``${METAR}`` makes no extra network call, which is why this is a second function rather than
+    an extra field threaded through the weather conversion.
+
+    Returns an empty string rather than raising, for the reason ``_fetch_live_metar`` is broad: a build
+    must not die because a weather service is down. The caller warns that the token was left as written.
+    """
+    if not airport_icao or not AVWX_AVAILABLE:
+        if not AVWX_AVAILABLE:
+            logger.warning(t("weather.converter.avwx_unavailable"))
+        return ""
+    try:
+        metar = Metar(airport_icao)
+        # `.update()` is what fetches, and it reports a failure by returning False rather than raising —
+        # the VMR-006 trap that made a missing fetch look like a successful one.
+        if not metar.update():  # type: ignore[attr-defined]
+            logger.warning(t("weather.converter.metar_fetch_empty", icao=airport_icao))
+            return ""
+        raw = getattr(metar, "raw", "") or ""
+        return str(raw)
+    except Exception as e:  # noqa: BLE001 - a weather outage must not fail a build
+        logger.warning(t("weather.converter.metar_text_failed", icao=airport_icao, error=f"{type(e).__name__}: {e}"))
+        return ""
+
+
 def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
     """
     Fetch live METAR data from avwx-engine by airport ICAO code.

@@ -543,8 +543,43 @@ versions:
 | `name` | string | Yes | Variant name. Inside `mission build`, the output is `missions/<BaseName>_<name>.miz` (e.g. `dawn` → `My-Mission_dawn.miz`); the bare `<name>.miz` form only exists with standalone `inject-weather` |
 | `time` | string | No | Time expression — see below |
 | `date` | string | No | Date expression — see below |
-| `metar` | string | No | Full METAR string — parsed for weather data |
-| `weather` | object | No | Manual weather override (used when no `metar`) |
+| `metar` | string | No | Full METAR string — parsed for the weather data, and showable in the briefing through [`${METAR}`](#briefing-variables) |
+| `airport_icao` | string | No | ICAO code whose live weather is fetched (used without `metar`) |
+| `weather` | object | No | Manual weather override (used without `metar` or `airport_icao`) |
+
+### Showing the weather in the briefing: `${METAR}` {#briefing-variables}
+
+Write `${METAR}` in the mission briefing (in the DCS editor: Situation, or one of the per-coalition
+tasks) and the build replaces it with **this variant's** weather. Seven weather variants therefore give
+seven different briefings, with nothing retyped.
+
+```
+Situation: reconnaissance flight over the north of the theatre.
+
+Weather at departure: ${METAR}
+```
+
+This was the point of [#40](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/40): a mission is
+rebuilt from its sources on every build, so anything typed into the briefing by hand is overwritten next
+time. Substituting during the build is what fixes that.
+
+What `${METAR}` resolves to, per variant:
+
+| The variant declares | `${METAR}` shows |
+|---|---|
+| `metar: "..."` | the string exactly as you wrote it |
+| `airport_icao: LFRS` | the live METAR fetched for that station |
+| only `weather:` | **nothing** — there is no METAR to show, so the text `${METAR}` stays as written and a warning says so in the log |
+
+!!! note "An unknown `${...}` is never blanked"
+    `${METRA}` stays written as `${METRA}` in the briefing. Deliberately: a briefing is read by players,
+    and a hole where the text should be reads as the build having eaten your prose, while a visibly
+    misspelt name tells you what to fix.
+
+!!! tip "No network call if you do not use it"
+    The ICAO METAR fetch only happens when the briefing actually contains `${METAR}`.
+
+---
 
 ### Time expressions
 

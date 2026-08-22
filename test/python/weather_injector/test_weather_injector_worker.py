@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import unittest.mock
 from datetime import date as dt_date
 from datetime import timedelta
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Any
 
 import typer
 import yaml
+from mission_tools.miz_tools import DcsMission
 from weather_injector.models import MissionConfig, Position, VersionConfig
 from weather_injector.weather_injector_worker import WeatherInjectorWorker
 
@@ -710,3 +712,110 @@ class TestMissionBaseNameOutput(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# FEAT-BRIEFING-METAR (#40) — ${METAR} per build variant
+#
+# The lot's second "check this first": a mission built in seven weather variants needs seven different
+# METARs, so the substitution runs inside the per-variant build rather than once around it. These tests
+# are on `_substitute_briefing_variables` directly, because driving `_create_mission_version` needs a
+# real .miz.
+# ---------------------------------------------------------------------------
+
+
+def _mission_with_briefing(text: str) -> DcsMission:
+    """A mission whose situation briefing is *text*, held inline."""
+    return DcsMission(file_path=Path("unused.miz"), mission_content={"descriptionText": text})
+
+
+class TestBriefingMetarPerVariant(unittest.TestCase):
+    def test_the_variant_metar_is_what_lands_in_the_briefing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("Weather: ${METAR}")
+            worker._substitute_briefing_variables(VersionConfig(name="day", metar="LFRS 121030Z 22015KT"))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(worker.mission_data.mission_content["descriptionText"], "Weather: LFRS 121030Z 22015KT")
+
+    def test_two_variants_of_one_mission_get_their_own_metar(self) -> None:
+        # The DoD asks for exactly this. Each variant starts from a fresh read of the base mission in the
+        # real flow, so the briefing is re-substituted per variant rather than accumulated.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            results = []
+            for version in (
+                VersionConfig(name="day", metar="LFRS 121030Z 22015KT"),
+                VersionConfig(name="night", metar="LFRS 122130Z 00000KT"),
+            ):
+                worker.mission_data = _mission_with_briefing("METAR: ${METAR}")
+                worker._substitute_briefing_variables(version)
+                assert worker.mission_data.mission_content is not None
+                results.append(worker.mission_data.mission_content["descriptionText"])
+            self.assertEqual(results, ["METAR: LFRS 121030Z 22015KT", "METAR: LFRS 122130Z 00000KT"])
+
+    def test_a_variant_without_a_metar_leaves_the_token_written(self) -> None:
+        # A variant built from individual weather parameters has no METAR string to show. Leaving the
+        # token beats blanking it: the briefing is player-facing text, and a hole reads as the build
+        # having eaten the prose.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("Weather: ${METAR}")
+            worker._substitute_briefing_variables(VersionConfig(name="params", weather={"temperature": 20}))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(worker.mission_data.mission_content["descriptionText"], "Weather: ${METAR}")
+
+    def test_an_icao_variant_fetches_the_metar_text(self) -> None:
+        called: list[str] = []
+
+        def _fake_fetch(icao: str) -> str:
+            called.append(icao)
+            return "LFRS 121030Z 22015KT CAVOK"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("${METAR}")
+            with unittest.mock.patch(
+                "weather_injector.weather_injector_worker.fetch_metar_string", side_effect=_fake_fetch
+            ):
+                worker._substitute_briefing_variables(VersionConfig(name="live", airport_icao="LFRS"))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(worker.mission_data.mission_content["descriptionText"], "LFRS 121030Z 22015KT CAVOK")
+            self.assertEqual(called, ["LFRS"])
+
+    def test_no_network_call_when_the_briefing_never_asks(self) -> None:
+        # The reason the fetch is a separate function: a build that does not mention ${METAR} must not
+        # pay for a weather request.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("Take off at dawn.")
+            with unittest.mock.patch("weather_injector.weather_injector_worker.fetch_metar_string") as fetch:
+                worker._substitute_briefing_variables(VersionConfig(name="live", airport_icao="LFRS"))
+            fetch.assert_not_called()
+
+    def test_a_failed_fetch_leaves_the_token_rather_than_inserting_nothing(self) -> None:
+        # A weather outage must not silently blank a briefing line.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("Weather: ${METAR}")
+            with unittest.mock.patch("weather_injector.weather_injector_worker.fetch_metar_string", return_value=""):
+                worker._substitute_briefing_variables(VersionConfig(name="live", airport_icao="LFRS"))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(worker.mission_data.mission_content["descriptionText"], "Weather: ${METAR}")
+
+    def test_a_written_metar_wins_over_an_icao_without_fetching(self) -> None:
+        # Same precedence the weather conversion already uses: metar > airport_icao.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("${METAR}")
+            with unittest.mock.patch("weather_injector.weather_injector_worker.fetch_metar_string") as fetch:
+                worker._substitute_briefing_variables(VersionConfig(name="both", metar="WRITTEN", airport_icao="LFRS"))
+            fetch.assert_not_called()
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(worker.mission_data.mission_content["descriptionText"], "WRITTEN")
+
+    def test_no_mission_loaded_is_not_a_crash(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = None
+            worker._substitute_briefing_variables(VersionConfig(name="day", metar="X"))

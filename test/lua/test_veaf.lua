@@ -3812,6 +3812,48 @@ function TestVeafCsarAddCsarReplacement:test_replacing_twice_does_not_double_the
   luaunit.assertEquals(self.calls[1].point.x + veaf.CSAR_SPAWN_OFFSET_METRES, 1000 + veaf.CSAR_SPAWN_OFFSET_METRES)
 end
 
+-- The ejection happened whether or not a CSAR exists, so CSAR's own bookkeeping must still run:
+-- `handleEjectOrCrash` disables the aircraft (mode 1) or the pilot (mode 2) for a timeout. Skipping it
+-- would make ditching at sea the cheapest way to lose an aircraft, which is the opposite of "he counts as
+-- dead". Caught in review (Sourcery, PR #787).
+function TestVeafCsarAddCsarReplacement:test_a_lost_pilot_is_still_counted_as_having_ejected()
+  local handled = {}
+  csar.handleEjectOrCrash = function(unit, crashed)
+    table.insert(handled, { unit = unit, crashed = crashed })
+  end
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", "unit-1", "Zip")
+  luaunit.assertEquals(#handled, 1, "the ejection bookkeeping must run even with no CSAR created")
+  luaunit.assertEquals(handled[1].unit, "Zip")
+  luaunit.assertEquals(handled[1].crashed, false)
+end
+
+-- That call is wrong upstream — `addCsar` hands a player name to a function that indexes a unit — so it
+-- raises as soon as a mission sets csarMode to 1 or 2. Reproducing the original call is right; letting
+-- our new path be the one that dies from it is not.
+function TestVeafCsarAddCsarReplacement:test_a_raising_bookkeeping_call_does_not_take_the_wrapper_down()
+  csar.handleEjectOrCrash = function()
+    error("attempt to index a string value")
+  end
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  local ok = pcall(csar.addCsar, 2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", "unit-1", "Zip")
+  luaunit.assertTrue(ok, "an upstream defect must not surface as a crash on the lost-pilot path")
+end
+
+-- And it must not run twice for a rescued pilot: the original does it itself.
+function TestVeafCsarAddCsarReplacement:test_a_rescued_pilot_has_the_bookkeeping_done_once_by_the_original()
+  local calls = 0
+  csar.handleEjectOrCrash = function()
+    calls = calls + 1
+  end
+  self:_resolveTo("same")
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", "unit-1", "Zip")
+  luaunit.assertEquals(calls, 0, "the wrapper must not double what the original already does")
+end
+
 function TestVeafCsarAddCsarReplacement:test_no_csar_module_is_not_a_crash()
   csar = nil
   local ok = pcall(veaf.replaceCsarAddCsar)

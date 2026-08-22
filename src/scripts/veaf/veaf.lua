@@ -5539,25 +5539,41 @@ function veaf.replaceCsarAddCsar()
   csar._veafAddCsarReplaced = true
   local offset = veaf.CSAR_SPAWN_OFFSET_METRES
 
+  -- Parameter names carry no leading underscore, unlike CSAR's own: `.luacheckrc` reads that prefix as
+  -- "deliberately unused", and these are all used. Copying the vendored naming failed the Lua gate.
   ---@diagnostic disable-next-line: duplicate-set-field
-  csar.addCsar = function(_coalition, _country, _point, _typeName, _unitName, _playerName, _freq, noMessage, _description)
-    if type(_point) == "table" and _point.x and _point.z then
+  csar.addCsar = function(coalitionSide, country, point, typeName, unitName, playerName, freq, noMessage, description)
+    if type(point) == "table" and point.x and point.z then
       -- where the survivor would actually end up, offset included
-      local intended = { x = _point.x + offset, y = _point.y, z = _point.z + offset }
+      local intended = { x = point.x + offset, y = point.y, z = point.z + offset }
       local resolved = veaf.resolveCsarSurvivorPoint(intended)
       if not resolved then
         veaf.loggers
           .get(csar.Id)
           :info("no dry ground within %sm of the ejection: the pilot is lost", veaf.p(veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES))
+        -- The ejection still happened, so CSAR's bookkeeping for it must still run: `handleEjectOrCrash`
+        -- is what disables the aircraft (mode 1) or the pilot (mode 2) for `disableTimeoutTime` minutes.
+        -- Skipping it would make ditching at sea the *cheapest* way to lose an aircraft — the opposite of
+        -- "he counts as dead". Caught in review (Sourcery, PR #787).
+        --
+        -- Protected because the call is wrong upstream, not here: `addCsar` passes a **player name**
+        -- where `handleEjectOrCrash(_unit, _crashed)` indexes a unit, so it raises as soon as a mission
+        -- sets `csar.csarMode` to 1 or 2 (the default 0 does nothing at all). Reproducing the original
+        -- call faithfully is right; letting our new path be the one that dies from an upstream defect is
+        -- not. See FIX-CSAR-HANDLE-EJECT-ARGUMENT.
+        local ok, err = pcall(csar.handleEjectOrCrash, playerName, false)
+        if not ok then
+          veaf.loggers.get(csar.Id):warn("csar.handleEjectOrCrash raised for a lost pilot: %s", veaf.p(err))
+        end
         if noMessage ~= true then
-          trigger.action.outTextForCoalition(_coalition, veaf.t("csar.pilot_lost_at_sea", _typeName or "aircraft"), 10)
+          trigger.action.outTextForCoalition(coalitionSide, veaf.t("csar.pilot_lost_at_sea", typeName or "aircraft"), 10)
         end
         return
       end
       -- undo the offset the original will add, so the survivor lands on the point we chose
-      _point = { x = resolved.x - offset, y = resolved.y, z = resolved.z - offset }
+      point = { x = resolved.x - offset, y = resolved.y, z = resolved.z - offset }
     end
-    return originalAddCsar(_coalition, _country, _point, _typeName, _unitName, _playerName, _freq, noMessage, _description)
+    return originalAddCsar(coalitionSide, country, point, typeName, unitName, playerName, freq, noMessage, description)
   end
 end
 

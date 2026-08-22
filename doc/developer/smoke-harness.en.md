@@ -217,6 +217,34 @@ signal that a load has finished, far better than watching a frame counter that f
 and `Sim.getLogHistory(from)`, which makes `dcs.log` readable through the hook instead of parsed off
 disk.
 
+## The CSAR-over-water checks {#csar-over-water}
+
+`csar-avoids-water-open-sea` and `csar-avoids-water-coast` answer
+[#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245) — "the CSAR pilot spawns in the
+water" — with no aircraft and no human pilot. Three scripting calls are enough: trigger the spawn, read
+the position back, ask what is underneath.
+
+The two ask different questions, which is the point:
+
+- **out at sea** — the reported case;
+- **near a coast** — the interesting one. `FEAT-SCENERY-AWARE-SPAWN` gave `veaf.findSpawnPoint` land
+  awareness, and the real question is whether CSAR goes through it at all. A pass offshore with a failure
+  inshore would mean CSAR has its own placement path.
+
+No coordinate is hard-coded: the check anchors on the first airbase and sweeps until it finds water, then
+classifies the spot by what surrounds it at 150 m. So it travels between theatres.
+
+It runs over the `BRIDGE` transport: `csar` is a mission-environment global loaded by
+`mission-script.lua`. In the hook environment it would answer `csar-absent` for a mission that has it —
+a false negative.
+
+!!! warning "Any answer other than a dry placement is a failure"
+    Including the ones saying the question could not be asked (`csar-absent`, `no-water-found`,
+    `no-group`). A check that passes while having asked nothing would close #245 on nothing at all, and
+    that is exactly the failure mode this harness is written against.
+
+---
+
 ## What is still missing
 
 The [`FEAT-DCS-SMOKE-HARNESS`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/.backlog/archive/FEAT-DCS-SMOKE-HARNESS.md) lot carries the detail.

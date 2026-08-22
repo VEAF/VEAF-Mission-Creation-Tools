@@ -7,6 +7,38 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.26] — 2026-08-22
+
+### Added
+
+- **Two smoke-harness checks answer "does the CSAR pilot spawn in the water?" with a script rather than
+  a pilot.** [#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245) had been sitting in a
+  flying session out of habit; deciding it needs three scripting calls and no aircraft — trigger the
+  spawn, read the position back, ask what is underneath.
+
+  `csar-avoids-water-open-sea` and `csar-avoids-water-coast` ask deliberately different questions: the
+  first is the reported case, the second is whether CSAR consults the land-aware `veaf.findSpawnPoint` at
+  all. Neither hard-codes a coordinate — they anchor on the first airbase, sweep outwards for water and
+  classify the spot by what surrounds it at 150 m — so they travel between theatres.
+
+  **Reading the code already answered the lot's central question, before any run.** `csar.spawnGroup`
+  places the pilot at a fixed `+50/+50` offset with **no surface test of any kind**; it does not consult
+  `findSpawnPoint`, it never asks. So the prediction is on record: *both* checks should fail. If the coast
+  one passes while the sea one fails, that reading is wrong — which would be the more interesting result.
+
+  The fix is deliberately **not** in this release. `CSAR.lua` is vendored `adapted`, and its documented
+  update procedure re-applies VEAF adaptations onto a fresh upstream copy — so an edit made here would be
+  erased by the next update. `veaf.csar_initialize_replacement` already replaces `csar` functions from
+  VEAF code and is the seam that survives; the work is filed as `FIX-CSAR-SPAWNS-ON-WATER`, with one
+  question to settle first: what a pilot ditching over open ocean should do, since moving him to the
+  nearest land can be kilometres away and stops being a rescue.
+
+  Every "could not ask" answer — `csar-absent`, `no-water-found`, `no-group` — **fails** rather than
+  passing vacuously. A check that goes green while having asked nothing would close #245 on nothing at
+  all.
+
+---
+
 ## [6.15.25] — 2026-08-21
 
 ### Fixed

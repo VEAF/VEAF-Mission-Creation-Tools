@@ -269,18 +269,33 @@ def _csar_water_check_lua(mode: str) -> str:
         # Anchor on the first airbase and sweep outwards: this must not depend on the theatre, so no
         # coordinate is hard-coded anywhere in this check.
         "local abs = world.getAirbases() if not abs or #abs == 0 then return 'no-airbases' end "
+        # The rescue radius is read from the product, never duplicated here. Measured 2026-08-22: this
+        # check classified "open sea" as *all eight neighbours at 150 m are water*, while the fix searches
+        # for dry ground out to 500 m — so a spot 300 m off a coast satisfied both, the survivor was
+        # correctly moved ashore, and the check called it a failure. A test that hard-codes a distance the
+        # product owns will drift from it the first time the product changes.
+        "local R = (veaf and veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES) or 500 "
         "local o = abs[1]:getPoint() "
         "local target "
         "for r = 2000, 60000, 2000 do "
         "for a = 0, 15 do local th = a * math.pi / 8 "
         "local x, z = o.x + r * math.cos(th), o.z + r * math.sin(th) "
         "if wet(x, z) then "
-        # Classify the spot by what surrounds it at 150 m: all water is open sea, any land is a coast.
-        "local land_near = false local water_near = true "
+        # Two different questions, so two different sweeps. `coast` only needs land within 150 m, which
+        # guarantees dry ground inside the rescue radius. `open` must assert the *opposite* — that no dry
+        # ground exists within it — so it samples rings out to R * 1.2, with margin for the fix's own
+        # search granularity. Eight samples at one radius cannot answer that.
+        "local land_near = false "
         "for b = 0, 7 do local t2 = b * math.pi / 4 "
         "local nx, nz = x + 150 * math.cos(t2), z + 150 * math.sin(t2) "
-        "if wet(nx, nz) then else land_near = true water_near = false end end "
-        f"if {'water_near' if mode == 'open' else 'land_near'} then target = {{x = x, y = 0, z = z}} break end "
+        "if not wet(nx, nz) then land_near = true end end "
+        # Dry ground anywhere inside the rescue radius disqualifies a spot as open sea, whatever its
+        # bearing. Sampled in rings so a narrow spit of land cannot slip between two spokes.
+        "local dry_in_radius = false "
+        "for rr = 100, R * 1.2, 100 do for b = 0, 15 do local t2 = b * math.pi / 8 "
+        "if not wet(x + rr * math.cos(t2), z + rr * math.sin(t2)) then dry_in_radius = true break end "
+        "end if dry_in_radius then break end end "
+        f"if {'not dry_in_radius' if mode == 'open' else 'land_near'} then target = {{x = x, y = 0, z = z}} break end "
         "end end "
         "if target then break end end "
         f"if not target then return 'no-water-found-{mode}' end "

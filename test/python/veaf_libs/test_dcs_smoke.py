@@ -13,7 +13,11 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import re
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -663,13 +667,43 @@ class TestReport:
         assert "not necessarily a defect" in text
 
 
+class TestEveryChunkCompiles:
+    """Every check's Lua must parse in real Lua 5.1 before it ever reaches DCS.
+
+    The chunks are built by string concatenation, so a missing space between two fragments or an
+    unbalanced `end` is a syntax error that surfaces only as a failed check in a live session — one
+    round-trip through David's DCS to learn something `luac` answers instantly. `poetry run test-lua`
+    already requires the interpreter, so this asks for nothing new.
+    """
+
+    def test_all_of_them(self):
+        lua_binary = shutil.which("lua") or shutil.which("lua5.1")
+        if not lua_binary:
+            pytest.skip("no lua interpreter on PATH")
+        for check in CHECKS:
+            with tempfile.NamedTemporaryFile("w", suffix=".lua", encoding="utf-8", delete=False) as handle:
+                # wrapped in a function so the chunk's `return` statements are legal
+                handle.write("return function() " + check.lua + " end")
+                path = handle.name
+            try:
+                result = subprocess.run(
+                    [lua_binary, "-e", f"local f, e = loadfile([[{path}]]) print(f and 'OK' or e)"],
+                    capture_output=True,
+                    text=True,
+                )
+                answer = (result.stdout or result.stderr).strip()
+                assert answer == "OK", f"{check.name} does not parse: {answer}"
+            finally:
+                os.unlink(path)
+
+
 class TestCsarOverWater:
     """FEAT-SMOKE-CSAR-WATER — #245 answered by an assertion rather than a pilot.
 
-    Deciding whether a CSAR pilot lands in the water needs three scripting calls and no aircraft:
-    trigger the spawn, read the position back, ask what is underneath. These tests cover the parts that
-    are decidable without DCS — the verdict logic and the shape of the chunk. The measurement itself
-    needs a running DCS and is recorded in the lot's PRD.
+    Deciding where a CSAR survivor ends up needs a few scripting calls and no aircraft: trigger an
+    ejection, find the survivor, ask what is underneath. These tests cover the parts that are decidable
+    without DCS — the verdict logic and the shape of the chunk. The measurement itself needs a running
+    DCS and is recorded in the lot's PRD.
     """
 
     def _check(self, name: str) -> smoke.Check:
@@ -751,9 +785,22 @@ class TestCsarOverWater:
         openly = self._check("csar-avoids-water-open-sea").lua
         coast = self._check("csar-avoids-water-coast").lua
         assert openly != coast, "both modes generated the same chunk, so one of them asks nothing"
-        assert "if water_near then" in openly
+        assert "if not dry_in_radius then" in openly
         assert "if land_near then" in coast
         assert "mode:open" in openly and "mode:coast" in coast
+
+    def test_open_sea_is_defined_against_the_rescue_radius_the_product_owns(self):
+        # The 2026-08-22 failure. "Open sea" was eight samples at 150 m, while the fix searches for dry
+        # ground out to 500 m — so a spot 300 m off a coast satisfied both, the survivor was correctly
+        # moved ashore, and the check called that a defect. `surface:1 dry:1` on the open-sea check was a
+        # correct product reported as broken.
+        #
+        # Two properties, and the first matters more: the radius is *read from the product*. A test that
+        # copies a distance the product owns drifts from it the first time the product changes, and the
+        # drift shows up as a false failure nobody trusts.
+        openly = self._check("csar-avoids-water-open-sea").lua
+        assert "veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES" in openly, "the radius must be read, not copied"
+        assert "for rr = 100, R * 1.2, 100 do" in openly, "one ring cannot prove an absence over an area"
 
     def test_the_surface_is_read_with_the_easting_in_y(self):
         # docs/agents/dcs-coordinates.md: `land.getSurfaceType` takes a vec2 whose `y` is the easting,

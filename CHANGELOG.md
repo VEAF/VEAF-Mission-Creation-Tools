@@ -31,6 +31,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Cleanup now removes both halves: the DCS group *and* CSAR's `woundedGroups` entry, which would
   otherwise leave the mission announcing a survivor that no longer exists.
 
+- **"Open sea" was defined too weakly to test the rule it was checking.** The check called a spot open
+  sea when its eight neighbours **at 150 m** were all water, while the fix searches for dry ground out
+  to **500 m**. A spot 300 m off a coast satisfied both: the survivor was correctly carried ashore, and
+  the check reported `surface:1 dry:1` as a failure. Measured in game — a correct product called broken,
+  twice in a row, for two different reasons.
+
+  The radius is now **read from the product** (`veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES`) instead of
+  duplicated, and open sea is asserted by sampling rings out to 1.2× it rather than one ring of eight
+  points. A test that copies a distance the product owns drifts from it the moment the product changes.
+
 - **The smoke harness's `veaf-loaded` check could not pass.** It read `veaf.MAIN_VERSION`, a field that
   has never existed — the real one is `veaf.BuildVersion`. Lua's `a and b or c` falls through to `c`
   whenever `b` is nil, so the chunk returned its "VEAF is absent" sentinel unconditionally, from
@@ -52,6 +62,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   state and returned `csar-absent`. Enabled, with the reasoning recorded so it does not get switched back.
 
 ### Added
+
+- **Every harness chunk is parsed by real Lua 5.1 in the test suite.** The chunks are built by string
+  concatenation, so a missing space between fragments or an unbalanced `end` was a syntax error that
+  surfaced only as a failed check in a live session — one round-trip through someone's DCS to learn what
+  `loadfile` answers instantly. Verified by injecting a stray `end` and watching the test name the check.
 
 - **A sweep refusing any harness check that reads a field the scripts never define**
   (`test_dcs_smoke.py`). Verified against the real defect: with `MAIN_VERSION` restored, the sweep names

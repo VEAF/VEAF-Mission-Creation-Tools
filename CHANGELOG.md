@@ -63,6 +63,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The CSAR reply now carries its geometry, not just its verdict.** `moved`, `radius`, `asked` and
+  `wrapped` — how far the survivor travelled, the bound it was measured against, the surface under the
+  ejection point, and whether the replacement was installed. Two runs had been spent on a single
+  ambiguous answer, each hypothesis costing a person a DCS reload; these fields settle it in one. A
+  `moved` beyond `radius` is now a failure in its own right, in either mode: the radius *is* the rule.
+
+  The open-sea sweep also widened to **2×** the rescue radius, because the thing under test is not
+  deterministic — `veaf.findSpawnPoint` draws from `Disposition.getSimpleZones` and
+  `mist.getRandPointInCircle`, both random, so near a marginal spot the identical harness answered
+  `lost:0` then `lost:1` with no code change in between. A check that flickers gets ignored.
+
+  Measured **9/9** on 2026-08-22: `mode:open lost:1`, and
+  `mode:coast lost:0 surface:1 dry:1 moved:259 radius:500 asked:3 wrapped:1`. Both
+  `FEAT-SMOKE-CSAR-WATER` and `FIX-CSAR-SPAWNS-ON-WATER` close on it.
+
 - **Every harness chunk is parsed by real Lua 5.1 in the test suite.** The chunks are built by string
   concatenation, so a missing space between fragments or an unbalanced `end` was a syntax error that
   surfaced only as a failed check in a live session — one round-trip through someone's DCS to learn what

@@ -1,6 +1,26 @@
 # FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING — a SAM site is switched off every other cycle
 
-Status: ⬜ ready — cause traced in the code and the 10 s period measured; the fix route needs David's call
+Status: 🧑 waiting-human — **fix proposed upstream**, awaiting the Regroupement-Patrouille review
+
+## Where it stands
+
+- **PR open on the fork we vendor from**:
+  [regroupement-patrouille/Skynet-IADS#4](https://github.com/regroupement-patrouille/Skynet-IADS/pull/4)
+  — the `isActive() == false` filter removed from `evaluateContacts`, plus the regression test that was
+  missing.
+- **Message drafted** for Flogas, who follows that repository:
+  [`message-to-flogas.md`](message-to-flogas.md). Their `contributing.md` asks for a Discord discussion
+  before coding, so the message announces the PR rather than proposing it.
+- **Not run**: their suite needs DCS with `skynet-unit-tests.miz` loaded. Both files parse under Lua 5.1
+  and the new test reuses only units its neighbour already depends on, but that is not the same as green.
+  Offered to run it on our side before they merge.
+
+Route chosen: upstream **to the fork**, not to walder — that repository has cut no release since 3.3.0
+in December 2023, so a patch there would never reach a mission. Recorded in `vendored.yaml`.
+
+The local replacement (option 2 below) is **not** done. It is the fallback if the PR stalls: the
+mechanism exists (`veaf.csar_initialize_replacement` is the precedent) and it would let VEAF missions
+have the fix before the next recompile.
 
 Observed in game on 2026-08-22 in `verify-mission-c`, on the SA-6 (`Kub 1S91 str` × 1 +
 `Kub 2P25 ln` × 2):

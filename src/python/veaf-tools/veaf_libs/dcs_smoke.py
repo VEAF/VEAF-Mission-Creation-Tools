@@ -290,8 +290,16 @@ def _csar_water_check_lua(mode: str) -> str:
         "if wet(x, z) then "
         # Two different questions, so two different sweeps. `coast` only needs land within 150 m, which
         # guarantees dry ground inside the rescue radius. `open` must assert the *opposite* — that no dry
-        # ground exists within it — so it samples rings out to R * 1.2, with margin for the fix's own
-        # search granularity. Eight samples at one radius cannot answer that.
+        # ground exists within it — so it samples rings, because eight samples at one radius cannot
+        # answer that.
+        #
+        # The margin is **2×** the radius, not the 1.2× first tried, and the reason is that the thing
+        # being tested is not deterministic: `veaf.findSpawnPoint` draws candidates from
+        # `Disposition.getSimpleZones` and `mist.getRandPointInCircle`, both random. So near a marginal
+        # spot it finds dry ground on some runs and not others, and a sweep that merely samples the same
+        # radius will disagree with it intermittently. Measured on 2026-08-22: the identical harness
+        # answered `lost:0` on one run and `lost:1` on the next with no code change in between. A test
+        # that flickers gets ignored, and this one guards a rule about someone's life.
         "local land_near = false "
         "for b = 0, 7 do local t2 = b * math.pi / 4 "
         "local nx, nz = x + 150 * math.cos(t2), z + 150 * math.sin(t2) "
@@ -299,7 +307,7 @@ def _csar_water_check_lua(mode: str) -> str:
         # Dry ground anywhere inside the rescue radius disqualifies a spot as open sea, whatever its
         # bearing. Sampled in rings so a narrow spit of land cannot slip between two spokes.
         "local dry_in_radius = false "
-        "for rr = 100, R * 1.2, 100 do for b = 0, 15 do local t2 = b * math.pi / 8 "
+        "for rr = 100, R * 2, 100 do for b = 0, 15 do local t2 = b * math.pi / 8 "
         "if not wet(x + rr * math.cos(t2), z + rr * math.sin(t2)) then dry_in_radius = true break end "
         "end if dry_in_radius then break end end "
         f"if {'not dry_in_radius' if mode == 'open' else 'land_near'} then target = {{x = x, y = 0, z = z}} break end "

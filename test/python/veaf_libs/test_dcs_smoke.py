@@ -821,7 +821,11 @@ class TestCsarOverWater:
         # drift shows up as a false failure nobody trusts.
         openly = self._check("csar-avoids-water-open-sea").lua
         assert "veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES" in openly, "the radius must be read, not copied"
-        assert "for rr = 100, R * 1.2, 100 do" in openly, "one ring cannot prove an absence over an area"
+        assert "for rr = 100, R * 2, 100 do" in openly, "one ring cannot prove an absence over an area"
+        # The 2x margin is not padding. `findSpawnPoint` draws random candidates, so near a marginal
+        # spot it succeeds on some runs and not others: the same harness answered `lost:0` then
+        # `lost:1` with no code change in between (2026-08-22). Sampling only out to the radius makes
+        # the check flicker against a correct product.
 
     def test_the_surface_is_read_with_the_easting_in_y(self):
         # docs/agents/dcs-coordinates.md: `land.getSurfaceType` takes a vec2 whose `y` is the easting,

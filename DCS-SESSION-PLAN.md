@@ -42,6 +42,89 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 
 ---
 
+## Résultats de la session — au 22/08
+
+| Vérification | Résultat |
+|---|---|
+| 0 · SAM autonome (Tor) | ✅ locke et tire — voir la nuance sur les sites multi-unités ci-dessus |
+| 1a · dispersion + départ sans détour | ✅ tout comme prévu |
+| 1b · escorte du FARP | ❌ **échec** — tout se pose sur le FARP statique. Cause racine trouvée, lot rouvert, voir ci-dessous |
+| 1c · convoi sur itinéraire | ✅ les commandes fonctionnent. Réserve d'ergonomie : chaque commande est enfermée dans un sous-menu à un seul élément |
+| — · un marqueur simple renvoyait une erreur | ✅ **corrigé**, PR #789 — onze jours de régression, sans lien avec la session |
+| 2a · `#command` retardé meurt avec sa zone | ✅ |
+| 2b · menu porte-avions côté rouge | ✅ |
+| 2c · check 6 — le SAM de la zone rejoint le réseau | ✅ `group added to RED network (3)` après activation, et le SA-6 a abattu l'observateur : il était bien opérationnel dans le réseau |
+| 2c · check 7 — un spawn ne réveille pas un réseau éteint | ✅ `0 actual reactivation(s)` et « nothing has reactivated it since » : le spawn rejoint le réseau, le réseau reste éteint. **Lot fermé** |
+| 2c bis · le cycle allumé/éteint | 🔎 **10 s mesurées** = deux cycles de 5 s, comme prédit depuis le code. Cause dans Skynet, lot déposé |
+| 0bis · SA-6 complet, carte nue, sans script | ✅ **il a tiré** → il n'y a jamais eu de bug SAM dans DCS |
+| 2d · alarme par nature | ✅ pour ce qui était testable : le convoi roule. Les chars n'ont **qu'un waypoint** dans la mission C, donc aucune route — leur immobilité est la donnée, pas un défaut |
+
+### 2c — check 7 : ✅, après deux fausses lectures dues à mon harnais
+
+Résultat final : `0 actual reactivation(s)`, *« DEACTIVATED from this menu, nothing has reactivated it
+since »*, et le groupe spawné bien présent dans le réseau. C'est exactement l'intention de #261. **Lot
+`FIX-SKYNET-DYNAMICSPAWN-SCOPE` fermé**, checks 6 et 7 validés en jeu.
+
+Le `4 delayedActivate` ne contredit rien : le compteur enregistre l'**appel**, et le garde-fou est dedans
+(`if network.deactivated then return end`), donc `_activateIADS` n'est jamais atteint.
+
+**Deux fausses lectures ont précédé la bonne, et les deux venaient de mon harnais** :
+
+1. le `dynamic_spawn` de la mission était écrasé silencieusement depuis le 20/08 → la mission tournait
+   avec la fonctionnalité coupée ;
+2. le menu désactivait par `iads:deactivate()`, une route que le correctif ne peut pas voir → il a affiché
+   « #261 CONFIRMED » sur un produit qui marche.
+
+Les deux fois, le code avait raison et l'instrument avait tort.
+
+**À retenir pour qui refera ce test** : utiliser `-sa6` plutôt que `-samLR`. `-samLR` construit un groupe
+dont **chaque unité est tirée au sort** — un essai a sorti un Tor (Skynet a enregistré un site SAM), le
+suivant seulement un Dog Ear (enregistré comme EWR). Les deux comportements sont corrects, mais un
+échantillon non déterministe rend la question « est-ce qu'un site SAM a rejoint ? » indécidable.
+
+### 2c bis — la cause du cycle, trouvée dans le code de Skynet
+
+Ton test l'a tranché : un **SA-6 complet dans un seul groupe**, sur carte nue, sans aucun script, **tire**.
+Donc il n'y a jamais eu de bug SAM dans DCS — ni sur les autonomes (tes SA-15), ni sur les sites
+multi-unités. L'avertissement que ce document portait depuis deux jours était faux, il est retiré.
+
+Et ça déplace le problème chez nous. `SkynetIADS.evaluateContacts` tourne toutes les **5 secondes** et, à
+chaque passage :
+
+1. remet `targetsInRange = false` sur chaque site, **inconditionnellement** ;
+2. ne collecte, parmi les sites sous couverture radar, que ceux qui sont **inactifs** ;
+3. n'appelle `informOfContact` que sur ceux-là — et c'est le **seul** endroit du fichier qui remet
+   `targetsInRange` à `true` ;
+4. éteint en fin de cycle tout site dont `targetsInRange` est resté `false`.
+
+Donc un site qui vient de s'allumer est actif, donc exclu de la collecte, donc jamais informé, donc
+éteint au cycle suivant. Allumé, éteint, allumé, éteint. Un site qui détecte sa cible **tout seul** ne
+s'en sort pas non plus : ses contacts sont versés dans l'IADS mais on ne l'en informe jamais.
+
+**Mesuré : toutes les 10 secondes.** Un cycle complet — lever, rétracter, relever — c'est **deux**
+passages d'évaluation : 5 s allumé plus 5 s éteint font exactement 10 s entre deux états identiques. La
+prédiction était faite depuis le code *avant* la mesure, pas ajustée après.
+
+Correction que je dois à ton dernier retour : le SA-6 **t'a abattu** après activation de la zone. Donc le
+cycle **dégrade** l'engagement, il ne l'interdit pas — un site allumé la moitié du temps finit par tirer
+si tu restes à portée. Cinq cycles perdus puis un tir, c'est exactement ça. Mon PRD affirmait « il ne
+garde jamais son radar assez longtemps pour tirer » : c'était trop fort, c'est corrigé.
+
+Réserve que je préfère énoncer : un défaut aussi central dans un script mûr et très utilisé est
+suspect — ça voudrait dire que tous les SAM Skynet cyclent toutes les 5 s chez tout le monde. Mais tu as
+vu les lanceurs se rétracter physiquement, donc l'effet est réel, et ce chemin de code n'a pas d'autre
+sortie.
+
+Skynet est vendu **compilé** depuis le fork Regroupement-Patrouille : pas question de patcher le fichier
+en place, il serait écrasé au prochain build. La route sera une remontée amont ou un remplacement de
+méthode au chargement, comme on fait pour CSAR.
+
+**Et ça rouvre le rapport de Tripack** sur les SAM muets en zone de combat en 6.15.2, qu'on avait classé
+« DCS est cassé pour tout le monde ». C'est un candidat sérieux : même symptôme, même mécanisme, et il
+précède tous nos changements d'état d'alarme.
+
+---
+
 ## Étape 1 — `VerifyMissionA_noon.miz` (3 vérifications, une seule charge)
 
 ```
@@ -198,28 +281,50 @@ AUTO. Son cas reste ouvert et ce check ne le referme pas.
 
 ---
 
-## Étape 3 — le banc d'essai CSAR (aucun avion, 2 min)
+## Étape 3 — le banc d'essai CSAR (aucun avion, mais **deux** prérequis)
 
-Avec **DCS lancé et une mission chargée** (n'importe laquelle des deux ci-dessus fait l'affaire),
-depuis le dépôt :
+Mon instruction d'origine — « 2 min, aucun avion » — était incomplète, et le run du 22/08 l'a montré :
+quatre vérifications ont échoué sur *« cannot reach dcs-serve »*, ce qui se lit comme un problème de
+serveur et cachait en réalité **deux** manques.
 
-```bash
-poetry run veaf-tools dcs smoke-test
-```
+| Prérequis | État |
+|---|---|
+| La mission injecte `dcs-bridge.lua` | ❌ `dcs_bridge` était commenté → **corrigé, mission reconstruite** |
+| `dcs-serve` écoute sur `127.0.0.1:8080` | ❌ pas lancé → à toi |
 
-Deux vérifications neuves : `csar-avoids-water-open-sea` et `csar-avoids-water-coast`.
+Les quatre vérifications concernées (`veaf-loaded`, `findspawnpoint-exists` et les deux
+`csar-avoids-water-*`) s'exécutent dans l'état Lua **de la mission**, que seul le pont atteint : le hook
+fiddle ne voit même pas le global `veaf`. Sans les deux moitiés, elles ne peuvent pas s'exécuter — ce
+n'est pas un échec de mesure, c'est une absence de mesure.
 
-- [ ] **Les deux passent** → le correctif #787 prend bien effet en vraie mission. C'est ce qu'on attend
-      maintenant : quand ces vérifications ont été écrites, la prédiction était qu'elles échoueraient
-      *toutes les deux*, et le correctif a inversé ça.
-- [ ] **Un échec** → le remplacement de `csar.addCsar` ne s'applique pas dans une vraie mission, ce
-      qu'aucun test unitaire ne peut me dire. Envoie-moi la sortie.
+Ce que le run a quand même établi, et qui est bon à savoir : les cinq vérifications qui passent par le
+hook sont **vertes**, dont les quatre de `disposition` (`points:30 near_scenery:0`) et le sous-menu par
+coalition.
 
-**Un piège que je te signale avant que tu l'interprètes** : sur la vérification en pleine mer, le pilote
-est maintenant *perdu*, donc il n'y a plus de groupe à inspecter. La vérification peut rapporter
-`no-group`, ce qui est un **succès** pour la règle des 500 m et un **échec** pour l'assertion telle
-qu'elle est écrite. Si tu vois ça, ne cherche pas : dis-le-moi et j'apprends la différence à la
-vérification.
+### La marche à suivre
+
+1. **Lance le serveur**, depuis le dépôt pour qu'il lise le bon `dcs-serve.yaml` (celui qui porte la clé
+   API que le harnais utilise aussi) :
+
+   ```
+   cd D:\dev\_VEAF\VEAF-Mission-Creation-Tools
+   D:\dev\_VEAF\VEAF-dcs-bridge\.venv\Scripts\dcs-serve.cmd
+   ```
+
+   Laisse-le tourner dans son propre terminal.
+
+2. **Recharge `VerifyMissionC_noon.miz`** — celle que tu avais chargée n'avait pas le pont.
+
+3. **Relance le harnais** dans un autre terminal :
+
+   ```
+   poetry run veaf-tools dcs smoke-test
+   ```
+
+- **Les deux `csar-avoids-water-*` passent** → le correctif prend bien effet en vraie mission.
+- **Un échec autre que « cannot reach dcs-serve »** → là c'est une vraie mesure, envoie-moi la sortie.
+- Si tu vois `no-group` sur la haute mer, c'est mon assertion qui est mal écrite : dis-le-moi, ne cherche
+  pas.
 
 ---
 

@@ -1,6 +1,45 @@
 # FIX-SKYNET-DYNAMICSPAWN-SCOPE — one global boolean answers two issues badly
 
-Status: 🧑 waiting-human
+Status: ✅ done — shipped in 6.15.8, **verified in game 2026-08-22**
+
+## Verified in game, and what it took to get a valid reading
+
+Both checks pass on `verify-mission-c`:
+
+- **Check 6 (#151)** — a combat-zone SAM joins the red network. The zone's SA-6 was listed as an element
+  of `red iads`, and it went on to **shoot the observer down**, so it was integrated *and* operational,
+  not merely present in a list.
+- **Check 7 (#261)** — a spawn does not wake a network that was switched off. After `Deactivate RED IADS`,
+  a `-samLR, country russia` marker produced: *"DEACTIVATED from this menu, nothing has reactivated it
+  since"*, `0 actual reactivation(s)`, and the new group present in the network. Exactly the intent.
+
+`delayedActivate` still shows a non-zero count, and that is correct rather than a leak: the counter wraps
+the **call**, and the guard is inside it — `if network.deactivated then return end`
+(`veafSkynetIadsHelper.lua:263`), so `_activateIADS` is never reached. Zero actual reactivations is the
+measurement that matters.
+
+### Two false readings preceded the real one, both from the harness
+
+Recorded because the pattern cost more than the lot did:
+
+1. The mission's `dynamic_spawn` was set through the `module_settings:` hatch, which the generator had
+   been silently overwriting since 2026-08-20. The mission ran with the feature **off**, so the checks
+   would have measured the documented default and reported it as a result. Filed as
+   [`FIX-MODULE-SETTINGS-OVERWRITTEN`](../FIX-MODULE-SETTINGS-OVERWRITTEN/PRD.md).
+2. The VERIFY C menu deactivated the network with `iads:deactivate()`, Skynet's raw method. The #261 fix
+   keys off `network.deactivated`, a flag only `veafSkynet.deactivateNetwork` sets — so the check switched
+   the network off by a route the fix cannot see, then correctly reported a spawn waking it, and printed
+   **"#261 CONFIRMED" on a working product**.
+
+Both times the code was right and the instrument was wrong. An instrument that does not measure what it
+claims is worse than none, because it returns a confident verdict.
+
+### One note for whoever re-runs this
+
+Use **`-sa6`** rather than `-samLR` to test SAM-site integration. `-samLR` builds
+`generateAirDefenseGroup-RED-4/5`, where every unit carries `random: true`: one run produced a Tor and
+Skynet registered a SAM site, the next produced only a Dog Ear and Skynet registered an EWR. Both are
+correct behaviour, but a non-deterministic fixture makes "did a SAM site join?" unanswerable.
 
 Written, unit-tested and shipped in 6.15.8. Waiting on checks 6 and 7 of `verify-mission-c`, which
 need DCS started — the workstation this was written on has it, so it is one session away, not a

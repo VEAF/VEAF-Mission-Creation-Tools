@@ -1,6 +1,41 @@
 # FIX-FARP-ESCORT-PLACEMENT — the FARP escort lands on whatever is already there
 
-Status: 🧑 waiting-human
+Status: ⬜ ready — **the shipped fix does not work**, measured in game 2026-08-22
+
+## Measured 2026-08-22: it still lands on the static FARP
+
+David dropped a `-farp` next to the static FARP and everything came up on it, exactly as before the fix
+(screenshot in the session log). Two causes, both readable in the code without needing another flight,
+and the second one would have survived a fix for the first.
+
+**1. A FARP is not a static.** `veafGrass.isSpotOccupied` probes
+`world.searchObjects` over `Object.Category.UNIT` and `Object.Category.STATIC` only. This repo's own
+`veafAirbases.lua:191` shows what a FARP actually is — an **airbase**, reached through
+`world.getAirbases()`, categorised `Airbase.Category.HELIPAD` (with a remediation for the ones DCS
+miscategorises as `SHIP`). The DCS log agrees: `NO ATC COMM HELIPAD + StaticFarpAlpha-1`. So the probe
+was never going to see the one object the whole lot is about. The comment above it — *"a static FARP
+placed in the editor is a static, not scenery"* — reasoned about the wrong distinction: the choice was
+not static-versus-scenery but static-versus-**airbase**.
+
+**2. `searchObjects` matches positions, not footprints.** `PLACEMENT_CLEARANCE` is **12 m** and a FARP's
+footprint is several tens of metres. An object is returned when *its position* falls inside the sphere,
+so an escort placed on the **edge** of a FARP — the actual complaint in #232 — leaves the FARP's centre
+well outside a 12 m sphere. Even as a static it would have gone undetected.
+
+That second cause is why the first was invisible in review: the unit tests stub `isSpotOccupied` and
+assert the bearing search around it, so they prove the search reacts to an occupied spot. Nothing proved
+that a real static FARP *is* an occupied spot. The test was true and the premise was false.
+
+## What a working fix needs
+
+- Ask `world.getAirbases()` and reject a position within a FARP-sized radius of a `HELIPAD` (and of the
+  `SHIP`-miscategorised FARPs `veafAirbases` already remediates), rather than probing for statics
+- Pick that radius from the platform's real extent, not from `PLACEMENT_CLEARANCE` — 12 m is a clearance
+  between vehicles, not the size of a landing pad
+- Keep the units-and-statics probe for what it is good at: another group already parked there
+- A test that fails on the real geometry — a FARP centre 60 m from an escort position must read as
+  occupied. Stubbing `isSpotOccupied` cannot catch this class, which is how it shipped broken
+
 
 Written, unit-tested and shipped in 6.15.11. Waiting on the in-game confirmation on
 `test/veaf-tools/verify-mission-a`, the mission that reproduced it — see

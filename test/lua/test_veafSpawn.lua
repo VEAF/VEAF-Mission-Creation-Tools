@@ -2086,4 +2086,104 @@ function TestConvoyHoldAndStop:test_hold_names_the_point_being_driven_to_not_the
   luaunit.assertNotStrContains(self.said[1], "KOBULETI", "KOBULETI is behind it")
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-CONVOY-MENU-NESTING — the convoy commands sit directly under the spawn root
+--
+-- Each of the six used to get its own submenu holding a single command of the same name, so a pilot
+-- read the same sentence twice and spent two keystrokes on one item: "F4 - Arrêter le convoi le plus
+-- proche sur place" then "F1 - Arrêter le convoi le plus proche sur place". Reported in game
+-- 2026-08-22.
+--
+-- Nothing required it: `veafCarrierOperations` puts several USAGE_ForGroup commands in one shared
+-- submenu, and `convoy_cleanup` in this very block always went straight to the root. The pattern
+-- predated FEAT-CONVOY-WAYPOINTS, so all six moved rather than leaving the menu half-flat.
+--
+-- Pinned by capturing what buildRadioMenu() asks the radio for, not by reading the source: a test that
+-- greps the file would pass on code that never runs.
+-- ---------------------------------------------------------------------------
+TestVeafSpawnConvoyMenuShape = {}
+
+--- The six labels, resolved through the catalog so a renamed key fails here rather than silently.
+local CONVOY_MENU_KEYS = {
+  "menu.spawn.convoy_mark_route",
+  "menu.spawn.convoy_mark",
+  "menu.spawn.convoy_advance",
+  "menu.spawn.convoy_hold",
+  "menu.spawn.convoy_stop",
+  "menu.spawn.convoy_move",
+}
+
+function TestVeafSpawnConvoyMenuShape:setUp()
+  self._addSubMenu = veafRadio.addSubMenu
+  self._addCommand = veafRadio.addCommandToSubmenu
+  self.submenus = {}
+  self.commands = {}
+  local submenus, commands = self.submenus, self.commands
+  veafRadio.addSubMenu = function(title, parent)
+    table.insert(submenus, { title = title, parent = parent })
+    return { title }
+  end
+  veafRadio.addCommandToSubmenu = function(title, parent, method, parameters, usage)
+    table.insert(commands, { title = title, parent = parent, usage = usage })
+  end
+  veafSpawn.buildRadioMenu()
+end
+
+function TestVeafSpawnConvoyMenuShape:tearDown()
+  veafRadio.addSubMenu = self._addSubMenu
+  veafRadio.addCommandToSubmenu = self._addCommand
+end
+
+--- The command carrying `title`, or nil.
+function TestVeafSpawnConvoyMenuShape:_command(title)
+  for _, entry in ipairs(self.commands) do
+    if entry.title == title then
+      return entry
+    end
+  end
+  return nil
+end
+
+function TestVeafSpawnConvoyMenuShape:test_each_convoy_command_hangs_off_the_spawn_root()
+  for _, key in ipairs(CONVOY_MENU_KEYS) do
+    local title = veaf.t(key)
+    local command = self:_command(title)
+    luaunit.assertNotNil(command, "no command registered for " .. key)
+    luaunit.assertEquals(command.parent, veafSpawn.rootPath, key .. " is not on the spawn root")
+  end
+end
+
+function TestVeafSpawnConvoyMenuShape:test_no_submenu_is_created_just_to_hold_one_of_them()
+  -- The exact regression: a submenu whose title is a convoy command's own label.
+  for _, key in ipairs(CONVOY_MENU_KEYS) do
+    local title = veaf.t(key)
+    for _, submenu in ipairs(self.submenus) do
+      luaunit.assertNotEquals(submenu.title, title, "a submenu was created for " .. key)
+    end
+  end
+end
+
+function TestVeafSpawnConvoyMenuShape:test_they_stay_group_scoped()
+  -- USAGE_ForGroup is what makes the command act on the caller's convoy. Losing it while flattening
+  -- would break all six silently rather than visibly, which is worse than the nesting ever was.
+  for _, key in ipairs(CONVOY_MENU_KEYS) do
+    local command = self:_command(veaf.t(key))
+    luaunit.assertEquals(command.usage, veafRadio.USAGE_ForGroup, key .. " lost its group scope")
+  end
+end
+
+function TestVeafSpawnConvoyMenuShape:test_hold_and_stop_remain_adjacent()
+  -- Their labels have to be readable against one another: that is where a game master confuses
+  -- "finish the leg then wait" with "stop right here".
+  local order = {}
+  for index, entry in ipairs(self.commands) do
+    order[entry.title] = index
+  end
+  local hold = order[veaf.t("menu.spawn.convoy_hold")]
+  local stop = order[veaf.t("menu.spawn.convoy_stop")]
+  luaunit.assertNotNil(hold)
+  luaunit.assertNotNil(stop)
+  luaunit.assertEquals(stop - hold, 1, "hold and stop drifted apart in the menu")
+end
+
 os.exit(luaunit.LuaUnit.run())

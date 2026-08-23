@@ -7,6 +7,53 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.32] — 2026-08-23
+
+### Fixed
+
+- **A `module_settings:` value was silently overwritten by the module block below it.** The generator
+  wrote `veafSkynet.DynamicSpawn = <bool>` on every build, from a `False` default, immediately before
+  `initialize()`. A mission setting the same variable through the migration hatch got it written ~145
+  lines earlier and undone without a word — the setting was visibly present in the generated Lua, and
+  inert.
+
+  It broke `verify-mission-c`, the mission whose job is to verify that very feature, from 2026-08-20
+  until it was found on 2026-08-22: its Skynet checks ran with dynamic spawn off and would have reported
+  the documented default as a measurement.
+
+  The line is now emitted only when `dynamic_spawn` is actually given, the way `veaf.SecurityDisabled`
+  already was. Not emitting it is safe rather than a behaviour change: `veafSkynet.lua` declares the
+  same `false` default. An explicit `dynamic_spawn: false` is a statement and still wins.
+
+  A `module_settings:` key a module block assigns again is now **reported** at build time. That silence
+  cost more than the wrong value did.
+
+- **The validator passed missions the DCS Mission Editor refuses to open.** `ETA_locked` and
+  `speed_locked` appeared nowhere in it, so `mission validate` reported "no defect" on `verify-mission-a`
+  seconds before the editor rejected it with *"All waypoints (2-2) have locked speed and surrounded by
+  waypoints 1 and 2 with locked time!"*.
+
+  Both shapes are now reported, naming the group and the waypoint and saying which flag to clear: a
+  locked speed between locked times, and its symmetric twin — a route with no locked time at all, which
+  `FIX-WAYPOINTS-ETA-LOCKED` taught the MCP to repair on its own edits while leaving the validator blind
+  to it in data it did not write. Verified end to end by re-introducing the real defect into
+  `verify-mission-a` and watching `validate` name it.
+
+- **Six convoy radio commands, each alone inside its own submenu.** Two keystrokes for one item, with the
+  second menu repeating the label of the first — *"F4 - Arrêter le convoi le plus proche sur place"* then
+  *"F1 - Arrêter le convoi le plus proche sur place"*. Reported in game.
+
+  Nothing required the nesting: `veafCarrierOperations` puts several group-scoped commands in one shared
+  submenu, and `convoy_cleanup` in the same block always went straight to the root. The pattern predated
+  `FEAT-CONVOY-WAYPOINTS` — the two mark commands were already written this way and the four itinerary
+  commands copied their neighbour — so all six moved together rather than leaving the menu half-flat.
+
+  A test captures what `buildRadioMenu()` asks the radio for, rather than grepping the source, and pins
+  that the commands stay group-scoped and that `hold` and `stop` stay adjacent — their labels have to be
+  readable against one another.
+
+---
+
 ## [6.15.31] — 2026-08-22
 
 ### Fixed

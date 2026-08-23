@@ -927,40 +927,62 @@ function veafSpawn.buildRadioMenu()
       nil,
       veafRadio.USAGE_ForGroup
     )
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_mark_route"), veafSpawn.rootPath)
+    -- FIX-CONVOY-MENU-NESTING: these six sit **directly** under the spawn root. Each used to get
+    -- its own submenu holding a single command of the same name, so a pilot read the same sentence
+    -- twice and spent two keystrokes to reach one item. Reported in game 2026-08-22.
+    --
+    -- Nothing required the nesting: `veafCarrierOperations` puts several `USAGE_ForGroup` commands
+    -- in one shared submenu, and `convoy_cleanup` below has always been added straight to the root.
+    -- The pattern predates FEAT-CONVOY-WAYPOINTS — `convoy_mark` and `convoy_mark_route` were
+    -- already written this way and the itinerary commands copied their neighbour — so all six moved
+    -- together rather than leaving the menu half-flat.
+    --
+    -- The order is deliberate: mark, then the four itinerary verbs as a game master reaches for them
+    -- — push it on, park it at the next point, halt it on the spot, send it off again. `hold` and
+    -- `stop` stay adjacent because their labels have to be readable *against* one another, which is
+    -- where the two get confused.
     veafRadio.addCommandToSubmenu(
       veaf.t("menu.spawn.convoy_mark_route"),
-      menuPath,
+      veafSpawn.rootPath,
       veafSpawn.markClosestConvoyRouteWithSmoke,
       nil,
       veafRadio.USAGE_ForGroup
     )
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_mark"), veafSpawn.rootPath)
     veafRadio.addCommandToSubmenu(
       veaf.t("menu.spawn.convoy_mark"),
-      menuPath,
+      veafSpawn.rootPath,
       veafSpawn.markClosestConvoyWithSmoke,
       nil,
       veafRadio.USAGE_ForGroup
     )
-    -- FEAT-CONVOY-WAYPOINTS: four commands, in the order a game master reaches for them — push it on,
-    -- park it at the next point, halt it on the spot, send it off again. `hold` and `stop` sit next to
-    -- each other on purpose: their labels have to be readable *against* one another, since that is
-    -- where the two get confused.
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_advance"), veafSpawn.rootPath)
     veafRadio.addCommandToSubmenu(
       veaf.t("menu.spawn.convoy_advance"),
-      menuPath,
+      veafSpawn.rootPath,
       veafSpawn.advanceClosestConvoy,
       nil,
       veafRadio.USAGE_ForGroup
     )
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_hold"), veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_hold"), menuPath, veafSpawn.holdClosestConvoy, nil, veafRadio.USAGE_ForGroup)
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_stop"), veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_stop"), menuPath, veafSpawn.stopClosestConvoy, nil, veafRadio.USAGE_ForGroup)
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_move"), veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_move"), menuPath, veafSpawn.moveClosestConvoy, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_hold"),
+      veafSpawn.rootPath,
+      veafSpawn.holdClosestConvoy,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_stop"),
+      veafSpawn.rootPath,
+      veafSpawn.stopClosestConvoy,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_move"),
+      veafSpawn.rootPath,
+      veafSpawn.moveClosestConvoy,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
     veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.spawn.convoy_cleanup"), veafSpawn.rootPath, veafSpawn.cleanupAllConvoys)
     veafRadio.refreshRadioMenu()
   end

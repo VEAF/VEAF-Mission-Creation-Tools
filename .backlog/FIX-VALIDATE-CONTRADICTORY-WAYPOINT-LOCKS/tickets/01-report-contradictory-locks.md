@@ -1,6 +1,6 @@
 # 01 — Report contradictory waypoint locks
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What
 
@@ -21,8 +21,8 @@ Use that data as the fixture — it is real DCS-rejected data, worth more than a
 
 ## Done when
 
-- [ ] The check names the **group** and the **waypoint index**, and says which flag to clear
-- [ ] It runs as part of `mission validate`, before a build rather than in the editor
-- [ ] A route with one locked-time waypoint and locked speeds elsewhere stays **clean** — that is the
+- [x] The check names the **group** and the **waypoint index**, and says which flag to clear
+- [x] It runs as part of `mission validate`, before a build rather than in the editor
+- [x] A route with one locked-time waypoint and locked speeds elsewhere stays **clean** — that is the
       normal shape, and every other route in both verification missions has it. A check that flags the
       normal case is worse than no check

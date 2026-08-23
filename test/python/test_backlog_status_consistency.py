@@ -233,6 +233,30 @@ class TestThePrdAgreesWithItsTickets(unittest.TestCase):
                     drift.append(f"{lot.name}/{ticket.name}: PRD row {rows[number]} vs ticket {_header_status(ticket)}")
         self.assertEqual(drift, [], "a PRD scope table is stale:\n  " + "\n  ".join(drift))
 
+    def test_a_done_lot_has_no_ticket_still_open(self) -> None:
+        """A lot cannot be finished while a ticket of its own says it is not started.
+
+        The gap this closes, found by a reviewer rather than by this file on 2026-08-23: three lots were
+        marked ✅ with every definition-of-done box unticked, and one of them had two tickets still on ⬜.
+        Everything above passed, because each check compared a *pair* that happened to agree — the index
+        matched the PRD header, and the scope table matched the tickets. Nobody compared the header with
+        the tickets, so the whole lot could be consistent and wrong.
+
+        `🚫 wontfix` and `⏸ paused` tickets are fine under a done lot: work can legitimately be dropped
+        or parked while the rest ships. `⬜ ready` and `🔄 in-progress` cannot.
+        """
+        unfinished = {"⬜", "🔄"}
+        drift = []
+        for lot in _active_lots():
+            prd, tickets = lot / "PRD.md", lot / "tickets"
+            if not prd.exists() or _header_status(prd) != "✅" or not tickets.is_dir():
+                continue
+            for ticket in sorted(tickets.glob("*.md")):
+                status = _header_status(ticket)
+                if status in unfinished:
+                    drift.append(f"{lot.name} is ✅ but {ticket.name} is {status}")
+        self.assertEqual(drift, [], "a done lot still has open tickets:\n  " + "\n  ".join(drift))
+
     def test_a_scope_row_names_a_ticket_that_exists(self) -> None:
         dangling = []
         for lot in _active_lots():

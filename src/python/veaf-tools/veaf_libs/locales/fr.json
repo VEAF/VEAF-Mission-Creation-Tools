@@ -591,6 +591,7 @@
   "generated.radio_menu.start": "Démarrer {name}",
   "generated.radio_menu.stop": "Arrêter {name}",
   "generator.dep_auto_resolution_disabled": "Le module '{mod_id}' nécessite '{dep}' mais '{dep}' est désactivé — activation automatique de '{dep}'",
+  "generator.module_setting_shadowed": "module_settings : « {setting} » est écrit ligne {first} puis réassigné ligne {last} par un bloc de module, qui l'emporte. Déplacez le réglage dans la section du module concerné, ou retirez-le ici — en l'état il paraît appliqué et ne l'est pas.",
   "generator.dep_auto_resolution_missing": "Le module '{mod_id}' nécessite '{dep}' qui n'est pas configuré — activation automatique de '{dep}'",
   "group_injector.reading_mission": "Lecture du fichier mission {path}",
   "group_injector.spinner.reading": "Lecture de {path}...",
@@ -1081,5 +1082,7 @@
   "yaml.syntax.quotes_ok": "pas de guillemets",
   "yaml.syntax.quotes_required": "obligatoire — contient :",
   "yaml.syntax.separator": "# ────────────────────────────────────────────────────────────────────────────",
-  "yaml.syntax.title": "# ── Guide rapide de syntaxe YAML ────────────────────────────────────────────"
+  "yaml.syntax.title": "# ── Guide rapide de syntaxe YAML ────────────────────────────────────────────",
+  "validate.route_contradictory_locks": "groupe « {group} » : le waypoint {waypoint} a une vitesse verrouillée entre des waypoints à temps verrouillé — l'éditeur de mission DCS refuse d'enregistrer cette route. Retirez ETA_locked sur les waypoints après le premier, ou speed_locked sur celui-ci.",
+  "validate.route_no_locked_time": "groupe « {group} » : aucun waypoint n'a de temps verrouillé — l'éditeur de mission DCS refuse d'enregistrer cette route. Verrouillez l'heure d'arrivée du premier waypoint."
 }

@@ -1,6 +1,6 @@
 # 01 — Emit the module default only when the field is given
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What
 
@@ -17,8 +17,8 @@ behaviour change.
 
 ## Done when
 
-- [ ] With `dynamic_spawn: true` → the line is emitted as `true` (unchanged)
-- [ ] With `dynamic_spawn: false` → the line is emitted as `false` (unchanged; an explicit off is a
+- [x] With `dynamic_spawn: true` → the line is emitted as `true` (unchanged)
+- [x] With `dynamic_spawn: false` → the line is emitted as `false` (unchanged; an explicit off is a
       statement and must survive a `module_settings` that says otherwise)
-- [ ] With the field absent → **no line at all**, so a `module_settings:` value survives
-- [ ] A generated-Lua test pins all three
+- [x] With the field absent → **no line at all**, so a `module_settings:` value survives
+- [x] A generated-Lua test pins all three

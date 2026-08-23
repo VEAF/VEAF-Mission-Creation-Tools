@@ -1,6 +1,6 @@
 # 02 — Report a `module_settings:` key a module block overwrites
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What
 
@@ -12,8 +12,8 @@ generated Lua, in the file the author would open to check, 145 lines above the l
 
 ## Done when
 
-- [ ] The build reports a `module_settings:` key shadowed by a module block, naming both and which value
+- [x] The build reports a `module_settings:` key shadowed by a module block, naming both and which value
       wins
-- [ ] It is a warning, not an error: shadowing is legitimate while a hatch is being migrated away from
-- [ ] Tested on the real case — `veafSkynet.DynamicSpawn` in `module_settings` alongside
+- [x] It is a warning, not an error: shadowing is legitimate while a hatch is being migrated away from
+- [x] Tested on the real case — `veafSkynet.DynamicSpawn` in `module_settings` alongside
       `SKYNET: {dynamic_spawn: ...}`

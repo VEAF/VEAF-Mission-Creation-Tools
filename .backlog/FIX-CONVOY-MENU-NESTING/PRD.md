@@ -45,8 +45,8 @@ leave the menu half-flat, which is worse than consistent nesting — so all six 
 
 ## Definition of done
 
-- [ ] The six commands sit directly under the spawn root, one keystroke each
-- [ ] `USAGE_ForGroup` is preserved on all six — it is what makes the command act on the caller's group,
+- [x] The six commands sit directly under the spawn root, one keystroke each
+- [x] `USAGE_ForGroup` is preserved on all six — it is what makes the command act on the caller's group,
       and dropping it would break them silently rather than visibly
-- [ ] A test pins the flat shape, so the nested form cannot creep back by copy-paste from an older block
-- [ ] Labels unchanged: this is about depth, not wording
+- [x] A test pins the flat shape, so the nested form cannot creep back by copy-paste from an older block
+- [x] Labels unchanged: this is about depth, not wording

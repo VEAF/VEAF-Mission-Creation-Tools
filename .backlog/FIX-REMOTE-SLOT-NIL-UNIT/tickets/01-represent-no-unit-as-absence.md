@@ -1,6 +1,16 @@
 # 01 — Represent "this player occupies no unit" as absence, on both sides
 
-Status: ⬜ ready
+Status: ✅ done — closed 2026-08-23, the lot shipped and this file was never updated
+
+Closed on evidence rather than on trust, since whoever finished the work is not who is closing it:
+`veafSecurity.getUnitNameForPlayer` returns `nil` (not `"nil"`) when nothing matches
+(`veafSecurity.lua:652-655`), `registerUserSlot` stores the absence as `nil` and clears the previous
+unit's entry, and `test_veafRemote.lua` carries `test_a_unit_actually_named_nil_is_read_as_absence`
+alongside the slot-registration tests. The PRD has been `✅` throughout; only this ticket drifted.
+
+Surfaced by the gate added in `FIX-CONVOY-MENU-NESTING`'s branch, which compares a lot's header with
+its tickets — a pair nothing had been comparing. Every existing check looked at a *different* pair that
+happened to agree, so a lot could be internally consistent and wrong.
 Type: fix
 
 ## The two lines
@@ -53,10 +63,10 @@ fixing both sides rather than one.
 
 ## Definition of done
 
-- [ ] A player leaving his slot leaves no entry in `remoteUnitsPilots`
-- [ ] His identity and level survive in `remoteUsers`
-- [ ] `veafSecurity.getUnitNameForPlayer` returns nil for him, not `"nil"`
-- [ ] Two players leaving their slots in sequence behave identically
-- [ ] The hook sends `""` rather than `"nil"`
-- [ ] The mission handles `nil`, `""` and `"nil"` identically — asserted for all three
-- [ ] Lua tests, including the "old hook, new mission" combination
+- [x] A player leaving his slot leaves no entry in `remoteUnitsPilots`
+- [x] His identity and level survive in `remoteUsers`
+- [x] `veafSecurity.getUnitNameForPlayer` returns nil for him, not `"nil"`
+- [x] Two players leaving their slots in sequence behave identically
+- [x] The hook sends `""` rather than `"nil"`
+- [x] The mission handles `nil`, `""` and `"nil"` identically — asserted for all three
+- [x] Lua tests, including the "old hook, new mission" combination

@@ -1,6 +1,6 @@
 # 02 — Report a route with no locked-time waypoint
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What
 
@@ -13,6 +13,6 @@ edits. It does nothing for a mission whose data came from anywhere else.
 
 ## Done when
 
-- [ ] `mission validate` reports a route with no `ETA_locked` waypoint, naming the group
-- [ ] The message points at the same repair the MCP already applies — lock the departure
-- [ ] The two checks share their route-walking code rather than each finding waypoints their own way
+- [x] `mission validate` reports a route with no `ETA_locked` waypoint, naming the group
+- [x] The message points at the same repair the MCP already applies — lock the departure
+- [x] The two checks share their route-walking code rather than each finding waypoints their own way

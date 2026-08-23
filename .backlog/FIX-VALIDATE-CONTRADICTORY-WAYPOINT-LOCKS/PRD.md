@@ -44,15 +44,15 @@ mission is sound" said it was.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | The validator reports contradictory waypoint locks, naming group and waypoint | ⬜ |
-| 02 | It reports the symmetric case too — a route with no locked-time waypoint | ⬜ |
+| 01 | The validator reports contradictory waypoint locks, naming group and waypoint | ✅ |
+| 02 | It reports the symmetric case too — a route with no locked-time waypoint | ✅ |
 
 ## Definition of done
 
-- [ ] A route whose interior waypoint has `speed_locked` while its neighbours have `ETA_locked` is
+- [x] A route whose interior waypoint has `speed_locked` while its neighbours have `ETA_locked` is
       reported, with the group name and waypoint index, and the message says what to change
-- [ ] A route with no `ETA_locked` at all is reported, matching what `FIX-WAYPOINTS-ETA-LOCKED` already
+- [x] A route with no `ETA_locked` at all is reported, matching what `FIX-WAYPOINTS-ETA-LOCKED` already
       repairs on the MCP side
-- [ ] Both verification missions validate clean, and the fixed `SmokeZone-SmokeArmor` route is a
+- [x] Both verification missions validate clean, and the fixed `SmokeZone-SmokeArmor` route is a
       regression test — it is real DCS-rejected data, which is worth more than a synthetic case
-- [ ] The check runs on `mission validate`, so it is seen before a build rather than in the editor
+- [x] The check runs on `mission validate`, so it is seen before a build rather than in the editor

@@ -55,9 +55,9 @@ above the defect in the same file.
 
 ## Definition of done
 
-- [ ] `veafSkynet.DynamicSpawn` is emitted only when `dynamic_spawn` is explicitly present in the
+- [x] `veafSkynet.DynamicSpawn` is emitted only when `dynamic_spawn` is explicitly present in the
       `SKYNET:` block, matching how `SecurityDisabled` is already handled
-- [ ] A `module_settings:` key that a module block would overwrite is **reported** at build time. Silence
+- [x] A `module_settings:` key that a module block would overwrite is **reported** at build time. Silence
       is what made this expensive: the setting was visibly present and inert
-- [ ] Regression test on the generated Lua: with `module_settings: {veafSkynet.DynamicSpawn: true}` and no
+- [x] Regression test on the generated Lua: with `module_settings: {veafSkynet.DynamicSpawn: true}` and no
       `dynamic_spawn` field, the value reaching `initialize()` is `true`

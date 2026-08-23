@@ -83,3 +83,31 @@ mission-environment global — the hook environment would answer `csar-absent` f
 and — the one line no test can reach otherwise — `land.getSurfaceType` is fed `{x = p.x, y = p.z}`, the
 easting in `y`, per `docs/agents/dcs-coordinates.md`. Passing `p.y` there reads the surface a hundred
 kilometres away and reports it cheerfully.
+
+## Measured in game 2026-08-22 — and the check was wrong, not the code
+
+First real run of these two checks. Both failed with `mode:… surface:3 dry:0`: a survivor sitting in
+the water. The code was fine.
+
+The chunk called **`csar.spawnGroup`**, the raw placement underneath `csar.addCsar` — and
+[`FIX-CSAR-SPAWNS-ON-WATER`](../FIX-CSAR-SPAWNS-ON-WATER/PRD.md) replaces `addCsar`, the function CSAR
+calls on an ejection. So the check reached past the fix to the layer below it, which has never had a
+surface test and was never meant to have one. It reported a regression that did not exist.
+
+How it got that way is worth keeping: the check was written **before** the fix, when the prediction was
+"both will fail", and `spawnGroup` was then the honest thing to call. The fix landed on `addCsar` and
+nobody realigned the check. A reproduction and a regression guard are not the same instrument, and this
+one was left as the former.
+
+Three things changed:
+
+- it goes through `addCsar`, finding the survivor by the new key in `csar.woundedGroups` since
+  `addCsar` returns nothing;
+- the verdict is **per mode**, because the correct answers are opposite: open sea must produce *no*
+  survivor (`lost:1`), a coast must produce one on dry ground. A shared expectation would have to
+  accept one of the two failures, so a half-working rule would always find a green check;
+- cleanup removes the `woundedGroups` entry as well as the group, or the mission keeps announcing a
+  survivor that no longer exists.
+
+Still to do: one run to confirm, which needs `dcs-serve` up and a mission built with `dcs_bridge`,
+`CSAR` and `dynamic_spawn` all enabled — three flags that took the whole session to get into one build.

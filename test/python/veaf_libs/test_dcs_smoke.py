@@ -675,29 +675,70 @@ class TestCsarOverWater:
     def _check(self, name: str) -> smoke.Check:
         return next(c for c in CHECKS if c.name == name)
 
-    def test_a_dry_placement_passes(self):
+    def test_open_sea_passes_only_when_the_survivor_is_lost(self):
+        # David's arbitration on #245: nothing dry within 500 m means he counts as dead. So out at sea
+        # "no survivor" is the correct outcome, and any placement at all is the failure — including a dry
+        # one, which would mean he was moved further than the rule allows.
         check = self._check("csar-avoids-water-open-sea")
-        assert check.expect("mode:open surface:1 dry:1") is True
+        assert check.expect("mode:open lost:1") is True
+        assert check.expect("mode:open lost:0 surface:3 dry:0") is False
+        assert check.expect("mode:open lost:0 surface:1 dry:1") is False
 
-    def test_a_wet_placement_fails(self):
-        check = self._check("csar-avoids-water-open-sea")
-        assert check.expect("mode:open surface:3 dry:0") is False
+    def test_a_coast_passes_only_when_a_survivor_stands_on_dry_ground(self):
+        # The mirror image, and the failure the open-sea check structurally cannot see: with land within
+        # 150 m the pilot is inside the rescue radius, so losing him is a defect, not the rule.
+        check = self._check("csar-avoids-water-coast")
+        assert check.expect("mode:coast lost:0 surface:1 dry:1") is True
+        assert check.expect("mode:coast lost:0 surface:3 dry:0") is False
+        assert check.expect("mode:coast lost:1") is False, "a rescuable pilot was written off"
+
+    def test_the_two_modes_disagree_about_the_same_reply(self):
+        # The point of splitting the verdict. One expectation for both modes would have to accept one of
+        # the two failures, and that is how a half-working rule passes: whichever half it breaks, some
+        # check goes green. Pinned as a property rather than as two separate assertions.
+        lost = "lost:1"
+        assert self._check("csar-avoids-water-open-sea").expect(f"mode:open {lost}") is True
+        assert self._check("csar-avoids-water-coast").expect(f"mode:coast {lost}") is False
+
+    def test_the_measurement_goes_through_addcsar_not_the_raw_placement(self):
+        # This is the defect the 2026-08-22 run exposed. The chunk called `csar.spawnGroup`, the raw
+        # placement *underneath* `csar.addCsar` — and FIX-CSAR-SPAWNS-ON-WATER replaces `addCsar`. So the
+        # check bypassed the fix and reported `surface:3 dry:0` against a working product: a wrong verdict
+        # on a correct behaviour, which is worse than no verdict because it reads as a regression.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert "pcall(csar.addCsar," in lua, f"{name} must exercise the replaced entry point"
+            assert "pcall(csar.spawnGroup," not in lua, f"{name} bypasses the fix it is meant to measure"
+
+    def test_the_survivor_and_csars_bookkeeping_are_both_cleaned_up(self):
+        # Destroying the group alone leaves a woundedGroups entry, and CSAR then announces a survivor
+        # that no longer exists for the rest of the mission — contaminating every later check and every
+        # repeat run.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert "g:destroy()" in lua, f"{name} leaks a CSAR pilot"
+            assert "csar.woundedGroups[name] = nil" in lua, f"{name} leaks a wounded-pilot entry"
 
     def test_every_could_not_ask_answer_fails_rather_than_passing_vacuously(self):
         # The failure mode this whole module is written against: a check that goes green when it never
-        # managed to ask closes #245 on nothing at all.
-        check = self._check("csar-avoids-water-open-sea")
-        for reply in (
-            "csar-absent",
-            "no-airbases",
-            "no-water-found-open",
-            "no-group",
-            "no-unit",
-            "raised: attempt to index a nil value",
-            "",
-            "dry:1",  # untagged: no mode, so not an answer from this check
-        ):
-            assert check.expect(reply) is False, f"{reply!r} must not pass"
+        # managed to ask closes #245 on nothing at all. Swept over both modes, because the open-sea
+        # verdict is the looser of the two and is where a sentinel could slip through.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            check = self._check(name)
+            for reply in (
+                "csar-absent",
+                "no-airbases",
+                "no-water-found-open",
+                "no-group",
+                "no-unit",
+                "raised: attempt to index a nil value",
+                "",
+                "dry:1",  # untagged: no mode, so not an answer from this check
+                "lost:1",  # no mode either: could have come from anywhere
+                "mode:open",  # a mode with no verdict at all
+                "mode:bogus lost:1",
+            ):
+                assert check.expect(reply) is False, f"{name} accepts {reply!r}"
 
     def test_both_positions_are_checked_because_they_ask_different_questions(self):
         # Open sea is the reported case; the coast is the one that tells us whether CSAR goes through
@@ -744,23 +785,32 @@ class TestCsarOverWater:
     def test_a_malformed_or_partial_reply_fails(self):
         # The gap Sourcery found: accepting anything that started with `mode:` and carried `dry:1` meant a
         # truncated bridge reply passed while proving nothing — in the check meant to settle #245.
-        check = self._check("csar-avoids-water-open-sea")
+        #
+        # Asserted against the **coast** check on purpose. Only that mode reads `surface` and `dry` at
+        # all, since open sea is satisfied by `lost:1` alone. Pointed at the open-sea check these replies
+        # would still fail, but for the wrong reason — a missing `lost` rather than the malformed field
+        # each line is here to pin. That is how a rejection test quietly stops testing what it documents.
+        check = self._check("csar-avoids-water-coast")
         for reply in (
-            "mode:bogus dry:1",  # a mode no check emits
-            "mode:open dry:1",  # no surface: nothing was actually read
-            "mode:open surface: dry:1",  # surface present but empty
-            "mode:open surface:water dry:1",  # surface not a number DCS returned
-            "mode:open surface:1 dry:yes",  # verdict not a flag
-            "mode:open surface:1",  # no verdict at all
+            "mode:bogus lost:0 surface:1 dry:1",  # a mode no check emits
+            "mode:coast lost:0 dry:1",  # no surface: nothing was actually read
+            "mode:coast lost:0 surface: dry:1",  # surface present but empty
+            "mode:coast lost:0 surface:water dry:1",  # surface not a number DCS returned
+            "mode:coast lost:0 surface:1 dry:yes",  # verdict not a flag
+            "mode:coast lost:0 surface:1",  # no verdict at all
+            "mode:coast surface:1 dry:1",  # no `lost`: the survivor's fate is unstated
+            "mode:coast lost:maybe surface:1 dry:1",  # `lost` not a flag
             "surface:1 dry:1",  # no mode
         ):
             assert check.expect(reply) is False, f"{reply!r} must not pass"
 
-    def test_both_modes_are_accepted_and_only_those(self):
+    def test_only_the_two_real_modes_are_accepted(self):
+        # The verdict function is shared by both checks, so it must recognise both mode words and no
+        # others — a typo in the generated chunk would otherwise read as a legitimate answer.
         check = self._check("csar-avoids-water-coast")
-        assert check.expect("mode:coast surface:1 dry:1") is True
-        assert check.expect("mode:open surface:1 dry:1") is True, "the verdict is shared by both checks"
-        assert check.expect("mode:lake surface:1 dry:1") is False
+        assert check.expect("mode:coast lost:0 surface:1 dry:1") is True
+        assert check.expect("mode:lake lost:0 surface:1 dry:1") is False
+        assert check.expect("mode:open lost:1") is True, "the verdict is shared by both checks"
 
     def test_the_group_is_destroyed_even_if_a_reading_raises(self):
         # A leaked CSAR pilot contaminates every later check and every repeat run, so the destroy must not

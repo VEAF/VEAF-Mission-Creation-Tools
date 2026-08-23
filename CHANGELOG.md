@@ -11,6 +11,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The two CSAR-over-water checks were measuring the wrong function.** They called
+  `csar.spawnGroup` — the raw placement *underneath* `csar.addCsar`, which is what
+  `FIX-CSAR-SPAWNS-ON-WATER` replaces. So they bypassed the fix entirely and reported
+  `surface:3 dry:0`, a wet pilot, against a working product. Measured in game 2026-08-22, and worse
+  than no verdict, because it reads as a regression.
+
+  They now go through `addCsar`, the entry point CSAR itself uses on an ejection. Since `addCsar`
+  returns nothing, the survivor is found through the new key in `csar.woundedGroups`, and its
+  **absence** is what open sea is supposed to produce.
+
+  The verdict is split accordingly, because the two modes expect **opposite** results — which is
+  David's arbitration on #245: within 500 m of dry ground the survivor is moved there, otherwise he
+  counts as dead. Open sea passes on `lost:1` and fails on any placement; a coast passes only on a
+  survivor standing on dry ground, and a `lost:1` there means a rescuable pilot was written off — the
+  failure the open-sea check structurally cannot see. One expectation for both would have had to accept
+  one of the two failures.
+
+  Cleanup now removes both halves: the DCS group *and* CSAR's `woundedGroups` entry, which would
+  otherwise leave the mission announcing a survivor that no longer exists.
+
 - **The smoke harness's `veaf-loaded` check could not pass.** It read `veaf.MAIN_VERSION`, a field that
   has never existed — the real one is `veaf.BuildVersion`. Lua's `a and b or c` falls through to `c`
   whenever `b` is nil, so the chunk returned its "VEAF is absent" sentinel unconditionally, from

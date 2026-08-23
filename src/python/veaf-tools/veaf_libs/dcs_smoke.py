@@ -187,31 +187,52 @@ _CSAR_WATER_MODES: frozenset[str] = frozenset({"open", "coast"})
 
 
 def _csar_stayed_dry(value: Any) -> bool:
-    """Whether the CSAR pilot was placed on something other than water.
+    """Whether the CSAR survivor ended up where David's arbitration on #245 says he should.
 
     Args:
-        value: The check's reply, ``mode:<open|coast> surface:<id> dry:<0|1>``.
+        value: The check's reply — ``mode:<open|coast> lost:1``, or
+            ``mode:<open|coast> lost:0 surface:<id> dry:<0|1>``.
 
     Returns:
-        ``True`` only for a **complete** answer saying the pilot ended up dry.
+        ``True`` when the outcome matches the rule **for that mode**.
 
-    Everything else is a failure, and that covers three different kinds of "no":
+    The rule has two halves and they expect opposite results, which is why one expectation cannot
+    serve both:
+
+    * **open sea** — nothing dry within 500 m, so no CSAR is created at all: ``lost:1`` is the pass,
+      and a survivor placed anywhere is the failure;
+    * **coast** — dry ground is within reach, so a survivor must exist and stand on it: ``lost:0``
+      with ``dry:1`` is the pass, and ``lost:1`` here means a rescuable pilot was written off.
+
+    Everything else is a failure, covering three kinds of "no":
 
     * the question could not be asked — ``csar-absent``, ``no-water-found-open``, ``no-group``;
-    * the pilot got wet — ``dry:0``;
-    * the reply is **malformed or partial** — ``mode:bogus dry:1``, or a ``mode:open dry:1`` with no
-      surface at all.
+    * the survivor got wet — ``dry:0``;
+    * the reply is **malformed or partial** — ``mode:bogus lost:0``, or a ``lost:0`` with no surface.
 
-    That last kind is the one worth spelling out. An earlier version accepted anything starting with
-    ``mode:`` that carried ``dry:1``, so a truncated or half-populated bridge reply passed while proving
-    nothing — the vacuous pass this whole module is written against, in the check meant to settle #245.
-    Caught in review (Sourcery, PR #785). Every field is now validated: the mode must be one this check
-    actually asked for, the surface must be a number DCS returned, and ``dry`` must be exactly 0 or 1.
+    That last kind is worth spelling out. An earlier version accepted anything starting with ``mode:``
+    that carried ``dry:1``, so a truncated bridge reply passed while proving nothing — the vacuous pass
+    this whole module is written against, in the check meant to settle #245 (Sourcery, PR #785). Every
+    field is validated: the mode must be one this check asked for, ``lost`` must be 0 or 1, and where a
+    survivor exists the surface must be a number DCS returned with ``dry`` exactly 0 or 1.
     """
     if not isinstance(value, str):
         return False
     parts = dict(p.split(":", 1) for p in value.split() if ":" in p)
-    if parts.get("mode") not in _CSAR_WATER_MODES:
+    mode = parts.get("mode")
+    if mode not in _CSAR_WATER_MODES:
+        return False
+    if parts.get("lost") not in {"0", "1"}:
+        return False
+
+    # The two modes have **opposite** correct answers, which is the whole of David's arbitration on
+    # #245: within 500 m of dry ground the survivor is moved there, otherwise he counts as dead. So
+    # open sea must produce no CSAR at all, and a coast must produce one standing on something dry.
+    # A single expectation for both would have to accept one of the two failures.
+    if mode == "open":
+        return parts["lost"] == "1"
+
+    if parts["lost"] == "1":
         return False
     if not parts.get("surface", "").isdigit():
         return False
@@ -263,22 +284,40 @@ def _csar_water_check_lua(mode: str) -> str:
         "end end "
         "if target then break end end "
         f"if not target then return 'no-water-found-{mode}' end "
-        "local ok, g = pcall(csar.spawnGroup, coalition.side.BLUE, country.id.USA, target, nil) "
-        "if not ok then return 'raised: ' .. tostring(g) end "
-        "if not g then return 'no-group' end "
-        # Every post-spawn read happens inside a pcall so the destroy below runs whatever they do. Any of
-        # getUnits / getPoint / getSurfaceType can raise on a group DCS invalidated between the spawn and
-        # the read, and leaving the chunk early would leak a CSAR pilot into the mission — contaminating
-        # every later check and every repeat run. Caught in review (Sourcery, PR #785).
+        # `csar.addCsar`, **not** `csar.spawnGroup`. This is where the whole check turned out to be
+        # measuring the wrong thing: FIX-CSAR-SPAWNS-ON-WATER replaces `addCsar` — the function CSAR
+        # itself calls on an ejection — and `spawnGroup` is the raw placement underneath it, which has
+        # never had a surface test and was never meant to. Calling `spawnGroup` bypassed the fix
+        # entirely, so on 2026-08-22 the harness reported `surface:3 dry:0` against a working product.
+        #
+        # `addCsar` returns nothing (CSAR.lua:368-412); it registers the survivor in
+        # `csar.woundedGroups`, keyed by group name. So the new key is how we find what was created —
+        # and its *absence* is the answer for open sea, where the survivor is deliberately lost.
+        "local before = {} for k in pairs(csar.woundedGroups or {}) do before[k] = true end "
+        "local ok, err = pcall(csar.addCsar, coalition.side.BLUE, country.id.USA, target, "
+        "'F-16C', 'smoke-harness-unit', 'SmokeHarness', nil, true) "
+        "if not ok then return 'raised: ' .. tostring(err) end "
+        "local name for k in pairs(csar.woundedGroups or {}) do if not before[k] then name = k end end "
+        f"if not name then return 'mode:{mode} lost:1' end "
+        # Every post-spawn read happens inside a pcall so the cleanup below runs whatever they do. Any
+        # of getByName / getUnits / getPoint / getSurfaceType can raise on a group DCS invalidated
+        # between the spawn and the read, and leaving the chunk early would leak a CSAR pilot into the
+        # mission — contaminating every later check and every repeat run. (Sourcery, PR #785.)
         "local measured, result = pcall(function() "
+        "local g = Group.getByName(name) "
+        "if not g then return 'no-group' end "
         "local units = g:getUnits() "
         "if not units or not units[1] then return 'no-unit' end "
         # getPoint() is a runtime vec3: its `z` is the easting getSurfaceType wants as `y`.
         "local p = units[1]:getPoint() "
         "local s = land.getSurfaceType({x = p.x, y = p.z}) "
-        f"return 'mode:{mode}"
+        f"return 'mode:{mode} lost:0"
         "' .. ' surface:' .. tostring(s) .. ' dry:' .. tostring((s ~= W and s ~= S) and 1 or 0) end) "
-        "g:destroy() "
+        # Clean up both halves: the DCS group *and* CSAR's bookkeeping. Destroying the group alone
+        # would leave a wounded-pilot entry behind, and CSAR would keep announcing a survivor that no
+        # longer exists for the rest of the mission.
+        "pcall(function() local g = Group.getByName(name) if g then g:destroy() end end) "
+        "csar.woundedGroups[name] = nil "
         "if not measured then return 'raised: ' .. tostring(result) end "
         "return result"
     )
@@ -415,19 +454,21 @@ CHECKS: tuple[Check, ...] = (
         lua=_csar_water_check_lua("open"),
         expect=_csar_stayed_dry,
         why="#245 reports a CSAR pilot spawning in the water, and deciding it needs no aircraft and no "
-        "human: trigger a spawn, read the position back, ask what is under it. FEAT-SMOKE-CSAR-WATER. "
-        "Reading the code says it will fail — csar.spawnGroup places the pilot at a fixed +50/+50 offset "
-        "with no surface test at all — so this is the reproduction, and afterwards the regression guard.",
+        "human: trigger an ejection over open sea and see what became of the survivor. "
+        "FEAT-SMOKE-CSAR-WATER. Per David's arbitration, nothing dry within 500 m means he is lost, so "
+        "'no survivor' is the pass here. Measured 2026-08-22: this check had been calling "
+        "csar.spawnGroup, the raw placement *underneath* the replaced csar.addCsar, so it bypassed "
+        "FIX-CSAR-SPAWNS-ON-WATER and reported a wet pilot against a working product.",
         transport=Transport.BRIDGE,
     ),
     Check(
         name="csar-avoids-water-coast",
         lua=_csar_water_check_lua("coast"),
         expect=_csar_stayed_dry,
-        why="The more interesting half. FEAT-SCENERY-AWARE-SPAWN gave veaf.findSpawnPoint land "
-        "awareness, so the real question is whether CSAR goes through it at all. A pass out at sea with "
-        "a failure near a coast would mean it has its own placement path — which reading the code says "
-        "it does. Measuring it is what turns that reading into evidence.",
+        why="The more interesting half, and the one that can regress silently. With land within 150 m "
+        "the survivor is inside the 500 m rescue radius, so he must exist *and* stand on dry ground. A "
+        "'lost' verdict here would mean a rescuable pilot written off — the failure mode the open-sea "
+        "check cannot see, since losing him is its expected answer.",
         transport=Transport.BRIDGE,
     ),
 )

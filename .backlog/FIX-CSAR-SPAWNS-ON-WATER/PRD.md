@@ -1,6 +1,22 @@
 # FIX-CSAR-SPAWNS-ON-WATER — the downed pilot is placed 50 m away and nobody checks what is there
 
-Status: ✅ done — shipped in 6.15.28
+Status: ✅ done — shipped in 6.15.28, **verified in game 2026-08-22**
+
+Verified by the harness, not by argument:
+
+```
+mode:coast lost:0 surface:1 dry:1 moved:259 radius:500 asked:3 wrapped:1
+mode:open  lost:1
+```
+
+An ejection over water (`asked:3`) with the replacement installed (`wrapped:1`) moved the survivor
+**259 m** — within the **500 m** bound — onto **dry land**. Over open sea he is lost, as arbitrated. Both
+halves of the rule hold.
+
+Getting to that measurement took five runs, all of which failed on the harness rather than on this fix:
+see [`FEAT-SMOKE-CSAR-WATER`](../FEAT-SMOKE-CSAR-WATER/PRD.md). Most instructive of them: the check was
+calling `csar.spawnGroup`, the raw placement *underneath* the `csar.addCsar` this lot replaces, so it
+measured the layer the fix sits on top of and reported a wet pilot against working code.
 
 Follow-up to [`FEAT-SMOKE-CSAR-WATER`](../FEAT-SMOKE-CSAR-WATER/PRD.md), which shipped the assertions
 that measure this. Addresses [#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245).

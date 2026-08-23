@@ -7,6 +7,94 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.31] — 2026-08-22
+
+### Fixed
+
+- **The two CSAR-over-water checks were measuring the wrong function.** They called
+  `csar.spawnGroup` — the raw placement *underneath* `csar.addCsar`, which is what
+  `FIX-CSAR-SPAWNS-ON-WATER` replaces. So they bypassed the fix entirely and reported
+  `surface:3 dry:0`, a wet pilot, against a working product. Measured in game 2026-08-22, and worse
+  than no verdict, because it reads as a regression.
+
+  They now go through `addCsar`, the entry point CSAR itself uses on an ejection. Since `addCsar`
+  returns nothing, the survivor is found through the new key in `csar.woundedGroups`, and its
+  **absence** is what open sea is supposed to produce.
+
+  The verdict is split accordingly, because the two modes expect **opposite** results — which is
+  David's arbitration on #245: within 500 m of dry ground the survivor is moved there, otherwise he
+  counts as dead. Open sea passes on `lost:1` and fails on any placement; a coast passes only on a
+  survivor standing on dry ground, and a `lost:1` there means a rescuable pilot was written off — the
+  failure the open-sea check structurally cannot see. One expectation for both would have had to accept
+  one of the two failures.
+
+  Cleanup now removes both halves: the DCS group *and* CSAR's `woundedGroups` entry, which would
+  otherwise leave the mission announcing a survivor that no longer exists.
+
+- **"Open sea" was defined too weakly to test the rule it was checking.** The check called a spot open
+  sea when its eight neighbours **at 150 m** were all water, while the fix searches for dry ground out
+  to **500 m**. A spot 300 m off a coast satisfied both: the survivor was correctly carried ashore, and
+  the check reported `surface:1 dry:1` as a failure. Measured in game — a correct product called broken,
+  twice in a row, for two different reasons.
+
+  The radius is now **read from the product** (`veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES`) instead of
+  duplicated, and open sea is asserted by sampling rings out to 1.2× it rather than one ring of eight
+  points. A test that copies a distance the product owns drifts from it the moment the product changes.
+
+- **The smoke harness's `veaf-loaded` check could not pass.** It read `veaf.MAIN_VERSION`, a field that
+  has never existed — the real one is `veaf.BuildVersion`. Lua's `a and b or c` falls through to `c`
+  whenever `b` is nil, so the chunk returned its "VEAF is absent" sentinel unconditionally, from
+  2026-08-05 until now, reporting that VEAF was not loaded against missions where it plainly was.
+
+  It surfaced only because `findspawnpoint-exists` answered `function` on the same run: two results side
+  by side, flatly contradictory, and one of them had to be wrong. A check that cannot pass is the same
+  defect class as a check that cannot fail — both return a confident verdict about something they never
+  measured.
+
+  The three outcomes are now distinct instead of collapsed into one word: `veaf-absent` (no table),
+  `veaf-no-version` (table, no build version), or the version itself. Answering "absent" for "present
+  but this one field is missing" is what kept it invisible: it named a cause that was not the cause.
+  Returning the version also makes a mission built from a stale bundle visible in the answer.
+
+- **`verify-mission-c` had CSAR switched off, so the two `csar-avoids-water-*` checks measured nothing.**
+  The note explaining why reasoned backwards: #245 did move that verification off a flying session, but
+  "no pilot needed" is not "no module needed" — both checks call `csar.spawnGroup` in the mission's Lua
+  state and returned `csar-absent`. Enabled, with the reasoning recorded so it does not get switched back.
+
+### Added
+
+- **The CSAR reply now carries its geometry, not just its verdict.** `moved`, `radius`, `asked` and
+  `wrapped` — how far the survivor travelled, the bound it was measured against, the surface under the
+  ejection point, and whether the replacement was installed. Two runs had been spent on a single
+  ambiguous answer, each hypothesis costing a person a DCS reload; these fields settle it in one. A
+  `moved` beyond `radius` is now a failure in its own right, in either mode: the radius *is* the rule.
+
+  The open-sea sweep also widened to **2×** the rescue radius, because the thing under test is not
+  deterministic — `veaf.findSpawnPoint` draws from `Disposition.getSimpleZones` and
+  `mist.getRandPointInCircle`, both random, so near a marginal spot the identical harness answered
+  `lost:0` then `lost:1` with no code change in between. A check that flickers gets ignored.
+
+  Measured **9/9** on 2026-08-22: `mode:open lost:1`, and
+  `mode:coast lost:0 surface:1 dry:1 moved:259 radius:500 asked:3 wrapped:1`. Both
+  `FEAT-SMOKE-CSAR-WATER` and `FIX-CSAR-SPAWNS-ON-WATER` close on it.
+
+- **Every harness chunk is parsed by real Lua 5.1 in the test suite.** The chunks are built by string
+  concatenation, so a missing space between fragments or an unbalanced `end` was a syntax error that
+  surfaced only as a failed check in a live session — one round-trip through someone's DCS to learn what
+  `loadfile` answers instantly. Verified by injecting a stray `end` and watching the test name the check.
+
+- **A sweep refusing any harness check that reads a field the scripts never define**
+  (`test_dcs_smoke.py`). Verified against the real defect: with `MAIN_VERSION` restored, the sweep names
+  it.
+
+  Its own first version was broken in the same spirit and is worth recording. Written through a shell
+  heredoc, its `` became a literal backspace (0x08), so the regex looked for a control character,
+  matched nothing, and the test passed on the very defect it existed for — and a `grep` looked correct,
+  because a terminal renders 0x08 by eating the character before it. The pattern is now asserted
+  explicitly.
+
+---
+
 ## [6.15.30] — 2026-08-22
 
 ### Fixed

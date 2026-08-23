@@ -237,9 +237,12 @@ modules:
   STTS: false
   CTLD: false               # configured in ctld-config.yaml, beside this file (edit it with ctld-tools)
   AIEN: false
-  # OFF here: #245 left the flying session for the smoke harness (a script can read the
-  # spawn point's surface type; no pilot needed), so this mission has no use for CSAR.
-  CSAR: false
+  # ON, and the reasoning that had it OFF was backwards. The note here used to say #245 "left the
+  # flying session for the smoke harness (a script can read the spawn point's surface type; no pilot
+  # needed), so this mission has no use for CSAR" — true about the *pilot*, wrong about the *module*.
+  # The two `csar-avoids-water-*` checks call `csar.spawnGroup` in this mission's Lua state, so with
+  # CSAR off they return `csar-absent` and measure nothing. Observed 2026-08-22.
+  CSAR: true
   HERCULES: false
   # ON for this mission: checks 6 and 7 (#151, #261) are read from the Skynet monitor, and
   # `include_red_in_radio` is what puts the RED network's status and its activate/deactivate

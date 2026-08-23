@@ -13,6 +13,12 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -610,6 +616,40 @@ class TestCheckExpectations:
         # A check whose purpose nobody wrote down is a check nobody dares delete.
         assert all(c.why.strip() for c in CHECKS)
 
+    def test_no_check_asks_for_a_field_the_scripts_never_define(self):
+        # `veaf-loaded` read `veaf.MAIN_VERSION`, which has never existed anywhere in the Lua — the
+        # field is `veaf.BuildVersion`. Lua's `a and b or c` falls through to `c` when `b` is nil, so
+        # the check returned its "VEAF is absent" sentinel *unconditionally*, from 2026-08-05 to
+        # 2026-08-22, against missions where VEAF was plainly loaded. It surfaced only because
+        # `findspawnpoint-exists` answered 'function' on the same run: two results side by side, flatly
+        # contradictory, and one of them had to be wrong.
+        #
+        # A check that cannot pass is the same defect class as a check that cannot fail. Both return a
+        # confident verdict about something they never measured.
+        scripts = Path(__file__).parents[3] / "src" / "scripts" / "veaf"
+        definition = re.compile(r"^\s*(?:function\s+)?(veaf[A-Za-z0-9_]*)[.:]([A-Za-z0-9_]+)\s*(?:\(|=)", re.M)
+        defined: set[tuple[str, str]] = set()
+        for path in sorted(scripts.glob("veaf*.lua")):
+            for match in definition.finditer(path.read_text(encoding="utf-8", errors="replace")):
+                defined.add((match.group(1), match.group(2)))
+        assert len(defined) > 500, "the sweep read far fewer symbols than expected"
+
+        tables = {table for table, _ in defined}
+        reference = re.compile(r"\b(veaf[A-Za-z0-9_]*)\.([A-Za-z0-9_]+)")
+        # Pin the pattern itself. The first version of this line was written through a shell
+        # heredoc that turned `\b` into a literal backspace (0x08), so the regex looked for a
+        # control character, matched nothing, and this test passed on the very defect it exists
+        # for. Invisible at a grep, too: a terminal renders 0x08 by eating the character before
+        # it, so the line looked correct.
+        assert reference.pattern.startswith("\\b"), "the word-boundary escape was mangled"
+        missing: dict[str, list[str]] = {}
+        for check in CHECKS:
+            for match in reference.finditer(check.lua):
+                table, name = match.group(1), match.group(2)
+                if table in tables and (table, name) not in defined:
+                    missing.setdefault(f"{table}.{name}", []).append(check.name)
+        assert missing == {}, f"checks reading fields the scripts never define: {missing}"
+
 
 class TestReport:
     def test_a_skip_reads_as_a_skip(self):
@@ -627,41 +667,133 @@ class TestReport:
         assert "not necessarily a defect" in text
 
 
+class TestEveryChunkCompiles:
+    """Every check's Lua must parse in real Lua 5.1 before it ever reaches DCS.
+
+    The chunks are built by string concatenation, so a missing space between two fragments or an
+    unbalanced `end` is a syntax error that surfaces only as a failed check in a live session — one
+    round-trip through David's DCS to learn something `luac` answers instantly. `poetry run test-lua`
+    already requires the interpreter, so this asks for nothing new.
+    """
+
+    def test_all_of_them(self):
+        lua_binary = shutil.which("lua") or shutil.which("lua5.1")
+        if not lua_binary:
+            pytest.skip("no lua interpreter on PATH")
+        for check in CHECKS:
+            with tempfile.NamedTemporaryFile("w", suffix=".lua", encoding="utf-8", delete=False) as handle:
+                # wrapped in a function so the chunk's `return` statements are legal
+                handle.write("return function() " + check.lua + " end")
+                path = handle.name
+            try:
+                result = subprocess.run(
+                    [lua_binary, "-e", f"local f, e = loadfile([[{path}]]) print(f and 'OK' or e)"],
+                    capture_output=True,
+                    text=True,
+                )
+                answer = (result.stdout or result.stderr).strip()
+                assert answer == "OK", f"{check.name} does not parse: {answer}"
+            finally:
+                os.unlink(path)
+
+
 class TestCsarOverWater:
     """FEAT-SMOKE-CSAR-WATER — #245 answered by an assertion rather than a pilot.
 
-    Deciding whether a CSAR pilot lands in the water needs three scripting calls and no aircraft:
-    trigger the spawn, read the position back, ask what is underneath. These tests cover the parts that
-    are decidable without DCS — the verdict logic and the shape of the chunk. The measurement itself
-    needs a running DCS and is recorded in the lot's PRD.
+    Deciding where a CSAR survivor ends up needs a few scripting calls and no aircraft: trigger an
+    ejection, find the survivor, ask what is underneath. These tests cover the parts that are decidable
+    without DCS — the verdict logic and the shape of the chunk. The measurement itself needs a running
+    DCS and is recorded in the lot's PRD.
     """
 
     def _check(self, name: str) -> smoke.Check:
         return next(c for c in CHECKS if c.name == name)
 
-    def test_a_dry_placement_passes(self):
+    def test_open_sea_passes_only_when_the_survivor_is_lost(self):
+        # David's arbitration on #245: nothing dry within 500 m means he counts as dead. So out at sea
+        # "no survivor" is the correct outcome, and any placement at all is the failure — including a dry
+        # one, which would mean he was moved further than the rule allows.
         check = self._check("csar-avoids-water-open-sea")
-        assert check.expect("mode:open surface:1 dry:1") is True
+        assert check.expect("mode:open lost:1") is True
+        assert check.expect("mode:open lost:0 surface:3 dry:0") is False
+        assert check.expect("mode:open lost:0 surface:1 dry:1") is False
 
-    def test_a_wet_placement_fails(self):
-        check = self._check("csar-avoids-water-open-sea")
-        assert check.expect("mode:open surface:3 dry:0") is False
+    def test_a_coast_passes_only_when_a_survivor_stands_on_dry_ground(self):
+        # The mirror image, and the failure the open-sea check structurally cannot see: with land within
+        # 150 m the pilot is inside the rescue radius, so losing him is a defect, not the rule.
+        check = self._check("csar-avoids-water-coast")
+        assert check.expect("mode:coast lost:0 surface:1 dry:1") is True
+        assert check.expect("mode:coast lost:0 surface:3 dry:0") is False
+        assert check.expect("mode:coast lost:1") is False, "a rescuable pilot was written off"
+
+    def test_the_two_modes_disagree_about_the_same_reply(self):
+        # The point of splitting the verdict. One expectation for both modes would have to accept one of
+        # the two failures, and that is how a half-working rule passes: whichever half it breaks, some
+        # check goes green. Pinned as a property rather than as two separate assertions.
+        lost = "lost:1"
+        assert self._check("csar-avoids-water-open-sea").expect(f"mode:open {lost}") is True
+        assert self._check("csar-avoids-water-coast").expect(f"mode:coast {lost}") is False
+
+    def test_a_rescue_beyond_its_own_radius_fails_in_either_mode(self):
+        # The radius *is* the rule, so exceeding it is a defect whichever mode notices. Tolerant of the
+        # field being absent — an older mission's reply must still parse — but never lenient when it is
+        # present, which is what stops the bound from drifting unnoticed.
+        coast = self._check("csar-avoids-water-coast")
+        assert coast.expect("mode:coast lost:0 surface:1 dry:1 moved:480 radius:500") is True
+        assert coast.expect("mode:coast lost:0 surface:1 dry:1 moved:900 radius:500") is False
+        assert coast.expect("mode:coast lost:0 surface:1 dry:1") is True, "absent field must still parse"
+
+    def test_the_reply_carries_enough_to_tell_two_causes_apart(self):
+        # Written after two round-trips spent on the same reply. `surface:1 dry:1` from the open-sea check
+        # is consistent with two very different stories — a spot the sweep misjudged, or a fix reaching
+        # past its own radius — and the reply could not distinguish them, so each hypothesis cost a run in
+        # someone else's DCS. These fields separate them in one.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert "moved:" in lua, f"{name} does not report how far the survivor travelled"
+            assert "radius:" in lua, f"{name} does not report the bound it was measured against"
+            assert "asked:" in lua, f"{name} does not report the surface at the ejection point"
+            assert "wrapped:" in lua, f"{name} cannot say whether the replacement was installed"
+
+    def test_the_measurement_goes_through_addcsar_not_the_raw_placement(self):
+        # This is the defect the 2026-08-22 run exposed. The chunk called `csar.spawnGroup`, the raw
+        # placement *underneath* `csar.addCsar` — and FIX-CSAR-SPAWNS-ON-WATER replaces `addCsar`. So the
+        # check bypassed the fix and reported `surface:3 dry:0` against a working product: a wrong verdict
+        # on a correct behaviour, which is worse than no verdict because it reads as a regression.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert "pcall(csar.addCsar," in lua, f"{name} must exercise the replaced entry point"
+            assert "pcall(csar.spawnGroup," not in lua, f"{name} bypasses the fix it is meant to measure"
+
+    def test_the_survivor_and_csars_bookkeeping_are_both_cleaned_up(self):
+        # Destroying the group alone leaves a woundedGroups entry, and CSAR then announces a survivor
+        # that no longer exists for the rest of the mission — contaminating every later check and every
+        # repeat run.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert "g:destroy()" in lua, f"{name} leaks a CSAR pilot"
+            assert "csar.woundedGroups[name] = nil" in lua, f"{name} leaks a wounded-pilot entry"
 
     def test_every_could_not_ask_answer_fails_rather_than_passing_vacuously(self):
         # The failure mode this whole module is written against: a check that goes green when it never
-        # managed to ask closes #245 on nothing at all.
-        check = self._check("csar-avoids-water-open-sea")
-        for reply in (
-            "csar-absent",
-            "no-airbases",
-            "no-water-found-open",
-            "no-group",
-            "no-unit",
-            "raised: attempt to index a nil value",
-            "",
-            "dry:1",  # untagged: no mode, so not an answer from this check
-        ):
-            assert check.expect(reply) is False, f"{reply!r} must not pass"
+        # managed to ask closes #245 on nothing at all. Swept over both modes, because the open-sea
+        # verdict is the looser of the two and is where a sentinel could slip through.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            check = self._check(name)
+            for reply in (
+                "csar-absent",
+                "no-airbases",
+                "no-water-found-open",
+                "no-group",
+                "no-unit",
+                "raised: attempt to index a nil value",
+                "",
+                "dry:1",  # untagged: no mode, so not an answer from this check
+                "lost:1",  # no mode either: could have come from anywhere
+                "mode:open",  # a mode with no verdict at all
+                "mode:bogus lost:1",
+            ):
+                assert check.expect(reply) is False, f"{name} accepts {reply!r}"
 
     def test_both_positions_are_checked_because_they_ask_different_questions(self):
         # Open sea is the reported case; the coast is the one that tells us whether CSAR goes through
@@ -674,9 +806,26 @@ class TestCsarOverWater:
         openly = self._check("csar-avoids-water-open-sea").lua
         coast = self._check("csar-avoids-water-coast").lua
         assert openly != coast, "both modes generated the same chunk, so one of them asks nothing"
-        assert "if water_near then" in openly
+        assert "if not dry_in_radius then" in openly
         assert "if land_near then" in coast
         assert "mode:open" in openly and "mode:coast" in coast
+
+    def test_open_sea_is_defined_against_the_rescue_radius_the_product_owns(self):
+        # The 2026-08-22 failure. "Open sea" was eight samples at 150 m, while the fix searches for dry
+        # ground out to 500 m — so a spot 300 m off a coast satisfied both, the survivor was correctly
+        # moved ashore, and the check called that a defect. `surface:1 dry:1` on the open-sea check was a
+        # correct product reported as broken.
+        #
+        # Two properties, and the first matters more: the radius is *read from the product*. A test that
+        # copies a distance the product owns drifts from it the first time the product changes, and the
+        # drift shows up as a false failure nobody trusts.
+        openly = self._check("csar-avoids-water-open-sea").lua
+        assert "veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES" in openly, "the radius must be read, not copied"
+        assert "for rr = 100, R * 2, 100 do" in openly, "one ring cannot prove an absence over an area"
+        # The 2x margin is not padding. `findSpawnPoint` draws random candidates, so near a marginal
+        # spot it succeeds on some runs and not others: the same harness answered `lost:0` then
+        # `lost:1` with no code change in between (2026-08-22). Sampling only out to the radius makes
+        # the check flicker against a correct product.
 
     def test_the_surface_is_read_with_the_easting_in_y(self):
         # docs/agents/dcs-coordinates.md: `land.getSurfaceType` takes a vec2 whose `y` is the easting,
@@ -708,23 +857,32 @@ class TestCsarOverWater:
     def test_a_malformed_or_partial_reply_fails(self):
         # The gap Sourcery found: accepting anything that started with `mode:` and carried `dry:1` meant a
         # truncated bridge reply passed while proving nothing — in the check meant to settle #245.
-        check = self._check("csar-avoids-water-open-sea")
+        #
+        # Asserted against the **coast** check on purpose. Only that mode reads `surface` and `dry` at
+        # all, since open sea is satisfied by `lost:1` alone. Pointed at the open-sea check these replies
+        # would still fail, but for the wrong reason — a missing `lost` rather than the malformed field
+        # each line is here to pin. That is how a rejection test quietly stops testing what it documents.
+        check = self._check("csar-avoids-water-coast")
         for reply in (
-            "mode:bogus dry:1",  # a mode no check emits
-            "mode:open dry:1",  # no surface: nothing was actually read
-            "mode:open surface: dry:1",  # surface present but empty
-            "mode:open surface:water dry:1",  # surface not a number DCS returned
-            "mode:open surface:1 dry:yes",  # verdict not a flag
-            "mode:open surface:1",  # no verdict at all
+            "mode:bogus lost:0 surface:1 dry:1",  # a mode no check emits
+            "mode:coast lost:0 dry:1",  # no surface: nothing was actually read
+            "mode:coast lost:0 surface: dry:1",  # surface present but empty
+            "mode:coast lost:0 surface:water dry:1",  # surface not a number DCS returned
+            "mode:coast lost:0 surface:1 dry:yes",  # verdict not a flag
+            "mode:coast lost:0 surface:1",  # no verdict at all
+            "mode:coast surface:1 dry:1",  # no `lost`: the survivor's fate is unstated
+            "mode:coast lost:maybe surface:1 dry:1",  # `lost` not a flag
             "surface:1 dry:1",  # no mode
         ):
             assert check.expect(reply) is False, f"{reply!r} must not pass"
 
-    def test_both_modes_are_accepted_and_only_those(self):
+    def test_only_the_two_real_modes_are_accepted(self):
+        # The verdict function is shared by both checks, so it must recognise both mode words and no
+        # others — a typo in the generated chunk would otherwise read as a legitimate answer.
         check = self._check("csar-avoids-water-coast")
-        assert check.expect("mode:coast surface:1 dry:1") is True
-        assert check.expect("mode:open surface:1 dry:1") is True, "the verdict is shared by both checks"
-        assert check.expect("mode:lake surface:1 dry:1") is False
+        assert check.expect("mode:coast lost:0 surface:1 dry:1") is True
+        assert check.expect("mode:lake lost:0 surface:1 dry:1") is False
+        assert check.expect("mode:open lost:1") is True, "the verdict is shared by both checks"
 
     def test_the_group_is_destroyed_even_if_a_reading_raises(self):
         # A leaked CSAR pilot contaminates every later check and every repeat run, so the destroy must not

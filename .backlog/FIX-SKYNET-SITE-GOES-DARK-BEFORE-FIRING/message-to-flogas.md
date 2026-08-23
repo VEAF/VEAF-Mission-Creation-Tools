@@ -1,26 +1,6 @@
 # Message pour Flogas — PR Skynet-IADS
 
-Brouillon à relire avant envoi (Discord, probablement le canal Skynet ou en direct).
-`contributing.md` du dépôt demande de passer par Discord **avant** de coder ; la PR est déjà ouverte,
-donc le message l'annonce plutôt qu'il ne la propose. Si tu préfères respecter l'ordre à la lettre, je
-peux repasser la PR en brouillon le temps de la discussion.
-
 ---
-
-## Version courte (si tu veux juste pinguer)
-
-> Salut Flogas ! On a trouvé un bug dans Skynet en creusant des SAM qui lèvent leurs missiles et se
-> rétractent sans tirer. C'est dans `evaluateContacts` : un site déjà allumé est exclu de la liste des
-> sites à informer, donc son `targetsInRange` reste à false et `targetCycleUpdateEnd` l'éteint au cycle
-> suivant — alors que la cible est toujours là. Résultat : allumé/éteint toutes les 5 s.
->
-> PR sur votre fork : https://github.com/regroupement-patrouille/Skynet-IADS/pull/4 — une ligne retirée
-> plus le test de régression qui manquait. Je n'ai pas pu faire tourner votre suite (elle a besoin de DCS
-> avec le .miz de tests), donc à vérifier avant merge — ou je le fais chez nous si ça vous arrange.
-
----
-
-## Version détaillée
 
 Salut Flogas,
 
@@ -55,18 +35,20 @@ Or `informOfContact()` est le **seul** endroit qui met `targetsInRange = true`, 
 actif au cycle suivant, il est filtré ici, jamais informé, son drapeau reste false, et
 `targetCycleUpdateEnd()` l'éteint — cible toujours présente et à portée.
 
-| Cycle | État au départ | Collecté ? | `targetsInRange` | Fin de cycle |
-|---|---|---|---|---|
-| N | éteint | oui | `true` | reste allumé |
-| N+1 | **allumé** | **non — filtré** | `false` | **s'éteint** |
-| N+2 | éteint | oui | `true` | se rallume |
+
+| Cycle | État au départ | Collecté ?       | `targetsInRange` | Fin de cycle |
+| ----- | -------------- | ---------------- | ---------------- | ------------ |
+| N     | éteint         | oui              | `true`           | reste allumé |
+| N+1   | **allumé**     | **non — filtré** | `false`          | **s'éteint** |
+| N+2   | éteint         | oui              | `true`           | se rallume   |
+
 
 C'est une dégradation, pas une panne : radar éteint la moitié du temps, le site finit parfois par tirer.
 C'est probablement pour ça que ça n'a pas été remonté plus tôt.
 
 ### Ce qu'on propose
 
-https://github.com/regroupement-patrouille/Skynet-IADS/pull/4
+[https://github.com/regroupement-patrouille/Skynet-IADS/pull/4](https://github.com/regroupement-patrouille/Skynet-IADS/pull/4)
 
 Retirer le filtre. Le coût est d'un appel `isTargetInRange()` par site allumé et par cycle —
 `informOfContact()` court-circuite dès que le drapeau est vrai, donc un appel, pas un par contact. Le

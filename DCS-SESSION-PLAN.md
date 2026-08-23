@@ -54,35 +54,33 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 | 2a · `#command` retardé meurt avec sa zone | ✅ |
 | 2b · menu porte-avions côté rouge | ✅ |
 | 2c · check 6 — le SAM de la zone rejoint le réseau | ✅ `group added to RED network (3)` après activation, et le SA-6 a abattu l'observateur : il était bien opérationnel dans le réseau |
-| 2c · check 7 — un spawn ne réveille pas un réseau éteint | ⏳ **à refaire** : exécuté correctement, mais l'instrument mesurait à côté — il désactivait par une route que le correctif ne peut pas voir. Corrigé, mission reconstruite |
+| 2c · check 7 — un spawn ne réveille pas un réseau éteint | ✅ `0 actual reactivation(s)` et « nothing has reactivated it since » : le spawn rejoint le réseau, le réseau reste éteint. **Lot fermé** |
 | 2c bis · le cycle allumé/éteint | 🔎 **10 s mesurées** = deux cycles de 5 s, comme prédit depuis le code. Cause dans Skynet, lot déposé |
 | 0bis · SA-6 complet, carte nue, sans script | ✅ **il a tiré** → il n'y a jamais eu de bug SAM dans DCS |
 | 2d · alarme par nature | ✅ pour ce qui était testable : le convoi roule. Les chars n'ont **qu'un waypoint** dans la mission C, donc aucune route — leur immobilité est la donnée, pas un défaut |
 
-### 2c — check 7 : ton test était bon, mon instrument mesurait à côté
+### 2c — check 7 : ✅, après deux fausses lectures dues à mon harnais
 
-Tu as tout fait dans le bon ordre : désactivation, marqueur, lecture. Et l'instrument a affiché
-**« #261 CONFIRMED »**. C'est faux, et c'est mon défaut.
+Résultat final : `0 actual reactivation(s)`, *« DEACTIVATED from this menu, nothing has reactivated it
+since »*, et le groupe spawné bien présent dans le réseau. C'est exactement l'intention de #261. **Lot
+`FIX-SKYNET-DYNAMICSPAWN-SCOPE` fermé**, checks 6 et 7 validés en jeu.
 
-Le correctif de #261 s'appuie sur un drapeau `network.deactivated`, posé par
-**`veafSkynet.deactivateNetwork`** (`veafSkynetIadsHelper.lua:1344`) et inconnu de Skynet lui-même. Or
-mon instrument appelait `iads:deactivate()`, la méthode brute de Skynet. Il éteignait donc le réseau par
-une route que le correctif **ne peut pas voir**, puis rapportait très correctement qu'un spawn l'avait
-réveillé : il mesurait l'absence d'un garde-fou qu'il venait lui-même de contourner. Un produit qui
-marche, déclaré cassé.
+Le `4 delayedActivate` ne contredit rien : le compteur enregistre l'**appel**, et le garde-fou est dedans
+(`if network.deactivated then return end`), donc `_activateIADS` n'est jamais atteint.
 
-Les vraies routes de désactivation passent toutes par l'API VEAF (`deactivateNetwork`,
-`deactivateNetworkOfCoalition`) ; `iads` est un objet interne qu'aucune mission n'atteint. Corrigé : le
-menu passe maintenant par l'API, dans les deux sens.
+**Deux fausses lectures ont précédé la bonne, et les deux venaient de mon harnais** :
 
-Corrigé aussi, le `table: 0000016AB83D4588` que tu as vu à la place du nom : le deuxième argument de
-`addGroupToNetwork` est un **objet groupe DCS**, pas un nom.
+1. le `dynamic_spawn` de la mission était écrasé silencieusement depuis le 20/08 → la mission tournait
+   avec la fonctionnalité coupée ;
+2. le menu désactivait par `iads:deactivate()`, une route que le correctif ne peut pas voir → il a affiché
+   « #261 CONFIRMED » sur un produit qui marche.
 
-Ce que ta liste apprend quand même, et qui est solide : le réseau rouge contenait bien **3 éléments** —
-l'EWR `RedIadsEwr` en radar LIVE, le `RedIadsSa6Static`, et le SA-15 que ton marqueur venait de créer.
-Donc **l'intégration dynamique fonctionne** : c'est le check 6, et il passe.
+Les deux fois, le code avait raison et l'instrument avait tort.
 
-**Mission C reconstruite** — recharge-la pour refaire le check 7.
+**À retenir pour qui refera ce test** : utiliser `-sa6` plutôt que `-samLR`. `-samLR` construit un groupe
+dont **chaque unité est tirée au sort** — un essai a sorti un Tor (Skynet a enregistré un site SAM), le
+suivant seulement un Dog Ear (enregistré comme EWR). Les deux comportements sont corrects, mais un
+échantillon non déterministe rend la question « est-ce qu'un site SAM a rejoint ? » indécidable.
 
 ### 2c bis — la cause du cycle, trouvée dans le code de Skynet
 

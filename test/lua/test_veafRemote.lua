@@ -347,4 +347,49 @@ function TestVeafRemoteSlotWithNoUnit:test_a_unit_actually_named_nil_is_read_as_
   luaunit.assertEquals(veafRemote.remoteUnitsPilots, {})
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-REMOTE-DEAD-MARKER-HANDLER — the module answers no marker text any more
+--
+-- `veafRemote.executeCommand` was deleted on 2026-08-11 with the shared-password marker mechanism
+-- (9a20c50c, the security review), but two references survived it. The one in `initialize` registered
+-- a marker command handler, and `veafMarkers.onEvent` calls every registered handler under `pcall`,
+-- so from that day **any** marker carrying text answered "VEAF: your marker command failed" —
+-- eleven days, reported in game on 2026-08-22 by a pilot dropping a plain annotation.
+--
+-- These pin the absence rather than the presence, which is unusual and deliberate: the supported
+-- path is `registerRemoteModule` / `executeCommandFromRemote`, authenticating a named user instead
+-- of trusting a string typed on the map. Re-adding either symbol would be a security regression, not
+-- a feature. The repo-wide sweep that catches this class lives in
+-- `test/python/test_lua_module_calls_resolve.py`.
+-- ---------------------------------------------------------------------------
+TestVeafRemoteNoMarkerCommands = {}
+
+function TestVeafRemoteNoMarkerCommands:test_executeCommand_is_gone_and_must_stay_gone()
+  luaunit.assertNil(veafRemote.executeCommand, "removed with the shared-password mechanism")
+end
+
+function TestVeafRemoteNoMarkerCommands:test_addNiodCommand_is_gone_too()
+  -- It had no caller, so it never raised; it was the other half of the same unfinished removal.
+  luaunit.assertNil(veafRemote.addNiodCommand, "it only existed to call executeCommand")
+end
+
+function TestVeafRemoteNoMarkerCommands:test_initialize_registers_no_command_handler()
+  local registered = 0
+  local originalRegister = veafCommands and veafCommands.registerCommandHandler
+  if not veafCommands then
+    veafCommands = {}
+  end
+  veafCommands.registerCommandHandler = function()
+    registered = registered + 1
+  end
+  local originalBuild = veafRemote.buildDefaultList
+  veafRemote.buildDefaultList = function() end
+
+  veafRemote.initialize()
+
+  veafRemote.buildDefaultList = originalBuild
+  veafCommands.registerCommandHandler = originalRegister
+  luaunit.assertEquals(registered, 0, "a handler here means marker text is being answered again")
+end
+
 os.exit(luaunit.LuaUnit.run())

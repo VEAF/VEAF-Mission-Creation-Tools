@@ -13,32 +13,44 @@ come first.
 
 ---
 
-## ⚠️ READ FIRST — SAMs do not fire in DCS 2.9.28 (2026-08-20)
+## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)
 
-**Ground SAMs do not engage at all in the current DCS build.** Not a VEAF defect, not a Skynet defect:
-Sharko reproduced it on a bare map with **three SAMs and no scripts whatsoever** — *"j'ai reproduit le
-bug sans script aucun, juste 3 sams sur une carte"* — and reports the same on the BFR server, where
-nothing fires any more. It appeared with the latest DCS update. Measured build here: **2.9.28.26385**.
+**Ground SAMs fire in 2.9.28.26385.** Measured twice on a bare map with no scripts whatsoever:
 
-Tripack's report of silent SAMs in combat zones is the same thing seen from inside a mission. His
-discriminator — works outside a zone, fails inside — looked meaningful and was a coincidence.
-
-**What this blocks, and it is the point of this warning:**
-
-| Item | Why it cannot conclude right now |
+| Control test | Result |
 |---|---|
-| **11** — Skynet checks 6 and 7 | both read whether a SAM joins a network *and behaves*; a SAM that never fires cannot show it |
-| **16** — the combat zone alarm state | its whole point is "the battery must light its radars and engage" |
+| Three **SA-15 (Tor 9A331)**, red, alarm red, ROE fire-at-will | locked and fired |
+| A complete **SA-6** — 2 × `Kub 1S91 str` + 4 × `Kub 2P25 ln` **in one group** — alarm red, ROE fire-at-will | **fired** |
 
-Do **not** read a silent SAM as a regression of ours while this lasts. The convoy half of item 16 is
-still measurable — a convoy either drives or it does not — so that one can be checked and the battery
-half deferred.
+So the theory this page carried for two days — *"ground SAMs do not engage at all in the current DCS
+build"* — was wrong, and the second test is what closes it: the SA-6 is the multi-unit family, the one
+whose launchers depend on a separate tracking radar, and it engages normally.
 
-**Before trusting either item again:** put three SAMs on an empty map with no scripts and fly at them.
-If they fire, DCS is fixed and the items are measurable. If they do not, nothing on this page about SAMs
-means anything.
+### What the first attempt at that test taught, which is the transferable part
 
----
+The SA-6 control test **failed on its first run**: locked, launchers inert. The mission had the six
+vehicles in **six separate groups**, one unit each. In DCS a SAM site *is* a group — the group's
+controller is what hands a target from the radar to a launcher. Four launchers alone have no radar and
+never fire; a lone `1S91` has its own radar and locks perfectly with nothing to command. That is
+precisely what was seen, and it is indistinguishable from "DCS is broken" unless you look at the group
+structure.
+
+Which raises a question worth putting to Sharko rather than assuming: his report was *"j'ai reproduit le
+bug sans script aucun, juste 3 sams sur une carte"*, with no mention of how they were placed. If they
+were dropped as individual units — the natural thing to do when throwing a quick test together — his
+mission had no SAM sites in it at all. **Unverified**, and his to answer.
+
+### What this moves onto us
+
+The cycling seen inside `verify-mission-c` — the SA-6 locks, slews, elevates, then returns to travel
+state, five times, without firing — is therefore **ours**. A site that behaves correctly with no scripts
+and stands down mid-engagement with Skynet running is being switched off by Skynet. See
+[`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md).
+
+It also reopens **Tripack's** report of silent zone SAMs on 6.15.2, which had been filed under "DCS is
+broken for everyone". It never was.
+
+Items **11** and **16** are fully measurable, with no double reading and no caveat.
 
 ## A mission is ready for items 0 and 0b
 
@@ -250,7 +262,11 @@ before the session or the run measures 6.15.7.
 - **Check 6 (#151)** — activate a combat zone holding a standard DCS SAM group, read the Skynet monitor.
   Expected: the SAM joins the red network, as it already did. This one is a **regression check**: the
   path worked, and the lot must not have broken it while making the flag reachable.
-- **Check 7 (#261)** — deactivate the red network, then `-samlr, country russia` by map marker nearby.
+- **Check 7 (#261)** — deactivate the red network **from the VERIFY C radio menu** (`Deactivate RED
+  IADS`), then `-samlr, country russia` by map marker nearby. Both halves matter: without the
+  deactivation a `delayedActivate` per add is the normal behaviour and proves nothing, and without
+  `country russia` the battery is built for USA and joins the **blue** network instead, leaving red
+  untouched. `-samLR` already carries `skynet true`.
   - **Before**: `group added → delayedActivate called → RED IADS REACTIVATED`.
   - **Expected now**: `group added`, and **no** `delayedActivate`, **no** reactivation. The SAM is
     attached; the network stays down. Then `veafSkynet.activateNetworkOfCoalition(coalition.side.RED)`
@@ -336,38 +352,41 @@ In a combat zone holding **both** a SAM battery and a convoy, activate the zone:
 Worth knowing while looking: this is **not** Tripack's report. He saw silent zone SAMs on 6.15.2, which
 predates the AUTO default entirely, so his case is still unexplained and this check does not close it.
 
-## 17. A tag on one unit of a group — `verify-mission-a`, and it is cheap
+## 17. ~~A tag on one unit of a group~~ — withdrawn 2026-08-22, the criterion was wrong
 
 [`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY/PRD.md), 6.15.14.
-Same mission as item 14, so it costs nothing extra once that one is loaded. **Not blocked by the SAM
-problem** — nothing here needs anything to fire.
+Closed on unit coverage instead. **Nothing to do in game.**
 
-`SmokeZone-SmokeArmor` is two M-1 Abrams with a two-point route, and only the **second** unit carries
-`#alarm=2`:
+This check told the tester to activate the zone and watch two M-1 Abrams: *"they stay put"* meant the tag
+had been read, *"they drive off"* meant it had not. David ran it and reported the tanks moving — which
+turns out to be what happens either way.
 
-```
-SmokeZone-SmokeArmor Unit #001
-SmokeZone-SmokeArmor Unit #002 #alarm=2
-```
+`#alarm=2` reduces to `setOption(AI.Option.Ground.id.ALARM_STATE, 2)` in `veaf.readyForCombat`
+(`veaf.lua:2117`), reached from `veafCombatZone.lua:1505`. Nothing on that path immobilises a group. A
+mobile group with a route drives it under RED exactly as under AUTO, so the two states this check meant to
+tell apart are **visually identical for this group**. The observation could not have failed, and could not
+have succeeded either.
 
-Activate `SmokeZone` from the F10 menu and watch those two tanks for 60 seconds:
+What the game would have added is only "DCS honours the option", which is not our code. The part that *is*
+ours — reading a tag off any unit of the group rather than the first one met — is covered by enumerated
+tests over the whole tag family with the tag on the **second** unit
+(`test/lua/test_veafCombatZone.lua:1674`, `:1872`).
 
-- **they stay put** → the tag on unit #002 reached the group. Fix confirmed.
-- **they drive off** towards `(-30220, 407386)` → the tag was ignored and the group fell back to AUTO.
+Also recorded because it cost real time: the zone shows as **"Convoy Test Zone"** in the radio menu, its
+`friendly_name`. `SmokeZone` is the trigger-zone name and appears nowhere a player looks.
 
-Why the route was added on 2026-08-21, since it changes what the mission holds: with a single waypoint
-the group counts as static, so `FIX-COMBATZONE-ALARM-BY-NATURE` already gives it RED and `#alarm=2` was
-indistinguishable from no tag. Both Abrams were tagged before, too, which dodged the very defect the
-check was supposed to expose. Now the default is AUTO and RED can only come from the tag.
-
-While there, `SmokeZone-ConvoyBlue` (3 M 818) still has no tag and must still drive — that is item 2 of
-the mission's own README and the regression to watch.
+The lesson worth keeping is not about alarm states. An in-game check is only worth a session if it can
+**come out both ways**; this one was written from an assumption about DCS behaviour that was never tested,
+and the assumption was wrong. Two waypoints were even added to the group on 2026-08-21 to make the check
+possible — and that hand-copied waypoint is what later broke the mission for the DCS editor
+([`FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS`](.backlog/FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS/PRD.md)).
+The whole cost came from a check that could never conclude.
 
 ## 18. The dispersion nothing has had since 2023 — same mission again
 
 [`FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT`](.backlog/FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT/PRD.md),
-6.15.15. Third check on `verify-mission-a`, after items 14 and 17, so it costs nothing extra. **Not
-blocked by the SAM problem.**
+6.15.15. Third check on `verify-mission-a`, after items 14 and 17, so it costs nothing extra, and
+independent of the SAM question.
 
 `DefaultSpawnRadiusForUnits = 50` was dead from 2023-03-04 to 2026-08-21, so every group of every combat
 zone appeared exactly on its recorded position. It applies again, and the one thing a unit test cannot

@@ -7,6 +7,44 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.31] — 2026-08-22
+
+### Fixed
+
+- **The smoke harness's `veaf-loaded` check could not pass.** It read `veaf.MAIN_VERSION`, a field that
+  has never existed — the real one is `veaf.BuildVersion`. Lua's `a and b or c` falls through to `c`
+  whenever `b` is nil, so the chunk returned its "VEAF is absent" sentinel unconditionally, from
+  2026-08-05 until now, reporting that VEAF was not loaded against missions where it plainly was.
+
+  It surfaced only because `findspawnpoint-exists` answered `function` on the same run: two results side
+  by side, flatly contradictory, and one of them had to be wrong. A check that cannot pass is the same
+  defect class as a check that cannot fail — both return a confident verdict about something they never
+  measured.
+
+  The three outcomes are now distinct instead of collapsed into one word: `veaf-absent` (no table),
+  `veaf-no-version` (table, no build version), or the version itself. Answering "absent" for "present
+  but this one field is missing" is what kept it invisible: it named a cause that was not the cause.
+  Returning the version also makes a mission built from a stale bundle visible in the answer.
+
+- **`verify-mission-c` had CSAR switched off, so the two `csar-avoids-water-*` checks measured nothing.**
+  The note explaining why reasoned backwards: #245 did move that verification off a flying session, but
+  "no pilot needed" is not "no module needed" — both checks call `csar.spawnGroup` in the mission's Lua
+  state and returned `csar-absent`. Enabled, with the reasoning recorded so it does not get switched back.
+
+### Added
+
+- **A sweep refusing any harness check that reads a field the scripts never define**
+  (`test_dcs_smoke.py`). Verified against the real defect: with `MAIN_VERSION` restored, the sweep names
+  it.
+
+  Its own first version was broken in the same spirit and is worth recording. Written through a shell
+  heredoc, its `` became a literal backspace (0x08), so the regex looked for a control character,
+  matched nothing, and the test passed on the very defect it existed for — and a `grep` looked correct,
+  because a terminal renders 0x08 by eating the character before it. The pattern is now asserted
+  explicitly.
+
+---
+
 ## [6.15.29] — 2026-08-22
 
 ### Changed

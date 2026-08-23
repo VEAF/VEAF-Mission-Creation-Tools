@@ -111,7 +111,11 @@ class Result:
 #: than an opaque error. They are **truthy strings**, so any expectation must reject them explicitly —
 #: an early version of the veaf-loaded check used a plain truthiness test and therefore passed in
 #: exactly the situation it existed to catch.
-SENTINELS: frozenset[str] = frozenset({"nil", "veaf-absent", "no-singleton", "not-a-table"})
+#:
+#: `veaf-no-version` splits a case that used to be folded into `veaf-absent`: the table is there but
+#: carries no `BuildVersion`. Collapsing the two is what hid a dead check for eighteen days, since it
+#: reported "VEAF is not loaded" when VEAF was loaded and only the field was wrong.
+SENTINELS: frozenset[str] = frozenset({"nil", "veaf-absent", "veaf-no-version", "no-singleton", "not-a-table"})
 
 #: **A check's Lua must return a string. Always.**
 #:
@@ -347,10 +351,25 @@ CHECKS: tuple[Check, ...] = (
     ),
     Check(
         name="veaf-loaded",
-        lua="return type(veaf) == 'table' and veaf.MAIN_VERSION or 'veaf-absent'",
+        # `veaf.MAIN_VERSION` does not exist and never did — the field is `veaf.BuildVersion`
+        # (veaf.lua:25). Lua's `a and b or c` falls through to `c` whenever `b` is nil, so the old
+        # chunk returned 'veaf-absent' unconditionally: a check that could not pass, live from
+        # 2026-08-05 to 2026-08-22, reporting "VEAF is not loaded" against missions where it plainly
+        # was. Found because `findspawnpoint-exists` answered 'function' on the same run — the two
+        # results were flatly contradictory, and one of them had to be wrong.
+        #
+        # The three outcomes are now distinct instead of collapsed into one word. Answering "absent"
+        # for "present, but this one field is missing" is what kept the defect invisible: it named a
+        # cause that was not the cause.
+        lua=(
+            "if type(veaf) ~= 'table' then return 'veaf-absent' end "
+            "if veaf.BuildVersion == nil then return 'veaf-no-version' end "
+            "return tostring(veaf.BuildVersion)"
+        ),
         expect=_is_truthy,
         why="Sanity: proves the assertions run where the VEAF scripts do, not in an empty "
-        "environment that would make every other check vacuously pass.",
+        "environment that would make every other check vacuously pass. Returns the build version, so "
+        "a mission built from a stale bundle shows in the answer rather than merely passing.",
         transport=Transport.BRIDGE,
     ),
     Check(

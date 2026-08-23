@@ -13,6 +13,8 @@ from __future__ import annotations
 import base64
 import io
 import json
+import re
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -609,6 +611,40 @@ class TestCheckExpectations:
     def test_every_check_records_why_it_exists(self):
         # A check whose purpose nobody wrote down is a check nobody dares delete.
         assert all(c.why.strip() for c in CHECKS)
+
+    def test_no_check_asks_for_a_field_the_scripts_never_define(self):
+        # `veaf-loaded` read `veaf.MAIN_VERSION`, which has never existed anywhere in the Lua — the
+        # field is `veaf.BuildVersion`. Lua's `a and b or c` falls through to `c` when `b` is nil, so
+        # the check returned its "VEAF is absent" sentinel *unconditionally*, from 2026-08-05 to
+        # 2026-08-22, against missions where VEAF was plainly loaded. It surfaced only because
+        # `findspawnpoint-exists` answered 'function' on the same run: two results side by side, flatly
+        # contradictory, and one of them had to be wrong.
+        #
+        # A check that cannot pass is the same defect class as a check that cannot fail. Both return a
+        # confident verdict about something they never measured.
+        scripts = Path(__file__).parents[3] / "src" / "scripts" / "veaf"
+        definition = re.compile(r"^\s*(?:function\s+)?(veaf[A-Za-z0-9_]*)[.:]([A-Za-z0-9_]+)\s*(?:\(|=)", re.M)
+        defined: set[tuple[str, str]] = set()
+        for path in sorted(scripts.glob("veaf*.lua")):
+            for match in definition.finditer(path.read_text(encoding="utf-8", errors="replace")):
+                defined.add((match.group(1), match.group(2)))
+        assert len(defined) > 500, "the sweep read far fewer symbols than expected"
+
+        tables = {table for table, _ in defined}
+        reference = re.compile(r"\b(veaf[A-Za-z0-9_]*)\.([A-Za-z0-9_]+)")
+        # Pin the pattern itself. The first version of this line was written through a shell
+        # heredoc that turned `\b` into a literal backspace (0x08), so the regex looked for a
+        # control character, matched nothing, and this test passed on the very defect it exists
+        # for. Invisible at a grep, too: a terminal renders 0x08 by eating the character before
+        # it, so the line looked correct.
+        assert reference.pattern.startswith("\\b"), "the word-boundary escape was mangled"
+        missing: dict[str, list[str]] = {}
+        for check in CHECKS:
+            for match in reference.finditer(check.lua):
+                table, name = match.group(1), match.group(2)
+                if table in tables and (table, name) not in defined:
+                    missing.setdefault(f"{table}.{name}", []).append(check.name)
+        assert missing == {}, f"checks reading fields the scripts never define: {missing}"
 
 
 class TestReport:

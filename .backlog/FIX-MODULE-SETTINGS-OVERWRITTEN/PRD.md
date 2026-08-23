@@ -1,6 +1,6 @@
 # FIX-MODULE-SETTINGS-OVERWRITTEN — a module default silently overwrites `module_settings:`
 
-Status: ⬜ ready
+Status: ✅ done — shipped in 6.15.32
 
 Found on 2026-08-22, auditing the DCS session checks for whether they could conclude. This one could
 not — and it would have reported a verdict anyway.

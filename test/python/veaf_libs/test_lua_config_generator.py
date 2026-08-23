@@ -207,11 +207,71 @@ def test_skynet_dynamic_spawn_reaches_the_generated_config():
     assert "veafSkynet.DynamicSpawn = true" in lua
 
 
-def test_skynet_dynamic_spawn_defaults_to_false():
-    """It arms a birth-event handler on every spawn of the mission, so it is opt-in."""
+def test_skynet_dynamic_spawn_is_not_written_when_the_field_is_absent():
+    """FIX-MODULE-SETTINGS-OVERWRITTEN — the line used to be emitted from the default, and that broke
+    the `module_settings:` hatch.
+
+    It arms a birth-event handler on every spawn of the mission, so it stays opt-in — but the *default*
+    now comes from `veafSkynet.lua`, which already declares `veafSkynet.DynamicSpawn = false`. Writing
+    it here from a Python default meant a mission setting the same variable through `module_settings:`
+    had it silently overwritten ~145 lines later, immediately before `initialize()`. That is what ran
+    `verify-mission-c` with the feature off for two days while its own Skynet checks claimed to measure
+    it.
+
+    So the assertion is about **absence**: no line at all, which leaves the Lua default in place and
+    lets the hatch survive.
+    """
     yaml_data: dict = {"external_modules": {"skynet": {"enabled": True}}}
     lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.DynamicSpawn" not in lua
+    # the block itself must still be there — this is not "Skynet stopped being configured"
+    assert "veafSkynet.initialize(" in lua
+
+
+def test_skynet_dynamic_spawn_false_is_written_when_stated():
+    """An explicit `false` is a statement, not a default, and must still beat a `module_settings:` line.
+
+    The distinction is the whole point of the fix: silence means "I did not say", and a written `false`
+    means "I said off". Collapsing the two is what made the defect invisible.
+    """
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "dynamic_spawn": False}}}
+    lua = generate_config_lua(yaml_data)
     assert "veafSkynet.DynamicSpawn = false" in lua
+
+
+def test_a_module_settings_key_a_module_block_overwrites_is_reported(caplog):
+    """The silence was the defect, more than the wrong value.
+
+    The setting appeared in the generated Lua, in the very file an author would open to check, 145 lines
+    above the line that undid it. A build that says nothing there is a build that lets someone conclude
+    the opposite of the truth.
+    """
+    import logging
+
+    yaml_data: dict = {
+        "module_settings": {"veafSkynet.DynamicSpawn": True},
+        "external_modules": {"skynet": {"enabled": True, "dynamic_spawn": False}},
+    }
+    with caplog.at_level(logging.WARNING):
+        lua = generate_config_lua(yaml_data)
+
+    # the module block still wins — the warning explains, it does not change the outcome
+    assert lua.rindex("veafSkynet.DynamicSpawn = false") > lua.index("veafSkynet.DynamicSpawn = true")
+    assert "veafSkynet.DynamicSpawn" in caplog.text
+    assert "module_settings" in caplog.text
+
+
+def test_a_module_settings_key_nothing_overwrites_is_not_reported(caplog):
+    """A warning that fires on correct missions gets ignored, and takes the real ones with it."""
+    import logging
+
+    yaml_data: dict = {
+        "module_settings": {"veafSkynet.DelayForStartup": 5},
+        "external_modules": {"skynet": {"enabled": True, "dynamic_spawn": True}},
+    }
+    with caplog.at_level(logging.WARNING):
+        generate_config_lua(yaml_data)
+    assert "DelayForStartup" not in caplog.text
 
 
 def test_skynet_dynamic_spawn_is_set_before_initialize():

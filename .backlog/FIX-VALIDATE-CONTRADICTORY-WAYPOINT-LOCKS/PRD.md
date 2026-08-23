@@ -1,6 +1,6 @@
 # FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS — the validator passes a mission DCS refuses to save
 
-Status: ⬜ ready
+Status: ✅ done — shipped in 6.15.32
 
 Found on 2026-08-22 the only way it could be found: David opened `verify-mission-a` in the DCS editor and
 got a red box refusing to save it.

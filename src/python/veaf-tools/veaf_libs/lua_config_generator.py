@@ -1236,6 +1236,42 @@ def enabled_module_config(mission_yaml: dict, module_id: str) -> dict | None:
     return config if _get_module_enabled(config, True) else None
 
 
+def _warn_on_shadowed_module_settings(module_settings: Mapping[str, object], lines: Sequence[str]) -> None:
+    """Report any `module_settings:` key a later module block assigns again.
+
+    Args:
+        module_settings: The mission's `module_settings:` mapping, possibly empty.
+        lines: The generated Lua, in order.
+
+    The cost of this class of defect is not the wrong value — it is that the setting *looks* applied.
+    `verify-mission-c` set `veafSkynet.DynamicSpawn` through this hatch and the Skynet block reassigned
+    it 145 lines further down, immediately before `initialize()`. The author could open the generated
+    Lua, find their line, and be wrong; the mission ran with the feature off for two days and its own
+    verification checks would have reported the default as a measurement.
+
+    Reads the emitted Lua rather than a list of known blocks, so a block added later is covered without
+    anyone remembering to update a list here. A warning rather than an error: shadowing is legitimate
+    while a hatch is being migrated away from, and the build must still produce a mission.
+    """
+    if not module_settings:
+        return
+
+    for key in module_settings:
+        name = str(key)
+        # Where the hatch wrote it, and where anything wrote it last.
+        occurrences = [i for i, line in enumerate(lines) if line.strip().startswith(f"{name} =")]
+        if len(occurrences) < 2:
+            continue
+        logger.warning(
+            t(
+                "generator.module_setting_shadowed",
+                setting=name,
+                first=occurrences[0] + 1,
+                last=occurrences[-1] + 1,
+            )
+        )
+
+
 def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
     """Return whether a community script is enabled, matching the build's enable rule.
 
@@ -1607,18 +1643,27 @@ def generate_config_lua(
         debug_red = skynet_cfg.get("debug_red", False)
         include_blue = skynet_cfg.get("include_blue_in_radio", False)
         debug_blue = skynet_cfg.get("debug_blue", False)
-        dynamic_spawn = skynet_cfg.get("dynamic_spawn", False)
         r = "true" if include_red else "false"
         dr = "true" if debug_red else "false"
         b = "true" if include_blue else "false"
         db = "true" if debug_blue else "false"
-        ds = "true" if dynamic_spawn else "false"
         lines.append("-- ── Skynet-IADS ──────────────────────────────────────────────────────────────")
         lines.append("if veafSkynet then")
-        # Set before initialize(): each network is created with this value, and createNetwork reads it
-        # when initialize()'s deferred work runs. Without it, the only way to turn dynamic spawn
-        # integration on was the `module_settings:` migration hatch (#151).
-        lines.append(f"    veafSkynet.DynamicSpawn = {ds}")
+        # Emitted **only when the field is given**, the way `veaf.SecurityDisabled` is handled above.
+        #
+        # It used to be written unconditionally from a `False` default, right before `initialize()`. A
+        # mission that set the same variable through the `module_settings:` hatch got it written ~145
+        # lines earlier and silently undone here — the setting was visibly present in the generated Lua
+        # and inert. That broke `verify-mission-c`, the mission whose job is to verify this very feature,
+        # from 2026-08-20 until it was found on 2026-08-22: its Skynet checks ran with dynamic spawn off
+        # and would have reported the documented default as a measurement.
+        #
+        # Not emitting the line is safe rather than a behaviour change: `veafSkynet.lua` already declares
+        # `veafSkynet.DynamicSpawn = false`, so a mission that never mentions the field keeps that
+        # default. An explicit `dynamic_spawn: false` is a statement and still overrides a hatch.
+        if "dynamic_spawn" in skynet_cfg:
+            ds = "true" if skynet_cfg["dynamic_spawn"] else "false"
+            lines.append(f"    veafSkynet.DynamicSpawn = {ds}")
         lines.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
         lines.append("end")
         lines.append("")
@@ -1648,6 +1693,8 @@ def generate_config_lua(
         lines.append("    TUM.initialize()")
         lines.append("end")
         lines.append("")
+
+    _warn_on_shadowed_module_settings(module_settings, lines)
 
     return "\n".join(lines)
 

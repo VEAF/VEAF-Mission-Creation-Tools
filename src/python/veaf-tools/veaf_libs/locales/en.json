@@ -591,6 +591,7 @@
   "generated.radio_menu.start": "Start {name}",
   "generated.radio_menu.stop": "Stop {name}",
   "generator.dep_auto_resolution_disabled": "Module '{mod_id}' requires '{dep}' but '{dep}' is disabled — auto-enabling '{dep}'",
+  "generator.module_setting_shadowed": "module_settings: '{setting}' is written at line {first} and assigned again at line {last} by a module block, which wins. Move the setting into that module's own section, or remove it here — left as is it looks applied and is not.",
   "generator.dep_auto_resolution_missing": "Module '{mod_id}' requires '{dep}' which is not configured — auto-enabling '{dep}'",
   "group_injector.reading_mission": "Reading mission file {path}",
   "group_injector.spinner.reading": "Reading {path}...",
@@ -1081,5 +1082,7 @@
   "yaml.syntax.quotes_ok": "no quotes needed",
   "yaml.syntax.quotes_required": "required — value contains :",
   "yaml.syntax.separator": "# ────────────────────────────────────────────────────────────────────────────",
-  "yaml.syntax.title": "# ── YAML syntax quick reference ─────────────────────────────────────────────"
+  "yaml.syntax.title": "# ── YAML syntax quick reference ─────────────────────────────────────────────",
+  "validate.route_contradictory_locks": "group '{group}': waypoint {waypoint} has a locked speed between waypoints with locked times — the DCS Mission Editor refuses to save this route. Clear ETA_locked on the waypoints after the first, or clear speed_locked on this one.",
+  "validate.route_no_locked_time": "group '{group}': no waypoint has a locked time — the DCS Mission Editor refuses to save this route. Lock the arrival time of the first waypoint."
 }

@@ -294,10 +294,18 @@ modules:
 #         scalable: true
 
 # ── DCS Bridge ───────────────────────────────────────────────────────────────
-# Optionally inject dcs-bridge.lua as the very first DO SCRIPT FILE trigger.
-# dcs_bridge:
-#   enabled: false
-#   lua_path: null      # optional — auto-download when absent
+# ON for this mission, and it is not optional here: four smoke-harness checks
+# (`veaf-loaded`, `findspawnpoint-exists`, and the two `csar-avoids-water-*`)
+# assert against the **mission** Lua state, which only the bridge reaches. The
+# fiddle hook cannot see the `veaf` global at all.
+#
+# Measured 2026-08-22: with this commented out the four checks failed with
+# "cannot reach dcs-serve", which reads like a server problem and is really a
+# mission that never injected the bridge. Both halves are needed — this flag,
+# and `dcs-serve` running on 127.0.0.1:8080.
+dcs_bridge:
+  enabled: true
+  lua_path: null      # optional — auto-download when absent
 
 # ── Custom scripts ────────────────────────────────────────────────────────────
 # custom_scripts:

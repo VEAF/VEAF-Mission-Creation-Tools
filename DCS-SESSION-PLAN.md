@@ -281,28 +281,50 @@ AUTO. Son cas reste ouvert et ce check ne le referme pas.
 
 ---
 
-## Étape 3 — le banc d'essai CSAR (aucun avion, 2 min)
+## Étape 3 — le banc d'essai CSAR (aucun avion, mais **deux** prérequis)
 
-Avec **DCS lancé et une mission chargée** (n'importe laquelle des deux ci-dessus fait l'affaire),
-depuis le dépôt :
+Mon instruction d'origine — « 2 min, aucun avion » — était incomplète, et le run du 22/08 l'a montré :
+quatre vérifications ont échoué sur *« cannot reach dcs-serve »*, ce qui se lit comme un problème de
+serveur et cachait en réalité **deux** manques.
 
-```bash
-poetry run veaf-tools dcs smoke-test
-```
+| Prérequis | État |
+|---|---|
+| La mission injecte `dcs-bridge.lua` | ❌ `dcs_bridge` était commenté → **corrigé, mission reconstruite** |
+| `dcs-serve` écoute sur `127.0.0.1:8080` | ❌ pas lancé → à toi |
 
-Deux vérifications neuves : `csar-avoids-water-open-sea` et `csar-avoids-water-coast`.
+Les quatre vérifications concernées (`veaf-loaded`, `findspawnpoint-exists` et les deux
+`csar-avoids-water-*`) s'exécutent dans l'état Lua **de la mission**, que seul le pont atteint : le hook
+fiddle ne voit même pas le global `veaf`. Sans les deux moitiés, elles ne peuvent pas s'exécuter — ce
+n'est pas un échec de mesure, c'est une absence de mesure.
 
-- [ ] **Les deux passent** → le correctif #787 prend bien effet en vraie mission. C'est ce qu'on attend
-      maintenant : quand ces vérifications ont été écrites, la prédiction était qu'elles échoueraient
-      *toutes les deux*, et le correctif a inversé ça.
-- [ ] **Un échec** → le remplacement de `csar.addCsar` ne s'applique pas dans une vraie mission, ce
-      qu'aucun test unitaire ne peut me dire. Envoie-moi la sortie.
+Ce que le run a quand même établi, et qui est bon à savoir : les cinq vérifications qui passent par le
+hook sont **vertes**, dont les quatre de `disposition` (`points:30 near_scenery:0`) et le sous-menu par
+coalition.
 
-**Un piège que je te signale avant que tu l'interprètes** : sur la vérification en pleine mer, le pilote
-est maintenant *perdu*, donc il n'y a plus de groupe à inspecter. La vérification peut rapporter
-`no-group`, ce qui est un **succès** pour la règle des 500 m et un **échec** pour l'assertion telle
-qu'elle est écrite. Si tu vois ça, ne cherche pas : dis-le-moi et j'apprends la différence à la
-vérification.
+### La marche à suivre
+
+1. **Lance le serveur**, depuis le dépôt pour qu'il lise le bon `dcs-serve.yaml` (celui qui porte la clé
+   API que le harnais utilise aussi) :
+
+   ```
+   cd D:\dev\_VEAF\VEAF-Mission-Creation-Tools
+   D:\dev\_VEAF\VEAF-dcs-bridge\.venv\Scripts\dcs-serve.cmd
+   ```
+
+   Laisse-le tourner dans son propre terminal.
+
+2. **Recharge `VerifyMissionC_noon.miz`** — celle que tu avais chargée n'avait pas le pont.
+
+3. **Relance le harnais** dans un autre terminal :
+
+   ```
+   poetry run veaf-tools dcs smoke-test
+   ```
+
+- **Les deux `csar-avoids-water-*` passent** → le correctif prend bien effet en vraie mission.
+- **Un échec autre que « cannot reach dcs-serve »** → là c'est une vraie mesure, envoie-moi la sortie.
+- Si tu vois `no-group` sur la haute mer, c'est mon assertion qui est mal écrite : dis-le-moi, ne cherche
+  pas.
 
 ---
 

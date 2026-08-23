@@ -734,6 +734,27 @@ class TestCsarOverWater:
         assert self._check("csar-avoids-water-open-sea").expect(f"mode:open {lost}") is True
         assert self._check("csar-avoids-water-coast").expect(f"mode:coast {lost}") is False
 
+    def test_a_rescue_beyond_its_own_radius_fails_in_either_mode(self):
+        # The radius *is* the rule, so exceeding it is a defect whichever mode notices. Tolerant of the
+        # field being absent — an older mission's reply must still parse — but never lenient when it is
+        # present, which is what stops the bound from drifting unnoticed.
+        coast = self._check("csar-avoids-water-coast")
+        assert coast.expect("mode:coast lost:0 surface:1 dry:1 moved:480 radius:500") is True
+        assert coast.expect("mode:coast lost:0 surface:1 dry:1 moved:900 radius:500") is False
+        assert coast.expect("mode:coast lost:0 surface:1 dry:1") is True, "absent field must still parse"
+
+    def test_the_reply_carries_enough_to_tell_two_causes_apart(self):
+        # Written after two round-trips spent on the same reply. `surface:1 dry:1` from the open-sea check
+        # is consistent with two very different stories — a spot the sweep misjudged, or a fix reaching
+        # past its own radius — and the reply could not distinguish them, so each hypothesis cost a run in
+        # someone else's DCS. These fields separate them in one.
+        for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
+            lua = self._check(name).lua
+            assert "moved:" in lua, f"{name} does not report how far the survivor travelled"
+            assert "radius:" in lua, f"{name} does not report the bound it was measured against"
+            assert "asked:" in lua, f"{name} does not report the surface at the ejection point"
+            assert "wrapped:" in lua, f"{name} cannot say whether the replacement was installed"
+
     def test_the_measurement_goes_through_addcsar_not_the_raw_placement(self):
         # This is the defect the 2026-08-22 run exposed. The chunk called `csar.spawnGroup`, the raw
         # placement *underneath* `csar.addCsar` — and FIX-CSAR-SPAWNS-ON-WATER replaces `addCsar`. So the

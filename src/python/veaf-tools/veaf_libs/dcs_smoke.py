@@ -229,6 +229,13 @@ def _csar_stayed_dry(value: Any) -> bool:
     # #245: within 500 m of dry ground the survivor is moved there, otherwise he counts as dead. So
     # open sea must produce no CSAR at all, and a coast must produce one standing on something dry.
     # A single expectation for both would have to accept one of the two failures.
+    # A rescue that reaches further than its own radius is a failure whichever mode reports it: the
+    # radius *is* the rule. Checked only when the field is present, so a reply from an older mission
+    # still parses — but never skipped when it is, which is what stops the bound from silently drifting.
+    moved, radius = parts.get("moved", ""), parts.get("radius", "")
+    if moved.isdigit() and radius.isdigit() and int(moved) > int(radius):
+        return False
+
     if mode == "open":
         return parts["lost"] == "1"
 
@@ -326,8 +333,19 @@ def _csar_water_check_lua(mode: str) -> str:
         # getPoint() is a runtime vec3: its `z` is the easting getSurfaceType wants as `y`.
         "local p = units[1]:getPoint() "
         "local s = land.getSurfaceType({x = p.x, y = p.z}) "
+        # Report the geometry, not just the verdict. On 2026-08-22 the open-sea check twice answered
+        # `surface:1 dry:1` — a survivor on dry land — and there was no way to tell *why* from the reply:
+        # a spot the sweep misjudged, or a fix reaching past its own radius. These three fields separate
+        # those. `moved` against R says whether the rescue stayed inside its bound, `asked` says what was
+        # under the ejection point the check chose, and `wrapped` says whether our replacement was even
+        # installed. A reply that cannot distinguish two causes costs a round-trip per hypothesis.
+        "local moved = math.floor(math.sqrt((p.x - target.x) ^ 2 + (p.z - target.z) ^ 2) + 0.5) "
+        "local asked = land.getSurfaceType({x = target.x, y = target.z}) "
+        "local wrapped = (csar._veafAddCsarReplaced == true) and 1 or 0 "
         f"return 'mode:{mode} lost:0"
-        "' .. ' surface:' .. tostring(s) .. ' dry:' .. tostring((s ~= W and s ~= S) and 1 or 0) end) "
+        "' .. ' surface:' .. tostring(s) .. ' dry:' .. tostring((s ~= W and s ~= S) and 1 or 0)"
+        " .. ' moved:' .. tostring(moved) .. ' radius:' .. tostring(math.floor(R))"
+        " .. ' asked:' .. tostring(asked) .. ' wrapped:' .. tostring(wrapped) end) "
         # Clean up both halves: the DCS group *and* CSAR's bookkeeping. Destroying the group alone
         # would leave a wounded-pilot entry behind, and CSAR would keep announcing a survivor that no
         # longer exists for the rest of the mission.

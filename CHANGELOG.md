@@ -10,6 +10,29 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.46] — 2026-08-24
+
+### Added
+
+- **veafGroundAI — the fire-adjustment loop.** A battery can now be corrected: `_ground order, name
+  arty-1, order correct; correction 09050` shifts the last point it aimed at by 50 m east and fires
+  again. The correction is written as artillery writes it — three digits of true bearing, then the
+  distance in metres — and corrections compound, so two of them move the aim point twice. An unreadable
+  correction, or one given to a battery with no fire mission in progress, is **refused and announced to
+  the pilot** rather than guessed at. ([#198](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/198),
+  [#57](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/57))
+
+### Fixed
+
+- **veafGroundAI kept two different ideas of "the last target".** One was set when an order was queued,
+  the other once the rounds actually went out, and only the second was used by `fire` with no target.
+  They are now a single remembered aim point, shared by a correction and by a bare `fire` — so an effect
+  mission lands where the correction put the aim, not at the point before it.
+- **`fire` with no target had never been tested with an actual previous target** — only the empty case
+  was. The documented behaviour is now covered.
+
+---
+
 ## [6.15.45] — 2026-08-24
 
 ### Added

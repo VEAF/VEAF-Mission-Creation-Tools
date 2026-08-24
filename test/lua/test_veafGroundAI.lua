@@ -4,6 +4,10 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+-- veafI18n, because the correction loop tells the player what it understood and the tests assert
+-- on that text. Without it veaf.t returns the key and the assertions would pass on a message no
+-- player could read.
+dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafGroundAI.lua")
 
 -- ---------------------------------------------------------------------------
@@ -575,6 +579,344 @@ function TestArtilleryUnitHandlerOOP:test_clearOrders_works()
   self.ah:addOrder("test_order")
   self.ah:clearOrders()
   luaunit.assertNil(self.ah:getCurrentOrder())
+end
+
+-- ===========================================================================
+-- FEAT-ARTILLERY-CONTROL — the fire-adjustment loop (#198, #57)
+--
+-- The arithmetic gets the most tests here for the reason the lot's own PRD gives: a wrong bearing is a
+-- shell in the wrong village. And the convention is the trap rather than the trigonometry — a runtime
+-- vec3 is `{ x = northing, y = altitude, z = easting }`, so mixing x and z raises no error and only
+-- moves the shells. `docs/agents/dcs-coordinates.md` exists because of exactly that.
+-- ===========================================================================
+TestArtilleryCorrectionParsing = {}
+
+function TestArtilleryCorrectionParsing:test_the_form_the_issue_writes()
+  -- `09050` is fifty metres east: three digits of bearing, then the metres.
+  local correction = ArtilleryUnitHandler.parseCorrection("09050")
+  luaunit.assertNotNil(correction)
+  luaunit.assertEquals(correction.bearing, 90)
+  luaunit.assertEquals(correction.distance, 50)
+end
+
+function TestArtilleryCorrectionParsing:test_a_leading_zero_bearing()
+  local correction = ArtilleryUnitHandler.parseCorrection("00075")
+  luaunit.assertEquals(correction.bearing, 0)
+  luaunit.assertEquals(correction.distance, 75)
+end
+
+function TestArtilleryCorrectionParsing:test_a_distance_of_more_than_two_digits()
+  -- Corrections are not all small; the distance takes whatever digits remain.
+  local correction = ArtilleryUnitHandler.parseCorrection("2701500")
+  luaunit.assertEquals(correction.bearing, 270)
+  luaunit.assertEquals(correction.distance, 1500)
+end
+
+function TestArtilleryCorrectionParsing:test_surrounding_spaces_are_tolerated()
+  luaunit.assertEquals(ArtilleryUnitHandler.parseCorrection("  09050 ").distance, 50)
+end
+
+-- ── refusals ────────────────────────────────────────────────────────────────
+-- Rejected rather than guessed. A lenient parser here fires shells at a number nobody typed.
+
+function TestArtilleryCorrectionParsing:test_three_digits_alone_are_not_a_correction()
+  -- A bearing with no distance. Accepting it would have to invent the distance.
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection("090"))
+end
+
+function TestArtilleryCorrectionParsing:test_a_two_digit_bearing_is_refused()
+  -- `9050` would read as bearing 905, and that is the point of requiring three digits: `090` and `90`
+  -- are the same string with different meanings once the distance is appended.
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection("9050"))
+end
+
+function TestArtilleryCorrectionParsing:test_a_bearing_of_360_is_refused()
+  -- Not folded to 0: a player who wrote it meant something, and accepting it silently would hide the
+  -- same typo the next time it reads 361.
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection("360100"))
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection("999100"))
+end
+
+function TestArtilleryCorrectionParsing:test_a_distance_of_zero_is_refused()
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection("0900"))
+end
+
+function TestArtilleryCorrectionParsing:test_anything_that_is_not_digits_is_refused()
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection("090/50"))
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection("east 50"))
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection(""))
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection(nil))
+  luaunit.assertNil(ArtilleryUnitHandler.parseCorrection(9050))
+end
+
+-- ===========================================================================
+-- The offset arithmetic
+-- ===========================================================================
+TestArtilleryShiftPoint = {}
+
+function TestArtilleryShiftPoint:_origin()
+  return { x = 1000, y = 50, z = 2000 }
+end
+
+function TestArtilleryShiftPoint:test_north_moves_the_northing()
+  -- x is the northing. If this test and the next one ever agree, the convention has been mixed up.
+  local shifted = ArtilleryUnitHandler.shiftPoint(self:_origin(), 0, 100)
+  luaunit.assertAlmostEquals(shifted.x, 1100, 0.01)
+  luaunit.assertAlmostEquals(shifted.z, 2000, 0.01)
+end
+
+function TestArtilleryShiftPoint:test_east_moves_the_easting()
+  -- z is the easting, and 090 is east. This is the case #198 writes as its example.
+  local shifted = ArtilleryUnitHandler.shiftPoint(self:_origin(), 90, 100)
+  luaunit.assertAlmostEquals(shifted.x, 1000, 0.01)
+  luaunit.assertAlmostEquals(shifted.z, 2100, 0.01)
+end
+
+function TestArtilleryShiftPoint:test_south_and_west_go_the_other_way()
+  local south = ArtilleryUnitHandler.shiftPoint(self:_origin(), 180, 100)
+  luaunit.assertAlmostEquals(south.x, 900, 0.01)
+  local west = ArtilleryUnitHandler.shiftPoint(self:_origin(), 270, 100)
+  luaunit.assertAlmostEquals(west.z, 1900, 0.01)
+end
+
+function TestArtilleryShiftPoint:test_a_diagonal_splits_the_distance()
+  -- 045 at 100 m is 70.7 m on each axis. A correction that put the whole distance on both would land
+  -- 41 m long, which is inside a battery's own dispersion and therefore invisible in game.
+  local shifted = ArtilleryUnitHandler.shiftPoint(self:_origin(), 45, 100)
+  luaunit.assertAlmostEquals(shifted.x, 1070.71, 0.01)
+  luaunit.assertAlmostEquals(shifted.z, 2070.71, 0.01)
+end
+
+function TestArtilleryShiftPoint:test_the_altitude_is_carried_unchanged()
+  -- Not recomputed: a correction is a horizontal offset, and DCS resolves the ground height itself.
+  luaunit.assertEquals(ArtilleryUnitHandler.shiftPoint(self:_origin(), 123, 456).y, 50)
+end
+
+function TestArtilleryShiftPoint:test_the_original_point_is_not_modified()
+  -- The stored aim point must survive a correction being computed from it, or a second correction
+  -- would compound the first.
+  local origin = self:_origin()
+  ArtilleryUnitHandler.shiftPoint(origin, 90, 100)
+  luaunit.assertEquals(origin.z, 2000)
+end
+
+-- ===========================================================================
+-- The loop itself: fire, correct, fire again
+--
+-- What this pins beyond the arithmetic is the *state*: a correction applies to the battery's last aim
+-- point, and the battery's name is the fire mission's identity. That is not a design invented for this
+-- lot — an order already names its battery (`_ground order, name Sierra23, order "…"`), so a second
+-- registry of mission names would give a player two names for one thing.
+-- ===========================================================================
+TestArtilleryCorrectionLoop = {}
+
+function TestArtilleryCorrectionLoop:setUp()
+  self._savedOutText = trigger.action.outText
+  self.messages = {}
+  trigger.action.outText = function(text, duration)
+    table.insert(self.messages, text)
+  end
+
+  self.handler = ArtilleryUnitHandler:new()
+  self.handler:setName("Sierra23")
+  self.handler.silent = false
+
+  -- Record the orders rather than let them reach a DCS controller.
+  self.orders = {}
+  local test = self
+  self.handler.addOrder = function(_, order)
+    table.insert(test.orders, order)
+  end
+end
+
+function TestArtilleryCorrectionLoop:tearDown()
+  trigger.action.outText = self._savedOutText
+end
+
+function TestArtilleryCorrectionLoop:_lastTarget()
+  return self.orders[#self.orders] and self.orders[#self.orders].parameters.target
+end
+
+function TestArtilleryCorrectionLoop:test_firing_remembers_where_it_aimed()
+  -- The state the module did not keep. Without it a correction has nothing to correct from.
+  self.handler:fireAtCoordinates({ x = 1000, y = 0, z = 2000 }, 10, 50)
+  luaunit.assertNotNil(self.handler.lastAimPoint)
+  luaunit.assertEquals(self.handler.lastAimPoint.x, 1000)
+  luaunit.assertEquals(self.handler.lastAimPoint.z, 2000)
+end
+
+function TestArtilleryCorrectionLoop:test_a_correction_fires_at_the_shifted_point()
+  self.handler:fireAtCoordinates({ x = 1000, y = 0, z = 2000 }, 10, 50)
+  self.handler:correct({ bearing = 90, distance = 50 }, 10, 50)
+  local target = self:_lastTarget()
+  luaunit.assertNotNil(target, "a correction must actually fire")
+  luaunit.assertAlmostEquals(target.x, 1000, 0.01)
+  luaunit.assertAlmostEquals(target.z, 2050, 0.01)
+end
+
+function TestArtilleryCorrectionLoop:test_corrections_compound()
+  -- Two corrections east of 50 m are 100 m east of the original, not 50: each one moves the aim point
+  -- it will correct from next. That is what makes it an adjustment loop rather than a single offset.
+  self.handler:fireAtCoordinates({ x = 1000, y = 0, z = 2000 }, 10, 50)
+  self.handler:correct({ bearing = 90, distance = 50 }, 10, 50)
+  self.handler:correct({ bearing = 90, distance = 50 }, 10, 50)
+  luaunit.assertAlmostEquals(self:_lastTarget().z, 2100, 0.01)
+end
+
+function TestArtilleryCorrectionLoop:test_a_correction_is_announced_with_its_numbers()
+  -- The player has to be able to check what the battery understood; a bare "firing" would hide a
+  -- mistyped bearing until the shells land.
+  self.handler:fireAtCoordinates({ x = 1000, y = 0, z = 2000 }, 10, 50)
+  self.handler:correct({ bearing = 90, distance = 50 }, 10, 50)
+  local message = self.messages[#self.messages]
+  luaunit.assertNotNil(message:find("Sierra23", 1, true), "the battery, by the name the player used")
+  luaunit.assertNotNil(message:find("090", 1, true), "the bearing, three digits: " .. message)
+  luaunit.assertNotNil(message:find("50", 1, true), "the distance: " .. message)
+end
+
+function TestArtilleryCorrectionLoop:test_a_correction_with_no_numbers_uses_the_ranging_defaults()
+  -- `order correct; correction 09050` gives neither `shells` nor `radius`, which is the common case.
+  -- Passing the nils straight through queued an order with no round count at all; the two firing verbs
+  -- both apply their defaults first, so this one must too.
+  self.handler:fireAtCoordinates({ x = 1000, y = 0, z = 2000 }, 40, 100)
+  self.handler:correct({ bearing = 90, distance = 50 })
+  local order = self.orders[#self.orders]
+  luaunit.assertEquals(order.parameters.shells, ArtilleryUnitHandler.FIREFORAIM_SHELLS)
+  luaunit.assertEquals(order.parameters.radius, ArtilleryUnitHandler.FIREFORAIM_RADIUS)
+end
+
+-- ── refusals ────────────────────────────────────────────────────────────────
+
+function TestArtilleryCorrectionLoop:test_correcting_with_no_mission_refuses_and_says_so()
+  -- Firing at the offset alone would put shells wherever the battery happens to stand.
+  self.handler:correct({ bearing = 90, distance = 50 }, 10, 50)
+  luaunit.assertEquals(#self.orders, 0, "nothing may be fired")
+  luaunit.assertEquals(#self.messages, 1, "and the player must be told why")
+end
+
+function TestArtilleryCorrectionLoop:test_an_unreadable_correction_refuses_and_says_so()
+  self.handler:fireAtCoordinates({ x = 1000, y = 0, z = 2000 }, 10, 50)
+  local before = #self.orders
+  self.handler:correct(nil, 10, 50)
+  luaunit.assertEquals(#self.orders, before, "nothing may be fired")
+  luaunit.assertNotNil(self.messages[#self.messages]:find("09050", 1, true), "the message must show the form")
+end
+
+function TestArtilleryCorrectionLoop:test_a_refusal_does_not_move_the_aim_point()
+  -- A refused correction that shifted the state anyway would silently poison the next one.
+  self.handler:fireAtCoordinates({ x = 1000, y = 0, z = 2000 }, 10, 50)
+  self.handler:correct(nil, 10, 50)
+  luaunit.assertEquals(self.handler.lastAimPoint.z, 2000)
+end
+
+function TestArtilleryCorrectionLoop:test_silent_means_silent_but_still_fires()
+  self.handler.silent = true
+  self.handler:fireAtCoordinates({ x = 1000, y = 0, z = 2000 }, 10, 50)
+  self.handler:correct({ bearing = 90, distance = 50 }, 10, 50)
+  luaunit.assertEquals(#self.messages, 0)
+  luaunit.assertAlmostEquals(self:_lastTarget().z, 2050, 0.01)
+end
+
+-- ── the order text ──────────────────────────────────────────────────────────
+
+TestArtilleryOrderParsing = {}
+
+function TestArtilleryOrderParsing:_analyse(text)
+  return veaf.parseMarkerText(text, ArtilleryUnitHandler.OrderSpec)
+end
+
+function TestArtilleryOrderParsing:test_the_correct_verb_is_recognised()
+  local options = self:_analyse("correct; correction 09050")
+  luaunit.assertNotNil(options)
+  luaunit.assertEquals(options.verb, ArtilleryUnitHandler.VERB_CORRECT)
+  luaunit.assertEquals(options.correction.bearing, 90)
+end
+
+function TestArtilleryOrderParsing:test_it_splits_on_semicolons_not_commas()
+  -- This is the only parser in the codebase that splits on ";", which the spec's own comment records.
+  -- A comma-separated order must therefore NOT parse into a correction.
+  local options = self:_analyse("correct, correction 09050")
+  luaunit.assertTrue(options == nil or options.correction == nil, "commas must not work here")
+end
+
+function TestArtilleryOrderParsing:test_the_new_verb_does_not_swallow_the_old_ones()
+  -- The verbs are matched anywhere in the text and the chain's order decides, so adding one can quietly
+  -- capture an existing order. Checked rather than assumed.
+  luaunit.assertEquals(self:_analyse("aim; target 42N001E").verb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+  luaunit.assertEquals(self:_analyse("fire; target 42N001E").verb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+end
+
+function TestArtilleryOrderParsing:test_an_unreadable_correction_reaches_the_handler_as_nil()
+  -- Validated in the parameter rule, like `target` — the only other rule here that checks its own
+  -- input — so a correction the parser cannot read never reaches a gun as a number.
+  local options = self:_analyse("correct; correction east50")
+  luaunit.assertNotNil(options)
+  luaunit.assertNil(options.correction)
+end
+
+-- ===========================================================================
+-- One remembered aim point, shared by the correction and by a bare `fire`
+--
+-- The doc has promised since long before this lot that "`fire` without a target fires again at the last
+-- target aimed at", and only the *empty* case was tested. Unifying the two fields this class kept for
+-- that idea is what exposed it: nothing pinned the populated path at all.
+-- ===========================================================================
+TestArtilleryRemembersOneAimPoint = {}
+
+function TestArtilleryRemembersOneAimPoint:setUp()
+  self.handler = ArtilleryUnitHandler:new()
+  self.handler:setName("Sierra23")
+  self.handler.silent = true
+  self.orders = {}
+  local test = self
+  self.handler.addOrder = function(_, order)
+    table.insert(test.orders, order)
+  end
+end
+
+function TestArtilleryRemembersOneAimPoint:_lastFiredAt()
+  return self.orders[#self.orders] and self.orders[#self.orders].parameters.target
+end
+
+function TestArtilleryRemembersOneAimPoint:test_fire_with_no_target_reuses_the_last_aim_point()
+  -- The documented behaviour, tested at last with an actual previous target.
+  --
+  -- The order **count** is asserted, and that is not belt-and-braces: a first version of this test only
+  -- read the last order, so when the fallback was removed the last order was still the aim order at the
+  -- very same coordinates and the test passed. It asserted that a refusal looks like a success.
+  self.handler:fireForAim({ x = 1000, y = 0, z = 2000 }, 2, 10)
+  self.handler:fireForEffect(nil, 40, 100)
+  luaunit.assertEquals(#self.orders, 2, "the effect mission must have been queued, not refused")
+  local target = self:_lastFiredAt()
+  luaunit.assertEquals(self.orders[2].parameters.shells, 40, "and it must be the effect order")
+  luaunit.assertAlmostEquals(target.x, 1000, 0.01)
+  luaunit.assertAlmostEquals(target.z, 2000, 0.01)
+end
+
+function TestArtilleryRemembersOneAimPoint:test_the_remembered_point_is_a_copy()
+  -- The battery keeps its own copy of the point it was given. Aliasing the caller's table would let
+  -- anything that reuses a vec3 move a fire mission after the fact, and the corrections chained from it.
+  local point = { x = 1000, y = 0, z = 2000 }
+  self.handler:fireForAim(point, 2, 10)
+  point.z = 9999
+  luaunit.assertAlmostEquals(self.handler.lastAimPoint.z, 2000, 0.01)
+end
+
+function TestArtilleryRemembersOneAimPoint:test_a_correction_then_a_bare_fire_agree()
+  -- The point of one field rather than two: the effect lands where the correction put the aim, not at
+  -- the point before it. Two fields would pass every other test in this file and fail exactly here.
+  self.handler:fireForAim({ x = 1000, y = 0, z = 2000 }, 2, 10)
+  self.handler:correct({ bearing = 90, distance = 50 }, 2, 10)
+  self.handler:fireForEffect(nil, 40, 100)
+  luaunit.assertAlmostEquals(self:_lastFiredAt().z, 2050, 0.01)
+end
+
+function TestArtilleryRemembersOneAimPoint:test_an_unreadable_target_leaves_the_aim_point_alone()
+  -- A string of coordinates the module cannot read must not erase what the battery was aiming at, or a
+  -- typo would silently disarm the next correction.
+  self.handler:fireForAim({ x = 1000, y = 0, z = 2000 }, 2, 10)
+  self.handler:fireForAim("not a coordinate", 2, 10)
+  luaunit.assertAlmostEquals(self.handler.lastAimPoint.z, 2000, 0.01)
 end
 
 os.exit(luaunit.LuaUnit.run())

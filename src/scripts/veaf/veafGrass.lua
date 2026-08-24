@@ -62,35 +62,63 @@ veafGrass.FARP_PROP_TYPES = {
 veafGrass.PLACEMENT_BEARING_STEP = 15
 veafGrass.PLACEMENT_CLEARANCE = 12
 
---- How far from a landing platform's centre still counts as "on it", when DCS will not say.
+--- Half-extent used for a landing platform that reports neither a bounding box nor parking spots.
 ---
---- **Measured, not guessed — but only as the fallback.** `Airbase:getParking()` does answer for a FARP
---- (verified on a running DCS, 2026-08-24: `StaticFarpAlpha` reported 4 spots, the furthest 84 m from
---- the centre), so `getLandingPlatforms` derives each platform's radius from its own pads and this value
---- is used only when that call gives nothing.
+--- Every number here was **measured on a running DCS** (2026-08-24, `StaticFarpAlpha`), after two
+--- estimates in a row got it wrong — 80 m first, then 84 m + margin from the pads. Both were right about
+--- the mechanism and wrong about the size, and in play that is indistinguishable from a broken probe.
 ---
---- The first attempt at this lot used 80 m for everything, and 80 m is *below* the 84 m that FARP's
---- furthest pad actually sits at — so an object placed at 81 m was on a pad and passed the check. That is
---- how a fix can be right in mechanism and still fail in play, and why the radius is now read from the
---- platform rather than assumed for all of them.
-veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES = 110
+--- What the measurements actually say:
+---
+--- * `airbase:getDesc().box` → `min/max ±129.5 m`. The platform is a **259 m square**, and this is the
+---   real answer: the apron reaches far past the pads.
+--- * `airbase:getParking()` → 4 spots, furthest **84 m**. Useful, but it only bounds the pads, which is
+---   why calibrating on it left the escort on the apron at ~120 m.
+--- * `land.getSurfaceType` → `LAND` everywhere out to 260 m. The apron is **not** in the terrain data, so
+---   it cannot be found by probing the ground. Recorded so nobody spends an afternoon on it again.
+veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES = 130
 
---- Added to the furthest parking spot to get a platform's radius.
+--- Added to the furthest parking spot when the parking tier is used.
 ---
---- A spot's reported position is its **centre**: the pad extends around it, and a vehicle parked at the
---- edge has its own length. 25 m covers both without reaching into ground that is genuinely free —
---- against the 84 m measured on a FARP it gives 109 m, and the escort is placed 150 m out, so a bearing
---- clear of the platform always exists.
+--- Larger than the edge margin because it compensates for something else: a spot's reported position is
+--- its centre, so the pad extends past it, and the apron extends past the pads. It is a patch on an
+--- estimate, which is why the box tier exists and is preferred.
 veafGrass.PLATFORM_PAD_MARGIN_METRES = 25
 
---- How far this platform's pads reach from its centre, plus a margin.
+--- Added around a platform's extent, for the size of the vehicle being placed.
 ---
---- Prefers the platform's own data: `Airbase:getParking()` reports each spot with a `vTerminalPos`, and
---- the furthest of those is the real extent. That field is **not** in the DCS API schema this repo
---- vendors, which is why it was doubted and then measured: a FARP does report it (4 spots, furthest at
---- 84 m, verified 2026-08-24). Falls back to `PLATFORM_FOOTPRINT_RADIUS_METRES` when the call gives
---- nothing, so a platform type that reports no parking is still avoided.
-function veafGrass.platformRadius(airbase, centre)
+--- A position is where a vehicle's centre goes; an M 818 parked with its nose on the apron is still on
+--- the apron. Small on purpose: the box already covers the platform, and every extra metre eats ground
+--- that is genuinely free.
+veafGrass.PLATFORM_EDGE_MARGIN_METRES = 10
+
+--- The platform's half-extents along each axis, from the best source DCS offers.
+---
+--- Three tiers, best first, because they do not measure the same thing:
+---
+--- 1. **`getDesc().box`** — the model's own bounding box, in object space. For a FARP it is a square
+---    (±129.5 m measured), and a square is rotation-invariant, so its heading can be ignored. For a
+---    non-square platform an axis-aligned box is slightly generous, which errs the safe way.
+--- 2. **`getParking()`** — the furthest pad plus a margin. Bounds the pads only, not the apron, so it is
+---    a fallback rather than the answer.
+--- 3. the flat constant, for a platform type that offers neither.
+---
+--- Returns two half-extents rather than one radius: the thing being avoided is a square apron, and a
+--- circle through its corners would exclude ground that is plainly free.
+function veafGrass.platformExtents(airbase, centre)
+  local box
+  pcall(function()
+    local desc = airbase:getDesc()
+    if type(desc) == "table" and type(desc.box) == "table" and desc.box.min and desc.box.max then
+      box = desc.box
+    end
+  end)
+  if box then
+    local halfX = math.max(math.abs(box.max.x), math.abs(box.min.x)) + veafGrass.PLATFORM_EDGE_MARGIN_METRES
+    local halfZ = math.max(math.abs(box.max.z), math.abs(box.min.z)) + veafGrass.PLATFORM_EDGE_MARGIN_METRES
+    return halfX, halfZ
+  end
+
   local furthest = 0
   pcall(function()
     for _, spot in pairs(airbase:getParking() or {}) do
@@ -104,10 +132,13 @@ function veafGrass.platformRadius(airbase, centre)
       end
     end
   end)
-  if furthest <= 0 then
-    return veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES
+  if furthest > 0 then
+    local half = furthest + veafGrass.PLATFORM_PAD_MARGIN_METRES
+    return half, half
   end
-  return furthest + veafGrass.PLATFORM_PAD_MARGIN_METRES
+
+  local half = veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES
+  return half, half
 end
 
 --- Every landing platform in the mission, as `{ x = northing, z = easting }` runtime points.
@@ -142,11 +173,13 @@ function veafGrass.getLandingPlatforms()
       if isPlatform then
         local point = airbase:getPoint()
         if point then
+          local halfX, halfZ = veafGrass.platformExtents(airbase, point)
           table.insert(platforms, {
             x = point.x,
             z = point.z,
             name = airbase:getName(),
-            radius = veafGrass.platformRadius(airbase, point),
+            halfX = halfX,
+            halfZ = halfZ,
           })
         end
       end
@@ -168,17 +201,20 @@ function veafGrass.isOnLandingPlatform(position, platforms)
     return false
   end
   for _, platform in ipairs(platforms) do
-    -- Each platform carries its own radius, derived from its pads: a single helipad is not a FARP, and
-    -- one number for both is what made the first attempt fail.
-    local radius = platform.radius or veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES
-    local dx, dz = position.x - platform.x, position.y - platform.z
-    local distance = math.sqrt(dx * dx + dz * dz)
-    if distance <= radius then
+    -- A box test, not a radius: the apron is a square, and a circle through its corners would refuse
+    -- ground that is plainly free. Each platform carries its own extents — a single helipad is not a
+    -- FARP, and one number for both is what the first two attempts got wrong.
+    local halfX = platform.halfX or veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES
+    local halfZ = platform.halfZ or veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES
+    local dx, dz = math.abs(position.x - platform.x), math.abs(position.y - platform.z)
+    if dx <= halfX and dz <= halfZ then
       veaf.loggers.get(veafGrass.Id):info(
-        "isOnLandingPlatform: refusing a spot %sm from [%s] (footprint %sm)",
-        veaf.p(math.floor(distance)),
+        "isOnLandingPlatform: refusing a spot %sm/%sm inside [%s] (extents %sm/%sm)",
+        veaf.p(math.floor(dx)),
+        veaf.p(math.floor(dz)),
         veaf.p(platform.name),
-        veaf.p(radius)
+        veaf.p(math.floor(halfX)),
+        veaf.p(math.floor(halfZ))
       )
       return true
     end

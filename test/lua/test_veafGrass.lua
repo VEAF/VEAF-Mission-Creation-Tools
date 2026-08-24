@@ -521,81 +521,121 @@ function TestVeafGrassLandingPlatforms:test_a_bearing_onto_a_platform_is_abandon
 end
 
 -- ---------------------------------------------------------------------------
--- The footprint is read from the platform, not assumed for all of them
+-- The footprint is read from the platform, and from the best source it offers
 --
--- The first attempt used one constant, 80 m, for every platform. Measured on a running DCS on
--- 2026-08-24: `StaticFarpAlpha` reports 4 parking spots, the furthest **84 m** from its centre. So 80 m
--- sat *below* the outermost pad — an object at 81 m was on a pad and passed the check, which is exactly
--- what David saw: the mechanism worked (the log shows refusals out to 75 m and the escort bearing moved
--- from 0° to -45°) and the result was still wrong.
+-- Two estimates in a row got the size wrong before anyone measured. 80 m first — below the 84 m where
+-- that FARP's outermost pad actually sits, so an object at 81 m was on a pad and passed. Then 84 m plus
+-- a margin, which bounds the *pads* and left the escort on the apron at ~120 m. Both were right about
+-- the mechanism: the log showed the probe finding the platform, refusing spots, and moving the escort
+-- bearing from 0° to -45°. In play that is indistinguishable from a probe that sees nothing.
 --
--- `Airbase:getParking()` does answer for a FARP, and `vTerminalPos` is present even though the DCS API
--- schema this repo vendors does not list it. That was doubted, then measured, then used.
+-- Measured on a running DCS, 2026-08-24, on `StaticFarpAlpha`:
+--
+--   * `getDesc().box` → min/max ±129.5 m. A 259 m square. This is the real extent.
+--   * `getParking()`  → 4 spots, furthest 84 m. Bounds the pads only.
+--   * `land.getSurfaceType` → LAND everywhere to 260 m. The apron is not in the terrain data at all.
+--
+-- Hence a box test rather than a radius, and three tiers rather than one constant.
 -- ---------------------------------------------------------------------------
 TestVeafGrassPlatformFootprint = {}
 
---- An airbase whose parking spots sit `distances` metres from its centre.
+--- An airbase reporting a bounding box, as a FARP does.
+local function _airbaseWithBox(half)
+  return {
+    getDesc = function()
+      return { box = { min = { x = -half, y = 0, z = -half }, max = { x = half, y = 0, z = half } } }
+    end,
+  }
+end
+
+--- An airbase with no box but with parking spots `distances` metres out.
 local function _airbaseWithPads(centre, distances)
   local spots = {}
   for _, d in ipairs(distances) do
     table.insert(spots, { vTerminalPos = { x = centre.x + d, y = 0, z = centre.z } })
   end
   return {
+    getDesc = function()
+      return {}
+    end,
     getParking = function()
       return spots
     end,
   }
 end
 
-function TestVeafGrassPlatformFootprint:test_the_radius_comes_from_the_furthest_pad()
-  local centre = { x = 0, y = 0, z = 0 }
-  local airbase = _airbaseWithPads(centre, { 40, 84, 60 })
-  luaunit.assertEquals(veafGrass.platformRadius(airbase, centre), 84 + veafGrass.PLATFORM_PAD_MARGIN_METRES)
+function TestVeafGrassPlatformFootprint:test_the_box_is_preferred_and_is_the_measured_shape()
+  -- 129.5 is what DCS reported for StaticFarpAlpha; the margin is for the vehicle's own size.
+  local halfX, halfZ = veafGrass.platformExtents(_airbaseWithBox(129.5), { x = 0, y = 0, z = 0 })
+  luaunit.assertEquals(halfX, 129.5 + veafGrass.PLATFORM_EDGE_MARGIN_METRES)
+  luaunit.assertEquals(halfZ, 129.5 + veafGrass.PLATFORM_EDGE_MARGIN_METRES)
 end
 
-function TestVeafGrassPlatformFootprint:test_a_platform_reporting_no_parking_falls_back()
+function TestVeafGrassPlatformFootprint:test_parking_is_the_second_choice_not_the_first()
+  -- It bounds the pads, not the apron — which is precisely the mistake this replaces.
   local centre = { x = 0, y = 0, z = 0 }
-  local airbase = {
+  local halfX = veafGrass.platformExtents(_airbaseWithPads(centre, { 40, 84, 60 }), centre)
+  luaunit.assertEquals(halfX, 84 + veafGrass.PLATFORM_PAD_MARGIN_METRES)
+end
+
+function TestVeafGrassPlatformFootprint:test_a_platform_offering_neither_falls_back()
+  local centre = { x = 0, y = 0, z = 0 }
+  local bare = {
+    getDesc = function()
+      return {}
+    end,
     getParking = function()
       return {}
     end,
   }
-  luaunit.assertEquals(veafGrass.platformRadius(airbase, centre), veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES)
+  local halfX, halfZ = veafGrass.platformExtents(bare, centre)
+  luaunit.assertEquals(halfX, veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES)
+  luaunit.assertEquals(halfZ, veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES)
 end
 
-function TestVeafGrassPlatformFootprint:test_getparking_raising_falls_back_rather_than_crashing()
+function TestVeafGrassPlatformFootprint:test_an_airbase_that_raises_on_everything_still_answers()
+  -- A FARP that refuses to exist because a probe failed is worse than one placed imperfectly.
   local centre = { x = 0, y = 0, z = 0 }
-  local airbase = {
+  local hostile = {
+    getDesc = function()
+      error("no desc")
+    end,
     getParking = function()
-      error("not supported for this type")
+      error("no parking")
     end,
   }
-  luaunit.assertEquals(veafGrass.platformRadius(airbase, centre), veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES)
+  local halfX = veafGrass.platformExtents(hostile, centre)
+  luaunit.assertEquals(halfX, veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES)
 end
 
--- The regression, stated in the numbers the game gave: 84 m was accepted and should not have been.
-function TestVeafGrassPlatformFootprint:test_a_spot_on_the_outermost_pad_is_refused()
-  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha-1", radius = 84 + 25 } }
-  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 84, y = 0 }, nil, platforms), "84 m is a pad")
-  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 81, y = 0 }, nil, platforms), "81 m passed before")
-  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 100, y = 0 }, nil, platforms), "inside the margin")
+-- The two failures this lot went through, as numbers.
+function TestVeafGrassPlatformFootprint:test_the_spots_both_earlier_attempts_accepted_are_refused()
+  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha-1", halfX = 139.5, halfZ = 139.5 } }
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 81, y = 0 }, nil, platforms), "81 m: on a pad")
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 120, y = 0 }, nil, platforms), "120 m: on the apron")
 end
 
-function TestVeafGrassPlatformFootprint:test_ground_beyond_the_footprint_is_still_free()
+function TestVeafGrassPlatformFootprint:test_ground_beyond_the_apron_is_still_free()
   -- The other wall: if the exclusion grows past the placement distance, no bearing is ever clear,
   -- findClearBearing falls back to the original angle, and the defect returns looking identical.
-  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha-1", radius = 84 + 25 } }
-  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 150, y = 0 }, nil, platforms))
+  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha-1", halfX = 139.5, halfZ = 139.5 } }
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 200, y = 0 }, nil, platforms))
 end
 
-function TestVeafGrassPlatformFootprint:test_each_platform_keeps_its_own_radius()
-  -- A single helipad is not a FARP. One number for both is what failed.
+function TestVeafGrassPlatformFootprint:test_a_corner_outside_the_square_is_free()
+  -- What the box test buys over a radius: a circle through the corners would refuse this, and it is
+  -- plainly open ground.
+  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha-1", halfX = 139.5, halfZ = 139.5 } }
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 145, y = 145 }, nil, platforms))
+end
+
+function TestVeafGrassPlatformFootprint:test_each_platform_keeps_its_own_extents()
   local platforms = {
-    { x = 0, z = 0, name = "BigFarp", radius = 109 },
-    { x = 1000, z = 0, name = "SmallPad", radius = 30 },
+    { x = 0, z = 0, name = "BigFarp", halfX = 139.5, halfZ = 139.5 },
+    { x = 2000, z = 0, name = "SmallPad", halfX = 30, halfZ = 30 },
   }
-  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 100, y = 0 }, nil, platforms), "inside the big one")
-  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 1060, y = 0 }, nil, platforms), "outside the small one")
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 120, y = 0 }, nil, platforms), "inside the big one")
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 2060, y = 0 }, nil, platforms), "outside the small one")
 end
 
 os.exit(luaunit.LuaUnit.run())

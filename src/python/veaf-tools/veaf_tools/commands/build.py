@@ -309,16 +309,6 @@ def build(
             if issue_count == 0 and report_path.exists():
                 report_path.unlink()
 
-        waypoints_path = _step_file("waypoints", "src/waypoints.yaml", "waypoints.yaml")
-        if waypoints_path:
-            logger.info(t("pipeline.injecting_waypoints", path=waypoints_path))
-            logger.step(t("pipeline.console.waypoints", file=waypoints_path.name))
-            WaypointsInjectorWorker(
-                waypoints_file=waypoints_path,
-                input_mission=variant_output,
-                output_mission=variant_output,
-            ).work()
-
         def _inject_aircraft_step(step_key: str, candidate: str) -> None:
             """Inject one aircraft-group family file (spawnables or dynamic-slot templates)."""
             path = _step_file(step_key, candidate)
@@ -348,6 +338,24 @@ def build(
         # Two independent steps (ADR 0002): spawnable aircraft groups and dynamic-slot templates.
         _inject_aircraft_step("spawnable_aircrafts", "src/spawnables.yaml")
         _inject_aircraft_step("dynamic_slot_templates", "src/dynamic-slot-templates.yaml")
+
+        # AFTER the two steps above, and that is the whole point of FIX-WAYPOINTS-STEP-TOO-EARLY: they
+        # create the human-piloted slots a flight plan exists for. Running before them reached 1 slot in
+        # 105 on the smoke-test mission — for declared waypoints, not only for anything automatic.
+        #
+        # Safe to run late, measured rather than assumed: none of those 105 slots has an empty route, so
+        # appending cannot leave one starting in mid-air, and all 105 already carry a locked ETA, so the
+        # injector's "lock point 1" fallback never fires. The injection is idempotent besides — a
+        # same-named waypoint is replaced in place.
+        waypoints_path = _step_file("waypoints", "src/waypoints.yaml", "waypoints.yaml")
+        if waypoints_path:
+            logger.info(t("pipeline.injecting_waypoints", path=waypoints_path))
+            logger.step(t("pipeline.console.waypoints", file=waypoints_path.name))
+            WaypointsInjectorWorker(
+                waypoints_file=waypoints_path,
+                input_mission=variant_output,
+                output_mission=variant_output,
+            ).work()
 
         # Warn about pre-v6 files that are no longer injected (hard break — see ADR 0002).
         for _legacy in ("src/aircraft-templates.yaml", "src/templates.yaml"):

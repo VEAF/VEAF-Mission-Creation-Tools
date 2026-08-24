@@ -10,6 +10,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.48] — 2026-08-24
+
+### Fixed
+
+- **A sanctuary zone's defences never deployed — they raised an error instead.** Set `delay_spawn` on a
+  sanctuary zone, let a player linger past it, and the ships or SAM sites that should punish him simply
+  never appeared. The eight calls that spawn them passed their arguments **one position off**: they were
+  written against a signature that gained a `delay` parameter in second place on **2021-04-13** and were
+  never updated, so a command string landed on `delay` and the scheduler tried to add it to a timestamp.
+  Five years old, and invisible because `delay_spawn` defaults to `-1`, which disables the whole branch.
+- **A delay that is not a number is now refused loudly** instead of raising deep inside the scheduler.
+  A legitimate one is always digits — the marker syntax is `-alias!30` — so anything else means a caller
+  passed its arguments in the wrong order. The alias now runs **immediately** and the log names the bad
+  value: losing the delay is a smaller loss than losing the spawn, and the next misaligned call will be
+  found by reading a log rather than by a player noticing that nothing happened.
+
+---
+
 ## [6.15.47] — 2026-08-24
 
 ### Fixed

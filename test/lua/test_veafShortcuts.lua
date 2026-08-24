@@ -684,4 +684,111 @@ function TestAliasBypassDoesNotSilence:test_a_scripted_alias_is_silenced()
   luaunit.assertEquals(self.call.scripted, true)
 end
 
+-- ===========================================================================
+-- FIX-SANCTUARY-SHIFTED-ALIAS-CALLS — a delay that is not a number
+--
+-- `markTextAnalysis` extracts the delay with `!(%d*)`, so a legitimate one is always "" or digits.
+-- Anything else means a caller passed its arguments in the wrong positions, and it used to reach
+-- `timer.getTime() + delay` and raise there — which is how veafSanctuary spent five years never deploying
+-- its defences. The alias now runs immediately and the bad value is named in the log.
+-- ===========================================================================
+TestExecuteAliasDelayGuard = {}
+
+function TestExecuteAliasDelayGuard:setUp()
+  veafShortcuts.buildDefaultList()
+  self.scheduled = nil
+  self.ran = nil
+  self._schedule = mist.scheduleFunction
+  local test = self
+  mist.scheduleFunction = function(fn, args, when)
+    test.scheduled = when
+  end
+  -- veafSpawn is not loaded by this suite; the alias chain only needs it to answer.
+  veafSpawn = {
+    executeCommand = function(position, command)
+      test.ran = command
+      return true
+    end,
+  }
+end
+
+function TestExecuteAliasDelayGuard:tearDown()
+  mist.scheduleFunction = self._schedule
+  veafSpawn = nil
+end
+
+function TestExecuteAliasDelayGuard:_execute(delay)
+  return veafShortcuts.ExecuteAlias("-tacan", delay, "", { x = 0, y = 0, z = 0 }, 1, 0, true, {})
+end
+
+function TestExecuteAliasDelayGuard:test_a_command_string_as_the_delay_does_not_raise()
+  -- The exact value veafSanctuary was passing. Before the guard this was arithmetic on a string.
+  luaunit.assertTrue(self:_execute("radius 2000, multiplier 2, skynet false, hdg 123"))
+end
+
+function TestExecuteAliasDelayGuard:test_and_the_alias_runs_immediately_instead()
+  -- Losing the delay is a smaller loss than losing the spawn.
+  self:_execute("radius 2000, multiplier 2, skynet false")
+  luaunit.assertNotNil(self.ran, "the alias must still have been executed")
+  luaunit.assertNil(self.scheduled, "and not scheduled for a nonsense time")
+end
+
+function TestExecuteAliasDelayGuard:test_a_real_delay_still_schedules()
+  -- The feature the guard must not break: `-tacan!30` arrives here as the string "30".
+  self:_execute("30")
+  luaunit.assertNotNil(self.scheduled, "a numeric delay must still schedule")
+  luaunit.assertNil(self.ran, "and must not have run yet")
+end
+
+function TestExecuteAliasDelayGuard:test_no_delay_runs_now()
+  self:_execute(nil)
+  luaunit.assertNotNil(self.ran)
+  luaunit.assertNil(self.scheduled)
+end
+
+function TestExecuteAliasDelayGuard:test_an_empty_delay_runs_now()
+  -- What markTextAnalysis returns for an alias written without `!` — the common case.
+  self:_execute("")
+  luaunit.assertNotNil(self.ran)
+  luaunit.assertNil(self.scheduled)
+end
+
+function TestExecuteAliasDelayGuard:test_the_refusal_is_loud()
+  -- "Refused loudly" is the requirement, and a comment is not a requirement. Without this, the next tidy-up
+  -- could drop the log and leave a misaligned caller silently losing its delay — which is a quieter version
+  -- of the bug this lot exists to fix.
+  local logger = veaf.loggers.get(veafShortcuts.Id)
+  local origError = logger.error
+  local logged = {}
+  logger.error = function(_, text, ...)
+    table.insert(logged, tostring(text))
+  end
+  self:_execute("radius 2000, multiplier 2, skynet false")
+  logger.error = origError
+  luaunit.assertEquals(#logged, 1, "exactly one error, naming the bad delay")
+  luaunit.assertNotNil(logged[1]:find("delay", 1, true), "the message must say what was wrong: " .. logged[1])
+end
+
+function TestExecuteAliasDelayGuard:test_a_good_delay_is_not_complained_about()
+  -- The other side: a legitimate delay must pass without noise, or the log becomes unreadable and the real
+  -- complaint gets lost in it.
+  local logger = veaf.loggers.get(veafShortcuts.Id)
+  local origError = logger.error
+  local count = 0
+  logger.error = function()
+    count = count + 1
+  end
+  self:_execute("30")
+  logger.error = origError
+  luaunit.assertEquals(count, 0)
+end
+
+function TestExecuteAliasDelayGuard:test_a_numeric_delay_keeps_its_value()
+  -- Coerced, not merely accepted: scheduling at `timer.getTime() + "30"` happened to work through Lua's
+  -- string coercion, and that coincidence is what hid the string case for five years.
+  local before = timer.getTime()
+  self:_execute("30")
+  luaunit.assertAlmostEquals(self.scheduled - before, 30, 0.01)
+end
+
 os.exit(luaunit.LuaUnit.run())

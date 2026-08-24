@@ -172,7 +172,7 @@ MyMission/
 │   ├── warehouses.yaml          # Per-coalition Dynamic Slots (warehouses step, optional)
 │   ├── spawn-groups.yaml        # Extend/override the spawn database (spawn_data step, optional)
 │   ├── versions.yaml            # Weather/time variants (weather step)
-│   └── waypoints.yaml           # Bullseye / navigation points (waypoints step)
+│   └── waypoints.yaml           # Per-flight-plan navigation points (waypoints step)
 ├── published/                    # VEAF scripts & tools (auto-installed)
 ├── mission.yaml                  # Build-time configuration
 ├── .gitignore                    # Excludes generated/downloaded files
@@ -347,6 +347,43 @@ pipeline:
 See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of each step and the [mission.yaml Reference](../MISSION_YAML_REFERENCE.en.md#pipeline) for all `pipeline:` fields.
 
 ---
+
+### Which flight plan for which aircraft? {#flight-plan-matching}
+
+`src/waypoints.yaml` declares **flight plans**, each with criteria: coalition, category (`plane` /
+`helicopter`), aircraft type, country. The criteria a plan does not state are wildcards.
+
+> **The most specific plan wins.** Among the plans that match, the one stating the **most** criteria is
+> used — wherever it happens to be written in the file.
+
+```yaml
+settings:
+  all_blue_planes:
+    coalition: blue
+    category: plane
+    waypoints: { ... }
+
+  f16_flight_plan:          # more specific: it also names the type
+    coalition: blue
+    category: plane
+    type: F-16C_50
+    waypoints: { ... }
+```
+
+A blue F-16C matches both and gets `f16_flight_plan`. Any other blue plane gets `all_blue_planes`. A plan
+with **no criteria at all** is the fallback: it matches everything and loses to everything. Declaration
+order only breaks a **tie** between plans of equal specificity, and only then.
+
+!!! warning "This behaviour changed in 6.15.42"
+    Before, the **first** compatible plan won, so declaration order decided — and a specific plan written
+    after a broad one was unreachable. Both this file and the code announced the specificity rule for
+    years without it being implemented; it is now.
+
+    If you had ordered your plans narrow-first to work around it, **nothing changes for you**. If you
+    were knowingly relying on order so that a broad plan masked a specific one, that specific plan now
+    applies.
+
+Only **human-piloted** groups receive waypoints.
 
 ## Design-Time Tools
 

@@ -89,6 +89,48 @@ class FlightPlanDefinition:
     aircraft_type: str | None = None  # Specific aircraft type (e.g., "F-16C_50")
     country: str | None = None  # Country name
 
+    #: The criteria a plan may state. A criterion left as ``None`` is a wildcard, so the number of
+    #: criteria stated *is* the plan's specificity — which is what decides between two plans that both
+    #: match. Listed once here rather than repeated in the matcher and the score.
+    CRITERIA = ("aircraft_type", "coalition", "category", "country")
+
+    def matches(
+        self,
+        coalition: str | None,
+        category: str | None,
+        aircraft_type: str | None,
+        country: str | None,
+    ) -> bool:
+        """Whether this plan is a candidate for a group with these attributes.
+
+        A criterion the plan does not state matches anything.
+
+        Args:
+            coalition: The group's coalition, or None.
+            category: The group's category, or None.
+            aircraft_type: The group's aircraft type, or None.
+            country: The group's country, or None.
+
+        Returns:
+            True when every criterion the plan states matches.
+        """
+        wanted = {
+            "aircraft_type": aircraft_type,
+            "coalition": coalition,
+            "category": category,
+            "country": country,
+        }
+        return all(getattr(self, name) in (None, wanted[name]) for name in self.CRITERIA)
+
+    @property
+    def specificity(self) -> int:
+        """How many criteria this plan states; higher wins when several plans match.
+
+        Returns:
+            The count of stated criteria, 0 for a catch-all plan.
+        """
+        return sum(1 for name in self.CRITERIA if getattr(self, name) is not None)
+
     def to_dict(self) -> dict[str, Any]:
         """Convert flight plan to dictionary."""
         return {
@@ -194,18 +236,21 @@ class WaypointsManager:
         country: str | None = None,
     ) -> FlightPlanDefinition | None:
         """
-        Get a flight plan matching the given criteria.
+        Get the **most specific** flight plan matching the given criteria.
 
-        **The first compatible plan wins, in declaration order.** Not the most specific one: the loop
-        below returns as soon as every criterion a plan states matches, treating the ones it omits as
-        wildcards. So a narrow plan declared after a broad one is never reached.
+        A plan is a candidate when every criterion it states matches; the ones it omits are wildcards.
+        Among the candidates, the one stating the **most** criteria wins, so a plan naming an aircraft
+        type beats one naming only a coalition and a category. Declaration order breaks a tie between
+        two plans of equal specificity, and only then.
 
-        This docstring claimed an ``aircraft_type > category > coalition > all`` priority until
-        2026-08-24. It was never implemented, and the shipped default template demonstrated the
-        consequence without anyone noticing: ``all_blue_planes`` is declared before ``f16_flight_plan``,
-        so a blue F-16C matched the first and the second was dead configuration. Whether the priority
-        should be built is a separate question — see ``FIX-WAYPOINTS-PLAN-PRIORITY``; what is fixed here
-        is the description, so the next reader is not misled the same way.
+        This replaces first-compatible-wins, which is what the code did until 2026-08-24 while this
+        docstring and the shipped template both promised the priority. The consequence was shipped as an
+        illustration: ``all_blue_planes`` is declared before ``f16_flight_plan``, so a blue F-16C matched
+        the first and the second was dead configuration that no aircraft could reach.
+
+        Note this is a **behaviour change** for any mission whose plans overlap, and mission folders live
+        outside this repository so the reach cannot be measured from here. It is the behaviour both
+        descriptions promised for years, which is what makes it the safer of the two directions.
 
         Args:
             coalition: "blue" or "red"
@@ -216,17 +261,18 @@ class WaypointsManager:
         Returns:
             FlightPlanDefinition or None if no match found
         """
-        # Try to find exact match with aircraft type first
-        for plan in self.flight_plans.values():
-            if (
-                (plan.aircraft_type == aircraft_type or plan.aircraft_type is None)
-                and (plan.coalition == coalition or plan.coalition is None)
-                and (plan.category == category or plan.category is None)
-                and (plan.country == country or plan.country is None)
-            ):
-                return plan
+        candidates = [
+            plan
+            for plan in self.flight_plans.values()
+            if plan.matches(coalition=coalition, category=category, aircraft_type=aircraft_type, country=country)
+        ]
+        if not candidates:
+            return None
 
-        return None
+        # max() keeps the FIRST of equal maxima, so declaration order still breaks a tie — the one part
+        # of the old behaviour worth keeping, because it makes the outcome deterministic rather than
+        # dependent on dictionary ordering.
+        return max(candidates, key=lambda plan: plan.specificity)
 
     def get_waypoint(self, name: str) -> WaypointDefinition | None:
         """Get a waypoint by name."""

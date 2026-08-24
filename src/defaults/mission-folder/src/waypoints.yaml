@@ -97,15 +97,19 @@ settings:
 
 # USAGE NOTES:
 #
-# 1. Matching: THE FIRST COMPATIBLE PLAN WINS, in declaration order
-#    - A plan matches when every criterion it states matches, and the ones it omits are wildcards.
-#    - The FIRST such plan in this file is used. Not the most specific one — declaration order decides.
-#    - So put your narrow plans ABOVE your broad ones, or the broad one will swallow them.
-#    - Worked example, from this very file: `all_blue_planes` is declared before `f16_flight_plan`, and a
-#      blue F-16C matches both, so it gets `all_blue_planes` and `f16_flight_plan` is never used at all.
-#      That is dead configuration, left here as the illustration rather than removed.
-#    - The code's own docstring claimed a type > category > coalition > all priority until 2026-08-24.
-#      It was never implemented; see FIX-WAYPOINTS-PLAN-PRIORITY.
+# 1. Matching: THE MOST SPECIFIC PLAN WINS
+#    - A plan is a candidate when every criterion it states matches; the ones it omits are wildcards.
+#    - Among the candidates, the plan stating the MOST criteria wins. So a plan naming an aircraft type
+#      beats one naming only a coalition and a category, wherever the two are written in this file.
+#    - Declaration order only breaks a tie between two plans of equal specificity, and only then.
+#    - A plan with no criteria at all is the fallback: it matches everything and loses to everything.
+#    - Worked example, from this very file: a blue F-16C matches both `all_blue_planes` and
+#      `f16_flight_plan`, and gets `f16_flight_plan` because it is the more specific of the two. Another
+#      blue plane gets `all_blue_planes`.
+#    - This changed on 2026-08-24. Until then the FIRST compatible plan won, so `f16_flight_plan` above
+#      was unreachable — while this file and the code's own docstring both described the priority that is
+#      now implemented. If you had ordered your plans narrow-first to work around it, nothing changes for
+#      you. See FIX-WAYPOINTS-PLAN-PRIORITY.
 #
 # 2. Targeting:
 #    - Only human-piloted aircraft groups receive waypoints

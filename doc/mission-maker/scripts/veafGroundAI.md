@@ -52,8 +52,20 @@ pour lui donner ses ordres ensuite.
 | `order` | `order` | Le texte de l'ordre. |
 
 **Si vous omettez `groupname` sur un `set`**, le module cherche le groupe allié **le plus proche du
-marqueur, dans un rayon de 250 mètres**. Aucun groupe dans ce rayon : la commande ne fait rien.
-Posez donc le marqueur sur la batterie, ou nommez-la.
+marqueur, dans un rayon de 250 mètres**. Aucun groupe dans ce rayon : la commande **vous le dit** et ne
+fait rien. Posez donc le marqueur sur la batterie, ou nommez-la.
+
+### Quand rien ne semble se passer {#silent-refusals}
+
+Aucune de ces commandes n'échoue plus en silence. C'était le cas avant, et un ordre qui disparaissait sans
+un mot était indistinguable d'un module cassé.
+
+| Ce que vous voyez | Ce que ça veut dire |
+|---|---|
+| « Aucun pilote automatique nommé *X* » | ce nom n'existe pas. **Recharger une mission efface les pilotes automatiques** : il faut refaire le `_ground set`. Le message vous rappelle la commande. |
+| « Aucun groupe allié à moins de 250 m » | le marqueur est trop loin du groupe, ou le groupe est de l'autre coalition. Posez-le dessus, ou donnez `groupname`. |
+| « ordre illisible » | le texte de l'ordre n'a pas pu être lu du tout. Le message liste les ordres possibles. |
+| « ne peut pas viser, aucune coordonnée » | l'ordre est bon, mais `target` manque ou n'a pas pu être lu ([les formats acceptés](#coordinate-formats)). |
 
 ```
 _ground set, name arty-1, groupname ARTY-1

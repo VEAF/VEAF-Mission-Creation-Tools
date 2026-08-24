@@ -1199,6 +1199,27 @@ veaf.i18nCatalog = {
   -- veafGroundAI — the fire-adjustment loop (FEAT-ARTILLERY-CONTROL, #198). All three are told to
   -- the player and not only logged: he typed a correction and is waiting for shells, so a silent
   -- refusal reads as a battery that ignored him.
+  -- Six `_ground` verbs used to do nothing and say nothing when the name was unknown, so a pilot could
+  -- not tell "the autopilot is gone" from "my coordinates are wrong" from "the module is broken". The
+  -- message names the autopilot AND the command that creates one: "unknown" on its own sends him back
+  -- to the documentation in mid-flight.
+  -- `_ground set` and `_ground unset` without a `groupname` take the nearest allied group within 250 m.
+  -- Finding none used to abort the whole command in silence, which is what a marker dropped a little too
+  -- far from the battery looks like: nothing at all.
+  ["groundai.no_group_nearby"] = {
+    fr = "Aucun groupe allié à moins de 250 m du marqueur. Posez-le sur le groupe, ou nommez-le avec : groupname <nom exact du groupe>",
+    en = "No allied group within 250 m of the marker. Drop it on the group, or name it with: groupname <the group's exact name>",
+  },
+  ["groundai.no_such_handler"] = {
+    fr = 'Aucun pilote automatique nommé "%s". Créez-le en posant un marqueur sur le groupe avec : _ground set, name %s',
+    en = 'No autopilot named "%s". Create one by dropping a marker on the group with: _ground set, name %s',
+  },
+  -- An order text nothing could be made of. The typo case is already handled by reportUnknownParameters;
+  -- this is for total garbage, which used to be dropped in silence.
+  ["groundai.unreadable_order"] = {
+    fr = "%s : ordre illisible [%s]. Ordres possibles : aim, fire, correct.",
+    en = "%s: unreadable order [%s]. Valid orders: aim, fire, correct.",
+  },
   ["groundai.correction_applied"] = {
     fr = "%s : correction %03d / %d m appliquée, tir en cours",
     en = "%s: correction %03d / %d m applied, firing",

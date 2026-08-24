@@ -50,8 +50,20 @@ Writing `_ground` alone is the same as writing `_ground set`.
 | `order` | `order` | The order's text. |
 
 **If you omit `groupname` on a `set`**, the module looks for the allied group **nearest the marker,
-within 250 metres**. No group in that radius: the command does nothing. So drop the marker on the
-battery, or name it.
+within 250 metres**. No group in that radius: the command **tells you** and does nothing. So drop the
+marker on the battery, or name it.
+
+### When nothing seems to happen {#silent-refusals}
+
+None of these commands fails silently any more. They did, and an order that vanished without a word was
+indistinguishable from a broken module.
+
+| What you see | What it means |
+|---|---|
+| "No autopilot named *X*" | that name does not exist. **Reloading a mission discards the autopilots**: the `_ground set` has to be done again. The message reminds you of the command. |
+| "No allied group within 250 m" | the marker is too far from the group, or the group belongs to the other coalition. Drop it on the group, or give `groupname`. |
+| "unreadable order" | the order text could not be read at all. The message lists the valid orders. |
+| "cannot aim, no target coordinates" | the order is fine, but `target` is missing or could not be read ([the accepted formats](#coordinate-formats)). |
 
 ```
 _ground set, name arty-1, groupname ARTY-1

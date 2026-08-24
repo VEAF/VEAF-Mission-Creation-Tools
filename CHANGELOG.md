@@ -10,6 +10,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.52] — 2026-08-24
+
+### Fixed
+
+- **Eight `_ground` commands did nothing and said nothing.** Six verbs — `unset`, `start`, `stop`, `clear`,
+  `status` and `order` — looked up a named autopilot with no `else` branch, so a name nobody had registered
+  produced no action and no message, its only trace a `trace`-level log line invisible at the default
+  level. Two more silences sat around them: `set`/`unset` finding no allied group within 250 m of the
+  marker aborted without a word, and an order text that could not be parsed at all was dropped in silence.
+  Each of the eight now answers, and the answer says what to do — the autopilot message names the
+  `_ground set` that would create one, the range message offers `groupname`, and the order message lists
+  the valid orders.
+
+  Found in game: an order to `arty-1` after a mission reload — which discards the autopilots — vanished
+  with no way to tell "the autopilot is gone" from "my coordinates are wrong" from "the module is broken".
+
+---
+
 ## [6.15.51] — 2026-08-24
 
 ### Fixed

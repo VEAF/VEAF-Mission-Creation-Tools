@@ -1836,6 +1836,34 @@ veafWeather.WELCOME_BRIEF_DELAY_SECONDS = 5
 --- How long the brief stays on screen.
 veafWeather.WELCOME_BRIEF_DURATION_SECONDS = 20
 
+--- The current course of a ship acting as an airbase, in degrees, or nil.
+---
+--- A carrier has no runway in service because it does not keep one: it turns into the wind, so the useful
+--- number for a pilot taking a deck slot is the ship's heading. `Airbase:getUnit(1)` is how the vessel is
+--- reached, since for a DCS ship the airbase *is* the vessel.
+---
+--- @param veafAirbaseShip table the VEAF airbase wrapper, category SHIP
+--- @return number|nil the heading in degrees, rounded
+function veafWeather.getShipCourse(veafAirbaseShip)
+  local dcsAirbase = veafAirbaseShip and veafAirbaseShip.DcsAirbase
+  if not dcsAirbase or not dcsAirbase.getUnit then
+    return nil
+  end
+  local ok, dcsUnit = pcall(function()
+    return dcsAirbase:getUnit(1)
+  end)
+  if not ok or not dcsUnit then
+    return nil
+  end
+  local okHeading, heading = pcall(function()
+    return mist.utils.round(mist.utils.toDegree(mist.getHeading(dcsUnit, true)), 0)
+  end)
+  if not okHeading or not heading then
+    return nil
+  end
+  return heading
+end
+
 --- Build the welcome brief for a unit, or nil when there is nothing useful to say.
 ---
 --- Deliberately shorter than the ATIS: a pilot who wants the full report has it in the radio menu, and a
@@ -1866,17 +1894,27 @@ function veafWeather.buildWelcomeBrief(dcsUnit)
     return nil
   end
 
-  local sRunway = nil
-  -- A ship and a helipad have no runway to be in service, and asking anyway would log a "none
-  -- identified" for every carrier slot taken.
-  if veafAirbaseNear.Category ~= Airbase.Category.SHIP and veafAirbaseNear.Category ~= Airbase.Category.HELIPAD then
-    sRunway = veafAirbaseNear:getRunwayInServiceString(weatherData.WindDirection)
-  end
-
   local sName = veafAirbaseNear.DisplayName or veafAirbaseNear.Name
   local unitSystem = veafWeatherUnitSystem.defaultForTheatre()
   local sWeather = weatherData:toStringAtis(unitSystem)
 
+  -- A carrier has no runway in service because it does not keep one — it turns into the wind, so its
+  -- course is the number a pilot on the deck needs. Asking it for a runway would log a "none identified"
+  -- for every deck slot taken and tell him nothing.
+  if veafAirbaseNear.Category == Airbase.Category.SHIP then
+    local iCourse = veafWeather.getShipCourse(veafAirbaseNear)
+    if iCourse then
+      return veaf.t("weather.welcome_brief_ship", sName, iCourse, sWeather)
+    end
+    return veaf.t("weather.welcome_brief_no_runway", sName, sWeather)
+  end
+
+  -- A helipad has neither: no runway to align with and no course to steer.
+  if veafAirbaseNear.Category == Airbase.Category.HELIPAD then
+    return veaf.t("weather.welcome_brief_no_runway", sName, sWeather)
+  end
+
+  local sRunway = veafAirbaseNear:getRunwayInServiceString(weatherData.WindDirection)
   if veaf.isNullOrEmpty(sRunway) then
     return veaf.t("weather.welcome_brief_no_runway", sName, sWeather)
   end

@@ -1245,6 +1245,86 @@ function TestVeafWeatherWelcomeBrief:test_an_airbase_with_no_runway_in_service_s
   luaunit.assertNotNil(brief:find("Kobuleti", 1, true))
 end
 
+-- ── a carrier keeps no runway ────────────────────────────────────────────────
+-- David's point, and a domain one rather than a wording one: a carrier turns into the wind, so what a
+-- pilot taking a deck slot needs is the ship's COURSE. The first version of this feature gave him
+-- nothing at all and the tests were happy with that, which is why they now assert the course.
+
+--- A ship airbase whose vessel reports `heading` radians.
+function TestVeafWeatherWelcomeBrief:_ship(heading)
+  local airbase = self:_airbase(Airbase.Category.SHIP, nil)
+  airbase.Name = "CVN-73"
+  airbase.DisplayName = "CVN-73"
+  airbase.DcsAirbase.getUnit = function()
+    return { isShipUnit = true }
+  end
+  self._savedMistHeading = self._savedMistHeading or mist.getHeading
+  mist.getHeading = function()
+    return heading
+  end
+  return airbase
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_carrier_announces_its_course()
+  local airbase = self:_ship(math.rad(123))
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  mist.getHeading = self._savedMistHeading
+  luaunit.assertNotNil(brief)
+  luaunit.assertNotNil(brief:lower():find("heading", 1, true), "a carrier must be given its heading: " .. brief)
+  luaunit.assertNotNil(brief:find("123", 1, true), "and the heading itself: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_course_is_read_as_three_digits()
+  -- A heading is spoken and written as three digits; "cap 9" is not a heading.
+  local airbase = self:_ship(math.rad(9))
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  mist.getHeading = self._savedMistHeading
+  luaunit.assertNotNil(brief:find("009", 1, true), "expected a three-digit heading: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_carrier_is_never_given_a_runway()
+  local airbase = self:_ship(math.rad(90))
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  mist.getHeading = self._savedMistHeading
+  luaunit.assertNil(brief:lower():find("runway", 1, true), "a carrier has no runway to keep: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_an_unreadable_course_falls_back_rather_than_inventing_one()
+  -- A course a pilot cannot trust is worse than no course: he would fly it.
+  local airbase = self:_airbase(Airbase.Category.SHIP, nil)
+  airbase.DcsAirbase.getUnit = function()
+    return nil
+  end
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief, "the weather is still worth having")
+  luaunit.assertNil(brief:lower():find("heading", 1, true))
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_helipad_gets_neither_runway_nor_course()
+  -- No runway to align with and no course to steer.
+  self:_arrange(Airbase.Category.HELIPAD, "13")
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  luaunit.assertNil(brief:lower():find("runway", 1, true))
+  luaunit.assertNil(brief:lower():find("heading", 1, true))
+end
+
 -- ── when there is nothing to say ─────────────────────────────────────────────
 
 function TestVeafWeatherWelcomeBrief:test_no_airbase_means_no_brief()

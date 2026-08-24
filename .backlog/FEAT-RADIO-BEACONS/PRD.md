@@ -84,7 +84,18 @@ untouched. Refusals are total — `nil, reason`, nothing spawned, no frequency c
 back to a random pick is the one failure nobody can see: the kneeboard still says 250 kHz, the pilot
 tunes 250 kHz and hears silence.
 
-**This lot does not wait for it.** `-beacon` ships reporting the three frequencies CTLD drew; the option
+**Merged upstream on 2026-08-24 at 17:21**, but *not yet in the vendored copy*: it arrives with the
+next CTLD release, and `vendored.yaml` pins `2.0.0-rc7`. So a `freq` parameter on `-beacon` is not
+implementable yet — attempting it before the vendored update would call a method the shipped `CTLD.lua`
+does not have. The pin-consistency guard added the same day will report the new release when it appears,
+this time against the right baseline.
+
+Still open upstream and **not a PR**: [`VEAF/CTLD#127`](https://github.com/VEAF/CTLD/issues/127), the
+question about the four gaps in the FM pool. It closes with an answer, not a merge. Until it is answered,
+`-beacon` refuses a frequency the pool does not hold — which is correct given the pool, and would become
+unnecessary if the gaps turn out to be accidental.
+
+**This lot does not wait for any of it.** `-beacon` ships reporting the three frequencies CTLD drew; the option
 arrives later through a vendored update, and only then is a `freq` parameter worth adding here.
 
 Two things that came out of building it, both relevant to this lot:

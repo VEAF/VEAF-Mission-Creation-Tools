@@ -1,6 +1,59 @@
 # FIX-FARP-ESCORT-PLACEMENT — the FARP escort lands on whatever is already there
 
-Status: 🧑 waiting-human — **second attempt written**, needs the in-game run 6.15.11's did not get
+Status: 🧑 waiting-human — **verified in game 2026-08-24** for the reported case; the open-ground
+non-regression is the one run left
+
+## Verified
+
+David, 2026-08-24: *"c'est bon, tout est en dehors du farp statique"* — a `-farp` dropped ~150 m from
+`StaticFarpAlpha` now puts its escort, tents, props and windsocks clear of the platform.
+
+Still to run, and it matters more than the fix after five rounds of changes: a `-farp` in **open ground,
+far from anything**, which must look exactly as it always did — everything on the requested bearing at
+the requested distance, `bearing 0 requested, 0 used at 1x distance`, and **no** refusal in the log.
+
+## Five defects, not one
+
+Only the first was the one suspected when the lot was reopened. Each was found by measuring, and four
+became visible only once the placement logged its decisions.
+
+| # | Defect | How it was found |
+|---|---|---|
+| 1 | A FARP is an **airbase**, not a static, so the units-and-statics probe could never see it | `veafAirbases.lua:191` and the DCS log's `NO ATC COMM HELIPAD` |
+| 2 | `searchObjects` matches an object's **position**, so a 12 m sphere misses a platform an escort stands on the edge of | reading the API contract |
+| 3 | The size was guessed twice — 80 m (below the 84 m outermost pad) then 84 m from `getParking()` (bounds the pads, not the apron) | `getDesc().box` on a running DCS: **±129.5 m**, a 259 m square |
+| 4 | With the exclusion finally apron-sized, a group with no clear bearing kept the **original** angle — pointing at a pad | `findClearBearing: no clear bearing at this distance, keeping 0` |
+| 5 | The FARP **avoided itself**: its own props are inside its own apron by design | `refusing a spot 129m/0m inside [FARP FU2149-11.924]` |
+
+Plus the windsock, which went through no clear-ground search at all and sits 120 m out on a FARP.
+
+## Two decisions worth keeping
+
+**#232's arbitration was revised, by David, on evidence.** It was keep-the-distance-move-the-bearing,
+because the escort serves the FARP and the crew wants it close. That held while the exclusion was small;
+against a real 259 m apron it *guarantees* landing inside it. The search now walks out to 1.5× then 2×,
+always trying the requested bearing first at each distance — so a nearer bearing beats a further one, and
+a group with clear ground does not move at all.
+
+**The windsock's bearing is free**, also David's call: nothing reads its position, unlike the escort or
+the pads. That is why it can be moved anywhere while the escort cannot.
+
+## What measurement settled, so nobody repeats it
+
+- `Airbase:getDesc().box` **exists and is the answer** — ±129.5 m for a FARP.
+- `Airbase:getParking()` **works on a FARP** (4 spots, furthest 84 m) but bounds the pads only.
+  `vTerminalPos` is present even though the vendored DCS API schema does not list it.
+- `land.getSurfaceType` returns `LAND` everywhere out to 260 m around a FARP. The apron is **not** in the
+  terrain data; probing the ground for it is a dead end.
+
+## The lesson that is not about FARPs
+
+Four of the five defects are indistinguishable from outside: "still on the FARP" looks identical whether
+the probe saw nothing, saw it and was calibrated too tight, or worked perfectly and fell back to the
+original angle. Three rounds were spent adding *size* to a problem that was structural, each costing a
+DCS reload, because nothing said which. The placement now logs its decisions at info — and that is what
+found defects 4 and 5 within minutes of each other.
+
 
 ## What shipped this time (6.15.33)
 

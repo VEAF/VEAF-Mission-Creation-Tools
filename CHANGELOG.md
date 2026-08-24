@@ -7,33 +7,61 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [6.15.33] — 2026-08-23
+## [6.15.33] — 2026-08-24
 
 ### Fixed
 
-- **The FARP escort still landed on a static FARP**, and the fix that shipped in 6.15.11 for #232 never
-  could have worked. Measured in game 2026-08-22: everything came up on the platform, exactly as before.
+- **A `-farp` dropped near an existing FARP put its escort and props on that platform.** [#232], open
+  since 2023, "fixed" in 6.15.11 by a change that could not work, and confirmed still broken in game on
+  2026-08-22. Verified fixed in game on 2026-08-24.
 
-  Two causes, and the second would have survived a fix for the first. `veafGrass.isSpotOccupied` probed
-  `world.searchObjects` over units and statics — but a FARP placed in the editor is an **airbase**
-  (`Airbase.Category.HELIPAD`, through `world.getAirbases()`, as this repo's own `veafAirbases.lua:191`
-  has always treated it), so the probe could never see the one object the lot is about. And
-  `searchObjects` matches an object's *position*: with a 12 m clearance and a platform tens of metres
-  across, an escort on its **edge** — the actual complaint — leaves the platform's centre outside the
-  sphere.
+  Five distinct defects were in the way, and only the first was the one originally suspected. Each was
+  found by measuring rather than reasoning, and four of them only became visible once the placement
+  logged what it was doing:
 
-  `isSpotOccupied` now answers both questions, and the airbase list is read **once per bearing search**
-  rather than per candidate position: a full turn is 24 bearings and each tests every position the group
-  occupies. An airdrome is deliberately not excluded — a runway-sized radius around every airfield would
-  move FARPs that were placed perfectly well.
+  1. **A FARP is not a static.** `isSpotOccupied` probed `world.searchObjects` over units and statics,
+     but a FARP placed in the editor is an **airbase** — `Airbase.Category.HELIPAD`, through
+     `world.getAirbases()`, which is how `veafAirbases.lua` has always treated it. The probe could never
+     see the one object the issue is about. FARPs that DCS miscategorises as `SHIP` are included, the
+     same remediation `veafAirbases` applies; an airdrome deliberately is not, or a runway-sized radius
+     would move FARPs that were placed perfectly well.
+  2. **A sphere probe cannot answer this.** `searchObjects` matches an object's *position*, so with a
+     12 m clearance and a platform tens of metres across, an escort on its **edge** — the actual
+     complaint — leaves the platform's centre outside the sphere.
+  3. **The size was guessed twice before being measured.** 80 m first, which is *below* the 84 m where
+     that FARP's outermost pad sits, so an object at 81 m was on a pad and passed. Then 84 m from
+     `getParking()`, which bounds the pads and not the apron, leaving the escort on it at ~120 m. DCS
+     does report the real extent: `getDesc().box` gives ±129.5 m, a 259 m square. The test is now a
+     **box**, since a circle through the corners would refuse ground that is plainly free.
+  4. **The fallback placed groups at the worst spot available.** With the exclusion finally apron-sized,
+     one group had no clear bearing at its distance — and the search kept the *original* angle, which
+     pointed at a pad. #232's arbitration (keep the distance, move the bearing) was revised on that
+     evidence: the search now walks out to 1.5× then 2×, always trying the requested bearing first at
+     each distance, so a nearer bearing wins over a further one and a group with clear ground does not
+     move at all.
+  5. **The FARP was avoiding itself.** The FARP a marker creates is an airbase too, and it exists by the
+     time its props are placed — so every prop inside its own 139 m apron, which is where they belong,
+     was refused at every bearing and every distance. The fix aimed at a *neighbouring* platform was
+     placing things worse than before it existed.
 
-  The 80 m footprint radius is **an estimate and is documented as one**: DCS exposes no extent for an
-  airbase. Over-wide costs one bearing of nudge, over-tight costs the defect, which is why it leans wide.
+  The windsock also went through no clear-ground search at all, and on a FARP it sits 120 m out. Its
+  bearing is free by David's call, so it now searches like everything else; both windsocks are placed
+  from the same bearing, since the second is offset 90° from the first by design.
 
-  The previous tests stubbed `isSpotOccupied` and asserted the bearing search around it, so they proved
-  the search reacts to an occupied spot while nothing proved a real FARP *is* one — a true test on a false
-  premise, and how the broken fix passed review. The new ones drive `world.getAirbases` and assert on
-  geometry, including that the easting is read from the right axis. Verified by mutation.
+  Recorded in the code because it cost an afternoon: `land.getSurfaceType` returns `LAND` everywhere out
+  to 260 m around a FARP. The apron is **not** in the terrain data and cannot be found by probing ground.
+
+### Added
+
+- **The FARP placement says what it decided, at info.** How many platforms it is avoiding and which one
+  is the FARP being built, each refusal with its distance and the platform's extents, and the bearing and
+  distance each group ended up with.
+
+  Not scaffolding. Four of the five defects above are indistinguishable from the outside — "still on the
+  FARP" looks identical whether the probe saw nothing, saw it and was calibrated too tight, or worked
+  perfectly and fell back to the original angle. The first three rounds of this fix were spent adding
+  size to a problem that was structural, because nothing said which. A mission maker whose escort quietly
+  moved has the same question.
 
 ---
 

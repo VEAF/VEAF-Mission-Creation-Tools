@@ -1,6 +1,8 @@
 # FIX-CARRIER-MENU-COALITION — red runs blue's carrier operations
 
-Status: 🧑 waiting-human
+Status: ✅ done
+
+Verified in game on 2026-08-22: check 12 of `verify-mission-c`, from the red A-10 at Palmyra — the slot the defect was measured from on 2026-08-18. The carrier menu is there.
 
 Written, unit-tested and shipped in 6.15.10. Waiting on check 12 of `verify-mission-c` (the red A-10 at
 Palmyra), which needs DCS started — see [DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).

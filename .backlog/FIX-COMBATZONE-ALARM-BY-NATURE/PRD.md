@@ -1,6 +1,13 @@
 # FIX-COMBATZONE-ALARM-BY-NATURE — a zone's SAMs went silent when its convoys started moving
 
-Status: 🧑 waiting-human
+Status: ✅ done
+
+Verified in game on 2026-08-22, both natures, from two different observations — worth recording separately because neither one alone covers the lot:
+
+* **the convoy half**, which is the regression this lot exists to prevent: *« le convoi roule »*. A convoy in a combat zone still drives its route.
+* **the SAM half**: check 6 of `verify-mission-c` reported `group added to RED network`, and the zone's SA-6 shot down the observing aircraft — so it came up on RED with its radar live, which is the behaviour line 79 asks for.
+
+One thing that was **not** a valid check, recorded so it is not attempted again: the armour in mission C has a single waypoint and therefore no route, so its staying put says nothing either way. That is the same mistaken criterion that got item 17 of `DCS-SESSION-TODO.md` withdrawn — `#alarm=N` sets an alarm state, it does not immobilise anything.
 
 Written, unit-tested and shipped in 6.15.13. Waiting on the in-game check before publishing, since #290
 was measured in game and this changes what that measurement produced — see
@@ -80,4 +87,4 @@ regression half, the one that matters more. It can be checked now; the battery h
 - [x] A convoy in a combat zone still drives its route (regression on #290 — the whole point of #762)
 - [x] `#alarm=N` still overrides, and an out-of-range tag still warns
 - [x] Lua tests for both natures and for the explicit override — 12 new ones, mutation-checked (restoring a single default fails 3)
-- [ ] Verified in game before publishing 6.15.x, since this is what #290's session measured
+- [x] Verified in game before publishing 6.15.x, since this is what #290's session measured

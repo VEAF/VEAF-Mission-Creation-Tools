@@ -1,6 +1,8 @@
 # FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT — the 50 m default dispersion has been unreachable since 2023
 
-Status: 🧑 waiting-human
+Status: ✅ done
+
+Verified in game on 2026-08-22, item 18 of `DCS-SESSION-TODO.md`: *« tout est comme prévu »*. The 50 m default dispersion applies and drops nothing into scenery, which is the one thing no unit test could answer.
 
 Written, unit-tested and shipped in 6.15.15. Waiting on one in-game look — 50 m of dispersion can drop a
 unit into scenery, which no unit test can answer. Item 18 of
@@ -104,5 +106,5 @@ An explicitly written `#spawnradius=` still applies to them.
 - [x] The constant and the behaviour agree, whichever way round
 - [x] A Lua test asserts the **applied** radius, not just the constant
 - [x] The documentation states what a group with no `#spawnradius=` does
-- [ ] Checked in game on a zone with a multi-unit group, since 50 m of dispersion can put a unit inside
+- [x] Checked in game on a zone with a multi-unit group, since 50 m of dispersion can put a unit inside
       scenery — item 18 of `DCS-SESSION-TODO.md`

@@ -1,6 +1,8 @@
 # FIX-COMBATZONE-DELAYED-COMMAND — a delayed command's group outlives its zone
 
-Status: 🧑 waiting-human
+Status: ✅ done
+
+Verified in game on 2026-08-22: check 8 of `verify-mission-c` — a delayed `#command` dies with its zone. The mission's `DelayZone` carries one fake unit per delay mechanism side by side, which is what made the difference observable rather than argued.
 
 Written, unit-tested and shipped in 6.15.9. Waiting on check 8 of `verify-mission-c`, which needs DCS
 started — see [DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).

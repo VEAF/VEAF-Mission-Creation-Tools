@@ -612,4 +612,76 @@ function TestVeafShortcutsAliasSpecReportsNothing:test_the_three_alias_keys_stil
   luaunit.assertTrue(options.silent)
 end
 
+-- ===========================================================================
+-- FIX-SPAWN-BYPASSSECURITY-AS-SILENT — an alias's bypass flag must not silence a pilot
+--
+-- This is the test the lot needed most, and the one its own dispatcher tests could not be: reverting the
+-- fix in `VeafAlias:execute` left every other test in the repository green. The defect lives in the gap
+-- between two variables one letter apart, so the assertion has to look at both arguments at once.
+--
+-- `-tacan` is the real case. It sets `setBypassSecurity(true)` so a pilot needs no password, and until
+-- this lot that same flag reached `spawnUnit`'s `silent` parameter — so dropping a `-tacan` marker
+-- produced no confirmation, no channel and no band.
+-- ===========================================================================
+TestAliasBypassDoesNotSilence = {}
+
+function TestAliasBypassDoesNotSilence:setUp()
+  veafShortcuts.buildDefaultList()
+  self.call = nil
+  -- veafSpawn is not loaded by this suite, which is what makes the stub honest: what is under test is the
+  -- arguments veafShortcuts *hands over*, not what veafSpawn does with them.
+  local test = self
+  veafSpawn = {
+    executeCommand = function(position, command, coalition, markId, bypassSecurity, groups, rc, rd, route, asd, req, scripted)
+      test.call = { command = command, bypassSecurity = bypassSecurity, scripted = scripted }
+      return true
+    end,
+  }
+end
+
+function TestAliasBypassDoesNotSilence:tearDown()
+  veafSpawn = nil
+end
+
+--- Drive the alias exactly as a marker does: veafCommands hands the marker path `bypassSecurity = false`.
+function TestAliasBypassDoesNotSilence:_dropMarker(text)
+  veafShortcuts.executeCommand({ x = 0, y = 0, z = 0 }, text, 1, 0, false)
+  return self.call
+end
+
+function TestAliasBypassDoesNotSilence:test_the_alias_expands_and_reaches_the_spawn()
+  -- Guards the two tests below: if the plumbing ever stops reaching veafSpawn, they would both pass on a
+  -- nil call rather than on the right behaviour.
+  local call = self:_dropMarker("-tacan")
+  luaunit.assertNotNil(call, "-tacan must reach veafSpawn.executeCommand")
+  luaunit.assertNotNil(call.command:find("tacan", 1, true), "expanded to: " .. tostring(call.command))
+end
+
+function TestAliasBypassDoesNotSilence:test_the_alias_still_bypasses_the_password_check()
+  -- The half that must NOT change: `-tacan` is deliberately usable without a password.
+  luaunit.assertEquals(self:_dropMarker("-tacan").bypassSecurity, true)
+end
+
+function TestAliasBypassDoesNotSilence:test_but_it_does_not_silence_the_spawn()
+  -- The defect, in one assertion. `false` because a person dropped this marker; the alias's own bypass
+  -- flag is about passwords and has no opinion on whether the pilot deserves an answer.
+  luaunit.assertEquals(self:_dropMarker("-tacan").scripted, false)
+end
+
+function TestAliasBypassDoesNotSilence:test_an_alias_that_needs_a_password_is_also_not_silenced()
+  -- The other diagonal: silence must not be derivable from the bypass flag in either direction. `-sa2`
+  -- does not set it, so both values differ from the `-tacan` case above.
+  local call = self:_dropMarker("-sa2")
+  luaunit.assertNotNil(call, "-sa2 must reach veafSpawn.executeCommand")
+  luaunit.assertEquals(call.bypassSecurity, false)
+  luaunit.assertEquals(call.scripted, false)
+end
+
+function TestAliasBypassDoesNotSilence:test_a_scripted_alias_is_silenced()
+  -- What a combat zone does: veafCommands passes true on the interpreter path, and that must survive the
+  -- alias layer untouched, or every zone would start announcing each group it spawns.
+  veafShortcuts.executeCommand({ x = 0, y = 0, z = 0 }, "-tacan", 1, 0, true)
+  luaunit.assertEquals(self.call.scripted, true)
+end
+
 os.exit(luaunit.LuaUnit.run())

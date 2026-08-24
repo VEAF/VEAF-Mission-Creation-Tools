@@ -208,7 +208,8 @@ function veafSpawn.executeCommand(
   repeatDelay,
   route,
   allowStartDelay,
-  requesterCoalition
+  requesterCoalition,
+  scripted
 )
   veaf.loggers.get(veafSpawn.Id):trace("eventPos=%s", eventPos)
   veaf.loggers.get(veafSpawn.Id):debug("eventText=%s", eventText)
@@ -235,6 +236,13 @@ function veafSpawn.executeCommand(
     local options = veafSpawn.markTextAnalysis(eventText)
 
     if options then
+      -- Whether to keep quiet, and it is deliberately NOT `bypassSecurity` — see
+      -- FIX-SPAWN-BYPASSSECURITY-AS-SILENT. Fourteen handlers used to forward `bypassSecurity` into a
+      -- callee's `silent` parameter, conflating "this command needed no password" with "the player does
+      -- not want to be told". A script must not spam thirty messages for a thirty-group combat zone; a
+      -- player who dropped a marker always deserves an answer. `scripted` is that distinction, and
+      -- nothing else.
+      options.silent = scripted or false
       -- A typo aborts rather than spawning something else — see veaf.reportUnknownParameters. The report
       -- goes to the **requester**, not to `coalition`, which is the side the units spawn for.
       if veaf.reportUnknownParameters(options, veafSpawn.Id, requesterCoalition) then
@@ -252,7 +260,9 @@ function veafSpawn.executeCommand(
           :trace(string.format("scheduling veafSpawn.executeCommand for a delayed start in %s seconds", veaf.p(startDelay)))
         mist.scheduleFunction(
           veafSpawn.executeCommand,
-          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false, requesterCoalition },
+          -- `scripted` travels with the reschedule, or a delayed spawn asked for by a combat zone
+          -- would come back chatty on the second pass.
+          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false, requesterCoalition, scripted },
           timer.getTime() + startDelay
         )
         return true
@@ -296,6 +306,7 @@ function veafSpawn.executeCommand(
           route,
           false,
           requesterCoalition,
+          scripted,
         }, timer.getTime() + repeatDelay)
       end
 
@@ -1044,7 +1055,24 @@ function veafSpawn.initialize()
     -- spawn for the issuing unit's own side. Feedback always goes to the requester.
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
     local requesterCoalition = veaf.getRequesterCoalition(event)
-    return veafSpawn.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, nil, nil, route, true, requesterCoalition)
+    -- `bypass` is the last argument as well as the fifth, and that is not a copy-paste: veafCommands
+    -- passes false/true for (bypassSecurity, fromMarker) on the marker path and true/false on the
+    -- interpreter path, so at THIS entry point `bypass` already means "a script asked, not a person".
+    -- What it must never pick up is an alias's own bypass flag, which is what made `-tacan` mute.
+    return veafSpawn.executeCommand(
+      pos,
+      event.text,
+      spawnSide,
+      event.idx,
+      bypass,
+      groups,
+      nil,
+      nil,
+      route,
+      true,
+      requesterCoalition,
+      bypass
+    )
   end, veafCommands.PRIORITY_SPAWN, veafCommands.SECURITY_HANDLED)
   veafSpawn.dumpSpawnablePlanesList()
 end

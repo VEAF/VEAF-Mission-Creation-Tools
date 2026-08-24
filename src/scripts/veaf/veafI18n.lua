@@ -227,6 +227,13 @@ veaf.i18nCatalog = {
     fr = "Un %s (%s) est apparu",
     en = "A %s (%s) has been spawned",
   },
+  -- A TACAN reports its channel and band for the same reason a JTAC reports its code and frequency:
+  -- a beacon whose channel the pilot is never told cannot be tuned, so it is working data and not a
+  -- notification. `-tacan` said nothing at all until FIX-SPAWN-BYPASSSECURITY-AS-SILENT.
+  ["spawn.tacan_spawned"] = {
+    fr = "TACAN créé, canal %s%s, indicatif %s",
+    en = "TACAN created, channel %s%s, ident %s",
+  },
   ["spawn.jtac_spawned"] = {
     fr = "JTAC créé, désignation sur %s, disponible sur %s %s",
     en = "JTAC spawned, lasing on %s, available on %s %s",

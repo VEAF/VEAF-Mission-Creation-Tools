@@ -130,7 +130,26 @@ Les aliases intégrés les plus courants sont regroupés ci-dessous. Voir la **[
 
 ## Sécurité
 
-La plupart des aliases respectent le système de sécurité (`veafSecurity`). Huit aliases utilitaires le contournent et restent toujours disponibles pour tous les joueurs : `-smoke`, `-longsmoke`, `-signal`, `-light`, `-point`, `-tacan`, `-jtac`, `-afac`.
+La plupart des aliases respectent le système de sécurité (`veafSecurity`). **Neuf** aliases utilitaires
+le contournent et restent toujours disponibles pour tous les joueurs : `-smoke`, `-longsmoke`, `-signal`,
+`-light`, `-point`, `-tacan`, `-jtac`, `-afac`, `-beacon`.
+
+**Contourner le mot de passe ne veut pas dire se taire.** Ces deux notions ont longtemps été le même
+réglage dans le code, et ça se voyait : un pilote qui posait un marqueur `-tacan` n'obtenait *aucune*
+confirmation — ni canal, ni bande. Le silence ne dépend plus que d'une chose : **qui a demandé**.
+
+| Qui pose l'objet | Message au joueur |
+|---|---|
+| un pilote, par un marqueur sur la carte F10 | **toujours**, même si l'alias contourne le mot de passe |
+| un script — zone de combat, vague AirWaves, unité pré-placée | **aucun**, sinon une zone de trente groupes afficherait trente messages |
+
+Deux exceptions volontaires, parce que leur message n'est pas une notification mais **la donnée dont le
+pilote a besoin pour s'en servir** :
+
+- un **JTAC** annonce son code laser et sa fréquence même quand c'est un script qui l'a posé ;
+- un **TACAN** annonce son canal, sa bande et son indicatif — mais seulement au marqueur. Posé par un
+  script, il reste muet : c'est le comportement d'avant, laissé tel quel faute de mission qui en ait
+  besoin.
 
 ---
 

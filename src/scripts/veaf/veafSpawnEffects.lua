@@ -493,14 +493,14 @@ veafSpawn.registerCommandHandler("cargo", "KNOWN_PILOT", function(eventPos, opti
     options.cargoWeightBias,
     options.cargoSmoke,
     options.unitName,
-    bypassSecurity,
+    options.silent,
     not options.showMFD
   )
   return g, nil, false
 end)
 
 veafSpawn.registerCommandHandler("logistic", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
-  local g = veafSpawn.spawnLogistic(eventPos, options.radius, options.country, bypassSecurity, not options.showMFD)
+  local g = veafSpawn.spawnLogistic(eventPos, options.radius, options.country, options.silent, not options.showMFD)
   return g, nil, false
 end)
 
@@ -510,7 +510,7 @@ veafSpawn.registerCommandHandler("destroy", "SENIOR_PILOT", function(eventPos, o
 end)
 
 veafSpawn.registerCommandHandler("teleport", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
-  veafSpawn.teleport(eventPos, options.name, bypassSecurity)
+  veafSpawn.teleport(eventPos, options.name, options.silent)
   return nil, nil, false
 end)
 

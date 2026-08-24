@@ -351,10 +351,16 @@ def build(
         if waypoints_path:
             logger.info(t("pipeline.injecting_waypoints", path=waypoints_path))
             logger.step(t("pipeline.console.waypoints", file=waypoints_path.name))
+            # `pipeline.waypoints.bullseye`, default true — the same shape as
+            # `pipeline.presets.kneeboards`: a behaviour sub-flag defaults on, while the step itself
+            # stays opt-in by the existence of waypoints.yaml. So a mission with no waypoints.yaml is
+            # untouched, and one that already injects waypoints gains a correct bullseye.
+            inject_bullseye = pipeline_step_subflag(worker.pipeline_cfg, "waypoints", "bullseye", True)
             WaypointsInjectorWorker(
                 waypoints_file=waypoints_path,
                 input_mission=variant_output,
                 output_mission=variant_output,
+                inject_bullseye=inject_bullseye,
             ).work()
 
         # Warn about pre-v6 files that are no longer injected (hard break — see ADR 0002).

@@ -1007,6 +1007,7 @@
   "waypoints_injector.mission_loaded": "Fichier mission chargé avec succès",
   "waypoints_injector.mission_not_loaded": "Mission non chargée",
   "waypoints_injector.no_flight_plan": "{count} groupe(s) sans plan de vol dans waypoints.yaml (inchangé(s))",
+  "waypoints_injector.bullseyes": "{count} waypoint(s) bullseye ajouté(s) depuis le bullseye de la mission",
   "waypoints_injector.no_groups_matched": "[yellow]Aucun groupe ne correspond au motif[/yellow]",
   "waypoints_injector.no_groups_to_select": "Aucun groupe à sélectionner",
   "waypoints_injector.no_lua_data": "Données Lua non chargées",

@@ -31,7 +31,13 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
     Worker class that injects waypoints into aircraft groups from a YAML file.
     """
 
-    def __init__(self, waypoints_file: Path | None, input_mission: Path | None, output_mission: Path | None):
+    def __init__(
+        self,
+        waypoints_file: Path | None,
+        input_mission: Path | None,
+        output_mission: Path | None,
+        inject_bullseye: bool = True,
+    ):
         """
         Initialize the worker.
 
@@ -39,10 +45,15 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             waypoints_file: Path to the YAML file with waypoint definitions
             input_mission: Path to the input .miz mission file
             output_mission: Path to the output .miz mission file
+            inject_bullseye: Append the mission's own bullseye to every flight plan that does not
+                already name one. On by default, following `pipeline.presets.kneeboards`: a behaviour
+                sub-flag defaults on, while the step itself stays opt-in by the existence of
+                `waypoints.yaml`.
         """
         self.waypoints_file = waypoints_file
         self.groups: dict[str, Group] = {}
         self.waypoints_manager: WaypointsManager | None = None
+        self.inject_bullseye = inject_bullseye
         super().__init__(config_file=waypoints_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> WaypointsManager | None:
@@ -87,6 +98,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
 
         nb_groups_processed = 0
         nb_groups_without_plan = 0
+        nb_bullseyes = 0
         if not self.waypoints_manager:
             logger.warning(t("waypoints_injector.no_manager"))
             return
@@ -100,8 +112,20 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             )
 
             if flight_plan and flight_plan.waypoints:
-                logger.debug(f"Injecting {len(flight_plan.waypoints)} waypoint(s) into group '{group.name}'")
-                self._inject_waypoints_into_group(group, flight_plan.waypoints)
+                waypoints = list(flight_plan.waypoints)
+
+                # The mission's own bullseye, appended unless the flight plan already names one. The
+                # mission maker's declaration wins: `_inject_waypoints_into_group` REPLACES a same-named
+                # waypoint in place, so adding ours unconditionally would silently overwrite his — which
+                # satisfies "not given a second one" while doing the opposite of what it means.
+                if self.inject_bullseye and not any(wp.name == self.BULLSEYE_NAME for wp in waypoints):
+                    bullseye = self._bullseye_waypoint(group.coalition)
+                    if bullseye:
+                        waypoints.append(bullseye)
+                        nb_bullseyes += 1
+
+                logger.debug(f"Injecting {len(waypoints)} waypoint(s) into group '{group.name}'")
+                self._inject_waypoints_into_group(group, waypoints)
                 nb_groups_processed += 1
             else:
                 nb_groups_without_plan += 1
@@ -115,6 +139,71 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             # flight plan assigned in waypoints.yaml so the outcome is unambiguous.
             if nb_groups_without_plan:
                 logger.detail(tn("waypoints_injector.no_flight_plan", nb_groups_without_plan))
+            # Said out loud: an extra steerpoint appears in every flight plan, and a mission maker who
+            # did not ask for it should be able to find out why from the build rather than the cockpit.
+            if nb_bullseyes:
+                logger.detail(tn("waypoints_injector.bullseyes", nb_bullseyes))
+
+    #: The waypoint name an automatically injected bullseye takes. A mission maker declaring one under
+    #: this name keeps his own: the automatic one is only added when the flight plan does not mention it.
+    BULLSEYE_NAME = "BULLSEYE"
+
+    def _bullseye_for(self, coalition: str | None) -> dict | None:
+        """The bullseye a flight of this coalition should be given, or None.
+
+        RED gets the red bullseye and **everything else gets blue**, which is the rule
+        `FIX-CASMISSION-BLUE-BULLSEYE` (#304) established for the runtime and the one to reuse here. A
+        three-way branch would be worse, not better: real `neutrals` bullseyes are `{0, 0}` and
+        `{100, 100}` in this repository's own missions, so a neutral flight would be sent to the map
+        origin.
+
+        Args:
+            coalition: The group's coalition as the mission table names it.
+
+        Returns:
+            The bullseye mapping, or None when the mission does not carry one.
+        """
+        if not self.dcs_mission or not self.dcs_mission.mission_content:
+            return None
+        side = "red" if str(coalition).lower() == "red" else "blue"
+        coalitions = self.dcs_mission.mission_content.get("coalition") or {}
+        bullseye = (coalitions.get(side) or {}).get("bullseye")
+        if not isinstance(bullseye, dict) or "x" not in bullseye or "y" not in bullseye:
+            return None
+        return bullseye
+
+    def _bullseye_waypoint(self, coalition: str | None) -> WaypointDefinition | None:
+        """Build the bullseye waypoint for a flight of this coalition, or None.
+
+        The altitude and speed are the ones a navigation reference wants: high enough to be a sensible
+        steerpoint and not a fly-over. They are deliberately not read from the flight plan — a bullseye is
+        a position, and inheriting a leg's speed would make it look like a leg.
+
+        Args:
+            coalition: The group's coalition.
+
+        Returns:
+            A `WaypointDefinition`, or None when the mission carries no usable bullseye.
+        """
+        bullseye = self._bullseye_for(coalition)
+        if not bullseye:
+            return None
+        return WaypointDefinition(
+            type="Turning Point",
+            action="Turning Point",
+            alt=float(self.BULLSEYE_ALTITUDE_METRES),
+            alt_type="BARO",
+            speed=float(self.BULLSEYE_SPEED_MPS),
+            speed_type="TAS",
+            x=float(bullseye["x"]),
+            y=float(bullseye["y"]),
+            name=self.BULLSEYE_NAME,
+        )
+
+    #: 20 000 ft, the altitude the shipped template's own example used for a navigation reference.
+    BULLSEYE_ALTITUDE_METRES = 6096
+    #: Metres per second. Matches the template's example rather than inventing a third convention.
+    BULLSEYE_SPEED_MPS = 250
 
     def _inject_waypoints_into_group(self, group: Group, waypoints: list[WaypointDefinition]) -> None:
         """Inject waypoints into a group's route, preserving its existing route.

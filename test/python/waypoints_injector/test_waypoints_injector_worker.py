@@ -568,3 +568,140 @@ class TestExtractionSurvivesAGroupWithNoName(unittest.TestCase):
 
         self.assertNotIn(None, [key.rsplit("/", 1)[-1] for key in worker.matched_groups])
         self.assertNotIn("None", [key.rsplit("/", 1)[-1] for key in worker.matched_groups])
+
+
+class TestBullseyeInjection(unittest.TestCase):
+    """FEAT-WAYPOINT-BULLSEYE — the mission's own bullseye, appended per coalition.
+
+    The thing that can go wrong here is using the **wrong side's** bullseye, which is exactly what
+    `FIX-CASMISSION-BLUE-BULLSEYE` (#304) was, so there is a test per side rather than one test with a
+    coalition parameter. The second thing is overwriting a mission maker's own declaration, which would
+    be silent: `_inject_waypoints_into_group` replaces a same-named waypoint in place.
+    """
+
+    BLUE = {"x": -379712.0, "y": -111473.0}
+    RED = {"x": -130663.0, "y": 111865.0}
+
+    def _worker(self, *, inject_bullseye: bool = True, bullseyes: dict | None = None) -> WaypointsInjectorWorker:
+        worker = WaypointsInjectorWorker(
+            waypoints_file=None, input_mission=None, output_mission=None, inject_bullseye=inject_bullseye
+        )
+        if bullseyes is None:
+            bullseyes = {"blue": self.BLUE, "red": self.RED}
+        coalitions = {side: {"bullseye": value} for side, value in bullseyes.items()}
+        worker.dcs_mission = DcsMission(file_path=Path("fake.miz"), mission_content={"coalition": coalitions})
+        return worker
+
+    def _group(self, coalition: str) -> Group:
+        # `human_pilot=True` is the whole reason this group is a target: process_groups skips anything
+        # else. The first fixture omitted it and every assertion below failed on a group that was never
+        # processed — worth the explicit flag rather than a silent default.
+        return Group(
+            group_dcs={"name": f"{coalition} flight", "route": {"points": [{"name": "DEP", "ETA_locked": True}]}},
+            aircraft_type="plane",
+            country="USA",
+            coalition=coalition,
+            name=f"{coalition} flight",
+            human_pilot=True,
+        )
+
+    def _inject(self, worker: WaypointsInjectorWorker, group: Group, plan_waypoints: list) -> list[dict]:
+        """Run one group through process_groups with a stubbed manager, return its route points."""
+        worker.add_group(group)
+        plan = FlightPlanDefinition(name="plan", waypoints=plan_waypoints)
+        worker.waypoints_manager = MagicMock()
+        worker.waypoints_manager.get_flight_plan_for.return_value = plan
+        worker.process_groups(silent=True)
+        return group.group_dcs["route"]["points"]
+
+    def _leg(self) -> WaypointDefinition:
+        return WaypointDefinition(type="Turning Point", action="Turning Point", alt=3000.0, name="LEG")
+
+    # ── which side's bullseye ───────────────────────────────────────────────
+
+    def test_a_blue_flight_gets_the_blue_bullseye(self) -> None:
+        points = self._inject(self._worker(), self._group("blue"), [self._leg()])
+        bullseye = next(p for p in points if p["name"] == "BULLSEYE")
+        self.assertEqual((bullseye["x"], bullseye["y"]), (self.BLUE["x"], self.BLUE["y"]))
+
+    def test_a_red_flight_gets_the_red_bullseye(self) -> None:
+        points = self._inject(self._worker(), self._group("red"), [self._leg()])
+        bullseye = next(p for p in points if p["name"] == "BULLSEYE")
+        self.assertEqual((bullseye["x"], bullseye["y"]), (self.RED["x"], self.RED["y"]))
+
+    def test_a_neutral_flight_gets_the_blue_one(self) -> None:
+        """The #304 rule is a two-way branch on purpose.
+
+        Real `neutrals` bullseyes in this repository's own missions are `{0, 0}` and `{100, 100}`, so a
+        three-way branch would send a neutral flight to the map origin. Blue is the documented fallback.
+        """
+        points = self._inject(self._worker(), self._group("neutrals"), [self._leg()])
+        bullseye = next(p for p in points if p["name"] == "BULLSEYE")
+        self.assertEqual((bullseye["x"], bullseye["y"]), (self.BLUE["x"], self.BLUE["y"]))
+
+    def test_the_case_of_the_coalition_name_does_not_matter(self) -> None:
+        """A mission table writing RED rather than red must not silently get the blue bullseye."""
+        points = self._inject(self._worker(), self._group("RED"), [self._leg()])
+        bullseye = next(p for p in points if p["name"] == "BULLSEYE")
+        self.assertEqual((bullseye["x"], bullseye["y"]), (self.RED["x"], self.RED["y"]))
+
+    # ── the mission maker's own declaration wins ────────────────────────────
+
+    def test_a_declared_bullseye_is_left_alone(self) -> None:
+        """The silent failure this guards: the injector REPLACES a same-named waypoint in place, so
+        appending ours unconditionally would overwrite his while satisfying "not given a second one"."""
+        declared = WaypointDefinition(
+            type="Turning Point", action="Turning Point", alt=1234.0, x=1.0, y=2.0, name="BULLSEYE"
+        )
+        points = self._inject(self._worker(), self._group("blue"), [declared])
+        bullseyes = [p for p in points if p["name"] == "BULLSEYE"]
+        self.assertEqual(len(bullseyes), 1)
+        self.assertEqual((bullseyes[0]["x"], bullseyes[0]["y"]), (1.0, 2.0), "his coordinates, not ours")
+
+    def test_it_is_appended_not_inserted(self) -> None:
+        """A steerpoint added at the front would renumber a pilot's whole flight plan."""
+        points = self._inject(self._worker(), self._group("blue"), [self._leg()])
+        self.assertEqual(points[0]["name"], "DEP", "the departure point stays first")
+        self.assertEqual(points[-1]["name"], "BULLSEYE")
+
+    # ── when it must do nothing ─────────────────────────────────────────────
+
+    def test_the_flag_turns_it_off(self) -> None:
+        points = self._inject(self._worker(inject_bullseye=False), self._group("blue"), [self._leg()])
+        self.assertNotIn("BULLSEYE", [p["name"] for p in points])
+
+    def test_a_mission_without_a_bullseye_is_left_alone(self) -> None:
+        """Not every mission carries one, and inventing coordinates is worse than adding nothing."""
+        worker = self._worker(bullseyes={})
+        points = self._inject(worker, self._group("blue"), [self._leg()])
+        self.assertNotIn("BULLSEYE", [p["name"] for p in points])
+
+    def test_a_malformed_bullseye_is_refused(self) -> None:
+        """A bullseye missing a component would produce a waypoint at an implicit zero."""
+        worker = self._worker(bullseyes={"blue": {"x": 100.0}})
+        points = self._inject(worker, self._group("blue"), [self._leg()])
+        self.assertNotIn("BULLSEYE", [p["name"] for p in points])
+
+    def test_a_group_with_no_flight_plan_gets_nothing(self) -> None:
+        """The bullseye rides along with a flight plan; it does not create one.
+
+        A mission maker who assigned no plan to a group asked for that group to be left alone, and giving
+        it a lone steerpoint would be a surprise rather than a service.
+        """
+        worker = self._worker()
+        group = self._group("blue")
+        worker.add_group(group)
+        worker.waypoints_manager = MagicMock()
+        worker.waypoints_manager.get_flight_plan_for.return_value = None
+        worker.process_groups(silent=True)
+        self.assertNotIn("BULLSEYE", [p["name"] for p in group.group_dcs["route"]["points"]])
+
+    # ── the waypoint itself ─────────────────────────────────────────────────
+
+    def test_the_waypoint_is_a_turning_point_at_altitude(self) -> None:
+        """A navigation reference, not a leg: a fly-over at low level would route a flight through it."""
+        points = self._inject(self._worker(), self._group("blue"), [self._leg()])
+        bullseye = next(p for p in points if p["name"] == "BULLSEYE")
+        self.assertEqual(bullseye["type"], "Turning Point")
+        self.assertEqual(bullseye["action"], "Turning Point")
+        self.assertGreater(bullseye["alt"], 1000)

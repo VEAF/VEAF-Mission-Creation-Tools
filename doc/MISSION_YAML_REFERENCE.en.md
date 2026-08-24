@@ -599,6 +599,16 @@ pipeline:
     kneeboards: false   # default true — when false, no kneeboard PNG (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png) is generated
 ```
 
+The `waypoints` step takes the same kind of mapping, for the automatic injection of the mission's own
+bullseye (see [The bullseye, injected for you](mission-maker/GUIDE.en.md#automatic-bullseye)):
+
+```yaml
+pipeline:
+  waypoints:
+    enabled: true       # default true — inject flight plans; false = disable the whole step
+    bullseye: false     # default true — when false, no BULLSEYE waypoint is added automatically
+```
+
 ---
 
 ### `build:`

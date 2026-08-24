@@ -155,7 +155,7 @@ veaf.loggers.setBaseLevel("info")  -- Défaut global
 ```lua
 veaf.BuildVersion = "6.7.x+<sha>"  -- stamp de build (version package + sha git) injecté au build ; "dev" hors build
 veaf.Development = false  -- Activer les fonctionnalités de développement
-veaf.HideNamesFromSpawnedGroups = false
+veaf.HideNamesFromSpawnedGroups = true  -- masque la zone et le type dans le nom des groupes créés ; réglable par mission via `mission.hide_names_from_spawned_groups`
 veaf.BaseLogLevel = 3  -- Niveau de log par défaut (info) ; sert de plafond pour les modules
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 veaf.DEFAULT_GROUND_SPEED_KTS = 16.2

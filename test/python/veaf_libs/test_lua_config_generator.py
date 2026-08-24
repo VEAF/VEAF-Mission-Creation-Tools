@@ -1251,3 +1251,37 @@ def test_mission_master_hashes_are_still_replaced() -> None:
 
     assert "veafSecurity.password_MM = {}" in lua
     assert 'veafSecurity.password_MM["cafe"] = true' in lua
+
+
+def test_hide_names_is_not_written_when_the_field_is_absent():
+    """Silence leaves `veaf.lua`'s own default, and lets a `module_settings:` line survive.
+
+    Same rule as `SecurityDisabled` and `DynamicSpawn`: writing a Python default here would overwrite a
+    migration-hatch line ~145 lines earlier without a word, which is the defect
+    FIX-MODULE-SETTINGS-OVERWRITTEN was about.
+    """
+    lua = generate_config_lua({"mission": {"name": "X"}})
+    assert "HideNamesFromSpawnedGroups" not in lua
+
+
+def test_hide_names_false_reaches_the_generated_config():
+    """The case a mission maker actually wants: see the real names while building.
+
+    The default is `true` — a spawned group is named `[r]-<invented>#<id>` so a player cannot read a
+    zone's contents off the F10 map — so `false` is the deliberate choice and must be emitted.
+    """
+    lua = generate_config_lua({"mission": {"name": "X", "hide_names_from_spawned_groups": False}})
+    assert "veaf.HideNamesFromSpawnedGroups = false" in lua
+
+
+def test_hide_names_true_is_written_when_stated():
+    """An explicit `true` is a statement, not a default, and must beat a `module_settings:` line."""
+    lua = generate_config_lua({"mission": {"name": "X", "hide_names_from_spawned_groups": True}})
+    assert "veaf.HideNamesFromSpawnedGroups = true" in lua
+
+
+def test_hide_names_appears_in_the_yaml_template():
+    """A field nobody can find is a field nobody uses: this one was reachable only through the API
+    reference, which is not where a mission maker looks."""
+    template = generate_mission_yaml_template()
+    assert "hide_names_from_spawned_groups" in template

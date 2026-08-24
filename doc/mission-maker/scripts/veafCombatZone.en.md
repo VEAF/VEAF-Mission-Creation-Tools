@@ -384,6 +384,39 @@ Note that `#spawndelay` never had this problem: it delays the zone element itsel
 
 ---
 
+## Spawned group names {#group-naming}
+
+A group a combat zone creates does not carry the name you gave it in the editor. It looks like this:
+
+```
+[r]-Hydra Unit#10230
+```
+
+Three parts, two of which are there to stay:
+
+| Part | What it is | Configurable? |
+|------|------------|---------------|
+| `[r]` / `[b]` / `[n]` | the group's coalition | no |
+| `Hydra Unit` | **an invented name**, not yours | yes, see below |
+| `#10230` | a unique identifier | no — DCS requires unique group names |
+
+The invented name is deliberate: without it a player reads a zone's contents off the F10 map before
+going anywhere near it. That is `veaf.HideNamesFromSpawnedGroups`, **on by default**.
+
+To see the real names — while building or debugging a mission:
+
+```yaml
+mission:
+  hide_names_from_spawned_groups: false
+```
+
+Names then read `<zone name> [r] <real name>#<id>`. The coalition tag and the identifier stay either way.
+
+> The field exists from 6.15.34. Before that the setting was only reachable through
+> `module_settings: { veaf.HideNamesFromSpawnedGroups: false }`, which still works.
+
+---
+
 ## Module Constants
 
 | Constant | Default | Description |

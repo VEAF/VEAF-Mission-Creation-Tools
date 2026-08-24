@@ -7,6 +7,40 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.34] — 2026-08-24
+
+### Fixed
+
+- **The API reference documented the opposite of the real default.** Both `doc/LUA_API_REFERENCE.md` and
+  its English twin listed `veaf.HideNamesFromSpawnedGroups = false`, while `veaf.lua` sets it to **true**.
+
+  That flag replaces a spawned group's zone and unit type with an invented name, so a group comes out as
+  `[r]-Hydra Unit#10230`. The documentation therefore told a mission maker the opposite of what his
+  missions were doing, and it went unnoticed until someone asked why his groups were being renamed.
+
+### Added
+
+- **`mission.hide_names_from_spawned_groups` in `mission.yaml`.** The flag existed but was reachable only
+  through the `module_settings:` migration hatch and documented only in the API reference — which is not
+  where a mission maker looks when he wants to know why his groups are renamed.
+
+  Emitted only when the field is actually given, the way `SecurityDisabled` and `DynamicSpawn` are:
+  silence leaves `veaf.lua`'s own default and lets a `module_settings:` line survive. Documented on the
+  combat-zone page in both languages, where the question is asked, with what is and is not configurable —
+  the coalition tag and the `#<id>` stay either way, since DCS requires unique group names.
+
+- **A test comparing documented Lua defaults against the code** (`test_documented_lua_defaults.py`).
+  The reference pages list module constants as literal assignments, so a reader takes them for the real
+  defaults. Nothing compared the two, and nothing could have: each value was right in its own file.
+
+  Scoped to stay trustworthy rather than noisy — booleans and numbers only inside fenced Lua blocks, and
+  a constant the scripts do not assign at top level is skipped rather than failed, since documentation
+  legitimately describes fields set at runtime. It also checks the two languages document the same values,
+  because a value corrected in one and not the other is the next version of this bug. Verified by
+  re-introducing the wrong default and watching the test name it with both values.
+
+---
+
 ## [6.15.33] — 2026-08-24
 
 ### Fixed

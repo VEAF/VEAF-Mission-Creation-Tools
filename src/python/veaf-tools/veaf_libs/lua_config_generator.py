@@ -195,6 +195,10 @@ def mission_identity_section(live_name: str | None = None) -> list[str]:
         "#   era: MODERN                   # MODERN | COLD_WAR | WW2",
         f"#   language: fr                  # {t('generated.mission_yaml.field.language')}",
         "#   silence_atc_on_all_airbases: false  # mission-wide option: silence ATC at every airbase",
+        "#   hide_names_from_spawned_groups: true  # default true: a spawned group is named",
+        "#                               # `[r]-<invented name>#<id>` instead of carrying its zone and",
+        "#                               # type, so a player cannot read a zone's contents off the F10",
+        "#                               # map. Set false while building or debugging a mission.",
     ]
     return lines
 
@@ -1430,6 +1434,12 @@ def generate_config_lua(
             lines.append(f"veaf.config.era = veaf.ERA.{era}")
         if mission_cfg.get("silence_atc_on_all_airbases"):
             lines.append("veaf.silenceAtcOnAllAirbases()")
+        # Emitted only when actually given, the way `SecurityDisabled` and `DynamicSpawn` are: writing it
+        # from a Python default would overwrite a `module_settings:` line silently, which is the defect
+        # FIX-MODULE-SETTINGS-OVERWRITTEN was about. Silence here leaves `veaf.lua`'s own `true`.
+        if "hide_names_from_spawned_groups" in mission_cfg:
+            hide = "true" if mission_cfg["hide_names_from_spawned_groups"] else "false"
+            lines.append(f"veaf.HideNamesFromSpawnedGroups = {hide}")
         lines.append("")
 
     # ── In-game message language ───────────────────────────────────────────

@@ -1599,6 +1599,44 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     windsockAngle = 0
   end
 
+  -- The windsock went through no clear-ground search at all, and on a FARP it sits 120 m out — which put
+  -- it on a neighbouring platform's apron while every other group had been moved off. Reported in game
+  -- 2026-08-24, after the escort, the tents and the props were all correct.
+  --
+  -- Its bearing is free: David's call, "celle-là on peut la mettre où on veut près du Invisible FARP".
+  -- Nothing reads its position, unlike the escort (which serves the FARP) or the pads (which aircraft
+  -- land on), so the search may move it anywhere it likes. The heading is left alone: it shows wind
+  -- direction and has nothing to do with where the mast stands.
+  --
+  -- Both windsocks are placed from the one bearing found here. The second is offset 90° from the first
+  -- by design, so searching separately would let them drift into different quadrants and stop reading as
+  -- a pair.
+  local function windsockPositionsAt(bearing, scale)
+    scale = scale or 1
+    local positions = {
+      {
+        x = farp.x + windsockDistance * scale * math.cos(mist.utils.toRadian(bearing + windsockAngle)),
+        y = farp.y + windsockDistance * scale * math.sin(mist.utils.toRadian(bearing + windsockAngle)),
+      },
+    }
+    if farp.type == "FARP" then
+      table.insert(positions, {
+        x = farp.x + windsockDistance * scale * math.cos(mist.utils.toRadian(bearing + windsockAngle - 90)),
+        y = farp.y + windsockDistance * scale * math.sin(mist.utils.toRadian(bearing + windsockAngle - 90)),
+      })
+    end
+    return positions
+  end
+
+  local windsockBearing, windsockScale = veafGrass.findClearBearing(angle, windsockPositionsAt, farp)
+  local windsockPositions = windsockPositionsAt(windsockBearing, windsockScale)
+  veaf.loggers.get(veafGrass.Id):info(
+    "FARP windsock: bearing %s requested, %s used at %sx distance",
+    veaf.p(math.floor(angle)),
+    veaf.p(math.floor(windsockBearing)),
+    veaf.p(windsockScale)
+  )
+
   local windsockUnit = {
     ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
     ["category"] = "static",
@@ -1609,8 +1647,8 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     ["country"] = farp.country,
     ["countryId"] = farp.countryId,
     ["heading"] = mist.utils.toRadian(angle - 90),
-    ["x"] = farp.x + windsockDistance * math.cos(mist.utils.toRadian(angle + windsockAngle)),
-    ["y"] = farp.y + windsockDistance * math.sin(mist.utils.toRadian(angle + windsockAngle)),
+    ["x"] = windsockPositions[1].x,
+    ["y"] = windsockPositions[1].y,
     ["hiddenOnMFD"] = hiddenOnMFD,
   }
   if groupName then
@@ -1631,8 +1669,8 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
       ["heading"] = mist.utils.toRadian(angle - 90),
-      ["x"] = farp.x + windsockDistance * math.cos(mist.utils.toRadian(angle + windsockAngle - 90)),
-      ["y"] = farp.y + windsockDistance * math.sin(mist.utils.toRadian(angle + windsockAngle - 90)),
+      ["x"] = windsockPositions[2].x,
+      ["y"] = windsockPositions[2].y,
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     if groupName then

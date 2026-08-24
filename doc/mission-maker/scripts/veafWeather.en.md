@@ -170,6 +170,42 @@ The fog name is case-insensitive. Use the exact constant names listed above (wit
 
 ---
 
+## Welcome brief on taking a slot {#welcome-brief}
+
+When a pilot takes a slot, a short message follows a few seconds later: the nearest airbase, the **runway
+in service** derived from the wind, and the current weather.
+
+```
+Welcome to Kobuleti — runway in service 13
+WIND 270/10 QNH 1013 ...
+```
+
+The message goes **to his group only**, not to the coalition: it is about *his* airfield, and broadcast to
+everyone it would become noise the moment two pilots take slots at different bases.
+
+A few choices worth knowing:
+
+- **It is delayed by a few seconds.** A pilot who has just entered his aircraft is still loading his
+  cockpit, and a message shown at that instant is one he never reads.
+- **It repeats on every slot entry.** A pilot who changes airfield wants the new airfield's runway, and
+  "once per session" would withhold exactly the information that changed.
+- **A carrier has no runway in service** — it turns into the wind, so the runway is mobile. It gives its
+  **current heading (true)** instead, in the same words the carrier group's ATC uses. A **helipad** has
+  neither: it gives the weather alone.
+- The **full** report (ATIS) stays in the radio menu. The greeting is deliberately shorter: a message that
+  fills the screen at every slot change stops being read.
+
+To switch it off — for instance if your mission runs its own briefing:
+
+```yaml
+modules:
+  WEATHER:
+    enabled: true
+    welcomeBrief: false
+```
+
+---
+
 ## See Also
 
 - [CLI Reference](../../CLI_REFERENCE.en.md#inject-weather) — every option of `veaf-tools content inject-weather`

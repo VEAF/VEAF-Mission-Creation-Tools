@@ -1259,10 +1259,28 @@ function TestVeafWeatherWelcomeBrief:_ship(heading)
     return { isShipUnit = true }
   end
   self._savedMistHeading = self._savedMistHeading or mist.getHeading
-  mist.getHeading = function()
+  self.headingArgs = nil
+  local test = self
+  mist.getHeading = function(unit, raw)
+    test.headingArgs = { unit = unit, raw = raw }
     return heading
   end
   return airbase
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_heading_asked_for_is_the_true_one()
+  -- The message says "(true)" / "(vrai)", so the code must ask for the true heading and not the magnetic
+  -- one — otherwise the brief lies by a declination. Pinned because the first version of these tests
+  -- stubbed mist.getHeading ignoring its arguments, and flipping that flag killed no test at all.
+  local airbase = self:_ship(math.rad(45))
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  veafWeather.buildWelcomeBrief(self:_unit())
+  mist.getHeading = self._savedMistHeading
+  luaunit.assertNotNil(self.headingArgs, "mist.getHeading was never called")
+  luaunit.assertTrue(self.headingArgs.raw, "the second argument must be true: the true heading, not magnetic")
 end
 
 function TestVeafWeatherWelcomeBrief:test_a_carrier_announces_its_course()

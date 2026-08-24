@@ -1947,6 +1947,16 @@ end
 --- Shown on **every** slot entry rather than once per session. A pilot who changes airfield wants the new
 --- airfield's runway, and "once per session" would silently withhold exactly the case where the
 --- information changed. It costs one message per slot change, which is what the reference behaviour does.
+--- A human took a slot.
+---
+--- Subscribed to BOTH `S_EVENT_BIRTH` and `S_EVENT_PLAYER_ENTER_UNIT`, and that is not belt-and-braces:
+--- `S_EVENT_PLAYER_ENTER_UNIT` alone does **not** fire when a single-player pilot occupies his starting
+--- slot — DCS raises a birth event for him instead. Subscribing to it alone is why this brief said nothing
+--- at all in game (found 2026-08-24 on a demo mission, reported as "rien sur un aérodrome ni sur le
+--- Stennis"). `veafGrass.onBirth` and `veafQraManager.eventHandler` both take both events for exactly this
+--- reason, with the same human test; this now follows them rather than inventing a third answer.
+---
+--- The human test is what keeps a birth event from briefing every AI aircraft that spawns.
 function veafWeather.onPlayerEnterUnit(event)
   if not veafWeather.welcomeBriefEnabled then
     return
@@ -1956,9 +1966,49 @@ function veafWeather.onPlayerEnterUnit(event)
     return
   end
   local sUnitName = dcsUnit:getName()
-  veaf.loggers.get(veafWeather.Id):debug("welcome brief scheduled for [%s]", veaf.p(sUnitName))
+  local bIsHuman = veaf.mist.isHumanUnit(sUnitName) or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
+  if not bIsHuman then
+    return
+  end
+  -- One brief per slot: both events can arrive for the same pilot, and a pilot who is told the runway
+  -- twice five seconds apart will assume something is broken.
+  veafWeather.briefedUnits = veafWeather.briefedUnits or {}
+  if veafWeather.briefedUnits[sUnitName] then
+    return
+  end
+  veafWeather.briefedUnits[sUnitName] = true
+  -- INFO rather than DEBUG on purpose: when this feature is silent in game, the first question is whether
+  -- it was ever asked to speak, and a debug line cannot answer it from a default log.
+  veaf.loggers.get(veafWeather.Id):info("welcome brief scheduled for [%s]", veaf.p(sUnitName))
   -- Scheduled by name, not by unit: the unit object may be stale by the time the timer fires.
   mist.scheduleFunction(veafWeather.sendWelcomeBrief, { sUnitName }, timer.getTime() + veafWeather.WELCOME_BRIEF_DELAY_SECONDS)
+end
+
+--- Brief every human slot that is already occupied.
+---
+--- Runs once, shortly after the module initializes. `mist.DBs.humansByName` lists the human *slots* a
+--- mission declares; a slot is only worth briefing when a player is actually sitting in it, which is what
+--- `getPlayerName()` answers.
+function veafWeather.briefEveryoneAlreadyFlying()
+  if not veafWeather.welcomeBriefEnabled then
+    return
+  end
+  local humans = mist and mist.DBs and mist.DBs.humansByName
+  if not humans then
+    return
+  end
+  for sUnitName, _ in pairs(humans) do
+    if not veafWeather.briefedUnits[sUnitName] then
+      local dcsUnit = Unit.getByName(sUnitName)
+      -- `getPlayerName` returns nil for an empty slot and for an AI-filled one; only a real pilot gets a
+      -- brief, or a mission with forty declared slots would send forty messages to nobody.
+      if dcsUnit and dcsUnit.isExist and dcsUnit:isExist() and dcsUnit.getPlayerName and dcsUnit:getPlayerName() then
+        veaf.loggers.get(veafWeather.Id):info("welcome brief for [%s], who was already flying", veaf.p(sUnitName))
+        veafWeather.briefedUnits[sUnitName] = true
+        veafWeather.sendWelcomeBrief(sUnitName)
+      end
+    end
+  end
 end
 
 function veafWeather.initialize(bWelcomeBrief)
@@ -1970,7 +2020,24 @@ function veafWeather.initialize(bWelcomeBrief)
   -- needs to silence this, and #301 asked for the behaviour by default.
   veafWeather.welcomeBriefEnabled = bWelcomeBrief ~= false
   if veafWeather.welcomeBriefEnabled then
-    veafEventHandler.addCallback("veafWeather.onPlayerEnterUnit", { "S_EVENT_PLAYER_ENTER_UNIT" }, veafWeather.onPlayerEnterUnit)
+    veafWeather.briefedUnits = {}
+    veafEventHandler.addCallback(
+      "veafWeather.onPlayerEnterUnit",
+      { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" },
+      veafWeather.onPlayerEnterUnit
+    )
+    -- And a sweep of who is ALREADY flying, because in single player the event has already happened.
+    --
+    -- The pilot occupies his slot before the mission's scripts load, so his birth event fires before this
+    -- module (order 210) can subscribe to anything. Subscribing was never going to catch it — the brief
+    -- said nothing at all in game for exactly that reason, on an airfield and on a carrier alike, and
+    -- adding `S_EVENT_BIRTH` to the subscription did not help because the timing, not the event name, was
+    -- the problem. Changing slot restarts the mission in single player, so the second attempt lost the
+    -- race too.
+    --
+    -- The subscription stays for pilots who join a running server later; this sweep covers everyone who
+    -- was already there. Both go through `briefedUnits`, so nobody is briefed twice.
+    mist.scheduleFunction(veafWeather.briefEveryoneAlreadyFlying, {}, timer.getTime() + veafWeather.WELCOME_BRIEF_DELAY_SECONDS)
   end
   veafRemote.registerRemoteModule("atis", veafWeather.executeCommandFromRemote)
   veafRemote.registerRemoteModule("atc", veafWeather.executeCommandFromRemote)

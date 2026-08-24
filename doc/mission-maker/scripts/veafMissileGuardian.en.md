@@ -55,11 +55,27 @@ The guardian is built with `VeafMG_Guardian:new()`. Each setter returns the guar
 
 ---
 
+## What works, and what does not {#state}
+
+Established by reading the code on 2026-08-24 rather than inferred:
+
+| What you can do | State |
+|---|---|
+| Build a guardian, give it units and a zone, attach it with `start()` | works |
+| **Be warned** when a shot targets a protected unit inside the zone | works |
+| Have the missile destroyed in flight | **not implemented** — there is no watchdog at all, and `veafMissileGuardian.getLargeScaleProtector()` is a stub returning `nil` |
+| `veafMissileGuardian.AddGuardian` / `ActivateGuardian` / `DesactivateGuardian` | **refuse**: the module has no guardian storage, and the class has neither `activate` nor `desactivate`. They warn in the DCS log instead of raising |
+| List guardians from the radio menu | **not implemented**: the "GUARDIAN" menu holds a Help entry and nothing else |
+
+Up to 6.15.36 the warning to the pilot was followed by a **Lua error on every shot** (the missing
+protector), and the three verbs above raised on a function that was never written. So the one behaviour
+this page describes — warning the target — is now complete, and the rest is explicitly refused rather
+than silently broken.
+
 ## Notes
 
-- The module is experimental: actual missile destruction is not yet implemented
 - A guardian only warns targets inside its protected zone when a shot is detected
-- Internal classes: `VeafMG_Weapon` (weapon in flight), `VeafMG_Guardian` (observer), `VeafMG_Protector` (protector, stub)
+- Internal classes: `VeafMG_Weapon` (weapon in flight), `VeafMG_Guardian` (observer), `VeafMG_Protector` (protector, stub: its `start()` and `stop()` have empty bodies)
 
 ---
 

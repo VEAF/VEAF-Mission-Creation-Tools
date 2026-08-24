@@ -336,4 +336,249 @@ function TestVeafMissileGuardianCopy:test_scalar_attributes_are_copied()
   luaunit.assertEquals(copy.friendlyName, "Test guardian")
 end
 
+-- ===========================================================================
+-- FIX-MISSILEGUARDIAN-NO-STORAGE — the public verbs
+--
+-- The existing tests above cover the classes' getters, setters and copy constructors, and nothing else:
+-- not one of them went through a public verb, which is exactly where the module raised. `ActivateGuardian`
+-- and `DesactivateGuardian` both opened on `veafMissileGuardian.GetGuardian(name)`, a function that was
+-- never written, and the class has no `activate`, `desactivate` or `isSilent` either — so storage alone
+-- would not have made them work.
+--
+-- The module stays a declared skeleton. What these tests pin is that it **refuses out loud** rather than
+-- raising, because a skeleton that raises on its first line of work is indistinguishable from a broken
+-- feature when it turns up in a DCS log.
+-- ===========================================================================
+TestVeafMGPublicVerbs = {}
+
+function TestVeafMGPublicVerbs:setUp()
+  self._savedGet = veaf.loggers.get
+  self.logged = {}
+  local logger = {}
+  for _, level in ipairs({ "error", "warn", "info", "debug", "trace" }) do
+    logger[level] = function(_, message, ...)
+      table.insert(self.logged, { level = level, message = message })
+    end
+  end
+  veaf.loggers.get = function(id)
+    if id == veafMissileGuardian.Id then
+      return logger
+    end
+    return self._savedGet(id)
+  end
+end
+
+function TestVeafMGPublicVerbs:tearDown()
+  veaf.loggers.get = self._savedGet
+end
+
+function TestVeafMGPublicVerbs:_warnings()
+  local found = {}
+  for _, entry in ipairs(self.logged) do
+    if entry.level == "warn" then
+      table.insert(found, entry.message)
+    end
+  end
+  return found
+end
+
+function TestVeafMGPublicVerbs:test_activate_does_not_raise()
+  -- The defect as the sweep found it: a call reaching a function nothing defines.
+  local ok, err = pcall(veafMissileGuardian.ActivateGuardian, "anything", false)
+  luaunit.assertTrue(ok, "ActivateGuardian must not raise: " .. tostring(err))
+end
+
+function TestVeafMGPublicVerbs:test_activate_refuses_rather_than_pretending()
+  -- `false`, not nil: a caller reading the result gets a decision. And it must be in the log, since a
+  -- mission that called this asked for protection it is not getting.
+  luaunit.assertFalse(veafMissileGuardian.ActivateGuardian("anything", false))
+  luaunit.assertEquals(#self:_warnings(), 1)
+  luaunit.assertStrContains(self:_warnings()[1], "ActivateGuardian")
+end
+
+function TestVeafMGPublicVerbs:test_desactivate_does_not_raise()
+  local ok, err = pcall(veafMissileGuardian.DesactivateGuardian, "anything", false)
+  luaunit.assertTrue(ok, "DesactivateGuardian must not raise: " .. tostring(err))
+  luaunit.assertEquals(#self:_warnings(), 1)
+end
+
+function TestVeafMGPublicVerbs:test_add_refuses_instead_of_returning_its_argument()
+  -- It used to hand the guardian straight back, which reads as "registered" at every call site.
+  local guardian = VeafMG_Guardian:new()
+  luaunit.assertFalse(veafMissileGuardian.AddGuardian(guardian))
+  luaunit.assertEquals(#self:_warnings(), 1)
+end
+
+function TestVeafMGPublicVerbs:test_listing_says_so_instead_of_printing_an_empty_list()
+  -- It sorted an empty local and printed "List of all available guardians:" with nothing under it,
+  -- which reads as "this mission defines none" rather than "this module cannot define any".
+  luaunit.assertFalse(veafMissileGuardian.listGuardians())
+  luaunit.assertEquals(#self:_warnings(), 1)
+end
+
+function TestVeafMGPublicVerbs:test_listActiveMissions_is_gone()
+  -- It iterated `veafMissileGuardian.missionsDict`, a table this module never had — copied from
+  -- veafCombatMission, where "missions" is a real concept. Its only possible outcome was an error.
+  luaunit.assertNil(veafMissileGuardian.listActiveMissions)
+end
+
+function TestVeafMGPublicVerbs:test_the_verbs_are_still_there_to_be_called()
+  -- Refusing is not the same as deleting: the module is offered as MISSILEGUARDIAN and a mission may
+  -- call these. Removing them would turn a warning into a nil-call crash at the caller.
+  luaunit.assertIsFunction(veafMissileGuardian.AddGuardian)
+  luaunit.assertIsFunction(veafMissileGuardian.ActivateGuardian)
+  luaunit.assertIsFunction(veafMissileGuardian.DesactivateGuardian)
+end
+
+-- ---------------------------------------------------------------------------
+-- The weapon path — the line that would fail first if anyone wired this up
+-- ---------------------------------------------------------------------------
+TestVeafMGWeaponPath = {}
+
+function TestVeafMGWeaponPath:setUp()
+  self._savedGet = veaf.loggers.get
+  self._savedMist = mist
+  self.logged = {}
+  local logger = {}
+  for _, level in ipairs({ "error", "warn", "info", "debug", "trace" }) do
+    logger[level] = function(_, message, ...)
+      table.insert(self.logged, { level = level, message = message })
+    end
+  end
+  veaf.loggers.get = function(id)
+    if id == veafMissileGuardian.Id then
+      return logger
+    end
+    return self._savedGet(id)
+  end
+  -- `mist.pointInPolygon` is not in the mocks; the guardian asks it whether the target is inside the
+  -- protected zone, and the interesting branch is the one where it says yes.
+  mist = mist or {}
+  mist.pointInPolygon = function()
+    return true
+  end
+end
+
+function TestVeafMGWeaponPath:tearDown()
+  veaf.loggers.get = self._savedGet
+  mist = self._savedMist
+end
+
+--- A shot at `unitName`, shaped as `VeafMG_Guardian:onEvent` reads it.
+function TestVeafMGWeaponPath:_shotAt(unitName)
+  local target = {
+    getName = function()
+      return unitName
+    end,
+    getPoint = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+    getGroup = function()
+      return {
+        getID = function()
+          return 1
+        end,
+      }
+    end,
+    getPlayerName = function()
+      return nil -- no player, so the warning message branch is skipped
+    end,
+  }
+  return {
+    id = world.event.S_EVENT_SHOT,
+    weapon = {
+      getTarget = function()
+        return target
+      end,
+      getLauncher = function()
+        return nil
+      end,
+    },
+  }
+end
+
+function TestVeafMGWeaponPath:test_a_shot_at_a_protected_unit_does_not_raise()
+  -- This is where `getLargeScaleProtector():setWeapon(...)` sat, on a stub returning nil. Unreachable
+  -- today, since nothing constructs a guardian and so nothing registers the handler — but a raise inside
+  -- a `world` event handler is the worst possible place to discover that, and this is the first line
+  -- anyone wiring the module up would hit.
+  local guardian = VeafMG_Guardian:new():setName("g"):addProtectedUnit("Chevy11")
+  local ok, err = pcall(function()
+    guardian:onEvent(self:_shotAt("Chevy11"))
+  end)
+  luaunit.assertTrue(ok, "onEvent must not raise on the missing protector: " .. tostring(err))
+end
+
+function TestVeafMGWeaponPath:test_and_it_says_why_nothing_happened()
+  local guardian = VeafMG_Guardian:new():setName("g"):addProtectedUnit("Chevy11")
+  pcall(function()
+    guardian:onEvent(self:_shotAt("Chevy11"))
+  end)
+  local warned = false
+  for _, entry in ipairs(self.logged) do
+    if entry.level == "warn" then
+      warned = true
+    end
+  end
+  luaunit.assertTrue(warned, "a detected weapon that nothing follows must be reported")
+end
+
+function TestVeafMGWeaponPath:test_an_unprotected_unit_is_ignored_quietly()
+  -- The guard must not turn every shot in the mission into a warning.
+  local guardian = VeafMG_Guardian:new():setName("g"):addProtectedUnit("Chevy11")
+  pcall(function()
+    guardian:onEvent(self:_shotAt("SomebodyElse"))
+  end)
+  for _, entry in ipairs(self.logged) do
+    luaunit.assertNotEquals(entry.level, "warn", "a shot at an unprotected unit must stay silent")
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- A weapon whose launcher is already gone
+--
+-- `getLauncher()` answers nil once the shooter no longer exists, which for a shot event processed a
+-- moment later is ordinary. `setDcsWeapon` passed that nil straight to `veafMissileGuardian.getUnitName`,
+-- which indexed it. The existing `test_setDcsWeapon_getDcsWeapon` above never saw this because its mock
+-- always supplies a launcher — a happy-path mock hiding the branch that actually happens in flight.
+-- ---------------------------------------------------------------------------
+TestVeafMGWeaponWithoutLauncher = {}
+
+function TestVeafMGWeaponWithoutLauncher:_weaponWithNoLauncher()
+  return {
+    getLauncher = function()
+      return nil
+    end,
+  }
+end
+
+function TestVeafMGWeaponWithoutLauncher:test_it_does_not_raise()
+  local weapon = VeafMG_Weapon:new()
+  local ok, err = pcall(function()
+    weapon:setDcsWeapon(self:_weaponWithNoLauncher())
+  end)
+  luaunit.assertTrue(ok, "a launcher-less weapon must not raise: " .. tostring(err))
+end
+
+function TestVeafMGWeaponWithoutLauncher:test_the_shooter_name_is_simply_absent()
+  -- nil rather than an invented placeholder: the warning message built from it reads better empty than
+  -- with a made-up name in it.
+  local weapon = VeafMG_Weapon:new():setDcsWeapon(self:_weaponWithNoLauncher())
+  luaunit.assertNil(weapon:getShooterName())
+end
+
+function TestVeafMGWeaponWithoutLauncher:test_a_launcher_still_gives_its_name()
+  -- The guard must not swallow the normal case.
+  local weapon = VeafMG_Weapon:new():setDcsWeapon({
+    getLauncher = function()
+      return {
+        getName = function()
+          return "Chevy11"
+        end,
+      }
+    end,
+  })
+  luaunit.assertEquals(weapon:getShooterName(), "Chevy11")
+end
+
 os.exit(luaunit.LuaUnit.run())

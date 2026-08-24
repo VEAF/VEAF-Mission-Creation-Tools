@@ -46,14 +46,10 @@ _LONG_STRING = re.compile(r"\[(=*)\[.*?\]\1\]", re.S)
 
 #: Known offenders, to erode and never to grow — the same ratchet the mypy and coverage gates use.
 #:
-#: `veafMissileGuardian.GetGuardian` is called by `ActivateGuardian` and `DesactivateGuardian` and
-#: was never written. It is left listed rather than papered over: `AddGuardian` next to it does not
-#: register anything either (it takes a guardian and returns it), so the module's storage was never
-#: finished and inventing a getter would be a guess at what it should hold. Filed as
-#: FIX-MISSILEGUARDIAN-NO-STORAGE.
-KNOWN_MISSING = {
-    "veafMissileGuardian.GetGuardian",
-}
+#: Empty, and it stays empty: the ratchet only ever shrinks. The single entry it carried,
+#: `veafMissileGuardian.GetGuardian`, is gone because the calls to it are gone — see
+#: FIX-MISSILEGUARDIAN-NO-STORAGE. Adding a name here is a decision to ship a call that raises.
+KNOWN_MISSING: set[str] = set()
 
 
 def _strip_strings_and_comments(text: str) -> str:

@@ -405,6 +405,38 @@ les reçoivent.
     demandiez déjà. Si votre mission n'a que des slots posés dans l'éditeur, rien ne change.
 
 
+#### Le bullseye, injecté tout seul {#automatic-bullseye}
+
+Depuis la 6.15.44, chaque plan de vol reçoit en plus un waypoint **`BULLSEYE`** aux coordonnées du
+bullseye **de votre mission** — plus besoin de le déclarer, et plus de risque de recopier celles d'une
+autre carte.
+
+La coalition est prise en compte : un vol **rouge** reçoit le bullseye rouge, **tout le reste** reçoit le
+bleu. C'est la même règle que les scripts VEAF appliquent en jeu depuis
+[#304](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/304), et ce n'est pas un raccourci :
+dans les vraies missions, le bullseye « neutre » vaut souvent `{0, 0}` ou `{100, 100}`, donc un vol neutre
+serait envoyé à l'origine de la carte.
+
+Le waypoint est **ajouté à la fin** du plan, donc la numérotation de vos points existants ne bouge pas.
+
+!!! note "Votre déclaration gagne toujours"
+    Si votre plan de vol déclare déjà un waypoint nommé `BULLSEYE`, c'est **le vôtre** qui est utilisé,
+    avec vos coordonnées. Rien n'est ajouté et rien n'est remplacé.
+
+Pour le désactiver :
+
+```yaml
+pipeline:
+  waypoints:
+    bullseye: false
+```
+
+Et il ne s'applique qu'aux missions qui injectent déjà des waypoints : une mission **sans**
+`src/waypoints.yaml` n'est pas touchée, et un groupe auquel aucun plan de vol ne correspond ne reçoit rien
+— le bullseye accompagne un plan, il n'en crée pas.
+
+Le build vous dit combien il en a ajouté.
+
 ## Outils de conception
 
 `veaf-tools.exe` manipule les fichiers `.miz` au moment du build — avant de les charger dans DCS.

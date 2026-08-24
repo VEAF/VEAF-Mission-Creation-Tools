@@ -10,6 +10,40 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.44] — 2026-08-24
+
+### Added
+
+- **The mission's own bullseye is injected as a waypoint, per coalition** —
+  [#175](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/175), asked for in 2023. Every flight
+  plan gains a `BULLSEYE` waypoint at the coordinates the mission itself carries, appended so existing
+  point numbers do not move.
+
+  **RED gets the red bullseye, everything else gets blue** — the rule
+  [#304](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/304) established for the runtime,
+  reused rather than reinvented. Two-way for a concrete reason: the real `neutrals` bullseye is `{0, 0}`
+  in the Syria smoke-test mission and `{100, 100}` in the demo mission, so a three-way branch would send
+  a neutral flight to the map origin.
+
+  **A flight plan that already declares `BULLSEYE` keeps its own.** Not merely un-duplicated —
+  *un-overwritten*: the injector replaces a same-named waypoint in place, so adding ours unconditionally
+  would have silently replaced the mission maker's coordinates with the mission's.
+
+  On by default through `pipeline.waypoints.bullseye`, the same shape as `pipeline.presets.kneeboards`:
+  a behaviour sub-flag defaults on while the step stays opt-in by the existence of `waypoints.yaml`. A
+  mission without one is untouched, and a group no flight plan matches receives nothing — the bullseye
+  rides along with a plan rather than creating one. The build reports how many it added.
+
+  Measured on the built smoke-test mission rather than asserted: 105 human slots, 53 with the correct
+  blue bullseye, 52 with the correct red one, **0 wrong and 0 missing**. That check is the one that
+  matters, because the failure mode here is using the wrong side's bullseye and a unit test with invented
+  coordinates would not notice.
+
+  This only works because the previous release moved the waypoints step: before it, the same feature
+  would have reached one slot in 105 while satisfying its own acceptance criteria.
+
+---
+
 ## [6.15.43] — 2026-08-24
 
 ### Fixed

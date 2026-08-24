@@ -606,6 +606,16 @@ pipeline:
     kneeboards: false   # défaut true — si false, aucune planchette PNG (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png) n'est générée
 ```
 
+L'étape `waypoints` accepte le même genre de mapping, pour l'injection automatique du bullseye de la
+mission (voir [Le bullseye, injecté tout seul](mission-maker/GUIDE.md#automatic-bullseye)) :
+
+```yaml
+pipeline:
+  waypoints:
+    enabled: true       # défaut true — injecte les plans de vol ; false = désactive toute l'étape
+    bullseye: false     # défaut true — si false, aucun waypoint BULLSEYE n'est ajouté automatiquement
+```
+
 ---
 
 ### `build:`

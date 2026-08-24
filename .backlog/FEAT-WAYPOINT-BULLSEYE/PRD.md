@@ -1,6 +1,6 @@
 # FEAT-WAYPOINT-BULLSEYE — inject the bullseye as a waypoint automatically
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: [#175](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/175), 2023.
 
@@ -93,10 +93,74 @@ template: a blue `F-16C_50` gets `all_blue_planes`, so `f16_flight_plan`
 (`src/defaults/mission-folder/src/waypoints.yaml:71`) is **dead config**. Not this lot's job, but it will
 bite whoever tries to give one aircraft type its own bullseye.
 
+## Delivered — 2026-08-24
+
+Every flight plan now also receives a `BULLSEYE` waypoint at the **mission's own** bullseye, appended so
+existing point numbers do not move.
+
+**The coalition rule is #304's, reused rather than reinvented**: RED gets red, everything else gets blue.
+A two-way branch, and the reason matters — the real `neutrals` bullseye is `{0, 0}` in the Syria
+smoke-test mission and `{100, 100}` in the demo mission, so a three-way branch would send a neutral
+flight to the map origin.
+
+**The mission maker's declaration always wins.** A flight plan already naming `BULLSEYE` keeps its own
+coordinates, and nothing is added. That guard is not decoration: `_inject_waypoints_into_group` *replaces*
+a same-named waypoint in place, so appending ours unconditionally would have overwritten his — satisfying
+this lot's "not given a second one" while doing the opposite of what it means.
+
+### On by default, and scoped
+
+`pipeline.waypoints.bullseye`, default `true`, read with the existing sub-flag helper — byte-for-byte the
+shape of `pipeline.presets.kneeboards`. That follows the codebase's own precedent rather than a
+preference: behaviour sub-flags default on, whole pipeline steps are opt-in by the existence of their
+config file. So a mission with no `waypoints.yaml` is untouched, and one that already injects waypoints
+gains a correct bullseye.
+
+A group no flight plan matches receives nothing: the bullseye rides along with a plan, it does not create
+one. A mission maker who assigned no plan to a group asked for it to be left alone.
+
+### Measured on the artefact, not on constructed objects
+
+Ran the injector over the built `SmokeTest_noon.miz` and read the produced mission back:
+
+| | |
+|---|---|
+| human slots | 105 |
+| with the correct **blue** bullseye | 53 |
+| with the correct **red** bullseye | 52 |
+| wrong | **0** |
+| missing | **0** |
+
+That is the check that matters, because the failure mode here is *using the wrong side's bullseye* — #304
+exactly — and a unit test with invented coordinates would not notice.
+
+This only works because [`FIX-WAYPOINTS-STEP-TOO-EARLY`](../FIX-WAYPOINTS-STEP-TOO-EARLY/PRD.md) shipped
+first: at the old step position the same feature would have reached 1 slot in 105 while satisfying this
+lot's definition of done. That is why it was made a prerequisite rather than a footnote.
+
+### Tests
+
+12, and four mutations run against them: forcing blue for everyone kills 2, making the coalition
+comparison case-sensitive kills 1, dropping the already-declared guard kills 1, ignoring the flag kills 1.
+
+One fixture defect worth recording, since it cost the first run: the constructed `Group` did not set
+`human_pilot`, and `process_groups` skips anything else — so six assertions failed on a group that was
+never processed. The artefact measurement had already passed, which is what said the fixture was wrong
+rather than the code.
+
+### Documented
+
+`GUIDE.md` / `.en.md` under `{#automatic-bullseye}` — the coalition rule and why it is two-way, the
+declaration-wins guarantee, how to switch it off, and what is *not* touched.
+`MISSION_YAML_REFERENCE` gained the `pipeline.waypoints.bullseye` mapping beside its `presets` twin.
+
 ## Definition of done
 
-- [ ] A flight gets a `BULLSEYE` waypoint without declaring one
-- [ ] The correct coalition's bullseye, with a test per side
-- [ ] A mission that declares its own `BULLSEYE` is not given a second one
-- [ ] The on-by-default question answered here, not left to the implementation
-- [ ] Documented, both languages
+- [x] A flight gets a `BULLSEYE` waypoint without declaring one — 105 of 105 human slots
+- [x] The correct coalition's bullseye, with a test per side — and measured on the built mission: 53 blue,
+      52 red, 0 wrong
+- [x] A mission that declares its own `BULLSEYE` is not given a second one — and, more to the point, not
+      **overwritten**, which is what the injector would otherwise do
+- [x] The on-by-default question answered here, not left to the implementation — on, scoped to missions
+      that already inject waypoints, following `pipeline.presets.kneeboards`
+- [x] Documented, both languages

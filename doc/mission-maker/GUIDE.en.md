@@ -404,6 +404,37 @@ Only **human-piloted** groups receive waypoints — and since 6.15.43, **all** o
     slots placed in the editor, nothing changes.
 
 
+#### The bullseye, injected for you {#automatic-bullseye}
+
+Since 6.15.44, every flight plan also receives a **`BULLSEYE`** waypoint at **your mission's own**
+bullseye coordinates — no need to declare it, and no risk of copying another map's.
+
+The coalition is honoured: a **red** flight gets the red bullseye, **everything else** gets the blue one.
+That is the same rule the VEAF scripts have applied in game since
+[#304](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/304), and it is not a shortcut: in real
+missions the "neutral" bullseye is often `{0, 0}` or `{100, 100}`, so a neutral flight would be sent to
+the map origin.
+
+The waypoint is **appended** to the plan, so your existing points keep their numbers.
+
+!!! note "Your own declaration always wins"
+    If your flight plan already declares a waypoint named `BULLSEYE`, **yours** is used, with your
+    coordinates. Nothing is added and nothing is replaced.
+
+To turn it off:
+
+```yaml
+pipeline:
+  waypoints:
+    bullseye: false
+```
+
+And it only applies to missions that already inject waypoints: a mission **without** a
+`src/waypoints.yaml` is untouched, and a group no flight plan matches receives nothing — the bullseye
+rides along with a plan, it does not create one.
+
+The build tells you how many it added.
+
 ## Design-Time Tools
 
 `veaf-tools.exe` manipulates `.miz` files at build time — before loading them in DCS.

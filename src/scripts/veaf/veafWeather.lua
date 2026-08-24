@@ -1822,10 +1822,118 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
-function veafWeather.initialize()
+---------------------------------------------------------------------------------------------------
+--- Welcome brief — FEAT-SLOT-WELCOME-BRIEF (#301)
+---------------------------------------------------------------------------------------------------
+
+--- Seconds between taking the slot and the brief.
+---
+--- Not zero: a pilot entering a unit is still loading his cockpit, and a message shown at that instant
+--- is one he never reads. Tripack's reference behaviour shows it a few seconds in, which is what this
+--- matches.
+veafWeather.WELCOME_BRIEF_DELAY_SECONDS = 5
+
+--- How long the brief stays on screen.
+veafWeather.WELCOME_BRIEF_DURATION_SECONDS = 20
+
+--- Build the welcome brief for a unit, or nil when there is nothing useful to say.
+---
+--- Deliberately shorter than the ATIS: a pilot who wants the full report has it in the radio menu, and a
+--- greeting that fills the screen on every slot change stops being read. Wind, a one-line weather
+--- summary, and the runway in service.
+---
+--- **Which airbase.** The nearest one, which for a pilot sitting at parking *is* the one he is on. The
+--- PRD asked for "the one the slot sits on, not the nearest in a straight line", and the authoritative
+--- answer would be the departure airdrome the mission declares on the group's first route point — but
+--- whether `mist.getGroupRoute` carries `airdromeId` cannot be established without a running DCS, and
+--- guessing it would be worse than using the tested helper. The residual case is a slot at one airfield
+--- marginally closer to another's centre; recorded in the PRD rather than papered over.
+---
+--- @param dcsUnit table the unit the player just took
+--- @return string|nil the brief, or nil when no airbase is near enough to talk about
+function veafWeather.buildWelcomeBrief(dcsUnit)
+  if not dcsUnit or not dcsUnit.getPoint then
+    return nil
+  end
+
+  local veafAirbaseNear = veafAirbases.getNearestAirbase(dcsUnit)
+  if not veafAirbaseNear or not veafAirbaseNear.DcsAirbase then
+    return nil
+  end
+
+  local weatherData = veafWeatherData:create(veafAirbaseNear.DcsAirbase:getPoint(), nil, nil)
+  if not weatherData then
+    return nil
+  end
+
+  local sRunway = nil
+  -- A ship and a helipad have no runway to be in service, and asking anyway would log a "none
+  -- identified" for every carrier slot taken.
+  if veafAirbaseNear.Category ~= Airbase.Category.SHIP and veafAirbaseNear.Category ~= Airbase.Category.HELIPAD then
+    sRunway = veafAirbaseNear:getRunwayInServiceString(weatherData.WindDirection)
+  end
+
+  local sName = veafAirbaseNear.DisplayName or veafAirbaseNear.Name
+  local unitSystem = veafWeatherUnitSystem.defaultForTheatre()
+  local sWeather = weatherData:toStringAtis(unitSystem)
+
+  if veaf.isNullOrEmpty(sRunway) then
+    return veaf.t("weather.welcome_brief_no_runway", sName, sWeather)
+  end
+  return veaf.t("weather.welcome_brief", sName, sRunway, sWeather)
+end
+
+--- Show the brief to the player who just took a slot.
+---
+--- Sent to the unit rather than the coalition: it is about *his* airfield, and the same greeting
+--- broadcast to everyone flying would be noise the moment two pilots take slots at different bases.
+function veafWeather.sendWelcomeBrief(dcsUnitName)
+  local dcsUnit = Unit.getByName(dcsUnitName)
+  if not dcsUnit or not dcsUnit:isExist() then
+    -- He left the slot during the delay, which is ordinary rather than exceptional.
+    return
+  end
+  local sBrief = veafWeather.buildWelcomeBrief(dcsUnit)
+  if veaf.isNullOrEmpty(sBrief) then
+    return
+  end
+  local dcsGroup = dcsUnit:getGroup()
+  if not dcsGroup then
+    return
+  end
+  trigger.action.outTextForGroup(dcsGroup:getID(), sBrief, veafWeather.WELCOME_BRIEF_DURATION_SECONDS)
+end
+
+--- Event callback: a player took a slot.
+---
+--- Shown on **every** slot entry rather than once per session. A pilot who changes airfield wants the new
+--- airfield's runway, and "once per session" would silently withhold exactly the case where the
+--- information changed. It costs one message per slot change, which is what the reference behaviour does.
+function veafWeather.onPlayerEnterUnit(event)
+  if not veafWeather.welcomeBriefEnabled then
+    return
+  end
+  local dcsUnit = event and event.initiator
+  if not dcsUnit or not dcsUnit.getName then
+    return
+  end
+  local sUnitName = dcsUnit:getName()
+  veaf.loggers.get(veafWeather.Id):debug("welcome brief scheduled for [%s]", veaf.p(sUnitName))
+  -- Scheduled by name, not by unit: the unit object may be stale by the time the timer fires.
+  mist.scheduleFunction(veafWeather.sendWelcomeBrief, { sUnitName }, timer.getTime() + veafWeather.WELCOME_BRIEF_DELAY_SECONDS)
+end
+
+function veafWeather.initialize(bWelcomeBrief)
   veaf.loggers.get(veafWeather.Id):debug("veafWeather.initialize()")
   veafWeather.buildRadioMenu()
   veafAirbases.initialize()
+
+  -- Off by an explicit setting rather than by absence: a mission maker running his own briefing script
+  -- needs to silence this, and #301 asked for the behaviour by default.
+  veafWeather.welcomeBriefEnabled = bWelcomeBrief ~= false
+  if veafWeather.welcomeBriefEnabled then
+    veafEventHandler.addCallback("veafWeather.onPlayerEnterUnit", { "S_EVENT_PLAYER_ENTER_UNIT" }, veafWeather.onPlayerEnterUnit)
+  end
   veafRemote.registerRemoteModule("atis", veafWeather.executeCommandFromRemote)
   veafRemote.registerRemoteModule("atc", veafWeather.executeCommandFromRemote)
   veafRemote.registerRemoteModule("weather", veafWeather.executeCommandFromRemote)
@@ -1833,7 +1941,10 @@ end
 
 veaf.loggers.get(veafWeather.Id):info(veaf.loggers.get(veafWeather.Id):getVersionInfo())
 
-veaf.registerModule(veafWeather.Id, veafWeather.initialize, { enable = true }, 210)
+veaf.registerModule(veafWeather.Id, function()
+  local cfg = veaf.getConfig(veafWeather.Id)
+  veafWeather.initialize(cfg.welcomeBrief)
+end, { enable = true, welcomeBrief = true }, 210)
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------

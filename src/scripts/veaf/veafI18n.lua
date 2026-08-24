@@ -1344,6 +1344,19 @@ veaf.i18nCatalog = {
     en = "SPAWN",
   },
   -- veaf.lua — the CTLD submenu and its sling-loading toggle (FEAT-CTLD-SLINGLOAD-TOGGLE, #60).
+  -- veafWeather — the welcome brief a pilot gets on taking a slot (FEAT-SLOT-WELCOME-BRIEF, #301).
+  -- Deliberately shorter than the ATIS: the full report is a radio command away, and a greeting that
+  -- fills the screen at every slot change stops being read.
+  ["weather.welcome_brief"] = {
+    fr = "Bienvenue à %s — piste en service %s\n%s",
+    en = "Welcome to %s — runway in service %s\n%s",
+  },
+  -- A ship or a helipad has no runway to be in service, and a carrier slot is a normal case rather
+  -- than a degraded one, so it gets its own wording instead of an empty gap.
+  ["weather.welcome_brief_no_runway"] = {
+    fr = "Bienvenue à %s\n%s",
+    en = "Welcome to %s\n%s",
+  },
   ["menu.ctld.root"] = {
     fr = "CTLD",
     en = "CTLD",

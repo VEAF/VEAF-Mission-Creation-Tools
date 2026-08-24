@@ -1,125 +1,164 @@
-# VEAF Mission Creation Tools — 6.15.4
+# VEAF Mission Creation Tools — 6.16.0
 
-**Du code qui écrivait sans regarder ce qu'il effaçait.**
+**Corrections et améliorations.**
 
-Cette version rassemble tout ce qui a été corrigé depuis la 6.15.0, et le fil est le même d'un bout
-à l'autre : un outil qui écrit quelque part sans vérifier ce qui s'y trouvait déjà. Un réglage effacé
-du `mission.yaml`, une mission dont la construction meurt sur une erreur qui ne désigne rien, un
-avion créé sans une goutte de carburant — et, le plus visible de tous, un `veaf-tools.exe` qui ne
-démarrait plus du tout.
+Quarante-sept versions correctives se sont accumulées depuis la 6.15.4 ; les voici rassemblées.
+Il y a de vraies nouveautés — le réglage du tir d'artillerie, un brief d'accueil au décollage, les
+coordonnées au format que DCS affiche — mais la majeure partie du travail a consisté à corriger des
+choses qui ne fonctionnaient pas, souvent sans le dire.
 
-Aucune de ces pannes ne se voyait dans nos tests. La deuxième moitié de cette version consiste donc
-à installer les contrôles qui les rendent visibles la prochaine fois.
-
----
-
-## ⚠️ À faire en premier
-
-**Si vous avez mis à jour en 6.15.0 : mettez à jour à nouveau.** Votre `veaf-tools.exe` ne démarre
-plus sur aucune commande. Il n'y a rien d'autre à faire — aucun fichier de votre côté n'a été abîmé.
-
-**Si vous avez construit une mission en mode développeur (`--dev-mode`) entre le 17 et le 19 août :
-ouvrez votre `mission.yaml` et vérifiez ce qui suivait la section `build:`.** Cette partie du fichier
-pouvait être effacée à chaque construction, sans un message. Un bloc `security:` avec ses mots de
-passe est le cas typique — s'il a disparu, il faut le réécrire. Cela ne concerne que le mode
-développeur ; une construction normale n'a jamais touché à ce fichier.
+**Cinq de ces défauts ont été trouvés en vol, pas par les tests.** Un `-tacan` qui n'annonçait rien,
+un brief météo qui ne partait jamais, des commandes d'artillerie sans réponse : rien de tout cela
+n'apparaissait dans une suite de tests verte. Si vous voyez quelque chose qui ne se comporte pas comme
+la documentation le dit, dites-le — c'est ce qui a produit la moitié de cette version.
 
 ---
 
-## L'outil ne démarrait plus
+## ⚠️ À lire avant de mettre à jour
 
-Signalé par **Tripack**, copie d'écran à l'appui — et cette copie d'écran donnait la cause en une
-lecture. Lancer `veaf-tools.exe` affichait un message d'erreur et rien d'autre, quelle que soit la
-commande demandée, y compris `--help`.
+Quatre changements peuvent modifier le comportement de missions qui fonctionnaient déjà.
 
-Ce qui se passait : à l'intérieur de l'outil, un ensemble de composants s'est mis à se charger
-**seulement quand on en a besoin**, ce qui est une bonne chose en soi. Mais le programme qui fabrique
-l'exécutable devine ce qu'il doit embarquer en **lisant le code** — et du code qui ne charge rien à
-l'avance ne lui annonce rien à embarquer. Onze composants sont donc restés dehors, dont celui que
-l'outil réclame à la première seconde.
+### Vos coordonnées en degrés-minutes-secondes se déplacent de 31 mètres
 
-Toute la ligne 6.15 était concernée : ce n'est pas une commande qui échouait, c'est l'outil qui ne
-s'ouvrait pas. Corrigé, et vérifié sur un exécutable reconstruit — les 25 commandes s'affichent, et
-une génération de `mission.yaml` se déroule normalement.
+Le lecteur de coordonnées perdait exactement une seconde d'arc sur chaque valeur en
+degrés-minutes-secondes, **depuis 2021**. `N42:30:15` était lu comme 42,5038889° au lieu de
+42,5041667° — une trentaine de mètres vers le sud.
 
-**Ce qui change pour de bon :** avant chaque publication, la chaîne automatique **construit
-l'exécutable et le lance**. Jusqu'ici, tous nos contrôles s'exécutaient depuis le code source, où ce
-genre de défaut est parfaitement invisible — c'est pour cette raison qu'il est passé, ainsi que deux
-autres du même genre avant lui.
+Ce lecteur est le seul du projet : il sert les zones AirWaves, les cibles d'artillerie, les points
+nommés, les QRA et les alias. **Si vous avez compensé ce décalage à la main**, en décalant vos
+coordonnées pour que les objets tombent au bon endroit, vos positions bougeront de 31 mètres. Les
+coordonnées décimales et le MGRS n'étaient pas touchés.
 
----
+### Une option de marqueur mal orthographiée est maintenant refusée
 
-## Le `mission.yaml` n'est plus tronqué
+Elle était ignorée en silence dans toutes les commandes sauf `_spawn`. Une mission dont les marqueurs
+contiennent une coquille pouvait donc « marcher » depuis toujours, en appliquant simplement les valeurs
+par défaut. Ces marqueurs vont désormais être refusés, et la coquille nommée à l'écran.
 
-Le mode développeur enregistre ses réglages dans la section `build:` de votre `mission.yaml`. Pour le
-faire, il coupait le fichier à cet endroit et le réécrivait — donc **tout ce que vous aviez écrit
-après cette section disparaissait**. Silencieusement, à chaque construction.
+### Le validateur refuse davantage de missions
 
-La première construction est inoffensive, puisque `build:` est ajouté à la fin. Les dégâts commencent
-au moment où l'on ajoute quelque chose après — ce qui est le geste naturel quand le fichier se termine
-là. Mesuré : un bloc `security:`, ses empreintes de mots de passe et le commentaire final du fichier,
-tous effacés en un appel.
+Il refuse maintenant les missions que l'éditeur de DCS refuse lui-même d'ouvrir. C'est une bonne
+nouvelle sur le fond — mieux vaut l'apprendre à la construction qu'en jeu — mais une mission qui se
+construisait peut être rejetée.
 
-Un second défaut a été trouvé dans le même mouvement : sous Windows, ces mêmes écritures
-retournaient **toutes les lignes** du fichier au lieu de la seule section concernée, ce qui rendait
-illisible la moindre comparaison entre deux versions de votre mission.
+### L'injection de waypoints atteint désormais tous les slots
+
+Elle n'en atteignait **qu'un sur 105**. Les 104 autres étaient silencieusement ignorés. Vos missions
+existantes vont voir leurs plans de vol apparaître là où ils étaient absents, et un waypoint de
+bullseye ajouté par coalition.
 
 ---
 
-## Une mission aux numéros à trous ne tue plus la construction
+## Artillerie : le réglage du tir
 
-Les fichiers de mission DCS rangent leurs éléments dans des tables numérotées. Retirez un groupe à la
-main, ou passez la mission dans un outil tiers, et la numérotation devient `1, 3, 4` au lieu de
-`1, 2, 3`. DCS s'en accommode ; nos outils, non : la construction mourait sur une erreur technique
-désignant un sous-système qui n'avait rien à voir avec le groupe supprimé.
+Une batterie retient le dernier point qu'elle a visé, et un nouvel ordre `correct` décale ce point.
 
-Les groupes, les unités, les points de route, les zones de déclenchement et leurs sommets, les
-dessins de carte et les tâches imbriquées sont désormais renumérotés **à la lecture**, une fois pour
-toutes. La commande `validate` vous **nomme** le trou refermé plutôt que de le réparer en silence.
+```
+_ground set, name arty-1                     (marqueur posé sur la batterie)
+_ground order, name arty-1, order aim; target 37T FH 73551 47565
+_ground order, name arty-1, order correct; correction 09050
+_ground order, name arty-1, order fire
+```
 
-Vérifié sur toutes les missions du dépôt : la renumérotation ne change pas un octet. Les
-configurations d'armement sont volontairement laissées telles quelles — elles sont numérotées par
-point d'emport, et les renuméroter déplacerait chaque arme sous l'aile.
+La correction s'écrit comme l'artillerie l'écrit : **trois chiffres de cap vrai, puis la distance en
+mètres**. `09050` vaut cinquante mètres à l'est. Les corrections se cumulent, et un tir d'efficacité
+sans coordonnées tombe au point corrigé.
 
----
+Une correction illisible, ou adressée à une batterie sans tir en cours, est **refusée et annoncée** —
+tirer sur le seul décalage mettrait les obus là où la batterie se trouve.
 
-## Édition de mission assistée : quatre trous fermés
+## Les coordonnées telles que DCS les affiche
 
-Ces outils permettent à un assistant de modifier une mission pour vous. Quatre défauts les rendaient
-plus dangereux qu'utiles.
+`37T GG 12345 12345`, recopié de la carte F10 avec ses espaces, est accepté tel quel : plus de préfixe
+`u`, plus de retranscription. Le nombre de chiffres est la précision, de 10 km à deux chiffres par côté
+jusqu'au mètre à cinq. Un nombre **impair** de chiffres est refusé plutôt que deviné.
 
-- **Un avion créé n'avait pas de carburant.** Zéro, littéralement. Un vol créé en l'air tombait à
-  l'instant où il apparaissait ; un départ au parking masquait le problème, DCS ravitaillant un avion
-  garé sur les stocks du terrain. Le plein interne du type d'appareil est désormais la valeur par
-  défaut, et une quantité précise peut être demandée.
-- **Supprimer un groupe** est maintenant possible, et l'opération **renumérote** ce qu'elle laisse
-  derrière elle — c'est cette absence qui produisait les trous décrits plus haut. Elle nomme aussi ce
-  qui casserait autrement sans bruit : une zone de combat qui capture le groupe par son nom, une
-  tâche d'escorte qui le désigne par son numéro, une entrée dans votre `mission.yaml`.
-- **Les modifications s'appliquent à un dossier de mission**, et pas seulement à un `.miz`. C'est ce
-  qui les rend durables : elles survivent à la construction suivante.
-- **Une zone de combat créée est écrite au bon endroit** — dans la liste, et non sous les commentaires
-  qui la suivent, où elle semblait appartenir à une autre section.
+Les degrés-minutes-secondes acceptent maintenant les espaces et les symboles `°`, `'`, `"`, en plus des
+`:` et `-` qui marchaient déjà. Les degrés et minutes décimales des cartes aéronautiques
+(`N42:30.5E041:45.5`) sont lus correctement.
 
----
+Et une coordonnée écrite longitude d'abord est **refusée** au lieu d'être silencieusement transposée :
+`E041N42` revenait avec les deux valeurs inversées.
 
-## Ce qu'il faut en retenir
+## Un brief au moment où vous prenez votre appareil
 
-Trois de ces quatre défauts ont été trouvés le même jour, en préparant une mission de vérification
-pour un tout autre problème. Aucun n'a été trouvé par un test.
+Cinq secondes après avoir occupé un slot, vous recevez la météo et **la piste en service**, déduite du
+vent. Sur un porte-avions, pas de piste : le navire annonce son **cap actuel**, comme il le fait déjà
+quand il se met au vent.
 
-Ils forment une famille : du code qui écrit sans regarder ce qu'il détruit. Deux contrôles nouveaux
-la surveillent désormais — l'un vérifie qu'un outil rendu à ses propres écritures reproduit son
-fichier **à l'octet près** lorsqu'il n'a rien à changer, l'autre construit l'exécutable et le lance.
-Le premier a trouvé un défaut supplémentaire dès ses deux premières utilisations.
+Un créateur de mission qui écrit son propre briefing peut le désactiver.
+
+## Balises, treuil et CTLD
+
+- **`-beacon`** pose une balise radio VHF/UHF/FM par CTLD, depuis un simple marqueur, et annonce ses
+  fréquences.
+- Un **game master** peut couper et remettre le treuil de CTLD depuis le menu radio, pour tout le monde
+  à la fois.
+- **`-tacan`** annonce enfin son canal, sa bande et son indicatif. Il ne disait strictement rien : la
+  balise apparaissait, et le pilote n'avait aucun moyen de savoir sur quoi se caler.
+- Le CTLD embarqué était épinglé **quatre versions candidates en retard** du fichier qu'il décrivait.
+
+## Convois, zones de combat, sanctuaires
+
+- Un **convoi** peut recevoir un itinéraire, le parcourir seul, et prendre des ordres en route.
+- Une **zone de combat** signale à nouveau les groupes hors de combat, disperse ses groupes, peut
+  conserver les noms d'origine de ses unités, et accepte une **plage** de valeurs dans ses étiquettes
+  numériques — lesquelles comptent désormais où qu'elles soient écrites.
+- Les **défenses d'une zone sanctuaire** ne se déployaient pas : elles levaient une erreur Lua. Depuis
+  2021, et invisible parce que l'option qui les déclenche est désactivée par défaut.
+- Une **défense rapprochée** ne garde plus un site qui ne peut plus se battre.
+
+## CSAR
+
+- Un pilote abattu n'apparaît plus dans l'eau.
+- Une mission qui configurait `csar.csarMode` recevait une erreur Lua au lieu de la sanction demandée.
+- La réponse du CSAR donne maintenant sa géométrie, pas seulement son verdict.
+
+## Météo
+
+- Un briefing peut afficher la météo avec laquelle la mission a été construite.
+- Une variante météo ne déclarant qu'un `airport_icao` n'avait jamais sa météo injectée.
+- Le METAR en direct est récupéré une fois, pas deux.
+
+## Waypoints et plans de vol
+
+- L'injection atteint tous les slots humains, et non plus un sur 105.
+- Le **bullseye** de la mission est injecté comme waypoint, par coalition.
+- Le plan de vol **le plus spécifique** gagne, au lieu du premier déclaré. La priorité décrite dans la
+  documentation n'existait pas dans le code.
+
+## Ce qui ne se taira plus
+
+Une longue série de refus qui n'en étaient pas : ils ne faisaient rien, sans un mot, et rien ne
+permettait de distinguer « la commande est mauvaise » de « le module est cassé ».
+
+- **Huit commandes `_ground`** ne répondaient pas. Un pilote automatique dont le nom n'existe pas, un
+  marqueur posé à plus de 250 m du groupe, un texte d'ordre illisible : silence complet. Chaque réponse
+  dit maintenant **quoi faire** — la commande qui crée le pilote automatique, l'option `groupname`, la
+  liste des ordres valides.
+- Un **alias qui contourne le mot de passe** n'était plus autorisé à parler. C'est ce qui rendait
+  `-tacan` muet : « cette commande n'a pas besoin de mot de passe » et « ne rien dire au pilote »
+  étaient le même réglage dans le code. Un pilote qui pose un marqueur reçoit toujours une réponse ; un
+  script n'inonde jamais personne.
+- Un **marqueur avec du texte** répondait « votre commande a échoué » quoi qu'il arrive.
+- Une **option mal orthographiée** est nommée, dans toutes les commandes.
+- Un joueur qui **quitte son slot** n'est plus enregistré dans une unité appelée `nil`.
+
+## Divers
+
+- Un `-farp` posé près d'une FARP existante ne pose plus son escorte sur cette plateforme, et la
+  décision de placement est journalisée.
+- Un peloton bleu de la guerre froide tirait dans une liste dont **une entrée sur trois** ne créait
+  rien. Les blindés Currenthill peuvent apparaître.
+- Six commandes radio de convoi étaient chacune seule dans son propre sous-menu.
+- Un déclencheur d'interpréteur que le monde ne rend pas se déclenche quand même.
+- Une plage numérique ouverte ou inversée ne lève plus d'erreur.
+- La référence d'API documentait le contraire du défaut réel.
 
 ---
 
 ## Remerciements
 
-- **Tripack**, pour le signalement de l'exécutable qui ne démarrait plus, avec la copie d'écran qui
-  contenait la réponse — et pour la constance avec laquelle il rapporte ce qu'il voit plutôt que ce
-  qu'il suppose.
-- **David**, pour trois défauts trouvés en préparant une mission de vérification, et pour avoir
-  signalé trois fois de suite un bloc `security:` disparu avant que la cause s'avère être la
-  construction, et non l'auteur de la mission.
+À ceux qui volent avec ces outils et qui disent quand quelque chose ne va pas. Cinq défauts de cette
+version viennent de là, et aucun n'aurait été trouvé autrement : nos tests étaient verts pendant que le
+TACAN se taisait, que le brief météo ne partait pas et que l'artillerie ignorait les ordres.

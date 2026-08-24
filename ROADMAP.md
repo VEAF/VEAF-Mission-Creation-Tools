@@ -67,9 +67,14 @@ extending it:
 
 A release is cut on a `release/x.y.z` branch off `develop`, merged into `master` with a **merge
 commit**, and tagged twice from there — `published-vx.y.z` for the binaries, `vx.y.z` for the
-versioned documentation. The last published release is **6.15.4** (2026-08-19), which carries four
-patches: 6.15.1 to 6.15.4 were closed in the changelog but never published, so 6.15.0 stood as the
-shipped version while its executable could not start.
+versioned documentation. The last published release is **6.16.0** (2026-08-24), which consolidates the
+forty-seven patch versions from 6.15.5 to 6.15.52 — a minor bump rather than a patch, because it carries
+new features as well as fixes: the artillery fire-adjustment loop, the welcome brief, the coordinate
+formats DCS actually displays, CTLD radio beacons, and convoy itineraries.
+
+Its predecessor, **6.15.4** (2026-08-19), carried four patches: 6.15.1 to 6.15.4 were closed in the
+changelog but never published, so 6.15.0 stood as the shipped version while its executable could not
+start.
 
 ---
 

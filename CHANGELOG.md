@@ -10,6 +10,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.0] — 2026-08-24
+
+**Released.** This version consolidates the forty-seven patch versions from **6.15.5 to 6.15.52**, whose
+detailed entries follow below and are left untouched. Nothing new is recorded here — this heading exists
+so the changelog says which version shipped, and what it contained.
+
+Four changes can alter the behaviour of missions that already worked; they are set out in
+`RELEASE_NOTES.md` before anything else. In short: every latitude/longitude written in degrees, minutes
+and seconds moves by about 31 metres (it was wrong before), a misspelt marker option is now refused in
+every command rather than only in `_spawn`, the mission validator refuses more missions, and waypoint
+injection now reaches every human slot instead of one in 105.
+
+---
+
 ## [6.15.52] — 2026-08-24
 
 ### Fixed

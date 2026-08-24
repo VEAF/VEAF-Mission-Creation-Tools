@@ -1,16 +1,17 @@
 # FIX-FARP-ESCORT-PLACEMENT — the FARP escort lands on whatever is already there
 
-Status: 🧑 waiting-human — **verified in game 2026-08-24** for the reported case; the open-ground
-non-regression is the one run left
+Status: ✅ done — shipped in 6.15.33, **both cases verified in game 2026-08-24**
 
-## Verified
+## Verified, both halves
 
-David, 2026-08-24: *"c'est bon, tout est en dehors du farp statique"* — a `-farp` dropped ~150 m from
-`StaticFarpAlpha` now puts its escort, tents, props and windsocks clear of the platform.
+- **The reported case** — a `-farp` ~150 m from `StaticFarpAlpha`: *"c'est bon, tout est en dehors du farp
+  statique"*. Escort, tents, props and both windsocks clear of the platform.
+- **The non-regression** — a `-farp` in open ground, far from anything: *"c'est bon, rien n'a bougé"*.
+  Everything on the requested bearing at the requested distance, no refusal in the log.
 
-Still to run, and it matters more than the fix after five rounds of changes: a `-farp` in **open ground,
-far from anything**, which must look exactly as it always did — everything on the requested bearing at
-the requested distance, `bearing 0 requested, 0 used at 1x distance`, and **no** refusal in the log.
+The second mattered more than the first. Five rounds of changes went into this placement code, four of
+them adjusting how aggressively it refuses ground; a fix that quietly moved every FARP in every existing
+mission would have been a worse outcome than the defect.
 
 ## Five defects, not one
 

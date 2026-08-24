@@ -15,7 +15,6 @@ import io
 import json
 import os
 import re
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -27,6 +26,8 @@ from veaf_libs import dcs_smoke as smoke
 from veaf_libs.dcs_fiddle_client import ENV_HOOK, ENV_MISSION, Capabilities, FiddleError, exec_lua, probe
 from veaf_libs.dcs_smoke import CHECKS, Check, Outcome, Result, format_result, run
 from veaf_libs.i18n import language
+
+from veaf_build.lua_tests import _find_lua
 
 
 @pytest.fixture(autouse=True)
@@ -674,12 +675,20 @@ class TestEveryChunkCompiles:
     unbalanced `end` is a syntax error that surfaces only as a failed check in a live session — one
     round-trip through David's DCS to learn something `luac` answers instantly. `poetry run test-lua`
     already requires the interpreter, so this asks for nothing new.
+
+    The interpreter comes from `veaf_build.lua_tests._find_lua`, which version-checks it, rather than
+    from `shutil.which("lua")` as first written. Two interpreters sit on this machine — a scoop 5.5.0
+    shim and the 5.1.5 in Program Files — and which one `which` answers depends on the PATH of the
+    shell that launched pytest. It happened to answer 5.1.5, so this test was right by accident: a
+    5.5 rejects perfectly valid 5.1 (it reads a `for` variable as const) and accepts syntax DCS would
+    not, so the same test could just as well have reported failures that are not defects.
     """
 
     def test_all_of_them(self):
-        lua_binary = shutil.which("lua") or shutil.which("lua5.1")
-        if not lua_binary:
-            pytest.skip("no lua interpreter on PATH")
+        try:
+            lua_binary = _find_lua()
+        except Exception as exc:  # typer.BadParameter when no 5.1 interpreter is installed
+            pytest.skip(f"no Lua 5.1 interpreter: {exc}")
         for check in CHECKS:
             with tempfile.NamedTemporaryFile("w", suffix=".lua", encoding="utf-8", delete=False) as handle:
                 # wrapped in a function so the chunk's `return` statements are legal

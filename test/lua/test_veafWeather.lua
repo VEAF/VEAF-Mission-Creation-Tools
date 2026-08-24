@@ -20,6 +20,11 @@ local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafTime.lua")
 dofile(src .. "/veafI18n.lua")
+-- veafWeather reaches into veafAirbases for the welcome brief (the nearest airbase and its runway
+-- in service), and veafEventHandler for the slot-entry callback. Loaded here rather than stubbed:
+-- the brief's only real risk is calling the runway lookup wrongly, and a stub would hide that.
+dofile(src .. "/veafEventHandler.lua")
+dofile(src .. "/veafAirbases.lua")
 dofile(src .. "/veafWeather.lua")
 
 -- The rendering assertions below pin the English wording; the weather report is
@@ -1091,4 +1096,247 @@ end
 -- ============================================================================
 -- Run
 -- ============================================================================
+-- ============================================================================
+-- FEAT-SLOT-WELCOME-BRIEF — greeting a pilot who takes a slot (#301)
+--
+-- A correction to the lot's own PRD belongs here, because it is what these tests do *not* cover: the PRD
+-- calls the runway-from-wind "the only real computation here" and says nothing decides it. It was already
+-- written and shipped — `veafAirbase:getRunwayInService` picks the best-headwind runway end and the ATIS
+-- has been using it. So there is nothing to test there, and what is tested is the part that was missing:
+-- the trigger, the airbase, the message, and the switch.
+-- ============================================================================
+TestVeafWeatherWelcomeBrief = {}
+
+function TestVeafWeatherWelcomeBrief:setUp()
+  self._savedEnabled = veafWeather.welcomeBriefEnabled
+  self._savedOutForGroup = trigger.action.outTextForGroup
+  self._savedNearest = veafAirbases.getNearestAirbase
+  self._savedCreate = veafWeatherData.create
+  self._savedSchedule = mist.scheduleFunction
+  self._savedGetByName = Unit.getByName
+
+  self.messages = {}
+  self.scheduled = {}
+  veafWeather.welcomeBriefEnabled = true
+
+  trigger.action.outTextForGroup = function(groupId, text, duration)
+    table.insert(self.messages, { groupId = groupId, text = text, duration = duration })
+  end
+  mist.scheduleFunction = function(fn, args, when)
+    table.insert(self.scheduled, { fn = fn, args = args, when = when })
+  end
+end
+
+function TestVeafWeatherWelcomeBrief:tearDown()
+  veafWeather.welcomeBriefEnabled = self._savedEnabled
+  trigger.action.outTextForGroup = self._savedOutForGroup
+  veafAirbases.getNearestAirbase = self._savedNearest
+  veafWeatherData.create = self._savedCreate
+  mist.scheduleFunction = self._savedSchedule
+  Unit.getByName = self._savedGetByName
+end
+
+--- A unit the player just took, with only what the brief touches.
+function TestVeafWeatherWelcomeBrief:_unit(name)
+  return {
+    getName = function()
+      return name or "Chevy11"
+    end,
+    isExist = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+    getGroup = function()
+      return {
+        getID = function()
+          return 77
+        end,
+      }
+    end,
+  }
+end
+
+--- An airbase of the given category, answering a runway for whatever wind it is given.
+function TestVeafWeatherWelcomeBrief:_airbase(category, runway)
+  self.askedWind = nil
+  local test = self
+  return {
+    Name = "Kobuleti",
+    DisplayName = "Kobuleti",
+    Category = category,
+    DcsAirbase = {
+      getPoint = function()
+        return { x = 0, y = 0, z = 0 }
+      end,
+    },
+    getRunwayInServiceString = function(_, wind)
+      test.askedWind = wind
+      return runway
+    end,
+  }
+end
+
+--- Stub the weather so the brief has something to report, with a known wind direction.
+function TestVeafWeatherWelcomeBrief:_weather(windDirection)
+  veafWeatherData.create = function()
+    return {
+      WindDirection = windDirection or 270,
+      toStringAtis = function()
+        return "WIND 270/10 QNH 1013"
+      end,
+    }
+  end
+end
+
+function TestVeafWeatherWelcomeBrief:_arrange(category, runway, windDirection)
+  local airbase = self:_airbase(category or Airbase.Category.AIRDROME, runway or "13")
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather(windDirection)
+  return airbase
+end
+
+-- ── the message ─────────────────────────────────────────────────────────────
+
+function TestVeafWeatherWelcomeBrief:test_it_names_the_airbase_the_runway_and_the_weather()
+  self:_arrange()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  luaunit.assertNotNil(brief:find("Kobuleti", 1, true))
+  luaunit.assertNotNil(brief:lower():find("runway in service 13", 1, true), "the runway, named: " .. brief)
+  luaunit.assertNotNil(brief:find("QNH 1013", 1, true), "the weather line must be in it: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_runway_is_chosen_from_the_wind()
+  -- The one thing the brief must not get wrong: asking for the runway without the wind would return
+  -- whichever end the airbase lists first, silently.
+  self:_arrange(nil, "31", 130)
+  veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertEquals(self.askedWind, 130)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_carrier_gets_no_runway_line()
+  -- A ship has no runway to be in service, and asking anyway logs a "none identified" for every carrier
+  -- slot taken. Its own wording rather than an empty gap.
+  self:_arrange(Airbase.Category.SHIP, "13")
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  -- On the word, not on the digits: the first version of this searched for "13" and found it inside the
+  -- QNH of "1013", failing on a brief that was perfectly correct.
+  luaunit.assertNil(brief:lower():find("runway", 1, true), "a carrier brief must not name a runway: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_helipad_gets_no_runway_line_either()
+  self:_arrange(Airbase.Category.HELIPAD, "13")
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  luaunit.assertNil(brief:lower():find("runway", 1, true))
+end
+
+function TestVeafWeatherWelcomeBrief:test_an_airbase_with_no_runway_in_service_still_gets_a_brief()
+  -- The weather is worth having even when no runway can be identified; dropping the whole brief would
+  -- trade a missing line for a missing message.
+  self:_arrange(Airbase.Category.AIRDROME, nil)
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  luaunit.assertNotNil(brief:find("Kobuleti", 1, true))
+end
+
+-- ── when there is nothing to say ─────────────────────────────────────────────
+
+function TestVeafWeatherWelcomeBrief:test_no_airbase_means_no_brief()
+  veafAirbases.getNearestAirbase = function()
+    return nil
+  end
+  self:_weather()
+  luaunit.assertNil(veafWeather.buildWelcomeBrief(self:_unit()))
+end
+
+function TestVeafWeatherWelcomeBrief:test_no_weather_means_no_brief()
+  self:_arrange()
+  veafWeatherData.create = function()
+    return nil
+  end
+  luaunit.assertNil(veafWeather.buildWelcomeBrief(self:_unit()))
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_nil_unit_is_not_a_crash()
+  luaunit.assertNil(veafWeather.buildWelcomeBrief(nil))
+end
+
+-- ── the trigger ─────────────────────────────────────────────────────────────
+
+function TestVeafWeatherWelcomeBrief:test_taking_a_slot_schedules_the_brief()
+  -- Not shown at once: a pilot entering a unit is still loading his cockpit, and a message at that
+  -- instant is one he never reads.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit() })
+  luaunit.assertEquals(#self.scheduled, 1)
+  luaunit.assertEquals(#self.messages, 0, "nothing is shown before the delay")
+end
+
+function TestVeafWeatherWelcomeBrief:test_it_is_scheduled_by_name_not_by_unit()
+  -- The unit object may be stale by the time the timer fires; a name can be resolved again.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit("Chevy21") })
+  luaunit.assertEquals(self.scheduled[1].args[1], "Chevy21")
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_setting_silences_it()
+  -- A mission maker running his own briefing needs this off, which is why it is a setting and not a
+  -- constant.
+  self:_arrange()
+  veafWeather.welcomeBriefEnabled = false
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit() })
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafWeatherWelcomeBrief:test_an_event_without_an_initiator_is_ignored()
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({})
+  veafWeather.onPlayerEnterUnit(nil)
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+-- ── sending it ──────────────────────────────────────────────────────────────
+
+function TestVeafWeatherWelcomeBrief:test_it_goes_to_the_pilots_group_only()
+  -- His airfield, his message. Broadcast to a coalition it becomes noise the moment two pilots take
+  -- slots at different bases.
+  self:_arrange()
+  local unit = self:_unit()
+  Unit.getByName = function()
+    return unit
+  end
+  veafWeather.sendWelcomeBrief("Chevy11")
+  luaunit.assertEquals(#self.messages, 1)
+  luaunit.assertEquals(self.messages[1].groupId, 77)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_pilot_who_left_the_slot_gets_nothing()
+  -- Ordinary rather than exceptional: the delay is long enough to jump back to spectator.
+  self:_arrange()
+  Unit.getByName = function()
+    return nil
+  end
+  veafWeather.sendWelcomeBrief("Chevy11")
+  luaunit.assertEquals(#self.messages, 0)
+end
+
+function TestVeafWeatherWelcomeBrief:test_nothing_to_say_sends_nothing()
+  veafAirbases.getNearestAirbase = function()
+    return nil
+  end
+  self:_weather()
+  local unit = self:_unit()
+  Unit.getByName = function()
+    return unit
+  end
+  veafWeather.sendWelcomeBrief("Chevy11")
+  luaunit.assertEquals(#self.messages, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

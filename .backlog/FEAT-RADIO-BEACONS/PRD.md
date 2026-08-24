@@ -76,6 +76,28 @@ this lot ships `-beacon` **without** a `freq` option, reports the three frequenc
 option arrives later through the vendored update — which is the honest order, since faking a choice VEAF
 cannot make would be a command that lies.
 
+### The upstream request is filed — 2026-08-24
+
+[`VEAF/CTLD#128`](https://github.com/VEAF/CTLD/pull/128) adds `opts.frequencies` to `createAtPoint`: an
+optional subset of `{ vhfKHz, uhfMHz, fmMHz }`, bands left out still random, every existing caller
+untouched. Refusals are total — `nil, reason`, nothing spawned, no frequency consumed — because falling
+back to a random pick is the one failure nobody can see: the kneeboard still says 250 kHz, the pilot
+tunes 250 kHz and hears silence.
+
+**This lot does not wait for it.** `-beacon` ships reporting the three frequencies CTLD drew; the option
+arrives later through a vendored update, and only then is a `freq` parameter worth adding here.
+
+Two things that came out of building it, both relevant to this lot:
+
+- **A pre-existing CTLD bug fixed there**: `createAtPoint` drew its frequencies before spawning and never
+  gave them back on spawn failure. Invisible while everything was random.
+- **The FM pool holds only 300 of the 460 possible 100-kHz steps** between 30.0 and 75.9 MHz — gaps at
+  36.0–39.9, 46.0–49.9, 56.0–59.9 and 66.0–69.9, measured from the generator. So briefing 38.00 MHz, an
+  ordinary FM frequency, is refused. That is a property of the pool rather than of the new option, and
+  widening it would change every existing random draw, so it is asked separately as
+  [`VEAF/CTLD#127`](https://github.com/VEAF/CTLD/issues/127). If those gaps turn out to be accidental,
+  closing it makes the option strictly more useful with no further work.
+
 ### But `-tacan` is a poor model for one thing: reporting
 
 `-tacan` tells the player **nothing**. It has no message of its own and falls through to

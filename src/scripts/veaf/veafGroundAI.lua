@@ -448,6 +448,12 @@ function ArtilleryUnitHandler:orderTextAnalysis(text)
 
   local options = veaf.parseMarkerText(text, ArtilleryUnitHandler.OrderSpec)
   if not options then
+    -- Announced, not dropped. A typo inside a readable order is already reported by
+    -- `veaf.reportUnknownParameters` below; this is for text nothing could be made of, which used to
+    -- vanish without a word. FIX-GROUNDAI-SILENT-REFUSALS.
+    if not self.silent then
+      trigger.action.outText(veaf.t("groundai.unreadable_order", self:getName(), tostring(text)), 10)
+    end
     return nil
   end
   -- A typo aborts — see veaf.reportUnknownParameters. An artillery order arrives through the radio menu
@@ -747,6 +753,27 @@ function veafGroundAI.onEventMarkChange(eventPos, event)
   end
 end
 
+--- Find a named autopilot, and tell the player when there is none.
+---
+--- Six `_ground` verbs used to do `if handler then … end` with no `else`, so a command addressed to a name
+--- nobody had registered did nothing and said nothing — its only trace a `trace` line, invisible at the
+--- default log level. Reported in game as "ça ne fait rien (et rien dans le log)" after a mission reload
+--- had discarded the autopilot created before it.
+---
+--- `_ground set` deliberately does NOT use this: it creates the handler when it is missing, which is the
+--- whole point of that verb.
+---
+--- @param handlerName string the name the player used
+--- @return table|nil the handler, or nil after having said so
+function veafGroundAI.getOrComplain(handlerName)
+  local handler = veafGroundAI.get(handlerName)
+  if not handler then
+    veaf.loggers.get(veafGroundAI.Id):warn("no autopilot named %s", veaf.p(handlerName))
+    trigger.action.outText(veaf.t("groundai.no_such_handler", tostring(handlerName), tostring(handlerName)), 10)
+  end
+  return handler
+end
+
 function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
   veaf.loggers.get(veafGroundAI.Id):debug(string.format("veafGroundAI.executeCommand(eventText=[%s])", eventText))
 
@@ -777,7 +804,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_UNSET then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_UNSET")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           handler:stop()
           veafGroundAI.remove(handler)
@@ -786,7 +813,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_START then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_START")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           handler:start()
           return true
@@ -794,7 +821,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_STOP then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_STOP")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           handler:stop()
           return true
@@ -802,7 +829,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_CLEAR then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_CLEAR")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           handler:stop()
           handler:clearOrders()
@@ -811,7 +838,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_STATUS then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_STATUS")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           trigger.action.outText(veaf.t("groundai.handler_info", handlerName, handler:getDescription()), 10)
           return true
@@ -819,7 +846,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_ORDER then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_ORDER")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           if handler:orderTextAnalysis(options.order) then
             return true
@@ -958,6 +985,11 @@ function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
     if closestUnit then
       options.group = closestUnit:getGroup()
     else
+      -- Said out loud rather than aborted in silence: a marker dropped a hundred metres too far from the
+      -- battery produced nothing at all, and nothing distinguished that from a broken module.
+      -- FIX-GROUNDAI-SILENT-REFUSALS.
+      veaf.loggers.get(veafGroundAI.Id):warn("no allied group within 250m of the marker")
+      trigger.action.outText(veaf.t("groundai.no_group_nearby"), 10)
       return nil
     end
   end

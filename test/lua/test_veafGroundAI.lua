@@ -919,4 +919,136 @@ function TestArtilleryRemembersOneAimPoint:test_an_unreadable_target_leaves_the_
   luaunit.assertAlmostEquals(self.handler.lastAimPoint.z, 2000, 0.01)
 end
 
+-- ===========================================================================
+-- FIX-GROUNDAI-SILENT-REFUSALS — a command addressed to nobody must say so
+--
+-- Six verbs looked up a named autopilot with `if handler then … end` and no `else`, so a name nobody had
+-- registered produced no action and no message — only a `trace` line, invisible at the default log level.
+-- Reported in game as "ça ne fait rien (et rien dans le log)" after a mission reload had discarded the
+-- autopilot created before it.
+--
+-- One test per verb, because the six were six separate pieces of code.
+-- ===========================================================================
+TestGroundAiUnknownHandler = {}
+
+function TestGroundAiUnknownHandler:setUp()
+  dcs_mocks.reset()
+  self._outText = trigger.action.outText
+  self.messages = {}
+  local test = self
+  trigger.action.outText = function(text)
+    table.insert(test.messages, tostring(text))
+  end
+  -- No autopilots at all: every lookup below must miss.
+  self._saved = veafGroundAI.handlers
+  veafGroundAI.handlers = {}
+end
+
+function TestGroundAiUnknownHandler:tearDown()
+  trigger.action.outText = self._outText
+  veafGroundAI.handlers = self._saved
+end
+
+function TestGroundAiUnknownHandler:_say(text)
+  self.messages = {}
+  veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, text, 2, 0)
+  return table.concat(self.messages, " | ")
+end
+
+function TestGroundAiUnknownHandler:test_order_says_so()
+  -- The case David hit.
+  local said = self:_say("_ground order, name arty-1, order aim")
+  luaunit.assertNotEquals(said, "", "an order to an unknown autopilot must be announced")
+  luaunit.assertNotNil(said:find("arty-1", 1, true), "and must name it: " .. said)
+end
+
+function TestGroundAiUnknownHandler:test_the_message_says_how_to_create_one()
+  -- "Unknown" without "here is what to do" sends a pilot back to the documentation mid-flight.
+  local said = self:_say("_ground order, name arty-1, order aim")
+  luaunit.assertNotNil(said:find("_ground set", 1, true), "expected the creating command: " .. said)
+end
+
+function TestGroundAiUnknownHandler:test_start_says_so()
+  luaunit.assertNotEquals(self:_say("_ground start, name arty-1"), "")
+end
+
+function TestGroundAiUnknownHandler:test_stop_says_so()
+  luaunit.assertNotEquals(self:_say("_ground stop, name arty-1"), "")
+end
+
+function TestGroundAiUnknownHandler:test_clear_says_so()
+  luaunit.assertNotEquals(self:_say("_ground clear, name arty-1"), "")
+end
+
+function TestGroundAiUnknownHandler:test_unset_says_so()
+  luaunit.assertNotEquals(self:_say("_ground unset, name arty-1"), "")
+end
+
+function TestGroundAiUnknownHandler:test_status_says_so()
+  luaunit.assertNotEquals(self:_say("_ground status, name arty-1"), "")
+end
+
+function TestGroundAiUnknownHandler:test_set_without_a_group_nearby_says_so()
+  -- A third silence, one level earlier than the other six: `set` and `unset` without a `groupname` take the
+  -- nearest allied group within 250 m, and finding none aborted the whole command without a word. That is
+  -- what a marker dropped a hundred metres too far from the battery looked like — nothing at all.
+  local said = self:_say("_ground set, name arty-1")
+  luaunit.assertNotEquals(said, "", "a marker with nothing near it must be answered")
+  luaunit.assertNotNil(said:find("250", 1, true), "and must say what the range is: " .. said)
+end
+
+function TestGroundAiUnknownHandler:test_the_message_says_how_to_name_the_group_instead()
+  local said = self:_say("_ground set, name arty-1")
+  luaunit.assertNotNil(said:find("groupname", 1, true), "expected the alternative: " .. said)
+end
+
+-- ── an order nothing can be made of ─────────────────────────────────────────
+-- One level below the six verbs: the autopilot exists, the order text does not parse. It used to return
+-- nil in silence. A typo INSIDE a readable order was already reported by veaf.reportUnknownParameters;
+-- this covers the text nothing could be made of, which is what a pilot produces when he guesses the
+-- syntax.
+
+function TestGroundAiUnknownHandler:test_an_unreadable_order_is_announced()
+  local handler = ArtilleryUnitHandler:new():setName("arty-1")
+  handler.silent = false
+  handler.addOrder = function() end
+  self.messages = {}
+  handler:orderTextAnalysis("burn it all down")
+  local said = table.concat(self.messages, " | ")
+  luaunit.assertNotEquals(said, "", "an order nothing can be made of must be answered")
+  luaunit.assertNotNil(said:find("arty-1", 1, true), "and must name the battery: " .. said)
+end
+
+function TestGroundAiUnknownHandler:test_the_unreadable_order_message_lists_the_verbs()
+  -- A pilot who guessed wrong needs to know what to guess next.
+  local handler = ArtilleryUnitHandler:new():setName("arty-1")
+  handler.silent = false
+  handler.addOrder = function() end
+  self.messages = {}
+  handler:orderTextAnalysis("burn it all down")
+  local said = table.concat(self.messages, " | ")
+  luaunit.assertNotNil(said:find("aim", 1, true), "expected the valid orders: " .. said)
+  luaunit.assertNotNil(said:find("correct", 1, true), "expected the valid orders: " .. said)
+end
+
+function TestGroundAiUnknownHandler:test_a_silent_battery_stays_silent_about_it()
+  -- `silent` means a script asked, and a script does not read messages.
+  local handler = ArtilleryUnitHandler:new():setName("arty-1")
+  handler.silent = true
+  handler.addOrder = function() end
+  self.messages = {}
+  handler:orderTextAnalysis("burn it all down")
+  luaunit.assertEquals(#self.messages, 0)
+end
+
+function TestGroundAiUnknownHandler:test_a_known_autopilot_is_not_complained_about()
+  -- The other side: the message must not fire when the autopilot does exist, or it becomes noise and the
+  -- real complaint gets lost in it.
+  local handler = ArtilleryUnitHandler:new():setName("arty-1")
+  handler.silent = true
+  veafGroundAI.add(handler)
+  local said = self:_say("_ground status, name arty-1")
+  luaunit.assertNil(said:find("_ground set", 1, true), "no complaint expected, got: " .. said)
+end
+
 os.exit(luaunit.LuaUnit.run())

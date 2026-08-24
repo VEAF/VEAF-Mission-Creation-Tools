@@ -598,6 +598,32 @@ Deux cas où ce n'est pas ce qui se passe :
 
 Pour attacher une zone logistique à un objet mobile (un porte-avions, par exemple), liez la zone à l'unité dans l'éditeur de mission (*Moving Zone*) : la zone suit son unité.
 
+#### Couper l'élingage CTLD en cours de mission {#ctld-slingload-toggle}
+
+Un game master peut activer ou désactiver l'élingage de CTLD sans éditer de fichier ni reconstruire la
+mission :
+
+> **F10 → CTLD → Désactiver l'élingage CTLD** (ou *Activer*, selon l'état courant)
+
+L'entrée est **protégée par mot de passe** : elle change la façon de jouer de tous les équipages
+d'hélicoptère, pas seulement celle de qui appuie. Le menu n'affiche que la commande qui change quelque
+chose — inutile de proposer « activer » quand c'est déjà actif.
+
+Le changement prend effet **immédiatement et dans les deux sens** : couper arrête les prises en vol
+stationnaire, réactiver les reprend. Rien à recharger.
+
+!!! warning "Ce que ce réglage ne coupe pas : le treuil de DCS"
+    Il ne gouverne que l'élingage **géré par CTLD** — la prise en vol stationnaire, le compte à rebours,
+    la caisse perdue en survitesse. Le treuil du jeu lui-même continue de fonctionner : une caisse CTLD
+    reste physiquement accrochable avec l'élingue de DCS, quel que soit ce réglage.
+
+    Le message affiché le dit, parce que c'est la première chose qu'un équipage constate après une
+    coupure — et sans cette phrase, la commande passe pour cassée.
+
+Le réglage sous-jacent est `enableHoverSlingload`, qui vit dans votre `ctld-config.yaml` comme tous les
+autres : le menu ne fait que le basculer à chaud. Pour démarrer la mission avec l'élingage déjà coupé,
+posez-le à `false` dans ce fichier.
+
 ### Configurer CSAR via mission.yaml (YAML-first)
 
 CSAR se configure de la même façon :

@@ -4127,4 +4127,215 @@ function TestVeafFindUnitForPlayerName:test_a_side_that_raises_does_not_take_the
   luaunit.assertIs(veaf.findUnitForPlayerName("Zip"), unit)
 end
 
+-- ===========================================================================
+-- FEAT-CTLD-SLINGLOAD-TOGGLE — a global lever on CTLD's virtual sling loading (#60, 2021)
+--
+-- The setting under test is `enableHoverSlingload`, and the first thing these tests pin is **which
+-- setting**, because the obvious candidate is the wrong one: `slingLoad` kept its CTLD 1 name through the
+-- CTLD 2 migration and lost its meaning — it now only picks a crate's 3D model. A toggle wired to it
+-- would look correct in every code review and change nothing a helicopter crew notices.
+-- ===========================================================================
+TestVeafCtldSlingloadToggle = {}
+
+function TestVeafCtldSlingloadToggle:setUp()
+  self._savedGet = veaf.loggers.get
+  self._savedOutText = trigger.action.outText
+  self._savedRefresh = veafRadio.refreshRadioMenu
+  self._savedAddSecured = veafRadio.addSecuredCommandToSubmenu
+  self._savedAddSubMenu = veafRadio.addSubMenu
+  self._savedClear = veafRadio.clearSubmenu
+  self._savedRoot = veaf.ctldRootPath
+
+  self.messages = {}
+  self.logged = {}
+  self.commands = {}
+  self.cleared = 0
+
+  local logger = {}
+  for _, level in ipairs({ "error", "warn", "info", "debug", "trace" }) do
+    logger[level] = function(_, message, ...)
+      table.insert(self.logged, { level = level, message = message })
+    end
+  end
+  veaf.loggers.get = function(id)
+    if id == veaf.ctldId then
+      return logger
+    end
+    return self._savedGet(id)
+  end
+
+  trigger.action.outText = function(text, duration)
+    table.insert(self.messages, text)
+  end
+
+  -- A radio layer that records rather than renders, so a test can read the menu that was built.
+  veaf.ctldRootPath = nil
+  veafRadio.addSubMenu = function(title)
+    return { title = title }
+  end
+  veafRadio.clearSubmenu = function()
+    self.cleared = self.cleared + 1
+  end
+  veafRadio.addSecuredCommandToSubmenu = function(title, menu, method, parameters, usage)
+    table.insert(self.commands, { title = title, method = method, parameters = parameters, usage = usage })
+    return {}
+  end
+  veafRadio.refreshRadioMenu = function() end
+
+  dcs_mocks.reset()
+end
+
+function TestVeafCtldSlingloadToggle:tearDown()
+  veaf.loggers.get = self._savedGet
+  trigger.action.outText = self._savedOutText
+  veafRadio.refreshRadioMenu = self._savedRefresh
+  veafRadio.addSecuredCommandToSubmenu = self._savedAddSecured
+  veafRadio.addSubMenu = self._savedAddSubMenu
+  veafRadio.clearSubmenu = self._savedClear
+  veaf.ctldRootPath = self._savedRoot
+  dcs_mocks.reset()
+end
+
+function TestVeafCtldSlingloadToggle:_setting()
+  return CTLDConfig.get().settings.enableHoverSlingload
+end
+
+-- ── which setting ──────────────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_the_setting_is_the_hover_one_not_slingLoad()
+  -- The whole point. `slingLoad` in CTLD 2 chooses a crate's 3D model; wiring the toggle to it would
+  -- ship a radio command that reskins crates and nothing else.
+  luaunit.assertEquals(veaf.CTLD_SLINGLOAD_SETTING, "enableHoverSlingload")
+end
+
+function TestVeafCtldSlingloadToggle:test_it_reads_ctld_rather_than_remembering()
+  -- Read at the point of use, never cached: a cached copy is the one way to make the menu lie about the
+  -- engine's actual state.
+  luaunit.assertTrue(veaf.isCtldSlingloadEnabled())
+  CTLDConfig.get():setSetting("enableHoverSlingload", false)
+  luaunit.assertFalse(veaf.isCtldSlingloadEnabled())
+end
+
+-- ── the toggle ─────────────────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_switching_off_writes_the_setting()
+  luaunit.assertTrue(veaf.setCtldSlingloadEnabled(false))
+  luaunit.assertFalse(self:_setting())
+end
+
+function TestVeafCtldSlingloadToggle:test_switching_back_on_writes_it_too()
+  -- Reversible in both directions, which is what makes it a toggle rather than a one-way switch: CTLD's
+  -- hover loop reschedules itself before testing the setting, so it is never torn down.
+  veaf.setCtldSlingloadEnabled(false)
+  veaf.setCtldSlingloadEnabled(true)
+  luaunit.assertTrue(self:_setting())
+end
+
+function TestVeafCtldSlingloadToggle:test_a_truthy_value_is_not_enough()
+  -- `setSetting` must receive a real boolean: CTLD tests the setting with `== true` in places, so a
+  -- string or a number would read as off and the toggle would half-work.
+  veaf.setCtldSlingloadEnabled("yes")
+  luaunit.assertEquals(self:_setting(), false, "anything but true means false, and explicitly so")
+end
+
+-- ── what the player is told ────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_switching_off_says_the_dcs_winch_still_works()
+  -- The sentence this test exists for. CTLD checks native DCS cargo *before* it looks at this setting,
+  -- and all three crate models are `canCargo: true` — so a crate stays hookable with the game's own
+  -- sling whatever the toggle says. Unsaid, the first crew to hook a crate reports the command broken.
+  veaf.setCtldSlingloadEnabled(false)
+  luaunit.assertEquals(#self.messages, 1)
+  local message = self.messages[1]
+  luaunit.assertNotNil(message:find("DCS", 1, true), "the message must name DCS's own winch: " .. message)
+end
+
+function TestVeafCtldSlingloadToggle:test_switching_on_reports_it_too()
+  veaf.setCtldSlingloadEnabled(true)
+  luaunit.assertEquals(#self.messages, 1)
+end
+
+function TestVeafCtldSlingloadToggle:test_the_change_is_logged()
+  -- A game-master lever that changes how everybody plays belongs in the log, whoever pressed it.
+  veaf.setCtldSlingloadEnabled(false)
+  local infos = 0
+  for _, entry in ipairs(self.logged) do
+    if entry.level == "info" then
+      infos = infos + 1
+    end
+  end
+  luaunit.assertTrue(infos >= 1)
+end
+
+-- ── the menu ───────────────────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_the_menu_offers_only_the_command_that_changes_something()
+  -- Enabled, so the only entry is "disable". A menu holding both asks the player to work out which of
+  -- two entries is the no-op.
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(#self.commands, 1)
+  luaunit.assertEquals(self.commands[1].parameters, false, "pressing it must move to OFF")
+end
+
+function TestVeafCtldSlingloadToggle:test_and_the_other_way_round_when_it_is_off()
+  CTLDConfig.get():setSetting("enableHoverSlingload", false)
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(#self.commands, 1)
+  luaunit.assertEquals(self.commands[1].parameters, true, "pressing it must move to ON")
+end
+
+function TestVeafCtldSlingloadToggle:test_the_label_changes_with_the_state()
+  veaf.buildCtldRadioMenu()
+  local whenOn = self.commands[1].title
+  self.commands = {}
+  CTLDConfig.get():setSetting("enableHoverSlingload", false)
+  veaf.buildCtldRadioMenu()
+  luaunit.assertNotEquals(self.commands[1].title, whenOn)
+end
+
+function TestVeafCtldSlingloadToggle:test_the_command_is_secured_and_for_everybody()
+  -- Secured because it changes how every crew in the mission plays; ForAll because it is not tied to the
+  -- group that pressed it.
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(self.commands[1].usage, veafRadio.USAGE_ForAll)
+end
+
+function TestVeafCtldSlingloadToggle:test_toggling_rebuilds_the_menu_in_place()
+  -- Otherwise the entry keeps offering the state the mission is already in. Rebuilt in place rather than
+  -- re-added, or the submenu would accumulate a command per press.
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(self.cleared, 0, "the first build creates the submenu")
+  veaf.setCtldSlingloadEnabled(false)
+  luaunit.assertEquals(self.cleared, 1, "the toggle clears it before rebuilding")
+end
+
+function TestVeafCtldSlingloadToggle:test_the_radio_entry_point_passes_the_state_through()
+  veaf.radioToggleCtldSlingload(false)
+  luaunit.assertFalse(self:_setting())
+  veaf.radioToggleCtldSlingload(true)
+  luaunit.assertTrue(self:_setting())
+end
+
+-- ── when CTLD is not there ─────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_no_menu_when_ctld_never_started()
+  -- The state a mission built before FIX-CTLD-NEVER-INITIALIZED is in: script loaded, configuration
+  -- never read. A menu built from it would show a default as though it were the engine's state.
+  CTLDConfig._instance.isLoaded = false
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(#self.commands, 0)
+  luaunit.assertNil(veaf.ctldRootPath)
+end
+
+function TestVeafCtldSlingloadToggle:test_toggling_refuses_when_ctld_never_started()
+  CTLDConfig._instance.isLoaded = false
+  luaunit.assertFalse(veaf.setCtldSlingloadEnabled(false))
+  luaunit.assertEquals(#self.messages, 0, "and it must not claim to have changed anything")
+end
+
+function TestVeafCtldSlingloadToggle:test_reading_the_state_refuses_rather_than_guessing()
+  CTLDConfig._instance.isLoaded = false
+  luaunit.assertFalse(veaf.isCtldSlingloadEnabled())
+end
+
 os.exit(luaunit.LuaUnit.run())

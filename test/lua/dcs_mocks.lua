@@ -615,6 +615,8 @@ function dcs_mocks.reset()
   end
   if CTLDConfig then
     CTLDConfig._instance.isLoaded = true
+    -- Back to CTLD's shipped default, or a test that switches sling loading off leaks into the next one.
+    CTLDConfig._instance.settings = { enableHoverSlingload = true }
   end
 end
 
@@ -750,6 +752,12 @@ ctld = {
   utils = {
     log = function(...) end,
   },
+  -- The settings reader, which a real CTLD defines unconditionally (`CTLD.lua:359`) and which every
+  -- VEAF path that reads a CTLD setting goes through. Delegates to the config singleton below, exactly
+  -- as the engine does, so a test that writes a setting sees the write.
+  gs = function(key)
+    return CTLDConfig.get():getSetting(key)
+  end,
   -- The engine's shipped dictionaries. `i18n_lang` is the module-level default CTLD hard-codes to
   -- "en"; a mission's own language is supposed to override it, and `veaf.ctld_initialize` is what
   -- does that (FIX-CTLD-LANGUAGE). Only the languages CTLD actually ships are listed, because the
@@ -765,7 +773,20 @@ ctld = {
 -- (the nominal case, so every existing CTLD test keeps exercising the code it was written for);
 -- a test flips it to false to reach the other state, and dcs_mocks.reset() restores it.
 CTLDConfig = {
-  _instance = { isLoaded = true },
+  -- `settings` is the live table the engine's own getSetting consults *before* falling back to its
+  -- embedded catalogue, which is what makes a mid-mission setSetting take effect. `enableHoverSlingload`
+  -- starts **true**, the value CTLD ships, so a test reads the real default rather than a convenient one.
+  _instance = {
+    isLoaded = true,
+    settings = { enableHoverSlingload = true },
+    getSetting = function(self, key)
+      return self.settings[key]
+    end,
+    setSetting = function(self, key, value)
+      self.settings[key] = value
+      return self
+    end,
+  },
   get = function()
     return CTLDConfig._instance
   end,

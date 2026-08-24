@@ -38,6 +38,12 @@
 #   era: MODERN                 # MODERN | COLD_WAR | WW2
 #   language: fr                # in-game VEAF message language: fr | en (default: the tools' language)
 #   silence_atc_on_all_airbases: true   # mute DCS ATC at every airdrome
+#   hide_names_from_spawned_groups: true  # DEFAULT true. A spawned group is named
+#                               # `[r]-<invented name>#<id>` rather than carrying its combat zone and
+#                               # unit type, so a player cannot read a zone's contents off the F10 map.
+#                               # Set to false while building or debugging: names then read
+#                               # `<zone> [r] <real name>#<id>`. The coalition tag and the `#<id>` stay
+#                               # either way — DCS requires unique group names.
 #   third_party_mods: [MyAircraftMod]   # extra DCS third-party aircraft mods to make
 #                               # non-blocking (unioned with the VEAF default list): the
 #                               # mission loads even for pilots who lack the mod — that

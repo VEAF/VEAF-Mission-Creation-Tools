@@ -385,6 +385,41 @@ Avant la 6.15.9, ce n'était pas le cas : la zone lisait la liste de ce qu'elle 
 
 ---
 
+## Nom des groupes créés {#group-naming}
+
+Un groupe créé par une zone de combat n'a pas le nom que vous avez donné dans l'éditeur. Il ressemble à
+ceci :
+
+```
+[r]-Hydra Unit#10230
+```
+
+Trois parties, dont deux sont là pour de bon :
+
+| Partie | Rôle | Réglable ? |
+|--------|------|------------|
+| `[r]` / `[b]` / `[n]` | la coalition du groupe | non |
+| `Hydra Unit` | **un nom inventé**, pas le vôtre | oui, voir plus bas |
+| `#10230` | un identifiant unique | non — DCS exige des noms de groupe uniques |
+
+Le nom inventé est délibéré : sans lui, un joueur lit le contenu d'une zone sur la carte F10 avant d'y
+aller. C'est le réglage `veaf.HideNamesFromSpawnedGroups`, **actif par défaut**.
+
+Pour voir les vrais noms — en construction ou en débogage d'une mission :
+
+```yaml
+mission:
+  hide_names_from_spawned_groups: false
+```
+
+Les noms deviennent alors `<nom de la zone> [r] <nom réel>#<id>`. Le tag de coalition et l'identifiant
+restent dans les deux cas.
+
+> Le champ n'existe que depuis la 6.15.34. Avant, le réglage n'était atteignable que par
+> `module_settings: { veaf.HideNamesFromSpawnedGroups: false }`, ce qui marche toujours.
+
+---
+
 ## Constantes du module
 
 | Constante | Valeur par défaut | Description |

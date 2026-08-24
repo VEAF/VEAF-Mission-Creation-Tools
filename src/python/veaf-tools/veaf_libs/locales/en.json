@@ -592,6 +592,7 @@
   "generated.radio_menu.stop": "Stop {name}",
   "generator.dep_auto_resolution_disabled": "Module '{mod_id}' requires '{dep}' but '{dep}' is disabled — auto-enabling '{dep}'",
   "generator.module_setting_shadowed": "module_settings: '{setting}' is written at line {first} and assigned again at line {last} by a module block, which wins. Move the setting into that module's own section, or remove it here — left as is it looks applied and is not.",
+  "generator.module_setting_superseded": "module_settings: '{setting}' is also set by the documented mission field '{field}', which wins. The module_settings entry is a migration leftover and is ignored — remove it.",
   "generator.dep_auto_resolution_missing": "Module '{mod_id}' requires '{dep}' which is not configured — auto-enabling '{dep}'",
   "group_injector.reading_mission": "Reading mission file {path}",
   "group_injector.spinner.reading": "Reading {path}...",

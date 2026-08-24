@@ -592,6 +592,7 @@
   "generated.radio_menu.stop": "Arrêter {name}",
   "generator.dep_auto_resolution_disabled": "Le module '{mod_id}' nécessite '{dep}' mais '{dep}' est désactivé — activation automatique de '{dep}'",
   "generator.module_setting_shadowed": "module_settings : « {setting} » est écrit ligne {first} puis réassigné ligne {last} par un bloc de module, qui l'emporte. Déplacez le réglage dans la section du module concerné, ou retirez-le ici — en l'état il paraît appliqué et ne l'est pas.",
+  "generator.module_setting_superseded": "module_settings : « {setting} » est aussi posé par le champ de mission documenté « {field} », qui l'emporte. L'entrée module_settings est un reliquat de migration, elle est ignorée — retirez-la.",
   "generator.dep_auto_resolution_missing": "Le module '{mod_id}' nécessite '{dep}' qui n'est pas configuré — activation automatique de '{dep}'",
   "group_injector.reading_mission": "Lecture du fichier mission {path}",
   "group_injector.spinner.reading": "Lecture de {path}...",

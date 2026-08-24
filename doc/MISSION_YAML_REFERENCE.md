@@ -250,6 +250,15 @@ Chaque entrée devient l'affectation Lua correspondante, ici `veafSkynet.DelayFo
 | *(clé)* | string | — | — | La cible Lua complète, `veafXxx.Champ`. Une clé qui ne commence pas par `veaf` est **refusée à la génération** : cette section est un chemin de migration pour les réglages VEAF, pas une trappe permettant d'écrire n'importe où dans le runtime |
 | *(valeur)* | booléen \| nombre \| string | — | — | Un scalaire. Les tables et les fonctions ne sont pas exprimables ici |
 
+> **Un champ documenté l'emporte sur un reliquat de migration.** Si un réglage a désormais son propre
+> champ dans `mission.yaml` **et** qu'une entrée de `module_settings:` vise la même variable Lua,
+> c'est le **champ documenté** qui s'applique : l'entrée `module_settings:` est ignorée, et le build
+> vous le dit en nommant les deux. Cette section est un chemin de migration, pas une surcharge
+> permanente — retirez la ligne devenue inutile.
+>
+> Aujourd'hui, un seul réglage est dans ce cas : `veaf.HideNamesFromSpawnedGroups`, remplacé par
+> `mission.hide_names_from_spawned_groups`.
+
 > **D'où ça vient.** `convert-v5` remplit cette section automatiquement : en v5, la moitié de ces
 > réglages n'arrivaient ni dans `mission.yaml` ni dans le Lua généré, et rien ne le signalait.
 > Ce que la conversion ne sait toujours pas porter — une table, une fonction — est désormais listé

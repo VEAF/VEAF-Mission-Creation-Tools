@@ -7,6 +7,70 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+> **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
+> fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
+
+## [6.15.36] — 2026-08-24
+
+### Fixed
+
+- **The API reference documented the opposite of the real default.** Both `doc/LUA_API_REFERENCE.md` and
+  its English twin listed `veaf.HideNamesFromSpawnedGroups = false`, while `veaf.lua` sets it to **true**.
+
+  That flag replaces a spawned group's zone and unit type with an invented name, so a group comes out as
+  `[r]-Hydra Unit#10230`. The documentation therefore told a mission maker the opposite of what his
+  missions were doing, and it went unnoticed until someone asked why his groups were being renamed.
+
+### Added
+
+- **`mission.hide_names_from_spawned_groups` in `mission.yaml`.** The flag existed but was reachable only
+  through the `module_settings:` migration hatch and documented only in the API reference — which is not
+  where a mission maker looks when he wants to know why his groups are renamed.
+
+  Emitted only when the field is actually given, the way `SecurityDisabled` and `DynamicSpawn` are:
+  silence leaves `veaf.lua`'s own default and lets a `module_settings:` line survive. Documented on the
+  combat-zone page in both languages, where the question is asked, with what is and is not configurable —
+  the coalition tag and the `#<id>` stay either way, since DCS requires unique group names.
+
+- **A test comparing documented Lua defaults against the code** (`test_documented_lua_defaults.py`).
+  The reference pages list module constants as literal assignments, so a reader takes them for the real
+  defaults. Nothing compared the two, and nothing could have: each value was right in its own file.
+
+  Scoped to stay trustworthy rather than noisy — booleans and numbers only inside fenced Lua blocks, and
+  a constant the scripts do not assign at top level is skipped rather than failed, since documentation
+  legitimately describes fields set at runtime. It also checks the two languages document the same values,
+  because a value corrected in one and not the other is the next version of this bug. Verified by
+  re-introducing the wrong default and watching the test name it with both values.
+
+---
+
+### Changed
+
+- **A documented `mission:` field now beats a `module_settings:` leftover for the same Lua target.**
+  Raised in review on the PR above, and measured before being believed: the `mission:` block is emitted
+  first and `module_settings:` after, so Lua took the hatch's value and
+  `mission.hide_names_from_spawned_groups` had no effect whenever both forms were present. The commit
+  that added the field even carried a test whose docstring claimed it *"must beat a `module_settings:`
+  line"* — with no `module_settings:` line anywhere in the case. Asserting the emitted constant while
+  the docstring described the applied behaviour is the same trap `test_defaultSpawnRadii` sat in for
+  three years.
+
+  Which form *should* win is settled by the reference itself, where `module_settings:` is described as a
+  migration path rather than a permanent override: the documented field wins, the superseded hatch entry
+  is dropped, and the build warns naming both. Silently ignoring a line somebody wrote would be
+  `FIX-MODULE-SETTINGS-OVERWRITTEN` from the other side, which is why it is said out loud. Only the
+  superseded key yields — the hatch stays generic, and a mission that has not adopted the new field is
+  unaffected. Documented in `MISSION_YAML_REFERENCE` in both languages.
+
+- **The two-language comparison in `test_documented_lua_defaults.py` compared only shared keys.** Also
+  from review. Deleting a documented default from one page dropped it out of the comparison entirely, so
+  the test passed while the two references no longer documented the same thing — the exact divergence it
+  exists to catch. It now compares the union of both key sets and names the page a default is missing
+  from. Verified by removing one line from the English page: the old form passed, the new one fails and
+  says which file.
+
+---
+
 ## [6.15.35] — 2026-08-24
 
 ### Fixed

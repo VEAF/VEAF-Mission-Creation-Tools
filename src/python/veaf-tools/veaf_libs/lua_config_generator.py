@@ -195,6 +195,10 @@ def mission_identity_section(live_name: str | None = None) -> list[str]:
         "#   era: MODERN                   # MODERN | COLD_WAR | WW2",
         f"#   language: fr                  # {t('generated.mission_yaml.field.language')}",
         "#   silence_atc_on_all_airbases: false  # mission-wide option: silence ATC at every airbase",
+        "#   hide_names_from_spawned_groups: true  # default true: a spawned group is named",
+        "#                               # `[r]-<invented name>#<id>` instead of carrying its zone and",
+        "#                               # type, so a player cannot read a zone's contents off the F10",
+        "#                               # map. Set false while building or debugging a mission.",
     ]
     return lines
 
@@ -1236,6 +1240,42 @@ def enabled_module_config(mission_yaml: dict, module_id: str) -> dict | None:
     return config if _get_module_enabled(config, True) else None
 
 
+#: Lua targets that a **documented** `mission:` field now governs, mapped to the field that governs
+#: them. `module_settings:` is a migration path (see MISSION_YAML_REFERENCE, `#module-settings`), not a
+#: permanent override, so once a setting has a typed field the leftover hatch entry yields to it.
+#:
+#: Kept as an explicit pair rather than derived: the two names have no mechanical relationship
+#: (`hide_names_from_spawned_groups` -> `veaf.HideNamesFromSpawnedGroups`), and inventing a convention
+#: to link them would be guessing on behalf of every future field. Add a line when a field is promoted.
+_MODULE_SETTINGS_SUPERSEDED_BY = {
+    "veaf.HideNamesFromSpawnedGroups": "hide_names_from_spawned_groups",
+}
+
+
+def _drop_superseded_module_settings(module_settings: Mapping[str, object], mission_cfg: Mapping[str, object]) -> dict:
+    """Return `module_settings` without the entries a documented `mission:` field already sets.
+
+    Both forms in one mission.yaml are two contradictory explicit requests, and the generated Lua can
+    only honour the last assignment. Left alone the hatch wins, because it is emitted after the mission
+    block — so the field the reference documents would silently do nothing.
+
+    Args:
+        module_settings: The mission's `module_settings:` mapping, possibly empty.
+        mission_cfg: The `mission:` section.
+
+    Returns:
+        The mapping to emit, which is the same object's content minus any superseded key.
+    """
+    kept = {}
+    for key, value in module_settings.items():
+        field = _MODULE_SETTINGS_SUPERSEDED_BY.get(str(key))
+        if field is not None and field in mission_cfg:
+            logger.warning(t("generator.module_setting_superseded", setting=str(key), field=field))
+            continue
+        kept[key] = value
+    return kept
+
+
 def _warn_on_shadowed_module_settings(module_settings: Mapping[str, object], lines: Sequence[str]) -> None:
     """Report any `module_settings:` key a later module block assigns again.
 
@@ -1430,6 +1470,12 @@ def generate_config_lua(
             lines.append(f"veaf.config.era = veaf.ERA.{era}")
         if mission_cfg.get("silence_atc_on_all_airbases"):
             lines.append("veaf.silenceAtcOnAllAirbases()")
+        # Emitted only when actually given, the way `SecurityDisabled` and `DynamicSpawn` are: writing it
+        # from a Python default would overwrite a `module_settings:` line silently, which is the defect
+        # FIX-MODULE-SETTINGS-OVERWRITTEN was about. Silence here leaves `veaf.lua`'s own `true`.
+        if "hide_names_from_spawned_groups" in mission_cfg:
+            hide = "true" if mission_cfg["hide_names_from_spawned_groups"] else "false"
+            lines.append(f"veaf.HideNamesFromSpawnedGroups = {hide}")
         lines.append("")
 
     # ── In-game message language ───────────────────────────────────────────
@@ -1498,6 +1544,9 @@ def generate_config_lua(
     # reached neither mission.yaml nor the generated Lua (#725). Keyed by the full Lua target so a
     # setting nobody enumerated is carried too.
     module_settings: dict = mission_yaml.get("module_settings") or {}
+    # A documented `mission:` field beats a leftover hatch entry for the same Lua target: without this
+    # the hatch is emitted later and wins, so the field the reference documents would do nothing.
+    module_settings = _drop_superseded_module_settings(module_settings, mission_yaml.get("mission") or {})
     if module_settings:
         lines.append("-- ── Module settings ──────────────────────────────────────────────────────────")
         for key, value in module_settings.items():

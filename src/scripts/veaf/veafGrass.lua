@@ -116,6 +116,10 @@ function veafGrass.getLandingPlatforms()
       end
     end)
   end
+  -- At info, and deliberately: when an escort still lands on a platform, "0 platforms" and "3 platforms"
+  -- are completely different bugs and from outside they look the same. Not knowing which cost a
+  -- round-trip on 2026-08-24.
+  veaf.loggers.get(veafGrass.Id):info("getLandingPlatforms: %s landing platform(s) to avoid", veaf.p(#platforms))
   return platforms
 end
 
@@ -130,8 +134,14 @@ function veafGrass.isOnLandingPlatform(position, platforms)
   local radius = veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES
   for _, platform in ipairs(platforms) do
     local dx, dz = position.x - platform.x, position.y - platform.z
-    if (dx * dx + dz * dz) <= radius * radius then
-      veaf.loggers.get(veafGrass.Id):debug("isOnLandingPlatform: inside %sm of [%s]", veaf.p(radius), veaf.p(platform.name))
+    local distance = math.sqrt(dx * dx + dz * dz)
+    if distance <= radius then
+      veaf.loggers.get(veafGrass.Id):info(
+        "isOnLandingPlatform: refusing a spot %sm from [%s] (footprint %sm)",
+        veaf.p(math.floor(distance)),
+        veaf.p(platform.name),
+        veaf.p(radius)
+      )
       return true
     end
   end
@@ -1547,6 +1557,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 
   local escortAngle = veafGrass.findClearBearing(angle, escortPositionsAt)
   local escortPositions = escortPositionsAt(escortAngle)
+  -- Says whether the bearing search actually did anything. A FARP dropped *on* an existing platform is a
+  -- different problem from an escort placed on one: this fix moves the **bearing**, never the distance, so
+  -- if the new FARP sits 50 m from a static one, every bearing at 150 m is ~150 m away from it, none is
+  -- refused, and nothing moves — correctly, by this fix's own rule. Logging both angles is what tells the
+  -- two apart from outside.
+  veaf.loggers
+    .get(veafGrass.Id)
+    :info("FARP escort: bearing %s requested, %s used", veaf.p(math.floor(angle)), veaf.p(math.floor(escortAngle)))
 
   local farpEscortGroup = {
     ["category"] = "vehicle",

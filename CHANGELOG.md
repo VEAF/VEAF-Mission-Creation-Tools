@@ -10,6 +10,35 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.51] — 2026-08-24
+
+### Fixed
+
+- **Every latitude/longitude written in degrees, minutes and seconds was about 31 metres off.** The reader
+  accumulated arc-seconds from `-1` instead of `0`, so each DMS coordinate came out exactly one arc-second
+  short — since 2021, in every mission, and not only for artillery: this is the single coordinate reader
+  for AirWaves zones, ground-AI targets, named points, QRAs and the shortcut aliases. A test had even
+  recorded the offset as "by design" and widened its tolerance to accept it.
+
+### Added
+
+- **Coordinates can now be written the way DCS shows them.** `37T GG 12345 12345`, copied off the F10 map
+  with its spaces, is accepted as it stands — no `u` prefix, no retyping. Retranscribing a grid reference
+  is exactly how shells end up in the wrong village. The MGRS digit count is the precision, from 10 km at
+  two digits a side down to one metre at five, and an **odd** digit count is now refused rather than
+  silently halved into a position nobody asked for.
+- **Degrees, minutes and seconds can be separated however a pilot writes them** — spaces, or the `°`, `'`
+  and `"` symbols, alongside the `:` and `-` that already worked. Degrees with decimal minutes
+  (`N42:30.5E041:45.5`), the form charts and kneeboards use, is read correctly too.
+- The accepted formats are now documented, with their precision, on the veafGroundAI page in both
+  languages.
+- **A coordinate written longitude-first is now refused instead of silently transposed.** `E041N42` used
+  to be accepted and come back as latitude 41, longitude 42 — the two values the wrong way round, with no
+  warning. Refusing is the whole argument of this change: a coordinate nobody can read is a message on
+  screen, a coordinate quietly transposed is a shell in the wrong village.
+
+---
+
 ## [6.15.50] — 2026-08-24
 
 ### Fixed

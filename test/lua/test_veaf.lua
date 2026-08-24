@@ -1020,22 +1020,24 @@ function TestVeafComputeLLFromString:test_llSouthWest()
 end
 
 function TestVeafComputeLLFromString:test_llDMS()
-  -- N42:23:45E044:12:00
+  -- 42 + 23/60 + 45/3600 = 42.3958333 exactly.
+  --
+  -- This test used to say "function has ~1 arcsec offset **by design**" and widen its range to
+  -- 42.39 < lat < 42.40 to tolerate it. It was not by design: an accumulator started at -1, so every DMS
+  -- coordinate in every VEAF mission since 2021 landed about 31 m north of where it was meant. The
+  -- comment was written during a coverage push (2026-05-23) — the defect was measured, then documented
+  -- instead of reported. Asserted exactly now, so it cannot come back wearing the same excuse.
   local lat, lon = veaf.computeLLFromString("N42:23:45E044:12:00")
-  luaunit.assertNotNil(lat)
-  luaunit.assertNotNil(lon)
-  -- 42° 23' 45" ≈ 42.396 (function has ~1 arcsec offset by design)
-  luaunit.assertTrue(lat > 42.39 and lat < 42.40)
-  luaunit.assertTrue(lon > 44.19 and lon < 44.21)
+  luaunit.assertAlmostEquals(lat, 42.3958333, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 44.2, 0.0000005)
 end
 
 function TestVeafComputeLLFromString:test_llDMDecimal()
-  -- N42-23.5E044-12.5
+  -- Degrees and decimal minutes: 42 + 23.5/60 = 42.3916667. Was asserted only as "between 42 and 43",
+  -- which a reader off by half a degree would also have passed.
   local lat, lon = veaf.computeLLFromString("N42-23.5E044-12.5")
-  luaunit.assertNotNil(lat)
-  luaunit.assertNotNil(lon)
-  luaunit.assertTrue(lat > 42 and lat < 43)
-  luaunit.assertTrue(lon > 44 and lon < 45)
+  luaunit.assertAlmostEquals(lat, 42.3916667, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 44.2083333, 0.0000005)
 end
 
 function TestVeafComputeLLFromString:test_utm()
@@ -4336,6 +4338,187 @@ end
 function TestVeafCtldSlingloadToggle:test_reading_the_state_refuses_rather_than_guessing()
   CTLDConfig._instance.isLoaded = false
   luaunit.assertFalse(veaf.isCtldSlingloadEnabled())
+end
+
+-- ===========================================================================
+-- FEAT-COORDINATE-FORMATS — every coordinate a pilot can read off his own screen
+--
+-- This is the single coordinate reader for veafAirWaves, veafGroundAI (target and validation),
+-- veafNamedPoints, veafQraCore and the aliases. The family is enumerated here rather than sampled: a
+-- coordinate that is quietly wrong is worse than one that is refused, and the failure mode is shells in
+-- the wrong village.
+--
+-- `coord.MGRStoLL` is a DCS function and the mock returns 0,0, so the MGRS tests assert what is handed
+-- TO it. That is the right boundary anyway: the parsing is ours, the projection is DCS's.
+-- ===========================================================================
+TestVeafCoordinateFormats = {}
+
+function TestVeafCoordinateFormats:setUp()
+  self._savedMGRStoLL = coord.MGRStoLL
+  self.mgrs = nil
+  local test = self
+  coord.MGRStoLL = function(t)
+    test.mgrs = t
+    return 0, 0
+  end
+end
+
+function TestVeafCoordinateFormats:tearDown()
+  coord.MGRStoLL = self._savedMGRStoLL
+end
+
+--- @return table|nil what the MGRS branch handed to DCS, or nil if the string was refused
+function TestVeafCoordinateFormats:_mgrs(s)
+  self.mgrs = nil
+  veaf.computeLLFromString(s)
+  return self.mgrs
+end
+
+-- ── MGRS, and the digit count is the precision ──────────────────────────────
+
+function TestVeafCoordinateFormats:test_mgrs_four_digits_is_a_kilometre()
+  local m = self:_mgrs("u37TGG1234")
+  luaunit.assertNotNil(m, "u37TGG1234 must be read")
+  luaunit.assertEquals(m.UTMZone, "37T")
+  luaunit.assertEquals(m.MGRSDigraph, "GG")
+  luaunit.assertEquals(m.Easting, 12000)
+  luaunit.assertEquals(m.Northing, 34000)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_eight_digits_is_ten_metres()
+  local m = self:_mgrs("u37TGG12345678")
+  luaunit.assertEquals(m.Easting, 12340)
+  luaunit.assertEquals(m.Northing, 56780)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_ten_digits_is_one_metre()
+  -- The precision David asked for: two groups of five.
+  local m = self:_mgrs("u37TGG1234512345")
+  luaunit.assertEquals(m.Easting, 12345)
+  luaunit.assertEquals(m.Northing, 12345)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_without_the_u_prefix()
+  -- Nothing on a pilot's screen has a `u` in front of it.
+  local m = self:_mgrs("37TGG1234512345")
+  luaunit.assertNotNil(m, "the prefix must be optional")
+  luaunit.assertEquals(m.Easting, 12345)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_exactly_as_dcs_displays_it()
+  -- THE case this lot exists for. Making a pilot retype `37T GG 12345 12345` as `u37TGG1234512345` is
+  -- the transcription that puts shells in the wrong village.
+  local m = self:_mgrs("37T GG 12345 12345")
+  luaunit.assertNotNil(m, "the spaced form must be read")
+  luaunit.assertEquals(m.UTMZone, "37T")
+  luaunit.assertEquals(m.MGRSDigraph, "GG")
+  luaunit.assertEquals(m.Easting, 12345)
+  luaunit.assertEquals(m.Northing, 12345)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_with_a_leading_label()
+  local m = self:_mgrs("MGRS 37T GG 12345 12345")
+  luaunit.assertNotNil(m)
+  luaunit.assertEquals(m.Northing, 12345)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_is_case_insensitive()
+  local m = self:_mgrs("37t gg 12345 12345")
+  luaunit.assertNotNil(m)
+  luaunit.assertEquals(m.UTMZone, "37T", "the zone must reach DCS upper-cased")
+  luaunit.assertEquals(m.MGRSDigraph, "GG")
+end
+
+function TestVeafCoordinateFormats:test_an_odd_digit_count_is_refused()
+  -- MGRS digits come in pairs. An odd count used to be halved anyway, producing a position nobody typed.
+  luaunit.assertNil(veaf.computeLLFromString("u37TGG12345"))
+  luaunit.assertNil(self:_mgrs("37TGG123"))
+end
+
+function TestVeafCoordinateFormats:test_too_many_digits_is_refused()
+  -- Five digits a side is one metre; there is nothing finer to mean.
+  luaunit.assertNil(veaf.computeLLFromString("37TGG123456789012"))
+end
+
+-- ── DMS, and the exact value ────────────────────────────────────────────────
+-- 42:30:15 is 42 + 30/60 + 15/3600 = 42.5041666..., not 42.5038888. The one arc-second an accumulator
+-- starting at -1 used to remove is about 31 metres of northing, and it was on every DMS coordinate in
+-- every VEAF mission since 2021.
+
+function TestVeafCoordinateFormats:test_dms_with_colons_is_exact()
+  local lat, lon = veaf.computeLLFromString("N42:30:15E041:45:30")
+  luaunit.assertAlmostEquals(lat, 42.5041667, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 41.7583333, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_dms_with_dashes_is_exact()
+  local lat, lon = veaf.computeLLFromString("N42-30-15E041-45-30")
+  luaunit.assertAlmostEquals(lat, 42.5041667, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_dms_with_spaces()
+  -- How a pilot writes it when nobody told him a separator.
+  local lat, lon = veaf.computeLLFromString("N42 30 15 E041 45 30")
+  luaunit.assertNotNil(lat, "spaces must be accepted")
+  luaunit.assertAlmostEquals(lat, 42.5041667, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 41.7583333, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_dms_with_the_symbols()
+  local lat, lon = veaf.computeLLFromString("N42°30'15\"E041°45'30\"")
+  luaunit.assertNotNil(lat, "degree, minute and second symbols must be accepted")
+  luaunit.assertAlmostEquals(lat, 42.5041667, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_degrees_and_decimal_minutes()
+  -- The form a DCS kneeboard and most aviation charts use.
+  local lat, lon = veaf.computeLLFromString("N42:30.5E041:45.5")
+  luaunit.assertAlmostEquals(lat, 42.5083333, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 41.7583333, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_south_and_west_are_negative()
+  local lat, lon = veaf.computeLLFromString("S42:30:15W041:45:30")
+  luaunit.assertAlmostEquals(lat, -42.5041667, 0.0000005)
+  luaunit.assertAlmostEquals(lon, -41.7583333, 0.0000005)
+end
+
+-- ── decimal degrees, which already worked and had no test ───────────────────
+
+function TestVeafCoordinateFormats:test_decimal_degrees()
+  local lat, lon = veaf.computeLLFromString("N42.50416E041.75833")
+  luaunit.assertAlmostEquals(lat, 42.50416, 0.000005)
+  luaunit.assertAlmostEquals(lon, 41.75833, 0.000005)
+end
+
+function TestVeafCoordinateFormats:test_whole_degrees_still_work()
+  -- Coarse — about 100 km — but a mission maker sketching a zone may mean exactly this.
+  local lat, lon = veaf.computeLLFromString("N42E041")
+  luaunit.assertAlmostEquals(lat, 42, 0.000001)
+  luaunit.assertAlmostEquals(lon, 41, 0.000001)
+end
+
+-- ── refusals ────────────────────────────────────────────────────────────────
+
+function TestVeafCoordinateFormats:test_longitude_first_is_refused_rather_than_swapped()
+  -- The old reader ACCEPTED this and returned the two values the wrong way round: it took the first
+  -- hemisphere letter as the latitude's whatever it was, so `E041N42` came back as lat 41, lon 42. A
+  -- coordinate silently transposed is worse than one refused, which is the whole argument of this lot.
+  luaunit.assertNil(veaf.computeLLFromString("E041N42"))
+  luaunit.assertNil(veaf.computeLLFromString("E041:45:30N42:30:15"))
+end
+
+function TestVeafCoordinateFormats:test_two_latitudes_are_refused()
+  luaunit.assertNil(veaf.computeLLFromString("N42N41"))
+  luaunit.assertNil(veaf.computeLLFromString("E041W040"))
+end
+
+function TestVeafCoordinateFormats:test_nonsense_is_refused()
+  luaunit.assertNil(veaf.computeLLFromString("somewhere over there"))
+  luaunit.assertNil(veaf.computeLLFromString(""))
+  luaunit.assertNil(veaf.computeLLFromString(nil))
+  luaunit.assertNil(veaf.computeLLFromString("N42"))
+  luaunit.assertNil(veaf.computeLLFromString("42N041E"))
 end
 
 os.exit(luaunit.LuaUnit.run())

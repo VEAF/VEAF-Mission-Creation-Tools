@@ -987,87 +987,117 @@ end
 -- get a LL position based on a string
 -- can be UTM (U38TMP334456 or u37TMP4351)
 -- can be LL with either : or - as a separator, and either DMS, DM decimal, or D decimal (N42:23:45E044-12.5 or N42.3345E044-12.5)
+--- Read a coordinate string into a latitude and a longitude.
+---
+--- The single coordinate reader for `veafAirWaves`, `veafGroundAI` (both the target and its validation),
+--- `veafNamedPoints`, `veafQraCore` and the shortcut aliases — which is why it is worth being generous
+--- here rather than in any one of them.
+---
+--- **What it accepts**, and every one of these is a form somebody can read off his own screen:
+---
+--- * MGRS / UTM — `37T GG 12345 12345` exactly as DCS displays it, with or without the spaces, with or
+---   without a leading `u` or `MGRS`. The digit count IS the precision: two digits a side is 10 km, ten
+---   digits is one metre. An odd count is refused rather than halved.
+--- * Lat/Lon in degrees, minutes and seconds — `N42:30:15E041:45:30`, and the same with dashes, spaces or
+---   the `°`/`'`/`"` symbols.
+--- * Lat/Lon in degrees and decimal minutes — `N42:30.5E041:45.5`, which is what charts and kneeboards use.
+--- * Lat/Lon in decimal degrees — `N42.50416E041.75833`.
+--- * Whole degrees — `N42E041`. Coarse (about 100 km) but sometimes exactly what was meant.
+---
+--- **The arithmetic is exact.** It used to run an accumulator from `-1`, so every DMS coordinate came out
+--- one arc-second short — about 31 metres of northing, on every mission written since 2021. A test even
+--- recorded that as "by design". Minutes and seconds are now weighted directly, which removes the place
+--- where such an offset could hide.
+---
+--- @param value string the coordinate as typed
+--- @return number|nil latitude, number|nil longitude — nil when the string cannot be read
 function veaf.computeLLFromString(value)
-  local function _computeLLValueFromString(value)
-    local result = -1
-    if value:find(":") or value:find("-") then
-      -- convert in arc-seconds
-      local values = veaf.splitWithPattern(value, "[:-]+")
-      local weights = { 3600, 60, 1 }
-      for _, element in pairs(values) do
-        veaf.loggers.get(veaf.Id):trace(string.format("element=%s", veaf.p(element)))
-        local weight = table.remove(weights, 1)
-        local elementInArcSec = tonumber(element) * weight
-        result = result + elementInArcSec
-      end
-      return result / 3600
-    else
-      -- decimals
-      return tonumber(value)
+  if type(value) ~= "string" then
+    return nil
+  end
+  local _value = value:lower()
+
+  -- ── MGRS / UTM ────────────────────────────────────────────────────────────
+  -- Separators are stripped only after the shape is confirmed, so "37T GG 12345 12345" and
+  -- "u37TGG1234512345" are the same coordinate rather than two syntaxes to remember.
+  local _mgrs = _value:gsub("^%s*mgrs%s*", ""):gsub("^%s*u", "")
+  local _compact = _mgrs:gsub("%s", "")
+  local _zone, _digraph, _digits = _compact:match("^(%d%d%a)(%a%a)(%d+)$")
+  if _zone and _digraph and _digits then
+    local _nDigits = #_digits
+    -- MGRS digits come in pairs, five a side at the most. Anything else is a typo, and halving it would
+    -- produce a position nobody asked for.
+    if _nDigits % 2 ~= 0 or _nDigits > 10 then
+      return nil
     end
+    local _half = _nDigits / 2
+    -- Two digits a side means 10 km, five means one metre: the missing digits are trailing zeroes.
+    local _scale = 10 ^ (5 - _half)
+    local _utm = {
+      UTMZone = _zone:upper(),
+      MGRSDigraph = _digraph:upper(),
+      Easting = tonumber(_digits:sub(1, _half)) * _scale,
+      Northing = tonumber(_digits:sub(_half + 1)) * _scale,
+    }
+    veaf.loggers.get(veaf.Id):trace("MGRS read as %s", veaf.p(_utm))
+    return coord.MGRStoLL(_utm)
   end
 
-  if value then
-    local _value = value:lower()
-    local _firstChar = _value:sub(1, 1)
-    if _firstChar == "u" then
-      -- UTM coordinates
-      local _zone, _digraph, _digits = _value:match("u(%d%d[a-z])([a-z][a-z])(%d+)")
-      veaf.loggers.get(veaf.Id):trace(string.format("_zone=%s", veaf.p(_zone)))
-      veaf.loggers.get(veaf.Id):trace(string.format("_digraph=%s", veaf.p(_digraph)))
-      veaf.loggers.get(veaf.Id):trace(string.format("_digits=%s", veaf.p(_digits)))
-      if _zone and _digraph and _digits then
-        local _nDigits = #_digits
-        local _northingString = _digits:sub(_nDigits / 2 + 1)
-        local _northing = tonumber(_northingString)
-        veaf.loggers.get(veaf.Id):trace(string.format("_northing=%s", veaf.p(_northing)))
-        if #_northingString == 1 then
-          _northing = _northing * 10000
-        elseif #_northingString == 2 then
-          _northing = _northing * 1000
-        elseif #_northingString == 3 then
-          _northing = _northing * 100
-        elseif #_northingString == 4 then
-          _northing = _northing * 10
-        end
-
-        local _eastingString = _digits:sub(1, _nDigits / 2)
-        local _easting = tonumber(_eastingString)
-        veaf.loggers.get(veaf.Id):trace(string.format("_easting=%s", veaf.p(_easting)))
-        if #_eastingString == 1 then
-          _easting = _easting * 10000
-        elseif #_eastingString == 2 then
-          _easting = _easting * 1000
-        elseif #_eastingString == 3 then
-          _easting = _easting * 100
-        elseif #_eastingString == 4 then
-          _easting = _easting * 10
-        end
-
-        local _utm = { UTMZone = _zone:upper(), MGRSDigraph = _digraph:upper(), Easting = _easting, Northing = _northing }
-        veaf.loggers.get(veaf.Id):trace(string.format("_utm=%s", veaf.p(_utm)))
-        return coord.MGRStoLL(_utm)
-      end
-    elseif _firstChar == "n" or _firstChar == "s" or _firstChar == "e" or _firstChar == "w" then
-      -- LL coordinates
-      local _signLat, _digitsLat, _signLon, _digitsLon = _value:match([[([news])([%d:\.-]+)([news])([%d:\.-]+)]])
-      if _digitsLat and _digitsLon then
-        local _multLat = 1
-        if _signLat == "s" then
-          _multLat = -1
-        end
-        local _multLon = 1
-        if _signLon == "w" then
-          _multLon = -1
-        end
-        local _lat = _multLat * _computeLLValueFromString(_digitsLat)
-        local _lon = _multLon * _computeLLValueFromString(_digitsLon)
-        return _lat, _lon
-      end
-    end
+  -- ── Lat/Lon ───────────────────────────────────────────────────────────────
+  -- Split on the hemisphere letters, which is what separates the two halves whatever punctuation sits
+  -- inside them.
+  local _latSign, _latText, _lonSign, _lonText = _value:match("^%s*([ns])([^nsew]+)([ew])([^nsew]+)%s*$")
+  if not _latText then
+    return nil
   end
-  -- unrecognized format
-  return nil
+
+  --- Every separator a pilot might type, reduced to one. `°`, `'` and `"` are what DCS itself shows;
+  --- spaces are what someone writes when nobody told him a separator; `:` and `-` are the older VEAF
+  --- syntax, which keeps working.
+  local function _oneSeparator(s)
+    s = s:gsub("°", ":"):gsub("'", ":"):gsub('"', ":")
+    s = s:gsub("[%s:%-]+", ":")
+    s = s:gsub("^:+", ""):gsub(":+$", "")
+    return s
+  end
+
+  --- Degrees, or degrees and minutes, or degrees minutes and seconds. Weighted directly rather than
+  --- accumulated in arc-seconds: there is then nowhere for an off-by-one to live.
+  local function _degrees(s)
+    s = _oneSeparator(s)
+    if not s:match("^[%d%.:]+$") then
+      return nil
+    end
+    local _weights = { 1, 1 / 60, 1 / 3600 }
+    local _total, _count = 0, 0
+    for _part in s:gmatch("[^:]+") do
+      _count = _count + 1
+      if _count > 3 then
+        return nil
+      end
+      local _n = tonumber(_part)
+      if not _n then
+        return nil
+      end
+      _total = _total + _n * _weights[_count]
+    end
+    if _count == 0 then
+      return nil
+    end
+    return _total
+  end
+
+  local _lat, _lon = _degrees(_latText), _degrees(_lonText)
+  if not _lat or not _lon then
+    return nil
+  end
+  if _latSign == "s" then
+    _lat = -_lat
+  end
+  if _lonSign == "w" then
+    _lon = -_lon
+  end
+  return _lat, _lon
 end
 
 function veaf.findDcsAirbase(name)

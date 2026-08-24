@@ -171,7 +171,7 @@ MyMission/
 │   ├── warehouses.yaml          # Dynamic Slots par coalition (étape warehouses, optionnel)
 │   ├── spawn-groups.yaml        # Extension/override de la base de spawn (étape spawn_data, optionnel)
 │   ├── versions.yaml            # Variantes météo/horaires (étape weather)
-│   └── waypoints.yaml           # Bullseye / points de navigation (étape waypoints)
+│   └── waypoints.yaml           # Points de navigation par plan de vol (étape waypoints)
 ├── published/                    # Scripts & outils VEAF (auto-installés)
 ├── mission.yaml                  # Configuration de build
 ├── .gitignore                    # Exclut les fichiers générés/téléchargés
@@ -346,6 +346,44 @@ pipeline:
 Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet de chaque étape et la [Référence mission.yaml](../MISSION_YAML_REFERENCE.md#pipeline) pour tous les champs de `pipeline:`.
 
 ---
+
+### Quel plan de vol pour quel appareil ? {#flight-plan-matching}
+
+`src/waypoints.yaml` déclare des **plans de vol**, chacun avec des critères : coalition, catégorie
+(`plane` / `helicopter`), type d'appareil, pays. Les critères qu'un plan ne pose pas sont des jokers.
+
+> **Le plan le plus précis gagne.** Parmi ceux qui correspondent, celui qui pose le **plus** de critères
+> est retenu — où qu'il soit écrit dans le fichier.
+
+```yaml
+settings:
+  all_blue_planes:
+    coalition: blue
+    category: plane
+    waypoints: { ... }
+
+  f16_flight_plan:          # plus précis : il nomme aussi le type
+    coalition: blue
+    category: plane
+    type: F-16C_50
+    waypoints: { ... }
+```
+
+Un F-16C bleu correspond aux deux et reçoit `f16_flight_plan`. Un autre avion bleu reçoit
+`all_blue_planes`. Un plan **sans aucun critère** est le repli : il correspond à tout et perd contre
+tout. L'ordre de déclaration ne tranche qu'une **égalité** de précision, et seulement dans ce cas.
+
+!!! warning "Ce comportement a changé en 6.15.42"
+    Avant, c'était le **premier** plan compatible qui gagnait, donc l'ordre de déclaration décidait — et
+    un plan précis écrit après un plan large était inatteignable. Ce fichier et le code annonçaient tous
+    deux la règle de précision depuis des années sans qu'elle soit implémentée ; c'est elle qui l'est
+    désormais.
+
+    Si vous aviez rangé vos plans du plus étroit au plus large pour contourner le problème, **rien ne
+    change pour vous**. Si vous vous appuyiez sciemment sur l'ordre pour qu'un plan large en masque un
+    précis, ce plan précis va maintenant s'appliquer.
+
+Seuls les groupes **pilotés par un humain** reçoivent des waypoints.
 
 ## Outils de conception
 

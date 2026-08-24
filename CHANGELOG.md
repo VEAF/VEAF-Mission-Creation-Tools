@@ -10,6 +10,37 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.42] — 2026-08-24
+
+### Changed
+
+- **The most specific flight plan now wins, instead of the first one declared.** `src/waypoints.yaml`
+  declares plans with criteria — coalition, category, aircraft type, country — and the ones a plan omits
+  are wildcards. Until now the **first** compatible plan was used, so declaration order decided and a
+  specific plan written after a broad one was unreachable.
+
+  Both the code's docstring and the shipped template promised the priority for years without it being
+  implemented, and the template shipped the consequence as its own illustration: `all_blue_planes` is
+  declared before `f16_flight_plan`, so a blue F-16C matched the first and the F-16 plan was
+  configuration **no aircraft could reach**.
+
+  Measured on the real template, before and after: exactly one case changes, and it is the broken one —
+  a blue F-16C now gets `f16_flight_plan`, while every other aircraft gets what it got before.
+
+  **This is a behaviour change for missions whose plans overlap**, and mission folders live outside this
+  repository, so the reach is not measurable from here. A mission maker who had ordered plans
+  narrow-first to work around the old behaviour sees nothing change — narrow-first is what specificity
+  produces. One who relied on order so that a broad plan masked a specific one will now get the specific
+  one.
+
+  Declaration order still breaks a tie between plans of equal specificity, deliberately: the alternative
+  depends on dictionary iteration and would make the same file build differently for no visible reason.
+
+  Documented for mission makers under `{#flight-plan-matching}` in both languages, with the worked
+  example and an explicit note on who is affected.
+
+---
+
 ## [6.15.41] — 2026-08-24
 
 ### Fixed

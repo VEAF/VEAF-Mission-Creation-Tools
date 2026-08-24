@@ -1344,6 +1344,29 @@ veaf.i18nCatalog = {
     en = "SPAWN",
   },
   -- veaf.lua — the CTLD submenu and its sling-loading toggle (FEAT-CTLD-SLINGLOAD-TOGGLE, #60).
+  -- veafWeather — the welcome brief a pilot gets on taking a slot (FEAT-SLOT-WELCOME-BRIEF, #301).
+  -- Deliberately shorter than the ATIS: the full report is a radio command away, and a greeting that
+  -- fills the screen at every slot change stops being read.
+  ["weather.welcome_brief"] = {
+    fr = "Bienvenue à %s — piste en service %s\n%s",
+    en = "Welcome to %s — runway in service %s\n%s",
+  },
+  -- A ship or a helipad has no runway to be in service, and a carrier slot is a normal case rather
+  -- than a degraded one, so it gets its own wording instead of an empty gap.
+  -- A carrier keeps no runway: it turns into the wind, so its heading is what a pilot on the deck
+  -- needs. The wording is the carrier group's own — `carrier.atc_navigation` says "Cap actuel
+  -- (vrai)" / "Current heading (true)" — rather than a second vocabulary for the same number.
+  -- "(vrai)" is accurate and not decoration: the heading comes from `mist.getHeading(unit, true)`,
+  -- the same call carrier operations make, which returns the true heading and not the magnetic one.
+  -- %03d because a heading is read as three digits; "cap 9" is not a heading.
+  ["weather.welcome_brief_ship"] = {
+    fr = "Bienvenue à bord du %s — cap actuel (vrai) %03d\n%s",
+    en = "Welcome aboard %s — current heading (true) %03d\n%s",
+  },
+  ["weather.welcome_brief_no_runway"] = {
+    fr = "Bienvenue à %s\n%s",
+    en = "Welcome to %s\n%s",
+  },
   ["menu.ctld.root"] = {
     fr = "CTLD",
     en = "CTLD",

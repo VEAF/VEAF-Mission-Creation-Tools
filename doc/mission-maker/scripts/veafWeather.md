@@ -171,6 +171,42 @@ Le nom de la constante est insensible à la casse (sans le préfixe `veafWeather
 
 ---
 
+## Accueil à la prise de slot {#welcome-brief}
+
+Quand un pilote prend un slot, il reçoit quelques secondes plus tard un message court : le terrain le plus
+proche, la **piste en service** déduite du vent, et la météo du moment.
+
+```
+Bienvenue à Kobuleti — piste en service 13
+WIND 270/10 QNH 1013 ...
+```
+
+Le message va **à son groupe seulement**, pas à la coalition : il parle de *son* terrain, et diffusé à
+tout le monde il deviendrait du bruit dès que deux pilotes prennent des slots sur des bases différentes.
+
+Quelques choix à connaître :
+
+- **Il est différé de quelques secondes.** Un pilote qui vient d'entrer dans son appareil charge encore
+  son cockpit ; un message affiché à cet instant est un message qu'il ne lit pas.
+- **Il se répète à chaque prise de slot.** Un pilote qui change de terrain veut la piste du nouveau
+  terrain, et « une fois par session » retiendrait justement l'information qui a changé.
+- **Un porte-avions n'a pas de piste en service** — il se met au vent, donc la piste est mobile. Il
+  annonce à la place son **cap actuel (vrai)**, dans les mêmes termes que l'ATC du groupe aéronaval.
+  Une **hélisurface** n'a ni l'un ni l'autre : elle donne la météo seule.
+- Le rapport **complet** (ATIS) reste disponible dans le menu radio. L'accueil est volontairement plus
+  court : un message qui remplit l'écran à chaque changement de slot cesse d'être lu.
+
+Pour le désactiver — par exemple si votre mission fait son propre briefing :
+
+```yaml
+modules:
+  WEATHER:
+    enabled: true
+    welcomeBrief: false
+```
+
+---
+
 ## Voir aussi
 
 - [Référence CLI](../../CLI_REFERENCE.md#inject-weather) — toutes les options de `veaf-tools content inject-weather`

@@ -10,6 +10,36 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.45] — 2026-08-24
+
+### Added
+
+- **A pilot taking a slot is greeted with the weather and the runway in service** —
+  [#301](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/301), Tripack. Five seconds after
+  entering the unit, so he has finished loading his cockpit, and to **his group only**: it is about his
+  airfield, and broadcast to a coalition it becomes noise the moment two pilots take slots at different
+  bases.
+
+  Deliberately shorter than the ATIS, which stays a radio command away — a greeting that fills the screen
+  at every slot change stops being read. It repeats on **every** slot entry rather than once per session,
+  because a pilot who changes airfield wants the new airfield's runway.
+
+  **A carrier announces its current heading instead of a runway**, because it turns into the wind and the
+  runway is therefore mobile. In the carrier group's own words — `carrier.atc_navigation`'s *"current
+  heading (true)"* — rather than a second vocabulary for the same number, and from the same
+  `mist.getHeading(unit, true)` call carrier operations already make. A helipad has neither, so it gets
+  the weather alone; a heading that cannot be read falls back to the weather rather than inventing one,
+  since a course a pilot cannot trust is worse than none.
+
+  Off with `modules.WEATHER.welcomeBrief: false`, for a mission running its own briefing.
+
+  Worth noting for anyone reading the lot: its PRD called the runway-from-wind *"the only real computation
+  here"* and said nothing decided it. That was the one part already shipped —
+  `veafAirbase:getRunwayInService` picks the best-headwind runway end and the ATIS has been using it — so
+  what this adds is the trigger, the airbase, the message and the switch.
+
+---
+
 ## [6.15.44] — 2026-08-24
 
 ### Added

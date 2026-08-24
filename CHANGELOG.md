@@ -41,6 +41,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+### Changed
+
+- **A documented `mission:` field now beats a `module_settings:` leftover for the same Lua target.**
+  Raised in review on the PR above, and measured before being believed: the `mission:` block is emitted
+  first and `module_settings:` after, so Lua took the hatch's value and
+  `mission.hide_names_from_spawned_groups` had no effect whenever both forms were present. The commit
+  that added the field even carried a test whose docstring claimed it *"must beat a `module_settings:`
+  line"* — with no `module_settings:` line anywhere in the case. Asserting the emitted constant while
+  the docstring described the applied behaviour is the same trap `test_defaultSpawnRadii` sat in for
+  three years.
+
+  Which form *should* win is settled by the reference itself, where `module_settings:` is described as a
+  migration path rather than a permanent override: the documented field wins, the superseded hatch entry
+  is dropped, and the build warns naming both. Silently ignoring a line somebody wrote would be
+  `FIX-MODULE-SETTINGS-OVERWRITTEN` from the other side, which is why it is said out loud. Only the
+  superseded key yields — the hatch stays generic, and a mission that has not adopted the new field is
+  unaffected. Documented in `MISSION_YAML_REFERENCE` in both languages.
+
+- **The two-language comparison in `test_documented_lua_defaults.py` compared only shared keys.** Also
+  from review. Deleting a documented default from one page dropped it out of the comparison entirely, so
+  the test passed while the two references no longer documented the same thing — the exact divergence it
+  exists to catch. It now compares the union of both key sets and names the page a default is missing
+  from. Verified by removing one line from the English page: the old form passed, the new one fails and
+  says which file.
+
 ## [6.15.33] — 2026-08-24
 
 ### Fixed

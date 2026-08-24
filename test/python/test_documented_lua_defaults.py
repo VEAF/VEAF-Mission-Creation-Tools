@@ -98,9 +98,28 @@ class TestDocumentedDefaultsMatchTheCode(unittest.TestCase):
             )
             for ref in REFERENCES
         ]
-        shared = set(per_language[0]) & set(per_language[1])
-        mismatched = {name for name in shared if per_language[0][name] != per_language[1][name]}
-        self.assertEqual(mismatched, set(), "FR and EN document different values")
+        # Every name in either page, not the intersection: comparing only shared keys means deleting a
+        # documented default from one language drops it out of the comparison entirely and the test
+        # still passes — the two pages then disagree in the one way this test exists to catch.
+        # Raised by Sourcery on #795.
+        every_name = set(per_language[0]) | set(per_language[1])
+        missing = sorted(
+            f"{name} documented only in {REFERENCES[0 if name in per_language[0] else 1].name}"
+            for name in every_name
+            if (name in per_language[0]) != (name in per_language[1])
+        )
+        mismatched = sorted(
+            f"{name}: {REFERENCES[0].name} says {per_language[0][name]}, "
+            f"{REFERENCES[1].name} says {per_language[1][name]}"
+            for name in every_name
+            if name in per_language[0] and name in per_language[1] and per_language[0][name] != per_language[1][name]
+        )
+        report = missing + mismatched
+        self.assertEqual(
+            report,
+            [],
+            "the two language references do not document the same defaults:\n  " + "\n  ".join(report),
+        )
 
 
 if __name__ == "__main__":

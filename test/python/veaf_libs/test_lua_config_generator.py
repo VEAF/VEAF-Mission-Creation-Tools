@@ -1275,9 +1275,87 @@ def test_hide_names_false_reaches_the_generated_config():
 
 
 def test_hide_names_true_is_written_when_stated():
-    """An explicit `true` is a statement, not a default, and must beat a `module_settings:` line."""
+    """An explicit `true` is a statement, not a default, so it must be emitted rather than assumed.
+
+    The claim that it *beats a `module_settings:` line* used to be in this docstring with nothing
+    testing it — and it was false: the hatch is emitted after the mission block, so in Lua it won.
+    That claim now lives in `test_a_documented_mission_field_beats_a_module_settings_leftover`, with a
+    case that actually contains both forms. Asserting the emitted constant while the docstring
+    described the applied behaviour is the same trap as `test_defaultSpawnRadii`.
+    """
     lua = generate_config_lua({"mission": {"name": "X", "hide_names_from_spawned_groups": True}})
     assert "veaf.HideNamesFromSpawnedGroups = true" in lua
+
+
+def test_a_documented_mission_field_beats_a_module_settings_leftover():
+    """Both forms in one mission.yaml: the documented field wins and the hatch entry is dropped.
+
+    Raised by Sourcery on #795, and measured before believing it: the mission block is emitted first
+    and `module_settings:` after, so Lua took the hatch's value and the field the reference documents
+    did nothing. Which one *should* win is settled by the reference itself, where `module_settings:` is
+    described as a migration path rather than a permanent override.
+    """
+    lua = generate_config_lua(
+        {
+            "mission": {"name": "X", "hide_names_from_spawned_groups": True},
+            "module_settings": {"veaf.HideNamesFromSpawnedGroups": False},
+        }
+    )
+    assignments = [line for line in lua.splitlines() if "HideNamesFromSpawnedGroups" in line]
+    assert len(assignments) == 1, f"one assignment, not two: {assignments}"
+    assert "= true" in assignments[0], "the mission field's value, not the hatch's"
+
+
+def test_dropping_the_leftover_is_said_out_loud(caplog):
+    """Silently ignoring a line someone wrote is the defect this whole area is about.
+
+    `FIX-MODULE-SETTINGS-OVERWRITTEN` was not about a wrong value but about a setting that *looks*
+    applied. Removing the hatch entry without a word would be the same failure from the other side.
+    """
+    with caplog.at_level(logging.WARNING):
+        generate_config_lua(
+            {
+                "mission": {"name": "X", "hide_names_from_spawned_groups": False},
+                "module_settings": {"veaf.HideNamesFromSpawnedGroups": True},
+            }
+        )
+    warnings = [record.message for record in caplog.records if record.levelno >= logging.WARNING]
+    assert any("HideNamesFromSpawnedGroups" in message for message in warnings), warnings
+    assert any("hide_names_from_spawned_groups" in message for message in warnings), (
+        "the warning must name the field that won, or the reader cannot act on it"
+    )
+
+
+def test_the_hatch_still_works_on_its_own():
+    """The migration path must keep working for a mission that has not adopted the new field.
+
+    The whole point of dropping the entry is that the mission field asked for something else. With no
+    mission field there is nothing to defer to, and removing the line would be a regression for every
+    mission converted from v5.
+    """
+    lua = generate_config_lua(
+        {
+            "mission": {"name": "X"},
+            "module_settings": {"veaf.HideNamesFromSpawnedGroups": False},
+        }
+    )
+    assert "veaf.HideNamesFromSpawnedGroups = false" in lua
+
+
+def test_unrelated_module_settings_are_untouched():
+    """Only the superseded key yields; the hatch is generic and must stay generic."""
+    lua = generate_config_lua(
+        {
+            "mission": {"name": "X", "hide_names_from_spawned_groups": True},
+            "module_settings": {
+                "veaf.HideNamesFromSpawnedGroups": False,
+                "veafSkynet.DelayForStartup": 150,
+            },
+        }
+    )
+    assert "veafSkynet.DelayForStartup = 150" in lua
+    assert "veaf.HideNamesFromSpawnedGroups = true" in lua
+    assert "veaf.HideNamesFromSpawnedGroups = false" not in lua
 
 
 def test_hide_names_appears_in_the_yaml_template():

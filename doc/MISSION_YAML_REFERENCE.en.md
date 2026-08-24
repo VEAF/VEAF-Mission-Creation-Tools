@@ -248,6 +248,15 @@ Each entry becomes the matching Lua assignment, here `veafSkynet.DelayForStartup
 | *(key)* | string | — | — | The full Lua target, `veafXxx.Field`. A key that does not start with `veaf` is **refused at generation time**: this section is a migration path for VEAF settings, not a hatch for writing anywhere in the runtime |
 | *(value)* | boolean \| number \| string | — | — | A scalar. Tables and functions cannot be expressed here |
 
+> **A documented field beats a migration leftover.** When a setting now has its own field in
+> `mission.yaml` **and** a `module_settings:` entry targets the same Lua variable, the **documented
+> field** is what applies: the `module_settings:` entry is dropped, and the build says so, naming both.
+> This section is a migration path, not a permanent override — delete the line that is no longer
+> needed.
+>
+> One setting is in that position today: `veaf.HideNamesFromSpawnedGroups`, superseded by
+> `mission.hide_names_from_spawned_groups`.
+
 > **Where it comes from.** `convert-v5` fills this section automatically: under v5, half of these
 > settings reached neither `mission.yaml` nor the generated Lua, and nothing reported it. Whatever
 > the conversion still cannot carry — a table, a function — is now listed as comments in the

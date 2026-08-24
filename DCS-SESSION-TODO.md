@@ -359,23 +359,66 @@ Also worth a glance in `dcs.log`: `Re-establishing the escort task of <group> on
 that line is absent, the escort group is not named `<asset> escort` and the convention is what to
 check first (it is now documented on the ASSETS page).
 
-## 3. Confirm a rebuilt checklist picture is not served stale
+## 3. Confirm a rebuilt checklist picture is not served stale — **prepared 2026-08-24**
 
 [`FEAT-ASSIST-FOLLOWUP` 01](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) shipped the fix: a checklist image's
 file name now carries 8 hex of its own content hash, so DCS cannot serve a cached bitmap under a name
 it already knows. **No unit test can see DCS's resource cache**, hence this flight.
 
-Edit a checklist step's text, rebuild, and fly it **without restarting DCS**. The old bug read as
-*"the text is wrong, but only on the first image"*.
+Four missions are built and waiting, with the full procedure, in
+`D:\dev\_VEAF\tmp\dcs-session-2026-08-24\` (`LIRE-MOI.md` + `missions-a-charger\`). F-16C at
+Kobuleti parking, cold; **F10 → Assistance → Démarrage à froid** (the missions build `language: fr`),
+and the picture appears at state 0 on its own. The marker sits on the highlighted first line:
+`AVANT -- cache probe build A` / `APRES -- cache probe build B`.
 
-## 4. Confirm the staggered script loading
+**Three loads, no DCS restart between them** — a restart clears the very cache under test:
+
+| # | Mission | Must read | What it says |
+|---|---|---|---|
+| 1 | `2-item3-controle-A-AVANT` | AVANT | the picture enters DCS's cache |
+| 2 | `3-item3-controle-B-APRES` | **AVANT** (stale) | DCS still caches by file name → the check means something |
+| 3 | `4-item3-corrige-B-APRES` | APRES | the fix works |
+
+**Why a control pair at all**, and the reason this is three loads rather than one: missions 1 and 2 are
+built normally and then rewritten back to the **pre-fix** naming (`assist-f16c-cold-start-0.png`, no
+digest) in both the archive and `mapResource` — two different pictures under one name, the artefact the
+bug was made of. Without them, mission 3 showing the right text would be equally consistent with "the
+fix works" and with "DCS stopped caching between 2.9 builds", and we would not know which. If step 2
+reads APRES, the check is void and step 3 proves nothing.
+
+Measured on the built files: the fixed pair changes **7 file names out of 7** with the label while
+keeping identical resource keys (so a label edit does not move the mission's Lua, which was the design
+constraint); the control pair shares **7 out of 7**.
+
+## 4. Confirm the staggered script loading — **prepared 2026-08-24, and half of it is already answered**
 
 [`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`](.backlog/archive/FEAT-CUSTOM-SCRIPT-LOAD-DELAY.md) is ✅ and verified
 against the real Foothold Caucasus 4.4.1 `.miz`, but never watched in game.
 
-Build an adopted Foothold and check `dcs.log`: 6 scripts at start, 5 around +3 s, AIEN at +12 s. The
-thing that matters is AIEN seeing a **populated** world — Foothold creates part of its groups from
-t+2 s onwards, and loading AIEN at t=0 shows it an empty one **with no log error**.
+**The staging itself no longer needs DCS.** Foothold Caucasus 4.4.1 was adopted fresh today and the
+built `.miz` was read back: `Mission scripts loading - static` carries 8 files at t=0,
+`- delayed 3s` carries 5, `- delayed 12s` carries AIEN alone — exactly the upstream table. The mission
+runs in **static** mode (both selector triggers `return false`), so those are the triggers that execute,
+and the generated `veafDynamicConfig.lua` schedules the same delays, so the documented claim that both
+modes stage alike holds. Nothing left to look at there.
+
+**What the game still has to say is the PRD's own open question:** does the delay change anything? The
+lot settled it by reading code — AIEN inventories ground groups once, at load, and Foothold creates part
+of its groups from t+2 s — but never measured it.
+
+AIEN's log cannot answer: its line that would count each inventoried group is **commented out** upstream
+(only MLRS-with-guidance and unidentified-class groups log), and it writes no total. So
+`1-item4-foothold-echelonnement.miz` (same folder as item 3) carries an instrument in
+`mission-script.lua` that counts ground groups at t=0, +3 s, +12 s and +30 s.
+
+Load it, take any slot, let it run 40 s, quit, and grep `dcs.log` for `VEAF-PROBE` (five lines) and
+`STATIC Mission scripts loading` (three, for their timestamps).
+
+- count at +12 s **equal** to t=0 → the upstream staging is caution, and the lot is a fidelity nicety;
+- count at +12 s **higher** → AIEN at t=0 was demonstrably shown fewer groups, and the lot delivered a
+  correctness fix as it claimed.
+
+Either way it is a result, which is why it is worth the load.
 
 ## 5. Fly the F-14B(U) startup checklist
 

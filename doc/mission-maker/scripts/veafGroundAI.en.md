@@ -71,12 +71,14 @@ before it ever reaches the artillery.
 |-------|--------|----------------|----------------|
 | `aim` *(default)* | Ranging fire: a few rounds to adjust | 2 | 10 m |
 | `fire` | Fire for effect | 40 | 100 m |
+| `correct` | Shift the last aim point and fire again | 2 | 10 m |
 
 | Order parameter | Description |
 |-----------------|-------------|
 | `target` | The target's coordinates. **Validated**: a string the module cannot read is ignored, and the order complains that it has no target. |
 | `shells` | Number of rounds. Accepts a random range, e.g. `40-80`. |
 | `radius` | Dispersion of the fire, in metres. Also accepts a range. |
+| `correction` | The offset to apply, for the `correct` order: **three digits of true bearing then the distance in metres**. `09050` is 50 m east. **Validated**: an unreadable correction is refused and announced, never guessed. |
 
 **`fire` with no `target` re-engages the last target aimed at** — which is what lets you chain a
 ranging order and then the effect without re-entering the coordinates.
@@ -85,6 +87,28 @@ ranging order and then the effect without re-entering the coordinates.
 _ground order, name arty-1, order aim; radius 15-30; target 42 N 42 E
 _ground order, name arty-1, order fire; radius 50-150; shells 40-80
 ```
+
+### Adjusting the fire {#fire-adjustment}
+
+A battery remembers **the last point it aimed at**, and `correct` shifts that point. This is the classic
+adjustment loop: fire, watch where the rounds land, call the correction in.
+
+```
+_ground order, name arty-1, order aim; target 42 N 42 E
+_ground order, name arty-1, order correct; correction 09050
+_ground order, name arty-1, order fire; shells 40-80
+```
+
+The bearing is **always written as three digits**, because `090` and `90` would be the same string once
+the distance is appended: `09050` is 50 m east, whereas `9050` would read as a bearing of 905 and be
+refused.
+
+Two corrections **compound**: two `09050` in a row and the aim point has moved 100 m east. A later
+`fire` with no target then fires at the corrected point — it is the one aim point both orders share.
+
+A correction is refused, and the refusal is announced to the pilot, in two cases: when it cannot be read
+(the message then recalls the expected form), and when the battery has **no fire mission** to correct —
+firing at the offset alone would put the rounds wherever the battery happens to stand.
 
 ---
 
@@ -127,6 +151,8 @@ modules:
   (`veafGroundAI.add` / `.remove` / `.get` take any named handler), but no other one ships.
 - **The 250-metre search radius is not configurable.**
 - Orders go through the F10 map only: **this module has no radio menu**.
+- **A correction has no automatic spotter**: the pilot is the one who watches where the rounds land and calls the offset in. The module does not measure the miss
+  itself.
 
 ---
 

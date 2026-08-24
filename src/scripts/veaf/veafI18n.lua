@@ -1189,6 +1189,24 @@ veaf.i18nCatalog = {
     fr = "Gestionnaire IA %s : %s",
     en = "AI handler %s: %s",
   },
+  -- veafGroundAI — the fire-adjustment loop (FEAT-ARTILLERY-CONTROL, #198). All three are told to
+  -- the player and not only logged: he typed a correction and is waiting for shells, so a silent
+  -- refusal reads as a battery that ignored him.
+  ["groundai.correction_applied"] = {
+    fr = "%s : correction %03d / %d m appliquée, tir en cours",
+    en = "%s: correction %03d / %d m applied, firing",
+  },
+  -- Deliberately explicit about the form, because the failure is almost always a mistyped one.
+  ["groundai.correction_unreadable"] = {
+    fr = "%s : correction illisible. Forme attendue : trois chiffres de cap puis la distance en mètres, par exemple 09050 pour 50 m à l'est.",
+    en = "%s: correction unreadable. Expected three digits of bearing then the distance in metres, for instance 09050 for 50 m east.",
+  },
+  -- Refused rather than fired: correcting from nothing would put shells wherever the battery
+  -- happens to stand.
+  ["groundai.correction_no_mission"] = {
+    fr = "%s : aucun tir en cours à corriger. Donnez d'abord un objectif.",
+    en = "%s: no fire mission to correct. Give it a target first.",
+  },
   ["groundai.cannot_aim"] = {
     fr = "%s ne peut pas viser, aucune coordonnée de cible fournie",
     en = "%s cannot aim, no target coordinates provided",

@@ -1,6 +1,6 @@
 # FIX-WAYPOINTS-STEP-TOO-EARLY — waypoint injection reaches 1 human slot in 105
 
-Status: ⬜ ready
+Status: ✅ done
 
 Found on 2026-08-24 while starting [`FEAT-WAYPOINT-BULLSEYE`](../FEAT-WAYPOINT-BULLSEYE/PRD.md), which
 cannot be delivered in a useful form until this is settled.
@@ -57,11 +57,61 @@ completion, which is why this is a lot of its own and a prerequisite rather than
 Option 1 or 2 needs a rebuild of a real mission to confirm, since the failure mode option 1 risks — a
 slot nobody can take — is exactly the kind that unit tests do not see.
 
+## Delivered — 2026-08-24
+
+**Option 1: the step moved**, after `spawnable_aircrafts` and `dynamic_slot_templates` and still before
+`weather`. Chosen on measurement rather than preference — the two failure modes the injector's own comment
+warns about were checked away first, on the 105 human slots of the built smoke-test mission:
+
+* **none has an empty route**, so appending cannot leave a slot whose route starts in mid-air;
+* **all 105 already carry a locked ETA**, so the injector's "lock point 1" fallback never fires on them;
+* and every one of them starts on a `Turning Point`, so there is no parking departure to disturb.
+
+That also made option 2 (run the step twice) unnecessary rather than merely unattractive: the injection is
+idempotent by construction — a same-named waypoint is replaced in place, renumbering is stable, the ETA
+lock is guarded — so a second pass would buy nothing the move does not.
+
+### Measured, before and after, on the real artefact
+
+Running the injector over the already-built `SmokeTest_noon.miz` reproduces the corrected position exactly,
+because that archive *is* the post-aircraft-injection state:
+
+| | human slots reached |
+|---|---|
+| shipped build (step before aircraft injection) | **1 of 105** |
+| injector run at the corrected position | **105 of 105** |
+
+No full rebuild was needed to establish it, which matters because a rebuild is the expensive part of
+verifying a pipeline change.
+
+### Why it was silent, which is the part worth keeping
+
+The step **already reported** what it did: "N injected", and "M human groups without a flight plan". At the
+old position it saw one group and reported `1 injected, 0 without a plan` — accurate, and perfectly healthy
+to read. Nothing lied. The count was taken before the world was finished.
+
+So the DoD's third item needed no new code: moving the step restores the denominator as much as the
+behaviour. Adding a second report would have been noise, and the reasoning is recorded here instead.
+
+### The guard
+
+`test_pipeline_step_order.py`, three checks: the three step calls still exist (a rename must fail loudly
+rather than make the test scan nothing), waypoints runs after both aircraft steps, and it still runs
+*before* the weather step — which bounds the move from both sides, since the weather step writes the
+variant files and anything injected after it would land in none of them.
+
+A source-order test, deliberately: the ordering is a property of a statement sequence, not of any value a
+normal test can read, and getting it wrong is invisible — the build succeeds and the report looks healthy.
+It is brittle to a refactor by design, because a refactor that moves these steps is exactly what should
+have to look here. Moving the step back fails it.
+
 ## Definition of done
 
-- [ ] The option chosen and recorded here, with the reasoning
-- [ ] A dynamic-slot mission's human slots get the waypoints their flight plan declares
-- [ ] Whatever is chosen, the build reports how many human groups received a plan out of how many exist —
-      the silence is half the defect
-- [ ] Unit tests, plus one rebuilt mission measured before and after
-- [ ] Documented, both languages, including what changed for missions that already inject waypoints
+- [x] The option chosen and recorded here, with the reasoning — option 1, on measurement
+- [x] A dynamic-slot mission's human slots get the waypoints their flight plan declares — 105 of 105,
+      against 1 of 105
+- [x] Whatever is chosen, the build reports how many human groups received a plan out of how many exist —
+      it already did; the count was taken too early, and moving the step restores it
+- [x] Unit tests, plus one rebuilt mission measured before and after — measured by running the injector
+      over the built archive, which *is* the post-injection state, so no rebuild was needed
+- [x] Documented, both languages, including what changed for missions that already inject waypoints

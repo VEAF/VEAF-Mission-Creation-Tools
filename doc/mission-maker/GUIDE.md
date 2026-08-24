@@ -383,7 +383,27 @@ tout. L'ordre de déclaration ne tranche qu'une **égalité** de précision, et 
     change pour vous**. Si vous vous appuyiez sciemment sur l'ordre pour qu'un plan large en masque un
     précis, ce plan précis va maintenant s'appliquer.
 
-Seuls les groupes **pilotés par un humain** reçoivent des waypoints.
+Seuls les groupes **pilotés par un humain** reçoivent des waypoints — et depuis la 6.15.43, **tous**
+les reçoivent.
+
+!!! warning "Avant la 6.15.43, votre plan de vol n'atteignait presque aucun slot"
+    L'étape waypoints tournait **avant** l'injection des appareils (`spawnables.yaml`,
+    `dynamic-slot-templates.yaml`). Les slots que ces fichiers créent n'existaient donc pas encore quand
+    les waypoints étaient injectés.
+
+    Mesuré sur la mission de fumée du dépôt : **105** groupes pilotés par un humain, **1** seul portait un
+    waypoint du plan — celui qui était déjà dans le `.miz` source. À la position corrigée : **105 sur
+    105**.
+
+    Ça ne concernait pas qu'un bullseye automatique : c'était votre plan de vol déclaré, appliqué à une
+    poignée de slots et à rien d'autre. Et le build ne le disait pas — il annonçait « 1 injecté, 0 sans
+    plan », ce qui est exact et parfaitement sain à lire. Le compte était pris avant que le monde soit
+    fini.
+
+    **Ce que ça change pour vous** : si votre mission utilise des slots dynamiques ou des appareils
+    spawnables, vos waypoints déclarés vont maintenant s'appliquer à ces slots — c'est-à-dire ce que vous
+    demandiez déjà. Si votre mission n'a que des slots posés dans l'éditeur, rien ne change.
+
 
 ## Outils de conception
 

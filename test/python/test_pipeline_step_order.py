@@ -73,8 +73,7 @@ class TestPipelineStepOrder(unittest.TestCase):
         self.assertLess(
             WAYPOINTS.search(self.source).start(),
             weather.start(),
-            "the waypoints step now runs after the weather variants are written, so its injection would "
-            "not reach them",
+            "the waypoints step now runs after the weather variants are written, so its injection would not reach them",
         )
 
 

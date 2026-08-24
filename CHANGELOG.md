@@ -10,6 +10,54 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.37] — 2026-08-24
+
+### Fixed
+
+- **Three defects in the missile-guardian module, one of them on the path its own documentation
+  teaches.** The module has been a declared skeleton since 2021 — its page says so, version `0.0.2`,
+  exploratory use only — but a skeleton that raises is indistinguishable from a broken feature when it
+  turns up in a DCS log.
+
+  1. `ActivateGuardian` and `DesactivateGuardian` opened on `veafMissileGuardian.GetGuardian`, a function
+     that was never written. Found by the call sweep shipped in 6.15.31.
+  2. The weapon path ended on `getLargeScaleProtector():setWeapon(...)`, and `getLargeScaleProtector` is
+     a stub returning nil. **This one was reachable**: the documentation tells a mission maker to build a
+     guardian by hand in `mission-script.lua` and call `start()`, so following the page gave a warning to
+     the targeted pilot followed by a Lua error — on every shot.
+  3. Found by a test written for the second: `VeafMG_Weapon:setDcsWeapon` passed `getLauncher()` straight
+     to `getUnitName`, which indexed it. `getLauncher()` legitimately answers nil once the shooter is
+     gone, which for a shot event processed a moment later is ordinary. The existing `setDcsWeapon` test
+     never saw it because its mock always supplied a launcher.
+
+  So the one behaviour the page promises — warn the target — now completes instead of raising.
+
+### Changed
+
+- **The missile-guardian skeleton refuses instead of pretending.** `AddGuardian`, `ActivateGuardian`,
+  `DesactivateGuardian` and `listGuardians` log a warning and return `false`. A warning rather than a
+  silent return, because a mission calling one of them asked for protection it is not getting; kept
+  rather than deleted, because removing them would turn a warning into a nil-call crash at the caller.
+
+  `listActiveMissions` **is** removed: it iterated `veafMissileGuardian.missionsDict`, a table this
+  module never had — copied from `veafCombatMission`, where "missions" is a real concept — so its only
+  possible outcome was an error.
+
+  Neither repaired nor removed, and both were considered. Giving it storage was one hole out of five: the
+  class has no `activate`, `desactivate` or `isSilent`, and `VeafMG_Protector:start()` has an empty body,
+  so **no watchdog anywhere ever destroys a weapon in flight**, which is the feature's entire point.
+  Removing it would have deleted a module that is shipped in the bundle, offered as `MISSILEGUARDIAN` in
+  the catalogue and the template picker, and documented in both languages. Finishing it is a feature
+  project, not a fix.
+
+  The module now carries a header stating everything above, and its documentation page a `{#state}` table
+  in both languages: what works, what refuses, what is not implemented.
+
+- **`KNOWN_MISSING` in `test_lua_module_calls_resolve.py` is empty.** It held one name; the ratchet only
+  ever shrinks, and adding to it is now explicitly a decision to ship a call that raises.
+
+---
+
 ## [6.15.36] — 2026-08-24
 
 ### Fixed

@@ -54,11 +54,27 @@ Le gardien est construit avec `VeafMG_Guardian:new()`. Chaque setter retourne le
 
 ---
 
+## Ce qui marche, et ce qui ne marche pas {#state}
+
+Établi en lisant le code le 2026-08-24, plutôt que déduit :
+
+| Ce que vous pouvez faire | État |
+|---|---|
+| Construire un gardien, lui donner des unités et une zone, l'attacher avec `start()` | fonctionne |
+| **Être averti** quand un tir vise une unité protégée dans la zone | fonctionne |
+| Faire détruire le missile en vol | **pas implémenté** — il n'y a aucun watchdog, et `veafMissileGuardian.getLargeScaleProtector()` est une ébauche qui renvoie `nil` |
+| `veafMissileGuardian.AddGuardian` / `ActivateGuardian` / `DesactivateGuardian` | **refusent** : le module n'a pas de stockage de gardiens, et la classe n'a ni `activate` ni `desactivate`. Elles écrivent un avertissement dans le journal DCS au lieu de planter |
+| Lister les gardiens depuis le menu radio | **pas implémenté** : le menu « GUARDIAN » ne contient qu'une entrée d'aide |
+
+Jusqu'à la 6.15.36, l'avertissement au pilote était suivi d'une **erreur Lua à chaque tir** (le protecteur
+manquant), et les trois verbes ci-dessus plantaient sur une fonction qui n'avait jamais été écrite. Le
+comportement que cette page décrit — avertir la cible — est donc désormais complet ; le reste est
+explicitement refusé plutôt que silencieusement cassé.
+
 ## Notes
 
-- Le module est expérimental : la destruction effective des missiles n'est pas encore implémentée
 - Un gardien n'avertit que les cibles présentes dans sa zone protégée lorsqu'un tir est détecté
-- Classes internes : `VeafMG_Weapon` (arme en vol), `VeafMG_Guardian` (observateur), `VeafMG_Protector` (protecteur, ébauche)
+- Classes internes : `VeafMG_Weapon` (arme en vol), `VeafMG_Guardian` (observateur), `VeafMG_Protector` (protecteur, ébauche : ses méthodes `start()` et `stop()` ont un corps vide)
 
 ---
 

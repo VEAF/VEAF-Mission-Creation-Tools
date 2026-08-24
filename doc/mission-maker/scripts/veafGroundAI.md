@@ -77,7 +77,7 @@ est découpé par le marqueur avant d'atteindre l'artillerie.
 
 | Paramètre d'ordre | Description |
 |-------------------|-------------|
-| `target` | Coordonnées de l'objectif. **Validées** : une chaîne que le module ne sait pas lire est ignorée, et l'ordre se plaint de ne pas avoir de cible. |
+| `target` | Coordonnées de l'objectif ([les formats acceptés](#coordinate-formats)). **Validées** : une chaîne que le module ne sait pas lire est ignorée, et l'ordre se plaint de ne pas avoir de cible. |
 | `shells` | Nombre d'obus. Accepte une plage aléatoire, par exemple `40-80`. |
 | `radius` | Dispersion du tir, en mètres. Accepte aussi une plage. |
 | `correction` | Le décalage à appliquer, pour l'ordre `correct` : **trois chiffres de cap vrai puis la distance en mètres**. `09050` vaut 50 m à l'est. **Validé** : une correction illisible est refusée et annoncée, jamais devinée. |
@@ -89,6 +89,32 @@ réglage puis l'efficacité sans redonner les coordonnées.
 _ground order, name arty-1, order aim; radius 15-30; target 42 N 42 E
 _ground order, name arty-1, order fire; radius 50-150; shells 40-80
 ```
+
+### Les formats de coordonnées acceptés {#coordinate-formats}
+
+Un `target` accepte toutes ces formes. Elles valent **partout où VEAF lit une coordonnée** — zones
+AirWaves, points nommés, QRA, alias — parce qu'un seul lecteur les traite toutes.
+
+| Ce que vous écrivez | Ce que c'est | Précision |
+|---|---|---|
+| `37T GG 12345 12345` | MGRS **tel que DCS l'affiche** | 1 m |
+| `37TGG12345678` | le même, sans les espaces | 10 m |
+| `u37TGG123456` | l'ancienne syntaxe VEAF, toujours valable | 100 m |
+| `N42:30:15E041:45:30` | degrés, minutes, secondes | ~30 m |
+| `N42 30 15 E041 45 30` | les mêmes, séparés par des espaces | ~30 m |
+| `N42°30'15"E041°45'30"` | les mêmes, avec les symboles | ~30 m |
+| `N42:30.5E041:45.5` | degrés et minutes décimales | ~2 m |
+| `N42.50416E041.75833` | degrés décimaux | ~1 m |
+| `N42E041` | degrés entiers | ~100 km |
+
+**Le nombre de chiffres MGRS est la précision** : deux chiffres de chaque côté valent 10 km, cinq valent
+le mètre. Un nombre **impair** de chiffres est refusé plutôt que deviné — c'est une faute de frappe, et
+la couper en deux produirait une position que personne n'a demandée.
+
+`S` et `W` donnent les valeurs négatives. La casse est libre.
+
+**Le conseil pratique** : lisez les coordonnées sur votre propre écran et recopiez-les telles quelles. Le
+format MGRS que DCS affiche est accepté sans retouche, et c'est le moins susceptible d'être mal recopié.
 
 ### Le réglage du tir {#fire-adjustment}
 

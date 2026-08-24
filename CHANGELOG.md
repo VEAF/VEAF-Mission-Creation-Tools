@@ -10,6 +10,45 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.41] — 2026-08-24
+
+### Fixed
+
+- **Every mission built from the template shipped a waypoint labelled BULLSEYE, 483 km from the real
+  one.** `src/defaults/mission-folder/src/waypoints.yaml` declared an example waypoint named `BULLSEYE`
+  at fixed coordinates; that file is copied into every folder `veaf-tools mission prepare` creates, and
+  the waypoints injector runs as an ordinary build step whenever it is present. So the example was not
+  dormant — it was injected.
+
+  Measured in the built Syria smoke-test mission rather than reasoned about: one waypoint named
+  `BULLSEYE`, at the template's coordinates, **483 km** from that mission's own blue bullseye and 216 km
+  from its red one. All four mission folders in this repository carried it.
+
+  The failure is silent by construction, which is why it survived: a pilot has no reason to distrust a
+  steerpoint labelled BULLSEYE, and a mission maker reads it as something he put there himself.
+
+  Renamed to `HOLDING_POINT` rather than commented out. The example teaches the file's shape and is worth
+  keeping; what had to go was the **claim**. `INITIAL_POINT` and `TARGET` beside it are per-mission
+  choices and no value for them is wrong — a bullseye is a property the mission already carries, with one
+  correct value, so naming an example after it asserts something a template cannot know.
+
+  Guarded by four checks (`test_default_waypoints_template.py`), one of which covers the rename's own
+  silent failure mode: a flight plan pointing at a waypoint that no longer exists injects nothing and
+  reports nothing.
+
+- **The plan-matching priority described in two places does not exist.** The template's usage notes and
+  `get_flight_plan_for`'s docstring both promised *aircraft type first, then category, then coalition*.
+  The code returns the **first** plan whose stated criteria match, so declaration order decides.
+
+  The consequence was shipped as an illustration and nobody noticed: `all_blue_planes` is declared before
+  `f16_flight_plan`, a blue F-16C matches both, so the F-16 plan is dead configuration in the default
+  template. Both descriptions now say what the code does, with that example spelled out as the warning.
+  Whether the priority should be built is a behaviour question, filed as `FIX-WAYPOINTS-PLAN-PRIORITY`.
+
+---
+
+---
+
 ## [6.15.40] — 2026-08-24
 
 ### Added

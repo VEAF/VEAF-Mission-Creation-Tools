@@ -1,6 +1,6 @@
 # FIX-DEFAULT-WAYPOINTS-BOGUS-BULLSEYE — every mission from the template ships a bullseye 483 km off
 
-Status: ⬜ ready
+Status: ✅ done
 
 Found on 2026-08-24 while establishing the open questions of
 [`FEAT-WAYPOINT-BULLSEYE`](../FEAT-WAYPOINT-BULLSEYE/PRD.md).
@@ -61,11 +61,53 @@ The example must stop being injected while remaining useful as an example. Optio
 The three mission folders in this repository that carry the example need the same treatment, since two of
 them are the missions David flies to verify releases.
 
+## Delivered — 2026-08-24
+
+**Option 2, renamed rather than commented out.** The example teaches the file's shape and is worth
+keeping; what had to go was the *claim*. `INITIAL_POINT` and `TARGET` beside it are per-mission choices
+and no value for them is wrong — a bullseye is a property the mission already carries, with one correct
+value, so naming an example after it asserts something the template cannot know. It is now
+`HOLDING_POINT`, which keeps the tutorial's story (hold, run in, target) and claims nothing. The comment
+above it says why, so nobody renames it back.
+
+**All four mission folders carried it, not three.** The lot said `demo-mission` had trimmed the example;
+reading its file showed the same waypoint at the same coordinates in a shorter shape. All four are
+fixed — the three that were byte-identical to the template are back in sync with it, and the demo
+mission's own variant renamed in place.
+
+**A guard rather than a corrected file** (`test_default_waypoints_template.py`). The failure was silent
+by construction: a pilot has no reason to distrust a steerpoint labelled BULLSEYE, and a mission maker
+reads it as something he put there. Four checks — the files parse, no waypoint key or `name:` claims a
+bullseye, no flight plan references one, and every plan reference resolves. That last one guards the
+rename's own failure mode, which is also silent: a plan pointing at a waypoint that no longer exists
+injects nothing and says nothing. Reintroducing the old name fails two of the four.
+
+## Found while fixing it, and fixed here because it is the same lie in the same file
+
+The template's usage notes described a matching priority — *aircraft type first, then category, then
+coalition* — that **is not implemented**. `WaypointsManager.get_flight_plan_for` returns the first plan
+whose stated criteria all match, so declaration order decides. Its own docstring made the same claim.
+
+The consequence was shipped as an illustration: `all_blue_planes` is declared before `f16_flight_plan`,
+a blue F-16C matches both, so the F-16 plan is **dead configuration** in the default template. Both
+descriptions now say what the code does, with that example spelled out as the warning.
+
+Whether the priority *should* exist is a behaviour question and not this lot's:
+[`FIX-WAYPOINTS-PLAN-PRIORITY`](../FIX-WAYPOINTS-PLAN-PRIORITY/PRD.md).
+
+## Not rebuilt to confirm, and why that is enough
+
+The injected waypoint carried this file's name **and** its exact coordinates, and the file no longer
+declares either. A rebuild would restate that; the guard test enforces it on every run. Where a rebuild
+*would* be needed is `FEAT-WAYPOINT-BULLSEYE`, which has to prove a *correct* bullseye reaches a flight
+plan — that is an assertion about produced content rather than about an absence.
+
 ## Definition of done
 
-- [ ] The default template no longer injects a waypoint that claims to be a bullseye it is not
-- [ ] Which option was taken, recorded here
-- [ ] The three mission folders carrying the example brought in line
-- [ ] A test that the shipped default template does not declare a `BULLSEYE` with hardcoded coordinates
+- [x] The default template no longer injects a waypoint that claims to be a bullseye it is not
+- [x] Which option was taken, recorded here — renamed, not commented out
+- [x] The mission folders carrying the example brought in line — **four**, not three: the demo mission
+      carried it too, in a shorter shape
+- [x] A test that the shipped default template does not declare a `BULLSEYE` with hardcoded coordinates
       — the failure mode is silent, so it needs a gate rather than a fixed file
-- [ ] `poetry run pytest` green
+- [x] `poetry run pytest` green

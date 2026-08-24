@@ -196,7 +196,16 @@ class WaypointsManager:
         """
         Get a flight plan matching the given criteria.
 
-        Tries to find a plan matching: aircraft_type > category > coalition > all
+        **The first compatible plan wins, in declaration order.** Not the most specific one: the loop
+        below returns as soon as every criterion a plan states matches, treating the ones it omits as
+        wildcards. So a narrow plan declared after a broad one is never reached.
+
+        This docstring claimed an ``aircraft_type > category > coalition > all`` priority until
+        2026-08-24. It was never implemented, and the shipped default template demonstrated the
+        consequence without anyone noticing: ``all_blue_planes`` is declared before ``f16_flight_plan``,
+        so a blue F-16C matched the first and the second was dead configuration. Whether the priority
+        should be built is a separate question — see ``FIX-WAYPOINTS-PLAN-PRIORITY``; what is fixed here
+        is the description, so the next reader is not misled the same way.
 
         Args:
             coalition: "blue" or "red"

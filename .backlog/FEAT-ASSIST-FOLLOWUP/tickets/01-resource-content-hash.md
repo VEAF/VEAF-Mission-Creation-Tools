@@ -123,6 +123,14 @@ bitmap: this bug, at a millionth of its former rate. Lengthening it costs nothin
 measurable, and a constant nobody can justify is how the next reader loses the reasoning. The
 reasoning is now in the comment on `_DIGEST_LENGTH` instead.
 
+### Prepared for the next session — 2026-08-24
+
+Four missions are built and waiting in `D:\dev\_VEAF	mp\dcs-session-2026-08-24\`
+(`LIRE-MOI.md` + `missions-a-charger\`), with a **control pair** rewritten back to the pre-fix naming
+so the check can come out both ways: without it, the fixed build showing the right text would be
+equally consistent with "the fix works" and with "DCS stopped caching". Procedure and what each load
+proves: item 3 of `DCS-SESSION-TODO.md`.
+
 ## Still open: the part no unit test can reach
 
 The trap itself is DCS's cache, and no test here can see it. The real check is one flight: **change a

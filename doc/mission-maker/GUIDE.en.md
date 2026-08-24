@@ -633,6 +633,36 @@ Shallow water is not open sea: a survivor standing a few metres off a beach stay
 !!! note "`CSAR.lua` is not modified"
     The CSAR script is a vendored third-party component; fixing it in place would be erased by its next update. VEAF replaces `csar.addCsar` from its own code, as it already replaces CSAR's loggers.
 
+### Making an ejection cost something: `csarMode` {#csar-mode}
+
+CSAR can charge a pilot for ejecting, so that crashing is not free. It is a `settings:` value like any
+other:
+
+```yaml
+modules:
+  CSAR:
+    enabled: true
+    settings:
+      csarMode: 3
+      disableTimeoutTime: 30   # in minutes, for modes 1 and 2
+```
+
+| `csarMode` | What the pilot loses |
+|---|---|
+| `0` (default) | nothing |
+| `1` | **his aircraft is unavailable to everyone** for `disableTimeoutTime` minutes |
+| `2` | that same aircraft is barred to him alone; others may still take it |
+| `3` | he loses one of his lives |
+
+!!! note "One case where modes 1 and 2 do not apply"
+    Modes 1 and 2 lock **one specific aircraft**, named by its DCS identifier. When the pilot has
+    ejected and his aircraft is already gone from the world, that identifier no longer exists, so the
+    sanction is **skipped** — and the DCS log says so (`csarMode … the sanction is skipped`).
+
+    That is a deliberate refusal rather than a default: locking an arbitrary aircraft would ground a
+    pilot who did nothing. Mode `3` does not have the problem — it depends only on the player's name —
+    and always applies.
+
 ### Loading order in the DCS trigger chain
 
 The build produces this chain for you; it is written out here so you can read it back in the Mission Editor:

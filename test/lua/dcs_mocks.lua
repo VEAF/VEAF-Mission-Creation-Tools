@@ -254,6 +254,11 @@ coalition = {
   getAirbases = function(side)
     return {}
   end,
+  -- Present in the real API (`dcs-world-api.lua:1395`) and it was missing here, which is why nothing
+  -- could test a player-name lookup. Empty by default; a test that cares overrides it.
+  getPlayers = function(side)
+    return {}
+  end,
   addGroup = function(...) end,
   getCountryCoalition = function(countryId)
     -- Russia (0) → RED, USA (2) → BLUE

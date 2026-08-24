@@ -75,6 +75,17 @@ own first suggestion and needs a DCS session: run the built Foothold and read `d
 
 ---
 
+### The staging is now proven without DCS — 2026-08-24
+
+Foothold Caucasus 4.4.1 was adopted fresh and the built `.miz` read back: 8 files at t=0, 5 at
+`+3 s`, AIEN alone at `+12 s`, in static mode, with the generated `veafDynamicConfig.lua` scheduling
+the same delays. So the *fidelity* half of this lot needs no session.
+
+What still does is the PRD's own open question — whether the delay changes anything — and AIEN's log
+cannot answer it: the line that would count each inventoried group is commented out upstream and there
+is no total. A mission carrying an instrument that counts ground groups at t=0, +3 s, +12 s and +30 s
+is prepared; see item 4 of `DCS-SESSION-TODO.md`.
+
 ## 01 — Per-script load delay in `custom_scripts`
 
 Status: ✅ done

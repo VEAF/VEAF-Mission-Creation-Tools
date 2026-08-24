@@ -158,6 +158,7 @@ power are each drawn at random from a range.
 | `-tankerlow` | Set closest tanker to FL120 / 200 KIAS |
 | `-tankerhigh` | Set closest tanker to FL220 / 300 KIAS |
 | `-tacan` | Portable TACAN beacon (X band, ch 99) |
+| `-beacon` | ADF/UHF/FM radio beacon through CTLD ([details](mission-maker/scripts/veafSpawn.en.md#beacon)) |
 | `-farp` | Create a FARP (needs name) |
 | `-farpNoMarker` | Create invisible FARP (needs name) |
 | `-fob` | Create a FOB |

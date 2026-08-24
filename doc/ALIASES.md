@@ -158,6 +158,7 @@ le nombre d'obus, le rayon et la puissance sont tirés au hasard dans une fourch
 | `-tankerlow` | Placer le ravitailleur le plus proche à FL120 / 200 KIAS |
 | `-tankerhigh` | Placer le ravitailleur le plus proche à FL220 / 300 KIAS |
 | `-tacan` | Balise TACAN portable (bande X, canal 99) |
+| `-beacon` | Balise radio ADF/UHF/FM via CTLD ([détails](mission-maker/scripts/veafSpawn.md#beacon)) |
 | `-farp` | Créer un FARP (nécessite un nom) |
 | `-farpNoMarker` | Créer un FARP invisible (nécessite un nom) |
 | `-fob` | Créer un FOB |

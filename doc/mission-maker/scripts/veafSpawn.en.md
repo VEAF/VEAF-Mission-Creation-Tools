@@ -181,6 +181,42 @@ _spawn bomb, power 500, shells 3
 _spawn farp, name "FARP Alpha", side blue
 ```
 
+### Spawn a radio beacon {#beacon}
+
+```
+_spawn beacon
+_spawn beacon, name "Alpha Beacon", side red
+-beacon
+```
+
+One command places **three** beacons at the same spot — ADF (VHF), UHF and **FM** — and the on-screen
+message hands you all three frequencies:
+
+```
+Radio beacon up — ADF 245.00 kHz · UHF 251.00 MHz · FM 40.50 MHz
+```
+
+The beacon goes **exactly where you dropped the marker**, with no scatter, unlike the commands that spawn
+groups.
+
+!!! note "CTLD picks the frequencies, not you"
+    CTLD draws them from its own pools so that two beacons never collide, and it exposes no way to ask
+    for a particular one. That is why the command **tells** you them instead of taking them as a
+    parameter: a beacon whose frequency nobody knows is of no use.
+
+    An option to request a frequency is proposed upstream
+    ([VEAF/CTLD#128](https://github.com/VEAF/CTLD/pull/128)); a `freq` parameter will be added here once
+    it lands.
+
+**CTLD has to be running** in the mission (`modules: CTLD: true`); otherwise the command says so rather
+than doing nothing.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `name` | CTLD numbers it ("Beacon #1") | the beacon's display name |
+| `side` | blue | the coalition that hears it |
+| `radius` | 0 | scatter around the marker, in metres |
+
 ### Destroy units
 
 ```

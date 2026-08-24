@@ -180,6 +180,42 @@ _spawn bomb, power 500, shells 3
 _spawn farp, name "FARP Alpha", side blue
 ```
 
+### Faire apparaître une balise radio {#beacon}
+
+```
+_spawn beacon
+_spawn beacon, name "Balise Alpha", side red
+-beacon
+```
+
+Une seule commande pose **trois** balises au même endroit — ADF (VHF), UHF et **FM** — et le message
+affiché vous donne les trois fréquences :
+
+```
+Balise radio en place — ADF 245.00 kHz · UHF 251.00 MHz · FM 40.50 MHz
+```
+
+La balise est posée **exactement là où vous avez déposé le marqueur**, sans dispersion, contrairement aux
+commandes qui font apparaître des groupes.
+
+!!! note "Les fréquences sont choisies par CTLD, pas par vous"
+    CTLD les tire de ses propres réserves pour éviter les collisions entre balises, et n'expose aucun
+    moyen d'en demander une précise. C'est pourquoi la commande **vous les annonce** au lieu de les
+    accepter en paramètre : une balise dont personne ne connaît la fréquence ne sert à rien.
+
+    Une option pour demander une fréquence est proposée en amont
+    ([VEAF/CTLD#128](https://github.com/VEAF/CTLD/pull/128)) ; le jour où elle arrive, un paramètre
+    `freq` sera ajouté ici.
+
+Il faut que **CTLD soit démarré** dans la mission (`modules: CTLD: true`) : sinon la commande vous le dit
+au lieu de ne rien faire.
+
+| Option | Défaut | Description |
+|--------|--------|-------------|
+| `name` | CTLD numérote lui-même (« Beacon #1 ») | nom affiché de la balise |
+| `side` | bleu | coalition qui entend la balise |
+| `radius` | 0 | dispersion autour du marqueur, en mètres |
+
 ### Détruire des unités
 
 ```

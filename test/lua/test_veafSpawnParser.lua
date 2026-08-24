@@ -613,4 +613,50 @@ function TestSpawnParserRandomisableNumerics:test_an_open_range_does_not_raise()
   luaunit.assertEquals(r.size, 100)
 end
 
+-- ── FEAT-RADIO-BEACONS — the `_spawn beacon` descriptor ─────────────────────
+
+TestVeafSpawnBeaconCommand = {}
+
+function TestVeafSpawnBeaconCommand:test_the_marker_command_is_recognised()
+  local options = analyse("_spawn beacon")
+  luaunit.assertNotNil(options)
+  luaunit.assertTrue(options.beacon)
+end
+
+function TestVeafSpawnBeaconCommand:test_it_defaults_to_the_exact_spot()
+  -- A beacon is placed where the marker is, not scattered: its position is the whole point of dropping
+  -- it there. Every group-spawning command defaults to a scatter radius; this one must not.
+  local options = analyse("_spawn beacon")
+  luaunit.assertEquals(options.radius, 0)
+end
+
+function TestVeafSpawnBeaconCommand:test_a_name_can_be_given()
+  local options = analyse("_spawn beacon, name Alpha")
+  luaunit.assertEquals(options.name, "Alpha")
+end
+
+function TestVeafSpawnBeaconCommand:test_a_side_can_be_given()
+  local options = analyse("_spawn beacon, side red")
+  luaunit.assertNotNil(options.side)
+end
+
+function TestVeafSpawnBeaconCommand:test_a_handler_is_registered_for_it()
+  -- Without this the options parse, the marker is accepted, and nothing happens.
+  local found = false
+  for _, entry in ipairs(veafSpawn.commandHandlers) do
+    if entry.key == "beacon" then
+      found = true
+    end
+  end
+  luaunit.assertTrue(found)
+end
+
+function TestVeafSpawnBeaconCommand:test_it_does_not_swallow_another_command()
+  -- `match` is a lower-cased substring and the first match wins, so a new descriptor can quietly
+  -- capture an existing command. Checked rather than assumed.
+  luaunit.assertTrue(analyse("_spawn unit, name shilka").unit)
+  luaunit.assertTrue(analyse("_spawn fob").fob)
+  luaunit.assertNil(analyse("_spawn fob").beacon)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -1007,6 +1007,7 @@
   "waypoints_injector.mission_loaded": "Mission file loaded successfully",
   "waypoints_injector.mission_not_loaded": "Mission not loaded",
   "waypoints_injector.no_flight_plan": "{count} group(s) had no flight plan in waypoints.yaml (left unchanged)",
+  "waypoints_injector.bullseyes": "{count} bullseye waypoint(s) added from the mission's own bullseye",
   "waypoints_injector.no_groups_matched": "[yellow]No groups matched the pattern[/yellow]",
   "waypoints_injector.no_groups_to_select": "No groups found to select from",
   "waypoints_injector.no_lua_data": "Lua data not loaded",

@@ -520,4 +520,82 @@ function TestVeafGrassLandingPlatforms:test_a_bearing_onto_a_platform_is_abandon
   luaunit.assertNotEquals(chosen, 0, "bearing 0 puts the group on the platform")
 end
 
+-- ---------------------------------------------------------------------------
+-- The footprint is read from the platform, not assumed for all of them
+--
+-- The first attempt used one constant, 80 m, for every platform. Measured on a running DCS on
+-- 2026-08-24: `StaticFarpAlpha` reports 4 parking spots, the furthest **84 m** from its centre. So 80 m
+-- sat *below* the outermost pad — an object at 81 m was on a pad and passed the check, which is exactly
+-- what David saw: the mechanism worked (the log shows refusals out to 75 m and the escort bearing moved
+-- from 0° to -45°) and the result was still wrong.
+--
+-- `Airbase:getParking()` does answer for a FARP, and `vTerminalPos` is present even though the DCS API
+-- schema this repo vendors does not list it. That was doubted, then measured, then used.
+-- ---------------------------------------------------------------------------
+TestVeafGrassPlatformFootprint = {}
+
+--- An airbase whose parking spots sit `distances` metres from its centre.
+local function _airbaseWithPads(centre, distances)
+  local spots = {}
+  for _, d in ipairs(distances) do
+    table.insert(spots, { vTerminalPos = { x = centre.x + d, y = 0, z = centre.z } })
+  end
+  return {
+    getParking = function()
+      return spots
+    end,
+  }
+end
+
+function TestVeafGrassPlatformFootprint:test_the_radius_comes_from_the_furthest_pad()
+  local centre = { x = 0, y = 0, z = 0 }
+  local airbase = _airbaseWithPads(centre, { 40, 84, 60 })
+  luaunit.assertEquals(veafGrass.platformRadius(airbase, centre), 84 + veafGrass.PLATFORM_PAD_MARGIN_METRES)
+end
+
+function TestVeafGrassPlatformFootprint:test_a_platform_reporting_no_parking_falls_back()
+  local centre = { x = 0, y = 0, z = 0 }
+  local airbase = {
+    getParking = function()
+      return {}
+    end,
+  }
+  luaunit.assertEquals(veafGrass.platformRadius(airbase, centre), veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES)
+end
+
+function TestVeafGrassPlatformFootprint:test_getparking_raising_falls_back_rather_than_crashing()
+  local centre = { x = 0, y = 0, z = 0 }
+  local airbase = {
+    getParking = function()
+      error("not supported for this type")
+    end,
+  }
+  luaunit.assertEquals(veafGrass.platformRadius(airbase, centre), veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES)
+end
+
+-- The regression, stated in the numbers the game gave: 84 m was accepted and should not have been.
+function TestVeafGrassPlatformFootprint:test_a_spot_on_the_outermost_pad_is_refused()
+  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha-1", radius = 84 + 25 } }
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 84, y = 0 }, nil, platforms), "84 m is a pad")
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 81, y = 0 }, nil, platforms), "81 m passed before")
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 100, y = 0 }, nil, platforms), "inside the margin")
+end
+
+function TestVeafGrassPlatformFootprint:test_ground_beyond_the_footprint_is_still_free()
+  -- The other wall: if the exclusion grows past the placement distance, no bearing is ever clear,
+  -- findClearBearing falls back to the original angle, and the defect returns looking identical.
+  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha-1", radius = 84 + 25 } }
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 150, y = 0 }, nil, platforms))
+end
+
+function TestVeafGrassPlatformFootprint:test_each_platform_keeps_its_own_radius()
+  -- A single helipad is not a FARP. One number for both is what failed.
+  local platforms = {
+    { x = 0, z = 0, name = "BigFarp", radius = 109 },
+    { x = 1000, z = 0, name = "SmallPad", radius = 30 },
+  }
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 100, y = 0 }, nil, platforms), "inside the big one")
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 1060, y = 0 }, nil, platforms), "outside the small one")
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -62,22 +62,53 @@ veafGrass.FARP_PROP_TYPES = {
 veafGrass.PLACEMENT_BEARING_STEP = 15
 veafGrass.PLACEMENT_CLEARANCE = 12
 
---- How far from a landing platform's centre still counts as "on it".
+--- How far from a landing platform's centre still counts as "on it", when DCS will not say.
 ---
---- **This is an estimate, deliberately stated as one.** DCS exposes no footprint for an airbase:
---- `Airbase` offers `getParking()` and `getRunways()` but no extent, and whether a FARP even reports
---- parking spots is unverified. So the number is reasoned rather than measured — the DCS `FARP` model is
---- roughly 50 m across, and 80 m covers it with margin for the pads at its edge.
+--- **Measured, not guessed — but only as the fallback.** `Airbase:getParking()` does answer for a FARP
+--- (verified on a running DCS, 2026-08-24: `StaticFarpAlpha` reported 4 spots, the furthest 84 m from
+--- the centre), so `getLandingPlatforms` derives each platform's radius from its own pads and this value
+--- is used only when that call gives nothing.
 ---
---- What makes the value safe to get wrong in the generous direction: this module already places the
---- escort at 150 m, the tent at 200 m and the windsock at 50 m from the FARP it is building. So 80 m
---- around a *pre-existing* platform excludes its own surroundings and nothing else, and a mission maker
---- who deliberately drops a FARP 100 m from another one still gets what he asked for.
+--- The first attempt at this lot used 80 m for everything, and 80 m is *below* the 84 m that FARP's
+--- furthest pad actually sits at — so an object placed at 81 m was on a pad and passed the check. That is
+--- how a fix can be right in mechanism and still fail in play, and why the radius is now read from the
+--- platform rather than assumed for all of them.
+veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES = 110
+
+--- Added to the furthest parking spot to get a platform's radius.
 ---
---- Worth measuring properly one day, by reading a real FARP's parking spots in a running mission. Until
---- then, an over-tight value shows up as an escort still landing on a platform, and an over-wide one as
---- an escort nudged onto a further bearing — the second is cheap, which is why the estimate leans wide.
-veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES = 80
+--- A spot's reported position is its **centre**: the pad extends around it, and a vehicle parked at the
+--- edge has its own length. 25 m covers both without reaching into ground that is genuinely free —
+--- against the 84 m measured on a FARP it gives 109 m, and the escort is placed 150 m out, so a bearing
+--- clear of the platform always exists.
+veafGrass.PLATFORM_PAD_MARGIN_METRES = 25
+
+--- How far this platform's pads reach from its centre, plus a margin.
+---
+--- Prefers the platform's own data: `Airbase:getParking()` reports each spot with a `vTerminalPos`, and
+--- the furthest of those is the real extent. That field is **not** in the DCS API schema this repo
+--- vendors, which is why it was doubted and then measured: a FARP does report it (4 spots, furthest at
+--- 84 m, verified 2026-08-24). Falls back to `PLATFORM_FOOTPRINT_RADIUS_METRES` when the call gives
+--- nothing, so a platform type that reports no parking is still avoided.
+function veafGrass.platformRadius(airbase, centre)
+  local furthest = 0
+  pcall(function()
+    for _, spot in pairs(airbase:getParking() or {}) do
+      local position = spot.vTerminalPos or spot.v_terminal_pos
+      if position then
+        local dx, dz = position.x - centre.x, position.z - centre.z
+        local distance = math.sqrt(dx * dx + dz * dz)
+        if distance > furthest then
+          furthest = distance
+        end
+      end
+    end
+  end)
+  if furthest <= 0 then
+    return veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES
+  end
+  return furthest + veafGrass.PLATFORM_PAD_MARGIN_METRES
+end
 
 --- Every landing platform in the mission, as `{ x = northing, z = easting }` runtime points.
 ---
@@ -111,7 +142,12 @@ function veafGrass.getLandingPlatforms()
       if isPlatform then
         local point = airbase:getPoint()
         if point then
-          table.insert(platforms, { x = point.x, z = point.z, name = airbase:getName() })
+          table.insert(platforms, {
+            x = point.x,
+            z = point.z,
+            name = airbase:getName(),
+            radius = veafGrass.platformRadius(airbase, point),
+          })
         end
       end
     end)
@@ -131,8 +167,10 @@ function veafGrass.isOnLandingPlatform(position, platforms)
   if not position or not platforms then
     return false
   end
-  local radius = veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES
   for _, platform in ipairs(platforms) do
+    -- Each platform carries its own radius, derived from its pads: a single helipad is not a FARP, and
+    -- one number for both is what made the first attempt fail.
+    local radius = platform.radius or veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES
     local dx, dz = position.x - platform.x, position.y - platform.z
     local distance = math.sqrt(dx * dx + dz * dz)
     if distance <= radius then

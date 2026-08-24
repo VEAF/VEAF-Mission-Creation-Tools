@@ -10,6 +10,34 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.50] — 2026-08-24
+
+### Fixed
+
+- **The welcome brief still said nothing, and adding the birth event had not been enough.** In single
+  player the pilot occupies his slot **before** the mission's scripts load, so his birth event fires
+  before this module (load order 210) can subscribe to anything — the timing was the problem, not the
+  event name, and changing slot restarts the mission in single player so the second attempt lost the same
+  race. The brief now **looks at who is already flying** shortly after it initializes, instead of only
+  waiting to be told. The subscription stays for pilots joining a running server later; both paths share
+  a once-per-slot rule so nobody hears the runway twice. (found in game, 2026-08-24)
+
+---
+
+## [6.15.49] — 2026-08-24
+
+### Fixed
+
+- **The welcome brief said nothing at all**, on an airfield and on a carrier alike. It listened only for
+  `S_EVENT_PLAYER_ENTER_UNIT`, and DCS does **not** raise that event when a single-player pilot occupies
+  his starting slot — it raises a birth event for him. So the feature shipped dead. It now listens for
+  both, with the human test that keeps a birth event from briefing every AI aircraft that spawns, and a
+  once-per-slot rule so a pilot is not told the runway twice when both events name him. `veafGrass` and
+  `veafQraCore` have both taken both events for exactly this reason for years; this now follows them
+  instead of inventing a third answer. (found in game, 2026-08-24)
+
+---
+
 ## [6.15.48] — 2026-08-24
 
 ### Fixed

@@ -282,13 +282,38 @@ end
 --- testing its origin alone would move it so its tail still overlapped.
 --- Returns the original angle when nothing is clear: a FARP that refuses to exist because it is
 --- crowded would be worse than one whose escort is tight.
+--- Distance multipliers tried, in order, when no bearing is clear at the requested distance.
+---
+--- `1` is the distance the caller asked for and stays first, so a FARP with nothing in its way does not
+--- move at all. The rest exist because keeping the bearing-only rule turned out to place a group at the
+--- **worst** possible spot: measured in game on 2026-08-24, the generator/storage group had no clear
+--- bearing at its distance, so the search kept the original angle and put it on a pad of the static
+--- FARP. Bearing-only was the right call while the exclusion was small; against a 259 m apron it
+--- guarantees landing inside it.
+---
+--- Capped at 2 deliberately. The point of #232's arbitration is that the escort serves the FARP and the
+--- crew wants it close, so this walks out only as far as it must, and a group that still finds nothing at
+--- twice the distance keeps its original placement rather than ending up in the next valley.
+veafGrass.PLACEMENT_DISTANCE_STEPS = { 1, 1.5, 2 }
+
+--- Find a bearing — and if need be a distance — where every position a group would occupy is clear.
+---
+--- `positionsFor(angle, scale)` returns the list of mission-table positions the objects would take at
+--- that bearing, with their distance multiplied by `scale`. The whole list, because a five-vehicle group
+--- at 6 m spacing needs a clear *arc*: testing its origin alone would move it so its tail still
+--- overlapped.
+---
+--- Returns `angle, scale`. Falls back to the requested angle at scale 1 when nothing is clear anywhere —
+--- a FARP that refuses to exist because it is crowded would be worse than one placed imperfectly — but
+--- says so at info, because that fallback is exactly how a group ends up on an apron.
 function veafGrass.findClearBearing(baseAngle, positionsFor)
-  -- Read once, here: a full turn tries 24 bearings and each tests every position the group would
-  -- occupy, so asking DCS for its airbase list inside the probe would mean hundreds of calls per FARP.
+  -- Read once, here: a full turn tries 24 bearings at each distance, and each bearing tests every
+  -- position the group would occupy, so asking DCS for its airbase list inside the probe would mean
+  -- thousands of calls per FARP.
   local platforms = veafGrass.getLandingPlatforms()
 
-  local function allClear(angle)
-    for _, position in ipairs(positionsFor(angle) or {}) do
+  local function allClear(angle, scale)
+    for _, position in ipairs(positionsFor(angle, scale) or {}) do
       if veafGrass.isSpotOccupied(position, nil, platforms) then
         return false
       end
@@ -296,29 +321,33 @@ function veafGrass.findClearBearing(baseAngle, positionsFor)
     return true
   end
 
-  -- The original bearing first, so a FARP with nothing in its way does not move at all.
-  if allClear(baseAngle) then
-    return baseAngle
-  end
-
   local steps = math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP)
-  for i = 1, steps do
-    -- Alternate sides, so the escort ends up as close as possible to where the mission maker aimed it.
-    local offset = math.ceil(i / 2) * veafGrass.PLACEMENT_BEARING_STEP
-    if i % 2 == 0 then
-      offset = -offset
+  for _, scale in ipairs(veafGrass.PLACEMENT_DISTANCE_STEPS) do
+    -- The original bearing first at every distance, so the group stays where it was aimed when it can.
+    if allClear(baseAngle, scale) then
+      if scale ~= 1 then
+        veaf.loggers.get(veafGrass.Id):info("findClearBearing: kept bearing %s, pushed out to %sx", veaf.p(baseAngle), veaf.p(scale))
+      end
+      return baseAngle, scale
     end
-    local candidate = baseAngle + offset
-    if allClear(candidate) then
-      veaf.loggers
-        .get(veafGrass.Id)
-        :debug("findClearBearing: moved from %s to %s to find clear ground", veaf.p(baseAngle), veaf.p(candidate))
-      return candidate
+    for i = 1, steps do
+      -- Alternate sides, so the group ends up as close as possible to where the mission maker aimed it.
+      local offset = math.ceil(i / 2) * veafGrass.PLACEMENT_BEARING_STEP
+      if i % 2 == 0 then
+        offset = -offset
+      end
+      local candidate = baseAngle + offset
+      if allClear(candidate, scale) then
+        veaf.loggers
+          .get(veafGrass.Id)
+          :info("findClearBearing: moved from %s to %s at %sx to find clear ground", veaf.p(baseAngle), veaf.p(candidate), veaf.p(scale))
+        return candidate, scale
+      end
     end
   end
 
-  veaf.loggers.get(veafGrass.Id):info(string.format("findClearBearing: no clear bearing at this distance, keeping %s", tostring(baseAngle)))
-  return baseAngle
+  veaf.loggers.get(veafGrass.Id):info("findClearBearing: nothing clear at any bearing or distance, keeping %s", veaf.p(baseAngle))
+  return baseAngle, 1
 end
 
 --- Is this DCS type a FARP platform?
@@ -1398,10 +1427,11 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   -- Same treatment as the escort below (#232): the tents are laid out by the identical fixed-distance
   -- formula, so they can land on an obstacle just as the escort did. The original bearing is tried
   -- first, so a FARP with clear ground around it is laid out exactly where it always was.
-  local function tentPositionsAt(bearing)
+  local function tentPositionsAt(bearing, scale)
+    scale = scale or 1
     local origin = {
-      x = farp.x + tentDistance * math.cos(mist.utils.toRadian(bearing)),
-      y = farp.y + tentDistance * math.sin(mist.utils.toRadian(bearing)),
+      x = farp.x + tentDistance * scale * math.cos(mist.utils.toRadian(bearing)),
+      y = farp.y + tentDistance * scale * math.sin(mist.utils.toRadian(bearing)),
     }
     local positions = {}
     for j = 1, 2 do
@@ -1419,8 +1449,8 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     return positions
   end
 
-  local tentAngle = veafGrass.findClearBearing(angle, tentPositionsAt)
-  local tentPositions = tentPositionsAt(tentAngle)
+  local tentAngle, tentScale = veafGrass.findClearBearing(angle, tentPositionsAt)
+  local tentPositions = tentPositionsAt(tentAngle, tentScale)
 
   -- create tents
   for index = 1, #tentPositions do
@@ -1493,7 +1523,8 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     "GeneratorF",
   }
   -- Same fixed-distance formula as the tents and the escort, so same treatment (#232).
-  local function otherPositionsAt(bearing)
+  local function otherPositionsAt(bearing, scale)
+    scale = scale or 1
     local origin = {
       x = farp.x + otherDistance * math.cos(mist.utils.toRadian(bearing)),
       y = farp.y + otherDistance * math.sin(mist.utils.toRadian(bearing)),
@@ -1508,8 +1539,8 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     return positions
   end
 
-  local otherAngle = veafGrass.findClearBearing(angle, otherPositionsAt)
-  local otherPositions = otherPositionsAt(otherAngle)
+  local otherAngle, otherScale = veafGrass.findClearBearing(angle, otherPositionsAt)
+  local otherPositions = otherPositionsAt(otherAngle, otherScale)
 
   for j, typeName in ipairs(otherUnits) do
     local otherUnit = {
@@ -1614,10 +1645,11 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   -- The whole group is tested, not its origin: these vehicles sit on a ~30 m line perpendicular to the
   -- bearing, so a clear origin with an overlapping tail would still block a helipad.
   local escortUnitTypes = farpEscortUnitsNames[farpCoalition]
-  local function escortPositionsAt(bearing)
+  local function escortPositionsAt(bearing, scale)
+    scale = scale or 1
     local origin = {
-      x = farp.x + unitsDistance * math.cos(mist.utils.toRadian(bearing)),
-      y = farp.y + unitsDistance * math.sin(mist.utils.toRadian(bearing)),
+      x = farp.x + unitsDistance * scale * math.cos(mist.utils.toRadian(bearing)),
+      y = farp.y + unitsDistance * scale * math.sin(mist.utils.toRadian(bearing)),
     }
     local positions = {}
     for j = 1, #escortUnitTypes do
@@ -1629,16 +1661,19 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     return positions
   end
 
-  local escortAngle = veafGrass.findClearBearing(angle, escortPositionsAt)
-  local escortPositions = escortPositionsAt(escortAngle)
+  local escortAngle, escortScale = veafGrass.findClearBearing(angle, escortPositionsAt)
+  local escortPositions = escortPositionsAt(escortAngle, escortScale)
   -- Says whether the bearing search actually did anything. A FARP dropped *on* an existing platform is a
   -- different problem from an escort placed on one: this fix moves the **bearing**, never the distance, so
   -- if the new FARP sits 50 m from a static one, every bearing at 150 m is ~150 m away from it, none is
   -- refused, and nothing moves — correctly, by this fix's own rule. Logging both angles is what tells the
   -- two apart from outside.
-  veaf.loggers
-    .get(veafGrass.Id)
-    :info("FARP escort: bearing %s requested, %s used", veaf.p(math.floor(angle)), veaf.p(math.floor(escortAngle)))
+  veaf.loggers.get(veafGrass.Id):info(
+    "FARP escort: bearing %s requested, %s used at %sx distance",
+    veaf.p(math.floor(angle)),
+    veaf.p(math.floor(escortAngle)),
+    veaf.p(escortScale)
+  )
 
   local farpEscortGroup = {
     ["category"] = "vehicle",

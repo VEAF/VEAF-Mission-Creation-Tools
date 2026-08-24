@@ -369,7 +369,101 @@ function TestVeafGrassFindClearBearing:test_a_blocked_first_position_stops_that_
     return true
   end
   veafGrass.findClearBearing(0, _groupAt)
-  luaunit.assertEquals(probes, 1 + math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP), "one probe per bearing, not one per object")
+  -- One per bearing, not one per object — times the distance steps, since a full turn is retried at
+  -- each. Written as the product rather than a literal so adding a step does not silently pass.
+  local perTurn = 1 + math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP)
+  local steps = 0
+  for _ in ipairs(veafGrass.PLACEMENT_DISTANCE_STEPS) do
+    steps = steps + 1
+  end
+  luaunit.assertEquals(probes, perTurn * steps, "one probe per bearing per distance, not one per object")
+end
+
+-- ---------------------------------------------------------------------------
+-- Pushing the group further out when no bearing is clear
+--
+-- Measured in game on 2026-08-24: with the exclusion finally the size of a real FARP apron (259 m), the
+-- generator/storage group had **no** clear bearing at its distance, so the bearing-only search kept the
+-- original angle — and put the group on a pad. The fallback placed it at the worst spot available.
+--
+-- Bearing-only was right while the exclusion was small; against a real apron it guarantees landing
+-- inside it. David's arbitration on #232 (keep the distance, move the bearing) was revised on that
+-- evidence: walk outwards, but only as far as needed, and never past 2x.
+-- ---------------------------------------------------------------------------
+TestVeafGrassDistanceEscalation = {}
+
+function TestVeafGrassDistanceEscalation:setUp()
+  self._occupied = veafGrass.isSpotOccupied
+  self._platforms = veafGrass.getLandingPlatforms
+  veafGrass.getLandingPlatforms = function()
+    return {}
+  end
+end
+
+function TestVeafGrassDistanceEscalation:tearDown()
+  veafGrass.isSpotOccupied = self._occupied
+  veafGrass.getLandingPlatforms = self._platforms
+end
+
+--- A group whose single position is `100 * scale` metres out on `bearing`.
+local function _atScale(bearing, scale)
+  scale = scale or 1
+  local radians = math.rad(bearing)
+  return { { x = 100 * scale * math.cos(radians), y = 100 * scale * math.sin(radians) } }
+end
+
+function TestVeafGrassDistanceEscalation:test_clear_ground_at_the_asked_distance_does_not_move_anything()
+  veafGrass.isSpotOccupied = function()
+    return false
+  end
+  local angle, scale = veafGrass.findClearBearing(0, _atScale)
+  luaunit.assertEquals(angle, 0)
+  luaunit.assertEquals(scale, 1)
+end
+
+function TestVeafGrassDistanceEscalation:test_it_walks_out_only_when_no_bearing_works()
+  -- Everything inside 140 m is taken, which is what a 259 m apron does to a group placed at 100 m.
+  veafGrass.isSpotOccupied = function(position)
+    return math.sqrt(position.x * position.x + position.y * position.y) < 140
+  end
+  local angle, scale = veafGrass.findClearBearing(0, _atScale)
+  luaunit.assertEquals(scale, 1.5, "100 m was blocked everywhere, 150 m is not")
+  luaunit.assertEquals(angle, 0, "and the requested bearing is kept once the distance is enough")
+end
+
+function TestVeafGrassDistanceEscalation:test_it_prefers_a_different_bearing_over_a_greater_distance()
+  -- Staying close is the point of the arbitration: a clear bearing at the asked distance must win over
+  -- a clear one further out.
+  veafGrass.isSpotOccupied = function(position)
+    -- only the due-east direction is blocked, at any distance
+    return position.x > 0 and math.abs(position.y) < 1
+  end
+  local angle, scale = veafGrass.findClearBearing(0, _atScale)
+  luaunit.assertEquals(scale, 1, "a bearing was available without moving out")
+  luaunit.assertNotEquals(angle, 0)
+end
+
+function TestVeafGrassDistanceEscalation:test_nothing_anywhere_keeps_the_original_placement()
+  -- A FARP that refuses to exist because it is crowded would be worse than one placed imperfectly, so
+  -- the last resort is unchanged — but it is now logged, because this is how a group ends up on an apron.
+  veafGrass.isSpotOccupied = function()
+    return true
+  end
+  local angle, scale = veafGrass.findClearBearing(30, _atScale)
+  luaunit.assertEquals(angle, 30)
+  luaunit.assertEquals(scale, 1)
+end
+
+function TestVeafGrassDistanceEscalation:test_the_walk_is_capped()
+  -- Uncapped, a crowded airfield would push the escort into the next valley, which serves nobody.
+  local largest = 0
+  for _, scale in ipairs(veafGrass.PLACEMENT_DISTANCE_STEPS) do
+    if scale > largest then
+      largest = scale
+    end
+  end
+  luaunit.assertEquals(largest, 2)
+  luaunit.assertEquals(veafGrass.PLACEMENT_DISTANCE_STEPS[1], 1, "the asked distance must be tried first")
 end
 
 -- ---------------------------------------------------------------------------

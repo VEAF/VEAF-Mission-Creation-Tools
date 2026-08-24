@@ -5401,6 +5401,94 @@ veaf.ctldLogLevels = {
 -- filtering of its own: everything reaches env.info regardless. Overriding that single function
 -- gives the mission maker one place to set verbosity — veaf.config.ctld.logLevel, like any other
 -- VEAF module — where v1 needed seven separate overrides.
+--- The CTLD setting that governs its own sling loading.
+---
+--- **Not `slingLoad`**, which is the trap: that name survived the CTLD 1 to CTLD 2 migration and its
+--- meaning did not. In CTLD 2 `slingLoad` only picks which `spawnableCratesModels` entry a crate uses
+--- when it spawns, and all three of those models declare `canCargo: true` — so flipping it changes a
+--- crate's 3D model and nothing a crew notices.
+---
+--- `enableHoverSlingload` is the gate of CTLD's "Virtual Slingload": hover pickup, the `hoverTime`
+--- countdown, the crate lost on overspeed. That is what a helicopter crew experiences as CTLD sling
+--- loading, and it is what issue #60 asked to be able to switch.
+veaf.CTLD_SLINGLOAD_SETTING = "enableHoverSlingload"
+
+--- Radio path of the CTLD submenu, kept so the toggle can rebuild it in place.
+veaf.ctldRootPath = nil
+
+--- Is CTLD's virtual sling loading on right now?
+---
+--- Read at the point of use rather than cached: `ctld.gs` goes through `CTLDConfig:getSetting`, which
+--- consults the live settings table before falling back to the embedded catalogue, so a value written by
+--- `setSetting` is visible immediately. Caching it here would be the one way to make the menu lie.
+function veaf.isCtldSlingloadEnabled()
+  if not veaf.isCtldReady() then
+    return false
+  end
+  return ctld.gs(veaf.CTLD_SLINGLOAD_SETTING) == true
+end
+
+--- Turn CTLD's virtual sling loading on or off, for everybody.
+---
+--- Global, not per coalition (David, 2026-08-24): one setting, one pair of commands, no coalition to
+--- thread through.
+---
+--- Honoured immediately in both directions. `CTLDCrateManager:checkHoverStatus()` is a one-second timer
+--- loop that **reschedules itself before** testing the setting, so switching off stops pickups at the
+--- next tick and switching back on resumes them — the loop is never torn down. Which is why this can be
+--- a toggle at all rather than a build-time option.
+---
+--- @param enabled boolean the state to move to
+function veaf.setCtldSlingloadEnabled(enabled)
+  if not veaf.isCtldReady() then
+    return false
+  end
+  CTLDConfig.get():setSetting(veaf.CTLD_SLINGLOAD_SETTING, enabled == true)
+  veaf.loggers.get(veaf.ctldId):info("CTLD virtual sling loading is now %s", veaf.p(enabled and "enabled" or "disabled"))
+
+  -- The message says what did NOT change, on purpose. `_checkNativeDCSCargo()` runs before the setting
+  -- is tested, and all three crate models are `canCargo: true`, so DCS's own winch keeps working
+  -- whatever this is set to. Without that sentence the first crew to hook a crate after switching off
+  -- reports the command as broken.
+  trigger.action.outText(veaf.t(enabled and "ctld.slingload_enabled" or "ctld.slingload_disabled"), 15)
+
+  veaf.buildCtldRadioMenu()
+  return true
+end
+
+--- Build (or rebuild) the CTLD submenu: one command, the one that changes something.
+---
+--- Only the opposite state is offered, the way a combat zone offers activate or deactivate but never
+--- both — a menu holding "enable" while it is already enabled asks the player to work out which of two
+--- entries is the no-op.
+---
+--- Secured, because it is a game-master lever: it changes how every helicopter crew in the mission plays.
+function veaf.buildCtldRadioMenu()
+  if not veafRadio or not veaf.isCtldReady() then
+    return
+  end
+  if veaf.ctldRootPath then
+    veafRadio.clearSubmenu(veaf.ctldRootPath)
+  else
+    veaf.ctldRootPath = veafRadio.addSubMenu(veaf.t("menu.ctld.root"))
+  end
+
+  local enabled = veaf.isCtldSlingloadEnabled()
+  veafRadio.addSecuredCommandToSubmenu(
+    veaf.t(enabled and "menu.ctld.slingload_disable" or "menu.ctld.slingload_enable"),
+    veaf.ctldRootPath,
+    veaf.radioToggleCtldSlingload,
+    not enabled,
+    veafRadio.USAGE_ForAll
+  )
+  veafRadio.refreshRadioMenu()
+end
+
+--- Radio entry point: `parameters` is the state to move to.
+function veaf.radioToggleCtldSlingload(parameters)
+  veaf.setCtldSlingloadEnabled(parameters == true)
+end
+
 function veaf.ctld_initialize()
   if not ctld then
     veaf.loggers.get(veaf.Id):error("CTLD is enabled but CTLD.lua was not loaded")
@@ -5423,6 +5511,11 @@ function veaf.ctld_initialize()
   -- Must come after the override: ctld.initialize() flushes CTLD's startup report, which is
   -- precisely the output naming a stale or incomplete configuration.
   ctld.initialize()
+
+  -- After initialize(), never before: the menu shows the current state of a setting, and until CTLD has
+  -- read its configuration there is no state to show. veafRadio initialises at order 30 and this module
+  -- at 50, so the menu tree is already there.
+  veaf.buildCtldRadioMenu()
 end
 
 --- Make CTLD speak the mission's language.

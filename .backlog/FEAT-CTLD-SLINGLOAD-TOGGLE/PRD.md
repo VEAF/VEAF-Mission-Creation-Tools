@@ -1,6 +1,6 @@
 # FEAT-CTLD-SLINGLOAD-TOGGLE — no way to turn CTLD sling loading on or off in flight
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: [#60](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/60), 2021.
 
@@ -83,10 +83,54 @@ already global, which is what makes this the cheap shape.
 - the wording that distinguishes CTLD's virtual sling loading from DCS's own winch. Nothing else: the
   global-versus-per-coalition question is answered above.
 
+## Delivered — 2026-08-24
+
+**Where it lives, and why not a module.** The pair sits in `veaf.lua`, next to `veaf.ctld_initialize`,
+because that is the VEAF-side owner of the CTLD integration. A dedicated `veafCtld` module was the
+obvious alternative and was rejected on measurement: it would have cost an entry in the build's file
+list, one in `veaf_modules_list.json`, one in the generator's module list and one in the mission
+template — **and a new module key a mission maker has to discover**, which would leave the toggle off and
+invisible by default. Worse for the feature than for the code. `veafRadio` initialises at order 30 and
+CTLD at 50, so the menu tree is already there when the submenu is built.
+
+Built **after** `ctld.initialize()`, never before: the menu shows the current state of a setting, and
+until CTLD has read its configuration there is no state to show.
+
+**What ships**
+
+- `F10 → CTLD → Disable CTLD sling loading` (or *Enable*), a **secured** command, `USAGE_ForAll`.
+- Only the command that changes something is offered, the way a combat zone offers activate or
+  deactivate but never both.
+- Toggling rebuilds the submenu in place, so the entry never keeps offering the state the mission is
+  already in, and the menu does not accumulate a command per press.
+- The state is read through `ctld.gs` at the point of use and never cached — a cached copy is the one way
+  to make the menu lie about the engine.
+- `setSetting` receives a real boolean: CTLD tests some settings with `== true`, so a truthy string would
+  read as off and the toggle would half-work. A test pins that.
+
+**The message names what did *not* change**, and that is its point rather than politeness. CTLD checks
+native DCS cargo *before* it looks at this setting, and all three crate models are `canCargo: true`, so
+DCS's own winch keeps working whatever the toggle says. Left unsaid, the first crew to hook a crate after
+a switch-off reports the command as broken.
+
+**One test-double defect found and fixed.** `dcs_mocks` satisfied `veaf.isCtldReady()` — its
+`CTLDConfig._instance.isLoaded` is true — while offering neither `ctld.gs` nor `setSetting`, which a real
+CTLD defines unconditionally. So the mock claimed to be a ready engine while missing part of what one
+provides, and the first VEAF code to read a setting fell over on it. Hardening the production code against
+a missing `gs` was the other option and would have been wrong: it cannot happen in DCS, and defending
+against it would hide a genuinely broken CTLD behind a silent default. `reset()` restores the settings
+table, or one test's toggle leaks into the next.
+
+**18 Lua tests**, and three mutations run against them: pointing the constant at `slingLoad` kills 7,
+dropping the DCS-winch sentence from the message kills 1, offering both commands kills 3.
+
+Documented in `GUIDE.md` / `.en.md` under `{#ctld-slingload-toggle}`, including the DCS-winch caveat and
+how to start a mission with sling loading already off.
+
 ## Definition of done
 
-- [ ] Sling loading can be switched from the radio menu, or — if the runtime only reads it at startup —
-      a config key ships instead, and the toggle is **not** faked
-- [ ] Which of those two it is, recorded here with the CTLD 2 evidence
-- [ ] The menu label localised (`FIX-RADIO-MENU-I18N` made that the rule)
-- [ ] Documented, both languages
+- [x] Sling loading can be switched from the radio menu — the runtime reads the setting every tick, so
+      the toggle is real and not faked
+- [x] Which of those two it is, recorded here with the CTLD 2 evidence
+- [x] The menu label localised (`FIX-RADIO-MENU-I18N` made that the rule) — five keys, both languages
+- [x] Documented, both languages

@@ -1324,6 +1324,33 @@ veaf.i18nCatalog = {
     fr = "APPARITION",
     en = "SPAWN",
   },
+  -- veaf.lua — the CTLD submenu and its sling-loading toggle (FEAT-CTLD-SLINGLOAD-TOGGLE, #60).
+  ["menu.ctld.root"] = {
+    fr = "CTLD",
+    en = "CTLD",
+  },
+  ["menu.ctld.slingload_enable"] = {
+    fr = "Activer l'élingage CTLD",
+    en = "Enable CTLD sling loading",
+  },
+  ["menu.ctld.slingload_disable"] = {
+    fr = "Désactiver l'élingage CTLD",
+    en = "Disable CTLD sling loading",
+  },
+  -- Both messages end on DCS's own winch, and that is the point of them rather than politeness.
+  -- CTLD checks native DCS cargo before it looks at this setting, and all three crate models are
+  -- `canCargo: true`, so a crate stays hookable with the game's own sling whatever the toggle says.
+  -- Left unsaid, the first crew to hook a crate after switching off reports the command as broken.
+  ["ctld.slingload_enabled"] = {
+    fr = "Élingage CTLD ACTIVÉ : la prise en vol stationnaire fonctionne à nouveau.",
+    en = "CTLD sling loading is ON: hover pickup works again.",
+  },
+  ["ctld.slingload_disabled"] = {
+    fr = "Élingage CTLD DÉSACTIVÉ : plus de prise en vol stationnaire. "
+      .. "Le treuil de DCS lui-même reste utilisable — ce réglage ne concerne que l'élingage géré par CTLD.",
+    en = "CTLD sling loading is OFF: no more hover pickup. "
+      .. "DCS's own winch still works — this setting only governs the sling loading CTLD manages.",
+  },
   ["menu.combatzone.root"] = {
     fr = "ZONES DE COMBAT",
     en = "COMBAT ZONES",

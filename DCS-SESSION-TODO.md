@@ -247,110 +247,45 @@ just its `mission` file). Each shape is then a table entry, not an investigation
 
 </details>
 
-## 11. Re-run checks 6 and 7 of `verify-mission-c` — the Skynet IADS fixes
+## ✅ 11. Checks 6 and 7 of `verify-mission-c` — verified in game 2026-08-22
 
-[`FIX-SKYNET-DYNAMICSPAWN-SCOPE`](.backlog/FIX-SKYNET-DYNAMICSPAWN-SCOPE/PRD.md) shipped in 6.15.8:
-written, 48 new unit tests, three guards mutation-checked. What no unit test can see is Skynet's own
-behaviour inside a running DCS, so the two checks that measured the defects are what confirm the fixes.
-The instrumentation is **already in the mission's `mission-script.lua`** — the `group added /
-delayedActivate / reactivation` counters that produced the original measurements.
+`FIX-SKYNET-DYNAMICSPAWN-SCOPE` confirmed: `group added to RED IADS`, and `0 actual reactivations`
+on a spawn into a dark network. The cycling seen alongside it is a **different** defect and now has
+its own lot, [`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md).
 
-The mission needs `dynamic_spawn: true` under `modules.SKYNET` — that field is new, and it replaces the
-`module_settings: { veafSkynet.DynamicSpawn: true }` hatch the verification mission used. Rebuild it
-before the session or the run measures 6.15.7.
+---
 
-- **Check 6 (#151)** — activate a combat zone holding a standard DCS SAM group, read the Skynet monitor.
-  Expected: the SAM joins the red network, as it already did. This one is a **regression check**: the
-  path worked, and the lot must not have broken it while making the flag reachable.
-- **Check 7 (#261)** — deactivate the red network **from the VERIFY C radio menu** (`Deactivate RED
-  IADS`), then `-samlr, country russia` by map marker nearby. Both halves matter: without the
-  deactivation a `delayedActivate` per add is the normal behaviour and proves nothing, and without
-  `country russia` the battery is built for USA and joins the **blue** network instead, leaving red
-  untouched. `-samLR` already carries `skynet true`.
-  - **Before**: `group added → delayedActivate called → RED IADS REACTIVATED`.
-  - **Expected now**: `group added`, and **no** `delayedActivate`, **no** reactivation. The SAM is
-    attached; the network stays down. Then `veafSkynet.activateNetworkOfCoalition(coalition.side.RED)`
-    brings it up **with** that SAM in it.
-- **Worth adding while there, since it is the fourth defect and has never been in game**: with
-  `dynamic_spawn` on, drop a `-hv_convoy_red`. Its Tor and Tunguska are in Skynet's database, and the
-  shortcut passes `skynet false`. Expected: the convoy does **not** appear in the network's element
-  list. Before the fix it did.
-- ⚠️ **Do not read an element's `isActive()`** to decide whether a network is up — it reports whether
-  that radar is emitting, a Skynet SAM stays dark by design until it has a contact, and
-  `SkynetIADS:deactivate()` never touches that state. That cost two rounds during the original session.
+## ✅ 12. Check 8 of `verify-mission-c` — verified in game 2026-08-22
 
-## 12. Check 8 of `verify-mission-c` — a delayed `#command` dies with its zone
+`FIX-COMBATZONE-DELAYED-COMMAND`: a delayed `#command` dies with its zone.
 
-[`FIX-COMBATZONE-DELAYED-COMMAND`](.backlog/FIX-COMBATZONE-DELAYED-COMMAND/PRD.md) shipped in 6.15.9.
-The zone `DelayZone` of that mission already carries **one fake unit per delay mechanism**, side by
-side, which is what makes the difference observable rather than argued.
+---
 
-Activate the zone, wait past the delay so both SAMs are up, then **deactivate it**.
+## ✅ 13. Check 12 of `verify-mission-c` — verified in game 2026-08-22
 
-- **Before**: the `#command="-samsr!30"` SAM stayed alive after deactivation; the `#spawndelay` one died.
-- **Expected now**: both die.
+`FIX-CARRIER-MENU-COALITION`: the carrier menu is there from the red side.
 
-Two more, worth a minute each since they are the paths #66 never mentioned and no pilot has ever
-exercised:
+---
 
-- a `#command="-spawn group, name sa6, delay 30"` — same expectation, different deferring path.
-- a `#command` with a repeat (`repeat 3, delay 10`): **every** spawned group must die with the zone, not
-  just the first. That one was lost before and nobody had noticed.
-- and the race: activate, then deactivate **during** the delay. The group that appears afterwards must
-  be destroyed on sight rather than left running — look for `spawned […] after its zone was deactivated`
-  in `dcs.log`.
+## ✅ 14. The FARP escort — verified in game 2026-08-24, after five rounds
 
-## 13. Check 12 of `verify-mission-c` — the carrier menu, from the red side
+[#232](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/232), open since 2023 and "fixed" in
+6.15.11 by a change that could not work. Confirmed still broken on 2026-08-22, then fixed for real
+in #792 — **five** distinct defects, three of them sizing guesses of mine that a measurement would
+have killed sooner. David's verdict: *« c'est bon, tout est en dehors du farp statique »*.
 
-[`FIX-CARRIER-MENU-COALITION`](.backlog/FIX-CARRIER-MENU-COALITION/PRD.md) shipped in 6.15.10. Take the
-**red A-10 at Palmyra** — the slot the defect was measured from on 2026-08-18 — and open the F10 menu.
+The transferable lesson, and the reason this took five in-game rounds instead of one: the placement
+logged nothing about **why** it refused a spot, so each hypothesis cost a full DCS reload. It logs
+at info now.
 
-- **Before**: *CARRIER OPS* held both **CARRIER OPS - BLUE** and **CARRIER OPS - RED**, and the red pilot
-  could start and stop the blue carrier's recovery window.
-- **Expected now**: only **CARRIER OPS - RED**. The shared *CARRIER OPS* root is still there (it carries
-  the help entry), and so is its help command.
+---
 
-Then take a blue slot and confirm the mirror image: **CARRIER OPS - BLUE** only.
+## ✅ 16. The combat zone alarm state — verified in game 2026-08-22
 
-Worth one extra look while there, because it is what the fix leans on: open the red menu down to a
-carrier's own submenu and its commands. Those are children of the scoped menu and inherit the scope
-rather than declaring it, so a leak would show up there rather than at the top.
+`FIX-COMBATZONE-ALARM-BY-NATURE`, as far as it was testable: the convoy drives. The armour half
+was **not** a valid check — see the withdrawal of item 17 below, which is the same mistake.
 
-## 14. The FARP escort, on the mission that reproduced it
-
-[`FIX-FARP-ESCORT-PLACEMENT`](.backlog/FIX-FARP-ESCORT-PLACEMENT/PRD.md) shipped in 6.15.11. Use
-`test/veaf-tools/verify-mission-a`, the mission the defect was reproduced on 2026-08-17 (screenshot on
-[#232](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/232)).
-
-- **The case that failed**: drop a `-farp` marker ~150 m from the static FARP, as before.
-  - **Before**: the escort came down on the static FARP's pads, the lead `M 818` close enough to a
-    helipad to meet a landing helicopter.
-  - **Expected now**: the escort is on clear ground, still close to the FARP. `dcs.log` shows
-    `findClearBearing: moved from … to …`.
-- **The regression that matters more than the fix**: drop a `-farp` in **open ground**, far from
-  anything. It must look exactly as it always did — 150 m out on the FARP's heading, no message in the
-  log. The original bearing is tried first precisely so that working missions do not move.
-- **Worth a look while there, never seen in game**: a `FARP_T` unit. Its props used to be laid out at the
-  non-FARP distances (escort 75 m, tent 100 m, windsock 50 m/45°); it should now measure like any other
-  FARP (150 / 200 / 120 m). This is the second defect of the lot and no pilot has ever exercised it.
-- If a mission logs `unknown FARP-like type [...]`, that is the new warning doing its job — send me the
-  type name, it belongs in `veafGrass.FARP_PLATFORM_TYPES`.
-
-## 16. The combat zone alarm state — both natures, before publishing
-
-[`FIX-COMBATZONE-ALARM-BY-NATURE`](.backlog/FIX-COMBATZONE-ALARM-BY-NATURE/PRD.md), 6.15.13. This one
-gates the release: #290 was measured in game, and this changes what that measurement produced.
-
-In a combat zone holding **both** a SAM battery and a convoy, activate the zone:
-
-- **The convoy must still drive its route.** That is #290, fixed in 6.15.5, and the regression to watch —
-  it matters more than the new half.
-- **The battery must light its radars and engage.** On 6.15.5 through 6.15.12 it stayed silent, which is
-  the defect being fixed here.
-- Then `#alarm=0` on the battery: it should go quiet again, since an explicit tag still wins.
-
-Worth knowing while looking: this is **not** Tripack's report. He saw silent zone SAMs on 6.15.2, which
-predates the AUTO default entirely, so his case is still unexplained and this check does not close it.
+---
 
 ## 17. ~~A tag on one unit of a group~~ — withdrawn 2026-08-22, the criterion was wrong
 
@@ -382,97 +317,28 @@ possible — and that hand-copied waypoint is what later broke the mission for t
 ([`FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS`](.backlog/FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS/PRD.md)).
 The whole cost came from a check that could never conclude.
 
-## 18. The dispersion nothing has had since 2023 — same mission again
+## ✅ 18. The dispersion — verified in game 2026-08-22
 
-[`FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT`](.backlog/FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT/PRD.md),
-6.15.15. Third check on `verify-mission-a`, after items 14 and 17, so it costs nothing extra, and
-independent of the SAM question.
+`FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT`: *« tout est comme prévu »*.
 
-`DefaultSpawnRadiusForUnits = 50` was dead from 2023-03-04 to 2026-08-21, so every group of every combat
-zone appeared exactly on its recorded position. It applies again, and the one thing a unit test cannot
-answer is whether 50 m of dispersion drops a unit somewhere impossible.
+---
 
-Activate `SmokeZone` and look at where the groups come up:
+## ✅ 19. A convoy walking an itinerary — verified in game 2026-08-22
 
-- **`SmokeZone-ConvoyBlue` and `SmokeZone-SmokeArmor` are scattered**, not lined up on their editor
-  positions → the default applies.
-- **Nothing is inside scenery** — no truck in a building, no tank on a slope it cannot leave. The
-  anchor `(-32220, 405386)` is documented empty desert, so a failure here would be a surprise worth
-  reporting.
-- Deactivate and reactivate: the groups should come up in *different* spots. That is the point of
-  dispersion, and it is the only way to see it is really random rather than a fixed offset.
+`FEAT-CONVOY-WAYPOINTS`: the commands work. The ergonomic reservation David raised at the same
+time — one command per submenu — was fixed separately in #791.
 
-If a placement needs to be exact, `#spawnradius=0` on the group is the escape hatch — worth trying once
-on `SmokeZone-SmokeArmor` to confirm it still pins the group.
+---
 
-**Second thing to look at, now that it is fixed rather than expected.**
-[`FIX-COMBATZONE-SPAWN-ROUTE-OFFSET`](.backlog/FIX-COMBATZONE-SPAWN-ROUTE-OFFSET/PRD.md) shipped in
-6.15.20: waypoint 1 now follows the group, so `SmokeZone-ConvoyBlue` should **set off along its route
-from wherever it came up**, with no detour back to its editor position first. That detour is what the
-defect looked like, and seeing it would mean the fix did not take.
+## ✅ 20. The two CSAR-over-water checks — run 2026-08-23
 
-The rest of the track is deliberately **not** moved, so check the convoy still joins the drawn route
-rather than driving a track shifted sideways.
+`FEAT-SMOKE-CSAR-WATER`. Worth recording what it actually cost: **five successive defects in the
+harness**, each of which read as a product regression and none of which was one — no bridge
+injected, bridge and CSAR on different branches, `CSAR: false`, the check calling a function the
+replacement had superseded, and an "open sea" defined at 150 m against a 500 m search radius. The
+checks pass, and #790 is what made them able to fail.
 
-**Third thing, and it needs no extra setup.** Does the group come up on its drawn position give or take
-the dispersion, or noticeably further? A displacement well beyond 50 m was
-[`FIX-COMBATZONE-SPAWN-REFERENCE-UNIT`](.backlog/FIX-COMBATZONE-SPAWN-REFERENCE-UNIT/PRD.md), fixed in
-6.15.21: a zone anchored a group on the first unit it could *see*, so a group with its unit 1 outside
-the trigger zone came up offset by its own intra-group spacing. Both fixes are unit-tested; what no test
-can say is whether a group now lands somewhere impossible.
-
-If `verify-mission-a` has no group straddling a zone edge, that case is untested in game — dragging one
-truck of `SmokeZone-ConvoyBlue` just outside the zone before the run would cover it, and the group
-should still come up on its drawn position rather than a truck-length away.
-
-## 19. A convoy walking an itinerary — new in 6.15.22, and cheap to check
-
-[`FEAT-CONVOY-WAYPOINTS`](.backlog/FEAT-CONVOY-WAYPOINTS/PRD.md). Both things its PRD wanted measured in
-game turned out to be dependencies the lot could simply not have (see the PRD), so what is left is the
-ordinary check: does a real convoy on real terrain actually get where it is going?
-
-Place two markers and drop this on the first:
-
-```
-_spawn convoy, dest <second marker>, dest <a third point>, speed 40
-```
-
-- The convoy **sets off again by itself** on reaching the first point. The watch runs every 30 s and the
-  arrival radius is 150 m, so allow up to half a minute after it stops before concluding anything.
-- **"Hold at next point"** must let it finish the leg it is on and park *there* — not brake on the spot.
-  **"Halt where it stands"** must stop it immediately, mid-road. Those two are the point of the feature;
-  if they feel the same in play, the wording needs work, not the code.
-- On the last leg, "Hold at next point" should tell you there is no next point.
-
-Worth noting how the 150 m radius feels on a long column: if a convoy visibly parks well short of its
-point and still counts as arrived, that number wants revisiting.
-
-## 20. Run the two CSAR-over-water checks — no aircraft needed
-
-[`FEAT-SMOKE-CSAR-WATER`](.backlog/FEAT-SMOKE-CSAR-WATER/PRD.md), 6.15.26. **Not a flying item**: it is
-the smoke harness, so it needs DCS running with a mission loaded and nothing else. It is on this page
-only because launching a run in your DCS is yours to do.
-
-```bash
-poetry run veaf-tools dcs smoke-test
-```
-
-The two new checks are `csar-avoids-water-open-sea` and `csar-avoids-water-coast`. They anchor on the
-first airbase, sweep outwards for water, spawn a CSAR pilot there, read back what is under him, and
-destroy the group.
-
-**The prediction has flipped, and that is the point of running it now.** When these checks were written,
-reading `csar.spawnGroup` said both would fail: a fixed `+50/+50` offset with no surface test. The fix
-shipped in 6.15.28 — [`FIX-CSAR-SPAWNS-ON-WATER`](.backlog/FIX-CSAR-SPAWNS-ON-WATER/PRD.md), on your
-arbitration of 500 m or dead — so **both should now pass**.
-
-A failure here means the replacement of `csar.addCsar` is not taking effect in a real mission, which unit
-tests cannot tell you: they prove the decision, not that DCS loads the wrapper.
-
-One thing to watch on the open-sea check: with nothing dry within 500 m the pilot is now **lost**, so
-there is no group to inspect. The check reports `no-group` in that case, which is a *pass* for the
-arbitration and a *failure* for the assertion as written — if you see it, tell me and I will teach the
-check the difference rather than have you interpret it.
+---
 
 ## 10. Watch a respawned escort for longer than ten minutes
 

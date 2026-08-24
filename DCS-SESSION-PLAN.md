@@ -42,13 +42,13 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 
 ---
 
-## Résultats de la session — au 22/08
+## Résultats de la session — au 24/08
 
 | Vérification | Résultat |
 |---|---|
 | 0 · SAM autonome (Tor) | ✅ locke et tire — voir la nuance sur les sites multi-unités ci-dessus |
 | 1a · dispersion + départ sans détour | ✅ tout comme prévu |
-| 1b · escorte du FARP | ❌ **échec** — tout se pose sur le FARP statique. Cause racine trouvée, lot rouvert, voir ci-dessous |
+| 1b · escorte du FARP | ✅ **corrigé et vérifié le 24/08** — « c'est bon, tout est en dehors du farp statique », puis « c'est bon, rien n'a bougé » sur une seconde passe. **Cinq** défauts, PR #792, dont trois estimations de taille de ma part ; voir ci-dessous |
 | 1c · convoi sur itinéraire | ✅ les commandes fonctionnent. Réserve d'ergonomie : chaque commande est enfermée dans un sous-menu à un seul élément |
 | — · un marqueur simple renvoyait une erreur | ✅ **corrigé**, PR #789 — onze jours de régression, sans lien avec la session |
 | 2a · `#command` retardé meurt avec sa zone | ✅ |
@@ -58,6 +58,8 @@ seuls, ça ressemblerait exactement à une panne générale de DCS.
 | 2c bis · le cycle allumé/éteint | 🔎 **10 s mesurées** = deux cycles de 5 s, comme prédit depuis le code. Cause dans Skynet, lot déposé |
 | 0bis · SA-6 complet, carte nue, sans script | ✅ **il a tiré** → il n'y a jamais eu de bug SAM dans DCS |
 | 2d · alarme par nature | ✅ pour ce qui était testable : le convoi roule. Les chars n'ont **qu'un waypoint** dans la mission C, donc aucune route — leur immobilité est la donnée, pas un défaut |
+| 3 · les deux contrôles CSAR sur l'eau | ✅ passés le 23/08 — après **cinq** défauts successifs du harnais, aucun n'étant une régression du produit. PR #790 est ce qui les rend capables d'échouer |
+| — · `csarMode` levait une erreur au lieu de sanctionner | ✅ **corrigé** le 24/08, PR #796. Trouvé en écrivant le correctif précédent, jamais vu en jeu : personne n'avait réglé `csarMode`, donc personne ne l'avait déclenché |
 
 ### 2c — check 7 : ✅, après deux fausses lectures dues à mon harnais
 

@@ -309,6 +309,16 @@ veafSpawn.CommandDescriptors = {
     end,
   },
   {
+    -- FEAT-RADIO-BEACONS. No default name: CTLD allocates "Beacon #N" itself, and a VEAF-side counter
+    -- would be a second numbering next to the manager's own — the mistake the FOB beacon already made.
+    match = veafSpawn.SpawnKeyphrase .. " beacon",
+    init = function(options)
+      options.beacon = true
+      options.country = "USA"
+      options.radius = 0
+    end,
+  },
+  {
     match = veafSpawn.SpawnKeyphrase .. " convoy",
     init = function(options)
       options.convoy = true

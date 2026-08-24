@@ -1473,6 +1473,13 @@ function veafShortcuts.buildDefaultList()
       :setVeafCommand("_spawn tacan, band X, channel 99")
       :setBypassSecurity(true)
   )
+  veafShortcuts.AddAlias(
+    VeafAlias:new()
+      :setName("-beacon")
+      :setDescription("create a radio beacon (VHF/UHF/FM) through CTLD")
+      :setVeafCommand("_spawn beacon")
+      :setBypassSecurity(true)
+  )
   veafShortcuts.AddAlias(VeafAlias
     :new()
     :setName("-farp")

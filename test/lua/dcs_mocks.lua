@@ -455,6 +455,13 @@ mist = {
   getGroupRoute = function(groupName)
     return nil
   end,
+  -- A unit's heading in RADIANS, which is what the real one returns — callers wrap it in
+  -- `mist.utils.toDegree`. The second argument asks for true rather than magnetic north; the mock records
+  -- it so a test can assert which one the caller wanted, since both look identical in the result.
+  getHeading = function(unit, rawHeading)
+    mist._lastHeadingWasTrue = rawHeading == true
+    return math.pi / 2
+  end,
   vec = {
     mag = function(v)
       local x = v.x or 0
@@ -513,6 +520,15 @@ mist = {
     end,
     toDegree = function(rad)
       return rad * 180 / math.pi
+    end,
+    -- A vec3 flattened to the map plane. `y` is the EASTING here, not an altitude: this is the mission-table
+    -- convention, not the runtime one — see docs/agents/dcs-coordinates.md, which exists because mixing the
+    -- two raises no error and only moves things.
+    makeVec2 = function(v)
+      if v.z then
+        return { x = v.x or 0, y = v.z }
+      end
+      return { x = v.x or 0, y = v.y or 0 }
     end,
     toRadian = function(deg)
       return deg * math.pi / 180

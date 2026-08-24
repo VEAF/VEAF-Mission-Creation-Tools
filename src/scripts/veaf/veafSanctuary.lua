@@ -437,6 +437,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
       -- this is water
       veafShortcuts.ExecuteAlias(
         ship1,
+        nil, -- delay: this alias fires now, and the command below is NOT a delay
         "radius 2000, multiplier 2, skynet false" .. heading1S,
         positionIn20s,
         self:getCoalition(),
@@ -446,6 +447,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
       )
       veafShortcuts.ExecuteAlias(
         ship1,
+        nil, -- delay: this alias fires now, and the command below is NOT a delay
         "radius 3000, multiplier 2, skynet false" .. heading2S,
         positionIn40s,
         self:getCoalition(),
@@ -457,6 +459,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
       -- this is land
       veafShortcuts.ExecuteAlias(
         sam1,
+        nil, -- delay: this alias fires now, and the command below is NOT a delay
         "radius 2000, multiplier 2, skynet false" .. heading1S,
         positionIn20s,
         self:getCoalition(),
@@ -466,6 +469,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
       )
       veafShortcuts.ExecuteAlias(
         sam1,
+        nil, -- delay: this alias fires now, and the command below is NOT a delay
         "radius 2000, multiplier 2, skynet false" .. heading2S,
         positionIn20s,
         self:getCoalition(),
@@ -481,6 +485,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
         -- this is water
         veafShortcuts.ExecuteAlias(
           ship2,
+          nil, -- delay: this alias fires now, and the command below is NOT a delay
           "radius 3000, multiplier 2, skynet false" .. heading1S,
           positionIn20s,
           self:getCoalition(),
@@ -490,6 +495,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
         )
         veafShortcuts.ExecuteAlias(
           ship2,
+          nil, -- delay: this alias fires now, and the command below is NOT a delay
           "radius 4000, multiplier 2, skynet false" .. heading2S,
           positionIn40s,
           self:getCoalition(),
@@ -501,6 +507,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
         -- this is land
         veafShortcuts.ExecuteAlias(
           sam2,
+          nil, -- delay: this alias fires now, and the command below is NOT a delay
           "radius 3000, skynet false" .. heading1S,
           positionIn20s,
           self:getCoalition(),
@@ -510,6 +517,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
         )
         veafShortcuts.ExecuteAlias(
           sam2,
+          nil, -- delay: this alias fires now, and the command below is NOT a delay
           "radius 4000, skynet false" .. heading2S,
           positionIn40s,
           self:getCoalition(),

@@ -7,6 +7,57 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.35] — 2026-08-24
+
+### Fixed
+
+- **A mission that set `csar.csarMode` got a Lua error instead of the sanction it configured.**
+  `csar.addCsar` calls `csar.handleEjectOrCrash(_playerName, false)`, and that function immediately does
+  `_unit:getName()` — so a player name raised *"attempt to index a string value"*. Every other caller
+  passes a unit, which is why the defect sat in the one path the setting exists for. Invisible at the
+  default mode of 0, where nothing happens at all.
+
+  Fixed by replacing `csar.handleEjectOrCrash` from `veaf.csar_initialize_replacement`, next to the
+  existing `addCsar` replacement, rather than editing the vendored `CSAR.lua` (an edit there is erased by
+  the next update) or sending it upstream (`VEAF/DCS-CSAR` is `ahead=0` on `ciribob/DCS-CSAR` and both
+  have been untouched since August 2023).
+
+  Reading the vendored function through showed **three** modes rather than the two first assumed, and
+  they do not need the same information — which is what made the fix decidable:
+
+  | `csarMode` | Sanction | Needs |
+  |---|---|---|
+  | 1 | disables the aircraft for everyone | the aircraft's `getID()` |
+  | 2 | disables that aircraft for that pilot | the aircraft's `getID()` |
+  | 3 | reduces the pilot's lives | only `getPlayerName()` |
+
+  So the replacement passes a unit through untouched, resolves a player name to his unit through
+  `coalition.getPlayers` when he is still flying, and when it cannot resolve one — he has just ejected,
+  his aircraft may already be gone — still serves mode 3 from the name alone while refusing modes 1 and
+  2 **with a warning**. Those key on an aircraft id; inventing one would ground an aircraft nobody chose.
+  A skipped sanction is recoverable, a misapplied one is not.
+
+  `coalition.getPlayers` was missing from the DCS mocks, which is why no test could exercise a
+  player-name lookup; it is now mocked. Sixteen Lua tests cover it, and three mutations were run against
+  them to prove they can fail.
+
+### Changed
+
+- **The `pcall` around that call, added in 6.15.33, stays — with an honest comment.** It was introduced
+  to keep the over-water path from dying of this defect, and its comment said the call *does* raise,
+  which is no longer true. It now guards the next defect in a vendored function rather than a known one,
+  on the path that runs while a pilot is drowning. A test asserts the lost-at-sea path applies the mode-3
+  sanction for real and that the guard reports nothing.
+
+- **The smoke checks' Lua parse test now version-checks its interpreter.** It resolved one with
+  `shutil.which("lua")`; this machine has two — a scoop 5.5.0 shim and the 5.1.5 in Program Files — and
+  which one answers depends on the PATH of the shell that launched pytest. It answered 5.1.5, so the
+  check was right by accident. It now goes through `veaf_build.lua_tests._find_lua`, which rejects
+  anything but 5.1: a 5.5 refuses valid 5.1 (it reads a `for` variable as const) and accepts syntax DCS
+  would not, so the same test could have reported failures that are not defects.
+
+---
+
 ## [6.15.33] — 2026-08-24
 
 ### Fixed

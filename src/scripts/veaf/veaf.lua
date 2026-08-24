@@ -5523,6 +5523,109 @@ veaf.CSAR_SPAWN_OFFSET_METRES = 50
 --- The wart, documented rather than hidden: `spawnGroup` will add its own `+50/+50` after us, so the
 --- point handed to the original is **pre-compensated** by that offset. It is the price of not touching
 --- the vendored file.
+--- Modes of `csar.csarMode` that need the ejecting **aircraft**, not just its pilot.
+---
+--- Mode 1 disables the aircraft for everyone and mode 2 disables it for that pilot; both key on
+--- `getID()` and set a `CSAR_AIRCRAFT<id>` flag. Mode 3 only reduces the pilot's lives, so a player name
+--- is enough for it. Listed rather than hard-coded in a condition so the distinction is stated once.
+veaf.CSAR_MODES_NEEDING_THE_AIRCRAFT = { [1] = true, [2] = true }
+
+--- Find the unit a player is currently in, or nil.
+---
+--- Used to recover from CSAR handing us a player name where a unit belongs. It can legitimately fail:
+--- the pilot has just ejected, so his aircraft may already be gone by the time we look.
+function veaf.findUnitForPlayerName(playerName)
+  if type(playerName) ~= "string" or playerName == "" then
+    return nil
+  end
+  local found = nil
+  for _, side in pairs({ coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL }) do
+    pcall(function()
+      for _, unit in pairs(coalition.getPlayers(side) or {}) do
+        if not found and unit and unit.getPlayerName and unit:getPlayerName() == playerName then
+          found = unit
+        end
+      end
+    end)
+  end
+  return found
+end
+
+--- Make `csar.handleEjectOrCrash` survive being handed a player name.
+---
+--- FIX-CSAR-HANDLE-EJECT-ARGUMENT. `csar.addCsar` (`CSAR.lua:384`) calls
+--- `csar.handleEjectOrCrash(_playerName, false)`, and the function immediately does `_unit:getName()` —
+--- so it raises *"attempt to index a string value"*. Every other caller passes a unit. It is invisible
+--- at the default `csar.csarMode = 0`, where both branches are skipped, and breaks exactly the mission
+--- that asks for the feature: setting a mode is how you disable an aircraft or a pilot for
+--- `disableTimeoutTime` minutes after an ejection, and it gets an error instead.
+---
+--- **Replaced here rather than patched.** `CSAR.lua` is vendored `adapted`, so an edit is erased by the
+--- next update. Upstream was the other route and was measured to be a dead end: `VEAF/DCS-CSAR` is
+--- `ahead=0 behind=0` on `ciribob/DCS-CSAR`, and both have been untouched since August 2023 — checked
+--- 2026-08-24, because assuming a fork is alive is a mistake this repo has made before.
+---
+--- What the replacement can and cannot do, since a player name carries less than a unit:
+---
+--- * a **unit** is passed straight through, so every existing caller behaves exactly as before;
+--- * a **name** is resolved to the player's unit when he is still in one, and then passed through;
+--- * when it cannot be resolved, **mode 3 is still served** — it only needs the pilot's name — while
+---   modes 1 and 2 are refused with a warning. They key on the aircraft's `getID()`, and inventing one
+---   would set a `CSAR_AIRCRAFT<id>` flag on an aircraft nobody chose. A missing sanction is recoverable;
+---   a sanction applied to the wrong aircraft is not.
+function veaf.replaceCsarHandleEjectOrCrash()
+  if type(csar) ~= "table" or type(csar.handleEjectOrCrash) ~= "function" then
+    return
+  end
+  -- Same idempotence guard as the addCsar wrapper: a mission calling the initialisation twice would
+  -- otherwise stack replacements, and each layer would re-resolve what the previous one had resolved.
+  if csar._veafHandleEjectReplaced then
+    return
+  end
+  csar._veafHandleEjectReplaced = true
+  local originalHandleEjectOrCrash = csar.handleEjectOrCrash
+
+  ---@diagnostic disable-next-line: duplicate-set-field
+  csar.handleEjectOrCrash = function(unitOrName, crashed)
+    if type(unitOrName) ~= "string" then
+      return originalHandleEjectOrCrash(unitOrName, crashed)
+    end
+
+    local playerName = unitOrName
+    local unit = veaf.findUnitForPlayerName(playerName)
+    if unit then
+      veaf.loggers.get(csar.Id):debug("handleEjectOrCrash was given the player name [%s]; resolved his unit", veaf.p(playerName))
+      return originalHandleEjectOrCrash(unit, crashed)
+    end
+
+    if veaf.CSAR_MODES_NEEDING_THE_AIRCRAFT[csar.csarMode] then
+      veaf.loggers.get(csar.Id):warn(
+        "csarMode %s disables an aircraft, but CSAR passed only the player name [%s] and his unit is "
+          .. "gone: the sanction is skipped rather than applied to an aircraft nobody chose",
+        veaf.p(csar.csarMode),
+        veaf.p(playerName)
+      )
+      return
+    end
+
+    -- Mode 3 reduces the pilot's lives and needs no aircraft identity. `getName` answers the player name
+    -- so the `csar.csarUnits` comparison it does can only ever miss, which is the right outcome: this
+    -- pilot was not flying a rescue helicopter.
+    local pilotOnly = {
+      getPlayerName = function()
+        return playerName
+      end,
+      getName = function()
+        return playerName
+      end,
+      getID = function()
+        return nil
+      end,
+    }
+    return originalHandleEjectOrCrash(pilotOnly, crashed)
+  end
+end
+
 function veaf.replaceCsarAddCsar()
   if type(csar) ~= "table" or type(csar.addCsar) ~= "function" then
     return
@@ -5556,11 +5659,13 @@ function veaf.replaceCsarAddCsar()
         -- Skipping it would make ditching at sea the *cheapest* way to lose an aircraft — the opposite of
         -- "he counts as dead". Caught in review (Sourcery, PR #787).
         --
-        -- Protected because the call is wrong upstream, not here: `addCsar` passes a **player name**
-        -- where `handleEjectOrCrash(_unit, _crashed)` indexes a unit, so it raises as soon as a mission
-        -- sets `csar.csarMode` to 1 or 2 (the default 0 does nothing at all). Reproducing the original
-        -- call faithfully is right; letting our new path be the one that dies from an upstream defect is
-        -- not. See FIX-CSAR-HANDLE-EJECT-ARGUMENT.
+        -- The player name is what `addCsar` passes upstream, and `handleEjectOrCrash(_unit, _crashed)`
+        -- indexes a unit — so this call used to raise as soon as a mission set `csar.csarMode`. That is
+        -- fixed in `veaf.replaceCsarHandleEjectOrCrash` (FIX-CSAR-HANDLE-EJECT-ARGUMENT), which is
+        -- looked up here rather than captured, so this line gets the repaired function.
+        --
+        -- The `pcall` stays regardless. It no longer guards a defect we know about; it guards the next
+        -- one, in a vendored function, on the path that runs while a pilot is drowning.
         local ok, err = pcall(csar.handleEjectOrCrash, playerName, false)
         if not ok then
           veaf.loggers.get(csar.Id):warn("csar.handleEjectOrCrash raised for a lost pilot: %s", veaf.p(err))
@@ -5625,6 +5730,10 @@ function veaf.csar_initialize_replacement(configurationCallback)
     -- FIX-CSAR-SPAWNS-ON-WATER (#245): keep a downed pilot out of the sea. Replaced here, like the
     -- loggers above, rather than edited in the vendored CSAR.lua.
     veaf.replaceCsarAddCsar()
+
+    -- FIX-CSAR-HANDLE-EJECT-ARGUMENT: and stop a player name from raising where a unit is indexed.
+    -- Same reason for being here: CSAR.lua is vendored, so an edit there is erased by the next update.
+    veaf.replaceCsarHandleEjectOrCrash()
 
     if configurationCallback and type(configurationCallback) == "function" then
       -- a configuration callback has been set, call it

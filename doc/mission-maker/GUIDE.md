@@ -632,6 +632,36 @@ L'eau peu profonde ne compte pas comme la pleine mer : un survivant qui a pied �
 !!! note "`CSAR.lua` n'est pas modifié"
     Le script CSAR est un composant tiers embarqué : le corriger sur place serait effacé à sa prochaine mise à jour. VEAF remplace `csar.addCsar` depuis son propre code, comme il remplace déjà les journaux de CSAR.
 
+### Sanctionner une éjection : `csarMode` {#csar-mode}
+
+CSAR peut faire payer une éjection, pour que se crasher ne soit pas gratuit. C'est un réglage
+`settings:` comme un autre :
+
+```yaml
+modules:
+  CSAR:
+    enabled: true
+    settings:
+      csarMode: 3
+      disableTimeoutTime: 30   # en minutes, pour les modes 1 et 2
+```
+
+| `csarMode` | Ce que le pilote perd |
+|---|---|
+| `0` (défaut) | rien |
+| `1` | **son appareil est indisponible pour tout le monde** pendant `disableTimeoutTime` minutes |
+| `2` | le même appareil lui est interdit à lui seul, les autres peuvent le prendre |
+| `3` | il perd une de ses vies |
+
+!!! note "Un cas où les modes 1 et 2 ne s'appliquent pas"
+    Les modes 1 et 2 verrouillent **un appareil précis**, désigné par son identifiant DCS. Quand le
+    pilote s'est éjecté et que son appareil a déjà disparu du monde, cet identifiant n'existe plus :
+    la sanction est alors **passée**, et le journal DCS le dit (`csarMode … the sanction is skipped`).
+
+    Ce n'est pas un choix par défaut mais un refus délibéré : verrouiller un appareil au hasard
+    priverait de son avion un pilote qui n'a rien fait. Le mode `3` n'a pas ce problème — il ne
+    dépend que du nom du joueur — et s'applique toujours.
+
 ### Ordre de chargement dans la chaîne de triggers DCS
 
 Le build produit cette chaîne pour vous ; elle est décrite ici pour que vous puissiez la relire dans l'éditeur de mission :

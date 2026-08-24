@@ -3860,4 +3860,271 @@ function TestVeafCsarAddCsarReplacement:test_no_csar_module_is_not_a_crash()
   luaunit.assertTrue(ok)
 end
 
+-- ===========================================================================
+-- FIX-CSAR-HANDLE-EJECT-ARGUMENT — the replacement of csar.handleEjectOrCrash
+--
+-- `csar.addCsar` calls `csar.handleEjectOrCrash(_playerName, false)`, and that function indexes its
+-- first argument as a unit. Every other caller passes a unit, so the defect only shows on the path that
+-- matters: a mission that sets `csar.csarMode` gets *"attempt to index a string value"* instead of the
+-- sanction it configured. What the tests below pin is not just "it stops raising" — it is **which
+-- sanction still gets applied when only a name is available**, since mode 3 needs the pilot while modes
+-- 1 and 2 need the aircraft.
+-- ===========================================================================
+TestVeafCsarHandleEjectReplacement = {}
+
+function TestVeafCsarHandleEjectReplacement:setUp()
+  self._csar = csar
+  self._getPlayers = coalition.getPlayers
+  self._savedGet = veaf.loggers.get
+
+  self.handled = {}
+  self.logged = {}
+  -- A fresh csar table per test: the idempotence marker would otherwise leak between them.
+  csar = {
+    Id = "CSAR",
+    csarMode = 0,
+    handleEjectOrCrash = function(unit, crashed)
+      -- Faithful to the vendored function in the one way that matters here: it indexes its argument
+      -- straight away. A string reaching it must blow up in the test exactly as it does in DCS.
+      table.insert(self.handled, { name = unit:getName(), player = unit:getPlayerName(), id = unit:getID(), crashed = crashed })
+    end,
+  }
+
+  local logger = {}
+  for _, level in ipairs({ "error", "warn", "info", "debug", "trace" }) do
+    logger[level] = function(_, message, ...)
+      table.insert(self.logged, { level = level, message = message })
+    end
+  end
+  veaf.loggers.get = function(id)
+    if id == "CSAR" then
+      return logger
+    end
+    return self._savedGet(id)
+  end
+end
+
+function TestVeafCsarHandleEjectReplacement:tearDown()
+  csar = self._csar
+  coalition.getPlayers = self._getPlayers
+  veaf.loggers.get = self._savedGet
+end
+
+--- A unit as DCS hands it over, with only what the vendored function touches.
+function TestVeafCsarHandleEjectReplacement:_unit(unitName, playerName, id)
+  return {
+    getName = function()
+      return unitName
+    end,
+    getPlayerName = function()
+      return playerName
+    end,
+    getID = function()
+      return id
+    end,
+  }
+end
+
+--- Put `unit` in the sky, so a player-name lookup can find it.
+function TestVeafCsarHandleEjectReplacement:_playerFlying(unit)
+  coalition.getPlayers = function(side)
+    if side == coalition.side.BLUE then
+      return { unit }
+    end
+    return {}
+  end
+end
+
+function TestVeafCsarHandleEjectReplacement:_warnings()
+  local found = {}
+  for _, entry in ipairs(self.logged) do
+    if entry.level == "warn" then
+      table.insert(found, entry.message)
+    end
+  end
+  return found
+end
+
+function TestVeafCsarHandleEjectReplacement:test_a_unit_is_handed_over_untouched()
+  -- The regression that would hurt most: every existing caller passes a unit, and none of them may
+  -- notice the wrapper is there.
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash(self:_unit("Chevy11", "Zip", 42), true)
+  luaunit.assertEquals(#self.handled, 1)
+  luaunit.assertEquals(self.handled[1].name, "Chevy11")
+  luaunit.assertEquals(self.handled[1].player, "Zip")
+  luaunit.assertEquals(self.handled[1].id, 42)
+  luaunit.assertTrue(self.handled[1].crashed, "the second argument must survive too")
+end
+
+function TestVeafCsarHandleEjectReplacement:test_a_player_name_no_longer_raises()
+  -- The defect itself, stated as plainly as it can be: this exact call is what `csar.addCsar` makes.
+  veaf.replaceCsarHandleEjectOrCrash()
+  local ok, err = pcall(csar.handleEjectOrCrash, "Zip", false)
+  luaunit.assertTrue(ok, "a player name must not raise: " .. tostring(err))
+end
+
+function TestVeafCsarHandleEjectReplacement:test_a_player_name_is_resolved_to_his_unit()
+  -- The good case: the pilot is still in an aircraft, so the full sanction is available and the
+  -- vendored function gets the real unit — same behaviour as any other caller.
+  self:_playerFlying(self:_unit("Chevy11", "Zip", 42))
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 1)
+  luaunit.assertEquals(self.handled[1].name, "Chevy11", "the unit's name, not the player's")
+  luaunit.assertEquals(self.handled[1].id, 42)
+end
+
+function TestVeafCsarHandleEjectReplacement:test_another_players_unit_is_not_mistaken_for_his()
+  -- A lookup that matched on anything but the player name would sanction whoever happened to be
+  -- flying, which is worse than sanctioning nobody.
+  self:_playerFlying(self:_unit("Chevy21", "Sharko", 77))
+  csar.csarMode = 3
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 1)
+  luaunit.assertEquals(self.handled[1].player, "Zip", "the pilot who ejected, not the one still flying")
+  luaunit.assertNil(self.handled[1].id)
+end
+
+function TestVeafCsarHandleEjectReplacement:test_mode_3_is_served_from_the_name_alone()
+  -- Mode 3 reduces the *pilot's* lives, so the aircraft's identity is not needed and the sanction the
+  -- mission configured is still applied.
+  csar.csarMode = 3
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 1)
+  luaunit.assertEquals(self.handled[1].player, "Zip")
+  luaunit.assertEquals(#self:_warnings(), 0, "nothing was skipped, so nothing to warn about")
+end
+
+function TestVeafCsarHandleEjectReplacement:test_mode_1_is_refused_rather_than_guessed()
+  -- Mode 1 sets a `CSAR_AIRCRAFT<id>` flag, and there is no id to be had. Inventing one grounds an
+  -- aircraft nobody chose; a skipped sanction is recoverable, a misapplied one is not.
+  csar.csarMode = 1
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 0, "the vendored function must not be called with a made-up id")
+  luaunit.assertEquals(#self:_warnings(), 1, "and skipping it silently would hide a broken mission setting")
+end
+
+function TestVeafCsarHandleEjectReplacement:test_mode_2_is_refused_too()
+  csar.csarMode = 2
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 0)
+  luaunit.assertEquals(#self:_warnings(), 1)
+end
+
+function TestVeafCsarHandleEjectReplacement:test_the_default_mode_is_still_a_no_op_and_still_silent()
+  -- Mode 0 is the default and does nothing at all, so this path must neither raise nor warn: almost
+  -- every mission runs here, and a warning on every ejection would be noise.
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 1, "the call still reaches the original, which decides to do nothing")
+  luaunit.assertEquals(#self:_warnings(), 0)
+end
+
+function TestVeafCsarHandleEjectReplacement:test_replacing_twice_does_not_stack()
+  veaf.replaceCsarHandleEjectOrCrash()
+  local once = csar.handleEjectOrCrash
+  veaf.replaceCsarHandleEjectOrCrash()
+  luaunit.assertIs(csar.handleEjectOrCrash, once, "the second call must be a no-op, like the addCsar guard")
+end
+
+function TestVeafCsarHandleEjectReplacement:test_no_csar_module_is_not_a_crash()
+  csar = nil
+  luaunit.assertTrue(pcall(veaf.replaceCsarHandleEjectOrCrash))
+end
+
+function TestVeafCsarHandleEjectReplacement:test_a_csar_without_the_function_is_not_a_crash()
+  -- A vendored update renaming it must leave the framework standing rather than take the mission down.
+  csar = { Id = "CSAR" }
+  luaunit.assertTrue(pcall(veaf.replaceCsarHandleEjectOrCrash))
+end
+
+-- ---------------------------------------------------------------------------
+-- Where the two CSAR fixes meet: the over-water wrapper calls `handleEjectOrCrash` with a player name,
+-- and that call is the reason it needed a `pcall` at all. This is the test that says the guard is no
+-- longer the thing keeping the mission alive.
+-- ---------------------------------------------------------------------------
+function TestVeafCsarHandleEjectReplacement:test_the_lost_at_sea_path_sanctions_the_pilot_for_real()
+  local savedResolve = veaf.resolveCsarSurvivorPoint
+  local savedOutText = trigger.action.outTextForCoalition
+  veaf.resolveCsarSurvivorPoint = function()
+    return nil -- nothing but water: the pilot is lost
+  end
+  trigger.action.outTextForCoalition = function() end
+  csar.csarMode = 3
+  csar.addCsar = function() end
+
+  veaf.replaceCsarAddCsar()
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", "Chevy11", "Zip")
+
+  veaf.resolveCsarSurvivorPoint = savedResolve
+  trigger.action.outTextForCoalition = savedOutText
+  luaunit.assertEquals(#self.handled, 1, "ditching at sea must still cost the pilot what the mode says")
+  luaunit.assertEquals(self.handled[1].player, "Zip")
+  luaunit.assertEquals(#self:_warnings(), 0, "and it must no longer be the pcall reporting a raise")
+end
+
+-- ===========================================================================
+-- veaf.findUnitForPlayerName
+-- ===========================================================================
+TestVeafFindUnitForPlayerName = {}
+
+function TestVeafFindUnitForPlayerName:setUp()
+  self._getPlayers = coalition.getPlayers
+end
+
+function TestVeafFindUnitForPlayerName:tearDown()
+  coalition.getPlayers = self._getPlayers
+end
+
+function TestVeafFindUnitForPlayerName:test_finds_a_player_on_any_side()
+  -- Red, because iterating blue only is the mistake that looks right in a blue-side test.
+  local unit = {
+    getPlayerName = function()
+      return "Sharko"
+    end,
+  }
+  coalition.getPlayers = function(side)
+    if side == coalition.side.RED then
+      return { unit }
+    end
+    return {}
+  end
+  luaunit.assertIs(veaf.findUnitForPlayerName("Sharko"), unit)
+end
+
+function TestVeafFindUnitForPlayerName:test_returns_nil_when_nobody_matches()
+  luaunit.assertNil(veaf.findUnitForPlayerName("Zip"))
+end
+
+function TestVeafFindUnitForPlayerName:test_refuses_a_nil_or_empty_name()
+  luaunit.assertNil(veaf.findUnitForPlayerName(nil))
+  luaunit.assertNil(veaf.findUnitForPlayerName(""))
+end
+
+function TestVeafFindUnitForPlayerName:test_a_side_that_raises_does_not_take_the_lookup_down()
+  -- `coalition.getPlayers` is documented but not guaranteed to answer for every side in every build,
+  -- and this runs while a pilot is ejecting: the worst moment to raise.
+  local unit = {
+    getPlayerName = function()
+      return "Zip"
+    end,
+  }
+  coalition.getPlayers = function(side)
+    if side == coalition.side.NEUTRAL then
+      error("no such coalition")
+    end
+    if side == coalition.side.BLUE then
+      return { unit }
+    end
+    return {}
+  end
+  luaunit.assertIs(veaf.findUnitForPlayerName("Zip"), unit)
+end
+
 os.exit(luaunit.LuaUnit.run())

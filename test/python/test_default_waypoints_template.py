@@ -78,7 +78,9 @@ class TestDefaultWaypointsTemplate(unittest.TestCase):
                     if str(key).upper() in CLAIMED_NAMES or str(value).upper() in CLAIMED_NAMES:
                         offences.append(f"{path.name}: plan {plan_name!r} references {key!r} -> {value!r}")
 
-        self.assertEqual(offences, [], "a flight plan still references a bullseye waypoint:\n  " + "\n  ".join(offences))
+        self.assertEqual(
+            offences, [], "a flight plan still references a bullseye waypoint:\n  " + "\n  ".join(offences)
+        )
 
     def test_every_plan_reference_resolves(self) -> None:
         """The rename's own failure mode, and it is silent: a plan pointing at a waypoint that is gone."""

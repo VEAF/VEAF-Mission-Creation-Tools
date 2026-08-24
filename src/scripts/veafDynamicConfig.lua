@@ -5,6 +5,7 @@
 -- c_time_after; here it is a scheduled load, so both modes stage alike.
 local scriptsToLoad =
 {
+    { name = "mission-script.lua" },
     { name = "VeafDynamicLoader.lua" },
 }
 

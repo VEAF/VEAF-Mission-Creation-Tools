@@ -180,7 +180,13 @@ before and after deactivation showed the same thing twice.
 
 1. Find Arco on the F10 map: KC-135 orbiting at 20 000 ft north-west of the anchor, two F-15C on it.
 2. F10 → Assets → **Respawn Arco (KC-135)**.
-3. Watch the escort for 60 s.
+3. Watch the escort for **more than ten minutes**.
+
+!!! warning "Sixty seconds is not enough, and this step used to say sixty seconds"
+    The failure is a **delayed** return to base: the escort holds formation for a while and *then*
+    leaves, after roughly ten minutes. A one-minute look passes in both cases, so it would have called
+    the old behaviour fixed. David watched the teleport path hold for thirty minutes on 2026-08-18;
+    that is the bar.
 
 - **It drifts off, goes home, or ignores the tanker** → confirmed. Worth knowing for the fix:
   `veafAssets.respawn` calls `mist.respawnGroup` on the tanker and then, separately, on each `linked`

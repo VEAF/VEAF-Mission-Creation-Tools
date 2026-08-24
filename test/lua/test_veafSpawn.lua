@@ -2311,4 +2311,175 @@ function TestVeafSpawnBeacon:test_a_refused_spawn_is_reported()
   luaunit.assertNil(self.messages[1].text:find("FM", 1, true), "a failure must not read like a success")
 end
 
+-- ===========================================================================
+-- FIX-SPAWN-BYPASSSECURITY-AS-SILENT — silence follows script-vs-player
+--
+-- Fourteen handlers used to forward `bypassSecurity` into a callee's `silent` parameter, so "this command
+-- needed no password" and "do not tell the player" were the same bit. These tests pin the two apart at the
+-- dispatcher, which is the one place that decides it for all fourteen at once.
+-- ===========================================================================
+TestSpawnSilenceIsNotSecurity = {}
+
+function TestSpawnSilenceIsNotSecurity:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  veafSpawn.commandHandlers = {}
+  self.seen = nil
+  local test = self
+  veafSpawn.registerCommandHandler("unit", "OPEN", function(_, options)
+    test.seen = options
+    return nil
+  end)
+end
+
+--- @param bypassSecurity boolean the 5th argument of executeCommand
+--- @param scripted boolean|nil the 12th — "a script asked, not a person"
+function TestSpawnSilenceIsNotSecurity:_run(bypassSecurity, scripted)
+  veafSpawn.executeCommand(
+    { x = 0, y = 0, z = 0 },
+    "_spawn unit, name shilka",
+    1,
+    0,
+    bypassSecurity,
+    nil,
+    nil,
+    nil,
+    nil,
+    nil,
+    nil,
+    scripted
+  )
+  return self.seen
+end
+
+function TestSpawnSilenceIsNotSecurity:test_a_player_marker_is_never_silent()
+  luaunit.assertEquals(self:_run(false, false).silent, false)
+end
+
+function TestSpawnSilenceIsNotSecurity:test_a_scripted_spawn_is_silent()
+  -- A combat zone that spawns thirty groups must not print thirty messages. This is the behaviour the
+  -- conflation happened to get right, and the reason it survived for years.
+  luaunit.assertEquals(self:_run(true, true).silent, true)
+end
+
+function TestSpawnSilenceIsNotSecurity:test_bypassing_security_does_not_silence_a_player()
+  -- THE defect. An alias like `-tacan` sets its own bypass flag, and a pilot who drops that marker is
+  -- still a pilot waiting for an answer. Before the fix this returned true and `-tacan` said nothing.
+  luaunit.assertEquals(self:_run(true, false).silent, false)
+end
+
+function TestSpawnSilenceIsNotSecurity:test_needing_a_password_does_not_make_a_script_speak()
+  -- The other diagonal, so the two flags are pinned independently rather than as one renamed bit.
+  luaunit.assertEquals(self:_run(false, true).silent, true)
+end
+
+function TestSpawnSilenceIsNotSecurity:test_silence_is_a_boolean_even_when_not_asked_about()
+  -- `false`, not nil: fourteen callees test it, and a handler reading `options.silent` should not have to
+  -- know that "absent" and "no" are spelled differently here.
+  luaunit.assertEquals(self:_run(false, nil).silent, false)
+end
+
+-- A spawn can be put off or repeated, and both re-enter executeCommand through mist. The silence has to
+-- travel with them: a combat zone asking for a delayed spawn would otherwise come back chatty on the
+-- second pass, which is the same defect one indirection further out.
+TestSpawnSilenceSurvivesRescheduling = {}
+
+function TestSpawnSilenceSurvivesRescheduling:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  veafSpawn.commandHandlers = {}
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
+    return nil
+  end)
+  self.rescheduled = nil
+  self._schedule = mist.scheduleFunction
+  local test = self
+  mist.scheduleFunction = function(fn, args, when)
+    test.rescheduled = args
+  end
+end
+
+function TestSpawnSilenceSurvivesRescheduling:tearDown()
+  mist.scheduleFunction = self._schedule
+end
+
+--- `scripted` is the 12th argument, so it is the 12th entry of the table mist is handed.
+function TestSpawnSilenceSurvivesRescheduling:_rescheduledSilence(text)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, text, 1, 0, true, nil, nil, nil, nil, true, nil, true)
+  luaunit.assertNotNil(self.rescheduled, "nothing was rescheduled for [" .. text .. "]")
+  return self.rescheduled[12]
+end
+
+function TestSpawnSilenceSurvivesRescheduling:test_a_delayed_scripted_spawn_stays_silent()
+  luaunit.assertEquals(self:_rescheduledSilence("_spawn unit, name shilka, delayed 30"), true)
+end
+
+function TestSpawnSilenceSurvivesRescheduling:test_a_repeated_scripted_spawn_stays_silent()
+  luaunit.assertEquals(self:_rescheduledSilence("_spawn unit, name shilka, repeat 3"), true)
+end
+
+-- ===========================================================================
+-- A TACAN reports its channel and band
+-- ===========================================================================
+TestSpawnTacanAnnouncesItself = {}
+
+function TestSpawnTacanAnnouncesItself:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  -- Both spellings: the group name is built from the band as typed, before the code upper-cases it for
+  -- the beacon command, so `band x` produces a group called "TACAN 99x".
+  dcs_mocks.addGroup("TACAN 99X")
+  dcs_mocks.addGroup("TACAN 99x")
+  dcs_mocks.addGroup("JTAC 1 6 8 8")
+  self.messages = {}
+  self._outText = trigger.action.outText
+  local test = self
+  trigger.action.outText = function(text)
+    table.insert(test.messages, text)
+  end
+  self._findUnit = veafUnits.findUnit
+  veafUnits.findUnit = function()
+    return { displayName = "M1128", typeName = "M1128", air = false, static = false, naval = false }
+  end
+end
+
+function TestSpawnTacanAnnouncesItself:tearDown()
+  trigger.action.outText = self._outText
+  veafUnits.findUnit = self._findUnit
+end
+
+--- @param silent boolean spawnUnit's 14th parameter
+function TestSpawnTacanAnnouncesItself:_spawn(silent)
+  veafSpawn.spawnUnit({ x = 0, y = 0, z = 0 }, 0, "M1128", nil, "usa", 0, 0, nil, "tacan", false, "T99", 99, "X", silent, false)
+  return table.concat(self.messages, " | ")
+end
+
+function TestSpawnTacanAnnouncesItself:test_a_tacan_reports_its_channel_and_band()
+  -- What `-tacan` gave a pilot before this lot: nothing at all. And even unsilenced it fell through to
+  -- "a M1128 (usa) appeared", which never named the channel — half a feature.
+  local said = self:_spawn(false)
+  luaunit.assertNotNil(said:find("99", 1, true), "the channel: " .. said)
+  luaunit.assertNotNil(said:find("X", 1, true), "the band: " .. said)
+end
+
+function TestSpawnTacanAnnouncesItself:test_the_band_is_shown_upper_case()
+  -- It arrives as the pilot typed it (`band x`), and a TACAN is read aloud as 99X.
+  veafSpawn.spawnUnit({ x = 0, y = 0, z = 0 }, 0, "M1128", nil, "usa", 0, 0, nil, "tacan", false, "T99", 99, "x", false, false)
+  local said = table.concat(self.messages, " | ")
+  luaunit.assertNotNil(said:find("99X", 1, true), "expected 99X, got: " .. said)
+end
+
+function TestSpawnTacanAnnouncesItself:test_a_scripted_tacan_stays_quiet()
+  -- Deliberate, and recorded in the PRD: unlike a JTAC, a TACAN is not exempted, so this lot changes no
+  -- behaviour it was not asked to change.
+  luaunit.assertEquals(self:_spawn(true), "")
+end
+
+function TestSpawnTacanAnnouncesItself:test_a_jtac_speaks_even_when_scripted()
+  -- The exemption at veafSpawnAircraft.lua, kept on purpose: the message carries the laser code and the
+  -- frequency, which is what a pilot needs to *use* the JTAC.
+  veafSpawn.spawnUnit({ x = 0, y = 0, z = 0 }, 0, "M1128", nil, "usa", 0, 0, nil, "jtac", false, 1688, 130000000, "AM", true, false)
+  luaunit.assertNotEquals(table.concat(self.messages, " | "), "", "a scripted JTAC must still be announced")
+end
+
 os.exit(luaunit.LuaUnit.run())

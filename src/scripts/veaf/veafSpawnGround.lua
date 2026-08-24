@@ -1142,7 +1142,7 @@ veafSpawn.registerCommandHandler("farp", "KNOWN_PILOT", function(eventPos, optio
     options.side,
     options.heading,
     options.spacing,
-    bypassSecurity,
+    options.silent,
     not options.showMFD,
     options.noFarpMarkers,
     options.tacanCode,
@@ -1162,7 +1162,7 @@ veafSpawn.registerCommandHandler("fob", "KNOWN_PILOT", function(eventPos, option
     options.side,
     options.heading,
     options.spacing,
-    bypassSecurity,
+    options.silent,
     not options.showMFD
   )
   return g, nil, false
@@ -1188,7 +1188,7 @@ veafSpawn.registerCommandHandler("group", "KNOWN_PILOT", function(eventPos, opti
     options.heading,
     options.spacing,
     options.unitName,
-    bypassSecurity,
+    options.silent,
     hasDest,
     not options.showMFD
   )
@@ -1207,7 +1207,7 @@ veafSpawn.registerCommandHandler("infantryGroup", "KNOWN_PILOT", function(eventP
     options.defense,
     options.armor,
     options.size,
-    bypassSecurity,
+    options.silent,
     not options.showMFD
   )
   return g, nil, false
@@ -1226,7 +1226,7 @@ veafSpawn.registerCommandHandler("armoredPlatoon", "KNOWN_PILOT", function(event
     options.defense,
     options.armor,
     options.size,
-    bypassSecurity,
+    options.silent,
     hasDest,
     not options.showMFD
   )
@@ -1244,7 +1244,7 @@ veafSpawn.registerCommandHandler("airDefenseBattery", "KNOWN_PILOT", function(ev
     options.heading,
     options.spacing,
     options.defense,
-    bypassSecurity,
+    options.silent,
     hasDest,
     not options.showMFD
   )
@@ -1263,7 +1263,7 @@ veafSpawn.registerCommandHandler("transportCompany", "KNOWN_PILOT", function(eve
     options.spacing,
     options.defense,
     options.size,
-    bypassSecurity,
+    options.silent,
     hasDest,
     not options.showMFD
   )
@@ -1282,7 +1282,7 @@ veafSpawn.registerCommandHandler("fullCombatGroup", "KNOWN_PILOT", function(even
     options.defense,
     options.armor,
     options.size,
-    bypassSecurity,
+    options.silent,
     not options.showMFD
   )
   return g, nil, false
@@ -1305,7 +1305,7 @@ veafSpawn.registerCommandHandler("convoy", "KNOWN_PILOT", function(eventPos, opt
     options.defense,
     options.size,
     options.armor,
-    bypassSecurity,
+    options.silent,
     not options.showMFD,
     options.itinerary
   )

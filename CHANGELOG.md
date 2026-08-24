@@ -10,6 +10,35 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.47] — 2026-08-24
+
+### Fixed
+
+- **A `-tacan` marker spawned a beacon and told nobody.** Dropping it produced no confirmation at all —
+  no channel, no band, nothing. The cause was two unrelated ideas sharing one setting: **fourteen** spawn
+  handlers forwarded "this command ran without a password" into a parameter meaning "the player does not
+  want to be told". An alias like `-tacan` is deliberately usable without a password, and inherited a
+  silence meant for mission scripts. Silence now follows **who asked**: a pilot who drops a marker always
+  gets an answer, a script never spams one. ([#198 sibling finding](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/198))
+- **A spawn asked for by a combat zone or an AirWaves wave still says nothing**, which is the behaviour
+  that made the conflation survive for years and is preserved on purpose — a zone spawning thirty groups
+  must not print thirty messages.
+
+### Added
+
+- **A TACAN now reports its channel, band and ident** when a pilot places it, the way a JTAC has always
+  reported its laser code and frequency. A beacon whose channel is never told to anybody cannot be tuned.
+
+### Changed
+
+- **A JTAC keeps announcing itself even when a mission script places it.** That exemption used to be a
+  patch working around the conflation above; it is now a recorded decision, because its message carries
+  the code and frequency a pilot needs to *use* the JTAC rather than a notification he can afford to miss.
+- The `veafShortcuts` documentation listed **eight** aliases that bypass security. There are nine.
+- **A radio beacon placed by a mission script is now quiet**, where it used to announce itself. The `beacon` handler was already asking the right question — "does the caller want silence?" — but nothing had ever answered it, so it always spoke. It now follows the same rule as everything else.
+
+---
+
 ## [6.15.46] — 2026-08-24
 
 ### Added

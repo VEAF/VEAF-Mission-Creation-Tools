@@ -213,7 +213,25 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
     return true
   elseif
     logDebug("checking in veafSpawn")
-    and veafSpawn.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups, nil, nil, route)
+    -- `_bypassSecurity` for security, plain `bypassSecurity` for silence, and the difference is the whole
+    -- of FIX-SPAWN-BYPASSSECURITY-AS-SILENT. `_bypassSecurity` has the alias's own flag OR'd in just
+    -- above, which is right for skipping a password check and wrong for deciding whether to speak: an
+    -- alias like `-tacan` sets that flag, and a pilot who drops the marker is still a pilot waiting for
+    -- an answer. `bypassSecurity` arrives unmodified from veafCommands, where it means "a script asked".
+    and veafSpawn.executeCommand(
+      position,
+      command,
+      coalition,
+      markId,
+      _bypassSecurity,
+      spawnedGroups,
+      nil,
+      nil,
+      route,
+      nil,
+      nil,
+      bypassSecurity
+    )
   then
     return true
   elseif

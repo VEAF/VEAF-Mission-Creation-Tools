@@ -599,6 +599,31 @@ Two cases where that is not what happens:
 
 To attach a logistic zone to something that moves — a carrier, say — link the zone to the unit in the Mission Editor (*Moving Zone*): the zone follows its unit.
 
+#### Switching CTLD sling loading off mid-mission {#ctld-slingload-toggle}
+
+A game master can turn CTLD sling loading on or off without editing a file or rebuilding the mission:
+
+> **F10 → CTLD → Disable CTLD sling loading** (or *Enable*, depending on the current state)
+
+The entry is **password-protected**: it changes how every helicopter crew plays, not only whoever pressed
+it. The menu only ever shows the command that changes something — offering "enable" while it is already
+enabled just asks the reader which of two entries does nothing.
+
+The change takes effect **immediately, both ways**: switching off stops hover pickups, switching back on
+resumes them. Nothing to reload.
+
+!!! warning "What this does not switch off: DCS's own winch"
+    It governs only the sling loading **CTLD manages** — hover pickup, the countdown, the crate lost on
+    overspeed. The game's own winch keeps working: a CTLD crate stays physically hookable with DCS's
+    sling whatever this setting says.
+
+    The on-screen message says so, because it is the first thing a crew notices after a switch-off — and
+    left unsaid, the command reads as broken.
+
+The underlying setting is `enableHoverSlingload`, which lives in your `ctld-config.yaml` like every other
+one; the menu only flips it at runtime. To start a mission with sling loading already off, set it to
+`false` there.
+
 ### Configuring CSAR via mission.yaml (YAML-first)
 
 CSAR can be configured the same way:

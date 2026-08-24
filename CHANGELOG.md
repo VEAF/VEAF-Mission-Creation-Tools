@@ -10,6 +10,44 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.39] — 2026-08-24
+
+### Added
+
+- **A game master can switch CTLD sling loading on and off from the radio menu** (`F10 → CTLD`), which
+  [#60](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/60) asked for in 2021. Secured, and
+  global: it changes how every helicopter crew in the mission plays, not only whoever pressed it. Only
+  the command that changes something is ever shown.
+
+  Effective immediately in both directions, and that is not an accident of the implementation: CTLD's
+  hover loop reschedules itself **before** it tests the setting, so switching off stops pickups at the
+  next tick and switching back on resumes them. Which is what makes a toggle honest here rather than a
+  build-time option pretending to be one.
+
+  **The obvious flag was the wrong one.** `slingLoad` kept its CTLD 1 name through the CTLD 2 migration
+  and lost its meaning: it now only decides which model a crate spawns with, and all three of those
+  models are `canCargo: true`. A toggle wired to it would have passed any review and reskinned crates.
+  The one that governs sling loading is `enableHoverSlingload`.
+
+  **The message names what does not change.** CTLD checks native DCS cargo before it looks at this
+  setting, so DCS's own winch keeps working whatever the toggle says — a CTLD crate stays hookable.
+  Unsaid, the first crew to hook a crate after a switch-off reports the command as broken.
+
+  It lives in `veaf.lua` beside the CTLD integration rather than in a module of its own. A `veafCtld`
+  module would have cost four plumbing points and, worse, a new module key a mission maker has to
+  discover — leaving the feature off and invisible by default.
+
+### Fixed
+
+- **The CTLD test double claimed to be a ready engine while missing part of one.** `dcs_mocks` satisfied
+  `veaf.isCtldReady()` but offered neither `ctld.gs` nor `setSetting`, which a real CTLD defines
+  unconditionally, so the first VEAF code to read a CTLD setting fell over on it. The mock now provides
+  the settings surface and `reset()` restores it. Hardening the production code against a missing `gs`
+  was the alternative and would have been wrong: it cannot happen in DCS, and it would hide a genuinely
+  broken CTLD behind a silent default.
+
+---
+
 ## [6.15.38] — 2026-08-24
 
 ### Fixed

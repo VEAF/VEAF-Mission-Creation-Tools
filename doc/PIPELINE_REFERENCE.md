@@ -544,8 +544,43 @@ versions:
 | `name` | string | Oui | Nom de la variante. Dans `mission build`, la sortie est `missions/<NomDeBase>_<name>.miz` (ex: `aube` → `Ma-Mission_aube.miz`) ; la forme nue `<name>.miz` n'existe qu'avec `inject-weather` autonome |
 | `time` | string | Non | Expression horaire — voir ci-dessous |
 | `date` | string | Non | Expression de date — voir ci-dessous |
-| `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo |
-| `weather` | objet | Non | Surcharge météo manuelle (utilisée sans `metar`) |
+| `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo, et affichable dans le briefing via [`${METAR}`](#briefing-variables) |
+| `airport_icao` | string | Non | Code OACI dont la météo réelle est récupérée en ligne (utilisé sans `metar`) |
+| `weather` | objet | Non | Surcharge météo manuelle (utilisée sans `metar` ni `airport_icao`) |
+
+### Afficher la météo dans le briefing : `${METAR}` {#briefing-variables}
+
+Écrivez `${METAR}` dans le briefing de la mission (dans l'éditeur DCS : Situation, ou l'une des tâches
+par camp) et le build le remplace par la météo de **cette variante**. Sept variantes météo donnent donc
+sept briefings différents, sans rien retaper.
+
+```
+Situation : vol de reconnaissance au nord du théâtre.
+
+Météo au départ : ${METAR}
+```
+
+C'était l'objet de [#40](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/40) : une mission
+étant reconstruite depuis ses sources à chaque build, tout ce qu'on tape à la main dans le briefing est
+écrasé au build suivant. La substitution résout ça en posant la valeur **pendant** le build.
+
+Ce que `${METAR}` vaut selon la variante :
+
+| La variante déclare | `${METAR}` affiche |
+|---|---|
+| `metar: "..."` | la chaîne telle que vous l'avez écrite |
+| `airport_icao: LFRS` | le METAR réel récupéré pour cette station |
+| seulement `weather:` | **rien** — il n'existe aucun METAR à afficher, donc le texte `${METAR}` reste tel quel et un avertissement le dit dans le log |
+
+!!! note "Un `${...}` inconnu n'est jamais effacé"
+    `${METRA}` reste écrit `${METRA}` dans le briefing. C'est délibéré : un briefing est lu par des
+    joueurs, et un trou à la place du texte se lit comme si le build avait mangé votre prose, alors qu'un
+    nom visiblement mal orthographié vous dit quoi corriger.
+
+!!! tip "Aucun appel réseau si vous ne l'utilisez pas"
+    La récupération du METAR d'un OACI n'a lieu que si le briefing contient réellement `${METAR}`.
+
+---
 
 ### Expressions horaires
 

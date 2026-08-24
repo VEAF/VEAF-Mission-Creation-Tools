@@ -260,10 +260,23 @@ function veafSpawn.spawnUnit(
 
   -- message the unit spawning
   veaf.loggers.get(veafSpawn.Id):trace(string.format("message the unit spawning"))
+  -- A JTAC always speaks, even when a script spawned it. Kept deliberately (decision recorded in
+  -- FIX-SPAWN-BYPASSSECURITY-AS-SILENT, 2026-08-24) rather than tidied away with the conflation it was
+  -- patching around: its message carries the laser code and the radio frequency, which is the data a
+  -- pilot needs to *use* the JTAC, not a notification he can afford to miss. A convoy appearing is news;
+  -- "designating on 1688" is equipment.
+  --
+  -- A TACAN is the same kind of data, and is NOT exempted here — a scripted TACAN stays as quiet as it is
+  -- today, so this lot changes no behaviour it was not asked to change. If a mission ever needs one, this
+  -- is the line to extend.
   if (role == "jtac") or not silent then
     local message = veaf.t("spawn.unit_spawned", unit.displayName, country)
     if role == "jtac" and not static then
       message = veaf.t("spawn.jtac_spawned", code, freq, mod)
+    elseif role == "tacan" then
+      -- Band upper-cased for display only: it arrives as the pilot typed it (`band x`), and a TACAN is
+      -- read aloud as 99X.
+      message = veaf.t("spawn.tacan_spawned", tostring(freq or ""), string.upper(tostring(mod or "")), tostring(code or ""))
     end
     veaf.loggers.get(veafSpawn.Id):trace(message)
     trigger.action.outText(message, 15)
@@ -1438,7 +1451,7 @@ veafSpawn.registerCommandHandler("unit", "KNOWN_PILOT", function(eventPos, optio
     code,
     channel,
     band,
-    bypassSecurity,
+    options.silent,
     not options.showMFD
   )
   return g, nil, false
@@ -1478,7 +1491,7 @@ veafSpawn.registerCommandHandler("cap", "KNOWN_PILOT", function(eventPos, option
     options.speed,
     options.capradius,
     options.skill,
-    bypassSecurity,
+    options.silent,
     not options.showMFD -- VMR-099: same inversion as the afac handler above
   )
   return g, nil, false

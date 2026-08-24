@@ -29,6 +29,7 @@ modules:
     debug_red: false              # logs détaillés Skynet pour le réseau rouge
     include_blue_in_radio: false  # afficher l'état du réseau bleu dans le menu F10
     debug_blue: false             # logs détaillés Skynet pour le réseau bleu
+    dynamic_spawn: false          # intégrer aussi les groupes apparus en cours de mission
 ```
 
 | Champ | Type | Défaut | Description |
@@ -38,6 +39,7 @@ modules:
 | `debug_red` | booléen | `false` | Debug verbeux Skynet pour la coalition rouge |
 | `include_blue_in_radio` | booléen | `false` | Ajouter l'état IADS bleu au menu radio F10 |
 | `debug_blue` | booléen | `false` | Debug verbeux Skynet pour la coalition bleue |
+| `dynamic_spawn` | booléen | `false` | Intégrer aussi les groupes apparus **en cours de mission** — voir [Apparitions en cours de mission](#dynamic-spawn) |
 
 ---
 
@@ -91,14 +93,29 @@ Détermine quels groupes DCS sont intégrés dans les réseaux Skynet.
 
 Le mode `Lenient` intégrera un convoi composé de tanks, transports **et** d'une SA-19 d'escorte. Le mode `Strict` ne l'intégrera pas.
 
-### Spawn dynamique — `veafSkynet.DynamicSpawn`
+### Apparitions en cours de mission — `dynamic_spawn` {#dynamic-spawn}
+
+Se règle depuis `mission.yaml` (`dynamic_spawn`), ou avant `initialize` avec `veafSkynet.DynamicSpawn`.
 
 | Valeur | Description |
 |--------|-------------|
 | `false` | Seuls les groupes présents au démarrage sont intégrés (**défaut**) |
-| `true` | Les groupes générés en cours de mission sont également intégrés dans les réseaux existants |
+| `true` | Les groupes apparus en cours de mission rejoignent aussi les réseaux existants |
 
-> `veafSpawn` ajoute automatiquement les unités SAM qu'il génère dans les réseaux Skynet, sauf si `DynamicSpawn = true` (dans ce cas `veafSkynet` gère lui-même cette surveillance).
+**Ce que ça coûte.** Activé, le module surveille **chaque apparition d'unité** de la mission pour repérer les groupes éligibles. C'est pour cette raison que le réglage est éteint par défaut : à activer quand la mission fait apparaître des SAM en cours de partie (zones de combat, campagne dynamique), pas systématiquement.
+
+**Ce que ça règle.** Sans lui, un SAM apparu en cours de mission — y compris par une zone de combat — ne rejoint aucun réseau, et rien ne le dit.
+
+**Qui décide, groupe par groupe.** L'option `skynet` d'une commande d'apparition reste maîtresse : `skynet false` garde le groupe **hors** de tout réseau (c'est ce que portent les raccourcis de convoi), et `skynet <nom de réseau>` l'envoie dans ce réseau précis plutôt que dans celui de sa coalition. Un groupe qu'aucune commande VEAF n'a déclaré — posé dans l'éditeur, créé par un script tiers — rejoint le réseau de sa coalition : c'est précisément à quoi sert ce réglage.
+
+> Les deux chemins d'intégration sont exclusifs : quand le réseau visé intègre les apparitions, c'est lui qui fait le travail ; sinon `veafSpawn` s'en charge au moment de l'apparition. Un groupe n'est jamais intégré deux fois.
+
+**Portée par réseau.** Le réglage est propre à chaque réseau. Éteindre l'intégration côté rouge — ou désactiver le réseau rouge — laisse le bleu fonctionner.
+
+```lua
+-- en cours de mission, réseau par réseau
+veafSkynet.setDynamicSpawn("red iads", false)
+```
 
 ### Délai de démarrage — `veafSkynet.DelayForStartup`
 
@@ -122,7 +139,7 @@ veafSkynet.destroyCommandCentersOfCoalition(coalition.side.RED)
 
 ---
 
-## Désactivation d'un réseau
+## Désactivation d'un réseau {#deactivation}
 
 Désactive un réseau Skynet et bascule tous ses éléments dans un état défini avant de les rendre à l'IA DCS.
 
@@ -137,6 +154,16 @@ veafSkynet.deactivateNetworkOfCoalition(coalition.side.RED, veafSkynet.SkynetEle
 | `veafSkynet.SkynetElementStates.Autonomous` | Mode autonome selon la configuration de chaque élément |
 | `veafSkynet.SkynetElementStates.Live` | Tous les éléments allumés (**défaut**) |
 | `veafSkynet.SkynetElementStates.Dark` | Tous les éléments éteints |
+
+**Un réseau désactivé reste désactivé.** Faire apparaître un SAM dedans ne le rallume plus : le groupe est bien rattaché — c'est ce que demande `skynet true` — mais le réseau ne se réveille pas tout seul. Avant, l'apparition d'un seul SAM suffisait à remettre en route un réseau qu'on venait d'éteindre.
+
+Pour le rallumer, il faut le demander. Tout ce qui a été rattaché entre-temps s'allume avec lui :
+
+```lua
+veafSkynet.activateNetworkOfCoalition(coalition.side.RED)
+```
+
+Désactiver un réseau **ne touche pas à l'autre** : le réseau bleu garde son état et son intégration des apparitions.
 
 ---
 

@@ -11,6 +11,34 @@
 -- See the documentation : https://veaf.github.io/documentation/
 ------------------------------------------------------------------
 
+-- WHAT THIS MODULE DOES NOT DO
+--
+-- It is a skeleton, on purpose and since 2021, and its documentation page says so (version 0.0.2,
+-- "exploratory use only"). The classes below carry their getters, setters and copy constructors, and
+-- nothing else. Written down here because it took an hour to establish and would take another hour to
+-- establish again — measured on 2026-08-24, not guessed:
+--
+--   * there is no storage. `AddGuardian` returned its argument and registered nothing, and there was no
+--     container to register into.
+--   * `VeafMG_Guardian` has no `activate`, `desactivate` or `isSilent` — the three methods the public
+--     verbs called. So "give the module storage" would not have been enough to make them work.
+--   * `veafMissileGuardian.getLargeScaleProtector()` is a stub returning nil, and it sits on the one
+--     path a fired weapon takes.
+--   * `VeafMG_Protector:start()` and `:stop()` have empty bodies. There is no watchdog anywhere, so
+--     nothing ever destroys a weapon in flight — which is the feature's entire point.
+--   * nothing in this repository constructs a `VeafMG_Guardian`, and `executeCommandFromRemote` is
+--     never registered with `veafRemote`, so enabling MISSILEGUARDIAN gives an F10 submenu containing
+--     one Help entry and nothing else.
+--
+-- One correction to the above, because the first reading of it was wrong: the documentation page tells a
+-- mission maker to build a guardian by hand in `mission-script.lua` and call `start()`. So the weapon
+-- path *is* reachable — by anyone following the documentation — and before this lot it warned the
+-- targeted pilot and then raised on the missing protector, on every shot. Guarding it is what makes the
+-- one behaviour the page promises (warn the target) actually complete.
+--
+-- FIX-MISSILEGUARDIAN-NO-STORAGE closed on the honest state rather than a repair: the public verbs
+-- refuse and say why, instead of raising on a function that was never written.
+
 veafMissileGuardian = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -283,9 +311,19 @@ function VeafMG_Guardian:onEvent(event)
               )
             end
 
-            -- pass the weapon to the large-scale protector
-            ---@diagnostic disable-next-line: undefined-field
-            veafMissileGuardian.getLargeScaleProtector():setWeapon(_weapon)
+            -- Pass the weapon to the large-scale protector, if there is one. There is not:
+            -- `getLargeScaleProtector` is a stub returning nil, so this line raised. Unreachable today —
+            -- nothing constructs a guardian, so nothing ever calls `start()` to register this handler —
+            -- but it is the first line that would fail the moment somebody wires it up, and a raise
+            -- inside a `world` event handler is the worst place to find that out.
+            local protector = veafMissileGuardian.getLargeScaleProtector()
+            if not protector then
+              veaf.loggers
+                .get(veafMissileGuardian.Id)
+                :warn("a weapon was detected, but there is no large-scale protector: nothing will follow it")
+              return
+            end
+            protector:setWeapon(_weapon)
           end
         end
       end
@@ -393,7 +431,17 @@ end
 -- local functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- The name of a unit, or nil when there is no unit.
+---
+--- Guarded because `getLauncher()` legitimately answers nil: DCS has no launcher to report once the
+--- shooter is gone, which for a shot event processed a moment later is ordinary rather than exotic.
+--- `VeafMG_Weapon:setDcsWeapon` passes that result here unconditionally, so an unguarded
+--- `unit:getName()` raised on it. Found by a test written for the missing protector, whose weapon mock
+--- had no launcher; the existing `setDcsWeapon` test never saw it because its mock always supplied one.
 function veafMissileGuardian.getUnitName(unit)
+  if not unit then
+    return nil
+  end
   return unit:getName() -- TODO make this useful (add the player name if possible)
 end
 
@@ -405,40 +453,34 @@ end
 -- global functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
--- add a new guardian
-function veafMissileGuardian.AddGuardian(guardian)
-  veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("veafMissileGuardian.AddGuardian([%s])", guardian:getName() or ""))
-  return guardian
+--- Refuse a verb this skeleton cannot honour, audibly.
+---
+--- A warning rather than a silent return: a mission calling one of these asked for protection it is not
+--- getting, and the log is the only place that can say so. `false` rather than `nil`, so a caller
+--- reading the result gets a decision rather than an absence.
+local function refuseNotImplemented(verb)
+  veaf.loggers
+    .get(veafMissileGuardian.Id)
+    :warn(string.format("veafMissileGuardian.%s is not implemented — this module is a skeleton, see the header", verb))
+  return false
 end
 
--- activate a guardian
-function veafMissileGuardian.ActivateGuardian(name, silent)
-  veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("veafMissileGuardian.ActivateGuardian([%s])", name or ""))
-  local guardian = veafMissileGuardian.GetGuardian(name)
-  local result = guardian:activate(silent)
-  if not silent and not guardian:isSilent() then
-    if result then
-      trigger.action.outText(veaf.t("entity.activated", "VeafMG_Guardian " .. guardian:getFriendlyName()), 10)
-    else
-      trigger.action.outText(veaf.t("entity.already_active", "VeafMG_Guardian " .. guardian:getFriendlyName()), 10)
-    end
-  end
-  veafMissileGuardian.buildRadioMenu()
+-- add a new guardian — there is nowhere to add it to; see the header
+---@diagnostic disable-next-line: unused-local
+function veafMissileGuardian.AddGuardian(_guardian)
+  return refuseNotImplemented("AddGuardian")
 end
 
--- desactivate a guardian
-function veafMissileGuardian.DesactivateGuardian(name, silent)
-  veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("veafMissileGuardian.DesactivateGuardian([%s])", name or ""))
-  local guardian = veafMissileGuardian.GetGuardian(name)
-  local result = guardian:desactivate(silent)
-  if not silent and not guardian:isSilent() then
-    if result then
-      trigger.action.outText(veaf.t("entity.deactivated", "VeafMG_Guardian " .. guardian:getFriendlyName()), 10)
-    else
-      trigger.action.outText(veaf.t("entity.already_inactive", "VeafMG_Guardian " .. guardian:getFriendlyName()), 10)
-    end
-  end
-  veafMissileGuardian.buildRadioMenu()
+-- activate a guardian — impossible: no guardian can be stored, and the class has no `activate`
+---@diagnostic disable-next-line: unused-local
+function veafMissileGuardian.ActivateGuardian(_name, _silent)
+  return refuseNotImplemented("ActivateGuardian")
+end
+
+-- desactivate a guardian — same, and the class has no `desactivate` either
+---@diagnostic disable-next-line: unused-local
+function veafMissileGuardian.DesactivateGuardian(_name, _silent)
+  return refuseNotImplemented("DesactivateGuardian")
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -539,41 +581,15 @@ function veafMissileGuardian.buildRadioMenu()
   veafRadio.refreshRadioMenu()
 end
 
+--- List the guardians — there are none, and none can exist.
+---
+--- It used to sort an empty local table and print "List of all available guardians:" with nothing under
+--- it, which reads as *no guardian is defined in this mission* rather than *this module cannot define
+--- one*. `listActiveMissions` sat next to it and iterated `veafMissileGuardian.missionsDict`, a table
+--- this module never had — copied from `veafCombatMission`, where "missions" is a real concept. It is
+--- gone rather than guarded: a function whose only possible outcome is an error is not a feature.
 function veafMissileGuardian.listGuardians()
-  -- sort the missions alphabetically
-  local sortedMissions = {}
-  table.sort(sortedMissions)
-
-  local text = "List of all available guardians:\n"
-
-  for _, missionName in pairs(sortedMissions) do
-    text = text .. " - " .. missionName .. "\n"
-  end
-
-  trigger.action.outText(text, 20)
-end
-
-function veafMissileGuardian.listActiveMissions()
-  -- sort the missions alphabetically
-  local sortedMissions = {}
-  for _, mission in pairs(veafMissileGuardian.missionsDict) do
-    if mission:isActive() then
-      table.insert(sortedMissions, mission:getName() .. " : " .. mission:getRemainingEnemiesString())
-    end
-  end
-  table.sort(sortedMissions)
-
-  local text = "No active combat mission !"
-
-  if #sortedMissions > 0 then
-    text = "List of active combat missions:\n"
-
-    for _, missionName in pairs(sortedMissions) do
-      text = text .. " - " .. missionName .. "\n"
-    end
-  end
-
-  trigger.action.outText(text, 20)
+  return refuseNotImplemented("listGuardians")
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -195,6 +195,10 @@ def mission_identity_section(live_name: str | None = None) -> list[str]:
         "#   era: MODERN                   # MODERN | COLD_WAR | WW2",
         f"#   language: fr                  # {t('generated.mission_yaml.field.language')}",
         "#   silence_atc_on_all_airbases: false  # mission-wide option: silence ATC at every airbase",
+        "#   hide_names_from_spawned_groups: true  # default true: a spawned group is named",
+        "#                               # `[r]-<invented name>#<id>` instead of carrying its zone and",
+        "#                               # type, so a player cannot read a zone's contents off the F10",
+        "#                               # map. Set false while building or debugging a mission.",
     ]
     return lines
 
@@ -648,6 +652,11 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
         lines.append(f"{indent}    :setShowZonePositionInfo(false)")
     if zone_def.get("smoke_and_flare", True) is False:
         lines.append(f"{indent}    :setEnableSmokeAndFlare(false)")
+    # `rename_units_sequentially: false` keeps a respawned group's original unit names. Sharko's #289:
+    # renaming helps on a finished map and hides the name you need while debugging a `.miz`. Same rule
+    # again — the framework default is `true`, so only a `false` is emitted.
+    if zone_def.get("rename_units_sequentially", True) is False:
+        lines.append(f"{indent}    :setRenameUnitsSequentially(false)")
     # 171 zones were hidden on purpose and reappeared in the F10 menu under the placeholder names
     # their authors gave them precisely because nobody was meant to see them.
     if zone_def.get("radio_menu_disabled"):
@@ -1231,6 +1240,78 @@ def enabled_module_config(mission_yaml: dict, module_id: str) -> dict | None:
     return config if _get_module_enabled(config, True) else None
 
 
+#: Lua targets that a **documented** `mission:` field now governs, mapped to the field that governs
+#: them. `module_settings:` is a migration path (see MISSION_YAML_REFERENCE, `#module-settings`), not a
+#: permanent override, so once a setting has a typed field the leftover hatch entry yields to it.
+#:
+#: Kept as an explicit pair rather than derived: the two names have no mechanical relationship
+#: (`hide_names_from_spawned_groups` -> `veaf.HideNamesFromSpawnedGroups`), and inventing a convention
+#: to link them would be guessing on behalf of every future field. Add a line when a field is promoted.
+_MODULE_SETTINGS_SUPERSEDED_BY = {
+    "veaf.HideNamesFromSpawnedGroups": "hide_names_from_spawned_groups",
+}
+
+
+def _drop_superseded_module_settings(module_settings: Mapping[str, object], mission_cfg: Mapping[str, object]) -> dict:
+    """Return `module_settings` without the entries a documented `mission:` field already sets.
+
+    Both forms in one mission.yaml are two contradictory explicit requests, and the generated Lua can
+    only honour the last assignment. Left alone the hatch wins, because it is emitted after the mission
+    block — so the field the reference documents would silently do nothing.
+
+    Args:
+        module_settings: The mission's `module_settings:` mapping, possibly empty.
+        mission_cfg: The `mission:` section.
+
+    Returns:
+        The mapping to emit, which is the same object's content minus any superseded key.
+    """
+    kept = {}
+    for key, value in module_settings.items():
+        field = _MODULE_SETTINGS_SUPERSEDED_BY.get(str(key))
+        if field is not None and field in mission_cfg:
+            logger.warning(t("generator.module_setting_superseded", setting=str(key), field=field))
+            continue
+        kept[key] = value
+    return kept
+
+
+def _warn_on_shadowed_module_settings(module_settings: Mapping[str, object], lines: Sequence[str]) -> None:
+    """Report any `module_settings:` key a later module block assigns again.
+
+    Args:
+        module_settings: The mission's `module_settings:` mapping, possibly empty.
+        lines: The generated Lua, in order.
+
+    The cost of this class of defect is not the wrong value — it is that the setting *looks* applied.
+    `verify-mission-c` set `veafSkynet.DynamicSpawn` through this hatch and the Skynet block reassigned
+    it 145 lines further down, immediately before `initialize()`. The author could open the generated
+    Lua, find their line, and be wrong; the mission ran with the feature off for two days and its own
+    verification checks would have reported the default as a measurement.
+
+    Reads the emitted Lua rather than a list of known blocks, so a block added later is covered without
+    anyone remembering to update a list here. A warning rather than an error: shadowing is legitimate
+    while a hatch is being migrated away from, and the build must still produce a mission.
+    """
+    if not module_settings:
+        return
+
+    for key in module_settings:
+        name = str(key)
+        # Where the hatch wrote it, and where anything wrote it last.
+        occurrences = [i for i, line in enumerate(lines) if line.strip().startswith(f"{name} =")]
+        if len(occurrences) < 2:
+            continue
+        logger.warning(
+            t(
+                "generator.module_setting_shadowed",
+                setting=name,
+                first=occurrences[0] + 1,
+                last=occurrences[-1] + 1,
+            )
+        )
+
+
 def _community_enabled(mission_yaml: dict, script_id: str) -> bool:
     """Return whether a community script is enabled, matching the build's enable rule.
 
@@ -1389,6 +1470,12 @@ def generate_config_lua(
             lines.append(f"veaf.config.era = veaf.ERA.{era}")
         if mission_cfg.get("silence_atc_on_all_airbases"):
             lines.append("veaf.silenceAtcOnAllAirbases()")
+        # Emitted only when actually given, the way `SecurityDisabled` and `DynamicSpawn` are: writing it
+        # from a Python default would overwrite a `module_settings:` line silently, which is the defect
+        # FIX-MODULE-SETTINGS-OVERWRITTEN was about. Silence here leaves `veaf.lua`'s own `true`.
+        if "hide_names_from_spawned_groups" in mission_cfg:
+            hide = "true" if mission_cfg["hide_names_from_spawned_groups"] else "false"
+            lines.append(f"veaf.HideNamesFromSpawnedGroups = {hide}")
         lines.append("")
 
     # ── In-game message language ───────────────────────────────────────────
@@ -1457,6 +1544,9 @@ def generate_config_lua(
     # reached neither mission.yaml nor the generated Lua (#725). Keyed by the full Lua target so a
     # setting nobody enumerated is carried too.
     module_settings: dict = mission_yaml.get("module_settings") or {}
+    # A documented `mission:` field beats a leftover hatch entry for the same Lua target: without this
+    # the hatch is emitted later and wins, so the field the reference documents would do nothing.
+    module_settings = _drop_superseded_module_settings(module_settings, mission_yaml.get("mission") or {})
     if module_settings:
         lines.append("-- ── Module settings ──────────────────────────────────────────────────────────")
         for key, value in module_settings.items():
@@ -1608,6 +1698,21 @@ def generate_config_lua(
         db = "true" if debug_blue else "false"
         lines.append("-- ── Skynet-IADS ──────────────────────────────────────────────────────────────")
         lines.append("if veafSkynet then")
+        # Emitted **only when the field is given**, the way `veaf.SecurityDisabled` is handled above.
+        #
+        # It used to be written unconditionally from a `False` default, right before `initialize()`. A
+        # mission that set the same variable through the `module_settings:` hatch got it written ~145
+        # lines earlier and silently undone here — the setting was visibly present in the generated Lua
+        # and inert. That broke `verify-mission-c`, the mission whose job is to verify this very feature,
+        # from 2026-08-20 until it was found on 2026-08-22: its Skynet checks ran with dynamic spawn off
+        # and would have reported the documented default as a measurement.
+        #
+        # Not emitting the line is safe rather than a behaviour change: `veafSkynet.lua` already declares
+        # `veafSkynet.DynamicSpawn = false`, so a mission that never mentions the field keeps that
+        # default. An explicit `dynamic_spawn: false` is a statement and still overrides a hatch.
+        if "dynamic_spawn" in skynet_cfg:
+            ds = "true" if skynet_cfg["dynamic_spawn"] else "false"
+            lines.append(f"    veafSkynet.DynamicSpawn = {ds}")
         lines.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
         lines.append("end")
         lines.append("")
@@ -1637,6 +1742,8 @@ def generate_config_lua(
         lines.append("    TUM.initialize()")
         lines.append("end")
         lines.append("")
+
+    _warn_on_shadowed_module_settings(module_settings, lines)
 
     return "\n".join(lines)
 
@@ -1780,6 +1887,7 @@ def generate_mission_yaml_template(
                 "  #   debug_red: false",
                 "  #   include_blue_in_radio: false",
                 "  #   debug_blue: false",
+                "  #   dynamic_spawn: false     # integrate groups spawned during the mission into the IADS",
             ]
         elif upper == "CTLD":
             # CTLD 2 takes no settings here: its configuration is the mission's

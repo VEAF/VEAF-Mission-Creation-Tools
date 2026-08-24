@@ -157,12 +157,16 @@ end
 
 -- An unrecognised key is ignored in silence, and — unlike a recognised one — leaves the
 -- defaults intact. Only veafSpawn reports unknown keys; generalising that is ticket 02's job.
-function TestVeafRadioCharacterisation:test_unknown_keyword_is_ignored_silently()
+-- FEAT-SPAWN-OPTION-VALIDATION renamed this: an unknown keyword is no longer ignored, it is
+-- collected so the caller can name it to the pilot and abort. What the original test proved and
+-- this one still proves: the **recognised** options are untouched by the presence of a bad one.
+function TestVeafRadioCharacterisation:test_an_unknown_keyword_is_collected_not_ignored()
   local r = veafRadio.markTextAnalysis("_radio transmit, banana 3")
   luaunit.assertNotNil(r)
   luaunit.assertTrue(r.transmit)
   luaunit.assertEquals(r.frequencies, "251")
-  luaunit.assertNil(r.unknownParameters)
+  luaunit.assertEquals(r.unknownParameters[1].key, "banana")
+  luaunit.assertEquals(#r.unknownParameters, 1)
 end
 
 -- FIXED (ticket 03): a *recognised* keyword with no value used to overwrite its default with
@@ -1035,6 +1039,32 @@ function TestVeafRadioCoalitionMenus:test_children_inherit_the_scope()
     end
   end
   luaunit.assertEquals(scopedCalls, 2)
+end
+
+-- The scope must survive more than one generation. `_buildSubtree` reads the parent's declared
+-- `coalition`, not its rendered one — it works because the recursion passes the *effective* side down
+-- through a synthetic parent. Asserting it here so that stays true: FIX-CARRIER-MENU-COALITION relies
+-- on it (each carrier's own submenu is a child of the scoped per-side menu), and
+-- FEAT-ROLE-AWARE-RADIO-MENU will build on the same dimension.
+function TestVeafRadioCoalitionMenus:test_grandchildren_inherit_the_scope()
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local scoped = builder:addMenu("Blue side", nil, coalition.side.BLUE)
+  local child = builder:addMenu("Carrier", scoped)
+  builder:addMenu("Deeper", child)
+  builder:build()
+  local scopedCalls, globalCalls = 0, {}
+  for _, call in ipairs(self.calls) do
+    if call.kind == "subMenuForCoalition" then
+      scopedCalls = scopedCalls + 1
+      luaunit.assertEquals(call.args[1], coalition.side.BLUE)
+    elseif call.kind == "subMenu" then
+      table.insert(globalCalls, call.args[1])
+    end
+  end
+  luaunit.assertEquals(scopedCalls, 3, "every generation under a scoped menu must stay scoped")
+  -- The unscoped root is legitimately global; nothing below the scoped menu may be.
+  luaunit.assertEquals(globalCalls, { "Root" })
 end
 
 function TestVeafRadioCoalitionMenus:test_forall_command_in_scoped_menu_is_scoped()

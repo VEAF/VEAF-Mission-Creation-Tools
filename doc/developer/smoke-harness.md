@@ -224,6 +224,35 @@ d'**événement** pour savoir qu'un chargement est terminé, bien meilleur que d
 d'images qui gèle pendant le chargement ; et `Sim.getLogHistory(from)`, qui rend le `dcs.log` lisible à
 travers le hook au lieu d'être analysé sur disque.
 
+## Les vérifications CSAR sur l'eau {#csar-over-water}
+
+`csar-avoids-water-open-sea` et `csar-avoids-water-coast` répondent à
+[#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245) — « le pilote CSAR apparaît dans
+l'eau » — sans avion et sans pilote humain. Trois appels de script suffisent : déclencher l'apparition,
+relire la position, demander ce qu'il y a dessous.
+
+Les deux vérifications posent des questions différentes, et c'est le but :
+
+- **en haute mer** — le cas signalé ;
+- **près d'une côte** — le cas intéressant. `FEAT-SCENERY-AWARE-SPAWN` a doté `veaf.findSpawnPoint` de
+  la conscience du terrain ; la vraie question est de savoir si CSAR passe par là. Un succès au large
+  avec un échec près de la côte signifierait que CSAR a son propre chemin de placement.
+
+Aucune coordonnée n'est écrite en dur : la vérification s'ancre sur le premier aérodrome et balaye
+jusqu'à trouver de l'eau, puis classe le point selon ce qui l'entoure à 150 m. Elle fonctionne donc sur
+n'importe quel théâtre.
+
+Elle tourne en transport `BRIDGE` : `csar` est un global de l'environnement de mission, chargé par
+`mission-script.lua`. Dans l'environnement du hook, elle répondrait `csar-absent` sur une mission qui
+l'a pourtant — un faux négatif.
+
+!!! warning "Toute réponse autre qu'un placement au sec est un échec"
+    Y compris celles qui disent que la question n'a pas pu être posée (`csar-absent`, `no-water-found`,
+    `no-group`). Une vérification qui passe alors qu'elle n'a rien demandé clôturerait #245 sur du vide,
+    et c'est précisément le mode d'échec contre lequel ce banc d'essai est écrit.
+
+---
+
 ## Ce qui reste à faire
 
 Le lot [`FEAT-DCS-SMOKE-HARNESS`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/.backlog/archive/FEAT-DCS-SMOKE-HARNESS.md) porte le détail. Le

@@ -584,4 +584,211 @@ function TestShortcutsInlineParserCharacterisation:test_the_parsed_password_is_t
   luaunit.assertEquals(self.calls[1].name, "Alpha")
 end
 
+-- ============================================================================
+-- FEAT-SPAWN-OPTION-VALIDATION deliberately leaves the alias spec OUT
+--
+-- Measured 2026-08-21 over 228 valid marker texts harvested from the suites: with the flag on, this spec
+-- flags **52** distinct keys on correct commands, where the six specs that were switched on flag none.
+--
+-- The cause is by design. An alias carries the parameters of the command it expands into — `size`,
+-- `defense`, `freq`, `speed`, … — and declares only the three it consumes itself. Reporting here would
+-- warn a pilot about options that are perfectly valid for the aliased command.
+-- ============================================================================
+TestVeafShortcutsAliasSpecReportsNothing = {}
+
+function TestVeafShortcutsAliasSpecReportsNothing:test_the_alias_spec_does_not_report_unknown_keys()
+  luaunit.assertNotEquals(veafShortcuts.AliasParameterSpec.reportUnknownKeys, true)
+end
+
+function TestVeafShortcutsAliasSpecReportsNothing:test_a_target_command_parameter_is_not_flagged()
+  -- `size` belongs to the aliased command, not to the alias syntax; it must pass through in silence
+  local options = veaf.parseMarkerText("-sa6, size 3, defense 4", veafShortcuts.AliasParameterSpec)
+  luaunit.assertNil(options.unknownParameters)
+end
+
+function TestVeafShortcutsAliasSpecReportsNothing:test_the_three_alias_keys_still_apply()
+  local options = veaf.parseMarkerText("-sa6, name mySam, silent", veafShortcuts.AliasParameterSpec)
+  luaunit.assertEquals(options.name, "mySam")
+  luaunit.assertTrue(options.silent)
+end
+
+-- ===========================================================================
+-- FIX-SPAWN-BYPASSSECURITY-AS-SILENT — an alias's bypass flag must not silence a pilot
+--
+-- This is the test the lot needed most, and the one its own dispatcher tests could not be: reverting the
+-- fix in `VeafAlias:execute` left every other test in the repository green. The defect lives in the gap
+-- between two variables one letter apart, so the assertion has to look at both arguments at once.
+--
+-- `-tacan` is the real case. It sets `setBypassSecurity(true)` so a pilot needs no password, and until
+-- this lot that same flag reached `spawnUnit`'s `silent` parameter — so dropping a `-tacan` marker
+-- produced no confirmation, no channel and no band.
+-- ===========================================================================
+TestAliasBypassDoesNotSilence = {}
+
+function TestAliasBypassDoesNotSilence:setUp()
+  veafShortcuts.buildDefaultList()
+  self.call = nil
+  -- veafSpawn is not loaded by this suite, which is what makes the stub honest: what is under test is the
+  -- arguments veafShortcuts *hands over*, not what veafSpawn does with them.
+  local test = self
+  veafSpawn = {
+    executeCommand = function(position, command, coalition, markId, bypassSecurity, groups, rc, rd, route, asd, req, scripted)
+      test.call = { command = command, bypassSecurity = bypassSecurity, scripted = scripted }
+      return true
+    end,
+  }
+end
+
+function TestAliasBypassDoesNotSilence:tearDown()
+  veafSpawn = nil
+end
+
+--- Drive the alias exactly as a marker does: veafCommands hands the marker path `bypassSecurity = false`.
+function TestAliasBypassDoesNotSilence:_dropMarker(text)
+  veafShortcuts.executeCommand({ x = 0, y = 0, z = 0 }, text, 1, 0, false)
+  return self.call
+end
+
+function TestAliasBypassDoesNotSilence:test_the_alias_expands_and_reaches_the_spawn()
+  -- Guards the two tests below: if the plumbing ever stops reaching veafSpawn, they would both pass on a
+  -- nil call rather than on the right behaviour.
+  local call = self:_dropMarker("-tacan")
+  luaunit.assertNotNil(call, "-tacan must reach veafSpawn.executeCommand")
+  luaunit.assertNotNil(call.command:find("tacan", 1, true), "expanded to: " .. tostring(call.command))
+end
+
+function TestAliasBypassDoesNotSilence:test_the_alias_still_bypasses_the_password_check()
+  -- The half that must NOT change: `-tacan` is deliberately usable without a password.
+  luaunit.assertEquals(self:_dropMarker("-tacan").bypassSecurity, true)
+end
+
+function TestAliasBypassDoesNotSilence:test_but_it_does_not_silence_the_spawn()
+  -- The defect, in one assertion. `false` because a person dropped this marker; the alias's own bypass
+  -- flag is about passwords and has no opinion on whether the pilot deserves an answer.
+  luaunit.assertEquals(self:_dropMarker("-tacan").scripted, false)
+end
+
+function TestAliasBypassDoesNotSilence:test_an_alias_that_needs_a_password_is_also_not_silenced()
+  -- The other diagonal: silence must not be derivable from the bypass flag in either direction. `-sa2`
+  -- does not set it, so both values differ from the `-tacan` case above.
+  local call = self:_dropMarker("-sa2")
+  luaunit.assertNotNil(call, "-sa2 must reach veafSpawn.executeCommand")
+  luaunit.assertEquals(call.bypassSecurity, false)
+  luaunit.assertEquals(call.scripted, false)
+end
+
+function TestAliasBypassDoesNotSilence:test_a_scripted_alias_is_silenced()
+  -- What a combat zone does: veafCommands passes true on the interpreter path, and that must survive the
+  -- alias layer untouched, or every zone would start announcing each group it spawns.
+  veafShortcuts.executeCommand({ x = 0, y = 0, z = 0 }, "-tacan", 1, 0, true)
+  luaunit.assertEquals(self.call.scripted, true)
+end
+
+-- ===========================================================================
+-- FIX-SANCTUARY-SHIFTED-ALIAS-CALLS — a delay that is not a number
+--
+-- `markTextAnalysis` extracts the delay with `!(%d*)`, so a legitimate one is always "" or digits.
+-- Anything else means a caller passed its arguments in the wrong positions, and it used to reach
+-- `timer.getTime() + delay` and raise there — which is how veafSanctuary spent five years never deploying
+-- its defences. The alias now runs immediately and the bad value is named in the log.
+-- ===========================================================================
+TestExecuteAliasDelayGuard = {}
+
+function TestExecuteAliasDelayGuard:setUp()
+  veafShortcuts.buildDefaultList()
+  self.scheduled = nil
+  self.ran = nil
+  self._schedule = mist.scheduleFunction
+  local test = self
+  mist.scheduleFunction = function(fn, args, when)
+    test.scheduled = when
+  end
+  -- veafSpawn is not loaded by this suite; the alias chain only needs it to answer.
+  veafSpawn = {
+    executeCommand = function(position, command)
+      test.ran = command
+      return true
+    end,
+  }
+end
+
+function TestExecuteAliasDelayGuard:tearDown()
+  mist.scheduleFunction = self._schedule
+  veafSpawn = nil
+end
+
+function TestExecuteAliasDelayGuard:_execute(delay)
+  return veafShortcuts.ExecuteAlias("-tacan", delay, "", { x = 0, y = 0, z = 0 }, 1, 0, true, {})
+end
+
+function TestExecuteAliasDelayGuard:test_a_command_string_as_the_delay_does_not_raise()
+  -- The exact value veafSanctuary was passing. Before the guard this was arithmetic on a string.
+  luaunit.assertTrue(self:_execute("radius 2000, multiplier 2, skynet false, hdg 123"))
+end
+
+function TestExecuteAliasDelayGuard:test_and_the_alias_runs_immediately_instead()
+  -- Losing the delay is a smaller loss than losing the spawn.
+  self:_execute("radius 2000, multiplier 2, skynet false")
+  luaunit.assertNotNil(self.ran, "the alias must still have been executed")
+  luaunit.assertNil(self.scheduled, "and not scheduled for a nonsense time")
+end
+
+function TestExecuteAliasDelayGuard:test_a_real_delay_still_schedules()
+  -- The feature the guard must not break: `-tacan!30` arrives here as the string "30".
+  self:_execute("30")
+  luaunit.assertNotNil(self.scheduled, "a numeric delay must still schedule")
+  luaunit.assertNil(self.ran, "and must not have run yet")
+end
+
+function TestExecuteAliasDelayGuard:test_no_delay_runs_now()
+  self:_execute(nil)
+  luaunit.assertNotNil(self.ran)
+  luaunit.assertNil(self.scheduled)
+end
+
+function TestExecuteAliasDelayGuard:test_an_empty_delay_runs_now()
+  -- What markTextAnalysis returns for an alias written without `!` — the common case.
+  self:_execute("")
+  luaunit.assertNotNil(self.ran)
+  luaunit.assertNil(self.scheduled)
+end
+
+function TestExecuteAliasDelayGuard:test_the_refusal_is_loud()
+  -- "Refused loudly" is the requirement, and a comment is not a requirement. Without this, the next tidy-up
+  -- could drop the log and leave a misaligned caller silently losing its delay — which is a quieter version
+  -- of the bug this lot exists to fix.
+  local logger = veaf.loggers.get(veafShortcuts.Id)
+  local origError = logger.error
+  local logged = {}
+  logger.error = function(_, text, ...)
+    table.insert(logged, tostring(text))
+  end
+  self:_execute("radius 2000, multiplier 2, skynet false")
+  logger.error = origError
+  luaunit.assertEquals(#logged, 1, "exactly one error, naming the bad delay")
+  luaunit.assertNotNil(logged[1]:find("delay", 1, true), "the message must say what was wrong: " .. logged[1])
+end
+
+function TestExecuteAliasDelayGuard:test_a_good_delay_is_not_complained_about()
+  -- The other side: a legitimate delay must pass without noise, or the log becomes unreadable and the real
+  -- complaint gets lost in it.
+  local logger = veaf.loggers.get(veafShortcuts.Id)
+  local origError = logger.error
+  local count = 0
+  logger.error = function()
+    count = count + 1
+  end
+  self:_execute("30")
+  logger.error = origError
+  luaunit.assertEquals(count, 0)
+end
+
+function TestExecuteAliasDelayGuard:test_a_numeric_delay_keeps_its_value()
+  -- Coerced, not merely accepted: scheduling at `timer.getTime() + "30"` happened to work through Lua's
+  -- string coercion, and that coincidence is what hid the string case for five years.
+  local before = timer.getTime()
+  self:_execute("30")
+  luaunit.assertAlmostEquals(self.scheduled - before, 30, 0.01)
+end
+
 os.exit(luaunit.LuaUnit.run())

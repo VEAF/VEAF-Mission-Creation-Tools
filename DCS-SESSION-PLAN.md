@@ -1,0 +1,389 @@
+# Plan de session DCS — préparé le 2026-08-22
+
+Tout est prêt et construit. Ce document est l'**ordre de passage** : il regroupe les vérifications par
+mission pour que tu charges chaque mission une seule fois. Le détail de chaque item vit dans
+[`DCS-SESSION-TODO.md`](DCS-SESSION-TODO.md) ; ici, seulement ce que tu fais et ce que tu regardes.
+
+**Coche au fur et à mesure. Si tu t'arrêtes en route, dis-moi juste où tu en es.**
+
+---
+
+## Ce que j'ai préparé
+
+| Fait | Pourquoi ça comptait |
+|---|---|
+| **Bundle de scripts régénéré** (`build/veaf-scripts.lua`) | Il datait du **19 août** et ne contenait **aucun** correctif de la journée. Construire les missions en l'état t'aurait fait tester le code de mardi — toutes les vérifications auraient été fausses sans que rien ne le dise. |
+| **`VerifyMissionA_noon.miz` reconstruite** | `test/veaf-tools/verify-mission-a/missions/` |
+| **`VerifyMissionC_noon.miz` reconstruite** | `test/veaf-tools/verify-mission-c/missions/` |
+| **Vérifié que les deux `.miz` embarquent le code du jour** | Les six symboles neufs sont bien dedans (`resolveCsarSurvivorPoint`, `isGroupCombatEffective`, `offsetWP1`, `referencePositionOf`, `advanceConvoy`, `CSAR_SURVIVOR_SEARCH_RADIUS`). |
+
+Les deux missions sont en `security.disabled: true` et en slots parking, moteur froid.
+
+---
+
+## Étape 0 — ✅ fait, et le résultat est plus intéressant que prévu
+
+Trois **SA-15 (Tor 9A331)** rouges sur une carte nue, sans aucun script, alarme rouge, ROE ouvrir le feu :
+**ils lockent et ils tirent.**
+
+Mais ta version est **la même** que celle où Sharko a reproduit le bug — 2.9.28.26385, rien n'a été patché
+entre les deux. Donc ce n'est pas « DCS a été réparé ». Ce qui est établi est plus étroit :
+
+| Prouvé | Toujours ouvert |
+|---|---|
+| Un SAM qui embarque son propre radar de tir engage | Un **site multi-unités**, dont les lanceurs dépendent d'un radar séparé, n'est pas testé |
+
+Le Tor n'a besoin de rien ; un `Kub 2P25 ln` ne peut pas tirer sans son `Kub 1S91 str`. Sharko a dit
+« 3 sams sur une carte » sans préciser lesquels — s'il avait posé des sites incomplets ou des lanceurs
+seuls, ça ressemblerait exactement à une panne générale de DCS.
+
+**Conséquence : les items 11 et 16 sont débloqués, et l'étape 2c devient un test à double lecture.**
+`VerifyMissionC` fait justement tourner un SA-6 complet, donc elle exerce la famille non testée.
+
+---
+
+## Résultats de la session — au 24/08
+
+| Vérification | Résultat |
+|---|---|
+| 0 · SAM autonome (Tor) | ✅ locke et tire — voir la nuance sur les sites multi-unités ci-dessus |
+| 1a · dispersion + départ sans détour | ✅ tout comme prévu |
+| 1b · escorte du FARP | ✅ **corrigé et vérifié le 24/08** — « c'est bon, tout est en dehors du farp statique », puis « c'est bon, rien n'a bougé » sur une seconde passe. **Cinq** défauts, PR #792, dont trois estimations de taille de ma part ; voir ci-dessous |
+| 1c · convoi sur itinéraire | ✅ les commandes fonctionnent. Réserve d'ergonomie : chaque commande est enfermée dans un sous-menu à un seul élément |
+| — · un marqueur simple renvoyait une erreur | ✅ **corrigé**, PR #789 — onze jours de régression, sans lien avec la session |
+| 2a · `#command` retardé meurt avec sa zone | ✅ |
+| 2b · menu porte-avions côté rouge | ✅ |
+| 2c · check 6 — le SAM de la zone rejoint le réseau | ✅ `group added to RED network (3)` après activation, et le SA-6 a abattu l'observateur : il était bien opérationnel dans le réseau |
+| 2c · check 7 — un spawn ne réveille pas un réseau éteint | ✅ `0 actual reactivation(s)` et « nothing has reactivated it since » : le spawn rejoint le réseau, le réseau reste éteint. **Lot fermé** |
+| 2c bis · le cycle allumé/éteint | 🔎 **10 s mesurées** = deux cycles de 5 s, comme prédit depuis le code. Cause dans Skynet, lot déposé |
+| 0bis · SA-6 complet, carte nue, sans script | ✅ **il a tiré** → il n'y a jamais eu de bug SAM dans DCS |
+| 2d · alarme par nature | ✅ pour ce qui était testable : le convoi roule. Les chars n'ont **qu'un waypoint** dans la mission C, donc aucune route — leur immobilité est la donnée, pas un défaut |
+| 3 · les deux contrôles CSAR sur l'eau | ✅ passés le 23/08 — après **cinq** défauts successifs du harnais, aucun n'étant une régression du produit. PR #790 est ce qui les rend capables d'échouer |
+| — · `csarMode` levait une erreur au lieu de sanctionner | ✅ **corrigé** le 24/08, PR #796. Trouvé en écrivant le correctif précédent, jamais vu en jeu : personne n'avait réglé `csarMode`, donc personne ne l'avait déclenché |
+
+### 2c — check 7 : ✅, après deux fausses lectures dues à mon harnais
+
+Résultat final : `0 actual reactivation(s)`, *« DEACTIVATED from this menu, nothing has reactivated it
+since »*, et le groupe spawné bien présent dans le réseau. C'est exactement l'intention de #261. **Lot
+`FIX-SKYNET-DYNAMICSPAWN-SCOPE` fermé**, checks 6 et 7 validés en jeu.
+
+Le `4 delayedActivate` ne contredit rien : le compteur enregistre l'**appel**, et le garde-fou est dedans
+(`if network.deactivated then return end`), donc `_activateIADS` n'est jamais atteint.
+
+**Deux fausses lectures ont précédé la bonne, et les deux venaient de mon harnais** :
+
+1. le `dynamic_spawn` de la mission était écrasé silencieusement depuis le 20/08 → la mission tournait
+   avec la fonctionnalité coupée ;
+2. le menu désactivait par `iads:deactivate()`, une route que le correctif ne peut pas voir → il a affiché
+   « #261 CONFIRMED » sur un produit qui marche.
+
+Les deux fois, le code avait raison et l'instrument avait tort.
+
+**À retenir pour qui refera ce test** : utiliser `-sa6` plutôt que `-samLR`. `-samLR` construit un groupe
+dont **chaque unité est tirée au sort** — un essai a sorti un Tor (Skynet a enregistré un site SAM), le
+suivant seulement un Dog Ear (enregistré comme EWR). Les deux comportements sont corrects, mais un
+échantillon non déterministe rend la question « est-ce qu'un site SAM a rejoint ? » indécidable.
+
+### 2c bis — la cause du cycle, trouvée dans le code de Skynet
+
+Ton test l'a tranché : un **SA-6 complet dans un seul groupe**, sur carte nue, sans aucun script, **tire**.
+Donc il n'y a jamais eu de bug SAM dans DCS — ni sur les autonomes (tes SA-15), ni sur les sites
+multi-unités. L'avertissement que ce document portait depuis deux jours était faux, il est retiré.
+
+Et ça déplace le problème chez nous. `SkynetIADS.evaluateContacts` tourne toutes les **5 secondes** et, à
+chaque passage :
+
+1. remet `targetsInRange = false` sur chaque site, **inconditionnellement** ;
+2. ne collecte, parmi les sites sous couverture radar, que ceux qui sont **inactifs** ;
+3. n'appelle `informOfContact` que sur ceux-là — et c'est le **seul** endroit du fichier qui remet
+   `targetsInRange` à `true` ;
+4. éteint en fin de cycle tout site dont `targetsInRange` est resté `false`.
+
+Donc un site qui vient de s'allumer est actif, donc exclu de la collecte, donc jamais informé, donc
+éteint au cycle suivant. Allumé, éteint, allumé, éteint. Un site qui détecte sa cible **tout seul** ne
+s'en sort pas non plus : ses contacts sont versés dans l'IADS mais on ne l'en informe jamais.
+
+**Mesuré : toutes les 10 secondes.** Un cycle complet — lever, rétracter, relever — c'est **deux**
+passages d'évaluation : 5 s allumé plus 5 s éteint font exactement 10 s entre deux états identiques. La
+prédiction était faite depuis le code *avant* la mesure, pas ajustée après.
+
+Correction que je dois à ton dernier retour : le SA-6 **t'a abattu** après activation de la zone. Donc le
+cycle **dégrade** l'engagement, il ne l'interdit pas — un site allumé la moitié du temps finit par tirer
+si tu restes à portée. Cinq cycles perdus puis un tir, c'est exactement ça. Mon PRD affirmait « il ne
+garde jamais son radar assez longtemps pour tirer » : c'était trop fort, c'est corrigé.
+
+Réserve que je préfère énoncer : un défaut aussi central dans un script mûr et très utilisé est
+suspect — ça voudrait dire que tous les SAM Skynet cyclent toutes les 5 s chez tout le monde. Mais tu as
+vu les lanceurs se rétracter physiquement, donc l'effet est réel, et ce chemin de code n'a pas d'autre
+sortie.
+
+Skynet est vendu **compilé** depuis le fork Regroupement-Patrouille : pas question de patcher le fichier
+en place, il serait écrasé au prochain build. La route sera une remontée amont ou un remplacement de
+méthode au chargement, comme on fait pour CSAR.
+
+**Et ça rouvre le rapport de Tripack** sur les SAM muets en zone de combat en 6.15.2, qu'on avait classé
+« DCS est cassé pour tout le monde ». C'est un candidat sérieux : même symptôme, même mécanisme, et il
+précède tous nos changements d'état d'alarme.
+
+---
+
+## Étape 1 — `VerifyMissionA_noon.miz` (3 vérifications, une seule charge)
+
+```
+test/veaf-tools/verify-mission-a/missions/VerifyMissionA_noon.miz
+```
+
+> **Réparée et reconstruite le 22/08 après ton retour.** L'éditeur refusait de la sauvegarder :
+> `SmokeZone-SmokeArmor` avait ses deux waypoints avec temps *et* vitesse verrouillés — le second point,
+> ajouté hier, avait été copié du premier avec ses verrous. Corrigé à la source, `.miz` reconstruit,
+> vérifié. Le balayage de **toutes** les routes des deux missions n'a trouvé que celle-là ; la mission C
+> est saine. **Recharge le fichier**, celui que tu avais ouvert est l'ancien.
+
+Prends le slot, roule ou décolle, puis tout se fait au marqueur F10 et au menu radio.
+
+### 1a · ~~Le tag sur une seule unité du groupe~~ — retiré, le critère était faux
+
+**Rien à faire ici.** Deux erreurs de ma part, trouvées par ton retour :
+
+- La zone s'appelle **« Convoy Test Zone »** au menu radio. `SmokeZone` est son nom technique de zone de
+  déclenchement, pas ce que tu vois. La correction vaut pour tout ce document.
+- **« ils restent sur place » n'était pas la signature du tag.** `#alarm=2` se réduit à
+  `setOption(ALARM_STATE, 2)` (`veaf.lua:2117`) ; rien dans notre code n'immobilise un groupe. Deux chars
+  qui roulent est le comportement normal, tag lu ou pas — le test ne discriminait rien, quel que soit le
+  résultat.
+
+Ce que le jeu aurait ajouté : uniquement « DCS honore l'option », qui n'est pas notre code. La lecture du
+tag est prouvée par des tests énumérés sur toute la famille des tags, tag posé sur la deuxième unité
+(`test/lua/test_veafCombatZone.lua:1674` et `:1872`). Lot fermé sur cette base.
+
+### 1b · Item 18 — la dispersion revenue, et le départ sans détour
+
+Active **« Convoy Test Zone »** et regarde `SmokeZone-ConvoyBlue` et `SmokeZone-SmokeArmor` :
+
+- [ ] **Les groupes sont éparpillés**, pas alignés sur leur position d'éditeur → le défaut de 50 m est
+      bien réactivé.
+- [ ] **Rien n'est dans le décor** — pas de camion dans un bâtiment, pas de char sur une pente qu'il ne
+      peut pas quitter. L'ancrage `(-32220, 405386)` est du désert vide documenté, donc un échec ici
+      serait une vraie surprise.
+- [ ] **Le convoi part vers sa route sans revenir chercher un point derrière lui.** C'est le correctif
+      #779 : avant, un groupe dispersé retournait à sa position d'éditeur d'abord. Ce détour serait
+      l'indice que le correctif ne prend pas.
+- [ ] Désactive puis réactive la zone : les groupes doivent réapparaître **à des endroits différents**.
+      C'est le seul moyen de voir que la dispersion est vraiment aléatoire et pas un décalage fixe.
+
+**À regarder en passant, nouveau d'aujourd'hui (#780) :** est-ce qu'un groupe apparaît à peu près sur sa
+position dessinée, à la dispersion près, ou nettement plus loin ? Si tu veux tester le cas exact,
+déplace un camion de `SmokeZone-ConvoyBlue` juste **en dehors** du cercle de la zone avant de lancer : le
+groupe doit quand même apparaître là où il est dessiné.
+
+### 1c · Item 14 — l'escorte du FARP
+
+Deux marqueurs, dans cet ordre :
+
+- [ ] `-farp` à **~150 m du FARP statique**. L'escorte doit être sur du terrain dégagé, plus sur les
+      plateformes. `dcs.log` doit montrer `findClearBearing: moved from … to …`.
+- [ ] `-farp` en **terrain complètement dégagé**, loin de tout. Ça doit ressembler exactement à avant :
+      150 m sur le cap du FARP, **aucun message** dans le log. C'est la non-régression, et elle compte
+      plus que le fix.
+- [ ] Si le log dit `unknown FARP-like type [...]`, envoie-moi le nom du type.
+
+### 1d · Un convoi qui suit un itinéraire
+
+Pose trois marqueurs. Sur le premier, tape :
+
+```
+_spawn convoy, dest <2e marqueur>, dest <3e marqueur>, speed 40
+```
+
+Les libellés du menu F10 sont **exactement** ceux-ci — je te les donne au mot près, j'ai déjà perdu du
+temps à te faire chercher un nom approximatif :
+
+| Commande F10 | Ce qu'elle doit faire | Le message attendu |
+|---|---|---|
+| **Envoyer le convoi le plus proche au point suivant** | saute à l'étape suivante tout de suite | — |
+| **Faire attendre les ordres au convoi le plus proche (au point suivant)** | il **termine son étape** et se gare là | « *… va terminer son étape et attendre les ordres à …* » puis, à l'arrivée, « *… est arrivé à … et attend les ordres* » |
+| **Arrêter le convoi le plus proche sur place** | immobilisation immédiate, en pleine route | « *… s'arrête sur place* » |
+| **Faire repartir le convoi le plus proche (après un arrêt)** | il reprend | « *… reprend sa route* » |
+
+- [ ] Il part vers le 2e point, **puis repart seul** vers le 3e. La surveillance tourne toutes les 30 s
+      et le rayon d'arrivée est de 150 m : laisse-lui une demi-minute après l'arrêt avant de conclure.
+- [ ] Les deux commandes « attendre » et « arrêter » doivent se **sentir différentes en jeu**. Si ce
+      n'est pas le cas, c'est le vocabulaire qu'il faut revoir, pas le code — dis-le-moi.
+- [ ] Sur la **dernière étape**, « Faire attendre les ordres » doit répondre : « *… est sur la dernière
+      étape de son trajet : il n'y a pas de point suivant où l'arrêter* ».
+- [ ] À la fin du trajet : « *… a parcouru tout son trajet* ».
+- [ ] En passant : si le convoi se gare **visiblement loin** de son point et compte quand même comme
+      arrivé, le rayon de 150 m est à revoir. C'est le genre de chose qu'aucun test ne peut me dire.
+
+---
+
+## Étape 2 — `VerifyMissionC_noon.miz` (4 vérifications)
+
+```
+test/veaf-tools/verify-mission-c/missions/VerifyMissionC_noon.miz
+```
+
+**Prends un slot et vole** : le rôle « game master » ne voit pas les commandes `ForGroup`, donc la
+plupart de ces vérifications lui sont invisibles (c'est la reproduction de #128, déjà actée).
+
+### 2a · Item 12 — un `#command` retardé meurt avec sa zone
+
+- [ ] Active la zone, attends que le groupe retardé apparaisse, puis **désactive la zone**. Le groupe
+      doit disparaître avec elle. Avant #781, la zone ne l'enregistrait pas et il survivait.
+
+### 2b · Item 13 — le menu porte-avions côté rouge
+
+- [ ] Depuis un slot **rouge**, vérifie que tu ne vois **pas** les opérations du porte-avions bleu, et que
+      tu vois les tiennes. C'est #87.
+
+### 2c · Item 11 — Skynet, et au passage la vraie forme du bug SAM
+
+> **Mission C reconstruite le 22/08, et sans ça ce check ne valait rien.** Son `dynamic_spawn` était
+> réglé par une trappe (`module_settings:`) que le générateur écrase depuis le 20/08 : le fichier de
+> config produit contenait `DynamicSpawn = true` ligne 19 **puis `= false` ligne 164**, juste avant
+> `initialize()`. La mission tournait donc avec la fonctionnalité coupée, et les checks 6 et 7 auraient
+> mesuré le comportement par défaut en le présentant comme un verdict. Réglé dans le bloc `SKYNET:`,
+> reconstruit, vérifié : une seule affectation, `true`, juste avant `initialize`.
+> Le silence du générateur est déposé comme lot à part.
+
+
+Checks 6 et 7 du README de la mission C. **À faire**, puisque les SAM tirent — mais lis le résultat sur
+deux plans, parce que cette mission utilise un **SA-6 Kub complet** : 4 lanceurs `Kub 2P25 ln` et
+2 radars `Kub 1S91 str`. C'est précisément la famille que ton test au Tor n'a pas couverte.
+
+- [ ] **Le SA-6 engage** → les checks 6 et 7 valent ce qu'ils disent, et on sait en plus que le bug SAM
+      n'existe pas non plus sur les sites multi-unités. Le rapport de Sharko devient un faux positif à
+      expliquer.
+- [ ] **Le SA-6 reste muet alors que le Tor tirait** → tu viens de trouver la **vraie forme du problème** :
+      il touche les sites dont le radar de tir est un véhicule séparé. C'est une information qui vaut plus
+      que le check lui-même — dis-le-moi, ça rouvre le rapport de Tripack sur les SAM silencieux en zone de
+      combat, qu'on avait classé « DCS est cassé pour tout le monde ».
+
+Avant de conclure « muet », vérifie que le `Kub 1S91 str` est **vivant** : un site sans radar de tir ne
+tire pas, et c'est le comportement correct. C'est exactement la question que répond
+`veaf.isGroupCombatEffective`, livré aujourd'hui.
+
+### 2d · Item 16 — l'état d'alerte par nature (⚠️ celui-ci conditionne la publication)
+
+Débloqué par ton test, et c'est le seul de la liste qui **bloque la release**. Mission C porte les deux
+natures qu'il faut, dans deux zones distinctes : `IadsZone` tient la batterie SA-6, `SmokeZone` le convoi.
+Le ticket décrivait une zone unique tenant les deux — deux zones testent la même règle, puisque le défaut
+s'applique par nature de groupe, pas par zone.
+
+- [ ] Active **« Convoy Test Zone »** : **le convoi doit rouler sa route.** C'est #290, corrigé en 6.15.5, et c'est la
+      régression à surveiller — elle compte plus que la moitié neuve.
+- [ ] Active `IadsZone` : **la batterie doit allumer ses radars et engager.** De 6.15.5 à 6.15.12 elle
+      restait muette, c'est le défaut corrigé ici. Même double lecture que 2c : si elle est muette,
+      vérifie d'abord que le `Kub 1S91 str` est vivant.
+- [ ] Puis `#alarm=0` sur la batterie : elle doit se taire. Un tag explicite gagne toujours sur le défaut
+      par nature.
+
+Ce n'est **pas** le cas de Tripack : il a vu des SAM de zone muets en 6.15.2, ce qui précède le défaut
+AUTO. Son cas reste ouvert et ce check ne le referme pas.
+
+---
+
+## Étape 3 — le banc d'essai CSAR (aucun avion, mais **deux** prérequis)
+
+Mon instruction d'origine — « 2 min, aucun avion » — était incomplète, et le run du 22/08 l'a montré :
+quatre vérifications ont échoué sur *« cannot reach dcs-serve »*, ce qui se lit comme un problème de
+serveur et cachait en réalité **deux** manques.
+
+| Prérequis | État |
+|---|---|
+| La mission injecte `dcs-bridge.lua` | ❌ `dcs_bridge` était commenté → **corrigé, mission reconstruite** |
+| `dcs-serve` écoute sur `127.0.0.1:8080` | ❌ pas lancé → à toi |
+
+Les quatre vérifications concernées (`veaf-loaded`, `findspawnpoint-exists` et les deux
+`csar-avoids-water-*`) s'exécutent dans l'état Lua **de la mission**, que seul le pont atteint : le hook
+fiddle ne voit même pas le global `veaf`. Sans les deux moitiés, elles ne peuvent pas s'exécuter — ce
+n'est pas un échec de mesure, c'est une absence de mesure.
+
+Ce que le run a quand même établi, et qui est bon à savoir : les cinq vérifications qui passent par le
+hook sont **vertes**, dont les quatre de `disposition` (`points:30 near_scenery:0`) et le sous-menu par
+coalition.
+
+### La marche à suivre
+
+1. **Lance le serveur**, depuis le dépôt pour qu'il lise le bon `dcs-serve.yaml` (celui qui porte la clé
+   API que le harnais utilise aussi) :
+
+   ```
+   cd D:\dev\_VEAF\VEAF-Mission-Creation-Tools
+   D:\dev\_VEAF\VEAF-dcs-bridge\.venv\Scripts\dcs-serve.cmd
+   ```
+
+   Laisse-le tourner dans son propre terminal.
+
+2. **Recharge `VerifyMissionC_noon.miz`** — celle que tu avais chargée n'avait pas le pont.
+
+3. **Relance le harnais** dans un autre terminal :
+
+   ```
+   poetry run veaf-tools dcs smoke-test
+   ```
+
+- **Les deux `csar-avoids-water-*` passent** → le correctif prend bien effet en vraie mission.
+- **Un échec autre que « cannot reach dcs-serve »** → là c'est une vraie mesure, envoie-moi la sortie.
+- Si tu vois `no-group` sur la haute mer, c'est mon assertion qui est mal écrite : dis-le-moi, ne cherche
+  pas.
+
+---
+
+## Étape 4 — le reste, classé par ce qu'il coûte vraiment
+
+Ces items ne dépendent d'aucune des deux missions. J'ai retiré la formule « si tu as de l'énergie » :
+elle mélangeait un check de dix minutes et deux chantiers de préparation.
+
+**Faisable tout de suite, mais long :**
+
+- [ ] **Item 10 — l'escorte respawnée.** Mission C, F10 → Assets → Respawn Arco, puis tu la regardes
+      **plus de dix minutes**. Le défaut est un retour à la base *retardé* : un coup d'œil rapide
+      aurait déclaré l'ancien comportement corrigé. Attendu : elle reste avec le ravitailleur. Tu avais
+      tenu 30 minutes sur le chemin téléport le 18/08, c'est la barre.
+
+**Pas des checks rapides — de la préparation d'abord, dis-moi si tu les veux et je prépare :**
+
+- **Item 3 — l'image de checklist servie périmée.** Il faut éditer le texte d'une étape, reconstruire,
+  et revoler **sans redémarrer DCS**. Je peux préparer l'édition et le build ; seul le vol est à toi.
+- **Item 4 — le chargement échelonné.** Demande de construire un Foothold adopté, ce qui n'est pas fait.
+  La lecture ensuite est dans `dcs.log` (6 scripts au départ, 5 vers +3 s, AIEN à +12 s) — je la ferai.
+
+**Ce ne sont pas des tests, ce sont des avis à me donner :**
+
+- **Item 5 — la checklist de démarrage du F-14B(U).** Ses quatre étapes automatiques sont déjà vérifiées ;
+  il ne reste que ton verdict sur la procédure elle-même.
+- **Item 9 — d'où vient `parking_id`.** Une investigation, pas une vérification. Débloque un ticket MCP.
+
+---
+
+## Ce que ça débloque
+
+Quinze lots attendent cette session. Par ordre de ce que chaque étape libère :
+
+| Étape | Lots débloqués |
+|---|---|
+| 1a | `FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY` |
+| 1b | `FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT`, `FIX-COMBATZONE-SPAWN-ROUTE-OFFSET`, `FIX-COMBATZONE-SPAWN-REFERENCE-UNIT` |
+| 1c | `FIX-FARP-ESCORT-PLACEMENT` |
+| 1d | `FEAT-CONVOY-WAYPOINTS` |
+| 2a | `FIX-COMBATZONE-DELAYED-COMMAND` |
+| 2b | `FIX-CARRIER-MENU-COALITION` |
+| 2c | `FIX-SKYNET-DYNAMICSPAWN-SCOPE` |
+| 2d | `FIX-COMBATZONE-ALARM-BY-NATURE` — **conditionne la publication** |
+| 3 | `FEAT-SMOKE-CSAR-WATER`, `FIX-CSAR-SPAWNS-ON-WATER` |
+| 4 | `FIX-ESCORT-RESPAWN-TASK`, puis `FEAT-AWACS-ESCORT-COMMANDS` qui l'attend |
+
+---
+
+## Comment me rendre compte
+
+Le plus utile pour moi, dans l'ordre :
+
+1. **Ce qui a échoué**, même en une ligne — c'est ce qui porte l'information.
+2. **Ce qui t'a surpris**, même si ça a « marché ». Tes remarques d'usage attrapent souvent ce que mes
+   vérifications ne regardaient pas.
+3. Le reste : « le bloc 1 est bon » suffit.
+
+Pas besoin de fouiller les logs : si j'ai besoin de `dcs.log`, je te le demanderai et je te dirai quoi
+chercher.

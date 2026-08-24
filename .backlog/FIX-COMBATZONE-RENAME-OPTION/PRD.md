@@ -1,6 +1,9 @@
 # FIX-COMBATZONE-RENAME-OPTION — let a mission maker keep the original unit names while debugging
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
+
+Shipped in 6.15.16, with `FIX-COMBATZONE-ZONE-TYPE-SILENT`. Waiting only on **telling Sharko on #289**,
+which is David's to do — the code, the tests and the documentation are done and need no DCS.
 
 Origin: [#289](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289), Sharko, 2025-02-03.
 Reclassified from `verify` to `still-valid` on 2026-08-17 once the cause was found: it is one
@@ -37,12 +40,29 @@ that way, so the pattern is fresh):
 A zone-level switch rather than a debug global, because that is what he asked for and because a
 global would be one more thing to remember to turn back off before shipping.
 
+## What shipped
+
+A per-zone setting, following the shape `FIX-CONVERT-V5-SILENT-LOSSES` established for the other six —
+so this is the seventh member of a family rather than a new pattern:
+
+| Layer | Change |
+|---|---|
+| runtime | `renameUnitsSequentially = true` on the prototype, `setRenameUnitsSequentially` / `isRenameUnitsSequentially`, and `spawnElement` reads it instead of the hard-coded `true` |
+| `lua_config_generator` | emits `:setRenameUnitsSequentially(false)` **only** for a `false`, so existing generated Lua is byte-identical |
+| `config_migrator` | reads `:setRenameUnitsSequentially(false)` out of a v5 mission, ignoring `true` |
+| `mission.yaml` key | `rename_units_sequentially`, default `true` |
+| documentation | both pages, plus **the four keys of the `SILENT-LOSSES` family that were never documented** — `show_units_list`, `show_zone_position_info`, `smoke_and_flare` and `radio_menu_disabled` were accepted by the generator and absent from the reference table |
+| `src/defaults/mission-folder/mission.yaml` | the commented example, per the defaults lockstep |
+
+The Lua tests assert the **vars handed to MiST**, not the setter. A setter storing a value nobody reads
+is exactly the defect `FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT` had just spent a lot fixing.
+
 ## Definition of done
 
-- [ ] A combat zone can keep its units' original names, declared in `mission.yaml`
-- [ ] Default unchanged: existing missions keep sequential renaming and their generated Lua is
+- [x] A combat zone can keep its units' original names, declared in `mission.yaml`
+- [x] Default unchanged: existing missions keep sequential renaming and their generated Lua is
       byte-identical
-- [ ] Extraction and emission both covered, with the "remove the setter, the key disappears" shape of
+- [x] Extraction and emission both covered, with the "remove the setter, the key disappears" shape of
       test the reporter's own harness uses
-- [ ] Documented in the combat-zone reference, **both languages**
-- [ ] Sharko told on #289, since he has been waiting since February 2025
+- [x] Documented in the combat-zone reference, **both languages**
+- [ ] Sharko told on #289, since he has been waiting since February 2025 — **David's to do**

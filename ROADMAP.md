@@ -58,12 +58,23 @@ extending it:
   a multi-line `setBriefing` truncated the setter chain (302 briefings of 1864), six `combat_zones`
   setters had no schema key at all, and 14 of 28 scalar keys vanished. `convert-v5` now carries them
   and, where it cannot, **says so**.
+- **A convoy placed in a combat zone finally drives its route** (6.15.5) — [#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290),
+  open since April 2025 and the oldest confirmed defect on the list. `activate()` put every group it
+  spawned on RED alert, and a DCS ground group on red alert holds position: right for a SAM battery,
+  wrong for a convoy. Zones now spawn on AUTO, and `#alarm=N` overrides it per group. Verified in game
+  on 2026-08-19. Two neighbouring defects were **split out rather than folded in**, at David's request:
+  `FIX-COMBATZONE-SPAWN-ROUTE-OFFSET` and `FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`.
 
 A release is cut on a `release/x.y.z` branch off `develop`, merged into `master` with a **merge
 commit**, and tagged twice from there — `published-vx.y.z` for the binaries, `vx.y.z` for the
-versioned documentation. The last published release is **6.15.4** (2026-08-19), which carries four
-patches: 6.15.1 to 6.15.4 were closed in the changelog but never published, so 6.15.0 stood as the
-shipped version while its executable could not start.
+versioned documentation. The last published release is **6.16.0** (2026-08-24), which consolidates the
+forty-seven patch versions from 6.15.5 to 6.15.52 — a minor bump rather than a patch, because it carries
+new features as well as fixes: the artillery fire-adjustment loop, the welcome brief, the coordinate
+formats DCS actually displays, CTLD radio beacons, and convoy itineraries.
+
+Its predecessor, **6.15.4** (2026-08-19), carried four patches: 6.15.1 to 6.15.4 were closed in the
+changelog but never published, so 6.15.0 stood as the shipped version while its executable could not
+start.
 
 ---
 
@@ -80,8 +91,9 @@ order before it. Nothing from either remains open — the whole of this section 
 
 ### Where the open list comes from
 
-**29 lots are open and ready**, plus 6 waiting on a person or another lot and 2 deliberately
-parked (and 7 more closed in the last three days, archived once past the 3-day rule). Roughly
+**28 lots are open and ready**, plus 4 waiting on a person or another lot, 2 in progress and 2
+deliberately parked (and 7 closed in the last three days, which archive as they pass the 3-day
+rule — five did on 2026-08-20). Roughly
 two thirds were opened in the last three days, by two chores rather than by a plan: the re-read of
 the 63 GitHub issues, and the three verification sessions that answered the twelve issues needing the
 game. Their PRDs therefore start from a **measurement**, not a report — the cause is located, the
@@ -99,16 +111,16 @@ Two families run through them, and they decide the order:
 
 ### The order, decided 2026-08-19
 
-Validated by David the day it was proposed. **Nothing in orders 1 to 5 needs DCS started** — that is deliberate, since the game is not available on the workstation this order was decided on. Everything gated on a running DCS is in the table below and in [DCS-SESSION-TODO.md](DCS-SESSION-TODO.md).
+Validated by David the day it was proposed. **Orders 1 to 3 are delivered** — 1 and 2 on 2026-08-19, 3 written the same evening and merged on 2026-08-20 (PR #762, version 6.15.5, **not published yet**). The next lot starts at order 4. **Nothing in orders 1 to 5 needs DCS started** — that is deliberate, since the game is not available on the workstation this order was decided on. Everything gated on a running DCS is in the table below and in [DCS-SESSION-TODO.md](DCS-SESSION-TODO.md).
 
 | Order | Lot | Weight | Why here |
 |-------|-----|--------|----------|
-| **1** | [`FIX-MCP-AUTHORING-GAPS`](.backlog/FIX-MCP-AUTHORING-GAPS/PRD.md) | 1 lot | **It is what the next verification mission stands on.** Three holes made an agent hand-edit the mission file, and *every* serious defect of the `verify-mission-c` build came from those hand edits. Fixing it first makes each following lot cheaper to verify; leaving it means paying that tax on every one of them. |
-| **2** | [`FIX-BUILD-YAML-TRUNCATION`](.backlog/FIX-BUILD-YAML-TRUNCATION/PRD.md) + [`FIX-GROUP-CONTAINER-SHAPE`](.backlog/FIX-GROUP-CONTAINER-SHAPE/PRD.md) | 2 lots | Family 1, and they belong together: both PRDs independently ask for the **same** missing guard — a writer that checks it preserved what it did not mean to change. One shared test helper is worth more than either fix alone. The truncation fires on the documented `--dev-mode` workflow and ate a `security:` block three times before the cause was found. |
-| **3** | [`FIX-COMBATZONE-CONVOY-ALARM`](.backlog/FIX-COMBATZONE-CONVOY-ALARM/PRD.md) | 1 lot | #290, **open since April 2025**, cause proven in game 2026-08-17: the zone puts everything it spawns on red alert, and a ground group on red alert holds position. The oldest confirmed defect on the list and the most player-visible. Its open question — who chooses the alarm state, since a convoy and a SAM want opposite ones — is a design call, so it wants a decision before code. |
-| **4** | The verification harvest, in issue order | 6 lots | [`FIX-SKYNET-DYNAMICSPAWN-SCOPE`](.backlog/FIX-SKYNET-DYNAMICSPAWN-SCOPE/PRD.md) (#151+#261), [`FIX-COMBATZONE-DELAYED-COMMAND`](.backlog/FIX-COMBATZONE-DELAYED-COMMAND/PRD.md) (#66), [`FIX-CARRIER-MENU-COALITION`](.backlog/FIX-CARRIER-MENU-COALITION/PRD.md) (#87), [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) (#107 — and it **unblocks** `FEAT-AWACS-ESCORT-COMMANDS`), [`FIX-FARP-ESCORT-PLACEMENT`](.backlog/FIX-FARP-ESCORT-PLACEMENT/PRD.md) (#232), [`FIX-MOVE-ORBIT-SEARCH`](.backlog/FIX-MOVE-ORBIT-SEARCH/PRD.md) (#248). Each closes a GitHub issue whose cause is already located: writing work, not investigation. |
-| **5** | [`FEAT-ROLE-AWARE-RADIO-MENU`](.backlog/FEAT-ROLE-AWARE-RADIO-MENU/PRD.md) | 1 lot | #128, widened by David from "the menu is empty" to *a reasonable menu per role*. First of the features because a game master hits it immediately, and because it is two problems rather than one — making the command visible, and letting a handler answer with no caller unit. |
-| **6** | The rest of the ⬜ list | ~18 lots | No ordering constraint between them yet: the combat-zone options (`RENAME-OPTION`, `ZONE-TYPE-SILENT`), the spawn and radio features (`SMOKE-CSAR-WATER`, `SLOT-WELCOME-BRIEF`, `WAYPOINT-BULLSEYE`, `RADIO-BEACONS`, `BRIEFING-METAR`, `ARTILLERY-CONTROL`, `CONVOY-WAYPOINTS`, `AIRWAVES-QRA-MERGE`, `QRA-AIRBASE-LINK`, `CTLD-SLINGLOAD-TOGGLE`, `GROUP-COMBAT-INEFFECTIVE`, `INTERPRETER-PARITY`, `SPAWN-OPTION-VALIDATION`, `PLATOON-UNITS`) and [`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md), still a design lot where **a rejection is an acceptable outcome**. |
+| ✅ **1** | [`FIX-MCP-AUTHORING-GAPS`](.backlog/FIX-MCP-AUTHORING-GAPS/PRD.md) | 1 lot | **It is what the next verification mission stands on.** Three holes made an agent hand-edit the mission file, and *every* serious defect of the `verify-mission-c` build came from those hand edits. Fixing it first makes each following lot cheaper to verify; leaving it means paying that tax on every one of them. |
+| ✅ **2** | [`FIX-BUILD-YAML-TRUNCATION`](.backlog/FIX-BUILD-YAML-TRUNCATION/PRD.md) + [`FIX-GROUP-CONTAINER-SHAPE`](.backlog/FIX-GROUP-CONTAINER-SHAPE/PRD.md) | 2 lots | Family 1, and they belong together: both PRDs independently ask for the **same** missing guard — a writer that checks it preserved what it did not mean to change. One shared test helper is worth more than either fix alone. The truncation fires on the documented `--dev-mode` workflow and ate a `security:` block three times before the cause was found. |
+| ✅ **3** | [`FIX-COMBATZONE-CONVOY-ALARM`](.backlog/FIX-COMBATZONE-CONVOY-ALARM/PRD.md) | 1 lot | #290, **open since April 2025**, cause proven in game 2026-08-17: the zone puts everything it spawns on red alert, and a ground group on red alert holds position. The oldest confirmed defect on the list and the most player-visible. Its open question — who chooses the alarm state, since a convoy and a SAM want opposite ones — is a design call, so it wants a decision before code. |
+| ✅ **4** | The verification harvest, in issue order | 6 lots | **Delivered 2026-08-20** — PRs #767, #768, #769, #770, #771, plus #766 for the escort. Five of the six carry an in-game confirmation still owed, collected in [DCS-SESSION-TODO.md](DCS-SESSION-TODO.md); `FIX-MOVE-ORBIT-SEARCH` closed outright, being route-data logic the mocks cover. Each lot found **more than its issue described**: a fourth Skynet defect (the birth handler ignored the per-spawn `skynet` option), three deferring paths instead of one for #66, a `FARP_T` measured as a non-FARP for a year, and a `Circle`-orbit trap #248 never mentioned.  The six, in issue order: [`FIX-SKYNET-DYNAMICSPAWN-SCOPE`](.backlog/FIX-SKYNET-DYNAMICSPAWN-SCOPE/PRD.md) (#151+#261), [`FIX-COMBATZONE-DELAYED-COMMAND`](.backlog/FIX-COMBATZONE-DELAYED-COMMAND/PRD.md) (#66), [`FIX-CARRIER-MENU-COALITION`](.backlog/FIX-CARRIER-MENU-COALITION/PRD.md) (#87), [`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) (#107 — and it **unblocks** `FEAT-AWACS-ESCORT-COMMANDS`), [`FIX-FARP-ESCORT-PLACEMENT`](.backlog/FIX-FARP-ESCORT-PLACEMENT/PRD.md) (#232), [`FIX-MOVE-ORBIT-SEARCH`](.backlog/FIX-MOVE-ORBIT-SEARCH/PRD.md) (#248). Each closes a GitHub issue whose cause is already located: writing work, not investigation. |
+| 🚫 **5** | [`FEAT-ROLE-AWARE-RADIO-MENU`](.backlog/FEAT-ROLE-AWARE-RADIO-MENU/PRD.md) | — | **Cancelled 2026-08-20**, by David, on the measurements of its own first ticket: *"DCS ne nous permet pas de faire ce qu'on veut"*. Two walls, both DCS's: the F10 channel never says who clicked, so a secured command cannot identify a game master — and every command worth giving him is secured; and leaving them unsecured would hand the mission to whoever takes an unprotected game-master slot. The measurements are kept in [`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md) so the question is not reopened without them. **Order 6 is now next.** |
+| **6** | The rest of the ⬜ list | ~18 lots | No ordering constraint between them yet: the combat-zone options (`RENAME-OPTION`, `ZONE-TYPE-SILENT`), the spawn and radio features (`SMOKE-CSAR-WATER`, `SLOT-WELCOME-BRIEF`, `WAYPOINT-BULLSEYE`, `RADIO-BEACONS`, `BRIEFING-METAR`, `ARTILLERY-CONTROL`, `CONVOY-WAYPOINTS`, `AIRWAVES-QRA-MERGE`, `QRA-AIRBASE-LINK`, `CTLD-SLINGLOAD-TOGGLE`, `GROUP-COMBAT-INEFFECTIVE`, `INTERPRETER-PARITY`, `SPAWN-OPTION-VALIDATION`, `PLATOON-UNITS`) and [`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md), still a design lot where **a rejection is an acceptable outcome**. Three lots joined it after the order was decided: [`FIX-COMBATZONE-SPAWN-ROUTE-OFFSET`](.backlog/FIX-COMBATZONE-SPAWN-ROUTE-OFFSET/PRD.md) and [`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY/PRD.md), both split out of order 3 rather than folded into it, and [`FIX-WRITE-MIZ-REPLACE-FLAKE`](.backlog/FIX-WRITE-MIZ-REPLACE-FLAKE/PRD.md), which wants an arbitration before code. |
 
 ### Blocked on a person, or on a DCS session
 

@@ -70,7 +70,44 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
   return veafCommands.execute(position, command, coalition, spawnedGroups, route)
 end
 
-function veafInterpreter.executeCommandOnUnit(unitName, command)
+--- Run the command a trigger object carries, from the mission's own record of it.
+---
+--- The fallback for a trigger the running world does not hand back — a **late-activated** unit above
+--- all, which is what #123 asks for, and equally one destroyed in the mission's first second. Without
+--- it, `executeCommandOnUnit` reached neither of its two branches and the command was dropped in
+--- silence.
+---
+--- Whether DCS resolves a late-activated unit through `Unit.getByName` cannot be settled from a
+--- workstation. This makes the answer irrelevant rather than guessing it: `_initialize` already walks
+--- `mist.DBs.units` and holds every unit's record, so it passes it down.
+---
+--- **Coordinates.** A mission record's `y` is the **easting** while the position a command expects is a
+--- runtime vec3 whose `y` is the altitude (`docs/agents/dcs-coordinates.md`). `veaf.placePointOnLand`
+--- takes exactly the former shape and returns the latter — and it *writes into the table it is given*,
+--- so it gets a copy: handing it the mission record would corrupt `mist.DBs`.
+---
+--- Nothing is destroyed here. There is no world object to destroy.
+---
+--- @param command string the command read out of the name
+--- @param missionUnit table a `mist.DBs.units` record: x, y, alt, coalitionId, groupName
+--- @return boolean true when the command ran
+local function executeFromMissionRecord(command, missionUnit)
+  if not missionUnit or not missionUnit.x or not missionUnit.y then
+    return false
+  end
+  veaf.loggers
+    .get(veafInterpreter.Id)
+    :debug("the world does not have [%s]; running its command from the mission record", veaf.p(missionUnit.unitName))
+  local position = veaf.placePointOnLand({ x = missionUnit.x, y = missionUnit.y })
+  local route = nil
+  if missionUnit.groupName then
+    route = mist.getGroupRoute(missionUnit.groupName, "task")
+  end
+  veafInterpreter.execute(command, position, missionUnit.coalitionId, route, nil)
+  return true
+end
+
+function veafInterpreter.executeCommandOnUnit(unitName, command, missionUnit)
   if command then
     -- found an interpretable command
     veaf.loggers.get(veafInterpreter.Id):debug(string.format("found an interpretable command : [%s]", command))
@@ -94,15 +131,17 @@ function veafInterpreter.executeCommandOnUnit(unitName, command)
         if veafInterpreter.execute(command, position, static:getCoalition(), nil, nil) then
           static:destroy()
         end
+      else
+        executeFromMissionRecord(command, missionUnit)
       end
     end
   end
 end
 
-function veafInterpreter.processObject(unitName)
+function veafInterpreter.processObject(unitName, missionUnit)
   veaf.loggers.get(veafInterpreter.Id):trace(string.format("veafInterpreter.processObject([%s])", unitName))
   local command = veafInterpreter.interpret(unitName)
-  veafInterpreter.executeCommandOnUnit(unitName, command)
+  veafInterpreter.executeCommandOnUnit(unitName, command, missionUnit)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -124,7 +163,9 @@ function veafInterpreter._initialize()
               for unit_ind, mist_unit in pairs(group_tbl.units) do
                 local unitName = mist_unit.unitName
                 veaf.loggers.get(veafInterpreter.Id):trace(string.format("initialize - checking unit [%s]", unitName))
-                veafInterpreter.processObject(unitName)
+                -- the mission record travels with the name, so a trigger the world does not hand back
+                -- still has a position to run its command at
+                veafInterpreter.processObject(unitName, mist_unit)
               end
             end
           end

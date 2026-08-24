@@ -25,6 +25,7 @@ _CZ_UNIT_MARKERS = (
     "#spawncount=",
     "#spawnchance=",
     "#spawndelay=",
+    "#alarm=",
 )
 _CAS_FIXED_NAMES = ("Red CAS Group", "Blue CAS Group")
 
@@ -94,7 +95,7 @@ def validate_group_name(
             "Name contains a #veafInterpreter[...] marker — the unit is destroyed and the command runs at start.",
         )
     if any(marker in name for marker in _CZ_UNIT_MARKERS):
-        warn("combat_zone_unit_markers", "Name contains a combat-zone spawn marker (#command=/#spawn*=).")
+        warn("combat_zone_unit_markers", "Name contains a combat-zone spawn marker (#command=/#spawn*=/#alarm=).")
     if name[:1] in ("[", "-"):
         warn(
             "qra_deploy_entry",

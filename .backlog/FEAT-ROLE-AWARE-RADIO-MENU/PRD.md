@@ -1,6 +1,58 @@
 # FEAT-ROLE-AWARE-RADIO-MENU — a game master gets an empty F10, a spectator gets nothing
 
-Status: ⬜ ready
+Status: 🚫 wontfix
+
+**Cancelled by David on 2026-08-20**, after ticket 01's measurements: *"DCS ne nous permet pas de faire
+ce qu'on veut"*. Ticket 01 stands as ✅ — its measurements are the reason, and they are kept in
+[`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](../../docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md)
+precisely so nobody reopens this without them. Tickets 02 and 03 are 🚫.
+
+## Why it cannot be built — the two walls
+
+Both come from DCS, not from this framework, which is what makes the lot unbuildable rather than hard:
+
+1. **A game master has no identity on the F10 channel.** `missionCommands` posts to everyone, to a
+   coalition, or to a group, and the callback only ever receives the argument fixed at registration.
+   So a secured command cannot know who clicked it — the group is the finest identity that channel
+   offers, and a game master has none. Every command worth giving him (activate a zone, start a QRA,
+   run carrier ops) is a secured one.
+2. **Making them unsecured is not an option**, and this is David's point that closed the lot: the
+   game-master slot can be taken with no password at all, and a password on it *"est difficile à
+   changer et peut être facilement compromis"*. So an unsecured mission-driving menu would hand the
+   mission to whoever takes the slot on a public server.
+
+The one escape route was the marker channel — a marker carries its author, and `veafSecurity` already
+resolves that into a pilot level. It would have meant exposing the carrier operations as marker
+commands, which widened the lot past what the report asked for. David chose to stop instead.
+
+## The modest version was considered too, and also dropped (2026-08-20)
+
+RexAttaque's own proposal on #128 was smaller than what this lot attempted — *"I vote for simply cleaning
+up the empty radio menus (carrier ops and such) for game masters only if possible"*. His trailing "if
+possible" turns out to be the whole problem:
+
+**A DCS submenu is one object for everybody.** Per-group commands are attached *inside* it and each is
+visible only to its group, so a menu whose commands are all `USAGE_ForGroup` looks empty to anyone with
+no group — but not creating it removes it from **everyone**, pilots included. There is no per-player
+menu to clean up.
+
+The only version that would work — not creating a submenu when nothing at all will be attached to it —
+covers exactly the case where **no pilot is connected**. With pilots and a game master together, which is
+the situation the issue was written about, the empty menu comes back. Making it work there means creating
+those submenus per group (`addSubMenuForGroup`), which is a rewrite of the renderer: one logical node
+would project to N DCS nodes, touching pagination, `delSubmenu`, and the references modules hold.
+
+David's call: not worth a renderer rewrite to hide an empty menu. **Left as is.**
+
+## What was gained anyway
+
+- The mechanism of #128 is now **known and written down** rather than suspected: the carrier submenu
+  appears because it is `USAGE_ForAll` and stays empty because every command inside is
+  `USAGE_ForGroup`, and `humanGroups` is empty for a game master.
+- [PR #769](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/769) is cleared: coalition-scoped
+  menus *do* reach a game master, so scoping the carrier submenus did not narrow his view.
+- A false claim in `verify-mission-c`'s README is corrected — it said a solo session could not answer
+  #128, which is the opposite of what happened.
 
 Origin: David, 2026-08-18, running `verify-mission-c`: *"pas de commande dans le menu carrier en game
 master"*. Closes the report side of [#128](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/128),
@@ -29,11 +81,13 @@ job rather than a one-line fix.**
   sensible for a game master. "Info on your aircraft", the guided checklists, rearm/refuel: not.
   The lot needs a rule, not a hand-picked list — most plausibly a **third usage class** (a command
   that can run unattached), declared where the command is declared.
-- **How to reach them at all.** `missionCommands.addCommandForCoalition` reaches a coalition; a game
-  master picks a side, so it *probably* reaches him — **to be measured**, along with whether he
-  appears in `world.getPlayers()` and what `humanGroups` holds during his session. A spectator has no
-  side, so only the global `missionCommands.addCommand` could reach him — which puts the command in
-  *everyone's* menu, and that is a cost to weigh, not a detail.
+- ~~**How to reach them at all.**~~ **Measured 2026-08-20**: `addCommandForCoalition` **does** reach a
+  game master and filters correctly to his side; the global path reaches him too; `USAGE_ForGroup`
+  cannot, ever, because the renderer walks `humanGroups` and that table is empty for him. He is also
+  invisible to `coalition.getPlayers` and raises **no event** on arrival, so the menu must exist from the
+  start rather than be rebuilt when he shows up. `world.getPlayers` turned out not to exist in mission
+  scripting at all. **The spectator is still unmeasured**: having no side, only the global path could
+  reach him — which puts the command in everyone's menu, and that cost is still a decision to take.
 - **What "answer" means with no unit.** Probably a coalition-wide `outTextForCoalition`, or a global
   `outText` for a spectator. Whatever is chosen, the handlers that take `unitName` need to tolerate
   its absence rather than each inventing a fallback.

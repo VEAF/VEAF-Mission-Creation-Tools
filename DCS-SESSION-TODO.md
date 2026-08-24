@@ -13,6 +13,45 @@ come first.
 
 ---
 
+## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)
+
+**Ground SAMs fire in 2.9.28.26385.** Measured twice on a bare map with no scripts whatsoever:
+
+| Control test | Result |
+|---|---|
+| Three **SA-15 (Tor 9A331)**, red, alarm red, ROE fire-at-will | locked and fired |
+| A complete **SA-6** — 2 × `Kub 1S91 str` + 4 × `Kub 2P25 ln` **in one group** — alarm red, ROE fire-at-will | **fired** |
+
+So the theory this page carried for two days — *"ground SAMs do not engage at all in the current DCS
+build"* — was wrong, and the second test is what closes it: the SA-6 is the multi-unit family, the one
+whose launchers depend on a separate tracking radar, and it engages normally.
+
+### What the first attempt at that test taught, which is the transferable part
+
+The SA-6 control test **failed on its first run**: locked, launchers inert. The mission had the six
+vehicles in **six separate groups**, one unit each. In DCS a SAM site *is* a group — the group's
+controller is what hands a target from the radar to a launcher. Four launchers alone have no radar and
+never fire; a lone `1S91` has its own radar and locks perfectly with nothing to command. That is
+precisely what was seen, and it is indistinguishable from "DCS is broken" unless you look at the group
+structure.
+
+Which raises a question worth putting to Sharko rather than assuming: his report was *"j'ai reproduit le
+bug sans script aucun, juste 3 sams sur une carte"*, with no mention of how they were placed. If they
+were dropped as individual units — the natural thing to do when throwing a quick test together — his
+mission had no SAM sites in it at all. **Unverified**, and his to answer.
+
+### What this moves onto us
+
+The cycling seen inside `verify-mission-c` — the SA-6 locks, slews, elevates, then returns to travel
+state, five times, without firing — is therefore **ours**. A site that behaves correctly with no scripts
+and stands down mid-engagement with Skynet running is being switched off by Skynet. See
+[`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md).
+
+It also reopens **Tripack's** report of silent zone SAMs on 6.15.2, which had been filed under "DCS is
+broken for everyone". It never was.
+
+Items **11** and **16** are fully measurable, with no double reading and no caveat.
+
 ## A mission is ready for items 0 and 0b
 
 `D:\dev\_VEAF\tmp\dcs-session-2026-08-14\TestMenuFR.miz` — Caucasus, `language: fr`, with the modules
@@ -208,23 +247,178 @@ just its `mission` file). Each shape is then a table entry, not an investigation
 
 </details>
 
-## 3. Confirm a rebuilt checklist picture is not served stale
+## ✅ 11. Checks 6 and 7 of `verify-mission-c` — verified in game 2026-08-22
+
+`FIX-SKYNET-DYNAMICSPAWN-SCOPE` confirmed: `group added to RED IADS`, and `0 actual reactivations`
+on a spawn into a dark network. The cycling seen alongside it is a **different** defect and now has
+its own lot, [`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md).
+
+---
+
+## ✅ 12. Check 8 of `verify-mission-c` — verified in game 2026-08-22
+
+`FIX-COMBATZONE-DELAYED-COMMAND`: a delayed `#command` dies with its zone.
+
+---
+
+## ✅ 13. Check 12 of `verify-mission-c` — verified in game 2026-08-22
+
+`FIX-CARRIER-MENU-COALITION`: the carrier menu is there from the red side.
+
+---
+
+## ✅ 14. The FARP escort — verified in game 2026-08-24, after five rounds
+
+[#232](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/232), open since 2023 and "fixed" in
+6.15.11 by a change that could not work. Confirmed still broken on 2026-08-22, then fixed for real
+in #792 — **five** distinct defects, three of them sizing guesses of mine that a measurement would
+have killed sooner. David's verdict: *« c'est bon, tout est en dehors du farp statique »*.
+
+The transferable lesson, and the reason this took five in-game rounds instead of one: the placement
+logged nothing about **why** it refused a spot, so each hypothesis cost a full DCS reload. It logs
+at info now.
+
+---
+
+## ✅ 16. The combat zone alarm state — verified in game 2026-08-22
+
+`FIX-COMBATZONE-ALARM-BY-NATURE`, as far as it was testable: the convoy drives. The armour half
+was **not** a valid check — see the withdrawal of item 17 below, which is the same mistake.
+
+---
+
+## 17. ~~A tag on one unit of a group~~ — withdrawn 2026-08-22, the criterion was wrong
+
+[`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY/PRD.md), 6.15.14.
+Closed on unit coverage instead. **Nothing to do in game.**
+
+This check told the tester to activate the zone and watch two M-1 Abrams: *"they stay put"* meant the tag
+had been read, *"they drive off"* meant it had not. David ran it and reported the tanks moving — which
+turns out to be what happens either way.
+
+`#alarm=2` reduces to `setOption(AI.Option.Ground.id.ALARM_STATE, 2)` in `veaf.readyForCombat`
+(`veaf.lua:2117`), reached from `veafCombatZone.lua:1505`. Nothing on that path immobilises a group. A
+mobile group with a route drives it under RED exactly as under AUTO, so the two states this check meant to
+tell apart are **visually identical for this group**. The observation could not have failed, and could not
+have succeeded either.
+
+What the game would have added is only "DCS honours the option", which is not our code. The part that *is*
+ours — reading a tag off any unit of the group rather than the first one met — is covered by enumerated
+tests over the whole tag family with the tag on the **second** unit
+(`test/lua/test_veafCombatZone.lua:1674`, `:1872`).
+
+Also recorded because it cost real time: the zone shows as **"Convoy Test Zone"** in the radio menu, its
+`friendly_name`. `SmokeZone` is the trigger-zone name and appears nowhere a player looks.
+
+The lesson worth keeping is not about alarm states. An in-game check is only worth a session if it can
+**come out both ways**; this one was written from an assumption about DCS behaviour that was never tested,
+and the assumption was wrong. Two waypoints were even added to the group on 2026-08-21 to make the check
+possible — and that hand-copied waypoint is what later broke the mission for the DCS editor
+([`FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS`](.backlog/FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS/PRD.md)).
+The whole cost came from a check that could never conclude.
+
+## ✅ 18. The dispersion — verified in game 2026-08-22
+
+`FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT`: *« tout est comme prévu »*.
+
+---
+
+## ✅ 19. A convoy walking an itinerary — verified in game 2026-08-22
+
+`FEAT-CONVOY-WAYPOINTS`: the commands work. The ergonomic reservation David raised at the same
+time — one command per submenu — was fixed separately in #791.
+
+---
+
+## ✅ 20. The two CSAR-over-water checks — run 2026-08-23
+
+`FEAT-SMOKE-CSAR-WATER`. Worth recording what it actually cost: **five successive defects in the
+harness**, each of which read as a product regression and none of which was one — no bridge
+injected, bridge and CSAR on different branches, `CSAR: false`, the check calling a function the
+replacement had superseded, and an "open sea" defined at 150 m against a 500 m search radius. The
+checks pass, and #790 is what made them able to fail.
+
+---
+
+## 10. Watch a respawned escort for longer than ten minutes
+
+[`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but
+the defect is a DCS behaviour the mocks do not model: an `Escort` task whose `groupId` no longer
+resolves. Only the game can say whether the repair takes.
+
+Rerun **check 9 of `verify-mission-c`**: F10 → Assets → Respawn Arco, then watch its escort.
+
+- **Before the fix**: the escort holds for a while, then leaves to land after ~10 minutes.
+- **Expected now**: it stays with the tanker. David watched the teleport path hold for 30 minutes on
+  2026-08-18, so that is the bar.
+
+⚠️ **Watch past the ten-minute mark.** The failure is a *delayed* RTB — a short look would have called
+the old behaviour fixed. That is the whole reason this cannot be a five-minute check.
+
+Also worth a glance in `dcs.log`: `Re-establishing the escort task of <group> onto group id <n>`. If
+that line is absent, the escort group is not named `<asset> escort` and the convention is what to
+check first (it is now documented on the ASSETS page).
+
+## 3. Confirm a rebuilt checklist picture is not served stale — **prepared 2026-08-24**
 
 [`FEAT-ASSIST-FOLLOWUP` 01](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) shipped the fix: a checklist image's
 file name now carries 8 hex of its own content hash, so DCS cannot serve a cached bitmap under a name
 it already knows. **No unit test can see DCS's resource cache**, hence this flight.
 
-Edit a checklist step's text, rebuild, and fly it **without restarting DCS**. The old bug read as
-*"the text is wrong, but only on the first image"*.
+Four missions are built and waiting, with the full procedure, in
+`D:\dev\_VEAF\tmp\dcs-session-2026-08-24\` (`LIRE-MOI.md` + `missions-a-charger\`). F-16C at
+Kobuleti parking, cold; **F10 → Assistance → Démarrage à froid** (the missions build `language: fr`),
+and the picture appears at state 0 on its own. The marker sits on the highlighted first line:
+`AVANT -- cache probe build A` / `APRES -- cache probe build B`.
 
-## 4. Confirm the staggered script loading
+**Three loads, no DCS restart between them** — a restart clears the very cache under test:
+
+| # | Mission | Must read | What it says |
+|---|---|---|---|
+| 1 | `2-item3-controle-A-AVANT` | AVANT | the picture enters DCS's cache |
+| 2 | `3-item3-controle-B-APRES` | **AVANT** (stale) | DCS still caches by file name → the check means something |
+| 3 | `4-item3-corrige-B-APRES` | APRES | the fix works |
+
+**Why a control pair at all**, and the reason this is three loads rather than one: missions 1 and 2 are
+built normally and then rewritten back to the **pre-fix** naming (`assist-f16c-cold-start-0.png`, no
+digest) in both the archive and `mapResource` — two different pictures under one name, the artefact the
+bug was made of. Without them, mission 3 showing the right text would be equally consistent with "the
+fix works" and with "DCS stopped caching between 2.9 builds", and we would not know which. If step 2
+reads APRES, the check is void and step 3 proves nothing.
+
+Measured on the built files: the fixed pair changes **7 file names out of 7** with the label while
+keeping identical resource keys (so a label edit does not move the mission's Lua, which was the design
+constraint); the control pair shares **7 out of 7**.
+
+## 4. Confirm the staggered script loading — **prepared 2026-08-24, and half of it is already answered**
 
 [`FEAT-CUSTOM-SCRIPT-LOAD-DELAY`](.backlog/archive/FEAT-CUSTOM-SCRIPT-LOAD-DELAY.md) is ✅ and verified
 against the real Foothold Caucasus 4.4.1 `.miz`, but never watched in game.
 
-Build an adopted Foothold and check `dcs.log`: 6 scripts at start, 5 around +3 s, AIEN at +12 s. The
-thing that matters is AIEN seeing a **populated** world — Foothold creates part of its groups from
-t+2 s onwards, and loading AIEN at t=0 shows it an empty one **with no log error**.
+**The staging itself no longer needs DCS.** Foothold Caucasus 4.4.1 was adopted fresh today and the
+built `.miz` was read back: `Mission scripts loading - static` carries 8 files at t=0,
+`- delayed 3s` carries 5, `- delayed 12s` carries AIEN alone — exactly the upstream table. The mission
+runs in **static** mode (both selector triggers `return false`), so those are the triggers that execute,
+and the generated `veafDynamicConfig.lua` schedules the same delays, so the documented claim that both
+modes stage alike holds. Nothing left to look at there.
+
+**What the game still has to say is the PRD's own open question:** does the delay change anything? The
+lot settled it by reading code — AIEN inventories ground groups once, at load, and Foothold creates part
+of its groups from t+2 s — but never measured it.
+
+AIEN's log cannot answer: its line that would count each inventoried group is **commented out** upstream
+(only MLRS-with-guidance and unidentified-class groups log), and it writes no total. So
+`1-item4-foothold-echelonnement.miz` (same folder as item 3) carries an instrument in
+`mission-script.lua` that counts ground groups at t=0, +3 s, +12 s and +30 s.
+
+Load it, take any slot, let it run 40 s, quit, and grep `dcs.log` for `VEAF-PROBE` (five lines) and
+`STATIC Mission scripts loading` (three, for their timestamps).
+
+- count at +12 s **equal** to t=0 → the upstream staging is caution, and the lot is a fidelity nicety;
+- count at +12 s **higher** → AIEN at t=0 was demonstrably shown fewer groups, and the lot delivered a
+  correctness fix as it claimed.
+
+Either way it is a result, which is why it is worth the load.
 
 ## 5. Fly the F-14B(U) startup checklist
 

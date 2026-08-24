@@ -52,6 +52,29 @@ To dress up a FARP:
 
 At startup, `veafGrass.buildFarpsUnits(hiddenOnMFD)` adds FARP scenery around each recognised unit (via `veafGrass.buildFarpUnits`).
 
+### Where the props are placed {#farp-layout}
+
+The props (tents, depots, escort) are placed at a fixed distance from the FARP, along its heading.
+Since 6.15.11, **if that spot is already taken by a unit or a static object, the module walks around
+the FARP until it finds clear ground** — keeping the distance and changing the bearing, so the escort
+stays near the FARP it serves.
+
+This is the common case rather than an edge one: you place a static FARP in the mission (that is what
+unlocks spawning on it once the zone is captured), then run `-farp` on top of it. Before, the escort
+came down on its pads — close enough that a helicopter landing there met a truck.
+
+Three things worth knowing:
+
+- **A FARP with clear ground does not move.** The original bearing is tried first, so a mission that
+  works keeps its layout exactly.
+- The whole group is checked, not just its first vehicle: the escort occupies a line some thirty metres
+  long, and a clear spot whose tail overhangs would still block a pad.
+- If no bearing is clear, the FARP is built anyway, at its original position. A FARP refusing to exist
+  because the area is crowded would be worse.
+
+> The markers of an `Invisible FARP` sit close to the centre on purpose, to show where the FARP is:
+> they do not move.
+
 ### Refilling warehouses
 
 Since DCS 2.8, spawned FARPs come up with an empty warehouse. The module provides functions to refill them:

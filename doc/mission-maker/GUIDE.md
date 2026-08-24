@@ -171,7 +171,7 @@ MyMission/
 │   ├── warehouses.yaml          # Dynamic Slots par coalition (étape warehouses, optionnel)
 │   ├── spawn-groups.yaml        # Extension/override de la base de spawn (étape spawn_data, optionnel)
 │   ├── versions.yaml            # Variantes météo/horaires (étape weather)
-│   └── waypoints.yaml           # Bullseye / points de navigation (étape waypoints)
+│   └── waypoints.yaml           # Points de navigation par plan de vol (étape waypoints)
 ├── published/                    # Scripts & outils VEAF (auto-installés)
 ├── mission.yaml                  # Configuration de build
 ├── .gitignore                    # Exclut les fichiers générés/téléchargés
@@ -346,6 +346,96 @@ pipeline:
 Voir la [Référence Pipeline](../PIPELINE_REFERENCE.md) pour le schéma complet de chaque étape et la [Référence mission.yaml](../MISSION_YAML_REFERENCE.md#pipeline) pour tous les champs de `pipeline:`.
 
 ---
+
+### Quel plan de vol pour quel appareil ? {#flight-plan-matching}
+
+`src/waypoints.yaml` déclare des **plans de vol**, chacun avec des critères : coalition, catégorie
+(`plane` / `helicopter`), type d'appareil, pays. Les critères qu'un plan ne pose pas sont des jokers.
+
+> **Le plan le plus précis gagne.** Parmi ceux qui correspondent, celui qui pose le **plus** de critères
+> est retenu — où qu'il soit écrit dans le fichier.
+
+```yaml
+settings:
+  all_blue_planes:
+    coalition: blue
+    category: plane
+    waypoints: { ... }
+
+  f16_flight_plan:          # plus précis : il nomme aussi le type
+    coalition: blue
+    category: plane
+    type: F-16C_50
+    waypoints: { ... }
+```
+
+Un F-16C bleu correspond aux deux et reçoit `f16_flight_plan`. Un autre avion bleu reçoit
+`all_blue_planes`. Un plan **sans aucun critère** est le repli : il correspond à tout et perd contre
+tout. L'ordre de déclaration ne tranche qu'une **égalité** de précision, et seulement dans ce cas.
+
+!!! warning "Ce comportement a changé en 6.15.42"
+    Avant, c'était le **premier** plan compatible qui gagnait, donc l'ordre de déclaration décidait — et
+    un plan précis écrit après un plan large était inatteignable. Ce fichier et le code annonçaient tous
+    deux la règle de précision depuis des années sans qu'elle soit implémentée ; c'est elle qui l'est
+    désormais.
+
+    Si vous aviez rangé vos plans du plus étroit au plus large pour contourner le problème, **rien ne
+    change pour vous**. Si vous vous appuyiez sciemment sur l'ordre pour qu'un plan large en masque un
+    précis, ce plan précis va maintenant s'appliquer.
+
+Seuls les groupes **pilotés par un humain** reçoivent des waypoints — et depuis la 6.15.43, **tous**
+les reçoivent.
+
+!!! warning "Avant la 6.15.43, votre plan de vol n'atteignait presque aucun slot"
+    L'étape waypoints tournait **avant** l'injection des appareils (`spawnables.yaml`,
+    `dynamic-slot-templates.yaml`). Les slots que ces fichiers créent n'existaient donc pas encore quand
+    les waypoints étaient injectés.
+
+    Mesuré sur la mission de fumée du dépôt : **105** groupes pilotés par un humain, **1** seul portait un
+    waypoint du plan — celui qui était déjà dans le `.miz` source. À la position corrigée : **105 sur
+    105**.
+
+    Ça ne concernait pas qu'un bullseye automatique : c'était votre plan de vol déclaré, appliqué à une
+    poignée de slots et à rien d'autre. Et le build ne le disait pas — il annonçait « 1 injecté, 0 sans
+    plan », ce qui est exact et parfaitement sain à lire. Le compte était pris avant que le monde soit
+    fini.
+
+    **Ce que ça change pour vous** : si votre mission utilise des slots dynamiques ou des appareils
+    spawnables, vos waypoints déclarés vont maintenant s'appliquer à ces slots — c'est-à-dire ce que vous
+    demandiez déjà. Si votre mission n'a que des slots posés dans l'éditeur, rien ne change.
+
+
+#### Le bullseye, injecté tout seul {#automatic-bullseye}
+
+Depuis la 6.15.44, chaque plan de vol reçoit en plus un waypoint **`BULLSEYE`** aux coordonnées du
+bullseye **de votre mission** — plus besoin de le déclarer, et plus de risque de recopier celles d'une
+autre carte.
+
+La coalition est prise en compte : un vol **rouge** reçoit le bullseye rouge, **tout le reste** reçoit le
+bleu. C'est la même règle que les scripts VEAF appliquent en jeu depuis
+[#304](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/304), et ce n'est pas un raccourci :
+dans les vraies missions, le bullseye « neutre » vaut souvent `{0, 0}` ou `{100, 100}`, donc un vol neutre
+serait envoyé à l'origine de la carte.
+
+Le waypoint est **ajouté à la fin** du plan, donc la numérotation de vos points existants ne bouge pas.
+
+!!! note "Votre déclaration gagne toujours"
+    Si votre plan de vol déclare déjà un waypoint nommé `BULLSEYE`, c'est **le vôtre** qui est utilisé,
+    avec vos coordonnées. Rien n'est ajouté et rien n'est remplacé.
+
+Pour le désactiver :
+
+```yaml
+pipeline:
+  waypoints:
+    bullseye: false
+```
+
+Et il ne s'applique qu'aux missions qui injectent déjà des waypoints : une mission **sans**
+`src/waypoints.yaml` n'est pas touchée, et un groupe auquel aucun plan de vol ne correspond ne reçoit rien
+— le bullseye accompagne un plan, il n'en crée pas.
+
+Le build vous dit combien il en a ajouté.
 
 ## Outils de conception
 
@@ -598,6 +688,32 @@ Deux cas où ce n'est pas ce qui se passe :
 
 Pour attacher une zone logistique à un objet mobile (un porte-avions, par exemple), liez la zone à l'unité dans l'éditeur de mission (*Moving Zone*) : la zone suit son unité.
 
+#### Couper l'élingage CTLD en cours de mission {#ctld-slingload-toggle}
+
+Un game master peut activer ou désactiver l'élingage de CTLD sans éditer de fichier ni reconstruire la
+mission :
+
+> **F10 → CTLD → Désactiver l'élingage CTLD** (ou *Activer*, selon l'état courant)
+
+L'entrée est **protégée par mot de passe** : elle change la façon de jouer de tous les équipages
+d'hélicoptère, pas seulement celle de qui appuie. Le menu n'affiche que la commande qui change quelque
+chose — inutile de proposer « activer » quand c'est déjà actif.
+
+Le changement prend effet **immédiatement et dans les deux sens** : couper arrête les prises en vol
+stationnaire, réactiver les reprend. Rien à recharger.
+
+!!! warning "Ce que ce réglage ne coupe pas : le treuil de DCS"
+    Il ne gouverne que l'élingage **géré par CTLD** — la prise en vol stationnaire, le compte à rebours,
+    la caisse perdue en survitesse. Le treuil du jeu lui-même continue de fonctionner : une caisse CTLD
+    reste physiquement accrochable avec l'élingue de DCS, quel que soit ce réglage.
+
+    Le message affiché le dit, parce que c'est la première chose qu'un équipage constate après une
+    coupure — et sans cette phrase, la commande passe pour cassée.
+
+Le réglage sous-jacent est `enableHoverSlingload`, qui vit dans votre `ctld-config.yaml` comme tous les
+autres : le menu ne fait que le basculer à chaud. Pour démarrer la mission avec l'élingage déjà coupé,
+posez-le à `false` dans ce fichier.
+
 ### Configurer CSAR via mission.yaml (YAML-first)
 
 CSAR se configure de la même façon :
@@ -613,6 +729,54 @@ modules:
 ```
 
 VEAF génère les assignations `csar.xxx = value` et l'appel `csar.initialize()` dans `veaf-config.lua`. Pour les paramètres complexes comme `aircraftType` (une table par appareil), continuez à utiliser le pattern callback Lua dans `mission-script.lua`.
+
+### Un pilote abattu au-dessus de l'eau {#csar-over-water}
+
+Quand un appareil est descendu, CSAR fait apparaître le pilote survivant à récupérer. Sa position venait d'un décalage fixe de 50 m par rapport à l'appareil, sans que rien ne regarde ce qu'il y avait là : une éjection près d'un rivage mettait donc le survivant **dans l'eau**, injoignable ([#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245)).
+
+Depuis la 6.15.28, deux issues et rien entre les deux :
+
+| Où l'éjection a eu lieu | Ce que la mission obtient |
+|---|---|
+| au sec, ou dans l'eau avec du sec à moins de **500 m** | un CSAR au point sec le plus proche |
+| en pleine eau, rien de sec à moins de 500 m | **aucun CSAR** — le pilote est perdu, et un message le dit à sa coalition |
+
+Le second cas n'est pas « un CSAR inaccessible » : c'est l'absence de CSAR. Pas de MAYDAY, pas de balise ADF, pas de groupe de blessé posé au fond de l'eau jusqu'à la fin de la mission. Un flight n'attend donc pas un sauvetage qui n'existe pas.
+
+L'eau peu profonde ne compte pas comme la pleine mer : un survivant qui a pied à quelques mètres d'une plage reste récupérable là où il est.
+
+!!! note "`CSAR.lua` n'est pas modifié"
+    Le script CSAR est un composant tiers embarqué : le corriger sur place serait effacé à sa prochaine mise à jour. VEAF remplace `csar.addCsar` depuis son propre code, comme il remplace déjà les journaux de CSAR.
+
+### Sanctionner une éjection : `csarMode` {#csar-mode}
+
+CSAR peut faire payer une éjection, pour que se crasher ne soit pas gratuit. C'est un réglage
+`settings:` comme un autre :
+
+```yaml
+modules:
+  CSAR:
+    enabled: true
+    settings:
+      csarMode: 3
+      disableTimeoutTime: 30   # en minutes, pour les modes 1 et 2
+```
+
+| `csarMode` | Ce que le pilote perd |
+|---|---|
+| `0` (défaut) | rien |
+| `1` | **son appareil est indisponible pour tout le monde** pendant `disableTimeoutTime` minutes |
+| `2` | le même appareil lui est interdit à lui seul, les autres peuvent le prendre |
+| `3` | il perd une de ses vies |
+
+!!! note "Un cas où les modes 1 et 2 ne s'appliquent pas"
+    Les modes 1 et 2 verrouillent **un appareil précis**, désigné par son identifiant DCS. Quand le
+    pilote s'est éjecté et que son appareil a déjà disparu du monde, cet identifiant n'existe plus :
+    la sanction est alors **passée**, et le journal DCS le dit (`csarMode … the sanction is skipped`).
+
+    Ce n'est pas un choix par défaut mais un refus délibéré : verrouiller un appareil au hasard
+    priverait de son avion un pilote qui n'a rien fait. Le mode `3` n'a pas ce problème — il ne
+    dépend que du nom du joueur — et s'applique toujours.
 
 ### Ordre de chargement dans la chaîne de triggers DCS
 

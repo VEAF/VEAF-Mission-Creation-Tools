@@ -1,5 +1,5 @@
 waypoints:
-  BULLSEYE:
+  HOLDING_POINT:
     type: Turning Point
     action: Turning Point
     alt: 6096
@@ -7,7 +7,7 @@ waypoints:
     ETA: 364.89432745775
     ETA_locked: false
     speed: 999
-    name: BULLSEYE
+    name: HOLDING_POINT
     x: 75869
     y: 48674
     speed_type: TAS

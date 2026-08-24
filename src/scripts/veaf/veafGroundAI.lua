@@ -360,6 +360,8 @@ end
 
 ArtilleryUnitHandler.VERB_FIRE_FORAIM = 1
 ArtilleryUnitHandler.VERB_FIRE_FOREFFECT = 2
+--- Shift the last aim point by a bearing and a distance, then fire again — FEAT-ARTILLERY-CONTROL.
+ArtilleryUnitHandler.VERB_CORRECT = 3
 
 --- The artillery order specification, read by `veaf.parseMarkerText`.
 ---
@@ -371,11 +373,14 @@ ArtilleryUnitHandler.VERB_FIRE_FOREFFECT = 2
 --- codebase that **validates its own input**, dropping a coordinate string `computeLLFromString`
 --- cannot read instead of storing it.
 ArtilleryUnitHandler.OrderSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.verb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
     options.target = nil -- the coordinates of the target
     options.shells = nil -- the number of shells to fire
     options.radius = nil -- the precision of the shelling
+    options.correction = nil -- { bearing, distance } once parsed, see parseCorrection
   end,
   commands = {
     {
@@ -388,6 +393,15 @@ ArtilleryUnitHandler.OrderSpec = {
       match = "fire",
       init = function(options)
         options.verb = ArtilleryUnitHandler.VERB_FIRE_FOREFFECT
+      end,
+    },
+    -- Declared AFTER the two above and matched anywhere in the text, with the chain's order deciding
+    -- (see this spec's own note). "correct" shares no substring with "aim" or "fire", so the position
+    -- is not load-bearing — but a test pins it, because the next verb added might.
+    {
+      match = "correct",
+      init = function(options)
+        options.verb = ArtilleryUnitHandler.VERB_CORRECT
       end,
     },
   },
@@ -414,6 +428,16 @@ ArtilleryUnitHandler.OrderSpec = {
         options.radius = veaf.getRandomizableNumeric(value)
       end,
     },
+    -- The correction, as the artillery convention writes it: three digits of true bearing followed by
+    -- the distance in metres. `09050` is fifty metres east. Validated here rather than in the handler,
+    -- like `target` above — the only other rule in this codebase that checks its own input — because a
+    -- correction the parser cannot read must not reach a gun as a nil.
+    {
+      keys = { "correction" },
+      apply = function(options, value)
+        options.correction = ArtilleryUnitHandler.parseCorrection(value)
+      end,
+    },
   },
   separator = ";",
   valueWhenAbsent = "",
@@ -424,10 +448,23 @@ function ArtilleryUnitHandler:orderTextAnalysis(text)
 
   local options = veaf.parseMarkerText(text, ArtilleryUnitHandler.OrderSpec)
   if not options then
+    -- Announced, not dropped. A typo inside a readable order is already reported by
+    -- `veaf.reportUnknownParameters` below; this is for text nothing could be made of, which used to
+    -- vanish without a word. FIX-GROUNDAI-SILENT-REFUSALS.
+    if not self.silent then
+      trigger.action.outText(veaf.t("groundai.unreadable_order", self:getName(), tostring(text)), 10)
+    end
+    return nil
+  end
+  -- A typo aborts — see veaf.reportUnknownParameters. An artillery order arrives through the radio menu
+  -- or as the value of a `_ground` marker, and neither path carries the requester's side.
+  if veaf.reportUnknownParameters(options, veafGroundAI.Id, nil) then
     return nil
   end
 
-  if options.verb == ArtilleryUnitHandler.VERB_FIRE_FORAIM then
+  if options.verb == ArtilleryUnitHandler.VERB_CORRECT then
+    self:correct(options.correction, options.shells, options.radius)
+  elseif options.verb == ArtilleryUnitHandler.VERB_FIRE_FORAIM then
     self:fireForAim(options.target, options.shells, options.radius)
   elseif options.verb == ArtilleryUnitHandler.VERB_FIRE_FOREFFECT then
     self:fireForEffect(options.target, options.shells, options.radius)
@@ -474,7 +511,13 @@ function ArtilleryUnitHandler:fireForEffect(coordinates, shells, radius)
     radius = ArtilleryUnitHandler.FIREFOREFFECT_RADIUS
   end
   if not coordinates then
-    coordinates = self._lastTarget
+    -- The battery's remembered aim point, which is also what a correction corrects. There used to be a
+    -- second field here (`_lastTarget`, set in `handleOrder` once the shells actually went out); the
+    -- correction loop needed the same notion and two competing definitions of "the last target" in one
+    -- class is a divergence waiting to happen. Unified on the queue-time point, because that is what
+    -- makes chained corrections compound: two corrections of 50 m east land 100 m east even when the
+    -- first order has not been executed yet. FEAT-ARTILLERY-CONTROL.
+    coordinates = self.lastAimPoint
   end
   veaf.loggers
     .get(veafGroundAI.Id)
@@ -493,6 +536,101 @@ function ArtilleryUnitHandler:fireForEffect(coordinates, shells, radius)
 end
 
 -- give the artillery unit a fire order
+--- Read a correction of the form `<bbb><ddd>`: three digits of true bearing, then metres.
+---
+--- `09050` is fifty metres east, which is the form #198 writes. Three digits for the bearing is not a
+--- style choice: a bearing is always spoken and written as three digits, so `090` and `90` would
+--- otherwise be the same string with different meanings once the distance is appended.
+---
+--- Rejects rather than guesses. A correction is a number a gun acts on, and the failure mode of a
+--- lenient parser here is a shell in the wrong village.
+---
+--- @param value string the correction as typed
+--- @return table|nil `{ bearing = degrees, distance = metres }`, or nil when it cannot be read
+function ArtilleryUnitHandler.parseCorrection(value)
+  if type(value) ~= "string" then
+    return nil
+  end
+  local sDigits = value:match("^%s*(%d+)%s*$")
+  -- At least four digits: three of bearing and one of distance. Fewer cannot be told apart from a
+  -- bearing with no distance, and a correction of zero metres is not a correction.
+  if not sDigits or #sDigits < 4 then
+    return nil
+  end
+  local iBearing = tonumber(sDigits:sub(1, 3))
+  local iDistance = tonumber(sDigits:sub(4))
+  if not iBearing or not iDistance then
+    return nil
+  end
+  -- 360 is refused rather than folded to 0: a player who wrote it meant something, and silently
+  -- accepting it would hide the same typo the next time it is 361.
+  if iBearing > 359 or iDistance <= 0 then
+    return nil
+  end
+  return { bearing = iBearing, distance = iDistance }
+end
+
+--- Shift a point by a bearing and a distance.
+---
+--- **The convention matters more than the trigonometry.** A runtime vec3 is
+--- `{ x = northing, y = altitude, z = easting }` — see `docs/agents/dcs-coordinates.md`, which exists
+--- because getting this wrong raises no error and only produces a wrong position. So the northing takes
+--- the cosine and the easting the sine, and a bearing of 090 moves the point east.
+---
+--- @param vec3Point table the point to shift
+--- @param iBearing number true bearing in degrees
+--- @param iDistance number metres
+--- @return table a new point; the original is not modified
+function ArtilleryUnitHandler.shiftPoint(vec3Point, iBearing, iDistance)
+  local nRadians = math.rad(iBearing)
+  return {
+    x = vec3Point.x + iDistance * math.cos(nRadians),
+    y = vec3Point.y,
+    z = vec3Point.z + iDistance * math.sin(nRadians),
+  }
+end
+
+--- Correct the last aim point and fire again.
+---
+--- The correction applies to **this battery's** last aim point, which is what makes the loop work
+--- without a second name for the player to remember: an order already names its battery
+--- (`_ground order, name Sierra23, order "correct 09050"`), and a battery holds one current aim point.
+---
+--- @param correction table|nil the result of `parseCorrection`
+--- @param shells number|nil
+--- @param radius number|nil
+function ArtilleryUnitHandler:correct(correction, shells, radius)
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:correct(%s)", veaf.lp(self:getName()), veaf.p(correction))
+
+  if not correction then
+    -- Told to the player, not only logged: he typed a correction and is waiting for shells.
+    if not self.silent then
+      trigger.action.outText(veaf.t("groundai.correction_unreadable", self:getName()), 10)
+    end
+    return
+  end
+
+  if not self.lastAimPoint then
+    -- Nothing to correct from. Firing at the offset alone would put shells wherever the battery
+    -- happens to stand, which is worse than refusing.
+    if not self.silent then
+      trigger.action.outText(veaf.t("groundai.correction_no_mission", self:getName()), 10)
+    end
+    return
+  end
+
+  local vec3New = ArtilleryUnitHandler.shiftPoint(self.lastAimPoint, correction.bearing, correction.distance)
+  if not self.silent then
+    trigger.action.outText(veaf.t("groundai.correction_applied", self:getName(), correction.bearing, correction.distance), 10)
+  end
+  -- Delegated to `fireForAim` rather than straight to `fireAtCoordinates`, so a correction gets the
+  -- ranging defaults (2 rounds, 10 m) when the order gave no `shells` or `radius`. Calling
+  -- `fireAtCoordinates` directly passed the nils through and queued an order with no round count — the
+  -- two verbs above both apply their defaults first, and this one has to as well. A correction *is* a
+  -- ranging shot: you fire a couple, look again, correct again.
+  self:fireForAim(vec3New, shells, radius)
+end
+
 function ArtilleryUnitHandler:fireAtCoordinates(coordinates, shells, radius)
   veaf.loggers.get(veafGroundAI.Id):debug(
     self.CLASS_NAME .. "[%s]:fireAtCoordinates(%d, %s, %s)",
@@ -529,6 +667,14 @@ function ArtilleryUnitHandler:fireAtCoordinates(coordinates, shells, radius)
         :warn(self.CLASS_NAME .. "[%s]:fireAtCoordinates() : coordinates are not valid: %s", veaf.p(self:getName()), veaf.p(coordinates))
     end
   end
+  -- Remembered here, at the one place where a target has been resolved to a point, whichever form it
+  -- arrived in — a string of coordinates or a vec3 from a previous correction. Storing it at the callers
+  -- instead would mean remembering to do it in each, and a correction chain is only as good as the
+  -- weakest link that forgot. FEAT-ARTILLERY-CONTROL.
+  if target then
+    self.lastAimPoint = { x = target.x, y = target.y, z = target.z }
+  end
+
   local order = { verb = ArtilleryUnitHandler.ORDER_FIRE, parameters = { shells = shells, target = target, radius = radius } }
   self:addOrder(order)
 end
@@ -567,7 +713,6 @@ function ArtilleryUnitHandler:handleOrder(order)
       }
       local fire = { id = "FireAtPoint", params = fireParams }
       self:getDcsGroup():getController():pushTask(fire)
-      self._lastTarget = target
     end
   end
   self:completeOrder()
@@ -608,6 +753,27 @@ function veafGroundAI.onEventMarkChange(eventPos, event)
   end
 end
 
+--- Find a named autopilot, and tell the player when there is none.
+---
+--- Six `_ground` verbs used to do `if handler then … end` with no `else`, so a command addressed to a name
+--- nobody had registered did nothing and said nothing — its only trace a `trace` line, invisible at the
+--- default log level. Reported in game as "ça ne fait rien (et rien dans le log)" after a mission reload
+--- had discarded the autopilot created before it.
+---
+--- `_ground set` deliberately does NOT use this: it creates the handler when it is missing, which is the
+--- whole point of that verb.
+---
+--- @param handlerName string the name the player used
+--- @return table|nil the handler, or nil after having said so
+function veafGroundAI.getOrComplain(handlerName)
+  local handler = veafGroundAI.get(handlerName)
+  if not handler then
+    veaf.loggers.get(veafGroundAI.Id):warn("no autopilot named %s", veaf.p(handlerName))
+    trigger.action.outText(veaf.t("groundai.no_such_handler", tostring(handlerName), tostring(handlerName)), 10)
+  end
+  return handler
+end
+
 function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
   veaf.loggers.get(veafGroundAI.Id):debug(string.format("veafGroundAI.executeCommand(eventText=[%s])", eventText))
 
@@ -638,7 +804,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_UNSET then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_UNSET")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           handler:stop()
           veafGroundAI.remove(handler)
@@ -647,7 +813,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_START then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_START")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           handler:start()
           return true
@@ -655,7 +821,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_STOP then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_STOP")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           handler:stop()
           return true
@@ -663,7 +829,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_CLEAR then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_CLEAR")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           handler:stop()
           handler:clearOrders()
@@ -672,7 +838,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_STATUS then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_STATUS")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           trigger.action.outText(veaf.t("groundai.handler_info", handlerName, handler:getDescription()), 10)
           return true
@@ -680,7 +846,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
       elseif options.verb == veafGroundAI.VERB_ORDER then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_ORDER")
         local handlerName = options.name
-        local handler = veafGroundAI.get(handlerName)
+        local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
           if handler:orderTextAnalysis(options.order) then
             return true
@@ -713,6 +879,8 @@ veafGroundAI.VERB_STATUS = 7
 --- the marker's position and coalition and it reads the game world, which a text parser has no
 --- business doing. The shared parser handles the text; `markTextAnalysis` handles the world.
 veafGroundAI.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.verb = veafGroundAI.VERB_SET
     options.group = nil -- the DCS group concerned by "set" and "unset"
@@ -817,6 +985,11 @@ function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
     if closestUnit then
       options.group = closestUnit:getGroup()
     else
+      -- Said out loud rather than aborted in silence: a marker dropped a hundred metres too far from the
+      -- battery produced nothing at all, and nothing distinguished that from a broken module.
+      -- FIX-GROUNDAI-SILENT-REFUSALS.
+      veaf.loggers.get(veafGroundAI.Id):warn("no allied group within 250m of the marker")
+      trigger.action.outText(veaf.t("groundai.no_group_nearby"), 10)
       return nil
     end
   end

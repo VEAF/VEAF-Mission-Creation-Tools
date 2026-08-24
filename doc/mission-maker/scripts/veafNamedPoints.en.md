@@ -119,6 +119,14 @@ Named points can be used as destinations in spawn commands:
 _spawn convoy, dest Alpha, speed 40
 ```
 
+A convoy accepts several `dest` and walks the points in the order written, so an itinerary can be composed out of named points:
+
+```
+_spawn convoy, dest Alpha, dest Bravo, dest Charlie, speed 40
+```
+
+See [veafSpawn](veafSpawn.en.md#convoy-itinerary).
+
 ---
 
 ## See Also

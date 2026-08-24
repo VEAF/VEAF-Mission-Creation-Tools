@@ -39,11 +39,13 @@ veaf.i18nCatalog = {
     fr = "VEAF : votre commande de marqueur a échoué (voir le log DCS pour les détails).",
     en = "VEAF: your marker command failed (see the DCS log for details).",
   },
-  ["spawn.unknown_parameters"] = {
-    fr = "VEAF spawn : paramètre(s) inconnu(s) : %s",
-    en = "VEAF spawn: unknown parameter(s): %s",
+  -- Renamed from `spawn.*` when the report left veafSpawnCore: every marker module reports this way
+  -- now, so the module name is a parameter rather than baked into the sentence.
+  ["marker.unknown_parameters"] = {
+    fr = "VEAF %s : paramètre(s) inconnu(s), commande abandonnée : %s",
+    en = "VEAF %s: unknown parameter(s), command aborted: %s",
   },
-  ["spawn.did_you_mean"] = {
+  ["marker.did_you_mean"] = {
     fr = " (vouliez-vous dire « %s » ?)",
     en = " (did you mean '%s'?)",
   },
@@ -224,6 +226,13 @@ veaf.i18nCatalog = {
   ["spawn.unit_spawned"] = {
     fr = "Un %s (%s) est apparu",
     en = "A %s (%s) has been spawned",
+  },
+  -- A TACAN reports its channel and band for the same reason a JTAC reports its code and frequency:
+  -- a beacon whose channel the pilot is never told cannot be tuned, so it is working data and not a
+  -- notification. `-tacan` said nothing at all until FIX-SPAWN-BYPASSSECURITY-AS-SILENT.
+  ["spawn.tacan_spawned"] = {
+    fr = "TACAN créé, canal %s%s, indicatif %s",
+    en = "TACAN created, channel %s%s, ident %s",
   },
   ["spawn.jtac_spawned"] = {
     fr = "JTAC créé, désignation sur %s, disponible sur %s %s",
@@ -546,6 +555,10 @@ veaf.i18nCatalog = {
     fr = "Impossible de déplacer le ravitailleur %s : aucune tâche ORBIT définie",
     en = "Cannot move tanker %s because it has no ORBIT task defined",
   },
+  ["move.tanker_move_no_leg"] = {
+    fr = "Impossible de déduire la branche de ravitaillement du ravitailleur %s : précisez « distance » et « hdg »",
+    en = "Cannot work out tanker %s's refuelling leg: give « distance » and « hdg »",
+  },
   ["move.help"] = {
     fr = "Créez un marqueur et tapez « _move <group|tanker|afac>, name <groupname> » dans le texte\n"
       .. "Cela envoie un ordre de déplacement au groupe spécifié dans DCS\n"
@@ -604,6 +617,25 @@ veaf.i18nCatalog = {
     fr = "Impossible de trouver un dessin nommé %s",
     en = "Could not find a drawing named %s",
   },
+  -- FEAT-RADIO-BEACONS. This message *is* the feature: CTLD draws the three frequencies from its own
+  -- pools and no caller can request one, so a beacon whose frequencies nobody was told is not usable.
+  -- `-tacan` was the model for the command's plumbing and is deliberately not the model here — it emits
+  -- nothing at all, and none of its keys carry a frequency.
+  --
+  -- Same units and same order as the FOB beacon reports in, so a pilot who has seen one does not have to
+  -- work out whether this one means kHz or MHz.
+  ["spawn.beacon_spawned"] = {
+    fr = "Balise radio en place — ADF %.2f kHz · UHF %.2f MHz · FM %.2f MHz",
+    en = "Radio beacon up — ADF %.2f kHz · UHF %.2f MHz · FM %.2f MHz",
+  },
+  ["spawn.beacon_needs_ctld"] = {
+    fr = "Impossible de poser une balise : CTLD n'est pas démarré dans cette mission.",
+    en = "Cannot place a beacon: CTLD is not running in this mission.",
+  },
+  ["spawn.beacon_failed"] = {
+    fr = "La balise n'a pas pu être créée — voir le journal DCS.",
+    en = "The beacon could not be created — see the DCS log.",
+  },
   ["spawn.fob_built"] = {
     fr = "FOB %s terminée ! Caisses et troupes peuvent maintenant être récupérées.",
     en = "Finished building FOB %s! Crates and Troops can now be picked up.",
@@ -619,6 +651,52 @@ veaf.i18nCatalog = {
   ["spawn.convoy_destroyed"] = {
     fr = " - %s a été détruit",
     en = " - %s has been destroyed",
+  },
+  -- FEAT-CONVOY-WAYPOINTS. The wording carries the distinction the feature is about: "hold" says
+  -- *where* the convoy will park and that it is still rolling, "stop" says it has halted on the spot.
+  -- Two entries that read alike would make the useful one unusable, which is the whole point.
+  -- FIX-CSAR-SPAWNS-ON-WATER (#245). David's arbitration: beyond 500 m from dry ground the pilot counts
+  -- as dead, so no CSAR is created at all. Saying so matters — a MAYDAY that never arrives would leave a
+  -- flight waiting for a rescue mission that does not exist.
+  ["csar.pilot_lost_at_sea"] = {
+    fr = "Un %s est tombé en mer, trop loin de toute côte : le pilote est perdu.",
+    en = "A %s went down at sea, too far from any shore: the pilot is lost.",
+  },
+  ["spawn.convoy_advancing_to"] = {
+    fr = "%s repart vers %s",
+    en = "%s is setting off for %s",
+  },
+  ["spawn.convoy_will_hold_at"] = {
+    fr = "%s terminera son trajet et attendra les ordres à %s",
+    en = "%s will finish its leg and await orders at %s",
+  },
+  ["spawn.convoy_holding_at"] = {
+    fr = "%s est arrivé à %s et attend les ordres",
+    en = "%s has reached %s and is awaiting orders",
+  },
+  ["spawn.convoy_cannot_hold"] = {
+    fr = "%s est sur la dernière étape de son trajet : il n'y a pas de point suivant où l'arrêter",
+    en = "%s is on the last leg of its itinerary: there is no next point to hold it at",
+  },
+  ["spawn.convoy_itinerary_finished"] = {
+    fr = "%s a parcouru tout son trajet",
+    en = "%s has walked its whole itinerary",
+  },
+  ["spawn.convoy_halted_here"] = {
+    fr = "%s s'arrête sur place",
+    en = "%s is halting where it stands",
+  },
+  ["spawn.convoy_resumed"] = {
+    fr = "%s reprend sa route",
+    en = "%s is on its way again",
+  },
+  ["spawn.convoy_already_halted"] = {
+    fr = "%s est déjà à l'arrêt",
+    en = "%s has already halted",
+  },
+  ["spawn.convoy_already_rolling"] = {
+    fr = "%s roule déjà",
+    en = "%s is already rolling",
   },
   ["spawn.afac_template_not_found"] = {
     fr = "Le modèle d'avion AFAC est introuvable pour « %s »",
@@ -842,6 +920,13 @@ veaf.i18nCatalog = {
   ["combatzone.enemies"] = {
     fr = "ENNEMIS : %s restants.\n",
     en = "ENEMIES: %s remaining.\n",
+  },
+  -- FEAT-GROUP-COMBAT-INEFFECTIVE (#177): a group still standing that can no longer fight — a SAM site
+  -- whose tracking radar is gone still has launchers and crew. Worded as "no longer able to fight"
+  -- rather than "destroyed", which is a different thing and already covered by the tallies above.
+  ["combatzone.out_of_action"] = {
+    fr = "HORS DE COMBAT (ne peuvent plus tirer) : %s\n",
+    en = "OUT OF ACTION (can no longer fight): %s\n",
   },
   ["combatzone.not_active"] = {
     fr = "la zone n'est pas encore active.",
@@ -1111,6 +1196,45 @@ veaf.i18nCatalog = {
     fr = "Gestionnaire IA %s : %s",
     en = "AI handler %s: %s",
   },
+  -- veafGroundAI — the fire-adjustment loop (FEAT-ARTILLERY-CONTROL, #198). All three are told to
+  -- the player and not only logged: he typed a correction and is waiting for shells, so a silent
+  -- refusal reads as a battery that ignored him.
+  -- Six `_ground` verbs used to do nothing and say nothing when the name was unknown, so a pilot could
+  -- not tell "the autopilot is gone" from "my coordinates are wrong" from "the module is broken". The
+  -- message names the autopilot AND the command that creates one: "unknown" on its own sends him back
+  -- to the documentation in mid-flight.
+  -- `_ground set` and `_ground unset` without a `groupname` take the nearest allied group within 250 m.
+  -- Finding none used to abort the whole command in silence, which is what a marker dropped a little too
+  -- far from the battery looks like: nothing at all.
+  ["groundai.no_group_nearby"] = {
+    fr = "Aucun groupe allié à moins de 250 m du marqueur. Posez-le sur le groupe, ou nommez-le avec : groupname <nom exact du groupe>",
+    en = "No allied group within 250 m of the marker. Drop it on the group, or name it with: groupname <the group's exact name>",
+  },
+  ["groundai.no_such_handler"] = {
+    fr = 'Aucun pilote automatique nommé "%s". Créez-le en posant un marqueur sur le groupe avec : _ground set, name %s',
+    en = 'No autopilot named "%s". Create one by dropping a marker on the group with: _ground set, name %s',
+  },
+  -- An order text nothing could be made of. The typo case is already handled by reportUnknownParameters;
+  -- this is for total garbage, which used to be dropped in silence.
+  ["groundai.unreadable_order"] = {
+    fr = "%s : ordre illisible [%s]. Ordres possibles : aim, fire, correct.",
+    en = "%s: unreadable order [%s]. Valid orders: aim, fire, correct.",
+  },
+  ["groundai.correction_applied"] = {
+    fr = "%s : correction %03d / %d m appliquée, tir en cours",
+    en = "%s: correction %03d / %d m applied, firing",
+  },
+  -- Deliberately explicit about the form, because the failure is almost always a mistyped one.
+  ["groundai.correction_unreadable"] = {
+    fr = "%s : correction illisible. Forme attendue : trois chiffres de cap puis la distance en mètres, par exemple 09050 pour 50 m à l'est.",
+    en = "%s: correction unreadable. Expected three digits of bearing then the distance in metres, for instance 09050 for 50 m east.",
+  },
+  -- Refused rather than fired: correcting from nothing would put shells wherever the battery
+  -- happens to stand.
+  ["groundai.correction_no_mission"] = {
+    fr = "%s : aucun tir en cours à corriger. Donnez d'abord un objectif.",
+    en = "%s: no fire mission to correct. Give it a target first.",
+  },
   ["groundai.cannot_aim"] = {
     fr = "%s ne peut pas viser, aucune coordonnée de cible fournie",
     en = "%s cannot aim, no target coordinates provided",
@@ -1265,6 +1389,56 @@ veaf.i18nCatalog = {
     fr = "APPARITION",
     en = "SPAWN",
   },
+  -- veaf.lua — the CTLD submenu and its sling-loading toggle (FEAT-CTLD-SLINGLOAD-TOGGLE, #60).
+  -- veafWeather — the welcome brief a pilot gets on taking a slot (FEAT-SLOT-WELCOME-BRIEF, #301).
+  -- Deliberately shorter than the ATIS: the full report is a radio command away, and a greeting that
+  -- fills the screen at every slot change stops being read.
+  ["weather.welcome_brief"] = {
+    fr = "Bienvenue à %s — piste en service %s\n%s",
+    en = "Welcome to %s — runway in service %s\n%s",
+  },
+  -- A ship or a helipad has no runway to be in service, and a carrier slot is a normal case rather
+  -- than a degraded one, so it gets its own wording instead of an empty gap.
+  -- A carrier keeps no runway: it turns into the wind, so its heading is what a pilot on the deck
+  -- needs. The wording is the carrier group's own — `carrier.atc_navigation` says "Cap actuel
+  -- (vrai)" / "Current heading (true)" — rather than a second vocabulary for the same number.
+  -- "(vrai)" is accurate and not decoration: the heading comes from `mist.getHeading(unit, true)`,
+  -- the same call carrier operations make, which returns the true heading and not the magnetic one.
+  -- %03d because a heading is read as three digits; "cap 9" is not a heading.
+  ["weather.welcome_brief_ship"] = {
+    fr = "Bienvenue à bord du %s — cap actuel (vrai) %03d\n%s",
+    en = "Welcome aboard %s — current heading (true) %03d\n%s",
+  },
+  ["weather.welcome_brief_no_runway"] = {
+    fr = "Bienvenue à %s\n%s",
+    en = "Welcome to %s\n%s",
+  },
+  ["menu.ctld.root"] = {
+    fr = "CTLD",
+    en = "CTLD",
+  },
+  ["menu.ctld.slingload_enable"] = {
+    fr = "Activer l'élingage CTLD",
+    en = "Enable CTLD sling loading",
+  },
+  ["menu.ctld.slingload_disable"] = {
+    fr = "Désactiver l'élingage CTLD",
+    en = "Disable CTLD sling loading",
+  },
+  -- Both messages end on DCS's own winch, and that is the point of them rather than politeness.
+  -- CTLD checks native DCS cargo before it looks at this setting, and all three crate models are
+  -- `canCargo: true`, so a crate stays hookable with the game's own sling whatever the toggle says.
+  -- Left unsaid, the first crew to hook a crate after switching off reports the command as broken.
+  ["ctld.slingload_enabled"] = {
+    fr = "Élingage CTLD ACTIVÉ : la prise en vol stationnaire fonctionne à nouveau.",
+    en = "CTLD sling loading is ON: hover pickup works again.",
+  },
+  ["ctld.slingload_disabled"] = {
+    fr = "Élingage CTLD DÉSACTIVÉ : plus de prise en vol stationnaire. "
+      .. "Le treuil de DCS lui-même reste utilisable — ce réglage ne concerne que l'élingage géré par CTLD.",
+    en = "CTLD sling loading is OFF: no more hover pickup. "
+      .. "DCS's own winch still works — this setting only governs the sling loading CTLD manages.",
+  },
   ["menu.combatzone.root"] = {
     fr = "ZONES DE COMBAT",
     en = "COMBAT ZONES",
@@ -1399,13 +1573,21 @@ veaf.i18nCatalog = {
     fr = "Marquer la route du convoi le plus proche",
     en = "Mark closest convoy route",
   },
+  ["menu.spawn.convoy_advance"] = {
+    fr = "Envoyer le convoi le plus proche au point suivant",
+    en = "Send closest convoy to its next point",
+  },
+  ["menu.spawn.convoy_hold"] = {
+    fr = "Faire attendre les ordres au convoi le plus proche (au point suivant)",
+    en = "Hold closest convoy at its next point",
+  },
   ["menu.spawn.convoy_move"] = {
-    fr = "Faire repartir le convoi le plus proche",
-    en = "Make closest convoy move",
+    fr = "Faire repartir le convoi le plus proche (après un arrêt)",
+    en = "Resume closest convoy after a halt",
   },
   ["menu.spawn.convoy_stop"] = {
-    fr = "Arrêter le convoi le plus proche",
-    en = "Stop closest convoy",
+    fr = "Arrêter le convoi le plus proche sur place",
+    en = "Halt closest convoy where it stands",
   },
   ["menu.transportmission.flare_done"] = {
     fr = "Zone de largage éclairée par fusée",

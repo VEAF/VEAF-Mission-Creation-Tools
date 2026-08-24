@@ -208,7 +208,8 @@ function veafSpawn.executeCommand(
   repeatDelay,
   route,
   allowStartDelay,
-  requesterCoalition
+  requesterCoalition,
+  scripted
 )
   veaf.loggers.get(veafSpawn.Id):trace("eventPos=%s", eventPos)
   veaf.loggers.get(veafSpawn.Id):debug("eventText=%s", eventText)
@@ -235,24 +236,16 @@ function veafSpawn.executeCommand(
     local options = veafSpawn.markTextAnalysis(eventText)
 
     if options then
-      -- Hint the pilot about unrecognized parameters (likely typos) — UXPILOT-003.
-      -- Aggregate into a single message to avoid spamming when several keys are wrong.
-      if options.unknownParameters then
-        local hints = {}
-        for _, p in ipairs(options.unknownParameters) do
-          local hint = "'" .. tostring(p.key) .. "'"
-          if p.suggestion then
-            hint = hint .. veaf.t("spawn.did_you_mean", tostring(p.suggestion))
-          end
-          table.insert(hints, hint)
-        end
-        -- Address the hint to the requester (the pilot who issued the command), not
-        -- to `coalition` (the side the units spawn for). nil => shown to everyone.
-        veaf.reportToPilot(veaf.t("spawn.unknown_parameters", table.concat(hints, ", ")), 15, requesterCoalition)
-        -- An unrecognized parameter is an error: report it and ABORT, so a typo
-        -- never silently spawns something the pilot did not intend. The marker is
-        -- left in place so the pilot can fix the typo. (Known keys are derived from
-        -- ParameterRules, so a flagged key is one that would have done nothing.)
+      -- Whether to keep quiet, and it is deliberately NOT `bypassSecurity` — see
+      -- FIX-SPAWN-BYPASSSECURITY-AS-SILENT. Fourteen handlers used to forward `bypassSecurity` into a
+      -- callee's `silent` parameter, conflating "this command needed no password" with "the player does
+      -- not want to be told". A script must not spam thirty messages for a thirty-group combat zone; a
+      -- player who dropped a marker always deserves an answer. `scripted` is that distinction, and
+      -- nothing else.
+      options.silent = scripted or false
+      -- A typo aborts rather than spawning something else — see veaf.reportUnknownParameters. The report
+      -- goes to the **requester**, not to `coalition`, which is the side the units spawn for.
+      if veaf.reportUnknownParameters(options, veafSpawn.Id, requesterCoalition) then
         return false
       end
 
@@ -267,7 +260,9 @@ function veafSpawn.executeCommand(
           :trace(string.format("scheduling veafSpawn.executeCommand for a delayed start in %s seconds", veaf.p(startDelay)))
         mist.scheduleFunction(
           veafSpawn.executeCommand,
-          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false, requesterCoalition },
+          -- `scripted` travels with the reschedule, or a delayed spawn asked for by a combat zone
+          -- would come back chatty on the second pass.
+          { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false, requesterCoalition, scripted },
           timer.getTime() + startDelay
         )
         return true
@@ -311,6 +306,7 @@ function veafSpawn.executeCommand(
           route,
           false,
           requesterCoalition,
+          scripted,
         }, timer.getTime() + repeatDelay)
       end
 
@@ -426,29 +422,51 @@ function veafSpawn.executeCommand(
                 mist.goRoute(groupObject, route)
               end
               -- add the group to the IADS, if there is one
-              if veafSkynet and not veafSkynet.DynamicSpawn and options.skynet then -- only add static stuff like sam groups and sam batteries, not mobile groups and convoys -- and do not do that if DynamicSpawn is active in VeafSkynet
-                veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.lp(options.skynet))
-                if type(options.skynet) == "boolean" then --it means options.skynet is true
-                  options.skynet = veafSkynet.defaultIADS[tostring(options.side)]
-                end
-                veaf.loggers.get(veafSpawn.Id):trace("Adding spawned group to skynet, networkName= %s", veaf.lp(options.skynet))
+              if veafSkynet then
+                -- Tell veafSkynet what this spawn asked for, so that its birth-event handler honours
+                -- the `skynet` option instead of integrating every eligible group it sees. Without
+                -- this, a convoy spawned with `skynet false` still joined the IADS as soon as dynamic
+                -- spawn integration was on — the shortcuts pass `skynet false` on convoys precisely to
+                -- avoid that. Declared here because the group name only exists once the handler ran.
+                veafSkynet.declareSpawn(spawnedGroup, options.skynet)
+
+                -- Only add static stuff like sam groups and sam batteries, not mobile groups and
+                -- convoys. The two integration paths are exclusive: when the target network integrates
+                -- dynamic spawns, its birth-event handler does the work (honouring the declaration
+                -- above), so doing it here as well would integrate the same group twice. Asking the
+                -- *network* rather than the module-level flag, which is only the value a network is
+                -- created with and can be changed per network during the mission.
                 local networkName = options.skynet
-                if veafSkynet.addGroupToNetwork(networkName, groupObject, options.forceEwr, options.pointDefense, nil, bypassSecurity) then
-                  veaf.loggers.get(veafSpawn.Id):trace("Group Added to IADS network")
-                  if not bypassSecurity then
-                    trigger.action.outText(veaf.t("spawn.iads_group_added", options.skynet), 15)
-                  end
-                else
-                  veaf.loggers.get(veafSpawn.Id):trace("Could not find IADS network or group is not supported by IADS")
-                  if not bypassSecurity then
-                    trigger.action.outText(veaf.t("spawn.iads_group_not_added", options.skynet), 15)
+                if type(networkName) == "boolean" then --it means options.skynet is true
+                  networkName = veafSkynet.defaultIADS[tostring(options.side)]
+                end
+                if options.skynet and not veafSkynet.integratesDynamicSpawns(networkName) then
+                  veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.lp(options.skynet))
+                  options.skynet = networkName
+                  veaf.loggers.get(veafSpawn.Id):trace("Adding spawned group to skynet, networkName= %s", veaf.lp(networkName))
+                  if
+                    veafSkynet.addGroupToNetwork(networkName, groupObject, options.forceEwr, options.pointDefense, nil, bypassSecurity)
+                  then
+                    veaf.loggers.get(veafSpawn.Id):trace("Group Added to IADS network")
+                    if not bypassSecurity then
+                      trigger.action.outText(veaf.t("spawn.iads_group_added", options.skynet), 15)
+                    end
+                  else
+                    veaf.loggers.get(veafSpawn.Id):trace("Could not find IADS network or group is not supported by IADS")
+                    if not bypassSecurity then
+                      trigger.action.outText(veaf.t("spawn.iads_group_not_added", options.skynet), 15)
+                    end
                   end
                 end
               end
             end
             --might need to specify the if a group was static in here so that people on the other end know
             if spawnedGroups then
-              table.insert(spawnedGroups, spawnedGroup)
+              -- Through veaf.collectSpawnedGroup rather than table.insert, so that a caller which
+              -- registered a hook hears about this group even when the spawn was deferred and it has
+              -- long since stopped reading the table (#66). This is the only insertion point in the
+              -- repository, which is why the notification lives here rather than in every signature.
+              veaf.collectSpawnedGroup(spawnedGroups, spawnedGroup)
             end
           end
         end
@@ -920,26 +938,62 @@ function veafSpawn.buildRadioMenu()
       nil,
       veafRadio.USAGE_ForGroup
     )
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_mark_route"), veafSpawn.rootPath)
+    -- FIX-CONVOY-MENU-NESTING: these six sit **directly** under the spawn root. Each used to get
+    -- its own submenu holding a single command of the same name, so a pilot read the same sentence
+    -- twice and spent two keystrokes to reach one item. Reported in game 2026-08-22.
+    --
+    -- Nothing required the nesting: `veafCarrierOperations` puts several `USAGE_ForGroup` commands
+    -- in one shared submenu, and `convoy_cleanup` below has always been added straight to the root.
+    -- The pattern predates FEAT-CONVOY-WAYPOINTS — `convoy_mark` and `convoy_mark_route` were
+    -- already written this way and the itinerary commands copied their neighbour — so all six moved
+    -- together rather than leaving the menu half-flat.
+    --
+    -- The order is deliberate: mark, then the four itinerary verbs as a game master reaches for them
+    -- — push it on, park it at the next point, halt it on the spot, send it off again. `hold` and
+    -- `stop` stay adjacent because their labels have to be readable *against* one another, which is
+    -- where the two get confused.
     veafRadio.addCommandToSubmenu(
       veaf.t("menu.spawn.convoy_mark_route"),
-      menuPath,
+      veafSpawn.rootPath,
       veafSpawn.markClosestConvoyRouteWithSmoke,
       nil,
       veafRadio.USAGE_ForGroup
     )
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_mark"), veafSpawn.rootPath)
     veafRadio.addCommandToSubmenu(
       veaf.t("menu.spawn.convoy_mark"),
-      menuPath,
+      veafSpawn.rootPath,
       veafSpawn.markClosestConvoyWithSmoke,
       nil,
       veafRadio.USAGE_ForGroup
     )
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_stop"), veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_stop"), menuPath, veafSpawn.stopClosestConvoy, nil, veafRadio.USAGE_ForGroup)
-    local menuPath = veafRadio.addSubMenu(veaf.t("menu.spawn.convoy_move"), veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu(veaf.t("menu.spawn.convoy_move"), menuPath, veafSpawn.moveClosestConvoy, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_advance"),
+      veafSpawn.rootPath,
+      veafSpawn.advanceClosestConvoy,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_hold"),
+      veafSpawn.rootPath,
+      veafSpawn.holdClosestConvoy,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_stop"),
+      veafSpawn.rootPath,
+      veafSpawn.stopClosestConvoy,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.spawn.convoy_move"),
+      veafSpawn.rootPath,
+      veafSpawn.moveClosestConvoy,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
     veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.spawn.convoy_cleanup"), veafSpawn.rootPath, veafSpawn.cleanupAllConvoys)
     veafRadio.refreshRadioMenu()
   end
@@ -1001,7 +1055,24 @@ function veafSpawn.initialize()
     -- spawn for the issuing unit's own side. Feedback always goes to the requester.
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
     local requesterCoalition = veaf.getRequesterCoalition(event)
-    return veafSpawn.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, nil, nil, route, true, requesterCoalition)
+    -- `bypass` is the last argument as well as the fifth, and that is not a copy-paste: veafCommands
+    -- passes false/true for (bypassSecurity, fromMarker) on the marker path and true/false on the
+    -- interpreter path, so at THIS entry point `bypass` already means "a script asked, not a person".
+    -- What it must never pick up is an alias's own bypass flag, which is what made `-tacan` mute.
+    return veafSpawn.executeCommand(
+      pos,
+      event.text,
+      spawnSide,
+      event.idx,
+      bypass,
+      groups,
+      nil,
+      nil,
+      route,
+      true,
+      requesterCoalition,
+      bypass
+    )
   end, veafCommands.PRIORITY_SPAWN, veafCommands.SECURITY_HANDLED)
   veafSpawn.dumpSpawnablePlanesList()
 end

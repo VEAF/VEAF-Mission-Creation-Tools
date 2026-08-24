@@ -163,10 +163,15 @@ function veafUnits.findDcsUnit(unitType)
   -- find the desired unit in the DCS units database
   -- fast path: the database is keyed by DCS type id
   local unit = dcsUnits.DcsUnitsDatabase[unitType]
-  -- fallback: case-insensitive match on type or name
+  -- Fallback: case-insensitive match on type or name, **trimmed on both sides**. Two of the 873 units
+  -- DCS ships have a trailing space in their display name (`'APC TPz Fuchs '`, `'IFV Warrior '`), which
+  -- is invisible to anyone reading it off the mission editor and typing it. Before the trim, asking for
+  -- that unit by name resolved to nothing and only said so in the log — FIX-PLATOON-UNITS found six
+  -- occurrences of exactly that in the platoon composition tables.
   if not unit then
+    local wanted = veaf.trim(unitType):lower()
     for _, u in pairs(dcsUnits.DcsUnitsDatabase) do
-      if (u and u.type and unitType:lower() == u.type:lower()) or (u and u.name and unitType:lower() == u.name:lower()) then
+      if (u and u.type and wanted == veaf.trim(u.type):lower()) or (u and u.name and wanted == veaf.trim(u.name):lower()) then
         unit = u
         break
       end

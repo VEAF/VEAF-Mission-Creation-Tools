@@ -383,4 +383,118 @@ function TestSecrev2SanctuaryEventFilter:test_death_of_an_ai_unit_leaves_the_lis
   luaunit.assertNotNil(veafSanctuary.humanUnitsToFollow["known-human"])
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-SANCTUARY-SHIFTED-ALIAS-CALLS — what deployDefenses hands to ExecuteAlias
+--
+-- The eight calls in deployDefenses were written against a signature that gained a `delay` parameter in
+-- second position on 2021-04-13, and were never updated. So a command string landed on `delay` and
+-- `timer.getTime() + delay` raised — the defences never spawned.
+--
+-- What is asserted is the SHAPE of the handover, not the spawn: a misaligned call is invisible until it
+-- runs, and every argument here is a plain value that no type check would catch.
+-- ---------------------------------------------------------------------------
+TestSanctuaryDeployDefensesHandover = {}
+
+function TestSanctuaryDeployDefensesHandover:setUp()
+  self.calls = {}
+  self._shortcuts = veafShortcuts
+  local test = self
+  veafShortcuts = {
+    ExecuteAlias = function(aliasName, delay, remainingCommand, position, eventCoalition, markId, bypassSecurity, spawnedGroups)
+      table.insert(test.calls, {
+        aliasName = aliasName,
+        delay = delay,
+        remainingCommand = remainingCommand,
+        position = position,
+        eventCoalition = eventCoalition,
+        markId = markId,
+        bypassSecurity = bypassSecurity,
+        spawnedGroups = spawnedGroups,
+      })
+    end,
+  }
+
+  self.zone = VeafSanctuaryZone:new()
+  self.zone:setName("Test Sanctuary")
+  self.zone:setCoalition(2)
+
+  self.unit = {
+    getVelocity = function()
+      return { x = 10, y = 0, z = 10 }
+    end,
+  }
+end
+
+function TestSanctuaryDeployDefensesHandover:tearDown()
+  veafShortcuts = self._shortcuts
+end
+
+--- @param surface number 2 or 3 is water, anything else is land
+--- @param timeInZone number above HARDER_DEFENSES_AFTER a second wave is deployed
+function TestSanctuaryDeployDefensesHandover:_deploy(surface, timeInZone)
+  local origSurface = land.getSurfaceType
+  land.getSurfaceType = function()
+    return surface
+  end
+  self.zone:deployDefenses({ x = 1000, y = 0, z = 2000 }, self.unit, timeInZone)
+  land.getSurfaceType = origSurface
+  return self.calls
+end
+
+function TestSanctuaryDeployDefensesHandover:test_the_delay_is_never_a_command_string()
+  -- THE defect, in one assertion. Before the fix every call carried "radius 2000, multiplier 2, …" here,
+  -- and ExecuteAlias then computed `timer.getTime() + <that string>`.
+  local calls = self:_deploy(2, 0)
+  luaunit.assertTrue(#calls > 0, "deployDefenses must actually deploy something")
+  for i, call in ipairs(calls) do
+    luaunit.assertTrue(
+      call.delay == nil or type(call.delay) == "number",
+      string.format("call %d handed a %s as the delay: %s", i, type(call.delay), tostring(call.delay))
+    )
+  end
+end
+
+function TestSanctuaryDeployDefensesHandover:test_the_command_carries_the_spawn_parameters()
+  -- The other half of the shift: what was landing on `delay` belongs on `remainingCommand`.
+  local call = self:_deploy(2, 0)[1]
+  luaunit.assertEquals(type(call.remainingCommand), "string")
+  luaunit.assertNotNil(call.remainingCommand:find("radius", 1, true), "got: " .. tostring(call.remainingCommand))
+end
+
+function TestSanctuaryDeployDefensesHandover:test_the_position_is_a_point_not_a_coalition()
+  local call = self:_deploy(2, 0)[1]
+  luaunit.assertEquals(type(call.position), "table", "a vec3, not a coalition number")
+  luaunit.assertNotNil(call.position.x)
+end
+
+function TestSanctuaryDeployDefensesHandover:test_the_coalition_reaches_the_coalition_parameter()
+  luaunit.assertEquals(self:_deploy(2, 0)[1].eventCoalition, 2)
+end
+
+function TestSanctuaryDeployDefensesHandover:test_a_sanctuary_spawn_bypasses_security()
+  -- A punishment is a script, not a pilot at a marker: it must not ask anybody for a password.
+  luaunit.assertEquals(self:_deploy(2, 0)[1].bypassSecurity, true)
+end
+
+function TestSanctuaryDeployDefensesHandover:test_the_group_accumulator_reaches_its_parameter()
+  -- It used to land on `bypassSecurity`, so the caller never got its group names back either.
+  luaunit.assertEquals(type(self:_deploy(2, 0)[1].spawnedGroups), "table")
+end
+
+function TestSanctuaryDeployDefensesHandover:test_water_and_land_both_deploy()
+  -- Two branches, four calls each once the harder wave triggers, and both were shifted identically.
+  luaunit.assertEquals(#self:_deploy(2, 0), 2, "water, first wave")
+  self.calls = {}
+  luaunit.assertEquals(#self:_deploy(1, 0), 2, "land, first wave")
+end
+
+function TestSanctuaryDeployDefensesHandover:test_the_harder_wave_is_handed_over_correctly_too()
+  -- Four more calls, in a separate block that was shifted the same way.
+  local calls = self:_deploy(2, veafSanctuary.HARDER_DEFENSES_AFTER + 1)
+  luaunit.assertEquals(#calls, 4)
+  for i, call in ipairs(calls) do
+    luaunit.assertTrue(call.delay == nil or type(call.delay) == "number", "call " .. i .. " has a bad delay")
+  end
+end
+
 os.exit(luaunit.LuaUnit.run())

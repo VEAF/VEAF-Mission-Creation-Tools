@@ -1,6 +1,6 @@
 # FIX-ESCORT-RESPAWN-TASK — a respawned escort goes home; the fix already exists next door
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code, tests and documentation shipped 2026-08-20; **one in-game check left**, which no workstation without DCS can do (see DCS-SESSION-TODO item 10)
 
 Origin: `CHORE-ISSUE-VERIFY-SESSION` check 9, run by David on 2026-08-18. Closes
 [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107); the same session closes
@@ -30,7 +30,31 @@ So #107's own request is the fix: *"When a functionning way is found to move the
 it #101, it should be ported to the veafAssets.respawn method / mist.respawnGroup method."* That way
 exists and is measured to work.
 
-## What ships
+## What shipped, 2026-08-20
+
+Written on a workstation without DCS, which decides what could and could not be closed here.
+
+| | |
+|---|---|
+| `veafMove.findEscortTask` | the lookup — group data, last waypoint, enabled `Escort` task — used by **both** paths |
+| `veafMove.reestablishEscortTask` | the repair for a respawn: reassign the current `Group.getID()` and replace the mission. Nothing is moved |
+| `veafAssets.respawn` | calls it, guarded on `veafMove` being present |
+| `veafMove.teleportEscort` | now uses the shared lookup instead of its own copy |
+| `veafMove.EscortGroupNameSuffix` | the convention, named once and documented |
+
+Two things the work turned up that were not in the plan:
+
+- **`unitGroup_escort` would have become a global.** It was assigned without `local`, relying on the
+  block of locals this refactor removed. Caught by reading the diff, not by a tool.
+- **`teleportEscort` needs two waypoints and the lookup needs none.** The teleport rewrites the last
+  two, so it now says so and refuses a one-point route instead of indexing `points[0]`. That hole
+  predates this lot.
+
+Also fixed in passing, in the mocks: `Group.getID` had no static form (`Group.getID(grp)`), which is
+the form the production code uses, and the controller mock had no `setTask` — so no test could see a
+mission being pushed at all.
+
+## The original plan
 
 - `veafAssets.respawn` re-establishes the escort task after respawning a linked group: same recovery
   and same group-id reassignment as `teleportEscort`, applied to the newly respawned pair.
@@ -49,8 +73,18 @@ failure is a delayed RTB and a short look would have called this fixed.
 
 ## Definition of done
 
-- [ ] A respawned escort keeps escorting, verified in game past the ten-minute mark
-- [ ] One shared implementation, used by both the teleport and the respawn path
-- [ ] The escort convention documented on the ASSETS page (fr + en)
+- [ ] A respawned escort keeps escorting, verified in game past the ten-minute mark — **the one item
+      left**, queued as [DCS-SESSION-TODO](../../DCS-SESSION-TODO.md) item 10. Not skippable: the
+      failure is a *delayed* RTB, so a short look would call it fixed either way
+- [x] One shared implementation, used by both the teleport and the respawn path
+- [x] The escort convention documented on the ASSETS page (fr + en), including what `linked` is not
 - [ ] #107 closed citing the measurement; #101 closed as not reproducible, saying what was tried
-      (teleport **and** move, escort observed for 30 minutes)
+      (teleport **and** move, escort observed for 30 minutes) — after the in-game check, so the
+      closing comment can say it was verified rather than assumed
+
+## Scope
+
+| # | Ticket | Status |
+|---|--------|--------|
+| 01 | [One shared escort-task recovery](tickets/01-shared-escort-recovery.md) | ✅ |
+| 02 | [Document the escort convention on the ASSETS page](tickets/02-document-escort-convention.md) | ✅ |

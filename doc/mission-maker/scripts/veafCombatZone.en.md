@@ -86,11 +86,31 @@ modules:
 | `briefing` | string | — | No | Briefing text shown to players |
 | `training` | boolean | `false` | No | Training mode: no security, verbose status |
 | `completable` | boolean | `true` | No | `false`: the zone never completes (nor deactivates) on its own |
+| `show_units_list` | boolean | `true` | No | `false`: the F10 report does not list the remaining units |
+| `show_zone_position_info` | boolean | `true` | No | `false`: the F10 report shows neither the zone's coordinates nor its weather |
+| `smoke_and_flare` | boolean | `true` | No | `false`: the zone offers neither smoke nor flare to mark itself |
+| `radio_menu_disabled` | boolean | `false` | No | `true`: the zone does not appear in the F10 menu at all |
+| `rename_units_sequentially` | boolean | `true` | No | `false`: units keep their original names when spawned instead of being renamed in sequence. See [below](#rename-units) |
 | `enemy_coalition` | `RED` \| `BLUE` | `RED` | No | The **hostile** coalition: its units are the ones that must be destroyed for the zone to complete, and the ones the F10 report calls "enemies". Use `BLUE` for a zone played from the **red side** (see below) |
 | `radio_menu_coalition` | `RED` \| `BLUE` \| `ALL` | *(the side playing the zone)* | No | Which coalition is offered the zone's F10 menu. Defaults to the opposite of `enemy_coalition`. `ALL` shows it to both sides (see below) |
 | `active_at_start` | boolean | `false` | No | Automatically activate the zone at mission start (`veafCombatZone.ActivateZone` after `initialize()`) |
 | `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
 | `chained_delay` | integer | `0` | No | Seconds before chained zones fire |
+
+### `rename_units_sequentially` — keeping the original unit names {#rename-units}
+
+When a group spawns, a combat zone renames its units in sequence. That helps on a finished map — the names become readable and consistent — and **gets in the way while debugging** a `.miz`: the name you gave the unit in the Mission Editor is gone, and you can no longer find it in the logs.
+
+```yaml
+combat_zones:
+  - zone_name: CZ-Alpha
+    rename_units_sequentially: false   # units keep their Mission Editor names
+```
+
+The setting is **per zone**, not a global debug switch: that is what the
+[original request](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289) asked for, and a global one would be one more thing to remember to put back before shipping.
+
+The default stays `true`, so no existing mission changes.
 
 ### `combat_zones[]` fields — type `operation`
 
@@ -191,7 +211,7 @@ This approach gives you full visual design in the editor while keeping the zone 
 
 1. **Create a trigger zone** — define the combat area. Name it, e.g. `ZONE-ALPHA`.
 2. **Place unit groups** inside the zone. Set them to any coalition — VEAF will handle their lifecycle.
-3. **Use unit name tags** (see below) to customise spawn behaviour per group.
+3. **Use unit or group name tags** (see below) to customise spawn behaviour per group.
 4. **Register the zone** in `mission-script.lua`:
 
 ```lua
@@ -206,18 +226,129 @@ VeafCombatZone:new()
 
 ---
 
-## Unit Name Tags
+### Groups out of action {#out-of-action}
+
+A group is not only alive or dead. An S-300 battery whose tracking radar is destroyed keeps its launchers, its trucks and its crew — and cannot fire.
+
+The zone report now says so:
+
+```
+OUT OF ACTION (can no longer fight): ALPHA-SA10
+```
+
+A group that has been wiped out does not appear there: it is simply gone from the remaining tallies. This line is only about groups **still standing** that have become harmless.
+
+!!! note "This does not change when a zone ends"
+    For now the information is advisory only: a zone still completes when **every** enemy unit is destroyed, useless launchers included. Ending the zone sooner is a separate design decision, not yet taken.
+
+**How a group is judged.** By default a group counts as out of action if it is a SAM site (a search radar or a launcher is still standing) and no tracking radar is left. A vehicle that is its own radar and launcher — Tunguska, Tor, Osa — stays operational as long as it lives. A convoy has no radar at all: it remains a threat while it rolls.
+
+For sites whose composition the DCS attributes cannot describe, a pattern table (`veaf.ImportantUnitsByGroupPattern`, in `veaf.lua`) declares the sets of units a site cannot do without and the minimum life, as a percentage, they need. The S-300 is already in it.
+
+## Unit and Group Name Tags
 
 Unit and group names in the DCS Mission Editor can carry special tags that control how VEAF handles them when the zone activates. Tags are embedded in the name and do not affect DCS itself.
 
 | Tag | Example | Description |
 |-----|---------|-------------|
-| `#spawnradius=N` | `#spawnradius=200` | Scatter radius in metres around the zone centre for this group |
+| `#spawnradius=N` | `#spawnradius=200` | Scatter radius in metres around the group's recorded position. Without the tag, see [`#spawnradius`](#spawn-radius) |
 | `#spawnchance=N` | `#spawnchance=50` | Percentage chance (0–100) this group will actually spawn |
 | `#spawncount=N` | `#spawncount=3` | Number of instances to spawn (can be >1 for repeated units) |
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Override the spawn group name (useful to target a named template) |
 | `#spawndelay=N` | `#spawndelay=120` | Delay in seconds before this group spawns after zone activation |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Execute a VEAF command instead of spawning this group; the unit acts as a trigger and is destroyed |
+| `#alarm=N` | `#alarm=2` | Alarm state given to this group: `0` AUTO, `1` GREEN, `2` RED. Without the tag, the state follows the group's nature — see [`#alarm`](#alarm-state) |
+
+### `#spawnradius` — the default dispersion {#spawn-radius}
+
+With no tag, a group appears **scattered by 50 m** around its recorded position, and a static object appears **exactly** on its own. Dispersion exists so that a group does not respawn on the same metre twice; a static, on the other hand, is usually placed somewhere precise — a parking spot, a quay — where moving it would make no sense.
+
+| What you write | What the group gets |
+|---|---|
+| nothing | 50 m for a group, 0 m for a static |
+| `#spawnradius=200` | 200 m |
+| `#spawnradius=0` | no dispersion — this is how you turn it off |
+
+A `#command=` unit is **never** scattered, default or not: the command runs *at its position*, so moving it would move whatever it spawns. An explicitly written `#spawnradius=` does still apply to it.
+
+!!! warning "This changes existing missions"
+    From March 2023 to 6.15.14 the 50 m default was **unreachable**: the constant existed, the code meant to apply it never ran, and every group of a combat zone appeared exactly on its recorded position. A mission built during those three years will therefore see its groups move by about fifty metres. If a placement was precise on purpose, write `#spawnradius=0`.
+
+#### The first waypoint follows the group {#waypoint-follows-group}
+
+A scattered group no longer appears on its first waypoint, and the first waypoint is where a group sets off from. So it **moves with the group**, by the same distance in the same direction.
+
+**The rest of the track stays put.** You placed those waypoints on roads, bridges and passes; shifting them fifty random metres would put them beside those features, and would draw a different track on every activation. A group therefore leaves from where it appeared and joins the route you drew.
+
+Before 6.15.20 the first waypoint stayed at the editor position, so a scattered convoy drove back to fetch it first, walking a leg nobody had drawn. Mostly visible since 6.15.15, which made the 50 m dispersion effective.
+
+#### A group straddling the zone's edge {#group-straddling-the-edge}
+
+A zone adopts a group as soon as **one** of its units stands inside the circle: the whole group is then destroyed and recreated, units left outside included. That is deliberate, and it spares you having to frame a zone to the metre around a convoy.
+
+What went wrong is that the zone anchored itself on **the first unit it could see** — so on the group's second unit whenever the first sat outside the circle. The entire group then appeared offset by the gap between those two units, a truck-length for a convoy, with no dispersion asked for and even with `#spawnradius=0`.
+
+Since 6.15.21 the anchor is always the group's **first unit**, inside the circle or not. A group straddling the edge therefore appears where you drew it. If you had compensated for the offset by hand by moving your units, remove the compensation.
+
+#### A value drawn from a range {#tag-ranges}
+
+The four tags carrying a number — `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` — accept a range instead of a fixed value, written the same way as in marker commands:
+
+```
+ALPHA-CONVOY #spawnradius=100-300 #spawndelay=30-90
+```
+
+The value is drawn **once per mission**, when names are read at startup. Every activation of the zone therefore uses the same value: this varies placement from one game to the next, not from one activation to the next.
+
+!!! warning "Before 6.15.23 a range was silently truncated"
+    `#spawnradius=100-300` was read as `100`, with no message: you got the lower bound while believing you had a range. If you wrote any, they take effect now — so the radius may be larger than it used to be.
+
+!!! note "`#alarm` takes no range"
+    The alarm state is an enumeration (`0` AUTO, `1` GREEN, `2` RED): `#alarm=0-2` is not a random state, it is a typo. The tag refuses it as it already refuses an out-of-bounds value.
+
+### Where tags are read from {#tag-sources}
+
+A group's tags are the ones carried by **its own name and by the names of all its units**. Tagging a single truck of a convoy is therefore enough, whichever truck it is — no need to tag all four, and no need to guess which one DCS will process first.
+
+Sources are read in a fixed order:
+
+1. the **group** name;
+2. the **unit** names, in **alphabetical** order.
+
+The first value found for a tag wins. A later source stating a *different* value for the same tag is ignored and the log says so — two trucks of one convoy carrying `#alarm=0` and `#alarm=2` do not toss a coin: one wins and you are told. Repeating the *same* value on several units produces no message at all: that is the ordinary way of doing it.
+
+!!! note "`#command` is the exception"
+    `#command` stays attached to the object carrying it: every unit carrying one becomes its own trigger, which is what lets a group carry several commands. Put on the **group** name, it makes that group a **single** trigger rather than one per unit.
+
+!!! warning "Before 6.15.14"
+    Only the tags carried by whichever unit the engine met first counted, and tags on a group name were silently ignored. Since that order is not guaranteed, a tag put on a given truck worked or did not work for no visible reason.
+
+### `#alarm` — making a group hold its ground {#alarm-state}
+
+The ground alarm state decides two things at once, and both matter: a group on **RED** stops and deploys — radars up, ready to fire — while on **AUTO** it drives and lets DCS raise its alert on detection. Right for a SAM battery in one case, right for a convoy in the other, and never the same one.
+
+**The zone therefore chooses by the nature of the group**, without you saying anything:
+
+| The group | State it gets | Why |
+|---|---|---|
+| has a route to drive (more than one waypoint) | **AUTO** | so it leaves: on RED it would never move |
+| stays put | **RED** | so it fights: on AUTO a SAM battery keeps its radars down |
+
+`#alarm=N` still wins, in both directions — to pin a convoy in place (`#alarm=2`) as much as to keep a defence quiet until first contact (`#alarm=0`):
+
+```
+ALPHA-SA6-BATTERY              ← RED, with nothing written
+ALPHA-SUPPLY-CONVOY            ← AUTO, with nothing written
+ALPHA-SA6-AMBUSH #alarm=0      ← quiet on purpose
+```
+
+An unreadable or out-of-range value (`#alarm=7`, `#alarm=x`) falls back to RED and says so in the log, rather than failing the zone.
+
+!!! note "Only for mission groups"
+    The tag applies to groups the zone spawns itself. On a `#command=` unit, pass the alarm state inside the command instead (`-spawn ..., alarm 2`), since the spawn is handled by the VEAF marker interpreter.
+
+!!! warning "How this behaved before"
+    Up to 6.15.4 zones spawned **every** group on RED, which is why a convoy placed in a zone never moved ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). The fix went through a single AUTO default, which sorted the convoys **and made the zones' air defences go silent** — a battery on AUTO does not light its radars. Hence the per-nature choice above. If you added `#alarm=2` to your batteries in the meantime, they still work and are now redundant: the default does the same thing.
 
 ### Practical example — MANPADS ambush
 
@@ -242,6 +373,47 @@ CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
 ```
 
 This lets you set up complex spawns (SA-11 battery, convoys with AI routes) without any Lua code.
+
+**A delayed command's groups belong to their zone.** A command can carry a delay in three ways — `-samsr!30` (an alias delay), a `-spawn`'s `delay` option, or a repeat. In all of them the command returns **before** anything has been spawned. What appears afterwards still belongs to the zone: deactivating the zone destroys those groups like any other.
+
+Before 6.15.9 it did not. The zone read the list of what it had created too early, so a delayed group was registered nowhere and **outlived the zone that spawned it**.
+
+> If the zone is deactivated while the delay is running, the group that appears afterwards is destroyed straight away — nothing can cancel an already scheduled spawn, so this is the outcome the deactivation would have produced.
+
+Note that `#spawndelay` never had this problem: it delays the zone element itself, which registers on the way through.
+
+---
+
+## Spawned group names {#group-naming}
+
+A group a combat zone creates does not carry the name you gave it in the editor. It looks like this:
+
+```
+[r]-Hydra Unit#10230
+```
+
+Three parts, two of which are there to stay:
+
+| Part | What it is | Configurable? |
+|------|------------|---------------|
+| `[r]` / `[b]` / `[n]` | the group's coalition | no |
+| `Hydra Unit` | **an invented name**, not yours | yes, see below |
+| `#10230` | a unique identifier | no — DCS requires unique group names |
+
+The invented name is deliberate: without it a player reads a zone's contents off the F10 map before
+going anywhere near it. That is `veaf.HideNamesFromSpawnedGroups`, **on by default**.
+
+To see the real names — while building or debugging a mission:
+
+```yaml
+mission:
+  hide_names_from_spawned_groups: false
+```
+
+Names then read `<zone name> [r] <real name>#<id>`. The coalition tag and the identifier stay either way.
+
+> The field exists from 6.15.34. Before that the setting was only reachable through
+> `module_settings: { veaf.HideNamesFromSpawnedGroups: false }`, which still works.
 
 ---
 

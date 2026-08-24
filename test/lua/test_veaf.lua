@@ -17,6 +17,13 @@ local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
 luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
+-- The i18n catalog: `veaf.reportUnknownParameters` builds a localised message, so the tests below
+-- need the entries rather than the raw keys.
+dofile(_base .. "/../../src/scripts/veaf/veafI18n.lua")
+-- The generated DCS unit database, for the one test that checks the real attributes agree with
+-- what veaf.isGroupCombatEffective relies on. Every other test in that class swaps in a minimal
+-- stand-in, so this only has to be loadable.
+dofile(_base .. "/../../src/scripts/veaf/dcsUnits.lua")
 
 -- ---------------------------------------------------------------------------
 -- Helper
@@ -550,6 +557,45 @@ function TestVeafGetRandomizableNumericRandom:test_rangeUpperBound()
   end
 end
 
+-- FEAT-INTERPRETER-PARITY found this while widening the combat-zone tag patterns, but it is not a new
+-- defect: an open-ended range raises **today** from any marker command, since the missing upper bound
+-- falls back to MAX = 99 and `math.random(100, 99)` is "interval is empty".
+--
+--   _spawn group, name x, size 100-      →  bad argument #2 to 'random' (interval is empty)
+--
+-- An upper bound below the lower one now means the lower one, warned about rather than raised on. Same
+-- for a reversed range, which is a typo with an obvious intent.
+TestVeafRandomizableNumericDegenerateRanges = {}
+
+function TestVeafRandomizableNumericDegenerateRanges:test_an_open_range_above_the_default_max_does_not_raise()
+  local v = veaf.getRandomizableNumeric_random("100-")
+  luaunit.assertEquals(v, 100, "an absent upper bound cannot mean less than the lower one")
+end
+
+function TestVeafRandomizableNumericDegenerateRanges:test_an_open_range_below_the_default_max_still_draws()
+  for _ = 1, 20 do
+    local v = veaf.getRandomizableNumeric_random("10-")
+    luaunit.assertTrue(v >= 10 and v <= 99, "value " .. tostring(v) .. " out of [10,99]")
+  end
+end
+
+function TestVeafRandomizableNumericDegenerateRanges:test_a_reversed_range_yields_its_lower_bound()
+  luaunit.assertEquals(veaf.getRandomizableNumeric_random("5-2"), 5)
+end
+
+function TestVeafRandomizableNumericDegenerateRanges:test_a_single_value_range_is_that_value()
+  luaunit.assertEquals(veaf.getRandomizableNumeric_random("7-7"), 7)
+end
+
+-- The degenerate forms the widened tag pattern can capture, enumerated rather than sampled: every one
+-- of them must return a number, because the callers store it and compare it.
+function TestVeafRandomizableNumericDegenerateRanges:test_every_dash_only_form_returns_a_number()
+  for _, form in ipairs({ "-", "--", "-300", "0-0", "100-", "3-1" }) do
+    local v = veaf.getRandomizableNumeric_random(form)
+    luaunit.assertIsNumber(v, "form '" .. form .. "' must yield a number, not nil and not an error")
+  end
+end
+
 -- ===========================================================================
 -- veaf.ifnn (safe field accessor)
 -- ===========================================================================
@@ -974,22 +1020,24 @@ function TestVeafComputeLLFromString:test_llSouthWest()
 end
 
 function TestVeafComputeLLFromString:test_llDMS()
-  -- N42:23:45E044:12:00
+  -- 42 + 23/60 + 45/3600 = 42.3958333 exactly.
+  --
+  -- This test used to say "function has ~1 arcsec offset **by design**" and widen its range to
+  -- 42.39 < lat < 42.40 to tolerate it. It was not by design: an accumulator started at -1, so every DMS
+  -- coordinate in every VEAF mission since 2021 landed about 31 m north of where it was meant. The
+  -- comment was written during a coverage push (2026-05-23) — the defect was measured, then documented
+  -- instead of reported. Asserted exactly now, so it cannot come back wearing the same excuse.
   local lat, lon = veaf.computeLLFromString("N42:23:45E044:12:00")
-  luaunit.assertNotNil(lat)
-  luaunit.assertNotNil(lon)
-  -- 42° 23' 45" ≈ 42.396 (function has ~1 arcsec offset by design)
-  luaunit.assertTrue(lat > 42.39 and lat < 42.40)
-  luaunit.assertTrue(lon > 44.19 and lon < 44.21)
+  luaunit.assertAlmostEquals(lat, 42.3958333, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 44.2, 0.0000005)
 end
 
 function TestVeafComputeLLFromString:test_llDMDecimal()
-  -- N42-23.5E044-12.5
+  -- Degrees and decimal minutes: 42 + 23.5/60 = 42.3916667. Was asserted only as "between 42 and 43",
+  -- which a reader off by half a degree would also have passed.
   local lat, lon = veaf.computeLLFromString("N42-23.5E044-12.5")
-  luaunit.assertNotNil(lat)
-  luaunit.assertNotNil(lon)
-  luaunit.assertTrue(lat > 42 and lat < 43)
-  luaunit.assertTrue(lon > 44 and lon < 45)
+  luaunit.assertAlmostEquals(lat, 42.3916667, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 44.2083333, 0.0000005)
 end
 
 function TestVeafComputeLLFromString:test_utm()
@@ -2798,6 +2846,1679 @@ function TestVeafCtldLanguage:test_no_mission_language_leaves_the_engine_default
   ctld.i18n_lang = "en"
   veaf.ctld_initialize()
   luaunit.assertEquals(ctld.i18n_lang, "en")
+end
+
+-- ===========================================================================
+-- veaf.readyForCombat
+-- FIX-COMBATZONE-CONVOY-ALARM depends on AUTO (0) surviving the parameter guard: in Lua `0` is
+-- truthy, so `if not alarm` does not catch it — but that is subtle enough to be "fixed" by someone
+-- reading the guard alone, which would silently restore RED for every combat-zone group.
+-- ===========================================================================
+TestVeafReadyForCombat = {}
+
+local function _spyGroup(name)
+  local calls = {}
+  local ctrl = {
+    setOnOff = function() end,
+    setOption = function(_, id, value)
+      calls[id] = value
+    end,
+  }
+  dcs_mocks.addGroup(name, {
+    getController = function()
+      return ctrl
+    end,
+  })
+  return calls
+end
+
+function TestVeafReadyForCombat:test_auto_is_applied_not_swallowed_by_the_nil_guard()
+  local calls = _spyGroup("__rfc_auto__")
+  veaf.readyForCombat("__rfc_auto__", 0)
+  luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], 0)
+end
+
+function TestVeafReadyForCombat:test_every_valid_state_reaches_the_controller()
+  for _, state in ipairs({ 0, 1, 2 }) do
+    local calls = _spyGroup("__rfc_state__" .. state)
+    veaf.readyForCombat("__rfc_state__" .. state, state)
+    luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], state)
+  end
+end
+
+function TestVeafReadyForCombat:test_absent_or_out_of_range_falls_back_to_the_module_default()
+  for i, bad in ipairs({ -1, 3, 99 }) do
+    local groupName = "__rfc_bad__" .. i
+    local calls = _spyGroup(groupName)
+    veaf.readyForCombat(groupName, bad)
+    luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], veaf.defaultAlarmState)
+  end
+  local calls = _spyGroup("__rfc_nil__")
+  veaf.readyForCombat("__rfc_nil__", nil)
+  luaunit.assertEquals(calls[AI.Option.Ground.id.ALARM_STATE], veaf.defaultAlarmState)
+end
+
+-------------------------------------------------------------------------------------------------
+-- FIX-COMBATZONE-DELAYED-COMMAND — #66
+--
+-- A caller passes a table down to a VEAF command to learn what it created, and reads it on the next
+-- line. Three paths defer the spawn — an alias delay (`-samsr!30`), a spawn's `delay` option, and its
+-- repeats — and in all three the call returns before anything is spawned. The caller sees an empty
+-- table and never looks again: that is how a combat zone ended up unable to destroy a group it had
+-- itself spawned.
+--
+-- So the notification lives at the single insertion point instead: `veaf.collectSpawnedGroup` inserts
+-- and tells whoever registered a hook, whether that happens now or in thirty seconds.
+-------------------------------------------------------------------------------------------------
+
+TestVeafCollectSpawnedGroup = {}
+
+function TestVeafCollectSpawnedGroup:test_a_group_is_inserted_with_no_hook_registered()
+  local t = {}
+  veaf.collectSpawnedGroup(t, "Group A")
+  luaunit.assertEquals(t[1], "Group A")
+end
+
+function TestVeafCollectSpawnedGroup:test_a_hook_is_told_about_the_group()
+  local t, seen = {}, {}
+  veaf.registerSpawnedGroupsHook(t, function(name)
+    table.insert(seen, name)
+  end)
+  veaf.collectSpawnedGroup(t, "Group A")
+  luaunit.assertEquals(seen, { "Group A" })
+end
+
+-- The point of the whole fix: the hook fires on an insertion that happens long after the caller
+-- stopped reading the table.
+function TestVeafCollectSpawnedGroup:test_a_hook_fires_on_a_later_insertion()
+  local t, seen = {}, {}
+  veaf.registerSpawnedGroupsHook(t, function(name)
+    table.insert(seen, name)
+  end)
+  -- the caller reads nothing here, as a combat zone used to
+  luaunit.assertEquals(#t, 0)
+  -- ... and the deferred spawn lands afterwards
+  veaf.collectSpawnedGroup(t, "DelayedSAM")
+  luaunit.assertEquals(seen, { "DelayedSAM" })
+end
+
+function TestVeafCollectSpawnedGroup:test_every_group_is_reported()
+  local t, seen = {}, {}
+  veaf.registerSpawnedGroupsHook(t, function(name)
+    table.insert(seen, name)
+  end)
+  veaf.collectSpawnedGroup(t, "A")
+  veaf.collectSpawnedGroup(t, "B")
+  veaf.collectSpawnedGroup(t, "C")
+  luaunit.assertEquals(seen, { "A", "B", "C" })
+  luaunit.assertEquals(#t, 3)
+end
+
+-- A hook is mission code. It must not be able to abort a spawn that is already half done.
+function TestVeafCollectSpawnedGroup:test_a_raising_hook_does_not_break_the_spawn()
+  local t = {}
+  veaf.registerSpawnedGroupsHook(t, function()
+    error("mission code blew up")
+  end)
+  local ok = pcall(veaf.collectSpawnedGroup, t, "Group A")
+  luaunit.assertTrue(ok, "a raising hook must not propagate out of collectSpawnedGroup")
+  luaunit.assertEquals(t[1], "Group A", "the group must still be collected")
+end
+
+-- The hook is deliberately NOT a field on the table: eleven call sites iterate group tables with
+-- `pairs`, and a field would show up in all of them.
+function TestVeafCollectSpawnedGroup:test_the_hook_is_not_visible_in_the_table()
+  local t = {}
+  veaf.registerSpawnedGroupsHook(t, function() end)
+  veaf.collectSpawnedGroup(t, "Group A")
+  local count = 0
+  for _, v in pairs(t) do
+    count = count + 1
+    luaunit.assertEquals(type(v), "string", "pairs() must only yield group names")
+  end
+  luaunit.assertEquals(count, 1)
+end
+
+function TestVeafCollectSpawnedGroup:test_hooks_are_per_table()
+  local t1, t2, seen = {}, {}, {}
+  veaf.registerSpawnedGroupsHook(t1, function(name)
+    table.insert(seen, name)
+  end)
+  veaf.collectSpawnedGroup(t2, "Other")
+  luaunit.assertEquals(#seen, 0)
+  luaunit.assertEquals(t2[1], "Other")
+end
+
+function TestVeafCollectSpawnedGroup:test_a_nil_group_name_is_a_noop()
+  local t, called = {}, false
+  veaf.registerSpawnedGroupsHook(t, function()
+    called = true
+  end)
+  veaf.collectSpawnedGroup(t, nil)
+  luaunit.assertEquals(#t, 0)
+  luaunit.assertFalse(called)
+end
+
+function TestVeafCollectSpawnedGroup:test_a_missing_table_is_a_noop()
+  local ok = pcall(veaf.collectSpawnedGroup, nil, "Group A")
+  luaunit.assertTrue(ok)
+end
+
+function TestVeafCollectSpawnedGroup:test_registering_rejects_a_non_function()
+  luaunit.assertFalse(veaf.registerSpawnedGroupsHook({}, "not a function"))
+end
+
+function TestVeafCollectSpawnedGroup:test_registering_rejects_a_non_table()
+  luaunit.assertFalse(veaf.registerSpawnedGroupsHook("not a table", function() end))
+end
+
+function TestVeafCollectSpawnedGroup:test_registering_returns_true_on_success()
+  luaunit.assertTrue(veaf.registerSpawnedGroupsHook({}, function() end))
+end
+
+-- ============================================================================
+-- FIX-COMBATZONE-ZONE-TYPE-SILENT
+--
+-- Three modules branched on a trigger zone's type with `if type == 0 ... elseif type == 2 ... end` and
+-- no `else`: veafCombatZone, veafAirWaves and veafQraCore. Any other value — **nil included** — left
+-- the unit list untouched, so the zone found nobody and nothing said so. Each failure was silent in its
+-- own way: a combat zone activated, reported nothing to kill and declared itself won; an air wave never
+-- triggered; a QRA never scrambled.
+--
+-- The branch lives in one place now, and an unexpected type is an error naming the zone and the value.
+-- nil rather than an empty table is returned on purpose: "unusable" and "legitimately empty" are
+-- different answers, and a caller that cannot tell them apart is how this defect started.
+-- ============================================================================
+TestVeafGetUnitsInTriggerZone = {}
+
+function TestVeafGetUnitsInTriggerZone:setUp()
+  self._savedZones = veaf.triggerZones
+  veaf.triggerZones = {
+    CIRCLE = { name = "CIRCLE", type = 0, x = 0, y = 0, radius = 1000 },
+    QUAD = { name = "QUAD", type = 2, x = 0, y = 0, verticies = { { x = 0, y = 0 }, { x = 1, y = 0 } } },
+    ODD = { name = "ODD", type = 7, x = 0, y = 0 },
+    TYPELESS = { name = "TYPELESS", x = 0, y = 0 },
+  }
+  self._savedInZones = mist.getUnitsInZones
+  self._savedInPolygon = mist.getUnitsInPolygon
+  self.calls = {}
+  local calls = self.calls
+  mist.getUnitsInZones = function(unitNames, zoneNames)
+    table.insert(calls, { how = "zones", unitNames = unitNames, zoneNames = zoneNames })
+    return { "unit-from-circle" }
+  end
+  mist.getUnitsInPolygon = function(unitNames, verticies)
+    table.insert(calls, { how = "polygon", unitNames = unitNames, verticies = verticies })
+    return { "unit-from-polygon" }
+  end
+  self._logger = veaf.loggers.get(veaf.Id)
+  self._savedError = self._logger.error
+  self.errors = {}
+  local errors = self.errors
+  self._logger.error = function(_, text, ...)
+    table.insert(errors, { text = text, args = { ... } })
+  end
+end
+
+function TestVeafGetUnitsInTriggerZone:tearDown()
+  veaf.triggerZones = self._savedZones
+  mist.getUnitsInZones = self._savedInZones
+  mist.getUnitsInPolygon = self._savedInPolygon
+  self._logger.error = self._savedError
+end
+
+function TestVeafGetUnitsInTriggerZone:test_a_circular_zone_goes_through_getUnitsInZones()
+  local units = veaf.getUnitsInTriggerZone("CIRCLE", { "A", "B" }, veaf.Id)
+  luaunit.assertEquals(units, { "unit-from-circle" })
+  luaunit.assertEquals(self.calls[1].how, "zones")
+  luaunit.assertEquals(self.calls[1].zoneNames, { "CIRCLE" })
+  luaunit.assertEquals(self.calls[1].unitNames, { "A", "B" })
+  luaunit.assertEquals(#self.errors, 0)
+end
+
+function TestVeafGetUnitsInTriggerZone:test_a_quad_zone_goes_through_getUnitsInPolygon()
+  local units = veaf.getUnitsInTriggerZone("QUAD", { "A" }, veaf.Id)
+  luaunit.assertEquals(units, { "unit-from-polygon" })
+  luaunit.assertEquals(self.calls[1].how, "polygon")
+  luaunit.assertEquals(self.calls[1].verticies, veaf.triggerZones.QUAD.verticies)
+  luaunit.assertEquals(#self.errors, 0)
+end
+
+-- The defect, both shapes of it.
+function TestVeafGetUnitsInTriggerZone:test_an_unknown_type_is_an_error_not_an_empty_list()
+  local units = veaf.getUnitsInTriggerZone("ODD", { "A" }, veaf.Id)
+  luaunit.assertNil(units, "nil says unusable; an empty table would say the zone holds nobody")
+  luaunit.assertEquals(#self.errors, 1)
+  luaunit.assertEquals(#self.calls, 0, "neither MiST call may run on an unknown type")
+end
+
+function TestVeafGetUnitsInTriggerZone:test_a_missing_type_is_an_error_too()
+  -- the likelier of the two: a hand-edited mission, a zone written by a tool, a renamed DCS field
+  local units = veaf.getUnitsInTriggerZone("TYPELESS", { "A" }, veaf.Id)
+  luaunit.assertNil(units)
+  luaunit.assertEquals(#self.errors, 1)
+end
+
+function TestVeafGetUnitsInTriggerZone:test_the_error_names_the_zone_and_the_value()
+  -- what makes the log actionable: without the value, the next reader repeats the investigation
+  veaf.getUnitsInTriggerZone("ODD", { "A" }, veaf.Id)
+  local reported = table.concat({ self.errors[1].text, tostring(self.errors[1].args[1]), tostring(self.errors[1].args[2]) }, " ")
+  luaunit.assertNotNil(reported:find("ODD", 1, true), "the zone name must be in the message")
+  luaunit.assertNotNil(reported:find("7", 1, true), "the unexpected type must be in the message")
+end
+
+function TestVeafGetUnitsInTriggerZone:test_an_unknown_zone_is_an_error()
+  local units = veaf.getUnitsInTriggerZone("NO-SUCH-ZONE", { "A" }, veaf.Id)
+  luaunit.assertNil(units)
+  luaunit.assertEquals(#self.errors, 1)
+end
+
+function TestVeafGetUnitsInTriggerZone:test_no_zone_name_is_an_error_rather_than_a_crash()
+  local ok, units = pcall(veaf.getUnitsInTriggerZone, nil, { "A" }, veaf.Id)
+  luaunit.assertTrue(ok)
+  luaunit.assertNil(units)
+end
+
+-- The module id is what makes the error land in the log of whoever asked, which is the whole point of
+-- sharing the branch instead of copying it three times.
+function TestVeafGetUnitsInTriggerZone:test_the_error_goes_to_the_caller_s_logger()
+  local combatZoneErrors = {}
+  local czLogger = veaf.loggers.get("COMBATZONE")
+  local saved = czLogger.error
+  czLogger.error = function(_, text, ...)
+    table.insert(combatZoneErrors, text)
+  end
+  veaf.getUnitsInTriggerZone("ODD", { "A" }, "COMBATZONE")
+  czLogger.error = saved
+  luaunit.assertEquals(#combatZoneErrors, 1)
+  luaunit.assertEquals(#self.errors, 0, "nothing may land in veaf's own logger when a module id is given")
+end
+
+-- ============================================================================
+-- FEAT-SPAWN-OPTION-VALIDATION — #33, open since 2021
+--
+-- `veaf.parseMarkerText` has collected unrecognised keys with a nearest-match suggestion since
+-- UXPILOT-003, but **one** spec out of eight switched it on. The other seven let a misspelt option do
+-- nothing at all, so a pilot could not tell a typo from a feature that does not exist.
+--
+-- Two things had to exist before the flag could be turned on elsewhere:
+--   * a command **verb** must not read as an unknown option. `_spawn`-style keyphrases escape because
+--     they start with "_", which the collector already skips; the artillery verbs (`aim`, `fire`) are
+--     bare words, so all nine valid orders measured were flagged before this.
+--   * the report itself had to leave veafSpawnCore, or the block would be copied six times.
+-- ============================================================================
+TestVeafMarkerSpecCommandVerbs = {}
+
+--- A spec shaped like the artillery one: bare verbs, semicolon separator.
+local function verbSpec()
+  return {
+    defaults = function(options)
+      options.verb = nil
+    end,
+    commands = {
+      {
+        match = "aim",
+        init = function(options)
+          options.verb = "aim"
+        end,
+      },
+      {
+        match = "fire",
+        init = function(options)
+          options.verb = "fire"
+        end,
+      },
+    },
+    parameters = {
+      { keys = { "shells" }, apply = veaf.markerRules.number("shells") },
+      { keys = { "radius" }, apply = veaf.markerRules.number("radius") },
+    },
+    separator = ";",
+    valueWhenAbsent = "",
+    reportUnknownKeys = true,
+  }
+end
+
+local function flaggedKeys(options)
+  local keys = {}
+  for _, p in ipairs((options or {}).unknownParameters or {}) do
+    table.insert(keys, p.key)
+  end
+  return keys
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_a_command_verb_is_a_known_key()
+  -- the whole point: the verb names the command, so it is not an option the pilot mistyped
+  local spec = verbSpec()
+  veaf.prepareMarkerSpec(spec)
+  luaunit.assertTrue(spec._knownKeySet["aim"])
+  luaunit.assertTrue(spec._knownKeySet["fire"])
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_a_verb_only_order_flags_nothing()
+  for _, text in ipairs({ "aim", "fire", "fire aim" }) do
+    luaunit.assertEquals(flaggedKeys(veaf.parseMarkerText(text, verbSpec())), {}, text)
+  end
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_a_full_order_flags_nothing()
+  local options = veaf.parseMarkerText("aim; shells 5; radius 100", verbSpec())
+  luaunit.assertEquals(flaggedKeys(options), {})
+  luaunit.assertEquals(options.shells, 5)
+  luaunit.assertEquals(options.radius, 100)
+end
+
+-- The witness the lot's definition of done asks for: a real typo is still caught, with its suggestion.
+function TestVeafMarkerSpecCommandVerbs:test_a_typo_is_still_flagged_with_a_suggestion()
+  local options = veaf.parseMarkerText("aim; shels 5", verbSpec())
+  luaunit.assertEquals(flaggedKeys(options), { "shels" })
+  luaunit.assertEquals(options.unknownParameters[1].suggestion, "shells")
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_an_unrelated_key_is_flagged_without_a_suggestion()
+  local options = veaf.parseMarkerText("aim; banana 3", verbSpec())
+  luaunit.assertEquals(flaggedKeys(options), { "banana" })
+end
+
+function TestVeafMarkerSpecCommandVerbs:test_an_empty_match_is_not_added_as_a_key()
+  -- veafShortcuts' alias spec uses `commands = { { match = "" } }`; the empty string must not become a
+  -- known key, which would be meaningless
+  local spec = { commands = { { match = "" } }, parameters = { { keys = { "name" }, apply = veaf.markerRules.text("name") } } }
+  veaf.prepareMarkerSpec(spec)
+  luaunit.assertNil(spec._knownKeySet[""])
+end
+
+-- ============================================================================
+-- The shared report: it used to live inside veafSpawnCore, so six other modules could not use it.
+-- ============================================================================
+TestVeafReportUnknownParameters = {}
+
+function TestVeafReportUnknownParameters:setUp()
+  self._report = veaf.reportToPilot
+  self.reported = {}
+  local reported = self.reported
+  veaf.reportToPilot = function(message, duration, coalitionSide)
+    table.insert(reported, { message = message, duration = duration, coalition = coalitionSide })
+  end
+  self._lang = veaf.config.language
+  veaf.config.language = "en"
+end
+
+function TestVeafReportUnknownParameters:tearDown()
+  veaf.reportToPilot = self._report
+  veaf.config.language = self._lang
+end
+
+function TestVeafReportUnknownParameters:test_no_unknown_parameters_reports_nothing()
+  luaunit.assertFalse(veaf.reportUnknownParameters({}, "move", nil))
+  luaunit.assertEquals(#self.reported, 0)
+end
+
+function TestVeafReportUnknownParameters:test_a_nil_options_table_is_tolerated()
+  luaunit.assertFalse(veaf.reportUnknownParameters(nil, "move", nil))
+end
+
+function TestVeafReportUnknownParameters:test_an_unknown_parameter_is_named_to_the_pilot()
+  local options = { unknownParameters = { { key = "banana" } } }
+  luaunit.assertTrue(veaf.reportUnknownParameters(options, "move", nil))
+  luaunit.assertEquals(#self.reported, 1)
+  luaunit.assertNotNil(self.reported[1].message:find("banana", 1, true))
+end
+
+function TestVeafReportUnknownParameters:test_the_module_is_named_so_the_pilot_knows_what_refused()
+  veaf.reportUnknownParameters({ unknownParameters = { { key = "banana" } } }, "move", nil)
+  luaunit.assertNotNil(self.reported[1].message:find("move", 1, true))
+end
+
+function TestVeafReportUnknownParameters:test_a_suggestion_is_included()
+  veaf.reportUnknownParameters({ unknownParameters = { { key = "shels", suggestion = "shells" } } }, "artillery", nil)
+  luaunit.assertNotNil(self.reported[1].message:find("shells", 1, true))
+end
+
+-- Aggregated on purpose: three wrong keys must not be three messages on the pilot's screen.
+function TestVeafReportUnknownParameters:test_several_unknowns_make_one_message()
+  local options = { unknownParameters = { { key = "a" }, { key = "b" }, { key = "c" } } }
+  veaf.reportUnknownParameters(options, "spawn", nil)
+  luaunit.assertEquals(#self.reported, 1)
+  for _, key in ipairs({ "a", "b", "c" }) do
+    luaunit.assertNotNil(self.reported[1].message:find("'" .. key .. "'", 1, true))
+  end
+end
+
+function TestVeafReportUnknownParameters:test_the_requester_coalition_is_honoured()
+  veaf.reportUnknownParameters({ unknownParameters = { { key = "banana" } } }, "spawn", coalition.side.BLUE)
+  luaunit.assertEquals(self.reported[1].coalition, coalition.side.BLUE)
+end
+
+function TestVeafReportUnknownParameters:test_the_message_is_localised()
+  veaf.config.language = "fr"
+  veaf.reportUnknownParameters({ unknownParameters = { { key = "banana" } } }, "move", nil)
+  luaunit.assertNotNil(self.reported[1].message:find("inconnu", 1, true))
+end
+
+-- ===========================================================================
+-- FEAT-GROUP-COMBAT-INEFFECTIVE — veaf.isGroupCombatEffective
+--
+-- #177: a group is not only alive or dead. An S-300 whose tracking radar is destroyed still has
+-- launchers and crew, counts as alive everywhere in our code, and in play is finished.
+--
+-- Two paths. A **pattern** in `veaf.ImportantUnitsByGroupPattern` declares which sets of units a group
+-- of that kind owns; losing a whole set finishes it. With no pattern, the **DCS attributes** decide: a
+-- group carrying a living `SAM LL` or `SAM SR` is a SAM site, and is finished once nothing living
+-- carries `SAM TR`.
+--
+-- The limit is real and pinned below: dead units vanish from `Group:getUnits()`, so the default cannot
+-- know a group *had* a radar. The pattern table is what carries that knowledge.
+-- ===========================================================================
+TestVeafGroupCombatEffective = {}
+
+function TestVeafGroupCombatEffective:setUp()
+  self._patterns = veaf.ImportantUnitsByGroupPattern
+  self._db = dcsUnits
+  self._getByName = Group.getByName
+  -- a minimal stand-in for the generated database; a separate test checks the real one agrees
+  dcsUnits = {
+    DcsUnitsDatabase = {
+      ["S-300PS 40B6M tr"] = { attribute = { ["SAM TR"] = true } },
+      ["S-300PS 40B6MD sr"] = { attribute = { ["SAM SR"] = true } },
+      ["S-300PS 54K6 cp"] = { attribute = {} },
+      ["S-300PS 5P85C ln"] = { attribute = { ["SAM LL"] = true } },
+      ["2S6 Tunguska"] = { attribute = { ["SAM SR"] = true, ["SAM TR"] = true, ["SAM LL"] = true } },
+      ["Ural-375"] = { attribute = { ["Trucks"] = true } },
+    },
+  }
+end
+
+function TestVeafGroupCombatEffective:tearDown()
+  veaf.ImportantUnitsByGroupPattern = self._patterns
+  dcsUnits = self._db
+  Group.getByName = self._getByName
+end
+
+--- A unit stub: alive, at full life unless `life` says otherwise.
+local function ceUnit(typeName, life)
+  return {
+    getTypeName = function()
+      return typeName
+    end,
+    isExist = function()
+      return true
+    end,
+    isActive = function()
+      return true
+    end,
+    getLife = function()
+      return life or 100
+    end,
+    getLife0 = function()
+      return 100
+    end,
+  }
+end
+
+--- Register a group of the given units under `name`, so Group.getByName finds it.
+local function ceGroup(name, units)
+  local group = {
+    getName = function()
+      return name
+    end,
+    isExist = function()
+      return true
+    end,
+    getUnits = function()
+      return units
+    end,
+  }
+  Group.getByName = function(n)
+    if n == name then
+      return group
+    end
+    return nil
+  end
+  return group
+end
+
+local S300_PATTERN = {
+  [".*s300.*"] = {
+    minimumLife = 80,
+    importantSets = {
+      TR = { "S-300PS 40B6M tr" },
+      SR = { "S-300PS 40B6MD sr" },
+      CP = { "S-300PS 54K6 cp" },
+    },
+  },
+}
+
+-- ---------------------------------------------------------------------------
+-- The pattern path
+-- ---------------------------------------------------------------------------
+function TestVeafGroupCombatEffective:test_a_complete_s300_is_effective()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-s300-SITE", {
+    ceUnit("S-300PS 40B6M tr"),
+    ceUnit("S-300PS 40B6MD sr"),
+    ceUnit("S-300PS 54K6 cp"),
+    ceUnit("S-300PS 5P85C ln"),
+  })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- The defect the issue describes: launchers and crew remain, the tracking radar does not.
+function TestVeafGroupCombatEffective:test_an_s300_without_its_tracking_radar_is_finished()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-s300-SITE", {
+    ceUnit("S-300PS 40B6MD sr"),
+    ceUnit("S-300PS 54K6 cp"),
+    ceUnit("S-300PS 5P85C ln"),
+    ceUnit("S-300PS 5P85C ln"),
+  })
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_losing_any_declared_set_finishes_the_group()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local all = { "S-300PS 40B6M tr", "S-300PS 40B6MD sr", "S-300PS 54K6 cp" }
+  for _, missing in ipairs(all) do
+    local units = {}
+    for _, typeName in ipairs(all) do
+      if typeName ~= missing then
+        table.insert(units, ceUnit(typeName))
+      end
+    end
+    local g = ceGroup("RED-s300-SITE", units)
+    luaunit.assertFalse(veaf.isGroupCombatEffective(g), "losing " .. missing .. " must finish the group")
+  end
+end
+
+-- minimumLife is a percentage of the unit initial life, read through veaf.getUnitLifeRelative.
+function TestVeafGroupCombatEffective:test_a_radar_below_minimum_life_does_not_count()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-s300-SITE", {
+    ceUnit("S-300PS 40B6M tr", 50), -- 50% of 100, below the 80 the table asks for
+    ceUnit("S-300PS 40B6MD sr"),
+    ceUnit("S-300PS 54K6 cp"),
+  })
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_a_radar_at_exactly_minimum_life_counts()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-s300-SITE", {
+    ceUnit("S-300PS 40B6M tr", 80),
+    ceUnit("S-300PS 40B6MD sr"),
+    ceUnit("S-300PS 54K6 cp"),
+  })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- One survivor per set is enough: a site does not need both of its search radars.
+function TestVeafGroupCombatEffective:test_one_survivor_per_set_is_enough()
+  veaf.ImportantUnitsByGroupPattern = {
+    [".*s300.*"] = { minimumLife = 80, importantSets = { SR = { "S-300PS 40B6MD sr", "S-300PS 64H6E sr" } } },
+  }
+  local g = ceGroup("RED-s300-SITE", { ceUnit("S-300PS 40B6MD sr") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_the_pattern_match_is_case_insensitive()
+  veaf.ImportantUnitsByGroupPattern = S300_PATTERN
+  local g = ceGroup("RED-S300-SITE", { ceUnit("S-300PS 5P85C ln") })
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g), "an uppercase name must match the pattern too")
+end
+
+-- ---------------------------------------------------------------------------
+-- The attribute default
+-- ---------------------------------------------------------------------------
+function TestVeafGroupCombatEffective:test_a_sam_site_with_no_tracking_radar_is_finished_by_default()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-SA10", { ceUnit("S-300PS 5P85C ln"), ceUnit("S-300PS 40B6MD sr") })
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_a_sam_site_keeping_a_tracking_radar_is_effective()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-SA10", { ceUnit("S-300PS 5P85C ln"), ceUnit("S-300PS 40B6M tr") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- A Tunguska is its own radar and launcher, so one vehicle is a working SAM.
+function TestVeafGroupCombatEffective:test_a_self_contained_sam_is_effective_alone()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-TUNGUSKA", { ceUnit("2S6 Tunguska") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- Not everything is a SAM: a convoy has no radars and is a problem as long as it exists.
+function TestVeafGroupCombatEffective:test_a_convoy_is_effective_while_it_lives()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-CONVOY", { ceUnit("Ural-375"), ceUnit("Ural-375") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- ---------------------------------------------------------------------------
+-- Degenerate inputs
+-- ---------------------------------------------------------------------------
+function TestVeafGroupCombatEffective:test_an_empty_group_is_not_effective()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-GONE", {})
+  luaunit.assertFalse(veaf.isGroupCombatEffective(g))
+end
+
+function TestVeafGroupCombatEffective:test_an_unknown_group_name_is_not_effective_and_does_not_raise()
+  veaf.ImportantUnitsByGroupPattern = {}
+  Group.getByName = function()
+    return nil
+  end
+  local ok, result = pcall(veaf.isGroupCombatEffective, "NO-SUCH-GROUP")
+  luaunit.assertTrue(ok, "an unknown group must not raise")
+  luaunit.assertFalse(result)
+end
+
+function TestVeafGroupCombatEffective:test_a_nil_argument_is_not_effective()
+  luaunit.assertFalse(veaf.isGroupCombatEffective(nil))
+end
+
+-- A group name is accepted as well as a group, like veaf.getAveragePosition does.
+function TestVeafGroupCombatEffective:test_a_group_name_works_like_a_group()
+  veaf.ImportantUnitsByGroupPattern = {}
+  ceGroup("RED-BY-NAME", { ceUnit("Ural-375") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective("RED-BY-NAME"))
+end
+
+-- An unknown unit type must not decide anything: the database is generated from a datamine and can lag
+-- a DCS update, so a missing entry means "no attributes", not "not a SAM".
+function TestVeafGroupCombatEffective:test_an_unknown_unit_type_is_ignored_rather_than_deciding()
+  veaf.ImportantUnitsByGroupPattern = {}
+  local g = ceGroup("RED-MYSTERY", { ceUnit("SomeUnitShippedYesterday") })
+  luaunit.assertTrue(veaf.isGroupCombatEffective(g))
+end
+
+-- The generated database is the predicate's only source of attributes, and it is regenerated from a
+-- datamine by a scheduled job. If a regeneration ever dropped the `SAM TR` attribute, the default rule
+-- would quietly declare every SAM site finished — a silent, mission-wide behaviour change. This is the
+-- test that would go red instead.
+TestVeafCombatEffectiveAgainstRealData = {}
+
+function TestVeafCombatEffectiveAgainstRealData:test_the_real_database_carries_the_attributes_the_rule_reads()
+  luaunit.assertNotNil(dcsUnits, "the generated database must load")
+  luaunit.assertNotNil(dcsUnits.DcsUnitsDatabase, "the generated database must expose DcsUnitsDatabase")
+  -- a tracking radar, a search radar, a launcher and a self-contained SAM
+  luaunit.assertTrue(veaf.unitTypeHasAttribute("S-300PS 40B6M tr", "SAM TR"), "the S-300 tracking radar")
+  luaunit.assertTrue(veaf.unitTypeHasAttribute("S-300PS 40B6MD sr", "SAM SR"), "the S-300 search radar")
+  luaunit.assertTrue(veaf.unitTypeHasAttribute("2S6 Tunguska", "SAM TR"), "a Tunguska is its own tracker")
+end
+
+function TestVeafCombatEffectiveAgainstRealData:test_the_patterns_name_types_the_database_knows()
+  -- a typo in the table would make a set unmatchable, and a group of that kind permanently ineffective
+  for pattern, rule in pairs(veaf.ImportantUnitsByGroupPattern) do
+    for setName, types in pairs(rule.importantSets or {}) do
+      for _, typeName in ipairs(types) do
+        luaunit.assertNotNil(
+          dcsUnits.DcsUnitsDatabase[typeName],
+          "pattern [" .. pattern .. "] set [" .. setName .. "] names an unknown type: " .. typeName
+        )
+      end
+    end
+  end
+end
+
+function TestVeafCombatEffectiveAgainstRealData:test_an_ordinary_truck_is_not_taken_for_a_sam()
+  luaunit.assertFalse(veaf.unitTypeHasAttribute("Ural-375", "SAM TR"))
+  luaunit.assertFalse(veaf.unitTypeHasAttribute("Ural-375", "SAM SR"))
+  luaunit.assertFalse(veaf.unitTypeHasAttribute("Ural-375", "SAM LL"))
+end
+
+-- ===========================================================================
+-- FIX-CSAR-SPAWNS-ON-WATER — where a downed pilot ends up (#245)
+--
+-- The survivor to be rescued, not the rescue helicopter's crew: `S_EVENT_EJECTION` hands CSAR the
+-- position of the *aircraft*, and `csar.spawnGroup` places a "Downed Pilot" group at a fixed +50/+50
+-- from it with no surface test at all. Ejecting near a shoreline puts him in the water.
+--
+-- David's arbitration, 2026-08-22: **within 500 m of dry ground, put him there; otherwise he counts as
+-- dead.** No raft, and no walk inland — so `nil` here means "no CSAR at all", not "a CSAR far away".
+--
+-- Nothing in `CSAR.lua` is touched. The decision lives in veaf.lua and is applied by replacing
+-- `csar.addCsar` from `veaf.csar_initialize_replacement`, which already replaces seven other things in
+-- that table.
+-- ===========================================================================
+TestVeafCsarSurvivorPoint = {}
+
+function TestVeafCsarSurvivorPoint:setUp()
+  self._surface = land.getSurfaceType
+  self._findSpawnPoint = veaf.findSpawnPoint
+end
+
+function TestVeafCsarSurvivorPoint:tearDown()
+  land.getSurfaceType = self._surface
+  veaf.findSpawnPoint = self._findSpawnPoint
+end
+
+--- Make everything water, or everything land.
+function TestVeafCsarSurvivorPoint:_allSurface(surfaceType)
+  land.getSurfaceType = function()
+    return surfaceType
+  end
+end
+
+function TestVeafCsarSurvivorPoint:test_a_pilot_on_dry_ground_is_left_exactly_where_he_is()
+  -- The common case by far, and it must not move him: `findSpawnPoint` jitters, so calling it
+  -- unconditionally would shift every land ejection by tens of metres for no reason.
+  self:_allSurface(land.SurfaceType.LAND)
+  local moved = false
+  veaf.findSpawnPoint = function()
+    moved = true
+    return { x = 999, y = 0, z = 999 }
+  end
+  local point = { x = 100, y = 50, z = 200 }
+  local resolved = veaf.resolveCsarSurvivorPoint(point)
+  luaunit.assertEquals(resolved.x, 100)
+  luaunit.assertEquals(resolved.z, 200)
+  luaunit.assertFalse(moved, "a dry ejection point must not be searched around")
+end
+
+function TestVeafCsarSurvivorPoint:test_a_pilot_over_water_is_moved_to_the_dry_point_found()
+  self:_allSurface(land.SurfaceType.WATER)
+  veaf.findSpawnPoint = function(centre, radius)
+    luaunit.assertEquals(radius, veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES)
+    return { x = centre.x + 300, y = 0, z = centre.z }
+  end
+  local resolved = veaf.resolveCsarSurvivorPoint({ x = 0, y = 0, z = 0 })
+  luaunit.assertEquals(resolved.x, 300)
+end
+
+-- The arbitration's second half: nothing dry within reach means no CSAR at all.
+function TestVeafCsarSurvivorPoint:test_a_pilot_with_no_dry_ground_within_range_is_lost()
+  self:_allSurface(land.SurfaceType.WATER)
+  veaf.findSpawnPoint = function()
+    return nil
+  end
+  luaunit.assertNil(veaf.resolveCsarSurvivorPoint({ x = 0, y = 0, z = 0 }))
+end
+
+function TestVeafCsarSurvivorPoint:test_the_search_radius_is_the_500_m_that_was_arbitrated()
+  luaunit.assertEquals(veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES, 500)
+end
+
+-- Shallow water counts as dry here, as it does everywhere else in this codebase
+-- (`acceptableGroundPoint` rejects WATER only). A survivor wading a few metres offshore is rescuable;
+-- treating it as open sea would declare him dead next to a beach.
+function TestVeafCsarSurvivorPoint:test_shallow_water_is_not_treated_as_open_sea()
+  self:_allSurface(land.SurfaceType.SHALLOW_WATER)
+  local searched = false
+  veaf.findSpawnPoint = function()
+    searched = true
+    return nil
+  end
+  local resolved = veaf.resolveCsarSurvivorPoint({ x = 10, y = 0, z = 20 })
+  luaunit.assertNotNil(resolved, "shallow water must not be a death sentence")
+  luaunit.assertFalse(searched)
+end
+
+-- The coordinate trap: land.getSurfaceType takes a vec2 whose `y` is the **easting**, while the point
+-- handed in is a runtime vec3 whose `y` is the altitude. Reading `y` as the easting asks about a spot a
+-- hundred kilometres away and answers cheerfully.
+function TestVeafCsarSurvivorPoint:test_the_surface_is_asked_about_the_right_spot()
+  local asked = {}
+  land.getSurfaceType = function(vec2)
+    table.insert(asked, vec2)
+    return land.SurfaceType.LAND
+  end
+  veaf.resolveCsarSurvivorPoint({ x = 1000, y = 4000, z = 2000 })
+  luaunit.assertEquals(#asked, 1)
+  luaunit.assertEquals(asked[1].x, 1000, "northing")
+  luaunit.assertEquals(asked[1].y, 2000, "the easting belongs in the vec2 y, not the altitude")
+end
+
+function TestVeafCsarSurvivorPoint:test_a_nil_point_is_refused_rather_than_raising()
+  luaunit.assertNil(veaf.resolveCsarSurvivorPoint(nil))
+end
+
+-- ===========================================================================
+-- FIX-CSAR-SPAWNS-ON-WATER — the replacement of csar.addCsar
+--
+-- The subtle half. `csar.spawnGroup` adds its own +50/+50 to whatever position it is given, so the point
+-- handed to the original has to be pre-compensated for the survivor to land where we decided. Asserting
+-- the **round trip** rather than the constant is what will catch a vendored update changing that offset.
+-- ===========================================================================
+TestVeafCsarAddCsarReplacement = {}
+
+function TestVeafCsarAddCsarReplacement:setUp()
+  self._csar = csar
+  self._resolve = veaf.resolveCsarSurvivorPoint
+  self._outText = trigger.action.outTextForCoalition
+
+  self.calls = {}
+  self.messages = {}
+  -- a fresh csar table per test, so the "already replaced" marker does not leak between them
+  csar = {
+    Id = "CSAR",
+    addCsar = function(coa, country, point, typeName, unitName, playerName, freq, noMessage, description)
+      table.insert(self.calls, { coalition = coa, point = point, typeName = typeName, noMessage = noMessage })
+    end,
+  }
+  trigger.action.outTextForCoalition = function(coa, text, duration)
+    table.insert(self.messages, { coalition = coa, text = text })
+  end
+end
+
+function TestVeafCsarAddCsarReplacement:tearDown()
+  csar = self._csar
+  veaf.resolveCsarSurvivorPoint = self._resolve
+  trigger.action.outTextForCoalition = self._outText
+end
+
+--- Pretend the resolver returns `point` unchanged, or nil for "lost".
+function TestVeafCsarAddCsarReplacement:_resolveTo(result)
+  veaf.resolveCsarSurvivorPoint = function(intended)
+    self.intended = intended
+    if result == "same" then
+      return intended
+    end
+    return result
+  end
+end
+
+function TestVeafCsarAddCsarReplacement:test_the_resolver_is_asked_about_where_the_pilot_would_really_land()
+  -- Not the position handed in: the survivor ends up +50/+50 from it, and that is the spot whose surface
+  -- matters. Asking about the aircraft's position instead would clear an ejection whose survivor lands
+  -- in the water fifty metres away.
+  self:_resolveTo("same")
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 100, y = 10, z = 200 }, "F-16C")
+  luaunit.assertEquals(self.intended.x, 100 + veaf.CSAR_SPAWN_OFFSET_METRES)
+  luaunit.assertEquals(self.intended.z, 200 + veaf.CSAR_SPAWN_OFFSET_METRES)
+end
+
+function TestVeafCsarAddCsarReplacement:test_the_survivor_lands_where_the_resolver_chose()
+  -- The round trip: whatever we pass, `spawnGroup` will add the offset back, so point + offset must
+  -- equal the resolved point exactly.
+  self:_resolveTo({ x = 4000, y = 12, z = 8000 })
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C")
+  luaunit.assertEquals(#self.calls, 1)
+  local handed = self.calls[1].point
+  luaunit.assertEquals(handed.x + veaf.CSAR_SPAWN_OFFSET_METRES, 4000)
+  luaunit.assertEquals(handed.z + veaf.CSAR_SPAWN_OFFSET_METRES, 8000)
+end
+
+function TestVeafCsarAddCsarReplacement:test_a_lost_pilot_creates_no_csar_at_all()
+  -- The arbitration's second half. Not "a CSAR far away" — nothing: no group, no MAYDAY, no ADF beacon.
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C")
+  luaunit.assertEquals(#self.calls, 0, "the original must not be called for a lost pilot")
+end
+
+function TestVeafCsarAddCsarReplacement:test_a_lost_pilot_is_announced_to_his_coalition()
+  -- A silent loss would leave a flight waiting for a rescue mission that does not exist.
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C")
+  luaunit.assertEquals(#self.messages, 1)
+  luaunit.assertEquals(self.messages[1].coalition, 2)
+  luaunit.assertStrContains(self.messages[1].text, "F-16C")
+end
+
+function TestVeafCsarAddCsarReplacement:test_a_silent_csar_stays_silent_even_when_lost()
+  -- `noMessage` is how a mission spawns a CSAR without announcing it; losing the pilot must not become
+  -- the one case that talks.
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", nil, nil, nil, true)
+  luaunit.assertEquals(#self.messages, 0)
+end
+
+function TestVeafCsarAddCsarReplacement:test_every_argument_is_passed_through_untouched()
+  self:_resolveTo("same")
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(1, "RUS", { x = 0, y = 0, z = 0 }, "Su-25", "unit-1", "Zip", 123.45, false, "desc")
+  luaunit.assertEquals(self.calls[1].coalition, 1)
+  luaunit.assertEquals(self.calls[1].typeName, "Su-25")
+  luaunit.assertEquals(self.calls[1].noMessage, false)
+end
+
+-- A caller handing something that is not a position must not be second-guessed: pass it on and let the
+-- original deal with it, exactly as before.
+function TestVeafCsarAddCsarReplacement:test_a_positionless_call_is_forwarded_unchanged()
+  local asked = false
+  veaf.resolveCsarSurvivorPoint = function()
+    asked = true
+    return nil
+  end
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", nil, "F-16C")
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertFalse(asked)
+end
+
+-- Replacing twice must not stack wrappers: `csar_initialize_replacement` sets `veaf.csar_initialized`
+-- but nothing reads it, so a mission calling it twice is possible — and a doubled wrapper would
+-- compensate the offset twice, putting the survivor 50 m the wrong way.
+--
+-- The first version of this test passed on a **non**-idempotent wrapper: its stub resolver returned a
+-- fixed point regardless of input, so the double compensation cancelled itself out. The stub here moves
+-- the point it is given, which is what makes the assertion mean anything.
+function TestVeafCsarAddCsarReplacement:test_replacing_twice_does_not_double_the_compensation()
+  local resolveCalls = 0
+  veaf.resolveCsarSurvivorPoint = function(intended)
+    resolveCalls = resolveCalls + 1
+    return { x = intended.x + 1000, y = intended.y, z = intended.z }
+  end
+  veaf.replaceCsarAddCsar()
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C")
+  luaunit.assertEquals(#self.calls, 1)
+  luaunit.assertEquals(resolveCalls, 1, "resolved twice means the wrapper was stacked")
+  -- one offset added by the (mocked) original, one resolution of +1000
+  luaunit.assertEquals(self.calls[1].point.x + veaf.CSAR_SPAWN_OFFSET_METRES, 1000 + veaf.CSAR_SPAWN_OFFSET_METRES)
+end
+
+-- The ejection happened whether or not a CSAR exists, so CSAR's own bookkeeping must still run:
+-- `handleEjectOrCrash` disables the aircraft (mode 1) or the pilot (mode 2) for a timeout. Skipping it
+-- would make ditching at sea the cheapest way to lose an aircraft, which is the opposite of "he counts as
+-- dead". Caught in review (Sourcery, PR #787).
+function TestVeafCsarAddCsarReplacement:test_a_lost_pilot_is_still_counted_as_having_ejected()
+  local handled = {}
+  csar.handleEjectOrCrash = function(unit, crashed)
+    table.insert(handled, { unit = unit, crashed = crashed })
+  end
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", "unit-1", "Zip")
+  luaunit.assertEquals(#handled, 1, "the ejection bookkeeping must run even with no CSAR created")
+  luaunit.assertEquals(handled[1].unit, "Zip")
+  luaunit.assertEquals(handled[1].crashed, false)
+end
+
+-- That call is wrong upstream — `addCsar` hands a player name to a function that indexes a unit — so it
+-- raises as soon as a mission sets csarMode to 1 or 2. Reproducing the original call is right; letting
+-- our new path be the one that dies from it is not.
+function TestVeafCsarAddCsarReplacement:test_a_raising_bookkeeping_call_does_not_take_the_wrapper_down()
+  csar.handleEjectOrCrash = function()
+    error("attempt to index a string value")
+  end
+  self:_resolveTo(nil)
+  veaf.replaceCsarAddCsar()
+  local ok = pcall(csar.addCsar, 2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", "unit-1", "Zip")
+  luaunit.assertTrue(ok, "an upstream defect must not surface as a crash on the lost-pilot path")
+end
+
+-- And it must not run twice for a rescued pilot: the original does it itself.
+function TestVeafCsarAddCsarReplacement:test_a_rescued_pilot_has_the_bookkeeping_done_once_by_the_original()
+  local calls = 0
+  csar.handleEjectOrCrash = function()
+    calls = calls + 1
+  end
+  self:_resolveTo("same")
+  veaf.replaceCsarAddCsar()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", "unit-1", "Zip")
+  luaunit.assertEquals(calls, 0, "the wrapper must not double what the original already does")
+end
+
+function TestVeafCsarAddCsarReplacement:test_no_csar_module_is_not_a_crash()
+  csar = nil
+  local ok = pcall(veaf.replaceCsarAddCsar)
+  luaunit.assertTrue(ok)
+end
+
+-- ===========================================================================
+-- FIX-CSAR-HANDLE-EJECT-ARGUMENT — the replacement of csar.handleEjectOrCrash
+--
+-- `csar.addCsar` calls `csar.handleEjectOrCrash(_playerName, false)`, and that function indexes its
+-- first argument as a unit. Every other caller passes a unit, so the defect only shows on the path that
+-- matters: a mission that sets `csar.csarMode` gets *"attempt to index a string value"* instead of the
+-- sanction it configured. What the tests below pin is not just "it stops raising" — it is **which
+-- sanction still gets applied when only a name is available**, since mode 3 needs the pilot while modes
+-- 1 and 2 need the aircraft.
+-- ===========================================================================
+TestVeafCsarHandleEjectReplacement = {}
+
+function TestVeafCsarHandleEjectReplacement:setUp()
+  self._csar = csar
+  self._getPlayers = coalition.getPlayers
+  self._savedGet = veaf.loggers.get
+
+  self.handled = {}
+  self.logged = {}
+  -- A fresh csar table per test: the idempotence marker would otherwise leak between them.
+  csar = {
+    Id = "CSAR",
+    csarMode = 0,
+    handleEjectOrCrash = function(unit, crashed)
+      -- Faithful to the vendored function in the one way that matters here: it indexes its argument
+      -- straight away. A string reaching it must blow up in the test exactly as it does in DCS.
+      table.insert(self.handled, { name = unit:getName(), player = unit:getPlayerName(), id = unit:getID(), crashed = crashed })
+    end,
+  }
+
+  local logger = {}
+  for _, level in ipairs({ "error", "warn", "info", "debug", "trace" }) do
+    logger[level] = function(_, message, ...)
+      table.insert(self.logged, { level = level, message = message })
+    end
+  end
+  veaf.loggers.get = function(id)
+    if id == "CSAR" then
+      return logger
+    end
+    return self._savedGet(id)
+  end
+end
+
+function TestVeafCsarHandleEjectReplacement:tearDown()
+  csar = self._csar
+  coalition.getPlayers = self._getPlayers
+  veaf.loggers.get = self._savedGet
+end
+
+--- A unit as DCS hands it over, with only what the vendored function touches.
+function TestVeafCsarHandleEjectReplacement:_unit(unitName, playerName, id)
+  return {
+    getName = function()
+      return unitName
+    end,
+    getPlayerName = function()
+      return playerName
+    end,
+    getID = function()
+      return id
+    end,
+  }
+end
+
+--- Put `unit` in the sky, so a player-name lookup can find it.
+function TestVeafCsarHandleEjectReplacement:_playerFlying(unit)
+  coalition.getPlayers = function(side)
+    if side == coalition.side.BLUE then
+      return { unit }
+    end
+    return {}
+  end
+end
+
+function TestVeafCsarHandleEjectReplacement:_warnings()
+  local found = {}
+  for _, entry in ipairs(self.logged) do
+    if entry.level == "warn" then
+      table.insert(found, entry.message)
+    end
+  end
+  return found
+end
+
+function TestVeafCsarHandleEjectReplacement:test_a_unit_is_handed_over_untouched()
+  -- The regression that would hurt most: every existing caller passes a unit, and none of them may
+  -- notice the wrapper is there.
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash(self:_unit("Chevy11", "Zip", 42), true)
+  luaunit.assertEquals(#self.handled, 1)
+  luaunit.assertEquals(self.handled[1].name, "Chevy11")
+  luaunit.assertEquals(self.handled[1].player, "Zip")
+  luaunit.assertEquals(self.handled[1].id, 42)
+  luaunit.assertTrue(self.handled[1].crashed, "the second argument must survive too")
+end
+
+function TestVeafCsarHandleEjectReplacement:test_a_player_name_no_longer_raises()
+  -- The defect itself, stated as plainly as it can be: this exact call is what `csar.addCsar` makes.
+  veaf.replaceCsarHandleEjectOrCrash()
+  local ok, err = pcall(csar.handleEjectOrCrash, "Zip", false)
+  luaunit.assertTrue(ok, "a player name must not raise: " .. tostring(err))
+end
+
+function TestVeafCsarHandleEjectReplacement:test_a_player_name_is_resolved_to_his_unit()
+  -- The good case: the pilot is still in an aircraft, so the full sanction is available and the
+  -- vendored function gets the real unit — same behaviour as any other caller.
+  self:_playerFlying(self:_unit("Chevy11", "Zip", 42))
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 1)
+  luaunit.assertEquals(self.handled[1].name, "Chevy11", "the unit's name, not the player's")
+  luaunit.assertEquals(self.handled[1].id, 42)
+end
+
+function TestVeafCsarHandleEjectReplacement:test_another_players_unit_is_not_mistaken_for_his()
+  -- A lookup that matched on anything but the player name would sanction whoever happened to be
+  -- flying, which is worse than sanctioning nobody.
+  self:_playerFlying(self:_unit("Chevy21", "Sharko", 77))
+  csar.csarMode = 3
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 1)
+  luaunit.assertEquals(self.handled[1].player, "Zip", "the pilot who ejected, not the one still flying")
+  luaunit.assertNil(self.handled[1].id)
+end
+
+function TestVeafCsarHandleEjectReplacement:test_mode_3_is_served_from_the_name_alone()
+  -- Mode 3 reduces the *pilot's* lives, so the aircraft's identity is not needed and the sanction the
+  -- mission configured is still applied.
+  csar.csarMode = 3
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 1)
+  luaunit.assertEquals(self.handled[1].player, "Zip")
+  luaunit.assertEquals(#self:_warnings(), 0, "nothing was skipped, so nothing to warn about")
+end
+
+function TestVeafCsarHandleEjectReplacement:test_mode_1_is_refused_rather_than_guessed()
+  -- Mode 1 sets a `CSAR_AIRCRAFT<id>` flag, and there is no id to be had. Inventing one grounds an
+  -- aircraft nobody chose; a skipped sanction is recoverable, a misapplied one is not.
+  csar.csarMode = 1
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 0, "the vendored function must not be called with a made-up id")
+  luaunit.assertEquals(#self:_warnings(), 1, "and skipping it silently would hide a broken mission setting")
+end
+
+function TestVeafCsarHandleEjectReplacement:test_mode_2_is_refused_too()
+  csar.csarMode = 2
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 0)
+  luaunit.assertEquals(#self:_warnings(), 1)
+end
+
+function TestVeafCsarHandleEjectReplacement:test_the_default_mode_is_still_a_no_op_and_still_silent()
+  -- Mode 0 is the default and does nothing at all, so this path must neither raise nor warn: almost
+  -- every mission runs here, and a warning on every ejection would be noise.
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.handleEjectOrCrash("Zip", false)
+  luaunit.assertEquals(#self.handled, 1, "the call still reaches the original, which decides to do nothing")
+  luaunit.assertEquals(#self:_warnings(), 0)
+end
+
+function TestVeafCsarHandleEjectReplacement:test_replacing_twice_does_not_stack()
+  veaf.replaceCsarHandleEjectOrCrash()
+  local once = csar.handleEjectOrCrash
+  veaf.replaceCsarHandleEjectOrCrash()
+  luaunit.assertIs(csar.handleEjectOrCrash, once, "the second call must be a no-op, like the addCsar guard")
+end
+
+function TestVeafCsarHandleEjectReplacement:test_no_csar_module_is_not_a_crash()
+  csar = nil
+  luaunit.assertTrue(pcall(veaf.replaceCsarHandleEjectOrCrash))
+end
+
+function TestVeafCsarHandleEjectReplacement:test_a_csar_without_the_function_is_not_a_crash()
+  -- A vendored update renaming it must leave the framework standing rather than take the mission down.
+  csar = { Id = "CSAR" }
+  luaunit.assertTrue(pcall(veaf.replaceCsarHandleEjectOrCrash))
+end
+
+-- ---------------------------------------------------------------------------
+-- Where the two CSAR fixes meet: the over-water wrapper calls `handleEjectOrCrash` with a player name,
+-- and that call is the reason it needed a `pcall` at all. This is the test that says the guard is no
+-- longer the thing keeping the mission alive.
+-- ---------------------------------------------------------------------------
+function TestVeafCsarHandleEjectReplacement:test_the_lost_at_sea_path_sanctions_the_pilot_for_real()
+  local savedResolve = veaf.resolveCsarSurvivorPoint
+  local savedOutText = trigger.action.outTextForCoalition
+  veaf.resolveCsarSurvivorPoint = function()
+    return nil -- nothing but water: the pilot is lost
+  end
+  trigger.action.outTextForCoalition = function() end
+  csar.csarMode = 3
+  csar.addCsar = function() end
+
+  veaf.replaceCsarAddCsar()
+  veaf.replaceCsarHandleEjectOrCrash()
+  csar.addCsar(2, "USA", { x = 0, y = 0, z = 0 }, "F-16C", "Chevy11", "Zip")
+
+  veaf.resolveCsarSurvivorPoint = savedResolve
+  trigger.action.outTextForCoalition = savedOutText
+  luaunit.assertEquals(#self.handled, 1, "ditching at sea must still cost the pilot what the mode says")
+  luaunit.assertEquals(self.handled[1].player, "Zip")
+  luaunit.assertEquals(#self:_warnings(), 0, "and it must no longer be the pcall reporting a raise")
+end
+
+-- ===========================================================================
+-- veaf.findUnitForPlayerName
+-- ===========================================================================
+TestVeafFindUnitForPlayerName = {}
+
+function TestVeafFindUnitForPlayerName:setUp()
+  self._getPlayers = coalition.getPlayers
+end
+
+function TestVeafFindUnitForPlayerName:tearDown()
+  coalition.getPlayers = self._getPlayers
+end
+
+function TestVeafFindUnitForPlayerName:test_finds_a_player_on_any_side()
+  -- Red, because iterating blue only is the mistake that looks right in a blue-side test.
+  local unit = {
+    getPlayerName = function()
+      return "Sharko"
+    end,
+  }
+  coalition.getPlayers = function(side)
+    if side == coalition.side.RED then
+      return { unit }
+    end
+    return {}
+  end
+  luaunit.assertIs(veaf.findUnitForPlayerName("Sharko"), unit)
+end
+
+function TestVeafFindUnitForPlayerName:test_returns_nil_when_nobody_matches()
+  luaunit.assertNil(veaf.findUnitForPlayerName("Zip"))
+end
+
+function TestVeafFindUnitForPlayerName:test_refuses_a_nil_or_empty_name()
+  luaunit.assertNil(veaf.findUnitForPlayerName(nil))
+  luaunit.assertNil(veaf.findUnitForPlayerName(""))
+end
+
+function TestVeafFindUnitForPlayerName:test_a_side_that_raises_does_not_take_the_lookup_down()
+  -- `coalition.getPlayers` is documented but not guaranteed to answer for every side in every build,
+  -- and this runs while a pilot is ejecting: the worst moment to raise.
+  local unit = {
+    getPlayerName = function()
+      return "Zip"
+    end,
+  }
+  coalition.getPlayers = function(side)
+    if side == coalition.side.NEUTRAL then
+      error("no such coalition")
+    end
+    if side == coalition.side.BLUE then
+      return { unit }
+    end
+    return {}
+  end
+  luaunit.assertIs(veaf.findUnitForPlayerName("Zip"), unit)
+end
+
+-- ===========================================================================
+-- FEAT-CTLD-SLINGLOAD-TOGGLE — a global lever on CTLD's virtual sling loading (#60, 2021)
+--
+-- The setting under test is `enableHoverSlingload`, and the first thing these tests pin is **which
+-- setting**, because the obvious candidate is the wrong one: `slingLoad` kept its CTLD 1 name through the
+-- CTLD 2 migration and lost its meaning — it now only picks a crate's 3D model. A toggle wired to it
+-- would look correct in every code review and change nothing a helicopter crew notices.
+-- ===========================================================================
+TestVeafCtldSlingloadToggle = {}
+
+function TestVeafCtldSlingloadToggle:setUp()
+  self._savedGet = veaf.loggers.get
+  self._savedOutText = trigger.action.outText
+  self._savedRefresh = veafRadio.refreshRadioMenu
+  self._savedAddSecured = veafRadio.addSecuredCommandToSubmenu
+  self._savedAddSubMenu = veafRadio.addSubMenu
+  self._savedClear = veafRadio.clearSubmenu
+  self._savedRoot = veaf.ctldRootPath
+
+  self.messages = {}
+  self.logged = {}
+  self.commands = {}
+  self.cleared = 0
+
+  local logger = {}
+  for _, level in ipairs({ "error", "warn", "info", "debug", "trace" }) do
+    logger[level] = function(_, message, ...)
+      table.insert(self.logged, { level = level, message = message })
+    end
+  end
+  veaf.loggers.get = function(id)
+    if id == veaf.ctldId then
+      return logger
+    end
+    return self._savedGet(id)
+  end
+
+  trigger.action.outText = function(text, duration)
+    table.insert(self.messages, text)
+  end
+
+  -- A radio layer that records rather than renders, so a test can read the menu that was built.
+  veaf.ctldRootPath = nil
+  veafRadio.addSubMenu = function(title)
+    return { title = title }
+  end
+  veafRadio.clearSubmenu = function()
+    self.cleared = self.cleared + 1
+  end
+  veafRadio.addSecuredCommandToSubmenu = function(title, menu, method, parameters, usage)
+    table.insert(self.commands, { title = title, method = method, parameters = parameters, usage = usage })
+    return {}
+  end
+  veafRadio.refreshRadioMenu = function() end
+
+  dcs_mocks.reset()
+end
+
+function TestVeafCtldSlingloadToggle:tearDown()
+  veaf.loggers.get = self._savedGet
+  trigger.action.outText = self._savedOutText
+  veafRadio.refreshRadioMenu = self._savedRefresh
+  veafRadio.addSecuredCommandToSubmenu = self._savedAddSecured
+  veafRadio.addSubMenu = self._savedAddSubMenu
+  veafRadio.clearSubmenu = self._savedClear
+  veaf.ctldRootPath = self._savedRoot
+  dcs_mocks.reset()
+end
+
+function TestVeafCtldSlingloadToggle:_setting()
+  return CTLDConfig.get().settings.enableHoverSlingload
+end
+
+-- ── which setting ──────────────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_the_setting_is_the_hover_one_not_slingLoad()
+  -- The whole point. `slingLoad` in CTLD 2 chooses a crate's 3D model; wiring the toggle to it would
+  -- ship a radio command that reskins crates and nothing else.
+  luaunit.assertEquals(veaf.CTLD_SLINGLOAD_SETTING, "enableHoverSlingload")
+end
+
+function TestVeafCtldSlingloadToggle:test_it_reads_ctld_rather_than_remembering()
+  -- Read at the point of use, never cached: a cached copy is the one way to make the menu lie about the
+  -- engine's actual state.
+  luaunit.assertTrue(veaf.isCtldSlingloadEnabled())
+  CTLDConfig.get():setSetting("enableHoverSlingload", false)
+  luaunit.assertFalse(veaf.isCtldSlingloadEnabled())
+end
+
+-- ── the toggle ─────────────────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_switching_off_writes_the_setting()
+  luaunit.assertTrue(veaf.setCtldSlingloadEnabled(false))
+  luaunit.assertFalse(self:_setting())
+end
+
+function TestVeafCtldSlingloadToggle:test_switching_back_on_writes_it_too()
+  -- Reversible in both directions, which is what makes it a toggle rather than a one-way switch: CTLD's
+  -- hover loop reschedules itself before testing the setting, so it is never torn down.
+  veaf.setCtldSlingloadEnabled(false)
+  veaf.setCtldSlingloadEnabled(true)
+  luaunit.assertTrue(self:_setting())
+end
+
+function TestVeafCtldSlingloadToggle:test_a_truthy_value_is_not_enough()
+  -- `setSetting` must receive a real boolean: CTLD tests the setting with `== true` in places, so a
+  -- string or a number would read as off and the toggle would half-work.
+  veaf.setCtldSlingloadEnabled("yes")
+  luaunit.assertEquals(self:_setting(), false, "anything but true means false, and explicitly so")
+end
+
+-- ── what the player is told ────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_switching_off_says_the_dcs_winch_still_works()
+  -- The sentence this test exists for. CTLD checks native DCS cargo *before* it looks at this setting,
+  -- and all three crate models are `canCargo: true` — so a crate stays hookable with the game's own
+  -- sling whatever the toggle says. Unsaid, the first crew to hook a crate reports the command broken.
+  veaf.setCtldSlingloadEnabled(false)
+  luaunit.assertEquals(#self.messages, 1)
+  local message = self.messages[1]
+  luaunit.assertNotNil(message:find("DCS", 1, true), "the message must name DCS's own winch: " .. message)
+end
+
+function TestVeafCtldSlingloadToggle:test_switching_on_reports_it_too()
+  veaf.setCtldSlingloadEnabled(true)
+  luaunit.assertEquals(#self.messages, 1)
+end
+
+function TestVeafCtldSlingloadToggle:test_the_change_is_logged()
+  -- A game-master lever that changes how everybody plays belongs in the log, whoever pressed it.
+  veaf.setCtldSlingloadEnabled(false)
+  local infos = 0
+  for _, entry in ipairs(self.logged) do
+    if entry.level == "info" then
+      infos = infos + 1
+    end
+  end
+  luaunit.assertTrue(infos >= 1)
+end
+
+-- ── the menu ───────────────────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_the_menu_offers_only_the_command_that_changes_something()
+  -- Enabled, so the only entry is "disable". A menu holding both asks the player to work out which of
+  -- two entries is the no-op.
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(#self.commands, 1)
+  luaunit.assertEquals(self.commands[1].parameters, false, "pressing it must move to OFF")
+end
+
+function TestVeafCtldSlingloadToggle:test_and_the_other_way_round_when_it_is_off()
+  CTLDConfig.get():setSetting("enableHoverSlingload", false)
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(#self.commands, 1)
+  luaunit.assertEquals(self.commands[1].parameters, true, "pressing it must move to ON")
+end
+
+function TestVeafCtldSlingloadToggle:test_the_label_changes_with_the_state()
+  veaf.buildCtldRadioMenu()
+  local whenOn = self.commands[1].title
+  self.commands = {}
+  CTLDConfig.get():setSetting("enableHoverSlingload", false)
+  veaf.buildCtldRadioMenu()
+  luaunit.assertNotEquals(self.commands[1].title, whenOn)
+end
+
+function TestVeafCtldSlingloadToggle:test_the_command_is_secured_and_for_everybody()
+  -- Secured because it changes how every crew in the mission plays; ForAll because it is not tied to the
+  -- group that pressed it.
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(self.commands[1].usage, veafRadio.USAGE_ForAll)
+end
+
+function TestVeafCtldSlingloadToggle:test_toggling_rebuilds_the_menu_in_place()
+  -- Otherwise the entry keeps offering the state the mission is already in. Rebuilt in place rather than
+  -- re-added, or the submenu would accumulate a command per press.
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(self.cleared, 0, "the first build creates the submenu")
+  veaf.setCtldSlingloadEnabled(false)
+  luaunit.assertEquals(self.cleared, 1, "the toggle clears it before rebuilding")
+end
+
+function TestVeafCtldSlingloadToggle:test_the_radio_entry_point_passes_the_state_through()
+  veaf.radioToggleCtldSlingload(false)
+  luaunit.assertFalse(self:_setting())
+  veaf.radioToggleCtldSlingload(true)
+  luaunit.assertTrue(self:_setting())
+end
+
+-- ── when CTLD is not there ─────────────────────────────────────────────────
+
+function TestVeafCtldSlingloadToggle:test_no_menu_when_ctld_never_started()
+  -- The state a mission built before FIX-CTLD-NEVER-INITIALIZED is in: script loaded, configuration
+  -- never read. A menu built from it would show a default as though it were the engine's state.
+  CTLDConfig._instance.isLoaded = false
+  veaf.buildCtldRadioMenu()
+  luaunit.assertEquals(#self.commands, 0)
+  luaunit.assertNil(veaf.ctldRootPath)
+end
+
+function TestVeafCtldSlingloadToggle:test_toggling_refuses_when_ctld_never_started()
+  CTLDConfig._instance.isLoaded = false
+  luaunit.assertFalse(veaf.setCtldSlingloadEnabled(false))
+  luaunit.assertEquals(#self.messages, 0, "and it must not claim to have changed anything")
+end
+
+function TestVeafCtldSlingloadToggle:test_reading_the_state_refuses_rather_than_guessing()
+  CTLDConfig._instance.isLoaded = false
+  luaunit.assertFalse(veaf.isCtldSlingloadEnabled())
+end
+
+-- ===========================================================================
+-- FEAT-COORDINATE-FORMATS — every coordinate a pilot can read off his own screen
+--
+-- This is the single coordinate reader for veafAirWaves, veafGroundAI (target and validation),
+-- veafNamedPoints, veafQraCore and the aliases. The family is enumerated here rather than sampled: a
+-- coordinate that is quietly wrong is worse than one that is refused, and the failure mode is shells in
+-- the wrong village.
+--
+-- `coord.MGRStoLL` is a DCS function and the mock returns 0,0, so the MGRS tests assert what is handed
+-- TO it. That is the right boundary anyway: the parsing is ours, the projection is DCS's.
+-- ===========================================================================
+TestVeafCoordinateFormats = {}
+
+function TestVeafCoordinateFormats:setUp()
+  self._savedMGRStoLL = coord.MGRStoLL
+  self.mgrs = nil
+  local test = self
+  coord.MGRStoLL = function(t)
+    test.mgrs = t
+    return 0, 0
+  end
+end
+
+function TestVeafCoordinateFormats:tearDown()
+  coord.MGRStoLL = self._savedMGRStoLL
+end
+
+--- @return table|nil what the MGRS branch handed to DCS, or nil if the string was refused
+function TestVeafCoordinateFormats:_mgrs(s)
+  self.mgrs = nil
+  veaf.computeLLFromString(s)
+  return self.mgrs
+end
+
+-- ── MGRS, and the digit count is the precision ──────────────────────────────
+
+function TestVeafCoordinateFormats:test_mgrs_four_digits_is_a_kilometre()
+  local m = self:_mgrs("u37TGG1234")
+  luaunit.assertNotNil(m, "u37TGG1234 must be read")
+  luaunit.assertEquals(m.UTMZone, "37T")
+  luaunit.assertEquals(m.MGRSDigraph, "GG")
+  luaunit.assertEquals(m.Easting, 12000)
+  luaunit.assertEquals(m.Northing, 34000)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_eight_digits_is_ten_metres()
+  local m = self:_mgrs("u37TGG12345678")
+  luaunit.assertEquals(m.Easting, 12340)
+  luaunit.assertEquals(m.Northing, 56780)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_ten_digits_is_one_metre()
+  -- The precision David asked for: two groups of five.
+  local m = self:_mgrs("u37TGG1234512345")
+  luaunit.assertEquals(m.Easting, 12345)
+  luaunit.assertEquals(m.Northing, 12345)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_without_the_u_prefix()
+  -- Nothing on a pilot's screen has a `u` in front of it.
+  local m = self:_mgrs("37TGG1234512345")
+  luaunit.assertNotNil(m, "the prefix must be optional")
+  luaunit.assertEquals(m.Easting, 12345)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_exactly_as_dcs_displays_it()
+  -- THE case this lot exists for. Making a pilot retype `37T GG 12345 12345` as `u37TGG1234512345` is
+  -- the transcription that puts shells in the wrong village.
+  local m = self:_mgrs("37T GG 12345 12345")
+  luaunit.assertNotNil(m, "the spaced form must be read")
+  luaunit.assertEquals(m.UTMZone, "37T")
+  luaunit.assertEquals(m.MGRSDigraph, "GG")
+  luaunit.assertEquals(m.Easting, 12345)
+  luaunit.assertEquals(m.Northing, 12345)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_with_a_leading_label()
+  local m = self:_mgrs("MGRS 37T GG 12345 12345")
+  luaunit.assertNotNil(m)
+  luaunit.assertEquals(m.Northing, 12345)
+end
+
+function TestVeafCoordinateFormats:test_mgrs_is_case_insensitive()
+  local m = self:_mgrs("37t gg 12345 12345")
+  luaunit.assertNotNil(m)
+  luaunit.assertEquals(m.UTMZone, "37T", "the zone must reach DCS upper-cased")
+  luaunit.assertEquals(m.MGRSDigraph, "GG")
+end
+
+function TestVeafCoordinateFormats:test_an_odd_digit_count_is_refused()
+  -- MGRS digits come in pairs. An odd count used to be halved anyway, producing a position nobody typed.
+  luaunit.assertNil(veaf.computeLLFromString("u37TGG12345"))
+  luaunit.assertNil(self:_mgrs("37TGG123"))
+end
+
+function TestVeafCoordinateFormats:test_too_many_digits_is_refused()
+  -- Five digits a side is one metre; there is nothing finer to mean.
+  luaunit.assertNil(veaf.computeLLFromString("37TGG123456789012"))
+end
+
+-- ── DMS, and the exact value ────────────────────────────────────────────────
+-- 42:30:15 is 42 + 30/60 + 15/3600 = 42.5041666..., not 42.5038888. The one arc-second an accumulator
+-- starting at -1 used to remove is about 31 metres of northing, and it was on every DMS coordinate in
+-- every VEAF mission since 2021.
+
+function TestVeafCoordinateFormats:test_dms_with_colons_is_exact()
+  local lat, lon = veaf.computeLLFromString("N42:30:15E041:45:30")
+  luaunit.assertAlmostEquals(lat, 42.5041667, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 41.7583333, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_dms_with_dashes_is_exact()
+  local lat, lon = veaf.computeLLFromString("N42-30-15E041-45-30")
+  luaunit.assertAlmostEquals(lat, 42.5041667, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_dms_with_spaces()
+  -- How a pilot writes it when nobody told him a separator.
+  local lat, lon = veaf.computeLLFromString("N42 30 15 E041 45 30")
+  luaunit.assertNotNil(lat, "spaces must be accepted")
+  luaunit.assertAlmostEquals(lat, 42.5041667, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 41.7583333, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_dms_with_the_symbols()
+  local lat, lon = veaf.computeLLFromString("N42°30'15\"E041°45'30\"")
+  luaunit.assertNotNil(lat, "degree, minute and second symbols must be accepted")
+  luaunit.assertAlmostEquals(lat, 42.5041667, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_degrees_and_decimal_minutes()
+  -- The form a DCS kneeboard and most aviation charts use.
+  local lat, lon = veaf.computeLLFromString("N42:30.5E041:45.5")
+  luaunit.assertAlmostEquals(lat, 42.5083333, 0.0000005)
+  luaunit.assertAlmostEquals(lon, 41.7583333, 0.0000005)
+end
+
+function TestVeafCoordinateFormats:test_south_and_west_are_negative()
+  local lat, lon = veaf.computeLLFromString("S42:30:15W041:45:30")
+  luaunit.assertAlmostEquals(lat, -42.5041667, 0.0000005)
+  luaunit.assertAlmostEquals(lon, -41.7583333, 0.0000005)
+end
+
+-- ── decimal degrees, which already worked and had no test ───────────────────
+
+function TestVeafCoordinateFormats:test_decimal_degrees()
+  local lat, lon = veaf.computeLLFromString("N42.50416E041.75833")
+  luaunit.assertAlmostEquals(lat, 42.50416, 0.000005)
+  luaunit.assertAlmostEquals(lon, 41.75833, 0.000005)
+end
+
+function TestVeafCoordinateFormats:test_whole_degrees_still_work()
+  -- Coarse — about 100 km — but a mission maker sketching a zone may mean exactly this.
+  local lat, lon = veaf.computeLLFromString("N42E041")
+  luaunit.assertAlmostEquals(lat, 42, 0.000001)
+  luaunit.assertAlmostEquals(lon, 41, 0.000001)
+end
+
+-- ── refusals ────────────────────────────────────────────────────────────────
+
+function TestVeafCoordinateFormats:test_longitude_first_is_refused_rather_than_swapped()
+  -- The old reader ACCEPTED this and returned the two values the wrong way round: it took the first
+  -- hemisphere letter as the latitude's whatever it was, so `E041N42` came back as lat 41, lon 42. A
+  -- coordinate silently transposed is worse than one refused, which is the whole argument of this lot.
+  luaunit.assertNil(veaf.computeLLFromString("E041N42"))
+  luaunit.assertNil(veaf.computeLLFromString("E041:45:30N42:30:15"))
+end
+
+function TestVeafCoordinateFormats:test_two_latitudes_are_refused()
+  luaunit.assertNil(veaf.computeLLFromString("N42N41"))
+  luaunit.assertNil(veaf.computeLLFromString("E041W040"))
+end
+
+function TestVeafCoordinateFormats:test_nonsense_is_refused()
+  luaunit.assertNil(veaf.computeLLFromString("somewhere over there"))
+  luaunit.assertNil(veaf.computeLLFromString(""))
+  luaunit.assertNil(veaf.computeLLFromString(nil))
+  luaunit.assertNil(veaf.computeLLFromString("N42"))
+  luaunit.assertNil(veaf.computeLLFromString("42N041E"))
 end
 
 os.exit(luaunit.LuaUnit.run())

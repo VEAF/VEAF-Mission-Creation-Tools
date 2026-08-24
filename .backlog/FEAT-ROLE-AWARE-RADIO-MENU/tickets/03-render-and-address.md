@@ -1,6 +1,11 @@
 # 03 — Render the role's menu, and answer without a unit; close #128
 
-Status: ⬜ ready
+Status: 🚫 wontfix
+
+Cancelled with the lot on 2026-08-20 — there is nothing left to render: the lot was cancelled before a usage class existed to render. See the
+[PRD](../PRD.md) for the two walls, and
+[`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](../../../docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md)
+for the measurements behind them.
 Type: feat
 Files: `src/scripts/veaf/veafRadio.lua`, the handlers taking a `unitName`, tests, mission-maker docs
 

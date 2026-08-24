@@ -13,8 +13,14 @@ are all driven from the F10 menu and a map marker, so none of them needs its own
 | 10 | [#101](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/101) | Does a **teleported** escort still defend? |
 | 12 | [#87](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/87) | Can red run carrier ops, and can red stop blue's? |
 
-**Check 11 (#128) is not here.** It needs a real multiplayer server with a game-master client; a
-solo session cannot answer it.
+**Check 11 (#128) IS here now, and the sentence that used to stand here was wrong.** It read *"it needs
+a real multiplayer server with a game-master client; a solo session cannot answer it"* — which came from
+reading DCS's Lua rather than from trying, and David refuted it the same day by taking the game-master
+role in a solo session and finding the carrier menu **empty**. That is the reproduction of #128.
+
+It was answered on **2026-08-20** by a probe carried here for one session, since deleted. The results
+are in [`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](../../../docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md);
+see [check 11](#check-11) for what is left to measure.
 
 ## What was decided before launching DCS
 
@@ -173,8 +179,18 @@ before and after deactivation showed the same thing twice.
 ### 4 · #107 — respawned escort (check 9)
 
 1. Find Arco on the F10 map: KC-135 orbiting at 20 000 ft north-west of the anchor, two F-15C on it.
-2. F10 → Assets → **Respawn Arco (KC-135)**.
-3. Watch the escort for 60 s.
+2. F10 → **MOYENS** → **Arco (KC-135)** → **Réapparition de Arco (KC-135)**. The mission builds with
+   `language: fr`, so those are the labels on screen; in an English build the same three read
+   `ASSETS` → `Arco (KC-135)` → `Respawn Arco (KC-135)`. Arco carries an `information:` line, which is
+   what gives it a submenu of its own rather than a bare command.
+   It confirms with **« J'ai fait réapparaître Arco (KC-135) »**.
+3. Watch the escort for **more than ten minutes**.
+
+!!! warning "Sixty seconds is not enough, and this step used to say sixty seconds"
+    The failure is a **delayed** return to base: the escort holds formation for a while and *then*
+    leaves, after roughly ten minutes. A one-minute look passes in both cases, so it would have called
+    the old behaviour fixed. David watched the teleport path hold for thirty minutes on 2026-08-18;
+    that is the bar.
 
 - **It drifts off, goes home, or ignores the tanker** → confirmed. Worth knowing for the fix:
   `veafAssets.respawn` calls `mist.respawnGroup` on the tanker and then, separately, on each `linked`
@@ -203,6 +219,20 @@ sees none of these commands (see above).
 - **Red can act on the blue carrier** → confirmed, and the cause is already located (see above): both
   submenus are created without a coalition, so neither is filtered.
 - **Red can run its own** → the other half of the issue is already fixed; say so when closing.
+
+### 7 · #128 — what a game master and a spectator actually are (check 11) {#check-11}
+
+**Answered for the game master on 2026-08-20** (DCS 2.9.28.26385, single player) — full write-up in
+[`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](../../../docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md).
+In short: he is invisible to the scripting API and raises no event, yet the global **and** the
+coalition-scoped menu paths reach him, while `USAGE_ForGroup` never can.
+
+**Two things still worth a sample**, if the probe is ever rebuilt (it was deleted, per its ticket):
+
+- **A spectator**, taking no slot. He has no side, so coalition scoping probably cannot reach him and only
+  the global path could — a hypothesis, not a result.
+- **A contrasting `humanGroups` reading with a slot taken**, so the zeros measured for the game master sit
+  against a known-good value rather than standing alone.
 
 ## Recording the outcome
 

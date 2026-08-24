@@ -29,6 +29,7 @@ modules:
     debug_red: false              # verbose Skynet logging for RED network
     include_blue_in_radio: false  # show BLUE network status in F10 menu
     debug_blue: false             # verbose Skynet logging for BLUE network
+    dynamic_spawn: false          # also integrate groups that appear during the mission
 ```
 
 | Field | Type | Default | Description |
@@ -38,6 +39,7 @@ modules:
 | `debug_red` | boolean | `false` | Enable verbose Skynet debug for RED coalition |
 | `include_blue_in_radio` | boolean | `false` | Add BLUE IADS status to F10 radio menu |
 | `debug_blue` | boolean | `false` | Enable verbose Skynet debug for BLUE coalition |
+| `dynamic_spawn` | boolean | `false` | Also integrate groups that appear **during** the mission — see [Groups appearing during the mission](#dynamic-spawn) |
 
 ---
 
@@ -91,14 +93,29 @@ Controls which DCS groups are added to the Skynet networks.
 
 In `Lenient` mode, a convoy of tanks and trucks escorted by a SA-19 will be integrated. In `Strict` mode, it will not.
 
-### Dynamic spawn — `veafSkynet.DynamicSpawn`
+### Groups appearing during the mission — `dynamic_spawn` {#dynamic-spawn}
+
+Set from `mission.yaml` (`dynamic_spawn`), or before `initialize` with `veafSkynet.DynamicSpawn`.
 
 | Value | Description |
 |-------|-------------|
 | `false` | Only groups present at startup are integrated (**default**) |
-| `true` | Groups spawned during the mission are also integrated into existing networks |
+| `true` | Groups appearing during the mission also join the existing networks |
 
-> `veafSpawn` automatically adds SAM units it spawns to Skynet networks, unless `DynamicSpawn = true` (in which case `veafSkynet` handles that monitoring itself).
+**What it costs.** Once on, the module watches **every unit birth** in the mission to spot eligible groups. That is why it is off by default: turn it on when the mission spawns SAMs while it runs (combat zones, dynamic campaign), not as a matter of course.
+
+**What it fixes.** Without it, a SAM appearing during the mission — a combat-zone one included — joins no network at all, and nothing says so.
+
+**Who decides, group by group.** A spawn command's `skynet` option stays in charge: `skynet false` keeps the group **out** of every network (which is what the convoy shortcuts carry), and `skynet <network name>` sends it to that network rather than its coalition's. A group no VEAF command declared — placed in the Mission Editor, created by a third-party script — joins its coalition's network, which is exactly what this setting is for.
+
+> The two integration paths are exclusive: when the target network integrates spawns, it does the work; otherwise `veafSpawn` does it as the group appears. A group is never integrated twice.
+
+**Scoped per network.** The setting belongs to each network. Switching integration off on the red side — or deactivating the red network — leaves blue working.
+
+```lua
+-- during the mission, network by network
+veafSkynet.setDynamicSpawn("red iads", false)
+```
 
 ### Startup delay — `veafSkynet.DelayForStartup`
 
@@ -122,7 +139,7 @@ veafSkynet.destroyCommandCentersOfCoalition(coalition.side.RED)
 
 ---
 
-## Deactivating a network
+## Deactivating a network {#deactivation}
 
 Deactivates a Skynet network and sets all its elements to a defined state before handing them back to DCS AI.
 
@@ -137,6 +154,16 @@ veafSkynet.deactivateNetworkOfCoalition(coalition.side.RED, veafSkynet.SkynetEle
 | `veafSkynet.SkynetElementStates.Autonomous` | Autonomous mode per each element's individual configuration |
 | `veafSkynet.SkynetElementStates.Live` | All elements switched on (**default**) |
 | `veafSkynet.SkynetElementStates.Dark` | All elements switched off |
+
+**A deactivated network stays deactivated.** Spawning a SAM into it no longer wakes it up: the group is still attached — that is what `skynet true` asks for — but the network does not come back on its own. Before, one spawned SAM was enough to restart a network you had just switched off.
+
+Bringing it back up is a deliberate call. Everything attached meanwhile comes up with it:
+
+```lua
+veafSkynet.activateNetworkOfCoalition(coalition.side.RED)
+```
+
+Deactivating one network **leaves the other alone**: the blue network keeps its state and its integration of dynamic spawns.
 
 ---
 

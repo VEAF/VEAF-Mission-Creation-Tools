@@ -32,6 +32,7 @@ import requests
 import typer
 import yaml
 from veaf_libs import platform_assets
+from veaf_libs.atomic_replace import atomic_replace
 from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
@@ -734,8 +735,6 @@ exit /b 0
             ``True`` on success; ``False`` if the asset is absent from the release or the
             download failed (both are logged as errors so the failure is surfaced).
         """
-        import os
-
         # exception_type=None: log at error level but do NOT raise — a failure on one
         # binary must surface yet still let the other be attempted (and not roll back
         # the common content already installed from the zip).
@@ -752,7 +751,10 @@ exit /b 0
         tmp = dest.with_name(f"{dest.name}.new")
         tmp.write_bytes(content)
         tmp.chmod(0o755)
-        os.replace(str(tmp), str(dest))
+        # A freshly downloaded executable is the file a virus scanner is most certain to open, and
+        # this rename is what installs the update: the transient-lock guard matters more here than
+        # anywhere else (FIX-WRITE-MIZ-REPLACE-FLAKE).
+        atomic_replace(tmp, dest)
         logger.info(t("updater.moved", name=dest.name))
         return True
 

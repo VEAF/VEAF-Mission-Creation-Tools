@@ -20,6 +20,11 @@ local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafTime.lua")
 dofile(src .. "/veafI18n.lua")
+-- veafWeather reaches into veafAirbases for the welcome brief (the nearest airbase and its runway
+-- in service), and veafEventHandler for the slot-entry callback. Loaded here rather than stubbed:
+-- the brief's only real risk is calling the runway lookup wrongly, and a stub would hide that.
+dofile(src .. "/veafEventHandler.lua")
+dofile(src .. "/veafAirbases.lua")
 dofile(src .. "/veafWeather.lua")
 
 -- The rendering assertions below pin the English wording; the weather report is
@@ -1091,4 +1096,626 @@ end
 -- ============================================================================
 -- Run
 -- ============================================================================
+-- ============================================================================
+-- FEAT-SLOT-WELCOME-BRIEF — greeting a pilot who takes a slot (#301)
+--
+-- A correction to the lot's own PRD belongs here, because it is what these tests do *not* cover: the PRD
+-- calls the runway-from-wind "the only real computation here" and says nothing decides it. It was already
+-- written and shipped — `veafAirbase:getRunwayInService` picks the best-headwind runway end and the ATIS
+-- has been using it. So there is nothing to test there, and what is tested is the part that was missing:
+-- the trigger, the airbase, the message, and the switch.
+-- ============================================================================
+TestVeafWeatherWelcomeBrief = {}
+
+function TestVeafWeatherWelcomeBrief:setUp()
+  self._savedEnabled = veafWeather.welcomeBriefEnabled
+  self._savedOutForGroup = trigger.action.outTextForGroup
+  self._savedNearest = veafAirbases.getNearestAirbase
+  self._savedCreate = veafWeatherData.create
+  self._savedSchedule = mist.scheduleFunction
+  self._savedGetByName = Unit.getByName
+
+  self.messages = {}
+  self.scheduled = {}
+  veafWeather.welcomeBriefEnabled = true
+  -- Cleared between tests, or the once-per-slot rule makes the second test in a row see nothing.
+  veafWeather.briefedUnits = {}
+  -- `isHumanUnit` reads this table. Registering the pilot here is what makes a BIRTH event brief him,
+  -- which is the path single player actually takes.
+  self._savedHumans = mist.DBs.humansByName
+  mist.DBs.humansByName = { Chevy11 = {}, Chevy21 = {} }
+
+  trigger.action.outTextForGroup = function(groupId, text, duration)
+    table.insert(self.messages, { groupId = groupId, text = text, duration = duration })
+  end
+  mist.scheduleFunction = function(fn, args, when)
+    table.insert(self.scheduled, { fn = fn, args = args, when = when })
+  end
+end
+
+function TestVeafWeatherWelcomeBrief:tearDown()
+  veafWeather.welcomeBriefEnabled = self._savedEnabled
+  trigger.action.outTextForGroup = self._savedOutForGroup
+  veafAirbases.getNearestAirbase = self._savedNearest
+  veafWeatherData.create = self._savedCreate
+  mist.scheduleFunction = self._savedSchedule
+  Unit.getByName = self._savedGetByName
+  mist.DBs.humansByName = self._savedHumans
+end
+
+--- A unit the player just took, with only what the brief touches.
+function TestVeafWeatherWelcomeBrief:_unit(name)
+  return {
+    getName = function()
+      return name or "Chevy11"
+    end,
+    isExist = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+    getGroup = function()
+      return {
+        getID = function()
+          return 77
+        end,
+      }
+    end,
+  }
+end
+
+--- An airbase of the given category, answering a runway for whatever wind it is given.
+function TestVeafWeatherWelcomeBrief:_airbase(category, runway)
+  self.askedWind = nil
+  local test = self
+  return {
+    Name = "Kobuleti",
+    DisplayName = "Kobuleti",
+    Category = category,
+    DcsAirbase = {
+      getPoint = function()
+        return { x = 0, y = 0, z = 0 }
+      end,
+    },
+    getRunwayInServiceString = function(_, wind)
+      test.askedWind = wind
+      return runway
+    end,
+  }
+end
+
+--- Stub the weather so the brief has something to report, with a known wind direction.
+function TestVeafWeatherWelcomeBrief:_weather(windDirection)
+  veafWeatherData.create = function()
+    return {
+      WindDirection = windDirection or 270,
+      toStringAtis = function()
+        return "WIND 270/10 QNH 1013"
+      end,
+    }
+  end
+end
+
+function TestVeafWeatherWelcomeBrief:_arrange(category, runway, windDirection)
+  local airbase = self:_airbase(category or Airbase.Category.AIRDROME, runway or "13")
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather(windDirection)
+  return airbase
+end
+
+-- ── the message ─────────────────────────────────────────────────────────────
+
+function TestVeafWeatherWelcomeBrief:test_it_names_the_airbase_the_runway_and_the_weather()
+  self:_arrange()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  luaunit.assertNotNil(brief:find("Kobuleti", 1, true))
+  luaunit.assertNotNil(brief:lower():find("runway in service 13", 1, true), "the runway, named: " .. brief)
+  luaunit.assertNotNil(brief:find("QNH 1013", 1, true), "the weather line must be in it: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_runway_is_chosen_from_the_wind()
+  -- The one thing the brief must not get wrong: asking for the runway without the wind would return
+  -- whichever end the airbase lists first, silently.
+  self:_arrange(nil, "31", 130)
+  veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertEquals(self.askedWind, 130)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_carrier_gets_no_runway_line()
+  -- A ship has no runway to be in service, and asking anyway logs a "none identified" for every carrier
+  -- slot taken. Its own wording rather than an empty gap.
+  self:_arrange(Airbase.Category.SHIP, "13")
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  -- On the word, not on the digits: the first version of this searched for "13" and found it inside the
+  -- QNH of "1013", failing on a brief that was perfectly correct.
+  luaunit.assertNil(brief:lower():find("runway", 1, true), "a carrier brief must not name a runway: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_helipad_gets_no_runway_line_either()
+  self:_arrange(Airbase.Category.HELIPAD, "13")
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  luaunit.assertNil(brief:lower():find("runway", 1, true))
+end
+
+function TestVeafWeatherWelcomeBrief:test_an_airbase_with_no_runway_in_service_still_gets_a_brief()
+  -- The weather is worth having even when no runway can be identified; dropping the whole brief would
+  -- trade a missing line for a missing message.
+  self:_arrange(Airbase.Category.AIRDROME, nil)
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  luaunit.assertNotNil(brief:find("Kobuleti", 1, true))
+end
+
+-- ── a carrier keeps no runway ────────────────────────────────────────────────
+-- David's point, and a domain one rather than a wording one: a carrier turns into the wind, so what a
+-- pilot taking a deck slot needs is the ship's COURSE. The first version of this feature gave him
+-- nothing at all and the tests were happy with that, which is why they now assert the course.
+
+--- A ship airbase whose vessel reports `heading` radians.
+function TestVeafWeatherWelcomeBrief:_ship(heading)
+  local airbase = self:_airbase(Airbase.Category.SHIP, nil)
+  airbase.Name = "CVN-73"
+  airbase.DisplayName = "CVN-73"
+  airbase.DcsAirbase.getUnit = function()
+    return { isShipUnit = true }
+  end
+  self._savedMistHeading = self._savedMistHeading or mist.getHeading
+  self.headingArgs = nil
+  local test = self
+  mist.getHeading = function(unit, raw)
+    test.headingArgs = { unit = unit, raw = raw }
+    return heading
+  end
+  return airbase
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_heading_asked_for_is_the_true_one()
+  -- The message says "(true)" / "(vrai)", so the code must ask for the true heading and not the magnetic
+  -- one — otherwise the brief lies by a declination. Pinned because the first version of these tests
+  -- stubbed mist.getHeading ignoring its arguments, and flipping that flag killed no test at all.
+  local airbase = self:_ship(math.rad(45))
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  veafWeather.buildWelcomeBrief(self:_unit())
+  mist.getHeading = self._savedMistHeading
+  luaunit.assertNotNil(self.headingArgs, "mist.getHeading was never called")
+  luaunit.assertTrue(self.headingArgs.raw, "the second argument must be true: the true heading, not magnetic")
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_carrier_announces_its_course()
+  local airbase = self:_ship(math.rad(123))
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  mist.getHeading = self._savedMistHeading
+  luaunit.assertNotNil(brief)
+  luaunit.assertNotNil(brief:lower():find("heading", 1, true), "a carrier must be given its heading: " .. brief)
+  luaunit.assertNotNil(brief:find("123", 1, true), "and the heading itself: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_course_is_read_as_three_digits()
+  -- A heading is spoken and written as three digits; "cap 9" is not a heading.
+  local airbase = self:_ship(math.rad(9))
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  mist.getHeading = self._savedMistHeading
+  luaunit.assertNotNil(brief:find("009", 1, true), "expected a three-digit heading: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_carrier_is_never_given_a_runway()
+  local airbase = self:_ship(math.rad(90))
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  mist.getHeading = self._savedMistHeading
+  luaunit.assertNil(brief:lower():find("runway", 1, true), "a carrier has no runway to keep: " .. brief)
+end
+
+function TestVeafWeatherWelcomeBrief:test_an_unreadable_course_falls_back_rather_than_inventing_one()
+  -- A course a pilot cannot trust is worse than no course: he would fly it.
+  local airbase = self:_airbase(Airbase.Category.SHIP, nil)
+  airbase.DcsAirbase.getUnit = function()
+    return nil
+  end
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  self:_weather()
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief, "the weather is still worth having")
+  luaunit.assertNil(brief:lower():find("heading", 1, true))
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_helipad_gets_neither_runway_nor_course()
+  -- No runway to align with and no course to steer.
+  self:_arrange(Airbase.Category.HELIPAD, "13")
+  local brief = veafWeather.buildWelcomeBrief(self:_unit())
+  luaunit.assertNotNil(brief)
+  luaunit.assertNil(brief:lower():find("runway", 1, true))
+  luaunit.assertNil(brief:lower():find("heading", 1, true))
+end
+
+-- ── when there is nothing to say ─────────────────────────────────────────────
+
+function TestVeafWeatherWelcomeBrief:test_no_airbase_means_no_brief()
+  veafAirbases.getNearestAirbase = function()
+    return nil
+  end
+  self:_weather()
+  luaunit.assertNil(veafWeather.buildWelcomeBrief(self:_unit()))
+end
+
+function TestVeafWeatherWelcomeBrief:test_no_weather_means_no_brief()
+  self:_arrange()
+  veafWeatherData.create = function()
+    return nil
+  end
+  luaunit.assertNil(veafWeather.buildWelcomeBrief(self:_unit()))
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_nil_unit_is_not_a_crash()
+  luaunit.assertNil(veafWeather.buildWelcomeBrief(nil))
+end
+
+-- ── the trigger ─────────────────────────────────────────────────────────────
+
+function TestVeafWeatherWelcomeBrief:test_taking_a_slot_schedules_the_brief()
+  -- Not shown at once: a pilot entering a unit is still loading his cockpit, and a message at that
+  -- instant is one he never reads.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit() })
+  luaunit.assertEquals(#self.scheduled, 1)
+  luaunit.assertEquals(#self.messages, 0, "nothing is shown before the delay")
+end
+
+function TestVeafWeatherWelcomeBrief:test_it_is_scheduled_by_name_not_by_unit()
+  -- The unit object may be stale by the time the timer fires; a name can be resolved again.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit("Chevy21") })
+  luaunit.assertEquals(self.scheduled[1].args[1], "Chevy21")
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_setting_silences_it()
+  -- A mission maker running his own briefing needs this off, which is why it is a setting and not a
+  -- constant.
+  self:_arrange()
+  veafWeather.welcomeBriefEnabled = false
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit() })
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafWeatherWelcomeBrief:test_an_event_without_an_initiator_is_ignored()
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({})
+  veafWeather.onPlayerEnterUnit(nil)
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+-- ── which event actually arrives ─────────────────────────────────────────────
+-- The brief said nothing at all in game, on an airfield and on a carrier alike, and this is why:
+-- `S_EVENT_PLAYER_ENTER_UNIT` does not fire when a single-player pilot occupies his starting slot. DCS
+-- raises a birth event for him. `veafGrass` and `veafQraCore` both take both events for this exact
+-- reason; the brief now does too.
+
+-- ── who is already flying ───────────────────────────────────────────────────
+-- In single player the pilot occupies his slot before the mission's scripts load, so his birth event fires
+-- before this module can subscribe to anything. Subscribing was never going to catch it: adding
+-- S_EVENT_BIRTH did not help, because the timing and not the event name was the problem. These tests
+-- cover the sweep that looks at who is there instead of waiting to be told.
+TestVeafWeatherAlreadyFlying = {}
+
+function TestVeafWeatherAlreadyFlying:setUp()
+  self._savedEnabled = veafWeather.welcomeBriefEnabled
+  self._savedHumans = mist.DBs.humansByName
+  self._savedGetByName = Unit.getByName
+  self._savedSend = veafWeather.sendWelcomeBrief
+
+  self.briefed = {}
+  veafWeather.welcomeBriefEnabled = true
+  veafWeather.briefedUnits = {}
+  local test = self
+  veafWeather.sendWelcomeBrief = function(name)
+    table.insert(test.briefed, name)
+  end
+end
+
+function TestVeafWeatherAlreadyFlying:tearDown()
+  veafWeather.welcomeBriefEnabled = self._savedEnabled
+  mist.DBs.humansByName = self._savedHumans
+  Unit.getByName = self._savedGetByName
+  veafWeather.sendWelcomeBrief = self._savedSend
+end
+
+--- @param slots table name -> the player sitting in it, or nil for an empty slot
+function TestVeafWeatherAlreadyFlying:_world(slots)
+  mist.DBs.humansByName = {}
+  for name, _ in pairs(slots) do
+    mist.DBs.humansByName[name] = {}
+  end
+  Unit.getByName = function(name)
+    if slots[name] == nil then
+      return nil
+    end
+    return {
+      isExist = function()
+        return true
+      end,
+      getPlayerName = function()
+        return slots[name] ~= false and slots[name] or nil
+      end,
+    }
+  end
+end
+
+function TestVeafWeatherAlreadyFlying:test_a_pilot_already_in_his_slot_is_briefed()
+  -- The single-player case, and the whole reason this function exists.
+  self:_world({ Chevy11 = "David" })
+  veafWeather.briefEveryoneAlreadyFlying()
+  luaunit.assertEquals(self.briefed, { "Chevy11" })
+end
+
+function TestVeafWeatherAlreadyFlying:test_an_empty_slot_is_not_briefed()
+  -- A mission declares its human slots whether or not anybody is in them. Briefing all of them would send
+  -- a message to nobody, once per slot.
+  self:_world({ Chevy11 = false })
+  veafWeather.briefEveryoneAlreadyFlying()
+  luaunit.assertEquals(#self.briefed, 0)
+end
+
+function TestVeafWeatherAlreadyFlying:test_a_slot_that_does_not_exist_yet_is_skipped()
+  mist.DBs.humansByName = { Ghost = {} }
+  Unit.getByName = function()
+    return nil
+  end
+  veafWeather.briefEveryoneAlreadyFlying()
+  luaunit.assertEquals(#self.briefed, 0)
+end
+
+function TestVeafWeatherAlreadyFlying:test_only_the_occupied_slots_among_several()
+  self:_world({ Chevy11 = "David", Chevy12 = false, Chevy21 = "Zip" })
+  veafWeather.briefEveryoneAlreadyFlying()
+  table.sort(self.briefed)
+  luaunit.assertEquals(self.briefed, { "Chevy11", "Chevy21" })
+end
+
+function TestVeafWeatherAlreadyFlying:test_a_pilot_already_briefed_is_left_alone()
+  -- The sweep and the event can both name the same pilot; he must hear the runway once.
+  self:_world({ Chevy11 = "David" })
+  veafWeather.briefedUnits["Chevy11"] = true
+  veafWeather.briefEveryoneAlreadyFlying()
+  luaunit.assertEquals(#self.briefed, 0)
+end
+
+function TestVeafWeatherAlreadyFlying:test_the_sweep_marks_them_so_the_event_does_not_repeat()
+  -- The other direction of the same rule: the sweep runs first, so it is what must write the mark.
+  self:_world({ Chevy11 = "David" })
+  veafWeather.briefEveryoneAlreadyFlying()
+  luaunit.assertTrue(veafWeather.briefedUnits["Chevy11"])
+end
+
+function TestVeafWeatherAlreadyFlying:test_the_setting_silences_the_sweep_too()
+  self:_world({ Chevy11 = "David" })
+  veafWeather.welcomeBriefEnabled = false
+  veafWeather.briefEveryoneAlreadyFlying()
+  luaunit.assertEquals(#self.briefed, 0)
+end
+
+function TestVeafWeatherAlreadyFlying:test_it_survives_a_mission_with_no_human_slots()
+  mist.DBs.humansByName = nil
+  veafWeather.briefEveryoneAlreadyFlying()
+  luaunit.assertEquals(#self.briefed, 0)
+end
+
+-- The SUBSCRIPTION, not the handler. Every test below calls `onPlayerEnterUnit` directly, so none of them
+-- can tell whether the module actually asks to be told. Reverting the fix to `S_EVENT_PLAYER_ENTER_UNIT`
+-- alone passed all of them — the defect was one indirection outside what they cover.
+function TestVeafWeatherWelcomeBrief:test_it_subscribes_to_both_events()
+  local seen = nil
+  local origAdd = veafEventHandler.addCallback
+  local origMenu = veafWeather.buildRadioMenu
+  local origAirbases = veafAirbases.initialize
+  -- veafRemote is not loaded by this suite; initialize() calls into it, so it has to exist for the call
+  -- to get as far as the subscription we are here to inspect.
+  local hadRemote = veafRemote ~= nil
+  veafRemote = veafRemote or {}
+  local origRemote = veafRemote.registerRemoteModule
+  veafEventHandler.addCallback = function(name, events, fn)
+    if name == "veafWeather.onPlayerEnterUnit" then
+      seen = events
+    end
+  end
+  veafWeather.buildRadioMenu = function() end
+  veafAirbases.initialize = function() end
+  veafRemote.registerRemoteModule = function() end
+
+  veafWeather.initialize(true)
+
+  veafEventHandler.addCallback = origAdd
+  veafWeather.buildRadioMenu = origMenu
+  veafAirbases.initialize = origAirbases
+  veafRemote.registerRemoteModule = origRemote
+  if not hadRemote then
+    veafRemote = nil
+  end
+
+  luaunit.assertNotNil(seen, "the brief must register a callback at all")
+  local found = {}
+  for _, e in ipairs(seen) do
+    found[e] = true
+  end
+  luaunit.assertTrue(found["S_EVENT_BIRTH"], "a single-player pilot arrives as a birth event")
+  luaunit.assertTrue(found["S_EVENT_PLAYER_ENTER_UNIT"], "a multiplayer pilot arrives as this one")
+end
+
+function TestVeafWeatherWelcomeBrief:test_initialize_also_sweeps_who_is_already_flying()
+  -- The wiring again, and the third time today that a mutation found this same hole: every test of the
+  -- sweep calls it directly, so none of them notices if nothing ever calls it. Removing the scheduling
+  -- passed all eight.
+  local scheduledFns = {}
+  local origAdd = veafEventHandler.addCallback
+  local origMenu = veafWeather.buildRadioMenu
+  local origAirbases = veafAirbases.initialize
+  local hadRemote = veafRemote ~= nil
+  veafRemote = veafRemote or {}
+  local origRemote = veafRemote.registerRemoteModule
+  local origSchedule = mist.scheduleFunction
+  veafEventHandler.addCallback = function() end
+  veafWeather.buildRadioMenu = function() end
+  veafAirbases.initialize = function() end
+  veafRemote.registerRemoteModule = function() end
+  mist.scheduleFunction = function(fn)
+    table.insert(scheduledFns, fn)
+  end
+
+  veafWeather.initialize(true)
+
+  veafEventHandler.addCallback = origAdd
+  veafWeather.buildRadioMenu = origMenu
+  veafAirbases.initialize = origAirbases
+  veafRemote.registerRemoteModule = origRemote
+  mist.scheduleFunction = origSchedule
+  if not hadRemote then
+    veafRemote = nil
+  end
+
+  local found = false
+  for _, fn in ipairs(scheduledFns) do
+    if fn == veafWeather.briefEveryoneAlreadyFlying then
+      found = true
+    end
+  end
+  luaunit.assertTrue(found, "initialize must schedule the sweep, or single player is never briefed")
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_setting_off_subscribes_to_nothing()
+  -- The other half: silenced means not even listening, rather than listening and discarding.
+  local seen = nil
+  local origAdd = veafEventHandler.addCallback
+  local origMenu = veafWeather.buildRadioMenu
+  local origAirbases = veafAirbases.initialize
+  -- veafRemote is not loaded by this suite; initialize() calls into it, so it has to exist for the call
+  -- to get as far as the subscription we are here to inspect.
+  local hadRemote = veafRemote ~= nil
+  veafRemote = veafRemote or {}
+  local origRemote = veafRemote.registerRemoteModule
+  veafEventHandler.addCallback = function(name, events)
+    if name == "veafWeather.onPlayerEnterUnit" then
+      seen = events
+    end
+  end
+  veafWeather.buildRadioMenu = function() end
+  veafAirbases.initialize = function() end
+  veafRemote.registerRemoteModule = function() end
+
+  veafWeather.initialize(false)
+
+  veafEventHandler.addCallback = origAdd
+  veafWeather.buildRadioMenu = origMenu
+  veafAirbases.initialize = origAirbases
+  veafRemote.registerRemoteModule = origRemote
+  if not hadRemote then
+    veafRemote = nil
+  end
+  luaunit.assertNil(seen)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_birth_event_briefs_a_human()
+  -- The single-player path, and the one that was missing entirely.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit(), type = { id = world.event.S_EVENT_BIRTH } })
+  luaunit.assertEquals(#self.scheduled, 1)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_birth_event_does_not_brief_an_ai()
+  -- The cost of listening to births: every AI aircraft that spawns raises one. The human test is what
+  -- keeps the brief from being sent to nobody, hundreds of times.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit("Ai-Flight-1"), type = { id = world.event.S_EVENT_BIRTH } })
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafWeatherWelcomeBrief:test_player_enter_unit_briefs_even_without_the_human_table()
+  -- The multiplayer path. A pilot joining a slot may not be in `humansByName` yet, so the event's own
+  -- identity is taken as proof — the same exception `veafGrass` and `veafQraCore` make.
+  self:_arrange()
+  mist.DBs.humansByName = {}
+  veafWeather.onPlayerEnterUnit({
+    initiator = self:_unit("Someone-New"),
+    type = { id = world.event.S_EVENT_PLAYER_ENTER_UNIT },
+  })
+  luaunit.assertEquals(#self.scheduled, 1)
+end
+
+function TestVeafWeatherWelcomeBrief:test_one_brief_per_slot_even_when_both_events_arrive()
+  -- Both events can name the same pilot. A runway announced twice, five seconds apart, reads as a bug.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit(), type = { id = world.event.S_EVENT_BIRTH } })
+  veafWeather.onPlayerEnterUnit({
+    initiator = self:_unit(),
+    type = { id = world.event.S_EVENT_PLAYER_ENTER_UNIT },
+  })
+  luaunit.assertEquals(#self.scheduled, 1)
+end
+
+function TestVeafWeatherWelcomeBrief:test_two_different_pilots_each_get_one()
+  -- The de-duplication is per slot, not global: a second pilot must not be silenced by the first.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit("Chevy11"), type = { id = world.event.S_EVENT_BIRTH } })
+  veafWeather.onPlayerEnterUnit({ initiator = self:_unit("Chevy21"), type = { id = world.event.S_EVENT_BIRTH } })
+  luaunit.assertEquals(#self.scheduled, 2)
+end
+
+-- ── sending it ──────────────────────────────────────────────────────────────
+
+function TestVeafWeatherWelcomeBrief:test_it_goes_to_the_pilots_group_only()
+  -- His airfield, his message. Broadcast to a coalition it becomes noise the moment two pilots take
+  -- slots at different bases.
+  self:_arrange()
+  local unit = self:_unit()
+  Unit.getByName = function()
+    return unit
+  end
+  veafWeather.sendWelcomeBrief("Chevy11")
+  luaunit.assertEquals(#self.messages, 1)
+  luaunit.assertEquals(self.messages[1].groupId, 77)
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_pilot_who_left_the_slot_gets_nothing()
+  -- Ordinary rather than exceptional: the delay is long enough to jump back to spectator.
+  self:_arrange()
+  Unit.getByName = function()
+    return nil
+  end
+  veafWeather.sendWelcomeBrief("Chevy11")
+  luaunit.assertEquals(#self.messages, 0)
+end
+
+function TestVeafWeatherWelcomeBrief:test_nothing_to_say_sends_nothing()
+  veafAirbases.getNearestAirbase = function()
+    return nil
+  end
+  self:_weather()
+  local unit = self:_unit()
+  Unit.getByName = function()
+    return unit
+  end
+  veafWeather.sendWelcomeBrief("Chevy11")
+  luaunit.assertEquals(#self.messages, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

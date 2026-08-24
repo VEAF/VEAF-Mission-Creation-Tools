@@ -130,7 +130,25 @@ The most common built-in aliases are grouped below. See the **[Aliases Reference
 
 ## Security
 
-Most aliases respect the security system (`veafSecurity`). Eight utility aliases bypass it and stay available to every player: `-smoke`, `-longsmoke`, `-signal`, `-light`, `-point`, `-tacan`, `-jtac`, `-afac`.
+Most aliases respect the security system (`veafSecurity`). **Nine** utility aliases bypass it and stay
+available to every player: `-smoke`, `-longsmoke`, `-signal`, `-light`, `-point`, `-tacan`, `-jtac`,
+`-afac`, `-beacon`.
+
+**Skipping the password does not mean keeping quiet.** Those two ideas were the same setting in the code
+for a long time, and it showed: a pilot who dropped a `-tacan` marker got *no* confirmation at all — no
+channel, no band. Silence now depends on one thing only: **who asked**.
+
+| Who places the object | Message to the player |
+|---|---|
+| a pilot, through a marker on the F10 map | **always**, even when the alias skips the password |
+| a script — combat zone, AirWaves wave, pre-placed unit | **none**, or a thirty-group zone would print thirty messages |
+
+Two deliberate exceptions, because their message is not a notification but **the data a pilot needs to
+use the thing**:
+
+- a **JTAC** announces its laser code and frequency even when a script placed it;
+- a **TACAN** announces its channel, band and ident — but only from a marker. Placed by a script it stays
+  quiet, which is the previous behaviour, left alone for want of a mission that needs otherwise.
 
 ---
 

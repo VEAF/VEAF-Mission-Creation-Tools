@@ -74,11 +74,18 @@ Options :
 |--------|-------|--------|-------------|
 | `size` | 1–5 | 1 | Nombre d'unités cibles |
 | `defense` | 0–5 | 1 | Niveau de défense AA (0=aucune, 5=SAM lourd) |
-| `armor` | 0–5 | 1 | Niveau de blindage (0=infanterie, 5=MBT lourd) |
+| `armor` | 0–5 | 1 | Niveau de blindage (0=infanterie, 5=MBT lourd) — voir [ce que contient un palier](#armour-tiers) |
 | `spacing` | 1–5 | 1 | Espacement entre les unités du groupe |
 | `side` | blue/red | *(coalition du marqueur)* | Coalition des cibles |
 | `disperse` | secondes | — | Les cibles se dispersent quand elles sont attaquées ; un `disperse` sans valeur = 15 secondes |
 | `password` | texte | — | Mot de passe de sécurité (voir [veafSecurity](veafSecurity.md)) |
+
+
+### Ce que contient un palier de blindage {#armour-tiers}
+
+Chaque palier tire au hasard dans une liste de types de véhicules, choisie selon la coalition et l'époque de la mission (`era`). Les listes sont maintenues à la main : un palier exprime une puissance *relative*, une notion que la base de données DCS ne porte pas — elle ne dit ni l'époque d'un véhicule ni sa place dans une échelle.
+
+Depuis la 6.15.25, les blindés modernes ajoutés par DCS y figurent : le T-84 Oplot-M et le Stryker CV côté bleu, le T-90M et le BMPT Terminator côté rouge, entre autres. Un contrôle automatique vérifie désormais que **chaque** type nommé dans ces listes existe bien dans la base — auparavant, une entrée devenue invalide ne faisait simplement rien apparaître, sans le dire.
 
 ---
 

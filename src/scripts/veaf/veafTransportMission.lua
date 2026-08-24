@@ -119,6 +119,10 @@ function veafTransportMission.onEventMarkChange(eventPos, event)
     local options = veafTransportMission.markTextAnalysis(event.text)
 
     if options then
+      -- A typo aborts — see veaf.reportUnknownParameters. nil: this handler is not given the requester.
+      if veaf.reportUnknownParameters(options, veafTransportMission.Id, nil) then
+        return false
+      end
       -- Check options commands
       if options.transportmission then
         -- Check security. The marker id is what identifies the author, so a listed pilot's own
@@ -157,6 +161,8 @@ end
 --- translated into `when` predicates: the flag is set before the loop and the function returns nil
 --- when the keyphrase is absent, so all four were always true.
 veafTransportMission.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.transportmission = false
     options.size = 1 -- number of cargo to be transported

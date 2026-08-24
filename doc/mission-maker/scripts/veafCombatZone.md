@@ -85,11 +85,31 @@ modules:
 | `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
 | `training` | booléen | `false` | Non | Mode entraînement : pas de sécurité, statut verbeux |
 | `completable` | booléen | `true` | Non | `false` : la zone ne se termine (et ne se désactive) jamais d'elle-même |
+| `show_units_list` | booléen | `true` | Non | `false` : le rapport F10 n'énumère pas les unités restantes |
+| `show_zone_position_info` | booléen | `true` | Non | `false` : le rapport F10 n'affiche ni les coordonnées de la zone ni sa météo |
+| `smoke_and_flare` | booléen | `true` | Non | `false` : la zone ne propose ni fumigène ni fusée éclairante pour se signaler |
+| `radio_menu_disabled` | booléen | `false` | Non | `true` : la zone n'apparaît pas du tout dans le menu F10 |
+| `rename_units_sequentially` | booléen | `true` | Non | `false` : les unités gardent leur nom d'origine à l'apparition, au lieu d'être renommées en séquence. Voir [ci-dessous](#rename-units) |
 | `enemy_coalition` | `RED` \| `BLUE` | `RED` | Non | Coalition **hostile** : ses unités sont celles qu'il faut détruire pour terminer la zone, et celles que le rapport F10 annonce comme « ennemis ». `BLUE` pour une zone jouée **côté rouge** (voir ci-dessous) |
 | `radio_menu_coalition` | `RED` \| `BLUE` \| `ALL` | *(camp qui joue la zone)* | Non | Coalition à qui le menu F10 de la zone est proposé. Par défaut : le camp opposé à `enemy_coalition`. `ALL` le montre aux deux camps (voir ci-dessous) |
 | `active_at_start` | booléen | `false` | Non | Active automatiquement la zone au démarrage de la mission (`veafCombatZone.ActivateZone` après `initialize()`) |
 | `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
 | `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |
+
+### `rename_units_sequentially` — garder les noms d'unités d'origine {#rename-units}
+
+À l'apparition d'un groupe, une zone de combat renomme ses unités en séquence. C'est utile sur une carte terminée — les noms deviennent lisibles et cohérents — et **gênant pendant la mise au point** d'un `.miz` : le nom que vous avez donné à l'unité dans l'éditeur de mission a disparu, et vous ne pouvez plus la retrouver dans les journaux.
+
+```yaml
+combat_zones:
+  - zone_name: CZ-Alpha
+    rename_units_sequentially: false   # les unités gardent le nom de l'éditeur
+```
+
+Le réglage est **par zone**, et non un interrupteur global de débogage : c'est ce que demandait la
+[demande d'origine](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289), et un interrupteur global serait une chose de plus à penser à remettre avant de livrer.
+
+Le défaut reste `true`, donc aucune mission existante ne change.
 
 ### Champs de `combat_zones[]` — type `operation`
 
@@ -192,7 +212,7 @@ Cette approche vous donne une conception entièrement visuelle dans l'éditeur t
 
 1. **Créez une trigger zone** — définissez la zone de combat. Nommez-la, par exemple `ZONE-ALPHA`.
 2. **Placez des groupes d'unités** à l'intérieur de la zone. Mettez-les dans n'importe quelle coalition — VEAF gère leur cycle de vie.
-3. **Utilisez les tags de nom d'unité** (voir ci-dessous) pour personnaliser le comportement d'apparition par groupe.
+3. **Utilisez les tags de nom d'unité ou de groupe** (voir ci-dessous) pour personnaliser le comportement d'apparition par groupe.
 4. **Enregistrez la zone** dans `mission-script.lua` :
 
 ```lua
@@ -207,18 +227,129 @@ VeafCombatZone:new()
 
 ---
 
-## Tags de nom d'unité
+### Groupes hors de combat {#out-of-action}
+
+Un groupe n'est pas seulement vivant ou mort. Une batterie S-300 dont le radar de tir est détruit garde ses lanceurs, ses camions et son équipage — mais elle ne peut plus tirer.
+
+Le rapport de zone le signale désormais :
+
+```
+HORS DE COMBAT (ne peuvent plus tirer) : ALPHA-SA10
+```
+
+Un groupe entièrement détruit n'apparaît pas là : il est simplement absent des effectifs restants. Cette ligne ne concerne que les groupes **encore debout** et devenus inoffensifs.
+
+!!! note "Cela ne change pas la fin d'une zone"
+    Pour l'instant, l'information est purement indicative : une zone se termine toujours quand **toutes** les unités ennemies sont détruites, lanceurs inutiles compris. Faire terminer la zone plus tôt est une décision de conception à part, pas encore prise.
+
+**Comment un groupe est jugé.** Par défaut, un groupe est considéré hors de combat s'il est un site SAM (il lui reste un radar de veille ou un lanceur) et qu'il n'a plus aucun radar de tir. Un véhicule qui est à lui seul radar et lanceur — Tunguska, Tor, Osa — reste opérationnel tant qu'il vit. Un convoi, lui, n'a pas de radar : il reste une menace tant qu'il roule.
+
+Pour les sites dont les attributs DCS ne suffisent pas à décrire la composition, une table de motifs (`veaf.ImportantUnitsByGroupPattern`, dans `veaf.lua`) déclare les ensembles d'unités indispensables et la vie minimale, en pourcentage, qu'il leur faut. Le S-300 y figure déjà.
+
+## Tags de nom d'unité et de groupe
 
 Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter des tags spéciaux qui contrôlent la façon dont VEAF les traite à l'activation de la zone. Les tags sont intégrés dans le nom et n'affectent pas DCS lui-même.
 
 | Tag | Exemple | Description |
 |-----|---------|-------------|
-| `#spawnradius=N` | `#spawnradius=200` | Rayon de dispersion en mètres autour du centre de la zone pour ce groupe |
+| `#spawnradius=N` | `#spawnradius=200` | Rayon de dispersion en mètres autour de la position enregistrée du groupe. Sans ce tag, voir [`#spawnradius`](#spawn-radius) |
 | `#spawnchance=N` | `#spawnchance=50` | Probabilité en pourcentage (0–100) que ce groupe apparaisse réellement |
 | `#spawncount=N` | `#spawncount=3` | Nombre d'exemplaires à faire apparaître (peut être >1 pour des unités répétées) |
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Remplace le nom du groupe d'apparition (utile pour cibler un modèle nommé) |
 | `#spawndelay=N` | `#spawndelay=120` | Délai en secondes avant l'apparition de ce groupe après l'activation de la zone |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Exécute une commande VEAF au lieu de faire apparaître ce groupe ; l'unité sert de déclencheur et est détruite |
+| `#alarm=N` | `#alarm=2` | État d'alerte donné à ce groupe : `0` AUTO, `1` VERT, `2` ROUGE. Sans ce tag, l'état dépend de la nature du groupe — voir [`#alarm`](#alarm-state) |
+
+### `#spawnradius` — la dispersion par défaut {#spawn-radius}
+
+Sans tag, un groupe apparaît **dispersé de 50 m** autour de sa position enregistrée, et un objet statique apparaît **exactement** sur la sienne. La dispersion existe pour qu'un groupe ne réapparaisse pas deux fois au même mètre près ; un statique, lui, est souvent posé à un endroit précis (un parking, un quai) où le déplacer n'aurait pas de sens.
+
+| Ce que vous écrivez | Ce que le groupe reçoit |
+|---|---|
+| rien | 50 m pour un groupe, 0 m pour un statique |
+| `#spawnradius=200` | 200 m |
+| `#spawnradius=0` | aucune dispersion — c'est ainsi qu'on la désactive |
+
+Une unité `#command=` n'est **jamais** dispersée, avec ou sans défaut : la commande s'exécute *à sa position*, donc la déplacer déplacerait ce qu'elle fait apparaître. Un `#spawnradius=` écrit explicitement s'y applique tout de même.
+
+!!! warning "Ce comportement change les missions existantes"
+    De mars 2023 à la 6.15.14 le défaut de 50 m était **inatteignable** : la constante existait, le code censé l'appliquer ne s'exécutait jamais, et tous les groupes d'une zone de combat apparaissaient exactement sur leur position enregistrée. Une mission construite pendant ces trois ans verra donc ses groupes bouger d'une cinquantaine de mètres. Si un placement était volontairement précis, écrivez `#spawnradius=0`.
+
+#### Le premier point de passage suit le groupe {#waypoint-follows-group}
+
+Un groupe dispersé n'apparaît plus sur son premier point de passage, et c'est de là que le groupe part. Le premier point est donc **déplacé avec lui**, de la même distance et dans la même direction.
+
+**Le reste du tracé ne bouge pas.** Vous avez posé vos points de passage sur des routes, des ponts, des cols ; les décaler de cinquante mètres au hasard les mettrait à côté, et le tracé serait différent à chaque activation. Un groupe part donc de l'endroit où il apparaît et rejoint la route que vous avez dessinée.
+
+Avant la 6.15.20, le premier point restait à la position d'éditeur : un convoi dispersé revenait d'abord le chercher, en parcourant une patte que personne n'avait dessinée. Visible surtout depuis la 6.15.15, qui a rendu la dispersion de 50 m effective.
+
+#### Un groupe à cheval sur le bord de la zone {#group-straddling-the-edge}
+
+Un groupe est pris en charge par la zone dès qu'**une seule** de ses unités se trouve dans le cercle : il est alors détruit et recréé en entier, les unités restées dehors comprises. C'est voulu, et ça évite d'avoir à cadrer une zone au mètre près autour d'un convoi.
+
+Ce qui posait problème, c'est que la zone s'ancrait sur la **première unité qu'elle voyait**, donc sur la deuxième du groupe quand la première était hors du cercle. Le groupe entier apparaissait alors décalé de l'écart entre ces deux unités — la longueur d'un camion pour un convoi — sans dispersion demandée et même avec `#spawnradius=0`.
+
+Depuis la 6.15.21, l'ancrage est toujours la **première unité du groupe**, qu'elle soit dans le cercle ou non. Un groupe à cheval sur le bord apparaît donc à l'endroit où vous l'avez dessiné. Si vous aviez compensé ce décalage à la main en déplaçant vos unités, retirez la compensation.
+
+#### Une valeur au hasard dans un intervalle {#tag-ranges}
+
+Les quatre tags qui portent un nombre — `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` — acceptent un intervalle au lieu d'une valeur fixe, avec la même écriture que dans les commandes de marqueur :
+
+```
+ALPHA-CONVOY #spawnradius=100-300 #spawndelay=30-90
+```
+
+La valeur est tirée **une fois par mission**, à la lecture des noms au démarrage. Toutes les activations de la zone utilisent donc la même valeur : c'est un placement varié d'une partie à l'autre, pas un placement qui bouge à chaque réactivation.
+
+!!! warning "Avant la 6.15.23, l'intervalle était tronqué en silence"
+    `#spawnradius=100-300` était lu comme `100`, sans message : vous obteniez la borne basse en croyant avoir un intervalle. Si vous en avez écrit, ils prennent effet maintenant — et le rayon peut donc être plus grand qu'avant.
+
+!!! note "`#alarm` n'accepte pas d'intervalle"
+    L'état d'alerte est une énumération (`0` AUTO, `1` VERT, `2` ROUGE) : `#alarm=0-2` n'est pas un état au hasard, c'est une faute de frappe. Le tag la refuse comme il refuse déjà une valeur hors bornes.
+
+### Où les tags sont lus {#tag-sources}
+
+Les tags d'un groupe sont ceux portés par **son propre nom et par les noms de toutes ses unités**. Taguer un seul camion d'un convoi suffit donc, quel que soit le camion — inutile de taguer les quatre, et inutile de deviner lequel DCS traitera en premier.
+
+Les sources sont lues dans un ordre fixe :
+
+1. le nom du **groupe** ;
+2. les noms des **unités**, par ordre **alphabétique**.
+
+La première valeur trouvée pour un tag l'emporte. Si une source suivante annonce une valeur *différente* pour le même tag, elle est ignorée et le log l'écrit — deux camions du même convoi portant `#alarm=0` et `#alarm=2` ne tirent pas à pile ou face, l'un gagne et vous êtes prévenu. Répéter la *même* valeur sur plusieurs unités ne produit aucun message : c'est la façon ordinaire de faire.
+
+!!! note "`#command` fait exception"
+    `#command` reste attaché à l'objet qui le porte : chaque unité qui en porte un devient un déclencheur distinct, ce qui permet à un groupe de transporter plusieurs commandes. Posé sur le nom du **groupe**, il fait de ce groupe un **unique** déclencheur, pas un par unité.
+
+!!! warning "Avant la 6.15.14"
+    Seuls les tags portés par l'unité que le moteur rencontrait la première comptaient, et ceux posés sur un nom de groupe étaient ignorés en silence. L'ordre de rencontre n'étant pas garanti, un tag posé sur un camion donné fonctionnait ou non sans raison visible.
+
+### `#alarm` — faire tenir sa position à un groupe {#alarm-state}
+
+L'état d'alerte terrestre décide de deux choses à la fois, et les deux comptent : un groupe en **ROUGE** s'arrête et se déploie — radars allumés, prêt à tirer — tandis qu'en **AUTO** il roule et laisse DCS élever son alerte à la détection. Juste pour une batterie SAM dans un cas, juste pour un convoi dans l'autre, et jamais le même.
+
+**La zone choisit donc selon la nature du groupe**, sans que vous ayez à le dire :
+
+| Le groupe | État reçu | Pourquoi |
+|---|---|---|
+| a une route à parcourir (plus d'un point de passage) | **AUTO** | pour qu'il parte : en ROUGE il ne bougerait jamais |
+| reste sur place | **ROUGE** | pour qu'il se batte : en AUTO une batterie SAM garde ses radars éteints |
+
+`#alarm=N` reste maître et l'emporte dans les deux sens — pour clouer un convoi sur place (`#alarm=2`) comme pour laisser une défense discrète jusqu'au premier contact (`#alarm=0`) :
+
+```
+ALPHA-SA6-BATTERY              ← ROUGE, sans rien écrire
+ALPHA-SUPPLY-CONVOY            ← AUTO, sans rien écrire
+ALPHA-SA6-AMBUSH #alarm=0      ← discrète volontairement
+```
+
+Une valeur illisible ou hors bornes (`#alarm=7`, `#alarm=x`) retombe sur ROUGE et l'écrit dans le log, plutôt que de faire échouer la zone.
+
+!!! note "Uniquement pour les groupes de mission"
+    Le tag s'applique aux groupes que la zone fait apparaître elle-même. Sur une unité `#command=`, passez l'état d'alerte dans la commande (`-spawn ..., alarm 2`), l'apparition étant gérée par l'interpréteur de marqueurs VEAF.
+
+!!! warning "Historique du comportement"
+    Jusqu'à la 6.15.4 les zones faisaient apparaître **tous** leurs groupes en ROUGE, ce qui explique qu'un convoi placé dans une zone ne bougeait jamais ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). La correction est passée par un défaut unique en AUTO, ce qui a réglé les convois **et rendu muettes les défenses anti-aériennes des zones** — une batterie en AUTO n'allume pas ses radars. D'où le choix par nature décrit ci-dessus. Si vous avez ajouté des `#alarm=2` sur vos batteries entre-temps, ils restent valides et inutiles : le défaut fait maintenant la même chose.
 
 ### Exemple pratique — embuscade MANPADS
 
@@ -243,6 +374,49 @@ CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
 ```
 
 Cela permet de monter des apparitions complexes (batterie SA-11, convois avec routes IA) sans aucun code Lua.
+
+**Les commandes retardées sont rattachées à leur zone.** Une commande peut porter un délai, de trois façons — `-samsr!30` (délai d'alias), l'option `delay` d'un `-spawn`, ou une répétition. Dans ces cas, la commande rend la main **avant** d'avoir fait apparaître quoi que ce soit. Ce qui apparaît ensuite appartient bien à la zone : désactiver la zone détruit ces groupes comme les autres.
+
+Avant la 6.15.9, ce n'était pas le cas : la zone lisait la liste de ce qu'elle avait créé trop tôt, donc un groupe retardé n'était enregistré nulle part et **survivait à la désactivation de sa zone**.
+
+> Si la zone est désactivée pendant que le délai court, le groupe qui apparaît ensuite est détruit immédiatement — rien ne pouvant annuler une apparition déjà planifiée, c'est le résultat que la désactivation aurait produit.
+
+À noter : `#spawndelay` n'a jamais eu ce problème, parce qu'il retarde l'apparition de l'élément de zone lui-même, qui s'enregistre au passage.
+
+---
+
+## Nom des groupes créés {#group-naming}
+
+Un groupe créé par une zone de combat n'a pas le nom que vous avez donné dans l'éditeur. Il ressemble à
+ceci :
+
+```
+[r]-Hydra Unit#10230
+```
+
+Trois parties, dont deux sont là pour de bon :
+
+| Partie | Rôle | Réglable ? |
+|--------|------|------------|
+| `[r]` / `[b]` / `[n]` | la coalition du groupe | non |
+| `Hydra Unit` | **un nom inventé**, pas le vôtre | oui, voir plus bas |
+| `#10230` | un identifiant unique | non — DCS exige des noms de groupe uniques |
+
+Le nom inventé est délibéré : sans lui, un joueur lit le contenu d'une zone sur la carte F10 avant d'y
+aller. C'est le réglage `veaf.HideNamesFromSpawnedGroups`, **actif par défaut**.
+
+Pour voir les vrais noms — en construction ou en débogage d'une mission :
+
+```yaml
+mission:
+  hide_names_from_spawned_groups: false
+```
+
+Les noms deviennent alors `<nom de la zone> [r] <nom réel>#<id>`. Le tag de coalition et l'identifiant
+restent dans les deux cas.
+
+> Le champ n'existe que depuis la 6.15.34. Avant, le réglage n'était atteignable que par
+> `module_settings: { veaf.HideNamesFromSpawnedGroups: false }`, ce qui marche toujours.
 
 ---
 

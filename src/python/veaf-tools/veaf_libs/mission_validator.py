@@ -154,6 +154,7 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
         issues.append(ValidationIssue(level, t("validate.undeclared_subzone", subzone=subzone, section=section)))
 
     issues += _check_mission_is_playable(mission)
+    issues += _check_waypoint_locks(mission)
 
     return issues
 
@@ -469,6 +470,87 @@ def _check_tum_zones(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
     if missing:
         return [ValidationIssue(WARNING, t("validate.tum_zones_missing", sides=", ".join(missing)))]
     return []
+
+
+def _iter_routed_groups(mission: dict):
+    """Yield ``(group_name, points)`` for every group of the mission that has a route.
+
+    Args:
+        mission: The parsed mission table.
+
+    Yields:
+        The group's name and its list of route points, skipping anything shaped unexpectedly rather
+        than raising — a validator that dies on odd data reports nothing at all about the rest.
+    """
+    coalitions = mission.get("coalition")
+    if not isinstance(coalitions, dict):
+        return
+    for coalition in coalitions.values():
+        if not isinstance(coalition, dict):
+            continue
+        for country in coalition.get("country") or []:
+            if not isinstance(country, dict):
+                continue
+            for kind in ("plane", "helicopter", "vehicle", "ship"):
+                block = country.get(kind)
+                if not isinstance(block, dict):
+                    continue
+                for group in block.get("group") or []:
+                    if not isinstance(group, dict):
+                        continue
+                    points = ((group.get("route") or {}).get("points")) or []
+                    if isinstance(points, list) and points:
+                        yield str(group.get("name", "?")), points
+
+
+def _check_waypoint_locks(mission: dict) -> list[ValidationIssue]:
+    """Report routes the DCS Mission Editor refuses to save.
+
+    DCS rejects a mission whose route asks for two contradictory things, and it reports them naming the
+    *route* rather than the flag. Two shapes:
+
+    * a waypoint fixing its **speed** while the waypoints around it fix their **arrival time** —
+      *"All waypoints (2-2) have locked speed and surrounded by waypoints 1 and 2 with locked time!"*;
+    * a route where **no** waypoint has a locked time — *"Route has no waypoints with locked time!"*.
+
+    Found on 2026-08-22 the only way it could be: `veaf-tools mission validate` reported "no defect" on
+    `verify-mission-a` seconds before the editor refused to open it. `ETA_locked` appeared nowhere in
+    this file. The bad data was a hand-copied waypoint rather than a tooling bug, and an enumerated
+    sweep of both verification missions found exactly one offender — so the defect here is the
+    **silence**: a mission that will not open costs a session, and the tool whose job is to say "this is
+    sound" said it was.
+
+    The second shape is the symmetric twin of `FIX-WAYPOINTS-ETA-LOCKED`, which taught the MCP to repair
+    its own edits and left the validator blind to the same thing in data it did not write.
+
+    Args:
+        mission: The parsed source mission table.
+
+    Returns:
+        One warning per offending route. Warnings rather than errors: this is real data DCS has already
+        accepted into a file, and refusing to build it would be a worse outcome than saying so.
+    """
+    issues: list[ValidationIssue] = []
+    for name, points in _iter_routed_groups(mission):
+        locked_time = [i for i, p in enumerate(points, 1) if isinstance(p, dict) and p.get("ETA_locked")]
+        if not locked_time:
+            issues.append(ValidationIssue(WARNING, t("validate.route_no_locked_time", group=name)))
+            continue
+        if len(locked_time) < 2:
+            continue
+        # A locked speed anywhere between two locked times is the contradiction DCS names.
+        for index, point in enumerate(points, 1):
+            if not isinstance(point, dict) or not point.get("speed_locked"):
+                continue
+            if any(i < index for i in locked_time) and any(i >= index for i in locked_time):
+                issues.append(
+                    ValidationIssue(
+                        WARNING,
+                        t("validate.route_contradictory_locks", group=name, waypoint=index),
+                    )
+                )
+                break
+    return issues
 
 
 def _check_sequence_holes(mission: dict) -> list[ValidationIssue]:

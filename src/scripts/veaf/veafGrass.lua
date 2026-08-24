@@ -27,6 +27,379 @@ veafGrass.DelayForStartup = 2
 
 veafGrass.RadiusAroundFarp = 2000
 
+--- DCS types that are a FARP *platform* — something a helicopter lands on — as opposed to the FARP
+--- props (`FARP Tent`, `FARP Fuel Depot`, …) that this module places around one.
+---
+--- This list used to exist **four times** in this file, and it had already diverged: commit a454c577
+--- (2025-08-08) added `FARP_T` to the one that recognises FARP units and to none of the three that
+--- lay a FARP out. A `FARP_T` was therefore processed as a FARP and then measured as if it were not
+--- one — escort at 75 m instead of 150, tent at 100 instead of 200, windsock at 50 m/45° instead of
+--- 120 m/0° — which put its escort straight onto the pads. Hence one list, in one place.
+---
+--- The first two entries are the same object seen from the MIST side and the DCS side; both are kept
+--- deliberately.
+veafGrass.FARP_PLATFORM_TYPES = {
+  ["SINGLE_HELIPAD"] = true,
+  ["FARP_SINGLE_01"] = true,
+  ["FARP"] = true,
+  ["Invisible FARP"] = true,
+  ["FARP_T"] = true,
+}
+
+--- DCS types whose name mentions FARP but which are **props**, not platforms — the very objects this
+--- module places around a FARP. Listed so the warning below stays a signal: without them, every FARP
+--- tent in a mission would raise one, and a warning that fires on correct missions gets ignored.
+veafGrass.FARP_PROP_TYPES = {
+  ["FARP Tent"] = true,
+  ["FARP Fuel Depot"] = true,
+  ["FARP Ammo Dump Coating"] = true,
+  ["FARP CP Blindage"] = true,
+}
+
+-- How far apart to try bearings when walking around the circle looking for clear ground, and how much
+-- room each object wants. 15° at 150 m is about 39 m of arc, so a full turn tries 24 bearings — cheap,
+-- since it only happens when the original spot is actually occupied.
+veafGrass.PLACEMENT_BEARING_STEP = 15
+veafGrass.PLACEMENT_CLEARANCE = 12
+
+--- Half-extent used for a landing platform that reports neither a bounding box nor parking spots.
+---
+--- Every number here was **measured on a running DCS** (2026-08-24, `StaticFarpAlpha`), after two
+--- estimates in a row got it wrong — 80 m first, then 84 m + margin from the pads. Both were right about
+--- the mechanism and wrong about the size, and in play that is indistinguishable from a broken probe.
+---
+--- What the measurements actually say:
+---
+--- * `airbase:getDesc().box` → `min/max ±129.5 m`. The platform is a **259 m square**, and this is the
+---   real answer: the apron reaches far past the pads.
+--- * `airbase:getParking()` → 4 spots, furthest **84 m**. Useful, but it only bounds the pads, which is
+---   why calibrating on it left the escort on the apron at ~120 m.
+--- * `land.getSurfaceType` → `LAND` everywhere out to 260 m. The apron is **not** in the terrain data, so
+---   it cannot be found by probing the ground. Recorded so nobody spends an afternoon on it again.
+veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES = 130
+
+--- Added to the furthest parking spot when the parking tier is used.
+---
+--- Larger than the edge margin because it compensates for something else: a spot's reported position is
+--- its centre, so the pad extends past it, and the apron extends past the pads. It is a patch on an
+--- estimate, which is why the box tier exists and is preferred.
+veafGrass.PLATFORM_PAD_MARGIN_METRES = 25
+
+--- How close a platform has to be to the FARP under construction to *be* it.
+---
+--- The FARP a marker creates is itself an airbase, and it exists by the time its props are placed —
+--- measured in game 2026-08-24, where the probe reported `FARP FU2149-11.924` alongside the static one.
+--- Without this it excludes its own apron, so every prop closer to it than 139 m is refused at every
+--- bearing and every distance, and the search falls back to the original angle. Which is how a fix aimed
+--- at keeping groups off a *neighbouring* platform ended up placing them worse than before.
+---
+--- A few metres is enough: this compares two reports of the same object's position, not two objects.
+veafGrass.PLATFORM_SAME_PLACE_METRES = 20
+
+--- Added around a platform's extent, for the size of the vehicle being placed.
+---
+--- A position is where a vehicle's centre goes; an M 818 parked with its nose on the apron is still on
+--- the apron. Small on purpose: the box already covers the platform, and every extra metre eats ground
+--- that is genuinely free.
+veafGrass.PLATFORM_EDGE_MARGIN_METRES = 10
+
+--- The platform's half-extents along each axis, from the best source DCS offers.
+---
+--- Three tiers, best first, because they do not measure the same thing:
+---
+--- 1. **`getDesc().box`** — the model's own bounding box, in object space. For a FARP it is a square
+---    (±129.5 m measured), and a square is rotation-invariant, so its heading can be ignored. For a
+---    non-square platform an axis-aligned box is slightly generous, which errs the safe way.
+--- 2. **`getParking()`** — the furthest pad plus a margin. Bounds the pads only, not the apron, so it is
+---    a fallback rather than the answer.
+--- 3. the flat constant, for a platform type that offers neither.
+---
+--- Returns two half-extents rather than one radius: the thing being avoided is a square apron, and a
+--- circle through its corners would exclude ground that is plainly free.
+function veafGrass.platformExtents(airbase, centre)
+  local box
+  pcall(function()
+    local desc = airbase:getDesc()
+    if type(desc) == "table" and type(desc.box) == "table" and desc.box.min and desc.box.max then
+      box = desc.box
+    end
+  end)
+  if box then
+    local halfX = math.max(math.abs(box.max.x), math.abs(box.min.x)) + veafGrass.PLATFORM_EDGE_MARGIN_METRES
+    local halfZ = math.max(math.abs(box.max.z), math.abs(box.min.z)) + veafGrass.PLATFORM_EDGE_MARGIN_METRES
+    return halfX, halfZ
+  end
+
+  local furthest = 0
+  pcall(function()
+    for _, spot in pairs(airbase:getParking() or {}) do
+      local position = spot.vTerminalPos or spot.v_terminal_pos
+      if position then
+        local dx, dz = position.x - centre.x, position.z - centre.z
+        local distance = math.sqrt(dx * dx + dz * dz)
+        if distance > furthest then
+          furthest = distance
+        end
+      end
+    end
+  end)
+  if furthest > 0 then
+    local half = furthest + veafGrass.PLATFORM_PAD_MARGIN_METRES
+    return half, half
+  end
+
+  local half = veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES
+  return half, half
+end
+
+--- Every landing platform in the mission, as `{ x = northing, z = easting }` runtime points.
+---
+--- `veafGrass.isSpotOccupied` used to probe `world.searchObjects` over units and statics only, and the
+--- comment above it reasoned about the wrong distinction: for a FARP the choice is not
+--- static-versus-scenery but static-versus-**airbase**. A FARP placed in the editor is an *airbase* —
+--- `Airbase.Category.HELIPAD`, reached through `world.getAirbases()`, exactly as `veafAirbases.lua:191`
+--- has always treated it, and as the DCS log says (`NO ATC COMM HELIPAD + StaticFarpAlpha-1`). So the
+--- probe could never see the one object #232 is about, and the fix shipped in 6.15.11 changed nothing.
+--- Measured in game 2026-08-22: everything still came up on the static FARP.
+---
+--- Read once per bearing search rather than per candidate position: a full turn tries 24 bearings and
+--- each tests every position the group would occupy, so calling `world.getAirbases()` inside the probe
+--- would mean hundreds of calls per FARP.
+--- `own` is the mission-table position of the FARP being built, whose own platform must not be avoided.
+function veafGrass.getLandingPlatforms(own)
+  local platforms = {}
+  local ok, airbases = pcall(world.getAirbases)
+  if not ok or type(airbases) ~= "table" then
+    veaf.loggers.get(veafGrass.Id):debug("getLandingPlatforms: world.getAirbases unusable")
+    return platforms
+  end
+  for _, airbase in pairs(airbases) do
+    pcall(function()
+      local category = airbase:getDesc() and airbase:getDesc().category
+      local typeName = airbase.getTypeName and airbase:getTypeName() or ""
+      -- The SHIP branch is not defensive padding: DCS miscategorises some FARPs
+      -- ("FARP_SINGLE_01", "VAP FARP") as ships, which `veafAirbases` already remediates the same way.
+      -- Leaving it out would let exactly those types keep the defect.
+      local isPlatform = category == Airbase.Category.HELIPAD
+        or (category == Airbase.Category.SHIP and string.find(tostring(typeName), "FARP"))
+      if isPlatform then
+        local point = airbase:getPoint()
+        if point then
+          -- The FARP being built is an airbase too, and its props belong inside its apron by design.
+          local isOwn = false
+          if own then
+            local dx, dz = point.x - own.x, point.z - own.y
+            isOwn = math.sqrt(dx * dx + dz * dz) <= veafGrass.PLATFORM_SAME_PLACE_METRES
+          end
+          local halfX, halfZ = veafGrass.platformExtents(airbase, point)
+          if isOwn then
+            veaf.loggers
+              .get(veafGrass.Id)
+              :info("getLandingPlatforms: [%s] is the FARP being built, not avoiding it", veaf.p(airbase:getName()))
+            halfX, halfZ = nil, nil
+          end
+          if not isOwn then
+            table.insert(platforms, {
+              x = point.x,
+              z = point.z,
+              name = airbase:getName(),
+              halfX = halfX,
+              halfZ = halfZ,
+            })
+          end
+        end
+      end
+    end)
+  end
+  -- At info, and deliberately: when an escort still lands on a platform, "0 platforms" and "3 platforms"
+  -- are completely different bugs and from outside they look the same. Not knowing which cost a
+  -- round-trip on 2026-08-24.
+  veaf.loggers.get(veafGrass.Id):info("getLandingPlatforms: %s landing platform(s) to avoid", veaf.p(#platforms))
+  return platforms
+end
+
+--- Is `position` inside the footprint of one of `platforms`?
+--- Takes a **mission-table position** (`{x, y}` where y is the easting); `platforms` carry runtime
+--- points (`z` is the easting). Mixing the two raises nothing and reads a distance from the wrong axis,
+--- so the conversion is done here, once — see docs/agents/dcs-coordinates.md.
+function veafGrass.isOnLandingPlatform(position, platforms)
+  if not position or not platforms then
+    return false
+  end
+  for _, platform in ipairs(platforms) do
+    -- A box test, not a radius: the apron is a square, and a circle through its corners would refuse
+    -- ground that is plainly free. Each platform carries its own extents — a single helipad is not a
+    -- FARP, and one number for both is what the first two attempts got wrong.
+    local halfX = platform.halfX or veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES
+    local halfZ = platform.halfZ or veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES
+    local dx, dz = math.abs(position.x - platform.x), math.abs(position.y - platform.z)
+    if dx <= halfX and dz <= halfZ then
+      veaf.loggers.get(veafGrass.Id):info(
+        "isOnLandingPlatform: refusing a spot %sm/%sm inside [%s] (extents %sm/%sm)",
+        veaf.p(math.floor(dx)),
+        veaf.p(math.floor(dz)),
+        veaf.p(platform.name),
+        veaf.p(math.floor(halfX)),
+        veaf.p(math.floor(halfZ))
+      )
+      return true
+    end
+  end
+  return false
+end
+
+--- Is anything already standing within `clearance` metres of this spot, or is it on a landing platform?
+--- Takes a **mission-table position** (`{x, y}` where y is the easting), which is what the FARP layout
+--- code works in, and converts it for the runtime API — see docs/agents/dcs-coordinates.md, since the
+--- two shapes both look like plausible coordinates and swapping them raises no error.
+---
+--- Two different questions, and the second is why 6.15.11 did not work:
+---
+--- * **units and statics**, within `clearance` — another group already parked here. `world.searchObjects`
+---   is right for that, and scenery is deliberately left to `veaf.findSpawnPoint`'s Disposition tier.
+--- * **landing platforms**, within their footprint — passed in by the caller. A sphere probe cannot
+---   answer this even for a static, because `searchObjects` matches an object's *position*: with a 12 m
+---   clearance and a platform tens of metres across, an escort on its **edge** — the actual complaint in
+---   #232 — leaves the platform's centre well outside the sphere.
+---
+--- `platforms` is optional so every existing caller keeps working; pass `veafGrass.getLandingPlatforms()`
+--- to get the platform half.
+function veafGrass.isSpotOccupied(position, clearance, platforms)
+  clearance = clearance or veafGrass.PLACEMENT_CLEARANCE
+  if not position then
+    return false
+  end
+  if veafGrass.isOnLandingPlatform(position, platforms) then
+    return true
+  end
+  local occupied = false
+  local volume = {
+    id = world.VolumeType.SPHERE,
+    params = { point = veaf.placePointOnLand(position), radius = clearance },
+  }
+  local function found(object)
+    -- An object can cease to exist between DCS handing it over and us asking about it, and a raise
+    -- here would abort building the FARP. A failed probe reads as "clear", which is the behaviour
+    -- this module had before it probed at all.
+    pcall(function()
+      if object and object:isExist() then
+        occupied = true
+      end
+    end)
+  end
+  for _, category in ipairs({ Object.Category.UNIT, Object.Category.STATIC }) do
+    local ok = pcall(world.searchObjects, category, volume, found)
+    if not ok then
+      veaf.loggers.get(veafGrass.Id):debug("isSpotOccupied: world.searchObjects unusable, treating the spot as clear")
+      return false
+    end
+    if occupied then
+      return true
+    end
+  end
+  return false
+end
+
+--- Find a bearing at `distance` from `center` where every position a group would occupy is clear.
+--- Keeps the radius and moves the bearing, per David's arbitration on #232: growing the radius would
+--- push the escort away from the FARP it serves, and in a campaign the crew wants it close.
+--- `positionsFor(angle)` returns the list of mission-table positions the objects would take at that
+--- bearing — the whole list, because a five-vehicle group at 6 m spacing needs a clear *arc*, and
+--- testing its origin alone would move it so its tail still overlapped.
+--- Returns the original angle when nothing is clear: a FARP that refuses to exist because it is
+--- crowded would be worse than one whose escort is tight.
+--- Distance multipliers tried, in order, when no bearing is clear at the requested distance.
+---
+--- `1` is the distance the caller asked for and stays first, so a FARP with nothing in its way does not
+--- move at all. The rest exist because keeping the bearing-only rule turned out to place a group at the
+--- **worst** possible spot: measured in game on 2026-08-24, the generator/storage group had no clear
+--- bearing at its distance, so the search kept the original angle and put it on a pad of the static
+--- FARP. Bearing-only was the right call while the exclusion was small; against a 259 m apron it
+--- guarantees landing inside it.
+---
+--- Capped at 2 deliberately. The point of #232's arbitration is that the escort serves the FARP and the
+--- crew wants it close, so this walks out only as far as it must, and a group that still finds nothing at
+--- twice the distance keeps its original placement rather than ending up in the next valley.
+veafGrass.PLACEMENT_DISTANCE_STEPS = { 1, 1.5, 2 }
+
+--- Find a bearing — and if need be a distance — where every position a group would occupy is clear.
+---
+--- `positionsFor(angle, scale)` returns the list of mission-table positions the objects would take at
+--- that bearing, with their distance multiplied by `scale`. The whole list, because a five-vehicle group
+--- at 6 m spacing needs a clear *arc*: testing its origin alone would move it so its tail still
+--- overlapped.
+---
+--- Returns `angle, scale`. Falls back to the requested angle at scale 1 when nothing is clear anywhere —
+--- a FARP that refuses to exist because it is crowded would be worse than one placed imperfectly — but
+--- says so at info, because that fallback is exactly how a group ends up on an apron.
+function veafGrass.findClearBearing(baseAngle, positionsFor, own)
+  -- Read once, here: a full turn tries 24 bearings at each distance, and each bearing tests every
+  -- position the group would occupy, so asking DCS for its airbase list inside the probe would mean
+  -- thousands of calls per FARP.
+  local platforms = veafGrass.getLandingPlatforms(own)
+
+  local function allClear(angle, scale)
+    for _, position in ipairs(positionsFor(angle, scale) or {}) do
+      if veafGrass.isSpotOccupied(position, nil, platforms) then
+        return false
+      end
+    end
+    return true
+  end
+
+  local steps = math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP)
+  for _, scale in ipairs(veafGrass.PLACEMENT_DISTANCE_STEPS) do
+    -- The original bearing first at every distance, so the group stays where it was aimed when it can.
+    if allClear(baseAngle, scale) then
+      if scale ~= 1 then
+        veaf.loggers.get(veafGrass.Id):info("findClearBearing: kept bearing %s, pushed out to %sx", veaf.p(baseAngle), veaf.p(scale))
+      end
+      return baseAngle, scale
+    end
+    for i = 1, steps do
+      -- Alternate sides, so the group ends up as close as possible to where the mission maker aimed it.
+      local offset = math.ceil(i / 2) * veafGrass.PLACEMENT_BEARING_STEP
+      if i % 2 == 0 then
+        offset = -offset
+      end
+      local candidate = baseAngle + offset
+      if allClear(candidate, scale) then
+        veaf.loggers
+          .get(veafGrass.Id)
+          :info("findClearBearing: moved from %s to %s at %sx to find clear ground", veaf.p(baseAngle), veaf.p(candidate), veaf.p(scale))
+        return candidate, scale
+      end
+    end
+  end
+
+  veaf.loggers.get(veafGrass.Id):info("findClearBearing: nothing clear at any bearing or distance, keeping %s", veaf.p(baseAngle))
+  return baseAngle, 1
+end
+
+--- Is this DCS type a FARP platform?
+--- A type that is not one but *looks* like one — its name mentions FARP or HELIPAD, and it is not a
+--- known prop — is reported rather than silently taking the non-FARP distances, which is what hid the
+--- FARP_T divergence for a year. Same shape as FIX-COMBATZONE-ZONE-TYPE-SILENT: guessing is
+--- acceptable, guessing in silence is not.
+function veafGrass.isFarpPlatformType(typeName)
+  if type(typeName) ~= "string" then
+    return false
+  end
+  if veafGrass.FARP_PLATFORM_TYPES[typeName] then
+    return true
+  end
+  if not veafGrass.FARP_PROP_TYPES[typeName] then
+    local upper = typeName:upper()
+    if upper:find("FARP", 1, true) or upper:find("HELIPAD", 1, true) then
+      veaf.loggers.get(veafGrass.Id):warn(
+        "unknown FARP-like type [%s]: using the default distances, not the FARP ones. Add it to veafGrass.FARP_PLATFORM_TYPES if it is a platform.",
+        veaf.p(typeName)
+      )
+    end
+  end
+  return false
+end
+
 -- these units will be placed in spawned FARPs warehouses and available for the dynamic slot mechanism
 veafGrass.helicoptersOnFARPs = {
   "SA342Mistral",
@@ -201,15 +574,7 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
       veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
     end
     --first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
-    if
-      (
-        unit.type == "SINGLE_HELIPAD"
-        or unit.type == "FARP_SINGLE_01"
-        or unit.type == "FARP"
-        or unit.type == "Invisible FARP"
-        or unit.type == "FARP_T"
-      ) and name:upper():sub(1, 5) == "FARP "
-    then
+    if veafGrass.isFarpPlatformType(unit.type) and name:upper():sub(1, 5) == "FARP " then
       farpUnits[name] = unit
       veaf.loggers.get(veafGrass.Id):trace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
     end
@@ -238,7 +603,7 @@ function veafGrass.fillAllFarpWarehouses()
         veaf.loggers.get(veafGrass.Id):trace("found grassBase [%s]", veaf.lp(name))
       end
       --first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
-      if typeName == "SINGLE_HELIPAD" or typeName == "FARP_SINGLE_01" or typeName == "FARP" or typeName == "Invisible FARP" then
+      if veafGrass.isFarpPlatformType(typeName) then
         farpBases[name] = base
         veaf.loggers.get(veafGrass.Id):trace("found farpBase [%s]", veaf.lp(name))
       end
@@ -1079,44 +1444,61 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local unitsDistance = 75
 
   -- fix distances on FARPs
-  if farp.type == "SINGLE_HELIPAD" or farp.type == "FARP_SINGLE_01" or farp.type == "FARP" or farp.type == "Invisible FARP" then
+  if veafGrass.isFarpPlatformType(farp.type) then
     tentDistance = 200
     unitsDistance = 150
     otherDistance = 130
   end
 
-  local tentOrigin = {
-    ["x"] = farp.x + tentDistance * math.cos(mist.utils.toRadian(angle)),
-    ["y"] = farp.y + tentDistance * math.sin(mist.utils.toRadian(angle)),
-  }
+  -- Same treatment as the escort below (#232): the tents are laid out by the identical fixed-distance
+  -- formula, so they can land on an obstacle just as the escort did. The original bearing is tried
+  -- first, so a FARP with clear ground around it is laid out exactly where it always was.
+  local function tentPositionsAt(bearing, scale)
+    scale = scale or 1
+    local origin = {
+      x = farp.x + tentDistance * scale * math.cos(mist.utils.toRadian(bearing)),
+      y = farp.y + tentDistance * scale * math.sin(mist.utils.toRadian(bearing)),
+    }
+    local positions = {}
+    for j = 1, 2 do
+      for i = 1, 3 do
+        table.insert(positions, {
+          x = origin.x + (i - 1) * tentSpacing * math.cos(mist.utils.toRadian(bearing)) - (j - 1) * tentSpacing * math.sin(
+            mist.utils.toRadian(bearing)
+          ),
+          y = origin.y + (i - 1) * tentSpacing * math.sin(mist.utils.toRadian(bearing)) + (j - 1) * tentSpacing * math.cos(
+            mist.utils.toRadian(bearing)
+          ),
+        })
+      end
+    end
+    return positions
+  end
+
+  local tentAngle, tentScale = veafGrass.findClearBearing(angle, tentPositionsAt, farp)
+  local tentPositions = tentPositionsAt(tentAngle, tentScale)
 
   -- create tents
-  for j = 1, 2 do
-    for i = 1, 3 do
-      local tent = {
-        ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
-        ["category"] = "static",
-        ["categoryStatic"] = "Fortifications",
-        ["coalition"] = farpCoalition,
-        ["country"] = farp.country,
-        ["countryId"] = farp.countryId,
-        ["heading"] = mist.utils.toRadian(angle - 90),
-        ["type"] = "FARP Tent",
-        ["x"] = tentOrigin.x + (i - 1) * tentSpacing * math.cos(mist.utils.toRadian(angle)) - (j - 1) * tentSpacing * math.sin(
-          mist.utils.toRadian(angle)
-        ),
-        ["y"] = tentOrigin.y + (i - 1) * tentSpacing * math.sin(mist.utils.toRadian(angle)) + (j - 1) * tentSpacing * math.cos(
-          mist.utils.toRadian(angle)
-        ),
-        ["hiddenOnMFD"] = hiddenOnMFD,
-      }
-      if groupName then
-        tent["groupName"] = groupName
-      end
-
-      mist.dynAddStatic(tent)
-      farpUnitNameCounter = farpUnitNameCounter + 1
+  for index = 1, #tentPositions do
+    local tent = {
+      ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
+      ["category"] = "static",
+      ["categoryStatic"] = "Fortifications",
+      ["coalition"] = farpCoalition,
+      ["country"] = farp.country,
+      ["countryId"] = farp.countryId,
+      ["heading"] = mist.utils.toRadian(tentAngle - 90),
+      ["type"] = "FARP Tent",
+      ["x"] = tentPositions[index].x,
+      ["y"] = tentPositions[index].y,
+      ["hiddenOnMFD"] = hiddenOnMFD,
+    }
+    if groupName then
+      tent["groupName"] = groupName
     end
+
+    mist.dynAddStatic(tent)
+    farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
   -- add visible markers to the invisible farps
@@ -1166,10 +1548,25 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     "FARP Ammo Dump Coating",
     "GeneratorF",
   }
-  local otherOrigin = {
-    ["x"] = farp.x + otherDistance * math.cos(mist.utils.toRadian(angle)),
-    ["y"] = farp.y + otherDistance * math.sin(mist.utils.toRadian(angle)),
-  }
+  -- Same fixed-distance formula as the tents and the escort, so same treatment (#232).
+  local function otherPositionsAt(bearing, scale)
+    scale = scale or 1
+    local origin = {
+      x = farp.x + otherDistance * math.cos(mist.utils.toRadian(bearing)),
+      y = farp.y + otherDistance * math.sin(mist.utils.toRadian(bearing)),
+    }
+    local positions = {}
+    for j = 1, #otherUnits do
+      table.insert(positions, {
+        x = origin.x - (j - 1) * otherSpacing * math.sin(mist.utils.toRadian(bearing)),
+        y = origin.y + (j - 1) * otherSpacing * math.cos(mist.utils.toRadian(bearing)),
+      })
+    end
+    return positions
+  end
+
+  local otherAngle, otherScale = veafGrass.findClearBearing(angle, otherPositionsAt, farp)
+  local otherPositions = otherPositionsAt(otherAngle, otherScale)
 
   for j, typeName in ipairs(otherUnits) do
     local otherUnit = {
@@ -1179,10 +1576,10 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(angle - 90),
+      ["heading"] = mist.utils.toRadian(otherAngle - 90),
       ["type"] = typeName,
-      ["x"] = otherOrigin.x - (j - 1) * otherSpacing * math.sin(mist.utils.toRadian(angle)),
-      ["y"] = otherOrigin.y + (j - 1) * otherSpacing * math.cos(mist.utils.toRadian(angle)),
+      ["x"] = otherPositions[j].x,
+      ["y"] = otherPositions[j].y,
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     if groupName then
@@ -1197,10 +1594,48 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local windsockAngle = 45
 
   -- fix Windsock position on FARPs
-  if farp.type == "SINGLE_HELIPAD" or farp.type == "FARP_SINGLE_01" or farp.type == "FARP" or farp.type == "Invisible FARP" then
+  if veafGrass.isFarpPlatformType(farp.type) then
     windsockDistance = 120
     windsockAngle = 0
   end
+
+  -- The windsock went through no clear-ground search at all, and on a FARP it sits 120 m out — which put
+  -- it on a neighbouring platform's apron while every other group had been moved off. Reported in game
+  -- 2026-08-24, after the escort, the tents and the props were all correct.
+  --
+  -- Its bearing is free: David's call, "celle-là on peut la mettre où on veut près du Invisible FARP".
+  -- Nothing reads its position, unlike the escort (which serves the FARP) or the pads (which aircraft
+  -- land on), so the search may move it anywhere it likes. The heading is left alone: it shows wind
+  -- direction and has nothing to do with where the mast stands.
+  --
+  -- Both windsocks are placed from the one bearing found here. The second is offset 90° from the first
+  -- by design, so searching separately would let them drift into different quadrants and stop reading as
+  -- a pair.
+  local function windsockPositionsAt(bearing, scale)
+    scale = scale or 1
+    local positions = {
+      {
+        x = farp.x + windsockDistance * scale * math.cos(mist.utils.toRadian(bearing + windsockAngle)),
+        y = farp.y + windsockDistance * scale * math.sin(mist.utils.toRadian(bearing + windsockAngle)),
+      },
+    }
+    if farp.type == "FARP" then
+      table.insert(positions, {
+        x = farp.x + windsockDistance * scale * math.cos(mist.utils.toRadian(bearing + windsockAngle - 90)),
+        y = farp.y + windsockDistance * scale * math.sin(mist.utils.toRadian(bearing + windsockAngle - 90)),
+      })
+    end
+    return positions
+  end
+
+  local windsockBearing, windsockScale = veafGrass.findClearBearing(angle, windsockPositionsAt, farp)
+  local windsockPositions = windsockPositionsAt(windsockBearing, windsockScale)
+  veaf.loggers.get(veafGrass.Id):info(
+    "FARP windsock: bearing %s requested, %s used at %sx distance",
+    veaf.p(math.floor(angle)),
+    veaf.p(math.floor(windsockBearing)),
+    veaf.p(windsockScale)
+  )
 
   local windsockUnit = {
     ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
@@ -1212,8 +1647,8 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     ["country"] = farp.country,
     ["countryId"] = farp.countryId,
     ["heading"] = mist.utils.toRadian(angle - 90),
-    ["x"] = farp.x + windsockDistance * math.cos(mist.utils.toRadian(angle + windsockAngle)),
-    ["y"] = farp.y + windsockDistance * math.sin(mist.utils.toRadian(angle + windsockAngle)),
+    ["x"] = windsockPositions[1].x,
+    ["y"] = windsockPositions[1].y,
     ["hiddenOnMFD"] = hiddenOnMFD,
   }
   if groupName then
@@ -1234,8 +1669,8 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
       ["heading"] = mist.utils.toRadian(angle - 90),
-      ["x"] = farp.x + windsockDistance * math.cos(mist.utils.toRadian(angle + windsockAngle - 90)),
-      ["y"] = farp.y + windsockDistance * math.sin(mist.utils.toRadian(angle + windsockAngle - 90)),
+      ["x"] = windsockPositions[2].x,
+      ["y"] = windsockPositions[2].y,
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     if groupName then
@@ -1265,10 +1700,44 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   }
 
   local unitsSpacing = 6
-  local unitsOrigin = {
-    x = farp.x + unitsDistance * math.cos(mist.utils.toRadian(angle)),
-    y = farp.y + unitsDistance * math.sin(mist.utils.toRadian(angle)),
-  }
+
+  -- #232: the escort's position used to be this formula and nothing else — a fixed distance on a fixed
+  -- bearing, with no test of whether that spot was free. Beside a static FARP, which is the *nominal*
+  -- use (the static FARP is what unlocks spawning on it once the zone is captured), the trucks came
+  -- down on its pads. Keeping the radius and walking the bearing instead, per David's arbitration:
+  -- growing the radius would push the escort away from the FARP it serves.
+  -- The whole group is tested, not its origin: these vehicles sit on a ~30 m line perpendicular to the
+  -- bearing, so a clear origin with an overlapping tail would still block a helipad.
+  local escortUnitTypes = farpEscortUnitsNames[farpCoalition]
+  local function escortPositionsAt(bearing, scale)
+    scale = scale or 1
+    local origin = {
+      x = farp.x + unitsDistance * scale * math.cos(mist.utils.toRadian(bearing)),
+      y = farp.y + unitsDistance * scale * math.sin(mist.utils.toRadian(bearing)),
+    }
+    local positions = {}
+    for j = 1, #escortUnitTypes do
+      table.insert(positions, {
+        x = origin.x - (j - 1) * unitsSpacing * math.sin(mist.utils.toRadian(bearing)),
+        y = origin.y + (j - 1) * unitsSpacing * math.cos(mist.utils.toRadian(bearing)),
+      })
+    end
+    return positions
+  end
+
+  local escortAngle, escortScale = veafGrass.findClearBearing(angle, escortPositionsAt, farp)
+  local escortPositions = escortPositionsAt(escortAngle, escortScale)
+  -- Says whether the bearing search actually did anything. A FARP dropped *on* an existing platform is a
+  -- different problem from an escort placed on one: this fix moves the **bearing**, never the distance, so
+  -- if the new FARP sits 50 m from a static one, every bearing at 150 m is ~150 m away from it, none is
+  -- refused, and nothing moves — correctly, by this fix's own rule. Logging both angles is what tells the
+  -- two apart from outside.
+  veaf.loggers.get(veafGrass.Id):info(
+    "FARP escort: bearing %s requested, %s used at %sx distance",
+    veaf.p(math.floor(angle)),
+    veaf.p(math.floor(escortAngle)),
+    veaf.p(escortScale)
+  )
 
   local farpEscortGroup = {
     ["category"] = "vehicle",
@@ -1283,13 +1752,13 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     farpEscortGroup["groupName"] = groupName
   end
 
-  for j, typeName in ipairs(farpEscortUnitsNames[farpCoalition]) do
+  for j, typeName in ipairs(escortUnitTypes) do
     local escortUnit = {
       ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
-      ["heading"] = mist.utils.toRadian(angle - 135), -- parked \\\\\
+      ["heading"] = mist.utils.toRadian(escortAngle - 135), -- parked \\\\\
       ["type"] = typeName,
-      ["x"] = unitsOrigin.x - (j - 1) * unitsSpacing * math.sin(mist.utils.toRadian(angle)),
-      ["y"] = unitsOrigin.y + (j - 1) * unitsSpacing * math.cos(mist.utils.toRadian(angle)),
+      ["x"] = escortPositions[j].x,
+      ["y"] = escortPositions[j].y,
       ["skill"] = "Random",
     }
     table.insert(farpEscortGroup.units, escortUnit)

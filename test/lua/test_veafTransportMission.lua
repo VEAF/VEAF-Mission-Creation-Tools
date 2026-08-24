@@ -242,12 +242,16 @@ function TestVeafTransportCharacterisation:test_another_modules_keyphrase_return
 end
 
 -- An unknown key is ignored in silence and leaves every default intact.
-function TestVeafTransportCharacterisation:test_unknown_keyword_is_ignored_silently()
+-- FEAT-SPAWN-OPTION-VALIDATION renamed this: an unknown keyword is no longer ignored, it is
+-- collected so the caller can name it to the pilot and abort. What the original test proved and
+-- this one still proves: the **recognised** options are untouched by the presence of a bad one.
+function TestVeafTransportCharacterisation:test_an_unknown_keyword_is_collected_not_ignored()
   local r = veafTransportMission.markTextAnalysis("_transport, banana 3")
   luaunit.assertNotNil(r)
   luaunit.assertEquals(r.size, 1)
   luaunit.assertEquals(r.defense, 0)
-  luaunit.assertNil(r.unknownParameters)
+  luaunit.assertEquals(r.unknownParameters[1].key, "banana")
+  luaunit.assertEquals(#r.unknownParameters, 1)
 end
 
 -- Valueless string keywords are covered by TestVeafTransportMarkTextAnalysisKeywords above,

@@ -8,8 +8,18 @@
 # Define individual waypoints
 # These are the building blocks that will be assembled into flight plans
 waypoints:
-  # Example waypoint 1: Bullseye (turning point)
-  BULLSEYE:
+  # Example waypoint 1: a holding point (turning point)
+  #
+  # These coordinates are an EXAMPLE and point at nowhere in particular. Replace them, or delete the
+  # waypoint — whatever you leave here is injected into your flight plans at every build.
+  #
+  # This example used to be called BULLSEYE, and that was a bug rather than a naming choice: a bullseye
+  # is not an arbitrary point, it is a property your mission already carries, and every mission built
+  # from this template was handed a steerpoint labelled BULLSEYE hundreds of kilometres from the real
+  # one — 483 km, measured on the Syria smoke-test mission. INITIAL_POINT and TARGET below are per-mission
+  # choices nobody can call wrong; a bullseye has one correct value, so naming an example after it is a
+  # claim and not an example.
+  HOLDING_POINT:
     type: "Turning Point"
     action: "Turning Point"
     alt: 6096          # 20000 ft in meters
@@ -18,7 +28,7 @@ waypoints:
     speed_type: "TAS"
     x: 75869
     y: 48674
-    name: "BULLSEYE"
+    name: "HOLDING_POINT"
     ETA: 364.89
     ETA_locked: false
 
@@ -57,7 +67,7 @@ settings:
     coalition: "blue"
     # No type or country specified - applies to all blue planes
     waypoints:
-      BULLSEYE: "BULLSEYE"
+      HOLDING_POINT: "HOLDING_POINT"
       INITIAL_POINT: "INITIAL_POINT"
 
   # Flight plan for all red helicopters
@@ -65,7 +75,7 @@ settings:
     category: "helicopter"
     coalition: "red"
     waypoints:
-      BULLSEYE: "BULLSEYE"
+      HOLDING_POINT: "HOLDING_POINT"
 
   # Flight plan for specific aircraft type
   f16_flight_plan:
@@ -76,22 +86,30 @@ settings:
     waypoints:
       INITIAL_POINT: "INITIAL_POINT"
       TARGET: "TARGET"
-      BULLSEYE: "BULLSEYE"
+      HOLDING_POINT: "HOLDING_POINT"
 
   # Flight plan for all aircraft (acts as default)
   default_plan:
     # No category, coalition, or type specified
     # Only used if no other plans match
     waypoints:
-      BULLSEYE: "BULLSEYE"
+      HOLDING_POINT: "HOLDING_POINT"
 
 # USAGE NOTES:
 #
-# 1. Matching Priority:
-#    - Aircraft type (type field) is checked first
-#    - Then category (plane/helicopter)
-#    - Then coalition (blue/red)
-#    - Finally, plans with no criteria match all
+# 1. Matching: THE MOST SPECIFIC PLAN WINS
+#    - A plan is a candidate when every criterion it states matches; the ones it omits are wildcards.
+#    - Among the candidates, the plan stating the MOST criteria wins. So a plan naming an aircraft type
+#      beats one naming only a coalition and a category, wherever the two are written in this file.
+#    - Declaration order only breaks a tie between two plans of equal specificity, and only then.
+#    - A plan with no criteria at all is the fallback: it matches everything and loses to everything.
+#    - Worked example, from this very file: a blue F-16C matches both `all_blue_planes` and
+#      `f16_flight_plan`, and gets `f16_flight_plan` because it is the more specific of the two. Another
+#      blue plane gets `all_blue_planes`.
+#    - This changed on 2026-08-24. Until then the FIRST compatible plan won, so `f16_flight_plan` above
+#      was unreachable — while this file and the code's own docstring both described the priority that is
+#      now implemented. If you had ordered your plans narrow-first to work around it, nothing changes for
+#      you. See FIX-WAYPOINTS-PLAN-PRIORITY.
 #
 # 2. Targeting:
 #    - Only human-piloted aircraft groups receive waypoints

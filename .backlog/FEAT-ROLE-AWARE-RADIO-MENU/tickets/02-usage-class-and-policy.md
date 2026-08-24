@@ -1,6 +1,11 @@
 # 02 — A usage class for unattached commands, and the per-role policy
 
-Status: ⬜ ready
+Status: 🚫 wontfix
+
+Cancelled with the lot on 2026-08-20 — the policy it would have decided has nowhere to live: a secured command cannot identify a game master on the F10 channel, and an unsecured one would hand the mission to whoever takes the slot. See the
+[PRD](../PRD.md) for the two walls, and
+[`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](../../../docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md)
+for the measurements behind them.
 Type: feat (design + declaration)
 Files: `src/scripts/veaf/veafRadio.lua`, every module declaring commands, the mission-maker docs
 (both languages), tests

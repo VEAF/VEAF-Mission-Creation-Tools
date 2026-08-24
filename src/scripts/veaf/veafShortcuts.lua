@@ -213,7 +213,25 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
     return true
   elseif
     logDebug("checking in veafSpawn")
-    and veafSpawn.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups, nil, nil, route)
+    -- `_bypassSecurity` for security, plain `bypassSecurity` for silence, and the difference is the whole
+    -- of FIX-SPAWN-BYPASSSECURITY-AS-SILENT. `_bypassSecurity` has the alias's own flag OR'd in just
+    -- above, which is right for skipping a password check and wrong for deciding whether to speak: an
+    -- alias like `-tacan` sets that flag, and a pilot who drops the marker is still a pilot waiting for
+    -- an answer. `bypassSecurity` arrives unmodified from veafCommands, where it means "a script asked".
+    and veafSpawn.executeCommand(
+      position,
+      command,
+      coalition,
+      markId,
+      _bypassSecurity,
+      spawnedGroups,
+      nil,
+      nil,
+      route,
+      nil,
+      nil,
+      bypassSecurity
+    )
   then
     return true
   elseif
@@ -537,11 +555,28 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
         veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups, route)
       end
     else
-      if delay and delay ~= "" then
+      -- A legitimate delay is always digits: `markTextAnalysis` extracts it with `!(%d*)`, so it arrives
+      -- as "" or as a numeric string. Anything else is a CALLER bug, and it used to reach
+      -- `timer.getTime() + delay` and raise there — which is how veafSanctuary spent five years never
+      -- deploying its defences (FIX-SANCTUARY-SHIFTED-ALIAS-CALLS). Refused loudly and run now instead:
+      -- losing the delay is a smaller loss than losing the spawn, and the log names the value so the next
+      -- misaligned call is found by reading rather than by a player noticing nothing happened.
+      local nDelay = nil
+      if delay ~= nil and delay ~= "" then
+        nDelay = tonumber(delay)
+        if not nDelay then
+          veaf.loggers.get(veafShortcuts.Id):error(
+            "veafShortcuts.ExecuteAlias(%s) : the delay is not a number [%s] — running the alias immediately",
+            veaf.p(aliasName),
+            veaf.p(delay)
+          )
+        end
+      end
+      if nDelay then
         mist.scheduleFunction(
           VeafAlias.execute,
           { alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route },
-          timer.getTime() + delay
+          timer.getTime() + nDelay
         )
       else
         alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route)
@@ -1471,6 +1506,13 @@ function veafShortcuts.buildDefaultList()
       :setName("-tacan")
       :setDescription("create a portable TACAN beacon")
       :setVeafCommand("_spawn tacan, band X, channel 99")
+      :setBypassSecurity(true)
+  )
+  veafShortcuts.AddAlias(
+    VeafAlias:new()
+      :setName("-beacon")
+      :setDescription("create a radio beacon (VHF/UHF/FM) through CTLD")
+      :setVeafCommand("_spawn beacon")
       :setBypassSecurity(true)
   )
   veafShortcuts.AddAlias(VeafAlias

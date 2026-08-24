@@ -1,6 +1,11 @@
 # FIX-CARRIER-MENU-COALITION — red runs blue's carrier operations
 
-Status: ⬜ ready
+Status: ✅ done
+
+Verified in game on 2026-08-22: check 12 of `verify-mission-c`, from the red A-10 at Palmyra — the slot the defect was measured from on 2026-08-18. The carrier menu is there.
+
+Written, unit-tested and shipped in 6.15.10. Waiting on check 12 of `verify-mission-c` (the red A-10 at
+Palmyra), which needs DCS started — see [DCS-SESSION-TODO.md](../../DCS-SESSION-TODO.md).
 
 Origin: `CHORE-ISSUE-VERIFY-SESSION` check 12, confirmed in DCS by David on 2026-08-18 from a red
 A-10 at Palmyra. Closes [#87](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/87).
@@ -44,8 +49,8 @@ not — the coalition dimension is what that lot will build on.
 
 ## Definition of done
 
-- [ ] A red player sees only the red carrier submenu, and vice versa
-- [ ] Every `addSubMenu` call reviewed from an enumeration, with the count of side-scoped menus recorded
-- [ ] Lua test asserting a coalition-scoped submenu is not rendered for the other side
+- [x] A red player sees only the red carrier submenu, and vice versa
+- [x] Every `addSubMenu` call reviewed from an enumeration, with the count of side-scoped menus recorded — **43 sites, 40 business, 1 previously scoped**; see [ticket 01](tickets/01-scope-the-carrier-submenus.md)
+- [x] Lua test asserting a coalition-scoped submenu is not rendered for the other side
 - [ ] Re-run check 12 of `verify-mission-c` from the red A-10 at Palmyra
 - [ ] #87 closed, saying explicitly that the second half was already fixed

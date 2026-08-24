@@ -30,6 +30,12 @@ veaf.loggers.new(veafMove.Id, veafMove.LogLevel)
 --- Key phrase to look for in the mark text which triggers the command.
 veafMove.Keyphrase = "_move"
 
+--- The escort of a group is the group with this suffix appended to its name.
+--- This convention is what lets the framework find an escort in order to repair its Escort task,
+--- which DCS invalidates whenever the escorted group is recreated (teleported or respawned).
+--- Documented for mission makers on the ASSETS page.
+veafMove.EscortGroupNameSuffix = " escort"
+
 veafMove.RadioMenuName = "menu.move.root"
 
 veafMove.tankerMissionParameters = {
@@ -90,6 +96,10 @@ function veafMove.executeCommand(eventPos, eventText, bypassSecurity)
     local result = false
 
     if options then
+      -- A typo aborts — see veaf.reportUnknownParameters. nil: this handler is not given the requester.
+      if veaf.reportUnknownParameters(options, veafMove.Id, nil) then
+        return false
+      end
       -- Check options commands
       if options.moveGroup then
         result = veafMove.moveGroup(eventPos, options.groupName, options.speed, options.altitude)
@@ -128,6 +138,8 @@ end
 --- via the `-1` sentinel, and an AFAC gets 150 knots at 15000 feet. Order matters —
 --- `tankermission` MUST be tested before `tanker`, or it could never match.
 veafMove.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.moveGroup = false
     options.moveTanker = false
@@ -226,8 +238,40 @@ end
 -- Tanker route helpers (shared by changeTanker and moveTanker)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Extract the last 3 waypoints and tankerData for a named tanker group.
---- Returns a table {tankerData, points, point1, point2, point3} or nil + error message.
+--- Locate the waypoint carrying the tanker's orbit task.
+--- Returns its index and the task, or nil when the route has no orbit at all.
+---
+--- #248: this used to be "the second-to-last waypoint", which is true of VEAF's own templates — whose
+--- route is [approach, orbit, leg end] — and false of a DCS-Liberation tanker, whose longer route ends
+--- with a landing point. Both tanker commands then refused with "has no ORBIT task defined".
+---
+--- **The first orbit wins** when a route carries several. A tanker route has one working orbit; if
+--- there are several, the first is the one the tanker reaches first, so it is the one that is active or
+--- imminent, which is what a player asking to change tanker parameters means. "The one nearest the
+--- requested position" was rejected: appealing for moveTanker, meaningless for changeTanker which moves
+--- nothing, and two commands disagreeing about which orbit they mean would be worse.
+function veafMove._findOrbitWaypoint(points)
+  for index = 1, #points do
+    local task = veafMove._findOrbitTaskInPoint(points[index])
+    if task then
+      return index, task
+    end
+  end
+  return nil, nil
+end
+
+--- Extract the tanker's orbit waypoint, its neighbours, and tankerData for a named tanker group.
+--- Returns a table {tankerData, points, orbitIndex, orbitTask, point1, point2, point3} or nil + message.
+---
+--- `point2` is the orbit itself. `point1` (the waypoint before) and `point3` (the waypoint after) are
+--- **optional**: an orbit on the first or last waypoint of a route is legal, and refusing such a route
+--- would trade one false refusal for another.
+---
+--- `point3` is the far end of the refuelling leg, which is why callers overwrite it — that is DCS's own
+--- semantics for a `Race-Track` orbit: it flies between the waypoint carrying the task and the next
+--- one. It therefore holds on a Liberation route just as on a VEAF template. A `Circle` orbit is the
+--- exception: it turns around a single point and gives the next waypoint no orbit role, so `point3` is
+--- withheld there rather than letting a caller redraw the route. See ticket 01 of FIX-MOVE-ORBIT-SEARCH.
 function veafMove._getTankerRouteData(groupName)
   local tankerData = veaf.getGroupData(groupName)
   if not tankerData then
@@ -235,15 +279,30 @@ function veafMove._getTankerRouteData(groupName)
   end
   local route = veaf.findInTable(tankerData, "route")
   local points = veaf.findInTable(route, "points")
-  if not points or #points < 3 then
-    return nil, "Cannot find a valid route (need at least 3 waypoints) for tanker " .. groupName
+  if not points or #points < 1 then
+    return nil, "Cannot find a valid route for tanker " .. groupName
   end
+
+  local orbitIndex, orbitTask = veafMove._findOrbitWaypoint(points)
+  if not orbitIndex then
+    return nil, "Cannot find an ORBIT task in the route of tanker " .. groupName
+  end
+
+  local point3 = points[orbitIndex + 1]
+  local pattern = orbitTask.params and orbitTask.params.pattern
+  if pattern == "Circle" and point3 then
+    veaf.loggers.get(veafMove.Id):debug("tanker %s orbits a single point (Circle); leaving the waypoint after it alone", veaf.lp(groupName))
+    point3 = nil
+  end
+
   return {
     tankerData = tankerData,
     points = points,
-    point1 = points[#points - 2],
-    point2 = points[#points - 1],
-    point3 = points[#points],
+    orbitIndex = orbitIndex,
+    orbitTask = orbitTask,
+    point1 = points[orbitIndex - 1],
+    point2 = points[orbitIndex],
+    point3 = point3,
   },
     nil
 end
@@ -310,31 +369,31 @@ function veafMove.changeTanker(eventPos, speed, alt)
 
   veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
 
-  -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude
-  veaf.loggers.get(veafMove.Id):trace("found point1")
-  -- set speed
-  if speed > -1 then
-    point1.speed = speed / 1.94384 -- in m/s
+  -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude.
+  -- Optional since #248: the orbit is now found wherever it is in the route, and it may be the very
+  -- first waypoint, in which case there is no waypoint before it. A caller passing -1 asks to *read*
+  -- the current speed or altitude, so that read falls back to the orbit waypoint, which always exists.
+  local referencePoint = point1 or point2
+  if point1 then
+    if speed > -1 then
+      point1.speed = speed / 1.94384 -- in m/s
+    end
+    if alt > -1 then
+      point1.alt = alt * 0.3048 -- in meters
+    end
+    veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
   else
-    speed = point1.speed * 1.94384 -- in knots
+    veaf.loggers.get(veafMove.Id):debug("tanker %s orbits on its first waypoint; no approach point to adjust", veaf.lp(tankerGroupName))
   end
-  -- set altitude
-  if alt > -1 then
-    point1.alt = alt * 0.3048 -- in meters
-  else
-    alt = point1.alt / 0.3048 -- in feet
+  if speed <= -1 then
+    speed = referencePoint.speed * 1.94384 -- in knots
   end
-  veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
+  if alt <= -1 then
+    alt = referencePoint.alt / 0.3048 -- in feet
+  end
 
   -- point 2 is the start of the tanking Orbit ; we'll change the speed and altitude
-  veaf.loggers.get(veafMove.Id):trace("found point2")
-  local orbitTask = veafMove._findOrbitTaskInPoint(point2)
-  if not orbitTask then
-    local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
-    veaf.loggers.get(veafMove.Id):info(text)
-    trigger.action.outText(veaf.t("move.tanker_set_no_orbit", tankerGroupName), 10)
-    return false
-  end
+  local orbitTask = routeData.orbitTask
   veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. tankerGroupName)
   if speed > -1 then
     orbitTask.params.speed = speed / 1.94384 -- in m/s
@@ -345,17 +404,20 @@ function veafMove.changeTanker(eventPos, speed, alt)
     point2.alt = alt * 0.3048 -- in meters
   end
 
-  -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude
-  veaf.loggers.get(veafMove.Id):trace("found point3")
-  -- change speed
-  if speed > -1 then
-    point3.speed = speed / 1.94384 -- in m/s
+  -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude.
+  -- Optional since #248: absent when the orbit is the last waypoint of the route, and withheld for a
+  -- Circle orbit, which turns around one point and gives the next waypoint no orbit role.
+  if point3 then
+    if speed > -1 then
+      point3.speed = speed / 1.94384 -- in m/s
+    end
+    if alt > -1 then
+      point3.alt = alt * 0.3048 -- in meters
+    end
+    veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
+  else
+    veaf.loggers.get(veafMove.Id):debug("tanker %s has no leg-end waypoint to adjust", veaf.lp(tankerGroupName))
   end
-  -- change altitude
-  if alt > -1 then
-    point3.alt = alt * 0.3048 -- in meters
-  end
-  veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
 
   -- replace whole mission
   veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
@@ -413,6 +475,19 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   veaf.loggers.get(veafMove.Id):trace(string.format("point1=%s", veaf.p(point1)))
   veaf.loggers.get(veafMove.Id):trace(string.format("point2=%s", veaf.p(point2)))
   veaf.loggers.get(veafMove.Id):trace(string.format("point3=%s", veaf.p(point3)))
+
+  -- Moving a tanker is a geometric operation on its refuelling leg, whose far end is point3. Since
+  -- #248 that waypoint may be absent — the orbit is the route's last point, or it is a Circle orbit,
+  -- which turns around a single point and has no leg. Refusing beats inventing a leg the mission maker
+  -- never drew: "moving a tanker to the wrong place is worse than telling the player it cannot be
+  -- done". A player who wants it moved anyway says where, with `distance` and `hdg`.
+  if not point3 and (distance == nil or hdg == nil) then
+    veaf.loggers
+      .get(veafMove.Id)
+      :info("Cannot work out the refuelling leg of tanker " .. groupName .. " without a waypoint after its orbit")
+    trigger.action.outText(veaf.t("move.tanker_move_no_leg", groupName), 10)
+    return false
+  end
 
   -- if distance is not set, compute distance between point2 and point3
   local distance = distance
@@ -497,20 +572,20 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   veaf.loggers.get(veafMove.Id):trace(string.format("movePoint=%s", veaf.p(movePoint)))
 
   -- set point1 to the computed movePoint
-  point1.x = movePoint.x
-  point1.y = movePoint.y
-  point1.alt = movePoint.alt
-  point1.speed = movePoint.speed
-  veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
+  -- Optional since #248: absent when the orbit is the route's first waypoint, in which case there is
+  -- no approach point to bring in front of the leg.
+  if point1 then
+    point1.x = movePoint.x
+    point1.y = movePoint.y
+    point1.alt = movePoint.alt
+    point1.speed = movePoint.speed
+    veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
+  else
+    veaf.loggers.get(veafMove.Id):debug("tanker %s orbits on its first waypoint; no approach point to move", veaf.lp(groupName))
+  end
 
   -- set point2 to the start of the tanking Orbit (startLegPoint)
-  local orbitTask = veafMove._findOrbitTaskInPoint(point2)
-  if not orbitTask then
-    local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
-    veaf.loggers.get(veafMove.Id):info(text)
-    trigger.action.outText(veaf.t("move.tanker_move_no_orbit", groupName), 10)
-    return false
-  end
+  local orbitTask = routeData.orbitTask
   veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. groupName)
   orbitTask.params.speed = speed
   orbitTask.params.altitude = alt
@@ -520,12 +595,17 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   point2.speed = startLegPoint.speed
   veaf.loggers.get(veafMove.Id):trace(string.format("newPoint2=%s", veaf.p(point2)))
 
-  -- set point2 to the end of the tanking Orbit (endLegPoint)
-  point3.x = endLegPoint.x
-  point3.y = endLegPoint.y
-  point3.alt = endLegPoint.alt
-  point3.speed = endLegPoint.speed
-  veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
+  -- set point3 to the end of the tanking Orbit (endLegPoint). This is the far end of a Race-Track
+  -- orbit by DCS's own semantics — it flies between the task's waypoint and the next one — which is
+  -- why overwriting it is right, on a long route as much as on a VEAF template. Guaranteed present
+  -- here: the leg check above refused earlier if it was missing and the player gave no distance/hdg.
+  if point3 then
+    point3.x = endLegPoint.x
+    point3.y = endLegPoint.y
+    point3.alt = endLegPoint.alt
+    point3.speed = endLegPoint.speed
+    veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
+  end
 
   --actually move the group
   local delay = 0
@@ -549,6 +629,127 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Finds the Escort task of an escort group, in the group data DCS keeps for it.
+--
+-- The task lives on the **last** waypoint of the escort's route, which is where a mission maker sets
+-- it up in the editor. Returns nil as soon as any link of that chain is missing -- no group data, no
+-- route, no task table, no enabled Escort task -- because that is the ordinary case for a group that
+-- simply has no escort, not an error to report.
+--
+-- @param groupName_escort, string, the name of the escort group itself (see EscortGroupNameSuffix)
+-- @return escortData, table, the escort's group data (nil when there is no Escort task to be found)
+-- @return task_escort, table, the Escort task inside it, ready to have its groupId reassigned
+-- @return points_escort, table, the route points already walked to find it -- returned rather than
+--         left to the caller to recompute, because two traversals of this structure would be two
+--         things to keep in step, which is the whole reason this lookup was extracted
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.findEscortTask(groupName_escort)
+  local escortData = veaf.getGroupData(groupName_escort)
+  if not escortData then
+    veaf.loggers.get(veafMove.Id):debug("findEscortTask: no group data for %s", groupName_escort)
+    return nil
+  end
+
+  local points_escort = veaf.findInTable(veaf.findInTable(escortData, "route"), "points")
+  if not points_escort or #points_escort == 0 then
+    veaf.loggers.get(veafMove.Id):debug("findEscortTask: %s has no route points", groupName_escort)
+    return nil
+  end
+
+  -- Last waypoint: where the escort task has to be set up in the editor.
+  local task2_escort = veaf.findInTable(points_escort[#points_escort], "task")
+  if not (task2_escort and task2_escort.params and task2_escort.params.tasks) then
+    veaf.loggers.get(veafMove.Id):debug("findEscortTask: last WP of %s carries no tasks", groupName_escort)
+    return nil
+  end
+
+  for _, task in pairs(task2_escort.params.tasks) do
+    -- The groupId stored in the mission has nothing to do with the id DCS needs at runtime, so it is
+    -- not checked here -- only that this is an enabled Escort task. Group.getID() supplies the real
+    -- one, and that is exactly what reestablishEscortTask writes back into it.
+    if task.enabled and task.id and task.id == "Escort" and task.params then
+      veaf.loggers
+        .get(veafMove.Id)
+        :trace("findEscortTask: found an Escort task on %s, stored groupId=%s", groupName_escort, task.params.groupId)
+      return escortData, task, points_escort
+    end
+  end
+
+  -- No log here: every caller reports this at info, where the context ("we were trying to repair
+  -- this escort") makes it actionable for a mission maker. Two lines at two levels for one condition
+  -- is noise in dcs.log.
+  return nil
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Repairs the Escort task of a group's escort after the escorted group has been recreated.
+--
+-- DCS destroys the link the moment the escorted group is recreated -- respawned or teleported -- and
+-- it does so silently: the escort keeps flying, runs out of route and goes home, which reads as an
+-- escort that quit after ten minutes rather than as a broken task (#107, measured in game
+-- 2026-08-18). The repair is to write the escorted group's **current** id into the task and push the
+-- mission back to the controller.
+--
+-- Unlike teleportEscort, nothing is moved here: the escort is where it was, only the id it points at
+-- has changed. That is why the respawn path needs this and nothing more.
+--
+-- The id is read inside the scheduled call rather than before it, because a respawn that has not
+-- landed yet would still hand back the id that just died.
+--
+-- @param escorted_groupName, string, the group that was just recreated
+-- @optional param delay, integer, seconds to wait for the respawn to land (default 1, as replaceMission)
+-- @return boolean, true when a repair was scheduled; false when this group has no escort to repair
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.reestablishEscortTask(escorted_groupName, delay)
+  local groupName_escort = escorted_groupName .. veafMove.EscortGroupNameSuffix
+
+  if not Group.getByName(groupName_escort) then
+    veaf.loggers.get(veafMove.Id):trace("reestablishEscortTask: %s has no escort", escorted_groupName)
+    return false
+  end
+
+  local escortData, task_escort = veafMove.findEscortTask(groupName_escort)
+  if not task_escort then
+    veaf.loggers.get(veafMove.Id):info(groupName_escort .. " exists but carries no Escort task ; nothing to repair")
+    return false
+  end
+
+  mist.scheduleFunction(
+    veafMove.actualReestablishEscortTask,
+    { escorted_groupName, groupName_escort, escortData, task_escort },
+    timer.getTime() + (delay or 1)
+  )
+  return true
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- The scheduled half of reestablishEscortTask -- separate so the id is read after the respawn.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.actualReestablishEscortTask(escorted_groupName, groupName_escort, escortData, task_escort)
+  local unitGroup = Group.getByName(escorted_groupName)
+  if not unitGroup then
+    veaf.loggers.get(veafMove.Id):info("Cannot repair the escort of " .. escorted_groupName .. " ; that group does not exist (any more)")
+    return false
+  end
+
+  local unitGroup_escort = Group.getByName(groupName_escort)
+  if not unitGroup_escort then
+    veaf.loggers.get(veafMove.Id):info("Cannot repair " .. groupName_escort .. " ; that group does not exist (any more)")
+    return false
+  end
+
+  -- This and only this is the id DCS wants; what the mission file stores does not correspond.
+  task_escort.params.groupId = Group.getID(unitGroup)
+  veaf.loggers
+    .get(veafMove.Id)
+    :debug("Re-establishing the escort task of %s onto group id %s", groupName_escort, task_escort.params.groupId)
+
+  -- No further delay: the respawn has landed by the time this runs.
+  veafMove.replaceMission(unitGroup_escort, escortData, 0)
+  return true
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Escort move method, only called internally
 -- @param escorted_groupName, string, corresponds to the groupname of the aicraft being escorted
 -- @param movePoint, vec3 + speed, corresponds to the first waypoint that the escorted aircraft will take after it was moved
@@ -567,58 +768,30 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
 
   --verify the existence of the escort and proper configuration
   local escortedId = Group.getID(unitGroup) --this and only this serves as a groupID, what is given in EscortData does not correspond on the DCS side
-  local groupName_escort = escorted_groupName .. " escort" --standardized escort groupName
-  local unitGroup_escort = Group.getByName(groupName_escort)
-  local escort_flag = false --indicates the go ahead for teleport/replaceMission calls
-  local route_escort = {}
-  local points_escort = {}
-  local idxPoint1_escort = nil
-  local idxPoint2_escort = nil
-  local point1_escort = {}
-  local point2_escort = {}
-  local task2_escort = {}
-  local tasks_escort = {}
-  local task_escort = {}
-  local EscortData = {}
-  if unitGroup_escort ~= nil then
-    EscortData = veaf.getGroupData(groupName_escort)
-    if not EscortData then
-      local text = "Cannot move Escort " .. groupName_escort .. " ; no group data"
-      veaf.loggers.get(veafMove.Id):info(text)
-    else
-      veaf.loggers.get(veafMove.Id):trace("EscortData : %s", veaf.lp(EscortData))
-      route_escort = veaf.findInTable(EscortData, "route")
-      points_escort = veaf.findInTable(route_escort, "points")
+  local groupName_escort = escorted_groupName .. veafMove.EscortGroupNameSuffix --standardized escort groupName
 
-      if points_escort then
-        veaf.loggers.get(veafMove.Id):debug("Escort has WP")
-        idxPoint1_escort = #points_escort - 1 --second to last waypoint
-        idxPoint2_escort = #points_escort --last waypoint where the escort has to be set up in the editor
-        point1_escort = points_escort[idxPoint1_escort]
-        point2_escort = points_escort[idxPoint2_escort]
-        task2_escort = veaf.findInTable(point2_escort, "task")
-        if task2_escort and task2_escort.params and task2_escort.params.tasks then
-          veaf.loggers.get(veafMove.Id):debug("Last escort WP has tasks")
-          tasks_escort = task2_escort.params.tasks
-          for k, task in pairs(tasks_escort) do
-            --if task.enabled and task.id and task.id == "Escort" and task.params and task.params.groupId == unitGroup_Id then --this line should be used to verify proper configuration of the escort but as it turns out the groupId stored in params has nothing to do with the groupId DCS needs for the escort task, use Group.getID(groupClass) instead to get the correct ID required for DCS, but no way to derive it from EscortData
-            if task.enabled and task.id and task.id == "Escort" and task.params then
-              veaf.loggers.get(veafMove.Id):trace("Found correct escort Tasking ! Extracted Escorted ID : %s", task.params.groupId)
-              veaf.loggers.get(veafMove.Id):trace("Required escort ID : %s", escortedId)
-              escort_flag = true
-              task_escort = task --recover the escort task table to insert the "new" escorted ID, even though it's the same but it seems DCS destroys it after the escorted group respawns
-            end
-          end
-        end
-      end
-    end
-  else
+  if not Group.getByName(groupName_escort) then
     veaf.loggers.get(veafMove.Id):info(groupName_escort .. " not found for move tanker escort command")
-  end
-
-  if not escort_flag then
     return false
   end
+
+  -- Same lookup the respawn path uses (reestablishEscortTask): one implementation of where an Escort
+  -- task lives and what a valid one looks like.
+  local EscortData, task_escort, points_escort = veafMove.findEscortTask(groupName_escort)
+  if not task_escort then
+    veaf.loggers.get(veafMove.Id):info(groupName_escort .. " carries no Escort task ; cannot move its escort")
+    return false
+  end
+
+  if #points_escort < 2 then
+    -- The teleport rewrites the last two waypoints; with a single one there is nothing to rewrite.
+    -- findEscortTask accepts a one-point route on purpose: repairing the task needs no waypoints.
+    veaf.loggers.get(veafMove.Id):info(groupName_escort .. " has fewer than two waypoints ; cannot move its escort")
+    return false
+  end
+  local point1_escort = points_escort[#points_escort - 1] --second to last waypoint
+  local point2_escort = points_escort[#points_escort] --last waypoint where the escort has to be set up in the editor
+  veaf.loggers.get(veafMove.Id):trace("Required escort ID : %s", escortedId)
 
   --distances by which the escort is offseted from the escorted group in the map's referential, task_escort provides relative spacing
   local escort_offset = {}
@@ -649,8 +822,8 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
 
   veaf.loggers.get(veafMove.Id):debug("Teleport the escort")
   local vars_escort = { groupName = groupName_escort, point = teleportPoint_escort, action = "teleport" }
-  local grp_escort = mist.teleportToPoint(vars_escort)
-  unitGroup_escort = Group.getByName(groupName_escort)
+  mist.teleportToPoint(vars_escort)
+  local unitGroup_escort = Group.getByName(groupName_escort)
 
   veafMove.replaceMission(unitGroup_escort, EscortData)
   --this method appears to not work very well, the escort just doesn't defend the group

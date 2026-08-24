@@ -124,6 +124,36 @@ _spawn convoy, dest [DEST_MARKER_NAME], speed 50, defense 2, armor 2, size 3
 - `patrol` — loop back to start
 - `offroad` — allow off-road movement
 
+#### Several legs: write `dest` as many times as you need {#convoy-itinerary}
+
+`dest` can be repeated. The convoy walks the points **in the order you write them**, setting off again by itself on each arrival:
+
+```
+_spawn convoy, dest KOBULETI, dest BATUMI, dest POTI, speed 40
+```
+
+A single `dest` is still a one-leg trip: nothing changes for the markers you already use.
+
+Two things worth knowing:
+
+- **`patrol` applies to the last leg only.** Patrolling between two points of an itinerary would contradict the itinerary itself.
+- **A leg starts from wherever the convoy is**, not from where it spawned — it has been driving since.
+
+#### The four radio commands {#convoy-radio-commands}
+
+The F10 menu offers four commands doing four different things. The two brakes in particular are not interchangeable:
+
+| Command | Effect | When to reach for it |
+|---|---|---|
+| **Send to next point** | starts the next leg at once, without waiting for arrival | to speed up a mission that is dragging |
+| **Hold at next point** | lets the convoy **finish its leg**, then park at that point and wait | to pace a mission: the convoy stops somewhere you chose |
+| **Halt where it stands** | the convoy stops **on the spot**, mid-road if need be | to rescue a mission going wrong |
+| **Resume after a halt** | picks the current leg back up where it was interrupted | after halting on the spot |
+
+"Hold at next point" and "Halt where it stands" look alike from a distance and do not substitute for one another: the first chooses **where** the convoy stops, the second chooses **when**. Every command reports what it did, naming the point involved.
+
+On the last leg, "Hold at next point" tells you there is no next point rather than doing nothing.
+
 ### Spawn smoke
 
 ```
@@ -150,6 +180,42 @@ _spawn bomb, power 500, shells 3
 ```
 _spawn farp, name "FARP Alpha", side blue
 ```
+
+### Spawn a radio beacon {#beacon}
+
+```
+_spawn beacon
+_spawn beacon, name "Alpha Beacon", side red
+-beacon
+```
+
+One command places **three** beacons at the same spot — ADF (VHF), UHF and **FM** — and the on-screen
+message hands you all three frequencies:
+
+```
+Radio beacon up — ADF 245.00 kHz · UHF 251.00 MHz · FM 40.50 MHz
+```
+
+The beacon goes **exactly where you dropped the marker**, with no scatter, unlike the commands that spawn
+groups.
+
+!!! note "CTLD picks the frequencies, not you"
+    CTLD draws them from its own pools so that two beacons never collide, and it exposes no way to ask
+    for a particular one. That is why the command **tells** you them instead of taking them as a
+    parameter: a beacon whose frequency nobody knows is of no use.
+
+    An option to request a frequency is proposed upstream
+    ([VEAF/CTLD#128](https://github.com/VEAF/CTLD/pull/128)); a `freq` parameter will be added here once
+    it lands.
+
+**CTLD has to be running** in the mission (`modules: CTLD: true`); otherwise the command says so rather
+than doing nothing.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `name` | CTLD numbers it ("Beacon #1") | the beacon's display name |
+| `side` | blue | the coalition that hears it |
+| `radius` | 0 | scatter around the marker, in metres |
 
 ### Destroy units
 

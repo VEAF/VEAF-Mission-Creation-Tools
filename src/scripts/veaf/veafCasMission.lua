@@ -255,22 +255,38 @@ veafCasMission.TRANSPORT_TYPES = {
   },
 }
 
+-- Armour available to a spawned platoon, by side, era and tier (0 = none, 5 = the heaviest).
+--
+-- **Hand-written, deliberately** (FIX-PLATOON-UNITS, #296). Deriving these tiers from `dcsUnits` was the
+-- alternative and it is not possible: a tier is an *editorial* judgement of relative power, and an era is
+-- a judgement of period — the generated database carries neither. Its records hold `type`, `name`,
+-- `kind`, `category` and DCS `attributes`, and nothing there separates a BMP-1 (tier 1) from a T-90
+-- (tier 5). Deriving would mean inventing the data first.
+--
+-- What stops #296 recurring is therefore not derivation but the **enumerated sweep** in
+-- `test_veafCasMission`: every entry of every table is checked against the database, so a type DCS
+-- renames or drops fails the build instead of silently spawning nothing. That sweep is what found six
+-- occurrences of `"APC TPz Fuchs"` resolving to nothing.
+--
+-- Entries use the DCS **type id** rather than the display name where the two differ (`CHAP_T90M`, not
+-- `MBT T-90M [CH]`): a type id is stable, and a display name is what carried the trailing space that
+-- broke the Fuchs.
 veafCasMission.ARMOR_TYPES = {
   [coalition.side.BLUE] = {
     [veaf.ERA.MODERN] = {
       [0] = {},
-      [1] = { "IFV Marder", "MCV-80", "IFV LAV-25", "M1134 Stryker ATGM", "M-2 Bradley" },
-      [2] = { "IFV Marder", "MCV-80", "IFV LAV-25", "M1134 Stryker ATGM", "M-2 Bradley" },
-      [3] = { "IFV Marder", "VAB_Mephisto", "M-2 Bradley", "MBT Leopard 1A3", "Chieftain_mk3" },
-      [4] = { "M-2 Bradley", "MBT Leopard 1A3", "Merkava_Mk4", "M1128 Stryker MGS" },
-      [5] = { "Merkava_Mk4", "Challenger2", "Leclerc", "Leopard-2", "M-1 Abrams" },
+      [1] = { "IFV Marder", "MCV-80", "IFV LAV-25", "M1134 Stryker ATGM", "M-2 Bradley", "CHAP_MATV" },
+      [2] = { "IFV Marder", "MCV-80", "IFV LAV-25", "M1134 Stryker ATGM", "M-2 Bradley", "CHAP_MATV" },
+      [3] = { "IFV Marder", "VAB_Mephisto", "M-2 Bradley", "MBT Leopard 1A3", "Chieftain_mk3", "CHAP_M1130" },
+      [4] = { "M-2 Bradley", "MBT Leopard 1A3", "Merkava_Mk4", "M1128 Stryker MGS", "CHAP_M1130" },
+      [5] = { "Merkava_Mk4", "Challenger2", "Leclerc", "Leopard-2", "M-1 Abrams", "CHAP_T84OplotM" },
     },
     [veaf.ERA.COLD_WAR] = {
       [0] = {},
-      [1] = { "APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious" },
-      [2] = { "APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious", "IFV Marder" },
-      [3] = { "APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious", "IFV Marder", "MBT M60A3 Patton" },
-      [4] = { "APC AAV-7 Amphibious", "IFV Marder", "MBT M60A3 Patton", "MBT Leopard 1A3", "MBT Chieftain Mk.3" },
+      [1] = { "APC M113", "TPZ", "APC AAV-7 Amphibious", "CHAP_FV107" },
+      [2] = { "APC M113", "TPZ", "APC AAV-7 Amphibious", "IFV Marder", "CHAP_FV107" },
+      [3] = { "APC M113", "TPZ", "APC AAV-7 Amphibious", "IFV Marder", "MBT M60A3 Patton", "CHAP_FV101" },
+      [4] = { "APC AAV-7 Amphibious", "IFV Marder", "MBT M60A3 Patton", "MBT Leopard 1A3", "MBT Chieftain Mk.3", "CHAP_FV101" },
       [5] = { "APC AAV-7 Amphibious", "IFV Marder", "MBT M60A3 Patton", "MBT Leopard 1A3", "MBT Chieftain Mk.3" },
     },
     [veaf.ERA.WW2] = {
@@ -288,8 +304,8 @@ veafCasMission.ARMOR_TYPES = {
       [1] = { "BTR-82A", "BMP-1", "VAB_Mephisto" },
       [2] = { "BTR-82A", "BMP-1", "VAB_Mephisto", "BMP-2" },
       [3] = { "BTR-82A", "VAB_Mephisto", "BMP-2", "T-55", "Chieftain_mk3" },
-      [4] = { "BTR-82A", "BMP-3", "Chieftain_mk3", "T-72B" },
-      [5] = { "BMP-3", "ZTZ96B", "T-72B3", "T-80UD", "T-90" },
+      [4] = { "BTR-82A", "BMP-3", "Chieftain_mk3", "T-72B", "CHAP_T64BV", "CHAP_BMPT" },
+      [5] = { "BMP-3", "ZTZ96B", "T-72B3", "T-80UD", "T-90", "CHAP_T90M", "CHAP_BMPT" },
     },
     [veaf.ERA.COLD_WAR] = {
       [0] = {},
@@ -335,9 +351,9 @@ veafCasMission.INFANTRY_IFV_TYPES = {
     },
     [veaf.ERA.COLD_WAR] = {
       [0] = { "Truck M939 Heavy" },
-      [1] = { "APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious" },
-      [2] = { "APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious", "IFV Marder" },
-      [3] = { "APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious", "IFV Marder" },
+      [1] = { "APC M113", "TPZ", "APC AAV-7 Amphibious" },
+      [2] = { "APC M113", "TPZ", "APC AAV-7 Amphibious", "IFV Marder" },
+      [3] = { "APC M113", "TPZ", "APC AAV-7 Amphibious", "IFV Marder" },
       [4] = { "APC AAV-7 Amphibious", "IFV Marder" },
       [5] = { "APC AAV-7 Amphibious", "IFV Marder" },
     },
@@ -422,6 +438,10 @@ function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, b
     local options = veafCasMission.markTextAnalysis(eventText)
 
     if options then
+      -- A typo aborts — see veaf.reportUnknownParameters. nil: this handler is not given the requester.
+      if veaf.reportUnknownParameters(options, veafCasMission.Id, nil) then
+        return false
+      end
       -- Check options commands
       if options.casmission then
         if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
@@ -473,6 +493,8 @@ end
 --- predicates: the flag is set before the loop and the function returns nil when the keyphrase is
 --- absent, so all five were always true.
 veafCasMission.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.casmission = false
     options.size = 1 -- ranges from 1 to 5, 5 being the biggest

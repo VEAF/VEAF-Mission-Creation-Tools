@@ -9,6 +9,12 @@ dofile(src .. "/veaf.lua")
 -- New schema: keyed by DCS type id, with a single `kind` field.
 dcsUnits = {
   DcsUnitsDatabase = {
+    -- Two entries whose display name carries a trailing space, mirroring what DCS actually ships for
+    -- `TPZ` and `MCV-80` (the only two of its 873 units that do). FIX-PLATOON-UNITS: that space is
+    -- invisible to anyone reading the name off the mission editor, and before the lookup trimmed, asking
+    -- for the unit by name resolved to nothing.
+    ["TPZ"] = { type = "TPZ", name = "APC TPz Fuchs ", kind = "vehicle", category = "Armor" },
+    ["MCV-80"] = { type = "MCV-80", name = "IFV Warrior ", kind = "vehicle", category = "Armor" },
     ["ZSU-23-4 Shilka"] = {
       type = "ZSU-23-4 Shilka",
       name = "AAA ZSU-23-4 Shilka",
@@ -824,6 +830,47 @@ TestVeafUnitsInitialize = {}
 
 function TestVeafUnitsInitialize:test_initialize_runs()
   veafUnits.initialize()
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-PLATOON-UNITS — a display name with stray whitespace must still resolve
+--
+-- Found by the enumerated sweep in test_veafCasMission: `"APC TPz Fuchs"` appeared in six places in the
+-- platoon composition tables and resolved to **nothing**, silently, because the name DCS ships is
+-- `'APC TPz Fuchs '` — with a trailing space. The space is invisible to anyone reading the name off the
+-- mission editor and typing it, so the lookup now compares trimmed values.
+--
+-- Not cosmetic: before this, a marker asking for that unit by name spawned nothing and said so only in
+-- the log. The stub above carries the two padded entries the real database has.
+-- ---------------------------------------------------------------------------
+TestVeafUnitsLookupWhitespace = {}
+
+function TestVeafUnitsLookupWhitespace:test_a_padded_name_resolves_without_its_space()
+  local found = veafUnits.findDcsUnit("APC TPz Fuchs")
+  luaunit.assertNotNil(found, "the name as a human would type it must resolve")
+  luaunit.assertEquals(found.type, "TPZ")
+end
+
+function TestVeafUnitsLookupWhitespace:test_the_padded_name_as_shipped_still_resolves()
+  luaunit.assertNotNil(veafUnits.findDcsUnit("APC TPz Fuchs "), "the exact DCS name must keep working")
+end
+
+function TestVeafUnitsLookupWhitespace:test_the_other_padded_unit_resolves_too()
+  local found = veafUnits.findDcsUnit("IFV Warrior")
+  luaunit.assertNotNil(found)
+  luaunit.assertEquals(found.type, "MCV-80")
+end
+
+function TestVeafUnitsLookupWhitespace:test_a_type_id_is_unaffected()
+  luaunit.assertEquals(veafUnits.findDcsUnit("TPZ").type, "TPZ")
+end
+
+function TestVeafUnitsLookupWhitespace:test_a_name_padded_by_the_caller_resolves_too()
+  luaunit.assertEquals(veafUnits.findDcsUnit("  TPZ  ").type, "TPZ", "trimming applies to what the caller wrote too")
+end
+
+function TestVeafUnitsLookupWhitespace:test_a_name_the_database_does_not_have_still_returns_nil()
+  luaunit.assertNil(veafUnits.findDcsUnit("A Unit Nobody Shipped"))
 end
 
 os.exit(luaunit.LuaUnit.run())

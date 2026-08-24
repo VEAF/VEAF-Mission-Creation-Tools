@@ -4,6 +4,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+-- FIX-PLATOON-UNITS: the type tables below are hand-written, and the point of the sweep at the end
+-- of this file is to check every entry against the generated DCS database. That needs the real
+-- databases, not stubs.
+dofile(src .. "/dcsUnits.lua")
+dofile(src .. "/veafUnits.lua")
 dofile(src .. "/veafCasMission.lua")
 
 -- ---------------------------------------------------------------------------
@@ -262,12 +267,15 @@ function TestVeafCasCharacterisation:test_the_keyphrase_is_case_insensitive()
   luaunit.assertNotNil(veafCasMission.markTextAnalysis("_CAS"))
 end
 
--- An unknown keyword is ignored in silence: no report, no effect on the defaults.
-function TestVeafCasCharacterisation:test_unknown_keyword_is_ignored_silently()
+-- FEAT-SPAWN-OPTION-VALIDATION renamed this: an unknown keyword is no longer ignored, it is
+-- collected so the caller can name it to the pilot and abort. What the original test proved and
+-- this one still proves: the **recognised** options are untouched by the presence of a bad one.
+function TestVeafCasCharacterisation:test_an_unknown_keyword_is_collected_not_ignored()
   local r = veafCasMission.markTextAnalysis("_cas, banana 3")
   luaunit.assertNotNil(r)
   luaunit.assertEquals(r.size, 1)
-  luaunit.assertNil(r.unknownParameters)
+  luaunit.assertEquals(r.unknownParameters[1].key, "banana")
+  luaunit.assertEquals(#r.unknownParameters, 1)
 end
 
 function TestVeafCasCharacterisation:test_empty_text_returns_nil()
@@ -350,6 +358,131 @@ function TestVeafCasMissionNumericKeywords:test_out_of_range_size_is_still_ignor
   -- Behaviour deliberately preserved: an out-of-range value is ignored, not clamped.
   local result = self:_analyse("_cas, size 9")
   luaunit.assertNotEquals(result.size, 9)
+end
+
+-- ============================================================================
+-- FIX-PLATOON-UNITS — every hand-written type must exist in the generated database
+--
+-- #296: the Currenthill units live in `dcsUnits`, kept fresh by `update-dcs-data`, while a platoon
+-- composition is a hand-written table here. So the data pipeline gains units and the spawner never sees
+-- them — and, worse, an entry can rot without anyone noticing: a type DCS renames or drops simply stops
+-- spawning, silently, because `veafUnits.findUnit` logs and returns nil.
+--
+-- This sweep is **enumerated, not sampled**: every entry of every table, so a typo cannot hide behind
+-- the ones that happen to be checked. It is the part of this lot that stops the problem recurring —
+-- adding units fixes today, this fails the build tomorrow.
+-- ============================================================================
+TestVeafCasMissionTypesExist = {}
+
+local TYPE_TABLES = {
+  TRANSPORT_TYPES = veafCasMission.TRANSPORT_TYPES,
+  ARMOR_TYPES = veafCasMission.ARMOR_TYPES,
+  INFANTRY_TYPES = veafCasMission.INFANTRY_TYPES,
+  INFANTRY_IFV_TYPES = veafCasMission.INFANTRY_IFV_TYPES,
+}
+
+--- Walk a nested table of type-name lists, calling `visit(typeName, path)` on every string leaf.
+local function walkTypes(node, path, visit)
+  if type(node) == "string" then
+    visit(node, path)
+    return
+  end
+  if type(node) ~= "table" then
+    return
+  end
+  for key, child in pairs(node) do
+    walkTypes(child, path .. "[" .. tostring(key) .. "]", visit)
+  end
+end
+
+function TestVeafCasMissionTypesExist:test_every_type_in_every_table_is_known_to_the_database()
+  local missing = {}
+  local checked = 0
+  for tableName, tbl in pairs(TYPE_TABLES) do
+    walkTypes(tbl, tableName, function(typeName, path)
+      checked = checked + 1
+      if not veafUnits.findDcsUnit(typeName) then
+        table.insert(missing, path .. " = " .. typeName)
+      end
+    end)
+  end
+  luaunit.assertTrue(checked > 100, "the sweep found only " .. checked .. " types; it is not reaching the tables")
+  luaunit.assertEquals(missing, {}, "types no unit database knows:\n  " .. table.concat(missing, "\n  "))
+end
+
+-- The units #296 asked for, named rather than assumed present: this is what the lot promised.
+function TestVeafCasMissionTypesExist:test_the_units_296_asked_for_can_be_spawned()
+  local wanted = { "CHAP_T84OplotM", "CHAP_T90M", "CHAP_BMPT" }
+  for _, typeName in ipairs(wanted) do
+    luaunit.assertNotNil(veafUnits.findDcsUnit(typeName), typeName .. " must exist in the database")
+    local found = false
+    walkTypes(veafCasMission.ARMOR_TYPES, "ARMOR_TYPES", function(candidate)
+      if candidate == typeName then
+        found = true
+      end
+    end)
+    luaunit.assertTrue(found, typeName .. " must appear in an armour tier, or it can never be spawned")
+  end
+end
+
+--- Is this node a flat list of type names, rather than a table of tiers?
+---
+--- The two shapes coexist on purpose: `INFANTRY_TYPES` is side → era → names, while the other three are
+--- side → era → tier → names. Telling them apart matters more than it looks — a traversal that assumed
+--- tiers everywhere did **not** raise on the flat one (Lua's `#` on a string is its length, so
+--- `#"Soldier RPG" > 0` is happily true) and quietly asserted nothing at all about infantry.
+local function isFlatTypeList(node)
+  if type(node) ~= "table" or #node == 0 then
+    return false
+  end
+  for _, value in ipairs(node) do
+    if type(value) ~= "string" then
+      return false
+    end
+  end
+  return true
+end
+
+-- A tier is drawn from at random, so an empty one above tier 0 would spawn nothing at all. The flat
+-- shape has the same requirement without the tier: an empty list spawns nothing either.
+function TestVeafCasMissionTypesExist:test_no_list_a_spawn_draws_from_is_empty()
+  local checkedTiers, checkedFlat = 0, 0
+  for tableName, tbl in pairs(TYPE_TABLES) do
+    for side, byEra in pairs(tbl) do
+      for era, node in pairs(byEra) do
+        local where = string.format("%s[%s][%s]", tableName, tostring(side), tostring(era))
+        if isFlatTypeList(node) then
+          checkedFlat = checkedFlat + 1
+          luaunit.assertTrue(#node > 0, where .. " is empty: it would spawn nothing")
+        else
+          for tier, types in pairs(node) do
+            if type(tier) == "number" and tier > 0 then
+              checkedTiers = checkedTiers + 1
+              luaunit.assertEquals(type(types), "table", string.format("%s[%d] is not a list of types", where, tier))
+              luaunit.assertTrue(#types > 0, string.format("%s[%d] is empty: it would spawn nothing", where, tier))
+            end
+          end
+        end
+      end
+    end
+  end
+  -- Both shapes must actually have been visited, or this test passes by never looking. Which is what it
+  -- used to do for the flat one.
+  luaunit.assertTrue(checkedTiers > 20, "only " .. checkedTiers .. " tiers visited")
+  luaunit.assertTrue(checkedFlat >= 6, "only " .. checkedFlat .. " flat lists visited; INFANTRY_TYPES has 6")
+end
+
+-- The guard in `veafUnits.findDcsUnit` exists because DCS ships two units whose display name has a
+-- trailing space. If a regeneration ever cleaned them up, that guard would become dead code rather than
+-- wrong — better to be told than to keep carrying it for no reason.
+function TestVeafCasMissionTypesExist:test_the_database_still_has_the_padded_names_the_lookup_guards()
+  local padded = {}
+  for _, u in pairs(dcsUnits.DcsUnitsDatabase) do
+    if type(u) == "table" and type(u.name) == "string" and u.name ~= veaf.trim(u.name) then
+      table.insert(padded, u.type)
+    end
+  end
+  luaunit.assertTrue(#padded > 0, "no padded name left in the database; the trim in findDcsUnit can go")
 end
 
 os.exit(luaunit.LuaUnit.run())

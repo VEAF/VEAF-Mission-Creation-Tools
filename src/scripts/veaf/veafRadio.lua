@@ -163,6 +163,10 @@ function veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSec
     local options = veafRadio.markTextAnalysis(eventText)
 
     if options then
+      -- A typo aborts — see veaf.reportUnknownParameters. The event coalition is the requester's here.
+      if veaf.reportUnknownParameters(options, veafRadio.Id, eventCoalition) then
+        return false
+      end
       veaf.loggers.get(veafRadio.Id):trace(string.format("options.path=%s", veaf.p(options.path)))
       -- Check options commands
       if options.transmit and options.message and options.frequencies and options.name then
@@ -207,6 +211,8 @@ end
 ---     makes the permissive shared loop behaviour-preserving here. The chain's duplicate second
 ---     `path` branch is gone rather than translated: it was unreachable and never ran.
 veafRadio.MarkerSpec = {
+  reportUnknownKeys = true,
+
   defaults = function(options)
     options.transmit = false
     options.playmp3 = false

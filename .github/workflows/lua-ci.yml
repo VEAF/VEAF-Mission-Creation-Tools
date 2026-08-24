@@ -106,4 +106,4 @@ jobs:
         run: poetry install --without build --all-extras
 
       - name: Run Lua tests with coverage floor
-        run: poetry run test-lua --cov-fail-under 73
+        run: poetry run test-lua --cov-fail-under 75

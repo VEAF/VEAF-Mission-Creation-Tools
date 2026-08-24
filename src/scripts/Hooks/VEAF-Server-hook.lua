@@ -307,7 +307,10 @@ function veafServerHook.onPlayerChangeSlot(id)
   veafServerHook.logTrace(string.format("unitName=%s", veafServerHook.p(unitName)))
 
   -- set the player current unit name
-  local payload = string.format(REGISTER_PLAYER_SLOT, tostring(playerName), tostring(ucid), tostring(unitName or "nil")) -- unitName will be nil if the player is a spectator
+  -- An empty string, not the literal "nil": that string is truthy on the mission side, so it used to be
+  -- registered as a unit actually called `nil` (FIX-REMOTE-SLOT-NIL-UNIT). Empty rather than a real nil
+  -- because the three values go through %q in the template, and the mission normalises either way.
+  local payload = string.format(REGISTER_PLAYER_SLOT, tostring(playerName), tostring(ucid), unitName or "") -- unitName is nil when the player is in no unit
   veafServerHook.logTrace(string.format("payload=%s", veafServerHook.p(payload)))
   veafServerHook.injectCode(payload)
 end

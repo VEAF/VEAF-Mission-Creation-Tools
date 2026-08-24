@@ -111,7 +111,11 @@ class Result:
 #: than an opaque error. They are **truthy strings**, so any expectation must reject them explicitly —
 #: an early version of the veaf-loaded check used a plain truthiness test and therefore passed in
 #: exactly the situation it existed to catch.
-SENTINELS: frozenset[str] = frozenset({"nil", "veaf-absent", "no-singleton", "not-a-table"})
+#:
+#: `veaf-no-version` splits a case that used to be folded into `veaf-absent`: the table is there but
+#: carries no `BuildVersion`. Collapsing the two is what hid a dead check for eighteen days, since it
+#: reported "VEAF is not loaded" when VEAF was loaded and only the field was wrong.
+SENTINELS: frozenset[str] = frozenset({"nil", "veaf-absent", "veaf-no-version", "no-singleton", "not-a-table"})
 
 #: **A check's Lua must return a string. Always.**
 #:
@@ -175,6 +179,190 @@ def _disposition_avoids_scenery(value: Any) -> bool:
         return int(parts.get("points", "0")) > 0 and int(parts.get("near_scenery", "1")) == 0
     except ValueError:
         return False
+
+
+#: The spot classifications the CSAR-over-water checks ask for. Shared by the chunk builder and the
+#: verdict so a mode can never be accepted that no check emits.
+_CSAR_WATER_MODES: frozenset[str] = frozenset({"open", "coast"})
+
+
+def _csar_stayed_dry(value: Any) -> bool:
+    """Whether the CSAR survivor ended up where David's arbitration on #245 says he should.
+
+    Args:
+        value: The check's reply — ``mode:<open|coast> lost:1``, or
+            ``mode:<open|coast> lost:0 surface:<id> dry:<0|1>``.
+
+    Returns:
+        ``True`` when the outcome matches the rule **for that mode**.
+
+    The rule has two halves and they expect opposite results, which is why one expectation cannot
+    serve both:
+
+    * **open sea** — nothing dry within 500 m, so no CSAR is created at all: ``lost:1`` is the pass,
+      and a survivor placed anywhere is the failure;
+    * **coast** — dry ground is within reach, so a survivor must exist and stand on it: ``lost:0``
+      with ``dry:1`` is the pass, and ``lost:1`` here means a rescuable pilot was written off.
+
+    Everything else is a failure, covering three kinds of "no":
+
+    * the question could not be asked — ``csar-absent``, ``no-water-found-open``, ``no-group``;
+    * the survivor got wet — ``dry:0``;
+    * the reply is **malformed or partial** — ``mode:bogus lost:0``, or a ``lost:0`` with no surface.
+
+    That last kind is worth spelling out. An earlier version accepted anything starting with ``mode:``
+    that carried ``dry:1``, so a truncated bridge reply passed while proving nothing — the vacuous pass
+    this whole module is written against, in the check meant to settle #245 (Sourcery, PR #785). Every
+    field is validated: the mode must be one this check asked for, ``lost`` must be 0 or 1, and where a
+    survivor exists the surface must be a number DCS returned with ``dry`` exactly 0 or 1.
+    """
+    if not isinstance(value, str):
+        return False
+    parts = dict(p.split(":", 1) for p in value.split() if ":" in p)
+    mode = parts.get("mode")
+    if mode not in _CSAR_WATER_MODES:
+        return False
+    if parts.get("lost") not in {"0", "1"}:
+        return False
+
+    # The two modes have **opposite** correct answers, which is the whole of David's arbitration on
+    # #245: within 500 m of dry ground the survivor is moved there, otherwise he counts as dead. So
+    # open sea must produce no CSAR at all, and a coast must produce one standing on something dry.
+    # A single expectation for both would have to accept one of the two failures.
+    # A rescue that reaches further than its own radius is a failure whichever mode reports it: the
+    # radius *is* the rule. Checked only when the field is present, so a reply from an older mission
+    # still parses — but never skipped when it is, which is what stops the bound from silently drifting.
+    moved, radius = parts.get("moved", ""), parts.get("radius", "")
+    if moved.isdigit() and radius.isdigit() and int(moved) > int(radius):
+        return False
+
+    if mode == "open":
+        return parts["lost"] == "1"
+
+    if parts["lost"] == "1":
+        return False
+    if not parts.get("surface", "").isdigit():
+        return False
+    if parts.get("dry") not in {"0", "1"}:
+        return False
+    return parts["dry"] == "1"
+
+
+def _csar_water_check_lua(mode: str) -> str:
+    """Build the Lua for one CSAR-over-water check.
+
+    Args:
+        mode: ``"open"`` for a point whose neighbours are all water, ``"coast"`` for one with land
+            within 150 m.
+
+    Returns:
+        A chunk returning ``mode:<mode> surface:<id> dry:<0|1>``, or a word saying why it could not ask.
+
+    Two coordinate conventions meet in here, which is the whole reason it is built rather than written
+    twice. ``land.getSurfaceType`` takes a **vec2** whose ``y`` is the *easting*, while a unit's
+    ``getPoint()`` is a **vec3** whose ``y`` is the altitude and whose ``z`` is the easting
+    (``docs/agents/dcs-coordinates.md``). Feeding one to the other reads the surface a hundred kilometres
+    away and reports it cheerfully.
+    """
+    # Bound to a name rather than returned inline, and not for style: `test_no_hardcoded_english_prose`
+    # flags any `return` of a long string containing a space as user-visible prose needing `t()`. A Lua
+    # chunk is neither prose nor user-visible, and naming it says so — preferable to adding this module
+    # to the detector's exemption list, which is where a real hardcoded message would then hide.
+    chunk = (
+        # csar is a mission-environment global loaded by mission-script.lua
+        "if type(csar) ~= 'table' or type(csar.spawnGroup) ~= 'function' then return 'csar-absent' end "
+        "local W, S = land.SurfaceType.WATER, land.SurfaceType.SHALLOW_WATER "
+        "local function wet(x, z) local s = land.getSurfaceType({x = x, y = z}) return s == W or s == S end "
+        # Anchor on the first airbase and sweep outwards: this must not depend on the theatre, so no
+        # coordinate is hard-coded anywhere in this check.
+        "local abs = world.getAirbases() if not abs or #abs == 0 then return 'no-airbases' end "
+        # The rescue radius is read from the product, never duplicated here. Measured 2026-08-22: this
+        # check classified "open sea" as *all eight neighbours at 150 m are water*, while the fix searches
+        # for dry ground out to 500 m — so a spot 300 m off a coast satisfied both, the survivor was
+        # correctly moved ashore, and the check called it a failure. A test that hard-codes a distance the
+        # product owns will drift from it the first time the product changes.
+        "local R = (veaf and veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES) or 500 "
+        "local o = abs[1]:getPoint() "
+        "local target "
+        "for r = 2000, 60000, 2000 do "
+        "for a = 0, 15 do local th = a * math.pi / 8 "
+        "local x, z = o.x + r * math.cos(th), o.z + r * math.sin(th) "
+        "if wet(x, z) then "
+        # Two different questions, so two different sweeps. `coast` only needs land within 150 m, which
+        # guarantees dry ground inside the rescue radius. `open` must assert the *opposite* — that no dry
+        # ground exists within it — so it samples rings, because eight samples at one radius cannot
+        # answer that.
+        #
+        # The margin is **2×** the radius, not the 1.2× first tried, and the reason is that the thing
+        # being tested is not deterministic: `veaf.findSpawnPoint` draws candidates from
+        # `Disposition.getSimpleZones` and `mist.getRandPointInCircle`, both random. So near a marginal
+        # spot it finds dry ground on some runs and not others, and a sweep that merely samples the same
+        # radius will disagree with it intermittently. Measured on 2026-08-22: the identical harness
+        # answered `lost:0` on one run and `lost:1` on the next with no code change in between. A test
+        # that flickers gets ignored, and this one guards a rule about someone's life.
+        "local land_near = false "
+        "for b = 0, 7 do local t2 = b * math.pi / 4 "
+        "local nx, nz = x + 150 * math.cos(t2), z + 150 * math.sin(t2) "
+        "if not wet(nx, nz) then land_near = true end end "
+        # Dry ground anywhere inside the rescue radius disqualifies a spot as open sea, whatever its
+        # bearing. Sampled in rings so a narrow spit of land cannot slip between two spokes.
+        "local dry_in_radius = false "
+        "for rr = 100, R * 2, 100 do for b = 0, 15 do local t2 = b * math.pi / 8 "
+        "if not wet(x + rr * math.cos(t2), z + rr * math.sin(t2)) then dry_in_radius = true break end "
+        "end if dry_in_radius then break end end "
+        f"if {'not dry_in_radius' if mode == 'open' else 'land_near'} then target = {{x = x, y = 0, z = z}} break end "
+        "end end "
+        "if target then break end end "
+        f"if not target then return 'no-water-found-{mode}' end "
+        # `csar.addCsar`, **not** `csar.spawnGroup`. This is where the whole check turned out to be
+        # measuring the wrong thing: FIX-CSAR-SPAWNS-ON-WATER replaces `addCsar` — the function CSAR
+        # itself calls on an ejection — and `spawnGroup` is the raw placement underneath it, which has
+        # never had a surface test and was never meant to. Calling `spawnGroup` bypassed the fix
+        # entirely, so on 2026-08-22 the harness reported `surface:3 dry:0` against a working product.
+        #
+        # `addCsar` returns nothing (CSAR.lua:368-412); it registers the survivor in
+        # `csar.woundedGroups`, keyed by group name. So the new key is how we find what was created —
+        # and its *absence* is the answer for open sea, where the survivor is deliberately lost.
+        "local before = {} for k in pairs(csar.woundedGroups or {}) do before[k] = true end "
+        "local ok, err = pcall(csar.addCsar, coalition.side.BLUE, country.id.USA, target, "
+        "'F-16C', 'smoke-harness-unit', 'SmokeHarness', nil, true) "
+        "if not ok then return 'raised: ' .. tostring(err) end "
+        "local name for k in pairs(csar.woundedGroups or {}) do if not before[k] then name = k end end "
+        f"if not name then return 'mode:{mode} lost:1' end "
+        # Every post-spawn read happens inside a pcall so the cleanup below runs whatever they do. Any
+        # of getByName / getUnits / getPoint / getSurfaceType can raise on a group DCS invalidated
+        # between the spawn and the read, and leaving the chunk early would leak a CSAR pilot into the
+        # mission — contaminating every later check and every repeat run. (Sourcery, PR #785.)
+        "local measured, result = pcall(function() "
+        "local g = Group.getByName(name) "
+        "if not g then return 'no-group' end "
+        "local units = g:getUnits() "
+        "if not units or not units[1] then return 'no-unit' end "
+        # getPoint() is a runtime vec3: its `z` is the easting getSurfaceType wants as `y`.
+        "local p = units[1]:getPoint() "
+        "local s = land.getSurfaceType({x = p.x, y = p.z}) "
+        # Report the geometry, not just the verdict. On 2026-08-22 the open-sea check twice answered
+        # `surface:1 dry:1` — a survivor on dry land — and there was no way to tell *why* from the reply:
+        # a spot the sweep misjudged, or a fix reaching past its own radius. These three fields separate
+        # those. `moved` against R says whether the rescue stayed inside its bound, `asked` says what was
+        # under the ejection point the check chose, and `wrapped` says whether our replacement was even
+        # installed. A reply that cannot distinguish two causes costs a round-trip per hypothesis.
+        "local moved = math.floor(math.sqrt((p.x - target.x) ^ 2 + (p.z - target.z) ^ 2) + 0.5) "
+        "local asked = land.getSurfaceType({x = target.x, y = target.z}) "
+        "local wrapped = (csar._veafAddCsarReplaced == true) and 1 or 0 "
+        f"return 'mode:{mode} lost:0"
+        "' .. ' surface:' .. tostring(s) .. ' dry:' .. tostring((s ~= W and s ~= S) and 1 or 0)"
+        " .. ' moved:' .. tostring(moved) .. ' radius:' .. tostring(math.floor(R))"
+        " .. ' asked:' .. tostring(asked) .. ' wrapped:' .. tostring(wrapped) end) "
+        # Clean up both halves: the DCS group *and* CSAR's bookkeeping. Destroying the group alone
+        # would leave a wounded-pilot entry behind, and CSAR would keep announcing a survivor that no
+        # longer exists for the rest of the mission.
+        "pcall(function() local g = Group.getByName(name) if g then g:destroy() end end) "
+        "csar.woundedGroups[name] = nil "
+        "if not measured then return 'raised: ' .. tostring(result) end "
+        "return result"
+    )
+    return chunk
 
 
 #: The checks that answer questions currently waiting on a human. Each cites the lot it unblocks.
@@ -243,10 +431,25 @@ CHECKS: tuple[Check, ...] = (
     ),
     Check(
         name="veaf-loaded",
-        lua="return type(veaf) == 'table' and veaf.MAIN_VERSION or 'veaf-absent'",
+        # `veaf.MAIN_VERSION` does not exist and never did — the field is `veaf.BuildVersion`
+        # (veaf.lua:25). Lua's `a and b or c` falls through to `c` whenever `b` is nil, so the old
+        # chunk returned 'veaf-absent' unconditionally: a check that could not pass, live from
+        # 2026-08-05 to 2026-08-22, reporting "VEAF is not loaded" against missions where it plainly
+        # was. Found because `findspawnpoint-exists` answered 'function' on the same run — the two
+        # results were flatly contradictory, and one of them had to be wrong.
+        #
+        # The three outcomes are now distinct instead of collapsed into one word. Answering "absent"
+        # for "present, but this one field is missing" is what kept the defect invisible: it named a
+        # cause that was not the cause.
+        lua=(
+            "if type(veaf) ~= 'table' then return 'veaf-absent' end "
+            "if veaf.BuildVersion == nil then return 'veaf-no-version' end "
+            "return tostring(veaf.BuildVersion)"
+        ),
         expect=_is_truthy,
         why="Sanity: proves the assertions run where the VEAF scripts do, not in an empty "
-        "environment that would make every other check vacuously pass.",
+        "environment that would make every other check vacuously pass. Returns the build version, so "
+        "a mission built from a stale bundle shows in the answer rather than merely passing.",
         transport=Transport.BRIDGE,
     ),
     Check(
@@ -286,6 +489,28 @@ CHECKS: tuple[Check, ...] = (
         why="FEAT-COMBATZONE-MENU-COALITION has been waiting-human since July on exactly this: does "
         "DCS accept a coalition-scoped submenu under a global parent? The unit tests pin which API "
         "is called, not DCS's reaction.",
+    ),
+    Check(
+        name="csar-avoids-water-open-sea",
+        lua=_csar_water_check_lua("open"),
+        expect=_csar_stayed_dry,
+        why="#245 reports a CSAR pilot spawning in the water, and deciding it needs no aircraft and no "
+        "human: trigger an ejection over open sea and see what became of the survivor. "
+        "FEAT-SMOKE-CSAR-WATER. Per David's arbitration, nothing dry within 500 m means he is lost, so "
+        "'no survivor' is the pass here. Measured 2026-08-22: this check had been calling "
+        "csar.spawnGroup, the raw placement *underneath* the replaced csar.addCsar, so it bypassed "
+        "FIX-CSAR-SPAWNS-ON-WATER and reported a wet pilot against a working product.",
+        transport=Transport.BRIDGE,
+    ),
+    Check(
+        name="csar-avoids-water-coast",
+        lua=_csar_water_check_lua("coast"),
+        expect=_csar_stayed_dry,
+        why="The more interesting half, and the one that can regress silently. With land within 150 m "
+        "the survivor is inside the 500 m rescue radius, so he must exist *and* stand on dry ground. A "
+        "'lost' verdict here would mean a rescuable pilot written off — the failure mode the open-sea "
+        "check cannot see, since losing him is its expected answer.",
+        transport=Transport.BRIDGE,
     ),
 )
 

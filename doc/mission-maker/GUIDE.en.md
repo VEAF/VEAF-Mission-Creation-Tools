@@ -172,7 +172,7 @@ MyMission/
 │   ├── warehouses.yaml          # Per-coalition Dynamic Slots (warehouses step, optional)
 │   ├── spawn-groups.yaml        # Extend/override the spawn database (spawn_data step, optional)
 │   ├── versions.yaml            # Weather/time variants (weather step)
-│   └── waypoints.yaml           # Bullseye / navigation points (waypoints step)
+│   └── waypoints.yaml           # Per-flight-plan navigation points (waypoints step)
 ├── published/                    # VEAF scripts & tools (auto-installed)
 ├── mission.yaml                  # Build-time configuration
 ├── .gitignore                    # Excludes generated/downloaded files
@@ -347,6 +347,93 @@ pipeline:
 See the [Pipeline Reference](../PIPELINE_REFERENCE.en.md) for the full schema of each step and the [mission.yaml Reference](../MISSION_YAML_REFERENCE.en.md#pipeline) for all `pipeline:` fields.
 
 ---
+
+### Which flight plan for which aircraft? {#flight-plan-matching}
+
+`src/waypoints.yaml` declares **flight plans**, each with criteria: coalition, category (`plane` /
+`helicopter`), aircraft type, country. The criteria a plan does not state are wildcards.
+
+> **The most specific plan wins.** Among the plans that match, the one stating the **most** criteria is
+> used — wherever it happens to be written in the file.
+
+```yaml
+settings:
+  all_blue_planes:
+    coalition: blue
+    category: plane
+    waypoints: { ... }
+
+  f16_flight_plan:          # more specific: it also names the type
+    coalition: blue
+    category: plane
+    type: F-16C_50
+    waypoints: { ... }
+```
+
+A blue F-16C matches both and gets `f16_flight_plan`. Any other blue plane gets `all_blue_planes`. A plan
+with **no criteria at all** is the fallback: it matches everything and loses to everything. Declaration
+order only breaks a **tie** between plans of equal specificity, and only then.
+
+!!! warning "This behaviour changed in 6.15.42"
+    Before, the **first** compatible plan won, so declaration order decided — and a specific plan written
+    after a broad one was unreachable. Both this file and the code announced the specificity rule for
+    years without it being implemented; it is now.
+
+    If you had ordered your plans narrow-first to work around it, **nothing changes for you**. If you
+    were knowingly relying on order so that a broad plan masked a specific one, that specific plan now
+    applies.
+
+Only **human-piloted** groups receive waypoints — and since 6.15.43, **all** of them do.
+
+!!! warning "Before 6.15.43 your flight plan reached almost no slot"
+    The waypoints step ran **before** aircraft injection (`spawnables.yaml`,
+    `dynamic-slot-templates.yaml`). The slots those files create did not exist yet when the waypoints
+    were injected.
+
+    Measured on this repository's smoke-test mission: **105** human-piloted groups, exactly **1** carrying
+    a waypoint from the plan — the one already in the source `.miz`. At the corrected position: **105 of
+    105**.
+
+    This was never only about an automatic bullseye: it was your *declared* flight plan, applied to a
+    handful of slots and nothing else. And the build did not say so — it reported "1 injected, 0 without a
+    plan", which is accurate and reads perfectly healthy. The count was taken before the world was
+    finished.
+
+    **What changes for you**: if your mission uses dynamic slots or spawnable aircraft, your declared
+    waypoints now reach those slots — which is what you were asking for already. If your mission only has
+    slots placed in the editor, nothing changes.
+
+
+#### The bullseye, injected for you {#automatic-bullseye}
+
+Since 6.15.44, every flight plan also receives a **`BULLSEYE`** waypoint at **your mission's own**
+bullseye coordinates — no need to declare it, and no risk of copying another map's.
+
+The coalition is honoured: a **red** flight gets the red bullseye, **everything else** gets the blue one.
+That is the same rule the VEAF scripts have applied in game since
+[#304](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/304), and it is not a shortcut: in real
+missions the "neutral" bullseye is often `{0, 0}` or `{100, 100}`, so a neutral flight would be sent to
+the map origin.
+
+The waypoint is **appended** to the plan, so your existing points keep their numbers.
+
+!!! note "Your own declaration always wins"
+    If your flight plan already declares a waypoint named `BULLSEYE`, **yours** is used, with your
+    coordinates. Nothing is added and nothing is replaced.
+
+To turn it off:
+
+```yaml
+pipeline:
+  waypoints:
+    bullseye: false
+```
+
+And it only applies to missions that already inject waypoints: a mission **without** a
+`src/waypoints.yaml` is untouched, and a group no flight plan matches receives nothing — the bullseye
+rides along with a plan, it does not create one.
+
+The build tells you how many it added.
 
 ## Design-Time Tools
 
@@ -599,6 +686,31 @@ Two cases where that is not what happens:
 
 To attach a logistic zone to something that moves — a carrier, say — link the zone to the unit in the Mission Editor (*Moving Zone*): the zone follows its unit.
 
+#### Switching CTLD sling loading off mid-mission {#ctld-slingload-toggle}
+
+A game master can turn CTLD sling loading on or off without editing a file or rebuilding the mission:
+
+> **F10 → CTLD → Disable CTLD sling loading** (or *Enable*, depending on the current state)
+
+The entry is **password-protected**: it changes how every helicopter crew plays, not only whoever pressed
+it. The menu only ever shows the command that changes something — offering "enable" while it is already
+enabled just asks the reader which of two entries does nothing.
+
+The change takes effect **immediately, both ways**: switching off stops hover pickups, switching back on
+resumes them. Nothing to reload.
+
+!!! warning "What this does not switch off: DCS's own winch"
+    It governs only the sling loading **CTLD manages** — hover pickup, the countdown, the crate lost on
+    overspeed. The game's own winch keeps working: a CTLD crate stays physically hookable with DCS's
+    sling whatever this setting says.
+
+    The on-screen message says so, because it is the first thing a crew notices after a switch-off — and
+    left unsaid, the command reads as broken.
+
+The underlying setting is `enableHoverSlingload`, which lives in your `ctld-config.yaml` like every other
+one; the menu only flips it at runtime. To start a mission with sling loading already off, set it to
+`false` there.
+
 ### Configuring CSAR via mission.yaml (YAML-first)
 
 CSAR can be configured the same way:
@@ -614,6 +726,54 @@ modules:
 ```
 
 VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`.
+
+### A pilot ejecting over water {#csar-over-water}
+
+When an aircraft goes down, CSAR spawns the surviving pilot to be rescued. His position came from a fixed 50 m offset from the aircraft, with nothing looking at what was there — so ejecting near a shoreline put the survivor **in the water**, unreachable ([#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245)).
+
+Since 6.15.28 there are two outcomes and nothing in between:
+
+| Where the ejection happened | What the mission gets |
+|---|---|
+| dry ground, or water with dry ground within **500 m** | a CSAR at the nearest dry point |
+| open water, nothing dry within 500 m | **no CSAR at all** — the pilot is lost, and his coalition is told |
+
+That second case is not "a CSAR you cannot reach": it is the absence of one. No MAYDAY, no ADF beacon, no wounded group sitting on the seabed for the rest of the mission. A flight is not left waiting for a rescue that does not exist.
+
+Shallow water is not open sea: a survivor standing a few metres off a beach stays rescuable where he is.
+
+!!! note "`CSAR.lua` is not modified"
+    The CSAR script is a vendored third-party component; fixing it in place would be erased by its next update. VEAF replaces `csar.addCsar` from its own code, as it already replaces CSAR's loggers.
+
+### Making an ejection cost something: `csarMode` {#csar-mode}
+
+CSAR can charge a pilot for ejecting, so that crashing is not free. It is a `settings:` value like any
+other:
+
+```yaml
+modules:
+  CSAR:
+    enabled: true
+    settings:
+      csarMode: 3
+      disableTimeoutTime: 30   # in minutes, for modes 1 and 2
+```
+
+| `csarMode` | What the pilot loses |
+|---|---|
+| `0` (default) | nothing |
+| `1` | **his aircraft is unavailable to everyone** for `disableTimeoutTime` minutes |
+| `2` | that same aircraft is barred to him alone; others may still take it |
+| `3` | he loses one of his lives |
+
+!!! note "One case where modes 1 and 2 do not apply"
+    Modes 1 and 2 lock **one specific aircraft**, named by its DCS identifier. When the pilot has
+    ejected and his aircraft is already gone from the world, that identifier no longer exists, so the
+    sanction is **skipped** — and the DCS log says so (`csarMode … the sanction is skipped`).
+
+    That is a deliberate refusal rather than a default: locking an arbitrary aircraft would ground a
+    pilot who did nothing. Mode `3` does not have the problem — it depends only on the player's name —
+    and always applies.
 
 ### Loading order in the DCS trigger chain
 

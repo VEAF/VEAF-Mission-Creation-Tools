@@ -528,4 +528,135 @@ function TestSpawnParserNonNegativeKeywords:test_a_readable_delayed_is_honoured(
   luaunit.assertEquals(r.delayedStart, 30)
 end
 
+-- ---------------------------------------------------------------------------
+-- FEAT-CONVOY-WAYPOINTS ticket 01 — `dest` repeated builds an itinerary
+--
+-- `veaf.parseMarkerText` walks keyphrases with `ipairs` precisely so that a repeated keyword is
+-- ordered rather than arbitrary, so accumulating is enough. `destination` keeps holding the FIRST
+-- point: every caller of `spawnConvoy` reads it, and a one-point itinerary must stay byte-identical
+-- to what a single `dest` produced before this lot.
+-- ---------------------------------------------------------------------------
+TestSpawnParserItinerary = {}
+
+function TestSpawnParserItinerary:test_one_dest_still_sets_destination()
+  local r = analyse("_spawn convoy, dest KOBULETI")
+  luaunit.assertEquals(r.destination, "KOBULETI")
+end
+
+function TestSpawnParserItinerary:test_one_dest_is_a_one_point_itinerary()
+  local r = analyse("_spawn convoy, dest KOBULETI")
+  luaunit.assertEquals(r.itinerary, { "KOBULETI" })
+end
+
+function TestSpawnParserItinerary:test_several_dest_accumulate_in_the_order_written()
+  local r = analyse("_spawn convoy, dest KOBULETI, dest BATUMI, dest POTI")
+  luaunit.assertEquals(r.itinerary, { "KOBULETI", "BATUMI", "POTI" })
+end
+
+-- The compatibility promise: whatever the itinerary, `destination` is its first point, because that
+-- is the leg the convoy leaves on and what every existing caller passes to spawnConvoy.
+function TestSpawnParserItinerary:test_destination_is_the_first_point_not_the_last()
+  local r = analyse("_spawn convoy, dest KOBULETI, dest BATUMI")
+  luaunit.assertEquals(r.destination, "KOBULETI")
+end
+
+-- The side effects `dest` carries (auto alarm state, tight spacing, no dispersion) are what make a
+-- convoy leave at all; they must be applied once and not depend on how many points were written.
+function TestSpawnParserItinerary:test_the_convoy_side_effects_survive_several_points()
+  local r = analyse("_spawn convoy, dest KOBULETI, dest BATUMI")
+  luaunit.assertEquals(r.AlarmState, 0)
+  luaunit.assertEquals(r.spacing, 1)
+  luaunit.assertEquals(r.radius, 1)
+end
+
+-- `dest` and its alias `destination` are the same keyword, so mixing them still builds one itinerary.
+function TestSpawnParserItinerary:test_the_alias_and_the_full_keyword_accumulate_together()
+  local r = analyse("_spawn convoy, destination KOBULETI, dest BATUMI")
+  luaunit.assertEquals(r.itinerary, { "KOBULETI", "BATUMI" })
+end
+
+-- A convoy with no `dest` has no itinerary rather than an empty one: spawnConvoy already refuses a
+-- missing destination, and an empty list would read as "an itinerary that finished".
+function TestSpawnParserItinerary:test_no_dest_leaves_no_itinerary()
+  local r = analyse("_spawn convoy")
+  luaunit.assertNil(r.itinerary)
+end
+
+-- ---------------------------------------------------------------------------
+-- FEAT-INTERPRETER-PARITY ticket 01 — the randomisable numerics #25 asked for
+--
+-- #25 asked that `veaf.getRandomizableNumeric` reach interpreter elements. It already does, and this
+-- records *why*: an interpreter command is a marker command, `veaf.markerRules.number` converts through
+-- that very function, and the spawn parser's numeric keywords all use it. So the feature was delivered
+-- by REFACTOR-MARKER-PARSER without the issue being closed.
+--
+-- Kept as a test rather than a note, because it is the kind of thing a later refactor can quietly
+-- remove: swap `_num` for `safeNumber` anywhere here and these fail.
+-- ---------------------------------------------------------------------------
+TestSpawnParserRandomisableNumerics = {}
+
+function TestSpawnParserRandomisableNumerics:test_a_range_draws_inside_its_bounds()
+  for _ = 1, 20 do
+    local r = analyse("_spawn group, name x, size 3-8")
+    luaunit.assertTrue(r.size >= 3 and r.size <= 8, "size " .. tostring(r.size) .. " out of [3,8]")
+  end
+end
+
+function TestSpawnParserRandomisableNumerics:test_a_plain_value_is_untouched()
+  luaunit.assertEquals(analyse("_spawn group, name x, size 5").size, 5)
+end
+
+-- The open-ended form that used to raise inside the converter, reachable from here.
+function TestSpawnParserRandomisableNumerics:test_an_open_range_does_not_raise()
+  local ok, r = pcall(analyse, "_spawn group, name x, size 100-")
+  luaunit.assertTrue(ok, "an open range must not raise out of the parser")
+  luaunit.assertEquals(r.size, 100)
+end
+
+-- ── FEAT-RADIO-BEACONS — the `_spawn beacon` descriptor ─────────────────────
+
+TestVeafSpawnBeaconCommand = {}
+
+function TestVeafSpawnBeaconCommand:test_the_marker_command_is_recognised()
+  local options = analyse("_spawn beacon")
+  luaunit.assertNotNil(options)
+  luaunit.assertTrue(options.beacon)
+end
+
+function TestVeafSpawnBeaconCommand:test_it_defaults_to_the_exact_spot()
+  -- A beacon is placed where the marker is, not scattered: its position is the whole point of dropping
+  -- it there. Every group-spawning command defaults to a scatter radius; this one must not.
+  local options = analyse("_spawn beacon")
+  luaunit.assertEquals(options.radius, 0)
+end
+
+function TestVeafSpawnBeaconCommand:test_a_name_can_be_given()
+  local options = analyse("_spawn beacon, name Alpha")
+  luaunit.assertEquals(options.name, "Alpha")
+end
+
+function TestVeafSpawnBeaconCommand:test_a_side_can_be_given()
+  local options = analyse("_spawn beacon, side red")
+  luaunit.assertNotNil(options.side)
+end
+
+function TestVeafSpawnBeaconCommand:test_a_handler_is_registered_for_it()
+  -- Without this the options parse, the marker is accepted, and nothing happens.
+  local found = false
+  for _, entry in ipairs(veafSpawn.commandHandlers) do
+    if entry.key == "beacon" then
+      found = true
+    end
+  end
+  luaunit.assertTrue(found)
+end
+
+function TestVeafSpawnBeaconCommand:test_it_does_not_swallow_another_command()
+  -- `match` is a lower-cased substring and the first match wins, so a new descriptor can quietly
+  -- capture an existing command. Checked rather than assumed.
+  luaunit.assertTrue(analyse("_spawn unit, name shilka").unit)
+  luaunit.assertTrue(analyse("_spawn fob").fob)
+  luaunit.assertNil(analyse("_spawn fob").beacon)
+end
+
 os.exit(luaunit.LuaUnit.run())

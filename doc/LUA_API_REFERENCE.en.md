@@ -155,7 +155,7 @@ veaf.loggers.setBaseLevel("info")  -- Global default
 ```lua
 veaf.BuildVersion = "6.7.x+<sha>"  -- build stamp (package version + git sha) injected at build time; "dev" when unbuilt
 veaf.Development = false  -- Enable development features
-veaf.HideNamesFromSpawnedGroups = false
+veaf.HideNamesFromSpawnedGroups = true  -- hides the zone and the type in spawned group names; set per mission with `mission.hide_names_from_spawned_groups`
 veaf.BaseLogLevel = 3  -- Default log level (info); acts as a cap for module log levels
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 veaf.DEFAULT_GROUND_SPEED_KTS = 16.2
@@ -2887,6 +2887,10 @@ Respawn asset group.
 
 - Respawns asset group
 - Respawns all linked groups
+- **Repairs its escort's `Escort` task** — the group named `<name> escort`, if there is one. DCS
+  invalidates that task as soon as the escorted group is recreated, and the escort then leaves to
+  land after about ten minutes. See
+  [Escorting an asset](mission-maker/scripts/veafAssets.en.md#escorting-an-asset)
 - Starts JTAC if configured
 
 **Example:**

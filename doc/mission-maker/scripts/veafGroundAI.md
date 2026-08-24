@@ -52,8 +52,20 @@ pour lui donner ses ordres ensuite.
 | `order` | `order` | Le texte de l'ordre. |
 
 **Si vous omettez `groupname` sur un `set`**, le module cherche le groupe allié **le plus proche du
-marqueur, dans un rayon de 250 mètres**. Aucun groupe dans ce rayon : la commande ne fait rien.
-Posez donc le marqueur sur la batterie, ou nommez-la.
+marqueur, dans un rayon de 250 mètres**. Aucun groupe dans ce rayon : la commande **vous le dit** et ne
+fait rien. Posez donc le marqueur sur la batterie, ou nommez-la.
+
+### Quand rien ne semble se passer {#silent-refusals}
+
+Aucune de ces commandes n'échoue plus en silence. C'était le cas avant, et un ordre qui disparaissait sans
+un mot était indistinguable d'un module cassé.
+
+| Ce que vous voyez | Ce que ça veut dire |
+|---|---|
+| « Aucun pilote automatique nommé *X* » | ce nom n'existe pas. **Recharger une mission efface les pilotes automatiques** : il faut refaire le `_ground set`. Le message vous rappelle la commande. |
+| « Aucun groupe allié à moins de 250 m » | le marqueur est trop loin du groupe, ou le groupe est de l'autre coalition. Posez-le dessus, ou donnez `groupname`. |
+| « ordre illisible » | le texte de l'ordre n'a pas pu être lu du tout. Le message liste les ordres possibles. |
+| « ne peut pas viser, aucune coordonnée » | l'ordre est bon, mais `target` manque ou n'a pas pu être lu ([les formats acceptés](#coordinate-formats)). |
 
 ```
 _ground set, name arty-1, groupname ARTY-1
@@ -73,12 +85,14 @@ est découpé par le marqueur avant d'atteindre l'artillerie.
 |-------|-------|-----------------|------------------|
 | `aim` *(par défaut)* | Tir de réglage : quelques obus pour ajuster | 2 | 10 m |
 | `fire` | Tir d'efficacité | 40 | 100 m |
+| `correct` | Décale le dernier point visé et retire dessus | 2 | 10 m |
 
 | Paramètre d'ordre | Description |
 |-------------------|-------------|
-| `target` | Coordonnées de l'objectif. **Validées** : une chaîne que le module ne sait pas lire est ignorée, et l'ordre se plaint de ne pas avoir de cible. |
+| `target` | Coordonnées de l'objectif ([les formats acceptés](#coordinate-formats)). **Validées** : une chaîne que le module ne sait pas lire est ignorée, et l'ordre se plaint de ne pas avoir de cible. |
 | `shells` | Nombre d'obus. Accepte une plage aléatoire, par exemple `40-80`. |
 | `radius` | Dispersion du tir, en mètres. Accepte aussi une plage. |
+| `correction` | Le décalage à appliquer, pour l'ordre `correct` : **trois chiffres de cap vrai puis la distance en mètres**. `09050` vaut 50 m à l'est. **Validé** : une correction illisible est refusée et annoncée, jamais devinée. |
 
 **`fire` sans `target` tire à nouveau sur la dernière cible visée** — c'est ce qui permet d'enchaîner un
 réglage puis l'efficacité sans redonner les coordonnées.
@@ -87,6 +101,53 @@ réglage puis l'efficacité sans redonner les coordonnées.
 _ground order, name arty-1, order aim; radius 15-30; target 42 N 42 E
 _ground order, name arty-1, order fire; radius 50-150; shells 40-80
 ```
+
+### Les formats de coordonnées acceptés {#coordinate-formats}
+
+Un `target` accepte toutes ces formes. Elles valent **partout où VEAF lit une coordonnée** — zones
+AirWaves, points nommés, QRA, alias — parce qu'un seul lecteur les traite toutes.
+
+| Ce que vous écrivez | Ce que c'est | Précision |
+|---|---|---|
+| `37T GG 12345 12345` | MGRS **tel que DCS l'affiche** | 1 m |
+| `37TGG12345678` | le même, sans les espaces | 10 m |
+| `u37TGG123456` | l'ancienne syntaxe VEAF, toujours valable | 100 m |
+| `N42:30:15E041:45:30` | degrés, minutes, secondes | ~30 m |
+| `N42 30 15 E041 45 30` | les mêmes, séparés par des espaces | ~30 m |
+| `N42°30'15"E041°45'30"` | les mêmes, avec les symboles | ~30 m |
+| `N42:30.5E041:45.5` | degrés et minutes décimales | ~2 m |
+| `N42.50416E041.75833` | degrés décimaux | ~1 m |
+| `N42E041` | degrés entiers | ~100 km |
+
+**Le nombre de chiffres MGRS est la précision** : deux chiffres de chaque côté valent 10 km, cinq valent
+le mètre. Un nombre **impair** de chiffres est refusé plutôt que deviné — c'est une faute de frappe, et
+la couper en deux produirait une position que personne n'a demandée.
+
+`S` et `W` donnent les valeurs négatives. La casse est libre.
+
+**Le conseil pratique** : lisez les coordonnées sur votre propre écran et recopiez-les telles quelles. Le
+format MGRS que DCS affiche est accepté sans retouche, et c'est le moins susceptible d'être mal recopié.
+
+### Le réglage du tir {#fire-adjustment}
+
+Une batterie retient **le dernier point qu'elle a visé**, et `correct` décale ce point. C'est la boucle
+de réglage classique : on tire, on observe où les obus tombent, on annonce la correction.
+
+```
+_ground order, name arty-1, order aim; target 42 N 42 E
+_ground order, name arty-1, order correct; correction 09050
+_ground order, name arty-1, order fire; shells 40-80
+```
+
+Le cap s'écrit **toujours sur trois chiffres**, parce que `090` et `90` seraient la même chaîne une fois
+la distance collée derrière : `09050` c'est 50 m à l'est, `9050` serait lu comme un cap de 905 et refusé.
+
+Deux corrections se **cumulent** : deux fois `09050`, et le point visé a bougé de 100 m vers l'est.
+`fire` sans cible, ensuite, tire à l'endroit corrigé — c'est le même point visé pour les deux ordres.
+
+La correction est refusée, et le refus est annoncé au pilote, dans deux cas : quand elle est illisible
+(le message rappelle alors la forme attendue), et quand la batterie n'a **aucun tir en cours** à corriger
+— tirer sur le seul décalage mettrait les obus là où la batterie se trouve.
 
 ---
 
@@ -131,6 +192,8 @@ modules:
   aucun autre n'est livré.
 - **Le rayon de recherche de 250 mètres n'est pas configurable.**
 - Les ordres passent par la carte F10 uniquement : **ce module n'a pas de menu radio**.
+- **La correction n'a pas d'observateur automatique** : c'est le pilote qui regarde où les obus tombent et qui annonce le décalage. Le module ne mesure pas l'écart
+  lui-même.
 
 ---
 

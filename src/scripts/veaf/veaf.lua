@@ -987,87 +987,117 @@ end
 -- get a LL position based on a string
 -- can be UTM (U38TMP334456 or u37TMP4351)
 -- can be LL with either : or - as a separator, and either DMS, DM decimal, or D decimal (N42:23:45E044-12.5 or N42.3345E044-12.5)
+--- Read a coordinate string into a latitude and a longitude.
+---
+--- The single coordinate reader for `veafAirWaves`, `veafGroundAI` (both the target and its validation),
+--- `veafNamedPoints`, `veafQraCore` and the shortcut aliases — which is why it is worth being generous
+--- here rather than in any one of them.
+---
+--- **What it accepts**, and every one of these is a form somebody can read off his own screen:
+---
+--- * MGRS / UTM — `37T GG 12345 12345` exactly as DCS displays it, with or without the spaces, with or
+---   without a leading `u` or `MGRS`. The digit count IS the precision: two digits a side is 10 km, ten
+---   digits is one metre. An odd count is refused rather than halved.
+--- * Lat/Lon in degrees, minutes and seconds — `N42:30:15E041:45:30`, and the same with dashes, spaces or
+---   the `°`/`'`/`"` symbols.
+--- * Lat/Lon in degrees and decimal minutes — `N42:30.5E041:45.5`, which is what charts and kneeboards use.
+--- * Lat/Lon in decimal degrees — `N42.50416E041.75833`.
+--- * Whole degrees — `N42E041`. Coarse (about 100 km) but sometimes exactly what was meant.
+---
+--- **The arithmetic is exact.** It used to run an accumulator from `-1`, so every DMS coordinate came out
+--- one arc-second short — about 31 metres of northing, on every mission written since 2021. A test even
+--- recorded that as "by design". Minutes and seconds are now weighted directly, which removes the place
+--- where such an offset could hide.
+---
+--- @param value string the coordinate as typed
+--- @return number|nil latitude, number|nil longitude — nil when the string cannot be read
 function veaf.computeLLFromString(value)
-  local function _computeLLValueFromString(value)
-    local result = -1
-    if value:find(":") or value:find("-") then
-      -- convert in arc-seconds
-      local values = veaf.splitWithPattern(value, "[:-]+")
-      local weights = { 3600, 60, 1 }
-      for _, element in pairs(values) do
-        veaf.loggers.get(veaf.Id):trace(string.format("element=%s", veaf.p(element)))
-        local weight = table.remove(weights, 1)
-        local elementInArcSec = tonumber(element) * weight
-        result = result + elementInArcSec
-      end
-      return result / 3600
-    else
-      -- decimals
-      return tonumber(value)
+  if type(value) ~= "string" then
+    return nil
+  end
+  local _value = value:lower()
+
+  -- ── MGRS / UTM ────────────────────────────────────────────────────────────
+  -- Separators are stripped only after the shape is confirmed, so "37T GG 12345 12345" and
+  -- "u37TGG1234512345" are the same coordinate rather than two syntaxes to remember.
+  local _mgrs = _value:gsub("^%s*mgrs%s*", ""):gsub("^%s*u", "")
+  local _compact = _mgrs:gsub("%s", "")
+  local _zone, _digraph, _digits = _compact:match("^(%d%d%a)(%a%a)(%d+)$")
+  if _zone and _digraph and _digits then
+    local _nDigits = #_digits
+    -- MGRS digits come in pairs, five a side at the most. Anything else is a typo, and halving it would
+    -- produce a position nobody asked for.
+    if _nDigits % 2 ~= 0 or _nDigits > 10 then
+      return nil
     end
+    local _half = _nDigits / 2
+    -- Two digits a side means 10 km, five means one metre: the missing digits are trailing zeroes.
+    local _scale = 10 ^ (5 - _half)
+    local _utm = {
+      UTMZone = _zone:upper(),
+      MGRSDigraph = _digraph:upper(),
+      Easting = tonumber(_digits:sub(1, _half)) * _scale,
+      Northing = tonumber(_digits:sub(_half + 1)) * _scale,
+    }
+    veaf.loggers.get(veaf.Id):trace("MGRS read as %s", veaf.p(_utm))
+    return coord.MGRStoLL(_utm)
   end
 
-  if value then
-    local _value = value:lower()
-    local _firstChar = _value:sub(1, 1)
-    if _firstChar == "u" then
-      -- UTM coordinates
-      local _zone, _digraph, _digits = _value:match("u(%d%d[a-z])([a-z][a-z])(%d+)")
-      veaf.loggers.get(veaf.Id):trace(string.format("_zone=%s", veaf.p(_zone)))
-      veaf.loggers.get(veaf.Id):trace(string.format("_digraph=%s", veaf.p(_digraph)))
-      veaf.loggers.get(veaf.Id):trace(string.format("_digits=%s", veaf.p(_digits)))
-      if _zone and _digraph and _digits then
-        local _nDigits = #_digits
-        local _northingString = _digits:sub(_nDigits / 2 + 1)
-        local _northing = tonumber(_northingString)
-        veaf.loggers.get(veaf.Id):trace(string.format("_northing=%s", veaf.p(_northing)))
-        if #_northingString == 1 then
-          _northing = _northing * 10000
-        elseif #_northingString == 2 then
-          _northing = _northing * 1000
-        elseif #_northingString == 3 then
-          _northing = _northing * 100
-        elseif #_northingString == 4 then
-          _northing = _northing * 10
-        end
-
-        local _eastingString = _digits:sub(1, _nDigits / 2)
-        local _easting = tonumber(_eastingString)
-        veaf.loggers.get(veaf.Id):trace(string.format("_easting=%s", veaf.p(_easting)))
-        if #_eastingString == 1 then
-          _easting = _easting * 10000
-        elseif #_eastingString == 2 then
-          _easting = _easting * 1000
-        elseif #_eastingString == 3 then
-          _easting = _easting * 100
-        elseif #_eastingString == 4 then
-          _easting = _easting * 10
-        end
-
-        local _utm = { UTMZone = _zone:upper(), MGRSDigraph = _digraph:upper(), Easting = _easting, Northing = _northing }
-        veaf.loggers.get(veaf.Id):trace(string.format("_utm=%s", veaf.p(_utm)))
-        return coord.MGRStoLL(_utm)
-      end
-    elseif _firstChar == "n" or _firstChar == "s" or _firstChar == "e" or _firstChar == "w" then
-      -- LL coordinates
-      local _signLat, _digitsLat, _signLon, _digitsLon = _value:match([[([news])([%d:\.-]+)([news])([%d:\.-]+)]])
-      if _digitsLat and _digitsLon then
-        local _multLat = 1
-        if _signLat == "s" then
-          _multLat = -1
-        end
-        local _multLon = 1
-        if _signLon == "w" then
-          _multLon = -1
-        end
-        local _lat = _multLat * _computeLLValueFromString(_digitsLat)
-        local _lon = _multLon * _computeLLValueFromString(_digitsLon)
-        return _lat, _lon
-      end
-    end
+  -- ── Lat/Lon ───────────────────────────────────────────────────────────────
+  -- Split on the hemisphere letters, which is what separates the two halves whatever punctuation sits
+  -- inside them.
+  local _latSign, _latText, _lonSign, _lonText = _value:match("^%s*([ns])([^nsew]+)([ew])([^nsew]+)%s*$")
+  if not _latText then
+    return nil
   end
-  -- unrecognized format
-  return nil
+
+  --- Every separator a pilot might type, reduced to one. `°`, `'` and `"` are what DCS itself shows;
+  --- spaces are what someone writes when nobody told him a separator; `:` and `-` are the older VEAF
+  --- syntax, which keeps working.
+  local function _oneSeparator(s)
+    s = s:gsub("°", ":"):gsub("'", ":"):gsub('"', ":")
+    s = s:gsub("[%s:%-]+", ":")
+    s = s:gsub("^:+", ""):gsub(":+$", "")
+    return s
+  end
+
+  --- Degrees, or degrees and minutes, or degrees minutes and seconds. Weighted directly rather than
+  --- accumulated in arc-seconds: there is then nowhere for an off-by-one to live.
+  local function _degrees(s)
+    s = _oneSeparator(s)
+    if not s:match("^[%d%.:]+$") then
+      return nil
+    end
+    local _weights = { 1, 1 / 60, 1 / 3600 }
+    local _total, _count = 0, 0
+    for _part in s:gmatch("[^:]+") do
+      _count = _count + 1
+      if _count > 3 then
+        return nil
+      end
+      local _n = tonumber(_part)
+      if not _n then
+        return nil
+      end
+      _total = _total + _n * _weights[_count]
+    end
+    if _count == 0 then
+      return nil
+    end
+    return _total
+  end
+
+  local _lat, _lon = _degrees(_latText), _degrees(_lonText)
+  if not _lat or not _lon then
+    return nil
+  end
+  if _latSign == "s" then
+    _lat = -_lat
+  end
+  if _lonSign == "w" then
+    _lon = -_lon
+  end
+  return _lat, _lon
 end
 
 function veaf.findDcsAirbase(name)
@@ -2573,6 +2603,40 @@ function veaf.reportToPilot(message, duration, coalition)
   end
 end
 
+--- Tell the pilot about parameters his command carried that no rule recognises, and say whether any
+--- were found.
+---
+--- Lifted out of `veafSpawn.executeCommand`, where it was the only copy, so that the seven other marker
+--- parsers could report the same way instead of letting a typo do nothing at all (#33, open since 2021).
+---
+--- Aggregated into **one** message: three wrong keys must not be three lines on a pilot's screen.
+---
+--- @param options the parsed options table; nil is tolerated
+--- @param moduleLabel the calling module's `Id` — the same string its log lines are prefixed with, so a
+---        pilot who reads the message can find the matching lines in the DCS log. Pass the constant
+---        (`veafMove.Id`), never a literal: an invented label drifts away from the module it names
+--- @param requesterCoalition side to show the message to, or nil for everyone. Pass the side that
+---        **issued** the command, never the side units spawn for
+--- @return true when something was reported, which is the caller's signal to abort
+function veaf.reportUnknownParameters(options, moduleLabel, requesterCoalition)
+  if type(options) ~= "table" or not options.unknownParameters then
+    return false
+  end
+  local hints = {}
+  for _, p in ipairs(options.unknownParameters) do
+    local hint = "'" .. tostring(p.key) .. "'"
+    if p.suggestion then
+      hint = hint .. veaf.t("marker.did_you_mean", tostring(p.suggestion))
+    end
+    table.insert(hints, hint)
+  end
+  if #hints == 0 then
+    return false
+  end
+  veaf.reportToPilot(veaf.t("marker.unknown_parameters", tostring(moduleLabel), table.concat(hints, ", ")), 15, requesterCoalition)
+  return true
+end
+
 --- The coalition that issued a command, normalized for pilot feedback.
 --- Use this for messages addressed to whoever placed the marker / carried the
 --- interpreter command (reportToPilot), NOT for deciding the side of spawned
@@ -3365,6 +3429,18 @@ function veaf.prepareMarkerSpec(spec)
       end
     end
   end
+  -- A command **verb** is not an option the pilot mistyped, so it counts as a known key. Keyphrase-style
+  -- commands (`_spawn`, `_move`) escape the unknown-key collector because it skips anything starting
+  -- with "_", but a bare verb does not: every one of the nine valid artillery orders measured was
+  -- flagged before this (FEAT-SPAWN-OPTION-VALIDATION). An empty match is skipped — `veafShortcuts`
+  -- uses `match = ""` to mean "always", and "" is not a key.
+  for _, command in ipairs(spec.commands or {}) do
+    local matchLower = command.match and command.match:lower() or ""
+    if matchLower ~= "" and not spec._knownKeySet[matchLower] then
+      spec._knownKeySet[matchLower] = true
+      table.insert(spec.knownKeys, matchLower)
+    end
+  end
   spec._prepared = true
   return spec
 end
@@ -3509,6 +3585,15 @@ function veaf.getRandomizableNumeric_random(val)
       end
       if upper == nil then
         upper = MAX
+      end
+      -- An upper bound below the lower one means the lower one. Without this, `100-` reaches
+      -- `math.random(100, 99)` — "interval is empty", a raised Lua error rather than a wrong number —
+      -- and so does any reversed range like `5-2`. Reachable from every marker command that takes a
+      -- number, and found while FEAT-INTERPRETER-PARITY widened the combat-zone tag patterns onto the
+      -- same converter.
+      if upper < lower then
+        veaf.loggers.get(veaf.Id):warn("range [%s] has no usable upper bound; using %s", veaf.p(val), veaf.p(lower))
+        upper = lower
       end
       nVal = math.random(lower, upper)
       veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.lp(nVal))
@@ -3717,6 +3802,195 @@ function veaf.getUnitLifeRelative(unit)
   else
     return 0
   end
+end
+
+--- Which units make a group of a given kind able to fight, keyed by a Lua pattern on the group name.
+---
+--- From #177: a group is not only alive or dead. An S-300 whose tracking radar is destroyed still has
+--- launchers and crew, counts as alive everywhere else in this codebase, and in play is finished.
+---
+--- Each entry declares `importantSets`: sets of unit types the group of that kind **owns**. Losing a
+--- whole set finishes the group. `minimumLife` is a **percentage** of a unit initial life, compared
+--- through `veaf.getUnitLifeRelative` — reading it as absolute hit points would mean a different
+--- threshold per unit type, which nobody can reason about.
+---
+--- A pattern is matched case-insensitively against the group name. Adding an entry is how a mission
+--- maker teaches the predicate about a site whose composition the DCS attributes cannot describe.
+veaf.ImportantUnitsByGroupPattern = {
+  [".*s300.*"] = {
+    minimumLife = 80,
+    importantSets = {
+      TR = { "S-300PS 40B6M tr" },
+      SR = { "S-300PS 40B6MD sr", "S-300PS 64H6E sr" },
+      CP = { "S-300PS 54K6 cp" },
+    },
+  },
+}
+
+--- DCS attributes the default rule reads. `SAM TR` is a tracking radar — what a site needs to engage;
+--- `SAM SR` a search radar and `SAM LL` a launcher, either of which marks the group as a SAM site.
+veaf.SAM_TRACKING_RADAR_ATTRIBUTE = "SAM TR"
+veaf.SAM_SITE_ATTRIBUTES = { "SAM SR", "SAM LL" }
+
+--- Does this unit type carry `attributeName`, according to the generated DCS database?
+---
+--- Reads `dcsUnits.DcsUnitsDatabase` rather than calling `Unit.getDesc()`: same data, no DCS call, and
+--- a type can be asked about without a living unit to ask through. A type the database does not know
+--- answers false — the database is generated from a datamine and can lag a DCS update, so a missing
+--- entry means "no attributes known", never "not a SAM".
+---
+--- @param typeName string DCS unit type id
+--- @param attributeName string
+--- @return boolean
+function veaf.unitTypeHasAttribute(typeName, attributeName)
+  if not typeName or not attributeName then
+    return false
+  end
+  if not dcsUnits or not dcsUnits.DcsUnitsDatabase then
+    return false
+  end
+  local record = dcsUnits.DcsUnitsDatabase[typeName]
+  if not record or not record.attribute then
+    return false
+  end
+  return record.attribute[attributeName] == true
+end
+
+--- Is this group still a problem — as opposed to merely still alive?
+---
+--- #177. Two paths:
+---
+--- 1. **A pattern** in `veaf.ImportantUnitsByGroupPattern` matches the group name. The group is
+---    effective only while **every** declared set still has a member alive and above `minimumLife`.
+---    The pattern asserts the group owns those sets, which is what lets this work at all — see the
+---    limit below.
+--- 2. **No pattern**: the DCS attributes decide. A group with a living `SAM SR` or `SAM LL` *is* a SAM
+---    site, and is finished once no living unit carries `SAM TR`. Anything else is a problem while
+---    anything of it lives.
+---
+--- **The limit, stated rather than hidden.** Dead units vanish from `Group:getUnits()`, so this cannot
+--- know a group *had* a radar it has since lost. The pattern table carries that knowledge; the default
+--- cannot, so a SAM site stripped of its radars *and* its launchers reads as an ordinary group. By then
+--- there is nothing dangerous left of it, which is why that is acceptable rather than merely tolerated.
+---
+--- @param groupOrName table|string a DCS group, or its name
+--- @return boolean false when the group is gone, empty, or no longer able to fight
+function veaf.isGroupCombatEffective(groupOrName)
+  if not groupOrName then
+    return false
+  end
+  local group = groupOrName
+  local groupName = nil
+  if type(groupOrName) == "string" then
+    groupName = groupOrName
+    group = Group.getByName(groupOrName)
+  end
+  if not group then
+    return false
+  end
+  if not groupName then
+    groupName = group:getName()
+  end
+
+  -- `Group:getUnits()` already returns only the units that exist: DCS drops a destroyed one from the
+  -- group. So this is the list of survivors, and re-filtering it through `veaf.isUnitAlive` would only
+  -- add an `isExist`/`isActive` requirement on the caller's objects for no gain.
+  local living = group:getUnits() or {}
+  if #living == 0 then
+    return false
+  end
+
+  local rule = nil
+  local loweredName = (groupName or ""):lower()
+  for pattern, candidate in pairs(veaf.ImportantUnitsByGroupPattern or {}) do
+    if loweredName:find(pattern) then
+      rule = candidate
+      break
+    end
+  end
+
+  if rule and rule.importantSets then
+    local minimumRatio = (rule.minimumLife or 0) / 100
+    for setName, types in pairs(rule.importantSets) do
+      local setHasSurvivor = false
+      for _, unit in pairs(living) do
+        local typeName = unit:getTypeName()
+        for _, wanted in pairs(types) do
+          if typeName == wanted and veaf.getUnitLifeRelative(unit) >= minimumRatio then
+            setHasSurvivor = true
+            break
+          end
+        end
+        if setHasSurvivor then
+          break
+        end
+      end
+      if not setHasSurvivor then
+        veaf.loggers
+          .get(veaf.Id)
+          :debug("group [%s] has lost its whole [%s] set: no longer combat-effective", veaf.p(groupName), veaf.p(setName))
+        return false
+      end
+    end
+    return true
+  end
+
+  -- the attribute default
+  local isSamSite = false
+  local hasTrackingRadar = false
+  for _, unit in pairs(living) do
+    local typeName = unit:getTypeName()
+    if veaf.unitTypeHasAttribute(typeName, veaf.SAM_TRACKING_RADAR_ATTRIBUTE) then
+      hasTrackingRadar = true
+      isSamSite = true
+    end
+    for _, attribute in pairs(veaf.SAM_SITE_ATTRIBUTES) do
+      if veaf.unitTypeHasAttribute(typeName, attribute) then
+        isSamSite = true
+      end
+    end
+  end
+  if isSamSite and not hasTrackingRadar then
+    veaf.loggers.get(veaf.Id):debug("group [%s] is a SAM site with no tracking radar left", veaf.p(groupName))
+    return false
+  end
+  return true
+end
+
+--- How far a downed pilot may be moved to find dry ground, in metres.
+---
+--- David's arbitration, 2026-08-22, on #245: **within 500 m of dry ground, put him there; otherwise he
+--- counts as dead.** No raft and no walk inland — moving a survivor kilometres inland stops being a
+--- rescue and becomes teleportation, and leaving him floating creates a CSAR nobody can complete.
+veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES = 500
+
+--- Where a downed pilot should actually appear.
+---
+--- @param point table the position the survivor would otherwise be placed at, a runtime vec3
+--- @return table|nil the point to use, or **nil** meaning the pilot is lost — no CSAR at all
+---
+--- A dry point is returned unchanged. That matters: `veaf.findSpawnPoint` jitters, so searching around
+--- every ejection would shift each land rescue by tens of metres for no reason. The search only happens
+--- when the intended spot is water.
+---
+--- Shallow water counts as dry, as it does everywhere else here — `acceptableGroundPoint` rejects
+--- `WATER` only. A survivor wading a few metres off a beach is rescuable, and calling that open sea
+--- would declare him dead next to dry land.
+---
+--- Coordinates: `land.getSurfaceType` takes a **vec2 whose `y` is the easting**, while the point handed
+--- in is a runtime vec3 whose `y` is the altitude (`docs/agents/dcs-coordinates.md`). Passing `y = y`
+--- asks about a spot a hundred kilometres away and answers without complaint.
+function veaf.resolveCsarSurvivorPoint(point)
+  if type(point) ~= "table" or not point.x or not point.z then
+    return nil
+  end
+  if land.getSurfaceType({ x = point.x, y = point.z }) ~= land.SurfaceType.WATER then
+    return point
+  end
+  veaf.loggers
+    .get(veaf.Id)
+    :debug("CSAR survivor would land in water; looking for dry ground within %sm", veaf.p(veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES))
+  return veaf.findSpawnPoint(point, veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES)
 end
 
 function veaf.setServerName(value)
@@ -4508,6 +4782,55 @@ function veaf.getNameForSpawnedGroup(pCoalition, pBaseName, pCombatZoneName)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- collecting the groups a command spawns
+--
+-- A caller that wants to know what a VEAF command created passes it a table, which the spawn fills.
+-- That works only when the spawn happens synchronously — and three paths defer it: an alias delay
+-- (`-samsr!30`), a spawn's `delay` option, and a spawn's repeats. In all three the call returns
+-- before the table is filled, so a caller reading it on the next line sees nothing and never looks
+-- again. That is #66: a combat zone could not destroy a group it had spawned, because it had never
+-- learned the group existed.
+--
+-- So a caller may instead register a hook and be told about each group as it appears, whether that is
+-- now or in thirty seconds. The hook is kept **outside** the table, in this weak-keyed registry:
+-- eleven call sites iterate group tables with `pairs`, and a field on the table would surface in
+-- every one of them. Weak keys let a finished collection be collected.
+--
+-- Note for anyone tempted by a metatable instead: in Lua 5.1 `table.insert` bypasses `__newindex`
+-- (measured — only a plain assignment triggers it), so an observer metatable would see nothing.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veaf.spawnedGroupsHooks = setmetatable({}, { __mode = "k" })
+
+--- Ask to be notified of every group collected into `spawnedGroupsTable`.
+-- @param spawnedGroupsTable table the collection passed down to the command
+-- @param fn function called with the group name for each group, as it is created
+function veaf.registerSpawnedGroupsHook(spawnedGroupsTable, fn)
+  if type(spawnedGroupsTable) ~= "table" or type(fn) ~= "function" then
+    return false
+  end
+  veaf.spawnedGroupsHooks[spawnedGroupsTable] = fn
+  return true
+end
+
+--- Record a spawned group into a caller's collection, notifying its hook if it has one.
+-- Always inserts, so a caller that registered no hook keeps reading the table as before.
+function veaf.collectSpawnedGroup(spawnedGroupsTable, groupName)
+  if type(spawnedGroupsTable) ~= "table" or not groupName then
+    return
+  end
+  table.insert(spawnedGroupsTable, groupName)
+  local hook = veaf.spawnedGroupsHooks[spawnedGroupsTable]
+  if hook then
+    -- A hook is mission code: a failure in it must not abort the spawn that is half done.
+    local ok, err = pcall(hook, groupName)
+    if not ok then
+      veaf.loggers.get(veaf.Id):error("a spawned-groups hook raised: %s", veaf.p(err))
+    end
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- lines and figures on the map
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -4854,6 +5177,48 @@ function veaf.getTriggerZone(zoneName)
   return veaf.triggerZones[zoneName]
 end
 
+--- Which of the given units are inside a trigger zone.
+---
+--- DCS ships two zone shapes and each needs a different MiST call. Three modules used to branch on
+--- `triggerZone.type` themselves, with `if type == 0 ... elseif type == 2 ... end` and **no else** — so
+--- any other value, `nil` included, left the unit list untouched and the zone found nobody in silence.
+--- Each module failed in its own quiet way: a combat zone activated with nothing to kill and declared
+--- itself won, an air wave never triggered, a QRA never scrambled
+--- (FIX-COMBATZONE-ZONE-TYPE-SILENT).
+---
+--- Returns **nil** rather than an empty table for a zone it cannot read: "unusable" and "legitimately
+--- empty" are different answers, and a caller unable to tell them apart is how the defect started. No
+--- fallback shape is guessed — picking circular for an unknown type would put the silent wrong answer
+--- back one level down.
+---
+--- @param zoneName name of the DCS trigger zone
+--- @param unitNames names of the units to test
+--- @param moduleId logger id of the caller, so the error lands in the log of whoever asked
+--- @return table of units, or nil when the zone is missing or its type is not one we can read
+function veaf.getUnitsInTriggerZone(zoneName, unitNames, moduleId)
+  local logger = veaf.loggers.get(moduleId or veaf.Id)
+  if not zoneName then
+    logger:error("veaf.getUnitsInTriggerZone called with no zone name")
+    return nil
+  end
+  local triggerZone = veaf.getTriggerZone(zoneName)
+  if not triggerZone then
+    logger:error("trigger zone [%s] does not exist in the mission", veaf.p(zoneName))
+    return nil
+  end
+  if triggerZone.type == 0 then -- circular
+    return mist.getUnitsInZones(unitNames, { zoneName })
+  elseif triggerZone.type == 2 then -- quad point
+    return mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+  end
+  logger:error(
+    "trigger zone [%s] has an unexpected type [%s]; expected 0 (circular) or 2 (quad point), so its units cannot be read",
+    veaf.p(zoneName),
+    veaf.p(triggerZone.type)
+  )
+  return nil
+end
+
 --- Reads a raw trigger-zone property, as typed by the mission maker in the editor
 -- DCS stores them as an array of { key = "…", value = "…" } pairs, never a map, and every
 -- value is a string. Discovered zones have carried them since veaf._discoverTriggerZones,
@@ -5066,6 +5431,94 @@ veaf.ctldLogLevels = {
 -- filtering of its own: everything reaches env.info regardless. Overriding that single function
 -- gives the mission maker one place to set verbosity — veaf.config.ctld.logLevel, like any other
 -- VEAF module — where v1 needed seven separate overrides.
+--- The CTLD setting that governs its own sling loading.
+---
+--- **Not `slingLoad`**, which is the trap: that name survived the CTLD 1 to CTLD 2 migration and its
+--- meaning did not. In CTLD 2 `slingLoad` only picks which `spawnableCratesModels` entry a crate uses
+--- when it spawns, and all three of those models declare `canCargo: true` — so flipping it changes a
+--- crate's 3D model and nothing a crew notices.
+---
+--- `enableHoverSlingload` is the gate of CTLD's "Virtual Slingload": hover pickup, the `hoverTime`
+--- countdown, the crate lost on overspeed. That is what a helicopter crew experiences as CTLD sling
+--- loading, and it is what issue #60 asked to be able to switch.
+veaf.CTLD_SLINGLOAD_SETTING = "enableHoverSlingload"
+
+--- Radio path of the CTLD submenu, kept so the toggle can rebuild it in place.
+veaf.ctldRootPath = nil
+
+--- Is CTLD's virtual sling loading on right now?
+---
+--- Read at the point of use rather than cached: `ctld.gs` goes through `CTLDConfig:getSetting`, which
+--- consults the live settings table before falling back to the embedded catalogue, so a value written by
+--- `setSetting` is visible immediately. Caching it here would be the one way to make the menu lie.
+function veaf.isCtldSlingloadEnabled()
+  if not veaf.isCtldReady() then
+    return false
+  end
+  return ctld.gs(veaf.CTLD_SLINGLOAD_SETTING) == true
+end
+
+--- Turn CTLD's virtual sling loading on or off, for everybody.
+---
+--- Global, not per coalition (David, 2026-08-24): one setting, one pair of commands, no coalition to
+--- thread through.
+---
+--- Honoured immediately in both directions. `CTLDCrateManager:checkHoverStatus()` is a one-second timer
+--- loop that **reschedules itself before** testing the setting, so switching off stops pickups at the
+--- next tick and switching back on resumes them — the loop is never torn down. Which is why this can be
+--- a toggle at all rather than a build-time option.
+---
+--- @param enabled boolean the state to move to
+function veaf.setCtldSlingloadEnabled(enabled)
+  if not veaf.isCtldReady() then
+    return false
+  end
+  CTLDConfig.get():setSetting(veaf.CTLD_SLINGLOAD_SETTING, enabled == true)
+  veaf.loggers.get(veaf.ctldId):info("CTLD virtual sling loading is now %s", veaf.p(enabled and "enabled" or "disabled"))
+
+  -- The message says what did NOT change, on purpose. `_checkNativeDCSCargo()` runs before the setting
+  -- is tested, and all three crate models are `canCargo: true`, so DCS's own winch keeps working
+  -- whatever this is set to. Without that sentence the first crew to hook a crate after switching off
+  -- reports the command as broken.
+  trigger.action.outText(veaf.t(enabled and "ctld.slingload_enabled" or "ctld.slingload_disabled"), 15)
+
+  veaf.buildCtldRadioMenu()
+  return true
+end
+
+--- Build (or rebuild) the CTLD submenu: one command, the one that changes something.
+---
+--- Only the opposite state is offered, the way a combat zone offers activate or deactivate but never
+--- both — a menu holding "enable" while it is already enabled asks the player to work out which of two
+--- entries is the no-op.
+---
+--- Secured, because it is a game-master lever: it changes how every helicopter crew in the mission plays.
+function veaf.buildCtldRadioMenu()
+  if not veafRadio or not veaf.isCtldReady() then
+    return
+  end
+  if veaf.ctldRootPath then
+    veafRadio.clearSubmenu(veaf.ctldRootPath)
+  else
+    veaf.ctldRootPath = veafRadio.addSubMenu(veaf.t("menu.ctld.root"))
+  end
+
+  local enabled = veaf.isCtldSlingloadEnabled()
+  veafRadio.addSecuredCommandToSubmenu(
+    veaf.t(enabled and "menu.ctld.slingload_disable" or "menu.ctld.slingload_enable"),
+    veaf.ctldRootPath,
+    veaf.radioToggleCtldSlingload,
+    not enabled,
+    veafRadio.USAGE_ForAll
+  )
+  veafRadio.refreshRadioMenu()
+end
+
+--- Radio entry point: `parameters` is the state to move to.
+function veaf.radioToggleCtldSlingload(parameters)
+  veaf.setCtldSlingloadEnabled(parameters == true)
+end
+
 function veaf.ctld_initialize()
   if not ctld then
     veaf.loggers.get(veaf.Id):error("CTLD is enabled but CTLD.lua was not loaded")
@@ -5088,6 +5541,11 @@ function veaf.ctld_initialize()
   -- Must come after the override: ctld.initialize() flushes CTLD's startup report, which is
   -- precisely the output naming a stale or incomplete configuration.
   ctld.initialize()
+
+  -- After initialize(), never before: the menu shows the current state of a setting, and until CTLD has
+  -- read its configuration there is no state to show. veafRadio initialises at order 30 and this module
+  -- at 50, so the menu tree is already there.
+  veaf.buildCtldRadioMenu()
 end
 
 --- Make CTLD speak the mission's language.
@@ -5165,6 +5623,188 @@ end
 
 ---The VEAF replacement function that wraps up around ctld.initialize
 ---@param configurationCallback function? a callback that will be called before calling the vanilla csar.initialize function
+--- The fixed offset `csar.spawnGroup` adds to the position it is handed, in metres on both axes.
+---
+--- `csar.createUnit(_pos.x + 50, _pos.z + 50, …)` — `CSAR.lua:1041`. Naming it here rather than writing
+--- 50 twice is what makes the compensation below readable, and what will fail loudly if a vendored
+--- update changes it: the wrapper's tests assert the round trip, not the constant.
+veaf.CSAR_SPAWN_OFFSET_METRES = 50
+
+--- Replace `csar.addCsar` so a downed pilot never appears in the water.
+---
+--- **Nothing in `CSAR.lua` is modified.** It is vendored `adapted` from `VEAF/DCS-CSAR` and its update
+--- procedure re-applies VEAF adaptations onto a fresh upstream copy, so an edit made there would be
+--- erased by the next update, silently. This function already replaces seven other things in the `csar`
+--- table — its four loggers, its id, its `p`, its init flag — and this is the eighth.
+---
+--- Why `addCsar` and not `spawnGroup`, which is where the placement actually happens: `addCsar`
+--- dereferences the spawned group immediately (`addSpecialParametersToGroup`, then `getCoalition()`), so
+--- returning nil from `spawnGroup` raises. Deciding before anything is created is the only way to honour
+--- "otherwise he counts as dead" — which means **no CSAR object at all**: no MAYDAY, no ADF beacon, no
+--- wounded group sitting on the seabed for the rest of the mission.
+---
+--- The wart, documented rather than hidden: `spawnGroup` will add its own `+50/+50` after us, so the
+--- point handed to the original is **pre-compensated** by that offset. It is the price of not touching
+--- the vendored file.
+--- Modes of `csar.csarMode` that need the ejecting **aircraft**, not just its pilot.
+---
+--- Mode 1 disables the aircraft for everyone and mode 2 disables it for that pilot; both key on
+--- `getID()` and set a `CSAR_AIRCRAFT<id>` flag. Mode 3 only reduces the pilot's lives, so a player name
+--- is enough for it. Listed rather than hard-coded in a condition so the distinction is stated once.
+veaf.CSAR_MODES_NEEDING_THE_AIRCRAFT = { [1] = true, [2] = true }
+
+--- Find the unit a player is currently in, or nil.
+---
+--- Used to recover from CSAR handing us a player name where a unit belongs. It can legitimately fail:
+--- the pilot has just ejected, so his aircraft may already be gone by the time we look.
+function veaf.findUnitForPlayerName(playerName)
+  if type(playerName) ~= "string" or playerName == "" then
+    return nil
+  end
+  local found = nil
+  for _, side in pairs({ coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL }) do
+    pcall(function()
+      for _, unit in pairs(coalition.getPlayers(side) or {}) do
+        if not found and unit and unit.getPlayerName and unit:getPlayerName() == playerName then
+          found = unit
+        end
+      end
+    end)
+  end
+  return found
+end
+
+--- Make `csar.handleEjectOrCrash` survive being handed a player name.
+---
+--- FIX-CSAR-HANDLE-EJECT-ARGUMENT. `csar.addCsar` (`CSAR.lua:384`) calls
+--- `csar.handleEjectOrCrash(_playerName, false)`, and the function immediately does `_unit:getName()` —
+--- so it raises *"attempt to index a string value"*. Every other caller passes a unit. It is invisible
+--- at the default `csar.csarMode = 0`, where both branches are skipped, and breaks exactly the mission
+--- that asks for the feature: setting a mode is how you disable an aircraft or a pilot for
+--- `disableTimeoutTime` minutes after an ejection, and it gets an error instead.
+---
+--- **Replaced here rather than patched.** `CSAR.lua` is vendored `adapted`, so an edit is erased by the
+--- next update. Upstream was the other route and was measured to be a dead end: `VEAF/DCS-CSAR` is
+--- `ahead=0 behind=0` on `ciribob/DCS-CSAR`, and both have been untouched since August 2023 — checked
+--- 2026-08-24, because assuming a fork is alive is a mistake this repo has made before.
+---
+--- What the replacement can and cannot do, since a player name carries less than a unit:
+---
+--- * a **unit** is passed straight through, so every existing caller behaves exactly as before;
+--- * a **name** is resolved to the player's unit when he is still in one, and then passed through;
+--- * when it cannot be resolved, **mode 3 is still served** — it only needs the pilot's name — while
+---   modes 1 and 2 are refused with a warning. They key on the aircraft's `getID()`, and inventing one
+---   would set a `CSAR_AIRCRAFT<id>` flag on an aircraft nobody chose. A missing sanction is recoverable;
+---   a sanction applied to the wrong aircraft is not.
+function veaf.replaceCsarHandleEjectOrCrash()
+  if type(csar) ~= "table" or type(csar.handleEjectOrCrash) ~= "function" then
+    return
+  end
+  -- Same idempotence guard as the addCsar wrapper: a mission calling the initialisation twice would
+  -- otherwise stack replacements, and each layer would re-resolve what the previous one had resolved.
+  if csar._veafHandleEjectReplaced then
+    return
+  end
+  csar._veafHandleEjectReplaced = true
+  local originalHandleEjectOrCrash = csar.handleEjectOrCrash
+
+  ---@diagnostic disable-next-line: duplicate-set-field
+  csar.handleEjectOrCrash = function(unitOrName, crashed)
+    if type(unitOrName) ~= "string" then
+      return originalHandleEjectOrCrash(unitOrName, crashed)
+    end
+
+    local playerName = unitOrName
+    local unit = veaf.findUnitForPlayerName(playerName)
+    if unit then
+      veaf.loggers.get(csar.Id):debug("handleEjectOrCrash was given the player name [%s]; resolved his unit", veaf.p(playerName))
+      return originalHandleEjectOrCrash(unit, crashed)
+    end
+
+    if veaf.CSAR_MODES_NEEDING_THE_AIRCRAFT[csar.csarMode] then
+      veaf.loggers.get(csar.Id):warn(
+        "csarMode %s disables an aircraft, but CSAR passed only the player name [%s] and his unit is "
+          .. "gone: the sanction is skipped rather than applied to an aircraft nobody chose",
+        veaf.p(csar.csarMode),
+        veaf.p(playerName)
+      )
+      return
+    end
+
+    -- Mode 3 reduces the pilot's lives and needs no aircraft identity. `getName` answers the player name
+    -- so the `csar.csarUnits` comparison it does can only ever miss, which is the right outcome: this
+    -- pilot was not flying a rescue helicopter.
+    local pilotOnly = {
+      getPlayerName = function()
+        return playerName
+      end,
+      getName = function()
+        return playerName
+      end,
+      getID = function()
+        return nil
+      end,
+    }
+    return originalHandleEjectOrCrash(pilotOnly, crashed)
+  end
+end
+
+function veaf.replaceCsarAddCsar()
+  if type(csar) ~= "table" or type(csar.addCsar) ~= "function" then
+    return
+  end
+  -- Posed once, whatever happens. `veaf.csar_initialize_replacement` sets `veaf.csar_initialized` but
+  -- nothing reads it, so a mission calling it twice is possible — and stacking this wrapper would
+  -- compensate the spawn offset twice, putting the survivor 50 m the wrong way and resolving a point
+  -- that was already resolved. Caught because the first test asserting this passed by accident: its
+  -- stub resolver ignored its input, so a doubled compensation cancelled itself out.
+  if csar._veafAddCsarReplaced then
+    return
+  end
+  local originalAddCsar = csar.addCsar
+  csar._veafAddCsarReplaced = true
+  local offset = veaf.CSAR_SPAWN_OFFSET_METRES
+
+  -- Parameter names carry no leading underscore, unlike CSAR's own: `.luacheckrc` reads that prefix as
+  -- "deliberately unused", and these are all used. Copying the vendored naming failed the Lua gate.
+  ---@diagnostic disable-next-line: duplicate-set-field
+  csar.addCsar = function(coalitionSide, country, point, typeName, unitName, playerName, freq, noMessage, description)
+    if type(point) == "table" and point.x and point.z then
+      -- where the survivor would actually end up, offset included
+      local intended = { x = point.x + offset, y = point.y, z = point.z + offset }
+      local resolved = veaf.resolveCsarSurvivorPoint(intended)
+      if not resolved then
+        veaf.loggers
+          .get(csar.Id)
+          :info("no dry ground within %sm of the ejection: the pilot is lost", veaf.p(veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES))
+        -- The ejection still happened, so CSAR's bookkeeping for it must still run: `handleEjectOrCrash`
+        -- is what disables the aircraft (mode 1) or the pilot (mode 2) for `disableTimeoutTime` minutes.
+        -- Skipping it would make ditching at sea the *cheapest* way to lose an aircraft — the opposite of
+        -- "he counts as dead". Caught in review (Sourcery, PR #787).
+        --
+        -- The player name is what `addCsar` passes upstream, and `handleEjectOrCrash(_unit, _crashed)`
+        -- indexes a unit — so this call used to raise as soon as a mission set `csar.csarMode`. That is
+        -- fixed in `veaf.replaceCsarHandleEjectOrCrash` (FIX-CSAR-HANDLE-EJECT-ARGUMENT), which is
+        -- looked up here rather than captured, so this line gets the repaired function.
+        --
+        -- The `pcall` stays regardless. It no longer guards a defect we know about; it guards the next
+        -- one, in a vendored function, on the path that runs while a pilot is drowning.
+        local ok, err = pcall(csar.handleEjectOrCrash, playerName, false)
+        if not ok then
+          veaf.loggers.get(csar.Id):warn("csar.handleEjectOrCrash raised for a lost pilot: %s", veaf.p(err))
+        end
+        if noMessage ~= true then
+          trigger.action.outTextForCoalition(coalitionSide, veaf.t("csar.pilot_lost_at_sea", typeName or "aircraft"), 10)
+        end
+        return
+      end
+      -- undo the offset the original will add, so the survivor lands on the point we chose
+      point = { x = resolved.x - offset, y = resolved.y, z = resolved.z - offset }
+    end
+    return originalAddCsar(coalitionSide, country, point, typeName, unitName, playerName, freq, noMessage, description)
+  end
+end
+
 function veaf.csar_initialize_replacement(configurationCallback)
   if csar then
     veaf.loggers.get(veaf.Id):info(string.format("Setting up CSAR"))
@@ -5209,6 +5849,14 @@ function veaf.csar_initialize_replacement(configurationCallback)
     csar.enableAllslots = true
     csar.useprefix = false
     csar.radioSound = "csar-beacon.ogg"
+
+    -- FIX-CSAR-SPAWNS-ON-WATER (#245): keep a downed pilot out of the sea. Replaced here, like the
+    -- loggers above, rather than edited in the vendored CSAR.lua.
+    veaf.replaceCsarAddCsar()
+
+    -- FIX-CSAR-HANDLE-EJECT-ARGUMENT: and stop a player name from raising where a unit is indexed.
+    -- Same reason for being here: CSAR.lua is vendored, so an edit there is erased by the next update.
+    veaf.replaceCsarHandleEjectOrCrash()
 
     if configurationCallback and type(configurationCallback) == "function" then
       -- a configuration callback has been set, call it

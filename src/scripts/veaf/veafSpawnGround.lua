@@ -221,6 +221,70 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   return _fobName
 end
 
+--- Spawn a radio beacon through CTLD, and tell the player its frequencies.
+---
+--- FEAT-RADIO-BEACONS. `CTLDBeaconManager:createAtPoint` is CTLD 2's script-facing beacon spawner: it
+--- needs no transport, no zone and no player, and it lights **three** beacons at once — VHF, UHF and FM.
+--- The FM one is what issue #38 asked for, and it comes for free rather than as an option.
+---
+--- The frequencies are CTLD's to choose: it draws each from an internal pool and exposes no way to
+--- request one. So the command's job is to *report* what it got, which is why this does not copy
+--- `-tacan` — that command emits no message at all, and a beacon nobody knows the frequency of is not a
+--- beacon. A `freq` option is asked for upstream (VEAF/CTLD#128) and can be added here once it lands.
+---
+--- @param spawnSpot table where the marker was dropped
+--- @param radius number|nil scatter radius, 0 for the exact spot
+--- @param name string|nil display name; CTLD allocates "Beacon #N" when absent
+--- @param country string|nil country name or id — `ctld.utils.dynAdd` resolves either
+--- @param side number|nil coalition id
+--- @param silent boolean|nil mute the message to players
+--- @return nil always: the beacon is three groups and CTLD owns all of them
+function veafSpawn.spawnBeacon(spawnSpot, radius, name, country, side, silent)
+  veaf.loggers
+    .get(veafSpawn.Id)
+    :debug("spawnBeacon(name=%s, country=%s, side=%s, radius=%s)", veaf.lp(name), veaf.lp(country), veaf.lp(side), veaf.lp(radius))
+
+  if not veaf.isCtldReady() then
+    -- Said out loud rather than logged: the pilot dropped a marker and is waiting for something to
+    -- happen. `isCtldReady` has already written the *why* to the log for whoever built the mission.
+    if not silent then
+      trigger.action.outText(veaf.t("spawn.beacon_needs_ctld"), 10)
+    end
+    return nil
+  end
+
+  local _side = side or coalition.side.BLUE
+  local _country = country or "usa"
+  local _position = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius or 0))
+
+  local _beacon = CTLDBeaconManager.getInstance():createAtPoint(_position, _side, _country, { name = name })
+  if not _beacon then
+    if not silent then
+      trigger.action.outTextForCoalition(_side, veaf.t("spawn.beacon_failed"), 10)
+    end
+    return nil
+  end
+
+  -- Same units the FOB beacon reports in and the same order, because a pilot who has seen one should
+  -- not have to work out whether this one means kHz or MHz.
+  if not silent then
+    trigger.action.outTextForCoalition(
+      _side,
+      veaf.t("spawn.beacon_spawned", _beacon.vhf / 1000, _beacon.uhf / 1000000, _beacon.fm / 1000000),
+      15
+    )
+  end
+  veaf.loggers
+    .get(veafSpawn.Id)
+    :info("Spawned beacon: %.2f kHz / %.2f MHz / %.2f MHz FM", _beacon.vhf / 1000, _beacon.uhf / 1000000, _beacon.fm / 1000000)
+
+  -- Deliberately nil. The dispatcher reads this as a *group name* and then runs its own
+  -- post-processing on it (alarm state, MFD hiding, platform registration). A beacon is three groups
+  -- with CTLD's own battery timer, removal and map layer on top; handing it one of them would let VEAF
+  -- reconfigure something it does not own.
+  return nil
+end
+
 --- Spawn a specific group at a specific spot
 function veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)
   veaf.loggers.get(veafSpawn.Id):debug(
@@ -560,10 +624,11 @@ function veafSpawn.spawnConvoy(
   size,
   armor,
   silent,
-  hiddenOnMFD
+  hiddenOnMFD,
+  itinerary
 )
   veaf.loggers.get(veafSpawn.Id):debug(
-    "spawnConvoy(czName=[%s], spawnSpot=[%s], name=[%s], radius=[%s], country=[%s], side=[%s], speed=[%s], patrol=[%s], offroad=[%s], destination=[%s], defense=[%s], size=[%s], armor=[%s], silent=[%s], hiddenOnMFD=[%s])",
+    "spawnConvoy(czName=[%s], spawnSpot=[%s], name=[%s], radius=[%s], country=[%s], side=[%s], speed=[%s], patrol=[%s], offroad=[%s], destination=[%s], defense=[%s], size=[%s], armor=[%s], silent=[%s], hiddenOnMFD=[%s], itinerary=[%s])",
     czName,
     spawnSpot,
     name,
@@ -578,7 +643,8 @@ function veafSpawn.spawnConvoy(
     size,
     armor,
     silent,
-    hiddenOnMFD
+    hiddenOnMFD,
+    itinerary
   )
 
   if not destination then
@@ -659,12 +725,37 @@ function veafSpawn.spawnConvoy(
 
     veafSpawn._createDcsUnits(country, groupUnits.units, groupName, hiddenOnMFD, true)
 
-    local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad, speed, patrol, groupName)
-    veafSpawn.spawnedConvoys[groupName] = { route = route, name = groupName }
+    -- One point or several, the convoy is stored the same way: an itinerary and the leg it is on.
+    -- A single `dest` is a one-point itinerary, so nothing downstream needs to know the difference.
+    -- `patrol` only applies once the last point is reached — patrolling between two waypoints of an
+    -- itinerary would contradict the itinerary itself.
+    itinerary = itinerary or { destination }
+    local lastLeg = #itinerary == 1
+    local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad, speed, patrol and lastLeg, groupName)
+    veafSpawn.spawnedConvoys[groupName] = {
+      route = route,
+      name = groupName,
+      itinerary = itinerary,
+      -- The index of the point the convoy is driving **toward**, not the one it left. It starts at 1
+      -- because the departure route goes to `itinerary[1]`. Read the other way round, every message and
+      -- every check here is off by one — a reviewer of PR #781 read it that way and proposed naming
+      -- `legIndex + 1` in the hold message, which would have named the point *after* the one the convoy
+      -- parks at. A test pins the correct reading.
+      legIndex = 1,
+      speed = speed,
+      offroad = offroad,
+      patrol = patrol,
+    }
 
     --  make the group go to destination
     veaf.loggers.get(veafSpawn.Id):trace("make the group go to destination : " .. groupName)
     mist.goRoute(groupName, route)
+
+    -- Only an itinerary needs watching. A single `dest` has no next leg, so a one-point convoy keeps
+    -- exactly the behaviour it had before this lot — no watchdog, nothing rescheduled.
+    if #itinerary > 1 then
+      mist.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { groupName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
+    end
 
     if not silent then
       trigger.action.outText(veaf.t("spawn.spawned_convoy", groupName), 5)
@@ -672,6 +763,138 @@ function veafSpawn.spawnConvoy(
   end
 
   return groupName
+end
+
+--- How close a convoy must get to a point to count as having arrived, in metres.
+---
+--- Generous on purpose. A convoy stops where the terrain lets it, the route's last waypoint is snapped
+--- to a road, and the position compared against it is the group's **average** — so the head of a long
+--- column can be well past the point while the average is not. `PatrolWatchdog` uses 10 m because it
+--- watches a single lead vehicle returning to a mark; that would strand a column here.
+veafSpawn.CONVOY_ARRIVAL_RADIUS_METRES = 150
+
+--- How often the arrival watch runs, in seconds. Same cadence as `veaf.PatrolWatchdog`.
+veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS = 30
+
+--- Watch a convoy for arrival at the point it is heading for, and start the next leg when it gets there.
+---
+--- Reschedules itself, so one call at spawn keeps a convoy walking its whole itinerary unaided — the
+--- arrival half of David's arbitration.
+---
+--- It reads the convoy's **average** position rather than its lead vehicle's, which is where it departs
+--- from `veaf.PatrolWatchdog`. That is deliberate, and it answers one of the two questions the PRD
+--- asked, by removing it: an average has no lead vehicle to lose when the front truck burns, and it
+--- comes back nil exactly when nothing is left alive — which is the signal to stop watching rather than
+--- a case to handle.
+---
+--- The watch ends, without rescheduling, when the convoy is gone from the registry, has no position
+--- left, or has reached the last point of its itinerary. It survives a player stop: he may resume.
+---
+--- @param convoyName string
+function veafSpawn.convoyArrivalWatchdog(convoyName)
+  veaf.loggers.get(veafSpawn.Id):trace("veafSpawn.convoyArrivalWatchdog(convoyName=%s)", veaf.p(convoyName))
+  local convoy = veafSpawn.spawnedConvoys[convoyName]
+  if not convoy or not convoy.itinerary then
+    return -- cleaned up, or never had an itinerary: nothing to watch
+  end
+  if convoy.legIndex >= #convoy.itinerary then
+    veaf.loggers.get(veafSpawn.Id):debug("convoy %s reached the end of its itinerary, stopping the watch", veaf.p(convoyName))
+    return
+  end
+
+  local position = veaf.getAveragePosition(convoyName)
+  if not position then
+    veaf.loggers.get(veafSpawn.Id):debug("convoy %s has no position left, stopping the watch", veaf.p(convoyName))
+    return
+  end
+
+  if not convoy.stopped and veafSpawn._convoyHasReachedItsPoint(convoy, position) then
+    if convoy.holding then
+      -- `hold until further orders`: the leg was allowed to finish, and this is where it parks.
+      convoy.holding = false
+      convoy.heldAt = convoy.itinerary[convoy.legIndex]
+      trigger.action.outText(veaf.t("spawn.convoy_holding_at", convoyName, convoy.heldAt), 10)
+    else
+      veafSpawn.advanceConvoy(convoyName)
+    end
+  end
+
+  mist.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { convoyName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
+end
+
+--- Has the convoy reached the last waypoint of its current route?
+---
+--- The route is in **mission-table** form, where a waypoint's `y` is the easting; the position handed in
+--- is a **runtime vec3**, where `y` is the altitude and `z` is the easting. Comparing `y` to `y` here
+--- raises no error and is simply wrong, which is what `docs/agents/dcs-coordinates.md` exists for.
+--- Altitude is deliberately ignored: a convoy arrives in two dimensions.
+---
+--- @param convoy table the convoy record
+--- @param position table a runtime vec3
+--- @return boolean
+function veafSpawn._convoyHasReachedItsPoint(convoy, position)
+  local route = convoy.route
+  if not route or #route == 0 then
+    return false
+  end
+  local target = route[#route]
+  if not target or not target.x or not target.y then
+    return false
+  end
+  local dNorth = position.x - target.x
+  local dEast = position.z - target.y
+  return (dNorth * dNorth + dEast * dEast) <= (veafSpawn.CONVOY_ARRIVAL_RADIUS_METRES * veafSpawn.CONVOY_ARRIVAL_RADIUS_METRES)
+end
+
+--- Move a convoy onto the next leg of its itinerary.
+---
+--- Called by the arrival watchdog and by the player's "advance" menu alike — David's arbitration is
+--- that **both** advance a convoy, so there is one implementation and two callers rather than two
+--- code paths that drift.
+---
+--- The leg is generated from **where the convoy is now**, not from its original spawn point. It has
+--- driven since; re-using the old origin would route it back to the start before setting off, which is
+--- the same defect FIX-COMBATZONE-SPAWN-ROUTE-OFFSET fixed for combat zones.
+---
+--- `patrol` is honoured only on the final leg: patrolling between two waypoints of an itinerary would
+--- contradict the itinerary.
+---
+--- @param convoyName string
+--- @return boolean true if a new leg was started; false when there is nowhere left to go, the convoy
+---         is unknown, or it has no position left to start from
+function veafSpawn.advanceConvoy(convoyName)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.advanceConvoy(convoyName=%s)", veaf.p(convoyName))
+  local convoy = veafSpawn.spawnedConvoys[convoyName]
+  if not convoy or not convoy.itinerary then
+    return false
+  end
+
+  local nextLeg = (convoy.legIndex or 1) + 1
+  local destination = convoy.itinerary[nextLeg]
+  if not destination then
+    veaf.loggers.get(veafSpawn.Id):debug("convoy %s is on the last point of its itinerary", veaf.p(convoyName))
+    return false
+  end
+
+  local currentPosition = veaf.getAveragePosition(convoyName)
+  if not currentPosition then
+    veaf.loggers.get(veafSpawn.Id):warn("cannot advance convoy %s: it has no position left", veaf.p(convoyName))
+    return false
+  end
+
+  local isLastLeg = nextLeg == #convoy.itinerary
+  local route =
+    veaf.generateVehiclesRoute(currentPosition, destination, not convoy.offroad, convoy.speed, convoy.patrol and isLastLeg, convoyName)
+  if not route then
+    -- generateVehiclesRoute already told the player the point could not be resolved
+    return false
+  end
+
+  convoy.legIndex = nextLeg
+  convoy.route = route
+  convoy.stopped = false
+  mist.goRoute(convoyName, route)
+  return true
 end
 
 function veafSpawn._findClosestConvoy(unitName)
@@ -743,20 +966,86 @@ function veafSpawn._getConvoyOrWarn(unitName)
   return convoyName
 end
 
+--- Advance the closest convoy to the next point of its itinerary, without waiting for arrival.
+---
+--- The radio half of David's arbitration — **both** arrival and the player advance a convoy. It calls
+--- the same `advanceConvoy` the watchdog does, so the two cannot drift apart.
+---
+--- Advancing also releases a `hold`: a game master who pushes the convoy on has plainly changed his
+--- mind about parking it.
+function veafSpawn.advanceClosestConvoy(unitName)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.advanceClosestConvoy(unitName=%s)", veaf.p(unitName))
+  local convoyName = veafSpawn._getConvoyOrWarn(unitName)
+  if not convoyName then
+    return false
+  end
+  local convoy = veafSpawn.spawnedConvoys[convoyName]
+  convoy.holding = false
+  if not veafSpawn.advanceConvoy(convoyName) then
+    veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_itinerary_finished", convoyName), 10)
+    return false
+  end
+  veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_advancing_to", convoyName, convoy.itinerary[convoy.legIndex]), 10)
+  return true
+end
+
+--- Hold the closest convoy **at its next point**, letting the current leg finish.
+---
+--- Not a brake, and that is the whole distinction: `stop` halts a convoy where it stands, for a mission
+--- going wrong; `hold` parks it somewhere sensible, for a mission being paced. Naming them alike would
+--- make the useful one unusable, so they set different state and say different things.
+---
+--- On the last leg there is no next point to park at. It says so rather than doing nothing, or a game
+--- master would believe the convoy is under orders when it is simply finishing.
+function veafSpawn.holdClosestConvoy(unitName)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.holdClosestConvoy(unitName=%s)", veaf.p(unitName))
+  local convoyName = veafSpawn._getConvoyOrWarn(unitName)
+  if not convoyName then
+    return false
+  end
+  local convoy = veafSpawn.spawnedConvoys[convoyName]
+  local point = convoy.itinerary and convoy.itinerary[convoy.legIndex]
+  if not point or convoy.legIndex >= #convoy.itinerary then
+    veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_cannot_hold", convoyName), 10)
+    return false
+  end
+  convoy.holding = true
+  veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_will_hold_at", convoyName, point), 10)
+  return true
+end
+
+--- Halt the closest convoy **where it stands**. The other brake — see `holdClosestConvoy`, which lets
+--- the leg finish and parks at the next point. Both report, and they must not report alike.
 function veafSpawn.stopClosestConvoy(unitName)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.stopClosestConvoy(unitName=%s)", unitName))
   local convoyName = veafSpawn._getConvoyOrWarn(unitName)
-  if convoyName then
-    return veafSpawn._commandConvoy(convoyName, true)
+  if not convoyName then
+    return
   end
+  local halted = veafSpawn._commandConvoy(convoyName, true)
+  if halted == false then
+    veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_already_halted", convoyName), 10)
+  else
+    veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_halted_here", convoyName), 10)
+  end
+  return halted
 end
 
+--- Send the closest convoy on its way again after a halt, on the leg it was already walking. Distinct
+--- from `advanceClosestConvoy`, which skips to the *next* point.
 function veafSpawn.moveClosestConvoy(unitName)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.moveClosestConvoy(unitName=%s)", unitName))
   local convoyName = veafSpawn._getConvoyOrWarn(unitName)
-  if convoyName then
-    return veafSpawn._commandConvoy(convoyName, false)
+  if not convoyName then
+    return
   end
+  local resumed = veafSpawn._commandConvoy(convoyName, false)
+  if resumed == false then
+    veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_already_rolling", convoyName), 10)
+  else
+    veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_resumed", convoyName), 10)
+  end
+  return resumed
 end
 
 function veafSpawn._markClosestConvoyWithSmoke(unitName, markRoute)
@@ -853,7 +1142,7 @@ veafSpawn.registerCommandHandler("farp", "KNOWN_PILOT", function(eventPos, optio
     options.side,
     options.heading,
     options.spacing,
-    bypassSecurity,
+    options.silent,
     not options.showMFD,
     options.noFarpMarkers,
     options.tacanCode,
@@ -873,10 +1162,18 @@ veafSpawn.registerCommandHandler("fob", "KNOWN_PILOT", function(eventPos, option
     options.side,
     options.heading,
     options.spacing,
-    bypassSecurity,
+    options.silent,
     not options.showMFD
   )
   return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("beacon", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
+  -- `silent` is options.silent and NOT bypassSecurity: FIX-SPAWN-BYPASSSECURITY-AS-SILENT records why
+  -- the neighbours conflate the two, and it is what makes `-tacan` mute. A beacon must report its
+  -- frequencies whether or not the command needed a password.
+  veafSpawn.spawnBeacon(eventPos, options.radius, options.name, options.country, options.side, options.silent)
+  return nil, nil, false
 end)
 
 veafSpawn.registerCommandHandler("group", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
@@ -891,7 +1188,7 @@ veafSpawn.registerCommandHandler("group", "KNOWN_PILOT", function(eventPos, opti
     options.heading,
     options.spacing,
     options.unitName,
-    bypassSecurity,
+    options.silent,
     hasDest,
     not options.showMFD
   )
@@ -910,7 +1207,7 @@ veafSpawn.registerCommandHandler("infantryGroup", "KNOWN_PILOT", function(eventP
     options.defense,
     options.armor,
     options.size,
-    bypassSecurity,
+    options.silent,
     not options.showMFD
   )
   return g, nil, false
@@ -929,7 +1226,7 @@ veafSpawn.registerCommandHandler("armoredPlatoon", "KNOWN_PILOT", function(event
     options.defense,
     options.armor,
     options.size,
-    bypassSecurity,
+    options.silent,
     hasDest,
     not options.showMFD
   )
@@ -947,7 +1244,7 @@ veafSpawn.registerCommandHandler("airDefenseBattery", "KNOWN_PILOT", function(ev
     options.heading,
     options.spacing,
     options.defense,
-    bypassSecurity,
+    options.silent,
     hasDest,
     not options.showMFD
   )
@@ -966,7 +1263,7 @@ veafSpawn.registerCommandHandler("transportCompany", "KNOWN_PILOT", function(eve
     options.spacing,
     options.defense,
     options.size,
-    bypassSecurity,
+    options.silent,
     hasDest,
     not options.showMFD
   )
@@ -985,7 +1282,7 @@ veafSpawn.registerCommandHandler("fullCombatGroup", "KNOWN_PILOT", function(even
     options.defense,
     options.armor,
     options.size,
-    bypassSecurity,
+    options.silent,
     not options.showMFD
   )
   return g, nil, false
@@ -1008,8 +1305,9 @@ veafSpawn.registerCommandHandler("convoy", "KNOWN_PILOT", function(eventPos, opt
     options.defense,
     options.size,
     options.armor,
-    bypassSecurity,
-    not options.showMFD
+    options.silent,
+    not options.showMFD,
+    options.itinerary
   )
   return g, true, false
 end)

@@ -8,6 +8,7 @@
 dcs_mocks = {}
 dcs_mocks.currentTime = 0
 dcs_mocks.logs = {} -- captured log lines
+dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
 
 local function _log(level, text)
   table.insert(dcs_mocks.logs, { level = level, text = tostring(text) })
@@ -173,6 +174,15 @@ world = {
   getAirbases = function(coalition_id)
     return {}
   end,
+  -- Search volume shapes, as taken by world.searchObjects and world.removeJunk. Both were already
+  -- called by the runtime (veafCombatZone's junk cleanup, veafGrass's occupancy probe) while this
+  -- enum was missing from the mock, so any test reaching those lines died on a nil index.
+  VolumeType = {
+    SEGMENT = 0,
+    BOX = 1,
+    SPHERE = 2,
+    PYRAMID = 3,
+  },
   searchObjects = function(category, volume, fn) end,
   getMarkPanels = function()
     return {}
@@ -194,6 +204,43 @@ world = {
 }
 
 -- ---------------------------------------------------------------------------
+-- AI.Option  (ids and values taken from veaf_libs/data/dcs-schema/dcs-world-api-schema.json)
+-- Only the enums the VEAF scripts actually read; add from the schema rather than from memory.
+-- ---------------------------------------------------------------------------
+AI = {
+  Option = {
+    Air = {
+      id = {
+        NO_OPTION = -1,
+        ROE = 0,
+        REACTION_ON_THREAT = 1,
+        RADAR_USING = 3,
+        FLARE_USING = 4,
+        SILENCE = 7,
+        ECM_USING = 13,
+        MISSILE_ATTACK = 18,
+      },
+      val = {
+        ROE = { WEAPON_FREE = 0, OPEN_FIRE_WEAPON_FREE = 1, OPEN_FIRE = 2, RETURN_FIRE = 3, WEAPON_HOLD = 4 },
+        RADAR_USING = { NEVER = 0, FOR_ATTACK_ONLY = 1, FOR_SEARCH_IF_REQUIRED = 2, FOR_CONTINUOUS_SEARCH = 3 },
+        ECM_USING = { NEVER_USE = 0, USE_IF_ONLY_LOCK_BY_RADAR = 1, USE_IF_DETECTED_LOCK_BY_RADAR = 2, ALWAYS_USE = 3 },
+      },
+    },
+    Ground = {
+      id = { NO_OPTION = -1, ROE = 0, FORMATION = 5, DISPERSE_ON_ATTACK = 8, ALARM_STATE = 9, ENGAGE_AIR_WEAPONS = 20 },
+      val = {
+        ROE = { OPEN_FIRE = 2, RETURN_FIRE = 3, WEAPON_HOLD = 4 },
+        ALARM_STATE = { AUTO = 0, GREEN = 1, RED = 2 },
+      },
+    },
+    Naval = {
+      id = { NO_OPTION = -1, ROE = 0 },
+      val = { ROE = { OPEN_FIRE = 2, RETURN_FIRE = 3, WEAPON_HOLD = 4 } },
+    },
+  },
+}
+
+-- ---------------------------------------------------------------------------
 -- coalition
 -- ---------------------------------------------------------------------------
 coalition = {
@@ -205,6 +252,11 @@ coalition = {
     return {}
   end,
   getAirbases = function(side)
+    return {}
+  end,
+  -- Present in the real API (`dcs-world-api.lua:1395`) and it was missing here, which is why nothing
+  -- could test a player-name lookup. Empty by default; a test that cares overrides it.
+  getPlayers = function(side)
     return {}
   end,
   addGroup = function(...) end,
@@ -403,6 +455,13 @@ mist = {
   getGroupRoute = function(groupName)
     return nil
   end,
+  -- A unit's heading in RADIANS, which is what the real one returns — callers wrap it in
+  -- `mist.utils.toDegree`. The second argument asks for true rather than magnetic north; the mock records
+  -- it so a test can assert which one the caller wanted, since both look identical in the result.
+  getHeading = function(unit, rawHeading)
+    mist._lastHeadingWasTrue = rawHeading == true
+    return math.pi / 2
+  end,
   vec = {
     mag = function(v)
       local x = v.x or 0
@@ -445,6 +504,15 @@ mist = {
     mpsToKnots = function(mps)
       return mps * 1.94384
     end,
+    -- Centre of a trigger zone as a vec3. The real MiST reads the mission's zone table; a test
+    -- registers its zone in `veaf.triggerZones` and overrides this when the position matters.
+    zoneToVec3 = function(zoneName)
+      local zone = veaf.triggerZones and veaf.triggerZones[zoneName]
+      if not zone then
+        return nil
+      end
+      return { x = zone.x or 0, y = 0, z = zone.y or 0 }
+    end,
     get2DDist = function(v1, v2)
       local dx = (v1.x or 0) - (v2.x or 0)
       local dz = (v1.z or 0) - (v2.z or 0)
@@ -452,6 +520,15 @@ mist = {
     end,
     toDegree = function(rad)
       return rad * 180 / math.pi
+    end,
+    -- A vec3 flattened to the map plane. `y` is the EASTING here, not an altitude: this is the mission-table
+    -- convention, not the runtime one — see docs/agents/dcs-coordinates.md, which exists because mixing the
+    -- two raises no error and only moves things.
+    makeVec2 = function(v)
+      if v.z then
+        return { x = v.x or 0, y = v.z }
+      end
+      return { x = v.x or 0, y = v.y or 0 }
     end,
     toRadian = function(deg)
       return deg * math.pi / 180
@@ -468,8 +545,10 @@ mist = {
 -- ---------------------------------------------------------------------------
 -- Object helpers
 -- ---------------------------------------------------------------------------
+-- Defaults to UNIT; a test that needs a static or a piece of cargo sets `_category` on its fake,
+-- which is how combat-zone tests tell a static object from a vehicle.
 Object.getCategory = function(obj)
-  return Object.Category.UNIT
+  return (obj and obj._category) or Object.Category.UNIT
 end
 
 -- ---------------------------------------------------------------------------
@@ -483,6 +562,11 @@ Unit.destroy = function(unit) end
 -- which returns an Object.Category. Default to AIRPLANE; tests override per unit.
 Unit.getCategoryEx = function(unit)
   return (unit and unit._categoryEx) or Unit.Category.AIRPLANE
+end
+-- getCategory() returns an Object.Category, which is the trap FIX-EVENTHANDLER-UNITCATEGORY was
+-- about: it looks like it answers "airplane or ground unit?" and does not.
+Unit.getCategory = function(unit)
+  return (unit and unit._category) or Object.Category.UNIT
 end
 StaticObject.destroy = function(obj) end
 Group.destroy = function(obj) end
@@ -534,6 +618,7 @@ end
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.logs = {}
+  dcs_mocks.tasksSet = {}
   dcs_mocks.messages = {}
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.cockpitArguments = {}
@@ -546,6 +631,8 @@ function dcs_mocks.reset()
   end
   if CTLDConfig then
     CTLDConfig._instance.isLoaded = true
+    -- Back to CTLD's shipped default, or a test that switches sling loading off leaks into the next one.
+    CTLDConfig._instance.settings = { enableHoverSlingload = true }
   end
 end
 
@@ -681,6 +768,12 @@ ctld = {
   utils = {
     log = function(...) end,
   },
+  -- The settings reader, which a real CTLD defines unconditionally (`CTLD.lua:359`) and which every
+  -- VEAF path that reads a CTLD setting goes through. Delegates to the config singleton below, exactly
+  -- as the engine does, so a test that writes a setting sees the write.
+  gs = function(key)
+    return CTLDConfig.get():getSetting(key)
+  end,
   -- The engine's shipped dictionaries. `i18n_lang` is the module-level default CTLD hard-codes to
   -- "en"; a mission's own language is supposed to override it, and `veaf.ctld_initialize` is what
   -- does that (FIX-CTLD-LANGUAGE). Only the languages CTLD actually ships are listed, because the
@@ -696,7 +789,20 @@ ctld = {
 -- (the nominal case, so every existing CTLD test keeps exercising the code it was written for);
 -- a test flips it to false to reach the other state, and dcs_mocks.reset() restores it.
 CTLDConfig = {
-  _instance = { isLoaded = true },
+  -- `settings` is the live table the engine's own getSetting consults *before* falling back to its
+  -- embedded catalogue, which is what makes a mid-mission setSetting take effect. `enableHoverSlingload`
+  -- starts **true**, the value CTLD ships, so a test reads the real default rather than a convenient one.
+  _instance = {
+    isLoaded = true,
+    settings = { enableHoverSlingload = true },
+    getSetting = function(self, key)
+      return self.settings[key]
+    end,
+    setSetting = function(self, key, value)
+      self.settings[key] = value
+      return self
+    end,
+  },
   get = function()
     return CTLDConfig._instance
   end,
@@ -870,6 +976,11 @@ function dcs_mocks.addGroup(name, data)
     local _ctrl = {
       setCommand = function() end,
       pushTask = function() end,
+      -- Recorded rather than dropped: replaceMission pushes a whole Mission task through setTask,
+      -- and asserting what it contains is the only way to see an escort task being repaired.
+      setTask = function(_self, task)
+        table.insert(dcs_mocks.tasksSet, { group = name, task = task })
+      end,
       getDetectedTargets = function()
         return {}
       end,
@@ -892,6 +1003,12 @@ end
 -- Group.getUnits(group) — delegates to the instance method so addGroup's getUnits stub is used.
 Group.getUnits = function(grp)
   return grp:getUnits()
+end
+
+-- Group.getID(group) — the static form, which is what the escort-task repair uses: only this id is
+-- the one DCS wants for an Escort task, and what a mission file stores does not correspond to it.
+Group.getID = function(grp)
+  return grp:getID()
 end
 
 -- ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ from typing import Any
 
 import yaml
 from mission_tools import DcsMission, read_miz, write_miz
+from veaf_libs import briefing_variables
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
@@ -16,6 +17,7 @@ from veaf_libs.progress import progress_context
 from .models import MissionConfig, VersionConfig
 from .utils import SolarCalculator, TimeExpressionParser
 from .weather import DCSWeatherConverter
+from .weather.dcs_weather_converter import fetch_metar_string
 
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 
@@ -166,8 +168,19 @@ class WeatherInjectorWorker(BaseWorker):
         if version.time or version.date:
             self._update_mission_time_and_date(version)
 
-        if version.weather or version.metar:
+        # `airport_icao` belongs in this condition and was missing from it since the weather feature
+        # shipped (21f3f386, 2025-11-25): a variant declaring only an ICAO got **no weather injected at
+        # all** and silently kept the base mission's, while `_inject_weather` was perfectly capable of
+        # fetching it. Found in review of FEAT-BRIEFING-METAR (Sourcery, PR #786), because a briefing
+        # claiming the live weather made the inconsistency visible for the first time.
+        if version.weather or version.metar or version.airport_icao:
             self._inject_weather(version)
+
+        # FEAT-BRIEFING-METAR (#40): the weather is known here and never reached the text a pilot reads,
+        # because the mission is rebuilt from source every time and a hand-typed briefing is overwritten.
+        # Per variant, deliberately: seven weather variants need seven different METARs, so this belongs
+        # inside the loop body rather than once around it.
+        self._substitute_briefing_variables(version)
 
         # Write output
         if self.mission_base_name:
@@ -178,6 +191,34 @@ class WeatherInjectorWorker(BaseWorker):
         write_miz(mission=self.mission_data, miz_file_path=output_path)  # type: ignore[arg-type]
 
         return output_path
+
+    def _substitute_briefing_variables(self, version: VersionConfig) -> None:
+        """Replace ``${…}`` tokens in this variant's briefing.
+
+        Args:
+            version: The variant being built, which decides what ``${METAR}`` resolves to.
+
+        ``METAR`` is offered only when a METAR string genuinely exists for this variant: written in the
+        configuration, or fetched for an ICAO. A variant built from individual weather parameters has no
+        METAR to show, so the token is **not** supplied and survives as written — with a warning saying
+        why, rather than a blank a mission maker would read as the build eating his prose.
+
+        The ICAO fetch happens only if the briefing asks. A build that never writes ``${METAR}`` makes no
+        network call at all.
+        """
+        if not self.mission_data:
+            return
+
+        requested = set(briefing_variables.unknown_tokens(self.mission_data, {}))
+        variables: dict[str, str] = {}
+        if "METAR" in requested:
+            metar_text = version.metar or ""
+            if not metar_text and version.airport_icao:
+                metar_text = fetch_metar_string(version.airport_icao)
+            if metar_text:
+                variables["METAR"] = metar_text
+
+        briefing_variables.apply_and_report(self.mission_data, variables, context=version.name)
 
     def _update_mission_time_and_date(self, version: VersionConfig) -> None:
         """Update mission start time and date."""

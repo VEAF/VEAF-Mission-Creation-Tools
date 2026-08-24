@@ -7,6 +7,1645 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+> **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
+> fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
+
+## [6.16.0] — 2026-08-24
+
+**Released.** This version consolidates the forty-seven patch versions from **6.15.5 to 6.15.52**, whose
+detailed entries follow below and are left untouched. Nothing new is recorded here — this heading exists
+so the changelog says which version shipped, and what it contained.
+
+Four changes can alter the behaviour of missions that already worked; they are set out in
+`RELEASE_NOTES.md` before anything else. In short: every latitude/longitude written in degrees, minutes
+and seconds moves by about 31 metres (it was wrong before), a misspelt marker option is now refused in
+every command rather than only in `_spawn`, the mission validator refuses more missions, and waypoint
+injection now reaches every human slot instead of one in 105.
+
+---
+
+## [6.15.52] — 2026-08-24
+
+### Fixed
+
+- **Eight `_ground` commands did nothing and said nothing.** Six verbs — `unset`, `start`, `stop`, `clear`,
+  `status` and `order` — looked up a named autopilot with no `else` branch, so a name nobody had registered
+  produced no action and no message, its only trace a `trace`-level log line invisible at the default
+  level. Two more silences sat around them: `set`/`unset` finding no allied group within 250 m of the
+  marker aborted without a word, and an order text that could not be parsed at all was dropped in silence.
+  Each of the eight now answers, and the answer says what to do — the autopilot message names the
+  `_ground set` that would create one, the range message offers `groupname`, and the order message lists
+  the valid orders.
+
+  Found in game: an order to `arty-1` after a mission reload — which discards the autopilots — vanished
+  with no way to tell "the autopilot is gone" from "my coordinates are wrong" from "the module is broken".
+
+---
+
+## [6.15.51] — 2026-08-24
+
+### Fixed
+
+- **Every latitude/longitude written in degrees, minutes and seconds was about 31 metres off.** The reader
+  accumulated arc-seconds from `-1` instead of `0`, so each DMS coordinate came out exactly one arc-second
+  short — since 2021, in every mission, and not only for artillery: this is the single coordinate reader
+  for AirWaves zones, ground-AI targets, named points, QRAs and the shortcut aliases. A test had even
+  recorded the offset as "by design" and widened its tolerance to accept it.
+
+### Added
+
+- **Coordinates can now be written the way DCS shows them.** `37T GG 12345 12345`, copied off the F10 map
+  with its spaces, is accepted as it stands — no `u` prefix, no retyping. Retranscribing a grid reference
+  is exactly how shells end up in the wrong village. The MGRS digit count is the precision, from 10 km at
+  two digits a side down to one metre at five, and an **odd** digit count is now refused rather than
+  silently halved into a position nobody asked for.
+- **Degrees, minutes and seconds can be separated however a pilot writes them** — spaces, or the `°`, `'`
+  and `"` symbols, alongside the `:` and `-` that already worked. Degrees with decimal minutes
+  (`N42:30.5E041:45.5`), the form charts and kneeboards use, is read correctly too.
+- The accepted formats are now documented, with their precision, on the veafGroundAI page in both
+  languages.
+- **A coordinate written longitude-first is now refused instead of silently transposed.** `E041N42` used
+  to be accepted and come back as latitude 41, longitude 42 — the two values the wrong way round, with no
+  warning. Refusing is the whole argument of this change: a coordinate nobody can read is a message on
+  screen, a coordinate quietly transposed is a shell in the wrong village.
+
+---
+
+## [6.15.50] — 2026-08-24
+
+### Fixed
+
+- **The welcome brief still said nothing, and adding the birth event had not been enough.** In single
+  player the pilot occupies his slot **before** the mission's scripts load, so his birth event fires
+  before this module (load order 210) can subscribe to anything — the timing was the problem, not the
+  event name, and changing slot restarts the mission in single player so the second attempt lost the same
+  race. The brief now **looks at who is already flying** shortly after it initializes, instead of only
+  waiting to be told. The subscription stays for pilots joining a running server later; both paths share
+  a once-per-slot rule so nobody hears the runway twice. (found in game, 2026-08-24)
+
+---
+
+## [6.15.49] — 2026-08-24
+
+### Fixed
+
+- **The welcome brief said nothing at all**, on an airfield and on a carrier alike. It listened only for
+  `S_EVENT_PLAYER_ENTER_UNIT`, and DCS does **not** raise that event when a single-player pilot occupies
+  his starting slot — it raises a birth event for him. So the feature shipped dead. It now listens for
+  both, with the human test that keeps a birth event from briefing every AI aircraft that spawns, and a
+  once-per-slot rule so a pilot is not told the runway twice when both events name him. `veafGrass` and
+  `veafQraCore` have both taken both events for exactly this reason for years; this now follows them
+  instead of inventing a third answer. (found in game, 2026-08-24)
+
+---
+
+## [6.15.48] — 2026-08-24
+
+### Fixed
+
+- **A sanctuary zone's defences never deployed — they raised an error instead.** Set `delay_spawn` on a
+  sanctuary zone, let a player linger past it, and the ships or SAM sites that should punish him simply
+  never appeared. The eight calls that spawn them passed their arguments **one position off**: they were
+  written against a signature that gained a `delay` parameter in second place on **2021-04-13** and were
+  never updated, so a command string landed on `delay` and the scheduler tried to add it to a timestamp.
+  Five years old, and invisible because `delay_spawn` defaults to `-1`, which disables the whole branch.
+- **A delay that is not a number is now refused loudly** instead of raising deep inside the scheduler.
+  A legitimate one is always digits — the marker syntax is `-alias!30` — so anything else means a caller
+  passed its arguments in the wrong order. The alias now runs **immediately** and the log names the bad
+  value: losing the delay is a smaller loss than losing the spawn, and the next misaligned call will be
+  found by reading a log rather than by a player noticing that nothing happened.
+
+---
+
+## [6.15.47] — 2026-08-24
+
+### Fixed
+
+- **A `-tacan` marker spawned a beacon and told nobody.** Dropping it produced no confirmation at all —
+  no channel, no band, nothing. The cause was two unrelated ideas sharing one setting: **fourteen** spawn
+  handlers forwarded "this command ran without a password" into a parameter meaning "the player does not
+  want to be told". An alias like `-tacan` is deliberately usable without a password, and inherited a
+  silence meant for mission scripts. Silence now follows **who asked**: a pilot who drops a marker always
+  gets an answer, a script never spams one. ([#198 sibling finding](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/198))
+- **A spawn asked for by a combat zone or an AirWaves wave still says nothing**, which is the behaviour
+  that made the conflation survive for years and is preserved on purpose — a zone spawning thirty groups
+  must not print thirty messages.
+
+### Added
+
+- **A TACAN now reports its channel, band and ident** when a pilot places it, the way a JTAC has always
+  reported its laser code and frequency. A beacon whose channel is never told to anybody cannot be tuned.
+
+### Changed
+
+- **A JTAC keeps announcing itself even when a mission script places it.** That exemption used to be a
+  patch working around the conflation above; it is now a recorded decision, because its message carries
+  the code and frequency a pilot needs to *use* the JTAC rather than a notification he can afford to miss.
+- The `veafShortcuts` documentation listed **eight** aliases that bypass security. There are nine.
+- **A radio beacon placed by a mission script is now quiet**, where it used to announce itself. The `beacon` handler was already asking the right question — "does the caller want silence?" — but nothing had ever answered it, so it always spoke. It now follows the same rule as everything else.
+
+---
+
+## [6.15.46] — 2026-08-24
+
+### Added
+
+- **veafGroundAI — the fire-adjustment loop.** A battery can now be corrected: `_ground order, name
+  arty-1, order correct; correction 09050` shifts the last point it aimed at by 50 m east and fires
+  again. The correction is written as artillery writes it — three digits of true bearing, then the
+  distance in metres — and corrections compound, so two of them move the aim point twice. An unreadable
+  correction, or one given to a battery with no fire mission in progress, is **refused and announced to
+  the pilot** rather than guessed at. ([#198](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/198),
+  [#57](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/57))
+
+### Fixed
+
+- **veafGroundAI kept two different ideas of "the last target".** One was set when an order was queued,
+  the other once the rounds actually went out, and only the second was used by `fire` with no target.
+  They are now a single remembered aim point, shared by a correction and by a bare `fire` — so an effect
+  mission lands where the correction put the aim, not at the point before it.
+- **`fire` with no target had never been tested with an actual previous target** — only the empty case
+  was. The documented behaviour is now covered.
+
+---
+
+## [6.15.45] — 2026-08-24
+
+### Added
+
+- **A pilot taking a slot is greeted with the weather and the runway in service** —
+  [#301](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/301), Tripack. Five seconds after
+  entering the unit, so he has finished loading his cockpit, and to **his group only**: it is about his
+  airfield, and broadcast to a coalition it becomes noise the moment two pilots take slots at different
+  bases.
+
+  Deliberately shorter than the ATIS, which stays a radio command away — a greeting that fills the screen
+  at every slot change stops being read. It repeats on **every** slot entry rather than once per session,
+  because a pilot who changes airfield wants the new airfield's runway.
+
+  **A carrier announces its current heading instead of a runway**, because it turns into the wind and the
+  runway is therefore mobile. In the carrier group's own words — `carrier.atc_navigation`'s *"current
+  heading (true)"* — rather than a second vocabulary for the same number, and from the same
+  `mist.getHeading(unit, true)` call carrier operations already make. A helipad has neither, so it gets
+  the weather alone; a heading that cannot be read falls back to the weather rather than inventing one,
+  since a course a pilot cannot trust is worse than none.
+
+  Off with `modules.WEATHER.welcomeBrief: false`, for a mission running its own briefing.
+
+  Worth noting for anyone reading the lot: its PRD called the runway-from-wind *"the only real computation
+  here"* and said nothing decided it. That was the one part already shipped —
+  `veafAirbase:getRunwayInService` picks the best-headwind runway end and the ATIS has been using it — so
+  what this adds is the trigger, the airbase, the message and the switch.
+
+---
+
+## [6.15.44] — 2026-08-24
+
+### Added
+
+- **The mission's own bullseye is injected as a waypoint, per coalition** —
+  [#175](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/175), asked for in 2023. Every flight
+  plan gains a `BULLSEYE` waypoint at the coordinates the mission itself carries, appended so existing
+  point numbers do not move.
+
+  **RED gets the red bullseye, everything else gets blue** — the rule
+  [#304](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/304) established for the runtime,
+  reused rather than reinvented. Two-way for a concrete reason: the real `neutrals` bullseye is `{0, 0}`
+  in the Syria smoke-test mission and `{100, 100}` in the demo mission, so a three-way branch would send
+  a neutral flight to the map origin.
+
+  **A flight plan that already declares `BULLSEYE` keeps its own.** Not merely un-duplicated —
+  *un-overwritten*: the injector replaces a same-named waypoint in place, so adding ours unconditionally
+  would have silently replaced the mission maker's coordinates with the mission's.
+
+  On by default through `pipeline.waypoints.bullseye`, the same shape as `pipeline.presets.kneeboards`:
+  a behaviour sub-flag defaults on while the step stays opt-in by the existence of `waypoints.yaml`. A
+  mission without one is untouched, and a group no flight plan matches receives nothing — the bullseye
+  rides along with a plan rather than creating one. The build reports how many it added.
+
+  Measured on the built smoke-test mission rather than asserted: 105 human slots, 53 with the correct
+  blue bullseye, 52 with the correct red one, **0 wrong and 0 missing**. That check is the one that
+  matters, because the failure mode here is using the wrong side's bullseye and a unit test with invented
+  coordinates would not notice.
+
+  This only works because the previous release moved the waypoints step: before it, the same feature
+  would have reached one slot in 105 while satisfying its own acceptance criteria.
+
+---
+
+## [6.15.43] — 2026-08-24
+
+### Fixed
+
+- **Waypoint injection reached one human slot in 105.** The `waypoints` pipeline step ran **before**
+  `spawnable_aircrafts` and `dynamic_slot_templates` — the two steps that create the human-piloted slots
+  a flight plan exists for. So when the waypoints were injected, those slots did not exist.
+
+  Measured in the built `SmokeTest_noon.miz`: **105** human-piloted groups, exactly **1** carrying a
+  waypoint from the flight plan — the one already present in the source `.miz`. With the step at its
+  corrected position: **105 of 105**.
+
+  This was never only about an automatic bullseye. It hit **declared** waypoints: a mission maker writing
+  a flight plan for a mission with dynamic slots or spawnable aircraft had it applied to a handful of
+  slots and nothing else.
+
+  **And it was silent for a reason worth recording.** The step already reported what it did — "N
+  injected", "M human groups without a flight plan". At the old position it saw one group and reported
+  *1 injected, 0 without a plan*: accurate, and perfectly healthy to read. Nothing lied. The count was
+  taken before the world was finished, so moving the step restores the denominator as much as the
+  behaviour, and no new reporting was needed.
+
+  The move was made on measurement, not preference: none of the 105 slots has an empty route, so appending
+  cannot leave one starting in mid-air, and all 105 already carry a locked ETA, so the injector's "lock
+  point 1" fallback — the behaviour its own comment says exists to avoid an untakeable slot — never fires
+  on them.
+
+  Guarded by a source-order test bounded on both sides: waypoints must run after the aircraft steps and
+  still before the weather step, which writes the variant files.
+
+---
+
+## [6.15.42] — 2026-08-24
+
+### Changed
+
+- **The most specific flight plan now wins, instead of the first one declared.** `src/waypoints.yaml`
+  declares plans with criteria — coalition, category, aircraft type, country — and the ones a plan omits
+  are wildcards. Until now the **first** compatible plan was used, so declaration order decided and a
+  specific plan written after a broad one was unreachable.
+
+  Both the code's docstring and the shipped template promised the priority for years without it being
+  implemented, and the template shipped the consequence as its own illustration: `all_blue_planes` is
+  declared before `f16_flight_plan`, so a blue F-16C matched the first and the F-16 plan was
+  configuration **no aircraft could reach**.
+
+  Measured on the real template, before and after: exactly one case changes, and it is the broken one —
+  a blue F-16C now gets `f16_flight_plan`, while every other aircraft gets what it got before.
+
+  **This is a behaviour change for missions whose plans overlap**, and mission folders live outside this
+  repository, so the reach is not measurable from here. A mission maker who had ordered plans
+  narrow-first to work around the old behaviour sees nothing change — narrow-first is what specificity
+  produces. One who relied on order so that a broad plan masked a specific one will now get the specific
+  one.
+
+  Declaration order still breaks a tie between plans of equal specificity, deliberately: the alternative
+  depends on dictionary iteration and would make the same file build differently for no visible reason.
+
+  Documented for mission makers under `{#flight-plan-matching}` in both languages, with the worked
+  example and an explicit note on who is affected.
+
+---
+
+## [6.15.41] — 2026-08-24
+
+### Fixed
+
+- **Every mission built from the template shipped a waypoint labelled BULLSEYE, 483 km from the real
+  one.** `src/defaults/mission-folder/src/waypoints.yaml` declared an example waypoint named `BULLSEYE`
+  at fixed coordinates; that file is copied into every folder `veaf-tools mission prepare` creates, and
+  the waypoints injector runs as an ordinary build step whenever it is present. So the example was not
+  dormant — it was injected.
+
+  Measured in the built Syria smoke-test mission rather than reasoned about: one waypoint named
+  `BULLSEYE`, at the template's coordinates, **483 km** from that mission's own blue bullseye and 216 km
+  from its red one. All four mission folders in this repository carried it.
+
+  The failure is silent by construction, which is why it survived: a pilot has no reason to distrust a
+  steerpoint labelled BULLSEYE, and a mission maker reads it as something he put there himself.
+
+  Renamed to `HOLDING_POINT` rather than commented out. The example teaches the file's shape and is worth
+  keeping; what had to go was the **claim**. `INITIAL_POINT` and `TARGET` beside it are per-mission
+  choices and no value for them is wrong — a bullseye is a property the mission already carries, with one
+  correct value, so naming an example after it asserts something a template cannot know.
+
+  Guarded by four checks (`test_default_waypoints_template.py`), one of which covers the rename's own
+  silent failure mode: a flight plan pointing at a waypoint that no longer exists injects nothing and
+  reports nothing.
+
+- **The plan-matching priority described in two places does not exist.** The template's usage notes and
+  `get_flight_plan_for`'s docstring both promised *aircraft type first, then category, then coalition*.
+  The code returns the **first** plan whose stated criteria match, so declaration order decides.
+
+  The consequence was shipped as an illustration and nobody noticed: `all_blue_planes` is declared before
+  `f16_flight_plan`, a blue F-16C matches both, so the F-16 plan is dead configuration in the default
+  template. Both descriptions now say what the code does, with that example spelled out as the warning.
+  Whether the priority should be built is a behaviour question, filed as `FIX-WAYPOINTS-PLAN-PRIORITY`.
+
+---
+
+---
+
+## [6.15.40] — 2026-08-24
+
+### Added
+
+- **`_spawn beacon` / `-beacon`: a radio beacon from a marker**, which
+  [#38](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/38) (FM beacons) and
+  [#192](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/192) asked for. One command places
+  three beacons at the marker — ADF (VHF), UHF and **FM** — because CTLD lights all three whether you
+  ask or not, so the FM request is answered without an option for it.
+
+  Placed **exactly where the marker was dropped**: `radius` defaults to 0, unlike every command that
+  spawns a group, because a beacon's position is the reason for dropping it there.
+
+  **The message is the feature.** CTLD draws each frequency from an internal pool and exposes no way to
+  request one, so the command's job is to report what it got:
+
+  ```
+  Radio beacon up — ADF 245.00 kHz · UHF 251.00 MHz · FM 40.50 MHz
+  ```
+
+  `-tacan` was the model for the plumbing and deliberately not for this: it emits no message at all, and
+  none of its keys carry a frequency, so copying it would have shipped a command that works and cannot
+  be used. A `freq` option is proposed upstream ([VEAF/CTLD#128](https://github.com/VEAF/CTLD/pull/128))
+  rather than faked here — a beacon reporting a frequency VEAF cannot choose would be a command that
+  lies.
+
+  Two refusals rather than silence: no CTLD started, and a spawn CTLD declines. The pilot dropped a
+  marker and is waiting for something, and reporting success on a failed spawn would leave him tuning a
+  frequency nothing transmits on.
+
+  Documented on the spawn page in both languages — `_spawn tacan` was documented nowhere, so there was
+  no neighbouring section to mirror — and listed in both alias tables.
+
+---
+
+---
+
+## [6.15.39] — 2026-08-24
+
+### Added
+
+- **A game master can switch CTLD sling loading on and off from the radio menu** (`F10 → CTLD`), which
+  [#60](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/60) asked for in 2021. Secured, and
+  global: it changes how every helicopter crew in the mission plays, not only whoever pressed it. Only
+  the command that changes something is ever shown.
+
+  Effective immediately in both directions, and that is not an accident of the implementation: CTLD's
+  hover loop reschedules itself **before** it tests the setting, so switching off stops pickups at the
+  next tick and switching back on resumes them. Which is what makes a toggle honest here rather than a
+  build-time option pretending to be one.
+
+  **The obvious flag was the wrong one.** `slingLoad` kept its CTLD 1 name through the CTLD 2 migration
+  and lost its meaning: it now only decides which model a crate spawns with, and all three of those
+  models are `canCargo: true`. A toggle wired to it would have passed any review and reskinned crates.
+  The one that governs sling loading is `enableHoverSlingload`.
+
+  **The message names what does not change.** CTLD checks native DCS cargo before it looks at this
+  setting, so DCS's own winch keeps working whatever the toggle says — a CTLD crate stays hookable.
+  Unsaid, the first crew to hook a crate after a switch-off reports the command as broken.
+
+  It lives in `veaf.lua` beside the CTLD integration rather than in a module of its own. A `veafCtld`
+  module would have cost four plumbing points and, worse, a new module key a mission maker has to
+  discover — leaving the feature off and invisible by default.
+
+### Fixed
+
+- **The CTLD test double claimed to be a ready engine while missing part of one.** `dcs_mocks` satisfied
+  `veaf.isCtldReady()` but offered neither `ctld.gs` nor `setSetting`, which a real CTLD defines
+  unconditionally, so the first VEAF code to read a CTLD setting fell over on it. The mock now provides
+  the settings surface and `reset()` restores it. Hardening the production code against a missing `gs`
+  was the alternative and would have been wrong: it cannot happen in DCS, and it would hide a genuinely
+  broken CTLD behind a silent default.
+
+---
+
+## [6.15.38] — 2026-08-24
+
+### Fixed
+
+- **`vendored.yaml` pinned CTLD four release candidates behind the file it describes.** PR #746
+  (2026-08-15) updated the vendored `CTLD.lua` from `2.0.0-rc3` to `2.0.0-rc7` and did not touch the
+  manifest. The pin stayed at rc3 for nine days.
+
+  The cost is not the wrong number, it is what the wrong number did to the drift watcher. The watcher
+  compares upstream releases against the pin, so it spent those nine days reporting rc4, rc5, rc6 and rc7
+  as *available updates* — all four already applied. A watcher whose alarms are known to be wrong is a
+  watcher nobody reads, and the next alarm is the one that matters. The same failure as the datamine
+  robot silenced by a surviving branch, from the other direction.
+
+  Both the pin and the release watch tag are corrected; fixing only the first would have left the watcher
+  wrong while making the manifest look right.
+
+### Added
+
+- **A test that a vendored file and its pin describe the same version** (`test_vendored_pins_match_the_files.py`).
+  Offline, so it gates every run rather than waiting for the weekly drift check.
+
+  Deliberately a table of named artefacts rather than a sweep: only a few of the eleven declare a version
+  a machine can read — two are directories. A heuristic was written first and thrown away, because it
+  reported AIEN as consistent for the wrong reason: the digit `1` of its `1.0 build 0154` occurs in its
+  pin. A green light earned by accident is the failure this test exists to prevent, one level up.
+
+  The release-tag check is scoped to artefacts whose tag and pin share a numbering scheme. The first
+  version required every tag to contain its pin and failed on CSAR, which pins the date-version of the
+  adapted file while watching ciribob's separate `1.9.x` releases — a correct manifest reported as drift.
+  Tightening the scope was the fix; loosening the comparison would have made the check unable to fail.
+
+---
+
+## [6.15.37] — 2026-08-24
+
+### Fixed
+
+- **Three defects in the missile-guardian module, one of them on the path its own documentation
+  teaches.** The module has been a declared skeleton since 2021 — its page says so, version `0.0.2`,
+  exploratory use only — but a skeleton that raises is indistinguishable from a broken feature when it
+  turns up in a DCS log.
+
+  1. `ActivateGuardian` and `DesactivateGuardian` opened on `veafMissileGuardian.GetGuardian`, a function
+     that was never written. Found by the call sweep shipped in 6.15.31.
+  2. The weapon path ended on `getLargeScaleProtector():setWeapon(...)`, and `getLargeScaleProtector` is
+     a stub returning nil. **This one was reachable**: the documentation tells a mission maker to build a
+     guardian by hand in `mission-script.lua` and call `start()`, so following the page gave a warning to
+     the targeted pilot followed by a Lua error — on every shot.
+  3. Found by a test written for the second: `VeafMG_Weapon:setDcsWeapon` passed `getLauncher()` straight
+     to `getUnitName`, which indexed it. `getLauncher()` legitimately answers nil once the shooter is
+     gone, which for a shot event processed a moment later is ordinary. The existing `setDcsWeapon` test
+     never saw it because its mock always supplied a launcher.
+
+  So the one behaviour the page promises — warn the target — now completes instead of raising.
+
+### Changed
+
+- **The missile-guardian skeleton refuses instead of pretending.** `AddGuardian`, `ActivateGuardian`,
+  `DesactivateGuardian` and `listGuardians` log a warning and return `false`. A warning rather than a
+  silent return, because a mission calling one of them asked for protection it is not getting; kept
+  rather than deleted, because removing them would turn a warning into a nil-call crash at the caller.
+
+  `listActiveMissions` **is** removed: it iterated `veafMissileGuardian.missionsDict`, a table this
+  module never had — copied from `veafCombatMission`, where "missions" is a real concept — so its only
+  possible outcome was an error.
+
+  Neither repaired nor removed, and both were considered. Giving it storage was one hole out of five: the
+  class has no `activate`, `desactivate` or `isSilent`, and `VeafMG_Protector:start()` has an empty body,
+  so **no watchdog anywhere ever destroys a weapon in flight**, which is the feature's entire point.
+  Removing it would have deleted a module that is shipped in the bundle, offered as `MISSILEGUARDIAN` in
+  the catalogue and the template picker, and documented in both languages. Finishing it is a feature
+  project, not a fix.
+
+  The module now carries a header stating everything above, and its documentation page a `{#state}` table
+  in both languages: what works, what refuses, what is not implemented.
+
+- **`KNOWN_MISSING` in `test_lua_module_calls_resolve.py` is empty.** It held one name; the ratchet only
+  ever shrinks, and adding to it is now explicitly a decision to ship a call that raises.
+
+---
+
+## [6.15.36] — 2026-08-24
+
+### Fixed
+
+- **The API reference documented the opposite of the real default.** Both `doc/LUA_API_REFERENCE.md` and
+  its English twin listed `veaf.HideNamesFromSpawnedGroups = false`, while `veaf.lua` sets it to **true**.
+
+  That flag replaces a spawned group's zone and unit type with an invented name, so a group comes out as
+  `[r]-Hydra Unit#10230`. The documentation therefore told a mission maker the opposite of what his
+  missions were doing, and it went unnoticed until someone asked why his groups were being renamed.
+
+### Added
+
+- **`mission.hide_names_from_spawned_groups` in `mission.yaml`.** The flag existed but was reachable only
+  through the `module_settings:` migration hatch and documented only in the API reference — which is not
+  where a mission maker looks when he wants to know why his groups are renamed.
+
+  Emitted only when the field is actually given, the way `SecurityDisabled` and `DynamicSpawn` are:
+  silence leaves `veaf.lua`'s own default and lets a `module_settings:` line survive. Documented on the
+  combat-zone page in both languages, where the question is asked, with what is and is not configurable —
+  the coalition tag and the `#<id>` stay either way, since DCS requires unique group names.
+
+- **A test comparing documented Lua defaults against the code** (`test_documented_lua_defaults.py`).
+  The reference pages list module constants as literal assignments, so a reader takes them for the real
+  defaults. Nothing compared the two, and nothing could have: each value was right in its own file.
+
+  Scoped to stay trustworthy rather than noisy — booleans and numbers only inside fenced Lua blocks, and
+  a constant the scripts do not assign at top level is skipped rather than failed, since documentation
+  legitimately describes fields set at runtime. It also checks the two languages document the same values,
+  because a value corrected in one and not the other is the next version of this bug. Verified by
+  re-introducing the wrong default and watching the test name it with both values.
+
+---
+
+### Changed
+
+- **A documented `mission:` field now beats a `module_settings:` leftover for the same Lua target.**
+  Raised in review on the PR above, and measured before being believed: the `mission:` block is emitted
+  first and `module_settings:` after, so Lua took the hatch's value and
+  `mission.hide_names_from_spawned_groups` had no effect whenever both forms were present. The commit
+  that added the field even carried a test whose docstring claimed it *"must beat a `module_settings:`
+  line"* — with no `module_settings:` line anywhere in the case. Asserting the emitted constant while
+  the docstring described the applied behaviour is the same trap `test_defaultSpawnRadii` sat in for
+  three years.
+
+  Which form *should* win is settled by the reference itself, where `module_settings:` is described as a
+  migration path rather than a permanent override: the documented field wins, the superseded hatch entry
+  is dropped, and the build warns naming both. Silently ignoring a line somebody wrote would be
+  `FIX-MODULE-SETTINGS-OVERWRITTEN` from the other side, which is why it is said out loud. Only the
+  superseded key yields — the hatch stays generic, and a mission that has not adopted the new field is
+  unaffected. Documented in `MISSION_YAML_REFERENCE` in both languages.
+
+- **The two-language comparison in `test_documented_lua_defaults.py` compared only shared keys.** Also
+  from review. Deleting a documented default from one page dropped it out of the comparison entirely, so
+  the test passed while the two references no longer documented the same thing — the exact divergence it
+  exists to catch. It now compares the union of both key sets and names the page a default is missing
+  from. Verified by removing one line from the English page: the old form passed, the new one fails and
+  says which file.
+
+---
+
+## [6.15.35] — 2026-08-24
+
+### Fixed
+
+- **A mission that set `csar.csarMode` got a Lua error instead of the sanction it configured.**
+  `csar.addCsar` calls `csar.handleEjectOrCrash(_playerName, false)`, and that function immediately does
+  `_unit:getName()` — so a player name raised *"attempt to index a string value"*. Every other caller
+  passes a unit, which is why the defect sat in the one path the setting exists for. Invisible at the
+  default mode of 0, where nothing happens at all.
+
+  Fixed by replacing `csar.handleEjectOrCrash` from `veaf.csar_initialize_replacement`, next to the
+  existing `addCsar` replacement, rather than editing the vendored `CSAR.lua` (an edit there is erased by
+  the next update) or sending it upstream (`VEAF/DCS-CSAR` is `ahead=0` on `ciribob/DCS-CSAR` and both
+  have been untouched since August 2023).
+
+  Reading the vendored function through showed **three** modes rather than the two first assumed, and
+  they do not need the same information — which is what made the fix decidable:
+
+  | `csarMode` | Sanction | Needs |
+  |---|---|---|
+  | 1 | disables the aircraft for everyone | the aircraft's `getID()` |
+  | 2 | disables that aircraft for that pilot | the aircraft's `getID()` |
+  | 3 | reduces the pilot's lives | only `getPlayerName()` |
+
+  So the replacement passes a unit through untouched, resolves a player name to his unit through
+  `coalition.getPlayers` when he is still flying, and when it cannot resolve one — he has just ejected,
+  his aircraft may already be gone — still serves mode 3 from the name alone while refusing modes 1 and
+  2 **with a warning**. Those key on an aircraft id; inventing one would ground an aircraft nobody chose.
+  A skipped sanction is recoverable, a misapplied one is not.
+
+  `coalition.getPlayers` was missing from the DCS mocks, which is why no test could exercise a
+  player-name lookup; it is now mocked. Sixteen Lua tests cover it, and three mutations were run against
+  them to prove they can fail.
+
+### Changed
+
+- **The `pcall` around that call, added in 6.15.33, stays — with an honest comment.** It was introduced
+  to keep the over-water path from dying of this defect, and its comment said the call *does* raise,
+  which is no longer true. It now guards the next defect in a vendored function rather than a known one,
+  on the path that runs while a pilot is drowning. A test asserts the lost-at-sea path applies the mode-3
+  sanction for real and that the guard reports nothing.
+
+- **The smoke checks' Lua parse test now version-checks its interpreter.** It resolved one with
+  `shutil.which("lua")`; this machine has two — a scoop 5.5.0 shim and the 5.1.5 in Program Files — and
+  which one answers depends on the PATH of the shell that launched pytest. It answered 5.1.5, so the
+  check was right by accident. It now goes through `veaf_build.lua_tests._find_lua`, which rejects
+  anything but 5.1: a 5.5 refuses valid 5.1 (it reads a `for` variable as const) and accepts syntax DCS
+  would not, so the same test could have reported failures that are not defects.
+
+---
+
+## [6.15.33] — 2026-08-24
+
+### Fixed
+
+- **A `-farp` dropped near an existing FARP put its escort and props on that platform.** [#232], open
+  since 2023, "fixed" in 6.15.11 by a change that could not work, and confirmed still broken in game on
+  2026-08-22. Verified fixed in game on 2026-08-24.
+
+  Five distinct defects were in the way, and only the first was the one originally suspected. Each was
+  found by measuring rather than reasoning, and four of them only became visible once the placement
+  logged what it was doing:
+
+  1. **A FARP is not a static.** `isSpotOccupied` probed `world.searchObjects` over units and statics,
+     but a FARP placed in the editor is an **airbase** — `Airbase.Category.HELIPAD`, through
+     `world.getAirbases()`, which is how `veafAirbases.lua` has always treated it. The probe could never
+     see the one object the issue is about. FARPs that DCS miscategorises as `SHIP` are included, the
+     same remediation `veafAirbases` applies; an airdrome deliberately is not, or a runway-sized radius
+     would move FARPs that were placed perfectly well.
+  2. **A sphere probe cannot answer this.** `searchObjects` matches an object's *position*, so with a
+     12 m clearance and a platform tens of metres across, an escort on its **edge** — the actual
+     complaint — leaves the platform's centre outside the sphere.
+  3. **The size was guessed twice before being measured.** 80 m first, which is *below* the 84 m where
+     that FARP's outermost pad sits, so an object at 81 m was on a pad and passed. Then 84 m from
+     `getParking()`, which bounds the pads and not the apron, leaving the escort on it at ~120 m. DCS
+     does report the real extent: `getDesc().box` gives ±129.5 m, a 259 m square. The test is now a
+     **box**, since a circle through the corners would refuse ground that is plainly free.
+  4. **The fallback placed groups at the worst spot available.** With the exclusion finally apron-sized,
+     one group had no clear bearing at its distance — and the search kept the *original* angle, which
+     pointed at a pad. #232's arbitration (keep the distance, move the bearing) was revised on that
+     evidence: the search now walks out to 1.5× then 2×, always trying the requested bearing first at
+     each distance, so a nearer bearing wins over a further one and a group with clear ground does not
+     move at all.
+  5. **The FARP was avoiding itself.** The FARP a marker creates is an airbase too, and it exists by the
+     time its props are placed — so every prop inside its own 139 m apron, which is where they belong,
+     was refused at every bearing and every distance. The fix aimed at a *neighbouring* platform was
+     placing things worse than before it existed.
+
+  The windsock also went through no clear-ground search at all, and on a FARP it sits 120 m out. Its
+  bearing is free by David's call, so it now searches like everything else; both windsocks are placed
+  from the same bearing, since the second is offset 90° from the first by design.
+
+  Recorded in the code because it cost an afternoon: `land.getSurfaceType` returns `LAND` everywhere out
+  to 260 m around a FARP. The apron is **not** in the terrain data and cannot be found by probing ground.
+
+### Added
+
+- **The FARP placement says what it decided, at info.** How many platforms it is avoiding and which one
+  is the FARP being built, each refusal with its distance and the platform's extents, and the bearing and
+  distance each group ended up with.
+
+  Not scaffolding. Four of the five defects above are indistinguishable from the outside — "still on the
+  FARP" looks identical whether the probe saw nothing, saw it and was calibrated too tight, or worked
+  perfectly and fell back to the original angle. The first three rounds of this fix were spent adding
+  size to a problem that was structural, because nothing said which. A mission maker whose escort quietly
+  moved has the same question.
+
+---
+
+## [6.15.32] — 2026-08-23
+
+### Fixed
+
+- **A `module_settings:` value was silently overwritten by the module block below it.** The generator
+  wrote `veafSkynet.DynamicSpawn = <bool>` on every build, from a `False` default, immediately before
+  `initialize()`. A mission setting the same variable through the migration hatch got it written ~145
+  lines earlier and undone without a word — the setting was visibly present in the generated Lua, and
+  inert.
+
+  It broke `verify-mission-c`, the mission whose job is to verify that very feature, from 2026-08-20
+  until it was found on 2026-08-22: its Skynet checks ran with dynamic spawn off and would have reported
+  the documented default as a measurement.
+
+  The line is now emitted only when `dynamic_spawn` is actually given, the way `veaf.SecurityDisabled`
+  already was. Not emitting it is safe rather than a behaviour change: `veafSkynet.lua` declares the
+  same `false` default. An explicit `dynamic_spawn: false` is a statement and still wins.
+
+  A `module_settings:` key a module block assigns again is now **reported** at build time. That silence
+  cost more than the wrong value did.
+
+- **The validator passed missions the DCS Mission Editor refuses to open.** `ETA_locked` and
+  `speed_locked` appeared nowhere in it, so `mission validate` reported "no defect" on `verify-mission-a`
+  seconds before the editor rejected it with *"All waypoints (2-2) have locked speed and surrounded by
+  waypoints 1 and 2 with locked time!"*.
+
+  Both shapes are now reported, naming the group and the waypoint and saying which flag to clear: a
+  locked speed between locked times, and its symmetric twin — a route with no locked time at all, which
+  `FIX-WAYPOINTS-ETA-LOCKED` taught the MCP to repair on its own edits while leaving the validator blind
+  to it in data it did not write. Verified end to end by re-introducing the real defect into
+  `verify-mission-a` and watching `validate` name it.
+
+- **Six convoy radio commands, each alone inside its own submenu.** Two keystrokes for one item, with the
+  second menu repeating the label of the first — *"F4 - Arrêter le convoi le plus proche sur place"* then
+  *"F1 - Arrêter le convoi le plus proche sur place"*. Reported in game.
+
+  Nothing required the nesting: `veafCarrierOperations` puts several group-scoped commands in one shared
+  submenu, and `convoy_cleanup` in the same block always went straight to the root. The pattern predated
+  `FEAT-CONVOY-WAYPOINTS` — the two mark commands were already written this way and the four itinerary
+  commands copied their neighbour — so all six moved together rather than leaving the menu half-flat.
+
+  A test captures what `buildRadioMenu()` asks the radio for, rather than grepping the source, and pins
+  that the commands stay group-scoped and that `hold` and `stop` stay adjacent — their labels have to be
+  readable against one another.
+
+---
+
+## [6.15.31] — 2026-08-22
+
+### Fixed
+
+- **The two CSAR-over-water checks were measuring the wrong function.** They called
+  `csar.spawnGroup` — the raw placement *underneath* `csar.addCsar`, which is what
+  `FIX-CSAR-SPAWNS-ON-WATER` replaces. So they bypassed the fix entirely and reported
+  `surface:3 dry:0`, a wet pilot, against a working product. Measured in game 2026-08-22, and worse
+  than no verdict, because it reads as a regression.
+
+  They now go through `addCsar`, the entry point CSAR itself uses on an ejection. Since `addCsar`
+  returns nothing, the survivor is found through the new key in `csar.woundedGroups`, and its
+  **absence** is what open sea is supposed to produce.
+
+  The verdict is split accordingly, because the two modes expect **opposite** results — which is
+  David's arbitration on #245: within 500 m of dry ground the survivor is moved there, otherwise he
+  counts as dead. Open sea passes on `lost:1` and fails on any placement; a coast passes only on a
+  survivor standing on dry ground, and a `lost:1` there means a rescuable pilot was written off — the
+  failure the open-sea check structurally cannot see. One expectation for both would have had to accept
+  one of the two failures.
+
+  Cleanup now removes both halves: the DCS group *and* CSAR's `woundedGroups` entry, which would
+  otherwise leave the mission announcing a survivor that no longer exists.
+
+- **"Open sea" was defined too weakly to test the rule it was checking.** The check called a spot open
+  sea when its eight neighbours **at 150 m** were all water, while the fix searches for dry ground out
+  to **500 m**. A spot 300 m off a coast satisfied both: the survivor was correctly carried ashore, and
+  the check reported `surface:1 dry:1` as a failure. Measured in game — a correct product called broken,
+  twice in a row, for two different reasons.
+
+  The radius is now **read from the product** (`veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES`) instead of
+  duplicated, and open sea is asserted by sampling rings out to 1.2× it rather than one ring of eight
+  points. A test that copies a distance the product owns drifts from it the moment the product changes.
+
+- **The smoke harness's `veaf-loaded` check could not pass.** It read `veaf.MAIN_VERSION`, a field that
+  has never existed — the real one is `veaf.BuildVersion`. Lua's `a and b or c` falls through to `c`
+  whenever `b` is nil, so the chunk returned its "VEAF is absent" sentinel unconditionally, from
+  2026-08-05 until now, reporting that VEAF was not loaded against missions where it plainly was.
+
+  It surfaced only because `findspawnpoint-exists` answered `function` on the same run: two results side
+  by side, flatly contradictory, and one of them had to be wrong. A check that cannot pass is the same
+  defect class as a check that cannot fail — both return a confident verdict about something they never
+  measured.
+
+  The three outcomes are now distinct instead of collapsed into one word: `veaf-absent` (no table),
+  `veaf-no-version` (table, no build version), or the version itself. Answering "absent" for "present
+  but this one field is missing" is what kept it invisible: it named a cause that was not the cause.
+  Returning the version also makes a mission built from a stale bundle visible in the answer.
+
+- **`verify-mission-c` had CSAR switched off, so the two `csar-avoids-water-*` checks measured nothing.**
+  The note explaining why reasoned backwards: #245 did move that verification off a flying session, but
+  "no pilot needed" is not "no module needed" — both checks call `csar.spawnGroup` in the mission's Lua
+  state and returned `csar-absent`. Enabled, with the reasoning recorded so it does not get switched back.
+
+### Added
+
+- **The CSAR reply now carries its geometry, not just its verdict.** `moved`, `radius`, `asked` and
+  `wrapped` — how far the survivor travelled, the bound it was measured against, the surface under the
+  ejection point, and whether the replacement was installed. Two runs had been spent on a single
+  ambiguous answer, each hypothesis costing a person a DCS reload; these fields settle it in one. A
+  `moved` beyond `radius` is now a failure in its own right, in either mode: the radius *is* the rule.
+
+  The open-sea sweep also widened to **2×** the rescue radius, because the thing under test is not
+  deterministic — `veaf.findSpawnPoint` draws from `Disposition.getSimpleZones` and
+  `mist.getRandPointInCircle`, both random, so near a marginal spot the identical harness answered
+  `lost:0` then `lost:1` with no code change in between. A check that flickers gets ignored.
+
+  Measured **9/9** on 2026-08-22: `mode:open lost:1`, and
+  `mode:coast lost:0 surface:1 dry:1 moved:259 radius:500 asked:3 wrapped:1`. Both
+  `FEAT-SMOKE-CSAR-WATER` and `FIX-CSAR-SPAWNS-ON-WATER` close on it.
+
+- **Every harness chunk is parsed by real Lua 5.1 in the test suite.** The chunks are built by string
+  concatenation, so a missing space between fragments or an unbalanced `end` was a syntax error that
+  surfaced only as a failed check in a live session — one round-trip through someone's DCS to learn what
+  `loadfile` answers instantly. Verified by injecting a stray `end` and watching the test name the check.
+
+- **A sweep refusing any harness check that reads a field the scripts never define**
+  (`test_dcs_smoke.py`). Verified against the real defect: with `MAIN_VERSION` restored, the sweep names
+  it.
+
+  Its own first version was broken in the same spirit and is worth recording. Written through a shell
+  heredoc, its `` became a literal backspace (0x08), so the regex looked for a control character,
+  matched nothing, and the test passed on the very defect it existed for — and a `grep` looked correct,
+  because a terminal renders 0x08 by eating the character before it. The pattern is now asserted
+  explicitly.
+
+---
+
+## [6.15.30] — 2026-08-22
+
+### Fixed
+
+- **Any map marker carrying text answered "your marker command failed".** Dropping a plain annotation
+  — a name, an arrow, a note to a wingman — reported a VEAF error to the pilot who placed it.
+
+  `veafRemote.initialize()` registered a marker command handler calling `veafRemote.executeCommand`,
+  and that function was deleted on 2026-08-11 with the shared-password marker mechanism it belonged to
+  (replaced by `registerRemoteModule` / `executeCommandFromRemote`, which authenticates a named user
+  instead of trusting a string typed on the map). The registration outlived it. Since
+  `veafMarkers.onEvent` calls every registered handler under `pcall` and surfaces any failure to the
+  pilot, every marker with text hit it — for eleven days, until a pilot said so.
+
+  The pilot-facing message was not the cause. It is what made a silent breakage visible, which is what
+  it was added for.
+
+  `veafRemote.addNiodCommand` went with it: it called the same deleted function and had no caller
+  anywhere, so it never raised — the other half of a removal left unfinished.
+
+### Added
+
+- **A repo-wide sweep for calls that reach nothing** (`test/python/test_lua_module_calls_resolve.py`).
+  Every `veafX.y(...)` in the scripts must resolve to a function something defines. Lua cannot catch
+  this class on its own: a missing table field is `nil` until called, and that call dies inside a
+  `pcall` nobody reads.
+
+  Proven against the real defect rather than assumed — re-introducing the dead call makes the sweep
+  name it. Strings and comments are stripped first, because three of the first five candidates were log
+  labels and code inside a `[[ ]]` block. Across 1166 defined symbols it leaves exactly one known
+  offender, `veafMissileGuardian.GetGuardian`, listed in a shrink-only ratchet and filed as its own lot
+  rather than skipped.
+
+---
+
+## [6.15.29] — 2026-08-22
+
+### Changed
+
+- **A point defence no longer guards a site that can no longer fight.** When Skynet picks which site a
+  point-defence group protects, it now passes over groups `veaf.isGroupCombatEffective` reports as
+  finished — so a Tor does not spend a mission covering a decapitated S-300 while a live site next door
+  goes undefended.
+
+  Invisible to a player until it matters, and it cannot end a mission early. That last point is why this
+  half shipped and the other did not: adopting the same predicate in `completionCheck` would have let a
+  zone announce itself complete with intact launchers still standing, and **David refused it** — a zone
+  completes only when everything is destroyed.
+
+  **Early-warning radars are exempt**, and not out of caution: an EWR is defended because it *sees*, not
+  because it shoots, so asking whether one can still fight is a category error. Judging them would also
+  have let a **mixed group** — a 55G6 and a launcher together — lose its defence silently, since such a
+  group carries `SAM LL` with no tracking radar.
+
+---
+
+## [6.15.28] — 2026-08-22
+
+### Fixed
+
+- **A downed pilot no longer appears in the water**, closing
+  [#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245). CSAR placed the survivor at a
+  fixed 50 m offset from the aircraft that went down, with no surface test at all — so ejecting near a
+  shoreline put him in the sea, unreachable.
+
+  David's arbitration: **within 500 m of dry ground, put him there; otherwise he counts as dead.** Two
+  outcomes and nothing in between, and the second is the absence of a CSAR rather than an unreachable
+  one — no MAYDAY, no ADF beacon, no wounded group sitting on the seabed for the rest of the mission. His
+  coalition is told he is lost, unless the caller asked for silence.
+
+  Shallow water is not open sea: a survivor wading a few metres off a beach stays rescuable where he is.
+
+  **Not a line of `CSAR.lua` changed.** It is a vendored third-party script whose update procedure
+  re-applies VEAF adaptations onto a fresh upstream copy, so an edit there would be erased silently.
+  `veaf.csar_initialize_replacement` already replaces seven things in the `csar` table — its loggers, its
+  id — and now replaces `csar.addCsar` as well. It has to be `addCsar` and not `spawnGroup`, where the
+  placement happens: `addCsar` dereferences the spawned group immediately, so refusing to spawn from
+  there raises.
+
+---
+
+## [6.15.27] — 2026-08-22
+
+### Added
+
+- **A briefing can show the weather the mission was built with.**
+  [#40](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/40), open since 2021. Write
+  `${METAR}` in the briefing and the build replaces it with **that variant's** weather, so seven weather
+  variants give seven different briefings with nothing retyped:
+
+  ```
+  Weather at departure: ${METAR}
+  ```
+
+  The issue explained why hand-typing it never worked: a mission is rebuilt from its sources on every
+  build, so the text is overwritten next time. The weather was known at build time and simply never
+  reached the text a pilot reads.
+
+  Both things the backlog said to check first turned out to matter. **The prose lives in the l10n
+  dictionary**, with `mission` holding only a key — a substitution pass over `mission` alone would have
+  found that key and replaced nothing at all, on every mission ever saved by the DCS editor. And the
+  substitution runs **per variant**, inside the loop the weather injector already had.
+
+  All four description fields are covered — the situation plus the three per-coalition tasks — because
+  `${METAR}` in the blue task has no reason to behave differently.
+
+  **An unsupplied token is left exactly as written**, never blanked. A variant built from individual
+  `weather:` parameters has no METAR string in existence, so `${METAR}` survives and a warning names it:
+  a hole in player-facing text reads as the build having eaten the prose, while a visible token says what
+  to fix. Same for a misspelt `${METRA}`.
+
+  The ICAO fetch is only made when the briefing actually asks for `${METAR}`, so an unused variable costs
+  no network call.
+
+### Fixed
+
+- **A weather variant declaring only `airport_icao` never had its weather injected.** From the weather
+  feature's first commit (2025-11-25) until now, the gate read `version.weather or version.metar`, so a
+  variant asking for live weather silently kept the base mission's — nine months, with
+  `_inject_weather` perfectly able to fetch it and simply never called. Found while reviewing the
+  briefing feature above: a briefing claiming the live weather is what made the inconsistency visible.
+
+- **The live METAR is fetched once, not twice.** The weather table and the briefing's `${METAR}` are two
+  consumers of the same report, and two independent requests meant a station publishing between them
+  would put a METAR in the briefing contradicting the weather actually injected — besides being a second
+  chance to be rate-limited. The fetch is memoised per ICAO, so seven variants sharing a station make one
+  request.
+
+- **The `versions[]` reference was missing its `airport_icao` row.** The field is read by the build and
+  documented nowhere, which mattered here because `${METAR}` resolves through it.
+
+---
+
+## [6.15.26] — 2026-08-22
+
+### Added
+
+- **Two smoke-harness checks answer "does the CSAR pilot spawn in the water?" with a script rather than
+  a pilot.** [#245](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/245) had been sitting in a
+  flying session out of habit; deciding it needs three scripting calls and no aircraft — trigger the
+  spawn, read the position back, ask what is underneath.
+
+  `csar-avoids-water-open-sea` and `csar-avoids-water-coast` ask deliberately different questions: the
+  first is the reported case, the second is whether CSAR consults the land-aware `veaf.findSpawnPoint` at
+  all. Neither hard-codes a coordinate — they anchor on the first airbase, sweep outwards for water and
+  classify the spot by what surrounds it at 150 m — so they travel between theatres.
+
+  **Reading the code already answered the lot's central question, before any run.** `csar.spawnGroup`
+  places the pilot at a fixed `+50/+50` offset with **no surface test of any kind**; it does not consult
+  `findSpawnPoint`, it never asks. So the prediction is on record: *both* checks should fail. If the coast
+  one passes while the sea one fails, that reading is wrong — which would be the more interesting result.
+
+  The fix is deliberately **not** in this release. `CSAR.lua` is vendored `adapted`, and its documented
+  update procedure re-applies VEAF adaptations onto a fresh upstream copy — so an edit made here would be
+  erased by the next update. `veaf.csar_initialize_replacement` already replaces `csar` functions from
+  VEAF code and is the seam that survives; the work is filed as `FIX-CSAR-SPAWNS-ON-WATER`, with one
+  question to settle first: what a pilot ditching over open ocean should do, since moving him to the
+  nearest land can be kilometres away and stops being a rescue.
+
+  Every "could not ask" answer — `csar-absent`, `no-water-found`, `no-group` — **fails** rather than
+  passing vacuously. A check that goes green while having asked nothing would close #245 on nothing at
+  all.
+
+---
+
+## [6.15.25] — 2026-08-21
+
+### Fixed
+
+- **A blue cold-war platoon has been drawing from a list where one entry in three spawned nothing.**
+  `"APC TPz Fuchs"` appeared in six places across the platoon composition tables and resolved to
+  **nothing** — silently, the only trace being a log line. The name DCS ships is `'APC TPz Fuchs '`, with
+  a **trailing space**, and the unit lookup compared it untrimmed. Two of the 873 units in the generated
+  database have one; no type id does.
+
+  `veafUnits.findDcsUnit` now compares trimmed values, which also rescues a mission maker who reads a
+  name off the mission editor and types it — the space being invisible there too.
+
+  Found by the enumerated sweep added for #296 below, on its first run, before a single unit was added.
+
+### Added
+
+- **The Currenthill armour units can appear in a spawned platoon**, closing
+  [#296](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/296). All nine of them, placed by
+  role and period: `CHAP_T84OplotM` (Oplot-M) at the top of blue modern, `CHAP_T90M` and `CHAP_BMPT`
+  (T-90M, Terminator) at the top of red modern, `CHAP_M1130` and `CHAP_MATV` filling out blue modern, and
+  the two CVR(T)s in blue cold war.
+
+  **The tiers stay hand-written, and the data decided that** rather than a preference: a generated record
+  carries `type`, `name`, `kind`, `category` and DCS attributes, and **neither an era nor a tier**. A tier
+  is an editorial judgement of relative power, an era a judgement of period; deriving them would mean
+  inventing the data first.
+
+  So what stops this recurring is not derivation but a **test that enumerates every entry of all four
+  type tables** and checks each against the database. A type DCS renames or drops now fails the build
+  instead of quietly spawning nothing — which is exactly how the Fuchs above survived. Entries now use
+  the DCS type id where it differs from the display name, a type id being stable and a display name being
+  what carried the space.
+
+---
+
+## [6.15.24] — 2026-08-21
+
+### Added
+
+- **A combat zone now reports the groups that can no longer fight**, closing
+  [#177](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/177) from 2023. A group is not only
+  alive or dead: an S-300 whose tracking radar is destroyed keeps its launchers, trucks and crew, counts
+  as alive everywhere in the code, and in play is finished.
+
+  ```
+  OUT OF ACTION (can no longer fight): ALPHA-SA10
+  ```
+
+  The judgement lives in a new `veaf.isGroupCombatEffective`, and it works two ways. A **pattern table**
+  (`veaf.ImportantUnitsByGroupPattern`) declares the sets of units a kind of site cannot do without —
+  the S-300 entry from the issue body ships as the first one — with a `minimumLife` expressed as a
+  **percentage** rather than hit points, because absolute points mean a different threshold per unit
+  type. With no pattern, the **DCS attributes** decide: a group with a living search radar or launcher
+  *is* a SAM site, and is finished once nothing living carries a tracking radar. A Tunguska, which is its
+  own radar and launcher, stays operational alone; a convoy has no radar and remains a threat while it
+  rolls.
+
+  Attributes are read from the repository's own generated `dcsUnits` database rather than through
+  `Unit.getDesc()` — the same data, no DCS call, and a unit type can be asked about without a living unit
+  to ask through, which is what makes it testable. A test checks the real database still carries the
+  attributes the rule reads, because a regeneration that dropped them would quietly declare every SAM
+  site finished.
+
+  **Adopted in exactly one place, on purpose.** The report *adds* information and removes none, so no
+  mission behaviour changes: a zone still completes only when every enemy unit is destroyed, useless
+  launchers included. Adopting the predicate where zones complete would change every existing mission
+  and is a design question rather than a technical one — it is analysed in the lot's PRD and filed as a
+  follow-up.
+
+  **The limit is documented rather than hidden**: destroyed units vanish from `Group:getUnits()`, so the
+  default cannot know a group *had* a radar it has since lost. The pattern table is what carries that
+  knowledge.
+
+### Fixed
+
+- **`dcsUnits` no longer counts toward Lua coverage.** It is a generated data table — 13 600 lines of
+  literals with no logic — and a test that merely loads it counted every line as covered, inflating the
+  total by about 8 points. Left alone, that inflation would have been baked into the ratchet floor and
+  collapsed the moment the load went away.
+
+---
+
+## [6.15.23] — 2026-08-21
+
+### Added
+
+- **A combat-zone numeric tag accepts a range**, closing the half of
+  [#25](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/25) that was still open:
+
+  ```
+  ALPHA-CONVOY #spawnradius=100-300 #spawndelay=30-90
+  ```
+
+  `#spawnradius`, `#spawnchance`, `#spawncount` and `#spawndelay` draw a value through the same
+  `veaf.getRandomizableNumeric` marker commands use, so a range means the same thing in both places. The
+  draw happens once per mission, when names are read: placement varies from one game to the next, not
+  from one activation to the next.
+
+  **This was silently truncated before, not unsupported.** The patterns captured `(%d+)`, so
+  `#spawnradius=100-300` matched `100` and the `-300` was never seen — a mission maker who wrote a range
+  got its lower bound and no message. Existing missions carrying one will see it take effect.
+
+  `#alarm` deliberately takes no range: an alarm state is an enumeration, so `#alarm=0-2` is a typo
+  rather than a random state.
+
+### Fixed
+
+- **An interpreter trigger the world does not hand back now still fires**, closing
+  [#123](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/123). A unit carrying
+  `#veafInterpreter["…"]` is only there to mark a spot, so a mission maker wants it out of the way —
+  late-activated, never existing in the world. `executeCommandOnUnit` read the position from the running
+  world only, so such a unit reached neither of its branches and its command was **dropped in silence**.
+
+  `_initialize` already holds every unit's mission record, so it is passed down as a fallback: the
+  trigger fires whether or not DCS resolves a late-activated unit by name — a question that cannot be
+  settled from a workstation, and now does not need to be. Nothing is destroyed on that path, there
+  being no world object to destroy.
+
+  Ticking "hidden on MFD" always worked and now says so in the documentation: the interpreter neither
+  reads nor writes that flag.
+
+- **An open-ended or reversed numeric range no longer raises.** With no upper bound the fallback is 99,
+  so `size 100-` reached `math.random(100, 99)` — *"interval is empty"*, a Lua error rather than a wrong
+  number — and so did any reversed range like `5-2`. Reachable from **every** marker command taking a
+  number, and found while widening the combat-zone tag patterns onto the same converter. An upper bound
+  below the lower one now means the lower one, with a warning.
+
+---
+
+## [6.15.22] — 2026-08-21
+
+### Added
+
+- **A convoy can be given an itinerary, walks it unaided, and takes orders on the way.**
+  [#153](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/153), open since 2022. `dest` may
+  now be written several times, and the convoy visits the points in the order written:
+
+  ```
+  _spawn convoy, dest KOBULETI, dest BATUMI, dest POTI, speed 40
+  ```
+
+  A single `dest` is a one-point itinerary and behaves exactly as before — no existing marker changes
+  meaning, and no watchdog is started for it.
+
+  Reaching a point starts the next leg on its own, and the leg is generated from **where the convoy is**
+  rather than where it spawned: it has been driving since, and re-using the old origin would send it back
+  to the start first — the same defect `FIX-COMBATZONE-SPAWN-ROUTE-OFFSET` fixed for combat zones.
+
+  Four F10 commands, and the two brakes are deliberately not interchangeable:
+
+  | Command | Effect |
+  |---|---|
+  | Send to next point | starts the next leg at once |
+  | **Hold at next point** | lets the leg finish, then parks there and waits |
+  | **Halt where it stands** | stops on the spot, mid-road if need be |
+  | Resume after a halt | picks the current leg back up |
+
+  `hold` chooses **where** a convoy stops, `stop` chooses **when** — one paces a mission, the other
+  rescues one going wrong. They carry different labels and different messages, and a test fails if the
+  two ever report the same thing. `hold` on the last leg says there is no next point rather than
+  silently doing nothing.
+
+  `patrol` now applies to the **last** leg only: patrolling between two points of an itinerary would
+  contradict the itinerary.
+
+  **Both things the backlog said to measure were removed rather than assumed.** Whether a stopped group
+  resumes its route: the question does not arise, since every resume and every leg re-issues the route,
+  and #290 — suspected of being the same root cause — was diagnosed as the alarm state, not a lost
+  route. What "arrival" means when the lead vehicle dies: the watch reads the convoy's **average**
+  position, which has no lead to lose and returns nothing exactly when nothing is left alive.
+
+---
+
+## [6.15.21] — 2026-08-21
+
+### Fixed
+
+- **A combat zone anchored a group on the first unit it could see, so a group straddling the zone's
+  edge appeared offset from where it was drawn.** A zone adopts a group as soon as one of its units
+  stands inside the circle, then destroys and recreates the whole group — but it took the group's
+  position from the first unit `mist.getUnitsInZones` returned, and that call returns **only the units
+  inside the zone**. With unit 1 outside, unit 2 became the anchor.
+
+  That matters because `mist.teleportToPoint` computes the displacement as
+  `newCoord - newGroupData.units[1]` (`mist.lua:4470`) — the mission table's unit 1 — and applies it to
+  every unit. Anchoring on any other unit therefore fed the displacement the **spacing between the two
+  units**, translating the entire group by it: a truck-length for a convoy, with no dispersion asked for
+  and even with `#spawnradius=0` written.
+
+  The anchor is now the group's first unit, inside the circle or not, through a named
+  `veafCombatZone.referencePositionOf`. A static is skipped — it is its own group of one — and a group
+  DCS cannot produce a unit 1 for falls back on the unit at hand, saying so in the log, since an
+  element with no position spawns nothing at all.
+
+  **The backlog's diagnosis was wrong and the measurement corrected it.** It recorded the encounter
+  order as a `pairs()` lottery; read end to end, every step preserves editor order, and the trigger is
+  the zone's own filtering. A test written before the fix pinned it: a convoy spaced 30 m apart,
+  anchored on unit 2, produced an element 30 m from unit 1.
+
+---
+
+## [6.15.20] — 2026-08-21
+
+### Fixed
+
+- **A combat zone's group now sets off along its route from where it appeared, instead of driving back
+  to its editor position first.** MiST translates a respawned group's route by the teleport delta only
+  when asked to (`mist.lua:4561`), and `spawnElement` never asked — so a group that came up displaced
+  kept a waypoint 1 at its recorded position and walked a leg nobody had drawn.
+
+  The fix asks for **`offsetWP1`, not `offsetRoute`**, against what the backlog had assumed. The delta
+  is a *local, random* displacement around the drawn position, not a relocation: translating the whole
+  route by it would move waypoints a mission maker placed on roads, bridges and passes, and would draw
+  a different track on every activation. Waypoint 1 is not a design choice — it is where the group
+  starts — so it is the one that follows the group, and the rest of the track stays where it was drawn.
+
+  **The offset is unconditional, including with no dispersion at all**, and that is the finding rather
+  than a detail: the delta is not only the dispersion. MiST measures it against the mission table's
+  **unit 1**, while a zone's element takes its position from the first unit the zone happened to
+  **meet**. When those differ, the delta carries the group's own intra-group spacing — tens of metres
+  for a convoy, with `#spawnradius=0` written. Gating the offset on `spawnRadius > 0` would have been
+  exactly wrong. The reference-unit mismatch is filed separately as
+  `FIX-COMBATZONE-SPAWN-REFERENCE-UNIT`; it moves where groups appear, which this fix does not.
+
+---
+
+## [6.15.19] — 2026-08-21
+
+### Changed
+
+- **The testing page no longer counts the tests, and can no longer be wrong about them.**
+  `doc/TESTING.md` and its English twin carried a hand-typed "how many tests each Lua suite has"
+  column. Measured against `test-lua` on the day it was dropped: **12 of 36 rows wrong** —
+  `test_veafCombatZone.lua` documented at 138 for 214 actual, `test_veafGrass.lua` at 16 for 36 — and
+  `test_veafMove_escort.lua` missing from the table entirely, silently, since the suite shipped.
+
+  The backlog had measured **16** wrong four days earlier. Four rows were repaired by hand in the
+  meantime, by the two lots that happened to touch them — which is the argument for this change rather
+  than against it: correcting the column fixes the day it is done and nothing after it.
+
+  The column is gone rather than corrected. Nothing decides anything on those numbers; what the table
+  is for is "which suite covers what", and the real coverage figure is measured by luacov behind its
+  own ratchet gate. The two other hand-written counts on the page — "36 Lua test suites" in the
+  overview and "(36 files)" in the file layout, both also wrong — went with it.
+
+  What replaced them is a check rather than a number: `docs-check` now reports a Lua suite absent from
+  either testing page, using the `CoverageRule` mechanism the repository already had for MCP actions,
+  marker aliases and CLI commands. A suite nobody documented is coverage nobody knows exists, which is
+  worth a gate; an arithmetic total is not.
+
+---
+
+## [6.15.18] — 2026-08-21
+
+### Added
+
+- **A misspelt marker option is now refused and named, in every command rather than only `_spawn`.**
+  [#33](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/33), open since 2021: an option no
+  rule recognises does nothing, so the command spawned or moved something other than what was asked and
+  nothing said so — a pilot could not tell his own typo from a feature that does not exist.
+
+  The collector already existed (UXPILOT-003), complete with a nearest-match suggestion. What was missing
+  is that **one** spec out of eight switched it on. Six do now — `SPAWN`, `CAS`, `MOVE`, `RADIO`,
+  `TRANSPORT`, `GROUNDAI` and artillery orders — each reporting through one shared message that names the
+  module and aggregates every bad key into a single line:
+
+  ```
+  VEAF SPAWN: unknown parameter(s), command aborted: 'headng' (did you mean 'heading'?)
+  ```
+
+  The name in the message is the module's own `Id` — the string it already prefixes its DCS log lines
+  with — so a pilot's message and the log line up, and no invented label can drift away from the module
+  it names.
+
+  The command **aborts**. An unknown option would otherwise run a half-understood command, which is what
+  `_spawn` has refused to do since UXPILOT-003; the marker is left in place so the typo can be fixed.
+
+  `veafShortcuts`' alias spec is deliberately left out. Measured over 228 valid marker texts it flags
+  **52** keys where the six switched-on specs flag none — an alias carries the parameters of the command
+  it expands into and declares only its own three. A typo inside an alias is caught by the final command.
+
+### Fixed
+
+- **A command verb no longer reads as a mistyped option.** Keyphrase commands (`_spawn`, `_move`) were
+  skipped by the collector because they start with `_`; the artillery verbs `aim` and `fire` are bare
+  words and were not, so all nine valid orders measured were flagged. `veaf.prepareMarkerSpec` adds every
+  command verb to the known-key set.
+
+  A side effect worth having: an artillery order written with a **comma** instead of the semicolon it
+  requires now reports `'aim,'` and suggests `aim`. It used to drop the rest of the order in silence.
+
+---
+
+## [6.15.17] — 2026-08-21
+
+### Fixed
+
+- **A player who leaves his slot is no longer registered in a unit called `nil`.** Two halves, each
+  written for the right case and neither doing it. The server hook formatted the absent unit as
+  `tostring(unitName or "nil")` — the four-character **string** — and the mission guarded with
+  `if not unitName`, which never fires for a truthy string. So a spectator or a game master ended up as
+  `veafRemote.remoteUnitsPilots["nil"]`, and both sides' comments described behaviour that never happened.
+
+  What it cost: `veafSecurity.getUnitNameForPlayer` returned the string `"nil"` for such a player, the
+  elevation refusal then logged *"cannot resolve a group for unit [nil]"* — a correct refusal with a
+  fictional reason, the kind of message that costs someone an evening — and **two players in the same
+  state disagreed**, since one table entry held whichever of them moved last, making the other
+  unfindable.
+
+  Both sides ship, deliberately. The hook now sends an empty string; the mission reads `nil`, `""`, blank
+  and the literal `"nil"` alike as "no unit" and represents that state by **absence**, which is what the
+  code already claimed to do. Fixing only the hook would have been tempting and wrong: the hook is
+  deployed **by hand**, server by server, with no pipeline, so a mission built from a newer framework
+  meets an older hook for as long as it takes someone to copy a file.
+
+  The trade is stated rather than hidden: a unit genuinely named `nil` is indistinguishable from absence.
+  That is the price of accepting the old payload, and there is a test pinning it so the next reader finds
+  it on purpose.
+
+  Server owners: copying the new hook is worth doing but is **not** required for the fix — the mission
+  side handles the old payload.
+
+---
+
+## [6.15.16] — 2026-08-21
+
+### Added
+
+- **A combat zone can keep its units' original names.** Sharko's
+  [#289](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289), open since February 2025:
+  renaming a zone's units sequentially is useful once a map is finished and gets in the way while
+  debugging a `.miz`, because the name typed in the Mission Editor is gone and the unit can no longer be
+  found in the logs. `renameUnitsSequentially = true` was hard-coded in the `mist.teleportToPoint` call —
+  the single occurrence of that field in the whole runtime — so there was nothing to set and the answer
+  was no.
+
+  `rename_units_sequentially: false` on a combat zone in `mission.yaml` now keeps the original names. It
+  is a **per-zone** setting rather than a global debug switch, which is what the request asked for and
+  one less thing to remember to put back before shipping. The default stays `true`, so no existing
+  mission changes and generated Lua stays byte-identical.
+
+  A v5 mission that turned renaming off converts: the migrator reads the setter like the other six of its
+  family. Documented in both languages — **along with the four keys of that family that had never been
+  documented at all** (`show_units_list`, `show_zone_position_info`, `smoke_and_flare`,
+  `radio_menu_disabled`): the generator accepted them and the reference table did not list them.
+
+### Fixed
+
+- **A trigger zone of an unexpected type no longer fails in silence, in any of the three modules that
+  read one.** `if type == 0 … elseif type == 2 … end` with no `else` left the unit list untouched for any
+  other value, **`nil` included** — a hand-edited mission, a zone written by a tool, a renamed DCS field.
+  Each module then failed quietly in its own way:
+
+  | Module | What it looked like |
+  |---|---|
+  | `veafCombatZone` | the zone activates, has nothing to kill, and the first watchdog tick announces it won |
+  | `veafAirWaves` | no player is ever detected, so the wave never triggers |
+  | `veafQraCore` | zero units in the zone, so the QRA never scrambles |
+
+  The branch now lives in one place, `veaf.getUnitsInTriggerZone`, which logs an error naming the zone
+  and the value into the log of whoever asked. It returns **nil** rather than an empty table for a zone
+  it cannot read: "unusable" and "legitimately empty" are different answers, and a caller unable to tell
+  them apart is how this defect started. No fallback shape is guessed — assuming circular for an unknown
+  type would put the silent wrong answer back one level down.
+
+  **And the difference is not cosmetic.** A combat zone whose shape could not be read is marked unusable,
+  so it never completes: a zone that cannot say what it holds must not announce that everything in it is
+  dead, which was the worst of the three symptoms. For a QRA and an air wave, "unusable" and "empty" lead
+  to the same safe conduct — no scramble, no wave — and the code now says so where it relies on it.
+
+  The lot was written for `veafCombatZone` alone; the sweep its own definition of done demanded turned up
+  the other two. Neither of the two files the PRD had guessed at (`veafSanctuary`, the MCP's `edit_zone`)
+  reads a zone's type at all.
+
+---
+
+## [6.15.15] — 2026-08-21
+
+### Fixed
+
+- **A combat zone disperses its groups again.** `veafCombatZone.DefaultSpawnRadiusForUnits = 50` has
+  existed since 2020 and has been **unreachable since 2023-03-04**: an element is created with
+  `spawnRadius = 0`, and the code applying the per-category default asked
+  `if not element:getSpawnRadius()` — false for 0 in Lua. So the branch never ran and every group a
+  combat zone spawned appeared exactly on its recorded position, with no dispersion at all. `#spawnradius=`
+  worked and was the only thing that did.
+
+  The default is now decided from whether the **tag was written**, which the builder knows exactly,
+  rather than from the value the element happens to hold. That keeps `#spawnradius=0` meaning "no
+  dispersion" — any scheme reading 0 as "unstated" would have taken that away from the mission maker —
+  and it leaves the constructor at 0, so nothing can reach `spawnElement`'s `getSpawnRadius() > 0` with
+  a nil.
+
+  A `#command` object is still never scattered, and that is deliberate: the command runs *at its
+  position*, so dispersing it would move whatever it spawns. An explicit `#spawnradius=` still applies.
+
+  **This changes where existing missions' zone groups appear.** Three years of missions were built and
+  flown against no dispersion, so a group may now come up some fifty metres from where it used to. A
+  placement that was precise on purpose wants `#spawnradius=0`.
+
+  Nothing caught this for three years because `test_defaultSpawnRadii` asserts the **constant** and never
+  its application — the test and the defect coexisted happily. The new tests assert the applied radius.
+
+---
+
+## [6.15.14] — 2026-08-21
+
+### Fixed
+
+- **A combat-zone tag now counts wherever it is written.** `#alarm=`, `#spawnradius=`, `#spawnchance=`,
+  `#spawncount=`, `#spawngroup=` and `#spawndelay=` were read off every unit of a group, applied to a
+  zone element, and then thrown away for every unit but the one the engine happened to meet first. That
+  order comes from `mist.getUnitsInZones` followed by `pairs()`, so it is not the mission editor's order
+  and is not promised at all: tagging one truck of a convoy worked or did not work for no visible
+  reason. A tag written on a **group** name — which the documentation has always offered — was never
+  read.
+
+  A group's tags are now collected from **its own name and from the names of all its units**. Sources
+  are read group name first, then unit names in alphabetical order, and the first value found for a tag
+  wins. A later source stating a *different* value is ignored with a warning in the log, so two trucks
+  disagreeing no longer toss a coin; repeating the same value on several units stays silent, since that
+  is the ordinary way of tagging a convoy.
+
+  Alphabetical rather than the order the units were met in, deliberately: that order *is* `pairs()`, so
+  tie-breaking on it would have reinstated the very lottery this removes, and it is not something a
+  mission maker can see in the editor.
+
+  `#command` is left out of the merge and keeps its rule: it turns one object into a one-shot trigger,
+  not a setting of the group, so each unit carrying one is still its own trigger and a group can still
+  carry several commands. Written on a **group** name it now makes that group one single trigger, which
+  is what the documentation promised. The six settings tags do reach a `#command` element, so a
+  `#spawndelay=` on the group name now applies to a command unit that carries none.
+
+  The verification mission `verify-mission-a` was set up by tagging **both** M-1 Abrams to dodge this
+  defect, so its in-game pass proved nothing about the single-unit case. It now carries the tag on one
+  Abrams only, and the group was given a second waypoint so that `#alarm=2` is actually observable —
+  with a single waypoint the nature-based default was already RED and nothing turned on the tag.
+
+### Changed
+
+- The Lua coverage floor moves from **73% to 74%**, the CI having measured 74.68% with this lot's tests
+  in. The ratchet only ever goes up.
+
+---
+
+## [6.15.13] — 2026-08-20
+
+### Fixed
+
+- **A combat zone's air defences are no longer silent.** 6.15.5 gave every group that a zone spawns the AUTO
+  alarm state so that convoys would finally drive their route
+  ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)) — but a SAM battery on AUTO
+  keeps its radars down, so the same change made every air defence inside a combat zone go quiet. One
+  defect traded for another, on a version that was **never published**, which is the only reason nobody
+  outside the repository saw it.
+
+  The zone now picks the state from the **nature of the group** instead of applying one default to all:
+  a group with a route to drive gets AUTO, so it leaves; a group that stays put gets RED, so it fights.
+  `#alarm=N` still overrides both, in either direction.
+
+  The trade was named in the previous fix's own PRD — *"right for a SAM battery, wrong for a convoy"* —
+  and answered with a single default plus `#alarm=N` as the escape hatch. An escape hatch that every
+  mission maker has to apply to every existing battery is a regression, not an option; hence choosing per
+  group. A `#alarm=2` added on a battery in the meantime still works and is now redundant.
+
+  Criterion and its alternative, recorded because it is a judgement call: **more than one waypoint means
+  the group is meant to move**, which is the reason AUTO exists here at all. Asking instead whether the
+  group *contains* a SAM launcher would be more precise about air defence but answers the wrong question
+  — a supply convoy with an escort SAM would come out "air defence" and stop moving, which is the very
+  bug #290 was about.
+
+---
+
+## [6.15.12] — 2026-08-20
+
+### Fixed
+
+- **A tanker's orbit is found wherever it is in the route.** `veafMove` looked for it on the
+  second-to-last waypoint, which is true of VEAF's own templates — whose route is [approach, orbit, leg
+  end] — and false of a DCS-Liberation tanker, whose longer route ends with a landing point. Both tanker
+  commands then refused with *"has no ORBIT task defined"*
+  ([#248](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/248), reported by Maveric). The
+  orbit is now searched for by its task rather than counted backwards from the end.
+
+  Maveric's postscript — *"potentiellement le faire pour les autres manipulations de tanker"* — is
+  covered: there are two, `_move tanker` and `_move tankermission`, and they already shared the helper,
+  so both are fixed at one point.
+
+  Decisions recorded, since the issue left them open: **the first orbit wins** when a route carries
+  several (it is the one the tanker reaches first, so the one active or imminent); a route with **no**
+  orbit is refused with a message rather than adjusted on a guess; and the waypoints before and after
+  the orbit became **optional**, so an orbit on the first or last waypoint of a route is no longer
+  refused for being in the wrong place.
+
+  One trap avoided rather than fixed: `_move tanker` **overwrites** the waypoint after the orbit, using
+  it as the far end of the refuelling leg. That is right by DCS's own semantics for a `Race-Track` orbit,
+  which flies between the task's waypoint and the next one — but a `Circle` orbit turns around a single
+  point and gives that waypoint no role, so overwriting it would silently redraw the route, and on a
+  Liberation tanker it could be the landing point. `Circle` orbits now leave it alone, and `_move tanker`
+  asks for `distance` and `hdg` when it cannot work the leg out.
+
+---
+
+## [6.15.11] — 2026-08-20
+
+### Fixed
+
+- **A FARP's escort no longer lands on whatever is already there.** `-farp` placed its escort, tents and
+  props at a fixed distance on a fixed bearing, with **no test of whether that spot was free**
+  ([#232](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/232), Sharko 2023, reproduced in
+  game 2026-08-17). Beside a static FARP the trucks came down on its pads, the lead `M 818` close enough
+  to a helipad that a helicopter landing there met it. And that is the **nominal** use, not an edge case:
+  the static FARP is what unlocks spawning on it once the zone is captured, so `-farp` is run on top of
+  one on purpose.
+
+  The module now walks around the FARP until the ground is clear — **keeping the distance and changing
+  the bearing**, since growing the radius would push the escort away from the FARP it serves. The whole
+  group is tested rather than its origin, because the escort sits on a ~30 m line and a clear origin with
+  an overhanging tail still blocks a pad. **A FARP with clear ground around it does not move at all**:
+  the original bearing is tried first, so no working mission changes. If nothing is clear the FARP is
+  still built, at its original position.
+
+- **A `FARP_T` is laid out as the FARP it is.** The list of FARP platform types existed **four times** in
+  `veafGrass.lua`, and commit `a454c577` (2025-08-08) added `FARP_T` to exactly one of them — the one
+  that *recognises* FARP units. So a `FARP_T` was processed as a FARP and then measured as if it were
+  not: escort at 75 m instead of 150, tent at 100 instead of 200, windsock at 50 m/45° instead of
+  120 m/0° — which put its escort straight onto the pads by a second route. The four copies are now one
+  predicate, and a FARP-looking type that is **not** in it says so in the log instead of silently taking
+  the default distances.
+
+  Visible consequence: a `FARP_T` in an existing mission has its props move outwards to the FARP
+  distances. That is the fix, not a side effect.
+
+---
+
+## [6.15.10] — 2026-08-20
+
+### Fixed
+
+- **A red pilot no longer runs blue's carrier operations.** Opening *Carrier operations* showed both
+  sides' submenus to everyone, so a red player could start and stop the blue carrier's recovery window
+  ([#87](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/87), measured in game on 2026-08-18
+  from a red A-10 at Palmyra). The per-side menus already existed and the renderer already filters on a
+  coalition — the two menus were simply created without stating theirs. The other half of #87, *"red
+  cannot run its own"*, was **already fixed** and is closed as such. Each carrier's own submenu sits
+  under its side's menu and inherits the scope, so the shared **CARRIER OPS** root stays common: it
+  carries the help entry.
+
+  The sweep this came with is worth recording, since a menu built per side and rendered to everyone is a
+  defect *shape*: all **43** `addSubMenu` call sites were enumerated rather than hand-picked, of which 40
+  are callers and exactly one was already scoped. No other module builds a menu per side, so this defect
+  had two sites and no siblings. Two suspicions the enumeration raised were checked and turned out fine —
+  scope inheritance is transitive across generations (now pinned by a test, since this fix depends on it)
+  and pagination already scopes its overflow pages.
+
+---
+
+## [6.15.9] — 2026-08-20
+
+### Fixed
+
+- **A combat zone's delayed command no longer leaves a group behind.** A zone can carry a VEAF command
+  on a fake unit, and that command can be delayed — `-samsr!30`. The zone passed a collection table
+  down and read it on the very next line, but a delayed command hands its work to a scheduler and
+  returns immediately: the table was empty, the group was registered nowhere, and deactivating the zone
+  could not destroy it. The SAM outlived the zone that spawned it
+  ([#66](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/66), open since the v5 era,
+  confirmed in game on 2026-08-18).
+
+  **Two things widened this beyond the report.** The table was never lost — it is passed by reference
+  into the deferred call and *is* filled later; nobody read it again. And there are **three** deferring
+  paths, not one: an alias delay, a spawn's `delay` option, and a spawn's repeats. A zone therefore also
+  lost the groups of every repeat past the first. A caller can now ask to be told about each group as it
+  appears, so all three are fixed at once. `#spawndelay` never had the problem and is untouched.
+
+  A group that appears *after* its zone was deactivated is now destroyed rather than registered:
+  nothing can cancel an already scheduled spawn, so that is the outcome the deactivation would have
+  produced.
+
+---
+
+## [6.15.8] — 2026-08-20
+
+### Added
+
+- **`dynamic_spawn` is now a `mission.yaml` field** under `modules.SKYNET`, so a mission can ask the
+  IADS to take in the SAMs that appear while it runs. That was the whole of
+  [#151](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/151) (*"combat-zone SAMs are not in
+  the IADS"*): measured in game on 2026-08-18, the path **works** — a combat zone's SA-6 does join the
+  red network. The flag that enables it was simply off, and reachable only through the
+  `module_settings:` migration hatch, which is a compatibility path and not an interface. Documented
+  in both languages with what it costs: a birth-event handler on every spawn of the mission, which is
+  why it stays off by default.
+- **`veafSkynet.activateNetworkOfCoalition`** — the half of the API that was missing. Since a
+  deactivated network now stays deactivated (below), there had to be a way back that is not a full
+  reinitialisation. Everything attached while the network was down comes up with it.
+
+### Fixed
+
+- **A network switched off on purpose stays off.** Spawning a single SAM into a deactivated IADS
+  brought the whole network back up ([#261](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/261),
+  confirmed in game 2026-08-18 with the chain measured end to end). `addGroupToNetwork` finished with
+  an unconditional `delayedActivate`, and nothing anywhere recorded that the network had been switched
+  off deliberately. The group is still attached — that is what `skynet true` asks for — it just no
+  longer wakes the network up.
+- **Deactivating one coalition's network no longer disarms the other's.** `deactivateNetwork` removed
+  the birth-event handler *shared by every network*, and nothing ever re-armed it: switching off red
+  silently stopped blue from integrating anything it spawned for the rest of the mission. The setting
+  is now per network, and the shared handler stays armed as long as some network wants it.
+- **A spawn's `skynet` option is honoured on the dynamic path.** `skynet true|false|<network>` has
+  always been a per-spawn option, and the birth-event handler never looked at it: it integrated every
+  eligible group it saw. So with dynamic integration on, `-hv_convoy_red` — which passes `skynet false`
+  precisely to stay out — joined the IADS anyway, its Tor and Tunguska being enough to qualify. A
+  network name now also wins over the coalition default, which that path used to ignore. A group no
+  VEAF command declared, placed in the Mission Editor or created by a third-party script, still joins
+  its coalition's network: that is what the feature is for.
+
+---
+
+## [6.15.7] — 2026-08-20
+
+### Fixed
+
+- **A respawned tanker keeps its escort.** Respawning an asset from the F10 menu gave it a new DCS
+  group id, which silently invalidated the `Escort` task of its escort: the escort held for a while,
+  then flew out its route and landed after about ten minutes
+  ([#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107)). The teleport path
+  (`_move tanker … teleport`) had always repaired this, which is why the same escort stayed put for
+  thirty minutes when teleported and gave up when respawned — measured in game on 2026-08-18. The
+  repair is now **one shared implementation** used by both paths, so the next DCS quirk of this kind
+  has one place to be fixed rather than two to diverge.
+  [#101](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/101) is closed with it, as not
+  reproducible: the teleport it reported as broken works, and is what this fix is ported from.
+
+### Documentation
+
+- **An asset's escort is the group named `<asset> escort`** — a convention the framework has always
+  relied on and that nothing told a mission maker about. Now on the ASSETS page in both languages,
+  including what it is *not*: `linked` lists groups to respawn alongside an asset and has nothing to
+  do with declaring an escort. The page also names the symptom, since that is how a mission maker
+  arrives on it — an escort that goes home after ten minutes.
+
+---
+
+## [6.15.6] — 2026-08-20
+
+### Fixed
+
+- **A save no longer fails because a virus scanner was reading the file.** Every atomic write ends by
+  renaming a temp file onto its target, and on Windows that rename fails intermittently with
+  `PermissionError: [WinError 5]` while something outside the process still holds the file just
+  written. Measured with a probe involving no VEAF code at all: **8 failures in 300 writes**, the
+  target never read-only, and **a single retry 50 ms later cleared every one of them**. The three
+  atomic writes now retry instead of giving up — writing a `.miz` (`write_miz`), rewriting one of its
+  members (`rewrite_miz_members`), and installing a downloaded executable in the updater, which is the
+  most exposed of the three since a fresh `.exe` is what a scanner is most certain to open. A genuine
+  permission problem still fails, with its own message, and a failed write still leaves no temp file
+  behind.
+
+---
+
+## [6.15.5] — 2026-08-20
+
+### Fixed
+
+- **A convoy placed in a combat zone finally drives its route.** Activating a zone put every group it
+  spawned on **RED** alert, and a DCS ground group on red alert holds position and deploys — right for
+  a SAM battery, wrong for a convoy, which never left its start point
+  ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290), open since April 2025).
+  Zones now spawn groups on **AUTO**, where DCS raises the group's own alert level on contact: the
+  convoy moves and a defence still fires once it detects a target.
+
+### Added
+
+- **`#alarm=N` unit-name tag for combat zones.** Sets a single group's alarm state (`0` AUTO, `1`
+  GREEN, `2` RED) instead of inheriting the zone's default, so air defence that must be hot from the
+  first second can be marked `#alarm=2`. An unreadable or out-of-range value falls back to AUTO rather
+  than failing the zone — and **says so in the log**, since a silent fallback makes a typo
+  indistinguishable from a deliberate AUTO. Documented in both languages, and added to the
+  reserved-marker set the MCP server warns about.
+
+---
+
 ## [6.15.4] — 2026-08-19
 
 ### Fixed
@@ -20,6 +1659,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A packaged-only failure can no longer ship unnoticed.** The CI builds the executable and runs it
   on every Python change; until now every test ran from a checkout, where the missing imports resolve
   perfectly — which is why this shipped, and the two bundled-data defects before it.
+
+---
 
 ## [6.15.3] — 2026-08-19
 

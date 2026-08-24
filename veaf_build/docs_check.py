@@ -258,9 +258,12 @@ class CoverageRule:
     Attributes:
         label: What the names are, for the report.
         source_glob: Where they are declared, relative to the repo root.
-        pattern: Regex whose first group captures a name.
+        pattern: Regex whose first group captures a name, applied to each file's **contents** —
+            or, when ``from_filename`` is set, to each matching file's **name**.
         pages: Pages that must mention every name, relative to the repo root.
         mention: How a name appears in prose, as a format string.
+        from_filename: Match the file name instead of the file contents. What a Lua test suite is
+            called *is* the name to document; nothing inside the file states it.
     """
 
     label: str
@@ -268,6 +271,7 @@ class CoverageRule:
     pattern: str
     pages: tuple[str, ...]
     mention: str = "{name}"
+    from_filename: bool = False
 
 
 #: What must be documented, and where. Both rules were added after measuring live drift rather than
@@ -310,6 +314,20 @@ COVERAGE_RULES: tuple[CoverageRule, ...] = (
         pattern=r'(?<!ROOT_GROUP_ID = )"([a-z][a-z0-9]*(?:-[a-z0-9]+)*)"',
         pages=("doc/mission-maker/GUIDE.md", "doc/mission-maker/GUIDE.en.md"),
         mention="`{name}`",
+    ),
+    # CHORE-TESTING-DOC-COUNTS: the testing page's table of suites was hand-maintained, and
+    # `test_veafMove_escort.lua` had been missing from it since the suite shipped. The lot dropped the
+    # per-suite test *counts* rather than generate them — nothing decides anything on those numbers —
+    # but the list of suites is worth guarding: a suite absent from the table is coverage nobody knows
+    # exists. Names come from the file names, not their contents, so this is the one rule that reads
+    # `from_filename`.
+    CoverageRule(
+        label="Lua test suite",
+        source_glob="test/lua/test_*.lua",
+        pattern=r"^(test_[A-Za-z0-9_]+\.lua)$",
+        pages=("doc/TESTING.md", "doc/TESTING.en.md"),
+        mention="`{name}`",
+        from_filename=True,
     ),
 )
 
@@ -456,7 +474,8 @@ def _names_of(repo_root: Path, rule: CoverageRule) -> list[str]:
     names: set[str] = set()
     compiled = re.compile(rule.pattern)
     for source in sorted(repo_root.glob(rule.source_glob)):
-        names |= set(compiled.findall(source.read_text(encoding="utf-8", errors="replace")))
+        subject = source.name if rule.from_filename else source.read_text(encoding="utf-8", errors="replace")
+        names |= set(compiled.findall(subject))
     return sorted(names)
 
 

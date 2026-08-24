@@ -83,6 +83,20 @@ veafMove.moveTanker(eventPos, "KC-135 Texaco", 430, 7000, 270, 30, false, false)
 
 ---
 
+## Comment l'orbite est trouvée {#orbit-search}
+
+Les deux commandes de ravitailleur travaillent sur le point de route qui porte la tâche **ORBIT**. Depuis la 6.15.12, ce point est **cherché dans toute la route**. Avant, il était supposé être l'avant-dernier : vrai pour les modèles VEAF, dont la route est [approche, orbite, fin de branche], faux pour un ravitailleur généré par DCS-Liberation, dont la route est plus longue et finit par un point d'atterrissage — les deux commandes refusaient alors avec « aucune tâche ORBIT définie ».
+
+- **Si la route porte plusieurs orbites, la première gagne** : c'est celle que le ravitailleur atteint d'abord, donc celle qui est en cours ou imminente.
+- **Sans aucune tâche ORBIT, la commande refuse** et le dit. Déplacer un ravitailleur au mauvais endroit est pire que de dire que ce n'est pas possible.
+- L'orbite peut être le **premier** ou le **dernier** point de la route ; ces routes sont valides et ne sont plus refusées.
+
+Le point qui **suit** l'orbite est l'autre extrémité de la branche de ravitaillement — c'est la sémantique DCS d'une orbite `Race-Track`, qui fait voler l'appareil entre le point portant la tâche et le suivant. C'est pourquoi `_move tanker` le repositionne.
+
+> Exception : une orbite `Circle` tourne autour d'un seul point et ne donne aucun rôle au point suivant. Il n'est donc pas touché — sur une route Liberation, ce serait peut-être l'atterrissage. Dans ce cas `_move tanker` ne peut pas déduire la branche : précisez `distance` et `hdg`.
+
+---
+
 ## Constantes clés
 
 | Constante | Valeur par défaut | Description |

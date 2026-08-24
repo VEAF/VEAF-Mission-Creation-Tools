@@ -315,4 +315,60 @@ function TestVeafServerHook:test_ordinary_connect_is_unchanged()
   luaunit.assertEquals(call.args[3], "ucid-42")
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-REMOTE-SLOT-NIL-UNIT — what the hook sends for a player in no unit
+--
+-- `tostring(unitName or "nil")` sent the four-character string, which is truthy on the mission side, so
+-- the player was registered as occupying a unit called `nil`. The value the hook puts on the wire is
+-- what these assert; the mission side normalising it is covered in test_veafRemote.
+-- ---------------------------------------------------------------------------
+
+--- The third argument of the registerUserSlot call the hook injected, whatever it was.
+local function lastSlotUnitName()
+  local _, payload = detonateLastInjection()
+  local call = firstCall(payload, "registerUserSlot")
+  luaunit.assertNotNil(call, "registerUserSlot was never called")
+  return call.args[3]
+end
+
+function TestVeafServerHook:test_a_spectator_reports_no_unit_rather_than_the_string_nil()
+  -- side 0 with an empty slot is the spectator case, and the game-master one
+  net._playerInfo = { name = "Zip", ucid = "ucid-1", side = 0, slot = "" }
+  veafServerHook.onPlayerChangeSlot(1)
+  luaunit.assertEquals(lastSlotUnitName(), "")
+end
+
+function TestVeafServerHook:test_a_player_with_no_slot_reports_no_unit()
+  net._playerInfo = { name = "Zip", ucid = "ucid-1", side = 1, slot = nil }
+  veafServerHook.onPlayerChangeSlot(1)
+  luaunit.assertEquals(lastSlotUnitName(), "")
+end
+
+function TestVeafServerHook:test_the_literal_nil_is_never_sent_again()
+  -- the assertion that pins the defect: any of the three "no unit" shapes must not produce "nil"
+  for _, info in ipairs({
+    { name = "Zip", ucid = "u", side = 0, slot = "" },
+    { name = "Zip", ucid = "u", side = 1, slot = "" },
+    { name = "Zip", ucid = "u", side = 0, slot = "1" },
+  }) do
+    net._playerInfo = info
+    veafServerHook.onPlayerChangeSlot(1)
+    luaunit.assertNotEquals(lastSlotUnitName(), "nil")
+  end
+end
+
+function TestVeafServerHook:test_a_player_in_a_slot_still_reports_his_unit()
+  -- non-regression: the nominal path, which Sim.getUnitProperty stubs to "TestUnit"
+  net._playerInfo = { name = "Zip", ucid = "ucid-1", side = 1, slot = "1" }
+  veafServerHook.onPlayerChangeSlot(1)
+  luaunit.assertEquals(lastSlotUnitName(), "TestUnit")
+end
+
+function TestVeafServerHook:test_a_multi_seat_slot_still_reports_its_unit()
+  -- a seat id is stripped off before the property lookup, and that must keep working
+  net._playerInfo = { name = "Zip", ucid = "ucid-1", side = 2, slot = "12_2" }
+  veafServerHook.onPlayerChangeSlot(1)
+  luaunit.assertEquals(lastSlotUnitName(), "TestUnit")
+end
+
 os.exit(luaunit.LuaUnit.run())

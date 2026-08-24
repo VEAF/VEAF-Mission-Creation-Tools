@@ -53,12 +53,12 @@ artifacts:
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc3"
+    pinned: "2.0.0-rc7"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
     watch:
-      - { kind: github-release, repo: VEAF/CTLD, pinned: "published-v2.0.0-rc3" }
+      - { kind: github-release, repo: VEAF/CTLD, pinned: "published-v2.0.0-rc7" }
 
   - id: csar
     source: https://github.com/VEAF/DCS-CSAR
@@ -92,6 +92,16 @@ artifacts:
     watch:
       - { kind: github-release, repo: akaAgar/the-universal-mission-for-dcs-world, pinned: "v0.1.250722" }
 
+  # Why the fork and not the origin, since the entry above lists both and the answer is not obvious:
+  # the script is **walder's**, but that repository has not cut a release since 3.3.0 in December 2023.
+  # The Regroupement-Patrouille fork is the living branch — measured 2026-08-23, `ahead=4 behind=0` on
+  # walder/master, carrying `fix: getCategory`, `Database CRAM can engage HARM`, and two SAM-type
+  # updates that add the Phalanx, Tor M2, Pantsir S1, Iris-T SLM and SA-11 Solo. So it is not a
+  # contribution fork with nothing of its own, which is the case this file's header warns about; those
+  # units are the reason we take it.
+  #
+  # Consequence for anyone fixing a Skynet defect: **send the patch to the fork**, not to walder. A pull
+  # request against a repository dormant since 2023 does not reach a mission. Contact there: Flogas.
   - id: skynet
     source: https://github.com/regroupement-patrouille/Skynet-IADS
     upstream: https://github.com/walder/Skynet-IADS

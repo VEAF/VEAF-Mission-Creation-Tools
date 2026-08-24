@@ -459,4 +459,80 @@ function TestSecrev2CarrierRemoteDuration:test_the_carrier_is_still_resolved()
   luaunit.assertEquals(self.started[1].carrier, "Stennis")
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-CARRIER-MENU-COALITION — #87
+--
+-- The per-side carrier menus existed (`rootPathBlue` / `rootPathRed`), but were created without their
+-- coalition, so the renderer had nothing to filter on: a red pilot at Palmyra opened "Carrier
+-- operations" and drove the blue carrier (measured in DCS on 2026-08-18).
+--
+-- Asserting the argument rather than the rendering: the rendering itself is covered by
+-- TestVeafRadioCoalitionMenus in test_veafRadio.lua, including that a scoped menu scopes every
+-- generation below it — which is what puts each carrier's own submenu on the right side.
+-- ---------------------------------------------------------------------------
+TestVeafCarrierMenuCoalition = {}
+
+function TestVeafCarrierMenuCoalition:setUp()
+  self._veafRadio = veafRadio
+  self.subMenus = {}
+  local this = self
+  veafRadio = {
+    skipHelpMenus = true,
+    USAGE_ForGroup = "ForGroup",
+    addSubMenu = function(title, parent, coalitionSide)
+      local node = { title = title, parent = parent, coalitionSide = coalitionSide }
+      table.insert(this.subMenus, node)
+      return node
+    end,
+    addCommandToSubmenu = function() end,
+    addSecuredCommandToSubmenu = function() end,
+    refreshRadioMenu = function() end,
+  }
+  self._carriers = veafCarrierOperations.carriers
+  veafCarrierOperations.carriers = { Stennis = { name = "Stennis", side = coalition.side.BLUE } }
+end
+
+function TestVeafCarrierMenuCoalition:tearDown()
+  veafRadio = self._veafRadio
+  veafCarrierOperations.carriers = self._carriers
+end
+
+function TestVeafCarrierMenuCoalition:_find(title)
+  for _, node in ipairs(self.subMenus) do
+    if node.title == title then
+      return node
+    end
+  end
+  return nil
+end
+
+function TestVeafCarrierMenuCoalition:test_the_blue_menu_is_scoped_to_blue()
+  veafCarrierOperations.buildRadioMenu()
+  local blue = self:_find(veaf.t(veafCarrierOperations.RadioMenuNameBlue))
+  luaunit.assertNotNil(blue, "the blue carrier menu was not created")
+  luaunit.assertEquals(blue.coalitionSide, coalition.side.BLUE)
+end
+
+function TestVeafCarrierMenuCoalition:test_the_red_menu_is_scoped_to_red()
+  veafCarrierOperations.buildRadioMenu()
+  local red = self:_find(veaf.t(veafCarrierOperations.RadioMenuNameRed))
+  luaunit.assertNotNil(red, "the red carrier menu was not created")
+  luaunit.assertEquals(red.coalitionSide, coalition.side.RED)
+end
+
+-- The shared root stays global on purpose: it holds the help command, which belongs to everyone, and
+-- scoping it would hide both sides' menus from everybody.
+function TestVeafCarrierMenuCoalition:test_the_shared_root_stays_global()
+  veafCarrierOperations.buildRadioMenu()
+  local root = self:_find(veaf.t(veafCarrierOperations.RadioMenuName))
+  luaunit.assertNotNil(root)
+  luaunit.assertNil(root.coalitionSide)
+end
+
+function TestVeafCarrierMenuCoalition:test_no_menu_is_built_without_carriers()
+  veafCarrierOperations.carriers = {}
+  veafCarrierOperations.buildRadioMenu()
+  luaunit.assertEquals(#self.subMenus, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -487,6 +487,40 @@ class TestDocCoverage:
         assert report.total == 1
         assert "reference page never mentions" in format_report(report)
 
+    def test_from_filename_reads_the_name_and_ignores_the_contents(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        # CHORE-TESTING-DOC-COUNTS: a Lua suite is named by its file, and nothing inside it states
+        # that name. The contents are deliberately made to match the pattern too, so a rule that
+        # kept reading them would pass this test by accident.
+        rule = CoverageRule(
+            label="suite",
+            source_glob="src/test_*.lua",
+            pattern=r"^(test_[A-Za-z0-9_]+\.lua)$",
+            pages=("doc/ref.md",),
+            mention="`{name}`",
+            from_filename=True,
+        )
+        (tmp_path / "src").mkdir()
+        (tmp_path / "doc").mkdir()
+        (tmp_path / "src" / "test_veafThing.lua").write_text("test_somethingElse.lua\n", encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("| `test_somethingElse.lua` | wrong one |\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["suite 'test_veafThing.lua' is not documented in doc/ref.md"]
+        (tmp_path / "doc" / "ref.md").write_text("| `test_veafThing.lua` | right one |\n", encoding="utf-8")
+        assert check_doc_coverage(tmp_path) == []
+
+    def test_contents_mode_is_untouched_by_the_flag_defaulting_to_false(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        # The three rules that predate `from_filename` must keep reading file contents.
+        rule = self._rule(tmp_path)
+        assert rule.from_filename is False
+        (tmp_path / "src" / "a.py").write_text('name="inside"\n', encoding="utf-8")
+        (tmp_path / "doc" / "ref.md").write_text("nothing\n", encoding="utf-8")
+        monkeypatch.setattr("veaf_build.docs_check.COVERAGE_RULES", (rule,))
+        assert check_doc_coverage(tmp_path) == ["thing 'inside' is not documented in doc/ref.md"]
+
 
 class TestOptionCoverage:
     """FIX-DOCAUDIT-CODE 04-B — coverage keyed on command *names* only.
@@ -620,6 +654,37 @@ class TestCoverageRegexMatchesReality:
             f"what it guards. only regexed: {sorted(regexed - imported)}; "
             f"only imported: {sorted(imported - regexed)}"
         )
+
+
+class TestTheSuiteRuleSeesEverySuiteOnDisk:
+    """CHORE-TESTING-DOC-COUNTS — the rule that replaced a hand-written table must not extract zero.
+
+    The failure mode is specific and has already happened once in this module: the CLI-command rule's
+    first version was anchored on ``$`` and applied without ``re.MULTILINE``, so it matched nothing
+    and passed. A rule extracting no names reports no defect, which is indistinguishable from a table
+    that is complete. So this asserts the count against the file system rather than trusting silence.
+    """
+
+    def test_the_rule_extracts_one_name_per_suite_file(self):
+        from veaf_build.docs_check import _names_of
+
+        root = Path(__file__).parents[3]
+        rule = next(r for r in COVERAGE_RULES if r.label == "Lua test suite")
+        on_disk = sorted(p.name for p in (root / "test" / "lua").glob("test_*.lua"))
+        assert on_disk, "no Lua test suite found — the layout moved and this rule guards nothing"
+        assert _names_of(root, rule) == on_disk
+
+    def test_both_testing_pages_list_every_suite(self):
+        # The gate itself, run against the real tree: what CHORE-TESTING-DOC-COUNTS found was
+        # `test_veafMove_escort.lua` missing from both pages, silently, since the suite shipped.
+        from veaf_build.docs_check import _names_of
+
+        root = Path(__file__).parents[3]
+        rule = next(r for r in COVERAGE_RULES if r.label == "Lua test suite")
+        for page in rule.pages:
+            text = (root / page).read_text(encoding="utf-8")
+            missing = [name for name in _names_of(root, rule) if f"`{name}`" not in text]
+            assert not missing, f"{page} does not list: {missing}"
 
 
 class TestTheTwoPassesOptOutIndependently:

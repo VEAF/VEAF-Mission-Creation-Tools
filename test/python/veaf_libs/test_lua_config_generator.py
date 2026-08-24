@@ -191,6 +191,111 @@ def test_ctld_disabled_emits_no_start_up_call():
 
 
 # ---------------------------------------------------------------------------
+# External modules — SKYNET
+# ---------------------------------------------------------------------------
+
+
+def test_skynet_dynamic_spawn_reaches_the_generated_config():
+    """FIX-SKYNET-DYNAMICSPAWN-SCOPE / #151.
+
+    ``veafSkynet.DynamicSpawn`` was reachable only through the ``module_settings:`` migration
+    hatch, so a mission maker had no way of turning dynamic IADS integration on — which is the
+    whole of #151: the combat-zone path worked, the flag was simply off and invisible.
+    """
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "dynamic_spawn": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.DynamicSpawn = true" in lua
+
+
+def test_skynet_dynamic_spawn_is_not_written_when_the_field_is_absent():
+    """FIX-MODULE-SETTINGS-OVERWRITTEN — the line used to be emitted from the default, and that broke
+    the `module_settings:` hatch.
+
+    It arms a birth-event handler on every spawn of the mission, so it stays opt-in — but the *default*
+    now comes from `veafSkynet.lua`, which already declares `veafSkynet.DynamicSpawn = false`. Writing
+    it here from a Python default meant a mission setting the same variable through `module_settings:`
+    had it silently overwritten ~145 lines later, immediately before `initialize()`. That is what ran
+    `verify-mission-c` with the feature off for two days while its own Skynet checks claimed to measure
+    it.
+
+    So the assertion is about **absence**: no line at all, which leaves the Lua default in place and
+    lets the hatch survive.
+    """
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.DynamicSpawn" not in lua
+    # the block itself must still be there — this is not "Skynet stopped being configured"
+    assert "veafSkynet.initialize(" in lua
+
+
+def test_skynet_dynamic_spawn_false_is_written_when_stated():
+    """An explicit `false` is a statement, not a default, and must still beat a `module_settings:` line.
+
+    The distinction is the whole point of the fix: silence means "I did not say", and a written `false`
+    means "I said off". Collapsing the two is what made the defect invisible.
+    """
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "dynamic_spawn": False}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.DynamicSpawn = false" in lua
+
+
+def test_a_module_settings_key_a_module_block_overwrites_is_reported(caplog):
+    """The silence was the defect, more than the wrong value.
+
+    The setting appeared in the generated Lua, in the very file an author would open to check, 145 lines
+    above the line that undid it. A build that says nothing there is a build that lets someone conclude
+    the opposite of the truth.
+    """
+    import logging
+
+    yaml_data: dict = {
+        "module_settings": {"veafSkynet.DynamicSpawn": True},
+        "external_modules": {"skynet": {"enabled": True, "dynamic_spawn": False}},
+    }
+    with caplog.at_level(logging.WARNING):
+        lua = generate_config_lua(yaml_data)
+
+    # the module block still wins — the warning explains, it does not change the outcome
+    assert lua.rindex("veafSkynet.DynamicSpawn = false") > lua.index("veafSkynet.DynamicSpawn = true")
+    assert "veafSkynet.DynamicSpawn" in caplog.text
+    assert "module_settings" in caplog.text
+
+
+def test_a_module_settings_key_nothing_overwrites_is_not_reported(caplog):
+    """A warning that fires on correct missions gets ignored, and takes the real ones with it."""
+    import logging
+
+    yaml_data: dict = {
+        "module_settings": {"veafSkynet.DelayForStartup": 5},
+        "external_modules": {"skynet": {"enabled": True, "dynamic_spawn": True}},
+    }
+    with caplog.at_level(logging.WARNING):
+        generate_config_lua(yaml_data)
+    assert "DelayForStartup" not in caplog.text
+
+
+def test_skynet_dynamic_spawn_is_set_before_initialize():
+    """Ordering is the point: ``createNetwork`` reads the flag when it creates each network, which
+    happens inside the deferred work ``initialize()`` schedules. Setting it after the call would
+    still work by luck; asserting the order keeps it deliberate."""
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "dynamic_spawn": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert lua.index("veafSkynet.DynamicSpawn = true") < lua.index("veafSkynet.initialize(")
+
+
+def test_skynet_disabled_emits_no_dynamic_spawn():
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": False, "dynamic_spawn": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.DynamicSpawn" not in lua
+
+
+def test_mission_yaml_template_documents_dynamic_spawn():
+    """A key nobody can discover is the defect #151 reported, so the template has to name it."""
+    template = generate_mission_yaml_template()
+    assert "dynamic_spawn" in template
+
+
+# ---------------------------------------------------------------------------
 # External modules — CSAR
 # ---------------------------------------------------------------------------
 
@@ -865,6 +970,25 @@ def test_combatzone_completable_default_emits_nothing():
         assert "setCompletable" not in generate_config_lua(yaml_data)
 
 
+def test_combatzone_rename_units_sequentially_false_emits_setter():
+    """``rename_units_sequentially: false`` keeps a respawned group's original unit names (#289)."""
+    yaml_data: dict = {
+        "mission": {"name": "Test"},
+        "lua_modules": {"COMBATZONE": {"combat_zones": [{"zone_name": "CZ", "rename_units_sequentially": False}]}},
+    }
+    assert ":setRenameUnitsSequentially(false)" in generate_config_lua(yaml_data)
+
+
+def test_combatzone_rename_units_sequentially_default_emits_nothing():
+    """Absent or true, nothing is emitted, so an existing mission's generated Lua does not move."""
+    for zone in ({"zone_name": "CZ"}, {"zone_name": "CZ", "rename_units_sequentially": True}):
+        yaml_data: dict = {
+            "mission": {"name": "Test"},
+            "lua_modules": {"COMBATZONE": {"combat_zones": [zone]}},
+        }
+        assert "setRenameUnitsSequentially" not in generate_config_lua(yaml_data)
+
+
 def _combatzone_yaml(zone: dict) -> dict:
     """Build a minimal mission carrying a single combat *zone*."""
     return {
@@ -1127,3 +1251,115 @@ def test_mission_master_hashes_are_still_replaced() -> None:
 
     assert "veafSecurity.password_MM = {}" in lua
     assert 'veafSecurity.password_MM["cafe"] = true' in lua
+
+
+def test_hide_names_is_not_written_when_the_field_is_absent():
+    """Silence leaves `veaf.lua`'s own default, and lets a `module_settings:` line survive.
+
+    Same rule as `SecurityDisabled` and `DynamicSpawn`: writing a Python default here would overwrite a
+    migration-hatch line ~145 lines earlier without a word, which is the defect
+    FIX-MODULE-SETTINGS-OVERWRITTEN was about.
+    """
+    lua = generate_config_lua({"mission": {"name": "X"}})
+    assert "HideNamesFromSpawnedGroups" not in lua
+
+
+def test_hide_names_false_reaches_the_generated_config():
+    """The case a mission maker actually wants: see the real names while building.
+
+    The default is `true` — a spawned group is named `[r]-<invented>#<id>` so a player cannot read a
+    zone's contents off the F10 map — so `false` is the deliberate choice and must be emitted.
+    """
+    lua = generate_config_lua({"mission": {"name": "X", "hide_names_from_spawned_groups": False}})
+    assert "veaf.HideNamesFromSpawnedGroups = false" in lua
+
+
+def test_hide_names_true_is_written_when_stated():
+    """An explicit `true` is a statement, not a default, so it must be emitted rather than assumed.
+
+    The claim that it *beats a `module_settings:` line* used to be in this docstring with nothing
+    testing it — and it was false: the hatch is emitted after the mission block, so in Lua it won.
+    That claim now lives in `test_a_documented_mission_field_beats_a_module_settings_leftover`, with a
+    case that actually contains both forms. Asserting the emitted constant while the docstring
+    described the applied behaviour is the same trap as `test_defaultSpawnRadii`.
+    """
+    lua = generate_config_lua({"mission": {"name": "X", "hide_names_from_spawned_groups": True}})
+    assert "veaf.HideNamesFromSpawnedGroups = true" in lua
+
+
+def test_a_documented_mission_field_beats_a_module_settings_leftover():
+    """Both forms in one mission.yaml: the documented field wins and the hatch entry is dropped.
+
+    Raised by Sourcery on #795, and measured before believing it: the mission block is emitted first
+    and `module_settings:` after, so Lua took the hatch's value and the field the reference documents
+    did nothing. Which one *should* win is settled by the reference itself, where `module_settings:` is
+    described as a migration path rather than a permanent override.
+    """
+    lua = generate_config_lua(
+        {
+            "mission": {"name": "X", "hide_names_from_spawned_groups": True},
+            "module_settings": {"veaf.HideNamesFromSpawnedGroups": False},
+        }
+    )
+    assignments = [line for line in lua.splitlines() if "HideNamesFromSpawnedGroups" in line]
+    assert len(assignments) == 1, f"one assignment, not two: {assignments}"
+    assert "= true" in assignments[0], "the mission field's value, not the hatch's"
+
+
+def test_dropping_the_leftover_is_said_out_loud(caplog):
+    """Silently ignoring a line someone wrote is the defect this whole area is about.
+
+    `FIX-MODULE-SETTINGS-OVERWRITTEN` was not about a wrong value but about a setting that *looks*
+    applied. Removing the hatch entry without a word would be the same failure from the other side.
+    """
+    with caplog.at_level(logging.WARNING):
+        generate_config_lua(
+            {
+                "mission": {"name": "X", "hide_names_from_spawned_groups": False},
+                "module_settings": {"veaf.HideNamesFromSpawnedGroups": True},
+            }
+        )
+    warnings = [record.message for record in caplog.records if record.levelno >= logging.WARNING]
+    assert any("HideNamesFromSpawnedGroups" in message for message in warnings), warnings
+    assert any("hide_names_from_spawned_groups" in message for message in warnings), (
+        "the warning must name the field that won, or the reader cannot act on it"
+    )
+
+
+def test_the_hatch_still_works_on_its_own():
+    """The migration path must keep working for a mission that has not adopted the new field.
+
+    The whole point of dropping the entry is that the mission field asked for something else. With no
+    mission field there is nothing to defer to, and removing the line would be a regression for every
+    mission converted from v5.
+    """
+    lua = generate_config_lua(
+        {
+            "mission": {"name": "X"},
+            "module_settings": {"veaf.HideNamesFromSpawnedGroups": False},
+        }
+    )
+    assert "veaf.HideNamesFromSpawnedGroups = false" in lua
+
+
+def test_unrelated_module_settings_are_untouched():
+    """Only the superseded key yields; the hatch is generic and must stay generic."""
+    lua = generate_config_lua(
+        {
+            "mission": {"name": "X", "hide_names_from_spawned_groups": True},
+            "module_settings": {
+                "veaf.HideNamesFromSpawnedGroups": False,
+                "veafSkynet.DelayForStartup": 150,
+            },
+        }
+    )
+    assert "veafSkynet.DelayForStartup = 150" in lua
+    assert "veaf.HideNamesFromSpawnedGroups = true" in lua
+    assert "veaf.HideNamesFromSpawnedGroups = false" not in lua
+
+
+def test_hide_names_appears_in_the_yaml_template():
+    """A field nobody can find is a field nobody uses: this one was reachable only through the API
+    reference, which is not where a mission maker looks."""
+    template = generate_mission_yaml_template()
+    assert "hide_names_from_spawned_groups" in template

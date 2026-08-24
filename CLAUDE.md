@@ -140,6 +140,27 @@ For every action requested by the user, execute these steps in order:
 After pushing a branch and creating a PR:
 - **Do NOT request a Copilot review.** Sourcery reviews PRs automatically.
 - Request a review only if Sourcery posts a comment stating it cannot review the PR.
+- **One lot per PR stays the rule, but Sourcery stops reviewing past ~150 000 characters of diff.**
+  If a lot is heading over that, split it into sequenced PRs with the shared groundwork first.
+  Measured on PR #759 (172 905 characters), which merged with no third-party review; the two lots
+  after it were split on purpose and were reviewed.
+
+- **There is also a weekly budget: 250 000 diff characters across all PRs.** When it runs out Sourcery
+  answers with a rate-limit comment instead of a review, so a PR opened late in the week gets no
+  third-party review at all. Hit on 2026-08-24: #795 was reviewed and #796, opened 24 minutes later,
+  got the rate-limit message. Twenty PRs had been opened since 18 August, about 12 000 changed lines —
+  on the order of 600 000 characters, so at this cadence the budget covers roughly the first third of
+  the week.
+
+  **What this means in practice, and why it needs saying:** a silent Sourcery is not a misconfiguration
+  to go hunting for, and it is not a CLEAN either. `merge au vert` requires CI green **and** a clean
+  review; when the quota is spent, the second half is unavailable and the merge decision is David's,
+  not a rule's. Say so plainly rather than merging on CI alone or waiting for a review that will not
+  come.
+
+  Sourcery does not review automatically in every case even with budget left — a `@sourcery-ai review`
+  comment on the PR triggers it, and that is worth trying **before** concluding anything about the
+  installation.
 
 ---
 

@@ -37,6 +37,66 @@ veafCombatZone.DefaultSpawnRadiusForUnits = 50
 
 veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
+-- Alarm states, as AI.Option.Ground.val.ALARM_STATE: 0 AUTO, 1 GREEN, 2 RED.
+veafCombatZone.ALARM_STATE_AUTO = 0
+veafCombatZone.ALARM_STATE_GREEN = 1
+veafCombatZone.ALARM_STATE_RED = 2
+
+-- Alarm state a spawned group gets unless its unit name carries `#alarm=`, **chosen by the nature of
+-- the group** rather than fixed for all of them. The two defaults below are both right, for opposite
+-- groups, which is why one global value could not serve:
+--
+--  * A group with a route to drive wants AUTO. On RED a DCS ground group holds position, so the global
+--    RED this module used to apply immobilised every convoy a zone spawned (#290, open since April
+--    2025).
+--  * A group that stays put wants RED, so it fights on sight. On AUTO a SAM battery keeps its radar
+--    down — which is what the global AUTO of PR #762 cost: fixing the convoys made every air defence
+--    inside a combat zone go quiet.
+--
+-- PR #762's own PRD named this trade ("right for a SAM battery, wrong for a convoy") and picked a single
+-- default anyway, leaving `#alarm=N` as the escape hatch. An escape hatch every mission maker has to
+-- apply to every existing battery is a regression, not an option — hence choosing per group.
+veafCombatZone.DefaultAlarmStateMobile = veafCombatZone.ALARM_STATE_AUTO
+veafCombatZone.DefaultAlarmStateStatic = veafCombatZone.ALARM_STATE_RED
+
+-- Kept as the value an unreadable `#alarm=` tag falls back to, and as what a caller gets when the
+-- group's nature cannot be determined: RED is the safer of the two, since a group that fights when it
+-- should have driven is visible, while one that stays silent when it should have fired is not.
+veafCombatZone.DefaultAlarmState = veafCombatZone.ALARM_STATE_RED
+
+-- Pattern matching the `#alarm=` tag in a unit name. A module constant rather than an inline literal
+-- so the tests exercise the same pattern the parser uses.
+veafCombatZone.ALARM_TAG_PATTERN = "#alarm%s*=%s*(%d+)"
+
+-- Every tag a mission maker can embed in a unit or group name, as a table rather than seven inline
+-- literals: anything working on "all the tags" cannot then silently miss one.
+-- Names are lowercased before matching, so a quoted value comes back lowercased too — long-standing
+-- behaviour that `#command` aliases and `#spawngroup` names rely on.
+-- The four count/distance tags read `100-300` as well as `200`, and the value is converted by
+-- `veaf.getRandomizableNumeric` where the tag is applied — the same function marker commands use, so a
+-- range means the same thing in both places (#25).
+--
+-- Before this, the pattern was `(%d+)`: `#spawnradius=100-300` matched **`100`** and the `-300` was
+-- never seen, so a mission maker who wrote a range silently got its lower bound.
+--
+-- `alarmState` keeps its own pattern and takes no range: it is an enumeration (0 AUTO, 1 GREEN, 2 RED),
+-- and a range over an enumeration is a mistake rather than a random value. `spawnGroup` and `command`
+-- are strings, and their values legitimately contain dashes.
+veafCombatZone.TAG_PATTERNS = {
+  spawnRadius = "#spawnradius%s*=%s*([%d%-]+)",
+  spawnChance = "#spawnchance%s*=%s*([%d%-]+)",
+  spawnCount = "#spawncount%s*=%s*([%d%-]+)",
+  spawnGroup = '#spawngroup%s*=%s*"([^"]+)"',
+  spawnDelay = "#spawndelay%s*=%s*([%d%-]+)",
+  command = '#command%s*=%s*"([^"]+)"',
+  alarmState = veafCombatZone.ALARM_TAG_PATTERN,
+}
+
+-- The tags that describe the *group*, and are therefore collected from every name carrying one.
+-- `command` is absent on purpose: it turns one object into a one-shot trigger, so merging it would
+-- silently drop the second command of a group carrying two.
+veafCombatZone.MERGED_TAGS = { "spawnRadius", "spawnChance", "spawnCount", "spawnGroup", "spawnDelay", "alarmState" }
+
 -- Coalition a zone considers hostile unless told otherwise: red, i.e. blue players
 -- clearing a red zone. Set per zone with VeafCombatZone:setEnemyCoalition().
 veafCombatZone.DEFAULT_ENEMY_COALITION = 1
@@ -88,6 +148,110 @@ veafCombatZone.radioGroupsDict = {}
 
 local messageSeparator = "\n=====================================================\n"
 
+--- Read the tags embedded in one unit or group name.
+--- @param name unit or group name as typed in the mission editor; nil is tolerated
+--- @return table mapping tag key (see veafCombatZone.TAG_PATTERNS) to its raw string value; empty
+---         when the name carries no tag at all
+function veafCombatZone.parseTags(name)
+  local tags = {}
+  if not name then
+    return tags
+  end
+  local lowered = name:lower()
+  for key, pattern in pairs(veafCombatZone.TAG_PATTERNS) do
+    local _, _, value = lowered:find(pattern)
+    if value then
+      tags[key] = value
+    end
+  end
+  return tags
+end
+
+--- Collect a group's tags from its own name and from the names of all its units.
+---
+--- Sources are read in a fixed order — the group name first, then the unit names in **alphabetical**
+--- order — and the first value found for a tag wins; a later source stating a different value is
+--- ignored with a warning. Alphabetical rather than the order the units were met in: that order is
+--- `mist.getUnitsInZones` followed by `pairs()`, so tie-breaking on it would be the coin toss this
+--- replaces, and it is not something a mission maker can see in the mission editor.
+---
+--- `#command` is not merged — it is a one-shot trigger attached to an object, not a setting of the
+--- group — so it comes back separately, keyed by the name that carried it. That second return value is
+--- what keeps every name parsed exactly once: the caller never has to read a name's tags again.
+---
+--- @param groupName name of the group; a static object is its own group
+--- @param unitNames names of the group's units, in any order
+--- @return table of tag key to raw string value, `command` excluded (see veafCombatZone.MERGED_TAGS)
+--- @return table mapping a source name to the `#command` it carries, empty when none does
+function veafCombatZone.collectTags(groupName, unitNames)
+  local sources = {}
+  if groupName then
+    table.insert(sources, groupName)
+  end
+  local sortedUnitNames = {}
+  for _, unitName in pairs(unitNames or {}) do
+    if unitName ~= groupName then -- a static object's unit name *is* its group name; read it once
+      table.insert(sortedUnitNames, unitName)
+    end
+  end
+  table.sort(sortedUnitNames)
+  for _, unitName in ipairs(sortedUnitNames) do
+    table.insert(sources, unitName)
+  end
+
+  local tags = {}
+  local statedBy = {}
+  local commandsBySource = {}
+  local sawAlarmTag = false
+  for _, source in ipairs(sources) do
+    local parsed = veafCombatZone.parseTags(source)
+    sawAlarmTag = sawAlarmTag or source:lower():find("#alarm", 1, true) ~= nil
+    if parsed.command then
+      commandsBySource[source] = parsed.command
+    end
+    for _, key in ipairs(veafCombatZone.MERGED_TAGS) do
+      local value = parsed[key]
+      if value then
+        if tags[key] == nil then
+          tags[key] = value
+          statedBy[key] = source
+        elseif tags[key] ~= value then
+          veaf.loggers.get(veafCombatZone.Id):warn(
+            "group [%s]: [%s] sets %s to [%s] while [%s] already set it to [%s]; keeping [%s]",
+            veaf.p(groupName),
+            veaf.p(source),
+            key,
+            veaf.p(value),
+            veaf.p(statedBy[key]),
+            veaf.p(tags[key]),
+            veaf.p(tags[key])
+          )
+        end
+      end
+    end
+  end
+
+  if not tags.alarmState and sawAlarmTag then
+    -- the tag is there but no source produced a number out of it (`#alarm=`, `#alarm=x`, `#alarm=-1`):
+    -- without this the group silently keeps the default and the typo is invisible
+    veaf.loggers
+      .get(veafCombatZone.Id)
+      :warn("group [%s] carries an unreadable #alarm tag; expected #alarm=0, #alarm=1 or #alarm=2", veaf.p(groupName))
+  end
+  return tags, commandsBySource
+end
+
+--- The group an object found in a trigger zone belongs to.
+--- @param unit DCS unit, static object or cargo
+--- @return string group name, and true when the object is a static (which is its own group)
+function veafCombatZone.getGroupNameOfUnit(unit)
+  local objectCategory = Object.getCategory(unit)
+  if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
+    return unit:getName(), true
+  end
+  return unit:getGroup():getName(), false
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatZoneElement object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -122,6 +286,10 @@ function VeafCombatZoneElement:new(objectToCopy)
   objectToCreate.spawnGroup = nil
   -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
   objectToCreate.spawnCount = 1
+  -- Alarm state applied to the spawned group (0 AUTO, 1 GREEN, 2 RED), set with the `#alarm=` tag.
+  -- **nil means "not stated"**, which is what lets the state be chosen by the group's nature at spawn
+  -- time. Defaulting it here would make a deliberate `#alarm=0` indistinguishable from silence.
+  objectToCreate.alarmState = nil
 
   return objectToCreate
 end
@@ -241,9 +409,202 @@ function VeafCombatZoneElement:getSpawnCount()
   return self.spawnCount
 end
 
+function VeafCombatZoneElement:setAlarmState(value)
+  local alarmState = tonumber(value)
+  -- an out-of-range or unparsable tag falls back to the default rather than reaching setOption -- and
+  -- says so, because a silent fallback makes a typo indistinguishable from a deliberate AUTO
+  if alarmState ~= 0 and alarmState ~= 1 and alarmState ~= 2 then
+    veaf.loggers.get(veafCombatZone.Id):warn(
+      "#alarm=%s is not one of 0 (AUTO), 1 (GREEN), 2 (RED); falling back to %s",
+      veaf.p(value),
+      veaf.p(veafCombatZone.DefaultAlarmState)
+    )
+    alarmState = veafCombatZone.DefaultAlarmState
+  end
+  self.alarmState = alarmState
+  return self
+end
+
+function VeafCombatZoneElement:getAlarmState()
+  return self.alarmState
+end
+
+--- Has this group somewhere to drive to?
+--- More than one waypoint means it is meant to move, and "meant to move" is the whole reason AUTO
+--- exists here (#290). A zone element only carries a route of its own when it is a `#command` fake
+--- unit, so a native group's route is read from the mission, the same way the parser reads it.
+--- Anything unreadable answers false: a group that fights when it should have driven is a visible
+--- mistake, one that stays silent when it should have fired is not.
+function VeafCombatZoneElement:isMobile()
+  local route = self:getRoute()
+  if not route then
+    local name = self:getName()
+    if not name or not mist or not mist.getGroupRoute then
+      return false
+    end
+    -- pcall: mist raises on a group it cannot find, and a zone element may name a group that was
+    -- destroyed or renamed since the zone was parsed.
+    local ok, found = pcall(mist.getGroupRoute, name, "task")
+    route = ok and found or nil
+  end
+  if type(route) ~= "table" then
+    return false
+  end
+  local waypoints = 0
+  for _ in pairs(route) do
+    waypoints = waypoints + 1
+  end
+  return waypoints > 1
+end
+
+--- The alarm state to apply to this element's group when it spawns.
+--- An explicit `#alarm=` tag wins; otherwise the group's nature decides — see the two
+--- DefaultAlarmState* constants for why one global value could not serve both.
+function VeafCombatZoneElement:resolveAlarmState()
+  local stated = self:getAlarmState()
+  if stated ~= nil then
+    return stated
+  end
+  if self:isMobile() then
+    return veafCombatZone.DefaultAlarmStateMobile
+  end
+  return veafCombatZone.DefaultAlarmStateStatic
+end
+
 ---
 --- other methods
 ---
+
+--- Apply a group's collected tags to one of its zone elements.
+--- Only the tags actually stated are applied, so an element keeps its own defaults otherwise.
+--- Convert a numeric tag's raw text, which may be a range, into the number the element stores.
+---
+--- Goes through `veaf.getRandomizableNumeric` so `100-300` means in a tag what it means in a marker
+--- command. Not optional plumbing: the setters convert with `tonumber`, which returns **nil** on
+--- "100-300", and a nil `spawnRadius` raises where `spawnElement` compares it — a range reaching a
+--- setter unconverted is a crash, not a wrong number.
+---
+--- The draw happens **here**, when tags are read, which is once per mission at `initialize`. Every
+--- activation of the zone then uses the same value. Redrawing on each activation would be a different
+--- feature, and a surprising one for a dispersion radius.
+local function numericTag(value)
+  if value == nil then
+    return nil
+  end
+  return veaf.getRandomizableNumeric(value)
+end
+
+local function applyCollectedTags(element, tags)
+  if tags.spawnRadius then
+    element:setSpawnRadius(numericTag(tags.spawnRadius))
+  end
+  if tags.spawnChance then
+    element:setSpawnChance(numericTag(tags.spawnChance))
+  end
+  if tags.spawnCount then
+    element:setSpawnCount(numericTag(tags.spawnCount))
+  end
+  if tags.spawnGroup then
+    element:setSpawnGroup(tags.spawnGroup)
+  end
+  if tags.spawnDelay then
+    element:setSpawnDelay(numericTag(tags.spawnDelay))
+  end
+  if tags.alarmState then
+    element:setAlarmState(tags.alarmState)
+  end
+end
+
+--- Build the zone element of a `#command` object: a one-shot trigger running a VEAF command at the
+--- object's position. The zone name is appended to the command so the interpreter can attribute what
+--- it spawns back to the zone.
+--- @param unit the object carrying the command
+--- @param group the group it belongs to, as built by VeafCombatZone:initialize
+--- @param tags the group's collected tags
+--- @param command the raw command read out of the name
+--- @param combatZoneName name of the combat zone, appended to the command
+--- @return VeafCombatZoneElement
+function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZoneName)
+  local element = VeafCombatZoneElement:new()
+  element:setCoalition(unit:getCoalition())
+  element:setPosition(unit:getPosition().p)
+  element:setName(group.name)
+  applyCollectedTags(element, tags)
+  -- no dispersion default here, deliberately: the command runs *at this position*, so scattering it
+  -- would move whatever the command spawns. `#spawnradius=` still applies if the mission maker wrote one.
+  element:setVeafCommand(command .. ", czName " .. combatZoneName)
+  element:setRoute(mist.getGroupRoute(group.name, "task"))
+  if not element:getSpawnGroup() then
+    element:setSpawnGroup(group.name) -- default the spawn group to the group name
+  end
+  return element
+end
+
+--- The position a group is anchored on: its **unit 1**, not the first unit the zone happened to meet.
+---
+--- The two are not interchangeable, and that is the whole point. `mist.teleportToPoint` computes the
+--- displacement as `newCoord - newGroupData.units[1]` (mist.lua:4470) — the *mission table's* unit 1 —
+--- then applies it to every unit of the group. Hand it the position of any other unit and the
+--- displacement silently carries the spacing between the two, translating the whole group by it.
+---
+--- The zone does meet units in editor order (`veaf.getUnitsNamesOfCoalition` and
+--- `mist.getUnitsInZones` both walk indexed loops), so this only bites when unit 1 is **filtered out**:
+--- a group straddling the trigger zone's edge with its first unit outside. Then unit 2 arrives as "the
+--- first one", and a convoy comes up a truck-length down the road from where it was drawn — with
+--- `#spawnradius=0` written and no dispersion asked for.
+---
+--- Falls back on the unit it was handed when DCS cannot produce unit 1, since an element with no
+--- position spawns nothing at all, which is worse than spawning thirty metres off.
+---
+--- @param unit the unit the caller had, used as the fallback
+--- @param group the group, as built by VeafCombatZone:initialize
+--- @return table a runtime vec3
+function veafCombatZone.referencePositionOf(unit, group)
+  if not group.isStatic then
+    local dcsGroup = Group.getByName(group.name)
+    local firstUnit = dcsGroup and dcsGroup:getUnit(1)
+    if firstUnit then
+      return firstUnit:getPosition().p
+    end
+    veaf.loggers
+      .get(veafCombatZone.Id)
+      :warn("group [%s] gave no unit 1; anchoring on [%s] instead", veaf.p(group.name), veaf.p(unit:getName()))
+  end
+  return unit:getPosition().p
+end
+
+--- Build the zone element of a group the zone spawns itself.
+---
+--- The dispersion default is decided from whether `#spawnradius=` was **written**, not from the value
+--- the element happens to hold. Asking the element (`if not element:getSpawnRadius()`) is what killed
+--- the default for three years: an element starts at 0, and `not 0` is false in Lua. Reading the tag's
+--- presence is exact, and it leaves `#spawnradius=0` meaning "no dispersion" instead of being
+--- indistinguishable from silence.
+---
+--- @param unit the group's first unit, which gives the element its position and coalition
+--- @param group the group, as built by VeafCombatZone:initialize
+--- @param tags the group's collected tags
+--- @return VeafCombatZoneElement
+function veafCombatZone.buildGroupElement(unit, group, tags)
+  local element = VeafCombatZoneElement:new()
+  element:setCoalition(unit:getCoalition())
+  element:setPosition(veafCombatZone.referencePositionOf(unit, group))
+  element:setName(group.name)
+  applyCollectedTags(element, tags)
+  if group.isStatic then
+    element:setDcsStatic(true)
+  else
+    element:setDcsGroup(true)
+  end
+  if not tags.spawnRadius then
+    local default = group.isStatic and veafCombatZone.DefaultSpawnRadiusForStatics or veafCombatZone.DefaultSpawnRadiusForUnits
+    element:setSpawnRadius(default)
+  end
+  if not element:getSpawnGroup() then
+    element:setSpawnGroup(group.name) -- default the spawn group to the group name
+  end
+  return element
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatZone object
@@ -283,6 +644,13 @@ function VeafCombatZone:new(objectToCopy)
   objectToCreate.showZonePositionInfo = true
   -- zone is completable (i.e. disable it when all ennemies are dead)
   objectToCreate.completable = true
+  -- rename the units of a respawned group sequentially (Group-1, Group-2, …). Useful on a finished
+  -- map, in the way while debugging a `.miz`: the original unit name is gone (#289). Default true,
+  -- which is what every mission built before 6.15.16 got.
+  objectToCreate.renameUnitsSequentially = true
+  -- set when the trigger zone's shape could not be read, so the zone is *unusable* rather than empty.
+  -- A zone that cannot say what it holds must not announce that everything in it is dead.
+  objectToCreate.unreadableTriggerZone = false
   -- coalition whose units must be destroyed for the zone to complete (1 = red, 2 = blue).
   -- Defaults to red: the players are blue and the zone holds the red opposition.
   objectToCreate.enemyCoalition = veafCombatZone.DEFAULT_ENEMY_COALITION
@@ -449,12 +817,32 @@ function VeafCombatZone:setShowZonePositionInfo(value)
   return self
 end
 
+--- Can this zone complete on its own?
+--- A zone whose trigger zone could not be read answers **no**, whatever the mission asked for: it does
+--- not know what it holds, so it cannot honestly report that all of it is dead — which is the worst
+--- symptom FIX-COMBATZONE-ZONE-TYPE-SILENT was about. It gates both the watchdog and the check itself.
 function VeafCombatZone:isCompletable()
-  return self.completable
+  return self.completable and not self.unreadableTriggerZone
+end
+
+function VeafCombatZone:hasUnreadableTriggerZone()
+  return self.unreadableTriggerZone
 end
 
 function VeafCombatZone:setCompletable(value)
   self.completable = value
+  return self
+end
+
+function VeafCombatZone:isRenameUnitsSequentially()
+  return self.renameUnitsSequentially
+end
+
+--- Whether a respawned group's units are renamed sequentially.
+--- Sharko's #289: renaming is useful once a map is finished and gets in the way while debugging a
+--- `.miz`, since the original unit name is gone. Set it to false to keep the names.
+function VeafCombatZone:setRenameUnitsSequentially(value)
+  self.renameUnitsSequentially = value
   return self
 end
 
@@ -784,92 +1172,51 @@ function VeafCombatZone:initialize()
   local units
   units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
 
-  -- process special commands in the units
-  local alreadyAddedGroups = {}
+  -- Group what was found, keeping the order the units were met in. The element's **coalition** comes
+  -- from the first of those units, as it always has — every unit of a group shares it. Its
+  -- **position** does not: see veafCombatZone.referencePositionOf, which anchors on the group's unit 1
+  -- whether or not the zone could see it.
+  local groupsByName = {}
+  local groupOrder = {}
   for _, unit in pairs(units) do
-    local zoneElement = VeafCombatZoneElement:new()
-    zoneElement:setCoalition(unit:getCoalition())
-    local unitName = unit:getName()
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing unit [%s] of coalition [%d]", unitName, unit:getCoalition()))
-    zoneElement:setPosition(unit:getPosition().p)
-    local spawnRadius, command, spawnChance, spawnGroup, spawnCount, spawnDelay
-    _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
-    _, _, command = unitName:lower():find('#command%s*=%s*"([^"]+)"')
-    _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
-    _, _, spawnGroup = unitName:lower():find('#spawngroup%s*=%s*"([^"]+)"')
-    _, _, spawnCount = unitName:lower():find("#spawncount%s*=%s*(%d+)")
-    _, _, spawnDelay = unitName:lower():find("#spawndelay%s*=%s*(%d+)")
-    if spawnRadius then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnRadius = [%d]", spawnRadius))
-      zoneElement:setSpawnRadius(spawnRadius)
+    local groupName, isStatic = veafCombatZone.getGroupNameOfUnit(unit)
+    local group = groupsByName[groupName]
+    if not group then
+      group = { name = groupName, isStatic = isStatic, units = {}, unitNames = {} }
+      groupsByName[groupName] = group
+      table.insert(groupOrder, groupName)
     end
-    if spawnChance then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnChance = [%d]", spawnChance))
-      zoneElement:setSpawnChance(spawnChance)
-    end
-    if spawnCount then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d]", spawnCount))
-      zoneElement:setSpawnCount(spawnCount)
-    end
-    if spawnGroup then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnGroup = [%s]", spawnGroup))
-      zoneElement:setSpawnGroup(spawnGroup)
-    end
-    if spawnDelay then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnDelay = [%s]", spawnDelay))
-      zoneElement:setSpawnDelay(spawnDelay)
-    end
-    if command then
-      -- it's a fake unit transporting a VEAF command
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("command = [%s]", command))
-      command = command .. ", czName " .. self:getMissionEditorZoneName() -- add the combat zone name to the command
-      zoneElement:setVeafCommand(command)
-      local groupName = unit:getGroup():getName()
-      zoneElement:setName(groupName)
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = [%s]", groupName))
-      local route = mist.getGroupRoute(groupName, "task")
-      zoneElement:setRoute(route)
-      if not zoneElement:getSpawnGroup() then
-        zoneElement:setSpawnGroup(groupName)
-      end -- default the spawn group to the group name in case there is no spawn group  defined
-    else
-      -- it's a group or a static unit
-      local groupName = nil
-      local objectCategory = Object.getCategory(unit)
-      veaf.loggers.get(veafCombatZone.Id):trace("objectCategory=%s", veaf.lp(objectCategory))
-      if objectCategory == 1 then
-        local unitCategory = Unit.getCategory(unit)
-        veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.lp(unitCategory))
-      end
-      if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
-        groupName = unitName -- default for static objects = groups themselves
-        zoneElement:setDcsStatic(true)
-        if not zoneElement:getSpawnRadius() then
-          zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForStatics)
-        end
-      else
-        groupName = unit:getGroup():getName()
-        zoneElement:setDcsGroup(true)
-        if not zoneElement:getSpawnRadius() then
-          zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForUnits)
-        end
-      end
-      if not zoneElement:getSpawnGroup() then
-        zoneElement:setSpawnGroup(groupName)
-      end -- default the spawn group to the group name in case there is no spawn group  defined
-      if not alreadyAddedGroups[groupName] then
-        -- add a group element
-        veaf.loggers.get(veafCombatZone.Id):trace(string.format("adding group [%s]", groupName))
-        alreadyAddedGroups[groupName] = groupName
-        zoneElement:setName(groupName)
-      else
-        veaf.loggers.get(veafCombatZone.Id):trace(string.format("skipping group [%s]", groupName))
-        zoneElement = nil -- don't add this element, it's a group that has already been added
-      end
-    end
+    table.insert(group.units, unit)
+    table.insert(group.unitNames, unit:getName())
+  end
 
-    if zoneElement then
-      self:addZoneElement(zoneElement)
+  -- Build the zone elements, one per group plus one per `#command` object. A group's tags are
+  -- collected from every name that carries one, so a tag on the second truck of a convoy counts as
+  -- much as one on the first — which is what FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY was about.
+  for _, groupName in ipairs(groupOrder) do
+    local group = groupsByName[groupName]
+    local tags, commandsBySource = veafCombatZone.collectTags(groupName, group.unitNames)
+    veaf.loggers.get(veafCombatZone.Id):trace("processing group [%s] (%s units)", veaf.p(groupName), veaf.p(#group.units))
+
+    local groupCommand = commandsBySource[groupName]
+    if groupCommand then
+      -- the command is on the group's own name, so the group is one trigger and not one per unit
+      self:addZoneElement(veafCombatZone.buildCommandElement(group.units[1], group, tags, groupCommand, self:getMissionEditorZoneName()))
+    else
+      local plainUnits = {}
+      for _, unit in ipairs(group.units) do
+        local unitCommand = commandsBySource[unit:getName()]
+        if unitCommand then
+          -- it's a fake unit transporting a VEAF command
+          self:addZoneElement(veafCombatZone.buildCommandElement(unit, group, tags, unitCommand, self:getMissionEditorZoneName()))
+        else
+          table.insert(plainUnits, unit)
+        end
+      end
+      if #plainUnits > 0 then
+        -- it's a group or a static unit
+        self:addZoneElement(veafCombatZone.buildGroupElement(plainUnits[1], group, tags))
+      end
     end
   end
 
@@ -915,10 +1262,20 @@ function VeafCombatZone:getInformation(unitName)
     local nbStaticsB = 0
     local unitsByTypeR = {}
     local unitsByTypeB = {}
+    -- FEAT-GROUP-COMBAT-INEFFECTIVE: groups that still exist but can no longer fight. The first adopter
+    -- of `veaf.isGroupCombatEffective`, chosen because it *adds* information and removes none — no
+    -- mission behaviour changes, unlike adopting it in completionCheck (see the lot's PRD).
+    local outOfActionGroups = {}
 
     for _, groupName in pairs(self:getSpawnedGroups()) do
       local group = Group.getByName(groupName)
       if group then
+        -- A group with nothing left is **destroyed**, not "out of action", and the predicate answers
+        -- false for both — so the living-unit check is what tells them apart. Naming a wiped-out group
+        -- here would be noise on every report for the rest of the mission.
+        if #group:getUnits() > 0 and not veaf.isGroupCombatEffective(group) then
+          table.insert(outOfActionGroups, groupName)
+        end
         for _, u in pairs(group:getUnits()) do
           local coa = u:getCoalition()
           if Object.getCategory(u) == 3 then
@@ -1020,6 +1377,10 @@ function VeafCombatZone:getInformation(unitName)
 
     appendTally(self:getFriendlyCoalition(), "combatzone.friends")
     appendTally(self:getEnemyCoalition(), "combatzone.enemies")
+    if #outOfActionGroups > 0 and self:isShowUnitsList() then
+      table.sort(outOfActionGroups) -- a stable order: `getSpawnedGroups` is not one a player can predict
+      message = message .. veaf.t("combatzone.out_of_action", table.concat(outOfActionGroups, ", "))
+    end
     message = message .. "\n"
 
     if self:isShowZonePositionInfo() then
@@ -1060,6 +1421,28 @@ function VeafCombatZone:getInformation(unitName)
   return message
 end
 
+--- Destroy one group (or static) this zone spawned.
+-- Extracted from desactivate() because the deferred-command hook needs the same operation: a group
+-- that appears *after* its zone was deactivated has to be destroyed rather than registered, which is
+-- what the deactivation would have done to it had it existed in time.
+function VeafCombatZone:destroySpawnedGroup(groupName)
+  veaf.loggers.get(veafCombatZone.Id):trace(string.format("trying to destroy group [%s]", groupName))
+  ---@type Group|StaticObject|nil
+  local group = Group.getByName(groupName)
+  if not group then
+    group = StaticObject.getByName(groupName)
+    if group then
+      veaf.loggers.get(veafCombatZone.Id):trace(string.format("found static [%s]", group:getName()))
+    else
+      veaf.loggers.get(veafCombatZone.Id):info(string.format("cannot find static [%s]", groupName))
+    end
+  end
+  if group then
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("destroying group [%s]", group:getName()))
+    group:destroy()
+  end
+end
+
 function VeafCombatZone:spawnElement(zoneElement, now)
   veaf.loggers
     .get(veafCombatZone.Id)
@@ -1095,14 +1478,31 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       vars.route = zoneElement:getRoute()
       vars.action = "respawn"
       vars.point = position
-      vars.renameUnitsSequentially = true
+      vars.renameUnitsSequentially = self:isRenameUnitsSequentially()
+      -- The group's first waypoint follows the group. MiST translates a route by the teleport delta
+      -- only when asked (mist.lua:4561), and nothing here asked, so a scattered group came up beside
+      -- a waypoint 1 still at its editor position and drove back to it before starting its leg.
+      --
+      -- `offsetWP1`, not `offsetRoute`: the delta is a *local, random* displacement around the drawn
+      -- position, so translating the whole route by it would move waypoints the mission maker placed
+      -- on roads, bridges and passes, and would draw a different track on every activation. Waypoint 1
+      -- is not a design choice — it is where the group starts — so it is the one that must move.
+      --
+      -- Unconditional, including when spawnRadius is 0: the delta is *not* only the dispersion. MiST
+      -- measures it against the mission table's unit 1, while the element's position comes from the
+      -- first unit the zone happened to meet (see buildGroupElement), so a group whose units were not
+      -- met in editor order carries a delta of its own intra-group spacing.
+      vars.offsetWP1 = true
       local newGroup = mist.teleportToPoint(vars)
       if type(newGroup) == "table" then
         veaf.loggers
           .get(veafCombatZone.Id)
           :trace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
         self:addSpawnedGroup(newGroup.name)
-        veaf.readyForCombat(newGroup.name)
+        -- resolveAlarmState, not getAlarmState: the state is decided here, from the group's nature,
+        -- unless its unit name stated one. A single default served the convoys of #290 and silenced
+        -- every SAM battery in a combat zone (PR #762).
+        veaf.readyForCombat(newGroup.name, zoneElement:resolveAlarmState())
       else
         veaf.loggers
           .get(veafCombatZone.Id)
@@ -1114,17 +1514,33 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       veaf.loggers
         .get(veafCombatZone.Id)
         :trace(string.format("executing command [%s] at position [%s]", zoneElement:getVeafCommand(), veaf.vecToString(position)))
+      -- #66: registering a hook instead of iterating the table after the call. A command carrying a
+      -- delay (`-samsr!30`, or a `delay` option, or repeats) returns *before* it spawns anything, so
+      -- the table this used to read was still empty and the group ended up registered nowhere — which
+      -- meant desactivate() could not destroy it and the SAM outlived its zone. The hook fires whether
+      -- the group appears now or in thirty seconds.
       local spawnedGroups = {}
-      veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
-      for _, newGroup in pairs(spawnedGroups) do
+      veaf.registerSpawnedGroupsHook(spawnedGroups, function(newGroup)
+        -- The zone may have been deactivated while the command was waiting out its delay. Nothing can
+        -- unschedule that deferred spawn — desactivate() only knows about its own `#spawndelay`
+        -- schedules — so the group is destroyed here instead of being registered with a zone that is
+        -- no longer running.
+        if not self:isActive() then
+          veaf.loggers
+            .get(veafCombatZone.Id)
+            :debug(string.format("[%s] spawned [%s] after its zone was deactivated, destroying it", zoneElement:getName(), newGroup))
+          self:destroySpawnedGroup(newGroup)
+          return
+        end
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
         self:addSpawnedGroup(newGroup)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("newGroup = [%s]", newGroup))
         local route = zoneElement:getRoute()
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("got route"))
-        local result = mist.goRoute(newGroup, route)
+        mist.goRoute(newGroup, route)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
-      end
+      end)
+      veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
     end
   end
 end
@@ -1216,21 +1632,7 @@ function VeafCombatZone:desactivate()
   self:clearDelayedSpawners()
 
   for _, groupName in pairs(self:getSpawnedGroups()) do
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("trying to destroy group [%s]", groupName))
-    ---@type Group|StaticObject|nil
-    local group = Group.getByName(groupName)
-    if not group then
-      group = StaticObject.getByName(groupName)
-      if group then
-        veaf.loggers.get(veafCombatZone.Id):trace(string.format("found static [%s]", group:getName()))
-      else
-        veaf.loggers.get(veafCombatZone.Id):info(string.format("cannot find static [%s]", groupName))
-      end
-    end
-    if group then
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("destroying group [%s]", group:getName()))
-      group:destroy()
-    end
+    self:destroySpawnedGroup(groupName)
   end
   self:clearSpawnedGroups()
 
@@ -1515,26 +1917,20 @@ function VeafCombatZone:findUnitsInCombatZone()
   veaf.loggers.get(veafCombatZone.Id):trace("#unitsNames=%s", veaf.lp(#unitsNames))
 
   veaf.loggers.get(veafCombatZone.Id):trace("triggerZone.type=%s", veaf.lp(triggerZone.type))
-  if triggerZone.type == 0 then -- circular
-    units = mist.getUnitsInZones(unitsNames, { self:getMissionEditorZoneName() })
-  elseif triggerZone.type == 2 then -- quad point
-    units = mist.getUnitsInPolygon(unitsNames, triggerZone.verticies)
+  -- nil means the zone's shape could not be read, and the error is already in the log; an empty list
+  -- means it really holds nobody. The difference is not cosmetic: an unusable zone is marked so that it
+  -- never completes, instead of quietly reporting that everything in it is dead.
+  units = veaf.getUnitsInTriggerZone(self:getMissionEditorZoneName(), unitsNames, veafCombatZone.Id)
+  if not units then
+    self.unreadableTriggerZone = true
+    return { {}, {} }
   end
 
   veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.lp(#units))
 
   for _, unit in pairs(units) do
-    local unitName = unit:getName()
-    local objectCategory = Object.getCategory(unit)
-    local groupName = nil
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing unit [%s]", unitName))
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("objectCategory = [%d]", objectCategory))
-    if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
-      groupName = unitName -- default for static objects = groups themselves
-    else
-      groupName = unit:getGroup():getName()
-    end
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = %s", groupName))
+    local groupName = veafCombatZone.getGroupNameOfUnit(unit)
+    veaf.loggers.get(veafCombatZone.Id):trace("processing unit [%s] of group [%s]", veaf.p(unit:getName()), veaf.p(groupName))
     if string.sub(groupName:upper(), 1, string.len(upperTriggerzoneName)) == upperTriggerzoneName then
       resultUnits[#resultUnits + 1] = unit
       if not alreadyAddedGroups[groupName] then

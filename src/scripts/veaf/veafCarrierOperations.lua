@@ -919,8 +919,15 @@ function veafCarrierOperations.buildRadioMenu()
   end
 
   veafCarrierOperations.rootPath = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuName))
-  veafCarrierOperations.rootPathBlue = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuNameBlue), veafCarrierOperations.rootPath)
-  veafCarrierOperations.rootPathRed = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuNameRed), veafCarrierOperations.rootPath)
+  -- #87: these two were created without their coalition, so the renderer had nothing to filter on and
+  -- every player saw both — a red pilot opened "Carrier operations" and drove the blue carrier. The
+  -- per-side menus existed already; what was missing was one argument. Each carrier's own submenu
+  -- hangs under one of these (see rebuildRadioMenu), and a scoped node scopes everything below it,
+  -- so this is the only place the side has to be stated.
+  veafCarrierOperations.rootPathBlue =
+    veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuNameBlue), veafCarrierOperations.rootPath, coalition.side.BLUE)
+  veafCarrierOperations.rootPathRed =
+    veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuNameRed), veafCarrierOperations.rootPath, coalition.side.RED)
 
   -- build HELP menu for each group
   if not veafRadio.skipHelpMenus then

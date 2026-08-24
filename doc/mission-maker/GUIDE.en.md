@@ -383,7 +383,26 @@ order only breaks a **tie** between plans of equal specificity, and only then.
     were knowingly relying on order so that a broad plan masked a specific one, that specific plan now
     applies.
 
-Only **human-piloted** groups receive waypoints.
+Only **human-piloted** groups receive waypoints — and since 6.15.43, **all** of them do.
+
+!!! warning "Before 6.15.43 your flight plan reached almost no slot"
+    The waypoints step ran **before** aircraft injection (`spawnables.yaml`,
+    `dynamic-slot-templates.yaml`). The slots those files create did not exist yet when the waypoints
+    were injected.
+
+    Measured on this repository's smoke-test mission: **105** human-piloted groups, exactly **1** carrying
+    a waypoint from the plan — the one already in the source `.miz`. At the corrected position: **105 of
+    105**.
+
+    This was never only about an automatic bullseye: it was your *declared* flight plan, applied to a
+    handful of slots and nothing else. And the build did not say so — it reported "1 injected, 0 without a
+    plan", which is accurate and reads perfectly healthy. The count was taken before the world was
+    finished.
+
+    **What changes for you**: if your mission uses dynamic slots or spawnable aircraft, your declared
+    waypoints now reach those slots — which is what you were asking for already. If your mission only has
+    slots placed in the editor, nothing changes.
+
 
 ## Design-Time Tools
 

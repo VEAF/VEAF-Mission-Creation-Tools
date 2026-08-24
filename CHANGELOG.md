@@ -10,6 +10,38 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.43] — 2026-08-24
+
+### Fixed
+
+- **Waypoint injection reached one human slot in 105.** The `waypoints` pipeline step ran **before**
+  `spawnable_aircrafts` and `dynamic_slot_templates` — the two steps that create the human-piloted slots
+  a flight plan exists for. So when the waypoints were injected, those slots did not exist.
+
+  Measured in the built `SmokeTest_noon.miz`: **105** human-piloted groups, exactly **1** carrying a
+  waypoint from the flight plan — the one already present in the source `.miz`. With the step at its
+  corrected position: **105 of 105**.
+
+  This was never only about an automatic bullseye. It hit **declared** waypoints: a mission maker writing
+  a flight plan for a mission with dynamic slots or spawnable aircraft had it applied to a handful of
+  slots and nothing else.
+
+  **And it was silent for a reason worth recording.** The step already reported what it did — "N
+  injected", "M human groups without a flight plan". At the old position it saw one group and reported
+  *1 injected, 0 without a plan*: accurate, and perfectly healthy to read. Nothing lied. The count was
+  taken before the world was finished, so moving the step restores the denominator as much as the
+  behaviour, and no new reporting was needed.
+
+  The move was made on measurement, not preference: none of the 105 slots has an empty route, so appending
+  cannot leave one starting in mid-air, and all 105 already carry a locked ETA, so the injector's "lock
+  point 1" fallback — the behaviour its own comment says exists to avoid an untakeable slot — never fires
+  on them.
+
+  Guarded by a source-order test bounded on both sides: waypoints must run after the aircraft steps and
+  still before the weather step, which writes the variant files.
+
+---
+
 ## [6.15.42] — 2026-08-24
 
 ### Changed

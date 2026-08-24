@@ -2186,4 +2186,129 @@ function TestVeafSpawnConvoyMenuShape:test_hold_and_stop_remain_adjacent()
   luaunit.assertEquals(stop - hold, 1, "hold and stop drifted apart in the menu")
 end
 
+-- ===========================================================================
+-- FEAT-RADIO-BEACONS — the `-beacon` marker command (#38 FM beacons, #192 through CTLD)
+--
+-- What these tests mostly guard is the **reporting**, not the spawning. CTLD draws all three frequencies
+-- from internal pools and exposes no way to ask for one, so a beacon whose frequencies the pilot was
+-- never told is not a usable beacon. `-tacan` — the command this one copies for its plumbing — emits no
+-- message at all, and none of its i18n keys carry a frequency; copying that would have shipped a command
+-- that works and cannot be used.
+-- ===========================================================================
+TestVeafSpawnBeacon = {}
+
+function TestVeafSpawnBeacon:setUp()
+  self._savedOutForCoalition = trigger.action.outTextForCoalition
+  self._savedOutText = trigger.action.outText
+  self.messages = {}
+  trigger.action.outTextForCoalition = function(side, text, duration)
+    table.insert(self.messages, { side = side, text = text })
+  end
+  trigger.action.outText = function(text, duration)
+    table.insert(self.messages, { side = nil, text = text })
+  end
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnBeacon:tearDown()
+  trigger.action.outTextForCoalition = self._savedOutForCoalition
+  trigger.action.outText = self._savedOutText
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnBeacon:_calls()
+  return CTLDBeaconManager._instance.calls
+end
+
+-- ── it reaches CTLD's own API ───────────────────────────────────────────────
+
+function TestVeafSpawnBeacon:test_it_goes_through_createAtPoint()
+  -- Not through the CTLD 1 spawner the lot's PRD expected: `ctld.spawnRadioBeaconUnit` no longer exists
+  -- anywhere in CTLD 2, and `createAtPoint` is the replacement built for scripted callers.
+  veafSpawn.spawnBeacon({ x = 100, y = 0, z = 200 }, 0, "Alpha", "USA", coalition.side.BLUE, false)
+  local calls = self:_calls()
+  luaunit.assertEquals(#calls, 1)
+  luaunit.assertEquals(calls[1].method, "createAtPoint")
+end
+
+function TestVeafSpawnBeacon:test_it_hands_over_the_position_the_coalition_and_the_country()
+  veafSpawn.spawnBeacon({ x = 100, y = 0, z = 200 }, 0, "Alpha", "USA", coalition.side.RED, false)
+  local args = self:_calls()[1].args
+  luaunit.assertEquals(args[2], coalition.side.RED)
+  luaunit.assertEquals(args[3], "USA")
+end
+
+function TestVeafSpawnBeacon:test_the_name_is_passed_but_not_invented()
+  -- CTLD allocates "Beacon #N" itself. A VEAF-side counter would be a second numbering beside the
+  -- manager's own, which is the mistake the FOB beacon had made.
+  veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, "Alpha", "USA", coalition.side.BLUE, false)
+  luaunit.assertEquals(self:_calls()[1].args[4].name, "Alpha")
+
+  dcs_mocks.reset()
+  veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, nil, "USA", coalition.side.BLUE, false)
+  luaunit.assertNil(self:_calls()[1].args[4].name, "no name means CTLD names it")
+end
+
+function TestVeafSpawnBeacon:test_it_returns_nil_rather_than_a_group()
+  -- The dispatcher reads a handler's return as a *group name* and then runs its own post-processing on
+  -- it — alarm state, MFD hiding, platform registration. A beacon is three groups with CTLD's battery
+  -- timer, removal and map layer on top; handing it one would let VEAF reconfigure what it does not own.
+  luaunit.assertNil(veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, "Alpha", "USA", coalition.side.BLUE, false))
+end
+
+-- ── what the pilot is told, which is the point ──────────────────────────────
+
+function TestVeafSpawnBeacon:test_it_reports_all_three_frequencies()
+  -- The mock returns 30000 Hz / 250000000 Hz / 30000000 Hz, so the message must read
+  -- 30.00 kHz, 250.00 MHz and 30.00 MHz — one number per band, converted per band.
+  veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, "Alpha", "USA", coalition.side.BLUE, false)
+  luaunit.assertEquals(#self.messages, 1)
+  local text = self.messages[1].text
+  luaunit.assertNotNil(text:find("30.00", 1, true), "the VHF frequency in kHz: " .. text)
+  luaunit.assertNotNil(text:find("250.00", 1, true), "the UHF frequency in MHz: " .. text)
+end
+
+function TestVeafSpawnBeacon:test_the_message_names_FM()
+  -- #38 asked for FM specifically. CTLD lights all three bands, so the ask is answered — but only if the
+  -- pilot is told which number is the FM one.
+  veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, "Alpha", "USA", coalition.side.BLUE, false)
+  luaunit.assertNotNil(self.messages[1].text:find("FM", 1, true))
+end
+
+function TestVeafSpawnBeacon:test_the_message_goes_to_the_beacons_coalition()
+  veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, "Alpha", "USA", coalition.side.RED, false)
+  luaunit.assertEquals(self.messages[1].side, coalition.side.RED)
+end
+
+function TestVeafSpawnBeacon:test_silent_means_silent()
+  -- The spawn still happens: `silent` mutes the player message, it does not cancel the command.
+  veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, "Alpha", "USA", coalition.side.BLUE, true)
+  luaunit.assertEquals(#self.messages, 0)
+  luaunit.assertEquals(#self:_calls(), 1)
+end
+
+-- ── when it cannot work ─────────────────────────────────────────────────────
+
+function TestVeafSpawnBeacon:test_no_ctld_means_a_message_rather_than_a_crash()
+  -- The state a mission built before FIX-CTLD-NEVER-INITIALIZED is in. The pilot dropped a marker and is
+  -- waiting for something: telling him nothing is the worst of the three outcomes.
+  CTLDConfig._instance.isLoaded = false
+  luaunit.assertNil(veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, "Alpha", "USA", coalition.side.BLUE, false))
+  luaunit.assertEquals(#self.messages, 1)
+  luaunit.assertEquals(#self:_calls(), 0, "and CTLD must not be called at all")
+end
+
+function TestVeafSpawnBeacon:test_a_refused_spawn_is_reported()
+  -- `createAtPoint` returns nil on spawn failure. Reporting success on it would leave a pilot tuning a
+  -- frequency nothing transmits on.
+  local saved = CTLDBeaconManager._instance.createAtPoint
+  CTLDBeaconManager._instance.createAtPoint = function()
+    return nil
+  end
+  luaunit.assertNil(veafSpawn.spawnBeacon({ x = 0, y = 0, z = 0 }, 0, "Alpha", "USA", coalition.side.BLUE, false))
+  CTLDBeaconManager._instance.createAtPoint = saved
+  luaunit.assertEquals(#self.messages, 1)
+  luaunit.assertNil(self.messages[1].text:find("FM", 1, true), "a failure must not read like a success")
+end
+
 os.exit(luaunit.LuaUnit.run())

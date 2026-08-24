@@ -10,6 +10,43 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.40] — 2026-08-24
+
+### Added
+
+- **`_spawn beacon` / `-beacon`: a radio beacon from a marker**, which
+  [#38](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/38) (FM beacons) and
+  [#192](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/192) asked for. One command places
+  three beacons at the marker — ADF (VHF), UHF and **FM** — because CTLD lights all three whether you
+  ask or not, so the FM request is answered without an option for it.
+
+  Placed **exactly where the marker was dropped**: `radius` defaults to 0, unlike every command that
+  spawns a group, because a beacon's position is the reason for dropping it there.
+
+  **The message is the feature.** CTLD draws each frequency from an internal pool and exposes no way to
+  request one, so the command's job is to report what it got:
+
+  ```
+  Radio beacon up — ADF 245.00 kHz · UHF 251.00 MHz · FM 40.50 MHz
+  ```
+
+  `-tacan` was the model for the plumbing and deliberately not for this: it emits no message at all, and
+  none of its keys carry a frequency, so copying it would have shipped a command that works and cannot
+  be used. A `freq` option is proposed upstream ([VEAF/CTLD#128](https://github.com/VEAF/CTLD/pull/128))
+  rather than faked here — a beacon reporting a frequency VEAF cannot choose would be a command that
+  lies.
+
+  Two refusals rather than silence: no CTLD started, and a spawn CTLD declines. The pilot dropped a
+  marker and is waiting for something, and reporting success on a failed spawn would leave him tuning a
+  frequency nothing transmits on.
+
+  Documented on the spawn page in both languages — `_spawn tacan` was documented nowhere, so there was
+  no neighbouring section to mirror — and listed in both alias tables.
+
+---
+
+---
+
 ## [6.15.39] — 2026-08-24
 
 ### Added

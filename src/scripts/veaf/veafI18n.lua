@@ -610,6 +610,25 @@ veaf.i18nCatalog = {
     fr = "Impossible de trouver un dessin nommé %s",
     en = "Could not find a drawing named %s",
   },
+  -- FEAT-RADIO-BEACONS. This message *is* the feature: CTLD draws the three frequencies from its own
+  -- pools and no caller can request one, so a beacon whose frequencies nobody was told is not usable.
+  -- `-tacan` was the model for the command's plumbing and is deliberately not the model here — it emits
+  -- nothing at all, and none of its keys carry a frequency.
+  --
+  -- Same units and same order as the FOB beacon reports in, so a pilot who has seen one does not have to
+  -- work out whether this one means kHz or MHz.
+  ["spawn.beacon_spawned"] = {
+    fr = "Balise radio en place — ADF %.2f kHz · UHF %.2f MHz · FM %.2f MHz",
+    en = "Radio beacon up — ADF %.2f kHz · UHF %.2f MHz · FM %.2f MHz",
+  },
+  ["spawn.beacon_needs_ctld"] = {
+    fr = "Impossible de poser une balise : CTLD n'est pas démarré dans cette mission.",
+    en = "Cannot place a beacon: CTLD is not running in this mission.",
+  },
+  ["spawn.beacon_failed"] = {
+    fr = "La balise n'a pas pu être créée — voir le journal DCS.",
+    en = "The beacon could not be created — see the DCS log.",
+  },
   ["spawn.fob_built"] = {
     fr = "FOB %s terminée ! Caisses et troupes peuvent maintenant être récupérées.",
     en = "Finished building FOB %s! Crates and Troops can now be picked up.",

@@ -221,6 +221,70 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   return _fobName
 end
 
+--- Spawn a radio beacon through CTLD, and tell the player its frequencies.
+---
+--- FEAT-RADIO-BEACONS. `CTLDBeaconManager:createAtPoint` is CTLD 2's script-facing beacon spawner: it
+--- needs no transport, no zone and no player, and it lights **three** beacons at once — VHF, UHF and FM.
+--- The FM one is what issue #38 asked for, and it comes for free rather than as an option.
+---
+--- The frequencies are CTLD's to choose: it draws each from an internal pool and exposes no way to
+--- request one. So the command's job is to *report* what it got, which is why this does not copy
+--- `-tacan` — that command emits no message at all, and a beacon nobody knows the frequency of is not a
+--- beacon. A `freq` option is asked for upstream (VEAF/CTLD#128) and can be added here once it lands.
+---
+--- @param spawnSpot table where the marker was dropped
+--- @param radius number|nil scatter radius, 0 for the exact spot
+--- @param name string|nil display name; CTLD allocates "Beacon #N" when absent
+--- @param country string|nil country name or id — `ctld.utils.dynAdd` resolves either
+--- @param side number|nil coalition id
+--- @param silent boolean|nil mute the message to players
+--- @return nil always: the beacon is three groups and CTLD owns all of them
+function veafSpawn.spawnBeacon(spawnSpot, radius, name, country, side, silent)
+  veaf.loggers
+    .get(veafSpawn.Id)
+    :debug("spawnBeacon(name=%s, country=%s, side=%s, radius=%s)", veaf.lp(name), veaf.lp(country), veaf.lp(side), veaf.lp(radius))
+
+  if not veaf.isCtldReady() then
+    -- Said out loud rather than logged: the pilot dropped a marker and is waiting for something to
+    -- happen. `isCtldReady` has already written the *why* to the log for whoever built the mission.
+    if not silent then
+      trigger.action.outText(veaf.t("spawn.beacon_needs_ctld"), 10)
+    end
+    return nil
+  end
+
+  local _side = side or coalition.side.BLUE
+  local _country = country or "usa"
+  local _position = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius or 0))
+
+  local _beacon = CTLDBeaconManager.getInstance():createAtPoint(_position, _side, _country, { name = name })
+  if not _beacon then
+    if not silent then
+      trigger.action.outTextForCoalition(_side, veaf.t("spawn.beacon_failed"), 10)
+    end
+    return nil
+  end
+
+  -- Same units the FOB beacon reports in and the same order, because a pilot who has seen one should
+  -- not have to work out whether this one means kHz or MHz.
+  if not silent then
+    trigger.action.outTextForCoalition(
+      _side,
+      veaf.t("spawn.beacon_spawned", _beacon.vhf / 1000, _beacon.uhf / 1000000, _beacon.fm / 1000000),
+      15
+    )
+  end
+  veaf.loggers
+    .get(veafSpawn.Id)
+    :info("Spawned beacon: %.2f kHz / %.2f MHz / %.2f MHz FM", _beacon.vhf / 1000, _beacon.uhf / 1000000, _beacon.fm / 1000000)
+
+  -- Deliberately nil. The dispatcher reads this as a *group name* and then runs its own
+  -- post-processing on it (alarm state, MFD hiding, platform registration). A beacon is three groups
+  -- with CTLD's own battery timer, removal and map layer on top; handing it one of them would let VEAF
+  -- reconfigure something it does not own.
+  return nil
+end
+
 --- Spawn a specific group at a specific spot
 function veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)
   veaf.loggers.get(veafSpawn.Id):debug(
@@ -1102,6 +1166,14 @@ veafSpawn.registerCommandHandler("fob", "KNOWN_PILOT", function(eventPos, option
     not options.showMFD
   )
   return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("beacon", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
+  -- `silent` is options.silent and NOT bypassSecurity: FIX-SPAWN-BYPASSSECURITY-AS-SILENT records why
+  -- the neighbours conflate the two, and it is what makes `-tacan` mute. A beacon must report its
+  -- frequencies whether or not the command needed a password.
+  veafSpawn.spawnBeacon(eventPos, options.radius, options.name, options.country, options.side, options.silent)
+  return nil, nil, false
 end)
 
 veafSpawn.registerCommandHandler("group", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)

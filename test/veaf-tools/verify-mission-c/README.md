@@ -179,7 +179,11 @@ before and after deactivation showed the same thing twice.
 ### 4 · #107 — respawned escort (check 9)
 
 1. Find Arco on the F10 map: KC-135 orbiting at 20 000 ft north-west of the anchor, two F-15C on it.
-2. F10 → Assets → **Respawn Arco (KC-135)**.
+2. F10 → **MOYENS** → **Arco (KC-135)** → **Réapparition de Arco (KC-135)**. The mission builds with
+   `language: fr`, so those are the labels on screen; in an English build the same three read
+   `ASSETS` → `Arco (KC-135)` → `Respawn Arco (KC-135)`. Arco carries an `information:` line, which is
+   what gives it a submenu of its own rather than a bare command.
+   It confirms with **« J'ai fait réapparaître Arco (KC-135) »**.
 3. Watch the escort for **more than ten minutes**.
 
 !!! warning "Sixty seconds is not enough, and this step used to say sixty seconds"

@@ -10,6 +10,40 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.15.38] — 2026-08-24
+
+### Fixed
+
+- **`vendored.yaml` pinned CTLD four release candidates behind the file it describes.** PR #746
+  (2026-08-15) updated the vendored `CTLD.lua` from `2.0.0-rc3` to `2.0.0-rc7` and did not touch the
+  manifest. The pin stayed at rc3 for nine days.
+
+  The cost is not the wrong number, it is what the wrong number did to the drift watcher. The watcher
+  compares upstream releases against the pin, so it spent those nine days reporting rc4, rc5, rc6 and rc7
+  as *available updates* — all four already applied. A watcher whose alarms are known to be wrong is a
+  watcher nobody reads, and the next alarm is the one that matters. The same failure as the datamine
+  robot silenced by a surviving branch, from the other direction.
+
+  Both the pin and the release watch tag are corrected; fixing only the first would have left the watcher
+  wrong while making the manifest look right.
+
+### Added
+
+- **A test that a vendored file and its pin describe the same version** (`test_vendored_pins_match_the_files.py`).
+  Offline, so it gates every run rather than waiting for the weekly drift check.
+
+  Deliberately a table of named artefacts rather than a sweep: only a few of the eleven declare a version
+  a machine can read — two are directories. A heuristic was written first and thrown away, because it
+  reported AIEN as consistent for the wrong reason: the digit `1` of its `1.0 build 0154` occurs in its
+  pin. A green light earned by accident is the failure this test exists to prevent, one level up.
+
+  The release-tag check is scoped to artefacts whose tag and pin share a numbering scheme. The first
+  version required every tag to contain its pin and failed on CSAR, which pins the date-version of the
+  adapted file while watching ciribob's separate `1.9.x` releases — a correct manifest reported as drift.
+  Tightening the scope was the fix; loosening the comparison would have made the check unable to fail.
+
+---
+
 ## [6.15.37] — 2026-08-24
 
 ### Fixed

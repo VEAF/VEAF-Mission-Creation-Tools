@@ -372,4 +372,152 @@ function TestVeafGrassFindClearBearing:test_a_blocked_first_position_stops_that_
   luaunit.assertEquals(probes, 1 + math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP), "one probe per bearing, not one per object")
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-FARP-ESCORT-PLACEMENT — a FARP is an airbase, not a static
+--
+-- The fix shipped in 6.15.11 and did nothing: measured in game 2026-08-22, the escort still came up on
+-- the static FARP. Two causes, and the second would have survived a fix for the first:
+--
+--  1. `isSpotOccupied` probed `world.searchObjects` over units and statics. A FARP placed in the editor
+--     is an **airbase** — `Airbase.Category.HELIPAD`, through `world.getAirbases()` — so the probe could
+--     never see the one object #232 is about.
+--  2. `searchObjects` matches an object's *position*. With a 12 m clearance and a platform tens of metres
+--     across, an escort on its **edge** leaves the platform's centre outside the sphere.
+--
+-- These tests exist because the old ones stubbed `isSpotOccupied` itself and asserted the bearing search
+-- around it: they proved the search reacts to an occupied spot while nothing proved a real FARP *is* one.
+-- A true test on a false premise, which is how the broken fix passed review.
+-- ---------------------------------------------------------------------------
+TestVeafGrassLandingPlatforms = {}
+
+function TestVeafGrassLandingPlatforms:setUp()
+  self._getAirbases = world.getAirbases
+  self._search = world.searchObjects
+  -- nothing parked anywhere, so only the platform half can make a spot occupied
+  world.searchObjects = function(category, volume, handler) end
+end
+
+function TestVeafGrassLandingPlatforms:tearDown()
+  world.getAirbases = self._getAirbases
+  world.searchObjects = self._search
+end
+
+--- A stand-in airbase at a runtime point (`z` is the easting).
+local function _airbase(name, category, x, z, typeName)
+  return {
+    getDesc = function()
+      return { category = category }
+    end,
+    getTypeName = function()
+      return typeName or name
+    end,
+    getPoint = function()
+      return { x = x, y = 0, z = z }
+    end,
+    getName = function()
+      return name
+    end,
+  }
+end
+
+function TestVeafGrassLandingPlatforms:test_a_helipad_is_collected()
+  world.getAirbases = function()
+    return { _airbase("StaticFarpAlpha", Airbase.Category.HELIPAD, 1000, 2000) }
+  end
+  local platforms = veafGrass.getLandingPlatforms()
+  luaunit.assertEquals(#platforms, 1)
+  luaunit.assertEquals(platforms[1].x, 1000)
+  luaunit.assertEquals(platforms[1].z, 2000)
+end
+
+function TestVeafGrassLandingPlatforms:test_an_airfield_is_not_a_platform_to_avoid()
+  -- An airdrome is where the escort is *supposed* to be able to sit; excluding a runway-sized radius
+  -- around every airfield would move FARPs that were placed perfectly well.
+  world.getAirbases = function()
+    return { _airbase("Kobuleti", Airbase.Category.AIRDROME, 0, 0) }
+  end
+  luaunit.assertEquals(#veafGrass.getLandingPlatforms(), 0)
+end
+
+function TestVeafGrassLandingPlatforms:test_a_farp_dcs_miscategorises_as_a_ship_is_collected()
+  -- Not defensive padding: DCS reports "FARP_SINGLE_01" and "VAP FARP" as ships, which
+  -- veafAirbases.lua:191 already remediates. Leaving it out would let exactly those types keep the bug.
+  world.getAirbases = function()
+    return { _airbase("Alpha", Airbase.Category.SHIP, 0, 0, "FARP_SINGLE_01") }
+  end
+  luaunit.assertEquals(#veafGrass.getLandingPlatforms(), 1)
+end
+
+function TestVeafGrassLandingPlatforms:test_an_actual_ship_is_not_collected()
+  world.getAirbases = function()
+    return { _airbase("CVN-71", Airbase.Category.SHIP, 0, 0, "CVN_71") }
+  end
+  luaunit.assertEquals(#veafGrass.getLandingPlatforms(), 0)
+end
+
+function TestVeafGrassLandingPlatforms:test_dcs_refusing_the_call_is_not_a_crash()
+  -- A FARP that refuses to exist because the probe failed is worse than one placed imperfectly.
+  world.getAirbases = function()
+    error("no airbases here")
+  end
+  luaunit.assertEquals(#veafGrass.getLandingPlatforms(), 0)
+end
+
+-- The geometry the whole lot is about, and the case a stubbed isSpotOccupied could not catch: the
+-- escort is *near* the platform's centre, not on top of it.
+function TestVeafGrassLandingPlatforms:test_a_spot_inside_the_footprint_is_occupied()
+  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha" } }
+  -- 60 m out: well beyond the 12 m clearance a sphere probe would use, well inside a FARP
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 60, y = 0 }, nil, platforms))
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 0, y = 60 }, nil, platforms))
+end
+
+function TestVeafGrassLandingPlatforms:test_a_spot_beyond_the_footprint_is_free()
+  local platforms = { { x = 0, z = 0, name = "StaticFarpAlpha" } }
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 150, y = 0 }, nil, platforms))
+end
+
+function TestVeafGrassLandingPlatforms:test_the_easting_is_read_from_the_right_axis()
+  -- A mission-table position carries the easting in `y`; a runtime point carries it in `z`. Mixing them
+  -- raises nothing and measures a distance across the wrong axes, so the conversion is pinned: a spot
+  -- due east of the platform must be inside, and one that only *looks* close under the wrong mapping
+  -- must not.
+  local platforms = { { x = 0, z = 5000, name = "StaticFarpAlpha" } }
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 0, y = 5000 }, nil, platforms), "due east, inside")
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 5000, y = 0 }, nil, platforms), "axes swapped")
+end
+
+function TestVeafGrassLandingPlatforms:test_no_platform_list_leaves_the_old_behaviour_alone()
+  -- Every existing caller passes two arguments; the platform half is opt-in so none of them changed.
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 0, y = 0 }))
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 0, y = 0 }, 12))
+end
+
+function TestVeafGrassLandingPlatforms:test_the_bearing_search_asks_dcs_once_not_per_position()
+  -- A full turn is 24 bearings, each testing every position the group occupies. Reading the airbase
+  -- list inside the probe would be hundreds of calls per FARP.
+  local calls = 0
+  world.getAirbases = function()
+    calls = calls + 1
+    return {}
+  end
+  veafGrass.findClearBearing(0, function(angle)
+    return { { x = 0, y = 0 }, { x = 6, y = 0 } }
+  end)
+  luaunit.assertEquals(calls, 1)
+end
+
+-- The end-to-end shape: a bearing pointing at a platform is refused and the search moves on, which is
+-- exactly what #232 asked for — keep the distance, change the bearing.
+function TestVeafGrassLandingPlatforms:test_a_bearing_onto_a_platform_is_abandoned_for_another()
+  world.getAirbases = function()
+    return { _airbase("StaticFarpAlpha", Airbase.Category.HELIPAD, 150, 0) }
+  end
+  local chosen = veafGrass.findClearBearing(0, function(angle)
+    local radians = math.rad(angle)
+    return { { x = 150 * math.cos(radians), y = 150 * math.sin(radians) } }
+  end)
+  luaunit.assertNotEquals(chosen, 0, "bearing 0 puts the group on the platform")
+end
+
 os.exit(luaunit.LuaUnit.run())

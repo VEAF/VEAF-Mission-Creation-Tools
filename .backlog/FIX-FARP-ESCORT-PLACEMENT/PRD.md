@@ -1,6 +1,54 @@
 # FIX-FARP-ESCORT-PLACEMENT — the FARP escort lands on whatever is already there
 
-Status: ⬜ ready — **the shipped fix does not work**, measured in game 2026-08-22
+Status: 🧑 waiting-human — **second attempt written**, needs the in-game run 6.15.11's did not get
+
+## What shipped this time (6.15.33)
+
+`veafGrass.isSpotOccupied` now answers two questions instead of one:
+
+- **units and statics within `clearance`** — unchanged, and `world.searchObjects` is right for it;
+- **landing platforms within their footprint** — `veafGrass.getLandingPlatforms()` reads
+  `world.getAirbases()` and keeps `Airbase.Category.HELIPAD` plus the FARPs DCS miscategorises as
+  `SHIP` (the same remediation `veafAirbases.lua:191` has always applied). An airdrome is deliberately
+  *not* a platform to avoid: excluding a runway-sized radius around every airfield would move FARPs that
+  were placed perfectly well.
+
+The list is read **once per bearing search**, in `findClearBearing`, not per candidate position: a full
+turn is 24 bearings and each tests every position the group occupies, so probing inside would be hundreds
+of calls per FARP. Pinned by a test that counts the calls.
+
+### The footprint radius is an estimate, and says so
+
+`veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES = 80`. DCS exposes no extent for an airbase — `Airbase` has
+`getParking()` and `getRunways()` and nothing else, and whether a FARP even reports parking spots is
+unverified. So the number is reasoned: the DCS `FARP` model is roughly 50 m across and 80 m covers it
+with margin.
+
+What makes it safe to get wrong generously: this module already places the escort at 150 m, the tent at
+200 m and the windsock at 50 m from the FARP it is building, so 80 m around a *pre-existing* platform
+excludes its surroundings and nothing else. An over-tight value shows up as an escort still landing on a
+platform; an over-wide one as an escort nudged one bearing further. The second is cheap.
+
+### Why the tests are new rather than extended
+
+The old ones stubbed `isSpotOccupied` and asserted the bearing search around it, so they proved the search
+reacts to an occupied spot while nothing proved a real FARP *is* one — a true test on a false premise,
+which is how the broken fix passed review. The new ones drive `world.getAirbases` and assert on the
+geometry: a spot 60 m from a platform's centre is occupied, one at 150 m is not, and the easting is read
+from the right axis (a mission-table `y` against a runtime `z` measures nothing and raises nothing).
+
+Verified by mutation: removing the platform check makes the suite fail, restoring it makes it pass.
+
+## Still to confirm in game
+
+The two cases from the session plan, unchanged:
+
+- `-farp` **~150 m from the static FARP** → the escort must be on clear ground, and `dcs.log` should show
+  `findClearBearing: moved from … to …`;
+- `-farp` in **open ground, far from anything** → identical to before, 150 m on the FARP's heading, **no**
+  message in the log. That non-regression matters more than the fix: the original bearing is tried first
+  precisely so working missions do not move.
+
 
 ## Measured 2026-08-22: it still lands on the static FARP
 

@@ -62,16 +62,105 @@ veafGrass.FARP_PROP_TYPES = {
 veafGrass.PLACEMENT_BEARING_STEP = 15
 veafGrass.PLACEMENT_CLEARANCE = 12
 
---- Is anything already standing within `clearance` metres of this spot?
+--- How far from a landing platform's centre still counts as "on it".
+---
+--- **This is an estimate, deliberately stated as one.** DCS exposes no footprint for an airbase:
+--- `Airbase` offers `getParking()` and `getRunways()` but no extent, and whether a FARP even reports
+--- parking spots is unverified. So the number is reasoned rather than measured — the DCS `FARP` model is
+--- roughly 50 m across, and 80 m covers it with margin for the pads at its edge.
+---
+--- What makes the value safe to get wrong in the generous direction: this module already places the
+--- escort at 150 m, the tent at 200 m and the windsock at 50 m from the FARP it is building. So 80 m
+--- around a *pre-existing* platform excludes its own surroundings and nothing else, and a mission maker
+--- who deliberately drops a FARP 100 m from another one still gets what he asked for.
+---
+--- Worth measuring properly one day, by reading a real FARP's parking spots in a running mission. Until
+--- then, an over-tight value shows up as an escort still landing on a platform, and an over-wide one as
+--- an escort nudged onto a further bearing — the second is cheap, which is why the estimate leans wide.
+veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES = 80
+
+--- Every landing platform in the mission, as `{ x = northing, z = easting }` runtime points.
+---
+--- `veafGrass.isSpotOccupied` used to probe `world.searchObjects` over units and statics only, and the
+--- comment above it reasoned about the wrong distinction: for a FARP the choice is not
+--- static-versus-scenery but static-versus-**airbase**. A FARP placed in the editor is an *airbase* —
+--- `Airbase.Category.HELIPAD`, reached through `world.getAirbases()`, exactly as `veafAirbases.lua:191`
+--- has always treated it, and as the DCS log says (`NO ATC COMM HELIPAD + StaticFarpAlpha-1`). So the
+--- probe could never see the one object #232 is about, and the fix shipped in 6.15.11 changed nothing.
+--- Measured in game 2026-08-22: everything still came up on the static FARP.
+---
+--- Read once per bearing search rather than per candidate position: a full turn tries 24 bearings and
+--- each tests every position the group would occupy, so calling `world.getAirbases()` inside the probe
+--- would mean hundreds of calls per FARP.
+function veafGrass.getLandingPlatforms()
+  local platforms = {}
+  local ok, airbases = pcall(world.getAirbases)
+  if not ok or type(airbases) ~= "table" then
+    veaf.loggers.get(veafGrass.Id):debug("getLandingPlatforms: world.getAirbases unusable")
+    return platforms
+  end
+  for _, airbase in pairs(airbases) do
+    pcall(function()
+      local category = airbase:getDesc() and airbase:getDesc().category
+      local typeName = airbase.getTypeName and airbase:getTypeName() or ""
+      -- The SHIP branch is not defensive padding: DCS miscategorises some FARPs
+      -- ("FARP_SINGLE_01", "VAP FARP") as ships, which `veafAirbases` already remediates the same way.
+      -- Leaving it out would let exactly those types keep the defect.
+      local isPlatform = category == Airbase.Category.HELIPAD
+        or (category == Airbase.Category.SHIP and string.find(tostring(typeName), "FARP"))
+      if isPlatform then
+        local point = airbase:getPoint()
+        if point then
+          table.insert(platforms, { x = point.x, z = point.z, name = airbase:getName() })
+        end
+      end
+    end)
+  end
+  return platforms
+end
+
+--- Is `position` inside the footprint of one of `platforms`?
+--- Takes a **mission-table position** (`{x, y}` where y is the easting); `platforms` carry runtime
+--- points (`z` is the easting). Mixing the two raises nothing and reads a distance from the wrong axis,
+--- so the conversion is done here, once — see docs/agents/dcs-coordinates.md.
+function veafGrass.isOnLandingPlatform(position, platforms)
+  if not position or not platforms then
+    return false
+  end
+  local radius = veafGrass.PLATFORM_FOOTPRINT_RADIUS_METRES
+  for _, platform in ipairs(platforms) do
+    local dx, dz = position.x - platform.x, position.y - platform.z
+    if (dx * dx + dz * dz) <= radius * radius then
+      veaf.loggers.get(veafGrass.Id):debug("isOnLandingPlatform: inside %sm of [%s]", veaf.p(radius), veaf.p(platform.name))
+      return true
+    end
+  end
+  return false
+end
+
+--- Is anything already standing within `clearance` metres of this spot, or is it on a landing platform?
 --- Takes a **mission-table position** (`{x, y}` where y is the easting), which is what the FARP layout
 --- code works in, and converts it for the runtime API — see docs/agents/dcs-coordinates.md, since the
 --- two shapes both look like plausible coordinates and swapping them raises no error.
---- Only units and statics are looked at: scenery is what veaf.findSpawnPoint's Disposition tier is for,
---- and a static FARP placed in the editor — the object #232 is about — is a static, not scenery.
-function veafGrass.isSpotOccupied(position, clearance)
+---
+--- Two different questions, and the second is why 6.15.11 did not work:
+---
+--- * **units and statics**, within `clearance` — another group already parked here. `world.searchObjects`
+---   is right for that, and scenery is deliberately left to `veaf.findSpawnPoint`'s Disposition tier.
+--- * **landing platforms**, within their footprint — passed in by the caller. A sphere probe cannot
+---   answer this even for a static, because `searchObjects` matches an object's *position*: with a 12 m
+---   clearance and a platform tens of metres across, an escort on its **edge** — the actual complaint in
+---   #232 — leaves the platform's centre well outside the sphere.
+---
+--- `platforms` is optional so every existing caller keeps working; pass `veafGrass.getLandingPlatforms()`
+--- to get the platform half.
+function veafGrass.isSpotOccupied(position, clearance, platforms)
   clearance = clearance or veafGrass.PLACEMENT_CLEARANCE
   if not position then
     return false
+  end
+  if veafGrass.isOnLandingPlatform(position, platforms) then
+    return true
   end
   local occupied = false
   local volume = {
@@ -110,9 +199,13 @@ end
 --- Returns the original angle when nothing is clear: a FARP that refuses to exist because it is
 --- crowded would be worse than one whose escort is tight.
 function veafGrass.findClearBearing(baseAngle, positionsFor)
+  -- Read once, here: a full turn tries 24 bearings and each tests every position the group would
+  -- occupy, so asking DCS for its airbase list inside the probe would mean hundreds of calls per FARP.
+  local platforms = veafGrass.getLandingPlatforms()
+
   local function allClear(angle)
     for _, position in ipairs(positionsFor(angle) or {}) do
-      if veafGrass.isSpotOccupied(position) then
+      if veafGrass.isSpotOccupied(position, nil, platforms) then
         return false
       end
     end

@@ -7,6 +7,36 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [6.15.33] — 2026-08-23
+
+### Fixed
+
+- **The FARP escort still landed on a static FARP**, and the fix that shipped in 6.15.11 for #232 never
+  could have worked. Measured in game 2026-08-22: everything came up on the platform, exactly as before.
+
+  Two causes, and the second would have survived a fix for the first. `veafGrass.isSpotOccupied` probed
+  `world.searchObjects` over units and statics — but a FARP placed in the editor is an **airbase**
+  (`Airbase.Category.HELIPAD`, through `world.getAirbases()`, as this repo's own `veafAirbases.lua:191`
+  has always treated it), so the probe could never see the one object the lot is about. And
+  `searchObjects` matches an object's *position*: with a 12 m clearance and a platform tens of metres
+  across, an escort on its **edge** — the actual complaint — leaves the platform's centre outside the
+  sphere.
+
+  `isSpotOccupied` now answers both questions, and the airbase list is read **once per bearing search**
+  rather than per candidate position: a full turn is 24 bearings and each tests every position the group
+  occupies. An airdrome is deliberately not excluded — a runway-sized radius around every airfield would
+  move FARPs that were placed perfectly well.
+
+  The 80 m footprint radius is **an estimate and is documented as one**: DCS exposes no extent for an
+  airbase. Over-wide costs one bearing of nudge, over-tight costs the defect, which is why it leans wide.
+
+  The previous tests stubbed `isSpotOccupied` and asserted the bearing search around it, so they proved
+  the search reacts to an occupied spot while nothing proved a real FARP *is* one — a true test on a false
+  premise, and how the broken fix passed review. The new ones drive `world.getAirbases` and assert on
+  geometry, including that the easting is read from the right axis. Verified by mutation.
+
+---
+
 ## [6.15.32] — 2026-08-23
 
 ### Fixed

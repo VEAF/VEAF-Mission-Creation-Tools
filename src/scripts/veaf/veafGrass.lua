@@ -85,6 +85,17 @@ veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES = 130
 --- estimate, which is why the box tier exists and is preferred.
 veafGrass.PLATFORM_PAD_MARGIN_METRES = 25
 
+--- How close a platform has to be to the FARP under construction to *be* it.
+---
+--- The FARP a marker creates is itself an airbase, and it exists by the time its props are placed —
+--- measured in game 2026-08-24, where the probe reported `FARP FU2149-11.924` alongside the static one.
+--- Without this it excludes its own apron, so every prop closer to it than 139 m is refused at every
+--- bearing and every distance, and the search falls back to the original angle. Which is how a fix aimed
+--- at keeping groups off a *neighbouring* platform ended up placing them worse than before.
+---
+--- A few metres is enough: this compares two reports of the same object's position, not two objects.
+veafGrass.PLATFORM_SAME_PLACE_METRES = 20
+
 --- Added around a platform's extent, for the size of the vehicle being placed.
 ---
 --- A position is where a vehicle's centre goes; an M 818 parked with its nose on the apron is still on
@@ -154,7 +165,8 @@ end
 --- Read once per bearing search rather than per candidate position: a full turn tries 24 bearings and
 --- each tests every position the group would occupy, so calling `world.getAirbases()` inside the probe
 --- would mean hundreds of calls per FARP.
-function veafGrass.getLandingPlatforms()
+--- `own` is the mission-table position of the FARP being built, whose own platform must not be avoided.
+function veafGrass.getLandingPlatforms(own)
   local platforms = {}
   local ok, airbases = pcall(world.getAirbases)
   if not ok or type(airbases) ~= "table" then
@@ -173,14 +185,28 @@ function veafGrass.getLandingPlatforms()
       if isPlatform then
         local point = airbase:getPoint()
         if point then
+          -- The FARP being built is an airbase too, and its props belong inside its apron by design.
+          local isOwn = false
+          if own then
+            local dx, dz = point.x - own.x, point.z - own.y
+            isOwn = math.sqrt(dx * dx + dz * dz) <= veafGrass.PLATFORM_SAME_PLACE_METRES
+          end
           local halfX, halfZ = veafGrass.platformExtents(airbase, point)
-          table.insert(platforms, {
-            x = point.x,
-            z = point.z,
-            name = airbase:getName(),
-            halfX = halfX,
-            halfZ = halfZ,
-          })
+          if isOwn then
+            veaf.loggers
+              .get(veafGrass.Id)
+              :info("getLandingPlatforms: [%s] is the FARP being built, not avoiding it", veaf.p(airbase:getName()))
+            halfX, halfZ = nil, nil
+          end
+          if not isOwn then
+            table.insert(platforms, {
+              x = point.x,
+              z = point.z,
+              name = airbase:getName(),
+              halfX = halfX,
+              halfZ = halfZ,
+            })
+          end
         end
       end
     end)
@@ -306,11 +332,11 @@ veafGrass.PLACEMENT_DISTANCE_STEPS = { 1, 1.5, 2 }
 --- Returns `angle, scale`. Falls back to the requested angle at scale 1 when nothing is clear anywhere —
 --- a FARP that refuses to exist because it is crowded would be worse than one placed imperfectly — but
 --- says so at info, because that fallback is exactly how a group ends up on an apron.
-function veafGrass.findClearBearing(baseAngle, positionsFor)
+function veafGrass.findClearBearing(baseAngle, positionsFor, own)
   -- Read once, here: a full turn tries 24 bearings at each distance, and each bearing tests every
   -- position the group would occupy, so asking DCS for its airbase list inside the probe would mean
   -- thousands of calls per FARP.
-  local platforms = veafGrass.getLandingPlatforms()
+  local platforms = veafGrass.getLandingPlatforms(own)
 
   local function allClear(angle, scale)
     for _, position in ipairs(positionsFor(angle, scale) or {}) do
@@ -1449,7 +1475,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     return positions
   end
 
-  local tentAngle, tentScale = veafGrass.findClearBearing(angle, tentPositionsAt)
+  local tentAngle, tentScale = veafGrass.findClearBearing(angle, tentPositionsAt, farp)
   local tentPositions = tentPositionsAt(tentAngle, tentScale)
 
   -- create tents
@@ -1539,7 +1565,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     return positions
   end
 
-  local otherAngle, otherScale = veafGrass.findClearBearing(angle, otherPositionsAt)
+  local otherAngle, otherScale = veafGrass.findClearBearing(angle, otherPositionsAt, farp)
   local otherPositions = otherPositionsAt(otherAngle, otherScale)
 
   for j, typeName in ipairs(otherUnits) do
@@ -1661,7 +1687,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     return positions
   end
 
-  local escortAngle, escortScale = veafGrass.findClearBearing(angle, escortPositionsAt)
+  local escortAngle, escortScale = veafGrass.findClearBearing(angle, escortPositionsAt, farp)
   local escortPositions = escortPositionsAt(escortAngle, escortScale)
   -- Says whether the bearing search actually did anything. A FARP dropped *on* an existing platform is a
   -- different problem from an escort placed on one: this fix moves the **bearing**, never the distance, so

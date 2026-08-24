@@ -732,4 +732,80 @@ function TestVeafGrassPlatformFootprint:test_each_platform_keeps_its_own_extents
   luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 2060, y = 0 }, nil, platforms), "outside the small one")
 end
 
+-- ---------------------------------------------------------------------------
+-- A FARP does not avoid itself
+--
+-- The FARP a marker creates **is** an airbase, and it exists by the time its own props are placed:
+-- measured in game 2026-08-24, the probe reported `FARP FU2149-11.924` next to the static one. So the
+-- fix aimed at keeping props off a *neighbouring* platform started refusing every position inside the
+-- new FARP's own 139 m apron — which is where its props belong — at every bearing and every distance,
+-- and fell back to the original angle. The result was worse than before the fix.
+-- ---------------------------------------------------------------------------
+TestVeafGrassOwnPlatform = {}
+
+function TestVeafGrassOwnPlatform:setUp()
+  self._getAirbases = world.getAirbases
+end
+
+function TestVeafGrassOwnPlatform:tearDown()
+  world.getAirbases = self._getAirbases
+end
+
+--- An airbase reporting a FARP-sized box at a runtime point.
+local function _platformAt(name, x, z)
+  return {
+    getDesc = function()
+      return {
+        category = Airbase.Category.HELIPAD,
+        box = { min = { x = -129.5, y = 0, z = -129.5 }, max = { x = 129.5, y = 0, z = 129.5 } },
+      }
+    end,
+    getTypeName = function()
+      return name
+    end,
+    getPoint = function()
+      return { x = x, y = 0, z = z }
+    end,
+    getName = function()
+      return name
+    end,
+  }
+end
+
+function TestVeafGrassOwnPlatform:test_the_farp_being_built_is_left_out()
+  world.getAirbases = function()
+    return { _platformAt("NewFarp", 1000, 2000) }
+  end
+  -- `own` is a mission-table position: its `y` is the easting, matching the platform's `z`.
+  local platforms = veafGrass.getLandingPlatforms({ x = 1000, y = 2000 })
+  luaunit.assertEquals(#platforms, 0, "a FARP must not avoid its own apron")
+end
+
+function TestVeafGrassOwnPlatform:test_a_neighbour_is_still_avoided()
+  world.getAirbases = function()
+    return { _platformAt("NewFarp", 1000, 2000), _platformAt("StaticFarpAlpha", 1400, 2000) }
+  end
+  local platforms = veafGrass.getLandingPlatforms({ x = 1000, y = 2000 })
+  luaunit.assertEquals(#platforms, 1)
+  luaunit.assertEquals(platforms[1].name, "StaticFarpAlpha")
+end
+
+function TestVeafGrassOwnPlatform:test_without_an_own_position_everything_is_avoided()
+  -- Callers that do not say which platform is theirs keep the old behaviour rather than silently
+  -- excluding the nearest one.
+  world.getAirbases = function()
+    return { _platformAt("NewFarp", 1000, 2000) }
+  end
+  luaunit.assertEquals(#veafGrass.getLandingPlatforms(), 1)
+end
+
+function TestVeafGrassOwnPlatform:test_the_match_is_on_position_not_on_being_closest()
+  -- 400 m away is a different platform even if it is the only other one, so the identity test has to be
+  -- tight: a loose one would silently stop avoiding the very FARP #232 is about.
+  world.getAirbases = function()
+    return { _platformAt("StaticFarpAlpha", 1400, 2000) }
+  end
+  luaunit.assertEquals(#veafGrass.getLandingPlatforms({ x = 1000, y = 2000 }), 1)
+end
+
 os.exit(luaunit.LuaUnit.run())

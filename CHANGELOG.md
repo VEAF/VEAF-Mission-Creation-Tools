@@ -10,6 +10,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.1] — 2026-08-25
+
+### Fixed
+
+- **A completed operation's briefing printed its own translation key.** Opening the briefing of a finished
+  combat operation showed the literal text `combatzone.operation_complete` where the congratulations
+  should have been — and the operation's name was dropped with it, because the code called
+  `string.format` on the key instead of `veaf.t`, and a key contains no `%s` to put the name in. The same
+  constant was already used correctly in the event message forty lines below, which is why only the
+  briefing was affected and nobody had noticed. (found in game)
+
+---
+
 ## [6.16.0] — 2026-08-24
 
 **Released.** This version consolidates the forty-seven patch versions from **6.15.5 to 6.15.52**, whose

@@ -2038,7 +2038,12 @@ function VeafCombatOperation:getInformation()
       end
     end
   else
-    message = message .. string.format(veafCombatZone.EventMessages.CombatOperationComplete, self:getFriendlyName())
+    -- `veaf.t`, not `string.format`: EventMessages.CombatOperationComplete is a translation KEY, not a
+    -- sentence. Formatting it printed `combatzone.operation_complete` to the player and threw the
+    -- operation's name away — the key has no `%s`, so string.format returned it unchanged and discarded
+    -- the argument. Seen in game on the demo mission, 2026-08-25. The same constant is used correctly in
+    -- the event message forty lines below, which is why only the briefing was broken.
+    message = message .. veaf.t(veafCombatZone.EventMessages.CombatOperationComplete, self:getFriendlyName())
   end
 
   return message

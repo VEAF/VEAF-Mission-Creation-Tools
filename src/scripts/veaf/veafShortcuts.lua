@@ -1309,41 +1309,50 @@ function veafShortcuts.buildDefaultList()
       :setBypassSecurity(false)
   )
   -- Ground unit AI
-  veafShortcuts.AddAlias(
-    VeafAlias:new():setName("-ai_set"):setDescription("Sets an AI handler for a group of units"):setVeafCommand("_ground set")
-  )
+  veafShortcuts.AddAlias(VeafAlias
+    :new()
+    :setName("-ai_set")
+    :setDescription("Sets an AI handler for a group of units ; must follow with the handler name")
+    -- `_gc <nom>` : le nom que le pilote colle derriere devient la valeur du mot-cle, donc
+    -- `-ai_set arty-1` suffit. Pas de virgule finale, sinon elle couperait ce nom.
+    :setVeafCommand(
+      "_gc"
+    )
+    :dontEndWithComma())
   -- ARTY-1 commands
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty1")
       :setDescription("Spawns ARTY-1")
-      :setBatchAliases({ "-arty, unitname arty-1", "-ai_set, name arty-1, groupname arty-1" })
+      :setBatchAliases({ "-arty, unitname arty-1", "-ai_set arty-1, groupname arty-1" })
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
+    VeafAlias
+      :new()
       :setName("-arty1_aim")
       :setDescription("Orders ARTY-1 to fire for aim")
-      :setVeafCommand("_ground order, name arty-1, order aim;radius 15-30; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      -- `aim` en DERNIER : il porte sa valeur en ligne, donc la grille que le pilote colle derriere
+      -- atterrit dessus. Une seule virgule partout, plus de point-virgule.
+      :setVeafCommand(
+        "_gc arty-1, radius 15-30, aim"
+      )
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty1_fire")
       :setDescription("Orders ARTY-1 to fire for effect")
-      :setVeafCommand("_ground order, name arty-1, order fire; radius 50-150; shells 40-80; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      :setVeafCommand("_gc arty-1, radius 50-150, shells 40-80, fire")
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
-      :setName("-arty1_stop")
-      :setDescription("Orders ARTY-1 to stop listening for orders")
-      :setVeafCommand("_ground stop, name arty-1")
+    VeafAlias:new():setName("-arty1_stop"):setDescription("Orders ARTY-1 to stop listening for orders"):setVeafCommand("_gc arty-1, stop")
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty1_start")
       :setDescription("Orders ARTY-1 to start listening for orders")
-      :setVeafCommand("_ground start, name arty-1")
+      :setVeafCommand("_gc arty-1, start")
   )
 
   -- ARTY-2 commands
@@ -1351,33 +1360,35 @@ function veafShortcuts.buildDefaultList()
     VeafAlias:new()
       :setName("-arty2")
       :setDescription("Spawns ARTY-2")
-      :setBatchAliases({ "-arty, unitname arty-2", "-ai_set, name arty-2, groupname arty-2" })
+      :setBatchAliases({ "-arty, unitname arty-2", "-ai_set arty-2, groupname arty-2" })
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
+    VeafAlias
+      :new()
       :setName("-arty2_aim")
       :setDescription("Orders ARTY-2 to fire for aim")
-      :setVeafCommand("_ground order, name arty-2, order aim;radius 15-30; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      -- `aim` en DERNIER : il porte sa valeur en ligne, donc la grille que le pilote colle derriere
+      -- atterrit dessus. Une seule virgule partout, plus de point-virgule.
+      :setVeafCommand(
+        "_gc arty-2, radius 15-30, aim"
+      )
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty2_fire")
       :setDescription("Orders ARTY-2 to fire for effect")
-      :setVeafCommand("_ground order, name arty-2, order fire; radius 50-150; shells 40-80; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      :setVeafCommand("_gc arty-2, radius 50-150, shells 40-80, fire")
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
-      :setName("-arty2_stop")
-      :setDescription("Orders ARTY-2 to stop listening for orders")
-      :setVeafCommand("_ground stop, name arty-2")
+    VeafAlias:new():setName("-arty2_stop"):setDescription("Orders ARTY-2 to stop listening for orders"):setVeafCommand("_gc arty-2, stop")
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty2_start")
       :setDescription("Orders ARTY-2 to start listening for orders")
-      :setVeafCommand("_ground start, name arty-2")
+      :setVeafCommand("_gc arty-2, start")
   )
 
   -- ARTY-3 commands
@@ -1385,33 +1396,35 @@ function veafShortcuts.buildDefaultList()
     VeafAlias:new()
       :setName("-arty3")
       :setDescription("Spawns ARTY-3")
-      :setBatchAliases({ "-arty, unitname arty-3", "-ai_set, name arty-3, groupname arty-3" })
+      :setBatchAliases({ "-arty, unitname arty-3", "-ai_set arty-3, groupname arty-3" })
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
+    VeafAlias
+      :new()
       :setName("-arty3_aim")
       :setDescription("Orders ARTY-3 to fire for aim")
-      :setVeafCommand("_ground order, name arty-3, order aim;radius 15-30; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      -- `aim` en DERNIER : il porte sa valeur en ligne, donc la grille que le pilote colle derriere
+      -- atterrit dessus. Une seule virgule partout, plus de point-virgule.
+      :setVeafCommand(
+        "_gc arty-3, radius 15-30, aim"
+      )
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty3_fire")
       :setDescription("Orders ARTY-3 to fire for effect")
-      :setVeafCommand("_ground order, name arty-3, order fire; radius 50-150; shells 40-80; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      :setVeafCommand("_gc arty-3, radius 50-150, shells 40-80, fire")
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
-      :setName("-arty3_stop")
-      :setDescription("Orders ARTY-3 to stop listening for orders")
-      :setVeafCommand("_ground stop, name arty-3")
+    VeafAlias:new():setName("-arty3_stop"):setDescription("Orders ARTY-3 to stop listening for orders"):setVeafCommand("_gc arty-3, stop")
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty3_start")
       :setDescription("Orders ARTY-3 to start listening for orders")
-      :setVeafCommand("_ground start, name arty-3")
+      :setVeafCommand("_gc arty-3, start")
   )
 
   veafShortcuts.AddAlias(

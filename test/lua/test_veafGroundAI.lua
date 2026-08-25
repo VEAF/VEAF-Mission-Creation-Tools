@@ -1051,4 +1051,352 @@ function TestGroundAiUnknownHandler:test_a_known_autopilot_is_not_complained_abo
   luaunit.assertNil(said:find("_ground set", 1, true), "no complaint expected, got: " .. said)
 end
 
+-- ===========================================================================
+-- FEAT-GC-MARKER-SYNTAX — `_gc <nom>, <verbe> <valeur>, <paramètres>`
+--
+-- Le destinataire d'abord, comme à la radio, et une seule virgule partout. L'ancienne forme
+-- (`_ground order, name X, order aim; target Y`) reste acceptée sans être documentée, et une partie de
+-- ces tests existe pour qu'on s'aperçoive si on la casse.
+--
+-- Le point-virgule n'était pas un choix de style : le parseur découpe sur les virgules, donc la valeur
+-- de `order` s'arrêtait à la virgule suivante. Ce qui le rend inutile, c'est que le marqueur connaisse
+-- lui-même les mots de l'ordre — ce que ces tests vérifient mot par mot.
+-- ===========================================================================
+TestGcMarkerSyntax = {}
+
+function TestGcMarkerSyntax:_read(text)
+  return veaf.parseMarkerText(text, veafGroundAI.MarkerSpec)
+end
+
+-- ── le nom, en première position ────────────────────────────────────────────
+
+function TestGcMarkerSyntax:test_the_name_comes_first_without_a_keyword()
+  local o = self:_read("_gc arty-1, status")
+  luaunit.assertNotNil(o, "_gc doit être reconnu")
+  luaunit.assertEquals(o.name, "arty-1")
+end
+
+function TestGcMarkerSyntax:test_the_name_alone_means_set()
+  -- Ce que la page promettait pour `_ground` seul sans que ce soit vrai : mesuré, `_ground, name X` est
+  -- refusé. Avec `_gc`, la forme courte marche vraiment.
+  local o = self:_read("_gc arty-1")
+  luaunit.assertNotNil(o, "_gc seul doit être reconnu")
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_SET)
+  luaunit.assertEquals(o.name, "arty-1")
+end
+
+function TestGcMarkerSyntax:test_a_nameless_gc_is_refused()
+  -- `name` est obligatoire pour les sept verbes, et la chaîne vide est piégeuse en Lua : `""` est vrai.
+  luaunit.assertNil(self:_read("_gc"))
+  luaunit.assertNil(self:_read("_gc , status"))
+end
+
+-- ── les verbes ──────────────────────────────────────────────────────────────
+
+function TestGcMarkerSyntax:test_every_verb_is_recognised()
+  local attendu = {
+    set = veafGroundAI.VERB_SET,
+    unset = veafGroundAI.VERB_UNSET,
+    start = veafGroundAI.VERB_START,
+    stop = veafGroundAI.VERB_STOP,
+    clear = veafGroundAI.VERB_CLEAR,
+    status = veafGroundAI.VERB_STATUS,
+  }
+  for mot, verbe in pairs(attendu) do
+    local o = self:_read("_gc arty-1, " .. mot)
+    luaunit.assertNotNil(o, "verbe refusé : " .. mot)
+    luaunit.assertEquals(o.verb, verbe, "mauvais verbe pour " .. mot)
+  end
+end
+
+function TestGcMarkerSyntax:test_an_order_verb_routes_to_the_order_path()
+  for _, mot in ipairs({ "aim", "fire", "correction" }) do
+    local o = self:_read("_gc arty-1, " .. mot)
+    luaunit.assertNotNil(o, "verbe refusé : " .. mot)
+    luaunit.assertEquals(o.verb, veafGroundAI.VERB_ORDER, mot .. " doit être un ordre")
+  end
+end
+
+-- ── la valeur en ligne du verbe ─────────────────────────────────────────────
+
+function TestGcMarkerSyntax:test_aim_carries_its_coordinates()
+  -- LA raison d'être du lot : la grille se recopie telle que DCS l'affiche, espaces compris, sans
+  -- mot-clé `target` ni point-virgule.
+  local o = self:_read("_gc arty-1, aim 37T FH 73551 47565")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+end
+
+function TestGcMarkerSyntax:test_fire_carries_its_coordinates_too()
+  local o = self:_read("_gc arty-1, fire 37T FH 73551 47565")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+end
+
+function TestGcMarkerSyntax:test_fire_without_coordinates_keeps_the_last_aim_point()
+  -- `fire` sans cible retire au dernier point visé : la valeur absente doit rester absente, pas devenir
+  -- une chaîne que le lecteur de coordonnées refuserait en se plaignant.
+  local o = self:_read("_gc arty-1, fire")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertTrue(o.target == nil or o.target == "", "pas de cible attendue, reçu: " .. tostring(o.target))
+end
+
+function TestGcMarkerSyntax:test_correction_carries_its_value()
+  local o = self:_read("_gc arty-1, correction 09050")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_CORRECT)
+  luaunit.assertNotNil(o.correction, "la correction doit être lue")
+  luaunit.assertEquals(o.correction.bearing, 90)
+  luaunit.assertEquals(o.correction.distance, 50)
+end
+
+function TestGcMarkerSyntax:test_correct_is_accepted_as_well_as_correction()
+  -- Deux orthographes plutôt qu'une à retenir sous le feu.
+  local o = self:_read("_gc arty-1, correct 09050")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_CORRECT)
+  luaunit.assertEquals(o.correction.bearing, 90)
+end
+
+function TestGcMarkerSyntax:test_an_unreadable_target_is_dropped_not_stored()
+  -- La cible se valide a la lecture, comme la correction : une chaine que le lecteur de coordonnees ne
+  -- sait pas lire ne doit jamais atteindre un canon. Sans ce test, retirer la validation passait tout.
+  local o = self:_read("_gc arty-1, aim quelque part par la")
+  luaunit.assertNotNil(o)
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FORAIM, "le verbe reste lu")
+  luaunit.assertNil(o.target, "mais la cible illisible est jetee")
+end
+
+function TestGcMarkerSyntax:test_an_unreadable_target_is_dropped_from_fire_too()
+  local o = self:_read("_gc arty-1, fire nimporte quoi")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertNil(o.target)
+end
+
+function TestGcMarkerSyntax:test_an_unreadable_target_is_dropped_from_the_long_form_too()
+  local o = self:_read("_gc arty-1, aim, target pas une grille")
+  luaunit.assertNil(o.target)
+end
+
+function TestGcMarkerSyntax:test_an_unreadable_correction_is_dropped_not_stored()
+  -- Comme `target`, la correction se valide à la lecture : un chiffre que le module ne sait pas lire ne
+  -- doit jamais atteindre un canon.
+  local o = self:_read("_gc arty-1, correction est50")
+  luaunit.assertNotNil(o)
+  luaunit.assertNil(o.correction)
+end
+
+-- ── les paramètres, séparés par des virgules ────────────────────────────────
+
+function TestGcMarkerSyntax:test_the_parameters_use_commas()
+  local o = self:_read("_gc arty-1, fire, shells 40-80, radius 50-150")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertNotNil(o.shells, "shells doit être lu")
+  luaunit.assertNotNil(o.radius, "radius doit être lu")
+end
+
+function TestGcMarkerSyntax:test_target_still_works_as_a_long_form()
+  local o = self:_read("_gc arty-1, aim, target 37T FH 73551 47565")
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+end
+
+function TestGcMarkerSyntax:test_groupname_still_works()
+  local o = self:_read("_gc arty-1, set, groupname ARTY-1")
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_SET)
+end
+
+function TestGcMarkerSyntax:test_a_misspelt_parameter_is_reported()
+  -- Le refus des coquilles vaut aussi pour la forme neuve : c'est ce qui évite un marqueur qui ne fait
+  -- rien parce qu'on a écrit `shels`.
+  local o = self:_read("_gc arty-1, fire, shels 40")
+  luaunit.assertNotNil(o)
+  luaunit.assertNotNil(o.unknownParameters, "la coquille doit être signalée")
+end
+
+-- ── l'ancienne forme, qui doit survivre ─────────────────────────────────────
+-- Non documentée, mais des missions au monde l'écrivent. Ces tests sont là pour qu'on s'en aperçoive.
+
+function TestGcMarkerSyntax:test_the_old_ground_form_still_works()
+  local o = self:_read("_ground order, name arty-1, order aim; target 37T FH 73551 47565")
+  luaunit.assertNotNil(o, "_ground doit rester accepté")
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_ORDER)
+  luaunit.assertEquals(o.name, "arty-1")
+  luaunit.assertEquals(o.order, "aim; target 37T FH 73551 47565")
+end
+
+function TestGcMarkerSyntax:test_the_old_ground_verbs_still_work()
+  local paires = { { "set", veafGroundAI.VERB_SET }, { "stop", veafGroundAI.VERB_STOP }, { "status", veafGroundAI.VERB_STATUS } }
+  for _, paire in ipairs(paires) do
+    local o = self:_read("_ground " .. paire[1] .. ", name arty-1")
+    luaunit.assertNotNil(o, "_ground " .. paire[1] .. " doit rester accepté")
+    luaunit.assertEquals(o.verb, paire[2])
+  end
+end
+
+function TestGcMarkerSyntax:test_a_group_named_with_gc_does_not_hijack_the_old_form()
+  -- `_gc` est cherché comme un morceau de texte n'importe où : un groupe appelé `x_gcy` dans une
+  -- ancienne commande ne doit pas la faire lire comme du `_gc`.
+  local o = self:_read("_ground stop, name x_gcy")
+  luaunit.assertNotNil(o)
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_STOP)
+  luaunit.assertEquals(o.name, "x_gcy")
+end
+
+-- ===========================================================================
+-- FEAT-GC-MARKER-SYNTAX — de bout en bout
+--
+-- Les tests ci-dessus verifient ce que le PARSEUR comprend. Ceux-ci verifient que la batterie tire :
+-- c'est une indirection de plus, et c'est exactement la ou les trous se cachaient trois fois hier.
+-- ===========================================================================
+TestGcEndToEnd = {}
+
+function TestGcEndToEnd:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._outText = trigger.action.outText
+  self.messages = {}
+  local test = self
+  trigger.action.outText = function(text)
+    table.insert(test.messages, tostring(text))
+  end
+
+  self._saved = veafGroundAI.handlers
+  veafGroundAI.handlers = {}
+  self.orders = {}
+  self.handler = ArtilleryUnitHandler:new():setName("arty-1")
+  self.handler.silent = false
+  self.handler.addOrder = function(_, order)
+    table.insert(test.orders, order)
+  end
+  veafGroundAI.add(self.handler)
+end
+
+function TestGcEndToEnd:tearDown()
+  trigger.action.outText = self._outText
+  veafGroundAI.handlers = self._saved
+end
+
+function TestGcEndToEnd:_marker(text)
+  veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, text, 2, 0)
+  return self.orders[#self.orders]
+end
+
+function TestGcEndToEnd:test_aim_with_a_dcs_grid_fires()
+  -- LA commande que David veut pouvoir taper : la grille recopiee de la carte F10, espaces compris.
+  local order = self:_marker("_gc arty-1, aim 37T FH 73551 47565")
+  luaunit.assertNotNil(order, "la batterie doit avoir recu un ordre")
+  luaunit.assertNotNil(order.parameters.target, "avec une cible")
+end
+
+function TestGcEndToEnd:test_the_correction_shifts_the_aim_point()
+  self:_marker("_gc arty-1, aim 37T FH 73551 47565")
+  local avant = self.orders[#self.orders].parameters.target
+  self:_marker("_gc arty-1, correction 09050")
+  local apres = self.orders[#self.orders].parameters.target
+  luaunit.assertNotNil(apres, "la correction doit faire tirer")
+  luaunit.assertAlmostEquals(apres.z - avant.z, 50, 0.01, "50 m vers l'est")
+  luaunit.assertAlmostEquals(apres.x - avant.x, 0, 0.01, "et rien vers le nord")
+end
+
+function TestGcEndToEnd:test_fire_uses_the_corrected_point()
+  self:_marker("_gc arty-1, aim 37T FH 73551 47565")
+  self:_marker("_gc arty-1, correction 09050")
+  local corrige = self.orders[#self.orders].parameters.target
+  self:_marker("_gc arty-1, fire")
+  local efficacite = self.orders[#self.orders].parameters.target
+  luaunit.assertAlmostEquals(efficacite.z, corrige.z, 0.01)
+end
+
+function TestGcEndToEnd:test_the_parameters_reach_the_order()
+  local order = self:_marker("_gc arty-1, fire 37T FH 73551 47565, shells 40, radius 120")
+  luaunit.assertEquals(order.parameters.shells, 40)
+  luaunit.assertEquals(order.parameters.radius, 120)
+end
+
+function TestGcEndToEnd:test_an_unknown_battery_says_so()
+  -- Le meme refus annonce que pour l'ancienne forme : la syntaxe neuve ne doit pas rouvrir le silence.
+  self.messages = {}
+  veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, "_gc pas-la, status", 2, 0)
+  local dit = table.concat(self.messages, " | ")
+  luaunit.assertNotEquals(dit, "", "une batterie inconnue doit etre annoncee")
+  luaunit.assertNotNil(dit:find("pas-la", 1, true), "et nommee : " .. dit)
+end
+
+function TestGcEndToEnd:test_the_old_form_still_fires()
+  -- Non documentee, mais elle doit continuer de marcher de bout en bout, pas seulement de se lire.
+  local order = self:_marker("_ground order, name arty-1, order aim; target 37T FH 73551 47565")
+  luaunit.assertNotNil(order, "l'ancienne forme doit encore faire tirer")
+  luaunit.assertNotNil(order.parameters.target)
+end
+
+function TestGcEndToEnd:test_status_answers()
+  self.messages = {}
+  self:_marker("_gc arty-1, status")
+  luaunit.assertNotEquals(table.concat(self.messages, " | "), "", "status doit repondre quelque chose")
+end
+
+-- ===========================================================================
+-- FEAT-GC-MARKER-SYNTAX — les alias livres produisent une commande lisible
+--
+-- C'est le chemin que la plupart des pilotes empruntent : personne ne tape `_gc arty-1, aim …` a la main
+-- quand `-arty1_aim …` existe. Les reecrire sans verifier ce qu'ils produisent, c'est exactement le genre
+-- de casse silencieuse que ce lot est cense supprimer.
+--
+-- On ne teste pas l'expansion elle-meme (c'est veafShortcuts) mais le fait que la commande obtenue soit
+-- comprise par le parseur du marqueur, coordonnees collees derriere comme le pilote le fait.
+-- ===========================================================================
+TestGcShippedAliases = {}
+
+function TestGcShippedAliases:_read(text)
+  return veaf.parseMarkerText(text, veafGroundAI.MarkerSpec)
+end
+
+function TestGcShippedAliases:test_the_aim_alias_with_a_grid_appended()
+  -- Ce que `-arty1_aim 37T FH 73551 47565` donne : le verbe est en dernier dans l'alias, donc la grille
+  -- atterrit dessus.
+  local o = self:_read("_gc arty-1, radius 15-30, aim 37T FH 73551 47565")
+  luaunit.assertNotNil(o)
+  luaunit.assertEquals(o.name, "arty-1")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+  luaunit.assertNotNil(o.radius, "le radius de l'alias doit survivre")
+end
+
+function TestGcShippedAliases:test_the_fire_alias_with_a_grid_appended()
+  local o = self:_read("_gc arty-1, radius 50-150, shells 40-80, fire 37T FH 73551 47565")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+  luaunit.assertNotNil(o.shells)
+  luaunit.assertNotNil(o.radius)
+end
+
+function TestGcShippedAliases:test_the_fire_alias_without_a_grid()
+  -- `-arty1_fire` seul : tir d'efficacite au dernier point vise, sans coordonnees.
+  local o = self:_read("_gc arty-1, radius 50-150, shells 40-80, fire")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertNil(o.target)
+end
+
+function TestGcShippedAliases:test_the_stop_and_start_aliases()
+  luaunit.assertEquals(self:_read("_gc arty-1, stop").verb, veafGroundAI.VERB_STOP)
+  luaunit.assertEquals(self:_read("_gc arty-1, start").verb, veafGroundAI.VERB_START)
+end
+
+function TestGcShippedAliases:test_the_ai_set_alias_with_a_name_appended()
+  -- Ce que `-ai_set arty-1, groupname arty-1` donne, tel que le lot `-arty1` l'ecrit.
+  local o = self:_read("_gc arty-1, groupname arty-1")
+  luaunit.assertNotNil(o)
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_SET)
+  luaunit.assertEquals(o.name, "arty-1")
+end
+
+function TestGcShippedAliases:test_no_shipped_alias_still_writes_the_semicolon_form()
+  -- Le point-virgule reste accepte, mais plus rien de ce qu'on livre ne l'ecrit. Ce test lit le module
+  -- des alias plutot que de le supposer.
+  local chemin = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") .. "/../../src/scripts/veaf/veafShortcuts.lua"
+  local fichier = io.open(chemin, "r")
+  luaunit.assertNotNil(fichier, "veafShortcuts.lua doit etre lisible depuis le test")
+  local contenu = fichier:read("*a")
+  fichier:close()
+  luaunit.assertNil(contenu:find("_ground", 1, true), "aucun alias livre ne doit plus ecrire _ground")
+end
+
 os.exit(luaunit.LuaUnit.run())

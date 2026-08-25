@@ -7,7 +7,7 @@
 ## Objectif
 
 Donne à un groupe de véhicules au sol un **pilote automatique** que les joueurs commandent depuis la
-carte F10, avec le marqueur `_ground`. Aujourd'hui un seul type de pilote existe : l'artillerie
+carte F10, avec le marqueur `_gc`. Aujourd'hui un seul type de pilote existe : l'artillerie
 (`ArtilleryUnitHandler`), à qui on ordonne de tirer sur des coordonnées — quelques obus pour se
 régler, puis un tir d'efficacité.
 
@@ -25,81 +25,78 @@ dans `veaf-pilots.txt`. Un pilote non inscrit doit fournir le mot de passe corre
 
 ---
 
-## Le marqueur `_ground` {#marker-command}
+## Le marqueur `_gc` {#marker-command}
 
-Un pilote place un marqueur sur la carte F10 et écrit son texte. Sept verbes, et **`name` est
-obligatoire pour tous les sept** — c'est le nom du pilote automatique, celui que vous réutiliserez
-pour lui donner ses ordres ensuite.
+`_gc`, pour *ground commander*. Un pilote place un marqueur sur la carte F10 et écrit :
 
-| Verbe | Ce qu'il fait |
-|-------|---------------|
-| `_ground set` *(par défaut)* | Attache un pilote automatique nommé à un groupe, et le démarre. Si le nom existe déjà, le groupe est remplacé. |
-| `_ground unset` | Arrête le pilote automatique et l'oublie complètement. |
-| `_ground order` | Donne un ordre au pilote automatique (voir [la syntaxe des ordres](#order-syntax)). |
-| `_ground start` | Redémarre un pilote automatique arrêté. |
-| `_ground stop` | L'arrête sans l'oublier — ses ordres restent en mémoire. |
-| `_ground clear` | L'arrête **et** efface ses ordres. |
-| `_ground status` | Affiche à l'écran ce que le pilote automatique est en train de faire. |
+```
+_gc <nom>, <verbe> <valeur>, <paramètre valeur>, ...
+```
 
-Écrire `_ground` seul revient à écrire `_ground set`.
+**Le destinataire d'abord**, comme à la radio. Le `<nom>` est celui que vous donnez au pilote
+automatique — vous le choisissez, et vous le réutilisez pour tous ses ordres.
 
-### Paramètres
-
-| Paramètre | Verbes concernés | Description |
-|-----------|------------------|-------------|
-| `name` | **tous** | Nom du pilote automatique. **Obligatoire** : un `_ground status, name` sans valeur est refusé, pas exécuté avec un nom vide. |
-| `groupname` | `set`, `unset` | Nom exact du groupe DCS à piloter. |
-| `order` | `order` | Le texte de l'ordre. |
-
-**Si vous omettez `groupname` sur un `set`**, le module cherche le groupe allié **le plus proche du
-marqueur, dans un rayon de 250 mètres**. Aucun groupe dans ce rayon : la commande **vous le dit** et ne
-fait rien. Posez donc le marqueur sur la batterie, ou nommez-la.
-
-### Quand rien ne semble se passer {#silent-refusals}
-
-Aucune de ces commandes n'échoue plus en silence. C'était le cas avant, et un ordre qui disparaissait sans
-un mot était indistinguable d'un module cassé.
-
-| Ce que vous voyez | Ce que ça veut dire |
+| Ce que vous écrivez | Ce que ça fait |
 |---|---|
-| « Aucun pilote automatique nommé *X* » | ce nom n'existe pas. **Recharger une mission efface les pilotes automatiques** : il faut refaire le `_ground set`. Le message vous rappelle la commande. |
-| « Aucun groupe allié à moins de 250 m » | le marqueur est trop loin du groupe, ou le groupe est de l'autre coalition. Posez-le dessus, ou donnez `groupname`. |
-| « ordre illisible » | le texte de l'ordre n'a pas pu être lu du tout. Le message liste les ordres possibles. |
-| « ne peut pas viser, aucune coordonnée » | l'ordre est bon, mais `target` manque ou n'a pas pu être lu ([les formats acceptés](#coordinate-formats)). |
+| `_gc arty-1` *(marqueur sur la batterie)* | crée le pilote automatique `arty-1` et le démarre |
+| `_gc arty-1, groupname ARTY-1` | idem, en nommant le groupe DCS au lieu de le chercher |
+| `_gc arty-1, aim 37T GG 12345 12345` | tir de réglage sur cette position |
+| `_gc arty-1, correction 09050` | décale le dernier point visé et retire ([le réglage du tir](#fire-adjustment)) |
+| `_gc arty-1, fire` | tir d'efficacité au dernier point visé |
+| `_gc arty-1, fire 37T GG 12345 12345, shells 40-80` | tir d'efficacité sur une position donnée |
+| `_gc arty-1, status` | affiche ce que la batterie est en train de faire |
+| `_gc arty-1, stop` | l'arrête, ses ordres restent en mémoire |
+| `_gc arty-1, clear` | l'arrête **et** efface ses ordres |
+| `_gc arty-1, start` | redémarre un pilote automatique arrêté |
+| `_gc arty-1, unset` | l'arrête et l'oublie complètement |
+
+**Écrire `_gc <nom>` seul revient à écrire `_gc <nom>, set`.**
+
+### Les paramètres
+
+| Paramètre | Description |
+|-----------|-------------|
+| `groupname` | Nom exact du groupe DCS à piloter. Sur un `set`, si vous l'omettez, le module cherche le groupe allié **le plus proche du marqueur, dans un rayon de 250 mètres** — et vous le dit s'il n'en trouve aucun. |
+| `target` | Les coordonnées, si vous préférez les écrire séparément plutôt qu'après `aim` ou `fire` ([les formats acceptés](#coordinate-formats)). |
+| `shells` | Nombre d'obus. Accepte une plage aléatoire, par exemple `40-80`. |
+| `radius` | Dispersion du tir, en mètres. Accepte aussi une plage. |
+
+`correct` s'écrit aussi `correction` : les deux marchent, pour ne pas avoir à s'en souvenir.
 
 ```
-_ground set, name arty-1, groupname ARTY-1
-_ground status, name arty-1
-_ground stop, name arty-1
+_gc arty-1
+_gc arty-1, radius 15-30, aim 37T GG 12345 12345
+_gc arty-1, correction 09050
+_gc arty-1, fire, shells 40-80, radius 50-150
 ```
+
+> **L'ancienne syntaxe marche encore.** `_ground order, name arty-1, order aim; target …` reste acceptée
+> pour ne casser aucune mission existante, mais elle n'est plus documentée : elle demandait un
+> point-virgule là où tout le reste de VEAF utilise la virgule, et c'était son seul piège.
 
 ---
 
-## La syntaxe des ordres {#order-syntax}
-
-Le texte passé à `order` a **sa propre syntaxe, séparée par des points-virgules** — et non par des
-virgules comme le reste du marqueur. C'est le piège de ce module : un ordre écrit avec des virgules
-est découpé par le marqueur avant d'atteindre l'artillerie.
+## Les trois ordres {#order-syntax}
 
 | Ordre | Effet | Obus par défaut | Rayon par défaut |
 |-------|-------|-----------------|------------------|
-| `aim` *(par défaut)* | Tir de réglage : quelques obus pour ajuster | 2 | 10 m |
+| `aim` | Tir de réglage : quelques obus pour ajuster | 2 | 10 m |
 | `fire` | Tir d'efficacité | 40 | 100 m |
-| `correct` | Décale le dernier point visé et retire dessus | 2 | 10 m |
+| `correct` *(ou `correction`)* | Décale le dernier point visé et retire dessus | 2 | 10 m |
 
-| Paramètre d'ordre | Description |
-|-------------------|-------------|
-| `target` | Coordonnées de l'objectif ([les formats acceptés](#coordinate-formats)). **Validées** : une chaîne que le module ne sait pas lire est ignorée, et l'ordre se plaint de ne pas avoir de cible. |
-| `shells` | Nombre d'obus. Accepte une plage aléatoire, par exemple `40-80`. |
-| `radius` | Dispersion du tir, en mètres. Accepte aussi une plage. |
-| `correction` | Le décalage à appliquer, pour l'ordre `correct` : **trois chiffres de cap vrai puis la distance en mètres**. `09050` vaut 50 m à l'est. **Validé** : une correction illisible est refusée et annoncée, jamais devinée. |
+`aim` et `fire` prennent les coordonnées **juste après le mot** : `aim 37T GG 12345 12345`. `correct`
+prend son décalage de la même façon : `correction 09050`.
 
-**`fire` sans `target` tire à nouveau sur la dernière cible visée** — c'est ce qui permet d'enchaîner un
-réglage puis l'efficacité sans redonner les coordonnées.
+**`fire` sans coordonnées tire à nouveau sur la dernière cible visée** — c'est ce qui permet d'enchaîner
+un réglage puis l'efficacité sans redonner la position.
+
+Les deux valeurs sont **validées à la lecture** : une position ou un décalage que le module ne sait pas
+lire est refusé et annoncé, jamais deviné. Un chiffre qu'un canon exécute ne se devine pas.
 
 ```
-_ground order, name arty-1, order aim; radius 15-30; target 42 N 42 E
-_ground order, name arty-1, order fire; radius 50-150; shells 40-80
+_gc arty-1, radius 15-30, aim 37T GG 12345 12345
+_gc arty-1, correction 09050
+_gc arty-1, fire, shells 40-80, radius 50-150
 ```
 
 ### Les formats de coordonnées acceptés {#coordinate-formats}
@@ -134,9 +131,9 @@ Une batterie retient **le dernier point qu'elle a visé**, et `correct` décale 
 de réglage classique : on tire, on observe où les obus tombent, on annonce la correction.
 
 ```
-_ground order, name arty-1, order aim; target 42 N 42 E
-_ground order, name arty-1, order correct; correction 09050
-_ground order, name arty-1, order fire; shells 40-80
+_gc arty-1, aim 37T GG 12345 12345
+_gc arty-1, correction 09050
+_gc arty-1, fire, shells 40-80
 ```
 
 Le cap s'écrit **toujours sur trois chiffres**, parce que `090` et `90` seraient la même chaîne une fois
@@ -158,7 +155,7 @@ utilisent ce module :
 
 | Alias | Ce qu'il fait |
 |-------|---------------|
-| `-ai_set` | `_ground set` — attache un pilote automatique au groupe le plus proche |
+| `-ai_set` | `_gc` — attache un pilote automatique au groupe le plus proche ; écrivez son nom derrière |
 | `-arty1`, `-arty2`, `-arty3` | Fait apparaître une batterie **et** lui attache son pilote automatique nommé `arty-1`, `arty-2`, `arty-3` |
 | `-arty1_aim`, `-arty2_aim`, `-arty3_aim` | Ordre de réglage à la batterie correspondante |
 | `-arty1_fire`, `-arty2_fire`, `-arty3_fire` | Ordre d'efficacité à la batterie correspondante |
@@ -180,7 +177,7 @@ Le module n'a **aucune option de configuration**. Il s'active et se désactive c
 
 ```yaml
 modules:
-  GROUNDAI: true      # actif par défaut ; `false` retire le marqueur _ground
+  GROUNDAI: true      # actif par défaut ; `false` retire le marqueur _gc
 ```
 
 ---

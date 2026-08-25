@@ -1,6 +1,6 @@
 {
   "name": "veaf-mission-editor",
-  "version": "6.16.5",
+  "version": "6.16.6",
   "description": "Author VEAF DCS missions from Gemini CLI — create, edit, validate and build a mission through the veaf-mission-mcp server, guided by the veaf-mission-authoring skill.",
   "mcpServers": {
     "veaf-mission-editor": {

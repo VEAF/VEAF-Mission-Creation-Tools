@@ -4521,4 +4521,101 @@ function TestVeafCoordinateFormats:test_nonsense_is_refused()
   luaunit.assertNil(veaf.computeLLFromString("42N041E"))
 end
 
+-- ===========================================================================
+-- veaf.findGroupByPartialName — retrouver un groupe par le nom qu'on lui a donne
+--
+-- `getNameForSpawnedGroup` decore le nom : `-arty, unitname arty-1` sur une batterie bleue produit un
+-- groupe reellement appele `[b]-arty-1#7`. Un `Group.getByName("arty-1")` exact ne le trouve jamais.
+--
+-- L'ambiguite est REFUSEE, pas arbitree : avec `arty-1` et `arty-10` en vol, choisir ferait tirer une
+-- batterie que personne n'a designee.
+-- ===========================================================================
+TestFindGroupByPartialName = {}
+
+function TestFindGroupByPartialName:setUp()
+  dcs_mocks.reset()
+end
+
+function TestFindGroupByPartialName:test_an_exact_name_wins()
+  -- Le groupe pose dans l'editeur : son nom n'est jamais touche, et la recherche exacte reste la
+  -- premiere reponse — la seule qui ne puisse pas etre ambigue.
+  dcs_mocks.addGroup("ARTY-1")
+  local group = veaf.findGroupByPartialName("ARTY-1")
+  luaunit.assertNotNil(group)
+  luaunit.assertEquals(group:getName(), "ARTY-1")
+end
+
+function TestFindGroupByPartialName:test_a_spawned_group_is_found_by_the_name_it_was_given()
+  -- LE cas du lot : le nom decore contient celui qu'on a demande.
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  local group = veaf.findGroupByPartialName("arty-1")
+  luaunit.assertNotNil(group, "le nom donne au spawn doit suffire")
+  luaunit.assertEquals(group:getName(), "[b]-arty-1#7")
+end
+
+function TestFindGroupByPartialName:test_the_case_does_not_matter()
+  dcs_mocks.addGroup("[b]-ARTY-1#7")
+  luaunit.assertNotNil(veaf.findGroupByPartialName("arty-1"))
+end
+
+function TestFindGroupByPartialName:test_a_name_with_magic_characters_is_taken_literally()
+  -- `[b]-` porte des caracteres que `find` interpreterait comme un motif : la recherche doit etre
+  -- litterale, sinon un nom decore colle depuis le log ne trouve rien.
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  luaunit.assertNotNil(veaf.findGroupByPartialName("[b]-arty"))
+end
+
+function TestFindGroupByPartialName:test_an_ambiguous_name_is_refused()
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  dcs_mocks.addGroup("[b]-arty-10#8")
+  local group, candidats = veaf.findGroupByPartialName("arty-1")
+  luaunit.assertNil(group, "l'ambiguite ne se tranche pas au hasard")
+  luaunit.assertNotNil(candidats, "et les candidats doivent etre nommes")
+  luaunit.assertEquals(#candidats, 2)
+  luaunit.assertEquals(candidats[1], "[b]-arty-1#7")
+  luaunit.assertEquals(candidats[2], "[b]-arty-10#8")
+end
+
+function TestFindGroupByPartialName:test_an_exact_name_beats_an_ambiguity()
+  -- `arty-1` existe exactement : plus rien a arbitrer, meme si `arty-10` traine.
+  dcs_mocks.addGroup("arty-1")
+  dcs_mocks.addGroup("arty-10")
+  local group = veaf.findGroupByPartialName("arty-1")
+  luaunit.assertNotNil(group)
+  luaunit.assertEquals(group:getName(), "arty-1")
+end
+
+function TestFindGroupByPartialName:test_an_unknown_name_finds_nothing()
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  local group, candidats = veaf.findGroupByPartialName("mortier")
+  luaunit.assertNil(group)
+  luaunit.assertNil(candidats, "rien trouve n'est pas une ambiguite")
+end
+
+function TestFindGroupByPartialName:test_a_group_is_not_counted_twice()
+  -- L'enumeration passe par les trois coalitions : un groupe qui n'en declare aucune apparait dans les
+  -- trois listes, et sans dedoublonnage il se refuserait pour ambiguite avec lui-meme.
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  local group, candidats = veaf.findGroupByPartialName("arty-1")
+  luaunit.assertNotNil(group, "un groupe ne peut pas etre ambigu avec lui-meme")
+  luaunit.assertNil(candidats)
+end
+
+function TestFindGroupByPartialName:test_nothing_sensible_is_refused_quietly()
+  luaunit.assertNil(veaf.findGroupByPartialName(nil))
+  luaunit.assertNil(veaf.findGroupByPartialName(""))
+  luaunit.assertNil(veaf.findGroupByPartialName(42))
+end
+
+function TestFindGroupByPartialName:test_it_survives_a_group_with_no_name()
+  -- DCS rend parfois un groupe dont `getName` echoue ; il ne doit pas emporter la recherche.
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  dcs_mocks.addGroup("sans-nom", {
+    getName = function()
+      return nil
+    end,
+  })
+  luaunit.assertNotNil(veaf.findGroupByPartialName("arty-1"))
+end
+
 os.exit(luaunit.LuaUnit.run())

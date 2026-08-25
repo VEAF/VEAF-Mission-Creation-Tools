@@ -2622,4 +2622,60 @@ function TestVeafCombatZoneReportEffectiveness:test_an_inactive_zone_reports_not
   luaunit.assertNil(info:find("REPORTZONE%-SA10"))
 end
 
+-- ===========================================================================
+-- FIX-OPERATION-COMPLETE-SHOWS-ITS-KEY — a briefing must never show a translation key
+--
+-- Seen in game on the demo mission: a finished operation's briefing ended with the literal text
+-- `combatzone.operation_complete`. `getInformation()` was calling `string.format` on the KEY rather than
+-- `veaf.t` on it, so the player got the key and the operation's name was dropped — the key has no `%s`,
+-- so string.format returns it unchanged and discards the argument.
+--
+-- Forty lines further down the same constant was used correctly, which is why nobody noticed: the event
+-- message was fine, only the briefing was broken.
+-- ===========================================================================
+TestCombatOperationBriefing = {}
+
+--- An operation that is over: `active` is false by default, which is the branch that was broken.
+function TestCombatOperationBriefing:_completedOperation()
+  local operation = VeafCombatOperation:new()
+  operation.friendlyName = "Operation Gori free"
+  operation.briefing = "Destroy the armored group in the city of Gori"
+  operation.active = false
+  return operation
+end
+
+function TestCombatOperationBriefing:test_a_completed_briefing_shows_no_translation_key()
+  -- THE defect, stated as what a player must never see.
+  local message = self:_completedOperation():getInformation()
+  luaunit.assertNil(message:find("combatzone.", 1, true), "a raw translation key reached the player: " .. message)
+end
+
+function TestCombatOperationBriefing:test_it_shows_the_translated_sentence()
+  local message = self:_completedOperation():getInformation()
+  local expected = veaf.t("combatzone.operation_complete", "Operation Gori free")
+  luaunit.assertNotNil(message:find(expected, 1, true), "expected [" .. expected .. "] in: " .. message)
+end
+
+function TestCombatOperationBriefing:test_it_names_the_operation()
+  -- The second half of the same bug: `string.format` on a key with no `%s` silently threw the name away.
+  local message = self:_completedOperation():getInformation()
+  luaunit.assertNotNil(message:find("Operation Gori free", 1, true), "the operation is not named: " .. message)
+end
+
+function TestCombatOperationBriefing:test_an_active_operation_lists_its_tasking_orders_instead()
+  -- The other branch, so the fix cannot be "always print the completion sentence".
+  local operation = self:_completedOperation()
+  operation.active = true
+  local message = operation:getInformation()
+  luaunit.assertNotNil(message:find("Air Tasking Orders", 1, true), "got: " .. message)
+  luaunit.assertNil(message:find("combatzone.", 1, true))
+end
+
+function TestCombatOperationBriefing:test_the_briefing_is_still_there()
+  -- Guards the tests above: if getInformation ever stopped returning the briefing, they would pass on a
+  -- message that lost most of its content.
+  local message = self:_completedOperation():getInformation()
+  luaunit.assertNotNil(message:find("Destroy the armored group", 1, true))
+end
+
 os.exit(luaunit.LuaUnit.run())

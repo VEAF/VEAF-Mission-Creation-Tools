@@ -25,6 +25,32 @@ veafGroundAI.Id = "GROUNDAI"
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafGroundAI.MarkerKeyphrase = "_ground"
 
+--- Le mot-cle courant : `_gc`, pour *ground commander*.
+---
+--- Plus court a taper sous le feu, et il ouvre la forme positionnelle
+--- `_gc <nom>, <verbe> <valeur>, <parametres>` — le destinataire d'abord, comme a la radio.
+--- `_ground` et sa forme imbriquee restent acceptes, sans etre documentes : on ne sait pas ce que les
+--- missions au monde ont ecrit. FEAT-GC-MARKER-SYNTAX.
+veafGroundAI.ShortKeyphrase = "_gc"
+
+--- Une regle de parametre qui pose simplement un verbe : `_gc arty-1, stop`.
+---
+--- Locale au module plutot qu'ajoutee a `veaf.markerRules` : six verbes d'un seul module ne justifient
+--- pas d'elargir l'interface partagee, et les regles communes existantes rangent toutes une *valeur*
+--- alors que celle-ci n'en lit aucune.
+---
+--- @param word string le mot que le pilote ecrit
+--- @param verb number la constante VERB_* correspondante
+--- @return table la regle, prete a entrer dans `parameters`
+function veafGroundAI.verbRule(word, verb)
+  return {
+    keys = { word },
+    apply = function(options)
+      options.verb = verb
+    end,
+  }
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -462,15 +488,36 @@ function ArtilleryUnitHandler:orderTextAnalysis(text)
     return nil
   end
 
-  if options.verb == ArtilleryUnitHandler.VERB_CORRECT then
-    self:correct(options.correction, options.shells, options.radius)
-  elseif options.verb == ArtilleryUnitHandler.VERB_FIRE_FORAIM then
-    self:fireForAim(options.target, options.shells, options.radius)
-  elseif options.verb == ArtilleryUnitHandler.VERB_FIRE_FOREFFECT then
-    self:fireForEffect(options.target, options.shells, options.radius)
-  end
-
+  -- La valeur de retour reste les options analysees : c'est le contrat de cette fonction, et ses tests de
+  -- caracterisation lisent ce qu'elle a compris du texte.
+  self:executeOrder(options.verb, options.target, options.correction, options.shells, options.radius)
   return options
+end
+
+--- Executer un ordre deja decrit : un verbe et ses valeurs.
+---
+--- Extrait de `orderTextAnalysis` pour que les deux syntaxes partagent ce code. L'ancienne forme
+--- (`order aim; target X`) doit d'abord recouper une chaine pour arriver ici ; la forme `_gc`
+--- (`_gc arty-1, aim X`) arrive avec tout a plat et appelle directement. Deux copies de ce routage
+--- divergeraient, et le symptome serait un ordre qui marche dans une syntaxe et pas dans l'autre.
+---
+--- @param verb number une constante VERB_* de ArtilleryUnitHandler
+--- @param target string|nil les coordonnees, deja validees par le lecteur
+--- @param correction table|nil { bearing, distance }, deja validee
+--- @param shells number|nil
+--- @param radius number|nil
+--- @return boolean true si le verbe a ete reconnu
+function ArtilleryUnitHandler:executeOrder(verb, target, correction, shells, radius)
+  if verb == ArtilleryUnitHandler.VERB_CORRECT then
+    self:correct(correction, shells, radius)
+  elseif verb == ArtilleryUnitHandler.VERB_FIRE_FORAIM then
+    self:fireForAim(target, shells, radius)
+  elseif verb == ArtilleryUnitHandler.VERB_FIRE_FOREFFECT then
+    self:fireForEffect(target, shells, radius)
+  else
+    return false
+  end
+  return true
 end
 
 -- give the artillery unit a fire for effect order
@@ -848,7 +895,13 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
         local handlerName = options.name
         local handler = veafGroundAI.getOrComplain(handlerName)
         if handler then
-          if handler:orderTextAnalysis(options.order) then
+          if options.orderVerb then
+            -- Forme `_gc` : l'ordre est deja a plat, rien a recouper.
+            if handler:executeOrder(options.orderVerb, options.target, options.correction, options.shells, options.radius) then
+              return true
+            end
+          elseif handler:orderTextAnalysis(options.order) then
+            -- Ancienne forme : `order aim; target X`, a recouper sur les points-virgules.
             return true
           end
         end
@@ -884,8 +937,14 @@ veafGroundAI.MarkerSpec = {
   defaults = function(options)
     options.verb = veafGroundAI.VERB_SET
     options.group = nil -- the DCS group concerned by "set" and "unset"
-    options.order = nil -- the order given by "order"
+    options.order = nil -- the order given by "order" (ancienne forme imbriquee)
     options.name = nil -- the handler name, concerned by every verb
+    -- Forme `_gc` : l'ordre est decrit a plat, ici, au lieu d'etre une chaine a recouper.
+    options.orderVerb = nil -- aim / fire / correct
+    options.target = nil -- les coordonnees, validees a la lecture
+    options.correction = nil -- { bearing, distance }, validee a la lecture
+    options.shells = nil
+    options.radius = nil
   end,
   commands = {
     {
@@ -930,6 +989,17 @@ veafGroundAI.MarkerSpec = {
         options.verb = veafGroundAI.VERB_STATUS
       end,
     },
+    -- Declaree en DERNIER, et ce n'est pas cosmetique : les commandes sont cherchees comme un morceau
+    -- de texte n'importe ou, premiere trouvee gagne. Un groupe nomme `x_gcy` dans un ancien
+    -- `_ground stop, name x_gcy` contient `_gc` ; laisser cette entree devant detournerait la commande.
+    {
+      match = veafGroundAI.ShortKeyphrase,
+      init = function(options)
+        -- `_gc arty-1` seul vaut `set`, comme le defaut du spec. Le verbe est ensuite pose par la regle
+        -- du mot correspondant, s'il y en a un.
+        options.verb = veafGroundAI.VERB_SET
+      end,
+    },
   },
   parameters = {
     {
@@ -945,6 +1015,81 @@ veafGroundAI.MarkerSpec = {
     },
     { keys = { "name" }, apply = veaf.markerRules.text("name") },
     { keys = { "order" }, apply = veaf.markerRules.text("order") },
+
+    -- ── la forme `_gc` ────────────────────────────────────────────────────────
+    -- Le mot-cle lui-meme porte le nom : `_gc arty-1` se lit "cle `_gc`, valeur `arty-1`". C'est ce qui
+    -- supprime le mot `name` sans toucher au moteur du parseur.
+    { keys = { veafGroundAI.ShortKeyphrase }, apply = veaf.markerRules.text("name") },
+
+    -- Les sept verbes du marqueur, en mots simples. Ecrire `_gc arty-1, stop` plutot que
+    -- `_ground stop, name arty-1`.
+    veafGroundAI.verbRule("set", veafGroundAI.VERB_SET),
+    veafGroundAI.verbRule("unset", veafGroundAI.VERB_UNSET),
+    veafGroundAI.verbRule("start", veafGroundAI.VERB_START),
+    veafGroundAI.verbRule("stop", veafGroundAI.VERB_STOP),
+    veafGroundAI.verbRule("clear", veafGroundAI.VERB_CLEAR),
+    veafGroundAI.verbRule("status", veafGroundAI.VERB_STATUS),
+
+    -- Les verbes d'ordre portent leur valeur EN LIGNE, et c'est tout l'objet du lot : la grille se
+    -- recopie telle que DCS l'affiche, espaces compris, sans mot `target` ni point-virgule.
+    --
+    -- Chacun pose deux choses : le verbe du marqueur (`order`, pour que le repartiteur route vers
+    -- l'artillerie) et le verbe de l'ordre lui-meme.
+    {
+      keys = { "aim" },
+      apply = function(options, value)
+        options.verb = veafGroundAI.VERB_ORDER
+        options.orderVerb = ArtilleryUnitHandler.VERB_FIRE_FORAIM
+        -- Validee a la lecture, comme `target` : une chaine que le lecteur de coordonnees ne sait pas
+        -- lire ne doit jamais atteindre un canon. Une valeur absente reste absente.
+        if value and value ~= "" and veaf.computeLLFromString(value) then
+          options.target = value
+        end
+      end,
+    },
+    {
+      keys = { "fire" },
+      apply = function(options, value)
+        options.verb = veafGroundAI.VERB_ORDER
+        options.orderVerb = ArtilleryUnitHandler.VERB_FIRE_FOREFFECT
+        -- `fire` sans cible retire au dernier point vise : l'absence de valeur est un cas normal ici,
+        -- pas une erreur.
+        if value and value ~= "" and veaf.computeLLFromString(value) then
+          options.target = value
+        end
+      end,
+    },
+    {
+      -- Deux orthographes plutot qu'une a retenir sous le feu.
+      keys = { "correct", "correction" },
+      apply = function(options, value)
+        options.verb = veafGroundAI.VERB_ORDER
+        options.orderVerb = ArtilleryUnitHandler.VERB_CORRECT
+        options.correction = ArtilleryUnitHandler.parseCorrection(value)
+      end,
+    },
+
+    -- Remontes au niveau du marqueur : c'est ce qui rend le point-virgule inutile.
+    {
+      keys = { "target" },
+      apply = function(options, value)
+        if value and value ~= "" and veaf.computeLLFromString(value) then
+          options.target = value
+        end
+      end,
+    },
+    {
+      keys = { "shells" },
+      apply = function(options, value)
+        options.shells = veaf.getRandomizableNumeric(value)
+      end,
+    },
+    {
+      keys = { "radius" },
+      apply = function(options, value)
+        options.radius = veaf.getRandomizableNumeric(value)
+      end,
+    },
   },
   valueWhenAbsent = "",
   -- `name` is mandatory for every verb, and the empty string has to be rejected explicitly: values

@@ -7,7 +7,7 @@
 ## Purpose
 
 Gives a group of ground vehicles an **autopilot** that players command from the F10 map, with the
-`_ground` marker. One kind of autopilot exists today: artillery (`ArtilleryUnitHandler`), told to
+`_gc` marker. One kind of autopilot exists today: artillery (`ArtilleryUnitHandler`), told to
 shell a set of coordinates — a few rounds to range in, then a fire-for-effect.
 
 The module is **enabled by default** (`veaf.registerModule(..., { enable = true }, 190)`), and its
@@ -24,80 +24,78 @@ commands are reserved to **pilots the server knows**: `KNOWN_PILOT`, meaning any
 
 ---
 
-## The `_ground` marker {#marker-command}
+## The `_gc` marker {#marker-command}
 
-A pilot drops a marker on the F10 map and writes its text. Seven verbs, and **`name` is mandatory
-for all seven** — it names the autopilot, and it is the name you reuse to give it orders later.
+`_gc`, for *ground commander*. A pilot places a marker on the F10 map and writes:
 
-| Verb | What it does |
-|------|--------------|
-| `_ground set` *(default)* | Attaches a named autopilot to a group and starts it. If the name already exists, the group is replaced. |
-| `_ground unset` | Stops the autopilot and forgets it entirely. |
-| `_ground order` | Gives the autopilot an order (see [order syntax](#order-syntax)). |
-| `_ground start` | Restarts a stopped autopilot. |
-| `_ground stop` | Stops it without forgetting it — its orders stay in memory. |
-| `_ground clear` | Stops it **and** clears its orders. |
-| `_ground status` | Prints on screen what the autopilot is currently doing. |
+```
+_gc <name>, <verb> <value>, <parameter value>, ...
+```
 
-Writing `_ground` alone is the same as writing `_ground set`.
+**The addressee first**, the way you would say it on the radio. The `<name>` is the one you give the
+autopilot — you choose it, and you reuse it for every order you give it.
 
-### Parameters
-
-| Parameter | Verbs | Description |
-|-----------|-------|-------------|
-| `name` | **all** | The autopilot's name. **Mandatory**: a `_ground status, name` with no value is refused, not run with an empty name. |
-| `groupname` | `set`, `unset` | Exact name of the DCS group to drive. |
-| `order` | `order` | The order's text. |
-
-**If you omit `groupname` on a `set`**, the module looks for the allied group **nearest the marker,
-within 250 metres**. No group in that radius: the command **tells you** and does nothing. So drop the
-marker on the battery, or name it.
-
-### When nothing seems to happen {#silent-refusals}
-
-None of these commands fails silently any more. They did, and an order that vanished without a word was
-indistinguishable from a broken module.
-
-| What you see | What it means |
+| What you write | What it does |
 |---|---|
-| "No autopilot named *X*" | that name does not exist. **Reloading a mission discards the autopilots**: the `_ground set` has to be done again. The message reminds you of the command. |
-| "No allied group within 250 m" | the marker is too far from the group, or the group belongs to the other coalition. Drop it on the group, or give `groupname`. |
-| "unreadable order" | the order text could not be read at all. The message lists the valid orders. |
-| "cannot aim, no target coordinates" | the order is fine, but `target` is missing or could not be read ([the accepted formats](#coordinate-formats)). |
+| `_gc arty-1` *(marker on the battery)* | creates the `arty-1` autopilot and starts it |
+| `_gc arty-1, groupname ARTY-1` | the same, naming the DCS group instead of searching for it |
+| `_gc arty-1, aim 37T GG 12345 12345` | ranging fire on that position |
+| `_gc arty-1, correction 09050` | shifts the last aim point and fires again ([adjusting the fire](#fire-adjustment)) |
+| `_gc arty-1, fire` | fire for effect at the last aim point |
+| `_gc arty-1, fire 37T GG 12345 12345, shells 40-80` | fire for effect on a given position |
+| `_gc arty-1, status` | shows what the battery is doing |
+| `_gc arty-1, stop` | stops it; its orders stay in memory |
+| `_gc arty-1, clear` | stops it **and** clears its orders |
+| `_gc arty-1, start` | restarts a stopped autopilot |
+| `_gc arty-1, unset` | stops it and forgets it entirely |
+
+**Writing `_gc <name>` on its own is the same as writing `_gc <name>, set`.**
+
+### The parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `groupname` | The exact name of the DCS group to drive. On a `set`, if you leave it out, the module looks for the allied group **nearest the marker, within 250 metres** — and tells you if it finds none. |
+| `target` | The coordinates, if you would rather write them separately than after `aim` or `fire` ([the accepted formats](#coordinate-formats)). |
+| `shells` | Number of rounds. Accepts a random range, e.g. `40-80`. |
+| `radius` | Dispersion of the fire, in metres. Also accepts a range. |
+
+`correct` can also be spelled `correction`: both work, so there is nothing to remember.
 
 ```
-_ground set, name arty-1, groupname ARTY-1
-_ground status, name arty-1
-_ground stop, name arty-1
+_gc arty-1
+_gc arty-1, radius 15-30, aim 37T GG 12345 12345
+_gc arty-1, correction 09050
+_gc arty-1, fire, shells 40-80, radius 50-150
 ```
+
+> **The old syntax still works.** `_ground order, name arty-1, order aim; target …` is still accepted so
+> that no existing mission breaks, but it is no longer documented: it needed a semicolon where the whole
+> of the rest of VEAF uses a comma, and that was its only trap.
 
 ---
 
-## Order syntax {#order-syntax}
-
-The text handed to `order` has **its own syntax, separated by semicolons** — not by commas like the
-rest of the marker. That is this module's trap: an order written with commas is split by the marker
-before it ever reaches the artillery.
+## The three orders {#order-syntax}
 
 | Order | Effect | Default rounds | Default radius |
 |-------|--------|----------------|----------------|
-| `aim` *(default)* | Ranging fire: a few rounds to adjust | 2 | 10 m |
+| `aim` | Ranging fire: a few rounds to adjust | 2 | 10 m |
 | `fire` | Fire for effect | 40 | 100 m |
-| `correct` | Shift the last aim point and fire again | 2 | 10 m |
+| `correct` *(or `correction`)* | Shifts the last aim point and fires again | 2 | 10 m |
 
-| Order parameter | Description |
-|-----------------|-------------|
-| `target` | The target's coordinates ([the accepted formats](#coordinate-formats)). **Validated**: a string the module cannot read is ignored, and the order complains that it has no target. |
-| `shells` | Number of rounds. Accepts a random range, e.g. `40-80`. |
-| `radius` | Dispersion of the fire, in metres. Also accepts a range. |
-| `correction` | The offset to apply, for the `correct` order: **three digits of true bearing then the distance in metres**. `09050` is 50 m east. **Validated**: an unreadable correction is refused and announced, never guessed. |
+`aim` and `fire` take the coordinates **right after the word**: `aim 37T GG 12345 12345`. `correct`
+takes its offset the same way: `correction 09050`.
 
-**`fire` with no `target` re-engages the last target aimed at** — which is what lets you chain a
-ranging order and then the effect without re-entering the coordinates.
+**`fire` with no coordinates fires again at the last aim point** — which is what lets you chain a ranging
+order and then the effect without giving the position twice.
+
+Both values are **validated as they are read**: a position or an offset the module cannot read is refused
+and announced, never guessed at. A number a gun acts on is not something to guess.
 
 ```
-_ground order, name arty-1, order aim; radius 15-30; target 42 N 42 E
-_ground order, name arty-1, order fire; radius 50-150; shells 40-80
+_gc arty-1, radius 15-30, aim 37T GG 12345 12345
+_gc arty-1, correction 09050
+_gc arty-1, fire, shells 40-80, radius 50-150
 ```
 
 ### The coordinate formats accepted {#coordinate-formats}
@@ -132,9 +130,9 @@ A battery remembers **the last point it aimed at**, and `correct` shifts that po
 adjustment loop: fire, watch where the rounds land, call the correction in.
 
 ```
-_ground order, name arty-1, order aim; target 42 N 42 E
-_ground order, name arty-1, order correct; correction 09050
-_ground order, name arty-1, order fire; shells 40-80
+_gc arty-1, aim 37T GG 12345 12345
+_gc arty-1, correction 09050
+_gc arty-1, fire, shells 40-80
 ```
 
 The bearing is **always written as three digits**, because `090` and `90` would be the same string once
@@ -156,7 +154,7 @@ firing at the offset alone would put the rounds wherever the battery happens to 
 
 | Alias | What it does |
 |-------|--------------|
-| `-ai_set` | `_ground set` — attaches an autopilot to the nearest group |
+| `-ai_set` | `_gc` — attaches an autopilot to the nearest group; write its name after it |
 | `-arty1`, `-arty2`, `-arty3` | Spawns a battery **and** attaches its autopilot, named `arty-1`, `arty-2`, `arty-3` |
 | `-arty1_aim`, `-arty2_aim`, `-arty3_aim` | Ranging order to the matching battery |
 | `-arty1_fire`, `-arty2_fire`, `-arty3_fire` | Fire-for-effect order to the matching battery |
@@ -178,7 +176,7 @@ The module has **no configuration options**. It is enabled and disabled like the
 
 ```yaml
 modules:
-  GROUNDAI: true      # on by default; `false` removes the _ground marker
+  GROUNDAI: true      # on by default; `false` removes the _gc marker
 ```
 
 ---

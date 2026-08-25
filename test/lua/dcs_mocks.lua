@@ -339,8 +339,11 @@ coord = {
   MGRStoLL = function(mgrs)
     return 0, 0
   end,
+  -- `UTMZone` manquait, alors que le vrai DCS le fournit toujours : tout code qui construit une grille
+  -- lisible fait `grid.UTMZone .. " " .. grid.MGRSDigraph .. …` et mourait sur une concatenation de nil.
+  -- Un mock incomplet ne fait pas echouer le code qui le lit — il le fait planter ailleurs.
   LLtoMGRS = function(lat, lon)
-    return { MGRSDigraph = "XX", Easting = 100000, Northing = 200000 }
+    return { UTMZone = "37T", MGRSDigraph = "XX", Easting = 100000, Northing = 200000 }
   end,
 }
 atmosphere = {

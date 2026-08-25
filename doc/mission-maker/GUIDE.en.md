@@ -52,6 +52,7 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 | `veaf-tools-updater.exe` | Downloads and installs the latest VEAF MCT release | Yes |
 | `veaf-tools.exe` | Build-time `.miz` manipulation CLI | Yes (for build pipeline) |
 | VS Code or Notepad++ | Editing Lua/YAML config files | Recommended |
+| `ctld-tools.exe` | CTLD configuration editor — **shipped with CTLD, not with VEAF MCT** ([where to download it](#getting-ctld-tools)) | Only if your mission uses CTLD |
 
 > **Base mission coalitions**: each side coalition (blue/red) needs at least one ground unit, otherwise its Lua coalition tables are incomplete and DCS purges the empty side — which used to require placing one blue and one red ground group by hand. **The build now handles this for you**: if a side coalition has no unit, it injects a single *hidden* placeholder ground unit (on the coalition bullseye) so DCS registers the side. You can still place your own ground groups — the placeholder is only added when a side is empty.
 
@@ -642,6 +643,28 @@ modules:
 ```
 
 Everything else — distances, timers, crates, troop groups, zones, per-aircraft capabilities — lives in a **`ctld-config.yaml`** file next to `mission.yaml` in your mission folder. You edit it with **`ctld-tools.exe`**, shipped with CTLD: double-click it and the tool opens in your browser, locally, with nothing to install. It validates as you type and shows plain-language labels rather than raw setting names.
+
+#### Where to get `ctld-tools` {#getting-ctld-tools}
+
+The tool does **not** come with VEAF MCT. It is published with CTLD: open the [VEAF/CTLD releases](https://github.com/VEAF/CTLD/releases) and download the `ctld-tools.exe` file attached to the release.
+
+!!! warning "It does not show up under \"Latest release\""
+    Until CTLD 2 cuts a stable version, **every** one of its releases is published as a *pre-release* — so the repository landing page shows none of them, and the "Releases" link is the only way in. The most recent one is at the top of the list.
+
+Take the release **matching the CTLD version your VEAF MCT ships**: the tool and the engine move together. That version is written in plain text in the header of the script installed on your machine, `published/src/scripts/community/CTLD.lua`:
+
+```text
+    CTLD.lua - Combined Transport and Logistics Dispatcher for DCS World
+    Version : 2.0.0-rc7
+```
+
+(Yours may be newer — that line is what counts, not this example.)
+
+After every VEAF MCT update, read that line again: if the version changed, re-download `ctld-tools.exe` from the matching release. A mismatch is not silent — the tool lists the differences when it opens your file (see below).
+
+> **Windows security:** as with `veaf-tools-updater.exe`, Windows may block an `.exe` downloaded from the internet. Right-click → **Properties** → tick **Unblock** → **OK**.
+
+#### The configuration file
 
 `veaf-tools mission prepare` creates the file for you when the chosen template enables CTLD, pre-filled with the engine's own defaults. It is never overwritten afterwards: it is your configuration.
 

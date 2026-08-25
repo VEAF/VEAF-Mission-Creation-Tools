@@ -10,6 +10,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.8] — 2026-08-25
+
+### Documentation
+
+- **The CTLD documentation never said where to get `ctld-tools`.** Every other part of the procedure
+  was covered in both languages — the sidecar file, the two traps, the rejected `settings:` block —
+  but not the first step: obtaining the editor. The guide said "shipped with CTLD" and linked the
+  repository, while the executable is a *release asset*, and every CTLD 2 release is published as a
+  **pre-release** — so none appears as "Latest release" and following that link does not lead to the
+  file. The guide now has a "where to get `ctld-tools`" section with the releases page, the asset
+  name, that pre-release trap, and how to read the CTLD version your install ships (the header of
+  `published/src/scripts/community/CTLD.lua`) so the tool matches the engine. Added to the
+  prerequisites table, linked from the YAML reference and the migration guide, and the builder's
+  "no `ctld-config.yaml` found" message now carries the download URL instead of naming a tool the
+  reader cannot locate.
+
+---
+
 ## [6.16.7] — 2026-08-25
 
 ### Fixed
@@ -29,6 +47,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and the two tests that asserted the literal string `_ground set` read the module's own constants instead.
 
 ---
+
 
 ## [6.16.6] — 2026-08-25
 
@@ -53,6 +72,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   groups.
 
 ---
+
 
 ## [6.16.5] — 2026-08-25
 

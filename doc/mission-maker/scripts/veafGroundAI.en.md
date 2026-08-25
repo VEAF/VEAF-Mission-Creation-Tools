@@ -39,6 +39,7 @@ autopilot — you choose it, and you reuse it for every order you give it.
 |---|---|
 | `_gc arty-1` *(marker on the battery)* | creates the `arty-1` autopilot and starts it |
 | `_gc arty-1, groupname ARTY-1` | the same, naming the DCS group instead of searching for it |
+| `_gc mybattery, groupname arty-1` | the same, on a group created by a VEAF command |
 | `_gc arty-1, aim 37T GG 12345 12345` | ranging fire on that position |
 | `_gc arty-1, correction 09050` | shifts the last aim point and fires again ([adjusting the fire](#fire-adjustment)) |
 | `_gc arty-1, fire` | fire for effect at the last aim point |
@@ -55,7 +56,7 @@ autopilot — you choose it, and you reuse it for every order you give it.
 
 | Parameter | Description |
 |-----------|-------------|
-| `groupname` | The exact name of the DCS group to drive. On a `set`, if you leave it out, the module looks for the allied group **nearest the marker, within 250 metres** — and tells you if it finds none. |
+| `groupname` | The name of the DCS group to drive. **A fragment is enough**: the group `-arty, unitname arty-1` creates is really called `[b]-arty-1#7`, and `groupname arty-1` finds it. If several groups match, the command is refused and you are told which names it found, rather than one being picked at random. On a `set`, if you leave the parameter out, the module looks for the allied group **nearest the marker, within 250 metres** — and tells you if it finds none. |
 | `target` | The coordinates, if you would rather write them separately than after `aim` or `fire` ([the accepted formats](#coordinate-formats)). |
 | `shells` | Number of rounds. Accepts a random range, e.g. `40-80`. |
 | `radius` | Dispersion of the fire, in metres. Also accepts a range. |

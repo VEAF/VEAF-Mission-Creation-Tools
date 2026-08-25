@@ -1578,4 +1578,125 @@ function TestArtilleryFireTask:test_an_order_without_a_target_pushes_nothing()
   luaunit.assertEquals(#self.taches, 0, "sans cible, rien ne part vers DCS")
 end
 
+-- ── FEAT-GROUPNAME-PARTIAL-MATCH ────────────────────────────────────────────
+-- `groupname` designe le groupe DCS sur lequel poser le pilote automatique. Une recherche exacte ne
+-- trouvait jamais un groupe apparu par une commande VEAF : `-arty, unitname arty-1` produit un groupe que
+-- DCS appelle `[b]-arty-1#7`, donc `groupname arty-1` retombait silencieusement sur la recherche de
+-- proximite — et posait le pilote automatique sur le premier groupe a moins de 250 m du marqueur.
+--
+-- Les tests passent par `executeCommand`, PAS par `parseMarkerText` : la resolution du nom et son refus
+-- vivent dans `markTextAnalysis`, qu'un test du parseur seul n'atteint jamais. C'est le cablage, encore
+-- une fois, qui devait etre sous test.
+TestGroupnamePartialMatch = {}
+
+function TestGroupnamePartialMatch:setUp()
+  dcs_mocks.reset()
+  self._outText = trigger.action.outText
+  self.messages = {}
+  local test = self
+  trigger.action.outText = function(text)
+    table.insert(test.messages, tostring(text))
+  end
+  self._saved = veafGroundAI.handlers
+  veafGroundAI.handlers = {}
+end
+
+function TestGroupnamePartialMatch:tearDown()
+  trigger.action.outText = self._outText
+  veafGroundAI.handlers = self._saved
+  -- Les groupes poses ici doivent partir avec la classe : `TestVeafGroundAIMarkTextAnalysis` n'a pas de
+  -- `setUp`, et un groupe survivant sous le marqueur y fait reussir la recherche de proximite — donc
+  -- `_ground set` y rend des options la ou il doit rendre nil.
+  dcs_mocks.reset()
+end
+
+--- Poser un groupe allie SOUS le marqueur, que la recherche de proximite prendrait.
+---
+--- Sans lui, un refus qui ne s'arrete pas est indiscernable d'un refus qui s'arrete : les deux finissent
+--- sans rien creer, faute de quoi que ce soit a substituer. C'est cette substitution qui est le defaut.
+function TestGroupnamePartialMatch:_poserUnGroupeSousLeMarqueur(name)
+  local group
+  local unit = {
+    getPosition = function()
+      return { p = { x = 0, y = 0, z = 0 } }
+    end,
+    getName = function()
+      return name .. "-1"
+    end,
+    getGroup = function()
+      return group
+    end,
+  }
+  dcs_mocks.addGroup(name, {
+    _coalition = coalition.side.BLUE,
+    getUnits = function()
+      return { unit }
+    end,
+  })
+  group = Group.getByName(name)
+  return group
+end
+
+function TestGroupnamePartialMatch:_say(text)
+  self.messages = {}
+  veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, text, 2, 0)
+  return table.concat(self.messages, " | ")
+end
+
+function TestGroupnamePartialMatch:test_a_spawned_group_is_found_by_the_name_the_pilot_gave()
+  -- LE cas du lot : le pilote a fait apparaitre `arty-1`, DCS l'appelle `[b]-arty-1#7`, et le pilote
+  -- automatique doit se poser dessus. Il l'a fait quand la commande n'a rien a redire.
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  local said = self:_say("_gc mabatterie, set, groupname arty-1")
+  luaunit.assertEquals(said:find("250", 1, true), nil, "la recherche de proximite ne doit pas etre atteinte : " .. said)
+  luaunit.assertNotNil(veafGroundAI.get("mabatterie"), "le pilote automatique doit avoir ete cree")
+end
+
+function TestGroupnamePartialMatch:test_an_ambiguous_name_is_refused_out_loud()
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  dcs_mocks.addGroup("[b]-arty-10#8")
+  self:_poserUnGroupeSousLeMarqueur("un-blinde-quelconque")
+  local said = self:_say("_gc mabatterie, set, groupname arty-1")
+  luaunit.assertNotEquals(said, "", "une ambiguite doit etre dite")
+  luaunit.assertNotNil(said:find("[b]-arty-1#7", 1, true), "et doit nommer les candidats : " .. said)
+  luaunit.assertNotNil(said:find("[b]-arty-10#8", 1, true), "les deux : " .. said)
+  luaunit.assertNil(veafGroundAI.get("mabatterie"), "et rien ne doit avoir ete cree")
+end
+
+function TestGroupnamePartialMatch:test_an_unknown_name_does_not_fall_back_on_the_nearest_group()
+  -- Le defaut le plus vicieux : un nom mal tape retombait sur la recherche de proximite, qui posait le
+  -- pilote automatique sur ce qui trainait sous le marqueur. Le pilote croit commander sa batterie.
+  self:_poserUnGroupeSousLeMarqueur("un-blinde-quelconque")
+  local said = self:_say("_gc mabatterie, set, groupname mortier")
+  luaunit.assertNotEquals(said, "", "un nom qui ne designe rien doit etre dit")
+  luaunit.assertNotNil(said:find("mortier", 1, true), "et doit redire le nom demande : " .. said)
+  luaunit.assertNil(veafGroundAI.get("mabatterie"), "et rien ne doit avoir ete cree")
+end
+
+function TestGroupnamePartialMatch:test_a_verb_that_ignores_the_group_is_not_refused()
+  -- `status` s'adresse a un pilote automatique deja pose et ne designe aucun groupe : un `groupname`
+  -- ecrit de travers ne doit pas lui couper la parole. Le refus ne vaut que pour les verbes qui s'en
+  -- servent vraiment.
+  local handler = ArtilleryUnitHandler:new():setName("mabatterie")
+  handler.silent = false
+  veafGroundAI.add(handler)
+  local said = self:_say("_gc mabatterie, status, groupname mortier")
+  luaunit.assertEquals(said:find("mortier", 1, true), nil, "status ne doit pas etre refuse : " .. said)
+  luaunit.assertNotEquals(said, "", "et doit avoir repondu quelque chose")
+end
+
+function TestGroupnamePartialMatch:test_without_a_groupname_the_nearest_group_is_taken()
+  -- Le comportement d'origine, garde sous test : sans `groupname`, c'est bien le groupe sous le marqueur
+  -- qui est pris. C'est aussi ce qui donne son sens au test precedent — la substitution est possible, et
+  -- c'est pour cela qu'un nom refuse doit arreter la commande.
+  self:_poserUnGroupeSousLeMarqueur("un-blinde-quelconque")
+  self:_say("_gc mabatterie, set")
+  luaunit.assertNotNil(veafGroundAI.get("mabatterie"), "le groupe le plus proche doit etre pris")
+end
+
+function TestGroupnamePartialMatch:test_without_a_groupname_and_nothing_nearby_the_range_is_announced()
+  local said = self:_say("_gc mabatterie, set")
+  luaunit.assertNotNil(said:find("250", 1, true), "expected the proximity message: " .. said)
+end
+
 os.exit(luaunit.LuaUnit.run())

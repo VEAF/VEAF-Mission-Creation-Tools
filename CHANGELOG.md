@@ -10,6 +10,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.6] — 2026-08-25
+
+### Fixed
+
+- **`groupname` never found a group a VEAF command had spawned, and silently replaced it with whatever
+  stood nearest.** The `_gc` marker's parameter looked the name up **exactly**, but
+  `veaf.getNameForSpawnedGroup` decorates the name of anything a command creates: `-arty, unitname arty-1`
+  produces a group DCS calls `[b]-arty-1#7`. So `groupname arty-1` always missed, and the parameter only
+  ever worked on groups placed in the mission editor — not on the ones a pilot has just spawned, which is
+  the artillery case.
+
+  The miss was worse than a miss: an unfound name fell back on the nearest-allied-group search and attached
+  the autopilot to whatever stood within 250 m of the marker, with no message either way. A fragment of the
+  name is now enough; if several groups match, the command is refused and the names found are said, rather
+  than one being picked at random; and a name that designates nothing stops the command instead of
+  designating something else. Only `set` and `unset` are concerned — `status` with a mistyped `groupname` is
+  still answered.
+
+  Also fixed, and the reason no test could see any of this: `coalition.getGroups` returned `{}` in the test
+  mocks while `Group.getByName` found registered groups, so nothing could exercise code that enumerates
+  groups.
+
+---
+
 ## [6.16.5] — 2026-08-25
 
 ### Fixed

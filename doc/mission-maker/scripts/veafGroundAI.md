@@ -40,6 +40,7 @@ automatique — vous le choisissez, et vous le réutilisez pour tous ses ordres.
 |---|---|
 | `_gc arty-1` *(marqueur sur la batterie)* | crée le pilote automatique `arty-1` et le démarre |
 | `_gc arty-1, groupname ARTY-1` | idem, en nommant le groupe DCS au lieu de le chercher |
+| `_gc mabatterie, groupname arty-1` | idem, sur un groupe apparu par une commande VEAF |
 | `_gc arty-1, aim 37T GG 12345 12345` | tir de réglage sur cette position |
 | `_gc arty-1, correction 09050` | décale le dernier point visé et retire ([le réglage du tir](#fire-adjustment)) |
 | `_gc arty-1, fire` | tir d'efficacité au dernier point visé |
@@ -56,7 +57,7 @@ automatique — vous le choisissez, et vous le réutilisez pour tous ses ordres.
 
 | Paramètre | Description |
 |-----------|-------------|
-| `groupname` | Nom exact du groupe DCS à piloter. Sur un `set`, si vous l'omettez, le module cherche le groupe allié **le plus proche du marqueur, dans un rayon de 250 mètres** — et vous le dit s'il n'en trouve aucun. |
+| `groupname` | Nom du groupe DCS à piloter. **Un fragment suffit** : le groupe que `-arty, unitname arty-1` fait apparaître s'appelle en réalité `[b]-arty-1#7`, et `groupname arty-1` le trouve. Si plusieurs groupes correspondent, la commande est refusée et les noms trouvés vous sont dits — plutôt que d'en choisir un au hasard. Sur un `set`, si vous omettez le paramètre, le module cherche le groupe allié **le plus proche du marqueur, dans un rayon de 250 mètres** — et vous le dit s'il n'en trouve aucun. |
 | `target` | Les coordonnées, si vous préférez les écrire séparément plutôt qu'après `aim` ou `fire` ([les formats acceptés](#coordinate-formats)). |
 | `shells` | Nombre d'obus. Accepte une plage aléatoire, par exemple `40-80`. |
 | `radius` | Dispersion du tir, en mètres. Accepte aussi une plage. |

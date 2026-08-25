@@ -1025,10 +1025,17 @@ veafGroundAI.MarkerSpec = {
       -- A valueless `groupname` arrives as "" and used to be handed to `Group.getByName("")`.
       -- Skipped now: an empty name cannot identify a group, and leaving `options.group` nil is
       -- what lets the nearest-allied-group search below do its job.
+      --
+      -- Une recherche exacte, elle, ne trouvait jamais un groupe apparu par une commande VEAF : `-arty,
+      -- unitname arty-1` cree un groupe que DCS appelle `[b]-arty-1#7`, donc `groupname arty-1` tombait
+      -- systematiquement dans la recherche de proximite. Le nom retenu suffit maintenant.
       keys = { "groupname" },
       apply = function(options, value)
         if value ~= nil and value ~= "" then
-          options.group = Group.getByName(value)
+          -- Le nom demande est conserve : c'est lui qu'on redit au pilote si la recherche echoue, et
+          -- c'est aussi ce qui distingue "aucun nom donne" de "un nom donne qui ne designe rien".
+          options.groupName = value
+          options.group, options.groupCandidates = veaf.findGroupByPartialName(value)
         end
       end,
     },
@@ -1127,8 +1134,28 @@ function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
     return nil
   end
 
+  -- Seuls `set` et `unset` designent un groupe ; les autres verbes s'adressent a un pilote automatique
+  -- deja pose et ignorent `groupname`, y compris ecrit de travers. Les deux blocs ci-dessous partagent
+  -- donc cette condition.
+  local needsGroup = options.verb == veafGroundAI.VERB_SET or options.verb == veafGroundAI.VERB_UNSET
+
+  -- Un nom donne qui ne designe pas UN groupe arrete la commande, au lieu de retomber sur la recherche
+  -- de proximite : le pilote a nomme le groupe qu'il voulait, et lui poser le pilote automatique sur le
+  -- groupe le plus proche du marqueur serait piloter une unite que personne n'a designee.
+  if needsGroup and options.groupName and not options.group then
+    if options.groupCandidates then
+      local candidates = table.concat(options.groupCandidates, ", ")
+      veaf.loggers.get(veafGroundAI.Id):warn("ambiguous group name [%s]: %s", veaf.lp(options.groupName), veaf.lp(candidates))
+      trigger.action.outText(veaf.t("groundai.ambiguous_group_name", options.groupName, candidates), 15)
+    else
+      veaf.loggers.get(veafGroundAI.Id):warn("no group matches [%s]", veaf.lp(options.groupName))
+      trigger.action.outText(veaf.t("groundai.no_such_group", options.groupName), 10)
+    end
+    return nil
+  end
+
   -- check mandatory parameter "groupname" for commands "set" and "unset"
-  if (options.verb == veafGroundAI.VERB_SET or options.verb == veafGroundAI.VERB_UNSET) and not options.group then
+  if needsGroup and not options.group then
     -- search for the nearest allied group
     local minDist = 999999
     local closestUnit = nil

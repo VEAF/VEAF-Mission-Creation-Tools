@@ -4781,6 +4781,60 @@ function veaf.getNameForSpawnedGroup(pCoalition, pBaseName, pCombatZoneName)
   end
 end
 
+--- Find a group from the name a human typed, even if DCS knows it under a decorated one.
+---
+--- `getNameForSpawnedGroup` just above builds the real name: `-arty, unitname arty-1` on a blue battery
+--- produces a group DCS actually calls `[b]-arty-1#7`. A `Group.getByName("arty-1")` never finds it, so
+--- every command that takes a group name only ever worked on groups placed in the mission editor. These
+--- two functions are counterparts — one decorates the name, this one finds it back.
+---
+--- An exact name still wins: it is the editor-placed case, it costs one lookup, and it cannot be
+--- ambiguous.
+---
+--- Ambiguity is refused rather than arbitrated. `arty-1` is contained in both `arty-1` and `arty-10`;
+--- picking one would make a battery nobody designated open fire. The caller gets the candidates so it can
+--- say which names it hesitated between.
+---
+--- @param name string the name to look for, as typed
+--- @return table|nil the group, or nil if nothing or several matched
+--- @return table|nil the matching names, only when several matched
+function veaf.findGroupByPartialName(name)
+  if type(name) ~= "string" or name == "" then
+    return nil
+  end
+
+  local exact = Group.getByName(name)
+  if exact then
+    return exact
+  end
+
+  local needle = name:lower()
+  local matches = {}
+  local names = {}
+  -- `getGroupsOfCoalition(nil)` walks the three coalitions, and a group belonging to none of them shows up
+  -- in all three lists; without this dedup by name a single group would declare itself ambiguous.
+  for _, group in pairs(veaf.getGroupsOfCoalition(nil)) do
+    local groupName = group:getName()
+    if groupName and not names[groupName] and groupName:lower():find(needle, 1, true) then
+      names[groupName] = true
+      table.insert(matches, group)
+    end
+  end
+
+  if #matches == 1 then
+    return matches[1]
+  end
+  if #matches > 1 then
+    local candidates = {}
+    for _, group in pairs(matches) do
+      table.insert(candidates, group:getName())
+    end
+    table.sort(candidates)
+    return nil, candidates
+  end
+  return nil
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- collecting the groups a command spawns
 --

@@ -10,6 +10,29 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.3] — 2026-08-25
+
+### Fixed
+
+- **`-arty1` and its siblings could not command the battery they had just spawned.** The alias answered
+  "no allied group within 250 m of the marker" while the battery stood right under it. The alias entry
+  point computes the **opposing** coalition — an alias usually expands to a spawn, and a marker spawns
+  against you — and handed that single value to every module in the chain, including the ground-AI module,
+  which uses it as the side of the **allied** group to look for. A blue pilot spawned a blue battery and
+  then searched for a red one. The same order typed by hand worked, because that route derives the
+  coalition from the player.
+
+  Two coalitions now travel the chain: the spawn side for what gets created, the requester side for
+  modules that look for the pilot's own groups. Callers that pass no requester — the mission-start batch,
+  the remote path — fall back to the previous value, so nothing else changes behaviour.
+
+  Three of the five mutations killed nothing at first, and all three were wiring: the entry point that
+  computes the value, the batch loop that forwards it, and the delayed path that stores it in its argument
+  table. The batch one mattered doubly — **`-arty1` is a batch**, so that was the exact path of the
+  reported defect. (found in game)
+
+---
+
 ## [6.16.2] — 2026-08-25
 
 ### Fixed

@@ -791,4 +791,170 @@ function TestExecuteAliasDelayGuard:test_a_numeric_delay_keeps_its_value()
   luaunit.assertAlmostEquals(self.scheduled - before, 30, 0.01)
 end
 
+-- ===========================================================================
+-- FIX-ALIAS-CHAIN-HANDS-THE-WRONG-COALITION
+--
+-- Le point d'entree des alias calcule la coalition ADVERSE — parce qu'un alias fait *generalement*
+-- apparaitre quelque chose, et qu'un marqueur fait apparaitre pour l'ennemi — puis passe cette unique
+-- valeur a toute la chaine. Y compris a `veafGroundAI`, ou elle devient la coalition du groupe ALLIE a
+-- chercher a 250 m.
+--
+-- Consequence mesuree en jeu le 2026-08-25 : `-arty1` pose une batterie bleue (country USA) puis cherche
+-- un groupe rouge autour du marqueur, et repond "no allied group within 250m". Le meme ordre tape a la
+-- main marche, parce que `onEventMarkChange` calcule la coalition depuis celle du joueur.
+--
+-- Le mot "generalement" du commentaire est tout le defaut : deux modules de la chaine veulent deux
+-- coalitions differentes.
+-- ===========================================================================
+TestAliasChainCoalitions = {}
+
+function TestAliasChainCoalitions:setUp()
+  veafShortcuts.buildDefaultList()
+  self.vu = {}
+  local test = self
+
+  -- Chaque module de la chaine note la coalition qu'on lui donne, puis refuse, pour que la chaine
+  -- continue et qu'on voie tout le monde d'un coup.
+  self._savedSpawn = veafSpawn
+  self._savedGroundAI = veafGroundAI
+  -- Les modules qui separent veafSpawn de veafGroundAI dans la chaine ne sont pas charges par cette
+  -- suite : chacun doit exister et refuser, sinon la chaine s'arrete sur un nil avant d'arriver au
+  -- module qu'on observe.
+  self._savedAutres = {}
+  for _, nom in ipairs({ "veafNamedPoints", "veafCasMission", "veafMove", "veafRadio" }) do
+    self._savedAutres[nom] = _G[nom]
+    _G[nom] = {
+      executeCommand = function()
+        return false
+      end,
+    }
+  end
+  self._savedSecurityExec = veafSecurity and veafSecurity.executeCommand
+  if veafSecurity then
+    veafSecurity.executeCommand = function()
+      return false
+    end
+  end
+  veafSpawn = {
+    executeCommand = function(position, command, coalition)
+      test.vu.spawn = coalition
+      return false
+    end,
+  }
+  veafGroundAI = {
+    executeCommand = function(position, command, coalition)
+      test.vu.groundAI = coalition
+      return true
+    end,
+  }
+end
+
+function TestAliasChainCoalitions:tearDown()
+  veafSpawn = self._savedSpawn
+  veafGroundAI = self._savedGroundAI
+  for nom, valeur in pairs(self._savedAutres) do
+    _G[nom] = valeur
+  end
+  if veafSecurity then
+    veafSecurity.executeCommand = self._savedSecurityExec
+  end
+end
+
+--- Reproduit ce que fait le point d'entree pour un marqueur : le spawn vise l'adverse, le demandeur non.
+function TestAliasChainCoalitions:_dropMarker(text, joueur)
+  local adverse = (joueur == coalition.side.BLUE) and coalition.side.RED or coalition.side.BLUE
+  veafShortcuts.executeCommand({ x = 0, y = 0, z = 0 }, text, adverse, 0, true, nil, nil, joueur)
+end
+
+function TestAliasChainCoalitions:test_groundai_gets_the_requester_side_not_the_spawn_side()
+  -- LE defaut. Un pilote bleu commande une batterie bleue : la recherche doit se faire en bleu.
+  self:_dropMarker("-ai_set arty-1", coalition.side.BLUE)
+  luaunit.assertEquals(self.vu.groundAI, coalition.side.BLUE, "veafGroundAI doit chercher du cote du pilote")
+end
+
+function TestAliasChainCoalitions:test_the_same_holds_for_a_red_pilot()
+  self:_dropMarker("-ai_set arty-1", coalition.side.RED)
+  luaunit.assertEquals(self.vu.groundAI, coalition.side.RED)
+end
+
+function TestAliasChainCoalitions:test_the_spawn_still_gets_the_opposing_side()
+  -- L'autre moitie, et elle compte autant : un `-shilka` pose depuis un marqueur doit rester un ennemi.
+  -- Corriger la coalition de veafGroundAI en la cassant pour veafSpawn serait un echange, pas un fix.
+  self:_dropMarker("-ai_set arty-1", coalition.side.BLUE)
+  luaunit.assertEquals(self.vu.spawn, coalition.side.RED, "veafSpawn doit garder la coalition adverse")
+end
+
+function TestAliasChainCoalitions:test_without_a_requester_it_falls_back_to_the_chain_coalition()
+  -- Les appels qui ne fournissent pas de demandeur — le lot de demarrage de mission, le chemin distant —
+  -- ne doivent pas se retrouver avec nil.
+  veafShortcuts.executeCommand({ x = 0, y = 0, z = 0 }, "-ai_set arty-1", coalition.side.RED, 0, true)
+  luaunit.assertEquals(self.vu.groundAI, coalition.side.RED, "sans demandeur, on garde ce qu'on a")
+end
+
+-- ── le point d'entree, et le lot ────────────────────────────────────────────
+-- Deux mutations ne tuaient rien : retirer le calcul du demandeur au point d'entree, et le perdre dans
+-- la boucle du lot. Les tests ci-dessus appellent `veafShortcuts.executeCommand` directement en lui
+-- donnant le demandeur — ils ne pouvaient donc pas voir qui le calcule, ni s'il survit a un lot.
+--
+-- Le second compte doublement : `-arty1` EST un lot (il pose la batterie puis lui attache le pilote
+-- automatique), donc c'est precisement le chemin du defaut signale en jeu.
+
+function TestAliasChainCoalitions:test_the_entry_point_computes_both_coalitions()
+  -- On attrape la fonction que veafShortcuts donne au repartiteur, et on l'appelle comme le repartiteur
+  -- le ferait pour un marqueur pose par un pilote bleu.
+  local pris = nil
+  local savedCommands = veafCommands
+  veafCommands = {
+    PRIORITY_SHORTCUTS = 20,
+    SECURITY_HANDLED = "HANDLED",
+    registerCommandHandler = function(fn)
+      pris = fn
+    end,
+  }
+  local savedRemote = veafRemote
+  veafRemote = { registerRemoteModule = function() end }
+  veafShortcuts.initialize()
+  veafCommands = savedCommands
+  veafRemote = savedRemote
+
+  luaunit.assertNotNil(pris, "veafShortcuts doit enregistrer un gestionnaire")
+  self.vu = {}
+  pris({ x = 0, y = 0, z = 0 }, { text = "-ai_set arty-1", coalition = coalition.side.BLUE, idx = 0 }, true, true)
+
+  luaunit.assertEquals(self.vu.groundAI, coalition.side.BLUE, "le pilote bleu commande en bleu")
+  luaunit.assertEquals(self.vu.spawn, coalition.side.RED, "et le spawn reste contre lui")
+end
+
+function TestAliasChainCoalitions:test_a_batch_alias_keeps_the_requester()
+  -- `-arty1` est un lot : il pose une batterie puis lui attache un pilote automatique. Si le demandeur ne
+  -- descend pas dans le lot, la seconde commande cherche du mauvais cote — le defaut exact signale en jeu.
+  self.vu = {}
+  self:_dropMarker("-arty1", coalition.side.BLUE)
+  luaunit.assertEquals(self.vu.groundAI, coalition.side.BLUE, "le lot doit transmettre le demandeur")
+end
+
+function TestAliasChainCoalitions:test_a_delayed_alias_keeps_the_requester()
+  -- Le chemin `-alias!30` : l'ordre part plus tard, avec ses arguments ranges dans une table. Le
+  -- demandeur doit y etre, sinon un ordre differe cherche du mauvais cote — troisieme cablage de ce lot
+  -- que seule une mutation a su montrer.
+  local args = nil
+  local saved = mist.scheduleFunction
+  mist.scheduleFunction = function(fn, a)
+    args = a
+  end
+  veafShortcuts.ExecuteAlias("-ai_set", 30, "arty-1", { x = 0, y = 0, z = 0 }, coalition.side.RED, 0, true, nil, nil, coalition.side.BLUE)
+  mist.scheduleFunction = saved
+
+  luaunit.assertNotNil(args, "un delai doit planifier l execution")
+  luaunit.assertEquals(args[9], coalition.side.BLUE, "le demandeur doit survivre au report")
+  luaunit.assertEquals(args[4], coalition.side.RED, "et la coalition du spawn aussi")
+end
+
+function TestAliasChainCoalitions:test_arty1_is_still_a_batch()
+  -- Garde-fou du test precedent : s'il cessait d'etre un lot, celui-ci passerait pour la mauvaise raison.
+  local alias = veafShortcuts.GetAlias("-arty1")
+  luaunit.assertNotNil(alias, "-arty1 doit exister")
+  luaunit.assertNotNil(alias:getBatchAliases(), "-arty1 doit rester un lot")
+end
+
 os.exit(luaunit.LuaUnit.run())

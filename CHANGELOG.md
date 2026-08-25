@@ -10,6 +10,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.4] — 2026-08-25
+
+### Fixed
+
+- **An artillery battery left its position after every fire mission, so the next order found it driving.**
+  The fire task hard-coded `counterbattaryRadius = 500`, which the DCS API describes as the radius the
+  group *"will move in random directions after completing the fireAtPoint task"* — counter-battery
+  evasion. Realistic for a single mission, ruinous for an adjustment loop: the ranging shot goes out, the
+  guns scatter, and the order for effect arrives on a group in motion. **A gun does not fire while it is
+  driving.** It is now zero, behind a named constant that carries the reason so nobody puts 500 back
+  meaning well.
+
+  The correction arithmetic was never wrong — it works on the *target*, not on where the guns stand. Only
+  the firing was prevented.
+
+  Nothing had ever asserted the task handed to DCS: not the scatter radius, not the two axes, not the
+  `expendQtyEnabled` flag without which DCS ignores the round count. Six tests now read that exact table.
+  (found in game)
+
+- `coord.LLtoMGRS` in the shared test doubles returned a table **without `UTMZone`**, which real DCS
+  always provides. Any code building a readable grid reference concatenates it and died on a nil as soon as
+  a test reached that path — an incomplete double does not fail the code that reads it, it crashes
+  somewhere else.
+
+---
+
 ## [6.16.3] — 2026-08-25
 
 ### Fixed

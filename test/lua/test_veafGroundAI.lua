@@ -1486,4 +1486,96 @@ function TestGroundAiIsActuallyWired:test_every_registration_declares_its_securi
   end
 end
 
+-- ===========================================================================
+-- FIX-ARTILLERY-SCATTERS-AFTER-EVERY-MISSION
+--
+-- La tache `FireAtPoint` de DCS prend un `counterbattaryRadius` : le schema de l'API le decrit comme
+-- « le rayon en metres, depuis le chef de groupe, dans lequel le groupe se deplacera dans des directions
+-- aleatoires APRES avoir termine la tache ». C'est de l'evitement de contre-batterie.
+--
+-- Il etait code en dur a 500, et aucun test ne le regardait. Consequence signalee en jeu le 2026-08-25 :
+-- le tir de reglage part, les canons se dispersent, puis l'ordre d'efficacite arrive sur un groupe qui
+-- roule — et une piece d'artillerie ne tire pas en roulant. « les canons se sont deplaces et ne tirent
+-- pas ».
+--
+-- Ces tests regardent la tache POUSSEE A DCS, pas ce que le module en pense : c'est le seul endroit d'ou
+-- le defaut etait visible.
+-- ===========================================================================
+TestArtilleryFireTask = {}
+
+function TestArtilleryFireTask:setUp()
+  dcs_mocks.reset()
+  self._outText = trigger.action.outText
+  trigger.action.outText = function() end
+
+  self.taches = {}
+  local test = self
+  self.handler = ArtilleryUnitHandler:new():setName("arty-1")
+  self.handler.silent = true
+  -- On remplace le groupe DCS par un espion : ce qui compte est la table exacte remise au controleur.
+  self.handler.getDcsGroup = function()
+    return {
+      getController = function()
+        return {
+          pushTask = function(_, tache)
+            table.insert(test.taches, tache)
+          end,
+        }
+      end,
+    }
+  end
+end
+
+function TestArtilleryFireTask:tearDown()
+  trigger.action.outText = self._outText
+end
+
+--- Donne un ordre et rend la tache que DCS a recue.
+function TestArtilleryFireTask:_tache(order)
+  self.taches = {}
+  self.handler:handleOrder(order)
+  return self.taches[1]
+end
+
+function TestArtilleryFireTask:_ordreDeTir(shells, radius)
+  return {
+    verb = ArtilleryUnitHandler.ORDER_FIRE,
+    parameters = { shells = shells, target = { x = 1000, y = 0, z = 2000 }, radius = radius },
+  }
+end
+
+function TestArtilleryFireTask:test_the_battery_does_not_scatter_after_firing()
+  -- LE defaut. Un rayon non nul fait rouler les canons des que la mission est finie, et le suivant les
+  -- trouve en mouvement.
+  local tache = self:_tache(self:_ordreDeTir(2, 10))
+  luaunit.assertNotNil(tache, "un ordre de tir doit produire une tache")
+  luaunit.assertEquals(tache.params.counterbattaryRadius, 0, "la batterie doit rester en place")
+end
+
+function TestArtilleryFireTask:test_it_is_still_a_fire_task()
+  local tache = self:_tache(self:_ordreDeTir(2, 10))
+  luaunit.assertEquals(tache.id, "FireAtPoint")
+end
+
+function TestArtilleryFireTask:test_the_target_uses_the_map_plane()
+  -- `x` est le nord, `y` de la tache est l'EST — c'est un vec2 de carte, pas un vec3 du moteur. Melanger
+  -- les deux ne leve aucune erreur et met les obus ailleurs : voir docs/agents/dcs-coordinates.md.
+  local tache = self:_tache(self:_ordreDeTir(2, 10))
+  luaunit.assertEquals(tache.params.x, 1000, "le nord")
+  luaunit.assertEquals(tache.params.y, 2000, "l'est, pris dans le z du vec3")
+end
+
+function TestArtilleryFireTask:test_the_shells_and_the_radius_reach_dcs()
+  local tache = self:_tache(self:_ordreDeTir(63, 120))
+  luaunit.assertEquals(tache.params.expendQty, 63)
+  luaunit.assertEquals(tache.params.zoneRadius, 120)
+  luaunit.assertTrue(tache.params.expendQtyEnabled, "sans ce drapeau DCS ignore le nombre d'obus")
+end
+
+function TestArtilleryFireTask:test_an_order_without_a_target_pushes_nothing()
+  self.taches = {}
+  self.handler:handleOrder({ verb = ArtilleryUnitHandler.ORDER_FIRE, parameters = { shells = 2, radius = 10 } })
+  luaunit.assertEquals(#self.taches, 0, "sans cible, rien ne part vers DCS")
+end
+
 os.exit(luaunit.LuaUnit.run())

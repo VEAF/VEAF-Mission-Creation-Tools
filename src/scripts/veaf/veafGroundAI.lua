@@ -384,6 +384,13 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- METHODS
 
+--- Rayon de dispersion apres une mission de tir, en metres.
+---
+--- Zero : la batterie reste en place. DCS ferait rouler le groupe dans ce rayon apres CHAQUE tache de tir,
+--- ce qui empeche l'ordre suivant d'aboutir — un canon qui roule ne tire pas. Voir le commentaire dans
+--- `handleOrder`. Une mission qui voudrait la dispersion realiste devrait la demander explicitement.
+ArtilleryUnitHandler.COUNTERBATTERY_SCATTER = 0
+
 ArtilleryUnitHandler.VERB_FIRE_FORAIM = 1
 ArtilleryUnitHandler.VERB_FIRE_FOREFFECT = 2
 --- Shift the last aim point by a bearing and a distance, then fire again — FEAT-ARTILLERY-CONTROL.
@@ -750,13 +757,25 @@ function ArtilleryUnitHandler:handleOrder(order)
         veaf.lp(radius)
       )
       -- fire the shells
+      -- `y` prend le `z` du vec3 : la tache attend un vec2 de carte, ou le second axe est l'EST. Melanger
+      -- les deux conventions ne leve aucune erreur et met les obus ailleurs — docs/agents/dcs-coordinates.md.
       local fireParams = {
         x = target.x,
         y = target.z,
         zoneRadius = radius,
         expendQty = shells,
         expendQtyEnabled = true,
-        counterbattaryRadius = 500,
+        -- ZERO, et c'etait 500 en dur. Le schema de l'API DCS decrit ce champ comme « le rayon en metres,
+        -- depuis le chef de groupe, dans lequel le groupe se deplacera dans des directions aleatoires
+        -- APRES avoir termine la tache » : de l'evitement de contre-batterie.
+        --
+        -- Ce qui detruit une boucle de reglage. Signale en jeu le 2026-08-25 : le tir d'essai part, les
+        -- canons se dispersent, l'ordre d'efficacite arrive sur un groupe qui roule — et une piece
+        -- d'artillerie ne tire pas en roulant. « les canons se sont deplaces et ne tirent pas ».
+        --
+        -- La correction, elle, restait juste : elle porte sur la CIBLE, pas sur la position des canons.
+        -- C'est bien le tir qui etait empeche, pas le calcul.
+        counterbattaryRadius = ArtilleryUnitHandler.COUNTERBATTERY_SCATTER,
       }
       local fire = { id = "FireAtPoint", params = fireParams }
       self:getDcsGroup():getController():pushTask(fire)

@@ -10,6 +10,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.2] — 2026-08-25
+
+### Fixed
+
+- **The new `_gc` marker did nothing at all: it never reached the module.** A marker command handler
+  registers with a **keyphrase filter**, and the dispatcher only calls it for texts containing that word.
+  The filter takes a single string, so `_gc …` was never handed to the ground-AI module — the marker just
+  stayed on the map, silent. The module now registers once per keyphrase.
+
+  It shipped that way with 163 green tests, and none of them could see it: every one called
+  `executeCommand` or the parser **directly**, so nothing covered whether anything calls *them*. Five
+  tests now inspect the declared filters instead of the handler, and removing the second registration
+  fails three of them. (found in game)
+
+---
+
 ## [6.16.1] — 2026-08-25
 
 ### Added

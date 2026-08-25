@@ -10,6 +10,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.7] — 2026-08-25
+
+### Fixed
+
+- **The one message that teaches a command taught the wrong one.** When an order is addressed to an
+  autopilot that does not exist, the module answers by saying how to create one — the fix that replaced
+  eight silences with useful answers. But the command it gave was `_ground set, name arty-1`, and `_ground`
+  was dropped from the documentation the same day `_gc` shipped. The form is still accepted so no existing
+  mission breaks, but nothing documents it any more. That made this the worst possible place for a stale
+  syntax: a pilot reads this message precisely because he does not know what to type. It now says
+  `_gc arty-1, set`.
+
+  Swept rather than searched: the family is "a message that teaches a command", not "a message mentioning
+  `_ground`". All fourteen registered marker keyphrases were read out of the modules and crossed with every
+  value in the catalogue — three messages teach a command (`_cas`, `_move`, and this one), and only this one
+  was stale. The sweep ships as a test, so a message teaching an unregistered keyphrase now fails the suite,
+  and the two tests that asserted the literal string `_ground set` read the module's own constants instead.
+
+---
+
 ## [6.16.6] — 2026-08-25
 
 ### Fixed

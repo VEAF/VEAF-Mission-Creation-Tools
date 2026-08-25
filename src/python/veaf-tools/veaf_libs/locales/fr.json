@@ -66,7 +66,7 @@
   "builder.config_override_unknown_segments": "Build impossible : config_override référence le(s) identifiant(s) {segments} introuvable(s) dans les scripts injectés de la mission. Corrigez la/les clé(s) dans mission.yaml (config_override).",
   "builder.copied_from_defaults": "Fichier requis '{file}' copié depuis le dossier par défaut '{folder}'",
   "builder.creating_mission": "Création de la mission {output}...",
-  "builder.ctld_no_config": "CTLD est activé mais aucun {file} n'a été trouvé dans le dossier mission — CTLD utilisera ses valeurs par défaut. Créez-en un avec ctld-tools.",
+  "builder.ctld_no_config": "CTLD est activé mais aucun {file} n'a été trouvé dans le dossier mission — CTLD utilisera ses valeurs par défaut. Créez-en un avec ctld-tools.exe, à télécharger depuis https://github.com/VEAF/CTLD/releases (les releases de CTLD 2 sont des pre-releases : passez par l'onglet Releases).",
   "builder.custom_loader_hint": "'src/scripts/{file}' semble charger d'autres scripts Lua (loadfile/dofile/require). En v6, plus besoin d'un loader custom : listez vos scripts dans la section 'custom_scripts:' de mission.yaml (chacun chargé au bon moment, avant/après mission-script.lua, avec un trigger de chargement généré automatiquement). Voir la documentation. Un loader v5 résiduel peut alors être supprimé.",
   "builder.custom_lua_included": "Fichier Lua personnalisé 'src/scripts/{file}' déclaré dans mission.yaml et sera inclus dans la construction.",
   "builder.custom_script_delay_invalid": "custom_scripts : « {script} » déclare delay_seconds = {value}, qui n'est pas un nombre — le script sera chargé dans le déclencheur commun, sans délai.",

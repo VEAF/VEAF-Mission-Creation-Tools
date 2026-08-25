@@ -10,6 +10,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.5] — 2026-08-25
+
+### Fixed
+
+- **A sanctuary zone posted its two land SAM sites at the same spot, with the same radius.** Only the
+  heading differed. Its three neighbouring blocks in the same function all spread their second piece —
+  2000 then 3000 metres on water, 3000 then 4000 in both hardened waves, and always moving to the later
+  position — so the intended values were legible from them. Recorded as a *question* when it was spotted,
+  because two sites at one point with different headings is a defensible layout; confirmed unintended and
+  fixed.
+
+  The tests assert the **property** rather than the numbers — the two pieces of a wave differ, and the
+  second spreads wider — across all four blocks, including the ones that were already right. That is what
+  makes the symmetrical mistake fail too: aligning the water block on the wrong one of the two.
+
+---
+
 ## [6.16.4] — 2026-08-25
 
 ### Fixed

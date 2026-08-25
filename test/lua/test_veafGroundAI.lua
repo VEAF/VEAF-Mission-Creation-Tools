@@ -1399,4 +1399,91 @@ function TestGcShippedAliases:test_no_shipped_alias_still_writes_the_semicolon_f
   luaunit.assertNil(contenu:find("_ground", 1, true), "aucun alias livre ne doit plus ecrire _ground")
 end
 
+-- ===========================================================================
+-- Le CABLAGE : le repartiteur appelle-t-il ce module ?
+--
+-- `veafCommands.registerCommandHandler` prend un dernier argument qui est un FILTRE : le repartiteur
+-- n'appelle le gestionnaire que pour les textes contenant ce mot. Il n'accepte qu'une chaine.
+--
+-- Donc `_gc` n'atteignait tout simplement pas le module : le marqueur restait sur la carte sans un mot,
+-- alors que 163 tests passaient. Tous appelaient `executeCommand` ou `parseMarkerText` directement, et
+-- aucun ne pouvait voir qu'on n'etait jamais appele. Trouve en jeu le 2026-08-25.
+--
+-- C'est la quatrieme fois dans la journee que ce genre de trou est trouve par un essai en vol plutot que
+-- par un test : le gestionnaire etait couvert, ce qui l'appelle ne l'etait pas.
+-- ===========================================================================
+TestGroundAiIsActuallyWired = {}
+
+function TestGroundAiIsActuallyWired:setUp()
+  -- Le module d'enregistrement n'est pas charge par cette suite : on le remplace par un espion, ce qui
+  -- est exactement ce qu'on veut observer — les filtres declares, pas ce qu'ils filtrent.
+  self._saved = veafCommands
+  self.registered = {}
+  local test = self
+  veafCommands = {
+    PRIORITY_GROUNDAI = 50,
+    registerCommandHandler = function(fn, priority, security, keyphrase)
+      table.insert(test.registered, { fn = fn, security = security, keyphrase = keyphrase })
+    end,
+  }
+  veafGroundAI.initialize()
+end
+
+function TestGroundAiIsActuallyWired:tearDown()
+  veafCommands = self._saved
+end
+
+--- Un texte est-il pris en charge par au moins un filtre declare ?
+--- Reproduit `veafCommands.handlesText` : un filtre absent prend tout, sinon il faut le contenir.
+function TestGroundAiIsActuallyWired:_handles(text)
+  for _, entry in ipairs(self.registered) do
+    if not entry.keyphrase then
+      return true
+    end
+    if text:lower():find(entry.keyphrase:lower(), 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+function TestGroundAiIsActuallyWired:test_a_gc_marker_reaches_the_module()
+  -- LE test qui manquait. Sans lui, la syntaxe entiere est morte en jeu et verte en test.
+  luaunit.assertTrue(self:_handles("_gc arty-1"), "un marqueur _gc doit atteindre le module")
+  luaunit.assertTrue(self:_handles("_gc arty-1, aim 37T GG 12345 12345"))
+  luaunit.assertTrue(self:_handles("_gc arty-1, correction 09050"))
+end
+
+function TestGroundAiIsActuallyWired:test_a_ground_marker_still_reaches_the_module()
+  luaunit.assertTrue(self:_handles("_ground set, name arty-1"))
+  luaunit.assertTrue(self:_handles("_ground order, name arty-1, order aim; target 42N042E"))
+end
+
+function TestGroundAiIsActuallyWired:test_both_keyphrases_are_declared()
+  local vus = {}
+  for _, entry in ipairs(self.registered) do
+    if entry.keyphrase then
+      vus[entry.keyphrase] = true
+    end
+  end
+  luaunit.assertTrue(vus[veafGroundAI.MarkerKeyphrase], "_ground doit etre declare")
+  luaunit.assertTrue(vus[veafGroundAI.ShortKeyphrase], "_gc doit etre declare")
+end
+
+function TestGroundAiIsActuallyWired:test_an_unrelated_marker_does_not_reach_the_module()
+  -- L'autre moitie : un filtre qui prend tout ne filtre rien, et ferait repondre ce module aux
+  -- marqueurs des autres.
+  luaunit.assertFalse(self:_handles("_spawn unit, name shilka"), "un _spawn ne concerne pas ce module")
+  luaunit.assertFalse(self:_handles("bonjour"))
+end
+
+function TestGroundAiIsActuallyWired:test_every_registration_declares_its_security()
+  -- Un gestionnaire sans niveau de securite declare tournait pour n'importe qui : le repartiteur le
+  -- refuse desormais, et ajouter un second enregistrement est exactement le moment de l'oublier.
+  luaunit.assertTrue(#self.registered >= 2, "deux enregistrements attendus")
+  for i, entry in ipairs(self.registered) do
+    luaunit.assertEquals(entry.security, "KNOWN_PILOT", "enregistrement " .. i .. " sans securite")
+  end
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -1172,12 +1172,21 @@ function veafGroundAI.initialize()
   -- L9: any pilot the server hook lists in veaf-pilots.txt (level >= 1). Spawning and
   -- commanding ground AI is the same power veafSpawn already gates, and this path had no
   -- check at all (SECREV-2, VMR-003). David: restrict to VEAF pilots authenticated by the hook.
-  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+  -- Deux enregistrements, un par mot-clé, et c'est la seule façon d'être appelé pour les deux.
+  --
+  -- Le dernier argument est un FILTRE : le répartiteur n'appelle ce gestionnaire que pour les textes qui
+  -- contiennent ce mot. Il n'accepte qu'une chaîne, pas une liste — donc `_gc` n'atteignait tout
+  -- simplement pas le module, et le marqueur restait sur la carte sans un mot. Trouvé en jeu le
+  -- 2026-08-25, alors que 163 tests passaient : ils appelaient `executeCommand` directement, jamais le
+  -- répartiteur. C'est le câblage qui manquait, pas le gestionnaire.
+  local function handleMarker(pos, event, bypass, fromMarker)
     if not fromMarker then
       return false
     end
     return veafGroundAI.onEventMarkChange(pos, event)
-  end, veafCommands.PRIORITY_GROUNDAI, "KNOWN_PILOT", veafGroundAI.MarkerKeyphrase)
+  end
+  veafCommands.registerCommandHandler(handleMarker, veafCommands.PRIORITY_GROUNDAI, "KNOWN_PILOT", veafGroundAI.MarkerKeyphrase)
+  veafCommands.registerCommandHandler(handleMarker, veafCommands.PRIORITY_GROUNDAI, "KNOWN_PILOT", veafGroundAI.ShortKeyphrase)
 end
 
 veaf.registerModule(veafGroundAI.Id, veafGroundAI.initialize, { enable = true }, 190)

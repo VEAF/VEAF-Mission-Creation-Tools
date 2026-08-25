@@ -497,4 +497,59 @@ function TestSanctuaryDeployDefensesHandover:test_the_harder_wave_is_handed_over
   end
 end
 
+-- ── l'etalement d'une vague ─────────────────────────────────────────────────
+-- Chaque vague pose DEUX pieces. Les trois autres blocs de `deployDefenses` les etalent : rayons 2000
+-- puis 3000 (eau, premiere vague), 3000 puis 4000 (les deux vagues dures), et la seconde va toujours a
+-- `positionIn40s`. La premiere vague TERRESTRE reposait deux fois au meme endroit avec le meme rayon,
+-- seul le cap changeant. Copier-coller, confirme non voulu par David le 2026-08-25.
+--
+-- Le test porte sur la PROPRIETE — les deux pieces d'une vague diffèrent — et pas sur les valeurs : un
+-- test qui verifie « 3000 » se contente de figer le chiffre du jour et ne dit rien de l'intention.
+
+function TestSanctuaryDeployDefensesHandover:_deuxPieces(surface)
+  local calls = self:_deploy(surface, 0)
+  luaunit.assertEquals(#calls, 2, "une vague pose deux pieces")
+  return calls[1], calls[2]
+end
+
+function TestSanctuaryDeployDefensesHandover:test_a_land_wave_spreads_its_two_pieces()
+  local a, b = self:_deuxPieces(1)
+  luaunit.assertNotEquals(a.remainingCommand, b.remainingCommand, "les deux pieces ne peuvent pas etre identiques")
+  luaunit.assertNotEquals(a.position, b.position, "et elles ne se posent pas au meme endroit")
+end
+
+function TestSanctuaryDeployDefensesHandover:test_a_land_wave_widens_its_second_radius()
+  -- Le rayon est l'etalement demande a l'alias : la seconde piece couvre plus large que la premiere.
+  local a, b = self:_deuxPieces(1)
+  local ra = tonumber(a.remainingCommand:match("radius (%d+)"))
+  local rb = tonumber(b.remainingCommand:match("radius (%d+)"))
+  luaunit.assertNotNil(ra, "la premiere piece doit demander un rayon : " .. tostring(a.remainingCommand))
+  luaunit.assertNotNil(rb, "la seconde aussi : " .. tostring(b.remainingCommand))
+  luaunit.assertTrue(rb > ra, string.format("la seconde doit s'etaler davantage (%s puis %s)", ra, rb))
+end
+
+function TestSanctuaryDeployDefensesHandover:test_a_water_wave_spreads_too()
+  -- Le bloc qui etait deja juste : il garde le test, pour qu'on s'apercoive si on l'aligne par erreur
+  -- sur le mauvais des deux.
+  local a, b = self:_deuxPieces(2)
+  local ra = tonumber(a.remainingCommand:match("radius (%d+)"))
+  local rb = tonumber(b.remainingCommand:match("radius (%d+)"))
+  luaunit.assertTrue(rb > ra, string.format("eau : %s puis %s", ra, rb))
+  luaunit.assertNotEquals(a.position, b.position)
+end
+
+function TestSanctuaryDeployDefensesHandover:test_the_harder_wave_spreads_on_both_surfaces()
+  for _, surface in ipairs({ 1, 2 }) do
+    -- `_deploy` accumule dans `self.calls`, qui n'est vide qu'au setUp : sans ce reset la seconde
+    -- surface voit les huit appels des deux.
+    self.calls = {}
+    local calls = self:_deploy(surface, veafSanctuary.HARDER_DEFENSES_AFTER + 1)
+    luaunit.assertEquals(#calls, 4, "vague dure : quatre pieces au total")
+    local ra = tonumber(calls[3].remainingCommand:match("radius (%d+)"))
+    local rb = tonumber(calls[4].remainingCommand:match("radius (%d+)"))
+    luaunit.assertTrue(rb > ra, string.format("surface %s : %s puis %s", surface, ra, rb))
+    luaunit.assertNotEquals(calls[3].position, calls[4].position)
+  end
+end
+
 os.exit(luaunit.LuaUnit.run())

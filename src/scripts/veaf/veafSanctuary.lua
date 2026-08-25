@@ -470,8 +470,13 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
       veafShortcuts.ExecuteAlias(
         sam1,
         nil, -- delay: this alias fires now, and the command below is NOT a delay
-        "radius 2000, multiplier 2, skynet false" .. heading2S,
-        positionIn20s,
+        -- 3000 et positionIn40s, pas une repetition du premier appel. Les trois autres blocs de cette
+        -- fonction etalent leur seconde piece — eau premiere vague 2000 puis 3000, les deux vagues dures
+        -- 3000 puis 4000 — et tous passent a positionIn40s. Celui-ci reposait deux fois au meme endroit
+        -- avec le meme rayon, seul le cap changeant : un copier-coller, confirme non voulu par David le
+        -- 2026-08-25.
+        "radius 3000, multiplier 2, skynet false" .. heading2S,
+        positionIn40s,
         self:getCoalition(),
         nil,
         true,

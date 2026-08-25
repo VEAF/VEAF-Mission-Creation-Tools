@@ -12,6 +12,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [6.16.1] — 2026-08-25
 
+### Added
+
+- **A shorter, flatter way to command a ground unit: `_gc`.** The addressee comes first, the way you
+  would say it on the radio, and there is one separator instead of two:
+
+  ```
+  _gc arty-1, aim 37T GG 12345 12345
+  _gc arty-1, correction 09050
+  _gc arty-1, fire, shells 40-80, radius 50-150
+  ```
+
+  No more `name`, no more `order`, no more `target`, and **no more semicolon**. That semicolon was not a
+  style choice: the marker text is cut at every comma, so the value of `order` ended at the next comma and
+  the order own parameters had to use something else. Teaching the marker the order own words — `aim`,
+  `fire`, `correct`, `target`, `shells`, `radius`, `correction` — is what makes one separator enough.
+  `_gc` stands for *ground commander*.
+
+  `_gc arty-1` on its own creates the autopilot from the nearest allied group, as `_ground set` did — and
+  unlike `_ground`, the short form genuinely works: the page claimed bare `_ground` was the same as
+  `_ground set`, and it was not. Measured, `_ground, name arty-1` was refused.
+
+  The fifteen shipped `-arty*` and `-ai_set` alias definitions now write the new form. `_ground` and its
+  nested syntax still work, undocumented, so no existing mission breaks.
+
 ### Fixed
 
 - **A completed operation's briefing printed its own translation key.** Opening the briefing of a finished

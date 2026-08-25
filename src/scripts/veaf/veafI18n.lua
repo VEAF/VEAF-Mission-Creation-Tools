@@ -1221,9 +1221,13 @@ veaf.i18nCatalog = {
     fr = 'Aucun groupe ne correspond à "%s". Posez le marqueur sur le groupe, ou vérifiez son nom.',
     en = 'No group matches "%s". Drop the marker on the group, or check its name.',
   },
+  -- La commande donnée est la forme documentée, `_gc`. Elle enseignait `_ground set, name %s`, retirée de la
+  -- documentation le jour où `_gc` a été livré : c'est le seul endroit du produit où une commande est
+  -- apprise au pilote, et le pire endroit pour en apprendre une périmée — il lit ce message précisément
+  -- parce qu'il ne sait pas quoi taper.
   ["groundai.no_such_handler"] = {
-    fr = 'Aucun pilote automatique nommé "%s". Créez-le en posant un marqueur sur le groupe avec : _ground set, name %s',
-    en = 'No autopilot named "%s". Create one by dropping a marker on the group with: _ground set, name %s',
+    fr = 'Aucun pilote automatique nommé "%s". Créez-le en posant un marqueur sur le groupe avec : _gc %s, set',
+    en = 'No autopilot named "%s". Create one by dropping a marker on the group with: _gc %s, set',
   },
   -- An order text nothing could be made of. The typo case is already handled by reportUnknownParameters;
   -- this is for total garbage, which used to be dropped in silence.

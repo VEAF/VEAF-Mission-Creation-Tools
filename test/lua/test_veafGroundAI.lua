@@ -964,8 +964,28 @@ end
 
 function TestGroundAiUnknownHandler:test_the_message_says_how_to_create_one()
   -- "Unknown" without "here is what to do" sends a pilot back to the documentation mid-flight.
-  local said = self:_say("_ground order, name arty-1, order aim")
-  luaunit.assertNotNil(said:find("_ground set", 1, true), "expected the creating command: " .. said)
+  --
+  -- Lu depuis les constantes du module plutot qu'ecrit en dur : le message enseignait `_ground set`, forme
+  -- retiree de la documentation le jour ou `_gc` a ete livre, et une chaine litterale dans ce test aurait
+  -- tout aussi bien survecu a un renommage du mot-cle en laissant le message en arriere.
+  local said = self:_say("_gc arty-1, aim")
+  luaunit.assertNotNil(said:find(veafGroundAI.ShortKeyphrase, 1, true), "expected the creating command: " .. said)
+  luaunit.assertNil(said:find(veafGroundAI.MarkerKeyphrase, 1, true), "l'ancienne forme ne doit plus etre enseignee : " .. said)
+end
+
+function TestGroundAiUnknownHandler:test_the_command_the_message_gives_actually_works()
+  -- LE test qui manquait. Un message d'aide qui enseigne une commande que rien n'accepte est un conseil
+  -- mort, et c'est exactement ce qu'il etait. On prend la commande telle que le message la donne — apres
+  -- le dernier deux-points, dans les deux langues — et on la fait lire au parseur.
+  local said = self:_say("_gc arty-1, aim")
+  local suggeree = said:match(":%s*([^:]+)%s*$")
+  luaunit.assertNotNil(suggeree, "le message doit donner une commande apres un deux-points : " .. said)
+  suggeree = veaf.trim(suggeree)
+
+  local o = veaf.parseMarkerText(suggeree, veafGroundAI.MarkerSpec)
+  luaunit.assertNotNil(o, "la commande donnee doit etre lisible : [" .. suggeree .. "]")
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_SET, "et doit bien creer le pilote automatique")
+  luaunit.assertEquals(o.name, "arty-1", "sur le nom demande")
 end
 
 function TestGroundAiUnknownHandler:test_start_says_so()
@@ -1048,7 +1068,7 @@ function TestGroundAiUnknownHandler:test_a_known_autopilot_is_not_complained_abo
   handler.silent = true
   veafGroundAI.add(handler)
   local said = self:_say("_ground status, name arty-1")
-  luaunit.assertNil(said:find("_ground set", 1, true), "no complaint expected, got: " .. said)
+  luaunit.assertNil(said:find(veafGroundAI.ShortKeyphrase, 1, true), "no complaint expected, got: " .. said)
 end
 
 -- ===========================================================================
@@ -1697,6 +1717,123 @@ end
 function TestGroupnamePartialMatch:test_without_a_groupname_and_nothing_nearby_the_range_is_announced()
   local said = self:_say("_gc mabatterie, set")
   luaunit.assertNotNil(said:find("250", 1, true), "expected the proximity message: " .. said)
+end
+
+-- ===========================================================================
+-- FIX-HELP-MESSAGE-TEACHES-LEGACY-SYNTAX — ce qu'un message enseigne doit exister
+--
+-- Le defaut trouve etait un message apprenant `_ground set, name X`, forme retiree de la documentation le
+-- jour ou `_gc` a ete livre. La famille n'est pas « un message qui cite `_ground` » mais « un message qui
+-- enseigne une commande » : le catalogue entier est donc enumere, pas fouille pour un mot.
+--
+-- Ce que ce balayage PEUT verifier : qu'un mot-cle enseigne est bien un mot-cle enregistre. Cela attrape un
+-- renommage qui laisse un message en arriere, et une coquille (`_grond`).
+--
+-- Ce qu'il NE PEUT PAS verifier : qu'un mot-cle enregistre est encore *documente*. `_ground` reste accepte
+-- pour ne casser aucune mission, donc aucune lecture du code ne peut le distinguer de `_gc`. C'est le test
+-- frere, dans TestGroundAiUnknownHandler, qui tient cette moitie — il compare le message aux DEUX constantes
+-- que le module declare.
+-- ===========================================================================
+TestNoMessageTeachesAnUnknownCommand = {}
+
+local function _lireSource(chemin)
+  local fichier = io.open(chemin, "r")
+  if not fichier then
+    return nil
+  end
+  local contenu = fichier:read("*a")
+  fichier:close()
+  return contenu
+end
+
+function TestNoMessageTeachesAnUnknownCommand:setUp()
+  self._base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") .. "/../../src/scripts/veaf/"
+end
+
+--- Les mots-cles de marqueur declares par les modules, lus dans le code plutot que supposes.
+---
+--- La liste des modules est explicite parce que Lua ne sait pas parcourir un dossier. Un module absent d'ici
+--- rendrait le balayage aveugle a son mot-cle, ce que le test frere ci-dessous rend visible en exigeant un
+--- plancher.
+function TestNoMessageTeachesAnUnknownCommand:_motsClesEnregistres()
+  local modules = {
+    "veafGroundAI.lua",
+    "veafCasMission.lua",
+    "veafMove.lua",
+    "veafSpawn.lua",
+    "veafSpawnCore.lua",
+    "veafTransportMission.lua",
+    "veafSecurity.lua",
+    "veafWeather.lua",
+    "veafRadio.lua",
+    "veafDrawingOnMap.lua",
+    "veafShortcuts.lua",
+    "veafNamedPoints.lua",
+    "veafInterpreter.lua",
+  }
+  local mots = {}
+  for _, nom in ipairs(modules) do
+    local contenu = _lireSource(self._base .. nom)
+    if contenu then
+      for mot in contenu:gmatch('Keyphrase%s*=%s*"([^"]+)"') do
+        mots[mot:lower()] = true
+      end
+    end
+  end
+  return mots
+end
+
+--- Les jetons ressemblant a une commande, dans les VALEURS du catalogue.
+---
+--- Les commentaires sont ecartes : ils documentent volontairement l'ancienne forme, et c'est utile.
+function TestNoMessageTeachesAnUnknownCommand:_jetonsEnseignes()
+  local catalogue = _lireSource(self._base .. "veafI18n.lua")
+  luaunit.assertNotNil(catalogue, "veafI18n.lua doit etre lisible depuis le test")
+  local jetons = {}
+  for ligne in catalogue:gmatch("[^\n]+") do
+    local estCommentaire = ligne:match("^%s*%-%-") ~= nil
+    -- Une valeur, ou sa suite : les messages longs se concatenent sur des lignes commencant par `..`. Les
+    -- lignes de cle sont ecartees par la meme occasion — `["groundai.no_such_handler"]` contient un jeton
+    -- souligne que ce balayage prendrait pour une commande.
+    local estValeur = ligne:match("^%s*[fe][rn]%s*=") ~= nil or ligne:match("^%s*%.%.") ~= nil
+    if estValeur and not estCommentaire then
+      for mot in ligne:gmatch("_[a-zA-Z][%w_-]*") do
+        jetons[mot:lower()] = veaf.trim(ligne)
+      end
+    end
+  end
+  return jetons
+end
+
+function TestNoMessageTeachesAnUnknownCommand:test_the_sweep_can_see_something()
+  -- Un balayage dont la source est vide accepte tout. Les deux moities sont donc verifiees avant de servir.
+  local mots = self:_motsClesEnregistres()
+  local combien = 0
+  for _ in pairs(mots) do
+    combien = combien + 1
+  end
+  luaunit.assertTrue(combien >= 8, "trop peu de mots-cles trouves (" .. combien .. ") : le balayage serait aveugle")
+  luaunit.assertTrue(mots["_gc"], "_gc doit etre trouve dans les sources")
+  luaunit.assertTrue(mots["_ground"], "_ground doit etre trouve : la forme reste acceptee, pas enseignee")
+
+  local jetons = self:_jetonsEnseignes()
+  local trouves = 0
+  for _ in pairs(jetons) do
+    trouves = trouves + 1
+  end
+  luaunit.assertTrue(trouves >= 3, "trop peu de jetons trouves dans les messages (" .. trouves .. ")")
+end
+
+function TestNoMessageTeachesAnUnknownCommand:test_no_message_teaches_a_keyphrase_that_is_not_registered()
+  local mots = self:_motsClesEnregistres()
+  local fautifs = {}
+  for jeton, ligne in pairs(self:_jetonsEnseignes()) do
+    if not mots[jeton] then
+      table.insert(fautifs, jeton .. " dans : " .. ligne)
+    end
+  end
+  table.sort(fautifs)
+  luaunit.assertEquals(#fautifs, 0, "message(s) enseignant une commande inconnue :\n" .. table.concat(fautifs, "\n"))
 end
 
 os.exit(luaunit.LuaUnit.run())

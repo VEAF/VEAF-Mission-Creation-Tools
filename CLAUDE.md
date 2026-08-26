@@ -114,7 +114,7 @@ For every action requested by the user, execute these steps in order:
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.
 6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ test/python/ veaf_build/ --fix && poetry run ruff format --check src/python/ test/python/ veaf_build/ && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/ test/lua/` and `luacheck --config .luacheckrc src/scripts/veaf/` for Lua). Both Lua tools are enforced by the CI Lua gate (`.github/workflows/lua-ci.yml`); if `luacheck` is not installed locally (e.g. on Windows), rely on the CI check — do **not** treat the gate as skippable. Resolve all errors before continuing.
-7. **Update `CHANGELOG.md`** under `[Unreleased]` with one clear entry.
+7. **Update `CHANGELOG.md`** under `[Unreleased]` with one clear entry, appended at the **end** of that section (appending conflicts far less than prepending when two PRs land together). Do **not** create a version heading and do **not** bump the version — see §9.5.
 8. **If the user needs to test manually**: stop and wait for explicit approval ("c'est bon", "go", or equivalent) before continuing. Otherwise, proceed directly.
 9. **Commit** all changes (Conventional Commits format in English) and **push** the branch.
 10. **Open a PR** targeting `develop` and report the PR URL to the user.
@@ -128,8 +128,10 @@ For every action requested by the user, execute these steps in order:
 1. Make code changes and write associated unit tests according to TDD rules.
 2. Update relevant documentation pages in `doc/` if the change affects user-facing behaviour or configuration.
 3. Run all quality validation tools specific to the impacted language (Python or Lua).
-4. Update `CHANGELOG.md` under the `[Unreleased]` section (one clear entry per fix or feature).
-5. Increment the PATCH version in `pyproject.toml` **and** sync **both** agent manifests to the same version — `plugin/.claude-plugin/plugin.json` (Claude Code) and `plugin/gemini-extension.json` (Gemini CLI). The plugin and the tools ship as one product; `test_plugin_version.py` enforces the match on every manifest, so forgetting the second one fails the suite rather than shipping a mismatch.
+4. Update `CHANGELOG.md` under the `[Unreleased]` section (one clear entry per fix or feature), appended at the end of the section.
+5. **Do not touch the version.** `pyproject.toml` and both agent manifests — `plugin/.claude-plugin/plugin.json` (Claude Code) and `plugin/gemini-extension.json` (Gemini CLI) — move **only in a release commit**, together. The plugin and the tools ship as one product and `test_plugin_version.py` enforces the match, so a release bumps all three or fails the suite.
+
+   *Why a PR must not bump it:* the rule used to require a PATCH bump on every change, which made any two concurrent PRs conflict by construction — on `pyproject.toml`, both manifests and the `CHANGELOG.md` heading, none of which carries engineering content. Measured over the 10 merges following 6.16.0: 9 touched the changelog, 8 touched the version files. One documentation-only PR needed **three rebases in one hour**, renumbering 6.16.5 → .8 as `develop` took each number first. The numbers bought little — 6.16.0 consolidated **47 patch versions, none of them ever published**.
 6. Run `poetry install` to update the development environment.
 7. **Defaults lockstep**: if the change touches how `convert-v5` or `lua_config_generator` produce `mission.yaml` (comments, config blocks, module keys, structure), update `src/defaults/mission-folder/mission.yaml` in the **same lot** so the shipped default stays aligned with the generated output.
 

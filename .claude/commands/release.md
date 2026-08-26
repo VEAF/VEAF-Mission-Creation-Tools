@@ -61,8 +61,13 @@ To write high-quality release notes, ask the developer these three questions:
 
 Once `RELEASE_NOTES.md` is validated by the developer, apply these changes:
 1. **Edit `RELEASE_NOTES.md`**: write the validated content.
-2. **CHANGELOG Update**: Replace the `[Unreleased]` header with `[x.y.z] — YYYY-MM-DD` (today's date).
-3. **`pyproject.toml` version bump**: update to the target version.
+2. **CHANGELOG Update**: Replace the `[Unreleased]` header with `[x.y.z] — YYYY-MM-DD` (today's date),
+   then **re-open an empty `## [Unreleased]` section above it**. Pull requests write there and never
+   create a version heading, so a release that forgets to re-open it leaves the next PR nowhere to
+   write — that is exactly how the section disappeared after 6.15.0. A test guards it.
+3. **Version bump — all three files, together**: `pyproject.toml` **and** both agent manifests,
+   `plugin/.claude-plugin/plugin.json` and `plugin/gemini-extension.json`. This release commit is the
+   **only** place the version moves; `test_plugin_version.py` fails if the three drift apart.
 4. **Roadmap Update**: Modify `doc/ROADMAP.md` to move processed tickets to the "Completed" section if applicable.
 
 ## Step 5: Git Operations

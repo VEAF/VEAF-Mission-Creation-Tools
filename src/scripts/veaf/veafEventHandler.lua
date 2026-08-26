@@ -631,8 +631,21 @@ function veafEventHandler.initialize()
     veafEventHandler.knownEventsNames[eventId] = event.name
   end
 
-  -- Add event handler.
-  world.addEventHandler(veafEventHandler.eventHandler)
+  -- Add the event handler to DCS — **once**, however many times this function is called.
+  --
+  -- It is called twice on every mission, and both calls are deliberate: the script initialises
+  -- itself on load (last line of this file) so that a mission generating no `veaf-config.lua` still
+  -- handles events, and the generated `veaf-config.lua` initialises each module in turn, this one
+  -- included. Registering the same handler twice makes DCS deliver every event twice, and every
+  -- callback behind it run twice with it — two menu rebuilds on a birth, two QRA evaluations, two
+  -- FARP warehouse refills. Visible in a server log as two "VEAF-EVENTS … loaded" lines per session.
+  --
+  -- Guarded here rather than by deleting one of the two calls: each covers a case the other does
+  -- not, and a future third caller would reintroduce the defect.
+  if not veafEventHandler.eventHandlerRegistered then
+    world.addEventHandler(veafEventHandler.eventHandler)
+    veafEventHandler.eventHandlerRegistered = true
+  end
 end
 
 veafEventHandler.initialize()

@@ -33,6 +33,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   heading that was not there. Three documents described three different processes; they now describe
   one, and a test fails if a release forgets to re-open the section.
 
+- **Every DCS event was delivered to VEAF twice.** `veafEventHandler.initialize()` registers the
+  handler with DCS, and it runs twice on every mission: the script initialises itself on load, so a
+  mission generating no `veaf-config.lua` still handles events, and the generated `veaf-config.lua`
+  initialises it again with the other modules. Both calls are deliberate; registering the handler
+  twice was not — so every callback behind it ran twice: two radio menu rebuilds on a birth, two QRA
+  evaluations, two FARP warehouse refills.
+
+  It stayed invisible because the consumers that would show it carry idempotence guards of their own,
+  which is how this kind of defect ends up blamed on DCS. Found while diagnosing an unrelated report,
+  and measured rather than inferred: a test counting the registrations reports 1 where the old code
+  reported 2. Guarded inside `initialize()` rather than by deleting one of the two calls — each
+  covers a case the other does not, and a third caller would bring the defect back.
+
 ## [6.16.10] — 2026-08-26
 
 ### Fixed

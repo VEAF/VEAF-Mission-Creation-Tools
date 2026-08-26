@@ -17,6 +17,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.17.0] — 2026-08-26
+
+**Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed
+entries follow below and are left untouched, plus the two entries carried here directly. It is the first
+release under the new rule: a pull request writes under `[Unreleased]` and does not bump the version, so
+the per-version headings below stop after 6.16.10.
+
+One change can alter the behaviour of a mission that already worked, and it leads `RELEASE_NOTES.md`:
+with CTLD enabled, the build now adds the four carriers and the FARP ammo dump to the logistic types
+your `ctld-config.yaml` declares. It adds, it never replaces, and your file is not rewritten — set
+`modules.CTLD.manage_logistics: false` to own those lists entirely.
+
+
 ### Changed
 
 - **A pull request no longer bumps the version, and writes its changelog entry under

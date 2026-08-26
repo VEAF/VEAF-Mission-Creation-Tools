@@ -40,7 +40,13 @@ from veaf_libs.config_override import (
     render_override_lua,
 )
 from veaf_libs.conversion_profile import incompatible_modules_enabled
-from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME, CTLD_USER_CONFIG_FILENAME
+from veaf_libs.ctld_config import (
+    CTLD_CONFIG_FILENAME,
+    CTLD_USER_CONFIG_FILENAME,
+    logistics_lists_are_empty,
+    manage_logistics_enabled,
+    merge_veaf_logistics,
+)
 from veaf_libs.dcs_countries import all_country_ids
 from veaf_libs.i18n import current_language, t, tn
 from veaf_libs.logger import logger
@@ -931,10 +937,49 @@ class MissionBuilderWorker(BaseWorker):
         config_file = self.mission_folder / CTLD_CONFIG_FILENAME
         if config_file.is_file():
             yaml_text = config_file.read_text(encoding="utf-8")
+            yaml_text = self._ctld_managed_logistics(yaml_text, lines)
             lines.append(f"ctld.configUser = {_lua_long_bracket(yaml_text)}")
         else:
             logger.info(t("builder.ctld_no_config", file=CTLD_CONFIG_FILENAME))
         return "\n".join(lines) + "\n"
+
+    def _ctld_managed_logistics(self, yaml_text: str, lines: list[str]) -> str:
+        """Return the configuration to inject, with the VEAF logistic types merged in.
+
+        The mission's own ``ctld-config.yaml`` is never rewritten — it is the mission maker's
+        file. What changes is the copy handed to the engine, so *lines* gains a header comment
+        saying so: the alternative is a maker reading one thing in ctld-tools while another runs.
+
+        With ``manage_logistics: false`` the file goes in untouched, and a mission whose type
+        lists are all empty is warned about: it will have no logistic point from the editor at
+        all, which is a legitimate choice but never an accident worth staying silent on.
+
+        Args:
+            yaml_text: The mission's configuration, as read from disk.
+            lines: The Lua being assembled; a comment is appended to it.
+
+        Returns:
+            The configuration to inject.
+        """
+        if not manage_logistics_enabled(self.mission_yaml):
+            if logistics_lists_are_empty(yaml_text):
+                logger.warning(t("builder.ctld_logistics_unmanaged_and_empty", file=CTLD_CONFIG_FILENAME))
+            lines.append("-- Automatic logistics management is off (modules.CTLD.manage_logistics: false).")
+            return yaml_text
+
+        merged, added = merge_veaf_logistics(yaml_text)
+        if added:
+            for key, values in sorted(added.items()):
+                logger.info(
+                    t(
+                        "builder.ctld_logistics_merged",
+                        setting=key,
+                        types=", ".join(values),
+                        file=CTLD_CONFIG_FILENAME,
+                    )
+                )
+                lines.append(f"-- manage_logistics added to {key}: {', '.join(values)}")
+        return merged
 
     def _with_ctld_user_config(self, collected: dict[str, bytes]) -> dict[str, bytes]:
         """Return *collected* with the generated CTLD user config inserted before CTLD.lua.

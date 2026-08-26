@@ -166,6 +166,10 @@ def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
                 errors.append(t("yaml.semantic.bad_enabled", module=key, type=type(cfg["enabled"]).__name__))
             if "logLevel" in cfg and not isinstance(cfg["logLevel"], str):
                 errors.append(t("yaml.semantic.bad_loglevel", module=key, type=type(cfg["logLevel"]).__name__))
+            if "manage_logistics" in cfg and not isinstance(cfg["manage_logistics"], bool):
+                errors.append(
+                    t("yaml.semantic.bad_manage_logistics", module=key, type=type(cfg["manage_logistics"]).__name__)
+                )
             if "settings" in cfg and key.upper() == "CTLD":
                 # CTLD 2 reads a complete YAML snapshot from the mission's
                 # ctld-config.yaml (ADR 0016); nothing here reaches the engine. An

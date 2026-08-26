@@ -675,6 +675,38 @@ Au build, VEAF l'injecte dans la mission sous forme d'un `CTLD_userConfig.lua` c
 !!! warning "N'utilisez pas le bouton « Injecter dans la mission » de ctld-tools"
     Il écrit directement dans un `.miz`. Sur une mission VEAF, le `.miz` est reconstruit à chaque build depuis le dossier mission : votre injection serait effacée au build suivant. Enregistrez le fichier `ctld-config.yaml`, et laissez le build faire le reste.
 
+#### Les FARP et porte-avions posés dans l'éditeur {#ctld-manage-logistics}
+
+Pour qu'une FARP ou un porte-avions serve de point de chargement, CTLD 2 doit connaître son **type**
+d'unité — par les réglages `logisticUnitTypes` et `troopZoneShipTypes`. CTLD les livre **vides**, ce
+qui est le bon choix pour le reste du monde et le mauvais pour une mission VEAF, qui a toujours
+reconnu les porte-avions et les dépôts de munitions FARP automatiquement.
+
+VEAF s'en charge, via un interrupteur dans `mission.yaml` :
+
+```yaml
+modules:
+  CTLD:
+    enabled: true
+    manage_logistics: true   # défaut
+```
+
+Au build, les types VEAF (`LHA_Tarawa`, `Stennis`, `CVN_71`, `KUZNECOW`, `FARP Ammo Dump Coating`)
+sont **ajoutés** à ce que votre fichier déclare. Ajoutés, pas substitués : un type que vous avez
+saisi vous-même dans `ctld-tools` — un porte-avions de mod, par exemple — est conservé. Votre
+`ctld-config.yaml` n'est pas modifié ; c'est la copie injectée dans la mission qui l'est, et le
+`CTLD_userConfig.lua` généré indique en commentaire ce qui a été ajouté.
+
+Passez le réglage à `false` pour gouverner ces deux listes entièrement vous-même — c'est le seul
+moyen de **retirer** un type que VEAF ajoute. Dans ce cas, si les deux listes sont vides, le build
+vous avertit en clair : la mission démarrera sans aucun point de chargement issu de l'éditeur.
+
+!!! warning "Une mission dont le `ctld-config.yaml` ne vient pas de `mission prepare`"
+    Un fichier écrit à la main, repris d'une autre mission ou régénéré depuis les défauts de CTLD
+    arrive avec ces deux listes vides. Le symptôme est déroutant parce qu'il est partiel : les FOB
+    que vous créez en vol fonctionnent — elles passent par un autre chemin — et les FARP que vous
+    avez posées dans l'éditeur, non. C'est exactement ce que ce réglage corrige.
+
 !!! note "Ce fichier est une configuration **complète**"
     CTLD 2 ne fusionne rien. Un réglage simple absent retombe sur la valeur par défaut du moteur (et il vous le dit au démarrage de la mission), mais une **liste** absente — une section de caisses, un groupe de troupes, une zone — est réellement supprimée. C'est ainsi qu'on retire un élément. Partez toujours du fichier existant plutôt que d'en écrire un de zéro.
 

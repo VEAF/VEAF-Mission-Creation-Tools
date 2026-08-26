@@ -9,6 +9,288 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
+>
+> That is the failure mode this section exists to prevent. **A pull request adds its entry under
+> `[Unreleased]` and does not touch the version**; the release commit renames the heading and moves
+> `pyproject.toml` with both agent manifests. Add new entries at the **end** of the section: two PRs
+> appending merge cleanly far more often than two PRs prepending.
+
+## [Unreleased]
+
+## [6.17.0] — 2026-08-26
+
+**Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed
+entries follow below and are left untouched, plus the two entries carried here directly. It is the first
+release under the new rule: a pull request writes under `[Unreleased]` and does not bump the version, so
+the per-version headings below stop after 6.16.10.
+
+One change can alter the behaviour of a mission that already worked, and it leads `RELEASE_NOTES.md`:
+with CTLD enabled, the build now adds the four carriers and the FARP ammo dump to the logistic types
+your `ctld-config.yaml` declares. It adds, it never replaces, and your file is not rewritten — set
+`modules.CTLD.manage_logistics: false` to own those lists entirely.
+
+
+### Changed
+
+- **A pull request no longer bumps the version, and writes its changelog entry under
+  `[Unreleased]`.** The rule used to require a PATCH bump on every change, so any two concurrent PRs
+  conflicted by construction — on `pyproject.toml`, both agent manifests and the `CHANGELOG.md`
+  heading, none of which carries engineering content. Of the 10 merges following 6.16.0, 9 touched
+  the changelog and 8 touched the version files; one documentation-only PR needed three rebases in
+  one hour, renumbering 6.16.5 → .8 as `develop` took each number first.
+
+  The numbers bought little: 6.16.0 consolidated **47 patch versions, none of which was ever
+  published** — nobody could install 6.15.34. The version now moves only in the release commit,
+  with both manifests, which is what `.claude/commands/release.md` always described: its step 1 read
+  an `[Unreleased]` section that had not existed since the 6.15.0 release, and its step 4 renamed a
+  heading that was not there. Three documents described three different processes; they now describe
+  one, and a test fails if a release forgets to re-open the section.
+
+- **Every DCS event was delivered to VEAF twice.** `veafEventHandler.initialize()` registers the
+  handler with DCS, and it runs twice on every mission: the script initialises itself on load, so a
+  mission generating no `veaf-config.lua` still handles events, and the generated `veaf-config.lua`
+  initialises it again with the other modules. Both calls are deliberate; registering the handler
+  twice was not — so every callback behind it ran twice: two radio menu rebuilds on a birth, two QRA
+  evaluations, two FARP warehouse refills.
+
+  It stayed invisible because the consumers that would show it carry idempotence guards of their own,
+  which is how this kind of defect ends up blamed on DCS. Found while diagnosing an unrelated report,
+  and measured rather than inferred: a test counting the registrations reports 1 where the old code
+  reported 2. Guarded inside `initialize()` rather than by deleting one of the two calls — each
+  covers a case the other does not, and a third caller would bring the defect back.
+
+## [6.16.10] — 2026-08-26
+
+### Fixed
+
+- **A mission could lose every FARP and carrier as a CTLD loading point, silently.** CTLD 2 knows
+  which units are loading points from `logisticUnitTypes` / `troopZoneShipTypes`, and it ships them
+  **empty** — the right default for the wider world, the wrong one for a VEAF mission, which
+  registered carriers and FARP ammo dumps automatically for years. `mission prepare` filled those
+  lists at scaffold time and never again, so any other route to a `ctld-config.yaml` — written by
+  hand, copied from another mission, regenerated from the CTLD defaults in ctld-tools — arrived with
+  both empty and nothing said so. Observed on a real mission: `CTLDZoneManager ready — troop:0
+  logistic:0`.
+
+  The symptom is confusing because it is partial: FOBs spawned in flight keep working, they go
+  through `registerFOBAsLogistic`; the FARPs placed in the editor do not.
+
+  New `modules.CTLD.manage_logistics` (default **true**): at build time the VEAF types are **merged
+  into** whatever the mission declares, on the way into the `.miz`. Union, never overwrite —
+  replacing the lists would rebuild the silent-discard defect ADR 0016 removed, on anyone who added
+  a modded carrier of their own. The mission maker's file is never rewritten, and the generated
+  `CTLD_userConfig.lua` records what was added. Set the flag to `false` to own those two lists
+  entirely; if that leaves both empty, the build says so loudly rather than starting a mission with
+  no loading point at all. ADR 0016 is amended: two of its statements stop being true.
+
+---
+
+## [6.16.9] — 2026-08-26
+
+### Fixed
+
+- **The welcome brief never fired on a server: the handler read the wrong shape of `initiator`.**
+  Reported on a mission built with 6.16.0, the release that introduced the feature.
+  `veafEventHandler` hands callbacks the **data table** `completeUnitFromName` returns — `unitName`,
+  `unitType`, … and no methods — but `veafWeather.onPlayerEnterUnit` tested `initiator.getName`, so
+  it returned on every event it received, before its own log line. Hence total silence rather than an
+  error, and hence a feature that only a dynamic-slot unit (a raw DCS object, no mist table entry)
+  could ever have triggered.
+
+  Diagnosed statically: the bundled scripts carried the whole feature, the module was enabled, every
+  module initialised after it logged, the pilot had flown — and three server sessions carried not one
+  `welcome brief` line, though that line is `INFO` for exactly this question.
+
+  `veafQraCore` and `veafGrass` already read `unitName` first with `:getName()` as the dynamic-slot
+  fallback, inline, in both. That logic is now `veafEventHandler.unitNameFromEvent()` and the three
+  callers share it. The tests missed the defect because they handed the handler a DCS object mock, a
+  shape the event handler never produces; the runtime shape is now covered, and the object mock kept
+  for the dynamic-slot path.
+
+---
+
+## [6.16.8] — 2026-08-25
+
+### Documentation
+
+- **The CTLD documentation never said where to get `ctld-tools`.** Every other part of the procedure
+  was covered in both languages — the sidecar file, the two traps, the rejected `settings:` block —
+  but not the first step: obtaining the editor. The guide said "shipped with CTLD" and linked the
+  repository, while the executable is a *release asset*, and every CTLD 2 release is published as a
+  **pre-release** — so none appears as "Latest release" and following that link does not lead to the
+  file. The guide now has a "where to get `ctld-tools`" section with the releases page, the asset
+  name, that pre-release trap, and how to read the CTLD version your install ships (the header of
+  `published/src/scripts/community/CTLD.lua`) so the tool matches the engine. Added to the
+  prerequisites table, linked from the YAML reference and the migration guide, and the builder's
+  "no `ctld-config.yaml` found" message now carries the download URL instead of naming a tool the
+  reader cannot locate.
+
+---
+
+## [6.16.7] — 2026-08-25
+
+### Fixed
+
+- **The one message that teaches a command taught the wrong one.** When an order is addressed to an
+  autopilot that does not exist, the module answers by saying how to create one — the fix that replaced
+  eight silences with useful answers. But the command it gave was `_ground set, name arty-1`, and `_ground`
+  was dropped from the documentation the same day `_gc` shipped. The form is still accepted so no existing
+  mission breaks, but nothing documents it any more. That made this the worst possible place for a stale
+  syntax: a pilot reads this message precisely because he does not know what to type. It now says
+  `_gc arty-1, set`.
+
+  Swept rather than searched: the family is "a message that teaches a command", not "a message mentioning
+  `_ground`". All fourteen registered marker keyphrases were read out of the modules and crossed with every
+  value in the catalogue — three messages teach a command (`_cas`, `_move`, and this one), and only this one
+  was stale. The sweep ships as a test, so a message teaching an unregistered keyphrase now fails the suite,
+  and the two tests that asserted the literal string `_ground set` read the module's own constants instead.
+
+---
+
+
+## [6.16.6] — 2026-08-25
+
+### Fixed
+
+- **`groupname` never found a group a VEAF command had spawned, and silently replaced it with whatever
+  stood nearest.** The `_gc` marker's parameter looked the name up **exactly**, but
+  `veaf.getNameForSpawnedGroup` decorates the name of anything a command creates: `-arty, unitname arty-1`
+  produces a group DCS calls `[b]-arty-1#7`. So `groupname arty-1` always missed, and the parameter only
+  ever worked on groups placed in the mission editor — not on the ones a pilot has just spawned, which is
+  the artillery case.
+
+  The miss was worse than a miss: an unfound name fell back on the nearest-allied-group search and attached
+  the autopilot to whatever stood within 250 m of the marker, with no message either way. A fragment of the
+  name is now enough; if several groups match, the command is refused and the names found are said, rather
+  than one being picked at random; and a name that designates nothing stops the command instead of
+  designating something else. Only `set` and `unset` are concerned — `status` with a mistyped `groupname` is
+  still answered.
+
+  Also fixed, and the reason no test could see any of this: `coalition.getGroups` returned `{}` in the test
+  mocks while `Group.getByName` found registered groups, so nothing could exercise code that enumerates
+  groups.
+
+---
+
+
+## [6.16.5] — 2026-08-25
+
+### Fixed
+
+- **A sanctuary zone posted its two land SAM sites at the same spot, with the same radius.** Only the
+  heading differed. Its three neighbouring blocks in the same function all spread their second piece —
+  2000 then 3000 metres on water, 3000 then 4000 in both hardened waves, and always moving to the later
+  position — so the intended values were legible from them. Recorded as a *question* when it was spotted,
+  because two sites at one point with different headings is a defensible layout; confirmed unintended and
+  fixed.
+
+  The tests assert the **property** rather than the numbers — the two pieces of a wave differ, and the
+  second spreads wider — across all four blocks, including the ones that were already right. That is what
+  makes the symmetrical mistake fail too: aligning the water block on the wrong one of the two.
+
+---
+
+## [6.16.4] — 2026-08-25
+
+### Fixed
+
+- **An artillery battery left its position after every fire mission, so the next order found it driving.**
+  The fire task hard-coded `counterbattaryRadius = 500`, which the DCS API describes as the radius the
+  group *"will move in random directions after completing the fireAtPoint task"* — counter-battery
+  evasion. Realistic for a single mission, ruinous for an adjustment loop: the ranging shot goes out, the
+  guns scatter, and the order for effect arrives on a group in motion. **A gun does not fire while it is
+  driving.** It is now zero, behind a named constant that carries the reason so nobody puts 500 back
+  meaning well.
+
+  The correction arithmetic was never wrong — it works on the *target*, not on where the guns stand. Only
+  the firing was prevented.
+
+  Nothing had ever asserted the task handed to DCS: not the scatter radius, not the two axes, not the
+  `expendQtyEnabled` flag without which DCS ignores the round count. Six tests now read that exact table.
+  (found in game)
+
+- `coord.LLtoMGRS` in the shared test doubles returned a table **without `UTMZone`**, which real DCS
+  always provides. Any code building a readable grid reference concatenates it and died on a nil as soon as
+  a test reached that path — an incomplete double does not fail the code that reads it, it crashes
+  somewhere else.
+
+---
+
+## [6.16.3] — 2026-08-25
+
+### Fixed
+
+- **`-arty1` and its siblings could not command the battery they had just spawned.** The alias answered
+  "no allied group within 250 m of the marker" while the battery stood right under it. The alias entry
+  point computes the **opposing** coalition — an alias usually expands to a spawn, and a marker spawns
+  against you — and handed that single value to every module in the chain, including the ground-AI module,
+  which uses it as the side of the **allied** group to look for. A blue pilot spawned a blue battery and
+  then searched for a red one. The same order typed by hand worked, because that route derives the
+  coalition from the player.
+
+  Two coalitions now travel the chain: the spawn side for what gets created, the requester side for
+  modules that look for the pilot's own groups. Callers that pass no requester — the mission-start batch,
+  the remote path — fall back to the previous value, so nothing else changes behaviour.
+
+  Three of the five mutations killed nothing at first, and all three were wiring: the entry point that
+  computes the value, the batch loop that forwards it, and the delayed path that stores it in its argument
+  table. The batch one mattered doubly — **`-arty1` is a batch**, so that was the exact path of the
+  reported defect. (found in game)
+
+---
+
+## [6.16.2] — 2026-08-25
+
+### Fixed
+
+- **The new `_gc` marker did nothing at all: it never reached the module.** A marker command handler
+  registers with a **keyphrase filter**, and the dispatcher only calls it for texts containing that word.
+  The filter takes a single string, so `_gc …` was never handed to the ground-AI module — the marker just
+  stayed on the map, silent. The module now registers once per keyphrase.
+
+  It shipped that way with 163 green tests, and none of them could see it: every one called
+  `executeCommand` or the parser **directly**, so nothing covered whether anything calls *them*. Five
+  tests now inspect the declared filters instead of the handler, and removing the second registration
+  fails three of them. (found in game)
+
+---
+
+## [6.16.1] — 2026-08-25
+
+### Added
+
+- **A shorter, flatter way to command a ground unit: `_gc`.** The addressee comes first, the way you
+  would say it on the radio, and there is one separator instead of two:
+
+  ```
+  _gc arty-1, aim 37T GG 12345 12345
+  _gc arty-1, correction 09050
+  _gc arty-1, fire, shells 40-80, radius 50-150
+  ```
+
+  No more `name`, no more `order`, no more `target`, and **no more semicolon**. That semicolon was not a
+  style choice: the marker text is cut at every comma, so the value of `order` ended at the next comma and
+  the order own parameters had to use something else. Teaching the marker the order own words — `aim`,
+  `fire`, `correct`, `target`, `shells`, `radius`, `correction` — is what makes one separator enough.
+  `_gc` stands for *ground commander*.
+
+  `_gc arty-1` on its own creates the autopilot from the nearest allied group, as `_ground set` did — and
+  unlike `_ground`, the short form genuinely works: the page claimed bare `_ground` was the same as
+  `_ground set`, and it was not. Measured, `_ground, name arty-1` was refused.
+
+  The fifteen shipped `-arty*` and `-ai_set` alias definitions now write the new form. `_ground` and its
+  nested syntax still work, undocumented, so no existing mission breaks.
+
+### Fixed
+
+- **A completed operation's briefing printed its own translation key.** Opening the briefing of a finished
+  combat operation showed the literal text `combatzone.operation_complete` where the congratulations
+  should have been — and the operation's name was dropped with it, because the code called
+  `string.format` on the key instead of `veaf.t`, and a key contains no `%s` to put the name in. The same
+  constant was already used correctly in the event message forty lines below, which is why only the
+  briefing was affected and nobody had noticed. (found in game)
+
+---
 
 ## [6.16.0] — 2026-08-24
 

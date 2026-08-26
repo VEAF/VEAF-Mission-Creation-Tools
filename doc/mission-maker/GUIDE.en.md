@@ -52,6 +52,7 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 | `veaf-tools-updater.exe` | Downloads and installs the latest VEAF MCT release | Yes |
 | `veaf-tools.exe` | Build-time `.miz` manipulation CLI | Yes (for build pipeline) |
 | VS Code or Notepad++ | Editing Lua/YAML config files | Recommended |
+| `ctld-tools.exe` | CTLD configuration editor — **shipped with CTLD, not with VEAF MCT** ([where to download it](#getting-ctld-tools)) | Only if your mission uses CTLD |
 
 > **Base mission coalitions**: each side coalition (blue/red) needs at least one ground unit, otherwise its Lua coalition tables are incomplete and DCS purges the empty side — which used to require placing one blue and one red ground group by hand. **The build now handles this for you**: if a side coalition has no unit, it injects a single *hidden* placeholder ground unit (on the coalition bullseye) so DCS registers the side. You can still place your own ground groups — the placeholder is only added when a side is empty.
 
@@ -643,12 +644,66 @@ modules:
 
 Everything else — distances, timers, crates, troop groups, zones, per-aircraft capabilities — lives in a **`ctld-config.yaml`** file next to `mission.yaml` in your mission folder. You edit it with **`ctld-tools.exe`**, shipped with CTLD: double-click it and the tool opens in your browser, locally, with nothing to install. It validates as you type and shows plain-language labels rather than raw setting names.
 
+#### Where to get `ctld-tools` {#getting-ctld-tools}
+
+The tool does **not** come with VEAF MCT. It is published with CTLD: open the [VEAF/CTLD releases](https://github.com/VEAF/CTLD/releases) and download the `ctld-tools.exe` file attached to the release.
+
+!!! warning "It does not show up under \"Latest release\""
+    Until CTLD 2 cuts a stable version, **every** one of its releases is published as a *pre-release* — so the repository landing page shows none of them, and the "Releases" link is the only way in. The most recent one is at the top of the list.
+
+Take the release **matching the CTLD version your VEAF MCT ships**: the tool and the engine move together. That version is written in plain text in the header of the script installed on your machine, `published/src/scripts/community/CTLD.lua`:
+
+```text
+    CTLD.lua - Combined Transport and Logistics Dispatcher for DCS World
+    Version : 2.0.0-rc7
+```
+
+(Yours may be newer — that line is what counts, not this example.)
+
+After every VEAF MCT update, read that line again: if the version changed, re-download `ctld-tools.exe` from the matching release. A mismatch is not silent — the tool lists the differences when it opens your file (see below).
+
+> **Windows security:** as with `veaf-tools-updater.exe`, Windows may block an `.exe` downloaded from the internet. Right-click → **Properties** → tick **Unblock** → **OK**.
+
+#### The configuration file
+
 `veaf-tools mission prepare` creates the file for you when the chosen template enables CTLD, pre-filled with the engine's own defaults. It is never overwritten afterwards: it is your configuration.
 
 At build time VEAF injects it into the mission as a `CTLD_userConfig.lua` loaded immediately before `CTLD.lua`.
 
 !!! warning "Do not use ctld-tools' own \"inject into mission\" button"
     It writes straight into a `.miz`. On a VEAF mission the `.miz` is rebuilt from the mission folder on every build, so your injection would be wiped by the next one. Save the `ctld-config.yaml` file and let the build do the rest.
+
+#### FARPs and carriers placed in the editor {#ctld-manage-logistics}
+
+For a FARP or a carrier to serve as a loading point, CTLD 2 has to know its unit **type** — through
+the `logisticUnitTypes` and `troopZoneShipTypes` settings. CTLD ships them **empty**, which is the
+right default for the wider world and the wrong one for a VEAF mission, which has always recognised
+carriers and FARP ammo dumps automatically.
+
+VEAF handles it, through a switch in `mission.yaml`:
+
+```yaml
+modules:
+  CTLD:
+    enabled: true
+    manage_logistics: true   # default
+```
+
+At build time the VEAF types (`LHA_Tarawa`, `Stennis`, `CVN_71`, `KUZNECOW`,
+`FARP Ammo Dump Coating`) are **added** to whatever your file declares. Added, not substituted: a
+type you entered yourself in `ctld-tools` — a modded carrier, say — is kept. Your `ctld-config.yaml`
+is not modified; the copy injected into the mission is, and the generated `CTLD_userConfig.lua`
+records in a comment what was added.
+
+Set it to `false` to own those two lists entirely — that is the only way to **remove** a type VEAF
+adds. In that case, if both lists are empty, the build warns you plainly: the mission will start with
+no loading point from the editor at all.
+
+!!! warning "A mission whose `ctld-config.yaml` did not come from `mission prepare`"
+    A file written by hand, copied from another mission, or regenerated from the CTLD defaults
+    arrives with both lists empty. The symptom is confusing because it is partial: the FOBs you
+    create in flight work — they take a different path — and the FARPs you placed in the editor do
+    not. That is exactly what this setting fixes.
 
 !!! note "This file is a **complete** configuration"
     CTLD 2 merges nothing. A plain setting you omit falls back to the engine default (and says so when the mission starts), but a **list** you omit — a crate section, a troop group, a zone — is genuinely removed. That is how you take one out. Always start from the existing file rather than writing one from scratch.

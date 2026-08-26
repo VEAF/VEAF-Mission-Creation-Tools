@@ -90,6 +90,101 @@ def read_default_config(ctld_lua_path: Path) -> str | None:
     return extract_default_config(ctld_lua_path.read_text(encoding="utf-8", errors="replace"))
 
 
+def manage_logistics_enabled(mission_yaml: dict) -> bool:
+    """Return whether the build should merge the VEAF logistic types in at injection time.
+
+    ``modules.CTLD.manage_logistics``, defaulting to **true**: the behaviour VEAF missions
+    relied on for years is the one a mission maker gets without asking. The short form
+    ``CTLD: true`` therefore means the same as ``{enabled: true, manage_logistics: true}``.
+
+    Reads the normalized ``community_scripts`` shape, which is what ``modules:`` becomes.
+
+    Args:
+        mission_yaml: The normalized mission.yaml content.
+
+    Returns:
+        True when automatic logistics management is on.
+    """
+    community = mission_yaml.get("community_scripts")
+    config = community.get("ctld") if isinstance(community, dict) else None
+    if isinstance(config, dict):
+        return bool(config.get("manage_logistics", True))
+    return True
+
+
+def merge_veaf_logistics(catalogue: str) -> tuple[str, dict[str, list[str]]]:
+    """Return *catalogue* with the VEAF logistic types merged into what it already declares.
+
+    **Union, never overwrite.** Replacing the mission's own lists would rebuild the defect
+    ADR 0016 removed: in v1 the VEAF wrapper wrote over the values a mission maker had
+    written, silently. A maker who adds a modded carrier in ctld-tools keeps it here, and
+    still gets the carriers and FARP ammo dumps VEAF has always registered. Removing one of
+    *those* is what ``manage_logistics: false`` is for.
+
+    Order is preserved — the mission's entries first, VEAF's appended when absent — so the
+    diff a maker sees in their editor stays readable.
+
+    A key the catalogue does not define is **skipped, not created**, for the reason
+    :func:`apply_veaf_overrides` skips it: an engine older than this list will not read it.
+
+    Args:
+        catalogue: The mission's ctld-config.yaml content.
+
+    Returns:
+        The merged document, and what was added per key (empty when nothing was).
+    """
+    from ruamel.yaml import YAML
+
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    document = yaml.load(catalogue)
+
+    added: dict[str, list[str]] = {}
+    for key, veaf_values in VEAF_CONFIG_OVERRIDES.items():
+        for section_name in ("mm_facing", "advanced"):
+            section = document.get(section_name)
+            if section is None or key not in section:
+                continue
+            current = section[key]
+            existing = list(current) if isinstance(current, list) else []
+            missing = [value for value in veaf_values if value not in existing]
+            if missing:
+                section[key] = existing + missing
+                added[key] = missing
+            break
+
+    stream = io.StringIO()
+    yaml.dump(document, stream)
+    return stream.getvalue(), added
+
+
+def logistics_lists_are_empty(catalogue: str) -> bool:
+    """Return whether the catalogue declares no logistic type and no troop pickup ship type.
+
+    The shape that costs a mission every editor-placed FARP and carrier. Answered from the
+    document rather than from the engine, because CTLD cannot tell an empty list from an
+    absent one — both mean "register nothing" to it, and only the file distinguishes them.
+
+    Args:
+        catalogue: The mission's ctld-config.yaml content.
+
+    Returns:
+        True when every key VEAF would manage is missing or empty.
+    """
+    from ruamel.yaml import YAML
+
+    yaml = YAML()
+    document = yaml.load(catalogue)
+    if not isinstance(document, dict):
+        return True
+    for key in VEAF_CONFIG_OVERRIDES:
+        for section_name in ("mm_facing", "advanced"):
+            section = document.get(section_name)
+            if section is not None and key in section and section[key]:
+                return False
+    return True
+
+
 def apply_veaf_overrides(catalogue: str) -> str:
     """Return *catalogue* with the VEAF starting values applied.
 

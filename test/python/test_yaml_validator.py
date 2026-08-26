@@ -148,6 +148,18 @@ class TestValidateModulesSemantics(unittest.TestCase):
         fn({"modules": {"CTLD": {"enabled": True}}})
         mock_log.error.assert_not_called()
 
+    def test_manage_logistics_is_accepted(self) -> None:
+        """The one key CTLD reads here besides its on/off flag (FEAT-CTLD-AUTO-LOGISTICS)."""
+        mock_log, fn = self._patched()
+        fn({"modules": {"CTLD": {"enabled": True, "manage_logistics": False}}})
+        mock_log.error.assert_not_called()
+
+    def test_manage_logistics_must_be_a_boolean(self) -> None:
+        """`manage_logistics: "yes"` is truthy in Python and means nothing in YAML — say so."""
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "manage_logistics": "yes"}}})
+
     def test_unknown_init_param_is_warning_not_error(self) -> None:
         mock_log, fn = self._patched()
         fn({"modules": {"RADIO": {"init": {"bogus": True}}}})

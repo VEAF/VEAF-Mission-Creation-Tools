@@ -181,7 +181,21 @@ function VeafAlias:hasPassword(value)
   return self.password and self.password[value]
 end
 
-function VeafAlias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route)
+--- Executer l'alias, en descendant la chaine des modules.
+---
+--- Deux coalitions, et c'est le coeur de FIX-ALIAS-CHAIN-HANDS-THE-WRONG-COALITION :
+---
+--- * `coalition` est celle du SPAWN. Depuis un marqueur, c'est l'adverse : un `-shilka` pose un ennemi.
+--- * `requesterCoalition` est celle du PILOTE qui a pose le marqueur.
+---
+--- Le point d'entree ne passait que la premiere, a tout le monde. `veafGroundAI` la recevait et cherchait
+--- un groupe *allie* du mauvais cote : `-arty1` posait une batterie bleue (country USA) puis cherchait du
+--- rouge autour du marqueur, et repondait "no allied group within 250m". Le meme ordre tape a la main
+--- marchait, parce que ce chemin-la calcule la coalition depuis celle du joueur. Mesure en jeu le
+--- 2026-08-25.
+---
+--- @param requesterCoalition number|nil la coalition du demandeur ; a defaut on retombe sur `coalition`
+function VeafAlias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition)
   local function logDebug(message)
     veaf.loggers.get(veafShortcuts.Id):debug(message)
     return true
@@ -247,7 +261,12 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
     return true
   elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, _bypassSecurity) then
     return true
-  elseif logDebug("checking in veafGroundAI") and veafGroundAI.executeCommand(position, command, coalition, _bypassSecurity) then
+  -- La coalition du DEMANDEUR : ce module cherche les groupes du pilote, pas ceux qu'on fait apparaitre
+  -- contre lui. Tous les autres appels de cette chaine gardent `coalition`, celle du spawn.
+  elseif
+    logDebug("checking in veafGroundAI")
+    and veafGroundAI.executeCommand(position, command, requesterCoalition or coalition, _bypassSecurity)
+  then
     return true
   -- VMR-130: veafRemote had a marker command here (`_remote`). It has been removed — it read a
   -- `monitoredCommands` table that nothing had been able to fill since the SLMOD bridge was
@@ -511,7 +530,18 @@ function veafShortcuts.AddAlias(alias)
 end
 
 -- execute an alias command
-function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route)
+function veafShortcuts.ExecuteAlias(
+  aliasName,
+  delay,
+  remainingCommand,
+  position,
+  coalition,
+  markId,
+  bypassSecurity,
+  spawnedGroups,
+  route,
+  requesterCoalition
+)
   veaf.loggers.get(veafShortcuts.Id):debug(
     string.format(
       "veafShortcuts.ExecuteAlias([%s],[%s],[%s],[%s],[%s])",
@@ -552,7 +582,9 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
 
       -- run the batch
       for index, textToExecute in ipairs(alias:getBatchAliases()) do
-        veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups, route)
+        -- Le demandeur descend aussi dans le lot : c'est exactement le cas de `-arty1`, qui pose une
+        -- batterie puis lui attache un pilote automatique dans la meme foulee.
+        veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups, route, requesterCoalition)
       end
     else
       -- A legitimate delay is always digits: `markTextAnalysis` extracts it with `!(%d*)`, so it arrives
@@ -575,11 +607,11 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
       if nDelay then
         mist.scheduleFunction(
           VeafAlias.execute,
-          { alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route },
+          { alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition },
           timer.getTime() + nDelay
         )
       else
-        alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route)
+        alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition)
       end
     end
     return true
@@ -622,7 +654,7 @@ end
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
+function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition)
   veaf.loggers.get(veafShortcuts.Id):debug("veafShortcuts.executeCommand(eventText=[%s])", eventText)
 
   -- Check if marker has a text and contains an alias
@@ -668,7 +700,18 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
       end
 
       -- do the magic
-      return veafShortcuts.ExecuteAlias(alias, delay, remainder, position, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
+      return veafShortcuts.ExecuteAlias(
+        alias,
+        delay,
+        remainder,
+        position,
+        eventCoalition,
+        markId,
+        bypassSecurity,
+        spawnedGroups,
+        route,
+        requesterCoalition
+      )
     end
     return false
   end
@@ -1309,41 +1352,50 @@ function veafShortcuts.buildDefaultList()
       :setBypassSecurity(false)
   )
   -- Ground unit AI
-  veafShortcuts.AddAlias(
-    VeafAlias:new():setName("-ai_set"):setDescription("Sets an AI handler for a group of units"):setVeafCommand("_ground set")
-  )
+  veafShortcuts.AddAlias(VeafAlias
+    :new()
+    :setName("-ai_set")
+    :setDescription("Sets an AI handler for a group of units ; must follow with the handler name")
+    -- `_gc <nom>` : le nom que le pilote colle derriere devient la valeur du mot-cle, donc
+    -- `-ai_set arty-1` suffit. Pas de virgule finale, sinon elle couperait ce nom.
+    :setVeafCommand(
+      "_gc"
+    )
+    :dontEndWithComma())
   -- ARTY-1 commands
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty1")
       :setDescription("Spawns ARTY-1")
-      :setBatchAliases({ "-arty, unitname arty-1", "-ai_set, name arty-1, groupname arty-1" })
+      :setBatchAliases({ "-arty, unitname arty-1", "-ai_set arty-1, groupname arty-1" })
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
+    VeafAlias
+      :new()
       :setName("-arty1_aim")
       :setDescription("Orders ARTY-1 to fire for aim")
-      :setVeafCommand("_ground order, name arty-1, order aim;radius 15-30; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      -- `aim` en DERNIER : il porte sa valeur en ligne, donc la grille que le pilote colle derriere
+      -- atterrit dessus. Une seule virgule partout, plus de point-virgule.
+      :setVeafCommand(
+        "_gc arty-1, radius 15-30, aim"
+      )
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty1_fire")
       :setDescription("Orders ARTY-1 to fire for effect")
-      :setVeafCommand("_ground order, name arty-1, order fire; radius 50-150; shells 40-80; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      :setVeafCommand("_gc arty-1, radius 50-150, shells 40-80, fire")
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
-      :setName("-arty1_stop")
-      :setDescription("Orders ARTY-1 to stop listening for orders")
-      :setVeafCommand("_ground stop, name arty-1")
+    VeafAlias:new():setName("-arty1_stop"):setDescription("Orders ARTY-1 to stop listening for orders"):setVeafCommand("_gc arty-1, stop")
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty1_start")
       :setDescription("Orders ARTY-1 to start listening for orders")
-      :setVeafCommand("_ground start, name arty-1")
+      :setVeafCommand("_gc arty-1, start")
   )
 
   -- ARTY-2 commands
@@ -1351,33 +1403,35 @@ function veafShortcuts.buildDefaultList()
     VeafAlias:new()
       :setName("-arty2")
       :setDescription("Spawns ARTY-2")
-      :setBatchAliases({ "-arty, unitname arty-2", "-ai_set, name arty-2, groupname arty-2" })
+      :setBatchAliases({ "-arty, unitname arty-2", "-ai_set arty-2, groupname arty-2" })
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
+    VeafAlias
+      :new()
       :setName("-arty2_aim")
       :setDescription("Orders ARTY-2 to fire for aim")
-      :setVeafCommand("_ground order, name arty-2, order aim;radius 15-30; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      -- `aim` en DERNIER : il porte sa valeur en ligne, donc la grille que le pilote colle derriere
+      -- atterrit dessus. Une seule virgule partout, plus de point-virgule.
+      :setVeafCommand(
+        "_gc arty-2, radius 15-30, aim"
+      )
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty2_fire")
       :setDescription("Orders ARTY-2 to fire for effect")
-      :setVeafCommand("_ground order, name arty-2, order fire; radius 50-150; shells 40-80; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      :setVeafCommand("_gc arty-2, radius 50-150, shells 40-80, fire")
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
-      :setName("-arty2_stop")
-      :setDescription("Orders ARTY-2 to stop listening for orders")
-      :setVeafCommand("_ground stop, name arty-2")
+    VeafAlias:new():setName("-arty2_stop"):setDescription("Orders ARTY-2 to stop listening for orders"):setVeafCommand("_gc arty-2, stop")
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty2_start")
       :setDescription("Orders ARTY-2 to start listening for orders")
-      :setVeafCommand("_ground start, name arty-2")
+      :setVeafCommand("_gc arty-2, start")
   )
 
   -- ARTY-3 commands
@@ -1385,33 +1439,35 @@ function veafShortcuts.buildDefaultList()
     VeafAlias:new()
       :setName("-arty3")
       :setDescription("Spawns ARTY-3")
-      :setBatchAliases({ "-arty, unitname arty-3", "-ai_set, name arty-3, groupname arty-3" })
+      :setBatchAliases({ "-arty, unitname arty-3", "-ai_set arty-3, groupname arty-3" })
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
+    VeafAlias
+      :new()
       :setName("-arty3_aim")
       :setDescription("Orders ARTY-3 to fire for aim")
-      :setVeafCommand("_ground order, name arty-3, order aim;radius 15-30; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      -- `aim` en DERNIER : il porte sa valeur en ligne, donc la grille que le pilote colle derriere
+      -- atterrit dessus. Une seule virgule partout, plus de point-virgule.
+      :setVeafCommand(
+        "_gc arty-3, radius 15-30, aim"
+      )
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty3_fire")
       :setDescription("Orders ARTY-3 to fire for effect")
-      :setVeafCommand("_ground order, name arty-3, order fire; radius 50-150; shells 40-80; target")
-      :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+      :setVeafCommand("_gc arty-3, radius 50-150, shells 40-80, fire")
+      :dontEndWithComma() -- sinon la virgule couperait les coordonnees que le pilote colle derriere
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new()
-      :setName("-arty3_stop")
-      :setDescription("Orders ARTY-3 to stop listening for orders")
-      :setVeafCommand("_ground stop, name arty-3")
+    VeafAlias:new():setName("-arty3_stop"):setDescription("Orders ARTY-3 to stop listening for orders"):setVeafCommand("_gc arty-3, stop")
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-arty3_start")
       :setDescription("Orders ARTY-3 to start listening for orders")
-      :setVeafCommand("_ground start, name arty-3")
+      :setVeafCommand("_gc arty-3, start")
   )
 
   veafShortcuts.AddAlias(
@@ -1763,9 +1819,14 @@ function veafShortcuts.initialize()
   veaf.loggers.get(veafShortcuts.Id):info("Initializing module")
   veafShortcuts.buildDefaultList()
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
-    -- An alias usually expands to a spawn: markers target the opposing side by default.
+    -- DEUX coalitions, parce que les modules de la chaine n'en veulent pas la meme.
+    --
+    -- `spawnSide` est l'adverse depuis un marqueur : un alias fait *generalement* apparaitre quelque
+    -- chose, et on le pose contre l'ennemi. Mais "generalement" n'est pas "toujours" — `veafGroundAI`
+    -- cherche les groupes du pilote, et recevoir l'adverse lui faisait chercher du mauvais cote. Passer
+    -- une seule valeur a toute la chaine etait le defaut.
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
-    return veafShortcuts.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, route)
+    return veafShortcuts.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups, route, event.coalition)
   end, veafCommands.PRIORITY_SHORTCUTS, veafCommands.SECURITY_HANDLED)
   veafRemote.registerRemoteModule("alias", veafShortcuts.executeCommandFromRemote)
   veafShortcuts.dumpAliasesList()

@@ -198,4 +198,97 @@ function TestVeafEventHandlerCompleteUnit:test_unitCategory_is_unit_category_not
   luaunit.assertNotEquals(data.unitCategory, Unit.Category.HELICOPTER)
 end
 
+-- ── unitNameFromEvent ───────────────────────────────────────────────────────
+-- Both shapes of `initiator` are real, and reading only one of them fails silently: the callback
+-- returns early and logs nothing. That is how the 6.16.0 welcome brief shipped dead on every
+-- server — it read `getName` alone, which only a dynamic-slot unit answers.
+
+TestVeafEventHandlerUnitNameFromEvent = {}
+
+function TestVeafEventHandlerUnitNameFromEvent:test_it_reads_the_data_table_an_ordinary_slot_carries()
+  -- What `completeUnitFromName` returns, and therefore what a callback actually receives.
+  local event = { initiator = { unitName = "Chevy11", unitType = "F-16C_50", unitCoalition = 2 } }
+  luaunit.assertEquals(veafEventHandler.unitNameFromEvent(event), "Chevy11")
+end
+
+function TestVeafEventHandlerUnitNameFromEvent:test_it_falls_back_to_getName_for_a_dynamic_slot()
+  -- A dynamic-slot unit has no mist table entry, so the raw DCS object comes through.
+  local event = {
+    initiator = {
+      getName = function()
+        return "DynamicChevy"
+      end,
+    },
+  }
+  luaunit.assertEquals(veafEventHandler.unitNameFromEvent(event), "DynamicChevy")
+end
+
+function TestVeafEventHandlerUnitNameFromEvent:test_the_table_wins_when_both_are_present()
+  -- completeUnitFromName never produces both, but a caller passing a raw object it enriched would;
+  -- the declared name is the authoritative one.
+  local event = {
+    initiator = {
+      unitName = "FromTable",
+      getName = function()
+        return "FromMethod"
+      end,
+    },
+  }
+  luaunit.assertEquals(veafEventHandler.unitNameFromEvent(event), "FromTable")
+end
+
+function TestVeafEventHandlerUnitNameFromEvent:test_nothing_identifiable_is_nil_not_a_crash()
+  luaunit.assertNil(veafEventHandler.unitNameFromEvent(nil))
+  luaunit.assertNil(veafEventHandler.unitNameFromEvent({}))
+  luaunit.assertNil(veafEventHandler.unitNameFromEvent({ initiator = nil }))
+  luaunit.assertNil(veafEventHandler.unitNameFromEvent({ initiator = { unitType = "F-16C_50" } }))
+end
+
+-- ── the handler is registered with DCS exactly once ─────────────────────────
+-- `initialize()` runs **twice** on every mission: the script calls it on load (veafEventHandler.lua,
+-- last line) so a mission that generates no veaf-config still handles events, and the generated
+-- `veaf-config.lua` calls it again alongside the other modules. Both calls are deliberate; what was
+-- not deliberate is that each one added the handler to DCS again.
+--
+-- Seen in a real server log, two lines per session:
+--   VEAF-EVENTS|I|?|22085: loaded /INFO            (script load)
+--   VEAF-EVENTS|I|initialize|22085: loaded /INFO   (veaf-config.lua)
+--
+-- A handler registered twice means DCS delivers every event twice, and every callback behind it runs
+-- twice: two menu rebuilds on a birth, two QRA evaluations, two FARP warehouse refills.
+
+TestVeafEventHandlerRegistration = {}
+
+function TestVeafEventHandlerRegistration:setUp()
+  self._savedAdd = world.addEventHandler
+  self.registered = 0
+  world.addEventHandler = function(_handler)
+    self.registered = self.registered + 1
+  end
+end
+
+function TestVeafEventHandlerRegistration:tearDown()
+  world.addEventHandler = self._savedAdd
+end
+
+function TestVeafEventHandlerRegistration:test_a_second_initialize_does_not_register_again()
+  -- The real sequence: the script already initialised itself on load, then veaf-config.lua calls it.
+  veafEventHandler.initialize()
+  luaunit.assertEquals(self.registered, 0, "the handler was already registered when the script loaded")
+end
+
+function TestVeafEventHandlerRegistration:test_registering_from_scratch_happens_once()
+  veafEventHandler.eventHandlerRegistered = nil -- as if the script had never run
+  veafEventHandler.initialize()
+  veafEventHandler.initialize()
+  luaunit.assertEquals(self.registered, 1)
+end
+
+function TestVeafEventHandlerRegistration:test_the_events_map_is_still_rebuilt_every_time()
+  -- Guarding the registration must not turn the rest of initialize() into a no-op.
+  veafEventHandler.knownEvents = {}
+  veafEventHandler.initialize()
+  luaunit.assertNotNil(veafEventHandler.knownEvents["S_EVENT_BIRTH"])
+end
+
 os.exit(luaunit.LuaUnit.run())

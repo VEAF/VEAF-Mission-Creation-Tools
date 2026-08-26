@@ -1889,14 +1889,7 @@ function veafGrass.onBirth(event)
   --veaf.loggers.get(veafGrass.Id):trace(string.format("onBirth(%s)",veaf.p(event)))
 
   -- find the originator unit
-  local unitName = nil
-  if event.initiator ~= nil then
-    unitName = event.initiator.unitName
-    if not unitName and event.initiator.getName then
-      -- dynamic slot units are DCS objects without mist table properties
-      unitName = event.initiator:getName()
-    end
-  end
+  local unitName = veafEventHandler.unitNameFromEvent(event)
   if not unitName then
     veaf.loggers.get(veafGrass.Id):warn("no unitname found in event %s", veaf.p(event))
     return

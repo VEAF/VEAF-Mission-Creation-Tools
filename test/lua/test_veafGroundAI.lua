@@ -964,8 +964,28 @@ end
 
 function TestGroundAiUnknownHandler:test_the_message_says_how_to_create_one()
   -- "Unknown" without "here is what to do" sends a pilot back to the documentation mid-flight.
-  local said = self:_say("_ground order, name arty-1, order aim")
-  luaunit.assertNotNil(said:find("_ground set", 1, true), "expected the creating command: " .. said)
+  --
+  -- Lu depuis les constantes du module plutot qu'ecrit en dur : le message enseignait `_ground set`, forme
+  -- retiree de la documentation le jour ou `_gc` a ete livre, et une chaine litterale dans ce test aurait
+  -- tout aussi bien survecu a un renommage du mot-cle en laissant le message en arriere.
+  local said = self:_say("_gc arty-1, aim")
+  luaunit.assertNotNil(said:find(veafGroundAI.ShortKeyphrase, 1, true), "expected the creating command: " .. said)
+  luaunit.assertNil(said:find(veafGroundAI.MarkerKeyphrase, 1, true), "l'ancienne forme ne doit plus etre enseignee : " .. said)
+end
+
+function TestGroundAiUnknownHandler:test_the_command_the_message_gives_actually_works()
+  -- LE test qui manquait. Un message d'aide qui enseigne une commande que rien n'accepte est un conseil
+  -- mort, et c'est exactement ce qu'il etait. On prend la commande telle que le message la donne — apres
+  -- le dernier deux-points, dans les deux langues — et on la fait lire au parseur.
+  local said = self:_say("_gc arty-1, aim")
+  local suggeree = said:match(":%s*([^:]+)%s*$")
+  luaunit.assertNotNil(suggeree, "le message doit donner une commande apres un deux-points : " .. said)
+  suggeree = veaf.trim(suggeree)
+
+  local o = veaf.parseMarkerText(suggeree, veafGroundAI.MarkerSpec)
+  luaunit.assertNotNil(o, "la commande donnee doit etre lisible : [" .. suggeree .. "]")
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_SET, "et doit bien creer le pilote automatique")
+  luaunit.assertEquals(o.name, "arty-1", "sur le nom demande")
 end
 
 function TestGroundAiUnknownHandler:test_start_says_so()
@@ -1048,7 +1068,772 @@ function TestGroundAiUnknownHandler:test_a_known_autopilot_is_not_complained_abo
   handler.silent = true
   veafGroundAI.add(handler)
   local said = self:_say("_ground status, name arty-1")
-  luaunit.assertNil(said:find("_ground set", 1, true), "no complaint expected, got: " .. said)
+  luaunit.assertNil(said:find(veafGroundAI.ShortKeyphrase, 1, true), "no complaint expected, got: " .. said)
+end
+
+-- ===========================================================================
+-- FEAT-GC-MARKER-SYNTAX — `_gc <nom>, <verbe> <valeur>, <paramètres>`
+--
+-- Le destinataire d'abord, comme à la radio, et une seule virgule partout. L'ancienne forme
+-- (`_ground order, name X, order aim; target Y`) reste acceptée sans être documentée, et une partie de
+-- ces tests existe pour qu'on s'aperçoive si on la casse.
+--
+-- Le point-virgule n'était pas un choix de style : le parseur découpe sur les virgules, donc la valeur
+-- de `order` s'arrêtait à la virgule suivante. Ce qui le rend inutile, c'est que le marqueur connaisse
+-- lui-même les mots de l'ordre — ce que ces tests vérifient mot par mot.
+-- ===========================================================================
+TestGcMarkerSyntax = {}
+
+function TestGcMarkerSyntax:_read(text)
+  return veaf.parseMarkerText(text, veafGroundAI.MarkerSpec)
+end
+
+-- ── le nom, en première position ────────────────────────────────────────────
+
+function TestGcMarkerSyntax:test_the_name_comes_first_without_a_keyword()
+  local o = self:_read("_gc arty-1, status")
+  luaunit.assertNotNil(o, "_gc doit être reconnu")
+  luaunit.assertEquals(o.name, "arty-1")
+end
+
+function TestGcMarkerSyntax:test_the_name_alone_means_set()
+  -- Ce que la page promettait pour `_ground` seul sans que ce soit vrai : mesuré, `_ground, name X` est
+  -- refusé. Avec `_gc`, la forme courte marche vraiment.
+  local o = self:_read("_gc arty-1")
+  luaunit.assertNotNil(o, "_gc seul doit être reconnu")
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_SET)
+  luaunit.assertEquals(o.name, "arty-1")
+end
+
+function TestGcMarkerSyntax:test_a_nameless_gc_is_refused()
+  -- `name` est obligatoire pour les sept verbes, et la chaîne vide est piégeuse en Lua : `""` est vrai.
+  luaunit.assertNil(self:_read("_gc"))
+  luaunit.assertNil(self:_read("_gc , status"))
+end
+
+-- ── les verbes ──────────────────────────────────────────────────────────────
+
+function TestGcMarkerSyntax:test_every_verb_is_recognised()
+  local attendu = {
+    set = veafGroundAI.VERB_SET,
+    unset = veafGroundAI.VERB_UNSET,
+    start = veafGroundAI.VERB_START,
+    stop = veafGroundAI.VERB_STOP,
+    clear = veafGroundAI.VERB_CLEAR,
+    status = veafGroundAI.VERB_STATUS,
+  }
+  for mot, verbe in pairs(attendu) do
+    local o = self:_read("_gc arty-1, " .. mot)
+    luaunit.assertNotNil(o, "verbe refusé : " .. mot)
+    luaunit.assertEquals(o.verb, verbe, "mauvais verbe pour " .. mot)
+  end
+end
+
+function TestGcMarkerSyntax:test_an_order_verb_routes_to_the_order_path()
+  for _, mot in ipairs({ "aim", "fire", "correction" }) do
+    local o = self:_read("_gc arty-1, " .. mot)
+    luaunit.assertNotNil(o, "verbe refusé : " .. mot)
+    luaunit.assertEquals(o.verb, veafGroundAI.VERB_ORDER, mot .. " doit être un ordre")
+  end
+end
+
+-- ── la valeur en ligne du verbe ─────────────────────────────────────────────
+
+function TestGcMarkerSyntax:test_aim_carries_its_coordinates()
+  -- LA raison d'être du lot : la grille se recopie telle que DCS l'affiche, espaces compris, sans
+  -- mot-clé `target` ni point-virgule.
+  local o = self:_read("_gc arty-1, aim 37T FH 73551 47565")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+end
+
+function TestGcMarkerSyntax:test_fire_carries_its_coordinates_too()
+  local o = self:_read("_gc arty-1, fire 37T FH 73551 47565")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+end
+
+function TestGcMarkerSyntax:test_fire_without_coordinates_keeps_the_last_aim_point()
+  -- `fire` sans cible retire au dernier point visé : la valeur absente doit rester absente, pas devenir
+  -- une chaîne que le lecteur de coordonnées refuserait en se plaignant.
+  local o = self:_read("_gc arty-1, fire")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertTrue(o.target == nil or o.target == "", "pas de cible attendue, reçu: " .. tostring(o.target))
+end
+
+function TestGcMarkerSyntax:test_correction_carries_its_value()
+  local o = self:_read("_gc arty-1, correction 09050")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_CORRECT)
+  luaunit.assertNotNil(o.correction, "la correction doit être lue")
+  luaunit.assertEquals(o.correction.bearing, 90)
+  luaunit.assertEquals(o.correction.distance, 50)
+end
+
+function TestGcMarkerSyntax:test_correct_is_accepted_as_well_as_correction()
+  -- Deux orthographes plutôt qu'une à retenir sous le feu.
+  local o = self:_read("_gc arty-1, correct 09050")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_CORRECT)
+  luaunit.assertEquals(o.correction.bearing, 90)
+end
+
+function TestGcMarkerSyntax:test_an_unreadable_target_is_dropped_not_stored()
+  -- La cible se valide a la lecture, comme la correction : une chaine que le lecteur de coordonnees ne
+  -- sait pas lire ne doit jamais atteindre un canon. Sans ce test, retirer la validation passait tout.
+  local o = self:_read("_gc arty-1, aim quelque part par la")
+  luaunit.assertNotNil(o)
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FORAIM, "le verbe reste lu")
+  luaunit.assertNil(o.target, "mais la cible illisible est jetee")
+end
+
+function TestGcMarkerSyntax:test_an_unreadable_target_is_dropped_from_fire_too()
+  local o = self:_read("_gc arty-1, fire nimporte quoi")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertNil(o.target)
+end
+
+function TestGcMarkerSyntax:test_an_unreadable_target_is_dropped_from_the_long_form_too()
+  local o = self:_read("_gc arty-1, aim, target pas une grille")
+  luaunit.assertNil(o.target)
+end
+
+function TestGcMarkerSyntax:test_an_unreadable_correction_is_dropped_not_stored()
+  -- Comme `target`, la correction se valide à la lecture : un chiffre que le module ne sait pas lire ne
+  -- doit jamais atteindre un canon.
+  local o = self:_read("_gc arty-1, correction est50")
+  luaunit.assertNotNil(o)
+  luaunit.assertNil(o.correction)
+end
+
+-- ── les paramètres, séparés par des virgules ────────────────────────────────
+
+function TestGcMarkerSyntax:test_the_parameters_use_commas()
+  local o = self:_read("_gc arty-1, fire, shells 40-80, radius 50-150")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertNotNil(o.shells, "shells doit être lu")
+  luaunit.assertNotNil(o.radius, "radius doit être lu")
+end
+
+function TestGcMarkerSyntax:test_target_still_works_as_a_long_form()
+  local o = self:_read("_gc arty-1, aim, target 37T FH 73551 47565")
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+end
+
+function TestGcMarkerSyntax:test_groupname_still_works()
+  local o = self:_read("_gc arty-1, set, groupname ARTY-1")
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_SET)
+end
+
+function TestGcMarkerSyntax:test_a_misspelt_parameter_is_reported()
+  -- Le refus des coquilles vaut aussi pour la forme neuve : c'est ce qui évite un marqueur qui ne fait
+  -- rien parce qu'on a écrit `shels`.
+  local o = self:_read("_gc arty-1, fire, shels 40")
+  luaunit.assertNotNil(o)
+  luaunit.assertNotNil(o.unknownParameters, "la coquille doit être signalée")
+end
+
+-- ── l'ancienne forme, qui doit survivre ─────────────────────────────────────
+-- Non documentée, mais des missions au monde l'écrivent. Ces tests sont là pour qu'on s'en aperçoive.
+
+function TestGcMarkerSyntax:test_the_old_ground_form_still_works()
+  local o = self:_read("_ground order, name arty-1, order aim; target 37T FH 73551 47565")
+  luaunit.assertNotNil(o, "_ground doit rester accepté")
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_ORDER)
+  luaunit.assertEquals(o.name, "arty-1")
+  luaunit.assertEquals(o.order, "aim; target 37T FH 73551 47565")
+end
+
+function TestGcMarkerSyntax:test_the_old_ground_verbs_still_work()
+  local paires = { { "set", veafGroundAI.VERB_SET }, { "stop", veafGroundAI.VERB_STOP }, { "status", veafGroundAI.VERB_STATUS } }
+  for _, paire in ipairs(paires) do
+    local o = self:_read("_ground " .. paire[1] .. ", name arty-1")
+    luaunit.assertNotNil(o, "_ground " .. paire[1] .. " doit rester accepté")
+    luaunit.assertEquals(o.verb, paire[2])
+  end
+end
+
+function TestGcMarkerSyntax:test_a_group_named_with_gc_does_not_hijack_the_old_form()
+  -- `_gc` est cherché comme un morceau de texte n'importe où : un groupe appelé `x_gcy` dans une
+  -- ancienne commande ne doit pas la faire lire comme du `_gc`.
+  local o = self:_read("_ground stop, name x_gcy")
+  luaunit.assertNotNil(o)
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_STOP)
+  luaunit.assertEquals(o.name, "x_gcy")
+end
+
+-- ===========================================================================
+-- FEAT-GC-MARKER-SYNTAX — de bout en bout
+--
+-- Les tests ci-dessus verifient ce que le PARSEUR comprend. Ceux-ci verifient que la batterie tire :
+-- c'est une indirection de plus, et c'est exactement la ou les trous se cachaient trois fois hier.
+-- ===========================================================================
+TestGcEndToEnd = {}
+
+function TestGcEndToEnd:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._outText = trigger.action.outText
+  self.messages = {}
+  local test = self
+  trigger.action.outText = function(text)
+    table.insert(test.messages, tostring(text))
+  end
+
+  self._saved = veafGroundAI.handlers
+  veafGroundAI.handlers = {}
+  self.orders = {}
+  self.handler = ArtilleryUnitHandler:new():setName("arty-1")
+  self.handler.silent = false
+  self.handler.addOrder = function(_, order)
+    table.insert(test.orders, order)
+  end
+  veafGroundAI.add(self.handler)
+end
+
+function TestGcEndToEnd:tearDown()
+  trigger.action.outText = self._outText
+  veafGroundAI.handlers = self._saved
+end
+
+function TestGcEndToEnd:_marker(text)
+  veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, text, 2, 0)
+  return self.orders[#self.orders]
+end
+
+function TestGcEndToEnd:test_aim_with_a_dcs_grid_fires()
+  -- LA commande que David veut pouvoir taper : la grille recopiee de la carte F10, espaces compris.
+  local order = self:_marker("_gc arty-1, aim 37T FH 73551 47565")
+  luaunit.assertNotNil(order, "la batterie doit avoir recu un ordre")
+  luaunit.assertNotNil(order.parameters.target, "avec une cible")
+end
+
+function TestGcEndToEnd:test_the_correction_shifts_the_aim_point()
+  self:_marker("_gc arty-1, aim 37T FH 73551 47565")
+  local avant = self.orders[#self.orders].parameters.target
+  self:_marker("_gc arty-1, correction 09050")
+  local apres = self.orders[#self.orders].parameters.target
+  luaunit.assertNotNil(apres, "la correction doit faire tirer")
+  luaunit.assertAlmostEquals(apres.z - avant.z, 50, 0.01, "50 m vers l'est")
+  luaunit.assertAlmostEquals(apres.x - avant.x, 0, 0.01, "et rien vers le nord")
+end
+
+function TestGcEndToEnd:test_fire_uses_the_corrected_point()
+  self:_marker("_gc arty-1, aim 37T FH 73551 47565")
+  self:_marker("_gc arty-1, correction 09050")
+  local corrige = self.orders[#self.orders].parameters.target
+  self:_marker("_gc arty-1, fire")
+  local efficacite = self.orders[#self.orders].parameters.target
+  luaunit.assertAlmostEquals(efficacite.z, corrige.z, 0.01)
+end
+
+function TestGcEndToEnd:test_the_parameters_reach_the_order()
+  local order = self:_marker("_gc arty-1, fire 37T FH 73551 47565, shells 40, radius 120")
+  luaunit.assertEquals(order.parameters.shells, 40)
+  luaunit.assertEquals(order.parameters.radius, 120)
+end
+
+function TestGcEndToEnd:test_an_unknown_battery_says_so()
+  -- Le meme refus annonce que pour l'ancienne forme : la syntaxe neuve ne doit pas rouvrir le silence.
+  self.messages = {}
+  veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, "_gc pas-la, status", 2, 0)
+  local dit = table.concat(self.messages, " | ")
+  luaunit.assertNotEquals(dit, "", "une batterie inconnue doit etre annoncee")
+  luaunit.assertNotNil(dit:find("pas-la", 1, true), "et nommee : " .. dit)
+end
+
+function TestGcEndToEnd:test_the_old_form_still_fires()
+  -- Non documentee, mais elle doit continuer de marcher de bout en bout, pas seulement de se lire.
+  local order = self:_marker("_ground order, name arty-1, order aim; target 37T FH 73551 47565")
+  luaunit.assertNotNil(order, "l'ancienne forme doit encore faire tirer")
+  luaunit.assertNotNil(order.parameters.target)
+end
+
+function TestGcEndToEnd:test_status_answers()
+  self.messages = {}
+  self:_marker("_gc arty-1, status")
+  luaunit.assertNotEquals(table.concat(self.messages, " | "), "", "status doit repondre quelque chose")
+end
+
+-- ===========================================================================
+-- FEAT-GC-MARKER-SYNTAX — les alias livres produisent une commande lisible
+--
+-- C'est le chemin que la plupart des pilotes empruntent : personne ne tape `_gc arty-1, aim …` a la main
+-- quand `-arty1_aim …` existe. Les reecrire sans verifier ce qu'ils produisent, c'est exactement le genre
+-- de casse silencieuse que ce lot est cense supprimer.
+--
+-- On ne teste pas l'expansion elle-meme (c'est veafShortcuts) mais le fait que la commande obtenue soit
+-- comprise par le parseur du marqueur, coordonnees collees derriere comme le pilote le fait.
+-- ===========================================================================
+TestGcShippedAliases = {}
+
+function TestGcShippedAliases:_read(text)
+  return veaf.parseMarkerText(text, veafGroundAI.MarkerSpec)
+end
+
+function TestGcShippedAliases:test_the_aim_alias_with_a_grid_appended()
+  -- Ce que `-arty1_aim 37T FH 73551 47565` donne : le verbe est en dernier dans l'alias, donc la grille
+  -- atterrit dessus.
+  local o = self:_read("_gc arty-1, radius 15-30, aim 37T FH 73551 47565")
+  luaunit.assertNotNil(o)
+  luaunit.assertEquals(o.name, "arty-1")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FORAIM)
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+  luaunit.assertNotNil(o.radius, "le radius de l'alias doit survivre")
+end
+
+function TestGcShippedAliases:test_the_fire_alias_with_a_grid_appended()
+  local o = self:_read("_gc arty-1, radius 50-150, shells 40-80, fire 37T FH 73551 47565")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertEquals(o.target, "37T FH 73551 47565")
+  luaunit.assertNotNil(o.shells)
+  luaunit.assertNotNil(o.radius)
+end
+
+function TestGcShippedAliases:test_the_fire_alias_without_a_grid()
+  -- `-arty1_fire` seul : tir d'efficacite au dernier point vise, sans coordonnees.
+  local o = self:_read("_gc arty-1, radius 50-150, shells 40-80, fire")
+  luaunit.assertEquals(o.orderVerb, ArtilleryUnitHandler.VERB_FIRE_FOREFFECT)
+  luaunit.assertNil(o.target)
+end
+
+function TestGcShippedAliases:test_the_stop_and_start_aliases()
+  luaunit.assertEquals(self:_read("_gc arty-1, stop").verb, veafGroundAI.VERB_STOP)
+  luaunit.assertEquals(self:_read("_gc arty-1, start").verb, veafGroundAI.VERB_START)
+end
+
+function TestGcShippedAliases:test_the_ai_set_alias_with_a_name_appended()
+  -- Ce que `-ai_set arty-1, groupname arty-1` donne, tel que le lot `-arty1` l'ecrit.
+  local o = self:_read("_gc arty-1, groupname arty-1")
+  luaunit.assertNotNil(o)
+  luaunit.assertEquals(o.verb, veafGroundAI.VERB_SET)
+  luaunit.assertEquals(o.name, "arty-1")
+end
+
+function TestGcShippedAliases:test_no_shipped_alias_still_writes_the_semicolon_form()
+  -- Le point-virgule reste accepte, mais plus rien de ce qu'on livre ne l'ecrit. Ce test lit le module
+  -- des alias plutot que de le supposer.
+  local chemin = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") .. "/../../src/scripts/veaf/veafShortcuts.lua"
+  local fichier = io.open(chemin, "r")
+  luaunit.assertNotNil(fichier, "veafShortcuts.lua doit etre lisible depuis le test")
+  local contenu = fichier:read("*a")
+  fichier:close()
+  luaunit.assertNil(contenu:find("_ground", 1, true), "aucun alias livre ne doit plus ecrire _ground")
+end
+
+-- ===========================================================================
+-- Le CABLAGE : le repartiteur appelle-t-il ce module ?
+--
+-- `veafCommands.registerCommandHandler` prend un dernier argument qui est un FILTRE : le repartiteur
+-- n'appelle le gestionnaire que pour les textes contenant ce mot. Il n'accepte qu'une chaine.
+--
+-- Donc `_gc` n'atteignait tout simplement pas le module : le marqueur restait sur la carte sans un mot,
+-- alors que 163 tests passaient. Tous appelaient `executeCommand` ou `parseMarkerText` directement, et
+-- aucun ne pouvait voir qu'on n'etait jamais appele. Trouve en jeu le 2026-08-25.
+--
+-- C'est la quatrieme fois dans la journee que ce genre de trou est trouve par un essai en vol plutot que
+-- par un test : le gestionnaire etait couvert, ce qui l'appelle ne l'etait pas.
+-- ===========================================================================
+TestGroundAiIsActuallyWired = {}
+
+function TestGroundAiIsActuallyWired:setUp()
+  -- Le module d'enregistrement n'est pas charge par cette suite : on le remplace par un espion, ce qui
+  -- est exactement ce qu'on veut observer — les filtres declares, pas ce qu'ils filtrent.
+  self._saved = veafCommands
+  self.registered = {}
+  local test = self
+  veafCommands = {
+    PRIORITY_GROUNDAI = 50,
+    registerCommandHandler = function(fn, priority, security, keyphrase)
+      table.insert(test.registered, { fn = fn, security = security, keyphrase = keyphrase })
+    end,
+  }
+  veafGroundAI.initialize()
+end
+
+function TestGroundAiIsActuallyWired:tearDown()
+  veafCommands = self._saved
+end
+
+--- Un texte est-il pris en charge par au moins un filtre declare ?
+--- Reproduit `veafCommands.handlesText` : un filtre absent prend tout, sinon il faut le contenir.
+function TestGroundAiIsActuallyWired:_handles(text)
+  for _, entry in ipairs(self.registered) do
+    if not entry.keyphrase then
+      return true
+    end
+    if text:lower():find(entry.keyphrase:lower(), 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+function TestGroundAiIsActuallyWired:test_a_gc_marker_reaches_the_module()
+  -- LE test qui manquait. Sans lui, la syntaxe entiere est morte en jeu et verte en test.
+  luaunit.assertTrue(self:_handles("_gc arty-1"), "un marqueur _gc doit atteindre le module")
+  luaunit.assertTrue(self:_handles("_gc arty-1, aim 37T GG 12345 12345"))
+  luaunit.assertTrue(self:_handles("_gc arty-1, correction 09050"))
+end
+
+function TestGroundAiIsActuallyWired:test_a_ground_marker_still_reaches_the_module()
+  luaunit.assertTrue(self:_handles("_ground set, name arty-1"))
+  luaunit.assertTrue(self:_handles("_ground order, name arty-1, order aim; target 42N042E"))
+end
+
+function TestGroundAiIsActuallyWired:test_both_keyphrases_are_declared()
+  local vus = {}
+  for _, entry in ipairs(self.registered) do
+    if entry.keyphrase then
+      vus[entry.keyphrase] = true
+    end
+  end
+  luaunit.assertTrue(vus[veafGroundAI.MarkerKeyphrase], "_ground doit etre declare")
+  luaunit.assertTrue(vus[veafGroundAI.ShortKeyphrase], "_gc doit etre declare")
+end
+
+function TestGroundAiIsActuallyWired:test_an_unrelated_marker_does_not_reach_the_module()
+  -- L'autre moitie : un filtre qui prend tout ne filtre rien, et ferait repondre ce module aux
+  -- marqueurs des autres.
+  luaunit.assertFalse(self:_handles("_spawn unit, name shilka"), "un _spawn ne concerne pas ce module")
+  luaunit.assertFalse(self:_handles("bonjour"))
+end
+
+function TestGroundAiIsActuallyWired:test_every_registration_declares_its_security()
+  -- Un gestionnaire sans niveau de securite declare tournait pour n'importe qui : le repartiteur le
+  -- refuse desormais, et ajouter un second enregistrement est exactement le moment de l'oublier.
+  luaunit.assertTrue(#self.registered >= 2, "deux enregistrements attendus")
+  for i, entry in ipairs(self.registered) do
+    luaunit.assertEquals(entry.security, "KNOWN_PILOT", "enregistrement " .. i .. " sans securite")
+  end
+end
+
+-- ===========================================================================
+-- FIX-ARTILLERY-SCATTERS-AFTER-EVERY-MISSION
+--
+-- La tache `FireAtPoint` de DCS prend un `counterbattaryRadius` : le schema de l'API le decrit comme
+-- « le rayon en metres, depuis le chef de groupe, dans lequel le groupe se deplacera dans des directions
+-- aleatoires APRES avoir termine la tache ». C'est de l'evitement de contre-batterie.
+--
+-- Il etait code en dur a 500, et aucun test ne le regardait. Consequence signalee en jeu le 2026-08-25 :
+-- le tir de reglage part, les canons se dispersent, puis l'ordre d'efficacite arrive sur un groupe qui
+-- roule — et une piece d'artillerie ne tire pas en roulant. « les canons se sont deplaces et ne tirent
+-- pas ».
+--
+-- Ces tests regardent la tache POUSSEE A DCS, pas ce que le module en pense : c'est le seul endroit d'ou
+-- le defaut etait visible.
+-- ===========================================================================
+TestArtilleryFireTask = {}
+
+function TestArtilleryFireTask:setUp()
+  dcs_mocks.reset()
+  self._outText = trigger.action.outText
+  trigger.action.outText = function() end
+
+  self.taches = {}
+  local test = self
+  self.handler = ArtilleryUnitHandler:new():setName("arty-1")
+  self.handler.silent = true
+  -- On remplace le groupe DCS par un espion : ce qui compte est la table exacte remise au controleur.
+  self.handler.getDcsGroup = function()
+    return {
+      getController = function()
+        return {
+          pushTask = function(_, tache)
+            table.insert(test.taches, tache)
+          end,
+        }
+      end,
+    }
+  end
+end
+
+function TestArtilleryFireTask:tearDown()
+  trigger.action.outText = self._outText
+end
+
+--- Donne un ordre et rend la tache que DCS a recue.
+function TestArtilleryFireTask:_tache(order)
+  self.taches = {}
+  self.handler:handleOrder(order)
+  return self.taches[1]
+end
+
+function TestArtilleryFireTask:_ordreDeTir(shells, radius)
+  return {
+    verb = ArtilleryUnitHandler.ORDER_FIRE,
+    parameters = { shells = shells, target = { x = 1000, y = 0, z = 2000 }, radius = radius },
+  }
+end
+
+function TestArtilleryFireTask:test_the_battery_does_not_scatter_after_firing()
+  -- LE defaut. Un rayon non nul fait rouler les canons des que la mission est finie, et le suivant les
+  -- trouve en mouvement.
+  local tache = self:_tache(self:_ordreDeTir(2, 10))
+  luaunit.assertNotNil(tache, "un ordre de tir doit produire une tache")
+  luaunit.assertEquals(tache.params.counterbattaryRadius, 0, "la batterie doit rester en place")
+end
+
+function TestArtilleryFireTask:test_it_is_still_a_fire_task()
+  local tache = self:_tache(self:_ordreDeTir(2, 10))
+  luaunit.assertEquals(tache.id, "FireAtPoint")
+end
+
+function TestArtilleryFireTask:test_the_target_uses_the_map_plane()
+  -- `x` est le nord, `y` de la tache est l'EST — c'est un vec2 de carte, pas un vec3 du moteur. Melanger
+  -- les deux ne leve aucune erreur et met les obus ailleurs : voir docs/agents/dcs-coordinates.md.
+  local tache = self:_tache(self:_ordreDeTir(2, 10))
+  luaunit.assertEquals(tache.params.x, 1000, "le nord")
+  luaunit.assertEquals(tache.params.y, 2000, "l'est, pris dans le z du vec3")
+end
+
+function TestArtilleryFireTask:test_the_shells_and_the_radius_reach_dcs()
+  local tache = self:_tache(self:_ordreDeTir(63, 120))
+  luaunit.assertEquals(tache.params.expendQty, 63)
+  luaunit.assertEquals(tache.params.zoneRadius, 120)
+  luaunit.assertTrue(tache.params.expendQtyEnabled, "sans ce drapeau DCS ignore le nombre d'obus")
+end
+
+function TestArtilleryFireTask:test_an_order_without_a_target_pushes_nothing()
+  self.taches = {}
+  self.handler:handleOrder({ verb = ArtilleryUnitHandler.ORDER_FIRE, parameters = { shells = 2, radius = 10 } })
+  luaunit.assertEquals(#self.taches, 0, "sans cible, rien ne part vers DCS")
+end
+
+-- ── FEAT-GROUPNAME-PARTIAL-MATCH ────────────────────────────────────────────
+-- `groupname` designe le groupe DCS sur lequel poser le pilote automatique. Une recherche exacte ne
+-- trouvait jamais un groupe apparu par une commande VEAF : `-arty, unitname arty-1` produit un groupe que
+-- DCS appelle `[b]-arty-1#7`, donc `groupname arty-1` retombait silencieusement sur la recherche de
+-- proximite — et posait le pilote automatique sur le premier groupe a moins de 250 m du marqueur.
+--
+-- Les tests passent par `executeCommand`, PAS par `parseMarkerText` : la resolution du nom et son refus
+-- vivent dans `markTextAnalysis`, qu'un test du parseur seul n'atteint jamais. C'est le cablage, encore
+-- une fois, qui devait etre sous test.
+TestGroupnamePartialMatch = {}
+
+function TestGroupnamePartialMatch:setUp()
+  dcs_mocks.reset()
+  self._outText = trigger.action.outText
+  self.messages = {}
+  local test = self
+  trigger.action.outText = function(text)
+    table.insert(test.messages, tostring(text))
+  end
+  self._saved = veafGroundAI.handlers
+  veafGroundAI.handlers = {}
+end
+
+function TestGroupnamePartialMatch:tearDown()
+  trigger.action.outText = self._outText
+  veafGroundAI.handlers = self._saved
+  -- Les groupes poses ici doivent partir avec la classe : `TestVeafGroundAIMarkTextAnalysis` n'a pas de
+  -- `setUp`, et un groupe survivant sous le marqueur y fait reussir la recherche de proximite — donc
+  -- `_ground set` y rend des options la ou il doit rendre nil.
+  dcs_mocks.reset()
+end
+
+--- Poser un groupe allie SOUS le marqueur, que la recherche de proximite prendrait.
+---
+--- Sans lui, un refus qui ne s'arrete pas est indiscernable d'un refus qui s'arrete : les deux finissent
+--- sans rien creer, faute de quoi que ce soit a substituer. C'est cette substitution qui est le defaut.
+function TestGroupnamePartialMatch:_poserUnGroupeSousLeMarqueur(name)
+  local group
+  local unit = {
+    getPosition = function()
+      return { p = { x = 0, y = 0, z = 0 } }
+    end,
+    getName = function()
+      return name .. "-1"
+    end,
+    getGroup = function()
+      return group
+    end,
+  }
+  dcs_mocks.addGroup(name, {
+    _coalition = coalition.side.BLUE,
+    getUnits = function()
+      return { unit }
+    end,
+  })
+  group = Group.getByName(name)
+  return group
+end
+
+function TestGroupnamePartialMatch:_say(text)
+  self.messages = {}
+  veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, text, 2, 0)
+  return table.concat(self.messages, " | ")
+end
+
+function TestGroupnamePartialMatch:test_a_spawned_group_is_found_by_the_name_the_pilot_gave()
+  -- LE cas du lot : le pilote a fait apparaitre `arty-1`, DCS l'appelle `[b]-arty-1#7`, et le pilote
+  -- automatique doit se poser dessus. Il l'a fait quand la commande n'a rien a redire.
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  local said = self:_say("_gc mabatterie, set, groupname arty-1")
+  luaunit.assertEquals(said:find("250", 1, true), nil, "la recherche de proximite ne doit pas etre atteinte : " .. said)
+  luaunit.assertNotNil(veafGroundAI.get("mabatterie"), "le pilote automatique doit avoir ete cree")
+end
+
+function TestGroupnamePartialMatch:test_an_ambiguous_name_is_refused_out_loud()
+  dcs_mocks.addGroup("[b]-arty-1#7")
+  dcs_mocks.addGroup("[b]-arty-10#8")
+  self:_poserUnGroupeSousLeMarqueur("un-blinde-quelconque")
+  local said = self:_say("_gc mabatterie, set, groupname arty-1")
+  luaunit.assertNotEquals(said, "", "une ambiguite doit etre dite")
+  luaunit.assertNotNil(said:find("[b]-arty-1#7", 1, true), "et doit nommer les candidats : " .. said)
+  luaunit.assertNotNil(said:find("[b]-arty-10#8", 1, true), "les deux : " .. said)
+  luaunit.assertNil(veafGroundAI.get("mabatterie"), "et rien ne doit avoir ete cree")
+end
+
+function TestGroupnamePartialMatch:test_an_unknown_name_does_not_fall_back_on_the_nearest_group()
+  -- Le defaut le plus vicieux : un nom mal tape retombait sur la recherche de proximite, qui posait le
+  -- pilote automatique sur ce qui trainait sous le marqueur. Le pilote croit commander sa batterie.
+  self:_poserUnGroupeSousLeMarqueur("un-blinde-quelconque")
+  local said = self:_say("_gc mabatterie, set, groupname mortier")
+  luaunit.assertNotEquals(said, "", "un nom qui ne designe rien doit etre dit")
+  luaunit.assertNotNil(said:find("mortier", 1, true), "et doit redire le nom demande : " .. said)
+  luaunit.assertNil(veafGroundAI.get("mabatterie"), "et rien ne doit avoir ete cree")
+end
+
+function TestGroupnamePartialMatch:test_a_verb_that_ignores_the_group_is_not_refused()
+  -- `status` s'adresse a un pilote automatique deja pose et ne designe aucun groupe : un `groupname`
+  -- ecrit de travers ne doit pas lui couper la parole. Le refus ne vaut que pour les verbes qui s'en
+  -- servent vraiment.
+  local handler = ArtilleryUnitHandler:new():setName("mabatterie")
+  handler.silent = false
+  veafGroundAI.add(handler)
+  local said = self:_say("_gc mabatterie, status, groupname mortier")
+  luaunit.assertEquals(said:find("mortier", 1, true), nil, "status ne doit pas etre refuse : " .. said)
+  luaunit.assertNotEquals(said, "", "et doit avoir repondu quelque chose")
+end
+
+function TestGroupnamePartialMatch:test_without_a_groupname_the_nearest_group_is_taken()
+  -- Le comportement d'origine, garde sous test : sans `groupname`, c'est bien le groupe sous le marqueur
+  -- qui est pris. C'est aussi ce qui donne son sens au test precedent — la substitution est possible, et
+  -- c'est pour cela qu'un nom refuse doit arreter la commande.
+  self:_poserUnGroupeSousLeMarqueur("un-blinde-quelconque")
+  self:_say("_gc mabatterie, set")
+  luaunit.assertNotNil(veafGroundAI.get("mabatterie"), "le groupe le plus proche doit etre pris")
+end
+
+function TestGroupnamePartialMatch:test_without_a_groupname_and_nothing_nearby_the_range_is_announced()
+  local said = self:_say("_gc mabatterie, set")
+  luaunit.assertNotNil(said:find("250", 1, true), "expected the proximity message: " .. said)
+end
+
+-- ===========================================================================
+-- FIX-HELP-MESSAGE-TEACHES-LEGACY-SYNTAX — ce qu'un message enseigne doit exister
+--
+-- Le defaut trouve etait un message apprenant `_ground set, name X`, forme retiree de la documentation le
+-- jour ou `_gc` a ete livre. La famille n'est pas « un message qui cite `_ground` » mais « un message qui
+-- enseigne une commande » : le catalogue entier est donc enumere, pas fouille pour un mot.
+--
+-- Ce que ce balayage PEUT verifier : qu'un mot-cle enseigne est bien un mot-cle enregistre. Cela attrape un
+-- renommage qui laisse un message en arriere, et une coquille (`_grond`).
+--
+-- Ce qu'il NE PEUT PAS verifier : qu'un mot-cle enregistre est encore *documente*. `_ground` reste accepte
+-- pour ne casser aucune mission, donc aucune lecture du code ne peut le distinguer de `_gc`. C'est le test
+-- frere, dans TestGroundAiUnknownHandler, qui tient cette moitie — il compare le message aux DEUX constantes
+-- que le module declare.
+-- ===========================================================================
+TestNoMessageTeachesAnUnknownCommand = {}
+
+local function _lireSource(chemin)
+  local fichier = io.open(chemin, "r")
+  if not fichier then
+    return nil
+  end
+  local contenu = fichier:read("*a")
+  fichier:close()
+  return contenu
+end
+
+function TestNoMessageTeachesAnUnknownCommand:setUp()
+  self._base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") .. "/../../src/scripts/veaf/"
+end
+
+--- Les mots-cles de marqueur declares par les modules, lus dans le code plutot que supposes.
+---
+--- La liste des modules est explicite parce que Lua ne sait pas parcourir un dossier. Un module absent d'ici
+--- rendrait le balayage aveugle a son mot-cle, ce que le test frere ci-dessous rend visible en exigeant un
+--- plancher.
+function TestNoMessageTeachesAnUnknownCommand:_motsClesEnregistres()
+  local modules = {
+    "veafGroundAI.lua",
+    "veafCasMission.lua",
+    "veafMove.lua",
+    "veafSpawn.lua",
+    "veafSpawnCore.lua",
+    "veafTransportMission.lua",
+    "veafSecurity.lua",
+    "veafWeather.lua",
+    "veafRadio.lua",
+    "veafDrawingOnMap.lua",
+    "veafShortcuts.lua",
+    "veafNamedPoints.lua",
+    "veafInterpreter.lua",
+  }
+  local mots = {}
+  for _, nom in ipairs(modules) do
+    local contenu = _lireSource(self._base .. nom)
+    if contenu then
+      for mot in contenu:gmatch('Keyphrase%s*=%s*"([^"]+)"') do
+        mots[mot:lower()] = true
+      end
+    end
+  end
+  return mots
+end
+
+--- Les jetons ressemblant a une commande, dans les VALEURS du catalogue.
+---
+--- Les commentaires sont ecartes : ils documentent volontairement l'ancienne forme, et c'est utile.
+function TestNoMessageTeachesAnUnknownCommand:_jetonsEnseignes()
+  local catalogue = _lireSource(self._base .. "veafI18n.lua")
+  luaunit.assertNotNil(catalogue, "veafI18n.lua doit etre lisible depuis le test")
+  local jetons = {}
+  for ligne in catalogue:gmatch("[^\n]+") do
+    local estCommentaire = ligne:match("^%s*%-%-") ~= nil
+    -- Une valeur, ou sa suite : les messages longs se concatenent sur des lignes commencant par `..`. Les
+    -- lignes de cle sont ecartees par la meme occasion — `["groundai.no_such_handler"]` contient un jeton
+    -- souligne que ce balayage prendrait pour une commande.
+    local estValeur = ligne:match("^%s*[fe][rn]%s*=") ~= nil or ligne:match("^%s*%.%.") ~= nil
+    if estValeur and not estCommentaire then
+      for mot in ligne:gmatch("_[a-zA-Z][%w_-]*") do
+        jetons[mot:lower()] = veaf.trim(ligne)
+      end
+    end
+  end
+  return jetons
+end
+
+function TestNoMessageTeachesAnUnknownCommand:test_the_sweep_can_see_something()
+  -- Un balayage dont la source est vide accepte tout. Les deux moities sont donc verifiees avant de servir.
+  local mots = self:_motsClesEnregistres()
+  local combien = 0
+  for _ in pairs(mots) do
+    combien = combien + 1
+  end
+  luaunit.assertTrue(combien >= 8, "trop peu de mots-cles trouves (" .. combien .. ") : le balayage serait aveugle")
+  luaunit.assertTrue(mots["_gc"], "_gc doit etre trouve dans les sources")
+  luaunit.assertTrue(mots["_ground"], "_ground doit etre trouve : la forme reste acceptee, pas enseignee")
+
+  local jetons = self:_jetonsEnseignes()
+  local trouves = 0
+  for _ in pairs(jetons) do
+    trouves = trouves + 1
+  end
+  luaunit.assertTrue(trouves >= 3, "trop peu de jetons trouves dans les messages (" .. trouves .. ")")
+end
+
+function TestNoMessageTeachesAnUnknownCommand:test_no_message_teaches_a_keyphrase_that_is_not_registered()
+  local mots = self:_motsClesEnregistres()
+  local fautifs = {}
+  for jeton, ligne in pairs(self:_jetonsEnseignes()) do
+    if not mots[jeton] then
+      table.insert(fautifs, jeton .. " dans : " .. ligne)
+    end
+  end
+  table.sort(fautifs)
+  luaunit.assertEquals(#fautifs, 0, "message(s) enseignant une commande inconnue :\n" .. table.concat(fautifs, "\n"))
 end
 
 os.exit(luaunit.LuaUnit.run())

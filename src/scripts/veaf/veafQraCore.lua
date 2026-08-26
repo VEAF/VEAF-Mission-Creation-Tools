@@ -1154,11 +1154,7 @@ end
 --- called from veafEventHandler when a unit is created
 function veafQraManager.eventHandler(event)
   -- find the originator unit
-  local unitName = event.initiator and event.initiator.unitName
-  if not unitName and event.initiator and event.initiator.getName then
-    -- dynamic slot units are DCS objects without mist table properties
-    unitName = event.initiator:getName()
-  end
+  local unitName = veafEventHandler.unitNameFromEvent(event)
   if not unitName then
     return
   end

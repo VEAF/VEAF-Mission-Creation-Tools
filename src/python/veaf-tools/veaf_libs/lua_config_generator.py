@@ -1892,9 +1892,13 @@ def generate_mission_yaml_template(
         elif upper == "CTLD":
             # CTLD 2 takes no settings here: its configuration is the mission's
             # ctld-config.yaml (ADR 0016). Advertising a settings: block would invite
-            # writing values the build silently drops.
+            # writing values the build silently drops. `manage_logistics` is the one
+            # exception and is shown expanded, disabled or not: a flag nobody can see is
+            # a flag nobody knows about, which is the defect this option was added for.
             lines += [
-                f"  # {sid}: false            # configured in ctld-config.yaml (edit it with ctld-tools)",
+                f"  # {sid}:                  # configured in ctld-config.yaml (edit it with ctld-tools)",
+                "  #   enabled: false",
+                "  #   manage_logistics: true   # register every carrier and FARP ammo dump as a CTLD loading point",
             ]
         elif upper == "CSAR":
             lines += [

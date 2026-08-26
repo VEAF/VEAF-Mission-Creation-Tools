@@ -306,7 +306,16 @@ VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` ca
 
 #### `modules.CTLD`: a boolean, nothing else
 
-CTLD 2 is configured **outside `mission.yaml`**, in a `ctld-config.yaml` file sitting next to it and edited with `ctld-tools.exe`. A `settings:` block under `CTLD` is **rejected by `validate`**: it was no longer read, and letting it pass in silence is exactly the defect this change removes. See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration).
+CTLD 2 is configured **outside `mission.yaml`**, in a `ctld-config.yaml` file sitting next to it and edited with `ctld-tools.exe`. A `settings:` block under `CTLD` is **rejected by `validate`**: it was no longer read, and letting it pass in silence is exactly the defect this change removes. Exactly one key is read here besides the switch: `manage_logistics` (boolean, default `true`). With it on, the build **adds** the carriers and FARP ammo dumps VEAF has always recognised to the `logisticUnitTypes` / `troopZoneShipTypes` lists in your `ctld-config.yaml` — it adds, it does not replace.
+
+```yaml
+modules:
+  CTLD:
+    enabled: true
+    manage_logistics: true
+```
+
+See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration) — including [where to get `ctld-tools`](mission-maker/GUIDE.en.md#getting-ctld-tools), which does not ship with VEAF MCT, and [FARPs placed in the editor](mission-maker/GUIDE.en.md#ctld-manage-logistics).
 
 > **Sounds.** CTLD and CSAR play sounds by filename at runtime (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`). When CTLD or CSAR is enabled, the build automatically injects the required sounds it ships (`src/scripts/community/sounds/`) into the mission's `l10n/DEFAULT/`, without overwriting any sound your mission already provides. A required sound shipped by neither the tools nor your mission is reported with a build warning — add it to `src/mission/l10n/DEFAULT/` (e.g. `radiobeep.ogg`, the JTAC fallback beep, is not redistributed).
 >

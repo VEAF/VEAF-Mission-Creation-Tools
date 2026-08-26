@@ -10,6 +10,10 @@ dcs_mocks.currentTime = 0
 dcs_mocks.logs = {} -- captured log lines
 dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
 
+-- Registre des groupes, declare ICI et pas plus bas : `coalition.getGroups` le lit, et un local declare
+-- apres son usage laisse la fermeture capturer la globale — c'est-a-dire nil.
+local _group_registry = {} -- nom → table du groupe simule
+
 local function _log(level, text)
   table.insert(dcs_mocks.logs, { level = level, text = tostring(text) })
 end
@@ -245,8 +249,20 @@ AI = {
 -- ---------------------------------------------------------------------------
 coalition = {
   side = { NEUTRAL = 0, RED = 1, BLUE = 2 },
+  -- Rend les groupes enregistres, au lieu d'une liste toujours vide. Dans DCS, un groupe qu'on peut
+  -- chercher par son nom EST dans la liste de sa coalition ; un double qui repond `{}` ici laisse passer
+  -- tout code qui enumere les groupes, sans jamais l'exercer.
+  --
+  -- `_coalition` dans les donnees passees a `addGroup` filtre ; un groupe qui n'en declare pas apparait
+  -- pour toutes les coalitions, ce qui garde les tests existants inchanges.
   getGroups = function(side, category)
-    return {}
+    local found = {}
+    for _, g in pairs(_group_registry) do
+      if g._coalition == nil or g._coalition == side then
+        table.insert(found, g)
+      end
+    end
+    return found
   end,
   getStaticObjects = function(side)
     return {}
@@ -339,8 +355,11 @@ coord = {
   MGRStoLL = function(mgrs)
     return 0, 0
   end,
+  -- `UTMZone` manquait, alors que le vrai DCS le fournit toujours : tout code qui construit une grille
+  -- lisible fait `grid.UTMZone .. " " .. grid.MGRSDigraph .. …` et mourait sur une concatenation de nil.
+  -- Un mock incomplet ne fait pas echouer le code qui le lit — il le fait planter ailleurs.
   LLtoMGRS = function(lat, lon)
-    return { MGRSDigraph = "XX", Easting = 100000, Northing = 200000 }
+    return { UTMZone = "37T", MGRSDigraph = "XX", Easting = 100000, Northing = 200000 }
   end,
 }
 atmosphere = {
@@ -641,7 +660,7 @@ end
 -- ---------------------------------------------------------------------------
 
 local _unit_registry = {} -- name → mock unit table
-local _group_registry = {} -- name → mock group table
+-- (declare en haut du fichier : `coalition.getGroups` doit le voir)
 
 --- Register a mock unit so that Unit.getByName(name) returns it.
 -- @param name  Unit name string

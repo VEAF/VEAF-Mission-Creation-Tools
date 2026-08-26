@@ -84,3 +84,32 @@ the mission folder is the source; the build is the only writer.
   `LGZ_` / `TRZ_` zone-prefix discovery.
 - VMCT stops adapting its CTLD copy: the vendored artifact becomes `verbatim`, and the ciribob
   upstream watch disappears with the fork lineage.
+
+## Amendment (FEAT-CTLD-AUTO-LOGISTICS) — one flag, and an injection that is no longer literal
+
+Two statements above stop being true, and both are amended deliberately rather than left to rot.
+
+**`mission.yaml` no longer keeps *only* an on/off flag for CTLD.** It also carries
+`modules.CTLD.manage_logistics` (default true). This is not the `settings:` channel coming back: it
+says *who manages* two type lists, it does not configure the engine, and it is one boolean rather
+than an open-ended block.
+
+**The sidecar is no longer injected strictly verbatim** when that flag is on. The build merges the
+VEAF logistic types into the document on the way into the `.miz`. The mission maker's file on disk
+is still never rewritten — it remains the source — but the copy the engine reads can differ from it,
+so the generated `CTLD_userConfig.lua` records what was added.
+
+**What forced it.** `logisticUnitTypes` and `troopZoneShipTypes` are how CTLD 2 replaces the
+hard-coded list `autoInitializeAllLogistic` used to carry, and CTLD ships them **empty**.
+`mission prepare` fills them at scaffold time and the file is never rewritten afterwards — so every
+other route to a `ctld-config.yaml` (hand-written, copied, regenerated in ctld-tools) silently loses
+carrier and FARP recognition. Observed on a real mission: `CTLDZoneManager ready — troop:0
+logistic:0`, with FOBs spawned in flight still working because they take a different path. A
+scaffold-time-only fix cannot reach a file it did not create.
+
+**Why a union and not an overwrite.** Overwriting was the obvious implementation and is exactly the
+failure this ADR set out to remove: the v1 wrapper wrote over the mission maker's own values, in
+silence. Replacing the type lists would do the same to anyone who adds a modded carrier — gone at
+build time, while ctld-tools keeps showing their value, since their file is untouched. The union
+adds and never removes; `manage_logistics: false` is how a mission takes those lists back, and the
+build warns loudly if that leaves it with none at all.

@@ -88,6 +88,65 @@ class TestGeneratedLua(unittest.TestCase):
         self.assertIsNone(_make_worker(ctld_enabled=False)._ctld_user_config_lua())
 
 
+class TestManagedLogistics(unittest.TestCase):
+    """FEAT-CTLD-AUTO-LOGISTICS: the VEAF logistic types reach the injected configuration.
+
+    Asserted on the produced ``CTLD_userConfig.lua``, not on the merge helper. The defect is
+    precisely that a helper existed — ``apply_veaf_overrides``, at scaffold time — while nothing
+    applied it to a ``ctld-config.yaml`` that came from anywhere else, which is every file written
+    by hand, copied from another mission, or regenerated from the CTLD defaults in ctld-tools.
+    """
+
+    _CATALOGUE = (
+        'configVersion: "2.0.0"\nmm_facing:\n  numberOfTroops: 10\n  logisticUnitTypes: []\n  troopZoneShipTypes: []\n'
+    )
+
+    def _lua_for(self, catalogue: str, *, manage: bool | None = None) -> str:
+        worker = _make_worker()
+        if manage is not None:
+            worker.mission_yaml = {"community_scripts": {"ctld": {"enabled": True, "manage_logistics": manage}}}
+        (worker.mission_folder / CTLD_CONFIG_FILENAME).write_text(catalogue, encoding="utf-8")
+        lua = worker._ctld_user_config_lua()
+        assert lua is not None
+        return lua
+
+    def test_empty_lists_get_the_veaf_types(self) -> None:
+        """The reported shape: `logisticUnitTypes: []`, so no editor-placed FARP is a loading point."""
+        lua = self._lua_for(self._CATALOGUE)
+        self.assertIn("FARP Ammo Dump Coating", lua)
+        self.assertIn("LHA_Tarawa", lua)
+
+    def test_a_type_the_maker_added_survives(self) -> None:
+        """Union, not overwrite — overwriting would rebuild the defect ADR 0016 removed."""
+        catalogue = self._CATALOGUE.replace("  logisticUnitTypes: []\n", "  logisticUnitTypes:\n  - CVN_73\n")
+        lua = self._lua_for(catalogue)
+        self.assertIn("CVN_73", lua)
+        self.assertIn("FARP Ammo Dump Coating", lua)
+
+    def test_the_flag_off_injects_the_file_untouched(self) -> None:
+        lua = self._lua_for(self._CATALOGUE, manage=False)
+        self.assertNotIn("FARP Ammo Dump Coating", lua)
+        self.assertIn("manage_logistics: false", lua)
+
+    def test_the_generated_lua_says_what_was_added(self) -> None:
+        """The injected configuration differs from the file on disk; that has to be readable."""
+        lua = self._lua_for(self._CATALOGUE)
+        self.assertIn("manage_logistics added to logisticUnitTypes", lua)
+
+    def test_nothing_is_added_twice(self) -> None:
+        """A file already carrying the VEAF types is left alone, and stays silent."""
+        catalogue = self._CATALOGUE.replace(
+            "  logisticUnitTypes: []\n", "  logisticUnitTypes:\n  - FARP Ammo Dump Coating\n"
+        )
+        lua = self._lua_for(catalogue)
+        self.assertEqual(lua.count("FARP Ammo Dump Coating"), 1)
+
+    def test_a_key_the_engine_does_not_define_is_not_invented(self) -> None:
+        """An older vendored engine: inventing a setting it will not read helps nobody."""
+        lua = self._lua_for('configVersion: "2.0.0"\nmm_facing:\n  numberOfTroops: 10\n')
+        self.assertNotIn("logisticUnitTypes", lua)
+
+
 class TestStaticInjection(unittest.TestCase):
     """Insertion order is the contract: the static trigger replays these entries as-is."""
 

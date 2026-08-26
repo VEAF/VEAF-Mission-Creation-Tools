@@ -1961,11 +1961,13 @@ function veafWeather.onPlayerEnterUnit(event)
   if not veafWeather.welcomeBriefEnabled then
     return
   end
-  local dcsUnit = event and event.initiator
-  if not dcsUnit or not dcsUnit.getName then
+  -- The event's initiator is the data table veafEventHandler builds, not a DCS object: it carries
+  -- `unitName` and no methods. Reading `getName` alone matched only dynamic-slot units, so on every
+  -- ordinary slot this returned here — silently, before the log line below.
+  local sUnitName = veafEventHandler.unitNameFromEvent(event)
+  if not sUnitName then
     return
   end
-  local sUnitName = dcsUnit:getName()
   local bIsHuman = veaf.mist.isHumanUnit(sUnitName) or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
   if not bIsHuman then
     return

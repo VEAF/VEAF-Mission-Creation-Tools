@@ -1412,11 +1412,53 @@ end
 -- raises a birth event for him. `veafGrass` and `veafQraCore` both take both events for this exact
 -- reason; the brief now does too.
 
+-- ── the shape of the initiator a real event carries ─────────────────────────
+-- The tests above hand the handler a **DCS object mock**, with `getName`. The event handler does not:
+-- `transformEvent` replaces the initiator with the data table `completeUnitFromName` returns —
+-- `unitName` and no methods at all. Reading `getName` alone therefore returned early on every
+-- ordinary slot, before even the log line, so the 6.16.0 brief was dead on servers while these tests
+-- stayed green. Diagnosed from a dedicated-server log with three sessions and not one
+-- "welcome brief" line, on a mission whose pilot had flown.
+--
+-- These fixtures use the runtime shape. The object-mock tests above are kept: that is exactly what a
+-- dynamic-slot unit looks like, and both paths have to work.
+
+--- The initiator a callback really receives for a slot declared in the mission.
+function TestVeafWeatherWelcomeBrief:_eventInitiator(name)
+  return { unitName = name or "Chevy11", unitType = "F-16C_50", unitCoalition = 2 }
+end
+
+function TestVeafWeatherWelcomeBrief:test_the_data_table_a_real_event_carries_schedules_the_brief()
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = self:_eventInitiator() })
+  luaunit.assertEquals(#self.scheduled, 1, "an ordinary slot must be briefed; this is the server case")
+  luaunit.assertEquals(self.scheduled[1].args[1], "Chevy11")
+end
+
+function TestVeafWeatherWelcomeBrief:test_a_birth_event_on_an_ordinary_slot_is_enough()
+  -- The path a dedicated server takes: BIRTH, with the initiator as a data table.
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({
+    initiator = self:_eventInitiator("Chevy21"),
+    type = { id = world.event.S_EVENT_BIRTH },
+  })
+  luaunit.assertEquals(#self.scheduled, 1)
+  luaunit.assertEquals(self.scheduled[1].args[1], "Chevy21")
+end
+
+function TestVeafWeatherWelcomeBrief:test_an_initiator_with_neither_name_is_ignored()
+  self:_arrange()
+  veafWeather.onPlayerEnterUnit({ initiator = { unitType = "F-16C_50" } })
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
 -- ── who is already flying ───────────────────────────────────────────────────
 -- In single player the pilot occupies his slot before the mission's scripts load, so his birth event fires
--- before this module can subscribe to anything. Subscribing was never going to catch it: adding
--- S_EVENT_BIRTH did not help, because the timing and not the event name was the problem. These tests
--- cover the sweep that looks at who is there instead of waiting to be told.
+-- before this module can subscribe to anything, which is what this sweep covers.
+--
+-- Historical note: this sweep was added believing the timing was the whole problem. It was not — the
+-- handler also rejected every event it did get, for the reason described just above. The sweep is
+-- still right for single player, and it is why the feature appeared to work there.
 TestVeafWeatherAlreadyFlying = {}
 
 function TestVeafWeatherAlreadyFlying:setUp()

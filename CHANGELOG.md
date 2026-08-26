@@ -10,6 +10,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.9] — 2026-08-26
+
+### Fixed
+
+- **The welcome brief never fired on a server: the handler read the wrong shape of `initiator`.**
+  Reported on a mission built with 6.16.0, the release that introduced the feature.
+  `veafEventHandler` hands callbacks the **data table** `completeUnitFromName` returns — `unitName`,
+  `unitType`, … and no methods — but `veafWeather.onPlayerEnterUnit` tested `initiator.getName`, so
+  it returned on every event it received, before its own log line. Hence total silence rather than an
+  error, and hence a feature that only a dynamic-slot unit (a raw DCS object, no mist table entry)
+  could ever have triggered.
+
+  Diagnosed statically: the bundled scripts carried the whole feature, the module was enabled, every
+  module initialised after it logged, the pilot had flown — and three server sessions carried not one
+  `welcome brief` line, though that line is `INFO` for exactly this question.
+
+  `veafQraCore` and `veafGrass` already read `unitName` first with `:getName()` as the dynamic-slot
+  fallback, inline, in both. That logic is now `veafEventHandler.unitNameFromEvent()` and the three
+  callers share it. The tests missed the defect because they handed the handler a DCS object mock, a
+  shape the event handler never produces; the runtime shape is now covered, and the object mock kept
+  for the dynamic-slot path.
+
+---
+
 ## [6.16.8] — 2026-08-25
 
 ### Documentation

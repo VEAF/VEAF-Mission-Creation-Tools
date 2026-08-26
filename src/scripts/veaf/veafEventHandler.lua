@@ -127,6 +127,35 @@ function veafEventHandler.completeUnitFromName(unitName)
   end
 end
 
+--- Return the name of the unit an event originates from, or nil.
+---
+--- A callback receives the event `transformEvent` built, whose `initiator` is the **data table**
+--- `completeUnitFromName` returns — `unitName`, `unitType`, `unitCoalition`, … and no methods.
+--- A dynamic-slot unit is the exception: it has no mist table entry, so the raw DCS object comes
+--- through and only answers `getName()`.
+---
+--- Reading only one of the two forms is a silent failure, not an error: the handler returns early
+--- and nothing is logged. It cost the 6.16.0 welcome brief, which tested `initiator.getName` alone
+--- and therefore never fired for an ordinary slot — the case that covers every mission on a server.
+--- veafQraManager and veafGrass each carried this logic inline; this is that logic, once.
+---
+--- @param event table the event handed to a callback
+--- @return string|nil the unit name, or nil when the event carries no identifiable unit
+function veafEventHandler.unitNameFromEvent(event)
+  local initiator = event and event.initiator
+  if not initiator then
+    return nil
+  end
+  if initiator.unitName then
+    return initiator.unitName
+  end
+  if initiator.getName then
+    -- Dynamic slot units are DCS objects without mist table properties.
+    return initiator:getName()
+  end
+  return nil
+end
+
 --- name self explanatory
 --- events the list of event names or ids that your callback is interested into
 --- callback the function to be called (we'll pass it an event; the definition of "event" can be found just below)

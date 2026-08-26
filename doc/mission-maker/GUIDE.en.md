@@ -673,6 +673,38 @@ At build time VEAF injects it into the mission as a `CTLD_userConfig.lua` loaded
 !!! warning "Do not use ctld-tools' own \"inject into mission\" button"
     It writes straight into a `.miz`. On a VEAF mission the `.miz` is rebuilt from the mission folder on every build, so your injection would be wiped by the next one. Save the `ctld-config.yaml` file and let the build do the rest.
 
+#### FARPs and carriers placed in the editor {#ctld-manage-logistics}
+
+For a FARP or a carrier to serve as a loading point, CTLD 2 has to know its unit **type** — through
+the `logisticUnitTypes` and `troopZoneShipTypes` settings. CTLD ships them **empty**, which is the
+right default for the wider world and the wrong one for a VEAF mission, which has always recognised
+carriers and FARP ammo dumps automatically.
+
+VEAF handles it, through a switch in `mission.yaml`:
+
+```yaml
+modules:
+  CTLD:
+    enabled: true
+    manage_logistics: true   # default
+```
+
+At build time the VEAF types (`LHA_Tarawa`, `Stennis`, `CVN_71`, `KUZNECOW`,
+`FARP Ammo Dump Coating`) are **added** to whatever your file declares. Added, not substituted: a
+type you entered yourself in `ctld-tools` — a modded carrier, say — is kept. Your `ctld-config.yaml`
+is not modified; the copy injected into the mission is, and the generated `CTLD_userConfig.lua`
+records in a comment what was added.
+
+Set it to `false` to own those two lists entirely — that is the only way to **remove** a type VEAF
+adds. In that case, if both lists are empty, the build warns you plainly: the mission will start with
+no loading point from the editor at all.
+
+!!! warning "A mission whose `ctld-config.yaml` did not come from `mission prepare`"
+    A file written by hand, copied from another mission, or regenerated from the CTLD defaults
+    arrives with both lists empty. The symptom is confusing because it is partial: the FOBs you
+    create in flight work — they take a different path — and the FARPs you placed in the editor do
+    not. That is exactly what this setting fixes.
+
 !!! note "This file is a **complete** configuration"
     CTLD 2 merges nothing. A plain setting you omit falls back to the engine default (and says so when the mission starts), but a **list** you omit — a crate section, a troop group, a zone — is genuinely removed. That is how you take one out. Always start from the existing file rather than writing one from scratch.
 

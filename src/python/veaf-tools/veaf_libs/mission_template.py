@@ -37,6 +37,10 @@ class Module:
     category: str
     comment: str = ""
     config_block: str = ""  # commented body for CONFIG/TUM modules (already `#`-prefixed)
+    #: Live (uncommented) body replacing `ID: true` when a FEATURE module is enabled. For a
+    #: flag that must be *visible* rather than merely defaulted in code: a mission maker who
+    #: never sees the key cannot know the behaviour exists.
+    enabled_block: str = ""
     tiers: frozenset[str] = field(default_factory=frozenset)
 
 
@@ -102,6 +106,12 @@ _SKYNET_BLOCK = """\
   #   SKYNET:
   #     enabled: true
   #     include_red_in_radio: false"""
+
+_CTLD_BLOCK = """\
+  CTLD:                      # settings live in ctld-config.yaml (edit it with ctld-tools)
+    enabled: true
+    manage_logistics: true   # every carrier and FARP ammo dump becomes a CTLD loading point;
+                             # set to false to own logisticUnitTypes/troopZoneShipTypes yourself"""
 
 _TUM_BLOCK = """\
   # TUM requires BLUFOR/REDFOR territory trigger zones (each owning an airbase) placed
@@ -177,7 +187,13 @@ _CATALOG: tuple[Module, ...] = (
     Module("SANCTUARY", CONFIG, "Combat", config_block=_SANCTUARY_BLOCK, tiers=frozenset({"full"})),
     # ── Community scripts ──
     Module("STTS", FEATURE, "Community", tiers=frozenset({"standard", "full"})),
-    Module("CTLD", FEATURE, "Community", tiers=frozenset({"standard", "full"})),
+    Module(
+        "CTLD",
+        FEATURE,
+        "Community",
+        enabled_block=_CTLD_BLOCK,
+        tiers=frozenset({"standard", "full"}),
+    ),
     Module("CSAR", FEATURE, "Community", tiers=frozenset({"standard", "full"})),
     Module("AIEN", FEATURE, "Community", tiers=frozenset({"full"})),
     Module("HERCULES", FEATURE, "Community", tiers=frozenset({"full"})),
@@ -250,7 +266,10 @@ def render_modules_block(enabled: set[str]) -> list[str]:
         if module.kind == INFRA:
             lines.append(f"  {module.id}:{suffix}")
         elif module.kind == FEATURE:
-            lines.append(f"  {module.id}: true{suffix}")
+            if module.enabled_block:
+                lines.append(module.enabled_block)
+            else:
+                lines.append(f"  {module.id}: true{suffix}")
         else:  # CONFIG / SECURITY / TUM → commented block
             lines.append(module.config_block)
     return lines

@@ -10,6 +10,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
 
+## [6.16.10] — 2026-08-26
+
+### Fixed
+
+- **A mission could lose every FARP and carrier as a CTLD loading point, silently.** CTLD 2 knows
+  which units are loading points from `logisticUnitTypes` / `troopZoneShipTypes`, and it ships them
+  **empty** — the right default for the wider world, the wrong one for a VEAF mission, which
+  registered carriers and FARP ammo dumps automatically for years. `mission prepare` filled those
+  lists at scaffold time and never again, so any other route to a `ctld-config.yaml` — written by
+  hand, copied from another mission, regenerated from the CTLD defaults in ctld-tools — arrived with
+  both empty and nothing said so. Observed on a real mission: `CTLDZoneManager ready — troop:0
+  logistic:0`.
+
+  The symptom is confusing because it is partial: FOBs spawned in flight keep working, they go
+  through `registerFOBAsLogistic`; the FARPs placed in the editor do not.
+
+  New `modules.CTLD.manage_logistics` (default **true**): at build time the VEAF types are **merged
+  into** whatever the mission declares, on the way into the `.miz`. Union, never overwrite —
+  replacing the lists would rebuild the silent-discard defect ADR 0016 removed, on anyone who added
+  a modded carrier of their own. The mission maker's file is never rewritten, and the generated
+  `CTLD_userConfig.lua` records what was added. Set the flag to `false` to own those two lists
+  entirely; if that leaves both empty, the build says so loudly rather than starting a mission with
+  no loading point at all. ADR 0016 is amended: two of its statements stop being true.
+
+---
+
 ## [6.16.9] — 2026-08-26
 
 ### Fixed

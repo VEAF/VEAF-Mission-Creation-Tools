@@ -9,6 +9,29 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 > **6.15.34 does not exist.** It was reserved for the entry below while its PR was open, and the CSAR
 > fix that merged first took 6.15.35 instead. The number was never released; nothing is missing.
+>
+> That is the failure mode this section exists to prevent. **A pull request adds its entry under
+> `[Unreleased]` and does not touch the version**; the release commit renames the heading and moves
+> `pyproject.toml` with both agent manifests. Add new entries at the **end** of the section: two PRs
+> appending merge cleanly far more often than two PRs prepending.
+
+## [Unreleased]
+
+### Changed
+
+- **A pull request no longer bumps the version, and writes its changelog entry under
+  `[Unreleased]`.** The rule used to require a PATCH bump on every change, so any two concurrent PRs
+  conflicted by construction — on `pyproject.toml`, both agent manifests and the `CHANGELOG.md`
+  heading, none of which carries engineering content. Of the 10 merges following 6.16.0, 9 touched
+  the changelog and 8 touched the version files; one documentation-only PR needed three rebases in
+  one hour, renumbering 6.16.5 → .8 as `develop` took each number first.
+
+  The numbers bought little: 6.16.0 consolidated **47 patch versions, none of which was ever
+  published** — nobody could install 6.15.34. The version now moves only in the release commit,
+  with both manifests, which is what `.claude/commands/release.md` always described: its step 1 read
+  an `[Unreleased]` section that had not existed since the 6.15.0 release, and its step 4 renamed a
+  heading that was not there. Three documents described three different processes; they now describe
+  one, and a test fails if a release forgets to re-open the section.
 
 ## [6.16.10] — 2026-08-26
 

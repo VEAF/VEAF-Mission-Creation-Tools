@@ -19,6 +19,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A FARP's escort could be parked through a building, or in a wood.** The clear-ground search added in
+  6.15.33 avoids other vehicles, static objects and the FARP's own apron — and nothing else. It now also
+  avoids **buildings**, and, where DCS can tell us, **forests**.
+
+  The two needed different answers, because DCS answers differently. Buildings are objects, so the
+  existing probe simply looks for one more kind of them. Trees are not objects at all, and the terrain
+  query reports a wood exactly as it reports a meadow, so nothing can be asked "is this spot in a
+  forest?". What *can* be asked is the reverse: DCS will propose spots that are clear. So the search now
+  starts by asking for a handful of clear spots around the FARP, keeps the ones no further out than it
+  was already willing to go, and takes the one closest to where the escort was actually wanted —
+  falling back to walking the compass, as before, whenever that proposal is unavailable or unusable.
+
+  Closest-to-what-you-asked-for is also a better expression of the original rule than walking the
+  compass was: the escort serves the FARP, so it stays as near the requested spot as clear ground allows.
+
+  Two defects were found while testing this and are fixed here too: a proposed spot at *exactly* the
+  requested distance was being discarded by a rounding error — the best available spot, dropped in
+  silence — and a bearing in the western half was logged as a negative number instead of its 0-360
+  value.
+
+  Unchanged on purpose: a FARP whose escort has nowhere clear to go is still built, with its escort
+  where you asked. Refusing it is a separate change, still to come, and it will apply only to a FARP you
+  spawn with a command — never to one placed in the Mission Editor.
+
 - **Two ground spawns placed their units without looking at the terrain.** `FEAT-SCENERY-AWARE-SPAWN`
   gave VEAF a three-tier spawn-point search that avoids buildings, forests and water, and wired it into
   the four dynamic ground spawners plus the generic group spawner. Two paths were missed, and nothing

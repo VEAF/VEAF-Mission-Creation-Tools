@@ -122,7 +122,18 @@ Validated by David the day it was proposed. **Orders 1 to 3 are delivered** — 
 | 🚫 **5** | [`FEAT-ROLE-AWARE-RADIO-MENU`](.backlog/FEAT-ROLE-AWARE-RADIO-MENU/PRD.md) | — | **Cancelled 2026-08-20**, by David, on the measurements of its own first ticket: *"DCS ne nous permet pas de faire ce qu'on veut"*. Two walls, both DCS's: the F10 channel never says who clicked, so a secured command cannot identify a game master — and every command worth giving him is secured; and leaving them unsecured would hand the mission to whoever takes an unprotected game-master slot. The measurements are kept in [`docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md`](docs/exploration/DCS-UNATTACHED-PLAYER-ROLES.md) so the question is not reopened without them. **Order 6 is now next.** |
 | **6** | The rest of the ⬜ list | ~18 lots | No ordering constraint between them yet: the combat-zone options (`RENAME-OPTION`, `ZONE-TYPE-SILENT`), the spawn and radio features (`SMOKE-CSAR-WATER`, `SLOT-WELCOME-BRIEF`, `WAYPOINT-BULLSEYE`, `RADIO-BEACONS`, `BRIEFING-METAR`, `ARTILLERY-CONTROL`, `CONVOY-WAYPOINTS`, `AIRWAVES-QRA-MERGE`, `QRA-AIRBASE-LINK`, `CTLD-SLINGLOAD-TOGGLE`, `GROUP-COMBAT-INEFFECTIVE`, `INTERPRETER-PARITY`, `SPAWN-OPTION-VALIDATION`, `PLATOON-UNITS`) and [`FEAT-PORTABLE-PREFABS`](.backlog/FEAT-PORTABLE-PREFABS/PRD.md), still a design lot where **a rejection is an acceptable outcome**. Three lots joined it after the order was decided: [`FIX-COMBATZONE-SPAWN-ROUTE-OFFSET`](.backlog/FIX-COMBATZONE-SPAWN-ROUTE-OFFSET/PRD.md) and [`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY/PRD.md), both split out of order 3 rather than folded into it, and [`FIX-WRITE-MIZ-REPLACE-FLAKE`](.backlog/FIX-WRITE-MIZ-REPLACE-FLAKE/PRD.md), which wants an arbitration before code. |
 
-### New since that order — DROP-MIST (2026-08-27)
+### New since that order — DROP-MIST and FIX-PLACEMENT-IGNORES-SCENERY (2026-08-27)
+
+[`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) came out of `DROP-MIST`'s
+own measurement rather than a report, and it goes **before** the campaign: it fixes two ground-placement
+paths `FEAT-SCENERY-AWARE-SPAWN` missed — a *"Full Combat Group"* of real ground units, and every combat
+zone element with a non-zero spawn radius — plus a FARP escort that searches for clear ground without
+ever looking at the scenery. Five tickets, none needing DCS to write, one (04) reversing a tuned decision
+on David's call and therefore owing the same in-game non-regression 6.15.33 proved.
+
+It is listed first because it is small, player-visible and independent, where the campaign below is
+neither of the first two.
+
 
 [`DROP-MIST`](.backlog/DROP-MIST/PRD.md) does not slot into the table above, because it is a **campaign
 of nine tickets** rather than a lot. It came off the vision list in §4 the day its own entry gate was

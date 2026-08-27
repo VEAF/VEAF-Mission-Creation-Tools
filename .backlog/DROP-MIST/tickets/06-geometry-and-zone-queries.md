@@ -75,9 +75,12 @@ identical behaviour, including the two that duplicate `findSpawnPoint` and the s
 ticket whose job is to remove a dependency must not also move where things spawn — a regression in
 family D would be indistinguishable from the port going wrong.
 
-**The gaps get their own lot.** They pre-date this campaign, they are independent of MiST, and two of
-them (the FARP and FOB radius semantics) need an arbitration rather than code. Recorded here so the
-study is not lost and so nobody folds it in mid-port.
+**The gaps got their own lot**, opened 2026-08-27:
+[`FIX-PLACEMENT-IGNORES-SCENERY`](../../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md). David arbitrated the
+family-D questions the same day — the FARP, FOB and beacon are placed **exactly** where the user asked
+(confirming the current `radius or 0`), while the FARP's **escort** must become scenery-aware, and the
+FARP is **refused with a message** when the escort cannot be placed. The classification above is kept
+here so the study is not lost and so nobody folds it in mid-port.
 
 ### One coordinate trap to preserve exactly
 
@@ -111,7 +114,8 @@ correction produces a plausible heading that is simply wrong — no error, no cr
       nothing relies on the difference
 - [ ] `marker.remove` and `marker.drawZone` go to the native `trigger.action.*` calls
 - [x] The `findSpawnPoint` question is **answered** (2026-08-27, see the study above): no call site is
-      rerouted by this ticket; the seven family-D gaps are recorded for a lot of their own
+      rerouted by this ticket; the family-D gaps went to
+      [`FIX-PLACEMENT-IGNORES-SCENERY`](../../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md)
 - [ ] `veaf.lua:1263` — `findSpawnPoint`'s own tier 2 — still works after the port, asserted by a test
       that exercises `findSpawnPoint` end to end and not just the draw
 - [ ] `veafCombatZone.lua:1466`'s vec2-`y`-to-vec3-`z` shape is preserved, asserted on the resulting vec3

@@ -163,9 +163,11 @@ things that are **not MiST's doing** and are recorded so the campaign does not a
   zone element with a non-zero spawn radius. `FEAT-SCENERY-AWARE-SPAWN` wired the four dynamic ground
   spawners plus the generic `doSpawnGroup`; these were not among them.
 
-They pre-date this campaign and two of them need an arbitration rather than code (the FARP and FOB
-radius semantics). Ticket 06 carries the full classification. **A ticket whose job is to remove a
-dependency must not also move where things spawn**, so nothing here is fixed by this lot.
+They pre-date this campaign. Ticket 06 carries the full classification. **A ticket whose job is to
+remove a dependency must not also move where things spawn**, so nothing here is fixed by this lot —
+they are now [`FIX-PLACEMENT-IGNORES-SCENERY`](../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md), opened
+2026-08-27 with David's arbitration: the FARP, FOB and beacon stay exact, the FARP's escort becomes
+scenery-aware, and the FARP is refused with a message when its escort cannot be placed.
 
 ## Two footholds already in the repository
 

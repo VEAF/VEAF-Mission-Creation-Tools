@@ -147,6 +147,26 @@ Our callers want the second — [`veafInterpreter.lua:92`](../../src/scripts/vea
 spells it out: *"a `mist.DBs.units` record: x, y, alt, coalitionId, groupName"*. So we do need an
 index; just not a 31-table one refreshed 20 times a second.
 
+## Found while measuring, and deliberately left out of scope
+
+Studying the 20 `getRandPointInCircle` call sites for ticket 06 (David, 2026-08-27) turned up three
+things that are **not MiST's doing** and are recorded so the campaign does not absorb them:
+
+- **`veaf.placePointOnLand` validates nothing.** It sets `y` to the ground height and returns — no land
+  versus water test, no building clearance. It wraps 13 of the 20 call sites, and its name reads like a
+  guarantee it does not give.
+- **There are three spawn-point searches, with three contracts.** `veaf.findSpawnPoint` (three tiers,
+  scenery-aware), `veaf.findPointInZone` (`veaf.lua:1642` — draw, `land.getSurfaceType`, widen the
+  dispersion, up to 1000 tries), and `veafSpawnAircraft.lua:115`'s own 25-try loop.
+- **Seven ground-placement sites skip the scenery tier**, including `veafSpawnGround.lua:594` — a
+  *"Full Combat Group"* of real ground units — and `veafCombatZone.lua:1466`, which covers every combat
+  zone element with a non-zero spawn radius. `FEAT-SCENERY-AWARE-SPAWN` wired the four dynamic ground
+  spawners plus the generic `doSpawnGroup`; these were not among them.
+
+They pre-date this campaign and two of them need an arbitration rather than code (the FARP and FOB
+radius semantics). Ticket 06 carries the full classification. **A ticket whose job is to remove a
+dependency must not also move where things spawn**, so nothing here is fixed by this lot.
+
 ## Two footholds already in the repository
 
 - **The façade exists.** [`veaf.lua:147`](../../src/scripts/veaf/veaf.lua) — *"Centralizes the main

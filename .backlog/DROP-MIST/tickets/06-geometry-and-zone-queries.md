@@ -18,17 +18,73 @@ Type: refactor
 | `mist.marker.drawZone` | 2 | 24 | 1 | builds on `trigger.action.*` |
 | `mist.marker.remove` | 2 | 4 | 1 | native `trigger.action.removeMark` |
 
-## `getRandPointInCircle` deserves care
+## `getRandPointInCircle` — studied 2026-08-27, on David's instruction
 
-Twenty call sites, and it is already wrapped by our own spawn-point logic:
-`FEAT-SCENERY-AWARE-SPAWN` built `veaf.findSpawnPoint` as a three-tier search — `Disposition` first,
-**validated random draws second** (which is where this function sits), explicit failure third
-([ADR 0018](../../../docs/adr/0018-undocumented-dcs-api-dependency.md)). So before porting, check
-whether some of the 20 call sites should route through `veaf.findSpawnPoint` instead of drawing a raw
-point: a random point in a circle that lands in a building is the exact problem that lot solved.
+The open question was whether some call sites should route through `veaf.findSpawnPoint`
+(`FEAT-SCENERY-AWARE-SPAWN`'s three-tier search: `Disposition` first, validated random draws second,
+explicit failure third — [ADR 0018](../../../docs/adr/0018-undocumented-dcs-api-dependency.md)).
+All 20 sites were read. **Answer: this ticket ports and changes nothing. The gaps found are not
+MiST's doing and belong in their own lot.**
 
-That is a **behaviour change**, so it is a decision, not a refactor. Split it out if it turns out to
-apply: this ticket's job is to remove the MiST dependency without changing where things spawn.
+First correction: one of the 20 is not a caller. [`veaf.lua:1263`](../../../src/scripts/veaf/veaf.lua)
+**is `findSpawnPoint`'s own tier 2** — the validated-random-draw tier. So there are 19 callers, and the
+port must keep that one working before anything else.
+
+Second correction, and it matters for reading the rest:
+[`veaf.placePointOnLand`](../../../src/scripts/veaf/veaf.lua) — which wraps 13 of the 19 — **validates
+nothing**. It sets `y` to the ground height and returns. It does not test land versus water, and it
+knows nothing about buildings. The name reads like a guarantee and is not one.
+
+### The 19 callers, in four families
+
+**A — air spawns, correctly raw (4).** `veafSpawnAircraft.lua:1045`, `veafQraCore.lua:994` and `:1024`,
+`veafAirWaves.lua:1067`. Scenery clearance is meaningless in the air; `:1045` even overwrites `y` with
+the altitude right after. Port as-is.
+
+**B — effects, correctly raw (6).** `veafSpawnEffects.lua` 56, 176, 254, 291, 313, 370 — smoke, bombs,
+flares. `findSpawnPoint`'s own comment names this family: *"A zero radius means 'exactly here, the
+mission maker means it' — veafSpawn passes it for farp, cargo, teleport, bomb, smoke and friends."*
+Port as-is.
+
+**C — parallel implementations of the same search (2).** This is a design smell the port should surface,
+not fix:
+- [`veaf.findPointInZone`](../../../src/scripts/veaf/veaf.lua) (`veaf.lua:1642`) draws a point, tests
+  `land.getSurfaceType`, and **widens the dispersion on each failure, up to 1000 tries**. It is a second
+  spawn-point search, living in the same file as `findSpawnPoint`, without the scenery tier.
+- `veafSpawnAircraft.lua:115` carries its own `repeat … nbTries = 25` retry loop.
+
+So the codebase holds **three** spawn-point searches with three different contracts. Worth naming in the
+PRD; not this ticket's to merge.
+
+**D — ground placement with a radius and no scenery check (7).** The interesting family:
+
+| Site | What it places | Verdict |
+|---|---|---|
+| [`veafSpawnGround.lua:594`](../../../src/scripts/veaf/veafSpawnGround.lua) | a **"Full Combat Group"** — real ground combat units | **A genuine miss.** `FEAT-SCENERY-AWARE-SPAWN` wired *"the four dynamic ground spawners plus the generic `doSpawnGroup`"*; those are `veafSpawnGround.lua` 387, 441, 483, 538 and `veafSpawnCore.lua:698`. This one was not among them |
+| [`veafCombatZone.lua:1466`](../../../src/scripts/veaf/veafCombatZone.lua) | zone elements when `getSpawnRadius() > 0`, **including DCS groups and statics** | **A gap.** Combat-zone spawn radii are not scenery-aware at all |
+| `veafSpawnGround.lua:47` | a FARP | Needs David's call — `findSpawnPoint`'s comment names FARP as a "the mission maker means it" case, yet a non-zero `radius` is passed here |
+| `veafSpawnGround.lua:146` | a CTLD FOB | Same question as the FARP |
+| `veafSpawnGround.lua:258` | a CTLD beacon | Same family |
+| `veafSpawnGround.lua:655` | a spawn carrying a `destination` | Probably correctly raw: `veafSpawnGround.lua:716` documents the deliberate exclusion — *"Deliberately NOT using veaf.findSpawnPoint here: spawnSpot is the convoy's departure"* |
+| `veafAirWaves.lua:1037` | hands the point to `veafInterpreter.execute`, **which can spawn ground units** | Indirect; the wave's command decides, so the fix is not local |
+
+### What this means for this ticket
+
+**Nothing changes here.** Every one of the 19 sites is ported to `veaf.getRandPointInCircle` with
+identical behaviour, including the two that duplicate `findSpawnPoint` and the seven that skip it. A
+ticket whose job is to remove a dependency must not also move where things spawn — a regression in
+family D would be indistinguishable from the port going wrong.
+
+**The gaps get their own lot.** They pre-date this campaign, they are independent of MiST, and two of
+them (the FARP and FOB radius semantics) need an arbitration rather than code. Recorded here so the
+study is not lost and so nobody folds it in mid-port.
+
+### One coordinate trap to preserve exactly
+
+`veafCombatZone.lua:1466` writes `position = { x = mistP.x, y = position.y, z = mistP.y }` — it reads
+MiST's **vec2** `y` as the horizontal `z`. That is correct and it is exactly the confusion
+[`docs/agents/dcs-coordinates.md`](../../../docs/agents/dcs-coordinates.md) warns about. Whatever the
+port returns must keep the same shape, and the test must assert the resulting vec3, not the draw.
 
 ## `mist.random` — 29 lines over `math.random`
 
@@ -54,8 +110,11 @@ correction produces a plausible heading that is simply wrong — no error, no cr
 - [ ] `mist.random`: what the 29 lines add is established and written down; native substitution only if
       nothing relies on the difference
 - [ ] `marker.remove` and `marker.drawZone` go to the native `trigger.action.*` calls
-- [ ] The `findSpawnPoint` question is answered: either no call site should route through it, or a
-      separate ticket is opened — **not folded into this one**
+- [x] The `findSpawnPoint` question is **answered** (2026-08-27, see the study above): no call site is
+      rerouted by this ticket; the seven family-D gaps are recorded for a lot of their own
+- [ ] `veaf.lua:1263` — `findSpawnPoint`'s own tier 2 — still works after the port, asserted by a test
+      that exercises `findSpawnPoint` end to end and not just the draw
+- [ ] `veafCombatZone.lua:1466`'s vec2-`y`-to-vec3-`z` shape is preserved, asserted on the resulting vec3
 - [ ] Lua tests including: a point on a zone boundary, a degenerate zero-radius circle, a polygon with
       three vertices, and a heading across 0°/360°
 - [ ] `stylua --check` and `luacheck` clean

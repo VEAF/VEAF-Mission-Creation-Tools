@@ -147,9 +147,10 @@ he opened it: **no intermediate ticket delivers a visible gain**, since MiST sta
 last call site is gone.
 
 > ⚠️ **The counts in this section predate 6.16.0 and 6.17.0.** "28 lots are open and ready" and order 6's
-> "~18 lots" were true on 2026-08-19; as of 2026-08-27 the ⬜ list holds **four** lots, most of order 6
-> having shipped. The order itself is delivered through 5. Refreshing §2 is a pending chore — a stale
-> sequencing file is read as work remaining, which this file says about itself two sections up.
+> "~18 lots" were true on 2026-08-19; as of 2026-08-27 the ⬜ list holds **five** lots — `ENRICH-DEFAULT-PRESETS`,
+> `FEAT-AIRWAVES-QRA-MERGE`, `FEAT-PORTABLE-PREFABS` and the two opened that day — most of order 6 having
+> shipped. The order itself is delivered through 5. Refreshing §2 is a pending chore — a stale sequencing
+> file is read as work remaining, which this file says about itself two sections up.
 
 ### Blocked on a person, or on a DCS session
 

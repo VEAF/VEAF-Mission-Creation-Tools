@@ -452,3 +452,35 @@ through — and the harness has since run in game, so the dependency is live.
   exists for it and has never been exercised.
 - [`FEAT-ASSIST-FOLLOWUP` 03](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) — an F-16C pilot's review of the
   six shipped steps. The engine was flown and works; the *procedure* was never checked by a pilot.
+
+---
+
+## 18. How often does the FARP escort search run out of clear ground? — gates ticket 04
+
+**Why it is here:** `FIX-PLACEMENT-IGNORES-SCENERY` ticket 03 (2026-08-27) made the escort search avoid
+buildings *and* forests. That makes it strictly harder to satisfy. Ticket 04 must then refuse a `-farp`
+whose escort cannot be placed — but choosing when to refuse needs to know how often "nowhere clear"
+actually happens on real terrain, and no mock can say. **Ticket 04 must not pick a threshold before this
+number exists.**
+
+**What to run.** Spawn `-farp` in four places and read the log after each:
+
+1. open ground, nothing within a kilometre — the non-regression; nothing must move;
+2. beside a static FARP, ~150 m — the #232 case;
+3. inside a village;
+4. in dense woods.
+
+**What to look for**, in `dcs.log`, filtering on `findClearBearing` and `FARP escort`:
+
+- `scenery-clear bearing N at Mx distance` — tier 1 found a cloud point. Note `M`: 1 means it did not
+  have to walk out at all.
+- `no usable point in Disposition's cloud, walking the bearings instead` — tier 1 gave up; note whether
+  this is the common case, because it decides whether the cloud is worth its call.
+- `kept bearing N, pushed out to Mx` / `moved from N to M at Kx` — tier 2 succeeded.
+- `nothing clear at any bearing or distance, keeping N` — **the exhaustion**. This is the line ticket 04
+  turns into a refusal, so count how many of the four cases produce it.
+- `Disposition.getSimpleZones unusable` — the singleton is missing on this build, which would mean the
+  whole forest half is inert and ticket 04's threshold is being measured against buildings only.
+
+**What it unblocks:** `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/tickets/04-refuse-the-farp-when-the-escort-cannot-be-placed.md`.
+Record the counts in ticket 04 and delete this section.

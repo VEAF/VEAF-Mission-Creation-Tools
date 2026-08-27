@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-IGNORES-SCENERY — ground units are placed without looking at the scenery, and a crowded FARP gives up silently
 
-Status: 🔄 in-progress — tickets 01, 02 and 05 delivered 2026-08-27; 03 and 04 wait on 03's own measurement
+Status: 🔄 in-progress — tickets 01, 02, 03 and 05 delivered 2026-08-27; **04 is blocked on a number only DCS can give**
 
 Origin: found on 2026-08-27 while studying the 20 `mist.getRandPointInCircle` call sites for
 [`DROP-MIST`](../DROP-MIST/tickets/06-geometry-and-zone-queries.md) ticket 06. Kept out of that campaign
@@ -120,7 +120,7 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 |---|---|---|---|
 | 01 | Wire the Full Combat Group spawn through `findSpawnPoint` | low | ✅ |
 | 02 | Wire the combat zone element spawn through `findSpawnPoint` | medium — touches every zone with a radius | ✅ |
-| 03 | The FARP escort avoids the scenery too | medium | ⬜ |
+| 03 | The FARP escort avoids the scenery too | medium | ✅ |
 | 04 | Refuse the FARP when the escort cannot be placed | **high** — reverses a tuned decision | ⬜ |
 | 05 | Lock in the exact placement of the FARP, FOB and beacon | low, tests and docs | ✅ |
 

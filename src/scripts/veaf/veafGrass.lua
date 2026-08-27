@@ -287,7 +287,11 @@ function veafGrass.isSpotOccupied(position, clearance, platforms)
       end
     end)
   end
-  for _, category in ipairs({ Object.Category.UNIT, Object.Category.STATIC }) do
+  -- SCENERY is what makes this see **buildings**. Added in FIX-PLACEMENT-IGNORES-SCENERY: an escort
+  -- clear of every unit, static and apron could still stand through a house. Forests are *not* scenery
+  -- objects in DCS, so they are not covered here — Disposition's cloud handles them a tier above, in
+  -- findClearBearing, because it knows forests but can only propose points, never test one.
+  for _, category in ipairs({ Object.Category.UNIT, Object.Category.STATIC, Object.Category.SCENERY }) do
     local ok = pcall(world.searchObjects, category, volume, found)
     if not ok then
       veaf.loggers.get(veafGrass.Id):debug("isSpotOccupied: world.searchObjects unusable, treating the spot as clear")
@@ -322,6 +326,120 @@ end
 --- twice the distance keeps its original placement rather than ending up in the next valley.
 veafGrass.PLACEMENT_DISTANCE_STEPS = { 1, 1.5, 2 }
 
+--- Slack, in metres, when deciding whether a scenery-cloud candidate sits within the accepted distance
+--- band. Trigonometry turns a point at exactly the requested distance into 0.9999999999999998 of it, and
+--- a bare comparison then discards the best available point in silence. A metre is noise against a 150 m
+--- escort distance and a 12 m clearance.
+veafGrass.PLACEMENT_DISTANCE_TOLERANCE = 1
+
+--- Planar distance between two points, in whichever of the two coordinate shapes each arrives.
+--- A mission-table position carries the easting in `y` and no `z`; a runtime vec3 carries it in `z` and
+--- an altitude in `y`. Both look like plausible coordinates and mixing them raises no error — see
+--- docs/agents/dcs-coordinates.md.
+local function planarDistance(a, b)
+  local dNorth = (a.x or 0) - (b.x or 0)
+  local dEast = (a.z or a.y or 0) - (b.z or b.y or 0)
+  return math.sqrt(dNorth * dNorth + dEast * dEast)
+end
+
+--- Tier 1 of `findClearBearing`: pick a bearing out of Disposition's scenery-clear cloud.
+---
+--- The one thing `isSpotOccupied` cannot see is a **forest** — trees are not scenery objects, and
+--- `land.getSurfaceType` answers LAND for a wood exactly as for a meadow (measured in
+--- FEAT-SCENERY-AWARE-SPAWN). `Disposition` does know forests, but it only ever *proposes* points; there
+--- is no "is this spot clear?" form. So the search runs the other way round: ask **once** for a cloud and
+--- select from it, which costs one call to the undocumented API per group rather than one per candidate
+--- position.
+---
+--- Two filters make the cloud usable. Its radius argument is measured **not** to bound its answers
+--- (asked 800 m in game on 2026-08-06, answered 2035-2258 m), so anything outside the band we accept is
+--- dropped; and the survivors are ordered by how near they are to the spot the caller actually asked for,
+--- which is #232's arbitration — the escort serves the FARP and the crew wants it close — stated directly
+--- rather than approximated by a bearing step.
+---
+--- Disposition stays quality-only, never correctness (ADR 0018): absent, raising, or answering nonsense,
+--- this returns nil and the bearing walk takes over.
+--- @return number|nil bearing, number|nil scale
+local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
+  if veaf.doNotAvoidScenery or not own or not Disposition or not Disposition.getSimpleZones then
+    return nil
+  end
+
+  local wanted = positionsFor(baseAngle, 1)
+  if type(wanted) ~= "table" or type(wanted[1]) ~= "table" then
+    return nil
+  end
+  local requestedDistance = planarDistance(wanted[1], own)
+  if requestedDistance <= 0 then
+    return nil
+  end
+
+  -- The clearing has to hold the whole group, so what is asked of Disposition comes from the group's own
+  -- extent rather than a constant: a five-vehicle line needs a wider gap than a single truck.
+  local extent = 0
+  for _, position in ipairs(wanted) do
+    extent = math.max(extent, planarDistance(position, wanted[1]))
+  end
+
+  local maxScale = veafGrass.PLACEMENT_DISTANCE_STEPS[#veafGrass.PLACEMENT_DISTANCE_STEPS] or 1
+  local centre = veaf.placePointOnLand({ x = own.x, y = own.y })
+  local ok, candidates = pcall(
+    Disposition.getSimpleZones,
+    centre,
+    requestedDistance * maxScale,
+    extent + veafGrass.PLACEMENT_CLEARANCE,
+    veaf.SPAWN_SEARCH_ATTEMPTS
+  )
+  if not ok or type(candidates) ~= "table" then
+    veaf.loggers.get(veafGrass.Id):debug("findClearBearing: Disposition.getSimpleZones unusable, walking the bearings instead")
+    return nil
+  end
+
+  local options = {}
+  for _, candidate in ipairs(candidates) do
+    if type(candidate) == "table" and candidate.x then
+      local distance = planarDistance(candidate, own)
+      -- Never nearer than asked: tier 2 does not go below 1x either, and pulling the escort inwards is
+      -- how it ends up on the apron it was moved off.
+      --
+      -- The tolerance is not decoration. A candidate sitting at *exactly* the requested distance comes
+      -- back as 0.9999999999999998 of it once trigonometry has been through it, and a bare `>= 1`
+      -- discards it — the best possible point, dropped in silence. A metre is noise against a 150 m
+      -- escort distance and a 12 m clearance.
+      if
+        distance >= requestedDistance - veafGrass.PLACEMENT_DISTANCE_TOLERANCE
+        and distance <= requestedDistance * maxScale + veafGrass.PLACEMENT_DISTANCE_TOLERANCE
+      then
+        -- atan2 answers in (-180, 180]; a bearing reads 0-360, and this one is logged for a mission
+        -- maker as well as fed back to positionsFor.
+        local bearing = math.deg(math.atan2((candidate.z or candidate.y or 0) - (own.y or 0), (candidate.x or 0) - (own.x or 0)))
+        table.insert(options, {
+          angle = (bearing + 360) % 360,
+          scale = distance / requestedDistance,
+          gap = planarDistance(candidate, wanted[1]),
+        })
+      end
+    end
+  end
+  table.sort(options, function(left, right)
+    return left.gap < right.gap
+  end)
+
+  for _, option in ipairs(options) do
+    -- Disposition knows nothing about other groups or the FARP's own pads, so the occupancy probe still
+    -- decides. The two criteria compose; neither replaces the other.
+    if allClear(option.angle, option.scale) then
+      veaf.loggers
+        .get(veafGrass.Id)
+        :info("findClearBearing: scenery-clear bearing %s at %sx distance", veaf.p(math.floor(option.angle)), veaf.p(option.scale))
+      return option.angle, option.scale
+    end
+  end
+
+  veaf.loggers.get(veafGrass.Id):debug("findClearBearing: no usable point in Disposition's cloud, walking the bearings instead")
+  return nil
+end
+
 --- Find a bearing — and if need be a distance — where every position a group would occupy is clear.
 ---
 --- `positionsFor(angle, scale)` returns the list of mission-table positions the objects would take at
@@ -347,6 +465,18 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
     return true
   end
 
+  -- Tier 1 — the scenery cloud. Buildings are caught by the probe below (isSpotOccupied searches
+  -- SCENERY), but forests are not scenery objects, and only Disposition knows about them. It cannot be
+  -- asked "is this spot clear?" — it *proposes* points — so the search runs the other way round: ask
+  -- once for a cloud, keep what lands in the band we accept, and take the one nearest the spot actually
+  -- wanted. Selecting from a cloud is also what makes its measured radius overshoot harmless (asked
+  -- 800 m in game on 2026-08-06, answered 2035-2258 m), since the distance filter is ours.
+  local cloudAngle, cloudScale = bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
+  if cloudAngle then
+    return cloudAngle, cloudScale
+  end
+
+  -- Tier 2 — walk the bearings, then the distances. Sees units, statics, aprons and buildings.
   local steps = math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP)
   for _, scale in ipairs(veafGrass.PLACEMENT_DISTANCE_STEPS) do
     -- The original bearing first at every distance, so the group stays where it was aimed when it can.

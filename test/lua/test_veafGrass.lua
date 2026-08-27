@@ -267,13 +267,28 @@ function TestVeafGrassSpotOccupied:test_an_unusable_api_reads_as_clear()
   luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 0, y = 0 }))
 end
 
-function TestVeafGrassSpotOccupied:test_the_probe_searches_units_and_statics()
+-- SCENERY joined the list in FIX-PLACEMENT-IGNORES-SCENERY ticket 03. It is what makes the probe see
+-- **buildings**; forests are not scenery objects and are handled a tier above, from Disposition's cloud.
+function TestVeafGrassSpotOccupied:test_the_probe_searches_units_statics_and_scenery()
   local categories = {}
   world.searchObjects = function(category, volume, handler)
     table.insert(categories, category)
   end
   veafGrass.isSpotOccupied({ x = 0, y = 0 })
-  luaunit.assertEquals(categories, { Object.Category.UNIT, Object.Category.STATIC })
+  luaunit.assertEquals(categories, { Object.Category.UNIT, Object.Category.STATIC, Object.Category.SCENERY })
+end
+
+function TestVeafGrassSpotOccupied:test_a_building_occupies_the_spot()
+  world.searchObjects = function(category, volume, handler)
+    if category == Object.Category.SCENERY then
+      handler({
+        isExist = function()
+          return true
+        end,
+      })
+    end
+  end
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 0, y = 0 }), "an escort must not be placed through a building")
 end
 
 -- ---------------------------------------------------------------------------
@@ -300,6 +315,260 @@ local function _groupAt(bearing)
     })
   end
   return positions
+end
+
+-- ---------------------------------------------------------------------------
+-- Ticket 03 — the scenery cloud tier
+--
+-- David's design, 2026-08-27: ask Disposition for a **cloud** of scenery-clear points in one call, then
+-- test them and take the one nearest the spot we actually wanted. It solves what a per-position scenery
+-- test cannot: `world.searchObjects` sees buildings but not forests, and `Disposition` knows forests but
+-- only *proposes* points — it cannot answer "is this spot clear?". Selecting from a cloud also makes its
+-- measured radius overshoot harmless, since we filter the distance ourselves.
+--
+-- "Nearest the goal" is #232's arbitration expressed directly, where the bearing/distance stepping of
+-- tier 2 was only an approximation of it.
+-- ---------------------------------------------------------------------------
+TestVeafGrassSceneryCloud = {}
+
+function TestVeafGrassSceneryCloud:setUp()
+  self._occupied = veafGrass.isSpotOccupied
+  self._disposition = Disposition
+  self._optOut = veaf.doNotAvoidScenery
+  Disposition = nil
+  veaf.doNotAvoidScenery = false
+  veafGrass.isSpotOccupied = function()
+    return false
+  end
+end
+
+function TestVeafGrassSceneryCloud:tearDown()
+  veafGrass.isSpotOccupied = self._occupied
+  Disposition = self._disposition
+  veaf.doNotAvoidScenery = self._optOut
+end
+
+--- The FARP, in mission-table shape: x is the northing, y the easting.
+local _own = { x = 0, y = 0 }
+
+--- A three-object group 150 m out on `bearing`, honouring `scale` the way escortPositionsAt does.
+local function _scaledGroupAt(bearing, scale)
+  scale = scale or 1
+  local positions = {}
+  local originX = 150 * scale * math.cos(math.rad(bearing))
+  local originY = 150 * scale * math.sin(math.rad(bearing))
+  for j = 1, 3 do
+    table.insert(positions, {
+      x = originX - (j - 1) * 6 * math.sin(math.rad(bearing)),
+      y = originY + (j - 1) * 6 * math.cos(math.rad(bearing)),
+      bearing = bearing,
+      scale = scale,
+    })
+  end
+  return positions
+end
+
+--- A runtime vec3 at `bearing`/`distance` from the FARP: easting lives in z.
+local function _cloudPoint(bearing, distance)
+  return {
+    x = distance * math.cos(math.rad(bearing)),
+    y = 0,
+    z = distance * math.sin(math.rad(bearing)),
+  }
+end
+
+function TestVeafGrassSceneryCloud:_cloud(points)
+  Disposition = {
+    getSimpleZones = function()
+      return points
+    end,
+  }
+end
+
+function TestVeafGrassSceneryCloud:test_a_clear_cloud_point_sets_the_bearing_and_the_scale()
+  self:_cloud({ _cloudPoint(180, 225) })
+  local angle, scale = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertAlmostEquals(angle, 180, 0.01)
+  luaunit.assertAlmostEquals(scale, 1.5, 0.01)
+end
+
+function TestVeafGrassSceneryCloud:test_the_candidate_nearest_the_requested_spot_wins()
+  -- Both are in the band; 100 deg is far nearer the requested 90 than 200 is.
+  self:_cloud({ _cloudPoint(200, 150), _cloudPoint(100, 150) })
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertAlmostEquals(angle, 100, 0.01)
+end
+
+function TestVeafGrassSceneryCloud:test_a_candidate_beyond_the_distance_cap_is_ignored()
+  -- The overshoot measured in game: asked 800 m, answered 2035-2258 m. The cap is what makes the
+  -- cloud usable at all — #232 says the escort stays close to the FARP it serves.
+  self:_cloud({ _cloudPoint(180, 150 * 4) })
+  local angle, scale = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(angle, 90, "an out-of-band candidate must give way to the bearing walk")
+  luaunit.assertEquals(scale, 1)
+end
+
+-- The regression that this tier's first draft shipped with, caught by the test above and pinned here on
+-- its own. A candidate at *exactly* the requested distance comes back as 0.9999999999999998 of it once
+-- trigonometry has been through it, so a bare `scale >= 1` discarded the best available point in
+-- silence — the failure looked like "the nearest candidate did not win".
+function TestVeafGrassSceneryCloud:test_a_candidate_at_exactly_the_requested_distance_is_accepted()
+  self:_cloud({ _cloudPoint(100, 150) })
+  local angle, scale = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertAlmostEquals(angle, 100, 0.01, "a point at the requested distance must not be rounded out of the band")
+  luaunit.assertAlmostEquals(scale, 1, 0.001)
+end
+
+-- Bearings read 0-360 for whoever reads the log, and atan2 answers in (-180, 180].
+function TestVeafGrassSceneryCloud:test_the_bearing_is_normalised_to_a_full_circle()
+  self:_cloud({ _cloudPoint(270, 150) })
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertAlmostEquals(angle, 270, 0.01, "270 must not come back as -90")
+end
+
+function TestVeafGrassSceneryCloud:test_a_candidate_closer_than_requested_is_ignored()
+  -- Tier 2 never goes below 1x either. Pulling the escort inwards is how it ends up on the apron.
+  self:_cloud({ _cloudPoint(180, 40) })
+  local angle, scale = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(angle, 90)
+  luaunit.assertEquals(scale, 1)
+end
+
+function TestVeafGrassSceneryCloud:test_an_occupied_cloud_point_is_rejected()
+  -- Disposition knows nothing about other groups or the FARP's own pads, so the occupancy probe still
+  -- decides. The two criteria compose; neither replaces the other.
+  self:_cloud({ _cloudPoint(180, 150) })
+  veafGrass.isSpotOccupied = function(position)
+    return math.abs((position.bearing or 0) - 180) < 0.01
+  end
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertNotEquals(math.floor(angle + 0.5), 180)
+end
+
+function TestVeafGrassSceneryCloud:test_the_second_candidate_is_tried_when_the_first_is_occupied()
+  self:_cloud({ _cloudPoint(180, 150), _cloudPoint(270, 150) })
+  veafGrass.isSpotOccupied = function(position)
+    return math.abs((position.bearing or 0) - 180) < 0.01
+  end
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertAlmostEquals(angle, 270, 0.01)
+end
+
+-- ADR 0018: Disposition is quality-only, never correctness. Absent, raising or answering nonsense, the
+-- search must degrade to the bearing walk and never abort a FARP.
+function TestVeafGrassSceneryCloud:test_no_singleton_degrades_to_the_bearing_walk()
+  Disposition = nil
+  local angle, scale = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(angle, 90)
+  luaunit.assertEquals(scale, 1)
+end
+
+function TestVeafGrassSceneryCloud:test_a_raising_singleton_degrades_to_the_bearing_walk()
+  Disposition = {
+    getSimpleZones = function()
+      error("Disposition is not available on this build")
+    end,
+  }
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(angle, 90)
+end
+
+function TestVeafGrassSceneryCloud:test_a_nonsense_answer_degrades_to_the_bearing_walk()
+  self:_cloud({ "not a point", { x = 0 } })
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(angle, 90)
+end
+
+function TestVeafGrassSceneryCloud:test_the_opt_out_never_asks()
+  local asked = false
+  Disposition = {
+    getSimpleZones = function()
+      asked = true
+      return { _cloudPoint(180, 150) }
+    end,
+  }
+  veaf.doNotAvoidScenery = true
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertFalse(asked, "veaf.doNotAvoidScenery must silence the cloud tier too")
+  luaunit.assertEquals(angle, 90)
+end
+
+-- One call per group, not one per candidate position. That is the whole cost argument for this design:
+-- 75 probes in the exhausted case become a single call to the undocumented API.
+function TestVeafGrassSceneryCloud:test_the_singleton_is_asked_exactly_once()
+  local calls = 0
+  Disposition = {
+    getSimpleZones = function()
+      calls = calls + 1
+      return {}
+    end,
+  }
+  veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(calls, 1)
+end
+
+-- The safe radius is derived from the group's own extent rather than being a magic number: a
+-- three-vehicle line at 6 m spacing needs a wider clearing than a single truck.
+function TestVeafGrassSceneryCloud:test_the_requested_clearance_covers_the_group_extent()
+  local askedRadius, askedSafeRadius
+  Disposition = {
+    getSimpleZones = function(_centre, radius, safeRadius)
+      askedRadius, askedSafeRadius = radius, safeRadius
+      return {}
+    end,
+  }
+  veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  -- 150 m out, capped at 2x
+  luaunit.assertAlmostEquals(askedRadius, 300, 0.01)
+  -- two 6 m steps from the origin, plus the per-position clearance
+  luaunit.assertAlmostEquals(askedSafeRadius, 12 + veafGrass.PLACEMENT_CLEARANCE, 0.01)
+end
+
+-- The probe budget, pinned. Measured 2026-08-27 for FIX-PLACEMENT-IGNORES-SCENERY ticket 03, before
+-- adding a category to `isSpotOccupied`: the question was whether a per-position scenery test would
+-- multiply an already large product. It does not, because the shape of the search bounds it.
+--
+-- `findClearBearing`'s own comment warns that "a full turn tries 24 bearings at each distance, and each
+-- bearing tests every position the group would occupy" — 3 distances x 25 bearings x 3 positions = 225
+-- in the abstract. The measured numbers are far lower, and for a reason worth keeping: `allClear`
+-- returns on its **first** occupied position, so a crowded bearing costs one probe, not three. The
+-- expensive case is not "everything is blocked", it is "almost everything is clear".
+--
+-- These are call counts, not timings. What they bound is how many times DCS is asked, which is the part
+-- adding a category changes; the per-call cost of `world.searchObjects` over a 12 m sphere is DCS's.
+function TestVeafGrassFindClearBearing:test_the_probe_budget_stays_bounded()
+  local function count(occupiedFn)
+    local n = 0
+    veafGrass.isSpotOccupied = function(position)
+      n = n + 1
+      return occupiedFn(position)
+    end
+    veafGrass.findClearBearing(90, _groupAt)
+    return n
+  end
+
+  -- The nominal case, and the one that matters: a FARP with clear ground probes its group once.
+  luaunit.assertEquals(
+    count(function()
+      return false
+    end),
+    3,
+    "clear ground must cost one bearing's worth of probes"
+  )
+
+  -- Nothing clear anywhere: one probe per bearing evaluation thanks to the early return.
+  local bearings = math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP)
+  local distances = #veafGrass.PLACEMENT_DISTANCE_STEPS
+  luaunit.assertEquals(
+    count(function()
+      return true
+    end),
+    distances * (bearings + 1),
+    "the exhausted search must not exceed one probe per bearing evaluation"
+  )
+
+  -- The absolute ceiling, whatever the occupancy pattern.
+  luaunit.assertTrue(distances * (bearings + 1) * #_groupAt(0) <= 225, "the theoretical ceiling is 225 probes per group")
 end
 
 -- The regression that matters most: a FARP with clear ground around it must not move at all.

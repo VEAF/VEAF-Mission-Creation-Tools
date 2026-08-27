@@ -858,6 +858,7 @@ function TestVeafSpawnGroundSceneryAware:setUp()
   self._savedGetRandPoint = mist.getRandPointInCircle
   self._savedPlaceGroup = veafUnits.placeGroup
   self._savedOptOut = veaf.doNotAvoidScenery
+  self._savedGenerateCasGroup = veafCasMission.generateCasGroup
   Disposition = nil
   veaf.doNotAvoidScenery = false
   -- Record the centre every spawn hands to placeGroup, then delegate.
@@ -866,6 +867,14 @@ function TestVeafSpawnGroundSceneryAware:setUp()
     table.insert(self.centres, { x = spawnPoint.x, y = spawnPoint.y, z = spawnPoint.z })
     return self._savedPlaceGroup(group, spawnPoint, spacing, hdg, hasDest)
   end
+  -- spawnFullCombatGroup does not go through placeGroup: it builds its units with
+  -- veafCasMission.generateCasGroup and hands them straight to _createDcsUnits. Recorded
+  -- separately so a spawner that reaches neither hook cannot pass by being invisible.
+  self.casCentres = {}
+  veafCasMission.generateCasGroup = function(groupName, spawnPoint, size, defense, armor, spacing, side)
+    table.insert(self.casCentres, { x = spawnPoint.x, y = spawnPoint.y, z = spawnPoint.z })
+    return self._savedGenerateCasGroup(groupName, spawnPoint, size, defense, armor, spacing, side)
+  end
 end
 
 function TestVeafSpawnGroundSceneryAware:tearDown()
@@ -873,6 +882,7 @@ function TestVeafSpawnGroundSceneryAware:tearDown()
   land.getSurfaceType = self._savedGetSurfaceType
   mist.getRandPointInCircle = self._savedGetRandPoint
   veafUnits.placeGroup = self._savedPlaceGroup
+  veafCasMission.generateCasGroup = self._savedGenerateCasGroup
   veaf.doNotAvoidScenery = self._savedOptOut
 end
 
@@ -951,6 +961,71 @@ function TestVeafSpawnGroundSceneryAware:test_transport_company_aborts_the_same_
   luaunit.assertEquals(#self.centres, 0)
 end
 
+-- FIX-PLACEMENT-IGNORES-SCENERY ticket 01. The four spawners above were wired to
+-- veaf.findSpawnPoint by FEAT-SCENERY-AWARE-SPAWN and this one was not — which is why there
+-- was no test for it here either. It is a marker command
+-- (registerCommandHandler("fullCombatGroup", …) on an eventPos), so it aborts and reports,
+-- unlike the combat zone elements of ticket 02 which fall back instead.
+
+function TestVeafSpawnGroundSceneryAware:test_full_combat_group_aborts_the_same_way()
+  self:_allWater()
+  local result = veafSpawn.spawnFullCombatGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 1, 3, false, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#self.casCentres, 0, "no group must be generated when no centre was found")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(veaf.t("spawn.no_position_group")), 1, "exactly one message, not one per unit")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_full_combat_group_silent_failure_says_nothing()
+  self:_allWater()
+  local result = veafSpawn.spawnFullCombatGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 1, 3, true, false)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_full_combat_group_skips_a_water_candidate()
+  -- Before this ticket the first jitter was used as-is, so a whole combat group could be
+  -- centred in the sea: placePointOnLand only writes the terrain height, it does not reject water.
+  self:_jitter({ 100, 700 }, { 100 })
+  local result = veafSpawn.spawnFullCombatGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 1, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertEquals(#self.casCentres, 1)
+  luaunit.assertEquals(self.casCentres[1].x, 700, "the water candidate must not become the group centre")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_full_combat_group_passes_its_own_radius_through()
+  -- A zero radius means "exactly here", and findSpawnPoint honours that by not consulting the
+  -- scenery singleton at all. Asserting on Disposition rather than on the returned point is
+  -- deliberate: the default mist mock returns the centre unjittered, so a point assertion would
+  -- pass even if the spawner hardcoded a radius. What must be pinned is that the caller's radius
+  -- reaches the search — which is this class's job, the search itself being covered in test_veaf.lua.
+  local asked = false
+  Disposition = {
+    getSimpleZones = function()
+      asked = true
+      return {}
+    end,
+  }
+  local result = veafSpawn.spawnFullCombatGroup({ x = 123, y = 0, z = 456 }, 0, nil, "usa", 2, 0, 10, 1, 1, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertFalse(asked, "a zero radius must not consult the scenery singleton")
+  luaunit.assertEquals(#self.casCentres, 1)
+  luaunit.assertEquals(self.casCentres[1].x, 123)
+  luaunit.assertEquals(self.casCentres[1].z, 456)
+end
+
+function TestVeafSpawnGroundSceneryAware:test_full_combat_group_takes_the_scenery_aware_point()
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 420, y = 0, z = 77 } }
+    end,
+  }
+  self:_jitter({ 100 })
+  local result = veafSpawn.spawnFullCombatGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 1, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertEquals(self.casCentres[1].x, 420)
+  luaunit.assertEquals(self.casCentres[1].z, 77)
+end
+
 function TestVeafSpawnGroundSceneryAware:test_scenery_aware_point_becomes_the_group_centre()
   -- Was written with a candidate at x=4200 for a 1000 m request, and passed — which is exactly
   -- the bug measured in a live DCS on 2026-08-06: Disposition's radius argument does not bound
@@ -995,6 +1070,91 @@ function TestVeafSpawnGroundSceneryAware:test_opt_out_ignores_the_singleton()
   veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
   luaunit.assertFalse(called)
   luaunit.assertEquals(self.centres[1].x, 100)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafSpawnGroundExactPlacement — FIX-PLACEMENT-IGNORES-SCENERY ticket 05
+--
+-- The deliberate counterpart to the class above. Those spawners place something the *tooling*
+-- chose to put somewhere — a group inside a radius — so they search for acceptable ground. A
+-- FARP, a FOB and a CTLD beacon are placed by a person looking at the map, so they go exactly
+-- where that person pointed (David, 2026-08-27).
+--
+-- Today's behaviour is already right, but only as a side effect of `local radius = radius or 0`:
+-- nothing states the intent, and nothing fails if someone routes these three through
+-- veaf.findSpawnPoint while wiring up their siblings. Which is exactly how the two spawners fixed
+-- in tickets 01 and 02 were *missed* — no marker said they needed it. This class is the marker in
+-- the other direction.
+-- ---------------------------------------------------------------------------
+TestVeafSpawnGroundExactPlacement = {}
+
+function TestVeafSpawnGroundExactPlacement:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._savedDynAddStatic = mist.dynAddStatic
+  self._savedFindSpawnPoint = veaf.findSpawnPoint
+  self._savedGetRandPoint = mist.getRandPointInCircle
+  -- A static's mission-table position: x is the northing, y the easting. The runtime vec3 that
+  -- built it had the easting in z — see docs/agents/dcs-coordinates.md.
+  self.statics = {}
+  mist.dynAddStatic = function(template)
+    table.insert(self.statics, { x = template.x, y = template.y })
+    return self._savedDynAddStatic(template)
+  end
+  self.searched = 0
+  veaf.findSpawnPoint = function(vec3, radius, safeRadius)
+    self.searched = self.searched + 1
+    return self._savedFindSpawnPoint(vec3, radius, safeRadius)
+  end
+end
+
+function TestVeafSpawnGroundExactPlacement:tearDown()
+  mist.dynAddStatic = self._savedDynAddStatic
+  veaf.findSpawnPoint = self._savedFindSpawnPoint
+  mist.getRandPointInCircle = self._savedGetRandPoint
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnGroundExactPlacement:test_a_farp_goes_exactly_where_it_was_asked_for()
+  veafSpawn.spawnFarp({ x = 1234, y = 0, z = 5678 }, nil, "FARP-Exact", "usa", "invisible", 2, 0, 10, true, false, true)
+  luaunit.assertEquals(#self.statics, 1)
+  luaunit.assertEquals(self.statics[1].x, 1234)
+  luaunit.assertEquals(self.statics[1].y, 5678, "the easting must arrive untouched")
+  luaunit.assertEquals(self.searched, 0, "a FARP is never relocated to find clear ground")
+end
+
+function TestVeafSpawnGroundExactPlacement:test_a_fob_goes_exactly_where_it_was_asked_for()
+  -- A FOB is two statics: the outpost, then a watchtower deliberately offset by TOWER_DISTANCE on
+  -- the requested heading. The outpost is the one that must be exact; the tower's offset is a layout
+  -- decision, not a jitter, and it is asserted here so the two cannot be confused later.
+  veafSpawn.spawnFob({ x = 1234, y = 0, z = 5678 }, nil, "FOB-Exact", "usa", "", 1, 0, 0, true, false)
+  luaunit.assertEquals(#self.statics, 2)
+  luaunit.assertEquals(self.statics[1].x, 1234)
+  luaunit.assertEquals(self.statics[1].y, 5678)
+  luaunit.assertEquals(self.searched, 0, "a FOB is never relocated to find clear ground")
+  -- Heading 0: the tower steps along x and stays on the outpost's easting.
+  luaunit.assertTrue(self.statics[2].x > self.statics[1].x, "the watchtower steps out on the requested heading")
+  luaunit.assertEquals(self.statics[2].y, self.statics[1].y)
+end
+
+function TestVeafSpawnGroundExactPlacement:test_a_beacon_goes_exactly_where_it_was_asked_for()
+  veafSpawn.spawnBeacon({ x = 1234, y = 0, z = 5678 }, nil, "Beacon-Exact", "USA", coalition.side.BLUE, true)
+  local point = CTLDBeaconManager._instance.calls[1].args[1]
+  luaunit.assertEquals(point.x, 1234)
+  luaunit.assertEquals(point.z, 5678)
+  luaunit.assertEquals(self.searched, 0, "a beacon is never relocated to find clear ground")
+end
+
+function TestVeafSpawnGroundExactPlacement:test_a_farp_with_a_radius_still_jitters()
+  -- The rule is "exactly where the user asked", not "never move". A caller-supplied radius is the
+  -- user asking for the dispersion, so it must keep working.
+  mist.getRandPointInCircle = function(_spot, _r)
+    return { x = 999, y = 0, z = 888 }
+  end
+  veafSpawn.spawnFarp({ x = 1234, y = 0, z = 5678 }, 500, "FARP-Jitter", "usa", "invisible", 2, 0, 10, true, false, true)
+  luaunit.assertEquals(self.statics[1].x, 999)
+  luaunit.assertEquals(self.statics[1].y, 888)
+  luaunit.assertEquals(self.searched, 0, "even with a radius, the point is the user's — not a search result")
 end
 
 function TestVeafSpawnGround:test_stopClosestConvoy_nil_unit()

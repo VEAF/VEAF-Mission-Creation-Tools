@@ -17,6 +17,37 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Two ground spawns placed their units without looking at the terrain.** `FEAT-SCENERY-AWARE-SPAWN`
+  gave VEAF a three-tier spawn-point search that avoids buildings, forests and water, and wired it into
+  the four dynamic ground spawners plus the generic group spawner. Two paths were missed, and nothing
+  marked them as needing it: `_spawn fullCombatGroup` and **every combat zone element with a non-zero
+  spawn radius**. Both drew a random point inside the radius and used it as-is, so a whole combat group
+  or a zone's element could be dropped into a building, a forest or the sea — with no error and no log.
+  `veaf.placePointOnLand`, which sits on those two paths and reads like a guard, only writes the terrain
+  height; it never rejects water.
+
+  The two now fail differently, on purpose. `_spawn fullCombatGroup` is a marker command, so when no
+  point is acceptable it **aborts and tells the player** — one message, not one per unit — exactly like
+  its four siblings. A combat zone element is content someone drew in the Mission Editor and nobody is
+  in the room when the mission loads, so it **keeps its declared position** and says so in the log: a
+  half-built zone would be worse than an imperfectly placed one, and the scenery criterion is a quality
+  improvement, never a reason for something to stop existing.
+
+  A zone element's position also stops going through a shape conversion that had to read MiST's 2D `y`
+  as a map easting; the search returns a proper 3D point, so the axis is now named rather than inferred.
+
+### Changed
+
+- **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No
+  behaviour change: they already did, but only as a side effect of a default radius of zero, with
+  nothing in the code stating the intent. Since that is precisely how the two spawns above were missed
+  when the terrain-aware search was wired in, the three now carry the opposite marker and a test each.
+  A radius you pass yourself still disperses them — the rule is "where you asked", not "never move".
+  Their **escort** is a separate question and is not covered by this: clear-ground search for FARP
+  escorts is tracked on its own.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

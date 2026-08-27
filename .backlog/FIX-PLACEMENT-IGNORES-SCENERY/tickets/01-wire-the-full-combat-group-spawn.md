@@ -1,6 +1,6 @@
 # 01 — Wire the Full Combat Group spawn through findSpawnPoint
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## What exists
@@ -44,9 +44,9 @@ it'"* — but assert it in a test, because this is the property a mission maker 
 
 ## Definition of done
 
-- [ ] `veafSpawnGround.lua:594` calls `veaf.findSpawnPoint`, with the same nil-handling as lines 387,
+- [x] `veafSpawnGround.lua:594` calls `veaf.findSpawnPoint`, with the same nil-handling as lines 387,
       441, 483 and 538
-- [ ] A `nil` return aborts the spawn and reports it; the group is never placed on a rejected point
-- [ ] Lua tests: a clear spot is unchanged, `radius == 0` returns the exact point, a spot where every
+- [x] A `nil` return aborts the spawn and reports it; the group is never placed on a rejected point
+- [x] Lua tests: a clear spot is unchanged, `radius == 0` returns the exact point, a spot where every
       candidate is rejected aborts with a report
-- [ ] `stylua --check` and `luacheck` clean
+- [x] `stylua --check` clean locally; `luacheck` is not installed on this workstation and runs in the CI Lua gate

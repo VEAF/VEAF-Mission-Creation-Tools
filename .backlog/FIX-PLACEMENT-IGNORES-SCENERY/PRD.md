@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-IGNORES-SCENERY — ground units are placed without looking at the scenery, and a crowded FARP gives up silently
 
-Status: ⬜ ready
+Status: 🔄 in-progress — tickets 01, 02 and 05 delivered 2026-08-27; 03 and 04 wait on 03's own measurement
 
 Origin: found on 2026-08-27 while studying the 20 `mist.getRandPointInCircle` call sites for
 [`DROP-MIST`](../DROP-MIST/tickets/06-geometry-and-zone-queries.md) ticket 06. Kept out of that campaign
@@ -116,13 +116,34 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 
 ## Tickets
 
-| # | Ticket | Risk |
-|---|---|---|
-| 01 | Wire the Full Combat Group spawn through `findSpawnPoint` | low |
-| 02 | Wire the combat zone element spawn through `findSpawnPoint` | medium — touches every zone with a radius |
-| 03 | The FARP escort avoids the scenery too | medium |
-| 04 | Refuse the FARP when the escort cannot be placed | **high** — reverses a tuned decision |
-| 05 | Lock in the exact placement of the FARP, FOB and beacon | low, tests and docs |
+| # | Ticket | Risk | Status |
+|---|---|---|---|
+| 01 | Wire the Full Combat Group spawn through `findSpawnPoint` | low | ✅ |
+| 02 | Wire the combat zone element spawn through `findSpawnPoint` | medium — touches every zone with a radius | ✅ |
+| 03 | The FARP escort avoids the scenery too | medium | ⬜ |
+| 04 | Refuse the FARP when the escort cannot be placed | **high** — reverses a tuned decision | ⬜ |
+| 05 | Lock in the exact placement of the FARP, FOB and beacon | low, tests and docs | ✅ |
+
+### What 01, 02 and 05 delivered (2026-08-27)
+
+Four red tests before the fix on ticket 01, three on ticket 02 — the failure messages are the
+measurement: `expected: nil, actual: "[b]-Echo Brigade#10430"` for a combat group asked to spawn on an
+all-water map, and `expected: 700, actual: 100` for a water candidate becoming the group centre.
+
+Two things turned up while writing them, both recorded rather than smoothed over:
+
+- **The `mist.getRandPointInCircle` stub in `test/lua/dcs_mocks.lua` does not honour the vec2 contract**
+  — it returns `y = spot.y`, the altitude, where the real function returns the easting. That is why
+  ticket 02's fallback test read `z == 12` before the fix. Routing through `veaf.findSpawnPoint`, which
+  returns a proper vec3, removes the ambiguity at that call site; the stub itself is left alone, since
+  fixing it is not this lot's business and would touch every suite that leans on it.
+- **A FOB is two statics, not one** — the outpost, then a watchtower deliberately offset by
+  `TOWER_DISTANCE` on the requested heading. Ticket 05's test now pins both, so the layout offset cannot
+  later be mistaken for a jitter and "fixed".
+
+Full Lua suite: **37 suites, all passing**. Coverage measured at 76.97 %, so the CI Lua floor moved
+75 → 76 per the ratchet policy. `stylua --check` clean; `luacheck` is not installed on this workstation
+and runs in the CI Lua gate.
 
 Order matters between 03 and 04: adding the scenery criterion (03) makes the search *harder* to satisfy,
 so it increases how often 04's refusal would fire. Land 03 first and measure how often nothing is clear

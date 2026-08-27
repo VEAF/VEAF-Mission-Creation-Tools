@@ -44,6 +44,14 @@ function veafSpawn.spawnFarp(
   local farptype = farptype or ""
   local noFarpMarkers = noFarpMarkers or false
 
+  -- Deliberately NOT using veaf.findSpawnPoint here: a FARP goes exactly where the user pointed
+  -- (David, 2026-08-27). The tooling does not choose this position, a person looking at the map does,
+  -- so it is never moved to find clear ground — and `radius or 0` above means the default is exact.
+  -- A caller-supplied radius is the user asking for the dispersion, so it keeps jittering.
+  --
+  -- The FARP's **escort** is a different matter: veafGrass.findClearBearing does search for clear
+  -- ground for it, and FIX-PLACEMENT-IGNORES-SCENERY adds the scenery criterion there. Both
+  -- statements are true at once — exact platform, searched escort — so do not read one for the other.
   local spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
   veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.lp(spawnPosition))
   if not name or name == "" then
@@ -143,6 +151,9 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   local _fobtype = fobtype or "" -- only a single FOB type in CTLD, yet
   local _hdg = hdg or 0
 
+  -- Deliberately NOT using veaf.findSpawnPoint here: a FOB goes exactly where the user pointed
+  -- (David, 2026-08-27) — same rule as the FARP above. The watchtower below is offset from this
+  -- point on purpose; that offset is a layout decision, not a search.
   local _spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, _radius))
   veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.lp(_spawnPosition))
   if not _fobName or _fobName == "" then
@@ -255,6 +266,8 @@ function veafSpawn.spawnBeacon(spawnSpot, radius, name, country, side, silent)
 
   local _side = side or coalition.side.BLUE
   local _country = country or "usa"
+  -- Deliberately NOT using veaf.findSpawnPoint here: a beacon goes exactly where the user pointed
+  -- (David, 2026-08-27) — same rule as the FARP and the FOB above.
   local _position = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius or 0))
 
   local _beacon = CTLDBeaconManager.getInstance():createAtPoint(_position, _side, _country, { name = name })
@@ -591,7 +604,10 @@ function veafSpawn.spawnFullCombatGroup(
     hiddenOnMFD
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Full Combat Group", czName)
   local groupPosition = veaf.placePointOnLand(spawnSpot)

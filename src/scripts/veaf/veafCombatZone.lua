@@ -1463,9 +1463,30 @@ function VeafCombatZone:spawnElement(zoneElement, now)
     if zoneElement:getSpawnRadius() > 0 then
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("position=[%s]", veaf.vecToString(position)))
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnRadius=[%s]", zoneElement:getSpawnRadius()))
-      local mistP = mist.getRandPointInCircle(position, zoneElement:getSpawnRadius())
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("mistP=[%s]", veaf.vecToString(mistP)))
-      position = { x = mistP.x, y = position.y, z = mistP.y }
+      -- The draw used to be used unvalidated, so a dispersed element could be placed in a
+      -- building, a forest or the sea in silence — `veaf.placePointOnLand` only writes the
+      -- terrain height. `veaf.findSpawnPoint` validates the point and prefers one clear of
+      -- scenery. It returns a **vec3**, so the easting reads as `z`; this call site used to read
+      -- MiST's vec2 `y` for it, which is the confusion docs/agents/dcs-coordinates.md warns about.
+      --
+      -- On failure the element keeps its **declared** position instead of being skipped: a zone
+      -- element is editor content, and the mission maker who declared it is not in the room when
+      -- the mission loads, so a partially built zone would be worse than an imperfect one.
+      -- Refusing is for what a command spawns (David, 2026-08-27), and per ADR 0018 the scenery
+      -- criterion is quality-only, never correctness.
+      local found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius())
+      if found then
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("found=[%s]", veaf.vecToString(found)))
+        position = { x = found.x, y = position.y, z = found.z }
+      else
+        veaf.loggers.get(veafCombatZone.Id):info(
+          string.format(
+            "spawnElement: no acceptable spawn point within %sm of [%s], keeping its declared position",
+            tostring(zoneElement:getSpawnRadius()),
+            tostring(zoneElement:getName())
+          )
+        )
+      end
     end
     if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
       veaf.loggers

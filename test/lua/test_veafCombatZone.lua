@@ -2254,6 +2254,135 @@ function TestVeafCombatZoneSpawnRouteOffset:test_the_neighbouring_vars_are_untou
 end
 
 -- ============================================================================
+-- FIX-PLACEMENT-IGNORES-SCENERY ticket 02 — a zone element's spawn radius ignored the scenery
+--
+-- `getSpawnRadius() > 0` drew a raw point and used it unvalidated, so an element could be placed
+-- inside a building or a forest in silence. `veaf.placePointOnLand` does not help: it writes the
+-- terrain height and nothing else.
+--
+-- The failure path here is **not** ticket 01's. A zone element is editor content, declared by a
+-- mission maker who is not in the room when the mission loads, so when no point is acceptable the
+-- element keeps its declared position rather than being skipped — a partially built zone with
+-- nobody to read the reason would be worse than an imperfectly placed one. Per ADR 0018 the
+-- scenery criterion is quality only, never correctness.
+-- ============================================================================
+TestVeafCombatZoneSceneryAwareSpawn = {}
+
+function TestVeafCombatZoneSceneryAwareSpawn:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Scenery Zone"):setMissionEditorZoneName("SCENERYZONE")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("SCENERYZONE-GROUP")
+  self.el:setPosition({ x = 0, y = 12, z = 0 })
+  self.el:setCoalition(coalition.side.RED)
+  self.el:setDcsGroup(true)
+
+  self._teleport = mist.teleportToPoint
+  self._savedDisposition = Disposition
+  self._savedGetSurfaceType = land.getSurfaceType
+  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedOptOut = veaf.doNotAvoidScenery
+  Disposition = nil
+  veaf.doNotAvoidScenery = false
+
+  self.vars = nil
+  local this = self
+  mist.teleportToPoint = function(vars)
+    this.vars = vars
+    return nil
+  end
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:tearDown()
+  mist.teleportToPoint = self._teleport
+  Disposition = self._savedDisposition
+  land.getSurfaceType = self._savedGetSurfaceType
+  mist.getRandPointInCircle = self._savedGetRandPoint
+  veaf.doNotAvoidScenery = self._savedOptOut
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:_allWater()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+end
+
+--- Jitter walks the given x offsets, one per call; water is decided by x.
+function TestVeafCombatZoneSceneryAwareSpawn:_jitter(xs, waterXs)
+  local water = {}
+  for _, x in ipairs(waterXs or {}) do
+    water[x] = true
+  end
+  land.getSurfaceType = function(vec2)
+    if water[vec2.x] then
+      return land.SurfaceType.WATER
+    end
+    return land.SurfaceType.LAND
+  end
+  local calls = 0
+  mist.getRandPointInCircle = function(spot, _r)
+    calls = calls + 1
+    return { x = xs[calls] or xs[#xs], y = 0, z = spot.z or 0 }
+  end
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:test_a_water_candidate_is_skipped()
+  self.el:setSpawnRadius(1000)
+  self:_jitter({ 100, 700 }, { 100 })
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNotNil(self.vars)
+  luaunit.assertEquals(self.vars.point.x, 700, "the water candidate must not become the element's position")
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:test_a_scenery_aware_point_is_used()
+  self.el:setSpawnRadius(1000)
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 420, y = 0, z = 77 } }
+    end,
+  }
+  self:_jitter({ 100 })
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self.vars.point.x, 420)
+  luaunit.assertEquals(self.vars.point.z, 77)
+end
+
+-- The whole point of ticket 02's asymmetry with ticket 01. An unplaceable element still spawns.
+function TestVeafCombatZoneSceneryAwareSpawn:test_no_acceptable_point_falls_back_to_the_declared_position()
+  self.el:setSpawnRadius(1000)
+  self:_allWater()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNotNil(self.vars, "an unplaceable element must still be spawned, not skipped")
+  luaunit.assertEquals(self.vars.point.x, 0)
+  luaunit.assertEquals(self.vars.point.z, 0)
+end
+
+-- The vertical is the element's declared one, not the terrain height the search writes. That is
+-- today's behaviour and this ticket does not change it.
+function TestVeafCombatZoneSceneryAwareSpawn:test_the_declared_altitude_is_kept()
+  self.el:setSpawnRadius(1000)
+  self:_jitter({ 700 })
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self.vars.point.y, 12)
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:test_a_zero_radius_never_consults_the_singleton()
+  self.el:setSpawnRadius(0)
+  local asked = false
+  Disposition = {
+    getSimpleZones = function()
+      asked = true
+      return {}
+    end,
+  }
+  self.z:spawnElement(self.el, true)
+  luaunit.assertFalse(asked, "a zero radius means exactly here")
+  luaunit.assertEquals(self.vars.point.x, 0)
+  luaunit.assertEquals(self.vars.point.z, 0)
+end
+
+-- ============================================================================
 -- FIX-COMBATZONE-SPAWN-REFERENCE-UNIT — the group's position came from the wrong unit
 --
 -- A zone's element took its position from the first unit the zone *met*, while MiST measures the

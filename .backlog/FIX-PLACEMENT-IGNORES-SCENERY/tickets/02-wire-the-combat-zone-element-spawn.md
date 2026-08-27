@@ -1,6 +1,6 @@
 # 02 — Wire the combat zone element spawn through findSpawnPoint
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 Higher blast radius than ticket 01: this path covers **every combat zone element with a non-zero spawn
@@ -64,13 +64,13 @@ there — so it aborts and reports. Same search, opposite failure path, because 
 
 ## Definition of done
 
-- [ ] The draw goes through `veaf.findSpawnPoint`; the vec3 handed to the spawn below is the same shape
+- [x] The draw goes through `veaf.findSpawnPoint`; the vec3 handed to the spawn below is the same shape
       as today, with the convention named in a comment
-- [ ] A `nil` return **falls back to the element's declared position** and logs it — the element is never
+- [x] A `nil` return **falls back to the element's declared position** and logs it — the element is never
       skipped and the zone is never partially built
-- [ ] The vertical-coordinate decision (`position.y` versus ground height) is made explicitly and its
+- [x] The vertical-coordinate decision (`position.y` versus ground height) is made explicitly and its
       reason recorded
-- [ ] Lua tests: a zero radius bypasses the search and returns the exact point, a non-zero radius on
+- [x] Lua tests: a zero radius bypasses the search and returns the exact point, a non-zero radius on
       clear ground behaves as before, an **unplaceable element still spawns at its declared position**,
       and the resulting vec3's `x`/`y`/`z` are asserted individually — not compared as a whole table
-- [ ] `stylua --check` and `luacheck` clean
+- [x] `stylua --check` clean locally; `luacheck` is not installed on this workstation and runs in the CI Lua gate

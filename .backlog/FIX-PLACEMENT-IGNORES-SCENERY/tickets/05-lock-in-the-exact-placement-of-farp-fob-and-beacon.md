@@ -1,6 +1,6 @@
 # 05 — Lock in the exact placement of the FARP, the FOB and the beacon
 
-Status: ⬜ ready
+Status: ✅ done
 Type: test
 
 No behaviour change. This ticket writes down and asserts a decision, so a future lot cannot "improve" it
@@ -56,8 +56,8 @@ next reader will take one for the other.
 
 ## Definition of done
 
-- [ ] The three sites carry a comment stating the rule, its author and its date, and distinguishing the
+- [x] The three sites carry a comment stating the rule, its author and its date, and distinguishing the
       FARP from its escort
-- [ ] A test per site: no radius given → the exact requested position
-- [ ] A test: a non-zero radius still jitters
-- [ ] `stylua --check` and `luacheck` clean
+- [x] A test per site: no radius given → the exact requested position
+- [x] A test: a non-zero radius still jitters
+- [x] `stylua --check` clean locally; `luacheck` is not installed on this workstation and runs in the CI Lua gate

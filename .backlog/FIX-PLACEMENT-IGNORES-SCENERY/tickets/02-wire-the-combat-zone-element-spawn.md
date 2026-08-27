@@ -38,21 +38,39 @@ answer transfers — a static and a group may not want the same thing.
 
 ## What this ticket does
 
-Route the draw through `veaf.findSpawnPoint`, keep the resulting shape identical to what the code below
-line 1470 expects, and handle a `nil` return by reporting and skipping that element rather than placing
-it on a rejected point.
+Route the draw through `veaf.findSpawnPoint`, and keep the resulting shape identical to what the code
+below line 1470 expects.
 
 `getSpawnRadius() == 0` already bypasses the block entirely, so exact placement is untouched by
 construction — but assert it, since this is the property missions depend on.
+
+### A `nil` return must fall back, not refuse (David, 2026-08-27)
+
+**This is editor content, so it is never refused** — *"c'est applicable au spawn (`-farp`) mais pas à ce
+qui est placé dans l'éditeur de mission (combat zone, farp statiques, etc.)"*. A combat zone element is
+declared by a mission maker who is not in the room when the mission loads; skipping it would remove
+part of a zone with nobody to read the reason.
+
+So when `findSpawnPoint` returns `nil` — its tier 3, *nothing acceptable anywhere* — this path
+**keeps the element's declared position** and spawns there, logging that it could not improve on it.
+The scenery criterion is a **quality** improvement here, exactly as
+[ADR 0018](../../../docs/adr/0018-undocumented-dcs-api-dependency.md) requires of the `Disposition`
+dependency: never correctness, never a reason for something to stop existing.
+
+**Note the deliberate asymmetry with ticket 01.** That path is
+`registerCommandHandler("fullCombatGroup", …)` on an `eventPos` — a runtime marker, with a user standing
+there — so it aborts and reports. Same search, opposite failure path, because the origin differs. Do not
+"harmonise" the two: the difference is the arbitration.
 
 ## Definition of done
 
 - [ ] The draw goes through `veaf.findSpawnPoint`; the vec3 handed to the spawn below is the same shape
       as today, with the convention named in a comment
-- [ ] A `nil` return reports and skips the element; nothing is placed on a rejected point
+- [ ] A `nil` return **falls back to the element's declared position** and logs it — the element is never
+      skipped and the zone is never partially built
 - [ ] The vertical-coordinate decision (`position.y` versus ground height) is made explicitly and its
       reason recorded
 - [ ] Lua tests: a zero radius bypasses the search and returns the exact point, a non-zero radius on
-      clear ground behaves as before, an unplaceable element is skipped with a report, and the resulting
-      vec3's `x`/`y`/`z` are asserted individually — not compared as a whole table
+      clear ground behaves as before, an **unplaceable element still spawns at its declared position**,
+      and the resulting vec3's `x`/`y`/`z` are asserted individually — not compared as a whole table
 - [ ] `stylua --check` and `luacheck` clean

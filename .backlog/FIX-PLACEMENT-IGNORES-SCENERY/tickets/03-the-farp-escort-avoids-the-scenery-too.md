@@ -51,6 +51,20 @@ per-call cost of `Disposition.getSimpleZones` is recorded as **still unmeasured*
 So: measure it before shipping. If the cost is real, the scenery test belongs at the *bearing* level
 rather than per position, or only on the bearings that already passed the cheap tests.
 
+## It applies to both kinds of FARP — unlike the refusal
+
+`findClearBearing` serves both callers of `veafGrass.buildFarpUnits`: the `-farp` command
+([`veafSpawnGround.lua:105`](../../../src/scripts/veaf/veafSpawnGround.lua)) and the editor's static FARPs
+([`veafGrass.lua:586`](../../../src/scripts/veaf/veafGrass.lua), scheduled at startup). The scenery
+criterion applies to **both** — moving an escort out of a forest is an improvement wherever the FARP came
+from. David's ruling 3 restricts the **refusal** to the spawned path, not the search.
+
+That said, this ticket **does** change the placement of furniture on editor-placed FARPs in missions that
+already work. That is precisely what `FIX-FARP-ESCORT-PLACEMENT`'s PRD warns about — *"a fix that quietly
+moved every FARP in every existing mission would have been a worse outcome than the defect"*. So the
+non-regression below is not a formality: a FARP whose escort already stands on clear ground must not move
+by a metre.
+
 ## Definition of done
 
 - [ ] `allClear` rejects a bearing whose positions are unacceptable ground, reusing the existing rule

@@ -44,14 +44,36 @@ criterion was delegated to a tier that is not on this path, so nothing applies i
 
 ## David's arbitration (2026-08-27)
 
-Three rulings, and the second reverses a written decision:
-
 1. **The FARP, the FOB and the CTLD beacon are placed exactly where the user asked.** No intelligent
    relocation. This **confirms the current code**: all three default to `local radius = radius or 0`, so
    `getRandPointInCircle(spot, 0)` returns the point unchanged. Nothing to fix — but worth locking in, so
    a later lot does not "improve" it.
 2. **The FARP's escort must be placed intelligently, or the FARP is refused with a message.**
-3. Problems 1 and 2 above are to be fixed.
+3. **Refusing applies to what a command spawns, never to what the Mission Editor placed** — *"c'est
+   applicable au spawn (`-farp`) mais pas à ce qui est placé dans l'éditeur de mission (combat zone, farp
+   statiques, etc.)"*.
+4. Problems 1 and 2 above are to be fixed.
+
+### Ruling 3 is the axis this lot is organised around
+
+It is not a detail of ticket 04; it decides the failure path of **every** ticket here, and it has a
+reason: a marker command has a **user standing there** who can read a message and put the marker
+somewhere else. Editor content has nobody. Refusing at mission load either breaks the mission silently
+or reports to an empty room, and in both cases the mission maker finds out in flight.
+
+So, per path:
+
+| Path | Origin | On "nothing acceptable" |
+|---|---|---|
+| `veafSpawnGround.lua:594` — `spawnFullCombatGroup` | `registerCommandHandler("fullCombatGroup", …)` on an `eventPos` → **a runtime marker** | **abort and report** |
+| `veafSpawnGround.lua:47` — `spawnFarp`, and its escort via `veafGrass.buildFarpUnits` ([`veafSpawnGround.lua:105`](../../src/scripts/veaf/veafSpawnGround.lua)) | the `-farp` command | **refuse the FARP, with a message** |
+| `veafCombatZone.lua:1466` — zone elements | **editor content** | **fall back to the declared position** |
+| `veafGrass.buildFarpUnits` ← [`veafGrass.lua:586`](../../src/scripts/veaf/veafGrass.lua) | `buildFarpsUnits`, scheduled at startup, walking the units named `FARP …` → **the editor's static FARPs** | **keep today's fallback** |
+
+The measurement that makes ruling 3 implementable rather than a judgement call at every call site:
+**`veafGrass.buildFarpUnits` has exactly two callers**, and they are precisely the spawned FARP and the
+editor's static FARPs. So the refusal is a parameter of that function, decided by its caller — not a
+behaviour of the search.
 
 ### Ruling 2 reverses a documented decision, and that must be said out loud
 
@@ -109,7 +131,10 @@ before choosing 04's threshold.
 ## Definition of done
 
 - [ ] No ground-placement path draws a raw random point where scenery matters
-- [ ] A FARP whose escort cannot be placed is refused, with a translated message, and the refusal is
+- [ ] **Ruling 3 holds everywhere**: a command's spawn aborts or refuses when nothing is acceptable, and
+      editor content falls back to its declared position instead. No path refuses editor content, and no
+      path silently places a command's group on a rejected point
+- [ ] A `-farp` whose escort cannot be placed is refused, with a translated message, and the refusal is
       narrow enough that a FARP in open ground never sees it
 - [ ] The non-regression is proven the way 6.15.33 proved it: a FARP far from anything does not move
 - [ ] `mypy` exclusions and the coverage ratchet respected per the repository's quality policy

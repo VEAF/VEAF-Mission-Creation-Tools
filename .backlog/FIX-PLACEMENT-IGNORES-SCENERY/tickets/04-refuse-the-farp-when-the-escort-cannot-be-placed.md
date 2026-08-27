@@ -32,11 +32,28 @@ the FARP with a translated message.
 
 Three design points to settle before coding:
 
-- **Who refuses.** `findClearBearing` serves four callers — escort, tents, props, windsock
-  (`veafGrass.lua` 1478, 1568, 1631, 1728) — and only the **escort** is meant to abort a FARP. The
-  windsock's bearing is explicitly free (David's earlier call: nothing reads its position). So the
-  refusal decision belongs to the caller, not to the search: `findClearBearing` reports failure, the
-  escort caller turns it into a refusal, and the other three keep today's fallback.
+- **Who refuses — on two axes, not one.**
+
+  *Axis 1, which piece.* `findClearBearing` serves four callers inside the layout — escort, tents, props,
+  windsock (`veafGrass.lua` 1478, 1568, 1631, 1728) — and only the **escort** is meant to abort a FARP.
+  The windsock's bearing is explicitly free (David's earlier call: nothing reads its position).
+
+  *Axis 2, which FARP.* **`veafGrass.buildFarpUnits` has exactly two callers**, and David's ruling 3
+  splits them:
+
+  | Caller | What it builds | On an unplaceable escort |
+  |---|---|---|
+  | [`veafSpawnGround.lua:105`](../../../src/scripts/veaf/veafSpawnGround.lua), inside `spawnFarp` | the `-farp` command's FARP | **refuse, with a message** |
+  | [`veafGrass.lua:586`](../../../src/scripts/veaf/veafGrass.lua), inside `buildFarpsUnits` — scheduled at startup, walking the units named `FARP …` | **the editor's static FARPs** | **keep today's fallback** |
+
+  *"c'est applicable au spawn (`-farp`) mais pas à ce qui est placé dans l'éditeur de mission (combat
+  zone, farp statiques, etc.)"* — a marker command has a user standing there who can read the message and
+  re-place the marker; a static FARP in the editor has nobody, and refusing it at mission load would
+  remove furniture from a mission that has always worked.
+
+  So the refusal is a **parameter of `buildFarpUnits`, set by its caller** — not a behaviour of
+  `findClearBearing`, which only reports that nothing was clear. That the two callers map exactly onto the
+  two sides of the ruling is what makes this implementable rather than a judgement call per call site.
 - **What "refused" means for a FARP that is already half built.** The layout code places several things
   in sequence. Establish whether the escort is decided **before** anything is created; if not, the
   refusal has to either move earlier or clean up what it already spawned. A half-built refused FARP would
@@ -58,14 +75,18 @@ and it goes back to David with the number rather than shipping.
 
 ## Definition of done
 
-- [ ] `findClearBearing` can report *"nothing clear"* distinguishably from a bearing
+- [ ] `findClearBearing` can report *"nothing clear"* distinguishably from a bearing, and refuses nothing
+      itself
 - [ ] Only the escort caller turns that into a refusal; tents, props and the windsock keep today's
       fallback
+- [ ] **Only the `-farp` path refuses.** `veafGrass.buildFarpUnits` takes the refusal as a parameter;
+      `veafSpawnGround.lua:105` passes it, `veafGrass.lua:586` does not
 - [ ] A refused FARP creates **nothing** — verified, not assumed
 - [ ] The message is translated in both locales, names the FARP and gives the reason
 - [ ] 03's exhaustion measurement is recorded here and the threshold justified by it
-- [ ] Lua tests: a placeable escort still places, an unplaceable one refuses the FARP with the message
-      and creates nothing, and an unplaceable **windsock** does not refuse anything
+- [ ] Lua tests: a placeable escort still places, an unplaceable one on the **`-farp` path** refuses with
+      the message and creates nothing, an unplaceable one on the **startup path** builds anyway with
+      today's fallback, and an unplaceable **windsock** never refuses anything
 - [ ] Non-regression proven as in 6.15.33: a FARP far from anything is never refused and nothing moves
 - [ ] `CHANGELOG.md` entry under `[Unreleased]` calling this out as a behaviour change
 - [ ] `stylua --check` and `luacheck` clean

@@ -52,7 +52,32 @@ broken for everyone". It never was.
 
 Items **11** and **16** are fully measurable, with no double reading and no caveat.
 
-## A mission is ready for items 0 and 0b
+## A mission is ready for items 21 and 10 — built 2026-08-27
+
+`D:\dev\_VEAF\tmp\dcs-session-2026-08-27\` — **`LIRE-MOI.md` carries the full running order**, and
+`missions\VEAF-session-2026-08-27_noon.miz` is the only file to load. Caucasus, noon, `language: fr`,
+security off, built with `--dev-mode` against the repository so it carries the fixes no release has yet
+(verified on the unzipped `.miz`: `bearingFromSceneryCloud`, `PLACEMENT_DISTANCE_TOLERANCE`,
+`Object.Category.SCENERY`, `reestablishEscortTask`).
+
+Based on the repository's own demo mission, which already carries the `Arco` tanker and two escorts.
+**One escort was renamed to `Arco escort`** and the other deliberately left as `Arco-escort1`: the
+convention is `<asset name> .. " escort"` ([`veafMove.lua:37`](src/scripts/veaf/veafMove.lua)) and
+neither original name matched it, so item 10 would have shown the escort going home and read as "the fix
+does not work". Renaming only one gives the run its own control — the repaired escort must stay, the
+other must still leave after ~10 minutes.
+
+⚠️ **The folders for items 3 and 4 are gone.** `dcs-session-2026-08-14` and `dcs-session-2026-08-24` no
+longer exist; `tmp/` holds only the Foothold archives, now **4.7.0** where item 4's text targets 4.4.1.
+Those two need rebuilding before they can be run — see `LIRE-MOI.md`.
+
+⚠️ **`mission extract` → `mission build` does not round-trip.** The demo `.miz` stores its members under
+lowercase `l10n/default/`, the extractor reproduces that faithfully, and the builder demands
+`l10n/DEFAULT/` — it aborts with *"These components are missing … they are mandatory in a DCS
+mission!"*. Renamed by hand for this session; worth a lot of its own, since a repository test mission
+triggers it.
+
+## An older mission, for items 0 and 0b — both since closed
 
 `D:\dev\_VEAF\tmp\dcs-session-2026-08-14\TestMenuFR.miz` — Caucasus, `language: fr`, with the modules
 that build menus (RADIO, SPAWN, COMBATZONE, ASSETS, WEATHER, NAMEDPOINTS, MOVE, TRANSPORTMISSION,
@@ -455,7 +480,7 @@ through — and the harness has since run in game, so the dependency is live.
 
 ---
 
-## 18. How often does the FARP escort search run out of clear ground? — gates ticket 04
+## 21. How often does the FARP escort search run out of clear ground? — gates ticket 04
 
 **Why it is here:** `FIX-PLACEMENT-IGNORES-SCENERY` ticket 03 (2026-08-27) made the escort search avoid
 buildings *and* forests. That makes it strictly harder to satisfy. Ticket 04 must then refuse a `-farp`

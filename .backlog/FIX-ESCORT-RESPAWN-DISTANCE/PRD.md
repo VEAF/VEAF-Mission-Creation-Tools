@@ -61,3 +61,36 @@ The choice is about what a respawn is supposed to mean, and it is a design call,
 - [ ] Implemented with unit tests covering the distance case
 - [ ] Verified in game: respawn the asset, and the escort is with it — not merely tasked with it
 - [ ] The ASSETS page says what a respawn does to an escort
+
+## Two things found in `teleportEscort` while sizing option (b), 2026-08-28
+
+Option (b) was written up as *"mostly wiring"* because the teleport path already exists. Reading it
+says otherwise, twice.
+
+**1. Its author recorded that it does not work.** [`veafMove.teleportEscort`](../../src/scripts/veaf/veafMove.lua),
+right after the call that is supposed to make the escort escort:
+
+```lua
+  veafMove.replaceMission(unitGroup_escort, EscortData)
+  --this method appears to not work very well, the escort just doesn't defend the group
+```
+
+That contradicts [`FIX-ESCORT-RESPAWN-TASK`](../FIX-ESCORT-RESPAWN-TASK/PRD.md), which states the
+teleport path *"works (escort held for 30 min)"* and used it as the reference the respawn path was
+ported from. One of the two is wrong, and it matters: option (b) is only cheap if the thing it reuses
+does what it claims. **Settle this before choosing (b)** — and note that "held for 30 min" and "does
+not defend" are not even contradictory: an escort can fly formation without engaging anything.
+
+**2. It still assumes the Escort task is on the last waypoint.** It rewrites the last two waypoints and
+comments the last one as *"Waypoint 1 where the escort tasking will come into play"*:
+
+```lua
+  local point1_escort = points_escort[#points_escort - 1] --second to last waypoint
+  local point2_escort = points_escort[#points_escort] --last waypoint where the escort has to be set up in the editor
+```
+
+`FIX-ESCORT-RESPAWN-TASK` ticket 03 fixed that assumption in the *lookup*; it is still here in the
+*rewrite*. On the demo mission (3 waypoints, task on wp2) the task sits on `point1_escort`, the one
+this code treats as a mere approach waypoint. Whether that breaks the teleport or merely works by
+accident is unmeasured — but it is the same defect, in the same file, and it belongs to whichever lot
+touches this path next.

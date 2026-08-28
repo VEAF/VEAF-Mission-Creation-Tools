@@ -96,6 +96,7 @@ def deploy_published_locally(published_zip: Path, target: Path) -> list[str]:
 # MUST appear here or in :data:`LUA_BUNDLE_EXCLUDED`, otherwise it is silently dropped
 # from static/distribution builds (test_lua_bundle_manifest guards this).
 LUA_BUNDLE_SCRIPTS: list[str] = [
+    "veafScheduler.lua",
     "veafI18n.lua",
     "dcsUnits.lua",
     "veafCacheManager.lua",

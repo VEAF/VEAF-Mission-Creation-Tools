@@ -145,7 +145,7 @@ This is equivalent to calling `:activate()` on the constant. Any previously acti
 
 ```lua
 -- On a DCS trigger "Begin Night Phase", enable heavy fog
-mist.scheduleFunction(function()
+veaf.scheduleFunction(function()
   veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
 end, {}, timer.getTime() + 0)
 ```

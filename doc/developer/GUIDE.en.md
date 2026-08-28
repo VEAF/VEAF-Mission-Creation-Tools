@@ -294,6 +294,25 @@ For **per-module runtime** control (no rebuild), add the Lua call directly in `m
 veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true bypasses BaseLogLevel cap
 ```
 
+### Scheduling a function
+
+Do not call `timer.scheduleFunction` or `mist.scheduleFunction`. Use `veaf.scheduleFunction`, which
+puts the task on the native DCS timer while keeping the conveniences the code expects: repetition, a
+stop time, arguments as a table, and a task that fails without taking the others down with it.
+
+```lua
+-- once, in 30 seconds
+local id = veaf.scheduleFunction(myFunction, { arg1, arg2 }, timer.getTime() + 30)
+
+-- every 10 seconds, for an hour
+veaf.scheduleFunction(myFunction, {}, timer.getTime() + 10, 10, timer.getTime() + 3600)
+
+veaf.removeFunction(id) -- cancels; answers false if the task has already run
+```
+
+The implementation lives in `veafScheduler.lua`. There is **no** polling loop: every task is one
+native scheduled call, re-armed by returning its next time, so nothing runs when nothing is due.
+
 ### mist.DBs Access
 
 Do not access `mist.DBs.*` directly. Use the `veaf.mist` wrapper:

@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 -- The catalog, not just the runtime: FEAT-CONVOY-WAYPOINTS asserts on the *messages* a convoy command
 -- gives the player, and `veaf.t` hands back the bare key when the catalog was never loaded.
 dofile(src .. "/veafI18n.lua")
@@ -1908,14 +1909,14 @@ TestConvoyArrivalWatchdog = {}
 function TestConvoyArrivalWatchdog:setUp()
   dcs_mocks.reset()
   self._avg = veaf.getAveragePosition
-  self._schedule = mist.scheduleFunction
+  self._schedule = veaf.scheduleFunction
   self._goRoute = mist.goRoute
   self._route = veaf.generateVehiclesRoute
   self._getByName = Group.getByName
   self._outText = trigger.action.outText
 
   self.scheduled = {}
-  mist.scheduleFunction = function(fn, args, at)
+  veaf.scheduleFunction = function(fn, args, at)
     table.insert(self.scheduled, { fn = fn, args = args, at = at })
     return #self.scheduled
   end
@@ -1952,7 +1953,7 @@ end
 
 function TestConvoyArrivalWatchdog:tearDown()
   veaf.getAveragePosition = self._avg
-  mist.scheduleFunction = self._schedule
+  veaf.scheduleFunction = self._schedule
   mist.goRoute = self._goRoute
   veaf.generateVehiclesRoute = self._route
   Group.getByName = self._getByName
@@ -2552,15 +2553,15 @@ function TestSpawnSilenceSurvivesRescheduling:setUp()
     return nil
   end)
   self.rescheduled = nil
-  self._schedule = mist.scheduleFunction
+  self._schedule = veaf.scheduleFunction
   local test = self
-  mist.scheduleFunction = function(fn, args, when)
+  veaf.scheduleFunction = function(fn, args, when)
     test.rescheduled = args
   end
 end
 
 function TestSpawnSilenceSurvivesRescheduling:tearDown()
-  mist.scheduleFunction = self._schedule
+  veaf.scheduleFunction = self._schedule
 end
 
 --- `scripted` is the 12th argument, so it is the 12th entry of the table mist is handed.

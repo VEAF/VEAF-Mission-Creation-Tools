@@ -341,7 +341,7 @@ that can go wrong. Then the cheap and isolated work, then the risky core, then t
 | # | Ticket | Calls | Risk |
 |---|---|---:|---|
 | 00 | What the mission index must actually hold — spike | — | ✅ done 2026-08-28 |
-| 01 | The scheduler on the native timer | 85 | low, isolated |
+| 01 | The scheduler on the native timer | 85 | ✅ done 2026-08-28 |
 | 02 | Maths, vectors and conversions | 170 | low, mechanical |
 | 03 | Coordinate output | 13 | low |
 | 04 | Prune the single-caller helpers | 11 | low, drops 334 MiST lines of surface |

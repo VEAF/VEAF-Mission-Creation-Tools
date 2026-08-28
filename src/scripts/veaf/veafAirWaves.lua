@@ -672,7 +672,7 @@ function AirWaveZone:reset()
 
   -- deschedule the check() function
   if self.checkFunctionSchedule then
-    mist.removeFunction(self.checkFunctionSchedule)
+    veaf.removeFunction(self.checkFunctionSchedule)
     self.checkFunctionSchedule = nil
   end
 
@@ -933,10 +933,10 @@ function AirWaveZone:check()
 
   if self.checkFunctionSchedule then
     -- deschedule if needed
-    mist.removeFunction(self.checkFunctionSchedule)
+    veaf.removeFunction(self.checkFunctionSchedule)
     self.checkFunctionSchedule = nil
   end
-  self.checkFunctionSchedule = mist.scheduleFunction(function(zone)
+  self.checkFunctionSchedule = veaf.scheduleFunction(function(zone)
     veaf.safeCall(AirWaveZone.check, zone)
   end, { self }, timer.getTime() + veafAirWaves.WATCHDOG_DELAY + math.random(0, 2)) -- randomize reschedules so not all zones are working at the same time
 end

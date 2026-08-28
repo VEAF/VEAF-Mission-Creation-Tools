@@ -617,7 +617,7 @@ function veafRadio.refreshRadioMenu(dontDelay)
   if not dontDelay then
     if not veafRadio.refreshRadioMenuDelayedScheduling then
       veafRadio.refreshRadioMenuDelayedScheduling =
-        mist.scheduleFunction(veafRadio._refreshRadioMenu, {}, timer.getTime() + veafRadio.refreshRadioMenu_DELAY)
+        veaf.scheduleFunction(veafRadio._refreshRadioMenu, {}, timer.getTime() + veafRadio.refreshRadioMenu_DELAY)
     end
   else
     veafRadio._refreshRadioMenu()
@@ -877,7 +877,7 @@ function veafRadio._runBeacons()
   end
 
   --veaf.loggers.get(veafRadio.Id):trace(string.format("rescheduling in %s seconds", tostring(veafRadio.BEACONS_SCHEDULE)))
-  mist.scheduleFunction(veafRadio._runBeacons, {}, timer.getTime() + veafRadio.BEACONS_SCHEDULE)
+  veaf.scheduleFunction(veafRadio._runBeacons, {}, timer.getTime() + veafRadio.BEACONS_SCHEDULE)
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- radio utilities
@@ -1179,7 +1179,7 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
 
   -- Build the initial radio menu
   veafRadio.refreshRadioMenu(false)
-  --mist.scheduleFunction(veafRadio._refreshRadioMenu,{},timer.getTime()+15) --TODO check if this is still needed (commented out when added the BIRTH event handler)
+  --veaf.scheduleFunction(veafRadio._refreshRadioMenu,{},timer.getTime()+15) --TODO check if this is still needed (commented out when added the BIRTH event handler)
 
   -- add marker change event handler
   -- L1: this path transmits audio on a radio frequency, which is spammable. Had no check at

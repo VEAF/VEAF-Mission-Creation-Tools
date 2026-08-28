@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafCombatZone.lua")
 
@@ -1363,7 +1364,7 @@ function TestVeafCombatZoneDelayedCommand:setUp()
   self.el:setVeafCommand("-samsr!30")
 
   -- Stand in for the interpreter: capture the collection table and spawn NOTHING, which is exactly
-  -- what a delayed command does — mist.scheduleFunction takes the work and the call returns.
+  -- what a delayed command does — veaf.scheduleFunction takes the work and the call returns.
   self._captured = nil
   local this = self
   veafInterpreter = {

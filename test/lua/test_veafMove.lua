@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 -- The i18n catalog: the unknown-parameter report is a localised message, so the tests that read it
 -- need the entries rather than the raw key.
 dofile(src .. "/veafI18n.lua")
@@ -446,12 +447,12 @@ end
 TestVeafMoveAdvanced = {}
 
 function TestVeafMoveAdvanced:setUp()
-  self._origSchedule = mist.scheduleFunction
+  self._origSchedule = veaf.scheduleFunction
   self._origCountry = env.mission.coalition.blue.country
   self._origUnitsByName = mist.DBs.unitsByName
 
   -- Execute scheduled functions synchronously (Lua 5.1: unpack, not table.unpack)
-  mist.scheduleFunction = function(fn, params, time)
+  veaf.scheduleFunction = function(fn, params, time)
     fn(unpack(params))
   end
 
@@ -511,7 +512,7 @@ function TestVeafMoveAdvanced:setUp()
 end
 
 function TestVeafMoveAdvanced:tearDown()
-  mist.scheduleFunction = self._origSchedule
+  veaf.scheduleFunction = self._origSchedule
   env.mission.coalition.blue.country = self._origCountry
   mist.DBs.unitsByName = self._origUnitsByName
   dcs_mocks.removeGroup("TKR_NO_ORBIT")

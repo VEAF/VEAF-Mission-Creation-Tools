@@ -20,6 +20,7 @@ local _loaded = {}
 --- Ordered list of all VEAF modules (matches VeafDynamicLoader.lua order).
 local _moduleOrder = {
   "veaf",
+  "veafScheduler",
   "veafTime",
   "veafAirbases",
   "veafWeather",
@@ -72,6 +73,11 @@ function M.load(name)
   end
   fn()
   _loaded[name] = true
+  -- veafScheduler backs veaf.scheduleFunction, which veaf.lua itself calls: it is part of the
+  -- framework floor, not an optional module, so loading the core pulls it in.
+  if name == "veaf" and not _loaded["veafScheduler"] then
+    M.load("veafScheduler")
+  end
 end
 
 --- Load every module in the canonical order.

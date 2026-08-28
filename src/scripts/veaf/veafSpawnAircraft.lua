@@ -807,7 +807,7 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
       end
     end
 
-    mist.scheduleFunction(veafSpawn.afacWatchdog, { afacGroupName, AFAC_num, coalition, markName }, timer.getTime() + 120)
+    veaf.scheduleFunction(veafSpawn.afacWatchdog, { afacGroupName, AFAC_num, coalition, markName }, timer.getTime() + 120)
   end
 end
 
@@ -1180,7 +1180,7 @@ function veafSpawn.spawnCombatAirPatrol(
   controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
 
   veaf.loggers.get(veafSpawn.Id):debug("starting CAP target watchdog...")
-  mist.scheduleFunction(veafSpawn.startCapWatchdog, { _spawnedGroup.name, coalition, parameters.targetZone }, timer.getTime() + 1)
+  veaf.scheduleFunction(veafSpawn.startCapWatchdog, { _spawnedGroup.name, coalition, parameters.targetZone }, timer.getTime() + 1)
 
   local message = string.format("A CAP of %s (%s) has been spawned", name, country)
   veaf.loggers.get(veafSpawn.Id):info(message)
@@ -1417,7 +1417,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
 
   veaf.loggers.get(veafSpawn.Id):debug(string.format("Rescheduling watchdog in %s seconds", veafSpawn.CAP_WATCHDOG_DELAY))
   veaf.loggers.get(veafSpawn.Id):debug("===============================================================================")
-  mist.scheduleFunction(
+  veaf.scheduleFunction(
     veafSpawn.startCapWatchdog,
     { capGroupName, capCoalition, capZone, targetsList, numberOfTasksAddedByWatchdog },
     timer.getTime() + veafSpawn.CAP_WATCHDOG_DELAY

@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafAirWaves.lua")
 
 -- ---------------------------------------------------------------------------
@@ -869,7 +870,7 @@ end
 
 function TestAirWaveZoneReset:test_reset_removes_check_function_schedule()
   local z = AirWaveZone:new()
-  -- mist.removeFunction is a no-op mock; just verify no crash
+  -- veaf.removeFunction is a no-op mock; just verify no crash
   z.checkFunctionSchedule = 42
   z:reset()
   luaunit.assertNil(z.checkFunctionSchedule)

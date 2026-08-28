@@ -46,6 +46,12 @@ env = {
 -- ---------------------------------------------------------------------------
 -- timer
 -- ---------------------------------------------------------------------------
+--- Tasks handed to timer.scheduleFunction, keyed by the id it returned:
+--- { fn = <function>, args = <any>, time = <model time>, done = <boolean> }.
+--- Nothing runs on its own — see dcs_mocks.runScheduled.
+dcs_mocks.scheduledTasks = {}
+local _nextScheduleId = 0
+
 timer = {
   getTime = function()
     return dcs_mocks.currentTime
@@ -53,7 +59,17 @@ timer = {
   getAbsTime = function()
     return dcs_mocks.currentTime
   end,
-  scheduleFunction = function(fn, args, t) end,
+  --- Record a task and hand back an id. **It does not run**, and `setTime` does not run it
+  --- either: a suite that merely advances the clock must keep behaving as it did when this
+  --- was a no-op. Call dcs_mocks.runScheduled to make time actually pass for the scheduler.
+  scheduleFunction = function(fn, args, t)
+    _nextScheduleId = _nextScheduleId + 1
+    dcs_mocks.scheduledTasks[_nextScheduleId] = { fn = fn, args = args, time = t, done = false }
+    return _nextScheduleId
+  end,
+  removeFunction = function(id)
+    dcs_mocks.scheduledTasks[id] = nil
+  end,
   --- Test-only: move mission time forward. Not a DCS API — DCS has no setter — but anything
   --- with an expiry (a timed security elevation, a cooldown) needs a way to reach the far side
   --- of it without the suite actually waiting.
@@ -61,6 +77,45 @@ timer = {
     dcs_mocks.currentTime = t
   end,
 }
+
+--- Test-only: run every scheduled task that is due at `untilTime`, the way DCS does.
+---
+--- DCS calls `fn(args, time)` and re-arms the same id when the call returns a number, so a
+--- repeating task is one entry that keeps moving forward, not a new entry per repetition.
+--- The clock is moved to each task's own time before its call, so a task reading
+--- `timer.getTime()` sees what DCS would show it.
+---
+--- @param untilTime number model time to run up to (inclusive)
+--- @param maxPasses number|nil safety stop for a task that re-arms in the past (default 1000)
+--- @return number how many calls were made
+function dcs_mocks.runScheduled(untilTime, maxPasses)
+  local calls = 0
+  local passes = 0
+  local limit = maxPasses or 1000
+  while passes < limit do
+    passes = passes + 1
+    -- Pick the earliest due task, so tasks fire in time order rather than id order.
+    local dueId, due = nil, nil
+    for id, task in pairs(dcs_mocks.scheduledTasks) do
+      if task.time <= untilTime and (due == nil or task.time < due.time or (task.time == due.time and id < dueId)) then
+        dueId, due = id, task
+      end
+    end
+    if not dueId then
+      break
+    end
+    dcs_mocks.currentTime = due.time
+    dcs_mocks.scheduledTasks[dueId] = nil
+    calls = calls + 1
+    local nextTime = due.fn(due.args, due.time)
+    if type(nextTime) == "number" then
+      due.time = nextTime
+      dcs_mocks.scheduledTasks[dueId] = due
+    end
+  end
+  dcs_mocks.currentTime = untilTime
+  return calls
+end
 
 -- ---------------------------------------------------------------------------
 -- trigger
@@ -636,6 +691,7 @@ end
 --- Reset the mock clock, log capture, and unit/group registries.
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
+  dcs_mocks.scheduledTasks = {}
   dcs_mocks.logs = {}
   dcs_mocks.tasksSet = {}
   dcs_mocks.messages = {}

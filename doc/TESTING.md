@@ -145,6 +145,7 @@ luaunit.assertIsTrue(ok, err)
 |-------|-------------------|
 | `test_veaf.lua` | Utilitaires de base, helpers string/table/vecteur, logging |
 | `test_veafCacheManager.lua` | Cache get/set/invalidate |
+| `test_veafScheduler.lua` | Planificateur sur le timer natif : répétition, heure d'arrêt, tâche en échec |
 | `test_veafInterpreter.lua` | Tokeniseur de texte marqueur |
 | `test_veafTime.lua` | Parsing de temps, formatage, helpers temps DCS |
 | `test_veafSecurity.lua` | Niveaux de sécurité, gestion des admins |

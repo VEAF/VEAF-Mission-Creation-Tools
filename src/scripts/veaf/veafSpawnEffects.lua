@@ -147,7 +147,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
         veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.GREEN)
         for i = 1, 10 do
           veaf.loggers.get(veafSpawn.Id):trace("Signal flare 1 at " .. timer.getTime() + i * 7)
-          mist.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.RED }, timer.getTime() + i * 3)
+          veaf.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.RED }, timer.getTime() + i * 3)
         end
       end
 
@@ -224,7 +224,7 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
       veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.GREEN)
       for i = 1, 10 do
         veaf.loggers.get(veafSpawn.Id):trace("Signal flare 1 at " .. timer.getTime() + i * 7)
-        mist.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.RED }, timer.getTime() + i * 3)
+        veaf.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.RED }, timer.getTime() + i * 3)
       end
     end
 
@@ -273,7 +273,7 @@ function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, altitude, altitud
     veaf.loggers
       .get(veafSpawn.Id)
       :trace(string.format("shell #%d : shellTime=%d, shellDelay=%d, power=%d", shell, shellTime, shellDelay, shellPower))
-    mist.scheduleFunction(trigger.action.explosion, { spawnSpot, shellPower }, timer.getTime() + shellTime)
+    veaf.scheduleFunction(trigger.action.explosion, { spawnSpot, shellPower }, timer.getTime() + shellTime)
     shellTime = shellTime + shellDelay
   end
 end
@@ -295,9 +295,9 @@ function veafSpawn.spawnSmoke(spawnSpot, color, radius, shells)
     veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellTime=%d, shellDelay=%d", shell, shellTime, shellDelay))
     if shells > 1 then
       -- add a small explosion under the smoke to simulate smoke shells
-      mist.scheduleFunction(trigger.action.explosion, { spawnSpot, 1 }, timer.getTime() + shellTime - 1)
+      veaf.scheduleFunction(trigger.action.explosion, { spawnSpot, 1 }, timer.getTime() + shellTime - 1)
     end
-    mist.scheduleFunction(trigger.action.smoke, { spawnSpot, color }, timer.getTime() + shellTime)
+    veaf.scheduleFunction(trigger.action.smoke, { spawnSpot, color }, timer.getTime() + shellTime)
     shellTime = shellTime + shellDelay
   end
 end
@@ -316,7 +316,7 @@ function veafSpawn.spawnSignalFlare(spawnSpot, radius, shells, color)
     local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30) / 100
     local azimuth = math.random(359)
     veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellTime=%d, shellDelay=%d", shell, shellTime, shellDelay))
-    mist.scheduleFunction(trigger.action.signalFlare, { spawnSpot, color, azimuth }, timer.getTime() + shellTime)
+    veaf.scheduleFunction(trigger.action.signalFlare, { spawnSpot, color, azimuth }, timer.getTime() + shellTime)
     shellTime = shellTime + shellDelay
   end
 end
@@ -372,8 +372,8 @@ function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, heigh
       veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellHeight=%d, shellPower=%d", shell, shellHeight, shellPower))
       local time = timer.getTime() + stepTime + shellDelay
       -- add a small explosion under the flare to simulate flare shells
-      mist.scheduleFunction(trigger.action.explosion, { newSpawnSpot, 0.1 }, time)
-      mist.scheduleFunction(trigger.action.illuminationBomb, { newSpawnSpot, shellPower }, time)
+      veaf.scheduleFunction(trigger.action.explosion, { newSpawnSpot, 0.1 }, time)
+      veaf.scheduleFunction(trigger.action.illuminationBomb, { newSpawnSpot, shellPower }, time)
     end
     stepTime = stepTime + stepDelay
   end
@@ -411,7 +411,7 @@ function veafSpawn.destroyObjectWithFlak(object, power, density)
 
     -- reschedule to check if the object is destroyed
     veaf.loggers.get(veafSpawn.Id):trace(string.format("reschedule to check if the object is destroyed"))
-    mist.scheduleFunction(
+    veaf.scheduleFunction(
       veafSpawn.destroyObjectWithFlak,
       { object, power, density },
       timer.getTime() + veafSpawn.DEFAULT_FLAK_REPEAT_DELAY

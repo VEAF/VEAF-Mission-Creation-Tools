@@ -146,7 +146,7 @@ C'est équivalent à appeler `:activate()` sur la constante. Tout brouillard act
 
 ```lua
 -- Sur un trigger DCS « Début phase de nuit », activer un brouillard épais
-mist.scheduleFunction(function()
+veaf.scheduleFunction(function()
     veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
 end, {}, timer.getTime() + 0)
 ```

@@ -605,7 +605,7 @@ function veafShortcuts.ExecuteAlias(
         end
       end
       if nDelay then
-        mist.scheduleFunction(
+        veaf.scheduleFunction(
           VeafAlias.execute,
           { alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition },
           timer.getTime() + nDelay

@@ -151,7 +151,7 @@ function VeafQRALogistics:checkWarehousing(qra)
       self.isResupplying = true
       if self.delayBeforeQRAresupply > 0 then
         veaf.loggers.get(veafQraManager.Id):trace("QRA will be resupplied in %s seconds", veaf.lp(self.delayBeforeQRAresupply))
-        mist.scheduleFunction(function(args)
+        veaf.scheduleFunction(function(args)
           veaf.safeCall(VeafQRALogistics.resupply, args[1], args[2], args[3])
         end, { { self, qra, resupplyAmount } }, timer.getTime() + self.delayBeforeQRAresupply)
       else

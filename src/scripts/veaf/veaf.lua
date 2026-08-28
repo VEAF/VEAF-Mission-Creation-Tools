@@ -1955,11 +1955,11 @@ function veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)
             )
           end
 
-          mist.scheduleFunction(veaf.PatrolWatchdog, { groupName, patrolRoute, speed, firstPass }, timer.getTime() + rescheduleTime)
+          veaf.scheduleFunction(veaf.PatrolWatchdog, { groupName, patrolRoute, speed, firstPass }, timer.getTime() + rescheduleTime)
         end
       elseif not groupUnits[1]:isActive() then
         veaf.loggers.get(veaf.Id):debug("Lead vehicle not active, rescheduling in 60s !")
-        mist.scheduleFunction(veaf.PatrolWatchdog, { groupName, patrolRoute, speed, firstPass }, timer.getTime() + 60)
+        veaf.scheduleFunction(veaf.PatrolWatchdog, { groupName, patrolRoute, speed, firstPass }, timer.getTime() + 60)
       end
     end
   end
@@ -3108,7 +3108,7 @@ function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
     trigger.action.outText(message1, 30)
     -- schedule this function after "delay1" seconds
     veaf.loggers.get(veaf.Id):info(string.format("schedule veaf._endMission after %d seconds", delay1))
-    mist.scheduleFunction(veaf._endMission, { delay2, message2, delay3, message3 }, timer.getTime() + delay1)
+    veaf.scheduleFunction(veaf._endMission, { delay2, message2, delay3, message3 }, timer.getTime() + delay1)
   end
 end
 
@@ -3148,7 +3148,7 @@ function veaf._checkForEndMission(
     end
     -- schedule this function after a delay
     veaf.loggers.get(veaf.Id):trace(string.format("schedule veaf._checkForEndMission after %d seconds", checkIntervalInSeconds))
-    mist.scheduleFunction(
+    veaf.scheduleFunction(
       veaf._checkForEndMission,
       { endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3 },
       timer.getTime() + checkIntervalInSeconds

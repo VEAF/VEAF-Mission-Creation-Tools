@@ -14,6 +14,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMove.lua")
 
 -- ---------------------------------------------------------------------------
@@ -56,9 +57,9 @@ local function _mission(groups)
   mist.DBs.MEgroupsByName = byName
 end
 
---- Make `mist.scheduleFunction` run its argument at once, so scheduled work is observable.
+--- Make `veaf.scheduleFunction` run its argument at once, so scheduled work is observable.
 local function _runScheduledImmediately()
-  mist.scheduleFunction = function(fn, args, _when)
+  veaf.scheduleFunction = function(fn, args, _when)
     fn(unpack(args))
   end
 end
@@ -79,11 +80,11 @@ TestVeafMoveFindEscortTask = {}
 
 function TestVeafMoveFindEscortTask:setUp()
   dcs_mocks.reset()
-  self._scheduleFunction = mist.scheduleFunction
+  self._scheduleFunction = veaf.scheduleFunction
 end
 
 function TestVeafMoveFindEscortTask:tearDown()
-  mist.scheduleFunction = self._scheduleFunction
+  veaf.scheduleFunction = self._scheduleFunction
 end
 
 function TestVeafMoveFindEscortTask:test_the_escort_task_is_found_on_the_last_waypoint()
@@ -140,12 +141,12 @@ TestVeafMoveReestablishEscortTask = {}
 
 function TestVeafMoveReestablishEscortTask:setUp()
   dcs_mocks.reset()
-  self._scheduleFunction = mist.scheduleFunction
+  self._scheduleFunction = veaf.scheduleFunction
   _runScheduledImmediately()
 end
 
 function TestVeafMoveReestablishEscortTask:tearDown()
-  mist.scheduleFunction = self._scheduleFunction
+  veaf.scheduleFunction = self._scheduleFunction
 end
 
 --- Register the escorted group (with a fresh id) and its escort.
@@ -211,7 +212,7 @@ function TestVeafMoveReestablishEscortTask:test_the_id_is_read_after_the_delay_n
   local pending = nil
   -- Only the first scheduled call is held: the repair itself schedules again through
   -- replaceMission, and capturing that one too would hide the very result being asserted.
-  mist.scheduleFunction = function(fn, args, _when)
+  veaf.scheduleFunction = function(fn, args, _when)
     if pending == nil then
       pending = function()
         fn(unpack(args))

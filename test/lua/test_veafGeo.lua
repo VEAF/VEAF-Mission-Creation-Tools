@@ -4,15 +4,16 @@
 ---
 --- Every expectation here is a **literal string**, and every one was produced by running MiST's own
 --- `tostringLL` / `tostringMGRS` before the port. These strings reach pilots in F10 reports and
---- briefings that mission makers have been reading for years, so the port is not allowed to improve
---- them — including where MiST is visibly wrong (see the carry tests below).
+--- briefings that mission makers have been reading for years, so the port was not allowed to improve
+--- them. Where MiST was visibly wrong, correcting it is a decision of its own: FIX-DMS-MINUTE-CARRY
+--- fixed the minute-to-degree carry, and the hemisphere letter at exactly zero is still MiST's.
 ---
 --- Covers:
 ---   - Decimal minutes at the three precisions the code base uses (0, 2, 3)
 ---   - Degrees/minutes/seconds at precision 0 and 2
 ---   - Both hemispheres, either side of the prime meridian, and a three-digit longitude
 ---   - The hemisphere letters exactly at zero
----   - The minute carry in decimal mode, and its absence in DMS mode — MiST's own asymmetry
+---   - The minute carry into the degree, in decimal and in DMS, on either axis and on both at once
 ---   - MGRS at every precision used (0, 3, 5) plus the digit overflow its rounding can produce
 
 -- ---------------------------------------------------------------------------
@@ -100,20 +101,40 @@ function TestVeafGeo:test_decimalMinutesCarryIntoTheDegree()
   luaunit.assertEquals(veaf.toStringLL(41.99999, 43.0, 2), "42 00.00'N\t 43 00.00'E")
 end
 
---- In DMS mode it does **not**. Seconds rounding to 60 carry into the minute, and a minute reaching
---- 60 is printed as-is: `41 60' 00"N` where the decimal branch would say `42 00'`.
----
---- This is a defect in MiST, not in the port — the decimal branch three lines away does the carry, so
---- the omission is an oversight rather than a convention. It is reproduced here on purpose: this lot
---- removes a dependency and must not change what a pilot reads. Fixing it is a lot of its own, and
---- this test is what will have to be updated deliberately when that happens.
-function TestVeafGeo:test_dmsMinutesDoNotCarryIntoTheDegree()
-  luaunit.assertEquals(veaf.toStringLL(41.99999444, 43.0, 0, true), "41 60' 00\"N\t 43 00' 00\"E")
+--- In DMS it carries too — since FIX-DMS-MINUTE-CARRY. MiST stopped after the seconds and printed
+--- `41 60' 00"N` here, which DROP-MIST ticket 03 reproduced on purpose before this lot corrected it.
+--- The two layouts now agree: 41.99999444 is 42 degrees exactly, however it is written.
+function TestVeafGeo:test_dmsMinutesCarryIntoTheDegree()
+  luaunit.assertEquals(veaf.toStringLL(41.99999444, 43.0, 0, true), "42 00' 00\"N\t 43 00' 00\"E")
 end
 
---- The same position at precision 2 stays below the boundary, which is why the defect is rare: it
---- needs the rounding to land exactly on a whole minute.
-function TestVeafGeo:test_theSamePositionAtPrecision2StaysBelowTheBoundary()
+--- The carry has to fire on the longitude too: a separate code path from the latitude, and MiST got
+--- both halves wrong in the same way.
+function TestVeafGeo:test_dmsCarriesOnTheLongitudeAsWell()
+  luaunit.assertEquals(veaf.toStringLL(42.0, 43.99999444, 0, true), "42 00' 00\"N\t 44 00' 00\"E")
+end
+
+--- Both axes at once, south and west, so the sign handling is exercised together with the carry
+--- rather than separately from it.
+function TestVeafGeo:test_dmsCarriesOnBothAxesAtOnce()
+  luaunit.assertEquals(veaf.toStringLL(-41.99999444, -43.99999444, 0, true), "42 00' 00\"S\t 44 00' 00\"W")
+end
+
+--- 59' 59.7" at precision 0: the seconds round up to 60, the minute reaches 60, and the whole thing
+--- lands on the next degree in a single pass.
+---
+--- Not 59.5" — that is the rounding threshold itself, and the double closest to
+--- `41 + 59/60 + 59.5/3600` falls just under it, so such a test would be measuring floating-point
+--- representation rather than the carry.
+function TestVeafGeo:test_dmsCarriesFromTheLastSecondOfTheLastMinute()
+  local lat = 41 + 59 / 60 + 59.7 / 3600
+  luaunit.assertEquals(veaf.toStringLL(lat, 43.0, 0, true), "42 00' 00\"N\t 43 00' 00\"E")
+end
+
+--- And it must not fire when it should not: at precision 2 the same position keeps its fractional
+--- seconds and stays at 41 degrees. A carry that triggered early would round positions that are
+--- merely close to a boundary.
+function TestVeafGeo:test_dmsDoesNotCarryWhenTheSecondsStayBelow60()
   luaunit.assertEquals(veaf.toStringLL(41.99999444, 43.0, 2, true), "41 59' 59.98\"N\t 43 00' 00.00\"E")
 end
 

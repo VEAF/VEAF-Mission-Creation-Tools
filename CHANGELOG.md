@@ -62,6 +62,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A zone element's position also stops going through a shape conversion that had to read MiST's 2D `y`
   as a map easting; the search returns a proper 3D point, so the axis is now named rather than inferred.
 
+- **A coordinate could read `42 60'` instead of `43 00'`.** In degrees/minutes/seconds, seconds
+  rounding up to a full minute carried into the minute and stopped there, so a position a fraction of
+  a second below a whole degree was written with sixty minutes in it. The decimal-minutes format, in
+  the same function, had always carried correctly.
+
+  It shows up in the coordinates of F10 reports and spawn confirmations — CAS, combat zones, transport
+  missions, the weather brief — about once in every few thousand, and it reads as a plausible
+  coordinate rather than as an error, so it gets copied down rather than questioned. Found while
+  porting the coordinate output off MiST, whose behaviour this was.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

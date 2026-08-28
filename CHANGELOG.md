@@ -116,6 +116,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   carrying into the degree, which the decimal format does do. Both are reproduced deliberately.
   Correcting them changes what appears in F10 reports and briefings, so it is a decision of its own.
 
+- **Ten more MiST helpers replaced by the slice VEAF actually used.** Trigger zone centres, average
+  positions, point-in-polygon tests, unit id allocation and one pressure conversion are now ours, in
+  `veafGeo.lua` and the new `veafMissionDb.lua`. Three of the eleven call sites turned out to be
+  commented-out lines, so those functions were not ported at all.
+
+  One user-visible consequence: **a combat zone whose trigger zone is missing from the mission now says
+  so.** The check was written years ago and could never fire, because the MiST call it tested answered
+  an empty table — which Lua counts as a value — rather than nothing. Mission makers who mistype a zone
+  name will now get the message the code always meant to show them.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

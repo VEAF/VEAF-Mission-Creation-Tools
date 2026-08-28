@@ -7,6 +7,9 @@
 -- ---------------------------------------------------------------------------
 dcs_mocks = {}
 dcs_mocks.currentTime = 0
+--- Trigger zones visible to trigger.misc.getZone, keyed by name:
+--- { point = { x, y, z }, radius = <metres> }. Empty unless a suite calls dcs_mocks.addZone.
+dcs_mocks.zones = {}
 dcs_mocks.logs = {} -- captured log lines
 dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
 
@@ -179,8 +182,10 @@ trigger = {
     getUserFlag = function(flag)
       return 0
     end,
+    --- Answers a zone registered with dcs_mocks.addZone, nil otherwise — which is what an unknown
+    --- zone name gives in DCS, and what every suite saw before zones could be registered at all.
     getZone = function(name)
-      return nil
+      return dcs_mocks.zones[name]
     end,
   },
   smokeColor = {
@@ -649,9 +654,6 @@ Group.destroy = function(obj) end
 mist.getRandPointInCircle = function(spot, r)
   return { x = spot.x or 0, y = spot.y or 0, z = spot.z or 0 }
 end
-mist.getNextUnitId = function()
-  return 999
-end
 mist.teleportToPoint = function(vars)
   return nil
 end
@@ -692,6 +694,7 @@ end
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.scheduledTasks = {}
+  dcs_mocks.zones = {}
   dcs_mocks.logs = {}
   dcs_mocks.tasksSet = {}
   dcs_mocks.messages = {}
@@ -723,6 +726,16 @@ local _unit_registry = {} -- name → mock unit table
 -- @param data  Table with unit attributes (coalition, point, …).
 --              Attributes like isExist/inAir must be functions: { isExist = function() return true end }.
 --              Methods not explicitly provided default to sensible stubs.
+--- Register a trigger zone so trigger.misc.getZone(name) returns it.
+---
+--- @param name string zone name
+--- @param x number northing of its centre
+--- @param z number easting of its centre
+--- @param radius number|nil radius in metres, default 500
+function dcs_mocks.addZone(name, x, z, radius)
+  dcs_mocks.zones[name] = { point = { x = x, y = 0, z = z }, radius = radius or 500 }
+end
+
 function dcs_mocks.addUnit(name, data)
   local u = data or {}
   u.name = name
@@ -732,8 +745,16 @@ function dcs_mocks.addUnit(name, data)
   u.inAir = u.inAir ~= nil and u.inAir or function()
     return false
   end
+  -- A unit is active unless the suite says otherwise: late activation is the exception, not the rule.
+  u.isActive = u.isActive or function()
+    return true
+  end
   u.getPoint = u.getPoint or function()
     return { x = 0, y = 0, z = 0 }
+  end
+  -- DCS's getPosition returns a full orientation plus the point; only `p` is ever read here.
+  u.getPosition = u.getPosition or function(self)
+    return { p = (self or u):getPoint() }
   end
   u.getCoalition = u.getCoalition or function()
     return coalition.side.BLUE

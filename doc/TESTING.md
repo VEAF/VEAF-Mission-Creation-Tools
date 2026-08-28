@@ -147,7 +147,8 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafCacheManager.lua` | Cache get/set/invalidate |
 | `test_veafScheduler.lua` | Planificateur sur le timer natif : répétition, heure d'arrêt, tâche en échec |
 | `test_veafMath.lua` | Conversions d'unités, vecteurs, formes de coordonnées, copie profonde |
-| `test_veafGeo.lua` | Rendu texte des coordonnées : lat/lon décimal et DMS, MGRS |
+| `test_veafGeo.lua` | Rendu texte des coordonnées, zones, positions moyennes, polygones |
+| `test_veafMissionDb.lua` | Allocation des identifiants d'unité |
 | `test_veafInterpreter.lua` | Tokeniseur de texte marqueur |
 | `test_veafTime.lua` | Parsing de temps, formatage, helpers temps DCS |
 | `test_veafSecurity.lua` | Niveaux de sécurité, gestion des admins |

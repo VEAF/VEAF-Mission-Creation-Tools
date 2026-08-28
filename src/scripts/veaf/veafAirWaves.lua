@@ -1144,7 +1144,7 @@ function AirWaveZone:signalDeploy()
         -- compute BRAA of closest group
         local braa = { bearing = -1, distance = 9999 }
         for _, spawnedGroupName in pairs(self.spawnedGroupsNames) do
-          local spawnedGroupPosition = mist.getAvgGroupPos(spawnedGroupName)
+          local spawnedGroupPosition = veaf.getAvgGroupPos(spawnedGroupName)
           local unitPosition = nil
           if unitInZone and unitInZone:getPosition() then
             unitPosition = unitInZone:getPosition().p

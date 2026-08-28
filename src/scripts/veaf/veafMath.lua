@@ -40,6 +40,9 @@ veafMath.METERS_PER_FOOT = 0.3048
 --- Seconds in one hour, for metres-per-second to knots.
 veafMath.SECONDS_PER_HOUR = 3600
 
+--- Inches of mercury in one hectopascal, as MiST had it.
+veafMath.INHG_PER_HPA = 0.02953
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -78,6 +81,17 @@ end
 --- @return number the same speed in knots
 function veafMath.mpsToKnots(mps)
   return mps * veafMath.SECONDS_PER_HOUR / veafMath.METERS_PER_NAUTICAL_MILE
+end
+
+--- @param hpa number pressure in hectopascals
+--- @return number the same pressure in inches of mercury
+---
+--- The one conversion `mist.utils.converter` was ever called for here — 131 lines of generic
+--- conversion table, reached once, for this multiplication. The factor is MiST's own: the exact
+--- value is 1/33.86389, and 0.02953 differs from it in the seventh decimal, which the `%.2finHg`
+--- the weather brief prints could never show.
+function veafMath.hPaToInHg(hpa)
+  return hpa * veafMath.INHG_PER_HPA
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -237,6 +251,7 @@ veaf.NMToMeters = veafMath.NMToMeters
 veaf.metersToFeet = veafMath.metersToFeet
 veaf.feetToMeters = veafMath.feetToMeters
 veaf.mpsToKnots = veafMath.mpsToKnots
+veaf.hPaToInHg = veafMath.hPaToInHg
 veaf.makeVec3 = veafMath.makeVec3
 veaf.makeVec2 = veafMath.makeVec2
 veaf.vecAdd = veafMath.vecAdd

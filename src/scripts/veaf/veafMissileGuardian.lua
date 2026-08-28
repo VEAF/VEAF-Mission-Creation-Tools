@@ -293,7 +293,7 @@ function VeafMG_Guardian:onEvent(event)
         veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_targetName = %s", veaf.p(_targetName)))
         if self.protectedUnits[_targetName] then
           -- check if the target is in the protected zone
-          local _inZone = mist.pointInPolygon(_target:getPoint(), self.protectedZone)
+          local _inZone = veaf.pointInPolygon(_target:getPoint(), self.protectedZone)
           veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_inZone = %s", veaf.p(_inZone)))
           if _inZone then
             -- encapsulate the event weapon

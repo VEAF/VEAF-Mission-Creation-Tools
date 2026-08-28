@@ -767,7 +767,7 @@ function veafWeatherData:toStringPressure(unitSystem, nPressureHpa)
   unitSystem = unitSystem or veafWeatherUnitSystem.DefaultUnitSystem
 
   local sPressureHpa = string.format("%.0fHpa", nPressureHpa)
-  local sPressureInHg = string.format("%.2finHg", mist.utils.converter("hpa", "inhg", nPressureHpa))
+  local sPressureInHg = string.format("%.2finHg", veaf.hPaToInHg(nPressureHpa))
   local sPressureMmHg = string.format("%.0fmmHg", nPressureHpa * 0.75006375541921) -- mist convert has the wrong coefficient for hpa to mmHg
 
   local sPressure

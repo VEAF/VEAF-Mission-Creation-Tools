@@ -7,6 +7,7 @@ dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafCarrierOperations.lua")
 
@@ -21,7 +22,7 @@ veaf.config.language = "en"
 mist.getHeading = function(unit, degrees)
   return 0
 end
-mist.getAvgPos = function(units)
+veaf.getAvgPos = function(units)
   return { x = 0, y = 0, z = 0 }
 end
 mist.goRoute = function(name, route) end

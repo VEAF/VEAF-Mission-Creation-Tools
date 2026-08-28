@@ -7,6 +7,7 @@ dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
 -- The catalog, not just the runtime: FEAT-CONVOY-WAYPOINTS asserts on the *messages* a convoy command
 -- gives the player, and `veaf.t` hands back the bare key when the catalog was never loaded.
 dofile(src .. "/veafI18n.lua")

@@ -161,11 +161,143 @@ function veafGeo.toStringMGRS(mgrs, acc)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Zones and positions
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The centre of a trigger zone, as a runtime vec3.
+---
+--- **Nil, not an empty table, when the zone does not exist.** MiST answered `{}` here, which is truthy
+--- in Lua, so `veafCombatZone`'s own guard — *"Trigger zone [x] does not exist in the mission!"*, with
+--- a pilot-facing message next to it — could never fire. Answering nil is what makes that guard work.
+---
+--- @param zoneName string the zone's name in the Mission Editor
+--- @return table|nil the centre, or nil when no zone goes by that name
+function veafGeo.zoneToVec3(zoneName)
+  local zone = trigger.misc.getZone(zoneName)
+  if not zone then
+    return nil
+  end
+  return { x = zone.point.x, y = zone.point.y, z = zone.point.z }
+end
+
+--- The average position of a list of units, statics included.
+---
+--- Names that do not resolve, and objects that no longer exist, are skipped rather than counted as
+--- the origin — an average that silently included `{0, 0, 0}` would drag the answer to the map corner.
+---
+--- @param unitNames table a list of unit or static object names
+--- @return table|nil the average position as a vec3, or nil when nothing in the list exists
+function veafGeo.getAvgPos(unitNames)
+  local sumX, sumY, sumZ, count = 0, 0, 0, 0
+  for _, name in ipairs(unitNames) do
+    local object = Unit.getByName(name) or StaticObject.getByName(name)
+    if object and object:isExist() then
+      local position = object:getPosition().p
+      if position then
+        sumX = sumX + position.x
+        sumY = sumY + position.y
+        sumZ = sumZ + position.z
+        count = count + 1
+      end
+    end
+  end
+  if count == 0 then
+    return nil
+  end
+  return { x = sumX / count, y = sumY / count, z = sumZ / count }
+end
+
+--- The average position of a group's units.
+---
+--- @param groupName string|table a group name, or a group object
+--- @return table|nil the average position as a vec3, or nil when the group is gone
+function veafGeo.getAvgGroupPos(groupName)
+  local group = groupName
+  if type(groupName) == "string" then
+    group = Group.getByName(groupName)
+  end
+  if not group or not group:isExist() then
+    return nil
+  end
+  -- MiST walked getSize()/getUnit(i); getUnits() is the same list in one call, and it is the form
+  -- every other VEAF module uses.
+  local names = {}
+  for _, unit in pairs(group:getUnits() or {}) do
+    table.insert(names, unit:getName())
+  end
+  return veafGeo.getAvgPos(names)
+end
+
+--- Is a point inside a polygon?
+---
+--- Ray casting: count how many polygon edges a ray from the point crosses, and an odd count means
+--- inside. The polygon closes itself, so the caller passes its corners once.
+---
+--- Corners come from the Mission Editor as `{ x, y }` with `y` as the easting (a mission-table vec2),
+--- while the point being tested is usually a runtime vec3. Both go through `veaf.makeVec3`, which is
+--- what lets the two shapes be mixed here — see docs/agents/dcs-coordinates.md.
+---
+--- @param point table the point, in either coordinate shape
+--- @param polygon table the corners, in either coordinate shape
+--- @param maxAltitude number|nil when given, a point above this altitude is outside whatever its
+---   horizontal position
+--- @return boolean
+function veafGeo.pointInPolygon(point, polygon, maxAltitude)
+  local vec = veaf.makeVec3(point)
+  if maxAltitude and vec.y > maxAltitude then
+    return false
+  end
+
+  local crossings = 0
+  local corners = #polygon
+  local previous = veaf.makeVec3(polygon[corners]) -- close the ring by starting on the last corner
+  for index = 1, corners do
+    local current = veaf.makeVec3(polygon[index])
+    if (previous.z <= vec.z and current.z > vec.z) or (previous.z > vec.z and current.z <= vec.z) then
+      local ratio = (vec.z - previous.z) / (current.z - previous.z)
+      if vec.x < previous.x + ratio * (current.x - previous.x) then
+        crossings = crossings + 1
+      end
+    end
+    previous = current
+  end
+  return crossings % 2 == 1
+end
+
+--- The units of a list that stand inside a polygon.
+---
+--- A unit that has not been activated yet does not count as present; statics and other object
+--- categories are taken as they are.
+---
+--- @param unitNames table a list of unit or static object names
+--- @param polygon table the polygon's corners
+--- @param maxAltitude number|nil an altitude ceiling, as in `pointInPolygon`
+--- @return table the objects inside, in the order their names were given
+function veafGeo.getUnitsInPolygon(unitNames, polygon, maxAltitude)
+  local inside = {}
+  for _, name in ipairs(unitNames) do
+    local object = Unit.getByName(name) or StaticObject.getByName(name)
+    if object and object:isExist() then
+      local isInactiveUnit = Object.getCategory(object) == Object.Category.UNIT and not object:isActive()
+      if not isInactiveUnit and veafGeo.pointInPolygon(object:getPosition().p, polygon, maxAltitude) then
+        table.insert(inside, object)
+      end
+    end
+  end
+  return inside
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.toStringLL = veafGeo.toStringLL
 veaf.toStringMGRS = veafGeo.toStringMGRS
+veaf.zoneToVec3 = veafGeo.zoneToVec3
+veaf.getAvgPos = veafGeo.getAvgPos
+veaf.getAvgGroupPos = veafGeo.getAvgGroupPos
+veaf.pointInPolygon = veafGeo.pointInPolygon
+veaf.getUnitsInPolygon = veafGeo.getUnitsInPolygon
 
 function veafGeo.initialize()
   veaf.loggers.get(veafGeo.Id):info("Initializing module")

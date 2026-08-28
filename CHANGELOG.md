@@ -72,6 +72,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   coordinate rather than as an error, so it gets copied down rather than questioned. Found while
   porting the coordinate output off MiST, whose behaviour this was.
 
+- **A coordinate at exactly zero read South and West.** The equator is neither north nor south and the
+  prime meridian neither east nor west, so a convention has to be picked; the one in force had fallen
+  out of a `> 0` comparison rather than been chosen, and put zero on the negative side. Zero now reads
+  N and E, matching how the sign is read everywhere else. Nothing changes for any other coordinate.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

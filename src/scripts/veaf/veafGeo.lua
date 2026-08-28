@@ -13,9 +13,9 @@
 --
 -- These strings go into F10 reports and briefings that mission makers have been reading for years, so
 -- the port reproduced MiST byte for byte, quirks included, and every format is pinned by a test that
--- compares against a literal string. One of those quirks has since been corrected on its own merits
--- (FIX-DMS-MINUTE-CARRY, the minute-to-degree carry); the one that remains is the hemisphere letter at
--- exactly zero, which is marked below.
+-- compares against a literal string. Both of those quirks have since been corrected, each on its own
+-- merits and in its own lot: FIX-DMS-MINUTE-CARRY for the minute that would not carry into the degree,
+-- FIX-ZERO-HEMISPHERE for the equator reading South.
 ------------------------------------------------------------------
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -60,9 +60,10 @@ end
 ---   * decimal minutes — `42 21.00'N⇥ 43 34.07'E`
 ---   * degrees/minutes/seconds, with `dms` — `42 21' 00"N⇥ 43 34' 04"E`
 ---
---- **Zero reads as S and W.** The hemisphere test is `> 0`, so the equator and the prime meridian fall
---- on the southern and western side. Almost certainly not intended, kept because it is what pilots
---- have been reading.
+--- Zero reads as **N** and **E**: the equator is neither north nor south and the prime meridian
+--- neither east nor west, so a convention has to be picked, and zero is the positive side of both
+--- axes everywhere else here. MiST tested `> 0` and put zero on the negative side; the port
+--- reproduced that, and FIX-ZERO-HEMISPHERE corrected it.
 ---
 --- Both layouts carry all the way up: seconds rounding to 60 carry into the minute, and a minute
 --- reaching 60 carries into the degree. MiST's DMS branch stopped at the first of those and printed
@@ -75,8 +76,8 @@ end
 --- @param dms boolean|nil true for degrees/minutes/seconds, false or nil for decimal minutes
 --- @return string
 function veafGeo.toStringLL(lat, lon, acc, dms)
-  local latHemisphere = lat > 0 and "N" or "S"
-  local lonHemisphere = lon > 0 and "E" or "W"
+  local latHemisphere = lat >= 0 and "N" or "S"
+  local lonHemisphere = lon >= 0 and "E" or "W"
 
   lat = math.abs(lat)
   lon = math.abs(lon)

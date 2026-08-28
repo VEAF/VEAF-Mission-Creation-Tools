@@ -46,8 +46,11 @@ the behaviour is MiST's, unchanged since the library was vendored.
 the same function is `> 0`, so a coordinate at exactly zero renders as `S` / `W`
 (`00 00.00'S⇥ 00 00.00'W`). It is a real inconsistency, but a latitude or longitude of *exactly* zero
 is a measure-zero case on every DCS theatre, and changing it moves a string no one has ever seen. Left
-alone; recorded here so the next reader knows it was a decision. Reopen it if a theatre ever puts a
-mission on the prime meridian.
+alone here; recorded so the next reader knows it was a decision.
+
+**Reopened the same day** — David asked for it too, and he was right: it is two characters of
+comparison and it removes the last of MiST's quirks from that function. Fixed in
+[`FIX-ZERO-HEMISPHERE`](../FIX-ZERO-HEMISPHERE/PRD.md).
 
 ## Definition of done
 

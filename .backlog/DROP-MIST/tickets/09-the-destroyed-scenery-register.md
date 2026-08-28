@@ -26,8 +26,21 @@ in.
 a named piece of scenery inside a zone is destroyed. The caller matches `object.object.id_` against a
 table of ids it was given, so the register has to keep the DCS object, not just a position.
 
-It is a **documented mission-maker API** (`doc/LUA_API_REFERENCE.md`), so it cannot simply be dropped.
-Whether any shipped mission uses it is worth checking before choosing how much to build.
+It is a **documented mission-maker API** (`doc/LUA_API_REFERENCE.md`), and a mission does use it.
+Searched across the whole VEAF organisation on 2026-08-28: one caller outside this repository, in
+`VEAF-Open-Training-Mission-Caucasus`, `src/scripts/missionConfig.lua`:
+
+```lua
+:setName("HVT Gudauta")
+:setDescription("the mission will be failed if any of the HVT on Gudauta are destroyed")
+:configureAsPreventDestructionOfSceneryObjectsInZone(
+    { "Gudauta - Tower", "Gudauta - Kerosen", "Gudauta - Mess" },
+    { [156696667] = "Gudauta Tower", [156735615] = "Gudauta Kerosen tankers", [156729386] = "Gudauta mess" })
+```
+
+Three scenery objects, by `id_`, in three named zones. The repository is live (last push 2025-09-09).
+So this is not a candidate for removal, and that call is the acceptance case: three zones, a table of
+ids, and an objective that must fail when one of them is destroyed and only then.
 
 ## Shape to consider
 

@@ -361,9 +361,10 @@ And unit id allocation lives in `veafMissionDb.lua`: `veaf.getNextUnitId()`.
 
 **These strings go into F10 reports and briefings**, so they are pinned by literal-string tests. The
 port reproduced MiST to the character, oddities included; correcting one of them changes what pilots
-read and is therefore decided on its own. One has been (`FIX-DMS-MINUTE-CARRY`: in DMS a minute
-reaching 60 now carries into the degree, as the decimal layout already did). One remains, still
-MiST's: a position at exactly zero renders as `S`/`W`, the hemisphere test being `> 0`.
+read and was therefore decided on its own. Both have been: `FIX-DMS-MINUTE-CARRY` (in DMS a minute
+reaching 60 now carries into the degree, as the decimal layout already did) and `FIX-ZERO-HEMISPHERE`
+(a position at exactly zero renders as `N`/`E`, the hemisphere test having moved from `> 0` to
+`>= 0`).
 
 ### mist.DBs Access
 

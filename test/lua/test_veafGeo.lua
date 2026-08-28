@@ -5,14 +5,14 @@
 --- Every expectation here is a **literal string**, and every one was produced by running MiST's own
 --- `tostringLL` / `tostringMGRS` before the port. These strings reach pilots in F10 reports and
 --- briefings that mission makers have been reading for years, so the port was not allowed to improve
---- them. Where MiST was visibly wrong, correcting it is a decision of its own: FIX-DMS-MINUTE-CARRY
---- fixed the minute-to-degree carry, and the hemisphere letter at exactly zero is still MiST's.
+--- them. Where MiST was visibly wrong, correcting it was a decision of its own: FIX-DMS-MINUTE-CARRY
+--- fixed the minute-to-degree carry, and FIX-ZERO-HEMISPHERE the hemisphere letter at exactly zero.
 ---
 --- Covers:
 ---   - Decimal minutes at the three precisions the code base uses (0, 2, 3)
 ---   - Degrees/minutes/seconds at precision 0 and 2
 ---   - Both hemispheres, either side of the prime meridian, and a three-digit longitude
----   - The hemisphere letters exactly at zero
+---   - The hemisphere letters at exactly zero, and just below it
 ---   - The minute carry into the degree, in decimal and in DMS, on either axis and on both at once
 ---   - MGRS at every precision used (0, 3, 5) plus the digit overflow its rounding can produce
 
@@ -67,10 +67,27 @@ function TestVeafGeo:test_threeDigitLongitude()
   luaunit.assertEquals(veaf.toStringLL(42.35, 143.5678, 2), "42 21.00'N\t 143 34.07'E")
 end
 
---- Exactly zero reads as **S** and **W**, because the hemisphere test is `> 0`. Almost certainly not
---- what MiST intended, and pinned here so the port does not quietly "fix" it.
-function TestVeafGeo:test_zeroReadsAsSouthAndWest()
-  luaunit.assertEquals(veaf.toStringLL(0, 0, 2), "00 00.00'S\t 00 00.00'W")
+--- Exactly zero reads as **N** and **E** — since FIX-ZERO-HEMISPHERE. MiST tested `> 0` and so put
+--- the equator and the prime meridian on the negative side; zero is the positive side of both axes
+--- everywhere else, so this is the reading that matches the rest.
+function TestVeafGeo:test_zeroReadsAsNorthAndEast()
+  luaunit.assertEquals(veaf.toStringLL(0, 0, 2), "00 00.00'N\t 00 00.00'E")
+end
+
+--- The two letters are chosen independently, so a fix applied to one axis only would still satisfy a
+--- both-axes test. These two catch that.
+function TestVeafGeo:test_zeroLatitudeWithANegativeLongitude()
+  luaunit.assertEquals(veaf.toStringLL(0, -12.5, 2), "00 00.00'N\t 12 30.00'W")
+end
+
+function TestVeafGeo:test_zeroLongitudeWithANegativeLatitude()
+  luaunit.assertEquals(veaf.toStringLL(-12.5, 0, 2), "12 30.00'S\t 00 00.00'E")
+end
+
+--- And just below zero still reads S and W: the negative side did not lose its letter, zero changed
+--- sides.
+function TestVeafGeo:test_justBelowZeroStillReadsSouthAndWest()
+  luaunit.assertEquals(veaf.toStringLL(-0.0001, -0.0001, 2), "00 00.01'S\t 00 00.01'W")
 end
 
 -- ---------------------------------------------------------------------------

@@ -20,6 +20,7 @@ dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafScheduler.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafMath.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafGeo.lua")
+dofile(_base .. "/../../src/scripts/veaf/veafMissionDb.lua")
 -- The i18n catalog: `veaf.reportUnknownParameters` builds a localised message, so the tests below
 -- need the entries rather than the raw keys.
 dofile(_base .. "/../../src/scripts/veaf/veafI18n.lua")
@@ -3043,14 +3044,14 @@ function TestVeafGetUnitsInTriggerZone:setUp()
     TYPELESS = { name = "TYPELESS", x = 0, y = 0 },
   }
   self._savedInZones = mist.getUnitsInZones
-  self._savedInPolygon = mist.getUnitsInPolygon
+  self._savedInPolygon = veaf.getUnitsInPolygon
   self.calls = {}
   local calls = self.calls
   mist.getUnitsInZones = function(unitNames, zoneNames)
     table.insert(calls, { how = "zones", unitNames = unitNames, zoneNames = zoneNames })
     return { "unit-from-circle" }
   end
-  mist.getUnitsInPolygon = function(unitNames, verticies)
+  veaf.getUnitsInPolygon = function(unitNames, verticies)
     table.insert(calls, { how = "polygon", unitNames = unitNames, verticies = verticies })
     return { "unit-from-polygon" }
   end
@@ -3066,7 +3067,7 @@ end
 function TestVeafGetUnitsInTriggerZone:tearDown()
   veaf.triggerZones = self._savedZones
   mist.getUnitsInZones = self._savedInZones
-  mist.getUnitsInPolygon = self._savedInPolygon
+  veaf.getUnitsInPolygon = self._savedInPolygon
   self._logger.error = self._savedError
 end
 

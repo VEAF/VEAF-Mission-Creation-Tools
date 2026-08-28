@@ -1707,7 +1707,7 @@ function veaf.isUnitInZone(unitOrName, zoneOrName)
     local objectCategory = Object.getCategory(unit)
     if unitPosition and ((objectCategory == 1 and unit:isActive() == true) or objectCategory ~= 1) then -- it is a unit and is active or it is not a unit
       if zone.verticies then
-        local pointInPolygon = mist.pointInPolygon(unitPosition, zone.verticies)
+        local pointInPolygon = veaf.pointInPolygon(unitPosition, zone.verticies)
         if pointInPolygon then
           unitIsInZone = true
         end
@@ -2206,7 +2206,7 @@ function veaf.getAvgGroupPos(groupName) -- stolen from Mist and corrected
     table.insert(units, group:getUnit(i):getName())
   end
 
-  return mist.getAvgPos(units)
+  return veaf.getAvgPos(units)
 end
 
 --- Computes the coordinates of a point offset from a route of a certain distance, at a certain distance from route start
@@ -5263,7 +5263,7 @@ function veaf.getUnitsInTriggerZone(zoneName, unitNames, moduleId)
   if triggerZone.type == 0 then -- circular
     return mist.getUnitsInZones(unitNames, { zoneName })
   elseif triggerZone.type == 2 then -- quad point
-    return mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+    return veaf.getUnitsInPolygon(unitNames, triggerZone.verticies)
   end
   logger:error(
     "trigger zone [%s] has an unexpected type [%s]; expected 0 (circular) or 2 (quad point), so its units cannot be read",

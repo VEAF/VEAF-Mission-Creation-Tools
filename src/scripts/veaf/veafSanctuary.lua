@@ -555,7 +555,7 @@ function VeafSanctuaryZone:isPositionInZone(position)
   local inZone = false
   if self:getPolygon() then
     veaf.loggers.get(veafSanctuary.Id):trace("polygon mode")
-    inZone = mist.pointInPolygon(position, self:getPolygon())
+    inZone = veaf.pointInPolygon(position, self:getPolygon())
   elseif self:getPosition() then
     veaf.loggers.get(veafSanctuary.Id):trace("circle and radius mode")
     local distanceFromCenter = ((position.x - self:getPosition().x) ^ 2 + (position.z - self:getPosition().z) ^ 2) ^ 0.5

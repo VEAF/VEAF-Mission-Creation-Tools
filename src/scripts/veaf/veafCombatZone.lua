@@ -1159,7 +1159,7 @@ function VeafCombatZone:initialize()
   end
 
   -- find the trigger zone center
-  self.zoneCenter = mist.utils.zoneToVec3(self.missionEditorZoneName)
+  self.zoneCenter = veaf.zoneToVec3(self.missionEditorZoneName)
   if not self.zoneCenter then
     local message = string.format("Trigger zone [%s] does not exist in the mission !", veaf.p(self.missionEditorZoneName))
     veaf.loggers.get(veafCombatZone.Id):error(message)

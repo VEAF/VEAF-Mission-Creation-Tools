@@ -23,6 +23,7 @@ local _moduleOrder = {
   "veafScheduler",
   "veafMath",
   "veafGeo",
+  "veafMissionDb",
   "veafTime",
   "veafAirbases",
   "veafWeather",
@@ -75,10 +76,10 @@ function M.load(name)
   end
   fn()
   _loaded[name] = true
-  -- veafScheduler, veafMath and veafGeo back veaf.* functions that veaf.lua itself calls: they are
-  -- part of the framework floor, not optional modules, so loading the core pulls them in.
+  -- veafScheduler, veafMath, veafGeo and veafMissionDb back veaf.* functions that veaf.lua itself
+  -- calls: they are part of the framework floor, not optional modules, so the core pulls them in.
   if name == "veaf" then
-    for _, floor in ipairs({ "veafScheduler", "veafMath", "veafGeo" }) do
+    for _, floor in ipairs({ "veafScheduler", "veafMath", "veafGeo", "veafMissionDb" }) do
       if not _loaded[floor] then
         M.load(floor)
       end

@@ -277,7 +277,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     for i = 1, #unitsToCheck do
       local lUnit = unitsToCheck[i]
       veaf.loggers.get(veafCarrierOperations.Id):trace("lUnit:getName()=%s", veaf.lp(lUnit:getName()))
-      if mist.pointInPolygon(lUnit:getPosition().p, polygon) then
+      if veaf.pointInPolygon(lUnit:getPosition().p, polygon) then
         obstructions[#obstructions + 1] = lUnit
       end
     end

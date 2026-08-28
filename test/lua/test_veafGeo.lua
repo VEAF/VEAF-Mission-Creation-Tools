@@ -26,6 +26,7 @@ dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafScheduler.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafMath.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafGeo.lua")
+dofile(_base .. "/../../src/scripts/veaf/veafMissionDb.lua")
 
 TestVeafGeo = {}
 
@@ -168,6 +169,168 @@ end
 function TestVeafGeo:test_mgrsRoundingCanOverflowTheRequestedWidth()
   luaunit.assertEquals(veaf.toStringMGRS(mgrs("37T", "CJ", 99999, 5), 3), "37T CJ 1000 000")
   luaunit.assertEquals(veaf.toStringMGRS(mgrs("37T", "CJ", 99999, 5), 1), "37T CJ 10 0")
+end
+
+-- ---------------------------------------------------------------------------
+-- Zones and positions
+-- ---------------------------------------------------------------------------
+
+TestVeafGeoZones = {}
+
+function TestVeafGeoZones:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafGeoZones:test_zoneToVec3ReturnsTheCentre()
+  dcs_mocks.addZone("BULLSEYE", 1000, 2000, 300)
+  luaunit.assertEquals(veaf.zoneToVec3("BULLSEYE"), { x = 1000, y = 0, z = 2000 })
+end
+
+--- Nil, not an empty table. MiST answered `{}`, which is truthy, so `veafCombatZone`'s guard against a
+--- missing trigger zone could never fire — it has been dead code since it was written.
+function TestVeafGeoZones:test_zoneToVec3OnAnUnknownZoneIsNil()
+  luaunit.assertNil(veaf.zoneToVec3("NO SUCH ZONE"))
+end
+
+function TestVeafGeoZones:test_getAvgPosOfTwoUnits()
+  dcs_mocks.addUnit("one", {
+    getPoint = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+  })
+  dcs_mocks.addUnit("two", {
+    getPoint = function()
+      return { x = 100, y = 50, z = 200 }
+    end,
+  })
+  luaunit.assertEquals(veaf.getAvgPos({ "one", "two" }), { x = 50, y = 25, z = 100 })
+end
+
+--- A name nobody answers to must be skipped, not counted as the origin: averaging in {0,0,0} would
+--- drag the answer towards the corner of the map.
+function TestVeafGeoZones:test_getAvgPosSkipsNamesThatDoNotResolve()
+  dcs_mocks.addUnit("real", {
+    getPoint = function()
+      return { x = 100, y = 0, z = 200 }
+    end,
+  })
+  luaunit.assertEquals(veaf.getAvgPos({ "real", "ghost" }), { x = 100, y = 0, z = 200 })
+end
+
+function TestVeafGeoZones:test_getAvgPosOfNothingIsNil()
+  luaunit.assertNil(veaf.getAvgPos({}))
+  luaunit.assertNil(veaf.getAvgPos({ "ghost" }))
+end
+
+function TestVeafGeoZones:test_getAvgGroupPosAveragesTheGroupsUnits()
+  dcs_mocks.addUnit("g1", {
+    getPoint = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+  })
+  dcs_mocks.addUnit("g2", {
+    getPoint = function()
+      return { x = 200, y = 0, z = 400 }
+    end,
+  })
+  dcs_mocks.addGroup("pair", {
+    getUnits = function()
+      return { Unit.getByName("g1"), Unit.getByName("g2") }
+    end,
+  })
+  luaunit.assertEquals(veaf.getAvgGroupPos("pair"), { x = 100, y = 0, z = 200 })
+end
+
+function TestVeafGeoZones:test_getAvgGroupPosOfAMissingGroupIsNil()
+  luaunit.assertNil(veaf.getAvgGroupPos("no such group"))
+end
+
+-- ---------------------------------------------------------------------------
+-- Polygons
+-- ---------------------------------------------------------------------------
+
+--- A 1000 m square, given the way the Mission Editor gives them: vec2 corners whose `y` is the
+--- easting.
+local SQUARE = {
+  { x = 0, y = 0 },
+  { x = 1000, y = 0 },
+  { x = 1000, y = 1000 },
+  { x = 0, y = 1000 },
+}
+
+function TestVeafGeoZones:test_aPointInsideTheSquare()
+  luaunit.assertTrue(veaf.pointInPolygon({ x = 500, y = 0, z = 500 }, SQUARE))
+end
+
+function TestVeafGeoZones:test_aPointOutsideTheSquare()
+  luaunit.assertFalse(veaf.pointInPolygon({ x = 1500, y = 0, z = 500 }, SQUARE))
+  luaunit.assertFalse(veaf.pointInPolygon({ x = 500, y = 0, z = -10 }, SQUARE))
+end
+
+--- The polygon closes itself: a point that is only inside because of the edge joining the last
+--- corner back to the first must be found.
+function TestVeafGeoZones:test_thePolygonClosesItself()
+  local triangle = { { x = 0, y = 0 }, { x = 1000, y = 0 }, { x = 0, y = 1000 } }
+  luaunit.assertTrue(veaf.pointInPolygon({ x = 100, y = 0, z = 100 }, triangle))
+  luaunit.assertFalse(veaf.pointInPolygon({ x = 900, y = 0, z = 900 }, triangle))
+end
+
+--- A concave shape is where an even-odd rule earns its place: the notch is outside even though it
+--- sits between two parts of the polygon.
+function TestVeafGeoZones:test_aConcavePolygon()
+  local uShape = {
+    { x = 0, y = 0 },
+    { x = 1000, y = 0 },
+    { x = 1000, y = 1000 },
+    { x = 700, y = 1000 },
+    { x = 700, y = 300 },
+    { x = 300, y = 300 },
+    { x = 300, y = 1000 },
+    { x = 0, y = 1000 },
+  }
+  luaunit.assertTrue(veaf.pointInPolygon({ x = 500, y = 0, z = 100 }, uShape)) -- in the base
+  luaunit.assertFalse(veaf.pointInPolygon({ x = 500, y = 0, z = 700 }, uShape)) -- in the notch
+end
+
+function TestVeafGeoZones:test_theAltitudeCeilingExcludesAPointAbove()
+  local point = { x = 500, y = 5000, z = 500 }
+  luaunit.assertTrue(veaf.pointInPolygon(point, SQUARE))
+  luaunit.assertFalse(veaf.pointInPolygon(point, SQUARE, 1000))
+  luaunit.assertTrue(veaf.pointInPolygon(point, SQUARE, 6000))
+end
+
+function TestVeafGeoZones:test_getUnitsInPolygonKeepsOnlyThoseInside()
+  dcs_mocks.addUnit("inside", {
+    getPoint = function()
+      return { x = 500, y = 0, z = 500 }
+    end,
+  })
+  dcs_mocks.addUnit("outside", {
+    getPoint = function()
+      return { x = 5000, y = 0, z = 5000 }
+    end,
+  })
+  local found = veaf.getUnitsInPolygon({ "inside", "outside" }, SQUARE)
+  luaunit.assertEquals(#found, 1)
+  luaunit.assertEquals(found[1]:getName(), "inside")
+end
+
+--- A unit that has not been activated yet is on the map but not in play, and does not count as
+--- present.
+function TestVeafGeoZones:test_getUnitsInPolygonSkipsAnInactiveUnit()
+  dcs_mocks.addUnit("asleep", {
+    getPoint = function()
+      return { x = 500, y = 0, z = 500 }
+    end,
+    isActive = function()
+      return false
+    end,
+  })
+  luaunit.assertEquals(#veaf.getUnitsInPolygon({ "asleep" }, SQUARE), 0)
+end
+
+function TestVeafGeoZones:test_getUnitsInPolygonIgnoresNamesThatDoNotResolve()
+  luaunit.assertEquals(#veaf.getUnitsInPolygon({ "ghost" }, SQUARE), 0)
 end
 
 -- ---------------------------------------------------------------------------

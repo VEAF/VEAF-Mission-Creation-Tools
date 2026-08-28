@@ -347,6 +347,18 @@ veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)  -- "38T KM 123 679"
 
 The geodesy stays DCS's own (`coord.LOtoLL`, `coord.LLtoMGRS`); this module only does the text.
 
+`veafGeo` also carries zones and polygons:
+
+```lua
+veaf.zoneToVec3("ZONE NAME")           -- the zone's centre, or nil when there is no such zone
+veaf.getAvgPos({ "unit1", "unit2" })   -- average position, nil when none of them exists
+veaf.getAvgGroupPos("group name")
+veaf.pointInPolygon(point, corners)    -- accepts either coordinate shape
+veaf.getUnitsInPolygon({ "u1", "u2" }, corners)
+```
+
+And unit id allocation lives in `veafMissionDb.lua`: `veaf.getNextUnitId()`.
+
 **These strings go into F10 reports and briefings**, so they are pinned by literal-string tests. The
 port reproduced MiST to the character, oddities included; correcting one of them changes what pilots
 read and is therefore decided on its own. One has been (`FIX-DMS-MINUTE-CARRY`: in DMS a minute

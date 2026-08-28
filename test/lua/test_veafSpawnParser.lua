@@ -13,6 +13,7 @@ dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafSpawn.lua")
 
 local function analyse(text)

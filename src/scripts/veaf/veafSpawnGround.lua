@@ -85,7 +85,7 @@ function veafSpawn.spawnFarp(
     ["category"] = "Heliports",
     ["shape_name"] = _shape,
     ["type"] = _type,
-    ["unitId"] = mist.getNextUnitId(),
+    ["unitId"] = veaf.getNextUnitId(),
     ["y"] = spawnPosition.z,
     ["x"] = spawnPosition.x,
     ["groupName"] = name,

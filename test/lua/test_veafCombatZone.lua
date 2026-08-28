@@ -7,6 +7,7 @@ dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafCombatZone.lua")
 
@@ -1864,11 +1865,17 @@ end
 
 function TestVeafCombatZoneInitializeTags:setUp()
   veaf.triggerZones["TAGZONE"] = { name = "TAGZONE", type = 0, radius = 1000, x = 0, y = 0 }
+  -- The zone has to exist for `trigger.misc.getZone` too, not only in veaf.triggerZones: `initialize`
+  -- refuses to build a combat zone whose trigger zone it cannot find. That refusal used to be
+  -- unreachable — MiST's zoneToVec3 answered an empty table for an unknown zone, and a table is
+  -- truthy — so these tests passed with no zone registered at all.
+  dcs_mocks.addZone("TAGZONE", 0, 0, 1000)
   dcs_mocks.clearUnitsAndGroups()
 end
 
 function TestVeafCombatZoneInitializeTags:tearDown()
   veaf.triggerZones["TAGZONE"] = nil
+  dcs_mocks.zones["TAGZONE"] = nil
   dcs_mocks.clearUnitsAndGroups()
 end
 

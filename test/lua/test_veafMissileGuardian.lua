@@ -7,6 +7,7 @@ dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafRadio.lua")
 dofile(src .. "/veafMissileGuardian.lua")
 
@@ -454,10 +455,10 @@ function TestVeafMGWeaponPath:setUp()
     end
     return self._savedGet(id)
   end
-  -- `mist.pointInPolygon` is not in the mocks; the guardian asks it whether the target is inside the
+  -- `veaf.pointInPolygon` is not in the mocks; the guardian asks it whether the target is inside the
   -- protected zone, and the interesting branch is the one where it says yes.
   mist = mist or {}
-  mist.pointInPolygon = function()
+  veaf.pointInPolygon = function()
     return true
   end
 end

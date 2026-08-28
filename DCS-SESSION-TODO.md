@@ -59,9 +59,11 @@ Items **11** and **16** are fully measurable, with no double reading and no cave
 `language: fr`, security off, built with `--dev-mode` against the repository so it carries fixes no
 release has yet.
 
-Items 21 and 10 were both run on it on 2026-08-28. Item 10 is closed here; item 21's section stays
-until its counts are written into `FIX-PLACEMENT-IGNORES-SCENERY` ticket 04. What remains beyond that
-is the mission itself, still the right one to load for anything needing a live VEAF mission on Caucasus.
+Items 21, 22 and 10 were all run on it on 2026-08-28 and are closed — item 21's counts are recorded in
+[`FIX-PLACEMENT-IGNORES-SCENERY` ticket 04](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/tickets/04-refuse-the-farp-when-the-escort-cannot-be-placed.md),
+item 22's answer in the `scenery-death-events-in-dcs` note and in `DROP-MIST` ticket 09. What remains
+here is the mission itself, still the right one to load for anything needing a live VEAF mission on
+Caucasus.
 
 ⚠️ **Two defects of the 27th's build, both fixed on the 28th — do not reintroduce them.**
 
@@ -469,65 +471,3 @@ through — and the harness has since run in game, so the dependency is live.
   exists for it and has never been exercised.
 - [`FEAT-ASSIST-FOLLOWUP` 03](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) — an F-16C pilot's review of the
   six shipped steps. The engine was flown and works; the *procedure* was never checked by a pilot.
-
----
-
-## 21. How often does the FARP escort search run out of clear ground? — gates ticket 04
-
-**Why it is here:** `FIX-PLACEMENT-IGNORES-SCENERY` ticket 03 (2026-08-27) made the escort search avoid
-buildings *and* forests. That makes it strictly harder to satisfy. Ticket 04 must then refuse a `-farp`
-whose escort cannot be placed — but choosing when to refuse needs to know how often "nowhere clear"
-actually happens on real terrain, and no mock can say. **Ticket 04 must not pick a threshold before this
-number exists.**
-
-**What to run.** Spawn `-farp` in four places and read the log after each:
-
-1. open ground, nothing within a kilometre — the non-regression; nothing must move;
-2. beside a static FARP, ~150 m — the #232 case;
-3. inside a village;
-4. in dense woods.
-
-**What to look for**, in `dcs.log`, filtering on `findClearBearing` and `FARP escort`:
-
-- `scenery-clear bearing N at Mx distance` — tier 1 found a cloud point. Note `M`: 1 means it did not
-  have to walk out at all.
-- `no usable point in Disposition's cloud, walking the bearings instead` — tier 1 gave up; note whether
-  this is the common case, because it decides whether the cloud is worth its call.
-- `kept bearing N, pushed out to Mx` / `moved from N to M at Kx` — tier 2 succeeded.
-- `nothing clear at any bearing or distance, keeping N` — **the exhaustion**. This is the line ticket 04
-  turns into a refusal, so count how many of the four cases produce it.
-- `Disposition.getSimpleZones unusable` — the singleton is missing on this build, which would mean the
-  whole forest half is inert and ticket 04's threshold is being measured against buildings only.
-
-**What it unblocks:** `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/tickets/04-refuse-the-farp-when-the-escort-cannot-be-placed.md`.
-Record the counts in ticket 04 and delete this section.
----
-
-## 22. Does an AI unit's `getPlayerName()` return `nil` or an empty string? — low priority
-
-**Why it is here:** `DROP-MIST` ticket 00 (2026-08-28) went looking for this to decide the shape of the
-mission index, and no longer needs it — the index will filter with `local p = u:getPlayerName();
-if p and p ~= "" then`, which is correct whichever value DCS returns. What the question *did* turn up is
-a suspicion about code already shipped.
-
-[`veafAirWaves.lua:791`](src/scripts/veaf/veafAirWaves.lua) tests `if dcsUnit:getPlayerName() then` while
-sweeping `coalition.getGroups()` for dynamic-slot players. **In Lua, `""` is truthy.** So if DCS returns
-an empty string rather than `nil` for an AI unit, that line counts every AI aircraft of the player
-coalitions as a player, and an air wave would react to AI traffic. MiST guards the same call with
-`~= ""` ([`mist.lua:1642`](src/scripts/community/mist.lua)), which is weak evidence that its author saw
-`""` at least once.
-
-**What to run.** Any mission with an AI aircraft and an air wave zone. In the console, or in a one-line
-script hooked to a birth event:
-
-```lua
-local u = Unit.getByName("<an AI unit>")
-env.info(string.format("VEAF getPlayerName: type=%s value=[%s]", type(u:getPlayerName()), tostring(u:getPlayerName())))
-```
-
-- `type=nil` → `veafAirWaves.lua:791` is fine as written, and nothing else follows.
-- `type=string value=[]` → it is a real bug: air waves count AI as players. Open a fix lot; do **not**
-  fold it into `DROP-MIST`, which removes a dependency and must not change who counts as a player.
-
-**What it unblocks:** nothing. It is a suspicion to confirm or kill. Delete this section either way, and
-if it is confirmed, name the lot you opened.

@@ -1,6 +1,6 @@
 # 04 — Refuse the FARP when the escort cannot be placed
 
-Status: ⬜ ready — **land ticket 03 first and measure**
+Status: ⬜ ready — ticket 03 landed, and **the measurement is in** (see below): 0 exhaustions out of 4 cases
 Type: fix
 
 David, 2026-08-27: *"les escortes (farp) doivent être placées intelligemment, ou le farp est refusé si
@@ -63,6 +63,58 @@ Three design points to settle before coding:
   bare failure: this message is the only thing standing between the mission maker and a silently missing
   FARP.
 
+## The measurement, run in game 2026-08-28 — the number this ticket was waiting for
+
+Four `-farp` markers on `VEAF-session-2026-08-27` (Caucasus), one per case, ticket 03's scenery
+criterion in force. Read off `dcs.log`, filtered on `findClearBearing` and `FARP escort`:
+
+| Marker | Case | Tier that answered | Escort placed at |
+|---|---|---|---|
+| `T1-DEGAGE` | open ground, nothing within a kilometre | scenery cloud | bearing 0 → **25**, 1.12x |
+| `T2-PRES-STATIQUE` | ~150 m from a static FARP | scenery cloud | bearing 0 → **219**, 1.155x |
+| `T3-VILLAGE` | inside a village | scenery cloud | bearing 0 → **54**, 1.16x |
+| `T4-FORET` | dense woods | bearing walk | bearing 0 → **-15**, 1x |
+
+**`nothing clear at any bearing or distance` fired 0 times out of 4** — including in dense woods, the
+case built to break it. `Disposition.getSimpleZones unusable` never appeared either, so the forest half
+of the criterion was live throughout and the figure is not an artefact of an inert check.
+
+**So the refusal is a rare path, not the common one, and this ticket is a fix rather than a
+mission-breaker.** It can fire on the first exhaustion; no widened search is needed to keep the
+refusal narrow, because exhaustion is already narrow.
+
+Two caveats worth carrying, neither of which changes that conclusion:
+
+- The run happened on a mission that loaded **two** VEAF configurations at once (a leftover v5
+  `missionConfig.lua` beside the generated `veaf-config.lua`), so the terrain was *more* crowded than a
+  normal mission, not less. Zero exhaustions is therefore a conservative reading.
+- `no usable point in Disposition's cloud, walking the bearings instead` is emitted at **debug**
+  ([`veafGrass.lua:439`](../../../src/scripts/veaf/veafGrass.lua)), so it is invisible in a normal
+  `info`-level log. `T4-FORET` fell through to the bearing walk with no line saying why. Anyone
+  re-running this needs `veafGrass.LogLevel = "debug"`, or that line has to move to info.
+
+## What the measurement also revealed, and what it does to this ticket's non-regression
+
+**`T1-DEGAGE` was the non-regression case: nothing should have moved. Something did** — the escort went
+from bearing 0 to bearing 25 at 1.12x, on open ground with nothing within a kilometre.
+
+Reading [`findClearBearing`](../../../src/scripts/veaf/veafGrass.lua) explains it: tier 1 consults the
+scenery cloud **before** testing the requested bearing at all. It sorts the cloud's points by distance
+to the wanted spot and takes the nearest one that passes — but the wanted spot itself is never a
+candidate, so the escort moves *every time the cloud answers*, clear ground or not. Tier 2's comment
+states the opposite intent — *"The original bearing first at every distance, so the group stays where it
+was aimed when it can"* — and tier 1 short-circuits it.
+
+This matters here because this ticket's definition of done says *"a FARP far from anything is never
+refused and nothing moves"*. **That half is already untrue on `develop`**, independently of any refusal
+this ticket adds, so it cannot be proven as written until the tier-1 behaviour is settled.
+
+The fix is not to test the requested bearing first: `allClear` cannot see forests, so that would put
+escorts back in the trees. The tenable route is the `gap` tier 1 already computes — if the closest cloud
+candidate is within `PLACEMENT_CLEARANCE` of the wanted spot, keep the wanted spot. **Not decided, and
+not in scope here**; raised with David 2026-08-28 and awaiting his call on whether it is a lot of its own
+or an item of this one.
+
 ## The threshold question ticket 03 must answer first
 
 Ticket 03 adds the scenery criterion, which makes the search **harder** to satisfy and therefore makes
@@ -83,10 +135,13 @@ and it goes back to David with the number rather than shipping.
       `veafSpawnGround.lua:105` passes it, `veafGrass.lua:586` does not
 - [ ] A refused FARP creates **nothing** — verified, not assumed
 - [ ] The message is translated in both locales, names the FARP and gives the reason
-- [ ] 03's exhaustion measurement is recorded here and the threshold justified by it
+- [x] 03's exhaustion measurement is recorded here and the threshold justified by it — 0/4, so the
+      refusal fires on the first exhaustion
 - [ ] Lua tests: a placeable escort still places, an unplaceable one on the **`-farp` path** refuses with
       the message and creates nothing, an unplaceable one on the **startup path** builds anyway with
       today's fallback, and an unplaceable **windsock** never refuses anything
-- [ ] Non-regression proven as in 6.15.33: a FARP far from anything is never refused and nothing moves
+- [ ] Non-regression proven as in 6.15.33: a FARP far from anything is never refused and nothing moves.
+      ⚠️ **The "nothing moves" half is already false on `develop`** — see the tier-1 finding above; settle
+      that before trying to prove this
 - [ ] `CHANGELOG.md` entry under `[Unreleased]` calling this out as a behaviour change
 - [ ] `stylua --check` and `luacheck` clean

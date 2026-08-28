@@ -1033,10 +1033,20 @@ function TestSecrev2AirWavesZoneCenter:test_an_existing_trigger_zone_is_still_pr
   z:setTriggerZone("AirWaveZoneThatExists")
   z:deployWaves()
   luaunit.assertEquals(#self.deployed, 1)
-  -- The trigger zone's coordinates, not the 1000/2000 centre set just before: with both
-  -- offsets at 0 the deploy position is the zone centre itself (x, and y read into z).
+  -- The trigger zone's coordinates, not the 1000/2000 centre set just before.
   luaunit.assertEquals(self.deployed[1].position.x, 77)
-  luaunit.assertEquals(self.deployed[1].position.z, 88)
+  -- The easting arrives as `y`, not `z`, and that is a **defect** rather than a convention:
+  -- `veafAirWaves` hands this point straight to `veafInterpreter.execute`, which documents that a
+  -- command expects a vec3 whose `z` is the easting — and `veafSpawnGround` reads `spawnPosition.z`.
+  -- So a command-driven air wave spawns with a nil easting. The sibling call twenty lines further
+  -- down converts explicitly (`vars.point.z = vars.point.y`); this one does not.
+  --
+  -- It was invisible until DROP-MIST ticket 06, because the MiST stub in dcs_mocks answered a vec3
+  -- while MiST itself answers a vec2 — the test was asserting the mock. Asserted here as it actually
+  -- behaves, so the defect stays visible until FIX-AIRWAVES-COMMAND-EASTING fixes it; that lot flips
+  -- these two assertions.
+  luaunit.assertEquals(self.deployed[1].position.y, 88, "the easting lands in y — see FIX-AIRWAVES-COMMAND-EASTING")
+  luaunit.assertNil(self.deployed[1].position.z, "and z is left nil, which is what reaches the spawn")
 end
 
 function TestSecrev2AirWavesZoneCenter:test_neither_zone_nor_center_does_not_raise()

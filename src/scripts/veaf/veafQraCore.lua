@@ -991,7 +991,7 @@ function VeafQRACore:deploy(nbUnitsInZone)
         veaf.loggers.get(veafQraManager.Id):trace("latDelta = [%s]", veaf.lp(latDelta))
         veaf.loggers.get(veafQraManager.Id):trace("lonDelta = [%s]", veaf.lp(lonDelta))
         local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
-        local randomPosition = mist.getRandPointInCircle(position, self.respawnRadius)
+        local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
         local spawnedGroupsNames = {}
         veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
         for _, newGroupName in pairs(spawnedGroupsNames) do
@@ -1021,7 +1021,7 @@ function VeafQRACore:deploy(nbUnitsInZone)
             spawnSpot = group:getUnit(1):getPoint()
           end
           local vars = {}
-          vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
+          vars.point = veaf.getRandomPointInCircle(spawnSpot, self.respawnRadius)
           vars.point.z = vars.point.y
           vars.point.y = spawnSpot.y
           vars.gpName = groupName
@@ -1080,7 +1080,7 @@ function VeafQRACore:start()
   -- draw the zone
   if self.drawZone then
     if self.triggerZoneName then
-      self.zoneDrawing = mist.marker.drawZone(self.triggerZoneName, { message = self:getDescription(), readOnly = true })
+      self.zoneDrawing = veaf.drawTriggerZone(self.triggerZoneName, { message = self:getDescription() })
     else
       self.zoneDrawing = VeafCircleOnMap:new()
         :setName(self:getName())
@@ -1119,7 +1119,7 @@ function VeafQRACore:stop(silent)
   -- erase the zone
   if self.zoneDrawing then
     if self.triggerZoneName then
-      mist.marker.remove(self.zoneDrawing.markId)
+      veaf.removeDrawing(self.zoneDrawing.markId)
     else
       self.zoneDrawing:erase()
     end

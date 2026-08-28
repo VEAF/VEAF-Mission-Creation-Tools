@@ -112,7 +112,7 @@ function veafSpawn.spawnUnit(
   local spawnSpot = nil
   local nbTries = 25
   repeat
-    spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnPosition, radius))
+    spawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnPosition, radius))
     veaf.loggers
       .get(veafSpawn.Id)
       :trace(string.format("spawnUnit: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
@@ -1044,7 +1044,7 @@ function veafSpawn.spawnCombatAirPatrol(
   if altitudeDelta then
     altitude = altitude + math.random(0, altitudeDelta * 2) - altitudeDelta
   end
-  local position = mist.getRandPointInCircle(spawnSpot, radius)
+  local position = veaf.getRandomPointInCircle(spawnSpot, radius)
   position.z = position.y
   position.y = altitude
   veaf.loggers.get(veafSpawn.Id):debug("final spawn, position=%s", position)

@@ -163,6 +163,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   could not fail. The register asks for the position instead of asking whether the object still
   exists, which is the question that actually matters.
 
+- **The geometry VEAF asked MiST for is now its own** — the random point in a circle behind every
+  dispersed spawn, the units inside a circular trigger zone, a unit's heading, and the zone outlines
+  drawn on the F10 map. Nothing changes for a mission: each function keeps the shape and the behaviour
+  its callers relied on, down to returning a two-coordinate point where MiST returned one.
+
+  Three of MiST's five parameters for the circle draw had no caller anywhere in the repository and are
+  not ported. `mist.random` is gone too: below fifty values it copied the range and drew eleven times,
+  keeping the last — the same distribution as one draw, in eleven times the work.
+
+  Two defects were found on the way and are **not** fixed here, because a port that also moves things is
+  a port nobody can verify. Both are recorded in the backlog: a command-driven air wave hands the
+  spawner a point with no easting (`FIX-AIRWAVES-COMMAND-EASTING`), and the tests that should have
+  caught it were asserting a mock that answered a different coordinate shape than MiST ever did.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

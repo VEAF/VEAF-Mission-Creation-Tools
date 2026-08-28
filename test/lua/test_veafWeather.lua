@@ -1269,10 +1269,10 @@ function TestVeafWeatherWelcomeBrief:_ship(heading)
   airbase.DcsAirbase.getUnit = function()
     return { isShipUnit = true }
   end
-  self._savedMistHeading = self._savedMistHeading or mist.getHeading
+  self._savedMistHeading = self._savedMistHeading or veaf.getHeading
   self.headingArgs = nil
   local test = self
-  mist.getHeading = function(unit, raw)
+  veaf.getHeading = function(unit, raw)
     test.headingArgs = { unit = unit, raw = raw }
     return heading
   end
@@ -1282,15 +1282,15 @@ end
 function TestVeafWeatherWelcomeBrief:test_the_heading_asked_for_is_the_true_one()
   -- The message says "(true)" / "(vrai)", so the code must ask for the true heading and not the magnetic
   -- one — otherwise the brief lies by a declination. Pinned because the first version of these tests
-  -- stubbed mist.getHeading ignoring its arguments, and flipping that flag killed no test at all.
+  -- stubbed veaf.getHeading ignoring its arguments, and flipping that flag killed no test at all.
   local airbase = self:_ship(math.rad(45))
   veafAirbases.getNearestAirbase = function()
     return airbase
   end
   self:_weather()
   veafWeather.buildWelcomeBrief(self:_unit())
-  mist.getHeading = self._savedMistHeading
-  luaunit.assertNotNil(self.headingArgs, "mist.getHeading was never called")
+  veaf.getHeading = self._savedMistHeading
+  luaunit.assertNotNil(self.headingArgs, "veaf.getHeading was never called")
   luaunit.assertTrue(self.headingArgs.raw, "the second argument must be true: the true heading, not magnetic")
 end
 
@@ -1301,7 +1301,7 @@ function TestVeafWeatherWelcomeBrief:test_a_carrier_announces_its_course()
   end
   self:_weather()
   local brief = veafWeather.buildWelcomeBrief(self:_unit())
-  mist.getHeading = self._savedMistHeading
+  veaf.getHeading = self._savedMistHeading
   luaunit.assertNotNil(brief)
   luaunit.assertNotNil(brief:lower():find("heading", 1, true), "a carrier must be given its heading: " .. brief)
   luaunit.assertNotNil(brief:find("123", 1, true), "and the heading itself: " .. brief)
@@ -1315,7 +1315,7 @@ function TestVeafWeatherWelcomeBrief:test_the_course_is_read_as_three_digits()
   end
   self:_weather()
   local brief = veafWeather.buildWelcomeBrief(self:_unit())
-  mist.getHeading = self._savedMistHeading
+  veaf.getHeading = self._savedMistHeading
   luaunit.assertNotNil(brief:find("009", 1, true), "expected a three-digit heading: " .. brief)
 end
 
@@ -1326,7 +1326,7 @@ function TestVeafWeatherWelcomeBrief:test_a_carrier_is_never_given_a_runway()
   end
   self:_weather()
   local brief = veafWeather.buildWelcomeBrief(self:_unit())
-  mist.getHeading = self._savedMistHeading
+  veaf.getHeading = self._savedMistHeading
   luaunit.assertNil(brief:lower():find("runway", 1, true), "a carrier has no runway to keep: " .. brief)
 end
 

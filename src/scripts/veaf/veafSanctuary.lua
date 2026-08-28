@@ -406,7 +406,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
   local positionIn40s = veaf.vecAdd(position, veaf.vecScalarMult(unit:getVelocity(), 40))
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("positionIn40s=%s", veaf.p(positionIn40s)))
   -- compute a heading towards the unit
-  local heading = veaf.round(math.deg(mist.getHeading(unit)), 0)
+  local heading = veaf.round(math.deg(veaf.getHeading(unit)), 0)
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading=%s", veaf.p(heading)))
   local heading1 = heading * math.random(70, 130) / 100
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading1=%s", veaf.p(heading1)))

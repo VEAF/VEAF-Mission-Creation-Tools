@@ -1592,7 +1592,7 @@ end
 --
 -- `initialize` read the seven tags off each unit's name, built an element, then threw the element away
 -- for every unit of a group but the first one the loop met — and that order comes from
--- `mist.getUnitsInZones` followed by `pairs()`, which promises nothing. Tagging one truck of a convoy
+-- `veaf.getUnitsInCircularZone` followed by `pairs()`, which promises nothing. Tagging one truck of a convoy
 -- worked or did not work depending on an order the mission maker cannot see. A tag on a **group** name,
 -- which the documentation has always promised, was never read at all.
 --
@@ -2106,8 +2106,8 @@ function TestVeafCombatZoneUnreadableTriggerZone:setUp()
     GOODZONE = { name = "GOODZONE", type = 0, x = 0, y = 0, radius = 500 },
     ODDZONE = { name = "ODDZONE", type = 7, x = 0, y = 0 },
   }
-  self._savedInZones = mist.getUnitsInZones
-  mist.getUnitsInZones = function()
+  self._savedInZones = veaf.getUnitsInCircularZone
+  veaf.getUnitsInCircularZone = function()
     return {}
   end
   self._savedNames = veaf.getUnitsNamesOfCoalition
@@ -2121,7 +2121,7 @@ end
 
 function TestVeafCombatZoneUnreadableTriggerZone:tearDown()
   veaf.triggerZones = self._savedZones
-  mist.getUnitsInZones = self._savedInZones
+  veaf.getUnitsInCircularZone = self._savedInZones
   veaf.getUnitsNamesOfCoalition = self._savedNames
   self._logger.error = self._savedError
 end
@@ -2291,7 +2291,7 @@ function TestVeafCombatZoneSceneryAwareSpawn:setUp()
   self._teleport = mist.teleportToPoint
   self._savedDisposition = Disposition
   self._savedGetSurfaceType = land.getSurfaceType
-  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedGetRandPoint = veaf.getRandomPointInCircle
   self._savedOptOut = veaf.doNotAvoidScenery
   Disposition = nil
   veaf.doNotAvoidScenery = false
@@ -2308,7 +2308,7 @@ function TestVeafCombatZoneSceneryAwareSpawn:tearDown()
   mist.teleportToPoint = self._teleport
   Disposition = self._savedDisposition
   land.getSurfaceType = self._savedGetSurfaceType
-  mist.getRandPointInCircle = self._savedGetRandPoint
+  veaf.getRandomPointInCircle = self._savedGetRandPoint
   veaf.doNotAvoidScenery = self._savedOptOut
 end
 
@@ -2331,7 +2331,7 @@ function TestVeafCombatZoneSceneryAwareSpawn:_jitter(xs, waterXs)
     return land.SurfaceType.LAND
   end
   local calls = 0
-  mist.getRandPointInCircle = function(spot, _r)
+  veaf.getRandomPointInCircle = function(spot, _r)
     calls = calls + 1
     return { x = xs[calls] or xs[#xs], y = 0, z = spot.z or 0 }
   end
@@ -2400,7 +2400,7 @@ end
 -- mist.lua:4470) and applies it to every unit. When those are not the same unit, the delta carries
 -- the group's own intra-group spacing and the whole group is translated by it.
 --
--- The trigger is not a `pairs()` lottery — `mist.getUnitsInZones` and `veaf.getUnitsNamesOfCoalition`
+-- The trigger is not a `pairs()` lottery — `veaf.getUnitsInCircularZone` and `veaf.getUnitsNamesOfCoalition`
 -- both preserve order. It is the **filtering**: getUnitsInZones only returns units inside the zone, so
 -- a group straddling the zone boundary with its unit 1 outside hands over unit 2 as "the first one".
 -- ============================================================================

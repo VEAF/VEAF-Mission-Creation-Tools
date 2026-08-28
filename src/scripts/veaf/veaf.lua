@@ -1260,7 +1260,7 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius)
 
   -- Tier 2 — every criterion except clearance from scenery.
   for _ = 1, veaf.SPAWN_SEARCH_ATTEMPTS do
-    local placed = acceptableGroundPoint(mist.getRandPointInCircle(vec3, radius))
+    local placed = acceptableGroundPoint(veaf.getRandomPointInCircle(vec3, radius))
     if placed then
       return placed
     end
@@ -1639,7 +1639,7 @@ function veaf.findPointInZone(spawnSpot, dispersion, isShip)
   local dispersion = dispersion or 0
   local _dispersion = dispersion
   repeat -- Place the unit in a "dispersion" ft radius circle from the spawn spot
-    unitPosition = mist.getRandPointInCircle(spawnSpot, _dispersion)
+    unitPosition = veaf.getRandomPointInCircle(spawnSpot, _dispersion)
     local landType = land.getSurfaceType(unitPosition)
     tryCounter = tryCounter - 1
     _dispersion = _dispersion + dispersion
@@ -5262,7 +5262,7 @@ function veaf.getUnitsInTriggerZone(zoneName, unitNames, moduleId)
     return nil
   end
   if triggerZone.type == 0 then -- circular
-    return mist.getUnitsInZones(unitNames, { zoneName })
+    return veaf.getUnitsInCircularZone(unitNames, zoneName)
   elseif triggerZone.type == 2 then -- quad point
     return veaf.getUnitsInPolygon(unitNames, triggerZone.verticies)
   end

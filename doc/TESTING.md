@@ -148,6 +148,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafScheduler.lua` | Planificateur sur le timer natif : répétition, heure d'arrêt, tâche en échec |
 | `test_veafMath.lua` | Conversions d'unités, vecteurs, formes de coordonnées, copie profonde |
 | `test_veafGeo.lua` | Rendu texte des coordonnées, zones, positions moyennes, polygones |
+| `test_veafGeo_ported.lua` | Géométrie portée depuis MiST : tirage dans un cercle, unités en zone circulaire, cap, dessin de zone |
 | `test_veafMissionDb.lua` | Instantané de la mission, liste des joueurs, registre des noms, identifiants |
 | `test_veafMissionDb_scenery.lua` | Registre des objets de décor détruits : enregistrement, recherche par zone, abonnement à l'événement |
 | `test_veafInterpreter.lua` | Tokeniseur de texte marqueur |

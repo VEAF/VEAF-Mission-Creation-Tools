@@ -160,7 +160,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
   if carrierUnit then
     startPosition = carrierUnit:getPosition().p
     veaf.loggers.get(veafCarrierOperations.Id):trace("startPosition (raw) =" .. veaf.vecToString(startPosition))
-    currentHeading = veaf.round(math.deg(mist.getHeading(carrierUnit, true)), 0)
+    currentHeading = veaf.round(math.deg(veaf.getHeading(carrierUnit, true)), 0)
   end
   veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("currentHeading=%s", veaf.p(currentHeading)))
   startPosition = { x = startPosition.x, z = startPosition.z, y = startPosition.y + veafCarrierOperations.ALT_FOR_MEASURING_WIND } -- on deck, 50 meters above the water
@@ -173,7 +173,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
   veaf.loggers.get(veafCarrierOperations.Id):trace("carrierDistanceFromInitialPosition=" .. carrierDistanceFromInitialPosition)
 
   -- compute magnetic deviation at carrier position
-  -- let's not use mist.getNorthCorrection, it's not computing magnetic deviation...
+  -- the north correction (grid-to-true) is not magnetic deviation, so it is deliberately not used here
   -- TODO find how to actually compute it
   --[[
     local magdev = veaf.round(veaf.getNorthCorrection(startPosition) * 180 / math.pi,1)
@@ -674,7 +674,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
   local currentSpeed = -1
   local startPosition = nil
   if carrierUnit then
-    currentHeading = veaf.round(math.deg(mist.getHeading(carrierUnit, true)), 0)
+    currentHeading = veaf.round(math.deg(veaf.getHeading(carrierUnit, true)), 0)
     currentSpeed = veaf.round(veaf.mpsToKnots(veaf.vecMag(carrierUnit:getVelocity())), 0)
     startPosition =
       { x = carrierUnit:getPosition().p.x, z = carrierUnit:getPosition().p.z, y = veafCarrierOperations.ALT_FOR_MEASURING_WIND } -- on deck, 50 meters above the water
@@ -730,7 +730,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
 
     if currentHeading > -1 and currentSpeed > -1 then
       -- compute magnetic deviation at carrier position
-      -- let's not use mist.getNorthCorrection, it's not computing magnetic deviation...
+      -- the north correction (grid-to-true) is not magnetic deviation, so it is deliberately not used here
       -- TODO find how to actually compute it
       --[[
             local magdev = veaf.round(veaf.getNorthCorrection(startPosition) * 180 / math.pi,1)
@@ -975,7 +975,7 @@ function veafCarrierOperations.initializeCarrierGroups()
             carrier.carrierUnitName = carrier.carrierUnit:getName()
             carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
             carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
-            carrier.heading = mist.getHeading(unit, true)
+            carrier.heading = veaf.getHeading(unit, true)
 
             --veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("Carrier Data from MIST : %s",veaf.p(veaf.getGroupData(name))))
 

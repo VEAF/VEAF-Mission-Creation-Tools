@@ -53,7 +53,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
   local radius = radius or 0
   veaf.loggers.get(veafSpawn.Id):debug("spawnCargo(cargoType = " .. cargoType .. ")")
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
   veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnCargo: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
 
   local units = {}
@@ -138,7 +138,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
 
       -- smoke the cargo if needed
       if cargoSmoke then
-        local smokePosition = { x = spawnPosition.x + mist.random(10, 20), y = 0, z = spawnPosition.y + mist.random(10, 20) }
+        local smokePosition = { x = spawnPosition.x + math.random(10, 20), y = 0, z = spawnPosition.y + math.random(10, 20) }
         local height = veaf.getLandHeight(smokePosition)
         smokePosition.y = height
         veaf.loggers
@@ -173,7 +173,7 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
   veaf.loggers.get(veafSpawn.Id):debug("doSpawnStatic(staticCategory = " .. staticCategory .. ")")
   veaf.loggers.get(veafSpawn.Id):debug("doSpawnStatic(staticType = " .. staticType .. ")")
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
   veaf.loggers
     .get(veafSpawn.Id)
     :trace(string.format("doSpawnStatic: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
@@ -215,7 +215,7 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
 
     -- smoke if needed
     if smoke then
-      local smokePosition = { x = spawnPosition.x + mist.random(10, 20), y = 0, z = spawnPosition.y + mist.random(10, 20) }
+      local smokePosition = { x = spawnPosition.x + math.random(10, 20), y = 0, z = spawnPosition.y + math.random(10, 20) }
       local height = veaf.getLandHeight(smokePosition)
       smokePosition.y = height
       veaf.loggers
@@ -251,7 +251,7 @@ function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, altitude, altitud
   local shellTime = 0
   local shellDelay = 0
   for shell = 1, shells do
-    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    local spawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", spawnSpot)
     veaf.loggers.get(veafSpawn.Id):trace("altitude=%s", altitude)
     if altitude and altitude > 0 then
@@ -288,7 +288,7 @@ function veafSpawn.spawnSmoke(spawnSpot, color, radius, shells)
 
   local shellTime = 0
   for shell = 1, shells do
-    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    local spawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
 
     local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30) / 100
@@ -310,7 +310,7 @@ function veafSpawn.spawnSignalFlare(spawnSpot, radius, shells, color)
 
   local shellTime = 0
   for shell = 1, shells do
-    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    local spawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
 
     local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30) / 100
@@ -367,7 +367,7 @@ function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, heigh
       local shellDelay = shell / 4 + (math.random(100, 150) - 25) / 100
       local shellHeight = height * (math.random(100, 130) - 15) / 100
       local shellPower = power * (math.random(100, 130) - 15) / 100
-      local newSpawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(newSpawnSpot, radius))
+      local newSpawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(newSpawnSpot, radius))
       newSpawnSpot.y = veaf.getLandHeight(newSpawnSpot) + shellHeight
       veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellHeight=%d, shellPower=%d", shell, shellHeight, shellPower))
       local time = timer.getTime() + stepTime + shellDelay

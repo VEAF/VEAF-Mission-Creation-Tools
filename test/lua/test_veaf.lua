@@ -1455,6 +1455,9 @@ function TestVeafMisc:test_generateMilitaryGroupNameIsString()
 end
 
 function TestVeafMisc:test_generateMilitaryGroupNameVaried()
+  -- This one asserts variety, so it needs Lua's own generator: the mocks make `math.random`
+  -- deterministic by default, which is what lets every other suite reason about a drawn point.
+  dcs_mocks.useRealRandom()
   local names = {}
   for i = 1, 20 do
     names[i] = veaf.generateMilitaryGroupName()
@@ -1899,7 +1902,7 @@ end
 -- veaf.findSpawnPoint — three-tier search (FEAT-SCENERY-AWARE-SPAWN)
 --
 -- Tier 1 asks the undocumented Disposition singleton for scenery-clear points,
--- tier 2 jitters with mist.getRandPointInCircle, tier 3 gives up and returns nil.
+-- tier 2 jitters with veaf.getRandomPointInCircle, tier 3 gives up and returns nil.
 -- Every degradation path is pinned here, the "singleton absent" one above all:
 -- it is what ships to any DCS install that does not expose Disposition.
 -- ---------------------------------------------------------------------------
@@ -1908,7 +1911,7 @@ TestVeafFindSpawnPoint = {}
 function TestVeafFindSpawnPoint:setUp()
   self._savedDisposition = Disposition
   self._savedGetSurfaceType = land.getSurfaceType
-  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedGetRandPoint = veaf.getRandomPointInCircle
   self._savedOptOut = veaf.doNotAvoidScenery
   Disposition = nil
   veaf.doNotAvoidScenery = false
@@ -1922,7 +1925,7 @@ end
 function TestVeafFindSpawnPoint:tearDown()
   Disposition = self._savedDisposition
   land.getSurfaceType = self._savedGetSurfaceType
-  mist.getRandPointInCircle = self._savedGetRandPoint
+  veaf.getRandomPointInCircle = self._savedGetRandPoint
   veaf.doNotAvoidScenery = self._savedOptOut
 end
 
@@ -1943,7 +1946,7 @@ end
 --- Makes the jitter walk a fixed list of x offsets, one per call.
 function TestVeafFindSpawnPoint:_jitterSequence(xs)
   local calls = 0
-  mist.getRandPointInCircle = function(spot, _r)
+  veaf.getRandomPointInCircle = function(spot, _r)
     calls = calls + 1
     self._jitterCalls = calls
     local x = xs[calls] or xs[#xs]
@@ -3043,12 +3046,12 @@ function TestVeafGetUnitsInTriggerZone:setUp()
     ODD = { name = "ODD", type = 7, x = 0, y = 0 },
     TYPELESS = { name = "TYPELESS", x = 0, y = 0 },
   }
-  self._savedInZones = mist.getUnitsInZones
+  self._savedInZones = veaf.getUnitsInCircularZone
   self._savedInPolygon = veaf.getUnitsInPolygon
   self.calls = {}
   local calls = self.calls
-  mist.getUnitsInZones = function(unitNames, zoneNames)
-    table.insert(calls, { how = "zones", unitNames = unitNames, zoneNames = zoneNames })
+  veaf.getUnitsInCircularZone = function(unitNames, zoneName)
+    table.insert(calls, { how = "zones", unitNames = unitNames, zoneName = zoneName })
     return { "unit-from-circle" }
   end
   veaf.getUnitsInPolygon = function(unitNames, verticies)
@@ -3066,16 +3069,16 @@ end
 
 function TestVeafGetUnitsInTriggerZone:tearDown()
   veaf.triggerZones = self._savedZones
-  mist.getUnitsInZones = self._savedInZones
+  veaf.getUnitsInCircularZone = self._savedInZones
   veaf.getUnitsInPolygon = self._savedInPolygon
   self._logger.error = self._savedError
 end
 
-function TestVeafGetUnitsInTriggerZone:test_a_circular_zone_goes_through_getUnitsInZones()
+function TestVeafGetUnitsInTriggerZone:test_a_circular_zone_goes_through_the_circular_lookup()
   local units = veaf.getUnitsInTriggerZone("CIRCLE", { "A", "B" }, veaf.Id)
   luaunit.assertEquals(units, { "unit-from-circle" })
   luaunit.assertEquals(self.calls[1].how, "zones")
-  luaunit.assertEquals(self.calls[1].zoneNames, { "CIRCLE" })
+  luaunit.assertEquals(self.calls[1].zoneName, "CIRCLE")
   luaunit.assertEquals(self.calls[1].unitNames, { "A", "B" })
   luaunit.assertEquals(#self.errors, 0)
 end

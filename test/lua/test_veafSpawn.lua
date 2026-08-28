@@ -859,7 +859,7 @@ function TestVeafSpawnGroundSceneryAware:setUp()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
   self._savedDisposition = Disposition
   self._savedGetSurfaceType = land.getSurfaceType
-  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedGetRandPoint = veaf.getRandomPointInCircle
   self._savedPlaceGroup = veafUnits.placeGroup
   self._savedOptOut = veaf.doNotAvoidScenery
   self._savedGenerateCasGroup = veafCasMission.generateCasGroup
@@ -884,7 +884,7 @@ end
 function TestVeafSpawnGroundSceneryAware:tearDown()
   Disposition = self._savedDisposition
   land.getSurfaceType = self._savedGetSurfaceType
-  mist.getRandPointInCircle = self._savedGetRandPoint
+  veaf.getRandomPointInCircle = self._savedGetRandPoint
   veafUnits.placeGroup = self._savedPlaceGroup
   veafCasMission.generateCasGroup = self._savedGenerateCasGroup
   veaf.doNotAvoidScenery = self._savedOptOut
@@ -910,7 +910,7 @@ function TestVeafSpawnGroundSceneryAware:_jitter(xs, waterXs)
     return land.SurfaceType.LAND
   end
   local calls = 0
-  mist.getRandPointInCircle = function(spot, _r)
+  veaf.getRandomPointInCircle = function(spot, _r)
     calls = calls + 1
     return { x = xs[calls] or xs[#xs], y = 0, z = spot.z or 0 }
   end
@@ -1097,7 +1097,7 @@ function TestVeafSpawnGroundExactPlacement:setUp()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
   self._savedDynAddStatic = mist.dynAddStatic
   self._savedFindSpawnPoint = veaf.findSpawnPoint
-  self._savedGetRandPoint = mist.getRandPointInCircle
+  self._savedGetRandPoint = veaf.getRandomPointInCircle
   -- A static's mission-table position: x is the northing, y the easting. The runtime vec3 that
   -- built it had the easting in z — see docs/agents/dcs-coordinates.md.
   self.statics = {}
@@ -1115,7 +1115,7 @@ end
 function TestVeafSpawnGroundExactPlacement:tearDown()
   mist.dynAddStatic = self._savedDynAddStatic
   veaf.findSpawnPoint = self._savedFindSpawnPoint
-  mist.getRandPointInCircle = self._savedGetRandPoint
+  veaf.getRandomPointInCircle = self._savedGetRandPoint
   dcs_mocks.reset()
 end
 
@@ -1152,7 +1152,7 @@ end
 function TestVeafSpawnGroundExactPlacement:test_a_farp_with_a_radius_still_jitters()
   -- The rule is "exactly where the user asked", not "never move". A caller-supplied radius is the
   -- user asking for the dispersion, so it must keep working.
-  mist.getRandPointInCircle = function(_spot, _r)
+  veaf.getRandomPointInCircle = function(_spot, _r)
     return { x = 999, y = 0, z = 888 }
   end
   veafSpawn.spawnFarp({ x = 1234, y = 0, z = 5678 }, 500, "FARP-Jitter", "usa", "invisible", 2, 0, 10, true, false, true)

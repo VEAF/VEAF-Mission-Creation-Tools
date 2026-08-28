@@ -1,6 +1,6 @@
 # FIX-ESCORT-RESPAWN-TASK — a respawned escort goes home; the fix already exists next door
 
-Status: 🧑 waiting-human — code, tests and documentation shipped 2026-08-20; **one in-game check left**, which no workstation without DCS can do (see DCS-SESSION-TODO item 10)
+Status: 🔄 in-progress — shipped 2026-08-20, verified in game 2026-08-28. The check found a defect **in the repair itself** (ticket 03, fixed); the escort still goes home, for a cause outside this lot — see [`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md)
 
 Origin: `CHORE-ISSUE-VERIFY-SESSION` check 9, run by David on 2026-08-18. Closes
 [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107); the same session closes
@@ -73,9 +73,13 @@ failure is a delayed RTB and a short look would have called this fixed.
 
 ## Definition of done
 
-- [ ] A respawned escort keeps escorting, verified in game past the ten-minute mark — **the one item
-      left**, queued as [DCS-SESSION-TODO](../../DCS-SESSION-TODO.md) item 10. Not skippable: the
-      failure is a *delayed* RTB, so a short look would call it fixed either way
+- [x] Verified in game 2026-08-28. The repair chain runs end to end and writes the runtime group id
+      into the Escort task (`1000031` → `18`, instrumented trace in ticket 03). Getting there required
+      ticket 03: the lookup only searched the last waypoint and found nothing on any real route
+- [ ] A respawned escort keeps escorting. **It still does not** — but the remaining cause is that
+      `mist.respawnGroup` puts the tanker back at its mission start while its escorts fly on, ~80 km
+      away and outside the task's own `engagementDistMax` of 60 km. Moved to
+      [`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md)
 - [x] One shared implementation, used by both the teleport and the respawn path
 - [x] The escort convention documented on the ASSETS page (fr + en), including what `linked` is not
 - [ ] #107 closed citing the measurement; #101 closed as not reproducible, saying what was tried
@@ -88,3 +92,4 @@ failure is a delayed RTB and a short look would have called this fixed.
 |---|--------|--------|
 | 01 | [One shared escort-task recovery](tickets/01-shared-escort-recovery.md) | ✅ |
 | 02 | [Document the escort convention on the ASSETS page](tickets/02-document-escort-convention.md) | ✅ |
+| 03 | [Find the Escort task on any waypoint, not only the last](tickets/03-find-the-escort-task-on-any-waypoint.md) | ✅ |

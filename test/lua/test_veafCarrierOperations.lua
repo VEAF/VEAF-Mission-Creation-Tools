@@ -19,7 +19,7 @@ veaf.config.language = "en"
 -- Mocks required by veafCarrierOperations (not in dcs_mocks.lua)
 -- ---------------------------------------------------------------------------
 
-mist.getHeading = function(unit, degrees)
+veaf.getHeading = function(unit, degrees)
   return 0
 end
 veaf.getAvgPos = function(units)

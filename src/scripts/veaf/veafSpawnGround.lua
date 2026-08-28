@@ -52,7 +52,7 @@ function veafSpawn.spawnFarp(
   -- The FARP's **escort** is a different matter: veafGrass.findClearBearing does search for clear
   -- ground for it, and FIX-PLACEMENT-IGNORES-SCENERY adds the scenery criterion there. Both
   -- statements are true at once — exact platform, searched escort — so do not read one for the other.
-  local spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnPosition = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
   veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.lp(spawnPosition))
   if not name or name == "" then
     local _lat, _lon = coord.LOtoLL(spawnSpot)
@@ -154,7 +154,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   -- Deliberately NOT using veaf.findSpawnPoint here: a FOB goes exactly where the user pointed
   -- (David, 2026-08-27) — same rule as the FARP above. The watchtower below is offset from this
   -- point on purpose; that offset is a layout decision, not a search.
-  local _spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, _radius))
+  local _spawnPosition = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, _radius))
   veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.lp(_spawnPosition))
   if not _fobName or _fobName == "" then
     local _lat, _lon = coord.LOtoLL(spawnSpot)
@@ -268,7 +268,7 @@ function veafSpawn.spawnBeacon(spawnSpot, radius, name, country, side, silent)
   local _country = country or "usa"
   -- Deliberately NOT using veaf.findSpawnPoint here: a beacon goes exactly where the user pointed
   -- (David, 2026-08-27) — same rule as the FARP and the FOB above.
-  local _position = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius or 0))
+  local _position = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius or 0))
 
   local _beacon = CTLDBeaconManager.getInstance():createAtPoint(_position, _side, _country, { name = name })
   if not _beacon then
@@ -668,7 +668,7 @@ function veafSpawn.spawnConvoy(
     return false
   end
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
   -- check that destination exists

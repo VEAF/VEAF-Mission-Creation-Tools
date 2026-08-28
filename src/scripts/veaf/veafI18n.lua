@@ -1413,7 +1413,7 @@ veaf.i18nCatalog = {
   -- A carrier keeps no runway: it turns into the wind, so its heading is what a pilot on the deck
   -- needs. The wording is the carrier group's own — `carrier.atc_navigation` says "Cap actuel
   -- (vrai)" / "Current heading (true)" — rather than a second vocabulary for the same number.
-  -- "(vrai)" is accurate and not decoration: the heading comes from `mist.getHeading(unit, true)`,
+  -- "(vrai)" is accurate and not decoration: the heading comes from `veaf.getHeading(unit, true)`,
   -- the same call carrier operations make, which returns the true heading and not the magnetic one.
   -- %03d because a heading is read as three digits; "cap 9" is not a heading.
   ["weather.welcome_brief_ship"] = {

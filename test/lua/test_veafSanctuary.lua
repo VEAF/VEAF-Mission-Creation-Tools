@@ -422,9 +422,15 @@ function TestSanctuaryDeployDefensesHandover:setUp()
   self.zone:setName("Test Sanctuary")
   self.zone:setCoalition(2)
 
+  -- `getPosition` is needed since `veaf.getHeading` became VEAF's own code (DROP-MIST ticket 06):
+  -- the MiST stub answered a constant without looking at the unit, so this fake could get away with
+  -- carrying velocity alone. `x` is the forward vector, pi/2 keeps the heading the stub used to give.
   self.unit = {
     getVelocity = function()
       return { x = 10, y = 0, z = 10 }
+    end,
+    getPosition = function()
+      return { p = { x = 0, y = 0, z = 0 }, x = { x = math.cos(math.pi / 2), y = 0, z = math.sin(math.pi / 2) } }
     end,
   }
 end

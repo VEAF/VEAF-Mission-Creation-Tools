@@ -1856,7 +1856,7 @@ function veafWeather.getShipCourse(veafAirbaseShip)
     return nil
   end
   local okHeading, heading = pcall(function()
-    return veaf.round(math.deg(mist.getHeading(dcsUnit, true)), 0)
+    return veaf.round(math.deg(veaf.getHeading(dcsUnit, true)), 0)
   end)
   if not okHeading or not heading then
     return nil

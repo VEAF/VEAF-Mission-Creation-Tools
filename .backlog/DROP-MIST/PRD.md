@@ -347,7 +347,7 @@ that can go wrong. Then the cheap and isolated work, then the risky core, then t
 | 04 | Prune the single-caller helpers | 11 | ✅ done 2026-08-28 |
 | 09 | The destroyed-scenery register | 1 | ✅ done 2026-08-28 |
 | 05 | The mission index | 26 | ✅ done 2026-08-28 |
-| 06 | Geometry and zone queries | 41 | medium — `pointInPolygon` went with ticket 04 |
+| 06 | Geometry and zone queries | 37 | ✅ done 2026-08-28 (re-counted: 37, not 45) |
 | 07 | Spawn, routes and teleport | 80 | **high** — needs 05's two bricks, not its index |
 | 08 | Drop the injection | — | the only ticket with a visible gain |
 

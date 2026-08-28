@@ -1,6 +1,6 @@
 # 06 — Geometry and zone queries
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-28
 Type: refactor
 
 45 call sites. Mixed: two go to native calls (rule 1), the rest are ports of a used slice (rules 2 and 3).
@@ -108,17 +108,47 @@ correction produces a plausible heading that is simply wrong — no error, no cr
 
 ## Definition of done
 
-- [ ] Ported functions live in `veafGeo.lua` behind `veaf.*` façades
-- [ ] 45 call sites migrated
-- [ ] `mist.random`: what the 29 lines add is established and written down; native substitution only if
-      nothing relies on the difference
-- [ ] `marker.remove` and `marker.drawZone` go to the native `trigger.action.*` calls
-- [x] The `findSpawnPoint` question is **answered** (2026-08-27, see the study above): no call site is
-      rerouted by this ticket; the family-D gaps went to
-      [`FIX-PLACEMENT-IGNORES-SCENERY`](../../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md)
-- [ ] `veaf.lua:1263` — `findSpawnPoint`'s own tier 2 — still works after the port, asserted by a test
-      that exercises `findSpawnPoint` end to end and not just the draw
-- [ ] `veafCombatZone.lua:1466`'s vec2-`y`-to-vec3-`z` shape is preserved, asserted on the resulting vec3
-- [ ] Lua tests including: a point on a zone boundary, a degenerate zero-radius circle, a polygon with
-      three vertices, and a heading across 0°/360°
-- [ ] `stylua --check` and `luacheck` clean
+- [x] Ported functions live in `veafGeo.lua` behind `veaf.*` façades
+- [x] Call sites migrated — **37, not 45**: re-counted before starting, as the PRD asks. `pointInPolygon`
+      was already at **0** (it went with ticket 04) and `getNorthCorrection` at 2 rather than 4
+- [x] `mist.random`: established and written down — see below. Native substitution
+- [x] `marker.remove` and `marker.drawZone` go to the native `trigger.action.*` calls
+- [x] The `findSpawnPoint` question is **answered** (2026-08-27, see the study above)
+- [x] `veaf.lua:1263` — `findSpawnPoint`'s own tier 2 — still works after the port, asserted by the
+      existing `TestVeafFindSpawnPoint` suite, which drives the draw end to end (its helper now steers
+      `veaf.getRandomPointInCircle` instead of MiST's)
+- [x] `veafCombatZone.lua:1466`'s vec2-to-vec3 shape — **moot**: that site no longer calls this function
+      at all. `FEAT-SCENERY-AWARE-SPAWN` routed it through `veaf.findSpawnPoint` after this ticket was
+      written, and `grep getRandPointInCircle src/scripts/veaf/veafCombatZone.lua` returns nothing
+- [x] Lua tests: a point on a zone boundary, a degenerate zero-radius circle, a heading across 0°/360°.
+      A three-vertex polygon is moot — `pointInPolygon` is not in this ticket's scope any more
+- [x] `stylua --check` clean; `luacheck` left to the CI gate (not installed on this workstation)
+
+## What `mist.random` turned out to be
+
+Above 50 values it calls `math.random` directly. Below, it copies the range until the table holds more
+than 50 entries, then draws **eleven times** and keeps the last one — the author's own comment on the
+ten extra draws reads *"for giggles"*.
+
+Neither step changes anything. Replicating a range uniformly and drawing uniformly from the copies is
+the same distribution as drawing from the range; and ten discarded draws do not change the law of the
+eleventh. It is a superstition, not a correction.
+
+Both call sites (`veafSpawnEffects.lua:141` and `:218`, four occurrences) pass `(10, 20)` — integers,
+a range of 11. `math.random(10, 20)` is equivalent, and that is the substitution made.
+
+## What the port had to fix in the tests, and what that uncovered
+
+The draw and the heading were **stubbed** in `dcs_mocks`: `mist.getRandPointInCircle` handed back the
+centre and ignored the radius, and `mist.getHeading` answered a constant `pi/2` without looking at the
+unit. Seven suites went red the moment real code ran under them.
+
+Rather than stubbing VEAF's own functions — which would put the tests back to asserting a mock — the
+randomness underneath is now deterministic (`dcs_mocks.setRandomSequence`, `math.random` answering 0 by
+default, so a drawn point lands exactly on the centre as the old stub did). Unit fakes gained the
+orientation `getPosition` really carries.
+
+**One of those red tests was a real defect**, not a test artefact: the stub answered a **vec3** where
+MiST answers a vec2, and `veafAirWaves.lua:1012` relies on that difference. Opened as
+[`FIX-AIRWAVES-COMMAND-EASTING`](../../FIX-AIRWAVES-COMMAND-EASTING/PRD.md); not fixed here, because
+this ticket removes a dependency and must not also move where things spawn.

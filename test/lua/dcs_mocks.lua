@@ -660,9 +660,56 @@ end
 StaticObject.destroy = function(obj) end
 Group.destroy = function(obj) end
 
--- Additional mist stubs needed by veafSpawn sub-modules
-mist.getRandPointInCircle = function(spot, r)
-  return { x = spot.x or 0, y = spot.y or 0, z = spot.z or 0 }
+-- ---------------------------------------------------------------------------
+-- Deterministic randomness
+-- ---------------------------------------------------------------------------
+-- `veaf.getRandomPointInCircle` is VEAF's own code since DROP-MIST ticket 06, so the draw actually
+-- runs in tests instead of being answered by a stub that handed back the centre and ignored the
+-- radius. Rather than stubbing our own function — which would put the tests back to asserting a mock —
+-- the randomness underneath it is made deterministic: `math.random()` answers 0, so the drawn angle is
+-- 0 and the drawn distance is `radius * sqrt(0)` = 0, which lands exactly on the centre. That is what
+-- the MiST stub used to return, so suites that never cared about the draw keep seeing what they saw.
+--
+-- A suite that *does* care drives it with dcs_mocks.setRandomSequence.
+local _realRandom = math.random
+dcs_mocks.randomSequence = nil
+dcs_mocks.randomIndex = 0
+
+--- Feed the next draws. Each entry is a number in [0, 1); the sequence repeats once exhausted.
+--- Call with nil to go back to the constant 0.
+function dcs_mocks.setRandomSequence(values)
+  dcs_mocks.randomSequence = values
+  dcs_mocks.randomIndex = 0
+end
+
+--- The unit draw the mocks answer: the next value of the sequence, or 0.
+local function nextUnitDraw()
+  local sequence = dcs_mocks.randomSequence
+  if not sequence or #sequence == 0 then
+    return 0
+  end
+  dcs_mocks.randomIndex = (dcs_mocks.randomIndex % #sequence) + 1
+  return sequence[dcs_mocks.randomIndex]
+end
+
+local _deterministicRandom = function(a, b)
+  local draw = nextUnitDraw()
+  if a == nil then
+    return draw
+  end
+  local low, high = 1, a
+  if b ~= nil then
+    low, high = a, b
+  end
+  -- Mirror math.random(m, n): an integer in [low, high].
+  return low + math.floor(draw * (high - low + 1))
+end
+math.random = _deterministicRandom
+
+--- Restore Lua's own generator, for a test that genuinely needs unpredictability.
+--- Undone by dcs_mocks.reset(), so it cannot leak into the next suite.
+function dcs_mocks.useRealRandom()
+  math.random = _realRandom
 end
 mist.teleportToPoint = function(vars)
   return nil
@@ -711,6 +758,8 @@ function dcs_mocks.reset()
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.cockpitArguments = {}
   dcs_mocks.exportAvailable = true
+  dcs_mocks.setRandomSequence(nil)
+  math.random = _deterministicRandom
   dcs_mocks.clearUnitsAndGroups()
   for _, manager in ipairs({ CTLDZoneManager, CTLDBeaconManager, CTLDJTACManager }) do
     if manager then
@@ -762,10 +811,16 @@ function dcs_mocks.addUnit(name, data)
   u.getPoint = u.getPoint or function()
     return { x = 0, y = 0, z = 0 }
   end
-  -- DCS's getPosition returns a full orientation plus the point; only `p` is ever read here.
-  u.getPosition = u.getPosition or function(self)
-    return { p = (self or u):getPoint() }
-  end
+  -- DCS's getPosition returns a full orientation plus the point. `x` is the unit's forward vector, and
+  -- it is read for real now that `veaf.getHeading` is VEAF's own code rather than a MiST stub that
+  -- answered a constant. `_heading` (radians) sets it; the default keeps the pi/2 the old stub returned,
+  -- so a suite that never cared about heading sees exactly what it saw before.
+  u.getPosition = u.getPosition
+    or function(self)
+      local target = self or u
+      local heading = target._heading or (math.pi / 2)
+      return { p = target:getPoint(), x = { x = math.cos(heading), y = 0, z = math.sin(heading) } }
+    end
   u.getCoalition = u.getCoalition or function()
     return coalition.side.BLUE
   end

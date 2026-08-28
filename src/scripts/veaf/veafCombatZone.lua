@@ -172,7 +172,7 @@ end
 --- Sources are read in a fixed order — the group name first, then the unit names in **alphabetical**
 --- order — and the first value found for a tag wins; a later source stating a different value is
 --- ignored with a warning. Alphabetical rather than the order the units were met in: that order is
---- `mist.getUnitsInZones` followed by `pairs()`, so tie-breaking on it would be the coin toss this
+--- `veaf.getUnitsInTriggerZone` followed by `pairs()`, so tie-breaking on it would be the coin toss this
 --- replaces, and it is not something a mission maker can see in the mission editor.
 ---
 --- `#command` is not merged — it is a one-shot trigger attached to an object, not a setting of the
@@ -548,7 +548,7 @@ end
 --- displacement silently carries the spacing between the two, translating the whole group by it.
 ---
 --- The zone does meet units in editor order (`veaf.getUnitsNamesOfCoalition` and
---- `mist.getUnitsInZones` both walk indexed loops), so this only bites when unit 1 is **filtered out**:
+--- `veaf.getUnitsInTriggerZone` both walk indexed loops), so this only bites when unit 1 is **filtered out**:
 --- a group straddling the trigger zone's edge with its first unit outside. Then unit 2 arrives as "the
 --- first one", and a convoy comes up a truck-length down the road from where it was drawn — with
 --- `#spawnradius=0` written and no dispersion asked for.

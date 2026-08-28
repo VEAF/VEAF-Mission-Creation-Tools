@@ -12,9 +12,10 @@
 -- already reads the same formats back (`veaf.lua`, on `coord.MGRStoLL` since FEAT-COORDINATE-FORMATS).
 --
 -- These strings go into F10 reports and briefings that mission makers have been reading for years, so
--- the port reproduces MiST byte for byte — including two places where MiST is visibly wrong. Both are
--- marked below and pinned by tests. Correcting them is a decision about what pilots read, not part of
--- removing a dependency.
+-- the port reproduced MiST byte for byte, quirks included, and every format is pinned by a test that
+-- compares against a literal string. One of those quirks has since been corrected on its own merits
+-- (FIX-DMS-MINUTE-CARRY, the minute-to-degree carry); the one that remains is the hemisphere letter at
+-- exactly zero, which is marked below.
 ------------------------------------------------------------------
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -63,10 +64,10 @@ end
 --- on the southern and western side. Almost certainly not intended, kept because it is what pilots
 --- have been reading.
 ---
---- **In DMS, a minute reaching 60 is printed as `60`.** Seconds rounding up carry into the minute, but
---- a minute reaching 60 does not carry into the degree, so `41.99999444` renders as `41 60' 00"N`
---- where the decimal branch would say `42 00'`. The decimal branch does carry — the asymmetry is
---- MiST's, and reproducing it is deliberate.
+--- Both layouts carry all the way up: seconds rounding to 60 carry into the minute, and a minute
+--- reaching 60 carries into the degree. MiST's DMS branch stopped at the first of those and printed
+--- `41 60' 00"N` where the decimal branch, three lines away, already said `42 00'`; the port
+--- reproduced that, and FIX-DMS-MINUTE-CARRY corrected it.
 ---
 --- @param lat number latitude in decimal degrees
 --- @param lon number longitude in decimal degrees
@@ -95,11 +96,18 @@ function veafGeo.toStringLL(lat, lon, acc, dms)
       latSec = 0
       latMinWhole = latMinWhole + 1
     end
+    if latMinWhole == 60 then
+      latMinWhole = 0
+      latDeg = latDeg + 1
+    end
     if lonSec == 60 then
       lonSec = 0
       lonMinWhole = lonMinWhole + 1
     end
-    -- No carry from 60 minutes into the degree here: see the note above.
+    if lonMinWhole == 60 then
+      lonMinWhole = 0
+      lonDeg = lonDeg + 1
+    end
 
     local secondsFormat = fractionFormat(acc)
     return string.format("%02d %02d' " .. secondsFormat .. '"%s', latDeg, latMinWhole, latSec, latHemisphere)

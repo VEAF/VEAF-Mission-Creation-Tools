@@ -349,10 +349,11 @@ veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)  -- "38T KM 123 679"
 La géodésie reste celle de DCS (`coord.LOtoLL`, `coord.LLtoMGRS`) ; ce module ne fait que le texte.
 
 **Ces chaînes partent dans les rapports F10 et les briefings**, donc elles sont figées par des tests à
-chaîne littérale. Deux bizarreries de MiST sont reproduites volontairement et documentées dans le
-module : une position à zéro s'affiche `S`/`W`, et en DMS une minute atteignant 60 n'est pas reportée
-sur le degré (`41 60'` au lieu de `42 00'`), alors que le mode décimal, lui, la reporte. Les corriger
-change ce que lisent les pilotes : c'est une décision à prendre à part, pas un effet de bord.
+chaîne littérale. Le port a repris MiST au caractère près, bizarreries comprises ; corriger l'une
+d'elles change ce que lisent les pilotes, et se décide donc à part. Une l'a été
+(`FIX-DMS-MINUTE-CARRY` : en DMS, une minute atteignant 60 se reporte maintenant sur le degré, comme
+le faisait déjà le mode décimal). Il en reste une, toujours celle de MiST : une position à exactement
+zéro s'affiche `S`/`W`, le test d'hémisphère étant `> 0`.
 
 ### Accès mist.DBs
 

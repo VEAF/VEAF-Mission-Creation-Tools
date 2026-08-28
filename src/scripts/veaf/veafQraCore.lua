@@ -764,7 +764,7 @@ function VeafQRACore:check()
         then
           -- rearm the QRA after a delay (if set)
           if self.delayBeforeRearming > 0 then
-            mist.scheduleFunction(function(qra)
+            veaf.scheduleFunction(function(qra)
               veaf.safeCall(VeafQRACore.rearm, qra)
             end, { self }, timer.getTime() + self.delayBeforeRearming)
             self.state = veafQraManager.STATUS_WILLREARM
@@ -828,7 +828,7 @@ function VeafQRACore:check()
       end
     end
 
-    mist.scheduleFunction(function(qra)
+    veaf.scheduleFunction(function(qra)
       veaf.safeCall(VeafQRACore.check, qra)
     end, { self }, timer.getTime() + veafQraManager.WATCHDOG_DELAY)
   end

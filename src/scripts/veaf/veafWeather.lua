@@ -1373,7 +1373,7 @@ function VeafFog:disable(dontRestore)
   -- disable the scheduler
   if self.dynamicCheckFunctionScheduled then
     veaf.loggers.get(veafWeather.Id):trace("disable the scheduler")
-    mist.removeFunction(self.dynamicCheckFunctionScheduled)
+    veaf.removeFunction(self.dynamicCheckFunctionScheduled)
     self.dynamicCheckFunctionScheduled = nil
   end
 
@@ -1538,7 +1538,7 @@ function VeafFog:dynamicCheck()
 
   -- reschedule
   self.dynamicCheckFunctionScheduled =
-    mist.scheduleFunction(VeafFog.dynamicCheck, { self }, timer.getTime() + VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS)
+    veaf.scheduleFunction(VeafFog.dynamicCheck, { self }, timer.getTime() + VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS)
 end
 
 function veafWeather.createStaticFog(name, thickness, visibility)
@@ -1983,7 +1983,7 @@ function veafWeather.onPlayerEnterUnit(event)
   -- it was ever asked to speak, and a debug line cannot answer it from a default log.
   veaf.loggers.get(veafWeather.Id):info("welcome brief scheduled for [%s]", veaf.p(sUnitName))
   -- Scheduled by name, not by unit: the unit object may be stale by the time the timer fires.
-  mist.scheduleFunction(veafWeather.sendWelcomeBrief, { sUnitName }, timer.getTime() + veafWeather.WELCOME_BRIEF_DELAY_SECONDS)
+  veaf.scheduleFunction(veafWeather.sendWelcomeBrief, { sUnitName }, timer.getTime() + veafWeather.WELCOME_BRIEF_DELAY_SECONDS)
 end
 
 --- Brief every human slot that is already occupied.
@@ -2039,7 +2039,7 @@ function veafWeather.initialize(bWelcomeBrief)
     --
     -- The subscription stays for pilots who join a running server later; this sweep covers everyone who
     -- was already there. Both go through `briefedUnits`, so nobody is briefed twice.
-    mist.scheduleFunction(veafWeather.briefEveryoneAlreadyFlying, {}, timer.getTime() + veafWeather.WELCOME_BRIEF_DELAY_SECONDS)
+    veaf.scheduleFunction(veafWeather.briefEveryoneAlreadyFlying, {}, timer.getTime() + veafWeather.WELCOME_BRIEF_DELAY_SECONDS)
   end
   veafRemote.registerRemoteModule("atis", veafWeather.executeCommandFromRemote)
   veafRemote.registerRemoteModule("atc", veafWeather.executeCommandFromRemote)

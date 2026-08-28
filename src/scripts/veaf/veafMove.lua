@@ -714,7 +714,7 @@ function veafMove.reestablishEscortTask(escorted_groupName, delay)
     return false
   end
 
-  mist.scheduleFunction(
+  veaf.scheduleFunction(
     veafMove.actualReestablishEscortTask,
     { escorted_groupName, groupName_escort, escortData, task_escort },
     timer.getTime() + (delay or 1)
@@ -892,7 +892,7 @@ function veafMove.replaceMission(unitGroup, missionData, delay, immortal)
     Controller.setCommand(controller, _setFrequency)
   end
 
-  mist.scheduleFunction(actualReplaceMission, { unitGroup, missionData, immortal }, timer.getTime() + delay)
+  veaf.scheduleFunction(actualReplaceMission, { unitGroup, missionData, immortal }, timer.getTime() + delay)
 end
 
 ------------------------------------------------------------------------------

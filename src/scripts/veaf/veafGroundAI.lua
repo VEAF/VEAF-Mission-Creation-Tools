@@ -295,7 +295,7 @@ function GroundUnitHandler:check()
   end
 
   -- reschedule the check function
-  self:setCheckFunctionSchedule(mist.scheduleFunction(function(handler)
+  self:setCheckFunctionSchedule(veaf.scheduleFunction(function(handler)
     veaf.safeCall(GroundUnitHandler.check, handler)
   end, { self }, timer.getTime() + veafGroundAI.WATCHDOG_DELAY))
 end
@@ -322,11 +322,11 @@ function GroundUnitHandler:stop()
     self.onStop(self)
   end
   if self.checkFunctionSchedule then
-    mist.removeFunction(self.checkFunctionSchedule)
+    veaf.removeFunction(self.checkFunctionSchedule)
     self.checkFunctionSchedule = nil
   end
   if self:getCheckFunctionSchedule() then
-    mist.removeFunction(self:getCheckFunctionSchedule())
+    veaf.removeFunction(self:getCheckFunctionSchedule())
     self:setCheckFunctionSchedule(nil)
   end
 end

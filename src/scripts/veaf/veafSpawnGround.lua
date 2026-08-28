@@ -334,7 +334,7 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn._createDcsUnits([%s])", country or ""))
 
   if hasDest then
-    mist.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
+    veaf.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
   end
 
   local dcsUnits = {}
@@ -770,7 +770,7 @@ function veafSpawn.spawnConvoy(
     -- Only an itinerary needs watching. A single `dest` has no next leg, so a one-point convoy keeps
     -- exactly the behaviour it had before this lot — no watchdog, nothing rescheduled.
     if #itinerary > 1 then
-      mist.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { groupName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
+      veaf.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { groupName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
     end
 
     if not silent then
@@ -835,7 +835,7 @@ function veafSpawn.convoyArrivalWatchdog(convoyName)
     end
   end
 
-  mist.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { convoyName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
+  veaf.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { convoyName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
 end
 
 --- Has the convoy reached the last waypoint of its current route?

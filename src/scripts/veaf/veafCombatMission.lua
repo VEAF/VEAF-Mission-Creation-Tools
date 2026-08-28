@@ -714,7 +714,7 @@ end
 
 function VeafCombatMission:scheduleWatchdogFunction()
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:scheduleWatchdogFunction()", self.name or ""))
-  self.watchdogFunctionId = mist.scheduleFunction(
+  self.watchdogFunctionId = veaf.scheduleFunction(
     veafCombatMission.CompletionCheck,
     { self.name },
     timer.getTime() + veafCombatMission.SecondsBetweenWatchdogChecks
@@ -725,8 +725,8 @@ end
 function VeafCombatMission:unscheduleWatchdogFunction()
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:unscheduleWatchdogFunction()", self.name or ""))
   if self.watchdogFunctionId then
-    veaf.loggers.get(veafCombatMission.Id):debug(string.format("mist.removeFunction()"))
-    mist.removeFunction(self.watchdogFunctionId)
+    veaf.loggers.get(veafCombatMission.Id):debug(string.format("veaf.removeFunction()"))
+    veaf.removeFunction(self.watchdogFunctionId)
     self.watchdogFunctionId = nil
   end
   return self
@@ -1163,7 +1163,7 @@ function veafCombatMission.ActivateMission(name, silent, unitName)
   if not silent and not mission:isSilent() then
     if result then
       veaf.outTextForUnit(unitName, veaf.t("entity.activated", "VeafCombatMission " .. mission:getFriendlyName()), 10)
-      mist.scheduleFunction(veafCombatMission.GetInformationOnMission, { { name } }, timer.getTime() + 1)
+      veaf.scheduleFunction(veafCombatMission.GetInformationOnMission, { { name } }, timer.getTime() + 1)
     else
       veaf.outTextForUnit(unitName, veaf.t("entity.already_active", "VeafCombatMission " .. mission:getFriendlyName()), 10)
     end

@@ -607,7 +607,7 @@ function veafSkynetMonitor.AddMonitoringTask(task)
 
   if veafSkynetMonitor._monitoringThreadId == nil then
     veaf.loggers.get(veafSkynetMonitor.Id):trace("Starting mist thread")
-    veafSkynetMonitor._monitoringThreadId = mist.scheduleFunction(
+    veafSkynetMonitor._monitoringThreadId = veaf.scheduleFunction(
       veafSkynetMonitor.ExecuteMonitoringTasks,
       {},
       timer.getTime() + veafSkynetMonitor._interval,
@@ -631,7 +631,7 @@ function veafSkynetMonitor.RemoveMonitoringTask(sTaskName)
 
   if veaf.length(veafSkynetMonitor._monitoringTasks) <= 0 then
     veaf.loggers.get(veafSkynetMonitor.Id):trace("Nothing to monitor, stopping mist thread")
-    mist.removeFunction(veafSkynetMonitor._monitoringThreadId)
+    veaf.removeFunction(veafSkynetMonitor._monitoringThreadId)
   end
 end
 

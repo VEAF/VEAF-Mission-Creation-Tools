@@ -1151,7 +1151,7 @@ function veafCasMission.smokeCasTargetGroup()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request smoke on target area")
   veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.smoke_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.smokeResetTaskID =
-    mist.scheduleFunction(veafCasMission.smokeReset, {}, timer.getTime() + veafCasMission.SecondsBetweenSmokeRequests)
+    veaf.scheduleFunction(veafCasMission.smokeReset, {}, timer.getTime() + veafCasMission.SecondsBetweenSmokeRequests)
   veafRadio.refreshRadioMenu()
 end
 
@@ -1174,7 +1174,7 @@ function veafCasMission.flareCasTargetGroup()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request illumination flare over target area")
   veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.flare_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.flareResetTaskID =
-    mist.scheduleFunction(veafCasMission.flareReset, {}, timer.getTime() + veafCasMission.SecondsBetweenFlareRequests)
+    veaf.scheduleFunction(veafCasMission.flareReset, {}, timer.getTime() + veafCasMission.SecondsBetweenFlareRequests)
   veafRadio.refreshRadioMenu()
 end
 
@@ -1196,7 +1196,7 @@ function veafCasMission.casGroupWatchdog()
   if nbVehicles > 0 then
     veaf.loggers.get(veafCasMission.Id):trace("Group is still alive with " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers")
     veafCasMission.groupAliveCheckTaskID =
-      mist.scheduleFunction(veafCasMission.casGroupWatchdog, {}, timer.getTime() + veafCasMission.SecondsBetweenWatchdogChecks)
+      veaf.scheduleFunction(veafCasMission.casGroupWatchdog, {}, timer.getTime() + veafCasMission.SecondsBetweenWatchdogChecks)
   else
     trigger.action.outText(veaf.t("cas.objective_destroyed"), 5)
     veafCasMission.cleanupAfterMission()
@@ -1229,7 +1229,7 @@ function veafCasMission.cleanupAfterMission()
   -- remove the watchdog function
   veaf.loggers.get(veafCasMission.Id):trace("remove the watchdog function")
   if veafCasMission.groupAliveCheckTaskID ~= "none" then
-    mist.removeFunction(veafCasMission.groupAliveCheckTaskID)
+    veaf.removeFunction(veafCasMission.groupAliveCheckTaskID)
   end
   veafCasMission.groupAliveCheckTaskID = "none"
 

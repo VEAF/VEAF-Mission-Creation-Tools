@@ -72,6 +72,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Their **escort** is a separate question and is not covered by this: clear-ground search for FARP
   escorts is tracked on its own.
 
+- **Scheduling no longer goes through MiST.** Every VEAF module now asks `veaf.scheduleFunction` for a
+  delayed or repeating call, and DCS's own `timer.scheduleFunction` does the work. Nothing changes for
+  a mission: the same signature, the same repetition, the same stop time, the same tolerance for a task
+  that raises — the failure is logged and the other tasks carry on.
+
+  What changes is underneath. MiST does not wrap the native timer; it keeps a task list and re-arms its
+  main loop every 0.01 s to walk that list, whether or not anything is due. A VEAF task is now one
+  native scheduled call that re-arms itself by returning its next time, so an idle mission schedules
+  nothing. MiST's loop keeps running for as long as MiST is still injected — this removes VEAF's
+  dependence on it, not the library.
+
+  Mission scripts calling `mist.scheduleFunction` themselves keep working; the documented examples now
+  use `veaf.scheduleFunction`, which is what will survive MiST's removal.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

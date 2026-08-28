@@ -2044,7 +2044,7 @@ function veafGrass.initialize()
   -- delay all these functions 30 seconds (to ensure that the other modules are loaded)
 
   -- auto generate FARP units (hide these units on MFDs as they create clutter for nothing since the FARP already shows or not depending on what the Mission maker wanted, regardless, don't show them)
-  mist.scheduleFunction(veafGrass.buildFarpsUnits, { true }, timer.getTime() + veafGrass.DelayForStartup)
+  veaf.scheduleFunction(veafGrass.buildFarpsUnits, { true }, timer.getTime() + veafGrass.DelayForStartup)
 
   veafEventHandler.addCallback("veafGrass.OnBirth", { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" }, veafGrass.onBirth)
 end

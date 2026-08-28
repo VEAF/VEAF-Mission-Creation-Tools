@@ -177,17 +177,17 @@ local myRedIads = nil
 
 local function AssignRedIadsTask()
     if not veafSkynet then
-        mist.removeFunction(assignRedIadsTaskId)
+        veaf.removeFunction(assignRedIadsTaskId)
         return
     end
     if veafSkynet.initialized then
-        mist.removeFunction(assignRedIadsTaskId)
+        veaf.removeFunction(assignRedIadsTaskId)
         local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(coalition.side.RED)])
         myRedIads = veafSkynetNetwork.iads
     end
 end
 
-assignRedIadsTaskId = mist.scheduleFunction(AssignRedIadsTask, {}, timer.getTime() + veafSkynet.DelayForStartup + 1, 10)
+assignRedIadsTaskId = veaf.scheduleFunction(AssignRedIadsTask, {}, timer.getTime() + veafSkynet.DelayForStartup + 1, 10)
 ```
 
 ---

@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafSkynetIadsHelper.lua")
 
 -- ---------------------------------------------------------------------------
@@ -449,30 +450,30 @@ end
 TestVeafSkynetMonitorDynamicSpawn = {}
 
 function TestVeafSkynetMonitorDynamicSpawn:setUp()
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
 end
 
 function TestVeafSkynetMonitorDynamicSpawn:test_on_sets_handler()
   veafSkynet.monitorDynamicSpawn(true)
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetMonitorDynamicSpawn:test_on_idempotent()
   veafSkynet.monitorDynamicSpawn(true)
-  local first = veafSkynet.monitorDynamicSpawnHandlerId
+  local first = veafSkynet.monitorDynamicSpawnHandler
   veafSkynet.monitorDynamicSpawn(true)
-  luaunit.assertEquals(veafSkynet.monitorDynamicSpawnHandlerId, first)
+  luaunit.assertEquals(veafSkynet.monitorDynamicSpawnHandler, first)
 end
 
 function TestVeafSkynetMonitorDynamicSpawn:test_off_when_not_set_is_noop()
   veafSkynet.monitorDynamicSpawn(false)
-  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetMonitorDynamicSpawn:test_off_clears_handler()
   veafSkynet.monitorDynamicSpawn(true)
   veafSkynet.monitorDynamicSpawn(false)
-  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 -- ---------------------------------------------------------------------------
@@ -676,7 +677,7 @@ function TestVeafSkynetInitialize:setUp()
   veafSkynet.iadsSamUnitsTypes = {}
   veafSkynet.iadsEwrUnitsTypes = {}
   veafSkynet.CommandCentersPreinitialize = {}
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.loadAllAtInit = {
     [tostring(coalition.side.BLUE)] = true,
     [tostring(coalition.side.RED)] = true,
@@ -692,7 +693,7 @@ end
 
 function TestVeafSkynetInitialize:tearDown()
   veafSkynet.DynamicSpawn = false
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
 end
 
 function TestVeafSkynetInitialize:test_initialize_creates_blue_and_red_networks()
@@ -713,7 +714,7 @@ end
 function TestVeafSkynetInitialize:test_dynamic_spawn_true_sets_handler()
   veafSkynet.DynamicSpawn = true
   veafSkynet._initialize(false, false, false, false)
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 -------------------------------------------------------------------------------------------------
@@ -803,16 +804,16 @@ end
 --     `skynet false` joined the IADS anyway as soon as dynamic integration was on.
 -------------------------------------------------------------------------------------------------
 
---- Capture mist.scheduleFunction calls so a deferred call can be inspected and fired on demand.
+--- Capture veaf.scheduleFunction calls so a deferred call can be inspected and fired on demand.
 local function _captureSchedule()
   local calls = {}
-  local previous = mist.scheduleFunction
-  mist.scheduleFunction = function(fn, args, t)
+  local previous = veaf.scheduleFunction
+  veaf.scheduleFunction = function(fn, args, t)
     table.insert(calls, { fn = fn, args = args, time = t })
     return #calls
   end
   return calls, function()
-    mist.scheduleFunction = previous
+    veaf.scheduleFunction = previous
   end
 end
 
@@ -832,7 +833,7 @@ TestVeafSkynetDynamicSpawnScope = {}
 
 function TestVeafSkynetDynamicSpawnScope:setUp()
   veafSkynet.structure = {}
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.DynamicSpawn = false
   veafSkynet.declaredSpawns = {}
   veafSkynet.iadsSamUnitsTypes = {}
@@ -849,7 +850,7 @@ end
 
 function TestVeafSkynetDynamicSpawnScope:tearDown()
   veafSkynet.DynamicSpawn = false
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.initialized = false
 end
 
@@ -863,14 +864,14 @@ end
 function TestVeafSkynetDynamicSpawnScope:test_network_created_without_the_flag_does_not_integrate()
   veafSkynet._initialize(false, false, false, false)
   luaunit.assertFalse(veafSkynet.structure["blue iads"].dynamicSpawn)
-  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetDynamicSpawnScope:test_refresh_arms_when_one_network_wants_it()
   _netWithIads("blue iads", coalition.side.BLUE, { dynamicSpawn = false })
   _netWithIads("red iads", coalition.side.RED, { dynamicSpawn = true })
   veafSkynet.refreshDynamicSpawnMonitoring()
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetDynamicSpawnScope:test_refresh_disarms_when_no_network_wants_it()
@@ -878,7 +879,7 @@ function TestVeafSkynetDynamicSpawnScope:test_refresh_disarms_when_no_network_wa
   veafSkynet.refreshDynamicSpawnMonitoring()
   veafSkynet.structure["blue iads"].dynamicSpawn = false
   veafSkynet.refreshDynamicSpawnMonitoring()
-  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetDynamicSpawnScope:test_setDynamicSpawn_touches_one_network_only()
@@ -898,11 +899,11 @@ function TestVeafSkynetDynamicSpawnScope:test_deactivating_red_leaves_blue_armed
   _netWithIads("blue iads", coalition.side.BLUE, { dynamicSpawn = true })
   local red = _netWithIads("red iads", coalition.side.RED, { dynamicSpawn = true })
   veafSkynet.refreshDynamicSpawnMonitoring()
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler)
 
   veafSkynet.deactivateNetwork(red)
 
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId, "deactivating red disarmed the shared handler")
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler, "deactivating red disarmed the shared handler")
   luaunit.assertTrue(veafSkynet.structure["blue iads"].dynamicSpawn, "blue lost its dynamic integration")
 end
 
@@ -924,7 +925,7 @@ TestVeafSkynetDeactivatedStaysDown = {}
 
 function TestVeafSkynetDeactivatedStaysDown:setUp()
   veafSkynet.structure = {}
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.iadsSamUnitsTypes = {}
   veafSkynet.iadsEwrUnitsTypes = {}
   veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
@@ -1030,7 +1031,7 @@ TestVeafSkynetDeclaredSpawns = {}
 function TestVeafSkynetDeclaredSpawns:setUp()
   veafSkynet.structure = {}
   veafSkynet.declaredSpawns = {}
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.iadsSamUnitsTypes = {}
   veafSkynet.iadsEwrUnitsTypes = {}
   veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient

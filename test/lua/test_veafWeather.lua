@@ -18,6 +18,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafTime.lua")
 dofile(src .. "/veafI18n.lua")
 -- veafWeather reaches into veafAirbases for the welcome brief (the nearest airbase and its runway
@@ -1112,7 +1113,7 @@ function TestVeafWeatherWelcomeBrief:setUp()
   self._savedOutForGroup = trigger.action.outTextForGroup
   self._savedNearest = veafAirbases.getNearestAirbase
   self._savedCreate = veafWeatherData.create
-  self._savedSchedule = mist.scheduleFunction
+  self._savedSchedule = veaf.scheduleFunction
   self._savedGetByName = Unit.getByName
 
   self.messages = {}
@@ -1128,7 +1129,7 @@ function TestVeafWeatherWelcomeBrief:setUp()
   trigger.action.outTextForGroup = function(groupId, text, duration)
     table.insert(self.messages, { groupId = groupId, text = text, duration = duration })
   end
-  mist.scheduleFunction = function(fn, args, when)
+  veaf.scheduleFunction = function(fn, args, when)
     table.insert(self.scheduled, { fn = fn, args = args, when = when })
   end
 end
@@ -1138,7 +1139,7 @@ function TestVeafWeatherWelcomeBrief:tearDown()
   trigger.action.outTextForGroup = self._savedOutForGroup
   veafAirbases.getNearestAirbase = self._savedNearest
   veafWeatherData.create = self._savedCreate
-  mist.scheduleFunction = self._savedSchedule
+  veaf.scheduleFunction = self._savedSchedule
   Unit.getByName = self._savedGetByName
   mist.DBs.humansByName = self._savedHumans
 end
@@ -1615,12 +1616,12 @@ function TestVeafWeatherWelcomeBrief:test_initialize_also_sweeps_who_is_already_
   local hadRemote = veafRemote ~= nil
   veafRemote = veafRemote or {}
   local origRemote = veafRemote.registerRemoteModule
-  local origSchedule = mist.scheduleFunction
+  local origSchedule = veaf.scheduleFunction
   veafEventHandler.addCallback = function() end
   veafWeather.buildRadioMenu = function() end
   veafAirbases.initialize = function() end
   veafRemote.registerRemoteModule = function() end
-  mist.scheduleFunction = function(fn)
+  veaf.scheduleFunction = function(fn)
     table.insert(scheduledFns, fn)
   end
 
@@ -1630,7 +1631,7 @@ function TestVeafWeatherWelcomeBrief:test_initialize_also_sweeps_who_is_already_
   veafWeather.buildRadioMenu = origMenu
   veafAirbases.initialize = origAirbases
   veafRemote.registerRemoteModule = origRemote
-  mist.scheduleFunction = origSchedule
+  veaf.scheduleFunction = origSchedule
   if not hadRemote then
     veafRemote = nil
   end

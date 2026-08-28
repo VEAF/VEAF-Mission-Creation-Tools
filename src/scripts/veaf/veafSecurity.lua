@@ -707,7 +707,7 @@ function veafSecurity.logout(withMessage, unitName)
   end
   veafRadio.refreshRadioMenu()
   if veafSecurity.logoutWatchdog then
-    mist.removeFunction(veafSecurity.logoutWatchdog)
+    veaf.removeFunction(veafSecurity.logoutWatchdog)
   end
 end
 
@@ -729,9 +729,9 @@ function veafSecurity.authenticate(minutes, unitName)
     veafSecurity.authenticated = true
     veafRadio.refreshRadioMenu()
     if veafSecurity.logoutWatchdog then
-      mist.removeFunction(veafSecurity.logoutWatchdog)
+      veaf.removeFunction(veafSecurity.logoutWatchdog)
     end
-    veafSecurity.logoutWatchdog = mist.scheduleFunction(veafSecurity.logout, { true }, timer.getTime() + actualMinutes * 60)
+    veafSecurity.logoutWatchdog = veaf.scheduleFunction(veafSecurity.logout, { true }, timer.getTime() + actualMinutes * 60)
   end
 end
 

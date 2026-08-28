@@ -1106,7 +1106,7 @@ function VeafCombatZone:scheduleWatchdogFunction()
     .get(veafCombatZone.Id)
     :trace(string.format("VeafCombatZone[%s]:scheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
   if self:isCompletable() then
-    self.watchdogFunctionId = mist.scheduleFunction(
+    self.watchdogFunctionId = veaf.scheduleFunction(
       veafCombatZone.CompletionCheck,
       { self.missionEditorZoneName },
       timer.getTime() + veafCombatZone.SecondsBetweenWatchdogChecks
@@ -1120,7 +1120,7 @@ function VeafCombatZone:unscheduleWatchdogFunction()
     .get(veafCombatZone.Id)
     :trace(string.format("VeafCombatZone[%s]:unscheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
   if self.watchdogFunctionId then
-    mist.removeFunction(self.watchdogFunctionId)
+    veaf.removeFunction(self.watchdogFunctionId)
   end
   self.watchdogFunctionId = nil
   return self
@@ -1454,7 +1454,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       .get(veafCombatZone.Id)
       :trace("scheduling spawn of zoneElement=%s in %s seconds", zoneElement:getName(), zoneElement:getSpawnDelay())
     local id =
-      mist.scheduleFunction(VeafCombatZone.spawnElement, { self, zoneElement, true }, timer.getTime() + zoneElement:getSpawnDelay())
+      veaf.scheduleFunction(VeafCombatZone.spawnElement, { self, zoneElement, true }, timer.getTime() + zoneElement:getSpawnDelay())
     self:addDelayedSpawner(id)
   else
     -- spawn now
@@ -1636,7 +1636,7 @@ function VeafCombatZone:activateNextChainedZone()
   veaf.loggers
     .get(veafCombatZone.Id)
     :trace(string.format("activating the next chained zone ([%s]) in %s seconds)", veaf.p(nextZoneName), veaf.p(delay)))
-  mist.scheduleFunction(VeafCombatZone.activate, { nextZone }, timer.getTime() + delay)
+  veaf.scheduleFunction(VeafCombatZone.activate, { nextZone }, timer.getTime() + delay)
   return self
 end
 
@@ -1648,7 +1648,7 @@ function VeafCombatZone:desactivate()
 
   for _, delayedSpawner in pairs(self:getDelayedSpawners()) do
     veaf.loggers.get(veafCombatZone.Id):trace("unscheduling delayed spawner %s", delayedSpawner)
-    mist.removeFunction(delayedSpawner)
+    veaf.removeFunction(delayedSpawner)
   end
   self:clearDelayedSpawners()
 
@@ -1759,7 +1759,7 @@ function VeafCombatZone:popSmoke()
   end
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("smokePoint=%s", veaf.vecToString(smokePoint)))
   veafSpawn.spawnSmoke(smokePoint, trigger.smokeColor.Red)
-  self.smokeResetFunctionId = mist.scheduleFunction(
+  self.smokeResetFunctionId = veaf.scheduleFunction(
     veafCombatZone.SmokeReset,
     { self.missionEditorZoneName },
     timer.getTime() + veafCombatZone.SecondsBetweenSmokeRequests
@@ -1776,7 +1776,7 @@ function VeafCombatZone:popFlare()
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("self:getCenter()=%s", veaf.vecToString(self:getCenter())))
 
   veafSpawn.spawnIlluminationFlare(self:getCenter())
-  self.flareResetFunctionId = mist.scheduleFunction(
+  self.flareResetFunctionId = veaf.scheduleFunction(
     veafCombatZone.FlareReset,
     { self.missionEditorZoneName },
     timer.getTime() + veafCombatZone.SecondsBetweenFlareRequests
@@ -2110,7 +2110,7 @@ function VeafCombatOperation:scheduleWatchdogFunction()
   veaf.loggers
     .get(veafCombatZone.Id)
     :trace(string.format("VeafCombatOperation[%s]:scheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
-  self.watchdogFunctionId = mist.scheduleFunction(
+  self.watchdogFunctionId = veaf.scheduleFunction(
     veafCombatZone.CompletionCheck,
     { self.missionEditorZoneName },
     timer.getTime() + veafCombatZone.SecondsBetweenWatchdogChecks
@@ -2123,7 +2123,7 @@ function VeafCombatOperation:unscheduleWatchdogFunction()
     .get(veafCombatZone.Id)
     :trace(string.format("VeafCombatOperation[%s]:unscheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
   if self.watchdogFunctionId then
-    mist.removeFunction(self.watchdogFunctionId)
+    veaf.removeFunction(self.watchdogFunctionId)
   end
   self.watchdogFunctionId = nil
   return self
@@ -2433,10 +2433,10 @@ function veafCombatZone.ActivateZone(zoneName, silent)
       end
       return
     end
-    mist.scheduleFunction(zone.activate, { zone }, timer.getTime() + 1)
+    veaf.scheduleFunction(zone.activate, { zone }, timer.getTime() + 1)
     if not silent then
       trigger.action.outText(veaf.t("entity.activated", "VeafCombatZone " .. zone:getFriendlyName()), 10)
-      mist.scheduleFunction(veafCombatZone.GetInformationOnZone, { { zoneName } }, timer.getTime() + 2)
+      veaf.scheduleFunction(veafCombatZone.GetInformationOnZone, { { zoneName } }, timer.getTime() + 2)
     end
     return zone
   else

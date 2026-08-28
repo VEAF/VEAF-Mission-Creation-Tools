@@ -644,7 +644,7 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                 -- flak the plane - :destroy() does not work for human players and weapons in MP
                 veafSpawn.destroyObjectWithFlak(launcherUnit, 2, 2)
                 -- forgive the player in 10 minutes (let him get out of trouble and don't kill him straight if he comes back)
-                mist.scheduleFunction(
+                veaf.scheduleFunction(
                   VeafSanctuaryZone.forgive,
                   { self, launcherPlayername },
                   timer.getTime() + veafSanctuary.FORGIVE_SHOOTER_AFTER
@@ -796,7 +796,7 @@ function veafSanctuary.eventHandler:onEvent(event)
     -- process all zones
     for _, zone in pairs(veafSanctuary.zonesList) do
       veaf.loggers.get(veafSanctuary.Id):trace(string.format("zone:getName()=%s", veaf.p(zone:getName())))
-      mist.scheduleFunction(VeafSanctuaryZone.handleWeapon, { zone, event.weapon }, timer.getTime() + veafSanctuary.DESTROY_WEAPONS_AFTER)
+      veaf.scheduleFunction(VeafSanctuaryZone.handleWeapon, { zone, event.weapon }, timer.getTime() + veafSanctuary.DESTROY_WEAPONS_AFTER)
     end
   else -- process human players events
     if not event.initiator then
@@ -871,7 +871,7 @@ function veafSanctuary.loop()
     end
   end
 
-  mist.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayBetweenChecks)
+  veaf.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayBetweenChecks)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -892,7 +892,7 @@ function veafSanctuary.initialize()
   world.addEventHandler(veafSanctuary.eventHandler)
 
   -- Start the main loop
-  mist.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayForStartup)
+  veaf.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayForStartup)
 
   veafSanctuary.initialized = true
   veaf.loggers.get(veafSanctuary.Id):info(string.format("Sanctuary system has been initialized"))

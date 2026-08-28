@@ -1065,7 +1065,7 @@ function veafCarrierOperations.operationsScheduler()
   veaf.loggers
     .get(veafCarrierOperations.Id)
     :debug("veafCarrierOperations.operationsScheduler() - rescheduling in " .. veafCarrierOperations.SCHEDULER_INTERVAL * 60 .. " s")
-  mist.scheduleFunction(veafCarrierOperations.operationsScheduler, {}, timer.getTime() + veafCarrierOperations.SCHEDULER_INTERVAL * 60)
+  veaf.scheduleFunction(veafCarrierOperations.operationsScheduler, {}, timer.getTime() + veafCarrierOperations.SCHEDULER_INTERVAL * 60)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

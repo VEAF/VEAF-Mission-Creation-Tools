@@ -14,6 +14,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafSecurity.lua")
 
 -- ============================================================================
@@ -570,23 +571,23 @@ end
 TestSecrev2AuthDuration = {}
 
 function TestSecrev2AuthDuration:setUp()
-  self._savedSchedule = mist.scheduleFunction
-  self._savedRemove = mist.removeFunction
+  self._savedSchedule = veaf.scheduleFunction
+  self._savedRemove = veaf.removeFunction
   self._savedAuthenticated = veafSecurity.authenticated
   self._savedWatchdog = veafSecurity.logoutWatchdog
   self.scheduled = {}
-  mist.scheduleFunction = function(fn, args, t)
+  veaf.scheduleFunction = function(fn, args, t)
     table.insert(self.scheduled, { fn = fn, args = args, time = t })
     return #self.scheduled
   end
-  mist.removeFunction = function(_) end
+  veaf.removeFunction = function(_) end
   veafSecurity.authenticated = false
   veafSecurity.logoutWatchdog = nil
 end
 
 function TestSecrev2AuthDuration:tearDown()
-  mist.scheduleFunction = self._savedSchedule
-  mist.removeFunction = self._savedRemove
+  veaf.scheduleFunction = self._savedSchedule
+  veaf.removeFunction = self._savedRemove
   veafSecurity.authenticated = self._savedAuthenticated
   veafSecurity.logoutWatchdog = self._savedWatchdog
 end

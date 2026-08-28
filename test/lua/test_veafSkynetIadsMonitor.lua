@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafSkynetIadsHelper.lua")
 dofile(src .. "/veafSkynetIadsMonitor.lua")
 

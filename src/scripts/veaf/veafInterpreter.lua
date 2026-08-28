@@ -148,7 +148,7 @@ end
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafInterpreter.initialize()
-  mist.scheduleFunction(veafInterpreter._initialize, {}, timer.getTime() + veafInterpreter.DelayForStartup)
+  veaf.scheduleFunction(veafInterpreter._initialize, {}, timer.getTime() + veafInterpreter.DelayForStartup)
 end
 
 function veafInterpreter._initialize()

@@ -217,7 +217,7 @@ function veafTransportMission.doRadioTransmission(groupName)
     )
   end
 
-  veafTransportMission.friendlyGroupAdfLoopTaskID = mist.scheduleFunction(
+  veafTransportMission.friendlyGroupAdfLoopTaskID = veaf.scheduleFunction(
     veafTransportMission.doRadioTransmission,
     { groupName },
     timer.getTime() + veafTransportMission.SecondsBetweenAdfLoops
@@ -466,7 +466,7 @@ function veafTransportMission.friendlyGroupWatchdog()
   local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafTransportMission.BlueGroupName)
   if nbVehicles + nbInfantry > 0 then
     ----veaf.loggers.get(veafTransportMission.Id):trace("Group is still alive with "..nbVehicles.." vehicles and "..nbInfantry.." soldiers")
-    veafTransportMission.friendlyGroupAliveCheckTaskID = mist.scheduleFunction(
+    veafTransportMission.friendlyGroupAliveCheckTaskID = veaf.scheduleFunction(
       veafTransportMission.friendlyGroupWatchdog,
       {},
       timer.getTime() + veafTransportMission.SecondsBetweenWatchdogChecks
@@ -532,7 +532,7 @@ function veafTransportMission.smokeTarget()
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request smoke on drop zone")
   veafRadio.addCommandToSubmenu(veaf.t("menu.transportmission.smoke_done"), veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.smokeResetTaskID =
-    mist.scheduleFunction(veafTransportMission.smokeReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenSmokeRequests)
+    veaf.scheduleFunction(veafTransportMission.smokeReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenSmokeRequests)
   veafRadio.refreshRadioMenu()
 end
 
@@ -557,7 +557,7 @@ function veafTransportMission.flareTarget()
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request illumination flare over drop zone")
   veafRadio.addCommandToSubmenu(veaf.t("menu.transportmission.flare_done"), veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.flareResetTaskID =
-    mist.scheduleFunction(veafTransportMission.flareReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenFlareRequests)
+    veaf.scheduleFunction(veafTransportMission.flareReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenFlareRequests)
   veafRadio.refreshRadioMenu()
 end
 
@@ -626,14 +626,14 @@ function veafTransportMission.cleanupAfterMission()
   -- remove the watchdog function
   veaf.loggers.get(veafTransportMission.Id):trace("remove the watchdog function")
   if veafTransportMission.friendlyGroupAliveCheckTaskID ~= "none" then
-    mist.removeFunction(veafTransportMission.friendlyGroupAliveCheckTaskID)
+    veaf.removeFunction(veafTransportMission.friendlyGroupAliveCheckTaskID)
   end
   veafTransportMission.friendlyGroupAliveCheckTaskID = "none"
 
   -- remove the watchdog function
   veaf.loggers.get(veafTransportMission.Id):trace("remove the adf loop function")
   if veafTransportMission.friendlyGroupAdfLoopTaskID ~= "none" then
-    mist.removeFunction(veafTransportMission.friendlyGroupAdfLoopTaskID)
+    veaf.removeFunction(veafTransportMission.friendlyGroupAdfLoopTaskID)
   end
   veafTransportMission.friendlyGroupAdfLoopTaskID = "none"
 

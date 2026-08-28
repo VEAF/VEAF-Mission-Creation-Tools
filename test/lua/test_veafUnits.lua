@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 
 -- Provide a minimal dcsUnits stub (instead of loading the 16k-line file).
 -- New schema: keyed by DCS type id, with a single `kind` field.

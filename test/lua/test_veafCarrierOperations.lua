@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafCarrierOperations.lua")
 
@@ -236,7 +237,7 @@ function TestVeafCarrierSimpleFunctions:test_doOperations_empty_carriers()
 end
 
 function TestVeafCarrierSimpleFunctions:test_operationsScheduler_empty_carriers()
-  -- calls doOperations() then reschedules; mist.scheduleFunction is a no-op mock
+  -- calls doOperations() then reschedules; veaf.scheduleFunction is a no-op mock
   veafCarrierOperations.carriers = {}
   veafCarrierOperations.operationsScheduler()
 end

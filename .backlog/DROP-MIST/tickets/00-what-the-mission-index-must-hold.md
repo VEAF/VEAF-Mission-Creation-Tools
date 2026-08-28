@@ -75,3 +75,25 @@ snapshot, because that decides whether ticket 07 depends on ticket 05 or can pre
 Ticket 05 loses its AI birth-event path and half its surface; ticket 07 is unblocked; two dead pieces of
 code (`veaf.mist.getUnitData`, `veafTransportMission.resetAllCargoes`) are queued for removal; and the
 lot no longer waits on a DCS session.
+
+## Question 2, answered in game 2026-08-28
+
+`DCS-SESSION-TODO` item 22 is closed, and the answer clears `veafAirWaves` rather than condemning it.
+
+Probed over **every unit in a running mission** — 346 of them, on Caucasus, DCS 2.9:
+
+```
+total=346  nonNil=1  →  "A-10C Kobuleti -1"  type=string  ["New callsign"]
+```
+
+**`getPlayerName()` returns `nil` for an AI unit**, not an empty string: 345 AI units, all `nil`, and
+the single non-`nil` answer was the human slot. That last part is what makes the measurement worth
+anything — the probe demonstrably could tell a player from an AI, so `nil` everywhere else is a result
+and not a broken check.
+
+So [`veafAirWaves.lua:791`](../../../src/scripts/veaf/veafAirWaves.lua) — `if dcsUnit:getPlayerName() then`
+— is **correct as written** on this build. Air waves do not count AI aircraft as players, and no fix lot
+is needed. The suspicion recorded in item 22 is closed, not deferred.
+
+The index's own filter (`if p and p ~= "" then`) stays as designed: it is right whichever value DCS
+returns, and it does not depend on this measurement holding for every future build.

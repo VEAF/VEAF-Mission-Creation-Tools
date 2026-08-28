@@ -52,20 +52,33 @@ broken for everyone". It never was.
 
 Items **11** and **16** are fully measurable, with no double reading and no caveat.
 
-## A mission is ready for items 21 and 10 — built 2026-08-27
+## The session mission — built 2026-08-27, twice corrected 2026-08-28
 
-`D:\dev\_VEAF\tmp\dcs-session-2026-08-27\` — **`LIRE-MOI.md` carries the full running order**, and
-`missions\VEAF-session-2026-08-27_noon.miz` is the only file to load. Caucasus, noon, `language: fr`,
-security off, built with `--dev-mode` against the repository so it carries the fixes no release has yet
-(verified on the unzipped `.miz`: `bearingFromSceneryCloud`, `PLACEMENT_DISTANCE_TOLERANCE`,
-`Object.Category.SCENERY`, `reestablishEscortTask`).
+`D:\dev\_VEAF\tmp\dcs-session-2026-08-27\` — **load
+`missions\VEAF-session-2026-08-27-escortfix_noon.miz`**, the newest of the three. Caucasus, noon,
+`language: fr`, security off, built with `--dev-mode` against the repository so it carries fixes no
+release has yet.
 
-Based on the repository's own demo mission, which already carries the `Arco` tanker and two escorts.
-**One escort was renamed to `Arco escort`** and the other deliberately left as `Arco-escort1`: the
-convention is `<asset name> .. " escort"` ([`veafMove.lua:37`](src/scripts/veaf/veafMove.lua)) and
-neither original name matched it, so item 10 would have shown the escort going home and read as "the fix
-does not work". Renaming only one gives the run its own control — the repaired escort must stay, the
-other must still leave after ~10 minutes.
+Items 21, 22 and 10 were all run on it on 2026-08-28 and are closed — item 21's counts are recorded in
+[`FIX-PLACEMENT-IGNORES-SCENERY` ticket 04](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/tickets/04-refuse-the-farp-when-the-escort-cannot-be-placed.md),
+item 22's answer in the `scenery-death-events-in-dcs` note and in `DROP-MIST` ticket 09. What remains
+here is the mission itself, still the right one to load for anything needing a live VEAF mission on
+Caucasus.
+
+⚠️ **Two defects of the 27th's build, both fixed on the 28th — do not reintroduce them.**
+
+1. **It carried two VEAF configurations.** `src/scripts/` held the demo mission's v5 `missionConfig.lua`
+   (59 KB, `MISSION_NAME = "VEAF-Demo-Mission"`) *next to* the generated `veaf-config.lua`. Both ran, so
+   every module initialised twice and **every radio submenu appeared twice**, the second one inert —
+   19 submenus under the VEAF root where there should be 9. Deleting `missionConfig.lua` and rebuilding
+   fixed it, confirmed by probing the live menu tree. The repository's own demo mission
+   (`test/veaf-tools/demo-mission/src/scripts/`) is clean; the stale file came from extracting a v5
+   `.miz`. **Anyone converting a v5 mission will hit this** — worth a guard of its own.
+2. It was built before the `findEscortTask` fix, so item 10 could not pass on it.
+
+**The item 10 control is built in and worth keeping**: one escort is named `Arco escort` (matching the
+`<asset name> .. " escort"` convention, [`veafMove.lua:37`](src/scripts/veaf/veafMove.lua)) and the other
+deliberately left as `Arco-escort1`, so a run can tell a working repair from a silent no-op.
 
 ⚠️ **The folders for items 3 and 4 are gone.** `dcs-session-2026-08-14` and `dcs-session-2026-08-24` no
 longer exist; `tmp/` holds only the Foothold archives, now **4.7.0** where item 4's text targets 4.4.1.
@@ -365,25 +378,6 @@ checks pass, and #790 is what made them able to fail.
 
 ---
 
-## 10. Watch a respawned escort for longer than ten minutes
-
-[`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but
-the defect is a DCS behaviour the mocks do not model: an `Escort` task whose `groupId` no longer
-resolves. Only the game can say whether the repair takes.
-
-Rerun **check 9 of `verify-mission-c`**: F10 → Assets → Respawn Arco, then watch its escort.
-
-- **Before the fix**: the escort holds for a while, then leaves to land after ~10 minutes.
-- **Expected now**: it stays with the tanker. David watched the teleport path hold for 30 minutes on
-  2026-08-18, so that is the bar.
-
-⚠️ **Watch past the ten-minute mark.** The failure is a *delayed* RTB — a short look would have called
-the old behaviour fixed. That is the whole reason this cannot be a five-minute check.
-
-Also worth a glance in `dcs.log`: `Re-establishing the escort task of <group> onto group id <n>`. If
-that line is absent, the escort group is not named `<asset> escort` and the convention is what to
-check first (it is now documented on the ASSETS page).
-
 ## 3. Confirm a rebuilt checklist picture is not served stale — **prepared 2026-08-24**
 
 [`FEAT-ASSIST-FOLLOWUP` 01](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) shipped the fix: a checklist image's
@@ -477,65 +471,3 @@ through — and the harness has since run in game, so the dependency is live.
   exists for it and has never been exercised.
 - [`FEAT-ASSIST-FOLLOWUP` 03](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) — an F-16C pilot's review of the
   six shipped steps. The engine was flown and works; the *procedure* was never checked by a pilot.
-
----
-
-## 21. How often does the FARP escort search run out of clear ground? — gates ticket 04
-
-**Why it is here:** `FIX-PLACEMENT-IGNORES-SCENERY` ticket 03 (2026-08-27) made the escort search avoid
-buildings *and* forests. That makes it strictly harder to satisfy. Ticket 04 must then refuse a `-farp`
-whose escort cannot be placed — but choosing when to refuse needs to know how often "nowhere clear"
-actually happens on real terrain, and no mock can say. **Ticket 04 must not pick a threshold before this
-number exists.**
-
-**What to run.** Spawn `-farp` in four places and read the log after each:
-
-1. open ground, nothing within a kilometre — the non-regression; nothing must move;
-2. beside a static FARP, ~150 m — the #232 case;
-3. inside a village;
-4. in dense woods.
-
-**What to look for**, in `dcs.log`, filtering on `findClearBearing` and `FARP escort`:
-
-- `scenery-clear bearing N at Mx distance` — tier 1 found a cloud point. Note `M`: 1 means it did not
-  have to walk out at all.
-- `no usable point in Disposition's cloud, walking the bearings instead` — tier 1 gave up; note whether
-  this is the common case, because it decides whether the cloud is worth its call.
-- `kept bearing N, pushed out to Mx` / `moved from N to M at Kx` — tier 2 succeeded.
-- `nothing clear at any bearing or distance, keeping N` — **the exhaustion**. This is the line ticket 04
-  turns into a refusal, so count how many of the four cases produce it.
-- `Disposition.getSimpleZones unusable` — the singleton is missing on this build, which would mean the
-  whole forest half is inert and ticket 04's threshold is being measured against buildings only.
-
-**What it unblocks:** `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/tickets/04-refuse-the-farp-when-the-escort-cannot-be-placed.md`.
-Record the counts in ticket 04 and delete this section.
----
-
-## 22. Does an AI unit's `getPlayerName()` return `nil` or an empty string? — low priority
-
-**Why it is here:** `DROP-MIST` ticket 00 (2026-08-28) went looking for this to decide the shape of the
-mission index, and no longer needs it — the index will filter with `local p = u:getPlayerName();
-if p and p ~= "" then`, which is correct whichever value DCS returns. What the question *did* turn up is
-a suspicion about code already shipped.
-
-[`veafAirWaves.lua:791`](src/scripts/veaf/veafAirWaves.lua) tests `if dcsUnit:getPlayerName() then` while
-sweeping `coalition.getGroups()` for dynamic-slot players. **In Lua, `""` is truthy.** So if DCS returns
-an empty string rather than `nil` for an AI unit, that line counts every AI aircraft of the player
-coalitions as a player, and an air wave would react to AI traffic. MiST guards the same call with
-`~= ""` ([`mist.lua:1642`](src/scripts/community/mist.lua)), which is weak evidence that its author saw
-`""` at least once.
-
-**What to run.** Any mission with an AI aircraft and an air wave zone. In the console, or in a one-line
-script hooked to a birth event:
-
-```lua
-local u = Unit.getByName("<an AI unit>")
-env.info(string.format("VEAF getPlayerName: type=%s value=[%s]", type(u:getPlayerName()), tostring(u:getPlayerName())))
-```
-
-- `type=nil` → `veafAirWaves.lua:791` is fine as written, and nothing else follows.
-- `type=string value=[]` → it is a real bug: air waves count AI as players. Open a fix lot; do **not**
-  fold it into `DROP-MIST`, which removes a dependency and must not change who counts as a player.
-
-**What it unblocks:** nothing. It is a suspicion to confirm or kill. Delete this section either way, and
-if it is confirmed, name the lot you opened.

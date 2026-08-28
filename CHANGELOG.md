@@ -141,6 +141,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   flying missed them; `veafAirWaves` had worked around that on its own, and the other five places that
   ask the same question had not. The workaround is gone and the answer is now the same for all of them.
 
+- **A respawned asset's escort still flew home, unless its `Escort` task sat on the very last waypoint.**
+  The repair added in 6.17.0 looked for the task on the last waypoint of the escort's route and nowhere
+  else, so it reported "carries no Escort task" and gave up on every other layout. Nothing in the Mission
+  Editor pushes the task to the last waypoint, and the repository's own demo mission puts it on waypoint
+  2 of 3 — for all three of its escorts — which is how this went unnoticed: measured in game on
+  2026-08-28, both of a respawned tanker's escorts left after about five minutes.
+
+  The whole route is now searched, last waypoint first, so a mission that already put the task there
+  resolves to exactly the same task as before.
+
 - **VEAF keeps its own register of destroyed scenery**, replacing the last MiST call in
   `veafCombatMission` — the one behind a *prevent the destruction of these buildings* objective. It is
   fed by the VEAF event handler and queried against the trigger zones the mission maker named, so the

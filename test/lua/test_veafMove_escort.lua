@@ -47,6 +47,34 @@ local function _groupData(groupId, escortedId)
   }
 end
 
+--- Build group data whose Escort task sits on an arbitrary waypoint, not necessarily the last.
+--- This is the shape a mission maker actually produces: DCS puts no constraint on which waypoint
+--- carries the task, and the repository's own demo mission puts it on waypoint 2 of 3.
+-- @param groupId number  the id `veaf.getGroupData` matches on
+-- @param escortedId number  the (stale) id the Escort task points at
+-- @param taskIndex number  the 1-based waypoint carrying the Escort task
+-- @param pointCount number  how many waypoints the route has
+local function _groupDataWithTaskAt(groupId, escortedId, taskIndex, pointCount)
+  local points = {}
+  for index = 1, pointCount do
+    points[index] = { x = index * 1000, y = index * 1000, alt = 6000, speed = 200 }
+    if index == taskIndex then
+      points[index].task = {
+        params = {
+          tasks = {
+            [1] = {
+              enabled = true,
+              id = "Escort",
+              params = { groupId = escortedId, pos = { x = -100, y = 0, z = 200 } },
+            },
+          },
+        },
+      }
+    end
+  end
+  return { groupId = groupId, route = { points = points } }
+end
+
 --- Put `groups` (name -> group data) into the mocked mission, and index it the way the mission
 --- database does at startup. The group's name lives in the mission data itself, which is where the
 --- snapshot reads it — MiST kept a separate name-to-id table, and this helper used to fill that.
@@ -127,6 +155,55 @@ function TestVeafMoveFindEscortTask:test_a_group_with_no_route_returns_nil()
   _mission({ ["Arco escort"] = { groupId = 20, name = "whatever" } })
 
   luaunit.assertNil(veafMove.findEscortTask("Arco escort"))
+end
+
+function TestVeafMoveFindEscortTask:test_the_escort_task_is_found_on_an_intermediate_waypoint()
+  -- The shape the demo mission ships: three waypoints, the Escort task on the second. Searching the
+  -- last waypoint alone found nothing here, so the repair reported "carries no Escort task" and gave
+  -- up -- measured in game on 2026-08-28 on all three of the demo mission's escorts.
+  _mission({ ["Arco escort"] = _groupDataWithTaskAt(20, 11, 2, 3) })
+
+  local escortData, escortTask = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertNotNil(escortData)
+  luaunit.assertNotNil(escortTask, "an Escort task on waypoint 2 of 3 must be found")
+  luaunit.assertEquals(escortTask.params.groupId, 11)
+end
+
+function TestVeafMoveFindEscortTask:test_the_escort_task_is_found_on_the_first_waypoint()
+  _mission({ ["Arco escort"] = _groupDataWithTaskAt(20, 11, 1, 3) })
+
+  local _, escortTask = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertNotNil(escortTask, "an Escort task on the first waypoint must be found")
+end
+
+function TestVeafMoveFindEscortTask:test_the_last_waypoint_still_wins_when_two_carry_a_task()
+  -- The search walks backwards, so a mission that already put its task on the last waypoint keeps
+  -- resolving to exactly the same task as before this became a full-route search.
+  local data = _groupDataWithTaskAt(20, 11, 3, 3)
+  data.route.points[2].task = {
+    params = { tasks = { [1] = { enabled = true, id = "Escort", params = { groupId = 99 } } } },
+  }
+  _mission({ ["Arco escort"] = data })
+
+  local _, escortTask = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertEquals(escortTask.params.groupId, 11, "the last waypoint's task must be preferred")
+end
+
+function TestVeafMoveFindEscortTask:test_a_disabled_task_on_a_late_waypoint_does_not_mask_a_valid_earlier_one()
+  -- Bailing out at the first waypoint that carries *tasks* would stop here and report nothing.
+  local data = _groupDataWithTaskAt(20, 11, 1, 3)
+  data.route.points[3].task = {
+    params = { tasks = { [1] = { enabled = false, id = "Escort", params = { groupId = 99 } } } },
+  }
+  _mission({ ["Arco escort"] = data })
+
+  local _, escortTask = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertNotNil(escortTask, "the disabled task must not hide the enabled one earlier in the route")
+  luaunit.assertEquals(escortTask.params.groupId, 11)
 end
 
 function TestVeafMoveFindEscortTask:test_a_disabled_escort_task_is_not_returned()

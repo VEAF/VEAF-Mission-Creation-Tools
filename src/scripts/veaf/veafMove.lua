@@ -656,22 +656,29 @@ function veafMove.findEscortTask(groupName_escort)
     return nil
   end
 
-  -- Last waypoint: where the escort task has to be set up in the editor.
-  local task2_escort = veaf.findInTable(points_escort[#points_escort], "task")
-  if not (task2_escort and task2_escort.params and task2_escort.params.tasks) then
-    veaf.loggers.get(veafMove.Id):debug("findEscortTask: last WP of %s carries no tasks", groupName_escort)
-    return nil
-  end
-
-  for _, task in pairs(task2_escort.params.tasks) do
-    -- The groupId stored in the mission has nothing to do with the id DCS needs at runtime, so it is
-    -- not checked here -- only that this is an enabled Escort task. Group.getID() supplies the real
-    -- one, and that is exactly what reestablishEscortTask writes back into it.
-    if task.enabled and task.id and task.id == "Escort" and task.params then
-      veaf.loggers
-        .get(veafMove.Id)
-        :trace("findEscortTask: found an Escort task on %s, stored groupId=%s", groupName_escort, task.params.groupId)
-      return escortData, task, points_escort
+  -- Any waypoint, last one first. DCS lets an Escort task sit on whichever waypoint the mission
+  -- maker chose, and nothing in the editor pushes it to the last one -- the repository's own demo
+  -- mission puts it on waypoint 2 of 3, for all three of its escorts. Looking only at the last
+  -- waypoint therefore found nothing and the repair gave up, which is what "carries no Escort task"
+  -- meant in game on 2026-08-28. The last waypoint is still searched first, so a mission that does
+  -- put it there keeps behaving exactly as before.
+  for index = #points_escort, 1, -1 do
+    local task_container = veaf.findInTable(points_escort[index], "task")
+    if task_container and task_container.params and task_container.params.tasks then
+      for _, task in pairs(task_container.params.tasks) do
+        -- The groupId stored in the mission has nothing to do with the id DCS needs at runtime, so it
+        -- is not checked here -- only that this is an enabled Escort task. Group.getID() supplies the
+        -- real one, and that is exactly what reestablishEscortTask writes back into it.
+        if task.enabled and task.id and task.id == "Escort" and task.params then
+          veaf.loggers.get(veafMove.Id):trace(
+            "findEscortTask: found an Escort task on %s at waypoint %s, stored groupId=%s",
+            groupName_escort,
+            index,
+            task.params.groupId
+          )
+          return escortData, task, points_escort
+        end
+      end
     end
   end
 

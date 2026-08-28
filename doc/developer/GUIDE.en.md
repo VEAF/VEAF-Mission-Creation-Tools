@@ -366,17 +366,44 @@ reaching 60 now carries into the degree, as the decimal layout already did) and 
 (a position at exactly zero renders as `N`/`E`, the hemisphere test having moved from `> 0` to
 `>= 0`).
 
-### mist.DBs Access
+### What the mission holds
 
-Do not access `mist.DBs.*` directly. Use the `veaf.mist` wrapper:
+`veafMissionDb.lua` answers three questions, and accumulates nothing else.
+
+**The editor snapshot** — every group and unit placed in the Mission Editor, read once from
+`env.mission`. A *mission record* is not a live object: it exists for a unit that has not spawned yet
+and for one already destroyed. That is precisely what `Unit.getByName` cannot do, and why the index
+exists at all.
 
 ```lua
-local unitData  = veaf.mist.getUnitData(unitName)
-local groupData = veaf.mist.getGroupData(groupName)
-local isHuman   = veaf.mist.isHumanUnit(unitName)
-local allUnits  = veaf.mist.getAllUnitData()
-local groupById = veaf.mist.getGroupById(groupId)
+veaf.getUnitRecord(unitName)      -- x, y, alt, type, groupName, coalition, coalitionId, category…
+veaf.getGroupRecord(groupName)
+veaf.getGroupRecordById(groupId)
+veaf.getAllUnitRecords()          -- to iterate
+veaf.getAllGroupRecords()
+veaf.getBullseye("blue")          -- straight from env.mission
 ```
+
+**The player roster** — the editor's slots, **plus DCS dynamic slots**, which appear in no
+`env.mission`. It is the only one of the three that refreshes, and it does so when it is read rather
+than on a clock:
+
+```lua
+veaf.isHumanUnit(unitName)
+veaf.getAllHumanRecords()
+```
+
+**The name registry** — what VEAF has named, so a group can respawn under a name it used before:
+
+```lua
+veaf.takeSpawnedName(name)
+veaf.releaseSpawnedName(name)
+veaf.isNameTaken(name)
+```
+
+The old `veaf.mist.getGroupData`, `isHumanUnit`, `getAllUnitData`, `getAllGroupData`,
+`getAllHumanUnitData` and `getGroupById` façades still exist and forward here; new code calls `veaf.*`
+directly. `veaf.mist.getUnitData` was removed: it had no caller.
 
 ---
 

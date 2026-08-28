@@ -367,17 +367,45 @@ d'elles change ce que lisent les pilotes, et s'est donc décidé à part. Les de
 déjà le mode décimal) et `FIX-ZERO-HEMISPHERE` (une position à exactement zéro s'affiche `N`/`E`, le
 test d'hémisphère étant passé de `> 0` à `>= 0`).
 
-### Accès mist.DBs
+### Ce que la mission contient
 
-Ne pas accéder à `mist.DBs.*` directement. Utiliser l'interface `veaf.mist` :
+`veafMissionDb.lua` répond à trois questions, et n'accumule rien d'autre.
+
+**L'instantané de l'éditeur** — chaque groupe et chaque unité posés dans l'éditeur de mission, lus une
+seule fois dans `env.mission`. Un *enregistrement de mission* n'est pas un objet vivant : il existe
+pour une unité qui n'est pas encore apparue et pour une unité déjà détruite. C'est exactement ce que
+`Unit.getByName` ne sait pas faire, et la raison d'être de l'index.
 
 ```lua
-local unitData  = veaf.mist.getUnitData(unitName)
-local groupData = veaf.mist.getGroupData(groupName)
-local isHuman   = veaf.mist.isHumanUnit(unitName)
-local allUnits  = veaf.mist.getAllUnitData()
-local groupById = veaf.mist.getGroupById(groupId)
+veaf.getUnitRecord(unitName)      -- x, y, alt, type, groupName, coalition, coalitionId, category…
+veaf.getGroupRecord(groupName)
+veaf.getGroupRecordById(groupId)
+veaf.getAllUnitRecords()          -- pour itérer
+veaf.getAllGroupRecords()
+veaf.getBullseye("blue")          -- directement depuis env.mission
 ```
+
+**La liste des joueurs** — les slots de l'éditeur, **plus les slots dynamiques de DCS**, qui n'existent
+dans aucun `env.mission`. C'est le seul des trois qui se rafraîchit, et il le fait quand on le lit, pas
+sur une horloge :
+
+```lua
+veaf.isHumanUnit(unitName)
+veaf.getAllHumanRecords()
+```
+
+**Le registre des noms** — ce que VEAF a nommé, pour qu'un groupe puisse réapparaître sous un nom déjà
+utilisé :
+
+```lua
+veaf.takeSpawnedName(name)
+veaf.releaseSpawnedName(name)
+veaf.isNameTaken(name)
+```
+
+Les anciennes façades `veaf.mist.getGroupData`, `isHumanUnit`, `getAllUnitData`, `getAllGroupData`,
+`getAllHumanUnitData` et `getGroupById` existent toujours et redirigent ici ; du code neuf appelle
+`veaf.*` directement. `veaf.mist.getUnitData` a été supprimée : elle n'avait aucun appelant.
 
 ---
 

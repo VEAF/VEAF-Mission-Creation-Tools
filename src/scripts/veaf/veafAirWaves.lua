@@ -753,13 +753,17 @@ function AirWaveZone:handleCrippledEnemyUnit(waveNumber, unit)
   unit:destroy()
 end
 
+--- The player aircraft this zone watches, by unit name.
+---
+--- Rebuilt on every call: a player can take a slot between two checks. The roster it reads already
+--- covers **dynamic slots** — this function used to sweep `coalition.getGroups` itself, under the
+--- comment *"Dynamic slot players via DCS coalition API (not tracked by mist)"*, because MiST's
+--- database missed them. `veafMissionDb` owns that sweep now, so the workaround is gone and every
+--- other consumer of the roster gets it too.
 function AirWaveZone:getPlayerUnitsNames()
-  -- Rebuild each time to include dynamic slot players not tracked by mist
   self.playerHumanUnitsNames = {}
 
-  -- Static slot players from mist DB
-  local seenUnits = {}
-  for _, unit in pairs(veaf.mist.getAllHumanUnitData()) do
+  for _, unit in pairs(veaf.getAllHumanRecords()) do
     local coalitionId = 0
     if unit.coalition then
       if unit.coalition:lower() == "red" then
@@ -768,37 +772,8 @@ function AirWaveZone:getPlayerUnitsNames()
         coalitionId = coalition.side.BLUE
       end
     end
-    if self.playerCoalitions[coalitionId] then
-      if unit.category then
-        if unit.category == "plane" then
-          seenUnits[unit.unitName] = true
-          table.insert(self.playerHumanUnitsNames, unit.unitName)
-        end
-      end
-    end
-  end
-
-  -- Dynamic slot players via DCS coalition API (not tracked by mist)
-  for _, checkCoalitionId in pairs({ coalition.side.RED, coalition.side.BLUE }) do
-    if self.playerCoalitions[checkCoalitionId] then
-      local groups = coalition.getGroups(checkCoalitionId, Group.Category.AIRPLANE)
-      if groups then
-        for _, grp in pairs(groups) do
-          local units = grp:getUnits()
-          if units then
-            for _, dcsUnit in pairs(units) do
-              if dcsUnit:getPlayerName() then
-                local dynamicUnitName = dcsUnit:getName()
-                -- Only add if not already present from mist DB
-                if not seenUnits[dynamicUnitName] then
-                  seenUnits[dynamicUnitName] = true
-                  table.insert(self.playerHumanUnitsNames, dynamicUnitName)
-                end
-              end
-            end
-          end
-        end
-      end
+    if self.playerCoalitions[coalitionId] and unit.category == "plane" then
+      table.insert(self.playerHumanUnitsNames, unit.unitName)
     end
   end
 

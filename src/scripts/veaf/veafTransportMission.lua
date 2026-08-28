@@ -492,7 +492,7 @@ function veafTransportMission.reportTargetInformation(unitName)
   ---@cast averageGroupPosition vec3
   local lat, lon = coord.LOtoLL(averageGroupPosition)
   local mgrsString = veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)
-  local bullseye = veaf.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
+  local bullseye = veaf.makeVec3(veaf.getBullseye("blue"), 0)
   local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
   local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
   local dist = veaf.get2DDist(averageGroupPosition, bullseye)
@@ -660,8 +660,6 @@ function veafTransportMission.buildRadioMenu()
     nil,
     veafRadio.USAGE_ForGroup
   )
-  -- TODO add this command when the respawn will work (see veafTransportMission.resetAllCargoes)
-  -- missionCommands.addCommand('Respawn all cargoes', veafTransportMission.rootPath, veafTransportMission.resetAllCargoes)
 end
 
 function veafTransportMission.help(unitName)
@@ -673,25 +671,6 @@ function veafTransportMission.endTransportOfCargo(cargoName)
   -- TODO reset cargo position
   -- mist.respawnGroup(cargoName, 15)
   -- does not work yet because 1. the unit name is changed by mist and 2. the trigger zone condition does not work with the new unit (maybe bc of 1. ?)
-end
-
-function veafTransportMission.resetAllCargoes()
-  -- does not work yet (see veafTransportMission.endTransportOfCargo)
-  local lunits = mist.DBs.unitsByNum
-  if lunits then
-    for i = 1, #lunits do
-      if lunits[i] and lunits[i].unitName and lunits[i].unitName:lower():find("cargo - ") then
-        local name = lunits[i].unitName
-        -- destroy cargo static unit
-        local c = StaticObject.getByName(name)
-        if c then
-          StaticObject.destroy(c)
-        end
-        mist.respawnGroup(name, true)
-      end
-    end
-  end
-  trigger.action.outText(veaf.t("transport.cargoes_respawned"), 15)
 end
 
 -- Both of these pointed at CTLD v1 helpers (ctld.autoInitializeAllHumanTransports /

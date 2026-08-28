@@ -143,46 +143,46 @@ veaf.I18N_DEFAULT_LANGUAGE = "fr"
 veaf.config.language = veaf.config.language or veaf.I18N_DEFAULT_LANGUAGE
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Mist database wrappers
--- Centralizes the main access points to mist.DBs to isolate modules from internal mist changes.
--- Note: direct mist.DBs access may still exist in some low-level or legacy code paths.
+-- Mission database wrappers
+--
+-- These used to wrap `mist.DBs`, to isolate modules from internal MiST changes. They now forward to
+-- `veafMissionDb`, which is ours — the wrappers stayed so the swap was one file's problem rather than
+-- thirty-two. `veaf.mist.getUnitData` was removed with them: it had no caller at all.
+--
+-- New code should call `veaf.getUnitRecord` and friends directly; these remain for the modules that
+-- already used them.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.mist = {}
 
---- Return the unit data table for a given unit name (from mist.DBs.unitsByName).
-function veaf.mist.getUnitData(unitName)
-  return mist.DBs.unitsByName[unitName]
-end
-
---- Return the group data table for a given group name (from mist.DBs.groupsByName).
+--- Return the mission record for a given group name.
 function veaf.mist.getGroupData(groupName)
-  return mist.DBs.groupsByName[groupName]
+  return veaf.getGroupRecord(groupName)
 end
 
---- Return true if the given unit name belongs to a human player (from mist.DBs.humansByName).
+--- Return true if the given unit name belongs to a human player.
 function veaf.mist.isHumanUnit(unitName)
-  return mist.DBs.humansByName[unitName] ~= nil
+  return veaf.isHumanUnit(unitName)
 end
 
---- Return the full unitsByName table (for iteration).
+--- Return every pre-placed unit record (for iteration).
 function veaf.mist.getAllUnitData()
-  return mist.DBs.unitsByName
+  return veaf.getAllUnitRecords()
 end
 
---- Return the full groupsByName table (for iteration).
+--- Return every pre-placed group record (for iteration).
 function veaf.mist.getAllGroupData()
-  return mist.DBs.groupsByName
+  return veaf.getAllGroupRecords()
 end
 
---- Return the full humansByName table (for iteration).
+--- Return every human unit record (for iteration), dynamic slots included.
 function veaf.mist.getAllHumanUnitData()
-  return mist.DBs.humansByName
+  return veaf.getAllHumanRecords()
 end
 
---- Return the group data table for a given group id (from mist.DBs.groupsById).
+--- Return the mission record for a given group id.
 function veaf.mist.getGroupById(groupId)
-  return mist.DBs.groupsById[groupId]
+  return veaf.getGroupRecordById(groupId)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2352,10 +2352,11 @@ end
 function veaf.getGroupData(groupIdent)
   -- refactor to search by groupId and allow groupId and groupName as inputs
   local gpId = groupIdent
-  if mist.DBs.MEgroupsByName[groupIdent] then
-    gpId = mist.DBs.MEgroupsByName[groupIdent].groupId
+  local groupRecord = veaf.getGroupRecord(groupIdent)
+  if groupRecord then
+    gpId = groupRecord.groupId
   else
-    veaf.loggers.get(veaf.Id):info(groupIdent .. " not found in mist.DBs.MEgroupsByName")
+    veaf.loggers.get(veaf.Id):info(groupIdent .. " not found among the mission's pre-placed groups")
   end
 
   for coa_name, coa_data in pairs(env.mission.coalition) do
@@ -2766,8 +2767,8 @@ local function _initializeCountriesAndCoalitions()
     return (c1 or "") < (c2 or "")
   end
 
-  -- Populate from mist.DBs.units (countries that have pre-placed unit groups)
-  for coalitionName, countries in pairs(mist.DBs.units) do
+  -- Populate from the mission snapshot (countries that have pre-placed unit groups)
+  for coalitionName, countries in pairs(veaf.getCountriesByCoalitionFromMission()) do
     coalitionName = coalitionName:lower()
     veaf.loggers.get(veaf.Id):trace("coalitionName=%s", veaf.lp(coalitionName))
 

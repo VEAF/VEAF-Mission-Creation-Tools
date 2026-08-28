@@ -883,7 +883,7 @@ function veafSanctuary.initialize()
 
   -- prepare humans units
   veafSanctuary.humanUnits = {}
-  for name, _ in pairs(mist.DBs.humansByName) do
+  for name, _ in pairs(veaf.getAllHumanRecords()) do
     --veaf.loggers.get(veafSanctuary.Id):trace(string.format("mist.DBs.humansByName[%s]=??", veaf.p(name)))
     veafSanctuary.humanUnits[name] = true
   end

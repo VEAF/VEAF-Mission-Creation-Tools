@@ -1988,17 +1988,14 @@ end
 
 --- Brief every human slot that is already occupied.
 ---
---- Runs once, shortly after the module initializes. `mist.DBs.humansByName` lists the human *slots* a
+--- Runs once, shortly after the module initializes. The player roster lists the human *slots* a
 --- mission declares; a slot is only worth briefing when a player is actually sitting in it, which is what
 --- `getPlayerName()` answers.
 function veafWeather.briefEveryoneAlreadyFlying()
   if not veafWeather.welcomeBriefEnabled then
     return
   end
-  local humans = mist and mist.DBs and mist.DBs.humansByName
-  if not humans then
-    return
-  end
+  local humans = veaf.getAllHumanRecords()
   for sUnitName, _ in pairs(humans) do
     if not veafWeather.briefedUnits[sUnitName] then
       local dcsUnit = Unit.getByName(sUnitName)

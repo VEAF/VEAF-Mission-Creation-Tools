@@ -785,8 +785,10 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
     veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC_num=%s", veaf.p(AFAC_num)))
     veafSpawn.AFAC.callsigns[coalition][AFAC_num].taken = false
     veafSpawn.AFAC.numberSpawned[coalition] = veafSpawn.AFAC.numberSpawned[coalition] - 1
-    mist.DBs.unitsByName[afacGroupName] = nil --MIST does not do it on it's own, I highly recommend looking for an alternative, this is to spawn the AFAC once again with the unit name equal to the group name
-    mist.DBs.groupsByName[afacGroupName] = nil
+    -- Hand the callsign back, so the next AFAC can spawn under the same name. This used to delete two
+    -- mist.DBs entries by hand, with a comment recommending someone find an alternative; the registry
+    -- in veafMissionDb is that alternative.
+    veaf.releaseSpawnedName(afacGroupName)
     veafSpawn.AFAC.missionData[coalition][AFAC_num] = nil
   else
     veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.p(afacGroupName)))

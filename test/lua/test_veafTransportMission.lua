@@ -344,11 +344,6 @@ function TestVeafTransportFunctions:test_endTransportOfCargo_runs()
   luaunit.assertTrue(true)
 end
 
-function TestVeafTransportFunctions:test_resetAllCargoes_runs()
-  veafTransportMission.resetAllCargoes()
-  luaunit.assertTrue(true)
-end
-
 function TestVeafTransportFunctions:test_initializeAllHelosInCTLD_runs()
   veafTransportMission.initializeAllHelosInCTLD()
   luaunit.assertTrue(true)

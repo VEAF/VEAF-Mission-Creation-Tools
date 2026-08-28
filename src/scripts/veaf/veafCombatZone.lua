@@ -1388,11 +1388,11 @@ function VeafCombatZone:getInformation(unitName)
       local zoneCenter = self:getCenter()
       local lat, lon = coord.LOtoLL(zoneCenter)
       local mgrsString = veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)
-      local bullseyeData = mist.DBs.missionData.bullseye.blue -- default to blue
+      local bullseyeData = veaf.getBullseye("blue") -- default to blue
       if unitName then
         local requestingUnit = Unit.getByName(unitName)
         if requestingUnit and requestingUnit:getCoalition() == coalition.side.RED then
-          bullseyeData = mist.DBs.missionData.bullseye.red
+          bullseyeData = veaf.getBullseye("red")
         end
       end
       local bullseye = veaf.makeVec3(bullseyeData, 0)

@@ -630,6 +630,16 @@ Object.getCategory = function(obj)
   return (obj and obj._category) or Object.Category.UNIT
 end
 
+--- The position DCS reports for an object, in its `{ p = vec3, x/y/z = orientation }` form.
+--- A fake sets `_point`; anything else has no position, which is what the register treats as
+--- "cannot be placed" rather than as an error.
+Object.getPosition = function(obj)
+  if obj and obj._point then
+    return { p = obj._point }
+  end
+  return nil
+end
+
 -- ---------------------------------------------------------------------------
 -- Unit / Group extra stubs
 -- ---------------------------------------------------------------------------

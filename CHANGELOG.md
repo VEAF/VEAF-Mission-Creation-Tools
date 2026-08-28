@@ -141,6 +141,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   flying missed them; `veafAirWaves` had worked around that on its own, and the other five places that
   ask the same question had not. The workaround is gone and the answer is now the same for all of them.
 
+- **VEAF keeps its own register of destroyed scenery**, replacing the last MiST call in
+  `veafCombatMission` — the one behind a *prevent the destruction of these buildings* objective. It is
+  fed by the VEAF event handler and queried against the trigger zones the mission maker named, so the
+  objective behaves exactly as before for a mission that already uses it.
+
+  **It also fixes something MiST got wrong.** MiST only recorded a destroyed object if
+  `Object.isExist` still answered true for it. Measured in game on 2026-08-28: on a scenery death
+  `isExist` is *already* false while `Object.getPosition` still answers correctly — so a building
+  destroyed by a scripted explosion never entered MiST's table at all, and an objective watching it
+  could not fail. The register asks for the position instead of asking whether the object still
+  exists, which is the question that actually matters.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

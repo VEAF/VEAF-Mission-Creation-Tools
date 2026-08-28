@@ -271,17 +271,16 @@ function VeafCombatMissionObjective:configureAsPreventDestructionOfSceneryObject
       local failed = false
       local killedObjectsNames = nil
 
-      local killedObjects = mist.getDeadMapObjsInZones(zones)
-      ----veaf.loggers.get(veafCombatMission.Id):trace(veaf.serialize("killedObjects", killedObjects))
+      local killedObjects = veaf.getDestroyedSceneryInZones(zones)
 
       for _, object in pairs(killedObjects) do
-        veaf.loggers.get(veafCombatMission.Id):trace(string.format("checking id_ = [%s]", object.object.id_))
-        if objects[object.object.id_] then
-          veaf.loggers.get(veafCombatMission.Id):trace(string.format("found [%s]", objects[object.object.id_]))
+        veaf.loggers.get(veafCombatMission.Id):trace(string.format("checking id = [%s]", object.id))
+        if objects[object.id] then
+          veaf.loggers.get(veafCombatMission.Id):trace(string.format("found [%s]", objects[object.id]))
           if killedObjectsNames then
-            killedObjectsNames = killedObjectsNames .. ", " .. objects[object.object.id_]
+            killedObjectsNames = killedObjectsNames .. ", " .. objects[object.id]
           else
-            killedObjectsNames = objects[object.object.id_]
+            killedObjectsNames = objects[object.id]
           end
           failed = true
         end

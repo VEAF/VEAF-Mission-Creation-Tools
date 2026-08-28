@@ -197,6 +197,13 @@ local function transformEvent(event)
     place = veafEventHandler.completeUnit(event.place),
     birthPlace = event.subPlace,
     initiator = veafEventHandler.completeUnit(event.initiator),
+    -- The DCS object itself, untransformed. `initiator` above is a data table with no methods, which
+    -- is what almost every callback wants; but a scenery object has no record to complete -- it is not
+    -- a unit -- and DCS leaves `event.pos` nil on its death, so the only way to learn *where* it stood
+    -- is to ask the object at the moment of the event. Measured in game 2026-08-28: on a scenery
+    -- S_EVENT_DEAD, `Object.getPosition` still answers correctly even though `Object.isExist` is
+    -- already false.
+    dcsInitiator = event.initiator,
     target = veafEventHandler.completeUnit(event.target),
     weapon = event.weapon,
     weaponName = event.weapon_name,

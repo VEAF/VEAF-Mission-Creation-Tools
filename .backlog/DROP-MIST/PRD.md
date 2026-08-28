@@ -1,6 +1,6 @@
 # DROP-MIST — VEAF scripts stop depending on MiST
 
-Status: ⬜ ready
+Status: 🔄 in-progress — ticket 00 (spike) answered 2026-08-28; see *Findings* below
 
 Origin: David, 2026-08-17 (*he wants to try removing it outright, and there is now a precedent — CTLD 2
 dropped it*), carried as a vision line in `ROADMAP.md` §4 until 2026-08-27. That line closed with a
@@ -211,6 +211,128 @@ this lot has.
 David accepted that framing on 2026-08-27. It is written here so nobody re-opens it mid-campaign, and
 so the lot is not judged on the wrong criterion at ticket 03.
 
+## Findings — ticket 00 (spike, 2026-08-28)
+
+Answered from the code, on `develop` at `2e935bcb`. Every count is reproducible with the command that
+produced it.
+
+### The surface is 26 sites, not 51
+
+```
+grep -rn 'mist\.DBs\.'  src/scripts/veaf/    # 35 textual occurrences
+grep -rn 'veaf\.mist\.' src/scripts/veaf/    # 19, of which 7 are the façade definitions
+```
+
+Of the 35 occurrences, **7** are the bodies of the façades themselves and **7** are comments or a log
+string. **14 are real direct accesses** and **12 are calls to a façade**: a surface of **26 sites**,
+served by **7** façades — the PRD said six, `veaf.mist.getAllHumanUnitData` was missing from the count.
+
+`veaf.mist.getUnitData` has **no caller at all**. It is the only façade over `unitsByName`, and it is
+dead.
+
+The same correction applies one level up: the campaign's headline *"455 call sites"* is the count of
+textual `mist.` occurrences, comments included; **390** lines of actual code mention `mist.`. That is a
+fair upper bound for sizing the lot, not a migration checklist, and the per-ticket figures inherit the
+same slack.
+
+### Question 1 — who reads a dynamically added record? Nobody
+
+| Site | Table | Bucket | Why |
+|---|---|:--:|---|
+| [`veaf.lua:2355`](../../src/scripts/veaf/veaf.lua) | `MEgroupsByName` | A | `veaf.getGroupData`, a local copy of `mist.getGroupRoute` — editor snapshot then `env.mission` |
+| [`veaf.lua:2770`](../../src/scripts/veaf/veaf.lua) | `units` | A | `_initializeCountriesAndCoalitions`, walks pre-placed groups to build the country ↔ coalition tables |
+| [`veafInterpreter.lua:156`](../../src/scripts/veaf/veafInterpreter.lua) | `units` | A | `_initialize`, one pass |
+| [`veafCasMission.lua:1120`](../../src/scripts/veaf/veafCasMission.lua), `:1123` | `missionData.bullseye` | — | static, one write in MiST |
+| [`veafCombatZone.lua:1391`](../../src/scripts/veaf/veafCombatZone.lua), `:1395` | `missionData.bullseye` | — | static |
+| [`veafTransportMission.lua:495`](../../src/scripts/veaf/veafTransportMission.lua) | `missionData.bullseye` | — | static |
+| [`veafSanctuary.lua:886`](../../src/scripts/veaf/veafSanctuary.lua) | `humansByName` | A | `initialize`, one pass into `veafSanctuary.humanUnits` |
+| [`veafWeather.lua:1998`](../../src/scripts/veaf/veafWeather.lua) | `humansByName` | A | runs once, shortly after the module initializes |
+| [`veafTransportMission.lua:680`](../../src/scripts/veaf/veafTransportMission.lua) | `unitsByNum` | — | **dead code** — see below |
+| [`veafSpawnAircraft.lua:788`](../../src/scripts/veaf/veafSpawnAircraft.lua), `:789` | `unitsByName`, `groupsByName` | B | **writes**, not reads — see below |
+| [`veafCarrierOperations.lua:342`](../../src/scripts/veaf/veafCarrierOperations.lua), `:488` | `getGroupData` | A | existence check on the editor's Pedro / tanker group |
+| [`veafCarrierOperations.lua:952`](../../src/scripts/veaf/veafCarrierOperations.lua) | `getAllGroupData` | A | `initializeCarrierGroups`, called once from `:1175` |
+| [`veafGrass.lua:700`](../../src/scripts/veaf/veafGrass.lua) | `getAllUnitData` | A | `buildFarpsUnits`, scheduled once at startup; the dynamic path is a birth handler that never touches the DB |
+| [`veafMove.lua:1039`](../../src/scripts/veaf/veafMove.lua) | `getAllUnitData` | A | `findAllTankers`, called once from `initialize` |
+| [`veafRadio.lua:804`](../../src/scripts/veaf/veafRadio.lua) | `getGroupById` | A | resolves a **human slot**'s group; `veafRadio.humanUnits` itself is event-fed, not read from the DB |
+| [`veafQraCore.lua:665`](../../src/scripts/veaf/veafQraCore.lua) | `getAllHumanUnitData` | A | `_getEnemyHumanUnits`, computed once then cached on the instance |
+| [`veafAirWaves.lua:762`](../../src/scripts/veaf/veafAirWaves.lua) | `getAllHumanUnitData` | **C** | rebuilt on every check — and **already patched locally**, see below |
+| [`veafGrass.lua:2028`](../../src/scripts/veaf/veafGrass.lua), [`veafQraCore.lua:1162`](../../src/scripts/veaf/veafQraCore.lua), [`veafRadio.lua:90`](../../src/scripts/veaf/veafRadio.lua), [`veafWeather.lua:1971`](../../src/scripts/veaf/veafWeather.lua) | `isHumanUnit` | **C** | event-time, and every one of the four is already `or`'ed with `S_EVENT_PLAYER_ENTER_UNIT` |
+
+**Bucket A — pre-placed, a startup index suffices: 20 of the 26 sites.**
+
+**Bucket B — units we spawn: zero reads.** The only need is *inside* `mist.dynAdd`, and only on the
+`clone` path: [`mist.lua:1950`](../../src/scripts/community/mist.lua) renames the new group when
+`mist.DBs.groupsByName[newGroup.name]` already exists, and `:1993` does the same per unit. That is the
+whole reason `veafSpawnAircraft.lua:788` deletes two entries by hand — so a dead AFAC's callsign can be
+used again. What we need is therefore a **registry of the names we have taken and released**, not a
+mirror of the mission.
+
+**Bucket C — spawned by a third party: zero for AI and scripted spawns, non-zero for players.** No VEAF
+caller reads a record for a unit CTLD, Foothold, another script or a late activation created. But five
+sites read `humansByName`, and MiST maintains it at runtime for **DCS dynamic slots** — a unit with a
+player name that is absent from `MEunitsByName` is added at
+[`mist.lua:1077`](../../src/scripts/community/mist.lua) and
+[`:1374`](../../src/scripts/community/mist.lua). An `env.mission` walk over skill `Client` / `Player`
+alone would therefore **lose** dynamic-slot players, which is a live regression risk, not a theoretical
+one.
+
+Two of those five have already worked around it by hand, which is the evidence that the need is real:
+[`veafAirWaves.lua:781`](../../src/scripts/veaf/veafAirWaves.lua) walks `coalition.getGroups()` under the
+comment *"Dynamic slot players via DCS coalition API (not tracked by mist)"*, and the four `isHumanUnit`
+sites each carry an `or event.type.id == S_EVENT_PLAYER_ENTER_UNIT`. **That loop is the pattern the
+index should own**, and owning it removes both workarounds.
+
+### `unitsByNum` has one reader, and it is dead code
+
+`veafTransportMission.resetAllCargoes` is the only consumer of `unitsByNum`. Its radio command is
+commented out — *"TODO add this command when the respawn will work"* — and has been since `5a43cc20`
+(2020-05-16), the first release of the current pipeline. Nothing but a unit test calls it. Ticket 05
+does not port `unitsByNum`: it removes the function, or it says why it kept it.
+
+### Question 2 — no longer decides anything, but it did find something
+
+The measurement (`type(getPlayerName())` on an AI unit's birth) was meant to tell us whether MiST's
+`~= ""` guard lets AI spawns through. With bucket C limited to players, our own filter is
+`local p = u:getPlayerName(); if p and p ~= "" then` — correct whichever value DCS returns. **The spike
+no longer waits on DCS.**
+
+The measurement is still worth taking, for a different reason: `veafAirWaves.lua:791` tests
+`if dcsUnit:getPlayerName() then`, and in Lua `""` is truthy. If DCS returns `""` for an AI unit, that
+line counts every AI aircraft in the zone as a player. Recorded in
+[`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md) as an observation to make, **not** as a blocker, and
+**not** fixed here — this campaign removes a dependency, it does not change who counts as a player.
+
+### Question 3 — ticket 07 does not need the live index
+
+| MiST function | What it reads | Needs |
+|---|---|---|
+| `mist.getGroupRoute` (11 calls) | `MEgroupsByName` for the id, then walks `env.mission` | **editor snapshot only** |
+| `mist.getGroupPayload` (via `getGroupData`) | same | **editor snapshot only** |
+| `mist.getGroupData` (4 calls) | `groupsByName` — plus a partial-name match no VEAF caller relies on | editor snapshot |
+| `mist.getCurrentGroupData` (the `teleport` action) | `unitsByName`, to enrich each unit with skill / callsign — with a complete native fallback in the `else` branch | nothing hard |
+| `mist.teleportToPoint` | `groupsByName` to fill in `country` / `category` when the caller omits them, `MEgroupsByName` for the route | editor snapshot |
+| `mist.dynAdd` | `groupsByName` / `unitsByName`, **only on the `clone` path**, for name uniqueness | the name registry |
+
+All 15 `teleportToPoint`, 4 `respawnGroup` and both `veafSpawnAircraft` clone sites start from an
+**editor** group name — a template, a Pedro, a carrier, an asset. VEAF never respawns or clones a group
+it created itself.
+
+**So the dependency is not 07 → 05, it is 07 → two named bricks:** the editor group snapshot and the
+name registry. Ticket 05 still comes first because it is where both live, but it no longer gates 07 on
+a live index, and the two can be reviewed separately if 05 grows.
+
+### What this changes
+
+- **Ticket 05 loses the AI birth-event path** and the deferred fill that went with it — the
+  `mist.lua:1657` *"Group not accessible by unit in event handler"* constraint no longer applies to us,
+  because we never index an AI unit at birth. It keeps a **player** path, which is a
+  `coalition.getGroups()` sweep VEAF already writes by hand in one place.
+- **Ticket 05 is smaller than written**: a startup snapshot, a name registry, a player roster. Three
+  things, none of them 31 tables.
+- **Ticket 07 is unblocked** and states its two dependencies explicitly.
+- Two removals fall out of the spike: `veaf.mist.getUnitData` (no caller) and
+  `veafTransportMission.resetAllCargoes` (dead since 2020).
+
 ## Order
 
 Ticket 00 is a **spike** and comes first: it decides the shape of tickets 05 and 07, which are the two
@@ -218,17 +340,19 @@ that can go wrong. Then the cheap and isolated work, then the risky core, then t
 
 | # | Ticket | Calls | Risk |
 |---|---|---:|---|
-| 00 | What the mission index must actually hold — spike | — | de-risks 05 and 07 |
+| 00 | What the mission index must actually hold — spike | — | ✅ done 2026-08-28 |
 | 01 | The scheduler on the native timer | 85 | low, isolated |
 | 02 | Maths, vectors and conversions | 170 | low, mechanical |
 | 03 | Coordinate output | 13 | low |
 | 04 | Prune the single-caller helpers | 11 | low, drops 334 MiST lines of surface |
-| 05 | The mission index | 51 | **high** — gated by 00 |
+| 05 | The mission index | 26 | medium — the spike removed the AI event path |
 | 06 | Geometry and zone queries | 45 | medium |
-| 07 | Spawn, routes and teleport | 80 | **high** — gated by 00 |
+| 07 | Spawn, routes and teleport | 80 | **high** — needs 05's two bricks, not its index |
 | 08 | Drop the injection | — | the only ticket with a visible gain |
 
-85 + 170 + 13 + 11 + 51 + 45 + 80 = **455**, the full measured count. No call site is unassigned.
+85 + 170 + 13 + 11 + 51 + 45 + 80 = **455**, the count as first measured. The spike re-counted its own
+slice and found 26 rather than 51 (see *Findings*), so the same slack is likely elsewhere: treat these
+as sizing figures, and let each ticket re-count its own before it starts.
 
 ## Definition of done
 

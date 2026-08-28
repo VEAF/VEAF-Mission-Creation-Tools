@@ -1,20 +1,27 @@
 # 05 — The mission index
 
-Status: ⬜ ready — **gated by ticket 00**
+Status: ⬜ ready — rewritten 2026-08-28 against ticket 00's findings
 Type: refactor
 
-51 call sites. The riskiest ticket of the campaign, and the one whose shape ticket 00 exists to decide.
-**Do not start it before 00 has answered.**
+**26 sites**, not the 51 this ticket was opened with — ticket 00 re-counted them, and the difference is
+in the PRD's *Findings*. The ticket is also **smaller in shape** than it was written: the spike found no
+VEAF caller that reads a record for a unit an AI or a third-party script spawned, so the birth-event
+path and its deferred fill are gone. What remains is three things.
 
-## What we replace, and what we do not
+## The three things
 
-MiST declares **31 tables** under `mist.DBs`. VEAF reads **8**. The 23 it never reads —
-`aliveUnits`, `removedAliveUnits`, `unitsByCat`, `unitsById`, `zonesByName`, `zonesByNum`, `navPoints`,
-`markList`, `deadObjects`, `activeHumans`, `dynGroupsAdded`, `spawnsByBase`, `drawingByName`,
-`drawingIndexed`, `const`, `humansById`, `oldAliveUnits` and the six `MEunits*` — are dropped, not
-ported.
+| Brick | What it holds | How it is fed |
+|---|---|---|
+| **Editor snapshot** | every pre-placed group and unit, as a *mission data record* (`x`, `y`, `alt`, `coalitionId`, `groupName`, `groupId`, `type`, `skill`) | one `env.mission` walk at startup |
+| **Name registry** | the group and unit names **we** have taken, and released | written by our own spawn path, cleared when the group dies |
+| **Player roster** | every human unit name, **including DCS dynamic slots** | the editor walk for `Client` / `Player` skills, refreshed by a `coalition.getGroups()` sweep |
 
-## The trap
+Nothing else. MiST declares 31 tables under `mist.DBs`; the 23 VEAF never reads — `aliveUnits`,
+`removedAliveUnits`, `unitsByCat`, `unitsById`, `zonesByName`, `zonesByNum`, `navPoints`, `markList`,
+`deadObjects`, `activeHumans`, `dynGroupsAdded`, `spawnsByBase`, `drawingByName`, `drawingIndexed`,
+`const`, `humansById`, `oldAliveUnits` and the six `MEunits*` — are dropped, not ported.
+
+## The trap that still stands
 
 The native call is **not** a drop-in replacement. `Unit.getByName("x")` returns a **live DCS object**;
 `mist.DBs.unitsByName["x"]` returns a **mission data record** — and that record exists for a unit that
@@ -22,67 +29,88 @@ has not spawned yet and for one already destroyed. Our callers want the second:
 [`veafInterpreter.lua:92`](../../../src/scripts/veaf/veafInterpreter.lua) spells out what it reads,
 *"a `mist.DBs.units` record: x, y, alt, coalitionId, groupName"*.
 
-So an index is genuinely needed. What we drop is its size and its refresh rate, not its existence.
+So an index is genuinely needed. What the spike removed is its refresh rate and two thirds of its
+surface, not its existence.
 
-## The three sources of a record
+## Why the player roster cannot be an `env.mission` walk alone
 
-| Source | How the index learns about it | Cost |
-|---|---|---|
-| Pre-placed in the Mission Editor | one `env.mission` walk at startup | one pass, no maintenance |
-| **Spawned by us** | registered in the same call that creates the group — we built the record to hand it to DCS, so we already have it | free |
-| Spawned by a third party — late activation, CTLD, Foothold, another script, a player taking a slot | birth event, then a **deferred** fill | one scheduled call per birth |
+MiST maintains `humansByName` at runtime for **DCS dynamic slots**: a unit carrying a player name that
+is absent from `MEunitsByName` is added at [`mist.lua:1077`](../../../src/scripts/community/mist.lua)
+and [`:1374`](../../../src/scripts/community/mist.lua). A startup walk over skill `Client` / `Player`
+would lose those players — silently, and only in the missions that use dynamic slots.
 
-The deferral in the third row is not optional and not MiST clumsiness: at birth-event time the group is
-not always reachable. MiST's own disabled log line says so —
-[`mist.lua:1657`](../../../src/scripts/community/mist.lua): *"Group not accessible by unit in event
-handler. This is a DCS bug"*. That is why MiST queues births and drains the queue at 5 Hz, and why it
-also runs a `verifyDB()` poll over `coalition.getGroups()` to catch what the events missed.
+VEAF has already met this and patched around it in one place:
+[`veafAirWaves.lua:781`](../../../src/scripts/veaf/veafAirWaves.lua) sweeps `coalition.getGroups()`
+under the comment *"Dynamic slot players via DCS coalition API (not tracked by mist)"*, and the four
+`isHumanUnit` call sites each carry an `or event.type.id == S_EVENT_PLAYER_ENTER_UNIT`. **This ticket
+owns that sweep**, and removes both workarounds — `veafAirWaves` goes back to asking one question, and
+the four `or` clauses become redundant.
 
-**Whether we need the third row at all is ticket 00's question 1.** If no VEAF caller reads a record for
-a unit a third party spawned, this ticket loses its event path entirely and becomes a startup index plus
-our own registration.
+Write the player test as `local p = unit:getPlayerName(); if p and p ~= "" then`. Whether DCS returns
+`nil` or `""` for an AI unit is unmeasured (see `DCS-SESSION-TODO.md`); this form is correct either way,
+and **must not** be shortened to `if unit:getPlayerName() then` — `""` is truthy in Lua.
 
 ## What replaces the tick
 
-MiST's `mist.main` splits into three jobs. Only two matter, and neither survives as a tick:
+MiST's `mist.main` re-arms every 0.01 s and splits into three jobs. None survives as a tick:
 
 - **20 Hz `updateAliveUnits`** — walks every unit in the mission to feed `aliveUnits` /
-  `removedAliveUnits`. **Both are in the 23 tables we never read.** Dropped outright: this is the
-  expensive half of the DB work and it buys us nothing.
-- **5 Hz `checkSpawnedEventsNew`** — drains the birth-event queue. Becomes one scheduled call per birth
-  through `veafScheduler` (ticket 01), not a polling loop. When nothing spawns, nothing runs.
+  `removedAliveUnits`, **both among the 23 tables we never read**. Dropped outright.
+- **5 Hz `checkSpawnedEventsNew`** — drains the birth queue so AI spawns land in the DB. **We no longer
+  need what it feeds.** Dropped.
+- **100 Hz `doScheduledFunctions`** — the scheduler, and ticket 01's subject, not this one's.
 
-## The four static reads, which need no index at all
+The player roster refresh is the only recurring work this ticket adds, and it is a sweep over
+`coalition.getGroups()`, not a per-unit poll. Trigger it on `S_EVENT_BIRTH` and `S_EVENT_PLAYER_ENTER_UNIT`
+rather than on a timer if the event proves sufficient; if a timer is kept, say in a comment why, and keep
+it in seconds, not hundredths.
+
+## The static reads, which need no index at all
 
 | Table | Calls | Replacement |
 |---|---:|---|
 | `missionData.bullseye.blue` / `.red` | 5 | `env.mission.coalition.<side>.bullseye`, read directly |
-| `units` | 5 | `env.mission`. Both consumers walk it **once at init** to build their own index — [`veaf.lua:2769`](../../../src/scripts/veaf/veaf.lua) for the country list, [`veafInterpreter.lua:156`](../../../src/scripts/veaf/veafInterpreter.lua) for unit aliases |
-| `MEgroupsByName` | 3 | a frozen `deepCopy` in MiST → one `env.mission` walk |
-| `humansByName` | 7 | an `env.mission` walk for skill `Client` / `Player` |
+| `units` | 2 | `env.mission`. Both consumers walk it **once at init** to build their own index — [`veaf.lua:2770`](../../../src/scripts/veaf/veaf.lua) for the country list, [`veafInterpreter.lua:156`](../../../src/scripts/veaf/veafInterpreter.lua) for unit aliases |
+| `MEgroupsByName` | 1 | the editor snapshot (MiST itself holds a frozen `deepCopy`) |
+
+## Two removals the spike handed us
+
+- **`veaf.mist.getUnitData` has no caller.** The only façade over `unitsByName`, and dead. Delete it
+  rather than port it.
+- **`veafTransportMission.resetAllCargoes` is dead code**, and the only reader of `unitsByNum`. Its
+  radio command has been commented out since `5a43cc20` (2020-05-16) with *"TODO add this command when
+  the respawn will work"*, and only a unit test calls it. Remove the function and its test, or say in
+  this ticket why it was kept — but do **not** port `unitsByNum` for it.
 
 ## The façade is already there
 
-[`veaf.lua:147`](../../../src/scripts/veaf/veaf.lua) already wraps the database behind six accessors,
+[`veaf.lua:147`](../../../src/scripts/veaf/veaf.lua) already wraps the database behind seven accessors,
 written for exactly this purpose — *"Centralizes the main access points to `mist.DBs` to isolate modules
-from internal mist changes"*. **First close the façade** by migrating the 35 direct accesses onto it,
+from internal mist changes"*. **First close the façade** by migrating the 14 direct accesses onto it,
 **then** swap the implementation. That way the substitution is one file's problem, not 32.
 
-Included in the migration: [`veafSpawnAircraft.lua:788`](../../../src/scripts/veaf/veafSpawnAircraft.lua),
-which deletes two `mist.DBs` entries by hand so an AFAC can respawn under a name it already used. Once
-we own the index, that becomes a supported operation instead of a documented workaround.
+Included in the migration:
+[`veafSpawnAircraft.lua:788-789`](../../../src/scripts/veaf/veafSpawnAircraft.lua), which deletes two
+`mist.DBs` entries by hand so an AFAC can respawn under a name it already used. That is not a caller
+reading the index — it is the **name registry** in disguise: `mist.dynAdd` renames a cloned group when
+`mist.DBs.groupsByName[name]` already exists ([`mist.lua:1950`](../../../src/scripts/community/mist.lua)),
+and the hand-deletion is how VEAF frees the name. Once we own the registry, `veaf.releaseSpawnedName(name)`
+replaces it, and ticket 07's `dynAdd` port asks the registry instead of a mission mirror.
 
 ## Definition of done
 
-- [ ] Ticket 00's findings are in the PRD and this ticket was rewritten against them
-- [ ] The 35 direct `mist.DBs` accesses are migrated onto the `veaf.*` façades **before** any
+- [ ] The 14 direct `mist.DBs` accesses are migrated onto the `veaf.*` façades **before** any
       implementation swap, as a separate reviewable step
-- [ ] `veafMissionDb.lua` exists: startup index from `env.mission`, direct registration for our own
-      spawns, and — only if ticket 00 says it is needed — a birth-event path with a deferred fill
-- [ ] No polling loop and no periodic full scan
-- [ ] The four static reads go straight to `env.mission`
-- [ ] `veafSpawnAircraft.lua:788`'s hand-deletion is replaced by a supported call
+- [ ] `veafMissionDb.lua` exists and holds exactly the three bricks: editor snapshot, name registry,
+      player roster
+- [ ] No polling loop, no periodic full-mission scan, and no birth-event path for AI or third-party spawns
+- [ ] The player roster includes dynamic-slot players; `veafAirWaves.lua`'s local `coalition.getGroups()`
+      workaround is removed and its test still passes
+- [ ] The static reads go straight to `env.mission`
+- [ ] `veafSpawnAircraft.lua:788-789`'s hand-deletion is replaced by a supported registry call
+- [ ] `veaf.mist.getUnitData` and `veafTransportMission.resetAllCargoes` are gone (or the ticket says why not)
 - [ ] Lua tests: a record for a pre-placed unit, for one we spawned, for one already destroyed, for a
-      name that does not exist, and the AFAC rename case that `veafSpawnAircraft` needs
+      name that does not exist, a dynamic-slot player, and the AFAC name-reuse case
+- [ ] A test asserts that an AI unit whose `getPlayerName()` returns `""` is **not** in the player roster
 - [ ] `grep -E 'mist\.DBs' src/scripts/veaf/` returns nothing
 - [ ] `stylua --check` and `luacheck` clean

@@ -509,3 +509,33 @@ number exists.**
 
 **What it unblocks:** `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/tickets/04-refuse-the-farp-when-the-escort-cannot-be-placed.md`.
 Record the counts in ticket 04 and delete this section.
+---
+
+## 22. Does an AI unit's `getPlayerName()` return `nil` or an empty string? — low priority
+
+**Why it is here:** `DROP-MIST` ticket 00 (2026-08-28) went looking for this to decide the shape of the
+mission index, and no longer needs it — the index will filter with `local p = u:getPlayerName();
+if p and p ~= "" then`, which is correct whichever value DCS returns. What the question *did* turn up is
+a suspicion about code already shipped.
+
+[`veafAirWaves.lua:791`](src/scripts/veaf/veafAirWaves.lua) tests `if dcsUnit:getPlayerName() then` while
+sweeping `coalition.getGroups()` for dynamic-slot players. **In Lua, `""` is truthy.** So if DCS returns
+an empty string rather than `nil` for an AI unit, that line counts every AI aircraft of the player
+coalitions as a player, and an air wave would react to AI traffic. MiST guards the same call with
+`~= ""` ([`mist.lua:1642`](src/scripts/community/mist.lua)), which is weak evidence that its author saw
+`""` at least once.
+
+**What to run.** Any mission with an AI aircraft and an air wave zone. In the console, or in a one-line
+script hooked to a birth event:
+
+```lua
+local u = Unit.getByName("<an AI unit>")
+env.info(string.format("VEAF getPlayerName: type=%s value=[%s]", type(u:getPlayerName()), tostring(u:getPlayerName())))
+```
+
+- `type=nil` → `veafAirWaves.lua:791` is fine as written, and nothing else follows.
+- `type=string value=[]` → it is a real bug: air waves count AI as players. Open a fix lot; do **not**
+  fold it into `DROP-MIST`, which removes a dependency and must not change who counts as a player.
+
+**What it unblocks:** nothing. It is a suspicion to confirm or kill. Delete this section either way, and
+if it is confirmed, name the lot you opened.

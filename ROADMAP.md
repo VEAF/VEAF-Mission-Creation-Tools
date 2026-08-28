@@ -141,7 +141,12 @@ executed: *count the call sites, that number decides lot or campaign*. The count
 distinct MiST symbols, 32 of the ~50 VEAF Lua files** — answered campaign.
 
 It sequences itself: ticket 00 is a spike that gates the two risky tickets (the mission index and the
-spawn/route core), and ticket 08 is the only one with a player-visible effect, by construction. It runs
+spawn/route core), and ticket 08 is the only one with a player-visible effect, by construction. **The
+spike closed on 2026-08-28** and both gates lifted: no VEAF caller reads a mission record for a unit an
+AI or a third-party script spawned, so the index sheds its birth-event path and keeps three bricks — an
+editor snapshot, a registry of the names we take and release, and a player roster that must cover DCS
+dynamic slots. It also re-counted its own slice at 26 sites against the 51 first attributed to it, so
+the 455 below is a sizing figure rather than a migration checklist. It runs
 alongside the list above rather than ahead of it, and it carries an explicit caveat David accepted when
 he opened it: **no intermediate ticket delivers a visible gain**, since MiST stays injected until the
 last call site is gone.

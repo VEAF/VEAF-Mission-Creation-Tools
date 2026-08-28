@@ -1,6 +1,6 @@
 # 00 — What the mission index must actually hold (spike)
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-28, findings in the PRD
 Type: chore
 
 A **measurement ticket**. It writes no production code; it answers three questions whose answers decide
@@ -59,9 +59,19 @@ snapshot, because that decides whether ticket 07 depends on ticket 05 or can pre
 
 ## Definition of done
 
-- [ ] Every read of the four record tables is enumerated from the code and classified into the three
-      buckets, with counts
-- [ ] The dependency direction between tickets 05 and 07 is settled and written down
-- [ ] Question 2 is either answered, or filed in `DCS-SESSION-TODO.md` with the exact log line to add
-- [ ] Findings appended to the PRD; tickets 05 and 07 rewritten against them
-- [ ] No production code changed by this ticket
+- [x] Every read of the four record tables is enumerated from the code and classified into the three
+      buckets, with counts — **26 sites**, bucket A 20, bucket B 0 reads, bucket C 0 for AI spawns and
+      5 for players
+- [x] The dependency direction between tickets 05 and 07 is settled and written down — 07 needs two
+      bricks from 05 (editor snapshot, name registry), not its index
+- [x] Question 2 is either answered, or filed in `DCS-SESSION-TODO.md` with the exact log line to add —
+      **it no longer decides the design**; filed as item 22, as an observation about
+      `veafAirWaves.lua:791`
+- [x] Findings appended to the PRD; tickets 05 and 07 rewritten against them
+- [x] No production code changed by this ticket
+
+## What it cost the campaign, in one line
+
+Ticket 05 loses its AI birth-event path and half its surface; ticket 07 is unblocked; two dead pieces of
+code (`veaf.mist.getUnitData`, `veafTransportMission.resetAllCargoes`) are queued for removal; and the
+lot no longer waits on a DCS session.

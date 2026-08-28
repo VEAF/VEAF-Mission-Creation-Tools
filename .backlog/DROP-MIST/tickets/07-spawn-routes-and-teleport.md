@@ -1,6 +1,6 @@
 # 07 — Spawn, routes and teleport
 
-Status: ⬜ ready — **gated by ticket 00**
+Status: ⬜ ready — ticket 00 answered 2026-08-28; no longer gated
 Type: refactor
 
 80 call sites over **726 MiST lines** — the functional core of the dependency, and the reason this lot
@@ -29,12 +29,31 @@ and any divergence is a regression rather than an improvement. Second, `teleport
 `dynAdd`**, so the two are one problem: port `dynAdd` first and `teleportToPoint` becomes route
 arithmetic on top of it.
 
-## The dependency to settle first
+## The dependency, settled
 
-`getGroupData` and `getGroupRoute` both read the mission database, which is ticket 05's subject.
-**Ticket 00's question 3 decides whether this ticket depends on 05 or can precede it** — specifically
-whether those two functions need the live record or the editor snapshot. Do not guess: the wrong answer
-means porting `dynAdd` against an index that does not yet hold what it needs.
+Ticket 00 read every database access these seven functions make. **None of them needs a live index.**
+
+| MiST function | What it reads | Needs |
+|---|---|---|
+| `mist.getGroupRoute` | `MEgroupsByName` for the id, then walks `env.mission` | editor snapshot |
+| `mist.getGroupData` | `groupsByName`, plus a partial-name match no VEAF caller relies on | editor snapshot |
+| `mist.teleportToPoint` | `groupsByName` to fill in `country` / `category` when the caller omits them | editor snapshot |
+| `mist.getCurrentGroupData` (the `teleport` action) | `unitsByName`, to enrich each unit with skill and callsign — with a complete native fallback in its `else` branch | nothing hard |
+| `mist.dynAdd` | `groupsByName` / `unitsByName`, **only on the `clone` path**, to decide whether a name is free | the name registry |
+
+All 15 `teleportToPoint`, 4 `respawnGroup` and both `veafSpawnAircraft` clone sites start from an
+**editor** group name — a template, a Pedro, a carrier, an asset. VEAF never respawns or clones a group
+it created itself.
+
+So this ticket depends on **two named bricks from ticket 05**, not on its index:
+
+1. the **editor snapshot** of groups and units, and
+2. the **name registry** — which is what `veafSpawnAircraft.lua:788-789` hand-rolls today by deleting
+   two `mist.DBs` entries so a dead AFAC's callsign can be reused. Port `dynAdd`'s uniqueness test
+   against the registry, and that workaround disappears with it.
+
+05 still lands first because both bricks live there. If 05 grows, those two can be split out and
+reviewed on their own without holding this ticket.
 
 ## Method
 
@@ -69,7 +88,7 @@ Unit tests cannot see whether a group actually appeared at the right place in DC
 
 ## Definition of done
 
-- [ ] Ticket 00's question 3 is answered and the dependency on ticket 05 is settled
+- [ ] Ticket 05 has shipped the editor snapshot and the name registry, and this ticket uses them
 - [ ] The call-site → category → branch enumeration is written in this ticket **before** implementation
 - [ ] Ported into a dedicated module behind `veaf.*` façades; `dynAdd` first, then `teleportToPoint` as
       route arithmetic over it

@@ -18,6 +18,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafScheduler.lua")
+dofile(_base .. "/../../src/scripts/veaf/veafMath.lua")
 -- The i18n catalog: `veaf.reportUnknownParameters` builds a localised message, so the tests below
 -- need the entries rather than the raw keys.
 dofile(_base .. "/../../src/scripts/veaf/veafI18n.lua")

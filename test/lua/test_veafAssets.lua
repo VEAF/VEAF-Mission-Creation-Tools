@@ -5,6 +5,7 @@ dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
 -- veafMove too: veafAssets.respawn calls into it to repair a respawned asset's escort task
 -- (FIX-ESCORT-RESPAWN-TASK), so a test that omits it would exercise the guarded-out branch only.
 dofile(src .. "/veafMove.lua")

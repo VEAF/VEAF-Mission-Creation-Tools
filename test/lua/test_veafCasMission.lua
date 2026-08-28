@@ -5,6 +5,7 @@ dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
 -- FIX-PLATOON-UNITS: the type tables below are hand-written, and the point of the sweep at the end
 -- of this file is to check every entry against the generated DCS database. That needs the real
 -- databases, not stubs.

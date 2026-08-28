@@ -91,7 +91,7 @@ function veafSpawn.spawnFarp(
     ["groupName"] = name,
     ["name"] = name,
     ["canCargo"] = false,
-    ["heading"] = mist.utils.toRadian(hdg),
+    ["heading"] = math.rad(hdg),
     ["country"] = country,
     ["coalition"] = side,
     ["dead"] = false,
@@ -177,7 +177,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     x = _spawnPosition.x,
     name = _fobName,
     canCargo = false,
-    heading = mist.utils.toRadian(hdg),
+    heading = math.rad(hdg),
     country = _country,
   }
   mist.dynAddStatic(_outpost)
@@ -186,12 +186,12 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   local _tower = {
     type = "house2arm",
     rate = 100,
-    y = _outpost.y + TOWER_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
-    x = _outpost.x + TOWER_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+    y = _outpost.y + TOWER_DISTANCE * math.sin(math.rad(_hdg)),
+    x = _outpost.x + TOWER_DISTANCE * math.cos(math.rad(_hdg)),
     name = _fobName .. " Watchtower #002",
     category = "Fortifications",
     canCargo = false,
-    heading = mist.utils.toRadian(_hdg),
+    heading = math.rad(_hdg),
     country = _country,
   }
   mist.dynAddStatic(_tower)
@@ -209,8 +209,8 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     -- spawn a beacon. Its name is CTLD's to allocate now — the "FOB Beacon #N" counter
     -- VEAF kept was a second numbering next to the manager's own.
     local _beaconPoint = {
-      z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
-      x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+      z = _tower.y + BEACON_DISTANCE * math.sin(math.rad(_hdg)),
+      x = _tower.x + BEACON_DISTANCE * math.cos(math.rad(_hdg)),
       y = _spawnPosition.y,
     }
     local _beacon = CTLDBeaconManager.getInstance():createAtPoint(_beaconPoint, _side, _country, { isFOB = true })

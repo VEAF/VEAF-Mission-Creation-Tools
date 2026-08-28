@@ -146,7 +146,10 @@ spike closed on 2026-08-28** and both gates lifted: no VEAF caller reads a missi
 AI or a third-party script spawned, so the index sheds its birth-event path and keeps three bricks — an
 editor snapshot, a registry of the names we take and release, and a player roster that must cover DCS
 dynamic slots. It also re-counted its own slice at 26 sites against the 51 first attributed to it, so
-the 455 below is a sizing figure rather than a migration checklist. It runs
+the 455 below is a sizing figure rather than a migration checklist. **Tickets 01 and 02 shipped the
+same day**: the scheduler on the native timer, and the maths in `veafMath.lua` — where 100 of 170
+calls needed no new code, `round` having been `veaf.round` all along and `toRadian`/`toDegree` being
+Lua's own `math.rad`/`math.deg`. It runs
 alongside the list above rather than ahead of it, and it carries an explicit caveat David accepted when
 he opened it: **no intermediate ticket delivers a visible gain**, since MiST stays injected until the
 last call site is gone.

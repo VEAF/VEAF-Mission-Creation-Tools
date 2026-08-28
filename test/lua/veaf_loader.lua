@@ -21,6 +21,7 @@ local _loaded = {}
 local _moduleOrder = {
   "veaf",
   "veafScheduler",
+  "veafMath",
   "veafTime",
   "veafAirbases",
   "veafWeather",
@@ -73,10 +74,14 @@ function M.load(name)
   end
   fn()
   _loaded[name] = true
-  -- veafScheduler backs veaf.scheduleFunction, which veaf.lua itself calls: it is part of the
-  -- framework floor, not an optional module, so loading the core pulls it in.
-  if name == "veaf" and not _loaded["veafScheduler"] then
-    M.load("veafScheduler")
+  -- veafScheduler and veafMath back veaf.* functions that veaf.lua itself calls: they are part of
+  -- the framework floor, not optional modules, so loading the core pulls them in.
+  if name == "veaf" then
+    for _, floor in ipairs({ "veafScheduler", "veafMath" }) do
+      if not _loaded[floor] then
+        M.load(floor)
+      end
+    end
   end
 end
 

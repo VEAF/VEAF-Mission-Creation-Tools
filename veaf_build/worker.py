@@ -97,6 +97,7 @@ def deploy_published_locally(published_zip: Path, target: Path) -> list[str]:
 # from static/distribution builds (test_lua_bundle_manifest guards this).
 LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafScheduler.lua",
+    "veafMath.lua",
     "veafI18n.lua",
     "dcsUnits.lua",
     "veafCacheManager.lua",

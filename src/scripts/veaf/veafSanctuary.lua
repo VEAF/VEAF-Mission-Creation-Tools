@@ -400,13 +400,13 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("VeafSanctuaryZone[%s]:deployDefenses()", veaf.p(self.name)))
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("position=%s", veaf.p(position)))
   -- compute the position of the unit in 20 seconds
-  local positionIn20s = mist.vec.add(position, mist.vec.scalarMult(unit:getVelocity(), 20))
+  local positionIn20s = veaf.vecAdd(position, veaf.vecScalarMult(unit:getVelocity(), 20))
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("positionIn20s=%s", veaf.p(positionIn20s)))
   -- compute the position of the unit in 40 seconds,
-  local positionIn40s = mist.vec.add(position, mist.vec.scalarMult(unit:getVelocity(), 40))
+  local positionIn40s = veaf.vecAdd(position, veaf.vecScalarMult(unit:getVelocity(), 40))
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("positionIn40s=%s", veaf.p(positionIn40s)))
   -- compute a heading towards the unit
-  local heading = mist.utils.round(mist.utils.toDegree(mist.getHeading(unit)), 0)
+  local heading = veaf.round(math.deg(mist.getHeading(unit)), 0)
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading=%s", veaf.p(heading)))
   local heading1 = heading * math.random(70, 130) / 100
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading1=%s", veaf.p(heading1)))
@@ -431,7 +431,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
     end
 
     local spawnedGroupsNames = {}
-    local surfaceType = land.getSurfaceType(mist.utils.makeVec2(position))
+    local surfaceType = land.getSurfaceType(veaf.makeVec2(position))
     veaf.loggers.get(veafSanctuary.Id):trace(string.format("surfaceType=%s", veaf.p(surfaceType)))
     if surfaceType == 2 or surfaceType == 3 then
       -- this is water

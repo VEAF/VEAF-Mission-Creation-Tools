@@ -1122,13 +1122,13 @@ function veafCasMission.reportTargetInformation(unitName)
   if requestingUnit and requestingUnit:getCoalition() == coalition.side.RED then
     bullseyeData = mist.DBs.missionData.bullseye.red
   end
-  local bullseye = mist.utils.makeVec3(bullseyeData, 0)
+  local bullseye = veaf.makeVec3(bullseyeData, 0)
   ---@diagnostic disable-next-line: need-check-nil
   local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
-  local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-  local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)
-  local distMetric = mist.utils.round(dist / 1000, 0)
-  local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
+  local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
+  local dist = veaf.get2DDist(averageGroupPosition, bullseye)
+  local distMetric = veaf.round(dist / 1000, 0)
+  local distImperial = veaf.round(veaf.metersToNM(dist), 0)
   local fromBullseye = veaf.t("cas.report_bullseye_value", dir, distMetric, distImperial)
 
   message = message .. veaf.t("cas.report_latlon_decimal", mist.tostringLL(lat, lon, 2))

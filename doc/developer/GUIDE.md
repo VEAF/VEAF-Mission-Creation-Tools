@@ -314,6 +314,28 @@ L'implémentation vit dans `veafScheduler.lua`. Il n'y a **pas** de boucle de sc
 est un appel planifié natif, réarmé en renvoyant sa prochaine échéance, donc rien ne tourne quand rien
 n'est dû.
 
+### Maths, vecteurs et conversions
+
+Ne pas appeler `mist.utils.*` ni `mist.vec.*`. Les fonctions vivent dans `veafMath.lua`, derrière des
+façades `veaf.*` :
+
+```lua
+veaf.metersToNM(d)  veaf.NMToMeters(d)  veaf.metersToFeet(d)  veaf.feetToMeters(d)  veaf.mpsToKnots(v)
+veaf.vecAdd(a, b)   veaf.vecScalarMult(v, k)   veaf.vecMag(v)   veaf.get2DDist(p1, p2)
+veaf.makeVec3(p, alt)   veaf.makeVec2(p)   veaf.getDir(v, point)   veaf.getNorthCorrection(point)
+veaf.deepCopy(t)
+```
+
+Trois pièges, dans l'ordre où ils mordent :
+
+- **`makeVec3` / `makeVec2` traduisent entre les deux conventions de coordonnées de DCS** — lire
+  [`docs/agents/dcs-coordinates.md`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-coordinates.md)
+  avant de les utiliser. Se tromper ne lève aucune erreur, seulement une position à cent kilomètres.
+- **Pas de `veaf.toRadian` ni `veaf.toDegree`** : ce sont `math.rad` et `math.deg`, de la bibliothèque
+  standard Lua.
+- **Pas de `veaf.round` dans `veafMath`** : il est dans `veaf.lua` depuis toujours, et il est identique
+  à celui de MiST.
+
 ### Accès mist.DBs
 
 Ne pas accéder à `mist.DBs.*` directement. Utiliser l'interface `veaf.mist` :

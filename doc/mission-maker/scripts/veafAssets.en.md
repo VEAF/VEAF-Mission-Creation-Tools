@@ -130,7 +130,7 @@ what lets the framework find the escort in order to **repair its `Escort` task**
 invalidates every time the escorted group is recreated — by a respawn as much as by a teleport
 (`_move tanker … teleport`).
 
-In practice: set the `Escort` task on the **last waypoint** of the escort's route, in the Mission
+In practice: set the `Escort` task on **any waypoint** of the escort's route, in the Mission
 Editor, as you normally would. The rest is automatic.
 
 > ⚠️ **`linked` is not what makes a group an escort.** The two mechanisms are independent: `linked`

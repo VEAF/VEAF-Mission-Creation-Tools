@@ -52,20 +52,31 @@ broken for everyone". It never was.
 
 Items **11** and **16** are fully measurable, with no double reading and no caveat.
 
-## A mission is ready for items 21 and 10 — built 2026-08-27
+## The session mission — built 2026-08-27, twice corrected 2026-08-28
 
-`D:\dev\_VEAF\tmp\dcs-session-2026-08-27\` — **`LIRE-MOI.md` carries the full running order**, and
-`missions\VEAF-session-2026-08-27_noon.miz` is the only file to load. Caucasus, noon, `language: fr`,
-security off, built with `--dev-mode` against the repository so it carries the fixes no release has yet
-(verified on the unzipped `.miz`: `bearingFromSceneryCloud`, `PLACEMENT_DISTANCE_TOLERANCE`,
-`Object.Category.SCENERY`, `reestablishEscortTask`).
+`D:\dev\_VEAF\tmp\dcs-session-2026-08-27\` — **load
+`missions\VEAF-session-2026-08-27-escortfix_noon.miz`**, the newest of the three. Caucasus, noon,
+`language: fr`, security off, built with `--dev-mode` against the repository so it carries fixes no
+release has yet.
 
-Based on the repository's own demo mission, which already carries the `Arco` tanker and two escorts.
-**One escort was renamed to `Arco escort`** and the other deliberately left as `Arco-escort1`: the
-convention is `<asset name> .. " escort"` ([`veafMove.lua:37`](src/scripts/veaf/veafMove.lua)) and
-neither original name matched it, so item 10 would have shown the escort going home and read as "the fix
-does not work". Renaming only one gives the run its own control — the repaired escort must stay, the
-other must still leave after ~10 minutes.
+Items 21 and 10 were both run on it on 2026-08-28. Item 10 is closed here; item 21's section stays
+until its counts are written into `FIX-PLACEMENT-IGNORES-SCENERY` ticket 04. What remains beyond that
+is the mission itself, still the right one to load for anything needing a live VEAF mission on Caucasus.
+
+⚠️ **Two defects of the 27th's build, both fixed on the 28th — do not reintroduce them.**
+
+1. **It carried two VEAF configurations.** `src/scripts/` held the demo mission's v5 `missionConfig.lua`
+   (59 KB, `MISSION_NAME = "VEAF-Demo-Mission"`) *next to* the generated `veaf-config.lua`. Both ran, so
+   every module initialised twice and **every radio submenu appeared twice**, the second one inert —
+   19 submenus under the VEAF root where there should be 9. Deleting `missionConfig.lua` and rebuilding
+   fixed it, confirmed by probing the live menu tree. The repository's own demo mission
+   (`test/veaf-tools/demo-mission/src/scripts/`) is clean; the stale file came from extracting a v5
+   `.miz`. **Anyone converting a v5 mission will hit this** — worth a guard of its own.
+2. It was built before the `findEscortTask` fix, so item 10 could not pass on it.
+
+**The item 10 control is built in and worth keeping**: one escort is named `Arco escort` (matching the
+`<asset name> .. " escort"` convention, [`veafMove.lua:37`](src/scripts/veaf/veafMove.lua)) and the other
+deliberately left as `Arco-escort1`, so a run can tell a working repair from a silent no-op.
 
 ⚠️ **The folders for items 3 and 4 are gone.** `dcs-session-2026-08-14` and `dcs-session-2026-08-24` no
 longer exist; `tmp/` holds only the Foothold archives, now **4.7.0** where item 4's text targets 4.4.1.
@@ -364,25 +375,6 @@ replacement had superseded, and an "open sea" defined at 150 m against a 500 m s
 checks pass, and #790 is what made them able to fail.
 
 ---
-
-## 10. Watch a respawned escort for longer than ten minutes
-
-[`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but
-the defect is a DCS behaviour the mocks do not model: an `Escort` task whose `groupId` no longer
-resolves. Only the game can say whether the repair takes.
-
-Rerun **check 9 of `verify-mission-c`**: F10 → Assets → Respawn Arco, then watch its escort.
-
-- **Before the fix**: the escort holds for a while, then leaves to land after ~10 minutes.
-- **Expected now**: it stays with the tanker. David watched the teleport path hold for 30 minutes on
-  2026-08-18, so that is the bar.
-
-⚠️ **Watch past the ten-minute mark.** The failure is a *delayed* RTB — a short look would have called
-the old behaviour fixed. That is the whole reason this cannot be a five-minute check.
-
-Also worth a glance in `dcs.log`: `Re-establishing the escort task of <group> onto group id <n>`. If
-that line is absent, the escort group is not named `<asset> escort` and the convention is what to
-check first (it is now documented on the ASSETS page).
 
 ## 3. Confirm a rebuilt checklist picture is not served stale — **prepared 2026-08-24**
 

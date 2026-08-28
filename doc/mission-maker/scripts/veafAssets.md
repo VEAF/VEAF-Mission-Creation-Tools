@@ -129,7 +129,7 @@ décoratif : c'est ce qui permet au framework de retrouver l'escorte pour **rép
 `Escort`**, que DCS invalide chaque fois que le groupe escorté est recréé — réapparition
 (*Respawn*) comme téléportation (`_move tanker … teleport`).
 
-Concrètement : configurez la tâche `Escort` sur le **dernier waypoint** de la route de l'escorte,
+Concrètement : configurez la tâche `Escort` sur **n'importe quel waypoint** de la route de l'escorte,
 dans l'éditeur de mission, comme d'habitude. Le reste est automatique.
 
 > ⚠️ **`linked` n'est pas ce qui fait d'un groupe une escorte.** Les deux mécanismes sont

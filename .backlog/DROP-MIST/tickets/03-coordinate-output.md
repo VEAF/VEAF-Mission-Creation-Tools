@@ -1,6 +1,6 @@
 # 03 — Coordinate output
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-28
 Type: refactor
 
 13 call sites: `mist.tostringLL` (9) and `mist.tostringMGRS` (4), 127 MiST lines between them.
@@ -41,11 +41,49 @@ strings, not against a re-derivation.
 Precision arguments differ per call site (`2`, `3`, `5`, `0` with the DMS flag). Port the precision
 semantics exactly — `tostringMGRS(mgrs, 5)` and `tostringMGRS(mgrs, 3)` do not round the same way.
 
+## Decided: separate functions, not a trio helper
+
+The ticket suspected one `veaf.formatPosition(vec3)` returning all three strings, because three call
+sites emit the same trio. They do — but **not as a block**. In `veafCasMission`, `veafCombatZone` and
+`veafTransportMission` the MGRS string is built about fifteen lines before the two lat/lon ones, and
+each of the three goes into a *different* i18n entry (`report_latlon_decimal`, `report_latlon_dms`,
+`report_mgrs`). A trio helper would mean rewriting the three message blocks, which is a refactor this
+ticket was not asked for. Two functions, `veaf.toStringLL` and `veaf.toStringMGRS`, mirroring what the
+call sites already do.
+
+## Two defects in MiST, reproduced on purpose
+
+Both were found by generating the expected strings from MiST itself before writing the port, and both
+are now pinned by a test that says why.
+
+- **A position at exactly zero renders as `S` and `W`.** The hemisphere test is `> 0`, so the equator
+  and the prime meridian fall on the southern and western side: `00 00.00'S⇥ 00 00.00'W`.
+- **In DMS, a minute reaching 60 does not carry into the degree.** Seconds rounding up carry into the
+  minute, and there it stops: `41.99999444` renders as `41 60' 00"N` where it should read `42 00' 00"N`.
+  The **decimal branch, three lines away, does carry** (`41.99999` → `42 00.00'N`), which is what makes
+  this an oversight rather than a convention. DMS at precision 0 is the format four of the six call
+  sites use, so this is on the common path — it needs the rounding to land exactly on a whole minute,
+  which is roughly one report in three thousand.
+
+Reproducing them is the ticket's own rule: these strings go into F10 reports and briefings, and this
+lot removes a dependency rather than changing what pilots read. **Fixing the DMS carry is worth its own
+lot** — the test that pins it is the one that will have to be updated deliberately.
+
+A third quirk is pinned the same way: MGRS rounding can print one digit more than the requested
+precision (`acc = 3` with an easting of 99999 gives `1000`), because the format pads to a minimum width
+and never truncates.
+
+## Also found
+
+`test/lua/dcs_mocks.lua` carried a `mist.tostringLL` stub returning `"0N 0E"`, added for
+`infoOnAllConvoys`. With the call migrated, the real function runs in that test instead of a constant.
+The stub is removed and the suite still passes.
+
 ## Definition of done
 
-- [ ] Output formatting lives in `veafGeo.lua`, behind `veaf.*` façades
-- [ ] 13 call sites migrated; `grep -E 'mist\.tostring' src/scripts/veaf/` returns nothing
-- [ ] Lua tests assert **literal strings** for each precision used in the codebase, DMS and decimal, in
-      both hemispheres and across the prime meridian
-- [ ] Decided and recorded: one `formatPosition` trio helper, or separate functions
-- [ ] `stylua --check` and `luacheck` clean
+- [x] Output formatting lives in `veafGeo.lua`, behind `veaf.*` façades
+- [x] 13 call sites migrated; `grep -E 'mist\.tostring' src/scripts/veaf/` returns nothing
+- [x] Lua tests assert **literal strings** for each precision used in the codebase (0, 2, 3, 5), DMS and
+      decimal, in both hemispheres, across the prime meridian, and with a three-digit longitude
+- [x] Decided and recorded: separate functions, with the reason above
+- [x] `stylua --check` and `luacheck` clean

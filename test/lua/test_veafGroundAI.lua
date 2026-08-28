@@ -6,6 +6,7 @@ local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
 -- veafI18n, because the correction loop tells the player what it understood and the tests assert
 -- on that text. Without it veaf.t returns the key and the assertions would pass on a message no
 -- player could read.

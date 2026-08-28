@@ -1101,7 +1101,7 @@ function veafSpawn.infoOnAllConvoys(unitName)
       local averageGroupPosition = veaf.getAveragePosition(name)
       ---@diagnostic disable-next-line: param-type-mismatch
       local lat, lon = coord.LOtoLL(averageGroupPosition)
-      local llString = mist.tostringLL(lat, lon, 0, true)
+      local llString = veaf.toStringLL(lat, lon, 0, true)
       text = text .. veaf.t("spawn.convoy_info", name, nbVehicles, llString)
       if veafSpawn.spawnedConvoys[name].stopped then
         text = text .. veaf.t("spawn.convoy_stopped")

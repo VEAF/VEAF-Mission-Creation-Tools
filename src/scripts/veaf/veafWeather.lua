@@ -902,7 +902,7 @@ function veafWeatherData:toStringExtended(unitSystem, bHeight)
 
   local sString = ""
   sString = sString .. veaf.t("weather.line_time", veafTime.absTimeToStringDateTime(self.AbsTime))
-  sString = sString .. veaf.t("weather.line_location", mist.tostringLL(nLatitude, nLongitude, 0, true))
+  sString = sString .. veaf.t("weather.line_location", veaf.toStringLL(nLatitude, nLongitude, 0, true))
   sString = sString .. veaf.t("weather.line_altitude", sAltitude)
   sString = sString .. "\n\n" .. self:toString(unitSystem, bHeight)
   return sString

@@ -6,6 +6,7 @@ local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
 -- veafRadio consults veafSecurity for secured menu commands (REVIEW-SECURITY-LAYER 01)
 dofile(src .. "/veafSecurity.lua")
 dofile(src .. "/veafRadio.lua")

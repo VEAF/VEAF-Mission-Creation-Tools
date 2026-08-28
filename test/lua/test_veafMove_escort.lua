@@ -38,7 +38,6 @@ local function _groupData(groupId, escortedId)
   end
   return {
     groupId = groupId,
-    name = "whatever",
     route = {
       points = {
         { x = 0, y = 0, alt = 6000, speed = 200 },
@@ -48,16 +47,17 @@ local function _groupData(groupId, escortedId)
   }
 end
 
---- Put `groups` (name -> group data) into the mocked mission and MiST's ME database.
+--- Put `groups` (name -> group data) into the mocked mission, and index it the way the mission
+--- database does at startup. The group's name lives in the mission data itself, which is where the
+--- snapshot reads it — MiST kept a separate name-to-id table, and this helper used to fill that.
 local function _mission(groups)
   local planes = {}
-  local byName = {}
   for name, data in pairs(groups) do
+    data.name = name
     table.insert(planes, data)
-    byName[name] = { groupId = data.groupId }
   end
   env.mission.coalition.blue.country = { [1] = { plane = { group = planes } } }
-  mist.DBs.MEgroupsByName = byName
+  veafMissionDb.buildSnapshot()
 end
 
 --- Make `veaf.scheduleFunction` run its argument at once, so scheduled work is observable.

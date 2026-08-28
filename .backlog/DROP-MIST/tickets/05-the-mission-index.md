@@ -1,6 +1,6 @@
 # 05 — The mission index
 
-Status: ⬜ ready — rewritten 2026-08-28 against ticket 00's findings
+Status: ✅ done — 2026-08-28
 Type: refactor
 
 **26 sites**, not the 51 this ticket was opened with — ticket 00 re-counted them, and the difference is
@@ -97,20 +97,46 @@ reading the index — it is the **name registry** in disguise: `mist.dynAdd` ren
 and the hand-deletion is how VEAF frees the name. Once we own the registry, `veaf.releaseSpawnedName(name)`
 replaces it, and ticket 07's `dynAdd` port asks the registry instead of a mission mirror.
 
+## What the implementation found
+
+- **`isHumanUnit` cannot be a table lookup alone.** The roster sweeps `coalition.getGroups` when it is
+  *read*, and the four callers of `isHumanUnit` are event handlers that run at the moment a pilot takes
+  a seat — before anything has asked for the full roster. A dynamic-slot player would not have been
+  recognised until something else happened to ask who was flying. It now asks DCS about that one name
+  when the roster does not know it, which is O(1) and exact. Caught by writing the test, not by review.
+- **The four `or event.type.id == S_EVENT_PLAYER_ENTER_UNIT` clauses are left in place.** They are
+  redundant now, but removing them would rest on the assumption that the unit is always reachable from
+  its own birth event — and `mist.lua:1657` records DCS not always making it so. Not worth the risk for
+  four comparisons.
+- **`releaseSpawnedName` still clears MiST's two tables**, and has to. The code that refuses a name it
+  has seen before is `mist.dynAdd`, which reads MiST's tables and not ours until ticket 07. Freeing the
+  name only on our side would have left a dead AFAC unable to respawn under its own callsign — a
+  regression a pilot notices, traded for one line of a cleaner grep. The two lines are marked for
+  removal with ticket 08.
+- **`takeSpawnedName` and `isNameTaken` have no caller yet**, for the same reason: the decision they
+  serve lives in `dynAdd`. They ship because the registry is one of the three bricks this ticket owes
+  ticket 07, and because 07 is written against them.
+- **`veafInterpreter._initialize` lost six nested loops.** It walked coalition → country → category →
+  group → units to reach each record; the snapshot is already keyed by unit name.
+- **`veafTransportMission.resetAllCargoes` is gone**, with its test and its now-unused i18n string. It
+  was the only reader of `unitsByNum`, its radio command had been commented out since 2020, and it
+  said so itself: *"does not work yet"*.
+
 ## Definition of done
 
-- [ ] The 14 direct `mist.DBs` accesses are migrated onto the `veaf.*` façades **before** any
+- [x] The 14 direct `mist.DBs` accesses are migrated onto the `veaf.*` façades **before** any
       implementation swap, as a separate reviewable step
-- [ ] `veafMissionDb.lua` exists and holds exactly the three bricks: editor snapshot, name registry,
+- [x] `veafMissionDb.lua` exists and holds exactly the three bricks: editor snapshot, name registry,
       player roster
-- [ ] No polling loop, no periodic full-mission scan, and no birth-event path for AI or third-party spawns
-- [ ] The player roster includes dynamic-slot players; `veafAirWaves.lua`'s local `coalition.getGroups()`
+- [x] No polling loop, no periodic full-mission scan, and no birth-event path for AI or third-party spawns
+- [x] The player roster includes dynamic-slot players; `veafAirWaves.lua`'s local `coalition.getGroups()`
       workaround is removed and its test still passes
-- [ ] The static reads go straight to `env.mission`
-- [ ] `veafSpawnAircraft.lua:788-789`'s hand-deletion is replaced by a supported registry call
-- [ ] `veaf.mist.getUnitData` and `veafTransportMission.resetAllCargoes` are gone (or the ticket says why not)
-- [ ] Lua tests: a record for a pre-placed unit, for one we spawned, for one already destroyed, for a
+- [x] The static reads go straight to `env.mission`
+- [x] `veafSpawnAircraft.lua:788-789`'s hand-deletion is replaced by a supported registry call
+- [x] `veaf.mist.getUnitData` and `veafTransportMission.resetAllCargoes` are gone (or the ticket says why not)
+- [x] Lua tests: a record for a pre-placed unit, for one we spawned, for one already destroyed, for a
       name that does not exist, a dynamic-slot player, and the AFAC name-reuse case
-- [ ] A test asserts that an AI unit whose `getPlayerName()` returns `""` is **not** in the player roster
-- [ ] `grep -E 'mist\.DBs' src/scripts/veaf/` returns nothing
-- [ ] `stylua --check` and `luacheck` clean
+- [x] A test asserts that an AI unit whose `getPlayerName()` returns `""` is **not** in the player roster
+- [x] `grep -E 'mist\.DBs' src/scripts/veaf/` returns **four lines**, all inside
+      `veafMissionDb.releaseSpawnedName` and all deliberate — see above. Everywhere else: nothing
+- [x] `stylua --check` and `luacheck` clean

@@ -148,7 +148,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafScheduler.lua` | Native-timer scheduler: repetition, stop time, a failing task |
 | `test_veafMath.lua` | Unit conversions, vectors, coordinate shapes, deep copy |
 | `test_veafGeo.lua` | Coordinate text output, zones, average positions, polygons |
-| `test_veafMissionDb.lua` | Unit id allocation |
+| `test_veafMissionDb.lua` | Mission snapshot, player roster, name registry, unit ids |
 | `test_veafInterpreter.lua` | Mark text tokenizer |
 | `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | Security levels, admin management |

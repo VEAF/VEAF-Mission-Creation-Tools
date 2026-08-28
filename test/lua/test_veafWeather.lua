@@ -1126,8 +1126,8 @@ function TestVeafWeatherWelcomeBrief:setUp()
   veafWeather.briefedUnits = {}
   -- `isHumanUnit` reads this table. Registering the pilot here is what makes a BIRTH event brief him,
   -- which is the path single player actually takes.
-  self._savedHumans = mist.DBs.humansByName
-  mist.DBs.humansByName = { Chevy11 = {}, Chevy21 = {} }
+  self._savedHumans = veafMissionDb.humansByName
+  veafMissionDb.humansByName = { Chevy11 = {}, Chevy21 = {} }
 
   trigger.action.outTextForGroup = function(groupId, text, duration)
     table.insert(self.messages, { groupId = groupId, text = text, duration = duration })
@@ -1144,7 +1144,7 @@ function TestVeafWeatherWelcomeBrief:tearDown()
   veafWeatherData.create = self._savedCreate
   veaf.scheduleFunction = self._savedSchedule
   Unit.getByName = self._savedGetByName
-  mist.DBs.humansByName = self._savedHumans
+  veafMissionDb.humansByName = self._savedHumans
 end
 
 --- A unit the player just took, with only what the brief touches.
@@ -1467,7 +1467,7 @@ TestVeafWeatherAlreadyFlying = {}
 
 function TestVeafWeatherAlreadyFlying:setUp()
   self._savedEnabled = veafWeather.welcomeBriefEnabled
-  self._savedHumans = mist.DBs.humansByName
+  self._savedHumans = veafMissionDb.humansByName
   self._savedGetByName = Unit.getByName
   self._savedSend = veafWeather.sendWelcomeBrief
 
@@ -1482,16 +1482,16 @@ end
 
 function TestVeafWeatherAlreadyFlying:tearDown()
   veafWeather.welcomeBriefEnabled = self._savedEnabled
-  mist.DBs.humansByName = self._savedHumans
+  veafMissionDb.humansByName = self._savedHumans
   Unit.getByName = self._savedGetByName
   veafWeather.sendWelcomeBrief = self._savedSend
 end
 
 --- @param slots table name -> the player sitting in it, or nil for an empty slot
 function TestVeafWeatherAlreadyFlying:_world(slots)
-  mist.DBs.humansByName = {}
+  veafMissionDb.humansByName = {}
   for name, _ in pairs(slots) do
-    mist.DBs.humansByName[name] = {}
+    veafMissionDb.humansByName[name] = {}
   end
   Unit.getByName = function(name)
     if slots[name] == nil then
@@ -1524,7 +1524,7 @@ function TestVeafWeatherAlreadyFlying:test_an_empty_slot_is_not_briefed()
 end
 
 function TestVeafWeatherAlreadyFlying:test_a_slot_that_does_not_exist_yet_is_skipped()
-  mist.DBs.humansByName = { Ghost = {} }
+  veafMissionDb.humansByName = { Ghost = {} }
   Unit.getByName = function()
     return nil
   end
@@ -1562,7 +1562,9 @@ function TestVeafWeatherAlreadyFlying:test_the_setting_silences_the_sweep_too()
 end
 
 function TestVeafWeatherAlreadyFlying:test_it_survives_a_mission_with_no_human_slots()
-  mist.DBs.humansByName = nil
+  -- An empty roster, not a missing one: the roster is a table from the moment the module loads, where
+  -- mist.DBs.humansByName could be nil before MiST had finished starting up.
+  veafMissionDb.humansByName = {}
   veafWeather.briefEveryoneAlreadyFlying()
   luaunit.assertEquals(#self.briefed, 0)
 end
@@ -1699,7 +1701,7 @@ function TestVeafWeatherWelcomeBrief:test_player_enter_unit_briefs_even_without_
   -- The multiplayer path. A pilot joining a slot may not be in `humansByName` yet, so the event's own
   -- identity is taken as proof — the same exception `veafGrass` and `veafQraCore` make.
   self:_arrange()
-  mist.DBs.humansByName = {}
+  veafMissionDb.humansByName = {}
   veafWeather.onPlayerEnterUnit({
     initiator = self:_unit("Someone-New"),
     type = { id = world.event.S_EVENT_PLAYER_ENTER_UNIT },

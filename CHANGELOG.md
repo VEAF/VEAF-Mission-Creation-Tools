@@ -131,6 +131,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   an empty table — which Lua counts as a value — rather than nothing. Mission makers who mistype a zone
   name will now get the message the code always meant to show them.
 
+- **VEAF keeps its own record of what the mission holds.** Where MiST maintained 31 tables and walked
+  every unit in the mission twenty times a second to keep them fresh, `veafMissionDb.lua` holds three
+  things: a snapshot of what the Mission Editor placed, read once; the list of human slots; and a
+  register of the names VEAF has given to what it spawns.
+
+  One thing this fixes for players: **a pilot in a DCS dynamic slot is now recognised everywhere**, not
+  only by air waves. MiST's database did not track dynamic slots, so anything that asked it who was
+  flying missed them; `veafAirWaves` had worked around that on its own, and the other five places that
+  ask the same question had not. The workaround is gone and the answer is now the same for all of them.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

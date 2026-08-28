@@ -1158,10 +1158,6 @@ veaf.i18nCatalog = {
     fr = "Mission de transport nettoyée.",
     en = "Transport mission cleaned up.",
   },
-  ["transport.cargoes_respawned"] = {
-    fr = "Toutes les cargaisons ont été réapparues",
-    en = "All cargoes have been respawned",
-  },
   ["transport.cargo_delivered"] = {
     fr = "Félicitations pour ce travail bien fait ! La cargaison %s a été livrée en toute sécurité",
     en = "Congratulations on a job well done ! Cargo %s has been delivered safely",

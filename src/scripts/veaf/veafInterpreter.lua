@@ -152,26 +152,13 @@ function veafInterpreter.initialize()
 end
 
 function veafInterpreter._initialize()
-  -- the following code is liberally adapted from MiST (thanks Grimes !)
-  local l_units = mist.DBs.units --local reference for faster execution
-  for coa, coa_tbl in pairs(l_units) do
-    for country, country_table in pairs(coa_tbl) do
-      for unit_type, unit_type_tbl in pairs(country_table) do
-        if type(unit_type_tbl) == "table" then
-          for group_ind, group_tbl in pairs(unit_type_tbl) do
-            if type(group_tbl) == "table" then
-              for unit_ind, mist_unit in pairs(group_tbl.units) do
-                local unitName = mist_unit.unitName
-                veaf.loggers.get(veafInterpreter.Id):trace(string.format("initialize - checking unit [%s]", unitName))
-                -- the mission record travels with the name, so a trigger the world does not hand back
-                -- still has a position to run its command at
-                veafInterpreter.processObject(unitName, mist_unit)
-              end
-            end
-          end
-        end
-      end
-    end
+  -- Six nested loops used to walk mist.DBs.units down to each unit record. The mission snapshot is
+  -- already keyed by unit name, so the walk is the index itself.
+  for unitName, missionUnit in pairs(veaf.getAllUnitRecords()) do
+    veaf.loggers.get(veafInterpreter.Id):trace(string.format("initialize - checking unit [%s]", unitName))
+    -- the mission record travels with the name, so a trigger the world does not hand back still has a
+    -- position to run its command at
+    veafInterpreter.processObject(unitName, missionUnit)
   end
 end
 

@@ -452,7 +452,7 @@ TestVeafMoveAdvanced = {}
 function TestVeafMoveAdvanced:setUp()
   self._origSchedule = veaf.scheduleFunction
   self._origCountry = env.mission.coalition.blue.country
-  self._origUnitsByName = mist.DBs.unitsByName
+  self._origUnitsByName = veafMissionDb.unitsByName
 
   -- Execute scheduled functions synchronously (Lua 5.1: unpack, not table.unpack)
   veaf.scheduleFunction = function(fn, params, time)
@@ -460,7 +460,7 @@ function TestVeafMoveAdvanced:setUp()
   end
 
   -- KC-135 unit for findAllTankers inner loop
-  mist.DBs.unitsByName = { ["KC135_TEST"] = { type = "KC-135", groupName = "TKR_GRP" } }
+  veafMissionDb.unitsByName = { ["KC135_TEST"] = { type = "KC-135", groupName = "TKR_GRP" } }
 
   -- Two tanker groups: one without Orbit task, one with.
   env.mission.coalition.blue.country = {
@@ -517,7 +517,7 @@ end
 function TestVeafMoveAdvanced:tearDown()
   veaf.scheduleFunction = self._origSchedule
   env.mission.coalition.blue.country = self._origCountry
-  mist.DBs.unitsByName = self._origUnitsByName
+  veafMissionDb.unitsByName = self._origUnitsByName
   dcs_mocks.removeGroup("TKR_NO_ORBIT")
   dcs_mocks.removeGroup("TKR_WITH_ORBIT")
 end

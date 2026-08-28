@@ -362,10 +362,10 @@ Et l'allocation d'identifiants d'unité vit dans `veafMissionDb.lua` : `veaf.get
 
 **Ces chaînes partent dans les rapports F10 et les briefings**, donc elles sont figées par des tests à
 chaîne littérale. Le port a repris MiST au caractère près, bizarreries comprises ; corriger l'une
-d'elles change ce que lisent les pilotes, et se décide donc à part. Une l'a été
-(`FIX-DMS-MINUTE-CARRY` : en DMS, une minute atteignant 60 se reporte maintenant sur le degré, comme
-le faisait déjà le mode décimal). Il en reste une, toujours celle de MiST : une position à exactement
-zéro s'affiche `S`/`W`, le test d'hémisphère étant `> 0`.
+d'elles change ce que lisent les pilotes, et s'est donc décidé à part. Les deux l'ont été :
+`FIX-DMS-MINUTE-CARRY` (en DMS, une minute atteignant 60 se reporte sur le degré, comme le faisait
+déjà le mode décimal) et `FIX-ZERO-HEMISPHERE` (une position à exactement zéro s'affiche `N`/`E`, le
+test d'hémisphère étant passé de `> 0` à `>= 0`).
 
 ### Accès mist.DBs
 

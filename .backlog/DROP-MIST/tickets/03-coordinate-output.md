@@ -68,8 +68,9 @@ are now pinned by a test that says why.
 Reproducing them is the ticket's own rule: these strings go into F10 reports and briefings, and this
 lot removes a dependency rather than changing what pilots read. **The DMS carry got its own lot the
 same day** — David, on reading this ticket: *"gère le 42 60, il faut corriger"* — and it is fixed in
-[`FIX-DMS-MINUTE-CARRY`](../../FIX-DMS-MINUTE-CARRY/PRD.md). The zero-hemisphere quirk is still here,
-deliberately: it is a measure-zero case on every DCS theatre.
+[`FIX-DMS-MINUTE-CARRY`](../../FIX-DMS-MINUTE-CARRY/PRD.md). The zero-hemisphere quirk followed the
+same day, in [`FIX-ZERO-HEMISPHERE`](../../FIX-ZERO-HEMISPHERE/PRD.md) — this ticket's judgement that it
+was too rare to be worth a lot was overruled, and rightly: it is two characters of comparison.
 
 A third quirk is pinned the same way: MGRS rounding can print one digit more than the requested
 precision (`acc = 3` with an easting of 99999 gives `1000`), because the format pads to a minimum width

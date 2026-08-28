@@ -313,6 +313,28 @@ veaf.removeFunction(id) -- cancels; answers false if the task has already run
 The implementation lives in `veafScheduler.lua`. There is **no** polling loop: every task is one
 native scheduled call, re-armed by returning its next time, so nothing runs when nothing is due.
 
+### Maths, vectors and conversions
+
+Do not call `mist.utils.*` or `mist.vec.*`. The functions live in `veafMath.lua`, behind `veaf.*`
+façades:
+
+```lua
+veaf.metersToNM(d)  veaf.NMToMeters(d)  veaf.metersToFeet(d)  veaf.feetToMeters(d)  veaf.mpsToKnots(v)
+veaf.vecAdd(a, b)   veaf.vecScalarMult(v, k)   veaf.vecMag(v)   veaf.get2DDist(p1, p2)
+veaf.makeVec3(p, alt)   veaf.makeVec2(p)   veaf.getDir(v, point)   veaf.getNorthCorrection(point)
+veaf.deepCopy(t)
+```
+
+Three traps, in the order they bite:
+
+- **`makeVec3` / `makeVec2` translate between DCS's two coordinate conventions** — read
+  [`docs/agents/dcs-coordinates.md`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-coordinates.md)
+  before using them. Getting it wrong raises no error, only a position a hundred kilometres away.
+- **There is no `veaf.toRadian` or `veaf.toDegree`**: they are `math.rad` and `math.deg`, from Lua's
+  standard library.
+- **There is no `round` in `veafMath`**: it has been `veaf.round` in `veaf.lua` all along, and it is
+  identical to MiST's.
+
 ### mist.DBs Access
 
 Do not access `mist.DBs.*` directly. Use the `veaf.mist` wrapper:

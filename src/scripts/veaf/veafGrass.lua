@@ -586,12 +586,12 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
   -- nb plots
   local nbPlots = math.ceil(length / space)
 
-  local angle = math.floor(mist.utils.toDegree(runwayOrigin.heading) + 0.5)
+  local angle = math.floor(math.deg(runwayOrigin.heading) + 0.5)
 
   -- create left origin from right origin
   local leftOrigin = {
-    ["x"] = runwayOrigin.x + width * math.cos(mist.utils.toRadian(angle - 90)),
-    ["y"] = runwayOrigin.y + width * math.sin(mist.utils.toRadian(angle - 90)),
+    ["x"] = runwayOrigin.x + width * math.cos(math.rad(angle - 90)),
+    ["y"] = runwayOrigin.y + width * math.sin(math.rad(angle - 90)),
   }
 
   local template = {
@@ -607,7 +607,7 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
   }
 
   -- leftOrigin plot
-  local leftOriginPlot = mist.utils.deepCopy(template)
+  local leftOriginPlot = veaf.deepCopy(template)
   leftOriginPlot.x = leftOrigin.x
   leftOriginPlot.y = leftOrigin.y
   mist.dynAddStatic(leftOriginPlot)
@@ -615,15 +615,15 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
   -- place plots
   for i = 1, nbPlots do
     -- right plot
-    local leftPlot = mist.utils.deepCopy(template)
-    leftPlot.x = runwayOrigin.x + i * space * math.cos(mist.utils.toRadian(angle))
-    leftPlot.y = runwayOrigin.y + i * space * math.sin(mist.utils.toRadian(angle))
+    local leftPlot = veaf.deepCopy(template)
+    leftPlot.x = runwayOrigin.x + i * space * math.cos(math.rad(angle))
+    leftPlot.y = runwayOrigin.y + i * space * math.sin(math.rad(angle))
     mist.dynAddStatic(leftPlot)
 
     -- right plot
-    local rightPlot = mist.utils.deepCopy(template)
-    rightPlot.x = leftOrigin.x + i * space * math.cos(mist.utils.toRadian(angle))
-    rightPlot.y = leftOrigin.y + i * space * math.sin(mist.utils.toRadian(angle))
+    local rightPlot = veaf.deepCopy(template)
+    rightPlot.x = leftOrigin.x + i * space * math.cos(math.rad(angle))
+    rightPlot.y = leftOrigin.y + i * space * math.sin(math.rad(angle))
     mist.dynAddStatic(rightPlot)
   end
 
@@ -641,15 +641,15 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     -- right plot
-    local leftPlot = mist.utils.deepCopy(template)
-    leftPlot.x = runwayOrigin.x + (nbPlots + 1) * space * math.cos(mist.utils.toRadian(angle))
-    leftPlot.y = runwayOrigin.y + (nbPlots + 1) * space * math.sin(mist.utils.toRadian(angle))
+    local leftPlot = veaf.deepCopy(template)
+    leftPlot.x = runwayOrigin.x + (nbPlots + 1) * space * math.cos(math.rad(angle))
+    leftPlot.y = runwayOrigin.y + (nbPlots + 1) * space * math.sin(math.rad(angle))
     mist.dynAddStatic(leftPlot)
 
     -- right plot
-    local rightPlot = mist.utils.deepCopy(template)
-    rightPlot.x = leftOrigin.x + (nbPlots + 1) * space * math.cos(mist.utils.toRadian(angle))
-    rightPlot.y = leftOrigin.y + (nbPlots + 1) * space * math.sin(mist.utils.toRadian(angle))
+    local rightPlot = veaf.deepCopy(template)
+    rightPlot.x = leftOrigin.x + (nbPlots + 1) * space * math.cos(math.rad(angle))
+    rightPlot.y = leftOrigin.y + (nbPlots + 1) * space * math.sin(math.rad(angle))
     mist.dynAddStatic(rightPlot)
   end
 
@@ -667,21 +667,17 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
     }
 
     -- tower
-    local tower = mist.utils.deepCopy(template)
-    tower.x = leftOrigin.x - 60 + (nbPlots + 1.2) * space * math.cos(mist.utils.toRadian(angle))
-    tower.y = leftOrigin.y - 60 + (nbPlots + 1.2) * space * math.sin(mist.utils.toRadian(angle))
+    local tower = veaf.deepCopy(template)
+    tower.x = leftOrigin.x - 60 + (nbPlots + 1.2) * space * math.cos(math.rad(angle))
+    tower.y = leftOrigin.y - 60 + (nbPlots + 1.2) * space * math.sin(math.rad(angle))
     mist.dynAddStatic(tower)
   end
 
   -- add the runway to the named points
   local point = {
-    x = runwayOrigin.x + 20 + (nbPlots + 1) * space * math.cos(mist.utils.toRadian(angle)) + width / 2 * math.cos(
-      mist.utils.toRadian(angle - 90)
-    ),
+    x = runwayOrigin.x + 20 + (nbPlots + 1) * space * math.cos(math.rad(angle)) + width / 2 * math.cos(math.rad(angle - 90)),
     y = math.floor(land.getHeight(leftOrigin) + 1),
-    z = runwayOrigin.y + 20 + (nbPlots + 1) * space * math.sin(mist.utils.toRadian(angle)) + width / 2 * math.cos(
-      mist.utils.toRadian(angle - 90)
-    ),
+    z = runwayOrigin.y + 20 + (nbPlots + 1) * space * math.sin(math.rad(angle)) + width / 2 * math.cos(math.rad(angle - 90)),
     atc = true,
     runways = {
       { hdg = (angle + 180) % 360, flare = "red" },
@@ -1566,7 +1562,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local farpCoalition, farpCoalitionNumber = veafGrass._normalizeFarpCoalition(farp.coalition)
 
   local farpHeading = farp.heading or 0
-  local angle = mist.utils.toDegree(farpHeading)
+  local angle = math.deg(farpHeading)
   local tentDistance = 100
   local tentSpacing = 30
   local otherDistance = 85
@@ -1586,19 +1582,15 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local function tentPositionsAt(bearing, scale)
     scale = scale or 1
     local origin = {
-      x = farp.x + tentDistance * scale * math.cos(mist.utils.toRadian(bearing)),
-      y = farp.y + tentDistance * scale * math.sin(mist.utils.toRadian(bearing)),
+      x = farp.x + tentDistance * scale * math.cos(math.rad(bearing)),
+      y = farp.y + tentDistance * scale * math.sin(math.rad(bearing)),
     }
     local positions = {}
     for j = 1, 2 do
       for i = 1, 3 do
         table.insert(positions, {
-          x = origin.x + (i - 1) * tentSpacing * math.cos(mist.utils.toRadian(bearing)) - (j - 1) * tentSpacing * math.sin(
-            mist.utils.toRadian(bearing)
-          ),
-          y = origin.y + (i - 1) * tentSpacing * math.sin(mist.utils.toRadian(bearing)) + (j - 1) * tentSpacing * math.cos(
-            mist.utils.toRadian(bearing)
-          ),
+          x = origin.x + (i - 1) * tentSpacing * math.cos(math.rad(bearing)) - (j - 1) * tentSpacing * math.sin(math.rad(bearing)),
+          y = origin.y + (i - 1) * tentSpacing * math.sin(math.rad(bearing)) + (j - 1) * tentSpacing * math.cos(math.rad(bearing)),
         })
       end
     end
@@ -1617,7 +1609,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(tentAngle - 90),
+      ["heading"] = math.rad(tentAngle - 90),
       ["type"] = "FARP Tent",
       ["x"] = tentPositions[index].x,
       ["y"] = tentPositions[index].y,
@@ -1642,9 +1634,9 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(angle - 90),
-      ["x"] = farp.x - markerDistance * math.cos(mist.utils.toRadian(angle + markerAngle)),
-      ["y"] = farp.y - markerDistance * math.sin(mist.utils.toRadian(angle + markerAngle)),
+      ["heading"] = math.rad(angle - 90),
+      ["x"] = farp.x - markerDistance * math.cos(math.rad(angle + markerAngle)),
+      ["y"] = farp.y - markerDistance * math.sin(math.rad(angle + markerAngle)),
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     if groupName then
@@ -1660,9 +1652,9 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(angle - 90),
-      ["x"] = farp.x - markerDistance * math.cos(mist.utils.toRadian(angle - markerAngle)),
-      ["y"] = farp.y - markerDistance * math.sin(mist.utils.toRadian(angle - markerAngle)),
+      ["heading"] = math.rad(angle - 90),
+      ["x"] = farp.x - markerDistance * math.cos(math.rad(angle - markerAngle)),
+      ["y"] = farp.y - markerDistance * math.sin(math.rad(angle - markerAngle)),
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     if groupName then
@@ -1682,14 +1674,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local function otherPositionsAt(bearing, scale)
     scale = scale or 1
     local origin = {
-      x = farp.x + otherDistance * math.cos(mist.utils.toRadian(bearing)),
-      y = farp.y + otherDistance * math.sin(mist.utils.toRadian(bearing)),
+      x = farp.x + otherDistance * math.cos(math.rad(bearing)),
+      y = farp.y + otherDistance * math.sin(math.rad(bearing)),
     }
     local positions = {}
     for j = 1, #otherUnits do
       table.insert(positions, {
-        x = origin.x - (j - 1) * otherSpacing * math.sin(mist.utils.toRadian(bearing)),
-        y = origin.y + (j - 1) * otherSpacing * math.cos(mist.utils.toRadian(bearing)),
+        x = origin.x - (j - 1) * otherSpacing * math.sin(math.rad(bearing)),
+        y = origin.y + (j - 1) * otherSpacing * math.cos(math.rad(bearing)),
       })
     end
     return positions
@@ -1706,7 +1698,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(otherAngle - 90),
+      ["heading"] = math.rad(otherAngle - 90),
       ["type"] = typeName,
       ["x"] = otherPositions[j].x,
       ["y"] = otherPositions[j].y,
@@ -1745,14 +1737,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     scale = scale or 1
     local positions = {
       {
-        x = farp.x + windsockDistance * scale * math.cos(mist.utils.toRadian(bearing + windsockAngle)),
-        y = farp.y + windsockDistance * scale * math.sin(mist.utils.toRadian(bearing + windsockAngle)),
+        x = farp.x + windsockDistance * scale * math.cos(math.rad(bearing + windsockAngle)),
+        y = farp.y + windsockDistance * scale * math.sin(math.rad(bearing + windsockAngle)),
       },
     }
     if farp.type == "FARP" then
       table.insert(positions, {
-        x = farp.x + windsockDistance * scale * math.cos(mist.utils.toRadian(bearing + windsockAngle - 90)),
-        y = farp.y + windsockDistance * scale * math.sin(mist.utils.toRadian(bearing + windsockAngle - 90)),
+        x = farp.x + windsockDistance * scale * math.cos(math.rad(bearing + windsockAngle - 90)),
+        y = farp.y + windsockDistance * scale * math.sin(math.rad(bearing + windsockAngle - 90)),
       })
     end
     return positions
@@ -1776,7 +1768,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     ["coalition"] = farpCoalition,
     ["country"] = farp.country,
     ["countryId"] = farp.countryId,
-    ["heading"] = mist.utils.toRadian(angle - 90),
+    ["heading"] = math.rad(angle - 90),
     ["x"] = windsockPositions[1].x,
     ["y"] = windsockPositions[1].y,
     ["hiddenOnMFD"] = hiddenOnMFD,
@@ -1798,7 +1790,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(angle - 90),
+      ["heading"] = math.rad(angle - 90),
       ["x"] = windsockPositions[2].x,
       ["y"] = windsockPositions[2].y,
       ["hiddenOnMFD"] = hiddenOnMFD,
@@ -1842,14 +1834,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local function escortPositionsAt(bearing, scale)
     scale = scale or 1
     local origin = {
-      x = farp.x + unitsDistance * scale * math.cos(mist.utils.toRadian(bearing)),
-      y = farp.y + unitsDistance * scale * math.sin(mist.utils.toRadian(bearing)),
+      x = farp.x + unitsDistance * scale * math.cos(math.rad(bearing)),
+      y = farp.y + unitsDistance * scale * math.sin(math.rad(bearing)),
     }
     local positions = {}
     for j = 1, #escortUnitTypes do
       table.insert(positions, {
-        x = origin.x - (j - 1) * unitsSpacing * math.sin(mist.utils.toRadian(bearing)),
-        y = origin.y + (j - 1) * unitsSpacing * math.cos(mist.utils.toRadian(bearing)),
+        x = origin.x - (j - 1) * unitsSpacing * math.sin(math.rad(bearing)),
+        y = origin.y + (j - 1) * unitsSpacing * math.cos(math.rad(bearing)),
       })
     end
     return positions
@@ -1885,7 +1877,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   for j, typeName in ipairs(escortUnitTypes) do
     local escortUnit = {
       ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
-      ["heading"] = mist.utils.toRadian(escortAngle - 135), -- parked \\\\\
+      ["heading"] = math.rad(escortAngle - 135), -- parked \\\\\
       ["type"] = typeName,
       ["x"] = escortPositions[j].x,
       ["y"] = escortPositions[j].y,

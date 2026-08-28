@@ -350,7 +350,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
 
     -- compute player route to friendly group
     local vecAB = { x = groupPosition.x + -startPoint.x, y = 0, z = groupPosition.z - startPoint.z }
-    routeDistance = mist.vec.mag(vecAB)
+    routeDistance = veaf.vecMag(vecAB)
     veaf.loggers.get(veafTransportMission.Id):trace("routeDistance=" .. routeDistance)
     if routeDistance < veafTransportMission.MinimumRouteDistance then
       trigger.action.outText(veaf.t("transport.dropzone_too_close", veafTransportMission.MinimumRouteDistance / 1000, from), 5)
@@ -492,12 +492,12 @@ function veafTransportMission.reportTargetInformation(unitName)
   ---@cast averageGroupPosition vec3
   local lat, lon = coord.LOtoLL(averageGroupPosition)
   local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-  local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
+  local bullseye = veaf.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
   local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
-  local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-  local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)
-  local distMetric = mist.utils.round(dist / 1000, 0)
-  local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
+  local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
+  local dist = veaf.get2DDist(averageGroupPosition, bullseye)
+  local distMetric = veaf.round(dist / 1000, 0)
+  local distImperial = veaf.round(veaf.metersToNM(dist), 0)
   local fromBullseye = veaf.t("report.bullseye_value", dir, distMetric, distImperial)
 
   message = message .. veaf.t("report.latlon_decimal", mist.tostringLL(lat, lon, 2))

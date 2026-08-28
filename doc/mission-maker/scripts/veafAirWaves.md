@@ -171,7 +171,7 @@ modules:
 | `:setZoneRadius(m)` | Rayon de la zone en mètres (avec un centre) |
 | `:setDescription(text)` | Libellé pour les messages et les logs |
 | `:addWave(...)` | Ajouter une vague — voir [Définition d'une vague](#définition-dune-vague) |
-| `:resetWaves()` | Vider toutes les vagues ajoutées (utile après `mist.utils.deepCopy`) |
+| `:resetWaves()` | Vider toutes les vagues ajoutées (utile après `veaf.deepCopy`) |
 | `:addPlayerCoalition(side)` | Ajouter une coalition dont les joueurs comptent (ex : `coalition.side.BLUE`) |
 | `:setRespawnRadius(m)` | Rayon de dispersion des spawns (défaut : 250 m) |
 | `:setRespawnDefaultOffset(lat, lon)` | Décalage par rapport au centre de zone pour les spawns |
@@ -342,14 +342,14 @@ local zoneTemplate = AirWaveZone:new()
   :addWave({ "Su-27 Wave 2" })
 
 -- Cloner et personnaliser pour chaque secteur
-local zoneNorth = mist.utils.deepCopy(zoneTemplate)
+local zoneNorth = veaf.deepCopy(zoneTemplate)
 zoneNorth
   :setName("AW-North")
   :setTriggerZone("ZONE-AW-NORTH")
   :setDescription("Secteur nord")
   :start()
 
-local zoneSouth = mist.utils.deepCopy(zoneTemplate)
+local zoneSouth = veaf.deepCopy(zoneTemplate)
 zoneSouth
   :setName("AW-South")
   :setTriggerZone("ZONE-AW-SOUTH")

@@ -160,7 +160,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
   if carrierUnit then
     startPosition = carrierUnit:getPosition().p
     veaf.loggers.get(veafCarrierOperations.Id):trace("startPosition (raw) =" .. veaf.vecToString(startPosition))
-    currentHeading = mist.utils.round(mist.utils.toDegree(mist.getHeading(carrierUnit, true)), 0)
+    currentHeading = veaf.round(math.deg(mist.getHeading(carrierUnit, true)), 0)
   end
   veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("currentHeading=%s", veaf.p(currentHeading)))
   startPosition = { x = startPosition.x, z = startPosition.z, y = startPosition.y + veafCarrierOperations.ALT_FOR_MEASURING_WIND } -- on deck, 50 meters above the water
@@ -176,7 +176,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
   -- let's not use mist.getNorthCorrection, it's not computing magnetic deviation...
   -- TODO find how to actually compute it
   --[[
-    local magdev = veaf.round(mist.getNorthCorrection(startPosition) * 180 / math.pi,1)
+    local magdev = veaf.round(veaf.getNorthCorrection(startPosition) * 180 / math.pi,1)
     veaf.loggers.get(veafCarrierOperations.Id):trace("magdev = " .. magdev)
     ]]
 
@@ -187,7 +187,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     --get wind info
     local wind = atmosphere.getWind(startPosition)
     veaf.loggers.get(veafCarrierOperations.Id):trace("wind=%s", veaf.lp(wind))
-    local windspeed = mist.vec.mag(wind)
+    local windspeed = veaf.vecMag(wind)
     veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("windspeed=%s", veaf.p(windspeed)))
 
     if windspeed >= veafCarrierOperations.MIN_WINDSPEED_FOR_CHANGING_HEADING then
@@ -235,7 +235,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     veaf.loggers.get(veafCarrierOperations.Id):trace("BRC speed=" .. speed .. " m/s")
 
     -- compute a new waypoint
-    local headingRad = mist.utils.toRadian(dir)
+    local headingRad = math.rad(dir)
     local length = 4000
     local newWaypoint = {
       x = startPosition.x + length * math.cos(headingRad),
@@ -303,7 +303,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
         veaf.t("carrier.obstruction", veaf.p(#obstructions), veaf.p(dir), veaf.p(groupName), veaf.p(newDir)),
         5
       )
-      headingRad = mist.utils.toRadian(newDir)
+      headingRad = math.rad(newDir)
       length = 4000
       newWaypoint = {
         x = startPosition.x + length * math.cos(headingRad),
@@ -674,8 +674,8 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
   local currentSpeed = -1
   local startPosition = nil
   if carrierUnit then
-    currentHeading = mist.utils.round(mist.utils.toDegree(mist.getHeading(carrierUnit, true)), 0)
-    currentSpeed = mist.utils.round(mist.utils.mpsToKnots(mist.vec.mag(carrierUnit:getVelocity())), 0)
+    currentHeading = veaf.round(math.deg(mist.getHeading(carrierUnit, true)), 0)
+    currentSpeed = veaf.round(veaf.mpsToKnots(veaf.vecMag(carrierUnit:getVelocity())), 0)
     startPosition =
       { x = carrierUnit:getPosition().p.x, z = carrierUnit:getPosition().p.z, y = veafCarrierOperations.ALT_FOR_MEASURING_WIND } -- on deck, 50 meters above the water
   end
@@ -733,7 +733,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
       -- let's not use mist.getNorthCorrection, it's not computing magnetic deviation...
       -- TODO find how to actually compute it
       --[[
-            local magdev = veaf.round(mist.getNorthCorrection(startPosition) * 180 / math.pi,1)
+            local magdev = veaf.round(veaf.getNorthCorrection(startPosition) * 180 / math.pi,1)
             veaf.loggers.get(veafCarrierOperations.Id):trace("magdev = " .. magdev)
             ]]
       result = result .. veaf.t("carrier.atc_navigation", veaf.round(currentHeading, 0), currentSpeed)

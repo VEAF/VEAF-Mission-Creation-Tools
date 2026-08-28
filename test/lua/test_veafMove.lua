@@ -5,6 +5,7 @@ dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
 -- The i18n catalog: the unknown-parameter report is a localised message, so the tests that read it
 -- need the entries rather than the raw key.
 dofile(src .. "/veafI18n.lua")

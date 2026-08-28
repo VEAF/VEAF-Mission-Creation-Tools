@@ -86,6 +86,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Mission scripts calling `mist.scheduleFunction` themselves keep working; the documented examples now
   use `veaf.scheduleFunction`, which is what will survive MiST's removal.
 
+- **Maths, vectors and unit conversions no longer come from MiST.** `veafMath.lua` holds the ported
+  arithmetic — the five unit conversions, the vector operations, the two coordinate shapes, the
+  direction with its true-north correction, and a deep copy that survives a table referencing itself.
+  Same results, same signatures, now ours.
+
+  Two thirds of the call sites needed no new code at all: `mist.utils.round` is `veaf.round` line for
+  line and has been since long before this campaign, and `mist.utils.toRadian` / `toDegree` are
+  `math.rad` / `math.deg` from Lua's own standard library. Those 100 calls simply moved.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

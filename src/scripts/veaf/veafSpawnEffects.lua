@@ -348,7 +348,7 @@ function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, heigh
       speed = speed / 1.94384 -- m/s
       stepDistance = speed * veafSpawn.IlluminationShellingInterval
     end
-    local headingRad = mist.utils.toRadian(heading)
+    local headingRad = math.rad(heading)
     cosHeading = math.cos(headingRad)
     sinHeading = math.sin(headingRad)
   end
@@ -356,7 +356,7 @@ function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, heigh
   local stepTime = 0
   for step = 1, steps do
     local stepDelay = veafSpawn.IlluminationShellingInterval * (math.random(100, 130) - 15) / 100
-    local newSpawnSpot = mist.utils.deepCopy(spawnSpot)
+    local newSpawnSpot = veaf.deepCopy(spawnSpot)
     if stepDistance then
       newSpawnSpot.x = spawnSpot.x + stepDistance * (step - 1) * cosHeading
       newSpawnSpot.z = spawnSpot.z + stepDistance * (step - 1) * sinHeading
@@ -396,7 +396,7 @@ function veafSpawn.destroyObjectWithFlak(object, power, density)
 
   if object and object:isExist() then
     local point = object:getPoint()
-    local positionForFlak = mist.vec.add(point, mist.vec.scalarMult(object:getVelocity(), veafSpawn.DEFAULT_FLAK_FIRE_DELAY))
+    local positionForFlak = veaf.vecAdd(point, veaf.vecScalarMult(object:getVelocity(), veafSpawn.DEFAULT_FLAK_FIRE_DELAY))
     local nbFlaks = veafSpawn.NB_OF_FLAKS_AT_DENSITY_1 * _density
     veaf.loggers.get(veafSpawn.Id):trace(string.format("firing %d flak shells", nbFlaks))
     for i = 1, nbFlaks do

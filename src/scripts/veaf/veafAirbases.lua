@@ -123,7 +123,7 @@ function veafAirbases.getNearestAirbaseList(dcsUnit, iCount)
       -- skip stale/destroyed airbase references (e.g. sunk carriers)
     else
       local vec3Airbase = veafAirbase.DcsAirbase:getPoint()
-      local iDistance = mist.utils.get2DDist(vec3Unit, vec3Airbase)
+      local iDistance = veaf.get2DDist(vec3Unit, vec3Airbase)
       local bAdded = false
 
       -- first fill all the nil positions
@@ -340,7 +340,7 @@ function veafAirbaseRunway:create(dcsAirbase, dcsRunway, iReportOrder)
   end
 
   local function _numberFromHeading(nHeading)
-    return mist.utils.round(nHeading / 10)
+    return veaf.round(nHeading / 10)
   end
 
   local function _numbersOffest(iOffset1, iOffest2)

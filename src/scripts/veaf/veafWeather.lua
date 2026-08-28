@@ -402,7 +402,7 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
   local sCloudPreset = env.mission.weather.clouds.preset
   if veaf.isNullOrEmpty(sCloudPreset) then
     if env.mission.weather.clouds.density > 0 then
-      local iDensity = mist.utils.round(env.mission.weather.clouds.density * 8 / 10) -- 10 levels in dcs, convert to oktas
+      local iDensity = veaf.round(env.mission.weather.clouds.density * 8 / 10) -- 10 levels in dcs, convert to oktas
       clouds = { Density = iDensity, BaseMeters = env.mission.weather.clouds.base }
     end
     bPrecipitation = (env.mission.weather.clouds.iprecptns > 0)
@@ -558,7 +558,7 @@ end
 function veafWeatherData:isCavok()
   local iCloudHeightMeters = self:getNormalizedCloudBaseMeters(true)
 
-  if iCloudHeightMeters == nil or mist.utils.metersToFeet(iCloudHeightMeters) < 5000 then
+  if iCloudHeightMeters == nil or veaf.metersToFeet(iCloudHeightMeters) < 5000 then
     return false -- no clouds or cloud below 5000 ft
   else
     return (self.VisibilityMeters >= 10000 and not self.Precipitation and not self.Dust)
@@ -580,9 +580,9 @@ function veafWeatherData:getCarrierCase()
     iCloudBase = self.Clouds.BaseMeters
   end
 
-  local iVisibilityCase12 = mist.utils.NMToMeters(5)
-  local iCloudBaseCase1 = mist.utils.feetToMeters(3000)
-  local iCloudBaseCase2 = mist.utils.feetToMeters(1000)
+  local iVisibilityCase12 = veaf.NMToMeters(5)
+  local iCloudBaseCase1 = veaf.feetToMeters(3000)
+  local iCloudBaseCase2 = veaf.feetToMeters(1000)
 
   --veaf.loggers.get(veaf.Id):trace(string.format("GetCarrierCase - Cloud base=%d feet (need more than 1000 for CASE 2 and 300 for CASE 3) - visibility=%d nm (need more than 5 for CASE 1/2)", iCloudBase or -1, UTILS.MetersToNM (self.VisibilityMeters)))
 
@@ -618,7 +618,7 @@ function veafWeatherData:toStringWind(unitSystem, iDirection, nSpeedMps, bMagnet
   end
 
   local iDirection = self:getNormalizedWindDirection(iDirection, bMagnetic)
-  local sSpeedKts = string.format("%dkts", math.floor(mist.utils.mpsToKnots(nSpeedMps)))
+  local sSpeedKts = string.format("%dkts", math.floor(veaf.mpsToKnots(nSpeedMps)))
   local sSpeedMps = string.format("%dm/s", math.floor(nSpeedMps))
   local sSpeed
   if veaf.tableContains(unitSystem.WindSpeeds, veafWeatherUnitSystem.Units.Kts) then
@@ -647,9 +647,9 @@ function veafWeatherData:toStringVisibility(unitSystem, bWithMax)
   else
     local iVisibilityMeters
     if self.VisibilityMeters >= 100 then
-      iVisibilityMeters = mist.utils.round(self.VisibilityMeters / 100) * 100
+      iVisibilityMeters = veaf.round(self.VisibilityMeters / 100) * 100
     else
-      iVisibilityMeters = mist.utils.round(self.VisibilityMeters / 50) * 50
+      iVisibilityMeters = veaf.round(self.VisibilityMeters / 50) * 50
     end
 
     sVisibilityMeters = string.format("%dm", iVisibilityMeters)
@@ -660,7 +660,7 @@ function veafWeatherData:toStringVisibility(unitSystem, bWithMax)
   if iVisibilityStatuteMile >= 10 then
     sVisibilityStatuteMile = "10+SM"
   elseif iVisibilityStatuteMile >= 1 then
-    sVisibilityStatuteMile = string.format("%dSM", mist.utils.round(iVisibilityStatuteMile))
+    sVisibilityStatuteMile = string.format("%dSM", veaf.round(iVisibilityStatuteMile))
   elseif iVisibilityStatuteMile >= 0.75 then
     sVisibilityStatuteMile = "3/4SM"
   elseif iVisibilityStatuteMile >= 0.5 then
@@ -672,13 +672,13 @@ function veafWeatherData:toStringVisibility(unitSystem, bWithMax)
   end
 
   local sVisibilityNauticalMile
-  local iVisibilityNauticalMile = mist.utils.metersToNM(self.VisibilityMeters)
+  local iVisibilityNauticalMile = veaf.metersToNM(self.VisibilityMeters)
   if iVisibilityNauticalMile >= 10 then
     sVisibilityNauticalMile = "10+NM"
   elseif iVisibilityNauticalMile >= 1 then
-    sVisibilityNauticalMile = string.format("%dNM", mist.utils.round(iVisibilityNauticalMile))
+    sVisibilityNauticalMile = string.format("%dNM", veaf.round(iVisibilityNauticalMile))
   else
-    local iVisibilityYards = mist.utils.round((iVisibilityNauticalMile * 2025.37) / 100) * 100
+    local iVisibilityYards = veaf.round((iVisibilityNauticalMile * 2025.37) / 100) * 100
     sVisibilityNauticalMile = string.format("%dyds", iVisibilityYards)
   end
 
@@ -734,7 +734,7 @@ function veafWeatherData:toStringClouds(unitSystem, bHeight)
     end
 
     if iCloudBaseMeters ~= nil and iCloudBaseMeters > 0 then
-      local iCloudBaseFeet = math.floor((mist.utils.metersToFeet(iCloudBaseMeters) + 250) / 500) * 500
+      local iCloudBaseFeet = math.floor((veaf.metersToFeet(iCloudBaseMeters) + 250) / 500) * 500
       local iCloudBaseMeters = math.floor((iCloudBaseMeters + 250) / 500) * 500
       local sCloudBaseFeet = string.format("%dft", iCloudBaseFeet)
       local sCloudBaseMeters = string.format("%dm", iCloudBaseMeters)
@@ -760,7 +760,7 @@ function veafWeatherData:toStringClouds(unitSystem, bHeight)
 end
 
 function veafWeatherData:toStringTemperature(nTemperatureCelcius)
-  return string.format("%d°C", mist.utils.round(nTemperatureCelcius))
+  return string.format("%d°C", veaf.round(nTemperatureCelcius))
 end
 
 function veafWeatherData:toStringPressure(unitSystem, nPressureHpa)
@@ -810,7 +810,7 @@ function veafWeatherData:toStringSlice(weatherSlice, unitSystem, bMagnetic)
   bMagnetic = bMagnetic or false
 
   local sAltitudeMeters = string.format("%dm", weatherSlice.AltitudeMeters)
-  local sAltitudeFl = _getFlightLevelString(mist.utils.metersToFeet(weatherSlice.AltitudeMeters))
+  local sAltitudeFl = _getFlightLevelString(veaf.metersToFeet(weatherSlice.AltitudeMeters))
 
   local sAltitude
   if veaf.tableContains(unitSystem.Altitudes, veafWeatherUnitSystem.Units.Ft) then
@@ -829,8 +829,8 @@ end
 
 function veafWeatherData:toStringLaste()
   local function _getLasteAt(iDesiredHeightFeet)
-    local iAltitudeFeet = math.floor((mist.utils.metersToFeet(self.AltitudeMeter) + iDesiredHeightFeet + 500) / 1000) * 1000
-    local iAltitudeMeters = mist.utils.feetToMeters(iAltitudeFeet)
+    local iAltitudeFeet = math.floor((veaf.metersToFeet(self.AltitudeMeter) + iDesiredHeightFeet + 500) / 1000) * 1000
+    local iAltitudeMeters = veaf.feetToMeters(iAltitudeFeet)
     local iTemperatureKelvin, _ = atmosphere.getTemperatureAndPressure({ x = self.Vec3.x, y = iAltitudeMeters, z = self.Vec3.z })
     local iWindDirection, iWindSpeedMps = veafWeather.getWind(self.Vec3, iAltitudeMeters)
     local iWindDirectionMagnetic = veafWeatherData:getNormalizedWindDirection(iWindDirection, true)
@@ -839,7 +839,7 @@ function veafWeatherData:toStringLaste()
       "ALT%02d W%03d/%02d T%+d",
       iAltitudeFeet / 1000,
       iWindDirectionMagnetic,
-      mist.utils.mpsToKnots(iWindSpeedMps),
+      veaf.mpsToKnots(iWindSpeedMps),
       iTemperatureKelvin + _nKelvinToCelciusOffset
     )
     veaf.loggers.get(veafWeather.Id):trace(string.format("LASTE @ %f - W%dM %dT", iAltitudeFeet, iWindDirectionMagnetic, iWindDirection))
@@ -888,8 +888,8 @@ end
 function veafWeatherData:toStringExtended(unitSystem, bHeight)
   unitSystem = unitSystem or veafWeatherUnitSystem.DefaultUnitSystem
 
-  local sAltitudeFeet = string.format("%dft", mist.utils.round(mist.utils.metersToFeet(self.AltitudeMeter)))
-  local sAltitudeMeters = string.format("%dm", mist.utils.round(self.AltitudeMeter))
+  local sAltitudeFeet = string.format("%dft", veaf.round(veaf.metersToFeet(self.AltitudeMeter)))
+  local sAltitudeMeters = string.format("%dm", veaf.round(self.AltitudeMeter))
   local sAltitude
   if veaf.tableContains(unitSystem.Altitudes, veafWeatherUnitSystem.Units.Ft) then
     sAltitude = veafWeatherData:appendString(sAltitude, sAltitudeFeet)
@@ -1856,7 +1856,7 @@ function veafWeather.getShipCourse(veafAirbaseShip)
     return nil
   end
   local okHeading, heading = pcall(function()
-    return mist.utils.round(mist.utils.toDegree(mist.getHeading(dcsUnit, true)), 0)
+    return veaf.round(math.deg(mist.getHeading(dcsUnit, true)), 0)
   end)
   if not okHeading or not heading then
     return nil

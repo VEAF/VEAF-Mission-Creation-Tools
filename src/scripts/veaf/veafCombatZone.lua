@@ -1395,12 +1395,12 @@ function VeafCombatZone:getInformation(unitName)
           bullseyeData = mist.DBs.missionData.bullseye.red
         end
       end
-      local bullseye = mist.utils.makeVec3(bullseyeData, 0)
+      local bullseye = veaf.makeVec3(bullseyeData, 0)
       local vec = { x = zoneCenter.x - bullseye.x, y = zoneCenter.y - bullseye.y, z = zoneCenter.z - bullseye.z }
-      local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-      local dist = mist.utils.get2DDist(zoneCenter, bullseye)
-      local distMetric = mist.utils.round(dist / 1000, 0)
-      local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
+      local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
+      local dist = veaf.get2DDist(zoneCenter, bullseye)
+      local distMetric = veaf.round(dist / 1000, 0)
+      local distImperial = veaf.round(veaf.metersToNM(dist), 0)
       local fromBullseye = veaf.t("report.bullseye_value", dir, distMetric, distImperial)
 
       message = message .. veaf.t("report.latlon_decimal", mist.tostringLL(lat, lon, 2))
@@ -1750,11 +1750,11 @@ function VeafCombatZone:popSmoke()
     local units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
     for count = 1, #units do
       if units[count] then
-        totalPosition = mist.vec.add(totalPosition, Unit.getPosition(units[count]).p)
+        totalPosition = veaf.vecAdd(totalPosition, Unit.getPosition(units[count]).p)
       end
     end
     if #units > 0 then
-      smokePoint = mist.vec.scalar_mult(totalPosition, 1 / #units)
+      smokePoint = veaf.vecScalarMult(totalPosition, 1 / #units)
     end
   end
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("smokePoint=%s", veaf.vecToString(smokePoint)))

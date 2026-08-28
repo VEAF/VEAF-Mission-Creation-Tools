@@ -26,6 +26,7 @@ end
 -- load the VEAF scripts
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veaf.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafScheduler.lua")
+__Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafMath.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafI18n.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafCommands.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafTime.lua")

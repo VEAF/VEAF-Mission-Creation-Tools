@@ -158,7 +158,7 @@ function veafSpawn.spawnUnit(
         ["type"] = unit.typeName,
         ["name"] = groupName,
         ["category"] = unit.category,
-        ["heading"] = mist.utils.toRadian(hdg),
+        ["heading"] = math.rad(hdg),
         -- ["effectTransparency"] = effectTransparency,
         -- ["effectPreset"] = effectPreset,
         -- ["shapeName"] = shapeName,
@@ -172,7 +172,7 @@ function veafSpawn.spawnUnit(
         ["name"] = unitName,
         ["speed"] = 0,
         ["skill"] = "Random",
-        ["heading"] = mist.utils.toRadian(hdg),
+        ["heading"] = math.rad(hdg),
       }
     end
 
@@ -1071,7 +1071,7 @@ function veafSpawn.spawnCombatAirPatrol(
               if _tasks then
                 for _, _taskData in pairs(_tasks) do
                   if "WrappedAction" == _taskData.id then
-                    chosenTemplateWp1Task = mist.utils.deepCopy(_task) -- if we found a WrappedAction task then we're on the right way, clone the whole task package
+                    chosenTemplateWp1Task = veaf.deepCopy(_task) -- if we found a WrappedAction task then we're on the right way, clone the whole task package
                     break
                   end
                 end
@@ -1085,7 +1085,7 @@ function veafSpawn.spawnCombatAirPatrol(
   --veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateWp1Task=%s", veaf.p(chosenTemplateWp1Task))
 
   -- compute route
-  local headingRad = mist.utils.toRadian(hdg)
+  local headingRad = math.rad(hdg)
   local parameters = {
     altitude = altitude,
     speed0 = speed0,
@@ -1264,7 +1264,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
               and (targetGroupCategory == Group.Category.AIRPLANE or targetGroupCategory == Group.Category.HELICOPTER)
             then
               local targetPosition = target:getPosition().p
-              local targetDistanceFromCapZoneCenter = mist.utils.get2DDist(targetPosition, capZone)
+              local targetDistanceFromCapZoneCenter = veaf.get2DDist(targetPosition, capZone)
               veaf.loggers.get(veafSpawn.Id):trace("targetPosition=%s", veaf.lp(targetPosition))
               veaf.loggers.get(veafSpawn.Id):trace("targetDistanceFromCapZoneCenter=%s", veaf.lp(targetDistanceFromCapZoneCenter))
               if targetDistanceFromCapZoneCenter <= capZone.radius then
@@ -1272,7 +1272,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
 
                 local targetAttributes = target:getDesc().attributes
                 local targetType = target:getTypeName()
-                local targetDistanceFromCapGroup = mist.utils.get2DDist(targetPosition, capGroupPosition)
+                local targetDistanceFromCapGroup = veaf.get2DDist(targetPosition, capGroupPosition)
                 veaf.loggers.get(veafSpawn.Id):trace("targetType=%s", veaf.lp(targetType))
                 veaf.loggers.get(veafSpawn.Id):trace("targetAttributes=%s", veaf.lp(targetAttributes))
                 veaf.loggers.get(veafSpawn.Id):trace("targetDistanceFromCapGroup=%s", veaf.lp(targetDistanceFromCapGroup))

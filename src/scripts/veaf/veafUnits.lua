@@ -105,7 +105,7 @@ function veafUnits.traceGroup(group, cells)
             end
             center = " " .. unitName .. " "
 
-            bottomleft = string.format("               %03d    ", mist.utils.toDegree(unit.spawnPoint.hdg))
+            bottomleft = string.format("               %03d    ", math.deg(unit.spawnPoint.hdg))
 
             unitCounter = unitCounter + 1
           end
@@ -665,7 +665,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
 
       -- take into account group rotation, if needed
       if hdg > 0 then
-        local angle = mist.utils.toRadian(hdg)
+        local angle = math.rad(hdg)
         local x = unit.spawnPoint.z - spawnPoint.z
         local y = unit.spawnPoint.x - spawnPoint.x
         local x_rotated = x * math.cos(angle) + y * math.sin(angle)
@@ -684,7 +684,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
         if unitHeading > 360 then
           unitHeading = unitHeading - 360
         end
-        unit.spawnPoint.hdg = mist.utils.toRadian(unitHeading)
+        unit.spawnPoint.hdg = math.rad(unitHeading)
       else
         unit.spawnPoint.hdg = 0 -- due north
       end

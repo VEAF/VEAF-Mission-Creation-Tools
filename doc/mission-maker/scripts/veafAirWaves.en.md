@@ -172,7 +172,7 @@ modules:
 | `:setZoneRadius(m)` | Zone radius in metres (when using a centre) |
 | `:setDescription(text)` | Label for messages and logs |
 | `:addWave(...)` | Add a wave — see [Wave definition](#wave-definition) |
-| `:resetWaves()` | Clear all added waves (useful after `mist.utils.deepCopy`) |
+| `:resetWaves()` | Clear all added waves (useful after `veaf.deepCopy`) |
 | `:addPlayerCoalition(side)` | Add a coalition whose players count (e.g. `coalition.side.BLUE`) |
 | `:setRespawnRadius(m)` | Spawn scatter radius (default: 250 m) |
 | `:setRespawnDefaultOffset(lat, lon)` | Offset from zone centre for spawns (metres, lat/lon) |
@@ -343,14 +343,14 @@ local zoneTemplate = AirWaveZone:new()
   :addWave({ "Su-27 Wave 2" })
 
 -- Clone and customise for each sector
-local zoneNorth = mist.utils.deepCopy(zoneTemplate)
+local zoneNorth = veaf.deepCopy(zoneTemplate)
 zoneNorth
   :setName("AW-North")
   :setTriggerZone("ZONE-AW-NORTH")
   :setDescription("Northern sector")
   :start()
 
-local zoneSouth = mist.utils.deepCopy(zoneTemplate)
+local zoneSouth = veaf.deepCopy(zoneTemplate)
 zoneSouth
   :setName("AW-South")
   :setTriggerZone("ZONE-AW-SOUTH")

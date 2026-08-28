@@ -1345,11 +1345,11 @@ function veaf.getAveragePosition(group)
     local units = Group.getUnits(group)
     for count = 1, #units do
       if units[count] then
-        totalPosition = mist.vec.add(totalPosition, Unit.getPosition(units[count]).p)
+        totalPosition = veaf.vecAdd(totalPosition, Unit.getPosition(units[count]).p)
       end
     end
     if #units > 0 then
-      return mist.vec.scalar_mult(totalPosition, 1 / #units)
+      return veaf.vecScalarMult(totalPosition, 1 / #units)
     else
       return nil
     end
@@ -1761,7 +1761,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
 
   local road_x = nil
   local road_z = nil
-  local trueStartPoint = mist.utils.deepCopy(startPoint)
+  local trueStartPoint = veaf.deepCopy(startPoint)
   if onRoad then
     veaf.loggers.get(veaf.Id):trace("setting startPoint on a road")
     road_x, road_z = land.getClosestPointOnRoads("roads", startPoint.x, startPoint.z)
@@ -1772,7 +1772,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
 
   veaf.loggers.get(veaf.Id):trace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
 
-  local trueEndPoint = mist.utils.deepCopy(endPoint)
+  local trueEndPoint = veaf.deepCopy(endPoint)
   if onRoad then
     veaf.loggers.get(veaf.Id):trace("setting endPoint on a road")
     road_x, road_z = land.getClosestPointOnRoads("roads", endPoint.x, endPoint.z)
@@ -2012,7 +2012,7 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     return false
   end
 
-  local headingRad = mist.utils.toRadian(heading)
+  local headingRad = math.rad(heading)
   veaf.loggers.get(veaf.Id):trace("headingRad=" .. headingRad)
   local fromPosition = leadUnit:getPosition().p
   ---@diagnostic disable-next-line: missing-fields
@@ -2239,9 +2239,9 @@ function veaf.getBearingAndRangeFromTo(fromPoint, toPoint)
   veaf.loggers.get(veaf.Id):trace("toPoint=" .. veaf.vecToString(toPoint))
 
   local vec = { z = toPoint.z - fromPoint.z, x = toPoint.x - fromPoint.x }
-  local angle = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec)), 0)
-  local distance = mist.utils.get2DDist(toPoint, fromPoint)
-  return angle, distance, mist.utils.round(distance / 1000, 0), mist.utils.round(mist.utils.metersToNM(distance), 0)
+  local angle = veaf.round(math.deg(veaf.getDir(vec)), 0)
+  local distance = veaf.get2DDist(toPoint, fromPoint)
+  return angle, distance, veaf.round(distance / 1000, 0), veaf.round(veaf.metersToNM(distance), 0)
 end
 
 function veaf.getGroupsOfCoalition(coa)
@@ -4019,7 +4019,7 @@ function veaf.getPolygonFromUnits(unitNames)
       local position = unit:getPosition().p
       unit:destroy()
       veaf.loggers.get(veaf.Id):trace(string.format("position = %s", veaf.p(position)))
-      table.insert(polygon, mist.utils.deepCopy(position))
+      table.insert(polygon, veaf.deepCopy(position))
     end
   end
   veaf.loggers.get(veaf.Id):trace(string.format("polygon = %s", veaf.p(polygon)))
@@ -4972,7 +4972,7 @@ end
 
 function VeafDrawingOnMap:addPoint(value)
   veaf.loggers.get(veaf.Id):trace("VeafDrawingOnMap[%s]:addPoint(%s)", veaf.lp(self.name), veaf.lp(value))
-  table.insert(self.points, 1, mist.utils.deepCopy(value))
+  table.insert(self.points, 1, veaf.deepCopy(value))
   return self
 end
 
@@ -4999,7 +4999,7 @@ function VeafDrawingOnMap:setColor(value)
     value = VeafDrawingOnMap.COLORS[value:lower()]
   end
   if value then
-    self.color = mist.utils.deepCopy(value)
+    self.color = veaf.deepCopy(value)
   end
   return self
 end
@@ -5010,7 +5010,7 @@ function VeafDrawingOnMap:setFillColor(value)
     value = VeafDrawingOnMap.COLORS[value:lower()]
   end
   if value then
-    self.fillColor = mist.utils.deepCopy(value)
+    self.fillColor = veaf.deepCopy(value)
   end
   return self
 end
@@ -5109,7 +5109,7 @@ end
 
 function VeafCircleOnMap:setCenter(value)
   veaf.loggers.get(veaf.Id):trace("VeafCircleOnMap[%s]:setCenter(%s)", veaf.lp(self.name), veaf.lp(value))
-  self.points = { mist.utils.deepCopy(value) }
+  self.points = { veaf.deepCopy(value) }
   return self
 end
 
@@ -5157,7 +5157,7 @@ end
 
 function VeafSquareOnMap:setCenter(value)
   veaf.loggers.get(veaf.Id):trace("VeafSquareOnMap[%s]:setCenter(%s)", veaf.lp(self.name), veaf.lp(value))
-  self.center = mist.utils.deepCopy(value)
+  self.center = veaf.deepCopy(value)
   self:compute()
   return self
 end

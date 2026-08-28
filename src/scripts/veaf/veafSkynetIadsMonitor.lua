@@ -162,7 +162,7 @@ function VeafSkynetMonitorDescriptor:GetStringElementStructure(details, sDetailT
 
     local sMaximumRange = ""
     if iMaximumRangeMeters then
-      iMaximumRangeMeters = veaf.round(mist.utils.metersToNM(iMaximumRangeMeters), 1)
+      iMaximumRangeMeters = veaf.round(veaf.metersToNM(iMaximumRangeMeters), 1)
       sMaximumRange = " range:" .. iMaximumRangeMeters .. "nm"
     end
     s = self:AppendString(s, sDetailType .. ":" .. #details .. sMaximumRange)

@@ -1387,7 +1387,7 @@ function VeafCombatZone:getInformation(unitName)
       -- add coordinates and position from bullseye
       local zoneCenter = self:getCenter()
       local lat, lon = coord.LOtoLL(zoneCenter)
-      local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
+      local mgrsString = veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)
       local bullseyeData = mist.DBs.missionData.bullseye.blue -- default to blue
       if unitName then
         local requestingUnit = Unit.getByName(unitName)
@@ -1403,8 +1403,8 @@ function VeafCombatZone:getInformation(unitName)
       local distImperial = veaf.round(veaf.metersToNM(dist), 0)
       local fromBullseye = veaf.t("report.bullseye_value", dir, distMetric, distImperial)
 
-      message = message .. veaf.t("report.latlon_decimal", mist.tostringLL(lat, lon, 2))
-      message = message .. veaf.t("report.latlon_dms", mist.tostringLL(lat, lon, 0, true))
+      message = message .. veaf.t("report.latlon_decimal", veaf.toStringLL(lat, lon, 2))
+      message = message .. veaf.t("report.latlon_dms", veaf.toStringLL(lat, lon, 0, true))
       message = message .. veaf.t("report.mgrs", mgrsString)
       message = message .. veaf.t("report.from_bullseye", fromBullseye)
       message = message .. "\n"

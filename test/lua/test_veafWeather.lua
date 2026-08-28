@@ -20,6 +20,7 @@ local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafTime.lua")
 dofile(src .. "/veafI18n.lua")
 -- veafWeather reaches into veafAirbases for the welcome brief (the nearest airbase and its runway

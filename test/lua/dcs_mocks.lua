@@ -1035,13 +1035,6 @@ veafRadio = {
   USAGE_ForUnit = 2,
 }
 
--- ---------------------------------------------------------------------------
--- mist.tostringLL  (used by infoOnAllConvoys with non-empty convoy data)
--- ---------------------------------------------------------------------------
-mist.tostringLL = function(lat, lon, acc)
-  return "0N 0E"
-end
-
 -- Update addGroup to include controller and category defaults
 local _original_addGroup = dcs_mocks.addGroup
 function dcs_mocks.addGroup(name, data)

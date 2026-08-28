@@ -95,6 +95,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   line and has been since long before this campaign, and `mist.utils.toRadian` / `toDegree` are
   `math.rad` / `math.deg` from Lua's own standard library. Those 100 calls simply moved.
 
+- **Coordinate text no longer comes from MiST.** `veafGeo.lua` renders latitude and longitude — decimal
+  minutes or degrees/minutes/seconds — and MGRS grid references. The conversions were already DCS's own
+  (`coord.LOtoLL`, `coord.LLtoMGRS`); only the string assembly was MiST's, and it now sits next to the
+  parser that reads the same formats back.
+
+  **Nothing a pilot reads changes.** The output is byte-identical, pinned by tests that compare against
+  literal strings taken from MiST before the port — including two places where MiST is visibly wrong: a
+  position at exactly zero renders as S/W, and in DMS a minute reaching 60 is printed as `60` instead of
+  carrying into the degree, which the decimal format does do. Both are reproduced deliberately.
+  Correcting them changes what appears in F10 reports and briefings, so it is a decision of its own.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

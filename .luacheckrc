@@ -71,7 +71,7 @@ globals = {
   "veaf", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
   "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCarrierOperations",
   "veafCasMission", "veafCombatMission", "veafCombatZone", "veafCommands",
-  "veafEventHandler", "veafGrass", "veafGroundAI",
+  "veafEventHandler", "veafGeo", "veafGrass", "veafGroundAI",
   "veafI18n", "veafInterpreter", "veafMarkers", "veafMath", "veafMissileGuardian", "veafMove",
   "veafNamedPoints", "veafQraManager", "veafRadio", "veafRecorder", "veafRemote",
   "veafSanctuary", "veafScheduler", "veafSecurity", "veafShortcuts",

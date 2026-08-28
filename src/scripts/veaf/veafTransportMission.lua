@@ -491,7 +491,7 @@ function veafTransportMission.reportTargetInformation(unitName)
   local averageGroupPosition = veaf.getAveragePosition(veafTransportMission.BlueGroupName)
   ---@cast averageGroupPosition vec3
   local lat, lon = coord.LOtoLL(averageGroupPosition)
-  local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
+  local mgrsString = veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)
   local bullseye = veaf.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
   local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
   local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
@@ -500,8 +500,8 @@ function veafTransportMission.reportTargetInformation(unitName)
   local distImperial = veaf.round(veaf.metersToNM(dist), 0)
   local fromBullseye = veaf.t("report.bullseye_value", dir, distMetric, distImperial)
 
-  message = message .. veaf.t("report.latlon_decimal", mist.tostringLL(lat, lon, 2))
-  message = message .. veaf.t("report.latlon_dms", mist.tostringLL(lat, lon, 0, true))
+  message = message .. veaf.t("report.latlon_decimal", veaf.toStringLL(lat, lon, 2))
+  message = message .. veaf.t("report.latlon_dms", veaf.toStringLL(lat, lon, 0, true))
   message = message .. veaf.t("report.mgrs", mgrsString)
   message = message .. veaf.t("report.from_bullseye", fromBullseye)
   message = message .. "\n"

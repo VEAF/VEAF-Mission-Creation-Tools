@@ -221,10 +221,10 @@ function veafNamedPoints.listAllPoints(unitName)
   for _, name in pairs(names) do
     local point = veafNamedPoints.namedPoints[name]
     local lat, lon = coord.LOtoLL(point)
-    local llString = mist.tostringLL(lat, lon, 3)
+    local llString = veaf.toStringLL(lat, lon, 3)
     llString = llString:sub(0, 2) .. "°" .. llString:sub(4)
     local mgrs = coord.LLtoMGRS(lat, lon)
-    local mgrsString = mist.tostringMGRS(mgrs, 5)
+    local mgrsString = veaf.toStringMGRS(mgrs, 5)
     message = message .. name .. " => " .. llString .. " / " .. mgrsString .. "\n"
   end
 

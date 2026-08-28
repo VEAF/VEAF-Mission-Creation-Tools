@@ -6,6 +6,7 @@ local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
 
 -- Provide a minimal dcsUnits stub (instead of loading the 16k-line file).
 -- New schema: keyed by DCS type id, with a single `kind` field.

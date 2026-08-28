@@ -21,6 +21,7 @@ dofile(_base .. "/dcs_mocks.lua")
 dofile(_base .. "/../../src/scripts/veaf/veaf.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafScheduler.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafMath.lua")
+dofile(_base .. "/../../src/scripts/veaf/veafGeo.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafCacheManager.lua")
 
 -- ---------------------------------------------------------------------------

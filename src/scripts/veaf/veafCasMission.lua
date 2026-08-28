@@ -1116,7 +1116,7 @@ function veafCasMission.reportTargetInformation(unitName)
   local averageGroupPosition = veaf.getAveragePosition(veafCasMission.casGroupName)
   ---@cast averageGroupPosition vec3
   local lat, lon = coord.LOtoLL(averageGroupPosition)
-  local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
+  local mgrsString = veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)
   local bullseyeData = mist.DBs.missionData.bullseye.blue -- default to blue
   local requestingUnit = Unit.getByName(unitName)
   if requestingUnit and requestingUnit:getCoalition() == coalition.side.RED then
@@ -1131,8 +1131,8 @@ function veafCasMission.reportTargetInformation(unitName)
   local distImperial = veaf.round(veaf.metersToNM(dist), 0)
   local fromBullseye = veaf.t("cas.report_bullseye_value", dir, distMetric, distImperial)
 
-  message = message .. veaf.t("cas.report_latlon_decimal", mist.tostringLL(lat, lon, 2))
-  message = message .. veaf.t("cas.report_latlon_dms", mist.tostringLL(lat, lon, 0, true))
+  message = message .. veaf.t("cas.report_latlon_decimal", veaf.toStringLL(lat, lon, 2))
+  message = message .. veaf.t("cas.report_latlon_dms", veaf.toStringLL(lat, lon, 0, true))
   message = message .. veaf.t("cas.report_mgrs", mgrsString)
   message = message .. veaf.t("cas.report_bullseye", fromBullseye)
   message = message .. "\n"

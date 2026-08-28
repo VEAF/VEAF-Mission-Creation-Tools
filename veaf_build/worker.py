@@ -98,6 +98,7 @@ def deploy_published_locally(published_zip: Path, target: Path) -> list[str]:
 LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafScheduler.lua",
     "veafMath.lua",
+    "veafGeo.lua",
     "veafI18n.lua",
     "dcsUnits.lua",
     "veafCacheManager.lua",

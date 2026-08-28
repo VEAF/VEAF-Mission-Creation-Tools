@@ -335,6 +335,24 @@ Three traps, in the order they bite:
 - **There is no `round` in `veafMath`**: it has been `veaf.round` in `veaf.lua` all along, and it is
   identical to MiST's.
 
+### Rendering a position as text
+
+`veafGeo.lua` assembles coordinate strings, behind two façades:
+
+```lua
+veaf.toStringLL(lat, lon, acc)         -- "42 21.00'N⇥ 43 34.07'E"  (decimal minutes)
+veaf.toStringLL(lat, lon, acc, true)   -- "42 21' 00\"N⇥ 43 34' 04\"E"  (degrees/minutes/seconds)
+veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)  -- "38T KM 123 679"
+```
+
+The geodesy stays DCS's own (`coord.LOtoLL`, `coord.LLtoMGRS`); this module only does the text.
+
+**These strings go into F10 reports and briefings**, so they are pinned by literal-string tests. Two of
+MiST's oddities are reproduced on purpose and documented in the module: a position at zero renders as
+`S`/`W`, and in DMS a minute reaching 60 does not carry into the degree (`41 60'` rather than
+`42 00'`), while the decimal branch does carry. Correcting either changes what pilots read: that is a
+decision of its own, not a side effect.
+
 ### mist.DBs Access
 
 Do not access `mist.DBs.*` directly. Use the `veaf.mist` wrapper:

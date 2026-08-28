@@ -147,6 +147,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafCacheManager.lua` | Cache get/set/invalidate |
 | `test_veafScheduler.lua` | Native-timer scheduler: repetition, stop time, a failing task |
 | `test_veafMath.lua` | Unit conversions, vectors, coordinate shapes, deep copy |
+| `test_veafGeo.lua` | Coordinate text output: decimal and DMS lat/lon, MGRS |
 | `test_veafInterpreter.lua` | Mark text tokenizer |
 | `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | Security levels, admin management |

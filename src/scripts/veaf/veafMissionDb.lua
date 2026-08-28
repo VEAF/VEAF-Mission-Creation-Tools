@@ -405,6 +405,119 @@ function veafMissionDb.isNameTaken(name)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Destroyed scenery register (DROP-MIST ticket 09)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Scenery objects destroyed since the mission started, keyed by their DCS object id.
+---
+--- Each entry is `{ id = <number>, position = { x, y, z }, typeName = <string|nil> }`.
+---
+--- This replaces `mist.DBs.deadObjects`, which MiST filled from its own event handler and which
+--- `mist.getDeadMapObjsInZones` queried. Only scenery is kept: the one caller
+--- (`veafCombatMission`'s *prevent destruction* objective) matches ids the mission maker listed, and
+--- MiST filtered its own answer down to `objectType == "building"` for the same reason.
+veafMissionDb.destroyedScenery = {}
+
+--- Guard against registering the callback twice.
+---
+--- `initialize` runs at load time *and* again on the module init pass, and a handler registered twice
+--- means every destruction recorded twice. That is not hypothetical: the DCS event handler itself was
+--- registered twice until 6.17.0, and every event ran twice for it (#824).
+veafMissionDb.sceneryCallbackRegistered = false
+
+--- Record a scenery object's destruction. Public so a test can drive it without an event bus.
+--- @param event table the event a `veafEventHandler` callback receives
+function veafMissionDb.recordDestroyedScenery(event)
+  local object = event and event.dcsInitiator
+  if not object then
+    return false
+  end
+
+  -- Scenery only. `getCategory` is the Object.Category form here (SCENERY == 5), not the Unit one --
+  -- confusing the two is what FIX-EVENTHANDLER-GETCATEGORY cost us, so it is asked in a pcall and a
+  -- non-scenery answer simply means "not ours".
+  local ok, category = pcall(function()
+    return object:getCategory()
+  end)
+  if not ok or category ~= Object.Category.SCENERY then
+    return false
+  end
+
+  -- A scenery object's name *is* its id, as a number. Verified in game 2026-08-28 on live objects:
+  -- `getName()` and `id_` return the same number, and that number is what a mission maker writes in
+  -- `configureAsPreventDestructionOfSceneryObjectsInZone`.
+  local id = object.id_
+  if id == nil then
+    local gotName, name = pcall(function()
+      return object:getName()
+    end)
+    id = gotName and name or nil
+  end
+  if type(id) ~= "number" then
+    return false
+  end
+
+  -- No `Object.isExist` guard, deliberately. MiST had one, and it is why MiST recorded nothing for a
+  -- scripted destruction: measured in game 2026-08-28, `isExist` is already false on the DEAD event
+  -- while `getPosition` still answers correctly. Asking for the position is the test that matters.
+  local gotPosition, position = pcall(function()
+    return Object.getPosition(object)
+  end)
+  local point = gotPosition and position and position.p or nil
+  if not point then
+    veaf.loggers.get(veafMissionDb.Id):debug("recordDestroyedScenery: no position for scenery id %s", veaf.p(id))
+    return false
+  end
+
+  veafMissionDb.destroyedScenery[id] = {
+    id = id,
+    position = { x = point.x, y = point.y, z = point.z },
+    typeName = event.initiator and event.initiator.unitType or nil,
+  }
+  veaf.loggers
+    .get(veafMissionDb.Id)
+    :trace("recordDestroyedScenery: scenery %s destroyed at x=%s z=%s", veaf.p(id), veaf.p(point.x), veaf.p(point.z))
+  return true
+end
+
+--- Every destroyed scenery object standing inside any of the named trigger zones.
+---
+--- @param zoneNames table list of trigger zone names; an unknown name is skipped, as it was in MiST
+--- @return table a list of `{ id, position, typeName }`, in no particular order
+function veafMissionDb.getDestroyedSceneryInZones(zoneNames)
+  local found = {}
+  if type(zoneNames) ~= "table" then
+    return found
+  end
+
+  -- Zones are read from DCS, not from an index: `trigger.misc.getZone` is native and gives centre and
+  -- radius, which is all MiST's `zonesByName` was used for here. Ticket 05 decided not to port it.
+  local zones = {}
+  for _, name in pairs(zoneNames) do
+    local zone = trigger.misc.getZone(name)
+    if zone and zone.point and zone.radius then
+      zones[#zones + 1] = zone
+    else
+      veaf.loggers.get(veafMissionDb.Id):debug("getDestroyedSceneryInZones: no such trigger zone [%s]", veaf.p(name))
+    end
+  end
+
+  for _, record in pairs(veafMissionDb.destroyedScenery) do
+    for _, zone in ipairs(zones) do
+      -- Planar distance: a trigger zone is a cylinder, and scenery altitude is irrelevant to it.
+      local dx = record.position.x - zone.point.x
+      local dz = record.position.z - zone.point.z
+      if math.sqrt(dx * dx + dz * dz) <= zone.radius then
+        found[#found + 1] = record
+        break
+      end
+    end
+  end
+
+  return found
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -421,12 +534,32 @@ veaf.getCountriesByCoalitionFromMission = veafMissionDb.getCountriesByCoalitionF
 veaf.takeSpawnedName = veafMissionDb.takeSpawnedName
 veaf.releaseSpawnedName = veafMissionDb.releaseSpawnedName
 veaf.isNameTaken = veafMissionDb.isNameTaken
+veaf.getDestroyedSceneryInZones = veafMissionDb.getDestroyedSceneryInZones
+
+--- Subscribe the destroyed-scenery register to the event bus, once.
+---
+--- Not done at load time: `veaf_build/worker.py` loads this module *before* `veafEventHandler`, so
+--- there is nothing to subscribe to yet. `initialize` runs a second time on the module init pass,
+--- when the bus exists — hence the guard, which is what keeps a second pass from recording every
+--- destruction twice.
+local function registerSceneryCallback()
+  if veafMissionDb.sceneryCallbackRegistered then
+    return false
+  end
+  if not (veafEventHandler and veafEventHandler.addCallback) then
+    return false
+  end
+  veafEventHandler.addCallback("veafMissionDb.destroyedScenery", { "S_EVENT_DEAD" }, veafMissionDb.recordDestroyedScenery)
+  veafMissionDb.sceneryCallbackRegistered = true
+  return true
+end
 
 function veafMissionDb.initialize()
   veaf.loggers.get(veafMissionDb.Id):info("Initializing module")
   veafMissionDb.buildSnapshot()
   veafMissionDb.humansByName = {}
   indexEditorSlots()
+  registerSceneryCallback()
 end
 
 -- Built at load time, not on the module init pass: other modules read the snapshot from their own

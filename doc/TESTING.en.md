@@ -149,6 +149,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMath.lua` | Unit conversions, vectors, coordinate shapes, deep copy |
 | `test_veafGeo.lua` | Coordinate text output, zones, average positions, polygons |
 | `test_veafMissionDb.lua` | Mission snapshot, player roster, name registry, unit ids |
+| `test_veafMissionDb_scenery.lua` | Destroyed-scenery register: recording, zone lookup, event subscription |
 | `test_veafInterpreter.lua` | Mark text tokenizer |
 | `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | Security levels, admin management |

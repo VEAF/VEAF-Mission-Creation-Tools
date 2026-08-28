@@ -1,6 +1,6 @@
 # 09 — The destroyed-scenery register
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-28
 Type: refactor
 
 One call site, and it was ticket 04's tenth line — until reading it showed it is not a helper at all.
@@ -53,11 +53,43 @@ ids, and an objective that must fail when one of them is destroyed and only then
 
 ## Definition of done
 
-- [ ] A register of destroyed scenery objects, fed by the event handler, holding what the caller reads
-- [ ] `veafCombatMission.lua:274` migrated; `grep 'mist.getDeadMapObjsInZones' src/scripts/veaf/`
+- [x] A register of destroyed scenery objects, fed by the event handler, holding what the caller reads
+- [x] `veafCombatMission.lua:274` migrated; `grep 'mist.getDeadMapObjsInZones' src/scripts/veaf/`
       returns nothing
-- [ ] Lua tests: an object destroyed inside the zone, one destroyed outside it, one destroyed before
+- [x] Lua tests: an object destroyed inside the zone, one destroyed outside it, one destroyed before
       the objective is configured, and a zone that does not exist
-- [ ] The mission-maker documentation for
+- [x] The mission-maker documentation for
       `configureAsPreventDestructionOfSceneryObjectsInZone` still describes what the objective does
-- [ ] `stylua --check` and `luacheck` clean
+      — unchanged, because the behaviour is unchanged: `zones` is still honoured
+- [x] `stylua --check` clean; `luacheck` left to the CI gate (not installed on this workstation)
+
+## What was built, and the two things the game decided
+
+The register lives in `veafMissionDb`, next to the other things VEAF knows about the mission, rather
+than in a module of its own: a new Lua module means editing five separate registries, three of which
+fail silently when forgotten.
+
+Measured in game on 2026-08-28 (see the memory note `scenery-death-events-in-dcs`), and both findings
+changed the design:
+
+1. **`event.pos` is nil on a scenery death.** Six objects, two scripted explosions, never filled. The
+   position can therefore only come from the object itself at the instant of the event — which is why
+   `veafEventHandler.transformEvent` now also carries `dcsInitiator`, the untransformed DCS object.
+   Without it the register could hold ids but never place them, and the `zones` argument would have
+   had to be dropped from a documented mission-maker API.
+2. **`Object.isExist` is already false, while `Object.getPosition` still answers.** MiST guarded on
+   `isExist`, so it recorded nothing for those six objects: `mist.DBs.deadObjects` held 11 unrelated
+   entries and none of the ones just destroyed. The register does not ask.
+
+`getName()` on a scenery object returns a **number**, equal to `id_` — the same number the mission
+maker writes in the objective's table, so no conversion is needed anywhere.
+
+## Wiring, and why it is tested
+
+`veaf_build/worker.py` loads `veafMissionDb` **before** `veafEventHandler`, so the subscription cannot
+happen at load time. It happens in `initialize`, which runs twice — once at load, once on the module
+init pass — behind a guard, because a callback registered twice records every destruction twice. That
+is the exact shape of the double event handler fixed in 6.17.0 (#824).
+
+Three of the fifteen tests assert the **subscription**, not the handler, and were verified to fail
+when the subscription is removed.

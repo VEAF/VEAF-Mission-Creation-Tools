@@ -1,6 +1,6 @@
 # FIX-ESCORT-RESPAWN-DISTANCE — a respawned asset reappears 80 km from its escort
 
-Status: ⬜ ready
+Status: ⬜ ready — **option (a) chosen by David, 2026-08-28**: the escort respawns with its charge
 
 Origin: the in-game verification of [`FIX-ESCORT-RESPAWN-TASK`](../FIX-ESCORT-RESPAWN-TASK/PRD.md),
 run 2026-08-28 on `VEAF-session-2026-08-27`. That lot's repair is now proven to work; the escort
@@ -55,9 +55,42 @@ The choice is about what a respawn is supposed to mean, and it is a design call,
   minutes of transit each respawn, and it only works if the Escort task really does make an aircraft
   rally from beyond `engagementDistMax` — which is exactly what test 2 above failed to demonstrate.
 
+## Decision — (a), David, 2026-08-28
+
+**The escort respawns with its charge.** `veafAssets.respawn` already does exactly this for `linked`
+groups; the group following the `<asset name> escort` convention gets the same treatment.
+
+Why (a) and not the other two, in the terms the choice was put:
+
+- It is **the only one of the three whose outcome is certain without a further measurement**. A respawn
+  already means "put this back the way it started", and the escort is part of that.
+- **(b) rests on a component the repository itself says does not work.** `veafMove.teleportEscort`
+  carries its author's note that the escort *"just doesn't defend the group"*, and it still assumes the
+  Escort task sits on the last waypoint. Its advertised cheapness was the reason to prefer it, and that
+  reason does not survive reading it.
+- **(c) rests on DCS behaviour nobody has seen.** The Escort task's `engagementDistMax` is 60 km and the
+  escort is ~80 km out; that a task makes an aircraft rally from beyond its own engagement distance was
+  never demonstrated. The one attempt on 2026-08-28 showed nothing, and was too short to count either
+  way.
+
+What (a) costs, stated rather than glossed: an escort that was engaged, damaged or low on fuel is
+replaced by a fresh one, and the two mechanisms the ASSETS page separates on purpose — `linked` and the
+naming convention — end up doing the same thing at respawn time. The page has to say so.
+
+### What implementing it means
+
+- `veafAssets.respawn` respawns `<asset name> escort` alongside the asset, if such a group exists.
+- The task repair still runs afterwards: respawning both does not by itself restore the Escort task,
+  since it is the **escorted** group's id changing that breaks it. Both halves are needed.
+- The order matters — the asset first, then the escort, then the repair — because the repair reads
+  `Group.getID` of the freshly created asset.
+- Documented on the ASSETS page, both languages: respawning an asset respawns its escort.
+- Tests: an asset with an escort respawns both; an asset without one is unaffected; the repair still
+  runs and writes the new id.
+
 ## Definition of done
 
-- [ ] One of (a)/(b)/(c) chosen, with the reason recorded here
+- [x] One of (a)/(b)/(c) chosen, with the reason recorded here — **(a)**, David, 2026-08-28
 - [ ] Implemented with unit tests covering the distance case
 - [ ] Verified in game: respawn the asset, and the escort is with it — not merely tasked with it
 - [ ] The ASSETS page says what a respawn does to an escort

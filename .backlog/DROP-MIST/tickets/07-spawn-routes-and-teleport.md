@@ -178,6 +178,42 @@ VEAF's own and ships in the bundle, the guard is dead weight — and it is the k
   **(A) should ship first**: it is the larger call count, the smaller risk, and it exercises the
   coordinate convention on its own before any route arithmetic is layered on top.
 
+### Half (A) — `dynAddStatic`, read end to end 2026-08-28
+
+Its 100 lines do eight things, in order: flatten a MiST-format `units[1]` into the object; resolve the
+country (a string with spaces becomes underscores, or a numeric id) and **fail loudly** if it does not
+resolve; allocate `groupId` and `unitId` when absent or when cloning; name the object
+(`name or unitName`, else `"<country> static N"`); default `dead` to false; give it a **random heading**
+when none is set; map `categoryStatic` onto `category` and force `"Cargos"` when `mass` is present;
+resolve `shape_name`. Then it validates `x`, `y` and `type` and calls
+`coalition.addStaticObject(country.id[newCountry], newObj)`.
+
+Four things decided by reading our own 18 call sites:
+
+**1. The `shape_name` lookup has to be ported, but not for the reason it looked.**
+`mist.DBs.const.shapeNames` holds **124 entries**, and the objects that most obviously need it do not
+use it: the FARP passes `shape_name` explicitly (`veafSpawnGround.lua:86`), so do the windsock and the
+runway cones. `"outpost"` and `"house2arm"` are not in the table at all, so the lookup is a no-op for
+them. **But `veafSpawnEffects.lua:214` passes a `type` the mission maker chose** — any of the 124 can
+arrive there. The table is a constant, so porting it is mechanical; skipping it would break exactly the
+spawns nobody tests.
+
+**2. `veafSpawnAircraft.lua:187` is the only site using the MiST wrapper format** —
+`{ country, groupName, units = units }` rather than a flat object — so it is the only one that exercises
+the `units[1]` flattening at the top. It is also the only one that must keep working through it.
+
+**3. The random heading is behaviour, not a detail.** An object spawned without a heading gets
+`math.rad(math.random(360))`. Several of our statics rely on that (nothing in `veafSpawnEffects` sets a
+heading), so a port that defaults to 0 would line up every cargo drop on the same axis — a visible
+change in game that no unit test would catch.
+
+**4. `mass` silently overrides `category`.** `veafSpawnEffects.lua:132` passes both `category = "Cargos"`
+and `mass`, so the override is a no-op there today — but it is the kind of rule that has to be ported
+deliberately rather than discovered later.
+
+Coordinate note, per the trap above: a static's table uses `x` for the northing and **`y` for the
+easting** — `veafSpawnGround.lua:89` writes `["y"] = spawnPosition.z`. The port must not "fix" that.
+
 ## Two traps
 
 - **Coordinates.** `dynAdd` and `dynAddStatic` place objects, so

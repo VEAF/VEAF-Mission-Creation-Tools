@@ -806,8 +806,10 @@ end
 
 --- A live group at a position, with a heading and a speed.
 function TestVeafDcsSpawnerCurrentGroupData:_liveGroup(x, alt, z)
+  -- The id matches the editor record's on purpose: this is the same unit, so its record still
+  -- describes it. The tests below cover the case where it does not.
   dcs_mocks.addUnit("Arco-1", {
-    _id = 4242,
+    _id = 3,
     getTypeName = function()
       return "KC-135"
     end,
@@ -872,6 +874,95 @@ end
 
 function TestVeafDcsSpawnerCurrentGroupData:test_an_unknown_name_returns_nil()
   luaunit.assertNil(veafDcsSpawner.getCurrentGroupData("Nobody"))
+end
+
+-- Both of these come from the Sourcery review of PR #841, and one of them was a real defect.
+
+function TestVeafDcsSpawnerCurrentGroupData:test_a_category_never_comes_back_as_a_number()
+  -- Group.Category and Unit.Category do not number the same things the same way, so a category left
+  -- as a number is read against the wrong table further down: an airplane comes back a helicopter.
+  -- That is the shape of #299.
+  self:_editorGroup()
+  self:_liveGroup(1, 2, 3)
+  dcs_mocks.addGroup("Arco", {
+    _id = 99,
+    getCategory = function()
+      return Group.Category.AIRPLANE
+    end,
+    getUnits = function()
+      return { Unit.getByName("Arco-1") }
+    end,
+  })
+
+  local category = veafDcsSpawner.getCurrentGroupData("Arco").category
+
+  luaunit.assertEquals(type(category), "string", "a bare number would be read against Unit.Category")
+  luaunit.assertEquals(category, "plane")
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_every_group_category_has_an_editor_word()
+  for name, id in pairs(Group.Category) do
+    if name ~= "TRAIN" then
+      luaunit.assertNotNil(
+        veafDcsSpawner.EDITOR_CATEGORY_BY_GROUP_CATEGORY[id],
+        name .. " must convert to a name the spawn chain understands"
+      )
+    end
+  end
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_a_replaced_unit_does_not_inherit_the_old_loadout()
+  -- The defect the review caught: reusing the editor record on the name alone. A unit dynamically
+  -- respawned under a known name but of another type would take the old payload, skill and callsign.
+  self:_editorGroup()
+  dcs_mocks.addUnit("Arco-1", {
+    _id = 4242,
+    getTypeName = function()
+      return "F-16C_50" -- the record says KC-135
+    end,
+    getPosition = function()
+      return { p = { x = 1, y = 2, z = 3 }, x = { x = 1, y = 0, z = 0 } }
+    end,
+    getVelocity = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+  })
+  dcs_mocks.addGroup("Arco", {
+    _id = 99,
+    getUnits = function()
+      return { Unit.getByName("Arco-1") }
+    end,
+  })
+
+  local unit = veafDcsSpawner.getCurrentGroupData("Arco").units[1]
+
+  luaunit.assertEquals(unit.type, "F-16C_50", "the live type wins")
+  luaunit.assertNil(unit.payload, "a KC-135 loadout must not follow the name onto an F-16")
+  luaunit.assertNil(unit.skill)
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_a_unit_whose_id_moved_does_not_inherit_either()
+  self:_editorGroup()
+  dcs_mocks.addUnit("Arco-1", {
+    _id = 5555, -- the record says 3
+    getTypeName = function()
+      return "KC-135"
+    end,
+    getPosition = function()
+      return { p = { x = 1, y = 2, z = 3 }, x = { x = 1, y = 0, z = 0 } }
+    end,
+    getVelocity = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+  })
+  dcs_mocks.addGroup("Arco", {
+    _id = 99,
+    getUnits = function()
+      return { Unit.getByName("Arco-1") }
+    end,
+  })
+
+  luaunit.assertNil(veafDcsSpawner.getCurrentGroupData("Arco").units[1].payload)
 end
 
 os.exit(luaunit.LuaUnit.run())

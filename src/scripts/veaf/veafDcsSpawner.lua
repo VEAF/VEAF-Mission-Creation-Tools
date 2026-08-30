@@ -541,6 +541,14 @@ veafDcsSpawner.TERRAIN_BY_CATEGORY = {
   ground_unit = { "LAND", "ROAD", "RUNWAY" },
 }
 
+--- The editor's word for each `Group.Category`, so a category never travels as a bare number.
+veafDcsSpawner.EDITOR_CATEGORY_BY_GROUP_CATEGORY = {
+  [Group.Category.AIRPLANE] = "plane",
+  [Group.Category.HELICOPTER] = "helicopter",
+  [Group.Category.GROUND] = "vehicle",
+  [Group.Category.SHIP] = "ship",
+}
+
 --- Every surface a spawn accepts when nothing narrows it down.
 veafDcsSpawner.ANY_TERRAIN = { "LAND", "ROAD", "SHALLOW_WATER", "WATER", "RUNWAY" }
 
@@ -612,13 +620,11 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
     data.name = groupName
     data.groupName = groupName
     data.groupId = tonumber(group:getID())
-    data.category = group:getCategory()
-    -- getCategory answers a number; a spawn wants the editor's word for it.
-    if data.category == Group.Category.GROUND then
-      data.category = "vehicle"
-    elseif data.category == Group.Category.SHIP then
-      data.category = "ship"
-    end
+    -- `getCategory` answers a **Group.Category**, and a spawn wants the editor's word for it. All four
+    -- are converted, not just the two MiST bothered with: `Group.Category` and `Unit.Category` do not
+    -- number the same things the same way, so a category left as a number is read against the wrong
+    -- table further down and an airplane comes back a helicopter. That is the shape of #299.
+    data.category = veafDcsSpawner.EDITOR_CATEGORY_BY_GROUP_CATEGORY[group:getCategory()] or group:getCategory()
 
     data.units = {}
     local liveUnits = group:getUnits() or {}
@@ -627,10 +633,17 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
     end
     for index, unit in ipairs(liveUnits) do
       local unitName = unit:getName()
+      -- The editor record is reused only when it still describes **this** unit: same type, same id.
+      -- MiST checked both, and it matters — a unit dynamically respawned under a name the snapshot
+      -- already knows would otherwise inherit the loadout, skill and callsign of whatever used to
+      -- carry that name.
       local known = veafMissionDb.getUnitRecord(unitName)
-      local unitData = known and veaf.deepCopy(known) or {}
-      unitData.unitId = tonumber(unit:getID())
-      unitData.type = unit:getTypeName()
+      local liveId = tonumber(unit:getID())
+      local liveType = unit:getTypeName()
+      local matches = known and known.type == liveType and known.unitId == liveId
+      local unitData = matches and veaf.deepCopy(known) or {}
+      unitData.unitId = liveId
+      unitData.type = liveType
       unitData.unitName = unitName
       unitData.name = unitName
 

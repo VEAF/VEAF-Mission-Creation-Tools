@@ -471,3 +471,45 @@ through — and the harness has since run in game, so the dependency is live.
   exists for it and has never been exercised.
 - [`FEAT-ASSIST-FOLLOWUP` 03](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) — an F-16C pilot's review of the
   six shipped steps. The engine was flown and works; the *procedure* was never checked by a pilot.
+
+---
+
+## 23. Does CSAR still work now that it no longer calls MiST? — closes a lot
+
+**Why it is here:** `REFACTOR-CSAR-WITHOUT-MIST` (2026-08-28) rewrote all eighteen of CSAR's MiST
+calls onto VEAF equivalents and replaced its MiST load assertion with a VEAF one. The Lua suite covers
+the helpers, but **nothing here can spawn a downed pilot and go fetch him** — CSAR's job is a sequence
+of events in a running mission, and that is what has to be seen.
+
+The lot is `🧑 waiting-human` on this and nothing else.
+
+**What to run.** The session mission already declares `CSAR: true`, so **rebuild it against the current
+repository** and load it:
+
+```bash
+veaf-tools mission build VEAF-session-csar D:/dev/_VEAF/tmp/dcs-session-2026-08-27 --scripts-path D:/dev/_VEAF/VEAF-Mission-Creation-Tools
+```
+
+Then, in one flight:
+
+1. **Eject.** A downed pilot group must appear — that is `veaf.addGroup` replacing `mist.dynAdd`, and
+   the id allocator replacing `mist.getNextGroupId`.
+2. **Read the radio message giving his position.** This is the riskiest rewrite: MiST averaged a list
+   of units internally, VEAF's renderers take a point, so the averaging moved to the call site. The
+   text must read exactly as before — `"090 for 12"` for a bullseye, a normal lat/long or MGRS
+   otherwise, depending on `csar.coordtype`.
+3. **Fly towards him, then away.** The "you are getting closer" behaviour rides on a dot product
+   (`veaf.vecDotProduct` for `mist.vec.dp`) and on the heading (`veaf.getHeading`). Its **sign** is
+   what matters: approaching and departing must not be confused.
+4. **Land and pick him up**, then drop him at a base.
+
+**What to look for in `dcs.log`:** filter on `CSAR`. Any `attempt to index` or `attempt to call` naming
+a `veaf.` function is a missing façade — the substitution was mechanical and a typo there would only
+show at runtime.
+
+⚠️ **If CSAR does not start at all**, the message will say the VEAF framework is missing rather than
+MiST — that assertion was deliberately switched. It would mean the script loaded before the VEAF
+bundle, which is a load-order problem and not a porting one.
+
+**What it unblocks:** `.backlog/REFACTOR-CSAR-WITHOUT-MIST/PRD.md`, its last unchecked box. Record the
+result there and delete this section.

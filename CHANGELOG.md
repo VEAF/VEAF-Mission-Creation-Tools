@@ -236,6 +236,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
   A mission that still says `HERCULES: true` builds normally and logs *"Unknown community script id"*.
 
+- **Four vector and geometry helpers, and a unit lookup by id.** `veaf.vecSub`, `veaf.vecDotProduct`,
+  `veaf.buildWaypoint` and `veaf.toStringBR` fill the gaps between what MiST offered and what VEAF had
+  — the last pieces CSAR needs before it can stop calling MiST, like CTLD already does.
+
+  `buildWaypoint` is the one worth naming: a route waypoint is the mission-table shape, so a runtime
+  position's `z` becomes the waypoint's `y`. Handing the position straight through puts the waypoint at
+  an easting equal to its altitude, and DCS accepts that without a word.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

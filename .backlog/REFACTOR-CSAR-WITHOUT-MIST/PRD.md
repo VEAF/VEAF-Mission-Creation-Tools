@@ -1,6 +1,6 @@
 # REFACTOR-CSAR-WITHOUT-MIST — cut CSAR's 18 calls to MiST
 
-Status: ⬜ ready
+Status: 🔄 in-progress — the five missing pieces shipped 2026-08-28; CSAR's own call sites next
 
 Origin: David, 2026-08-28, on `DROP-MIST` ticket 08 — *"CSAR : comme pour CTLD, on pourrait s'affranchir
 de MiST ; c'est un script qu'on a repris aussi je crois (pas vendored), donc on peut le modifier non ?
@@ -72,9 +72,11 @@ it takes CSAR off the list of reasons MiST must be injected, leaving only Skynet
 ## Definition of done
 
 - [ ] `grep 'mist\.' src/scripts/community/CSAR.lua` returns nothing outside comments
-- [ ] The four missing helpers live in `veafMath` / `veafGeo`, with tests, not inside CSAR
-- [ ] A unit lookup by id exists in `veafMissionDb`, and its difference from the name lookup is
-      documented where a caller will read it
+- [x] The four missing helpers live in `veafMath` / `veafGeo`, with tests, not inside CSAR —
+      `vecSub`, `vecDotProduct`, `buildWaypoint`, `toStringBR`
+- [x] A unit lookup by id exists in `veafMissionDb`, and its difference from the name lookup is
+      documented where a caller will read it: the index holds **editor** units, so a runtime spawn has
+      an id and no entry — asserted by a test
 - [ ] Each replaced call has a test asserting the answer it gave before
 - [ ] Checked in game: a CSAR mission, an ejection, a pilot found and picked up
 - [ ] `stylua --check` and `luacheck` clean

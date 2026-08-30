@@ -244,6 +244,35 @@ end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
+--- Vector difference, `vec1 - vec2`.
+---
+--- The counterpart of `vecAdd`, missing until CSAR needed it. Both operands go through `makeVec3`, so
+--- either coordinate shape is accepted — a mission-table point whose `y` is the easting comes back with
+--- that easting in `z`, as everywhere else here.
+---
+--- @param vec1 table
+--- @param vec2 table
+--- @return table a vec3
+function veafMath.vecSub(vec1, vec2)
+  local a = veafMath.makeVec3(vec1)
+  local b = veafMath.makeVec3(vec2)
+  return { x = a.x - b.x, y = a.y - b.y, z = a.z - b.z }
+end
+
+--- Dot product of two vectors.
+---
+--- Used to project one vector onto another — CSAR reads it to tell whether a helicopter is flying
+--- towards a survivor or away from him, which is the sign of this number.
+---
+--- @param vec1 table
+--- @param vec2 table
+--- @return number
+function veafMath.vecDotProduct(vec1, vec2)
+  local a = veafMath.makeVec3(vec1)
+  local b = veafMath.makeVec3(vec2)
+  return a.x * b.x + a.y * b.y + a.z * b.z
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.metersToNM = veafMath.metersToNM
@@ -255,6 +284,8 @@ veaf.hPaToInHg = veafMath.hPaToInHg
 veaf.makeVec3 = veafMath.makeVec3
 veaf.makeVec2 = veafMath.makeVec2
 veaf.vecAdd = veafMath.vecAdd
+veaf.vecSub = veafMath.vecSub
+veaf.vecDotProduct = veafMath.vecDotProduct
 veaf.vecScalarMult = veafMath.vecScalarMult
 veaf.vecMag = veafMath.vecMag
 veaf.get2DDist = veafMath.get2DDist

@@ -2037,17 +2037,20 @@ function TestVeafCombatZoneRenameOption:setUp()
   self.el:setCoalition(coalition.side.RED)
   self.el:setDcsGroup(true)
 
-  self._teleport = mist.teleportToPoint
-  self.vars = nil
+  self._spawnImpl = VeafGroupSpawn._spawn
+  self.spawn = nil
   local this = self
-  mist.teleportToPoint = function(vars)
-    this.vars = vars
-    return nil -- a nil return keeps spawnElement on its "nothing came back" path, which is enough here
+  -- The recipe the chain built, captured instead of MiST's `vars` table. A nil return keeps
+  -- spawnElement on its "nothing came back" path, which is enough here.
+  VeafGroupSpawn._spawn = function(spawn, verb)
+    this.spawn = spawn
+    this.verb = verb
+    return nil
   end
 end
 
 function TestVeafCombatZoneRenameOption:tearDown()
-  mist.teleportToPoint = self._teleport
+  VeafGroupSpawn._spawn = self._spawnImpl
 end
 
 function TestVeafCombatZoneRenameOption:test_the_default_is_todays_behaviour()
@@ -2064,14 +2067,14 @@ end
 -- The one that matters: the value reaches MiST.
 function TestVeafCombatZoneRenameOption:test_a_spawn_asks_mist_to_rename_by_default()
   self.z:spawnElement(self.el, true)
-  luaunit.assertNotNil(self.vars, "mist.teleportToPoint must have been called")
-  luaunit.assertTrue(self.vars.renameUnitsSequentially)
+  luaunit.assertNotNil(self.spawn, "the spawn chain must have been run")
+  luaunit.assertTrue(self.spawn.renameUnits)
 end
 
 function TestVeafCombatZoneRenameOption:test_a_zone_that_declined_renaming_says_so_to_mist()
   self.z:setRenameUnitsSequentially(false)
   self.z:spawnElement(self.el, true)
-  luaunit.assertFalse(self.vars.renameUnitsSequentially)
+  luaunit.assertFalse(self.spawn.renameUnits)
 end
 
 -- A static object goes down the same branch, so the setting has to reach it too.
@@ -2080,7 +2083,7 @@ function TestVeafCombatZoneRenameOption:test_a_static_element_honours_the_settin
   self.el:setDcsStatic(true)
   self.z:setRenameUnitsSequentially(false)
   self.z:spawnElement(self.el, true)
-  luaunit.assertFalse(self.vars.renameUnitsSequentially)
+  luaunit.assertFalse(self.spawn.renameUnits)
 end
 
 -- Zones are independent: this is a per-zone setting, not a global debug switch, precisely so that
@@ -2202,32 +2205,35 @@ function TestVeafCombatZoneSpawnRouteOffset:setUp()
   self.el:setCoalition(coalition.side.RED)
   self.el:setDcsGroup(true)
 
-  self._teleport = mist.teleportToPoint
-  self.vars = nil
+  self._spawnImpl = VeafGroupSpawn._spawn
+  self.spawn = nil
   local this = self
-  mist.teleportToPoint = function(vars)
-    this.vars = vars
+  VeafGroupSpawn._spawn = function(spawn, verb)
+    this.spawn = spawn
+    this.verb = verb
     return nil
   end
 end
 
 function TestVeafCombatZoneSpawnRouteOffset:tearDown()
-  mist.teleportToPoint = self._teleport
+  VeafGroupSpawn._spawn = self._spawnImpl
 end
 
 function TestVeafCombatZoneSpawnRouteOffset:test_a_spawn_asks_mist_to_move_waypoint_1()
   self.z:spawnElement(self.el, true)
-  luaunit.assertNotNil(self.vars, "mist.teleportToPoint must have been called")
-  luaunit.assertTrue(self.vars.offsetWP1)
+  luaunit.assertNotNil(self.spawn, "the spawn chain must have been run")
+  luaunit.assertTrue(self.spawn.offsetFirstWaypoint)
 end
 
--- The decision, pinned. `offsetRoute` would translate every waypoint of a track the mission maker
--- drew on the terrain, and differently on each activation; if someone sets it later it should be
--- because they meant to, not because this line drifted.
-function TestVeafCombatZoneSpawnRouteOffset:test_the_rest_of_the_route_is_left_where_it_was_drawn()
-  self.z:spawnElement(self.el, true)
-  luaunit.assertNil(self.vars.offsetRoute)
-  luaunit.assertNil(self.vars.initTasks, "initTasks would delete every waypoint past the first")
+-- The decision, pinned — and pinned differently since the chain replaced MiST's `vars`. Asserting
+-- `assertNil(self.spawn.offsetWholeRoute)` would pass whatever happened, because the chain has no such
+-- field: a test that cannot fail is not a test. What is asserted instead is the reason the risk is
+-- gone — the chain offers **no way** to translate the whole route or to truncate it, so `offsetRoute`
+-- and `initTasks` cannot drift back in without someone adding a method for them on purpose.
+function TestVeafCombatZoneSpawnRouteOffset:test_the_whole_route_cannot_be_moved_at_all()
+  luaunit.assertNil(VeafGroupSpawn.offsettingWholeRoute, "translating a drawn track is not on offer")
+  luaunit.assertNil(VeafGroupSpawn.initialisingTasks, "truncating a route past waypoint 1 is not on offer")
+  luaunit.assertNotNil(VeafGroupSpawn.offsettingFirstWaypoint, "moving waypoint 1 is, and is what a zone asks for")
 end
 
 -- Unconditional on purpose. The delta is not only the dispersion: MiST measures it against the
@@ -2236,13 +2242,13 @@ end
 function TestVeafCombatZoneSpawnRouteOffset:test_a_group_with_no_dispersion_still_asks_for_the_offset()
   self.el:setSpawnRadius(0)
   self.z:spawnElement(self.el, true)
-  luaunit.assertTrue(self.vars.offsetWP1)
+  luaunit.assertTrue(self.spawn.offsetFirstWaypoint)
 end
 
 function TestVeafCombatZoneSpawnRouteOffset:test_a_dispersed_group_asks_for_the_offset()
   self.el:setSpawnRadius(50)
   self.z:spawnElement(self.el, true)
-  luaunit.assertTrue(self.vars.offsetWP1)
+  luaunit.assertTrue(self.spawn.offsetFirstWaypoint)
 end
 
 -- A static goes down the same branch. It has no route to speak of, but the var must not be
@@ -2251,17 +2257,17 @@ function TestVeafCombatZoneSpawnRouteOffset:test_a_static_element_takes_the_same
   self.el:setDcsGroup(false)
   self.el:setDcsStatic(true)
   self.z:spawnElement(self.el, true)
-  luaunit.assertTrue(self.vars.offsetWP1)
+  luaunit.assertTrue(self.spawn.offsetFirstWaypoint)
 end
 
 -- The vars this lot did not touch must still arrive: this call site is the single place a combat zone
 -- respawns anything, and a fix that dropped one of them would be silent.
 function TestVeafCombatZoneSpawnRouteOffset:test_the_neighbouring_vars_are_untouched()
   self.z:spawnElement(self.el, true)
-  luaunit.assertEquals(self.vars.gpName, "OFFSETZONE-CONVOY")
-  luaunit.assertEquals(self.vars.action, "respawn")
-  luaunit.assertNotNil(self.vars.point)
-  luaunit.assertTrue(self.vars.renameUnitsSequentially)
+  luaunit.assertEquals(self.spawn.groupName, "OFFSETZONE-CONVOY")
+  luaunit.assertEquals(self.verb, "respawn")
+  luaunit.assertNotNil(self.spawn.point)
+  luaunit.assertTrue(self.spawn.renameUnits)
 end
 
 -- ============================================================================
@@ -2289,7 +2295,7 @@ function TestVeafCombatZoneSceneryAwareSpawn:setUp()
   self.el:setCoalition(coalition.side.RED)
   self.el:setDcsGroup(true)
 
-  self._teleport = mist.teleportToPoint
+  self._spawnImpl = VeafGroupSpawn._spawn
   self._savedDisposition = Disposition
   self._savedGetSurfaceType = land.getSurfaceType
   self._savedGetRandPoint = veaf.getRandomPointInCircle
@@ -2297,16 +2303,17 @@ function TestVeafCombatZoneSceneryAwareSpawn:setUp()
   Disposition = nil
   veaf.doNotAvoidScenery = false
 
-  self.vars = nil
+  self.spawn = nil
   local this = self
-  mist.teleportToPoint = function(vars)
-    this.vars = vars
+  VeafGroupSpawn._spawn = function(spawn, verb)
+    this.spawn = spawn
+    this.verb = verb
     return nil
   end
 end
 
 function TestVeafCombatZoneSceneryAwareSpawn:tearDown()
-  mist.teleportToPoint = self._teleport
+  VeafGroupSpawn._spawn = self._spawnImpl
   Disposition = self._savedDisposition
   land.getSurfaceType = self._savedGetSurfaceType
   veaf.getRandomPointInCircle = self._savedGetRandPoint
@@ -2342,8 +2349,8 @@ function TestVeafCombatZoneSceneryAwareSpawn:test_a_water_candidate_is_skipped()
   self.el:setSpawnRadius(1000)
   self:_jitter({ 100, 700 }, { 100 })
   self.z:spawnElement(self.el, true)
-  luaunit.assertNotNil(self.vars)
-  luaunit.assertEquals(self.vars.point.x, 700, "the water candidate must not become the element's position")
+  luaunit.assertNotNil(self.spawn)
+  luaunit.assertEquals(self.spawn.point.x, 700, "the water candidate must not become the element's position")
 end
 
 function TestVeafCombatZoneSceneryAwareSpawn:test_a_scenery_aware_point_is_used()
@@ -2355,8 +2362,8 @@ function TestVeafCombatZoneSceneryAwareSpawn:test_a_scenery_aware_point_is_used(
   }
   self:_jitter({ 100 })
   self.z:spawnElement(self.el, true)
-  luaunit.assertEquals(self.vars.point.x, 420)
-  luaunit.assertEquals(self.vars.point.z, 77)
+  luaunit.assertEquals(self.spawn.point.x, 420)
+  luaunit.assertEquals(self.spawn.point.z, 77)
 end
 
 -- The whole point of ticket 02's asymmetry with ticket 01. An unplaceable element still spawns.
@@ -2364,9 +2371,9 @@ function TestVeafCombatZoneSceneryAwareSpawn:test_no_acceptable_point_falls_back
   self.el:setSpawnRadius(1000)
   self:_allWater()
   self.z:spawnElement(self.el, true)
-  luaunit.assertNotNil(self.vars, "an unplaceable element must still be spawned, not skipped")
-  luaunit.assertEquals(self.vars.point.x, 0)
-  luaunit.assertEquals(self.vars.point.z, 0)
+  luaunit.assertNotNil(self.spawn, "an unplaceable element must still be spawned, not skipped")
+  luaunit.assertEquals(self.spawn.point.x, 0)
+  luaunit.assertEquals(self.spawn.point.z, 0)
 end
 
 -- The vertical is the element's declared one, not the terrain height the search writes. That is
@@ -2375,7 +2382,7 @@ function TestVeafCombatZoneSceneryAwareSpawn:test_the_declared_altitude_is_kept(
   self.el:setSpawnRadius(1000)
   self:_jitter({ 700 })
   self.z:spawnElement(self.el, true)
-  luaunit.assertEquals(self.vars.point.y, 12)
+  luaunit.assertEquals(self.spawn.point.y, 12)
 end
 
 function TestVeafCombatZoneSceneryAwareSpawn:test_a_zero_radius_never_consults_the_singleton()
@@ -2389,8 +2396,8 @@ function TestVeafCombatZoneSceneryAwareSpawn:test_a_zero_radius_never_consults_t
   }
   self.z:spawnElement(self.el, true)
   luaunit.assertFalse(asked, "a zero radius means exactly here")
-  luaunit.assertEquals(self.vars.point.x, 0)
-  luaunit.assertEquals(self.vars.point.z, 0)
+  luaunit.assertEquals(self.spawn.point.x, 0)
+  luaunit.assertEquals(self.spawn.point.z, 0)
 end
 
 -- ============================================================================

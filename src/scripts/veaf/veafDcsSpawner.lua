@@ -687,6 +687,280 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafGroupSpawn — putting a group somewhere, with the verb in the method name
+--
+-- This replaces `mist.teleportToPoint`, whose interface was a table called `vars` carrying a string
+-- called `action`. That string was not a parameter: it chose between **three different verbs**, and an
+-- unnamed second argument chose a fourth. A misspelling silently fell through to "teleport", and a
+-- misspelled key did nothing at all.
+--
+--   VeafGroupSpawn:new():forGroup("Arco"):at(point):withRadius(500):clone()
+--
+-- The terminal method is the verb, so it cannot be misspelled without failing, and an unfinished chain
+-- creates nothing rather than guessing. Chaining rather than an options table because the repository
+-- already speaks it — 150 chainable `:setXxx` methods — and because `:withRadus(500)` fails loudly
+-- where `{ radus = 500 }` is a silent zero.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+VeafGroupSpawn = {}
+
+--- How many times a valid-terrain draw is attempted before giving up. MiST's number.
+VeafGroupSpawn.TERRAIN_ATTEMPTS = 100
+
+--- Altitude bands an aircraft is dropped into when the requested point is too close to the ground,
+--- in metres above terrain. MiST's numbers, and the randomness is deliberate: a wave of respawned
+--- aircraft all at one altitude looks wrong from the cockpit.
+VeafGroupSpawn.ALTITUDE_BANDS = {
+  plane = { 300, 9000 },
+  helicopter = { 200, 3000 },
+}
+
+--- How far above the ground a requested altitude has to be before it is taken at face value.
+VeafGroupSpawn.MINIMUM_CLEARANCE_METRES = 10
+
+function VeafGroupSpawn:new()
+  local instance = {}
+  setmetatable(instance, self)
+  self.__index = self
+  instance.groupName = nil
+  instance.groupData = nil
+  instance.point = nil
+  instance.radius = 0
+  instance.route = nil
+  instance.newGroupName = nil
+  instance.dispersion = nil
+  instance.renameUnits = false
+  instance.terrain = nil
+  instance.anyTerrain = false
+  instance.offsetFirstWaypoint = false
+  return instance
+end
+
+--- The group to spawn from, by name.
+function VeafGroupSpawn:forGroup(groupName)
+  self.groupName = groupName
+  return self
+end
+
+--- A group definition supplied by the caller, instead of one read from the mission.
+--- `veafMove` uses this for its AFAC, which it builds rather than looks up.
+function VeafGroupSpawn:withGroupData(groupData)
+  self.groupData = groupData
+  return self
+end
+
+--- Where to put it. A vec3 whose `y` is the altitude.
+function VeafGroupSpawn:at(point)
+  self.point = point
+  return self
+end
+
+--- Scatter the group's origin anywhere within this radius of the point.
+function VeafGroupSpawn:withRadius(radius)
+  self.radius = radius or 0
+  return self
+end
+
+--- The route the spawned group flies or drives. Without one, the group's own is used.
+function VeafGroupSpawn:withRoute(route)
+  self.route = route
+  return self
+end
+
+--- Name the new group. Only a clone or a respawn can be renamed.
+function VeafGroupSpawn:named(newGroupName)
+  self.newGroupName = newGroupName
+  return self
+end
+
+--- Spread the units of the group over this radius, instead of keeping their formation.
+function VeafGroupSpawn:disperseOver(radius)
+  self.dispersion = radius
+  return self
+end
+
+--- Rename each unit after its group and its id, rather than keeping the editor names.
+function VeafGroupSpawn:renamingUnitsSequentially(enabled)
+  self.renameUnits = enabled ~= false
+  return self
+end
+
+--- Accept any surface, skipping the terrain check entirely.
+function VeafGroupSpawn:onAnyTerrain()
+  self.anyTerrain = true
+  return self
+end
+
+--- Accept only these surfaces, instead of the ones the group's category implies.
+function VeafGroupSpawn:onTerrain(surfaces)
+  self.terrain = surfaces
+  return self
+end
+
+--- Move the route's first waypoint by the same offset as the group.
+function VeafGroupSpawn:offsettingFirstWaypoint(enabled)
+  self.offsetFirstWaypoint = enabled ~= false
+  return self
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- The verbs
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Create a **new** group from an editor group's definition, with new ids and names.
+function VeafGroupSpawn:clone()
+  return self:_spawn("clone", false)
+end
+
+--- Put **the same** group back where the Mission Editor drew it.
+function VeafGroupSpawn:respawn()
+  return self:_spawn("respawn", false)
+end
+
+--- Move the group **as it is right now**, keeping its live state.
+function VeafGroupSpawn:teleport()
+  return self:_spawn("teleport", false)
+end
+
+--- Build what a clone would submit, and create nothing. Replaces MiST's unnamed `prepareOnly` boolean;
+--- all three VEAF sites that passed it were cloning.
+function VeafGroupSpawn:buildCloneData()
+  return self:_spawn("clone", true)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- The engine
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The group definition a verb starts from.
+function VeafGroupSpawn:_sourceData(verb)
+  if self.groupData then
+    return veaf.deepCopy(self.groupData)
+  end
+  if not self.groupName then
+    return nil
+  end
+  if verb == "teleport" then
+    return veaf.getCurrentGroupData(self.groupName)
+  end
+  -- clone and respawn both read the editor definition; only clone asks for a new identity.
+  local record = veafMissionDb.getGroupRecord(self.groupName)
+  return record and veaf.deepCopy(record) or nil
+end
+
+--- A point in the circle whose terrain suits this group, and the offset to reach it.
+function VeafGroupSpawn:_drawOrigin(data)
+  local first = data.units[1]
+  if not self.point or self.radius < 0 then
+    return { x = 0, y = 0 }, nil
+  end
+
+  local surfaces = self.terrain or veafDcsSpawner.terrainForCategory(data.category)
+  for _ = 1, VeafGroupSpawn.TERRAIN_ATTEMPTS do
+    local candidate = veaf.getRandomPointInCircle(self.point, self.radius)
+    if self.anyTerrain or veafDcsSpawner.isTerrainValid(candidate, surfaces) then
+      return { x = candidate.x - first.x, y = candidate.y - first.y }, candidate
+    end
+  end
+
+  veaf.loggers
+    .get(veafDcsSpawner.Id)
+    :error("no point within %sm of the requested spot is valid terrain for [%s]", veaf.p(self.radius), veaf.p(self.groupName))
+  return nil, nil
+end
+
+--- The altitude an aircraft unit gets at this spot.
+function VeafGroupSpawn:_altitudeFor(category, unit)
+  local band = VeafGroupSpawn.ALTITUDE_BANDS[category]
+  if not band then
+    return unit.alt
+  end
+  local ground = land.getHeight({ x = unit.x, y = unit.y })
+  -- A requested altitude is taken at face value only when it clears the terrain; otherwise the
+  -- aircraft would be spawned inside a hill.
+  if self.point and self.point.z and self.point.y and self.point.y > ground + VeafGroupSpawn.MINIMUM_CLEARANCE_METRES then
+    return self.point.y
+  end
+  return ground + math.random(band[1], band[2])
+end
+
+--- Run the verb.
+--- @param verb string clone, respawn or teleport
+--- @param buildOnly boolean true to return the data without creating anything
+--- @return table|false|nil what was created, the data when building only, or false
+function VeafGroupSpawn:_spawn(verb, buildOnly)
+  local data = self:_sourceData(verb)
+  if not data then
+    veaf.loggers.get(veafDcsSpawner.Id):info("cannot %s [%s]: no group data", verb, veaf.p(self.groupName))
+    return false
+  end
+  if type(data.units) ~= "table" or not data.units[1] then
+    veaf.loggers.get(veafDcsSpawner.Id):warn("cannot %s [%s]: it has no units", verb, veaf.p(self.groupName))
+    return false
+  end
+
+  -- A record from the mission database names its group `groupName`; a spawn wants `name`.
+  data.name = self.newGroupName or data.name or data.groupName
+  data.groupName = data.name
+  if verb == "clone" then
+    -- New identity: drop the ids so the spawner allocates fresh ones.
+    data.groupId = nil
+    for _, unit in pairs(data.units) do
+      unit.unitId = nil
+    end
+  end
+
+  if self.renameUnits then
+    for index, unit in pairs(data.units) do
+      unit.unitName = string.format("%s #%d", data.name, unit.unitId or index)
+      unit.name = unit.unitName
+    end
+  end
+
+  local offset, origin = self:_drawOrigin(data)
+  if not offset then
+    return false
+  end
+
+  for index, unit in pairs(data.units) do
+    if self.dispersion and index > 1 then
+      local spread = veaf.getRandomPointInCircle(origin or { x = unit.x, y = 0, z = unit.y }, self.dispersion)
+      unit.x, unit.y = spread.x, spread.y
+    elseif self.dispersion and origin then
+      unit.x, unit.y = origin.x, origin.y
+    else
+      unit.x, unit.y = unit.x + offset.x, unit.y + offset.y
+    end
+    if self.point then
+      unit.alt = self:_altitudeFor(data.category, unit) or unit.alt
+    end
+  end
+
+  -- A start time already past means "now"; one still ahead keeps whatever is left of it.
+  if data.start_time and data.start_time ~= 0 and verb ~= "teleport" then
+    local elapsed = timer.getAbsTime() - timer.getTime0()
+    data.start_time = elapsed > data.start_time and 0 or data.start_time - elapsed
+  end
+
+  local route = self.route or (self.groupName and veaf.getGroupRoute(self.groupName)) or nil
+  if route then
+    route = veaf.deepCopy(route)
+    if self.offsetFirstWaypoint and route[1] and route[1].x then
+      route[1].x, route[1].y = route[1].x + offset.x, route[1].y + offset.y
+    end
+    data.route = { points = route }
+  end
+
+  if buildOnly then
+    return data
+  end
+  if type(data.category) == "string" and string.lower(data.category) == "static" then
+    return veaf.addStatic(data)
+  end
+  return veaf.addGroup(data)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 

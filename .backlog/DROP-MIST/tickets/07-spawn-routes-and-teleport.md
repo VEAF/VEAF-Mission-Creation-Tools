@@ -332,7 +332,8 @@ the exact place where `FIX-AIRWAVES-COMMAND-EASTING` slipped in.
    than submitting an unclassifiable group.
 2. ~~`veaf.getGroupRoute` / `veaf.goRoute`~~ — **shipped 2026-08-28**, and the mission snapshot gained
    the route and the payload by reference to serve them.
-3. `VeafGroupSpawn` over both, replacing `teleportToPoint`. **Its two bricks shipped 2026-08-28**:
+3. ~~`VeafGroupSpawn` over both, replacing `teleportToPoint`~~ — **shipped 2026-08-28**, all 12 sites
+   migrated. Its two bricks shipped the same day:
    `veaf.isTerrainValid` (with the per-category surface lists) and `veaf.getCurrentGroupData` (the
    source the `teleport` verb reads).
 4. Migrate the 42 remaining call sites.
@@ -388,8 +389,8 @@ Unit tests cannot see whether a group actually appeared at the right place in DC
       — done 2026-08-28; it re-counted the slice at **64 real calls, not 80**
 - [ ] Ported into a dedicated module behind `veaf.*` façades; `dynAdd` first, then `teleportToPoint` as
       route arithmetic over it — **`veafDcsSpawner.lua` created**, `veaf.addStatic` shipped
-- [ ] 64 call sites migrated — **48 done**: `dynAddStatic` (18), `getGroupRoute` (8), `goRoute` (9)
-      and `dynAdd` (13). Left: `teleportToPoint` (12), `getGroupData` (3), `respawnGroup` (2)
+- [ ] 64 call sites migrated — **60 done**: `dynAddStatic` (18), `getGroupRoute` (8), `goRoute` (9),
+      `dynAdd` (13) and `teleportToPoint` (12). Left: `getGroupData` (3) and `respawnGroup` (2)
 - [ ] Lua tests covering every branch in the enumeration table, including a group category we spawn but
       MiST handled specially
 - [ ] Position asserted against known coordinates, with the convention named in a comment

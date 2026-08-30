@@ -209,6 +209,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The terrain lists are unchanged, runways included for ground units — DCS reports a dam's surface as
   `RUNWAY`, and excluding it would refuse a convoy the crossing it was drawn to take.
 
+- **Spawning a group where you want it is now a sentence, not a table of magic keys.** What used to be
+  `vars.action = "clone"` handed to a function called *teleport* is:
+
+  ```lua
+  VeafGroupSpawn:new():forGroup("Arco"):at(point):withRadius(500):clone()
+  ```
+
+  Nothing changes for a mission — same placement, same terrain rules, same formation, same random
+  altitude for an aircraft dropped too close to the ground. What changes is that the verb is now the
+  method name, so it can no longer be misspelled into silence: MiST fell back to *teleport* when it did
+  not recognise the action, and ignored any option key that was typed wrong.
+
+  It also absorbed the three lines of coordinate juggling that every caller copied before the call —
+  the exact place where a defect had already slipped in once.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

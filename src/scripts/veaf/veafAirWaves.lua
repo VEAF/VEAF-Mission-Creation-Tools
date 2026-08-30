@@ -1038,15 +1038,14 @@ function AirWaveZone:deployWaves()
             spawnSpot = { x = groupData.units[1].x, y = groupData.units[1].alt, z = groupData.units[1].y }
           end
           veaf.loggers.get(veafAirWaves.Id):trace("spawnSpot=%s", veaf.lp(spawnSpot))
-          local vars = {}
-          vars.point = veaf.getRandomPointInCircle(spawnSpot, self.respawnRadius)
-          vars.point.z = vars.point.y
-          vars.point.y = spawnSpot.y
-          vars.gpName = groupName
-          vars.action = "clone"
-          vars.route = veaf.getGroupRoute(groupName)
-          veaf.loggers.get(veafAirWaves.Id):trace("vars=%s", veaf.lp(vars))
-          local newGroup = mist.teleportToPoint(vars) -- respawn with radius
+          -- The scatter is the chain's business now, which is what removes the three lines of
+          -- point.z/point.y juggling this used to copy from its twin in veafQraCore.
+          local newGroup = VeafGroupSpawn:new()
+            :forGroup(groupName)
+            :at(spawnSpot)
+            :withRadius(self.respawnRadius)
+            :withRoute(veaf.getGroupRoute(groupName))
+            :clone()
           if newGroup then
             table.insert(self.spawnedGroupsNames, newGroup.name)
           end

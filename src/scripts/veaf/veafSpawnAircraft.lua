@@ -635,19 +635,9 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
   }
 
   -- (re)spawn group
-  local vars = {}
-  vars.gpName = groupName
-  vars.name = groupName
-  --vars.groupData = _template:getGroupData()
-  --replace the callsign to prevent interractions
-  vars.route = newRoute
-  vars.action = "clone"
-  vars.point = teleportSpot
-  vars.newGroupName = newGroupName
-
-  local newGroup = mist.teleportToPoint(vars, true)
+  local newGroup = VeafGroupSpawn:new():forGroup(groupName):named(newGroupName):at(teleportSpot):withRoute(newRoute):buildCloneData()
   if not newGroup then
-    veaf.loggers.get(veafSpawn.Id):error("cannot respawn group %s", veaf.p(vars.name))
+    veaf.loggers.get(veafSpawn.Id):error("cannot respawn group %s", veaf.p(groupName))
     return nil
   end
   if country and #country > 0 then
@@ -1121,18 +1111,9 @@ function veafSpawn.spawnCombatAirPatrol(
   veaf.loggers.get(veafSpawn.Id):debug("indexed newGroupName=%s", newGroupName)
 
   -- (re)spawn group
-  local vars = {}
-  vars.gpName = chosenTemplateName
-  vars.name = chosenTemplateName
-  --vars.groupData = _template:getGroupData()
-  vars.route = newRoute
-  vars.action = "clone"
-  vars.point = position
-  vars.newGroupName = newGroupName
-
-  local newGroup = mist.teleportToPoint(vars, true)
+  local newGroup = VeafGroupSpawn:new():forGroup(chosenTemplateName):named(newGroupName):at(position):withRoute(newRoute):buildCloneData()
   if not newGroup then
-    veaf.loggers.get(veafSpawn.Id):error("cannot respawn group %s", veaf.p(vars.name))
+    veaf.loggers.get(veafSpawn.Id):error("cannot respawn group %s", veaf.p(chosenTemplateName))
     return nil
   end
   if country and #country > 0 then

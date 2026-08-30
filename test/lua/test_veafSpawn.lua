@@ -1769,7 +1769,7 @@ TestConvoyItinerary = {}
 function TestConvoyItinerary:setUp()
   dcs_mocks.reset()
   self._route = veaf.generateVehiclesRoute
-  self._goRoute = mist.goRoute
+  self._goRoute = veaf.goRoute
   self._avg = veaf.getAveragePosition
   self._outText = trigger.action.outText
 
@@ -1786,7 +1786,7 @@ function TestConvoyItinerary:setUp()
     return { { name = "generated for " .. tostring(destination) } }
   end
   self.routed = {}
-  mist.goRoute = function(name, route)
+  veaf.goRoute = function(name, route)
     table.insert(self.routed, { name = name, route = route })
   end
   veaf.getAveragePosition = function()
@@ -1809,7 +1809,7 @@ end
 
 function TestConvoyItinerary:tearDown()
   veaf.generateVehiclesRoute = self._route
-  mist.goRoute = self._goRoute
+  veaf.goRoute = self._goRoute
   veaf.getAveragePosition = self._avg
   trigger.action.outText = self._outText
   veafSpawn.spawnedConvoys = {}
@@ -1914,7 +1914,7 @@ function TestConvoyArrivalWatchdog:setUp()
   dcs_mocks.reset()
   self._avg = veaf.getAveragePosition
   self._schedule = veaf.scheduleFunction
-  self._goRoute = mist.goRoute
+  self._goRoute = veaf.goRoute
   self._route = veaf.generateVehiclesRoute
   self._getByName = Group.getByName
   self._outText = trigger.action.outText
@@ -1925,7 +1925,7 @@ function TestConvoyArrivalWatchdog:setUp()
     return #self.scheduled
   end
   self.routed = {}
-  mist.goRoute = function(name, route)
+  veaf.goRoute = function(name, route)
     table.insert(self.routed, { name = name, route = route })
   end
   veaf.generateVehiclesRoute = function(_, destination)
@@ -1958,7 +1958,7 @@ end
 function TestConvoyArrivalWatchdog:tearDown()
   veaf.getAveragePosition = self._avg
   veaf.scheduleFunction = self._schedule
-  mist.goRoute = self._goRoute
+  veaf.goRoute = self._goRoute
   veaf.generateVehiclesRoute = self._route
   Group.getByName = self._getByName
   trigger.action.outText = self._outText
@@ -2045,7 +2045,7 @@ TestConvoyHoldAndStop = {}
 function TestConvoyHoldAndStop:setUp()
   dcs_mocks.reset()
   self._avg = veaf.getAveragePosition
-  self._goRoute = mist.goRoute
+  self._goRoute = veaf.goRoute
   self._route = veaf.generateVehiclesRoute
   self._outForUnit = veaf.outTextForUnit
   self._closest = veafSpawn._findClosestConvoy
@@ -2062,7 +2062,7 @@ function TestConvoyHoldAndStop:setUp()
   veaf.getAveragePosition = function()
     return { x = 0, y = 0, z = 0 }
   end
-  mist.goRoute = function() end
+  veaf.goRoute = function() end
   veaf.generateVehiclesRoute = function()
     return { { x = 0, y = 0 }, { x = 1, y = 1 } }
   end
@@ -2083,7 +2083,7 @@ end
 
 function TestConvoyHoldAndStop:tearDown()
   veaf.getAveragePosition = self._avg
-  mist.goRoute = self._goRoute
+  veaf.goRoute = self._goRoute
   veaf.generateVehiclesRoute = self._route
   veaf.outTextForUnit = self._outForUnit
   veafSpawn._findClosestConvoy = self._closest

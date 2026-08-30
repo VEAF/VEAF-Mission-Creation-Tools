@@ -8,6 +8,7 @@ dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 -- veafMove too: veafAssets.respawn calls into it to repair a respawned asset's escort task
 -- (FIX-ESCORT-RESPAWN-TASK), so a test that omits it would exercise the guarded-out branch only.
 dofile(src .. "/veafMove.lua")

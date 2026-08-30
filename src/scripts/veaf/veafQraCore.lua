@@ -1026,7 +1026,7 @@ function VeafQRACore:deploy(nbUnitsInZone)
           vars.point.y = spawnSpot.y
           vars.gpName = groupName
           vars.action = "clone"
-          vars.route = mist.getGroupRoute(groupName, "task")
+          vars.route = veaf.getGroupRoute(groupName)
           local newGroup = mist.teleportToPoint(vars) -- respawn with radius
           if newGroup then
             table.insert(self.spawnedGroupsNames, newGroup.name)

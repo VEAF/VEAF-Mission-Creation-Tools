@@ -835,7 +835,7 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
   veafMove.replaceMission(unitGroup_escort, EscortData)
   --this method appears to not work very well, the escort just doesn't defend the group
 
-  --mist.goRoute(groupName_escort, route_escort)
+  --veaf.goRoute(groupName_escort, route_escort)
   --works even worse, sends them to X=0, Z=0
 
   return true

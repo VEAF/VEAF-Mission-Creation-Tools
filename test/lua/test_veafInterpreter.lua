@@ -22,6 +22,7 @@ dofile(_base .. "/../../src/scripts/veaf/veafScheduler.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafMath.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafGeo.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafMissionDb.lua")
+dofile(_base .. "/../../src/scripts/veaf/veafDcsSpawner.lua")
 dofile(_base .. "/../../src/scripts/veaf/veafInterpreter.lua")
 
 -- ---------------------------------------------------------------------------
@@ -149,7 +150,7 @@ function TestVeafInterpreterMissionFallback:setUp()
   self._execute = veafInterpreter.execute
   self._getUnit = Unit.getByName
   self._getStatic = StaticObject.getByName
-  self._getRoute = mist.getGroupRoute
+  self._getRoute = veaf.getGroupRoute
 
   self.executed = {}
   veafInterpreter.execute = function(command, position, coa, route, spawnedGroups)
@@ -162,7 +163,7 @@ function TestVeafInterpreterMissionFallback:setUp()
   StaticObject.getByName = function()
     return nil
   end
-  mist.getGroupRoute = function()
+  veaf.getGroupRoute = function()
     return { "a route" }
   end
 end
@@ -171,7 +172,7 @@ function TestVeafInterpreterMissionFallback:tearDown()
   veafInterpreter.execute = self._execute
   Unit.getByName = self._getUnit
   StaticObject.getByName = self._getStatic
-  mist.getGroupRoute = self._getRoute
+  veaf.getGroupRoute = self._getRoute
 end
 
 --- A mission record as `mist.DBs.units` holds it: `x` northing, `y` **easting**, `alt` altitude.

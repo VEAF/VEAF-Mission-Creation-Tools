@@ -8,6 +8,7 @@ dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafCombatZone.lua")
 
@@ -1377,15 +1378,15 @@ function TestVeafCombatZoneDelayedCommand:setUp()
     end,
   }
 
-  self._goRoute = mist.goRoute
+  self._goRoute = veaf.goRoute
   self.routed = {}
-  mist.goRoute = function(groupName, route)
+  veaf.goRoute = function(groupName, route)
     table.insert(self.routed, groupName)
   end
 end
 
 function TestVeafCombatZoneDelayedCommand:tearDown()
-  mist.goRoute = self._goRoute
+  veaf.goRoute = self._goRoute
   veafInterpreter = nil
 end
 
@@ -1500,14 +1501,14 @@ TestVeafCombatZoneAlarmByNature = {}
 function TestVeafCombatZoneAlarmByNature:setUp()
   self.el = VeafCombatZoneElement:new()
   self.el:setName("SomeGroup")
-  self._getGroupRoute = mist.getGroupRoute
-  mist.getGroupRoute = function()
+  self._getGroupRoute = veaf.getGroupRoute
+  veaf.getGroupRoute = function()
     return nil
   end
 end
 
 function TestVeafCombatZoneAlarmByNature:tearDown()
-  mist.getGroupRoute = self._getGroupRoute
+  veaf.getGroupRoute = self._getGroupRoute
 end
 
 -- The constants exist as a pair on purpose: both defaults are right, for opposite groups.
@@ -1544,7 +1545,7 @@ end
 -- A native zone group carries no route of its own -- only a `#command` fake unit does -- so the route
 -- has to come from the mission.
 function TestVeafCombatZoneAlarmByNature:test_a_native_group_route_is_read_from_the_mission()
-  mist.getGroupRoute = function(name, task)
+  veaf.getGroupRoute = function(name, task)
     luaunit.assertEquals(name, "SomeGroup")
     return { { x = 0 }, { x = 1 } }
   end
@@ -1552,9 +1553,9 @@ function TestVeafCombatZoneAlarmByNature:test_a_native_group_route_is_read_from_
   luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_AUTO)
 end
 
--- mist raises on a group it cannot find, and a zone element may name one destroyed since parsing.
-function TestVeafCombatZoneAlarmByNature:test_a_raising_mist_does_not_break_the_spawn()
-  mist.getGroupRoute = function()
+-- A route reader that raises must not take the zone activation down with it.
+function TestVeafCombatZoneAlarmByNature:test_a_raising_route_reader_does_not_break_the_spawn()
+  veaf.getGroupRoute = function()
     error("group not found")
   end
   local ok, mobile = pcall(function()

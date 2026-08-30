@@ -439,12 +439,14 @@ function VeafCombatZoneElement:isMobile()
   local route = self:getRoute()
   if not route then
     local name = self:getName()
-    if not name or not mist or not mist.getGroupRoute then
+    if not name then
       return false
     end
-    -- pcall: mist raises on a group it cannot find, and a zone element may name a group that was
-    -- destroyed or renamed since the zone was parsed.
-    local ok, found = pcall(mist.getGroupRoute, name, "task")
+    -- The guard on MiST being loaded went with the port — `veaf.getGroupRoute` ships in the bundle, so
+    -- it cannot be absent. The pcall stays: this runs while a zone is activating, and a route reader
+    -- that raises would take the whole spawn down with it. Answering "not mobile" is the safe end of
+    -- that trade, as the docstring above says.
+    local ok, found = pcall(veaf.getGroupRoute, name)
     route = ok and found or nil
   end
   if type(route) ~= "table" then
@@ -533,7 +535,7 @@ function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZo
   -- no dispersion default here, deliberately: the command runs *at this position*, so scattering it
   -- would move whatever the command spawns. `#spawnradius=` still applies if the mission maker wrote one.
   element:setVeafCommand(command .. ", czName " .. combatZoneName)
-  element:setRoute(mist.getGroupRoute(group.name, "task"))
+  element:setRoute(veaf.getGroupRoute(group.name))
   if not element:getSpawnGroup() then
     element:setSpawnGroup(group.name) -- default the spawn group to the group name
   end
@@ -1558,7 +1560,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("newGroup = [%s]", newGroup))
         local route = zoneElement:getRoute()
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("got route"))
-        mist.goRoute(newGroup, route)
+        veaf.goRoute(newGroup, route)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
       end)
       veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)

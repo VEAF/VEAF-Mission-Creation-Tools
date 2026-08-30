@@ -417,9 +417,9 @@ function veafSpawn.executeCommand(
                   options.patrol,
                   spawnedGroup
                 )
-                mist.goRoute(groupObject, route)
+                veaf.goRoute(groupObject, route)
               elseif route then
-                mist.goRoute(groupObject, route)
+                veaf.goRoute(groupObject, route)
               end
               -- add the group to the IADS, if there is one
               if veafSkynet then

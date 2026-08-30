@@ -1044,7 +1044,7 @@ function AirWaveZone:deployWaves()
           vars.point.y = spawnSpot.y
           vars.gpName = groupName
           vars.action = "clone"
-          vars.route = mist.getGroupRoute(groupName, "task")
+          vars.route = veaf.getGroupRoute(groupName)
           veaf.loggers.get(veafAirWaves.Id):trace("vars=%s", veaf.lp(vars))
           local newGroup = mist.teleportToPoint(vars) -- respawn with radius
           if newGroup then

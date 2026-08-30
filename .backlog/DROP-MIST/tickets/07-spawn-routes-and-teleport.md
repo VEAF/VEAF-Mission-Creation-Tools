@@ -326,7 +326,8 @@ the exact place where `FIX-AIRWAVES-COMMAND-EASTING` slipped in.
 #### Order of work
 
 1. `veafDcsSpawner.addGroup` — the `dynAdd` port, the engine everything else sits on.
-2. `veaf.getGroupRoute` / `veaf.goRoute` — independent, and needed by the chain's `withRoute`.
+2. ~~`veaf.getGroupRoute` / `veaf.goRoute`~~ — **shipped 2026-08-28**, and the mission snapshot gained
+   the route and the payload by reference to serve them.
 3. `VeafGroupSpawn` over both, replacing `teleportToPoint`.
 4. Migrate the 42 remaining call sites.
 
@@ -359,7 +360,8 @@ Unit tests cannot see whether a group actually appeared at the right place in DC
       — done 2026-08-28; it re-counted the slice at **64 real calls, not 80**
 - [ ] Ported into a dedicated module behind `veaf.*` façades; `dynAdd` first, then `teleportToPoint` as
       route arithmetic over it — **`veafDcsSpawner.lua` created**, `veaf.addStatic` shipped
-- [ ] 64 call sites migrated — **18 done** (all of `dynAddStatic`, half A)
+- [ ] 64 call sites migrated — **35 done**: all of `dynAddStatic` (18), `getGroupRoute` (8) and
+      `goRoute` (9)
 - [ ] Lua tests covering every branch in the enumeration table, including a group category we spawn but
       MiST handled specially
 - [ ] Position asserted against known coordinates, with the convention named in a comment

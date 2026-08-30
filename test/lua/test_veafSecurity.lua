@@ -18,6 +18,7 @@ dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafSecurity.lua")
 
 -- ============================================================================

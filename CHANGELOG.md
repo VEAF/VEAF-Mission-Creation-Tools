@@ -183,6 +183,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **random heading** an object gets when none is set, without which every cargo drop would line up on
   the same axis.
 
+- **Group routes are read and pushed by VEAF**, not by MiST. `veaf.getGroupRoute` answers a group's
+  route as the Mission Editor drew it and `veaf.goRoute` sends a group along one — behaviour unchanged,
+  including the projection MiST returned rather than the raw table, so a caller that edits its route
+  still cannot rewrite the mission.
+
+  The route now comes from the mission snapshot instead of a fresh walk over every coalition, country
+  and group on each call. And one dead guard went with it: a combat zone used to check whether MiST was
+  loaded at all before reading a route, which a bundled function makes moot.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

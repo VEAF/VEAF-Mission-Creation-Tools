@@ -1,4 +1,4 @@
-env.info("--- SKYNET VERSION: 3.4.0RP-VEAF build 30.08.2026 | BUILD TIME: 30.08.2026 1827Z ---")
+env.info("--- SKYNET VERSION: 3.4.0RP-VEAF build 30.08.2026 | BUILD TIME: 30.08.2026 1926Z ---")
 do
   --[[
 SkynetIADSUtils -- the handful of helpers Skynet used to borrow from MiST.
@@ -210,6 +210,26 @@ it, the reason is written at the call site.
 
   -- Listing what the mission holds -------------------------------------------------------------
 
+  --- Runs `visit` on every group DCS still considers alive, in every coalition.
+  --
+  -- The isExist check is the reason this is a function rather than two copied loops.
+  -- `coalition.getGroups` can hand back a group that has been destroyed, and asking such a group for
+  -- its units raises. Inside a `pairs` loop that error does not skip one group -- it aborts the whole
+  -- listing, so a single wreck on the map would silently truncate prefix-based discovery and the sites
+  -- after it would never join the IADS. MiST never met this because it read its own database.
+  local function forEachLiveGroup(visit)
+    for _, coalitionId in pairs(coalition.side) do
+      local groups = coalition.getGroups(coalitionId)
+      if groups then
+        for _, group in pairs(groups) do
+          if group and (not group.isExist or group:isExist()) then
+            visit(group)
+          end
+        end
+      end
+    end
+  end
+
   --- Every group name currently in the mission, whatever its coalition or category.
   -- MiST answered from a database it refreshed every two seconds; this asks DCS directly, which
   -- costs nothing here because Skynet calls it only when adding sites by prefix.
@@ -221,17 +241,12 @@ it, the reason is written at the call site.
   -- refresh, is now visible immediately.
   function SkynetIADSUtils.getGroupNames()
     local names = {}
-    for _, coalitionId in pairs(coalition.side) do
-      local groups = coalition.getGroups(coalitionId)
-      if groups then
-        for _, group in pairs(groups) do
-          local name = group:getName()
-          if name then
-            names[name] = true
-          end
-        end
+    forEachLiveGroup(function(group)
+      local name = group:getName()
+      if name then
+        names[name] = true
       end
-    end
+    end)
     return names
   end
 
@@ -239,19 +254,14 @@ it, the reason is written at the call site.
   -- database MiST kept.
   function SkynetIADSUtils.getUnitNames()
     local names = {}
-    for _, coalitionId in pairs(coalition.side) do
-      local groups = coalition.getGroups(coalitionId)
-      if groups then
-        for _, group in pairs(groups) do
-          for _, unit in pairs(group:getUnits()) do
-            local name = unit:getName()
-            if name then
-              names[name] = true
-            end
-          end
+    forEachLiveGroup(function(group)
+      for _, unit in pairs(group:getUnits() or {}) do
+        local name = unit:getName()
+        if name then
+          names[name] = true
         end
       end
-    end
+    end)
     return names
   end
 end

@@ -78,6 +78,20 @@ would have produced a 4000-line reformatting diff burying the real change — th
 `REFACTOR-CSAR-WITHOUT-MIST` had to fix on its own entry. Both the missing step and the new fork chain
 are now recorded.
 
+## What review caught
+
+`coalition.getGroups` can hand back a group that has been **destroyed**. Asking such a group for its
+units raises, and inside a `pairs` loop that error does not skip one group — it aborts the whole
+listing. A single wreck on the map would have silently truncated `addEarlyWarningRadarsByPrefix` and
+`addSAMSitesByPrefix`, with every site after it never joining the IADS and nothing in the log to say
+so. MiST never met this because it answered from its own database, so the risk arrived *with* the
+change that removed it.
+
+Fixed in `VEAF/Skynet-IADS#2`: both listings go through one `forEachLiveGroup`, which skips a group
+DCS no longer considers to exist, and `getUnits()` is guarded as well. Worth recording because it is
+the failure mode this whole campaign keeps meeting — a replacement that is right on the happy path
+and silent on the degraded one.
+
 ## Definition of done
 
 - [x] No call to `mist.` remains in `skynet-iads-compiled.lua` — 42 replaced, 0 left, verified

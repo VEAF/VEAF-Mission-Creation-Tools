@@ -119,7 +119,7 @@ artifacts:
     # which the real change cannot be seen.
     manual_steps: "Recompile skynet-iads-compiled.lua from the VEAF/Skynet-IADS sources (build-tools/build-compiled-script.ps1), run stylua on it, and re-apply the 'RP-VEAF' version label."
     watch:
-      - { kind: github-file, repo: VEAF/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "a8ff94298284" }
+      - { kind: github-file, repo: VEAF/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "820d3cc0eb85" }
       - { kind: github-file, repo: regroupement-patrouille/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "f18b919bd435", role: upstream-ref }
       - { kind: github-release, repo: walder/Skynet-IADS, pinned: "3.3.0", role: upstream-ref }
 

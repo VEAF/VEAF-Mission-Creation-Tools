@@ -8,6 +8,7 @@ dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 -- The catalog, not just the runtime: FEAT-CONVOY-WAYPOINTS asserts on the *messages* a convoy command
 -- gives the player, and `veaf.t` hands back the bare key when the catalog was never loaded.
 dofile(src .. "/veafI18n.lua")
@@ -1095,13 +1096,13 @@ TestVeafSpawnGroundExactPlacement = {}
 function TestVeafSpawnGroundExactPlacement:setUp()
   dcs_mocks.reset()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
-  self._savedDynAddStatic = mist.dynAddStatic
+  self._savedDynAddStatic = veaf.addStatic
   self._savedFindSpawnPoint = veaf.findSpawnPoint
   self._savedGetRandPoint = veaf.getRandomPointInCircle
   -- A static's mission-table position: x is the northing, y the easting. The runtime vec3 that
   -- built it had the easting in z — see docs/agents/dcs-coordinates.md.
   self.statics = {}
-  mist.dynAddStatic = function(template)
+  veaf.addStatic = function(template)
     table.insert(self.statics, { x = template.x, y = template.y })
     return self._savedDynAddStatic(template)
   end
@@ -1113,7 +1114,7 @@ function TestVeafSpawnGroundExactPlacement:setUp()
 end
 
 function TestVeafSpawnGroundExactPlacement:tearDown()
-  mist.dynAddStatic = self._savedDynAddStatic
+  veaf.addStatic = self._savedDynAddStatic
   veaf.findSpawnPoint = self._savedFindSpawnPoint
   veaf.getRandomPointInCircle = self._savedGetRandPoint
   dcs_mocks.reset()
@@ -1652,21 +1653,21 @@ function TestSecrev2CargoMass:setUp()
   dcs_mocks.reset()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
   self._savedFind = veafUnits.findDcsUnit
-  self._savedDynAddStatic = mist.dynAddStatic
+  self._savedDynAddStatic = veaf.addStatic
   -- A descriptor with the bounds the wrong way round: the branch the finding is about.
   self.shared = { type = "veaf_test_cargo", name = "VEAF test cargo", desc = { minMass = 100, maxMass = 50 } }
   veafUnits.findDcsUnit = function(name)
     return self.shared
   end
   self.spawned = {}
-  mist.dynAddStatic = function(template)
+  veaf.addStatic = function(template)
     table.insert(self.spawned, template)
   end
 end
 
 function TestSecrev2CargoMass:tearDown()
   veafUnits.findDcsUnit = self._savedFind
-  mist.dynAddStatic = self._savedDynAddStatic
+  veaf.addStatic = self._savedDynAddStatic
 end
 
 function TestSecrev2CargoMass:test_the_shared_descriptor_is_left_untouched()

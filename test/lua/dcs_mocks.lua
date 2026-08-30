@@ -12,6 +12,7 @@ dcs_mocks.currentTime = 0
 dcs_mocks.zones = {}
 dcs_mocks.logs = {} -- captured log lines
 dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
+dcs_mocks.staticsAdded = {} -- captured coalition.addStaticObject calls, as { countryId, object }
 
 -- Registre des groupes, declare ICI et pas plus bas : `coalition.getGroups` le lit, et un local declare
 -- apres son usage laisse la fermeture capturer la globale — c'est-a-dire nil.
@@ -336,6 +337,12 @@ coalition = {
     return {}
   end,
   addGroup = function(...) end,
+  --- Records what was submitted, rather than discarding it: what a spawner hands DCS *is* the
+  --- behaviour under test, and asserting against a no-op stub asserts nothing.
+  --- Entries are `{ countryId = <id>, object = <the table submitted> }`. Cleared by dcs_mocks.reset().
+  addStaticObject = function(countryId, object)
+    table.insert(dcs_mocks.staticsAdded, { countryId = countryId, object = object })
+  end,
   getCountryCoalition = function(countryId)
     -- Russia (0) → RED, USA (2) → BLUE
     if countryId == 0 then
@@ -754,6 +761,7 @@ function dcs_mocks.reset()
   dcs_mocks.zones = {}
   dcs_mocks.logs = {}
   dcs_mocks.tasksSet = {}
+  dcs_mocks.staticsAdded = {}
   dcs_mocks.messages = {}
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.cockpitArguments = {}

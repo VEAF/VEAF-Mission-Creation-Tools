@@ -151,6 +151,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafGeo_ported.lua` | Géométrie portée depuis MiST : tirage dans un cercle, unités en zone circulaire, cap, dessin de zone |
 | `test_veafMissionDb.lua` | Instantané de la mission, liste des joueurs, registre des noms, identifiants |
 | `test_veafMissionDb_scenery.lua` | Registre des objets de décor détruits : enregistrement, recherche par zone, abonnement à l'événement |
+| `test_veafDcsSpawner.lua` | Création de statiques à l'exécution : pays, identifiants, formes, cap aléatoire |
 | `test_veafInterpreter.lua` | Tokeniseur de texte marqueur |
 | `test_veafTime.lua` | Parsing de temps, formatage, helpers temps DCS |
 | `test_veafSecurity.lua` | Niveaux de sécurité, gestion des admins |

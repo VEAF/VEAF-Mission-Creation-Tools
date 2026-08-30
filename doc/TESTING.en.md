@@ -151,6 +151,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafGeo_ported.lua` | Geometry ported off MiST: random point in a circle, units in a circular zone, heading, zone drawing |
 | `test_veafMissionDb.lua` | Mission snapshot, player roster, name registry, unit ids |
 | `test_veafMissionDb_scenery.lua` | Destroyed-scenery register: recording, zone lookup, event subscription |
+| `test_veafDcsSpawner.lua` | Runtime static creation: country, ids, shapes, random heading |
 | `test_veafInterpreter.lua` | Mark text tokenizer |
 | `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | Security levels, admin management |

@@ -184,7 +184,7 @@ function veafSpawn.spawnUnit(
   -- actually spawn the unit
   if unit.static or static then --if the unit was forced to spawn as a static it could still be an air or a naval unit so this check goes first
     veaf.loggers.get(veafSpawn.Id):trace("Spawning STATIC")
-    mist.dynAddStatic({ country = country, groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addStatic({ country = country, groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
     --groupName = nil --statics do not have a group name, you must set groupName to nil to avoid other scripts interacting
   elseif unit.air then
     veaf.loggers.get(veafSpawn.Id):trace("Spawning AIRPLANE")

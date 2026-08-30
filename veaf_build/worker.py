@@ -100,6 +100,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafMath.lua",
     "veafGeo.lua",
     "veafMissionDb.lua",
+    "veafDcsSpawner.lua",
     "veafI18n.lua",
     "dcsUnits.lua",
     "veafCacheManager.lua",

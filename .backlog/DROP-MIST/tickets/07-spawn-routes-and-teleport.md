@@ -273,6 +273,63 @@ The three route functions are the easy end: `getGroupRoute` is always called wit
 takes either a group object or a name, and `teleportToPoint` is route arithmetic over `dynAdd` — the
 #290 investigation already read it end to end and found it correct.
 
+### The API half (B) ships — decided with David, 2026-08-28
+
+The port is not allowed to change *behaviour*, but it is allowed to change the *interface* — and
+`mist.teleportToPoint` has one worth replacing. David's words: *"j'espère que tu as prévu d'implémenter
+de jolies fonctions pour remplacer les bricolages du type `vars.action = \"clone\"` ? … avec de vrais
+paramètres, bien clairs"*.
+
+#### What the `vars` table was hiding
+
+It is not a parameter object, it is **three different verbs behind a string**, plus a fourth behind an
+unnamed boolean:
+
+| `vars.action` | What it really does | Where the data comes from |
+|---|---|---|
+| `"clone"` | creates a **new** group with new names | the editor definition, plus a `clone = "order66"` flag |
+| `"respawn"` | puts **the same** group back as the editor placed it | the editor definition |
+| `"teleport"` / `"tele"` | moves the group **as it is right now** | its live state |
+| *(2nd arg `true`)* | builds the data and creates **nothing** | — |
+
+Every VEAF site uses `clone` (5) or `respawn` (3); none uses `teleport`, despite the function's name.
+The three sites passing the unnamed `true` are all clones.
+
+#### The shape chosen: chaining, not an options table
+
+Three writings were compared on `veafQraCore.lua:1022`. An options table is the closest Lua has to
+Python's keyword arguments — and it keeps `vars`'s worst property: **nobody validates the keys**, so
+`{ radus = 500 }` is silently a zero radius. Positional arguments would give
+`veaf.cloneGroupAt(name, point, 500, route, nil, nil, false)`.
+
+Chaining wins because the repository already speaks it — **150 chainable `:setXxx` methods** across
+`VeafCircleOnMap`, `VeafCombatMissionObjective`, `VeafCombatZone` and the rest — and because a typo in a
+method name fails loudly where a typo in a table key does not.
+
+```lua
+local newGroup = VeafGroupSpawn:new()
+  :forGroup(groupName)
+  :at(spawnPoint)
+  :withRadius(self.respawnRadius)
+  :withRoute(veaf.getGroupRoute(groupName))
+  :clone()
+```
+
+The terminal verb carries what `vars.action` used to: `:clone()`, `:respawn()`, `:teleport()`, and
+`:buildCloneData()` for the prepare-only case. So the action can no longer be a misspelled string, and
+an unfinished chain creates nothing rather than silently defaulting to `tele` — which is what MiST does
+today when `action` is unrecognised.
+
+`withRadius` also absorbs the three lines of `point.z = point.y` juggling copied at every call site —
+the exact place where `FIX-AIRWAVES-COMMAND-EASTING` slipped in.
+
+#### Order of work
+
+1. `veafDcsSpawner.addGroup` — the `dynAdd` port, the engine everything else sits on.
+2. `veaf.getGroupRoute` / `veaf.goRoute` — independent, and needed by the chain's `withRoute`.
+3. `VeafGroupSpawn` over both, replacing `teleportToPoint`.
+4. Migrate the 42 remaining call sites.
+
 ## Two traps
 
 - **Coordinates.** `dynAdd` and `dynAddStatic` place objects, so

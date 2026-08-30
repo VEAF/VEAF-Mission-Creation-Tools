@@ -33,7 +33,6 @@ def get_community_script_files() -> list[dict[str, str]]:
         {"id": "ctld", "path": "src/scripts/community/CTLD.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
         {"id": "aien", "path": "src/scripts/community/AIEN.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
         {"id": "csar", "path": "src/scripts/community/CSAR.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
-        {"id": "hercules", "path": "src/scripts/community/Hercules_Cargo.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
         {"id": "skynet", "path": "src/scripts/community/skynet-iads-compiled.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
         {"id": "tum", "path": "src/scripts/community/TheUniversalMission.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
     ]

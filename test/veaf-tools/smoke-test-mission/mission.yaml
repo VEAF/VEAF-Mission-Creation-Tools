@@ -192,7 +192,6 @@ modules:
   CTLD: false               # configured in ctld-config.yaml, beside this file (edit it with ctld-tools)
   AIEN: false
   CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }
-  HERCULES: false
   SKYNET: false             # extended: SKYNET -> { enabled: true, include_red_in_radio: false, ... }
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 

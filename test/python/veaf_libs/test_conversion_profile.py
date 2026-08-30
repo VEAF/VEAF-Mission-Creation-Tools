@@ -45,7 +45,7 @@ class TestBundledFootholdProfile(unittest.TestCase):
         profile = load_profile("foothold")
         self.assertEqual(
             set(profile.disabled_community_scripts),
-            {"stts", "ctld", "aien", "csar", "hercules", "skynet", "tum"},
+            {"stts", "ctld", "aien", "csar", "skynet", "tum"},
         )
 
     def test_normalizes_versioned_moose_name(self) -> None:
@@ -95,7 +95,7 @@ class TestBundledFootholdWw2Profile(unittest.TestCase):
     def test_still_disables_the_libs_it_does_ship(self) -> None:
         self.assertEqual(
             set(self.profile.disabled_community_scripts),
-            {"stts", "aien", "csar", "hercules", "skynet", "tum"},
+            {"stts", "aien", "csar", "skynet", "tum"},
         )
 
     def test_normalizes_the_same_versioned_names(self) -> None:

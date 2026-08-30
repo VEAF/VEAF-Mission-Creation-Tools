@@ -332,7 +332,9 @@ the exact place where `FIX-AIRWAVES-COMMAND-EASTING` slipped in.
    than submitting an unclassifiable group.
 2. ~~`veaf.getGroupRoute` / `veaf.goRoute`~~ — **shipped 2026-08-28**, and the mission snapshot gained
    the route and the payload by reference to serve them.
-3. `VeafGroupSpawn` over both, replacing `teleportToPoint`.
+3. `VeafGroupSpawn` over both, replacing `teleportToPoint`. **Its two bricks shipped 2026-08-28**:
+   `veaf.isTerrainValid` (with the per-category surface lists) and `veaf.getCurrentGroupData` (the
+   source the `teleport` verb reads).
 4. Migrate the 42 remaining call sites.
 
 ### `teleportToPoint`, read 2026-08-28 — what the chain has to carry

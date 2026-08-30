@@ -685,4 +685,193 @@ function TestVeafDcsSpawnerAddGroup:test_the_caller_table_is_not_mutated()
   luaunit.assertNil(original.groupId)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafDcsSpawnerTerrain
+-- ---------------------------------------------------------------------------
+-- `isTerrainValid` is what stops a ship spawning on a hill and a convoy in a lake: the teleport draws
+-- up to a hundred random points and keeps the first this accepts.
+TestVeafDcsSpawnerTerrain = {}
+
+function TestVeafDcsSpawnerTerrain:setUp()
+  dcs_mocks.reset()
+  self._surface = land.getSurfaceType
+end
+
+function TestVeafDcsSpawnerTerrain:tearDown()
+  land.getSurfaceType = self._surface
+end
+
+function TestVeafDcsSpawnerTerrain:_surfaceIs(name)
+  land.getSurfaceType = function()
+    return land.SurfaceType[name]
+  end
+end
+
+function TestVeafDcsSpawnerTerrain:test_a_matching_surface_is_valid()
+  self:_surfaceIs("LAND")
+
+  luaunit.assertTrue(veafDcsSpawner.isTerrainValid({ x = 1, y = 2 }, { "LAND", "ROAD" }))
+end
+
+function TestVeafDcsSpawnerTerrain:test_a_surface_not_in_the_list_is_not()
+  self:_surfaceIs("WATER")
+
+  luaunit.assertFalse(veafDcsSpawner.isTerrainValid({ x = 1, y = 2 }, { "LAND", "ROAD" }))
+end
+
+function TestVeafDcsSpawnerTerrain:test_a_single_surface_name_is_accepted()
+  self:_surfaceIs("WATER")
+
+  luaunit.assertTrue(veafDcsSpawner.isTerrainValid({ x = 1, y = 2 }, "WATER"))
+end
+
+function TestVeafDcsSpawnerTerrain:test_the_name_is_matched_whatever_its_case()
+  self:_surfaceIs("SHALLOW_WATER")
+
+  luaunit.assertTrue(veafDcsSpawner.isTerrainValid({ x = 1, y = 2 }, { "shallow_water" }))
+end
+
+function TestVeafDcsSpawnerTerrain:test_a_vec3_is_read_with_z_as_the_easting()
+  -- The trap this whole module is careful about: land.getSurfaceType wants a vec2 whose `y` is the
+  -- easting, and a vec3 carries that in `z`. Reading `y` instead asks about a completely different
+  -- place, and answers without complaining.
+  local asked
+  land.getSurfaceType = function(point)
+    asked = point
+    return land.SurfaceType.LAND
+  end
+
+  veafDcsSpawner.isTerrainValid({ x = 10, y = 9999, z = 20 }, { "LAND" })
+
+  luaunit.assertEquals(asked.x, 10)
+  luaunit.assertEquals(asked.y, 20, "the vec3's z is the easting, not its y")
+end
+
+function TestVeafDcsSpawnerTerrain:test_nonsense_is_not_valid_terrain()
+  self:_surfaceIs("LAND")
+
+  luaunit.assertFalse(veafDcsSpawner.isTerrainValid(nil, { "LAND" }))
+  luaunit.assertFalse(veafDcsSpawner.isTerrainValid({ x = 1 }, { "LAND" }))
+  luaunit.assertFalse(veafDcsSpawner.isTerrainValid({ x = 1, y = 2 }, nil))
+end
+
+function TestVeafDcsSpawnerTerrain:test_a_ship_belongs_on_water()
+  luaunit.assertEquals(veafDcsSpawner.terrainForCategory("ship"), { "SHALLOW_WATER", "WATER" })
+end
+
+function TestVeafDcsSpawnerTerrain:test_a_vehicle_may_stand_on_a_runway()
+  -- Deliberate, and inherited: DCS reports a dam's surface as RUNWAY, so excluding it would refuse a
+  -- convoy the crossing it was drawn to take.
+  local surfaces = veafDcsSpawner.terrainForCategory("vehicle")
+
+  luaunit.assertEquals(surfaces, { "LAND", "ROAD", "RUNWAY" })
+end
+
+function TestVeafDcsSpawnerTerrain:test_an_unknown_category_accepts_anything()
+  luaunit.assertEquals(veafDcsSpawner.terrainForCategory("plane"), veafDcsSpawner.ANY_TERRAIN)
+  luaunit.assertEquals(veafDcsSpawner.terrainForCategory(nil), veafDcsSpawner.ANY_TERRAIN)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafDcsSpawnerCurrentGroupData
+-- ---------------------------------------------------------------------------
+-- The source the `teleport` verb reads: the group as it stands right now, rather than as the Mission
+-- Editor drew it. Five of the thirteen teleport call sites ask for it.
+TestVeafDcsSpawnerCurrentGroupData = {}
+
+function TestVeafDcsSpawnerCurrentGroupData:setUp()
+  dcs_mocks.reset()
+end
+
+--- An editor record for the group, so the fields the running world does not expose have somewhere to
+--- come from — skill and payload above all.
+function TestVeafDcsSpawnerCurrentGroupData:_editorGroup()
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = {
+        group = {
+          {
+            name = "Arco",
+            groupId = 7,
+            units = { { name = "Arco-1", unitId = 3, type = "KC-135", skill = "High", payload = { fuel = 90000 } } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+end
+
+--- A live group at a position, with a heading and a speed.
+function TestVeafDcsSpawnerCurrentGroupData:_liveGroup(x, alt, z)
+  dcs_mocks.addUnit("Arco-1", {
+    _id = 4242,
+    getTypeName = function()
+      return "KC-135"
+    end,
+    getPosition = function()
+      return { p = { x = x, y = alt, z = z }, x = { x = 1, y = 0, z = 0 } }
+    end,
+    getVelocity = function()
+      return { x = 100, y = 0, z = 0 }
+    end,
+  })
+  dcs_mocks.addGroup("Arco", {
+    _id = 99,
+    getUnits = function()
+      return { Unit.getByName("Arco-1") }
+    end,
+  })
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_the_live_position_wins_over_the_editor_one()
+  self:_editorGroup()
+  self:_liveGroup(5000, 7000, 6000)
+
+  local data = veafDcsSpawner.getCurrentGroupData("Arco")
+
+  luaunit.assertNotNil(data)
+  luaunit.assertEquals(data.units[1].x, 5000)
+  luaunit.assertEquals(data.units[1].y, 6000, "the live vec3's z is the record's y — the easting")
+  luaunit.assertEquals(data.units[1].alt, 7000)
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_the_live_group_id_is_used()
+  self:_editorGroup()
+  self:_liveGroup(1, 2, 3)
+
+  luaunit.assertEquals(veafDcsSpawner.getCurrentGroupData("Arco").groupId, 99, "DCS's id, not the editor's 7")
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_what_the_world_does_not_expose_survives_from_the_editor()
+  -- The whole reason this starts from the record rather than from the live group.
+  self:_editorGroup()
+  self:_liveGroup(1, 2, 3)
+
+  local unit = veafDcsSpawner.getCurrentGroupData("Arco").units[1]
+
+  luaunit.assertEquals(unit.skill, "High")
+  luaunit.assertNotNil(unit.payload)
+  luaunit.assertEquals(unit.payload.fuel, 90000)
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_the_speed_comes_from_the_velocity()
+  self:_editorGroup()
+  self:_liveGroup(1, 2, 3)
+
+  luaunit.assertAlmostEquals(veafDcsSpawner.getCurrentGroupData("Arco").units[1].speed, 100, 0.001)
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_a_group_that_is_not_alive_returns_nil()
+  self:_editorGroup()
+
+  luaunit.assertNil(veafDcsSpawner.getCurrentGroupData("Arco"), "the editor knowing it is not enough")
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_an_unknown_name_returns_nil()
+  luaunit.assertNil(veafDcsSpawner.getCurrentGroupData("Nobody"))
+end
+
 os.exit(luaunit.LuaUnit.run())

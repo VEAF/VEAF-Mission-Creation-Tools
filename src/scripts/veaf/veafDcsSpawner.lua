@@ -530,12 +530,157 @@ function veafDcsSpawner.addGroup(groupData)
   return group
 end
 
+--- Terrain a group of this category may be put on, when the caller does not say.
+---
+--- Ported from `mist.teleportToPoint`, including the reason a runway is valid ground: DCS reports a
+--- dam's surface as `RUNWAY`, and a convoy refused a bridge crossing would be a visible regression.
+--- A category with no entry here accepts any surface, which is what MiST did.
+veafDcsSpawner.TERRAIN_BY_CATEGORY = {
+  ship = { "SHALLOW_WATER", "WATER" },
+  vehicle = { "LAND", "ROAD", "RUNWAY" },
+  ground_unit = { "LAND", "ROAD", "RUNWAY" },
+}
+
+--- Every surface a spawn accepts when nothing narrows it down.
+veafDcsSpawner.ANY_TERRAIN = { "LAND", "ROAD", "SHALLOW_WATER", "WATER", "RUNWAY" }
+
+--- Is this point on one of these surfaces?
+---
+--- Replaces `mist.isTerrainValid`. Accepts either coordinate shape — a vec3's `z` is the easting that
+--- `land.getSurfaceType` wants as `y`, which is the confusion `docs/agents/dcs-coordinates.md` exists
+--- for.
+---
+--- @param point table a vec2 (x, y) or a vec3 (x, y, z)
+--- @param surfaces table|string a surface name, or a list of them
+--- @return boolean
+function veafDcsSpawner.isTerrainValid(point, surfaces)
+  if type(point) ~= "table" or type(point.x) ~= "number" then
+    return false
+  end
+  local flat = { x = point.x, y = point.z or point.y }
+  if type(flat.y) ~= "number" then
+    return false
+  end
+
+  local wanted = surfaces
+  if type(wanted) == "string" then
+    wanted = { wanted }
+  end
+  if type(wanted) ~= "table" then
+    return false
+  end
+
+  local actual = land.getSurfaceType(flat)
+  for _, name in pairs(wanted) do
+    if type(name) == "string" and land.SurfaceType[string.upper(name)] == actual then
+      return true
+    end
+  end
+  return false
+end
+
+--- The surfaces a group of this category may stand on.
+--- @param category string|nil the group's category, in any spelling
+--- @return table a list of surface names
+function veafDcsSpawner.terrainForCategory(category)
+  if type(category) ~= "string" then
+    return veafDcsSpawner.ANY_TERRAIN
+  end
+  return veafDcsSpawner.TERRAIN_BY_CATEGORY[string.lower(category)] or veafDcsSpawner.ANY_TERRAIN
+end
+
+--- A group's definition as it stands **right now** — live positions, live ids, live units.
+---
+--- Replaces `mist.getCurrentGroupData`, the source the `teleport` verb reads (as opposed to `clone` and
+--- `respawn`, which read the editor definition). It starts from the editor record so that everything
+--- the running world does not expose — skill, payload, callsign — survives, then overwrites what the
+--- world knows better: the group id DCS assigned, its current category, and each live unit's position,
+--- heading, altitude and speed.
+---
+--- **Coordinates.** The result is the mission-table shape a spawn expects: `x` northing, `y` easting.
+--- The live position is a vec3, so its `z` becomes the record's `y`. Getting this backwards places the
+--- group somewhere else entirely, with no error.
+---
+--- @param groupName string
+--- @return table|nil the group data, or nil when neither a group nor a static answers to that name
+function veafDcsSpawner.getCurrentGroupData(groupName)
+  local record = veafMissionDb.getGroupRecord(groupName)
+  local group = Group.getByName(groupName)
+
+  if group and group:isExist() then
+    local data = veaf.deepCopy(record or {})
+    data.name = groupName
+    data.groupName = groupName
+    data.groupId = tonumber(group:getID())
+    data.category = group:getCategory()
+    -- getCategory answers a number; a spawn wants the editor's word for it.
+    if data.category == Group.Category.GROUND then
+      data.category = "vehicle"
+    elseif data.category == Group.Category.SHIP then
+      data.category = "ship"
+    end
+
+    data.units = {}
+    local liveUnits = group:getUnits() or {}
+    if #liveUnits == 0 then
+      veaf.loggers.get(veafDcsSpawner.Id):warn("getCurrentGroupData: group [%s] exists but has no units", veaf.p(groupName))
+    end
+    for index, unit in ipairs(liveUnits) do
+      local unitName = unit:getName()
+      local known = veafMissionDb.getUnitRecord(unitName)
+      local unitData = known and veaf.deepCopy(known) or {}
+      unitData.unitId = tonumber(unit:getID())
+      unitData.type = unit:getTypeName()
+      unitData.unitName = unitName
+      unitData.name = unitName
+
+      local position = unit:getPosition()
+      if position and position.p then
+        unitData.x = position.p.x
+        unitData.y = position.p.z
+        unitData.alt = position.p.y
+        unitData.point = { x = unitData.x, y = unitData.y }
+        if position.x then
+          unitData.heading = math.atan2(position.x.z, position.x.x)
+        end
+      end
+      local velocity = unit:getVelocity()
+      if velocity then
+        unitData.speed = veaf.vecMag(velocity)
+      end
+      data.units[index] = unitData
+    end
+    return data
+  end
+
+  -- A static answers to a name too, and carries a single unit.
+  local static = StaticObject.getByName(groupName)
+  if static and static:isExist() and record and record.units and record.units[1] then
+    local data = veaf.deepCopy(record)
+    local position = static:getPosition()
+    if position and position.p then
+      data.units[1].x = position.p.x
+      data.units[1].y = position.p.z
+      data.units[1].alt = position.p.y
+      if position.x then
+        data.units[1].heading = math.atan2(position.x.z, position.x.x)
+      end
+    end
+    return data
+  end
+
+  veaf.loggers.get(veafDcsSpawner.Id):debug("getCurrentGroupData: nothing alive named [%s]", veaf.p(groupName))
+  return nil
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.addStatic = veafDcsSpawner.addStatic
 veaf.addGroup = veafDcsSpawner.addGroup
+veaf.isTerrainValid = veafDcsSpawner.isTerrainValid
+veaf.getCurrentGroupData = veafDcsSpawner.getCurrentGroupData
 veaf.getGroupRoute = veafDcsSpawner.getGroupRoute
 veaf.goRoute = veafDcsSpawner.goRoute
 

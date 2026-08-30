@@ -202,6 +202,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   nobody was told. That is now refused, with the category named in the log. The spellings that *are*
   accepted are unchanged, `PLANE` and `AIRPLANE` alike — VEAF uses both, for the same thing.
 
+- **Two more pieces of MiST are VEAF's**, both needed by the spawn chain still to come: the terrain
+  check that keeps a ship off a hill and a convoy out of a lake, and the reader that describes a group
+  *as it stands right now* rather than as the Mission Editor drew it.
+
+  The terrain lists are unchanged, runways included for ground units — DCS reports a dam's surface as
+  `RUNWAY`, and excluding it would refuse a convoy the crossing it was drawn to take.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

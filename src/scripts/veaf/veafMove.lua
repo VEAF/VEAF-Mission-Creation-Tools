@@ -613,8 +613,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   -- teleport if the option is set
   if teleport then
     veaf.loggers.get(veafMove.Id):debug("Teleport the tanker")
-    local vars = { groupName = groupName, point = teleportPoint, action = "teleport" }
-    local grp = mist.teleportToPoint(vars)
+    local grp = VeafGroupSpawn:new():forGroup(groupName):at(teleportPoint):teleport()
     unitGroup = Group.getByName(groupName)
 
     veafMove.teleportEscort(groupName, movePoint, teleportPoint)
@@ -828,8 +827,7 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
   task_escort.params.groupId = escortedId --assign the new groupID within the old escort mission, only necessary after teleporting as the tanker's ID will have changed
 
   veaf.loggers.get(veafMove.Id):debug("Teleport the escort")
-  local vars_escort = { groupName = groupName_escort, point = teleportPoint_escort, action = "teleport" }
-  mist.teleportToPoint(vars_escort)
+  VeafGroupSpawn:new():forGroup(groupName_escort):at(teleportPoint_escort):teleport()
   local unitGroup_escort = Group.getByName(groupName_escort)
 
   veafMove.replaceMission(unitGroup_escort, EscortData)
@@ -1019,11 +1017,13 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
 
     --teleport the group south of the requested location
     veaf.loggers.get(veafMove.Id):trace("AFAC " .. groupName .. " teleported")
-    local vars = { groupName = groupName, point = teleportPosition, action = "teleport" }
+    -- A dynamically spawned AFAC is not in the mission, so its definition is supplied rather than
+    -- looked up — and with it comes `onAnyTerrain`, since a JTAC may sit anywhere its operator put it.
+    local spawn = VeafGroupSpawn:new():forGroup(groupName):at(teleportPosition)
     if isDynamicallySpawned then
-      vars = { groupName = groupName, groupData = afacData, anyTerrain = true, point = teleportPosition, action = "teleport" }
+      spawn = spawn:withGroupData(afacData):onAnyTerrain()
     end
-    local grp = mist.teleportToPoint(vars)
+    local grp = spawn:teleport()
     unitGroup = Group.getByName(groupName) --refresh group class after respawn, not necessary but safer considering at least the groupId changes
 
     --necessary delay for the following code to not be ignored

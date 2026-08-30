@@ -965,4 +965,253 @@ function TestVeafDcsSpawnerCurrentGroupData:test_a_unit_whose_id_moved_does_not_
   luaunit.assertNil(veafDcsSpawner.getCurrentGroupData("Arco").units[1].payload)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafGroupSpawnChain
+-- ---------------------------------------------------------------------------
+-- Replaces `mist.teleportToPoint`, whose interface was a table called `vars` carrying a string called
+-- `action`. That string chose between three verbs and an unnamed boolean chose a fourth; a misspelling
+-- fell through to "teleport" and a misspelled key did nothing at all.
+TestVeafGroupSpawnChain = {}
+
+function TestVeafGroupSpawnChain:setUp()
+  dcs_mocks.reset()
+  land.getHeight = function()
+    return 0
+  end
+  land.getSurfaceType = function()
+    return land.SurfaceType.LAND
+  end
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      vehicle = {
+        group = {
+          {
+            name = "Convoy",
+            groupId = 7,
+            units = { { name = "Convoy-1", unitId = 3, type = "M-1 Abrams", x = 1000, y = 2000, skill = "High" } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+end
+
+local function spawned()
+  local entries = dcs_mocks.groupsAdded
+  return entries[#entries] and entries[#entries].group
+end
+
+-- The verbs -----------------------------------------------------------------------------------
+
+function TestVeafGroupSpawnChain:test_a_clone_creates_a_group()
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertNotNil(result)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+end
+
+function TestVeafGroupSpawnChain:test_a_clone_asks_for_new_ids()
+  -- A new identity is the whole difference between cloning and respawning.
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertNotEquals(spawned().groupId, 7, "the editor's group id must not be reused")
+  luaunit.assertNotEquals(spawned().units[1].unitId, 3)
+end
+
+function TestVeafGroupSpawnChain:test_a_respawn_keeps_the_editor_identity()
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):respawn()
+
+  luaunit.assertEquals(spawned().groupId, 7)
+  luaunit.assertEquals(spawned().units[1].unitId, 3)
+end
+
+function TestVeafGroupSpawnChain:test_building_only_creates_nothing()
+  -- Replaces MiST's unnamed second argument. All three sites that passed it were cloning.
+  local data = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):buildCloneData()
+
+  luaunit.assertNotNil(data, "the data still comes back")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0, "but nothing was created")
+end
+
+function TestVeafGroupSpawnChain:test_an_unfinished_chain_creates_nothing()
+  -- MiST fell through to "tele" when the action was unrecognised. Here the verb is the method, so
+  -- there is no unrecognised action to fall through from.
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 })
+
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+function TestVeafGroupSpawnChain:test_a_verb_cannot_be_misspelled_into_silence()
+  -- The property the chain buys: a wrong verb is a nil method call, not a silent default.
+  luaunit.assertNil(VeafGroupSpawn.clown)
+  luaunit.assertNotNil(VeafGroupSpawn.clone)
+end
+
+-- Placement -----------------------------------------------------------------------------------
+
+function TestVeafGroupSpawnChain:test_the_group_lands_at_the_point_asked_for()
+  dcs_mocks.setRandomSequence({ 0 }) -- a zero draw puts the origin exactly on the point
+
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRadius(100):respawn()
+
+  luaunit.assertEquals(spawned().units[1].x, 5000)
+  luaunit.assertEquals(spawned().units[1].y, 6000, "the point's z is the unit's y — the easting")
+end
+
+function TestVeafGroupSpawnChain:test_the_whole_group_keeps_its_formation()
+  -- One offset for everyone: the draw places unit 1 and the others follow, or a convoy would arrive
+  -- as a heap.
+  env.mission.coalition.blue.country[1].vehicle.group[1].units[2] =
+    { name = "Convoy-2", unitId = 4, type = "M-1 Abrams", x = 1050, y = 2000 }
+  veafMissionDb.buildSnapshot()
+  dcs_mocks.setRandomSequence({ 0 })
+
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRadius(100):respawn()
+
+  local units = spawned().units
+  luaunit.assertEquals(units[2].x - units[1].x, 50, "the 50 m spacing must survive the move")
+end
+
+function TestVeafGroupSpawnChain:test_terrain_the_group_cannot_use_is_refused()
+  -- A convoy on water: a hundred draws, none valid, and nothing is created rather than a group
+  -- dropped in a lake.
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRadius(500):respawn()
+
+  luaunit.assertFalse(result)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+function TestVeafGroupSpawnChain:test_any_terrain_skips_the_check()
+  -- What veafMove uses for a dynamically spawned AFAC.
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRadius(500):onAnyTerrain():respawn()
+
+  luaunit.assertNotNil(result)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+end
+
+function TestVeafGroupSpawnChain:test_an_explicit_terrain_list_overrides_the_category_one()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRadius(500):onTerrain({ "WATER" }):respawn()
+
+  luaunit.assertNotNil(result, "a caller naming its surfaces means it")
+end
+
+-- Naming and renaming -----------------------------------------------------------------------------
+
+function TestVeafGroupSpawnChain:test_a_new_name_is_used()
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy #0001"):at({ x = 1, y = 0, z = 2 }):respawn()
+
+  luaunit.assertEquals(spawned().name, "Convoy #0001")
+end
+
+function TestVeafGroupSpawnChain:test_units_can_be_renamed_after_their_group()
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Alpha"):at({ x = 1, y = 0, z = 2 }):renamingUnitsSequentially():respawn()
+
+  luaunit.assertStrContains(spawned().units[1].name, "Alpha")
+end
+
+function TestVeafGroupSpawnChain:test_renaming_is_off_unless_asked()
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 }):respawn()
+
+  luaunit.assertEquals(spawned().units[1].name, "Convoy-1")
+end
+
+function TestVeafGroupSpawnChain:test_renaming_can_be_declined_explicitly()
+  -- veafCombatZone passes a boolean through, so false has to mean false.
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 }):renamingUnitsSequentially(false):respawn()
+
+  luaunit.assertEquals(spawned().units[1].name, "Convoy-1")
+end
+
+-- Routes ---------------------------------------------------------------------------------------
+
+function TestVeafGroupSpawnChain:test_a_route_that_was_given_is_used()
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 }):withRoute({ { x = 9, y = 9 } }):respawn()
+
+  luaunit.assertNotNil(spawned().route)
+  luaunit.assertEquals(#spawned().route.points, 1)
+end
+
+function TestVeafGroupSpawnChain:test_the_first_waypoint_follows_the_group_when_asked()
+  -- FIX-COMBATZONE-SPAWN-ROUTE-OFFSET: without this a displaced group drove back to a waypoint 1
+  -- still at its editor position.
+  dcs_mocks.setRandomSequence({ 0 })
+
+  VeafGroupSpawn:new()
+    :forGroup("Convoy")
+    :at({ x = 5000, y = 0, z = 6000 })
+    :withRoute({ { x = 1000, y = 2000 } })
+    :offsettingFirstWaypoint()
+    :respawn()
+
+  luaunit.assertEquals(spawned().route.points[1].x, 5000, "waypoint 1 moved with the group")
+end
+
+function TestVeafGroupSpawnChain:test_the_first_waypoint_stays_put_by_default()
+  dcs_mocks.setRandomSequence({ 0 })
+
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRoute({ { x = 1000, y = 2000 } }):respawn()
+
+  luaunit.assertEquals(spawned().route.points[1].x, 1000)
+end
+
+-- Sources ---------------------------------------------------------------------------------------
+
+function TestVeafGroupSpawnChain:test_a_caller_may_supply_the_group_definition()
+  -- veafMove does this for a dynamically spawned AFAC, which is not in the mission at all.
+  local result = VeafGroupSpawn:new()
+    :forGroup("NotInTheMission")
+    :withGroupData({
+      country = "USA",
+      category = "GROUND_UNIT",
+      name = "AFAC",
+      units = { { type = "Hummer", x = 1, y = 2 } },
+    })
+    :at({ x = 10, y = 0, z = 20 })
+    :teleport()
+
+  luaunit.assertNotNil(result)
+  luaunit.assertEquals(spawned().name, "AFAC")
+end
+
+function TestVeafGroupSpawnChain:test_an_unknown_group_creates_nothing()
+  luaunit.assertFalse(VeafGroupSpawn:new():forGroup("Nobody"):at({ x = 1, y = 0, z = 2 }):respawn())
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+function TestVeafGroupSpawnChain:test_a_chain_with_no_group_at_all_creates_nothing()
+  luaunit.assertFalse(VeafGroupSpawn:new():at({ x = 1, y = 0, z = 2 }):respawn())
+end
+
+function TestVeafGroupSpawnChain:test_a_group_with_no_units_creates_nothing()
+  env.mission.coalition.blue.country[1].vehicle.group[1].units = {}
+  veafMissionDb.buildSnapshot()
+
+  luaunit.assertFalse(VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 }):respawn())
+end
+
+function TestVeafGroupSpawnChain:test_a_unit_with_no_position_creates_nothing()
+  -- MiST raised an arithmetic error on nil here, and in DCS a raised error stops the whole script.
+  -- Refusing says the same thing about the group and leaves the mission running.
+  env.mission.coalition.blue.country[1].vehicle.group[1].units[1].x = nil
+  veafMissionDb.buildSnapshot()
+
+  luaunit.assertFalse(VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 }):respawn())
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

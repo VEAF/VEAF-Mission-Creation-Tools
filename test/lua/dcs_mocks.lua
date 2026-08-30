@@ -7,6 +7,7 @@
 -- ---------------------------------------------------------------------------
 dcs_mocks = {}
 dcs_mocks.currentTime = 0
+dcs_mocks.missionStart = 0 -- what timer.getTime0 answers
 --- Trigger zones visible to trigger.misc.getZone, keyed by name:
 --- { point = { x, y, z }, radius = <metres> }. Empty unless a suite calls dcs_mocks.addZone.
 dcs_mocks.zones = {}
@@ -63,6 +64,11 @@ timer = {
   end,
   getAbsTime = function()
     return dcs_mocks.currentTime
+  end,
+  --- Mission start, in absolute time. A spawn subtracts it from getAbsTime to know how much of a
+  --- group's editor start_time is left.
+  getTime0 = function()
+    return dcs_mocks.missionStart or 0
   end,
   --- Record a task and hand back an id. **It does not run**, and `setTime` does not run it
   --- either: a suite that merely advances the clock must keep behaving as it did when this

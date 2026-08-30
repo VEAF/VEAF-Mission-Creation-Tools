@@ -178,9 +178,26 @@ function TestVeafAssetsOps:test_dispose_not_found()
 end
 
 function TestVeafAssetsOps:test_respawn_found()
-  -- mist.respawnGroup is mocked as a no-op
+  -- This used to end on assertTrue(true), because `mist.respawnGroup` was a no-op stub and there was
+  -- nothing to look at. The respawn runs VEAF's own spawn chain now, so the group it puts back is
+  -- observable: what reaches DCS is the assertion.
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = {
+        group = {
+          { name = "testTanker", groupId = 12, units = { { name = "testTanker-1", unitId = 8, type = "KC-135", x = 1000, y = 2000 } } },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
   veafAssets.respawn("testTanker")
-  luaunit.assertTrue(true)
+
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "the asset must actually be put back")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "testTanker")
 end
 
 function TestVeafAssetsOps:test_respawn_not_found()

@@ -469,8 +469,7 @@ end
 --- teleport group
 function veafSpawn.teleport(spawnSpot, name, silent)
   veaf.loggers.get(veafSpawn.Id):debug("teleport(name = " .. name .. ")")
-  local vars = { groupName = name, point = spawnSpot, action = "teleport" }
-  local grp = mist.teleportToPoint(vars)
+  local grp = VeafGroupSpawn:new():forGroup(name):at(spawnSpot):teleport()
   if not silent then
     if grp then
       trigger.action.outText(veaf.t("spawn.teleported", name), 5)

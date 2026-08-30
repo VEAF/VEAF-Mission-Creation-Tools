@@ -1020,14 +1020,12 @@ function VeafQRACore:deploy(nbUnitsInZone)
           else
             spawnSpot = group:getUnit(1):getPoint()
           end
-          local vars = {}
-          vars.point = veaf.getRandomPointInCircle(spawnSpot, self.respawnRadius)
-          vars.point.z = vars.point.y
-          vars.point.y = spawnSpot.y
-          vars.gpName = groupName
-          vars.action = "clone"
-          vars.route = veaf.getGroupRoute(groupName)
-          local newGroup = mist.teleportToPoint(vars) -- respawn with radius
+          local newGroup = VeafGroupSpawn:new()
+            :forGroup(groupName)
+            :at(spawnSpot)
+            :withRadius(self.respawnRadius)
+            :withRoute(veaf.getGroupRoute(groupName))
+            :clone()
           if newGroup then
             table.insert(self.spawnedGroupsNames, newGroup.name)
           end

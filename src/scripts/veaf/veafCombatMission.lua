@@ -878,14 +878,10 @@ function VeafCombatMission:activate(silent)
         end
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnRadius=%s", veaf.p(_spawnRadius)))
 
-        local vars = {}
-        vars.gpName = groupName
-        vars.action = "clone"
-        vars.point = _spawnPoint
-        vars.radius = _spawnRadius
-        vars.disperse = false
-        vars.route = veaf.getGroupRoute(groupName)
-        --veaf.loggers.get(veafCombatMission.Id):trace(string.format("vars=%s",veaf.p(vars)))
+        -- Built once, outside the loop: every clone of this element starts from the same recipe and
+        -- only the name differs.
+        local spawn =
+          VeafGroupSpawn:new():forGroup(groupName):at(_spawnPoint):withRadius(_spawnRadius):withRoute(veaf.getGroupRoute(groupName))
 
         for i = 1, missionElement:getScale() do
           if not self.spawnedNamesIndex[groupName] then
@@ -895,7 +891,7 @@ function VeafCombatMission:activate(silent)
           end
           local spawnedGroupName = string.format("%s #%04d", groupName, self.spawnedNamesIndex[groupName])
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedGroupName=%s", veaf.p(spawnedGroupName)))
-          local _group = mist.teleportToPoint(vars, true)
+          local _group = spawn:buildCloneData()
           -- VMR-021: `_group.groupName = ...` used to sit **between** two `if _group then`
           -- guards, unguarded itself, so a nil return from mist crashed the activation right
           -- after the code had just finished checking for exactly that. The guards are merged

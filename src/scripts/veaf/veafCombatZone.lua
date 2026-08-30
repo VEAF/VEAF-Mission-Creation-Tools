@@ -1494,14 +1494,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       veaf.loggers
         .get(veafCombatZone.Id)
         :trace(string.format("respawning group [%s] at position [%s]", zoneElement:getName(), veaf.vecToString(position)))
-      local vars = {}
-      vars.gpName = zoneElement:getName()
-      vars.name = zoneElement:getName()
-      vars.newGroupName = veaf.getNameForSpawnedGroup(zoneElement:getCoalition(), zoneElement:getName(), self:getMissionEditorZoneName())
-      vars.route = zoneElement:getRoute()
-      vars.action = "respawn"
-      vars.point = position
-      vars.renameUnitsSequentially = self:isRenameUnitsSequentially()
+      local newGroupName = veaf.getNameForSpawnedGroup(zoneElement:getCoalition(), zoneElement:getName(), self:getMissionEditorZoneName())
       -- The group's first waypoint follows the group. MiST translates a route by the teleport delta
       -- only when asked (mist.lua:4561), and nothing here asked, so a scattered group came up beside
       -- a waypoint 1 still at its editor position and drove back to it before starting its leg.
@@ -1515,12 +1508,18 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- measures it against the mission table's unit 1, while the element's position comes from the
       -- first unit the zone happened to meet (see buildGroupElement), so a group whose units were not
       -- met in editor order carries a delta of its own intra-group spacing.
-      vars.offsetWP1 = true
-      local newGroup = mist.teleportToPoint(vars)
+      local newGroup = VeafGroupSpawn:new()
+        :forGroup(zoneElement:getName())
+        :named(newGroupName)
+        :at(position)
+        :withRoute(zoneElement:getRoute())
+        :renamingUnitsSequentially(self:isRenameUnitsSequentially())
+        :offsettingFirstWaypoint()
+        :respawn()
       if type(newGroup) == "table" then
         veaf.loggers
           .get(veafCombatZone.Id)
-          :trace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
+          :trace(string.format("[%s]:activate() - VeafGroupSpawn([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
         self:addSpawnedGroup(newGroup.name)
         -- resolveAlarmState, not getAlarmState: the state is decided here, from the group's nature,
         -- unless its unit name stated one. A single default served the convoys of #290 and silenced
@@ -1529,9 +1528,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       else
         veaf.loggers
           .get(veafCombatZone.Id)
-          :trace(
-            string.format("[%s]:activate() - mist.teleportToPoint([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName())
-          )
+          :trace(string.format("[%s]:activate() - VeafGroupSpawn([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
       end
     elseif zoneElement:getVeafCommand() then
       veaf.loggers

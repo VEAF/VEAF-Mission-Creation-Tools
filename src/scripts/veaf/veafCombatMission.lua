@@ -884,7 +884,7 @@ function VeafCombatMission:activate(silent)
         vars.point = _spawnPoint
         vars.radius = _spawnRadius
         vars.disperse = false
-        vars.route = mist.getGroupRoute(groupName, "task")
+        vars.route = veaf.getGroupRoute(groupName)
         --veaf.loggers.get(veafCombatMission.Id):trace(string.format("vars=%s",veaf.p(vars)))
 
         for i = 1, missionElement:getScale() do

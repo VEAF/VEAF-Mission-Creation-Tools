@@ -1873,7 +1873,7 @@ end
 --- **Which airbase.** The nearest one, which for a pilot sitting at parking *is* the one he is on. The
 --- PRD asked for "the one the slot sits on, not the nearest in a straight line", and the authoritative
 --- answer would be the departure airdrome the mission declares on the group's first route point — but
---- whether `mist.getGroupRoute` carries `airdromeId` cannot be established without a running DCS, and
+--- whether `veaf.getGroupRoute` carries `airdromeId` cannot be established without a running DCS, and
 --- guessing it would be worse than using the tested helper. The residual case is a slot at one airfield
 --- marginally closer to another's centre; recorded in the PRD rather than papered over.
 ---

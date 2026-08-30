@@ -109,6 +109,12 @@ local function unitRecord(unitData, groupData, context)
     category = context.category,
     country = context.country,
     countryId = context.countryId,
+    -- The loadout, **by reference** into `env.mission` and never copied — which is what MiST did too:
+    -- `mist.getPayload` ends with `return unitData.payload`. Holding the reference costs a pointer per
+    -- unit, where a copy would cost 10% of the mission file (287 KB measured on a 435-unit mission).
+    -- It is needed because `addGroup` fills in the loadout of an aircraft spawned without one, and
+    -- `veafSpawnCore` builds AIRPLANE groups with no payload field at all.
+    payload = unitData.payload,
   }
 end
 
@@ -157,6 +163,10 @@ function veafMissionDb.buildSnapshot()
                   country = countryData.name,
                   countryId = countryData.id,
                   units = {},
+                  -- The route, by reference like the payload above. `veaf.getGroupRoute` projects it
+                  -- into the ten fields a caller reads; MiST walked `env.mission` from scratch on every
+                  -- call to reach the same table.
+                  route = groupData.route,
                 }
                 for _, unitData in pairs(groupData.units or {}) do
                   if unitData.name then

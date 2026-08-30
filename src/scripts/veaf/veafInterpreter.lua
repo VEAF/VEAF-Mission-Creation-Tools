@@ -101,7 +101,7 @@ local function executeFromMissionRecord(command, missionUnit)
   local position = veaf.placePointOnLand({ x = missionUnit.x, y = missionUnit.y })
   local route = nil
   if missionUnit.groupName then
-    route = mist.getGroupRoute(missionUnit.groupName, "task")
+    route = veaf.getGroupRoute(missionUnit.groupName)
   end
   veafInterpreter.execute(command, position, missionUnit.coalitionId, route, nil)
   return true
@@ -117,7 +117,7 @@ function veafInterpreter.executeCommandOnUnit(unitName, command, missionUnit)
       veaf.loggers.get(veafInterpreter.Id):trace(string.format("found the unit at : [%s]", veaf.vecToString(position)))
       local groupName = unit:getGroup():getName()
       veaf.loggers.get(veafInterpreter.Id):debug(string.format("in [%s]", groupName))
-      local route = mist.getGroupRoute(groupName, "task")
+      local route = veaf.getGroupRoute(groupName)
       veaf.loggers.get(veafInterpreter.Id):trace(string.format("route = [%s]", veaf.p(route)))
       if veafInterpreter.execute(command, position, unit:getCoalition(), route, nil) then
         unit:getGroup():destroy()

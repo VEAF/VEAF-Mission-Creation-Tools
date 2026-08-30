@@ -765,7 +765,7 @@ function veafSpawn.spawnConvoy(
 
     --  make the group go to destination
     veaf.loggers.get(veafSpawn.Id):trace("make the group go to destination : " .. groupName)
-    mist.goRoute(groupName, route)
+    veaf.goRoute(groupName, route)
 
     -- Only an itinerary needs watching. A single `dest` has no next leg, so a one-point convoy keeps
     -- exactly the behaviour it had before this lot — no watchdog, nothing rescheduled.
@@ -909,7 +909,7 @@ function veafSpawn.advanceConvoy(convoyName)
   convoy.legIndex = nextLeg
   convoy.route = route
   convoy.stopped = false
-  mist.goRoute(convoyName, route)
+  veaf.goRoute(convoyName, route)
   return true
 end
 
@@ -961,7 +961,7 @@ function veafSpawn._commandConvoy(convoyName, stop)
     else
       local stopped = veafSpawn.spawnedConvoys[convoyName].stopped
       if stopped then
-        mist.goRoute(convoyName, veafSpawn.spawnedConvoys[convoyName].route)
+        veaf.goRoute(convoyName, veafSpawn.spawnedConvoys[convoyName].route)
         veafSpawn.spawnedConvoys[convoyName].stopped = false
       else
         -- not stopped !

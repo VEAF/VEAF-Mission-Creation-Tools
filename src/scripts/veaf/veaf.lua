@@ -1940,7 +1940,7 @@ function veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)
 
           if not firstPass and result then
             veaf.loggers.get(veaf.Id):info("Lead vehicle in range, setting route !")
-            mist.goRoute(group, patrolRoute)
+            veaf.goRoute(group, patrolRoute)
             controller:setSpeed(speed)
             firstPass = "notSeen"
           elseif firstPass then
@@ -2191,7 +2191,7 @@ function veaf.moveGroupTo(groupName, pos, speed, altitude)
   }
 
   -- order group to new waypoint
-  mist.goRoute(groupName, route)
+  veaf.goRoute(groupName, route)
 
   return true
 end
@@ -2348,7 +2348,7 @@ function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
   return result
 end
 
---- modified version of mist.getGroupRoute that returns raw DCS group data
+--- modified version of `veaf.getGroupRoute` that returns raw DCS group data
 function veaf.getGroupData(groupIdent)
   -- refactor to search by groupId and allow groupId and groupName as inputs
   local gpId = groupIdent

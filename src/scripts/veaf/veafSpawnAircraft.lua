@@ -683,7 +683,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
   if _spawnedGroup then
     veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.lp(_spawnedGroup, nil, { "route", "payload" }))
     veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup.name=%s", _spawnedGroup.name)
-    --mist.goRoute(_spawnedGroup.name, newRoute)
+    --veaf.goRoute(_spawnedGroup.name, newRoute)
 
     _spawnedGroup.category = "AIRPLANE"
     _spawnedGroup.country = country

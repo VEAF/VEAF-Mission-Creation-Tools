@@ -264,4 +264,134 @@ function TestVeafDcsSpawnerAddStatic:test_nothing_at_all_is_survivable()
   luaunit.assertEquals(#dcs_mocks.staticsAdded, 0)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafDcsSpawnerRoutes
+-- ---------------------------------------------------------------------------
+-- `getGroupRoute` replaces `mist.getGroupRoute(name, "task")` — every one of the eight VEAF call sites
+-- passed "task", so the task-less form is not ported.
+TestVeafDcsSpawnerRoutes = {}
+
+function TestVeafDcsSpawnerRoutes:setUp()
+  dcs_mocks.reset()
+end
+
+--- Put a group with a route into the mocked mission, and index it the way startup does.
+function TestVeafDcsSpawnerRoutes:_mission(groupName, route)
+  env.mission.coalition.blue.country = {
+    [1] = { name = "USA", id = country.id.USA, plane = { group = { { name = groupName, groupId = 42, route = route, units = {} } } } },
+  }
+  veafMissionDb.buildSnapshot()
+end
+
+function TestVeafDcsSpawnerRoutes:test_the_route_points_are_returned()
+  self:_mission("Arco", { points = { { x = 1, y = 2 }, { x = 3, y = 4 } } })
+
+  local route = veafDcsSpawner.getGroupRoute("Arco")
+
+  luaunit.assertNotNil(route)
+  luaunit.assertEquals(#route, 2)
+end
+
+function TestVeafDcsSpawnerRoutes:test_the_projection_carries_the_fields_callers_read()
+  self:_mission("Arco", {
+    points = {
+      { x = 10, y = 20, speed = 200, alt = 6000, alt_type = "BARO", action = "Turning Point", type = "Turning Point", airdromeId = 7 },
+    },
+  })
+
+  local point = veafDcsSpawner.getGroupRoute("Arco")[1]
+
+  luaunit.assertEquals(point.x, 10)
+  luaunit.assertEquals(point.y, 20, "y is the easting, as the mission table holds it")
+  luaunit.assertEquals(point.speed, 200)
+  luaunit.assertEquals(point.alt, 6000)
+  luaunit.assertEquals(point.alt_type, "BARO")
+  luaunit.assertEquals(point.airdromeId, 7)
+  luaunit.assertEquals(point.form, "Turning Point", "MiST called the action `form` as well, and callers read it")
+  luaunit.assertEquals(point.action, "Turning Point")
+end
+
+function TestVeafDcsSpawnerRoutes:test_the_task_is_carried()
+  -- Always: the eight call sites all asked for it.
+  self:_mission("Arco", { points = { { x = 1, y = 2, task = { id = "ComboTask" } } } })
+
+  luaunit.assertEquals(veafDcsSpawner.getGroupRoute("Arco")[1].task.id, "ComboTask")
+end
+
+function TestVeafDcsSpawnerRoutes:test_a_vec2_point_shape_is_preserved()
+  -- The editor can write `point = {x, y}` instead of loose coordinates; MiST kept whichever it found.
+  self:_mission("Arco", { points = { { point = { x = 5, y = 6 } } } })
+
+  local point = veafDcsSpawner.getGroupRoute("Arco")[1]
+
+  luaunit.assertNotNil(point.point)
+  luaunit.assertEquals(point.point.x, 5)
+  luaunit.assertNil(point.x, "the loose form must not be invented alongside it")
+end
+
+function TestVeafDcsSpawnerRoutes:test_an_unknown_group_returns_nil()
+  self:_mission("Arco", { points = { { x = 1, y = 2 } } })
+
+  luaunit.assertNil(veafDcsSpawner.getGroupRoute("Nobody"))
+end
+
+function TestVeafDcsSpawnerRoutes:test_a_group_without_a_route_returns_nil()
+  self:_mission("Arco", nil)
+
+  luaunit.assertNil(veafDcsSpawner.getGroupRoute("Arco"))
+end
+
+function TestVeafDcsSpawnerRoutes:test_an_empty_route_returns_nil()
+  self:_mission("Arco", { points = {} })
+
+  luaunit.assertNil(veafDcsSpawner.getGroupRoute("Arco"), "no points is not a route")
+end
+
+function TestVeafDcsSpawnerRoutes:test_the_caller_cannot_reach_into_the_mission_table()
+  -- The projection is a new table; MiST's was too. A caller that mutates its route must not rewrite
+  -- what the Mission Editor placed.
+  self:_mission("Arco", { points = { { x = 1, y = 2, speed = 100 } } })
+
+  local route = veafDcsSpawner.getGroupRoute("Arco")
+  route[1].speed = 999
+
+  luaunit.assertEquals(veafDcsSpawner.getGroupRoute("Arco")[1].speed, 100)
+end
+
+-- ---------------------------------------------------------------------------
+-- goRoute
+-- ---------------------------------------------------------------------------
+
+function TestVeafDcsSpawnerRoutes:test_goRoute_sets_a_mission_task_on_the_group()
+  dcs_mocks.addGroup("Convoy", { _id = 5 })
+
+  luaunit.assertTrue(veafDcsSpawner.goRoute("Convoy", { { x = 1, y = 2 } }))
+
+  local entry = dcs_mocks.tasksSet[#dcs_mocks.tasksSet]
+  luaunit.assertEquals(entry.group, "Convoy")
+  luaunit.assertEquals(entry.task.id, "Mission")
+  luaunit.assertEquals(#entry.task.params.route.points, 1)
+end
+
+function TestVeafDcsSpawnerRoutes:test_goRoute_accepts_a_group_object()
+  -- veaf.lua and veafSpawnCore pass the object; the other seven sites pass the name.
+  dcs_mocks.addGroup("Convoy", { _id = 5 })
+
+  luaunit.assertTrue(veafDcsSpawner.goRoute(Group.getByName("Convoy"), { { x = 1, y = 2 } }))
+end
+
+function TestVeafDcsSpawnerRoutes:test_goRoute_on_an_unknown_group_is_false_not_an_error()
+  luaunit.assertFalse(veafDcsSpawner.goRoute("Ghost", { { x = 1, y = 2 } }))
+end
+
+function TestVeafDcsSpawnerRoutes:test_goRoute_copies_the_route_it_is_given()
+  dcs_mocks.addGroup("Convoy", { _id = 5 })
+  local route = { { x = 1, y = 2 } }
+
+  veafDcsSpawner.goRoute("Convoy", route)
+  route[1].x = 999
+
+  luaunit.assertEquals(dcs_mocks.tasksSet[#dcs_mocks.tasksSet].task.params.route.points[1].x, 1)
+end
+
 os.exit(luaunit.LuaUnit.run())

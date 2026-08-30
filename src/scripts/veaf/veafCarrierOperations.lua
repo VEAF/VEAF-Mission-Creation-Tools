@@ -1000,7 +1000,7 @@ function veafCarrierOperations.initializeCarrierGroups()
 
       if carrier then
         -- take note of the carrier route
-        carrier.missionRoute = mist.getGroupRoute(name, "task")
+        carrier.missionRoute = veaf.getGroupRoute(name)
         veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=%s", veaf.lp(carrier.missionRoute))
         if veafCarrierOperations.Trace then
           for num, point in pairs(carrier.missionRoute) do
@@ -1046,7 +1046,7 @@ function veafCarrierOperations.doOperations()
       if carrier.missionRoute then
         veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("resetting carrier %s route", name))
         veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=%s", veaf.lp(carrier.missionRoute))
-        local result = mist.goRoute(name, carrier.missionRoute)
+        local result = veaf.goRoute(name, carrier.missionRoute)
       end
     else
       veaf.loggers.get(veafCarrierOperations.Id):debug(name .. " is not conducting operations")

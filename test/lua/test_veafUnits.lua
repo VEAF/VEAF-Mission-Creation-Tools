@@ -8,6 +8,7 @@ dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 
 -- Provide a minimal dcsUnits stub (instead of loading the 16k-line file).
 -- New schema: keyed by DCS type id, with a single `kind` field.

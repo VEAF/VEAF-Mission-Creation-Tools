@@ -284,11 +284,90 @@ function veafDcsSpawner.addStatic(objectData)
   return object
 end
 
+--- A group's route as the Mission Editor drew it, projected into the fields a caller reads.
+---
+--- Replaces `veaf.getGroupRoute(name)`. Every one of the eight VEAF call sites passed `"task"`,
+--- so the task-less form is not ported: a route without its tasks has no caller here.
+---
+--- This is a **projection, not the raw route**: MiST built a new point table with ten named fields and
+--- callers depend on that shape — `veafMove` reads `.speed` and `.alt`, `veafCombatZone` stores the
+--- result and hands it back to a spawn. Returning `env.mission`'s own points instead would hand callers
+--- a table they could mutate, and MiST never did.
+---
+--- @param groupName string the name of a group placed in the Mission Editor
+--- @return table|nil the route points, or nil when the group is unknown or has no route
+function veafDcsSpawner.getGroupRoute(groupName)
+  local group = veafMissionDb.getGroupRecord(groupName)
+  if not group then
+    veaf.loggers.get(veafDcsSpawner.Id):debug("getGroupRoute: no group named [%s] in the mission", veaf.p(groupName))
+    return nil
+  end
+  if not (group.route and group.route.points and #group.route.points > 0) then
+    veaf.loggers.get(veafDcsSpawner.Id):debug("getGroupRoute: group [%s] has no route", veaf.p(groupName))
+    return nil
+  end
+
+  local points = {}
+  for index, point in pairs(group.route.points) do
+    local projected = {
+      name = point.name,
+      form = point.action,
+      speed = point.speed,
+      alt = point.alt,
+      alt_type = point.alt_type,
+      airdromeId = point.airdromeId,
+      helipadId = point.helipadId,
+      type = point.type,
+      action = point.action,
+      task = point.task,
+    }
+    -- The Mission Editor writes either loose x/y or a `point` vec2; both shapes exist in the wild.
+    if point.point then
+      projected.point = point.point
+    else
+      projected.x = point.x
+      projected.y = point.y
+    end
+    points[index] = projected
+  end
+  return points
+end
+
+--- Send a group along a route, now.
+---
+--- Replaces `mist.goRoute`. Accepts either a group object or a group name, because both forms are in
+--- use — `veaf.lua` and `veafSpawnCore` pass the object, the other seven sites pass the name.
+---
+--- @param groupOrName table|string a DCS group, or the name of one
+--- @param route table the route points
+--- @return boolean true when the task was set
+function veafDcsSpawner.goRoute(groupOrName, route)
+  local group = groupOrName
+  if type(groupOrName) == "string" then
+    group = Group.getByName(groupOrName)
+  end
+  if not (group and group.getController) then
+    veaf.loggers.get(veafDcsSpawner.Id):debug("goRoute: no such group [%s]", veaf.p(groupOrName))
+    return false
+  end
+  local controller = group:getController()
+  if not controller then
+    return false
+  end
+  controller:setTask({
+    id = "Mission",
+    params = { route = { points = veaf.deepCopy(route) } },
+  })
+  return true
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.addStatic = veafDcsSpawner.addStatic
+veaf.getGroupRoute = veafDcsSpawner.getGroupRoute
+veaf.goRoute = veafDcsSpawner.goRoute
 
 function veafDcsSpawner.initialize()
   veaf.loggers.get(veafDcsSpawner.Id):info("Initializing module")

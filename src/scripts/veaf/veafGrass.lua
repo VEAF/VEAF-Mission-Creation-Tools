@@ -610,7 +610,7 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
   local leftOriginPlot = veaf.deepCopy(template)
   leftOriginPlot.x = leftOrigin.x
   leftOriginPlot.y = leftOrigin.y
-  mist.dynAddStatic(leftOriginPlot)
+  veaf.addStatic(leftOriginPlot)
 
   -- place plots
   for i = 1, nbPlots do
@@ -618,13 +618,13 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
     local leftPlot = veaf.deepCopy(template)
     leftPlot.x = runwayOrigin.x + i * space * math.cos(math.rad(angle))
     leftPlot.y = runwayOrigin.y + i * space * math.sin(math.rad(angle))
-    mist.dynAddStatic(leftPlot)
+    veaf.addStatic(leftPlot)
 
     -- right plot
     local rightPlot = veaf.deepCopy(template)
     rightPlot.x = leftOrigin.x + i * space * math.cos(math.rad(angle))
     rightPlot.y = leftOrigin.y + i * space * math.sin(math.rad(angle))
-    mist.dynAddStatic(rightPlot)
+    veaf.addStatic(rightPlot)
   end
 
   if endMarkers then
@@ -644,13 +644,13 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
     local leftPlot = veaf.deepCopy(template)
     leftPlot.x = runwayOrigin.x + (nbPlots + 1) * space * math.cos(math.rad(angle))
     leftPlot.y = runwayOrigin.y + (nbPlots + 1) * space * math.sin(math.rad(angle))
-    mist.dynAddStatic(leftPlot)
+    veaf.addStatic(leftPlot)
 
     -- right plot
     local rightPlot = veaf.deepCopy(template)
     rightPlot.x = leftOrigin.x + (nbPlots + 1) * space * math.cos(math.rad(angle))
     rightPlot.y = leftOrigin.y + (nbPlots + 1) * space * math.sin(math.rad(angle))
-    mist.dynAddStatic(rightPlot)
+    veaf.addStatic(rightPlot)
   end
 
   if tower then
@@ -670,7 +670,7 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
     local tower = veaf.deepCopy(template)
     tower.x = leftOrigin.x - 60 + (nbPlots + 1.2) * space * math.cos(math.rad(angle))
     tower.y = leftOrigin.y - 60 + (nbPlots + 1.2) * space * math.sin(math.rad(angle))
-    mist.dynAddStatic(tower)
+    veaf.addStatic(tower)
   end
 
   -- add the runway to the named points
@@ -1619,7 +1619,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       tent["groupName"] = groupName
     end
 
-    mist.dynAddStatic(tent)
+    veaf.addStatic(tent)
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
@@ -1642,7 +1642,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     if groupName then
       markerUnit1["groupName"] = groupName
     end
-    mist.dynAddStatic(markerUnit1)
+    veaf.addStatic(markerUnit1)
     farpUnitNameCounter = farpUnitNameCounter + 1
     local markerUnit2 = {
       ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
@@ -1660,7 +1660,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     if groupName then
       markerUnit2["groupName"] = groupName
     end
-    mist.dynAddStatic(markerUnit2)
+    veaf.addStatic(markerUnit2)
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
@@ -1707,7 +1707,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     if groupName then
       otherUnit["groupName"] = groupName
     end
-    mist.dynAddStatic(otherUnit)
+    veaf.addStatic(otherUnit)
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
@@ -1776,7 +1776,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   if groupName then
     windsockUnit["groupName"] = groupName
   end
-  mist.dynAddStatic(windsockUnit)
+  veaf.addStatic(windsockUnit)
   farpUnitNameCounter = farpUnitNameCounter + 1
 
   -- on FARP unit, place a second windsock, at 90°
@@ -1798,7 +1798,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     if groupName then
       windsockUnit["groupName"] = groupName
     end
-    mist.dynAddStatic(windsockUnit)
+    veaf.addStatic(windsockUnit)
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 

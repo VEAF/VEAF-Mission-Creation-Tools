@@ -134,7 +134,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
         hiddenOnMFD = hiddenOnMFD,
       }
 
-      mist.dynAddStatic(cargoTable)
+      veaf.addStatic(cargoTable)
 
       -- smoke the cargo if needed
       if cargoSmoke then
@@ -211,7 +211,7 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
       hiddenOnMFD = hiddenOnMFD,
     }
 
-    mist.dynAddStatic(staticTable)
+    veaf.addStatic(staticTable)
 
     -- smoke if needed
     if smoke then

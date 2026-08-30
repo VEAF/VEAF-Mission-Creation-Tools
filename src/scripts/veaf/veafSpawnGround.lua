@@ -102,7 +102,7 @@ function veafSpawn.spawnFarp(
     ["unlimitedFuel"] = true,
     ["unlimitedMunitions"] = true,
   }
-  mist.dynAddStatic(_farpStatic)
+  veaf.addStatic(_farpStatic)
   local _spawnedFARP = StaticObject.getByName(name)
   veaf.loggers.get(veafSpawn.Id):trace("_spawnedFARP=%s", veaf.lp(_spawnedFARP))
 
@@ -180,7 +180,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     heading = math.rad(hdg),
     country = _country,
   }
-  mist.dynAddStatic(_outpost)
+  veaf.addStatic(_outpost)
   local _fob = StaticObject.getByName(_outpost["name"])
 
   local _tower = {
@@ -194,7 +194,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     heading = math.rad(_hdg),
     country = _country,
   }
-  mist.dynAddStatic(_tower)
+  veaf.addStatic(_tower)
 
   -- add the FOB to the named points
   local _namedPoint = _spawnPosition

@@ -177,6 +177,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   spawner a point with no easting (`FIX-AIRWAVES-COMMAND-EASTING`), and the tests that should have
   caught it were asserting a mock that answered a different coordinate shape than MiST ever did.
 
+- **VEAF creates its own static objects**, without MiST — every FARP, runway plot, tent, windsock,
+  outpost, tower, cargo drop and `-spawn static` now goes through `veafDcsSpawner`. Nothing changes in
+  a mission: the four behaviours that were easy to lose in the move are covered by tests, including the
+  **random heading** an object gets when none is set, without which every cargo drop would line up on
+  the same axis.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

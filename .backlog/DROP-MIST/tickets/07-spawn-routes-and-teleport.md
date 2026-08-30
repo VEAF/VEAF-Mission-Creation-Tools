@@ -1,6 +1,6 @@
 # 07 — Spawn, routes and teleport
 
-Status: 🔄 in-progress — **the enumeration is written** (2026-08-28, below); implementation not started
+Status: 🔄 in-progress — enumeration written and **half (A) shipped** (2026-08-28); half (B) not started
 Type: refactor
 
 80 call sites over **726 MiST lines** — the functional core of the dependency, and the reason this lot
@@ -251,8 +251,8 @@ Unit tests cannot see whether a group actually appeared at the right place in DC
 - [x] The call-site → category → branch enumeration is written in this ticket **before** implementation
       — done 2026-08-28; it re-counted the slice at **64 real calls, not 80**
 - [ ] Ported into a dedicated module behind `veaf.*` façades; `dynAdd` first, then `teleportToPoint` as
-      route arithmetic over it
-- [ ] 64 call sites migrated
+      route arithmetic over it — **`veafDcsSpawner.lua` created**, `veaf.addStatic` shipped
+- [ ] 64 call sites migrated — **18 done** (all of `dynAddStatic`, half A)
 - [ ] Lua tests covering every branch in the enumeration table, including a group category we spawn but
       MiST handled specially
 - [ ] Position asserted against known coordinates, with the convention named in a comment

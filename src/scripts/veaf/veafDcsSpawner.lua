@@ -899,6 +899,18 @@ function VeafGroupSpawn:_spawn(verb, buildOnly)
     return false
   end
 
+  -- Every unit needs a position to be moved from. MiST assumed one and raised an arithmetic error on
+  -- nil, which in DCS means the whole script stops; saying so and creating nothing is the same outcome
+  -- for the group and a far better one for the mission.
+  for index, unit in pairs(data.units) do
+    if type(unit.x) ~= "number" or type(unit.y) ~= "number" then
+      veaf.loggers
+        .get(veafDcsSpawner.Id)
+        :error("cannot %s [%s]: unit %s has no position", verb, veaf.p(self.groupName), veaf.p(unit.name or index))
+      return false
+    end
+  end
+
   -- A record from the mission database names its group `groupName`; a spawn wants `name`.
   data.name = self.newGroupName or data.name or data.groupName
   data.groupName = data.name

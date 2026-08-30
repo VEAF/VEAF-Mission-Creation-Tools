@@ -1204,4 +1204,14 @@ function TestVeafGroupSpawnChain:test_a_group_with_no_units_creates_nothing()
   luaunit.assertFalse(VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 }):respawn())
 end
 
+function TestVeafGroupSpawnChain:test_a_unit_with_no_position_creates_nothing()
+  -- MiST raised an arithmetic error on nil here, and in DCS a raised error stops the whole script.
+  -- Refusing says the same thing about the group and leaves the mission running.
+  env.mission.coalition.blue.country[1].vehicle.group[1].units[1].x = nil
+  veafMissionDb.buildSnapshot()
+
+  luaunit.assertFalse(VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 }):respawn())
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

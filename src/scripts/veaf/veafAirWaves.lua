@@ -1019,7 +1019,7 @@ function AirWaveZone:deployWaves()
         -- this is a DCS group
         local groupName = groupNameOrCommand
         veaf.loggers.get(veafAirWaves.Id):debug("spawning group [%s]", veaf.lp(groupName))
-        local groupData = mist.getGroupData(groupName)
+        local groupData = veaf.getGroupRecord(groupName)
         veaf.loggers.get(veafAirWaves.Id):trace("groupData=%s", veaf.lp(groupData))
         if not groupData then
           veaf.loggers.get(veafAirWaves.Id):error("group [%s] does not exist in the mission!", veaf.p(groupName))

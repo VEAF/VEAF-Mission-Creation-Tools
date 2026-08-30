@@ -348,7 +348,7 @@ that can go wrong. Then the cheap and isolated work, then the risky core, then t
 | 09 | The destroyed-scenery register | 1 | ✅ done 2026-08-28 |
 | 05 | The mission index | 26 | ✅ done 2026-08-28 |
 | 06 | Geometry and zone queries | 37 | ✅ done 2026-08-28 (re-counted: 37, not 45) |
-| 07 | Spawn, routes and teleport | 64 | 🔄 enumeration written 2026-08-28; **high** — splits into (A) statics, (B) groups |
+| 07 | Spawn, routes and teleport | 64 | ✅ done 2026-08-28 |
 | 08 | Drop the injection | — | the only ticket with a visible gain |
 
 85 + 170 + 13 + 11 + 51 + 45 + 80 = **455**, the count as first measured. The spike re-counted its own

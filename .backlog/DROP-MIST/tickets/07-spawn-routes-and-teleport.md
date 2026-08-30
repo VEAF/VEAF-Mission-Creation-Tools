@@ -1,6 +1,8 @@
 # 07 — Spawn, routes and teleport
 
-Status: 🔄 in-progress — enumeration written and **half (A) shipped** (2026-08-28); half (B) not started
+Status: ✅ done — 2026-08-28. All 64 calls migrated; `grep 'mist\.' src/scripts/veaf/` returns only the
+`veaf.mist.*` façades (which already point at VEAF code) and the four lines of name-registry debt that
+leave with ticket 08.
 Type: refactor
 
 80 call sites over **726 MiST lines** — the functional core of the dependency, and the reason this lot
@@ -389,10 +391,11 @@ Unit tests cannot see whether a group actually appeared at the right place in DC
       — done 2026-08-28; it re-counted the slice at **64 real calls, not 80**
 - [ ] Ported into a dedicated module behind `veaf.*` façades; `dynAdd` first, then `teleportToPoint` as
       route arithmetic over it — **`veafDcsSpawner.lua` created**, `veaf.addStatic` shipped
-- [ ] 64 call sites migrated — **60 done**: `dynAddStatic` (18), `getGroupRoute` (8), `goRoute` (9),
-      `dynAdd` (13) and `teleportToPoint` (12). Left: `getGroupData` (3) and `respawnGroup` (2)
-- [ ] Lua tests covering every branch in the enumeration table, including a group category we spawn but
-      MiST handled specially
-- [ ] Position asserted against known coordinates, with the convention named in a comment
+- [x] 64 call sites migrated: `dynAddStatic` (18), `getGroupRoute` (8), `goRoute` (9), `dynAdd` (13),
+      `teleportToPoint` (12), `getGroupData` (3) and `respawnGroup` (2)
+- [x] Lua tests covering every branch in the enumeration table — 111 in `test_veafDcsSpawner.lua`, and
+      the module at **94 % line coverage**
+- [x] Position asserted against known coordinates, with the convention named — several tests were
+      confirmed to fail when a `y`/`z` conversion is reversed, which is the only way to catch it
 - [ ] Smoke-harness checks added for placement; anything it cannot reach filed in `DCS-SESSION-TODO.md`
-- [ ] `stylua --check` and `luacheck` clean
+- [x] `stylua --check` clean; `luacheck` clean after CI caught the missing `VeafGroupSpawn` global

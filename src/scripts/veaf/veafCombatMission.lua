@@ -921,7 +921,7 @@ function VeafCombatMission:activate(silent)
             end
           end
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("_group=%s", veaf.p(_group)))
-          local _spawnedGroup = mist.dynAdd(_group)
+          local _spawnedGroup = veaf.addGroup(_group)
           if _spawnedGroup then
             veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s", veaf.p(_spawnedGroup.name)))
             local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)

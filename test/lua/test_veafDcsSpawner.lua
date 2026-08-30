@@ -394,4 +394,295 @@ function TestVeafDcsSpawnerRoutes:test_goRoute_copies_the_route_it_is_given()
   luaunit.assertEquals(dcs_mocks.tasksSet[#dcs_mocks.tasksSet].task.params.route.points[1].x, 1)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafDcsSpawnerAddGroup
+-- ---------------------------------------------------------------------------
+-- Replaces `mist.dynAdd`, which was a **no-op stub** in these mocks and which no test ever overrode.
+-- The 13 call sites it serves were therefore never exercised; the branches below come from the
+-- call-site enumeration in DROP-MIST ticket 07.
+TestVeafDcsSpawnerAddGroup = {}
+
+function TestVeafDcsSpawnerAddGroup:setUp()
+  dcs_mocks.reset()
+end
+
+local function _group(overrides)
+  local group = {
+    country = "USA",
+    category = "GROUND_UNIT",
+    name = "a group",
+    units = { { type = "M-1 Abrams", x = 100, y = 200 } },
+  }
+  for key, value in pairs(overrides or {}) do
+    if value == NONE then
+      group[key] = nil
+    else
+      group[key] = value
+    end
+  end
+  return group
+end
+
+local function submittedGroup()
+  local entries = dcs_mocks.groupsAdded
+  return entries[#entries] and entries[#entries].group
+end
+
+local function submittedCategory()
+  local entries = dcs_mocks.groupsAdded
+  return entries[#entries] and entries[#entries].categoryId
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_valid_group_reaches_dcs()
+  luaunit.assertNotNil(veafDcsSpawner.addGroup(_group()))
+
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+  luaunit.assertEquals(submittedGroup().name, "a group")
+end
+
+-- The categories the enumeration found, including the two spellings of the same thing -------------
+
+function TestVeafDcsSpawnerAddGroup:test_ground_units()
+  veafDcsSpawner.addGroup(_group({ category = "GROUND_UNIT" }))
+
+  luaunit.assertEquals(submittedCategory(), Unit.Category.GROUND_UNIT)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_airplane_spelled_AIRPLANE()
+  -- veafSpawnCore.lua:794
+  veafDcsSpawner.addGroup(_group({ category = "AIRPLANE" }))
+
+  luaunit.assertEquals(submittedCategory(), Unit.Category.AIRPLANE)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_airplane_spelled_PLANE()
+  -- veafSpawnAircraft.lua:191 passes this spelling for the same thing. MiST mapped it; a port that
+  -- only accepted the canonical name would break that site and say nothing.
+  veafDcsSpawner.addGroup(_group({ category = "PLANE" }))
+
+  luaunit.assertEquals(submittedCategory(), Unit.Category.AIRPLANE)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_ship()
+  veafDcsSpawner.addGroup(_group({ category = "SHIP" }))
+
+  luaunit.assertEquals(submittedCategory(), Unit.Category.SHIP)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_helicopter()
+  -- Never a literal at a call site, but it arrives through the three sites that pass a group table
+  -- built from a template.
+  veafDcsSpawner.addGroup(_group({ category = "HELICOPTER" }))
+
+  luaunit.assertEquals(submittedCategory(), Unit.Category.HELICOPTER)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_the_ground_aliases_are_accepted()
+  for _, spelling in ipairs({ "VEHICLE", "GROUND", "ground_unit" }) do
+    dcs_mocks.reset()
+    veafDcsSpawner.addGroup(_group({ category = spelling }))
+    luaunit.assertEquals(submittedCategory(), Unit.Category.GROUND_UNIT, spelling .. " must resolve to ground")
+  end
+end
+
+function TestVeafDcsSpawnerAddGroup:test_an_unknown_category_creates_nothing_and_says_so()
+  -- MiST left the type nil and submitted the group anyway, so a typo produced a group DCS could not
+  -- classify and nobody was told.
+  luaunit.assertFalse(veafDcsSpawner.addGroup(_group({ category = "SUBMARINE" })))
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+-- What it fills in --------------------------------------------------------------------------------
+
+function TestVeafDcsSpawnerAddGroup:test_ids_are_allocated()
+  veafDcsSpawner.addGroup(_group())
+
+  luaunit.assertNotNil(submittedGroup().groupId)
+  luaunit.assertNotNil(submittedGroup().units[1].unitId)
+  luaunit.assertTrue(submittedGroup().groupId >= veafMissionDb.FIRST_UNIT_ID)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_given_ids_are_kept()
+  veafDcsSpawner.addGroup(_group({ groupId = 11, units = { { type = "M-1 Abrams", x = 1, y = 2, unitId = 22 } } }))
+
+  luaunit.assertEquals(submittedGroup().groupId, 11)
+  luaunit.assertEquals(submittedGroup().units[1].unitId, 22)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_unit_with_no_name_is_named_after_its_group()
+  veafDcsSpawner.addGroup(_group({ name = "Convoy" }))
+
+  luaunit.assertEquals(submittedGroup().units[1].name, "Convoy unit1")
+end
+
+function TestVeafDcsSpawnerAddGroup:test_groupName_is_accepted_as_the_name()
+  veafDcsSpawner.addGroup(_group({ name = NONE, groupName = "from groupName" }))
+
+  luaunit.assertEquals(submittedGroup().name, "from groupName")
+end
+
+function TestVeafDcsSpawnerAddGroup:test_skill_defaults_to_random()
+  veafDcsSpawner.addGroup(_group())
+
+  luaunit.assertEquals(submittedGroup().units[1].skill, "Random")
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_ground_unit_can_be_driven_by_a_player()
+  veafDcsSpawner.addGroup(_group())
+
+  luaunit.assertTrue(submittedGroup().units[1].playerCanDrive)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_startTime_is_rounded_into_start_time()
+  veafDcsSpawner.addGroup(_group({ startTime = 12.7 }))
+
+  luaunit.assertEquals(submittedGroup().start_time, 13)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_start_time_defaults_to_zero()
+  veafDcsSpawner.addGroup(_group())
+
+  luaunit.assertEquals(submittedGroup().start_time, 0)
+end
+
+-- Aircraft ----------------------------------------------------------------------------------------
+
+function TestVeafDcsSpawnerAddGroup:test_an_airplane_gets_its_cruise_defaults()
+  veafDcsSpawner.addGroup(_group({ category = "AIRPLANE", units = { { type = "F-16C_50", x = 1, y = 2 } } }))
+
+  luaunit.assertEquals(submittedGroup().units[1].speed, 150)
+  luaunit.assertEquals(submittedGroup().units[1].alt, 2000)
+  luaunit.assertEquals(submittedGroup().units[1].alt_type, "RADIO")
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_helicopter_gets_slower_and_lower_defaults()
+  veafDcsSpawner.addGroup(_group({ category = "HELICOPTER", units = { { type = "UH-1H", x = 1, y = 2 } } }))
+
+  luaunit.assertEquals(submittedGroup().units[1].speed, 60)
+  luaunit.assertEquals(submittedGroup().units[1].alt, 500)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_baro_altitude_is_left_alone()
+  veafDcsSpawner.addGroup(_group({
+    category = "AIRPLANE",
+    units = { { type = "F-16C_50", x = 1, y = 2, alt = 9000, alt_type = "BARO" } },
+  }))
+
+  luaunit.assertEquals(submittedGroup().units[1].alt_type, "BARO", "a caller asking for barometric altitude means it")
+  luaunit.assertEquals(submittedGroup().units[1].alt, 9000)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_an_aircraft_with_no_route_gets_an_empty_one()
+  -- Without it DCS sends the aircraft home the moment it spawns.
+  veafDcsSpawner.addGroup(_group({ category = "AIRPLANE", units = { { type = "F-16C_50", x = 1, y = 2 } } }))
+
+  luaunit.assertNotNil(submittedGroup().route)
+  luaunit.assertNotNil(submittedGroup().route.points)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_ground_group_with_no_route_gets_none_invented()
+  veafDcsSpawner.addGroup(_group())
+
+  luaunit.assertNil(submittedGroup().route)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_bare_list_of_points_is_wrapped_into_a_route()
+  veafDcsSpawner.addGroup(_group({ route = { { x = 1, y = 2 }, { x = 3, y = 4 } } }))
+
+  luaunit.assertNotNil(submittedGroup().route.points)
+  luaunit.assertEquals(#submittedGroup().route.points, 2)
+end
+
+-- The payload, which is why the snapshot carries it ------------------------------------------------
+
+function TestVeafDcsSpawnerAddGroup:test_an_aircraft_without_a_payload_gets_the_editor_one()
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = {
+        group = { { name = "Template", groupId = 7, units = { { name = "Template-1", unitId = 3, payload = { fuel = 5000 } } } } },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  veafDcsSpawner.addGroup(_group({
+    category = "AIRPLANE",
+    units = { { type = "F-16C_50", x = 1, y = 2, unitName = "Template-1" } },
+  }))
+
+  luaunit.assertNotNil(submittedGroup().units[1].payload, "the loadout must come from the mission")
+  luaunit.assertEquals(submittedGroup().units[1].payload.fuel, 5000)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_payload_that_was_given_is_kept()
+  veafDcsSpawner.addGroup(_group({
+    category = "AIRPLANE",
+    units = { { type = "F-16C_50", x = 1, y = 2, payload = { fuel = 1 } } },
+  }))
+
+  luaunit.assertEquals(submittedGroup().units[1].payload.fuel, 1)
+end
+
+-- Tasks that name the ids just allocated -----------------------------------------------------------
+
+function TestVeafDcsSpawnerAddGroup:test_an_eplrs_task_points_at_the_new_group_id()
+  local group = _group({
+    route = { points = { { task = { params = { tasks = { { params = { action = { id = "EPLRS", params = { groupId = 999 } } } } } } } } } },
+  })
+
+  veafDcsSpawner.addGroup(group)
+
+  local action = submittedGroup().route.points[1].task.params.tasks[1].params.action
+  luaunit.assertEquals(action.params.groupId, submittedGroup().groupId)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_beacon_task_points_at_the_new_unit_id()
+  local group = _group({
+    route = {
+      points = { { task = { params = { tasks = { { params = { action = { id = "ActivateBeacon", params = { unitId = 999 } } } } } } } } },
+    },
+  })
+
+  veafDcsSpawner.addGroup(group)
+
+  local action = submittedGroup().route.points[1].task.params.tasks[1].params.action
+  luaunit.assertEquals(action.params.unitId, submittedGroup().units[1].unitId)
+end
+
+-- Refusals and hygiene -----------------------------------------------------------------------------
+
+function TestVeafDcsSpawnerAddGroup:test_a_group_with_no_units_creates_nothing()
+  luaunit.assertFalse(veafDcsSpawner.addGroup(_group({ units = {} })))
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_an_unknown_country_creates_nothing()
+  luaunit.assertFalse(veafDcsSpawner.addGroup(_group({ country = "Atlantis" })))
+end
+
+function TestVeafDcsSpawnerAddGroup:test_nothing_at_all_is_survivable()
+  luaunit.assertFalse(veafDcsSpawner.addGroup(nil))
+end
+
+function TestVeafDcsSpawnerAddGroup:test_the_bookkeeping_fields_are_stripped()
+  -- DCS reads country and category from the call arguments and chokes on them in the table.
+  veafDcsSpawner.addGroup(_group({ groupName = "x", startTime = 5 }))
+
+  luaunit.assertNil(submittedGroup().category)
+  luaunit.assertNil(submittedGroup().country)
+  luaunit.assertNil(submittedGroup().groupName)
+  luaunit.assertNil(submittedGroup().units[1].unitName)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_the_caller_table_is_not_mutated()
+  local original = _group()
+
+  veafDcsSpawner.addGroup(original)
+
+  luaunit.assertEquals(original.category, "GROUND_UNIT", "the caller keeps its own table")
+  luaunit.assertNil(original.groupId)
+end
+
 os.exit(luaunit.LuaUnit.run())

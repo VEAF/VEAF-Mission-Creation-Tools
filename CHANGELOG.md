@@ -192,6 +192,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and group on each call. And one dead guard went with it: a combat zone used to check whether MiST was
   loaded at all before reading a route, which a bundled function makes moot.
 
+- **VEAF creates its own groups**, the last big piece MiST held: every aircraft, ship and ground group
+  a VEAF command spawns now goes through `veafDcsSpawner` rather than `mist.dynAdd`. Behaviour is
+  unchanged, defaults included — the cruise speed and altitude an aircraft gets when the caller sets
+  none, the `Random` skill, the empty route without which DCS sends a new aircraft straight home.
+
+  **One thing it no longer does silently.** MiST accepted an unknown group category, left the type
+  empty and submitted the group anyway; a misspelling produced something DCS could not classify and
+  nobody was told. That is now refused, with the category named in the log. The spellings that *are*
+  accepted are unchanged, `PLANE` and `AIRPLANE` alike — VEAF uses both, for the same thing.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

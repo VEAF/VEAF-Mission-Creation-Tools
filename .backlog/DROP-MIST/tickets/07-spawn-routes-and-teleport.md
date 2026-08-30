@@ -255,9 +255,19 @@ calls it for any aircraft unit with no payload, and `veafSpawnCore.lua:794` buil
 with **no payload field at all** — grep finds none in that file. `getPayload` reads
 `mist.DBs.MEunitsByName` for the unit id and then walks `env.mission` for the loadout;
 `veafMissionDb.unitRecord` deliberately keeps only what VEAF reads, and a payload is not among its
-fields. So half (B) either enriches the snapshot with payloads or walks `env.mission` on demand —
-**decide that before writing the port**, because the first choice costs memory for every mission and
-the second costs a walk per spawn.
+fields.
+
+**Decided 2026-08-28, by measurement: the snapshot carries the payload.** The question was whether that
+costs memory for every mission. Measured on the session mission — 435 units, 356 payload blocks — the
+payloads are **287 KB, 10.7 % of a 2.7 MB mission file**, which looked like a real price. It is not,
+because `mist.getPayload` ends with `return unitData.payload`: **a reference into `env.mission`, never a
+copy**. Holding the same reference in a unit record costs one pointer per unit, and `env.mission` is
+resident anyway.
+
+Two consequences worth writing down. It is iso-behaviour including the sharing: a spawned group that
+mutates its payload mutates the mission table, exactly as it does today under MiST — reproduce it, do
+not "fix" it in this ticket. And it removes the walk: `getPayload` searches every coalition, country and
+group to find one unit, on every aircraft spawn without a loadout.
 
 The three route functions are the easy end: `getGroupRoute` is always called with `"task"`, `goRoute`
 takes either a group object or a name, and `teleportToPoint` is route arithmetic over `dynAdd` — the

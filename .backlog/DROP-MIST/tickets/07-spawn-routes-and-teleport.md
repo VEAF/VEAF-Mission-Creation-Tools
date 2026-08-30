@@ -223,6 +223,46 @@ deliberately rather than discovered later.
 Coordinate note, per the trap above: a static's table uses `x` for the northing and **`y` for the
 easting** — `veafSpawnGround.lua:89` writes `["y"] = spawnPosition.z`. The port must not "fix" that.
 
+### Half (B) — `dynAdd` and the route calls, read 2026-08-28
+
+`dynAdd`'s 222 lines do, in order: resolve the country; resolve the category (with the alias table
+above); pick a `typeName` marker used only for generated names; allocate a group id; settle the group
+name; default `sameName`, `hidden`, `visible`, `start_time`; then per unit — allocate a unit id, settle
+the unit name, default `skill` to `"Random"`, and for **aircraft only** default `alt_type` to `RADIO`,
+`speed` to 150 (plane) or 60 (helicopter), `alt` to 2000 or 500, and **fetch the payload** through
+`mist.getPayload`; for ground units default `playerCanDrive` to true. Then it normalises the route,
+rewrites `EPLRS` / `ActivateBeacon` / `ActivateICLS` task ids, strips its own bookkeeping fields, and
+calls `coalition.addGroup`.
+
+Measured against our 13 call sites, three things shrink the job and one grows it:
+
+**1. The clone path is never reached directly.** All four occurrences of `clone` in VEAF are
+`vars.action = "clone"` — a parameter of `teleportToPoint`, not of `dynAdd`. So `dynAdd`'s
+name-uniqueness test against `mist.DBs` is reached only *through* the teleport, which means the name
+registry from ticket 05 is needed once, in one place, rather than at every call site.
+
+**2. `newGroup.sameName = true` at `veafSpawnAircraft.lua:676` is a no-op.** MiST reads `sameName` only
+inside `if newGroup.clone and …`, and that site passes no `clone`. It has never done anything. Port it
+as inert — this ticket must not change behaviour — but it is worth knowing that the AFAC teleport
+trickery next to it (its own comment: *"since MIST does not store cloned group data, this is a bit of
+trickery"*) rests on a flag that does nothing.
+
+**3. `playerCanDrive` and `start_time` are never set by a caller**, so their defaults are the behaviour
+and have to be reproduced exactly. `startTime` (camel case, rounded) is used by `veafCombatMission`.
+
+**4. `mist.getPayload` has to be ported, and the snapshot does not carry what it needs.** `dynAdd`
+calls it for any aircraft unit with no payload, and `veafSpawnCore.lua:794` builds `AIRPLANE` groups
+with **no payload field at all** — grep finds none in that file. `getPayload` reads
+`mist.DBs.MEunitsByName` for the unit id and then walks `env.mission` for the loadout;
+`veafMissionDb.unitRecord` deliberately keeps only what VEAF reads, and a payload is not among its
+fields. So half (B) either enriches the snapshot with payloads or walks `env.mission` on demand —
+**decide that before writing the port**, because the first choice costs memory for every mission and
+the second costs a walk per spawn.
+
+The three route functions are the easy end: `getGroupRoute` is always called with `"task"`, `goRoute`
+takes either a group object or a name, and `teleportToPoint` is route arithmetic over `dynAdd` — the
+#290 investigation already read it end to end and found it correct.
+
 ## Two traps
 
 - **Coordinates.** `dynAdd` and `dynAddStatic` place objects, so

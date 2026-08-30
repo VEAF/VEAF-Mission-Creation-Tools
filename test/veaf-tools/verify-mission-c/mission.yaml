@@ -243,7 +243,6 @@ modules:
   # The two `csar-avoids-water-*` checks call `csar.spawnGroup` in this mission's Lua state, so with
   # CSAR off they return `csar-absent` and measure nothing. Observed 2026-08-22.
   CSAR: true
-  HERCULES: false
   # ON for this mission: checks 6 and 7 (#151, #261) are read from the Skynet monitor, and
   # `include_red_in_radio` is what puts the RED network's status and its activate/deactivate
   # commands in the F10 menu. Without it there is nothing to deactivate for #261.

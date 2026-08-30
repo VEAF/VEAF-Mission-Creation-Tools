@@ -1,6 +1,6 @@
 # CHORE-DROP-HERCULES-SCRIPT — remove the Hercules Cargo script, keep the aircraft
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-28
 
 Origin: David, 2026-08-28, while `DROP-MIST` ticket 08 was counting which community scripts still need
 MiST — *"hercules cargo : je ne crois pas que ça soit utilisé en fait"*. Checked, and he is right.
@@ -59,15 +59,24 @@ anyway**: a mission maker should not have to deduce it from a warning.
 | the repository's four test `mission.yaml` | the same line |
 | `doc/MISSION_YAML_REFERENCE.md` / `.en.md` | the module table row |
 
-Leave alone: `third_party_mods.json`, `group_insertion.py`, the Foothold profiles, CTLD's profile, and
-the `CHANGELOG` / `CONTEXT` mentions, which are history.
+Leave alone: `third_party_mods.json`, `group_insertion.py`, CTLD's profile, and the `CHANGELOG` /
+`CONTEXT` mentions, which are history.
+
+**Correction, found while doing it**: the Foothold convert profiles were listed here as "leave alone",
+and they are not. Both name `hercules` in `disabled_community_scripts` — the list of VEAF scripts a
+Foothold mission turns off because it ships its own. With the script gone, that entry becomes an id
+nothing recognises, and every Foothold conversion would log *"Unknown community script id hercules"*.
+Removed from both, and from the three Python tests that asserted the list's contents.
 
 ## Definition of done
 
-- [ ] The script and its five registry entries are gone; `grep -i hercules` returns only the mod, the
-      CTLD profile and history
-- [ ] A generated mission carries no `Hercules_Cargo.lua` — asserted by **unzipping the built `.miz`**
-- [ ] The Python suite passes, `test_lua_bundle_manifest` included
-- [ ] `doc/` updated in **both** languages, `docs-check` clean
-- [ ] `RELEASE_NOTES.md` states the removal and names CTLD as what covers the capability
-- [ ] `CHANGELOG.md` entry under `[Unreleased]`
+- [x] The script and its registry entries are gone. **Two more were found while doing it**: the
+      `disabled_community_scripts` list of both Foothold convert profiles named it, which would have
+      logged *"unknown community script id"* on every Foothold conversion
+- [x] A generated mission carries no `Hercules_Cargo.lua` — verified by unzipping a built `.miz`, not
+      by reading the yaml
+- [x] The Python suite passes (82.22 % coverage, gate 81); `ruff`, `ruff format` and `mypy` clean
+- [x] `doc/` updated in both languages, `docs-check` clean
+- [x] Stated in `CHANGELOG.md`, naming CTLD as what covers the capability and the C-130 mod as
+      untouched. `RELEASE_NOTES.md` is written at release time, not per PR
+- [x] `CHANGELOG.md` entry under `[Unreleased]`

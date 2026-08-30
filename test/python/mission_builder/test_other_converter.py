@@ -209,7 +209,7 @@ class TestBuildScaffoldYamlWithProfile(unittest.TestCase):
         yaml = build_scaffold_yaml([], [], self._profile())
         self.assertNotIn("community_scripts:", yaml)  # no separate (deprecated, ignored) block
         modules_body = yaml.split("modules:", 1)[1]
-        for sid in ("ctld", "aien", "csar", "skynet", "stts", "hercules", "tum"):
+        for sid in ("ctld", "aien", "csar", "skynet", "stts", "tum"):
             self.assertIn(f"{sid}: false", modules_body, f"{sid} must be disabled inside modules:")
 
     def test_no_disabled_community_lines_without_profile(self) -> None:

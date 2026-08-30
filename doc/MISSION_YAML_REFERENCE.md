@@ -412,7 +412,6 @@ modules:
 | `CTLD` | CTLD (Combat Transport & Logistics Dispatcher) |
 | `AIEN` | AIEN (AI Enhancement) |
 | `CSAR` | CSAR (Combat Search and Rescue) |
-| `HERCULES` | Hercules Cargo |
 | `SKYNET` | Skynet IADS |
 | `TUM` | The Universal Mission (TUM) |
 

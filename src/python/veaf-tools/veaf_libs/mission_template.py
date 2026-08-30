@@ -196,7 +196,6 @@ _CATALOG: tuple[Module, ...] = (
     ),
     Module("CSAR", FEATURE, "Community", tiers=frozenset({"standard", "full"})),
     Module("AIEN", FEATURE, "Community", tiers=frozenset({"full"})),
-    Module("HERCULES", FEATURE, "Community", tiers=frozenset({"full"})),
     Module("SKYNET", CONFIG, "Community", config_block=_SKYNET_BLOCK, tiers=frozenset({"full"})),
     Module("TUM", TUM, "Community", config_block=_TUM_BLOCK, tiers=frozenset({"full"})),
 )

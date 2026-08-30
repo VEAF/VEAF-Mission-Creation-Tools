@@ -224,6 +224,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   It also absorbed the three lines of coordinate juggling that every caller copied before the call —
   the exact place where a defect had already slipped in once.
 
+### Removed
+
+- **The Hercules Cargo community script is gone.** Nothing in the repository enabled it — `HERCULES:
+  false` in every mission, and in the shipped default — and **CTLD already carries a full Hercules
+  transport profile**: crate and troop limits, loadable vehicle lists per coalition, parachute drops.
+  The capability is not lost; a second, competing implementation is.
+
+  **The C-130 mod itself is untouched.** It stays in the third-party mod list, in the group insertion
+  tooling and in the Foothold conversion profiles. The aircraft keeps flying and keeps carrying.
+
+  A mission that still says `HERCULES: true` builds normally and logs *"Unknown community script id"*.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

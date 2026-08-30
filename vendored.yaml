@@ -92,25 +92,35 @@ artifacts:
     watch:
       - { kind: github-release, repo: akaAgar/the-universal-mission-for-dcs-world, pinned: "v0.1.250722" }
 
-  # Why the fork and not the origin, since the entry above lists both and the answer is not obvious:
-  # the script is **walder's**, but that repository has not cut a release since 3.3.0 in December 2023.
-  # The Regroupement-Patrouille fork is the living branch — measured 2026-08-23, `ahead=4 behind=0` on
-  # walder/master, carrying `fix: getCategory`, `Database CRAM can engage HARM`, and two SAM-type
-  # updates that add the Phalanx, Tor M2, Pantsir S1, Iris-T SLM and SA-11 Solo. So it is not a
-  # contribution fork with nothing of its own, which is the case this file's header warns about; those
-  # units are the reason we take it.
+  # Three repositories deep, and which one to send a patch to is the whole point of this comment.
   #
-  # Consequence for anyone fixing a Skynet defect: **send the patch to the fork**, not to walder. A pull
-  # request against a repository dormant since 2023 does not reach a mission. Contact there: Flogas.
+  # The script is walder's, dormant since 3.3.0 in December 2023. Flogas forked it for the
+  # Regroupement-Patrouille and added the Phalanx, Tor M2, Pantsir S1, Iris-T SLM and SA-11 Solo --
+  # those units are why we take the fork and not the origin. But that fork went quiet too: measured
+  # 2026-08-30, its last commit is 2025-09-10, and a VEAF pull request had been open there since
+  # 2026-08-23 with no comment and no review.
+  #
+  # So VEAF forked the fork. `source` below is ours, and it is where a Skynet fix goes now. Do not
+  # read `ahead=N` as a sign of life: the four commits the Regroupement fork leads walder by all date
+  # from 2025, and reading that counter as a pulse is what made an earlier note here call it "the
+  # living branch".
+  #
+  # Sending work back upstream is still worth doing, once it has been checked in game -- to Flogas
+  # first, since walder's repository has not moved since 2023. That is a proposal, not a dependency:
+  # nothing here waits on either of them.
   - id: skynet
-    source: https://github.com/regroupement-patrouille/Skynet-IADS
-    upstream: https://github.com/walder/Skynet-IADS
-    pinned: "3.4.0RP build 10.09.2025"
+    source: https://github.com/VEAF/Skynet-IADS
+    upstream: https://github.com/regroupement-patrouille/Skynet-IADS
+    pinned: "3.4.0RP-VEAF build 30.08.2026"
     vendoring: compiled
     path: src/scripts/community/skynet-iads-compiled.lua
-    manual_steps: "Recompile skynet-iads-compiled.lua from the regroupement-patrouille fork sources (build tools) and re-apply the 'RP' version label."
+    # Three steps, and the second one is the one that gets forgotten: the artefact the fork commits is
+    # unformatted, ours is run through stylua. Skipping it makes the next sync a 4000-line diff in
+    # which the real change cannot be seen.
+    manual_steps: "Recompile skynet-iads-compiled.lua from the VEAF/Skynet-IADS sources (build-tools/build-compiled-script.ps1), run stylua on it, and re-apply the 'RP-VEAF' version label."
     watch:
-      - { kind: github-file, repo: regroupement-patrouille/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "f18b919bd435" }
+      - { kind: github-file, repo: VEAF/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "820d3cc0eb85" }
+      - { kind: github-file, repo: regroupement-patrouille/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "f18b919bd435", role: upstream-ref }
       - { kind: github-release, repo: walder/Skynet-IADS, pinned: "3.3.0", role: upstream-ref }
 
   - id: stts

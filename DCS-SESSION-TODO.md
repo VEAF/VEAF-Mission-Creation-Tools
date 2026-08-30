@@ -513,3 +513,45 @@ bundle, which is a load-order problem and not a porting one.
 
 **What it unblocks:** `.backlog/REFACTOR-CSAR-WITHOUT-MIST/PRD.md`, its last unchecked box. Record the
 result there and delete this section.
+
+## 24. Does Skynet still work now that it no longer calls MiST? -- closes a lot
+
+Same shape as item 23, one script further along, and this one is what retires the MiST injection
+altogether. `REFACTOR-SKYNET-WITHOUT-MIST` is `🧑 waiting-human` on this and nothing else.
+
+Forty-two calls were replaced. The artefact was checked function for function against the previous one
+-- 282 functions, 140 table keys, 17 classes, no difference outside the intended change -- so what a
+static comparison can establish is established. What it cannot reach is behaviour over time, and both
+risky pieces are exactly that.
+
+**What to run.** An IADS mission: a few SAM sites and an early warning radar behind a prefix, a strike
+package coming in. The session mission does not carry one, so the quickest route is one of the demo
+missions shipped in the fork, under `demo-missions/`.
+
+Then, in one flight:
+
+1. **Watch a SAM site go live, then dark.** This exercises the scheduler that replaced
+   `mist.scheduleFunction` -- `SkynetIADS.evaluateContacts` runs on it, every `contactUpdateInterval`.
+   If the scheduler were broken the IADS would simply never react, which is easy to see and easy to
+   mistake for a mission setup problem.
+2. **Fire a HARM at a live site.** HARM defence schedules two things and cancels them again
+   (`harmScanID`, `harmSilenceID`). A site must go dark, then come back after its shutdown time. A
+   site that goes dark and **never** comes back means a cancellation removed the wrong task.
+3. **Check a site added by prefix appears.** `addSAMSitesByPrefix` and `addEarlyWarningRadarsByPrefix`
+   no longer read MiST's database; they ask DCS. A site present in the editor but missing from the
+   IADS status is this change failing.
+4. **Spawn a SAM site during the mission**, then add it by prefix. MiST would only have seen it after
+   its next database refresh; it should now be seen immediately. This one is a small improvement, not
+   a regression risk -- worth confirming while everything else is set up.
+
+**What to look for in `dcs.log`:** filter on `SkynetIADS`. A line reading
+`SkynetIADS: error in scheduled function:` is the new scheduler catching a throw -- it keeps running
+by design, so this is the only place such a failure surfaces. Any `attempt to index` or
+`attempt to call` naming `SkynetIADSUtils` is a missing helper.
+
+⚠️ **If nothing happens at all**, check load order before suspecting the port: Skynet is a single
+compiled file and no longer asserts anything about MiST.
+
+**What it unblocks:** `.backlog/REFACTOR-SKYNET-WITHOUT-MIST/PRD.md`, its last unchecked box, and with
+it `DROP-MIST` ticket 08 -- no community script VEAF ships would still need the injection. Record the
+result there and delete this section.

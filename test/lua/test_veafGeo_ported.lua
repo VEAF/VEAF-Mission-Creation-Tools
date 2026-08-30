@@ -15,6 +15,7 @@ dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
 
 -- ---------------------------------------------------------------------------
 -- TestVeafGeoRandomPointInCircle
@@ -321,6 +322,168 @@ function TestVeafGeoDrawTriggerZone:test_removing_nothing_is_not_an_error()
   veafGeo.removeDrawing(nil)
 
   luaunit.assertEquals(#self.removed, 0)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafHelpersForCsar — REFACTOR-CSAR-WITHOUT-MIST
+-- ---------------------------------------------------------------------------
+-- The four helpers CSAR needed that VEAF did not have, plus the id index. They live here rather than
+-- inside CSAR because none of them is CSAR-specific.
+TestVeafHelpersForCsar = {}
+
+function TestVeafHelpersForCsar:setUp()
+  dcs_mocks.reset()
+end
+
+-- vecSub / dot product ---------------------------------------------------------------------------
+
+function TestVeafHelpersForCsar:test_vecSub_subtracts_component_by_component()
+  local result = veafMath.vecSub({ x = 10, y = 20, z = 30 }, { x = 1, y = 2, z = 3 })
+
+  luaunit.assertEquals(result.x, 9)
+  luaunit.assertEquals(result.y, 18)
+  luaunit.assertEquals(result.z, 27)
+end
+
+function TestVeafHelpersForCsar:test_vecSub_accepts_a_mission_table_point()
+  -- A vec2's y is the easting, so it must land in z — the same rule makeVec3 applies everywhere.
+  local result = veafMath.vecSub({ x = 10, y = 20 }, { x = 1, y = 2 })
+
+  luaunit.assertEquals(result.x, 9)
+  luaunit.assertEquals(result.z, 18, "the easting difference belongs in z")
+  luaunit.assertEquals(result.y, 0)
+end
+
+function TestVeafHelpersForCsar:test_the_dot_product_is_positive_when_vectors_agree()
+  -- Its sign is what CSAR reads: is the helicopter closing on the survivor or leaving him?
+  luaunit.assertTrue(veafMath.vecDotProduct({ x = 1, y = 0, z = 0 }, { x = 5, y = 0, z = 0 }) > 0)
+end
+
+function TestVeafHelpersForCsar:test_the_dot_product_is_negative_when_they_oppose()
+  luaunit.assertTrue(veafMath.vecDotProduct({ x = 1, y = 0, z = 0 }, { x = -5, y = 0, z = 0 }) < 0)
+end
+
+function TestVeafHelpersForCsar:test_perpendicular_vectors_have_a_zero_dot_product()
+  luaunit.assertEquals(veafMath.vecDotProduct({ x = 1, y = 0, z = 0 }, { x = 0, y = 0, z = 1 }), 0)
+end
+
+-- buildWaypoint ----------------------------------------------------------------------------------
+
+function TestVeafHelpersForCsar:test_a_waypoint_puts_the_easting_in_y()
+  -- The reason this function exists. A route waypoint is the mission-table shape, so a runtime vec3's
+  -- z becomes the waypoint's y. Passing the vec3 through unchanged puts the waypoint at an easting
+  -- equal to its altitude, and DCS accepts it without a word.
+  local waypoint = veafGeo.buildWaypoint({ x = 1000, y = 5000, z = 2000 })
+
+  luaunit.assertEquals(waypoint.x, 1000)
+  luaunit.assertEquals(waypoint.y, 2000, "the vec3's z is the waypoint's y")
+  luaunit.assertNil(waypoint.z)
+end
+
+function TestVeafHelpersForCsar:test_a_vec2_waypoint_keeps_its_easting()
+  local waypoint = veafGeo.buildWaypoint({ x = 1000, y = 2000 })
+
+  luaunit.assertEquals(waypoint.y, 2000)
+end
+
+function TestVeafHelpersForCsar:test_a_waypoint_travels_off_road_by_default()
+  luaunit.assertEquals(veafGeo.buildWaypoint({ x = 1, y = 2 }).action, "Off Road")
+end
+
+function TestVeafHelpersForCsar:test_a_formation_that_was_asked_for_is_used()
+  luaunit.assertEquals(veafGeo.buildWaypoint({ x = 1, y = 2 }, "On Road").action, "On Road")
+end
+
+function TestVeafHelpersForCsar:test_the_points_own_speed_wins_over_the_default()
+  luaunit.assertEquals(veafGeo.buildWaypoint({ x = 1, y = 2, speed = 42 }).speed, 42)
+end
+
+function TestVeafHelpersForCsar:test_an_explicit_speed_wins_over_the_points()
+  luaunit.assertEquals(veafGeo.buildWaypoint({ x = 1, y = 2, speed = 42 }, nil, 99).speed, 99)
+end
+
+function TestVeafHelpersForCsar:test_nonsense_makes_no_waypoint()
+  luaunit.assertNil(veafGeo.buildWaypoint(nil))
+  luaunit.assertNil(veafGeo.buildWaypoint({ y = 2 }))
+end
+
+-- toStringBR -------------------------------------------------------------------------------------
+
+function TestVeafHelpersForCsar:test_due_east_reads_as_090()
+  -- Format kept exactly as MiST rendered it: a CSAR message a pilot has learned to read is not the
+  -- place for an improvement.
+  local text = veafGeo.toStringBR({ x = 0, y = 0, z = 0 }, { x = 0, y = 0, z = 1852 })
+
+  luaunit.assertStrContains(text, "090")
+  luaunit.assertStrContains(text, "for 1", "1852 m is one nautical mile")
+end
+
+function TestVeafHelpersForCsar:test_the_bearing_is_always_three_digits()
+  local text = veafGeo.toStringBR({ x = 0, y = 0, z = 0 }, { x = 1000, y = 0, z = 0 })
+
+  luaunit.assertStrContains(text, "000 for", "a bearing reads as three digits; 'for 0' is not one")
+end
+
+function TestVeafHelpersForCsar:test_metric_reports_kilometres()
+  local text = veafGeo.toStringBR({ x = 0, y = 0, z = 0 }, { x = 0, y = 0, z = 10000 }, nil, true)
+
+  luaunit.assertStrContains(text, "for 10")
+end
+
+function TestVeafHelpersForCsar:test_an_altitude_is_appended_when_given()
+  local text = veafGeo.toStringBR({ x = 0, y = 0, z = 0 }, { x = 0, y = 0, z = 1852 }, 3048)
+
+  luaunit.assertStrContains(text, " at ")
+end
+
+function TestVeafHelpersForCsar:test_no_altitude_means_no_at()
+  local text = veafGeo.toStringBR({ x = 0, y = 0, z = 0 }, { x = 0, y = 0, z = 1852 })
+
+  luaunit.assertNil(string.find(text, " at "), "nothing is appended when no altitude is asked for")
+end
+
+function TestVeafHelpersForCsar:test_nonsense_reports_nothing()
+  luaunit.assertNil(veafGeo.toStringBR(nil, { x = 1, y = 2 }))
+  luaunit.assertNil(veafGeo.toStringBR({ x = 1, y = 2 }, nil))
+end
+
+-- The unit index by id ---------------------------------------------------------------------------
+
+function TestVeafHelpersForCsar:test_a_unit_can_be_found_by_its_editor_id()
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = { group = { { name = "Flight", groupId = 5, units = { { name = "Flight-1", unitId = 77, type = "F-16C_50" } } } } },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  local record = veafMissionDb.getUnitRecordById(77)
+
+  luaunit.assertNotNil(record)
+  luaunit.assertEquals(record.unitName, "Flight-1")
+end
+
+function TestVeafHelpersForCsar:test_an_unknown_id_answers_nothing()
+  veafMissionDb.buildSnapshot()
+
+  luaunit.assertNil(veafMissionDb.getUnitRecordById(99999))
+end
+
+function TestVeafHelpersForCsar:test_the_id_index_holds_only_what_the_editor_placed()
+  -- The difference from MiST's DBs.unitsById, which was refreshed twenty times a second and therefore
+  -- held runtime units too. A caller expecting a runtime unit here gets nil, and the docstring says so.
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = { group = { { name = "Flight", groupId = 5, units = { { name = "Flight-1", unitId = 77, type = "F-16C_50" } } } } },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  luaunit.assertNil(veafMissionDb.getUnitRecordById(veafMissionDb.getNextUnitId()), "a runtime id is not an editor id")
 end
 
 os.exit(luaunit.LuaUnit.run())

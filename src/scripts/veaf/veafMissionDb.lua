@@ -65,6 +65,14 @@ end
 --- Unit records by unit name. Built by `veafMissionDb.buildSnapshot`.
 veafMissionDb.unitsByName = {}
 
+--- Unit records by **editor** unit id.
+---
+--- Not interchangeable with the name index, and the difference bites: this holds what the Mission
+--- Editor placed, so a unit VEAF spawned at runtime has an id and no entry here. MiST's
+--- `DBs.unitsById` mixed both, being refreshed twenty times a second; this one is the editor snapshot,
+--- like everything else in this module.
+veafMissionDb.unitsById = {}
+
 --- Group records by group name.
 veafMissionDb.groupsByName = {}
 
@@ -125,6 +133,7 @@ end
 --- Mission Editor holds, which does not change while the mission runs.
 function veafMissionDb.buildSnapshot()
   veafMissionDb.unitsByName = {}
+  veafMissionDb.unitsById = {}
   veafMissionDb.groupsByName = {}
   veafMissionDb.groupsById = {}
   veafMissionDb.countriesByCoalition = {}
@@ -172,6 +181,9 @@ function veafMissionDb.buildSnapshot()
                   if unitData.name then
                     local record = unitRecord(unitData, groupData, context)
                     veafMissionDb.unitsByName[record.unitName] = record
+                    if record.unitId then
+                      veafMissionDb.unitsById[record.unitId] = record
+                    end
                     table.insert(group.units, record)
                   end
                 end
@@ -201,6 +213,16 @@ end
 --- @return table|nil
 function veafMissionDb.getUnitRecord(unitName)
   return veafMissionDb.unitsByName[unitName]
+end
+
+--- The mission record of a unit, by its **editor** id, or nil.
+---
+--- Answers nothing for a unit spawned at runtime: those have ids but no editor record. A caller that
+--- needs either must ask by name first — see the note on `unitsById`.
+--- @param unitId number
+--- @return table|nil
+function veafMissionDb.getUnitRecordById(unitId)
+  return veafMissionDb.unitsById[unitId]
 end
 
 --- The mission record of a group, or nil.
@@ -534,6 +556,7 @@ end
 
 veaf.getNextUnitId = veafMissionDb.getNextUnitId
 veaf.getUnitRecord = veafMissionDb.getUnitRecord
+veaf.getUnitRecordById = veafMissionDb.getUnitRecordById
 veaf.getGroupRecord = veafMissionDb.getGroupRecord
 veaf.getGroupRecordById = veafMissionDb.getGroupRecordById
 veaf.getAllUnitRecords = veafMissionDb.getAllUnitRecords

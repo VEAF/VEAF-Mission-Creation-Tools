@@ -433,6 +433,73 @@ end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
+--- Turn a point into a route waypoint.
+---
+--- Replaces `mist.ground.buildWP`. The conversion it performs is the whole reason it exists: a route
+--- waypoint is the **mission-table shape**, so a runtime vec3's `z` becomes the waypoint's `y`. Passing
+--- the vec3 through unchanged puts the waypoint at an easting equal to its altitude, which DCS accepts
+--- without a word — see `docs/agents/dcs-coordinates.md`.
+---
+--- @param point table the destination, in either coordinate shape
+--- @param formation string|nil the formation to travel in; MiST's default is "Off Road"
+--- @param speed number|nil the speed in m/s; the point's own speed is kept when it has one
+--- @return table a waypoint
+function veafGeo.buildWaypoint(point, formation, speed)
+  if type(point) ~= "table" or type(point.x) ~= "number" then
+    return nil
+  end
+  local waypoint = {
+    x = point.x,
+    -- A vec3 carries the easting in z; a vec2 already has it in y.
+    y = point.z or point.y,
+    action = formation or "Off Road",
+    type = "Turning Point",
+  }
+  waypoint.speed = speed or point.speed or 20
+  return waypoint
+end
+
+--- Bearing and range from a reference point to a position, as a pilot reads it.
+---
+--- Replaces `mist.getBRString` and the `mist.tostringBR` it called. Format kept exactly: three digits
+--- of bearing, `for`, the distance, and optionally `at` the altitude — `"090 for 12 at 5"` — because a
+--- CSAR message a pilot has learned to parse is not the place for an improvement.
+---
+--- The bearing is corrected to **true** north at the reference point, as MiST did through
+--- `mist.utils.getDir`.
+---
+--- @param reference table where the observer is
+--- @param position table what is being reported
+--- @param altitude number|nil when given, appended after `at`
+--- @param metric boolean|nil kilometres and metres instead of nautical miles and thousands of feet
+--- @return string|nil
+function veafGeo.toStringBR(reference, position, altitude, metric)
+  if type(reference) ~= "table" or type(position) ~= "table" then
+    return nil
+  end
+  local from = veaf.makeVec3(reference)
+  local to = veaf.makeVec3(position)
+  local direction = veaf.getDir(veaf.vecSub(to, from), from)
+  local distance = veaf.get2DDist(to, from)
+
+  local bearing = veaf.round(math.deg(direction), 0)
+  local text
+  if metric then
+    text = string.format("%03d for %s", bearing, veaf.round(distance / 1000, 0))
+  else
+    text = string.format("%03d for %s", bearing, veaf.round(veaf.metersToNM(distance), 0))
+  end
+
+  if altitude then
+    if metric then
+      text = text .. " at " .. veaf.round(altitude, 0)
+    else
+      text = text .. " at " .. veaf.round(veaf.metersToFeet(altitude) / 1000, 0)
+    end
+  end
+  return text
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.getRandomPointInCircle = veafGeo.getRandomPointInCircle
@@ -442,6 +509,8 @@ veaf.drawTriggerZone = veafGeo.drawTriggerZone
 veaf.removeDrawing = veafGeo.removeDrawing
 veaf.toStringLL = veafGeo.toStringLL
 veaf.toStringMGRS = veafGeo.toStringMGRS
+veaf.toStringBR = veafGeo.toStringBR
+veaf.buildWaypoint = veafGeo.buildWaypoint
 veaf.zoneToVec3 = veafGeo.zoneToVec3
 veaf.getAvgPos = veafGeo.getAvgPos
 veaf.getAvgGroupPos = veafGeo.getAvgGroupPos

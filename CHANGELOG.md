@@ -255,6 +255,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   CTLD did the same on its own in v2, and the Hercules script was removed this release, which leaves
   **Skynet as the only script still needing MiST**.
 
+- **Skynet no longer needs MiST either, which retires the injection.** Its forty-two calls across
+  thirty-one lines were arithmetic, a repeating scheduler and two ways of listing what a mission holds
+  — none of them a reason to carry a 9800-line dependency. They now go to a compatibility module
+  inside Skynet itself, with no dependency on VEAF, so the script stays usable outside VEAF and can
+  still be offered upstream.
+
+  The scheduler keeps the guarantee MiST gave: a repeating task that throws is logged and **keeps its
+  place**. An IADS whose contact evaluation dies on one bad contact must not go deaf for the rest of
+  the mission.
+
+  Listing units and groups now asks DCS directly rather than reading a table refreshed every two
+  seconds. Skynet re-fetched and filtered each name anyway, so what a mission sees is unchanged —
+  except that a group spawned during the mission is noticed at once instead of up to two seconds later.
+
+  Both repositories upstream are dormant — walder since December 2023, the Regroupement-Patrouille
+  fork since September 2025 — so this work lives in `VEAF/Skynet-IADS`. The vendoring manifest
+  records the new chain, and gained the step it was missing: the artefact VEAF ships is formatted, the
+  one the fork commits is not, and skipping that turns the next sync into a four-thousand-line diff.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

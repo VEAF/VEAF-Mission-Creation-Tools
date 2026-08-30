@@ -236,10 +236,10 @@ calls `coalition.addGroup`.
 
 Measured against our 13 call sites, three things shrink the job and one grows it:
 
-**1. The clone path is never reached directly.** All four occurrences of `clone` in VEAF are
-`vars.action = "clone"` — a parameter of `teleportToPoint`, not of `dynAdd`. So `dynAdd`'s
-name-uniqueness test against `mist.DBs` is reached only *through* the teleport, which means the name
-registry from ticket 05 is needed once, in one place, rather than at every call site.
+**1. The clone path is never reached directly.** Every `clone` in VEAF is a `teleportToPoint`
+parameter, never a `dynAdd` one. So `dynAdd`'s name-uniqueness test against `mist.DBs` is reached only
+*through* the teleport, which means the name registry from ticket 05 is needed once, in one place,
+rather than at every call site. (The count of those sites was corrected to 5 — see above.)
 
 **2. `newGroup.sameName = true` at `veafSpawnAircraft.lua:676` is a no-op.** MiST reads `sameName` only
 inside `if newGroup.clone and …`, and that site passes no `clone`. It has never done anything. Port it
@@ -292,8 +292,11 @@ unnamed boolean:
 | `"teleport"` / `"tele"` | moves the group **as it is right now** | its live state |
 | *(2nd arg `true`)* | builds the data and creates **nothing** | — |
 
-Every VEAF site uses `clone` (5) or `respawn` (3); none uses `teleport`, despite the function's name.
-The three sites passing the unnamed `true` are all clones.
+**Corrected 2026-08-28**: an earlier count here said no site used `teleport`. That was wrong — it came
+from grepping `vars.action =` as a separate assignment, which misses the sites that build the table in
+one expression. The real count is **clone 5, respawn 3, teleport 5**, so all three verbs are in use and
+`getCurrentGroupData` has to be ported after all. The three sites passing the unnamed `true` are all
+clones.
 
 #### The shape chosen: chaining, not an options table
 
@@ -331,6 +334,28 @@ the exact place where `FIX-AIRWAVES-COMMAND-EASTING` slipped in.
    the route and the payload by reference to serve them.
 3. `VeafGroupSpawn` over both, replacing `teleportToPoint`.
 4. Migrate the 42 remaining call sites.
+
+### `teleportToPoint`, read 2026-08-28 — what the chain has to carry
+
+Beyond the three verbs, its 223 lines do four things that are behaviour and not plumbing:
+
+- **A valid-terrain draw.** It tries up to 100 random points in the circle and keeps the first whose
+  terrain suits the group: ships get `SHALLOW_WATER`/`WATER`, ground units `LAND`/`ROAD`/`RUNWAY` — with
+  a VEAF comment from 2023 explaining that runways are included because DCS calls dams "RUNWAY". A
+  caller can override with `validTerrain`, or skip the check with `anyTerrain`, which `veafMove` uses
+  for its AFAC. So the chain needs `:onAnyTerrain()` and `:onTerrain(list)`.
+- **The whole group moves by one offset.** The draw positions unit 1; every other unit keeps its
+  formation by moving the same `diff`. Unless `disperse` is set, in which case each unit gets its own
+  draw within `maxDisp`.
+- **An altitude rule for aircraft.** If the requested point is more than 10 m above the ground, it is
+  used; otherwise the aircraft is placed at a **random** height above terrain — 300–9000 m for a plane,
+  200–3000 m for a helicopter. That randomness is behaviour: a fleet of respawned aircraft stacked at
+  one altitude would look wrong.
+- **A start time relative to now.** A group whose editor `start_time` has already passed spawns
+  immediately; one still in the future keeps the remainder.
+
+Plus `groupData`, which `veafMove` passes for its AFAC instead of a group name — hence `:withGroupData()`
+on the chain.
 
 ## Two traps
 

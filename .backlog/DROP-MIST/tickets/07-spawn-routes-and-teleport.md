@@ -190,13 +190,22 @@ resolve `shape_name`. Then it validates `x`, `y` and `type` and calls
 
 Four things decided by reading our own 18 call sites:
 
-**1. The `shape_name` lookup has to be ported, but not for the reason it looked.**
+**1. The `shape_name` lookup has to be ported, and the number that justifies it is 93.**
 `mist.DBs.const.shapeNames` holds **124 entries**, and the objects that most obviously need it do not
 use it: the FARP passes `shape_name` explicitly (`veafSpawnGround.lua:86`), so do the windsock and the
 runway cones. `"outpost"` and `"house2arm"` are not in the table at all, so the lookup is a no-op for
-them. **But `veafSpawnEffects.lua:214` passes a `type` the mission maker chose** — any of the 124 can
-arrive there. The table is a constant, so porting it is mechanical; skipping it would break exactly the
-spawns nobody tests.
+them.
+
+What makes it necessary is `veafSpawnEffects.lua:214`. Despite the file's name that call is **not an
+effect**: it is `doSpawnStatic`, the function behind `-spawn static`, and the `type` comes from the
+mission maker, validated against the 873-unit catalogue by `veafUnits.findDcsUnit`. Crossing the two
+tables: **93 of the catalogue's types are keys of `shapeNames`** — `.Ammunition depot`,
+`.Command Center`, `Barracks 2`, `Cafe`, `Boiler-house A`, `Airshow_Crowd` and so on, all structures.
+
+So 93 spawnable statics get their shape from this table and from nowhere else. The remaining 31 entries
+are shapes only the Mission Editor places, and no VEAF command can reach them. The table is a constant,
+so porting it is mechanical — but port it against the catalogue rather than wholesale, and skipping it
+would break exactly the spawns nobody tests.
 
 **2. `veafSpawnAircraft.lua:187` is the only site using the MiST wrapper format** —
 `{ country, groupName, units = units }` rather than a flat object — so it is the only one that exercises

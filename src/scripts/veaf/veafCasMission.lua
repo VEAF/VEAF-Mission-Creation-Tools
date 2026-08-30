@@ -1036,7 +1036,7 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
   end
 
   -- actually spawn groups
-  mist.dynAdd({ country = country, category = "GROUND_UNIT", name = veafCasMission.casGroupName, hidden = false, units = dcsUnits })
+  veaf.addGroup({ country = country, category = "GROUND_UNIT", name = veafCasMission.casGroupName, hidden = false, units = dcsUnits })
 
   -- set AI options
   local controller = Group.getByName(veafCasMission.casGroupName):getController()

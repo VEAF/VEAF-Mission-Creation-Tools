@@ -361,11 +361,181 @@ function veafDcsSpawner.goRoute(groupOrName, route)
   return true
 end
 
+--- Category names DCS accepts for a group, and the spellings VEAF actually passes.
+---
+--- MiST tolerated four aliases and our call sites use two of them: `veafSpawnAircraft` passes `"PLANE"`
+--- where `veafSpawnCore` passes `"AIRPLANE"`, for the same thing. A port accepting only the canonical
+--- spelling would break the first one **silently**, because an unresolved category leaves the group
+--- type nil and the group is submitted anyway.
+veafDcsSpawner.GROUP_CATEGORIES = {
+  GROUND_UNIT = "GROUND_UNIT",
+  VEHICLE = "GROUND_UNIT",
+  GROUND = "GROUND_UNIT",
+  AIRPLANE = "AIRPLANE",
+  PLANE = "AIRPLANE",
+  HELICOPTER = "HELICOPTER",
+  SHIP = "SHIP",
+  BUILDING = "BUILDING",
+}
+
+--- Default cruise settings per aircraft category, applied to a unit that carries none.
+--- MiST's numbers, kept as they are: a spawned aircraft that suddenly cruises at a different speed or
+--- altitude is a behaviour change a mission maker would notice before any test would.
+veafDcsSpawner.AIRCRAFT_DEFAULTS = {
+  AIRPLANE = { speed = 150, alt = 2000 },
+  HELICOPTER = { speed = 60, alt = 500 },
+}
+
+--- Resolve a group category name or id to the spelling DCS wants.
+--- @param wanted string|number
+--- @return string|nil
+local function resolveCategory(wanted)
+  if type(wanted) == "number" then
+    for name, id in pairs(Unit.Category) do
+      if id == wanted then
+        return veafDcsSpawner.GROUP_CATEGORIES[name]
+      end
+    end
+    return nil
+  end
+  if type(wanted) ~= "string" then
+    return nil
+  end
+  return veafDcsSpawner.GROUP_CATEGORIES[string.upper(wanted)]
+end
+
+--- Create a group in the running mission.
+---
+--- Replaces `mist.dynAdd`. What it fills in for a caller who left it out is behaviour, not tidying, so
+--- each default is reproduced deliberately:
+---
+---  * a **group id** and a **unit id** per unit, from VEAF's own allocator;
+---  * a **group name**, and a unit name per unit built from it (`"<group> unit<N>"`);
+---  * `skill` = `"Random"`;
+---  * for aircraft only: `alt_type` = `RADIO`, and the cruise speed and altitude above — plus the
+---    **payload read from the mission**, which is why the snapshot carries it: `veafSpawnCore` builds
+---    `AIRPLANE` groups with no payload field at all;
+---  * for ground units: `playerCanDrive` = true;
+---  * an empty route for an aircraft that has none, or DCS sends it straight home.
+---
+--- **Coordinates.** A unit's table is the mission-table shape: `x` northing, `y` easting. See
+--- `docs/agents/dcs-coordinates.md`.
+---
+--- @param groupData table the group definition
+--- @return table|false the group as submitted, or false when it could not be created
+function veafDcsSpawner.addGroup(groupData)
+  if type(groupData) ~= "table" then
+    veaf.loggers.get(veafDcsSpawner.Id):error("addGroup: no group data")
+    return false
+  end
+  local group = veaf.deepCopy(groupData)
+
+  local countryName = resolveCountry(group.countryId or group.country)
+  if not countryName then
+    veaf.loggers.get(veafDcsSpawner.Id):error("addGroup: country not found: %s", veaf.p(group.countryId or group.country))
+    return false
+  end
+
+  local category = resolveCategory(group.category)
+  if not category then
+    -- Loud, where MiST was silent: it left the type nil and submitted the group anyway, so a misspelled
+    -- category produced a group DCS could not classify and nobody was told.
+    veaf.loggers.get(veafDcsSpawner.Id):error("addGroup: unknown category: %s", veaf.p(group.category))
+    return false
+  end
+
+  if type(group.units) ~= "table" or not group.units[1] then
+    veaf.loggers.get(veafDcsSpawner.Id):error("addGroup: a group needs at least one unit")
+    return false
+  end
+
+  group.groupId = group.groupId or veaf.getNextUnitId()
+  group.name = group.groupName or group.name
+  if not group.name then
+    group.name = string.format("%s %s %s", countryName, string.lower(category), group.groupId)
+  end
+
+  if group.hidden == nil then
+    group.hidden = false
+  end
+  if group.visible == nil then
+    group.visible = false
+  end
+  if type(group.start_time) ~= "number" then
+    group.start_time = group.startTime and veaf.round(group.startTime, 0) or 0
+  end
+
+  for index, unit in ipairs(group.units) do
+    unit.unitId = unit.unitId or veaf.getNextUnitId()
+    unit.name = unit.unitName or unit.name or string.format("%s unit%d", group.name, index)
+    unit.skill = unit.skill or "Random"
+
+    if category == "AIRPLANE" or category == "HELICOPTER" then
+      local defaults = veafDcsSpawner.AIRCRAFT_DEFAULTS[category]
+      if unit.alt_type ~= "BARO" then
+        unit.alt_type = "RADIO"
+      end
+      unit.speed = unit.speed or defaults.speed
+      if not unit.alt then
+        unit.alt = defaults.alt
+        unit.alt_type = "RADIO"
+        unit.speed = defaults.speed
+      end
+      if not unit.payload then
+        -- The loadout of the editor unit this one is modelled on. Held by reference in the snapshot,
+        -- exactly as MiST's getPayload returned it.
+        local record = veafMissionDb.getUnitRecord(unit.unitName or unit.name)
+        unit.payload = record and record.payload or nil
+      end
+    elseif category == "GROUND_UNIT" then
+      if unit.playerCanDrive == nil then
+        unit.playerCanDrive = true
+      end
+    end
+  end
+
+  -- A route given as a bare list of points is wrapped; an aircraft with no route at all gets an empty
+  -- one, without which DCS sends it home the moment it spawns.
+  if group.route and not group.route.points and group.route[1] then
+    group.route = { points = group.route }
+  elseif not group.route and (category == "AIRPLANE" or category == "HELICOPTER") then
+    group.route = { points = { {} } }
+  end
+
+  -- Tasks that name the group or its first unit have to point at the ids just allocated.
+  if group.route and group.route.points then
+    for _, point in pairs(group.route.points) do
+      local tasks = point.task and point.task.params and point.task.params.tasks
+      for _, task in pairs(tasks or {}) do
+        local action = task.params and task.params.action
+        if action and action.id == "EPLRS" then
+          action.params.groupId = group.groupId
+        elseif action and (action.id == "ActivateBeacon" or action.id == "ActivateICLS") then
+          action.params.unitId = group.units[1].unitId
+        end
+      end
+    end
+  end
+
+  -- DCS reads the country and category from the call, not from the table, and chokes on VEAF's own
+  -- bookkeeping fields.
+  group.groupName, group.category, group.country, group.countryId, group.startTime = nil, nil, nil, nil, nil
+  group.tasks = {}
+  for _, unit in ipairs(group.units) do
+    unit.unitName = nil
+  end
+
+  coalition.addGroup(country.id[countryName], Unit.Category[category], group)
+  veaf.loggers.get(veafDcsSpawner.Id):trace("addGroup: created [%s] with %d unit(s)", veaf.p(group.name), #group.units)
+  return group
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.addStatic = veafDcsSpawner.addStatic
+veaf.addGroup = veafDcsSpawner.addGroup
 veaf.getGroupRoute = veafDcsSpawner.getGroupRoute
 veaf.goRoute = veafDcsSpawner.goRoute
 

@@ -789,11 +789,18 @@ function veafSpawn.doSpawnGroup(
 
   -- actually spawn the group
   if group.naval then
-    mist.dynAdd({ country = country, category = "SHIP", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({ country = country, category = "SHIP", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
   elseif group.air then
-    mist.dynAdd({ country = country, category = "AIRPLANE", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({ country = country, category = "AIRPLANE", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
   else
-    mist.dynAdd({ country = country, category = "GROUND_UNIT", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({
+      country = country,
+      category = "GROUND_UNIT",
+      name = groupName,
+      hidden = false,
+      units = units,
+      hiddenOnMFD = hiddenOnMFD,
+    })
   end
 
   if not silent then

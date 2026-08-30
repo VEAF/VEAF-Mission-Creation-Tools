@@ -188,13 +188,13 @@ function veafSpawn.spawnUnit(
     --groupName = nil --statics do not have a group name, you must set groupName to nil to avoid other scripts interacting
   elseif unit.air then
     veaf.loggers.get(veafSpawn.Id):trace("Spawning AIRPLANE")
-    mist.dynAdd({ country = country, category = "PLANE", groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({ country = country, category = "PLANE", groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
   elseif unit.naval then
     veaf.loggers.get(veafSpawn.Id):trace("Spawning SHIP")
-    mist.dynAdd({ country = country, category = "SHIP", groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({ country = country, category = "SHIP", groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
   else
     veaf.loggers.get(veafSpawn.Id):trace("Spawning GROUND_UNIT")
-    mist.dynAdd({ country = country, category = "GROUND_UNIT", groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({ country = country, category = "GROUND_UNIT", groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
   end
 
   if role == "jtac" and not static then
@@ -678,7 +678,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
   unit.alt = teleportSpot.alt
 
   veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
-  local _spawnedGroup = mist.dynAdd(newGroup)
+  local _spawnedGroup = veaf.addGroup(newGroup)
 
   if _spawnedGroup then
     veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.lp(_spawnedGroup, nil, { "route", "payload" }))
@@ -1160,14 +1160,14 @@ function veafSpawn.spawnCombatAirPatrol(
     veaf.loggers.get(veafSpawn.Id):debug("indexed spawnedUnitName=%s", spawnedUnitName)
   end
 
-  veaf.loggers.get(veafSpawn.Id):trace("before mist.dynAdd, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
-  local _spawnedGroup = mist.dynAdd(newGroup)
+  veaf.loggers.get(veafSpawn.Id):trace("before addGroup, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
+  local _spawnedGroup = veaf.addGroup(newGroup)
   if not _spawnedGroup then
     veaf.loggers.get(veafSpawn.Id):error("cannot spawn group %s", veaf.p(newGroup.name))
     return nil
   end
-  veaf.loggers.get(veafSpawn.Id):debug("after mist.dynAdd, _spawnedGroup.name=%s", _spawnedGroup.name)
-  veaf.loggers.get(veafSpawn.Id):trace("after mist.dynAdd, _spawnedGroup=%s", veaf.lp(_spawnedGroup, nil, { "route", "payload" }))
+  veaf.loggers.get(veafSpawn.Id):debug("after addGroup, _spawnedGroup.name=%s", _spawnedGroup.name)
+  veaf.loggers.get(veafSpawn.Id):trace("after addGroup, _spawnedGroup=%s", veaf.lp(_spawnedGroup, nil, { "route", "payload" }))
 
   local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
   veaf.loggers

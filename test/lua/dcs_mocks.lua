@@ -13,6 +13,7 @@ dcs_mocks.zones = {}
 dcs_mocks.logs = {} -- captured log lines
 dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
 dcs_mocks.staticsAdded = {} -- captured coalition.addStaticObject calls, as { countryId, object }
+dcs_mocks.groupsAdded = {} -- captured coalition.addGroup calls, as { countryId, categoryId, group }
 
 -- Registre des groupes, declare ICI et pas plus bas : `coalition.getGroups` le lit, et un local declare
 -- apres son usage laisse la fermeture capturer la globale — c'est-a-dire nil.
@@ -336,7 +337,11 @@ coalition = {
   getPlayers = function(side)
     return {}
   end,
-  addGroup = function(...) end,
+  --- Records what was submitted, for the same reason addStaticObject does.
+  --- Entries are `{ countryId, categoryId, group }`. Cleared by dcs_mocks.reset().
+  addGroup = function(countryId, categoryId, group)
+    table.insert(dcs_mocks.groupsAdded, { countryId = countryId, categoryId = categoryId, group = group })
+  end,
   --- Records what was submitted, rather than discarding it: what a spawner hands DCS *is* the
   --- behaviour under test, and asserting against a no-op stub asserts nothing.
   --- Entries are `{ countryId = <id>, object = <the table submitted> }`. Cleared by dcs_mocks.reset().
@@ -762,6 +767,7 @@ function dcs_mocks.reset()
   dcs_mocks.logs = {}
   dcs_mocks.tasksSet = {}
   dcs_mocks.staticsAdded = {}
+  dcs_mocks.groupsAdded = {}
   dcs_mocks.messages = {}
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.cockpitArguments = {}

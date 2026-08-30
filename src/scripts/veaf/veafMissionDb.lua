@@ -377,11 +377,12 @@ end
 --- This replaces `veafSpawnAircraft`'s hand-deletion of `mist.DBs.unitsByName[x]` and
 --- `groupsByName[x]`, which existed so a dead AFAC's callsign could be reused.
 ---
---- **It still performs that deletion**, and has to, until ticket 07: the code that refuses a name it
---- has seen before is `mist.dynAdd`, and it reads MiST's tables, not ours. Freeing the name here
---- without freeing it there would leave the AFAC unable to respawn under its own callsign — a
---- regression a pilot would notice, traded for a grep that is one line cleaner. The two lines go when
---- ticket 08 drops the injection, and this comment goes with them.
+--- **It still performs that deletion.** Ticket 07 ported `dynAdd`, and the port reaches no
+--- name-uniqueness test at all: `clone` is never passed to it directly — every VEAF `clone` goes
+--- through the teleport path, which is still MiST's. So MiST is still the thing that would refuse a
+--- name it has seen, and freeing the name here without freeing it there would leave the AFAC unable to
+--- respawn under its own callsign. The two lines go with the teleport port, and this comment with
+--- them.
 ---
 --- @param name string
 --- @return boolean true when the name was released somewhere

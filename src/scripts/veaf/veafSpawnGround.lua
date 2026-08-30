@@ -378,7 +378,14 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
   end
 
   -- actually spawn groups
-  mist.dynAdd({ country = country, category = "GROUND_UNIT", name = groupName, hidden = false, units = dcsUnits, hiddenOnMFD = hiddenOnMFD })
+  veaf.addGroup({
+    country = country,
+    category = "GROUND_UNIT",
+    name = groupName,
+    hidden = false,
+    units = dcsUnits,
+    hiddenOnMFD = hiddenOnMFD,
+  })
 end
 
 --- Spawns a dynamic infantry group

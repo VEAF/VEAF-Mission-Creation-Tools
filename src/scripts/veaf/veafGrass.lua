@@ -1471,14 +1471,14 @@ end
 -- nothing CTLD about it — and CTLD 2 keeps its equivalent private, rightly so.
 --
 -- @param point vec3 : where to put it
--- @param country : the FARP's country (name or id, as mist.dynAdd accepts)
+-- @param country : the FARP's country (name or id, as veaf.addGroup accepts)
 -- @param displayName string : shown in the unit name, so a pilot reading the F10 map
 --                             sees the channel
 -- @return Group or nil
 ------------------------------------------------------------------------------
 function veafGrass.spawnTacanCarrierUnit(point, country, displayName)
   local groupName = string.format("VEAF TACAN carrier - %s", displayName)
-  local spawned = mist.dynAdd({
+  local spawned = veaf.addGroup({
     country = country,
     category = "GROUND_UNIT",
     groupName = groupName,
@@ -1887,7 +1887,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
-  mist.dynAdd(farpEscortGroup)
+  veaf.addGroup(farpEscortGroup)
 
   -- add the FARP to the named points
   local farpNamedPoint = {

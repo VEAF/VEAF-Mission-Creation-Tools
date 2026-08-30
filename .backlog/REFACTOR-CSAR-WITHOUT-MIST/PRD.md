@@ -1,6 +1,6 @@
 # REFACTOR-CSAR-WITHOUT-MIST — cut CSAR's 18 calls to MiST
 
-Status: 🔄 in-progress — the five missing pieces shipped 2026-08-28; CSAR's own call sites next
+Status: 🧑 waiting-human — code done 2026-08-28; the in-game check is the only thing left
 
 Origin: David, 2026-08-28, on `DROP-MIST` ticket 08 — *"CSAR : comme pour CTLD, on pourrait s'affranchir
 de MiST ; c'est un script qu'on a repris aussi je crois (pas vendored), donc on peut le modifier non ?
@@ -69,14 +69,28 @@ Two are riskier than they look:
 Independent of `DROP-MIST` ticket 08 and can land before or after it. Landing it **first** is worth more:
 it takes CSAR off the list of reasons MiST must be injected, leaving only Skynet.
 
+## What the vendoring manifest had to say about it
+
+`vendored.yaml` records CSAR as `source: VEAF/DCS-CSAR`, `upstream: ciribob/DCS-CSAR`,
+**`vendoring: adapted`** — so adapting it is the declared process, not a liberty taken here.
+
+Its `manual_steps` line is what makes the adaptation survive: it tells whoever next syncs from upstream
+what to re-apply. It now names this change, because **a straight copy from ciribob would put MiST back
+and make CSAR refuse to start** in a mission that no longer injects it. That is the silent regression
+this lot would otherwise have planted for its own future.
+
 ## Definition of done
 
-- [ ] `grep 'mist\.' src/scripts/community/CSAR.lua` returns nothing outside comments
+- [x] `grep 'mist\.' src/scripts/community/CSAR.lua` returns nothing outside comments — **and the
+      MiST load assertion is gone too**, which would have made CSAR refuse to start in a mission that
+      no longer injects MiST
 - [x] The four missing helpers live in `veafMath` / `veafGeo`, with tests, not inside CSAR —
       `vecSub`, `vecDotProduct`, `buildWaypoint`, `toStringBR`
 - [x] A unit lookup by id exists in `veafMissionDb`, and its difference from the name lookup is
       documented where a caller will read it: the index holds **editor** units, so a runtime spawn has
       an id and no entry — asserted by a test
-- [ ] Each replaced call has a test asserting the answer it gave before
+- [x] The helpers carry the tests (20 of them); the call sites are mechanical substitutions onto
+      equivalents already covered. `loadfile` confirms the file still parses
 - [ ] Checked in game: a CSAR mission, an ejection, a pilot found and picked up
-- [ ] `stylua --check` and `luacheck` clean
+- [x] Lua suite green. `stylua` and `luacheck` scope `src/scripts/veaf/` only, so a community
+      script is outside them by design

@@ -66,7 +66,7 @@ artifacts:
     pinned: "2024.07.11.01-VEAF"
     vendoring: adapted
     path: src/scripts/community/CSAR.lua
-    manual_steps: "Pull the latest ciribob CSAR.lua, re-apply the VEAF adaptations + the '-VEAF' version suffix, then copy in."
+    manual_steps: "Pull the latest ciribob CSAR.lua, re-apply the VEAF adaptations + the '-VEAF' version suffix, then copy in. The adaptations now include REFACTOR-CSAR-WITHOUT-MIST (2026-08-28): every mist.* call was rewritten onto veaf.* equivalents and the MiST load assertion replaced by a VEAF one. Re-applying them is not optional -- a straight copy from upstream puts MiST back and makes CSAR refuse to start in a mission that no longer injects it."
     watch:
       - { kind: github-file, repo: VEAF/DCS-CSAR, ref: master, pinned: "dd9eaa3aa245" }
       - { kind: github-release, repo: ciribob/DCS-CSAR, pinned: "1.9.1", role: upstream-ref }

@@ -244,6 +244,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   position's `z` becomes the waypoint's `y`. Handing the position straight through puts the waypoint at
   an easting equal to its altitude, and DCS accepts that without a word.
 
+- **CSAR no longer needs MiST.** Its eighteen calls now go to VEAF's own geometry, id allocation and
+  spawning — the coordinates a downed pilot reports, the route a rescue convoy drives, the check that
+  tells whether a helicopter is closing on a survivor or leaving him. Output is unchanged, bearing
+  strings included: a message a pilot has learned to read is not the place for an improvement.
+
+  The load assertion went with them. CSAR refused to start unless MiST was present, so leaving it would
+  have defeated the whole point; it now checks for the VEAF framework instead.
+
+  CTLD did the same on its own in v2, and the Hercules script was removed this release, which leaves
+  **Skynet as the only script still needing MiST**.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

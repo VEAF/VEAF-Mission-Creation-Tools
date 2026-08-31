@@ -586,6 +586,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `#spawnchance` note on the combat-zones card and the dynamic-slot stock note were written while
   their fixes were still in flight; both have shipped, so the flags are gone.
 
+- **The build no longer warns a beginner about a script they never asked for.** A `mission.yaml`
+  that never mentions CTLD — which is what `prepare --template minimal` writes, since a tier simply
+  omits the modules it does not enable — was told CTLD was enabled, had no `ctld-config.yaml`, and
+  that a separate tool should be downloaded to fix it. Every word of that was true: community
+  scripts are opt-out, so the default had enabled it. It just read as "I have already broken
+  something", and that is how the tutorial hit it.
+
+  A mission that *did* name CTLD keeps the message unchanged — it is the actionable one. A mission
+  that never named it now gets a different message: why CTLD is there, that nothing is wrong, and
+  the one line that removes it (`CTLD: false` under `modules:`). Both languages, and pinned by
+  tests built from a real `mission.yaml` on disk — the message was untested until now, which is why
+  it could read this way for so long.
+
+  Surveyed across the whole opt-out family (`STTS`, `CTLD`, `AIEN`, `CSAR`, `SKYNET`): CTLD is the
+  only one that says anything about itself when unnamed, because it is the only one configured from
+  a separate file the mission maker is expected to create. The concept card
+  `doc/mission-maker/concepts/mission-yaml.md` also claimed a module absent from `modules:` is not
+  shipped at all, which is false for exactly these five; it now says so.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

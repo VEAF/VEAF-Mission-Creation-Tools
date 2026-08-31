@@ -1,6 +1,6 @@
 # 01 — Explain, or stay quiet, about a default-enabled script
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · Files: `src/python/veaf-tools/mission_builder/mission_builder_worker.py`,
 `veaf_libs/locales/{en,fr}.json`

@@ -906,6 +906,30 @@ class MissionBuilderWorker(BaseWorker):
             return is_community_script_enabled_by_default(script_id)
         return script_id in self.enabled_community_script_ids
 
+    def _community_explicitly_listed(self, script_id: str) -> bool:
+        """Return True when ``mission.yaml`` names *script_id* itself.
+
+        ``_community_enabled`` cannot answer this: it merges the opt-out defaults with
+        the mission's own choices, so "on" says nothing about who turned it on. What
+        tells the two apart is the normalised ``community_scripts`` mapping — the ids
+        `modules:` (or the legacy section) actually spelled out.
+
+        Only messages addressed to the mission maker need the distinction, never the
+        build itself: what gets injected is decided by :meth:`_community_enabled` alone.
+
+        Args:
+            script_id: The community script id, lowercase (e.g. ``"ctld"``).
+
+        Returns:
+            True when the mission spelled the id out, whatever value it gave it.
+            `modules:` keys are lowercased on normalisation but a hand-written
+            ``community_scripts:`` section is not, so the match ignores case.
+        """
+        section = self.mission_yaml.get("community_scripts")
+        if not isinstance(section, dict):
+            return False
+        return any(str(key).lower() == script_id for key in section)
+
     def _find_community_sound_resource_keys(self) -> list[str]:
         """Return mapResource keys whose value is a known CTLD/CSAR sound file.
 
@@ -963,8 +987,15 @@ class MissionBuilderWorker(BaseWorker):
             yaml_text = config_file.read_text(encoding="utf-8")
             yaml_text = self._ctld_managed_logistics(yaml_text, lines)
             lines.append(f"ctld.configUser = {_lua_long_bracket(yaml_text)}")
-        else:
+        elif self._community_explicitly_listed("ctld"):
             logger.info(t("builder.ctld_no_config", file=CTLD_CONFIG_FILENAME))
+        else:
+            # The mission never wrote CTLD anywhere: it is on because community scripts
+            # are opt-out (FIX-DEFAULT-COMMUNITY-NOISE). Telling this reader to download
+            # ctld-tools reads as "you have already broken something" — they have not,
+            # and the only action they might want is the opt-out. So the message says
+            # why CTLD is there and how to remove it, and mentions the tool as a choice.
+            logger.info(t("builder.ctld_no_config_by_default", file=CTLD_CONFIG_FILENAME))
         return "\n".join(lines) + "\n"
 
     def _ctld_managed_logistics(self, yaml_text: str, lines: list[str]) -> str:

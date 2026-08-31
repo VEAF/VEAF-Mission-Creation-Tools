@@ -27,8 +27,8 @@ modules:
   INTERPRETER: true
 ```
 
-That is exactly what `prepare --template minimal` produces. A module absent from the block is not
-shipped at all.
+That is exactly what `prepare --template minimal` produces. A VEAF module absent from the block is
+not shipped at all — **community scripts are the exception, see [the gotcha](#gotcha)**.
 
 ## The three forms of a module {#three-forms}
 
@@ -58,6 +58,13 @@ shipped `mission.yaml` shows them commented out, ready to uncomment.
 `GROUNDAI`. Enable the feature without its dependency and the build enables it for you, saying so in
 a warning — even if you had explicitly set it to `false`. So the `modules:` you write is not exactly
 the one that runs: read the build's warnings.
+
+**Community scripts are there even when you never name them.** `STTS`, `CTLD`, `AIEN`, `CSAR` and
+`SKYNET` are *opt-out*: they ship unless you write `CTLD: false`. A minimal `modules:` block that
+mentions none of them ships them all — which is why the build can talk to you about CTLD in a
+mission where you never wrote that word. Nothing is broken; to be rid of them, set them explicitly
+to `false`. The two exceptions are `MIST` and `TUM`, which are *opt-in*: absent from the block, they
+stay off.
 
 And a YAML gotcha: `MODULE:` (nothing after the colon) and `MODULE: false` do not mean the same
 thing. The first is "infrastructure, active"; the second is "off".

@@ -1,26 +1,25 @@
 # FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING — a SAM site is switched off every other cycle
 
-Status: 🧑 waiting-human — **fix proposed upstream**, awaiting the Regroupement-Patrouille review
+Status: 🧑 waiting-human — **fix shipped**, awaiting one in-game observation (no longer waiting on anyone else)
 
 ## Where it stands
 
-- **PR open on the fork we vendor from**:
-  [regroupement-patrouille/Skynet-IADS#4](https://github.com/regroupement-patrouille/Skynet-IADS/pull/4)
-  — the `isActive() == false` filter removed from `evaluateContacts`, plus the regression test that was
-  missing.
-- **Message drafted** for Flogas, who follows that repository:
-  [`message-to-flogas.md`](message-to-flogas.md). Their `contributing.md` asks for a Discord discussion
-  before coding, so the message announces the PR rather than proposing it.
-- **Not run**: their suite needs DCS with `skynet-unit-tests.miz` loaded. Both files parse under Lua 5.1
-  and the new test reuses only units its neighbour already depends on, but that is not the same as green.
-  Offered to run it on our side before they merge.
+**The fix is shipped.** Route 1 was taken, but the destination changed on the way: rather than waiting
+for the Regroupement-Patrouille review, `VEAF/Skynet-IADS` became the reference fork (Flogas agreed
+2026-08-31) and the fix was merged there — commit `3a94937`, carried into VEAF by
+[#846](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/846).
 
-Route chosen: upstream **to the fork**, not to walder — that repository has cut no release since 3.3.0
-in December 2023, so a patch there would never reach a mission. Recorded in `vendored.yaml`.
+Verified in the artefact VEAF actually embeds: the comment explaining the fix is present in
+`src/scripts/community/skynet-iads-compiled.lua`, and the faulty `isActive() == false` filter is gone.
 
-The local replacement (option 2 below) is **not** done. It is the fallback if the PR stalls: the
-mechanism exists (`veaf.csar_initialize_replacement` is the precedent) and it would let VEAF missions
-have the fix before the next recompile.
+What this means for the plan below:
+
+- **The upstream pull request is closed, unmerged.** It sat eight days without a comment, and nothing
+  goes back upstream any more (David, 2026-08-31). `message-to-flogas.md` was deleted with it: it
+  announced a pull request that no longer needs announcing.
+- **Option 2 is moot.** The local replacement existed as a fallback for a stalling PR; there is no
+  stalling PR, and the fix is in the artefact.
+- **Nothing here waits on anyone else.** The one remaining box is an observation in game.
 
 Observed in game on 2026-08-22 in `verify-mission-c`, on the SA-6 (`Kub 1S91 str` × 1 +
 `Kub 2P25 ln` × 2):
@@ -133,6 +132,7 @@ predates every alarm-state change we have made since.
 
 - [x] The timing prediction checked in game — **10 s between identical states**, i.e. two 5 s
       evaluation cycles, as predicted from the code
-- [ ] If confirmed: fixed by route 1 or 2, never by editing the compiled file in place
+- [x] If confirmed: fixed by route 1 or 2, never by editing the compiled file in place — route 1,
+      merged in `VEAF/Skynet-IADS` and recompiled into the artefact, never edited in place
 - [ ] A SAM site that has acquired a target keeps its radar long enough to launch
 - [ ] Checked against Tripack's case, and his report closed or kept open on evidence

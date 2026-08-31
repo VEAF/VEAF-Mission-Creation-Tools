@@ -104,6 +104,9 @@ artifacts:
   # staging area waiting for someone else's review any more.
   #
   # What that changes in practice:
+  #   * **nothing goes back upstream.** No pull request to the Regroupement fork, no waiting on a
+  #     review: fixes land here and stay here (David, 2026-08-31). An earlier version of this note
+  #     said to send patches to Flogas first -- that is no longer the arrangement;
   #   * defects are filed as issues on VEAF/Skynet-IADS (they had to be enabled there, and they are
   #     disabled on the Regroupement fork, which is why nothing could be filed upstream);
   #   * the two entries below stay as `upstream-ref` so the drift watcher still notices if either

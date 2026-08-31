@@ -34,8 +34,9 @@ So VEAF forked the fork: `VEAF/Skynet-IADS`, transferred from `davidp57/Skynet-I
 re-forked, which kept its six branches, its history and the open pull request — whose head moved from
 `davidp57:` to `VEAF:` on its own.
 
-Sending the work upstream stays worth doing **once it is checked in game**, to Flogas first. That is a
-proposal, not a dependency.
+Nothing goes back upstream. Flogas agreed on 2026-08-31 that `VEAF/Skynet-IADS` becomes the main
+fork, so fixes land there and stay there — no pull request to the Regroupement fork, no review to wait
+for (David, same day).
 
 ## What replaced MiST, and why not the VEAF libraries
 

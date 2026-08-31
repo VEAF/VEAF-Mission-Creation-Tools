@@ -17,10 +17,20 @@ class TestUpdateDcsDataDispatch(unittest.TestCase):
         self.runner = CliRunner()
 
     def _run(self, *args: str) -> tuple[mock.MagicMock, mock.MagicMock, int]:
-        """Invoke the command with both generators patched; return the mocks."""
+        """Invoke the command with every generator patched; return the countries and radio mocks.
+
+        The units generators are patched too, and that is not tidiness: ``--all`` runs them, and
+        ``units.generate`` **clones the datamine repository from GitHub**. Left unpatched, three of
+        these tests each performed a network clone, and rapid successive clones fail — measured at 2
+        to 3 failures per run, at random, which reddens CI for reasons that have nothing to do with
+        the change under review. What these tests assert is dispatch: which providers a flag selects.
+        Nothing here needs a real clone.
+        """
         with (
             mock.patch("veaf_build.dcs_data.countries.generate", return_value=92) as gen_countries,
             mock.patch("veaf_build.radio_specs_updater.main") as gen_radio,
+            mock.patch("veaf_build.dcs_data.units.generate", return_value=873),
+            mock.patch("veaf_build.dcs_data.units_lua.generate", return_value=873),
         ):
             result = self.runner.invoke(app, ["update-dcs-data", *args])
         return gen_countries, gen_radio, result.exit_code

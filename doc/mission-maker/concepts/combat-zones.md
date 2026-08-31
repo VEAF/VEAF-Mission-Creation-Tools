@@ -77,7 +77,7 @@ Des marqueurs dans les noms règlent le comportement de l'apparition :
 | `#spawnradius=200` | dispersion aléatoire, en mètres | 50 m (groupe), 0 m (statique) |
 | `#spawndelay=60` | apparition différée, en secondes | aucun délai |
 
-!!! note "Comportement cible"
+!!! warning "Ceci change les missions existantes"
     `#spawnchance` **refuse réellement** une apparition : un groupe à 50 % apparaît une fois sur
     deux, et un groupe à 0 % n'apparaît jamais. La garantie de nombre reste à `#spawncount` : deux
     groupes demandés parmi quatre en donnent exactement deux, tirés au hasard. Les missions qui
@@ -85,6 +85,7 @@ Des marqueurs dans les noms règlent le comportement de l'apparition :
 
 ## Pour aller plus loin {#more}
 
+- [veafCombatZone — la règle du préfixe, en détail](../scripts/veafCombatZone.md#zone-membership)
 - [veafCombatZone — configuration complète](../scripts/veafCombatZone.md#configuration-missionyaml)
 - [veafCombatZone — tous les marqueurs de nom](../scripts/veafCombatZone.md#spawn-radius)
 - [veafCombatZone — où les marqueurs sont lus](../scripts/veafCombatZone.md#tag-sources)

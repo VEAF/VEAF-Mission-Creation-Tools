@@ -76,7 +76,7 @@ puis régénérez le fichier depuis cette mission.
 veaf-tools.exe extract-aircraft-groups ma-mission.miz --kind dynamic-template
 ```
 
-!!! note "Comportement cible"
+!!! note "Le stock est filtré par ce que le terrain peut garer"
     **DCS ne propose que ce que le terrain peut garer**, et le build en tient compte : le stock
     n'est rempli qu'avec ce que le parking de l'aérodrome accepte réellement. Un terrain qui n'a que
     des emplacements hélicoptères ne se voit plus attribuer 149 types d'avions qui n'apparaîtront

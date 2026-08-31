@@ -648,7 +648,7 @@ local northQra = VeafQRA:new()
 
 ### Zone de combat
 
-Une zone de combat se déclare dans `mission.yaml`. Son contenu **ne se liste pas ici** : la zone adopte tous les groupes situés à l'intérieur de la trigger zone DCS qu'elle nomme. Vous tracez le cercle dans l'éditeur de mission, vous y placez les blindés et la DCA, et la zone les détruit puis les fait réapparaître à l'activation.
+Une zone de combat se déclare dans `mission.yaml`. Son contenu **ne se liste pas ici** : la zone adopte tous les groupes situés à l'intérieur de la trigger zone DCS qu'elle nomme **et dont le nom commence par le nom de la zone** (la casse est ignorée). Vous tracez le cercle dans l'éditeur de mission, vous y placez les blindés et la DCA — nommés `ZONE-STRIKE-ALPHA-ARMOR`, `ZONE-STRIKE-ALPHA-AAA` — et la zone les détruit puis les fait réapparaître à l'activation. Un groupe posé dans le cercle mais nommé autrement est ignoré, en silence : voir [la règle du préfixe](scripts/veafCombatZone.md#zone-membership).
 
 ```yaml
 modules:

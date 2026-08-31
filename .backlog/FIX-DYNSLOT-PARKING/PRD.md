@@ -1,6 +1,6 @@
 # FIX-DYNSLOT-PARKING — stocking aircraft an airfield cannot park
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: VEAF meeting, 2026-08-30 ("faire en sorte que les 3 airdromes manquants sur Syria soient
 injectables"). Diagnosed and confirmed **in game** on 2026-08-31.

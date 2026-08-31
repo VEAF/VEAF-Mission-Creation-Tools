@@ -19,6 +19,11 @@ it is auto-matched to a template group of the same **aircraft type** (same
 coalition). The link is written as
 ``aircrafts[<helicopters|planes>][<type>].linkDynTempl = <groupId>`` — DCS nests
 dynamic-slot aircraft by category, and a flat entry is silently ignored.
+
+Whatever the config asks for, an airfield is only stocked with what its terrain can **park**: DCS
+offers a dynamic slot only where a stand exists, so a helipad-only field offers helicopters and
+nothing else. The check uses the bundled parking dumps (Caucasus, Persian Gulf, Syria); on a theatre
+with no dump nothing is filtered.
 """
 
 from __future__ import annotations
@@ -33,6 +38,7 @@ from mission_tools import read_miz, write_miz
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
+from veaf_libs.dcs_parking import parkable_kinds
 from veaf_libs.dcs_units_parser import parse_dcs_units
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
@@ -46,6 +52,9 @@ _CATEGORY_TO_WAREHOUSE = {"helicopter": "helicopters", "plane": "planes"}
 
 #: Sub-table used when an aircraft type cannot be classified.
 _DEFAULT_WAREHOUSE_CATEGORY = "planes"
+
+#: Warehouse sub-table -> the parking kind :func:`veaf_libs.dcs_parking.parkable_kinds` reports.
+_WAREHOUSE_TO_PARKING_KIND = {warehouse: kind for kind, warehouse in _CATEGORY_TO_WAREHOUSE.items()}
 
 #: Committed DCS units database (relative to this worker).
 _DCS_UNITS_YAML = Path(__file__).resolve().parent.parent / "veaf_libs" / "data" / "dcsUnits.yaml"
@@ -197,6 +206,29 @@ def _coalition_template_types(mission: DcsMission) -> dict[str, list[str]]:
     return types
 
 
+def _prune_unparkable_stock(airport: dict, parkable: frozenset[str] | None) -> None:
+    """Drop the stock sub-tables the airfield's terrain cannot park, in place.
+
+    Skipping the write is not enough on a mission built before this check: the source ``.miz`` keeps
+    whatever an earlier build wrote (measured on ``OpenTraining_Syria_20260830.miz``: 144 plane types
+    still stocked at Lakatamia, which has nothing but helipads). What DCS can never offer is dead
+    weight, so it goes. Only an airfield the config targets is touched, and only where parking data
+    ships.
+
+    Args:
+        airport: The airport's warehouse entry, mutated in place.
+        parkable: Which kinds the terrain can park, or ``None`` to leave everything alone.
+    """
+    if parkable is None:
+        return
+    stock = airport.get("aircrafts")
+    if not isinstance(stock, dict):
+        return
+    for warehouse, kind in _WAREHOUSE_TO_PARKING_KIND.items():
+        if kind not in parkable:
+            stock.pop(warehouse, None)
+
+
 def _apply_to_airport(
     airport: dict,
     settings: dict,
@@ -204,8 +236,20 @@ def _apply_to_airport(
     coalition_key: str,
     mission_categories: dict[str, str],
     auto_fill_types: list[str],
+    parkable: frozenset[str] | None = None,
 ) -> int:
-    """Apply one airport's settings in place; return the number of templates linked."""
+    """Apply one airport's settings in place; return the number of templates linked.
+
+    Args:
+        airport: The airport's warehouse entry, mutated in place.
+        settings: The merged settings for this airport.
+        template_index: The dynamic-spawn template lookup.
+        coalition_key: The config coalition key ("blue", "red", "neutral").
+        mission_categories: Aircraft type -> warehouse sub-table, from the mission's templates.
+        auto_fill_types: Aircraft types stocked when the config lists none.
+        parkable: Which kinds the terrain can park (see
+            :func:`veaf_libs.dcs_parking.parkable_kinds`), or ``None`` to stock everything.
+    """
     airport["dynamicSpawn"] = True
     # A dynamic slot is worth little if the pilot cannot take it with the engines running: the DCS
     # Mission Editor writes `allowHotStart = false`, and an airfield the mission deliberately opened
@@ -215,6 +259,8 @@ def _apply_to_airport(
         airport["unlimitedFuel"] = True
     if settings.get("weapons") == "unlimited":
         airport["unlimitedMunitions"] = True
+
+    _prune_unparkable_stock(airport, parkable)
 
     linked = 0
     aircrafts_cfg = settings.get("aircrafts") or {}
@@ -231,6 +277,13 @@ def _apply_to_airport(
             # DCS nests dynamic-slot aircraft under aircrafts.{helicopters,planes};
             # a flat entry is silently ignored (template never binds).
             category = _warehouse_category(aircraft_type, mission_categories)
+            # DCS only offers what the airfield can park: a helipad-only field offers helicopters
+            # whatever the stock says (measured in game on 2026-08-31 at Lakatamia and Naqoura, where
+            # 149 plane types were stocked and none was ever offered). Silently drop what the terrain
+            # cannot take — it is noise in the mission and an unreadable Resource Manager. `None`
+            # means no parking data ships for this theatre, so nothing is filtered.
+            if parkable is not None and _WAREHOUSE_TO_PARKING_KIND.get(category) not in parkable:
+                continue
             entry = stock.setdefault(category, {}).setdefault(aircraft_type, {})
             amount = acfg.get("amount")
             if amount == "unlimited":
@@ -303,6 +356,7 @@ def apply_warehouses(mission: DcsMission, config: dict) -> WarehousesResult:
                 coalition_key,
                 mission_categories,
                 template_types.get(coalition_key, []),
+                parkable_kinds(theatre, airport_id),
             )
             airports_configured += 1
 

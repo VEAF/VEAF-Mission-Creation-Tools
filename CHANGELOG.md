@@ -139,6 +139,34 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   certain, remove its tag or write `#spawnchance=100`. `veafCombatMission`'s own `spawnChance` is
   separate code and is untouched.
 
+- **Airfields were stocked with aircraft their terrain cannot park.** Three Syria airfields looked
+  broken and nothing the tool controls was wrong: blue, `dynamicSpawn` on, templates linked, 32 bases
+  configured. DCS itself only offers a slot where a parking spot able to take the aircraft exists, and
+  Lakatamia and Naqoura have nothing but helicopter pads (Naqoura has no runway at all), while Akrotiri
+  has 41 plane stands and works — confirmed in game, where Lakatamia's slot picker offered six
+  helicopters although the A-10C II template was linked.
+
+  The build now asks the terrain before filling: an airbase is stocked only with the categories it can
+  park, an explicit `aircrafts:` list is filtered the same way, and stock left behind by an earlier
+  build is pruned — otherwise it survives forever, which is what happens in the mission this was
+  measured on. Filtering is silent, and the `linkDynTempl` links follow, so nothing points at a type
+  that is no longer stocked.
+
+  Measured on the VEAF Open Training Syria mission, read-only: exactly three airfields change —
+  Lakatamia 144 plane types → none, Naqoura 41 → none, and Taftanaz 144 → none, a third
+  helicopter-only field nobody had spotted. None of them loses a helicopter and the other 29
+  configured bases are untouched.
+
+  Terminal types are sourced from DCS's `Airbase.TerminalType` enumeration; the table and its
+  provenance live in `veaf_libs/dcs_parking.py`. Parking data ships for **Caucasus, Persian Gulf and
+  Syria** only, so on every other theatre — and on an airfield absent from the data — nothing is
+  filtered and the behaviour is exactly what it was.
+
+  `doc/PIPELINE_REFERENCE` now also answers the question that came with it and was pure documentation
+  gap: **where a base's list of offered aircraft comes from**. It is computed at build time from the
+  dynamic-spawn template groups present in the mission, which is why `warehouses.yaml` can be three
+  lines and say nothing about it.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

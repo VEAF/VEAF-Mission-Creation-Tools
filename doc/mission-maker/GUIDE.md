@@ -242,6 +242,12 @@ flowchart TD
 > ```
 >
 > Cela réécrit `src/dynamic-slot-templates.yaml` avec vos modèles. Le prochain build les injecte, et les slots dynamiques proposent des appareils prêts à décoller.
+>
+> **Ajoutez `--merge` pour enrichir le catalogue au lieu de le repartir de zéro.** Sans cette option le fichier est régénéré à partir de la seule mission, donc les modèles d'une deuxième mission — ou un modèle que vous avez retouché à la main — sont perdus. Avec elle, la mission gagne sur un groupe de même nom et **chaque remplacement est nommé** dans le compte rendu, tandis que tout ce que la mission ne porte pas est conservé :
+>
+> ```powershell
+> veaf-tools.exe content extract-aircraft-groups deuxieme-mission.miz --kind dynamic-template --merge
+> ```
 
 ---
 

@@ -58,6 +58,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   same corpus is what makes the two figures comparable. A log grows while the game runs, so counts
   taken on another day differ by a few lines.*
 
+- **`extract-aircraft-groups --merge` builds a catalogue up instead of starting it over.** The
+  command wrote its two YAML files with `open(path, "w")`, so it was a one-shot: a second mission
+  could not contribute its dynamic-slot templates to the same catalogue, and re-extracting after a
+  Mission Editor change threw away every group the new mission happens not to carry — hand edits
+  included.
+
+  With `--merge`, the mission wins on a group of the same name in the same category / coalition /
+  country, everything else in the file is kept, and **every replacement is named** in the report, so
+  an overwritten hand edit is never silent. A target that cannot be read, or is not an aircraft-group
+  catalogue, aborts the run instead of being overwritten.
+
+  Merging is **opt-in on purpose**. Beyond not changing what an existing script receives, merging by
+  default would reverse a behaviour that is currently load-bearing: a template deleted in the Mission
+  Editor disappears from the catalogue at the next extraction, where a default merge would keep it
+  there forever and keep injecting it.
+
 ### Fixed
 
 - **A FARP's escort could be parked through a building, or in a wood.** The clear-ground search added in

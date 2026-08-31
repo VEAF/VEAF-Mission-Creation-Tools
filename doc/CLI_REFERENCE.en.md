@@ -279,6 +279,7 @@ Extract aircraft group templates from a .miz mission to a YAML file.
 | `--output-spawnables` | `str` | `src/spawnables.yaml` | Output path for spawnable aircraft groups (veafSpawn- prefix). |
 | `--output-dynamic-templates` | `str` | `src/dynamic-slot-templates.yaml` | Output path for dynamic-slot templates (dynSpawnTemplate=true). |
 | `--group-name-pattern` | `str` | `.*` | Regular expression pattern to match aircraft group names. |
+| `--merge` | `boolean` | `false` | Merge into the output files instead of replacing them: groups the mission does not have are kept, a group of the same name is replaced by the mission's version and named in the report. |
 | `--only-airplanes` | `boolean` | `false` | Extract only airplanes. |
 | `--only-helicopters` | `boolean` | `false` | Extract only helicopters. |
 | `--lua-input` | `str` | *(none)* | Path to a Lua file (e.g., settings-templates.lua) to extract from instead of a .miz mission. |

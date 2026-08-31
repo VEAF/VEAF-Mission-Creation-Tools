@@ -1,6 +1,6 @@
 # FEAT-EXTRACT-MERGE — extracting aircraft groups overwrites the file
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: VEAF meeting, 2026-08-30. Shape chosen by David on 2026-08-31.
 
@@ -27,6 +27,12 @@ happens at the group-name level, inside its category / coalition / country.
 Merging is what the meeting asked for; whether it becomes the default or an opt-in flag is the
 implementer's call, but **do not silently change what an existing script gets**: today's callers
 expect a fresh file. State the choice in the PR.
+
+**Choice made: an opt-in `--merge` flag.** Merging by default would not only change what an
+existing caller gets, it would reverse a behaviour some rely on — a template deleted in the
+Mission Editor currently disappears from the catalogue at the next extraction, and under a
+default merge it would survive there forever and keep being injected. That failure is invisible;
+having to type `--merge` is not.
 
 ## Scope
 

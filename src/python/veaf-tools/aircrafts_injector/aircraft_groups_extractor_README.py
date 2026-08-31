@@ -86,6 +86,14 @@ Groups are sorted (ADR 0002) into two families and written to two files by defau
     - `^(F-16|F-18)` - Groups starting with either "F-16" or "F-18"
     - `.*[tT]emplate.*` - Groups with "template" in the name (case-insensitive)
 
+- `--merge`: Merge into the output files instead of replacing them
+  - Groups the file holds and the mission does not are kept
+  - A group of the same name (same category / coalition / country) is replaced by the mission's
+    version, and **every replacement is named** in the report
+  - An output file that cannot be read or is not an aircraft-group catalogue aborts the run
+    instead of being overwritten
+  - Default: disabled — the output files are rebuilt from the mission alone, as before
+
 - `--interactive`: Enable interactive mode to select which groups to include
   - When enabled, displays all matching groups and asks the user to confirm each one
   - Allows selective extraction of specific groups without modifying the pattern
@@ -269,4 +277,7 @@ The extracted YAML can be used as input for the Aircraft Groups Injector to:
 - Unit types are extracted directly from the mission data
 - The pattern matching is case-sensitive
 - If no groups match the pattern, an empty structure is created in the output
+- Without `--merge`, each output file is **replaced**: a second mission cannot contribute to the
+  same catalogue, and hand edits are lost. Use `--merge` to build a catalogue up over several
+  missions and several passes
 """

@@ -281,6 +281,7 @@ Extrait les modèles de groupes aériens d'une mission .miz vers un fichier YAML
 | `--output-spawnables` | `str` | `src/spawnables.yaml` | Chemin de sortie des groupes avions spawnables (préfixe veafSpawn-). |
 | `--output-dynamic-templates` | `str` | `src/dynamic-slot-templates.yaml` | Chemin de sortie des modèles de slot dynamique (dynSpawnTemplate=true). |
 | `--group-name-pattern` | `str` | `.*` | Expression régulière pour filtrer les noms de groupes aériens. |
+| `--merge` | `boolean` | `false` | Fusionner dans les fichiers de sortie au lieu de les remplacer : les groupes absents de la mission sont conservés, un groupe de même nom est remplacé par la version de la mission et nommé dans le compte rendu. |
 | `--only-airplanes` | `boolean` | `false` | Extraire uniquement les avions. |
 | `--only-helicopters` | `boolean` | `false` | Extraire uniquement les hélicoptères. |
 | `--lua-input` | `str` | *(aucun)* | Chemin vers un fichier Lua (ex. settings-templates.lua) à utiliser à la place du fichier .miz. |

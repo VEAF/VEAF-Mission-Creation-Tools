@@ -1,6 +1,6 @@
 # 01 — Merge into an existing YAML
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat · Files: `src/python/veaf-tools/aircrafts_injector/aircrafts_injector_worker.py`,
 `src/python/veaf-tools/veaf_tools/commands/aircraft_groups.py`
@@ -16,15 +16,15 @@ byte-for-byte in meaning. Every replaced group is named in the output.
 
 ## Definition of done
 
-- [ ] Extracting into a file that holds groups the mission does not have keeps them
-- [ ] A group present in both is replaced by the mission's version
-- [ ] Every replacement is **named** in the command output — a silent overwrite of a hand edit is
+- [x] Extracting into a file that holds groups the mission does not have keeps them
+- [x] A group present in both is replaced by the mission's version
+- [x] Every replacement is **named** in the command output — a silent overwrite of a hand edit is
       the failure this lot exists to prevent
-- [ ] Extracting into a file that does not exist behaves as today
-- [ ] An unreadable or malformed target file fails clearly instead of being silently overwritten
-- [ ] Works for both families (`--kind spawnable` and `--kind dynamic-template`) — the meeting
+- [x] Extracting into a file that does not exist behaves as today
+- [x] An unreadable or malformed target file fails clearly instead of being silently overwritten
+- [x] Works for both families (`--kind spawnable` and `--kind dynamic-template`) — the meeting
       named the dynamic templates, but both go through `_write_structure`
-- [ ] Tests assert the **file content after two successive extractions**, not the in-memory
+- [x] Tests assert the **file content after two successive extractions**, not the in-memory
       structure
 
 ## Watch out

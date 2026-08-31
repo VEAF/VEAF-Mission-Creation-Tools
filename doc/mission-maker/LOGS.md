@@ -44,8 +44,16 @@ explique. Chaque catégorie peut avoir sa propre portée : le champ `±` appara�
 sa droite dès qu'elle passe en ◐, et laisser le champ vide reprend la valeur
 commune réglée en haut du panneau.
 
-Sur un journal de session réel, écarter le bruit ED ramène 2 714 lignes de niveau
-grave à 278.
+Écarter le bruit ED change l'échelle de ce qu'il reste à lire :
+
+| Journal | Lignes graves | Affichées |
+|---|---|---|
+| Un `dcs.log` de session | 416 | **34** |
+| Ce `dcs.log` et quatre journaux archivés | 2 714 | **278** |
+
+« Lignes graves » : de niveau `ERROR`, `ERROR_ONCE` ou `ALERT`. Un journal grossit
+tant que le jeu tourne, donc un relevé fait un autre jour donne quelques lignes
+d'écart.
 
 ## Profils
 

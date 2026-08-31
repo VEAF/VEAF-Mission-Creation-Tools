@@ -19,19 +19,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **`veaf-logs` recognises five more families of ED noise.** Running the tool on a real log turned up
-  errors it should have hidden and did not: missing livery, model and animation files, refused
-  levels of detail, missing UI textures, unloadable sound waves — and `No cell for property record`,
-  which is the same defect as the already-known `No property record for cell` written the other way
-  round. On the reference corpus, severe lines drop from **363 to 278**.
-
-  `Can't open file` is deliberately bounded to the asset directories. DCS writes it for a missing
-  livery, which is noise, but also for a mission or script it cannot open, which is exactly what a
-  mission maker must see; a test states that.
-
 - **`veaf-logs`, a reader for DCS logs.** A DCS log buries what matters under noise nobody can act on.
-  This one knows our scripts and hides the rest — on a real session log, it takes 2,710 severe lines
-  down to **362**.
+  This one knows our scripts and hides the rest. On the reference corpus below, it takes 2,714
+  severe lines down to **363**; on a single current `dcs.log`, 416 down to **69**.
 
   Three things it does that a general-purpose log viewer structurally cannot. **A stack trace stays
   with its error**: filtering on errors no longer hides the `stack traceback` that explains them.
@@ -51,6 +41,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
   Shipped as a separate `veaf-logs.exe` asset. Its Qt dependency is optional (`--extras logs`), so
   `veaf-tools.exe` neither grows nor changes. Documented in `doc/mission-maker/LOGS.md`.
+
+- **`veaf-logs` recognises five more families of ED noise.** Running the tool on a real log turned up
+  errors it should have hidden and did not: missing livery, model and animation files, refused
+  levels of detail, missing UI textures, unloadable sound waves — and `No cell for property record`,
+  which is the same defect as the already-known `No property record for cell` written the other way
+  round. On the reference corpus, severe lines drop further, from 363 to **278**; on a single
+  current `dcs.log`, from 69 to **34**.
+
+  `Can't open file` is deliberately bounded to the asset directories. DCS writes it for a missing
+  livery, which is noise, but also for a mission or script it cannot open, which is exactly what a
+  mission maker must see; a test states that.
+
+  *Reference corpus, for both entries above: one `dcs.log` plus four archived session logs from
+  `Saved Games\DCS\Logs` — 2,714 lines of level ERROR, ERROR_ONCE or ALERT. Measuring both on the
+  same corpus is what makes the two figures comparable. A log grows while the game runs, so counts
+  taken on another day differ by a few lines.*
 
 ### Fixed
 

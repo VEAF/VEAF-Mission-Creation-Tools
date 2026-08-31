@@ -1,6 +1,6 @@
 # FIX-VALIDATE-PARTIAL-COALITIONS — a check that only catches the empty case
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: left open by `FIX-PREPARE-THEATRE-COALITIONS` (PR #868), which fixed the producers and
 found the check too weak to have caught them.
@@ -42,14 +42,24 @@ Say that in the PR. Someone will otherwise assume the opposite, as we did.
 
 ## Definition of done
 
-- [ ] A side with some countries assigned and some not is reported, naming the missing ids
-- [ ] A side with every unit-owning country assigned stays silent
-- [ ] The existing empty-list case keeps its behaviour and its message
-- [ ] A country with no units is not required to be listed — DCS does not care, and demanding it
+- [x] A side with some countries assigned and some not is reported, naming the missing ids
+- [x] A side with every unit-owning country assigned stays silent
+- [x] The existing empty-list case keeps its behaviour and its message
+- [x] A country with no units is not required to be listed — DCS does not care, and demanding it
       would produce noise on perfectly good missions
-- [ ] Run the tightened check over the real missions available locally
+- [x] Run the tightened check over the real missions available locally
       (`D:\dev\_VEAF\VEAF-Foothold-*`, read-only) and report what it now says: if it lights up on
       missions that fly today, that is a finding worth having before merging
+
+## What the sweep over the real missions found
+
+The tightened check was run read-only over the ten `D:\dev\_VEAF\VEAF-Foothold-*` folders — ten
+`src/mission/mission` source tables and fourteen built `.miz` — and is **silent on all of them**. The
+reason is worth recording: a mission the DCS Mission Editor has written partitions **all 93** country
+ids across `coalitions.blue`, `coalitions.red` and `coalitions.neutrals`, so the inclusion holds by
+construction. Foothold missions carry between three and six unit-owning countries per side and every
+one of them is listed. The gap is therefore a *generated*-mission gap, which is exactly where #868's
+defect appeared — and it means tightening adds no noise to anything in service today.
 
 ## Scope
 

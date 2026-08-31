@@ -1,6 +1,6 @@
 # 01 — Require every unit-owning country to be assigned
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · Files: `src/python/veaf-tools/veaf_libs/mission_validator.py`,
 `veaf_libs/locales/{en,fr}.json`
@@ -25,14 +25,14 @@ categories the check already walks.
 
 ## Definition of done
 
-- [ ] Partial assignment is reported, with the missing ids in the message
-- [ ] Full assignment is silent
-- [ ] The empty case keeps its current message
-- [ ] A country owning no units is never required
-- [ ] Tests for all four cases, on the table shape a real `.miz` produces (dict-keyed, 1-based)
-- [ ] Run it over the local Foothold missions, read-only, and report what it says — a check that
+- [x] Partial assignment is reported, with the missing ids in the message
+- [x] Full assignment is silent
+- [x] The empty case keeps its current message
+- [x] A country owning no units is never required
+- [x] Tests for all four cases, on the table shape a real `.miz` produces (dict-keyed, 1-based)
+- [x] Run it over the local Foothold missions, read-only, and report what it says — a check that
       lights up on missions in service is a finding, not a failure
-- [ ] `poetry run pytest`, ruff, mypy clean (`poetry install --without build --all-extras` first,
+- [x] `poetry run pytest`, ruff, mypy clean (`poetry install --without build --all-extras` first,
       or the coverage figure is wrong)
 
 ## Context worth reading first

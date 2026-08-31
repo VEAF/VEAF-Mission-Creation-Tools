@@ -990,6 +990,7 @@
   "validate.radio_lua_function_missing": "Radio menu: referenced Lua function '{function}' is not defined in the mission scripts (define it in mission-script.lua).",
   "validate.radio_menu_missing_target": "Radio menu: action '{action}' of command '{command}' requires parameter '{param}'.",
   "validate.radio_menu_unknown_action": "Radio menu: unknown action '{action}' for command '{command}'.",
+  "validate.side_missing_countries": "Side '{side}': countries {missing} own units but are not listed in coalitions.{side} ({listed}): DCS will open the coalition assignment screen and refuse to load the mission. Add these country ids to coalitions.{side}.",
   "validate.side_without_country": "Side '{side}' holds units but no country is assigned to it: DCS will open the coalition assignment screen and refuse to load the mission. Add the country id to coalitions.{side}.",
   "validate.source_mission_unreadable": "Source mission table (src/mission/mission) exists but could not be parsed: {error} — the group / preset / waypoint / TUM checks were skipped.",
   "validate.tum_zones_missing": "TUM is enabled but no {sides} territory trigger zone was found — TheUniversalMission aborts at start-up without them.",

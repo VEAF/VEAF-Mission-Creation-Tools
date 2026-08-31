@@ -1,36 +1,27 @@
-import sys
+"""Entry script PyInstaller reads to build ``veaf-tools.exe`` (``veaf_build/worker.py``).
 
-from veaf_libs.i18n import set_language, t
+It delegates to :func:`veaf_tools.app.main`, the same function the ``veaf-tools`` console
+script calls, and holds no CLI logic of its own **on purpose**. It used to be a copy of
+``main()`` — the ``--lang`` pre-parse, the command registration, the TUI bridge, the exit
+pause — and the copy silently fell behind: ``main()`` gained ``build_cli_tree(app)`` and this
+file did not, so the themed tree that ``doc/CLI_REFERENCE`` documents existed only for
+developers running from a checkout, never in the executable every mission maker actually has
+(FIX-EXE-COMMAND-TREE). One implementation cannot diverge from itself.
 
-# Parse --lang early from sys.argv so that --help is also rendered in the
-# requested language (Typer's --help is eager and fires before main_callback).
-for _i, _a in enumerate(sys.argv[1:]):
-    if _a == "--lang" and _i + 1 < len(sys.argv) - 1:
-        set_language(sys.argv[_i + 2])
-        break
-    if _a.startswith("--lang="):
-        set_language(_a.split("=", 1)[1])
-        break
+PyInstaller finds modules by reading ``import`` statements, and it reads the ones inside
+function bodies too — the imports ``main()`` performs are followed from here just as they were
+when they sat in this file. The ``exe-smoke`` CI job builds this and runs the tree, which is
+what actually proves it.
+"""
 
-# These imports must come after the lang-setup block above.
-import veaf_tools.commands  # noqa: E402, F401  — side effect: registers all commands
-from veaf_libs.logger import console  # noqa: E402
-from veaf_libs.tui import maybe_bridge_to_tui  # noqa: E402
-from veaf_tools.app import VERSION, app  # noqa: E402
-from veaf_tools.helpers import should_auto_pause  # noqa: E402
+from veaf_libs.i18n import set_language_from_argv
+
+# Before importing anything that translates: `help=` strings are `t()` calls evaluated at
+# import time and Typer's `--help` is eager, so `--lang` has to be applied first. `main()`
+# applies it again, harmlessly — but by then `veaf_tools.app` has already been imported.
+set_language_from_argv()
+
+from veaf_tools.app import main  # noqa: E402  — must follow the language setup above
 
 if __name__ == "__main__":
-    console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
-
-    # CLI ↔ TUI bridge (CLI-TUI-BRIDGE): a bare invocation, `--tui`, or a command
-    # invoked without a required option drops into the wizard — pre-filled with the
-    # args already given on the command line — then runs the completed command.
-    if bridged := maybe_bridge_to_tui(sys.argv[1:]):
-        sys.argv = sys.argv[:1] + bridged
-
-    auto_pause = should_auto_pause()
-    try:
-        app()
-    finally:
-        if auto_pause:
-            input(t("help.pause_msg"))
+    main()

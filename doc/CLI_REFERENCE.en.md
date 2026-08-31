@@ -10,7 +10,7 @@ publishing — live in [TOOLS_REFERENCE](TOOLS_REFERENCE.en.md).
 
 ## How to read this page {#how-to-read}
 
-**Commands are grouped by theme** since 6.13: `veaf-tools convert v5` rather than
+**Commands are grouped by theme**: `veaf-tools convert v5` rather than
 `veaf-tools convert-v5`. The old flat spelling is still registered and still works — your scripts
 and shortcuts need no change — it is merely hidden from `--help`. Each command states its flat alias
 below its table.

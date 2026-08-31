@@ -115,6 +115,17 @@ jobs:
           ../dist/veaf-tools generate-config --output .
           test -s mission.yaml
 
+      # The themed tree the documentation describes must exist in the **binary**, not only in
+      # a checkout: it did not, from 6.14.0 until FIX-EXE-COMMAND-TREE, because the entry
+      # script PyInstaller reads was a copy of `main()` that never grew `build_cli_tree`. The
+      # flat alias is checked in the same breath — the tree keeps every older command line
+      # working, and that promise is only worth what a test says about it.
+      - name: The executable exposes the themed command tree, and the flat aliases
+        run: |
+          ./dist/veaf-tools content extract-aircraft-groups --help
+          ./dist/veaf-tools extract-aircraft-groups --help
+          ./dist/veaf-tools convert v5 --help
+
   # ---------------------------------------------------------------------------
   # Does the veaf-logs executable start?
   #

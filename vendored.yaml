@@ -92,22 +92,27 @@ artifacts:
     watch:
       - { kind: github-release, repo: akaAgar/the-universal-mission-for-dcs-world, pinned: "v0.1.250722" }
 
-  # Three repositories deep, and which one to send a patch to is the whole point of this comment.
+  # Three repositories deep, and ours is the reference one now. That is the whole point of this note.
   #
   # The script is walder's, dormant since 3.3.0 in December 2023. Flogas forked it for the
   # Regroupement-Patrouille and added the Phalanx, Tor M2, Pantsir S1, Iris-T SLM and SA-11 Solo --
-  # those units are why we take the fork and not the origin. But that fork went quiet too: measured
-  # 2026-08-30, its last commit is 2025-09-10, and a VEAF pull request had been open there since
-  # 2026-08-23 with no comment and no review.
+  # those units are why the fork was taken and not the origin. That fork went quiet too: measured
+  # 2026-08-30, last commit 2025-09-10, with a VEAF pull request open since 2026-08-23, unanswered.
   #
-  # So VEAF forked the fork. `source` below is ours, and it is where a Skynet fix goes now. Do not
-  # read `ahead=N` as a sign of life: the four commits the Regroupement fork leads walder by all date
-  # from 2025, and reading that counter as a pulse is what made an earlier note here call it "the
-  # living branch".
+  # VEAF therefore forked the fork, and **Flogas agreed on 2026-08-31 that VEAF/Skynet-IADS becomes
+  # the main fork**. So a Skynet fix goes here, and nowhere else first: this repository is not a
+  # staging area waiting for someone else's review any more.
   #
-  # Sending work back upstream is still worth doing, once it has been checked in game -- to Flogas
-  # first, since walder's repository has not moved since 2023. That is a proposal, not a dependency:
-  # nothing here waits on either of them.
+  # What that changes in practice:
+  #   * defects are filed as issues on VEAF/Skynet-IADS (they had to be enabled there, and they are
+  #     disabled on the Regroupement fork, which is why nothing could be filed upstream);
+  #   * the two entries below stay as `upstream-ref` so the drift watcher still notices if either
+  #     ancestor moves -- neither has since 2025, but a silent divergence is what this file exists
+  #     to prevent.
+  #
+  # One reading to avoid, since it cost a wrong decision once: do not read `ahead=N` as a sign of
+  # life. The four commits the Regroupement fork leads walder by all date from 2025, and taking that
+  # counter for a pulse is what made an earlier version of this note call it "the living branch".
   - id: skynet
     source: https://github.com/VEAF/Skynet-IADS
     upstream: https://github.com/regroupement-patrouille/Skynet-IADS

@@ -1,6 +1,6 @@
 # FIX-CSAR-INIT-GUARD — CSAR's re-initialisation guard cannot fire, and its opt-out is read by nobody
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-31
 
 Origin: noticed 2026-08-31 while reading `csar.initialize` for `REFACTOR-CSAR-WITHOUT-MIST`'s in-game
 check. Not observed failing — see *What is actually at risk*, which is the honest part of this.
@@ -85,14 +85,81 @@ same knot: the comment describes the intent behind `skipInitialisation`, which w
   or be done from `veaf.lua` like the seven other replacements. Prefer `veaf.lua`.
 - Correct the comment in `veaf.lua`: CSAR *does* auto-initialise.
 
+## What was done
+
+The remedy is not a flag. Re-initialising is a **feature** — it is how a mission maker's
+configuration callback is applied — so refusing the second call would have broken the documented
+path instead of fixing it. What must not happen twice is the event handler.
+
+`veaf.csar_initialize_replacement` now drops the previous handler before the vanilla initialiser
+registers a new one:
+
+```lua
+if veaf.csar_initialized then
+  world.removeEventHandler(csar.eventHandler)
+end
+veaf.csar_initialize(true)
+csar.alreadyInitialized = true
+```
+
+`csar.eventHandler` is a single stable table (`CSAR.lua:449`), so `removeEventHandler` finds it.
+Setting `csar.alreadyInitialized` afterwards makes CSAR's own guard reachable at last, for anyone
+calling the vanilla function directly without `force`.
+
+`csar.skipInitialisation` was **deleted** rather than wired: it was the other half of a mechanism
+that was never joined, and it made the initialisation look guarded when it was not.
+
+All of this lives in `veaf.lua`, like the eight other replacements, so `CSAR.lua` stays a clean
+vendored copy.
+
+### The second thing the second call was doing
+
+Found by review on #852, after the handler fix had landed: `csar.initialize` also schedules
+`csar.addMedevacMenuItem`, which **reschedules itself** every five seconds — and
+`csar.reactivateAircraft` likewise when `disableAircraftTimeout` is on. Each initialisation that
+starts one leaves an independent chain running for the rest of the mission. They accumulate, and
+unlike the duplicated event handler nothing ever stops them.
+
+So the same second call was doing two harmful things and only one had been dealt with. During a
+*re*-initialisation the wrapper now declines those two schedules and restores `timer.scheduleFunction`
+immediately afterwards, in a `pcall` so a failing initialiser cannot leave a patched scheduler behind
+— that would silently swallow every CSAR timer for the rest of the mission.
+
+Nothing is lost by declining: the chain from the first initialisation is still running and still
+refreshing the menu, which a test asserts by advancing the clock past its next due time.
+
+### The comment that said the opposite of the code
+
+`veaf.lua` claimed *"Our CSAR (VEAF version) does not autoinitialize"*. It does — the bottom of
+`CSAR.lua` schedules `csar.initialize` two seconds after load, and by then the wrapper has replaced
+it. Anyone reading that comment to decide whether they also had to call it from `mission-script.lua`
+was told the wrong thing, and doing both is exactly what produced the second handler. Corrected.
+
+### The mock that could not tell the difference
+
+`world.addEventHandler` was `function(handler) end` in `dcs_mocks.lua` — a no-op. No test could
+distinguish a script that registers once from one that registers on every call, which is the whole
+question here. It records handlers now, and `removeEventHandler` removes them.
+
+Same shape as the MiST stubs found during `DROP-MIST`: a mock that answers everything and proves
+nothing.
+
+### The suite that did not exist
+
+There was **no test for CSAR at all**. `test_csar_init.lua` loads the scripts in a real mission's
+order — CSAR *before* VEAF, which every other suite gets backwards — and that ordering is the point:
+it is why the load-time assertion defect shipped and broke every mission until it was found in game.
+
+Nine tests. Three fail when the handler removal is taken out, a fourth when the chain filter is.
+
 ## Definition of done
 
-- [ ] A test drives `csar.initialize` **twice** and asserts `world.addEventHandler` was called once —
+- [x] A test drives `csar.initialize` **twice** and asserts `world.addEventHandler` was called once —
       asserting the wiring, not the flag, which is what let this sit unnoticed
-- [ ] A test covers the documented path: automatic init, then an explicit call from a mission script
-- [ ] No flag is left written-but-unread or read-but-unwritten
-- [ ] The `veaf.lua` comment describes what the code does
-- [ ] Lua suite green, `stylua` and `luacheck` clean, `CHANGELOG.md` entry
+- [x] A test covers the documented path: automatic init, then an explicit call from a mission script
+- [x] No flag is left written-but-unread or read-but-unwritten
+- [x] The `veaf.lua` comment describes what the code does
+- [x] Lua suite green, `stylua` and `luacheck` clean, `CHANGELOG.md` entry
 
 ## Why this was not fixed on the spot
 

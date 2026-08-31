@@ -13,6 +13,7 @@ dcs_mocks.missionStart = 0 -- what timer.getTime0 answers
 dcs_mocks.zones = {}
 dcs_mocks.logs = {} -- captured log lines
 dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
+dcs_mocks.eventHandlers = {} -- handlers passed to world.addEventHandler, in order
 dcs_mocks.staticsAdded = {} -- captured coalition.addStaticObject calls, as { countryId, object }
 dcs_mocks.groupsAdded = {} -- captured coalition.addGroup calls, as { countryId, categoryId, group }
 
@@ -241,8 +242,21 @@ world = {
     S_EVENT_LANDING_AFTER_EJECTION = 30,
     S_EVENT_MAX = 31,
   },
-  addEventHandler = function(handler) end,
-  removeEventHandler = function(handler) end,
+  -- Recorded rather than discarded. DCS does not deduplicate handlers, so registering twice means
+  -- every event is delivered twice — the defect fixed in 6.17.0 for VEAF's own handler (#824). A
+  -- no-op stub here cannot tell a script that registers once from one that registers on every call,
+  -- which is exactly the question FIX-CSAR-INIT-GUARD had to ask.
+  addEventHandler = function(handler)
+    table.insert(dcs_mocks.eventHandlers, handler)
+  end,
+  removeEventHandler = function(handler)
+    for index, registered in ipairs(dcs_mocks.eventHandlers) do
+      if registered == handler then
+        table.remove(dcs_mocks.eventHandlers, index)
+        return
+      end
+    end
+  end,
   getAirbases = function(coalition_id)
     return {}
   end,
@@ -638,6 +652,7 @@ function dcs_mocks.reset()
   dcs_mocks.zones = {}
   dcs_mocks.logs = {}
   dcs_mocks.tasksSet = {}
+  dcs_mocks.eventHandlers = {}
   dcs_mocks.staticsAdded = {}
   dcs_mocks.groupsAdded = {}
   dcs_mocks.messages = {}

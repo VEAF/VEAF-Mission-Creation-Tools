@@ -42,7 +42,15 @@ can have its own span: the `±` field appears beside it as soon as it switches t
 ◐, and leaving that field empty falls back to the shared value set at the top of
 the panel.
 
-On a real session log, dropping the ED noise takes 2,714 severe lines down to 278.
+Dropping the ED noise changes the scale of what is left to read:
+
+| Log | Severe lines | Shown |
+|---|---|---|
+| One session `dcs.log` | 416 | **34** |
+| That `dcs.log` and four archived logs | 2,714 | **278** |
+
+"Severe" means level `ERROR`, `ERROR_ONCE` or `ALERT`. A log grows while the game
+runs, so counts taken on another day differ by a few lines.
 
 ## Profiles
 

@@ -43,6 +43,10 @@ casse est ignorée). Un groupe `ARMOR-1` bien placé dans `CZ-Alpha` est puremen
 Corollaire dangereux dans l'autre sens : un groupe sans rapport nommé `CZ-Alpha-quelque-chose` et
 posé dans la zone sera détruit au démarrage de la mission.
 
+Rien ne se voit en jeu dans un cas comme dans l'autre, mais **le log DCS nomme ce que la zone a
+laissé de côté** — une ligne par zone au démarrage, avec les groupes trouvés à l'intérieur et
+refusés. Une zone « qui ne fait rien apparaître » mérite un coup d'œil au log avant tout le reste.
+
 Deuxième piège : `training: true` n'est pas cosmétique. Sans lui, l'entrée du menu s'affiche
 `+Activer la zone` et exige une radio authentifiée — pratique sur un serveur, déroutant quand on
 découvre.

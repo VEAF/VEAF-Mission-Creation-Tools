@@ -1003,6 +1003,39 @@ function VeafCombatZone:clearDelayedSpawners()
   return self
 end
 
+--- Fold one element's stated `#spawncount` into the spawn group it joins.
+---
+--- A spawn group is a **set** of elements, and its count belongs to the set, not to whichever element
+--- happened to create it. Reading it from that first element alone meant `#spawncount=2` written on
+--- the second unit of a `#spawngroup` was dropped without a word — and since FIX-COMBATZONE-SPAWNCHANCE
+--- an absent count is `nil`, which is what tells `activate()` there is nothing to guarantee, so losing
+--- one changes how many groups come up, not merely the bookkeeping.
+---
+--- **The highest stated count wins.** Two reasons, in this order:
+--- * the defect being fixed *is* order-dependence, and "the last one written" would only move it — the
+---   order elements are added in is editor order, which the mission maker never chose;
+--- * a `#spawncount` is a guarantee ("2 of these 4, granted"), so the larger of two promises is the one
+---   that keeps both.
+---
+--- A group with no count stated anywhere keeps `nil`, and two elements stating the same number are not
+--- a conflict — only a real disagreement is reported.
+local function mergeSpawnCountInto(elementGroup, element, zoneName)
+  local stated = element:getSpawnCount()
+  if stated == nil then
+    return
+  end
+  local current = elementGroup.spawnCount
+  if current == nil or current == stated then
+    elementGroup.spawnCount = stated
+    return
+  end
+  local kept = math.max(current, stated)
+  veaf.loggers
+    .get(veafCombatZone.Id)
+    :info(veaf.t("combatzone.spawncount_conflict", veaf.p(zoneName), veaf.p(elementGroup.spawnGroup), current, stated, kept))
+  elementGroup.spawnCount = kept
+end
+
 function VeafCombatZone:addZoneElement(element)
   veaf.loggers
     .get(veafCombatZone.Id)
@@ -1015,14 +1048,15 @@ function VeafCombatZone:addZoneElement(element)
   end
   table.insert(self.elements, element)
   if not self.elementGroups[element:getSpawnGroup()] then
-    local elementGroup = {}
-    elementGroup.spawnGroup = element:getSpawnGroup()
-    elementGroup.spawnCount = element:getSpawnCount()
-    elementGroup.elements = {}
-    self.elementGroups[element:getSpawnGroup()] = elementGroup
+    local newGroup = {}
+    newGroup.spawnGroup = element:getSpawnGroup()
+    newGroup.spawnCount = nil -- stays nil until an element states one; see mergeSpawnCountInto
+    newGroup.elements = {}
+    self.elementGroups[element:getSpawnGroup()] = newGroup
   end
   local elementGroup = self.elementGroups[element:getSpawnGroup()]
   table.insert(elementGroup.elements, element)
+  mergeSpawnCountInto(elementGroup, element, self:getMissionEditorZoneName())
   return self
 end
 
@@ -1178,8 +1212,12 @@ function VeafCombatZone:initialize()
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("zone center = [%s]", veaf.vecToString(self.zoneCenter)))
 
   -- find units in the trigger zone
-  local units
-  units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
+  local units, excludedGroupNames
+  units, _, excludedGroupNames = veaf.safeUnpack(self:findUnitsInCombatZone())
+
+  -- and say what the prefix rule turned down, once, before anything else happens: this is the only
+  -- moment the zone knows what it saw and did not take
+  self:reportGroupsExcludedByName(excludedGroupNames)
 
   -- Group what was found, keeping the order the units were met in. The element's **coalition** comes
   -- from the first of those units, as it always has — every unit of a group shares it. Its
@@ -1941,12 +1979,18 @@ end
 ---
 --- lists all units and statics (and their groups names) in a combat zone that also match the combat zone name
 ---
+--- Returns `{ keptUnits, keptGroupNames, excludedGroupNames }`. The third slot is what the zone found
+--- inside its trigger zone and left behind because the prefix rule turned it down — reported once by
+--- `initialize`, see `VeafCombatZone:reportGroupsExcludedByName`.
+---
 function VeafCombatZone:findUnitsInCombatZone()
   local unitsNames = veaf.getUnitsNamesOfCoalition(true, nil) -- include statics, all coalitions
   local units = {}
   local resultUnits = {}
   local groupNames = {}
   local alreadyAddedGroups = {}
+  local excludedGroupNames = {}
+  local alreadyExcludedGroups = {}
   local triggerZone = self:getTriggerZone()
   local upperTriggerzoneName = self:getMissionEditorZoneName():upper()
 
@@ -1963,7 +2007,7 @@ function VeafCombatZone:findUnitsInCombatZone()
   units = veaf.getUnitsInTriggerZone(self:getMissionEditorZoneName(), unitsNames, veafCombatZone.Id)
   if not units then
     self.unreadableTriggerZone = true
-    return { {}, {} }
+    return { {}, {}, {} }
   end
 
   veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.lp(#units))
@@ -1977,11 +2021,39 @@ function VeafCombatZone:findUnitsInCombatZone()
         alreadyAddedGroups[groupName] = groupName
         groupNames[#groupNames + 1] = groupName
       end
+    elseif not alreadyExcludedGroups[groupName] then
+      -- collected by **group**, not by unit: a group is what the mission maker would have to rename,
+      -- and a zone can hold dozens of units for a handful of groups
+      alreadyExcludedGroups[groupName] = groupName
+      excludedGroupNames[#excludedGroupNames + 1] = groupName
     end
   end
 
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("found %d units (%d groups) in zone", #resultUnits, #groupNames))
-  return { resultUnits, groupNames }
+  return { resultUnits, groupNames, excludedGroupNames }
+end
+
+--- Say, once, which groups stood inside the zone and were turned down by the prefix rule.
+---
+--- The rule itself is deliberate — see the module header and `doc/mission-maker/scripts/veafCombatZone.md`
+--- — but until now it applied without a word above `trace`: a mission maker who mistyped a prefix saw the
+--- zone activate, saw nothing appear, and found an empty log. One line per zone at `info`, and **nothing
+--- at all** when nothing was excluded: a message every mission prints is a message nobody reads.
+function VeafCombatZone:reportGroupsExcludedByName(excludedGroupNames)
+  if not excludedGroupNames or #excludedGroupNames == 0 then
+    return self
+  end
+  local zoneName = self:getMissionEditorZoneName()
+  veaf.loggers.get(veafCombatZone.Id):info(
+    veaf.t(
+      "combatzone.groups_excluded_by_name",
+      veaf.p(zoneName),
+      #excludedGroupNames,
+      table.concat(excludedGroupNames, ", "),
+      veaf.p(zoneName)
+    )
+  )
+  return self
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatOperationTaskingOrder object

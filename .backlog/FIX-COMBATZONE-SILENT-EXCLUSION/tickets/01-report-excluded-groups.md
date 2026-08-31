@@ -1,6 +1,6 @@
 # 01 — Say which groups the zone ignored
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · File: `src/scripts/veaf/veafCombatZone.lua`
 
@@ -21,8 +21,8 @@ Both languages, through the i18n catalogue like the rest of the module.
 
 ## Definition of done
 
-- [ ] A zone containing a wrongly-named group logs it at `info`, naming the group and the zone
-- [ ] A zone whose groups are all correctly named logs nothing
-- [ ] Several excluded groups produce one line, not one line each
-- [ ] Tests assert what `activate()` (or the build-up path) actually logged, through the mocks
-- [ ] `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean
+- [x] A zone containing a wrongly-named group logs it at `info`, naming the group and the zone
+- [x] A zone whose groups are all correctly named logs nothing
+- [x] Several excluded groups produce one line, not one line each
+- [x] Tests assert what `activate()` (or the build-up path) actually logged, through the mocks
+- [x] `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean

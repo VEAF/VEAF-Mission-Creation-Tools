@@ -42,6 +42,10 @@ called `ARMOR-1` sitting neatly inside `CZ-Alpha` is simply ignored; it must be 
 The dangerous corollary runs the other way: an unrelated group named `CZ-Alpha-something` and placed
 inside the zone will be destroyed at mission start.
 
+Nothing shows in game either way, but **the DCS log names what the zone left behind** — one line per
+zone at start-up, listing the groups it found inside and turned down. A zone that "spawns nothing" is
+worth one look at the log before anything else.
+
 Second gotcha: `training: true` is not cosmetic. Without it the menu entry reads `+Activate zone`
 and demands an authenticated radio — handy on a server, baffling while you are learning.
 

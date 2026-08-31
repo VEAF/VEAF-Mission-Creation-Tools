@@ -704,6 +704,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `veaf.MIST_MARKER_ID_INITIAL_VALUE` constant that exists nowhere in the code, and
   `MISSION_YAML_REFERENCE` still called TUM the only opt-in community script.
 
+- **A combat zone now says which groups it left behind, and no longer loses a stated `#spawncount`.**
+  A zone takes only the groups whose name starts with the trigger zone's name — the rule that lets two
+  overlapping zones each know what is theirs, keeps a passing convoy out of a garrison, and lets a zone
+  know when it is complete. **The rule is unchanged.** What changed is that it applied without a word
+  above `trace`: a mission maker who mistyped a prefix saw the zone activate, saw nothing appear, and
+  found an empty log. Zone build-up now writes one line at `info` per zone, naming the **groups** it
+  found inside and turned down and the prefix they need — and nothing at all when nothing was dropped,
+  since a message every mission prints is a message nobody reads.
+
+  Second fix in the same file: `addZoneElement` read `#spawncount` from the element that *created* the
+  spawn group and from no other, so the same tag written on any later member of a `#spawngroup` was
+  dropped. Pre-existing, but it grew teeth with the spawn-chance fix — an unstated count is `nil`, and
+  that nil is what tells the zone there is nothing to guarantee, so a count lost this way changes how
+  many groups come up. A count written anywhere in the spawn group is now honoured; when two members
+  state **different** counts the **highest** wins, and the log says which was kept. The order elements
+  are met in is editor order, which the mission maker never chose, so "the last one written" would only
+  have moved the order-dependence this fixes; and a `#spawncount` is a guarantee, so the larger of two
+  promises is the one that keeps both. Repeating the same count is not a disagreement and stays silent.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

@@ -1,6 +1,6 @@
 # DCS units database (type, kind, category, attributes, fuel capacity).
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Source ref: d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a
+# Source ref: fe1d8008e6e8dc4c1c4e85558cd1b0b29a02da3f
 # Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).
 # Re-run `veaf-build update-dcs-data --units` to regenerate after a pin bump.
 # DO NOT EDIT BY HAND — CI fails if this file drifts from the generator output.
@@ -548,6 +548,17 @@ units:
   - NonAndLightArmoredUnits
   - NonArmoredUnits
   - Unarmed vehicles
+- type: ATZ-60_TANK
+  name: Refueler ATZ-60 Tank
+  kind: vehicle
+  category: Unarmed
+  description: Refueler ATZ-60 Tank
+  attributes:
+  - Trailers
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
 - type: AV8BNA
   name: AV-8B N/A
   kind: air
@@ -837,10 +848,10 @@ units:
   - NonAndLightArmoredUnits
   - LightArmoredUnits
 - type: BMP-3
-  name: IFV BMP-3
+  name: IFV BMP-3 [CH]
   kind: vehicle
   category: Armor
-  description: IFV BMP-3
+  description: IFV BMP-3 [CH]
   attributes:
   - IFV
   - ATGM
@@ -899,7 +910,8 @@ units:
   description: Rwy. Flat Car
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -1488,6 +1500,26 @@ units:
   - Indirect fire
   - NonAndLightArmoredUnits
   - LightArmoredUnits
+- type: CHAP_BMP3_ERA
+  name: IFV BMP-3 ERA [CH]
+  kind: vehicle
+  category: Armor
+  description: IFV BMP-3 ERA [CH]
+  attributes:
+  - IFV
+  - ATGM
+  - Infantry carriers
+  - Armored vehicles
+  - All
+  - Ground Units
+  - Ground Units Non Airdefence
+  - Armed ground units
+  - Vehicles
+  - Ground vehicles
+  - Armed vehicles
+  - AntiAir Armed Vehicles
+  - NonAndLightArmoredUnits
+  - LightArmoredUnits
 - type: CHAP_BMPT
   name: IFV BMPT Terminator [CH]
   kind: vehicle
@@ -1546,6 +1578,36 @@ units:
   - AntiAir Armed Vehicles
   - NonAndLightArmoredUnits
   - LightArmoredUnits
+- type: CHAP_HX77
+  name: Truck HX77 [CH]
+  kind: vehicle
+  category: Unarmed
+  description: Truck HX77 [CH]
+  attributes:
+  - Trucks
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - Ground Units Non Airdefence
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Unarmed vehicles
+- type: CHAP_HX81_Tractor
+  name: Tractor HX81 [CH]
+  kind: vehicle
+  category: Unarmed
+  description: Tractor HX81 [CH]
+  attributes:
+  - Trucks
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - Ground Units Non Airdefence
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Unarmed vehicles
 - type: CHAP_IRISTSLM_CP
   name: SAM IRIS-T SLM C2 [CH]
   kind: vehicle
@@ -1627,6 +1689,26 @@ units:
   description: IFV M1130 Stryker CV [CH]
   attributes:
   - APC
+  - Datalink
+  - Infantry carriers
+  - Armored vehicles
+  - All
+  - Ground Units
+  - Ground Units Non Airdefence
+  - Armed ground units
+  - Vehicles
+  - Ground vehicles
+  - Armed vehicles
+  - AntiAir Armed Vehicles
+  - NonAndLightArmoredUnits
+  - LightArmoredUnits
+- type: CHAP_M1296
+  name: IFV M1296 Dragoon [CH]
+  kind: vehicle
+  category: Armor
+  description: IFV M1296 Dragoon [CH]
+  attributes:
+  - IFV
   - Datalink
   - Infantry carriers
   - Armored vehicles
@@ -1802,6 +1884,36 @@ units:
   - Armed Air Defence
   - HeavyArmoredUnits
   - Heavy armed ships
+- type: CHAP_SLT50_Tractor
+  name: Tractor SLT-50 [CH]
+  kind: vehicle
+  category: Unarmed
+  description: Tractor SLT-50 [CH]
+  attributes:
+  - Trucks
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - Ground Units Non Airdefence
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Unarmed vehicles
+- type: CHAP_SLT50_Trailer
+  name: Trailer SLT-50 [CH]
+  kind: vehicle
+  category: Unarmed
+  description: Trailer SLT-50 [CH]
+  attributes:
+  - Trucks
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - Ground Units Non Airdefence
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Unarmed vehicles
 - type: CHAP_T64BV
   name: MBT T-64BV Type 2017 [CH]
   kind: vehicle
@@ -1872,6 +1984,26 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1420
+- type: CHAP_Titan
+  name: MRAP ZA-SpN Titan [CH]
+  kind: vehicle
+  category: Armor
+  description: MRAP ZA-SpN Titan [CH]
+  attributes:
+  - APC
+  - Datalink
+  - Infantry carriers
+  - Armored vehicles
+  - All
+  - Ground Units
+  - Ground Units Non Airdefence
+  - Armed ground units
+  - Vehicles
+  - Ground vehicles
+  - Armed vehicles
+  - AntiAir Armed Vehicles
+  - NonAndLightArmoredUnits
+  - LightArmoredUnits
 - type: CHAP_TorM2
   name: CHAP_TorM2
   kind: vehicle
@@ -1975,7 +2107,8 @@ units:
   description: Rwy. Passenger Car
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -1988,7 +2121,8 @@ units:
   description: Rwy. Coach Platform
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -2001,7 +2135,8 @@ units:
   description: Rwy. Tank Car blue
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -2014,7 +2149,8 @@ units:
   description: Rwy. Tank Car yellow
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -2027,7 +2163,8 @@ units:
   description: Rwy. Freight Van
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -2040,7 +2177,8 @@ units:
   description: Rwy. Open Wagon
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -2407,7 +2545,8 @@ units:
   description: DR 50-ton flat wagon
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -2450,7 +2589,8 @@ units:
   description: Rwy. Loco DRG Class 86 (Germany, WWII)
   attributes:
   - RailwayLocomotive
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -2545,9 +2685,10 @@ units:
   category: Locomotive
   description: Rwy. Loco VL80 Electric
   attributes:
-  - RailwayUnits
+  - Ground Units
   - RailwayLocomotive
-  - GroundUnits
+  - All
+  - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
   - NonArmoredUnits
@@ -2606,7 +2747,8 @@ units:
   description: Rwy. Loco ES44AH
   attributes:
   - RailwayLocomotive
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -3665,7 +3807,8 @@ units:
   description: Rwy. Wagon G10 (Germany, WWII)
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -3677,9 +3820,10 @@ units:
   category: Carriage
   description: Rwy. Tank Car (Germany, WWII)
   attributes:
-  - RailwayUnits
+  - Ground Units
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
   - NonArmoredUnits
@@ -5312,7 +5456,8 @@ units:
   description: Rwy. Loco CHME3T
   attributes:
   - RailwayLocomotive
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -8150,6 +8295,17 @@ units:
   - NonAndLightArmoredUnits
   - NonArmoredUnits
   - Unarmed vehicles
+- type: S_75_Zil_Trailer
+  name: S-75 Trailer
+  kind: vehicle
+  category: Unarmed
+  description: S-75 Trailer
+  attributes:
+  - Trailers
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
 - type: S_75M_Volhov
   name: S_75M_Volhov
   kind: vehicle
@@ -9819,7 +9975,8 @@ units:
   description: Rwy. Tank Cartrinity
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits
@@ -10599,6 +10756,17 @@ units:
   - NonAndLightArmoredUnits
   - NonArmoredUnits
   - Unarmed vehicles
+- type: TZ-22_TANK
+  name: Refueler TZ-22 Tank
+  kind: vehicle
+  category: Unarmed
+  description: Refueler TZ-22 Tank
+  attributes:
+  - Trailers
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
 - type: UAZ-469
   name: LUV UAZ-469 Jeep
   kind: vehicle
@@ -11036,7 +11204,8 @@ units:
   description: Rwy. Well Car
   attributes:
   - RailwayCarriage
-  - GroundUnits
+  - All
+  - Ground Units
   - RailwayUnits
   - Ground Units Non Airdefence
   - NonAndLightArmoredUnits

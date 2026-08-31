@@ -1,6 +1,6 @@
 # DCS country name -> id table.
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Source ref: d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a
+# Source ref: fe1d8008e6e8dc4c1c4e85558cd1b0b29a02da3f
 # Re-run `veaf-build update-dcs-data --countries` to regenerate after a pin bump.
 # DO NOT EDIT BY HAND — CI fails if this file drifts from the generator output.
 

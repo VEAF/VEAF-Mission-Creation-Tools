@@ -256,10 +256,13 @@ end
 -- Leaving it would have made this script refuse to start in a mission that no longer injects MiST,
 -- which is the whole point of the change. What it checks now is what the script actually needs: the
 -- VEAF framework, whose geometry, id allocation and spawning replaced MiST's here.
-assert(
-  veaf ~= nil and veaf.getAvgPos ~= nil,
-  "\n\n** HEY MISSION-DESIGNER! **\n\nThe VEAF framework has not been loaded!\n\nMake sure the VEAF scripts are running\n*before* running this script!\n"
-)
+--
+-- VEAF, 2026-08-31: the check itself moved into `csar.initialize`, at the bottom of this file, and
+-- this is not cosmetic. A VEAF build loads the community scripts *before* its own bundle -- CSAR is
+-- fifth, veaf-scripts.lua seventh -- so asserting on `veaf` here refused to start in every mission,
+-- which is what happened in game. The script already knew: it defers `csar.initialize` by two
+-- seconds with the comment "so other scripts (namely the veaf.lua script) are loaded". The check
+-- belongs where the dependency is actually needed, not where the file happens to be read.
 
 csar.addedTo = {}
 
@@ -2219,6 +2222,14 @@ function csar.initialize(force)
   csar.logInfo(string.format("Initializing version %s", csar.Version))
   csar.logTrace(string.format("csar.alreadyInitialized=%s", csar.p(csar.alreadyInitialized)))
   csar.logTrace(string.format("force=%s", csar.p(force)))
+
+  -- The dependency check, here rather than at load time: a VEAF build loads this file before its own
+  -- bundle, so at load time `veaf` is legitimately still nil. By now the two seconds have passed and
+  -- it must be there -- every geometry, id allocation and spawning call below goes through it.
+  assert(
+    veaf ~= nil and veaf.getAvgPos ~= nil,
+    "\n\n** HEY MISSION-DESIGNER! **\n\nThe VEAF framework has not been loaded!\n\nMake sure the VEAF scripts are running\n*before* running this script!\n"
+  )
 
   if csar.alreadyInitialized and not force then
     csar.logInfo(string.format("Bypassing initialization because csar.alreadyInitialized = true"))

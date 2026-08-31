@@ -668,6 +668,25 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
 
     data.units = {}
     local liveUnits = group:getUnits() or {}
+
+    -- The country, from the live unit when the editor knows nothing about this group.
+    --
+    -- A group spawned during the mission has no editor record, so `record` is nil and everything the
+    -- snapshot would have supplied is missing -- the country included, and `addGroup` refuses a group
+    -- without one. MiST did not meet this: its database was refreshed every two seconds and held the
+    -- dynamic groups too, so `getCurrentGroupData` found their country there.
+    --
+    -- Found in game (DCS-SESSION-TODO item 23): teleporting a CSAR downed pilot, a group CSAR itself
+    -- had just created, failed with "country not found".
+    if data.countryId == nil and data.country == nil and liveUnits[1] then
+      local ok, countryId = pcall(function()
+        return liveUnits[1]:getCountry()
+      end)
+      if ok and countryId then
+        data.countryId = countryId
+      end
+    end
+
     if #liveUnits == 0 then
       veaf.loggers.get(veafDcsSpawner.Id):warn("getCurrentGroupData: group [%s] exists but has no units", veaf.p(groupName))
     end

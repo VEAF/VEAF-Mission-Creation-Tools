@@ -1,6 +1,6 @@
 # REFACTOR-CSAR-WITHOUT-MIST — cut CSAR's 18 calls to MiST
 
-Status: 🧑 waiting-human — code done 2026-08-28; the in-game check is the only thing left
+Status: ✅ done — checked in game 2026-08-31, and it found two defects
 
 Origin: David, 2026-08-28, on `DROP-MIST` ticket 08 — *"CSAR : comme pour CTLD, on pourrait s'affranchir
 de MiST ; c'est un script qu'on a repris aussi je crois (pas vendored), donc on peut le modifier non ?
@@ -79,6 +79,63 @@ what to re-apply. It now names this change, because **a straight copy from cirib
 and make CSAR refuse to start** in a mission that no longer injects it. That is the silent regression
 this lot would otherwise have planted for its own future.
 
+
+## Checked in game, 2026-08-31
+
+All four steps, in one session:
+
+| step | result |
+|---|---|
+| **Downed pilot appears** | `Wounded Pilot #200084` — the id comes from VEAF's allocator, so `veaf.addGroup` and `getNextUnitId` really did replace `mist.dynAdd` and `mist.getNextGroupId` |
+| **Radio message** | `Wounded Pilot #200084 requests SAR at bullseye 333 for 62, beacon at 300.00 KHz` — the format is intact, which is what the riskiest rewrite had to preserve |
+| **Closing / departing** | "2 o'clock", confirmed against an independent bearing calculation (absolute 81°, heading 355°, relative 86°) |
+| **Pickup** | *"I'm in! Get to the MASH ASAP!"*, one pilot aboard |
+
+`mist` was `nil` throughout.
+
+## The two defects it found, and why no test saw them
+
+### The assertion ran at load time, where `veaf` cannot exist yet
+
+CSAR refused to start in **every** mission: *"The VEAF framework has not been loaded!"*. A VEAF build
+loads the community scripts before its own bundle — CSAR is fifth, `veaf-scripts.lua` seventh — so
+`veaf` is legitimately nil when this file is read.
+
+The script already knew, and said so two thousand lines further down:
+
+```lua
+-- initialize CSAR in 2 seconds, so other scripts (namely the veaf.lua script) are loaded
+timer.scheduleFunction(csar.initialize, nil, timer.getTime() + 2)
+```
+
+The check moved into `csar.initialize`, where the dependency is actually needed. It keeps its value:
+if `veaf` is missing *there*, something is genuinely wrong.
+
+**Why the suite missed it:** every Lua test `dofile`s the VEAF modules before the script under test.
+None reproduces the load order of a real mission, so the assertion always passed.
+
+### A group the editor never placed has no country
+
+Teleporting the downed pilot — a group CSAR had just created itself — failed with
+`addGroup: country not found`. `getCurrentGroupData` builds its data from the editor record, and a
+group spawned during the mission has none, so the country was missing along with everything else the
+snapshot would have supplied.
+
+MiST never met this: its database was refreshed every two seconds and held dynamic groups too. The
+live unit knows its country, so it is asked now. This broke **any** teleport of a runtime-spawned
+group, not just CSAR's — a regression from ticket 07, surfaced here by accident.
+
+**Why the suite missed it:** the spawner tests teleport editor groups, which always have a record.
+
+Both defects now have tests, and both tests fail when the fix is removed.
+
+## One more thing the session turned up
+
+The mission carried a **stale `build/veaf-scripts.lua`** — dated before this lot was merged — because
+`veaf-tools mission build` embeds the built artefact rather than assembling the sources. So the first
+attempt showed `attempt to call field 'toStringBR'` for a façade that had existed for days. Not a code
+defect; worth remembering when preparing a session: rebuild the Lua bundle first.
+
 ## Definition of done
 
 - [x] `grep 'mist\.' src/scripts/community/CSAR.lua` returns nothing outside comments — **and the
@@ -91,6 +148,6 @@ this lot would otherwise have planted for its own future.
       an id and no entry — asserted by a test
 - [x] The helpers carry the tests (20 of them); the call sites are mechanical substitutions onto
       equivalents already covered. `loadfile` confirms the file still parses
-- [ ] Checked in game: a CSAR mission, an ejection, a pilot found and picked up
+- [x] Checked in game 2026-08-31: ejection, radio message, closing/departing, pickup — see below
 - [x] Lua suite green. `stylua` and `luacheck` scope `src/scripts/veaf/` only, so a community
       script is outside them by design

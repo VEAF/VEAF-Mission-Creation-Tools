@@ -474,84 +474,29 @@ through — and the harness has since run in game, so the dependency is live.
 
 ---
 
-## 23. Does CSAR still work now that it no longer calls MiST? — closes a lot
+## ✅ 23. CSAR sans MiST — vérifié en jeu le 2026-08-31, et il a trouvé deux défauts
 
-**Why it is here:** `REFACTOR-CSAR-WITHOUT-MIST` (2026-08-28) rewrote all eighteen of CSAR's MiST
-calls onto VEAF equivalents and replaced its MiST load assertion with a VEAF one. The Lua suite covers
-the helpers, but **nothing here can spawn a downed pilot and go fetch him** — CSAR's job is a sequence
-of events in a running mission, and that is what has to be seen.
+Les quatre étapes passées : pilote abattu créé (`Wounded Pilot #200084`, identifiant de
+l'allocateur VEAF), message radio `requests SAR at bullseye 333 for 62, beacon at 300.00 KHz`,
+direction « 2 heures » recoupée par un calcul indépendant, et ramassage effectif. `mist` était
+`nil` du début à la fin.
 
-The lot is `🧑 waiting-human` on this and nothing else.
+Deux défauts trouvés au passage, qu'aucun des 3950 tests ne voyait : l'assertion de dépendance
+s'exécutait au chargement, là où `veaf` ne peut pas encore exister ; et un groupe créé en vol
+n'avait pas de pays, ce qui cassait **tout** téléport de groupe dynamique. Détail complet dans
+`.backlog/REFACTOR-CSAR-WITHOUT-MIST/PRD.md`.
 
-**What to run.** The session mission already declares `CSAR: true`, so **rebuild it against the current
-repository** and load it:
+## ✅ 24. Skynet sans MiST — vérifié en jeu le 2026-08-31, sans un seul décollage
 
-```bash
-veaf-tools mission build VEAF-session-csar D:/dev/_VEAF/tmp/dcs-session-2026-08-27 --scripts-path D:/dev/_VEAF/VEAF-Mission-Creation-Tools
-```
+Piloté par le hook fiddle plutôt que volé, David n'ayant pas de matériel sous la main — et c'est
+mieux tombé ainsi : les deux morceaux risqués sont du comportement dans le temps, qui se mesure
+mieux qu'il ne se regarde.
 
-Then, in one flight:
+Ordonnanceur exact (13 exécutions en 26 s à 2 s d'intervalle), annulation propre, défense HARM qui
+éteint **et rallume** à l'échéance, 13 sites SAM et 8 radars EW recensés par préfixe, site créé en
+vol vu immédiatement. Le piège MiST a mordu 31 fois, **31 fois depuis `dcs-bridge.lua`** (l'outil
+d'observation lui-même) et **zéro depuis Skynet**.
 
-1. **Eject.** A downed pilot group must appear — that is `veaf.addGroup` replacing `mist.dynAdd`, and
-   the id allocator replacing `mist.getNextGroupId`.
-2. **Read the radio message giving his position.** This is the riskiest rewrite: MiST averaged a list
-   of units internally, VEAF's renderers take a point, so the averaging moved to the call site. The
-   text must read exactly as before — `"090 for 12"` for a bullseye, a normal lat/long or MGRS
-   otherwise, depending on `csar.coordtype`.
-3. **Fly towards him, then away.** The "you are getting closer" behaviour rides on a dot product
-   (`veaf.vecDotProduct` for `mist.vec.dp`) and on the heading (`veaf.getHeading`). Its **sign** is
-   what matters: approaching and departing must not be confused.
-4. **Land and pick him up**, then drop him at a base.
+Détail complet, y compris mes deux fausses alertes de méthode, dans
+`.backlog/REFACTOR-SKYNET-WITHOUT-MIST/PRD.md`.
 
-**What to look for in `dcs.log`:** filter on `CSAR`. Any `attempt to index` or `attempt to call` naming
-a `veaf.` function is a missing façade — the substitution was mechanical and a typo there would only
-show at runtime.
-
-⚠️ **If CSAR does not start at all**, the message will say the VEAF framework is missing rather than
-MiST — that assertion was deliberately switched. It would mean the script loaded before the VEAF
-bundle, which is a load-order problem and not a porting one.
-
-**What it unblocks:** `.backlog/REFACTOR-CSAR-WITHOUT-MIST/PRD.md`, its last unchecked box. Record the
-result there and delete this section.
-
-## 24. Does Skynet still work now that it no longer calls MiST? -- closes a lot
-
-Same shape as item 23, one script further along, and this one is what retires the MiST injection
-altogether. `REFACTOR-SKYNET-WITHOUT-MIST` is `🧑 waiting-human` on this and nothing else.
-
-Forty-two calls were replaced. The artefact was checked function for function against the previous one
--- 282 functions, 140 table keys, 17 classes, no difference outside the intended change -- so what a
-static comparison can establish is established. What it cannot reach is behaviour over time, and both
-risky pieces are exactly that.
-
-**What to run.** An IADS mission: a few SAM sites and an early warning radar behind a prefix, a strike
-package coming in. The session mission does not carry one, so the quickest route is one of the demo
-missions shipped in the fork, under `demo-missions/`.
-
-Then, in one flight:
-
-1. **Watch a SAM site go live, then dark.** This exercises the scheduler that replaced
-   `mist.scheduleFunction` -- `SkynetIADS.evaluateContacts` runs on it, every `contactUpdateInterval`.
-   If the scheduler were broken the IADS would simply never react, which is easy to see and easy to
-   mistake for a mission setup problem.
-2. **Fire a HARM at a live site.** HARM defence schedules two things and cancels them again
-   (`harmScanID`, `harmSilenceID`). A site must go dark, then come back after its shutdown time. A
-   site that goes dark and **never** comes back means a cancellation removed the wrong task.
-3. **Check a site added by prefix appears.** `addSAMSitesByPrefix` and `addEarlyWarningRadarsByPrefix`
-   no longer read MiST's database; they ask DCS. A site present in the editor but missing from the
-   IADS status is this change failing.
-4. **Spawn a SAM site during the mission**, then add it by prefix. MiST would only have seen it after
-   its next database refresh; it should now be seen immediately. This one is a small improvement, not
-   a regression risk -- worth confirming while everything else is set up.
-
-**What to look for in `dcs.log`:** filter on `SkynetIADS`. A line reading
-`SkynetIADS: error in scheduled function:` is the new scheduler catching a throw -- it keeps running
-by design, so this is the only place such a failure surfaces. Any `attempt to index` or
-`attempt to call` naming `SkynetIADSUtils` is a missing helper.
-
-⚠️ **If nothing happens at all**, check load order before suspecting the port: Skynet is a single
-compiled file and no longer asserts anything about MiST.
-
-**What it unblocks:** `.backlog/REFACTOR-SKYNET-WITHOUT-MIST/PRD.md`, its last unchecked box, and with
-it `DROP-MIST` ticket 08 -- no community script VEAF ships would still need the injection. Record the
-result there and delete this section.

@@ -1,6 +1,6 @@
 # 02 — Document dynamic slots and what limits them
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: the mission-maker docs covering `warehouses.yaml`, both languages
 
@@ -16,7 +16,7 @@ now stocks only what the terrain can park, silently.
 
 ## Definition of done
 
-- [ ] A page (or a section of the existing one) says plainly:
+- [x] A page (or a section of the existing one) says plainly:
       - a base offers the aircraft that have a **dynamic-spawn template group** of its coalition in
         the mission — that is where the list comes from, and why `warehouses.yaml` is nearly empty;
       - an explicit `aircrafts:` list replaces that automatic choice;
@@ -25,5 +25,5 @@ now stocks only what the terrain can park, silently.
         how to check it (the slot picker in game);
       - the parking filter applies on the theatres with bundled parking data (Caucasus, Persian
         Gulf, Syria) and nothing changes elsewhere.
-- [ ] Both languages, in the `nav`
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, in the `nav`
+- [x] `poetry run docs-check` passes

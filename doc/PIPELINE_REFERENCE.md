@@ -448,6 +448,57 @@ blue:
     Senaki-Kolkhi: {}
 ```
 
+### D'où vient la liste d'appareils proposés sur une base ? {#dynslot-offered-aircraft}
+
+C'est la question la plus fréquente sur les slots dynamiques, et la réponse n'est **écrite nulle
+part dans `warehouses.yaml`** : la liste est calculée au build.
+
+Une base propose les appareils qui possèdent, **dans la mission**, un groupe-modèle de slot
+dynamique (`dynSpawnTemplate`) de **sa coalition**. Concrètement :
+
+1. vous placez dans l'éditeur de mission un groupe par type d'appareil, coché « modèle de slot
+   dynamique » (ou vous le laissez faire par l'étape 3, `dynamic-slot-templates.yaml`) ;
+2. au build, l'étape `warehouses` recense ces groupes-modèles par coalition ;
+3. chaque aérodrome sélectionné reçoit **tous** ceux de sa coalition, en stock illimité, et un
+   lien `linkDynTempl` vers le groupe-modèle correspondant.
+
+C'est pourquoi un `warehouses.yaml` de trois lignes suffit à ouvrir toute la carte : la liste ne
+vient pas du fichier, elle vient des groupes-modèles présents dans la mission. Pour ajouter un
+appareil, ajoutez son groupe-modèle ; pour en retirer un, retirez le groupe-modèle.
+
+Une liste `aircrafts:` explicite (dans `defaults:` ou dans l'override d'un aérodrome) **remplace**
+ce choix automatique : seuls les types que vous listez sont mis en stock.
+
+### DCS ne propose que ce que l'aérodrome peut garer {#dynslot-parking-limit}
+
+Même avec un stock et un groupe-modèle corrects, **DCS ne propose un appareil que s'il existe une
+place de parking capable de l'accueillir**. C'est une limite du terrain, pas de l'outil : un terrain
+qui n'a que des plots hélicoptères ne proposera jamais un avion, quoi que dise le stock.
+
+Exemple mesuré sur la Open Training Syria (2026-08-31), toutes bases bleues avec `dynamicSpawn`
+actif et les modèles liés :
+
+| Aérodrome | Places de parking | Proposé |
+|---|---|---|
+| Akrotiri | 41 places avion + 4 plots hélico | avions **et** hélicoptères (vu en jeu) |
+| Lakatamia | 8 plots hélico seulement | hélicoptères seulement (vu en jeu) |
+| Naqoura | 9 plots hélico seulement (pas de piste) | hélicoptères seulement (vu en jeu) |
+| Taftanaz | 48 plots hélico seulement | hélicoptères seulement (d'après les données) |
+
+**Ce que fait l'outil.** Il interroge le terrain avant de remplir : un aérodrome ne reçoit en stock
+que les catégories qu'il peut garer, et le stock devenu injouable (écrit par un build précédent)
+est retiré. Cela vaut aussi pour une liste `aircrafts:` explicite — DCS ignorerait de toute façon
+ce qu'il ne peut pas garer. Le filtrage est **silencieux** : aucun avertissement au build.
+
+**Portée.** Les données de parking ne sont embarquées que pour **Caucasus, Persian Gulf et Syria**.
+Sur tout autre théâtre — et sur un aérodrome absent des données — rien n'est filtré, le
+comportement est inchangé.
+
+**Comment le vérifier en jeu.** Lancez la mission, choisissez le camp, ouvrez le sélecteur de slot
+sur l'aérodrome concerné : la liste proposée est celle que DCS peut réellement faire apparaître. Si
+un avion manque sur un terrain qui n'a que des plots hélicoptères, c'est le comportement attendu ;
+la solution est de choisir un autre aérodrome, pas de modifier le stock.
+
 ---
 
 ## Étape 5 — Données de spawn (`spawn-groups.yaml`) {#pipeline-step-5-spawn-data}

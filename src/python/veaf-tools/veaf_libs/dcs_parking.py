@@ -29,6 +29,38 @@ from veaf_libs.bundled_data import read_bundled_text
 #: on another type, this is the single spot to widen.
 AIRCRAFT_STAND_TYPES: frozenset[str] = frozenset({"104", "68"})
 
+#: DCS ``Term_Type`` values, from the ``Airbase.TerminalType`` enumeration. Sourced 2026-08-31 from
+#: two independent references that agree value for value — the Hoggit wiki's `getParking` page
+#: (https://wiki.hoggitworld.com/view/DCS_func_getParking) and MOOSE's `AIRBASE.TerminalType`
+#: (https://flightcontrol-master.github.io/MOOSE_DOCS/Documentation/Wrapper.Airbase.html):
+#:
+#: =====  ==================  ====================================================
+#: Value  Name                Meaning
+#: =====  ==================  ====================================================
+#: 16     Runway              Valid spawn point on the runway (not a parking stand)
+#: 40     HelicopterOnly      Helipad
+#: 68     Shelter             Hardened aircraft shelter
+#: 72     OpenMed             Open / shelter air, airplane only
+#: 100    SmallSizeFighter    Tight stand for a small fixed-wing aircraft
+#: 104    OpenBig             Open air stand, generally larger
+#: =====  ==================  ====================================================
+#:
+#: The two sets below come from that reference's own composite masks, which are the sums of the
+#: values they combine: ``FighterAircraftSmall`` = 344 = 68 + 72 + 100 + 104 is every stand a
+#: fixed-wing aircraft can use, and ``HelicopterUsable`` = 216 = 40 + 72 + 104 is every stand a
+#: helicopter can use. ``Runway`` (16) is in neither: it is a runway spawn, not a stand.
+#:
+#: Consistency check against the bundled dumps: the airfields reported in game as offering
+#: helicopters only (Syria's Lakatamia 48 and Naqoura 52) carry nothing but 40 (plus a runway),
+#: while every airfield that works carries 104/68/72 in quantity.
+#:
+#: Distinct from :data:`AIRCRAFT_STAND_TYPES` above, which answers a different question — which
+#: stands this tool is willing to *seat* a unit on when it places one itself.
+PLANE_STAND_TYPES: frozenset[str] = frozenset({"68", "72", "100", "104"})
+
+#: Stands a helicopter can use. See :data:`PLANE_STAND_TYPES` for the source of the table.
+HELICOPTER_STAND_TYPES: frozenset[str] = frozenset({"40", "72", "104"})
+
 
 @dataclass(frozen=True)
 class ParkingStand:
@@ -115,3 +147,30 @@ def aircraft_stands_for_airbase(theatre: str, airbase_id: int | str) -> list[Par
         The aircraft-capable stands (empty if the theatre or airbase is not in the bundled data).
     """
     return [s for s in stands_for_airbase(theatre, airbase_id) if s.term_type in AIRCRAFT_STAND_TYPES]
+
+
+def parkable_kinds(theatre: str, airbase_id: int | str) -> frozenset[str] | None:
+    """Return which kinds of aircraft an airfield can park, or ``None`` when nothing is known.
+
+    DCS only ever offers a slot for an aircraft the terrain has a stand for: a helipad-only field
+    offers helicopters whatever the mission stocks. A caller uses this to stop writing stock DCS
+    will never show.
+
+    Args:
+        theatre: The DCS theatre/map name (case-insensitive).
+        airbase_id: The DCS numeric airdrome id.
+
+    Returns:
+        A subset of ``{"plane", "helicopter"}``, or ``None`` when the theatre ships no parking data
+        or the airfield is absent from it — in which case the caller must not filter anything.
+    """
+    stands = stands_for_airbase(theatre, airbase_id)
+    if not stands:
+        return None
+    types = {s.term_type for s in stands}
+    kinds: set[str] = set()
+    if types & PLANE_STAND_TYPES:
+        kinds.add("plane")
+    if types & HELICOPTER_STAND_TYPES:
+        kinds.add("helicopter")
+    return frozenset(kinds)

@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
+import pytest
 from mission_tools.miz_tools import DcsMission
 from warehouses_injector import apply_warehouses
+
+# Syria airdrome ids, resolved through veaf_libs.dcs_airdromes.
+_AKROTIRI = 44
+_LAKATAMIA = 48
+_NAQOURA = 52
+_INCIRLIK = 16
 
 
 def _template_group(group_id: int, name: str, unit_type: str, dyn: bool = True) -> dict:
@@ -239,3 +247,133 @@ class TestHotStart:
         m.warehouses_content["airports"][99]["allowHotStart"] = False
         apply_warehouses(m, {"blue": {"defaults": {"aircrafts": {}}}})
         assert m.warehouses_content["airports"][99]["allowHotStart"] is False
+
+
+class TestParkingLimits:
+    """Stock only what the terrain can park (FIX-DYNSLOT-PARKING 01).
+
+    Reported at the 2026-08-30 meeting and confirmed in game on 2026-08-31: Lakatamia and Naqoura
+    (Syria) offered helicopters only, whatever the mission stocked, because they have nothing but
+    helipads. The build stocked 149 plane types there that DCS would never offer. It now asks the
+    bundled parking dump what the airfield can park, and stays quiet about the rest.
+    """
+
+    @staticmethod
+    def _syria_mission(airport_ids: list[int]) -> DcsMission:
+        """A Syria mission with one blue helicopter template and one blue plane template."""
+        groups = [
+            _template_group(10, "DST - UH-1H", "UH-1H"),
+            _template_group(11, "DST - A-10C II", "A-10C_2"),
+        ]
+        mission_content = {
+            "coalition": {
+                "blue": {
+                    "country": [
+                        {
+                            "name": "USA",
+                            "helicopter": {"group": [groups[0]]},
+                            "plane": {"group": [groups[1]]},
+                        }
+                    ]
+                }
+            }
+        }
+        warehouses = {
+            "airports": {aid: {"coalition": "BLUE", "dynamicSpawn": False, "aircrafts": {}} for aid in airport_ids}
+        }
+        return DcsMission(
+            file_path=Path("d.miz"),
+            mission_content=mission_content,
+            warehouses_content=warehouses,
+            theatre_content="Syria",
+        )
+
+    def test_a_helipad_only_airfield_is_stocked_with_helicopters_only(self) -> None:
+        m = self._syria_mission([_NAQOURA])  # Naqoura: nine Term_Type 40 stands, no runway
+        apply_warehouses(m, {"blue": {"defaults": {}}})  # auto-fill
+        aircrafts = m.warehouses_content["airports"][_NAQOURA]["aircrafts"]
+        assert aircrafts["helicopters"]["UH-1H"]["unlimited"] is True
+        assert "planes" not in aircrafts
+
+    def test_a_real_airbase_is_stocked_exactly_as_before(self) -> None:
+        m = self._syria_mission([_INCIRLIK])  # Incirlik: 104/68/72 in quantity
+        apply_warehouses(m, {"blue": {"defaults": {}}})
+        aircrafts = m.warehouses_content["airports"][_INCIRLIK]["aircrafts"]
+        assert aircrafts["helicopters"]["UH-1H"]["unlimited"] is True
+        assert aircrafts["planes"]["A-10C_2"]["unlimited"] is True
+
+    def test_an_explicit_aircrafts_list_is_filtered_the_same_way(self) -> None:
+        # DCS ignores what it cannot park, so writing it is pointless however it was asked for.
+        m = self._syria_mission([_NAQOURA])
+        cfg = {"blue": {"defaults": {"aircrafts": {"UH-1H": {"amount": 2}, "A-10C_2": {"amount": 4}}}}}
+        apply_warehouses(m, cfg)
+        aircrafts = m.warehouses_content["airports"][_NAQOURA]["aircrafts"]
+        assert aircrafts["helicopters"]["UH-1H"]["initialAmount"] == 2
+        assert "planes" not in aircrafts
+
+    def test_a_dropped_type_carries_no_template_link(self) -> None:
+        # A linkDynTempl to a type that is no longer stocked is dead weight.
+        m = self._syria_mission([_NAQOURA])
+        result = apply_warehouses(m, {"blue": {"defaults": {}}})
+        assert result.templates_linked == 1  # the helicopter only, not the A-10C
+
+    def test_the_filter_is_silent(self, caplog: pytest.LogCaptureFixture) -> None:
+        m = self._syria_mission([_NAQOURA])
+        with caplog.at_level(logging.DEBUG):
+            apply_warehouses(m, {"blue": {"defaults": {}}})
+        assert not [r for r in caplog.records if "A-10C" in r.getMessage()]
+
+    def test_a_theatre_with_no_parking_data_is_untouched(self) -> None:
+        # Every map but Caucasus, Persian Gulf and Syria: no data, no filtering, no message.
+        m = self._syria_mission([_NAQOURA])
+        m.theatre_content = "Normandy"
+        apply_warehouses(m, {"blue": {"defaults": {}}})
+        aircrafts = m.warehouses_content["airports"][_NAQOURA]["aircrafts"]
+        assert aircrafts["planes"]["A-10C_2"]["unlimited"] is True
+        assert aircrafts["helicopters"]["UH-1H"]["unlimited"] is True
+
+    def test_an_airfield_absent_from_the_parking_file_is_untouched(self) -> None:
+        m = self._syria_mission([999999])
+        apply_warehouses(m, {"blue": {"defaults": {}}})
+        aircrafts = m.warehouses_content["airports"][999999]["aircrafts"]
+        assert aircrafts["planes"]["A-10C_2"]["unlimited"] is True
+
+    def test_stock_the_terrain_cannot_park_is_pruned(self) -> None:
+        # Measured on OpenTraining_Syria_20260830.miz: the source mission already carries 144 plane
+        # types at Lakatamia, from an earlier build. Skipping the write is not enough — the dead
+        # stock has to go, or it survives every future build.
+        m = self._syria_mission([_LAKATAMIA])
+        m.warehouses_content["airports"][_LAKATAMIA]["aircrafts"] = {
+            "planes": {"A-10C_2": {"unlimited": True}},
+            "helicopters": {"UH-1H": {"unlimited": True}},
+        }
+        apply_warehouses(m, {"blue": {"defaults": {}}})
+        aircrafts = m.warehouses_content["airports"][_LAKATAMIA]["aircrafts"]
+        assert "planes" not in aircrafts
+        assert "UH-1H" in aircrafts["helicopters"]
+
+    def test_nothing_is_pruned_on_a_theatre_with_no_parking_data(self) -> None:
+        m = self._syria_mission([_LAKATAMIA])
+        m.theatre_content = "Normandy"
+        m.warehouses_content["airports"][_LAKATAMIA]["aircrafts"] = {"planes": {"F-16C_50": {"unlimited": True}}}
+        apply_warehouses(m, {"blue": {"defaults": {}}})
+        assert "F-16C_50" in m.warehouses_content["airports"][_LAKATAMIA]["aircrafts"]["planes"]
+
+    def test_an_airfield_of_another_coalition_keeps_its_stock(self) -> None:
+        # The prune only ever touches an airfield the config targets.
+        m = self._syria_mission([_LAKATAMIA])
+        m.warehouses_content["airports"][_LAKATAMIA]["coalition"] = "RED"
+        m.warehouses_content["airports"][_LAKATAMIA]["aircrafts"] = {"planes": {"MiG-29A": {"unlimited": True}}}
+        apply_warehouses(m, {"blue": {"defaults": {}}})
+        assert "MiG-29A" in m.warehouses_content["airports"][_LAKATAMIA]["aircrafts"]["planes"]
+
+    def test_the_three_reported_airfields_together(self) -> None:
+        # The measurable outcome of the lot, on the shape of the real Syria data.
+        m = self._syria_mission([_AKROTIRI, _LAKATAMIA, _NAQOURA])
+        apply_warehouses(m, {"blue": {"defaults": {}}})
+        airports = m.warehouses_content["airports"]
+        assert "planes" in airports[_AKROTIRI]["aircrafts"]  # 41 plane stands: unchanged
+        assert "planes" not in airports[_LAKATAMIA]["aircrafts"]
+        assert "planes" not in airports[_NAQOURA]["aircrafts"]
+        for aid in (_AKROTIRI, _LAKATAMIA, _NAQOURA):
+            assert airports[aid]["aircrafts"]["helicopters"]["UH-1H"]["unlimited"] is True

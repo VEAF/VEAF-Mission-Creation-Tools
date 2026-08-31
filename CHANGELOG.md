@@ -723,6 +723,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   have moved the order-dependence this fixes; and a `#spawncount` is a guarantee, so the larger of two
   promises is the one that keeps both. Repeating the same count is not a disagreement and stays silent.
 
+- **A command no longer reports failure when it succeeded.** `veaf-tools about` asked whether to open
+  the VEAF website before exiting. With no keyboard — a CI job, a batch file, an invocation whose
+  output is captured — Click could not read the answer, printed `Aborted.` and exited **1** on a
+  command that had done its job. It cost real time: the exit code was reported as a defect of the
+  Windows executable, on two binaries, and a task was opened against the packaging before the
+  measurement settled it. The binary was fine.
+
+  Prompts now go through `veaf_tools.helpers.confirm()`, which asks only when someone can answer —
+  `isatty` on **both** `stdin` and `stdout`, because one carries the question and the other the
+  answer, and redirecting either turns the prompt into a trap (closed `stdin` aborts, captured
+  `stdout` waits forever on a question nobody was shown). Run by hand, every prompt behaves exactly
+  as before.
+
+  `about` was not alone: the survey found nine more. `--readme` on seven commands aborted the same
+  way and now prints the documentation it was explicitly asked for; `convert-v5`'s "overwrite
+  `mission.yaml`?" and `inject-weather`'s "use the converted file?" answer "no" unattended
+  (`--force` remains the scripted way to overwrite); `veaf-build`'s own `about` carried a copy of
+  the same prompt. Left alone on purpose, because they were already guarded: the `--pause` exit
+  pause, the `--interactive` group selectors, the `--tui` wizard and the `ask` REPL.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

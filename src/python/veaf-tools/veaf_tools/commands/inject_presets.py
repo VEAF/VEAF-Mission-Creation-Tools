@@ -17,6 +17,7 @@ from veaf_tools.app import (
     logger,
     t,
 )
+from veaf_tools.helpers import confirm
 
 
 @app.command(no_args_is_help=True, help=t("cmd.inject_presets.help"))
@@ -39,7 +40,7 @@ def inject_presets(
     console.print(t("cmd.inject_presets.title", version=VERSION))
 
     if readme:
-        if typer.confirm(t("help.confirm_doc")):
+        if confirm(t("help.confirm_doc"), unattended=True):
             md_render = Markdown(PresetsInjectorREADME)
             console.print(md_render)
         raise typer.Exit()

@@ -31,6 +31,12 @@ partout le même sens : afficher le détail de débogage, attendre une touche av
 afficher le README de la commande. Elles sont malgré tout listées commande par commande, parce
 qu'une référence incomplète oblige à aller vérifier ailleurs.
 
+**Sans terminal, aucune commande ne pose de question.** Dans un job d'intégration continue, un
+fichier de commandes ou une invocation dont la sortie est capturée, les confirmations sont sautées
+et la commande va jusqu'au bout : `veaf-tools about` affiche ses informations et sort en `0` (elle
+affichait `Aborted.` et sortait en `1`), `--readme` affiche bien le README, et une confirmation
+d'écrasement répond « non » — passez `--force` quand vous voulez vraiment écraser.
+
 ## Ce que cette page garantit {#coverage}
 
 Les tableaux d'options sont **énumérés depuis les signatures du code**, pas recopiés à la main, et

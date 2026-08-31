@@ -29,6 +29,12 @@ everywhere: show detailed debug output, wait for a keypress before exiting, prin
 README. They are still listed command by command, because an incomplete reference sends you looking
 somewhere else.
 
+**With no terminal, no command asks a question.** In a CI job, a batch file, or an invocation whose
+output is captured, confirmations are skipped and the command runs to the end: `veaf-tools about`
+prints its information and exits `0` (it used to print `Aborted.` and exit `1`), `--readme` prints
+the README, and an overwrite confirmation answers "no" — pass `--force` when you really do mean to
+overwrite.
+
 ## What this page guarantees {#coverage}
 
 The option tables are **enumerated from the code's signatures**, not copied by hand, and the CI

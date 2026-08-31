@@ -15,6 +15,7 @@ from veaf_tools.app import (
     t,
     tn,
 )
+from veaf_tools.helpers import confirm
 
 
 @app.command(help=t("cmd.convert_v5.help.long"))
@@ -71,7 +72,8 @@ def convert_v5(
             f"\n[yellow]{t('convert_v5.command.yaml_exists_notice')}[/yellow] {mission_yaml}\n"
             f"  {t('convert_v5.command.yaml_exists_help')}"
         )
-        if typer.confirm(f"  {t('convert_v5.command.yaml_exists_confirm')}", default=False):
+        # Unattended, the answer stays "no" — a script that means to overwrite passes --force.
+        if confirm(f"  {t('convert_v5.command.yaml_exists_confirm')}", default=False):
             overwrite_yaml = True
 
     # Run the converter

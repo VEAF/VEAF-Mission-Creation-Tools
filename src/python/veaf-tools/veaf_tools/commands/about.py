@@ -23,6 +23,7 @@ from rich.table import Table
 from veaf_libs.lua_module_scanner import get_modules
 
 from veaf_tools.app import VERSION, app, console, t
+from veaf_tools.helpers import confirm
 
 
 @app.command(help=t("cmd.about.help"))
@@ -48,5 +49,7 @@ def about(
     console.print(t("cmd.about.veaf"))
     console.print(t("cmd.about.veaf_desc"))
     console.print(t("cmd.about.website", url=url), style="blue")
-    if typer.confirm(t("cmd.about.open_website")):
+    # Only offered when someone is there to answer — unattended, opening a browser would be wrong
+    # anyway, and the prompt used to abort the command with exit 1 (FIX-ABOUT-NONINTERACTIVE).
+    if confirm(t("cmd.about.open_website")):
         typer.launch(url)

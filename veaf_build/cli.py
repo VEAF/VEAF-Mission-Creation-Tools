@@ -29,6 +29,7 @@ import yaml
 from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL  # type: ignore[import-not-found]
 from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
 from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
+from veaf_tools.helpers import confirm  # type: ignore[import-not-found]
 
 from veaf_build.github import version_is_prerelease
 from veaf_build.worker import PAUSE_MESSAGE, VERBOSE_HELP, BuildAndReleaseWorker
@@ -644,7 +645,8 @@ def about() -> None:
         "The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World."
     )
     console.print(f"Website: {url}", style="blue")
-    if typer.confirm("Do you want to open the VEAF website in your browser?"):
+    # Same prompt, same abort as `veaf-tools about` had (FIX-ABOUT-NONINTERACTIVE).
+    if confirm("Do you want to open the VEAF website in your browser?"):
         typer.launch(url)
 
 

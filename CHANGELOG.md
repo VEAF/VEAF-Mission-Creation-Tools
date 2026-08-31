@@ -569,6 +569,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `activate()` and count the groups that actually reached DCS, and the seeded generator the zone's
   tests introduced now lives in `test/lua/veaf_test_random.lua`, shared by both.
 
+- **Documentation — a combat zone only picks up a group whose name starts with the zone's name.**
+  That single rule decides what a zone contains, and the `veafCombatZone` reference pages never
+  stated it: a group placed correctly inside the trigger zone but named otherwise is ignored, with
+  no message in game and nothing in the log. The pages now carry a *prefix rule* section in both
+  languages — the exact condition, the name it actually compares against (the DCS trigger zone's,
+  not the radio-menu label), a table of names that match and names that do not, and an explicit
+  warning that the failure is silent and undebuggable from the game. `#command` trigger units are
+  covered too: they are zone members like any other, so an unprefixed one never runs. The examples
+  on those pages, which used a `ZONE-ALPHA` trigger zone alongside `ALPHA-…` groups that would never
+  have been picked up, now all use the `CZ-Alpha` convention already used by the tutorial and the
+  concept card. The mission-maker guide, which claimed a zone adopts *every* group standing inside
+  its trigger zone, has been corrected.
+
+- **Documentation — the two "target behaviour" call-outs now describe the present.** The
+  `#spawnchance` note on the combat-zones card and the dynamic-slot stock note were written while
+  their fixes were still in flight; both have shipped, so the flags are gone.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

@@ -77,7 +77,7 @@ the file from that mission.
 veaf-tools.exe extract-aircraft-groups my-mission.miz --kind dynamic-template
 ```
 
-!!! note "Target behaviour"
+!!! note "The stock is filtered by what the field can park"
     **DCS only offers what the airfield can park**, and the build takes that into account: the stock
     is filled only with what the field's parking actually accepts. An airfield with helicopter-only
     spots is no longer given 149 aircraft types that will never appear. The build says nothing about

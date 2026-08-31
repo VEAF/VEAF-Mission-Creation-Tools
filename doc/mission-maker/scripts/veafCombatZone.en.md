@@ -203,26 +203,62 @@ In Lua: `VeafCombatZone:setRadioMenuCoalition(coalition.side.RED)` or `"all"`.
 
 ## How it works
 
-Place all the units that should appear in the zone directly in the DCS Mission Editor, inside the trigger zone. When the mission starts VEAF removes them all — the zone is empty. When a player activates the zone via the F10 menu, all units are respawned at randomised positions within the zone radius. When every enemy unit is destroyed, the zone is marked as completed (optional callback fires, optional chained zones activate).
+Place all the units that should appear in the zone directly in the DCS Mission Editor, inside the trigger zone, **and name their groups so they start with the zone's name** — this is [the prefix rule](#zone-membership), the one rule that decides what the zone contains. When the mission starts VEAF removes them all — the zone is empty. When a player activates the zone via the F10 menu, all units are respawned at randomised positions within the zone radius. When every enemy unit is destroyed, the zone is marked as completed (optional callback fires, optional chained zones activate).
 
 This approach gives you full visual design in the editor while keeping the zone inactive at mission start.
 
 ### Setting up in the DCS Mission Editor
 
-1. **Create a trigger zone** — define the combat area. Name it, e.g. `ZONE-ALPHA`.
-2. **Place unit groups** inside the zone. Set them to any coalition — VEAF will handle their lifecycle.
+1. **Create a trigger zone** — define the combat area. Name it, e.g. `CZ-Alpha`.
+2. **Place unit groups** inside the zone, **prefixing their names with the zone's name** — `CZ-Alpha-ARMOR`, `CZ-Alpha-AAA`. Set them to any coalition — VEAF will handle their lifecycle.
 3. **Use unit or group name tags** (see below) to customise spawn behaviour per group.
 4. **Register the zone** in `mission-script.lua`:
 
 ```lua
 VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-ALPHA")     -- DCS trigger zone name
+  :setMissionEditorZoneName("CZ-Alpha")        -- DCS trigger zone name
   :setFriendlyName("Alpha")                    -- radio menu label
   :setBriefing("Strike Alpha — Armoured column")
   :initialize()
 ```
 
 `veafCombatZone.initialize()` must be called at the module level first.
+
+---
+
+### The prefix rule — what the zone picks up {#zone-membership}
+
+**A group belongs to the zone if, and only if, its name starts with the trigger zone's name.** Case
+is ignored, and nothing else is looked at. Standing inside the circle is necessary, but it is not
+enough.
+
+The name that counts is the **DCS trigger zone's** — `zone_name` in YAML,
+`:setMissionEditorZoneName(...)` in Lua. Not the `friendly_name` shown in the radio menu, which is
+only a label.
+
+For a zone named `CZ-Alpha`:
+
+| Group name in the editor | Picked up? | Why |
+|---|---|---|
+| `CZ-Alpha-ARMOR` | yes | starts with `CZ-Alpha` |
+| `CZ-Alpha-AAA` | yes | starts with `CZ-Alpha` |
+| `cz-alpha-manpads` | yes | case is ignored |
+| `CZ-AlphaSAM` | yes | it is a prefix, not a segment: the dash is not required |
+| `ARMOR-1` | **no** | does not start with `CZ-Alpha`, even sitting dead centre in the circle |
+| `Alpha-ARMOR` | **no** | `CZ-` is missing |
+
+A static object is its own group: the rule then applies to **its** name.
+
+!!! danger "A misnamed group fails silently"
+    Nothing reports it, neither in game nor in the log. The zone activates normally and announces
+    its success; the group stays exactly where you put it — never removed at start-up, never
+    recreated on activation, never counted in the zone report. This is undebuggable from the game:
+    **a zone that "spawns nothing" is almost always a zone whose groups do not carry its name.**
+    Check the prefix before looking anywhere else.
+
+The corollary runs the other way, and is just as silent: a group that has nothing to do with the
+zone, but sits inside the circle **and** is named `CZ-Alpha-…`, is part of it — and will be
+destroyed at mission start along with the rest.
 
 ---
 
@@ -233,7 +269,7 @@ A group is not only alive or dead. An S-300 battery whose tracking radar is dest
 The zone report now says so:
 
 ```
-OUT OF ACTION (can no longer fight): ALPHA-SA10
+OUT OF ACTION (can no longer fight): CZ-Alpha-SA10
 ```
 
 A group that has been wiped out does not appear there: it is simply gone from the remaining tallies. This line is only about groups **still standing** that have become harmless.
@@ -295,7 +331,7 @@ Since 6.15.21 the anchor is always the group's **first unit**, inside the circle
 The four tags carrying a number — `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` — accept a range instead of a fixed value, written the same way as in marker commands:
 
 ```
-ALPHA-CONVOY #spawnradius=100-300 #spawndelay=30-90
+CZ-Alpha-CONVOY #spawnradius=100-300 #spawndelay=30-90
 ```
 
 The value is drawn **once per mission**, when names are read at startup. Every activation of the zone therefore uses the same value: this varies placement from one game to the next, not from one activation to the next.
@@ -337,9 +373,9 @@ The ground alarm state decides two things at once, and both matter: a group on *
 `#alarm=N` still wins, in both directions — to pin a convoy in place (`#alarm=2`) as much as to keep a defence quiet until first contact (`#alarm=0`):
 
 ```
-ALPHA-SA6-BATTERY              ← RED, with nothing written
-ALPHA-SUPPLY-CONVOY            ← AUTO, with nothing written
-ALPHA-SA6-AMBUSH #alarm=0      ← quiet on purpose
+CZ-Alpha-SA6-BATTERY              ← RED, with nothing written
+CZ-Alpha-SUPPLY-CONVOY            ← AUTO, with nothing written
+CZ-Alpha-SA6-AMBUSH #alarm=0      ← quiet on purpose
 ```
 
 An unreadable or out-of-range value (`#alarm=7`, `#alarm=x`) falls back to RED and says so in the log, rather than failing the zone.
@@ -359,10 +395,10 @@ These two tags answer two different questions, and you have to pick which one yo
 `#spawncount=N`, paired with `#spawngroup`, is a **guarantee of a number**: "exactly N of these groups, every time". The zone draws which ones, then redraws as often as needed to reach N — so `#spawnchance` there only decides *which*, no longer *how many*.
 
 ```
-ALPHA-SA6-A #spawngroup="ALPHA-SAM" #spawncount=2
-ALPHA-SA6-B #spawngroup="ALPHA-SAM" #spawncount=2
-ALPHA-SA6-C #spawngroup="ALPHA-SAM" #spawncount=2
-ALPHA-SA6-D #spawngroup="ALPHA-SAM" #spawncount=2
+CZ-Alpha-SA6-A #spawngroup="CZ-Alpha-SAM" #spawncount=2
+CZ-Alpha-SA6-B #spawngroup="CZ-Alpha-SAM" #spawncount=2
+CZ-Alpha-SA6-C #spawngroup="CZ-Alpha-SAM" #spawncount=2
+CZ-Alpha-SA6-D #spawngroup="CZ-Alpha-SAM" #spawncount=2
 ```
 
 Two of the four batteries, always two, drawn at random on every activation.
@@ -377,10 +413,10 @@ Without a `#spawngroup`, **each group is alone in its own**: its probability is 
 You want four MANPADS positions in a zone, but only about two should actually be occupied. Place four dummy infantry units named:
 
 ```
-ALPHA-MANPAD-1 #spawnchance=50
-ALPHA-MANPAD-2 #spawnchance=50
-ALPHA-MANPAD-3 #spawnchance=50
-ALPHA-MANPAD-4 #spawnchance=50
+CZ-Alpha-MANPAD-1 #spawnchance=50
+CZ-Alpha-MANPAD-2 #spawnchance=50
+CZ-Alpha-MANPAD-3 #spawnchance=50
+CZ-Alpha-MANPAD-4 #spawnchance=50
 ```
 
 Each position has a 50% chance of spawning, independently of the others — statistically, around two will be active each time the zone is triggered. "Around" is the right word: sometimes none will spawn, and sometimes all four. If you want **exactly two** every time, `#spawncount` is the tag, as above.
@@ -390,11 +426,15 @@ Each position has a 50% chance of spawning, independently of the others — stat
 The `#command` tag turns a unit into a one-shot trigger. When the zone activates, VEAF executes the command at the unit's position and destroys the unit. This is equivalent to dropping a map marker at that location.
 
 ```
-SPAWN-SA11 #command="-spawn sa-11, side red"
-CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
+CZ-Alpha-SPAWN-SA11 #command="-spawn sa-11, side red"
+CZ-Alpha-CONVOY-TRIGGER #command="-convoy from ZONE-DEPOT to ZONE-FRONT"
 ```
 
 This lets you set up complex spawns (SA-11 battery, convoys with AI routes) without any Lua code.
+
+The trigger unit is a member of the zone like any other, so its name must
+[start with the zone's name](#zone-membership) too. A unit called `SPAWN-SA11` sitting in `CZ-Alpha`
+is never read, and its command never runs.
 
 **A delayed command's groups belong to their zone.** A command can carry a delay in three ways — `-samsr!30` (an alias delay), a `-spawn`'s `delay` option, or a repeat. In all of them the command returns **before** anything has been spawned. What appears afterwards still belongs to the zone: deactivating the zone destroys those groups like any other.
 
@@ -457,10 +497,10 @@ In the most common case, elements are populated automatically from the units pla
 
 ```lua
 local strikeZone = VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")  -- DCS trigger zone name
+  :setMissionEditorZoneName("CZ-Strike-Alpha")     -- DCS trigger zone name
   :setFriendlyName("Strike Alpha")                 -- radio menu label
   :setBriefing("Destroy all vehicles. Expect AAA and MANPADS.")
-  :addZoneElementsFromZoneNamed("ZONE-STRIKE-ALPHA")
+  :addZoneElementsFromZoneNamed("CZ-Strike-Alpha")
   :initialize()
 ```
 
@@ -468,9 +508,9 @@ You can also build and attach an element manually with `:addZoneElement(...)`:
 
 ```lua
 local element = VeafCombatZoneElement:new()
-  :setName("STRIKE-ALPHA-ARMOR")
+  :setName("CZ-Strike-Alpha-ARMOR")
   :setDcsGroup(true)
-  :setSpawnGroup("STRIKE-ALPHA-ARMOR")    -- DCS group name to spawn
+  :setSpawnGroup("CZ-Strike-Alpha-ARMOR")    -- DCS group name to spawn
   :setSpawnRadius(100)
 
 strikeZone:addZoneElement(element)
@@ -569,7 +609,7 @@ A zone can automatically activate one or more follow-on zones when it is complet
 
 ```lua
 VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-ALPHA")
+  :setMissionEditorZoneName("CZ-Alpha")
   :setFriendlyName("Strike Alpha")
   :addChainedCombatZone("Strike Bravo")     -- triggers when Alpha is done
   :addChainedCombatZone("Strike Charlie")   -- one is chosen at random

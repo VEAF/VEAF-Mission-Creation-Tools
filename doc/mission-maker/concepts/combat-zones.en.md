@@ -75,7 +75,7 @@ Markers inside names tune the spawn behaviour:
 | `#spawnradius=200` | random dispersion, in metres | 50 m (group), 0 m (static) |
 | `#spawndelay=60` | delayed spawn, in seconds | no delay |
 
-!!! note "Target behaviour"
+!!! warning "This changes existing missions"
     `#spawnchance` **really does deny** a spawn: a group at 50 % spawns half the time, and a group
     at 0 % never spawns. The guarantee of a number stays with `#spawncount`: two groups asked for
     out of four give exactly two, drawn at random. Missions that used `#spawnchance` will therefore
@@ -83,6 +83,7 @@ Markers inside names tune the spawn behaviour:
 
 ## Going further {#more}
 
+- [veafCombatZone — the prefix rule in detail](../scripts/veafCombatZone.en.md#zone-membership)
 - [veafCombatZone — full configuration](../scripts/veafCombatZone.en.md#configuration-missionyaml)
 - [veafCombatZone — every name marker](../scripts/veafCombatZone.en.md#spawn-radius)
 - [veafCombatZone — where the markers are read](../scripts/veafCombatZone.en.md#tag-sources)

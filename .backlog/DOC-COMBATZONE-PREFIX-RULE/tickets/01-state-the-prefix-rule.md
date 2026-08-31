@@ -1,6 +1,6 @@
 # 01 — State the prefix rule, and unflag the tutorial
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/scripts/veafCombatZone.md` + `.en.md`,
 `doc/mission-maker/concepts/` and `TUTORIAL.md` (both languages)

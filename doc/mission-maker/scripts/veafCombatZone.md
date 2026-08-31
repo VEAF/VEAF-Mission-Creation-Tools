@@ -204,26 +204,62 @@ Côté Lua : `VeafCombatZone:setRadioMenuCoalition(coalition.side.RED)` ou `"all
 
 ## Fonctionnement
 
-Placez toutes les unités qui doivent apparaître dans la zone directement dans l'éditeur de mission DCS, à l'intérieur de la trigger zone. Au démarrage de la mission, VEAF les retire toutes — la zone est vide. Quand un joueur active la zone via le menu F10, toutes les unités réapparaissent à des positions aléatoires dans le rayon de la zone. Quand toutes les unités ennemies sont détruites, la zone est marquée comme terminée (un callback optionnel se déclenche, les zones chaînées optionnelles s'activent).
+Placez toutes les unités qui doivent apparaître dans la zone directement dans l'éditeur de mission DCS, à l'intérieur de la trigger zone, **et nommez leurs groupes en commençant par le nom de la zone** — c'est [la règle du préfixe](#zone-membership), la seule qui décide de ce que la zone contient. Au démarrage de la mission, VEAF les retire toutes — la zone est vide. Quand un joueur active la zone via le menu F10, toutes les unités réapparaissent à des positions aléatoires dans le rayon de la zone. Quand toutes les unités ennemies sont détruites, la zone est marquée comme terminée (un callback optionnel se déclenche, les zones chaînées optionnelles s'activent).
 
 Cette approche vous donne une conception entièrement visuelle dans l'éditeur tout en gardant la zone inactive au démarrage de la mission.
 
 ### Mise en place dans l'éditeur de mission DCS
 
-1. **Créez une trigger zone** — définissez la zone de combat. Nommez-la, par exemple `ZONE-ALPHA`.
-2. **Placez des groupes d'unités** à l'intérieur de la zone. Mettez-les dans n'importe quelle coalition — VEAF gère leur cycle de vie.
+1. **Créez une trigger zone** — définissez la zone de combat. Nommez-la, par exemple `CZ-Alpha`.
+2. **Placez des groupes d'unités** à l'intérieur de la zone, **en préfixant leur nom du nom de la zone** — `CZ-Alpha-ARMOR`, `CZ-Alpha-AAA`. Mettez-les dans n'importe quelle coalition — VEAF gère leur cycle de vie.
 3. **Utilisez les tags de nom d'unité ou de groupe** (voir ci-dessous) pour personnaliser le comportement d'apparition par groupe.
 4. **Enregistrez la zone** dans `mission-script.lua` :
 
 ```lua
 VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-ALPHA")     -- nom de la trigger zone DCS
+  :setMissionEditorZoneName("CZ-Alpha")        -- nom de la trigger zone DCS
   :setFriendlyName("Alpha")                    -- libellé du menu radio
   :setBriefing("Strike Alpha — Colonne blindée")
   :initialize()
 ```
 
 `veafCombatZone.initialize()` doit d'abord être appelé au niveau du module.
+
+---
+
+### La règle du préfixe — ce que la zone ramasse {#zone-membership}
+
+**Un groupe appartient à la zone si, et seulement si, son nom commence par le nom de la trigger
+zone.** La casse est ignorée, et rien d'autre n'est examiné. Se trouver dans le cercle est
+nécessaire, mais ne suffit pas.
+
+Le nom qui compte est celui de la **trigger zone DCS** — `zone_name` en YAML,
+`:setMissionEditorZoneName(...)` en Lua. Ce n'est pas le `friendly_name` affiché dans le menu radio,
+qui n'est qu'un libellé.
+
+Pour une zone nommée `CZ-Alpha` :
+
+| Nom du groupe dans l'éditeur | Ramassé ? | Pourquoi |
+|---|---|---|
+| `CZ-Alpha-ARMOR` | oui | commence par `CZ-Alpha` |
+| `CZ-Alpha-AAA` | oui | commence par `CZ-Alpha` |
+| `cz-alpha-manpads` | oui | la casse est ignorée |
+| `CZ-AlphaSAM` | oui | c'est un préfixe, pas un segment : le tiret n'est pas exigé |
+| `ARMOR-1` | **non** | ne commence pas par `CZ-Alpha`, même posé au centre du cercle |
+| `Alpha-ARMOR` | **non** | il manque `CZ-` |
+
+Un objet statique est son propre groupe : la règle s'applique alors à **son** nom.
+
+!!! danger "Un groupe mal nommé échoue en silence"
+    Rien ne le signale, ni en jeu ni dans le log. La zone s'active normalement et annonce sa
+    réussite ; le groupe, lui, reste exactement où vous l'avez posé — jamais retiré au démarrage,
+    jamais recréé à l'activation, jamais compté dans le rapport de zone. C'est indébogable depuis le
+    jeu : **une zone « qui ne fait rien apparaître » est presque toujours une zone dont les groupes
+    ne portent pas son nom.** Vérifiez le préfixe avant de chercher ailleurs.
+
+Le corollaire vaut dans l'autre sens, et il est tout aussi silencieux : un groupe qui n'a rien à
+voir avec la zone, mais qui est posé dans le cercle **et** nommé `CZ-Alpha-…`, en fait partie — il
+sera donc détruit au démarrage de la mission avec les autres.
 
 ---
 
@@ -234,7 +270,7 @@ Un groupe n'est pas seulement vivant ou mort. Une batterie S-300 dont le radar d
 Le rapport de zone le signale désormais :
 
 ```
-HORS DE COMBAT (ne peuvent plus tirer) : ALPHA-SA10
+HORS DE COMBAT (ne peuvent plus tirer) : CZ-Alpha-SA10
 ```
 
 Un groupe entièrement détruit n'apparaît pas là : il est simplement absent des effectifs restants. Cette ligne ne concerne que les groupes **encore debout** et devenus inoffensifs.
@@ -296,7 +332,7 @@ Depuis la 6.15.21, l'ancrage est toujours la **première unité du groupe**, qu'
 Les quatre tags qui portent un nombre — `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` — acceptent un intervalle au lieu d'une valeur fixe, avec la même écriture que dans les commandes de marqueur :
 
 ```
-ALPHA-CONVOY #spawnradius=100-300 #spawndelay=30-90
+CZ-Alpha-CONVOY #spawnradius=100-300 #spawndelay=30-90
 ```
 
 La valeur est tirée **une fois par mission**, à la lecture des noms au démarrage. Toutes les activations de la zone utilisent donc la même valeur : c'est un placement varié d'une partie à l'autre, pas un placement qui bouge à chaque réactivation.
@@ -338,9 +374,9 @@ L'état d'alerte terrestre décide de deux choses à la fois, et les deux compte
 `#alarm=N` reste maître et l'emporte dans les deux sens — pour clouer un convoi sur place (`#alarm=2`) comme pour laisser une défense discrète jusqu'au premier contact (`#alarm=0`) :
 
 ```
-ALPHA-SA6-BATTERY              ← ROUGE, sans rien écrire
-ALPHA-SUPPLY-CONVOY            ← AUTO, sans rien écrire
-ALPHA-SA6-AMBUSH #alarm=0      ← discrète volontairement
+CZ-Alpha-SA6-BATTERY              ← ROUGE, sans rien écrire
+CZ-Alpha-SUPPLY-CONVOY            ← AUTO, sans rien écrire
+CZ-Alpha-SA6-AMBUSH #alarm=0      ← discrète volontairement
 ```
 
 Une valeur illisible ou hors bornes (`#alarm=7`, `#alarm=x`) retombe sur ROUGE et l'écrit dans le log, plutôt que de faire échouer la zone.
@@ -360,10 +396,10 @@ Ces deux tags répondent à deux questions différentes, et il faut choisir laqu
 `#spawncount=N`, associé à `#spawngroup`, est une **garantie de nombre** : « exactement N de ces groupes-là, à chaque fois ». La zone tire au sort qui, puis retire tant qu'il faut pour atteindre N — donc `#spawnchance` n'y décide plus que *lesquels*, plus *combien*.
 
 ```
-ALPHA-SA6-A #spawngroup="ALPHA-SAM" #spawncount=2
-ALPHA-SA6-B #spawngroup="ALPHA-SAM" #spawncount=2
-ALPHA-SA6-C #spawngroup="ALPHA-SAM" #spawncount=2
-ALPHA-SA6-D #spawngroup="ALPHA-SAM" #spawncount=2
+CZ-Alpha-SA6-A #spawngroup="CZ-Alpha-SAM" #spawncount=2
+CZ-Alpha-SA6-B #spawngroup="CZ-Alpha-SAM" #spawncount=2
+CZ-Alpha-SA6-C #spawngroup="CZ-Alpha-SAM" #spawncount=2
+CZ-Alpha-SA6-D #spawngroup="CZ-Alpha-SAM" #spawncount=2
 ```
 
 Deux des quatre batteries, toujours deux, tirées au hasard à chaque activation.
@@ -378,10 +414,10 @@ Sans `#spawngroup`, **chaque groupe est seul dans le sien** : sa probabilité es
 Vous voulez quatre positions de MANPADS dans une zone, mais seules deux environ devraient réellement être occupées. Placez quatre unités d'infanterie factices nommées :
 
 ```
-ALPHA-MANPAD-1 #spawnchance=50
-ALPHA-MANPAD-2 #spawnchance=50
-ALPHA-MANPAD-3 #spawnchance=50
-ALPHA-MANPAD-4 #spawnchance=50
+CZ-Alpha-MANPAD-1 #spawnchance=50
+CZ-Alpha-MANPAD-2 #spawnchance=50
+CZ-Alpha-MANPAD-3 #spawnchance=50
+CZ-Alpha-MANPAD-4 #spawnchance=50
 ```
 
 Chaque position a 50 % de chances d'apparaître, indépendamment des autres — statistiquement, environ deux seront actives à chaque déclenchement de la zone. « Environ » est le mot juste : il arrivera qu'aucune n'apparaisse, et qu'elles apparaissent toutes les quatre. Si vous voulez **exactement deux** à chaque fois, c'est `#spawncount` qu'il faut, comme ci-dessus.
@@ -391,11 +427,15 @@ Chaque position a 50 % de chances d'apparaître, indépendamment des autres — 
 Le tag `#command` transforme une unité en déclencheur à usage unique. À l'activation de la zone, VEAF exécute la commande à la position de l'unité et détruit l'unité. C'est l'équivalent du dépôt d'un marqueur de carte à cet endroit.
 
 ```
-SPAWN-SA11 #command="-spawn sa-11, side red"
-CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
+CZ-Alpha-SPAWN-SA11 #command="-spawn sa-11, side red"
+CZ-Alpha-CONVOY-TRIGGER #command="-convoy from ZONE-DEPOT to ZONE-FRONT"
 ```
 
 Cela permet de monter des apparitions complexes (batterie SA-11, convois avec routes IA) sans aucun code Lua.
+
+L'unité déclencheur est un membre de la zone comme un autre : son nom doit donc lui aussi
+[commencer par le nom de la zone](#zone-membership). Une unité nommée `SPAWN-SA11` posée dans
+`CZ-Alpha` n'est jamais lue, et sa commande n'est jamais exécutée.
 
 **Les commandes retardées sont rattachées à leur zone.** Une commande peut porter un délai, de trois façons — `-samsr!30` (délai d'alias), l'option `delay` d'un `-spawn`, ou une répétition. Dans ces cas, la commande rend la main **avant** d'avoir fait apparaître quoi que ce soit. Ce qui apparaît ensuite appartient bien à la zone : désactiver la zone détruit ces groupes comme les autres.
 
@@ -462,10 +502,10 @@ Dans le cas le plus courant, les éléments sont peuplés automatiquement à par
 
 ```lua
 local strikeZone = VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")  -- nom de la trigger zone DCS
+  :setMissionEditorZoneName("CZ-Strike-Alpha")     -- nom de la trigger zone DCS
   :setFriendlyName("Strike Alpha")                 -- libellé du menu radio
   :setBriefing("Détruire tous les véhicules. Prévoir de l'AAA et des MANPADS.")
-  :addZoneElementsFromZoneNamed("ZONE-STRIKE-ALPHA")
+  :addZoneElementsFromZoneNamed("CZ-Strike-Alpha")
   :initialize()
 ```
 
@@ -473,9 +513,9 @@ On peut aussi construire et attacher un élément manuellement avec `:addZoneEle
 
 ```lua
 local element = VeafCombatZoneElement:new()
-  :setName("STRIKE-ALPHA-ARMOR")
+  :setName("CZ-Strike-Alpha-ARMOR")
   :setDcsGroup(true)
-  :setSpawnGroup("STRIKE-ALPHA-ARMOR")    -- nom du groupe DCS à faire apparaître
+  :setSpawnGroup("CZ-Strike-Alpha-ARMOR")    -- nom du groupe DCS à faire apparaître
   :setSpawnRadius(100)
 
 strikeZone:addZoneElement(element)
@@ -574,7 +614,7 @@ Une zone peut activer automatiquement une ou plusieurs zones suivantes lorsqu'el
 
 ```lua
 VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-ALPHA")
+  :setMissionEditorZoneName("CZ-Alpha")
   :setFriendlyName("Strike Alpha")
   :addChainedCombatZone("Strike Bravo")     -- se déclenche quand Alpha est terminée
   :addChainedCombatZone("Strike Charlie")   -- l'une est choisie au hasard

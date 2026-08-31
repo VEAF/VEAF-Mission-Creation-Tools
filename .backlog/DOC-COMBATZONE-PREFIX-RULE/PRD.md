@@ -1,6 +1,6 @@
 # DOC-COMBATZONE-PREFIX-RULE — the rule that decides what a zone contains is written nowhere
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: found while writing the tutorial (`DOC-TUTORIAL`, PR #863). Verified on `develop`.
 

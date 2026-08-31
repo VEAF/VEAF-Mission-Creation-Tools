@@ -60,6 +60,9 @@ def init_field_defaults() -> dict[str, Any]:
         # custom_scripts section
         "custom_scripts": [],
         "custom_scripts_generate_load_trigger": True,
+        # Mission scripts found calling MiST (DROP-MIST ticket 08). Empty is the common case: a
+        # mission that does not call MiST does not get the 336 KB.
+        "mist_callers": [],
         # config_override section
         "config_override_target": None,
         "config_override_values": {},

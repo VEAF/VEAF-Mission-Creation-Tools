@@ -4287,7 +4287,7 @@ local objective = VeafCombatMissionObjective:new()
 objective:setName("Destroy Tanks")
 objective:setOnStartup(function(mission)
   -- Spawn tanks
-  local spawnPos = mist.utils.zoneToVec3("TargetZone")
+  local spawnPos = veafGeo.zoneToVec3("TargetZone")
   veafSpawn.spawnArmoredPlatoon(spawnPos, 100, nil, nil,
     coalition.side.RED, 0, 50, 2, 3, 3, true)
 end)

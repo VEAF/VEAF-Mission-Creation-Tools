@@ -48,8 +48,9 @@ class TestCommunityScriptsToggleParsing(unittest.TestCase):
         worker = _make_worker("community_scripts:\n  skynet: {enabled: false}\n")
         assert worker.enabled_community_script_ids is not None
         self.assertNotIn("skynet", worker.enabled_community_script_ids)
-        self.assertIn("mist", worker.enabled_community_script_ids)
         self.assertIn("ctld", worker.enabled_community_script_ids)
+        # MiST is opt-in, so it is absent here whatever the rest of the section says.
+        self.assertNotIn("mist", worker.enabled_community_script_ids)
 
     def test_one_script_disabled(self) -> None:
         """A single script with enabled: false is absent from enabled_community_script_ids."""
@@ -108,25 +109,35 @@ class TestCommunityScriptsToggleParsing(unittest.TestCase):
         self.assertIsNone(worker.enabled_community_script_ids)
 
 
-class TestMistMandatory(unittest.TestCase):
-    """MiST is a mandatory community dependency — always injected (FIX-DEFAULTS-MODULES)."""
+class TestMistIsOptIn(unittest.TestCase):
+    """MiST is opt-in since DROP-MIST ticket 08 — it used to be forced into every mission.
 
-    def test_mist_kept_when_disabled_explicitly(self) -> None:
+    It was mandatory because the VEAF scripts called it everywhere. They no longer call it at all,
+    and neither does any community script we ship, so a mission that does not ask for it saves
+    336 KB. What replaces the guarantee is detection: see TestMistDetectedInMissionScripts.
+    """
+
+    def test_mist_is_not_forced_when_disabled_explicitly(self) -> None:
         worker = _make_worker("community_scripts:\n  mist: {enabled: false}\n  ctld: {enabled: false}\n")
         assert worker.enabled_community_script_ids is not None
-        self.assertIn("mist", worker.enabled_community_script_ids)  # mandatory → kept
-        self.assertNotIn("ctld", worker.enabled_community_script_ids)  # ordinary → disabled
+        self.assertNotIn("mist", worker.enabled_community_script_ids)
+        self.assertNotIn("ctld", worker.enabled_community_script_ids)
 
-    def test_mist_kept_with_false_shorthand(self) -> None:
+    def test_mist_is_not_forced_by_the_false_shorthand(self) -> None:
         worker = _make_worker("community_scripts:\n  mist: false\n")
         assert worker.enabled_community_script_ids is not None
-        self.assertIn("mist", worker.enabled_community_script_ids)
+        self.assertNotIn("mist", worker.enabled_community_script_ids)
 
-    def test_mist_kept_when_bare_in_modules(self) -> None:
-        # The default ships `modules:\n  MIST:` (bare) → normalized to community mist=None → kept.
-        worker = _make_worker("modules:\n  MIST:\n  RADIO: true\n")
+    def test_asking_for_mist_explicitly_still_works(self) -> None:
+        """The escape hatch for an indirect use the scan cannot see."""
+        worker = _make_worker("community_scripts:\n  mist: true\n")
         assert worker.enabled_community_script_ids is not None
         self.assertIn("mist", worker.enabled_community_script_ids)
+
+    def test_mist_absent_from_a_mission_that_says_nothing(self) -> None:
+        """The whole point: the common mission stops carrying MiST."""
+        worker = make_worker(enabled_community_script_ids=None)
+        self.assertNotIn("mist", [s["id"] for s in worker._active_community_scripts()])
 
 
 class TestActiveCommunityScripts(unittest.TestCase):
@@ -166,9 +177,9 @@ class TestActiveCommunityScripts(unittest.TestCase):
         active_paths = [s["path"] for s in active]
         self.assertNotIn("skynet", active_ids)
         self.assertFalse(any("skynet" in p for p in active_paths))
-        # All other community scripts remain active
-        self.assertIn("mist", active_ids)
+        # All other opt-out community scripts remain active
         self.assertIn("ctld", active_ids)
+        self.assertNotIn("mist", active_ids)
 
 
 class TestOptInScripts(unittest.TestCase):

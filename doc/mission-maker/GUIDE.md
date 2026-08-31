@@ -289,6 +289,42 @@ modules:
 -- (voir la section Intégration CTLD et CSAR)
 ```
 
+### MiST : injecté seulement si vous en avez besoin {#mist-injection}
+
+MiST était chargé dans **toutes** les missions, parce que les scripts VEAF s'en servaient partout.
+Ils ne l'appellent plus du tout, et aucun script communautaire livré ici non plus. Une mission qui
+n'en a pas besoin n'emporte donc plus ses **336 Ko**.
+
+Vous n'avez rien à faire : au build, VEAF lit vos propres scripts dans `src/scripts/` et, s'il en
+trouve un qui appelle `mist.`, il réinjecte MiST en vous disant lequel :
+
+```
+MiST n'est plus injecté par défaut, mais 'src/scripts/HoundElint.lua' l'utilise :
+il est injecté pour cette mission.
+```
+
+C'est le cas courant : un script tiers comme HoundElint appelle MiST, la détection le voit, tout
+continue de fonctionner. La conversion depuis la v5 fait la même lecture, donc une mission convertie
+garde MiST si et seulement si elle s'en sert.
+
+Ce que la détection **ne peut pas** voir : un script qui en charge un autre, ou qui atteint MiST par
+`_G["mist"]`. Dans ce cas seulement, demandez-le explicitement :
+
+```yaml
+modules:
+  MIST: true
+```
+
+Un `MIST: false` ne l'emporte pas sur la détection : si l'un de vos scripts appelle MiST, il est
+injecté quand même. Honorer le drapeau reviendrait à casser la mission en vol pour respecter une
+ligne de configuration.
+
+> **Si votre `mission.yaml` contient déjà une ligne `MIST:` sans valeur**, elle voulait dire
+> « module obligatoire, toujours actif » ; elle veut maintenant dire « pas demandé ». C'est le cas
+> de toutes les missions créées jusqu'ici, puisque le modèle livré contenait cette ligne. Vous
+> n'avez rien à changer : votre mission s'allège de 336 Ko, et si l'un de vos scripts appelle MiST,
+> la détection le réinjecte.
+
 ### Niveaux de sécurité {#security-tiers}
 
 | Palier | Constante | Passe sans mot de passe si le niveau du pilote est |

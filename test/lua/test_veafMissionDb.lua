@@ -378,14 +378,20 @@ function TestVeafMissionDbNames:test_releasingAnUnknownNameAnswersFalse()
   luaunit.assertFalse(veaf.releaseSpawnedName(nil))
 end
 
---- Until ticket 07 ports dynAdd, the code that refuses a name it has seen is MiST's and reads MiST's
---- tables. Releasing has to clear those too, or a dead AFAC could not respawn under its own callsign.
-function TestVeafMissionDbNames:test_releasingAlsoClearsMistsTablesWhileItIsStillLoaded()
-  mist.DBs.unitsByName["AFAC Axeman 1"] = {}
-  mist.DBs.groupsByName["AFAC Axeman 1"] = {}
-  luaunit.assertTrue(veaf.releaseSpawnedName("AFAC Axeman 1"))
-  luaunit.assertNil(mist.DBs.unitsByName["AFAC Axeman 1"])
-  luaunit.assertNil(mist.DBs.groupsByName["AFAC Axeman 1"])
+--- Releasing a name must not consult MiST any more. Ticket 07 replaced `mist.teleportToPoint`, so
+--- `isNameTaken` reads this module's tables and nothing else — the point being that the name really
+--- does come back when MiST is not loaded at all, which is the state the mission is heading for.
+function TestVeafMissionDbNames:test_releasingWorksWithNoMistLoaded()
+  local savedMist = mist
+  mist = nil
+
+  veaf.takeSpawnedName("AFAC Axeman 1")
+  local released = veaf.releaseSpawnedName("AFAC Axeman 1")
+  local stillTaken = veaf.isNameTaken("AFAC Axeman 1")
+
+  mist = savedMist
+  luaunit.assertTrue(released)
+  luaunit.assertFalse(stillTaken, "the callsign is free again, without MiST having been asked")
 end
 
 -- ---------------------------------------------------------------------------

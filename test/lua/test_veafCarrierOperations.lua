@@ -26,8 +26,6 @@ end
 veaf.getAvgPos = function(units)
   return { x = 0, y = 0, z = 0 }
 end
-mist.goRoute = function(name, route) end
-mist.DBs.groupsByName = {}
 
 veafWeatherUnitSystem = {
   Systems = { FaaNavy = "FaaNavy", MetricEastern = "MetricEastern" },
@@ -54,7 +52,6 @@ local CARRIER_UNIT_NAME = "MockCarrierUnit"
 
 local function setupMockCarrier()
   dcs_mocks.reset()
-  mist.DBs.groupsByName = {}
   veafCarrierOperations.carriers = {}
 
   dcs_mocks.addUnit(CARRIER_UNIT_NAME, {

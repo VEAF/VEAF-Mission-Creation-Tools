@@ -127,7 +127,6 @@ _CATALOG: tuple[Module, ...] = (
     Module("EVENTS", INFRA, "Infrastructure"),
     Module("MARKERS", INFRA, "Infrastructure"),
     Module("COMMANDS", INFRA, "Infrastructure"),
-    Module("MIST", INFRA, "Infrastructure", comment="MiST community lib — mandatory (VEAF dependency)"),
     # ── Core ──
     Module(
         "RADIO", FEATURE, "Core", comment="the VEAF F10 radio menu", tiers=frozenset({"minimal", "standard", "full"})
@@ -186,6 +185,12 @@ _CATALOG: tuple[Module, ...] = (
     Module("ASSETS", CONFIG, "Combat", config_block=_ASSETS_BLOCK, tiers=frozenset({"full"})),
     Module("SANCTUARY", CONFIG, "Combat", config_block=_SANCTUARY_BLOCK, tiers=frozenset({"full"})),
     # ── Community scripts ──
+    # No tier: MiST is not injected unless a mission asks for it, or unless the build finds one
+    # of the mission's own scripts calling `mist.` and turns it on by itself (DROP-MIST ticket
+    # 08). It was infrastructure while the VEAF scripts called it; they no longer do.
+    Module(
+        "MIST", FEATURE, "Community", comment="MiST community lib — only if your own scripts call it", tiers=frozenset()
+    ),
     Module("STTS", FEATURE, "Community", tiers=frozenset({"standard", "full"})),
     Module(
         "CTLD",

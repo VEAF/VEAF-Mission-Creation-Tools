@@ -290,6 +290,40 @@ modules:
 -- (see CTLD and CSAR Integration)
 ```
 
+### MiST: injected only when you need it {#mist-injection}
+
+MiST used to be loaded into **every** mission, because the VEAF scripts called it everywhere. They
+no longer call it at all, and neither does any community script shipped here. A mission that does
+not need it therefore stops carrying its **336 KB**.
+
+There is nothing to do: at build time VEAF reads your own scripts under `src/scripts/` and, if one
+of them calls `mist.`, injects MiST and tells you which file asked for it:
+
+```
+MiST is no longer injected by default, but 'src/scripts/HoundElint.lua' calls it:
+injecting it for this mission.
+```
+
+That is the common case: a third-party script such as HoundElint calls MiST, the scan sees it, and
+everything keeps working. Converting from v5 reads the same way, so a converted mission keeps MiST
+if and only if it actually uses it.
+
+What the scan **cannot** see: a script that loads another script, or one that reaches MiST through
+`_G["mist"]`. Only in that case, ask for it explicitly:
+
+```yaml
+modules:
+  MIST: true
+```
+
+A `MIST: false` does not win against the scan: if one of your scripts calls MiST, it is injected
+anyway. Honouring the flag would mean breaking the mission in flight to respect a config line.
+
+> **If your `mission.yaml` already carries a bare `MIST:` line**, it used to mean "mandatory module,
+> always on"; it now means "not asked for". That is every mission written so far, since the shipped
+> template carried that line. There is nothing to change: your mission gets 336 KB lighter, and if
+> one of your scripts calls MiST, the scan injects it back.
+
 ### Security Levels {#security-tiers}
 
 | Tier | Constant | Passes without a password when the pilot's level is |

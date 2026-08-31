@@ -4282,7 +4282,7 @@ local objective = VeafCombatMissionObjective:new()
 objective:setName("Détruire les chars")
 objective:setOnStartup(function(mission)
   -- Spawner les chars
-  local spawnPos = mist.utils.zoneToVec3("TargetZone")
+  local spawnPos = veafGeo.zoneToVec3("TargetZone")
   veafSpawn.spawnArmoredPlatoon(spawnPos, 100, nil, nil,
     coalition.side.RED, 0, 50, 2, 3, 3, true)
 end)

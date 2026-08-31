@@ -265,9 +265,14 @@ _MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in MODULE_CATEGO
 #: re-exported here: the config migrator needs only that helper, and importing it used to drag the
 #: checklist model — and pydantic — behind it (FIX-CONVERT-V5-SILENT-LOSSES ticket 05).
 
-#: Community scripts that are mandatory (always injected, never disabled): MiST is a
-#: hard VEAF dependency, so it is never emitted as a disabled ``enable=false`` flag.
-_MANDATORY_COMMUNITY_SCRIPTS: frozenset[str] = frozenset({"mist"})
+#: Community scripts never announced to the runtime as disabled.
+#:
+#: The flag below tells VEAF to leave a library's global alone. MiST is listed because no VEAF
+#: script reads that flag for it any more (DROP-MIST ticket 08) — emitting `enable=false` would say
+#: nothing to nobody. It is also the honest answer here: this generator receives only the
+#: mission.yaml, not the mission folder, so it cannot run the scan that decides whether MiST is
+#: injected. Saying nothing beats saying something that may be wrong.
+_NEVER_REPORTED_AS_DISABLED: frozenset[str] = frozenset({"mist"})
 
 
 def _get_module_enabled(cfg: dict, default: bool = True) -> bool:
@@ -1672,13 +1677,13 @@ def generate_config_lua(
     # Tell the framework which community libs the mission disabled, so its runtime
     # integration gates (`if ctld and veaf.isEnabled("ctld")`) leave that lib's
     # global alone — e.g. when the mission ships its own version via custom_scripts.
-    # MiST is mandatory and never disabled.
+    # MiST is never reported here — see _NEVER_REPORTED_AS_DISABLED.
     from mission_tools.mission_constants import get_community_script_files
 
     disabled_community = [
         s["id"]
         for s in get_community_script_files()
-        if s["id"] not in _MANDATORY_COMMUNITY_SCRIPTS and not _community_enabled(mission_yaml, s["id"])
+        if s["id"] not in _NEVER_REPORTED_AS_DISABLED and not _community_enabled(mission_yaml, s["id"])
     ]
     if disabled_community:
         lines.append("-- ── Community scripts disabled (VEAF leaves their globals alone) ──────────────")

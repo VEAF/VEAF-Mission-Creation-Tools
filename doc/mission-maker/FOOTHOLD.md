@@ -141,8 +141,10 @@ modules:
   tum: false
 ```
 
-> MiST n'est pas dans la liste : c'est une dépendance VEAF obligatoire (toujours
-> chargée).
+> MiST n'est pas dans la liste : il n'est plus injecté par défaut. Les scripts VEAF ne
+> l'appellent plus, ni aucun script communautaire livré ici, ce qui épargne 336 Ko à chaque
+> mission. Si l'un de vos propres scripts appelle `mist.`, le build s'en aperçoit et le
+> réinjecte tout seul en vous disant lequel.
 
 ### b. Override partiel de la config Foothold
 

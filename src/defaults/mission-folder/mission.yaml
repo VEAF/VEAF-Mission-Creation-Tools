@@ -73,7 +73,11 @@ modules:
   EVENTS:
   MARKERS:
   COMMANDS:
-  MIST:                     # MiST community lib — mandatory (VEAF dependency), always injected
+  # MIST: true              # MiST community lib — no longer injected by default (336 KB saved).
+                            # VEAF stopped calling it entirely; the build turns it back on by itself
+                            # if one of your own src/scripts/*.lua calls `mist.` — set it to true
+                            # here only when something reaches MiST indirectly (through _G, or from
+                            # a script loaded by another script), which the build cannot see.
   # ── Core ─────────────────────────────────────────────────────────────────
   SECURITY: true
   RADIO: true               # the VEAF F10 radio menu

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from veaf_libs.i18n import t
@@ -47,8 +48,15 @@ def get_optin_community_script_ids() -> set[str]:
     airbase, and raises a start-up error otherwise. Those are opt-in: a vanilla
     mission, a freshly converted v5 mission, or a ``modules:`` block that does not
     mention them leaves them disabled; only ``<ID>: true`` turns them on.
+
+    MiST joined this set for a different reason (DROP-MIST ticket 08). It used to be
+    injected into every mission because the VEAF scripts called it; they no longer do,
+    and neither does any community script we ship. Carrying 336 KB into every ``.miz``
+    for nobody is what made it opt-in — but a mission maker's own script may still call
+    it, so the builder turns it back on by itself when it finds ``mist.`` in one of them.
+    See ``mission_scripts_referencing_mist``.
     """
-    return {"tum"}
+    return {"tum", "mist"}
 
 
 def is_community_script_enabled_by_default(script_id: str) -> bool:
@@ -226,3 +234,73 @@ def collect_files_from_globs(
         files_dict = files_dict | matched_files
 
     return files_dict
+
+
+#: Matches a call to MiST: ``mist``, a dot, and an identifier.
+#:
+#: The lookbehind rejects ``chemist.brew()`` and ``a.mist.z``. The ``\s*`` are not pedantry — Lua
+#: allows whitespace around a dot, so ``mist . utils.round(x)`` is a call and missing it would leave
+#: a mission without MiST until it died in DCS. Same for the leading underscore: ``mist._helper()``
+#: is a legal member name.
+_MIST_CALL_RE = re.compile(r"(?<![\w.])mist\s*\.\s*[A-Za-z_]\w*")
+
+#: Everything that looks like code but is not: comments and string literals.
+#:
+#: Removed before looking for a call, because a mention in either is not one. ``CTLD.lua`` carries an
+#: error *message* naming ``mist.DBs.MEgroupsByName``, and counting that as a call is how an earlier
+#: pass reported CTLD as still needing MiST when it has not since v2.
+#:
+#: Order matters. ``--[[`` must be tried before ``--``, or a block comment would be trimmed to its
+#: first line and the rest read as code. Long brackets carry any number of equals signs
+#: (``[==[ … ]==]``), and a quoted string may contain escaped quotes — both were missed by the first
+#: version of this, which worked line by line and could not see a comment spanning several.
+#:
+#: This is not a Lua lexer, and does not try to be: an unterminated long bracket degrades to the
+#: line-comment branch. What it costs when it is wrong is 336 KB in a mission that did not need
+#: them — the opposite mistake, missing a real call, is the one that breaks a mission in flight.
+_LUA_NOISE_RE = re.compile(
+    r"--\[(?P<bc>=*)\[.*?\](?P=bc)\]"  # block comment: --[[ … ]] and --[==[ … ]==]
+    r"|--[^\n]*"  # line comment, including one trailing real code
+    r"|\[(?P<ls>=*)\[.*?\](?P=ls)\]"  # long string: [[ … ]] and [==[ … ]==]
+    r"|\"(?:\\.|[^\"\\\n])*\""  # "…", escaped quotes included
+    r"|'(?:\\.|[^'\\\n])*'",  # '…', likewise
+    re.DOTALL,
+)
+
+
+def mission_scripts_referencing_mist(scripts_dir: Path) -> list[str]:
+    """Return the names of the mission's own scripts that call MiST.
+
+    VEAF stopped injecting MiST into every mission (DROP-MIST ticket 08), which would silently break
+    a mission whose own scripts call it: nothing fails at build time, and DCS reports
+    ``attempt to index nil (global 'mist')`` from inside a third-party file at runtime. So the
+    builder looks, and injects MiST when it finds a caller.
+
+    Everything in ``src/scripts/*.lua`` is packaged, whether or not it is declared under
+    ``custom_scripts:``, so the whole folder is scanned rather than the declared list.
+
+    A comment is not a call, and neither is a mention inside a string. What this cannot see is an
+    indirect use — a script that loads another script, or reaches MiST through ``_G``. For those,
+    ``MIST: true`` in the ``modules:`` block is the explicit way to ask.
+
+    Args:
+        scripts_dir: The mission's ``src/scripts`` folder. A missing folder yields an empty list.
+
+    Returns:
+        The file names that call MiST, sorted, so a caller can name them in a log line.
+    """
+    if not scripts_dir.is_dir():
+        return []
+
+    callers: list[str] = []
+    for lua_file in sorted(scripts_dir.glob("*.lua")):
+        try:
+            text = lua_file.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        # The whole file at once, not line by line: a block comment or a long string spans several
+        # lines, and the first version of this could not see past the end of one.
+        # A space rather than nothing, so removing a string cannot weld its neighbours into a token.
+        if _MIST_CALL_RE.search(_LUA_NOISE_RE.sub(" ", text)):
+            callers.append(lua_file.name)
+    return callers

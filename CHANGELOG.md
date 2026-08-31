@@ -515,6 +515,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   green again the day a sixth group is added on one side only. The `exe-smoke` CI job now runs a
   grouped command and a flat alias against the built binary.
 
+- **The documentation now teaches VMCT, instead of only documenting it.** `GUIDE.md` is a 51 KB
+  reference and `MIGRATION_GUIDE` addresses people who already have a v5 mission; neither took
+  somebody who knows the DCS Mission Editor and has never opened VMCT to a working mission. Three
+  new levels fill that gap, in both languages and in the menu:
+
+  - **Discover VMCT in ten minutes** — one page naming the pieces and how they fit, linking each to
+    the card that teaches it;
+  - **The cards** — nine short pages, one concept each (the mission folder, `mission.yaml` and its
+    modules, the build, custom scripts, radio presets, combat zones, dynamic slots, spawnable
+    groups, weather variants), each with the smallest example that works and the gotcha that costs
+    an hour;
+  - **Tutorial — your first mission** — one thread from an empty folder to a mission that runs,
+    every concept introduced where it is needed and linked to its card rather than explained inline.
+
+  Every command and every YAML block was run against the real tools before being written down: the
+  scaffold, the round trip through the Mission Editor, a real combat zone with its trigger zone and
+  its prefixed group, the minimal `presets.yaml`, the restricted `warehouses.yaml`, the solar
+  weather variants and the custom-script staging all pass `validate` and `build`.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

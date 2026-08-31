@@ -1,6 +1,6 @@
 # DOC-TUTORIAL — nothing teaches VMCT, it only documents it
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: VEAF meeting, 2026-08-30 ("ajouter un tuto pas trop détaillé pour introduire tous les
 concepts avec des exemples"). Shape chosen by David on 2026-08-31: **all three levels**.

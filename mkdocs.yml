@@ -73,6 +73,18 @@ plugins:
             Guide: Guide
             Full Guide: Guide complet
             Mission Maker: Créateur de Mission
+            Discover VMCT: Découvrir VMCT
+            Tutorial — your first mission: Tutoriel — votre première mission
+            Concepts: Les fiches
+            The mission folder: Le dossier de mission
+            mission.yaml and its modules: mission.yaml et ses modules
+            The build: Le build
+            Custom scripts: Scripts personnalisés
+            Radio presets: Préréglages radio
+            Combat zones: Zones de combat
+            Dynamic slots: Slots dynamiques
+            Spawnable groups: Groupes spawnables
+            Weather variants: Variantes météo
             Migration Guide: Guide de Migration
             Scripts: Scripts
             Developer: Développeur
@@ -107,6 +119,19 @@ nav:
     - Aliases: ALIASES.md
   - Mission Maker:
     - Overview: mission-maker/README.md
+    - Discover VMCT: mission-maker/DISCOVER.md
+    - Tutorial — your first mission: mission-maker/TUTORIAL.md
+    - Concepts:
+      - Overview: mission-maker/concepts/README.md
+      - The mission folder: mission-maker/concepts/mission-folder.md
+      - mission.yaml and its modules: mission-maker/concepts/mission-yaml.md
+      - The build: mission-maker/concepts/build.md
+      - Custom scripts: mission-maker/concepts/custom-scripts.md
+      - Radio presets: mission-maker/concepts/radio-presets.md
+      - Combat zones: mission-maker/concepts/combat-zones.md
+      - Dynamic slots: mission-maker/concepts/dynamic-slots.md
+      - Spawnable groups: mission-maker/concepts/spawnables.md
+      - Weather variants: mission-maker/concepts/weather-variants.md
     - Guide: mission-maker/GUIDE.md
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
     - Adopt a third-party mission: mission-maker/CONVERT_OTHER.md

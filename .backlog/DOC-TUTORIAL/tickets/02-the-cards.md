@@ -1,6 +1,6 @@
 # 02 — The cards: one concept, one page
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: a `doc/mission-maker/concepts/` folder, both languages, `mkdocs.yml`
 
@@ -16,9 +16,9 @@ point, not a contract.
 
 ## Definition of done
 
-- [ ] Each card: what it is, the smallest example that works, one gotcha, a link to the reference
-- [ ] Every example verified against `src/defaults/mission-folder/` or a test — a wrong example is
+- [x] Each card: what it is, the smallest example that works, one gotcha, a link to the reference
+- [x] Every example verified against `src/defaults/mission-folder/` or a test — a wrong example is
       worse than no card
-- [ ] Both languages, all in the `nav`
-- [ ] Explicit English anchors on anything linked from another page
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, all in the `nav`
+- [x] Explicit English anchors on anything linked from another page
+- [x] `poetry run docs-check` passes

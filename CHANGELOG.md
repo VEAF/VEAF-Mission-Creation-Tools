@@ -605,6 +605,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `doc/mission-maker/concepts/mission-yaml.md` also claimed a module absent from `modules:` is not
   shipped at all, which is false for exactly these five; it now says so.
 
+- **A mission started from scratch no longer comes out of the build unloadable**
+  (FIX-PREPARE-THEATRE-COALITIONS). `prepare --template minimal --theatre Caucasus` then `build`
+  produced a `.miz` that DCS refuses: it opens the CHANGING COALITIONS screen with every country
+  unassigned. This is the path the new tutorial teaches and the one anyone starting from nothing
+  takes, so it was the worst possible first contact — and the failure only surfaced two commands
+  later, in `validate`, not where it was caused.
+
+  A DCS mission states the same fact twice: `coalition.<side>.country` holds the units, and
+  `coalitions.<side>` lists the country ids the side owns. The blank mission `--theatre` generates
+  legitimately ships `coalitions = { blue = {}, red = {} }`, since it has no unit at all. The build
+  then filled the first table without the second — six countries on the two sides, none of them
+  assigned: three from the shipped `spawnables.yaml` / `dynamic-slot-templates.yaml` via the
+  aircraft-group injector, and one per side from the coalition placeholder, whose entire job is to
+  register the coalition with DCS.
+
+  Both now call `assign_country_to_side`, the same helper the MCP group insertion has always used.
+  The fix went into the injectors rather than into the generator: assigning a country up front
+  would only paper over it, because `coalitions.<side>` must list **every** country that owns units
+  — a mission with one country declared and two injected is just as unloadable, while `validate`,
+  which only reports a side with no country at all, would have gone quiet. Fixing the injectors also
+  repairs missions from any source, not just generated ones.
+
+  Covered by a test that drives `prepare` → `build` → `extract` → `validate` end to end and asserts
+  the invariant directly: the defect lives in the seam between two commands, each correct on its
+  own, so a test of either half missed it — and did.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

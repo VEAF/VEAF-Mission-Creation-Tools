@@ -438,7 +438,10 @@ logger.error("Échec", raise_exception=True)
 
 1. Créer `src/python/veaf-tools/new_feature_injector/`
 2. Implémenter `new_feature_worker.py` avec une méthode `run()`
-3. Enregistrer la commande dans `veaf-tools.py` avec `typer`
+3. Enregistrer la commande avec `typer` dans `veaf_tools/commands/`, puis la classer dans un groupe
+   de `veaf_tools/command_tree.py` — une commande non classée fait échouer les tests, parce qu'elle
+   disparaîtrait de `--help`. Il n'y a rien à ajouter dans `veaf-tools.py` : ce point d'entrée
+   délègue à `veaf_tools.app.main()` et ne connaît aucune commande.
 4. Ajouter le schéma de configuration YAML dans `models.py`
 
 ### Aides de test partagées {#shared-test-helpers}

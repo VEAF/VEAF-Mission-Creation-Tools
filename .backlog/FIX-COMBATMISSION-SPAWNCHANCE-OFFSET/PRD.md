@@ -1,6 +1,6 @@
 # FIX-COMBATMISSION-SPAWNCHANCE-OFFSET — a combat mission's spawn chance is off by one value
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: found while delivering `FIX-COMBATZONE-SPAWNCHANCE` (PR #859), which fixed the same
 arithmetic in the combat **zone**. Verified on `origin/develop` at `917d999e`.

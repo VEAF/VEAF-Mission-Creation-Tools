@@ -932,4 +932,158 @@ function TestCombatMissionMenuI18n:test_the_root_name_is_a_key_that_resolves()
   luaunit.assertEquals(veaf.t(veafCombatMission.RadioMenuName), "MISSIONS")
 end
 
+-- ============================================================================
+-- FIX-COMBATMISSION-SPAWNCHANCE-OFFSET — the draw was over 101 values, not 100
+--
+-- `activate()` drew `math.random(0, 100)` and compared it inclusively with the element's
+-- `#spawnchance`, so a percentage was never the percentage: `50` came out 51 times in 101, and
+-- `0` — the one value a mission maker writes expecting a guarantee — spawned once in 101.
+--
+-- Unlike the combat **zone**, the combat mission has no retry loop and no forced draw: each element
+-- gets exactly one draw against its own chance. Only the offset was wrong, and only the offset moves.
+--
+-- These tests go through `activate()` and count what actually reached `coalition.addGroup` in the DCS
+-- mocks. The getters were always right; the defect lived in the draw.
+-- ============================================================================
+TestVeafCombatMissionSpawnChance = {}
+
+-- Shared with test_veafCombatZone.lua, which asserts the same kind of statistic on the zone's own
+-- spawn chance: a fixed-seed LCG, so the sequence is the same under Lua 5.1 and under the 5.4 shim.
+local seededRandom = dofile(_base .. "/veaf_test_random.lua")
+
+--- Register a pre-placed group in the mission database, as the Mission Editor would have.
+local function placeGroup(groupName)
+  veafMissionDb.groupsByName[groupName] = {
+    name = groupName,
+    groupName = groupName,
+    category = "vehicle",
+    country = "RUSSIA",
+    units = { { name = groupName .. "-1", type = "BTR-80", x = 0, y = 0, heading = 0, skill = "Average" } },
+  }
+  dcs_mocks.addGroup(groupName, {
+    getUnit = function()
+      return {
+        getPoint = function()
+          return { x = 0, y = 0, z = 0 }
+        end,
+      }
+    end,
+  })
+  -- What `activate()` names the first clone of this group. It looks the group up by that name right
+  -- after submitting it, so the mock registry has to answer.
+  dcs_mocks.addGroup(string.format("%s #%04d", groupName, 1), {})
+end
+
+function TestVeafCombatMissionSpawnChance:setUp()
+  self._random = math.random
+  math.random = seededRandom(20260831)
+  dcs_mocks.groupsAdded = {}
+  veafMissionDb.groupsByName = {}
+  veafMissionDb.spawnedNames = {}
+  dcs_mocks.clearUnitsAndGroups()
+end
+
+function TestVeafCombatMissionSpawnChance:tearDown()
+  math.random = self._random
+  dcs_mocks.groupsAdded = {}
+  veafMissionDb.groupsByName = {}
+  veafMissionDb.spawnedNames = {}
+  dcs_mocks.clearUnitsAndGroups()
+end
+
+--- Build a mission with one element per description.
+--- @param descriptions table a list of { chance = n }, `chance` optional
+local function missionOf(descriptions)
+  local mission = VeafCombatMission:new():setName("ChanceMission"):setFriendlyName("Chance Mission")
+  for index, description in ipairs(descriptions) do
+    local groupName = "CHANCE-GROUP-" .. index
+    placeGroup(groupName)
+    local element = VeafCombatMissionElement:new():setName("ELEMENT-" .. index):setGroups({ groupName })
+    -- A negative radius means "put it exactly where the editor drew it". It is what keeps the RNG
+    -- stream at exactly one draw per element: a scattering radius would spend draws picking a point,
+    -- and the statistic below would then measure the position code as much as the chance.
+    element:setSpawnRadius(-1)
+    if description.chance then
+      element:setSpawnChance(description.chance)
+    end
+    mission:addElement(element)
+  end
+  return mission
+end
+
+--- Activate a freshly built mission `runs` times and return how many groups DCS was given each time.
+local function spawnCounts(descriptions, runs)
+  local counts = {}
+  for _ = 1, runs do
+    local before = #dcs_mocks.groupsAdded
+    missionOf(descriptions):activate()
+    table.insert(counts, #dcs_mocks.groupsAdded - before)
+  end
+  return counts
+end
+
+local function total(counts)
+  local sum = 0
+  for _, count in ipairs(counts) do
+    sum = sum + count
+  end
+  return sum
+end
+
+-- The harness has to be able to see a spawn at all, otherwise every assertion below is vacuous.
+function TestVeafCombatMissionSpawnChance:test_the_default_chance_always_spawns()
+  luaunit.assertEquals(total(spawnCounts({ {} }, 200)), 200)
+end
+
+-- `#spawnchance=100` written by hand is the same promise as the default.
+function TestVeafCombatMissionSpawnChance:test_a_hundred_percent_element_always_spawns()
+  luaunit.assertEquals(total(spawnCounts({ { chance = 100 } }, 200)), 200)
+end
+
+-- The defect at its most visible: `#spawnchance=0` used to spawn once in 101, because
+-- `math.random(0, 100) <= 0` is true on a zero draw.
+function TestVeafCombatMissionSpawnChance:test_a_zero_chance_element_never_spawns()
+  luaunit.assertEquals(total(spawnCounts({ { chance = 0 } }, 500)), 0)
+end
+
+-- And the offset itself: 50 % has to be 50 in 100, not 51 in 101.
+function TestVeafCombatMissionSpawnChance:test_a_fifty_percent_element_spawns_about_half_the_time()
+  local spawns = total(spawnCounts({ { chance = 50 } }, 1000))
+  luaunit.assertTrue(spawns > 430 and spawns < 570, string.format("expected roughly 500 spawns out of 1000 draws at 50%%, got %d", spawns))
+end
+
+-- A one-percent element is where the off-by-one is proportionally largest: 2 chances in 101 instead
+-- of 1 in 100 is double the intended rate. On this seed the fixed draw spawns 32 times and the
+-- 101-value draw 67, so the band below separates them rather than merely bracketing the mean — and
+-- with a fixed seed those two numbers are constants, not samples.
+function TestVeafCombatMissionSpawnChance:test_a_one_percent_element_stays_near_one_percent()
+  local runs = 4000
+  local spawns = total(spawnCounts({ { chance = 1 } }, runs))
+  luaunit.assertTrue(spawns > 15 and spawns < 56, string.format("expected roughly 40 spawns (1%% of %d), got %d", runs, spawns))
+end
+
+-- Elements are independent: four at 50 % give about two, and the count varies from run to run.
+function TestVeafCombatMissionSpawnChance:test_four_fifty_percent_elements_yield_about_two()
+  local runs = 400
+  local counts = spawnCounts({ { chance = 50 }, { chance = 50 }, { chance = 50 }, { chance = 50 } }, runs)
+  local average = total(counts) / runs
+  luaunit.assertTrue(average > 1.7 and average < 2.3, string.format("expected about 2 of 4 spawned, got %.2f", average))
+  local sawFewerThanFour = false
+  for _, count in ipairs(counts) do
+    luaunit.assertTrue(count >= 0 and count <= 4)
+    if count < 4 then
+      sawFewerThanFour = true
+    end
+  end
+  luaunit.assertTrue(sawFewerThanFour, "every activation spawned all four — the chance is still ignored")
+end
+
+-- A zero-chance element next to a certain one must be the only one held back.
+function TestVeafCombatMissionSpawnChance:test_a_zero_chance_element_does_not_hold_back_its_neighbour()
+  local counts = spawnCounts({ { chance = 0 }, { chance = 100 } }, 200)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 1, "the certain element must spawn and the impossible one must not")
+  end
+end
+
 os.exit(luaunit.LuaUnit.run())

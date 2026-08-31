@@ -153,7 +153,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **This changes missions already running.** Any zone using `#spawnchance` will spawn fewer groups than
   it did — which is the behaviour the documentation has always described. If a group must appear for
   certain, remove its tag or write `#spawnchance=100`. `veafCombatMission`'s own `spawnChance` is
-  separate code and is untouched.
+  separate code; its own off-by-one is fixed further down this section.
 
 - **Airfields were stocked with aircraft their terrain cannot park.** Three Syria airfields looked
   broken and nothing the tool controls was wrong: blue, `dynamicSpawn` on, templates linked, 32 bases
@@ -533,6 +533,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   scaffold, the round trip through the Mission Editor, a real combat zone with its trigger zone and
   its prefixed group, the minimal `presets.yaml`, the restricted `warehouses.yaml`, the solar
   weather variants and the custom-script staging all pass `validate` and `build`.
+
+- **A combat mission's `#spawnchance` is now the percentage it says**
+  (FIX-COMBATMISSION-SPAWNCHANCE-OFFSET). `veafCombatMission` drew a number between 0 and 100 —
+  **101** values — and compared it inclusively, so every stated chance was worth one more than it
+  claimed: `#spawnchance=50` fired 51 times in 101, and `#spawnchance=0` spawned once in 101 instead
+  of never. Zero is the one value a mission maker writes expecting a guarantee, and it was the only
+  one the code could not honour. The draw is now over 1..100, which gives exactly N chances in 100
+  for `#spawnchance=N`.
+
+  The same arithmetic was fixed in the combat **zone** above; the two share no code, and this one has
+  neither a retry loop nor a forced draw, so only the offset moved. The tests go through
+  `activate()` and count the groups that actually reached DCS, and the seeded generator the zone's
+  tests introduced now lives in `test/lua/veaf_test_random.lua`, shared by both.
 
 ## [6.17.0] — 2026-08-26
 

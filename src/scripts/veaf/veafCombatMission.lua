@@ -865,7 +865,10 @@ function VeafCombatMission:activate(silent)
 
   for _, missionElement in pairs(self.elements) do
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("processing element [%s]", missionElement:getName()))
-    local chance = math.random(0, 100)
+    -- FIX-COMBATMISSION-SPAWNCHANCE-OFFSET: the draw is over 100 values, not 101. `math.random(0, 100)`
+    -- compared inclusively gave N+1 chances in 101 for `#spawnchance=N`, so `0` — the only value a
+    -- mission maker writes expecting a guarantee — spawned once in 101. 1..100 gives exactly N in 100.
+    local chance = math.random(1, 100)
     if chance <= missionElement:getSpawnChance() then
       -- spawn the element
       veaf.loggers.get(veafCombatMission.Id):debug(string.format("chance hit (%d <= %d)", chance, missionElement:getSpawnChance()))

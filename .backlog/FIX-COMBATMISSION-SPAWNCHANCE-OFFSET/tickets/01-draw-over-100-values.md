@@ -1,6 +1,6 @@
 # 01 — Draw over 100 values, not 101
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · File: `src/scripts/veaf/veafCombatMission.lua`
 
@@ -10,12 +10,12 @@ One line, at `veafCombatMission.lua:868`: `math.random(0, 100)` becomes `math.ra
 
 ## Definition of done
 
-- [ ] `#spawnchance=0` never spawns — over many activations, not one run
-- [ ] `#spawnchance=100` always spawns
-- [ ] `#spawnchance=50` lands near half, asserted statistically with a seeded RNG
-- [ ] The tests drive `activate()` and observe what was actually spawned, through the DCS mocks —
+- [x] `#spawnchance=0` never spawns — over many activations, not one run
+- [x] `#spawnchance=100` always spawns
+- [x] `#spawnchance=50` lands near half, asserted statistically with a seeded RNG
+- [x] The tests drive `activate()` and observe what was actually spawned, through the DCS mocks —
       not the accessor
-- [ ] `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean
+- [x] `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean
 
 ## Reuse rather than reinvent
 

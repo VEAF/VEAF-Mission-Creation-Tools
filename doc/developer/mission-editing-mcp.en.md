@@ -471,9 +471,12 @@ or a `.miz` (transient).
 - **`parking_id` = `parking`.** Settled in game 2026-08-15: `parking` is the capture's `Term_Index`,
   the aircraft seats from the exact position, and the editor's own `parking_id` — absent from the
   capture — is **not** load-bearing, so it is written equal to `parking`.
-- **Only terminal types 104 and 68** are offered as parking (measured: real Caucasus missions park
-  aircraft only on those). An airfield with none is **refused** rather than seating an aircraft on a
-  runway threshold.
+- **Only terminal types 68, 72 and 104** are offered as parking — DCS's own `FighterAircraft` mask
+  (244). `100` (SmallSizeFighter) is excluded on purpose: DCS documents it as a tight spot for small
+  airframes, and it unlocks no airfield the other three do not already cover. An airfield with none of
+  the three is **refused** rather than seating an aircraft on a runway threshold or a helipad. The
+  measurement behind the set, and the seven airfields it unlocked, are recorded beside
+  `AIRCRAFT_STAND_TYPES` in `veaf_libs/dcs_parking.py`.
 - **Collision refused.** A stand already occupied in the mission (an aircraft group whose first
   waypoint targets this airdrome and one of whose units declares that stand) is refused **naming** the
   group that holds it; auto-selection **skips** occupied stands.

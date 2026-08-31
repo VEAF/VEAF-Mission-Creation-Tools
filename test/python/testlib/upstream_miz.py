@@ -17,12 +17,20 @@ from __future__ import annotations
 
 import tempfile
 import zipfile
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
+
+import luadata
+from veaf_libs.dcs_countries import country_id_for_name
 
 # One loader per script, as Foothold does: script name, and the staging delay in seconds
 # (``None`` for "loads with the rest at t=0").
 UpstreamScript = tuple[str, float | None]
+
+#: Aircraft groups of a mission, as DCS files them:
+#: ``{coalition: {country: {"plane"|"helicopter": [group table, …]}}}``.
+UpstreamAircraft = Mapping[str, Mapping[str, Mapping[str, Sequence[dict[str, Any]]]]]
 
 #: The five staged loaders of a Foothold release, AIEN last and latest — the case that matters,
 #: since it inventories ground groups once and Foothold creates part of them from t=2 s.
@@ -65,6 +73,35 @@ def _trigrule(index: int, resource_key: str, delay: float | None) -> str:
 """
 
 
+def _coalition_block(aircraft: UpstreamAircraft) -> str:
+    """Render the ``coalition`` entry of a mission table from *aircraft*.
+
+    Args:
+        aircraft: ``{coalition: {country: {"plane"|"helicopter": [group, …]}}}``.
+
+    Returns:
+        The Lua source of the ``["coalition"] = { … },`` entry, ready to be spliced into a
+        ``mission`` table (indented one level, trailing comma included).
+    """
+    table = {
+        coalition: {
+            "country": [
+                {
+                    "name": country,
+                    "id": country_id_for_name(country) or 0,
+                    "plane": {"group": list(tables.get("plane", ()))},
+                    "helicopter": {"group": list(tables.get("helicopter", ()))},
+                }
+                for country, tables in countries.items()
+            ]
+        }
+        for coalition, countries in aircraft.items()
+    }
+    # luadata renders a bare table; indent it one level and hang it off the "coalition" key.
+    body = "\n".join(f"    {line}" for line in luadata.serialize(table, indent="    ").splitlines())
+    return f'    ["coalition"] =\n{body},\n'
+
+
 def make_upstream_miz(
     scripts: Sequence[UpstreamScript] = FOOTHOLD_SHAPE,
     *,
@@ -72,6 +109,7 @@ def make_upstream_miz(
     name: str = "upstream.miz",
     body: str = "-- upstream\n",
     theatre: str = "Caucasus",
+    aircraft: UpstreamAircraft | None = None,
 ) -> Path:
     """Write a ``.miz`` whose native triggers load *scripts*, in order.
 
@@ -84,6 +122,9 @@ def make_upstream_miz(
         body: The content given to every script, so a test can prove a refresh overwrote them.
         theatre: The DCS map, as ``mission`` declares it. Lekaa ships one archive per map, so
             this is what identifies which mission folder a release belongs to.
+        aircraft: Aircraft groups to file under ``coalition``, keyed
+            ``{coalition: {country: {"plane"|"helicopter": [group, …]}}}``. Omitted → no
+            ``coalition`` table at all, as before.
 
     Returns:
         The path to the written ``.miz``.
@@ -93,8 +134,10 @@ def make_upstream_miz(
     miz = folder / name
 
     trigrules = "".join(_trigrule(i, f"ResKey_{i}", delay) for i, (_, delay) in enumerate(scripts, start=1))
+    coalition = _coalition_block(aircraft) if aircraft else ""
     mission_lua = (
-        f'mission =\n{{\n    ["theatre"] = "{theatre}",\n    ["trigrules"] =\n    {{\n{trigrules}    }},\n}}\n'
+        f'mission =\n{{\n    ["theatre"] = "{theatre}",\n{coalition}'
+        f'    ["trigrules"] =\n    {{\n{trigrules}    }},\n}}\n'
     )
 
     resources = "".join(f'    ["ResKey_{i}"] = "{script}",\n' for i, (script, _) in enumerate(scripts, start=1))

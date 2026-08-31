@@ -243,6 +243,12 @@ flowchart TD
 > ```
 >
 > That rewrites `src/dynamic-slot-templates.yaml` with your templates. The next build injects them, and the dynamic slots offer aircraft ready to fly.
+>
+> **Add `--merge` to build the catalogue up instead of starting it over.** Without it the file is rebuilt from the mission alone, so a second mission's templates — or a template you edited by hand — are lost. With it, the mission wins on a group of the same name and **each replacement is named** in the report, while everything the mission does not carry is kept:
+>
+> ```powershell
+> veaf-tools.exe content extract-aircraft-groups second-mission.miz --kind dynamic-template --merge
+> ```
 
 ---
 

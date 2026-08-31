@@ -552,6 +552,20 @@ function veafDcsSpawner.addGroup(groupData)
   end
 
   coalition.addGroup(country.id[countryName], Unit.Category[category], group)
+
+  -- Registered here, at the submission boundary, rather than where the name was chosen. Two reasons,
+  -- both found in review:
+  --
+  --  * every path above this line can still refuse the group — a terrain rejection, a unit with no
+  --    position. Reserving earlier left a name held forever by a group that was never created, and
+  --    the next clone stepped over it.
+  --  * a caller may rename the group between building it and submitting it, which is exactly what
+  --    `veafCombatMission` does after `buildCloneData()`. Registering the chosen name would have
+  --    recorded one name while DCS received another, blocking the first and protecting neither.
+  --
+  -- So what gets recorded is what DCS was actually given.
+  veaf.takeSpawnedName(group.name)
+
   veaf.loggers.get(veafDcsSpawner.Id):trace("addGroup: created [%s] with %d unit(s)", veaf.p(group.name), #group.units)
   return group
 end
@@ -962,11 +976,6 @@ function VeafGroupSpawn:_spawn(verb, buildOnly)
       veaf.loggers.get(veafDcsSpawner.Id):debug("clone of [%s] named [%s]", veaf.p(taken), veaf.p(data.name))
     end
   end
-
-  -- Take it whatever happened, or two clones could still collide with each other: the check above
-  -- would only ever see the names the Mission Editor placed. `takeSpawnedName` had no caller at all
-  -- until now, which is why nothing failed loudly.
-  veaf.takeSpawnedName(data.name)
 
   if self.renameUnits then
     for index, unit in pairs(data.units) do

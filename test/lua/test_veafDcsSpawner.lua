@@ -975,6 +975,10 @@ TestVeafGroupSpawnChain = {}
 
 function TestVeafGroupSpawnChain:setUp()
   dcs_mocks.reset()
+  -- The spawned-name registry outlives a snapshot rebuild, which is right in a mission and wrong
+  -- between two tests: one clone taking `Convoy #2` would make the next test see it as taken and
+  -- assert against the leak rather than against the code.
+  veafMissionDb.spawnedNames = {}
   land.getHeight = function()
     return 0
   end
@@ -1077,6 +1081,37 @@ function TestVeafGroupSpawnChain:test_the_registry_learns_the_name_a_clone_took(
   VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
 
   luaunit.assertTrue(veaf.isNameTaken(spawned().name), "the name a clone took is now taken")
+end
+
+function TestVeafGroupSpawnChain:test_a_spawn_that_never_happened_reserves_nothing()
+  -- The name is registered where the group reaches DCS, not where the name is chosen: everything in
+  -- between can still refuse it. Reserving earlier left a name held forever by a group that was
+  -- never created, and the next clone stepped over it. Found by review on #848.
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertFalse(result, "a ground group cannot spawn on water")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+  luaunit.assertFalse(veaf.isNameTaken("Convoy #2"), "the name it would have taken is still free")
+end
+
+function TestVeafGroupSpawnChain:test_the_registry_records_the_name_dcs_was_given()
+  -- `buildCloneData` chooses a name, and a caller may replace it before submitting: veafCombatMission
+  -- assigns `groupName` right after building. Registering the chosen one would block a name nothing
+  -- uses and leave the real one unprotected. Found by review on #848.
+  local data = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):buildCloneData()
+  luaunit.assertNotNil(data)
+  local chosen = data.name
+  data.groupName = "Convoy #0001"
+
+  veafDcsSpawner.addGroup(data)
+
+  luaunit.assertEquals(spawned().name, "Convoy #0001")
+  luaunit.assertTrue(veaf.isNameTaken("Convoy #0001"), "what DCS was given is what is recorded")
+  luaunit.assertFalse(veaf.isNameTaken(chosen), "the name the caller discarded is not held")
 end
 
 function TestVeafGroupSpawnChain:test_an_explicit_name_is_used_when_it_is_free()

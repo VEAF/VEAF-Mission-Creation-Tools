@@ -262,6 +262,24 @@ function TestVeafGeoZones:test_getAvgGroupPosOfAMissingGroupIsNil()
   luaunit.assertNil(veaf.getAvgGroupPos("no such group"))
 end
 
+-- FIX-UNGUARDED-DCS-LOOKUPS. veaf.lua carried a second `getAvgGroupPos` of its own, "stolen from Mist
+-- and corrected", whose fallback kept the **string** when `Group.getByName` came back empty and then
+-- called `group:getSize()` on it. It was dead -- veafGeo.lua loads right after veaf.lua everywhere and
+-- assigned over it -- and it has been removed. This pins that: `veaf.getAvgGroupPos` is the geometry
+-- module's implementation and nothing else, so a copy reappearing upstream fails here instead of
+-- silently winning the assignment race.
+function TestVeafGeoZones:test_veafGetAvgGroupPosIsTheGeoOne()
+  luaunit.assertIs(veaf.getAvgGroupPos, veafGeo.getAvgGroupPos)
+end
+
+-- The behaviour the removed copy got wrong: handed the name of a group DCS does not know, it must
+-- answer nil rather than call a method on the name it was given.
+function TestVeafGeoZones:test_getAvgGroupPosOfAMissingGroupDoesNotRaise()
+  local ok, result = pcall(veaf.getAvgGroupPos, "no such group")
+  luaunit.assertTrue(ok, string.format("getAvgGroupPos raised on a group that does not exist: %s", tostring(result)))
+  luaunit.assertNil(result)
+end
+
 -- ---------------------------------------------------------------------------
 -- Polygons
 -- ---------------------------------------------------------------------------

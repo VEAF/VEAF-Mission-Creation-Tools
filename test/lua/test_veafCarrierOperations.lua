@@ -537,4 +537,63 @@ function TestVeafCarrierMenuCoalition:test_no_menu_is_built_without_carriers()
   luaunit.assertEquals(#self.subMenus, 0)
 end
 
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS — starting operations on a carrier DCS has lost
+--
+-- `startCarrierOperations` checks `veafCarrierOperations.carriers[groupName]`, which is VEAF's own
+-- record, built when the module initialized. It then looked the DCS group up and called
+-- `group:getUnits()` on the answer without checking it. The two are not the same claim: a carrier can
+-- be sunk, or its group removed, hours after the record was made, and a pilot asking for air
+-- operations then took the command down.
+-- ============================================================================
+TestVeafCarrierVanishedGroup = {}
+
+local VANISHED_CARRIER = "SunkCarrierGroup"
+
+function TestVeafCarrierVanishedGroup:setUp()
+  dcs_mocks.reset()
+  -- The VEAF record is there; the DCS group is deliberately *not* registered with the mocks, which is
+  -- what `Group.getByName` answers for a group DCS no longer knows.
+  veafCarrierOperations.carriers = {
+    [VANISHED_CARRIER] = { carrierUnitName = "SunkCarrierUnit", conductingAirOperations = false, ATC = {} },
+  }
+  self._logger = veaf.loggers.get(veafCarrierOperations.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+end
+
+function TestVeafCarrierVanishedGroup:tearDown()
+  self._logger.warn = self._originalWarn
+  veafCarrierOperations.carriers = {}
+  dcs_mocks.reset()
+end
+
+-- The defect itself: without the guard this raises on `group:getUnits()`.
+function TestVeafCarrierVanishedGroup:test_starting_operations_does_not_raise()
+  local ok, err = pcall(veafCarrierOperations.startCarrierOperations, { { VANISHED_CARRIER, 45 }, "Chevy11" })
+  luaunit.assertTrue(ok, string.format("startCarrierOperations raised on a carrier DCS has lost: %s", tostring(err)))
+end
+
+-- And it stops rather than falling through: air operations must not be marked as running on a carrier
+-- that is not there.
+function TestVeafCarrierVanishedGroup:test_operations_are_not_started()
+  veafCarrierOperations.startCarrierOperations({ { VANISHED_CARRIER, 45 }, "Chevy11" })
+  luaunit.assertFalse(veafCarrierOperations.carriers[VANISHED_CARRIER].conductingAirOperations)
+end
+
+function TestVeafCarrierVanishedGroup:test_the_warning_names_the_carrier()
+  veafCarrierOperations.startCarrierOperations({ { VANISHED_CARRIER, 45 }, "Chevy11" })
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find(VANISHED_CARRIER, 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the carrier group")
+end
+
 os.exit(luaunit.LuaUnit.run())

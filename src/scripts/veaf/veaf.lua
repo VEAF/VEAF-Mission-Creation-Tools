@@ -539,6 +539,10 @@ function veaf.json.parse(str, pos, end_delim)
       end
       pos = skip_delim(str, pos, ":", true) -- true -> error if missing.
       -- not my code !
+      -- Kept, and not a DCS lookup: `key` is checked for nil six lines up and the loop returns there,
+      -- so what the linter cannot see is the control flow, not a missing guard. Listed by
+      -- FIX-UNGUARDED-DCS-LOOKUPS as one of the four silenced `need-check-nil`; re-justified rather
+      -- than removed, so the next sweep does not have to read the parser again.
       ---@diagnostic disable-next-line: need-check-nil
       obj[key], pos = veaf.json.parse(str, pos)
       pos, delim_found = skip_delim(str, pos, ",")
@@ -2196,18 +2200,16 @@ function veaf.moveGroupTo(groupName, pos, speed, altitude)
   return true
 end
 
-function veaf.getAvgGroupPos(groupName) -- stolen from Mist and corrected
-  local group = groupName -- sometimes this parameter is actually a group
-  if type(groupName) == "string" and Group.getByName(groupName) and Group.getByName(groupName):isExist() == true then
-    group = Group.getByName(groupName)
-  end
-  local units = {}
-  for i = 1, group:getSize() do
-    table.insert(units, group:getUnit(i):getName())
-  end
-
-  return veaf.getAvgPos(units)
-end
+-- `veaf.getAvgGroupPos` used to be defined here, "stolen from Mist and corrected". It was neither
+-- correct nor reachable. It accepted a name *or* a group, and when handed the name of a group DCS did
+-- not know, its fallback left the **string** in the variable and called `group:getSize()` on it — the
+-- fallback was the defect, so a nil check would only have hidden it.
+--
+-- It has been dead since DROP-MIST ticket 04 (PR #832) wrote `veafGeo.getAvgGroupPos`, which answers
+-- nil for a group that is gone, and assigned it over this one at the bottom of veafGeo.lua. veafGeo
+-- loads immediately after veaf.lua — in the bundle (veaf_build/worker.py), in VeafDynamicLoader and in
+-- the test harness — so this definition never survived to be called. Removed rather than fixed, since
+-- the working implementation lives with the rest of the geometry.
 
 --- Computes the coordinates of a point offset from a route of a certain distance, at a certain distance from route start
 --- e.g. we go from [startingPoint] to [destinationPoint], and at [distanceFromStartingPoint] we look at [offset] meters (left if <0, right else)

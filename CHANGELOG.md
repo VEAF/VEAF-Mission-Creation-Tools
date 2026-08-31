@@ -210,6 +210,42 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **warning naming the group** and carries on with the rest of its elements, instead of raising. Only
   that one group goes untracked, which is the honest outcome: there is no DCS object to track.
 
+- **More places where a missing DCS object stopped being a crash.** Asking DCS for a group, a unit or
+  a trigger zone gives back nothing when the object is gone, and in each of these the answer was used
+  without being looked at. They were not the same defect wearing eight hats, and they were not fixed
+  as one batch:
+
+  - **A CAS mission no longer dies on the group it just created.** It spawned its target group, threw
+    away the answer, and then asked DCS for that group and called a method on the reply in the same
+    breath — while the spawn itself refuses a group outright on an unknown country or an empty unit
+    list, which is exactly when the lookup fails. Both are read now: the mission says which group it
+    could not create, tells the pilots, and stops, rather than building an AFAC, radio menus and a
+    watchdog around something that is not there.
+  - **Carrier air operations no longer die on a carrier that has sunk.** The check above the lookup
+    vouched for VEAF's own record of the carrier, written when the mission started — not for the ship
+    still being afloat when a pilot asks, hours later.
+  - **A misnamed trigger zone in `mission.yaml` now names itself** instead of taking the sanctuary
+    set-up down with it. The guard was there; it was testing the *parameter* it had been given rather
+    than the answer it got back, which is always true.
+  - **A misspelled prerequisite no longer kills a combat operation.** A zone that does not exist
+    cannot be active, so it cannot be blocking anything: it is reported and ignored. Treating it as
+    unfinished instead would have locked the operation for the rest of the mission, silently, over a
+    typo.
+  - **A target report survives a mission with no bullseye.** The pilot gets his coordinates and his
+    MGRS; only the bullseye line, which has nothing to say, is left out.
+  - **A destroyed early-warning radar no longer takes the IADS point-defence search down** with it.
+  - **A tanker, an AFAC or an escort that fails to come back from a teleport is now reported.** A
+    teleport destroys the group and recreates it, so the object checked beforehand is not the one used
+    afterwards — three commands were checking the first and using the second.
+  - **The ATC report no longer dies on a pilot who has left.** The name comes off the F10 menu, and a
+    pilot can be shot down between opening the menu and choosing the item.
+
+  Each of these says which object it could not find, in the log, so a mission maker can act on it —
+  silence is what let them survive this long. Four places in the code base carried a comment
+  explicitly telling the code checker to stop complaining about exactly this; three of them were
+  genuine and are fixed, and the fourth, in third-party JSON reading code, now records why it is
+  harmless instead of merely being quiet.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

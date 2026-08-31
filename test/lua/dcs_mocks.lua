@@ -1066,6 +1066,13 @@ Group.getID = function(grp)
   return grp:getID()
 end
 
+-- Unit.getPosition(unit) — the static form, which is what `veaf.getAveragePosition` calls. It was
+-- missing, so any suite reaching that function died on "attempt to call field 'getPosition'" rather
+-- than on whatever it was testing. Delegates like the two above, so addUnit's stub is what answers.
+Unit.getPosition = function(unit)
+  return unit:getPosition()
+end
+
 -- ---------------------------------------------------------------------------
 -- Cockpit primitives — and the environment boundary they sit behind
 --

@@ -1767,4 +1767,56 @@ function TestVeafWeatherWelcomeBrief:test_nothing_to_say_sends_nothing()
   luaunit.assertEquals(#self.messages, 0)
 end
 
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS -- the ATC report on a pilot who is no longer there
+--
+-- `messageAtcClosestAirbase` took the unit name off an F10 menu entry, looked it up, and handed the
+-- answer straight to `veafAirbases.getNearestAirbase`, which reads `dcsUnit:getPoint()` as its first
+-- statement. Nothing checked the lookup. A pilot who died, respawned or slotted out between opening
+-- the menu and choosing the item made the command raise.
+--
+-- Deliberately *not* stubbing `getNearestAirbase` here: the crash lives one call down, in veafAirbases,
+-- and a stub would step over the very line under test.
+-- ============================================================================
+TestVeafWeatherAtcVanishedUnit = {}
+
+function TestVeafWeatherAtcVanishedUnit:setUp()
+  dcs_mocks.reset()
+  self._logger = veaf.loggers.get(veafWeather.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+end
+
+function TestVeafWeatherAtcVanishedUnit:tearDown()
+  self._logger.warn = self._originalWarn
+  dcs_mocks.reset()
+end
+
+-- The defect: `Unit.getByName` answers nil for a unit the mocks never registered, which is what DCS
+-- does for a unit that is gone.
+function TestVeafWeatherAtcVanishedUnit:test_a_unit_that_is_gone_does_not_raise()
+  local ok, err = pcall(veafWeather.messageAtcClosestAirbase, "GhostPilot", true)
+  luaunit.assertTrue(ok, string.format("messageAtcClosestAirbase raised on a unit that is gone: %s", tostring(err)))
+end
+
+function TestVeafWeatherAtcVanishedUnit:test_nobody_is_sent_a_report()
+  veafWeather.messageAtcClosestAirbase("GhostPilot", true)
+  luaunit.assertEquals(#dcs_mocks.messages, 0, "there is no pilot left to answer")
+end
+
+function TestVeafWeatherAtcVanishedUnit:test_the_warning_names_the_unit()
+  veafWeather.messageAtcClosestAirbase("GhostPilot", true)
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find("GhostPilot", 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the unit that could not be found")
+end
+
 os.exit(luaunit.LuaUnit.run())

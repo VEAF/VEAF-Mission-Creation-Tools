@@ -765,11 +765,21 @@ end
 function veafSanctuary.addZoneFromTriggerZone(triggerZoneName)
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("addZoneFromTriggerZone(%s)", veaf.p(triggerZoneName)))
   local triggerZone = trigger.misc.getZone(triggerZoneName)
-  if triggerZoneName then
-    ---@diagnostic disable-next-line: need-check-nil
-    local zone = VeafSanctuaryZone:new():setName(triggerZoneName):setRadius(triggerZone.radius):setPosition(triggerZone.point)
-    return veafSanctuary.addZone(zone)
+  -- The guard here used to test `triggerZoneName`, the parameter, which is truthy by the time we get
+  -- this far; the *result* was never checked, and a `need-check-nil` silenced the linter that said so.
+  -- A trigger zone misnamed in mission.yaml therefore raised on `triggerZone.radius` and took the whole
+  -- sanctuary set-up down, instead of naming the zone it could not find.
+  if not triggerZone then
+    veaf.loggers.get(veafSanctuary.Id):warn(
+      string.format(
+        "addZoneFromTriggerZone: the mission has no trigger zone named [%s] ; no sanctuary zone was added",
+        veaf.p(triggerZoneName)
+      )
+    )
+    return nil
   end
+  local zone = VeafSanctuaryZone:new():setName(triggerZoneName):setRadius(triggerZone.radius):setPosition(triggerZone.point)
+  return veafSanctuary.addZone(zone)
 end
 
 -- Handle world events.

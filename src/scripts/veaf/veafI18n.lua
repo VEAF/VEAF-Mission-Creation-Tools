@@ -335,6 +335,10 @@ veaf.i18nCatalog = {
     fr = "Un groupe cible CAS existe déjà !",
     en = "A CAS target group already exists !",
   },
+  ["cas.spawn_failed"] = {
+    fr = "Le groupe cible CAS n'a pas pu être créé ; la mission CAS n'a pas démarré.",
+    en = "The CAS target group could not be created ; the CAS mission did not start.",
+  },
   ["cas.smoke_requested"] = {
     fr = "Bien reçu, fumée demandée : fumée ROUGE sur la cible !",
     en = "Copy smoke requested, RED smoke on the deck!",

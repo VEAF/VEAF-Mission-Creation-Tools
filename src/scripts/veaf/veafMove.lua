@@ -614,7 +614,17 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   if teleport then
     veaf.loggers.get(veafMove.Id):debug("Teleport the tanker")
     local grp = VeafGroupSpawn:new():forGroup(groupName):at(teleportPoint):teleport()
+    -- The guard at the top of this function vouched for the group as it was *before* the teleport;
+    -- a teleport destroys the group and recreates it, so this is a different object and needs its own
+    -- check. Unchecked, it reached `replaceMission`, which dereferences it straight away.
     unitGroup = Group.getByName(groupName)
+    if not unitGroup then
+      veaf.loggers
+        .get(veafMove.Id)
+        :warn(string.format("moveTanker: the tanker group [%s] did not come back from its teleport", veaf.p(groupName)))
+      trigger.action.outText(veaf.t("move.tanker_not_found", groupName), 10)
+      return false
+    end
 
     veafMove.teleportEscort(groupName, movePoint, teleportPoint)
 
@@ -828,7 +838,15 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
 
   veaf.loggers.get(veafMove.Id):debug("Teleport the escort")
   VeafGroupSpawn:new():forGroup(groupName_escort):at(teleportPoint_escort):teleport()
+  -- The check further up tested the escort as it was before the teleport; the teleport destroys and
+  -- recreates it, so this lookup answers about a different object and gets its own check.
   local unitGroup_escort = Group.getByName(groupName_escort)
+  if not unitGroup_escort then
+    veaf.loggers
+      .get(veafMove.Id)
+      :warn(string.format("teleportEscort: the escort group [%s] did not come back from its teleport", veaf.p(groupName_escort)))
+    return false
+  end
 
   veafMove.replaceMission(unitGroup_escort, EscortData)
   --this method appears to not work very well, the escort just doesn't defend the group
@@ -849,6 +867,11 @@ end
 function veafMove.replaceMission(unitGroup, missionData, delay, immortal)
   local delay = delay or 1
 
+  -- FIX-UNGUARDED-DCS-LOOKUPS: `unitGroup` is dereferenced below without a check, and that is now
+  -- deliberate rather than overlooked. All four call sites -- moveTanker, moveAfac, teleportEscort and
+  -- actualReestablishEscortTask -- check the group they looked up before handing it over; the three
+  -- that re-looked it up *after* a teleport were the ones that did not, and they do now. Should a
+  -- fifth caller appear, it owes the same check: the group is nil here only if it never existed.
   local actualReplaceMission = function(unitGroup, missionData, immortal)
     local freq = missionData.frequency or 243 --set frequency or guard channel
     local mod = missionData.modulation or 0 --set modulation or AM (=0)
@@ -1025,6 +1048,16 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
     end
     local grp = spawn:teleport()
     unitGroup = Group.getByName(groupName) --refresh group class after respawn, not necessary but safer considering at least the groupId changes
+    -- "safer" only once the answer is checked: the guard at the top of this function vouched for the
+    -- group before the teleport, and the teleport recreates it. Unchecked, this reached
+    -- `replaceMission`, which dereferences it straight away.
+    if not unitGroup then
+      veaf.loggers
+        .get(veafMove.Id)
+        :warn(string.format("moveAfac: the AFAC group [%s] did not come back from its teleport", veaf.p(groupName)))
+      trigger.action.outText(veaf.t("move.afac_not_found", groupName), 10)
+      return false
+    end
 
     --necessary delay for the following code to not be ignored
     local delay = 1

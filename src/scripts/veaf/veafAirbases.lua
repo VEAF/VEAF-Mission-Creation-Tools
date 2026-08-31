@@ -98,6 +98,10 @@ function veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)
   return veafAirbases.getAirbaseByName(dcsAirbase:getName())
 end
 
+--- FIX-UNGUARDED-DCS-LOOKUPS: `dcsUnit` is dereferenced below without a check, on purpose.
+--- Both callers in the code base vouch for it -- `veafWeather.buildWelcomeBrief` always has, and
+--- `veafWeather.messageAtcClosestAirbase` does since this lot, its `Unit.getByName` having been the
+--- one unchecked link on the way here. A caller with no unit has no question to ask.
 function veafAirbases.getNearestAirbaseList(dcsUnit, iCount)
   veafAirbases.initialize()
 

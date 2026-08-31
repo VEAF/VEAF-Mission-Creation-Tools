@@ -1,6 +1,6 @@
 # FIX-COMBATMISSION-UNGUARDED-GROUP — an activation that can crash on its own log line
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: found while delivering `FIX-COMBATMISSION-SPAWNCHANCE-OFFSET` (PR #864). Verified on
 `develop`.
@@ -27,12 +27,12 @@ rather than let `getByName` answer naturally.
 
 ## Definition of done
 
-- [ ] An activation where `Group.getByName` returns `nil` completes instead of raising
-- [ ] It says something — a group that vanished between creation and lookup is worth a warning, not
+- [x] An activation where `Group.getByName` returns `nil` completes instead of raising
+- [x] It says something — a group that vanished between creation and lookup is worth a warning, not
       a shrug
-- [ ] The trace lines keep working when the group is there
-- [ ] A test drives the nil case through the mocks and fails without the fix
-- [ ] `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean
+- [x] The trace lines keep working when the group is there
+- [x] A test drives the nil case through the mocks and fails without the fix
+- [x] `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean
 
 ## Look around while you are there
 

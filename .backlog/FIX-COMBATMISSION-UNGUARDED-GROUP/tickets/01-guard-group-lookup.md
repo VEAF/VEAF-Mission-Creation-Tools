@@ -1,6 +1,6 @@
 # 01 — Guard the group lookup
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · File: `src/scripts/veaf/veafCombatMission.lua`
 
@@ -12,9 +12,9 @@ follow-up lookup failed.
 
 ## Definition of done
 
-- [ ] `Group.getByName` returning `nil` no longer raises
-- [ ] The case is reported at `warning`, naming the group
-- [ ] The normal path is unchanged
-- [ ] A test drives the nil case through the DCS mocks and fails without the fix
-- [ ] The sweep of similar unguarded dereferences is reported in the PR
-- [ ] `poetry run test-lua` green, `stylua --check` clean
+- [x] `Group.getByName` returning `nil` no longer raises
+- [x] The case is reported at `warning`, naming the group
+- [x] The normal path is unchanged
+- [x] A test drives the nil case through the DCS mocks and fails without the fix
+- [x] The sweep of similar unguarded dereferences is reported in the PR
+- [x] `poetry run test-lua` green, `stylua --check` clean

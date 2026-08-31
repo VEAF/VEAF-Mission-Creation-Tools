@@ -970,7 +970,8 @@ local function placeGroup(groupName)
     end,
   })
   -- What `activate()` names the first clone of this group. It looks the group up by that name right
-  -- after submitting it, so the mock registry has to answer.
+  -- after submitting it; since FIX-COMBATMISSION-UNGUARDED-GROUP an empty answer no longer raises,
+  -- but registering it keeps these counts measuring the ordinary path rather than the recovery one.
   dcs_mocks.addGroup(string.format("%s #%04d", groupName, 1), {})
 end
 
@@ -1084,6 +1085,151 @@ function TestVeafCombatMissionSpawnChance:test_a_zero_chance_element_does_not_ho
   for _, count in ipairs(counts) do
     luaunit.assertEquals(count, 1, "the certain element must spawn and the impossible one must not")
   end
+end
+
+-- ============================================================================
+-- FIX-COMBATMISSION-UNGUARDED-GROUP — the activation crashed on its own trace line
+--
+-- `activate()` submits a clone, then looks it up with `Group.getByName` and dereferences the answer
+-- straight away — inside a `trace` argument. The surrounding `if _spawnedGroup then` vouches for the
+-- VEAF object returned by `veaf.addGroup`, not for what DCS answers a moment later, so a lookup
+-- coming back empty took the whole mission down for the sake of a log line.
+--
+-- These tests drive the nil through the DCS mocks: the editor group is registered, its clone is not,
+-- which is exactly what `Group.getByName` does when DCS does not (yet) know a group it was just
+-- given. The section above had to register the clone by hand to get past this.
+-- ============================================================================
+TestVeafCombatMissionMissingSpawnedGroup = {}
+
+--- Register a pre-placed group, and *not* the clone `activate()` will look up afterwards.
+--- @param groupName string the editor group name
+local function placeGroupOnly(groupName)
+  veafMissionDb.groupsByName[groupName] = {
+    name = groupName,
+    groupName = groupName,
+    category = "vehicle",
+    country = "RUSSIA",
+    units = { { name = groupName .. "-1", type = "BTR-80", x = 0, y = 0, heading = 0, skill = "Average" } },
+  }
+  dcs_mocks.addGroup(groupName, {
+    getUnit = function()
+      return {
+        getPoint = function()
+          return { x = 0, y = 0, z = 0 }
+        end,
+      }
+    end,
+  })
+end
+
+--- The name `activate()` gives the first clone of a group.
+local function firstCloneNameOf(groupName)
+  return string.format("%s #%04d", groupName, 1)
+end
+
+function TestVeafCombatMissionMissingSpawnedGroup:setUp()
+  dcs_mocks.groupsAdded = {}
+  veafMissionDb.groupsByName = {}
+  veafMissionDb.spawnedNames = {}
+  dcs_mocks.clearUnitsAndGroups()
+  self._logger = veaf.loggers.get(veafCombatMission.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, { text = tostring(text), args = { ... } })
+  end
+end
+
+function TestVeafCombatMissionMissingSpawnedGroup:tearDown()
+  self._logger.warn = self._originalWarn
+  dcs_mocks.groupsAdded = {}
+  veafMissionDb.groupsByName = {}
+  veafMissionDb.spawnedNames = {}
+  dcs_mocks.clearUnitsAndGroups()
+end
+
+--- Build a one-element mission over one pre-placed group.
+--- A negative radius means "exactly where the editor drew it", which keeps the spawn deterministic.
+local function missionOverGroup(missionName, groupName)
+  local mission = VeafCombatMission:new():setName(missionName):setFriendlyName(missionName)
+  local element = VeafCombatMissionElement:new():setName("ELEMENT-1"):setGroups({ groupName }):setSpawnRadius(-1)
+  return mission:addElement(element)
+end
+
+--- Does any captured warning mention this text?
+local function anyWarningMentions(warnings, text)
+  for _, warning in ipairs(warnings) do
+    if warning.text:find(text, 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+-- The defect itself: DCS answers nil, and the activation used to raise on the trace line that
+-- followed. It must now run to completion.
+function TestVeafCombatMissionMissingSpawnedGroup:test_activation_survives_a_lookup_that_comes_back_empty()
+  placeGroupOnly("LOST-GROUP")
+  local mission = missionOverGroup("LostMission", "LOST-GROUP")
+  local ok, err = pcall(function()
+    mission:activate()
+  end)
+  luaunit.assertTrue(ok, string.format("activate() raised when DCS could not find the spawned group: %s", tostring(err)))
+end
+
+-- The spawn itself succeeded — only the lookup failed. The group must still have reached DCS.
+function TestVeafCombatMissionMissingSpawnedGroup:test_the_group_still_reaches_dcs()
+  placeGroupOnly("LOST-GROUP")
+  missionOverGroup("LostMission", "LOST-GROUP"):activate()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+end
+
+-- A group that vanished between creation and lookup is worth saying out loud, and the message has to
+-- name it — a warning that does not say which group is one nobody can act on.
+function TestVeafCombatMissionMissingSpawnedGroup:test_the_missing_group_is_reported_at_warning()
+  placeGroupOnly("LOST-GROUP")
+  missionOverGroup("LostMission", "LOST-GROUP"):activate()
+  luaunit.assertTrue(#self.warned > 0, "nothing was logged for a group DCS could not find")
+  luaunit.assertTrue(
+    anyWarningMentions(self.warned, firstCloneNameOf("LOST-GROUP")),
+    "the warning does not name the group that could not be found"
+  )
+end
+
+-- Nothing can be tracked when there is nothing to track, and the mission must still deactivate
+-- cleanly afterwards rather than trip over a hole in its own list.
+function TestVeafCombatMissionMissingSpawnedGroup:test_an_untracked_group_does_not_break_deactivation()
+  placeGroupOnly("LOST-GROUP")
+  local mission = missionOverGroup("LostMission", "LOST-GROUP")
+  mission:activate()
+  luaunit.assertEquals(#mission:getSpawnedGroups(), 0)
+  local ok, err = pcall(function()
+    mission:desactivate()
+  end)
+  luaunit.assertTrue(ok, string.format("desactivate() raised after an untracked spawn: %s", tostring(err)))
+end
+
+-- And the normal path is untouched: when DCS does know the clone, it is traced and tracked, and
+-- nothing is warned about.
+function TestVeafCombatMissionMissingSpawnedGroup:test_a_group_dcs_knows_is_still_tracked()
+  placeGroupOnly("FOUND-GROUP")
+  local cloneName = firstCloneNameOf("FOUND-GROUP")
+  dcs_mocks.addGroup(cloneName, {
+    getUnits = function()
+      return { {
+        getName = function()
+          return cloneName .. " unit1"
+        end,
+      } }
+    end,
+  })
+  local mission = missionOverGroup("FoundMission", "FOUND-GROUP")
+  mission:activate()
+  local spawned = mission:getSpawnedGroups()
+  luaunit.assertEquals(#spawned, 1)
+  luaunit.assertEquals(spawned[1]:getName(), cloneName)
+  luaunit.assertFalse(anyWarningMentions(self.warned, cloneName), "a group DCS found must not be warned about")
 end
 
 os.exit(luaunit.LuaUnit.run())

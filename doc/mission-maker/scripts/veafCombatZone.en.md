@@ -365,7 +365,7 @@ ALPHA-SA6-C #spawngroup="ALPHA-SAM" #spawncount=2
 ALPHA-SA6-D #spawngroup="ALPHA-SAM" #spawncount=2
 ```
 
-Two of the four batteries, always two, never the same two.
+Two of the four batteries, always two, drawn at random on every activation.
 
 Without a `#spawngroup`, **each group is alone in its own**: its probability is drawn for it and for nothing else. A `#spawngroup` with no `#spawncount` goes on meaning "one of these", but every candidate now draws for the slot instead of being handed it.
 

@@ -16,6 +16,7 @@ from veaf_tools.app import (
     logger,
     t,
 )
+from veaf_tools.helpers import confirm
 
 
 @app.command(no_args_is_help=True, help=t("cmd.extract.help"))
@@ -36,7 +37,7 @@ def extract(
     console.print(t("cmd.extract.title", version=VERSION))
 
     if readme:
-        if typer.confirm(t("help.confirm_doc")):
+        if confirm(t("help.confirm_doc"), unattended=True):
             md_render = Markdown(MissionExtractorREADME)
             console.print(md_render)
         raise typer.Exit()

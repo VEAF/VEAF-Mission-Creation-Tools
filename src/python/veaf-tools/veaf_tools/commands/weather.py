@@ -15,6 +15,7 @@ from veaf_tools.app import (
     t,
     tn,
 )
+from veaf_tools.helpers import confirm
 
 
 @app.command(no_args_is_help=True, help=t("cmd.inject_weather.help"))
@@ -33,7 +34,7 @@ def inject_weather(
     console.print(t("cmd.inject_weather.title", version=VERSION))
 
     if readme:
-        if typer.confirm(t("help.confirm_doc")):
+        if confirm(t("help.confirm_doc"), unattended=True):
             md_render = Markdown(WeatherInjectorREADME)
             console.print(md_render)
         raise typer.Exit()
@@ -46,7 +47,9 @@ def inject_weather(
         if yaml_file := LuaToYamlConverter.convert_file(p_config_file):
             console.print(t("cmd.inject_weather.lua_converted"))
             console.print(f"  {yaml_file}")
-            if typer.confirm(t("cmd.inject_weather.confirm_create")):
+            # Unattended, the answer is the same one Enter gives: stop, and leave the converted
+            # file for a human to look at rather than injecting it unseen.
+            if confirm(t("cmd.inject_weather.confirm_create")):
                 p_config_file = yaml_file
             else:
                 if pause:

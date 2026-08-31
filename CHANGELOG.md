@@ -199,6 +199,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **Existing missions are unaffected**: they carry their own `mission.yaml`, which is untouched and
   builds exactly as before. Only what a *new* scaffold produces changes.
 
+- **A combat mission no longer dies on one of its own log lines.** Activating a mission spawns each
+  element, then looks the fresh group up in DCS to record it. That lookup was never checked: the
+  guard right above it vouched for the object VEAF had just built, not for what DCS answered a moment
+  later. When DCS came back empty — which it can, for a group created instants earlier — the very
+  next statement was a `trace` line dereferencing the nothing it had received, and the whole
+  activation was lost. For a log.
+
+  The lookup is checked now. When it comes back empty the spawn still happened, so the mission logs a
+  **warning naming the group** and carries on with the rest of its elements, instead of raising. Only
+  that one group goes untracked, which is the honest outcome: there is no DCS object to track.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

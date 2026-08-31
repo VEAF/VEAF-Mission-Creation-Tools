@@ -924,12 +924,26 @@ function VeafCombatMission:activate(silent)
           if _spawnedGroup then
             veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s", veaf.p(_spawnedGroup.name)))
             local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
-            veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s", veaf.p(_dcsSpawnedGroup:getName())))
-            for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
-              veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.unit.name=%s", veaf.p(unit:getName())))
-            end
+            -- The `if _spawnedGroup then` above vouches for the object VEAF built, not for what DCS
+            -- answers a moment later. When the lookup comes back empty the spawn itself still
+            -- happened, so this says so and moves on rather than raising on a trace line — losing the
+            -- whole combat mission for the sake of a log.
+            if _dcsSpawnedGroup then
+              veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s", veaf.p(_dcsSpawnedGroup:getName())))
+              for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
+                veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.unit.name=%s", veaf.p(unit:getName())))
+              end
 
-            self:addSpawnedGroup(_dcsSpawnedGroup)
+              self:addSpawnedGroup(_dcsSpawnedGroup)
+            else
+              veaf.loggers.get(veafCombatMission.Id):warn(
+                string.format(
+                  "group [%s] was spawned but DCS does not know it; mission [%s] will not track it",
+                  veaf.p(_spawnedGroup.name),
+                  veaf.p(self.name)
+                )
+              )
+            end
           end
         end
       end

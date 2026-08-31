@@ -63,6 +63,12 @@
     the name is an interface — RealWeather reads `_ICAO_<code>` from it — so deploying a stale one
     silently pulls the weather of the wrong airfield.
 
+    A previous build under the **same** name is flagged too. The output is
+    `<name>_<YYYYMMDD>[_<VARIANT>].miz`, so yesterday's build sits beside today's and both match
+    the expected name — which is how five missions kept a 20260728 build next to their 20260825
+    one, unnoticed. Only the latest date per name and variant is the current build; two variants
+    of the same day are not duplicates, and a `.miz` carrying no date is left alone.
+
 .PARAMETER SharedPublished
     Path to a **shared** `published/` folder (the one `veaf-build publish-local` or the updater
     produces), passed to the build as `--scripts-path`. Without it every mission folder needs
@@ -106,9 +112,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Matching a release archive to the mission folder it belongs to. Its own file so a test can
-# dot-source it without this script's mandatory parameters starting a conversion.
+# Matching a release archive to the mission folder it belongs to, and spotting a previous build
+# left beside the new one. Their own files so tests can dot-source them without this script's
+# mandatory parameters starting a conversion.
 . (Join-Path $PSScriptRoot 'Resolve-MissionFolder.ps1')
+. (Join-Path $PSScriptRoot 'Get-SupersededMiz.ps1')
 
 # Marker file that identifies a WWII Foothold: it carries its own config, with no Era global.
 $Ww2ConfigName = 'Foothold Config WW2.lua'
@@ -435,7 +443,14 @@ foreach ($archive in $archives) {
                 foreach ($stale in $naming.Stale) {
                     Write-Warning "    .miz périmé, d'un build antérieur sous un autre nom : $stale"
                 }
-                if ($naming.Stale.Count -gt 0) {
+                # The other way to end up deploying the wrong file: the previous build under the
+                # *same* name, only the date differing. Both match mission.name, so the check
+                # above says nothing about it.
+                $superseded = @(Get-SupersededMiz -Names $naming.Matching)
+                foreach ($old in $superseded) {
+                    Write-Warning "    .miz d'un build antérieur, même nom : $old"
+                }
+                if ($naming.Stale.Count -gt 0 -or $superseded.Count -gt 0) {
                     Write-Host '      supprimez-les pour ne pas déployer le mauvais fichier' -ForegroundColor Yellow
                 }
             } else {

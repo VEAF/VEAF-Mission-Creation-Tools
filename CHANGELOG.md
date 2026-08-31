@@ -420,6 +420,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the map: the command every mission README recommends created ten folders and refreshed none.
   Targets are matched by theatre now, read from the mission table on both sides.
 
+- **The Foothold batch now flags the previous build left beside the new one.** It already flagged a
+  `.miz` under an unexpected name — on the VEAF servers that name is an interface, RealWeather reads
+  `_ICAO_<code>` from it, so deploying the wrong file silently pulls the weather of the wrong
+  airfield. Yesterday's build carries the *same* base name and differs only by its date suffix, so
+  it matched the expected name and nothing was said. Five of the ten VEAF Foothold folders were
+  still carrying their 20260728 build next to the 20260825 one — exactly the five refreshed that
+  day.
+
+  Grouping by name **and** variant is what makes this decidable: only the latest date per group is
+  the current build. Two variants of the same day are not duplicates (that is what `build_variants:`
+  emits in one build), and a `.miz` with no date in its name is left alone.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

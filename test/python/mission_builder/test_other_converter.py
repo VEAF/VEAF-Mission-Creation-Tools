@@ -452,15 +452,21 @@ class TestScaffoldReproducesTheStaging(unittest.TestCase):
 
 
 class TestUpdateReportsAStagingChange(unittest.TestCase):
-    """`--update` preserves the tuned mission.yaml, so a moved delay has to be said out loud."""
+    """`--update` reconciles the load staging, and says which lines it wrote.
+
+    These cases used to exercise `_delay_changes`, which only ever *detected* the mismatch and
+    appended it to a list nothing printed. Detection was never the broken half, so they now point
+    at `apply_upstream_delays` — same inputs, same expected findings, except the file is fixed too
+    (FIX-CONVERT-OTHER-UPDATE-BLIND-SPOTS ticket 03).
+    """
 
     def _report_for(self, declared_yaml: str, loaders):
-        from mission_builder.other_converter import _delay_changes
+        from mission_builder.other_converter import apply_upstream_delays
 
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "mission.yaml"
             path.write_text(declared_yaml, encoding="utf-8")
-            return _delay_changes(path, loaders)
+            return apply_upstream_delays(path, loaders)
 
     _DECLARED = textwrap.dedent("""        custom_scripts:
           scripts:
@@ -497,6 +503,6 @@ class TestUpdateReportsAStagingChange(unittest.TestCase):
         self.assertEqual([], changes)
 
     def test_a_missing_yaml_reports_nothing(self):
-        from mission_builder.other_converter import _delay_changes
+        from mission_builder.other_converter import apply_upstream_delays
 
-        self.assertEqual([], _delay_changes(None, [DetectedLoader("AIEN.lua", 5, "AIEN", 12.0)]))
+        self.assertEqual([], apply_upstream_delays(None, [DetectedLoader("AIEN.lua", 5, "AIEN", 12.0)]))

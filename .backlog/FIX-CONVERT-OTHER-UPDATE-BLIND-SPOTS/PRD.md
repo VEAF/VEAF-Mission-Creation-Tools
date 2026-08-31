@@ -1,6 +1,6 @@
 # FIX-CONVERT-OTHER-UPDATE-BLIND-SPOTS — what a Foothold refresh changes without saying so
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: the 2026-08-25 refresh of the five VEAF Foothold missions onto Lekaa's 4.7.0
 (GCW 5.7.0). Every defect below was met on that run, on real missions, and re-verified
@@ -81,3 +81,41 @@ for the nine other maps.
   (`…_20260728.miz` next to `…_20260825.miz`). The base name is identical and only the date
   suffix differs, so the check matched. Whether it *should* flag it is a product question for
   the batch, deliberately left to David rather than assumed.
+
+## Retrospective — closed 2026-08-31
+
+Delivered in order 02 → 01 → 03 → 04, as planned. Three of this PRD's own claims did not survive
+contact, and they are worth more than the ones that did.
+
+**The counter was never wrong.** Ticket 02 suspected it was computed before the update section
+appended to the lists ("the counter did not even move for Syria"). Measured on a reproduction of
+the Syria rename: four review items, four counted. `_summary_lines()` runs inside `to_markdown()`,
+after everything. The count was right the whole time — pointing at a list nobody could read, which
+is exactly why the number looked stuck. The fix was never arithmetic.
+
+**Ticket 01's deletion criterion would have eaten the mission maker's work.** It proposed "in
+`before`, referenced by `custom_scripts:`, no longer upstream" as the distinction between a stale
+script and one of the maker's own. A script somebody wrote themselves and declared meets all three.
+Nothing recorded what the *previous* release shipped, so the converter now writes
+`convert-other-state.yaml`; without it, nothing is deleted. That file is the only structural
+addition of the lot, and it exists because the stated criterion did not hold.
+
+**Every `--update` integration test was being skipped.** `TestOtherMissionConverterIntegration` is
+gated on a real Lekaa archive at a hard-coded path on one machine, absent from the CI runners — so
+the entire class skips, and has always skipped. A skipped test and a passing one look identical in
+a summary line, which is a plainer explanation for these four defects than any of the reasoning
+above. The lot ships `testlib/upstream_miz.py`: a synthetic release of the right *shape*, which
+also expresses what no frozen fixture can — a release that drops a script between two versions.
+
+**Also fixed on the way, unplanned:** the delay writer walked the whole file before a review of my
+own draft caught that `strip_native_triggers:` is a list too, sitting directly under
+`custom_scripts:` — editing an entry there would have corrupted the mission silently. Pinned by a
+test. And `_delay_changes`/`_declared_delays` (66 lines) became unreachable once the reconciliation
+landed; they were deleted rather than left as green tests over code nothing calls, and their six
+cases now exercise `apply_upstream_delays`.
+
+**Left open, deliberately:** the mission repositories' own READMEs still show the old batch command.
+They live in other repositories, so they are David's to update — the tool-side docs
+(`FOOTHOLD.md`, `CONVERT_OTHER.md`, both languages) are current. And the four "out of scope" items
+above are untouched, including the duplicate `build:` keys, which remain a mission-repository
+matter.

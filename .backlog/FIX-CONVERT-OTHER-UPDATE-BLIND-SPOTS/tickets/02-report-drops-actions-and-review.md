@@ -1,6 +1,6 @@
 # 02 — The conversion report renders neither `actions` nor `manual_review`
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · Files: `src/python/veaf-tools/mission_builder/v5_converter.py`,
 `src/python/veaf-tools/mission_builder/other_converter.py`

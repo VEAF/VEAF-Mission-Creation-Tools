@@ -490,9 +490,18 @@ class ConversionReport:
             "",
             promo_body,
             "",
-            "---",
-            "",
         ]
+
+        # Everything the run recorded as it went, verbatim and last. The numbered steps above
+        # describe convert-v5's own stages, so a `convert-other` run — which shares this report
+        # class — had *nothing* to show for itself: its whole account of the refresh went into
+        # this list, which nothing printed (FIX-CONVERT-OTHER-UPDATE-BLIND-SPOTS ticket 02).
+        if self.actions:
+            lines += [f"### 4. {t('report.actions.recorded')}", ""]
+            lines += [f"- {action}" for action in self.actions]
+            lines.append("")
+
+        lines += ["---", ""]
 
         # The missionConfig.lua migration is reported as the line→effect tables above
         # (commented doFiles, wrapped/extracted init calls, enabled modules); the
@@ -502,6 +511,14 @@ class ConversionReport:
 
         # ── Manual review ─────────────────────────────────────────────────
         lines += [f"## {t('report.section.review')}", ""]
+
+        # The items the section is named after. They were collected and counted — the summary
+        # line at the top of the report counts exactly these plus the warnings — and then never
+        # listed, so the count pointed at nothing a reader could act on.
+        if self.manual_review:
+            lines += [f"### 📝 {t('report.review.items_title')} ({len(self.manual_review)})", ""]
+            lines += [f"- {item}" for item in self.manual_review]
+            lines.append("")
 
         if self.warnings:
             lines += [f"### ⚠️ {t('report.warnings.title')} ({len(self.warnings)})", ""]

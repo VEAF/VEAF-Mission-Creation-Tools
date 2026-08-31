@@ -46,6 +46,11 @@ ignore le reste. Pas besoin de dézipper à la main.
 >
 > Aux releases suivantes, ajoutez `-Update` : les scripts sont rafraîchis et chaque
 > `mission.yaml` réglé est préservé. Comptez environ une minute par mission.
+>
+> Vos dossiers de mission n'ont pas besoin de porter le nom des archives : le script
+> apparie chaque archive au dossier **de la même carte** (il lit le théâtre des deux
+> côtés), donc `Foothold_CA_4.7.0_Multi_Language….zip` rafraîchit bien
+> `VEAF-Foothold-Caucasus`. Il annonce pour chaque mission le dossier retenu et pourquoi.
 
 ### Quel profil pour quelle carte
 
@@ -273,12 +278,24 @@ veaf-tools convert other <nouvelle_release.zip> <dossier-mission> --profile foot
 ```
 
 `--update` rafraîchit les scripts tiers et la base de mission, **préserve votre
-`mission.yaml` réglé**, normalise les noms versionnés (`Moose_<date>.lua` → `Moose.lua`,
-`Splash_Damage_<version>_leka.lua` → `Splash_Damage.lua`), et **rapporte les scripts
-ajoutés / mis à jour / retirés** en amont. Relisez le rapport, réconciliez
-`custom_scripts:` / `strip_native_triggers:` au besoin, puis revalidez et reconstruisez.
-Voir [CONVERT_OTHER](CONVERT_OTHER.md).
+`mission.yaml` réglé**, et normalise les noms versionnés (`Moose_<date>.lua` → `Moose.lua`,
+`Splash_Damage_<version>_leka.lua` → `Splash_Damage.lua`).
 
-> Surveillez dans le rapport l'apparition d'un **nouveau script** en amont : il n'est pas
-> ajouté à `custom_scripts:` à votre place, justement parce que sa position dans l'ordre de
-> chargement est une décision qui revient à un humain.
+Il **aligne aussi les `delay_seconds:` sur l'étalement de la nouvelle version** et
+**supprime les scripts que Lekaa ne fournit plus** — c'est le cas du renommage du setup
+Syrie en 4.7.0 (`footholdSyriaSetup.lua` → `footholdSyriaSetupv2.lua`), où l'ancien
+fichier restait sur disque et se retrouvait embarqué à la place du nouveau. L'entrée
+correspondante reste dans `custom_scripts:`, donc **`validate` échoue** jusqu'à ce que
+vous l'ôtiez : c'est le signal, pas un défaut.
+
+Le rapport (`convert-other-report.md`) énumère tout : scripts ajoutés, mis à jour,
+supprimés, et chaque délai écrit. Relisez-le, ajoutez les scripts nouveaux à
+`custom_scripts:`, puis revalidez et reconstruisez. Voir
+[CONVERT_OTHER](CONVERT_OTHER.md).
+
+> Un **nouveau script** amont n'est pas ajouté à `custom_scripts:` à votre place :
+> sa position dans l'ordre de chargement est une décision qui revient à un humain.
+
+> `convert-other-state.yaml` apparaît dans le dossier de mission : c'est la liste des
+> scripts que la version amont charge, et c'est elle qui permet de distinguer un script
+> abandonné par Lekaa d'un script que vous avez ajouté. **Versionnez-le avec la mission.**

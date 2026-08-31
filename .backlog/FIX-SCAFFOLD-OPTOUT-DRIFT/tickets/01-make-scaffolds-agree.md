@@ -1,6 +1,6 @@
 # 01 — Make the two scaffolds agree
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · Files: `src/python/veaf-tools/veaf_libs/mission_template.py`,
 `src/defaults/mission-folder/mission.yaml`

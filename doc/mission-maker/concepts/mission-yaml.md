@@ -26,10 +26,17 @@ modules:
   SPAWN: true         # faire apparaître des unités depuis la carte F10
   SHORTCUTS: true     # les alias intégrés (-shilka, -sa2, …)
   INTERPRETER: true
+  # Scripts communautaires : écrits même éteints — voir « Le piège » plus bas
+  STTS: false
+  CTLD: false         # configuré dans ctld-config.yaml, à côté de ce fichier
+  CSAR: false
+  AIEN: false
+  SKYNET: false
 ```
 
 C'est exactement ce que produit `prepare --template minimal`. Un module VEAF absent du bloc n'est
-pas embarqué du tout — **les scripts communautaires font exception, voir [le piège](#gotcha)**.
+pas embarqué du tout — les scripts communautaires, eux, suivent la règle inverse, et c'est pourquoi
+le fichier généré les écrit tous, même à `false`.
 
 ## Les trois formes d'un module {#three-forms}
 
@@ -61,15 +68,16 @@ build l'active pour vous et le dit dans un avertissement — même si vous l'avi
 à `false`. Le `modules:` que vous écrivez n'est donc pas exactement celui qui tourne : lisez les
 avertissements du build.
 
-**Les scripts communautaires sont là même si vous ne les nommez pas.** `STTS`, `CTLD`, `AIEN`,
-`CSAR` et `SKYNET` sont *opt-out* : ils sont embarqués tant que vous n'écrivez pas `CTLD: false`.
-Un `modules:` minimal, qui ne les mentionne nulle part, les embarque quand même — c'est pourquoi le
-build peut vous parler de CTLD dans une mission où vous n'avez jamais écrit ce mot. Rien n'est
-cassé ; pour vous en débarrasser, mettez-les explicitement à `false`. Les deux exceptions sont
-`MIST` et `TUM`, *opt-in* : absents du bloc, ils restent éteints.
-
 Et un piège de YAML : `MODULE:` (rien après le deux-points) et `MODULE: false` ne veulent pas dire
 la même chose. Le premier est « infrastructure, active » ; le second, « éteinte ».
+
+**Les cinq scripts communautaires *opt-out* marchent à l'envers des modules VEAF.** `STTS`, `CTLD`,
+`AIEN`, `CSAR` et `SKYNET` sont **actifs quand on ne les mentionne pas** : leur absence du bloc
+`modules:` vaut « garde ton état par défaut », et leur défaut est activé. Un module VEAF absent,
+lui, n'est pas embarqué. C'est pour cette raison que tous les scaffolds (`prepare --template`,
+`convert-v5`, le `mission.yaml` livré) les écrivent **explicitement**, `true` ou `false` : un
+`false` se lit, une absence qui veut dire « activé » ne se lit pas. Si vous écrivez le fichier à la
+main, faites de même — sinon le build embarquera CTLD dans une mission qui ne le nomme jamais.
 
 ## Pour aller plus loin {#more}
 

@@ -25,10 +25,17 @@ modules:
   SPAWN: true         # spawn units from the F10 map
   SHORTCUTS: true     # the built-in aliases (-shilka, -sa2, …)
   INTERPRETER: true
+  # Community scripts: written out even when off — see "The gotcha" below
+  STTS: false
+  CTLD: false         # configured in ctld-config.yaml, beside this file
+  CSAR: false
+  AIEN: false
+  SKYNET: false
 ```
 
 That is exactly what `prepare --template minimal` produces. A VEAF module absent from the block is
-not shipped at all — **community scripts are the exception, see [the gotcha](#gotcha)**.
+not shipped at all — the community scripts follow the opposite rule, which is why the generated file
+writes every one of them out, even at `false`.
 
 ## The three forms of a module {#three-forms}
 
@@ -59,15 +66,16 @@ shipped `mission.yaml` shows them commented out, ready to uncomment.
 a warning — even if you had explicitly set it to `false`. So the `modules:` you write is not exactly
 the one that runs: read the build's warnings.
 
-**Community scripts are there even when you never name them.** `STTS`, `CTLD`, `AIEN`, `CSAR` and
-`SKYNET` are *opt-out*: they ship unless you write `CTLD: false`. A minimal `modules:` block that
-mentions none of them ships them all — which is why the build can talk to you about CTLD in a
-mission where you never wrote that word. Nothing is broken; to be rid of them, set them explicitly
-to `false`. The two exceptions are `MIST` and `TUM`, which are *opt-in*: absent from the block, they
-stay off.
-
 And a YAML gotcha: `MODULE:` (nothing after the colon) and `MODULE: false` do not mean the same
 thing. The first is "infrastructure, active"; the second is "off".
+
+**The five *opt-out* community scripts work the other way round from VEAF modules.** `STTS`, `CTLD`,
+`AIEN`, `CSAR` and `SKYNET` are **active when you do not mention them**: their absence from the
+`modules:` block means "keep your default state", and their default is on. An absent VEAF module, by
+contrast, is not shipped. That is why every scaffold (`prepare --template`, `convert-v5`, the shipped
+`mission.yaml`) writes them out **explicitly**, `true` or `false`: a `false` can be read, an omission
+that means "enabled" cannot. Do the same when you write the file by hand — otherwise the build ships
+CTLD in a mission that never names it.
 
 ## Going further {#more}
 

@@ -394,7 +394,9 @@ modules:
       create_menus: false       # no VEAF radio menu; commands via markers only
 ```
 
-**Community scripts** are listed in the same block, using their IDs (case does not matter: `CTLD:` and `ctld:` are equivalent). When a script is absent from `modules:`, it keeps its default state (included). Set it to `false` to exclude it — except `MIST`, a hard dependency of the VEAF scripts: an explicit `MIST: false` is overridden with a build warning and the script is injected anyway:
+**Community scripts** are listed in the same block, using their IDs (case does not matter: `CTLD:` and `ctld:` are equivalent). When a script is absent from `modules:`, it keeps its default state (included). Set it to `false` to exclude it — except `MIST`, a hard dependency of the VEAF scripts: an explicit `MIST: false` is overridden with a build warning and the script is injected anyway.
+
+Because that absence means "enabled", generated files (`prepare --template`, `convert-v5`) and the shipped `mission.yaml` **always** write the five *opt-out* scripts (`STTS`, `CTLD`, `AIEN`, `CSAR`, `SKYNET`) out, at `true` or `false`: the state of a community script is never inferred from silence.
 
 ```yaml
 modules:

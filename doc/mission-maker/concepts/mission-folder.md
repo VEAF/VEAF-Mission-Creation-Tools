@@ -39,7 +39,9 @@ passer par DCS. Sans elle, `src/mission` reste vide et il faut y extraire un `.m
 
 `--template` choisit le jeu de modules du `mission.yaml` généré : `minimal`, `standard`, `full`, ou
 `custom` (choix interactif). Sans `--template`, le `mission.yaml` livré par défaut est copié tel
-quel.
+quel. Quel que soit le palier, les cinq scripts communautaires *opt-out* (`STTS`, `CTLD`, `AIEN`,
+`CSAR`, `SKYNET`) sont écrits explicitement à `true` ou `false` : les omettre les activerait
+(voir [le piège du `mission.yaml`](mission-yaml.md#gotcha)).
 
 ## Le remplir depuis un `.miz` existant {#from-a-miz}
 

@@ -183,6 +183,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dynamic-spawn template groups present in the mission, which is why `warehouses.yaml` can be three
   lines and say nothing about it.
 
+- **`prepare --template minimal` no longer ships five community scripts.** The two ways to scaffold a
+  `mission.yaml` disagreed. The shipped `src/defaults/mission-folder/mission.yaml` lists `STTS`,
+  `CTLD`, `AIEN`, `CSAR` and `SKYNET` at `false`; `--template` simply omitted every module its tier
+  did not include — and for these five, omission means *enabled*, so the word "minimal" shipped all
+  of them. That is how a beginner following the tutorial was told CTLD was enabled and misconfigured
+  in a mission that never mentions CTLD. `standard` was affected too (`AIEN` and `SKYNET` ran without
+  being asked for), and `full` enabled `SKYNET` while showing only a commented example of it.
+
+  A generated `mission.yaml` now **writes all five out, `true` or `false`, in every tier**, with the
+  comments the shipped file carries — including the one saying CTLD is configured in
+  `ctld-config.yaml`, the only place a mission maker learns it. A `false` can be read; an omission
+  that means "enabled" cannot, and that is what made the confusion undebuggable.
+
+  **Existing missions are unaffected**: they carry their own `mission.yaml`, which is untouched and
+  builds exactly as before. Only what a *new* scaffold produces changes.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

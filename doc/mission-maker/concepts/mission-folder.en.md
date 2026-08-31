@@ -38,6 +38,9 @@ round-trip. Without it, `src/mission` stays empty and you must extract a `.miz` 
 
 `--template` picks the module set of the generated `mission.yaml`: `minimal`, `standard`, `full`, or
 `custom` (interactive). With no `--template`, the shipped default `mission.yaml` is copied as-is.
+Whatever the tier, the five *opt-out* community scripts (`STTS`, `CTLD`, `AIEN`, `CSAR`, `SKYNET`)
+are written out explicitly as `true` or `false`: leaving them out would enable them (see
+[the `mission.yaml` gotcha](mission-yaml.en.md#gotcha)).
 
 ## Filling it from an existing `.miz` {#from-a-miz}
 

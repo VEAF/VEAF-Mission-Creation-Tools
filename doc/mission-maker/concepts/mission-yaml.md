@@ -28,8 +28,8 @@ modules:
   INTERPRETER: true
 ```
 
-C'est exactement ce que produit `prepare --template minimal`. Un module absent du bloc n'est pas
-embarqué du tout.
+C'est exactement ce que produit `prepare --template minimal`. Un module VEAF absent du bloc n'est
+pas embarqué du tout — **les scripts communautaires font exception, voir [le piège](#gotcha)**.
 
 ## Les trois formes d'un module {#three-forms}
 
@@ -60,6 +60,13 @@ besoin de `SPAWN` **et** de `GROUNDAI`. Si vous activez la fonctionnalité sans 
 build l'active pour vous et le dit dans un avertissement — même si vous l'aviez explicitement mise
 à `false`. Le `modules:` que vous écrivez n'est donc pas exactement celui qui tourne : lisez les
 avertissements du build.
+
+**Les scripts communautaires sont là même si vous ne les nommez pas.** `STTS`, `CTLD`, `AIEN`,
+`CSAR` et `SKYNET` sont *opt-out* : ils sont embarqués tant que vous n'écrivez pas `CTLD: false`.
+Un `modules:` minimal, qui ne les mentionne nulle part, les embarque quand même — c'est pourquoi le
+build peut vous parler de CTLD dans une mission où vous n'avez jamais écrit ce mot. Rien n'est
+cassé ; pour vous en débarrasser, mettez-les explicitement à `false`. Les deux exceptions sont
+`MIST` et `TUM`, *opt-in* : absents du bloc, ils restent éteints.
 
 Et un piège de YAML : `MODULE:` (rien après le deux-points) et `MODULE: false` ne veulent pas dire
 la même chose. Le premier est « infrastructure, active » ; le second, « éteinte ».

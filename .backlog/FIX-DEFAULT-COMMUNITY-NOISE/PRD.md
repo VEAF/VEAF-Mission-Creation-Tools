@@ -1,6 +1,6 @@
 # FIX-DEFAULT-COMMUNITY-NOISE — a warning about a script the mission never asked for
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: found while writing the tutorial (`DOC-TUTORIAL`, PR #863) — building the tutorial's own
 minimal mission produced it.

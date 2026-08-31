@@ -388,6 +388,38 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   handler is removed before a new one is registered. The dead flag is gone, the live one is now set,
   and the comment claiming CSAR does not auto-initialise has been corrected, because it does.
 
+- **`convert-other --update` did the work and reported none of it.** `ConversionReport` carries two
+  lists documented as what a run has to say — `actions` and `manual_review` — and neither ever
+  reached the markdown: `actions` was read nowhere at all, `manual_review` only to count items for
+  the `N items need manual action` line. So the count was right while the list behind it was
+  invisible. Refreshing the five VEAF Foothold missions onto Lekaa 4.7.0 printed *"None — the
+  migration completed without warnings"* on a run that had renamed a script and found six mismatched
+  load delays per mission. Both are now rendered as their own sections.
+
+  That silence hid three failures, fixed here as well:
+
+  **A script the new release no longer ships stayed on disk.** Syria's setup was renamed upstream
+  (`footholdSyriaSetup.lua` → `…Setupv2.lua`); the old file remained, `mission.yaml` still pointed at
+  it, `validate` passed, and the build embedded the previous release's setup over 4.7.0 data. It is
+  deleted now — but only when it really came from upstream. A script the mission maker wrote sits in
+  the same folder and is listed in the same `custom_scripts:`, so telling them apart needs to know
+  what the *previous* release shipped, which nothing recorded. The conversion now writes
+  `convert-other-state.yaml` beside the report; a folder converted before it existed deletes nothing.
+  The stale entry stays in `mission.yaml`, so `validate` fails until it is removed — deliberately.
+
+  **The load staging was detected and never written.** The five missions carried no `delay_seconds`
+  at all: the option arrived after they were adopted, and `--update` preserves a tuned
+  `mission.yaml`. So AIEN loaded at t=0 in all five from the day they shipped, while it inventories
+  ground groups once, before Foothold's scheduled tasks have created them — the one failure
+  `FOOTHOLD.md` warns leaves nothing in the log. `--update` now writes the upstream staging and names
+  every line it wrote, editing the file as text so comments, ordering, quoting and line endings
+  survive untouched.
+
+  **`Convert-FootholdBatch -Update` could not address an existing mission folder.** It named each
+  target after the archive, whose name carries the version, so it never matched a folder named after
+  the map: the command every mission README recommends created ten folders and refreshed none.
+  Targets are matched by theatre now, read from the mission table on both sides.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

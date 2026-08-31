@@ -1,6 +1,6 @@
 # 01 — `--update` leaves behind a script the upstream release removed
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · File: `src/python/veaf-tools/mission_builder/other_converter.py`
 

@@ -3,10 +3,17 @@
     Adopt every Lekaa Foothold release archive of a folder onto the VEAF v6 toolchain.
 
 .DESCRIPTION
-    Runs `veaf-tools convert-other` once per `.zip` found in -InputFolder, each into its own
-    subfolder of -OutputFolder named after the archive. Lekaa ships one archive per map
-    (Caucasus, Persian Gulf, Sinai, Syria, Cold War Germany, Kola, Iraq, Afghanistan, WWII
-    Normandy), so a release means ten adoptions — this does them in one pass.
+    Runs `veaf-tools convert-other` once per `.zip` found in -InputFolder, each into a subfolder
+    of -OutputFolder. Lekaa ships one archive per map (Caucasus, Persian Gulf, Sinai, Syria, Cold
+    War Germany, Kola, Iraq, Afghanistan, WWII Normandy), so a release means ten adoptions — this
+    does them in one pass.
+
+    The target folder is matched by **theatre**, read from the mission table inside the archive
+    and from each adopted folder's `src/mission/mission`. So a release archive refreshes
+    `VEAF-Foothold-Caucasus` even though it is named `Foothold_CA_4.7.0_Multi_Language…`. A
+    folder already named after the archive still wins, and an ambiguous theatre (two adopted
+    folders on the same map) is reported rather than guessed. Anything unmatched is a fresh
+    adoption into a folder named after the archive, as before.
 
     The conversion profile is picked per mission by looking INSIDE the archive's `.miz`: a
     mission carrying "Foothold Config WW2.lua" is a WWII Foothold and gets `foothold-ww2`,
@@ -24,7 +31,8 @@
     https://github.com/leka1986/Lekas-Foothold/releases (no need to unzip them).
 
 .PARAMETER OutputFolder
-    Where to create one mission subfolder per archive. Created if missing.
+    Where the mission folders live. An archive is matched to the existing folder of the same
+    theatre; anything unmatched gets a new subfolder named after the archive. Created if missing.
 
 .PARAMETER VeafTools
     Path to `veaf-tools.exe`. When omitted, the script looks beside the -SharedPublished bundle
@@ -97,6 +105,10 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# Matching a release archive to the mission folder it belongs to. Its own file so a test can
+# dot-source it without this script's mandatory parameters starting a conversion.
+. (Join-Path $PSScriptRoot 'Resolve-MissionFolder.ps1')
 
 # Marker file that identifies a WWII Foothold: it carries its own config, with no Era global.
 $Ww2ConfigName = 'Foothold Config WW2.lua'
@@ -361,9 +373,18 @@ $index = 0
 foreach ($archive in $archives) {
     $index++
     $name = [System.IO.Path]::GetFileNameWithoutExtension($archive.Name)
-    $target = Join-Path $OutputFolder $name
+
+    # The archive name carries the version and the mission folders are named after the map, so
+    # the target is resolved by theatre rather than assumed from the file name.
+    $resolved = Resolve-MissionFolder -OutputFolder $OutputFolder -ArchivePath $archive.FullName
+    $target = $resolved.Path
 
     Write-Host "[$index/$($archives.Count)] $name" -ForegroundColor Cyan
+    if ($resolved.Matched) {
+        Write-Host "    dossier : $(Split-Path -Leaf $target) ($($resolved.Reason))"
+    } else {
+        Write-Host "    dossier : $(Split-Path -Leaf $target) — nouveau ($($resolved.Reason))"
+    }
 
     $profileName = Get-ConversionProfile -ArchivePath $archive.FullName
     Write-Host "    profil : $profileName"

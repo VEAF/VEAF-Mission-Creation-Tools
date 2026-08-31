@@ -146,7 +146,7 @@ addopts = [
     "--cov=src/python/veaf-tools",
     "--cov-report=xml",
     "--cov-report=term-missing:skip-covered",
-    "--cov-fail-under=81",
+    "--cov-fail-under=82",
 ]
 
 # ---------------------------------------------------------------------------

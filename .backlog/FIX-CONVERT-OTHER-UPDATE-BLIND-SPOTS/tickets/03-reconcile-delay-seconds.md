@@ -1,6 +1,6 @@
 # 03 — Reconcile the load staging on update
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat · File: `src/python/veaf-tools/mission_builder/other_converter.py`
 

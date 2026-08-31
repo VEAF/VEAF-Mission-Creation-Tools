@@ -1,6 +1,6 @@
 # 04 — `Convert-FootholdBatch -Update` cannot address an existing mission folder
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · File: `tools/Convert-FootholdBatch.ps1`
 

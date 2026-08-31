@@ -22,12 +22,42 @@ from dataclasses import dataclass
 
 from veaf_libs.bundled_data import read_bundled_text
 
-#: Terminal types real missions park aircraft on. Measured on Caucasus (104 ×71, 68 ×13 across
-#: test.miz's parked flights); the other captured types (runway thresholds, helipads: 16/40/72/100)
-#: carry no parked aircraft. Lives here, beside the parking data, so parking-type policy is in one
-#: place rather than scattered across the actions that consume it. If a future theatre parks aircraft
-#: on another type, this is the single spot to widen.
-AIRCRAFT_STAND_TYPES: frozenset[str] = frozenset({"104", "68"})
+#: Terminal types this tool seats an aircraft on. Equal to DCS's own ``FighterAircraft`` mask
+#: (244 = 68 + 72 + 104, "effectively all spots usable by fixed wing aircraft"), and deliberately
+#: **narrower than** :data:`PLANE_STAND_TYPES`: it leaves out ``100`` (SmallSizeFighter). Lives here,
+#: beside the parking data, so parking-type policy is in one place rather than scattered across the
+#: actions that consume it.
+#:
+#: Measured 2026-08-31 (CHORE-AIRCRAFT-STAND-TYPES) to settle whether the original ``{68, 104}`` —
+#: read off one Caucasus mission — described reality or merely that sample. It did not.
+#:
+#: **Stand census** over the three bundled captures (``data/parking/*.json``, 6521 stands, 276
+#: airfields; 126 with at least one plane stand, 150 helipad-only): 104 ×3113, 40 ×1010, 72 ×982,
+#: 68 ×809, 16 ×324, 100 ×283. Note 68 is Caucasus-and-Syria only — **Persian Gulf has none**, so on
+#: that theatre ``{68, 104}`` meant "104 only". Seven plane-capable airfields carry ``72`` and no
+#: ``68``/``104`` at all, i.e. the tool refused to place anything on them: Bandar Lengeh, Tunb Island
+#: AFB, Tunb Kochak, Bandar-e-Jask, Lavan Island and Jiroft (Persian Gulf), and Tha'lah (Syria, 16
+#: OpenMed stands). Adding ``72`` unlocks all seven and takes the usable stand count from 3922 to
+#: 4904 (+25%).
+#:
+#: **Real usage** in the VEAF Foothold missions (Caucasus / Syria / Persian Gulf) and the Open
+#: Training Syria mission, resolving each parked unit's ``parking`` against these captures and keeping
+#: only units whose own ``x``/``y`` lands within 25 m of the stand it names: 105 confirmed parked
+#: planes sit on 104 ×41 (39%), 68 ×35 (33%) and **72 ×29 (28%)** — 24 distinct airframes on 72,
+#: A-10C, AV8BNA, F-15ESE and F-14 among them. Mission makers use OpenMed for planes in quantity; the
+#: original measurement missed it because Caucasus has only 46 OpenMed stands against 850 of 68/104.
+#: (The position check is what makes the count trustworthy: 8 Syria units name a stand more than 100 m
+#: from where they actually sit — a stale ``parking`` after a hand move — and would otherwise have
+#: reported three planes parked on helipads.)
+#:
+#: **Why ``100`` stays out.** DCS documents it as "tight spots for smaller type fixed wing aircraft,
+#: like the F-16", so seating a heavy there is a defect waiting to happen; it exists on 11 Syrian
+#: airfields and **nowhere else**, every one of which already has ``68``/``104``, so including it
+#: unlocks **zero** additional airfields (only 283 more stands); and no confirmed parked unit in any
+#: measured mission sits on one. Including it would take an airframe-shaped risk for no capacity gain
+#: — which is also why this set is ``FighterAircraft`` (244) and not ``FighterAircraftSmall`` (344).
+#: Should ``100`` ever be wanted, it needs the airframe test this set deliberately does not have.
+AIRCRAFT_STAND_TYPES: frozenset[str] = frozenset({"68", "72", "104"})
 
 #: DCS ``Term_Type`` values, from the ``Airbase.TerminalType`` enumeration. Sourced 2026-08-31 from
 #: two independent references that agree value for value — the Hoggit wiki's `getParking` page
@@ -45,17 +75,30 @@ AIRCRAFT_STAND_TYPES: frozenset[str] = frozenset({"104", "68"})
 #: 104    OpenBig             Open air stand, generally larger
 #: =====  ==================  ====================================================
 #:
-#: The two sets below come from that reference's own composite masks, which are the sums of the
-#: values they combine: ``FighterAircraftSmall`` = 344 = 68 + 72 + 100 + 104 is every stand a
-#: fixed-wing aircraft can use, and ``HelicopterUsable`` = 216 = 40 + 72 + 104 is every stand a
-#: helicopter can use. ``Runway`` (16) is in neither: it is a runway spawn, not a stand.
+#: The sets here come from that reference's own composite masks, which are the sums of the values they
+#: combine (re-read 2026-08-31 to settle CHORE-AIRCRAFT-STAND-TYPES):
+#:
+#: ======================  =====  ==================================================================
+#: Mask                    Value  Combines
+#: ======================  =====  ==================================================================
+#: OpenMedOrBig            176    72 + 104
+#: HelicopterUsable        216    40 + 72 + 104 — every stand a helicopter can use
+#: FighterAircraft         244    68 + 72 + 104 — "effectively all spots usable by fixed wing"
+#: FighterAircraftSmall    344    68 + 72 + 100 + 104 — the same, for a *small* fixed wing
+#: ======================  =====  ==================================================================
+#:
+#: ``Runway`` (16) is in none of them: it is a runway spawn, not a stand.
+#:
+#: This set is ``FighterAircraftSmall`` (344) because it answers *"can this airfield park a plane at
+#: all?"* — a field with nothing but ``100`` can, for a small one. :data:`AIRCRAFT_STAND_TYPES` above
+#: answers the narrower question of which stands this tool will *seat* a unit on itself, and is
+#: ``FighterAircraft`` (244); the constant's own comment carries the measurement behind the gap.
 #:
 #: Consistency check against the bundled dumps: the airfields reported in game as offering
 #: helicopters only (Syria's Lakatamia 48 and Naqoura 52) carry nothing but 40 (plus a runway),
-#: while every airfield that works carries 104/68/72 in quantity.
-#:
-#: Distinct from :data:`AIRCRAFT_STAND_TYPES` above, which answers a different question — which
-#: stands this tool is willing to *seat* a unit on when it places one itself.
+#: while every airfield that works carries 104/68/72 in quantity. One correction to the reference,
+#: measured on those dumps: 68 is *not* "currently only on Caucasus" as MOOSE's note says — Syria
+#: carries 469 Shelter stands. Persian Gulf, on the other hand, carries none at all.
 PLANE_STAND_TYPES: frozenset[str] = frozenset({"68", "72", "100", "104"})
 
 #: Stands a helicopter can use. See :data:`PLANE_STAND_TYPES` for the source of the table.

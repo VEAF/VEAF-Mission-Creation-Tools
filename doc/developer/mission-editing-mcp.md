@@ -487,9 +487,13 @@ ou un `.miz` (transitoire).
 - **`parking_id` = `parking`.** Établi en jeu le 2026-08-15 : `parking` est le `Term_Index` de la
   capture, l'appareil se cale sur la position exacte, et le `parking_id` propre à l'éditeur — absent de
   la capture — n'est **pas** porteur. Il est donc écrit égal à `parking`.
-- **Seuls les types de terminal 104 et 68** sont proposés comme parking (mesuré : les avions parkés des
-  vraies missions Caucasus n'occupent qu'eux). Un aérodrome sans place de ce type est **refusé** plutôt
-  que de poser un appareil sur un seuil de piste.
+- **Seuls les types de terminal 68, 72 et 104** sont proposés comme parking — le masque
+  `FighterAircraft` (244) de DCS lui-même. Le `100` (SmallSizeFighter) est exclu volontairement : DCS
+  le documente comme une place étroite réservée aux petits appareils, et il ne débloque aucun
+  aérodrome que les trois autres ne couvrent pas déjà. Un aérodrome sans place d'aucun de ces trois
+  types est **refusé** plutôt que de poser un appareil sur un seuil de piste ou une hélisurface. La
+  mesure qui fonde cet ensemble, et les sept aérodromes qu'elle a débloqués, sont consignées à côté de
+  `AIRCRAFT_STAND_TYPES` dans `veaf_libs/dcs_parking.py`.
 - **Collision refusée.** Une place déjà occupée dans la mission (un groupe avion dont le premier
   waypoint vise cet aérodrome et dont une unité déclare cette place) est refusée **en nommant** le
   groupe qui la tient ; la sélection automatique **saute** les places occupées.

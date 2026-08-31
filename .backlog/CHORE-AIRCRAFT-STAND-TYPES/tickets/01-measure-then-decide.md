@@ -1,6 +1,6 @@
 # 01 — Measure, then decide
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: chore · File: `src/python/veaf-tools/veaf_libs/dcs_parking.py`
 
@@ -36,9 +36,9 @@ explanation.
 
 ## Definition of done
 
-- [ ] The numbers are in the module, beside the constants, with how they were obtained
-- [ ] The decision is applied, whatever it is
-- [ ] If placement behaviour changes, the tests pinning it change too, and the PR names the
+- [x] The numbers are in the module, beside the constants, with how they were obtained
+- [x] The decision is applied, whatever it is
+- [x] If placement behaviour changes, the tests pinning it change too, and the PR names the
       airfields that start behaving differently
-- [ ] If nothing changes, `AIRCRAFT_STAND_TYPES`' comment says why it is narrower than
+- [x] If nothing changes, `AIRCRAFT_STAND_TYPES`' comment says why it is narrower than
       `PLANE_STAND_TYPES` — the two must stop looking like an oversight

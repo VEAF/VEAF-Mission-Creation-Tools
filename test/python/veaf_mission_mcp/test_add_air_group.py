@@ -99,8 +99,9 @@ class TestParkingStart:
         assert (wp["type"], wp["action"]) == ("TakeOffParkingHot", "From Parking Area Hot")
 
     def test_units_sit_on_aircraft_stands_only(self, tmp_path: Path) -> None:
-        # Only terminal types 104/68 are offered; a unit never lands on a runway threshold (type 16).
-        from veaf_libs.dcs_parking import stands_for_airbase
+        # Only AIRCRAFT_STAND_TYPES (68/72/104) are offered; a unit never lands on a runway threshold
+        # (16), a helipad (40) or a small-fighter spot (100).
+        from veaf_libs.dcs_parking import AIRCRAFT_STAND_TYPES, stands_for_airbase
 
         by_number = {s.parking: s for s in stands_for_airbase("Caucasus", 24)}
         miz = _caucasus_miz(tmp_path)
@@ -116,7 +117,7 @@ class TestParkingStart:
             airfield="Kobuleti",
         )
         for spot in result["stands"]:
-            assert by_number[spot].term_type in ("104", "68")
+            assert by_number[spot].term_type in AIRCRAFT_STAND_TYPES
 
 
 class TestRefusals:

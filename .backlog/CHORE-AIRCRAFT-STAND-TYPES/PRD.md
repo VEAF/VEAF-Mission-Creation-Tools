@@ -1,6 +1,39 @@
 # CHORE-AIRCRAFT-STAND-TYPES — two stand tables that disagree, and nobody knows which is right
 
-Status: ⬜ ready
+Status: ✅ done
+
+## Outcome — the narrow set was one mission's sample, and it is now widened
+
+Reading 2 was right. `AIRCRAFT_STAND_TYPES` becomes `{68, 72, 104}` — DCS's own `FighterAircraft`
+mask (244), *"effectively all spots usable by fixed wing aircraft"*. `100` (SmallSizeFighter) stays
+out, deliberately and with the reason recorded.
+
+**Stand census** (3 bundled captures, 6521 stands, 276 airfields): 104 ×3113, 40 ×1010, 72 ×982,
+68 ×809, 16 ×324, 100 ×283. **Seven plane-capable airfields carry `72` and no `68`/`104`**, so the
+tool refused to place anything on them: Bandar Lengeh, Tunb Island AFB, Tunb Kochak, Bandar-e-Jask,
+Lavan Island, Jiroft (Persian Gulf) and Tha'lah (Syria, 16 OpenMed stands). Widening unlocks all
+seven and takes usable stands from 3922 to 4904 (+25%).
+
+**Real usage** (VEAF Foothold Caucasus / Syria / Persian Gulf + Open Training Syria, each parked
+unit's `parking` resolved against the captures and **confirmed by position**): of 105 parked planes,
+104 ×41 (39%), 68 ×35 (33%), **72 ×29 (28%)** — 24 distinct airframes on OpenMed, A-10C, AV8BNA,
+F-15ESE and F-14 among them. The original measurement missed this because Caucasus has 46 OpenMed
+stands against 850 of 68/104, and because Persian Gulf — where 72 dominates — has **no `68` at all**,
+so `{68, 104}` there meant "104 only".
+
+**`100` excluded**: documented by DCS as a tight spot for small airframes, present on 11 Syrian
+airfields that *all* already have 68/104 (so it unlocks **zero** airfields), and carrying no
+confirmed parked unit in any measured mission. Including it would take an airframe-shaped risk for no
+capacity gain. `PLANE_STAND_TYPES` keeps it, because *"can this field park a plane?"* is a different
+question from *"may this tool seat one here?"* — the two constants now say so explicitly.
+
+**On the broken probe**: a parked flight is `route.points[0].airdromeId` plus a per-unit `parking`.
+Carrier flights carry `helipadId` + `linkUnit` instead and must be excluded — 45 of the 46 parked
+groups in the Open Training mission are carrier-based, which is what the earlier "0 parked groups"
+probe was tripping over. The probe was then validated by distance: a correctly resolved stand puts
+the unit within 0.0 m of its captured position. That check also caught **8 Syria units naming a stand
+over 100 m from where they sit** (a stale `parking` after a hand move), which would otherwise have
+been reported as three planes parked on helipads.
 
 Origin: noticed while delivering `FIX-DYNSLOT-PARKING` (PR #860), which added the second table.
 
@@ -44,14 +77,14 @@ as evidence; build the measurement properly.
 
 ## Definition of done
 
-- [ ] The measurement is done and **written down with its numbers**, in the module beside the
+- [x] The measurement is done and **written down with its numbers**, in the module beside the
       constants — the next person must not have to redo it
-- [ ] A decision: widen, keep, or make it airframe-dependent. Keeping it is a perfectly good
+- [x] A decision: widen, keep, or make it airframe-dependent. Keeping it is a perfectly good
       outcome **provided the reason is recorded** — right now the two tables merely look
       contradictory
-- [ ] If it changes, the tests that pin unit placement change with it, and the PR says which
+- [x] If it changes, the tests that pin unit placement change with it, and the PR says which
       airfields start behaving differently
-- [ ] If it does not change, the comment on `AIRCRAFT_STAND_TYPES` explains why it is narrower
+- [x] If it does not change, the comment on `AIRCRAFT_STAND_TYPES` explains why it is narrower
       than `PLANE_STAND_TYPES`, so the discrepancy stops reading as an oversight
 
 ## Scope

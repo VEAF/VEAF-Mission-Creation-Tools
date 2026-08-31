@@ -330,6 +330,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   It also absorbed the three lines of coordinate juggling that every caller copied before the call —
   the exact place where a defect had already slipped in once.
 
+- **Seven airfields stop refusing every aircraft you try to park on them.** `add_air_group` picked its
+  stands from a set of two terminal types, `68` (Shelter) and `104` (OpenBig), read off the parked
+  flights of a single Caucasus mission. That set is now `68`, `72` (OpenMed) and `104` — DCS's own
+  `FighterAircraft` mask, *"effectively all spots usable by fixed wing aircraft"*.
+
+  The old set was one theatre's sample, and it generalised badly. Counting the bundled parking
+  captures, **seven airfields carry OpenMed stands and no `68`/`104` whatsoever**, so the tool refused
+  them outright: **Bandar Lengeh, Tunb Island AFB, Tunb Kochak, Bandar-e-Jask, Lavan Island** and
+  **Jiroft** on Persian Gulf, and **Tha'lah** on Syria — the last with 16 perfectly good stands. Those
+  seven now work, and usable stands across the three theatres go from 3,922 to 4,904.
+
+  Checking real missions confirms it rather than merely permitting it: of the 105 parked planes in the
+  VEAF Foothold missions and the Open Training mission, **29 (28%) already sit on OpenMed** — 24
+  different airframes, A-10C, AV8BNA, F-15E and F-14 among them. Persian Gulf has no Shelter stands at
+  all, so there the old set meant "OpenBig only" and the mission makers had been using OpenMed all
+  along.
+
+  `100` (SmallSizeFighter) deliberately stays out: DCS calls it a tight spot for small airframes, it
+  exists on 11 Syrian airfields that all have `68`/`104` anyway — so it unlocks nothing — and no
+  measured mission parks anything on one. The numbers and how they were obtained now live beside the
+  constants in `veaf_libs/dcs_parking.py`, so the next reader does not repeat the work.
+
 ### Removed
 
 - **The Hercules Cargo community script is gone.** Nothing in the repository enabled it — `HERCULES:

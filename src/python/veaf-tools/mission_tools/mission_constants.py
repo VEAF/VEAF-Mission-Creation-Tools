@@ -236,15 +236,36 @@ def collect_files_from_globs(
     return files_dict
 
 
-#: Matches a call to MiST: ``mist.`` followed by an identifier, not preceded by a word character or
-#: a dot — so ``chemist.brew()`` and ``a.mist.z`` are not calls to MiST.
-_MIST_CALL_RE = re.compile(r"(?<![\w.])mist\.[A-Za-z]\w*")
+#: Matches a call to MiST: ``mist``, a dot, and an identifier.
+#:
+#: The lookbehind rejects ``chemist.brew()`` and ``a.mist.z``. The ``\s*`` are not pedantry — Lua
+#: allows whitespace around a dot, so ``mist . utils.round(x)`` is a call and missing it would leave
+#: a mission without MiST until it died in DCS. Same for the leading underscore: ``mist._helper()``
+#: is a legal member name.
+_MIST_CALL_RE = re.compile(r"(?<![\w.])mist\s*\.\s*[A-Za-z_]\w*")
 
-#: Lua string literals, removed before looking for a call. Not decoration: ``CTLD.lua`` carries an
+#: Everything that looks like code but is not: comments and string literals.
+#:
+#: Removed before looking for a call, because a mention in either is not one. ``CTLD.lua`` carries an
 #: error *message* naming ``mist.DBs.MEgroupsByName``, and counting that as a call is how an earlier
-#: pass reported CTLD as still needing MiST when it has not since v2. A lookbehind on the quote is
-#: not enough — the mention sits in the middle of the string, preceded by a space.
-_LUA_STRING_RE = re.compile(r'"[^"\n]*"' + r"|'[^'\n]*'")
+#: pass reported CTLD as still needing MiST when it has not since v2.
+#:
+#: Order matters. ``--[[`` must be tried before ``--``, or a block comment would be trimmed to its
+#: first line and the rest read as code. Long brackets carry any number of equals signs
+#: (``[==[ … ]==]``), and a quoted string may contain escaped quotes — both were missed by the first
+#: version of this, which worked line by line and could not see a comment spanning several.
+#:
+#: This is not a Lua lexer, and does not try to be: an unterminated long bracket degrades to the
+#: line-comment branch. What it costs when it is wrong is 336 KB in a mission that did not need
+#: them — the opposite mistake, missing a real call, is the one that breaks a mission in flight.
+_LUA_NOISE_RE = re.compile(
+    r"--\[(?P<bc>=*)\[.*?\](?P=bc)\]"  # block comment: --[[ … ]] and --[==[ … ]==]
+    r"|--[^\n]*"  # line comment, including one trailing real code
+    r"|\[(?P<ls>=*)\[.*?\](?P=ls)\]"  # long string: [[ … ]] and [==[ … ]==]
+    r"|\"(?:\\.|[^\"\\\n])*\""  # "…", escaped quotes included
+    r"|'(?:\\.|[^'\\\n])*'",  # '…', likewise
+    re.DOTALL,
+)
 
 
 def mission_scripts_referencing_mist(scripts_dir: Path) -> list[str]:
@@ -277,10 +298,9 @@ def mission_scripts_referencing_mist(scripts_dir: Path) -> list[str]:
             text = lua_file.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        for line in text.splitlines():
-            if line.lstrip().startswith("--"):
-                continue
-            if _MIST_CALL_RE.search(_LUA_STRING_RE.sub("", line)):
-                callers.append(lua_file.name)
-                break
+        # The whole file at once, not line by line: a block comment or a long string spans several
+        # lines, and the first version of this could not see past the end of one.
+        # A space rather than nothing, so removing a string cannot weld its neighbours into a token.
+        if _MIST_CALL_RE.search(_LUA_NOISE_RE.sub(" ", text)):
+            callers.append(lua_file.name)
     return callers

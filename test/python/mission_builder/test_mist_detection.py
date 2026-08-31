@@ -106,6 +106,93 @@ class TestWhatTheScanIgnores(unittest.TestCase):
 
             self.assertEqual(mission_scripts_referencing_mist(scripts), [])
 
+    def test_a_trailing_comment_is_not_a_call(self) -> None:
+        """Only a line *starting* with -- was skipped at first; a comment can also follow code."""
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "trailing.lua").write_text(
+                "local n = veaf.round(3.7)  -- was mist.utils.round before the port\n", encoding="utf-8"
+            )
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), [])
+
+    def test_a_block_comment_is_not_a_call(self) -> None:
+        """A block comment spans lines, which a line-by-line scan cannot see past."""
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "blocky.lua").write_text(
+                "--[[\nThis used to read:\n  mist.utils.round(x)\n]]\nlocal n = veaf.round(3.7)\n",
+                encoding="utf-8",
+            )
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), [])
+
+    def test_a_long_bracket_string_is_not_a_call(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "longstr.lua").write_text(
+                "local help = [==[\ncall mist.utils.round to round a number\n]==]\n", encoding="utf-8"
+            )
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), [])
+
+    def test_an_escaped_quote_does_not_end_the_string_early(self) -> None:
+        """With naive quote matching the string closes at the escaped quote, and what follows —
+        including a mention of MiST — is read as code."""
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "escaped.lua").write_text(
+                'log("he said \\"use mist.utils.round\\" and left")\n', encoding="utf-8"
+            )
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), [])
+
+
+class TestTheCallsThatAlmostGotAway(unittest.TestCase):
+    """Legal Lua the first version of the scan did not recognise.
+
+    These are the dangerous direction: a missed call means a mission built without MiST that dies in
+    DCS. Found by review on #847, not by the tests, which is the point of writing them now.
+    """
+
+    def test_whitespace_around_the_dot_is_still_a_call(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "spaced.lua").write_text("local n = mist . utils.round(3.7)\n", encoding="utf-8")
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), ["spaced.lua"])
+
+    def test_a_newline_around_the_dot_is_still_a_call(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "wrapped.lua").write_text("local n = mist\n  .utils.round(3.7)\n", encoding="utf-8")
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), ["wrapped.lua"])
+
+    def test_an_underscore_member_is_still_a_call(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "under.lua").write_text("mist._helper(unit)\n", encoding="utf-8")
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), ["under.lua"])
+
+    def test_a_call_after_a_block_comment_is_still_seen(self) -> None:
+        """Removing the comment must not swallow the code that follows it."""
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "after.lua").write_text(
+                "--[[ a note\nspanning lines\n]]\nmist.utils.round(3.7)\n", encoding="utf-8"
+            )
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), ["after.lua"])
+
+    def test_a_call_after_a_string_is_still_seen(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            scripts = _scripts_dir(Path(td))
+            (scripts / "mixed.lua").write_text('log("nothing to see here")\nmist.utils.round(3.7)\n', encoding="utf-8")
+
+            self.assertEqual(mission_scripts_referencing_mist(scripts), ["mixed.lua"])
+
 
 class TestTheBuilderActsOnIt(unittest.TestCase):
     """The scan is only worth anything if the build reads it — the wiring, not the helper."""

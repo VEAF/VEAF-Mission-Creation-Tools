@@ -421,6 +421,32 @@ end
 --- **Coordinates.** A unit's table is the mission-table shape: `x` northing, `y` easting. See
 --- `docs/agents/dcs-coordinates.md`.
 ---
+--- How many suffixes to try before falling back to an id.
+---
+--- A ceiling rather than a real limit: reaching it needs 98 live groups derived from one name. It
+--- exists so a bug in `isNameTaken` cannot turn this into an endless loop at spawn time.
+veafDcsSpawner.MAX_NAME_ATTEMPTS = 100
+
+--- A name close to `taken` that nothing is using yet.
+---
+--- MiST's answer here was `country .. type .. index`, which told a mission maker nothing about what
+--- the group was: a clone of `Arco` came back as `USAKC-1353`. Suffixing keeps the lineage readable
+--- in the F10 map and in the logs, which is where these names are actually read.
+---
+--- @param taken string the name that is already in use
+--- @return string a free name
+function veafDcsSpawner.freeNameFrom(taken)
+  local base = tostring(taken or "group")
+  for suffix = 2, veafDcsSpawner.MAX_NAME_ATTEMPTS do
+    local candidate = string.format("%s #%d", base, suffix)
+    if not veaf.isNameTaken(candidate) then
+      return candidate
+    end
+  end
+  -- Unique by construction: the id allocator never hands the same number out twice.
+  return string.format("%s #%s", base, veaf.getNextUnitId())
+end
+
 --- @param groupData table the group definition
 --- @return table|false the group as submitted, or false when it could not be created
 function veafDcsSpawner.addGroup(groupData)
@@ -526,6 +552,20 @@ function veafDcsSpawner.addGroup(groupData)
   end
 
   coalition.addGroup(country.id[countryName], Unit.Category[category], group)
+
+  -- Registered here, at the submission boundary, rather than where the name was chosen. Two reasons,
+  -- both found in review:
+  --
+  --  * every path above this line can still refuse the group — a terrain rejection, a unit with no
+  --    position. Reserving earlier left a name held forever by a group that was never created, and
+  --    the next clone stepped over it.
+  --  * a caller may rename the group between building it and submitting it, which is exactly what
+  --    `veafCombatMission` does after `buildCloneData()`. Registering the chosen name would have
+  --    recorded one name while DCS received another, blocking the first and protecting neither.
+  --
+  -- So what gets recorded is what DCS was actually given.
+  veaf.takeSpawnedName(group.name)
+
   veaf.loggers.get(veafDcsSpawner.Id):trace("addGroup: created [%s] with %d unit(s)", veaf.p(group.name), #group.units)
   return group
 end
@@ -914,17 +954,40 @@ function VeafGroupSpawn:_spawn(verb, buildOnly)
   -- A record from the mission database names its group `groupName`; a spawn wants `name`.
   data.name = self.newGroupName or data.name or data.groupName
   data.groupName = data.name
+  local renamed = false
   if verb == "clone" then
     -- New identity: drop the ids so the spawner allocates fresh ones.
     data.groupId = nil
     for _, unit in pairs(data.units) do
       unit.unitId = nil
     end
+
+    -- ...and a new name, when the old one is still in use. `mist.dynAdd` did this and the first
+    -- port did not, so every clone of a live group was a homonym of it: `Group.getByName` can only
+    -- answer one of them, and both callers here track their groups *by* that name.
+    --
+    -- A respawn and a teleport reuse an identity rather than creating one, so they keep their name.
+    -- That is the same line MiST drew with its `clone` flag.
+    if veaf.isNameTaken(data.name) then
+      local taken = data.name
+      data.name = veafDcsSpawner.freeNameFrom(taken)
+      data.groupName = data.name
+      renamed = true
+      veaf.loggers.get(veafDcsSpawner.Id):debug("clone of [%s] named [%s]", veaf.p(taken), veaf.p(data.name))
+    end
   end
 
   if self.renameUnits then
     for index, unit in pairs(data.units) do
       unit.unitName = string.format("%s #%d", data.name, unit.unitId or index)
+      unit.name = unit.unitName
+    end
+  elseif renamed then
+    -- A renamed group renames its units too: DCS is no happier about two `Convoy-1` than about two
+    -- `Convoy`. The Mission Editor's own `<group>-<n>` shape is used rather than the `#` form above,
+    -- which would read `Arco #2 #1` and tell nobody anything.
+    for index, unit in pairs(data.units) do
+      unit.unitName = string.format("%s-%d", data.name, index)
       unit.name = unit.unitName
     end
   end

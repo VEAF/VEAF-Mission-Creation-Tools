@@ -631,6 +631,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the invariant directly: the defect lives in the seam between two commands, each correct on its
   own, so a test of either half missed it — and did.
 
+- **`validate` now names every country a side has left unassigned, not only the case where it
+  assigned none** (FIX-VALIDATE-PARTIAL-COALITIONS). DCS refuses to load a mission unless *every*
+  country owning units under `coalition.<side>.country` is listed in `coalitions.<side>` — it opens
+  the coalition assignment screen instead. The check only asked whether that list was entirely empty,
+  so a mission with one country assigned out of three passed `validate` and was still refused: a
+  green check standing in front of a mission nobody can load.
+
+  The message now reads `Side 'blue': countries [5, 80] own units but are not listed in
+  coalitions.blue ([2])`, because naming the missing ids is what makes the error fixable. The
+  empty-list case keeps its existing message, which explains the consequence better than a list
+  would. A country owning **no** units is never required — DCS does not care, and demanding it would
+  light up perfectly good missions — and the rule is an inclusion, not an equality, so listing a
+  country that fields nothing yet stays silent.
+
+  This is the check that failed to catch the defect fixed just above. Had that one been repaired in
+  the generator by declaring a single country — one of the two options weighed there — `validate`
+  would have gone quiet while five countries stayed unassigned and DCS kept refusing. The check would
+  have hidden the bug it exists to catch.
+
+  **It tightens a report, not a gate.** The build runs the same check but *collects* its findings for
+  the end-of-run summary rather than aborting, so a stricter rule adds lines to that summary and
+  blocks no build. Verified read-only over the ten local Foothold missions — ten source tables and
+  fourteen built `.miz` — and it is silent on all of them: a mission written by the DCS Mission
+  Editor partitions all 93 country ids across the three sides, so the inclusion holds there by
+  construction. It is generated missions that could drift.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

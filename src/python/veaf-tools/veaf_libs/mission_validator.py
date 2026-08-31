@@ -159,6 +159,26 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
     return issues
 
 
+def _country_id(value: object) -> int | None:
+    """Return a DCS country id as an int, or ``None`` when the value is not usable as one.
+
+    The two tables being compared are written by different producers, so an id can arrive as an int,
+    a float, or a string; comparing them raw would call 2 and "2" different countries.
+
+    Args:
+        value: A raw ``id`` field, or an entry of ``coalitions.<side>``.
+
+    Returns:
+        The id as an int, or ``None`` when it cannot be read as one.
+    """
+    if not isinstance(value, (int, float, str)):
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
 def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
     """Report a mission DCS would refuse, or that no pilot can enter.
 
@@ -168,12 +188,17 @@ def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
     owns, and what those countries field — and populating only the second gives units in a side that
     does not exist.
 
+    DCS's requirement is an inclusion, not merely a non-empty list: **every** country owning units
+    under `coalition.<side>.country` must appear in `coalitions.<side>`. Checking only the empty case
+    would stay silent on one country assigned out of three — the shape the defect fixed by PR #868
+    would have taken had it been "fixed" by declaring a single country. A country owning nothing is
+    never required: DCS does not care, and demanding it would light up good missions.
+
     Args:
         mission: The parsed DCS mission table.
 
     Returns:
-        One error per side holding units but owning no country, plus one warning when the mission has
-        no player slot at all.
+        One error per side whose unit-owning countries are not all listed in ``coalitions``.
     """
     if not isinstance(mission, dict):
         return []
@@ -188,15 +213,38 @@ def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
     for side, side_content in (mission.get("coalition") or {}).items():
         if not isinstance(side_content, dict):
             continue
-        countries = indexed(side_content.get("country"))
-        has_units = any(
-            indexed((country.get(category) or {}).get("group"))
-            for country in countries
-            if isinstance(country, dict)
-            for category in CATEGORIES
-        )
-        if has_units and not indexed(assigned.get(side) if isinstance(assigned, dict) else None):
+        owners: set[int] = set()
+        has_units = False
+        for country in indexed(side_content.get("country")):
+            if not isinstance(country, dict):
+                continue
+            if not any(indexed((country.get(category) or {}).get("group")) for category in CATEGORIES):
+                continue
+            has_units = True
+            owner_id = _country_id(country.get("id"))
+            if owner_id is not None:
+                owners.add(owner_id)
+        if not has_units:
+            continue
+
+        raw_listed = indexed(assigned.get(side) if isinstance(assigned, dict) else None)
+        if not raw_listed:
             issues.append(ValidationIssue(ERROR, t("validate.side_without_country", side=side)))
+            continue
+        listed = {country_id for country_id in map(_country_id, raw_listed) if country_id is not None}
+        missing = owners - listed
+        if missing:
+            issues.append(
+                ValidationIssue(
+                    ERROR,
+                    t(
+                        "validate.side_missing_countries",
+                        side=side,
+                        missing=sorted(missing),
+                        listed=sorted(listed),
+                    ),
+                )
+            )
 
     return issues
 

@@ -990,6 +990,7 @@
   "validate.radio_lua_function_missing": "Menu radio : la fonction Lua '{function}' référencée est introuvable dans les scripts de la mission (à définir dans mission-script.lua).",
   "validate.radio_menu_missing_target": "Menu radio : l'action '{action}' de la commande '{command}' requiert le paramètre '{param}'.",
   "validate.radio_menu_unknown_action": "Menu radio : action inconnue '{action}' pour la commande '{command}'.",
+  "validate.side_missing_countries": "Camp '{side}' : les pays {missing} possèdent des unités mais ne figurent pas dans coalitions.{side} ({listed}) : DCS ouvrira l'écran d'affectation des coalitions et refusera de charger la mission. Ajoutez ces ids de pays dans coalitions.{side}.",
   "validate.side_without_country": "Le camp '{side}' contient des unités mais aucun pays ne lui est affecté : DCS ouvrira l'écran d'affectation des coalitions et refusera de charger la mission. Ajoutez l'id du pays dans coalitions.{side}.",
   "validate.source_mission_unreadable": "La table de mission source (src/mission/mission) existe mais n'est pas lisible : {error} — checks groupes / presets / waypoints / TUM ignorés.",
   "validate.tum_zones_missing": "TUM est activé mais aucune zone de territoire {sides} n'a été trouvée — TheUniversalMission s'arrête au démarrage sans elles.",

@@ -1,6 +1,6 @@
 # FIX-SCAFFOLD-OPTOUT-DRIFT — two ways to start a mission, two different missions
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: found while fixing `FIX-DEFAULT-COMMUNITY-NOISE` (PR #867), which explained *why* a
 beginner was warned about CTLD. This is why they were in that situation at all. Verified on

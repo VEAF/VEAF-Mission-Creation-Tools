@@ -398,6 +398,8 @@ modules:
 
 **Les scripts communautaires** se déclarent dans le même bloc, via leurs IDs (la casse est indifférente : `CTLD:` et `ctld:` sont équivalents). Lorsqu'un script est absent de `modules:`, il garde son état par défaut (inclus). Mettez-le à `false` pour l'exclure — sauf `MIST`, dépendance obligatoire des scripts VEAF : un `MIST: false` explicite est ignoré avec un avertissement au build, le script est injecté quand même.
 
+Comme cette absence vaut « activé », les fichiers générés (`prepare --template`, `convert-v5`) et le `mission.yaml` livré écrivent **toujours** les cinq scripts *opt-out* (`STTS`, `CTLD`, `AIEN`, `CSAR`, `SKYNET`), à `true` ou à `false` : l'état d'un script communautaire ne se déduit jamais d'un silence.
+
 ```yaml
 modules:
   CTLD: true

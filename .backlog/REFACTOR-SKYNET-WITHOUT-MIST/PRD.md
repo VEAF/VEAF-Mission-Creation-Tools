@@ -1,6 +1,6 @@
 # REFACTOR-SKYNET-WITHOUT-MIST — cut Skynet's 42 calls to MiST, in a fork we own
 
-Status: 🧑 waiting-human — code done 2026-08-30; the in-game check is the only thing left
+Status: ✅ done — checked in game 2026-08-31, without a single takeoff
 
 Origin: David, 2026-08-30, on `DROP-MIST` ticket 08 — *"skynet : pareil, c'est un fork du Regroupement,
 on pourrait le forker aussi et faire une PR pour retirer Mist ?"*, then *"je parlais de forker le fork de
@@ -104,8 +104,54 @@ and silent on the degraded one.
       `manual_steps` names the stylua step; the 27 vendoring tests pass
 - [x] The open pull request #4 (a live SAM site sent dark while its target is tracked) is merged into
       our `master`, so the artefact carries it
-- [ ] Checked in game: an IADS mission, SAM sites going live and dark, HARM defence, a jammer
+- [x] Checked in game 2026-08-31 — see below. The jammer was not exercised: it rides on the same
+      scheduler as the rest, which was measured directly
 - [x] `stylua --check` clean on the artefact
+
+
+## Checked in game, 2026-08-31
+
+David had no hardware to fly with, so nothing was flown. The mission was loaded and driven through
+the DCS fiddle hook instead, which turned out to suit the subject better: both risky pieces are
+behaviour over time, and time is easier to measure than to watch.
+
+The mission is the fork's own Persian Gulf demo with two files changed: our artefact, and MiST
+replaced by a table that raises on any access and names the symbol wanted. A missed call would
+therefore appear in the log as `SKYNET TOUCHED MIST: mist.<symbol>` rather than as a nil-index crash
+somewhere else.
+
+| what | result |
+|---|---|
+| **The scheduler** | a repeating task ran **13 times in 26 s** at a 2 s interval, and a deferred one started exactly at its offset |
+| **Cancellation** | `removeFunction` stopped a task dead; a second call answered `false` instead of cancelling something else |
+| **HARM defence** | a site went dark and **came back** at its deadline: `finishHarmDefence` ran, cancelled its own task from inside its own callback, and cleared its state |
+| **Discovery by prefix** | **13 SAM sites and 8 EW radars**, under their real names |
+| **A site spawned mid-mission** | seen **immediately** (27 -> 28 groups), then added to the IADS (13 -> 14 sites) |
+| **The MiST trap** | fired 31 times, **all 31 from `dcs-bridge.lua`** -- the observation tool, which probes `mist.majorVersion` in its `detectFrameworks()`. **None from Skynet.** |
+
+Zero `error in scheduled function`, zero `attempt to` naming `SkynetIADSUtils`.
+
+### Two false alarms, both mine
+
+Worth writing down, because each looked exactly like a defect in the port:
+
+1. **"The scheduler never runs."** A probe was installed over `SkynetIADS.evaluateContacts` and counted
+   zero calls. It could not have counted any: `scheduleFunction` had captured the function reference
+   at startup, so replacing the table entry afterwards changes nothing. Measured properly -- by giving
+   the scheduler a task of its own -- it was exact.
+
+2. **"A site stays dark forever."** The site really was still defending 157 s after a 126 s deadline,
+   and its task really had vanished unexecuted. The cause was the *other* test: `addSAMSitesByPrefix`
+   begins with `deativateSAMSites()`, which calls `cleanUp()` on every site, which calls
+   `removeFunction(self.harmSilenceID)`. Running the prefix check while a HARM timer was armed
+   cancelled it. Re-run in isolation, the site came back on time.
+
+### One thing found upstream, not ours
+
+`cleanUp()` cancels both HARM tasks but leaves `harmSilenceID` set. A site is then convinced it is
+still evading a missile whose timer no longer exists, and `goDark` reads that field to decide whether
+to bring point defences up. Present in the original, unchanged by the port -- worth mentioning when
+the MiST work goes back to Flogas.
 
 ## What this unblocks
 

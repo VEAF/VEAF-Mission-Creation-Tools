@@ -828,6 +828,50 @@ function TestVeafDcsSpawnerCurrentGroupData:_liveGroup(x, alt, z)
   })
 end
 
+function TestVeafDcsSpawnerCurrentGroupData:test_a_group_the_editor_never_placed_still_has_a_country()
+  -- Found in game, not here (DCS-SESSION-TODO item 23): teleporting a CSAR downed pilot — a group
+  -- CSAR had just created itself — failed with "country not found". A dynamic group has no editor
+  -- record, so everything the snapshot would have supplied is missing, the country included, and
+  -- `addGroup` refuses a group without one. MiST never met this: its database was refreshed every
+  -- two seconds and held the dynamic groups too. DCS knows the answer, so ask the live unit.
+  dcs_mocks.addUnit("Dynamic-1", {
+    _id = 4242,
+    getTypeName = function()
+      return "Soldier M4"
+    end,
+    getCountry = function()
+      return country.id.USA
+    end,
+    getPosition = function()
+      return { p = { x = 10, y = 0, z = 20 } }
+    end,
+    getVelocity = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+  })
+  dcs_mocks.addGroup("Dynamic", {
+    _id = 4241,
+    getUnits = function()
+      return { Unit.getByName("Dynamic-1") }
+    end,
+  })
+
+  local data = veafDcsSpawner.getCurrentGroupData("Dynamic")
+
+  luaunit.assertNotNil(data, "the group is alive, so there is data")
+  luaunit.assertEquals(data.countryId, country.id.USA, "the country comes from the live unit")
+end
+
+function TestVeafDcsSpawnerCurrentGroupData:test_the_editors_country_is_not_overwritten()
+  -- The live lookup is a fallback, not a replacement: an editor group keeps what the snapshot says.
+  self:_editorGroup()
+  self:_liveGroup(1, 2, 3)
+
+  local data = veafDcsSpawner.getCurrentGroupData("Arco")
+
+  luaunit.assertNotNil(data.country or data.countryId, "one of the two is set")
+end
+
 function TestVeafDcsSpawnerCurrentGroupData:test_the_live_position_wins_over_the_editor_one()
   self:_editorGroup()
   self:_liveGroup(5000, 7000, 6000)

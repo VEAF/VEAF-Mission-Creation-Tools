@@ -309,6 +309,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   MiST's `USAKC-1353` did not. A respawn and a teleport keep their name: they reuse an identity
   rather than creating one.
 
+- **CSAR started in no mission at all, and no test could see it.** Its dependency check ran when the
+  file was read -- but a VEAF build loads the community scripts *before* its own bundle (CSAR fifth,
+  `veaf-scripts.lua` seventh), so `veaf` is legitimately nil at that point. Every mission with CSAR
+  enabled greeted the player with *"The VEAF framework has not been loaded!"*.
+
+  The script already knew: it defers its own initialisation by two seconds, with the comment "so
+  other scripts (namely the veaf.lua script) are loaded". The check now lives there, where the
+  dependency is actually needed, and keeps its value -- if `veaf` is missing *then*, something is
+  really wrong.
+
+- **Teleporting a group that was spawned during the mission failed on "country not found".** The
+  spawner builds its data from the Mission Editor record, and a group created at runtime has none,
+  so the country went missing along with everything else the snapshot would have supplied. MiST never
+  met this: its database was refreshed every two seconds and held dynamic groups too. The live unit
+  knows its own country, so it is asked now.
+
+  Found while recovering a CSAR downed pilot, but it broke **any** teleport of a runtime-spawned
+  group.
+
+  Both defects were found by flying the mission, not by the suite: the Lua tests load modules in the
+  right order, and they teleport editor groups. Each now has a test that fails without its fix.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

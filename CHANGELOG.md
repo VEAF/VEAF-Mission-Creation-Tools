@@ -295,6 +295,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The MiST stub also left `dcs_mocks.lua`, and the 44 Lua suites pass without it — which is the proof
   that no VEAF script calls MiST any more, rather than a claim that none does.
 
+- **Two clones of the same group no longer carry the same name.** Cloning a group that still exists
+  handed DCS a homonym of it -- and a third, and a fourth. `Group.getByName` can only ever answer
+  one of them, while `veafQraCore` and `veafAirWaves` both track their groups *by* that name, so a
+  QRA that had redeployed twice was watching an identifier that designated nothing in particular.
+
+  MiST invented a fresh name for a clone whose name was taken; the port kept the name unless none
+  was supplied at all, and lost the collision check on the way. The registry that answers this was
+  written for it at DROP-MIST ticket 04 and had **no caller anywhere** -- released on a dead AFAC,
+  never taken, so it only ever saw the names the Mission Editor placed. It is now asked, and told.
+
+  A clone of `Arco` becomes `Arco #2`, its units `Arco #2-1` -- the lineage stays readable, which
+  MiST's `USAKC-1353` did not. A respawn and a teleport keep their name: they reuse an identity
+  rather than creating one.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

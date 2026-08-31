@@ -1,6 +1,6 @@
 # FIX-CLONE-KEEPS-ITS-SOURCE-NAME — every clone of a group is called the same thing
 
-Status: ⬜ ready
+Status: ✅ done — 2026-08-31
 
 Origin: found 2026-08-30 while checking a stale comment in `veafMissionDb`, during `DROP-MIST`
 ticket 08. Not reported from a mission — measured directly, see below.
@@ -79,19 +79,36 @@ also why nothing failed loudly.
   rename what a mission maker asked for. But a **supplied name that is taken** on a clone is the
   ambiguous case — decide it and say so in the log, rather than creating the homonym quietly.
 
+## What was done
+
+`_spawn` asks `isNameTaken` before accepting a name **on a clone**, derives a free one when it is
+taken, and registers it with `takeSpawnedName` -- which had no caller at all until now, so the check
+only ever saw the Mission Editor's names and two clones could still collide with each other.
+
+The derived name keeps the lineage readable: a clone of `Arco` becomes `Arco #2`, its units
+`Arco #2-1`. MiST answered `country .. type .. index` here, so a clone of `Arco` came back as
+`USAKC-1353` -- unique, and useless on the F10 map or in a log, which is where these names are read.
+
+`freeNameFrom` walks suffixes up to a ceiling of 100 and then falls back to an allocated id, unique
+by construction. The ceiling is not a real limit (reaching it needs 98 live groups from one name):
+it exists so a defect in `isNameTaken` cannot turn this into an endless loop at spawn time.
+
+A respawn and a teleport keep their name -- they reuse an identity rather than creating one, the
+same line MiST drew with its `clone` flag.
+
 ## Definition of done
 
-- [ ] A test spawns the same group three times through `:clone()` and asserts **three distinct
+- [x] A test spawns the same group three times through `:clone()` and asserts **three distinct
       names**, at the `coalition.addGroup` boundary — the probe above, turned into a test
-- [ ] A test asserts a `respawn` and a `teleport` **keep** their name, so the fix does not leak into
+- [x] A test asserts a `respawn` and a `teleport` **keep** their name, so the fix does not leak into
       the paths that reuse an identity
-- [ ] `takeSpawnedName` has a caller; `isNameTaken` has a caller. Asserted by a test that drives
+- [x] `takeSpawnedName` has a caller; `isNameTaken` has a caller. Asserted by a test that drives
       `:clone()` and then reads the registry — not by calling the registry directly, which is what
       let this sit unplugged
-- [ ] Unit names within a renamed clone are unique too
-- [ ] `veafAirWaves` and `veafQraCore` track a name that designates exactly one group; their existing
+- [x] Unit names within a renamed clone are unique too
+- [x] `veafAirWaves` and `veafQraCore` track a name that designates exactly one group; their existing
       tests still pass
-- [ ] Lua suite green, `stylua` and `luacheck` clean, `CHANGELOG.md` entry
+- [x] Lua suite green, `stylua` and `luacheck` clean, `CHANGELOG.md` entry
 
 ## Note for whoever picks this up
 

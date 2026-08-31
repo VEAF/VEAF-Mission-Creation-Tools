@@ -1028,6 +1028,97 @@ function TestVeafGroupSpawnChain:test_a_respawn_keeps_the_editor_identity()
   luaunit.assertEquals(spawned().units[1].unitId, 3)
 end
 
+-- A new identity includes a new name ------------------------------------------------------------
+-- `mist.dynAdd` invented a fresh name for a clone whose name was already taken. The port kept the
+-- name unless none was supplied at all, so every clone of a live group was a homonym: `Group.getByName`
+-- can only answer one of them, and both callers (`veafQraCore`, `veafAirWaves`) track their groups
+-- *by* that name.
+
+local function spawnedNames()
+  local names = {}
+  for _, entry in ipairs(dcs_mocks.groupsAdded) do
+    names[#names + 1] = entry.group and entry.group.name
+  end
+  return names
+end
+
+function TestVeafGroupSpawnChain:test_cloning_a_live_group_does_not_reuse_its_name()
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertNotEquals(spawned().name, "Convoy", "the editor group still exists under that name")
+end
+
+function TestVeafGroupSpawnChain:test_three_clones_get_three_distinct_names()
+  -- The measured defect: three calls, three groups, one name.
+  for _ = 1, 3 do
+    VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+  end
+
+  local names = spawnedNames()
+  luaunit.assertEquals(#names, 3)
+  local seen = {}
+  for _, name in ipairs(names) do
+    luaunit.assertNil(seen[name], string.format("name [%s] handed out twice", tostring(name)))
+    seen[name] = true
+  end
+end
+
+function TestVeafGroupSpawnChain:test_a_renamed_clone_renames_its_units_too()
+  -- Unit names collided as well; DCS is no happier about two "Convoy-1" than about two "Convoy".
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertNotEquals(spawned().units[1].name, "Convoy-1")
+  luaunit.assertStrContains(spawned().units[1].name, spawned().name, "a unit is named after its group")
+end
+
+function TestVeafGroupSpawnChain:test_the_registry_learns_the_name_a_clone_took()
+  -- `takeSpawnedName` had no caller anywhere: the registry was released but never taken, so the
+  -- check only ever saw the editor's names and two clones could still collide with each other.
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertTrue(veaf.isNameTaken(spawned().name), "the name a clone took is now taken")
+end
+
+function TestVeafGroupSpawnChain:test_an_explicit_name_is_used_when_it_is_free()
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy Bravo"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertEquals(spawned().name, "Convoy Bravo")
+end
+
+function TestVeafGroupSpawnChain:test_an_explicit_name_that_is_taken_does_not_create_a_homonym()
+  -- Asking for a name that exists is the ambiguous case. Refusing to rename would hand DCS two
+  -- groups called the same thing, which is the defect this fixes -- so the request loses, loudly.
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertNotEquals(spawned().name, "Convoy")
+end
+
+function TestVeafGroupSpawnChain:test_a_respawn_keeps_its_name()
+  -- A respawn reuses an identity rather than creating one: renaming it would break every caller
+  -- that looks the group up afterwards.
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):respawn()
+
+  luaunit.assertEquals(spawned().name, "Convoy")
+end
+
+function TestVeafGroupSpawnChain:test_a_teleport_keeps_its_name()
+  -- A teleport reads the *runtime* group rather than the editor record, so it is driven here the
+  -- way veafMove drives it: with the definition supplied. It moves a group that already exists,
+  -- which is precisely why renaming it would be wrong.
+  VeafGroupSpawn:new()
+    :forGroup("Convoy")
+    :withGroupData({
+      country = "USA",
+      category = "GROUND_UNIT",
+      name = "Convoy",
+      units = { { type = "Hummer", x = 1, y = 2 } },
+    })
+    :at({ x = 5000, y = 0, z = 6000 })
+    :teleport()
+
+  luaunit.assertEquals(spawned().name, "Convoy")
+end
+
 function TestVeafGroupSpawnChain:test_building_only_creates_nothing()
   -- Replaces MiST's unnamed second argument. All three sites that passed it were cloning.
   local data = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):buildCloneData()

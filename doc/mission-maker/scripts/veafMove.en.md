@@ -15,7 +15,7 @@ Provides commands to move or teleport existing DCS groups, and manages tanker or
 
 - `veafMarkers` — for marker commands
 - `veafRadio` — for radio menu entries
-- `mist` — for route management
+- `veafMissionDb` — reads the mission's unit and route records (`veaf.mist.getAllUnitData` is a VEAF alias, not a MiST call). MiST itself is **not** required.
 
 ---
 

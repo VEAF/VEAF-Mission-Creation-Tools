@@ -67,7 +67,10 @@ a warning — even if you had explicitly set it to `false`. So the `modules:` yo
 the one that runs: read the build's warnings.
 
 And a YAML gotcha: `MODULE:` (nothing after the colon) and `MODULE: false` do not mean the same
-thing. The first is "infrastructure, active"; the second is "off".
+thing. For a VEAF module the first is "infrastructure, active"; the second is "off". For a
+**community script** a bare `SCRIPT:` reads as "off" — so an old `MIST:` line inherited from a
+`mission.yaml` written when MiST was mandatory now leaves MiST out, which is what almost every
+mission wants.
 
 **The five *opt-out* community scripts work the other way round from VEAF modules.** `STTS`, `CTLD`,
 `AIEN`, `CSAR` and `SKYNET` are **active when you do not mention them**: their absence from the

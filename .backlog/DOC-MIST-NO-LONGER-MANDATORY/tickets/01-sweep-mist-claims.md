@@ -1,6 +1,6 @@
 # 01 — Sweep the MiST claims
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/**` (both languages), `src/defaults/mission-folder/mission.yaml`
 
@@ -28,12 +28,12 @@ alone. Fixing the three known spots and stopping is how the next reader finds th
 
 ## Definition of done
 
-- [ ] No claim that MiST is mandatory, non-disableable, or always injected survives
-- [ ] The shipped `mission.yaml` says one thing about MiST, not two
-- [ ] The replacement rule is stated where the old one was — opt-in, auto-enabled on detected use
-- [ ] Both languages in step
-- [ ] The sweep, with its judgements, is in the PR
-- [ ] `poetry run docs-check` passes
+- [x] No claim that MiST is mandatory, non-disableable, or always injected survives
+- [x] The shipped `mission.yaml` says one thing about MiST, not two
+- [x] The replacement rule is stated where the old one was — opt-in, auto-enabled on detected use
+- [x] Both languages in step
+- [x] The sweep, with its judgements, is in the PR
+- [x] `poetry run docs-check` passes
 
 ## Do not
 

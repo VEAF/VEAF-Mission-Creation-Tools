@@ -1,6 +1,6 @@
 # DOC-MIST-NO-LONGER-MANDATORY — the docs still say MiST cannot be turned off
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: spotted while delivering `FIX-SCAFFOLD-OPTOUT-DRIFT` (PR #869). Verified on `develop`.
 
@@ -32,13 +32,13 @@ MiST. Enumerate the occurrences and judge each; do not fix the three and declare
 
 ## Definition of done
 
-- [ ] No page claims MiST is mandatory, non-disableable, or injected regardless of configuration
-- [ ] The shipped `mission.yaml` stops contradicting itself
-- [ ] What replaced the rule is stated where the old rule was: MiST is opt-in, and the build turns
+- [x] No page claims MiST is mandatory, non-disableable, or injected regardless of configuration
+- [x] The shipped `mission.yaml` stops contradicting itself
+- [x] What replaced the rule is stated where the old rule was: MiST is opt-in, and the build turns
       it on by itself when one of the mission's own scripts calls `mist.`
-- [ ] Both languages, in step
-- [ ] The sweep is reported in the PR, including occurrences judged correct and left alone
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, in step
+- [x] The sweep is reported in the PR, including occurrences judged correct and left alone
+- [x] `poetry run docs-check` passes
 
 ## Scope
 

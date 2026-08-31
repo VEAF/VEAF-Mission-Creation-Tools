@@ -69,7 +69,10 @@ build l'active pour vous et le dit dans un avertissement — même si vous l'avi
 avertissements du build.
 
 Et un piège de YAML : `MODULE:` (rien après le deux-points) et `MODULE: false` ne veulent pas dire
-la même chose. Le premier est « infrastructure, active » ; le second, « éteinte ».
+la même chose. Pour un module VEAF, le premier est « infrastructure, active » ; le second,
+« éteinte ». Pour un **script communautaire**, un `SCRIPT:` sans valeur se lit « éteint » — une
+vieille ligne `MIST:` héritée d'un `mission.yaml` écrit du temps où MiST était obligatoire laisse
+donc désormais MiST de côté, ce que veut presque toute mission.
 
 **Les cinq scripts communautaires *opt-out* marchent à l'envers des modules VEAF.** `STTS`, `CTLD`,
 `AIEN`, `CSAR` et `SKYNET` sont **actifs quand on ne les mentionne pas** : leur absence du bloc

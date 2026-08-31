@@ -16,7 +16,8 @@ situer le projet. Aucune date de livraison n'est engagée.
 **Campagne persistante.** Un module de persistance qui sauvegarde l'état d'une mission entre deux
 lancements — les unités DCS comme les machines à états VEAF (missions CAS, zones de combat, QRA) —
 puis, dessus, de la génération de campagne dynamique et persistante bâtie uniquement sur les outils
-VEAF. Chemin de dépendance : retirer MiST, puis la persistance, puis la campagne.
+VEAF. Chemin de dépendance : retirer MiST, puis la persistance, puis la campagne — la première étape
+est faite, les scripts VEAF n'appellent plus MiST et il n'est plus injecté par défaut.
 
 **Outillage assisté par IA.** Décrire une mission en français ou en anglais et obtenir son
 `mission.yaml` avec ses spawns et ses zones — au *design-time*, avec l'outillage IA du créateur de

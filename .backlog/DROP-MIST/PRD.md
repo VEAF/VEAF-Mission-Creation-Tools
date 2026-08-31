@@ -1,6 +1,6 @@
 # DROP-MIST — VEAF scripts stop depending on MiST
 
-Status: 🔄 in-progress — ticket 00 (spike) answered 2026-08-28; see *Findings* below
+Status: ✅ done — all ten tickets closed 2026-08-31; MiST is no longer injected
 
 Origin: David, 2026-08-17 (*he wants to try removing it outright, and there is now a precedent — CTLD 2
 dropped it*), carried as a vision line in `ROADMAP.md` §4 until 2026-08-27. That line closed with a
@@ -210,6 +210,52 @@ this lot has.
 
 David accepted that framing on 2026-08-27. It is written here so nobody re-opens it mid-campaign, and
 so the lot is not judged on the wrong criterion at ticket 03.
+
+
+## Closed, 2026-08-31
+
+All ten tickets are done, and MiST is no longer injected into a mission that does not call it.
+
+**What was measured at the start:** 455 call sites, 64 distinct MiST symbols, across 32 of the ~50
+VEAF Lua files. **What is left in the shipped code:** none. `veaf.mist.*` still exists as six aliases
+forwarding to `veafMissionDb` — kept so the swap was one file's problem rather than thirty-two — and
+`CTLD.lua` mentions `mist.DBs` once, inside an error *message*. Neither is a call.
+
+**What a mission gains:** 336 KB out of every `.miz` that does not ask for MiST, and the `mist.main`
+tick — re-armed every 0.01 s, walking every unit twenty times a second to fill tables VEAF never read
+— stops existing.
+
+**What was kept:** `src/scripts/community/mist.lua`. MiST became opt-in rather than deleted, because a
+mission maker's own script may call it: the build reads `src/scripts/*.lua` and injects MiST when it
+finds a caller, naming the file. `convert-v5` asks the same question, which is what makes the change
+worth anything — v5 shipped MiST in every mission, so detecting it by file name would have carried it
+forward for everyone.
+
+**Where the community scripts ended up:** CTLD had already dropped MiST on its own in v2; CSAR's 18
+calls and Skynet's 42 were ported; the Hercules script was removed for want of a single user.
+
+### The three follow-on lots this campaign produced
+
+Not scope creep — each is a defect the port surfaced, and each has its own PRD:
+
+- `FIX-CLONE-KEEPS-ITS-SOURCE-NAME` — MiST renamed a clone whose name was taken; the port did not, so
+  three clones of `Arco` reached DCS as three groups called `Arco`.
+- `FIX-CSAR-INIT-GUARD` — three guards against double initialisation, none of which could fire.
+- `REFACTOR-CSAR-WITHOUT-MIST` / `REFACTOR-SKYNET-WITHOUT-MIST` — both verified in game on 2026-08-31,
+  which is where two more defects were found that no test could see.
+
+### What the in-game session taught, and is worth keeping
+
+Three defects were found by flying, none by the 3950 tests, and the reasons were structural rather
+than careless:
+
+- the Lua tests load modules **in the right order** — none reproduces a mission's, where the community
+  scripts come before the VEAF bundle;
+- the spawner tests **teleport editor groups**, which always have a mission record;
+- `world.addEventHandler` was a **no-op** in `dcs_mocks`, unable to tell one registration from ten.
+
+The first two are now covered by `test_csar_init.lua`, which loads in a mission's order, and by the
+country fallback tests. The third was fixed in the mock itself.
 
 ## Findings — ticket 00 (spike, 2026-08-28)
 

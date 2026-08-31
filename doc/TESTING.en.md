@@ -152,6 +152,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMissionDb.lua` | Mission snapshot, player roster, name registry, unit ids |
 | `test_veafMissionDb_scenery.lua` | Destroyed-scenery register: recording, zone lookup, event subscription |
 | `test_veafDcsSpawner.lua` | Runtime static creation: country, ids, shapes, random heading |
+| `test_csar_init.lua` | CSAR initialisation, in a real mission's load order (CSAR before VEAF): one event handler whatever happens |
 | `test_veafInterpreter.lua` | Mark text tokenizer |
 | `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | Security levels, admin management |

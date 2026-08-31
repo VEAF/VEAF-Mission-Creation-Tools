@@ -331,6 +331,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Both defects were found by flying the mission, not by the suite: the Lua tests load modules in the
   right order, and they teleport editor groups. Each now has a test that fails without its fix.
 
+- **Initialising CSAR twice registered its event handler twice, so every ejection would have been
+  processed twice.** Two MAYDAYs, two downed pilots for one crash. The same shape as the DCS event
+  handler registered twice until 6.17.0 — and reachable through the path the documentation itself
+  recommended: calling `csar.initialize` from `mission-script.lua`, which lands on top of the
+  automatic pass CSAR schedules two seconds after load.
+
+  Three mechanisms were supposed to prevent it and none could. `csar.alreadyInitialized` is read by
+  CSAR's guard and was written by nobody, so that branch was unreachable and its log line had never
+  once printed. `csar.skipInitialisation` was written by VEAF and read by nobody. And the wrapper
+  passed `force`, which bypasses the guard regardless.
+
+  Re-initialising is a feature, not an accident — it is how a mission maker's configuration callback
+  is applied — so the fix is not to refuse the second call but to make it idempotent: the previous
+  handler is removed before a new one is registered. The dead flag is gone, the live one is now set,
+  and the comment claiming CSAR does not auto-initialise has been corrected, because it does.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

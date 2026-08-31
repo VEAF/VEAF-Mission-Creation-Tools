@@ -5672,9 +5672,16 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CSAR
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Our CSAR (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
--- Instead, we count on the mission makers to call csar.initialize from mission-script.lua
--- Here, we're upgrading the vanilla CSAR initialize function so it's smarter
+-- CSAR **does** initialise on its own: the bottom of CSAR.lua schedules `csar.initialize` two
+-- seconds after load, and by then this file has replaced it with the wrapper below. The comment
+-- here used to claim the opposite ("does not autoinitialize"), which is how it read for anyone
+-- deciding whether they also had to call it from mission-script.lua (FIX-CSAR-INIT-GUARD).
+--
+-- Calling it from mission-script.lua is still supported and is how a configuration callback is
+-- applied. It simply happens *in addition to* the automatic pass, so the wrapper below is written
+-- to be safe to run twice.
+--
+-- The wrapper also routes CSAR's logging through VEAF's, and replaces several of its functions.
 
 ---The VEAF replacement function that wraps up around ctld.initialize
 ---@param configurationCallback function? a callback that will be called before calling the vanilla csar.initialize function
@@ -5864,8 +5871,11 @@ function veaf.csar_initialize_replacement(configurationCallback)
   if csar then
     veaf.loggers.get(veaf.Id):info(string.format("Setting up CSAR"))
 
-    -- change the init function so we can call it whenever we want
-    csar.skipInitialisation = true
+    -- `csar.skipInitialisation = true` used to be set here, with the comment "change the init
+    -- function so we can call it whenever we want". Nothing in the repository ever read it: it was
+    -- the other half of a mechanism that was never joined, and it made the initialisation look
+    -- guarded when it was not (FIX-CSAR-INIT-GUARD). Removed rather than wired, because what
+    -- actually needed guarding is the event handler, which is handled below.
 
     -- logging change
     csar.p = veaf.p
@@ -5920,9 +5930,29 @@ function veaf.csar_initialize_replacement(configurationCallback)
       veaf.loggers.get(csar.Id):info("done calling the configuration callback")
     end
 
+    -- Drop the previous event handler before the vanilla initialiser registers a new one.
+    --
+    -- FIX-CSAR-INIT-GUARD. `csar.initialize` ends with `world.addEventHandler(csar.eventHandler)`,
+    -- and DCS does not deduplicate: a second initialisation used to leave two handlers, so every
+    -- ejection was processed twice -- two MAYDAYs and two downed pilots for one crash. That is #824
+    -- in another file, and it was reachable through the path this very file documents to mission
+    -- makers ("we count on the mission makers to call csar.initialize from mission-script.lua"),
+    -- which lands on top of the automatic pass CSAR schedules two seconds after load.
+    --
+    -- CSAR's own guard could not help: `csar.alreadyInitialized` is read by it and written by
+    -- nobody, and the call below passes `force` anyway. Re-initialising deliberately is a feature --
+    -- it is how a mission maker's configuration callback gets applied -- so the fix is to make it
+    -- idempotent rather than to refuse it.
+    if veaf.csar_initialized then
+      world.removeEventHandler(csar.eventHandler)
+    end
+
     -- call the actual CSAR.initialize
     ---@diagnostic disable-next-line: param-type-mismatch
     veaf.csar_initialize(true)
+    -- Set what CSAR's own guard reads, so a direct call to the vanilla function without `force`
+    -- short-circuits instead of silently redoing the work.
+    csar.alreadyInitialized = true
     veaf.csar_initialized = true
     veaf.loggers.get(csar.Id):info(string.format("Done setting up CSAR"))
   else

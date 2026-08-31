@@ -27,7 +27,11 @@ TestCsarInitialisation = {}
 
 function TestCsarInitialisation:setUp()
   dcs_mocks.reset()
+  -- Both initialisation flags, or a test inherits the previous one's "already done" and asserts
+  -- against the leak rather than against the code. The suite is about initialising twice, so
+  -- carrying that state across tests would be the one mistake guaranteed to mislead.
   csar.alreadyInitialized = nil
+  veaf.csar_initialized = nil
   csar.csarUnits = {}
   csar.woundedGroups = {}
 end
@@ -80,6 +84,41 @@ function TestCsarInitialisation:test_re_initialising_applies_the_new_configurati
 
   luaunit.assertEquals(calls, 2, "both configuration callbacks ran")
   luaunit.assertEquals(#dcs_mocks.eventHandlers, 1, "and still one handler")
+end
+
+--- How many pending tasks are scheduled for `fn`.
+local function pendingFor(fn)
+  local count = 0
+  for _, task in pairs(dcs_mocks.scheduledTasks) do
+    if task.fn == fn then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+function TestCsarInitialisation:test_re_initialising_does_not_start_a_second_polling_chain()
+  -- `csar.addMedevacMenuItem` reschedules *itself* every five seconds, so each initialisation that
+  -- starts one leaves an independent chain running for the rest of the mission — they accumulate
+  -- and never stop. Worse than the duplicated handler: that one at least stops when the mission does.
+  --
+  -- Found by review on #852, after the handler fix; the same second call was doing two harmful
+  -- things and only one had been dealt with.
+  csar.initialize()
+  luaunit.assertEquals(pendingFor(csar.addMedevacMenuItem), 1, "one chain after one initialisation")
+
+  csar.initialize()
+
+  luaunit.assertEquals(pendingFor(csar.addMedevacMenuItem), 1, "still one chain, not two")
+end
+
+function TestCsarInitialisation:test_the_chain_keeps_running_after_a_re_initialisation()
+  -- Suppressing the duplicate must not suppress the original: the menu still has to be refreshed.
+  csar.initialize()
+  csar.initialize()
+  dcs_mocks.runScheduled(12)
+
+  luaunit.assertTrue(pendingFor(csar.addMedevacMenuItem) >= 1, "the surviving chain still reschedules")
 end
 
 function TestCsarInitialisation:test_csars_own_guard_is_no_longer_a_dead_branch()

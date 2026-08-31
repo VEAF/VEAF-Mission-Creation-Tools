@@ -112,6 +112,22 @@ that was never joined, and it made the initialisation look guarded when it was n
 All of this lives in `veaf.lua`, like the eight other replacements, so `CSAR.lua` stays a clean
 vendored copy.
 
+### The second thing the second call was doing
+
+Found by review on #852, after the handler fix had landed: `csar.initialize` also schedules
+`csar.addMedevacMenuItem`, which **reschedules itself** every five seconds — and
+`csar.reactivateAircraft` likewise when `disableAircraftTimeout` is on. Each initialisation that
+starts one leaves an independent chain running for the rest of the mission. They accumulate, and
+unlike the duplicated event handler nothing ever stops them.
+
+So the same second call was doing two harmful things and only one had been dealt with. During a
+*re*-initialisation the wrapper now declines those two schedules and restores `timer.scheduleFunction`
+immediately afterwards, in a `pcall` so a failing initialiser cannot leave a patched scheduler behind
+— that would silently swallow every CSAR timer for the rest of the mission.
+
+Nothing is lost by declining: the chain from the first initialisation is still running and still
+refreshing the menu, which a test asserts by advancing the clock past its next due time.
+
 ### The comment that said the opposite of the code
 
 `veaf.lua` claimed *"Our CSAR (VEAF version) does not autoinitialize"*. It does — the bottom of
@@ -134,7 +150,7 @@ There was **no test for CSAR at all**. `test_csar_init.lua` loads the scripts in
 order — CSAR *before* VEAF, which every other suite gets backwards — and that ordering is the point:
 it is why the load-time assertion defect shipped and broke every mission until it was found in game.
 
-Seven tests. Three fail when the handler removal is taken out.
+Nine tests. Three fail when the handler removal is taken out, a fourth when the chain filter is.
 
 ## Definition of done
 

@@ -5947,9 +5947,37 @@ function veaf.csar_initialize_replacement(configurationCallback)
       world.removeEventHandler(csar.eventHandler)
     end
 
+    -- ...and do not let it start a second polling chain either.
+    --
+    -- `csar.initialize` schedules `csar.addMedevacMenuItem`, which **reschedules itself** every five
+    -- seconds — and `csar.reactivateAircraft` likewise when `disableAircraftTimeout` is on. Each
+    -- initialisation that starts one leaves an independent chain running for the rest of the
+    -- mission. They accumulate, and unlike the duplicated event handler there is nothing that ever
+    -- stops them.
+    --
+    -- Neutralising the two calls for the duration of a *re*-initialisation is the narrowest fix that
+    -- does not touch the vendored CSAR.lua: the chain from the first initialisation is still there
+    -- and still refreshing the menu, so nothing is lost by declining to start a rival one.
+    local realScheduleFunction = timer.scheduleFunction
+    if veaf.csar_initialized then
+      timer.scheduleFunction = function(fn, args, time)
+        if fn == csar.addMedevacMenuItem or fn == csar.reactivateAircraft then
+          veaf.loggers.get(csar.Id):debug("re-initialisation: keeping the existing polling chain")
+          return nil
+        end
+        return realScheduleFunction(fn, args, time)
+      end
+    end
+
     -- call the actual CSAR.initialize
     ---@diagnostic disable-next-line: param-type-mismatch
-    veaf.csar_initialize(true)
+    local initialised, initError = pcall(veaf.csar_initialize, true)
+    -- Restored whatever happened: leaving a patched scheduler behind would silently swallow every
+    -- CSAR timer for the rest of the mission.
+    timer.scheduleFunction = realScheduleFunction
+    if not initialised then
+      error(initError, 0)
+    end
     -- Set what CSAR's own guard reads, so a direct call to the vanilla function without `force`
     -- short-circuits instead of silently redoing the work.
     csar.alreadyInitialized = true

@@ -22,7 +22,13 @@ import copy
 import functools
 import json
 
-from mission_tools.group_insertion import GROUP_CATEGORIES, coerce_country_list, find_or_add_country, max_ids
+from mission_tools.group_insertion import (
+    GROUP_CATEGORIES,
+    assign_country_to_side,
+    coerce_country_list,
+    find_or_add_country,
+    max_ids,
+)
 from veaf_libs.bundled_data import read_bundled_text
 
 _SIDES = ("blue", "red")
@@ -134,5 +140,9 @@ def ensure_coalitions_populated(mission_content: dict) -> list[str]:
         next_unit_id += 1
         country = find_or_add_country(coalition, template["country_id"], template["country_name"])
         country.setdefault("vehicle", {}).setdefault("group", []).append(group)
+        # The placeholder is what registers the coalition with DCS, and a country that owns units
+        # without being listed in `coalitions.<side>` registers nothing: DCS opens the CHANGING
+        # COALITIONS screen and refuses the mission (FIX-PREPARE-THEATRE-COALITIONS).
+        assign_country_to_side(mission_content, side, template["country_id"])
         injected.append(side)
     return injected

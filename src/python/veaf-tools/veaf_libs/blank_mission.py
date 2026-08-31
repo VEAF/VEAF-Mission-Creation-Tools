@@ -7,9 +7,13 @@ bullseye) from ``data/theatre-defaults.yaml``. See ``.backlog/FEAT-BLANK-MISSION
 
 The output is the exploded ``src/mission/`` file set a VEAF mission folder expects, ready for
 ``veaf-tools build`` and the MCP composites. Coalitions ship empty (no groups/countries): the maker
-fills them in, or every group-adding path does — ``mission_tools.group_insertion.add_group`` calls
-``assign_country_to_side`` so ``coalitions.<side>`` is populated in step with ``coalition.<side>``,
-which is what keeps a from-scratch mission loadable.
+fills them in, or every group-adding path does — each calls
+``mission_tools.group_insertion.assign_country_to_side`` so ``coalitions.<side>`` is populated in
+step with ``coalition.<side>``, which is what keeps a from-scratch mission loadable. Those paths are
+``group_insertion.add_group`` (the MCP composites), ``mission_builder.coalition_placeholder`` and
+``aircrafts_injector`` (the build). The last two only started doing so in
+FIX-PREPARE-THEATRE-COALITIONS: until then a mission scaffolded here and then built came out with
+units on both sides and no country assigned to either, and DCS refused to load it.
 """
 
 from functools import lru_cache

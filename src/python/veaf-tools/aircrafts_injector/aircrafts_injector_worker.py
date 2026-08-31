@@ -20,6 +20,7 @@ from mission_tools import (
     read_miz,
     write_miz,
 )
+from mission_tools.group_insertion import assign_country_to_side
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -781,6 +782,14 @@ class AircraftGroupsInjectorWorker(BaseWorker):
             try:
                 coalition = self._get_or_create_coalition_structure(coalition_name)
                 country = self._get_or_create_country(coalition, country_name)
+                # `coalition.<side>.country` holds the units; `coalitions.<side>` is the list of
+                # country ids assigned to that side. DCS needs both — a country that owns units but
+                # is not listed opens the CHANGING COALITIONS screen and the mission never loads.
+                # A mission from the Mission Editor already lists its countries, so this only ever
+                # fires for a country this injection just created (FIX-PREPARE-THEATRE-COALITIONS).
+                mission_content = self.dcs_mission.mission_content
+                assert mission_content is not None  # _get_or_create_coalition_structure() just filled it
+                assign_country_to_side(mission_content, coalition_name, country["id"])
                 mission_category = "plane" if category == "airplanes" else "helicopter"
                 groups_list = self._ensure_aircraft_category(country, mission_category)
             except Exception as e:

@@ -1,6 +1,6 @@
 # FIX-PREPARE-THEATRE-COALITIONS — a mission the validator says DCS will refuse
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: found while writing the tutorial (`DOC-TUTORIAL`, PR #863) — the walkthrough's own steps
 produced it.
@@ -34,13 +34,44 @@ starting a mission from nothing will use. A first mission that DCS refuses to lo
 documented happy path, is the worst possible first contact — and the failure surfaces two commands
 later, in `validate`, not where it was caused.
 
+## Outcome — reproduced, and worse than reported
+
+It reproduces, and `prepare` runs fine from a captured session: the "No Windows console found" that
+blocked the earlier attempt comes from the *overwrite* prompt, which only fires when the target
+folder already holds the files being copied. Into an empty folder there is no prompt.
+
+The report understated it. `validate` flags **both** sides, not only blue, and the built mission
+carries **six** unassigned countries: USA / France / CJTF Blue and Russia / USSR / CJTF Red, with
+`coalitions = { blue = {}, neutrals = {}, red = {} }` untouched.
+
+The offered explanation is right about the mechanism and incomplete about the culprits. Two build
+steps create countries, and neither assigned them:
+
+- the **aircraft-group injector**, for the shipped `src/spawnables.yaml` and
+  `src/dynamic-slot-templates.yaml` that `prepare` copies (CJTF Blue, CJTF Red, France, USSR);
+- the **coalition placeholder**, whose whole purpose is to register a side with DCS (USA, Russia).
+
+Fixed in the injectors, not in the generator — see the ticket for why the generator option would
+have silenced `validate` while leaving the mission unloadable.
+
 ## Definition of done
 
-- [ ] Reproduced (or shown not to reproduce, and the lot closed with that finding recorded)
-- [ ] If real: a mission produced by `prepare --theatre` + `build` loads in DCS
-- [ ] A test covering the path end to end — the defect is in the seam between two commands, so a
+- [x] Reproduced (or shown not to reproduce, and the lot closed with that finding recorded)
+- [x] If real: a mission produced by `prepare --theatre` + `build` loads in DCS — **not verified in
+      DCS** (no DCS on the machine that did this work). Verified instead that `validate` is clean and
+      that every unit-owning country id is listed in `coalitions.<side>`, which is the condition DCS
+      checks
+- [x] A test covering the path end to end — the defect is in the seam between two commands, so a
       test of either alone would have missed it, and did
-- [ ] The tutorial's step is re-checked against the fix
+- [x] The tutorial's step is re-checked against the fix — `doc/mission-maker/TUTORIAL.md` line 44 is
+      the exact command that was re-run; it now validates clean and the page needs no change
+
+## Left open
+
+`validate` reports a side only when it has **no** assigned country at all. A mission with one country
+assigned out of three passes it and still will not load. Out of scope here — the check also runs
+inside the build, so tightening it changes what existing missions are allowed to build — but worth a
+lot of its own.
 
 ## Scope
 

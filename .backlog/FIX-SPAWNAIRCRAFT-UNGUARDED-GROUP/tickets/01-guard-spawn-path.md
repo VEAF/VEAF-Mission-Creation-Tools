@@ -1,6 +1,6 @@
 # 01 — Guard the DCS group on the spawn path
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · File: `src/scripts/veaf/veafSpawnAircraft.lua`
 
@@ -15,9 +15,9 @@ kind of test through the mocks — so the two read alike for whoever meets them 
 
 ## Definition of done
 
-- [ ] No dereference of `_dcsSpawnedGroup` is unguarded
-- [ ] The nil case is reported at `warning`, naming the group
-- [ ] The chosen behaviour after the failure is deliberate and stated in the PR
-- [ ] The normal path is unchanged
-- [ ] A test drives the nil case and fails without the guard — verified by removing it
-- [ ] `poetry run test-lua` green, `stylua --check` clean
+- [x] No dereference of `_dcsSpawnedGroup` is unguarded
+- [x] The nil case is reported at `warning`, naming the group
+- [x] The chosen behaviour after the failure is deliberate and stated in the PR
+- [x] The normal path is unchanged
+- [x] A test drives the nil case and fails without the guard — verified by removing it
+- [x] `poetry run test-lua` green, `stylua --check` clean

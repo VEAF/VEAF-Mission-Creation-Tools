@@ -2647,4 +2647,167 @@ function TestSpawnTacanAnnouncesItself:test_a_jtac_speaks_even_when_scripted()
   luaunit.assertNotEquals(table.concat(self.messages, " | "), "", "a scripted JTAC must still be announced")
 end
 
+-- ============================================================================
+-- FIX-SPAWNAIRCRAFT-UNGUARDED-GROUP — the CAP spawn dereferenced a lookup it never checked
+--
+-- `spawnCombatAirPatrol()` submits the clone, then looks it up with `Group.getByName` and
+-- dereferences the answer five times running. The `if not _spawnedGroup` above vouches for the
+-- object `veaf.addGroup` built, not for what DCS answers a moment later, so an empty lookup raised
+-- on the very next line.
+--
+-- This is the same defect PR #872 fixed in `veafCombatMission.lua`, but it is not a logging fix:
+-- the fifth dereference is `getController()`, which is functional code. And it sits on the `-spawn`
+-- path, so a player asking a marker for a CAP is what reaches it.
+--
+-- These tests drive the nil through the DCS mocks, which need no help to produce it: the mock
+-- `coalition.addGroup` records the submission without registering the group, so `Group.getByName`
+-- comes back empty exactly as DCS does when it does not know a group it was just given. The last
+-- test registers the clone by hand, and is the normal path.
+-- ============================================================================
+TestVeafSpawnCapMissingSpawnedGroup = {}
+
+--- The editor template the CAP is cloned from, and the name its first clone gets.
+local CAP_TEMPLATE = "veafSpawn-LOSTCAP"
+local CAP_CLONE = string.format("%s #%04d", CAP_TEMPLATE, 1)
+
+function TestVeafSpawnCapMissingSpawnedGroup:setUp()
+  dcs_mocks.reset()
+  -- `dcs_mocks.reset()` does not clear these, and both decide the clone's name: a stale
+  -- `spawnedNames` makes the uniquifier append a ` #2` and the lookup then misses for the wrong
+  -- reason.
+  veafSpawn.spawnedNamesIndex = {}
+  veafMissionDb.groupsByName = {}
+  veafMissionDb.spawnedNames = {}
+  veafMissionDb.groupsByName[CAP_TEMPLATE] = {
+    name = CAP_TEMPLATE,
+    groupName = CAP_TEMPLATE,
+    category = "plane",
+    country = "USA",
+    countryId = 2,
+    units = { { name = CAP_TEMPLATE .. "-1", type = "F-15C", x = 0, y = 0, alt = 6000, heading = 0, skill = "Average" } },
+  }
+
+  -- The template lookup reads groups out of the running mission; patching it is how the existing
+  -- CAP tests above get a template, and it keeps these tests about the lookup that follows.
+  self._originalFind = veafSpawn.findSpawnableAircraftGroupname
+  veafSpawn.findSpawnableAircraftGroupname = function(_)
+    return CAP_TEMPLATE, { groupId = 1, units = {}, route = nil }
+  end
+
+  -- The CAP watchdog is what makes this a patrol rather than a group flying a straight line, so
+  -- whether it was scheduled says whether the spawn was actually set up.
+  self.scheduled = {}
+  local scheduled = self.scheduled
+  self._originalSchedule = veaf.scheduleFunction
+  veaf.scheduleFunction = function(fn, args, time)
+    table.insert(scheduled, { fn = fn, args = args, time = time })
+    return 1
+  end
+
+  self._logger = veaf.loggers.get(veafSpawn.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, { text = tostring(text), args = { ... } })
+  end
+end
+
+function TestVeafSpawnCapMissingSpawnedGroup:tearDown()
+  veafSpawn.findSpawnableAircraftGroupname = self._originalFind
+  veaf.scheduleFunction = self._originalSchedule
+  self._logger.warn = self._originalWarn
+  veafSpawn.spawnedNamesIndex = {}
+  veafMissionDb.groupsByName = {}
+  veafMissionDb.spawnedNames = {}
+  dcs_mocks.reset()
+end
+
+--- Ask for the CAP the way the `cap` command handler does. `silent` is false so the pilot-facing
+--- announcement is live and can be asserted on.
+local function spawnTheCap()
+  return veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, "LOSTCAP", "usa", 0, 0, 0, 20, nil, 60, "random", false, false)
+end
+
+--- Register the clone, so `Group.getByName` finds it as it does when DCS behaves.
+local function registerTheClone()
+  dcs_mocks.addGroup(CAP_CLONE, {
+    getUnits = function()
+      return { {
+        getName = function()
+          return CAP_CLONE .. " unit1"
+        end,
+      } }
+    end,
+    getController = function()
+      return {
+        setOption = function() end,
+      }
+    end,
+  })
+end
+
+--- Does any captured warning mention this text?
+local function anyCapWarningMentions(warnings, text)
+  for _, warning in ipairs(warnings) do
+    if warning.text:find(text, 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+-- The defect itself: DCS answers nil and the next line indexed it. Without the guard this raises
+-- "attempt to index local '_dcsSpawnedGroup' (a nil value)".
+function TestVeafSpawnCapMissingSpawnedGroup:test_a_lookup_that_comes_back_empty_does_not_raise()
+  local ok, err = pcall(spawnTheCap)
+  luaunit.assertTrue(ok, string.format("spawnCombatAirPatrol() raised when DCS could not find the spawned group: %s", tostring(err)))
+end
+
+-- The submission itself succeeded — only the lookup failed. The group must still have reached DCS,
+-- or the test would be proving something else entirely.
+function TestVeafSpawnCapMissingSpawnedGroup:test_the_group_still_reaches_dcs()
+  pcall(spawnTheCap)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+end
+
+-- A group that vanished between submission and lookup is worth saying out loud, and the message has
+-- to name it: a warning that does not say which group is one nobody can act on.
+function TestVeafSpawnCapMissingSpawnedGroup:test_the_missing_group_is_warned_about_by_name()
+  spawnTheCap()
+  luaunit.assertTrue(anyCapWarningMentions(self.warned, CAP_CLONE), "the warning must name the group DCS could not find")
+end
+
+-- The decision this lot had to make. Everything past the guard needs the DCS object — the
+-- controller sets PROHIBIT_AA, and the watchdog re-tasks the group onto targets — so there is no
+-- half-CAP to hand back. `nil` is what the function's two failure branches above already return.
+function TestVeafSpawnCapMissingSpawnedGroup:test_no_cap_name_is_handed_back()
+  luaunit.assertNil(spawnTheCap())
+end
+
+-- And the early return is a real one, not a guard wrapped around the log lines: the watchdog is not
+-- scheduled. It would have repeated this very lookup on its first tick and stopped anyway.
+function TestVeafSpawnCapMissingSpawnedGroup:test_no_watchdog_is_scheduled()
+  spawnTheCap()
+  luaunit.assertEquals(#self.scheduled, 0, "no watchdog must be scheduled for a group DCS cannot find")
+end
+
+-- Nor is the pilot told a CAP appeared, which would be a claim DCS cannot back. The announcement is
+-- matched on the CAP's name rather than on its wording, which is translated.
+function TestVeafSpawnCapMissingSpawnedGroup:test_the_pilot_is_not_told_a_cap_appeared()
+  spawnTheCap()
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("LOSTCAP"), 0)
+end
+
+-- The normal path is untouched: when DCS does know the clone, the name comes back, the watchdog is
+-- scheduled, the pilot is told, and nothing is warned about.
+function TestVeafSpawnCapMissingSpawnedGroup:test_a_group_dcs_knows_is_still_set_up()
+  registerTheClone()
+  luaunit.assertEquals(spawnTheCap(), CAP_CLONE)
+  luaunit.assertEquals(#self.scheduled, 1, "the watchdog must still be scheduled on the normal path")
+  luaunit.assertEquals(self.scheduled[1].fn, veafSpawn.startCapWatchdog)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("LOSTCAP"), 1)
+  luaunit.assertFalse(anyCapWarningMentions(self.warned, CAP_CLONE), "a group DCS found must not be warned about")
+end
+
 os.exit(luaunit.LuaUnit.run())

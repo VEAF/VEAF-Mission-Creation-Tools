@@ -1154,6 +1154,23 @@ function veafSpawn.spawnCombatAirPatrol(
   veaf.loggers
     .get(veafSpawn.Id)
     :trace("result of dcs side getByName, _dcsSpawnedGroup=%s", veaf.lp(_dcsSpawnedGroup, nil, { "route", "payload" }))
+  -- The `if not _spawnedGroup` above vouches for the object VEAF built, not for what DCS answers a
+  -- moment later, and the five dereferences that follow all assumed it did. Unlike the same defect
+  -- in `veafCombatMission` (FIX-COMBATMISSION-UNGUARDED-GROUP), this is not a logging fix:
+  -- `getController()` below is functional code, so dropping the traces would not have dropped the
+  -- crash.
+  --
+  -- The spawn itself still happened — the group was submitted, and the aircraft may well be flying.
+  -- But there is no half-CAP to carry on with: without a controller PROHIBIT_AA is never applied,
+  -- and the watchdog that makes this a *patrol* rather than a group flying a straight line would
+  -- repeat this very lookup on its first tick and stop. So this reports the failure the way the two
+  -- branches above already do, and hands nothing back rather than a name that stands for nothing.
+  if not _dcsSpawnedGroup then
+    veaf.loggers
+      .get(veafSpawn.Id)
+      :warn(string.format("group [%s] was spawned but DCS does not know it; no CAP will be set up", veaf.p(_spawnedGroup.name)))
+    return nil
+  end
   veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.name=%s", _dcsSpawnedGroup:getName())
   for index, unit in pairs(_dcsSpawnedGroup:getUnits()) do
     veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.unit[%s].name=%s", index, unit:getName())

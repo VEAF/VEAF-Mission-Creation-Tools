@@ -743,6 +743,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the same prompt. Left alone on purpose, because they were already guarded: the `--pause` exit
   pause, the `--interactive` group selectors, the `--tui` wizard and the `ask` REPL.
 
+- **Asking a marker for a CAP no longer risks a crash when DCS loses the group.**
+  `veafSpawn.spawnCombatAirPatrol` submits the aircraft, looks the fresh group up with
+  `Group.getByName`, and used to dereference the answer five times without checking it. The guard
+  above vouches for the object VEAF built, not for what DCS answers a moment later, so an empty
+  lookup took the whole `-spawn` command down.
+
+  It is the same defect as the one fixed in the combat mission elsewhere in this section, but on a
+  path a player reaches directly — and worse here, because the fifth dereference is
+  `getController()`: functional code, not a trace, so dropping the log lines would not have dropped
+  the crash.
+
+  The lookup is checked now. When it comes back empty, the spawn itself still happened and the
+  aircraft may well be flying, but there is no CAP to set up: without a controller the "prohibit
+  air-to-air" order never lands, and the watchdog that keeps a patrol hunting would repeat the same
+  failed lookup a second later and stop. So the command warns, naming the group, and reports the
+  failure the way its other two failure paths already do, rather than announcing a CAP nobody can
+  confirm exists.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

@@ -1,6 +1,6 @@
 # FIX-SPAWNAIRCRAFT-UNGUARDED-GROUP — the same crash, on the aircraft spawn path
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: found by the sweep of `FIX-COMBATMISSION-UNGUARDED-GROUP` (PR #872), which fixed the
 identical defect in the combat mission. Verified independently on `develop`.
@@ -43,14 +43,29 @@ invented twice, which is also why a sweep found it.
 
 ## Definition of done
 
-- [ ] A `Group.getByName` returning `nil` no longer raises anywhere in this path
-- [ ] It says so — at `warning`, naming the group; a spawn that half-succeeded is worth a line
-- [ ] What the code does next is decided rather than defaulted: without a controller there is no
+- [x] A `Group.getByName` returning `nil` no longer raises anywhere in this path
+- [x] It says so — at `warning`, naming the group; a spawn that half-succeeded is worth a line
+- [x] What the code does next is decided rather than defaulted: without a controller there is no
       route, no task and no behaviour, so returning early may well be the honest answer. Say which
       you chose
-- [ ] A test drives the nil case through the DCS mocks and fails without the fix — check it by
+- [x] A test drives the nil case through the DCS mocks and fails without the fix — check it by
       removing the guard, as #872 did
-- [ ] `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean
+- [x] `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean
+
+## What was decided
+
+**The function warns and returns `nil`.** Its twin carried on, because the combat mission had other
+elements to activate and only *tracking* was lost. Here there is nothing to carry on with:
+everything past the guard needs the DCS object. Without a controller `PROHIBIT_AA` is never applied,
+and the CAP watchdog — what makes this a patrol rather than a group flying a straight line, since it
+re-tasks the group onto targets — repeats the very same `Group.getByName` on its first tick and
+stops. Scheduling it would have been a no-op with a misleading log, and announcing "a CAP has been
+spawned" would have claimed something DCS cannot confirm.
+
+So the failure is reported the way the function's two branches above already report theirs, and
+nothing is handed back. The submission itself still happened and the aircraft may well be flying;
+what VEAF cannot do is call it a CAP. The caller costs nothing either way — `veafSpawn.executeCommand`
+already guards this same lookup before using the name it gets.
 
 ## Scope
 

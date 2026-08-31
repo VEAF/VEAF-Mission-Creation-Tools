@@ -144,9 +144,9 @@
     {
       "id": "property_record",
       "label": "Segments 3D non declares",
-      "help": "Segments de modele 3D non declares. Bruit constant au chargement.",
+      "help": "Segments ou cellules de modele 3D non declares. Bruit constant au chargement. DCS l'ecrit dans les deux sens, d'ou les deux formulations.",
       "default_hidden": true,
-      "match": "No property record for (segment|cell)",
+      "match": "(No property record for (segment|cell)|No cell for property record)",
       "regex": true
     },
     {
@@ -168,9 +168,9 @@
     {
       "id": "sound_source",
       "label": "Sources sonores introuvables",
-      "help": "source_add / invalid source_params : prototypes de son absents. Inaudible.",
+      "help": "Prototypes de son absents, fichiers d'onde introuvables. Inaudible.",
       "default_hidden": true,
-      "match": "(source_add\\(host:|invalid source_params\\()",
+      "match": "(source_add\\(host:|invalid source_params\\(|can't load wave:|can't find proto)",
       "regex": true
     },
     {
@@ -259,6 +259,30 @@
       "help": "Perte de liaison avec Winwing SimApp Pro, repetee en boucle.",
       "default_hidden": false,
       "match": "No message received from SimApp Pro",
+      "regex": true
+    },
+    {
+      "id": "missing_asset_file",
+      "label": "Fichiers d'assets absents",
+      "help": "Livrees, modeles ou animations qu'un mod reference sans les fournir. Volontairement borne aux repertoires d'assets : un fichier de mission ou de script introuvable est une vraie erreur, et reste visible.",
+      "default_hidden": true,
+      "match": "Can't open file: /(textures|models|animations|sounds)/",
+      "regex": true
+    },
+    {
+      "id": "model_lod",
+      "label": "Niveaux de detail non charges",
+      "help": "Modeles 3D dont un niveau de detail est refuse : boite englobante invalide, version de fichier incorrecte, ordre des lods.",
+      "default_hidden": true,
+      "match": "Can't load lod .* Reason:",
+      "regex": true
+    },
+    {
+      "id": "ui_texture",
+      "label": "Textures d'interface introuvables",
+      "help": "Images de theme reclamees par l'interface de DCS. Sans effet visible.",
+      "default_hidden": true,
+      "match": "Texture \\[[^\\]]*\\] not found",
       "regex": true
     },
     {

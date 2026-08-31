@@ -44,8 +44,8 @@ explique. Chaque catégorie peut avoir sa propre portée : le champ `±` appara�
 sa droite dès qu'elle passe en ◐, et laisser le champ vide reprend la valeur
 commune réglée en haut du panneau.
 
-Sur un journal de session réel, écarter le bruit ED ramène 2 710 lignes de niveau
-grave à 362.
+Sur un journal de session réel, écarter le bruit ED ramène 2 714 lignes de niveau
+grave à 278.
 
 ## Profils
 

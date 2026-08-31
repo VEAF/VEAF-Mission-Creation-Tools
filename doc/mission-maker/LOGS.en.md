@@ -42,7 +42,7 @@ can have its own span: the `±` field appears beside it as soon as it switches t
 ◐, and leaving that field empty falls back to the shared value set at the top of
 the panel.
 
-On a real session log, dropping the ED noise takes 2,710 severe lines down to 362.
+On a real session log, dropping the ED noise takes 2,714 severe lines down to 278.
 
 ## Profiles
 

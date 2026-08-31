@@ -19,6 +19,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`veaf-logs` recognises five more families of ED noise.** Running the tool on a real log turned up
+  errors it should have hidden and did not: missing livery, model and animation files, refused
+  levels of detail, missing UI textures, unloadable sound waves — and `No cell for property record`,
+  which is the same defect as the already-known `No property record for cell` written the other way
+  round. On the reference corpus, severe lines drop from **363 to 278**.
+
+  `Can't open file` is deliberately bounded to the asset directories. DCS writes it for a missing
+  livery, which is noise, but also for a mission or script it cannot open, which is exactly what a
+  mission maker must see; a test states that.
+
 - **`veaf-logs`, a reader for DCS logs.** A DCS log buries what matters under noise nobody can act on.
   This one knows our scripts and hides the rest — on a real session log, it takes 2,710 severe lines
   down to **362**.

@@ -163,6 +163,37 @@ class TestBruit:
             ("WARNING GRAPHICSCORE (Main): already registered Renderer callback", "renderer_callback"),
             ("WARNING WORLD (Main): ModelTimeQuantizer: ANTIFREEZE ENABLED", "antifreeze"),
             ("WARNING EDCORE (Main): hypervisor is active", "hypervisor"),
+            # Releves sur un journal reel apres la premiere mise en service.
+            (
+                "ERROR   WORLDGENERAL (Main): Error: Unit [MiG-23MLD]: No cell for property record GEAR_C.",
+                "property_record",
+            ),
+            (
+                "ERROR   WORLDGENERAL (Main): Error: Unit [MiG-21Bis]: No cell for property records MTG_L CELL#137",
+                "property_record",
+            ),
+            (
+                "ERROR   EDCORE (Main): Can't open file: /textures/liveries/s-3b/usa/description.lua.",
+                "missing_asset_file",
+            ),
+            ("ERROR   EDCORE (24556): Can't open file: /models/.", "missing_asset_file"),
+            (
+                "ERROR   EDCORE (37208): Can't open file: /animations/typegl.anim.",
+                "missing_asset_file",
+            ),
+            (
+                "ERROR   NGMODEL (21308): Can't load lod //models/invisiblefarp.edm of model "
+                "invisiblefarp. Reason: Model has invalid bounding box.",
+                "model_lod",
+            ),
+            (
+                "ERROR   DXGUI_EDGE_RENDER (Main): Texture [dxgui/skins/skinme/images/x.png] not found!",
+                "ui_texture",
+            ),
+            (
+                'ERROR   ED_SOUND (20376): can\'t load wave: "effects/ambient/field_night1.ogg"',
+                "sound_source",
+            ),
         ],
     )
     def test_famille_reconnue(self, rules, ligne, famille):
@@ -230,3 +261,31 @@ class TestSousSysteme:
         entry = une(rules, "2026-08-31 11:50:00.000 ERROR   EDCORE (Main): boum")
         assert entry.subsystem == "EDCORE"
         assert entry.source_label == "EDCORE"
+
+
+class TestBruitBorne:
+    """Les familles larges ne doivent pas masquer une vraie erreur.
+
+    `Can't open file` en particulier : DCS l'ecrit pour une livree manquante,
+    bruit qu'on veut cacher, mais aussi pour un fichier de mission ou de script
+    introuvable, qui est exactement ce qu'un createur de mission doit voir.
+    """
+
+    @pytest.mark.parametrize(
+        "ligne",
+        [
+            "ERROR   EDCORE (Main): Can't open file: /Missions/veaf-demo.miz.",
+            "ERROR   SCRIPTING (Main): Can't open file: veafRadio.lua.",
+            "ERROR   EDCORE (Main): Can't open file: l10n/DEFAULT/CTLD.lua.",
+        ],
+    )
+    def test_un_fichier_de_mission_reste_visible(self, rules, ligne):
+        store = indexer(rules, f"2026-08-31 11:50:40.872 {ligne}")
+        assert "missing_asset_file" not in store.noise_of(0)
+
+    def test_une_erreur_de_modele_nest_pas_un_lod(self, rules):
+        store = indexer(
+            rules,
+            "2026-08-31 11:50:40.872 ERROR   NGMODEL (1): Can't load lod without a reason",
+        )
+        assert "model_lod" not in store.noise_of(0), "le motif exige un 'Reason:'"

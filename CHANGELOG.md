@@ -17,6 +17,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`veaf-logs`, a reader for DCS logs.** A DCS log buries what matters under noise nobody can act on.
+  This one knows our scripts and hides the rest — on a real session log, it takes 2,710 severe lines
+  down to **362**.
+
+  Three things it does that a general-purpose log viewer structurally cannot. **A stack trace stays
+  with its error**: filtering on errors no longer hides the `stack traceback` that explains them.
+  **The level shown is the real one** — DCS logs all Lua as `INFO SCRIPTING`, so a `VEAF|W|` warning
+  arrives labelled INFO; this reads it from the prefix, and filtering on WARNING finally surfaces
+  VEAF, CTLD and CSAR warnings. And **ED's harmless errors are hidden by family** — corrupt damage
+  models, negative payload weights, missing taxi routes, IC failures — each one switchable, with a
+  running count of what is hidden, so the filter is never silent.
+
+  Every level, source and noise family also has a third state besides shown and hidden: **context**,
+  which keeps a category only around the lines that matter, the way `grep -C` does. Each one carries
+  its own span. A complete filter set saves as a **profile**; three ship with the tool.
+
+  It reads a **119 MB server log in 8.6 seconds using 37 MB of memory**, indexing in the background
+  while you already read and filter the first lines. It never holds the log open — on Windows that
+  would stop DCS from rotating its own `dcs.log` at launch.
+
+  Shipped as a separate `veaf-logs.exe` asset. Its Qt dependency is optional (`--extras logs`), so
+  `veaf-tools.exe` neither grows nor changes. Documented in `doc/mission-maker/LOGS.md`.
+
 ### Fixed
 
 - **A FARP's escort could be parked through a building, or in a wood.** The clear-ground search added in

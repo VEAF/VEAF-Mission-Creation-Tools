@@ -2090,6 +2090,25 @@ files = [
 diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
+name = "pyside6-essentials"
+version = "6.11.2"
+description = "Python bindings for the Qt cross-platform application and UI framework (Essentials)"
+optional = true
+python-versions = "<3.15,>=3.10"
+groups = ["main"]
+markers = "python_version <= \"3.14\" and extra == \"logs\""
+files = [
+    {file = "pyside6_essentials-6.11.2-cp310-abi3-macosx_13_0_universal2.whl", hash = "sha256:77795c145202e65a78d88f7cd409d186e3ba23d159bdb3ba2dcd159ae5e5f0d9"},
+    {file = "pyside6_essentials-6.11.2-cp310-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:aaf9f25f0f324874085fa5b26a610318db8a8e243cf85bb3e5400595191c7778"},
+    {file = "pyside6_essentials-6.11.2-cp310-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:d3ec6e1885c46e57f16364f38ea8040ffc5dc0b18341058f608fede3ba930567"},
+    {file = "pyside6_essentials-6.11.2-cp310-abi3-win_amd64.whl", hash = "sha256:c8a29def77032773a30879f7f24415b5395ad08592d147c170824ef4c735dfc1"},
+    {file = "pyside6_essentials-6.11.2-cp310-abi3-win_arm64.whl", hash = "sha256:fadd75c5c20800d64dd0a586ea8cb337c5e630aa2246df0e5105738afa46e02c"},
+]
+
+[package.dependencies]
+shiboken6 = "6.11.2"
+
+[[package]]
 name = "pytest"
 version = "9.1.1"
 description = "pytest: simple powerful testing with Python"
@@ -2566,6 +2585,22 @@ files = [
 ]
 
 [[package]]
+name = "shiboken6"
+version = "6.11.2"
+description = "Python/C++ bindings helper module"
+optional = true
+python-versions = "<3.15,>=3.10"
+groups = ["main"]
+markers = "python_version <= \"3.14\" and extra == \"logs\""
+files = [
+    {file = "shiboken6-6.11.2-cp310-abi3-macosx_13_0_universal2.whl", hash = "sha256:53659683b1f7a08e9f87eff9b1065f1ceb7110cd7a4bc09fdf5efe43d286604d"},
+    {file = "shiboken6-6.11.2-cp310-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:7a7a0a72a9ed26c9bf77d42246b1c736486befb8f31aa2fb29957ea4cdd1c1c2"},
+    {file = "shiboken6-6.11.2-cp310-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:4bbbd6fa4d7cff5ec5e12bc4c10e1d845fa30c89457ecb13cc64f7bddb77f6f9"},
+    {file = "shiboken6-6.11.2-cp310-abi3-win_amd64.whl", hash = "sha256:6ab0eba1c904455df621f9a6df3ca2bb896bab8670572d2bc4e37804ae91f19a"},
+    {file = "shiboken6-6.11.2-cp310-abi3-win_arm64.whl", hash = "sha256:97c49432488df958f0308736f3d15b6915d8826fc380af17bb4b9ec5c4a5e81b"},
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -2825,7 +2860,10 @@ files = [
 [package.extras]
 test = ["pytest", "pytest-cov"]
 
+[extras]
+logs = ["PySide6-Essentials"]
+
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "09493297c2f152a0d88b3be6b5df1102127e658b06dd0ba25466737a32a89ea8"
+content-hash = "d15a8526174508119be551c24d5238a925ea1f7c6624dcfef4b76c82b8133274"

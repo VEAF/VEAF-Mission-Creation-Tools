@@ -1,0 +1,285 @@
+{
+  "$schema_version": 1,
+  "$comment": [
+    "Catalogue de regles pour veaf-logs. Editable a la main : l'application le",
+    "recharge a chaud (menu Regles > Recharger) et l'exportateur klogg s'en sert",
+    "comme source unique.",
+    "",
+    "sources[]  : identification de l'emetteur d'une ligne (script Lua ou",
+    "             sous-systeme DCS natif). La premiere source dont un motif",
+    "             correspond gagne, dans l'ordre du fichier.",
+    "noise[]    : familles de bruit ED. Chaque famille est activable/desactivable",
+    "             independamment dans l'interface. 'default_hidden' dit si elle",
+    "             est masquee au demarrage.",
+    "levels{}   : couleurs par niveau, appliquees par-dessus la teinte de source."
+  ],
+
+  "sources": [
+    {
+      "id": "veaf",
+      "label": "VEAF",
+      "color": "#4aa3ff",
+      "match": "^VEAF(-[A-Z0-9]+)?\\|(?P<lvl>[A-Z])\\|",
+      "level_group": "lvl",
+      "level_map": {"T": "TRACE", "D": "DEBUG", "I": "INFO", "W": "WARNING", "E": "ERROR"},
+      "module_pattern": "^VEAF-([A-Z0-9]+)\\|"
+    },
+    {
+      "id": "veaf-dynamicloader",
+      "label": "VEAF",
+      "color": "#4aa3ff",
+      "match": "^VEAF-DYNAMICLOADER:"
+    },
+    {
+      "id": "ctld",
+      "label": "CTLD",
+      "color": "#3ecf8e",
+      "match": "^\\[CTLD\\]\\[(?P<lvl>[A-Z]+)\\]",
+      "level_group": "lvl"
+    },
+    {
+      "id": "csar",
+      "label": "CSAR",
+      "color": "#f0883e",
+      "match": "^\\s*(?P<lvl>[TDIWE]) - CSAR - ",
+      "level_group": "lvl",
+      "level_map": {"T": "TRACE", "D": "DEBUG", "I": "INFO", "W": "WARNING", "E": "ERROR"}
+    },
+    {
+      "id": "aien",
+      "label": "AIEN",
+      "color": "#c778dd",
+      "match": "^AIEN\\|(?P<lvl>[A-Z])\\|",
+      "level_group": "lvl",
+      "level_map": {"T": "TRACE", "D": "DEBUG", "I": "INFO", "W": "WARNING", "E": "ERROR"}
+    },
+    {
+      "id": "skynet",
+      "label": "Skynet",
+      "color": "#d29922",
+      "match": "(SKYNET|skynet)"
+    },
+    {
+      "id": "slmod",
+      "label": "Slmod",
+      "color": "#a5a5a5",
+      "match": "^(Slmod:|Loading SLMOD|MissionScripting\\.lua SLMOD)"
+    },
+    {
+      "id": "mist",
+      "label": "MIST",
+      "color": "#e06c9f",
+      "match": "\\bMIST\\b"
+    },
+    {
+      "id": "moose",
+      "label": "MOOSE",
+      "color": "#7ec8e3",
+      "match": "\\bMOOSE\\b"
+    },
+    {
+      "id": "dcs-bridge",
+      "label": "dcs-bridge",
+      "color": "#8b949e",
+      "match": "^\\[dcs-(bridge|fiddle-server)\\]"
+    },
+    {
+      "id": "grpc",
+      "label": "DCS-gRPC",
+      "color": "#8b949e",
+      "match": "(DCS-gRPC|grpc\\.lua)"
+    },
+    {
+      "id": "srs",
+      "label": "SRS",
+      "color": "#8b949e",
+      "match": "^(SRS|STTS)\\b"
+    },
+    {
+      "id": "lua",
+      "label": "Lua",
+      "color": "#ffb347",
+      "match": "^(Mission script error|stack traceback)"
+    }
+  ],
+
+  "subsystem_families": {
+    "$comment": "Regroupement des sous-systemes DCS natifs, pour le panneau lateral.",
+    "Moteur": ["APP", "DCS", "EDCORE", "Dispatcher", "SECURITYCONTROL", "LOG", "INTER"],
+    "Graphismes": ["DX11BACKEND", "GRAPHICSCORE", "VISUALIZER", "RENDERER", "ENLIGHT",
+                   "BACKENDCOMMON", "EDOBJECTS"],
+    "Terrain": ["TERRAIN", "EDTERRAIN4", "EDTERRAINGRAPHICS41", "SCENE", "WEATHER"],
+    "Monde": ["WORLDGENERAL", "WORLD", "WorldPlugIns", "FLIGHT", "wInfo", "COCKPITBASE"],
+    "Son": ["SOUND", "ED_SOUND", "SOUNDER"],
+    "Reseau": ["ASYNCNET", "NET", "MULTIPLAYER"],
+    "Scripts": ["SCRIPTING", "Scripting", "MissionScripting", "LuaHooks",
+                "MissionScripting::initialize"]
+  },
+
+  "noise": [
+    {
+      "id": "damage_model",
+      "label": "Modeles de degats corrompus",
+      "help": "Modules tiers dont le modele de degats n'est pas au format attendu. Cosmetique.",
+      "default_hidden": true,
+      "match": "Corrupt damage model\\.",
+      "regex": true
+    },
+    {
+      "id": "invalid_unit_module",
+      "label": "Modules d'unites absents",
+      "help": "Modules payants non installes, references par un pack d'unites. Sans effet.",
+      "default_hidden": true,
+      "match": "(Invalid Unit Module:|MISMATCH DESCRIPTOR TYPE)",
+      "regex": true
+    },
+    {
+      "id": "payload_weight",
+      "label": "Poids / trainee negatifs d'emport",
+      "help": "Erreurs de fiches d'armement ED sur les modules Heatblur et CoreMods.",
+      "default_hidden": true,
+      "match": "negative (weight|drag) of payload",
+      "regex": true
+    },
+    {
+      "id": "property_record",
+      "label": "Segments 3D non declares",
+      "help": "Segments de modele 3D non declares. Bruit constant au chargement.",
+      "default_hidden": true,
+      "match": "No property record for (segment|cell)",
+      "regex": true
+    },
+    {
+      "id": "duplicate_skipped",
+      "label": "Messages dupliques ignores",
+      "help": "Compte-rendu du deduplicateur interne de DCS.",
+      "default_hidden": true,
+      "match": "duplicate message\\(s\\) skipped\\.",
+      "regex": true
+    },
+    {
+      "id": "dlss_preset",
+      "label": "Preset DLSS inconnu",
+      "help": "DCS demande un preset DLSS que le pilote ne connait pas et retombe sur C.",
+      "default_hidden": true,
+      "match": "Unknown DLSS preset",
+      "regex": true
+    },
+    {
+      "id": "sound_source",
+      "label": "Sources sonores introuvables",
+      "help": "source_add / invalid source_params : prototypes de son absents. Inaudible.",
+      "default_hidden": true,
+      "match": "(source_add\\(host:|invalid source_params\\()",
+      "regex": true
+    },
+    {
+      "id": "render_target",
+      "label": "Cibles de rendu introuvables",
+      "help": "ERROR_ONCE du backend DX11 au demarrage de l'interface.",
+      "default_hidden": true,
+      "match": "((render target|texture) '[^']*' not found)",
+      "regex": true
+    },
+    {
+      "id": "renderer_callback",
+      "label": "Rappel graphique en double",
+      "help": "Rappel graphique enregistre deux fois au chargement d'une mission.",
+      "default_hidden": true,
+      "match": "already registered Renderer callback",
+      "regex": true
+    },
+    {
+      "id": "scene_alive",
+      "label": "Scene fermee avec objets vivants",
+      "help": "Objets encore references a la destruction d'une scene. Sans consequence.",
+      "default_hidden": true,
+      "match": "Scene was removed with \\d+ alive objects",
+      "regex": true
+    },
+    {
+      "id": "degenerate_triangle",
+      "label": "Triangles degeneres (collision)",
+      "help": "Triangles plats dans les modeles de collision du terrain.",
+      "default_hidden": true,
+      "match": "Removed degenerate triangle in collision",
+      "regex": true
+    },
+    {
+      "id": "taxiroad",
+      "label": "Chemins de roulage absents",
+      "help": "L'IA ne trouve pas de chemin de roulage entre deux points d'un aerodrome.",
+      "default_hidden": true,
+      "match": "No taxiroad found on ",
+      "regex": true
+    },
+    {
+      "id": "ic_fail",
+      "label": "Controle d'integrite (IC fail)",
+      "help": "Fichiers modifies detectes par le controle d'integrite. Attendu avec des mods.",
+      "default_hidden": true,
+      "match": "IC fail: ",
+      "regex": true
+    },
+    {
+      "id": "antifreeze",
+      "label": "ModelTimeQuantizer",
+      "help": "Regulation interne de la boucle de simulation.",
+      "default_hidden": true,
+      "match": "ModelTimeQuantizer: ",
+      "regex": true
+    },
+    {
+      "id": "dds_reprocess",
+      "label": "Textures DDS reconverties",
+      "help": "Texture au mauvais format, reconvertie a la volee.",
+      "default_hidden": true,
+      "match": "Need to reprocess \\[DDS\\] image",
+      "regex": true
+    },
+    {
+      "id": "obsolete_vfs",
+      "label": "API son depreciee",
+      "help": "Appel d'API deprecie par un mod de son.",
+      "default_hidden": true,
+      "match": "OBSOLETE mount_vfs_sound_path\\(\\)",
+      "regex": true
+    },
+    {
+      "id": "hypervisor",
+      "label": "Hyperviseur actif",
+      "help": "Avertissement de demarrage, normal avec la virtualisation Windows.",
+      "default_hidden": true,
+      "match": "hypervisor is active",
+      "regex": true
+    },
+    {
+      "id": "simapp_pro",
+      "label": "SimApp Pro / WWT",
+      "help": "Perte de liaison avec Winwing SimApp Pro, repetee en boucle.",
+      "default_hidden": false,
+      "match": "No message received from SimApp Pro",
+      "regex": true
+    },
+    {
+      "id": "verbose_veaf_debug",
+      "label": "Traces DEBUG des scripts VEAF",
+      "help": "VEAF-SHORTCUTS et VEAF-RADIO en DEBUG representent l'essentiel du volume.",
+      "default_hidden": false,
+      "match": "^VEAF(-[A-Z0-9]+)?\\|[DT]\\|",
+      "regex": true,
+      "on_message": true
+    }
+  ],
+
+  "levels": {
+    "ALERT":      {"color": "#ffffff", "background": "#7d1a1a", "weight": 700, "order": 0},
+    "ERROR":      {"color": "#ff6b6b", "background": "#3a1414", "weight": 700, "order": 1},
+    "ERROR_ONCE": {"color": "#ff9d6b", "background": "#33200f", "weight": 600, "order": 2},
+    "WARNING":    {"color": "#e3b341", "background": "#2b2410", "weight": 600, "order": 3},
+    "INFO":       {"color": "#c9d1d9", "background": null,      "weight": 400, "order": 4},
+    "DEBUG":      {"color": "#7d8590", "background": null,      "weight": 400, "order": 5},
+    "TRACE":      {"color": "#6e7681", "background": null,      "weight": 400, "order": 6},
+    "UNKNOWN":    {"color": "#8b949e", "background": null,      "weight": 400, "order": 7}
+  }
+}

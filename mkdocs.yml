@@ -111,6 +111,7 @@ nav:
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
     - Adopt a third-party mission: mission-maker/CONVERT_OTHER.md
     - Foothold moulinette: mission-maker/FOOTHOLD.md
+    - Read the DCS logs: mission-maker/LOGS.md
     - AI assistant — install: mission-maker/AI_ASSISTANT_INSTALL.md
     - AI assistant — action catalogue: mission-maker/AI_ASSISTANT_CATALOG.md
     - Aliases: ALIASES.md

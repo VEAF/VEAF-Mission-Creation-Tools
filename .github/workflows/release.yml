@@ -58,6 +58,12 @@ jobs:
       - name: Build release package
         run: poetry run veaf-build build --version ${{ steps.version.outputs.version }}
 
+      # veaf-logs has its own recipe: it bundles Qt and nothing of the mission
+      # build chain, and keeping it out of veaf-tools.exe spares that binary
+      # some forty megabytes for a window most of its users never open.
+      - name: Build the veaf-logs executable
+        run: poetry run pyinstaller veaf-logs.spec --noconfirm
+
       - name: Publish to GitHub
         shell: bash
         run: |
@@ -66,6 +72,13 @@ jobs:
           poetry run veaf-build publish --version "${{ steps.version.outputs.version }}" --ci --force $FLAG
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload veaf-logs to the release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.version.outputs.tag }}"             "dist/veaf-logs.exe#veaf-logs-${{ steps.version.outputs.version }}.exe" --clobber
 
       # Only a real release advances the floating published-latest tag; a pre-release leaves
       # production users on the previous stable (they opt in with --tag published-v<version>).

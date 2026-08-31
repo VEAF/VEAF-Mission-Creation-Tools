@@ -6,10 +6,18 @@ import ast
 import os
 import re
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from veaf_libs import i18n
-from veaf_libs.i18n import _detect_lang, _load_catalog, current_language, set_language, t
+from veaf_libs.i18n import (
+    _detect_lang,
+    _load_catalog,
+    current_language,
+    set_language,
+    set_language_from_argv,
+    t,
+)
 
 
 class TestTranslationLookup(unittest.TestCase):
@@ -111,6 +119,61 @@ class TestSetLanguage(unittest.TestCase):
         result = t("msg.work_done")
         self.assertIsInstance(result, str)
         self.assertTrue(len(result) > 0)
+
+
+class TestSetLanguageFromArgv(unittest.TestCase):
+    """set_language_from_argv() — the ``--lang`` pre-parse both entry points share.
+
+    It exists because Typer is too late: ``--help`` is eager and the ``help=`` strings are
+    ``t()`` calls frozen at import time. It used to be written out twice, once per entry point
+    (FIX-EXE-COMMAND-TREE).
+    """
+
+    def setUp(self) -> None:
+        self._previous = current_language()
+
+    def tearDown(self) -> None:
+        set_language(self._previous)
+
+    def test_separate_value(self) -> None:
+        set_language("en")
+        set_language_from_argv(["veaf-tools", "--lang", "fr", "build"])
+        self.assertEqual(current_language(), "fr")
+
+    def test_equals_form(self) -> None:
+        set_language("en")
+        set_language_from_argv(["veaf-tools", "--lang=fr", "build"])
+        self.assertEqual(current_language(), "fr")
+
+    def test_the_option_is_found_after_other_arguments(self) -> None:
+        set_language("en")
+        set_language_from_argv(["veaf-tools", "build", "--verbose", "--lang", "fr"])
+        self.assertEqual(current_language(), "fr")
+
+    def test_no_option_leaves_the_language_alone(self) -> None:
+        set_language("fr")
+        set_language_from_argv(["veaf-tools", "build", "--verbose"])
+        self.assertEqual(current_language(), "fr")
+
+    def test_a_trailing_bare_option_is_ignored_rather_than_crashing(self) -> None:
+        # `veaf-tools --lang` with nothing after it: Typer will reject it, but this runs first
+        # and an IndexError here would kill the process before Typer could say why.
+        set_language("en")
+        set_language_from_argv(["veaf-tools", "--lang"])
+        self.assertEqual(current_language(), "en")
+
+    def test_the_program_name_is_not_scanned(self) -> None:
+        # argv[0] is a path, and a checkout under a directory called `--lang=fr` is silly but
+        # must not decide the language.
+        set_language("en")
+        set_language_from_argv(["--lang=fr"])
+        self.assertEqual(current_language(), "en")
+
+    def test_it_defaults_to_sys_argv(self) -> None:
+        set_language("en")
+        with unittest.mock.patch.object(i18n.sys, "argv", ["veaf-tools", "--lang", "fr"]):
+            set_language_from_argv()
+        self.assertEqual(current_language(), "fr")
 
 
 class TestLoadCatalog(unittest.TestCase):

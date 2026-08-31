@@ -481,6 +481,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the current build. Two variants of the same day are not duplicates (that is what `build_variants:`
   emits in one build), and a `.miz` with no date in its name is left alone.
 
+- **The executable now offers the themed command tree the documentation describes**
+  (FIX-EXE-COMMAND-TREE). `veaf-tools.exe content extract-aircraft-groups` did not exist, while
+  `poetry run veaf-tools content extract-aircraft-groups` worked — so the whole of
+  `doc/CLI_REFERENCE`, grouped by theme since 6.14.0, described a CLI that only developers running
+  from a checkout could type, and never the one every mission maker has. Nothing broke loudly
+  because the flat names (`veaf-tools.exe extract-aircraft-groups`) survive as hidden aliases and
+  kept working throughout; they still do.
+
+  The missing line was `build_cli_tree(app)`, but the defect was the **duplication**: the entry
+  script PyInstaller reads (`src/python/veaf-tools/veaf-tools.py`) was a hand-copied twin of
+  `veaf_tools.app.main()` — the `--lang` pre-parse, the command registration, the TUI bridge, the
+  exit pause — and it simply never grew that call. It now delegates to `main()`, so there is one
+  implementation and nothing left to keep in step; the same duplication had already cost the
+  CLI ↔ TUI bridge once. A test walks the command tree each entry point builds and fails if the two
+  sets differ, naming the commands, rather than checking that one group exists — which would go
+  green again the day a sixth group is added on one side only. The `exe-smoke` CI job now runs a
+  grouped command and a flat alias against the built binary.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

@@ -11,7 +11,7 @@ Les outils qui ne sont **pas** `veaf-tools` — `veaf-tools-updater` pour la mis
 
 ## Comment lire cette page {#how-to-read}
 
-**Les commandes sont groupées par thème** depuis la version 6.13 : `veaf-tools convert v5` plutôt
+**Les commandes sont groupées par thème** : `veaf-tools convert v5` plutôt
 que `veaf-tools convert-v5`. L'ancienne forme plate reste enregistrée et fonctionne toujours — vos
 scripts et vos raccourcis n'ont rien à changer — elle est simplement masquée de `--help`. Chaque
 commande indique son alias plat sous son tableau.

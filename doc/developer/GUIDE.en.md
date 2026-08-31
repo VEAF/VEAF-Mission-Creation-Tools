@@ -436,7 +436,10 @@ logger.error("Failed", raise_exception=True)
 
 1. Create `src/python/veaf-tools/new_feature_injector/`
 2. Implement `new_feature_worker.py` with a `run()` method
-3. Register the command in `veaf-tools.py` using `typer`
+3. Register the command with `typer` under `veaf_tools/commands/`, then file it in a group in
+   `veaf_tools/command_tree.py` — an unplaced command fails the tests, because it would vanish from
+   `--help`. Nothing goes into `veaf-tools.py`: that entry point delegates to
+   `veaf_tools.app.main()` and knows no commands.
 4. Add YAML config schema in `models.py`
 
 ### Shared Test Helpers {#shared-test-helpers}

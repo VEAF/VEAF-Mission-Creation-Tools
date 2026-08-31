@@ -3,7 +3,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
 import typer
-from veaf_libs.i18n import set_language, t, tn  # noqa: F401  (tn re-exported for commands)
+from veaf_libs.i18n import set_language, set_language_from_argv, t, tn  # noqa: F401  (tn re-exported for commands)
 from veaf_libs.logger import configure_stdio_encoding, console, logger  # noqa: F401
 from veaf_libs.update_checker import check_for_updates
 
@@ -47,14 +47,16 @@ def main_callback(
 
 
 def main() -> None:
+    """Run the CLI. **The** implementation: both entry points end up here.
+
+    The frozen-executable entry script (``src/python/veaf-tools/veaf-tools.py``, what
+    PyInstaller reads) used to be a copy of this function, and the copy is what let the two
+    diverge: it never grew the :func:`build_cli_tree` call, so ``veaf-tools.exe content
+    extract-aircraft-groups`` did not exist while ``poetry run veaf-tools`` had it
+    (FIX-EXE-COMMAND-TREE). It now calls this function instead.
+    """
     # Parse --lang early so --help is rendered in the right language.
-    for _i, _a in enumerate(sys.argv[1:]):
-        if _a == "--lang" and _i + 1 < len(sys.argv) - 1:
-            set_language(sys.argv[_i + 2])
-            break
-        if _a.startswith("--lang="):
-            set_language(_a.split("=", 1)[1])
-            break
+    set_language_from_argv()
 
     from veaf_libs.tui import maybe_bridge_to_tui
 

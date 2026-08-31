@@ -138,6 +138,31 @@ def set_language(lang: str) -> None:
     _catalog = _load_catalog(_lang) if _lang != "en" else _en_catalog
 
 
+def set_language_from_argv(argv: list[str] | None = None) -> None:
+    """Apply a ``--lang`` passed on the command line, before anything reads a catalog.
+
+    Typer cannot do this itself: ``--help`` is eager, so it renders before the app callback
+    runs, and the ``help=`` strings are :func:`t` calls evaluated when their module is
+    imported. The language therefore has to be set *before* the command modules load, which
+    is earlier than any Typer machinery gets a turn — hence this hand-rolled scan.
+
+    It lives here rather than in either entry point because both need it: the ``veaf-tools``
+    console script (via :func:`veaf_tools.app.main`) and the frozen-executable entry script,
+    which calls it before importing anything that translates.
+
+    Args:
+        argv: The full argument vector, program name included. Defaults to ``sys.argv``.
+    """
+    args = sys.argv if argv is None else argv
+    for index, arg in enumerate(args[1:], start=1):
+        if arg == "--lang" and index + 1 < len(args):
+            set_language(args[index + 1])
+            return
+        if arg.startswith("--lang="):
+            set_language(arg.split("=", 1)[1])
+            return
+
+
 def current_language() -> str:
     """Return the currently active language code (e.g. ``"en"``, ``"fr"``)."""
     return _lang

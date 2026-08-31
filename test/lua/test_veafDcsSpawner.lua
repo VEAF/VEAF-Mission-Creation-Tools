@@ -864,12 +864,21 @@ end
 
 function TestVeafDcsSpawnerCurrentGroupData:test_the_editors_country_is_not_overwritten()
   -- The live lookup is a fallback, not a replacement: an editor group keeps what the snapshot says.
+  --
+  -- The live unit is made to answer a *different* country on purpose. Asserting merely that some
+  -- country field is set would pass against an implementation that overwrites the record — which is
+  -- exactly what this test exists to forbid.
   self:_editorGroup()
   self:_liveGroup(1, 2, 3)
+  Unit.getByName("Arco-1").getCountry = function()
+    return country.id.RUSSIA
+  end
 
   local data = veafDcsSpawner.getCurrentGroupData("Arco")
 
-  luaunit.assertNotNil(data.country or data.countryId, "one of the two is set")
+  luaunit.assertEquals(data.country, "USA", "the editor's country, not the live unit's")
+  luaunit.assertEquals(data.countryId, country.id.USA, "and its id, not RUSSIA's from the live unit")
+  luaunit.assertNotEquals(data.countryId, country.id.RUSSIA, "the fallback did not run over the record")
 end
 
 function TestVeafDcsSpawnerCurrentGroupData:test_the_live_position_wins_over_the_editor_one()

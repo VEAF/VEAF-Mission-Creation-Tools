@@ -15,7 +15,8 @@ the project. No delivery date is committed.
 **Persistent campaign.** A persistence module saving a mission's state between runs — the DCS units
 as well as the VEAF state machines (CAS missions, combat zones, QRA) — and on top of it, dynamic
 persistent campaign generation built entirely on VEAF tooling. The dependency path: drop MiST, then
-persistence, then the campaign.
+persistence, then the campaign — the first step is done, the VEAF scripts no longer call MiST and it
+is no longer injected by default.
 
 **AI-assisted tooling.** Describe a mission in French or English and get its `mission.yaml` with its
 spawns and zones — at *design time*, using the mission maker's own AI tooling rather than VEAF

@@ -160,7 +160,6 @@ veaf.BaseLogLevel = 3  -- Niveau de log par défaut (info) ; sert de plafond pou
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 veaf.DEFAULT_GROUND_SPEED_KTS = 16.2
 veaf.DEFAULT_SPEED_KTS = 350
-veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 ```
 
 #### Localisation (i18n) & retour pilote

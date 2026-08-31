@@ -214,6 +214,11 @@ local function SkynetNetworkDisable(iCoalition)
 end
 ```
 
+> Cet exemple appelle `mist.cloneInZone`, il a donc besoin de MiST — qui n'est plus injecté dans
+> toutes les missions. Placez l'extrait dans l'un de vos `src/scripts/*.lua` et le build voit l'appel
+> `mist.` et injecte MiST pour vous ; voir
+> [MiST : injecté seulement si vous en avez besoin](../GUIDE.md#mist-injection).
+
 ---
 
 ## Voir aussi

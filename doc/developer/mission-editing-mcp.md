@@ -292,10 +292,14 @@ de la refaire.
   plus une liste `verticies` — l'orthographe de DCS, conservée telle quelle parce que corriger la
   coquille écrirait un champ que DCS ignore — tandis que `x`, `y` et `radius` **restent présents**. Un
   polygone n'est donc pas un cercle avec des champs en plus.
-- **Ce que le runtime VEAF gère.** `veafCombatZone.lua` ne teste que deux types : `0` →
-  `mist.getUnitsInZones`, `2` → `mist.getUnitsInPolygon(triggerZone.verticies)`. Il n'y a **pas de
-  `else`**, donc une zone d'un autre type ne contiendrait aucune unité, en silence — pire que de ne pas
-  proposer la forme. L'action n'écrit donc que 0 et 2.
+- **Ce que le runtime VEAF gère.** À l'époque, `veafCombatZone.lua` ne testait que deux types : `0` →
+  `mist.getUnitsInZones`, `2` → `mist.getUnitsInPolygon(triggerZone.verticies)`. Il n'y avait **pas de
+  `else`**, donc une zone d'un autre type ne contenait aucune unité, en silence — pire que de ne pas
+  proposer la forme. L'action n'écrit donc que 0 et 2. Depuis `DROP-MIST`, le test vit dans
+  `veaf.getUnitsInTriggerZone` et appelle les fonctions VEAF `veaf.getUnitsInCircularZone` /
+  `veaf.getUnitsInPolygon` ; il n'accepte toujours que 0 et 2, mais un type inattendu journalise
+  désormais une erreur et renvoie `nil` au lieu d'une liste vide : le silence a disparu. La règle de
+  l'action est inchangée.
 
 **Décision de David sur le nombre de sommets (2026-08-12)** : accepter trois ou plus, puisque « suivre
 la ligne de crête » est le cas d'usage réel et que mist gère un polygone quelconque — mais **avertir**

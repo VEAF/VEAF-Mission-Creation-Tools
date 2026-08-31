@@ -14,7 +14,7 @@ Fournit des commandes pour déplacer ou téléporter des groupes DCS existants, 
 
 - `veafMarkers` — pour les commandes de marqueur
 - `veafRadio` — pour les entrées du menu radio
-- `mist` — pour la gestion des routes
+- `veafMissionDb` — lecture des fiches d'unités et de routes de la mission (`veaf.mist.getAllUnitData` est un alias VEAF, pas un appel à MiST). MiST lui-même n'est **pas** nécessaire.
 
 ---
 

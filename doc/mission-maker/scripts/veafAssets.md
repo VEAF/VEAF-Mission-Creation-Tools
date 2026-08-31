@@ -13,9 +13,9 @@ Gère les ressources persistantes d'une mission — ravitailleurs, AWACS, JTAC. 
 ## Dépendances
 
 - `veafRadio` — menu F10
-- **MiST** — obligatoire : la réapparition (`veafAssets.respawn`) utilise `mist.respawnGroup`.
+- `veafDcsSpawner` / `veafMissionDb` — la réapparition (`veafAssets.respawn`) reconstruit le groupe avec `VeafGroupSpawn`, à partir de la fiche de mission que VEAF indexe au démarrage. MiST n'est **pas** nécessaire (il l'était, via `mist.respawnGroup`).
 
-> ⚠️ **Les assets doivent être des groupes placés dans le Mission Editor.** Le `name` de chaque asset doit correspondre exactement à un groupe présent dans le `.miz` (et chaque entrée `linked`). Un asset spawné dynamiquement ou mal nommé n'est pas dans la base MiST (`mist.DBs.MEgroupsByName`) → la réapparition échoue silencieusement en jeu. Le build émet désormais un **avertissement** si un groupe déclaré (ASSETS, QRA, …) est absent de la mission.
+> ⚠️ **Les assets doivent être des groupes placés dans le Mission Editor.** Le `name` de chaque asset doit correspondre exactement à un groupe présent dans le `.miz` (et chaque entrée `linked`). Un asset spawné dynamiquement ou mal nommé n'est pas dans la base de mission construite par VEAF au démarrage (`veaf.getGroupRecord`) → la réapparition échoue silencieusement en jeu. Le build émet désormais un **avertissement** si un groupe déclaré (ASSETS, QRA, …) est absent de la mission.
 
 ---
 

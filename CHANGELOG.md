@@ -673,6 +673,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Editor partitions all 93 country ids across the three sides, so the inclusion holds there by
   construction. It is generated missions that could drift.
 
+- **The documentation stopped saying MiST is mandatory.** `DROP-MIST` made MiST opt-in, but the docs
+  still described the old rule, and described it as a rule: `MISSION_YAML_REFERENCE` told a reader
+  that an explicit `MIST: false` would be "overridden with a build warning and the script injected
+  anyway", and its module table called MiST "mandatory, cannot be disabled". Neither is true —
+  `MANDATORY_COMMUNITY_SCRIPTS` is empty, and MiST ships only when the mission asks for it or when
+  the build finds one of the mission's own scripts calling `mist.`. Both pages now state the rule
+  that replaced it, in both languages.
+
+  The shipped `src/defaults/mission-folder/mission.yaml` contradicted itself: a comment saying MiST
+  was "no longer injected by default (336 KB saved)" in the Infrastructure block, and another saying
+  it was "mandatory and lives in the Infrastructure block above" among the community scripts. MiST
+  now sits once, with the other community scripts, where `mission_template.py` already places it.
+
+  Found by sweeping the tree rather than fixing the three known spots: `veafAssets` credited MiST
+  with a respawn that goes through `VeafGroupSpawn`, `veafMove` listed `mist` as a dependency it does
+  not have (`veaf.mist.*` are VEAF aliases onto `veafMissionDb`, not MiST calls), `TESTING` listed a
+  `mist` stub `dcs_mocks.lua` no longer contains, `LUA_API_REFERENCE` documented a
+  `veaf.MIST_MARKER_ID_INITIAL_VALUE` constant that exists nowhere in the code, and
+  `MISSION_YAML_REFERENCE` still called TUM the only opt-in community script.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

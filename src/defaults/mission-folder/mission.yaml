@@ -73,11 +73,6 @@ modules:
   EVENTS:
   MARKERS:
   COMMANDS:
-  # MIST: true              # MiST community lib — no longer injected by default (336 KB saved).
-                            # VEAF stopped calling it entirely; the build turns it back on by itself
-                            # if one of your own src/scripts/*.lua calls `mist.` — set it to true
-                            # here only when something reaches MiST indirectly (through _G, or from
-                            # a script loaded by another script), which the build cannot see.
   # ── Core ─────────────────────────────────────────────────────────────────
   SECURITY: true
   RADIO: true               # the VEAF F10 radio menu
@@ -199,7 +194,11 @@ modules:
   #           - groups: su27-2ship
   #             delay: 0
   # ── Community scripts (off by default — enable what your mission uses) ─────
-  # (MiST is mandatory and lives in the Infrastructure block above.)
+  MIST: false               # MiST community lib — no longer injected by default (336 KB saved).
+                            # VEAF stopped calling it entirely; the build turns it back on by itself
+                            # if one of your own src/scripts/*.lua calls `mist.` — set it to true
+                            # here only when something reaches MiST indirectly (through _G, or from
+                            # a script loaded by another script), which the build cannot see.
   STTS: false
   CTLD: false               # configured in ctld-config.yaml, beside this file (edit it with ctld-tools)
                             # extended: CTLD -> { enabled: true, manage_logistics: true }

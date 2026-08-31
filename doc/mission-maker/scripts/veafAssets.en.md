@@ -14,9 +14,9 @@ Manages the persistent assets in a mission — tankers, AWACS, JTACs. Provides F
 ## Dependencies
 
 - `veafRadio` — F10 menu
-- **MiST** — mandatory: respawn (`veafAssets.respawn`) uses `mist.respawnGroup`.
+- `veafDcsSpawner` / `veafMissionDb` — respawn (`veafAssets.respawn`) rebuilds the group with `VeafGroupSpawn`, from the mission record VEAF indexes at start-up. MiST is **not** required (it used to be, through `mist.respawnGroup`).
 
-> ⚠️ **Assets must be groups placed in the Mission Editor.** Each asset `name` (and each `linked` entry) must exactly match a group present in the `.miz`. A dynamically-spawned or mis-named asset is not in MiST's database (`mist.DBs.MEgroupsByName`) → respawn fails silently in-game. The build now emits a **warning** when a declared group (ASSETS, QRA, …) is absent from the mission.
+> ⚠️ **Assets must be groups placed in the Mission Editor.** Each asset `name` (and each `linked` entry) must exactly match a group present in the `.miz`. A dynamically-spawned or mis-named asset is not in the mission database VEAF builds at start-up (`veaf.getGroupRecord`) → respawn fails silently in-game. The build now emits a **warning** when a declared group (ASSETS, QRA, …) is absent from the mission.
 
 ---
 

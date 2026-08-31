@@ -111,7 +111,6 @@ Provides minimal stubs for the DCS global API so modules can be `require`d witho
 - `Unit`, `Group`, `StaticObject`, `Airbase`
 - `coalition`, `country`, `radio`
 - `trigger` (including `trigger.smokeColor`, `trigger.action.*`)
-- `mist` (basic utilities used by several modules)
 - Math helpers (`math.isnan`, `math.inf`)
 
 If a new module fails to load because a DCS API call is missing, add the stub to `dcs_mocks.lua`.

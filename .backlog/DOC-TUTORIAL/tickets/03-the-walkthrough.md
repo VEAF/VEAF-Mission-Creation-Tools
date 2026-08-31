@@ -1,6 +1,6 @@
 # 03 — The walkthrough: an entire mission, end to end
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/TUTORIAL.md` + `.en.md`, `mkdocs.yml`
 
@@ -18,13 +18,13 @@ than a full explanation inline.
 
 ## Definition of done
 
-- [ ] A reader who knows the Mission Editor and nothing about VMCT ends up with a mission that
+- [x] A reader who knows the Mission Editor and nothing about VMCT ends up with a mission that
       loads and works
-- [ ] Every command and every YAML block is real — run them; a step that does not work is a reader
+- [x] Every command and every YAML block is real — run them; a step that does not work is a reader
       lost for good
-- [ ] Says what to check in game after each step, not only what to type
-- [ ] Both languages, in the `nav`
-- [ ] `poetry run docs-check` passes
+- [x] Says what to check in game after each step, not only what to type
+- [x] Both languages, in the `nav`
+- [x] `poetry run docs-check` passes
 
 ## Watch out
 

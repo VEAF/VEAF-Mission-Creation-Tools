@@ -2,6 +2,10 @@
 
 Intégrez le framework Lua VEAF dans vos missions DCS World pour offrir à vos joueurs du spawning dynamique, des zones de combat, des assets gérés, et plus — sans placer des centaines d'unités dans l'éditeur.
 
+> **Vous débutez ?** Lisez [Découvrir VMCT en dix minutes](DISCOVER.md) pour la vue d'ensemble, puis
+> suivez le [tutoriel](TUTORIAL.md), du dossier vide à la mission qui tourne. Les
+> [fiches par concept](concepts/README.md) sont ce que vous rouvrez ensuite, une par une.
+
 ---
 
 ## Démarrage rapide — Votre première mission VEAF
@@ -66,6 +70,9 @@ Voir le [catalogue complet des scripts](scripts/README.md) pour les 17+ modules.
 
 | Document | Quand le lire |
 |----------|---------------|
+| [Découvrir VMCT](DISCOVER.md) | Dix minutes : ce que sont les pièces et comment elles s'articulent |
+| [Tutoriel — votre première mission](TUTORIAL.md) | Un fil unique, du dossier vide à la mission qui tourne |
+| [Les fiches](concepts/README.md) | Une page courte par concept, avec un exemple qui marche |
 | [Guide complet](GUIDE.md) | Setup détaillé, configuration, et workflow de build |
 | [Guide de migration](MIGRATION_GUIDE.md) | Conversion depuis VEAF MCT v5 ou ajout de VEAF MCT à une mission existante |
 | [Référence des scripts](scripts/README.md) | Documentation par module avec commandes et exemples de config |

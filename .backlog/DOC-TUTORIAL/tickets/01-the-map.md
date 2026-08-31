@@ -1,6 +1,6 @@
 # 01 — The map: one page, the whole territory
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/DISCOVER.md` + `.en.md` (name it as you see fit), `mkdocs.yml`
 
@@ -18,7 +18,7 @@ teaches it.
 
 ## Definition of done
 
-- [ ] One page, both languages, in the `nav` with its `nav_translations`
-- [ ] Every concept named links to its card (ticket 02) or to the reference
-- [ ] No version number written by hand
-- [ ] `poetry run docs-check` passes
+- [x] One page, both languages, in the `nav` with its `nav_translations`
+- [x] Every concept named links to its card (ticket 02) or to the reference
+- [x] No version number written by hand
+- [x] `poetry run docs-check` passes

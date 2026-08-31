@@ -142,8 +142,10 @@ function TestVeafCombatZoneElement:test_setGetSpawnCount()
   luaunit.assertEquals(self.el:getSpawnCount(), 3)
 end
 
+-- `spawnCount` holds **nil** until a `#spawncount=` tag states one — see
+-- TestVeafCombatZoneSpawnChance for why the distinction is what the guarantee rests on.
 function TestVeafCombatZoneElement:test_spawnCount_default()
-  luaunit.assertEquals(self.el.spawnCount, 1)
+  luaunit.assertNil(self.el.spawnCount)
 end
 
 function TestVeafCombatZoneElement:test_setGetSpawnDelay()
@@ -2823,6 +2825,205 @@ function TestCombatOperationBriefing:test_the_briefing_is_still_there()
   -- message that lost most of its content.
   local message = self:_completedOperation():getInformation()
   luaunit.assertNotNil(message:find("Destroy the armored group", 1, true))
+end
+
+-- ============================================================================
+-- FIX-COMBATZONE-SPAWNCHANCE — a spawn chance that never denied a spawn
+--
+-- `activate()` drew a random number per element and retried until `spawnCount` elements had spawned,
+-- forcing the draw on the last try. With `spawnCount` defaulting to 1 and an element with no
+-- `#spawngroup` forming its own group, the common case was one element that always spawned:
+-- `#spawnchance` changed *when*, never *whether*.
+--
+-- The retries and the forced draw are what honours a **stated** `#spawncount` — "2 of these 4,
+-- granted". Without one there is nothing to guarantee, so each element gets exactly one draw against
+-- its own `#spawnchance`.
+--
+-- These tests go through `activate()` and count what actually reached the spawner, not what the
+-- getters hold: the defect lived entirely in the loop, and every getter was already correct.
+-- ============================================================================
+TestVeafCombatZoneSpawnChance = {}
+
+-- A seeded generator, because the assertions below are statistical and a statistic asserted against
+-- the interpreter's own RNG is a test that fails once in a while for no reason. This is a plain LCG,
+-- so the same sequence comes out of Lua 5.1 and of the 5.4 shim the CI runs on — `math.randomseed`
+-- guarantees neither.
+local function seededRandom(seed)
+  local state = seed % 2147483647
+  if state <= 0 then
+    state = state + 2147483646
+  end
+  return function(m, n)
+    state = (state * 16807) % 2147483647
+    local unit = (state - 1) / 2147483646 -- in [0, 1)
+    if m == nil then
+      return unit
+    end
+    if n == nil then
+      m, n = 1, m
+    end
+    return m + math.floor(unit * (n - m + 1))
+  end
+end
+
+function TestVeafCombatZoneSpawnChance:setUp()
+  self._random = math.random
+  math.random = seededRandom(20260831)
+
+  self.spawned = {}
+  local spawned = self.spawned
+  -- Stand in for the interpreter: every element below is a `#command` element, so this is the single
+  -- point `activate()` reaches when it decides to spawn. Recording here proves the decision, and the
+  -- zone's own bookkeeping (`getSpawnedGroups`) proves the element was really spawned, not just chosen.
+  self._interpreter = veafInterpreter
+  veafInterpreter = {
+    execute = function(command, position, coa, route, spawnedGroups)
+      table.insert(spawned, command)
+      veaf.collectSpawnedGroup(spawnedGroups, "GROUP-" .. #spawned)
+      return true
+    end,
+  }
+end
+
+function TestVeafCombatZoneSpawnChance:tearDown()
+  math.random = self._random
+  veafInterpreter = self._interpreter
+end
+
+--- Build a zone whose elements are `#command` triggers, one per description.
+--- @param descriptions a list of { chance = n, count = n, group = "name" }, all optional
+local function zoneOf(descriptions)
+  local zone = VeafCombatZone:new()
+  zone:setMissionEditorZoneName("ChanceZone")
+  zone:setFriendlyName("Chance Zone")
+  zone:setCompletable(false) -- keeps activate() from scheduling a watchdog on every run
+  for i, description in ipairs(descriptions) do
+    local element = VeafCombatZoneElement:new()
+    element:setName("ELEMENT-" .. i)
+    element:setPosition({ x = 0, y = 0, z = 0 })
+    element:setCoalition(coalition.side.RED)
+    element:setVeafCommand("-spawn sa-11")
+    element:setSpawnGroup(description.group or ("ELEMENT-" .. i)) -- what buildCommandElement defaults to
+    if description.chance then
+      element:setSpawnChance(description.chance)
+    end
+    if description.count then
+      element:setSpawnCount(description.count)
+    end
+    zone:addZoneElement(element)
+  end
+  return zone
+end
+
+--- Activate a freshly built zone `runs` times and return how many elements spawned each time.
+local function spawnCounts(self, descriptions, runs)
+  local counts = {}
+  for _ = 1, runs do
+    local before = #self.spawned
+    local zone = zoneOf(descriptions)
+    zone:activate()
+    table.insert(counts, #self.spawned - before)
+  end
+  return counts
+end
+
+local function total(counts)
+  local sum = 0
+  for _, count in ipairs(counts) do
+    sum = sum + count
+  end
+  return sum
+end
+
+-- The defect itself: a lone element at 50 % used to spawn every single time.
+function TestVeafCombatZoneSpawnChance:test_a_lone_element_at_50_percent_spawns_about_half_the_time()
+  local spawns = total(spawnCounts(self, { { chance = 50 } }, 1000))
+  luaunit.assertTrue(spawns > 430 and spawns < 570, string.format("expected roughly 500 spawns out of 1000 draws at 50%%, got %d", spawns))
+end
+
+-- The other end of the scale, and the defect at its most visible: `#spawnchance=0` must never spawn.
+-- It used to spawn on the forced try, and even without the force `math.random(0, 100) <= 0` gave it
+-- one chance in 101.
+function TestVeafCombatZoneSpawnChance:test_a_zero_chance_element_never_spawns()
+  luaunit.assertEquals(total(spawnCounts(self, { { chance = 0 } }, 500)), 0)
+end
+
+-- The default must not become a probability: an element with no `#spawnchance` still always spawns.
+function TestVeafCombatZoneSpawnChance:test_the_default_chance_still_always_spawns()
+  luaunit.assertEquals(total(spawnCounts(self, { {} }, 200)), 200)
+end
+
+-- `#spawnchance=100` written by hand is the same promise as the default.
+function TestVeafCombatZoneSpawnChance:test_a_hundred_percent_element_always_spawns()
+  luaunit.assertEquals(total(spawnCounts(self, { { chance = 100 } }, 200)), 200)
+end
+
+-- The documented MANPADS ambush: four positions at 50 %, each its own group since none carries a
+-- `#spawngroup`. The doc promises "around two active"; it used to deliver four, every time.
+function TestVeafCombatZoneSpawnChance:test_the_manpads_example_yields_about_two_of_four()
+  local runs = 400
+  local counts = spawnCounts(self, { { chance = 50 }, { chance = 50 }, { chance = 50 }, { chance = 50 } }, runs)
+  local average = total(counts) / runs
+  luaunit.assertTrue(average > 1.7 and average < 2.3, string.format("expected about 2 of 4 active, got %.2f", average))
+  -- and it varies: a run that always returned the same number would pass the average above
+  local sawFewerThanFour = false
+  for _, count in ipairs(counts) do
+    luaunit.assertTrue(count >= 0 and count <= 4)
+    if count < 4 then
+      sawFewerThanFour = true
+    end
+  end
+  luaunit.assertTrue(sawFewerThanFour, "every activation spawned all four — the chance is still ignored")
+end
+
+-- A stated `#spawncount` is a promise of a number, and that is what the retries and the forced draw
+-- are for. Two of these four, every time, whatever the draws.
+function TestVeafCombatZoneSpawnChance:test_a_stated_spawncount_still_yields_exactly_that_many()
+  local group = { group = "SAM", count = 2 }
+  local counts = spawnCounts(self, { group, group, group, group }, 200)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2, "a stated #spawncount=2 must deliver 2")
+  end
+end
+
+-- The retries have to do their job: a stated count reaches its number even when every element is at
+-- 50 %, which is exactly the case a single pass would fail.
+function TestVeafCombatZoneSpawnChance:test_a_stated_spawncount_reaches_its_number_at_50_percent()
+  local group = { group = "SAM", count = 2, chance = 50 }
+  local counts = spawnCounts(self, { group, group, group, group }, 200)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2, "the retries must reach the stated count despite the chance")
+  end
+end
+
+-- An element whose `#spawncount` was never written keeps `nil`, which is what tells the loop it has
+-- nothing to guarantee. Defaulting it to 1 at creation is what erased the distinction.
+function TestVeafCombatZoneSpawnChance:test_spawn_count_is_unstated_by_default()
+  luaunit.assertNil(VeafCombatZoneElement:new():getSpawnCount())
+end
+
+function TestVeafCombatZoneSpawnChance:test_a_stated_spawn_count_is_kept()
+  luaunit.assertEquals(VeafCombatZoneElement:new():setSpawnCount("3"):getSpawnCount(), 3)
+end
+
+-- Elements sharing a `#spawngroup` without a `#spawncount` keep the group's implicit cap of one, so
+-- the tag goes on meaning "one of these" — but each candidate now draws for it instead of the first
+-- one being handed the slot.
+function TestVeafCombatZoneSpawnChance:test_a_group_without_a_stated_count_still_spawns_at_most_one()
+  local group = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { group, group, group, group }, 300)
+  local sawNone, sawOne = false, false
+  for _, count in ipairs(counts) do
+    luaunit.assertTrue(count <= 1, string.format("an unstated count caps the group at one, got %d", count))
+    if count == 0 then
+      sawNone = true
+    end
+    if count == 1 then
+      sawOne = true
+    end
+  end
+  luaunit.assertTrue(sawNone, "with no stated count, a group of 50% elements must sometimes spawn nothing")
+  luaunit.assertTrue(sawOne, "and must sometimes spawn one")
 end
 
 os.exit(luaunit.LuaUnit.run())

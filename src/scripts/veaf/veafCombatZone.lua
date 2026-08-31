@@ -284,8 +284,15 @@ function VeafCombatZoneElement:new(objectToCopy)
   objectToCreate.spawnChance = 100
   -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
   objectToCreate.spawnGroup = nil
-  -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
-  objectToCreate.spawnCount = 1
+  -- How many of a spawn group's elements are *guaranteed* to spawn, set with the `#spawncount=` tag,
+  -- by running the spawn random chance computation as often as necessary.
+  -- **nil means "not stated"**, and that is what tells `activate()` it has nothing to guarantee: the
+  -- retries and the forced last draw are the promise a written `#spawncount` makes ("2 of these 4,
+  -- granted"), so they must not fire for a count nobody asked for. Defaulting it to 1 here is exactly
+  -- what made `#spawnchance` unable to deny a spawn: a lone element — the common case, since an
+  -- element with no `#spawngroup` forms its own group — got nine random draws and then a forced one.
+  -- The count still reads as 1 where it is used, so the cap itself is unchanged.
+  objectToCreate.spawnCount = nil
   -- Alarm state applied to the spawned group (0 AUTO, 1 GREEN, 2 RED), set with the `#alarm=` tag.
   -- **nil means "not stated"**, which is what lets the state be chosen by the group's nature at spawn
   -- time. Defaulting it here would make a deliberate `#alarm=0` indistinguishable from silence.
@@ -1572,9 +1579,16 @@ function VeafCombatZone:activate()
 
   for _, zoneElementGroup in pairs(self:getZoneElementsGroups()) do
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing spawnGroup [%s]", zoneElementGroup.spawnGroup))
-    local spawnCount = zoneElementGroup.spawnCount
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d]", spawnCount))
-    local tries = 10
+    -- A `#spawncount` the mission maker wrote is a promise of a number — "2 of these 4, granted" — and
+    -- the retries below, forcing the draw on the last one, are what keeps it. Left unstated it is nil,
+    -- there is nothing to guarantee, and a single pass gives each element exactly one draw against its
+    -- own `#spawnchance`. That is what makes the percentage mean what it says: ten tries at 50 % spawn
+    -- 999 times in 1000, so retrying denied the chance just as surely as forcing it did.
+    -- The count still reads as 1, so a `#spawngroup` with no `#spawncount` goes on capping at one.
+    local statedSpawnCount = zoneElementGroup.spawnCount
+    local spawnCount = statedSpawnCount or 1
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d] (stated = %s)", spawnCount, veaf.p(statedSpawnCount)))
+    local tries = statedSpawnCount and 10 or 1
     local alreadySpawnedElements = {}
     local shuffledIndexes = {}
     for i = 1, #zoneElementGroup.elements do
@@ -1593,19 +1607,25 @@ function VeafCombatZone:activate()
         if spawnCount > 0 then
           if not alreadySpawnedElements[zoneElement:getName()] then
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing element [%s]", zoneElement:getName()))
-            local chance = math.random(0, 100)
-            if tries == 1 then
-              chance = 0
-            end -- force chance if in the last try
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance = [%d]", chance))
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnChance = [%d]", zoneElement:getSpawnChance()))
-            if chance <= zoneElement:getSpawnChance() then
-              veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance hit (%d <= %d)", chance, zoneElement:getSpawnChance()))
+            local spawnChance = zoneElement:getSpawnChance()
+            -- `math.random(1, 100) <= chance` is what makes the percentage exact at both ends: 0 never
+            -- spawns and 100 always does. The draw used to start at 0 and compare with `<=`, so
+            -- `#spawnchance=0` still had one draw in 101 — and `#spawnchance=1` had two.
+            local chance = math.random(1, 100)
+            -- The forced draw belongs to a stated `#spawncount` only: it is how the guarantee is met
+            -- when the draws would not have met it. An element at 0 % is still never spawned, because a
+            -- refusal written in full is the clearer of the two intentions when both are written.
+            local forced = statedSpawnCount ~= nil and tries == 1
+            local hit = spawnChance > 0 and (forced or chance <= spawnChance)
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance = [%d], forced = [%s]", chance, tostring(forced)))
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnChance = [%d]", spawnChance))
+            if hit then
+              veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance hit (%d <= %d)", chance, spawnChance))
               spawnCount = spawnCount - 1
               alreadySpawnedElements[zoneElement:getName()] = true
               self:spawnElement(zoneElement)
             else
-              veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance missed (%d > %d)", chance, zoneElement:getSpawnChance()))
+              veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance missed (%d > %d)", chance, spawnChance))
             end
           else
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("already spawned [%s]", zoneElement:getName()))

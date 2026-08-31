@@ -118,6 +118,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   out of a `> 0` comparison rather than been chosen, and put zero on the negative side. Zero now reads
   N and E, matching how the sign is read everywhere else. Nothing changes for any other coordinate.
 
+- **A combat zone's `#spawnchance` could never deny a spawn — and missions in service will now spawn
+  less.** `VeafCombatZone:activate()` drew a random number per element and retried up to ten times
+  until `#spawncount` elements had spawned, *forcing* the draw on the last try. With `#spawncount`
+  defaulting to 1, and an element carrying no `#spawngroup` forming a group of its own, the common case
+  was a single element getting nine random draws and then a guaranteed one: it always spawned.
+  `#spawnchance` changed *when*, never *whether*. Even `#spawnchance=0` spawned — and ten tries at
+  `#spawnchance=50` spawned 999 times in 1,000, so retrying denied the chance as surely as forcing it
+  did. The documented four-MANPADS ambush promised "around two active" and delivered four, every time.
+
+  The probability is now honoured as written: one draw per element, and `#spawnchance=0` never spawns.
+  The retries and the forced draw are kept for a `#spawncount` the mission maker actually **wrote**,
+  where they keep a promise of a number — `#spawncount=2` over four grouped elements still delivers
+  exactly two, every time, even at 50 % each. Telling the two apart needed `spawnCount` to stay `nil`
+  until a tag states it, the way `#alarm` already does; a `#spawngroup` with no `#spawncount` still
+  caps its group at one.
+
+  **This changes missions already running.** Any zone using `#spawnchance` will spawn fewer groups than
+  it did — which is the behaviour the documentation has always described. If a group must appear for
+  certain, remove its tag or write `#spawnchance=100`. `veafCombatMission`'s own `spawnChance` is
+  separate code and is untouched.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

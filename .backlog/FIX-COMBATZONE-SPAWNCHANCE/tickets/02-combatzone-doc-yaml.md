@@ -1,6 +1,6 @@
 # 02 — Teach combat zones as YAML, not Lua
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/GUIDE.md` + `.en.md`,
 `doc/mission-maker/scripts/veafCombatZone.md` + `.en.md`
@@ -25,9 +25,9 @@ modules:
 
 ## Definition of done
 
-- [ ] The `GUIDE` shows the YAML form first; Lua appears only where it is genuinely the answer
+- [x] The `GUIDE` shows the YAML form first; Lua appears only where it is genuinely the answer
       (a maker function called from `mission-script.lua`), clearly labelled as such
-- [ ] Both languages, in step
-- [ ] The MANPADS example in `veafCombatZone.md` is corrected to match ticket 01's behaviour —
+- [x] Both languages, in step
+- [x] The MANPADS example in `veafCombatZone.md` is corrected to match ticket 01's behaviour —
       today it claims "around two will be active", which was never true and will become true
-- [ ] `poetry run docs-check` passes
+- [x] `poetry run docs-check` passes

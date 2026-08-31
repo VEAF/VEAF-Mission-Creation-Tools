@@ -642,15 +642,28 @@ local northQra = VeafQRA:new()
 
 ### Zone de combat
 
-```lua
-local strikeZone = VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")
-  :setFriendlyName("Strike Alpha")
-  :setBriefing("Colonne blindée avançant sur Senaki. Détruisez tous les véhicules blindés ; attendez-vous à de la DCA.")
-  :addZoneElement(VeafCombatZoneElement:new():setName("ARMOR"):setSpawnGroup("STRIKE-ALPHA-ARMOR"))
-  :addZoneElement(VeafCombatZoneElement:new():setName("AAA"):setSpawnGroup("STRIKE-ALPHA-AAA"))
-  :initialize()
+Une zone de combat se déclare dans `mission.yaml`. Son contenu **ne se liste pas ici** : la zone adopte tous les groupes situés à l'intérieur de la trigger zone DCS qu'elle nomme. Vous tracez le cercle dans l'éditeur de mission, vous y placez les blindés et la DCA, et la zone les détruit puis les fait réapparaître à l'activation.
+
+```yaml
+modules:
+  COMBATZONE:
+    enabled: true
+    combat_zones:
+      - type: zone
+        zone_name: ZONE-STRIKE-ALPHA    # la trigger zone DCS où se trouvent les groupes
+        friendly_name: Strike Alpha     # libellé dans le menu F10
+        briefing: Colonne blindée avançant sur Senaki. Détruisez tous les véhicules blindés ; attendez-vous à de la DCA.
+        training: false
 ```
+
+La façon dont chaque groupe apparaît — sa dispersion, sa probabilité, son délai — s'écrit dans les **noms d'unités**, avec les tags `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` et `#alarm`. Voir [veafCombatZone](scripts/veafCombatZone.md) pour la liste complète des champs et pour ces tags.
+
+!!! note "Le Lua sert à ce que le YAML ne sait pas dire"
+    `VeafCombatZone:new():…:initialize()` reste l'API sous-jacente, et `mission.yaml` génère exactement ces appels — l'écrire à la main n'apporte donc rien pour une zone ordinaire. Servez-vous en pour ce qui n'a pas de clé YAML, dans `src/scripts/mission-script.lua`, une fois la zone déclarée :
+
+    ```lua
+    veafCombatZone.GetZone("ZONE-STRIKE-ALPHA"):setOnCompletedHook(myCallback)
+    ```
 
 ### Zone Air Waves
 

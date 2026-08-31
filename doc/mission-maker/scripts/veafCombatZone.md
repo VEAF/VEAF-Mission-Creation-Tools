@@ -253,8 +253,8 @@ Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter d
 | Tag | Exemple | Description |
 |-----|---------|-------------|
 | `#spawnradius=N` | `#spawnradius=200` | Rayon de dispersion en mètres autour de la position enregistrée du groupe. Sans ce tag, voir [`#spawnradius`](#spawn-radius) |
-| `#spawnchance=N` | `#spawnchance=50` | Probabilité en pourcentage (0–100) que ce groupe apparaisse réellement |
-| `#spawncount=N` | `#spawncount=3` | Nombre d'exemplaires à faire apparaître (peut être >1 pour des unités répétées) |
+| `#spawnchance=N` | `#spawnchance=50` | Probabilité en pourcentage (0–100) que ce groupe apparaisse réellement. Voir [`#spawnchance`](#spawn-chance) |
+| `#spawncount=N` | `#spawncount=2` | Nombre d'éléments d'un même `#spawngroup` **garantis** à l'apparition. Voir [`#spawncount`](#spawn-chance) |
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Remplace le nom du groupe d'apparition (utile pour cibler un modèle nommé) |
 | `#spawndelay=N` | `#spawndelay=120` | Délai en secondes avant l'apparition de ce groupe après l'activation de la zone |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Exécute une commande VEAF au lieu de faire apparaître ce groupe ; l'unité sert de déclencheur et est détruite |
@@ -351,9 +351,31 @@ Une valeur illisible ou hors bornes (`#alarm=7`, `#alarm=x`) retombe sur ROUGE e
 !!! warning "Historique du comportement"
     Jusqu'à la 6.15.4 les zones faisaient apparaître **tous** leurs groupes en ROUGE, ce qui explique qu'un convoi placé dans une zone ne bougeait jamais ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). La correction est passée par un défaut unique en AUTO, ce qui a réglé les convois **et rendu muettes les défenses anti-aériennes des zones** — une batterie en AUTO n'allume pas ses radars. D'où le choix par nature décrit ci-dessus. Si vous avez ajouté des `#alarm=2` sur vos batteries entre-temps, ils restent valides et inutiles : le défaut fait maintenant la même chose.
 
+### `#spawnchance` et `#spawncount` — le hasard, ou le nombre {#spawn-chance}
+
+Ces deux tags répondent à deux questions différentes, et il faut choisir laquelle vous posez.
+
+`#spawnchance=N` est une **probabilité**, tirée une fois par groupe à l'activation de la zone. `#spawnchance=50` fait apparaître le groupe une fois sur deux ; `#spawnchance=0` ne le fait jamais apparaître ; sans tag, il apparaît toujours (le défaut est 100).
+
+`#spawncount=N`, associé à `#spawngroup`, est une **garantie de nombre** : « exactement N de ces groupes-là, à chaque fois ». La zone tire au sort qui, puis retire tant qu'il faut pour atteindre N — donc `#spawnchance` n'y décide plus que *lesquels*, plus *combien*.
+
+```
+ALPHA-SA6-A #spawngroup="ALPHA-SAM" #spawncount=2
+ALPHA-SA6-B #spawngroup="ALPHA-SAM" #spawncount=2
+ALPHA-SA6-C #spawngroup="ALPHA-SAM" #spawncount=2
+ALPHA-SA6-D #spawngroup="ALPHA-SAM" #spawncount=2
+```
+
+Deux des quatre batteries, toujours deux, tirées au hasard à chaque activation.
+
+Sans `#spawngroup`, **chaque groupe est seul dans le sien** : sa probabilité est tirée pour lui et pour rien d'autre. Un `#spawngroup` sans `#spawncount` continue de signifier « un seul de ceux-là », mais chaque candidat tire désormais sa chance au lieu que la place soit attribuée d'office.
+
+!!! warning "Ceci change les missions existantes"
+    Jusqu'à la 6.17.0 incluse, `#spawnchance` ne pouvait **pas** empêcher une apparition. La zone retirait jusqu'à dix fois et forçait le tirage au dernier essai, si bien qu'un groupe seul finissait toujours par apparaître : le tag ne changeait que le *moment*, jamais l'*issue*. Même `#spawnchance=0` apparaissait. Les retirages et le tirage forcé sont désormais réservés à un `#spawncount` réellement écrit, où ils tiennent une promesse de nombre. **Une mission en service qui utilise `#spawnchance` va donc faire apparaître moins de groupes qu'avant** — c'est le comportement annoncé depuis toujours par cette page. Si un groupe doit apparaître à coup sûr, retirez son tag ou écrivez `#spawnchance=100`.
+
 ### Exemple pratique — embuscade MANPADS
 
-Vous voulez quatre positions de MANPADS dans une zone, mais seules deux devraient réellement être occupées. Placez quatre unités d'infanterie factices nommées :
+Vous voulez quatre positions de MANPADS dans une zone, mais seules deux environ devraient réellement être occupées. Placez quatre unités d'infanterie factices nommées :
 
 ```
 ALPHA-MANPAD-1 #spawnchance=50
@@ -362,7 +384,7 @@ ALPHA-MANPAD-3 #spawnchance=50
 ALPHA-MANPAD-4 #spawnchance=50
 ```
 
-Chaque position a 50 % de chances d'apparaître — statistiquement, environ deux seront actives à chaque déclenchement de la zone.
+Chaque position a 50 % de chances d'apparaître, indépendamment des autres — statistiquement, environ deux seront actives à chaque déclenchement de la zone. « Environ » est le mot juste : il arrivera qu'aucune n'apparaisse, et qu'elles apparaissent toutes les quatre. Si vous voulez **exactement deux** à chaque fois, c'est `#spawncount` qu'il faut, comme ci-dessus.
 
 ### `#command` — apparition via la syntaxe de marqueur VEAF
 

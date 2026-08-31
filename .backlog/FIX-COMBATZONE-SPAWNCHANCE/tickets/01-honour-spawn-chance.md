@@ -1,6 +1,6 @@
 # 01 — Honour the spawn chance
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · File: `src/scripts/veaf/veafCombatZone.lua`
 
@@ -23,15 +23,15 @@ Do the same for `spawnCount`, and treat `nil` as 1 where the count is used.
 
 ## Definition of done
 
-- [ ] An element with `#spawnchance=50` and no `#spawncount` spawns roughly half the time —
+- [x] An element with `#spawnchance=50` and no `#spawncount` spawns roughly half the time —
       asserted statistically over many activations with a seeded RNG, not by eyeballing one run
-- [ ] An element at the default `#spawnchance=100` still always spawns
-- [ ] A group with `#spawncount=2` over 4 elements still yields exactly 2, every time — the
+- [x] An element at the default `#spawnchance=100` still always spawns
+- [x] A group with `#spawncount=2` over 4 elements still yields exactly 2, every time — the
       guarantee that justifies the forced draw
-- [ ] A group with `#spawncount=2` **and** `#spawnchance=50` still reaches 2 (retries do their job)
-- [ ] `#spawnchance=0` never spawns — today it spawns on the forced try, which is the defect at its
+- [x] A group with `#spawncount=2` **and** `#spawnchance=50` still reaches 2 (retries do their job)
+- [x] `#spawnchance=0` never spawns — today it spawns on the forced try, which is the defect at its
       most visible
-- [ ] The runtime tests cover the wiring, not just the getter: assert what `activate()` actually
+- [x] The runtime tests cover the wiring, not just the getter: assert what `activate()` actually
       spawns, via the DCS mocks
 
 ## Watch out

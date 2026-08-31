@@ -1,6 +1,6 @@
 # FIX-COMBATZONE-SPAWNCHANCE — a spawn chance that never denies a spawn
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: VEAF meeting, 2026-08-30 ("spawnChance devrait être autocalculé"). Measured on
 `origin/develop` at `c14e79e2`; David chose "the probability must be honoured" on 2026-08-31.

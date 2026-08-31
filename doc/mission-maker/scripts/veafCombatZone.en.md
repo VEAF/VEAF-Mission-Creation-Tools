@@ -252,8 +252,8 @@ Unit and group names in the DCS Mission Editor can carry special tags that contr
 | Tag | Example | Description |
 |-----|---------|-------------|
 | `#spawnradius=N` | `#spawnradius=200` | Scatter radius in metres around the group's recorded position. Without the tag, see [`#spawnradius`](#spawn-radius) |
-| `#spawnchance=N` | `#spawnchance=50` | Percentage chance (0–100) this group will actually spawn |
-| `#spawncount=N` | `#spawncount=3` | Number of instances to spawn (can be >1 for repeated units) |
+| `#spawnchance=N` | `#spawnchance=50` | Percentage chance (0–100) this group will actually spawn. See [`#spawnchance`](#spawn-chance) |
+| `#spawncount=N` | `#spawncount=2` | How many elements of one `#spawngroup` are **guaranteed** to spawn. See [`#spawncount`](#spawn-chance) |
 | `#spawngroup="name"` | `#spawngroup="SAM"` | Override the spawn group name (useful to target a named template) |
 | `#spawndelay=N` | `#spawndelay=120` | Delay in seconds before this group spawns after zone activation |
 | `#command="cmd"` | `#command="-spawn sa-11"` | Execute a VEAF command instead of spawning this group; the unit acts as a trigger and is destroyed |
@@ -350,9 +350,31 @@ An unreadable or out-of-range value (`#alarm=7`, `#alarm=x`) falls back to RED a
 !!! warning "How this behaved before"
     Up to 6.15.4 zones spawned **every** group on RED, which is why a convoy placed in a zone never moved ([#290](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/290)). The fix went through a single AUTO default, which sorted the convoys **and made the zones' air defences go silent** — a battery on AUTO does not light its radars. Hence the per-nature choice above. If you added `#alarm=2` to your batteries in the meantime, they still work and are now redundant: the default does the same thing.
 
+### `#spawnchance` and `#spawncount` — the odds, or the number {#spawn-chance}
+
+These two tags answer two different questions, and you have to pick which one you are asking.
+
+`#spawnchance=N` is a **probability**, drawn once per group when the zone activates. `#spawnchance=50` spawns the group half the time; `#spawnchance=0` never spawns it; with no tag it always spawns (the default is 100).
+
+`#spawncount=N`, paired with `#spawngroup`, is a **guarantee of a number**: "exactly N of these groups, every time". The zone draws which ones, then redraws as often as needed to reach N — so `#spawnchance` there only decides *which*, no longer *how many*.
+
+```
+ALPHA-SA6-A #spawngroup="ALPHA-SAM" #spawncount=2
+ALPHA-SA6-B #spawngroup="ALPHA-SAM" #spawncount=2
+ALPHA-SA6-C #spawngroup="ALPHA-SAM" #spawncount=2
+ALPHA-SA6-D #spawngroup="ALPHA-SAM" #spawncount=2
+```
+
+Two of the four batteries, always two, drawn at random on every activation.
+
+Without a `#spawngroup`, **each group is alone in its own**: its probability is drawn for it and for nothing else. A `#spawngroup` with no `#spawncount` goes on meaning "one of these", but every candidate now draws for the slot instead of being handed it.
+
+!!! warning "This changes existing missions"
+    Up to and including 6.17.0, `#spawnchance` could **not** deny a spawn. The zone redrew up to ten times and forced the draw on the last try, so a lone group always ended up spawning: the tag changed *when*, never *whether*. Even `#spawnchance=0` spawned. Redraws and the forced draw are now reserved for a `#spawncount` actually written, where they keep a promise of a number. **A mission in service that uses `#spawnchance` will therefore spawn fewer groups than before** — which is the behaviour this page has always described. If a group must spawn for certain, drop its tag or write `#spawnchance=100`.
+
 ### Practical example — MANPADS ambush
 
-You want four MANPADS positions in a zone, but only two should actually be occupied. Place four dummy infantry units named:
+You want four MANPADS positions in a zone, but only about two should actually be occupied. Place four dummy infantry units named:
 
 ```
 ALPHA-MANPAD-1 #spawnchance=50
@@ -361,7 +383,7 @@ ALPHA-MANPAD-3 #spawnchance=50
 ALPHA-MANPAD-4 #spawnchance=50
 ```
 
-Each position has a 50% chance of spawning — statistically, around two will be active each time the zone is triggered.
+Each position has a 50% chance of spawning, independently of the others — statistically, around two will be active each time the zone is triggered. "Around" is the right word: sometimes none will spawn, and sometimes all four. If you want **exactly two** every time, `#spawncount` is the tag, as above.
 
 ### `#command` — spawning via VEAF marker syntax
 

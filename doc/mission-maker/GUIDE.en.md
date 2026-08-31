@@ -638,15 +638,28 @@ local northQra = VeafQRA:new()
 
 ### Combat Zone
 
-```lua
-local strikeZone = VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")
-  :setFriendlyName("Strike Alpha")
-  :setBriefing("Armoured column advancing on Senaki. Destroy all armoured vehicles; expect AAA.")
-  :addZoneElement(VeafCombatZoneElement:new():setName("ARMOR"):setSpawnGroup("STRIKE-ALPHA-ARMOR"))
-  :addZoneElement(VeafCombatZoneElement:new():setName("AAA"):setSpawnGroup("STRIKE-ALPHA-AAA"))
-  :initialize()
+A combat zone is declared in `mission.yaml`. Its contents are **not listed here**: the zone adopts every group standing inside the DCS trigger zone it names. You draw the circle in the Mission Editor, put the armour and the AAA inside it, and the zone destroys and respawns them on activation.
+
+```yaml
+modules:
+  COMBATZONE:
+    enabled: true
+    combat_zones:
+      - type: zone
+        zone_name: ZONE-STRIKE-ALPHA    # the DCS trigger zone the groups stand in
+        friendly_name: Strike Alpha     # label in the F10 menu
+        briefing: Armoured column advancing on Senaki. Destroy all armoured vehicles; expect AAA.
+        training: false
 ```
+
+How each group appears — its dispersion, its probability, its delay — is written in the **unit names**, with the `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` and `#alarm` tags. See [veafCombatZone](scripts/veafCombatZone.en.md) for the full field list and for those tags.
+
+!!! note "Lua is for what YAML has no key for"
+    `VeafCombatZone:new():…:initialize()` is still the API underneath, and `mission.yaml` generates exactly those calls — so writing it by hand buys nothing for a plain zone. Use it for what has no YAML key, in `src/scripts/mission-script.lua`, once the zone is declared:
+
+    ```lua
+    veafCombatZone.GetZone("ZONE-STRIKE-ALPHA"):setOnCompletedHook(myCallback)
+    ```
 
 ### Air Waves Zone
 

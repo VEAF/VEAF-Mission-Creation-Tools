@@ -909,6 +909,25 @@ veaf.i18nCatalog = {
     fr = "La zone trigger [%s] n'existe pas dans la mission !",
     en = "Trigger zone [%s] does not exist in the mission !",
   },
+  -- FIX-COMBATZONE-SILENT-EXCLUSION: written to the DCS log, not to a player. A zone only takes the
+  -- groups whose name starts with its own, and until now it dropped the others without a word — the
+  -- symptom being a zone that activates and spawns nothing, with an empty log. One line per zone,
+  -- naming the *groups* (what the mission maker has to rename) and saying what the rule is.
+  -- Args: zone name, how many groups, the group names, zone name again (the required prefix).
+  ["combatzone.groups_excluded_by_name"] = {
+    fr = "Zone de combat [%s] : %s groupe(s) présents dans la zone ont été ignorés : %s. "
+      .. "Pour faire partie de la zone, le nom d'un groupe doit commencer par le nom de la zone [%s].",
+    en = "Combat zone [%s]: %s group(s) found inside the zone were ignored: %s. "
+      .. "To belong to the zone, a group name must start with the zone name [%s].",
+  },
+  -- FIX-COMBATZONE-SILENT-EXCLUSION: two elements of one #spawngroup stating different #spawncount
+  -- values. The highest wins — see mergeSpawnCountInto — and the choice is stated rather than taken
+  -- in silence. Args: zone name, spawn group name, first count, other count, the one kept.
+  ["combatzone.spawncount_conflict"] = {
+    fr = "Zone de combat [%s] : le groupe d'apparition [%s] déclare deux #spawncount différents (%s et %s) ; "
+      .. "le plus élevé est retenu, %s.",
+    en = "Combat zone [%s]: spawn group [%s] states two different #spawncount values (%s and %s); " .. "keeping the highest, %s.",
+  },
   ["combatzone.header"] = {
     fr = "ZONE DE COMBAT %s \n\n",
     en = "COMBAT ZONE %s \n\n",

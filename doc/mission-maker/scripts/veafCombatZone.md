@@ -250,12 +250,22 @@ Pour une zone nommée `CZ-Alpha` :
 
 Un objet statique est son propre groupe : la règle s'applique alors à **son** nom.
 
-!!! danger "Un groupe mal nommé échoue en silence"
-    Rien ne le signale, ni en jeu ni dans le log. La zone s'active normalement et annonce sa
-    réussite ; le groupe, lui, reste exactement où vous l'avez posé — jamais retiré au démarrage,
-    jamais recréé à l'activation, jamais compté dans le rapport de zone. C'est indébogable depuis le
-    jeu : **une zone « qui ne fait rien apparaître » est presque toujours une zone dont les groupes
-    ne portent pas son nom.** Vérifiez le préfixe avant de chercher ailleurs.
+!!! danger "Un groupe mal nommé est écarté — rien ne le montre en jeu"
+    La zone s'active normalement et annonce sa réussite ; le groupe, lui, reste exactement où vous
+    l'avez posé — jamais retiré au démarrage, jamais recréé à l'activation, jamais compté dans le
+    rapport de zone. **Une zone « qui ne fait rien apparaître » est presque toujours une zone dont
+    les groupes ne portent pas son nom.** Vérifiez le préfixe avant de chercher ailleurs.
+
+    **Le log DCS les nomme.** Une zone qui a trouvé des groupes dans son cercle et les a refusés
+    écrit une ligne au démarrage, avec la liste des groupes et le préfixe qui leur manque :
+
+    ```
+    COMBATZONE|I|Zone de combat [CZ-Alpha] : 2 groupe(s) présents dans la zone ont été ignorés :
+    ARMOR-1, SAM-NORTH. Pour faire partie de la zone, le nom d'un groupe doit commencer par le nom
+    de la zone [CZ-Alpha].
+    ```
+
+    Une zone dont tous les groupes sont bien nommés n'écrit rien du tout.
 
 Le corollaire vaut dans l'autre sens, et il est tout aussi silencieux : un groupe qui n'a rien à
 voir avec la zone, mais qui est posé dans le cercle **et** nommé `CZ-Alpha-…`, en fait partie — il
@@ -405,6 +415,11 @@ CZ-Alpha-SA6-D #spawngroup="CZ-Alpha-SAM" #spawncount=2
 Deux des quatre batteries, toujours deux, tirées au hasard à chaque activation.
 
 Sans `#spawngroup`, **chaque groupe est seul dans le sien** : sa probabilité est tirée pour lui et pour rien d'autre. Un `#spawngroup` sans `#spawncount` continue de signifier « un seul de ceux-là », mais chaque candidat tire désormais sa chance au lieu que la place soit attribuée d'office.
+
+!!! note "Où écrire `#spawncount`, et ce qui se passe si deux membres se contredisent"
+    Le nombre appartient au **groupe d'apparition**, pas à l'un de ses membres : l'écrire sur n'importe lequel des membres du `#spawngroup` suffit — l'exemple ci-dessus le répète sur les quatre par lisibilité, pas par obligation. Auparavant, seul le membre rencontré en premier comptait : un `#spawncount` écrit sur le deuxième était perdu sans un mot.
+
+    Si deux membres d'un même groupe d'apparition déclarent des nombres **différents**, **le plus élevé l'emporte**, et le log dit lequel a été retenu. La règle ne dépend pas de l'ordre des groupes dans l'éditeur — c'est précisément cet ordre qui causait l'ancien défaut — et un `#spawncount` est une garantie : la plus grande des deux promesses est celle qui tient les deux. Répéter le *même* nombre n'est pas une contradiction et ne produit aucun message.
 
 !!! warning "Ceci change les missions existantes"
     Jusqu'à la 6.17.0 incluse, `#spawnchance` ne pouvait **pas** empêcher une apparition. La zone retirait jusqu'à dix fois et forçait le tirage au dernier essai, si bien qu'un groupe seul finissait toujours par apparaître : le tag ne changeait que le *moment*, jamais l'*issue*. Même `#spawnchance=0` apparaissait. Les retirages et le tirage forcé sont désormais réservés à un `#spawncount` réellement écrit, où ils tiennent une promesse de nombre. **Une mission en service qui utilise `#spawnchance` va donc faire apparaître moins de groupes qu'avant** — c'est le comportement annoncé depuis toujours par cette page. Si un groupe doit apparaître à coup sûr, retirez son tag ou écrivez `#spawnchance=100`.

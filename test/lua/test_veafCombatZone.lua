@@ -3010,4 +3010,303 @@ function TestVeafCombatZoneSpawnChance:test_a_group_without_a_stated_count_still
   luaunit.assertTrue(sawOne, "and must sometimes spawn one")
 end
 
+-- ============================================================================
+-- FIX-COMBATZONE-SILENT-EXCLUSION / 01 — what the zone left behind, it left in silence
+--
+-- `findUnitsInCombatZone` keeps a group only when its name starts with the trigger zone's name, and
+-- **the rule stays**: it is the only thing that can say which of two overlapping zones owns a group,
+-- the only thing that keeps a passing convoy out of a garrison, and therefore the only thing that can
+-- say when a zone is complete. What it never did was say what it dropped — so a mistyped prefix looked
+-- exactly like a zone that spawns nothing, with an empty log to show for it.
+--
+-- These tests drive `initialize()` with the real `findUnitsInCombatZone` underneath and assert on what
+-- reached the logger. There is nothing else to assert: the defect *was* the absence of output.
+-- ============================================================================
+TestVeafCombatZoneExcludedGroups = {}
+
+function TestVeafCombatZoneExcludedGroups:setUp()
+  veaf.triggerZones["EXCLZONE"] = { name = "EXCLZONE", type = 0, radius = 1000, x = 0, y = 0 }
+  dcs_mocks.addZone("EXCLZONE", 0, 0, 1000)
+  dcs_mocks.clearUnitsAndGroups()
+
+  -- what the zone will find inside its circle; the two helpers below are the whole path
+  -- `veaf.getUnitsInTriggerZone` takes for a circular zone
+  self.unitsInZone = {}
+  local unitsInZone = self.unitsInZone
+  self._savedNames = veaf.getUnitsNamesOfCoalition
+  veaf.getUnitsNamesOfCoalition = function()
+    local names = {}
+    for _, unit in ipairs(unitsInZone) do
+      table.insert(names, unit:getName())
+    end
+    return names
+  end
+  self._savedInCircle = veaf.getUnitsInCircularZone
+  veaf.getUnitsInCircularZone = function()
+    return unitsInZone
+  end
+
+  self.infos = {}
+  local infos = self.infos
+  self._logger = veaf.loggers.get(veafCombatZone.Id)
+  self._savedInfo = self._logger.info
+  self._logger.info = function(_, text)
+    table.insert(infos, text)
+  end
+end
+
+function TestVeafCombatZoneExcludedGroups:tearDown()
+  veaf.triggerZones["EXCLZONE"] = nil
+  dcs_mocks.zones["EXCLZONE"] = nil
+  dcs_mocks.clearUnitsAndGroups()
+  veaf.getUnitsNamesOfCoalition = self._savedNames
+  veaf.getUnitsInCircularZone = self._savedInCircle
+  self._logger.info = self._savedInfo
+end
+
+--- Stand these units inside the trigger zone and build the zone, as mission start does.
+function TestVeafCombatZoneExcludedGroups:_zoneHolding(units)
+  for _, unit in ipairs(units) do
+    table.insert(self.unitsInZone, unit)
+  end
+  return VeafCombatZone:new():setFriendlyName("Exclusion Zone"):setMissionEditorZoneName("EXCLZONE"):initialize()
+end
+
+-- The symptom itself, from the mission maker's side: something is standing in the zone, the zone does
+-- not want it, and now it says so.
+function TestVeafCombatZoneExcludedGroups:test_a_wrongly_named_group_is_reported()
+  self:_zoneHolding({
+    fakeUnit("EXCLZONE-ARMOR-1", "EXCLZONE-ARMOR"),
+    fakeUnit("STRAY-SAM-1", "STRAY-SAM"),
+  })
+  luaunit.assertEquals(#self.infos, 1, "the zone must say, once, that it dropped something")
+  luaunit.assertNotNil(self.infos[1]:find("STRAY-SAM", 1, true), "the excluded group must be named")
+  luaunit.assertNotNil(self.infos[1]:find("EXCLZONE", 1, true), "and so must the zone")
+end
+
+-- One line per zone, not per unit: a zone can hold dozens of units for a handful of groups, and it is
+-- the **group** the mission maker has to rename.
+function TestVeafCombatZoneExcludedGroups:test_a_group_of_many_units_is_named_once()
+  self:_zoneHolding({
+    fakeUnit("STRAY-SAM-1", "STRAY-SAM"),
+    fakeUnit("STRAY-SAM-2", "STRAY-SAM"),
+    fakeUnit("STRAY-SAM-3", "STRAY-SAM"),
+  })
+  luaunit.assertEquals(#self.infos, 1)
+  local _, occurrences = self.infos[1]:gsub("STRAY%-SAM", "")
+  luaunit.assertEquals(occurrences, 1, "the group is named once, not once per unit")
+end
+
+-- Several excluded groups still make one line: the report is about the zone, not about each mistake.
+function TestVeafCombatZoneExcludedGroups:test_several_excluded_groups_produce_one_line()
+  self:_zoneHolding({
+    fakeUnit("STRAY-SAM-1", "STRAY-SAM"),
+    fakeUnit("PASSING-CONVOY-1", "PASSING-CONVOY"),
+    fakeUnit("FARP-BRAVO-1", "FARP-BRAVO"),
+  })
+  luaunit.assertEquals(#self.infos, 1, "three mistakes, one line")
+  for _, name in ipairs({ "STRAY-SAM", "PASSING-CONVOY", "FARP-BRAVO" }) do
+    luaunit.assertNotNil(self.infos[1]:find(name, 1, true), name .. " must appear in the report")
+  end
+end
+
+-- And nothing at all when there is nothing to say. A message every mission prints is a message nobody
+-- reads, which is how the useful one would get lost.
+function TestVeafCombatZoneExcludedGroups:test_a_correctly_named_zone_logs_nothing()
+  self:_zoneHolding({
+    fakeUnit("EXCLZONE-ARMOR-1", "EXCLZONE-ARMOR"),
+    fakeUnit("EXCLZONE-ARMOR-2", "EXCLZONE-ARMOR"),
+    fakeUnit("exclzone-manpads-1", "exclzone-manpads"), -- the rule ignores case, so this one is in
+  })
+  luaunit.assertEquals(#self.infos, 0, "a zone whose groups are all named right must stay quiet")
+end
+
+-- An empty zone is not a mistake either.
+function TestVeafCombatZoneExcludedGroups:test_an_empty_zone_logs_nothing()
+  self:_zoneHolding({})
+  luaunit.assertEquals(#self.infos, 0)
+end
+
+-- The text has to be actionable: a log line that only says "ignored" sends the reader back to the
+-- forum. It names the rule, and the prefix to use.
+function TestVeafCombatZoneExcludedGroups:test_the_message_says_what_to_do()
+  self:_zoneHolding({ fakeUnit("STRAY-SAM-1", "STRAY-SAM") })
+  luaunit.assertNotNil(self.infos[1]:find("must start with", 1, true), "the message must state the prefix rule")
+end
+
+-- Localized like everything else the module says, and asserted in both languages: an English-only
+-- check would pass on a hard-coded English string.
+function TestVeafCombatZoneExcludedGroups:test_the_message_exists_in_both_languages()
+  local entry = veaf.i18nCatalog["combatzone.groups_excluded_by_name"]
+  luaunit.assertNotNil(entry)
+  luaunit.assertIsString(entry.fr)
+  luaunit.assertIsString(entry.en)
+  luaunit.assertNotEquals(entry.fr, entry.en)
+end
+
+-- The rule itself is untouched, and this is what proves it: the stray group is reported, and it is
+-- still not part of the zone.
+function TestVeafCombatZoneExcludedGroups:test_the_excluded_group_is_still_excluded()
+  local zone = self:_zoneHolding({
+    fakeUnit("EXCLZONE-ARMOR-1", "EXCLZONE-ARMOR"),
+    fakeUnit("STRAY-SAM-1", "STRAY-SAM"),
+  })
+  local names = {}
+  for _, element in pairs(zone:getZoneElements()) do
+    names[element:getName()] = true
+  end
+  luaunit.assertTrue(names["EXCLZONE-ARMOR"], "the well-named group is still taken")
+  luaunit.assertNil(names["STRAY-SAM"], "the wrongly-named group is still left out")
+end
+
+-- ============================================================================
+-- FIX-COMBATZONE-SILENT-EXCLUSION / 02 — a #spawncount written on the wrong element
+--
+-- `addZoneElement` read `#spawncount` from the element that *created* the spawn group and from no
+-- other, so writing it on any later member of a `#spawngroup` did nothing and said nothing. Since
+-- FIX-COMBATZONE-SPAWNCHANCE an unstated count is `nil`, and that nil is what tells `activate()` there
+-- is nothing to guarantee — so a count dropped this way changes how many groups come up.
+--
+-- The resolution rule is **the highest stated count wins**. The defect is order-dependence, and "the
+-- last one written" would only move it: the order elements are added in is editor order, which the
+-- mission maker never chose. A count is also a guarantee ("2 of these 4, granted"), so the larger of
+-- two promises is the one that keeps both. A real disagreement is logged; two elements stating the same
+-- number are not a disagreement.
+--
+-- Everything below goes through `activate()` and counts what reached the spawner, as the #859 tests do:
+-- the accessors were always right, the loop was not.
+-- ============================================================================
+TestVeafCombatZoneSpawnCountResolution = {}
+
+function TestVeafCombatZoneSpawnCountResolution:setUp()
+  self._random = math.random
+  math.random = seededRandom(20260831)
+
+  self.spawned = {}
+  local spawned = self.spawned
+  self._interpreter = veafInterpreter
+  veafInterpreter = {
+    execute = function(command, position, coa, route, spawnedGroups)
+      table.insert(spawned, command)
+      veaf.collectSpawnedGroup(spawnedGroups, "GROUP-" .. #spawned)
+      return true
+    end,
+  }
+
+  self.infos = {}
+  local infos = self.infos
+  self._logger = veaf.loggers.get(veafCombatZone.Id)
+  self._savedInfo = self._logger.info
+  self._logger.info = function(_, text)
+    table.insert(infos, text)
+  end
+end
+
+function TestVeafCombatZoneSpawnCountResolution:tearDown()
+  math.random = self._random
+  veafInterpreter = self._interpreter
+  self._logger.info = self._savedInfo
+end
+
+-- The behaviour that already worked, kept as the reference point.
+function TestVeafCombatZoneSpawnCountResolution:test_a_count_on_the_first_element_is_honoured()
+  local plain = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { { group = "SAM", count = 2, chance = 50 }, plain, plain, plain }, 100)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2)
+  end
+end
+
+-- The defect: the very same mission, with the tag typed on the second unit instead of the first. It
+-- used to cap the group at one, silently.
+function TestVeafCombatZoneSpawnCountResolution:test_a_count_on_a_later_element_is_honoured()
+  local plain = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { plain, { group = "SAM", count = 2, chance = 50 }, plain, plain }, 100)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2, "a #spawncount written on a later element must count just as much")
+  end
+end
+
+-- ...including on the last one, which is the worst case for a first-wins read.
+function TestVeafCombatZoneSpawnCountResolution:test_a_count_on_the_last_element_is_honoured()
+  local plain = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { plain, plain, plain, { group = "SAM", count = 3, chance = 50 } }, 100)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 3)
+  end
+end
+
+-- A group nobody gave a count keeps `nil`, which #859 depends on: no forced draw, one draw each, and
+-- the group's implicit cap of one. Observed through the spawner rather than through the accessor.
+function TestVeafCombatZoneSpawnCountResolution:test_no_count_anywhere_still_means_unstated()
+  local plain = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { plain, plain, plain, plain }, 300)
+  local sawNone = false
+  for _, count in ipairs(counts) do
+    luaunit.assertTrue(count <= 1, string.format("an unstated count caps the group at one, got %d", count))
+    if count == 0 then
+      sawNone = true
+    end
+  end
+  luaunit.assertTrue(sawNone, "with nothing stated there is nothing to guarantee, so sometimes nothing spawns")
+end
+
+-- Two counts, and the higher one is kept — whichever order they were written in. That the two orders
+-- give the same answer is the point: order-dependence is the bug.
+function TestVeafCombatZoneSpawnCountResolution:test_conflicting_counts_keep_the_highest()
+  local plain = { group = "SAM" }
+  local low, high = { group = "SAM", count = 2 }, { group = "SAM", count = 3 }
+  for _, count in ipairs(spawnCounts(self, { low, high, plain, plain }, 20)) do
+    luaunit.assertEquals(count, 3, "the highest stated count wins")
+  end
+  for _, count in ipairs(spawnCounts(self, { high, low, plain, plain }, 20)) do
+    luaunit.assertEquals(count, 3, "and the answer must not depend on the order they were written in")
+  end
+end
+
+-- The choice is stated, not taken in silence — resolving a conflict quietly is the same defect over
+-- again, one level up.
+function TestVeafCombatZoneSpawnCountResolution:test_a_conflict_is_logged()
+  local zone = VeafCombatZone:new():setMissionEditorZoneName("CountZone"):setCompletable(false)
+  zone:addZoneElement(VeafCombatZoneElement:new():setName("A"):setSpawnGroup("SAM"):setSpawnCount(2))
+  zone:addZoneElement(VeafCombatZoneElement:new():setName("B"):setSpawnGroup("SAM"):setSpawnCount(3))
+  luaunit.assertEquals(#self.infos, 1, "a disagreement must be reported")
+  luaunit.assertNotNil(self.infos[1]:find("SAM", 1, true), "the spawn group must be named")
+  luaunit.assertNotNil(self.infos[1]:find("2", 1, true))
+  luaunit.assertNotNil(self.infos[1]:find("3", 1, true))
+end
+
+function TestVeafCombatZoneSpawnCountResolution:test_the_conflict_message_exists_in_both_languages()
+  local entry = veaf.i18nCatalog["combatzone.spawncount_conflict"]
+  luaunit.assertNotNil(entry)
+  luaunit.assertIsString(entry.fr)
+  luaunit.assertIsString(entry.en)
+  luaunit.assertNotEquals(entry.fr, entry.en)
+end
+
+-- The same number written twice is not a disagreement, and reporting it would be noise.
+function TestVeafCombatZoneSpawnCountResolution:test_matching_counts_are_not_a_conflict()
+  local twice = { group = "SAM", count = 2 }
+  local counts = spawnCounts(self, { twice, twice, { group = "SAM" }, { group = "SAM" } }, 20)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2)
+  end
+  luaunit.assertEquals(#self.infos, 0, "two elements agreeing on a count have nothing to report")
+end
+
+-- A count belongs to its own spawn group and to no other.
+function TestVeafCombatZoneSpawnCountResolution:test_a_count_does_not_leak_to_another_spawn_group()
+  local counts = spawnCounts(self, {
+    { group = "SAM", count = 2 },
+    { group = "SAM" },
+    { group = "ARMOR" },
+    { group = "ARMOR" },
+  }, 20)
+  -- 2 from SAM, and ARMOR keeps its unstated cap of one at the default 100 % chance
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 3)
+  end
+  luaunit.assertEquals(#self.infos, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

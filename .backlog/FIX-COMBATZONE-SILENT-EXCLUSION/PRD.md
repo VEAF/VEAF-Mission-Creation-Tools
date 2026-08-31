@@ -1,6 +1,6 @@
 # FIX-COMBATZONE-SILENT-EXCLUSION — the zone drops groups without a word, and loses a stated count
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: two defects found around `DOC-COMBATZONE-PREFIX-RULE` (PR #866) and
 `FIX-COMBATZONE-SPAWNCHANCE` (PR #859). David's call, 2026-08-31: **keep the prefix rule, fix its
@@ -35,13 +35,13 @@ how many groups spawn, not just the bookkeeping.
 
 ## Definition of done
 
-- [ ] At zone build-up, a log line (level `info`) names the groups found inside the zone but
+- [x] At zone build-up, a log line (level `info`) names the groups found inside the zone but
       excluded for their name — one line per zone, and nothing at all when there are none
-- [ ] The message says what to do: the group must be **prefixed with the zone name**
-- [ ] A `#spawncount` written on any element of a group is honoured, wherever it sits in the order
-- [ ] Conflicting counts within one group are resolved predictably, and the choice is stated in the
+- [x] The message says what to do: the group must be **prefixed with the zone name**
+- [x] A `#spawncount` written on any element of a group is honoured, wherever it sits in the order
+- [x] Conflicting counts within one group are resolved predictably, and the choice is stated in the
       log rather than silently taken
-- [ ] Tests drive `activate()` through the DCS mocks — the seeded-RNG harness from #859 lives in
+- [x] Tests drive `activate()` through the DCS mocks — the seeded-RNG harness from #859 lives in
       `test/lua/veaf_test_random.lua`
 
 ## Scope

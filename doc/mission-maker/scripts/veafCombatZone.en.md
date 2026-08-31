@@ -249,12 +249,21 @@ For a zone named `CZ-Alpha`:
 
 A static object is its own group: the rule then applies to **its** name.
 
-!!! danger "A misnamed group fails silently"
-    Nothing reports it, neither in game nor in the log. The zone activates normally and announces
-    its success; the group stays exactly where you put it — never removed at start-up, never
-    recreated on activation, never counted in the zone report. This is undebuggable from the game:
-    **a zone that "spawns nothing" is almost always a zone whose groups do not carry its name.**
-    Check the prefix before looking anywhere else.
+!!! danger "A misnamed group is dropped — nothing shows in game"
+    The zone activates normally and announces its success; the group stays exactly where you put
+    it — never removed at start-up, never recreated on activation, never counted in the zone
+    report. **A zone that "spawns nothing" is almost always a zone whose groups do not carry its
+    name.** Check the prefix before looking anywhere else.
+
+    **The DCS log names them.** A zone that found groups inside its circle and turned them down
+    writes one line at start-up, listing the groups and the prefix they are missing:
+
+    ```
+    COMBATZONE|I|Combat zone [CZ-Alpha]: 2 group(s) found inside the zone were ignored:
+    ARMOR-1, SAM-NORTH. To belong to the zone, a group name must start with the zone name [CZ-Alpha].
+    ```
+
+    A zone whose groups are all named right writes nothing at all.
 
 The corollary runs the other way, and is just as silent: a group that has nothing to do with the
 zone, but sits inside the circle **and** is named `CZ-Alpha-…`, is part of it — and will be
@@ -404,6 +413,11 @@ CZ-Alpha-SA6-D #spawngroup="CZ-Alpha-SAM" #spawncount=2
 Two of the four batteries, always two, drawn at random on every activation.
 
 Without a `#spawngroup`, **each group is alone in its own**: its probability is drawn for it and for nothing else. A `#spawngroup` with no `#spawncount` goes on meaning "one of these", but every candidate now draws for the slot instead of being handed it.
+
+!!! note "Where `#spawncount` may be written, and what happens if two members disagree"
+    The count belongs to the **spawn group**, not to one of its members, so writing it on any single member of the `#spawngroup` is enough — the example above repeats it on all four for readability, not because it has to. It used to count only on whichever member the zone met first, which meant a count written on the second one was dropped without a word.
+
+    If two members of one spawn group state **different** counts, **the highest wins**, and the log says which one was kept. The rule does not depend on the order the groups sit in the editor — that order is exactly what caused the old defect — and a `#spawncount` is a guarantee, so the larger of the two promises is the one that keeps both. Repeating the *same* count is not a disagreement and produces no message.
 
 !!! warning "This changes existing missions"
     Up to and including 6.17.0, `#spawnchance` could **not** deny a spawn. The zone redrew up to ten times and forced the draw on the last try, so a lone group always ended up spawning: the tag changed *when*, never *whether*. Even `#spawnchance=0` spawned. Redraws and the forced draw are now reserved for a `#spawncount` actually written, where they keep a promise of a number. **A mission in service that uses `#spawnchance` will therefore spawn fewer groups than before** — which is the behaviour this page has always described. If a group must spawn for certain, drop its tag or write `#spawnchance=100`.

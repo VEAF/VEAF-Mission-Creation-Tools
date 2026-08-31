@@ -500,3 +500,30 @@ d'observation lui-même) et **zéro depuis Skynet**.
 Détail complet, y compris mes deux fausses alertes de méthode, dans
 `.backlog/REFACTOR-SKYNET-WITHOUT-MIST/PRD.md`.
 
+
+---
+
+## Le type d'emplacement `100` (`SmallSizeFighter`) — à regarder en jeu
+
+Ouvert par `CHORE-AIRCRAFT-STAND-TYPES` (PR #865), qui a élargi `AIRCRAFT_STAND_TYPES` à
+`{68, 72, 104}` sur des mesures et a **laissé `100` dehors**, faute de pouvoir trancher sans DCS.
+
+Ce qui est établi, et qui n'appelle pas de vérification :
+
+- `100` n'existe que sur **11 aérodromes syriens**, qui ont **tous** déjà du `68`/`104` — l'inclure
+  ne débloquerait donc **aucun** aérodrome ;
+- **aucune** des missions mesurées (Foothold ×3 théâtres, Open Training Syria) n'y gare quoi que ce
+  soit — 105 avions garés, aucun sur du `100` ;
+- DCS le documente comme une place étroite pour petit appareil, et le masque officiel
+  `FighterAircraftSmall` le contient bien.
+
+**La seule question ouverte est physique** : un appareil lourd tient-il sur un `100` ? Un C-130 ou
+un B-52 posé là passe-t-il, ou clippe-t-il dans le décor ?
+
+Comment vérifier, si l'occasion se présente : sur un des 11 aérodromes syriens concernés, poser
+dans l'éditeur un gros porteur sur un stand de type `100` et charger la mission. S'il apparaît
+proprement, `100` peut rejoindre l'ensemble ; s'il clippe ou refuse, la constante reste comme elle
+est et **la raison est enfin sourcée** plutôt que déduite de l'absence de contre-exemple.
+
+Sans enjeu : personne n'attend ce changement, il n'ouvrirait aucun terrain. C'est une vérification
+de confort, à faire si une session DCS a du temps de reste.

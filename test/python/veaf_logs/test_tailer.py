@@ -42,6 +42,30 @@ class TestOuverture:
         assert LogSource(journal).followable
 
 
+class TestIdentiteDuFichier:
+    """L'identite ne doit tenir qu'a l'inode et au peripherique.
+
+    Elle a un temps inclus `st_ctime`, ce qui passait sous Windows — la date de
+    creation n'y bouge pas — et faussait tout sous Linux, ou cette date est
+    celle du dernier changement d'inode : chaque ecriture la modifie.
+    """
+
+    def test_ecrire_ne_change_pas_l_identite(self, journal):
+        from veaf_logs.tailer import FileIdentity
+
+        avant = FileIdentity.of(journal)
+        with open(journal, "a", encoding="utf-8") as handle:
+            handle.write(LIGNE.format(n=1))
+        assert FileIdentity.of(journal) == avant
+
+    def test_un_autre_fichier_a_une_autre_identite(self, journal, tmp_path):
+        from veaf_logs.tailer import FileIdentity
+
+        autre = tmp_path / "autre.log"
+        autre.write_text(LIGNE.format(n=2), encoding="utf-8")
+        assert FileIdentity.of(autre) != FileIdentity.of(journal)
+
+
 class TestRotation:
     def test_pas_de_rotation_quand_le_fichier_grossit(self, journal):
         source = LogSource(journal)

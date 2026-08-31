@@ -31,16 +31,27 @@ class LogUnavailable(OSError):
 
 @dataclass(slots=True)
 class FileIdentity:
-    """De quoi detecter qu'on ne lit plus le meme fichier."""
+    """De quoi detecter qu'on ne lit plus le meme fichier.
+
+    Volontairement reduit au couple inode / peripherique, l'identite canonique
+    d'un fichier. On a d'abord ajoute `st_ctime` en pensant y gagner de la
+    robustesse : sous Windows c'est la date de creation, qui ne bouge jamais.
+    Sous Linux, c'est l'heure du dernier changement d'inode, donc **chaque
+    ecriture la modifie** — un journal qui grossit passait alors pour un
+    fichier neuf, et etait relu du debut a chaque ligne ajoutee.
+
+    Reste le cas ou `st_ino` vaut 0, ce qui arrive sur certains systemes de
+    fichiers Windows : la comparaison ne distingue plus rien, et c'est
+    l'empreinte de debut de fichier (`_head_changed`) qui prend le relais.
+    """
 
     inode: int
     device: int
-    created: float
 
     @classmethod
     def of(cls, path: Path) -> FileIdentity:
         info = path.stat()
-        return cls(inode=info.st_ino, device=info.st_dev, created=info.st_ctime)
+        return cls(inode=info.st_ino, device=info.st_dev)
 
 
 def archive_members(path: Path) -> list[str]:

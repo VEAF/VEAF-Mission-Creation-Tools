@@ -22,6 +22,7 @@ from .mission_constants import (
     get_optin_community_script_ids,
     get_veaf_script_files,
     is_community_script_enabled_by_default,
+    mission_scripts_referencing_mist,
 )
 from .miz_tools import (
     DcsMission,
@@ -35,6 +36,7 @@ from .miz_tools import (
 )
 
 __all__ = [
+    "mission_scripts_referencing_mist",
     "classify_aircraft_group",
     "KIND_SPAWNABLE",
     "KIND_DYNAMIC_TEMPLATE",

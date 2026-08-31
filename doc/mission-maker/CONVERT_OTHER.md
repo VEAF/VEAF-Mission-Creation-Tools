@@ -90,7 +90,7 @@ Voir [FOOTHOLD](FOOTHOLD.md) pour la procédure complète à chaque version.
      détectés (par commentaire ou motif glob) — le **build les supprime**
      (trigrule + entrées `trig` + ressources `mapResource`) pour éviter un
      double chargement avec les `custom_scripts` réinjectés ;
-   - un bloc `modules:` initialisé sur le **tier `minimal`** (infra + MIST +
+   - un bloc `modules:` initialisé sur le **tier `minimal`** (infra +
      RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commenté) : une base VEAF
      fonctionnelle d'emblée ; activez davantage au besoin.
 4. **Émet** un rapport Markdown récapitulant les actions et les points à revoir.

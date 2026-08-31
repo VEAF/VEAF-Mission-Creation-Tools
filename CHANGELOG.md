@@ -274,6 +274,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   records the new chain, and gained the step it was missing: the artefact VEAF ships is formatted, the
   one the fork commits is not, and skipping that turns the next sync into a four-thousand-line diff.
 
+- **MiST is no longer injected into every mission — 336 KB lighter, and nothing to do about it.**
+  It was loaded everywhere because the VEAF scripts called it. They no longer call it at all, and
+  neither does any community script shipped here: CTLD dropped it on its own in v2, CSAR and Skynet
+  were ported, the Hercules script was removed. The last four call sites in `veafMissionDb` were
+  dead code guarded by `if mist`, cleaning up a database nobody reads.
+
+  A mission maker's own script may still call it, and that would have failed in DCS with
+  `attempt to index nil (global 'mist')` rather than at build time. So the build **looks**: it reads
+  `src/scripts/*.lua`, and injects MiST when it finds a call, naming the file that asked for it.
+  Comments and strings do not count — an error message mentioning `mist.DBs` is not a call.
+  `convert-v5` asks the same question, which is what matters for migrating: v5 shipped MiST in every
+  mission, so its presence proves nothing, while a converted mission whose HoundElint calls
+  `mist.DBs.humansByName` keeps it.
+
+  `MIST: true` remains for what a scan cannot see — a script loading another script, or `_G["mist"]`.
+  `MIST: false` does **not** win against detection: honouring it would break the mission in flight to
+  respect a config line.
+
+  The MiST stub also left `dcs_mocks.lua`, and the 44 Lua suites pass without it — which is the proof
+  that no VEAF script calls MiST any more, rather than a claim that none does.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

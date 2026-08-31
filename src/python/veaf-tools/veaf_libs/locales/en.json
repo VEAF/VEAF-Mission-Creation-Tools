@@ -94,6 +94,7 @@
   "builder.log_modules_detail": "--log-modules: keeping full logging for {module}, silencing {count} other module(s)",
   "builder.lua_modules_found": "Found lua_modules section in {path}; will generate veaf-config.lua",
   "builder.mandatory_community_kept": "Community script '{id}' is mandatory (a VEAF dependency) and stays enabled; the disable request is ignored.",
+  "builder.mist_injected_for_custom_scripts": "MiST is no longer injected by default, but 'src/scripts/{files}' calls it: injecting it for this mission. Set MIST: true under modules: to ask for it explicitly.",
   "builder.mandatory_module_enable": "Module '{module}' is always active and cannot be enabled or disabled (enable: {value}) — remove the 'enable' key from its entry in mission.yaml.",
   "builder.migrate_from_v5_deprecated": "Migrated {count} legacy v5 trigger(s) in memory. Run `convert-v5` to promote src/mission/ to v6 on disk and make this build-time migration unnecessary (it will be removed in a future version).",
   "builder.missing_files": "Missing files from {folder}: {files}",

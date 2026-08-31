@@ -29,7 +29,11 @@ from pathlib import Path
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
-from mission_tools.mission_constants import get_community_script_files, get_optin_community_script_ids
+from mission_tools.mission_constants import (
+    get_community_script_files,
+    get_optin_community_script_ids,
+    mission_scripts_referencing_mist,
+)
 from veaf_libs.i18n import current_language, t, tn
 from veaf_libs.lua_config_generator import (
     MANDATORY_MODULES,
@@ -245,6 +249,8 @@ class ConversionReport:
     pipeline_files: list[PipelineFile] = field(default_factory=list)
     """Pipeline config files detected under ``src/``."""
     detected_community_script_ids: set[str] = field(default_factory=set)
+    #: Mission scripts found calling MiST, so the conversion can keep it enabled for them.
+    mist_callers: list[str] = field(default_factory=list)
     """IDs of community scripts found in ``published/src/scripts/community/``."""
 
     # ── missionConfig.lua migration ────────────────────────────────────────
@@ -1065,6 +1071,17 @@ class V5Converter:
                 if Path(script["path"]).name in present_filenames:
                     report.detected_community_script_ids.add(script["id"])
 
+        # MiST is the one script whose presence proves nothing (DROP-MIST ticket 08): v5 injected it
+        # into every mission, used or not, so every folder being converted has it. Detecting it by
+        # file name would emit `MIST: true` for all of them and carry 336 KB forward for nobody.
+        # Ask the same question the builder asks instead — does one of this mission's own scripts
+        # call it? — which is what keeps a mission like an Open Training one, whose HoundElint calls
+        # `mist.DBs.humansByName`, working across the conversion.
+        if "mist" in report.detected_community_script_ids:
+            report.mist_callers = mission_scripts_referencing_mist(folder / "src" / "scripts")
+            if not report.mist_callers:
+                report.detected_community_script_ids.discard("mist")
+
         for step, v6_candidates in V6_PIPELINE_CANDIDATES.items():
             # Check v6-format files first (already converted or freshly created)
             for rel in v6_candidates:
@@ -1521,6 +1538,13 @@ class V5Converter:
                     lines.append("    settings:")
                     for key, value in _ctld_csar_settings(mr, upper).items():
                         lines.append(f"      {key}: {_yaml_scalar(value)}")
+                elif sid == "mist":
+                    # MiST is opt-in like TUM, but for the opposite reason: TUM must not start on
+                    # its own because it imposes a mission-design contract, whereas MiST is simply
+                    # dead weight for a mission that does not call it. So unlike TUM it *is*
+                    # enabled when detected — and `detected` here already means "one of this
+                    # mission's scripts calls it", not "the file was in the v5 bundle".
+                    lines.append(f"  {upper}: {'true' if detected else 'false'}")
                 elif sid in optin_comm:
                     # Opt-in: keep disabled by default; the maker enables it explicitly.
                     lines.append(f"  {upper}: false")

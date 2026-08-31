@@ -139,7 +139,10 @@ modules:
   tum: false
 ```
 
-> MiST is not in the list: it is a mandatory VEAF dependency (always loaded).
+> MiST is not in the list: it is no longer injected by default. The VEAF scripts stopped
+> calling it, and so did every community script shipped here, which saves 336 KB in every
+> mission. If one of your own scripts calls `mist.`, the build notices and injects it for
+> you, naming the file that asked for it.
 
 ### b. Partial override of the Foothold config
 

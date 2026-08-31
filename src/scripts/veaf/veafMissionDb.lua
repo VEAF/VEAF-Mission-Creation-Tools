@@ -399,12 +399,11 @@ end
 --- This replaces `veafSpawnAircraft`'s hand-deletion of `mist.DBs.unitsByName[x]` and
 --- `groupsByName[x]`, which existed so a dead AFAC's callsign could be reused.
 ---
---- **It still performs that deletion.** Ticket 07 ported `dynAdd`, and the port reaches no
---- name-uniqueness test at all: `clone` is never passed to it directly — every VEAF `clone` goes
---- through the teleport path, which is still MiST's. So MiST is still the thing that would refuse a
---- name it has seen, and freeing the name here without freeing it there would leave the AFAC unable to
---- respawn under its own callsign. The two lines go with the teleport port, and this comment with
---- them.
+--- It used to clear MiST's tables as well, because MiST was still the thing that refused a name it
+--- had seen: `clone` reached DCS through `mist.teleportToPoint`. Ticket 07 replaced that path with
+--- `veafDcsSpawner`, so the only authority on whether a name is free is now `isNameTaken`, which
+--- reads this module's own tables. Those two lines went with the teleport port, as the comment they
+--- carried said they would.
 ---
 --- @param name string
 --- @return boolean true when the name was released somewhere
@@ -414,12 +413,6 @@ function veafMissionDb.releaseSpawnedName(name)
   end
   local released = veafMissionDb.spawnedNames[name] == true
   veafMissionDb.spawnedNames[name] = nil
-
-  if mist and mist.DBs then
-    released = released or mist.DBs.unitsByName[name] ~= nil or mist.DBs.groupsByName[name] ~= nil
-    mist.DBs.unitsByName[name] = nil
-    mist.DBs.groupsByName[name] = nil
-  end
 
   if released then
     veaf.loggers.get(veafMissionDb.Id):trace("released spawned name [%s]", veaf.p(name))

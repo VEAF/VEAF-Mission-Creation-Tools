@@ -40,6 +40,10 @@ You're in a mission that uses VEAF scripts. Open the F10 map, place a marker, an
 
 ### Mission Makers
 
+> **The `.\` is required.** The default Windows terminal is PowerShell, which does not search the
+> current directory — on purpose. `cmd.exe` accepts both forms, so `.\` works everywhere. See
+> [PowerShell or Command Prompt?](doc/mission-maker/GUIDE.en.md#powershell-vs-cmd).
+
 ```powershell
 # 1. Download veaf-tools-updater.exe from the GitHub release page and run it:
 .\veaf-tools-updater.exe
@@ -50,14 +54,14 @@ Then, depending on your starting point:
 
 **You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
 ```powershell
-veaf-tools.exe build
+.\veaf-tools.exe build
 ```
 
 **You only have a `.miz` file:**
 ```powershell
-veaf-tools.exe extract my-mission.miz
+.\veaf-tools.exe extract my-mission.miz
 # → edit mission.yaml to enable the modules you want
-veaf-tools.exe build
+.\veaf-tools.exe build
 ```
 
 Full workflow: [Mission Maker Guide](doc/mission-maker/README.md)
@@ -176,6 +180,10 @@ Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, pla
 
 ### Créateurs de missions
 
+> **Le `.\` est obligatoire.** Le terminal Windows par défaut est PowerShell, qui ne cherche pas
+> dans le dossier courant — exprès. `cmd.exe` accepte les deux formes, donc `.\` marche partout.
+> Voir [PowerShell ou invite de commandes ?](doc/mission-maker/GUIDE.md#powershell-vs-cmd).
+
 ```powershell
 # 1. Téléchargez veaf-tools-updater.exe depuis la page de release GitHub et lancez-le :
 .\veaf-tools-updater.exe
@@ -186,14 +194,14 @@ Ensuite, selon votre point de départ :
 
 **Vous avez déjà un dossier mission VEAF** (ou vous avez forké la [mission de démonstration](https://github.com/VEAF/VEAF-Demo-Mission)) :
 ```powershell
-veaf-tools.exe build
+.\veaf-tools.exe build
 ```
 
 **Vous n'avez qu'un fichier `.miz` :**
 ```powershell
-veaf-tools.exe extract ma-mission.miz
+.\veaf-tools.exe extract ma-mission.miz
 # → éditez mission.yaml pour activer les modules souhaités
-veaf-tools.exe build
+.\veaf-tools.exe build
 ```
 
 Guide complet : [Guide créateur de missions](doc/mission-maker/README.md)

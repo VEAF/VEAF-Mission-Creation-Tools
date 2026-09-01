@@ -39,7 +39,7 @@ Celui-là ne s'écrit pas à la main : un groupe d'aéronefs DCS fait des centai
 construit dans l'éditeur DCS, on le nomme avec le préfixe `veafSpawn-`, puis on l'extrait :
 
 ```powershell
-veaf-tools.exe extract-aircraft-groups ma-mission.miz --kind spawnable
+.\veaf-tools.exe extract-aircraft-groups ma-mission.miz --kind spawnable
 ```
 
 Le fichier `src/spawnables.yaml` est réécrit avec vos groupes. Le prochain build les réinjecte.

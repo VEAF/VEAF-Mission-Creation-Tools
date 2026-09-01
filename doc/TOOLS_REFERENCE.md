@@ -73,8 +73,8 @@ Disponible aussi depuis le TUI interactif via **« Interroger la documentation �
 
 Pour mettre à jour vos VEAF Tools à la dernière version :
 
-```bash
-veaf-tools-updater.exe
+```powershell
+.\veaf-tools-updater.exe
 ```
 
 Cela va :
@@ -92,8 +92,8 @@ Cela va :
 
 Si vous avez besoin d'une version précédente ou voulez être explicite :
 
-```bash
-veaf-tools-updater.exe --tag published-v6.0.0
+```powershell
+.\veaf-tools-updater.exe --tag published-v6.0.0
 ```
 
 Les tags de version disponibles apparaissent sur GitHub :
@@ -105,8 +105,8 @@ Les tags de version disponibles apparaissent sur GitHub :
 
 Pour réinstaller la même version ou forcer la mise à jour :
 
-```bash
-veaf-tools-updater.exe --force
+```powershell
+.\veaf-tools-updater.exe --force
 ```
 
 Cela ignore la vérification « est-ce plus récent ? » et installe quand même. Utile pour :
@@ -126,13 +126,13 @@ github:
 ```
 
 Puis exécuter :
-```bash
-veaf-tools-updater.exe
+```powershell
+.\veaf-tools-updater.exe
 ```
 
 **Option 2 : Ligne de commande (sans fichier de config)**
-```bash
-veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
+```powershell
+.\veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 ```
 
 Avantages :
@@ -148,8 +148,8 @@ Avantages :
 
 ### Ignorer la vérification de checksum (non recommandé)
 
-```bash
-veaf-tools-updater.exe --no-verify-checksum
+```powershell
+.\veaf-tools-updater.exe --no-verify-checksum
 ```
 
 ⚠️ **Non recommandé** — Les checksums protègent contre :
@@ -171,14 +171,14 @@ La langue des messages est détectée automatiquement — aucune configuration r
 
 Pour forcer la langue sur une seule exécution :
 
-```bash
-veaf-tools-updater.exe --lang fr
+```powershell
+.\veaf-tools-updater.exe --lang fr
 ```
 
 Pour définir une préférence persistante :
 
-```bash
-veaf-tools.exe user-config --set lang=fr
+```powershell
+.\veaf-tools.exe user-config --set lang=fr
 ```
 
 Valeurs supportées : `en`, `fr`. Voir [Configuration de la langue](mission-maker/GUIDE.md#global-user-configuration) pour les détails complets.
@@ -187,8 +187,8 @@ Valeurs supportées : `en`, `fr`. Voir [Configuration de la langue](mission-make
 
 Pour un dépannage détaillé :
 
-```bash
-veaf-tools-updater.exe --verbose
+```powershell
+.\veaf-tools-updater.exe --verbose
 ```
 
 Affiche :
@@ -199,18 +199,18 @@ Affiche :
 
 ### Toutes les options combinées
 
-```bash
-veaf-tools-updater.exe \
-  --tag published-v6.0.1 \
-  --token ghp_xxxxxxxxxxxx \
-  --verbose \
+```powershell
+.\veaf-tools-updater.exe `
+  --tag published-v6.0.1 `
+  --token ghp_xxxxxxxxxxxx `
+  --verbose `
   --force
 ```
 
 ### Obtenir de l'aide
 
-```bash
-veaf-tools-updater.exe --help
+```powershell
+.\veaf-tools-updater.exe --help
 ```
 
 Affiche toutes les options disponibles et leurs descriptions.
@@ -313,8 +313,8 @@ veaf-build publish --version 6.0.1-rc1 --prerelease
 
 `--prerelease` exige une version semver de pré-release (avec un suffixe `-`, ex. `6.0.1-rc1`) : le workflow de release se base sur ce `-` pour laisser le tag `published-latest` en place. Un `--prerelease` sur une version nue (`6.0.1`) est **refusé** par la commande. Avec un suffixe valide, les utilisateurs en production ne sont pas mis à jour automatiquement ; testez explicitement avec :
 
-```bash
-veaf-tools-updater.exe --tag published-v6.0.1-rc1
+```powershell
+.\veaf-tools-updater.exe --tag published-v6.0.1-rc1
 ```
 
 ### Mode CI
@@ -410,8 +410,8 @@ Vérifiez :
 ### 6. Annoncer aux utilisateurs
 
 Informez les utilisateurs qu'ils peuvent se mettre à jour :
-```bash
-veaf-tools-updater.exe
+```powershell
+.\veaf-tools-updater.exe
 ```
 
 ---
@@ -534,9 +534,9 @@ git push origin refs/tags/published-v6.0.1
 **Cause :** corruption du fichier pendant le téléchargement (rare) ou problème réseau.
 
 **Solution :**
-```bash
+```powershell
 # Try again (usually fixes it)
-veaf-tools-updater.exe
+.\veaf-tools-updater.exe
 
 # If persists, check GitHub release:
 # https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases
@@ -547,11 +547,11 @@ veaf-tools-updater.exe
 **Cause :** trop d'appels à l'API en peu de temps.
 
 **Solution :**
-```bash
+```powershell
 # Option 1: Wait 1 hour (rate limit resets)
 
 # Option 2: Use Personal Access Token (better limits)
-veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
+.\veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 
 # Get token from: https://github.com/settings/tokens
 # Scope: repo (full control)
@@ -562,10 +562,10 @@ veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 **Cause :** écriture impossible dans le dossier mission ou le répertoire courant.
 
 **Solution :**
-```bash
+```powershell
 # Run as Administrator (Windows)
 # Or specify a different directory as a positional argument:
-veaf-tools-updater.exe "C:\alternative\path"
+.\veaf-tools-updater.exe "C:\alternative\path"
 ```
 
 ### Problème : « Release package not found » lors de la publication
@@ -615,9 +615,9 @@ veaf-build publish --version 6.0.1 --force
 
 Pour des informations de débogage détaillées :
 
-```bash
+```powershell
 # Update tool: verbose output
-veaf-tools-updater.exe --verbose
+.\veaf-tools-updater.exe --verbose
 
 # Build/publish tool: verbose output
 veaf-build publish --version 6.0.1 --verbose
@@ -633,8 +633,8 @@ Consultez le fichier `veaf-tools.log` dans le répertoire courant pour les journ
 
 L'updater est une commande unique de mise à jour, **sans sous-commande**.
 
-```bash
-veaf-tools-updater.exe [MISSION_FOLDER] [OPTIONS]
+```powershell
+.\veaf-tools-updater.exe [MISSION_FOLDER] [OPTIONS]
 
 Arguments:
   MISSION_FOLDER                 Mission folder path (overrides config file; default: current directory)
@@ -654,12 +654,12 @@ Options:
 **Note :** les réglages de `veaf-tools-config.yaml` sont utilisés automatiquement. Les options en ligne de commande priment sur les valeurs du fichier de configuration.
 
 **Exemples :**
-```bash
-veaf-tools-updater.exe
-veaf-tools-updater.exe --tag published-v6.0.0
-veaf-tools-updater.exe --token ghp_xxx --verbose
-veaf-tools-updater.exe --force
-veaf-tools-updater.exe --zip-file ./published.zip
+```powershell
+.\veaf-tools-updater.exe
+.\veaf-tools-updater.exe --tag published-v6.0.0
+.\veaf-tools-updater.exe --token ghp_xxx --verbose
+.\veaf-tools-updater.exe --force
+.\veaf-tools-updater.exe --zip-file ./published.zip
 ```
 
 ### Commande de publication (`veaf-build publish`)
@@ -714,7 +714,7 @@ veaf-build publish --version 6.0.1 --ci
 ### Pour les utilisateurs
 
 ✅ **À faire :**
-- Lancez `veaf-tools-updater.exe` régulièrement pour rester à jour
+- Lancez `.\veaf-tools-updater.exe` régulièrement pour rester à jour
 - Laissez les checksums vérifier l'intégrité (n'utilisez pas `--no-verify-checksum`)
 - Utilisez `--help` en cas de doute sur une option
 
@@ -779,7 +779,7 @@ Toutes les communications avec GitHub utilisent le chiffrement TLS/SSL :
 ## FAQ
 
 **Q : Puis-je revenir à une ancienne version ?**
-R : Oui ! `veaf-tools-updater.exe --tag published-v6.0.0`
+R : Oui ! `.\veaf-tools-updater.exe --tag published-v6.0.0`
 
 **Q : Que faire si la publication échoue ?**
 R : Consultez la section Dépannage ci-dessus. La plupart des problèmes sont liés au réseau ou au token.
@@ -794,7 +794,7 @@ R : Aussi souvent que vous avez des changements. Les utilisateurs ne les verront
 R : Sur GitHub, oui. Mais les utilisateurs l'ont peut-être déjà téléchargée.
 
 **Q : Comment publier une beta sans impacter les utilisateurs ?**
-R : Utilisez `veaf-build publish --version <x.y.z>-rc1 --prerelease` — la version doit porter un suffixe semver de pré-release (`-rc1`, `-beta`…), sinon la commande refuse. Le tag `published-latest` reste alors intact, donc les utilisateurs en production ne sont pas mis à jour ; testez avec `veaf-tools-updater.exe --tag published-v<x.y.z>-rc1`.
+R : Utilisez `veaf-build publish --version <x.y.z>-rc1 --prerelease` — la version doit porter un suffixe semver de pré-release (`-rc1`, `-beta`…), sinon la commande refuse. Le tag `published-latest` reste alors intact, donc les utilisateurs en production ne sont pas mis à jour ; testez avec `.\veaf-tools-updater.exe --tag published-v<x.y.z>-rc1`.
 
 **Q : Comment republier par-dessus une release existante ?**
 R : Utilisez `veaf-build publish --version <x.y.z> --force`.

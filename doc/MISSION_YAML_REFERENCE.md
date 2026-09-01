@@ -711,8 +711,8 @@ profiles:
 Usage :
 
 ```powershell
-veaf-tools.exe mission build --profile TEST
-veaf-tools.exe mission build --profile SERVER
+.\veaf-tools.exe mission build --profile TEST
+.\veaf-tools.exe mission build --profile SERVER
 ```
 
 > Si le profil nommé n'existe pas dans `mission.yaml`, un avertissement est émis et la config de base est utilisée sans modification.
@@ -747,8 +747,8 @@ build_variants:
 ```
 
 ```powershell
-veaf-tools.exe mission build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
-veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
+.\veaf-tools.exe mission build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
+.\veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
 ```
 
 ---

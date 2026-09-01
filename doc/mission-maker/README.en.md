@@ -12,6 +12,10 @@ Integrate the VEAF Lua framework into your DCS World missions to give players dy
 
 ### 1. Install the tools
 
+> **The `.\` is required.** The default Windows terminal is PowerShell, which does not search the
+> current directory — on purpose. `cmd.exe` accepts both forms, so `.\` works everywhere. See
+> [PowerShell or Command Prompt?](GUIDE.en.md#powershell-vs-cmd).
+
 ```powershell
 # Download veaf-tools-updater.exe from the latest GitHub release and place it in your mission project folder.
 .\veaf-tools-updater.exe
@@ -21,7 +25,7 @@ Integrate the VEAF Lua framework into your DCS World missions to give players dy
 
 This downloads `veaf-tools.exe` and the VEAF Lua scripts to your working directory.
 
-> **Language:** Messages are displayed in your OS language automatically (English or French). To switch language: `veaf-tools.exe user-config --set lang=fr`. See [Language Configuration](GUIDE.en.md#global-user-configuration).
+> **Language:** Messages are displayed in your OS language automatically (English or French). To switch language: `.\veaf-tools.exe user-config --set lang=fr`. See [Language Configuration](GUIDE.en.md#global-user-configuration).
 
 ### 2. Create a mission in DCS Editor
 
@@ -30,7 +34,7 @@ Create a standard `.miz` mission (place your own units, waypoints, weather, etc.
 ### 3. Extract the mission
 
 ```powershell
-veaf-tools.exe mission extract my-mission.miz
+.\veaf-tools.exe mission extract my-mission.miz
 ```
 
 This extracts the `.miz` into a mission folder structure (current directory by default) that you can version-control and configure.
@@ -42,7 +46,7 @@ Edit `mission.yaml` at the root of your mission folder to declare which VEAF mod
 ### 5. Build
 
 ```powershell
-veaf-tools.exe mission build my-mission.miz
+.\veaf-tools.exe mission build my-mission.miz
 ```
 
 The build tool reads the mission folder, **automatically injects** the VEAF loader trigger, and produces a `.miz` ready to fly with full VEAF MCT functionality.

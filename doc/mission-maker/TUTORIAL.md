@@ -23,6 +23,14 @@ posez-le dedans, et lancez-le :
 .\veaf-tools-updater.exe
 ```
 
+> **Le `.\` n'est pas décoratif.** Le terminal Windows par défaut est **PowerShell**, et PowerShell
+> ne cherche pas dans le dossier courant — exprès, pour qu'un exécutable déposé là ne prenne pas la
+> place d'une vraie commande. Sans le `.\`, il répond que `veaf-tools-updater.exe` « is not
+> recognized », en désignant le fichier que vous avez sous les yeux. L'invite de commandes
+> (`cmd.exe`) accepte les deux formes, donc `.\` marche partout : c'est la forme écrite partout dans
+> cette documentation. Détails et autres écarts entre les deux shells :
+> [PowerShell ou invite de commandes ?](GUIDE.md#powershell-vs-cmd).
+
 > Windows bloque parfois un `.exe` téléchargé : clic droit → **Propriétés** → cocher **Débloquer**.
 
 **Ce qui doit se passer** : un dossier `published/` apparaît, et `veaf-tools.exe` à côté de

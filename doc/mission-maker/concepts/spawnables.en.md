@@ -38,7 +38,7 @@ This one is not written by hand: a DCS aircraft group runs to hundreds of lines.
 DCS editor, name it with the `veafSpawn-` prefix, then extract it:
 
 ```powershell
-veaf-tools.exe extract-aircraft-groups my-mission.miz --kind spawnable
+.\veaf-tools.exe extract-aircraft-groups my-mission.miz --kind spawnable
 ```
 
 `src/spawnables.yaml` is rewritten with your groups. The next build injects them back.

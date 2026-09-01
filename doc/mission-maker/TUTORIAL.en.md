@@ -23,6 +23,14 @@ drop it in, and run it:
 .\veaf-tools-updater.exe
 ```
 
+> **The `.\` is not decoration.** The default Windows terminal is **PowerShell**, and PowerShell
+> does not search the current directory — on purpose, so that an executable dropped there cannot
+> take the place of a real command. Without the `.\`, it answers that `veaf-tools-updater.exe` "is
+> not recognized", naming the very file you are looking at. Command Prompt (`cmd.exe`) accepts both
+> forms, so `.\` works everywhere: it is the form this documentation writes throughout. Details and
+> the other differences between the two shells:
+> [PowerShell or Command Prompt?](GUIDE.en.md#powershell-vs-cmd).
+
 > Windows sometimes blocks a downloaded `.exe`: right-click → **Properties** → tick **Unblock**.
 
 **What should happen**: a `published/` folder appears, and `veaf-tools.exe` next to the updater.

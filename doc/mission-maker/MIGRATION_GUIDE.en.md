@@ -44,6 +44,10 @@ flowchart TD
 
 3. Have your v5 mission folder on hand
 
+> **The `.\` is required.** The default Windows terminal is PowerShell, which does not search the
+> current directory — on purpose. `cmd.exe` accepts both forms, so `.\` works everywhere. See
+> [PowerShell or Command Prompt?](GUIDE.en.md#powershell-vs-cmd).
+
 > **Tip — Global User Configuration:** Before starting, create `~/veafmct.yaml` (i.e. `C:\Users\YourName\veafmct.yaml` on Windows) to set persistent defaults for all your VEAF projects on this machine — for example your language preference (`lang: fr`). See [Global User Configuration](GUIDE.en.md#global-user-configuration) for the full reference and CLI commands.
 
 ---
@@ -55,8 +59,8 @@ flowchart TD
 | Area | v5 | v6 |
 |------|----|----|
 | **DCS trigger** | Manual `DO SCRIPT FILE` triggers pointing at each `.lua` file | Single trigger injected automatically by `veaf-tools mission build`; no manual trigger work |
-| **Build toolchain** | No build step — scripts loaded directly from disk at mission start | `veaf-tools.exe mission build` assembles the `.miz` from `src/mission/` + `src/scripts/` |
-| **Build script** | Complex `build.cmd` with one line per inject command | No `build.cmd` — just run `veaf-tools-updater.exe` then `veaf-tools.exe mission build` |
+| **Build toolchain** | No build step — scripts loaded directly from disk at mission start | `.\veaf-tools.exe mission build` assembles the `.miz` from `src/mission/` + `src/scripts/` |
+| **Build script** | Complex `build.cmd` with one line per inject command | No `build.cmd` — just run `.\veaf-tools-updater.exe` then `.\veaf-tools.exe mission build` |
 | **Auto-inject pipeline** | Each inject command (`inject-presets`, `inject-waypoints`, etc.) had to be added manually to `build.cmd` | `veaf-tools mission build` auto-detects and runs each step when the matching file is present in `src/` |
 | **Tool updates** | NPM (`npm install`) — scripts distributed as a versioned package | `veaf-tools-updater.exe` — downloads and verifies the latest release in one command |
 | **Build-time config** | No build-time config file | `mission.yaml` — controls log levels, module enable/disable, pipeline step overrides |
@@ -64,7 +68,7 @@ flowchart TD
 | **Module configuration** | Direct assignment: `veafSpawn.SpawnKeyphrase = "_spawn"` in `missionConfig.lua` | Same direct assignment still works in `mission-script.lua`; or `veaf.setConfig("MODULE_ID", "key", value)` for config-driven overrides |
 | **Module init pattern** | Bare `veafXxx.initialize()` calls | Auto-generated into `veaf-config.lua` by `veaf-tools mission build`; no manual `initialize()` calls needed |
 | **Config location** | Initialization scattered in DCS trigger scripts or a separate Lua file | `mission.yaml` generates `veaf-config.lua` at build time; optional custom Lua in `mission-script.lua` |
-| **Config migration** | Manual rewrite | `veaf-tools.exe convert v5` — one command converts `missionConfig.lua`, pipeline files (presets, waypoints, weather, aircraft groups), and generates `mission.yaml` + `mission-script.lua`. Use `migrate-config` only to migrate `missionConfig.lua` alone. |
+| **Config migration** | Manual rewrite | `.\veaf-tools.exe convert v5` — one command converts `missionConfig.lua`, pipeline files (presets, waypoints, weather, aircraft groups), and generates `mission.yaml` + `mission-script.lua`. Use `migrate-config` only to migrate `missionConfig.lua` alone. |
 | **Module log levels** | Set per-module by assigning `veafXxx.LogLevel` before init | `mission.yaml` → `modules: → MODULE_ID: logLevel:` or `--log-modules` CLI flag |
 | **Skynet / CTLD / CSAR / QRA** | Separate `external_modules:` and `qra:` sections | All under the `modules:` block (`modules.SKYNET`, `modules.CSAR` with a `settings:` sub-block, `modules.QRA` with `silence_all` + `definitions:`). **`modules.CTLD` is a plain boolean**: CTLD 2 is configured in a `ctld-config.yaml` next to `mission.yaml`, and a `settings:` block there is rejected by `validate` — you edit it with `ctld-tools`, a tool shipped with CTLD that you [download separately](GUIDE.en.md#getting-ctld-tools). The `external_modules:` and `qra:` sections no longer exist — see [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0001-modules-single-source-of-truth.md). `convert-v5` emits the new shape directly. |
 
@@ -120,7 +124,7 @@ Old DCS `DO SCRIPT FILE` triggers are removed automatically by `veaf-tools missi
 
 > **`src/mission/` promotion to v6 (on by default)**: `convert-v5` finishes by rewriting `src/mission/` to v6 (base build + extract), making the v6 switch definitive and avoiding a re-migration of the v5 triggers on every build. The original is backed up to `backup_v5/src/mission/`. If you'd rather review the generated configs and build yourself first, disable the step with `--no-promote`; you can re-run `convert-v5` later to promote.
 
-> **If you only need to migrate `missionConfig.lua`** without converting pipeline files, use `veaf-tools.exe convert migrate-config src\scripts\missionConfig.lua` directly.
+> **If you only need to migrate `missionConfig.lua`** without converting pipeline files, use `.\veaf-tools.exe convert migrate-config src\scripts\missionConfig.lua` directly.
 
 #### 4. Check removed v5 patterns
 
@@ -341,7 +345,7 @@ modules:
     enabled: true
 ```
 
-Rebuild with `veaf-tools.exe mission build` after any `mission.yaml` change.
+Rebuild with `.\veaf-tools.exe mission build` after any `mission.yaml` change.
 
 ### Marker commands don't work
 
@@ -364,7 +368,7 @@ All VEAF messages go to `Saved Games\DCS\Logs\dcs.log`. To find them quickly:
 
 ### Build fails with "VEAF scripts file not found"
 
-Run `veaf-tools-updater.exe` first — the `published/` folder is missing or outdated.
+Run `.\veaf-tools-updater.exe` first — the `published/` folder is missing or outdated.
 
 ---
 

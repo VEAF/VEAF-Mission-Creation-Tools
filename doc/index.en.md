@@ -54,6 +54,10 @@ You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, a
 
 ### Mission Makers
 
+> **The `.\` is required.** The default Windows terminal is PowerShell, which does not search the
+> current directory — on purpose. `cmd.exe` accepts both forms, so `.\` works everywhere. See
+> [PowerShell or Command Prompt?](mission-maker/GUIDE.en.md#powershell-vs-cmd).
+
 ```powershell
 # 1. Download veaf-tools-updater.exe from the GitHub release page and run it:
 .\veaf-tools-updater.exe
@@ -64,14 +68,14 @@ Then, depending on your starting point:
 
 **You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
 ```powershell
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 **You only have a `.miz` file:**
 ```powershell
-veaf-tools.exe mission extract my-mission.miz
+.\veaf-tools.exe mission extract my-mission.miz
 # → edit mission.yaml to enable the modules you want
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 Full workflow: [Mission Maker Guide](mission-maker/README.en.md)

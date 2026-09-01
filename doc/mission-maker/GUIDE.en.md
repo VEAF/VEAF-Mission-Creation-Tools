@@ -60,6 +60,26 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 
 ## Installation and Updates
 
+### PowerShell or Command Prompt? {#powershell-vs-cmd}
+
+On Windows, the terminal you get by default — the one behind the **Open in Terminal** context menu, the one built into VS Code — is **PowerShell**. Every example in this documentation is written for it.
+
+**An executable sitting in the current folder is called `.\veaf-tools.exe`, never `veaf-tools.exe`.** PowerShell does **not** search the current directory, and that is deliberate: it is a protection against command hijacking — dropping a fake `git.exe` into a folder so that it runs instead of the real one. Without the `.\`, you get:
+
+> veaf-tools.exe is not recognized as a name of a cmdlet, function, script file, or executable program.
+
+(the exact wording depends on your PowerShell version and language). The error names the file you are looking straight at, in the folder you are standing in: it reads as "the tool is broken" when only two characters are missing.
+
+Command Prompt (`cmd.exe`) does search the current directory and accepts both forms. **So `.\veaf-tools.exe` works in both shells**: it is the portable form, and the only one this documentation writes.
+
+The three differences between the two shells that actually bite:
+
+| | PowerShell | `cmd.exe` |
+|---|---|---|
+| Running an executable from the current folder | `.\veaf-tools.exe` (required) | either form |
+| Setting an environment variable | `$env:VEAF_LANG = "fr"` | `set VEAF_LANG=fr` |
+| Breaking a command over several lines | a backtick `` ` `` at end of line | a caret `^` |
+
 ### First Installation
 
 Download `veaf-tools-updater.exe` from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) and place it in your mission project folder.
@@ -112,20 +132,20 @@ scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Local repo path (for 
 All keys are optional. To initialise the file from the CLI:
 
 ```powershell
-veaf-tools.exe user-config --init
+.\veaf-tools.exe user-config --init
 ```
 
 Or inspect/edit values interactively:
 
 ```powershell
 # Show effective configuration and its source
-veaf-tools.exe user-config
+.\veaf-tools.exe user-config
 
 # Set a value
-veaf-tools.exe user-config --set lang=fr
+.\veaf-tools.exe user-config --set lang=fr
 
 # Remove a value (revert to default)
-veaf-tools.exe user-config --unset lang
+.\veaf-tools.exe user-config --unset lang
 ```
 
 **Language detection order** (first match wins):
@@ -153,8 +173,8 @@ cd my-mission
 
 1. Create a folder for your mission project (this is your Git repository)
 2. Copy your existing `.miz` file there
-3. Run `veaf-tools-updater.exe` to fetch all VEAF scripts
-4. Extract your mission: `veaf-tools.exe mission extract my-mission.miz`
+3. Run `.\veaf-tools-updater.exe` to fetch all VEAF scripts
+4. Extract your mission: `.\veaf-tools.exe mission extract my-mission.miz`
 5. Configure modules in `mission.yaml` and optionally `src/scripts/mission-script.lua`
 
 Recommended project layout:
@@ -239,7 +259,7 @@ flowchart TD
 > To give your pilots equipped aircraft, set them up **once** in a mission (in the DCS Mission Editor, with the loadout and livery you want), then regenerate the file from that mission:
 >
 > ```powershell
-> veaf-tools.exe content extract-aircraft-groups my-mission.miz --kind dynamic-template
+> .\veaf-tools.exe content extract-aircraft-groups my-mission.miz --kind dynamic-template
 > ```
 >
 > That rewrites `src/dynamic-slot-templates.yaml` with your templates. The next build injects them, and the dynamic slots offer aircraft ready to fly.
@@ -247,7 +267,7 @@ flowchart TD
 > **Add `--merge` to build the catalogue up instead of starting it over.** Without it the file is rebuilt from the mission alone, so a second mission's templates — or a template you edited by hand — are lost. With it, the mission wins on a group of the same name and **each replacement is named** in the report, while everything the mission does not carry is kept:
 >
 > ```powershell
-> veaf-tools.exe content extract-aircraft-groups second-mission.miz --kind dynamic-template --merge
+> .\veaf-tools.exe content extract-aircraft-groups second-mission.miz --kind dynamic-template --merge
 > ```
 
 ---
@@ -525,10 +545,10 @@ Full reference: [CLI Reference](../CLI_REFERENCE.en.md)
 
 In an interactive terminal, `veaf-tools.exe` opens a guided wizard (TUI) instead of failing on a missing option:
 
-- `veaf-tools.exe` (no arguments) → command-selection menu, then prompts.
-- `veaf-tools.exe mission prepare` → the wizard asks for the target folder **and** the module template.
-- `veaf-tools.exe mission prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
-- `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `veaf-tools.exe mission build --tui`).
+- `.\veaf-tools.exe` (no arguments) → command-selection menu, then prompts.
+- `.\veaf-tools.exe mission prepare` → the wizard asks for the target folder **and** the module template.
+- `.\veaf-tools.exe mission prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
+- `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `.\veaf-tools.exe mission build --tui`).
 
 Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is. Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
 
@@ -540,7 +560,7 @@ Options already passed on the command line are pre-filled; unknown options (e.g.
 
 ```powershell
 # Build the mission — the integrated pipeline runs all enabled steps automatically
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 The `build` command reads `mission.yaml` and runs every enabled pipeline step (presets, waypoints, aircraft groups, weather) in a single pass. Configure which steps are active under the `pipeline:` key in `mission.yaml`.
@@ -552,13 +572,13 @@ If you need to run a single step in isolation (e.g. inject weather only, without
 
 ```powershell
 # Inject radio presets only
-veaf-tools.exe content inject-presets my-mission.miz --presets-file src/presets.yaml
+.\veaf-tools.exe content inject-presets my-mission.miz --presets-file src/presets.yaml
 
 # Inject bullseye and nav waypoints only
-veaf-tools.exe content inject-waypoints my-mission.miz --waypoints-file src/waypoints.yaml
+.\veaf-tools.exe content inject-waypoints my-mission.miz --waypoints-file src/waypoints.yaml
 
 # Create weather/time variants only
-veaf-tools.exe content inject-weather my-mission.miz --config-file versions.yaml
+.\veaf-tools.exe content inject-weather my-mission.miz --config-file versions.yaml
 ```
 
 </details>
@@ -566,7 +586,7 @@ veaf-tools.exe content inject-weather my-mission.miz --config-file versions.yaml
 Commit the contents of `src/` to Git — not the built `.miz`. Use `extract` once to bootstrap the source folder from an existing mission:
 
 ```powershell
-veaf-tools.exe mission extract my-mission.miz
+.\veaf-tools.exe mission extract my-mission.miz
 ```
 
 ---
@@ -598,13 +618,13 @@ profiles:
 
 ```powershell
 # Build for testing (no weather, security disabled, verbose logging)
-veaf-tools.exe mission build --profile TEST
+.\veaf-tools.exe mission build --profile TEST
 
 # Build for server deployment
-veaf-tools.exe mission build --profile SERVER
+.\veaf-tools.exe mission build --profile SERVER
 
 # Build with no profile (base config)
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 Profile keys **deep-merge** onto the base config: only the keys you specify are overridden, everything else stays as defined at the top of `mission.yaml`. Passing an unknown profile name emits a warning and falls back to the base config.
@@ -979,7 +999,7 @@ modules:
     logLevel: debug   # overrides the global default for this module only
 ```
 
-`veaf-tools.exe mission build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.
+`.\veaf-tools.exe mission build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.
 
 ### Reading the log
 

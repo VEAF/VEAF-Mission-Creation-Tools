@@ -10,7 +10,7 @@ tourne.
 Depuis l'exécutable téléchargé avec la release :
 
 ```
-veaf-logs.exe
+.\veaf-logs.exe
 ```
 
 Sans argument, il rouvre les fichiers de la dernière session ; à défaut, le

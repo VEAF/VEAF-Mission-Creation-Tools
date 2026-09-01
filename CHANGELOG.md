@@ -818,6 +818,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and a test in a "constants" suite asserted a running spawn total that was only zero while it
   happened to run first. Verified by running all 45 suites in 48 randomised orders.
 
+- **Every command example in the documentation now runs in PowerShell as written.** The executable
+  is spelled `.\veaf-tools.exe`, not `veaf-tools.exe`: PowerShell — the default shell on Windows,
+  and the one a mission maker gets — does not search the current directory, deliberately, so the
+  bare form died on *"is not recognized as a name of a cmdlet, function, script file, or executable
+  program"*. The error names the very file the reader is looking at, in the folder they are standing
+  in, which reads as "the tool is broken" rather than "prefix it". Measured 2026-09-01: the bare
+  form fails in PowerShell and works in `cmd.exe`; `.\` works in **both**, so it is the portable
+  spelling rather than the PowerShell one.
+
+  160 command lines were fixed — 120 inside code fences and 40 inline in prose — covering
+  `veaf-tools.exe`, `veaf-tools-updater.exe` and `veaf-logs.exe`. Prose that *names* the file
+  instead of running it is untouched on purpose: tree diagrams, architecture diagrams, "download
+  `veaf-tools-updater.exe`", "the `veaf-tools.exe` CLI". `veaf-tools-updater.exe`'s combined-options
+  example also stopped using a shell continuation PowerShell does not understand (`\`, now a
+  backtick), and the code fences around Windows executables in the update/publish reference are
+  tagged `powershell` instead of `bash`.
+
+  Beyond the prefix, the pages that *teach* the command line now say so. The mission-maker guide
+  carries the reference explanation — why PowerShell refuses, why `cmd.exe` does not, and the three
+  differences that actually bite (`.\`, `$env:VEAF_LANG = "fr"` vs `set VEAF_LANG=fr`, backtick vs
+  caret for line continuation) — and the tutorial, the two getting-started pages, the mission-folder
+  and build concept cards, the migration guide, the repository README and the airbase-capture
+  procedure each carry a short note pointing at it. Both languages, in step.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

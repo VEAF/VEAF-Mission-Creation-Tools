@@ -1165,9 +1165,10 @@ function TestVeafGroupSpawnChain:test_a_spawn_that_never_happened_reserves_nothi
 end
 
 function TestVeafGroupSpawnChain:test_the_registry_records_the_name_dcs_was_given()
-  -- `buildCloneData` chooses a name, and a caller may replace it before submitting: veafCombatMission
-  -- assigns `groupName` right after building. Registering the chosen one would block a name nothing
-  -- uses and leave the real one unprotected. Found by review on #848.
+  -- `buildCloneData` chooses a name, and a caller may replace it before submitting. Registering the
+  -- chosen one would block a name nothing uses and leave the real one unprotected. Found by review on
+  -- #848. (`veafCombatMission` was that caller; it names its clone up front now, because renaming a
+  -- group after building leaves its units named after the discarded name — FIX-CLONE-KEEPS-UNIT-NAMES.)
   local data = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):buildCloneData()
   luaunit.assertNotNil(data)
   local chosen = data.name
@@ -1325,6 +1326,104 @@ end
 function TestVeafGroupSpawnChain:test_renaming_can_be_declined_explicitly()
   -- veafCombatZone passes a boolean through, so false has to mean false.
   VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 1, y = 0, z = 2 }):renamingUnitsSequentially(false):respawn()
+
+  luaunit.assertEquals(spawned().units[1].name, "Convoy-1")
+end
+
+-- A clone always renames its units -----------------------------------------------------------------
+-- FIX-CLONE-KEEPS-UNIT-NAMES. The unit rename used to hang off `renamed`, which is true only when the
+-- group name was already taken. A caller that allocates its own unique name -- `veafSpawn-f15-fox1
+-- #0001`, `#0002`, ... -- makes `isNameTaken` answer no, so its units kept the template's names. The
+-- second `-cap f15` then submitted units DCS already knew, and DCS removed the first ones: a teleport,
+-- which is exactly what was reported in game.
+
+--- Every unit name handed to DCS so far, in submission order.
+local function spawnedUnitNames()
+  local names = {}
+  for _, entry in ipairs(dcs_mocks.groupsAdded) do
+    for _, unit in ipairs(entry.group and entry.group.units or {}) do
+      names[#names + 1] = unit.name
+    end
+  end
+  return names
+end
+
+--- Fails when one unit name was submitted twice, which is what makes DCS drop the earlier group.
+local function assertNoHomonymUnits(names)
+  local seen = {}
+  for _, name in ipairs(names) do
+    luaunit.assertNil(seen[name], string.format("unit name [%s] was submitted twice", tostring(name)))
+    seen[name] = true
+  end
+end
+
+--- Give the editor group a second unit, so a multi-unit template is covered too.
+local function addSecondUnitToConvoy()
+  env.mission.coalition.blue.country[1].vehicle.group[1].units[2] =
+    { name = "Convoy-2", unitId = 4, type = "M-1 Abrams", x = 1050, y = 2000 }
+  veafMissionDb.buildSnapshot()
+end
+
+function TestVeafGroupSpawnChain:test_the_same_template_cloned_twice_under_caller_names_keeps_both_groups()
+  -- The measured defect, at the level the spawner sees it: two clones, two names chosen by the
+  -- caller, and the very same unit handed to DCS twice.
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy #0001"):at({ x = 5000, y = 0, z = 6000 }):clone()
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy #0002"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 2, "both clones must reach DCS")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Convoy #0001")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.name, "Convoy #0002")
+  assertNoHomonymUnits(spawnedUnitNames())
+end
+
+function TestVeafGroupSpawnChain:test_a_clone_that_names_itself_still_renames_its_units()
+  -- A free group name is not a reason to keep the template's unit names: the clone is a new
+  -- identity either way.
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy Bravo"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertNotEquals(spawned().units[1].name, "Convoy-1", "the template's unit name must not be reused")
+  luaunit.assertStrContains(spawned().units[1].name, "Convoy Bravo", "a unit is named after its group")
+end
+
+function TestVeafGroupSpawnChain:test_every_unit_of_a_named_clone_is_renamed()
+  addSecondUnitToConvoy()
+
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy Bravo"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertEquals(spawned().units[1].name, "Convoy Bravo-1")
+  luaunit.assertEquals(spawned().units[2].name, "Convoy Bravo-2", "the second unit is not a special case")
+end
+
+function TestVeafGroupSpawnChain:test_the_fallback_path_still_renames_units()
+  -- The callers that supply no name at all (veafAirWaves, veafQraCore) reach the rename through the
+  -- group name being taken. The fix must not replace that branch with another one.
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 2)
+  assertNoHomonymUnits(spawnedUnitNames())
+  luaunit.assertStrContains(dcs_mocks.groupsAdded[1].group.units[1].name, dcs_mocks.groupsAdded[1].group.name)
+  luaunit.assertStrContains(dcs_mocks.groupsAdded[2].group.units[1].name, dcs_mocks.groupsAdded[2].group.name)
+end
+
+function TestVeafGroupSpawnChain:test_a_clone_uses_the_editor_shape_for_its_unit_names()
+  -- Two shapes exist on purpose: `<group>-<n>` is the Mission Editor's own, and it is the one a
+  -- clone uses because the `#` form would read `Convoy #2 #1` and tell nobody anything.
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy Bravo"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertEquals(spawned().units[1].name, "Convoy Bravo-1")
+end
+
+function TestVeafGroupSpawnChain:test_a_clone_that_asks_for_the_hash_shape_still_gets_it()
+  -- ...and `renamingUnitsSequentially` keeps its own meaning, which veafCombatZone relies on.
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy Bravo"):at({ x = 5000, y = 0, z = 6000 }):renamingUnitsSequentially():clone()
+
+  luaunit.assertEquals(spawned().units[1].name, "Convoy Bravo #1")
+end
+
+function TestVeafGroupSpawnChain:test_a_respawn_still_keeps_its_unit_names()
+  -- A respawn reuses an identity rather than creating one, so nothing about it may be renamed.
+  VeafGroupSpawn:new():forGroup("Convoy"):named("Convoy #0001"):at({ x = 5000, y = 0, z = 6000 }):respawn()
 
   luaunit.assertEquals(spawned().units[1].name, "Convoy-1")
 end

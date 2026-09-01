@@ -559,9 +559,12 @@ function veafDcsSpawner.addGroup(groupData)
   --  * every path above this line can still refuse the group — a terrain rejection, a unit with no
   --    position. Reserving earlier left a name held forever by a group that was never created, and
   --    the next clone stepped over it.
-  --  * a caller may rename the group between building it and submitting it, which is exactly what
-  --    `veafCombatMission` does after `buildCloneData()`. Registering the chosen name would have
-  --    recorded one name while DCS received another, blocking the first and protecting neither.
+  --  * a caller may rename the group between building it and submitting it. Registering the chosen
+  --    name would have recorded one name while DCS received another, blocking the first and
+  --    protecting neither. `veafCombatMission` used to do exactly that, and it also showed why a
+  --    caller should not: a clone names its units after its group, so a group renamed after the fact
+  --    leaves its units named after a name nothing registered, and the next clone picks it again.
+  --    That caller now names its clone through `named()` — see FIX-CLONE-KEEPS-UNIT-NAMES.
   --
   -- So what gets recorded is what DCS was actually given.
   veaf.takeSpawnedName(group.name)
@@ -945,7 +948,6 @@ function VeafGroupSpawn:_spawn(verb, buildOnly)
   -- A record from the mission database names its group `groupName`; a spawn wants `name`.
   data.name = self.newGroupName or data.name or data.groupName
   data.groupName = data.name
-  local renamed = false
   if verb == "clone" then
     -- New identity: drop the ids so the spawner allocates fresh ones.
     data.groupId = nil
@@ -963,7 +965,6 @@ function VeafGroupSpawn:_spawn(verb, buildOnly)
       local taken = data.name
       data.name = veafDcsSpawner.freeNameFrom(taken)
       data.groupName = data.name
-      renamed = true
       veaf.loggers.get(veafDcsSpawner.Id):debug("clone of [%s] named [%s]", veaf.p(taken), veaf.p(data.name))
     end
   end
@@ -973,10 +974,20 @@ function VeafGroupSpawn:_spawn(verb, buildOnly)
       unit.unitName = string.format("%s #%d", data.name, unit.unitId or index)
       unit.name = unit.unitName
     end
-  elseif renamed then
-    -- A renamed group renames its units too: DCS is no happier about two `Convoy-1` than about two
-    -- `Convoy`. The Mission Editor's own `<group>-<n>` shape is used rather than the `#` form above,
-    -- which would read `Arco #2 #1` and tell nobody anything.
+  elseif verb == "clone" then
+    -- A clone renames its units too: DCS is no happier about two `Convoy-1` than about two `Convoy`.
+    -- The Mission Editor's own `<group>-<n>` shape is used rather than the `#` form above, which
+    -- would read `Arco #2 #1` and tell nobody anything.
+    --
+    -- FIX-CLONE-KEEPS-UNIT-NAMES: this used to hang off "the group name was already taken", which is
+    -- one case of a new identity rather than the condition for one. A caller that allocates its own
+    -- unique name — `veafSpawn-f15-fox1 #0001`, `#0002`, … — made `isNameTaken` answer no, so its
+    -- units kept the template's names and the second spawn handed DCS units it already knew. DCS
+    -- removes the earlier ones, which in game looks exactly like a teleport.
+    --
+    -- The unit names are unique because the group name is: the caller that renames the *group* after
+    -- building must therefore name it through `named()`, or its units end up named after a name
+    -- nothing registered — see `veafCombatMission`.
     for index, unit in pairs(data.units) do
       unit.unitName = string.format("%s-%d", data.name, index)
       unit.name = unit.unitName

@@ -1139,19 +1139,14 @@ function veafSpawn.spawnCombatAirPatrol(
   newGroup.name = newGroupName
   newGroup.hiddenOnMFD = hiddenOnMFD
 
+  -- FIX-CLONE-KEEPS-UNIT-NAMES: the units are renamed by the clone itself, not here. This loop used
+  -- to build a `<unit> #0001` name and assign it to `unit.name`, which `addGroup` then overwrote from
+  -- `unit.unitName` — the template's name, untouched. So every CAP off one template submitted the
+  -- units of the previous one, and DCS removed the previous one: the teleport that was reported in
+  -- game. Renaming is the spawner's job, and only the fields it fills reach DCS.
   for _, unit in pairs(newGroup.units) do
     unit.skill = skill
-    local unitName = unit.unitName or unit.name
-    veaf.loggers.get(veafSpawn.Id):trace("original unitName=%s", unitName)
-    if not veafSpawn.spawnedNamesIndex[unitName] then
-      veafSpawn.spawnedNamesIndex[unitName] = 1
-    else
-      veafSpawn.spawnedNamesIndex[unitName] = veafSpawn.spawnedNamesIndex[unitName] + 1
-    end
-    local spawnedUnitName = string.format("%s #%04d", unitName, veafSpawn.spawnedNamesIndex[unitName])
-    unit.name = spawnedUnitName
     unit.alt = position.y
-    veaf.loggers.get(veafSpawn.Id):debug("indexed spawnedUnitName=%s", spawnedUnitName)
   end
 
   veaf.loggers.get(veafSpawn.Id):trace("before addGroup, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))

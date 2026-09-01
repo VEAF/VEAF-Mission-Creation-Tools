@@ -894,7 +894,17 @@ function VeafCombatMission:activate(silent)
           end
           local spawnedGroupName = string.format("%s #%04d", groupName, self.spawnedNamesIndex[groupName])
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedGroupName=%s", veaf.p(spawnedGroupName)))
-          local _group = spawn:buildCloneData()
+          -- FIX-CLONE-KEEPS-UNIT-NAMES: named here rather than relabelled afterwards. A clone names
+          -- its units after its group, so a group renamed once the data is built left its units named
+          -- after the intermediate name `freeNameFrom` picked — and nothing ever registers that
+          -- intermediate name, so every clone of the template picked the same one and handed DCS the
+          -- same units. DCS answers that by removing the first ones, which is why the second half of
+          -- a scaled element used to remove the first half.
+          --
+          -- The unit-renaming loop that used to follow is gone with it: it wrote its result into
+          -- `unit.groupName`, which nothing reads, so it renamed nothing. `_spawn` does the renaming
+          -- now, and does it in the field `addGroup` actually submits.
+          local _group = spawn:named(spawnedGroupName):buildCloneData()
           -- VMR-021: `_group.groupName = ...` used to sit **between** two `if _group then`
           -- guards, unguarded itself, so a nil return from mist crashed the activation right
           -- after the code had just finished checking for exactly that. The guards are merged
@@ -902,21 +912,6 @@ function VeafCombatMission:activate(silent)
           if _group then
             for _, unit in pairs(_group.units) do
               unit.skill = missionElement:getSkill()
-            end
-            _group.groupName = spawnedGroupName
-          end
-          if _group then
-            for _, unit in pairs(_group.units) do
-              local unitName = unit.unitName
-              veaf.loggers.get(veafCombatMission.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
-              if not self.spawnedNamesIndex[unitName] then
-                self.spawnedNamesIndex[unitName] = 1
-              else
-                self.spawnedNamesIndex[unitName] = self.spawnedNamesIndex[unitName] + 1
-              end
-              local spawnedUnitName = string.format("%s #%04d", unitName, self.spawnedNamesIndex[unitName])
-              unit.groupName = spawnedUnitName
-              veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedUnitName=%s", veaf.p(spawnedUnitName)))
             end
           end
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("_group=%s", veaf.p(_group)))

@@ -44,6 +44,11 @@ point.
 tank from spawning in water. Since `FEAT-SCENERY-AWARE-SPAWN`, the search for a valid point goes
 through `veaf.findSpawnPoint`, which also knows how to avoid villages and forests.
 
+For an aircraft the rule is about altitude: a position **under the terrain** is refused, and the command
+reports that it found no suitable spot. A position sitting on the ground is still accepted, which is the
+case of an aircraft created as a static object. If an aircraft spawn fails where it used to work, the
+requested altitude is the thing to look at.
+
 ---
 
 ## The pathfinding fix {#pathfinding-fix}

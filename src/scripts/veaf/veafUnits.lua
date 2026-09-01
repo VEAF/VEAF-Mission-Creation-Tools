@@ -409,7 +409,15 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
   end
   if spawnPosition then
     if unit.air then -- if the unit is a plane or helicopter
-      if spawnPosition.z <= 10 then -- if lower than 10m don't spawn unit
+      -- The height is `y`, not `z`. `z` is the easting, which is what the surface query above uses
+      -- (docs/agents/dcs-coordinates.md); every caller hands in a `veaf.placePointOnLand` result, and
+      -- `veafSpawnAircraft` writes `spawnSpot.y = alt` immediately before calling. This line read `z`
+      -- until FIX-AIR-SPAWN-ALTITUDE-GUARD, so it asked whether the point was more than 10 m *east* of
+      -- the origin and had therefore never refused anything.
+      -- What is refused is a point under the terrain, and only that: an aircraft placed as a static
+      -- sits at ground level on purpose — `placePointOnLand` puts it exactly here — so a clearance
+      -- margin above the ground would refuse every static aircraft on low-lying or coastal terrain.
+      if spawnPosition.y < veaf.getLandHeight(spawnPosition) then
         return false
       end
     elseif unit.naval or IsNavalStatic then -- if the unit is a naval unit or an offshore static

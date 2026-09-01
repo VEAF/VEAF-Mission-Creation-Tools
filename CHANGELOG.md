@@ -974,6 +974,34 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and for a downed pilot (a survivor wading off a beach is rescuable), and **not wet enough** for a ship
   placed by `findPointInZone`.
 
+- **Fixed — an aircraft can no longer be spawned inside the terrain, because the check meant to stop
+  that was reading a longitude.** `veafUnits.checkPositionForUnit` refuses a position that does not suit
+  the unit: water for a tank, dry land for a ship, and *"an aircraft will not spawn below 10 m"*. That
+  last rule read `spawnPosition.z`, which in a runtime position is the **easting** — the very meaning the
+  line twenty-two rows above relies on to ask DCS about the surface. The height lives in `y`. So the rule
+  was asking whether the spawn point was more than ten metres **east of the theatre's origin**, which is
+  true of essentially every position on every map: the guard had never refused anything since it was
+  written. It now compares the altitude against the ground height at that point.
+
+  **Some spawns move, and only these**: an aircraft — or an aircraft placed as a static — asked to appear
+  at an altitude **below the terrain** is now refused, and the spawn command reports that it found no
+  suitable position. That is a spawn that used to be accepted and produced an aircraft underground. If a
+  mission relied on the guard never firing, the altitude it asks for is the thing to look at. Nothing
+  else changes: a point on the ground is still accepted, which is where `veaf.placePointOnLand` puts a
+  static aircraft, and the naval and ground rules are untouched.
+
+  Deliberately *not* changed while the game can say which is right: whether an aircraft needs **clearance**
+  above the ground rather than merely not being under it. A ten-metre floor is what the line's author
+  wrote and what the MiST-derived spawner already applies (`VeafGroupSpawn.MINIMUM_CLEARANCE_METRES`,
+  which lifts the aircraft into an altitude band instead of refusing it) — but applied here it would
+  refuse every static aircraft on low-lying or coastal ground, since a sea-level spot answers a ground
+  height of one metre. Both forms are written up for the next session in front of DCS.
+
+  Third easting-versus-altitude confusion found in three days, after the wave command position and the
+  wave offset deltas. The other height tests on the spawn path were enumerated rather than sampled: the
+  only other one reads the field correctly. A fourth site was found **off** that path — the missile
+  guardian computes a missile's potential energy from `getPoint().z` — and has its own lot.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

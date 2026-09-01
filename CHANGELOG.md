@@ -1022,6 +1022,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   valid Lua, naming the line and quoting it. The check is Lua 5.1's grammar in pure Python, so it runs
   everywhere the tools do rather than only where a Lua interpreter happens to be installed.
 
+- **CAP templates that did not answer now answer.** Asking for a CAP by name silently failed for
+  **61 of the 117 `veafSpawn-` templates** in the mission this was found on, and `-cap` with no name —
+  which draws at random from all of them — failed about **one time in two**, with no pattern a mission
+  maker could report. *"It has always worked"* and *"it does not work"* were both accurate accounts of
+  the same defect.
+
+  Every affected template was on the **neutral** side. The lookup that reads a template's mission data
+  walked the mission by hand and entered the red and blue coalitions only, so a neutral group was
+  invisible to it — even though the template was found by name a moment earlier. Confirmed in game on
+  2026-09-01 by the pair that separates the two: `-cap f15` (four templates, all blue) spawned, while
+  `-cap mig29` (fourteen, all neutral) was refused. Neutral is a perfectly ordinary side for a CAP
+  template, which is why so many missions put them there.
+
+  The refusal message also blamed the wrong thing, and that is why this lasted since March: it printed
+  what the pilot typed — *"could not find a template for mig29"*, which reads as *that aircraft does not
+  exist* — when the aircraft did exist and had been chosen. The two failures are now told apart, and
+  the one that rejected a template says which template.
+
+  The lookup now answers out of the mission index the rest of VEAF already uses, which has never had
+  the filter. Every other hand-rolled walk of the mission's coalitions was enumerated: there were three
+  in total, and the other two were correct. The index itself was holed on the same side and is repaired
+  with it — the mission file spells the third coalition `neutrals` where the game's API spells it
+  `NEUTRAL`, so every neutral group had been indexed with no coalition id at all.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

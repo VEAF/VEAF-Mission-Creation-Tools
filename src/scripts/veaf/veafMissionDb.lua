@@ -87,6 +87,19 @@ veafMissionDb.countriesByCoalition = {}
 --- Mission-editor group categories that hold units, in `env.mission.coalition[side].country[i]`.
 veafMissionDb.UNIT_CATEGORIES = { "plane", "helicopter", "vehicle", "ship", "static" }
 
+--- Mission-file coalition keys to the `coalition.side` constant they name.
+---
+--- The two vocabularies disagree on one word: the mission table calls the third side **`neutrals`**
+--- and the scripting API calls it **`NEUTRAL`**, so `coalition.side[string.upper(coalitionName)]`
+--- answers nil for it and every neutral group was indexed with no `coalitionId` at all. `red` and
+--- `blue` happen to match, which is why it went unnoticed.
+veafMissionDb.COALITION_SIDE_BY_MISSION_KEY = {
+  red = "RED",
+  blue = "BLUE",
+  neutrals = "NEUTRAL",
+  neutral = "NEUTRAL",
+}
+
 --- Read one unit out of a mission-editor group.
 ---
 --- The fields are the ones VEAF actually reads — `veafInterpreter` documents its own set as
@@ -145,7 +158,8 @@ function veafMissionDb.buildSnapshot()
 
   for coalitionName, coalitionData in pairs(env.mission.coalition) do
     if type(coalitionData) == "table" and coalitionData.country then
-      local coalitionId = coalition.side[string.upper(coalitionName)]
+      local sideName = veafMissionDb.COALITION_SIDE_BY_MISSION_KEY[string.lower(coalitionName)] or string.upper(coalitionName)
+      local coalitionId = coalition.side[sideName]
       veafMissionDb.countriesByCoalition[coalitionName] = veafMissionDb.countriesByCoalition[coalitionName] or {}
       for _, countryData in pairs(coalitionData.country) do
         if countryData.name then
@@ -176,6 +190,13 @@ function veafMissionDb.buildSnapshot()
                   -- into the ten fields a caller reads; MiST walked `env.mission` from scratch on every
                   -- call to reach the same table.
                   route = groupData.route,
+                  -- The whole editor table for this group, by reference for the same reason as the
+                  -- route. This is what `veaf.getGroupData` hands back: its callers read fields no
+                  -- record projects and none of them the same ones — `communication` and `frequency`
+                  -- for a tanker, a unit's `callsign`, `unitId` and `modulation` for a carrier's ATC.
+                  -- Projecting that set would be a second copy of the mission to keep in step, so the
+                  -- record carries the door rather than the rooms.
+                  missionData = groupData,
                 }
                 for _, unitData in pairs(groupData.units or {}) do
                   if unitData.name then
@@ -262,7 +283,10 @@ end
 --- Straight out of `env.mission`; MiST copied the same two numbers into a table of its own at startup
 --- and never touched them again.
 ---
---- @param coalitionName string "blue" or "red"
+--- A keyed read rather than a walk, so it has no coalition filter to get wrong — but the key is the
+--- **mission-file** name, and the third side is spelled `neutrals` there, not `neutral`.
+---
+--- @param coalitionName string "blue", "red" or "neutrals" — as `env.mission.coalition` keys them
 --- @return table|nil `{ x, y }`, or nil when the mission declares no bullseye for that side
 function veafMissionDb.getBullseye(coalitionName)
   local coalitionData = env.mission and env.mission.coalition and env.mission.coalition[coalitionName]

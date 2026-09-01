@@ -2421,44 +2421,24 @@ function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
   return result
 end
 
---- modified version of `veaf.getGroupRoute` that returns raw DCS group data
+--- The raw mission-editor table of a pre-placed group, by group name or by group id.
+---
+--- Answers out of `veafMissionDb`'s index rather than walking `env.mission` again. The walk this
+--- replaced entered `red` and `blue` only, so **every group on the `neutrals` side was invisible** —
+--- measured in game on 2026-09-01 as 61 of a mission's 117 `veafSpawn-` CAP templates, which is why
+--- `-cap f15` (blue) worked and `-cap mig29` (neutral) did not. It also called `getGroupRecord` to
+--- resolve the identifier and then threw the record away, so the index was already consulted and
+--- already had the answer.
+---
+--- @param groupIdent string|number a group name, or an editor group id
+--- @return table|nil the group exactly as `env.mission` holds it, or nil when no such group is placed
 function veaf.getGroupData(groupIdent)
-  -- refactor to search by groupId and allow groupId and groupName as inputs
-  local gpId = groupIdent
-  local groupRecord = veaf.getGroupRecord(groupIdent)
-  if groupRecord then
-    gpId = groupRecord.groupId
-  else
-    veaf.loggers.get(veaf.Id):info(groupIdent .. " not found among the mission's pre-placed groups")
+  local groupRecord = veaf.getGroupRecord(groupIdent) or veaf.getGroupRecordById(groupIdent)
+  if not groupRecord then
+    veaf.loggers.get(veaf.Id):info("no group data found for %s", veaf.p(groupIdent))
+    return nil
   end
-
-  for coa_name, coa_data in pairs(env.mission.coalition) do
-    if (coa_name == "red" or coa_name == "blue") and type(coa_data) == "table" then
-      if coa_data.country then --there is a country table
-        for cntry_id, cntry_data in pairs(coa_data.country) do
-          for obj_type_name, obj_type_data in pairs(cntry_data) do
-            if obj_type_name == "helicopter" or obj_type_name == "ship" or obj_type_name == "plane" or obj_type_name == "vehicle" then -- only these types have points
-              if
-                (type(obj_type_data) == "table")
-                and obj_type_data.group
-                and (type(obj_type_data.group) == "table")
-                and (#obj_type_data.group > 0)
-              then --there's a group!
-                for group_num, group_data in pairs(obj_type_data.group) do
-                  if group_data and group_data.groupId == gpId then -- this is the group we are looking for
-                    return group_data
-                  end
-                end
-              end
-            end
-          end
-        end
-      end
-    end
-  end
-
-  veaf.loggers.get(veaf.Id):info(" no group data found for " .. groupIdent)
-  return nil
+  return groupRecord.missionData
 end
 
 function veaf.findInTable(data, key)

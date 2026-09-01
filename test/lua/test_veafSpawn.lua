@@ -2821,4 +2821,103 @@ function TestVeafSpawnCapMissingSpawnedGroup:test_a_group_dcs_knows_is_still_set
   luaunit.assertFalse(anyCapWarningMentions(self.warned, CAP_CLONE), "a group DCS found must not be warned about")
 end
 
+-- ============================================================================
+-- FIX-GETGROUPDATA-SKIPS-NEUTRALS — the CAP refusal must name what it rejected
+--
+-- `spawnCombatAirPatrol` fails for two different reasons and used to describe both as the first
+-- one: "could not find a template for mig29" — the pilot's own input, in a message that reads as
+-- *that aircraft does not exist*. It did exist; fourteen templates matched it, and the mission data
+-- behind the chosen one came back nil. The message sent every investigation to the template table
+-- and the search pattern, which is why the defect lived from 2026-03-14 to 2026-09-01.
+--
+-- The two failures are asserted against each other on purpose: each test proves the other message
+-- is not a catch-all that happens to contain the right word.
+-- ============================================================================
+TestVeafSpawnCapRefusalNamesTheTemplate = {}
+
+--- A template whose mission data cannot be read — exactly the state a neutral template was in.
+local UNREADABLE_TEMPLATE = "veafSpawn-MIG29-NEUTRAL"
+
+function TestVeafSpawnCapRefusalNamesTheTemplate:setUp()
+  dcs_mocks.reset()
+  self._savedTemplates = veafSpawn.airUnitTemplates
+  self._savedGroupsByName = veafMissionDb.groupsByName
+  self._savedGroupsById = veafMissionDb.groupsById
+
+  -- The template is known by name...
+  veafSpawn.airUnitTemplates = { [UNREADABLE_TEMPLATE:upper()] = VeafAirUnitTemplate:new():setName(UNREADABLE_TEMPLATE) }
+  -- ...and absent from the mission index, so `veaf.getGroupData` answers nil for it.
+  veafMissionDb.groupsByName = {}
+  veafMissionDb.groupsById = {}
+
+  self._logger = veaf.loggers.get(veafSpawn.Id)
+  self._originalError = self._logger.error
+  self.errors = {}
+  local errors = self.errors
+  self._logger.error = function(_, text, ...)
+    local args = { ... }
+    local rendered = tostring(text)
+    for _, arg in ipairs(args) do
+      rendered = rendered .. " " .. tostring(arg)
+    end
+    table.insert(errors, rendered)
+  end
+end
+
+function TestVeafSpawnCapRefusalNamesTheTemplate:tearDown()
+  self._logger.error = self._originalError
+  veafSpawn.airUnitTemplates = self._savedTemplates
+  veafMissionDb.groupsByName = self._savedGroupsByName
+  veafMissionDb.groupsById = self._savedGroupsById
+  dcs_mocks.reset()
+end
+
+--- Everything the CAP refusal logged, as one string.
+function TestVeafSpawnCapRefusalNamesTheTemplate:_loggedErrors()
+  return table.concat(self.errors, "\n")
+end
+
+local function askForACap(name)
+  return veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, name, "usa", 0, 0, 0, 20, nil, 60, "random", true, false)
+end
+
+--- The defect's own message. The template was chosen and then dropped, so the log has to say which
+--- one: without the name, the next person to read it looks at the wrong thing, as happened.
+function TestVeafSpawnCapRefusalNamesTheTemplate:test_a_template_dropped_for_want_of_data_is_named()
+  askForACap("mig29")
+  luaunit.assertStrContains(self:_loggedErrors(), UNREADABLE_TEMPLATE, false, "the refusal must name the template it rejected")
+end
+
+--- And it must say that the name *was* matched, rather than repeating "could not find" — the wrong
+--- cause stated confidently is what cost six months here.
+function TestVeafSpawnCapRefusalNamesTheTemplate:test_the_message_says_the_data_was_unreadable_not_that_nothing_matched()
+  askForACap("mig29")
+  local logged = self:_loggedErrors()
+  luaunit.assertStrContains(logged, "no mission data", false)
+  luaunit.assertNotStrContains(logged, "no aircraft template matches", false)
+end
+
+--- The other failure, which the old message described correctly by accident: nothing matched at all.
+--- Here the pilot's input is the only thing there is to name, and no template name may appear.
+function TestVeafSpawnCapRefusalNamesTheTemplate:test_a_name_that_matches_nothing_is_reported_as_such()
+  askForACap("f14tomcat")
+  local logged = self:_loggedErrors()
+  luaunit.assertStrContains(logged, "no aircraft template matches", false)
+  luaunit.assertStrContains(logged, "f14tomcat", false)
+  luaunit.assertNotStrContains(logged, UNREADABLE_TEMPLATE, false)
+end
+
+--- A template the index does know is not refused at all — otherwise the two tests above would pass
+--- against a spawn that always fails.
+function TestVeafSpawnCapRefusalNamesTheTemplate:test_a_readable_template_is_not_refused()
+  veafMissionDb.groupsByName[UNREADABLE_TEMPLATE] = {
+    groupName = UNREADABLE_TEMPLATE,
+    missionData = { groupId = 1, name = UNREADABLE_TEMPLATE, units = {}, route = nil },
+  }
+  askForACap("mig29")
+  local logged = self:_loggedErrors()
+  luaunit.assertNotStrContains(logged, "no mission data", false)
+  luaunit.assertNotStrContains(logged, "no aircraft template matches", false)
+end
+
 os.exit(luaunit.LuaUnit.run())

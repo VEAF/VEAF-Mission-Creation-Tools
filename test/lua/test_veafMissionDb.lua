@@ -390,6 +390,107 @@ function TestVeafMissionDbNames:test_releasingWorksWithNoMistLoaded()
 end
 
 -- ---------------------------------------------------------------------------
+-- FIX-GETGROUPDATA-SKIPS-NEUTRALS — the third coalition
+--
+-- `veaf.getGroupData` used to walk `env.mission` itself, entering `red` and `blue` only, so every
+-- group placed on the `neutrals` side was invisible to it. Measured in game on 2026-09-01: 61 of a
+-- mission's 117 `veafSpawn-` CAP templates were neutral, and the discriminating pair was `-cap f15`
+-- (four templates, all blue) answering while `-cap mig29` (fourteen templates, all neutral) was
+-- rejected. Same table, same search pattern, same parser — only the coalition differed.
+-- ---------------------------------------------------------------------------
+
+--- One CAP template per side, in the shape `env.mission` uses. Each carries the first-waypoint task
+--- `spawnCombatAirPatrol` reads out of the template, which is the whole reason it asks for the data.
+local function buildTemplatesOnEverySide()
+  local function capTemplate(name, groupId)
+    return {
+      name = name,
+      groupId = groupId,
+      units = { [1] = { name = name .. "-1", unitId = groupId * 10, type = "MiG-29S", x = 0, y = 0, alt = 8000 } },
+      route = {
+        points = {
+          [1] = {
+            x = 0,
+            y = 0,
+            task = { id = "ComboTask", params = { tasks = { [1] = { id = "WrappedAction" } } } },
+          },
+        },
+      },
+    }
+  end
+
+  env.mission.coalition = {
+    blue = {
+      country = { [1] = { id = 2, name = "usa", plane = { group = { [1] = capTemplate("veafSpawn-F15-BLUE", 30) } } } },
+    },
+    red = {
+      country = { [1] = { id = 0, name = "russia", plane = { group = { [1] = capTemplate("veafSpawn-SU27-RED", 31) } } } },
+    },
+    -- The mission file spells this side `neutrals`, plural. The scripting API spells it `NEUTRAL`.
+    neutrals = {
+      country = { [1] = { id = 15, name = "insurgents", plane = { group = { [1] = capTemplate("veafSpawn-MIG29-NEUTRAL", 32) } } } },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+end
+
+TestVeafGetGroupDataEveryCoalition = {}
+
+function TestVeafGetGroupDataEveryCoalition:setUp()
+  dcs_mocks.reset()
+  self._savedMission = env.mission.coalition
+  buildTemplatesOnEverySide()
+end
+
+function TestVeafGetGroupDataEveryCoalition:tearDown()
+  env.mission.coalition = self._savedMission
+  veafMissionDb.buildSnapshot()
+end
+
+--- The in-game pair, asserted together on purpose: a test that only drove the neutral group would
+--- stay green under a change that lost the blue one, and the defect was never that neutral groups
+--- are special — it was that two sides out of three were hard-coded.
+function TestVeafGetGroupDataEveryCoalition:test_theBlueAndTheNeutralTemplateAreBothReadable()
+  luaunit.assertNotNil(veaf.getGroupData("veafSpawn-F15-BLUE"), "the blue template answered before the fix and must still answer")
+  luaunit.assertNotNil(veaf.getGroupData("veafSpawn-MIG29-NEUTRAL"), "the neutral template is the one that was invisible")
+  luaunit.assertNotNil(veaf.getGroupData("veafSpawn-SU27-RED"))
+end
+
+--- What the caller actually came for. `spawnCombatAirPatrol` reads `route.points[1].task`, and
+--- `getTankerData` reads `communication`, `frequency` and a unit's `callsign` — fields no projected
+--- record carries, so the answer has to be the mission table itself and not a copy of part of it.
+function TestVeafGetGroupDataEveryCoalition:test_theAnswerIsTheMissionTableItself()
+  local data = veaf.getGroupData("veafSpawn-MIG29-NEUTRAL")
+  local placed = env.mission.coalition.neutrals.country[1].plane.group[1]
+  luaunit.assertIs(data, placed)
+  luaunit.assertEquals(data.route.points[1].task.id, "ComboTask")
+  luaunit.assertEquals(data.units[1].type, "MiG-29S")
+end
+
+--- The signature takes a name or an editor id, and the old walk matched on the id. Both still work.
+function TestVeafGetGroupDataEveryCoalition:test_aNeutralGroupIsAlsoFoundByItsEditorId()
+  luaunit.assertEquals(veaf.getGroupData(32).name, "veafSpawn-MIG29-NEUTRAL")
+  luaunit.assertEquals(veaf.getGroupData(30).name, "veafSpawn-F15-BLUE")
+end
+
+function TestVeafGetGroupDataEveryCoalition:test_aGroupThatIsNotPlacedAnswersNil()
+  luaunit.assertNil(veaf.getGroupData("veafSpawn-NOSUCHTHING"))
+  luaunit.assertNil(veaf.getGroupData(9999))
+end
+
+--- The mission file says `neutrals` and `coalition.side` says `NEUTRAL`, so
+--- `coalition.side[string.upper(coalitionName)]` was nil and every neutral record went into the index
+--- with no coalitionId — the index being the single answer now, a hole in it is the same defect one
+--- floor down.
+function TestVeafGetGroupDataEveryCoalition:test_aNeutralRecordCarriesTheNeutralCoalitionId()
+  luaunit.assertEquals(veaf.getGroupRecord("veafSpawn-MIG29-NEUTRAL").coalitionId, coalition.side.NEUTRAL)
+  luaunit.assertEquals(veaf.getUnitRecord("veafSpawn-MIG29-NEUTRAL-1").coalitionId, coalition.side.NEUTRAL)
+  -- and the two sides that already worked still carry theirs
+  luaunit.assertEquals(veaf.getGroupRecord("veafSpawn-F15-BLUE").coalitionId, coalition.side.BLUE)
+  luaunit.assertEquals(veaf.getGroupRecord("veafSpawn-SU27-RED").coalitionId, coalition.side.RED)
+end
+
+-- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
 os.exit(luaunit.LuaUnit.run())

@@ -869,8 +869,21 @@ function veafSpawn.spawnCombatAirPatrol(
 
   -- find template amongst the existing templates (name can be a regex)
   local chosenTemplateName, chosenTemplateData = veafSpawn.findSpawnableAircraftGroupname(name)
-  if not chosenTemplateName or not chosenTemplateData then
-    veaf.loggers.get(veafSpawn.Id):error("spawnCombatAirPatrol: could not find a template for %s", veaf.p(name))
+  -- Two different failures, and the old message described both as the first one. "could not find a
+  -- template for mig29" reads as *that aircraft does not exist*, so it sent every investigation to the
+  -- template table and the search pattern -- while the name had in fact been matched and it was the
+  -- mission data behind it that came back nil. That is how FIX-GETGROUPDATA-SKIPS-NEUTRALS survived:
+  -- the message named the pilot's input, never the template it had just rejected.
+  if not chosenTemplateName then
+    veaf.loggers.get(veafSpawn.Id):error("spawnCombatAirPatrol: no aircraft template matches %s", veaf.p(name))
+    return
+  end
+  if not chosenTemplateData then
+    veaf.loggers.get(veafSpawn.Id):error(
+      "spawnCombatAirPatrol: template %s matched %s but has no mission data, and was rejected",
+      veaf.p(chosenTemplateName),
+      veaf.p(name)
+    )
     return
   end
 

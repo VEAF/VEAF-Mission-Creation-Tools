@@ -1046,6 +1046,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with it — the mission file spells the third coalition `neutrals` where the game's API spells it
   `NEUTRAL`, so every neutral group had been indexed with no coalition id at all.
 
+- **Fixed — spawning the same CAP, AFAC or combat-mission group a second time no longer removes the
+  first one.** Asking for `-cap f15` twice looked like the existing flight had been teleported to the
+  new spot rather than a second one appearing. The group names were never the problem: each spawn
+  allocated its own. The **units** kept the template's names, so the second spawn handed DCS aircraft
+  it already knew — and DCS answers that by removing the earlier ones. A cloned group now always
+  renames its units, whatever name its caller chose for the group.
+
+  What this changes for a mission maker: the units of a spawned CAP, AFAC or combat-mission group are
+  named after the group they belong to (`veafSpawn-f15-fox1 #0001-1`, `-2`, …) instead of carrying the
+  Mission Editor template's unit names. Anything that referred to a **spawned** unit by the template's
+  own unit name will no longer find it — the group names, the AFAC callsigns and the radio menus are
+  unchanged. Groups placed in the Mission Editor keep their unit names, as do the combat-zone groups,
+  which are respawned rather than cloned.
+
+  Two related repairs came with it, both of code that looked like it was doing this already: the CAP
+  wrote its new unit names into a field the spawner overwrites, and a combat mission wrote them into a
+  field nothing reads.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

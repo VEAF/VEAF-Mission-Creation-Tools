@@ -1224,4 +1224,107 @@ function TestVeafCombatMissionMissingSpawnedGroup:test_a_group_dcs_knows_is_stil
   luaunit.assertFalse(anyWarningMentions(self.warned, cloneName), "a group DCS found must not be warned about")
 end
 
+-- ============================================================================
+-- FIX-CLONE-KEEPS-UNIT-NAMES — an element of scale 2 handed DCS the same units twice
+--
+-- A combat mission clones one editor group once per `scale`, and every clone used to come back with
+-- the template's unit names. DCS resolves two units under one name by removing the first, so the
+-- second half of a scaled element removed the first half.
+--
+-- This caller reached the defect by its own road: it did not name the clone through `named()` but
+-- overwrote `groupName` after building, so the units were named after the intermediate name
+-- `freeNameFrom` picked — and since nothing ever registers that intermediate name, every clone of the
+-- template picked the very same one. Its own unit-renaming loop wrote the name into `unit.groupName`,
+-- a field nothing reads.
+-- ============================================================================
+TestVeafCombatMissionCloneUnitNames = {}
+
+local SCALED_TEMPLATE = "SCALED-CONVOY"
+
+function TestVeafCombatMissionCloneUnitNames:setUp()
+  dcs_mocks.reset()
+  -- Indexed through `buildSnapshot` rather than written into `groupsByName` by hand: a real record
+  -- names its units `unitName`, and `addGroup` reads `unit.unitName or unit.name`. A hand-written
+  -- record carrying only `name` hides exactly the defect under test.
+  self._originalCountries = env.mission.coalition.red.country
+  env.mission.coalition.red.country = {
+    [1] = {
+      name = "RUSSIA",
+      id = country.id.RUSSIA,
+      vehicle = {
+        group = {
+          {
+            name = SCALED_TEMPLATE,
+            groupId = 81,
+            units = {
+              { name = SCALED_TEMPLATE .. "-1", unitId = 811, type = "BTR-80", x = 0, y = 0, skill = "Average" },
+              { name = SCALED_TEMPLATE .. "-2", unitId = 812, type = "BTR-80", x = 30, y = 0, skill = "Average" },
+            },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+end
+
+function TestVeafCombatMissionCloneUnitNames:tearDown()
+  env.mission.coalition.red.country = self._originalCountries
+  veafMissionDb.buildSnapshot()
+  dcs_mocks.reset()
+end
+
+--- A one-element mission that spawns the template `scale` times. A negative radius keeps the spawn
+--- exactly where the editor drew it, so the test stays deterministic.
+local function scaledMissionOver(templateName, scale)
+  local mission = VeafCombatMission:new():setName("ScaledMission"):setFriendlyName("ScaledMission")
+  local element = VeafCombatMissionElement:new():setName("ELEMENT-1"):setGroups({ templateName }):setSpawnRadius(-1):setScale(scale)
+  return mission:addElement(element)
+end
+
+--- Every unit name handed to DCS so far, in submission order.
+local function submittedCombatUnitNames()
+  local names = {}
+  for _, entry in ipairs(dcs_mocks.groupsAdded) do
+    for _, unit in ipairs(entry.group and entry.group.units or {}) do
+      names[#names + 1] = unit.name
+    end
+  end
+  return names
+end
+
+function TestVeafCombatMissionCloneUnitNames:test_a_scaled_element_submits_every_clone()
+  scaledMissionOver(SCALED_TEMPLATE, 2):activate()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 2, "both clones must reach DCS, or the rest asserts nothing")
+end
+
+function TestVeafCombatMissionCloneUnitNames:test_two_clones_of_one_template_do_not_share_unit_names()
+  scaledMissionOver(SCALED_TEMPLATE, 2):activate()
+
+  local names = submittedCombatUnitNames()
+  luaunit.assertEquals(#names, 4, "two two-unit clones make four units")
+  local seen = {}
+  for _, name in ipairs(names) do
+    luaunit.assertNil(seen[name], string.format("unit name [%s] was submitted twice", tostring(name)))
+    seen[name] = true
+  end
+end
+
+function TestVeafCombatMissionCloneUnitNames:test_a_clone_does_not_submit_the_template_unit_names()
+  scaledMissionOver(SCALED_TEMPLATE, 2):activate()
+  for _, name in ipairs(submittedCombatUnitNames()) do
+    luaunit.assertNotEquals(name, SCALED_TEMPLATE .. "-1", "the template's own unit name reached DCS")
+    luaunit.assertNotEquals(name, SCALED_TEMPLATE .. "-2", "the template's own unit name reached DCS")
+  end
+end
+
+function TestVeafCombatMissionCloneUnitNames:test_the_group_names_are_still_the_indexed_ones()
+  -- The clone is named through `named()` now instead of being relabelled afterwards, and the name a
+  -- mission maker sees on the F10 map must not change for it.
+  scaledMissionOver(SCALED_TEMPLATE, 2):activate()
+
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, string.format("%s #%04d", SCALED_TEMPLATE, 1))
+  luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.name, string.format("%s #%04d", SCALED_TEMPLATE, 2))
+end
+
 os.exit(luaunit.LuaUnit.run())

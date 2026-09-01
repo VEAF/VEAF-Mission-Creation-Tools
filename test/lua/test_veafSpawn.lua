@@ -2920,4 +2920,184 @@ function TestVeafSpawnCapRefusalNamesTheTemplate:test_a_readable_template_is_not
   luaunit.assertNotStrContains(logged, "no aircraft template matches", false)
 end
 
+-- ============================================================================
+-- FIX-CLONE-KEEPS-UNIT-NAMES — the same template spawned twice removed the first group
+--
+-- Reported in game: *"on ne peut pas lancer 2 fois `-cap f15` — la seconde fois téléporte le groupe
+-- existant"*. The group names were fine — the CAP and the AFAC both allocate a unique one — but the
+-- **units** kept the template's names, because the spawner only renamed them when it had had to
+-- rename the group itself. Two units under one name is something DCS resolves by removing the first,
+-- which is what a teleport looks like from the cockpit.
+--
+-- Both templates below carry **two** units: an F-15 CAP is a pair, and a one-unit template would
+-- hide the second half of the defect.
+-- ============================================================================
+TestVeafSpawnCloneUnitNames = {}
+
+--- Every unit name handed to DCS so far, in submission order.
+local function submittedUnitNames()
+  local names = {}
+  for _, entry in ipairs(dcs_mocks.groupsAdded) do
+    for _, unit in ipairs(entry.group and entry.group.units or {}) do
+      names[#names + 1] = unit.name
+    end
+  end
+  return names
+end
+
+--- Fails when one unit name was submitted twice, which is what makes DCS drop the earlier group.
+local function assertUnitNamesAreDistinct(names)
+  luaunit.assertTrue(#names > 0, "nothing was submitted, so nothing is being asserted")
+  local seen = {}
+  for _, name in ipairs(names) do
+    luaunit.assertNil(seen[name], string.format("unit name [%s] was submitted twice", tostring(name)))
+    seen[name] = true
+  end
+end
+
+local CLONE_CAP_TEMPLATE = "veafSpawn-TWICECAP"
+local CLONE_AFAC_TEMPLATE = "veafSpawn-TWICEAFAC"
+
+--- One two-ship editor group, in the shape `env.mission` holds it.
+local function twoShipEditorGroup(templateName, groupId)
+  return {
+    name = templateName,
+    groupId = groupId,
+    units = {
+      { name = templateName .. "-1", unitId = groupId * 10 + 1, type = "F-15C", x = 0, y = 0, alt = 6000, skill = "Average" },
+      { name = templateName .. "-2", unitId = groupId * 10 + 2, type = "F-15C", x = 50, y = 0, alt = 6000, skill = "Average" },
+    },
+  }
+end
+
+--- Index both templates through `buildSnapshot`, rather than writing `groupsByName` by hand.
+---
+--- It matters here: a record built by the snapshot names its units `unitName`, and `addGroup` reads
+--- `unit.unitName or unit.name`. A hand-written record with only `name` would make the CAP's own
+--- rename look effective when in a real mission it is not — a green test for a defect still present.
+local function placeTheTemplates()
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = { group = { twoShipEditorGroup(CLONE_CAP_TEMPLATE, 71), twoShipEditorGroup(CLONE_AFAC_TEMPLATE, 72) } },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+end
+
+function TestVeafSpawnCloneUnitNames:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._originalCountries = env.mission.coalition.blue.country
+  placeTheTemplates()
+
+  self._originalFind = veafSpawn.findSpawnableAircraftGroupname
+  self._template = CLONE_CAP_TEMPLATE
+  local suite = self
+  veafSpawn.findSpawnableAircraftGroupname = function(_)
+    return suite._template, { groupId = 1, units = {}, route = nil }
+  end
+
+  -- The CAP watchdog is not what is under test here, and it would re-enter DCS on its first tick.
+  self._originalSchedule = veaf.scheduleFunction
+  veaf.scheduleFunction = function()
+    return 1
+  end
+
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = false
+  end
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = nil
+end
+
+function TestVeafSpawnCloneUnitNames:tearDown()
+  veafSpawn.findSpawnableAircraftGroupname = self._originalFind
+  veaf.scheduleFunction = self._originalSchedule
+  for i = 1, veafSpawn.AFAC.maximumAmount do
+    veafSpawn.AFAC.callsigns[coalition.side.BLUE][i].taken = false
+  end
+  veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = nil
+  env.mission.coalition.blue.country = self._originalCountries
+  veafMissionDb.buildSnapshot()
+  dcs_mocks.reset()
+end
+
+--- Register a group in the mocks, with the controller the two spawn paths dereference afterwards.
+local function registerSpawnedGroup(groupName)
+  dcs_mocks.addGroup(groupName, {
+    getUnits = function()
+      return {}
+    end,
+    getController = function()
+      return {
+        setOption = function() end,
+        setCommand = function() end,
+      }
+    end,
+  })
+end
+
+--- Ask for the CAP the way the `cap` command handler does.
+local function spawnTheCapTwice()
+  for index = 1, 2 do
+    registerSpawnedGroup(string.format("%s #%04d", CLONE_CAP_TEMPLATE, index))
+    veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, "TWICECAP", "usa", 0, 0, 0, 20, nil, 60, "random", true, false)
+  end
+end
+
+--- Ask for the AFAC the way the `afac` command handler does. Two spawns take two callsigns.
+local function spawnTheAfacTwice()
+  registerSpawnedGroup("Enfield 9 1")
+  registerSpawnedGroup("Springfield 9 1")
+  for _ = 1, 2 do
+    veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, "TWICEAFAC", "usa", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)
+  end
+end
+
+-- The CAP: the command David ran twice.
+function TestVeafSpawnCloneUnitNames:test_two_caps_from_one_template_reach_dcs()
+  spawnTheCapTwice()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 2, "both CAPs must reach DCS, or the rest asserts nothing")
+end
+
+function TestVeafSpawnCloneUnitNames:test_two_caps_from_one_template_do_not_share_unit_names()
+  spawnTheCapTwice()
+  assertUnitNamesAreDistinct(submittedUnitNames())
+end
+
+function TestVeafSpawnCloneUnitNames:test_a_cap_does_not_submit_the_template_unit_names()
+  spawnTheCapTwice()
+  for _, name in ipairs(submittedUnitNames()) do
+    luaunit.assertNotEquals(name, CLONE_CAP_TEMPLATE .. "-1", "the template's own unit name reached DCS")
+    luaunit.assertNotEquals(name, CLONE_CAP_TEMPLATE .. "-2", "the template's own unit name reached DCS")
+  end
+end
+
+-- The AFAC: it overrides its **first** unit's name with the callsign, which is why the defect was
+-- invisible on a single-seat template and real on any template with a wingman.
+function TestVeafSpawnCloneUnitNames:test_two_afacs_from_one_template_reach_dcs()
+  self._template = CLONE_AFAC_TEMPLATE
+  spawnTheAfacTwice()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 2, "both AFACs must reach DCS, or the rest asserts nothing")
+end
+
+function TestVeafSpawnCloneUnitNames:test_two_afacs_from_one_template_do_not_share_unit_names()
+  self._template = CLONE_AFAC_TEMPLATE
+  spawnTheAfacTwice()
+  assertUnitNamesAreDistinct(submittedUnitNames())
+end
+
+function TestVeafSpawnCloneUnitNames:test_an_afac_still_answers_to_its_callsign()
+  -- The callsign is the AFAC's identity: the watchdog looks the group up by it, `veafMove` matches
+  -- it to re-task the aircraft, and the first unit carries it. Renaming the clone's units must not
+  -- take that away.
+  self._template = CLONE_AFAC_TEMPLATE
+  spawnTheAfacTwice()
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Enfield 9 1")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.units[1].name, "Enfield 9 1")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.name, "Springfield 9 1")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.units[1].name, "Springfield 9 1")
+end
+
 os.exit(luaunit.LuaUnit.run())

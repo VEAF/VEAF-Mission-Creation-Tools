@@ -1,6 +1,6 @@
 # 01 — The chain walker accepts string continuations
 
-Status: ⬜ ready
+Status: ✅ done — shipped 2026-08-17 (PR #757); in-game acceptance tracked on the PRD
 
 Issue: [#722](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/722) · Type: fix ·
 File: `src/python/veaf-tools/mission_builder/config_migrator.py`

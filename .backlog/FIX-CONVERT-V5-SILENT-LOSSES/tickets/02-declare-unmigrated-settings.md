@@ -1,6 +1,6 @@
 # 02 — Declare the settings that are not migrated
 
-Status: ⬜ ready
+Status: ✅ done — shipped 2026-08-17 (PR #757); in-game acceptance tracked on the PRD
 
 Issues: [#725](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/725) (option 2),
 [#723](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/723) (option 2) · Type: feat ·

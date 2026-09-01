@@ -54,18 +54,37 @@ class TestTheReportPrintsItsLists(unittest.TestCase):
 
         self.assertIn("extracted Foothold_SY_4.7.0.miz", report.to_markdown())
 
+    @staticmethod
+    def _counter_line(markdown: str) -> str:
+        """Return the summary's manual-action line, whatever the locale renders around it."""
+        return next(line for line in markdown.splitlines() if "⚠️" in line)
+
     def test_the_counter_and_the_items_agree(self) -> None:
         # The counter was already right; it just had nothing to point at. Pinning both together
         # so a future edit cannot restore the state where one moves without the other.
+        #
+        # Read the counter line, never a slice of the document: the first version of this test
+        # searched the header for "3" and matched the *clock* in `Generated: … 10:32` — so it was
+        # green or red depending on the minute, and it never looked at the counter at all.
         report = ConversionReport(mission_folder=Path("mission"), version="test")
         report.manual_review += ["first item", "second item"]
         report.warnings.append("a warning")
 
         markdown = report.to_markdown()
 
-        self.assertIn("3", markdown.split("\n---")[0], "the summary counts review items and warnings")
+        self.assertIn("3", self._counter_line(markdown), "the summary counts review items and warnings")
         for item in ("first item", "second item", "a warning"):
             self.assertIn(item, markdown, item)
+
+    def test_the_counter_follows_the_number_of_items(self) -> None:
+        # The point of the counter is that it moves. A test that only ever sees one total cannot
+        # tell a real count from a constant, so drive two and read the line each time.
+        for count in (1, 5):
+            with self.subTest(count=count):
+                report = ConversionReport(mission_folder=Path("mission"), version="test")
+                report.manual_review += [f"item {index}" for index in range(count)]
+
+                self.assertIn(str(count), self._counter_line(report.to_markdown()))
 
     def test_an_empty_report_does_not_print_an_empty_section(self) -> None:
         markdown = ConversionReport(mission_folder=Path("mission"), version="test").to_markdown()

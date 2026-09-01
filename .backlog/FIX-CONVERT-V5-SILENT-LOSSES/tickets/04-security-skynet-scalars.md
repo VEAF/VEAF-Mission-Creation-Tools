@@ -1,6 +1,6 @@
 # 04 — Carry the fourteen dropped scalars
 
-Status: ⬜ ready
+Status: ✅ done — shipped 2026-08-17 (PR #757); in-game acceptance tracked on the PRD
 
 Issue: [#725](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/725) (option 1) ·
 Type: feat · Files: `mission_builder/config_migrator.py`, `veaf_libs/lua_config_generator.py`

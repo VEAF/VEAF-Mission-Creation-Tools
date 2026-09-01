@@ -101,8 +101,11 @@ class TestTheStagingIsWritten(unittest.TestCase):
         # lot is about, in a new costume.
         markdown = self._refresh().to_markdown()
 
-        self.assertIn("AIEN.lua", markdown)
-        self.assertIn("12", markdown)
+        # The delay has to be read off the line that names the script. Searching the whole
+        # document for "12" also matches the timestamp the report stamps on itself, so such an
+        # assertion passes twelve minutes past every hour whatever the delay actually says.
+        line = next(line for line in markdown.splitlines() if "AIEN.lua" in line)
+        self.assertIn("12", line, "the report states the delay it wrote for that script")
 
     def test_a_second_refresh_against_the_same_release_writes_nothing(self) -> None:
         self._refresh()

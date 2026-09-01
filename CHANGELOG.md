@@ -842,6 +842,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and build concept cards, the migration guide, the repository README and the airbase-capture
   procedure each carry a short note pointing at it. Both languages, in step.
 
+- **Fixed — two conversion-report tests that were green by coincidence.** `assertIn("3", …)` over
+  the report header matched the **clock** in `Generated: … 10:32`, not the counter it claimed to
+  check, so the test's verdict depended on the minute it ran: green in CI, red on a French
+  workstation at 10:27. The sibling assertion on a script's delay had the same shape — searching the
+  whole document for `"12"` also matches twelve minutes past any hour. Both now read the one line
+  that carries the number, and a second case drives two different totals so a constant cannot pass
+  for a count. Proven to fail: a counter off by one and a delay reported as zero each turn them red.
+
+- **Fixed — the backlog consistency check could not see the backlog.** `Python Quality` only ran for
+  changes under `src/python/`, `test/python/`, `veaf_build/` and the two dependency files, while its
+  suite also reads `.backlog/`, `src/scripts/`, `doc/`, `plugin/` and `CHANGELOG.md`. A stale scope
+  table therefore reached `develop` with every check green. The trigger paths now cover what the
+  suite actually asserts on, the way `Docs Check` and `DCS Mock Coverage` already did.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

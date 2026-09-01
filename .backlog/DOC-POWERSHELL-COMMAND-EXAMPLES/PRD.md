@@ -6,9 +6,10 @@ Origin: David, 2026-09-01. Measured on `develop` the same day.
 
 ## The defect
 
-The documentation writes `veaf-tools.exe …` in **118 places across 28 files**, and `.\veaf-tools.exe`
-in **zero**. In PowerShell — the default shell on Windows, and the one a mission maker gets — the
-bare form does not run:
+The documentation writes `veaf-tools.exe …` with no `.\` in **80 places across 28 files** (the
+figure first recorded here, 118, counted 38 already-correct lines as well — see the closing note).
+In PowerShell — the default shell on Windows, and the one a mission maker gets — the bare form does
+not run:
 
 > `veaf-tools.exe` is not recognized as a name of a cmdlet, function, script file, or executable
 > program.

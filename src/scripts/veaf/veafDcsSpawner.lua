@@ -576,9 +576,9 @@ end
 --- dam's surface as `RUNWAY`, and a convoy refused a bridge crossing would be a visible regression.
 --- A category with no entry here accepts any surface, which is what MiST did.
 veafDcsSpawner.TERRAIN_BY_CATEGORY = {
-  ship = { "SHALLOW_WATER", "WATER" },
-  vehicle = { "LAND", "ROAD", "RUNWAY" },
-  ground_unit = { "LAND", "ROAD", "RUNWAY" },
+  ship = veaf.WATER_TERRAIN,
+  vehicle = veaf.DRIVABLE_TERRAIN,
+  ground_unit = veaf.DRIVABLE_TERRAIN,
 }
 
 --- The editor's word for each `Group.Category`, so a category never travels as a bare number.
@@ -594,38 +594,10 @@ veafDcsSpawner.ANY_TERRAIN = { "LAND", "ROAD", "SHALLOW_WATER", "WATER", "RUNWAY
 
 --- Is this point on one of these surfaces?
 ---
---- Replaces `mist.isTerrainValid`. Accepts either coordinate shape — a vec3's `z` is the easting that
---- `land.getSurfaceType` wants as `y`, which is the confusion `docs/agents/dcs-coordinates.md` exists
---- for.
----
---- @param point table a vec2 (x, y) or a vec3 (x, y, z)
---- @param surfaces table|string a surface name, or a list of them
---- @return boolean
-function veafDcsSpawner.isTerrainValid(point, surfaces)
-  if type(point) ~= "table" or type(point.x) ~= "number" then
-    return false
-  end
-  local flat = { x = point.x, y = point.z or point.y }
-  if type(flat.y) ~= "number" then
-    return false
-  end
-
-  local wanted = surfaces
-  if type(wanted) == "string" then
-    wanted = { wanted }
-  end
-  if type(wanted) ~= "table" then
-    return false
-  end
-
-  local actual = land.getSurfaceType(flat)
-  for _, name in pairs(wanted) do
-    if type(name) == "string" and land.SurfaceType[string.upper(name)] == actual then
-      return true
-    end
-  end
-  return false
-end
+--- Replaces `mist.isTerrainValid`. The body moved to `veaf.isTerrainValid` (CHORE-ONE-TERRAIN-CHECK):
+--- five other sites asked DCS the same question and three of them live in `veaf.lua`, which loads first
+--- and cannot reach this module. The name stays here because the teleport and its tests use it.
+veafDcsSpawner.isTerrainValid = veaf.isTerrainValid
 
 --- The surfaces a group of this category may stand on.
 --- @param category string|nil the group's category, in any spelling
@@ -1060,7 +1032,7 @@ end
 
 veaf.addStatic = veafDcsSpawner.addStatic
 veaf.addGroup = veafDcsSpawner.addGroup
-veaf.isTerrainValid = veafDcsSpawner.isTerrainValid
+-- `veaf.isTerrainValid` is not listed here: it is defined in veaf.lua, and this module borrows it.
 veaf.getCurrentGroupData = veafDcsSpawner.getCurrentGroupData
 veaf.getGroupRoute = veafDcsSpawner.getGroupRoute
 veaf.goRoute = veafDcsSpawner.goRoute

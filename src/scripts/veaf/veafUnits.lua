@@ -390,7 +390,11 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
   local vec2 = { x = spawnPosition.x, y = spawnPosition.z }
   veaf.loggers.get(veafUnits.Id):trace("vec2=%s", vec2)
   veaf.loggers.get(veafUnits.Id):trace("unit=%s", unit)
-  local landType = land.getSurfaceType(vec2)
+  -- Open water only, so shallow water counts as ground here exactly as it does for the CSAR survivor
+  -- and the ground spawn search (veaf.OPEN_WATER). Note that a naval unit therefore *refuses* shallow
+  -- water: the two directions are not each other's mirror image, and CHORE-ONE-TERRAIN-CHECK left that
+  -- asymmetry untouched.
+  local isOverWater = veaf.isTerrainValid(vec2, veaf.OPEN_WATER)
 
   local IsNavalStatic = false --offshore static (list in dcsUnits.lua) flag
   if unit.static and veaf.findInTable(dcsUnits.NavalStatics, unit.typeName) then
@@ -398,7 +402,7 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
     IsNavalStatic = true
   end
 
-  if landType == land.SurfaceType.WATER then
+  if isOverWater then
     veaf.loggers.get(veafUnits.Id):trace("landType = WATER")
   else
     veaf.loggers.get(veafUnits.Id):trace("landType = GROUND")
@@ -409,11 +413,11 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
         return false
       end
     elseif unit.naval or IsNavalStatic then -- if the unit is a naval unit or an offshore static
-      if landType ~= land.SurfaceType.WATER then -- don't spawn over anything but water
+      if not isOverWater then -- don't spawn over anything but water
         return false
       end
     else
-      if landType == land.SurfaceType.WATER then -- don't spawn over water
+      if isOverWater then -- don't spawn over water
         return false
       end
     end

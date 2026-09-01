@@ -726,7 +726,9 @@ Tout le reste — distances, temporisations, caisses, groupes de troupes, zones,
 L'outil ne vient **pas** avec VEAF MCT. Il est publié avec CTLD : ouvrez les [releases de VEAF/CTLD](https://github.com/VEAF/CTLD/releases) et téléchargez le fichier `ctld-tools.exe` attaché à la release.
 
 !!! warning "Il n'apparaît pas en « Latest release »"
-    Tant que CTLD 2 n'a pas de version stable, **toutes** ses releases sont publiées en *pre-release* — la page d'accueil du dépôt n'en affiche donc aucune, et le lien « Releases » est le seul chemin. La plus récente est en haut de la liste.
+    Tant que CTLD 2 n'a pas de version stable, **toutes** ses releases sont publiées en *pre-release* — la page d'accueil du dépôt n'en affiche donc aucune, et le lien « Releases » est le seul chemin.
+
+    Ne vous fiez pas non plus au premier élément de la liste : l'entrée **« CTLD dev build »** n'est pas une release, mais la compilation du dernier commit fusionné, et elle repasse en tête à chaque reconstruction. Les vraies releases portent une étiquette `published-v…` — c'est parmi celles-là que vous choisissez, avec le critère ci-dessous.
 
 Prenez la release **qui correspond à la version de CTLD embarquée dans votre VEAF MCT** : l'outil et le moteur évoluent ensemble. Cette version est écrite en clair dans l'entête du script installé chez vous, `published/src/scripts/community/CTLD.lua` :
 

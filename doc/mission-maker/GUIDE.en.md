@@ -722,7 +722,9 @@ Everything else — distances, timers, crates, troop groups, zones, per-aircraft
 The tool does **not** come with VEAF MCT. It is published with CTLD: open the [VEAF/CTLD releases](https://github.com/VEAF/CTLD/releases) and download the `ctld-tools.exe` file attached to the release.
 
 !!! warning "It does not show up under \"Latest release\""
-    Until CTLD 2 cuts a stable version, **every** one of its releases is published as a *pre-release* — so the repository landing page shows none of them, and the "Releases" link is the only way in. The most recent one is at the top of the list.
+    Until CTLD 2 cuts a stable version, **every** one of its releases is published as a *pre-release* — so the repository landing page shows none of them, and the "Releases" link is the only way in.
+
+    Do not trust the first entry in the list either: the **"CTLD dev build"** entry is not a release but a build of the latest merged commit, and it jumps back to the top every time it is rebuilt. Real releases are tagged `published-v…` — pick from those, using the rule below.
 
 Take the release **matching the CTLD version your VEAF MCT ships**: the tool and the engine move together. That version is written in plain text in the header of the script installed on your machine, `published/src/scripts/community/CTLD.lua`:
 

@@ -856,6 +856,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   table therefore reached `develop` with every check green. The trigger paths now cover what the
   suite actually asserts on, the way `Docs Check` and `DCS Mock Coverage` already did.
 
+- **Docs: the CTLD download block no longer sends you to a build that is not a release.** The
+  mission-maker guide told the reader that "the most recent one is at the top of the list" of
+  `VEAF/CTLD` releases. Re-measured 2026-09-01: the entry named **`CTLD dev build`** sits in that
+  same list, its own body says *"This is not a release. It is the tool built from the latest merge
+  into `develop`"*, and it returns to the top every time it is rebuilt — on 2026-08-26 it missed the
+  top spot by three minutes. So the advice pointed, sooner or later, at a build carrying no version
+  number, immediately after telling the reader to match the version their VEAF MCT ships. That
+  sentence is replaced by the discriminator: real releases are tagged `published-v…`, and the
+  version rule picks among those. Both languages.
+
+  The rest of the block was re-verified and holds: `ctld-tools.exe` is a release asset (22.5 MB, on
+  `published-v2.0.0-rc8`), **all nine** CTLD 2 releases are pre-releases so
+  `GET /repos/VEAF/CTLD/releases/latest` answers **404** and nothing shows under "Latest release",
+  and the shipped engine version is still readable in the header of
+  `published/src/scripts/community/CTLD.lua`.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

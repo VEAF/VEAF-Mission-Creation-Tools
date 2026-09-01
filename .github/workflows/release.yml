@@ -79,6 +79,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ steps.version.outputs.tag }}"             "dist/veaf-logs.exe#veaf-logs-${{ steps.version.outputs.version }}.exe" --clobber
+          # Mirror onto the floating published-latest release, as the capture kit and the
+          # standalone binaries already do. Without this, veaf-logs is published only on the
+          # versioned release — which nobody browses, since GitHub points every visitor at
+          # "Latest". 6.18.0 shipped the tool invisible to every user who looked there.
+          # A pre-release must not touch published-latest: it stays on the previous stable.
+          if [[ "${{ steps.version.outputs.prerelease }}" != "true" ]] && gh release view published-latest >/dev/null 2>&1; then
+            gh release upload published-latest             "dist/veaf-logs.exe#veaf-logs-${{ steps.version.outputs.version }}.exe" --clobber
+          fi
 
       # Only a real release advances the floating published-latest tag; a pre-release leaves
       # production users on the previous stable (they opt in with --tag published-v<version>).

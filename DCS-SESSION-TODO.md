@@ -243,7 +243,13 @@ deux côtés. Consigné dans
 jeu le 2026-08-15** — *"le A-10 fonctionne"*. Le correctif est donc mesuré, pas supposé, et cette
 mission est celle à utiliser pour la suite de la session.
 
-### R6. A FARP escort on clear ground must not move
+### ❌ R6. A FARP escort on clear ground must not move — **run 2026-09-01, negative**
+
+**Run 2026-09-01: the escort moved on all three markers, open ground included.** The guard's line
+never appeared. Instrumented in #898, twelve decisions gave gaps of 43.9 m to 127 m against a 12 m
+clearance — the condition cannot hold, because `Disposition.getSimpleZones` samples at random rather
+than tessellating. `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` is reopened with these numbers, and its
+ticket 03 replaces the method. **Re-run this item once that lands.**
 
 Unblocks [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md)
 (shipped 2026-09-01) and item 04 of `FIX-PLACEMENT-IGNORES-SCENERY`. **Written up as item 25 at the

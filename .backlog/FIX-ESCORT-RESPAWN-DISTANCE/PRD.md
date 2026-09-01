@@ -1,6 +1,6 @@
 # FIX-ESCORT-RESPAWN-DISTANCE — a respawned asset reappears 80 km from its escort
 
-Status: ⬜ ready — **option (a) chosen by David, 2026-08-28**: the escort respawns with its charge
+Status: 🔄 in-progress — option (a) **implemented and unit-tested**; only the in-game check is left
 
 Origin: the in-game verification of [`FIX-ESCORT-RESPAWN-TASK`](../FIX-ESCORT-RESPAWN-TASK/PRD.md),
 run 2026-08-28 on `VEAF-session-2026-08-27`. That lot's repair is now proven to work; the escort
@@ -23,6 +23,13 @@ t+20s | Arco-escort1: 81562 m from Arco, alt 207 m
 
 **~80 km.** The Escort task's own `engagementDistMax` is **60 000 m**, read off the live task. The
 escort is out of range of its charge before the repair has even run.
+
+> One correction to the paragraph above, 2026-09-01: `veafAssets.respawn` no longer calls
+> `mist.respawnGroup` — `DROP-MIST` replaced it with
+> `VeafGroupSpawn:new():forGroup(name):withRoute(veaf.getGroupRoute(name)):respawn()`. The behaviour
+> the measurement describes is unchanged, and the code says why: `mist.respawnGroup(name, true)` was
+> a wrapper around the teleport with no point and the group's own route, which is that chain without
+> an `at`. Nothing else in this PRD is affected — but do not go looking for MiST here.
 
 The repair itself is not at fault, and that is established rather than assumed — the instrumented
 trace in [ticket 03](../FIX-ESCORT-RESPAWN-TASK/tickets/03-find-the-escort-task-on-any-waypoint.md)
@@ -88,12 +95,43 @@ naming convention — end up doing the same thing at respawn time. The page has 
 - Tests: an asset with an escort respawns both; an asset without one is unaffected; the repair still
   runs and writes the new id.
 
+## Scope
+
+| # | Ticket | Status |
+|---|--------|--------|
+| 01 | [Respawn the escort with its charge](tickets/01-respawn-the-escort-with-its-charge.md) | ✅ |
+
 ## Definition of done
 
 - [x] One of (a)/(b)/(c) chosen, with the reason recorded here — **(a)**, David, 2026-08-28
-- [ ] Implemented with unit tests covering the distance case
-- [ ] Verified in game: respawn the asset, and the escort is with it — not merely tasked with it
-- [ ] The ASSETS page says what a respawn does to an escort
+- [x] Implemented with unit tests covering the distance case — `veafMove.respawnEscort`, called by
+      `veafAssets.respawn` before the task repair; 8 tests, each shown red before the fix and red
+      again under a deliberate sabotage of the finished code (ticket 01 lists the three sabotages)
+- [ ] Verified in game: respawn the asset, and the escort is with it — not merely tasked with it.
+      Written up as item **R5** of [`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md), with what to run
+      and what both outcomes mean, so the wait has somewhere to end
+- [x] The ASSETS page says what a respawn does to an escort — new section *What a respawn does to an
+      escort* in both languages, including the cost: the escort that comes back is a fresh one
+
+### What the unit tests cannot settle, and what to look for in game
+
+The mocks do not model what DCS does with an Escort task, so what is proven here is that the escort
+is **put back** and that the repair still runs, in that order. What the in-game check has to add is
+the distance itself: respawn the asset from the F10 menu and read the escort's distance to its charge
+straight away. The measurement to beat is the one at the top of this page — 78 km and 82 km. Anything
+of that order means the escort was not respawned; a few hundred metres means it was.
+
+Worth watching for separately: the escort now comes back **fresh**, so an escort that had been
+engaged is replaced mid-fight. That is the cost of (a), accepted when it was chosen; the check is
+that it happens, not whether it is liked.
+
+One assumption the mocks cannot exercise, worth a second run: for an escort that had been **shot
+down**, `reestablishEscortTask`'s own guard — `Group.getByName(<asset> escort)` — has to resolve the
+group `coalition.addGroup` created a few instructions earlier, in the same tick. That is the same
+same-tick lookup `teleportEscort` already relies on after its teleport, so the assumption is not a
+new one; the mocked `coalition.addGroup` simply does not register the group it is handed, so no unit
+test can show it either way. Shoot the escort down, respawn the asset, and check the escort is both
+back **and** escorting.
 
 ## Two things found in `teleportEscort` while sizing option (b), 2026-08-28
 
@@ -127,3 +165,24 @@ comments the last one as *"Waypoint 1 where the escort tasking will come into pl
 this code treats as a mere approach waypoint. Whether that breaks the teleport or merely works by
 accident is unmeasured — but it is the same defect, in the same file, and it belongs to whichever lot
 touches this path next.
+
+### Verdict, 2026-09-01 — both **out of scope** for this lot, and filed rather than dropped
+
+Both live in `veafMove.teleportEscort`, which this lot does not touch: option (a) respawns the escort
+and repairs the task, and neither half goes anywhere near the teleport's waypoint arithmetic. The
+reasons are specific, not "it is a different function":
+
+1. **The contradiction about whether the teleport escort works** can only be settled by a
+   measurement in DCS, and nothing implemented here depends on the answer — option (b) was the only
+   thing that rested on it, and it was not chosen. Deciding it from the code is exactly the mistake
+   the note warns against: *"held for 30 min"* and *"does not defend"* are both compatible with an
+   escort flying formation without engaging.
+2. **The last-waypoint assumption in the rewrite** is a real defect, but repairing it means
+   rewriting the waypoint arithmetic around the task's actual index — a design change to a path
+   whose author says it does not do its job, which is finding 1 again. Fixing the arithmetic of a
+   function before knowing whether the function works is work in the wrong order, and it cannot be
+   verified from a workstation either way. Doing it here would also break RULE N°1: it is not
+   adjacent to this change, it is a different change in the same file.
+
+Filed as [`FIX-TELEPORT-ESCORT-WAYPOINT`](../FIX-TELEPORT-ESCORT-WAYPOINT/PRD.md), which carries both
+in the order they have to be taken: measure first, then fix the arithmetic.

@@ -185,6 +185,14 @@ function veafAssets.respawn(name)
     -- a hand-picked subset of the scripts through `custom_scripts` may not, and a nil index here
     -- would kill the respawn outright.
     if veafMove then
+      -- The escort comes back with its charge, and only then is the task repaired. Repairing alone
+      -- was not enough: the asset reappears at its mission start position while its escort keeps
+      -- flying, measured ~80 km apart minutes after a respawn on 2026-08-28 -- outside the Escort
+      -- task's own 60 000 m engagementDistMax, so the repaired escort had a charge it could not
+      -- reach. Both halves are needed, and the order is the asset, then its escort, then the repair:
+      -- the repair reads Group.getID of the freshly created asset, and looks the escort up as a live
+      -- group.
+      veafMove.respawnEscort(name)
       veafMove.reestablishEscortTask(name)
     end
     local text = veaf.t("assets.respawned", theAsset.description)

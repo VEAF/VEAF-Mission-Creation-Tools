@@ -134,8 +134,6 @@ function TestVeafMissionDbSnapshot:setUp()
   dcs_mocks.reset()
   self._savedMission = env.mission.coalition
   buildTestMission()
-  veafMissionDb.humansByName = {}
-  veafMissionDb.spawnedNames = {}
 end
 
 function TestVeafMissionDbSnapshot:tearDown()
@@ -227,7 +225,6 @@ end
 function TestVeafMissionDbRoster:tearDown()
   env.mission.coalition = self._savedMission
   veafMissionDb.buildSnapshot()
-  veafMissionDb.humansByName = {}
 end
 
 --- Skill `Client` marks a playable slot; `High` is an AI wingman in the same group.
@@ -346,13 +343,11 @@ function TestVeafMissionDbNames:setUp()
   dcs_mocks.reset()
   self._savedMission = env.mission.coalition
   buildTestMission()
-  veafMissionDb.spawnedNames = {}
 end
 
 function TestVeafMissionDbNames:tearDown()
   env.mission.coalition = self._savedMission
   veafMissionDb.buildSnapshot()
-  veafMissionDb.spawnedNames = {}
 end
 
 function TestVeafMissionDbNames:test_aTakenNameIsTaken()

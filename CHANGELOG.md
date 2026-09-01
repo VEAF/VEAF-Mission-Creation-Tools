@@ -797,6 +797,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   failure the way its other two failure paths already do, rather than announcing a CAP nobody can
   confirm exists.
 
+- **The Lua test mocks now clear the VEAF state a test leaves behind.** `dcs_mocks.reset()` reset the
+  clock, the logs and the unit registries, and restored CTLD's settings — but nothing on the VEAF
+  side, so each suite had to guess which globals concerned it. The one that guessed wrong did not
+  necessarily go red: a leftover spawned name made the clone-name uniquifier append a ` #2`, so a
+  "the group is found" probe missed its lookup and tested the nil case twice while appearing to
+  cover both paths. That cost two separate lots on the same day, each patching it in its own `setUp`.
+
+  Five registries are cleared centrally now, each with the reason written next to it:
+  `veafMissionDb.spawnedNames` and `humansByName`, `veafSpawn.spawnedNamesIndex`, `spawnedConvoys`
+  and `spawnedUnitsCounter`. They share one trait — empty when their module loads, filled only by
+  the code under test. Eight other candidates were judged and deliberately left alone, because an
+  empty carrier list or an empty Skynet unit-type table is the case a suite is testing, and
+  `veafSpawn.commandHandlers` and `veaf.ImportantUnitsByGroupPattern` are filled at load time by
+  code other suites read. The per-entry reasoning is in the lot's PRD.
+
+  Three order dependencies were fixed at their source: three suites emptied the command-handler
+  registry and never put it back (running one of them before `TestSecrev2ShowMfd` failed five
+  tests), one replaced `veaf.config` wholesale and left CTLD switched off for everything after it,
+  and a test in a "constants" suite asserted a running spawn total that was only zero while it
+  happened to run first. Verified by running all 45 suites in 48 randomised orders.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

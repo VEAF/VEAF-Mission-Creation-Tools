@@ -108,7 +108,12 @@ function TestVeafSpawnConstants:test_cargoWeightBiasRange()
   luaunit.assertEquals(veafSpawn.cargoWeightBiasRange, 6)
 end
 
-function TestVeafSpawnConstants:test_spawnedUnitsCounter_starts_at_zero()
+--- Not a constant: a running total that every spawn increments. It read as one only because this
+--- suite happened to run before anything in this file had spawned — in a shuffled order it was the
+--- count left by whichever suite went first. What is worth pinning is that a test starts from zero,
+--- which is what `dcs_mocks.reset()` now guarantees.
+function TestVeafSpawnConstants:test_spawnedUnitsCounter_starts_each_test_at_zero()
+  dcs_mocks.reset()
   luaunit.assertEquals(veafSpawn.spawnedUnitsCounter, 0)
 end
 
@@ -430,8 +435,16 @@ function TestVeafSpawnCore:setUp()
   veafSpawn.drawingsMarkers = {}
   veafSpawn.missionMasterRunnables = {}
   veafSpawn.missionMasterRunnables.__silent = true
+  -- An empty registry is this suite's own starting point — it counts what a test registers, so it
+  -- cannot share the handlers the module registered at load. Saved and put back, because those
+  -- handlers are what `TestSecrev2ShowMfd` looks the `afac` and `cap` commands up in: emptying the
+  -- registry and walking away makes that suite pass only while it happens to run first.
+  self._savedCommandHandlers = veafSpawn.commandHandlers
   veafSpawn.commandHandlers = {}
-  veafSpawn.spawnedConvoys = {}
+end
+
+function TestVeafSpawnCore:tearDown()
+  veafSpawn.commandHandlers = self._savedCommandHandlers
 end
 
 function TestVeafSpawnCore:test_registerCommandHandler()
@@ -757,7 +770,6 @@ TestVeafSpawnGround = {}
 function TestVeafSpawnGround:setUp()
   dcs_mocks.reset()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
-  veafSpawn.spawnedConvoys = {}
   self._savedCtld = ctld
   self._savedConfig = veaf.config.ctld
 end
@@ -1233,7 +1245,6 @@ function TestVeafSpawnAircraft:setUp()
   dcs_mocks.reset()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
   veafSpawn.airUnitTemplates = {}
-  veafSpawn.spawnedUnitsCounter = 0
   veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = nil
   veafSpawn.AFAC.numberSpawned[coalition.side.RED] = nil
 end
@@ -1707,13 +1718,11 @@ function TestSecrev2ClosestConvoy:setUp()
       end,
     }
   end
-  veafSpawn.spawnedConvoys = {}
 end
 
 function TestSecrev2ClosestConvoy:tearDown()
   veaf.getAveragePosition = self._savedGetAveragePosition
   veafRadio.getHumanUnitOrWingman = self._savedGetHuman
-  veafSpawn.spawnedConvoys = {}
 end
 
 --- Position every convoy but the ones named in `positionless`.
@@ -1812,7 +1821,6 @@ function TestConvoyItinerary:tearDown()
   veaf.goRoute = self._goRoute
   veaf.getAveragePosition = self._avg
   trigger.action.outText = self._outText
-  veafSpawn.spawnedConvoys = {}
 end
 
 function TestConvoyItinerary:test_advancing_moves_to_the_next_point()
@@ -1962,7 +1970,6 @@ function TestConvoyArrivalWatchdog:tearDown()
   veaf.generateVehiclesRoute = self._route
   Group.getByName = self._getByName
   trigger.action.outText = self._outText
-  veafSpawn.spawnedConvoys = {}
 end
 
 --- Place the convoy at a runtime position: `x` northing, `z` easting.
@@ -2088,7 +2095,6 @@ function TestConvoyHoldAndStop:tearDown()
   veaf.outTextForUnit = self._outForUnit
   veafSpawn._findClosestConvoy = self._closest
   Group.getByName = self._getByName
-  veafSpawn.spawnedConvoys = {}
 end
 
 local function convoy()
@@ -2488,6 +2494,9 @@ TestSpawnSilenceIsNotSecurity = {}
 function TestSpawnSilenceIsNotSecurity:setUp()
   dcs_mocks.reset()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
+  -- A registry holding this suite's one handler and nothing else, then put back: the handlers
+  -- registered at module load belong to every other suite in this file.
+  self._savedCommandHandlers = veafSpawn.commandHandlers
   veafSpawn.commandHandlers = {}
   self.seen = nil
   local test = self
@@ -2495,6 +2504,10 @@ function TestSpawnSilenceIsNotSecurity:setUp()
     test.seen = options
     return nil
   end)
+end
+
+function TestSpawnSilenceIsNotSecurity:tearDown()
+  veafSpawn.commandHandlers = self._savedCommandHandlers
 end
 
 --- @param bypassSecurity boolean the 5th argument of executeCommand
@@ -2552,6 +2565,8 @@ TestSpawnSilenceSurvivesRescheduling = {}
 function TestSpawnSilenceSurvivesRescheduling:setUp()
   dcs_mocks.reset()
   veaf.DO_NOT_EXPORT_JSON_FILES = true
+  -- Same as above: this suite's own one-handler registry, restored in tearDown.
+  self._savedCommandHandlers = veafSpawn.commandHandlers
   veafSpawn.commandHandlers = {}
   veafSpawn.registerCommandHandler("unit", "OPEN", function()
     return nil
@@ -2566,6 +2581,7 @@ end
 
 function TestSpawnSilenceSurvivesRescheduling:tearDown()
   veaf.scheduleFunction = self._schedule
+  veafSpawn.commandHandlers = self._savedCommandHandlers
 end
 
 --- `scripted` is the 12th argument, so it is the 12th entry of the table mist is handed.
@@ -2672,12 +2688,9 @@ local CAP_CLONE = string.format("%s #%04d", CAP_TEMPLATE, 1)
 
 function TestVeafSpawnCapMissingSpawnedGroup:setUp()
   dcs_mocks.reset()
-  -- `dcs_mocks.reset()` does not clear these, and both decide the clone's name: a stale
-  -- `spawnedNames` makes the uniquifier append a ` #2` and the lookup then misses for the wrong
-  -- reason.
-  veafSpawn.spawnedNamesIndex = {}
+  -- `spawnedNames` and `spawnedNamesIndex` both decide the clone's name, and `dcs_mocks.reset()`
+  -- clears them now. The mission snapshot is this suite's own: one template group and nothing else.
   veafMissionDb.groupsByName = {}
-  veafMissionDb.spawnedNames = {}
   veafMissionDb.groupsByName[CAP_TEMPLATE] = {
     name = CAP_TEMPLATE,
     groupName = CAP_TEMPLATE,
@@ -2717,9 +2730,7 @@ function TestVeafSpawnCapMissingSpawnedGroup:tearDown()
   veafSpawn.findSpawnableAircraftGroupname = self._originalFind
   veaf.scheduleFunction = self._originalSchedule
   self._logger.warn = self._originalWarn
-  veafSpawn.spawnedNamesIndex = {}
   veafMissionDb.groupsByName = {}
-  veafMissionDb.spawnedNames = {}
   dcs_mocks.reset()
 end
 

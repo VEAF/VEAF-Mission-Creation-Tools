@@ -1627,7 +1627,16 @@ end
 TestVeafIsEnabled = {}
 
 function TestVeafIsEnabled:setUp()
+  -- A blank config is this suite's own starting point, and it must be put back: `test_enable_false_disables`
+  -- leaves `ctld.enable = false` behind, and `veaf.isCtldReady()` reads exactly that. Walking away from it
+  -- silently switches CTLD off for every suite that runs afterwards — `TestVeafCtldSlingloadToggle` then
+  -- stops logging anything and its "the change is logged" test fails for a reason of its own.
+  self._savedConfig = veaf.config
   veaf.config = {}
+end
+
+function TestVeafIsEnabled:tearDown()
+  veaf.config = self._savedConfig
 end
 
 function TestVeafIsEnabled:test_unconfigured_module_is_enabled_by_default()

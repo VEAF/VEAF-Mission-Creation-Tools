@@ -645,7 +645,8 @@ function dcs_mocks.advanceTime(seconds)
   dcs_mocks.currentTime = dcs_mocks.currentTime + seconds
 end
 
---- Reset the mock clock, log capture, and unit/group registries.
+--- Reset the mock clock, log capture, unit/group registries, and the VEAF runtime state that a
+--- previous test would otherwise leak into this one (see dcs_mocks.resetVeafRuntimeState).
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.scheduledTasks = {}
@@ -671,6 +672,49 @@ function dcs_mocks.reset()
     CTLDConfig._instance.isLoaded = true
     -- Back to CTLD's shipped default, or a test that switches sling loading off leaks into the next one.
     CTLDConfig._instance.settings = { enableHoverSlingload = true }
+  end
+  dcs_mocks.resetVeafRuntimeState()
+end
+
+--- Clear the VEAF registries that the code under test fills as a side effect of running.
+---
+--- These are **runtime accumulations**, not configuration: every one of them is an empty table when
+--- its module loads, and only the code under test ever puts anything in it. Nothing a suite would
+--- deliberately arrange lives here, so restoring the load-time empty table between tests can only
+--- remove what a previous test left behind.
+---
+--- Deliberately **not** here — clearing these would destroy something a suite means to keep:
+---   * `veafSpawn.commandHandlers` is filled at module load by every `registerCommandHandler` call.
+---     Emptying it centrally leaves the dispatcher with no commands at all, which is what
+---     `TestSecrev2ShowMfd` reads to find the `afac` and `cap` handlers.
+---   * `veaf.ImportantUnitsByGroupPattern` ships **non-empty**, and one suite asserts the shipped
+---     patterns only name unit types the generated database knows. `{}` is not its default.
+---   * `veafSkynet.structure` / `declaredSpawns` / `iadsSamUnitsTypes` / `iadsEwrUnitsTypes`,
+---     `veafCarrierOperations.carriers`, `veafAssets.assets` and `veafSecurity.groupElevations` are
+---     arranged by the suites that use them — an empty type table or an empty carrier list is the
+---     case under test, not leftovers. See the CHORE-MOCK-RESET-LEAKS table for the reasoning.
+---
+--- Each module is guarded: a suite loads only what it needs, so most of these are nil in most files.
+function dcs_mocks.resetVeafRuntimeState()
+  if veafMissionDb then
+    -- The spawned-name registry outlives a snapshot rebuild, which is right in a mission and wrong
+    -- between two tests: a leftover name makes the clone-name uniquifier append a ` #2`, and the
+    -- next test's lookup then misses for a reason that has nothing to do with what it asserts.
+    veafMissionDb.spawnedNames = {}
+    -- The player roster, rebuilt by veafMissionDb.initialize() from the mission. A test that
+    -- registers a pilot must not leave him sitting in the next test's slot.
+    veafMissionDb.humansByName = {}
+  end
+  if veafSpawn then
+    -- The other half of the clone-name mechanism: the per-template counter behind ` #0001`.
+    -- Left alone, the second test to spawn from the same template gets ` #0002`.
+    veafSpawn.spawnedNamesIndex = {}
+    -- Convoys are registered here when spawned and removed when they die; a convoy from a previous
+    -- test is one more candidate for "the closest convoy" and one more group for the watchdog.
+    veafSpawn.spawnedConvoys = {}
+    -- A plain running total of everything spawned since the module loaded. Nothing puts it back, so
+    -- any test asserting on it holds only while it runs before every spawn in the file.
+    veafSpawn.spawnedUnitsCounter = 0
   end
 end
 

@@ -92,6 +92,28 @@ modules:
 | `zone_center_coordinates` | string | Chaîne de coordonnées, ex : `"N41°00'00\" E044°00'00\""` |
 | `zone_radius` | nombre | Rayon de la zone en mètres (requis avec les coordonnées) |
 
+#### Écrire une coordonnée avec des secondes {#coordinate-with-seconds}
+
+Le symbole des secondes est un guillemet double, et c'est la forme que DCS affiche à
+l'écran — la coordonnée que vous recopiez depuis le jeu contient donc deux `"`. Deux
+façons de l'écrire en YAML :
+
+```yaml
+# Entre guillemets doubles : le symbole des secondes doit être échappé par un antislash
+zone_center_coordinates: "N41°00'00\" E044°00'00\""
+
+# Entre guillemets simples : rien à échapper, mais le symbole des minutes doit être doublé
+zone_center_coordinates: 'N41°00''00" E044°00''00"'
+```
+
+Les deux donnent la même position. Les espaces font aussi office de séparateurs, si vous
+préférez éviter la ponctuation : `N41 00 00 E044 00 00`.
+
+Jusqu'à la 6.17, une coordonnée écrite avec des secondes cassait le `veaf-config.lua`
+généré, que DCS refusait alors *en entier* — la mission se chargeait sans aucun menu radio
+VEAF. Le build vérifie désormais le fichier qu'il génère et refuse d'en livrer un qui ne
+se lit pas.
+
 ### Timing et limites
 
 | Champ | Type | Défaut | Description |

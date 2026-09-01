@@ -89,6 +89,7 @@
   "builder.dynamic_loader_missing": "Dynamic loading ({mode}) cannot find the framework loader at '{path}'. In dev mode set build.scripts_path to a VEAF-Mission-Creation-Tools checkout; in prod mode the bundle ships in published/ (run the updater first).",
   "builder.era_detected": "Auto-detected mission era: {era} (set mission.era in mission.yaml to override)",
   "builder.folder_not_found": "The input mission folder '{path}' does not exist or is not a folder",
+  "builder.generated_config_not_valid_lua": "Cannot build: the generated veaf-config.lua is not valid Lua at line {line} ({reason}). DCS refuses the whole file, so no VEAF module would start — no radio menu, no spawn. The line reads: {source}",
   "builder.generating_config": "Generating veaf-config.lua from mission.yaml...",
   "builder.generating_dynamic_config": "Generating veafDynamicConfig.lua (dynamic mission scripts)...",
   "builder.incompatible_modules": "Cannot build: module(s) {modules} are incompatible with the '{profile}' conversion profile. Disable them in mission.yaml.",

@@ -34,8 +34,9 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
     from veaf_libs.checklists import Checklist, ChecklistStep
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
-from veaf_libs.lua_literals import lua_long_string, lua_scalar, lua_string
+from veaf_libs.lua_literals import lua_comment_line, lua_long_string, lua_quoted_string, lua_scalar, lua_string
 from veaf_libs.lua_module_scanner import MANDATORY_MODULES, get_modules, yaml_module_entry
+from veaf_libs.lua_syntax import check_lua_syntax
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -390,6 +391,43 @@ def _to_lua_scalar(value: object) -> str:
     return lua_scalar(value)
 
 
+def _lua_text(value: object) -> str:
+    """Return *value* as a Lua string literal, whatever type the YAML gave it.
+
+    Every mission-supplied string this module writes into generated Lua goes through
+    here.  It used to be interpolated into ``"{value}"`` instead, and on 2026-09-01 a
+    wave zone whose ``zone_center_coordinates`` were written the way DCS displays them —
+    ``N42°00'00" E042°00'00"`` — closed the literal on the seconds symbol.  DCS refused
+    the whole file, so *no* VEAF module initialised: no radio menu, no spawn, nothing,
+    from a build that reported success.
+
+    Args:
+        value: Anything the YAML parser produced; rendered through ``str`` first, which
+            preserves the previous behaviour for numbers written where text was expected.
+
+    Returns:
+        A single Lua string literal — quoted when the value is ordinary, a long string
+        when it is not, so generated configuration stays readable.
+    """
+    return lua_string(str(value))
+
+
+def _lua_key(value: object) -> str:
+    """Return *value* as a short-string Lua literal, safe to sit next to a ``[``.
+
+    Deliberately not :func:`_lua_text`: a long string in an index position produces
+    ``t[[[value]]]``, which Lua reads as ``t`` called with the long string ``[value``
+    followed by a stray ``]``.  A table key always gets the escaped ``"…"`` form.
+
+    Args:
+        value: The key, rendered through ``str``.
+
+    Returns:
+        A double-quoted, fully escaped Lua string literal.
+    """
+    return lua_quoted_string(str(value))
+
+
 # Kept as module-private names because this file and its tests use them in some thirty
 # places; the implementations now live in `veaf_libs.lua_literals`, the single helper the
 # security review asked for so that a new emitter cannot quietly invent a fourth scheme.
@@ -514,7 +552,7 @@ def _emit_module_body(
             b = cap.get("briefing", "")
             d = "true" if cap.get("default", False) else "false"
             a = "true" if cap.get("activated", True) else "false"
-            lines.append(f'    {var_name}.addCapMission("{g}", "{m}", "{b}", {d}, {a})')
+            lines.append(f"    {var_name}.addCapMission({_lua_text(g)}, {_lua_text(m)}, {_lua_text(b)}, {d}, {a})")
         for cm in combat_missions_data:
             lines.extend(_emit_combat_mission(cm, var_name, indent="    "))
 
@@ -528,10 +566,10 @@ def _emit_module_body(
             bypass = "true" if alias.get("bypass_security", False) else "false"
             lines.append(f"    {var_name}.AddAlias(")
             lines.append("        VeafAlias:new()")
-            lines.append(f'        :setName("{name}")')
+            lines.append(f"        :setName({_lua_text(name)})")
             if desc:
-                lines.append(f'        :setDescription("{desc}")')
-            lines.append(f'        :setVeafCommand("{cmd}")')
+                lines.append(f"        :setDescription({_lua_text(desc)})")
+            lines.append(f"        :setVeafCommand({_lua_text(cmd)})")
             lines.append(f"        :setBypassSecurity({bypass})")
             lines.append("    )")
 
@@ -541,10 +579,10 @@ def _emit_module_body(
         for zone in sanctuary_zones:
             name = zone.get("name", "")
             polygon_units: list = zone.get("polygon_units") or []
-            units_lua = "{" + ", ".join(f'"{u}"' for u in polygon_units) + "}"
+            units_lua = "{" + ", ".join(_lua_text(u) for u in polygon_units) + "}"
             lines.append(f"    {var_name}.addZone(")
             lines.append("        VeafSanctuaryZone:new()")
-            lines.append(f'        :setName("{name}")')
+            lines.append(f"        :setName({_lua_text(name)})")
             lines.append(f"        :setPolygonFromUnits({units_lua})")
             for setter, yaml_key in [
                 ("setCoalition", None),  # special: coalition.side.X
@@ -567,7 +605,7 @@ def _emit_module_body(
 
         # Emit global settings
         if ev_complete := cz_settings.get("event_message_combatzonecomplete"):
-            lines.append(f'    {var_name}.EventMessages.CombatZoneComplete = "{ev_complete}"')
+            lines.append(f"    {var_name}.EventMessages.CombatZoneComplete = {_lua_text(ev_complete)}")
         elif (
             "event_message_combatzonecomplete" in cz_settings
             and cz_settings["event_message_combatzonecomplete"] is None
@@ -576,11 +614,11 @@ def _emit_module_body(
         if wci := cz_settings.get("watchdog_check_interval"):
             lines.append(f"    {var_name}.SecondsBetweenWatchdogChecks = {wci}")
         if rmn := cz_settings.get("radio_menu_name"):
-            lines.append(f'    {var_name}.RadioMenuName = "{rmn}"')
+            lines.append(f"    {var_name}.RadioMenuName = {_lua_text(rmn)}")
         if czrmn := cz_settings.get("combat_zone_menu_name"):
-            lines.append(f'    {var_name}.CombatZoneRadioMenuName = "{czrmn}"')
+            lines.append(f"    {var_name}.CombatZoneRadioMenuName = {_lua_text(czrmn)}")
         if ormn := cz_settings.get("operation_menu_name"):
-            lines.append(f'    {var_name}.OperationRadioMenuName = "{ormn}"')
+            lines.append(f"    {var_name}.OperationRadioMenuName = {_lua_text(ormn)}")
 
         # Emit zone definitions
         for zone_def in cz_zones:
@@ -596,7 +634,7 @@ def _emit_module_body(
         # already registered (FEAT-COMBATZONE-ACTIVATE).
         for zone_def in cz_zones:
             if zone_def.get("type", "zone") != "operation" and zone_def.get("active_at_start"):
-                lines.append(f'    {var_name}.ActivateZone("{zone_def.get("zone_name", "")}", true)')
+                lines.append(f"    {var_name}.ActivateZone({_lua_text(zone_def.get('zone_name', ''))}, true)")
 
     elif mod_id == "AIRWAVES":
         airwave_zones: list = mod_cfg.get("airwave_zones") or []
@@ -631,13 +669,13 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
     zone_name = zone_def.get("zone_name", "")
     lines.append(f"{indent}{var_name}.AddZone(")
     lines.append(f"{indent}    VeafCombatZone:new()")
-    lines.append(f'{indent}    :setMissionEditorZoneName("{zone_name}")')
+    lines.append(f"{indent}    :setMissionEditorZoneName({_lua_text(zone_name)})")
     if fn := zone_def.get("friendly_name"):
-        lines.append(f'{indent}    :setFriendlyName("{fn}")')
+        lines.append(f"{indent}    :setFriendlyName({_lua_text(fn)})")
     if rgn := zone_def.get("radio_group_name"):
-        lines.append(f'{indent}    :setRadioGroupName("{rgn}")')
+        lines.append(f"{indent}    :setRadioGroupName({_lua_text(rgn)})")
     if rmp := zone_def.get("radio_menu_prefix"):
-        lines.append(f'{indent}    :setRadioMenuPrefix("{rmp}")')
+        lines.append(f"{indent}    :setRadioMenuPrefix({_lua_text(rmp)})")
     if br := zone_def.get("briefing"):
         br_lua = _lua_long_string(br.strip())
         lines.append(f"{indent}    :setBriefing({br_lua})")
@@ -695,14 +733,20 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
     if "training" in zone_def:
         lines.append(f"{indent}    :setTraining({'true' if zone_def['training'] else 'false'})")
     for cz in zone_def.get("chained_zones") or []:
-        lines.append(f'{indent}    :addChainedCombatZone("{cz}")')
+        lines.append(f"{indent}    :addChainedCombatZone({_lua_text(cz)})")
     if cd := zone_def.get("chained_delay"):
         lines.append(f"{indent}    :setChainedCombatZonesDelay({cd})")
     lines.append(f"{indent}    :initialize()")
     lines.append(f"{indent})")
     if hint := zone_def.get("on_completed_hook_hint"):
+        # A `--` comment ends at the line break, so a zone name carrying one would push the
+        # rest of itself out of the comment and into the file as code. Quoting cannot help
+        # inside a comment; the line breaks are what has to go.
         lines.append(
-            f'{indent}-- [v6 migration] set callback: {var_name}.GetZone("{zone_name}"):setOnCompletedHook({hint})'
+            lua_comment_line(
+                f"{indent}-- [v6 migration] set callback: "
+                f"{var_name}.GetZone({_lua_text(zone_name)}):setOnCompletedHook({hint})"
+            )
         )
     return lines
 
@@ -713,9 +757,9 @@ def _emit_combat_operation(op_def: dict, var_name: str, indent: str = "    ") ->
     zone_name = op_def.get("zone_name", "")
     lines.append(f"{indent}{var_name}.AddZone(")
     lines.append(f"{indent}    VeafCombatOperation:new()")
-    lines.append(f'{indent}    :setMissionEditorZoneName("{zone_name}")')
+    lines.append(f"{indent}    :setMissionEditorZoneName({_lua_text(zone_name)})")
     if fn := op_def.get("friendly_name"):
-        lines.append(f'{indent}    :setFriendlyName("{fn}")')
+        lines.append(f"{indent}    :setFriendlyName({_lua_text(fn)})")
     if br := op_def.get("briefing"):
         br_lua = _lua_long_string(br.strip())
         lines.append(f"{indent}    :setBriefing({br_lua})")
@@ -728,14 +772,14 @@ def _emit_combat_operation(op_def: dict, var_name: str, indent: str = "    ") ->
         deps: list = order.get("dependencies") or []
         deps_vars: list = order.get("dependencies_vars") or []
         if deps:
-            deps_lua = "{" + ", ".join(f'"{d}"' for d in deps) + "}"
-            lines.append(f'{indent}    :addTaskingOrder({var_name}.GetZone("{resolved}"), {deps_lua})')
+            deps_lua = "{" + ", ".join(_lua_text(d) for d in deps) + "}"
+            lines.append(f"{indent}    :addTaskingOrder({var_name}.GetZone({_lua_text(resolved)}), {deps_lua})")
         elif deps_vars:
             # Can't resolve var→name statically; emit GetZone with the var as name
-            deps_lua = "{" + ", ".join(f'"{d}"' for d in deps_vars) + "}"
-            lines.append(f'{indent}    :addTaskingOrder({var_name}.GetZone("{resolved}"), {deps_lua})')
+            deps_lua = "{" + ", ".join(_lua_text(d) for d in deps_vars) + "}"
+            lines.append(f"{indent}    :addTaskingOrder({var_name}.GetZone({_lua_text(resolved)}), {deps_lua})")
         else:
-            lines.append(f'{indent}    :addTaskingOrder({var_name}.GetZone("{resolved}"))')
+            lines.append(f"{indent}    :addTaskingOrder({var_name}.GetZone({_lua_text(resolved)}))")
     lines.append(f"{indent}    :initialize()")
     lines.append(f"{indent})")
     return lines
@@ -804,15 +848,15 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     start_commented = not zone.get("start", False)
 
     lines.append(f"{indent}AirWaveZone:new()")
-    lines.append(f'{indent}    :setName("{name}")')
+    lines.append(f"{indent}    :setName({_lua_text(name)})")
     if desc := zone.get("description"):
-        lines.append(f'{indent}    :setDescription("{desc}")')
+        lines.append(f"{indent}    :setDescription({_lua_text(desc)})")
     for coalition in zone.get("player_coalitions") or []:
         lines.append(f"{indent}    :addPlayerCoalition(coalition.side.{coalition})")
     if coords := zone.get("zone_center_coordinates"):
-        lines.append(f'{indent}    :setZoneCenterFromCoordinates("{coords}")')
+        lines.append(f"{indent}    :setZoneCenterFromCoordinates({_lua_text(coords)})")
     if tz := zone.get("trigger_zone_name"):
-        lines.append(f'{indent}    :setTriggerZone("{tz}")')
+        lines.append(f"{indent}    :setTriggerZone({_lua_text(tz)})")
     if zr := zone.get("zone_radius"):
         lines.append(f"{indent}    :setZoneRadius({zr})")
     if "draw_zone" in zone:
@@ -856,11 +900,11 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     for wave in zone.get("waves") or []:
         parts = []
         if g := wave.get("groups"):
-            parts.append(f'groups = "{g}"')
+            parts.append(f"groups = {_lua_text(g)}")
         if "delay" in wave:
             parts.append(f"delay = {wave['delay']}")
         if n := wave.get("number"):
-            parts.append(f'number = "{n}"')
+            parts.append(f"number = {_lua_text(n)}")
         if "bias" in wave:
             parts.append(f"bias = {wave['bias']}")
         wave_lua = "{" + ", ".join(parts) + "}" if parts else '""'
@@ -886,24 +930,24 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
     enemy_coalitions: list = qra_def.get("enemy_coalitions") or []
 
     lines.append(f"{indent}local {var} = VeafQRA:new()")
-    lines.append(f'{indent}    :setName("{name}")')
+    lines.append(f"{indent}    :setName({_lua_text(name)})")
     lines.append(f"{indent}    :setCoalition(coalition.side.{coalition})")
     for enemy in enemy_coalitions:
         lines.append(f"{indent}    :addEnnemyCoalition(coalition.side.{enemy})")
 
     if tz := qra_def.get("trigger_zone"):
-        lines.append(f'{indent}    :setTriggerZone("{tz}")')
+        lines.append(f"{indent}    :setTriggerZone({_lua_text(tz)})")
     if zr := qra_def.get("zone_radius"):
         lines.append(f"{indent}    :setZoneRadius({zr})")
 
     for grp in qra_def.get("simple_groups") or []:
-        lines.append(f'{indent}    :addGroup("{grp}")')
+        lines.append(f"{indent}    :addGroup({_lua_text(grp)})")
 
     for gbc in qra_def.get("groups_by_enemy_count") or []:
         count = gbc.get("enemy_count", 1)
         groups: list = gbc.get("groups") or []
         pick = gbc.get("random_pick", 1)
-        groups_lua = "{" + ", ".join(f'"{g}"' for g in groups) + "}"
+        groups_lua = "{" + ", ".join(_lua_text(g) for g in groups) + "}"
         lines.append(f"{indent}    :setRandomGroupsToDeployByEnemyQuantity({count}, {groups_lua}, {pick})")
 
     if dbr := qra_def.get("delay_before_rearming"):
@@ -913,7 +957,7 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
     if qra_def.get("react_on_helicopters"):
         lines.append(f"{indent}    :setReactOnHelicopters()")
     if al := qra_def.get("airport_link"):
-        lines.append(f'{indent}    :setAirportLink("{al}")')
+        lines.append(f"{indent}    :setAirportLink({_lua_text(al)})")
 
     # `active_at_start: false` declares the QRA without arming it: the builder chain stops
     # before :start(). The QRA is still registered under its name by :setName(), so a
@@ -1052,7 +1096,7 @@ def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:
         lines.extend(node_lines)
     if group:
         lines.append(f"{indent}    ),")
-        lines.append(f'{indent}    "{group}"')
+        lines.append(f"{indent}    {_lua_text(group)}")
     else:
         lines.append(f"{indent}    )")
     lines.append(f"{indent})")
@@ -1164,9 +1208,9 @@ def _emit_combat_mission(cm: dict, var_name: str, indent: str = "    ") -> list[
 
     lines.append(f"{indent}{var_name}.AddMissionsWithSkillAndScale(")
     lines.append(f"{indent}    VeafCombatMission:new()")
-    lines.append(f'{indent}    :setName("{name}")')
+    lines.append(f"{indent}    :setName({_lua_text(name)})")
     if friendly_name:
-        lines.append(f'{indent}    :setFriendlyName("{friendly_name}")')
+        lines.append(f"{indent}    :setFriendlyName({_lua_text(friendly_name)})")
     lines.append(f"{indent}    :setSecured({secured})")
     lines.append(f"{indent}    :setRadioMenuEnabled({radio_menu})")
     if briefing:
@@ -1176,10 +1220,10 @@ def _emit_combat_mission(cm: dict, var_name: str, indent: str = "    ") -> list[
         elem_name = elem.get("name", "")
         groups: list = elem.get("groups") or []
         scalable = "true" if elem.get("scalable", True) else "false"
-        groups_lua = "{" + ", ".join(f'"{g}"' for g in groups) + "}"
+        groups_lua = "{" + ", ".join(_lua_text(g) for g in groups) + "}"
         lines.append(f"{indent}    :addElement(")
         lines.append(f"{indent}        VeafCombatMissionElement:new()")
-        lines.append(f'{indent}        :setName("{elem_name}")')
+        lines.append(f"{indent}        :setName({_lua_text(elem_name)})")
         lines.append(f"{indent}        :setGroups({groups_lua})")
         lines.append(f"{indent}        :setScalable({scalable})")
         lines.append(f"{indent}    )")
@@ -1466,10 +1510,10 @@ def generate_config_lua(
     if mission_cfg:
         lines.append("-- ── Mission identity ─────────────────────────────────────────────────────────")
         if name := mission_cfg.get("name"):
-            lines.append(f'veaf.config.MISSION_NAME = "{name}"')
+            lines.append(f"veaf.config.MISSION_NAME = {_lua_text(name)}")
         export_path = mission_cfg.get("export_path")
         if export_path is not None:
-            lua_ep = "nil" if not export_path else f'"{export_path}"'
+            lua_ep = "nil" if not export_path else _lua_text(export_path)
             lines.append(f"veaf.config.MISSION_EXPORT_PATH = {lua_ep}")
         if era := mission_cfg.get("era"):
             lines.append(f"veaf.config.era = veaf.ERA.{era}")
@@ -1489,7 +1533,7 @@ def generate_config_lua(
     # language (--lang / VEAF_LANG / user config / OS locale / "en"), so a mission
     # built by a French maker defaults to FR in-game and others to their locale.
     language = mission_cfg.get("language") or current_language()
-    lines.append(f'veaf.config.language = "{language}"')
+    lines.append(f"veaf.config.language = {_lua_text(language)}")
     lines.append("")
 
     # ── Security ──────────────────────────────────────────────────────────
@@ -1520,19 +1564,19 @@ def generate_config_lua(
             lines.append("veafSecurity.password_L1 = {}")
             lines.append("veafSecurity.password_L9 = {}")
         for hash_val in own_hashes:
-            lines.append(f'veafSecurity.password_L1["{hash_val}"] = true')
-            lines.append(f'veafSecurity.password_L9["{hash_val}"] = true')
+            lines.append(f"veafSecurity.password_L1[{_lua_key(hash_val)}] = true")
+            lines.append(f"veafSecurity.password_L9[{_lua_key(hash_val)}] = true")
         mm_hashes: list = security_cfg.get("password_mm_hashes") or []
         if mm_hashes:
             lines.append("veafSecurity.password_MM = {}")
             for hash_val in mm_hashes:
-                lines.append(f'veafSecurity.password_MM["{hash_val}"] = true')
+                lines.append(f"veafSecurity.password_MM[{_lua_key(hash_val)}] = true")
         lines.append("")
 
     # ── Global log level ──────────────────────────────────────────────────
     if global_log_level := mission_yaml.get("global_log_level"):
         lines.append("-- ── Global log level ─────────────────────────────────────────────────────────")
-        lines.append(f'veaf.ForcedLogLevel = "{global_log_level}"')
+        lines.append(f"veaf.ForcedLogLevel = {_lua_text(global_log_level)}")
         lines.append("")
 
     # ── Settings ──────────────────────────────────────────────────────────
@@ -1648,19 +1692,19 @@ def generate_config_lua(
                 # Disabled: emit only the setConfig(enable=false)
                 lines.append(f'veaf.setConfig("{mod_id}", "enable", false)')
                 if log_level:
-                    lines.append(f'veaf.setConfig("{mod_id}", "logLevel", "{log_level}")')
+                    lines.append(f'veaf.setConfig("{mod_id}", "logLevel", {_lua_text(log_level)})')
                 lines.append("")
                 continue
 
             # Per-module log level override
             if log_level:
-                lines.append(f'veaf.setConfig("{mod_id}", "logLevel", "{log_level}")')
+                lines.append(f'veaf.setConfig("{mod_id}", "logLevel", {_lua_text(log_level)})')
 
             # Additional setConfig keys (not special keys handled elsewhere)
             for key, value in mod_cfg.items():
                 if key in _SKIP_SETCONFIG_KEYS:
                     continue
-                lines.append(f'veaf.setConfig("{mod_id}", "{key}", {_to_lua_scalar(value)})')
+                lines.append(f'veaf.setConfig("{mod_id}", {_lua_text(key)}, {_to_lua_scalar(value)})')
 
             var_name = id_to_var.get(mod_id)
             if not var_name:
@@ -1750,7 +1794,14 @@ def generate_config_lua(
 
     _warn_on_shadowed_module_settings(module_settings, lines)
 
-    return "\n".join(lines)
+    source = "\n".join(lines)
+    # The last thing this function does is read back what it wrote. On 2026-09-01 a
+    # generated file that did not parse shipped inside a `.miz` and was only found in
+    # `dcs.log`, after the mission was loaded — DCS refuses the *whole* file, so nothing
+    # initialised. Whatever the reason a value ends up malformed, this is the boundary
+    # where the build learns about it instead of the player.
+    check_lua_syntax(source)
+    return source
 
 
 def generate_mission_yaml_template(

@@ -93,6 +93,26 @@ modules:
 | `zone_center_coordinates` | string | Coordinate string, e.g. `"N41°00'00\" E044°00'00\""` |
 | `zone_radius` | number | Zone radius in metres (required with coordinates) |
 
+#### Writing a coordinate with seconds {#coordinate-with-seconds}
+
+The symbol for seconds is a double quote, and it is the form DCS puts on screen — so the
+coordinate you copy out of the game contains a `"` twice. Two ways to write it in YAML:
+
+```yaml
+# Double-quoted: the seconds symbol must be escaped with a backslash
+zone_center_coordinates: "N41°00'00\" E044°00'00\""
+
+# Single-quoted: nothing to escape, but the minutes symbol must then be doubled
+zone_center_coordinates: 'N41°00''00" E044°00''00"'
+```
+
+Both produce the same position. Spaces work as separators too, if you would rather avoid
+the punctuation altogether: `N41 00 00 E044 00 00`.
+
+Until 6.17 a coordinate written with seconds broke the generated `veaf-config.lua`, which
+DCS then refused *in full* — the mission loaded with no VEAF radio menu at all. The build
+now checks the file it generates and refuses to ship one that does not parse.
+
 ### Timing and limits
 
 | Field | Type | Default | Description |

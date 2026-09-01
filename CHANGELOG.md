@@ -1002,6 +1002,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   only other one reads the field correctly. A fourth site was found **off** that path — the missile
   guardian computes a missile's potential energy from `getPoint().z` — and has its own lot.
 
+- **A quote in a `mission.yaml` value no longer breaks the whole mission.** A wave zone declared with a
+  coordinate written the way DCS displays one — `zone_center_coordinates: "N42°00'00\" E042°00'00\""`
+  — produced a `veaf-config.lua` whose string literal closed on the seconds symbol. DCS refuses such a
+  file *entirely*, so **no VEAF module initialised**: no radio menu, no spawn, no assets, on a mission
+  that loaded and looked normal until F10. Every DCS coordinate written with seconds contains that
+  character, which made the documented field unusable as documented.
+
+  Not one line. Fifty-two places wrote a mission-supplied value into Lua without escaping it — zone
+  names, friendly names, briefings, shortcut commands, QRA and AirWaves names, group lists, security
+  hashes — so a combat zone called `Zone "Alpha"` broke a mission just as thoroughly. All of them now
+  go through the shared quoting helper that already existed for briefings and radio labels. The seven
+  interpolations left are values the generator owns (module ids from its own registry) or lines of the
+  `mission.yaml` scaffold rather than Lua.
+
+  **And the build no longer ships a configuration it cannot read.** The previous build *succeeded*: it
+  wrote a `.miz`, reported nothing, and the defect appeared only in `dcs.log` after the mission was
+  loaded in the game. The generator now parses its own output and stops the build on a file that is not
+  valid Lua, naming the line and quoting it. The check is Lua 5.1's grammar in pure Python, so it runs
+  everywhere the tools do rather than only where a Lua interpreter happens to be installed.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

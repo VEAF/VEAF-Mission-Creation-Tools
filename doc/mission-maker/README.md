@@ -12,6 +12,10 @@ Intégrez le framework Lua VEAF dans vos missions DCS World pour offrir à vos j
 
 ### 1. Installer les outils
 
+> **Le `.\` est obligatoire.** Le terminal Windows par défaut est PowerShell, qui ne cherche pas
+> dans le dossier courant — exprès. `cmd.exe` accepte les deux formes, donc `.\` marche partout.
+> Voir [PowerShell ou invite de commandes ?](GUIDE.md#powershell-vs-cmd).
+
 ```powershell
 # Téléchargez veaf-tools-updater.exe depuis la dernière release GitHub et placez-le dans le dossier de votre projet de mission.
 .\veaf-tools-updater.exe
@@ -21,7 +25,7 @@ Intégrez le framework Lua VEAF dans vos missions DCS World pour offrir à vos j
 
 Ceci télécharge `veaf-tools.exe` et les scripts Lua VEAF dans votre répertoire de travail.
 
-> **Langue :** Les messages s'affichent dans la langue du système automatiquement (anglais ou français). Pour changer la langue : `veaf-tools.exe user-config --set lang=fr`. Voir [Configuration de la langue](GUIDE.md#global-user-configuration).
+> **Langue :** Les messages s'affichent dans la langue du système automatiquement (anglais ou français). Pour changer la langue : `.\veaf-tools.exe user-config --set lang=fr`. Voir [Configuration de la langue](GUIDE.md#global-user-configuration).
 
 ### 2. Créer une mission dans l'éditeur DCS
 
@@ -30,7 +34,7 @@ Créez une mission `.miz` standard (placez vos unités, waypoints, météo, etc.
 ### 3. Extraire la mission
 
 ```powershell
-veaf-tools.exe mission extract ma-mission.miz
+.\veaf-tools.exe mission extract ma-mission.miz
 ```
 
 Ceci extrait le `.miz` dans un dossier mission (répertoire courant par défaut) que vous pouvez versionner et configurer.
@@ -42,7 +46,7 @@ Ceci extrait le `.miz` dans un dossier mission (répertoire courant par défaut)
 ### 5. Construire
 
 ```powershell
-veaf-tools.exe mission build ma-mission.miz
+.\veaf-tools.exe mission build ma-mission.miz
 ```
 
 L'outil de build lit le dossier mission, **injecte automatiquement** le trigger chargeur VEAF, et produit un `.miz` prêt à voler avec toutes les fonctionnalités VEAF MCT.

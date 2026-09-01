@@ -73,8 +73,8 @@ It is also available from the interactive TUI as **"Ask the documentation"**.
 
 To update your VEAF Tools to the latest version:
 
-```bash
-veaf-tools-updater.exe
+```powershell
+.\veaf-tools-updater.exe
 ```
 
 This will:
@@ -92,8 +92,8 @@ This will:
 
 If you need a previous version or want to be explicit:
 
-```bash
-veaf-tools-updater.exe --tag published-v6.0.0
+```powershell
+.\veaf-tools-updater.exe --tag published-v6.0.0
 ```
 
 Available version tags appear on GitHub:
@@ -105,8 +105,8 @@ Available version tags appear on GitHub:
 
 To reinstall the same version or force update:
 
-```bash
-veaf-tools-updater.exe --force
+```powershell
+.\veaf-tools-updater.exe --force
 ```
 
 This skips the "is it newer?" check and installs anyway. Useful for:
@@ -126,13 +126,13 @@ github:
 ```
 
 Then run:
-```bash
-veaf-tools-updater.exe
+```powershell
+.\veaf-tools-updater.exe
 ```
 
 **Option 2: Command line (if no config file)**
-```bash
-veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
+```powershell
+.\veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 ```
 
 Benefits:
@@ -148,8 +148,8 @@ Benefits:
 
 ### Skip Checksum Verification (Not Recommended)
 
-```bash
-veaf-tools-updater.exe --no-verify-checksum
+```powershell
+.\veaf-tools-updater.exe --no-verify-checksum
 ```
 
 ⚠️ **Not recommended** - Checksums protect against:
@@ -171,14 +171,14 @@ The tool output language is detected automatically — no configuration needed:
 
 To override for a single run:
 
-```bash
-veaf-tools-updater.exe --lang fr
+```powershell
+.\veaf-tools-updater.exe --lang fr
 ```
 
 To set a persistent preference:
 
-```bash
-veaf-tools.exe user-config --set lang=fr
+```powershell
+.\veaf-tools.exe user-config --set lang=fr
 ```
 
 Supported values: `en`, `fr`. See [Language configuration](mission-maker/GUIDE.en.md#global-user-configuration) for the full details.
@@ -187,8 +187,8 @@ Supported values: `en`, `fr`. See [Language configuration](mission-maker/GUIDE.e
 
 For detailed troubleshooting:
 
-```bash
-veaf-tools-updater.exe --verbose
+```powershell
+.\veaf-tools-updater.exe --verbose
 ```
 
 Shows:
@@ -199,18 +199,18 @@ Shows:
 
 ### All Options Combined
 
-```bash
-veaf-tools-updater.exe \
-  --tag published-v6.0.1 \
-  --token ghp_xxxxxxxxxxxx \
-  --verbose \
+```powershell
+.\veaf-tools-updater.exe `
+  --tag published-v6.0.1 `
+  --token ghp_xxxxxxxxxxxx `
+  --verbose `
   --force
 ```
 
 ### Getting Help
 
-```bash
-veaf-tools-updater.exe --help
+```powershell
+.\veaf-tools-updater.exe --help
 ```
 
 Shows all available options and their descriptions.
@@ -313,8 +313,8 @@ veaf-build publish --version 6.0.1-rc1 --prerelease
 
 `--prerelease` requires a semver pre-release version (with a `-` suffix, e.g. `6.0.1-rc1`): the release workflow keys off that `-` to leave the `published-latest` tag in place. A `--prerelease` on a plain version (`6.0.1`) is **rejected** by the command. With a valid suffix, production users are not updated automatically; test explicitly with:
 
-```bash
-veaf-tools-updater.exe --tag published-v6.0.1-rc1
+```powershell
+.\veaf-tools-updater.exe --tag published-v6.0.1-rc1
 ```
 
 ### CI Mode
@@ -410,8 +410,8 @@ Check:
 ### 6. Announce to Users
 
 Tell users they can update:
-```bash
-veaf-tools-updater.exe
+```powershell
+.\veaf-tools-updater.exe
 ```
 
 ---
@@ -534,9 +534,9 @@ git push origin refs/tags/published-v6.0.1
 **Cause:** File corruption during download (rare) or network issue
 
 **Solution:**
-```bash
+```powershell
 # Try again (usually fixes it)
-veaf-tools-updater.exe
+.\veaf-tools-updater.exe
 
 # If persists, check GitHub release:
 # https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases
@@ -547,11 +547,11 @@ veaf-tools-updater.exe
 **Cause:** Too many API calls in short time
 
 **Solution:**
-```bash
+```powershell
 # Option 1: Wait 1 hour (rate limit resets)
 
 # Option 2: Use Personal Access Token (better limits)
-veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
+.\veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 
 # Get token from: https://github.com/settings/tokens
 # Scope: repo (full control)
@@ -562,10 +562,10 @@ veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 **Cause:** Can't write to mission folder or current directory
 
 **Solution:**
-```bash
+```powershell
 # Run as Administrator (Windows)
 # Or specify a different directory as a positional argument:
-veaf-tools-updater.exe "C:\alternative\path"
+.\veaf-tools-updater.exe "C:\alternative\path"
 ```
 
 ### Problem: "Release package not found" When Publishing
@@ -615,9 +615,9 @@ veaf-build publish --version 6.0.1 --force
 
 For detailed debug info:
 
-```bash
+```powershell
 # Update tool: verbose output
-veaf-tools-updater.exe --verbose
+.\veaf-tools-updater.exe --verbose
 
 # Build/publish tool: verbose output
 veaf-build publish --version 6.0.1 --verbose
@@ -633,8 +633,8 @@ Check the `veaf-tools.log` file in current directory for detailed logs.
 
 The updater is a single update-only command with **no subcommands**.
 
-```bash
-veaf-tools-updater.exe [MISSION_FOLDER] [OPTIONS]
+```powershell
+.\veaf-tools-updater.exe [MISSION_FOLDER] [OPTIONS]
 
 Arguments:
   MISSION_FOLDER                 Mission folder path (overrides config file; default: current directory)
@@ -654,12 +654,12 @@ Options:
 **Note:** Settings from `veaf-tools-config.yaml` are used automatically. Command-line options override config file values.
 
 **Examples:**
-```bash
-veaf-tools-updater.exe
-veaf-tools-updater.exe --tag published-v6.0.0
-veaf-tools-updater.exe --token ghp_xxx --verbose
-veaf-tools-updater.exe --force
-veaf-tools-updater.exe --zip-file ./published.zip
+```powershell
+.\veaf-tools-updater.exe
+.\veaf-tools-updater.exe --tag published-v6.0.0
+.\veaf-tools-updater.exe --token ghp_xxx --verbose
+.\veaf-tools-updater.exe --force
+.\veaf-tools-updater.exe --zip-file ./published.zip
 ```
 
 ### Publish Command (`veaf-build publish`)
@@ -714,7 +714,7 @@ veaf-build publish --version 6.0.1 --ci
 ### For End Users
 
 ✅ **Do:**
-- Run `veaf-tools-updater.exe` regularly to stay current
+- Run `.\veaf-tools-updater.exe` regularly to stay current
 - Let checksums verify integrity (don't skip with `--no-verify-checksum`)
 - Use `--help` if unsure about any option
 
@@ -779,7 +779,7 @@ All GitHub communications use TLS/SSL encryption:
 ## FAQ
 
 **Q: Can I update to an old version?**
-A: Yes! `veaf-tools-updater.exe --tag published-v6.0.0`
+A: Yes! `.\veaf-tools-updater.exe --tag published-v6.0.0`
 
 **Q: What if publish fails?**
 A: Check troubleshooting section above. Most issues are network or token related.
@@ -794,7 +794,7 @@ A: As often as you have changes. Users won't see it unless you tell them.
 A: On GitHub, yes. But users might have already downloaded it.
 
 **Q: How do I publish a beta without affecting users?**
-A: Use `veaf-build publish --version <x.y.z>-rc1 --prerelease` — the version must carry a semver pre-release suffix (`-rc1`, `-beta`…), otherwise the command refuses. The `published-latest` tag then stays untouched, so production users are not updated; test it with `veaf-tools-updater.exe --tag published-v<x.y.z>-rc1`.
+A: Use `veaf-build publish --version <x.y.z>-rc1 --prerelease` — the version must carry a semver pre-release suffix (`-rc1`, `-beta`…), otherwise the command refuses. The `published-latest` tag then stays untouched, so production users are not updated; test it with `.\veaf-tools-updater.exe --tag published-v<x.y.z>-rc1`.
 
 **Q: How do I re-publish over an existing release?**
 A: Use `veaf-build publish --version <x.y.z> --force`.

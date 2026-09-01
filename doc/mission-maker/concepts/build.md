@@ -5,8 +5,12 @@
 Une commande qui recompose le `.miz` depuis le dossier de mission. Elle fait toujours les mêmes
 quatre choses, puis exécute les étapes optionnelles dont elle trouve le fichier.
 
+> **Le `.\` est obligatoire.** Le terminal Windows par défaut est PowerShell, qui ne cherche pas
+> dans le dossier courant — exprès. `cmd.exe` accepte les deux formes, donc `.\` marche partout.
+> Voir [PowerShell ou invite de commandes ?](../GUIDE.md#powershell-vs-cmd).
+
 ```powershell
-veaf-tools.exe build Ma-Mission.miz
+.\veaf-tools.exe build Ma-Mission.miz
 ```
 
 1. lit `src/mission/` (la mission DCS décompressée) ;
@@ -42,7 +46,7 @@ pipeline:
 ## Vérifier avant de construire {#validate}
 
 ```powershell
-veaf-tools.exe validate
+.\veaf-tools.exe validate
 ```
 
 Elle relit la configuration et la mission ensemble, et signale ce qui ne collera pas — une zone de

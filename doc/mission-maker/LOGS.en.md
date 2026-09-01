@@ -9,7 +9,7 @@ follows the file live while the mission runs.
 From the executable shipped with the release:
 
 ```
-veaf-logs.exe
+.\veaf-logs.exe
 ```
 
 With no argument it reopens the last session's files, falling back to the current

@@ -7,8 +7,12 @@ your scripts, and the tools. It is your unit of work — the `.miz` is now just 
 
 ## Creating it {#create-it}
 
+> **The `.\` is required.** The default Windows terminal is PowerShell, which does not search the
+> current directory — on purpose. `cmd.exe` accepts both forms, so `.\` works everywhere. See
+> [PowerShell or Command Prompt?](../GUIDE.en.md#powershell-vs-cmd).
+
 ```powershell
-veaf-tools.exe prepare --template minimal --theatre Caucasus
+.\veaf-tools.exe prepare --template minimal --theatre Caucasus
 ```
 
 Twelve files appear:
@@ -45,7 +49,7 @@ are written out explicitly as `true` or `false`: leaving them out would enable t
 ## Filling it from an existing `.miz` {#from-a-miz}
 
 ```powershell
-veaf-tools.exe extract my-mission.miz
+.\veaf-tools.exe extract my-mission.miz
 ```
 
 The `.miz` is exploded into `src/mission/`. The round trip is **repeatable**: opening the built
@@ -55,7 +59,7 @@ The `.miz` is exploded into `src/mission/`. The round trip is **repeatable**: op
 ## The gotcha {#gotcha}
 
 **The produced `.miz` and the scripts are resolved from the current directory, not from the
-argument.** Always run `veaf-tools.exe` **from** the mission folder; run from elsewhere with the
+argument.** Always run `.\veaf-tools.exe` **from** the mission folder; run from elsewhere with the
 folder as an argument, it looks for `published/` in the wrong place and writes the `.miz` beside
 itself.
 

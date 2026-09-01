@@ -74,7 +74,7 @@ To hand out equipped aircraft, configure them once in a mission in the DCS edito
 the file from that mission.
 
 ```powershell
-veaf-tools.exe extract-aircraft-groups my-mission.miz --kind dynamic-template
+.\veaf-tools.exe extract-aircraft-groups my-mission.miz --kind dynamic-template
 ```
 
 !!! note "The stock is filtered by what the field can park"

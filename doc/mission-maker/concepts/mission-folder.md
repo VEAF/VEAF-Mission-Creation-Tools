@@ -8,8 +8,12 @@ build.
 
 ## Le créer {#create-it}
 
+> **Le `.\` est obligatoire.** Le terminal Windows par défaut est PowerShell, qui ne cherche pas
+> dans le dossier courant — exprès. `cmd.exe` accepte les deux formes, donc `.\` marche partout.
+> Voir [PowerShell ou invite de commandes ?](../GUIDE.md#powershell-vs-cmd).
+
 ```powershell
-veaf-tools.exe prepare --template minimal --theatre Caucasus
+.\veaf-tools.exe prepare --template minimal --theatre Caucasus
 ```
 
 Douze fichiers apparaissent :
@@ -46,7 +50,7 @@ quel. Quel que soit le palier, les cinq scripts communautaires *opt-out* (`STTS`
 ## Le remplir depuis un `.miz` existant {#from-a-miz}
 
 ```powershell
-veaf-tools.exe extract ma-mission.miz
+.\veaf-tools.exe extract ma-mission.miz
 ```
 
 Le `.miz` est décompressé dans `src/mission/`. L'aller-retour est **rejouable** : ouvrir le `.miz`
@@ -56,7 +60,7 @@ déclencheurs VEAF — le build les retire avant de les réinjecter.
 ## Le piège {#gotcha}
 
 **Le `.miz` produit et les scripts sont résolus depuis le dossier courant, pas depuis l'argument.**
-Lancez toujours `veaf-tools.exe` **depuis** le dossier de mission ; lancé d'ailleurs avec le dossier
+Lancez toujours `.\veaf-tools.exe` **depuis** le dossier de mission ; lancé d'ailleurs avec le dossier
 en argument, il cherche `published/` au mauvais endroit et écrit le `.miz` à côté.
 
 Et `.gitignore` n'est **jamais** écrasé, même avec `--force` : c'est votre fichier.

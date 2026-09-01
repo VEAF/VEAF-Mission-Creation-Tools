@@ -1,6 +1,6 @@
 # DOC-POWERSHELL-COMMAND-EXAMPLES — every command example in the docs fails as written
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: David, 2026-09-01. Measured on `develop` the same day.
 
@@ -58,6 +58,22 @@ The tutorial and the concept cards are the pages that teach; the reference pages
 
 The rule is in `CLAUDE.md` under **Documentation** as of 2026-09-01, with the measurement. That is
 the living half: a lot fixes today's 118, a rule stops the 119th. Do not remove it.
+
+## Closing note — the 118 was two populations, not one
+
+Re-measured while closing: the reference `grep -rhoE '(^|[^.\\/`])veaf-tools\.exe'` does **not**
+exclude a preceding backslash the way its character class reads, so its 118 was **80 genuinely bare
+command lines plus 38 that already carried `.\`** (the tutorial and the migration guide were
+already correct). The companion `grep -rho '\.\veaf-tools\.exe'` reported zero for the opposite
+reason: `\v` is not a literal `v` in a basic regular expression. Nothing about the defect changes —
+80 bare lines is still 80 — but the counts to quote are the ones below.
+
+Delivered: **120** command lines prefixed inside code fences (`veaf-tools.exe`,
+`veaf-tools-updater.exe`, `veaf-logs.exe`) — 114 under `doc/`, 6 in the repository README, which
+carries the same quick start and the same defect — plus **40** inline invocations in prose. The 28 bare
+mentions that remain are all deliberate: 6 mermaid nodes, 12 tree-diagram lines, 6 shell comments,
+2 lines of an ASCII flow diagram, and the 2 quoted error messages — which have to stay bare, they
+*are* the failing form.
 
 ## Scope
 

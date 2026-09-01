@@ -8,7 +8,7 @@
 
 Deux rôles distincts :
 
-1. **Au build** : injecter dans un `.miz` une météo réelle ou configurée, avant même que les joueurs chargent la mission. C'est le travail de `veaf-tools.exe content inject-weather`.
+1. **Au build** : injecter dans un `.miz` une météo réelle ou configurée, avant même que les joueurs chargent la mission. C'est le travail de `.\veaf-tools.exe content inject-weather`.
 2. **En jeu** : les joueurs demandent des rapports météo et des informations ATC via le menu radio F10, et le créateur de mission peut scripter des changements de brouillard dynamiques.
 
 Les rapports sont générés au format METAR, lisible par un pilote.
@@ -35,7 +35,7 @@ veafWeather.initialize()
 La météo est injectée au moment du build (avant le chargement de la mission) avec `veaf-tools.exe` :
 
 ```powershell
-veaf-tools.exe content inject-weather mission.miz --config-file versions.yaml
+.\veaf-tools.exe content inject-weather mission.miz --config-file versions.yaml
 ```
 
 ### Exemple versions.yaml

@@ -73,7 +73,7 @@ Pour donner des appareils équipés : configurez-les une fois dans une mission, 
 puis régénérez le fichier depuis cette mission.
 
 ```powershell
-veaf-tools.exe extract-aircraft-groups ma-mission.miz --kind dynamic-template
+.\veaf-tools.exe extract-aircraft-groups ma-mission.miz --kind dynamic-template
 ```
 
 !!! note "Le stock est filtré par ce que le terrain peut garer"

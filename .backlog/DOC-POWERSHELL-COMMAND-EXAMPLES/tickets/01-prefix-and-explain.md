@@ -1,6 +1,6 @@
 # 01 — Prefix every example, and explain the two shells
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/**` (28 files, both languages)
 

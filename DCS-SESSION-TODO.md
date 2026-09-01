@@ -645,3 +645,29 @@ turned tier 1 off. The last two rows are the half that makes this a real check.
 old instruction to set `veafGrass.LogLevel = "debug"` for this no longer applies.
 
 Full protocol: [ticket 02](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/tickets/02-verify-in-game-that-nothing-moves.md).
+
+---
+
+## Une vague aérienne — et une QRA — lancée par commande VEAF : où atterrit le groupe ?
+
+Ouvert par `FIX-AIRWAVES-COMMAND-EASTING` (ticket 02), correctif du 2026-09-01.
+
+Ce qui est établi sans DCS : quand l'élément d'une vague (ou d'une QRA) est une **commande** et non un
+groupe de l'éditeur, la position transmise à la commande n'avait **pas de coordonnée est**. Les tests
+unitaires prouvent que la position sort maintenant correctement formée, dans les deux modules.
+
+Ce qu'ils ne peuvent pas dire : ce que DCS faisait de l'ancienne. Une coordonnée est absente se lit
+comme zéro, c'est-à-dire le méridien central du théâtre — donc le groupe devait apparaître à des
+centaines de kilomètres de sa zone. Jamais mesuré.
+
+**À faire** : une zone de vague avec un élément commande (par exemple `[0,0]-shilka`), et une zone QRA
+avec le même genre d'élément. Déclencher chacune, regarder la carte F10.
+
+- **Attendu** : le groupe apparaît *dans* la zone, dans le rayon de réapparition autour du centre.
+- **Ce qui contredirait le correctif** : le groupe atterrit encore loin de la zone, ou à une altitude
+  absurde. Dans ce cas le dire, avec ce qu'on voit : ça voudrait dire que la position est juste et que
+  quelque chose en aval la relit autrement, et le lot se rouvre.
+
+Accessoirement, ça répond à une question ouverte du lot : est-ce que ce défaut échouait **bruyamment**
+(un groupe visiblement nulle part) ou **silencieusement** (un groupe qui n'engageait jamais, mis sur le
+compte de l'IA) ? La deuxième réponse expliquerait pourquoi personne ne l'a signalé.

@@ -991,7 +991,16 @@ function VeafQRACore:deploy(nbUnitsInZone)
         veaf.loggers.get(veafQraManager.Id):trace("latDelta = [%s]", veaf.lp(latDelta))
         veaf.loggers.get(veafQraManager.Id):trace("lonDelta = [%s]", veaf.lp(lonDelta))
         local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
+        -- Same conversion, same reason as `AirWaveZone:deployWaves` — this branch is its twin. The
+        -- draw answers the mission-table shape (`{ x, y }`, easting in `y`, no `z`) while
+        -- `veafInterpreter.execute` takes a runtime vec3 whose easting is `z` and whose `y` is the
+        -- altitude; `veafSpawnGround` reads `spawnPosition.z` for the easting it writes. Untouched,
+        -- the QRA spawned on the theatre's central meridian at an altitude equal to its easting. See
+        -- docs/agents/dcs-coordinates.md. The altitude comes from the zone centre, as it does for the
+        -- DCS-group branch below.
         local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
+        randomPosition.z = randomPosition.y
+        randomPosition.y = position.y
         local spawnedGroupsNames = {}
         veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
         for _, newGroupName in pairs(spawnedGroupsNames) do

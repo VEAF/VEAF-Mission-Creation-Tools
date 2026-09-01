@@ -256,6 +256,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   both sides so that "does not move when it should not" cannot quietly become "never moves". The log
   also says out loud when it could not find a tree-free spot at all, instead of only in debug mode.
 
+- **An air wave or a QRA that spawns through a VEAF command now arrives in its own zone.** When a wave
+  or a QRA is set up with a command element rather than a mission-editor group — `[0,0]-shilka` and
+  the like — the position handed to the command was missing its east coordinate. DCS read the missing
+  value as zero, so the group appeared on the map's central meridian, hundreds of kilometres from the
+  zone that was supposed to defend or attack, and at a nonsensical altitude. Nothing was reported:
+  every number involved was a legal coordinate, just not the intended one. Both modules are fixed, and
+  a group element was never affected.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

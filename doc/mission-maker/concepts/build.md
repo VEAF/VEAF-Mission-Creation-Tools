@@ -5,13 +5,13 @@
 Une commande qui recompose le `.miz` depuis le dossier de mission. Elle fait toujours les mêmes
 quatre choses, puis exécute les étapes optionnelles dont elle trouve le fichier.
 
-```powershell
-.\veaf-tools.exe build Ma-Mission.miz
-```
-
 > **Le `.\` est obligatoire.** Le terminal Windows par défaut est PowerShell, qui ne cherche pas
 > dans le dossier courant — exprès. `cmd.exe` accepte les deux formes, donc `.\` marche partout.
 > Voir [PowerShell ou invite de commandes ?](../GUIDE.md#powershell-vs-cmd).
+
+```powershell
+.\veaf-tools.exe build Ma-Mission.miz
+```
 
 1. lit `src/mission/` (la mission DCS décompressée) ;
 2. génère `src/scripts/veaf-config.lua` depuis `mission.yaml` ;

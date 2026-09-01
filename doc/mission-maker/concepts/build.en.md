@@ -5,13 +5,13 @@
 One command that recomposes the `.miz` from the mission folder. It always does the same four things,
 then runs the optional steps whose file it finds.
 
-```powershell
-.\veaf-tools.exe build My-Mission.miz
-```
-
 > **The `.\` is required.** The default Windows terminal is PowerShell, which does not search the
 > current directory — on purpose. `cmd.exe` accepts both forms, so `.\` works everywhere. See
 > [PowerShell or Command Prompt?](../GUIDE.en.md#powershell-vs-cmd).
+
+```powershell
+.\veaf-tools.exe build My-Mission.miz
+```
 
 1. reads `src/mission/` (the exploded DCS mission);
 2. generates `src/scripts/veaf-config.lua` from `mission.yaml`;

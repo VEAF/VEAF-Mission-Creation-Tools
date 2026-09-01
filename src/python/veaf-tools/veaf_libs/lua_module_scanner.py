@@ -232,6 +232,171 @@ def find_lua_scripts_dir() -> Path | None:
     return _find_lua_scripts_dir()
 
 
+# ---------------------------------------------------------------------------
+# Module initialisation scanning (CHORE-INIT-REGISTRY-TELLS-THE-TRUTH)
+# ---------------------------------------------------------------------------
+#
+# `scan_module_configs` above answers "what defaults does this module declare?".
+# `scan_module_initialisation` below answers "how does this module get started?":
+# does it call `veaf.registerModule`, at which declared order, does it own an
+# `initialize()` at all, and does it initialise itself when its file loads.
+#
+# It exists so a test can compare the Lua-side registry against the Python-side
+# `_MODULE_INIT_ORDER` and fail when the two drift apart. See
+# `docs/agents/module-initialisation.md`.
+
+
+class ModuleInitFacts(TypedDict):
+    """How one VEAF Lua module gets initialised, as read from its source."""
+
+    id: str
+    var_name: str  #: Lua table the module publishes, e.g. ``veafQraManager``
+    filename: str
+    registers: bool  #: the file calls ``veaf.registerModule(<var>.Id, …)``
+    order: int | None  #: declared order; ``None`` when the module does not register
+    wrapped: bool  #: initFn is an inline ``function() … end`` closure, not a bare function reference
+    has_initialize: bool  #: the file defines ``function <var>.initialize(…)``
+    init_params: str  #: that function's parameter list, verbatim (empty string when it takes none)
+    self_initialises: bool  #: the file calls ``<var>.initialize(…)`` at load time, from the top level
+
+
+def _strip_lua_comments(source: str) -> str:
+    """Blank out Lua comments while preserving offsets and line count.
+
+    Necessary rather than fussy: ``veafAirbases.lua`` and ``veafWeather.lua`` both keep a
+    ``--[[ … ]]`` scratch block containing a top-level ``veafAirbases.initialize()``. Scanning
+    the raw text reports two self-initialising modules that do no such thing.
+
+    Args:
+        source: Lua source text.
+
+    Returns:
+        The same text with every ``--`` line comment and ``--[[ … ]]`` long comment replaced by
+        spaces, so line and column positions still match the original.
+    """
+    out: list[str] = []
+    index, end_of_source = 0, len(source)
+    while index < end_of_source:
+        if source.startswith("--", index):
+            long_open = re.match(r"--\[(=*)\[", source[index:])
+            if long_open:
+                closing = "]" + long_open.group(1) + "]"
+                stop = source.find(closing, index + len(long_open.group(0)))
+                stop = end_of_source if stop == -1 else stop + len(closing)
+                out.append(re.sub(r"[^\n]", " ", source[index:stop]))
+                index = stop
+                continue
+            stop = source.find("\n", index)
+            stop = end_of_source if stop == -1 else stop
+            out.append(" " * (stop - index))
+            index = stop
+            continue
+        out.append(source[index])
+        index += 1
+    return "".join(out)
+
+
+def _split_lua_args(argument_list: str) -> list[str]:
+    """Split a Lua argument list on its top-level commas.
+
+    A regular expression cannot do this: four registrations pass an inline
+    ``function() … end`` closure whose body holds both commas and braces, and a pattern strict
+    enough to skip them silently drops those four modules from the census.
+
+    Args:
+        argument_list: The text between a call's outer parentheses.
+
+    Returns:
+        The arguments, stripped, in order.
+    """
+    args: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for char in argument_list:
+        if char in "({[":
+            depth += 1
+        elif char in ")}]":
+            depth -= 1
+        if char == "," and depth == 0:
+            args.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    if "".join(current).strip():
+        args.append("".join(current).strip())
+    return args
+
+
+def _register_module_calls(source: str) -> list[list[str]]:
+    """Return the argument list of every ``veaf.registerModule(...)`` call in *source*."""
+    calls: list[list[str]] = []
+    for match in re.finditer(r"veaf\.registerModule\s*\(", source):
+        index = match.end()
+        depth, start = 1, index
+        while index < len(source) and depth:
+            if source[index] == "(":
+                depth += 1
+            elif source[index] == ")":
+                depth -= 1
+            index += 1
+        calls.append(_split_lua_args(source[start : index - 1]))
+    return calls
+
+
+def scan_module_initialisation(lua_dir: Path) -> dict[str, ModuleInitFacts]:
+    """Return, for every VEAF Lua module in *lua_dir*, how it gets initialised.
+
+    Every ``veaf*.lua`` file holding a ``<table>.Id = "…"`` line is reported, whether it
+    registers or not — a module missing from the registry is exactly what the caller is
+    looking for.
+
+    Only registrations whose first argument is ``<table>.Id`` are counted, which is what
+    excludes the two non-module call sites in ``veaf.lua``: the ``function veaf.registerModule(id,
+    …)`` declaration itself, and the CTLD registration (``veaf.ctldId``) — CTLD is a community
+    script, not a VEAF module, and the generator starts it from its own block.
+
+    Args:
+        lua_dir: The ``src/scripts/veaf`` directory.
+
+    Returns:
+        Module ID → :class:`ModuleInitFacts`.
+    """
+    id_assignment = re.compile(r"\b(veaf\w+)\.Id\s*=\s*\"([^\"]+)\"")
+    facts: dict[str, ModuleInitFacts] = {}
+
+    for lua_file in sorted(lua_dir.glob("veaf*.lua")):
+        try:
+            source = _strip_lua_comments(lua_file.read_text(encoding="utf-8", errors="ignore"))
+        except OSError:
+            continue
+        id_match = id_assignment.search(source)
+        if not id_match:
+            continue
+        var_name, module_id = id_match.group(1), id_match.group(2)
+        signature = re.search(rf"function\s+{re.escape(var_name)}\.initialize\s*\(([^)]*)\)", source)
+        entry = ModuleInitFacts(
+            id=module_id,
+            var_name=var_name,
+            filename=lua_file.name,
+            registers=False,
+            order=None,
+            wrapped=False,
+            has_initialize=signature is not None,
+            init_params=signature.group(1).strip() if signature else "",
+            self_initialises=bool(re.search(rf"^{re.escape(var_name)}\.initialize\s*\(", source, re.MULTILINE)),
+        )
+        for args in _register_module_calls(source):
+            if len(args) < 2 or args[0] != f"{var_name}.Id":
+                continue
+            order_arg = args[3] if len(args) > 3 else ""
+            entry["registers"] = True
+            entry["order"] = int(order_arg) if order_arg.isdigit() else 100
+            entry["wrapped"] = args[1].startswith("function")
+        facts[module_id] = entry
+
+    return facts
+
+
 def generate_modules_config_lua(
     lua_modules: dict[str, dict],
     header: str = "-- Generated by veaf-tools build from mission.yaml\n-- Do not edit manually.",

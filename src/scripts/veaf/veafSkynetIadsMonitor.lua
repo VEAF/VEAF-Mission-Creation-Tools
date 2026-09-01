@@ -651,4 +651,10 @@ function veafSkynetMonitor.initialize()
   veaf.loggers.get(veafSkynetMonitor.Id):info("Initializing module")
 end
 
+-- Registered although `initialize()` does nothing but log: the generated `veaf-config.lua` already
+-- calls it on every mission, and a registry that omits it describes a framework that does not exist.
+-- Order 225 puts it just after veafSkynet (220), which is what it monitors, and before veafRemote
+-- (230). See docs/agents/module-initialisation.md.
+veaf.registerModule(veafSkynetMonitor.Id, veafSkynetMonitor.initialize, { enable = true }, 225)
+
 veaf.loggers.get(veafSkynetMonitor.Id):info(veaf.loggers.get(veafSkynetMonitor.Id):getVersionInfo())

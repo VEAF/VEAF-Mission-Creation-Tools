@@ -1098,6 +1098,29 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is in it, which a plain window-level action would not have done. Right-click also copies the message
   without the DCS header.
 
+- **The module registry now describes what actually happens.** *Nothing changes for a mission maker:
+  no mission builds differently, no module starts at a different moment, no YAML key changes meaning.
+  This is internal truth-telling, and the groundwork for a change that will be visible later.*
+
+  Three mechanisms start a VEAF module, not two: `veaf.registerModule`, a registry **nothing reads**
+  because `veaf.initialize()` is never called; the generated `veaf-config.lua`, which calls each
+  module in turn in an order of its own and only for the modules the mission enables; and
+  self-initialisation when a file loads. Because only the second one runs, the registry had drifted
+  without anyone being able to notice.
+
+  Counted from the sources rather than from one built mission: **five modules the generated config
+  starts on every mission had never registered at all** — `UNITS`, `TIME`, `CACHE`, `MARKERS`,
+  `SKYNET_MONITOR`, four of them mandatory. They now do. Writing to a registry nothing consumes
+  changes no behaviour, and it is checked both ways: the 45 Lua suites give byte-identical output,
+  and so does the generated `veaf-config.lua` of a mission enabling every module.
+
+  The rest of the census is written down in `docs/agents/module-initialisation.md` — a row per module
+  across the three mechanisms, every divergence labelled deliberate or accidental. The finding that
+  matters is that the registry's declared orders and the generator's order are **two different
+  orders that disagree across most of the tree**; reconciling them is the next lot's work, and it now
+  starts from a measured table rather than a guess. A test reads that table back and fails when the
+  code stops matching it, or when a module is added to one mechanism and not the other.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

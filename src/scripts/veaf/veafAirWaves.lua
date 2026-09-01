@@ -1497,4 +1497,8 @@ function veafAirWaves.get(aNameString)
   return veafAirWaves.zones[aNameString]
 end
 
+-- No `veaf.registerModule` here, and no `veafAirWaves.initialize()` to register: this module is used
+-- by construction — a mission declares `VeafAirWaveZone:new()…:start()` chains and there is nothing
+-- global to start. The generated `veaf-config.lua` emits those chains and skips the init call
+-- (`_NO_INIT_MODULES` in `lua_config_generator.py`). See docs/agents/module-initialisation.md.
 veaf.loggers.get(veafAirWaves.Id):info(veaf.loggers.get(veafAirWaves.Id):getVersionInfo())

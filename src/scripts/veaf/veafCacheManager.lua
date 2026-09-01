@@ -126,4 +126,10 @@ function veafCacheManager.initialize()
   veaf.loggers.get(veafCacheManager.Id):info("Initializing module")
 end
 
+-- Registered although `initialize()` does nothing but log: the generated `veaf-config.lua` already
+-- calls it on every mission, and a registry that omits it describes a framework that does not exist.
+-- The order is the infrastructure tier — the cache is empty until something stores in it, so no
+-- initialisation order can be wrong for it. See docs/agents/module-initialisation.md.
+veaf.registerModule(veafCacheManager.Id, veafCacheManager.initialize, { enable = true }, 3)
+
 veaf.loggers.get(veafCacheManager.Id):info(veaf.loggers.get(veafCacheManager.Id):getVersionInfo())

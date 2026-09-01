@@ -13,6 +13,16 @@ dcs_mocks.missionStart = 0 -- what timer.getTime0 answers
 dcs_mocks.zones = {}
 dcs_mocks.logs = {} -- captured log lines
 dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
+--- Captured Controller:pushTask calls, as { group = name, task = task }. Separate from tasksSet
+--- because the two are opposites: setTask replaces the queue, pushTask stacks on top of it, and the
+--- CAP watchdog's whole behaviour is which of the two it uses and how many times.
+dcs_mocks.tasksPushed = {}
+--- Captured Controller:popTask calls, as { group = name }. `resetTask` is captured here too, tagged
+--- `reset = true`: a test has to be able to tell "took back what it pushed" from "wiped the queue,
+--- route included", which is the difference ED's own documentation draws between the two.
+dcs_mocks.tasksPopped = {}
+--- Captured Controller:setOption calls, as { group = name, id = optionId, value = value }.
+dcs_mocks.optionsSet = {}
 dcs_mocks.eventHandlers = {} -- handlers passed to world.addEventHandler, in order
 dcs_mocks.staticsAdded = {} -- captured coalition.addStaticObject calls, as { countryId, object }
 dcs_mocks.groupsAdded = {} -- captured coalition.addGroup calls, as { countryId, categoryId, group }
@@ -304,6 +314,9 @@ AI = {
         FLARE_USING = 4,
         SILENCE = 7,
         ECM_USING = 13,
+        -- The option the CAP watchdog toggles: nil here made `setOption(nil, …)` silently do nothing
+        -- in tests, so no suite could tell "air-to-air allowed" from "air-to-air prohibited".
+        PROHIBIT_AA = 14,
         MISSILE_ATTACK = 18,
       },
       val = {
@@ -653,6 +666,9 @@ function dcs_mocks.reset()
   dcs_mocks.zones = {}
   dcs_mocks.logs = {}
   dcs_mocks.tasksSet = {}
+  dcs_mocks.tasksPushed = {}
+  dcs_mocks.tasksPopped = {}
+  dcs_mocks.optionsSet = {}
   dcs_mocks.eventHandlers = {}
   dcs_mocks.staticsAdded = {}
   dcs_mocks.groupsAdded = {}
@@ -1074,7 +1090,24 @@ function dcs_mocks.addGroup(name, data)
   if not g.getController then
     local _ctrl = {
       setCommand = function() end,
-      pushTask = function() end,
+      -- Recorded rather than dropped: the CAP watchdog says what it decided only through the tasks it
+      -- pushes and the options it sets, so a test that cannot read them can only test the predicate
+      -- and never the wiring.
+      pushTask = function(_self, task)
+        table.insert(dcs_mocks.tasksPushed, { group = name, task = task })
+      end,
+      popTask = function()
+        table.insert(dcs_mocks.tasksPopped, { group = name })
+      end,
+      resetTask = function()
+        table.insert(dcs_mocks.tasksPopped, { group = name, reset = true })
+      end,
+      hasTask = function()
+        return #dcs_mocks.tasksPushed > #dcs_mocks.tasksPopped
+      end,
+      setOption = function(_self, optionId, value)
+        table.insert(dcs_mocks.optionsSet, { group = name, id = optionId, value = value })
+      end,
       -- Recorded rather than dropped: replaceMission pushes a whole Mission task through setTask,
       -- and asserting what it contains is the only way to see an escort task being repaired.
       setTask = function(_self, task)

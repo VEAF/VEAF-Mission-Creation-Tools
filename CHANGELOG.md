@@ -264,6 +264,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   every number involved was a legal coordinate, just not the intended one. Both modules are fixed, and
   a group element was never affected.
 
+- **A spawned CAP fights back.** Until now a patrol summoned from a marker would fly its racetrack
+  while an enemy flight went past it, and be shot down without ever firing: fourteen of them were lost
+  to three escorts in one session. The patrol had in fact seen every one of those enemies and thrown
+  them away again a fraction of a second later, because the check meant to ask *"is this target still
+  there?"* was asking about the patrol's own aeroplane instead. It still announced that it had targets,
+  so it also never went back to flying its route properly. A patrol now attacks what it sees, keeps
+  attacking it for as long as it can see it, and goes back to its racetrack — weapons safe — when there
+  is nothing left. Which targets it picks is unchanged: fighters first, then bombers, drones, AWACS,
+  transports and helicopters. Three more things a mission maker may notice: the patrol will no longer
+  take an interest in anything that is not an aircraft — a ship, a vehicle, a building, or a pilot
+  hanging under his parachute; a patrol whose watchdog used to stop dead when a static object drifted
+  across its radar now keeps working; and a group template with nothing set on its first waypoint is
+  named in the DCS log, so the missing radar, ECM and engagement settings can be put back where they
+  belong.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

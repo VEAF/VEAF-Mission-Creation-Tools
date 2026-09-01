@@ -90,6 +90,18 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 - `capradius` — CAP orbit radius (meters)
 - `distance` — distance from marker
 
+**What the patrol attacks.** It stays on its patrol, forbidden to shoot at aircraft, for as long as it
+has seen nothing worth engaging. Every ten seconds it looks at what its radar returns and keeps only
+**enemy aircraft, airborne, inside its patrol radius**: not a ship, not a vehicle, not a building, and
+not a pilot hanging under his parachute — even though he still belongs to his aircraft's group. What it
+keeps is ranked by priority (fighters first, then bombers, drones, AWACS, transports, helicopters), and
+the patrol engages it. As soon as there is nothing left to engage, it goes back to its route and to
+return fire only.
+
+A patrol built from a group template whose first waypoint carries no instructions flies without the
+settings its template's author intended (radar, ECM, rules of engagement). That case is reported in the
+DCS log, naming the template at fault.
+
 ### Spawn an AFAC/JTAC
 
 ```

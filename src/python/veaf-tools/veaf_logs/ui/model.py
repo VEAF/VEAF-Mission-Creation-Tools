@@ -13,6 +13,7 @@ from array import array
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtGui import QBrush, QColor, QFont
 
+from ..appearance import DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE
 from ..filters import FilterSet, evaluate
 from ..parser import Entry
 
@@ -35,10 +36,27 @@ class LogModel(QAbstractTableModel):
         self.rules = rules
         self._visible = array("l")
         self._filters = FilterSet()
-        self._mono = QFont("Cascadia Mono", 9)
+        self._mono = QFont(DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE)
         self._mono.setStyleHint(QFont.StyleHint.Monospace)
+        self._bold = self._derive_bold()
         self._brushes: dict[str, QBrush] = {}
         self._cache: dict[int, Entry] = {}
+
+    def set_font(self, font: QFont) -> None:
+        """Police du `FontRole`, imposee par la fenetre.
+
+        Les deux variantes sont construites une fois : `data()` est appele pour
+        chaque cellule visible a chaque rafraichissement, et y creer un `QFont`
+        revenait a en fabriquer des centaines par seconde pendant le suivi.
+        """
+        self._mono = QFont(font)
+        self._mono.setStyleHint(QFont.StyleHint.Monospace)
+        self._bold = self._derive_bold()
+
+    def _derive_bold(self) -> QFont:
+        font = QFont(self._mono)
+        font.setBold(True)
+        return font
 
     # -- interface Qt -----------------------------------------------------
 
@@ -75,10 +93,7 @@ class LogModel(QAbstractTableModel):
             style = self.rules.level_style(entry.level)
             return self._brush(style.background) if style.background else None
         if role == Qt.ItemDataRole.FontRole:
-            font = QFont(self._mono)
-            if self.rules.level_style(entry.level).weight >= 600:
-                font.setBold(True)
-            return font
+            return self._bold if self.rules.level_style(entry.level).weight >= 600 else self._mono
         if role == Qt.ItemDataRole.ToolTipRole and entry.continuations:
             return entry.text
         if role == Qt.ItemDataRole.TextAlignmentRole and column == COL_LINE:

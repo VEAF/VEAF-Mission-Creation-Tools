@@ -15,6 +15,12 @@ etats plutot que deux :
              comme le `-C` de grep. C'est ce qui permet de ne garder que les
              erreurs tout en voyant ce qui les entoure.
 
+Un critere textuel garde aussi son voisinage : `search_context_lines` donne la
+portee commune, et chaque critere peut la surcharger. Le contexte de recherche
+*elargit* la recherche, il ne defait pas un filtre : une ligne masquee par son
+niveau, sa source ou sa famille de bruit le reste, aussi proche du resultat
+soit-elle.
+
 L'evaluation travaille sur des masques binaires (`bytearray`, un octet par
 entree) plutot qu'entree par entree : sur un journal d'un million de lignes,
 c'est ce qui separe une reponse immediate d'une attente de plusieurs secondes.
@@ -54,6 +60,27 @@ class PatternError(ValueError):
 
 
 DEFAULT_CONTEXT_LINES = 3
+
+# Contexte autour d'un resultat de recherche. Nul par defaut : une recherche
+# doit rendre ce qu'elle rendait avant que le reglage n'existe.
+DEFAULT_SEARCH_CONTEXT_LINES = 0
+
+
+def _read_optional_span(value: object) -> int | None:
+    """Portee lue depuis un fichier de configuration ; `None` si elle n'en est pas une.
+
+    `True` est un entier pour Python : sans le test explicite, un `true` dans le
+    JSON passerait pour une portee de 1.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return max(0, int(value))
+
+
+def _read_span(value: object, fallback: int) -> int:
+    """Meme lecture, avec un repli quand la valeur est absente ou aberrante."""
+    found = _read_optional_span(value)
+    return fallback if found is None else found
 
 
 def glob_to_regex(pattern: str) -> str:
@@ -124,6 +151,9 @@ class TextFilter:
     case_sensitive: bool = False
     invert: bool = False
     enabled: bool = True
+    # Portee du contexte propre a ce critere ; None suit la valeur commune du
+    # jeu de filtres. Un 0 explicite n'est donc pas la meme chose que None.
+    context_lines: int | None = None
 
     def __post_init__(self) -> None:
         # `Mode` est une `StrEnum` : Qt la rend telle quelle depuis
@@ -140,7 +170,8 @@ class TextFilter:
 
     def describe(self) -> str:
         prefix = "sans " if self.invert else ""
-        return f"{prefix}{self.mode.label} : {self.pattern}"
+        suffix = "" if self.context_lines is None else f"  ±{self.context_lines}"
+        return f"{prefix}{self.mode.label} : {self.pattern}{suffix}"
 
     def to_dict(self) -> dict:
         return {
@@ -149,6 +180,7 @@ class TextFilter:
             "case_sensitive": self.case_sensitive,
             "invert": self.invert,
             "enabled": self.enabled,
+            "context_lines": self.context_lines,
         }
 
     @classmethod
@@ -159,6 +191,7 @@ class TextFilter:
             case_sensitive=bool(raw.get("case_sensitive", False)),
             invert=bool(raw.get("invert", False)),
             enabled=bool(raw.get("enabled", True)),
+            context_lines=_read_optional_span(raw.get("context_lines")),
         )
 
 
@@ -181,6 +214,10 @@ class FilterSet:
     # Voir les tarifs d'une categorie donnee par `span_for()`.
     context_lines: int = DEFAULT_CONTEXT_LINES
     context_spans: dict[str, int] = field(default_factory=dict)
+
+    # Meme reglage pour les resultats de recherche : une valeur commune, que
+    # chaque `TextFilter` peut surcharger par son propre `context_lines`.
+    search_context_lines: int = DEFAULT_SEARCH_CONTEXT_LINES
 
     # -- consultation -----------------------------------------------------
 
@@ -206,6 +243,22 @@ class FilterSet:
             self.context_spans.pop(composite, None)
         else:
             self.context_spans[composite] = max(0, int(span))
+
+    def search_span(self) -> int:
+        """Portee du contexte autour des resultats de recherche.
+
+        La plus large des portees des criteres actifs, meme regle que pour deux
+        categories en desaccord : on a demande a voir loin sur au moins un
+        critere. Un critere inverse est ecarte — il n'a pas de resultat a
+        entourer, il en retire.
+        """
+        span = 0
+        for text_filter in self.text_filters:
+            if not text_filter.enabled or not text_filter.pattern or text_filter.invert:
+                continue
+            own = text_filter.context_lines
+            span = max(span, self.search_context_lines if own is None else own)
+        return span
 
     @property
     def uses_context(self) -> bool:
@@ -233,6 +286,7 @@ class FilterSet:
             "text_filters": [item.to_dict() for item in self.text_filters],
             "context_lines": self.context_lines,
             "context_spans": dict(self.context_spans),
+            "search_context_lines": self.search_context_lines,
         }
 
     @classmethod
@@ -265,6 +319,7 @@ class FilterSet:
                 for key, value in (raw.get("context_spans") or {}).items()
                 if isinstance(value, (int, float)) and not isinstance(value, bool)
             },
+            search_context_lines=_read_span(raw.get("search_context_lines"), DEFAULT_SEARCH_CONTEXT_LINES),
         )
 
     def copy(self) -> FilterSet:
@@ -277,7 +332,14 @@ def evaluate(store, filters: FilterSet) -> list[int]:
     Deroulement : on classe d'abord chaque entree en retenue / exclue / de
     contexte selon ses categories, puis on applique les criteres textuels aux
     seules entrees retenues — une ligne de contexte n'a pas a contenir le texte
-    cherche, sinon elle n'apporterait rien — et on ajoute enfin le voisinage.
+    cherche, sinon elle n'apporterait rien — et on ajoute enfin les voisinages.
+
+    Les deux voisinages sont distincts et se composent. Celui de la recherche ne
+    peut repecher que dans ce que les categories autorisaient *avant* que les
+    criteres textuels ne resserrent : sans cette photographie prise a temps, une
+    ligne masquee par son niveau reapparaitrait des qu'un resultat tombe a cote,
+    et le filtre ne voudrait plus rien dire. Celui des categories passe ensuite,
+    sur l'ensemble deja elargi.
     """
     total = len(store)
     if not total:
@@ -286,11 +348,16 @@ def evaluate(store, filters: FilterSet) -> list[int]:
         return list(range(total))
 
     kept, spans = _classify(store, filters)
+    search_span = filters.search_span()
+    allowed = bytes(kept) if search_span else b""
+
     for text_filter in filters.text_filters:
         if not text_filter.enabled or not text_filter.pattern:
             continue
         _apply_text(store, kept, text_filter)
 
+    if search_span:
+        _add_search_context(kept, allowed, search_span)
     if any(spans):
         _add_context(kept, spans)
 
@@ -383,6 +450,28 @@ def _apply_text(store, kept: bytearray, text_filter: TextFilter) -> None:
         for index, hit in enumerate(found):
             if not hit:
                 kept[index] = 0
+
+
+def _add_search_context(kept: bytearray, allowed: bytes, span: int) -> None:
+    """Rouvre le voisinage des resultats de la recherche.
+
+    `allowed` est l'etat de `kept` avant que les criteres textuels ne resserrent :
+    une entree ne revient que si les categories la laissaient passer. Les entrees
+    ajoutees ne deviennent pas elles-memes des ancres, sans quoi une portee de 1
+    finirait par tout ramener de proche en proche.
+    """
+    anchors = [index for index, visible in enumerate(kept) if visible]
+    if not anchors:
+        return
+
+    for index, permitted in enumerate(allowed):
+        if not permitted or kept[index]:
+            continue
+        position = bisect_left(anchors, index)
+        if position < len(anchors) and anchors[position] - index <= span:
+            kept[index] = 1
+        elif position and index - anchors[position - 1] <= span:
+            kept[index] = 1
 
 
 def _add_context(kept: bytearray, spans: array) -> None:

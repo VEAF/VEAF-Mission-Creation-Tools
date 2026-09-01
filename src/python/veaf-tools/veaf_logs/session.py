@@ -1,11 +1,17 @@
 """Sauvegarde et restauration de la session de travail.
 
 Ce qui est conserve : les fichiers ouverts et l'onglet actif, les filtres en
-cours, le profil selectionne, la geometrie de la fenetre. La session est ecrite
-dans le repertoire de configuration de l'utilisateur, pas dans le depot.
+cours, le profil selectionne, la geometrie de la fenetre, la police et la
+presence du panneau de detail. La session est ecrite dans le repertoire de
+configuration de l'utilisateur, pas dans le depot.
 
 La session retient l'etat *courant*, meme s'il ne correspond a aucun profil
 enregistre : on retrouve son travail tel qu'on l'a laisse.
+
+Ajouter un champ ne demande pas de changer `SESSION_VERSION` : `load` ecarte les
+cles inconnues et laisse la classe fournir celles qui manquent. Incrementer la
+version jetterait les fichiers ouverts et les filtres de tout le monde pour une
+taille de police.
 """
 
 from __future__ import annotations
@@ -15,6 +21,7 @@ import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from .appearance import DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE
 from .filters import FilterSet
 
 SESSION_VERSION = 2
@@ -39,6 +46,9 @@ class Session:
     profile: str = ""
     filters: dict = field(default_factory=dict)
     geometry: str | None = None
+    font_family: str = DEFAULT_FONT_FAMILY
+    font_size: int = DEFAULT_FONT_SIZE
+    detail_visible: bool = True
 
     # -- persistance ------------------------------------------------------
 

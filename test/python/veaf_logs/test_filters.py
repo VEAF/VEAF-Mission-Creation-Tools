@@ -193,6 +193,141 @@ class TestContexte:
         assert not FilterSet(levels={"INFO": State.OFF}).uses_context
 
 
+class TestContexteDeRecherche:
+    """Lignes gardees autour d'un resultat de recherche, comme le -C de grep.
+
+    Le journal de reference : 0 ERROR, 1 INFO VEAF, 2 WARNING VEAF, 3 INFO CTLD,
+    4 ERROR de script, 5 WARNING ED.
+    """
+
+    def test_desactive_par_defaut(self, store):
+        fs = FilterSet(text_filters=[TextFilter(pattern="zone introuvable")])
+        assert visible(store, fs) == [2], "sans reglage, la recherche ne ramene que ses lignes"
+
+    def test_voisinage_commun(self, store):
+        fs = FilterSet(
+            text_filters=[TextFilter(pattern="zone introuvable")],
+            search_context_lines=1,
+        )
+        assert visible(store, fs) == [1, 2, 3]
+
+    def test_portee_plus_large(self, store):
+        fs = FilterSet(text_filters=[TextFilter(pattern="zone introuvable")], search_context_lines=2)
+        assert visible(store, fs) == [0, 1, 2, 3, 4]
+
+    def test_bornes_du_journal(self, store):
+        fs = FilterSet(text_filters=[TextFilter(pattern="Corrupt damage model")], search_context_lines=50)
+        assert visible(store, fs) == [0, 1, 2, 3, 4, 5], "le voisinage ne deborde pas"
+
+    def test_les_categories_masquees_le_restent(self, store):
+        """Le contexte elargit la recherche, il ne defait pas un filtre.
+
+        C'est le point ou une implementation naive se trompe : les lignes
+        voisines 1 et 3 sont INFO, donc masquees, et le contexte n'a pas a les
+        faire reapparaitre.
+        """
+        fs = FilterSet(
+            levels={"INFO": State.OFF},
+            text_filters=[TextFilter(pattern="zone introuvable")],
+            search_context_lines=1,
+        )
+        assert visible(store, fs) == [2]
+
+    def test_une_seule_voisine_autorisee(self, store):
+        """Masquer la source CTLD retire la voisine de droite, pas celle de gauche."""
+        fs = FilterSet(
+            sources={"ctld": State.OFF},
+            text_filters=[TextFilter(pattern="zone introuvable")],
+            search_context_lines=1,
+        )
+        assert visible(store, fs) == [1, 2]
+
+    def test_surcharge_par_critere(self, store):
+        fs = FilterSet(text_filters=[TextFilter(pattern="zone introuvable", context_lines=2)])
+        assert visible(store, fs) == [0, 1, 2, 3, 4], "la surcharge s'applique sans valeur commune"
+
+    def test_surcharge_prime_sur_le_commun(self, store):
+        fs = FilterSet(
+            text_filters=[TextFilter(pattern="zone introuvable", context_lines=0)],
+            search_context_lines=2,
+        )
+        assert visible(store, fs) == [2], "0 explicite n'est pas « suit le commun »"
+
+    def test_la_plus_large_gagne(self, store):
+        """Deux criteres cumules : la portee la plus large s'applique au resultat."""
+        fs = FilterSet(
+            text_filters=[
+                TextFilter(pattern="VEAF"),
+                TextFilter(pattern="zone", context_lines=2),
+            ],
+            search_context_lines=0,
+        )
+        assert visible(store, fs) == [0, 1, 2, 3, 4]
+
+    def test_critere_inverse_n_apporte_pas_de_contexte(self, store):
+        """Un critere `sans X` n'a pas de resultat a entourer."""
+        fs = FilterSet(
+            text_filters=[TextFilter(pattern="VEAF", invert=True, context_lines=3)],
+            search_context_lines=0,
+        )
+        assert visible(store, fs) == [0, 3, 4, 5]
+
+    def test_critere_desactive_ignore(self, store):
+        fs = FilterSet(
+            text_filters=[TextFilter(pattern="zone introuvable", enabled=False)],
+            search_context_lines=2,
+        )
+        assert len(visible(store, fs)) == len(store)
+
+    def test_sans_critere_textuel_rien_ne_change(self, store):
+        fs = FilterSet(levels={"INFO": State.OFF}, search_context_lines=5)
+        assert visible(store, fs) == [0, 2, 4, 5]
+
+    def test_se_combine_avec_le_contexte_des_categories(self, store):
+        """Les deux contextes se composent au lieu de se remplacer.
+
+        La recherche trouve l'erreur 4 ; sa voisine 3 est INFO, donc en contexte
+        avec sa propre portee, et ressort par ce chemin-la.
+        """
+        fs = FilterSet(
+            levels={"INFO": State.CONTEXT, "WARNING": State.OFF},
+            text_filters=[TextFilter(pattern="Mission script error")],
+            context_lines=1,
+            search_context_lines=0,
+        )
+        assert visible(store, fs) == [3, 4]
+
+    def test_span_de_recherche(self):
+        assert FilterSet().search_span() == 0
+        fs = FilterSet(text_filters=[TextFilter(pattern="a")], search_context_lines=3)
+        assert fs.search_span() == 3
+        fs.text_filters[0].context_lines = 7
+        assert fs.search_span() == 7
+
+    def test_persistance(self):
+        fs = FilterSet(
+            text_filters=[TextFilter(pattern="a", context_lines=4)],
+            search_context_lines=2,
+        )
+        relu = FilterSet.from_dict(fs.to_dict())
+        assert relu.search_context_lines == 2
+        assert relu.text_filters[0].context_lines == 4
+
+    def test_valeurs_invalides_ignorees(self):
+        fs = FilterSet.from_dict(
+            {
+                "search_context_lines": "beaucoup",
+                "text_filters": [{"pattern": "a", "context_lines": "trois"}],
+            }
+        )
+        assert fs.search_context_lines == 0
+        assert fs.text_filters[0].context_lines is None
+
+    def test_pastille_montre_la_surcharge(self):
+        assert TextFilter(pattern="a").describe() == "Texte : a"
+        assert TextFilter(pattern="a", context_lines=3).describe() == "Texte : a  ±3"
+
+
 class TestPersistance:
     def test_aller_retour(self):
         fs = FilterSet(

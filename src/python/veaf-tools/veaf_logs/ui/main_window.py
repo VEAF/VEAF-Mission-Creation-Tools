@@ -4,18 +4,29 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction, QDesktopServices, QFont, QKeySequence
+from PySide6.QtCore import QByteArray, QEvent, QObject, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import (
+    QAction,
+    QDesktopServices,
+    QFont,
+    QFontMetrics,
+    QKeySequence,
+    QWheelEvent,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
     QFileDialog,
+    QFontDialog,
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
     QLabel,
+    QLineEdit,
     QMainWindow,
+    QMenu,
     QMessageBox,
+    QPlainTextEdit,
     QProgressBar,
     QPushButton,
     QSplitter,
@@ -27,7 +38,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..appearance import DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, clamp_font_size
 from ..filters import FilterSet, highlight_patterns
+from ..parser import Entry
 from ..profiles import DEFAULT_PROFILE, ProfileStore
 from ..rules import Rules
 from ..session import OpenFile, Session
@@ -39,6 +52,13 @@ from .model import COL_LEVEL, COL_LINE, COL_MESSAGE, COL_SOURCE, COL_TIME, LogMo
 from .panels import SearchBar, SidePanel
 
 POLL_MS = 400
+
+# Colonnes de largeur fixe : le reste de la place revient au message.
+FIXED_COLUMNS = (COL_LINE, COL_TIME, COL_LEVEL, COL_SOURCE)
+
+# Marge de la colonne Message, en caracteres : le `[+3]` d'une trace repliee,
+# plus de quoi ne pas coller le dernier caractere au bord.
+MESSAGE_MARGIN_CHARS = 8
 
 # Intervalle minimal entre deux reconstructions du panneau lateral pendant
 # l'indexation d'un gros journal.
@@ -59,6 +79,8 @@ class LogTab(QWidget):
 
     counts_changed = Signal()
     indexing_finished = Signal()
+    # +1 / -1, emis par Ctrl+molette sur la table.
+    zoom_requested = Signal(int)
 
     def __init__(self, source: LogSource, rules: Rules, parent=None) -> None:
         super().__init__(parent)
@@ -68,6 +90,11 @@ class LogTab(QWidget):
         self.model = LogModel(self.store, rules, self)
         self.follow = source.followable
         self._last_panel_refresh = 0.0
+        self.detail_enabled = True
+        # Vrai pendant qu'on pose nous-memes la largeur de la colonne Message :
+        # `sectionResized` ne dit pas qui l'a redimensionnee.
+        self._setting_width = False
+        self._user_width = False
 
         self.view = QTableView()
         self.view.setModel(self.model)
@@ -75,23 +102,46 @@ class LogTab(QWidget):
         self.view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.view.setWordWrap(False)
         self.view.verticalHeader().setVisible(False)
-        self.view.verticalHeader().setDefaultSectionSize(18)
-        self.view.setFont(QFont("Cascadia Mono", 9))
+        # Le defilement horizontal par element sauterait une colonne entiere.
+        self.view.setHorizontalScrollMode(QTableView.ScrollMode.ScrollPerPixel)
 
         self.delegate = MessageDelegate(self.view)
         self.view.setItemDelegateForColumn(COL_MESSAGE, self.delegate)
 
         header = self.view.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(COL_MESSAGE, QHeaderView.ResizeMode.Stretch)
+        # `Stretch` sur la colonne Message la definissait comme etant exactement
+        # le viewport : aucune barre horizontale ne pouvait apparaitre, donc la
+        # fin d'une longue ligne etait hors d'atteinte.
+        header.setSectionResizeMode(COL_MESSAGE, QHeaderView.ResizeMode.Interactive)
+        header.setStretchLastSection(False)
+        header.sectionResized.connect(self._on_section_resized)
         self.view.setColumnWidth(COL_LINE, 68)
         self.view.setColumnWidth(COL_TIME, 92)
         self.view.setColumnWidth(COL_LEVEL, 78)
         self.view.setColumnWidth(COL_SOURCE, 130)
 
+        self.detail = QPlainTextEdit()
+        self.detail.setReadOnly(True)
+        self.detail.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.detail.setVisible(False)
+        self.detail.setStyleSheet("background:#161b22; border:none;")
+
+        # Un `QSplitter` plutot qu'un empilement : le detail s'ouvre desormais
+        # pour toute ligne, et une trace de pile de quarante lignes chasserait
+        # la table hors de la fenetre s'il prenait la hauteur qu'il demande.
+        self.split = QSplitter(Qt.Orientation.Vertical)
+        self.split.addWidget(self.view)
+        self.split.addWidget(self.detail)
+        self.split.setStretchFactor(0, 1)
+        self.split.setCollapsible(0, False)
+        # Un cinquieme de la hauteur : de quoi lire le debut d'une trace de pile
+        # sans amputer la table. Le reste se prend a la souris.
+        self.split.setSizes([5, 1])
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.view)
+        layout.addWidget(self.split)
 
         self.progress = QProgressBar()
         self.progress.setVisible(False)
@@ -104,19 +154,71 @@ class LogTab(QWidget):
         self.cancel_button.clicked.connect(self._cancel_indexing)
         layout.addWidget(self.cancel_button)
 
-        self.detail = QLabel()
-        self.detail.setWordWrap(True)
-        self.detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self.detail.setFont(QFont("Cascadia Mono", 9))
-        self.detail.setVisible(False)
-        self.detail.setStyleSheet("padding: 6px; background: #161b22;")
-        layout.addWidget(self.detail)
-        self.view.selectionModel().selectionChanged.connect(self._on_selection)
+        self.view.selectionModel().selectionChanged.connect(self.refresh_detail)
+        self.view.selectionModel().currentRowChanged.connect(self.refresh_detail)
+        self.view.viewport().installEventFilter(self)
+        self.view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.view.customContextMenuRequested.connect(self._show_context_menu)
+
+        self.set_font(QFont(DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE))
 
         self.indexer = ProgressiveIndexer(self.store, self)
         self.indexer.batch_ready.connect(self._on_batch)
         self.indexer.progress.connect(self._on_progress)
         self.indexer.finished.connect(self._on_indexing_done)
+
+    # -- apparence --------------------------------------------------------
+
+    def set_font(self, font: QFont) -> None:
+        """Impose la police a la table, au modele et au detail.
+
+        La hauteur de ligne en decoule : elle etait ecrite en dur a 18 pixels,
+        ce qui coupait les glyphes des la taille augmentee.
+        """
+        self.view.setFont(font)
+        self.model.set_font(font)
+        self.detail.setFont(font)
+        metrics = QFontMetrics(font)
+        self.view.verticalHeader().setDefaultSectionSize(metrics.height() + 4)
+        # Changer de police redefinit ce qu'est une largeur correcte : on reprend
+        # la main sur une colonne que l'utilisateur avait tiree.
+        self._user_width = False
+        self.sync_message_width()
+
+    def sync_message_width(self) -> None:
+        """Ajuste la colonne Message au plus long message du journal.
+
+        En dessous de la place disponible, on prend la place disponible : un
+        journal de lignes courtes ne doit pas laisser une bande vide a droite.
+        """
+        if self._user_width:
+            return
+        metrics = QFontMetrics(self.view.font())
+        needed = metrics.horizontalAdvance("0") * (self.store.max_message_length + MESSAGE_MARGIN_CHARS)
+        header = self.view.horizontalHeader()
+        available = self.view.viewport().width() - sum(header.sectionSize(column) for column in FIXED_COLUMNS)
+        self._setting_width = True
+        try:
+            self.view.setColumnWidth(COL_MESSAGE, max(needed, available, 200))
+        finally:
+            self._setting_width = False
+
+    def _on_section_resized(self, index: int, _old: int, _new: int) -> None:
+        if index == COL_MESSAGE and not self._setting_width:
+            self._user_width = True
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.sync_message_width()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        """Ctrl+molette sur la table : zoom plutot que defilement."""
+        if isinstance(event, QWheelEvent) and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            delta = event.angleDelta().y()
+            if delta:
+                self.zoom_requested.emit(1 if delta > 0 else -1)
+            return True
+        return super().eventFilter(watched, event)
 
     # -- indexation -------------------------------------------------------
 
@@ -135,6 +237,7 @@ class LogTab(QWidget):
 
     def _on_batch(self, added: int) -> None:
         shown = self.model.refresh_from_store()
+        self.sync_message_width()
         if shown and self.follow:
             self.view.scrollToBottom()
         # Pendant l'indexation d'un gros journal, reconstruire le panneau a
@@ -185,6 +288,7 @@ class LogTab(QWidget):
         if last_before >= 0:
             self.model.invalidate(last_before)
         shown = self.model.refresh_from_store()
+        self.sync_message_width()
         if shown and self.follow:
             self.view.scrollToBottom()
         self.counts_changed.emit()
@@ -193,14 +297,67 @@ class LogTab(QWidget):
     def close_source(self) -> None:
         self.source.close()
 
-    def _on_selection(self) -> None:
-        rows = self.view.selectionModel().selectedRows()
-        entry = self.model.entry_at(rows[0].row()) if rows else None
-        if entry is None or not entry.continuations:
+    # -- detail -----------------------------------------------------------
+
+    def set_detail_enabled(self, enabled: bool) -> None:
+        self.detail_enabled = enabled
+        self.refresh_detail()
+
+    def refresh_detail(self) -> None:
+        """Montre l'entree courante en entier, quel que soit son niveau.
+
+        Le panneau ne s'ouvrait que pour les entrees portant une trace de pile,
+        c'est-a-dire justement celles qui etaient deja les moins tronquees.
+        """
+        entry = self.current_entry()
+        if entry is None or not self.detail_enabled:
             self.detail.setVisible(False)
+            self.detail.clear()
             return
-        self.detail.setText(entry.text)
+        self.detail.setPlainText(entry.text)
         self.detail.setVisible(True)
+
+    def current_entry(self) -> Entry | None:
+        index = self.view.currentIndex()
+        if not index.isValid() or not self.view.selectionModel().hasSelection():
+            return None
+        return self.model.entry_at(index.row())
+
+    # -- copie ------------------------------------------------------------
+
+    def selected_entries(self) -> list[Entry]:
+        rows = sorted(index.row() for index in self.view.selectionModel().selectedRows())
+        found = (self.model.entry_at(row) for row in rows)
+        return [entry for entry in found if entry is not None]
+
+    def copy_selection(self, message_only: bool = False) -> int:
+        """Copie les lignes selectionnees. Rend le nombre d'entrees copiees.
+
+        Une entree porte sa trace de pile : la copier sans elle rendrait un
+        `Mission script error` que rien n'explique.
+        """
+        entries = self.selected_entries()
+        if not entries:
+            return 0
+        if message_only:
+            text = "\n".join(entry.message or entry.raw for entry in entries)
+        else:
+            text = "\n".join(entry.text for entry in entries)
+        QApplication.clipboard().setText(text)
+        return len(entries)
+
+    def _show_context_menu(self, position) -> None:
+        if not self.view.selectionModel().hasSelection():
+            return
+        menu = QMenu(self.view)
+        count = len(self.view.selectionModel().selectedRows())
+        lignes = "la ligne" if count == 1 else f"les {count} lignes"
+        menu.addAction(f"Copier {lignes}", lambda: self.copy_selection())
+        menu.addAction(
+            f"Copier {'le message' if count == 1 else 'les messages'} sans l'en-tete",
+            lambda: self.copy_selection(message_only=True),
+        )
+        menu.exec(self.view.viewport().mapToGlobal(position))
 
 
 class MainWindow(QMainWindow):
@@ -214,6 +371,11 @@ class MainWindow(QMainWindow):
         # le signal emis par les widgets serait repris comme une action de
         # l'utilisateur et reecrirait aussitot ce qu'on vient de charger.
         self._syncing = False
+
+        # Police unique, poussee a chaque onglet ouvert ou a ouvrir.
+        self.font_family = session.font_family or DEFAULT_FONT_FAMILY
+        self.font_size = clamp_font_size(session.font_size)
+        self.detail_enabled = bool(session.detail_visible)
 
         self.setWindowTitle("veaf-logs — journaux DCS")
         self.resize(1500, 900)
@@ -291,6 +453,19 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.profile_delete)
 
         layout.addStretch(1)
+
+        # Zoom a portee de souris : tout le monde ne lit pas les menus.
+        self.zoom_out = QToolButton()
+        self.zoom_out.setText("A−")
+        self.zoom_out.setToolTip("Reduire la police  (Ctrl+-, ou Ctrl+molette)")
+        self.zoom_out.clicked.connect(lambda: self.zoom(-1))
+        layout.addWidget(self.zoom_out)
+
+        self.zoom_in = QToolButton()
+        self.zoom_in.setText("A+")
+        self.zoom_in.setToolTip("Agrandir la police  (Ctrl++, ou Ctrl+molette)")
+        self.zoom_in.clicked.connect(lambda: self.zoom(1))
+        layout.addWidget(self.zoom_in)
         self._reload_profile_box(self.session.profile or DEFAULT_PROFILE)
         self.profile_box.currentTextChanged.connect(self.load_profile)
         return bar
@@ -377,10 +552,25 @@ class MainWindow(QMainWindow):
         self._action(files, "Fermer l'onglet", "Ctrl+W", lambda: self.close_tab(self.tabs.currentIndex()))
         self._action(files, "Quitter", "Ctrl+Q", self.close)
 
+        edition = self.menuBar().addMenu("&Edition")
+        self._action(edition, "Copier", QKeySequence.StandardKey.Copy, self.copy_selection)
+        self._action(edition, "Copier sans l'en-tete", "Ctrl+Shift+C", self.copy_messages)
+        edition.addSeparator()
+        self._action(edition, "Tout selectionner", QKeySequence.StandardKey.SelectAll, self.select_all)
+
         view = self.menuBar().addMenu("&Affichage")
         self.action_follow = self._action(view, "Suivre la fin du fichier", "F", self.toggle_follow, checkable=True)
         self.action_follow.setChecked(True)
         self._action(view, "Aller a la fin", "Ctrl+Fin", self.scroll_to_end)
+        view.addSeparator()
+        self._action(view, "Police…", None, self.choose_font)
+        agrandir = self._action(view, "Agrandir", QKeySequence.StandardKey.ZoomIn, lambda: self.zoom(1))
+        # `ZoomIn` est Ctrl++, qui demande Shift sur un clavier francais.
+        agrandir.setShortcuts([QKeySequence(QKeySequence.StandardKey.ZoomIn), QKeySequence("Ctrl+=")])
+        self._action(view, "Reduire", QKeySequence.StandardKey.ZoomOut, lambda: self.zoom(-1))
+        self._action(view, "Taille par defaut", "Ctrl+0", self.reset_font)
+        self.action_detail = self._action(view, "Panneau de detail", "Ctrl+I", self.toggle_detail, checkable=True)
+        self.action_detail.setChecked(self.detail_enabled)
         view.addSeparator()
         self._action(view, "Tout afficher (reinitialiser les filtres)", "Ctrl+R", self.reset_filters)
         self._action(view, "Chercher", "Ctrl+F", lambda: self.search.field.setFocus())
@@ -438,6 +628,8 @@ class MainWindow(QMainWindow):
 
         tab = LogTab(source, self.rules, self)
         tab.counts_changed.connect(self._refresh_side)
+        tab.zoom_requested.connect(self.zoom)
+        self.apply_appearance(tab)
         index = self.tabs.addTab(tab, source.display_name)
         self.tabs.setTabToolTip(index, str(path))
         self.tabs.setCurrentIndex(index)
@@ -486,6 +678,13 @@ class MainWindow(QMainWindow):
         widget = self.tabs.currentWidget()
         return widget if isinstance(widget, LogTab) else None
 
+    def _tabs(self):
+        """Onglets de journal, dans l'ordre."""
+        for index in range(self.tabs.count()):
+            widget = self.tabs.widget(index)
+            if isinstance(widget, LogTab):
+                yield widget
+
     def effective_filters(self) -> FilterSet:
         """Filtres enregistres, plus le critere en cours de frappe."""
         effective = self.filters.copy()
@@ -497,13 +696,12 @@ class MainWindow(QMainWindow):
     def apply_filters(self) -> None:
         effective = self.effective_filters()
         patterns = highlight_patterns(effective)
-        for index in range(self.tabs.count()):
-            tab = self.tabs.widget(index)
-            if not isinstance(tab, LogTab):
-                continue
+        for tab in self._tabs():
             tab.model.set_filters(effective)
             tab.delegate.set_patterns(patterns)
             tab.view.viewport().update()
+            tab.refresh_detail()
+        self.search.set_common_context(self.filters.search_context_lines)
         self._refresh_status()
 
     def _on_side_changed(self) -> None:
@@ -568,6 +766,98 @@ class MainWindow(QMainWindow):
         self._sync_side()
         self._refresh_chips()
         self.apply_filters()
+
+    # -- apparence --------------------------------------------------------
+
+    def log_font(self) -> QFont:
+        font = QFont(self.font_family, self.font_size)
+        font.setStyleHint(QFont.StyleHint.Monospace)
+        return font
+
+    def apply_appearance(self, tab: LogTab | None = None) -> None:
+        """Pousse la police et l'etat du detail dans un onglet, ou dans tous."""
+        font = self.log_font()
+        targets = [tab] if tab is not None else list(self._tabs())
+        for target in targets:
+            target.set_font(font)
+            target.set_detail_enabled(self.detail_enabled)
+
+    def zoom(self, step: int) -> None:
+        size = clamp_font_size(self.font_size + step)
+        if size == self.font_size:
+            return
+        self.font_size = size
+        self.apply_appearance()
+        self.status.showMessage(f"Police : {self.font_family} {self.font_size} pt", 2000)
+
+    def reset_font(self) -> None:
+        self.font_family = DEFAULT_FONT_FAMILY
+        self.font_size = DEFAULT_FONT_SIZE
+        self.apply_appearance()
+        self.status.showMessage(f"Police : {self.font_family} {self.font_size} pt", 2000)
+
+    def choose_font(self) -> None:
+        # PySide rend d'abord le `bool *ok` de Qt, puis la police : l'ordre
+        # inverse compilait et cassait le dialogue a l'usage.
+        ok, chosen = QFontDialog.getFont(
+            self.log_font(),
+            self,
+            "Police du journal",
+            QFontDialog.FontDialogOption.MonospacedFonts,
+        )
+        if not ok:
+            return
+        self.font_family = chosen.family()
+        self.font_size = clamp_font_size(chosen.pointSize())
+        self.apply_appearance()
+
+    def toggle_detail(self, checked: bool) -> None:
+        self.detail_enabled = checked
+        for tab in self._tabs():
+            tab.set_detail_enabled(checked)
+
+    # -- copie ------------------------------------------------------------
+
+    def copy_selection(self) -> None:
+        """Copie ce qui est selectionne, la ou l'utilisateur regarde.
+
+        Les raccourcis d'edition sont poses sur la fenetre, donc ils passent
+        avant ceux des champs de saisie : sans cet aiguillage, selectionner
+        trois mots dans le detail puis faire Ctrl+C copierait la ligne entiere.
+        """
+        focused = self.focusWidget()
+        if isinstance(focused, QLineEdit) and focused.hasSelectedText():
+            focused.copy()
+            return
+        tab = self.current_tab()
+        if tab is None:
+            return
+        if focused is tab.detail and tab.detail.textCursor().hasSelection():
+            tab.detail.copy()
+            self.status.showMessage("Selection copiee.", 2000)
+            return
+        self._report_copy(tab.copy_selection())
+
+    def copy_messages(self) -> None:
+        tab = self.current_tab()
+        if tab is not None:
+            self._report_copy(tab.copy_selection(message_only=True))
+
+    def _report_copy(self, count: int) -> None:
+        if not count:
+            self.status.showMessage("Rien de selectionne a copier.", 2000)
+            return
+        self.status.showMessage(f"{count} ligne{'s' if count > 1 else ''} copiee{'s' if count > 1 else ''}.", 2000)
+
+    def select_all(self) -> None:
+        """Tout le journal, ou tout le champ ou l'on est en train d'ecrire."""
+        focused = self.focusWidget()
+        if isinstance(focused, (QLineEdit, QPlainTextEdit)):
+            focused.selectAll()
+            return
+        tab = self.current_tab()
+        if tab is not None:
+            tab.view.selectAll()
 
     # -- suivi ------------------------------------------------------------
 
@@ -682,17 +972,16 @@ class MainWindow(QMainWindow):
         self.apply_filters()
 
     def _capture(self) -> Session:
-        files = []
-        for index in range(self.tabs.count()):
-            tab = self.tabs.widget(index)
-            if isinstance(tab, LogTab):
-                files.append(OpenFile(str(tab.source.path), tab.source.archive_member))
+        files = [OpenFile(str(tab.source.path), tab.source.archive_member) for tab in self._tabs()]
         self.side.collect(self.filters)
         session = Session(
             files=files,
             active=max(0, self.tabs.currentIndex()),
             profile=self.profile_box.currentText(),
             geometry=bytes(self.saveGeometry().toBase64().data()).decode("ascii"),
+            font_family=self.font_family,
+            font_size=self.font_size,
+            detail_visible=self.detail_enabled,
         )
         session.set_filters(self.filters)
         return session
@@ -703,10 +992,8 @@ class MainWindow(QMainWindow):
         except OSError:
             # Une session non sauvegardee ne doit pas empecher de fermer.
             pass
-        for index in range(self.tabs.count()):
-            tab = self.tabs.widget(index)
-            if isinstance(tab, LogTab):
-                tab.close_source()
+        for tab in self._tabs():
+            tab.close_source()
         super().closeEvent(event)
 
 

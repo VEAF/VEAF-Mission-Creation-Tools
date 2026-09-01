@@ -39,8 +39,8 @@ Every level, source and noise family cycles through three states on click:
 Context mode is what makes a log readable. Setting `INFO` to ◐ with ±3 lines
 keeps only errors and warnings, surrounded by what explains them. Each category
 can have its own span: the `±` field appears beside it as soon as it switches to
-◐, and leaving that field empty falls back to the shared value set at the top of
-the panel.
+◐, and leaving that field empty falls back to the **Contexte des catégories**
+value set at the top of the panel.
 
 Dropping the ED noise changes the scale of what is left to read:
 
@@ -82,12 +82,61 @@ remove with one click.
 Search covers the line **and** the stack trace under it: looking for a symbol
 that only appears in the trace brings back the error that produced it.
 
+### Context lines {#search-context}
+
+A hit on its own says little; what surrounds it is usually what explains it.
+**Contexte de recherche**, in the side panel, keeps ±N lines on each side of
+every hit, the way `grep -C` does. It is 0 by default: until you change it, a
+search returns exactly its own lines.
+
+The `±` field in the search bar gives one criterion a span of its own; left
+empty, it follows the shared value. With several criteria active, the widest
+span applies. An inverted criterion (`≠`) has no hit to surround and does not
+count.
+
+**Filters still win.** A line hidden by its level, its source or its noise family
+stays hidden even right next to a hit: context widens the search, it does not
+undo a filter. Searching `ERROR` with ±2 while `INFO` is set to ✕ does not bring
+the neighbouring `INFO` lines back.
+
+The two contexts compose: a category in ◐ shows up around a search hit according
+to **its own** span.
+
+## Reading a whole line
+
+**The detail pane, under the table.** Clicking a line — any line, not only an
+error — shows it in full underneath, stack trace included. The divider is
+draggable, and `Ctrl+I` closes the pane when you want the full height for the
+table.
+
+**The horizontal scrollbar.** The Message column is sized on the longest message
+in the log, so a line wider than the window is read by scrolling right. Dragging
+the column by hand pins the width you chose; changing the font hands control
+back.
+
+**Text size.** The `A−` / `A+` buttons at the top right, `Ctrl++` / `Ctrl+-`, or
+`Ctrl`+wheel over the table. `Ctrl+0` restores the original size and
+**Affichage → Police…** picks another monospaced font. The choice applies to
+every tab and comes back with the next session.
+
+## Copying
+
+| | |
+|---|---|
+| A block of lines | select them in the table (`Shift`+click, `Ctrl`+click), then `Ctrl+C` |
+| Part of one line | select it character by character in the detail pane, then `Ctrl+C` |
+
+A copied line brings its stack trace along: pasting a `Mission script error`
+without it would give an error nothing explains. The right-click menu also offers
+the message **without the DCS header**, for when you want neither the timestamp
+nor the subsystem.
+
 ## What it understands of the log
 
 **Stack traces stay with their error.** A `Mission script error` followed by its
 `stack traceback` forms a single entry, so filtering on errors no longer hides
-the explanation. The line then carries a `[+3]` marker, and the detail shows at
-the bottom when you select it.
+the explanation. The line then carries a `[+3]` marker saying how many lines are
+folded behind it.
 
 **The level shown is the real one.** DCS logs all Lua as `INFO SCRIPTING`,
 including a `VEAF|W|` that is a warning. `veaf-logs` reads it from the prefix:
@@ -123,9 +172,16 @@ button to stop it — whatever is already indexed stays usable.
 | `Ctrl+O` | open a file |
 | `Ctrl+W` | close the tab |
 | `Ctrl+F` | search |
+| `Ctrl+C` | copy the selection |
+| `Ctrl+Shift+C` | copy without the DCS header |
+| `Ctrl+A` | select everything |
 | `F` | follow the end of the file / pause |
 | `Ctrl+R` | show everything |
 | `Ctrl+S` | save the profile |
+| `Ctrl++` / `Ctrl+-` | grow / shrink the font |
+| `Ctrl+0` | default font size |
+| `Ctrl`+wheel | grow / shrink the font |
+| `Ctrl+I` | show or hide the detail pane |
 | `F5` | reload the rule catalogue |
 
 ## Adding your own rules
@@ -167,5 +223,5 @@ ASCII. The number of noise families is capped at 64.
 
 | | |
 |---|---|
-| Session (open files, filters, geometry) | `%APPDATA%\veaf-logs\session.json` |
+| Session (open files, filters, geometry, font) | `%APPDATA%\veaf-logs\session.json` |
 | Profiles | `%APPDATA%\veaf-logs\profiles.json` |

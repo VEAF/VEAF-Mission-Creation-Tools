@@ -42,7 +42,7 @@ Le mode contexte est ce qui rend un journal lisible. Mettre `INFO` en ◐ avec
 ±3 lignes ne garde que les erreurs et les avertissements, entourés de ce qui les
 explique. Chaque catégorie peut avoir sa propre portée : le champ `±` apparaît à
 sa droite dès qu'elle passe en ◐, et laisser le champ vide reprend la valeur
-commune réglée en haut du panneau.
+**Contexte des catégories** réglée en haut du panneau.
 
 Écarter le bruit ED change l'échelle de ce qu'il reste à lire :
 
@@ -87,12 +87,61 @@ La recherche porte sur la ligne **et** sur la trace de pile qui la suit :
 chercher un symbole présent uniquement dans la trace ramène l'erreur qui l'a
 produite.
 
+### Lignes de contexte {#search-context}
+
+Un résultat seul ne dit pas grand-chose : c'est souvent ce qui l'entoure qui
+explique. **Contexte de recherche**, dans le panneau latéral, garde ±N lignes de
+part et d'autre de chaque résultat, comme le `-C` de `grep`. Il vaut 0 par
+défaut : tant qu'on n'y touche pas, une recherche rend exactement ses lignes.
+
+Le champ `±` de la barre de recherche donne une portée propre à un critère ;
+laissé vide, il suit la valeur commune. Quand plusieurs critères sont actifs,
+c'est la portée la plus large qui s'applique. Un critère inversé (`≠`) n'a pas de
+résultat à entourer et n'entre pas dans le calcul.
+
+**Les filtres restent prioritaires.** Une ligne masquée par son niveau, sa source
+ou sa famille de bruit le reste, même collée à un résultat : le contexte élargit
+la recherche, il ne défait pas un filtre. Chercher `ERROR` avec ±2 en ayant mis
+`INFO` à ✕ ne fait pas revenir les `INFO` voisines.
+
+Les deux contextes se composent : une catégorie en ◐ apparaît autour d'un
+résultat de recherche selon **sa** portée à elle.
+
+## Lire une ligne en entier
+
+**Le détail, sous la table.** Cliquer une ligne — n'importe laquelle, pas
+seulement une erreur — l'affiche en entier en dessous, trace de pile comprise. La
+séparation se tire à la souris, et `Ctrl+I` referme le panneau quand on veut
+toute la hauteur pour la table.
+
+**L'ascenseur horizontal.** La colonne Message est dimensionnée sur le plus long
+message du journal : une ligne qui dépasse la fenêtre se lit en défilant vers la
+droite. Tirer la colonne à la main fige la largeur choisie ; changer de police
+rend la main.
+
+**La taille du texte.** Les boutons `A−` / `A+` en haut à droite, `Ctrl++` /
+`Ctrl+-`, ou `Ctrl`+molette sur la table. `Ctrl+0` revient à la taille d'origine
+et **Affichage → Police…** choisit une autre police à chasse fixe. Le choix vaut
+pour tous les onglets et se retrouve à la session suivante.
+
+## Copier
+
+| | |
+|---|---|
+| Un bloc de lignes | les sélectionner dans la table (`Maj`+clic, `Ctrl`+clic), puis `Ctrl+C` |
+| Une partie d'une ligne | la sélectionner au caractère dans le panneau de détail, puis `Ctrl+C` |
+
+Une ligne copiée emporte sa trace de pile : coller un `Mission script error` sans
+elle donnerait une erreur que rien n'explique. Le clic droit propose en plus de
+copier le message **sans l'en-tête DCS**, quand on ne veut ni l'horodatage ni le
+sous-système.
+
 ## Ce qu'il comprend du journal
 
 **Les traces de pile restent avec leur erreur.** Un `Mission script error` suivi
 de son `stack traceback` forme une seule entrée : filtrer sur les erreurs ne fait
-plus disparaître l'explication. La ligne porte alors un `[+3]`, et le détail
-s'affiche en bas quand on la sélectionne.
+plus disparaître l'explication. La ligne porte alors un `[+3]` qui dit combien de
+lignes sont repliées derrière elle.
 
 **Le niveau affiché est le niveau réel.** DCS journalise tout le Lua en
 `INFO SCRIPTING`, y compris un `VEAF|W|` qui est un avertissement. `veaf-logs` le
@@ -132,9 +181,16 @@ reste utilisable.
 | `Ctrl+O` | ouvrir un fichier |
 | `Ctrl+W` | fermer l'onglet |
 | `Ctrl+F` | chercher |
+| `Ctrl+C` | copier la sélection |
+| `Ctrl+Maj+C` | copier sans l'en-tête DCS |
+| `Ctrl+A` | tout sélectionner |
 | `F` | suivre la fin du fichier / mettre en pause |
 | `Ctrl+R` | tout afficher |
 | `Ctrl+S` | enregistrer le profil |
+| `Ctrl++` / `Ctrl+-` | agrandir / réduire la police |
+| `Ctrl+0` | taille de police par défaut |
+| `Ctrl`+molette | agrandir / réduire la police |
+| `Ctrl+I` | afficher ou masquer le panneau de détail |
 | `F5` | recharger le catalogue de règles |
 
 ## Ajouter ses propres règles
@@ -176,5 +232,5 @@ doivent rester en ASCII. Le nombre de familles de bruit est plafonné à 64.
 
 | | |
 |---|---|
-| Session (fichiers ouverts, filtres, géométrie) | `%APPDATA%\veaf-logs\session.json` |
+| Session (fichiers ouverts, filtres, géométrie, police) | `%APPDATA%\veaf-logs\session.json` |
 | Profils | `%APPDATA%\veaf-logs\profiles.json` |

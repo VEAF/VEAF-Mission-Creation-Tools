@@ -54,6 +54,7 @@ class LogStore:
 
         self._cursor = 0  # octets deja indexes
         self._lines_seen = 0
+        self._max_message = 0  # plus long message rencontre, en caracteres
         self._matchers = _Matchers(rules)
 
         # Comptages tenus a jour a l'insertion. Les recalculer a la demande
@@ -86,6 +87,7 @@ class LogStore:
         self._module_index = {"": 0}
         self._cursor = 0
         self._lines_seen = 0
+        self._max_message = 0
         self._by_level.clear()
         self._by_source.clear()
         self._by_noise.clear()
@@ -157,6 +159,8 @@ class LogStore:
         if match is None:
             opened = self._matchers.log_opened.match(stripped) is not None
             self._msg_at.append(0)
+            # Sans en-tete, la ligne entiere est le message.
+            self._max_message = max(self._max_message, len(stripped))
             self._level.append(LEVEL_INDEX["INFO"] if opened else UNKNOWN_LEVEL)
             self._source.append(self._matchers.native_source)
             self._module.append(0)
@@ -167,6 +171,9 @@ class LogStore:
 
         message = match.group("message") or b""
         self._msg_at.append(min(match.start("message"), 0xFFFF))
+        # En octets, comme `_msg_at` : les journaux DCS sont de l'ASCII, et une
+        # ligne accentuee ne ferait que reserver la colonne un peu trop large.
+        self._max_message = max(self._max_message, len(stripped) - self._msg_at[-1])
         level = match.group("level")
         source, module, refined = self._matchers.classify(message)
         self._source.append(source)
@@ -244,6 +251,15 @@ class LogStore:
     @property
     def offsets(self) -> array:
         return self._offset
+
+    @property
+    def max_message_length(self) -> int:
+        """Longueur du plus long message, pour dimensionner la colonne.
+
+        Tenue a l'indexation : demander sa largeur a Qt reviendrait a mesurer un
+        echantillon de lignes, donc a donner une largeur qui saute au defilement.
+        """
+        return self._max_message
 
     @property
     def indexed_bytes(self) -> int:

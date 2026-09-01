@@ -1036,18 +1036,11 @@ function TestSecrev2AirWavesZoneCenter:test_an_existing_trigger_zone_is_still_pr
   luaunit.assertEquals(#self.deployed, 1)
   -- The trigger zone's coordinates, not the 1000/2000 centre set just before.
   luaunit.assertEquals(self.deployed[1].position.x, 77)
-  -- The easting arrives as `y`, not `z`, and that is a **defect** rather than a convention:
-  -- `veafAirWaves` hands this point straight to `veafInterpreter.execute`, which documents that a
-  -- command expects a vec3 whose `z` is the easting — and `veafSpawnGround` reads `spawnPosition.z`.
-  -- So a command-driven air wave spawns with a nil easting. The sibling call twenty lines further
-  -- down converts explicitly (`vars.point.z = vars.point.y`); this one does not.
-  --
-  -- It was invisible until DROP-MIST ticket 06, because the MiST stub in dcs_mocks answered a vec3
-  -- while MiST itself answers a vec2 — the test was asserting the mock. Asserted here as it actually
-  -- behaves, so the defect stays visible until FIX-AIRWAVES-COMMAND-EASTING fixes it; that lot flips
-  -- these two assertions.
-  luaunit.assertEquals(self.deployed[1].position.y, 88, "the easting lands in y — see FIX-AIRWAVES-COMMAND-EASTING")
-  luaunit.assertNil(self.deployed[1].position.z, "and z is left nil, which is what reaches the spawn")
+  -- The easting arrives as `z` and the altitude as `y`, which is the vec3 a command expects
+  -- (`docs/agents/dcs-coordinates.md`). A trigger zone has no altitude of its own, so `y` is the 0
+  -- that `deployWaves` writes into the zone centre.
+  luaunit.assertEquals(self.deployed[1].position.z, 88, "the easting lands in z, where the interpreter reads it")
+  luaunit.assertEquals(self.deployed[1].position.y, 0, "and y carries the altitude, not the easting")
 end
 
 function TestSecrev2AirWavesZoneCenter:test_neither_zone_nor_center_does_not_raise()
@@ -1057,6 +1050,88 @@ function TestSecrev2AirWavesZoneCenter:test_neither_zone_nor_center_does_not_rai
     z:deployWaves()
   end)
   luaunit.assertTrue(ok, "a zone with no usable position must complain, not raise")
+end
+-------------------------------------------------------------------------------------------------
+-- FIX-AIRWAVES-COMMAND-EASTING — a command element must be handed a vec3, not the draw's vec2
+--
+-- `veaf.getRandomPointInCircle` answers the **mission-table** shape, `{ x, y }` with the easting in
+-- `y` and no `z` at all. That is the shape `veaf.placePointOnLand` takes, and of the eighteen call
+-- sites in `src/scripts/veaf/`, eleven hand it straight there while four more read the vec2
+-- themselves — so fifteen want it exactly as it comes. `veafInterpreter.execute` wants the other one: a runtime
+-- vec3 whose easting is `z` and whose `y` is the altitude — `veafSpawnGround` reads
+-- `spawnPosition.z` for the easting it writes into the spawned table. See
+-- `docs/agents/dcs-coordinates.md`; neither DCS nor our tooling can tell the two apart, because
+-- both are plausible numbers under plausible names.
+--
+-- Handing the draw over untouched therefore left the easting **absent** and put it in the altitude,
+-- so a command-driven wave spawned on the theatre's central meridian, some four hundred kilometres
+-- from its zone, at an altitude equal to its easting.
+--
+-- The three outcomes are asserted apart on purpose. A missing easting reads as `nil` in Lua and as
+-- `0` once anything has defaulted it, and both are wrong in the same way — a lone `assertEquals`
+-- would be satisfied by neither, but a looser assertion (`assertNotNil`, or a truthiness check)
+-- would let one of them through. So each is named.
+-------------------------------------------------------------------------------------------------
+
+TestAirWavesCommandEasting = {}
+
+function TestAirWavesCommandEasting:setUp()
+  dcs_mocks.reset()
+  self.deployed = {}
+  self._savedExecute = veafInterpreter and veafInterpreter.execute
+end
+
+function TestAirWavesCommandEasting:tearDown()
+  veaf.triggerZones["AirWaveEastingZone"] = nil
+  if veafInterpreter then
+    veafInterpreter.execute = self._savedExecute
+  end
+end
+
+--- A zone whose only wave is a VEAF command, recording every position handed to the interpreter.
+function TestAirWavesCommandEasting:_zoneDeployingOneCommand()
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 0
+  z.waves = { {} }
+  z.chooseGroupsToDeploy = function(_)
+    return { "-shilka" }, nil
+  end
+  local positions = self.deployed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(command, position, _, _, _)
+    table.insert(positions, { command = command, position = position })
+  end
+  return z
+end
+
+function TestAirWavesCommandEasting:test_the_easting_reaches_the_interpreter_in_z()
+  -- A trigger zone is a mission-table position: its `y` is the easting, and `deployWaves` moves it
+  -- into the zone centre's `z`. 88 is deliberately neither nil nor zero.
+  veaf.triggerZones["AirWaveEastingZone"] = { x = 77, y = 88, radius = 500 }
+  local z = self:_zoneDeployingOneCommand()
+  z:setTriggerZone("AirWaveEastingZone")
+  z:deployWaves()
+  luaunit.assertEquals(#self.deployed, 1)
+  local position = self.deployed[1].position
+  luaunit.assertNotNil(position.z, "the easting is absent — the interpreter was handed a vec2")
+  luaunit.assertNotEquals(position.z, 0, "the easting is zero — that is the central meridian, not the zone")
+  luaunit.assertEquals(position.z, 88, "the easting must be the zone's own")
+end
+
+function TestAirWavesCommandEasting:test_the_altitude_reaches_the_interpreter_in_y()
+  -- The zone centre path, because a trigger zone has no altitude: 1500 is the centre's own, and
+  -- 2000 is its easting. Reading the easting as the altitude is exactly the defect, so the two
+  -- values are kept distinct and non-zero.
+  local z = self:_zoneDeployingOneCommand()
+  z:setZoneCenter({ x = 1000, y = 1500, z = 2000 })
+  z:deployWaves()
+  luaunit.assertEquals(#self.deployed, 1)
+  local position = self.deployed[1].position
+  luaunit.assertEquals(position.x, 1000, "the northing")
+  luaunit.assertNotNil(position.y, "the altitude is absent")
+  luaunit.assertNotEquals(position.y, 2000, "the altitude is the easting — the two shapes were confused")
+  luaunit.assertEquals(position.y, 1500, "the altitude must come from the zone centre")
+  luaunit.assertEquals(position.z, 2000, "and the easting stays the easting")
 end
 
 os.exit(luaunit.LuaUnit.run())

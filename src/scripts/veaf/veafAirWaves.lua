@@ -1009,7 +1009,22 @@ function AirWaveZone:deployWaves()
         end
         veaf.loggers.get(veafAirWaves.Id):debug("running command [%s]", veaf.lp(command))
         local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
+        -- The draw answers the mission-table shape — `{ x, y }`, easting in `y`, no `z` — because
+        -- eleven of its eighteen call sites hand it straight to `veaf.placePointOnLand`, which takes
+        -- exactly that, and four more read it as a vec2 themselves (`land.getSurfaceType`, the two
+        -- mission-table writes in `veafDcsSpawner`).
+        --
+        -- `veafInterpreter.execute` takes the other shape: a runtime vec3 whose easting is `z` and
+        -- whose `y` is the altitude, which is what `veafSpawnGround` reads out of it. Passing the
+        -- draw over untouched left the easting absent and put it in the altitude, so the command
+        -- spawned on the theatre's central meridian. See docs/agents/dcs-coordinates.md.
+        --
+        -- The altitude is the zone centre's, the same one the DCS-group branch below uses.
+        -- `veafSpawnAircraft.lua:1037` converts the same way but takes a *computed* altitude, which
+        -- is why the three converting call sites cannot share one vec3 helper.
         local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
+        randomPosition.z = randomPosition.y
+        randomPosition.y = position.y
         local spawnedGroupsNames = {}
         veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
         for _, newGroupName in pairs(spawnedGroupsNames) do

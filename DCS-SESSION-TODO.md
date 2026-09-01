@@ -259,7 +259,7 @@ kilometres from the zone. Never measured. Also worth knowing: `FIX-WAVE-OFFSET-A
 day and **moves any mission using a non-zero `[latDelta,lonDelta]` offset**, so a zone with an offset
 is the interesting one to trigger.
 
-### R8. Does a teleported escort hold formation — and does it engage?
+### ✅ R8. Does a teleported escort hold formation — and does it engage? — **both yes, 2026-09-01**
 
 Gates [`FIX-TELEPORT-ESCORT-WAYPOINT`](.backlog/FIX-TELEPORT-ESCORT-WAYPOINT/PRD.md), which cannot be
 started without this. Nothing shipped depends on it: this morning's escort fix
@@ -304,6 +304,15 @@ Then watch two things, separately:
 `Arco escort` (matching the `<asset name> .. " escort"` convention) and the other is deliberately left
 as `Arco-escort1`. So a run can tell a working repair from a silent no-op — only the first is ever
 found by name.
+
+**Answered in game 2026-09-01, on the session mission's Arco: formation yes, engagement yes.** Every
+escort engaged a threat brought to the pair. That is the first row of the table above — *the path
+works* — so the code comment claiming the escort "just doesn't defend the group" was wrong and has
+been removed, and `FIX-ESCORT-RESPAWN-TASK`'s PRD was right all along. The repository tells one story
+now.
+
+What remains is finding 2 only: the rewrite still targets the **last** waypoint, while `findEscortTask`
+searches every one of them because the demo mission puts the task on waypoint 2 of 3.
 
 **What to write down**: the mission, the date, and the two answers. Whichever of the two notes turns
 out wrong gets corrected in the code comment *and* in `FIX-ESCORT-RESPAWN-TASK`'s PRD — the point of

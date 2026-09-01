@@ -190,7 +190,7 @@ Use one of the following to define the protected airspace:
 | `:setDelayBeforeActivating(seconds)` | Delay before the QRA goes online after `:start()` |
 | `:setMinimumAltitudeInFeet(feet)` | Minimum enemy altitude to trigger a scramble |
 | `:setMaximumAltitudeInFeet(feet)` | Maximum enemy altitude to trigger a scramble |
-| `:setRespawnDefaultOffset(latDelta, lonDelta)` | Spawn offset from zone center (meters, lat/lon) |
+| `:setRespawnDefaultOffset(latDelta, lonDelta)` | Spawn offset from zone center (meters, lat/lon) — first number north, second east; see [veafAirWaves](veafAirWaves.en.md#spawn-offset) |
 | `:setRespawnRadius(meters)` | Scatter radius around spawn point (minimum 250 m) |
 
 ### Airbase Link

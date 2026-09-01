@@ -1,6 +1,6 @@
 # FIX-WAVE-OFFSET-AXES — `[latDelta,lonDelta]` moves east and south, not north and east
 
-Status: ⬜ ready
+Status: ✅ done — **option (a) chosen by David, 2026-09-01**: the code is wrong, the axes are corrected and the migration is announced
 
 Found on 2026-09-01 while fixing
 [`FIX-AIRWAVES-COMMAND-EASTING`](../FIX-AIRWAVES-COMMAND-EASTING/PRD.md), on the line above the one
@@ -76,7 +76,48 @@ an offset is unaffected either way.
 
 ## Scope
 
-No tickets yet — the decision above comes first. Whichever way it goes, the deliverable includes a
-Lua test asserting the resulting direction per axis with distinct non-zero values (the
-`FIX-AIRWAVES-COMMAND-EASTING` suites are the template), the four call sites in step, and the two
-documentation pages corrected in both languages.
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| 01 | [Put each delta on the axis its name names](tickets/01-latitude-north-longitude-east.md) | fix | ✅ |
+| 02 | [Say what moves, in both languages](tickets/02-document-the-migration.md) | docs | ✅ |
+
+## What was delivered
+
+All four call sites now read `x = zoneCenter.x + latDelta, z = zoneCenter.z + lonDelta`.
+
+Two layers of test, because the four sites are not equally reachable:
+
+- **Behaviour**, in Lua: five cases on `veafAirWaves` and three on `veafQraCore`, driving each axis on
+  its own with distinct non-zero values and asserting the **delta** from the zone centre rather than
+  the absolute field — a test written against the field would pass just as well if a later edit
+  swapped the two names again. `respawnRadius` is set to zero so the scatter cannot blur the offset.
+- **Source**, in Python (`test/python/test_wave_offset_axes.py`): refuses the wrong pairing anywhere
+  in either module. This layer exists because the **DCS-group branch only reaches its offset when DCS
+  fails to return a group's units** — a degraded path that is awkward to drive and easy to leave
+  behind, which is exactly how a swap survives in half the call sites. A second assertion checks that
+  each module still carries four such assignments, so renaming the fields cannot leave the first one
+  green because it found nothing to look at.
+
+## Proof each check can fail
+
+| Sabotage | Result |
+|---|---|
+| the original formula restored in `veafAirWaves` | 5 Lua tests red |
+| the original formula restored in `veafQraCore` only | 3 Lua tests red, the `veafAirWaves` ones staying green |
+| the QRA DCS-group branch alone reverted | **all 45 Lua suites green**, the source test red at `veafQraCore.lua:1026` |
+
+That third row is the reason the source layer is there.
+
+## One thing the measurement settled
+
+The documented example `[-3000,0]` was annotated *"3 km south"* — which is what it does **only** under
+the corrected reading. So whoever wrote that line meant latitude first, and the companion example
+annotated *"5 km north"* was simply written with its two numbers the wrong way round. Read together,
+the two examples say the intent was never in doubt: the code was the thing that was wrong.
+
+## What the mission maker sees
+
+Both `veafAirWaves` pages carry a `Behaviour change` admonition under the `{#spawn-offset}` anchor,
+in both languages, saying which offsets move and why an offset tuned by eye against the old behaviour
+has to be rewritten. The two `veafQraManager` pages point at it from their builder table. No version
+number is written by hand — the changelog entry carries the migration notice.

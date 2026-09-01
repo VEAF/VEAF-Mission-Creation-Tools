@@ -990,7 +990,11 @@ function VeafQRACore:deploy(nbUnitsInZone)
         veaf.loggers.get(veafQraManager.Id):debug("running command [%s]", veaf.lp(command))
         veaf.loggers.get(veafQraManager.Id):trace("latDelta = [%s]", veaf.lp(latDelta))
         veaf.loggers.get(veafQraManager.Id):trace("lonDelta = [%s]", veaf.lp(lonDelta))
-        local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
+        -- Latitude delta on the northing (`x`), longitude delta on the easting (`z`), both added.
+        -- This read `x = zoneCenter.x - lonDelta, z = zoneCenter.z + latDelta` until 2026-09-01, which
+        -- sent the first bracket number east and the second one south — see the twin in
+        -- `AirWaveZone:deployWaves` and FIX-WAVE-OFFSET-AXES.
+        local position = { x = zoneCenter.x + latDelta, y = zoneCenter.y, z = zoneCenter.z + lonDelta }
         -- Same conversion, same reason as `AirWaveZone:deployWaves` — this branch is its twin. The
         -- draw answers the mission-table shape (`{ x, y }`, easting in `y`, no `z`) while
         -- `veafInterpreter.execute` takes a runtime vec3 whose easting is `z` and whose `y` is the
@@ -1016,10 +1020,12 @@ function VeafQRACore:deploy(nbUnitsInZone)
         else
           veaf.loggers.get(veafQraManager.Id):debug("group=%s", veaf.lp(group))
           veaf.loggers.get(veafQraManager.Id):debug("group:getUnits()=%s", veaf.lp(group:getUnits()))
+          -- Latitude on the northing, longitude on the easting, both added — see the command branch
+          -- above (FIX-WAVE-OFFSET-AXES).
           local spawnSpot = {
-            x = zoneCenter.x - self.respawnDefaultOffset.lonDelta,
+            x = zoneCenter.x + self.respawnDefaultOffset.latDelta,
             y = zoneCenter.y,
-            z = zoneCenter.z + self.respawnDefaultOffset.latDelta,
+            z = zoneCenter.z + self.respawnDefaultOffset.lonDelta,
           }
           -- Try and set the spawn spot at the place the group has been set in the Mission Editor.
           -- Unfortunately this is sometimes not possible because DCS is not returning the group units for some reason.

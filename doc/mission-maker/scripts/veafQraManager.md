@@ -189,7 +189,7 @@ Utiliser l'une des options suivantes :
 | `:setDelayBeforeActivating(seconds)` | Délai avant mise en ligne après `:start()` |
 | `:setMinimumAltitudeInFeet(feet)` | Altitude minimale de l'ennemi pour déclencher un scramble |
 | `:setMaximumAltitudeInFeet(feet)` | Altitude maximale de l'ennemi pour déclencher un scramble |
-| `:setRespawnDefaultOffset(latDelta, lonDelta)` | Décalage de spawn depuis le centre de la zone (mètres, lat/lon) |
+| `:setRespawnDefaultOffset(latDelta, lonDelta)` | Décalage de spawn depuis le centre de la zone (mètres, lat/lon) — premier nombre vers le nord, second vers l'est ; voir [veafAirWaves](veafAirWaves.md#spawn-offset) |
 | `:setRespawnRadius(meters)` | Rayon de dispersion autour du point de spawn (minimum 250 m) |
 
 ### Lien à une base aérienne

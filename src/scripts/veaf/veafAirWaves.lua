@@ -1008,7 +1008,15 @@ function AirWaveZone:deployWaves()
           end
         end
         veaf.loggers.get(veafAirWaves.Id):debug("running command [%s]", veaf.lp(command))
-        local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
+        -- `zoneCenter.x` is the northing and `zoneCenter.z` the easting, so the latitude delta goes on
+        -- `x` and the longitude delta on `z`, both added. Until 2026-09-01 this read
+        -- `x = zoneCenter.x - lonDelta, z = zoneCenter.z + latDelta`, which sent the *first* bracket
+        -- number east and the *second* one south — neither where its name says, and the northing
+        -- subtracted on top, so a positive "latitude" offset moved away from the pole. The same swap
+        -- sat in all four sites across this module and `veafQraCore`, and in the documented examples.
+        -- See FIX-WAVE-OFFSET-AXES: a mission that set a non-zero offset moves, which is why the
+        -- change is called out in the changelog rather than slipped in.
+        local position = { x = zoneCenter.x + latDelta, y = zoneCenter.y, z = zoneCenter.z + lonDelta }
         -- The draw answers the mission-table shape — `{ x, y }`, easting in `y`, no `z` — because
         -- eleven of its eighteen call sites hand it straight to `veaf.placePointOnLand`, which takes
         -- exactly that, and four more read it as a vec2 themselves (`land.getSurfaceType`, the two
@@ -1039,10 +1047,12 @@ function AirWaveZone:deployWaves()
         if not groupData then
           veaf.loggers.get(veafAirWaves.Id):error("group [%s] does not exist in the mission!", veaf.p(groupName))
         else
+          -- Latitude on the northing, longitude on the easting, both added — see the command branch
+          -- above for what this used to do and why it changed (FIX-WAVE-OFFSET-AXES).
           local spawnSpot = {
-            x = zoneCenter.x - self.respawnDefaultOffset.lonDelta,
+            x = zoneCenter.x + self.respawnDefaultOffset.latDelta,
             y = zoneCenter.y,
-            z = zoneCenter.z + self.respawnDefaultOffset.latDelta,
+            z = zoneCenter.z + self.respawnDefaultOffset.lonDelta,
           }
           -- Try and set the spawn spot at the place the group has been set in the Mission Editor.
           -- Unfortunately this is sometimes not possible because DCS is not returning the group units for some reason.

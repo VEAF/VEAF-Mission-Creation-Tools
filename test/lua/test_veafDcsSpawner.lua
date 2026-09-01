@@ -1028,10 +1028,6 @@ TestVeafGroupSpawnChain = {}
 
 function TestVeafGroupSpawnChain:setUp()
   dcs_mocks.reset()
-  -- The spawned-name registry outlives a snapshot rebuild, which is right in a mission and wrong
-  -- between two tests: one clone taking `Convoy #2` would make the next test see it as taken and
-  -- assert against the leak rather than against the code.
-  veafMissionDb.spawnedNames = {}
   land.getHeight = function()
     return 0
   end

@@ -976,20 +976,16 @@ local function placeGroup(groupName)
 end
 
 function TestVeafCombatMissionSpawnChance:setUp()
+  dcs_mocks.reset()
   self._random = math.random
   math.random = seededRandom(20260831)
-  dcs_mocks.groupsAdded = {}
   veafMissionDb.groupsByName = {}
-  veafMissionDb.spawnedNames = {}
-  dcs_mocks.clearUnitsAndGroups()
 end
 
 function TestVeafCombatMissionSpawnChance:tearDown()
+  dcs_mocks.reset()
   math.random = self._random
-  dcs_mocks.groupsAdded = {}
   veafMissionDb.groupsByName = {}
-  veafMissionDb.spawnedNames = {}
-  dcs_mocks.clearUnitsAndGroups()
 end
 
 --- Build a mission with one element per description.
@@ -1128,10 +1124,8 @@ local function firstCloneNameOf(groupName)
 end
 
 function TestVeafCombatMissionMissingSpawnedGroup:setUp()
-  dcs_mocks.groupsAdded = {}
+  dcs_mocks.reset()
   veafMissionDb.groupsByName = {}
-  veafMissionDb.spawnedNames = {}
-  dcs_mocks.clearUnitsAndGroups()
   self._logger = veaf.loggers.get(veafCombatMission.Id)
   self._originalWarn = self._logger.warn
   self.warned = {}
@@ -1143,10 +1137,8 @@ end
 
 function TestVeafCombatMissionMissingSpawnedGroup:tearDown()
   self._logger.warn = self._originalWarn
-  dcs_mocks.groupsAdded = {}
+  dcs_mocks.reset()
   veafMissionDb.groupsByName = {}
-  veafMissionDb.spawnedNames = {}
-  dcs_mocks.clearUnitsAndGroups()
 end
 
 --- Build a one-element mission over one pre-placed group.

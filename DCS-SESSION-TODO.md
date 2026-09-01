@@ -785,3 +785,33 @@ avec le même genre d'élément. Déclencher chacune, regarder la carte F10.
 Accessoirement, ça répond à une question ouverte du lot : est-ce que ce défaut échouait **bruyamment**
 (un groupe visiblement nulle part) ou **silencieusement** (un groupe qui n'engageait jamais, mis sur le
 compte de l'IA) ? La deuxième réponse expliquerait pourquoi personne ne l'a signalé.
+
+---
+
+## DCS crée-t-il jamais un slot joueur *dynamique* du côté neutre ?
+
+Ouvert par `FIX-GETGROUPDATA-SKIPS-NEUTRALS` (2026-09-01), qui a trouvé le site en passant et l'a
+laissé plutôt que de coder à l'aveugle.
+
+Ce qui est établi sans DCS : `veafMissionDb.refreshDynamicSlots` balaie `{ RED, BLUE }` et c'est le
+seul balayage de coalition de l'arbre qui omette `NEUTRAL`. Les slots neutres **déclarés dans
+l'éditeur** sont déjà couverts — ils passent par `indexEditorSlots`, qui lit la mission et ne filtre
+sur aucune coalition. Le trou ne peut donc concerner qu'un slot que DCS aurait créé lui-même.
+
+Ce qui n'est pas établi, et ne peut pas l'être hors du jeu : est-ce que le mécanisme de slots
+dynamiques produit un jour un slot neutre ? Si la réponse est non, le balayage est correct et il
+manque juste une phrase qui le dise. Si elle est oui, un joueur sur ce slot est invisible pour tout ce
+qui lit `getAllHumanRecords` — AirWaves, QRA, CSAR.
+
+**À faire** : ouvrir une mission où le côté neutre a des appareils, activer les slots dynamiques, et
+regarder si l'interface de choix de slot propose quoi que ce soit du côté neutre.
+
+- **Réponse « non »** : rien de neutre n'est proposé. Alors on écrit la raison à côté de la boucle et
+  le sujet est clos — pas de code.
+- **Réponse « oui »** : un slot neutre existe. Alors il y a **deux** lignes à corriger, pas une —
+  `veafMissionDb.lua:346` (la liste des coalitions) **et** `:357`, qui étiquette la coalition par
+  `coalitionId == RED and "red" or "blue"` et rangerait donc tout neutre dans le bleu. Un correctif
+  qui n'ajouterait que `NEUTRAL` à la boucle laisserait le second défaut en place.
+
+Utile même en cas de « non » : c'est la seule asymétrie de coalition qui reste dans l'arbre après ce
+lot, et savoir qu'elle est **voulue** évite qu'un prochain passage la « corrige » sans savoir.

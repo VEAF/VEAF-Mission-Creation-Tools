@@ -189,6 +189,12 @@ function veafMarkers.initialize()
   veaf.loggers.get(veafMarkers.Id):info("Initializing module")
 end
 
+-- Registered although `initialize()` does nothing but log: the generated `veaf-config.lua` already
+-- calls it on every mission, and a registry that omits it describes a framework that does not exist.
+-- The order is the infrastructure tier — the real start-up is the `world.addEventHandler` below,
+-- which runs at load whatever the initialisation order. See docs/agents/module-initialisation.md.
+veaf.registerModule(veafMarkers.Id, veafMarkers.initialize, { enable = true }, 4)
+
 --- Add event handler.
 world.addEventHandler(veafMarkers.eventHandler)
 

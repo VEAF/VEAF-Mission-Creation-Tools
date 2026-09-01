@@ -7,8 +7,25 @@
 -- ---------------------------------------------------------------------------
 dcs_mocks = {}
 dcs_mocks.currentTime = 0
+dcs_mocks.missionStart = 0 -- what timer.getTime0 answers
+--- Trigger zones visible to trigger.misc.getZone, keyed by name:
+--- { point = { x, y, z }, radius = <metres> }. Empty unless a suite calls dcs_mocks.addZone.
+dcs_mocks.zones = {}
 dcs_mocks.logs = {} -- captured log lines
 dcs_mocks.tasksSet = {} -- captured Controller:setTask calls, as { group = name, task = task }
+--- Captured Controller:pushTask calls, as { group = name, task = task }. Separate from tasksSet
+--- because the two are opposites: setTask replaces the queue, pushTask stacks on top of it, and the
+--- CAP watchdog's whole behaviour is which of the two it uses and how many times.
+dcs_mocks.tasksPushed = {}
+--- Captured Controller:popTask calls, as { group = name }. `resetTask` is captured here too, tagged
+--- `reset = true`: a test has to be able to tell "took back what it pushed" from "wiped the queue,
+--- route included", which is the difference ED's own documentation draws between the two.
+dcs_mocks.tasksPopped = {}
+--- Captured Controller:setOption calls, as { group = name, id = optionId, value = value }.
+dcs_mocks.optionsSet = {}
+dcs_mocks.eventHandlers = {} -- handlers passed to world.addEventHandler, in order
+dcs_mocks.staticsAdded = {} -- captured coalition.addStaticObject calls, as { countryId, object }
+dcs_mocks.groupsAdded = {} -- captured coalition.addGroup calls, as { countryId, categoryId, group }
 
 -- Registre des groupes, declare ICI et pas plus bas : `coalition.getGroups` le lit, et un local declare
 -- apres son usage laisse la fermeture capturer la globale — c'est-a-dire nil.
@@ -46,6 +63,12 @@ env = {
 -- ---------------------------------------------------------------------------
 -- timer
 -- ---------------------------------------------------------------------------
+--- Tasks handed to timer.scheduleFunction, keyed by the id it returned:
+--- { fn = <function>, args = <any>, time = <model time>, done = <boolean> }.
+--- Nothing runs on its own — see dcs_mocks.runScheduled.
+dcs_mocks.scheduledTasks = {}
+local _nextScheduleId = 0
+
 timer = {
   getTime = function()
     return dcs_mocks.currentTime
@@ -53,7 +76,22 @@ timer = {
   getAbsTime = function()
     return dcs_mocks.currentTime
   end,
-  scheduleFunction = function(fn, args, t) end,
+  --- Mission start, in absolute time. A spawn subtracts it from getAbsTime to know how much of a
+  --- group's editor start_time is left.
+  getTime0 = function()
+    return dcs_mocks.missionStart or 0
+  end,
+  --- Record a task and hand back an id. **It does not run**, and `setTime` does not run it
+  --- either: a suite that merely advances the clock must keep behaving as it did when this
+  --- was a no-op. Call dcs_mocks.runScheduled to make time actually pass for the scheduler.
+  scheduleFunction = function(fn, args, t)
+    _nextScheduleId = _nextScheduleId + 1
+    dcs_mocks.scheduledTasks[_nextScheduleId] = { fn = fn, args = args, time = t, done = false }
+    return _nextScheduleId
+  end,
+  removeFunction = function(id)
+    dcs_mocks.scheduledTasks[id] = nil
+  end,
   --- Test-only: move mission time forward. Not a DCS API — DCS has no setter — but anything
   --- with an expiry (a timed security elevation, a cooldown) needs a way to reach the far side
   --- of it without the suite actually waiting.
@@ -61,6 +99,45 @@ timer = {
     dcs_mocks.currentTime = t
   end,
 }
+
+--- Test-only: run every scheduled task that is due at `untilTime`, the way DCS does.
+---
+--- DCS calls `fn(args, time)` and re-arms the same id when the call returns a number, so a
+--- repeating task is one entry that keeps moving forward, not a new entry per repetition.
+--- The clock is moved to each task's own time before its call, so a task reading
+--- `timer.getTime()` sees what DCS would show it.
+---
+--- @param untilTime number model time to run up to (inclusive)
+--- @param maxPasses number|nil safety stop for a task that re-arms in the past (default 1000)
+--- @return number how many calls were made
+function dcs_mocks.runScheduled(untilTime, maxPasses)
+  local calls = 0
+  local passes = 0
+  local limit = maxPasses or 1000
+  while passes < limit do
+    passes = passes + 1
+    -- Pick the earliest due task, so tasks fire in time order rather than id order.
+    local dueId, due = nil, nil
+    for id, task in pairs(dcs_mocks.scheduledTasks) do
+      if task.time <= untilTime and (due == nil or task.time < due.time or (task.time == due.time and id < dueId)) then
+        dueId, due = id, task
+      end
+    end
+    if not dueId then
+      break
+    end
+    dcs_mocks.currentTime = due.time
+    dcs_mocks.scheduledTasks[dueId] = nil
+    calls = calls + 1
+    local nextTime = due.fn(due.args, due.time)
+    if type(nextTime) == "number" then
+      due.time = nextTime
+      dcs_mocks.scheduledTasks[dueId] = due
+    end
+  end
+  dcs_mocks.currentTime = untilTime
+  return calls
+end
 
 -- ---------------------------------------------------------------------------
 -- trigger
@@ -124,8 +201,10 @@ trigger = {
     getUserFlag = function(flag)
       return 0
     end,
+    --- Answers a zone registered with dcs_mocks.addZone, nil otherwise — which is what an unknown
+    --- zone name gives in DCS, and what every suite saw before zones could be registered at all.
     getZone = function(name)
-      return nil
+      return dcs_mocks.zones[name]
     end,
   },
   smokeColor = {
@@ -173,8 +252,21 @@ world = {
     S_EVENT_LANDING_AFTER_EJECTION = 30,
     S_EVENT_MAX = 31,
   },
-  addEventHandler = function(handler) end,
-  removeEventHandler = function(handler) end,
+  -- Recorded rather than discarded. DCS does not deduplicate handlers, so registering twice means
+  -- every event is delivered twice — the defect fixed in 6.17.0 for VEAF's own handler (#824). A
+  -- no-op stub here cannot tell a script that registers once from one that registers on every call,
+  -- which is exactly the question FIX-CSAR-INIT-GUARD had to ask.
+  addEventHandler = function(handler)
+    table.insert(dcs_mocks.eventHandlers, handler)
+  end,
+  removeEventHandler = function(handler)
+    for index, registered in ipairs(dcs_mocks.eventHandlers) do
+      if registered == handler then
+        table.remove(dcs_mocks.eventHandlers, index)
+        return
+      end
+    end
+  end,
   getAirbases = function(coalition_id)
     return {}
   end,
@@ -222,6 +314,9 @@ AI = {
         FLARE_USING = 4,
         SILENCE = 7,
         ECM_USING = 13,
+        -- The option the CAP watchdog toggles: nil here made `setOption(nil, …)` silently do nothing
+        -- in tests, so no suite could tell "air-to-air allowed" from "air-to-air prohibited".
+        PROHIBIT_AA = 14,
         MISSILE_ATTACK = 18,
       },
       val = {
@@ -275,7 +370,17 @@ coalition = {
   getPlayers = function(side)
     return {}
   end,
-  addGroup = function(...) end,
+  --- Records what was submitted, for the same reason addStaticObject does.
+  --- Entries are `{ countryId, categoryId, group }`. Cleared by dcs_mocks.reset().
+  addGroup = function(countryId, categoryId, group)
+    table.insert(dcs_mocks.groupsAdded, { countryId = countryId, categoryId = categoryId, group = group })
+  end,
+  --- Records what was submitted, rather than discarding it: what a spawner hands DCS *is* the
+  --- behaviour under test, and asserting against a no-op stub asserts nothing.
+  --- Entries are `{ countryId = <id>, object = <the table submitted> }`. Cleared by dcs_mocks.reset().
+  addStaticObject = function(countryId, object)
+    table.insert(dcs_mocks.staticsAdded, { countryId = countryId, object = object })
+  end,
   getCountryCoalition = function(countryId)
     -- Russia (0) → RED, USA (2) → BLUE
     if countryId == 0 then
@@ -433,141 +538,22 @@ Sim = {
 }
 
 -- ---------------------------------------------------------------------------
--- mist (minimal stub — only the parts used by veaf.lua core)
--- ---------------------------------------------------------------------------
-local function _deepCopy(orig, seen)
-  seen = seen or {}
-  local orig_type = type(orig)
-  local copy
-  if orig_type == "table" then
-    if seen[orig] then
-      return seen[orig]
-    end
-    copy = {}
-    seen[orig] = copy
-    for k, v in pairs(orig) do
-      copy[_deepCopy(k, seen)] = _deepCopy(v, seen)
-    end
-    setmetatable(copy, _deepCopy(getmetatable(orig), seen))
-  else
-    copy = orig
-  end
-  return copy
-end
-
-mist = {
-  scheduleFunction = function(fn, args, t) end,
-  removeFunction = function(fn) end,
-  addEventHandler = function(handler)
-    return handler
-  end,
-  removeEventHandler = function(handler) end,
-  dynAddStatic = function(template) end,
-  respawnGroup = function(name, reset) end,
-  DBs = {
-    MEgroupsByName = {},
-    units = {},
-    unitsByName = {},
-    humansByName = {},
-    groupsByName = {},
-  },
-  getGroupRoute = function(groupName)
-    return nil
-  end,
-  -- A unit's heading in RADIANS, which is what the real one returns — callers wrap it in
-  -- `mist.utils.toDegree`. The second argument asks for true rather than magnetic north; the mock records
-  -- it so a test can assert which one the caller wanted, since both look identical in the result.
-  getHeading = function(unit, rawHeading)
-    mist._lastHeadingWasTrue = rawHeading == true
-    return math.pi / 2
-  end,
-  vec = {
-    mag = function(v)
-      local x = v.x or 0
-      local y = v.y or 0
-      local z = v.z or 0
-      return math.sqrt(x * x + y * y + z * z)
-    end,
-    dp = function(v1, v2)
-      return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0)
-    end,
-    add = function(v1, v2)
-      return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) }
-    end,
-    scalarMult = function(v, s)
-      return { x = (v.x or 0) * s, y = (v.y or 0) * s, z = (v.z or 0) * s }
-    end,
-  },
-  utils = {
-    deepCopy = _deepCopy,
-    round = function(n, dec)
-      if dec then
-        local factor = 10 ^ dec
-        return math.floor(n * factor + 0.5) / factor
-      else
-        return math.floor(n + 0.5)
-      end
-    end,
-    metersToFeet = function(m)
-      return m * 3.28084
-    end,
-    feetToMeters = function(ft)
-      return ft / 3.28084
-    end,
-    NMToMeters = function(nm)
-      return nm * 1852
-    end,
-    metersToNM = function(m)
-      return m / 1852
-    end,
-    mpsToKnots = function(mps)
-      return mps * 1.94384
-    end,
-    -- Centre of a trigger zone as a vec3. The real MiST reads the mission's zone table; a test
-    -- registers its zone in `veaf.triggerZones` and overrides this when the position matters.
-    zoneToVec3 = function(zoneName)
-      local zone = veaf.triggerZones and veaf.triggerZones[zoneName]
-      if not zone then
-        return nil
-      end
-      return { x = zone.x or 0, y = 0, z = zone.y or 0 }
-    end,
-    get2DDist = function(v1, v2)
-      local dx = (v1.x or 0) - (v2.x or 0)
-      local dz = (v1.z or 0) - (v2.z or 0)
-      return math.sqrt(dx * dx + dz * dz)
-    end,
-    toDegree = function(rad)
-      return rad * 180 / math.pi
-    end,
-    -- A vec3 flattened to the map plane. `y` is the EASTING here, not an altitude: this is the mission-table
-    -- convention, not the runtime one — see docs/agents/dcs-coordinates.md, which exists because mixing the
-    -- two raises no error and only moves things.
-    makeVec2 = function(v)
-      if v.z then
-        return { x = v.x or 0, y = v.z }
-      end
-      return { x = v.x or 0, y = v.y or 0 }
-    end,
-    toRadian = function(deg)
-      return deg * math.pi / 180
-    end,
-    converter = function(from, to, value)
-      if from == "hpa" and to == "inhg" then
-        return value * 0.02953
-      end
-      return value
-    end,
-  },
-}
-
--- ---------------------------------------------------------------------------
 -- Object helpers
 -- ---------------------------------------------------------------------------
 -- Defaults to UNIT; a test that needs a static or a piece of cargo sets `_category` on its fake,
 -- which is how combat-zone tests tell a static object from a vehicle.
 Object.getCategory = function(obj)
   return (obj and obj._category) or Object.Category.UNIT
+end
+
+--- The position DCS reports for an object, in its `{ p = vec3, x/y/z = orientation }` form.
+--- A fake sets `_point`; anything else has no position, which is what the register treats as
+--- "cannot be placed" rather than as an error.
+Object.getPosition = function(obj)
+  if obj and obj._point then
+    return { p = obj._point }
+  end
+  return nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -590,18 +576,57 @@ end
 StaticObject.destroy = function(obj) end
 Group.destroy = function(obj) end
 
--- Additional mist stubs needed by veafSpawn sub-modules
-mist.getRandPointInCircle = function(spot, r)
-  return { x = spot.x or 0, y = spot.y or 0, z = spot.z or 0 }
+-- ---------------------------------------------------------------------------
+-- Deterministic randomness
+-- ---------------------------------------------------------------------------
+-- `veaf.getRandomPointInCircle` is VEAF's own code since DROP-MIST ticket 06, so the draw actually
+-- runs in tests instead of being answered by a stub that handed back the centre and ignored the
+-- radius. Rather than stubbing our own function — which would put the tests back to asserting a mock —
+-- the randomness underneath it is made deterministic: `math.random()` answers 0, so the drawn angle is
+-- 0 and the drawn distance is `radius * sqrt(0)` = 0, which lands exactly on the centre. That is what
+-- the MiST stub used to return, so suites that never cared about the draw keep seeing what they saw.
+--
+-- A suite that *does* care drives it with dcs_mocks.setRandomSequence.
+local _realRandom = math.random
+dcs_mocks.randomSequence = nil
+dcs_mocks.randomIndex = 0
+
+--- Feed the next draws. Each entry is a number in [0, 1); the sequence repeats once exhausted.
+--- Call with nil to go back to the constant 0.
+function dcs_mocks.setRandomSequence(values)
+  dcs_mocks.randomSequence = values
+  dcs_mocks.randomIndex = 0
 end
-mist.getNextUnitId = function()
-  return 999
+
+--- The unit draw the mocks answer: the next value of the sequence, or 0.
+local function nextUnitDraw()
+  local sequence = dcs_mocks.randomSequence
+  if not sequence or #sequence == 0 then
+    return 0
+  end
+  dcs_mocks.randomIndex = (dcs_mocks.randomIndex % #sequence) + 1
+  return sequence[dcs_mocks.randomIndex]
 end
-mist.teleportToPoint = function(vars)
-  return nil
+
+local _deterministicRandom = function(a, b)
+  local draw = nextUnitDraw()
+  if a == nil then
+    return draw
+  end
+  local low, high = 1, a
+  if b ~= nil then
+    low, high = a, b
+  end
+  -- Mirror math.random(m, n): an integer in [low, high].
+  return low + math.floor(draw * (high - low + 1))
 end
-mist.dynAdd = function(template) end
-mist.goRoute = function(group, route) end
+math.random = _deterministicRandom
+
+--- Restore Lua's own generator, for a test that genuinely needs unpredictability.
+--- Undone by dcs_mocks.reset(), so it cannot leak into the next suite.
+function dcs_mocks.useRealRandom()
+  math.random = _realRandom
+end
 
 -- ---------------------------------------------------------------------------
 -- world.weather  (used by veafWeather module)
@@ -633,15 +658,26 @@ function dcs_mocks.advanceTime(seconds)
   dcs_mocks.currentTime = dcs_mocks.currentTime + seconds
 end
 
---- Reset the mock clock, log capture, and unit/group registries.
+--- Reset the mock clock, log capture, unit/group registries, and the VEAF runtime state that a
+--- previous test would otherwise leak into this one (see dcs_mocks.resetVeafRuntimeState).
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
+  dcs_mocks.scheduledTasks = {}
+  dcs_mocks.zones = {}
   dcs_mocks.logs = {}
   dcs_mocks.tasksSet = {}
+  dcs_mocks.tasksPushed = {}
+  dcs_mocks.tasksPopped = {}
+  dcs_mocks.optionsSet = {}
+  dcs_mocks.eventHandlers = {}
+  dcs_mocks.staticsAdded = {}
+  dcs_mocks.groupsAdded = {}
   dcs_mocks.messages = {}
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.cockpitArguments = {}
   dcs_mocks.exportAvailable = true
+  dcs_mocks.setRandomSequence(nil)
+  math.random = _deterministicRandom
   dcs_mocks.clearUnitsAndGroups()
   for _, manager in ipairs({ CTLDZoneManager, CTLDBeaconManager, CTLDJTACManager }) do
     if manager then
@@ -652,6 +688,49 @@ function dcs_mocks.reset()
     CTLDConfig._instance.isLoaded = true
     -- Back to CTLD's shipped default, or a test that switches sling loading off leaks into the next one.
     CTLDConfig._instance.settings = { enableHoverSlingload = true }
+  end
+  dcs_mocks.resetVeafRuntimeState()
+end
+
+--- Clear the VEAF registries that the code under test fills as a side effect of running.
+---
+--- These are **runtime accumulations**, not configuration: every one of them is an empty table when
+--- its module loads, and only the code under test ever puts anything in it. Nothing a suite would
+--- deliberately arrange lives here, so restoring the load-time empty table between tests can only
+--- remove what a previous test left behind.
+---
+--- Deliberately **not** here — clearing these would destroy something a suite means to keep:
+---   * `veafSpawn.commandHandlers` is filled at module load by every `registerCommandHandler` call.
+---     Emptying it centrally leaves the dispatcher with no commands at all, which is what
+---     `TestSecrev2ShowMfd` reads to find the `afac` and `cap` handlers.
+---   * `veaf.ImportantUnitsByGroupPattern` ships **non-empty**, and one suite asserts the shipped
+---     patterns only name unit types the generated database knows. `{}` is not its default.
+---   * `veafSkynet.structure` / `declaredSpawns` / `iadsSamUnitsTypes` / `iadsEwrUnitsTypes`,
+---     `veafCarrierOperations.carriers`, `veafAssets.assets` and `veafSecurity.groupElevations` are
+---     arranged by the suites that use them — an empty type table or an empty carrier list is the
+---     case under test, not leftovers. See the CHORE-MOCK-RESET-LEAKS table for the reasoning.
+---
+--- Each module is guarded: a suite loads only what it needs, so most of these are nil in most files.
+function dcs_mocks.resetVeafRuntimeState()
+  if veafMissionDb then
+    -- The spawned-name registry outlives a snapshot rebuild, which is right in a mission and wrong
+    -- between two tests: a leftover name makes the clone-name uniquifier append a ` #2`, and the
+    -- next test's lookup then misses for a reason that has nothing to do with what it asserts.
+    veafMissionDb.spawnedNames = {}
+    -- The player roster, rebuilt by veafMissionDb.initialize() from the mission. A test that
+    -- registers a pilot must not leave him sitting in the next test's slot.
+    veafMissionDb.humansByName = {}
+  end
+  if veafSpawn then
+    -- The other half of the clone-name mechanism: the per-template counter behind ` #0001`.
+    -- Left alone, the second test to spawn from the same template gets ` #0002`.
+    veafSpawn.spawnedNamesIndex = {}
+    -- Convoys are registered here when spawned and removed when they die; a convoy from a previous
+    -- test is one more candidate for "the closest convoy" and one more group for the watchdog.
+    veafSpawn.spawnedConvoys = {}
+    -- A plain running total of everything spawned since the module loaded. Nothing puts it back, so
+    -- any test asserting on it holds only while it runs before every spawn in the file.
+    veafSpawn.spawnedUnitsCounter = 0
   end
 end
 
@@ -667,6 +746,16 @@ local _unit_registry = {} -- name → mock unit table
 -- @param data  Table with unit attributes (coalition, point, …).
 --              Attributes like isExist/inAir must be functions: { isExist = function() return true end }.
 --              Methods not explicitly provided default to sensible stubs.
+--- Register a trigger zone so trigger.misc.getZone(name) returns it.
+---
+--- @param name string zone name
+--- @param x number northing of its centre
+--- @param z number easting of its centre
+--- @param radius number|nil radius in metres, default 500
+function dcs_mocks.addZone(name, x, z, radius)
+  dcs_mocks.zones[name] = { point = { x = x, y = 0, z = z }, radius = radius or 500 }
+end
+
 function dcs_mocks.addUnit(name, data)
   local u = data or {}
   u.name = name
@@ -676,9 +765,23 @@ function dcs_mocks.addUnit(name, data)
   u.inAir = u.inAir ~= nil and u.inAir or function()
     return false
   end
+  -- A unit is active unless the suite says otherwise: late activation is the exception, not the rule.
+  u.isActive = u.isActive or function()
+    return true
+  end
   u.getPoint = u.getPoint or function()
     return { x = 0, y = 0, z = 0 }
   end
+  -- DCS's getPosition returns a full orientation plus the point. `x` is the unit's forward vector, and
+  -- it is read for real now that `veaf.getHeading` is VEAF's own code rather than a MiST stub that
+  -- answered a constant. `_heading` (radians) sets it; the default keeps the pi/2 the old stub returned,
+  -- so a suite that never cared about heading sees exactly what it saw before.
+  u.getPosition = u.getPosition
+    or function(self)
+      local target = self or u
+      local heading = target._heading or (math.pi / 2)
+      return { p = target:getPoint(), x = { x = math.cos(heading), y = 0, z = math.sin(heading) } }
+    end
   u.getCoalition = u.getCoalition or function()
     return coalition.side.BLUE
   end
@@ -778,7 +881,7 @@ Controller = {
 -- ctld  (minimal stub — only the API surface used by veafSpawn sub-modules)
 --
 -- Mixed v1 / v2 on purpose, for the length of the CTLD 2 migration: the v1 globals
--- below are still what veafGrass / veafSpawnGround / veafSpawnEffects poke, and they
+-- below are still what veafGrass / veafSpawnGround / veafSpawnObjects poke, and they
 -- go when FEAT-CTLD2-INTEGRATION ticket 05 ports those bridges to the v2 managers.
 -- `utils.log` and `initialize` are the v2 surface veaf.lua drives today.
 -- ---------------------------------------------------------------------------
@@ -979,13 +1082,6 @@ veafRadio = {
   USAGE_ForUnit = 2,
 }
 
--- ---------------------------------------------------------------------------
--- mist.tostringLL  (used by infoOnAllConvoys with non-empty convoy data)
--- ---------------------------------------------------------------------------
-mist.tostringLL = function(lat, lon, acc)
-  return "0N 0E"
-end
-
 -- Update addGroup to include controller and category defaults
 local _original_addGroup = dcs_mocks.addGroup
 function dcs_mocks.addGroup(name, data)
@@ -994,7 +1090,24 @@ function dcs_mocks.addGroup(name, data)
   if not g.getController then
     local _ctrl = {
       setCommand = function() end,
-      pushTask = function() end,
+      -- Recorded rather than dropped: the CAP watchdog says what it decided only through the tasks it
+      -- pushes and the options it sets, so a test that cannot read them can only test the predicate
+      -- and never the wiring.
+      pushTask = function(_self, task)
+        table.insert(dcs_mocks.tasksPushed, { group = name, task = task })
+      end,
+      popTask = function()
+        table.insert(dcs_mocks.tasksPopped, { group = name })
+      end,
+      resetTask = function()
+        table.insert(dcs_mocks.tasksPopped, { group = name, reset = true })
+      end,
+      hasTask = function()
+        return #dcs_mocks.tasksPushed > #dcs_mocks.tasksPopped
+      end,
+      setOption = function(_self, optionId, value)
+        table.insert(dcs_mocks.optionsSet, { group = name, id = optionId, value = value })
+      end,
       -- Recorded rather than dropped: replaceMission pushes a whole Mission task through setTask,
       -- and asserting what it contains is the only way to see an escort task being repaired.
       setTask = function(_self, task)
@@ -1028,6 +1141,13 @@ end
 -- the one DCS wants for an Escort task, and what a mission file stores does not correspond to it.
 Group.getID = function(grp)
   return grp:getID()
+end
+
+-- Unit.getPosition(unit) — the static form, which is what `veaf.getAveragePosition` calls. It was
+-- missing, so any suite reaching that function died on "attempt to call field 'getPosition'" rather
+-- than on whatever it was testing. Delegates like the two above, so addUnit's stub is what answers.
+Unit.getPosition = function(unit)
+  return unit:getPosition()
 end
 
 -- ---------------------------------------------------------------------------

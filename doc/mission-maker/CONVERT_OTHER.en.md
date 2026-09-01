@@ -90,7 +90,7 @@ See [FOOTHOLD](FOOTHOLD.en.md) for the full per-version procedure.
      comment or glob pattern) — the **build strips them** (trigrule + `trig`
      entries + `mapResource` resources) so they do not double-load alongside the
      re-injected `custom_scripts`;
-   - a `modules:` block seeded with the **`minimal`** tier (infra + MIST +
+   - a `modules:` block seeded with the **`minimal`** tier (infra +
      RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commented): a working VEAF
      baseline out of the box; enable more as needed.
 4. **Emits** a Markdown report summarising the actions and review items.
@@ -152,10 +152,41 @@ In update mode `convert-other`:
   stable across versions (e.g. `Moose_<new-date>.lua` → `Moose.lua`);
 - **preserves your tuned `mission.yaml`** — it is never regenerated, so your
   modules, `config_override`, and `custom_scripts` edits survive;
-- **reports the scripts added, updated, and removed upstream** in the conversion
-  report, so you can adjust `custom_scripts:` (and `strip_native_triggers:`) for
-  any new or vanished script. A script removed upstream is reported but left on
-  disk — drop it from `custom_scripts:` yourself if it is no longer needed.
+- **deletes the scripts the new release no longer ships**, provided they came from
+  upstream in the first place (see below). Their `custom_scripts:` entry stays, so
+  `validate` fails until you remove it — deliberately: without that, the build
+  embedded the previous release's copy;
+- **reconciles `delay_seconds:` with the upstream staging** — see
+  [Load staging](#load-staging);
+- **reports everything it did**: scripts added, updated, deleted, and every delay
+  written.
 
-Review the report, reconcile `custom_scripts:` / `strip_native_triggers:` with
-any added/removed scripts, then rebuild and test in DCS.
+Review the report, add any new script to `custom_scripts:` (where it belongs in the
+load order is a human decision), then rebuild and test in DCS.
+
+### What is yours and what is upstream's {#ownership}
+
+A script the new release no longer ships is not necessarily stale: it may be one **you**
+wrote and declared in `custom_scripts:`. From the folder, the two look identical.
+
+So the conversion writes `convert-other-state.yaml` in the mission folder: the list of
+scripts the upstream release loads. **Commit it with the mission.** On the next update, a
+script missing from the new release *and* present in that list is an upstream script that
+was dropped (deleted); anything else is yours (left strictly alone).
+
+A folder converted before that file existed has no such list: nothing is deleted there,
+everything is reported, exactly as before.
+
+### Load staging {#load-staging}
+
+Third-party missions often stagger their script loading (Foothold loads AIEN 12 s after
+the others). That staging is upstream's decision rather than yours, so `--update` writes
+the upstream `delay_seconds:` into your `mission.yaml`, and the report names every line it
+wrote.
+
+Only those lines change — comments, ordering, quoting and line endings elsewhere in the
+file are left exactly as they were. A script upstream knows nothing about keeps whatever
+delay you gave it.
+
+> If you deliberately wanted a delay other than upstream's, it will be rewritten on the
+> next update. The report will tell you.

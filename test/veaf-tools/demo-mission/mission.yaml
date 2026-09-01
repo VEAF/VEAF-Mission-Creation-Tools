@@ -261,7 +261,6 @@ modules:
   CTLD: false
   AIEN: false
   CSAR: false
-  HERCULES: false
   SKYNET:
     enabled: true
     include_red_in_radio: false

@@ -67,7 +67,9 @@ modules:
   EVENTS:
   MARKERS:
   COMMANDS:
-  MIST:                     # MiST community lib — mandatory (VEAF dependency), always injected
+  MIST:                     # MiST community lib — opt-in since DROP-MIST; a bare key means OFF.
+                            # The build turns it on by itself when one of the mission's own
+                            # src/scripts/*.lua calls `mist.`
   # ── Core ─────────────────────────────────────────────────────────────────
   SECURITY: true
   RADIO: true               # the VEAF F10 radio menu
@@ -187,12 +189,11 @@ modules:
   #           - groups: su27-2ship
   #             delay: 0
   # ── Community scripts (off by default — enable what your mission uses) ─────
-  # (MiST is mandatory and lives in the Infrastructure block above.)
+  # (MiST is opt-in and lives among the community scripts above.)
   STTS: false
   CTLD: false               # configured in ctld-config.yaml, beside this file (edit it with ctld-tools)
   AIEN: false
   CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }
-  HERCULES: false
   SKYNET: false             # extended: SKYNET -> { enabled: true, include_red_in_radio: false, ... }
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 

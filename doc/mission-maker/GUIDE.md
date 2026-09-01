@@ -59,6 +59,26 @@ Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua 
 
 ## Installation et mises à jour
 
+### PowerShell ou invite de commandes ? {#powershell-vs-cmd}
+
+Sous Windows, le terminal que vous obtenez par défaut — celui du menu contextuel **Ouvrir dans le terminal**, celui intégré à VS Code — est **PowerShell**. Tous les exemples de cette documentation sont écrits pour lui.
+
+**Un exécutable posé dans le dossier courant s'appelle `.\veaf-tools.exe`, jamais `veaf-tools.exe`.** PowerShell ne cherche **pas** dans le dossier courant, et c'est volontaire : c'est une protection contre le détournement de commande — déposer un faux `git.exe` dans un dossier pour qu'il s'exécute à la place du vrai. Sans le `.\`, vous obtenez :
+
+> veaf-tools.exe is not recognized as a name of a cmdlet, function, script file, or executable program.
+
+(le libellé exact dépend de la version et de la langue de PowerShell). L'erreur nomme le fichier que vous avez sous les yeux, dans le dossier où vous êtes : elle se lit « l'outil est cassé » alors qu'il ne manque que deux caractères.
+
+L'invite de commandes (`cmd.exe`), elle, cherche dans le dossier courant et accepte les deux formes. **`.\veaf-tools.exe` marche donc dans les deux shells** : c'est la forme portable, et la seule que cette documentation écrit.
+
+Les trois écarts entre les deux shells qui mordent vraiment :
+
+| | PowerShell | `cmd.exe` |
+|---|---|---|
+| Lancer un exécutable du dossier courant | `.\veaf-tools.exe` (obligatoire) | les deux formes |
+| Définir une variable d'environnement | `$env:VEAF_LANG = "fr"` | `set VEAF_LANG=fr` |
+| Couper une commande sur plusieurs lignes | accent grave `` ` `` en fin de ligne | accent circonflexe `^` |
+
 ### Première installation
 
 Téléchargez `veaf-tools-updater.exe` depuis la [dernière release GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) et placez-le dans le dossier de votre projet de mission.
@@ -111,20 +131,20 @@ scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Chemin local du dép�
 Toutes les clés sont optionnelles. Pour initialiser le fichier depuis la CLI :
 
 ```powershell
-veaf-tools.exe user-config --init
+.\veaf-tools.exe user-config --init
 ```
 
 Ou inspecter/modifier les valeurs de manière interactive :
 
 ```powershell
 # Afficher la configuration effective et sa source
-veaf-tools.exe user-config
+.\veaf-tools.exe user-config
 
 # Définir une valeur
-veaf-tools.exe user-config --set lang=fr
+.\veaf-tools.exe user-config --set lang=fr
 
 # Supprimer une valeur (revenir au défaut)
-veaf-tools.exe user-config --unset lang
+.\veaf-tools.exe user-config --unset lang
 ```
 
 **Ordre de détection de la langue** (le premier qui correspond gagne) :
@@ -152,8 +172,8 @@ cd my-mission
 
 1. Créez un dossier pour votre projet de mission (c'est votre dépôt Git)
 2. Copiez votre fichier `.miz` existant dedans
-3. Exécutez `veaf-tools-updater.exe` pour récupérer tous les scripts VEAF
-4. Extrayez votre mission : `veaf-tools.exe mission extract ma-mission.miz`
+3. Exécutez `.\veaf-tools-updater.exe` pour récupérer tous les scripts VEAF
+4. Extrayez votre mission : `.\veaf-tools.exe mission extract ma-mission.miz`
 5. Configurez les modules dans `mission.yaml` et éventuellement `src/scripts/mission-script.lua`
 
 Structure de projet recommandée :
@@ -238,10 +258,16 @@ flowchart TD
 > Pour donner à vos pilotes des appareils équipés, configurez-les **une fois** dans une mission (dans l'éditeur DCS, avec l'emport et la livrée que vous voulez), puis régénérez le fichier depuis cette mission :
 >
 > ```powershell
-> veaf-tools.exe content extract-aircraft-groups ma-mission.miz --kind dynamic-template
+> .\veaf-tools.exe content extract-aircraft-groups ma-mission.miz --kind dynamic-template
 > ```
 >
 > Cela réécrit `src/dynamic-slot-templates.yaml` avec vos modèles. Le prochain build les injecte, et les slots dynamiques proposent des appareils prêts à décoller.
+>
+> **Ajoutez `--merge` pour enrichir le catalogue au lieu de le repartir de zéro.** Sans cette option le fichier est régénéré à partir de la seule mission, donc les modèles d'une deuxième mission — ou un modèle que vous avez retouché à la main — sont perdus. Avec elle, la mission gagne sur un groupe de même nom et **chaque remplacement est nommé** dans le compte rendu, tandis que tout ce que la mission ne porte pas est conservé :
+>
+> ```powershell
+> .\veaf-tools.exe content extract-aircraft-groups deuxieme-mission.miz --kind dynamic-template --merge
+> ```
 
 ---
 
@@ -288,6 +314,42 @@ modules:
 -- Note : rien à écrire ici pour CTLD — il se configure dans ctld-config.yaml
 -- (voir la section Intégration CTLD et CSAR)
 ```
+
+### MiST : injecté seulement si vous en avez besoin {#mist-injection}
+
+MiST était chargé dans **toutes** les missions, parce que les scripts VEAF s'en servaient partout.
+Ils ne l'appellent plus du tout, et aucun script communautaire livré ici non plus. Une mission qui
+n'en a pas besoin n'emporte donc plus ses **336 Ko**.
+
+Vous n'avez rien à faire : au build, VEAF lit vos propres scripts dans `src/scripts/` et, s'il en
+trouve un qui appelle `mist.`, il réinjecte MiST en vous disant lequel :
+
+```
+MiST n'est plus injecté par défaut, mais 'src/scripts/HoundElint.lua' l'utilise :
+il est injecté pour cette mission.
+```
+
+C'est le cas courant : un script tiers comme HoundElint appelle MiST, la détection le voit, tout
+continue de fonctionner. La conversion depuis la v5 fait la même lecture, donc une mission convertie
+garde MiST si et seulement si elle s'en sert.
+
+Ce que la détection **ne peut pas** voir : un script qui en charge un autre, ou qui atteint MiST par
+`_G["mist"]`. Dans ce cas seulement, demandez-le explicitement :
+
+```yaml
+modules:
+  MIST: true
+```
+
+Un `MIST: false` ne l'emporte pas sur la détection : si l'un de vos scripts appelle MiST, il est
+injecté quand même. Honorer le drapeau reviendrait à casser la mission en vol pour respecter une
+ligne de configuration.
+
+> **Si votre `mission.yaml` contient déjà une ligne `MIST:` sans valeur**, elle voulait dire
+> « module obligatoire, toujours actif » ; elle veut maintenant dire « pas demandé ». C'est le cas
+> de toutes les missions créées jusqu'ici, puisque le modèle livré contenait cette ligne. Vous
+> n'avez rien à changer : votre mission s'allège de 336 Ko, et si l'un de vos scripts appelle MiST,
+> la détection le réinjecte.
 
 ### Niveaux de sécurité {#security-tiers}
 
@@ -487,10 +549,10 @@ Référence complète : [Référence CLI](../CLI_REFERENCE.md)
 
 Dans un terminal interactif, `veaf-tools.exe` ouvre un assistant guidé (TUI) plutôt que d'échouer sur une option manquante :
 
-- `veaf-tools.exe` (sans argument) → menu de sélection de commande, puis questions.
-- `veaf-tools.exe mission prepare` → l'assistant demande le dossier cible **et** le template de modules.
-- `veaf-tools.exe mission prepare c:\ma-mission` → le dossier est déjà fourni, l'assistant ne demande que le template.
-- `--tui` ajouté à n'importe quelle commande → ouvre l'assistant même si rien ne manque (ex. `veaf-tools.exe mission build --tui`).
+- `.\veaf-tools.exe` (sans argument) → menu de sélection de commande, puis questions.
+- `.\veaf-tools.exe mission prepare` → l'assistant demande le dossier cible **et** le template de modules.
+- `.\veaf-tools.exe mission prepare c:\ma-mission` → le dossier est déjà fourni, l'assistant ne demande que le template.
+- `--tui` ajouté à n'importe quelle commande → ouvre l'assistant même si rien ne manque (ex. `.\veaf-tools.exe mission build --tui`).
 
 Les options déjà passées sur la ligne de commande sont pré-remplies ; les options inconnues (ex. `--verbose`) sont conservées telles quelles. Hors terminal interactif (CI, sortie redirigée), l'assistant ne se déclenche jamais : la commande s'exécute normalement.
 
@@ -502,7 +564,7 @@ Les options déjà passées sur la ligne de commande sont pré-remplies ; les op
 
 ```powershell
 # Construire la mission — le pipeline intégré exécute toutes les étapes activées automatiquement
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 La commande `build` lit `mission.yaml` et exécute chaque étape activée du pipeline (presets, waypoints, groupes d'aéronefs, météo) en une seule passe. Configurez les étapes actives sous la clé `pipeline:` dans `mission.yaml`.
@@ -514,13 +576,13 @@ Si vous devez exécuter une seule étape en isolation (ex : injecter la météo 
 
 ```powershell
 # Injecter les préréglages radio uniquement
-veaf-tools.exe content inject-presets ma-mission.miz --presets-file src/presets.yaml
+.\veaf-tools.exe content inject-presets ma-mission.miz --presets-file src/presets.yaml
 
 # Injecter les waypoints bullseye et de navigation uniquement
-veaf-tools.exe content inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
+.\veaf-tools.exe content inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
 
 # Créer des variantes météo/heure uniquement
-veaf-tools.exe content inject-weather ma-mission.miz --config-file versions.yaml
+.\veaf-tools.exe content inject-weather ma-mission.miz --config-file versions.yaml
 ```
 
 </details>
@@ -528,7 +590,7 @@ veaf-tools.exe content inject-weather ma-mission.miz --config-file versions.yaml
 Commitez le contenu de `src/` dans Git — pas le `.miz` construit. Utilisez `extract` une fois pour initialiser le dossier source depuis une mission existante :
 
 ```powershell
-veaf-tools.exe mission extract ma-mission.miz
+.\veaf-tools.exe mission extract ma-mission.miz
 ```
 
 ---
@@ -560,13 +622,13 @@ profiles:
 
 ```powershell
 # Build pour les tests (pas de météo, sécurité désactivée, journalisation détaillée)
-veaf-tools.exe mission build --profile TEST
+.\veaf-tools.exe mission build --profile TEST
 
 # Build pour le déploiement serveur
-veaf-tools.exe mission build --profile SERVER
+.\veaf-tools.exe mission build --profile SERVER
 
 # Build sans profil (config de base)
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 Les clés du profil **fusionnent en profondeur** sur la config de base : seules les clés que vous spécifiez sont surchargées, tout le reste reste tel que défini en haut de `mission.yaml`. Passer un nom de profil inconnu émet un avertissement et revient à la config de base.
@@ -606,15 +668,28 @@ local northQra = VeafQRA:new()
 
 ### Zone de combat
 
-```lua
-local strikeZone = VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")
-  :setFriendlyName("Strike Alpha")
-  :setBriefing("Colonne blindée avançant sur Senaki. Détruisez tous les véhicules blindés ; attendez-vous à de la DCA.")
-  :addZoneElement(VeafCombatZoneElement:new():setName("ARMOR"):setSpawnGroup("STRIKE-ALPHA-ARMOR"))
-  :addZoneElement(VeafCombatZoneElement:new():setName("AAA"):setSpawnGroup("STRIKE-ALPHA-AAA"))
-  :initialize()
+Une zone de combat se déclare dans `mission.yaml`. Son contenu **ne se liste pas ici** : la zone adopte tous les groupes situés à l'intérieur de la trigger zone DCS qu'elle nomme **et dont le nom commence par le nom de la zone** (la casse est ignorée). Vous tracez le cercle dans l'éditeur de mission, vous y placez les blindés et la DCA — nommés `ZONE-STRIKE-ALPHA-ARMOR`, `ZONE-STRIKE-ALPHA-AAA` — et la zone les détruit puis les fait réapparaître à l'activation. Un groupe posé dans le cercle mais nommé autrement est ignoré, en silence : voir [la règle du préfixe](scripts/veafCombatZone.md#zone-membership).
+
+```yaml
+modules:
+  COMBATZONE:
+    enabled: true
+    combat_zones:
+      - type: zone
+        zone_name: ZONE-STRIKE-ALPHA    # la trigger zone DCS où se trouvent les groupes
+        friendly_name: Strike Alpha     # libellé dans le menu F10
+        briefing: Colonne blindée avançant sur Senaki. Détruisez tous les véhicules blindés ; attendez-vous à de la DCA.
+        training: false
 ```
+
+La façon dont chaque groupe apparaît — sa dispersion, sa probabilité, son délai — s'écrit dans les **noms d'unités**, avec les tags `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` et `#alarm`. Voir [veafCombatZone](scripts/veafCombatZone.md) pour la liste complète des champs et pour ces tags.
+
+!!! note "Le Lua sert à ce que le YAML ne sait pas dire"
+    `VeafCombatZone:new():…:initialize()` reste l'API sous-jacente, et `mission.yaml` génère exactement ces appels — l'écrire à la main n'apporte donc rien pour une zone ordinaire. Servez-vous en pour ce qui n'a pas de clé YAML, dans `src/scripts/mission-script.lua`, une fois la zone déclarée :
+
+    ```lua
+    veafCombatZone.GetZone("ZONE-STRIKE-ALPHA"):setOnCompletedHook(myCallback)
+    ```
 
 ### Zone Air Waves
 
@@ -651,7 +726,9 @@ Tout le reste — distances, temporisations, caisses, groupes de troupes, zones,
 L'outil ne vient **pas** avec VEAF MCT. Il est publié avec CTLD : ouvrez les [releases de VEAF/CTLD](https://github.com/VEAF/CTLD/releases) et téléchargez le fichier `ctld-tools.exe` attaché à la release.
 
 !!! warning "Il n'apparaît pas en « Latest release »"
-    Tant que CTLD 2 n'a pas de version stable, **toutes** ses releases sont publiées en *pre-release* — la page d'accueil du dépôt n'en affiche donc aucune, et le lien « Releases » est le seul chemin. La plus récente est en haut de la liste.
+    Tant que CTLD 2 n'a pas de version stable, **toutes** ses releases sont publiées en *pre-release* — la page d'accueil du dépôt n'en affiche donc aucune, et le lien « Releases » est le seul chemin.
+
+    Ne vous fiez pas non plus au premier élément de la liste : l'entrée **« CTLD dev build »** n'est pas une release, mais la compilation du dernier commit fusionné, et elle repasse en tête à chaque reconstruction. Les vraies releases portent une étiquette `published-v…` — c'est parmi celles-là que vous choisissez, avec le critère ci-dessous.
 
 Prenez la release **qui correspond à la version de CTLD embarquée dans votre VEAF MCT** : l'outil et le moteur évoluent ensemble. Cette version est écrite en clair dans l'entête du script installé chez vous, `published/src/scripts/community/CTLD.lua` :
 
@@ -929,7 +1006,7 @@ modules:
     logLevel: debug   # surcharge le défaut global pour ce module uniquement
 ```
 
-`veaf-tools.exe mission build` régénère `veaf-config.lua` depuis `mission.yaml`. **N'éditez pas `veaf-config.lua` directement** : il est généré, donc toute modification disparaît au prochain build. Pour essayer un réglage sans reconstruire, éditez-le en sachant que le changement est jetable — puis reportez-le dans `mission.yaml` pour qu'il survive.
+`.\veaf-tools.exe mission build` régénère `veaf-config.lua` depuis `mission.yaml`. **N'éditez pas `veaf-config.lua` directement** : il est généré, donc toute modification disparaît au prochain build. Pour essayer un réglage sans reconstruire, éditez-le en sachant que le changement est jetable — puis reportez-le dans `mission.yaml` pour qu'il survive.
 
 ### Lire le journal
 

@@ -4,6 +4,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafSkynetIadsHelper.lua")
 
 -- ---------------------------------------------------------------------------
@@ -449,30 +454,30 @@ end
 TestVeafSkynetMonitorDynamicSpawn = {}
 
 function TestVeafSkynetMonitorDynamicSpawn:setUp()
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
 end
 
 function TestVeafSkynetMonitorDynamicSpawn:test_on_sets_handler()
   veafSkynet.monitorDynamicSpawn(true)
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetMonitorDynamicSpawn:test_on_idempotent()
   veafSkynet.monitorDynamicSpawn(true)
-  local first = veafSkynet.monitorDynamicSpawnHandlerId
+  local first = veafSkynet.monitorDynamicSpawnHandler
   veafSkynet.monitorDynamicSpawn(true)
-  luaunit.assertEquals(veafSkynet.monitorDynamicSpawnHandlerId, first)
+  luaunit.assertEquals(veafSkynet.monitorDynamicSpawnHandler, first)
 end
 
 function TestVeafSkynetMonitorDynamicSpawn:test_off_when_not_set_is_noop()
   veafSkynet.monitorDynamicSpawn(false)
-  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetMonitorDynamicSpawn:test_off_clears_handler()
   veafSkynet.monitorDynamicSpawn(true)
   veafSkynet.monitorDynamicSpawn(false)
-  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 -- ---------------------------------------------------------------------------
@@ -676,7 +681,7 @@ function TestVeafSkynetInitialize:setUp()
   veafSkynet.iadsSamUnitsTypes = {}
   veafSkynet.iadsEwrUnitsTypes = {}
   veafSkynet.CommandCentersPreinitialize = {}
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.loadAllAtInit = {
     [tostring(coalition.side.BLUE)] = true,
     [tostring(coalition.side.RED)] = true,
@@ -692,7 +697,7 @@ end
 
 function TestVeafSkynetInitialize:tearDown()
   veafSkynet.DynamicSpawn = false
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
 end
 
 function TestVeafSkynetInitialize:test_initialize_creates_blue_and_red_networks()
@@ -713,7 +718,7 @@ end
 function TestVeafSkynetInitialize:test_dynamic_spawn_true_sets_handler()
   veafSkynet.DynamicSpawn = true
   veafSkynet._initialize(false, false, false, false)
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 -------------------------------------------------------------------------------------------------
@@ -803,16 +808,16 @@ end
 --     `skynet false` joined the IADS anyway as soon as dynamic integration was on.
 -------------------------------------------------------------------------------------------------
 
---- Capture mist.scheduleFunction calls so a deferred call can be inspected and fired on demand.
+--- Capture veaf.scheduleFunction calls so a deferred call can be inspected and fired on demand.
 local function _captureSchedule()
   local calls = {}
-  local previous = mist.scheduleFunction
-  mist.scheduleFunction = function(fn, args, t)
+  local previous = veaf.scheduleFunction
+  veaf.scheduleFunction = function(fn, args, t)
     table.insert(calls, { fn = fn, args = args, time = t })
     return #calls
   end
   return calls, function()
-    mist.scheduleFunction = previous
+    veaf.scheduleFunction = previous
   end
 end
 
@@ -832,7 +837,7 @@ TestVeafSkynetDynamicSpawnScope = {}
 
 function TestVeafSkynetDynamicSpawnScope:setUp()
   veafSkynet.structure = {}
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.DynamicSpawn = false
   veafSkynet.declaredSpawns = {}
   veafSkynet.iadsSamUnitsTypes = {}
@@ -849,7 +854,7 @@ end
 
 function TestVeafSkynetDynamicSpawnScope:tearDown()
   veafSkynet.DynamicSpawn = false
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.initialized = false
 end
 
@@ -863,14 +868,14 @@ end
 function TestVeafSkynetDynamicSpawnScope:test_network_created_without_the_flag_does_not_integrate()
   veafSkynet._initialize(false, false, false, false)
   luaunit.assertFalse(veafSkynet.structure["blue iads"].dynamicSpawn)
-  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetDynamicSpawnScope:test_refresh_arms_when_one_network_wants_it()
   _netWithIads("blue iads", coalition.side.BLUE, { dynamicSpawn = false })
   _netWithIads("red iads", coalition.side.RED, { dynamicSpawn = true })
   veafSkynet.refreshDynamicSpawnMonitoring()
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetDynamicSpawnScope:test_refresh_disarms_when_no_network_wants_it()
@@ -878,7 +883,7 @@ function TestVeafSkynetDynamicSpawnScope:test_refresh_disarms_when_no_network_wa
   veafSkynet.refreshDynamicSpawnMonitoring()
   veafSkynet.structure["blue iads"].dynamicSpawn = false
   veafSkynet.refreshDynamicSpawnMonitoring()
-  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNil(veafSkynet.monitorDynamicSpawnHandler)
 end
 
 function TestVeafSkynetDynamicSpawnScope:test_setDynamicSpawn_touches_one_network_only()
@@ -898,11 +903,11 @@ function TestVeafSkynetDynamicSpawnScope:test_deactivating_red_leaves_blue_armed
   _netWithIads("blue iads", coalition.side.BLUE, { dynamicSpawn = true })
   local red = _netWithIads("red iads", coalition.side.RED, { dynamicSpawn = true })
   veafSkynet.refreshDynamicSpawnMonitoring()
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId)
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler)
 
   veafSkynet.deactivateNetwork(red)
 
-  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandlerId, "deactivating red disarmed the shared handler")
+  luaunit.assertNotNil(veafSkynet.monitorDynamicSpawnHandler, "deactivating red disarmed the shared handler")
   luaunit.assertTrue(veafSkynet.structure["blue iads"].dynamicSpawn, "blue lost its dynamic integration")
 end
 
@@ -924,7 +929,7 @@ TestVeafSkynetDeactivatedStaysDown = {}
 
 function TestVeafSkynetDeactivatedStaysDown:setUp()
   veafSkynet.structure = {}
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.iadsSamUnitsTypes = {}
   veafSkynet.iadsEwrUnitsTypes = {}
   veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
@@ -1030,7 +1035,7 @@ TestVeafSkynetDeclaredSpawns = {}
 function TestVeafSkynetDeclaredSpawns:setUp()
   veafSkynet.structure = {}
   veafSkynet.declaredSpawns = {}
-  veafSkynet.monitorDynamicSpawnHandlerId = nil
+  veafSkynet.monitorDynamicSpawnHandler = nil
   veafSkynet.iadsSamUnitsTypes = {}
   veafSkynet.iadsEwrUnitsTypes = {}
   veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
@@ -1396,6 +1401,113 @@ function TestVeafSkynetDefendsOnlyLiveSites:test_no_sites_at_all_is_still_nil()
     return true
   end
   luaunit.assertNil(veafSkynet.findSkynetElementToDefend(_defence({}, {}), { type = "single" }))
+end
+
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS — the point-defence search and a radar that is gone
+--
+-- `getNearestIADSSite` walks the network's early-warning radars, which are registered by **unit**
+-- name, and resolved the group from the unit in three unchecked steps:
+--
+--     local unit = Unit.getByName(site_name)
+--     local group = Unit.getGroup(unit)
+--     site_name = Group.getName(group)
+--
+-- Skynet's register outlives the units in it — a radar destroyed since the network was built is
+-- precisely what this loop walks over — so `Unit.getGroup(nil)` took the whole search down, and with
+-- it the point defence of the site being placed.
+--
+-- The mocks reproduce it as DCS does: an EWR named in the network but never registered with
+-- `dcs_mocks.addUnit` is a radar DCS no longer knows.
+-- ============================================================================
+TestVeafSkynetVanishedEwr = {}
+
+--- An IADS answering one EWR site and no SAM site.
+local function _iadsWithEwr(ewrUnitName)
+  return {
+    getEarlyWarningRadars = function()
+      return { { dcsName = ewrUnitName } }
+    end,
+    getSAMSites = function()
+      return {}
+    end,
+  }
+end
+
+--- The group asking for a point defence: alive, blue, and not the EWR.
+local function _askingGroup(name)
+  dcs_mocks.addUnit(name .. "-1", {
+    getPosition = function()
+      return { p = { x = 0, y = 0, z = 0 } }
+    end,
+  })
+  dcs_mocks.addGroup(name, {
+    getUnits = function()
+      return { Unit.getByName(name .. "-1") }
+    end,
+  })
+  return Group.getByName(name)
+end
+
+function TestVeafSkynetVanishedEwr:setUp()
+  dcs_mocks.reset()
+  self._savedStructure = veafSkynet.structure
+  veafSkynet.structure = {
+    ["blue iads"] = { iads = _iadsWithEwr("DEAD-EWR-UNIT"), coalitionID = coalition.side.BLUE },
+  }
+  self._logger = veaf.loggers.get(veafSkynet.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+end
+
+function TestVeafSkynetVanishedEwr:tearDown()
+  self._logger.warn = self._originalWarn
+  veafSkynet.structure = self._savedStructure
+  dcs_mocks.reset()
+end
+
+-- The defect itself: without the guard this raises on `Unit.getGroup(nil)`.
+function TestVeafSkynetVanishedEwr:test_a_dead_ewr_does_not_take_the_search_down()
+  local group = _askingGroup("SA-15-POINT-DEFENCE")
+  local ok, err = pcall(veafSkynet.getNearestIADSSite, "blue iads", group)
+  luaunit.assertTrue(ok, string.format("getNearestIADSSite raised on an EWR that is gone: %s", tostring(err)))
+end
+
+function TestVeafSkynetVanishedEwr:test_the_warning_names_the_radar()
+  veafSkynet.getNearestIADSSite("blue iads", _askingGroup("SA-15-POINT-DEFENCE"))
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find("DEAD-EWR-UNIT", 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the EWR unit that is gone")
+end
+
+-- The ordinary path is untouched: an EWR whose unit is alive still resolves to its group name, and no
+-- warning is raised for it.
+function TestVeafSkynetVanishedEwr:test_a_live_ewr_still_resolves_to_its_group()
+  dcs_mocks.addUnit("LIVE-EWR-UNIT", {
+    getPosition = function()
+      return { p = { x = 500, y = 0, z = 500 } }
+    end,
+    getGroup = function()
+      return Group.getByName("LIVE-EWR-GROUP")
+    end,
+  })
+  dcs_mocks.addGroup("LIVE-EWR-GROUP", {
+    getUnits = function()
+      return { Unit.getByName("LIVE-EWR-UNIT") }
+    end,
+  })
+  veafSkynet.structure["blue iads"].iads = _iadsWithEwr("LIVE-EWR-UNIT")
+  local nearest = veafSkynet.getNearestIADSSite("blue iads", _askingGroup("SA-15-POINT-DEFENCE"))
+  luaunit.assertEquals(nearest, "LIVE-EWR-GROUP")
+  luaunit.assertEquals(#self.warned, 0)
 end
 
 os.exit(luaunit.LuaUnit.run())

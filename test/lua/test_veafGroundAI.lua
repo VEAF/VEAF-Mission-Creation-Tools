@@ -4,6 +4,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 -- veafI18n, because the correction loop tells the player what it understood and the tests assert
 -- on that text. Without it veaf.t returns the key and the assertions would pass on a message no
 -- player could read.
@@ -206,9 +211,12 @@ function TestVeafGroundUnitHandlerExtra:test_orderTextAnalysis_base_returns_nil(
   luaunit.assertNil(result)
 end
 
-function TestVeafGroundUnitHandlerExtra:test_check_runs_without_error()
+--- `check()` always re-arms itself (veafGroundAI.lua:298), so what it leaves behind is a schedule,
+--- not nothing. This asserted nil until DROP-MIST ticket 01: the scheduler mock returned nil from
+--- every call, so the assertion held whatever the code did.
+function TestVeafGroundUnitHandlerExtra:test_check_reschedules_itself()
   self.h:check()
-  luaunit.assertNil(self.h:getCheckFunctionSchedule())
+  luaunit.assertNotNil(self.h:getCheckFunctionSchedule())
 end
 
 function TestVeafGroundUnitHandlerExtra:test_start_sets_status_active()

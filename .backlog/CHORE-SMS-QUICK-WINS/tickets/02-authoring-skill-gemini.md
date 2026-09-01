@@ -1,6 +1,6 @@
 # 02 — Ship the authoring skill to Gemini too
 
-Status: 🧑 waiting-human — everything is delivered; one command validates it
+Status: 🧑 waiting-human — everything is delivered; a Windows Sandbox run validates it (David, 2026-09-01 — a clean machine is the point, and this workstation is not one)
 Type: feat
 Files: `plugin/skills/veaf-mission-authoring/`, the installer path, install doc
 
@@ -84,6 +84,35 @@ plain `veaf-tools`, so it must be on `PATH`, and the install page says so in bot
 name** — the shared `SKILL.md` refers to the server's actions, so a mismatch would make the same text
 wrong on one side, silently — and the skill must sit where both agents look, which fails if someone
 "tidies" it into a second copy.
+
+## How the round trip gets tested — David, 2026-09-01
+
+**In a Windows Sandbox VM, not on this workstation.** Asked whether to install Gemini CLI here, the
+answer was *"non, on fera ça dans une VM Windows Sandbox, ça sera plus probant"*.
+
+Which is the stronger test, and worth writing down rather than treating as a logistics detail: the
+acceptance criterion says *a clean machine*. This workstation is not one — it carries the repository,
+a configured Claude plugin, an authenticated `~/.gemini/` and a `veaf-tools` on `PATH`. An install
+that "works" here could be leaning on any of them without anyone noticing. A sandbox starts empty
+every time, so it answers the question that was actually asked.
+
+Re-measured 2026-09-01, unchanged since the ticket was written: `gemini` is on neither the bash nor
+the PowerShell `PATH`, and `~/.gemini/` holds OAuth state, history, `settings.json` and nothing else —
+no `extensions/`, `commands/` or `skills/`.
+
+What the sandbox run needs, in order:
+
+1. Install Gemini CLI and authenticate it.
+2. `git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git`
+3. `gemini extensions install VEAF-Mission-Creation-Tools/plugin`
+4. `gemini extensions list` — the extension is there.
+5. A fresh session: ask for a combat zone and watch whether it consults the oracle actions.
+6. **`veaf-tools` must be on `PATH` in the sandbox**: the binary auto-install is a Claude Code
+   `SessionStart` hook and was deliberately not ported, so the Gemini manifest calls a plain
+   `veaf-tools`. A sandbox is exactly where that assumption gets tested rather than assumed — if the
+   assistant answers but every tool call fails, this is why.
+
+If Gemini rejects the manifest or ignores the skill, the fix is a manifest field, not a redesign.
 
 ## Why this is 🧑 and not ✅
 

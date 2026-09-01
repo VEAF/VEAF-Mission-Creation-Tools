@@ -25,10 +25,11 @@ class TestMissionTemplate(unittest.TestCase):
     def test_minimal_has_core_only(self) -> None:
         active = _modules(generate_mission_yaml(tier_modules("minimal")))
         # infra + core feature toggles are active
-        for mod in ("UNITS", "MIST", "RADIO", "SPAWN", "SHORTCUTS", "INTERPRETER"):
+        for mod in ("UNITS", "RADIO", "SPAWN", "SHORTCUTS", "INTERPRETER"):
             self.assertIn(mod, active)
         # standard/full features are absent from minimal
-        for mod in ("WEATHER", "CASMISSION", "QRA", "TUM"):
+        # MiST joined this list: it is no longer infrastructure, and no tier pulls it in.
+        for mod in ("WEATHER", "CASMISSION", "QRA", "TUM", "MIST"):
             self.assertNotIn(mod, active)
 
     def test_security_is_always_present_but_never_active(self) -> None:
@@ -78,11 +79,20 @@ class TestMissionTemplate(unittest.TestCase):
         self.assertIn("RADIO", active)
         self.assertIn("WEATHER", active)
         self.assertNotIn("SPAWN", active)
-        self.assertIn("MIST", active)  # infra always
+        self.assertNotIn("MIST", active)  # opt-in since DROP-MIST ticket 08
 
     def test_selectable_excludes_infra(self) -> None:
-        self.assertNotIn("MIST", SELECTABLE_MODULES)
+        self.assertNotIn("UNITS", SELECTABLE_MODULES)
         self.assertIn("QRA", SELECTABLE_MODULES)
+
+    def test_mist_is_selectable_but_in_no_tier(self) -> None:
+        """The escape hatch stays reachable: a mission that needs MiST can still ask for it,
+        it is simply never handed out by a tier (DROP-MIST ticket 08)."""
+        from veaf_libs.mission_template import module_lowest_tier
+
+        self.assertIn("MIST", SELECTABLE_MODULES)
+        self.assertIsNone(module_lowest_tier("MIST"))
+        self.assertIn("MIST", _modules(generate_mission_yaml({"MIST"})))
 
     def test_module_lowest_tier(self) -> None:
         from veaf_libs.mission_template import module_lowest_tier

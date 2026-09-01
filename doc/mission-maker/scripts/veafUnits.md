@@ -46,6 +46,11 @@ d'apparition.
 empêche un char d'apparaître dans l'eau. Depuis `FEAT-SCENERY-AWARE-SPAWN`, la recherche d'un point
 correct passe par `veaf.findSpawnPoint`, qui sait aussi éviter les villages et les forêts.
 
+Pour un aéronef, la règle porte sur l'altitude : une position **sous le relief** est refusée, et la
+commande annonce qu'elle n'a pas trouvé de place. Une position posée au sol reste acceptée, ce qui est
+le cas d'un aéronef créé en tant qu'objet statique. Si une apparition d'aéronef échoue là où elle
+passait avant, c'est l'altitude demandée qu'il faut regarder.
+
 ---
 
 ## Le correctif de pathfinding {#pathfinding-fix}

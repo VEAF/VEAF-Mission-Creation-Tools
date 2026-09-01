@@ -98,6 +98,10 @@ function veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)
   return veafAirbases.getAirbaseByName(dcsAirbase:getName())
 end
 
+--- FIX-UNGUARDED-DCS-LOOKUPS: `dcsUnit` is dereferenced below without a check, on purpose.
+--- Both callers in the code base vouch for it -- `veafWeather.buildWelcomeBrief` always has, and
+--- `veafWeather.messageAtcClosestAirbase` does since this lot, its `Unit.getByName` having been the
+--- one unchecked link on the way here. A caller with no unit has no question to ask.
 function veafAirbases.getNearestAirbaseList(dcsUnit, iCount)
   veafAirbases.initialize()
 
@@ -123,7 +127,7 @@ function veafAirbases.getNearestAirbaseList(dcsUnit, iCount)
       -- skip stale/destroyed airbase references (e.g. sunk carriers)
     else
       local vec3Airbase = veafAirbase.DcsAirbase:getPoint()
-      local iDistance = mist.utils.get2DDist(vec3Unit, vec3Airbase)
+      local iDistance = veaf.get2DDist(vec3Unit, vec3Airbase)
       local bAdded = false
 
       -- first fill all the nil positions
@@ -340,7 +344,7 @@ function veafAirbaseRunway:create(dcsAirbase, dcsRunway, iReportOrder)
   end
 
   local function _numberFromHeading(nHeading)
-    return mist.utils.round(nHeading / 10)
+    return veaf.round(nHeading / 10)
   end
 
   local function _numbersOffest(iOffset1, iOffest2)

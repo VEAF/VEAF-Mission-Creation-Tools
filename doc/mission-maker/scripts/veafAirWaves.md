@@ -92,6 +92,28 @@ modules:
 | `zone_center_coordinates` | string | Chaîne de coordonnées, ex : `"N41°00'00\" E044°00'00\""` |
 | `zone_radius` | nombre | Rayon de la zone en mètres (requis avec les coordonnées) |
 
+#### Écrire une coordonnée avec des secondes {#coordinate-with-seconds}
+
+Le symbole des secondes est un guillemet double, et c'est la forme que DCS affiche à
+l'écran — la coordonnée que vous recopiez depuis le jeu contient donc deux `"`. Deux
+façons de l'écrire en YAML :
+
+```yaml
+# Entre guillemets doubles : le symbole des secondes doit être échappé par un antislash
+zone_center_coordinates: "N41°00'00\" E044°00'00\""
+
+# Entre guillemets simples : rien à échapper, mais le symbole des minutes doit être doublé
+zone_center_coordinates: 'N41°00''00" E044°00''00"'
+```
+
+Les deux donnent la même position. Les espaces font aussi office de séparateurs, si vous
+préférez éviter la ponctuation : `N41 00 00 E044 00 00`.
+
+Jusqu'à la 6.17, une coordonnée écrite avec des secondes cassait le `veaf-config.lua`
+généré, que DCS refusait alors *en entier* — la mission se chargeait sans aucun menu radio
+VEAF. Le build vérifie désormais le fichier qu'il génère et refuse d'en livrer un qui ne
+se lit pas.
+
 ### Timing et limites
 
 | Champ | Type | Défaut | Description |
@@ -171,10 +193,10 @@ modules:
 | `:setZoneRadius(m)` | Rayon de la zone en mètres (avec un centre) |
 | `:setDescription(text)` | Libellé pour les messages et les logs |
 | `:addWave(...)` | Ajouter une vague — voir [Définition d'une vague](#définition-dune-vague) |
-| `:resetWaves()` | Vider toutes les vagues ajoutées (utile après `mist.utils.deepCopy`) |
+| `:resetWaves()` | Vider toutes les vagues ajoutées (utile après `veaf.deepCopy`) |
 | `:addPlayerCoalition(side)` | Ajouter une coalition dont les joueurs comptent (ex : `coalition.side.BLUE`) |
 | `:setRespawnRadius(m)` | Rayon de dispersion des spawns (défaut : 250 m) |
-| `:setRespawnDefaultOffset(lat, lon)` | Décalage par rapport au centre de zone pour les spawns |
+| `:setRespawnDefaultOffset(lat, lon)` | Décalage par rapport au centre de zone pour les spawns (mètres) — premier nombre vers le nord, second vers l'est ; voir [plus bas](#spawn-offset) |
 | `:setMaxSecondsOutsideOfZoneIA(n)` | Secondes avant qu'un groupe IA hors zone soit considéré comme perdu |
 | `:setMaxSecondsOutsideOfZonePlayers(n)` | Secondes avant que la zone se réinitialise si tous les joueurs sortent |
 | `:setDelayBetweenWaves(n)` | Délai par défaut en secondes entre les vagues |
@@ -263,18 +285,23 @@ Lorsque `delay` est **négatif**, la vague suivante apparaît immédiatement apr
 :addWave({ groups = { "Strike Package" } })              -- ...cette vague
 ```
 
-### Commandes VEAF comme groupes
+### Commandes VEAF comme groupes {#spawn-offset}
 
-Au lieu d'un nom de groupe DCS, vous pouvez utiliser n'importe quelle commande de spawn VEAF (la même syntaxe qu'un marqueur de la carte F10). La commande est exécutée à la position d'apparition, ajustable avec un préfixe `[latDelta,lonDelta]` (en mètres, relatif au centre de la zone) :
+Au lieu d'un nom de groupe DCS, vous pouvez utiliser n'importe quelle commande de spawn VEAF (la même syntaxe qu'un marqueur de la carte F10). La commande est exécutée à la position d'apparition, ajustable avec un préfixe `[latDelta,lonDelta]` (en mètres, relatif au centre de la zone).
+
+Le **premier** nombre déplace l'apparition sur l'axe nord-sud, le **second** sur l'axe est-ouest. Les deux sont positifs vers le nord et vers l'est :
 
 ```lua
 :addWave({
   groups = {
-    "[0,5000]-spawn su-27, country russia",           -- 5 km au nord du centre de la zone
-    "[-3000,0]-spawn su-25, alt 100, country russia", -- 3 km au sud, basse altitude
+    "[5000,0]-spawn su-27, country russia",           -- 5 km au nord du centre de la zone
+    "[0,-3000]-spawn su-25, alt 100, country russia", -- 3 km à l'ouest, basse altitude
   }
 })
 ```
+
+!!! warning "Changement de comportement"
+    Jusqu'à la correction de ce défaut, les deux nombres étaient appliqués aux mauvais axes : le premier déplaçait l'apparition vers l'**est** et le second vers le **sud**, quels que soient leurs noms. Si votre mission utilise un décalage non nul — par ce préfixe ou par `setRespawnDefaultOffset` —, son point d'apparition change lors de la mise à jour qui apporte ce correctif, et un décalage que vous aviez réglé à l'œil sur l'ancien comportement doit être réécrit tel qu'il se lit.
 
 Cela permet de monter facilement des menaces étagées venant de directions différentes, sans pré-placer de groupes dans l'éditeur de mission DCS.
 
@@ -342,14 +369,14 @@ local zoneTemplate = AirWaveZone:new()
   :addWave({ "Su-27 Wave 2" })
 
 -- Cloner et personnaliser pour chaque secteur
-local zoneNorth = mist.utils.deepCopy(zoneTemplate)
+local zoneNorth = veaf.deepCopy(zoneTemplate)
 zoneNorth
   :setName("AW-North")
   :setTriggerZone("ZONE-AW-NORTH")
   :setDescription("Secteur nord")
   :start()
 
-local zoneSouth = mist.utils.deepCopy(zoneTemplate)
+local zoneSouth = veaf.deepCopy(zoneTemplate)
 zoneSouth
   :setName("AW-South")
   :setTriggerZone("ZONE-AW-SOUTH")

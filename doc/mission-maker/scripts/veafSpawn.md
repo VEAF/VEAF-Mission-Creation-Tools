@@ -89,6 +89,18 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 - `capradius` — rayon d'orbite CAP (mètres)
 - `distance` — distance depuis le marqueur
 
+**Ce que la patrouille attaque.** Elle reste en patrouille, tir interdit contre les avions, tant
+qu'elle n'a rien vu qui vaille l'engagement. Toutes les dix secondes elle regarde ce que son radar lui
+renvoie et ne retient que des **aéronefs ennemis, en vol, à l'intérieur de son rayon de patrouille** :
+ni un navire, ni un véhicule, ni un bâtiment, ni un pilote éjecté sous son parachute — même si celui-ci
+appartient toujours au groupe de son avion. Les cibles retenues sont classées par priorité (chasseurs
+d'abord, puis bombardiers, drones, AWACS, transports, hélicoptères), et la patrouille les engage. Dès
+qu'il n'y a plus rien à engager, elle reprend sa route et repasse en riposte seulement.
+
+Une patrouille faite à partir d'un modèle de groupe dont le premier point de route ne porte aucune
+consigne vole sans les réglages voulus par l'auteur du modèle (radar, ECM, règles d'engagement). Le cas
+est signalé dans le journal DCS, avec le nom du modèle en cause.
+
 ### Faire apparaître un AFAC/JTAC
 
 ```

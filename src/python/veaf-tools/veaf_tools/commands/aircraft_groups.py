@@ -22,6 +22,7 @@ from veaf_tools.app import (
     t,
     tn,
 )
+from veaf_tools.helpers import confirm
 
 
 @app.command(no_args_is_help=True, help=t("cmd.extract_aircraft.help"))
@@ -39,6 +40,7 @@ def extract_aircraft_groups(
         "src/dynamic-slot-templates.yaml", help=t("cmd.extract_aircraft.opt.output_dynamic_templates")
     ),
     group_name_pattern: str = typer.Option(".*", help=t("cmd.extract_aircraft.opt.pattern")),
+    merge: bool = typer.Option(False, help=t("cmd.extract_aircraft.opt.merge")),
     only_airplanes: bool = typer.Option(False, help=t("cmd.extract_aircraft.opt.only_airplanes")),
     only_helicopters: bool = typer.Option(False, help=t("cmd.extract_aircraft.opt.only_helicopters")),
     mission_folder: str | None = typer.Argument(".", help=t("cmd.extract_aircraft.opt.mission_folder")),
@@ -61,7 +63,7 @@ def extract_aircraft_groups(
     console.print(t("cmd.extract_aircraft.title", version=VERSION))
 
     if readme:
-        if typer.confirm(t("help.confirm_doc")):
+        if confirm(t("help.confirm_doc"), unattended=True):
             md_render = Markdown(AircraftGroupsExtractorREADME)
             console.print(md_render)
         raise typer.Exit()
@@ -95,6 +97,7 @@ def extract_aircraft_groups(
             output_dynamic_templates=p_dynamic,
             group_name_pattern=group_name_pattern,
             aircraft_type=aircraft_type,
+            merge=merge,
         )
     else:
         # Extract from mission file (original behavior)
@@ -116,6 +119,7 @@ def extract_aircraft_groups(
             output_dynamic_templates=p_dynamic,
             group_name_pattern=group_name_pattern,
             aircraft_type=aircraft_type,
+            merge=merge,
         )
 
     worker.extract(interactive=interactive)

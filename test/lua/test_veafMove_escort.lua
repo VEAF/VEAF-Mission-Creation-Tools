@@ -14,6 +14,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafMove.lua")
 
 -- ---------------------------------------------------------------------------
@@ -34,7 +39,6 @@ local function _groupData(groupId, escortedId)
   end
   return {
     groupId = groupId,
-    name = "whatever",
     route = {
       points = {
         { x = 0, y = 0, alt = 6000, speed = 200 },
@@ -44,21 +48,62 @@ local function _groupData(groupId, escortedId)
   }
 end
 
---- Put `groups` (name -> group data) into the mocked mission and MiST's ME database.
-local function _mission(groups)
-  local planes = {}
-  local byName = {}
-  for name, data in pairs(groups) do
-    table.insert(planes, data)
-    byName[name] = { groupId = data.groupId }
+--- Build group data whose Escort task sits on an arbitrary waypoint, not necessarily the last.
+--- This is the shape a mission maker actually produces: DCS puts no constraint on which waypoint
+--- carries the task, and the repository's own demo mission puts it on waypoint 2 of 3.
+-- @param groupId number  the id `veaf.getGroupData` matches on
+-- @param escortedId number  the (stale) id the Escort task points at
+-- @param taskIndex number  the 1-based waypoint carrying the Escort task
+-- @param pointCount number  how many waypoints the route has
+local function _groupDataWithTaskAt(groupId, escortedId, taskIndex, pointCount)
+  local points = {}
+  for index = 1, pointCount do
+    points[index] = { x = index * 1000, y = index * 1000, alt = 6000, speed = 200 }
+    if index == taskIndex then
+      points[index].task = {
+        params = {
+          tasks = {
+            [1] = {
+              enabled = true,
+              id = "Escort",
+              params = { groupId = escortedId, pos = { x = -100, y = 0, z = 200 } },
+            },
+          },
+        },
+      }
+    end
   end
-  env.mission.coalition.blue.country = { [1] = { plane = { group = planes } } }
-  mist.DBs.MEgroupsByName = byName
+  return { groupId = groupId, route = { points = points } }
 end
 
---- Make `mist.scheduleFunction` run its argument at once, so scheduled work is observable.
+--- Put `groups` (name -> group data) into the mocked mission, and index it the way the mission
+--- database does at startup. The group's name lives in the mission data itself, which is where the
+--- snapshot reads it — MiST kept a separate name-to-id table, and this helper used to fill that.
+local function _mission(groups)
+  local planes = {}
+  for name, data in pairs(groups) do
+    data.name = name
+    table.insert(planes, data)
+  end
+  -- The country is named and numbered because a respawn needs it: `veafDcsSpawner.addGroup` refuses
+  -- a group whose country it cannot resolve, and the snapshot takes the id from here.
+  env.mission.coalition.blue.country = { [1] = { name = "USA", id = country.id.USA, plane = { group = planes } } }
+  veafMissionDb.buildSnapshot()
+end
+
+--- Give a group data table the single unit a respawn needs.
+--- `VeafGroupSpawn` refuses to spawn a group with no units, and refuses again when a unit has no
+--- position, so a group meant to be put back needs both — the escort-task lookups above do not.
+-- @param data table  group data from one of the builders above
+-- @param unitName string  the unit's name, which DCS wants unique
+local function _withUnits(data, unitName)
+  data.units = { { name = unitName, unitId = 1, type = "F-15C", x = 1000, y = 2000, alt = 6000 } }
+  return data
+end
+
+--- Make `veaf.scheduleFunction` run its argument at once, so scheduled work is observable.
 local function _runScheduledImmediately()
-  mist.scheduleFunction = function(fn, args, _when)
+  veaf.scheduleFunction = function(fn, args, _when)
     fn(unpack(args))
   end
 end
@@ -79,11 +124,11 @@ TestVeafMoveFindEscortTask = {}
 
 function TestVeafMoveFindEscortTask:setUp()
   dcs_mocks.reset()
-  self._scheduleFunction = mist.scheduleFunction
+  self._scheduleFunction = veaf.scheduleFunction
 end
 
 function TestVeafMoveFindEscortTask:tearDown()
-  mist.scheduleFunction = self._scheduleFunction
+  veaf.scheduleFunction = self._scheduleFunction
 end
 
 function TestVeafMoveFindEscortTask:test_the_escort_task_is_found_on_the_last_waypoint()
@@ -125,6 +170,55 @@ function TestVeafMoveFindEscortTask:test_a_group_with_no_route_returns_nil()
   luaunit.assertNil(veafMove.findEscortTask("Arco escort"))
 end
 
+function TestVeafMoveFindEscortTask:test_the_escort_task_is_found_on_an_intermediate_waypoint()
+  -- The shape the demo mission ships: three waypoints, the Escort task on the second. Searching the
+  -- last waypoint alone found nothing here, so the repair reported "carries no Escort task" and gave
+  -- up -- measured in game on 2026-08-28 on all three of the demo mission's escorts.
+  _mission({ ["Arco escort"] = _groupDataWithTaskAt(20, 11, 2, 3) })
+
+  local escortData, escortTask = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertNotNil(escortData)
+  luaunit.assertNotNil(escortTask, "an Escort task on waypoint 2 of 3 must be found")
+  luaunit.assertEquals(escortTask.params.groupId, 11)
+end
+
+function TestVeafMoveFindEscortTask:test_the_escort_task_is_found_on_the_first_waypoint()
+  _mission({ ["Arco escort"] = _groupDataWithTaskAt(20, 11, 1, 3) })
+
+  local _, escortTask = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertNotNil(escortTask, "an Escort task on the first waypoint must be found")
+end
+
+function TestVeafMoveFindEscortTask:test_the_last_waypoint_still_wins_when_two_carry_a_task()
+  -- The search walks backwards, so a mission that already put its task on the last waypoint keeps
+  -- resolving to exactly the same task as before this became a full-route search.
+  local data = _groupDataWithTaskAt(20, 11, 3, 3)
+  data.route.points[2].task = {
+    params = { tasks = { [1] = { enabled = true, id = "Escort", params = { groupId = 99 } } } },
+  }
+  _mission({ ["Arco escort"] = data })
+
+  local _, escortTask = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertEquals(escortTask.params.groupId, 11, "the last waypoint's task must be preferred")
+end
+
+function TestVeafMoveFindEscortTask:test_a_disabled_task_on_a_late_waypoint_does_not_mask_a_valid_earlier_one()
+  -- Bailing out at the first waypoint that carries *tasks* would stop here and report nothing.
+  local data = _groupDataWithTaskAt(20, 11, 1, 3)
+  data.route.points[3].task = {
+    params = { tasks = { [1] = { enabled = false, id = "Escort", params = { groupId = 99 } } } },
+  }
+  _mission({ ["Arco escort"] = data })
+
+  local _, escortTask = veafMove.findEscortTask("Arco escort")
+
+  luaunit.assertNotNil(escortTask, "the disabled task must not hide the enabled one earlier in the route")
+  luaunit.assertEquals(escortTask.params.groupId, 11)
+end
+
 function TestVeafMoveFindEscortTask:test_a_disabled_escort_task_is_not_returned()
   local data = _groupData(20, 11)
   data.route.points[2].task.params.tasks[1].enabled = false
@@ -140,12 +234,12 @@ TestVeafMoveReestablishEscortTask = {}
 
 function TestVeafMoveReestablishEscortTask:setUp()
   dcs_mocks.reset()
-  self._scheduleFunction = mist.scheduleFunction
+  self._scheduleFunction = veaf.scheduleFunction
   _runScheduledImmediately()
 end
 
 function TestVeafMoveReestablishEscortTask:tearDown()
-  mist.scheduleFunction = self._scheduleFunction
+  veaf.scheduleFunction = self._scheduleFunction
 end
 
 --- Register the escorted group (with a fresh id) and its escort.
@@ -211,7 +305,7 @@ function TestVeafMoveReestablishEscortTask:test_the_id_is_read_after_the_delay_n
   local pending = nil
   -- Only the first scheduled call is held: the repair itself schedules again through
   -- replaceMission, and capturing that one too would hide the very result being asserted.
-  mist.scheduleFunction = function(fn, args, _when)
+  veaf.scheduleFunction = function(fn, args, _when)
     if pending == nil then
       pending = function()
         fn(unpack(args))
@@ -231,6 +325,211 @@ function TestVeafMoveReestablishEscortTask:test_the_id_is_read_after_the_delay_n
   local tasks = _tasksPushedToEscort()
   luaunit.assertNotNil(tasks)
   luaunit.assertEquals(tasks[1].params.groupId, 4242, "the id was read before the respawn")
+end
+
+-- ============================================================================
+-- FIX-ESCORT-RESPAWN-DISTANCE — the escort is put back with its charge
+--
+-- Repairing the Escort task is not enough. A respawn puts the asset back where the Mission Editor
+-- drew it while its escort keeps flying wherever the elapsed mission time has taken it: measured in
+-- game on 2026-08-28, ~80 km apart minutes after a respawn, against the Escort task's own
+-- `engagementDistMax` of 60 000 m read off the live task. The repaired task therefore pointed the
+-- escort at a charge outside its own engagement distance.
+--
+-- David's call, 2026-08-28: the escort respawns with its charge. Both halves are needed — putting
+-- the escort back does not restore the task, because what breaks the task is the *escorted* group's
+-- id changing.
+-- ============================================================================
+TestVeafMoveRespawnEscort = {}
+
+function TestVeafMoveRespawnEscort:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafMoveRespawnEscort:tearDown()
+  dcs_mocks.reset()
+end
+
+--- The names of the groups handed to `coalition.addGroup`, in submission order.
+local function _respawnedNames()
+  local names = {}
+  for _, entry in ipairs(dcs_mocks.groupsAdded) do
+    table.insert(names, entry.group.name)
+  end
+  return names
+end
+
+--- A tanker and its escort in the mission, both spawnable; `alive` also registers the escort as a
+--- live group, which is what `Group.getByName` answers.
+function TestVeafMoveRespawnEscort:_pair(alive)
+  _mission({
+    ["Arco"] = _withUnits(_groupData(11, nil), "Arco-1"),
+    ["Arco escort"] = _withUnits(_groupData(20, 11), "Arco escort-1"),
+  })
+  dcs_mocks.addGroup("Arco", { _id = 11 })
+  if alive then
+    dcs_mocks.addGroup("Arco escort", { _id = 20 })
+  end
+end
+
+function TestVeafMoveRespawnEscort:test_the_escort_is_put_back()
+  self:_pair(true)
+
+  luaunit.assertTrue(veafMove.respawnEscort("Arco"))
+
+  luaunit.assertEquals(_respawnedNames(), { "Arco escort" }, "the escort must actually reach DCS")
+end
+
+function TestVeafMoveRespawnEscort:test_the_escorted_group_is_not_respawned_here()
+  -- The asset is the caller's business, and it has to come back *first*: this function does one thing.
+  self:_pair(true)
+
+  veafMove.respawnEscort("Arco")
+
+  luaunit.assertEquals(_respawnedNames(), { "Arco escort" })
+end
+
+function TestVeafMoveRespawnEscort:test_the_escort_comes_back_with_its_escort_task()
+  -- The route is the editor's, Escort task included, so the repair that follows has a task to fix.
+  -- A bare group put back without its route would leave nothing for `reestablishEscortTask` to reach.
+  self:_pair(true)
+
+  veafMove.respawnEscort("Arco")
+
+  local submitted = dcs_mocks.groupsAdded[1].group
+  luaunit.assertNotNil(submitted.route, "the escort must be put back with a route")
+  local tasks = submitted.route.points[2].task.params.tasks
+  luaunit.assertEquals(tasks[1].id, "Escort")
+end
+
+function TestVeafMoveRespawnEscort:test_a_group_with_no_escort_respawns_nothing()
+  _mission({ ["Arco"] = _withUnits(_groupData(11, nil), "Arco-1") })
+  dcs_mocks.addGroup("Arco", { _id = 11 })
+
+  luaunit.assertFalse(veafMove.respawnEscort("Arco"))
+
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0, "an asset with no escort must be left alone")
+end
+
+function TestVeafMoveRespawnEscort:test_an_escort_that_is_no_longer_flying_is_still_put_back()
+  -- The guard is the **mission record**, not a live group. An escort that was shot down is precisely
+  -- what a respawn is for, and `Group.getByName` answers nil for it -- which is also why this call
+  -- has to come before `reestablishEscortTask`, whose own guard is the live group.
+  self:_pair(false)
+
+  luaunit.assertTrue(veafMove.respawnEscort("Arco"))
+
+  luaunit.assertEquals(_respawnedNames(), { "Arco escort" })
+end
+
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS — the lookup taken *after* the teleport
+--
+-- `teleportEscort` checks the escort group exists, computes its new waypoints, teleports it, and then
+-- looks it up again — because a teleport destroys the group and recreates it, so the object it held is
+-- stale. That second lookup was never checked, and its answer goes straight to `replaceMission`, whose
+-- first statement is `unitGroup:getName()`. The guard above tested a different object entirely: the
+-- group as it was before the teleport.
+--
+-- The same shape sits on the other two teleport paths, `moveTanker` and `moveAfac`, and all three are
+-- fixed together. Here the teleport is stubbed to leave nothing behind, which is what a teleport that
+-- fails to recreate its group looks like from this side.
+-- ============================================================================
+TestVeafMoveEscortLostByTheTeleport = {}
+
+function TestVeafMoveEscortLostByTheTeleport:setUp()
+  dcs_mocks.reset()
+  self._savedGroupSpawn = VeafGroupSpawn
+  self._savedSchedule = veaf.scheduleFunction
+  -- `replaceMission` does its work in a scheduled call, and that is where `unitGroup:getName()` sits.
+  -- Left on the mock scheduler it never runs, and the test would pass without the guard by never
+  -- reaching the defect at all.
+  _runScheduledImmediately()
+  self._logger = veaf.loggers.get(veafMove.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+
+  -- veafSpawnCore is not loaded by this suite; a fluent stub is all `teleportEscort` uses of it. The
+  -- teleport removes the group from the registry and puts nothing back, so the lookup that follows it
+  -- comes back empty.
+  self.teleported = false
+  local test = self
+  VeafGroupSpawn = {
+    new = function(self_)
+      local spawn
+      spawn = {
+        forGroup = function(_, name)
+          spawn._name = name
+          return spawn
+        end,
+        at = function()
+          return spawn
+        end,
+        teleport = function()
+          test.teleported = true
+          dcs_mocks.removeGroup(spawn._name)
+          return nil
+        end,
+      }
+      return spawn
+    end,
+  }
+
+  -- A tanker and its escort, both alive, the escort carrying an Escort task on a two-point route.
+  dcs_mocks.addGroup("Arco", { _id = 11 })
+  dcs_mocks.addGroup("Arco escort", { _id = 20 })
+  _mission({ ["Arco escort"] = _groupData(20, 11) })
+end
+
+function TestVeafMoveEscortLostByTheTeleport:tearDown()
+  self._logger.warn = self._originalWarn
+  VeafGroupSpawn = self._savedGroupSpawn
+  veaf.scheduleFunction = self._savedSchedule
+  dcs_mocks.reset()
+end
+
+function TestVeafMoveEscortLostByTheTeleport:_move()
+  return pcall(
+    veafMove.teleportEscort,
+    "Arco",
+    { x = 5000, y = 5000, alt = 6000, speed = 200 },
+    { x = 1000, y = 1000, alt = 6000, speed = 200 }
+  )
+end
+
+-- The defect itself: without the guard, the nil goes to `replaceMission` and the scheduled call dies.
+-- (It dies on `missionData` rather than on the group, because a nil first element leaves a hole in the
+-- argument table `veaf.scheduleFunction` unpacks — which only makes the failure harder to read.)
+function TestVeafMoveEscortLostByTheTeleport:test_an_escort_lost_by_its_teleport_does_not_raise()
+  local ok, err = self:_move()
+  luaunit.assertTrue(ok, string.format("teleportEscort raised when the escort did not come back: %s", tostring(err)))
+end
+
+-- It must have got as far as the teleport, or the test proves nothing about what follows it.
+function TestVeafMoveEscortLostByTheTeleport:test_the_teleport_did_happen()
+  self:_move()
+  luaunit.assertTrue(self.teleported, "the case under test is the lookup *after* the teleport")
+end
+
+-- No mission is pushed to a group that is not there.
+function TestVeafMoveEscortLostByTheTeleport:test_no_task_is_pushed()
+  self:_move()
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 0)
+end
+
+function TestVeafMoveEscortLostByTheTeleport:test_the_warning_names_the_escort()
+  self:_move()
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find("Arco escort", 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the escort group that did not come back")
 end
 
 os.exit(luaunit.LuaUnit.run())

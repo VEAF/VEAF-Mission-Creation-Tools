@@ -9,7 +9,7 @@
 
 Two distinct roles:
 
-1. **Design-time**: inject real-world or configured weather into a `.miz` at build time, before players load the mission. Handled by `veaf-tools.exe content inject-weather`.
+1. **Design-time**: inject real-world or configured weather into a `.miz` at build time, before players load the mission. Handled by `.\veaf-tools.exe content inject-weather`.
 2. **Runtime**: players can request weather reports and ATC information via the F10 radio menu, and the mission maker can script dynamic fog changes.
 
 ---
@@ -36,7 +36,7 @@ No parameters required.
 Weather is injected at build time (before the mission is loaded) using `veaf-tools.exe`:
 
 ```powershell
-veaf-tools.exe content inject-weather mission.miz --config-file versions.yaml
+.\veaf-tools.exe content inject-weather mission.miz --config-file versions.yaml
 ```
 
 ### versions.yaml example
@@ -145,7 +145,7 @@ This is equivalent to calling `:activate()` on the constant. Any previously acti
 
 ```lua
 -- On a DCS trigger "Begin Night Phase", enable heavy fog
-mist.scheduleFunction(function()
+veaf.scheduleFunction(function()
   veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
 end, {}, timer.getTime() + 0)
 ```

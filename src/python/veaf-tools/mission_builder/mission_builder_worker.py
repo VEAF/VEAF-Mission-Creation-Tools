@@ -24,6 +24,7 @@ from mission_tools import (
     get_mission_script_files,
     get_optin_community_script_ids,
     is_community_script_enabled_by_default,
+    mission_scripts_referencing_mist,
     read_miz,
     write_miz,
 )
@@ -53,6 +54,7 @@ from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import enabled_module_config, find_undefined_lua_functions, generate_config_lua
 from veaf_libs.lua_i18n import load_runtime_catalog
 from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.lua_syntax import LuaSyntaxError
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_file
@@ -462,10 +464,17 @@ def strip_native_load_triggers(dcs_mission: "DcsMission", labels: list[str]) -> 
     logger.info(tn("builder.stripped_native_triggers", len(indices_to_remove)))
 
 
-#: Community scripts that are hard dependencies of the VEAF scripts and are always
-#: injected, regardless of (or despite) the `modules:` entry (MiST is used pervasively,
-#: e.g. by veafAssets.respawn). Disabling one is warned and ignored.
-MANDATORY_COMMUNITY_SCRIPTS: frozenset[str] = frozenset({"mist"})
+#: Community scripts that are hard dependencies of the VEAF scripts and are always injected,
+#: regardless of (or despite) the `modules:` entry. Disabling one is warned about and ignored.
+#:
+#: Empty since DROP-MIST ticket 08. It held only ``mist``, on the grounds that the VEAF scripts used
+#: it pervasively; they no longer call it at all, and neither does any community script we ship.
+#: MiST is now opt-in like TUM, and the builder turns it back on by itself for a mission whose own
+#: scripts call it — see ``mission_scripts_referencing_mist``.
+#:
+#: Kept rather than deleted because the mechanism below is the answer to "this dependency must be
+#: injected whatever the mission says", which is a thing that will be true again.
+MANDATORY_COMMUNITY_SCRIPTS: frozenset[str] = frozenset()
 
 
 def resolve_dynamic_mode(cli_override: bool | None, build_cfg: dict) -> bool:
@@ -758,6 +767,10 @@ class MissionBuilderWorker(BaseWorker):
             self.mission_yaml.get("custom_scripts")
         )
 
+        # MiST is opt-in since DROP-MIST ticket 08, so a mission whose own scripts call it would
+        # break at runtime with nothing said at build time. Look, and turn it back on if needed.
+        self.mist_callers: list[str] = mission_scripts_referencing_mist(self.mission_folder / "src" / "scripts")
+
         # Parse config_override section from mission.yaml (FOOTHOLD-V6-004).
         # target = the upstream config script the override layers on top of (its
         # basename anchors the load position); values = the globals to reassign.
@@ -864,8 +877,16 @@ class MissionBuilderWorker(BaseWorker):
         if self.enabled_community_script_ids is None:
             # No community_scripts section: opt-out scripts active, opt-in (e.g. TUM) off.
             optin_ids = get_optin_community_script_ids()
-            return [s for s in all_scripts if s["id"] not in optin_ids]
-        return [s for s in all_scripts if s["id"] in self.enabled_community_script_ids]
+            active = [s for s in all_scripts if s["id"] not in optin_ids]
+        else:
+            active = [s for s in all_scripts if s["id"] in self.enabled_community_script_ids]
+
+        if self.mist_callers and not any(s["id"] == "mist" for s in active):
+            mist = next((s for s in all_scripts if s["id"] == "mist"), None)
+            if mist:
+                logger.info(t("builder.mist_injected_for_custom_scripts", files=", ".join(self.mist_callers)))
+                active.append(mist)
+        return active
 
     def _community_enabled(self, script_id: str) -> bool:
         """Return True if the given community script id is enabled for this build.
@@ -876,11 +897,39 @@ class MissionBuilderWorker(BaseWorker):
         Returns:
             True when the id is enabled. With no ``community_scripts:`` section
             (``enabled_community_script_ids is None``), opt-out scripts are enabled
-            and opt-in scripts (e.g. TUM) are not.
+            and opt-in scripts (e.g. TUM) are not. MiST is additionally enabled when one of the
+            mission's own scripts calls it, whatever the section says — the two must agree, or the
+            build would package a script it also declares disabled.
         """
+        if script_id == "mist" and self.mist_callers:
+            return True
         if self.enabled_community_script_ids is None:
             return is_community_script_enabled_by_default(script_id)
         return script_id in self.enabled_community_script_ids
+
+    def _community_explicitly_listed(self, script_id: str) -> bool:
+        """Return True when ``mission.yaml`` names *script_id* itself.
+
+        ``_community_enabled`` cannot answer this: it merges the opt-out defaults with
+        the mission's own choices, so "on" says nothing about who turned it on. What
+        tells the two apart is the normalised ``community_scripts`` mapping — the ids
+        `modules:` (or the legacy section) actually spelled out.
+
+        Only messages addressed to the mission maker need the distinction, never the
+        build itself: what gets injected is decided by :meth:`_community_enabled` alone.
+
+        Args:
+            script_id: The community script id, lowercase (e.g. ``"ctld"``).
+
+        Returns:
+            True when the mission spelled the id out, whatever value it gave it.
+            `modules:` keys are lowercased on normalisation but a hand-written
+            ``community_scripts:`` section is not, so the match ignores case.
+        """
+        section = self.mission_yaml.get("community_scripts")
+        if not isinstance(section, dict):
+            return False
+        return any(str(key).lower() == script_id for key in section)
 
     def _find_community_sound_resource_keys(self) -> list[str]:
         """Return mapResource keys whose value is a known CTLD/CSAR sound file.
@@ -939,8 +988,15 @@ class MissionBuilderWorker(BaseWorker):
             yaml_text = config_file.read_text(encoding="utf-8")
             yaml_text = self._ctld_managed_logistics(yaml_text, lines)
             lines.append(f"ctld.configUser = {_lua_long_bracket(yaml_text)}")
-        else:
+        elif self._community_explicitly_listed("ctld"):
             logger.info(t("builder.ctld_no_config", file=CTLD_CONFIG_FILENAME))
+        else:
+            # The mission never wrote CTLD anywhere: it is on because community scripts
+            # are opt-out (FIX-DEFAULT-COMMUNITY-NOISE). Telling this reader to download
+            # ctld-tools reads as "you have already broken something" — they have not,
+            # and the only action they might want is the opt-out. So the message says
+            # why CTLD is there and how to remove it, and mentions the tool as a choice.
+            logger.info(t("builder.ctld_no_config_by_default", file=CTLD_CONFIG_FILENAME))
         return "\n".join(lines) + "\n"
 
     def _ctld_managed_logistics(self, yaml_text: str, lines: list[str]) -> str:
@@ -2411,7 +2467,23 @@ class MissionBuilderWorker(BaseWorker):
         image_keys = {entry.checklist_id: entry.resource_keys for entry in self.checklist_images}
 
         config_file = scripts_dir / "veaf-config.lua"
-        content = generate_config_lua(yaml_dict, checklists=checklists, checklist_images=image_keys)
+        # The generator checks its own output before handing it over. DCS refuses a
+        # `veaf-config.lua` that does not parse *as a whole*, so one malformed value
+        # means no VEAF module initialises at all — and the only trace is in `dcs.log`,
+        # after the mission has been loaded. Stop here instead of shipping it.
+        try:
+            content = generate_config_lua(yaml_dict, checklists=checklists, checklist_images=image_keys)
+        except LuaSyntaxError as exc:
+            logger.error(
+                t(
+                    "builder.generated_config_not_valid_lua",
+                    line=exc.line,
+                    reason=exc.reason,
+                    source=exc.source_line,
+                ),
+                exception_type=RuntimeError,
+            )
+            raise  # pragma: no cover - logger.error aborts first; keeps mypy honest
         config_file.write_text(content, encoding="utf-8")
         logger.info(t("builder.veaf_config_generated", file=config_file))
 

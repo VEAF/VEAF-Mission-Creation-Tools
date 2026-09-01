@@ -60,7 +60,7 @@ close it until you're done).
 - **Copy-paste** this line, then Enter:
 
   ```
-  veaf-tools.exe dcs capture-map --out-dir .
+  .\veaf-tools.exe dcs capture-map --out-dir .
   ```
 
 - → A **`<Map>.json`** file appears in the folder (e.g. `Syria.json`). 🎉
@@ -68,12 +68,17 @@ close it until you're done).
 > Nothing to configure: the program picks up the access code created by
 > `dcs-serve.exe` on its own (in the `dcs-serve.yaml` file, next to it).
 
+> **Keep the `.\`.** "Open in Terminal" opens **PowerShell**, which does not search the current
+> directory — on purpose. Without the `.\` it tells you `veaf-tools.exe` "is not recognized", naming
+> the very file you are looking at. In `cmd`, both forms work, so `.\` is right everywhere. See
+> [PowerShell or Command Prompt?](../mission-maker/GUIDE.en.md#powershell-vs-cmd).
+
 ### If David asked you for the parking spots as well
 
 Add `--parking` at the end of the line:
 
 ```
-veaf-tools.exe dcs capture-map --out-dir . --parking
+.\veaf-tools.exe dcs capture-map --out-dir . --parking
 ```
 
 That makes **two** files instead of one: the usual `<Map>.json`, plus a `parking/<Map>.json` with
@@ -122,7 +127,7 @@ Tick as you go. **No need to redo a map already ticked.**
 5. In the terminal (like step 3), type *(use your mission's real path)*:
 
    ```
-   veaf-tools.exe dcs inject-bridge "C:\...\my-mission.miz"
+   .\veaf-tools.exe dcs inject-bridge "C:\...\my-mission.miz"
    ```
 
    → Your mission is ready (a backup copy is created automatically next to it).

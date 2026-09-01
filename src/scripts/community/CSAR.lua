@@ -251,10 +251,18 @@ end
 -- ***************************************************************
 
 -- Sanity checks of mission designer
-assert(
-  mist ~= nil,
-  "\n\n** HEY MISSION-DESIGNER! **\n\nMiST has not been loaded!\n\nMake sure MiST 4.0.57 or higher is running\n*before* running this script!\n"
-)
+--
+-- VEAF, 2026-08-28 (REFACTOR-CSAR-WITHOUT-MIST): the MiST assertion went with the last MiST call.
+-- Leaving it would have made this script refuse to start in a mission that no longer injects MiST,
+-- which is the whole point of the change. What it checks now is what the script actually needs: the
+-- VEAF framework, whose geometry, id allocation and spawning replaced MiST's here.
+--
+-- VEAF, 2026-08-31: the check itself moved into `csar.initialize`, at the bottom of this file, and
+-- this is not cosmetic. A VEAF build loads the community scripts *before* its own bundle -- CSAR is
+-- fifth, veaf-scripts.lua seventh -- so asserting on `veaf` here refused to start in every mission,
+-- which is what happened in game. The script already knew: it defers `csar.initialize` by two
+-- seconds with the comment "so other scripts (namely the veaf.lua script) are loaded". The check
+-- belongs where the dependency is actually needed, not where the file happens to be read.
 
 csar.addedTo = {}
 
@@ -422,11 +430,13 @@ function csar.spawnCsarAtZone(_zone, _coalition, _description, _randomPoint)
 
   local pos
   if _randomPoint == true then
-    pos = mist.getRandomPointInZone(_zone)
-    pos.z = pos.y
-    pos.y = 0
+    -- veaf.getRandomPointInCircle answers the mission-table shape (y is the easting), which is why
+    -- the two lines below move it into a vec3 — the same conversion mist.getRandomPointInZone needed.
+    local zone = trigger.misc.getZone(_zone)
+    local drawn = veaf.getRandomPointInCircle(zone.point, zone.radius)
+    pos = { x = drawn.x, y = 0, z = drawn.y }
   else
-    pos = mist.utils.zoneToVec3(_zone)
+    pos = veaf.zoneToVec3(_zone)
   end
   if _coalition == coalition.side.BLUE then
     _country = country.id.USA
@@ -1020,7 +1030,7 @@ csar.addSpecialParametersToGroup = function(_spawnedGroup)
 end
 
 function csar.spawnGroup(_coalition, _country, _point, _typeName)
-  local _id = mist.getNextGroupId()
+  local _id = veaf.getNextUnitId()
 
   local _groupName = "Downed Pilot #" .. _id
 
@@ -1046,7 +1056,7 @@ function csar.spawnGroup(_coalition, _country, _point, _typeName)
   _group.category = Group.Category.GROUND
   _group.country = _country
 
-  local _spawnedGroup = Group.getByName(mist.dynAdd(_group).name)
+  local _spawnedGroup = Group.getByName(veaf.addGroup(_group).name)
 
   -- Turn off AI
   if csar.allowDownedPilotCAcontrol == false then
@@ -1056,7 +1066,7 @@ function csar.spawnGroup(_coalition, _country, _point, _typeName)
 end
 
 function csar.createUnit(_x, _y, _heading, _type)
-  local _id = mist.getNextUnitId()
+  local _id = veaf.getNextUnitId()
 
   local _name = string.format("Wounded Pilot #%s", _id)
 
@@ -1258,8 +1268,8 @@ function csar.orderGroupToMoveToPoint(_leader, _destination)
   local _group = _leader:getGroup()
 
   local _path = {}
-  table.insert(_path, mist.ground.buildWP(_leader:getPoint(), "Off Road", 50))
-  table.insert(_path, mist.ground.buildWP(_destination, "Off Road", 50))
+  table.insert(_path, veaf.buildWaypoint(_leader:getPoint(), "Off Road", 50))
+  table.insert(_path, veaf.buildWaypoint(_destination, "Off Road", 50))
 
   local _mission = {
     id = "Mission",
@@ -1626,23 +1636,23 @@ end
 function csar.getPositionOfWounded(_woundedGroup)
   local _woundedTable = csar.convertGroupToTable(_woundedGroup)
 
+  -- MiST took a list of units and averaged them internally; VEAF's renderers take a point, so the
+  -- average is computed here. Same answer, one step made visible.
+  local _position = veaf.getAvgPos(_woundedTable)
+  if not _position then
+    return ""
+  end
+
   local _coordinatesText = ""
-  if csar.coordtype == 0 then -- Lat/Long DMTM
-    _coordinatesText = string.format("%s", mist.getLLString({ units = _woundedTable, acc = csar.coordaccuracy, DMS = 0 }))
-  elseif csar.coordtype == 1 then -- Lat/Long DMS
-    _coordinatesText = string.format("%s", mist.getLLString({ units = _woundedTable, acc = csar.coordaccuracy, DMS = 1 }))
+  if csar.coordtype == 0 or csar.coordtype == 1 then -- Lat/Long, decimal minutes (0) or DMS (1)
+    local _lat, _lon = coord.LOtoLL(_position)
+    _coordinatesText = veaf.toStringLL(_lat, _lon, csar.coordaccuracy, csar.coordtype == 1)
   elseif csar.coordtype == 2 then -- MGRS
-    _coordinatesText = string.format("%s", mist.getMGRSString({ units = _woundedTable, acc = csar.coordaccuracy }))
-  elseif csar.coordtype == 3 then -- Bullseye Imperial
-    _coordinatesText = string.format(
-      "bullseye %s",
-      mist.getBRString({ units = _woundedTable, ref = coalition.getMainRefPoint(_woundedGroup:getCoalition()), alt = 0 })
-    )
-  else -- Bullseye Metric --(medevac.coordtype == 4)
-    _coordinatesText = string.format(
-      "bullseye %s",
-      mist.getBRString({ units = _woundedTable, ref = coalition.getMainRefPoint(_woundedGroup:getCoalition()), alt = 0, metric = 1 })
-    )
+    local _lat, _lon = coord.LOtoLL(_position)
+    _coordinatesText = veaf.toStringMGRS(coord.LLtoMGRS(_lat, _lon), csar.coordaccuracy)
+  else -- Bullseye, imperial (3) or metric (4)
+    local _reference = coalition.getMainRefPoint(_woundedGroup:getCoalition())
+    _coordinatesText = string.format("bullseye %s", veaf.toStringBR(_reference, _position, nil, csar.coordtype == 4) or "")
   end
 
   return _coordinatesText
@@ -2163,7 +2173,7 @@ function csar.inAir(_heli)
 
   -- less than 5 cm/s a second so landed
   -- BUT AI can hold a perfect hover so ignore AI
-  if mist.vec.mag(_heli:getVelocity()) < 0.05 and _heli:getPlayerName() ~= nil then
+  if veaf.vecMag(_heli:getVelocity()) < 0.05 and _heli:getPlayerName() ~= nil then
     return false
   end
   return true
@@ -2174,17 +2184,17 @@ function csar.getClockDirection(_heli, _crate)
 
   local _position = _crate:getPosition().p -- get position of crate
   local _playerPosition = _heli:getPosition().p -- get position of helicopter
-  local _relativePosition = mist.vec.sub(_position, _playerPosition)
+  local _relativePosition = veaf.vecSub(_position, _playerPosition)
 
-  local _playerHeading = mist.getHeading(_heli) -- the rest of the code determines the 'o'clock' bearing of the missile relative to the helicopter
+  local _playerHeading = veaf.getHeading(_heli) -- the rest of the code determines the 'o'clock' bearing of the missile relative to the helicopter
 
   local _headingVector = { x = math.cos(_playerHeading), y = 0, z = math.sin(_playerHeading) }
 
   local _headingVectorPerpendicular = { x = math.cos(_playerHeading + math.pi / 2), y = 0, z = math.sin(_playerHeading + math.pi / 2) }
 
-  local _forwardDistance = mist.vec.dp(_relativePosition, _headingVector)
+  local _forwardDistance = veaf.vecDotProduct(_relativePosition, _headingVector)
 
-  local _rightDistance = mist.vec.dp(_relativePosition, _headingVectorPerpendicular)
+  local _rightDistance = veaf.vecDotProduct(_relativePosition, _headingVectorPerpendicular)
 
   local _angle = math.atan2(_rightDistance, _forwardDistance) * 180 / math.pi
 
@@ -2200,7 +2210,7 @@ function csar.getClockDirection(_heli, _crate)
 end
 
 function csar.getGroupId(_unit)
-  local _unitDB = mist.DBs.unitsById[tonumber(_unit:getID())]
+  local _unitDB = veaf.getUnitRecordById(tonumber(_unit:getID()))
   if _unitDB ~= nil and _unitDB.groupId then
     return _unitDB.groupId
   end
@@ -2212,6 +2222,14 @@ function csar.initialize(force)
   csar.logInfo(string.format("Initializing version %s", csar.Version))
   csar.logTrace(string.format("csar.alreadyInitialized=%s", csar.p(csar.alreadyInitialized)))
   csar.logTrace(string.format("force=%s", csar.p(force)))
+
+  -- The dependency check, here rather than at load time: a VEAF build loads this file before its own
+  -- bundle, so at load time `veaf` is legitimately still nil. By now the two seconds have passed and
+  -- it must be there -- every geometry, id allocation and spawning call below goes through it.
+  assert(
+    veaf ~= nil and veaf.getAvgPos ~= nil,
+    "\n\n** HEY MISSION-DESIGNER! **\n\nThe VEAF framework has not been loaded!\n\nMake sure the VEAF scripts are running\n*before* running this script!\n"
+  )
 
   if csar.alreadyInitialized and not force then
     csar.logInfo(string.format("Bypassing initialization because csar.alreadyInitialized = true"))

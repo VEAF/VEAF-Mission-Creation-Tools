@@ -294,17 +294,116 @@ For **per-module runtime** control (no rebuild), add the Lua call directly in `m
 veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true bypasses BaseLogLevel cap
 ```
 
-### mist.DBs Access
+### Scheduling a function
 
-Do not access `mist.DBs.*` directly. Use the `veaf.mist` wrapper:
+Do not call `timer.scheduleFunction` or `mist.scheduleFunction`. Use `veaf.scheduleFunction`, which
+puts the task on the native DCS timer while keeping the conveniences the code expects: repetition, a
+stop time, arguments as a table, and a task that fails without taking the others down with it.
 
 ```lua
-local unitData  = veaf.mist.getUnitData(unitName)
-local groupData = veaf.mist.getGroupData(groupName)
-local isHuman   = veaf.mist.isHumanUnit(unitName)
-local allUnits  = veaf.mist.getAllUnitData()
-local groupById = veaf.mist.getGroupById(groupId)
+-- once, in 30 seconds
+local id = veaf.scheduleFunction(myFunction, { arg1, arg2 }, timer.getTime() + 30)
+
+-- every 10 seconds, for an hour
+veaf.scheduleFunction(myFunction, {}, timer.getTime() + 10, 10, timer.getTime() + 3600)
+
+veaf.removeFunction(id) -- cancels; answers false if the task has already run
 ```
+
+The implementation lives in `veafScheduler.lua`. There is **no** polling loop: every task is one
+native scheduled call, re-armed by returning its next time, so nothing runs when nothing is due.
+
+### Maths, vectors and conversions
+
+Do not call `mist.utils.*` or `mist.vec.*`. The functions live in `veafMath.lua`, behind `veaf.*`
+façades:
+
+```lua
+veaf.metersToNM(d)  veaf.NMToMeters(d)  veaf.metersToFeet(d)  veaf.feetToMeters(d)  veaf.mpsToKnots(v)
+veaf.vecAdd(a, b)   veaf.vecScalarMult(v, k)   veaf.vecMag(v)   veaf.get2DDist(p1, p2)
+veaf.makeVec3(p, alt)   veaf.makeVec2(p)   veaf.getDir(v, point)   veaf.getNorthCorrection(point)
+veaf.deepCopy(t)
+```
+
+Three traps, in the order they bite:
+
+- **`makeVec3` / `makeVec2` translate between DCS's two coordinate conventions** — read
+  [`docs/agents/dcs-coordinates.md`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-coordinates.md)
+  before using them. Getting it wrong raises no error, only a position a hundred kilometres away.
+- **There is no `veaf.toRadian` or `veaf.toDegree`**: they are `math.rad` and `math.deg`, from Lua's
+  standard library.
+- **There is no `round` in `veafMath`**: it has been `veaf.round` in `veaf.lua` all along, and it is
+  identical to MiST's.
+
+### Rendering a position as text
+
+`veafGeo.lua` assembles coordinate strings, behind two façades:
+
+```lua
+veaf.toStringLL(lat, lon, acc)         -- "42 21.00'N⇥ 43 34.07'E"  (decimal minutes)
+veaf.toStringLL(lat, lon, acc, true)   -- "42 21' 00\"N⇥ 43 34' 04\"E"  (degrees/minutes/seconds)
+veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)  -- "38T KM 123 679"
+```
+
+The geodesy stays DCS's own (`coord.LOtoLL`, `coord.LLtoMGRS`); this module only does the text.
+
+`veafGeo` also carries zones and polygons:
+
+```lua
+veaf.zoneToVec3("ZONE NAME")           -- the zone's centre, or nil when there is no such zone
+veaf.getAvgPos({ "unit1", "unit2" })   -- average position, nil when none of them exists
+veaf.getAvgGroupPos("group name")
+veaf.pointInPolygon(point, corners)    -- accepts either coordinate shape
+veaf.getUnitsInPolygon({ "u1", "u2" }, corners)
+```
+
+And unit id allocation lives in `veafMissionDb.lua`: `veaf.getNextUnitId()`.
+
+**These strings go into F10 reports and briefings**, so they are pinned by literal-string tests. The
+port reproduced MiST to the character, oddities included; correcting one of them changes what pilots
+read and was therefore decided on its own. Both have been: `FIX-DMS-MINUTE-CARRY` (in DMS a minute
+reaching 60 now carries into the degree, as the decimal layout already did) and `FIX-ZERO-HEMISPHERE`
+(a position at exactly zero renders as `N`/`E`, the hemisphere test having moved from `> 0` to
+`>= 0`).
+
+### What the mission holds
+
+`veafMissionDb.lua` answers three questions, and accumulates nothing else.
+
+**The editor snapshot** — every group and unit placed in the Mission Editor, read once from
+`env.mission`. A *mission record* is not a live object: it exists for a unit that has not spawned yet
+and for one already destroyed. That is precisely what `Unit.getByName` cannot do, and why the index
+exists at all.
+
+```lua
+veaf.getUnitRecord(unitName)      -- x, y, alt, type, groupName, coalition, coalitionId, category…
+veaf.getGroupRecord(groupName)
+veaf.getGroupRecordById(groupId)
+veaf.getAllUnitRecords()          -- to iterate
+veaf.getAllGroupRecords()
+veaf.getBullseye("blue")          -- straight from env.mission
+```
+
+**The player roster** — the editor's slots, **plus DCS dynamic slots**, which appear in no
+`env.mission`. It is the only one of the three that refreshes, and it does so when it is read rather
+than on a clock:
+
+```lua
+veaf.isHumanUnit(unitName)
+veaf.getAllHumanRecords()
+```
+
+**The name registry** — what VEAF has named, so a group can respawn under a name it used before:
+
+```lua
+veaf.takeSpawnedName(name)
+veaf.releaseSpawnedName(name)
+veaf.isNameTaken(name)
+```
+
+The old `veaf.mist.getGroupData`, `isHumanUnit`, `getAllUnitData`, `getAllGroupData`,
+`getAllHumanUnitData` and `getGroupById` façades still exist and forward here; new code calls `veaf.*`
+directly. `veaf.mist.getUnitData` was removed: it had no caller.
 
 ---
 
@@ -337,7 +436,10 @@ logger.error("Failed", raise_exception=True)
 
 1. Create `src/python/veaf-tools/new_feature_injector/`
 2. Implement `new_feature_worker.py` with a `run()` method
-3. Register the command in `veaf-tools.py` using `typer`
+3. Register the command with `typer` under `veaf_tools/commands/`, then file it in a group in
+   `veaf_tools/command_tree.py` — an unplaced command fails the tests, because it would vanish from
+   `--help`. Nothing goes into `veaf-tools.py`: that entry point delegates to
+   `veaf_tools.app.main()` and knows no commands.
 4. Add YAML config schema in `models.py`
 
 ### Shared Test Helpers {#shared-test-helpers}

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.17.0"
+version = "6.18.0"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -12,6 +12,11 @@ packages = [
     {include = "veaf_build"},
     {include = "veaf_tools", from = "src/python/veaf-tools"},
     {include = "veaf_mission_mcp", from = "src/python/veaf-tools"},
+    {include = "veaf_logs", from = "src/python/veaf-tools"},
+]
+include = [
+    # Le catalogue de regles de veaf-logs est une donnee du package, pas du code.
+    { path = "src/python/veaf-tools/veaf_logs/rules.json", format = ["sdist", "wheel"] },
 ]
 
 [tool.poetry.dependencies]
@@ -27,6 +32,14 @@ InquirerPy = ">=0.3,<1"
 requests = ">=2.28,<3"
 mcp = "^2.0.0"
 "ruamel.yaml" = ">=0.18,<1.0"
+# Interface graphique de veaf-logs uniquement. Optionnelle : elle pese plus de
+# 200 Mo installee, et rien d'autre dans veaf-tools n'en depend.
+# python = "<3.15" : la borne haute que le paquet declare lui-meme. Sans elle,
+# la resolution echoue, `^3.11` allant jusqu'a 4.0. Meme raison que pyinstaller.
+PySide6-Essentials = { version = ">=6.6", optional = true, python = "<3.15" }
+
+[tool.poetry.extras]
+logs = ["PySide6-Essentials"]
 
 [tool.poetry.scripts]
 veaf-build = "veaf_build:main"
@@ -39,6 +52,7 @@ check-vendored = "veaf_build.vendored_check_cli:main"
 docs-check = "veaf_build.docs_check:main"
 docs-stamp-version = "veaf_build.docs_version_stamp:main"
 veaf-mission-mcp = "veaf_mission_mcp.server:main"
+veaf-logs = "veaf_logs.ui.main_window:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"
@@ -132,7 +146,7 @@ addopts = [
     "--cov=src/python/veaf-tools",
     "--cov-report=xml",
     "--cov-report=term-missing:skip-covered",
-    "--cov-fail-under=81",
+    "--cov-fail-under=85",
 ]
 
 # ---------------------------------------------------------------------------

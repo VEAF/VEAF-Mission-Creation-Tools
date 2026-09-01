@@ -271,17 +271,16 @@ function VeafCombatMissionObjective:configureAsPreventDestructionOfSceneryObject
       local failed = false
       local killedObjectsNames = nil
 
-      local killedObjects = mist.getDeadMapObjsInZones(zones)
-      ----veaf.loggers.get(veafCombatMission.Id):trace(veaf.serialize("killedObjects", killedObjects))
+      local killedObjects = veaf.getDestroyedSceneryInZones(zones)
 
       for _, object in pairs(killedObjects) do
-        veaf.loggers.get(veafCombatMission.Id):trace(string.format("checking id_ = [%s]", object.object.id_))
-        if objects[object.object.id_] then
-          veaf.loggers.get(veafCombatMission.Id):trace(string.format("found [%s]", objects[object.object.id_]))
+        veaf.loggers.get(veafCombatMission.Id):trace(string.format("checking id = [%s]", object.id))
+        if objects[object.id] then
+          veaf.loggers.get(veafCombatMission.Id):trace(string.format("found [%s]", objects[object.id]))
           if killedObjectsNames then
-            killedObjectsNames = killedObjectsNames .. ", " .. objects[object.object.id_]
+            killedObjectsNames = killedObjectsNames .. ", " .. objects[object.id]
           else
-            killedObjectsNames = objects[object.object.id_]
+            killedObjectsNames = objects[object.id]
           end
           failed = true
         end
@@ -714,7 +713,7 @@ end
 
 function VeafCombatMission:scheduleWatchdogFunction()
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:scheduleWatchdogFunction()", self.name or ""))
-  self.watchdogFunctionId = mist.scheduleFunction(
+  self.watchdogFunctionId = veaf.scheduleFunction(
     veafCombatMission.CompletionCheck,
     { self.name },
     timer.getTime() + veafCombatMission.SecondsBetweenWatchdogChecks
@@ -725,8 +724,8 @@ end
 function VeafCombatMission:unscheduleWatchdogFunction()
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:unscheduleWatchdogFunction()", self.name or ""))
   if self.watchdogFunctionId then
-    veaf.loggers.get(veafCombatMission.Id):debug(string.format("mist.removeFunction()"))
-    mist.removeFunction(self.watchdogFunctionId)
+    veaf.loggers.get(veafCombatMission.Id):debug(string.format("veaf.removeFunction()"))
+    veaf.removeFunction(self.watchdogFunctionId)
     self.watchdogFunctionId = nil
   end
   return self
@@ -866,7 +865,10 @@ function VeafCombatMission:activate(silent)
 
   for _, missionElement in pairs(self.elements) do
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("processing element [%s]", missionElement:getName()))
-    local chance = math.random(0, 100)
+    -- FIX-COMBATMISSION-SPAWNCHANCE-OFFSET: the draw is over 100 values, not 101. `math.random(0, 100)`
+    -- compared inclusively gave N+1 chances in 101 for `#spawnchance=N`, so `0` — the only value a
+    -- mission maker writes expecting a guarantee — spawned once in 101. 1..100 gives exactly N in 100.
+    local chance = math.random(1, 100)
     if chance <= missionElement:getSpawnChance() then
       -- spawn the element
       veaf.loggers.get(veafCombatMission.Id):debug(string.format("chance hit (%d <= %d)", chance, missionElement:getSpawnChance()))
@@ -879,14 +881,10 @@ function VeafCombatMission:activate(silent)
         end
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnRadius=%s", veaf.p(_spawnRadius)))
 
-        local vars = {}
-        vars.gpName = groupName
-        vars.action = "clone"
-        vars.point = _spawnPoint
-        vars.radius = _spawnRadius
-        vars.disperse = false
-        vars.route = mist.getGroupRoute(groupName, "task")
-        --veaf.loggers.get(veafCombatMission.Id):trace(string.format("vars=%s",veaf.p(vars)))
+        -- Built once, outside the loop: every clone of this element starts from the same recipe and
+        -- only the name differs.
+        local spawn =
+          VeafGroupSpawn:new():forGroup(groupName):at(_spawnPoint):withRadius(_spawnRadius):withRoute(veaf.getGroupRoute(groupName))
 
         for i = 1, missionElement:getScale() do
           if not self.spawnedNamesIndex[groupName] then
@@ -896,7 +894,17 @@ function VeafCombatMission:activate(silent)
           end
           local spawnedGroupName = string.format("%s #%04d", groupName, self.spawnedNamesIndex[groupName])
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedGroupName=%s", veaf.p(spawnedGroupName)))
-          local _group = mist.teleportToPoint(vars, true)
+          -- FIX-CLONE-KEEPS-UNIT-NAMES: named here rather than relabelled afterwards. A clone names
+          -- its units after its group, so a group renamed once the data is built left its units named
+          -- after the intermediate name `freeNameFrom` picked — and nothing ever registers that
+          -- intermediate name, so every clone of the template picked the same one and handed DCS the
+          -- same units. DCS answers that by removing the first ones, which is why the second half of
+          -- a scaled element used to remove the first half.
+          --
+          -- The unit-renaming loop that used to follow is gone with it: it wrote its result into
+          -- `unit.groupName`, which nothing reads, so it renamed nothing. `_spawn` does the renaming
+          -- now, and does it in the field `addGroup` actually submits.
+          local _group = spawn:named(spawnedGroupName):buildCloneData()
           -- VMR-021: `_group.groupName = ...` used to sit **between** two `if _group then`
           -- guards, unguarded itself, so a nil return from mist crashed the activation right
           -- after the code had just finished checking for exactly that. The guards are merged
@@ -905,33 +913,32 @@ function VeafCombatMission:activate(silent)
             for _, unit in pairs(_group.units) do
               unit.skill = missionElement:getSkill()
             end
-            _group.groupName = spawnedGroupName
-          end
-          if _group then
-            for _, unit in pairs(_group.units) do
-              local unitName = unit.unitName
-              veaf.loggers.get(veafCombatMission.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
-              if not self.spawnedNamesIndex[unitName] then
-                self.spawnedNamesIndex[unitName] = 1
-              else
-                self.spawnedNamesIndex[unitName] = self.spawnedNamesIndex[unitName] + 1
-              end
-              local spawnedUnitName = string.format("%s #%04d", unitName, self.spawnedNamesIndex[unitName])
-              unit.groupName = spawnedUnitName
-              veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedUnitName=%s", veaf.p(spawnedUnitName)))
-            end
           end
           veaf.loggers.get(veafCombatMission.Id):trace(string.format("_group=%s", veaf.p(_group)))
-          local _spawnedGroup = mist.dynAdd(_group)
+          local _spawnedGroup = veaf.addGroup(_group)
           if _spawnedGroup then
             veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s", veaf.p(_spawnedGroup.name)))
             local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
-            veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s", veaf.p(_dcsSpawnedGroup:getName())))
-            for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
-              veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.unit.name=%s", veaf.p(unit:getName())))
-            end
+            -- The `if _spawnedGroup then` above vouches for the object VEAF built, not for what DCS
+            -- answers a moment later. When the lookup comes back empty the spawn itself still
+            -- happened, so this says so and moves on rather than raising on a trace line — losing the
+            -- whole combat mission for the sake of a log.
+            if _dcsSpawnedGroup then
+              veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s", veaf.p(_dcsSpawnedGroup:getName())))
+              for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
+                veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.unit.name=%s", veaf.p(unit:getName())))
+              end
 
-            self:addSpawnedGroup(_dcsSpawnedGroup)
+              self:addSpawnedGroup(_dcsSpawnedGroup)
+            else
+              veaf.loggers.get(veafCombatMission.Id):warn(
+                string.format(
+                  "group [%s] was spawned but DCS does not know it; mission [%s] will not track it",
+                  veaf.p(_spawnedGroup.name),
+                  veaf.p(self.name)
+                )
+              )
+            end
           end
         end
       end
@@ -1163,7 +1170,7 @@ function veafCombatMission.ActivateMission(name, silent, unitName)
   if not silent and not mission:isSilent() then
     if result then
       veaf.outTextForUnit(unitName, veaf.t("entity.activated", "VeafCombatMission " .. mission:getFriendlyName()), 10)
-      mist.scheduleFunction(veafCombatMission.GetInformationOnMission, { { name } }, timer.getTime() + 1)
+      veaf.scheduleFunction(veafCombatMission.GetInformationOnMission, { { name } }, timer.getTime() + 1)
     else
       veaf.outTextForUnit(unitName, veaf.t("entity.already_active", "VeafCombatMission " .. mission:getFriendlyName()), 10)
     end

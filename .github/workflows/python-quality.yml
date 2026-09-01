@@ -15,6 +15,23 @@ on:
       # covered by pyproject.toml above, which is why the gap only ever showed on minors.
       - "poetry.lock"
       - ".github/workflows/python-quality.yml"
+      # The suite asserts on the repository, not only on the Python tree. Everything below is read
+      # by a test, so a change confined to it must run the job or the assertion is decorative:
+      #   .backlog/**    test_backlog_status_consistency, test_docs_check
+      #   src/scripts/** ~15 tests (bundle manifest, module scanner, defaults, CTLD config, …)
+      #   doc/**         test_documented_lua_defaults, test_v5_converter, test_docs_check
+      #   plugin/**      test_plugin_version (the version lockstep)
+      #   *.md           test_changelog_process
+      # Measured 2026-09-01: #877, #875 and #866 each merged without ever running pytest, ruff or
+      # mypy, and #877 carried a stale scope table that turned `develop` red on the very test meant
+      # to catch it. `test_ci_trigger_paths.py` now keeps this list honest.
+      - ".backlog/**"
+      - "src/scripts/**"
+      - "doc/**"
+      - "plugin/**"
+      - "*.md"
+  # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose; the two are
+  # kept identical by `test_ci_trigger_paths.py`.
   pull_request:
     paths:
       - "src/python/**"
@@ -23,6 +40,11 @@ on:
       - "pyproject.toml"
       - "poetry.lock"
       - ".github/workflows/python-quality.yml"
+      - ".backlog/**"
+      - "src/scripts/**"
+      - "doc/**"
+      - "plugin/**"
+      - "*.md"
 
 jobs:
   python-quality:
@@ -37,9 +59,15 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
+      # veaf-logs is a Qt application: its tests run headless (QT_QPA_PLATFORM=offscreen,
+      # set by their conftest), but the offscreen plugin still links against these.
+      - name: Install the Qt runtime libraries
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3
+
       - name: Install dependencies
         # Install runtime + dev deps; exclude only the 'build' group (pyinstaller)
-        # --all-extras installs lupa (lua extra) needed by miz_tools / luadata
+        # --all-extras installs lupa (lua extra) needed by miz_tools / luadata,
+        # and PySide6 (logs extra) needed by veaf-logs
         run: poetry install --without build --all-extras
 
       # The whole Python tree, not just the shipped package: test/python/ was under no gate at all,
@@ -108,3 +136,57 @@ jobs:
           cd smoke
           ../dist/veaf-tools generate-config --output .
           test -s mission.yaml
+
+      # The themed tree the documentation describes must exist in the **binary**, not only in
+      # a checkout: it did not, from 6.14.0 until FIX-EXE-COMMAND-TREE, because the entry
+      # script PyInstaller reads was a copy of `main()` that never grew `build_cli_tree`. The
+      # flat alias is checked in the same breath — the tree keeps every older command line
+      # working, and that promise is only worth what a test says about it.
+      - name: The executable exposes the themed command tree, and the flat aliases
+        run: |
+          ./dist/veaf-tools content extract-aircraft-groups --help
+          ./dist/veaf-tools extract-aircraft-groups --help
+          ./dist/veaf-tools convert v5 --help
+
+  # ---------------------------------------------------------------------------
+  # Does the veaf-logs executable start?
+  #
+  # Same blind spot as above, and it has already bitten: the first build of this
+  # binary died instantly because its entry point used a relative import, which
+  # resolves fine from the checkout and not at all from a PyInstaller bundle. The
+  # window is the product here, so "it opens one and reads a log" is the test.
+  # ---------------------------------------------------------------------------
+  veaf-logs-exe-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install the Qt runtime libraries
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies (including PyInstaller)
+        run: poetry install --with build --all-extras
+
+      - name: Build the veaf-logs executable
+        run: poetry run pyinstaller veaf-logs.spec --noconfirm
+
+      # A window has no --help to walk, so we hand it a real log and check that it
+      # is still alive a few seconds later. A bundle whose imports are broken dies
+      # at once, which is exactly what this catches.
+      - name: The executable opens a log and keeps running
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cat > smoke.log <<'LOG'
+          2026-08-31 11:50:40.872 ERROR   APP (Main): Corrupt damage model.
+          LOG
+          timeout 20 ./dist/veaf-logs smoke.log && code=$? || code=$?
+          # 124 is what `timeout` returns when it had to stop a healthy process.
+          test "$code" = "124" || { echo "veaf-logs exited on its own (code $code)"; exit 1; }

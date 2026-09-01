@@ -38,7 +38,6 @@ disabled_community_scripts:
   - ctld
   - aien
   - csar
-  - hercules
   - skynet
   - tum
 

@@ -672,7 +672,7 @@ function AirWaveZone:reset()
 
   -- deschedule the check() function
   if self.checkFunctionSchedule then
-    mist.removeFunction(self.checkFunctionSchedule)
+    veaf.removeFunction(self.checkFunctionSchedule)
     self.checkFunctionSchedule = nil
   end
 
@@ -753,13 +753,17 @@ function AirWaveZone:handleCrippledEnemyUnit(waveNumber, unit)
   unit:destroy()
 end
 
+--- The player aircraft this zone watches, by unit name.
+---
+--- Rebuilt on every call: a player can take a slot between two checks. The roster it reads already
+--- covers **dynamic slots** — this function used to sweep `coalition.getGroups` itself, under the
+--- comment *"Dynamic slot players via DCS coalition API (not tracked by mist)"*, because MiST's
+--- database missed them. `veafMissionDb` owns that sweep now, so the workaround is gone and every
+--- other consumer of the roster gets it too.
 function AirWaveZone:getPlayerUnitsNames()
-  -- Rebuild each time to include dynamic slot players not tracked by mist
   self.playerHumanUnitsNames = {}
 
-  -- Static slot players from mist DB
-  local seenUnits = {}
-  for _, unit in pairs(veaf.mist.getAllHumanUnitData()) do
+  for _, unit in pairs(veaf.getAllHumanRecords()) do
     local coalitionId = 0
     if unit.coalition then
       if unit.coalition:lower() == "red" then
@@ -768,37 +772,8 @@ function AirWaveZone:getPlayerUnitsNames()
         coalitionId = coalition.side.BLUE
       end
     end
-    if self.playerCoalitions[coalitionId] then
-      if unit.category then
-        if unit.category == "plane" then
-          seenUnits[unit.unitName] = true
-          table.insert(self.playerHumanUnitsNames, unit.unitName)
-        end
-      end
-    end
-  end
-
-  -- Dynamic slot players via DCS coalition API (not tracked by mist)
-  for _, checkCoalitionId in pairs({ coalition.side.RED, coalition.side.BLUE }) do
-    if self.playerCoalitions[checkCoalitionId] then
-      local groups = coalition.getGroups(checkCoalitionId, Group.Category.AIRPLANE)
-      if groups then
-        for _, grp in pairs(groups) do
-          local units = grp:getUnits()
-          if units then
-            for _, dcsUnit in pairs(units) do
-              if dcsUnit:getPlayerName() then
-                local dynamicUnitName = dcsUnit:getName()
-                -- Only add if not already present from mist DB
-                if not seenUnits[dynamicUnitName] then
-                  seenUnits[dynamicUnitName] = true
-                  table.insert(self.playerHumanUnitsNames, dynamicUnitName)
-                end
-              end
-            end
-          end
-        end
-      end
+    if self.playerCoalitions[coalitionId] and unit.category == "plane" then
+      table.insert(self.playerHumanUnitsNames, unit.unitName)
     end
   end
 
@@ -878,9 +853,9 @@ function AirWaveZone:check()
             else
               veaf.loggers.get(veafAirWaves.Id):debug("flak out of zone player unitName=%s", veaf.lp(unitName))
               local point = unit:getPoint()
-              local positionForFlak1 = mist.vec.add(point, mist.vec.scalarMult(unit:getVelocity(), 1))
-              local positionForFlak2 = mist.vec.add(point, mist.vec.scalarMult(unit:getVelocity(), 2))
-              local positionForFlak3 = mist.vec.add(point, mist.vec.scalarMult(unit:getVelocity(), 3))
+              local positionForFlak1 = veaf.vecAdd(point, veaf.vecScalarMult(unit:getVelocity(), 1))
+              local positionForFlak2 = veaf.vecAdd(point, veaf.vecScalarMult(unit:getVelocity(), 2))
+              local positionForFlak3 = veaf.vecAdd(point, veaf.vecScalarMult(unit:getVelocity(), 3))
               veafSpawn.spawnBomb(positionForFlak1, 50, 5, 25 + seconds - self.maxSecondsOutsideOfZonePlayers, positionForFlak1.y, 50)
               veafSpawn.spawnBomb(positionForFlak2, 50, 5, 25 + seconds - self.maxSecondsOutsideOfZonePlayers, positionForFlak2.y, 50)
               veafSpawn.spawnBomb(positionForFlak3, 50, 5, 25 + seconds - self.maxSecondsOutsideOfZonePlayers, positionForFlak3.y, 50)
@@ -933,10 +908,10 @@ function AirWaveZone:check()
 
   if self.checkFunctionSchedule then
     -- deschedule if needed
-    mist.removeFunction(self.checkFunctionSchedule)
+    veaf.removeFunction(self.checkFunctionSchedule)
     self.checkFunctionSchedule = nil
   end
-  self.checkFunctionSchedule = mist.scheduleFunction(function(zone)
+  self.checkFunctionSchedule = veaf.scheduleFunction(function(zone)
     veaf.safeCall(AirWaveZone.check, zone)
   end, { self }, timer.getTime() + veafAirWaves.WATCHDOG_DELAY + math.random(0, 2)) -- randomize reschedules so not all zones are working at the same time
 end
@@ -1033,8 +1008,31 @@ function AirWaveZone:deployWaves()
           end
         end
         veaf.loggers.get(veafAirWaves.Id):debug("running command [%s]", veaf.lp(command))
-        local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
-        local randomPosition = mist.getRandPointInCircle(position, self.respawnRadius)
+        -- `zoneCenter.x` is the northing and `zoneCenter.z` the easting, so the latitude delta goes on
+        -- `x` and the longitude delta on `z`, both added. Until 2026-09-01 this read
+        -- `x = zoneCenter.x - lonDelta, z = zoneCenter.z + latDelta`, which sent the *first* bracket
+        -- number east and the *second* one south — neither where its name says, and the northing
+        -- subtracted on top, so a positive "latitude" offset moved away from the pole. The same swap
+        -- sat in all four sites across this module and `veafQraCore`, and in the documented examples.
+        -- See FIX-WAVE-OFFSET-AXES: a mission that set a non-zero offset moves, which is why the
+        -- change is called out in the changelog rather than slipped in.
+        local position = { x = zoneCenter.x + latDelta, y = zoneCenter.y, z = zoneCenter.z + lonDelta }
+        -- The draw answers the mission-table shape — `{ x, y }`, easting in `y`, no `z` — because
+        -- eleven of its eighteen call sites hand it straight to `veaf.placePointOnLand`, which takes
+        -- exactly that, and four more read it as a vec2 themselves (`land.getSurfaceType`, the two
+        -- mission-table writes in `veafDcsSpawner`).
+        --
+        -- `veafInterpreter.execute` takes the other shape: a runtime vec3 whose easting is `z` and
+        -- whose `y` is the altitude, which is what `veafSpawnGround` reads out of it. Passing the
+        -- draw over untouched left the easting absent and put it in the altitude, so the command
+        -- spawned on the theatre's central meridian. See docs/agents/dcs-coordinates.md.
+        --
+        -- The altitude is the zone centre's, the same one the DCS-group branch below uses.
+        -- `veafSpawnAircraft.lua:1037` converts the same way but takes a *computed* altitude, which
+        -- is why the three converting call sites cannot share one vec3 helper.
+        local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
+        randomPosition.z = randomPosition.y
+        randomPosition.y = position.y
         local spawnedGroupsNames = {}
         veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
         for _, newGroupName in pairs(spawnedGroupsNames) do
@@ -1044,15 +1042,17 @@ function AirWaveZone:deployWaves()
         -- this is a DCS group
         local groupName = groupNameOrCommand
         veaf.loggers.get(veafAirWaves.Id):debug("spawning group [%s]", veaf.lp(groupName))
-        local groupData = mist.getGroupData(groupName)
+        local groupData = veaf.getGroupRecord(groupName)
         veaf.loggers.get(veafAirWaves.Id):trace("groupData=%s", veaf.lp(groupData))
         if not groupData then
           veaf.loggers.get(veafAirWaves.Id):error("group [%s] does not exist in the mission!", veaf.p(groupName))
         else
+          -- Latitude on the northing, longitude on the easting, both added — see the command branch
+          -- above for what this used to do and why it changed (FIX-WAVE-OFFSET-AXES).
           local spawnSpot = {
-            x = zoneCenter.x - self.respawnDefaultOffset.lonDelta,
+            x = zoneCenter.x + self.respawnDefaultOffset.latDelta,
             y = zoneCenter.y,
-            z = zoneCenter.z + self.respawnDefaultOffset.latDelta,
+            z = zoneCenter.z + self.respawnDefaultOffset.lonDelta,
           }
           -- Try and set the spawn spot at the place the group has been set in the Mission Editor.
           -- Unfortunately this is sometimes not possible because DCS is not returning the group units for some reason.
@@ -1063,15 +1063,14 @@ function AirWaveZone:deployWaves()
             spawnSpot = { x = groupData.units[1].x, y = groupData.units[1].alt, z = groupData.units[1].y }
           end
           veaf.loggers.get(veafAirWaves.Id):trace("spawnSpot=%s", veaf.lp(spawnSpot))
-          local vars = {}
-          vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
-          vars.point.z = vars.point.y
-          vars.point.y = spawnSpot.y
-          vars.gpName = groupName
-          vars.action = "clone"
-          vars.route = mist.getGroupRoute(groupName, "task")
-          veaf.loggers.get(veafAirWaves.Id):trace("vars=%s", veaf.lp(vars))
-          local newGroup = mist.teleportToPoint(vars) -- respawn with radius
+          -- The scatter is the chain's business now, which is what removes the three lines of
+          -- point.z/point.y juggling this used to copy from its twin in veafQraCore.
+          local newGroup = VeafGroupSpawn:new()
+            :forGroup(groupName)
+            :at(spawnSpot)
+            :withRadius(self.respawnRadius)
+            :withRoute(veaf.getGroupRoute(groupName))
+            :clone()
           if newGroup then
             table.insert(self.spawnedGroupsNames, newGroup.name)
           end
@@ -1144,7 +1143,7 @@ function AirWaveZone:signalDeploy()
         -- compute BRAA of closest group
         local braa = { bearing = -1, distance = 9999 }
         for _, spawnedGroupName in pairs(self.spawnedGroupsNames) do
-          local spawnedGroupPosition = mist.getAvgGroupPos(spawnedGroupName)
+          local spawnedGroupPosition = veaf.getAvgGroupPos(spawnedGroupName)
           local unitPosition = nil
           if unitInZone and unitInZone:getPosition() then
             unitPosition = unitInZone:getPosition().p
@@ -1253,7 +1252,7 @@ function AirWaveZone:start()
   -- draw the zone
   if self.drawZone then
     if self.triggerZoneName then
-      self.zoneDrawing = mist.marker.drawZone(self.triggerZoneName, { message = self:getDescription(), readOnly = true })
+      self.zoneDrawing = veaf.drawTriggerZone(self.triggerZoneName, { message = self:getDescription() })
     else
       self.zoneDrawing = VeafCircleOnMap:new()
         :setName(self:getName())
@@ -1279,7 +1278,7 @@ function AirWaveZone:stop()
   -- erase the zone
   if self.zoneDrawing then
     if self.triggerZoneName then
-      mist.marker.remove(self.zoneDrawing.markId)
+      veaf.removeDrawing(self.zoneDrawing.markId)
     else
       self.zoneDrawing:erase()
     end
@@ -1498,4 +1497,8 @@ function veafAirWaves.get(aNameString)
   return veafAirWaves.zones[aNameString]
 end
 
+-- No `veaf.registerModule` here, and no `veafAirWaves.initialize()` to register: this module is used
+-- by construction — a mission declares `VeafAirWaveZone:new()…:start()` chains and there is nothing
+-- global to start. The generated `veaf-config.lua` emits those chains and skips the init call
+-- (`_NO_INIT_MODULES` in `lua_config_generator.py`). See docs/agents/module-initialisation.md.
 veaf.loggers.get(veafAirWaves.Id):info(veaf.loggers.get(veafAirWaves.Id):getVersionInfo())

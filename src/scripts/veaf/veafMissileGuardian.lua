@@ -171,7 +171,7 @@ function VeafMG_Weapon:getCurrentEnergy()
   if self:getDcsWeapon() then
     local _mass = 250 -- let's say the missile weights 250kg
     local _vector = self:getDcsWeapon():getVelocity()
-    local _absVelocity = mist.vec.mag(_vector)
+    local _absVelocity = veaf.vecMag(_vector)
     local _kinetic = (_mass / 2) * _absVelocity * _absVelocity
     local _alt = self:getDcsWeapon():getPoint().z
     local _potential = _mass * 9.81 * _alt
@@ -293,7 +293,7 @@ function VeafMG_Guardian:onEvent(event)
         veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_targetName = %s", veaf.p(_targetName)))
         if self.protectedUnits[_targetName] then
           -- check if the target is in the protected zone
-          local _inZone = mist.pointInPolygon(_target:getPoint(), self.protectedZone)
+          local _inZone = veaf.pointInPolygon(_target:getPoint(), self.protectedZone)
           veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_inZone = %s", veaf.p(_inZone)))
           if _inZone then
             -- encapsulate the event weapon

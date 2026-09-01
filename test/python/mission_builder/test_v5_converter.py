@@ -505,9 +505,26 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_missionconfig(folder, "-- test\n")
             self._make_community_folder(folder, ["mist.lua", "CTLD.lua"])
             report = V5Converter().convert(folder, backup=False)
-            self.assertIn("mist", report.detected_community_script_ids)
             self.assertIn("ctld", report.detected_community_script_ids)
             self.assertNotIn("skynet", report.detected_community_script_ids)
+            # MiST is the exception: v5 shipped it in every mission, so finding the file proves
+            # nothing. Nothing here calls it, so the conversion drops it (DROP-MIST ticket 08).
+            self.assertNotIn("mist", report.detected_community_script_ids)
+
+    def test_scan_keeps_mist_when_a_mission_script_calls_it(self) -> None:
+        """The case that must survive the conversion: an Open Training mission, whose HoundElint
+        calls mist.DBs.humansByName. Dropping MiST there would break it in flight, not at build."""
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "-- test\n")
+            (folder / "src" / "scripts" / "HoundElint.lua").write_text(
+                "for name in pairs(mist.DBs.humansByName) do print(name) end\n", encoding="utf-8"
+            )
+            self._make_community_folder(folder, ["mist.lua"])
+            report = V5Converter().convert(folder, backup=False)
+            self.assertIn("mist", report.detected_community_script_ids)
+            self.assertEqual(report.mist_callers, ["HoundElint.lua"])
+            self.assertIn("MIST: true", (folder / "mission.yaml").read_text())
 
     def test_scan_no_community_folder_yields_empty_set(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -524,7 +541,8 @@ class TestV5ConverterIntegration(unittest.TestCase):
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
             self.assertIn("modules:", yaml_content)
-            self.assertIn("MIST: true", yaml_content)
+            # MiST: present in the bundle but called by nothing, so the conversion leaves it off.
+            self.assertIn("MIST: false", yaml_content)
             self.assertIn("CTLD: true", yaml_content)
             self.assertIn("SKYNET: false", yaml_content)
 
@@ -589,7 +607,7 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_community_folder(folder, ["mist.lua", "TheUniversalMission.lua"])
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
-            self.assertIn("MIST: true", yaml_content)  # opt-out, detected → true
+            self.assertIn("MIST: false", yaml_content)  # opt-in and called by nothing here
             self.assertIn("TUM: false", yaml_content)  # opt-in, even when detected → false
             self.assertNotIn("TUM: true", yaml_content)
 

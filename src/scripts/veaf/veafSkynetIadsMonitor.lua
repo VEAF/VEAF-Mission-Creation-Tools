@@ -162,7 +162,7 @@ function VeafSkynetMonitorDescriptor:GetStringElementStructure(details, sDetailT
 
     local sMaximumRange = ""
     if iMaximumRangeMeters then
-      iMaximumRangeMeters = veaf.round(mist.utils.metersToNM(iMaximumRangeMeters), 1)
+      iMaximumRangeMeters = veaf.round(veaf.metersToNM(iMaximumRangeMeters), 1)
       sMaximumRange = " range:" .. iMaximumRangeMeters .. "nm"
     end
     s = self:AppendString(s, sDetailType .. ":" .. #details .. sMaximumRange)
@@ -607,7 +607,7 @@ function veafSkynetMonitor.AddMonitoringTask(task)
 
   if veafSkynetMonitor._monitoringThreadId == nil then
     veaf.loggers.get(veafSkynetMonitor.Id):trace("Starting mist thread")
-    veafSkynetMonitor._monitoringThreadId = mist.scheduleFunction(
+    veafSkynetMonitor._monitoringThreadId = veaf.scheduleFunction(
       veafSkynetMonitor.ExecuteMonitoringTasks,
       {},
       timer.getTime() + veafSkynetMonitor._interval,
@@ -631,7 +631,7 @@ function veafSkynetMonitor.RemoveMonitoringTask(sTaskName)
 
   if veaf.length(veafSkynetMonitor._monitoringTasks) <= 0 then
     veaf.loggers.get(veafSkynetMonitor.Id):trace("Nothing to monitor, stopping mist thread")
-    mist.removeFunction(veafSkynetMonitor._monitoringThreadId)
+    veaf.removeFunction(veafSkynetMonitor._monitoringThreadId)
   end
 end
 
@@ -650,5 +650,11 @@ end
 function veafSkynetMonitor.initialize()
   veaf.loggers.get(veafSkynetMonitor.Id):info("Initializing module")
 end
+
+-- Registered although `initialize()` does nothing but log: the generated `veaf-config.lua` already
+-- calls it on every mission, and a registry that omits it describes a framework that does not exist.
+-- Order 225 puts it just after veafSkynet (220), which is what it monitors, and before veafRemote
+-- (230). See docs/agents/module-initialisation.md.
+veaf.registerModule(veafSkynetMonitor.Id, veafSkynetMonitor.initialize, { enable = true }, 225)
 
 veaf.loggers.get(veafSkynetMonitor.Id):info(veaf.loggers.get(veafSkynetMonitor.Id):getVersionInfo())

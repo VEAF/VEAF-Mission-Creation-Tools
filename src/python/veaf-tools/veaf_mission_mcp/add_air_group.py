@@ -8,9 +8,10 @@ aircraft at its stand's exact position.
 
 Settled in game on 2026-08-15: a stand's ``parking`` is the capture's ``Term_Index`` and the aircraft
 seats correctly from the exact position, with ``parking_id`` set equal to ``parking`` (the editor's own
-``parking_id`` is not in the capture and is not load-bearing). Real Caucasus missions park aircraft
-only on terminal types **104** and **68**, so those are the stands offered; an airfield with none is
-refused rather than seating an aircraft on a runway threshold.
+``parking_id`` is not in the capture and is not load-bearing). The stands offered are
+``veaf_libs.dcs_parking.AIRCRAFT_STAND_TYPES`` — **68**, **72** and **104**, DCS's own
+``FighterAircraft`` mask; an airfield with none of them is refused rather than seating an aircraft on
+a runway threshold or a helipad.
 
 Start types:
 

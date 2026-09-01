@@ -447,6 +447,56 @@ blue:
     Senaki-Kolkhi: {}
 ```
 
+### Where does a base's list of offered aircraft come from? {#dynslot-offered-aircraft}
+
+This is the most frequent question about dynamic slots, and the answer is **written nowhere in
+`warehouses.yaml`**: the list is computed at build time.
+
+A base offers the aircraft that have, **in the mission**, a dynamic-slot template group
+(`dynSpawnTemplate`) of **its own coalition**. In practice:
+
+1. you place one group per aircraft type in the Mission Editor, ticked as a dynamic-slot template
+   (or you let step 3, `dynamic-slot-templates.yaml`, do it for you);
+2. at build time, the `warehouses` step collects those template groups per coalition;
+3. every selected airbase gets **all** of its coalition's ones, stocked unlimited, plus a
+   `linkDynTempl` link to the matching template group.
+
+That is why a three-line `warehouses.yaml` is enough to open the whole map: the list does not come
+from the file, it comes from the template groups present in the mission. To add an aircraft, add its
+template group; to remove one, remove the template group.
+
+An explicit `aircrafts:` list (in `defaults:` or in an airport override) **replaces** that automatic
+choice: only the types you list are stocked.
+
+### DCS only offers what the airfield can park {#dynslot-parking-limit}
+
+Even with the right stock and a linked template group, **DCS only offers an aircraft when a parking
+spot able to take it exists**. This is a terrain limit, not a tool limit: a field with nothing but
+helicopter pads will never offer a plane, whatever the stock says.
+
+Measured on the Open Training Syria mission (2026-08-31), all of them blue bases with
+`dynamicSpawn` on and the templates linked:
+
+| Airfield | Parking spots | Offered |
+|---|---|---|
+| Akrotiri | 41 plane spots + 4 helipads | planes **and** helicopters (in game) |
+| Lakatamia | 8 helipads only | helicopters only (in game) |
+| Naqoura | 9 helipads only (no runway) | helicopters only (in game) |
+| Taftanaz | 48 helipads only | helicopters only (from the parking data) |
+
+**What the tool does.** It asks the terrain before filling: an airbase is stocked only with the
+categories it can park, and stock that has become unplayable (written by an earlier build) is
+removed. This applies to an explicit `aircrafts:` list too — DCS would ignore what it cannot park
+anyway. The filtering is **silent**: no build warning.
+
+**Reach.** Parking data ships for **Caucasus, Persian Gulf and Syria** only. On any other theatre —
+and on an airfield absent from the data — nothing is filtered and the behaviour is unchanged.
+
+**How to check it in game.** Start the mission, pick the side, open the slot picker on the airfield
+in question: the list shown is what DCS can actually spawn. If a plane is missing on a field that
+only has helipads, that is the expected behaviour; the fix is to pick another airfield, not to edit
+the stock.
+
 ---
 
 ## Step 5 — Spawn Data (`spawn-groups.yaml`) {#pipeline-step-5-spawn-data}

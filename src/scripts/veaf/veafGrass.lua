@@ -287,7 +287,11 @@ function veafGrass.isSpotOccupied(position, clearance, platforms)
       end
     end)
   end
-  for _, category in ipairs({ Object.Category.UNIT, Object.Category.STATIC }) do
+  -- SCENERY is what makes this see **buildings**. Added in FIX-PLACEMENT-IGNORES-SCENERY: an escort
+  -- clear of every unit, static and apron could still stand through a house. Forests are *not* scenery
+  -- objects in DCS, so they are not covered here — Disposition's cloud handles them a tier above, in
+  -- findClearBearing, because it knows forests but can only propose points, never test one.
+  for _, category in ipairs({ Object.Category.UNIT, Object.Category.STATIC, Object.Category.SCENERY }) do
     local ok = pcall(world.searchObjects, category, volume, found)
     if not ok then
       veaf.loggers.get(veafGrass.Id):debug("isSpotOccupied: world.searchObjects unusable, treating the spot as clear")
@@ -322,6 +326,164 @@ end
 --- twice the distance keeps its original placement rather than ending up in the next valley.
 veafGrass.PLACEMENT_DISTANCE_STEPS = { 1, 1.5, 2 }
 
+--- Slack, in metres, when deciding whether a scenery-cloud candidate sits within the accepted distance
+--- band. Trigonometry turns a point at exactly the requested distance into 0.9999999999999998 of it, and
+--- a bare comparison then discards the best available point in silence. A metre is noise against a 150 m
+--- escort distance and a 12 m clearance.
+veafGrass.PLACEMENT_DISTANCE_TOLERANCE = 1
+
+--- Planar distance between two points, in whichever of the two coordinate shapes each arrives.
+--- A mission-table position carries the easting in `y` and no `z`; a runtime vec3 carries it in `z` and
+--- an altitude in `y`. Both look like plausible coordinates and mixing them raises no error — see
+--- docs/agents/dcs-coordinates.md.
+local function planarDistance(a, b)
+  local dNorth = (a.x or 0) - (b.x or 0)
+  local dEast = (a.z or a.y or 0) - (b.z or b.y or 0)
+  return math.sqrt(dNorth * dNorth + dEast * dEast)
+end
+
+--- Tier 1 of `findClearBearing`: pick a bearing out of Disposition's scenery-clear cloud.
+---
+--- The one thing `isSpotOccupied` cannot see is a **forest** — trees are not scenery objects, and
+--- `land.getSurfaceType` answers LAND for a wood exactly as for a meadow (measured in
+--- FEAT-SCENERY-AWARE-SPAWN). `Disposition` does know forests, but it only ever *proposes* points; there
+--- is no "is this spot clear?" form. So the search runs the other way round: ask **once** for a cloud and
+--- select from it, which costs one call to the undocumented API per group rather than one per candidate
+--- position.
+---
+--- Two filters make the cloud usable. Its radius argument is measured **not** to bound its answers
+--- (asked 800 m in game on 2026-08-06, answered 2035-2258 m), so anything outside the band we accept is
+--- dropped; and the survivors are ordered by how near they are to the spot the caller actually asked for,
+--- which is #232's arbitration — the escort serves the FARP and the crew wants it close — stated directly
+--- rather than approximated by a bearing step.
+---
+--- The cloud never contains the spot the caller asked for, so selecting from it unconditionally moved
+--- every group it could answer for. The nearest candidate's `gap` is read as a statement about the
+--- wanted spot instead: within `PLACEMENT_CLEARANCE` of it, the wanted spot shares that candidate's
+--- clearing and is returned unchanged (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND).
+---
+--- Disposition stays quality-only, never correctness (ADR 0018): absent, raising, or answering nonsense,
+--- this returns nil and the bearing walk takes over.
+--- @return number|nil bearing, number|nil scale
+local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
+  if veaf.doNotAvoidScenery or not own or not Disposition or not Disposition.getSimpleZones then
+    return nil
+  end
+
+  local wanted = positionsFor(baseAngle, 1)
+  if type(wanted) ~= "table" or type(wanted[1]) ~= "table" then
+    return nil
+  end
+  local requestedDistance = planarDistance(wanted[1], own)
+  if requestedDistance <= 0 then
+    return nil
+  end
+
+  -- The clearing has to hold the whole group, so what is asked of Disposition comes from the group's own
+  -- extent rather than a constant: a five-vehicle line needs a wider gap than a single truck.
+  local extent = 0
+  for _, position in ipairs(wanted) do
+    extent = math.max(extent, planarDistance(position, wanted[1]))
+  end
+
+  local maxScale = veafGrass.PLACEMENT_DISTANCE_STEPS[#veafGrass.PLACEMENT_DISTANCE_STEPS] or 1
+  local centre = veaf.placePointOnLand({ x = own.x, y = own.y })
+  local ok, candidates = pcall(
+    Disposition.getSimpleZones,
+    centre,
+    requestedDistance * maxScale,
+    extent + veafGrass.PLACEMENT_CLEARANCE,
+    veaf.SPAWN_SEARCH_ATTEMPTS
+  )
+  if not ok or type(candidates) ~= "table" then
+    veaf.loggers.get(veafGrass.Id):debug("findClearBearing: Disposition.getSimpleZones unusable, walking the bearings instead")
+    return nil
+  end
+
+  local options = {}
+  for _, candidate in ipairs(candidates) do
+    if type(candidate) == "table" and candidate.x then
+      local distance = planarDistance(candidate, own)
+      -- Never nearer than asked: tier 2 does not go below 1x either, and pulling the escort inwards is
+      -- how it ends up on the apron it was moved off.
+      --
+      -- The tolerance is not decoration. A candidate sitting at *exactly* the requested distance comes
+      -- back as 0.9999999999999998 of it once trigonometry has been through it, and a bare `>= 1`
+      -- discards it — the best possible point, dropped in silence. A metre is noise against a 150 m
+      -- escort distance and a 12 m clearance.
+      if
+        distance >= requestedDistance - veafGrass.PLACEMENT_DISTANCE_TOLERANCE
+        and distance <= requestedDistance * maxScale + veafGrass.PLACEMENT_DISTANCE_TOLERANCE
+      then
+        -- atan2 answers in (-180, 180]; a bearing reads 0-360, and this one is logged for a mission
+        -- maker as well as fed back to positionsFor.
+        local bearing = math.deg(math.atan2((candidate.z or candidate.y or 0) - (own.y or 0), (candidate.x or 0) - (own.x or 0)))
+        table.insert(options, {
+          angle = (bearing + 360) % 360,
+          scale = distance / requestedDistance,
+          gap = planarDistance(candidate, wanted[1]),
+        })
+      end
+    end
+  end
+  table.sort(options, function(left, right)
+    return left.gap < right.gap
+  end)
+
+  -- The spot the caller asked for is never one of Disposition's candidates, so without this the cloud
+  -- moved every group it could answer for — measured in game on 2026-08-28, a FARP with nothing within
+  -- a kilometre still had its escort swung 25 degrees out (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND).
+  --
+  -- Probing the wanted spot first is not the answer: `allClear` cannot see forests, which is the whole
+  -- reason this tier exists. The `gap` can. Every candidate was asked of Disposition with a safe radius
+  -- of `extent + PLACEMENT_CLEARANCE`, and the group's footprint reaches `extent` from `wanted[1]`, so a
+  -- candidate whose gap is at most PLACEMENT_CLEARANCE puts every position the group would occupy inside
+  -- the clearing that candidate proves. The wanted spot is out of the trees, and only the occupancy probe
+  -- is left to consult — Disposition never knew about units, statics or the apron anyway.
+  local nearest = options[1]
+  -- Measured in game 2026-09-01: this guard never fired. Three `-farp` markers, one of them on ground
+  -- with nothing within a kilometre, and the escort was moved every time — the "keeping it" line below
+  -- never appeared once. Two candidate reasons, and the log could not tell them apart: the nearest gap
+  -- may simply exceed the clearance in the field, or the occupancy probe may be refusing the wanted
+  -- spot because the FARP itself has just been placed there.
+  --
+  -- So both operands are logged before the decision, not after it. The unit test that covers this
+  -- guard builds its `gap` at half the clearance — a value chosen to make the branch run, never
+  -- confronted with real terrain — which is exactly why nothing said the guard was inert.
+  local probeClear = allClear(baseAngle, 1)
+  veaf.loggers.get(veafGrass.Id):debug(
+    "findClearBearing: nearest gap=%s vs clearance=%s, occupancy probe on the wanted spot=%s, candidates=%s",
+    veaf.p(nearest and nearest.gap),
+    veaf.p(veafGrass.PLACEMENT_CLEARANCE),
+    veaf.p(probeClear),
+    veaf.p(#options)
+  )
+  if nearest and nearest.gap <= veafGrass.PLACEMENT_CLEARANCE and probeClear then
+    veaf.loggers
+      .get(veafGrass.Id)
+      :debug("findClearBearing: bearing %s is inside a scenery-clear area, keeping it", veaf.p(math.floor(baseAngle)))
+    return baseAngle, 1
+  end
+
+  for _, option in ipairs(options) do
+    -- Disposition knows nothing about other groups or the FARP's own pads, so the occupancy probe still
+    -- decides. The two criteria compose; neither replaces the other.
+    if allClear(option.angle, option.scale) then
+      veaf.loggers
+        .get(veafGrass.Id)
+        :debug("findClearBearing: scenery-clear bearing %s at %sx distance", veaf.p(math.floor(option.angle)), veaf.p(option.scale))
+      return option.angle, option.scale
+    end
+  end
+
+  -- At info, not debug: this line is the only thing that tells a *why* from a *what* when a group has
+  -- moved. The 2026-08-28 in-game run could not say why the forest case fell through to tier 2 because
+  -- this was invisible at the default log level, and it only fires when the cloud answered and nothing
+  -- in it survived — once per group at worst, never in the nominal case.
+  veaf.loggers.get(veafGrass.Id):debug("findClearBearing: no usable point in Disposition's cloud, walking the bearings instead")
+  return nil
+end
+
 --- Find a bearing — and if need be a distance — where every position a group would occupy is clear.
 ---
 --- `positionsFor(angle, scale)` returns the list of mission-table positions the objects would take at
@@ -347,12 +509,29 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
     return true
   end
 
+  -- Tier 1 — the scenery cloud. Buildings are caught by the probe below (isSpotOccupied searches
+  -- SCENERY), but forests are not scenery objects, and only Disposition knows about them. It cannot be
+  -- asked "is this spot clear?" — it *proposes* points — so the search runs the other way round: ask
+  -- once for a cloud, keep what lands in the band we accept, and take the one nearest the spot actually
+  -- wanted. Selecting from a cloud is also what makes its measured radius overshoot harmless (asked
+  -- 800 m in game on 2026-08-06, answered 2035-2258 m), since the distance filter is ours.
+  --
+  -- It can also answer "keep what you asked for": when the nearest candidate is close enough to the
+  -- wanted spot to prove it shares the same clearing, it returns `baseAngle, 1`. Tier 2's intent below —
+  -- the original bearing first, so the group stays where it was aimed — was unreachable while this tier
+  -- returned a candidate whenever the cloud answered at all.
+  local cloudAngle, cloudScale = bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
+  if cloudAngle then
+    return cloudAngle, cloudScale
+  end
+
+  -- Tier 2 — walk the bearings, then the distances. Sees units, statics, aprons and buildings.
   local steps = math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP)
   for _, scale in ipairs(veafGrass.PLACEMENT_DISTANCE_STEPS) do
     -- The original bearing first at every distance, so the group stays where it was aimed when it can.
     if allClear(baseAngle, scale) then
       if scale ~= 1 then
-        veaf.loggers.get(veafGrass.Id):info("findClearBearing: kept bearing %s, pushed out to %sx", veaf.p(baseAngle), veaf.p(scale))
+        veaf.loggers.get(veafGrass.Id):debug("findClearBearing: kept bearing %s, pushed out to %sx", veaf.p(baseAngle), veaf.p(scale))
       end
       return baseAngle, scale
     end
@@ -366,13 +545,13 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
       if allClear(candidate, scale) then
         veaf.loggers
           .get(veafGrass.Id)
-          :info("findClearBearing: moved from %s to %s at %sx to find clear ground", veaf.p(baseAngle), veaf.p(candidate), veaf.p(scale))
+          :debug("findClearBearing: moved from %s to %s at %sx to find clear ground", veaf.p(baseAngle), veaf.p(candidate), veaf.p(scale))
         return candidate, scale
       end
     end
   end
 
-  veaf.loggers.get(veafGrass.Id):info("findClearBearing: nothing clear at any bearing or distance, keeping %s", veaf.p(baseAngle))
+  veaf.loggers.get(veafGrass.Id):debug("findClearBearing: nothing clear at any bearing or distance, keeping %s", veaf.p(baseAngle))
   return baseAngle, 1
 end
 
@@ -456,12 +635,12 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
   -- nb plots
   local nbPlots = math.ceil(length / space)
 
-  local angle = math.floor(mist.utils.toDegree(runwayOrigin.heading) + 0.5)
+  local angle = math.floor(math.deg(runwayOrigin.heading) + 0.5)
 
   -- create left origin from right origin
   local leftOrigin = {
-    ["x"] = runwayOrigin.x + width * math.cos(mist.utils.toRadian(angle - 90)),
-    ["y"] = runwayOrigin.y + width * math.sin(mist.utils.toRadian(angle - 90)),
+    ["x"] = runwayOrigin.x + width * math.cos(math.rad(angle - 90)),
+    ["y"] = runwayOrigin.y + width * math.sin(math.rad(angle - 90)),
   }
 
   local template = {
@@ -477,24 +656,24 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
   }
 
   -- leftOrigin plot
-  local leftOriginPlot = mist.utils.deepCopy(template)
+  local leftOriginPlot = veaf.deepCopy(template)
   leftOriginPlot.x = leftOrigin.x
   leftOriginPlot.y = leftOrigin.y
-  mist.dynAddStatic(leftOriginPlot)
+  veaf.addStatic(leftOriginPlot)
 
   -- place plots
   for i = 1, nbPlots do
     -- right plot
-    local leftPlot = mist.utils.deepCopy(template)
-    leftPlot.x = runwayOrigin.x + i * space * math.cos(mist.utils.toRadian(angle))
-    leftPlot.y = runwayOrigin.y + i * space * math.sin(mist.utils.toRadian(angle))
-    mist.dynAddStatic(leftPlot)
+    local leftPlot = veaf.deepCopy(template)
+    leftPlot.x = runwayOrigin.x + i * space * math.cos(math.rad(angle))
+    leftPlot.y = runwayOrigin.y + i * space * math.sin(math.rad(angle))
+    veaf.addStatic(leftPlot)
 
     -- right plot
-    local rightPlot = mist.utils.deepCopy(template)
-    rightPlot.x = leftOrigin.x + i * space * math.cos(mist.utils.toRadian(angle))
-    rightPlot.y = leftOrigin.y + i * space * math.sin(mist.utils.toRadian(angle))
-    mist.dynAddStatic(rightPlot)
+    local rightPlot = veaf.deepCopy(template)
+    rightPlot.x = leftOrigin.x + i * space * math.cos(math.rad(angle))
+    rightPlot.y = leftOrigin.y + i * space * math.sin(math.rad(angle))
+    veaf.addStatic(rightPlot)
   end
 
   if endMarkers then
@@ -511,16 +690,16 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     -- right plot
-    local leftPlot = mist.utils.deepCopy(template)
-    leftPlot.x = runwayOrigin.x + (nbPlots + 1) * space * math.cos(mist.utils.toRadian(angle))
-    leftPlot.y = runwayOrigin.y + (nbPlots + 1) * space * math.sin(mist.utils.toRadian(angle))
-    mist.dynAddStatic(leftPlot)
+    local leftPlot = veaf.deepCopy(template)
+    leftPlot.x = runwayOrigin.x + (nbPlots + 1) * space * math.cos(math.rad(angle))
+    leftPlot.y = runwayOrigin.y + (nbPlots + 1) * space * math.sin(math.rad(angle))
+    veaf.addStatic(leftPlot)
 
     -- right plot
-    local rightPlot = mist.utils.deepCopy(template)
-    rightPlot.x = leftOrigin.x + (nbPlots + 1) * space * math.cos(mist.utils.toRadian(angle))
-    rightPlot.y = leftOrigin.y + (nbPlots + 1) * space * math.sin(mist.utils.toRadian(angle))
-    mist.dynAddStatic(rightPlot)
+    local rightPlot = veaf.deepCopy(template)
+    rightPlot.x = leftOrigin.x + (nbPlots + 1) * space * math.cos(math.rad(angle))
+    rightPlot.y = leftOrigin.y + (nbPlots + 1) * space * math.sin(math.rad(angle))
+    veaf.addStatic(rightPlot)
   end
 
   if tower then
@@ -537,21 +716,17 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
     }
 
     -- tower
-    local tower = mist.utils.deepCopy(template)
-    tower.x = leftOrigin.x - 60 + (nbPlots + 1.2) * space * math.cos(mist.utils.toRadian(angle))
-    tower.y = leftOrigin.y - 60 + (nbPlots + 1.2) * space * math.sin(mist.utils.toRadian(angle))
-    mist.dynAddStatic(tower)
+    local tower = veaf.deepCopy(template)
+    tower.x = leftOrigin.x - 60 + (nbPlots + 1.2) * space * math.cos(math.rad(angle))
+    tower.y = leftOrigin.y - 60 + (nbPlots + 1.2) * space * math.sin(math.rad(angle))
+    veaf.addStatic(tower)
   end
 
   -- add the runway to the named points
   local point = {
-    x = runwayOrigin.x + 20 + (nbPlots + 1) * space * math.cos(mist.utils.toRadian(angle)) + width / 2 * math.cos(
-      mist.utils.toRadian(angle - 90)
-    ),
+    x = runwayOrigin.x + 20 + (nbPlots + 1) * space * math.cos(math.rad(angle)) + width / 2 * math.cos(math.rad(angle - 90)),
     y = math.floor(land.getHeight(leftOrigin) + 1),
-    z = runwayOrigin.y + 20 + (nbPlots + 1) * space * math.sin(mist.utils.toRadian(angle)) + width / 2 * math.cos(
-      mist.utils.toRadian(angle - 90)
-    ),
+    z = runwayOrigin.y + 20 + (nbPlots + 1) * space * math.sin(math.rad(angle)) + width / 2 * math.cos(math.rad(angle - 90)),
     atc = true,
     runways = {
       { hdg = (angle + 180) % 360, flare = "red" },
@@ -1345,14 +1520,14 @@ end
 -- nothing CTLD about it — and CTLD 2 keeps its equivalent private, rightly so.
 --
 -- @param point vec3 : where to put it
--- @param country : the FARP's country (name or id, as mist.dynAdd accepts)
+-- @param country : the FARP's country (name or id, as veaf.addGroup accepts)
 -- @param displayName string : shown in the unit name, so a pilot reading the F10 map
 --                             sees the channel
 -- @return Group or nil
 ------------------------------------------------------------------------------
 function veafGrass.spawnTacanCarrierUnit(point, country, displayName)
   local groupName = string.format("VEAF TACAN carrier - %s", displayName)
-  local spawned = mist.dynAdd({
+  local spawned = veaf.addGroup({
     country = country,
     category = "GROUND_UNIT",
     groupName = groupName,
@@ -1436,7 +1611,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local farpCoalition, farpCoalitionNumber = veafGrass._normalizeFarpCoalition(farp.coalition)
 
   local farpHeading = farp.heading or 0
-  local angle = mist.utils.toDegree(farpHeading)
+  local angle = math.deg(farpHeading)
   local tentDistance = 100
   local tentSpacing = 30
   local otherDistance = 85
@@ -1456,19 +1631,15 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local function tentPositionsAt(bearing, scale)
     scale = scale or 1
     local origin = {
-      x = farp.x + tentDistance * scale * math.cos(mist.utils.toRadian(bearing)),
-      y = farp.y + tentDistance * scale * math.sin(mist.utils.toRadian(bearing)),
+      x = farp.x + tentDistance * scale * math.cos(math.rad(bearing)),
+      y = farp.y + tentDistance * scale * math.sin(math.rad(bearing)),
     }
     local positions = {}
     for j = 1, 2 do
       for i = 1, 3 do
         table.insert(positions, {
-          x = origin.x + (i - 1) * tentSpacing * math.cos(mist.utils.toRadian(bearing)) - (j - 1) * tentSpacing * math.sin(
-            mist.utils.toRadian(bearing)
-          ),
-          y = origin.y + (i - 1) * tentSpacing * math.sin(mist.utils.toRadian(bearing)) + (j - 1) * tentSpacing * math.cos(
-            mist.utils.toRadian(bearing)
-          ),
+          x = origin.x + (i - 1) * tentSpacing * math.cos(math.rad(bearing)) - (j - 1) * tentSpacing * math.sin(math.rad(bearing)),
+          y = origin.y + (i - 1) * tentSpacing * math.sin(math.rad(bearing)) + (j - 1) * tentSpacing * math.cos(math.rad(bearing)),
         })
       end
     end
@@ -1487,7 +1658,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(tentAngle - 90),
+      ["heading"] = math.rad(tentAngle - 90),
       ["type"] = "FARP Tent",
       ["x"] = tentPositions[index].x,
       ["y"] = tentPositions[index].y,
@@ -1497,7 +1668,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       tent["groupName"] = groupName
     end
 
-    mist.dynAddStatic(tent)
+    veaf.addStatic(tent)
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
@@ -1512,15 +1683,15 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(angle - 90),
-      ["x"] = farp.x - markerDistance * math.cos(mist.utils.toRadian(angle + markerAngle)),
-      ["y"] = farp.y - markerDistance * math.sin(mist.utils.toRadian(angle + markerAngle)),
+      ["heading"] = math.rad(angle - 90),
+      ["x"] = farp.x - markerDistance * math.cos(math.rad(angle + markerAngle)),
+      ["y"] = farp.y - markerDistance * math.sin(math.rad(angle + markerAngle)),
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     if groupName then
       markerUnit1["groupName"] = groupName
     end
-    mist.dynAddStatic(markerUnit1)
+    veaf.addStatic(markerUnit1)
     farpUnitNameCounter = farpUnitNameCounter + 1
     local markerUnit2 = {
       ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
@@ -1530,15 +1701,15 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(angle - 90),
-      ["x"] = farp.x - markerDistance * math.cos(mist.utils.toRadian(angle - markerAngle)),
-      ["y"] = farp.y - markerDistance * math.sin(mist.utils.toRadian(angle - markerAngle)),
+      ["heading"] = math.rad(angle - 90),
+      ["x"] = farp.x - markerDistance * math.cos(math.rad(angle - markerAngle)),
+      ["y"] = farp.y - markerDistance * math.sin(math.rad(angle - markerAngle)),
       ["hiddenOnMFD"] = hiddenOnMFD,
     }
     if groupName then
       markerUnit2["groupName"] = groupName
     end
-    mist.dynAddStatic(markerUnit2)
+    veaf.addStatic(markerUnit2)
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
@@ -1552,14 +1723,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local function otherPositionsAt(bearing, scale)
     scale = scale or 1
     local origin = {
-      x = farp.x + otherDistance * math.cos(mist.utils.toRadian(bearing)),
-      y = farp.y + otherDistance * math.sin(mist.utils.toRadian(bearing)),
+      x = farp.x + otherDistance * math.cos(math.rad(bearing)),
+      y = farp.y + otherDistance * math.sin(math.rad(bearing)),
     }
     local positions = {}
     for j = 1, #otherUnits do
       table.insert(positions, {
-        x = origin.x - (j - 1) * otherSpacing * math.sin(mist.utils.toRadian(bearing)),
-        y = origin.y + (j - 1) * otherSpacing * math.cos(mist.utils.toRadian(bearing)),
+        x = origin.x - (j - 1) * otherSpacing * math.sin(math.rad(bearing)),
+        y = origin.y + (j - 1) * otherSpacing * math.cos(math.rad(bearing)),
       })
     end
     return positions
@@ -1576,7 +1747,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(otherAngle - 90),
+      ["heading"] = math.rad(otherAngle - 90),
       ["type"] = typeName,
       ["x"] = otherPositions[j].x,
       ["y"] = otherPositions[j].y,
@@ -1585,7 +1756,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     if groupName then
       otherUnit["groupName"] = groupName
     end
-    mist.dynAddStatic(otherUnit)
+    veaf.addStatic(otherUnit)
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
@@ -1615,14 +1786,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     scale = scale or 1
     local positions = {
       {
-        x = farp.x + windsockDistance * scale * math.cos(mist.utils.toRadian(bearing + windsockAngle)),
-        y = farp.y + windsockDistance * scale * math.sin(mist.utils.toRadian(bearing + windsockAngle)),
+        x = farp.x + windsockDistance * scale * math.cos(math.rad(bearing + windsockAngle)),
+        y = farp.y + windsockDistance * scale * math.sin(math.rad(bearing + windsockAngle)),
       },
     }
     if farp.type == "FARP" then
       table.insert(positions, {
-        x = farp.x + windsockDistance * scale * math.cos(mist.utils.toRadian(bearing + windsockAngle - 90)),
-        y = farp.y + windsockDistance * scale * math.sin(mist.utils.toRadian(bearing + windsockAngle - 90)),
+        x = farp.x + windsockDistance * scale * math.cos(math.rad(bearing + windsockAngle - 90)),
+        y = farp.y + windsockDistance * scale * math.sin(math.rad(bearing + windsockAngle - 90)),
       })
     end
     return positions
@@ -1646,7 +1817,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     ["coalition"] = farpCoalition,
     ["country"] = farp.country,
     ["countryId"] = farp.countryId,
-    ["heading"] = mist.utils.toRadian(angle - 90),
+    ["heading"] = math.rad(angle - 90),
     ["x"] = windsockPositions[1].x,
     ["y"] = windsockPositions[1].y,
     ["hiddenOnMFD"] = hiddenOnMFD,
@@ -1654,7 +1825,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   if groupName then
     windsockUnit["groupName"] = groupName
   end
-  mist.dynAddStatic(windsockUnit)
+  veaf.addStatic(windsockUnit)
   farpUnitNameCounter = farpUnitNameCounter + 1
 
   -- on FARP unit, place a second windsock, at 90°
@@ -1668,7 +1839,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       ["coalition"] = farpCoalition,
       ["country"] = farp.country,
       ["countryId"] = farp.countryId,
-      ["heading"] = mist.utils.toRadian(angle - 90),
+      ["heading"] = math.rad(angle - 90),
       ["x"] = windsockPositions[2].x,
       ["y"] = windsockPositions[2].y,
       ["hiddenOnMFD"] = hiddenOnMFD,
@@ -1676,7 +1847,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     if groupName then
       windsockUnit["groupName"] = groupName
     end
-    mist.dynAddStatic(windsockUnit)
+    veaf.addStatic(windsockUnit)
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
@@ -1712,14 +1883,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local function escortPositionsAt(bearing, scale)
     scale = scale or 1
     local origin = {
-      x = farp.x + unitsDistance * scale * math.cos(mist.utils.toRadian(bearing)),
-      y = farp.y + unitsDistance * scale * math.sin(mist.utils.toRadian(bearing)),
+      x = farp.x + unitsDistance * scale * math.cos(math.rad(bearing)),
+      y = farp.y + unitsDistance * scale * math.sin(math.rad(bearing)),
     }
     local positions = {}
     for j = 1, #escortUnitTypes do
       table.insert(positions, {
-        x = origin.x - (j - 1) * unitsSpacing * math.sin(mist.utils.toRadian(bearing)),
-        y = origin.y + (j - 1) * unitsSpacing * math.cos(mist.utils.toRadian(bearing)),
+        x = origin.x - (j - 1) * unitsSpacing * math.sin(math.rad(bearing)),
+        y = origin.y + (j - 1) * unitsSpacing * math.cos(math.rad(bearing)),
       })
     end
     return positions
@@ -1732,7 +1903,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   -- if the new FARP sits 50 m from a static one, every bearing at 150 m is ~150 m away from it, none is
   -- refused, and nothing moves — correctly, by this fix's own rule. Logging both angles is what tells the
   -- two apart from outside.
-  veaf.loggers.get(veafGrass.Id):info(
+  veaf.loggers.get(veafGrass.Id):debug(
     "FARP escort: bearing %s requested, %s used at %sx distance",
     veaf.p(math.floor(angle)),
     veaf.p(math.floor(escortAngle)),
@@ -1755,7 +1926,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   for j, typeName in ipairs(escortUnitTypes) do
     local escortUnit = {
       ["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
-      ["heading"] = mist.utils.toRadian(escortAngle - 135), -- parked \\\\\
+      ["heading"] = math.rad(escortAngle - 135), -- parked \\\\\
       ["type"] = typeName,
       ["x"] = escortPositions[j].x,
       ["y"] = escortPositions[j].y,
@@ -1765,7 +1936,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     farpUnitNameCounter = farpUnitNameCounter + 1
   end
 
-  mist.dynAdd(farpEscortGroup)
+  veaf.addGroup(farpEscortGroup)
 
   -- add the FARP to the named points
   local farpNamedPoint = {
@@ -1914,7 +2085,7 @@ function veafGrass.initialize()
   -- delay all these functions 30 seconds (to ensure that the other modules are loaded)
 
   -- auto generate FARP units (hide these units on MFDs as they create clutter for nothing since the FARP already shows or not depending on what the Mission maker wanted, regardless, don't show them)
-  mist.scheduleFunction(veafGrass.buildFarpsUnits, { true }, timer.getTime() + veafGrass.DelayForStartup)
+  veaf.scheduleFunction(veafGrass.buildFarpsUnits, { true }, timer.getTime() + veafGrass.DelayForStartup)
 
   veafEventHandler.addCallback("veafGrass.OnBirth", { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" }, veafGrass.onBirth)
 end

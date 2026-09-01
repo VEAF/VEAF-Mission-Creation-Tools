@@ -14,9 +14,9 @@ Manages the persistent assets in a mission — tankers, AWACS, JTACs. Provides F
 ## Dependencies
 
 - `veafRadio` — F10 menu
-- **MiST** — mandatory: respawn (`veafAssets.respawn`) uses `mist.respawnGroup`.
+- `veafDcsSpawner` / `veafMissionDb` — respawn (`veafAssets.respawn`) rebuilds the group with `VeafGroupSpawn`, from the mission record VEAF indexes at start-up. MiST is **not** required (it used to be, through `mist.respawnGroup`).
 
-> ⚠️ **Assets must be groups placed in the Mission Editor.** Each asset `name` (and each `linked` entry) must exactly match a group present in the `.miz`. A dynamically-spawned or mis-named asset is not in MiST's database (`mist.DBs.MEgroupsByName`) → respawn fails silently in-game. The build now emits a **warning** when a declared group (ASSETS, QRA, …) is absent from the mission.
+> ⚠️ **Assets must be groups placed in the Mission Editor.** Each asset `name` (and each `linked` entry) must exactly match a group present in the `.miz`. A dynamically-spawned or mis-named asset is not in the mission database VEAF builds at start-up (`veaf.getGroupRecord`) → respawn fails silently in-game. The build now emits a **warning** when a declared group (ASSETS, QRA, …) is absent from the mission.
 
 ---
 
@@ -130,13 +130,33 @@ what lets the framework find the escort in order to **repair its `Escort` task**
 invalidates every time the escorted group is recreated — by a respawn as much as by a teleport
 (`_move tanker … teleport`).
 
-In practice: set the `Escort` task on the **last waypoint** of the escort's route, in the Mission
+In practice: set the `Escort` task on **any waypoint** of the escort's route, in the Mission
 Editor, as you normally would. The rest is automatic.
 
-> ⚠️ **`linked` is not what makes a group an escort.** The two mechanisms are independent: `linked`
-> lists groups to **respawn along with** the asset, while the naming convention is what allows the
-> escort task to be repaired. An escort need not be in `linked` — and its task still has to be
-> repaired, because what breaks it is the **escorted** group's id changing, not the escort's.
+### What a respawn does to an escort {#respawn-and-escorts}
+
+Respawning an asset (**F10 → ASSETS → Respawn**) **respawns its escort too**, and then repairs the
+`Escort` task. Both halves are needed, and neither replaces the other:
+
+- **The escort comes back with its charge**, because the asset reappears where the Mission Editor
+  drew it while its escort has kept flying. Measured in game on 2026-08-28 on the demo mission's
+  tanker, minutes after a respawn: **78 km and 82 km** between the two, one escort already landed —
+  against an `engagementDistMax` of **60 km** declared by the `Escort` task itself. Repairing the
+  task alone therefore achieved nothing: it handed the escort a charge outside its own engagement
+  distance.
+- **The task is repaired all the same**, because what breaks it is the **escorted** group's id
+  changing, not the escort's.
+
+Worth knowing: the escort that comes back is a **fresh** one. An escort that was engaged, damaged or
+low on fuel is replaced, exactly like the asset itself — and an escort that was shot down comes back
+too.
+
+> ⚠️ **`linked` is not what makes a group an escort.** The two mechanisms are still declared
+> separately: `linked` lists arbitrary groups to respawn along with the asset, while the naming
+> convention is what identifies the escort. So an escort need not be listed in `linked`: it comes
+> back with its charge anyway, and its task is repaired. The two end up having the same effect on the
+> escort at respawn time, but it is the naming convention — and only that — which allows the `Escort`
+> task to be repaired.
 
 **The symptom when the name does not follow the convention**: the escort takes off with its charge,
 holds for a while, then **leaves to land after about ten minutes**. That is not the AI giving up: it

@@ -454,7 +454,7 @@ function veafAssist.loop()
   end
   veafAssist.paramCache = nil
   veafAssist.switchCache = nil
-  mist.scheduleFunction(veafAssist.loop, {}, timer.getTime() + veafAssist.DELAY_BETWEEN_CHECKS)
+  veaf.scheduleFunction(veafAssist.loop, {}, timer.getTime() + veafAssist.DELAY_BETWEEN_CHECKS)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -779,7 +779,7 @@ function veafAssist.initialize()
   end
 
   veafAssist.buildRadioMenu()
-  mist.scheduleFunction(veafAssist.loop, {}, timer.getTime() + veafAssist.DELAY_BETWEEN_CHECKS)
+  veaf.scheduleFunction(veafAssist.loop, {}, timer.getTime() + veafAssist.DELAY_BETWEEN_CHECKS)
 
   veafAssist.initialized = true
   veaf.loggers.get(veafAssist.Id):info("Guided assistance has been initialized")

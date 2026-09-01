@@ -4,6 +4,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 
 -- Provide a minimal dcsUnits stub (instead of loading the 16k-line file).
 -- New schema: keyed by DCS type id, with a single `kind` field.
@@ -253,16 +258,167 @@ function TestVeafUnitsCheckPositionForUnit:test_naval_on_land_returns_false()
   luaunit.assertFalse(veafUnits.checkPositionForUnit(pos, unit))
 end
 
-function TestVeafUnitsCheckPositionForUnit:test_air_unit_at_low_alt_returns_false()
+-- The altitude is `y` in a runtime vec3 (docs/agents/dcs-coordinates.md), and the `land.getHeight`
+-- mock answers 0, so `veaf.getLandHeight` answers 1 — its "safety margin". An aircraft below that is
+-- under the terrain.
+function TestVeafUnitsCheckPositionForUnit:test_air_unit_below_the_terrain_returns_false()
   local unit = { air = true }
-  local pos = { x = 0, y = 0, z = 5 } -- z <= 10
+  local pos = { x = 0, y = -5, z = 50000 }
   luaunit.assertFalse(veafUnits.checkPositionForUnit(pos, unit))
 end
 
-function TestVeafUnitsCheckPositionForUnit:test_air_unit_at_high_alt_returns_true()
+function TestVeafUnitsCheckPositionForUnit:test_air_unit_above_the_terrain_returns_true()
   local unit = { air = true }
-  local pos = { x = 0, y = 0, z = 100 }
+  local pos = { x = 0, y = 100, z = 0 }
   luaunit.assertTrue(veafUnits.checkPositionForUnit(pos, unit))
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafUnitsCheckPositionForUnitSurfaces
+-- ---------------------------------------------------------------------------
+-- CHORE-ONE-TERRAIN-CHECK — the verdict this site gives **today**, surface by surface, pinned before
+-- the six duplicated terrain checks were routed through one predicate.
+--
+-- Enumerated from `land.SurfaceType` rather than sampled, because the two directions do not mirror each
+-- other: SHALLOW_WATER is dry enough for a tank and not wet enough for a ship. A unification that
+-- reached for one "wet" list would flip one of the two without any error anywhere.
+--
+-- The aircraft rule was asserted here **as it stood, not as it read**: `spawnPosition.z` is the easting
+-- two lines above, where the surface is queried, and the height test read that same field as an
+-- altitude. CHORE-ONE-TERRAIN-CHECK was forbidden from moving any of these answers, so it recorded the
+-- defect instead of fixing it. FIX-AIR-SPAWN-ALTITUDE-GUARD fixed the read, so the sweep point now
+-- carries an altitude that clears the mocked terrain — see TestVeafUnitsAircraftHeightGuard for the
+-- pair of cases that tell the two readings apart. The surface expectations are untouched.
+TestVeafUnitsCheckPositionForUnitSurfaces = {}
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:setUp()
+  self._surface = land.getSurfaceType
+  self._navalStatics = dcsUnits.NavalStatics
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:tearDown()
+  land.getSurfaceType = self._surface
+  dcsUnits.NavalStatics = self._navalStatics
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:_surfaceIs(name)
+  land.getSurfaceType = function()
+    return land.SurfaceType[name]
+  end
+end
+
+--- Asks the question once per surface DCS knows about, and checks each answer against `expected`.
+function TestVeafUnitsCheckPositionForUnitSurfaces:_sweep(unit, expected)
+  for _, name in ipairs({ "LAND", "SHALLOW_WATER", "WATER", "ROAD", "RUNWAY" }) do
+    self:_surfaceIs(name)
+    luaunit.assertEquals(veafUnits.checkPositionForUnit({ x = 0, y = 1000, z = 100 }, unit), expected[name], name)
+  end
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_a_ground_unit_stands_on_everything_but_open_water()
+  self:_sweep({ vehicle = true }, { LAND = true, SHALLOW_WATER = true, WATER = false, ROAD = true, RUNWAY = true })
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_a_naval_unit_wants_open_water_and_shallow_water_will_not_do()
+  self:_sweep({ naval = true }, { LAND = false, SHALLOW_WATER = false, WATER = true, ROAD = false, RUNWAY = false })
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_an_offshore_static_follows_the_naval_rule()
+  -- A set keyed by type name, the shape `veaf_build/dcs_data/units_lua.py` renders and the one
+  -- `veaf.findInTable` needs — it is a `data[key]` lookup, not a list scan.
+  dcsUnits.NavalStatics = { ["Oil platform"] = true }
+  self:_sweep(
+    { static = true, typeName = "Oil platform" },
+    { LAND = false, SHALLOW_WATER = false, WATER = true, ROAD = false, RUNWAY = false }
+  )
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_a_static_that_is_not_offshore_follows_the_ground_rule()
+  -- A set keyed by type name, the shape `veaf_build/dcs_data/units_lua.py` renders and the one
+  -- `veaf.findInTable` needs — it is a `data[key]` lookup, not a list scan.
+  dcsUnits.NavalStatics = { ["Oil platform"] = true }
+  self:_sweep(
+    { static = true, typeName = "Comms tower M" },
+    { LAND = true, SHALLOW_WATER = true, WATER = false, ROAD = true, RUNWAY = true }
+  )
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_an_aircraft_ignores_the_surface_entirely()
+  self:_sweep({ air = true }, { LAND = true, SHALLOW_WATER = true, WATER = true, ROAD = true, RUNWAY = true })
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafUnitsAircraftHeightGuard
+-- ---------------------------------------------------------------------------
+-- FIX-AIR-SPAWN-ALTITUDE-GUARD — the aircraft rule used to read `spawnPosition.z`, the **easting**,
+-- as a height: `z <= 10` refused a point ten metres east of the theatre's origin, which is nowhere any
+-- mission is flown, so the guard had never refused anything since it was written.
+--
+-- Every case below is written to **tell the two readings apart**, because a case that passes under both
+-- would prove nothing at all. The old test this class replaces —
+-- `checkPositionForUnit({ x = 0, y = 0, z = 10 })` is false and `z = 11` is true — was exactly such a
+-- case: it is green under the easting reading *and* under the altitude reading, since `y = 0` is under
+-- the terrain either way. That is why it is replaced rather than kept.
+TestVeafUnitsAircraftHeightGuard = {}
+
+--- The mocked terrain, and the height `veaf.placePointOnLand` would put a point at on top of it.
+TestVeafUnitsAircraftHeightGuard.GROUND = 500
+TestVeafUnitsAircraftHeightGuard.ON_THE_GROUND = 501 -- getLandHeight adds its one-metre safety margin
+
+function TestVeafUnitsAircraftHeightGuard:setUp()
+  self._getHeight = land.getHeight
+  land.getHeight = function()
+    return TestVeafUnitsAircraftHeightGuard.GROUND
+  end
+end
+
+function TestVeafUnitsAircraftHeightGuard:tearDown()
+  land.getHeight = self._getHeight
+end
+
+--- Low in altitude, far to the east: refused now, accepted under the easting reading.
+function TestVeafUnitsAircraftHeightGuard:test_low_but_far_east_is_refused()
+  local pos = { x = 0, y = 100, z = 50000 }
+  luaunit.assertFalse(veafUnits.checkPositionForUnit(pos, { air = true }), "100 m is under 500 m of terrain")
+end
+
+--- High in altitude, at easting 0: accepted now, refused under the easting reading.
+function TestVeafUnitsAircraftHeightGuard:test_high_but_at_easting_zero_is_accepted()
+  local pos = { x = 0, y = 5000, z = 0 }
+  luaunit.assertTrue(veafUnits.checkPositionForUnit(pos, { air = true }), "5000 m clears the terrain wherever east it is")
+end
+
+--- The easting is out of the decision entirely — enumerated across the values the old rule turned on
+--- (its threshold, either side of it, and a real map distance) rather than sampled at one of them.
+function TestVeafUnitsAircraftHeightGuard:test_the_easting_no_longer_decides_anything()
+  for _, easting in ipairs({ -50000, 0, 5, 10, 11, 50000 }) do
+    local high = { x = 0, y = 5000, z = easting }
+    local low = { x = 0, y = 10, z = easting }
+    luaunit.assertTrue(veafUnits.checkPositionForUnit(high, { air = true }), "above the terrain, easting " .. easting)
+    luaunit.assertFalse(veafUnits.checkPositionForUnit(low, { air = true }), "below the terrain, easting " .. easting)
+  end
+end
+
+--- An aircraft placed as a static sits **on** the ground on purpose, and `veaf.placePointOnLand` is
+--- what puts it there. Refusing it would break every `_spawn unit, name <aircraft>, static` at low
+--- elevation, which is what a literal `y <= 10` transposition of the old threshold would have done: a
+--- coastal or over-water spot answers a ground height of 1 m.
+function TestVeafUnitsAircraftHeightGuard:test_an_aircraft_placed_on_the_ground_as_a_static_is_accepted()
+  local pos = veaf.placePointOnLand({ x = 0, y = 0, z = 0 })
+  luaunit.assertEquals(pos.y, TestVeafUnitsAircraftHeightGuard.ON_THE_GROUND)
+  luaunit.assertTrue(veafUnits.checkPositionForUnit(pos, { air = true }))
+end
+
+--- The same, at sea level — the case that rules out transposing the old threshold literally to
+--- `y <= 10`. Over water and on the coast `land.getHeight` answers 0, so a static aircraft stands at
+--- 1 m and a ten-metre floor would refuse it twenty-five times over and report "no suitable position".
+function TestVeafUnitsAircraftHeightGuard:test_a_static_aircraft_at_sea_level_is_accepted()
+  land.getHeight = function()
+    return 0
+  end
+  local pos = veaf.placePointOnLand({ x = 0, y = 0, z = 0 })
+  luaunit.assertEquals(pos.y, 1)
+  luaunit.assertTrue(veafUnits.checkPositionForUnit(pos, { air = true }))
 end
 
 -- ---------------------------------------------------------------------------

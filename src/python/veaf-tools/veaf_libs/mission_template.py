@@ -14,7 +14,9 @@ Rendering per module, for a given enabled set:
   - ``SECURITY`` is always emitted commented (off by default — uncomment to require a
     password); ``TUM`` is emitted commented with a warning (it aborts at start-up
     without BLUFOR/REDFOR territory zones);
-  - modules outside the set are omitted, so each tier's file stays focused.
+  - modules outside the set are omitted, so each tier's file stays focused — **except**
+    the opt-out community scripts, which are written as ``ID: false`` instead (see
+    :attr:`Module.disabled_block`): for them an omission does not mean "off".
 """
 
 from __future__ import annotations
@@ -41,6 +43,12 @@ class Module:
     #: flag that must be *visible* rather than merely defaulted in code: a mission maker who
     #: never sees the key cannot know the behaviour exists.
     enabled_block: str = ""
+    #: Body emitted **instead of an omission** when the module is not in the selected set.
+    #: Only the opt-out community scripts carry one: absence of their key means *enabled*
+    #: (``is_community_script_enabled_by_default``), so a scaffold that stays silent about
+    #: them ships them — the drift FIX-SCAFFOLD-OPTOUT-DRIFT closed. Every other module is
+    #: opt-in, and omitting it is a truthful way of saying "off".
+    disabled_block: str = ""
     tiers: frozenset[str] = field(default_factory=frozenset)
 
 
@@ -102,16 +110,31 @@ _AIRWAVES_BLOCK = """\
   #           - groups: su27-2ship
   #             delay: 0"""
 
-_SKYNET_BLOCK = """\
-  #   SKYNET:
-  #     enabled: true
-  #     include_red_in_radio: false"""
-
 _CTLD_BLOCK = """\
   CTLD:                      # settings live in ctld-config.yaml (edit it with ctld-tools)
     enabled: true
     manage_logistics: true   # every carrier and FARP ammo dump becomes a CTLD loading point;
                              # set to false to own logisticUnitTypes/troopZoneShipTypes yourself"""
+
+# ── Opt-out community scripts, written out even when off ──────────────────────
+# Wording follows the shipped `src/defaults/mission-folder/mission.yaml`, the other scaffold,
+# which states the same five flags. The trailing comments are the only place a mission maker
+# learns that CTLD lives in a file of its own and that the others take an extended form, so
+# they travel with the flag rather than with the tier that enables it.
+_STTS_OFF = "  STTS: false"
+_CTLD_OFF = """\
+  CTLD: false                # settings live in ctld-config.yaml, beside this file (edit it with ctld-tools)
+                             # extended: CTLD -> { enabled: true, manage_logistics: true }"""
+_CSAR_OFF = "  CSAR: false                # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }"
+_AIEN_OFF = "  AIEN: false"
+_SKYNET_OFF = (
+    "  SKYNET: false              "
+    "# extended: SKYNET -> { enabled: true, include_red_in_radio: false, dynamic_spawn: false, ... }"
+)
+_SKYNET_ON = (
+    "  SKYNET: true               "
+    "# extended: SKYNET -> { enabled: true, include_red_in_radio: false, dynamic_spawn: false, ... }"
+)
 
 _TUM_BLOCK = """\
   # TUM requires BLUFOR/REDFOR territory trigger zones (each owning an airbase) placed
@@ -127,7 +150,6 @@ _CATALOG: tuple[Module, ...] = (
     Module("EVENTS", INFRA, "Infrastructure"),
     Module("MARKERS", INFRA, "Infrastructure"),
     Module("COMMANDS", INFRA, "Infrastructure"),
-    Module("MIST", INFRA, "Infrastructure", comment="MiST community lib — mandatory (VEAF dependency)"),
     # ── Core ──
     Module(
         "RADIO", FEATURE, "Core", comment="the VEAF F10 radio menu", tiers=frozenset({"minimal", "standard", "full"})
@@ -186,18 +208,36 @@ _CATALOG: tuple[Module, ...] = (
     Module("ASSETS", CONFIG, "Combat", config_block=_ASSETS_BLOCK, tiers=frozenset({"full"})),
     Module("SANCTUARY", CONFIG, "Combat", config_block=_SANCTUARY_BLOCK, tiers=frozenset({"full"})),
     # ── Community scripts ──
-    Module("STTS", FEATURE, "Community", tiers=frozenset({"standard", "full"})),
+    # No tier: MiST is not injected unless a mission asks for it, or unless the build finds one
+    # of the mission's own scripts calling `mist.` and turns it on by itself (DROP-MIST ticket
+    # 08). It was infrastructure while the VEAF scripts called it; they no longer do.
+    Module(
+        "MIST", FEATURE, "Community", comment="MiST community lib — only if your own scripts call it", tiers=frozenset()
+    ),
+    # The five opt-out scripts below all carry a `disabled_block`: a tier that leaves one out
+    # has to say so in the file, because saying nothing would turn it on.
+    Module("STTS", FEATURE, "Community", disabled_block=_STTS_OFF, tiers=frozenset({"standard", "full"})),
     Module(
         "CTLD",
         FEATURE,
         "Community",
         enabled_block=_CTLD_BLOCK,
+        disabled_block=_CTLD_OFF,
         tiers=frozenset({"standard", "full"}),
     ),
-    Module("CSAR", FEATURE, "Community", tiers=frozenset({"standard", "full"})),
-    Module("AIEN", FEATURE, "Community", tiers=frozenset({"full"})),
-    Module("HERCULES", FEATURE, "Community", tiers=frozenset({"full"})),
-    Module("SKYNET", CONFIG, "Community", config_block=_SKYNET_BLOCK, tiers=frozenset({"full"})),
+    Module("CSAR", FEATURE, "Community", disabled_block=_CSAR_OFF, tiers=frozenset({"standard", "full"})),
+    Module("AIEN", FEATURE, "Community", disabled_block=_AIEN_OFF, tiers=frozenset({"full"})),
+    # SKYNET used to be emitted as a commented example even by `full`, which enables it: the
+    # module ran on the opt-out default while the file only showed a comment. Live flag now,
+    # with the extended form kept as the trailing hint.
+    Module(
+        "SKYNET",
+        FEATURE,
+        "Community",
+        enabled_block=_SKYNET_ON,
+        disabled_block=_SKYNET_OFF,
+        tiers=frozenset({"full"}),
+    ),
     Module("TUM", TUM, "Community", config_block=_TUM_BLOCK, tiers=frozenset({"full"})),
 )
 
@@ -244,8 +284,11 @@ def render_modules_block(enabled: set[str]) -> list[str]:
     """Render the body of a ``modules:`` block (category-grouped) for *enabled*.
 
     Infrastructure modules and the SECURITY how-to block are always emitted;
-    every other module only when its id is in *enabled*. Returns the indented
-    lines that go **under** a ``modules:`` key (not the key itself).
+    every other module only when its id is in *enabled* — except a module carrying a
+    :attr:`Module.disabled_block` (the opt-out community scripts), which is emitted as
+    an explicit ``false`` instead of being left out, since the build reads *their*
+    absence as "enabled". Returns the indented lines that go **under** a ``modules:``
+    key (not the key itself).
 
     Args:
         enabled: Module ids to enable (infrastructure is always included).
@@ -257,13 +300,15 @@ def render_modules_block(enabled: set[str]) -> list[str]:
     current_category = ""
     for module in _CATALOG:
         include = module.kind in (INFRA, SECURITY) or module.id in enabled
-        if not include:
+        if not include and not module.disabled_block:
             continue
         if module.category != current_category:
             lines.append(f"  # ── {module.category} ──")
             current_category = module.category
         suffix = f"  # {module.comment}" if module.comment else ""
-        if module.kind == INFRA:
+        if not include:
+            lines.append(module.disabled_block)
+        elif module.kind == INFRA:
             lines.append(f"  {module.id}:{suffix}")
         elif module.kind == FEATURE:
             if module.enabled_block:

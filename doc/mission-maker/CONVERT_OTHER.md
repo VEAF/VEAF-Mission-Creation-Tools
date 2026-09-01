@@ -90,7 +90,7 @@ Voir [FOOTHOLD](FOOTHOLD.md) pour la procédure complète à chaque version.
      détectés (par commentaire ou motif glob) — le **build les supprime**
      (trigrule + entrées `trig` + ressources `mapResource`) pour éviter un
      double chargement avec les `custom_scripts` réinjectés ;
-   - un bloc `modules:` initialisé sur le **tier `minimal`** (infra + MIST +
+   - un bloc `modules:` initialisé sur le **tier `minimal`** (infra +
      RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commenté) : une base VEAF
      fonctionnelle d'emblée ; activez davantage au besoin.
 4. **Émet** un rapport Markdown récapitulant les actions et les points à revoir.
@@ -158,11 +158,44 @@ En mode mise à jour, `convert-other` :
   `Moose_<nouvelle-date>.lua` → `Moose.lua`) ;
 - **préserve votre `mission.yaml` réglé** — il n'est jamais régénéré, donc vos
   modules, votre `config_override` et vos `custom_scripts` survivent ;
-- **rapporte les scripts ajoutés, mis à jour et retirés en amont** dans le rapport
-  de conversion, pour que vous ajustiez `custom_scripts:` (et
-  `strip_native_triggers:`) pour tout script nouveau ou disparu. Un script retiré
-  en amont est signalé mais laissé sur disque — retirez-le de `custom_scripts:`
-  vous-même s'il ne sert plus.
+- **supprime les scripts que la nouvelle version ne fournit plus**, à condition
+  qu'ils viennent bien de l'amont (voir ci-dessous) ; leur entrée reste dans
+  `custom_scripts:`, donc `validate` échoue jusqu'à ce que vous l'ôtiez — c'est
+  voulu : sans ça, le build embarquait la copie de la version précédente ;
+- **aligne `delay_seconds:` sur l'étalement de la version amont** — voir
+  [Étalement du chargement](#load-staging) ;
+- **rapporte tout ce qu'il a fait** : scripts ajoutés, mis à jour, supprimés, et
+  chaque délai écrit.
 
-Relisez le rapport, réconciliez `custom_scripts:` / `strip_native_triggers:` avec
-les scripts ajoutés/retirés, puis reconstruisez et testez dans DCS.
+Relisez le rapport, ajoutez au besoin les scripts nouveaux à `custom_scripts:` (leur
+position dans l'ordre de chargement est une décision humaine), puis reconstruisez et
+testez dans DCS.
+
+### Ce qui vous appartient, et ce qui appartient à l'amont {#ownership}
+
+Un script que la nouvelle version ne fournit plus n'est pas forcément périmé : ce peut
+être un script que **vous** avez écrit et déclaré dans `custom_scripts:`. Vu du dossier,
+les deux sont identiques.
+
+La conversion écrit donc `convert-other-state.yaml` dans le dossier de mission : la liste
+des scripts que la version amont charge. **Versionnez-le avec la mission.** À la mise à
+jour suivante, un script absent de la nouvelle version *et* présent dans cette liste est
+un script amont abandonné (supprimé) ; tout le reste est à vous (laissé strictement
+intact).
+
+Un dossier converti avant l'apparition de ce fichier n'a pas cette liste : rien n'y est
+supprimé, tout est signalé, exactement comme avant.
+
+### Étalement du chargement {#load-staging}
+
+Les missions tierces échelonnent souvent le chargement de leurs scripts (Foothold charge
+AIEN 12 s après les autres). L'amont décide de cet étalement, pas vous : `--update` écrit
+donc les `delay_seconds:` de la version amont dans votre `mission.yaml`, et le rapport
+nomme chaque ligne écrite.
+
+Seules ces lignes-là changent — commentaires, ordre, guillemets et fins de ligne du reste
+du fichier sont laissés tels quels. Un script que l'amont ne connaît pas garde le délai
+que vous lui avez donné.
+
+> Si vous teniez à un délai différent de celui de l'amont, il sera réécrit à la prochaine
+> mise à jour. Le rapport vous le dira.

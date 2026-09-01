@@ -13,6 +13,135 @@ come first.
 
 ---
 
+## ⏱ RELEASE GATE — fixes that are shipped and nobody has ever seen work
+
+Added 2026-09-01, taking the inventory of open lots. Several lots sit at `🧑 waiting-human` with
+their **code already merged**: it will go out with the next release whether or not anyone looks at it.
+Two of them had no entry in this file at all, so the wait had nowhere to end. Items are appended here
+as later lots land in the same state, so read the list rather than a count.
+
+Each item below states what to run, what to look at, and **what each of the two outcomes means** — a
+check that cannot come out negative proves nothing.
+
+### R1. A SAM that has locked you must keep its radar long enough to fire
+
+Unblocks [`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md),
+whose last two boxes are exactly this. The repair is in the artefact VEAF embeds (`VEAF/Skynet-IADS`
+commit `3a94937`, carried in by #846): the faulty `isActive() == false` filter is gone from
+`src/scripts/community/skynet-iads-compiled.lua`.
+
+**Run**: `verify-mission-c`, the SA-6 site (`Kub 1S91 str` ×1 + `Kub 2P25 ln` ×2) — the same site as
+the 2026-08-22 observation. Get locked and stay in the engagement envelope.
+
+- **Fixed**: the launchers rise, stay up, and the site shoots.
+- **Not fixed**: they still alternate raise/retract without firing. On 2026-08-22 the period was
+  *"toutes les 10 secondes"*; if that cycling is back, note whether the 10 s runs **raise → raise** or
+  **raise → retraction**, because the PRD's mechanism predicts 5 s for the second one and the
+  difference tells us which constant is wrong.
+
+### R2. One airfield assigned must not disable the other 224
+
+Unblocks [`FIX-WAREHOUSES-INCREMENTAL`](.backlog/FIX-WAREHOUSES-INCREMENTAL/PRD.md) — implemented
+2026-08-16, never seen in game. Before the fix, `ensure_airports_populated` filled the airfield table
+only when it was **empty**, so the documented MCP workflow (assign one airfield, then build) shipped a
+mission with **1 airfield out of 225** usable.
+
+**Run**: a Syria mission, one airfield set blue and one red through the MCP, then
+`.\veaf-tools.exe mission build`. In game, try to spawn at a **third**, untouched airfield.
+
+- **Fixed**: the two named airfields carry their coalition and dynamic slots, *and* the untouched ones
+  are still usable — that second half is the whole point.
+- **Not fixed**: only the airfields you named have slots.
+
+The measured reference from the lot, for comparison: Deir ez-Zor BLUE / Palmyra RED both
+`dynamicSpawn = true` with 52 aircraft types, Nicosia untouched NEUTRAL with none.
+
+### R3. The airfields come back on a mission rebuilt from a current version
+
+Unblocks [`FIX-WAREHOUSES-LIST-FORM`](.backlog/FIX-WAREHOUSES-LIST-FORM/PRD.md) — every base turned
+neutral in a 6.14.2 build. Shipped in **6.15.0** (#756, published 2026-08-18); the lot has been waiting
+on Tripack rebuilding his mission ever since.
+
+Tripack is the reference case and that is his to run, but it does not have to wait for him: rebuilding
+any mission that has airfield ownership answers the same question.
+
+- **Fixed**: the airfields hold the coalition the mission declares.
+- **Not fixed**: they come out neutral, and 6.15.0 did not carry what we think it carried.
+
+### R4. The `100` (`SmallSizeFighter`) parking type
+
+Already written up at the end of this file — left there, it is a measurement rather than a gate.
+
+### R5. A respawned tanker's escort must be *with* it, not 80 km away
+
+Unblocks [`FIX-ESCORT-RESPAWN-DISTANCE`](.backlog/FIX-ESCORT-RESPAWN-DISTANCE/PRD.md), whose only
+remaining box is this one. Repairing the Escort task was already shipped and already proven to run;
+what it could not fix is the distance. Measured on 2026-08-28, minutes after a respawn: **78 km and
+82 km** between the demo mission's tanker and its escorts, one of them already landed at 14 m —
+against the Escort task's own `engagementDistMax` of **60 km**. The escort is now respawned with its
+charge, and only then is the task repaired.
+
+**Run**: the session mission, **F10 → ASSETS → Respawn Arco**. Read the escorts' distance to Arco
+straight away — the same reading that produced the 78/82 km above.
+
+- **Fixed**: a few hundred metres, in formation. The escort was put back with its charge.
+- **Not fixed**: tens of kilometres, or an escort still sitting on a runway. That means the escort was
+  not respawned at all, which is a different defect from the one this lot closed.
+
+Then the second half, which is easy to skip and is where the risk actually is: **shoot one escort
+down**, then respawn its asset. It should come back *and* escort. This is the only path no unit test
+can cover — the mocked `coalition.addGroup` does not register the group it is handed, so nothing off
+DCS can show whether the freshly created escort is already findable by the repair that runs a few
+instructions later.
+
+Worth expecting, so it is not read as a regression: the escort that comes back is a **fresh** one, so
+one that was engaged or damaged is replaced. That is the accepted cost of the design call made on
+2026-08-28, not a bug.
+
+**Reminders for whatever mission you build for these**: `security.disabled: true` goes at the **root**
+of `mission.yaml`, not under `modules:` (a check that asks for a password cannot be run), and playable
+slots are `parking-cold` — never an air start.
+
+### R11. A spawned CAP shoots at the fighter and not at the man on the parachute
+
+Unblocks [`FIX-CAP-ENGAGES-PARACHUTES`](.backlog/FIX-CAP-ENGAGES-PARACHUTES/PRD.md), whose only
+remaining box is this one. Added 2026-09-01, when the lot was implemented.
+
+**Two separate things to look at, and the second is the one no test can reach.**
+
+**Run, part one — the patrol works at all.** Spawn a CAP from a marker (`-cap mig29`) with a hostile
+flight inside its patrol radius, and watch what it does. This is the half that failed on 2026-09-01,
+when fourteen CAPs were destroyed by three F-14s without returning fire.
+
+- **Fixed**: the patrol turns onto the enemy flight and shoots. When the enemy leaves or dies, it goes
+  back to flying its racetrack instead of continuing straight ahead.
+- **Not fixed**: it flies its route and never turns, or it turns and never fires. Then read
+  `dcs.log` for `VEAF-SPAWN|D|` — *"Watchdog has targets"* with no *"Engaging target!"* after it means
+  the target list is being emptied again, and *"Watchdog found no targets"* while an enemy is plainly on
+  the radar means the filter is refusing something it should not. Both lines are `debug`, so the mission
+  needs `logLevel: debug` under `SPAWN` — which, until
+  [`FIX-PER-MODULE-LOGLEVEL-INERT`](.backlog/FIX-PER-MODULE-LOGLEVEL-INERT/PRD.md) is closed, means the
+  **global** level, not the per-module one.
+
+**Run, part two — the parachute.** Get a pilot into the air under a canopy inside the CAP's patrol
+radius (eject from a slot, or shoot down an AI flight) while an enemy fighter is also in the zone.
+
+- **Fixed**: the CAP goes for the fighter. With the fighter gone and only the parachute left, it goes
+  back on patrol with air-to-air prohibited rather than orbiting the canopy.
+- **Not fixed**: it chases the parachute. That would mean DCS hands an ejected pilot a descriptor
+  carrying the `Air` attribute — i.e. it copies the aircraft's — and the filter needs a second
+  discriminator. **This is the outcome no workstation can predict**: the filter is built on the
+  attribute table of the 883 units `dcsUnits` ships, and an ejected pilot is not in it. If it comes out
+  this way, the useful thing to bring back is the trace of one detection: with `logLevel: trace` under
+  `SPAWN`, the `targetType=` and `targetAttributes=` lines say exactly what DCS thinks a man under a
+  parachute is, and the filter can then be routed on whatever that turns out to be.
+
+Worth expecting, so it is not read as a defect: a **tanker or an AWACS is a legitimate CAP target** and
+the patrol will go for one. The 2026-09-01 log shows Arco the KC-135 correctly listed — at low priority,
+behind the fighters.
+
+---
+
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)
 
 **Ground SAMs fire in 2.9.28.26385.** Measured twice on a bare map with no scripts whatsoever:
@@ -52,7 +181,45 @@ broken for everyone". It never was.
 
 Items **11** and **16** are fully measurable, with no double reading and no caveat.
 
-## A mission is ready for items 0 and 0b
+## The session mission — built 2026-08-27, twice corrected 2026-08-28
+
+`D:\dev\_VEAF\tmp\dcs-session-2026-08-27\` — **load
+`missions\VEAF-session-2026-08-27-escortfix_noon.miz`**, the newest of the three. Caucasus, noon,
+`language: fr`, security off, built with `--dev-mode` against the repository so it carries fixes no
+release has yet.
+
+Items 21, 22 and 10 were all run on it on 2026-08-28 and are closed — item 21's counts are recorded in
+[`FIX-PLACEMENT-IGNORES-SCENERY` ticket 04](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/tickets/04-refuse-the-farp-when-the-escort-cannot-be-placed.md),
+item 22's answer in the `scenery-death-events-in-dcs` note and in `DROP-MIST` ticket 09. What remains
+here is the mission itself, still the right one to load for anything needing a live VEAF mission on
+Caucasus.
+
+⚠️ **Two defects of the 27th's build, both fixed on the 28th — do not reintroduce them.**
+
+1. **It carried two VEAF configurations.** `src/scripts/` held the demo mission's v5 `missionConfig.lua`
+   (59 KB, `MISSION_NAME = "VEAF-Demo-Mission"`) *next to* the generated `veaf-config.lua`. Both ran, so
+   every module initialised twice and **every radio submenu appeared twice**, the second one inert —
+   19 submenus under the VEAF root where there should be 9. Deleting `missionConfig.lua` and rebuilding
+   fixed it, confirmed by probing the live menu tree. The repository's own demo mission
+   (`test/veaf-tools/demo-mission/src/scripts/`) is clean; the stale file came from extracting a v5
+   `.miz`. **Anyone converting a v5 mission will hit this** — worth a guard of its own.
+2. It was built before the `findEscortTask` fix, so item 10 could not pass on it.
+
+**The item 10 control is built in and worth keeping**: one escort is named `Arco escort` (matching the
+`<asset name> .. " escort"` convention, [`veafMove.lua:37`](src/scripts/veaf/veafMove.lua)) and the other
+deliberately left as `Arco-escort1`, so a run can tell a working repair from a silent no-op.
+
+⚠️ **The folders for items 3 and 4 are gone.** `dcs-session-2026-08-14` and `dcs-session-2026-08-24` no
+longer exist; `tmp/` holds only the Foothold archives, now **4.7.0** where item 4's text targets 4.4.1.
+Those two need rebuilding before they can be run — see `LIRE-MOI.md`.
+
+⚠️ **`mission extract` → `mission build` does not round-trip.** The demo `.miz` stores its members under
+lowercase `l10n/default/`, the extractor reproduces that faithfully, and the builder demands
+`l10n/DEFAULT/` — it aborts with *"These components are missing … they are mandatory in a DCS
+mission!"*. Renamed by hand for this session; worth a lot of its own, since a repository test mission
+triggers it.
+
+## An older mission, for items 0 and 0b — both since closed
 
 `D:\dev\_VEAF\tmp\dcs-session-2026-08-14\TestMenuFR.miz` — Caucasus, `language: fr`, with the modules
 that build menus (RADIO, SPAWN, COMBATZONE, ASSETS, WEATHER, NAMEDPOINTS, MOVE, TRANSPORTMISSION,
@@ -113,6 +280,120 @@ deux côtés. Consigné dans
 **`TestMenuFR-fixed.miz`** corrige les trois défauts (drapeau, radio, midi), et **le slot a été pris en
 jeu le 2026-08-15** — *"le A-10 fonctionne"*. Le correctif est donc mesuré, pas supposé, et cette
 mission est celle à utiliser pour la suite de la session.
+
+### ❌ R6. A FARP escort on clear ground must not move — **run 2026-09-01, negative**
+
+**Run 2026-09-01: the escort moved on all three markers, open ground included.** The guard's line
+never appeared. Instrumented in #898, twelve decisions gave gaps of 43.9 m to 127 m against a 12 m
+clearance — the condition cannot hold, because `Disposition.getSimpleZones` samples at random rather
+than tessellating. `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` is reopened with these numbers, and its
+ticket 03 replaces the method. **Re-run this item once that lands.**
+
+Unblocks [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md)
+(shipped 2026-09-01) and item 04 of `FIX-PLACEMENT-IGNORES-SCENERY`. **Written up as item 25 at the
+end of this file** — three markers, and the point worth repeating here: *a run where nothing moves in
+any of the three is a failure, not a pass*. It would mean the fix turned tier 1 off.
+
+### R7. A wave — or a QRA — launched by a VEAF command lands in its zone
+
+Unblocks [`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md) (shipped
+2026-09-01, in two modules). **Written up in French at the very end of this file.** The position handed
+to the command carried no easting, which reads as zero — the theatre's central meridian, hundreds of
+kilometres from the zone. Never measured. Also worth knowing: `FIX-WAVE-OFFSET-AXES` shipped the same
+day and **moves any mission using a non-zero `[latDelta,lonDelta]` offset**, so a zone with an offset
+is the interesting one to trigger.
+
+### ✅ R8. Does a teleported escort hold formation — and does it engage? — **both yes, 2026-09-01**
+
+Gates [`FIX-TELEPORT-ESCORT-WAYPOINT`](.backlog/FIX-TELEPORT-ESCORT-WAYPOINT/PRD.md), which cannot be
+started without this. Nothing shipped depends on it: this morning's escort fix
+(`FIX-ESCORT-RESPAWN-DISTANCE`, #882) respawns the escort and repairs the task, and never touches the
+teleport path's waypoint arithmetic.
+
+**Why it needs measuring rather than reading.** The repository tells two stories. In the code, right
+after the call that is supposed to make the escort escort:
+
+```lua
+veafMove.replaceMission(unitGroup_escort, EscortData)
+--this method appears to not work very well, the escort just doesn't defend the group
+```
+
+And `FIX-ESCORT-RESPAWN-TASK`'s PRD says the opposite — *"works (escort held for 30 min)"* — and used
+this path as the reference the respawn path was ported from. **They are not actually contradictory**:
+an escort can fly formation for thirty minutes without ever engaging anything. Which is why this is
+**two** observables and not one.
+
+**Run**: on the session mission, drop a map marker somewhere clear and type
+
+```
+_move tanker, name Arco, teleport
+```
+
+Then watch two things, separately:
+
+1. **Formation** — does the escort end up with Arco and stay with it?
+2. **Engagement** — bring a threat to the pair (a `-spawn` fighter, or fly at them red) and does the
+   escort actually engage it?
+
+**What each answer means.** Four combinations, and they do not lead to the same repair:
+
+| Formation | Engages | What it means, and what the lot then does |
+|---|---|---|
+| yes | yes | the path works; the code comment is wrong and gets deleted, and the lot is only the waypoint arithmetic |
+| yes | **no** | **both notes are true** — the author was right about engagement, `RESPAWN-TASK` right about formation. The Escort task is being written to a waypoint that is not the one carrying it: the arithmetic *is* the defect, and finding 2 of the PRD is the whole fix |
+| no | yes | unexpected; record exactly what was seen before anyone theorises |
+| no | no | the path has never worked. The answer is probably to rebuild it on the respawn mechanism shipped in #882 rather than correct its waypoints — and the ASSETS / MOVE pages need updating |
+
+**The control that is already built into the mission**, worth using here too: one escort is named
+`Arco escort` (matching the `<asset name> .. " escort"` convention) and the other is deliberately left
+as `Arco-escort1`. So a run can tell a working repair from a silent no-op — only the first is ever
+found by name.
+
+**Answered in game 2026-09-01, on the session mission's Arco: formation yes, engagement yes.** Every
+escort engaged a threat brought to the pair. That is the first row of the table above — *the path
+works* — so the code comment claiming the escort "just doesn't defend the group" was wrong and has
+been removed, and `FIX-ESCORT-RESPAWN-TASK`'s PRD was right all along. The repository tells one story
+now.
+
+What remains is finding 2 only: the rewrite still targets the **last** waypoint, while `findEscortTask`
+searches every one of them because the demo mission puts the task on waypoint 2 of 3.
+
+**What to write down**: the mission, the date, and the two answers. Whichever of the two notes turns
+out wrong gets corrected in the code comment *and* in `FIX-ESCORT-RESPAWN-TASK`'s PRD — the point of
+this item is that the repository stops telling two stories.
+
+### R9. Does DCS lift an aircraft spawned too low, or let it die there?
+
+Unblocks [`FIX-AIR-SPAWN-ALTITUDE-GUARD`](.backlog/FIX-AIR-SPAWN-ALTITUDE-GUARD/PRD.md) ticket 02, and
+it is a **question about DCS**, not a check of a fix — nothing to rebuild, and no VEAF script is under
+suspicion. It is the only thing standing between the lot and closure.
+
+What is established without the game: `veafUnits.checkPositionForUnit`'s rule *"an aircraft will not
+spawn below 10 m"* read `spawnPosition.z`, the **easting**, so it had never refused anything anywhere a
+mission is flown. It now reads the altitude and refuses a point **under the terrain** — that much is
+right whatever the answer here.
+
+What it cannot say: whether merely *not being underground* is enough. The author of the line wrote 10 m,
+and the MiST-derived spawner in our own scripts applies exactly that margin and, when a requested
+altitude does not clear it, **lifts** the aircraft into an altitude band instead of refusing it. So MiST
+did not trust DCS to clamp. If DCS does clamp, that machinery is unnecessary here and the lot closes as
+a non-finding.
+
+**Run**: spawn an aircraft group at an explicit low altitude over flat ground — `_spawn group` with an
+`alt` of a couple of metres is the shortest route, and a bare `-spawn` of an air group with no `alt` at
+all is the same case (the altitude then comes out as the ground height). Watch the F10 map and the
+aircraft itself.
+
+- **DCS clamps**: the aircraft appears flying, at some altitude of the game's choosing. Then form A —
+  what shipped — is the complete answer, and ticket 02 closes.
+- **DCS does not clamp**: the aircraft appears at ground level and crashes, or is destroyed on spawn.
+  Then a clearance margin is needed, and the useful detail is *what* happened — an explosion, a landed
+  aircraft, or a group that never appears — because it decides whether refusing is acceptable or whether
+  the caller has to lift it the way `veafDcsSpawner` does.
+
+Worth noting either way: **an aircraft placed as a static must still work on the coast.** A static sits
+at 1 m over water and at sea level, so if `_spawn unit, name <aircraft>, static` on a beach ever reports
+*"cannot find a suitable position"*, that is this lot's regression and it should be said plainly.
 
 ### Reste de la session
 
@@ -340,25 +621,6 @@ checks pass, and #790 is what made them able to fail.
 
 ---
 
-## 10. Watch a respawned escort for longer than ten minutes
-
-[`FIX-ESCORT-RESPAWN-TASK`](.backlog/FIX-ESCORT-RESPAWN-TASK/PRD.md) is written and unit-tested, but
-the defect is a DCS behaviour the mocks do not model: an `Escort` task whose `groupId` no longer
-resolves. Only the game can say whether the repair takes.
-
-Rerun **check 9 of `verify-mission-c`**: F10 → Assets → Respawn Arco, then watch its escort.
-
-- **Before the fix**: the escort holds for a while, then leaves to land after ~10 minutes.
-- **Expected now**: it stays with the tanker. David watched the teleport path hold for 30 minutes on
-  2026-08-18, so that is the bar.
-
-⚠️ **Watch past the ten-minute mark.** The failure is a *delayed* RTB — a short look would have called
-the old behaviour fixed. That is the whole reason this cannot be a five-minute check.
-
-Also worth a glance in `dcs.log`: `Re-establishing the escort task of <group> onto group id <n>`. If
-that line is absent, the escort group is not named `<asset> escort` and the convention is what to
-check first (it is now documented on the ASSETS page).
-
 ## 3. Confirm a rebuilt checklist picture is not served stale — **prepared 2026-08-24**
 
 [`FEAT-ASSIST-FOLLOWUP` 01](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) shipped the fix: a checklist image's
@@ -452,3 +714,142 @@ through — and the harness has since run in game, so the dependency is live.
   exists for it and has never been exercised.
 - [`FEAT-ASSIST-FOLLOWUP` 03](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) — an F-16C pilot's review of the
   six shipped steps. The engine was flown and works; the *procedure* was never checked by a pilot.
+
+---
+
+## ✅ 23. CSAR sans MiST — vérifié en jeu le 2026-08-31, et il a trouvé deux défauts
+
+Les quatre étapes passées : pilote abattu créé (`Wounded Pilot #200084`, identifiant de
+l'allocateur VEAF), message radio `requests SAR at bullseye 333 for 62, beacon at 300.00 KHz`,
+direction « 2 heures » recoupée par un calcul indépendant, et ramassage effectif. `mist` était
+`nil` du début à la fin.
+
+Deux défauts trouvés au passage, qu'aucun des 3950 tests ne voyait : l'assertion de dépendance
+s'exécutait au chargement, là où `veaf` ne peut pas encore exister ; et un groupe créé en vol
+n'avait pas de pays, ce qui cassait **tout** téléport de groupe dynamique. Détail complet dans
+`.backlog/REFACTOR-CSAR-WITHOUT-MIST/PRD.md`.
+
+## ✅ 24. Skynet sans MiST — vérifié en jeu le 2026-08-31, sans un seul décollage
+
+Piloté par le hook fiddle plutôt que volé, David n'ayant pas de matériel sous la main — et c'est
+mieux tombé ainsi : les deux morceaux risqués sont du comportement dans le temps, qui se mesure
+mieux qu'il ne se regarde.
+
+Ordonnanceur exact (13 exécutions en 26 s à 2 s d'intervalle), annulation propre, défense HARM qui
+éteint **et rallume** à l'échéance, 13 sites SAM et 8 radars EW recensés par préfixe, site créé en
+vol vu immédiatement. Le piège MiST a mordu 31 fois, **31 fois depuis `dcs-bridge.lua`** (l'outil
+d'observation lui-même) et **zéro depuis Skynet**.
+
+Détail complet, y compris mes deux fausses alertes de méthode, dans
+`.backlog/REFACTOR-SKYNET-WITHOUT-MIST/PRD.md`.
+
+
+---
+
+## Le type d'emplacement `100` (`SmallSizeFighter`) — à regarder en jeu
+
+Ouvert par `CHORE-AIRCRAFT-STAND-TYPES` (PR #865), qui a élargi `AIRCRAFT_STAND_TYPES` à
+`{68, 72, 104}` sur des mesures et a **laissé `100` dehors**, faute de pouvoir trancher sans DCS.
+
+Ce qui est établi, et qui n'appelle pas de vérification :
+
+- `100` n'existe que sur **11 aérodromes syriens**, qui ont **tous** déjà du `68`/`104` — l'inclure
+  ne débloquerait donc **aucun** aérodrome ;
+- **aucune** des missions mesurées (Foothold ×3 théâtres, Open Training Syria) n'y gare quoi que ce
+  soit — 105 avions garés, aucun sur du `100` ;
+- DCS le documente comme une place étroite pour petit appareil, et le masque officiel
+  `FighterAircraftSmall` le contient bien.
+
+**La seule question ouverte est physique** : un appareil lourd tient-il sur un `100` ? Un C-130 ou
+un B-52 posé là passe-t-il, ou clippe-t-il dans le décor ?
+
+Comment vérifier, si l'occasion se présente : sur un des 11 aérodromes syriens concernés, poser
+dans l'éditeur un gros porteur sur un stand de type `100` et charger la mission. S'il apparaît
+proprement, `100` peut rejoindre l'ensemble ; s'il clippe ou refuse, la constante reste comme elle
+est et **la raison est enfin sourcée** plutôt que déduite de l'absence de contre-exemple.
+
+Sans enjeu : personne n'attend ce changement, il n'ouvrirait aucun terrain. C'est une vérification
+de confort, à faire si une session DCS a du temps de reste.
+
+---
+
+## 25. The FARP escort on clear ground must not move — unblocks `FIX-PLACEMENT-IGNORES-SCENERY` 04
+
+Opened by [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md),
+whose code fix and tests landed 2026-09-01. Item 21's own non-regression case failed on 2026-08-28: a
+`-farp` on open ground, nothing within a kilometre, logged `FARP escort: bearing 0 requested, 25 used at
+1.054x distance`. Tier 1 of `findClearBearing` selected out of `Disposition`'s cloud before testing the
+requested bearing, and the wanted spot is never one of the cloud's candidates.
+
+Three markers, on the session mission rebuilt with `--dev-mode` against the fix. Grep `dcs.log` for
+`FARP escort:` and `findClearBearing:`.
+
+| Marker | Case | Expected |
+|---|---|---|
+| open ground, nothing within a kilometre | the non-regression | bearings **equal**, `1x`, plus `bearing N is inside a scenery-clear area, keeping it` |
+| in or beside a wood | the reason tier 1 exists | bearings **differ**, escort visibly out of the trees |
+| beside a static FARP | the reason the occupancy probe still decides | bearings differ or scale above 1, escort off the apron |
+
+**A run where nothing moves in any of the three is a failure, not a pass** — it would mean the fix
+turned tier 1 off. The last two rows are the half that makes this a real check.
+
+`no usable point in Disposition's cloud, walking the bearings instead` now logs at **info**, so the
+old instruction to set `veafGrass.LogLevel = "debug"` for this no longer applies.
+
+Full protocol: [ticket 02](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/tickets/02-verify-in-game-that-nothing-moves.md).
+
+---
+
+## Une vague aérienne — et une QRA — lancée par commande VEAF : où atterrit le groupe ?
+
+Ouvert par `FIX-AIRWAVES-COMMAND-EASTING` (ticket 02), correctif du 2026-09-01.
+
+Ce qui est établi sans DCS : quand l'élément d'une vague (ou d'une QRA) est une **commande** et non un
+groupe de l'éditeur, la position transmise à la commande n'avait **pas de coordonnée est**. Les tests
+unitaires prouvent que la position sort maintenant correctement formée, dans les deux modules.
+
+Ce qu'ils ne peuvent pas dire : ce que DCS faisait de l'ancienne. Une coordonnée est absente se lit
+comme zéro, c'est-à-dire le méridien central du théâtre — donc le groupe devait apparaître à des
+centaines de kilomètres de sa zone. Jamais mesuré.
+
+**À faire** : une zone de vague avec un élément commande (par exemple `[0,0]-shilka`), et une zone QRA
+avec le même genre d'élément. Déclencher chacune, regarder la carte F10.
+
+- **Attendu** : le groupe apparaît *dans* la zone, dans le rayon de réapparition autour du centre.
+- **Ce qui contredirait le correctif** : le groupe atterrit encore loin de la zone, ou à une altitude
+  absurde. Dans ce cas le dire, avec ce qu'on voit : ça voudrait dire que la position est juste et que
+  quelque chose en aval la relit autrement, et le lot se rouvre.
+
+Accessoirement, ça répond à une question ouverte du lot : est-ce que ce défaut échouait **bruyamment**
+(un groupe visiblement nulle part) ou **silencieusement** (un groupe qui n'engageait jamais, mis sur le
+compte de l'IA) ? La deuxième réponse expliquerait pourquoi personne ne l'a signalé.
+
+---
+
+## DCS crée-t-il jamais un slot joueur *dynamique* du côté neutre ?
+
+Ouvert par `FIX-GETGROUPDATA-SKIPS-NEUTRALS` (2026-09-01), qui a trouvé le site en passant et l'a
+laissé plutôt que de coder à l'aveugle.
+
+Ce qui est établi sans DCS : `veafMissionDb.refreshDynamicSlots` balaie `{ RED, BLUE }` et c'est le
+seul balayage de coalition de l'arbre qui omette `NEUTRAL`. Les slots neutres **déclarés dans
+l'éditeur** sont déjà couverts — ils passent par `indexEditorSlots`, qui lit la mission et ne filtre
+sur aucune coalition. Le trou ne peut donc concerner qu'un slot que DCS aurait créé lui-même.
+
+Ce qui n'est pas établi, et ne peut pas l'être hors du jeu : est-ce que le mécanisme de slots
+dynamiques produit un jour un slot neutre ? Si la réponse est non, le balayage est correct et il
+manque juste une phrase qui le dise. Si elle est oui, un joueur sur ce slot est invisible pour tout ce
+qui lit `getAllHumanRecords` — AirWaves, QRA, CSAR.
+
+**À faire** : ouvrir une mission où le côté neutre a des appareils, activer les slots dynamiques, et
+regarder si l'interface de choix de slot propose quoi que ce soit du côté neutre.
+
+- **Réponse « non »** : rien de neutre n'est proposé. Alors on écrit la raison à côté de la boucle et
+  le sujet est clos — pas de code.
+- **Réponse « oui »** : un slot neutre existe. Alors il y a **deux** lignes à corriger, pas une —
+  `veafMissionDb.lua:346` (la liste des coalitions) **et** `:357`, qui étiquette la coalition par
+  `coalitionId == RED and "red" or "blue"` et rangerait donc tout neutre dans le bleu. Un correctif
+  qui n'ajouterait que `NEUTRAL` à la boucle laisserait le second défaut en place.
+
+Utile même en cas de « non » : c'est la seule asymétrie de coalition qui reste dans l'arbre après ce
+lot, et savoir qu'elle est **voulue** évite qu'un prochain passage la « corrige » sans savoir.

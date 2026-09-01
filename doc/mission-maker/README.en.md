@@ -2,11 +2,19 @@
 
 Integrate the VEAF Lua framework into your DCS World missions to give players dynamic spawning, combat zones, managed assets, and more — without placing hundreds of units in the editor.
 
+> **New here?** Read [Discover VMCT in ten minutes](DISCOVER.en.md) for the lay of the land, then
+> follow the [tutorial](TUTORIAL.en.md) from an empty folder to a mission that runs. The
+> [concept cards](concepts/README.en.md) are what you reopen afterwards, one at a time.
+
 ---
 
 ## Quick Start — Your First VEAF Mission
 
 ### 1. Install the tools
+
+> **The `.\` is required.** The default Windows terminal is PowerShell, which does not search the
+> current directory — on purpose. `cmd.exe` accepts both forms, so `.\` works everywhere. See
+> [PowerShell or Command Prompt?](GUIDE.en.md#powershell-vs-cmd).
 
 ```powershell
 # Download veaf-tools-updater.exe from the latest GitHub release and place it in your mission project folder.
@@ -17,7 +25,7 @@ Integrate the VEAF Lua framework into your DCS World missions to give players dy
 
 This downloads `veaf-tools.exe` and the VEAF Lua scripts to your working directory.
 
-> **Language:** Messages are displayed in your OS language automatically (English or French). To switch language: `veaf-tools.exe user-config --set lang=fr`. See [Language Configuration](GUIDE.en.md#global-user-configuration).
+> **Language:** Messages are displayed in your OS language automatically (English or French). To switch language: `.\veaf-tools.exe user-config --set lang=fr`. See [Language Configuration](GUIDE.en.md#global-user-configuration).
 
 ### 2. Create a mission in DCS Editor
 
@@ -26,7 +34,7 @@ Create a standard `.miz` mission (place your own units, waypoints, weather, etc.
 ### 3. Extract the mission
 
 ```powershell
-veaf-tools.exe mission extract my-mission.miz
+.\veaf-tools.exe mission extract my-mission.miz
 ```
 
 This extracts the `.miz` into a mission folder structure (current directory by default) that you can version-control and configure.
@@ -38,7 +46,7 @@ Edit `mission.yaml` at the root of your mission folder to declare which VEAF mod
 ### 5. Build
 
 ```powershell
-veaf-tools.exe mission build my-mission.miz
+.\veaf-tools.exe mission build my-mission.miz
 ```
 
 The build tool reads the mission folder, **automatically injects** the VEAF loader trigger, and produces a `.miz` ready to fly with full VEAF MCT functionality.
@@ -66,6 +74,9 @@ See the [full scripts catalogue](scripts/README.en.md) for all 17+ modules.
 
 | Document | When to read |
 |----------|--------------|
+| [Discover VMCT](DISCOVER.en.md) | Ten minutes: what the pieces are and how they fit |
+| [Tutorial — your first mission](TUTORIAL.en.md) | One thread, from an empty folder to a mission that runs |
+| [Concept cards](concepts/README.en.md) | One short page per concept, with a working example |
 | [Full Guide](GUIDE.en.md) | Detailed setup, configuration, and build workflow |
 | [Migration Guide](MIGRATION_GUIDE.en.md) | Converting from VEAF MCT v5 or adding VEAF MCT to an existing mission |
 | [Scripts Reference](scripts/README.en.md) | Per-module documentation with commands and config examples |

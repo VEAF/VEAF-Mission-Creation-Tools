@@ -13,9 +13,9 @@ Gère les ressources persistantes d'une mission — ravitailleurs, AWACS, JTAC. 
 ## Dépendances
 
 - `veafRadio` — menu F10
-- **MiST** — obligatoire : la réapparition (`veafAssets.respawn`) utilise `mist.respawnGroup`.
+- `veafDcsSpawner` / `veafMissionDb` — la réapparition (`veafAssets.respawn`) reconstruit le groupe avec `VeafGroupSpawn`, à partir de la fiche de mission que VEAF indexe au démarrage. MiST n'est **pas** nécessaire (il l'était, via `mist.respawnGroup`).
 
-> ⚠️ **Les assets doivent être des groupes placés dans le Mission Editor.** Le `name` de chaque asset doit correspondre exactement à un groupe présent dans le `.miz` (et chaque entrée `linked`). Un asset spawné dynamiquement ou mal nommé n'est pas dans la base MiST (`mist.DBs.MEgroupsByName`) → la réapparition échoue silencieusement en jeu. Le build émet désormais un **avertissement** si un groupe déclaré (ASSETS, QRA, …) est absent de la mission.
+> ⚠️ **Les assets doivent être des groupes placés dans le Mission Editor.** Le `name` de chaque asset doit correspondre exactement à un groupe présent dans le `.miz` (et chaque entrée `linked`). Un asset spawné dynamiquement ou mal nommé n'est pas dans la base de mission construite par VEAF au démarrage (`veaf.getGroupRecord`) → la réapparition échoue silencieusement en jeu. Le build émet désormais un **avertissement** si un groupe déclaré (ASSETS, QRA, …) est absent de la mission.
 
 ---
 
@@ -129,14 +129,34 @@ décoratif : c'est ce qui permet au framework de retrouver l'escorte pour **rép
 `Escort`**, que DCS invalide chaque fois que le groupe escorté est recréé — réapparition
 (*Respawn*) comme téléportation (`_move tanker … teleport`).
 
-Concrètement : configurez la tâche `Escort` sur le **dernier waypoint** de la route de l'escorte,
+Concrètement : configurez la tâche `Escort` sur **n'importe quel waypoint** de la route de l'escorte,
 dans l'éditeur de mission, comme d'habitude. Le reste est automatique.
 
-> ⚠️ **`linked` n'est pas ce qui fait d'un groupe une escorte.** Les deux mécanismes sont
-> indépendants : `linked` liste les groupes à faire **réapparaître en même temps** que la ressource,
-> alors que la convention de nom est ce qui permet de réparer la tâche d'escorte. Une escorte n'a pas
-> besoin d'être dans `linked` — et il faut malgré tout réparer sa tâche, puisque c'est le changement
-> d'identifiant du groupe **escorté** qui la casse, pas celui de l'escorte.
+### Ce que fait une réapparition à une escorte {#respawn-and-escorts}
+
+Faire réapparaître une ressource (**F10 → ASSETS → Respawn**) fait **aussi réapparaître son
+escorte**, puis répare la tâche `Escort`. Les deux moitiés sont nécessaires, et aucune ne remplace
+l'autre :
+
+- **L'escorte revient avec sa protégée**, parce que la ressource, elle, réapparaît là où l'éditeur de
+  mission l'avait posée pendant que son escorte a continué à voler. Mesuré en jeu le 28/08/2026 sur
+  le ravitailleur de la mission de démonstration, quelques minutes après une réapparition :
+  **78 km et 82 km** entre les deux, une escorte déjà posée au sol — alors que la tâche `Escort`
+  déclare un `engagementDistMax` de **60 km**. Réparer la tâche seule ne servait donc à rien : elle
+  confiait à l'escorte une protégée hors de sa propre portée d'engagement.
+- **La tâche est réparée malgré tout**, parce que ce qui la casse est le changement d'identifiant du
+  groupe **escorté**, pas celui de l'escorte.
+
+À savoir : l'escorte qui revient est **neuve**. Une escorte engagée, endommagée ou à court de
+carburant est remplacée, exactement comme la ressource elle-même — et une escorte abattue revient
+aussi.
+
+> ⚠️ **`linked` n'est pas ce qui fait d'un groupe une escorte.** Les deux mécanismes restent déclarés
+> séparément : `linked` liste des groupes quelconques à faire réapparaître en même temps que la
+> ressource, alors que la convention de nom est ce qui identifie l'escorte. Une escorte n'a donc pas
+> besoin d'être listée dans `linked` : elle réapparaît de toute façon avec sa protégée, et sa tâche
+> est réparée. Les deux finissent par avoir le même effet sur l'escorte au moment de la réapparition,
+> mais c'est bien la convention de nom — et elle seule — qui permet de réparer la tâche `Escort`.
 
 **Symptôme si le nom ne suit pas la convention** : l'escorte décolle avec sa protégée, tient un
 moment, puis **part atterrir au bout d'une dizaine de minutes**. Ce n'est pas un abandon de l'IA :

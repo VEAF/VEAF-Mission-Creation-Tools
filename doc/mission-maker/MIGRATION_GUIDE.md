@@ -43,6 +43,10 @@ flowchart TD
 
 3. Ayez votre dossier de mission v5 sous la main
 
+> **Le `.\` est obligatoire.** Le terminal Windows par défaut est PowerShell, qui ne cherche pas dans
+> le dossier courant — exprès. `cmd.exe` accepte les deux formes, donc `.\` marche partout. Voir
+> [PowerShell ou invite de commandes ?](GUIDE.md#powershell-vs-cmd).
+
 > **Conseil — configuration globale utilisateur :** Avant de commencer, créez `~/veafmct.yaml` (soit `C:\Users\VotreNom\veafmct.yaml` sous Windows) pour définir des préférences persistantes sur cette machine — notamment la langue (`lang: fr`) afin que tous les outils s'affichent en français. Voir [Configuration globale utilisateur](GUIDE.md#global-user-configuration) pour le détail et les commandes disponibles.
 
 ---
@@ -54,8 +58,8 @@ flowchart TD
 | Domaine | v5 | v6 |
 |---------|----|----|
 | **Trigger DCS** | Triggers `DO SCRIPT FILE` manuels pointant vers chaque fichier `.lua` | Trigger unique injecté automatiquement par `veaf-tools mission build` ; aucun travail de trigger manuel |
-| **Chaîne de build** | Pas d'étape de build — scripts chargés directement depuis le disque au démarrage de la mission | `veaf-tools.exe mission build` assemble le `.miz` depuis `src/mission/` + `src/scripts/` |
-| **Script de build** | `build.cmd` complexe avec une ligne par commande d'injection | Pas de `build.cmd` — lancez simplement `veaf-tools-updater.exe` puis `veaf-tools.exe mission build` |
+| **Chaîne de build** | Pas d'étape de build — scripts chargés directement depuis le disque au démarrage de la mission | `.\veaf-tools.exe mission build` assemble le `.miz` depuis `src/mission/` + `src/scripts/` |
+| **Script de build** | `build.cmd` complexe avec une ligne par commande d'injection | Pas de `build.cmd` — lancez simplement `.\veaf-tools-updater.exe` puis `.\veaf-tools.exe mission build` |
 | **Pipeline d'auto-injection** | Chaque commande d'injection devait être ajoutée manuellement à `build.cmd` | `veaf-tools mission build` auto-détecte et exécute chaque étape quand le fichier correspondant est présent dans `src/` |
 | **Mises à jour des outils** | NPM (`npm install`) — scripts distribués sous forme de package versionné | `veaf-tools-updater.exe` — télécharge et vérifie la dernière release en une commande |
 | **Config au moment du build** | Pas de fichier de config au moment du build | `mission.yaml` — contrôle les niveaux de log, l'activation/désactivation des modules, les surcharges d'étapes du pipeline |
@@ -63,7 +67,7 @@ flowchart TD
 | **Configuration de modules** | Affectation directe : `veafSpawn.SpawnKeyphrase = "_spawn"` dans `missionConfig.lua` | La même affectation directe fonctionne toujours dans `mission-script.lua` ; ou `veaf.setConfig("MODULE_ID", "key", value)` pour les surcharges pilotées par config |
 | **Pattern d'init des modules** | Appels nus `veafXxx.initialize()` | Auto-généré dans `veaf-config.lua` par `veaf-tools mission build` ; aucun appel `initialize()` manuel nécessaire |
 | **Emplacement de la config** | Initialisation dispersée dans des scripts de trigger DCS ou un fichier Lua séparé | `mission.yaml` génère `veaf-config.lua` au moment du build ; code Lua personnalisé optionnel dans `mission-script.lua` |
-| **Migration de la config** | Réécriture manuelle | `veaf-tools.exe convert v5` — une seule commande migre `missionConfig.lua`, convertit les fichiers pipeline (préréglages, waypoints, météo, groupes d'aéronefs) et génère `mission.yaml` + `mission-script.lua`. Utilisez `migrate-config` uniquement pour migrer `missionConfig.lua` seul. |
+| **Migration de la config** | Réécriture manuelle | `.\veaf-tools.exe convert v5` — une seule commande migre `missionConfig.lua`, convertit les fichiers pipeline (préréglages, waypoints, météo, groupes d'aéronefs) et génère `mission.yaml` + `mission-script.lua`. Utilisez `migrate-config` uniquement pour migrer `missionConfig.lua` seul. |
 | **Niveaux de log des modules** | Définis par module en assignant `veafXxx.LogLevel` avant l'init | Section `modules: → MODULE_ID: logLevel:` dans `mission.yaml` ou option CLI `--log-modules` |
 | **Skynet / CTLD / CSAR / QRA** | Sections séparées `external_modules:` et `qra:` | Tout sous le bloc `modules:` (`modules.SKYNET`, `modules.CSAR` avec un sous-bloc `settings:`, `modules.QRA` avec `silence_all` + `definitions:`). **`modules.CTLD` est un simple booléen** : CTLD 2 se configure dans un `ctld-config.yaml` à côté de `mission.yaml`, un bloc `settings:` y est refusé par `validate` — et il s'édite avec `ctld-tools`, un outil livré avec CTLD qu'il faut [télécharger séparément](GUIDE.md#getting-ctld-tools). Les sections `external_modules:` et `qra:` n'existent plus — voir [ADR 0001](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/adr/0001-modules-single-source-of-truth.md). `convert-v5` émet directement la nouvelle forme. |
 
@@ -119,7 +123,7 @@ Les anciens triggers DCS `DO SCRIPT FILE` sont supprimés automatiquement par `v
 
 > **Promotion de `src/mission/` en v6 (activée par défaut)** : `convert-v5` termine en réécrivant `src/mission/` au format v6 (build de base + extraction), ce qui rend la bascule v6 définitive et évite de re-migrer les triggers v5 à chaque build. L'original est sauvegardé dans `backup_v5/src/mission/`. Si vous préférez d'abord vérifier les configs générées et builder vous-même, désactivez l'étape avec `--no-promote` ; vous pourrez relancer `convert-v5` plus tard pour promouvoir.
 
-> **Si vous n'avez besoin de migrer que `missionConfig.lua`** sans convertir les fichiers pipeline, utilisez `veaf-tools.exe convert migrate-config src\scripts\missionConfig.lua` directement.
+> **Si vous n'avez besoin de migrer que `missionConfig.lua`** sans convertir les fichiers pipeline, utilisez `.\veaf-tools.exe convert migrate-config src\scripts\missionConfig.lua` directement.
 
 #### 4. Vérifier les patterns v5 supprimés
 
@@ -342,7 +346,7 @@ modules:
     enabled: true
 ```
 
-Reconstruisez avec `veaf-tools.exe mission build` après toute modification de `mission.yaml`.
+Reconstruisez avec `.\veaf-tools.exe mission build` après toute modification de `mission.yaml`.
 
 ### Les commandes de marqueurs ne fonctionnent pas
 
@@ -365,7 +369,7 @@ Tous les messages VEAF sont écrits dans `Saved Games\DCS\Logs\dcs.log`. Pour le
 
 ### Le build échoue avec "VEAF scripts file not found"
 
-Exécutez `veaf-tools-updater.exe` d'abord — le dossier `published/` est manquant ou obsolète.
+Exécutez `.\veaf-tools-updater.exe` d'abord — le dossier `published/` est manquant ou obsolète.
 
 ---
 

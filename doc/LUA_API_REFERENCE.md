@@ -160,7 +160,6 @@ veaf.BaseLogLevel = 3  -- Niveau de log par défaut (info) ; sert de plafond pou
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 veaf.DEFAULT_GROUND_SPEED_KTS = 16.2
 veaf.DEFAULT_SPEED_KTS = 350
-veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 ```
 
 #### Localisation (i18n) & retour pilote
@@ -4282,7 +4281,7 @@ local objective = VeafCombatMissionObjective:new()
 objective:setName("Détruire les chars")
 objective:setOnStartup(function(mission)
   -- Spawner les chars
-  local spawnPos = mist.utils.zoneToVec3("TargetZone")
+  local spawnPos = veafGeo.zoneToVec3("TargetZone")
   veafSpawn.spawnArmoredPlatoon(spawnPos, 100, nil, nil,
     coalition.side.RED, 0, 50, 2, 3, 3, true)
 end)

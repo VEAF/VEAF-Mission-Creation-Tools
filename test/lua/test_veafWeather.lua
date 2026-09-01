@@ -18,6 +18,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafTime.lua")
 dofile(src .. "/veafI18n.lua")
 -- veafWeather reaches into veafAirbases for the welcome brief (the nearest airbase and its runway
@@ -1112,7 +1117,7 @@ function TestVeafWeatherWelcomeBrief:setUp()
   self._savedOutForGroup = trigger.action.outTextForGroup
   self._savedNearest = veafAirbases.getNearestAirbase
   self._savedCreate = veafWeatherData.create
-  self._savedSchedule = mist.scheduleFunction
+  self._savedSchedule = veaf.scheduleFunction
   self._savedGetByName = Unit.getByName
 
   self.messages = {}
@@ -1122,13 +1127,13 @@ function TestVeafWeatherWelcomeBrief:setUp()
   veafWeather.briefedUnits = {}
   -- `isHumanUnit` reads this table. Registering the pilot here is what makes a BIRTH event brief him,
   -- which is the path single player actually takes.
-  self._savedHumans = mist.DBs.humansByName
-  mist.DBs.humansByName = { Chevy11 = {}, Chevy21 = {} }
+  self._savedHumans = veafMissionDb.humansByName
+  veafMissionDb.humansByName = { Chevy11 = {}, Chevy21 = {} }
 
   trigger.action.outTextForGroup = function(groupId, text, duration)
     table.insert(self.messages, { groupId = groupId, text = text, duration = duration })
   end
-  mist.scheduleFunction = function(fn, args, when)
+  veaf.scheduleFunction = function(fn, args, when)
     table.insert(self.scheduled, { fn = fn, args = args, when = when })
   end
 end
@@ -1138,9 +1143,9 @@ function TestVeafWeatherWelcomeBrief:tearDown()
   trigger.action.outTextForGroup = self._savedOutForGroup
   veafAirbases.getNearestAirbase = self._savedNearest
   veafWeatherData.create = self._savedCreate
-  mist.scheduleFunction = self._savedSchedule
+  veaf.scheduleFunction = self._savedSchedule
   Unit.getByName = self._savedGetByName
-  mist.DBs.humansByName = self._savedHumans
+  veafMissionDb.humansByName = self._savedHumans
 end
 
 --- A unit the player just took, with only what the brief touches.
@@ -1265,10 +1270,10 @@ function TestVeafWeatherWelcomeBrief:_ship(heading)
   airbase.DcsAirbase.getUnit = function()
     return { isShipUnit = true }
   end
-  self._savedMistHeading = self._savedMistHeading or mist.getHeading
+  self._savedMistHeading = self._savedMistHeading or veaf.getHeading
   self.headingArgs = nil
   local test = self
-  mist.getHeading = function(unit, raw)
+  veaf.getHeading = function(unit, raw)
     test.headingArgs = { unit = unit, raw = raw }
     return heading
   end
@@ -1278,15 +1283,15 @@ end
 function TestVeafWeatherWelcomeBrief:test_the_heading_asked_for_is_the_true_one()
   -- The message says "(true)" / "(vrai)", so the code must ask for the true heading and not the magnetic
   -- one — otherwise the brief lies by a declination. Pinned because the first version of these tests
-  -- stubbed mist.getHeading ignoring its arguments, and flipping that flag killed no test at all.
+  -- stubbed veaf.getHeading ignoring its arguments, and flipping that flag killed no test at all.
   local airbase = self:_ship(math.rad(45))
   veafAirbases.getNearestAirbase = function()
     return airbase
   end
   self:_weather()
   veafWeather.buildWelcomeBrief(self:_unit())
-  mist.getHeading = self._savedMistHeading
-  luaunit.assertNotNil(self.headingArgs, "mist.getHeading was never called")
+  veaf.getHeading = self._savedMistHeading
+  luaunit.assertNotNil(self.headingArgs, "veaf.getHeading was never called")
   luaunit.assertTrue(self.headingArgs.raw, "the second argument must be true: the true heading, not magnetic")
 end
 
@@ -1297,7 +1302,7 @@ function TestVeafWeatherWelcomeBrief:test_a_carrier_announces_its_course()
   end
   self:_weather()
   local brief = veafWeather.buildWelcomeBrief(self:_unit())
-  mist.getHeading = self._savedMistHeading
+  veaf.getHeading = self._savedMistHeading
   luaunit.assertNotNil(brief)
   luaunit.assertNotNil(brief:lower():find("heading", 1, true), "a carrier must be given its heading: " .. brief)
   luaunit.assertNotNil(brief:find("123", 1, true), "and the heading itself: " .. brief)
@@ -1311,7 +1316,7 @@ function TestVeafWeatherWelcomeBrief:test_the_course_is_read_as_three_digits()
   end
   self:_weather()
   local brief = veafWeather.buildWelcomeBrief(self:_unit())
-  mist.getHeading = self._savedMistHeading
+  veaf.getHeading = self._savedMistHeading
   luaunit.assertNotNil(brief:find("009", 1, true), "expected a three-digit heading: " .. brief)
 end
 
@@ -1322,7 +1327,7 @@ function TestVeafWeatherWelcomeBrief:test_a_carrier_is_never_given_a_runway()
   end
   self:_weather()
   local brief = veafWeather.buildWelcomeBrief(self:_unit())
-  mist.getHeading = self._savedMistHeading
+  veaf.getHeading = self._savedMistHeading
   luaunit.assertNil(brief:lower():find("runway", 1, true), "a carrier has no runway to keep: " .. brief)
 end
 
@@ -1463,7 +1468,7 @@ TestVeafWeatherAlreadyFlying = {}
 
 function TestVeafWeatherAlreadyFlying:setUp()
   self._savedEnabled = veafWeather.welcomeBriefEnabled
-  self._savedHumans = mist.DBs.humansByName
+  self._savedHumans = veafMissionDb.humansByName
   self._savedGetByName = Unit.getByName
   self._savedSend = veafWeather.sendWelcomeBrief
 
@@ -1478,16 +1483,16 @@ end
 
 function TestVeafWeatherAlreadyFlying:tearDown()
   veafWeather.welcomeBriefEnabled = self._savedEnabled
-  mist.DBs.humansByName = self._savedHumans
+  veafMissionDb.humansByName = self._savedHumans
   Unit.getByName = self._savedGetByName
   veafWeather.sendWelcomeBrief = self._savedSend
 end
 
 --- @param slots table name -> the player sitting in it, or nil for an empty slot
 function TestVeafWeatherAlreadyFlying:_world(slots)
-  mist.DBs.humansByName = {}
+  veafMissionDb.humansByName = {}
   for name, _ in pairs(slots) do
-    mist.DBs.humansByName[name] = {}
+    veafMissionDb.humansByName[name] = {}
   end
   Unit.getByName = function(name)
     if slots[name] == nil then
@@ -1520,7 +1525,7 @@ function TestVeafWeatherAlreadyFlying:test_an_empty_slot_is_not_briefed()
 end
 
 function TestVeafWeatherAlreadyFlying:test_a_slot_that_does_not_exist_yet_is_skipped()
-  mist.DBs.humansByName = { Ghost = {} }
+  veafMissionDb.humansByName = { Ghost = {} }
   Unit.getByName = function()
     return nil
   end
@@ -1558,7 +1563,9 @@ function TestVeafWeatherAlreadyFlying:test_the_setting_silences_the_sweep_too()
 end
 
 function TestVeafWeatherAlreadyFlying:test_it_survives_a_mission_with_no_human_slots()
-  mist.DBs.humansByName = nil
+  -- An empty roster, not a missing one: the roster is a table from the moment the module loads, where
+  -- mist.DBs.humansByName could be nil before MiST had finished starting up.
+  veafMissionDb.humansByName = {}
   veafWeather.briefEveryoneAlreadyFlying()
   luaunit.assertEquals(#self.briefed, 0)
 end
@@ -1615,12 +1622,12 @@ function TestVeafWeatherWelcomeBrief:test_initialize_also_sweeps_who_is_already_
   local hadRemote = veafRemote ~= nil
   veafRemote = veafRemote or {}
   local origRemote = veafRemote.registerRemoteModule
-  local origSchedule = mist.scheduleFunction
+  local origSchedule = veaf.scheduleFunction
   veafEventHandler.addCallback = function() end
   veafWeather.buildRadioMenu = function() end
   veafAirbases.initialize = function() end
   veafRemote.registerRemoteModule = function() end
-  mist.scheduleFunction = function(fn)
+  veaf.scheduleFunction = function(fn)
     table.insert(scheduledFns, fn)
   end
 
@@ -1630,7 +1637,7 @@ function TestVeafWeatherWelcomeBrief:test_initialize_also_sweeps_who_is_already_
   veafWeather.buildRadioMenu = origMenu
   veafAirbases.initialize = origAirbases
   veafRemote.registerRemoteModule = origRemote
-  mist.scheduleFunction = origSchedule
+  veaf.scheduleFunction = origSchedule
   if not hadRemote then
     veafRemote = nil
   end
@@ -1695,7 +1702,7 @@ function TestVeafWeatherWelcomeBrief:test_player_enter_unit_briefs_even_without_
   -- The multiplayer path. A pilot joining a slot may not be in `humansByName` yet, so the event's own
   -- identity is taken as proof — the same exception `veafGrass` and `veafQraCore` make.
   self:_arrange()
-  mist.DBs.humansByName = {}
+  veafMissionDb.humansByName = {}
   veafWeather.onPlayerEnterUnit({
     initiator = self:_unit("Someone-New"),
     type = { id = world.event.S_EVENT_PLAYER_ENTER_UNIT },
@@ -1758,6 +1765,58 @@ function TestVeafWeatherWelcomeBrief:test_nothing_to_say_sends_nothing()
   end
   veafWeather.sendWelcomeBrief("Chevy11")
   luaunit.assertEquals(#self.messages, 0)
+end
+
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS -- the ATC report on a pilot who is no longer there
+--
+-- `messageAtcClosestAirbase` took the unit name off an F10 menu entry, looked it up, and handed the
+-- answer straight to `veafAirbases.getNearestAirbase`, which reads `dcsUnit:getPoint()` as its first
+-- statement. Nothing checked the lookup. A pilot who died, respawned or slotted out between opening
+-- the menu and choosing the item made the command raise.
+--
+-- Deliberately *not* stubbing `getNearestAirbase` here: the crash lives one call down, in veafAirbases,
+-- and a stub would step over the very line under test.
+-- ============================================================================
+TestVeafWeatherAtcVanishedUnit = {}
+
+function TestVeafWeatherAtcVanishedUnit:setUp()
+  dcs_mocks.reset()
+  self._logger = veaf.loggers.get(veafWeather.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+end
+
+function TestVeafWeatherAtcVanishedUnit:tearDown()
+  self._logger.warn = self._originalWarn
+  dcs_mocks.reset()
+end
+
+-- The defect: `Unit.getByName` answers nil for a unit the mocks never registered, which is what DCS
+-- does for a unit that is gone.
+function TestVeafWeatherAtcVanishedUnit:test_a_unit_that_is_gone_does_not_raise()
+  local ok, err = pcall(veafWeather.messageAtcClosestAirbase, "GhostPilot", true)
+  luaunit.assertTrue(ok, string.format("messageAtcClosestAirbase raised on a unit that is gone: %s", tostring(err)))
+end
+
+function TestVeafWeatherAtcVanishedUnit:test_nobody_is_sent_a_report()
+  veafWeather.messageAtcClosestAirbase("GhostPilot", true)
+  luaunit.assertEquals(#dcs_mocks.messages, 0, "there is no pilot left to answer")
+end
+
+function TestVeafWeatherAtcVanishedUnit:test_the_warning_names_the_unit()
+  veafWeather.messageAtcClosestAirbase("GhostPilot", true)
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find("GhostPilot", 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the unit that could not be found")
 end
 
 os.exit(luaunit.LuaUnit.run())

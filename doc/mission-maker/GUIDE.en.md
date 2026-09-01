@@ -60,6 +60,26 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 
 ## Installation and Updates
 
+### PowerShell or Command Prompt? {#powershell-vs-cmd}
+
+On Windows, the terminal you get by default — the one behind the **Open in Terminal** context menu, the one built into VS Code — is **PowerShell**. Every example in this documentation is written for it.
+
+**An executable sitting in the current folder is called `.\veaf-tools.exe`, never `veaf-tools.exe`.** PowerShell does **not** search the current directory, and that is deliberate: it is a protection against command hijacking — dropping a fake `git.exe` into a folder so that it runs instead of the real one. Without the `.\`, you get:
+
+> veaf-tools.exe is not recognized as a name of a cmdlet, function, script file, or executable program.
+
+(the exact wording depends on your PowerShell version and language). The error names the file you are looking straight at, in the folder you are standing in: it reads as "the tool is broken" when only two characters are missing.
+
+Command Prompt (`cmd.exe`) does search the current directory and accepts both forms. **So `.\veaf-tools.exe` works in both shells**: it is the portable form, and the only one this documentation writes.
+
+The three differences between the two shells that actually bite:
+
+| | PowerShell | `cmd.exe` |
+|---|---|---|
+| Running an executable from the current folder | `.\veaf-tools.exe` (required) | either form |
+| Setting an environment variable | `$env:VEAF_LANG = "fr"` | `set VEAF_LANG=fr` |
+| Breaking a command over several lines | a backtick `` ` `` at end of line | a caret `^` |
+
 ### First Installation
 
 Download `veaf-tools-updater.exe` from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) and place it in your mission project folder.
@@ -112,20 +132,20 @@ scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Local repo path (for 
 All keys are optional. To initialise the file from the CLI:
 
 ```powershell
-veaf-tools.exe user-config --init
+.\veaf-tools.exe user-config --init
 ```
 
 Or inspect/edit values interactively:
 
 ```powershell
 # Show effective configuration and its source
-veaf-tools.exe user-config
+.\veaf-tools.exe user-config
 
 # Set a value
-veaf-tools.exe user-config --set lang=fr
+.\veaf-tools.exe user-config --set lang=fr
 
 # Remove a value (revert to default)
-veaf-tools.exe user-config --unset lang
+.\veaf-tools.exe user-config --unset lang
 ```
 
 **Language detection order** (first match wins):
@@ -153,8 +173,8 @@ cd my-mission
 
 1. Create a folder for your mission project (this is your Git repository)
 2. Copy your existing `.miz` file there
-3. Run `veaf-tools-updater.exe` to fetch all VEAF scripts
-4. Extract your mission: `veaf-tools.exe mission extract my-mission.miz`
+3. Run `.\veaf-tools-updater.exe` to fetch all VEAF scripts
+4. Extract your mission: `.\veaf-tools.exe mission extract my-mission.miz`
 5. Configure modules in `mission.yaml` and optionally `src/scripts/mission-script.lua`
 
 Recommended project layout:
@@ -239,10 +259,16 @@ flowchart TD
 > To give your pilots equipped aircraft, set them up **once** in a mission (in the DCS Mission Editor, with the loadout and livery you want), then regenerate the file from that mission:
 >
 > ```powershell
-> veaf-tools.exe content extract-aircraft-groups my-mission.miz --kind dynamic-template
+> .\veaf-tools.exe content extract-aircraft-groups my-mission.miz --kind dynamic-template
 > ```
 >
 > That rewrites `src/dynamic-slot-templates.yaml` with your templates. The next build injects them, and the dynamic slots offer aircraft ready to fly.
+>
+> **Add `--merge` to build the catalogue up instead of starting it over.** Without it the file is rebuilt from the mission alone, so a second mission's templates — or a template you edited by hand — are lost. With it, the mission wins on a group of the same name and **each replacement is named** in the report, while everything the mission does not carry is kept:
+>
+> ```powershell
+> .\veaf-tools.exe content extract-aircraft-groups second-mission.miz --kind dynamic-template --merge
+> ```
 
 ---
 
@@ -289,6 +315,40 @@ modules:
 -- Note: nothing to write here for CTLD — it is configured in ctld-config.yaml
 -- (see CTLD and CSAR Integration)
 ```
+
+### MiST: injected only when you need it {#mist-injection}
+
+MiST used to be loaded into **every** mission, because the VEAF scripts called it everywhere. They
+no longer call it at all, and neither does any community script shipped here. A mission that does
+not need it therefore stops carrying its **336 KB**.
+
+There is nothing to do: at build time VEAF reads your own scripts under `src/scripts/` and, if one
+of them calls `mist.`, injects MiST and tells you which file asked for it:
+
+```
+MiST is no longer injected by default, but 'src/scripts/HoundElint.lua' calls it:
+injecting it for this mission.
+```
+
+That is the common case: a third-party script such as HoundElint calls MiST, the scan sees it, and
+everything keeps working. Converting from v5 reads the same way, so a converted mission keeps MiST
+if and only if it actually uses it.
+
+What the scan **cannot** see: a script that loads another script, or one that reaches MiST through
+`_G["mist"]`. Only in that case, ask for it explicitly:
+
+```yaml
+modules:
+  MIST: true
+```
+
+A `MIST: false` does not win against the scan: if one of your scripts calls MiST, it is injected
+anyway. Honouring the flag would mean breaking the mission in flight to respect a config line.
+
+> **If your `mission.yaml` already carries a bare `MIST:` line**, it used to mean "mandatory module,
+> always on"; it now means "not asked for". That is every mission written so far, since the shipped
+> template carried that line. There is nothing to change: your mission gets 336 KB lighter, and if
+> one of your scripts calls MiST, the scan injects it back.
 
 ### Security Levels {#security-tiers}
 
@@ -485,10 +545,10 @@ Full reference: [CLI Reference](../CLI_REFERENCE.en.md)
 
 In an interactive terminal, `veaf-tools.exe` opens a guided wizard (TUI) instead of failing on a missing option:
 
-- `veaf-tools.exe` (no arguments) → command-selection menu, then prompts.
-- `veaf-tools.exe mission prepare` → the wizard asks for the target folder **and** the module template.
-- `veaf-tools.exe mission prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
-- `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `veaf-tools.exe mission build --tui`).
+- `.\veaf-tools.exe` (no arguments) → command-selection menu, then prompts.
+- `.\veaf-tools.exe mission prepare` → the wizard asks for the target folder **and** the module template.
+- `.\veaf-tools.exe mission prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
+- `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `.\veaf-tools.exe mission build --tui`).
 
 Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is. Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
 
@@ -500,7 +560,7 @@ Options already passed on the command line are pre-filled; unknown options (e.g.
 
 ```powershell
 # Build the mission — the integrated pipeline runs all enabled steps automatically
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 The `build` command reads `mission.yaml` and runs every enabled pipeline step (presets, waypoints, aircraft groups, weather) in a single pass. Configure which steps are active under the `pipeline:` key in `mission.yaml`.
@@ -512,13 +572,13 @@ If you need to run a single step in isolation (e.g. inject weather only, without
 
 ```powershell
 # Inject radio presets only
-veaf-tools.exe content inject-presets my-mission.miz --presets-file src/presets.yaml
+.\veaf-tools.exe content inject-presets my-mission.miz --presets-file src/presets.yaml
 
 # Inject bullseye and nav waypoints only
-veaf-tools.exe content inject-waypoints my-mission.miz --waypoints-file src/waypoints.yaml
+.\veaf-tools.exe content inject-waypoints my-mission.miz --waypoints-file src/waypoints.yaml
 
 # Create weather/time variants only
-veaf-tools.exe content inject-weather my-mission.miz --config-file versions.yaml
+.\veaf-tools.exe content inject-weather my-mission.miz --config-file versions.yaml
 ```
 
 </details>
@@ -526,7 +586,7 @@ veaf-tools.exe content inject-weather my-mission.miz --config-file versions.yaml
 Commit the contents of `src/` to Git — not the built `.miz`. Use `extract` once to bootstrap the source folder from an existing mission:
 
 ```powershell
-veaf-tools.exe mission extract my-mission.miz
+.\veaf-tools.exe mission extract my-mission.miz
 ```
 
 ---
@@ -558,13 +618,13 @@ profiles:
 
 ```powershell
 # Build for testing (no weather, security disabled, verbose logging)
-veaf-tools.exe mission build --profile TEST
+.\veaf-tools.exe mission build --profile TEST
 
 # Build for server deployment
-veaf-tools.exe mission build --profile SERVER
+.\veaf-tools.exe mission build --profile SERVER
 
 # Build with no profile (base config)
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 Profile keys **deep-merge** onto the base config: only the keys you specify are overridden, everything else stays as defined at the top of `mission.yaml`. Passing an unknown profile name emits a warning and falls back to the base config.
@@ -604,15 +664,28 @@ local northQra = VeafQRA:new()
 
 ### Combat Zone
 
-```lua
-local strikeZone = VeafCombatZone:new()
-  :setMissionEditorZoneName("ZONE-STRIKE-ALPHA")
-  :setFriendlyName("Strike Alpha")
-  :setBriefing("Armoured column advancing on Senaki. Destroy all armoured vehicles; expect AAA.")
-  :addZoneElement(VeafCombatZoneElement:new():setName("ARMOR"):setSpawnGroup("STRIKE-ALPHA-ARMOR"))
-  :addZoneElement(VeafCombatZoneElement:new():setName("AAA"):setSpawnGroup("STRIKE-ALPHA-AAA"))
-  :initialize()
+A combat zone is declared in `mission.yaml`. Its contents are **not listed here**: the zone adopts every group that stands inside the DCS trigger zone it names **and whose name starts with the zone's name** (case is ignored). You draw the circle in the Mission Editor, put the armour and the AAA inside it — named `ZONE-STRIKE-ALPHA-ARMOR`, `ZONE-STRIKE-ALPHA-AAA` — and the zone destroys and respawns them on activation. A group placed inside the circle but named otherwise is ignored, silently: see [the prefix rule](scripts/veafCombatZone.en.md#zone-membership).
+
+```yaml
+modules:
+  COMBATZONE:
+    enabled: true
+    combat_zones:
+      - type: zone
+        zone_name: ZONE-STRIKE-ALPHA    # the DCS trigger zone the groups stand in
+        friendly_name: Strike Alpha     # label in the F10 menu
+        briefing: Armoured column advancing on Senaki. Destroy all armoured vehicles; expect AAA.
+        training: false
 ```
+
+How each group appears — its dispersion, its probability, its delay — is written in the **unit names**, with the `#spawnradius`, `#spawnchance`, `#spawncount`, `#spawndelay` and `#alarm` tags. See [veafCombatZone](scripts/veafCombatZone.en.md) for the full field list and for those tags.
+
+!!! note "Lua is for what YAML has no key for"
+    `VeafCombatZone:new():…:initialize()` is still the API underneath, and `mission.yaml` generates exactly those calls — so writing it by hand buys nothing for a plain zone. Use it for what has no YAML key, in `src/scripts/mission-script.lua`, once the zone is declared:
+
+    ```lua
+    veafCombatZone.GetZone("ZONE-STRIKE-ALPHA"):setOnCompletedHook(myCallback)
+    ```
 
 ### Air Waves Zone
 
@@ -649,7 +722,9 @@ Everything else — distances, timers, crates, troop groups, zones, per-aircraft
 The tool does **not** come with VEAF MCT. It is published with CTLD: open the [VEAF/CTLD releases](https://github.com/VEAF/CTLD/releases) and download the `ctld-tools.exe` file attached to the release.
 
 !!! warning "It does not show up under \"Latest release\""
-    Until CTLD 2 cuts a stable version, **every** one of its releases is published as a *pre-release* — so the repository landing page shows none of them, and the "Releases" link is the only way in. The most recent one is at the top of the list.
+    Until CTLD 2 cuts a stable version, **every** one of its releases is published as a *pre-release* — so the repository landing page shows none of them, and the "Releases" link is the only way in.
+
+    Do not trust the first entry in the list either: the **"CTLD dev build"** entry is not a release but a build of the latest merged commit, and it jumps back to the top every time it is rebuilt. Real releases are tagged `published-v…` — pick from those, using the rule below.
 
 Take the release **matching the CTLD version your VEAF MCT ships**: the tool and the engine move together. That version is written in plain text in the header of the script installed on your machine, `published/src/scripts/community/CTLD.lua`:
 
@@ -926,7 +1001,7 @@ modules:
     logLevel: debug   # overrides the global default for this module only
 ```
 
-`veaf-tools.exe mission build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.
+`.\veaf-tools.exe mission build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.
 
 ### Reading the log
 

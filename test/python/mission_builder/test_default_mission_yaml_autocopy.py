@@ -36,9 +36,11 @@ class TestDefaultMissionYamlAutocopy:
         # ...and the config was resolved from it (not from an empty file).
         assert "modules" in worker.mission_yaml
         assert worker.mission_yaml["modules"].get("RADIO") is True
-        # MiST mandatory stays enabled, SKYNET disabled — community resolved from the copied default.
+        # SKYNET disabled — community resolved from the copied default. MiST is absent too: the
+        # shipped default stopped asking for it (DROP-MIST ticket 08), and nothing in this mission
+        # calls it, so it is not carried.
         assert worker.enabled_community_script_ids is not None
-        assert "mist" in worker.enabled_community_script_ids
+        assert "mist" not in worker.enabled_community_script_ids
         assert "skynet" not in worker.enabled_community_script_ids
 
     def test_existing_mission_yaml_is_not_overwritten(self, tmp_path: Path) -> None:

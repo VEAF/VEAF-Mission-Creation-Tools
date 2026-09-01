@@ -466,27 +466,37 @@ class TestEscapeNavigation:
 class TestEntryPointsWireBridge:
     """Both program entry points must route through ``maybe_bridge_to_tui``.
 
-    Regression guard for the CLI-TUI-BRIDGE drift: ``veaf_tools/app.py`` was
-    updated to call the bridge, but the frozen-exe entry script
-    ``src/python/veaf-tools/veaf-tools.py`` (the one the PyInstaller build
-    bundles) was not, so the built ``.exe`` silently kept the old
-    no-args-only wizard and never bridged. Lock both entry points to the bridge.
+    Regression guard for the CLI-TUI-BRIDGE drift: ``veaf_tools/app.py`` was updated to call
+    the bridge, but the frozen-exe entry script ``src/python/veaf-tools/veaf-tools.py`` (the
+    one the PyInstaller build bundles) was not, so the built ``.exe`` silently kept the old
+    no-args-only wizard and never bridged.
+
+    That drift happened a second time and cost the command tree, so the frozen entry script no
+    longer holds a copy to keep in step: it delegates to ``main()`` (FIX-EXE-COMMAND-TREE).
+    What is asserted of it is therefore that the delegation is intact and that it has not
+    started growing a CLI of its own again — while
+    ``test/python/veaf_tools/test_entry_points_agree.py`` compares what the two actually expose.
     """
 
     _ROOT = Path(__file__).resolve().parents[3]
+    _FROZEN_ENTRY = "src/python/veaf-tools/veaf-tools.py"
+    _IMPLEMENTATION = "src/python/veaf-tools/veaf_tools/app.py"
 
-    @pytest.mark.parametrize(
-        "entry",
-        [
-            "src/python/veaf-tools/veaf-tools.py",
-            "src/python/veaf-tools/veaf_tools/app.py",
-        ],
-    )
-    def test_entry_point_calls_maybe_bridge_to_tui(self, entry: str) -> None:
-        source = (self._ROOT / entry).read_text(encoding="utf-8")
-        assert "maybe_bridge_to_tui(" in source, f"{entry} must invoke the CLI-TUI bridge"
-        # The superseded bare-invocation-only gate must be gone from both entry points.
-        assert "len(sys.argv) == 1" not in source, f"{entry} still uses the old no-args-only gate"
+    def test_the_cli_implementation_calls_the_bridge(self) -> None:
+        source = (self._ROOT / self._IMPLEMENTATION).read_text(encoding="utf-8")
+        assert "maybe_bridge_to_tui(" in source, f"{self._IMPLEMENTATION} must invoke the CLI-TUI bridge"
+        # The superseded bare-invocation-only gate must be gone.
+        assert "len(sys.argv) == 1" not in source, f"{self._IMPLEMENTATION} still uses the old no-args-only gate"
+
+    def test_the_frozen_entry_point_delegates_instead_of_copying(self) -> None:
+        source = (self._ROOT / self._FROZEN_ENTRY).read_text(encoding="utf-8")
+        assert "from veaf_tools.app import main" in source, f"{self._FROZEN_ENTRY} must delegate to main()"
+        assert "main()" in source, f"{self._FROZEN_ENTRY} imports main() without calling it"
+        for copied in ("maybe_bridge_to_tui(", "should_auto_pause(", "app()", "len(sys.argv) == 1"):
+            assert copied not in source, (
+                f"{self._FROZEN_ENTRY} is growing its own CLI again ('{copied}') — that copy is what "
+                "lost the CLI-TUI bridge, and then the themed command tree"
+            )
 
 
 class TestConvertOtherCommandSpec:

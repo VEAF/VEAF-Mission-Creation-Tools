@@ -172,7 +172,7 @@ end
 --- Sources are read in a fixed order — the group name first, then the unit names in **alphabetical**
 --- order — and the first value found for a tag wins; a later source stating a different value is
 --- ignored with a warning. Alphabetical rather than the order the units were met in: that order is
---- `mist.getUnitsInZones` followed by `pairs()`, so tie-breaking on it would be the coin toss this
+--- `veaf.getUnitsInTriggerZone` followed by `pairs()`, so tie-breaking on it would be the coin toss this
 --- replaces, and it is not something a mission maker can see in the mission editor.
 ---
 --- `#command` is not merged — it is a one-shot trigger attached to an object, not a setting of the
@@ -284,8 +284,15 @@ function VeafCombatZoneElement:new(objectToCopy)
   objectToCreate.spawnChance = 100
   -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
   objectToCreate.spawnGroup = nil
-  -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
-  objectToCreate.spawnCount = 1
+  -- How many of a spawn group's elements are *guaranteed* to spawn, set with the `#spawncount=` tag,
+  -- by running the spawn random chance computation as often as necessary.
+  -- **nil means "not stated"**, and that is what tells `activate()` it has nothing to guarantee: the
+  -- retries and the forced last draw are the promise a written `#spawncount` makes ("2 of these 4,
+  -- granted"), so they must not fire for a count nobody asked for. Defaulting it to 1 here is exactly
+  -- what made `#spawnchance` unable to deny a spawn: a lone element — the common case, since an
+  -- element with no `#spawngroup` forms its own group — got nine random draws and then a forced one.
+  -- The count still reads as 1 where it is used, so the cap itself is unchanged.
+  objectToCreate.spawnCount = nil
   -- Alarm state applied to the spawned group (0 AUTO, 1 GREEN, 2 RED), set with the `#alarm=` tag.
   -- **nil means "not stated"**, which is what lets the state be chosen by the group's nature at spawn
   -- time. Defaulting it here would make a deliberate `#alarm=0` indistinguishable from silence.
@@ -439,12 +446,14 @@ function VeafCombatZoneElement:isMobile()
   local route = self:getRoute()
   if not route then
     local name = self:getName()
-    if not name or not mist or not mist.getGroupRoute then
+    if not name then
       return false
     end
-    -- pcall: mist raises on a group it cannot find, and a zone element may name a group that was
-    -- destroyed or renamed since the zone was parsed.
-    local ok, found = pcall(mist.getGroupRoute, name, "task")
+    -- The guard on MiST being loaded went with the port — `veaf.getGroupRoute` ships in the bundle, so
+    -- it cannot be absent. The pcall stays: this runs while a zone is activating, and a route reader
+    -- that raises would take the whole spawn down with it. Answering "not mobile" is the safe end of
+    -- that trade, as the docstring above says.
+    local ok, found = pcall(veaf.getGroupRoute, name)
     route = ok and found or nil
   end
   if type(route) ~= "table" then
@@ -533,7 +542,7 @@ function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZo
   -- no dispersion default here, deliberately: the command runs *at this position*, so scattering it
   -- would move whatever the command spawns. `#spawnradius=` still applies if the mission maker wrote one.
   element:setVeafCommand(command .. ", czName " .. combatZoneName)
-  element:setRoute(mist.getGroupRoute(group.name, "task"))
+  element:setRoute(veaf.getGroupRoute(group.name))
   if not element:getSpawnGroup() then
     element:setSpawnGroup(group.name) -- default the spawn group to the group name
   end
@@ -548,7 +557,7 @@ end
 --- displacement silently carries the spacing between the two, translating the whole group by it.
 ---
 --- The zone does meet units in editor order (`veaf.getUnitsNamesOfCoalition` and
---- `mist.getUnitsInZones` both walk indexed loops), so this only bites when unit 1 is **filtered out**:
+--- `veaf.getUnitsInTriggerZone` both walk indexed loops), so this only bites when unit 1 is **filtered out**:
 --- a group straddling the trigger zone's edge with its first unit outside. Then unit 2 arrives as "the
 --- first one", and a convoy comes up a truck-length down the road from where it was drawn — with
 --- `#spawnradius=0` written and no dispersion asked for.
@@ -994,6 +1003,39 @@ function VeafCombatZone:clearDelayedSpawners()
   return self
 end
 
+--- Fold one element's stated `#spawncount` into the spawn group it joins.
+---
+--- A spawn group is a **set** of elements, and its count belongs to the set, not to whichever element
+--- happened to create it. Reading it from that first element alone meant `#spawncount=2` written on
+--- the second unit of a `#spawngroup` was dropped without a word — and since FIX-COMBATZONE-SPAWNCHANCE
+--- an absent count is `nil`, which is what tells `activate()` there is nothing to guarantee, so losing
+--- one changes how many groups come up, not merely the bookkeeping.
+---
+--- **The highest stated count wins.** Two reasons, in this order:
+--- * the defect being fixed *is* order-dependence, and "the last one written" would only move it — the
+---   order elements are added in is editor order, which the mission maker never chose;
+--- * a `#spawncount` is a guarantee ("2 of these 4, granted"), so the larger of two promises is the one
+---   that keeps both.
+---
+--- A group with no count stated anywhere keeps `nil`, and two elements stating the same number are not
+--- a conflict — only a real disagreement is reported.
+local function mergeSpawnCountInto(elementGroup, element, zoneName)
+  local stated = element:getSpawnCount()
+  if stated == nil then
+    return
+  end
+  local current = elementGroup.spawnCount
+  if current == nil or current == stated then
+    elementGroup.spawnCount = stated
+    return
+  end
+  local kept = math.max(current, stated)
+  veaf.loggers
+    .get(veafCombatZone.Id)
+    :info(veaf.t("combatzone.spawncount_conflict", veaf.p(zoneName), veaf.p(elementGroup.spawnGroup), current, stated, kept))
+  elementGroup.spawnCount = kept
+end
+
 function VeafCombatZone:addZoneElement(element)
   veaf.loggers
     .get(veafCombatZone.Id)
@@ -1006,14 +1048,15 @@ function VeafCombatZone:addZoneElement(element)
   end
   table.insert(self.elements, element)
   if not self.elementGroups[element:getSpawnGroup()] then
-    local elementGroup = {}
-    elementGroup.spawnGroup = element:getSpawnGroup()
-    elementGroup.spawnCount = element:getSpawnCount()
-    elementGroup.elements = {}
-    self.elementGroups[element:getSpawnGroup()] = elementGroup
+    local newGroup = {}
+    newGroup.spawnGroup = element:getSpawnGroup()
+    newGroup.spawnCount = nil -- stays nil until an element states one; see mergeSpawnCountInto
+    newGroup.elements = {}
+    self.elementGroups[element:getSpawnGroup()] = newGroup
   end
   local elementGroup = self.elementGroups[element:getSpawnGroup()]
   table.insert(elementGroup.elements, element)
+  mergeSpawnCountInto(elementGroup, element, self:getMissionEditorZoneName())
   return self
 end
 
@@ -1106,7 +1149,7 @@ function VeafCombatZone:scheduleWatchdogFunction()
     .get(veafCombatZone.Id)
     :trace(string.format("VeafCombatZone[%s]:scheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
   if self:isCompletable() then
-    self.watchdogFunctionId = mist.scheduleFunction(
+    self.watchdogFunctionId = veaf.scheduleFunction(
       veafCombatZone.CompletionCheck,
       { self.missionEditorZoneName },
       timer.getTime() + veafCombatZone.SecondsBetweenWatchdogChecks
@@ -1120,7 +1163,7 @@ function VeafCombatZone:unscheduleWatchdogFunction()
     .get(veafCombatZone.Id)
     :trace(string.format("VeafCombatZone[%s]:unscheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
   if self.watchdogFunctionId then
-    mist.removeFunction(self.watchdogFunctionId)
+    veaf.removeFunction(self.watchdogFunctionId)
   end
   self.watchdogFunctionId = nil
   return self
@@ -1159,7 +1202,7 @@ function VeafCombatZone:initialize()
   end
 
   -- find the trigger zone center
-  self.zoneCenter = mist.utils.zoneToVec3(self.missionEditorZoneName)
+  self.zoneCenter = veaf.zoneToVec3(self.missionEditorZoneName)
   if not self.zoneCenter then
     local message = string.format("Trigger zone [%s] does not exist in the mission !", veaf.p(self.missionEditorZoneName))
     veaf.loggers.get(veafCombatZone.Id):error(message)
@@ -1169,8 +1212,12 @@ function VeafCombatZone:initialize()
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("zone center = [%s]", veaf.vecToString(self.zoneCenter)))
 
   -- find units in the trigger zone
-  local units
-  units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
+  local units, excludedGroupNames
+  units, _, excludedGroupNames = veaf.safeUnpack(self:findUnitsInCombatZone())
+
+  -- and say what the prefix rule turned down, once, before anything else happens: this is the only
+  -- moment the zone knows what it saw and did not take
+  self:reportGroupsExcludedByName(excludedGroupNames)
 
   -- Group what was found, keeping the order the units were met in. The element's **coalition** comes
   -- from the first of those units, as it always has — every unit of a group shares it. Its
@@ -1387,24 +1434,24 @@ function VeafCombatZone:getInformation(unitName)
       -- add coordinates and position from bullseye
       local zoneCenter = self:getCenter()
       local lat, lon = coord.LOtoLL(zoneCenter)
-      local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-      local bullseyeData = mist.DBs.missionData.bullseye.blue -- default to blue
+      local mgrsString = veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)
+      local bullseyeData = veaf.getBullseye("blue") -- default to blue
       if unitName then
         local requestingUnit = Unit.getByName(unitName)
         if requestingUnit and requestingUnit:getCoalition() == coalition.side.RED then
-          bullseyeData = mist.DBs.missionData.bullseye.red
+          bullseyeData = veaf.getBullseye("red")
         end
       end
-      local bullseye = mist.utils.makeVec3(bullseyeData, 0)
+      local bullseye = veaf.makeVec3(bullseyeData, 0)
       local vec = { x = zoneCenter.x - bullseye.x, y = zoneCenter.y - bullseye.y, z = zoneCenter.z - bullseye.z }
-      local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-      local dist = mist.utils.get2DDist(zoneCenter, bullseye)
-      local distMetric = mist.utils.round(dist / 1000, 0)
-      local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
+      local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
+      local dist = veaf.get2DDist(zoneCenter, bullseye)
+      local distMetric = veaf.round(dist / 1000, 0)
+      local distImperial = veaf.round(veaf.metersToNM(dist), 0)
       local fromBullseye = veaf.t("report.bullseye_value", dir, distMetric, distImperial)
 
-      message = message .. veaf.t("report.latlon_decimal", mist.tostringLL(lat, lon, 2))
-      message = message .. veaf.t("report.latlon_dms", mist.tostringLL(lat, lon, 0, true))
+      message = message .. veaf.t("report.latlon_decimal", veaf.toStringLL(lat, lon, 2))
+      message = message .. veaf.t("report.latlon_dms", veaf.toStringLL(lat, lon, 0, true))
       message = message .. veaf.t("report.mgrs", mgrsString)
       message = message .. veaf.t("report.from_bullseye", fromBullseye)
       message = message .. "\n"
@@ -1454,7 +1501,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       .get(veafCombatZone.Id)
       :trace("scheduling spawn of zoneElement=%s in %s seconds", zoneElement:getName(), zoneElement:getSpawnDelay())
     local id =
-      mist.scheduleFunction(VeafCombatZone.spawnElement, { self, zoneElement, true }, timer.getTime() + zoneElement:getSpawnDelay())
+      veaf.scheduleFunction(VeafCombatZone.spawnElement, { self, zoneElement, true }, timer.getTime() + zoneElement:getSpawnDelay())
     self:addDelayedSpawner(id)
   else
     -- spawn now
@@ -1463,22 +1510,36 @@ function VeafCombatZone:spawnElement(zoneElement, now)
     if zoneElement:getSpawnRadius() > 0 then
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("position=[%s]", veaf.vecToString(position)))
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnRadius=[%s]", zoneElement:getSpawnRadius()))
-      local mistP = mist.getRandPointInCircle(position, zoneElement:getSpawnRadius())
-      veaf.loggers.get(veafCombatZone.Id):trace(string.format("mistP=[%s]", veaf.vecToString(mistP)))
-      position = { x = mistP.x, y = position.y, z = mistP.y }
+      -- The draw used to be used unvalidated, so a dispersed element could be placed in a
+      -- building, a forest or the sea in silence — `veaf.placePointOnLand` only writes the
+      -- terrain height. `veaf.findSpawnPoint` validates the point and prefers one clear of
+      -- scenery. It returns a **vec3**, so the easting reads as `z`; this call site used to read
+      -- MiST's vec2 `y` for it, which is the confusion docs/agents/dcs-coordinates.md warns about.
+      --
+      -- On failure the element keeps its **declared** position instead of being skipped: a zone
+      -- element is editor content, and the mission maker who declared it is not in the room when
+      -- the mission loads, so a partially built zone would be worse than an imperfect one.
+      -- Refusing is for what a command spawns (David, 2026-08-27), and per ADR 0018 the scenery
+      -- criterion is quality-only, never correctness.
+      local found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius())
+      if found then
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("found=[%s]", veaf.vecToString(found)))
+        position = { x = found.x, y = position.y, z = found.z }
+      else
+        veaf.loggers.get(veafCombatZone.Id):info(
+          string.format(
+            "spawnElement: no acceptable spawn point within %sm of [%s], keeping its declared position",
+            tostring(zoneElement:getSpawnRadius()),
+            tostring(zoneElement:getName())
+          )
+        )
+      end
     end
     if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
       veaf.loggers
         .get(veafCombatZone.Id)
         :trace(string.format("respawning group [%s] at position [%s]", zoneElement:getName(), veaf.vecToString(position)))
-      local vars = {}
-      vars.gpName = zoneElement:getName()
-      vars.name = zoneElement:getName()
-      vars.newGroupName = veaf.getNameForSpawnedGroup(zoneElement:getCoalition(), zoneElement:getName(), self:getMissionEditorZoneName())
-      vars.route = zoneElement:getRoute()
-      vars.action = "respawn"
-      vars.point = position
-      vars.renameUnitsSequentially = self:isRenameUnitsSequentially()
+      local newGroupName = veaf.getNameForSpawnedGroup(zoneElement:getCoalition(), zoneElement:getName(), self:getMissionEditorZoneName())
       -- The group's first waypoint follows the group. MiST translates a route by the teleport delta
       -- only when asked (mist.lua:4561), and nothing here asked, so a scattered group came up beside
       -- a waypoint 1 still at its editor position and drove back to it before starting its leg.
@@ -1492,12 +1553,18 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- measures it against the mission table's unit 1, while the element's position comes from the
       -- first unit the zone happened to meet (see buildGroupElement), so a group whose units were not
       -- met in editor order carries a delta of its own intra-group spacing.
-      vars.offsetWP1 = true
-      local newGroup = mist.teleportToPoint(vars)
+      local newGroup = VeafGroupSpawn:new()
+        :forGroup(zoneElement:getName())
+        :named(newGroupName)
+        :at(position)
+        :withRoute(zoneElement:getRoute())
+        :renamingUnitsSequentially(self:isRenameUnitsSequentially())
+        :offsettingFirstWaypoint()
+        :respawn()
       if type(newGroup) == "table" then
         veaf.loggers
           .get(veafCombatZone.Id)
-          :trace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
+          :trace(string.format("[%s]:activate() - VeafGroupSpawn([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
         self:addSpawnedGroup(newGroup.name)
         -- resolveAlarmState, not getAlarmState: the state is decided here, from the group's nature,
         -- unless its unit name stated one. A single default served the convoys of #290 and silenced
@@ -1506,9 +1573,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       else
         veaf.loggers
           .get(veafCombatZone.Id)
-          :trace(
-            string.format("[%s]:activate() - mist.teleportToPoint([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName())
-          )
+          :trace(string.format("[%s]:activate() - VeafGroupSpawn([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
       end
     elseif zoneElement:getVeafCommand() then
       veaf.loggers
@@ -1537,7 +1602,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("newGroup = [%s]", newGroup))
         local route = zoneElement:getRoute()
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("got route"))
-        mist.goRoute(newGroup, route)
+        veaf.goRoute(newGroup, route)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
       end)
       veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
@@ -1552,9 +1617,16 @@ function VeafCombatZone:activate()
 
   for _, zoneElementGroup in pairs(self:getZoneElementsGroups()) do
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing spawnGroup [%s]", zoneElementGroup.spawnGroup))
-    local spawnCount = zoneElementGroup.spawnCount
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d]", spawnCount))
-    local tries = 10
+    -- A `#spawncount` the mission maker wrote is a promise of a number — "2 of these 4, granted" — and
+    -- the retries below, forcing the draw on the last one, are what keeps it. Left unstated it is nil,
+    -- there is nothing to guarantee, and a single pass gives each element exactly one draw against its
+    -- own `#spawnchance`. That is what makes the percentage mean what it says: ten tries at 50 % spawn
+    -- 999 times in 1000, so retrying denied the chance just as surely as forcing it did.
+    -- The count still reads as 1, so a `#spawngroup` with no `#spawncount` goes on capping at one.
+    local statedSpawnCount = zoneElementGroup.spawnCount
+    local spawnCount = statedSpawnCount or 1
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d] (stated = %s)", spawnCount, veaf.p(statedSpawnCount)))
+    local tries = statedSpawnCount and 10 or 1
     local alreadySpawnedElements = {}
     local shuffledIndexes = {}
     for i = 1, #zoneElementGroup.elements do
@@ -1573,19 +1645,25 @@ function VeafCombatZone:activate()
         if spawnCount > 0 then
           if not alreadySpawnedElements[zoneElement:getName()] then
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing element [%s]", zoneElement:getName()))
-            local chance = math.random(0, 100)
-            if tries == 1 then
-              chance = 0
-            end -- force chance if in the last try
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance = [%d]", chance))
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnChance = [%d]", zoneElement:getSpawnChance()))
-            if chance <= zoneElement:getSpawnChance() then
-              veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance hit (%d <= %d)", chance, zoneElement:getSpawnChance()))
+            local spawnChance = zoneElement:getSpawnChance()
+            -- `math.random(1, 100) <= chance` is what makes the percentage exact at both ends: 0 never
+            -- spawns and 100 always does. The draw used to start at 0 and compare with `<=`, so
+            -- `#spawnchance=0` still had one draw in 101 — and `#spawnchance=1` had two.
+            local chance = math.random(1, 100)
+            -- The forced draw belongs to a stated `#spawncount` only: it is how the guarantee is met
+            -- when the draws would not have met it. An element at 0 % is still never spawned, because a
+            -- refusal written in full is the clearer of the two intentions when both are written.
+            local forced = statedSpawnCount ~= nil and tries == 1
+            local hit = spawnChance > 0 and (forced or chance <= spawnChance)
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance = [%d], forced = [%s]", chance, tostring(forced)))
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnChance = [%d]", spawnChance))
+            if hit then
+              veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance hit (%d <= %d)", chance, spawnChance))
               spawnCount = spawnCount - 1
               alreadySpawnedElements[zoneElement:getName()] = true
               self:spawnElement(zoneElement)
             else
-              veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance missed (%d > %d)", chance, zoneElement:getSpawnChance()))
+              veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance missed (%d > %d)", chance, spawnChance))
             end
           else
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("already spawned [%s]", zoneElement:getName()))
@@ -1615,7 +1693,7 @@ function VeafCombatZone:activateNextChainedZone()
   veaf.loggers
     .get(veafCombatZone.Id)
     :trace(string.format("activating the next chained zone ([%s]) in %s seconds)", veaf.p(nextZoneName), veaf.p(delay)))
-  mist.scheduleFunction(VeafCombatZone.activate, { nextZone }, timer.getTime() + delay)
+  veaf.scheduleFunction(VeafCombatZone.activate, { nextZone }, timer.getTime() + delay)
   return self
 end
 
@@ -1627,7 +1705,7 @@ function VeafCombatZone:desactivate()
 
   for _, delayedSpawner in pairs(self:getDelayedSpawners()) do
     veaf.loggers.get(veafCombatZone.Id):trace("unscheduling delayed spawner %s", delayedSpawner)
-    mist.removeFunction(delayedSpawner)
+    veaf.removeFunction(delayedSpawner)
   end
   self:clearDelayedSpawners()
 
@@ -1729,16 +1807,16 @@ function VeafCombatZone:popSmoke()
     local units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
     for count = 1, #units do
       if units[count] then
-        totalPosition = mist.vec.add(totalPosition, Unit.getPosition(units[count]).p)
+        totalPosition = veaf.vecAdd(totalPosition, Unit.getPosition(units[count]).p)
       end
     end
     if #units > 0 then
-      smokePoint = mist.vec.scalar_mult(totalPosition, 1 / #units)
+      smokePoint = veaf.vecScalarMult(totalPosition, 1 / #units)
     end
   end
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("smokePoint=%s", veaf.vecToString(smokePoint)))
   veafSpawn.spawnSmoke(smokePoint, trigger.smokeColor.Red)
-  self.smokeResetFunctionId = mist.scheduleFunction(
+  self.smokeResetFunctionId = veaf.scheduleFunction(
     veafCombatZone.SmokeReset,
     { self.missionEditorZoneName },
     timer.getTime() + veafCombatZone.SecondsBetweenSmokeRequests
@@ -1755,7 +1833,7 @@ function VeafCombatZone:popFlare()
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("self:getCenter()=%s", veaf.vecToString(self:getCenter())))
 
   veafSpawn.spawnIlluminationFlare(self:getCenter())
-  self.flareResetFunctionId = mist.scheduleFunction(
+  self.flareResetFunctionId = veaf.scheduleFunction(
     veafCombatZone.FlareReset,
     { self.missionEditorZoneName },
     timer.getTime() + veafCombatZone.SecondsBetweenFlareRequests
@@ -1901,12 +1979,18 @@ end
 ---
 --- lists all units and statics (and their groups names) in a combat zone that also match the combat zone name
 ---
+--- Returns `{ keptUnits, keptGroupNames, excludedGroupNames }`. The third slot is what the zone found
+--- inside its trigger zone and left behind because the prefix rule turned it down — reported once by
+--- `initialize`, see `VeafCombatZone:reportGroupsExcludedByName`.
+---
 function VeafCombatZone:findUnitsInCombatZone()
   local unitsNames = veaf.getUnitsNamesOfCoalition(true, nil) -- include statics, all coalitions
   local units = {}
   local resultUnits = {}
   local groupNames = {}
   local alreadyAddedGroups = {}
+  local excludedGroupNames = {}
+  local alreadyExcludedGroups = {}
   local triggerZone = self:getTriggerZone()
   local upperTriggerzoneName = self:getMissionEditorZoneName():upper()
 
@@ -1923,7 +2007,7 @@ function VeafCombatZone:findUnitsInCombatZone()
   units = veaf.getUnitsInTriggerZone(self:getMissionEditorZoneName(), unitsNames, veafCombatZone.Id)
   if not units then
     self.unreadableTriggerZone = true
-    return { {}, {} }
+    return { {}, {}, {} }
   end
 
   veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.lp(#units))
@@ -1937,11 +2021,39 @@ function VeafCombatZone:findUnitsInCombatZone()
         alreadyAddedGroups[groupName] = groupName
         groupNames[#groupNames + 1] = groupName
       end
+    elseif not alreadyExcludedGroups[groupName] then
+      -- collected by **group**, not by unit: a group is what the mission maker would have to rename,
+      -- and a zone can hold dozens of units for a handful of groups
+      alreadyExcludedGroups[groupName] = groupName
+      excludedGroupNames[#excludedGroupNames + 1] = groupName
     end
   end
 
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("found %d units (%d groups) in zone", #resultUnits, #groupNames))
-  return { resultUnits, groupNames }
+  return { resultUnits, groupNames, excludedGroupNames }
+end
+
+--- Say, once, which groups stood inside the zone and were turned down by the prefix rule.
+---
+--- The rule itself is deliberate — see the module header and `doc/mission-maker/scripts/veafCombatZone.md`
+--- — but until now it applied without a word above `trace`: a mission maker who mistyped a prefix saw the
+--- zone activate, saw nothing appear, and found an empty log. One line per zone at `info`, and **nothing
+--- at all** when nothing was excluded: a message every mission prints is a message nobody reads.
+function VeafCombatZone:reportGroupsExcludedByName(excludedGroupNames)
+  if not excludedGroupNames or #excludedGroupNames == 0 then
+    return self
+  end
+  local zoneName = self:getMissionEditorZoneName()
+  veaf.loggers.get(veafCombatZone.Id):info(
+    veaf.t(
+      "combatzone.groups_excluded_by_name",
+      veaf.p(zoneName),
+      #excludedGroupNames,
+      table.concat(excludedGroupNames, ", "),
+      veaf.p(zoneName)
+    )
+  )
+  return self
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatOperationTaskingOrder object
@@ -2089,7 +2201,7 @@ function VeafCombatOperation:scheduleWatchdogFunction()
   veaf.loggers
     .get(veafCombatZone.Id)
     :trace(string.format("VeafCombatOperation[%s]:scheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
-  self.watchdogFunctionId = mist.scheduleFunction(
+  self.watchdogFunctionId = veaf.scheduleFunction(
     veafCombatZone.CompletionCheck,
     { self.missionEditorZoneName },
     timer.getTime() + veafCombatZone.SecondsBetweenWatchdogChecks
@@ -2102,7 +2214,7 @@ function VeafCombatOperation:unscheduleWatchdogFunction()
     .get(veafCombatZone.Id)
     :trace(string.format("VeafCombatOperation[%s]:unscheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
   if self.watchdogFunctionId then
-    mist.removeFunction(self.watchdogFunctionId)
+    veaf.removeFunction(self.watchdogFunctionId)
   end
   self.watchdogFunctionId = nil
   return self
@@ -2125,9 +2237,22 @@ function VeafCombatOperation:updatePrimaryTasks()
       for _, requiredCombatZoneName in pairs(candidateTaskingOrder.requiredCompleteNames) do
         local requiredCombatZone = veafCombatZone.GetZone(requiredCombatZoneName)
 
-        -- if any of required tasking order is active, then tasking order is not eligible
-        ---@diagnostic disable-next-line: need-check-nil
-        if requiredCombatZone:isActive() then
+        -- `GetZone` answers nil for a name it does not know -- a prerequisite misspelled in
+        -- mission.yaml -- and it has already said so, loudly, on screen and in the log. Dereferencing
+        -- it anyway took the whole operation down; a `need-check-nil` was silencing the linter that
+        -- pointed at this exact line.
+        --
+        -- A zone that does not exist cannot be active, so it cannot block: the requirement is skipped
+        -- rather than treated as unfulfilled, which would deadlock the operation for good on a typo.
+        if not requiredCombatZone then
+          veaf.loggers.get(veafCombatZone.Id):warn(
+            string.format(
+              "updatePrimaryTasks: unknown required zone [%s] ; it cannot block, so it is ignored",
+              veaf.p(requiredCombatZoneName)
+            )
+          )
+        elseif requiredCombatZone:isActive() then
+          -- if any of required tasking order is active, then tasking order is not eligible
           requirementFulfilled = false
           break
         end
@@ -2412,10 +2537,10 @@ function veafCombatZone.ActivateZone(zoneName, silent)
       end
       return
     end
-    mist.scheduleFunction(zone.activate, { zone }, timer.getTime() + 1)
+    veaf.scheduleFunction(zone.activate, { zone }, timer.getTime() + 1)
     if not silent then
       trigger.action.outText(veaf.t("entity.activated", "VeafCombatZone " .. zone:getFriendlyName()), 10)
-      mist.scheduleFunction(veafCombatZone.GetInformationOnZone, { { zoneName } }, timer.getTime() + 2)
+      veaf.scheduleFunction(veafCombatZone.GetInformationOnZone, { { zoneName } }, timer.getTime() + 2)
     end
     return zone
   else

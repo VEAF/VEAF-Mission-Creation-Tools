@@ -28,7 +28,7 @@ from veaf_tools.app import (
     t,
     tn,
 )
-from veaf_tools.helpers import _update_build_config_in_yaml
+from veaf_tools.helpers import _update_build_config_in_yaml, confirm
 
 #: Characters not allowed in a Windows/DCS file name (used to sanitize names).
 _UNSAFE_NAME_CHARS = r'[\\/:*?"<>|\x00-\x1f]'
@@ -233,7 +233,7 @@ def build(
     console.print(t("cmd.build.title", version=VERSION))
 
     if readme:
-        if typer.confirm(t("help.confirm_doc")):
+        if confirm(t("help.confirm_doc"), unattended=True):
             md_render = Markdown(MissionBuilderREADME)
             console.print(md_render)
         raise typer.Exit()

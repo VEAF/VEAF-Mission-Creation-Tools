@@ -271,7 +271,7 @@ function veafSkynet.delayedActivate(networkName)
         .get(veafSkynet.Id)
         :trace(string.format("IADS %s will be activated in %d seconds", veaf.p(networkName), veafSkynet.DelayForRestart))
       network.delayedActivation =
-        mist.scheduleFunction(veafSkynet._activateIADS, { networkName }, timer.getTime() + veafSkynet.DelayForRestart)
+        veaf.scheduleFunction(veafSkynet._activateIADS, { networkName }, timer.getTime() + veafSkynet.DelayForRestart)
     end
   end
 end
@@ -345,13 +345,26 @@ function veafSkynet.getNearestIADSSite(networkName, dcsGroup)
 
       if site_name and currentGroupName ~= site_name then
         if ewrFlag then
+          -- An EWR is registered by *unit* name, so its group has to be resolved from the unit. Neither
+          -- end of that chain was checked, and Skynet's register outlives the units in it: a radar
+          -- destroyed since the network was built -- the very thing this search walks over -- took the
+          -- whole point-defence search down on `Unit.getGroup(nil)`.
           local unit = Unit.getByName(site_name)
-          local group = Unit.getGroup(unit)
-          site_name = Group.getName(group)
+          local group = unit and unit:getGroup()
+          if group then
+            site_name = group:getName()
+          else
+            veaf.loggers
+              .get(veafSkynet.Id)
+              :warn(string.format("searchForGroup: the EWR unit [%s] is gone from DCS ; it is skipped", veaf.p(site_name)))
+            site_name = nil
+          end
         end
         veaf.loggers.get(veafSkynet.Id):trace(string.format("Checked Site groupName : %s", veaf.p(site_name)))
 
-        local groupAvgPosition = veaf.getAveragePosition(site_name)
+        -- A skipped EWR leaves `site_name` nil, and `getAveragePosition` answers nil for it, so the
+        -- site falls out of the search at the `if groupAvgPosition` below.
+        local groupAvgPosition = site_name and veaf.getAveragePosition(site_name)
         veaf.loggers.get(veafSkynet.Id):debug(string.format("Checked Site groupAvgPosition : %s", veaf.p(groupAvgPosition)))
 
         if groupAvgPosition then
@@ -544,7 +557,15 @@ end
 -- Management of dynamic group spawns (Flogas)
 -- Option to integrate late spawned units into the existing networks
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-veafSkynet.monitorDynamicSpawnHandlerId = nil
+
+--- The birth-event handler while dynamic-spawn monitoring is on, nil while it is off.
+---
+--- `world.addEventHandler` takes a table with an `onEvent` method, where MiST's wrapper took a
+--- plain function and answered a numeric id. The wrapper is one line here, and it keeps the
+--- handler removable — which `veafEventHandler` is not: it registers callbacks and never drops
+--- one, and this handler is armed and disarmed as networks come and go. `veafMissileGuardian`
+--- already registers with `world.*` for the same reason.
+veafSkynet.monitorDynamicSpawnHandler = nil
 
 -- Record what a veafSpawn command asked for, so the birth-event handler can honour the per-spawn
 -- `skynet` option. The group name is only known once the spawn handler returns, hence
@@ -658,7 +679,7 @@ function veafSkynet.OnDynamicSpawn(event)
   -- Deferred on purpose: veafSpawn can only declare the spawn's `skynet` option once its handler has
   -- returned a group name, which may be after DCS emits the birth event. Deciding here would race it.
   local groupName = dcsGroup:getName()
-  mist.scheduleFunction(
+  veaf.scheduleFunction(
     veafSkynet._integrateDynamicSpawn,
     { groupName, coalitionId },
     timer.getTime() + veafSkynet.DelayForDynamicIntegration
@@ -667,18 +688,23 @@ end
 
 function veafSkynet.monitorDynamicSpawn(bMonitor)
   if bMonitor then
-    if veafSkynet.monitorDynamicSpawnHandlerId ~= nil then
+    if veafSkynet.monitorDynamicSpawnHandler ~= nil then
       return -- already active
     end
     veaf.loggers.get(veafSkynet.Id):debug("DYNAMIC SPAWN monitoring ON")
-    veafSkynet.monitorDynamicSpawnHandlerId = mist.addEventHandler(veafSkynet.OnDynamicSpawn)
+    veafSkynet.monitorDynamicSpawnHandler = {
+      onEvent = function(_, event)
+        veafSkynet.OnDynamicSpawn(event)
+      end,
+    }
+    world.addEventHandler(veafSkynet.monitorDynamicSpawnHandler)
   else
-    if veafSkynet.monitorDynamicSpawnHandlerId == nil then
+    if veafSkynet.monitorDynamicSpawnHandler == nil then
       return -- already inactive
     end
     veaf.loggers.get(veafSkynet.Id):debug("DYNAMIC SPAWN monitoring OFF")
-    mist.removeEventHandler(veafSkynet.monitorDynamicSpawnHandlerId)
-    veafSkynet.monitorDynamicSpawnHandlerId = nil
+    world.removeEventHandler(veafSkynet.monitorDynamicSpawnHandler)
+    veafSkynet.monitorDynamicSpawnHandler = nil
   end
 end
 
@@ -1139,7 +1165,7 @@ end
 
 function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, debugBlue)
   veaf.loggers.get(veafSkynet.Id):info(string.format("initializing Skynet in %s seconds", tostring(veafSkynet.DelayForStartup)))
-  mist.scheduleFunction(
+  veaf.scheduleFunction(
     veafSkynet._initialize,
     { includeRedInRadio, debugRed, includeBlueInRadio, debugBlue },
     timer.getTime() + veafSkynet.DelayForStartup

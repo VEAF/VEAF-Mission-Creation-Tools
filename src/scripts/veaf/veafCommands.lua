@@ -254,6 +254,13 @@ end
 
 veaf.loggers.get(veafCommands.Id):info(veaf.loggers.get(veafCommands.Id):getVersionInfo())
 
--- Priority 15: after veafEventHandler (10) and veafMarkers (no explicit order, loads early),
--- before all command modules so they can call registerCommandHandler in their own initialize().
+-- Priority 15: after veafMarkers (4) and veafEventHandler (10), before all command modules.
+--
+-- That is the intent, not what happens. This module has no declared place in the generator's own
+-- order (`_MODULE_INIT_ORDER` in `lua_config_generator.py`), so the generated `veaf-config.lua`
+-- calls it from the unordered bucket, near-last — after every command module's `initialize()`.
+-- Harmless today: a command module registers through `veafCommands.registerCommandHandler`, which
+-- only inserts into a table declared at load, and this `initialize()` does nothing but install the
+-- central marker handler. Reconciling the two orders belongs to the lot that makes the generated
+-- config call `veaf.initialize()`. See docs/agents/module-initialisation.md.
 veaf.registerModule(veafCommands.Id, veafCommands.initialize, { enable = true }, 15)

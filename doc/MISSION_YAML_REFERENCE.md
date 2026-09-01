@@ -396,7 +396,9 @@ modules:
       create_menus: false       # pas de menu radio VEAF ; commandes via marqueurs
 ```
 
-**Les scripts communautaires** se déclarent dans le même bloc, via leurs IDs (la casse est indifférente : `CTLD:` et `ctld:` sont équivalents). Lorsqu'un script est absent de `modules:`, il garde son état par défaut (inclus). Mettez-le à `false` pour l'exclure — sauf `MIST`, dépendance obligatoire des scripts VEAF : un `MIST: false` explicite est ignoré avec un avertissement au build, le script est injecté quand même.
+**Les scripts communautaires** se déclarent dans le même bloc, via leurs IDs (la casse est indifférente : `CTLD:` et `ctld:` sont équivalents). Lorsqu'un script est absent de `modules:`, il garde son état par défaut — inclus pour les scripts *opt-out*, exclu pour les deux *opt-in* (`MIST` et `TUM`, voir plus bas). Mettez un script à `false` pour l'exclure :
+
+Comme ce défaut se lit mal, les fichiers générés (`prepare --template`, `convert-v5`) et le `mission.yaml` livré écrivent **toujours** les cinq scripts *opt-out* (`STTS`, `CTLD`, `AIEN`, `CSAR`, `SKYNET`), à `true` ou à `false` : l'état d'un script communautaire ne se déduit jamais d'un silence.
 
 ```yaml
 modules:
@@ -407,16 +409,27 @@ modules:
 
 | ID communautaire | Script |
 |----|--------|
-| `MIST` | MIST (Mission Scripting Tools) — **obligatoire, non désactivable** |
+| `MIST` | MIST (Mission Scripting Tools) — **opt-in**, et activé tout seul si l'un de vos scripts appelle `mist.` |
 | `STTS` | DCS-SimpleTextToSpeech |
 | `CTLD` | CTLD (Combat Transport & Logistics Dispatcher) |
 | `AIEN` | AIEN (AI Enhancement) |
 | `CSAR` | CSAR (Combat Search and Rescue) |
-| `HERCULES` | Hercules Cargo |
 | `SKYNET` | Skynet IADS |
 | `TUM` | The Universal Mission (TUM) |
 
 > Un identifiant inconnu dans `modules:` est une **erreur bloquante** : le build s'arrête avec un message indiquant la clé fautive.
+
+> **`MIST` — opt-in, et injecté seulement si quelque chose en a besoin.** MiST était injecté dans
+> **toutes** les missions, parce que les scripts VEAF s'en servaient partout. Ils ne l'appellent plus
+> du tout : il est donc **éteint par défaut**, et les 336 Ko qu'il pèse ne partent plus dans votre
+> `.miz`. Avant l'empaquetage, le build parcourt vos propres `src/scripts/*.lua` ; si l'un d'eux
+> appelle `mist.`, MiST est injecté et le log du build nomme le fichier qui l'a réclamé. Un
+> `MIST: false` ne l'emporte **pas** sur cette détection — un script qui appelle MiST reçoit MiST,
+> sans quoi il casserait en vol. Ne mettez `MIST: true` que si quelque chose atteint MiST
+> indirectement, ce que la détection ne peut pas voir (via `_G["mist"]`, ou depuis un script chargé
+> par un autre script). Une ligne `MIST:` sans valeur héritée d'un ancien `mission.yaml` se lit
+> désormais « désactivé », ce qui est la bonne réponse pour presque toutes les missions. Voir
+> [MiST : injecté seulement si vous en avez besoin](mission-maker/GUIDE.md#mist-injection).
 
 > **`TUM` (The Universal Mission) — prérequis de mission.** TUM est un générateur de mission PvE autonome (script communautaire tiers) qui prend le contrôle de toute la carte à l'initialisation : il rend tous les aérodromes neutres, puis attribue les zones et aérodromes aux camps d'après les **zones de déclencheur** (*trigger zones*) de l'éditeur de mission. Si vous activez `TUM: true` sur une mission qui n'a pas été conçue pour TUM, le script s'interrompt au démarrage avec une erreur du type :
 >
@@ -424,7 +437,7 @@ modules:
 >
 > Ce n'est **pas un bug VEAF** : c'est un prérequis de design de TUM. Pour l'utiliser, créez dans l'éditeur de mission une zone dont le nom commence par `BLUFOR` et une autre commençant par `REDFOR`, chacune contenant **au moins un aérodrome**, plus au moins une autre zone de mission. N'activez `TUM` que pour une mission de type TUM.
 >
-> **Opt-in (contrairement aux autres scripts communautaires).** TUM est le seul script communautaire **désactivé par défaut** : une mission vanilla, une mission fraîchement convertie depuis la v5, ou un bloc `modules:` qui ne mentionne pas `TUM` le laissent **éteint**. Seul un `TUM: true` explicite l'active. Les autres scripts communautaires sont *opt-out* (actifs sauf si vous les passez à `false`). Quand `TUM: true`, le build appelle automatiquement `TUM.initialize()` au démarrage — vous n'avez rien à ajouter dans `mission-script.lua`.
+> **Opt-in (comme `MIST`, contrairement aux autres scripts communautaires).** TUM est **désactivé par défaut** : une mission vanilla, une mission fraîchement convertie depuis la v5, ou un bloc `modules:` qui ne mentionne pas `TUM` le laissent **éteint**. Seul un `TUM: true` explicite l'active. `MIST` est opt-in lui aussi, pour une autre raison (voir la note ci-dessus) ; les autres scripts communautaires sont *opt-out* (actifs sauf si vous les passez à `false`). Quand `TUM: true`, le build appelle automatiquement `TUM.initialize()` au démarrage — vous n'avez rien à ajouter dans `mission-script.lua`.
 
 **IDs de modules VEAF :**
 
@@ -698,8 +711,8 @@ profiles:
 Usage :
 
 ```powershell
-veaf-tools.exe mission build --profile TEST
-veaf-tools.exe mission build --profile SERVER
+.\veaf-tools.exe mission build --profile TEST
+.\veaf-tools.exe mission build --profile SERVER
 ```
 
 > Si le profil nommé n'existe pas dans `mission.yaml`, un avertissement est émis et la config de base est utilisée sans modification.
@@ -734,8 +747,8 @@ build_variants:
 ```
 
 ```powershell
-veaf-tools.exe mission build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
-veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
+.\veaf-tools.exe mission build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
+.\veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
 ```
 
 ---

@@ -1036,10 +1036,27 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
   end
 
   -- actually spawn groups
-  mist.dynAdd({ country = country, category = "GROUND_UNIT", name = veafCasMission.casGroupName, hidden = false, units = dcsUnits })
+  local spawned =
+    veaf.addGroup({ country = country, category = "GROUND_UNIT", name = veafCasMission.casGroupName, hidden = false, units = dcsUnits })
+
+  -- `addGroup` answers false on an unknown country or an empty unit list, and its return used to be
+  -- discarded -- which is exactly when the lookup below comes back nil. Both are checked now: the
+  -- rest of this function builds a radio menu, a watchdog and an AFAC around a group that does not
+  -- exist, so there is nothing to carry on with.
+  local casGroup = spawned and Group.getByName(veafCasMission.casGroupName)
+  if not casGroup then
+    veaf.loggers.get(veafCasMission.Id):warn(
+      string.format(
+        "generateCasMission: the CAS group [%s] could not be created ; the mission is not started",
+        veaf.p(veafCasMission.casGroupName)
+      )
+    )
+    trigger.action.outText(veaf.t("cas.spawn_failed"), 15)
+    return
+  end
 
   -- set AI options
-  local controller = Group.getByName(veafCasMission.casGroupName):getController()
+  local controller = casGroup:getController()
   controller:setOption(9, 2) -- set alarm state to red
   controller:setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, disperseOnAttack) -- set disperse on attack according to the option
 
@@ -1116,25 +1133,35 @@ function veafCasMission.reportTargetInformation(unitName)
   local averageGroupPosition = veaf.getAveragePosition(veafCasMission.casGroupName)
   ---@cast averageGroupPosition vec3
   local lat, lon = coord.LOtoLL(averageGroupPosition)
-  local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-  local bullseyeData = mist.DBs.missionData.bullseye.blue -- default to blue
+  local mgrsString = veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)
+  local bullseyeData = veaf.getBullseye("blue") -- default to blue
   local requestingUnit = Unit.getByName(unitName)
   if requestingUnit and requestingUnit:getCoalition() == coalition.side.RED then
-    bullseyeData = mist.DBs.missionData.bullseye.red
+    bullseyeData = veaf.getBullseye("red")
   end
-  local bullseye = mist.utils.makeVec3(bullseyeData, 0)
-  ---@diagnostic disable-next-line: need-check-nil
-  local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
-  local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-  local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)
-  local distMetric = mist.utils.round(dist / 1000, 0)
-  local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
-  local fromBullseye = veaf.t("cas.report_bullseye_value", dir, distMetric, distImperial)
+  -- `getBullseye` answers nil for a side the mission declares no bullseye for, and `makeVec3` reads
+  -- `vec.z` straight away, so the report used to raise one line *before* the `need-check-nil` that was
+  -- silencing the linter here. The three other lines of the report do not need a bullseye, so only
+  -- that one is dropped.
+  local bullseye = bullseyeData and veaf.makeVec3(bullseyeData, 0)
 
-  message = message .. veaf.t("cas.report_latlon_decimal", mist.tostringLL(lat, lon, 2))
-  message = message .. veaf.t("cas.report_latlon_dms", mist.tostringLL(lat, lon, 0, true))
+  message = message .. veaf.t("cas.report_latlon_decimal", veaf.toStringLL(lat, lon, 2))
+  message = message .. veaf.t("cas.report_latlon_dms", veaf.toStringLL(lat, lon, 0, true))
   message = message .. veaf.t("cas.report_mgrs", mgrsString)
-  message = message .. veaf.t("cas.report_bullseye", fromBullseye)
+  if bullseye then
+    local vec =
+      { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
+    local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
+    local dist = veaf.get2DDist(averageGroupPosition, bullseye)
+    local distMetric = veaf.round(dist / 1000, 0)
+    local distImperial = veaf.round(veaf.metersToNM(dist), 0)
+    local fromBullseye = veaf.t("cas.report_bullseye_value", dir, distMetric, distImperial)
+    message = message .. veaf.t("cas.report_bullseye", fromBullseye)
+  else
+    veaf.loggers
+      .get(veafCasMission.Id)
+      :warn("reportTargetInformation: the mission declares no bullseye for this side ; the report omits it")
+  end
   message = message .. "\n"
 
   message = message .. veaf.t("cas.report_weather_header") .. veafWeatherData.getWeatherString(averageGroupPosition, unitName)
@@ -1151,7 +1178,7 @@ function veafCasMission.smokeCasTargetGroup()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request smoke on target area")
   veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.smoke_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.smokeResetTaskID =
-    mist.scheduleFunction(veafCasMission.smokeReset, {}, timer.getTime() + veafCasMission.SecondsBetweenSmokeRequests)
+    veaf.scheduleFunction(veafCasMission.smokeReset, {}, timer.getTime() + veafCasMission.SecondsBetweenSmokeRequests)
   veafRadio.refreshRadioMenu()
 end
 
@@ -1174,7 +1201,7 @@ function veafCasMission.flareCasTargetGroup()
   veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request illumination flare over target area")
   veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.flare_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
   veafCasMission.flareResetTaskID =
-    mist.scheduleFunction(veafCasMission.flareReset, {}, timer.getTime() + veafCasMission.SecondsBetweenFlareRequests)
+    veaf.scheduleFunction(veafCasMission.flareReset, {}, timer.getTime() + veafCasMission.SecondsBetweenFlareRequests)
   veafRadio.refreshRadioMenu()
 end
 
@@ -1196,7 +1223,7 @@ function veafCasMission.casGroupWatchdog()
   if nbVehicles > 0 then
     veaf.loggers.get(veafCasMission.Id):trace("Group is still alive with " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers")
     veafCasMission.groupAliveCheckTaskID =
-      mist.scheduleFunction(veafCasMission.casGroupWatchdog, {}, timer.getTime() + veafCasMission.SecondsBetweenWatchdogChecks)
+      veaf.scheduleFunction(veafCasMission.casGroupWatchdog, {}, timer.getTime() + veafCasMission.SecondsBetweenWatchdogChecks)
   else
     trigger.action.outText(veaf.t("cas.objective_destroyed"), 5)
     veafCasMission.cleanupAfterMission()
@@ -1229,7 +1256,7 @@ function veafCasMission.cleanupAfterMission()
   -- remove the watchdog function
   veaf.loggers.get(veafCasMission.Id):trace("remove the watchdog function")
   if veafCasMission.groupAliveCheckTaskID ~= "none" then
-    mist.removeFunction(veafCasMission.groupAliveCheckTaskID)
+    veaf.removeFunction(veafCasMission.groupAliveCheckTaskID)
   end
   veafCasMission.groupAliveCheckTaskID = "none"
 

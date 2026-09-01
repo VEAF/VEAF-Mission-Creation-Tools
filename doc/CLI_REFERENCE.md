@@ -11,7 +11,7 @@ Les outils qui ne sont **pas** `veaf-tools` — `veaf-tools-updater` pour la mis
 
 ## Comment lire cette page {#how-to-read}
 
-**Les commandes sont groupées par thème** depuis la version 6.13 : `veaf-tools convert v5` plutôt
+**Les commandes sont groupées par thème** : `veaf-tools convert v5` plutôt
 que `veaf-tools convert-v5`. L'ancienne forme plate reste enregistrée et fonctionne toujours — vos
 scripts et vos raccourcis n'ont rien à changer — elle est simplement masquée de `--help`. Chaque
 commande indique son alias plat sous son tableau.
@@ -30,6 +30,12 @@ Enfin, `--verbose`, `--pause` et `--readme` reviennent sur la plupart des comman
 partout le même sens : afficher le détail de débogage, attendre une touche avant de quitter,
 afficher le README de la commande. Elles sont malgré tout listées commande par commande, parce
 qu'une référence incomplète oblige à aller vérifier ailleurs.
+
+**Sans terminal, aucune commande ne pose de question.** Dans un job d'intégration continue, un
+fichier de commandes ou une invocation dont la sortie est capturée, les confirmations sont sautées
+et la commande va jusqu'au bout : `veaf-tools about` affiche ses informations et sort en `0` (elle
+affichait `Aborted.` et sortait en `1`), `--readme` affiche bien le README, et une confirmation
+d'écrasement répond « non » — passez `--force` quand vous voulez vraiment écraser.
 
 ## Ce que cette page garantit {#coverage}
 
@@ -281,6 +287,7 @@ Extrait les modèles de groupes aériens d'une mission .miz vers un fichier YAML
 | `--output-spawnables` | `str` | `src/spawnables.yaml` | Chemin de sortie des groupes avions spawnables (préfixe veafSpawn-). |
 | `--output-dynamic-templates` | `str` | `src/dynamic-slot-templates.yaml` | Chemin de sortie des modèles de slot dynamique (dynSpawnTemplate=true). |
 | `--group-name-pattern` | `str` | `.*` | Expression régulière pour filtrer les noms de groupes aériens. |
+| `--merge` | `boolean` | `false` | Fusionner dans les fichiers de sortie au lieu de les remplacer : les groupes absents de la mission sont conservés, un groupe de même nom est remplacé par la version de la mission et nommé dans le compte rendu. |
 | `--only-airplanes` | `boolean` | `false` | Extraire uniquement les avions. |
 | `--only-helicopters` | `boolean` | `false` | Extraire uniquement les hélicoptères. |
 | `--lua-input` | `str` | *(aucun)* | Chemin vers un fichier Lua (ex. settings-templates.lua) à utiliser à la place du fichier .miz. |

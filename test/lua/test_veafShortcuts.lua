@@ -16,6 +16,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafSecurity.lua") -- veafShortcuts references sha1 / veafSecurity constants
 dofile(src .. "/veafShortcuts.lua")
 
@@ -698,9 +703,9 @@ function TestExecuteAliasDelayGuard:setUp()
   veafShortcuts.buildDefaultList()
   self.scheduled = nil
   self.ran = nil
-  self._schedule = mist.scheduleFunction
+  self._schedule = veaf.scheduleFunction
   local test = self
-  mist.scheduleFunction = function(fn, args, when)
+  veaf.scheduleFunction = function(fn, args, when)
     test.scheduled = when
   end
   -- veafSpawn is not loaded by this suite; the alias chain only needs it to answer.
@@ -713,7 +718,7 @@ function TestExecuteAliasDelayGuard:setUp()
 end
 
 function TestExecuteAliasDelayGuard:tearDown()
-  mist.scheduleFunction = self._schedule
+  veaf.scheduleFunction = self._schedule
   veafSpawn = nil
 end
 
@@ -938,12 +943,12 @@ function TestAliasChainCoalitions:test_a_delayed_alias_keeps_the_requester()
   -- demandeur doit y etre, sinon un ordre differe cherche du mauvais cote — troisieme cablage de ce lot
   -- que seule une mutation a su montrer.
   local args = nil
-  local saved = mist.scheduleFunction
-  mist.scheduleFunction = function(fn, a)
+  local saved = veaf.scheduleFunction
+  veaf.scheduleFunction = function(fn, a)
     args = a
   end
   veafShortcuts.ExecuteAlias("-ai_set", 30, "arty-1", { x = 0, y = 0, z = 0 }, coalition.side.RED, 0, true, nil, nil, coalition.side.BLUE)
-  mist.scheduleFunction = saved
+  veaf.scheduleFunction = saved
 
   luaunit.assertNotNil(args, "un delai doit planifier l execution")
   luaunit.assertEquals(args[9], coalition.side.BLUE, "le demandeur doit survivre au report")

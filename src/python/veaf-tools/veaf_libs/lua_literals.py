@@ -114,6 +114,24 @@ def lua_quoted_string(value: str) -> str:
     return f'"{escaped}"'
 
 
+def lua_comment_line(text: str) -> str:
+    """Fold *text* into something that stays inside one Lua ``--`` comment.
+
+    The sibling functions answer "how do I put this value in a Lua *string*".  This one
+    answers the other half: a ``--`` comment ends at the first line break, so a value
+    carrying one pushes everything after it out of the comment and into the file as
+    code.  No amount of quoting fixes that — inside a comment there is nothing to quote
+    — so the line breaks are what has to go.
+
+    Args:
+        text: A whole comment line, value already interpolated.
+
+    Returns:
+        The same text with every line break replaced by a single space.
+    """
+    return " ".join(text.splitlines())
+
+
 def lua_scalar(value: object) -> str:
     """Return a Lua literal for a Python scalar, strings safely quoted.
 

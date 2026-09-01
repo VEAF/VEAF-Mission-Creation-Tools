@@ -111,7 +111,6 @@ Provides minimal stubs for the DCS global API so modules can be `require`d witho
 - `Unit`, `Group`, `StaticObject`, `Airbase`
 - `coalition`, `country`, `radio`
 - `trigger` (including `trigger.smokeColor`, `trigger.action.*`)
-- `mist` (basic utilities used by several modules)
 - Math helpers (`math.isnan`, `math.inf`)
 
 If a new module fails to load because a DCS API call is missing, add the stub to `dcs_mocks.lua`.
@@ -145,6 +144,14 @@ luaunit.assertIsTrue(ok, err)
 |-------|----------------|
 | `test_veaf.lua` | Core utilities, string/table/vector helpers, logging |
 | `test_veafCacheManager.lua` | Cache get/set/invalidate |
+| `test_veafScheduler.lua` | Native-timer scheduler: repetition, stop time, a failing task |
+| `test_veafMath.lua` | Unit conversions, vectors, coordinate shapes, deep copy |
+| `test_veafGeo.lua` | Coordinate text output, zones, average positions, polygons |
+| `test_veafGeo_ported.lua` | Geometry ported off MiST: random point in a circle, units in a circular zone, heading, zone drawing |
+| `test_veafMissionDb.lua` | Mission snapshot, player roster, name registry, unit ids |
+| `test_veafMissionDb_scenery.lua` | Destroyed-scenery register: recording, zone lookup, event subscription |
+| `test_veafDcsSpawner.lua` | Runtime static creation: country, ids, shapes, random heading |
+| `test_csar_init.lua` | CSAR initialisation, in a real mission's load order (CSAR before VEAF): one event handler whatever happens |
 | `test_veafInterpreter.lua` | Mark text tokenizer |
 | `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | Security levels, admin management |
@@ -265,7 +272,7 @@ The GitHub Actions workflow (`.github/workflows/lua-ci.yml`) runs on every push 
 **`lua-coverage`** — Ubuntu latest
 1. Checkout repository
 2. Install `lua5.1` + `luacov` via LuaRocks, then Poetry and dependencies
-3. Run `poetry run test-lua --cov-fail-under 72` (luacov line coverage)
+3. Run `poetry run test-lua --cov-fail-under 79` (luacov line coverage)
 4. Fail if coverage drops below the ratchet floor (the number only ever goes up)
 
 ### Running StyLua Locally

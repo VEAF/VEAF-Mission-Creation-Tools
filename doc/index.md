@@ -54,6 +54,10 @@ Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, pla
 
 ### Créateurs de missions
 
+> **Le `.\` est obligatoire.** Le terminal Windows par défaut est PowerShell, qui ne cherche pas
+> dans le dossier courant — exprès. `cmd.exe` accepte les deux formes, donc `.\` marche partout.
+> Voir [PowerShell ou invite de commandes ?](mission-maker/GUIDE.md#powershell-vs-cmd).
+
 ```powershell
 # 1. Téléchargez veaf-tools-updater.exe depuis la page de release GitHub et lancez-le :
 .\veaf-tools-updater.exe
@@ -64,14 +68,14 @@ Ensuite, selon votre point de départ :
 
 **Vous avez déjà un dossier mission VEAF** (ou vous avez forké la [mission de démonstration](https://github.com/VEAF/VEAF-Demo-Mission)) :
 ```powershell
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 **Vous n'avez qu'un fichier `.miz` :**
 ```powershell
-veaf-tools.exe mission extract ma-mission.miz
+.\veaf-tools.exe mission extract ma-mission.miz
 # → éditez mission.yaml pour activer les modules souhaités
-veaf-tools.exe mission build
+.\veaf-tools.exe mission build
 ```
 
 Guide complet : [Guide créateur de missions](mission-maker/README.md)

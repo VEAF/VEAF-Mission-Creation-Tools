@@ -93,6 +93,26 @@ modules:
 | `zone_center_coordinates` | string | Coordinate string, e.g. `"N41°00'00\" E044°00'00\""` |
 | `zone_radius` | number | Zone radius in metres (required with coordinates) |
 
+#### Writing a coordinate with seconds {#coordinate-with-seconds}
+
+The symbol for seconds is a double quote, and it is the form DCS puts on screen — so the
+coordinate you copy out of the game contains a `"` twice. Two ways to write it in YAML:
+
+```yaml
+# Double-quoted: the seconds symbol must be escaped with a backslash
+zone_center_coordinates: "N41°00'00\" E044°00'00\""
+
+# Single-quoted: nothing to escape, but the minutes symbol must then be doubled
+zone_center_coordinates: 'N41°00''00" E044°00''00"'
+```
+
+Both produce the same position. Spaces work as separators too, if you would rather avoid
+the punctuation altogether: `N41 00 00 E044 00 00`.
+
+Until 6.17 a coordinate written with seconds broke the generated `veaf-config.lua`, which
+DCS then refused *in full* — the mission loaded with no VEAF radio menu at all. The build
+now checks the file it generates and refuses to ship one that does not parse.
+
 ### Timing and limits
 
 | Field | Type | Default | Description |
@@ -172,10 +192,10 @@ modules:
 | `:setZoneRadius(m)` | Zone radius in metres (when using a centre) |
 | `:setDescription(text)` | Label for messages and logs |
 | `:addWave(...)` | Add a wave — see [Wave definition](#wave-definition) |
-| `:resetWaves()` | Clear all added waves (useful after `mist.utils.deepCopy`) |
+| `:resetWaves()` | Clear all added waves (useful after `veaf.deepCopy`) |
 | `:addPlayerCoalition(side)` | Add a coalition whose players count (e.g. `coalition.side.BLUE`) |
 | `:setRespawnRadius(m)` | Spawn scatter radius (default: 250 m) |
-| `:setRespawnDefaultOffset(lat, lon)` | Offset from zone centre for spawns (metres, lat/lon) |
+| `:setRespawnDefaultOffset(lat, lon)` | Offset from zone centre for spawns (metres) — first number north, second east; see [below](#spawn-offset) |
 | `:setMaxSecondsOutsideOfZoneIA(n)` | Seconds before an AI wave group is considered lost if it leaves the zone |
 | `:setMaxSecondsOutsideOfZonePlayers(n)` | Seconds before the zone resets if all players leave |
 | `:setDelayBetweenWaves(n)` | Default delay in seconds between waves |
@@ -264,18 +284,23 @@ When `delay` is **negative**, the next wave spawns immediately after this one �
 :addWave({ groups = { "Strike Package" } })              -- ...this wave
 ```
 
-### VEAF commands as groups
+### VEAF commands as groups {#spawn-offset}
 
-Instead of a DCS group name, you can use any VEAF spawn command (the same syntax as an F10 map marker). The command is executed at the spawn position, which can be adjusted with a `[latDelta,lonDelta]` prefix (in metres, relative to the zone centre):
+Instead of a DCS group name, you can use any VEAF spawn command (the same syntax as an F10 map marker). The command is executed at the spawn position, which can be adjusted with a `[latDelta,lonDelta]` prefix (in metres, relative to the zone centre).
+
+The **first** number moves the spawn along the north–south axis, the **second** along the east–west one. Both are positive towards the north and the east:
 
 ```lua
 :addWave({
   groups = {
-    "[0,5000]-spawn su-27, country russia",           -- 5 km north of zone centre
-    "[-3000,0]-spawn su-25, alt 100, country russia", -- 3 km south, low level
+    "[5000,0]-spawn su-27, country russia",           -- 5 km north of zone centre
+    "[0,-3000]-spawn su-25, alt 100, country russia", -- 3 km west, low level
   }
 })
 ```
+
+!!! warning "Behaviour change"
+    Until this was fixed, the two numbers were applied to the wrong axes: the first moved the spawn **east** and the second **south**, whatever their names said. If your mission sets a non-zero offset — through this prefix or through `setRespawnDefaultOffset` — its spawn point moves when you upgrade past that fix, and an offset you had tuned by eye against the old behaviour needs to be written the way it reads.
 
 This makes it easy to set up layered threats from different directions without pre-placing groups in the DCS Mission Editor.
 
@@ -343,14 +368,14 @@ local zoneTemplate = AirWaveZone:new()
   :addWave({ "Su-27 Wave 2" })
 
 -- Clone and customise for each sector
-local zoneNorth = mist.utils.deepCopy(zoneTemplate)
+local zoneNorth = veaf.deepCopy(zoneTemplate)
 zoneNorth
   :setName("AW-North")
   :setTriggerZone("ZONE-AW-NORTH")
   :setDescription("Northern sector")
   :start()
 
-local zoneSouth = mist.utils.deepCopy(zoneTemplate)
+local zoneSouth = veaf.deepCopy(zoneTemplate)
 zoneSouth
   :setName("AW-South")
   :setTriggerZone("ZONE-AW-SOUTH")

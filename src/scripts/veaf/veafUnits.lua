@@ -105,7 +105,7 @@ function veafUnits.traceGroup(group, cells)
             end
             center = " " .. unitName .. " "
 
-            bottomleft = string.format("               %03d    ", mist.utils.toDegree(unit.spawnPoint.hdg))
+            bottomleft = string.format("               %03d    ", math.deg(unit.spawnPoint.hdg))
 
             unitCounter = unitCounter + 1
           end
@@ -390,7 +390,11 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
   local vec2 = { x = spawnPosition.x, y = spawnPosition.z }
   veaf.loggers.get(veafUnits.Id):trace("vec2=%s", vec2)
   veaf.loggers.get(veafUnits.Id):trace("unit=%s", unit)
-  local landType = land.getSurfaceType(vec2)
+  -- Open water only, so shallow water counts as ground here exactly as it does for the CSAR survivor
+  -- and the ground spawn search (veaf.OPEN_WATER). Note that a naval unit therefore *refuses* shallow
+  -- water: the two directions are not each other's mirror image, and CHORE-ONE-TERRAIN-CHECK left that
+  -- asymmetry untouched.
+  local isOverWater = veaf.isTerrainValid(vec2, veaf.OPEN_WATER)
 
   local IsNavalStatic = false --offshore static (list in dcsUnits.lua) flag
   if unit.static and veaf.findInTable(dcsUnits.NavalStatics, unit.typeName) then
@@ -398,22 +402,30 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
     IsNavalStatic = true
   end
 
-  if landType == land.SurfaceType.WATER then
+  if isOverWater then
     veaf.loggers.get(veafUnits.Id):trace("landType = WATER")
   else
     veaf.loggers.get(veafUnits.Id):trace("landType = GROUND")
   end
   if spawnPosition then
     if unit.air then -- if the unit is a plane or helicopter
-      if spawnPosition.z <= 10 then -- if lower than 10m don't spawn unit
+      -- The height is `y`, not `z`. `z` is the easting, which is what the surface query above uses
+      -- (docs/agents/dcs-coordinates.md); every caller hands in a `veaf.placePointOnLand` result, and
+      -- `veafSpawnAircraft` writes `spawnSpot.y = alt` immediately before calling. This line read `z`
+      -- until FIX-AIR-SPAWN-ALTITUDE-GUARD, so it asked whether the point was more than 10 m *east* of
+      -- the origin and had therefore never refused anything.
+      -- What is refused is a point under the terrain, and only that: an aircraft placed as a static
+      -- sits at ground level on purpose — `placePointOnLand` puts it exactly here — so a clearance
+      -- margin above the ground would refuse every static aircraft on low-lying or coastal terrain.
+      if spawnPosition.y < veaf.getLandHeight(spawnPosition) then
         return false
       end
     elseif unit.naval or IsNavalStatic then -- if the unit is a naval unit or an offshore static
-      if landType ~= land.SurfaceType.WATER then -- don't spawn over anything but water
+      if not isOverWater then -- don't spawn over anything but water
         return false
       end
     else
-      if landType == land.SurfaceType.WATER then -- don't spawn over water
+      if isOverWater then -- don't spawn over water
         return false
       end
     end
@@ -665,7 +677,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
 
       -- take into account group rotation, if needed
       if hdg > 0 then
-        local angle = mist.utils.toRadian(hdg)
+        local angle = math.rad(hdg)
         local x = unit.spawnPoint.z - spawnPoint.z
         local y = unit.spawnPoint.x - spawnPoint.x
         local x_rotated = x * math.cos(angle) + y * math.sin(angle)
@@ -684,7 +696,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
         if unitHeading > 360 then
           unitHeading = unitHeading - 360
         end
-        unit.spawnPoint.hdg = mist.utils.toRadian(unitHeading)
+        unit.spawnPoint.hdg = math.rad(unitHeading)
       else
         unit.spawnPoint.hdg = 0 -- due north
       end
@@ -815,6 +827,12 @@ veafUnits.GroupsDatabase = {}
 function veafUnits.initialize()
   veaf.loggers.get(veafUnits.Id):info("Initializing module")
 end
+
+-- Registered although `initialize()` does nothing but log: the generated `veaf-config.lua` already
+-- calls it on every mission, and a registry that omits it describes a framework that does not exist.
+-- The order is the infrastructure tier — this module's tables are filled at load, so no initialisation
+-- order can be wrong for it. See docs/agents/module-initialisation.md.
+veaf.registerModule(veafUnits.Id, veafUnits.initialize, { enable = true }, 1)
 
 veaf.loggers.get(veafUnits.Id):info(veaf.loggers.get(veafUnits.Id):getVersionInfo())
 

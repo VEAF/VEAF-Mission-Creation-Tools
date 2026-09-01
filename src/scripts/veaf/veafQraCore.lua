@@ -764,7 +764,7 @@ function VeafQRACore:check()
         then
           -- rearm the QRA after a delay (if set)
           if self.delayBeforeRearming > 0 then
-            mist.scheduleFunction(function(qra)
+            veaf.scheduleFunction(function(qra)
               veaf.safeCall(VeafQRACore.rearm, qra)
             end, { self }, timer.getTime() + self.delayBeforeRearming)
             self.state = veafQraManager.STATUS_WILLREARM
@@ -828,7 +828,7 @@ function VeafQRACore:check()
       end
     end
 
-    mist.scheduleFunction(function(qra)
+    veaf.scheduleFunction(function(qra)
       veaf.safeCall(VeafQRACore.check, qra)
     end, { self }, timer.getTime() + veafQraManager.WATCHDOG_DELAY)
   end
@@ -990,8 +990,21 @@ function VeafQRACore:deploy(nbUnitsInZone)
         veaf.loggers.get(veafQraManager.Id):debug("running command [%s]", veaf.lp(command))
         veaf.loggers.get(veafQraManager.Id):trace("latDelta = [%s]", veaf.lp(latDelta))
         veaf.loggers.get(veafQraManager.Id):trace("lonDelta = [%s]", veaf.lp(lonDelta))
-        local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
-        local randomPosition = mist.getRandPointInCircle(position, self.respawnRadius)
+        -- Latitude delta on the northing (`x`), longitude delta on the easting (`z`), both added.
+        -- This read `x = zoneCenter.x - lonDelta, z = zoneCenter.z + latDelta` until 2026-09-01, which
+        -- sent the first bracket number east and the second one south — see the twin in
+        -- `AirWaveZone:deployWaves` and FIX-WAVE-OFFSET-AXES.
+        local position = { x = zoneCenter.x + latDelta, y = zoneCenter.y, z = zoneCenter.z + lonDelta }
+        -- Same conversion, same reason as `AirWaveZone:deployWaves` — this branch is its twin. The
+        -- draw answers the mission-table shape (`{ x, y }`, easting in `y`, no `z`) while
+        -- `veafInterpreter.execute` takes a runtime vec3 whose easting is `z` and whose `y` is the
+        -- altitude; `veafSpawnGround` reads `spawnPosition.z` for the easting it writes. Untouched,
+        -- the QRA spawned on the theatre's central meridian at an altitude equal to its easting. See
+        -- docs/agents/dcs-coordinates.md. The altitude comes from the zone centre, as it does for the
+        -- DCS-group branch below.
+        local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
+        randomPosition.z = randomPosition.y
+        randomPosition.y = position.y
         local spawnedGroupsNames = {}
         veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
         for _, newGroupName in pairs(spawnedGroupsNames) do
@@ -1007,10 +1020,12 @@ function VeafQRACore:deploy(nbUnitsInZone)
         else
           veaf.loggers.get(veafQraManager.Id):debug("group=%s", veaf.lp(group))
           veaf.loggers.get(veafQraManager.Id):debug("group:getUnits()=%s", veaf.lp(group:getUnits()))
+          -- Latitude on the northing, longitude on the easting, both added — see the command branch
+          -- above (FIX-WAVE-OFFSET-AXES).
           local spawnSpot = {
-            x = zoneCenter.x - self.respawnDefaultOffset.lonDelta,
+            x = zoneCenter.x + self.respawnDefaultOffset.latDelta,
             y = zoneCenter.y,
-            z = zoneCenter.z + self.respawnDefaultOffset.latDelta,
+            z = zoneCenter.z + self.respawnDefaultOffset.lonDelta,
           }
           -- Try and set the spawn spot at the place the group has been set in the Mission Editor.
           -- Unfortunately this is sometimes not possible because DCS is not returning the group units for some reason.
@@ -1020,14 +1035,12 @@ function VeafQRACore:deploy(nbUnitsInZone)
           else
             spawnSpot = group:getUnit(1):getPoint()
           end
-          local vars = {}
-          vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
-          vars.point.z = vars.point.y
-          vars.point.y = spawnSpot.y
-          vars.gpName = groupName
-          vars.action = "clone"
-          vars.route = mist.getGroupRoute(groupName, "task")
-          local newGroup = mist.teleportToPoint(vars) -- respawn with radius
+          local newGroup = VeafGroupSpawn:new()
+            :forGroup(groupName)
+            :at(spawnSpot)
+            :withRadius(self.respawnRadius)
+            :withRoute(veaf.getGroupRoute(groupName))
+            :clone()
           if newGroup then
             table.insert(self.spawnedGroupsNames, newGroup.name)
           end
@@ -1080,7 +1093,7 @@ function VeafQRACore:start()
   -- draw the zone
   if self.drawZone then
     if self.triggerZoneName then
-      self.zoneDrawing = mist.marker.drawZone(self.triggerZoneName, { message = self:getDescription(), readOnly = true })
+      self.zoneDrawing = veaf.drawTriggerZone(self.triggerZoneName, { message = self:getDescription() })
     else
       self.zoneDrawing = VeafCircleOnMap:new()
         :setName(self:getName())
@@ -1119,7 +1132,7 @@ function VeafQRACore:stop(silent)
   -- erase the zone
   if self.zoneDrawing then
     if self.triggerZoneName then
-      mist.marker.remove(self.zoneDrawing.markId)
+      veaf.removeDrawing(self.zoneDrawing.markId)
     else
       self.zoneDrawing:erase()
     end

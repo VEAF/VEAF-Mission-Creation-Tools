@@ -114,6 +114,21 @@ class TestEnsureCoalitionsPopulated(unittest.TestCase):
         self.assertIn(2, blue_ids)  # USA
         self.assertIn(0, red_ids)  # Russia
 
+    def test_placeholder_country_is_assigned_to_its_side(self) -> None:
+        """The placeholder's country is also listed in ``coalitions.<side>``.
+
+        FIX-PREPARE-THEATRE-COALITIONS: registering the coalition is the whole point of the
+        placeholder, and a country that owns units without appearing in ``coalitions.<side>``
+        registers nothing — DCS opens CHANGING COALITIONS and refuses the mission. A blank mission
+        (``prepare --theatre``) ships ``coalitions = {blue = {}, red = {}}``, so this is the only
+        thing that fills it.
+        """
+        mission = _mission(blue_units=False, red_units=False)
+        mission["coalitions"] = {"blue": {}, "red": {}}
+        ensure_coalitions_populated(mission)
+        self.assertEqual(mission["coalitions"]["blue"], [2])  # USA
+        self.assertEqual(mission["coalitions"]["red"], [0])  # Russia
+
 
 if __name__ == "__main__":
     unittest.main()

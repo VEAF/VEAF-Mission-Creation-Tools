@@ -399,5 +399,47 @@ class TestInjectGroupsDictContainer(unittest.TestCase):
         self.assertIn("new-group", names)
 
 
+class TestInjectedCountryIsAssignedToItsSide(unittest.TestCase):
+    """FIX-PREPARE-THEATRE-COALITIONS: injecting units must also assign the country to the side.
+
+    ``coalition.<side>.country`` holds the units; ``coalitions.<side>`` lists the country ids the
+    side owns. A country in the first and not in the second makes DCS open the CHANGING COALITIONS
+    screen and refuse the mission — which is what a mission scaffolded by ``prepare --theatre`` hit,
+    since its ``coalitions`` table starts empty.
+    """
+
+    def _yaml_for(self, coalition: str, country: str, group_name: str) -> dict:
+        return {
+            "airplanes": {
+                "coalitions": {
+                    coalition: {country: {group_name: {"name": group_name, "units": [{"type": "FA-18C_hornet"}]}}}
+                }
+            }
+        }
+
+    def test_new_country_is_listed_in_coalitions(self) -> None:
+        """A country created by the injection is added to `coalitions.<side>`."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])
+        worker.dcs_mission.mission_content["coalitions"] = {"blue": {}, "red": {}}
+        worker.yaml_data = self._yaml_for("blue", "France", "new-group")
+
+        worker.inject_groups(mode="add", silent=True)
+
+        self.assertEqual(worker.dcs_mission.mission_content["coalitions"]["blue"], [5])
+
+    def test_existing_country_is_listed_once(self) -> None:
+        """Two groups from the same country leave a single entry, and an existing id is kept."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])
+        worker.dcs_mission.mission_content["coalitions"] = {"blue": [2], "red": {}}
+        worker.yaml_data = self._yaml_for("blue", "USA", "g1")
+        worker.yaml_data["airplanes"]["coalitions"]["blue"]["USA"]["g2"] = {"name": "g2", "units": []}
+
+        worker.inject_groups(mode="add", silent=True)
+
+        self.assertEqual(worker.dcs_mission.mission_content["coalitions"]["blue"], [2])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -111,7 +111,6 @@ Fournit des stubs minimaux pour l'API globale DCS afin que les modules puissent 
 - `Unit`, `Group`, `StaticObject`, `Airbase`
 - `coalition`, `country`, `radio`
 - `trigger` (incluant `trigger.smokeColor`, `trigger.action.*`)
-- `mist` (utilitaires de base utilisés par plusieurs modules)
 - Helpers mathématiques (`math.isnan`, `math.inf`)
 
 Si un nouveau module ne se charge pas à cause d'un appel API DCS manquant, ajoutez le stub dans `dcs_mocks.lua`.
@@ -145,6 +144,14 @@ luaunit.assertIsTrue(ok, err)
 |-------|-------------------|
 | `test_veaf.lua` | Utilitaires de base, helpers string/table/vecteur, logging |
 | `test_veafCacheManager.lua` | Cache get/set/invalidate |
+| `test_veafScheduler.lua` | Planificateur sur le timer natif : répétition, heure d'arrêt, tâche en échec |
+| `test_veafMath.lua` | Conversions d'unités, vecteurs, formes de coordonnées, copie profonde |
+| `test_veafGeo.lua` | Rendu texte des coordonnées, zones, positions moyennes, polygones |
+| `test_veafGeo_ported.lua` | Géométrie portée depuis MiST : tirage dans un cercle, unités en zone circulaire, cap, dessin de zone |
+| `test_veafMissionDb.lua` | Instantané de la mission, liste des joueurs, registre des noms, identifiants |
+| `test_veafMissionDb_scenery.lua` | Registre des objets de décor détruits : enregistrement, recherche par zone, abonnement à l'événement |
+| `test_veafDcsSpawner.lua` | Création de statiques à l'exécution : pays, identifiants, formes, cap aléatoire |
+| `test_csar_init.lua` | Initialisation de CSAR, dans l'ordre de chargement d'une vraie mission (CSAR avant VEAF) : un seul gestionnaire d'événements quoi qu'il arrive |
 | `test_veafInterpreter.lua` | Tokeniseur de texte marqueur |
 | `test_veafTime.lua` | Parsing de temps, formatage, helpers temps DCS |
 | `test_veafSecurity.lua` | Niveaux de sécurité, gestion des admins |
@@ -265,7 +272,7 @@ Le workflow GitHub Actions (`.github/workflows/lua-ci.yml`) s'exécute à chaque
 **`lua-coverage`** — Ubuntu latest
 1. Checkout du dépôt
 2. Installation de `lua5.1` + `luacov` via LuaRocks, puis de Poetry et des dépendances
-3. Exécution de `poetry run test-lua --cov-fail-under 72` (couverture ligne via luacov)
+3. Exécution de `poetry run test-lua --cov-fail-under 79` (couverture ligne via luacov)
 4. Échec si la couverture passe sous le plancher à cliquet (le nombre ne fait que monter)
 
 ### Exécuter StyLua localement

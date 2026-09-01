@@ -61,7 +61,7 @@ Double-clique sur **`dcs-serve.exe`**.
 - **Copie-colle** cette ligne, puis Entrée :
 
   ```
-  veaf-tools.exe dcs capture-map --out-dir .
+  .\veaf-tools.exe dcs capture-map --out-dir .
   ```
 
 - → Un fichier **`<Carte>.json`** apparaît dans le dossier (ex. `Syria.json`). 🎉
@@ -69,12 +69,18 @@ Double-clique sur **`dcs-serve.exe`**.
 > Rien à configurer : le programme récupère tout seul le code d'accès créé par
 > `dcs-serve.exe` (dans le fichier `dcs-serve.yaml`, à côté).
 
+> **Garde le `.\`.** « Ouvrir dans le terminal » ouvre **PowerShell**, qui ne cherche pas dans le
+> dossier courant — exprès. Sans le `.\`, il te répond que `veaf-tools.exe` « is not recognized »,
+> en te désignant le fichier que tu as sous les yeux. Dans `cmd`, les deux formes marchent, donc
+> `.\` est bon partout. Voir
+> [PowerShell ou invite de commandes ?](../mission-maker/GUIDE.md#powershell-vs-cmd).
+
 ### Si David t'a demandé les places de parking en plus
 
 Ajoute `--parking` à la fin de la ligne :
 
 ```
-veaf-tools.exe dcs capture-map --out-dir . --parking
+.\veaf-tools.exe dcs capture-map --out-dir . --parking
 ```
 
 Ça fait **deux** fichiers au lieu d'un : le `<Carte>.json` habituel, plus un
@@ -123,7 +129,7 @@ Coche au fur et à mesure. **Inutile de refaire une carte déjà cochée.**
 5. Dans le terminal (comme à l'étape 3), tape *(mets le vrai chemin de ta mission)* :
 
    ```
-   veaf-tools.exe dcs inject-bridge "C:\...\ma-mission.miz"
+   .\veaf-tools.exe dcs inject-bridge "C:\...\ma-mission.miz"
    ```
 
    → Ta mission est prête (une copie de secours est créée automatiquement à côté).

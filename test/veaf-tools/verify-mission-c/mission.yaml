@@ -67,7 +67,9 @@ modules:
   EVENTS:
   MARKERS:
   COMMANDS:
-  MIST:                     # MiST community lib — mandatory (VEAF dependency), always injected
+  MIST:                     # MiST community lib — opt-in since DROP-MIST; a bare key means OFF.
+                            # The build turns it on by itself when one of the mission's own
+                            # src/scripts/*.lua calls `mist.`
   # ── Core ─────────────────────────────────────────────────────────────────
   SECURITY: true
   RADIO: true               # the VEAF F10 radio menu
@@ -120,7 +122,7 @@ modules:
   #     display: picture          # `picture` (nice, ~10 KB per step) or `text` (free)
   #     checklists: [f16c-cold-start]
   # ON for this mission: checks 9 and 10 (#107, #101). `linked` is what makes
-  # veafAssets.respawn respawn the escort alongside the tanker -- it calls mist.respawnGroup
+  # veafAssets.respawn respawn the escort alongside the tanker -- it goes through VeafGroupSpawn
   # on each linked group separately, which is precisely what #107 says leaves the escort
   # adrift. The escort group MUST be named "<tanker> escort": veafMove.teleportEscort builds
   # that name by hand (veafMove.lua:570) and gives up if no such group exists.
@@ -233,7 +235,7 @@ modules:
   #           - groups: su27-2ship
   #             delay: 0
   # ── Community scripts (off by default — enable what your mission uses) ─────
-  # (MiST is mandatory and lives in the Infrastructure block above.)
+  # (MiST is opt-in and lives among the community scripts above.)
   STTS: false
   CTLD: false               # configured in ctld-config.yaml, beside this file (edit it with ctld-tools)
   AIEN: false
@@ -243,7 +245,6 @@ modules:
   # The two `csar-avoids-water-*` checks call `csar.spawnGroup` in this mission's Lua state, so with
   # CSAR off they return `csar-absent` and measure nothing. Observed 2026-08-22.
   CSAR: true
-  HERCULES: false
   # ON for this mission: checks 6 and 7 (#151, #261) are read from the Skynet monitor, and
   # `include_red_in_radio` is what puts the RED network's status and its activate/deactivate
   # commands in the F10 menu. Without it there is nothing to deactivate for #261.
@@ -383,7 +384,7 @@ security:
 # ── Log level ────────────────────────────────────────────────────────────────
 # Back to INFO: the `-cap` investigation is closed (the CAPs were appearing all along, just not
 # where or when expected). Set this to `trace` again to see `newGroup=` / `_spawnedGroup=` and
-# `_spawnedGroup.name=` at trace level, and those lines say whether mist.dynAdd actually
+# `_spawnedGroup.name=` at trace level, and those lines say whether the spawn actually
 # returned a group. At INFO we only get the success message, printed whether or not anything
 # appeared -- which is exactly why three theories in a row went nowhere.
 #

@@ -613,9 +613,18 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   -- teleport if the option is set
   if teleport then
     veaf.loggers.get(veafMove.Id):debug("Teleport the tanker")
-    local vars = { groupName = groupName, point = teleportPoint, action = "teleport" }
-    local grp = mist.teleportToPoint(vars)
+    local grp = VeafGroupSpawn:new():forGroup(groupName):at(teleportPoint):teleport()
+    -- The guard at the top of this function vouched for the group as it was *before* the teleport;
+    -- a teleport destroys the group and recreates it, so this is a different object and needs its own
+    -- check. Unchecked, it reached `replaceMission`, which dereferences it straight away.
     unitGroup = Group.getByName(groupName)
+    if not unitGroup then
+      veaf.loggers
+        .get(veafMove.Id)
+        :warn(string.format("moveTanker: the tanker group [%s] did not come back from its teleport", veaf.p(groupName)))
+      trigger.action.outText(veaf.t("move.tanker_not_found", groupName), 10)
+      return false
+    end
 
     veafMove.teleportEscort(groupName, movePoint, teleportPoint)
 
@@ -656,22 +665,29 @@ function veafMove.findEscortTask(groupName_escort)
     return nil
   end
 
-  -- Last waypoint: where the escort task has to be set up in the editor.
-  local task2_escort = veaf.findInTable(points_escort[#points_escort], "task")
-  if not (task2_escort and task2_escort.params and task2_escort.params.tasks) then
-    veaf.loggers.get(veafMove.Id):debug("findEscortTask: last WP of %s carries no tasks", groupName_escort)
-    return nil
-  end
-
-  for _, task in pairs(task2_escort.params.tasks) do
-    -- The groupId stored in the mission has nothing to do with the id DCS needs at runtime, so it is
-    -- not checked here -- only that this is an enabled Escort task. Group.getID() supplies the real
-    -- one, and that is exactly what reestablishEscortTask writes back into it.
-    if task.enabled and task.id and task.id == "Escort" and task.params then
-      veaf.loggers
-        .get(veafMove.Id)
-        :trace("findEscortTask: found an Escort task on %s, stored groupId=%s", groupName_escort, task.params.groupId)
-      return escortData, task, points_escort
+  -- Any waypoint, last one first. DCS lets an Escort task sit on whichever waypoint the mission
+  -- maker chose, and nothing in the editor pushes it to the last one -- the repository's own demo
+  -- mission puts it on waypoint 2 of 3, for all three of its escorts. Looking only at the last
+  -- waypoint therefore found nothing and the repair gave up, which is what "carries no Escort task"
+  -- meant in game on 2026-08-28. The last waypoint is still searched first, so a mission that does
+  -- put it there keeps behaving exactly as before.
+  for index = #points_escort, 1, -1 do
+    local task_container = veaf.findInTable(points_escort[index], "task")
+    if task_container and task_container.params and task_container.params.tasks then
+      for _, task in pairs(task_container.params.tasks) do
+        -- The groupId stored in the mission has nothing to do with the id DCS needs at runtime, so it
+        -- is not checked here -- only that this is an enabled Escort task. Group.getID() supplies the
+        -- real one, and that is exactly what reestablishEscortTask writes back into it.
+        if task.enabled and task.id and task.id == "Escort" and task.params then
+          veaf.loggers.get(veafMove.Id):trace(
+            "findEscortTask: found an Escort task on %s at waypoint %s, stored groupId=%s",
+            groupName_escort,
+            index,
+            task.params.groupId
+          )
+          return escortData, task, points_escort
+        end
+      end
     end
   end
 
@@ -679,6 +695,39 @@ function veafMove.findEscortTask(groupName_escort)
   -- this escort") makes it actionable for a mission maker. Two lines at two levels for one condition
   -- is noise in dcs.log.
   return nil
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Puts a group's escort back where the Mission Editor drew it, alongside the group itself.
+--
+-- Repairing the Escort task is not enough on its own. A respawn recreates the asset at its mission
+-- start position while its escort keeps flying wherever the elapsed mission time has taken it, so
+-- the repaired task hands the escort a charge it cannot reach: measured in game on 2026-08-28,
+-- 78 km and 82 km on the demo mission's tanker minutes after a respawn, one escort already landed,
+-- against the Escort task's own `engagementDistMax` of 60 000 m read off the live task.
+--
+-- Nothing is positioned here: the escort comes back exactly where the editor put it, which is where
+-- its charge has just been put back too. That is what makes the pair whole again.
+--
+-- The guard is the escort's **mission record**, not a live group: an escort that was shot down is
+-- precisely the case a respawn is for, and `Group.getByName` answers nil for it. This is also why
+-- this call belongs before `reestablishEscortTask`, whose own guard *is* the live group -- the
+-- escort has to be back before the repair looks for it.
+--
+-- @param escorted_groupName, string, the group whose escort is to be put back
+-- @return boolean, true when an escort was respawned; false when this group has no escort
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.respawnEscort(escorted_groupName)
+  local groupName_escort = escorted_groupName .. veafMove.EscortGroupNameSuffix
+
+  if not veaf.getGroupRecord(groupName_escort) then
+    veaf.loggers.get(veafMove.Id):trace("respawnEscort: %s has no escort in the mission", escorted_groupName)
+    return false
+  end
+
+  veaf.loggers.get(veafMove.Id):debug("Respawning the escort %s alongside %s", groupName_escort, escorted_groupName)
+  VeafGroupSpawn:new():forGroup(groupName_escort):withRoute(veaf.getGroupRoute(groupName_escort)):respawn()
+  return true
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -714,7 +763,7 @@ function veafMove.reestablishEscortTask(escorted_groupName, delay)
     return false
   end
 
-  mist.scheduleFunction(
+  veaf.scheduleFunction(
     veafMove.actualReestablishEscortTask,
     { escorted_groupName, groupName_escort, escortData, task_escort },
     timer.getTime() + (delay or 1)
@@ -821,14 +870,29 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
   task_escort.params.groupId = escortedId --assign the new groupID within the old escort mission, only necessary after teleporting as the tanker's ID will have changed
 
   veaf.loggers.get(veafMove.Id):debug("Teleport the escort")
-  local vars_escort = { groupName = groupName_escort, point = teleportPoint_escort, action = "teleport" }
-  mist.teleportToPoint(vars_escort)
+  VeafGroupSpawn:new():forGroup(groupName_escort):at(teleportPoint_escort):teleport()
+  -- The check further up tested the escort as it was before the teleport; the teleport destroys and
+  -- recreates it, so this lookup answers about a different object and gets its own check.
   local unitGroup_escort = Group.getByName(groupName_escort)
+  if not unitGroup_escort then
+    veaf.loggers
+      .get(veafMove.Id)
+      :warn(string.format("teleportEscort: the escort group [%s] did not come back from its teleport", veaf.p(groupName_escort)))
+    return false
+  end
 
   veafMove.replaceMission(unitGroup_escort, EscortData)
-  --this method appears to not work very well, the escort just doesn't defend the group
+  -- Measured in game on 2026-09-01, on the session mission's Arco: the teleported escort holds
+  -- formation **and** engages. The note that stood here — "this method appears to not work very well,
+  -- the escort just doesn't defend the group" — is wrong, and it had been contradicting
+  -- FIX-ESCORT-RESPAWN-TASK's own PRD ("works, escort held for 30 min") for long enough that the
+  -- repository told two stories about the same path. It tells one now.
+  --
+  -- What is still open is FIX-TELEPORT-ESCORT-WAYPOINT's second finding: the rewrite below assumes
+  -- the Escort task sits on the LAST waypoint, while `findEscortTask` was taught to search every
+  -- waypoint because the demo mission puts it on waypoint 2 of 3.
 
-  --mist.goRoute(groupName_escort, route_escort)
+  --veaf.goRoute(groupName_escort, route_escort)
   --works even worse, sends them to X=0, Z=0
 
   return true
@@ -844,6 +908,11 @@ end
 function veafMove.replaceMission(unitGroup, missionData, delay, immortal)
   local delay = delay or 1
 
+  -- FIX-UNGUARDED-DCS-LOOKUPS: `unitGroup` is dereferenced below without a check, and that is now
+  -- deliberate rather than overlooked. All four call sites -- moveTanker, moveAfac, teleportEscort and
+  -- actualReestablishEscortTask -- check the group they looked up before handing it over; the three
+  -- that re-looked it up *after* a teleport were the ones that did not, and they do now. Should a
+  -- fifth caller appear, it owes the same check: the group is nil here only if it never existed.
   local actualReplaceMission = function(unitGroup, missionData, immortal)
     local freq = missionData.frequency or 243 --set frequency or guard channel
     local mod = missionData.modulation or 0 --set modulation or AM (=0)
@@ -892,7 +961,7 @@ function veafMove.replaceMission(unitGroup, missionData, delay, immortal)
     Controller.setCommand(controller, _setFrequency)
   end
 
-  mist.scheduleFunction(actualReplaceMission, { unitGroup, missionData, immortal }, timer.getTime() + delay)
+  veaf.scheduleFunction(actualReplaceMission, { unitGroup, missionData, immortal }, timer.getTime() + delay)
 end
 
 ------------------------------------------------------------------------------
@@ -1012,12 +1081,24 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
 
     --teleport the group south of the requested location
     veaf.loggers.get(veafMove.Id):trace("AFAC " .. groupName .. " teleported")
-    local vars = { groupName = groupName, point = teleportPosition, action = "teleport" }
+    -- A dynamically spawned AFAC is not in the mission, so its definition is supplied rather than
+    -- looked up — and with it comes `onAnyTerrain`, since a JTAC may sit anywhere its operator put it.
+    local spawn = VeafGroupSpawn:new():forGroup(groupName):at(teleportPosition)
     if isDynamicallySpawned then
-      vars = { groupName = groupName, groupData = afacData, anyTerrain = true, point = teleportPosition, action = "teleport" }
+      spawn = spawn:withGroupData(afacData):onAnyTerrain()
     end
-    local grp = mist.teleportToPoint(vars)
+    local grp = spawn:teleport()
     unitGroup = Group.getByName(groupName) --refresh group class after respawn, not necessary but safer considering at least the groupId changes
+    -- "safer" only once the answer is checked: the guard at the top of this function vouched for the
+    -- group before the teleport, and the teleport recreates it. Unchecked, this reached
+    -- `replaceMission`, which dereferences it straight away.
+    if not unitGroup then
+      veaf.loggers
+        .get(veafMove.Id)
+        :warn(string.format("moveAfac: the AFAC group [%s] did not come back from its teleport", veaf.p(groupName)))
+      trigger.action.outText(veaf.t("move.afac_not_found", groupName), 10)
+      return false
+    end
 
     --necessary delay for the following code to not be ignored
     local delay = 1

@@ -294,17 +294,118 @@ Pour le contrôle **par module au runtime** (sans rebuild), ajouter l'appel Lua 
 veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true contourne le cap BaseLogLevel
 ```
 
-### Accès mist.DBs
+### Planification d'une fonction
 
-Ne pas accéder à `mist.DBs.*` directement. Utiliser l'interface `veaf.mist` :
+Ne pas appeler `timer.scheduleFunction` ni `mist.scheduleFunction`. Utiliser `veaf.scheduleFunction`,
+qui pose la tâche sur le timer natif de DCS en gardant les commodités attendues : répétition, heure
+d'arrêt, arguments en table, et une tâche qui échoue sans emporter les autres.
 
 ```lua
-local unitData  = veaf.mist.getUnitData(unitName)
-local groupData = veaf.mist.getGroupData(groupName)
-local isHuman   = veaf.mist.isHumanUnit(unitName)
-local allUnits  = veaf.mist.getAllUnitData()
-local groupById = veaf.mist.getGroupById(groupId)
+-- une seule fois, dans 30 secondes
+local id = veaf.scheduleFunction(maFonction, { arg1, arg2 }, timer.getTime() + 30)
+
+-- toutes les 10 secondes, pendant une heure
+veaf.scheduleFunction(maFonction, {}, timer.getTime() + 10, 10, timer.getTime() + 3600)
+
+veaf.removeFunction(id) -- annule ; renvoie false si la tâche a déjà tourné
 ```
+
+L'implémentation vit dans `veafScheduler.lua`. Il n'y a **pas** de boucle de scrutation : chaque tâche
+est un appel planifié natif, réarmé en renvoyant sa prochaine échéance, donc rien ne tourne quand rien
+n'est dû.
+
+### Maths, vecteurs et conversions
+
+Ne pas appeler `mist.utils.*` ni `mist.vec.*`. Les fonctions vivent dans `veafMath.lua`, derrière des
+façades `veaf.*` :
+
+```lua
+veaf.metersToNM(d)  veaf.NMToMeters(d)  veaf.metersToFeet(d)  veaf.feetToMeters(d)  veaf.mpsToKnots(v)
+veaf.vecAdd(a, b)   veaf.vecScalarMult(v, k)   veaf.vecMag(v)   veaf.get2DDist(p1, p2)
+veaf.makeVec3(p, alt)   veaf.makeVec2(p)   veaf.getDir(v, point)   veaf.getNorthCorrection(point)
+veaf.deepCopy(t)
+```
+
+Trois pièges, dans l'ordre où ils mordent :
+
+- **`makeVec3` / `makeVec2` traduisent entre les deux conventions de coordonnées de DCS** — lire
+  [`docs/agents/dcs-coordinates.md`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-coordinates.md)
+  avant de les utiliser. Se tromper ne lève aucune erreur, seulement une position à cent kilomètres.
+- **Pas de `veaf.toRadian` ni `veaf.toDegree`** : ce sont `math.rad` et `math.deg`, de la bibliothèque
+  standard Lua.
+- **Pas de `veaf.round` dans `veafMath`** : il est dans `veaf.lua` depuis toujours, et il est identique
+  à celui de MiST.
+
+### Rendu texte d'une position
+
+`veafGeo.lua` assemble les chaînes de coordonnées, derrière deux façades :
+
+```lua
+veaf.toStringLL(lat, lon, acc)         -- "42 21.00'N⇥ 43 34.07'E"  (minutes décimales)
+veaf.toStringLL(lat, lon, acc, true)   -- "42 21' 00\"N⇥ 43 34' 04\"E"  (degrés/minutes/secondes)
+veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)  -- "38T KM 123 679"
+```
+
+La géodésie reste celle de DCS (`coord.LOtoLL`, `coord.LLtoMGRS`) ; ce module ne fait que le texte.
+
+`veafGeo` porte aussi les zones et les polygones :
+
+```lua
+veaf.zoneToVec3("NOM DE ZONE")        -- centre de la zone, ou nil si elle n'existe pas
+veaf.getAvgPos({ "unite1", "unite2" }) -- position moyenne, nil si aucune n'existe
+veaf.getAvgGroupPos("nom du groupe")
+veaf.pointInPolygon(point, sommets)    -- accepte les deux formes de coordonnées
+veaf.getUnitsInPolygon({ "u1", "u2" }, sommets)
+```
+
+Et l'allocation d'identifiants d'unité vit dans `veafMissionDb.lua` : `veaf.getNextUnitId()`.
+
+**Ces chaînes partent dans les rapports F10 et les briefings**, donc elles sont figées par des tests à
+chaîne littérale. Le port a repris MiST au caractère près, bizarreries comprises ; corriger l'une
+d'elles change ce que lisent les pilotes, et s'est donc décidé à part. Les deux l'ont été :
+`FIX-DMS-MINUTE-CARRY` (en DMS, une minute atteignant 60 se reporte sur le degré, comme le faisait
+déjà le mode décimal) et `FIX-ZERO-HEMISPHERE` (une position à exactement zéro s'affiche `N`/`E`, le
+test d'hémisphère étant passé de `> 0` à `>= 0`).
+
+### Ce que la mission contient
+
+`veafMissionDb.lua` répond à trois questions, et n'accumule rien d'autre.
+
+**L'instantané de l'éditeur** — chaque groupe et chaque unité posés dans l'éditeur de mission, lus une
+seule fois dans `env.mission`. Un *enregistrement de mission* n'est pas un objet vivant : il existe
+pour une unité qui n'est pas encore apparue et pour une unité déjà détruite. C'est exactement ce que
+`Unit.getByName` ne sait pas faire, et la raison d'être de l'index.
+
+```lua
+veaf.getUnitRecord(unitName)      -- x, y, alt, type, groupName, coalition, coalitionId, category…
+veaf.getGroupRecord(groupName)
+veaf.getGroupRecordById(groupId)
+veaf.getAllUnitRecords()          -- pour itérer
+veaf.getAllGroupRecords()
+veaf.getBullseye("blue")          -- directement depuis env.mission
+```
+
+**La liste des joueurs** — les slots de l'éditeur, **plus les slots dynamiques de DCS**, qui n'existent
+dans aucun `env.mission`. C'est le seul des trois qui se rafraîchit, et il le fait quand on le lit, pas
+sur une horloge :
+
+```lua
+veaf.isHumanUnit(unitName)
+veaf.getAllHumanRecords()
+```
+
+**Le registre des noms** — ce que VEAF a nommé, pour qu'un groupe puisse réapparaître sous un nom déjà
+utilisé :
+
+```lua
+veaf.takeSpawnedName(name)
+veaf.releaseSpawnedName(name)
+veaf.isNameTaken(name)
+```
+
+Les anciennes façades `veaf.mist.getGroupData`, `isHumanUnit`, `getAllUnitData`, `getAllGroupData`,
+`getAllHumanUnitData` et `getGroupById` existent toujours et redirigent ici ; du code neuf appelle
+`veaf.*` directement. `veaf.mist.getUnitData` a été supprimée : elle n'avait aucun appelant.
 
 ---
 
@@ -337,7 +438,10 @@ logger.error("Échec", raise_exception=True)
 
 1. Créer `src/python/veaf-tools/new_feature_injector/`
 2. Implémenter `new_feature_worker.py` avec une méthode `run()`
-3. Enregistrer la commande dans `veaf-tools.py` avec `typer`
+3. Enregistrer la commande avec `typer` dans `veaf_tools/commands/`, puis la classer dans un groupe
+   de `veaf_tools/command_tree.py` — une commande non classée fait échouer les tests, parce qu'elle
+   disparaîtrait de `--help`. Il n'y a rien à ajouter dans `veaf-tools.py` : ce point d'entrée
+   délègue à `veaf_tools.app.main()` et ne connaît aucune commande.
 4. Ajouter le schéma de configuration YAML dans `models.py`
 
 ### Aides de test partagées {#shared-test-helpers}

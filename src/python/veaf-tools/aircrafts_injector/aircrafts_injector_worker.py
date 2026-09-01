@@ -20,6 +20,7 @@ from mission_tools import (
     read_miz,
     write_miz,
 )
+from mission_tools.group_insertion import assign_country_to_side
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -781,6 +782,14 @@ class AircraftGroupsInjectorWorker(BaseWorker):
             try:
                 coalition = self._get_or_create_coalition_structure(coalition_name)
                 country = self._get_or_create_country(coalition, country_name)
+                # `coalition.<side>.country` holds the units; `coalitions.<side>` is the list of
+                # country ids assigned to that side. DCS needs both — a country that owns units but
+                # is not listed opens the CHANGING COALITIONS screen and the mission never loads.
+                # A mission from the Mission Editor already lists its countries, so this only ever
+                # fires for a country this injection just created (FIX-PREPARE-THEATRE-COALITIONS).
+                mission_content = self.dcs_mission.mission_content
+                assert mission_content is not None  # _get_or_create_coalition_structure() just filled it
+                assign_country_to_side(mission_content, coalition_name, country["id"])
                 mission_category = "plane" if category == "airplanes" else "helicopter"
                 groups_list = self._ensure_aircraft_category(country, mission_category)
             except Exception as e:
@@ -996,6 +1005,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         group_name_pattern: str | None = None,
         input_lua: Path | None = None,
         aircraft_type: str | None = None,
+        merge: bool = False,
     ):
         """
         Initialize the extractor.
@@ -1012,6 +1022,10 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             group_name_pattern: Optional extra regex filter on group names (sorting itself is by ADR 0002)
             input_lua: Path to input Lua file with settings table (mutually exclusive with input_mission)
             aircraft_type: Filter by aircraft type: 'airplanes', 'helicopters', or None for both
+            merge: If True, merge the extraction over what each output file already holds
+                instead of replacing it. The mission wins on a group of the same name and every
+                replacement is reported (FEAT-EXTRACT-MERGE). Default False — a caller that has
+                always received a freshly rebuilt file still does.
         """
         # Validate that either mission or lua is provided, not both
         if (input_mission is None and input_lua is None) or (input_mission is not None and input_lua is not None):
@@ -1031,6 +1045,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         self.output_dynamic_templates = output_dynamic_templates
         self.group_name_pattern = re.compile(group_name_pattern) if group_name_pattern else None
         self.aircraft_type = aircraft_type  # Filter by aircraft type
+        self.merge = merge  # Merge over the existing output files instead of replacing them
         self.dcs_mission: DcsMission | None = None
         self.lua_data: dict | None = None  # Store parsed Lua data
         # One extraction structure per family, keyed by classify_aircraft_group() kind.
@@ -1039,6 +1054,9 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             KIND_DYNAMIC_TEMPLATE: self._empty_structure(),
         }
         self.matched_groups: dict[str, dict] = {}  # Store matched groups for interactive selection
+        #: Groups the extraction overwrote in the target files, as
+        #: ``"category / coalition / country / group"`` (only filled when merging).
+        self.replaced_groups: list[str] = []
 
     def read_lua_file(self, silent: bool = False) -> None:
         """Load and parse aircraft groups from a Lua settings file."""
@@ -1392,8 +1410,120 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         # Clean the group data and store it
         structure[coalition_name][country_name][group_name] = self._clean_group_data(group)
 
+    def _read_target_structure(self, path: Path) -> dict[str, Any]:
+        """Read the catalogue already at *path* so an extraction can be merged over it.
+
+        A target we cannot walk is a hard failure: overwriting it would destroy exactly what
+        merging exists to protect, and doing so silently is the defect this lot closes.
+
+        Args:
+            path: The output YAML to read. Missing or empty is fine — nothing to merge into.
+
+        Returns:
+            The parsed catalogue, or an empty structure when there is nothing usable yet.
+
+        Raises:
+            ValueError: The file cannot be read, cannot be parsed, or is not shaped like a
+                catalogue (``{category: {coalitions: {coalition: {country: {group: data}}}}}``).
+        """
+        if not path.exists() or path.stat().st_size == 0:
+            return self._empty_structure()
+
+        try:
+            existing = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError, UnicodeDecodeError) as e:
+            logger.error(t("aircraft_injector.merge_unreadable", path=path, error=str(e)), exception_type=ValueError)
+            raise  # logger.error raises; this satisfies the type-checker
+
+        if existing is None:
+            return self._empty_structure()
+
+        self._validate_target_structure(existing, path)
+        return existing
+
+    def _validate_target_structure(self, existing: Any, path: Path) -> None:
+        """Check that *existing* is a catalogue the merge can walk, level by level.
+
+        Args:
+            existing: The parsed YAML content of *path*.
+            path: The file it came from, for the error message.
+
+        Raises:
+            ValueError: As soon as one level is not a mapping, naming where it went wrong.
+        """
+
+        def _fail(location: str) -> None:
+            logger.error(
+                t("aircraft_injector.merge_malformed", path=path, location=location), exception_type=ValueError
+            )
+
+        if not isinstance(existing, dict):
+            _fail("(root)")
+        for category, category_data in existing.items():
+            if not isinstance(category_data, dict):
+                _fail(str(category))
+                continue
+            coalitions = category_data.get("coalitions")
+            if coalitions is None:
+                continue
+            if not isinstance(coalitions, dict):
+                _fail(f"{category}.coalitions")
+                continue
+            for coalition, countries in coalitions.items():
+                if countries is None:
+                    continue
+                if not isinstance(countries, dict):
+                    _fail(f"{category}.coalitions.{coalition}")
+                    continue
+                for country, groups in countries.items():
+                    if groups is not None and not isinstance(groups, dict):
+                        _fail(f"{category}.coalitions.{coalition}.{country}")
+
+    @staticmethod
+    def _merge_over(existing: dict[str, Any], extracted: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+        """Merge *extracted* over *existing*, group by group — the mission wins.
+
+        Args:
+            existing: The catalogue read from the output file.
+            extracted: One family structure produced by this run.
+
+        Returns:
+            The merged catalogue, and the names of the groups the extraction replaced, as
+            ``"category / coalition / country / group"``.
+        """
+        merged = copy.deepcopy(existing)
+        replaced: list[str] = []
+
+        for category, category_data in extracted.items():
+            target_coalitions = merged.setdefault(category, {}).setdefault("coalitions", {})
+            for coalition, countries in (category_data.get("coalitions") or {}).items():
+                target_countries = target_coalitions.setdefault(coalition, {})
+                for country, groups in (countries or {}).items():
+                    target_groups = target_countries.setdefault(country, {})
+                    for group_name, group in (groups or {}).items():
+                        if group_name in target_groups:
+                            replaced.append(f"{category} / {coalition} / {country} / {group_name}")
+                        target_groups[group_name] = group
+
+        return merged, replaced
+
+    def _report_replacements(self, path: Path, replaced: list[str]) -> None:
+        """Name every group the extraction overwrote, so no hand edit is lost in silence."""
+        if not replaced:
+            return
+        console.print(t("aircraft_injector.merge_replaced_header", path=path, count=len(replaced)))
+        for group in replaced:
+            console.print(t("aircraft_injector.merge_replaced_group", group=group))
+
     def _write_structure(self, structure: dict[str, Any], path: Path, silent: bool) -> None:
-        """Write a single family structure to *path*."""
+        """Write a single family structure to *path*, merging over its content when asked."""
+        if self.merge:
+            # Read before the write: an unusable target must abort, not be clobbered.
+            structure, replaced = self._merge_over(self._read_target_structure(path), structure)
+            self.replaced_groups.extend(replaced)
+            if not silent:
+                self._report_replacements(path, replaced)
+
         if not silent:
             logger.info(t("aircraft_injector.writing_templates", path=path))
         try:

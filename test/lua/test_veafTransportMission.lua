@@ -4,6 +4,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafTransportMission.lua")
 
 -- ---------------------------------------------------------------------------
@@ -337,11 +342,6 @@ end
 
 function TestVeafTransportFunctions:test_endTransportOfCargo_runs()
   veafTransportMission.endTransportOfCargo("TestCargo")
-  luaunit.assertTrue(true)
-end
-
-function TestVeafTransportFunctions:test_resetAllCargoes_runs()
-  veafTransportMission.resetAllCargoes()
   luaunit.assertTrue(true)
 end
 

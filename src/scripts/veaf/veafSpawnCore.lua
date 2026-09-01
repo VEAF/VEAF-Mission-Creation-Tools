@@ -258,7 +258,7 @@ function veafSpawn.executeCommand(
         veaf.loggers
           .get(veafSpawn.Id)
           :trace(string.format("scheduling veafSpawn.executeCommand for a delayed start in %s seconds", veaf.p(startDelay)))
-        mist.scheduleFunction(
+        veaf.scheduleFunction(
           veafSpawn.executeCommand,
           -- `scripted` travels with the reschedule, or a delayed spawn asked for by a combat zone
           -- would come back chatty on the second pass.
@@ -294,7 +294,7 @@ function veafSpawn.executeCommand(
           :trace(
             string.format("scheduling veafSpawn.executeCommand for %s repeats in %s seconds", veaf.p(repeatCount), veaf.p(repeatDelay))
           )
-        mist.scheduleFunction(veafSpawn.executeCommand, {
+        veaf.scheduleFunction(veafSpawn.executeCommand, {
           eventPos,
           eventText,
           coalition,
@@ -417,9 +417,9 @@ function veafSpawn.executeCommand(
                   options.patrol,
                   spawnedGroup
                 )
-                mist.goRoute(groupObject, route)
+                veaf.goRoute(groupObject, route)
               elseif route then
-                mist.goRoute(groupObject, route)
+                veaf.goRoute(groupObject, route)
               end
               -- add the group to the IADS, if there is one
               if veafSkynet then
@@ -731,7 +731,7 @@ function veafSpawn.doSpawnGroup(
   groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), groupName, czName)
 
   if hasDest then
-    mist.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
+    veaf.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
   end
 
   for i = 1, #group.units do
@@ -771,7 +771,7 @@ function veafSpawn.doSpawnGroup(
           veaf.p(toInsert.type),
           veaf.p(toInsert.name),
           veaf.p(toInsert.speed),
-          veaf.p(mist.utils.toDegree(toInsert.heading)),
+          veaf.p(math.deg(toInsert.heading)),
           veaf.p(toInsert.skill),
           veaf.p(country)
         )
@@ -789,11 +789,18 @@ function veafSpawn.doSpawnGroup(
 
   -- actually spawn the group
   if group.naval then
-    mist.dynAdd({ country = country, category = "SHIP", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({ country = country, category = "SHIP", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
   elseif group.air then
-    mist.dynAdd({ country = country, category = "AIRPLANE", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({ country = country, category = "AIRPLANE", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
   else
-    mist.dynAdd({ country = country, category = "GROUND_UNIT", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
+    veaf.addGroup({
+      country = country,
+      category = "GROUND_UNIT",
+      name = groupName,
+      hidden = false,
+      units = units,
+      hiddenOnMFD = hiddenOnMFD,
+    })
   end
 
   if not silent then

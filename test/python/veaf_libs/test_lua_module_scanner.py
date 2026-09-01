@@ -15,6 +15,7 @@ from veaf_libs.lua_module_scanner import (
     generate_modules_json,
     get_modules,
     scan_module_configs,
+    scan_module_initialisation,
 )
 
 # ---------------------------------------------------------------------------
@@ -228,6 +229,132 @@ veaf.registerModule(veafSpawn.Id, function() end, {enabled = true, debug = false
             self._write_lua(tmp_path, "veafNoReg.lua", 'veafNoReg.Id = "NOREG"\n')
             result = scan_module_configs(tmp_path)
             self.assertNotIn("NOREG", result)
+
+
+# ---------------------------------------------------------------------------
+# scan_module_initialisation
+# ---------------------------------------------------------------------------
+
+
+class TestScanModuleInitialisation(unittest.TestCase):
+    """Unit-level checks on synthetic sources.
+
+    The cross-check against the real tree lives in ``test_module_init_registry.py``; this class
+    covers the parser's edge cases, which the repository's own files do not all exercise.
+    """
+
+    @staticmethod
+    def _write(directory: Path, name: str, content: str) -> None:
+        (directory / name).write_text(content, encoding="utf-8")
+
+    def test_empty_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(scan_module_initialisation(Path(tmp)), {})
+
+    def test_a_file_with_no_id_line_is_not_a_module(self) -> None:
+        """``veaf.lua`` itself falls here: it declares ``registerModule`` and registers CTLD."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            self._write(
+                tmp_path,
+                "veaf.lua",
+                "function veaf.registerModule(id, initFn, defaults, order)\nend\n"
+                "veaf.registerModule(veaf.ctldId, veaf.ctld_initialize, { enable = true }, 50)\n",
+            )
+            self.assertEqual(scan_module_initialisation(tmp_path), {})
+
+    def test_a_registration_for_another_table_is_ignored(self) -> None:
+        """Only ``<the file's own table>.Id`` counts, so a foreign registration cannot be claimed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            self._write(
+                tmp_path,
+                "veafThing.lua",
+                'veafThing.Id = "THING"\n'
+                "function veafThing.initialize()\nend\n"
+                "veaf.registerModule(veafOther.Id, veafOther.initialize, { enable = true }, 42)\n",
+            )
+            facts = scan_module_initialisation(tmp_path)
+            self.assertFalse(facts["THING"]["registers"])
+            self.assertIsNone(facts["THING"]["order"])
+
+    def test_order_defaults_to_100_when_omitted(self) -> None:
+        """``registerModule`` itself defaults to 100; the scan must report the same number."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            self._write(
+                tmp_path,
+                "veafThing.lua",
+                'veafThing.Id = "THING"\n'
+                "function veafThing.initialize()\nend\n"
+                "veaf.registerModule(veafThing.Id, veafThing.initialize, { enable = true })\n",
+            )
+            self.assertEqual(scan_module_initialisation(tmp_path)["THING"]["order"], 100)
+
+    def test_a_closure_registration_is_parsed_with_its_braces_and_commas(self) -> None:
+        """The closure body holds both, which is what defeats a single-regex parse."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            self._write(
+                tmp_path,
+                "veafThing.lua",
+                'veafThing.Id = "THING"\n'
+                "function veafThing.initialize(a, b)\nend\n"
+                "veaf.registerModule(veafThing.Id, function()\n"
+                "  local cfg = veaf.getConfig(veafThing.Id)\n"
+                "  veafThing.initialize(cfg.a, cfg.b)\n"
+                "end, { enable = true, a = false }, 77)\n",
+            )
+            facts = scan_module_initialisation(tmp_path)["THING"]
+            self.assertTrue(facts["registers"])
+            self.assertTrue(facts["wrapped"])
+            self.assertEqual(facts["order"], 77)
+            self.assertEqual(facts["init_params"], "a, b")
+
+    def test_a_commented_out_registration_does_not_count(self) -> None:
+        """Both comment forms, because two module files keep a ``--[[ … ]]`` scratch block."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            self._write(
+                tmp_path,
+                "veafThing.lua",
+                'veafThing.Id = "THING"\n'
+                "function veafThing.initialize()\nend\n"
+                "-- veaf.registerModule(veafThing.Id, veafThing.initialize, { enable = true }, 1)\n"
+                "--[[\nveafThing.initialize()\n"
+                "veaf.registerModule(veafThing.Id, veafThing.initialize, { enable = true }, 2)\n]]\n",
+            )
+            facts = scan_module_initialisation(tmp_path)["THING"]
+            self.assertFalse(facts["registers"])
+            self.assertFalse(facts["self_initialises"])
+
+    def test_self_initialisation_is_only_a_top_level_call(self) -> None:
+        """An indented call is somebody's function body, not initialisation at load."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            self._write(
+                tmp_path,
+                "veafInner.lua",
+                'veafInner.Id = "INNER"\n'
+                "function veafInner.initialize()\nend\n"
+                "function veafInner.restart()\n  veafInner.initialize()\nend\n",
+            )
+            self._write(
+                tmp_path,
+                "veafOuter.lua",
+                'veafOuter.Id = "OUTER"\nfunction veafOuter.initialize()\nend\nveafOuter.initialize()\n',
+            )
+            facts = scan_module_initialisation(tmp_path)
+            self.assertFalse(facts["INNER"]["self_initialises"])
+            self.assertTrue(facts["OUTER"]["self_initialises"])
+
+    def test_a_module_with_no_initialize_is_reported_as_such(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            self._write(tmp_path, "veafData.lua", 'veafData.Id = "DATA"\nveafData.table = {}\n')
+            facts = scan_module_initialisation(tmp_path)["DATA"]
+            self.assertFalse(facts["has_initialize"])
+            self.assertEqual(facts["init_params"], "")
 
 
 if __name__ == "__main__":

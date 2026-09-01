@@ -48,7 +48,6 @@ disabled_community_scripts:
   - stts
   - aien
   - csar
-  - hercules
   - skynet
   - tum
 

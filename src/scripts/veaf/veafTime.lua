@@ -724,4 +724,10 @@ function veafTime.initialize()
   veaf.loggers.get(veafTime.Id):info("Initializing module")
 end
 
+-- Registered although `initialize()` does nothing but log: the generated `veaf-config.lua` already
+-- calls it on every mission, and a registry that omits it describes a framework that does not exist.
+-- The order is the infrastructure tier — this module is a set of pure helpers, so no initialisation
+-- order can be wrong for it. See docs/agents/module-initialisation.md.
+veaf.registerModule(veafTime.Id, veafTime.initialize, { enable = true }, 2)
+
 veaf.loggers.get(veafTime.Id):info(veaf.loggers.get(veafTime.Id):getVersionInfo())

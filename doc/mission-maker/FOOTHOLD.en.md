@@ -45,6 +45,11 @@ rest. No need to unzip by hand.
 >
 > On later releases add `-Update`: the scripts are refreshed and every tuned `mission.yaml` is
 > preserved. Budget roughly a minute per mission.
+>
+> Your mission folders need not be named after the archives: the script matches each archive
+> to the folder **of the same map** (it reads the theatre on both sides), so
+> `Foothold_CA_4.7.0_Multi_Language….zip` does refresh `VEAF-Foothold-Caucasus`. It prints
+> the folder it picked, and why, for each mission.
 
 ### Which profile for which map
 
@@ -139,7 +144,10 @@ modules:
   tum: false
 ```
 
-> MiST is not in the list: it is a mandatory VEAF dependency (always loaded).
+> MiST is not in the list: it is no longer injected by default. The VEAF scripts stopped
+> calling it, and so did every community script shipped here, which saves 336 KB in every
+> mission. If one of your own scripts calls `mist.`, the build notices and injects it for
+> you, naming the file that asked for it.
 
 ### b. Partial override of the Foothold config
 
@@ -267,12 +275,22 @@ veaf-tools convert other <new_release.zip> <mission-folder> --profile foothold -
 ```
 
 `--update` refreshes the third-party scripts and mission base, **preserves your
-tuned `mission.yaml`**, normalises versioned names (`Moose_<date>.lua` → `Moose.lua`,
-`Splash_Damage_<version>_leka.lua` → `Splash_Damage.lua`), and **reports the scripts
-added / updated / removed** upstream. Review the report, reconcile `custom_scripts:` /
-`strip_native_triggers:` if needed, then re-validate and rebuild. See
-[CONVERT_OTHER](CONVERT_OTHER.en.md).
+tuned `mission.yaml`**, and normalises versioned names (`Moose_<date>.lua` → `Moose.lua`,
+`Splash_Damage_<version>_leka.lua` → `Splash_Damage.lua`).
 
-> Watch the report for a **new script** appearing upstream: it is not added to
-> `custom_scripts:` for you, precisely because its position in the load order is a decision
-> only a human can make.
+It also **reconciles `delay_seconds:` with the new release's staging** and **deletes the
+scripts Lekaa no longer ships** — as with the 4.7.0 Syria setup rename
+(`footholdSyriaSetup.lua` → `footholdSyriaSetupv2.lua`), where the old file stayed on disk
+and got embedded instead of the new one. Its `custom_scripts:` entry stays, so **`validate`
+fails** until you remove it: that is the signal, not a defect.
+
+The report (`convert-other-report.md`) lists all of it: scripts added, updated, deleted,
+and every delay written. Review it, add any new script to `custom_scripts:`, then
+re-validate and rebuild. See [CONVERT_OTHER](CONVERT_OTHER.en.md).
+
+> A **new upstream script** is not added to `custom_scripts:` for you: its position in the
+> load order is a decision only a human can make.
+
+> `convert-other-state.yaml` appears in the mission folder: it is the list of scripts the
+> upstream release loads, and it is what tells a script Lekaa dropped from one you added
+> yourself. **Commit it with the mission.**

@@ -217,7 +217,7 @@ function veafTransportMission.doRadioTransmission(groupName)
     )
   end
 
-  veafTransportMission.friendlyGroupAdfLoopTaskID = mist.scheduleFunction(
+  veafTransportMission.friendlyGroupAdfLoopTaskID = veaf.scheduleFunction(
     veafTransportMission.doRadioTransmission,
     { groupName },
     timer.getTime() + veafTransportMission.SecondsBetweenAdfLoops
@@ -350,7 +350,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
 
     -- compute player route to friendly group
     local vecAB = { x = groupPosition.x + -startPoint.x, y = 0, z = groupPosition.z - startPoint.z }
-    routeDistance = mist.vec.mag(vecAB)
+    routeDistance = veaf.vecMag(vecAB)
     veaf.loggers.get(veafTransportMission.Id):trace("routeDistance=" .. routeDistance)
     if routeDistance < veafTransportMission.MinimumRouteDistance then
       trigger.action.outText(veaf.t("transport.dropzone_too_close", veafTransportMission.MinimumRouteDistance / 1000, from), 5)
@@ -466,7 +466,7 @@ function veafTransportMission.friendlyGroupWatchdog()
   local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafTransportMission.BlueGroupName)
   if nbVehicles + nbInfantry > 0 then
     ----veaf.loggers.get(veafTransportMission.Id):trace("Group is still alive with "..nbVehicles.." vehicles and "..nbInfantry.." soldiers")
-    veafTransportMission.friendlyGroupAliveCheckTaskID = mist.scheduleFunction(
+    veafTransportMission.friendlyGroupAliveCheckTaskID = veaf.scheduleFunction(
       veafTransportMission.friendlyGroupWatchdog,
       {},
       timer.getTime() + veafTransportMission.SecondsBetweenWatchdogChecks
@@ -491,17 +491,17 @@ function veafTransportMission.reportTargetInformation(unitName)
   local averageGroupPosition = veaf.getAveragePosition(veafTransportMission.BlueGroupName)
   ---@cast averageGroupPosition vec3
   local lat, lon = coord.LOtoLL(averageGroupPosition)
-  local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-  local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
+  local mgrsString = veaf.toStringMGRS(coord.LLtoMGRS(lat, lon), 3)
+  local bullseye = veaf.makeVec3(veaf.getBullseye("blue"), 0)
   local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
-  local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-  local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)
-  local distMetric = mist.utils.round(dist / 1000, 0)
-  local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
+  local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
+  local dist = veaf.get2DDist(averageGroupPosition, bullseye)
+  local distMetric = veaf.round(dist / 1000, 0)
+  local distImperial = veaf.round(veaf.metersToNM(dist), 0)
   local fromBullseye = veaf.t("report.bullseye_value", dir, distMetric, distImperial)
 
-  message = message .. veaf.t("report.latlon_decimal", mist.tostringLL(lat, lon, 2))
-  message = message .. veaf.t("report.latlon_dms", mist.tostringLL(lat, lon, 0, true))
+  message = message .. veaf.t("report.latlon_decimal", veaf.toStringLL(lat, lon, 2))
+  message = message .. veaf.t("report.latlon_dms", veaf.toStringLL(lat, lon, 0, true))
   message = message .. veaf.t("report.mgrs", mgrsString)
   message = message .. veaf.t("report.from_bullseye", fromBullseye)
   message = message .. "\n"
@@ -532,7 +532,7 @@ function veafTransportMission.smokeTarget()
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request smoke on drop zone")
   veafRadio.addCommandToSubmenu(veaf.t("menu.transportmission.smoke_done"), veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.smokeResetTaskID =
-    mist.scheduleFunction(veafTransportMission.smokeReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenSmokeRequests)
+    veaf.scheduleFunction(veafTransportMission.smokeReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenSmokeRequests)
   veafRadio.refreshRadioMenu()
 end
 
@@ -557,7 +557,7 @@ function veafTransportMission.flareTarget()
   veafRadio.delCommand(veafTransportMission.targetMarkersPath, "Request illumination flare over drop zone")
   veafRadio.addCommandToSubmenu(veaf.t("menu.transportmission.flare_done"), veafTransportMission.targetMarkersPath, veaf.emptyFunction)
   veafTransportMission.flareResetTaskID =
-    mist.scheduleFunction(veafTransportMission.flareReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenFlareRequests)
+    veaf.scheduleFunction(veafTransportMission.flareReset, {}, timer.getTime() + veafTransportMission.SecondsBetweenFlareRequests)
   veafRadio.refreshRadioMenu()
 end
 
@@ -626,14 +626,14 @@ function veafTransportMission.cleanupAfterMission()
   -- remove the watchdog function
   veaf.loggers.get(veafTransportMission.Id):trace("remove the watchdog function")
   if veafTransportMission.friendlyGroupAliveCheckTaskID ~= "none" then
-    mist.removeFunction(veafTransportMission.friendlyGroupAliveCheckTaskID)
+    veaf.removeFunction(veafTransportMission.friendlyGroupAliveCheckTaskID)
   end
   veafTransportMission.friendlyGroupAliveCheckTaskID = "none"
 
   -- remove the watchdog function
   veaf.loggers.get(veafTransportMission.Id):trace("remove the adf loop function")
   if veafTransportMission.friendlyGroupAdfLoopTaskID ~= "none" then
-    mist.removeFunction(veafTransportMission.friendlyGroupAdfLoopTaskID)
+    veaf.removeFunction(veafTransportMission.friendlyGroupAdfLoopTaskID)
   end
   veafTransportMission.friendlyGroupAdfLoopTaskID = "none"
 
@@ -660,8 +660,6 @@ function veafTransportMission.buildRadioMenu()
     nil,
     veafRadio.USAGE_ForGroup
   )
-  -- TODO add this command when the respawn will work (see veafTransportMission.resetAllCargoes)
-  -- missionCommands.addCommand('Respawn all cargoes', veafTransportMission.rootPath, veafTransportMission.resetAllCargoes)
 end
 
 function veafTransportMission.help(unitName)
@@ -673,25 +671,6 @@ function veafTransportMission.endTransportOfCargo(cargoName)
   -- TODO reset cargo position
   -- mist.respawnGroup(cargoName, 15)
   -- does not work yet because 1. the unit name is changed by mist and 2. the trigger zone condition does not work with the new unit (maybe bc of 1. ?)
-end
-
-function veafTransportMission.resetAllCargoes()
-  -- does not work yet (see veafTransportMission.endTransportOfCargo)
-  local lunits = mist.DBs.unitsByNum
-  if lunits then
-    for i = 1, #lunits do
-      if lunits[i] and lunits[i].unitName and lunits[i].unitName:lower():find("cargo - ") then
-        local name = lunits[i].unitName
-        -- destroy cargo static unit
-        local c = StaticObject.getByName(name)
-        if c then
-          StaticObject.destroy(c)
-        end
-        mist.respawnGroup(name, true)
-      end
-    end
-  end
-  trigger.action.outText(veaf.t("transport.cargoes_respawned"), 15)
 end
 
 -- Both of these pointed at CTLD v1 helpers (ctld.autoInitializeAllHumanTransports /

@@ -177,17 +177,17 @@ local myRedIads = nil
 
 local function AssignRedIadsTask()
     if not veafSkynet then
-        mist.removeFunction(assignRedIadsTaskId)
+        veaf.removeFunction(assignRedIadsTaskId)
         return
     end
     if veafSkynet.initialized then
-        mist.removeFunction(assignRedIadsTaskId)
+        veaf.removeFunction(assignRedIadsTaskId)
         local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(coalition.side.RED)])
         myRedIads = veafSkynetNetwork.iads
     end
 end
 
-assignRedIadsTaskId = mist.scheduleFunction(AssignRedIadsTask, {}, timer.getTime() + veafSkynet.DelayForStartup + 1, 10)
+assignRedIadsTaskId = veaf.scheduleFunction(AssignRedIadsTask, {}, timer.getTime() + veafSkynet.DelayForStartup + 1, 10)
 ```
 
 ---
@@ -212,6 +212,11 @@ local function SkynetNetworkDisable(iCoalition)
     veafSkynet.destroyCommandCentersOfCoalition(iCoalition)
 end
 ```
+
+> This example calls `mist.cloneInZone`, so it needs MiST — which is no longer injected into every
+> mission. Put the snippet in one of your own `src/scripts/*.lua` and the build sees the `mist.` call
+> and injects MiST for you; see
+> [MiST: injected only when you need it](../GUIDE.en.md#mist-injection).
 
 ---
 

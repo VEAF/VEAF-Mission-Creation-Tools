@@ -4,6 +4,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafCombatZone.lua")
 
@@ -137,8 +142,10 @@ function TestVeafCombatZoneElement:test_setGetSpawnCount()
   luaunit.assertEquals(self.el:getSpawnCount(), 3)
 end
 
+-- `spawnCount` holds **nil** until a `#spawncount=` tag states one — see
+-- TestVeafCombatZoneSpawnChance for why the distinction is what the guarantee rests on.
 function TestVeafCombatZoneElement:test_spawnCount_default()
-  luaunit.assertEquals(self.el.spawnCount, 1)
+  luaunit.assertNil(self.el.spawnCount)
 end
 
 function TestVeafCombatZoneElement:test_setGetSpawnDelay()
@@ -1363,7 +1370,7 @@ function TestVeafCombatZoneDelayedCommand:setUp()
   self.el:setVeafCommand("-samsr!30")
 
   -- Stand in for the interpreter: capture the collection table and spawn NOTHING, which is exactly
-  -- what a delayed command does — mist.scheduleFunction takes the work and the call returns.
+  -- what a delayed command does — veaf.scheduleFunction takes the work and the call returns.
   self._captured = nil
   local this = self
   veafInterpreter = {
@@ -1373,15 +1380,15 @@ function TestVeafCombatZoneDelayedCommand:setUp()
     end,
   }
 
-  self._goRoute = mist.goRoute
+  self._goRoute = veaf.goRoute
   self.routed = {}
-  mist.goRoute = function(groupName, route)
+  veaf.goRoute = function(groupName, route)
     table.insert(self.routed, groupName)
   end
 end
 
 function TestVeafCombatZoneDelayedCommand:tearDown()
-  mist.goRoute = self._goRoute
+  veaf.goRoute = self._goRoute
   veafInterpreter = nil
 end
 
@@ -1496,14 +1503,14 @@ TestVeafCombatZoneAlarmByNature = {}
 function TestVeafCombatZoneAlarmByNature:setUp()
   self.el = VeafCombatZoneElement:new()
   self.el:setName("SomeGroup")
-  self._getGroupRoute = mist.getGroupRoute
-  mist.getGroupRoute = function()
+  self._getGroupRoute = veaf.getGroupRoute
+  veaf.getGroupRoute = function()
     return nil
   end
 end
 
 function TestVeafCombatZoneAlarmByNature:tearDown()
-  mist.getGroupRoute = self._getGroupRoute
+  veaf.getGroupRoute = self._getGroupRoute
 end
 
 -- The constants exist as a pair on purpose: both defaults are right, for opposite groups.
@@ -1540,7 +1547,7 @@ end
 -- A native zone group carries no route of its own -- only a `#command` fake unit does -- so the route
 -- has to come from the mission.
 function TestVeafCombatZoneAlarmByNature:test_a_native_group_route_is_read_from_the_mission()
-  mist.getGroupRoute = function(name, task)
+  veaf.getGroupRoute = function(name, task)
     luaunit.assertEquals(name, "SomeGroup")
     return { { x = 0 }, { x = 1 } }
   end
@@ -1548,9 +1555,9 @@ function TestVeafCombatZoneAlarmByNature:test_a_native_group_route_is_read_from_
   luaunit.assertEquals(self.el:resolveAlarmState(), veafCombatZone.ALARM_STATE_AUTO)
 end
 
--- mist raises on a group it cannot find, and a zone element may name one destroyed since parsing.
-function TestVeafCombatZoneAlarmByNature:test_a_raising_mist_does_not_break_the_spawn()
-  mist.getGroupRoute = function()
+-- A route reader that raises must not take the zone activation down with it.
+function TestVeafCombatZoneAlarmByNature:test_a_raising_route_reader_does_not_break_the_spawn()
+  veaf.getGroupRoute = function()
     error("group not found")
   end
   local ok, mobile = pcall(function()
@@ -1588,7 +1595,7 @@ end
 --
 -- `initialize` read the seven tags off each unit's name, built an element, then threw the element away
 -- for every unit of a group but the first one the loop met — and that order comes from
--- `mist.getUnitsInZones` followed by `pairs()`, which promises nothing. Tagging one truck of a convoy
+-- `veaf.getUnitsInCircularZone` followed by `pairs()`, which promises nothing. Tagging one truck of a convoy
 -- worked or did not work depending on an order the mission maker cannot see. A tag on a **group** name,
 -- which the documentation has always promised, was never read at all.
 --
@@ -1861,11 +1868,17 @@ end
 
 function TestVeafCombatZoneInitializeTags:setUp()
   veaf.triggerZones["TAGZONE"] = { name = "TAGZONE", type = 0, radius = 1000, x = 0, y = 0 }
+  -- The zone has to exist for `trigger.misc.getZone` too, not only in veaf.triggerZones: `initialize`
+  -- refuses to build a combat zone whose trigger zone it cannot find. That refusal used to be
+  -- unreachable — MiST's zoneToVec3 answered an empty table for an unknown zone, and a table is
+  -- truthy — so these tests passed with no zone registered at all.
+  dcs_mocks.addZone("TAGZONE", 0, 0, 1000)
   dcs_mocks.clearUnitsAndGroups()
 end
 
 function TestVeafCombatZoneInitializeTags:tearDown()
   veaf.triggerZones["TAGZONE"] = nil
+  dcs_mocks.zones["TAGZONE"] = nil
   dcs_mocks.clearUnitsAndGroups()
 end
 
@@ -2026,17 +2039,20 @@ function TestVeafCombatZoneRenameOption:setUp()
   self.el:setCoalition(coalition.side.RED)
   self.el:setDcsGroup(true)
 
-  self._teleport = mist.teleportToPoint
-  self.vars = nil
+  self._spawnImpl = VeafGroupSpawn._spawn
+  self.spawn = nil
   local this = self
-  mist.teleportToPoint = function(vars)
-    this.vars = vars
-    return nil -- a nil return keeps spawnElement on its "nothing came back" path, which is enough here
+  -- The recipe the chain built, captured instead of MiST's `vars` table. A nil return keeps
+  -- spawnElement on its "nothing came back" path, which is enough here.
+  VeafGroupSpawn._spawn = function(spawn, verb)
+    this.spawn = spawn
+    this.verb = verb
+    return nil
   end
 end
 
 function TestVeafCombatZoneRenameOption:tearDown()
-  mist.teleportToPoint = self._teleport
+  VeafGroupSpawn._spawn = self._spawnImpl
 end
 
 function TestVeafCombatZoneRenameOption:test_the_default_is_todays_behaviour()
@@ -2053,14 +2069,14 @@ end
 -- The one that matters: the value reaches MiST.
 function TestVeafCombatZoneRenameOption:test_a_spawn_asks_mist_to_rename_by_default()
   self.z:spawnElement(self.el, true)
-  luaunit.assertNotNil(self.vars, "mist.teleportToPoint must have been called")
-  luaunit.assertTrue(self.vars.renameUnitsSequentially)
+  luaunit.assertNotNil(self.spawn, "the spawn chain must have been run")
+  luaunit.assertTrue(self.spawn.renameUnits)
 end
 
 function TestVeafCombatZoneRenameOption:test_a_zone_that_declined_renaming_says_so_to_mist()
   self.z:setRenameUnitsSequentially(false)
   self.z:spawnElement(self.el, true)
-  luaunit.assertFalse(self.vars.renameUnitsSequentially)
+  luaunit.assertFalse(self.spawn.renameUnits)
 end
 
 -- A static object goes down the same branch, so the setting has to reach it too.
@@ -2069,7 +2085,7 @@ function TestVeafCombatZoneRenameOption:test_a_static_element_honours_the_settin
   self.el:setDcsStatic(true)
   self.z:setRenameUnitsSequentially(false)
   self.z:spawnElement(self.el, true)
-  luaunit.assertFalse(self.vars.renameUnitsSequentially)
+  luaunit.assertFalse(self.spawn.renameUnits)
 end
 
 -- Zones are independent: this is a per-zone setting, not a global debug switch, precisely so that
@@ -2096,8 +2112,8 @@ function TestVeafCombatZoneUnreadableTriggerZone:setUp()
     GOODZONE = { name = "GOODZONE", type = 0, x = 0, y = 0, radius = 500 },
     ODDZONE = { name = "ODDZONE", type = 7, x = 0, y = 0 },
   }
-  self._savedInZones = mist.getUnitsInZones
-  mist.getUnitsInZones = function()
+  self._savedInZones = veaf.getUnitsInCircularZone
+  veaf.getUnitsInCircularZone = function()
     return {}
   end
   self._savedNames = veaf.getUnitsNamesOfCoalition
@@ -2111,7 +2127,7 @@ end
 
 function TestVeafCombatZoneUnreadableTriggerZone:tearDown()
   veaf.triggerZones = self._savedZones
-  mist.getUnitsInZones = self._savedInZones
+  veaf.getUnitsInCircularZone = self._savedInZones
   veaf.getUnitsNamesOfCoalition = self._savedNames
   self._logger.error = self._savedError
 end
@@ -2191,32 +2207,35 @@ function TestVeafCombatZoneSpawnRouteOffset:setUp()
   self.el:setCoalition(coalition.side.RED)
   self.el:setDcsGroup(true)
 
-  self._teleport = mist.teleportToPoint
-  self.vars = nil
+  self._spawnImpl = VeafGroupSpawn._spawn
+  self.spawn = nil
   local this = self
-  mist.teleportToPoint = function(vars)
-    this.vars = vars
+  VeafGroupSpawn._spawn = function(spawn, verb)
+    this.spawn = spawn
+    this.verb = verb
     return nil
   end
 end
 
 function TestVeafCombatZoneSpawnRouteOffset:tearDown()
-  mist.teleportToPoint = self._teleport
+  VeafGroupSpawn._spawn = self._spawnImpl
 end
 
 function TestVeafCombatZoneSpawnRouteOffset:test_a_spawn_asks_mist_to_move_waypoint_1()
   self.z:spawnElement(self.el, true)
-  luaunit.assertNotNil(self.vars, "mist.teleportToPoint must have been called")
-  luaunit.assertTrue(self.vars.offsetWP1)
+  luaunit.assertNotNil(self.spawn, "the spawn chain must have been run")
+  luaunit.assertTrue(self.spawn.offsetFirstWaypoint)
 end
 
--- The decision, pinned. `offsetRoute` would translate every waypoint of a track the mission maker
--- drew on the terrain, and differently on each activation; if someone sets it later it should be
--- because they meant to, not because this line drifted.
-function TestVeafCombatZoneSpawnRouteOffset:test_the_rest_of_the_route_is_left_where_it_was_drawn()
-  self.z:spawnElement(self.el, true)
-  luaunit.assertNil(self.vars.offsetRoute)
-  luaunit.assertNil(self.vars.initTasks, "initTasks would delete every waypoint past the first")
+-- The decision, pinned — and pinned differently since the chain replaced MiST's `vars`. Asserting
+-- `assertNil(self.spawn.offsetWholeRoute)` would pass whatever happened, because the chain has no such
+-- field: a test that cannot fail is not a test. What is asserted instead is the reason the risk is
+-- gone — the chain offers **no way** to translate the whole route or to truncate it, so `offsetRoute`
+-- and `initTasks` cannot drift back in without someone adding a method for them on purpose.
+function TestVeafCombatZoneSpawnRouteOffset:test_the_whole_route_cannot_be_moved_at_all()
+  luaunit.assertNil(VeafGroupSpawn.offsettingWholeRoute, "translating a drawn track is not on offer")
+  luaunit.assertNil(VeafGroupSpawn.initialisingTasks, "truncating a route past waypoint 1 is not on offer")
+  luaunit.assertNotNil(VeafGroupSpawn.offsettingFirstWaypoint, "moving waypoint 1 is, and is what a zone asks for")
 end
 
 -- Unconditional on purpose. The delta is not only the dispersion: MiST measures it against the
@@ -2225,13 +2244,13 @@ end
 function TestVeafCombatZoneSpawnRouteOffset:test_a_group_with_no_dispersion_still_asks_for_the_offset()
   self.el:setSpawnRadius(0)
   self.z:spawnElement(self.el, true)
-  luaunit.assertTrue(self.vars.offsetWP1)
+  luaunit.assertTrue(self.spawn.offsetFirstWaypoint)
 end
 
 function TestVeafCombatZoneSpawnRouteOffset:test_a_dispersed_group_asks_for_the_offset()
   self.el:setSpawnRadius(50)
   self.z:spawnElement(self.el, true)
-  luaunit.assertTrue(self.vars.offsetWP1)
+  luaunit.assertTrue(self.spawn.offsetFirstWaypoint)
 end
 
 -- A static goes down the same branch. It has no route to speak of, but the var must not be
@@ -2240,17 +2259,147 @@ function TestVeafCombatZoneSpawnRouteOffset:test_a_static_element_takes_the_same
   self.el:setDcsGroup(false)
   self.el:setDcsStatic(true)
   self.z:spawnElement(self.el, true)
-  luaunit.assertTrue(self.vars.offsetWP1)
+  luaunit.assertTrue(self.spawn.offsetFirstWaypoint)
 end
 
 -- The vars this lot did not touch must still arrive: this call site is the single place a combat zone
 -- respawns anything, and a fix that dropped one of them would be silent.
 function TestVeafCombatZoneSpawnRouteOffset:test_the_neighbouring_vars_are_untouched()
   self.z:spawnElement(self.el, true)
-  luaunit.assertEquals(self.vars.gpName, "OFFSETZONE-CONVOY")
-  luaunit.assertEquals(self.vars.action, "respawn")
-  luaunit.assertNotNil(self.vars.point)
-  luaunit.assertTrue(self.vars.renameUnitsSequentially)
+  luaunit.assertEquals(self.spawn.groupName, "OFFSETZONE-CONVOY")
+  luaunit.assertEquals(self.verb, "respawn")
+  luaunit.assertNotNil(self.spawn.point)
+  luaunit.assertTrue(self.spawn.renameUnits)
+end
+
+-- ============================================================================
+-- FIX-PLACEMENT-IGNORES-SCENERY ticket 02 — a zone element's spawn radius ignored the scenery
+--
+-- `getSpawnRadius() > 0` drew a raw point and used it unvalidated, so an element could be placed
+-- inside a building or a forest in silence. `veaf.placePointOnLand` does not help: it writes the
+-- terrain height and nothing else.
+--
+-- The failure path here is **not** ticket 01's. A zone element is editor content, declared by a
+-- mission maker who is not in the room when the mission loads, so when no point is acceptable the
+-- element keeps its declared position rather than being skipped — a partially built zone with
+-- nobody to read the reason would be worse than an imperfectly placed one. Per ADR 0018 the
+-- scenery criterion is quality only, never correctness.
+-- ============================================================================
+TestVeafCombatZoneSceneryAwareSpawn = {}
+
+function TestVeafCombatZoneSceneryAwareSpawn:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Scenery Zone"):setMissionEditorZoneName("SCENERYZONE")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("SCENERYZONE-GROUP")
+  self.el:setPosition({ x = 0, y = 12, z = 0 })
+  self.el:setCoalition(coalition.side.RED)
+  self.el:setDcsGroup(true)
+
+  self._spawnImpl = VeafGroupSpawn._spawn
+  self._savedDisposition = Disposition
+  self._savedGetSurfaceType = land.getSurfaceType
+  self._savedGetRandPoint = veaf.getRandomPointInCircle
+  self._savedOptOut = veaf.doNotAvoidScenery
+  Disposition = nil
+  veaf.doNotAvoidScenery = false
+
+  self.spawn = nil
+  local this = self
+  VeafGroupSpawn._spawn = function(spawn, verb)
+    this.spawn = spawn
+    this.verb = verb
+    return nil
+  end
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:tearDown()
+  VeafGroupSpawn._spawn = self._spawnImpl
+  Disposition = self._savedDisposition
+  land.getSurfaceType = self._savedGetSurfaceType
+  veaf.getRandomPointInCircle = self._savedGetRandPoint
+  veaf.doNotAvoidScenery = self._savedOptOut
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:_allWater()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+end
+
+--- Jitter walks the given x offsets, one per call; water is decided by x.
+function TestVeafCombatZoneSceneryAwareSpawn:_jitter(xs, waterXs)
+  local water = {}
+  for _, x in ipairs(waterXs or {}) do
+    water[x] = true
+  end
+  land.getSurfaceType = function(vec2)
+    if water[vec2.x] then
+      return land.SurfaceType.WATER
+    end
+    return land.SurfaceType.LAND
+  end
+  local calls = 0
+  veaf.getRandomPointInCircle = function(spot, _r)
+    calls = calls + 1
+    return { x = xs[calls] or xs[#xs], y = 0, z = spot.z or 0 }
+  end
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:test_a_water_candidate_is_skipped()
+  self.el:setSpawnRadius(1000)
+  self:_jitter({ 100, 700 }, { 100 })
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNotNil(self.spawn)
+  luaunit.assertEquals(self.spawn.point.x, 700, "the water candidate must not become the element's position")
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:test_a_scenery_aware_point_is_used()
+  self.el:setSpawnRadius(1000)
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 420, y = 0, z = 77 } }
+    end,
+  }
+  self:_jitter({ 100 })
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self.spawn.point.x, 420)
+  luaunit.assertEquals(self.spawn.point.z, 77)
+end
+
+-- The whole point of ticket 02's asymmetry with ticket 01. An unplaceable element still spawns.
+function TestVeafCombatZoneSceneryAwareSpawn:test_no_acceptable_point_falls_back_to_the_declared_position()
+  self.el:setSpawnRadius(1000)
+  self:_allWater()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNotNil(self.spawn, "an unplaceable element must still be spawned, not skipped")
+  luaunit.assertEquals(self.spawn.point.x, 0)
+  luaunit.assertEquals(self.spawn.point.z, 0)
+end
+
+-- The vertical is the element's declared one, not the terrain height the search writes. That is
+-- today's behaviour and this ticket does not change it.
+function TestVeafCombatZoneSceneryAwareSpawn:test_the_declared_altitude_is_kept()
+  self.el:setSpawnRadius(1000)
+  self:_jitter({ 700 })
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self.spawn.point.y, 12)
+end
+
+function TestVeafCombatZoneSceneryAwareSpawn:test_a_zero_radius_never_consults_the_singleton()
+  self.el:setSpawnRadius(0)
+  local asked = false
+  Disposition = {
+    getSimpleZones = function()
+      asked = true
+      return {}
+    end,
+  }
+  self.z:spawnElement(self.el, true)
+  luaunit.assertFalse(asked, "a zero radius means exactly here")
+  luaunit.assertEquals(self.spawn.point.x, 0)
+  luaunit.assertEquals(self.spawn.point.z, 0)
 end
 
 -- ============================================================================
@@ -2261,7 +2410,7 @@ end
 -- mist.lua:4470) and applies it to every unit. When those are not the same unit, the delta carries
 -- the group's own intra-group spacing and the whole group is translated by it.
 --
--- The trigger is not a `pairs()` lottery — `mist.getUnitsInZones` and `veaf.getUnitsNamesOfCoalition`
+-- The trigger is not a `pairs()` lottery — `veaf.getUnitsInCircularZone` and `veaf.getUnitsNamesOfCoalition`
 -- both preserve order. It is the **filtering**: getUnitsInZones only returns units inside the zone, so
 -- a group straddling the zone boundary with its unit 1 outside hands over unit 2 as "the first one".
 -- ============================================================================
@@ -2676,6 +2825,586 @@ function TestCombatOperationBriefing:test_the_briefing_is_still_there()
   -- message that lost most of its content.
   local message = self:_completedOperation():getInformation()
   luaunit.assertNotNil(message:find("Destroy the armored group", 1, true))
+end
+
+-- ============================================================================
+-- FIX-COMBATZONE-SPAWNCHANCE — a spawn chance that never denied a spawn
+--
+-- `activate()` drew a random number per element and retried until `spawnCount` elements had spawned,
+-- forcing the draw on the last try. With `spawnCount` defaulting to 1 and an element with no
+-- `#spawngroup` forming its own group, the common case was one element that always spawned:
+-- `#spawnchance` changed *when*, never *whether*.
+--
+-- The retries and the forced draw are what honours a **stated** `#spawncount` — "2 of these 4,
+-- granted". Without one there is nothing to guarantee, so each element gets exactly one draw against
+-- its own `#spawnchance`.
+--
+-- These tests go through `activate()` and count what actually reached the spawner, not what the
+-- getters hold: the defect lived entirely in the loop, and every getter was already correct.
+-- ============================================================================
+TestVeafCombatZoneSpawnChance = {}
+
+-- A seeded generator, because the assertions below are statistical and a statistic asserted against
+-- the interpreter's own RNG is a test that fails once in a while for no reason. Shared with
+-- `test_veafCombatMission.lua`, which asserts the same kind of statistic on the combat mission's own
+-- spawn chance.
+local seededRandom = dofile(_base .. "/veaf_test_random.lua")
+
+function TestVeafCombatZoneSpawnChance:setUp()
+  self._random = math.random
+  math.random = seededRandom(20260831)
+
+  self.spawned = {}
+  local spawned = self.spawned
+  -- Stand in for the interpreter: every element below is a `#command` element, so this is the single
+  -- point `activate()` reaches when it decides to spawn. Recording here proves the decision, and the
+  -- zone's own bookkeeping (`getSpawnedGroups`) proves the element was really spawned, not just chosen.
+  self._interpreter = veafInterpreter
+  veafInterpreter = {
+    execute = function(command, position, coa, route, spawnedGroups)
+      table.insert(spawned, command)
+      veaf.collectSpawnedGroup(spawnedGroups, "GROUP-" .. #spawned)
+      return true
+    end,
+  }
+end
+
+function TestVeafCombatZoneSpawnChance:tearDown()
+  math.random = self._random
+  veafInterpreter = self._interpreter
+end
+
+--- Build a zone whose elements are `#command` triggers, one per description.
+--- @param descriptions a list of { chance = n, count = n, group = "name" }, all optional
+local function zoneOf(descriptions)
+  local zone = VeafCombatZone:new()
+  zone:setMissionEditorZoneName("ChanceZone")
+  zone:setFriendlyName("Chance Zone")
+  zone:setCompletable(false) -- keeps activate() from scheduling a watchdog on every run
+  for i, description in ipairs(descriptions) do
+    local element = VeafCombatZoneElement:new()
+    element:setName("ELEMENT-" .. i)
+    element:setPosition({ x = 0, y = 0, z = 0 })
+    element:setCoalition(coalition.side.RED)
+    element:setVeafCommand("-spawn sa-11")
+    element:setSpawnGroup(description.group or ("ELEMENT-" .. i)) -- what buildCommandElement defaults to
+    if description.chance then
+      element:setSpawnChance(description.chance)
+    end
+    if description.count then
+      element:setSpawnCount(description.count)
+    end
+    zone:addZoneElement(element)
+  end
+  return zone
+end
+
+--- Activate a freshly built zone `runs` times and return how many elements spawned each time.
+local function spawnCounts(self, descriptions, runs)
+  local counts = {}
+  for _ = 1, runs do
+    local before = #self.spawned
+    local zone = zoneOf(descriptions)
+    zone:activate()
+    table.insert(counts, #self.spawned - before)
+  end
+  return counts
+end
+
+local function total(counts)
+  local sum = 0
+  for _, count in ipairs(counts) do
+    sum = sum + count
+  end
+  return sum
+end
+
+-- The defect itself: a lone element at 50 % used to spawn every single time.
+function TestVeafCombatZoneSpawnChance:test_a_lone_element_at_50_percent_spawns_about_half_the_time()
+  local spawns = total(spawnCounts(self, { { chance = 50 } }, 1000))
+  luaunit.assertTrue(spawns > 430 and spawns < 570, string.format("expected roughly 500 spawns out of 1000 draws at 50%%, got %d", spawns))
+end
+
+-- The other end of the scale, and the defect at its most visible: `#spawnchance=0` must never spawn.
+-- It used to spawn on the forced try, and even without the force `math.random(0, 100) <= 0` gave it
+-- one chance in 101.
+function TestVeafCombatZoneSpawnChance:test_a_zero_chance_element_never_spawns()
+  luaunit.assertEquals(total(spawnCounts(self, { { chance = 0 } }, 500)), 0)
+end
+
+-- The default must not become a probability: an element with no `#spawnchance` still always spawns.
+function TestVeafCombatZoneSpawnChance:test_the_default_chance_still_always_spawns()
+  luaunit.assertEquals(total(spawnCounts(self, { {} }, 200)), 200)
+end
+
+-- `#spawnchance=100` written by hand is the same promise as the default.
+function TestVeafCombatZoneSpawnChance:test_a_hundred_percent_element_always_spawns()
+  luaunit.assertEquals(total(spawnCounts(self, { { chance = 100 } }, 200)), 200)
+end
+
+-- The documented MANPADS ambush: four positions at 50 %, each its own group since none carries a
+-- `#spawngroup`. The doc promises "around two active"; it used to deliver four, every time.
+function TestVeafCombatZoneSpawnChance:test_the_manpads_example_yields_about_two_of_four()
+  local runs = 400
+  local counts = spawnCounts(self, { { chance = 50 }, { chance = 50 }, { chance = 50 }, { chance = 50 } }, runs)
+  local average = total(counts) / runs
+  luaunit.assertTrue(average > 1.7 and average < 2.3, string.format("expected about 2 of 4 active, got %.2f", average))
+  -- and it varies: a run that always returned the same number would pass the average above
+  local sawFewerThanFour = false
+  for _, count in ipairs(counts) do
+    luaunit.assertTrue(count >= 0 and count <= 4)
+    if count < 4 then
+      sawFewerThanFour = true
+    end
+  end
+  luaunit.assertTrue(sawFewerThanFour, "every activation spawned all four — the chance is still ignored")
+end
+
+-- A stated `#spawncount` is a promise of a number, and that is what the retries and the forced draw
+-- are for. Two of these four, every time, whatever the draws.
+function TestVeafCombatZoneSpawnChance:test_a_stated_spawncount_still_yields_exactly_that_many()
+  local group = { group = "SAM", count = 2 }
+  local counts = spawnCounts(self, { group, group, group, group }, 200)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2, "a stated #spawncount=2 must deliver 2")
+  end
+end
+
+-- The retries have to do their job: a stated count reaches its number even when every element is at
+-- 50 %, which is exactly the case a single pass would fail.
+function TestVeafCombatZoneSpawnChance:test_a_stated_spawncount_reaches_its_number_at_50_percent()
+  local group = { group = "SAM", count = 2, chance = 50 }
+  local counts = spawnCounts(self, { group, group, group, group }, 200)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2, "the retries must reach the stated count despite the chance")
+  end
+end
+
+-- An element whose `#spawncount` was never written keeps `nil`, which is what tells the loop it has
+-- nothing to guarantee. Defaulting it to 1 at creation is what erased the distinction.
+function TestVeafCombatZoneSpawnChance:test_spawn_count_is_unstated_by_default()
+  luaunit.assertNil(VeafCombatZoneElement:new():getSpawnCount())
+end
+
+function TestVeafCombatZoneSpawnChance:test_a_stated_spawn_count_is_kept()
+  luaunit.assertEquals(VeafCombatZoneElement:new():setSpawnCount("3"):getSpawnCount(), 3)
+end
+
+-- Elements sharing a `#spawngroup` without a `#spawncount` keep the group's implicit cap of one, so
+-- the tag goes on meaning "one of these" — but each candidate now draws for it instead of the first
+-- one being handed the slot.
+function TestVeafCombatZoneSpawnChance:test_a_group_without_a_stated_count_still_spawns_at_most_one()
+  local group = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { group, group, group, group }, 300)
+  local sawNone, sawOne = false, false
+  for _, count in ipairs(counts) do
+    luaunit.assertTrue(count <= 1, string.format("an unstated count caps the group at one, got %d", count))
+    if count == 0 then
+      sawNone = true
+    end
+    if count == 1 then
+      sawOne = true
+    end
+  end
+  luaunit.assertTrue(sawNone, "with no stated count, a group of 50% elements must sometimes spawn nothing")
+  luaunit.assertTrue(sawOne, "and must sometimes spawn one")
+end
+
+-- ============================================================================
+-- FIX-COMBATZONE-SILENT-EXCLUSION / 01 — what the zone left behind, it left in silence
+--
+-- `findUnitsInCombatZone` keeps a group only when its name starts with the trigger zone's name, and
+-- **the rule stays**: it is the only thing that can say which of two overlapping zones owns a group,
+-- the only thing that keeps a passing convoy out of a garrison, and therefore the only thing that can
+-- say when a zone is complete. What it never did was say what it dropped — so a mistyped prefix looked
+-- exactly like a zone that spawns nothing, with an empty log to show for it.
+--
+-- These tests drive `initialize()` with the real `findUnitsInCombatZone` underneath and assert on what
+-- reached the logger. There is nothing else to assert: the defect *was* the absence of output.
+-- ============================================================================
+TestVeafCombatZoneExcludedGroups = {}
+
+function TestVeafCombatZoneExcludedGroups:setUp()
+  veaf.triggerZones["EXCLZONE"] = { name = "EXCLZONE", type = 0, radius = 1000, x = 0, y = 0 }
+  dcs_mocks.addZone("EXCLZONE", 0, 0, 1000)
+  dcs_mocks.clearUnitsAndGroups()
+
+  -- what the zone will find inside its circle; the two helpers below are the whole path
+  -- `veaf.getUnitsInTriggerZone` takes for a circular zone
+  self.unitsInZone = {}
+  local unitsInZone = self.unitsInZone
+  self._savedNames = veaf.getUnitsNamesOfCoalition
+  veaf.getUnitsNamesOfCoalition = function()
+    local names = {}
+    for _, unit in ipairs(unitsInZone) do
+      table.insert(names, unit:getName())
+    end
+    return names
+  end
+  self._savedInCircle = veaf.getUnitsInCircularZone
+  veaf.getUnitsInCircularZone = function()
+    return unitsInZone
+  end
+
+  self.infos = {}
+  local infos = self.infos
+  self._logger = veaf.loggers.get(veafCombatZone.Id)
+  self._savedInfo = self._logger.info
+  self._logger.info = function(_, text)
+    table.insert(infos, text)
+  end
+end
+
+function TestVeafCombatZoneExcludedGroups:tearDown()
+  veaf.triggerZones["EXCLZONE"] = nil
+  dcs_mocks.zones["EXCLZONE"] = nil
+  dcs_mocks.clearUnitsAndGroups()
+  veaf.getUnitsNamesOfCoalition = self._savedNames
+  veaf.getUnitsInCircularZone = self._savedInCircle
+  self._logger.info = self._savedInfo
+end
+
+--- Stand these units inside the trigger zone and build the zone, as mission start does.
+function TestVeafCombatZoneExcludedGroups:_zoneHolding(units)
+  for _, unit in ipairs(units) do
+    table.insert(self.unitsInZone, unit)
+  end
+  return VeafCombatZone:new():setFriendlyName("Exclusion Zone"):setMissionEditorZoneName("EXCLZONE"):initialize()
+end
+
+-- The symptom itself, from the mission maker's side: something is standing in the zone, the zone does
+-- not want it, and now it says so.
+function TestVeafCombatZoneExcludedGroups:test_a_wrongly_named_group_is_reported()
+  self:_zoneHolding({
+    fakeUnit("EXCLZONE-ARMOR-1", "EXCLZONE-ARMOR"),
+    fakeUnit("STRAY-SAM-1", "STRAY-SAM"),
+  })
+  luaunit.assertEquals(#self.infos, 1, "the zone must say, once, that it dropped something")
+  luaunit.assertNotNil(self.infos[1]:find("STRAY-SAM", 1, true), "the excluded group must be named")
+  luaunit.assertNotNil(self.infos[1]:find("EXCLZONE", 1, true), "and so must the zone")
+end
+
+-- One line per zone, not per unit: a zone can hold dozens of units for a handful of groups, and it is
+-- the **group** the mission maker has to rename.
+function TestVeafCombatZoneExcludedGroups:test_a_group_of_many_units_is_named_once()
+  self:_zoneHolding({
+    fakeUnit("STRAY-SAM-1", "STRAY-SAM"),
+    fakeUnit("STRAY-SAM-2", "STRAY-SAM"),
+    fakeUnit("STRAY-SAM-3", "STRAY-SAM"),
+  })
+  luaunit.assertEquals(#self.infos, 1)
+  local _, occurrences = self.infos[1]:gsub("STRAY%-SAM", "")
+  luaunit.assertEquals(occurrences, 1, "the group is named once, not once per unit")
+end
+
+-- Several excluded groups still make one line: the report is about the zone, not about each mistake.
+function TestVeafCombatZoneExcludedGroups:test_several_excluded_groups_produce_one_line()
+  self:_zoneHolding({
+    fakeUnit("STRAY-SAM-1", "STRAY-SAM"),
+    fakeUnit("PASSING-CONVOY-1", "PASSING-CONVOY"),
+    fakeUnit("FARP-BRAVO-1", "FARP-BRAVO"),
+  })
+  luaunit.assertEquals(#self.infos, 1, "three mistakes, one line")
+  for _, name in ipairs({ "STRAY-SAM", "PASSING-CONVOY", "FARP-BRAVO" }) do
+    luaunit.assertNotNil(self.infos[1]:find(name, 1, true), name .. " must appear in the report")
+  end
+end
+
+-- And nothing at all when there is nothing to say. A message every mission prints is a message nobody
+-- reads, which is how the useful one would get lost.
+function TestVeafCombatZoneExcludedGroups:test_a_correctly_named_zone_logs_nothing()
+  self:_zoneHolding({
+    fakeUnit("EXCLZONE-ARMOR-1", "EXCLZONE-ARMOR"),
+    fakeUnit("EXCLZONE-ARMOR-2", "EXCLZONE-ARMOR"),
+    fakeUnit("exclzone-manpads-1", "exclzone-manpads"), -- the rule ignores case, so this one is in
+  })
+  luaunit.assertEquals(#self.infos, 0, "a zone whose groups are all named right must stay quiet")
+end
+
+-- An empty zone is not a mistake either.
+function TestVeafCombatZoneExcludedGroups:test_an_empty_zone_logs_nothing()
+  self:_zoneHolding({})
+  luaunit.assertEquals(#self.infos, 0)
+end
+
+-- The text has to be actionable: a log line that only says "ignored" sends the reader back to the
+-- forum. It names the rule, and the prefix to use.
+function TestVeafCombatZoneExcludedGroups:test_the_message_says_what_to_do()
+  self:_zoneHolding({ fakeUnit("STRAY-SAM-1", "STRAY-SAM") })
+  luaunit.assertNotNil(self.infos[1]:find("must start with", 1, true), "the message must state the prefix rule")
+end
+
+-- Localized like everything else the module says, and asserted in both languages: an English-only
+-- check would pass on a hard-coded English string.
+function TestVeafCombatZoneExcludedGroups:test_the_message_exists_in_both_languages()
+  local entry = veaf.i18nCatalog["combatzone.groups_excluded_by_name"]
+  luaunit.assertNotNil(entry)
+  luaunit.assertIsString(entry.fr)
+  luaunit.assertIsString(entry.en)
+  luaunit.assertNotEquals(entry.fr, entry.en)
+end
+
+-- The rule itself is untouched, and this is what proves it: the stray group is reported, and it is
+-- still not part of the zone.
+function TestVeafCombatZoneExcludedGroups:test_the_excluded_group_is_still_excluded()
+  local zone = self:_zoneHolding({
+    fakeUnit("EXCLZONE-ARMOR-1", "EXCLZONE-ARMOR"),
+    fakeUnit("STRAY-SAM-1", "STRAY-SAM"),
+  })
+  local names = {}
+  for _, element in pairs(zone:getZoneElements()) do
+    names[element:getName()] = true
+  end
+  luaunit.assertTrue(names["EXCLZONE-ARMOR"], "the well-named group is still taken")
+  luaunit.assertNil(names["STRAY-SAM"], "the wrongly-named group is still left out")
+end
+
+-- ============================================================================
+-- FIX-COMBATZONE-SILENT-EXCLUSION / 02 — a #spawncount written on the wrong element
+--
+-- `addZoneElement` read `#spawncount` from the element that *created* the spawn group and from no
+-- other, so writing it on any later member of a `#spawngroup` did nothing and said nothing. Since
+-- FIX-COMBATZONE-SPAWNCHANCE an unstated count is `nil`, and that nil is what tells `activate()` there
+-- is nothing to guarantee — so a count dropped this way changes how many groups come up.
+--
+-- The resolution rule is **the highest stated count wins**. The defect is order-dependence, and "the
+-- last one written" would only move it: the order elements are added in is editor order, which the
+-- mission maker never chose. A count is also a guarantee ("2 of these 4, granted"), so the larger of
+-- two promises is the one that keeps both. A real disagreement is logged; two elements stating the same
+-- number are not a disagreement.
+--
+-- Everything below goes through `activate()` and counts what reached the spawner, as the #859 tests do:
+-- the accessors were always right, the loop was not.
+-- ============================================================================
+TestVeafCombatZoneSpawnCountResolution = {}
+
+function TestVeafCombatZoneSpawnCountResolution:setUp()
+  self._random = math.random
+  math.random = seededRandom(20260831)
+
+  self.spawned = {}
+  local spawned = self.spawned
+  self._interpreter = veafInterpreter
+  veafInterpreter = {
+    execute = function(command, position, coa, route, spawnedGroups)
+      table.insert(spawned, command)
+      veaf.collectSpawnedGroup(spawnedGroups, "GROUP-" .. #spawned)
+      return true
+    end,
+  }
+
+  self.infos = {}
+  local infos = self.infos
+  self._logger = veaf.loggers.get(veafCombatZone.Id)
+  self._savedInfo = self._logger.info
+  self._logger.info = function(_, text)
+    table.insert(infos, text)
+  end
+end
+
+function TestVeafCombatZoneSpawnCountResolution:tearDown()
+  math.random = self._random
+  veafInterpreter = self._interpreter
+  self._logger.info = self._savedInfo
+end
+
+-- The behaviour that already worked, kept as the reference point.
+function TestVeafCombatZoneSpawnCountResolution:test_a_count_on_the_first_element_is_honoured()
+  local plain = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { { group = "SAM", count = 2, chance = 50 }, plain, plain, plain }, 100)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2)
+  end
+end
+
+-- The defect: the very same mission, with the tag typed on the second unit instead of the first. It
+-- used to cap the group at one, silently.
+function TestVeafCombatZoneSpawnCountResolution:test_a_count_on_a_later_element_is_honoured()
+  local plain = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { plain, { group = "SAM", count = 2, chance = 50 }, plain, plain }, 100)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2, "a #spawncount written on a later element must count just as much")
+  end
+end
+
+-- ...including on the last one, which is the worst case for a first-wins read.
+function TestVeafCombatZoneSpawnCountResolution:test_a_count_on_the_last_element_is_honoured()
+  local plain = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { plain, plain, plain, { group = "SAM", count = 3, chance = 50 } }, 100)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 3)
+  end
+end
+
+-- A group nobody gave a count keeps `nil`, which #859 depends on: no forced draw, one draw each, and
+-- the group's implicit cap of one. Observed through the spawner rather than through the accessor.
+function TestVeafCombatZoneSpawnCountResolution:test_no_count_anywhere_still_means_unstated()
+  local plain = { group = "SAM", chance = 50 }
+  local counts = spawnCounts(self, { plain, plain, plain, plain }, 300)
+  local sawNone = false
+  for _, count in ipairs(counts) do
+    luaunit.assertTrue(count <= 1, string.format("an unstated count caps the group at one, got %d", count))
+    if count == 0 then
+      sawNone = true
+    end
+  end
+  luaunit.assertTrue(sawNone, "with nothing stated there is nothing to guarantee, so sometimes nothing spawns")
+end
+
+-- Two counts, and the higher one is kept — whichever order they were written in. That the two orders
+-- give the same answer is the point: order-dependence is the bug.
+function TestVeafCombatZoneSpawnCountResolution:test_conflicting_counts_keep_the_highest()
+  local plain = { group = "SAM" }
+  local low, high = { group = "SAM", count = 2 }, { group = "SAM", count = 3 }
+  for _, count in ipairs(spawnCounts(self, { low, high, plain, plain }, 20)) do
+    luaunit.assertEquals(count, 3, "the highest stated count wins")
+  end
+  for _, count in ipairs(spawnCounts(self, { high, low, plain, plain }, 20)) do
+    luaunit.assertEquals(count, 3, "and the answer must not depend on the order they were written in")
+  end
+end
+
+-- The choice is stated, not taken in silence — resolving a conflict quietly is the same defect over
+-- again, one level up.
+function TestVeafCombatZoneSpawnCountResolution:test_a_conflict_is_logged()
+  local zone = VeafCombatZone:new():setMissionEditorZoneName("CountZone"):setCompletable(false)
+  zone:addZoneElement(VeafCombatZoneElement:new():setName("A"):setSpawnGroup("SAM"):setSpawnCount(2))
+  zone:addZoneElement(VeafCombatZoneElement:new():setName("B"):setSpawnGroup("SAM"):setSpawnCount(3))
+  luaunit.assertEquals(#self.infos, 1, "a disagreement must be reported")
+  luaunit.assertNotNil(self.infos[1]:find("SAM", 1, true), "the spawn group must be named")
+  luaunit.assertNotNil(self.infos[1]:find("2", 1, true))
+  luaunit.assertNotNil(self.infos[1]:find("3", 1, true))
+end
+
+function TestVeafCombatZoneSpawnCountResolution:test_the_conflict_message_exists_in_both_languages()
+  local entry = veaf.i18nCatalog["combatzone.spawncount_conflict"]
+  luaunit.assertNotNil(entry)
+  luaunit.assertIsString(entry.fr)
+  luaunit.assertIsString(entry.en)
+  luaunit.assertNotEquals(entry.fr, entry.en)
+end
+
+-- The same number written twice is not a disagreement, and reporting it would be noise.
+function TestVeafCombatZoneSpawnCountResolution:test_matching_counts_are_not_a_conflict()
+  local twice = { group = "SAM", count = 2 }
+  local counts = spawnCounts(self, { twice, twice, { group = "SAM" }, { group = "SAM" } }, 20)
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 2)
+  end
+  luaunit.assertEquals(#self.infos, 0, "two elements agreeing on a count have nothing to report")
+end
+
+-- A count belongs to its own spawn group and to no other.
+function TestVeafCombatZoneSpawnCountResolution:test_a_count_does_not_leak_to_another_spawn_group()
+  local counts = spawnCounts(self, {
+    { group = "SAM", count = 2 },
+    { group = "SAM" },
+    { group = "ARMOR" },
+    { group = "ARMOR" },
+  }, 20)
+  -- 2 from SAM, and ARMOR keeps its unstated cap of one at the default 100 % chance
+  for _, count in ipairs(counts) do
+    luaunit.assertEquals(count, 3)
+  end
+  luaunit.assertEquals(#self.infos, 0)
+end
+
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS — a combat operation crashed on a misspelled prerequisite
+--
+-- `VeafCombatOperation:updatePrimaryTasks` resolves each tasking order's `requiredCompleteNames`
+-- through `veafCombatZone.GetZone`, which answers **nil** for a name it does not know — and says so
+-- loudly, on screen and in the log, because a mission maker's typo is exactly what it is for. The
+-- result was then dereferenced anyway, under a `---@diagnostic disable-next-line: need-check-nil`: the
+-- linter had found this line and been told to be quiet.
+--
+-- The decision the guard makes: a zone that does not exist cannot be active, so it cannot block. It is
+-- skipped and warned about. Treating it as unfulfilled instead would deadlock the whole operation for
+-- the rest of the mission, over a typo — a worse failure, and a silent one.
+-- ============================================================================
+TestVeafCombatOperationUnknownPrerequisite = {}
+
+--- A tasking order over an active zone, requiring the named zones to be complete first.
+local function _taskingOrderRequiring(zoneName, requiredNames)
+  return {
+    zone = {
+      isActive = function()
+        return true
+      end,
+      getFriendlyName = function()
+        return zoneName
+      end,
+    },
+    requiredCompleteNames = requiredNames,
+    getZone = function(self)
+      return self.zone
+    end,
+  }
+end
+
+function TestVeafCombatOperationUnknownPrerequisite:setUp()
+  dcs_mocks.reset()
+  self._savedZonesDict = veafCombatZone.zonesDict
+  -- Empty on purpose: this is what a mission.yaml naming a zone that does not exist produces.
+  veafCombatZone.zonesDict = {}
+  self._logger = veaf.loggers.get(veafCombatZone.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+
+  self.operation = VeafCombatOperation:new()
+  self.operation.missionEditorZoneName = "OPERATION-1"
+  self.operation.primaryTaskingOrders = {}
+  self.operation.taskingOrderDict = { ["TASK-1"] = _taskingOrderRequiring("TASK-1", { "NO-SUCH-PREREQUISITE" }) }
+end
+
+function TestVeafCombatOperationUnknownPrerequisite:tearDown()
+  self._logger.warn = self._originalWarn
+  veafCombatZone.zonesDict = self._savedZonesDict
+  dcs_mocks.reset()
+end
+
+-- The defect itself: without the guard this raises on `requiredCombatZone:isActive()`.
+function TestVeafCombatOperationUnknownPrerequisite:test_an_unknown_prerequisite_does_not_raise()
+  local ok, err = pcall(function()
+    self.operation:updatePrimaryTasks()
+  end)
+  luaunit.assertTrue(ok, string.format("updatePrimaryTasks raised on a prerequisite zone that does not exist: %s", tostring(err)))
+end
+
+-- And the decision it makes: the task is eligible, because nothing that does not exist is blocking it.
+function TestVeafCombatOperationUnknownPrerequisite:test_the_task_is_not_deadlocked_by_a_zone_that_does_not_exist()
+  self.operation:updatePrimaryTasks()
+  luaunit.assertEquals(#self.operation.primaryTaskingOrders, 1)
+end
+
+function TestVeafCombatOperationUnknownPrerequisite:test_the_warning_names_the_prerequisite()
+  self.operation:updatePrimaryTasks()
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find("NO-SUCH-PREREQUISITE", 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the prerequisite zone nobody can find")
+end
+
+-- The ordinary path is untouched: a prerequisite that exists and is still active still blocks.
+function TestVeafCombatOperationUnknownPrerequisite:test_a_prerequisite_that_exists_still_blocks()
+  veafCombatZone.zonesDict = {
+    ["prerequisite-1"] = {
+      isActive = function()
+        return true
+      end,
+    },
+  }
+  self.operation.taskingOrderDict = { ["TASK-1"] = _taskingOrderRequiring("TASK-1", { "PREREQUISITE-1" }) }
+  self.operation:updatePrimaryTasks()
+  luaunit.assertEquals(#self.operation.primaryTaskingOrders, 0)
+  luaunit.assertEquals(#self.warned, 0)
 end
 
 os.exit(luaunit.LuaUnit.run())

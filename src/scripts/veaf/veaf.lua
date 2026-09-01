@@ -86,6 +86,16 @@ function veaf.isEnabled(moduleId)
 end
 
 --- Register a module so that veaf.initialize() can initialize it.
+---
+--- Read `docs/agents/module-initialisation.md` before adding or moving a registration. Two things
+--- there are not visible from here:
+---   * nothing consumes this registry yet. `veaf.initialize()` is never called; what actually starts
+---     the modules is the generated `veaf-config.lua`, which calls them one by one in an order of its
+---     own (`_MODULE_INIT_ORDER` in `lua_config_generator.py`), and only for the modules the mission
+---     enables. The `order` declared here is therefore a statement of intent, not today's sequence.
+---   * the two lists are kept in step by `test/python/veaf_libs/test_module_init_registry.py`, which
+---     fails when a module registers without a place in the generator's order, or the reverse.
+---
 --- @param id         string   — module identifier (e.g. veafSpawn.Id)
 --- @param initFn     function — zero-argument wrapper calling the module's initialize()
 --- @param defaults   table    — default config values merged into veaf.config[id]
@@ -143,46 +153,46 @@ veaf.I18N_DEFAULT_LANGUAGE = "fr"
 veaf.config.language = veaf.config.language or veaf.I18N_DEFAULT_LANGUAGE
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Mist database wrappers
--- Centralizes the main access points to mist.DBs to isolate modules from internal mist changes.
--- Note: direct mist.DBs access may still exist in some low-level or legacy code paths.
+-- Mission database wrappers
+--
+-- These used to wrap `mist.DBs`, to isolate modules from internal MiST changes. They now forward to
+-- `veafMissionDb`, which is ours — the wrappers stayed so the swap was one file's problem rather than
+-- thirty-two. `veaf.mist.getUnitData` was removed with them: it had no caller at all.
+--
+-- New code should call `veaf.getUnitRecord` and friends directly; these remain for the modules that
+-- already used them.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.mist = {}
 
---- Return the unit data table for a given unit name (from mist.DBs.unitsByName).
-function veaf.mist.getUnitData(unitName)
-  return mist.DBs.unitsByName[unitName]
-end
-
---- Return the group data table for a given group name (from mist.DBs.groupsByName).
+--- Return the mission record for a given group name.
 function veaf.mist.getGroupData(groupName)
-  return mist.DBs.groupsByName[groupName]
+  return veaf.getGroupRecord(groupName)
 end
 
---- Return true if the given unit name belongs to a human player (from mist.DBs.humansByName).
+--- Return true if the given unit name belongs to a human player.
 function veaf.mist.isHumanUnit(unitName)
-  return mist.DBs.humansByName[unitName] ~= nil
+  return veaf.isHumanUnit(unitName)
 end
 
---- Return the full unitsByName table (for iteration).
+--- Return every pre-placed unit record (for iteration).
 function veaf.mist.getAllUnitData()
-  return mist.DBs.unitsByName
+  return veaf.getAllUnitRecords()
 end
 
---- Return the full groupsByName table (for iteration).
+--- Return every pre-placed group record (for iteration).
 function veaf.mist.getAllGroupData()
-  return mist.DBs.groupsByName
+  return veaf.getAllGroupRecords()
 end
 
---- Return the full humansByName table (for iteration).
+--- Return every human unit record (for iteration), dynamic slots included.
 function veaf.mist.getAllHumanUnitData()
-  return mist.DBs.humansByName
+  return veaf.getAllHumanRecords()
 end
 
---- Return the group data table for a given group id (from mist.DBs.groupsById).
+--- Return the mission record for a given group id.
 function veaf.mist.getGroupById(groupId)
-  return mist.DBs.groupsById[groupId]
+  return veaf.getGroupRecordById(groupId)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -539,6 +549,10 @@ function veaf.json.parse(str, pos, end_delim)
       end
       pos = skip_delim(str, pos, ":", true) -- true -> error if missing.
       -- not my code !
+      -- Kept, and not a DCS lookup: `key` is checked for nil six lines up and the loop returns there,
+      -- so what the linter cannot see is the control flow, not a missing guard. Listed by
+      -- FIX-UNGUARDED-DCS-LOOKUPS as one of the four silenced `need-check-nil`; re-justified rather
+      -- than removed, so the next sweep does not have to read the parser again.
       ---@diagnostic disable-next-line: need-check-nil
       obj[key], pos = veaf.json.parse(str, pos)
       pos, delim_found = skip_delim(str, pos, ",")
@@ -1169,6 +1183,71 @@ function veaf.placePointOnLand(vec3)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- terrain
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Is this point on one of these surfaces?
+---
+--- The single place this framework reads `land.getSurfaceType`. Six sites used to ask it themselves and
+--- none of them called another (CHORE-ONE-TERRAIN-CHECK); the shape is the one the `mist.isTerrainValid`
+--- port already had, because a list of accepted surfaces is the only form general enough to express both
+--- directions — a vehicle that must stay out of the sea and a ship that requires it.
+---
+--- Surfaces are named, never numbered: `land.SurfaceType` belongs to DCS, and a renumbering upstream
+--- would silently invert any comparison written against the values.
+---
+--- Accepts either coordinate shape — a vec3's `z` is the easting that `land.getSurfaceType` wants as
+--- `y`, which is the confusion `docs/agents/dcs-coordinates.md` exists for.
+---
+--- @param point table a vec2 (x, y) or a vec3 (x, y, z)
+--- @param surfaces table|string a surface name, or a list of them
+--- @return boolean
+function veaf.isTerrainValid(point, surfaces)
+  if type(point) ~= "table" or type(point.x) ~= "number" then
+    return false
+  end
+  local flat = { x = point.x, y = point.z or point.y }
+  if type(flat.y) ~= "number" then
+    return false
+  end
+
+  local wanted = surfaces
+  if type(wanted) == "string" then
+    wanted = { wanted }
+  end
+  if type(wanted) ~= "table" then
+    return false
+  end
+
+  local actual = land.getSurfaceType(flat)
+  for _, name in pairs(wanted) do
+    if type(name) == "string" and land.SurfaceType[string.upper(name)] == actual then
+      return true
+    end
+  end
+  return false
+end
+
+--- Open water, and only open water — `SHALLOW_WATER` is **not** in this list.
+---
+--- The list to test against wherever the question is "is this the sea", so that a point which is *not*
+--- on it counts as dry ground. Shallow water is dry by decision, not by oversight: FIX-CSAR-SPAWNS-ON-WATER
+--- settled that a survivor wading a few metres off a beach is rescuable, and the ground spawn search
+--- follows the same rule so the two never disagree about the same metre of shoreline.
+veaf.OPEN_WATER = { "WATER" }
+
+--- What a hull floats on, shallow water included. The opposite question from `veaf.OPEN_WATER`, and a
+--- different answer at the water's edge: a boat may sit in the shallows, a survivor there is not at sea.
+veaf.WATER_TERRAIN = { "SHALLOW_WATER", "WATER" }
+
+--- What a vehicle drives on.
+---
+--- `RUNWAY` is deliberate and was arrived at twice independently, by MiST and by `veaf.findPointInZone`:
+--- DCS reports a dam's surface as `RUNWAY`, so excluding it would refuse a convoy the crossing its route
+--- was drawn to take.
+veaf.DRIVABLE_TERRAIN = { "LAND", "ROAD", "RUNWAY" }
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- spawn point search
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1183,8 +1262,8 @@ veaf.doNotAvoidScenery = false
 
 --- Places a candidate on the terrain and tells whether a ground unit can stand there
 -- Placing first normalises vec2 and vec3 inputs, so the surface test always has a z.
--- Only WATER is rejected, which is the criterion veafUnits.checkPositionForUnit applies
--- to a ground unit — SHALLOW_WATER keeps passing, as it does today.
+-- Only open water is rejected, which is the criterion veafUnits.checkPositionForUnit applies
+-- to a ground unit — SHALLOW_WATER keeps passing, as it does today (veaf.OPEN_WATER).
 -- The shape guard is not paranoia: tier 1 candidates come from an undocumented API whose
 -- return shape we have not measured, and veaf.placePointOnLand would raise on a non-table
 -- — outside the pcall, which only wraps the call to the singleton itself.
@@ -1194,7 +1273,7 @@ local function acceptableGroundPoint(candidate)
     return nil
   end
   local placed = veaf.placePointOnLand(candidate)
-  if land.getSurfaceType({ x = placed.x, y = placed.z }) ~= land.SurfaceType.WATER then
+  if not veaf.isTerrainValid(placed, veaf.OPEN_WATER) then
     return placed
   end
   return nil
@@ -1260,7 +1339,7 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius)
 
   -- Tier 2 — every criterion except clearance from scenery.
   for _ = 1, veaf.SPAWN_SEARCH_ATTEMPTS do
-    local placed = acceptableGroundPoint(mist.getRandPointInCircle(vec3, radius))
+    local placed = acceptableGroundPoint(veaf.getRandomPointInCircle(vec3, radius))
     if placed then
       return placed
     end
@@ -1345,11 +1424,11 @@ function veaf.getAveragePosition(group)
     local units = Group.getUnits(group)
     for count = 1, #units do
       if units[count] then
-        totalPosition = mist.vec.add(totalPosition, Unit.getPosition(units[count]).p)
+        totalPosition = veaf.vecAdd(totalPosition, Unit.getPosition(units[count]).p)
       end
     end
     if #units > 0 then
-      return mist.vec.scalar_mult(totalPosition, 1 / #units)
+      return veaf.vecScalarMult(totalPosition, 1 / #units)
     else
       return nil
     end
@@ -1633,20 +1712,26 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
 end
 
 --- Find a suitable point for spawning a unit in a <dispersion>-sized circle around a spot
+---
+--- The surfaces are this site's own list and cannot be swapped for either of the other two: a ship here
+--- is refused `SHALLOW_WATER` (which `veafDcsSpawner.terrainForCategory("ship")` allows), and a ground
+--- group here is refused it too (which `acceptableGroundPoint` accepts). CHORE-ONE-TERRAIN-CHECK left
+--- both answers exactly where they were and only stopped the module reading the surface itself.
 function veaf.findPointInZone(spawnSpot, dispersion, isShip)
+  local surfaces = veaf.DRIVABLE_TERRAIN
+  if isShip then
+    surfaces = veaf.OPEN_WATER
+  end
   local unitPosition
   local tryCounter = 1000
   local dispersion = dispersion or 0
   local _dispersion = dispersion
   repeat -- Place the unit in a "dispersion" ft radius circle from the spawn spot
-    unitPosition = mist.getRandPointInCircle(spawnSpot, _dispersion)
-    local landType = land.getSurfaceType(unitPosition)
+    unitPosition = veaf.getRandomPointInCircle(spawnSpot, _dispersion)
+    local isAcceptable = veaf.isTerrainValid(unitPosition, surfaces)
     tryCounter = tryCounter - 1
     _dispersion = _dispersion + dispersion
-  until (
-      (isShip and landType == land.SurfaceType.WATER)
-      or (not isShip and (landType == land.SurfaceType.LAND or landType == land.SurfaceType.ROAD or landType == land.SurfaceType.RUNWAY))
-    ) or tryCounter == 0
+  until isAcceptable or tryCounter == 0
   if tryCounter == 0 then
     return nil
   else
@@ -1707,7 +1792,7 @@ function veaf.isUnitInZone(unitOrName, zoneOrName)
     local objectCategory = Object.getCategory(unit)
     if unitPosition and ((objectCategory == 1 and unit:isActive() == true) or objectCategory ~= 1) then -- it is a unit and is active or it is not a unit
       if zone.verticies then
-        local pointInPolygon = mist.pointInPolygon(unitPosition, zone.verticies)
+        local pointInPolygon = veaf.pointInPolygon(unitPosition, zone.verticies)
         if pointInPolygon then
           unitIsInZone = true
         end
@@ -1761,7 +1846,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
 
   local road_x = nil
   local road_z = nil
-  local trueStartPoint = mist.utils.deepCopy(startPoint)
+  local trueStartPoint = veaf.deepCopy(startPoint)
   if onRoad then
     veaf.loggers.get(veaf.Id):trace("setting startPoint on a road")
     road_x, road_z = land.getClosestPointOnRoads("roads", startPoint.x, startPoint.z)
@@ -1772,7 +1857,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
 
   veaf.loggers.get(veaf.Id):trace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
 
-  local trueEndPoint = mist.utils.deepCopy(endPoint)
+  local trueEndPoint = veaf.deepCopy(endPoint)
   if onRoad then
     veaf.loggers.get(veaf.Id):trace("setting endPoint on a road")
     road_x, road_z = land.getClosestPointOnRoads("roads", endPoint.x, endPoint.z)
@@ -1940,7 +2025,7 @@ function veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)
 
           if not firstPass and result then
             veaf.loggers.get(veaf.Id):info("Lead vehicle in range, setting route !")
-            mist.goRoute(group, patrolRoute)
+            veaf.goRoute(group, patrolRoute)
             controller:setSpeed(speed)
             firstPass = "notSeen"
           elseif firstPass then
@@ -1955,11 +2040,11 @@ function veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)
             )
           end
 
-          mist.scheduleFunction(veaf.PatrolWatchdog, { groupName, patrolRoute, speed, firstPass }, timer.getTime() + rescheduleTime)
+          veaf.scheduleFunction(veaf.PatrolWatchdog, { groupName, patrolRoute, speed, firstPass }, timer.getTime() + rescheduleTime)
         end
       elseif not groupUnits[1]:isActive() then
         veaf.loggers.get(veaf.Id):debug("Lead vehicle not active, rescheduling in 60s !")
-        mist.scheduleFunction(veaf.PatrolWatchdog, { groupName, patrolRoute, speed, firstPass }, timer.getTime() + 60)
+        veaf.scheduleFunction(veaf.PatrolWatchdog, { groupName, patrolRoute, speed, firstPass }, timer.getTime() + 60)
       end
     end
   end
@@ -2012,7 +2097,7 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     return false
   end
 
-  local headingRad = mist.utils.toRadian(heading)
+  local headingRad = math.rad(heading)
   veaf.loggers.get(veaf.Id):trace("headingRad=" .. headingRad)
   local fromPosition = leadUnit:getPosition().p
   ---@diagnostic disable-next-line: missing-fields
@@ -2191,23 +2276,21 @@ function veaf.moveGroupTo(groupName, pos, speed, altitude)
   }
 
   -- order group to new waypoint
-  mist.goRoute(groupName, route)
+  veaf.goRoute(groupName, route)
 
   return true
 end
 
-function veaf.getAvgGroupPos(groupName) -- stolen from Mist and corrected
-  local group = groupName -- sometimes this parameter is actually a group
-  if type(groupName) == "string" and Group.getByName(groupName) and Group.getByName(groupName):isExist() == true then
-    group = Group.getByName(groupName)
-  end
-  local units = {}
-  for i = 1, group:getSize() do
-    table.insert(units, group:getUnit(i):getName())
-  end
-
-  return mist.getAvgPos(units)
-end
+-- `veaf.getAvgGroupPos` used to be defined here, "stolen from Mist and corrected". It was neither
+-- correct nor reachable. It accepted a name *or* a group, and when handed the name of a group DCS did
+-- not know, its fallback left the **string** in the variable and called `group:getSize()` on it — the
+-- fallback was the defect, so a nil check would only have hidden it.
+--
+-- It has been dead since DROP-MIST ticket 04 (PR #832) wrote `veafGeo.getAvgGroupPos`, which answers
+-- nil for a group that is gone, and assigned it over this one at the bottom of veafGeo.lua. veafGeo
+-- loads immediately after veaf.lua — in the bundle (veaf_build/worker.py), in VeafDynamicLoader and in
+-- the test harness — so this definition never survived to be called. Removed rather than fixed, since
+-- the working implementation lives with the rest of the geometry.
 
 --- Computes the coordinates of a point offset from a route of a certain distance, at a certain distance from route start
 --- e.g. we go from [startingPoint] to [destinationPoint], and at [distanceFromStartingPoint] we look at [offset] meters (left if <0, right else)
@@ -2239,9 +2322,9 @@ function veaf.getBearingAndRangeFromTo(fromPoint, toPoint)
   veaf.loggers.get(veaf.Id):trace("toPoint=" .. veaf.vecToString(toPoint))
 
   local vec = { z = toPoint.z - fromPoint.z, x = toPoint.x - fromPoint.x }
-  local angle = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec)), 0)
-  local distance = mist.utils.get2DDist(toPoint, fromPoint)
-  return angle, distance, mist.utils.round(distance / 1000, 0), mist.utils.round(mist.utils.metersToNM(distance), 0)
+  local angle = veaf.round(math.deg(veaf.getDir(vec)), 0)
+  local distance = veaf.get2DDist(toPoint, fromPoint)
+  return angle, distance, veaf.round(distance / 1000, 0), veaf.round(veaf.metersToNM(distance), 0)
 end
 
 function veaf.getGroupsOfCoalition(coa)
@@ -2348,43 +2431,24 @@ function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
   return result
 end
 
---- modified version of mist.getGroupRoute that returns raw DCS group data
+--- The raw mission-editor table of a pre-placed group, by group name or by group id.
+---
+--- Answers out of `veafMissionDb`'s index rather than walking `env.mission` again. The walk this
+--- replaced entered `red` and `blue` only, so **every group on the `neutrals` side was invisible** —
+--- measured in game on 2026-09-01 as 61 of a mission's 117 `veafSpawn-` CAP templates, which is why
+--- `-cap f15` (blue) worked and `-cap mig29` (neutral) did not. It also called `getGroupRecord` to
+--- resolve the identifier and then threw the record away, so the index was already consulted and
+--- already had the answer.
+---
+--- @param groupIdent string|number a group name, or an editor group id
+--- @return table|nil the group exactly as `env.mission` holds it, or nil when no such group is placed
 function veaf.getGroupData(groupIdent)
-  -- refactor to search by groupId and allow groupId and groupName as inputs
-  local gpId = groupIdent
-  if mist.DBs.MEgroupsByName[groupIdent] then
-    gpId = mist.DBs.MEgroupsByName[groupIdent].groupId
-  else
-    veaf.loggers.get(veaf.Id):info(groupIdent .. " not found in mist.DBs.MEgroupsByName")
+  local groupRecord = veaf.getGroupRecord(groupIdent) or veaf.getGroupRecordById(groupIdent)
+  if not groupRecord then
+    veaf.loggers.get(veaf.Id):info("no group data found for %s", veaf.p(groupIdent))
+    return nil
   end
-
-  for coa_name, coa_data in pairs(env.mission.coalition) do
-    if (coa_name == "red" or coa_name == "blue") and type(coa_data) == "table" then
-      if coa_data.country then --there is a country table
-        for cntry_id, cntry_data in pairs(coa_data.country) do
-          for obj_type_name, obj_type_data in pairs(cntry_data) do
-            if obj_type_name == "helicopter" or obj_type_name == "ship" or obj_type_name == "plane" or obj_type_name == "vehicle" then -- only these types have points
-              if
-                (type(obj_type_data) == "table")
-                and obj_type_data.group
-                and (type(obj_type_data.group) == "table")
-                and (#obj_type_data.group > 0)
-              then --there's a group!
-                for group_num, group_data in pairs(obj_type_data.group) do
-                  if group_data and group_data.groupId == gpId then -- this is the group we are looking for
-                    return group_data
-                  end
-                end
-              end
-            end
-          end
-        end
-      end
-    end
-  end
-
-  veaf.loggers.get(veaf.Id):info(" no group data found for " .. groupIdent)
-  return nil
+  return groupRecord.missionData
 end
 
 function veaf.findInTable(data, key)
@@ -2766,8 +2830,8 @@ local function _initializeCountriesAndCoalitions()
     return (c1 or "") < (c2 or "")
   end
 
-  -- Populate from mist.DBs.units (countries that have pre-placed unit groups)
-  for coalitionName, countries in pairs(mist.DBs.units) do
+  -- Populate from the mission snapshot (countries that have pre-placed unit groups)
+  for coalitionName, countries in pairs(veaf.getCountriesByCoalitionFromMission()) do
     coalitionName = coalitionName:lower()
     veaf.loggers.get(veaf.Id):trace("coalitionName=%s", veaf.lp(coalitionName))
 
@@ -3108,7 +3172,7 @@ function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
     trigger.action.outText(message1, 30)
     -- schedule this function after "delay1" seconds
     veaf.loggers.get(veaf.Id):info(string.format("schedule veaf._endMission after %d seconds", delay1))
-    mist.scheduleFunction(veaf._endMission, { delay2, message2, delay3, message3 }, timer.getTime() + delay1)
+    veaf.scheduleFunction(veaf._endMission, { delay2, message2, delay3, message3 }, timer.getTime() + delay1)
   end
 end
 
@@ -3148,7 +3212,7 @@ function veaf._checkForEndMission(
     end
     -- schedule this function after a delay
     veaf.loggers.get(veaf.Id):trace(string.format("schedule veaf._checkForEndMission after %d seconds", checkIntervalInSeconds))
-    mist.scheduleFunction(
+    veaf.scheduleFunction(
       veaf._checkForEndMission,
       { endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3 },
       timer.getTime() + checkIntervalInSeconds
@@ -3977,14 +4041,14 @@ veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES = 500
 --- `WATER` only. A survivor wading a few metres off a beach is rescuable, and calling that open sea
 --- would declare him dead next to dry land.
 ---
---- Coordinates: `land.getSurfaceType` takes a **vec2 whose `y` is the easting**, while the point handed
---- in is a runtime vec3 whose `y` is the altitude (`docs/agents/dcs-coordinates.md`). Passing `y = y`
---- asks about a spot a hundred kilometres away and answers without complaint.
+--- Coordinates: `veaf.isTerrainValid` takes either shape and narrows a vec3's `z` into the easting
+--- `land.getSurfaceType` wants as `y` (`docs/agents/dcs-coordinates.md`). Asking about `y` instead would
+--- name a spot a hundred kilometres away and answer without complaint.
 function veaf.resolveCsarSurvivorPoint(point)
   if type(point) ~= "table" or not point.x or not point.z then
     return nil
   end
-  if land.getSurfaceType({ x = point.x, y = point.z }) ~= land.SurfaceType.WATER then
+  if not veaf.isTerrainValid(point, veaf.OPEN_WATER) then
     return point
   end
   veaf.loggers
@@ -4019,7 +4083,7 @@ function veaf.getPolygonFromUnits(unitNames)
       local position = unit:getPosition().p
       unit:destroy()
       veaf.loggers.get(veaf.Id):trace(string.format("position = %s", veaf.p(position)))
-      table.insert(polygon, mist.utils.deepCopy(position))
+      table.insert(polygon, veaf.deepCopy(position))
     end
   end
   veaf.loggers.get(veaf.Id):trace(string.format("polygon = %s", veaf.p(polygon)))
@@ -4972,7 +5036,7 @@ end
 
 function VeafDrawingOnMap:addPoint(value)
   veaf.loggers.get(veaf.Id):trace("VeafDrawingOnMap[%s]:addPoint(%s)", veaf.lp(self.name), veaf.lp(value))
-  table.insert(self.points, 1, mist.utils.deepCopy(value))
+  table.insert(self.points, 1, veaf.deepCopy(value))
   return self
 end
 
@@ -4999,7 +5063,7 @@ function VeafDrawingOnMap:setColor(value)
     value = VeafDrawingOnMap.COLORS[value:lower()]
   end
   if value then
-    self.color = mist.utils.deepCopy(value)
+    self.color = veaf.deepCopy(value)
   end
   return self
 end
@@ -5010,7 +5074,7 @@ function VeafDrawingOnMap:setFillColor(value)
     value = VeafDrawingOnMap.COLORS[value:lower()]
   end
   if value then
-    self.fillColor = mist.utils.deepCopy(value)
+    self.fillColor = veaf.deepCopy(value)
   end
   return self
 end
@@ -5109,7 +5173,7 @@ end
 
 function VeafCircleOnMap:setCenter(value)
   veaf.loggers.get(veaf.Id):trace("VeafCircleOnMap[%s]:setCenter(%s)", veaf.lp(self.name), veaf.lp(value))
-  self.points = { mist.utils.deepCopy(value) }
+  self.points = { veaf.deepCopy(value) }
   return self
 end
 
@@ -5157,7 +5221,7 @@ end
 
 function VeafSquareOnMap:setCenter(value)
   veaf.loggers.get(veaf.Id):trace("VeafSquareOnMap[%s]:setCenter(%s)", veaf.lp(self.name), veaf.lp(value))
-  self.center = mist.utils.deepCopy(value)
+  self.center = veaf.deepCopy(value)
   self:compute()
   return self
 end
@@ -5261,9 +5325,9 @@ function veaf.getUnitsInTriggerZone(zoneName, unitNames, moduleId)
     return nil
   end
   if triggerZone.type == 0 then -- circular
-    return mist.getUnitsInZones(unitNames, { zoneName })
+    return veaf.getUnitsInCircularZone(unitNames, zoneName)
   elseif triggerZone.type == 2 then -- quad point
-    return mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+    return veaf.getUnitsInPolygon(unitNames, triggerZone.verticies)
   end
   logger:error(
     "trigger zone [%s] has an unexpected type [%s]; expected 0 (circular) or 2 (quad point), so its units cannot be read",
@@ -5671,9 +5735,16 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CSAR
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Our CSAR (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
--- Instead, we count on the mission makers to call csar.initialize from mission-script.lua
--- Here, we're upgrading the vanilla CSAR initialize function so it's smarter
+-- CSAR **does** initialise on its own: the bottom of CSAR.lua schedules `csar.initialize` two
+-- seconds after load, and by then this file has replaced it with the wrapper below. The comment
+-- here used to claim the opposite ("does not autoinitialize"), which is how it read for anyone
+-- deciding whether they also had to call it from mission-script.lua (FIX-CSAR-INIT-GUARD).
+--
+-- Calling it from mission-script.lua is still supported and is how a configuration callback is
+-- applied. It simply happens *in addition to* the automatic pass, so the wrapper below is written
+-- to be safe to run twice.
+--
+-- The wrapper also routes CSAR's logging through VEAF's, and replaces several of its functions.
 
 ---The VEAF replacement function that wraps up around ctld.initialize
 ---@param configurationCallback function? a callback that will be called before calling the vanilla csar.initialize function
@@ -5863,8 +5934,11 @@ function veaf.csar_initialize_replacement(configurationCallback)
   if csar then
     veaf.loggers.get(veaf.Id):info(string.format("Setting up CSAR"))
 
-    -- change the init function so we can call it whenever we want
-    csar.skipInitialisation = true
+    -- `csar.skipInitialisation = true` used to be set here, with the comment "change the init
+    -- function so we can call it whenever we want". Nothing in the repository ever read it: it was
+    -- the other half of a mechanism that was never joined, and it made the initialisation look
+    -- guarded when it was not (FIX-CSAR-INIT-GUARD). Removed rather than wired, because what
+    -- actually needed guarding is the event handler, which is handled below.
 
     -- logging change
     csar.p = veaf.p
@@ -5919,9 +5993,57 @@ function veaf.csar_initialize_replacement(configurationCallback)
       veaf.loggers.get(csar.Id):info("done calling the configuration callback")
     end
 
+    -- Drop the previous event handler before the vanilla initialiser registers a new one.
+    --
+    -- FIX-CSAR-INIT-GUARD. `csar.initialize` ends with `world.addEventHandler(csar.eventHandler)`,
+    -- and DCS does not deduplicate: a second initialisation used to leave two handlers, so every
+    -- ejection was processed twice -- two MAYDAYs and two downed pilots for one crash. That is #824
+    -- in another file, and it was reachable through the path this very file documents to mission
+    -- makers ("we count on the mission makers to call csar.initialize from mission-script.lua"),
+    -- which lands on top of the automatic pass CSAR schedules two seconds after load.
+    --
+    -- CSAR's own guard could not help: `csar.alreadyInitialized` is read by it and written by
+    -- nobody, and the call below passes `force` anyway. Re-initialising deliberately is a feature --
+    -- it is how a mission maker's configuration callback gets applied -- so the fix is to make it
+    -- idempotent rather than to refuse it.
+    if veaf.csar_initialized then
+      world.removeEventHandler(csar.eventHandler)
+    end
+
+    -- ...and do not let it start a second polling chain either.
+    --
+    -- `csar.initialize` schedules `csar.addMedevacMenuItem`, which **reschedules itself** every five
+    -- seconds — and `csar.reactivateAircraft` likewise when `disableAircraftTimeout` is on. Each
+    -- initialisation that starts one leaves an independent chain running for the rest of the
+    -- mission. They accumulate, and unlike the duplicated event handler there is nothing that ever
+    -- stops them.
+    --
+    -- Neutralising the two calls for the duration of a *re*-initialisation is the narrowest fix that
+    -- does not touch the vendored CSAR.lua: the chain from the first initialisation is still there
+    -- and still refreshing the menu, so nothing is lost by declining to start a rival one.
+    local realScheduleFunction = timer.scheduleFunction
+    if veaf.csar_initialized then
+      timer.scheduleFunction = function(fn, args, time)
+        if fn == csar.addMedevacMenuItem or fn == csar.reactivateAircraft then
+          veaf.loggers.get(csar.Id):debug("re-initialisation: keeping the existing polling chain")
+          return nil
+        end
+        return realScheduleFunction(fn, args, time)
+      end
+    end
+
     -- call the actual CSAR.initialize
     ---@diagnostic disable-next-line: param-type-mismatch
-    veaf.csar_initialize(true)
+    local initialised, initError = pcall(veaf.csar_initialize, true)
+    -- Restored whatever happened: leaving a patched scheduler behind would silently swallow every
+    -- CSAR timer for the rest of the mission.
+    timer.scheduleFunction = realScheduleFunction
+    if not initialised then
+      error(initError, 0)
+    end
+    -- Set what CSAR's own guard reads, so a direct call to the vanilla function without `force`
+    -- short-circuits instead of silently redoing the work.
+    csar.alreadyInitialized = true
     veaf.csar_initialized = true
     veaf.loggers.get(csar.Id):info(string.format("Done setting up CSAR"))
   else

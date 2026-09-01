@@ -4,6 +4,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafQraManager.lua")
 
 -- ---------------------------------------------------------------------------
@@ -736,6 +741,144 @@ function TestVeafQraCoreHumanBornEvent:test_helicopter_slot_triggers_when_reactO
   local q = _qraForRed(true)
   q:humanBornEvent(_dynSlotUnit("Heli1", Unit.Category.HELICOPTER))
   luaunit.assertEquals(q._enemyHumanUnits, { "Heli1" })
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-AIRWAVES-COMMAND-EASTING — a command element must be handed a vec3, not the draw's vec2
+--
+-- `VeafQRACore:deploy` is `AirWaveZone:deployWaves`'s twin, line for line, and it carried the same
+-- slip: `veaf.getRandomPointInCircle` answers the **mission-table** shape (`{ x, y }`, easting in
+-- `y`, no `z`), while `veafInterpreter.execute` wants a runtime vec3 whose easting is `z` and whose
+-- `y` is the altitude. `veafSpawnGround` reads `spawnPosition.z` for the easting it writes, so an
+-- unconverted draw spawned the QRA on the theatre's central meridian at an altitude equal to its
+-- easting. See `docs/agents/dcs-coordinates.md`.
+--
+-- The lot's PRD named only `veafAirWaves`; this site was found by enumerating the three callers of
+-- `veafInterpreter.execute` (`veafCombatZone` builds its vec3 by hand and is correct).
+--
+-- Absent, zero and correct are asserted apart: a missing easting is `nil` here and `0` after
+-- anything defaults it, and a loose assertion would accept one of the two.
+-- ---------------------------------------------------------------------------
+TestVeafQraCommandEasting = {}
+
+function TestVeafQraCommandEasting:setUp()
+  dcs_mocks.reset()
+  self.deployed = {}
+  self._savedInterpreter = veafInterpreter
+end
+
+function TestVeafQraCommandEasting:tearDown()
+  veaf.triggerZones["QraEastingZone"] = nil
+  veafInterpreter = self._savedInterpreter
+end
+
+--- A QRA whose only group to deploy is a VEAF command, recording what the interpreter is handed.
+function TestVeafQraCommandEasting:_qraDeployingOneCommand()
+  local q = VeafQRA:new()
+  q.name = "QraEasting"
+  q.silent = true
+  q.chooseGroupsToDeploy = function(_, _)
+    return { "-shilka" }
+  end
+  local positions = self.deployed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(command, position, _, _, _)
+    table.insert(positions, { command = command, position = position })
+  end
+  return q
+end
+
+function TestVeafQraCommandEasting:test_the_easting_reaches_the_interpreter_in_z()
+  -- A trigger zone is a mission-table position: `deployWaves`' twin moves its `y` into the zone
+  -- centre's `z`. 88 is deliberately neither nil nor zero.
+  veaf.triggerZones["QraEastingZone"] = { x = 77, y = 88, radius = 500 }
+  local q = self:_qraDeployingOneCommand()
+  q:setTriggerZone("QraEastingZone")
+  q:deploy(0)
+  luaunit.assertEquals(#self.deployed, 1)
+  local position = self.deployed[1].position
+  luaunit.assertEquals(position.x, 77, "the northing")
+  luaunit.assertNotNil(position.z, "the easting is absent — the interpreter was handed a vec2")
+  luaunit.assertNotEquals(position.z, 0, "the easting is zero — that is the central meridian, not the zone")
+  luaunit.assertEquals(position.z, 88, "the easting must be the zone's own")
+end
+
+function TestVeafQraCommandEasting:test_the_altitude_reaches_the_interpreter_in_y()
+  -- The zone centre path, because a trigger zone has no altitude of its own: 1500 is the centre's
+  -- altitude and 2000 its easting, kept distinct so that reading one for the other shows up.
+  local q = self:_qraDeployingOneCommand()
+  q:setZoneCenter({ x = 1000, y = 1500, z = 2000 })
+  q:deploy(0)
+  luaunit.assertEquals(#self.deployed, 1)
+  local position = self.deployed[1].position
+  luaunit.assertNotNil(position.y, "the altitude is absent")
+  luaunit.assertNotEquals(position.y, 2000, "the altitude is the easting — the two shapes were confused")
+  luaunit.assertEquals(position.y, 1500, "the altitude must come from the zone centre")
+  luaunit.assertEquals(position.z, 2000, "and the easting stays the easting")
+end
+
+--------------------------------------------------------------------------------------------------
+-- FIX-WAVE-OFFSET-AXES — the QRA twin applies `[latDelta,lonDelta]` to the same axes
+--
+-- `veafQraCore` carries the same offset arithmetic as `AirWaveZone:deployWaves`, in both its
+-- branches. That is precisely how the easting defect came to be fixed in two places rather than
+-- one, so this module gets the same coverage: a swap repaired only in `veafAirWaves` would leave
+-- every QRA spawning east where the mission asked for north.
+--------------------------------------------------------------------------------------------------
+
+TestVeafQraOffsetAxes = {}
+
+local QRA_OFFSET_CENTRE = { x = 1000, y = 1500, z = 2000 }
+
+function TestVeafQraOffsetAxes:setUp()
+  dcs_mocks.reset()
+  self.deployed = {}
+  self._savedInterpreter = veafInterpreter
+end
+
+function TestVeafQraOffsetAxes:tearDown()
+  veafInterpreter = self._savedInterpreter
+end
+
+--- The position the interpreter is handed for a single `[latDelta,lonDelta]` command.
+function TestVeafQraOffsetAxes:_positionFor(command)
+  local q = VeafQRA:new()
+  q.name = "QraOffset"
+  q.silent = true
+  q:setZoneCenter(QRA_OFFSET_CENTRE)
+  q:setRespawnRadius(0)
+  q.chooseGroupsToDeploy = function(_, _)
+    return { command }
+  end
+  local positions = self.deployed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(_, position, _, _, _)
+    table.insert(positions, position)
+  end
+  q:deploy(0)
+  luaunit.assertEquals(#self.deployed, 1, "the command must have reached the interpreter exactly once")
+  return self.deployed[1]
+end
+
+function TestVeafQraOffsetAxes:test_a_positive_latitude_moves_north_and_nothing_else()
+  local position = self:_positionFor("[5000,0]-spawn su-27, country russia")
+
+  luaunit.assertEquals(position.x - QRA_OFFSET_CENTRE.x, 5000, "a positive latitude delta must move north")
+  luaunit.assertEquals(position.z - QRA_OFFSET_CENTRE.z, 0, "and must not touch the easting")
+end
+
+function TestVeafQraOffsetAxes:test_a_positive_longitude_moves_east_and_nothing_else()
+  local position = self:_positionFor("[0,3000]-spawn su-27, country russia")
+
+  luaunit.assertEquals(position.z - QRA_OFFSET_CENTRE.z, 3000, "a positive longitude delta must move east")
+  luaunit.assertEquals(position.x - QRA_OFFSET_CENTRE.x, 0, "and must not touch the northing")
+end
+
+function TestVeafQraOffsetAxes:test_both_axes_at_once_do_not_cross()
+  local position = self:_positionFor("[4000,-7000]-spawn su-27, country russia")
+
+  luaunit.assertEquals(position.x - QRA_OFFSET_CENTRE.x, 4000, "the first number is the northing")
+  luaunit.assertEquals(position.z - QRA_OFFSET_CENTRE.z, -7000, "the second number is the easting")
 end
 
 os.exit(luaunit.LuaUnit.run())

@@ -4,6 +4,11 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/veafScheduler.lua")
+dofile(src .. "/veafMath.lua")
+dofile(src .. "/veafGeo.lua")
+dofile(src .. "/veafMissionDb.lua")
+dofile(src .. "/veafDcsSpawner.lua")
 -- veafMove too: veafAssets.respawn calls into it to repair a respawned asset's escort task
 -- (FIX-ESCORT-RESPAWN-TASK), so a test that omits it would exercise the guarded-out branch only.
 dofile(src .. "/veafMove.lua")
@@ -173,9 +178,26 @@ function TestVeafAssetsOps:test_dispose_not_found()
 end
 
 function TestVeafAssetsOps:test_respawn_found()
-  -- mist.respawnGroup is mocked as a no-op
+  -- This used to end on assertTrue(true), because `mist.respawnGroup` was a no-op stub and there was
+  -- nothing to look at. The respawn runs VEAF's own spawn chain now, so the group it puts back is
+  -- observable: what reaches DCS is the assertion.
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = {
+        group = {
+          { name = "testTanker", groupId = 12, units = { { name = "testTanker-1", unitId = 8, type = "KC-135", x = 1000, y = 2000 } } },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
   veafAssets.respawn("testTanker")
-  luaunit.assertTrue(true)
+
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "the asset must actually be put back")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "testTanker")
 end
 
 function TestVeafAssetsOps:test_respawn_not_found()
@@ -240,6 +262,102 @@ function TestVeafAssetsRespawnRepairsEscort:test_the_repair_is_keyed_on_the_asse
   veafAssets.respawn("testTanker")
 
   luaunit.assertEquals(self._calls, { "testTanker" })
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafAssetsRespawnBringsBackTheEscort — FIX-ESCORT-RESPAWN-DISTANCE
+--
+-- Repairing the Escort task was not enough: the asset comes back where the Mission Editor drew it
+-- while its escort keeps flying, so the repaired task pointed the escort at a charge ~80 km away —
+-- measured in game 2026-08-28, against the task's own 60 000 m `engagementDistMax`. The escort is
+-- now put back too.
+--
+-- What is asserted here is the **wiring**, which is where this can silently do nothing: that the
+-- respawn path calls for the escort at all, that it does so *after* the asset (the repair reads the
+-- asset's fresh `Group.getID`, and the escort's own guard is its mission record), and that the
+-- repair still runs afterwards. The two halves are both needed, and neither replaces the other.
+-- ---------------------------------------------------------------------------
+TestVeafAssetsRespawnBringsBackTheEscort = {}
+
+--- The names of the groups handed to `coalition.addGroup`, in submission order.
+local function _respawnedNames()
+  local names = {}
+  for _, entry in ipairs(dcs_mocks.groupsAdded) do
+    table.insert(names, entry.group.name)
+  end
+  return names
+end
+
+--- Put `groups` into the mocked mission and index it the way the mission database does at startup.
+local function _mission(groups)
+  local planes = {}
+  for name, data in pairs(groups) do
+    data.name = name
+    table.insert(planes, data)
+  end
+  env.mission.coalition.blue.country = { [1] = { name = "USA", id = country.id.USA, plane = { group = planes } } }
+  veafMissionDb.buildSnapshot()
+end
+
+--- A spawnable group: one unit with a position, and a two-point route.
+local function _spawnable(groupId, unitName)
+  return {
+    groupId = groupId,
+    units = { { name = unitName, unitId = groupId, type = "KC-135", x = 1000, y = 2000, alt = 6000 } },
+    route = { points = { { x = 0, y = 0, alt = 6000, speed = 200 }, { x = 1000, y = 1000, alt = 6000, speed = 200 } } },
+  }
+end
+
+function TestVeafAssetsRespawnBringsBackTheEscort:setUp()
+  dcs_mocks.reset()
+  self._reestablish = veafMove.reestablishEscortTask
+  -- How many groups had already reached DCS when the repair was asked for: the order is the point.
+  self.groupsAddedWhenRepairRan = nil
+  self.repairedFor = {}
+  local this = self
+  veafMove.reestablishEscortTask = function(name)
+    this.groupsAddedWhenRepairRan = #dcs_mocks.groupsAdded
+    table.insert(this.repairedFor, name)
+    return true
+  end
+  veafAssets.Assets = {
+    { name = "Arco", description = "KC-135T", unitType = "KC-135 MPRS", side = 1 },
+  }
+  veafAssets.assets = {}
+  veafAssets.buildAssetsDatabase()
+end
+
+function TestVeafAssetsRespawnBringsBackTheEscort:tearDown()
+  veafMove.reestablishEscortTask = self._reestablish
+  dcs_mocks.reset()
+end
+
+function TestVeafAssetsRespawnBringsBackTheEscort:test_respawning_an_asset_puts_its_escort_back_too()
+  _mission({ ["Arco"] = _spawnable(11, "Arco-1"), ["Arco escort"] = _spawnable(20, "Arco escort-1") })
+
+  veafAssets.respawn("Arco")
+
+  luaunit.assertEquals(_respawnedNames(), { "Arco", "Arco escort" }, "the asset must come back first, then its escort")
+end
+
+function TestVeafAssetsRespawnBringsBackTheEscort:test_the_task_repair_runs_after_both_are_back()
+  -- Respawning both does not by itself restore the Escort task: it is the escorted group's id
+  -- changing that breaks it. And the repair reads `Group.getID` of the asset, so it comes last.
+  _mission({ ["Arco"] = _spawnable(11, "Arco-1"), ["Arco escort"] = _spawnable(20, "Arco escort-1") })
+
+  veafAssets.respawn("Arco")
+
+  luaunit.assertEquals(self.repairedFor, { "Arco" })
+  luaunit.assertEquals(self.groupsAddedWhenRepairRan, 2, "the repair ran before the pair was back")
+end
+
+function TestVeafAssetsRespawnBringsBackTheEscort:test_an_asset_with_no_escort_is_unaffected()
+  _mission({ ["Arco"] = _spawnable(11, "Arco-1") })
+
+  veafAssets.respawn("Arco")
+
+  luaunit.assertEquals(_respawnedNames(), { "Arco" })
+  luaunit.assertEquals(self.repairedFor, { "Arco" }, "the repair is still asked for, and answers that there is nothing to do")
 end
 
 os.exit(luaunit.LuaUnit.run())

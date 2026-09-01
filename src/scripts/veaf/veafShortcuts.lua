@@ -334,7 +334,7 @@ VeafAliasForCombatMission = {}
 VeafAliasForCombatMission.__index = VeafAliasForCombatMission
 
 function VeafAliasForCombatMission:new()
-  local self = setmetatable(mist.utils.deepCopy(VeafAlias:new()), VeafAliasForCombatMission)
+  local self = setmetatable(veaf.deepCopy(VeafAlias:new()), VeafAliasForCombatMission)
   self:setPassword(veafSecurity.PASSWORD_L1)
   self:setHidden(true)
   return self
@@ -605,7 +605,7 @@ function veafShortcuts.ExecuteAlias(
         end
       end
       if nDelay then
-        mist.scheduleFunction(
+        veaf.scheduleFunction(
           VeafAlias.execute,
           { alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition },
           timer.getTime() + nDelay

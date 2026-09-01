@@ -12,6 +12,7 @@ knowledge lives here; author-specific data is carried by a *conversion profile*
 from __future__ import annotations
 
 import hashlib
+import re
 import shutil
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -131,6 +132,58 @@ def diff_scripts(before: dict[str, str], after: dict[str, str], upstream: set[st
     return ScriptUpdateDiff(added=added, removed=removed, updated=updated)
 
 
+#: Where a converted mission records what its upstream release loads. Written beside
+#: ``convert-other-report.md``, in the mission folder, and meant to be committed with it.
+STATE_FILE = "convert-other-state.yaml"
+
+
+def read_upstream_manifest(mission_folder: Path) -> set[str]:
+    """Return the script names the previous conversion recorded as coming from upstream.
+
+    Args:
+        mission_folder: The mission folder.
+
+    Returns:
+        The recorded script base names, or an empty set when no manifest exists — which is the
+        case for every mission adopted before this file did, and the reason an empty set has to
+        mean "do not touch anything" rather than "upstream shipped nothing".
+    """
+    state = mission_folder / STATE_FILE
+    if not state.is_file():
+        return set()
+    try:
+        parsed = yaml.safe_load(state.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return set()
+    scripts = parsed.get("upstream_scripts") if isinstance(parsed, dict) else None
+    return {str(name) for name in scripts or []}
+
+
+def write_upstream_manifest(mission_folder: Path, loaders: list[DetectedLoader]) -> None:
+    """Record the scripts *loaders* says this release loads.
+
+    Without it, a script that disappeared from a release is indistinguishable from one the
+    mission maker wrote: both sit in ``src/scripts/``, both are listed in ``custom_scripts:``,
+    and neither is in the fresh upstream set. Deleting on those grounds alone would eat the
+    maker's work, so the converter writes down what each release brought.
+
+    Args:
+        mission_folder: The mission folder.
+        loaders: The loaders detected in the release just converted.
+    """
+    names = sorted({loader.script for loader in loaders})
+    body = [
+        "# Written by veaf-tools convert-other. Commit it with the mission.",
+        "#",
+        "# What the upstream release loads, so the next --update can tell a script the release",
+        "# dropped (deleted, since the build would otherwise embed the previous version) from a",
+        "# script you added yourself (left strictly alone).",
+        "upstream_scripts:",
+    ]
+    body += [f"  - {_yaml_path(name)}" for name in names]
+    (mission_folder / STATE_FILE).write_text("\n".join(body) + "\n", encoding="utf-8")
+
+
 @dataclass(frozen=True)
 class DetectedLoader:
     """One script loaded by a native ``a_do_script_file`` trigger action.
@@ -184,69 +237,107 @@ def detect_native_script_loaders(dcs_mission: DcsMission) -> list[DetectedLoader
     return loaders
 
 
-def _declared_delays(mission_yaml_path: Path | None) -> dict[str, float | None]:
-    """Read the ``delay_seconds`` a tuned ``mission.yaml`` declares, keyed by script base name.
+_PATH_LINE = re.compile(r"^(?P<indent>[ \t]*)-[ \t]+path:[ \t]*(?P<value>.+?)[ \t]*$")
+_DELAY_LINE = re.compile(r"^(?P<indent>[ \t]*)delay_seconds:[ \t]*(?P<value>.+?)[ \t]*$")
 
-    Args:
-        mission_yaml_path: The mission's ``mission.yaml``, or ``None``.
 
-    Returns:
-        ``{script name: delay or None}``, empty when the file is absent or unreadable. An
-        unreadable file is not this function's problem to report — the build and ``validate``
-        both say so far more clearly than an update summary could.
-    """
-    if mission_yaml_path is None or not mission_yaml_path.is_file():
-        return {}
+def _unquote(value: str) -> str:
+    """Strip the quotes YAML needs around a path that contains a space."""
+    return value[1:-1] if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'" else value
+
+
+def _as_delay(value: str) -> float | None:
+    """Parse a declared ``delay_seconds`` value, or ``None`` when it is not a number."""
     try:
-        parsed = yaml.safe_load(mission_yaml_path.read_text(encoding="utf-8")) or {}
-    except (OSError, yaml.YAMLError):
-        return {}
-    section = parsed.get("custom_scripts") if isinstance(parsed, dict) else None
-    entries = section.get("scripts") if isinstance(section, dict) else None
-    declared: dict[str, float | None] = {}
-    for entry in entries or []:
-        if isinstance(entry, dict):
-            name = Path(str(entry.get("path", ""))).name
-            raw = entry.get("delay_seconds")
-            declared[name] = float(raw) if isinstance(raw, (int, float)) and not isinstance(raw, bool) else None
-        else:
-            declared[Path(str(entry)).name] = None
-    return declared
+        return float(value)
+    except ValueError:
+        return None
 
 
-def _delay_changes(mission_yaml_path: Path | None, loaders: list[DetectedLoader]) -> list[str]:
-    """Report upstream staging that no longer matches what ``mission.yaml`` declares.
+def apply_upstream_delays(mission_yaml_path: Path | None, loaders: list[DetectedLoader]) -> list[str]:
+    """Write the upstream load staging into a preserved ``mission.yaml``, in place.
 
-    ``--update`` deliberately preserves the tuned ``mission.yaml``, which is exactly why this
-    has to be said out loud: a delay that moved upstream would otherwise stay silently wrong,
-    and the consequence is not cosmetic (a script that expects the world to be populated runs
-    against an empty one).
+    ``--update`` preserves the tuned file, which is why the staging was never written into any of
+    the five VEAF Foothold missions: ``delay_seconds`` arrived after they were adopted, so every
+    refresh detected the mismatch and none of them could fix it. A delay is upstream's decision
+    rather than the maker's tuning, so this reconciles it — and names every line it wrote, since
+    an edit to a preserved file that the report stays silent about would be this lot's own defect
+    in a new costume.
+
+    The file is edited as **text**, one line at a time: parsing and re-emitting it would drop the
+    comments, the ordering and the quoting the maker relies on, and flip the line endings the
+    batch normalised.
 
     Args:
-        mission_yaml_path: The preserved ``mission.yaml``, or ``None`` to skip.
+        mission_yaml_path: The preserved ``mission.yaml``.
         loaders: The loaders detected in the fresh upstream mission.
 
     Returns:
-        One human-readable line per differing script, in script-name order.
+        One human-readable line per delay written, added or removed, in file order. Empty when
+        the file already matched upstream — in which case it is not rewritten at all.
     """
-    declared = _declared_delays(mission_yaml_path)
-    if not declared:
+    if mission_yaml_path is None or not mission_yaml_path.is_file():
         return []
+    upstream = {loader.script: loader.delay_seconds for loader in loaders}
+    try:
+        raw = mission_yaml_path.read_text(encoding="utf-8", newline="")
+    except OSError:
+        return []
+
+    lines = raw.splitlines(keepends=True)
+    result: list[str] = []
     changes: list[str] = []
-    for loader in sorted(loaders, key=lambda item: item.script):
-        if loader.script not in declared:
+    index = 0
+    inside = False
+    while index < len(lines):
+        line = lines[index]
+        index += 1
+        result.append(line)
+
+        # Stay strictly inside `custom_scripts:`. `strip_native_triggers:` right below it is a
+        # list too, and editing an entry there would corrupt the mission for no reason at all.
+        bare = line.rstrip("\r\n")
+        if bare[:1] not in (" ", "\t") and bare.strip():
+            inside = bare.strip() == "custom_scripts:"
             continue
-        was, now = declared[loader.script], loader.delay_seconds
-        if was == now:
+
+        match = _PATH_LINE.match(bare) if inside else None
+        if match is None:
             continue
-        changes.append(
-            t(
-                "convert_other.update.delay_changed",
-                script=loader.script,
-                declared="none" if was is None else format_delay_seconds(was),
-                upstream="none" if now is None else format_delay_seconds(now),
+
+        script = Path(_unquote(match.group("value"))).name
+        eol = line[len(line.rstrip("\r\n")) :] or "\n"
+
+        # A `delay_seconds:` indented under this entry belongs to it.
+        declared_line, declared = None, None
+        if index < len(lines):
+            follower = _DELAY_LINE.match(lines[index].rstrip("\r\n"))
+            if follower is not None and len(follower.group("indent")) > len(match.group("indent")):
+                declared_line, declared = lines[index], _as_delay(follower.group("value"))
+                index += 1
+
+        if script not in upstream:
+            # Upstream never shipped it, so it is the maker's script and its staging is theirs.
+            if declared_line is not None:
+                result.append(declared_line)
+            continue
+
+        wanted = upstream[script]
+        if wanted is not None:
+            result.append(f"{match.group('indent')}  delay_seconds: {format_delay_seconds(wanted)}{eol}")
+        if wanted != declared:
+            changes.append(
+                t(
+                    "convert_other.update.delay_synced",
+                    script=script,
+                    declared="none" if declared is None else format_delay_seconds(declared),
+                    upstream="none" if wanted is None else format_delay_seconds(wanted),
+                )
             )
-        )
+
+    if changes:
+        with open(mission_yaml_path, "w", encoding="utf-8", newline="") as handle:
+            handle.write("".join(result))
     return changes
 
 
@@ -538,9 +629,12 @@ class OtherMissionConverter:
             loaders = self._normalize_script_names(loaders, profile, scripts_dir, overwrite=update)
 
         if update:
-            self._report_update(report, scripts_dir, before, loaders, output_mission_folder / "mission.yaml")
+            self._report_update(report, scripts_dir, before, loaders, output_mission_folder)
         else:
             self._scaffold_mission_yaml(report, output_mission_folder, loaders, strip_triggers, profile, force, backup)
+
+        # Last, so `_report_update` compares against the *previous* release's manifest.
+        write_upstream_manifest(output_mission_folder, loaders)
 
         # 4. Manual review items.
         report.manual_review.append(t("convert_other.review.enable_modules"))
@@ -584,7 +678,7 @@ class OtherMissionConverter:
         scripts_dir: Path,
         before: dict[str, str],
         loaders: list[DetectedLoader],
-        mission_yaml_path: Path | None = None,
+        mission_folder: Path,
     ) -> None:
         """Preserve the tuned ``mission.yaml`` and report the upstream script diff.
 
@@ -593,12 +687,15 @@ class OtherMissionConverter:
             scripts_dir: Where the extracted scripts landed.
             before: Script fingerprints taken before the extraction.
             loaders: The upstream loaders detected in this version.
-            mission_yaml_path: The preserved ``mission.yaml``, read to compare its declared
-                ``delay_seconds`` against upstream's. ``None`` skips that comparison.
+            mission_folder: The mission folder, holding the preserved ``mission.yaml`` (read to
+                compare its declared ``delay_seconds`` against upstream's) and the manifest of
+                what the previous release loaded.
         """
+        mission_yaml_path = mission_folder / "mission.yaml"
         after = snapshot_scripts(scripts_dir)
         upstream = {loader.script for loader in loaders}
         diff = diff_scripts(before, after, upstream)
+        was_upstream = read_upstream_manifest(mission_folder)
 
         report.mission_yaml_existed = True
         report.mission_yaml_skipped_reason = t("convert_other.update.yaml_preserved")
@@ -609,16 +706,30 @@ class OtherMissionConverter:
             report.actions.append(tn("convert_other.update.added", len(diff.added), names=", ".join(diff.added)))
         if diff.updated:
             report.actions.append(tn("convert_other.update.updated", len(diff.updated), names=", ".join(diff.updated)))
-        if diff.removed:
+
+        # A script the *previous* release shipped and this one does not is stale: leaving it on
+        # disk is what made `validate` pass while the build embedded the old version of a renamed
+        # script. Anything else the upstream never shipped is the mission maker's, and is only
+        # reported — the manifest is absent for every mission adopted before it existed, so that
+        # branch is the common one for now and must stay harmless.
+        stale = tuple(name for name in diff.removed if name in was_upstream)
+        theirs = tuple(name for name in diff.removed if name not in was_upstream)
+        for name in stale:
+            (scripts_dir / name).unlink(missing_ok=True)
+        if stale:
+            report.actions.append(tn("convert_other.update.removed_stale", len(stale), names=", ".join(stale)))
             report.manual_review.append(
-                tn("convert_other.update.removed", len(diff.removed), names=", ".join(diff.removed))
+                tn("convert_other.update.removed_stale_review", len(stale), names=", ".join(stale))
             )
+        if theirs:
+            report.manual_review.append(tn("convert_other.update.removed", len(theirs), names=", ".join(theirs)))
 
         # A staging change is as much an upstream change as an added script, and it is the one
         # nothing else would reveal: the tuned mission.yaml is preserved, so an upstream delay
-        # that moved stays silently wrong until someone re-reads the source triggers.
-        for change in _delay_changes(mission_yaml_path, loaders):
-            report.manual_review.append(change)
+        # that moved stays silently wrong until someone re-reads the source triggers. Detecting it
+        # was never the problem — this reconciles it, and reports every line it wrote.
+        for change in apply_upstream_delays(mission_yaml_path, loaders):
+            report.actions.append(change)
 
     @staticmethod
     def _normalize_script_names(

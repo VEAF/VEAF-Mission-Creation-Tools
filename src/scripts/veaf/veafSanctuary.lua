@@ -400,13 +400,13 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("VeafSanctuaryZone[%s]:deployDefenses()", veaf.p(self.name)))
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("position=%s", veaf.p(position)))
   -- compute the position of the unit in 20 seconds
-  local positionIn20s = mist.vec.add(position, mist.vec.scalarMult(unit:getVelocity(), 20))
+  local positionIn20s = veaf.vecAdd(position, veaf.vecScalarMult(unit:getVelocity(), 20))
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("positionIn20s=%s", veaf.p(positionIn20s)))
   -- compute the position of the unit in 40 seconds,
-  local positionIn40s = mist.vec.add(position, mist.vec.scalarMult(unit:getVelocity(), 40))
+  local positionIn40s = veaf.vecAdd(position, veaf.vecScalarMult(unit:getVelocity(), 40))
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("positionIn40s=%s", veaf.p(positionIn40s)))
   -- compute a heading towards the unit
-  local heading = mist.utils.round(mist.utils.toDegree(mist.getHeading(unit)), 0)
+  local heading = veaf.round(math.deg(veaf.getHeading(unit)), 0)
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading=%s", veaf.p(heading)))
   local heading1 = heading * math.random(70, 130) / 100
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading1=%s", veaf.p(heading1)))
@@ -431,9 +431,13 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
     end
 
     local spawnedGroupsNames = {}
-    local surfaceType = land.getSurfaceType(mist.utils.makeVec2(position))
-    veaf.loggers.get(veafSanctuary.Id):trace(string.format("surfaceType=%s", veaf.p(surfaceType)))
-    if surfaceType == 2 or surfaceType == 3 then
+    -- This used to read `surfaceType == 2 or surfaceType == 3`, which is shallow water or water *today*:
+    -- `land.SurfaceType` is DCS's table and nothing pins its values, so a renumbering upstream would have
+    -- answered a speedboat with a Patriot and raised nothing (CHORE-ONE-TERRAIN-CHECK). Same verdict,
+    -- named.
+    local isOverWater = veaf.isTerrainValid(veaf.makeVec2(position), veaf.WATER_TERRAIN)
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("isOverWater=%s", veaf.p(isOverWater)))
+    if isOverWater then
       -- this is water
       veafShortcuts.ExecuteAlias(
         ship1,
@@ -486,7 +490,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
     self:addSpawnedGroups(spawnedGroupsNames)
     veaf.loggers.get(veafSanctuary.Id):trace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
     if timeInZone > veafSanctuary.HARDER_DEFENSES_AFTER then
-      if surfaceType == 2 or surfaceType == 3 then
+      if isOverWater then
         -- this is water
         veafShortcuts.ExecuteAlias(
           ship2,
@@ -555,7 +559,7 @@ function VeafSanctuaryZone:isPositionInZone(position)
   local inZone = false
   if self:getPolygon() then
     veaf.loggers.get(veafSanctuary.Id):trace("polygon mode")
-    inZone = mist.pointInPolygon(position, self:getPolygon())
+    inZone = veaf.pointInPolygon(position, self:getPolygon())
   elseif self:getPosition() then
     veaf.loggers.get(veafSanctuary.Id):trace("circle and radius mode")
     local distanceFromCenter = ((position.x - self:getPosition().x) ^ 2 + (position.z - self:getPosition().z) ^ 2) ^ 0.5
@@ -644,7 +648,7 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                 -- flak the plane - :destroy() does not work for human players and weapons in MP
                 veafSpawn.destroyObjectWithFlak(launcherUnit, 2, 2)
                 -- forgive the player in 10 minutes (let him get out of trouble and don't kill him straight if he comes back)
-                mist.scheduleFunction(
+                veaf.scheduleFunction(
                   VeafSanctuaryZone.forgive,
                   { self, launcherPlayername },
                   timer.getTime() + veafSanctuary.FORGIVE_SHOOTER_AFTER
@@ -765,11 +769,21 @@ end
 function veafSanctuary.addZoneFromTriggerZone(triggerZoneName)
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("addZoneFromTriggerZone(%s)", veaf.p(triggerZoneName)))
   local triggerZone = trigger.misc.getZone(triggerZoneName)
-  if triggerZoneName then
-    ---@diagnostic disable-next-line: need-check-nil
-    local zone = VeafSanctuaryZone:new():setName(triggerZoneName):setRadius(triggerZone.radius):setPosition(triggerZone.point)
-    return veafSanctuary.addZone(zone)
+  -- The guard here used to test `triggerZoneName`, the parameter, which is truthy by the time we get
+  -- this far; the *result* was never checked, and a `need-check-nil` silenced the linter that said so.
+  -- A trigger zone misnamed in mission.yaml therefore raised on `triggerZone.radius` and took the whole
+  -- sanctuary set-up down, instead of naming the zone it could not find.
+  if not triggerZone then
+    veaf.loggers.get(veafSanctuary.Id):warn(
+      string.format(
+        "addZoneFromTriggerZone: the mission has no trigger zone named [%s] ; no sanctuary zone was added",
+        veaf.p(triggerZoneName)
+      )
+    )
+    return nil
   end
+  local zone = VeafSanctuaryZone:new():setName(triggerZoneName):setRadius(triggerZone.radius):setPosition(triggerZone.point)
+  return veafSanctuary.addZone(zone)
 end
 
 -- Handle world events.
@@ -796,7 +810,7 @@ function veafSanctuary.eventHandler:onEvent(event)
     -- process all zones
     for _, zone in pairs(veafSanctuary.zonesList) do
       veaf.loggers.get(veafSanctuary.Id):trace(string.format("zone:getName()=%s", veaf.p(zone:getName())))
-      mist.scheduleFunction(VeafSanctuaryZone.handleWeapon, { zone, event.weapon }, timer.getTime() + veafSanctuary.DESTROY_WEAPONS_AFTER)
+      veaf.scheduleFunction(VeafSanctuaryZone.handleWeapon, { zone, event.weapon }, timer.getTime() + veafSanctuary.DESTROY_WEAPONS_AFTER)
     end
   else -- process human players events
     if not event.initiator then
@@ -871,7 +885,7 @@ function veafSanctuary.loop()
     end
   end
 
-  mist.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayBetweenChecks)
+  veaf.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayBetweenChecks)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -883,7 +897,7 @@ function veafSanctuary.initialize()
 
   -- prepare humans units
   veafSanctuary.humanUnits = {}
-  for name, _ in pairs(mist.DBs.humansByName) do
+  for name, _ in pairs(veaf.getAllHumanRecords()) do
     --veaf.loggers.get(veafSanctuary.Id):trace(string.format("mist.DBs.humansByName[%s]=??", veaf.p(name)))
     veafSanctuary.humanUnits[name] = true
   end
@@ -892,7 +906,7 @@ function veafSanctuary.initialize()
   world.addEventHandler(veafSanctuary.eventHandler)
 
   -- Start the main loop
-  mist.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayForStartup)
+  veaf.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayForStartup)
 
   veafSanctuary.initialized = true
   veaf.loggers.get(veafSanctuary.Id):info(string.format("Sanctuary system has been initialized"))

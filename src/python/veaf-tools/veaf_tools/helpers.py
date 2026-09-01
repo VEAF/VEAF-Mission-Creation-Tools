@@ -2,9 +2,53 @@ import os
 import sys
 from pathlib import Path
 
+import typer
 from veaf_libs.i18n import t
 
 _BUILD_CONFIG_MARKER = "# ── Build configuration"
+
+
+def is_interactive() -> bool:
+    """Return whether a human can both see a question and answer it.
+
+    Both channels are required: ``stdout`` carries the question, ``stdin`` carries the answer.
+    Redirect either one and the prompt is a trap — with ``stdin`` closed Click cannot read the
+    reply, prints ``Aborted.`` and exits **1**; with ``stdout`` captured the question lands in the
+    capture file and the run waits forever for an answer nobody was shown.
+
+    Uses the same ``isatty`` convention as :func:`_is_double_clicked` and ``_ask_replace``. A
+    stream with no ``isatty`` at all (a replaced stream, a windowed PyInstaller build) counts as
+    non-interactive.
+    """
+    for stream in (sys.stdin, sys.stdout):
+        isatty = getattr(stream, "isatty", None)
+        if isatty is None or not isatty():
+            return False
+    return True
+
+
+def confirm(message: str, *, default: bool = False, unattended: bool | None = None) -> bool:
+    """Ask a yes/no question, but only when there is someone to answer it.
+
+    A prompt must never turn a successful run into a failure. ``veaf-tools about`` asked
+    unconditionally, so any unattended invocation — a CI job, a batch file, a piped run — exited
+    **1** on a command that had done its job. The exit code was reported twice as a defect of the
+    Windows executable before the measurement showed it was this prompt.
+
+    Args:
+        message: The question, already translated.
+        default: The answer a bare Enter gives, exactly as :func:`typer.confirm` uses it.
+        unattended: The answer to assume when no terminal is attached. ``None`` (the default)
+            reuses *default*; pass it explicitly when the unattended answer differs from the one a
+            hurried human would press — ``--readme`` asks for the documentation on purpose, so it
+            is printed rather than skipped.
+
+    Returns:
+        The user's answer, or the unattended answer when nobody could be asked.
+    """
+    if not is_interactive():
+        return default if unattended is None else unattended
+    return typer.confirm(message, default=default)
 
 
 def _get_parent_process_name_windows() -> str | None:

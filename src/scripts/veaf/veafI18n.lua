@@ -335,6 +335,10 @@ veaf.i18nCatalog = {
     fr = "Un groupe cible CAS existe déjà !",
     en = "A CAS target group already exists !",
   },
+  ["cas.spawn_failed"] = {
+    fr = "Le groupe cible CAS n'a pas pu être créé ; la mission CAS n'a pas démarré.",
+    en = "The CAS target group could not be created ; the CAS mission did not start.",
+  },
   ["cas.smoke_requested"] = {
     fr = "Bien reçu, fumée demandée : fumée ROUGE sur la cible !",
     en = "Copy smoke requested, RED smoke on the deck!",
@@ -909,6 +913,25 @@ veaf.i18nCatalog = {
     fr = "La zone trigger [%s] n'existe pas dans la mission !",
     en = "Trigger zone [%s] does not exist in the mission !",
   },
+  -- FIX-COMBATZONE-SILENT-EXCLUSION: written to the DCS log, not to a player. A zone only takes the
+  -- groups whose name starts with its own, and until now it dropped the others without a word — the
+  -- symptom being a zone that activates and spawns nothing, with an empty log. One line per zone,
+  -- naming the *groups* (what the mission maker has to rename) and saying what the rule is.
+  -- Args: zone name, how many groups, the group names, zone name again (the required prefix).
+  ["combatzone.groups_excluded_by_name"] = {
+    fr = "Zone de combat [%s] : %s groupe(s) présents dans la zone ont été ignorés : %s. "
+      .. "Pour faire partie de la zone, le nom d'un groupe doit commencer par le nom de la zone [%s].",
+    en = "Combat zone [%s]: %s group(s) found inside the zone were ignored: %s. "
+      .. "To belong to the zone, a group name must start with the zone name [%s].",
+  },
+  -- FIX-COMBATZONE-SILENT-EXCLUSION: two elements of one #spawngroup stating different #spawncount
+  -- values. The highest wins — see mergeSpawnCountInto — and the choice is stated rather than taken
+  -- in silence. Args: zone name, spawn group name, first count, other count, the one kept.
+  ["combatzone.spawncount_conflict"] = {
+    fr = "Zone de combat [%s] : le groupe d'apparition [%s] déclare deux #spawncount différents (%s et %s) ; "
+      .. "le plus élevé est retenu, %s.",
+    en = "Combat zone [%s]: spawn group [%s] states two different #spawncount values (%s and %s); " .. "keeping the highest, %s.",
+  },
   ["combatzone.header"] = {
     fr = "ZONE DE COMBAT %s \n\n",
     en = "COMBAT ZONE %s \n\n",
@@ -1157,10 +1180,6 @@ veaf.i18nCatalog = {
   ["transport.cleaned"] = {
     fr = "Mission de transport nettoyée.",
     en = "Transport mission cleaned up.",
-  },
-  ["transport.cargoes_respawned"] = {
-    fr = "Toutes les cargaisons ont été réapparues",
-    en = "All cargoes have been respawned",
   },
   ["transport.cargo_delivered"] = {
     fr = "Félicitations pour ce travail bien fait ! La cargaison %s a été livrée en toute sécurité",
@@ -1417,7 +1436,7 @@ veaf.i18nCatalog = {
   -- A carrier keeps no runway: it turns into the wind, so its heading is what a pilot on the deck
   -- needs. The wording is the carrier group's own — `carrier.atc_navigation` says "Cap actuel
   -- (vrai)" / "Current heading (true)" — rather than a second vocabulary for the same number.
-  -- "(vrai)" is accurate and not decoration: the heading comes from `mist.getHeading(unit, true)`,
+  -- "(vrai)" is accurate and not decoration: the heading comes from `veaf.getHeading(unit, true)`,
   -- the same call carrier operations make, which returns the true heading and not the magnetic one.
   -- %03d because a heading is read as three digits; "cap 9" is not a heading.
   ["weather.welcome_brief_ship"] = {

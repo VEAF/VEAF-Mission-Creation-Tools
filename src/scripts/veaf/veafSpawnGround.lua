@@ -44,7 +44,15 @@ function veafSpawn.spawnFarp(
   local farptype = farptype or ""
   local noFarpMarkers = noFarpMarkers or false
 
-  local spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  -- Deliberately NOT using veaf.findSpawnPoint here: a FARP goes exactly where the user pointed
+  -- (David, 2026-08-27). The tooling does not choose this position, a person looking at the map does,
+  -- so it is never moved to find clear ground — and `radius or 0` above means the default is exact.
+  -- A caller-supplied radius is the user asking for the dispersion, so it keeps jittering.
+  --
+  -- The FARP's **escort** is a different matter: veafGrass.findClearBearing does search for clear
+  -- ground for it, and FIX-PLACEMENT-IGNORES-SCENERY adds the scenery criterion there. Both
+  -- statements are true at once — exact platform, searched escort — so do not read one for the other.
+  local spawnPosition = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
   veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.lp(spawnPosition))
   if not name or name == "" then
     local _lat, _lon = coord.LOtoLL(spawnSpot)
@@ -77,13 +85,13 @@ function veafSpawn.spawnFarp(
     ["category"] = "Heliports",
     ["shape_name"] = _shape,
     ["type"] = _type,
-    ["unitId"] = mist.getNextUnitId(),
+    ["unitId"] = veaf.getNextUnitId(),
     ["y"] = spawnPosition.z,
     ["x"] = spawnPosition.x,
     ["groupName"] = name,
     ["name"] = name,
     ["canCargo"] = false,
-    ["heading"] = mist.utils.toRadian(hdg),
+    ["heading"] = math.rad(hdg),
     ["country"] = country,
     ["coalition"] = side,
     ["dead"] = false,
@@ -94,7 +102,7 @@ function veafSpawn.spawnFarp(
     ["unlimitedFuel"] = true,
     ["unlimitedMunitions"] = true,
   }
-  mist.dynAddStatic(_farpStatic)
+  veaf.addStatic(_farpStatic)
   local _spawnedFARP = StaticObject.getByName(name)
   veaf.loggers.get(veafSpawn.Id):trace("_spawnedFARP=%s", veaf.lp(_spawnedFARP))
 
@@ -143,7 +151,10 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   local _fobtype = fobtype or "" -- only a single FOB type in CTLD, yet
   local _hdg = hdg or 0
 
-  local _spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, _radius))
+  -- Deliberately NOT using veaf.findSpawnPoint here: a FOB goes exactly where the user pointed
+  -- (David, 2026-08-27) — same rule as the FARP above. The watchtower below is offset from this
+  -- point on purpose; that offset is a layout decision, not a search.
+  local _spawnPosition = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, _radius))
   veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.lp(_spawnPosition))
   if not _fobName or _fobName == "" then
     local _lat, _lon = coord.LOtoLL(spawnSpot)
@@ -166,24 +177,24 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     x = _spawnPosition.x,
     name = _fobName,
     canCargo = false,
-    heading = mist.utils.toRadian(hdg),
+    heading = math.rad(hdg),
     country = _country,
   }
-  mist.dynAddStatic(_outpost)
+  veaf.addStatic(_outpost)
   local _fob = StaticObject.getByName(_outpost["name"])
 
   local _tower = {
     type = "house2arm",
     rate = 100,
-    y = _outpost.y + TOWER_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
-    x = _outpost.x + TOWER_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+    y = _outpost.y + TOWER_DISTANCE * math.sin(math.rad(_hdg)),
+    x = _outpost.x + TOWER_DISTANCE * math.cos(math.rad(_hdg)),
     name = _fobName .. " Watchtower #002",
     category = "Fortifications",
     canCargo = false,
-    heading = mist.utils.toRadian(_hdg),
+    heading = math.rad(_hdg),
     country = _country,
   }
-  mist.dynAddStatic(_tower)
+  veaf.addStatic(_tower)
 
   -- add the FOB to the named points
   local _namedPoint = _spawnPosition
@@ -198,8 +209,8 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     -- spawn a beacon. Its name is CTLD's to allocate now — the "FOB Beacon #N" counter
     -- VEAF kept was a second numbering next to the manager's own.
     local _beaconPoint = {
-      z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
-      x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+      z = _tower.y + BEACON_DISTANCE * math.sin(math.rad(_hdg)),
+      x = _tower.x + BEACON_DISTANCE * math.cos(math.rad(_hdg)),
       y = _spawnPosition.y,
     }
     local _beacon = CTLDBeaconManager.getInstance():createAtPoint(_beaconPoint, _side, _country, { isFOB = true })
@@ -255,7 +266,9 @@ function veafSpawn.spawnBeacon(spawnSpot, radius, name, country, side, silent)
 
   local _side = side or coalition.side.BLUE
   local _country = country or "usa"
-  local _position = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius or 0))
+  -- Deliberately NOT using veaf.findSpawnPoint here: a beacon goes exactly where the user pointed
+  -- (David, 2026-08-27) — same rule as the FARP and the FOB above.
+  local _position = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius or 0))
 
   local _beacon = CTLDBeaconManager.getInstance():createAtPoint(_position, _side, _country, { name = name })
   if not _beacon then
@@ -321,7 +334,7 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn._createDcsUnits([%s])", country or ""))
 
   if hasDest then
-    mist.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
+    veaf.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
   end
 
   local dcsUnits = {}
@@ -365,7 +378,14 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
   end
 
   -- actually spawn groups
-  mist.dynAdd({ country = country, category = "GROUND_UNIT", name = groupName, hidden = false, units = dcsUnits, hiddenOnMFD = hiddenOnMFD })
+  veaf.addGroup({
+    country = country,
+    category = "GROUND_UNIT",
+    name = groupName,
+    hidden = false,
+    units = dcsUnits,
+    hiddenOnMFD = hiddenOnMFD,
+  })
 end
 
 --- Spawns a dynamic infantry group
@@ -591,7 +611,10 @@ function veafSpawn.spawnFullCombatGroup(
     hiddenOnMFD
   )
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Full Combat Group", czName)
   local groupPosition = veaf.placePointOnLand(spawnSpot)
@@ -652,7 +675,7 @@ function veafSpawn.spawnConvoy(
     return false
   end
 
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+  local spawnSpot = veaf.placePointOnLand(veaf.getRandomPointInCircle(spawnSpot, radius))
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
   -- check that destination exists
@@ -749,12 +772,12 @@ function veafSpawn.spawnConvoy(
 
     --  make the group go to destination
     veaf.loggers.get(veafSpawn.Id):trace("make the group go to destination : " .. groupName)
-    mist.goRoute(groupName, route)
+    veaf.goRoute(groupName, route)
 
     -- Only an itinerary needs watching. A single `dest` has no next leg, so a one-point convoy keeps
     -- exactly the behaviour it had before this lot — no watchdog, nothing rescheduled.
     if #itinerary > 1 then
-      mist.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { groupName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
+      veaf.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { groupName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
     end
 
     if not silent then
@@ -819,7 +842,7 @@ function veafSpawn.convoyArrivalWatchdog(convoyName)
     end
   end
 
-  mist.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { convoyName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
+  veaf.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { convoyName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
 end
 
 --- Has the convoy reached the last waypoint of its current route?
@@ -893,7 +916,7 @@ function veafSpawn.advanceConvoy(convoyName)
   convoy.legIndex = nextLeg
   convoy.route = route
   convoy.stopped = false
-  mist.goRoute(convoyName, route)
+  veaf.goRoute(convoyName, route)
   return true
 end
 
@@ -945,7 +968,7 @@ function veafSpawn._commandConvoy(convoyName, stop)
     else
       local stopped = veafSpawn.spawnedConvoys[convoyName].stopped
       if stopped then
-        mist.goRoute(convoyName, veafSpawn.spawnedConvoys[convoyName].route)
+        veaf.goRoute(convoyName, veafSpawn.spawnedConvoys[convoyName].route)
         veafSpawn.spawnedConvoys[convoyName].stopped = false
       else
         -- not stopped !
@@ -1085,7 +1108,7 @@ function veafSpawn.infoOnAllConvoys(unitName)
       local averageGroupPosition = veaf.getAveragePosition(name)
       ---@diagnostic disable-next-line: param-type-mismatch
       local lat, lon = coord.LOtoLL(averageGroupPosition)
-      local llString = mist.tostringLL(lat, lon, 0, true)
+      local llString = veaf.toStringLL(lat, lon, 0, true)
       text = text .. veaf.t("spawn.convoy_info", name, nbVehicles, llString)
       if veafSpawn.spawnedConvoys[name].stopped then
         text = text .. veaf.t("spawn.convoy_stopped")

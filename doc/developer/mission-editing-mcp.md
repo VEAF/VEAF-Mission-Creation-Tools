@@ -292,10 +292,14 @@ de la refaire.
   plus une liste `verticies` — l'orthographe de DCS, conservée telle quelle parce que corriger la
   coquille écrirait un champ que DCS ignore — tandis que `x`, `y` et `radius` **restent présents**. Un
   polygone n'est donc pas un cercle avec des champs en plus.
-- **Ce que le runtime VEAF gère.** `veafCombatZone.lua` ne teste que deux types : `0` →
-  `mist.getUnitsInZones`, `2` → `mist.getUnitsInPolygon(triggerZone.verticies)`. Il n'y a **pas de
-  `else`**, donc une zone d'un autre type ne contiendrait aucune unité, en silence — pire que de ne pas
-  proposer la forme. L'action n'écrit donc que 0 et 2.
+- **Ce que le runtime VEAF gère.** À l'époque, `veafCombatZone.lua` ne testait que deux types : `0` →
+  `mist.getUnitsInZones`, `2` → `mist.getUnitsInPolygon(triggerZone.verticies)`. Il n'y avait **pas de
+  `else`**, donc une zone d'un autre type ne contenait aucune unité, en silence — pire que de ne pas
+  proposer la forme. L'action n'écrit donc que 0 et 2. Depuis `DROP-MIST`, le test vit dans
+  `veaf.getUnitsInTriggerZone` et appelle les fonctions VEAF `veaf.getUnitsInCircularZone` /
+  `veaf.getUnitsInPolygon` ; il n'accepte toujours que 0 et 2, mais un type inattendu journalise
+  désormais une erreur et renvoie `nil` au lieu d'une liste vide : le silence a disparu. La règle de
+  l'action est inchangée.
 
 **Décision de David sur le nombre de sommets (2026-08-12)** : accepter trois ou plus, puisque « suivre
 la ligne de crête » est le cas d'usage réel et que mist gère un polygone quelconque — mais **avertir**
@@ -487,9 +491,13 @@ ou un `.miz` (transitoire).
 - **`parking_id` = `parking`.** Établi en jeu le 2026-08-15 : `parking` est le `Term_Index` de la
   capture, l'appareil se cale sur la position exacte, et le `parking_id` propre à l'éditeur — absent de
   la capture — n'est **pas** porteur. Il est donc écrit égal à `parking`.
-- **Seuls les types de terminal 104 et 68** sont proposés comme parking (mesuré : les avions parkés des
-  vraies missions Caucasus n'occupent qu'eux). Un aérodrome sans place de ce type est **refusé** plutôt
-  que de poser un appareil sur un seuil de piste.
+- **Seuls les types de terminal 68, 72 et 104** sont proposés comme parking — le masque
+  `FighterAircraft` (244) de DCS lui-même. Le `100` (SmallSizeFighter) est exclu volontairement : DCS
+  le documente comme une place étroite réservée aux petits appareils, et il ne débloque aucun
+  aérodrome que les trois autres ne couvrent pas déjà. Un aérodrome sans place d'aucun de ces trois
+  types est **refusé** plutôt que de poser un appareil sur un seuil de piste ou une hélisurface. La
+  mesure qui fonde cet ensemble, et les sept aérodromes qu'elle a débloqués, sont consignées à côté de
+  `AIRCRAFT_STAND_TYPES` dans `veaf_libs/dcs_parking.py`.
 - **Collision refusée.** Une place déjà occupée dans la mission (un groupe avion dont le premier
   waypoint vise cet aérodrome et dont une unité déclare cette place) est refusée **en nommant** le
   groupe qui la tient ; la sélection automatique **saute** les places occupées.

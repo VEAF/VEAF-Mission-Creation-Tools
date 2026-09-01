@@ -931,6 +931,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The second one earns its place — the DCS-group branch reaches its offset only when DCS fails to
   return a group's units, and reverting that one site leaves all 45 Lua suites green.
 
+- **Changed — `veafSpawnEffects.lua` split in two, and its name is true again.** The module was born
+  in May 2026 as the leftover quarter of the `veafSpawn.lua` split and was named after the loudest
+  thing in it. Five of its nine functions created, moved or removed objects: cargo, the CTLD
+  logistic unit, `-spawn static`, teleport and destroy. Those move to a new
+  `veafSpawnObjects.lua`; `veafSpawnEffects.lua` keeps bomb, smoke, signal flare and illumination
+  flare — what flashes and fades — and nothing else.
+
+  **Nothing changes at runtime.** No function body was touched: both files, stripped of comments and
+  blank lines, are identical to the original line for line. Mission makers see no new option and no
+  renamed command; the marker syntax is untouched. Only the file names change, which matters for
+  anyone reading the scripts or reporting a line number.
+
+  One detail decided the file order rather than taste: command handlers register at load time into an
+  **ordered** list and dispatch is first-match-wins, so `veafSpawnObjects.lua` loads before
+  `veafSpawnEffects.lua` in both the dynamic proxy and the concatenated bundle, reproducing the
+  previous handler order exactly. And the `dofile` line in the proxy — the one step in adding a Lua
+  sub-module that fails in silence, giving a nil function at runtime rather than an error at load —
+  now has a test of its own: the sub-modules are enumerated from disk, and a file the proxy does not
+  load, a file it loads that no longer exists, or an order that diverges from the bundle each fail.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

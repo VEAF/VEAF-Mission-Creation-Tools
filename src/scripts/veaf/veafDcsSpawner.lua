@@ -206,7 +206,7 @@ end
 ---  * **The MiST wrapper form.** `veafSpawnAircraft` passes `{ country, groupName, units = { … } }`
 ---    rather than a flat object. The first unit is flattened into the object, as MiST did.
 ---  * **The random heading.** An object with no heading gets one at random. Nothing in
----    `veafSpawnEffects` sets a heading, so defaulting to zero would line every cargo drop up on the
+---    `veafSpawnObjects` sets a heading, so defaulting to zero would line every cargo drop up on the
 ---    same axis — visible in game, invisible to a test.
 ---  * **`mass` forces the Cargos category**, whatever the caller said.
 ---  * **`categoryStatic` is an alias for `category`**, which is the spelling `veafGrass` uses

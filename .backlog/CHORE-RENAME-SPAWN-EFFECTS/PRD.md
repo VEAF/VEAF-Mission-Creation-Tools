@@ -1,6 +1,6 @@
 # CHORE-RENAME-SPAWN-EFFECTS — `veafSpawnEffects` is not about effects
 
-Status: ⬜ ready
+Status: ✅ done — split landed 2026-09-01, both tickets closed
 
 Origin: David, 2026-08-28, reading the `DROP-MIST` ticket 07 enumeration — *"pour veafSpawnEffects, y'a
 124 types d'effets (fumée, feu, etc.) ?"*. The answer was no, and the question only arose because the
@@ -77,6 +77,36 @@ loads the `veafSpawn.lua` proxy only. `build/` and `published/` are artefacts. `
 **So the real risk is one line: the `dofile` in the proxy.** Everything else either fails a test or is a
 comment.
 
+## Scope
+
+| # | Ticket | Risk | Status |
+|---|---|---|---|
+| 01 | [Objects move out, the effects module keeps its name](tickets/01-split-objects-out-of-effects.md) | low — a pure move, proven byte-identical outside the comments | ✅ |
+| 02 | [A guard for the one line that fails silently](tickets/02-a-guard-for-the-silent-line.md) | low — three tests beside the bundle guard | ✅ |
+
+## What implementation found that this document did not say
+
+Four things, all measured 2026-09-01 on `origin/develop` at `e20ff90c`:
+
+1. **The load order is load-bearing, and this PRD did not mention it.** `veafSpawn.commandHandlers`
+   is an *ordered* list and `executeCommand` dispatches first-match-wins. Splitting the file puts
+   eight handlers into two files, so the file order decides the handler order. `veafSpawnObjects.lua`
+   therefore comes **before** `veafSpawnEffects.lua` in both the proxy and `LUA_BUNDLE_SCRIPTS`,
+   which reproduces the previous order exactly. Reversed, the split would have silently reordered
+   `bomb`/`smoke`/`flare`/`signal` ahead of `cargo`/`logistic`/`destroy`/`teleport`.
+2. **The `dofile` for this sub-module was already guarded, by accident.** Removing the line makes
+   `poetry run test-lua` fail (`test_veafSpawn.lua` asserts on `DEFAULT_FLAK_POWER` and on the object
+   spawners, all now in `veafSpawnObjects.lua`). The silent-failure risk is real for the *next*
+   sub-module, not for this one — see ticket 02.
+3. **The sequencing note is stale on its own premise.** It said this lot must wait because ticket 07
+   of `DROP-MIST` migrates "two `dynAddStatic` calls" living in this file. That migration has since
+   landed: the file calls `veaf.addStatic` and holds no MiST call at all.
+4. **The registry table is accurate but one line under-counts.** `doc/TESTING.md` needed nothing (no
+   Lua suite was added) and `.luacheckrc` needed nothing, as stated. The comments row named three
+   files; there are **five** — `veafScheduler.lua`, `veafDcsSpawner.lua`, `test/lua/dcs_mocks.lua`,
+   `test/lua/test_veafScheduler.lua`, `test/lua/test_veafDcsSpawner.lua`. The `dcs_mocks.lua` mention
+   of `veafSpawnEffects.spawnSignalFlare` was left alone: it is still true.
+
 ## Sequencing
 
 **After `DROP-MIST` ticket 07.** That ticket migrates 18 `dynAddStatic` calls, two of which live in this
@@ -85,9 +115,9 @@ wait for the campaign to clear.
 
 ## Definition of done
 
-- [ ] `veafSpawnObjects.lua` holds cargo, logistic, static, teleport, destroy
-- [ ] `veafSpawnEffects.lua` holds bomb, smoke, signal flare, illumination flare — and nothing else
-- [ ] `veafSpawn.lua`'s `dofile` list and header comment updated
-- [ ] `LUA_BUNDLE_SCRIPTS` updated, `test_lua_bundle_manifest` green
-- [ ] The Lua suite passes unchanged — this moves functions, it does not touch one
-- [ ] `stylua --check` and `luacheck` clean
+- [x] `veafSpawnObjects.lua` holds cargo, logistic, static, teleport, destroy
+- [x] `veafSpawnEffects.lua` holds bomb, smoke, signal flare, illumination flare — and nothing else
+- [x] `veafSpawn.lua`'s `dofile` list and header comment updated
+- [x] `LUA_BUNDLE_SCRIPTS` updated, `test_lua_bundle_manifest` green
+- [x] The Lua suite passes unchanged — this moves functions, it does not touch one
+- [x] `stylua --check` clean; `luacheck` is not installed on this workstation, the CI Lua gate runs it

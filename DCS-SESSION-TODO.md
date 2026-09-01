@@ -13,6 +13,70 @@ come first.
 
 ---
 
+## ⏱ RELEASE GATE — three fixes are shipped and nobody has ever seen them work
+
+Added 2026-09-01, taking the inventory of open lots. Three lots sit at `🧑 waiting-human` with their
+**code already merged**: it will go out with the next release whether or not anyone looks at it. Two
+of them had no entry in this file at all, so the wait had nowhere to end.
+
+Each item below states what to run, what to look at, and **what each of the two outcomes means** — a
+check that cannot come out negative proves nothing.
+
+### R1. A SAM that has locked you must keep its radar long enough to fire
+
+Unblocks [`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md),
+whose last two boxes are exactly this. The repair is in the artefact VEAF embeds (`VEAF/Skynet-IADS`
+commit `3a94937`, carried in by #846): the faulty `isActive() == false` filter is gone from
+`src/scripts/community/skynet-iads-compiled.lua`.
+
+**Run**: `verify-mission-c`, the SA-6 site (`Kub 1S91 str` ×1 + `Kub 2P25 ln` ×2) — the same site as
+the 2026-08-22 observation. Get locked and stay in the engagement envelope.
+
+- **Fixed**: the launchers rise, stay up, and the site shoots.
+- **Not fixed**: they still alternate raise/retract without firing. On 2026-08-22 the period was
+  *"toutes les 10 secondes"*; if that cycling is back, note whether the 10 s runs **raise → raise** or
+  **raise → retraction**, because the PRD's mechanism predicts 5 s for the second one and the
+  difference tells us which constant is wrong.
+
+### R2. One airfield assigned must not disable the other 224
+
+Unblocks [`FIX-WAREHOUSES-INCREMENTAL`](.backlog/FIX-WAREHOUSES-INCREMENTAL/PRD.md) — implemented
+2026-08-16, never seen in game. Before the fix, `ensure_airports_populated` filled the airfield table
+only when it was **empty**, so the documented MCP workflow (assign one airfield, then build) shipped a
+mission with **1 airfield out of 225** usable.
+
+**Run**: a Syria mission, one airfield set blue and one red through the MCP, then
+`.\veaf-tools.exe mission build`. In game, try to spawn at a **third**, untouched airfield.
+
+- **Fixed**: the two named airfields carry their coalition and dynamic slots, *and* the untouched ones
+  are still usable — that second half is the whole point.
+- **Not fixed**: only the airfields you named have slots.
+
+The measured reference from the lot, for comparison: Deir ez-Zor BLUE / Palmyra RED both
+`dynamicSpawn = true` with 52 aircraft types, Nicosia untouched NEUTRAL with none.
+
+### R3. The airfields come back on a mission rebuilt from a current version
+
+Unblocks [`FIX-WAREHOUSES-LIST-FORM`](.backlog/FIX-WAREHOUSES-LIST-FORM/PRD.md) — every base turned
+neutral in a 6.14.2 build. Shipped in **6.15.0** (#756, published 2026-08-18); the lot has been waiting
+on Tripack rebuilding his mission ever since.
+
+Tripack is the reference case and that is his to run, but it does not have to wait for him: rebuilding
+any mission that has airfield ownership answers the same question.
+
+- **Fixed**: the airfields hold the coalition the mission declares.
+- **Not fixed**: they come out neutral, and 6.15.0 did not carry what we think it carried.
+
+### R4. The `100` (`SmallSizeFighter`) parking type
+
+Already written up at the end of this file — left there, it is a measurement rather than a gate.
+
+**Reminders for whatever mission you build for these**: `security.disabled: true` goes at the **root**
+of `mission.yaml`, not under `modules:` (a check that asks for a password cannot be run), and playable
+slots are `parking-cold` — never an air start.
+
+---
+
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)
 
 **Ground SAMs fire in 2.9.28.26385.** Measured twice on a bare map with no scripts whatsoever:

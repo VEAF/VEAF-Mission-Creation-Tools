@@ -1,5 +1,5 @@
 ---
-Status: 🔄 in-progress
+Status: ✅ done
 ---
 
 # DOC-CTLD-TOOLS-DOWNLOAD — the documentation never says where to get `ctld-tools`
@@ -41,7 +41,18 @@ Documentation, plus the wording of one log message. No behaviour change.
   pre-release trap, how to read the shipped CTLD version, and the Windows "Unblock" step.
 - `src/python/veaf-tools/veaf_libs/locales/{fr,en}.json`: `builder.ctld_no_config` gains the
   releases URL.
-- Version bump + both agent manifests, `CHANGELOG.md`.
+- `CHANGELOG.md`.
+
+**Correction, 2026-09-01:** this line originally read "Version bump + both agent manifests". It no
+longer applies — `CLAUDE.md` §9.5 forbids a PR from moving `pyproject.toml` or either plugin
+manifest, since two concurrent PRs then conflict by construction on files carrying no engineering
+content. A release commit moves all three together.
+
+| # | Ticket | Status |
+|---|--------|--------|
+| 01 | [Say where to get `ctld-tools`, and which one to take](tickets/01-guide-download-block.md) | ✅ |
+| 02 | [The builder's own message must not dead-end](tickets/02-builder-message-url.md) | ✅ |
+| 03 | ["The most recent one is at the top" points at a build that is not a release](tickets/03-dev-build-trap.md) | ✅ |
 
 Deliberately **not** in scope: hard-coding `2.0.0-rc7` into a documentation page. The pinned
 version lives in `vendored.yaml` and moves; the page teaches the reader where to read it
@@ -49,7 +60,33 @@ instead.
 
 ## Definition of done
 
-- Both language versions carry the same information, `poetry run docs-check` green.
-- A reader who has never installed CTLD can go from the guide to the downloaded executable
-  without guessing.
-- No mypy `ignore_errors` entry is reopened (no worker logic touched).
+- [x] Both language versions carry the same information, `poetry run docs-check` green.
+- [x] A reader who has never installed CTLD can go from the guide to the downloaded executable
+      without guessing.
+- [x] No mypy `ignore_errors` entry is reopened (no worker logic touched).
+
+## Closing note — the premises re-measured, and the one sentence that did not survive
+
+The four gaps above were measured on 2026-08-25 and closed by tickets 01 and 02. Closing the lot
+meant re-checking those premises against `VEAF/CTLD` rather than trusting the measurement, because
+the whole download procedure rests on them. Measured **2026-09-01**:
+
+| Premise | Verdict |
+|---|---|
+| `ctld-tools.exe` is a release asset of `VEAF/CTLD` | **holds** — 22.5 MB, attached to `published-v2.0.0-rc8` and to the `dev` build |
+| **Every** CTLD 2 release is a pre-release, so none is "Latest release" | **holds** — all 9 releases are pre-releases, and `GET /repos/VEAF/CTLD/releases/latest` answers **404** |
+| A "CTLD dev build" release exists, newer than the vendored engine | **holds** — tag `dev`, rebuilt 2026-08-26, newer than the pinned `2.0.0-rc7` |
+| The shipped version is readable in the installed `CTLD.lua` header | **holds** — `Version : 2.0.0-rc7`, matching `vendored.yaml` |
+
+Two things moved since 2026-08-25, neither of them invalidating the block:
+
+- the newest release is now `published-v2.0.0-rc8` (2026-08-26), not the rc7 the PRD cites. It is
+  **ahead of the pin**, which is precisely the case the version rule exists for: the reader takes
+  the one matching their engine, not the newest;
+- the `dev` build was republished, and that exposed a defect in our own wording — see ticket 03.
+  *"The most recent one is at the top of the list"* points at a rolling build whose body says
+  *"This is not a release"*, and it only missed the top spot on 2026-08-26 by three minutes. That
+  sentence is gone; the `published-v…` tag is now the discriminator.
+
+`vendored.yaml` is untouched: bumping the CTLD pin to rc8 is the drift watcher's business, not a
+documentation lot's.

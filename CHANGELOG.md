@@ -1064,6 +1064,40 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   wrote its new unit names into a field the spawner overwrites, and a combat mission wrote them into a
   field nothing reads.
 
+- **`veaf-logs` becomes readable at the ergonomics level too.** Five things the first real sessions
+  with it ran into, none of them a bug in what it does — all of them in the way of actually reading a
+  log.
+
+  **The text is now sizeable.** The font was `QFont("Cascadia Mono", 9)` written in three places with
+  the row height hardcoded to `18` to match, which made nine points on a 4K panel unchangeable. There
+  is one font now, pushed to every tab, and the row height follows the glyphs. Change it with the
+  `A−` / `A+` buttons, `Ctrl++` / `Ctrl+-`, `Ctrl`+wheel over the table, or **Affichage → Police…**
+  for another monospaced face; `Ctrl+0` restores it. The choice comes back with the next session.
+
+  **A long line can be read to its end.** The Message column was set to stretch, which defines it as
+  exactly the viewport and therefore forbids a horizontal scrollbar from ever appearing. It is now
+  sized on the longest message in the log — tracked during indexing, so no sampling and no width that
+  jumps as you scroll — and scrolls. Drag it by hand and your width is kept.
+
+  **The detail pane opens for any line.** It used to appear only for entries carrying a stack trace,
+  which were precisely the lines that were least truncated. It is a real text widget in a draggable
+  splitter now, so a forty-line traceback scrolls inside its own box instead of pushing the table off
+  screen. `Ctrl+I` closes it.
+
+  **A search result comes with its surroundings.** Context existed only for categories in the ◐ state;
+  a text search only ever narrowed. **Contexte de recherche** keeps ±N lines around each hit the way
+  `grep -C` does, with a shared value and a per-criterion `±` override, the widest span winning when
+  several criteria are active. It is **0 by default**, so no existing search or profile changes its
+  result. The part that needed care: a context line may not resurrect what the categories set to ✕ —
+  context widens the search, it does not undo a filter.
+
+  **Text can leave the tool.** There was no copy at all: `QTableView` ships no `Ctrl+C`, so the
+  shortcut was simply inert and a failing line could not be pasted into a ticket. Select a block of
+  lines and `Ctrl+C`; a copied entry brings its stack trace with it. Select characters inside the
+  detail pane and `Ctrl+C` copies just those — the window shortcut yields to the pane when the cursor
+  is in it, which a plain window-level action would not have done. Right-click also copies the message
+  without the DCS header.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

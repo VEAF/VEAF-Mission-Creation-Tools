@@ -31,7 +31,7 @@ _STATE_HINT = {
 
 
 class SearchBar(QWidget):
-    """Champ de recherche, choix du mode, inversion, sensibilite a la casse."""
+    """Champ de recherche, choix du mode, inversion, casse, contexte."""
 
     changed = Signal()
     add_requested = Signal()
@@ -64,6 +64,18 @@ class SearchBar(QWidget):
         self.case.setCheckable(True)
         self.case.setToolTip("Respecter la casse")
 
+        # Portee propre a ce critere. A zero, le champ affiche entre parentheses
+        # la valeur commune dont il herite, plutot que de rester muet.
+        self.context = QSpinBox()
+        self.context.setRange(0, 999)
+        self.context.setPrefix("±")
+        self.context.setMaximumWidth(72)
+        self.context.setToolTip(
+            "Lignes gardees de part et d'autre des resultats de cette recherche.\n"
+            "Entre parentheses : la valeur commune reglee dans le panneau lateral."
+        )
+        self.set_common_context(0)
+
         self.add = QPushButton("Ajouter au filtre")
         self.add.setToolTip("Cumuler ce critere avec les filtres deja actifs")
 
@@ -74,6 +86,7 @@ class SearchBar(QWidget):
         layout.addWidget(self.mode)
         layout.addWidget(self.invert)
         layout.addWidget(self.case)
+        layout.addWidget(self.context)
         layout.addWidget(self.add)
         layout.addWidget(self.error)
 
@@ -81,6 +94,7 @@ class SearchBar(QWidget):
         self.mode.currentIndexChanged.connect(self._on_changed)
         self.invert.toggled.connect(self._on_changed)
         self.case.toggled.connect(self._on_changed)
+        self.context.valueChanged.connect(self._on_changed)
         self.add.clicked.connect(self.add_requested)
 
     def current_filter(self) -> TextFilter:
@@ -89,7 +103,17 @@ class SearchBar(QWidget):
             mode=self.mode.currentData(),
             case_sensitive=self.case.isChecked(),
             invert=self.invert.isChecked(),
+            context_lines=self.context.value() or None,
         )
+
+    def set_common_context(self, lines: int) -> None:
+        """Montre la valeur commune la ou le champ n'en impose pas.
+
+        Passe par `specialValueText` et non par un suffixe : a zero, Qt remplace
+        tout l'affichage — prefixe et suffixe compris — par ce texte, donc un
+        suffixe y serait invisible.
+        """
+        self.context.setSpecialValueText(f"({lines})")
 
     def _on_changed(self) -> None:
         """Valide le motif avant de propager : une regex en cours de frappe est
@@ -301,7 +325,7 @@ class StateList(QGroupBox):
 
 
 class SidePanel(QScrollArea):
-    """Colonne de gauche : niveaux, sources, bruit ED, largeur du contexte."""
+    """Colonne de gauche : niveaux, sources, bruit ED, largeur des contextes."""
 
     changed = Signal()
 
@@ -319,18 +343,20 @@ class SidePanel(QScrollArea):
         legend.setStyleSheet("color:#8b949e; padding:2px;")
         layout.addWidget(legend)
 
-        context = QHBoxLayout()
-        context.addWidget(QLabel("Contexte commun : ±"))
-        self.context_lines = QSpinBox()
-        self.context_lines.setRange(0, 200)
-        self.context_lines.setSuffix(" lignes")
-        self.context_lines.setToolTip(
+        # Deux contextes distincts, nommes pour qu'on ne les confonde pas : les
+        # categories en ◐ d'un cote, les resultats de la recherche de l'autre.
+        self.context_lines = self._span_field(
+            layout,
+            "Contexte des categories : ±",
             "Nombre de lignes gardees de part et d'autre d'une ligne retenue,\n"
-            "pour les categories en mode contexte (◐)."
+            "pour les categories en mode contexte (◐).",
         )
-        context.addWidget(self.context_lines)
-        context.addStretch(1)
-        layout.addLayout(context)
+        self.search_context_lines = self._span_field(
+            layout,
+            "Contexte de recherche : ±",
+            "Nombre de lignes gardees autour de chaque resultat de recherche.\n"
+            "Elles restent soumises aux filtres : une ligne masquee le reste.",
+        )
 
         self.levels = StateList("Niveaux")
         self.sources = StateList("Sources")
@@ -341,7 +367,18 @@ class SidePanel(QScrollArea):
         layout.addStretch(1)
         self.setWidget(content)
 
-        self.context_lines.valueChanged.connect(self.changed)
+    def _span_field(self, layout: QVBoxLayout, label: str, hint: str) -> QSpinBox:
+        row = QHBoxLayout()
+        row.addWidget(QLabel(label))
+        spin = QSpinBox()
+        spin.setRange(0, 200)
+        spin.setSuffix(" lignes")
+        spin.setToolTip(hint)
+        spin.valueChanged.connect(self.changed)
+        row.addWidget(spin)
+        row.addStretch(1)
+        layout.addLayout(row)
+        return spin
 
     def refresh(self, model) -> None:
         """Met a jour les compteurs sans toucher aux etats choisis."""
@@ -377,9 +414,13 @@ class SidePanel(QScrollArea):
         for kind, widget in self._lists():
             widget.apply_states(getattr(filters, kind))
             widget.apply_spans(filters, kind)
-        self.context_lines.blockSignals(True)
-        self.context_lines.setValue(filters.context_lines)
-        self.context_lines.blockSignals(False)
+        for spin, value in (
+            (self.context_lines, filters.context_lines),
+            (self.search_context_lines, filters.search_context_lines),
+        ):
+            spin.blockSignals(True)
+            spin.setValue(value)
+            spin.blockSignals(False)
 
     def _lists(self):
         return (("levels", self.levels), ("sources", self.sources), ("noise", self.noise))
@@ -399,6 +440,7 @@ class SidePanel(QScrollArea):
             return merged
 
         filters.context_lines = self.context_lines.value()
+        filters.search_context_lines = self.search_context_lines.value()
         for kind, widget in self._lists():
             setattr(filters, kind, merge(getattr(filters, kind), widget.states(), widget.keys()))
             widget.collect_spans(filters, kind)

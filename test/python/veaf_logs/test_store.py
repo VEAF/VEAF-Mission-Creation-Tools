@@ -161,6 +161,49 @@ class TestCorrespondanceOffsets:
         assert store.index_at_offset(position) == 4
 
 
+class TestLargeurDuMessage:
+    """La colonne Message a besoin d'une largeur pour qu'un ascenseur existe.
+
+    La demander a Qt reviendrait a echantillonner un modele d'un million de
+    lignes ; l'index la connait deja, a une comparaison par ligne pres.
+    """
+
+    def test_plus_long_message(self, store):
+        attendu = max(len(store.entry(i).message) for i in range(len(store)))
+        assert store.max_message_length == attendu
+
+    def test_l_entete_dcs_n_est_pas_comptee(self, rules):
+        data = b"2026-08-31 11:00:00.000 INFO    APP (Main): court\n"
+        store = LogStore(rules, BytesBuffer(data))
+        store.index_new()
+        assert store.max_message_length == len("court")
+
+    def test_ligne_sans_entete_comptee_entiere(self, rules):
+        """Une ligne que DCS n'a pas prefixee est son propre message."""
+        store = LogStore(rules, BytesBuffer(b"une ligne brute sans en-tete\n"))
+        store.index_new()
+        assert store.max_message_length == len("une ligne brute sans en-tete")
+
+    def test_croit_avec_le_suivi(self, rules, journal_file):
+        store = LogStore(rules, FileBuffer(journal_file))
+        store.index_new()
+        avant = store.max_message_length
+        with open(journal_file, "ab") as handle:
+            handle.write(b"2026-08-31 12:00:00.000 ERROR   APP (Main): " + b"x" * 400 + b"\n")
+        store.index_new()
+        assert store.max_message_length == 400 > avant
+        store.buffer.close()
+
+    def test_remise_a_zero(self, store):
+        store.clear()
+        assert store.max_message_length == 0
+
+    def test_journal_vide(self, rules):
+        store = LogStore(rules, BytesBuffer(b""))
+        store.index_new()
+        assert store.max_message_length == 0
+
+
 class TestLimites:
     def test_trop_de_familles_de_bruit(self, rules):
         """Le masque binaire ne va pas au-dela de 64 familles."""

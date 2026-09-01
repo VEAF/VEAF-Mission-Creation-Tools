@@ -909,6 +909,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Documented on the ASSETS page in both languages; `linked` still has nothing to do with declaring an
   escort.
 
+- **Fixed — a wave or QRA spawn offset now moves where its name says (migration).** The
+  `[latDelta,lonDelta]` prefix, and the `setRespawnDefaultOffset(latitude, longitude)` setter behind
+  it, applied their two numbers to the wrong axes: the **first** moved the spawn east and the
+  **second** moved it south, with the northing subtracted on top — so a positive "latitude" offset
+  moved away from the pole. The same swap sat in all four call sites across `veafAirWaves` and
+  `veafQraCore`, and in the documented examples.
+
+  **This moves existing missions.** A mission that sets a non-zero offset — through the prefix or
+  through the setter — spawns somewhere else after this change, by up to twice the offset, and an
+  offset that had been tuned by eye against the old behaviour has to be rewritten the way it reads.
+  A mission that never sets one is unaffected: the shipped default is `[0, 0]`.
+
+  What settled the reading rather than a preference: the documented example `[-3000,0]`, annotated
+  *"3 km south"*, does that **only** under the corrected axes. Its companion, annotated *"5 km
+  north"*, was simply written with its numbers reversed — and was wrong under either reading. The
+  intent was never in doubt; the code was.
+
+  Guarded in two layers, because the four sites are not equally reachable: eight Lua cases assert the
+  direction per axis, and a source-level test refuses the wrong pairing anywhere in either module.
+  The second one earns its place — the DCS-group branch reaches its offset only when DCS fails to
+  return a group's units, and reverting that one site leaves all 45 Lua suites green.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

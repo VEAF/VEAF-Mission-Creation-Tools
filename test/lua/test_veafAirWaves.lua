@@ -1134,4 +1134,118 @@ function TestAirWavesCommandEasting:test_the_altitude_reaches_the_interpreter_in
   luaunit.assertEquals(position.z, 2000, "and the easting stays the easting")
 end
 
+--------------------------------------------------------------------------------------------------
+-- FIX-WAVE-OFFSET-AXES — `[latDelta,lonDelta]` must move north and east, not east and south
+--
+-- The offset was applied as `x = centre.x - lonDelta, z = centre.z + latDelta`. `x` is the northing
+-- and `z` the easting, so the **first** bracket number went east and the **second** went south:
+-- both parameters of the public `setRespawnDefaultOffset(defaultOffsetLatitude,
+-- defaultOffsetLongitude)` meant something other than their names, and a positive latitude offset
+-- moved *away* from the pole. The same swap sat in all four sites across this module and
+-- `veafQraCore`, so it was one decision copied, not a slip.
+--
+-- The documented examples were wrong too, and one of them settles the intent: `[-3000,0]` was
+-- annotated "3 km south", which is what it does *only* under the corrected reading. Whoever wrote
+-- that line meant latitude first.
+--
+-- Each axis is driven on its own with a distinct non-zero value, and the assertion names the
+-- direction rather than the field: `assertEquals(position.x, 1000 + 5000)` would pass just as well
+-- if a future edit swapped the two names again, but not if it swapped the two *axes*.
+--------------------------------------------------------------------------------------------------
+
+TestAirWavesOffsetAxes = {}
+
+local OFFSET_CENTRE = { x = 1000, y = 1500, z = 2000 }
+
+function TestAirWavesOffsetAxes:setUp()
+  dcs_mocks.reset()
+  self.deployed = {}
+  self._savedExecute = veafInterpreter and veafInterpreter.execute
+end
+
+function TestAirWavesOffsetAxes:tearDown()
+  if veafInterpreter then
+    veafInterpreter.execute = self._savedExecute
+  end
+end
+
+--- The position the interpreter is handed for a single `[latDelta,lonDelta]` command.
+---
+--- `respawnRadius` is set to zero on purpose: the draw around the spawn point is not what is under
+--- test here, and leaving the default 250 m would blur the very offset being measured.
+function TestAirWavesOffsetAxes:_positionFor(command)
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 0
+  z.waves = { {} }
+  z:setZoneCenter(OFFSET_CENTRE)
+  z:setRespawnRadius(0)
+  z.chooseGroupsToDeploy = function(_)
+    return { command }, nil
+  end
+  local positions = self.deployed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(_, position, _, _, _)
+    table.insert(positions, position)
+  end
+  z:deployWaves()
+  luaunit.assertEquals(#self.deployed, 1, "the command must have reached the interpreter exactly once")
+  return self.deployed[1]
+end
+
+function TestAirWavesOffsetAxes:test_a_positive_latitude_moves_north_and_nothing_else()
+  local position = self:_positionFor("[5000,0]-spawn su-27, country russia")
+
+  luaunit.assertEquals(position.x - OFFSET_CENTRE.x, 5000, "a positive latitude delta must move north")
+  luaunit.assertEquals(position.z - OFFSET_CENTRE.z, 0, "and must not touch the easting")
+end
+
+function TestAirWavesOffsetAxes:test_a_positive_longitude_moves_east_and_nothing_else()
+  local position = self:_positionFor("[0,3000]-spawn su-27, country russia")
+
+  luaunit.assertEquals(position.z - OFFSET_CENTRE.z, 3000, "a positive longitude delta must move east")
+  luaunit.assertEquals(position.x - OFFSET_CENTRE.x, 0, "and must not touch the northing")
+end
+
+function TestAirWavesOffsetAxes:test_the_documented_south_example_moves_south()
+  -- `[-3000,0]` is the documented example annotated "3 km south". It is the one line of the old
+  -- documentation that the correction makes true.
+  local position = self:_positionFor("[-3000,0]-spawn su-25, alt 100, country russia")
+
+  luaunit.assertEquals(position.x - OFFSET_CENTRE.x, -3000, "a negative latitude delta must move south")
+  luaunit.assertEquals(position.z - OFFSET_CENTRE.z, 0, "and must not drift west")
+end
+
+function TestAirWavesOffsetAxes:test_both_axes_at_once_do_not_cross()
+  -- Distinct magnitudes, so a swap cannot hide behind equal numbers.
+  local position = self:_positionFor("[4000,-7000]-spawn su-27, country russia")
+
+  luaunit.assertEquals(position.x - OFFSET_CENTRE.x, 4000, "the first number is the northing")
+  luaunit.assertEquals(position.z - OFFSET_CENTRE.z, -7000, "the second number is the easting")
+end
+
+function TestAirWavesOffsetAxes:test_the_default_offset_moves_the_same_way_as_a_prefix()
+  -- The setter is the public API, and it feeds the same two fields. A command with no prefix takes
+  -- the zone's default, so the two paths have to agree.
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 0
+  z.waves = { {} }
+  z:setZoneCenter(OFFSET_CENTRE)
+  z:setRespawnRadius(0)
+  z:setRespawnDefaultOffset(6000, -2000)
+  z.chooseGroupsToDeploy = function(_)
+    return { "-spawn su-27, country russia" }, nil
+  end
+  local positions = self.deployed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(_, position, _, _, _)
+    table.insert(positions, position)
+  end
+
+  z:deployWaves()
+
+  luaunit.assertEquals(#self.deployed, 1)
+  luaunit.assertEquals(self.deployed[1].x - OFFSET_CENTRE.x, 6000, "setRespawnDefaultOffset's first argument is the latitude")
+  luaunit.assertEquals(self.deployed[1].z - OFFSET_CENTRE.z, -2000, "and its second is the longitude")
+end
+
 os.exit(luaunit.LuaUnit.run())

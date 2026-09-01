@@ -1,6 +1,6 @@
 # 05 — Stop pulling pydantic into the migrator
 
-Status: ⬜ ready
+Status: ✅ done — shipped 2026-08-17 (PR #757); in-game acceptance tracked on the PRD
 
 Issue: [#725](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/725) (Sharko's closing
 note) · Type: refactor · File: `src/python/veaf-tools/veaf_libs/lua_config_generator.py`

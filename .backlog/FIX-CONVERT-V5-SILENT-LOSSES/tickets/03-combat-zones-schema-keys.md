@@ -1,6 +1,6 @@
 # 03 — Carry the missing `combat_zones:` keys
 
-Status: ⬜ ready
+Status: ✅ done — shipped 2026-08-17 (PR #757); in-game acceptance tracked on the PRD
 
 Issue: [#723](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/723) · Type: feat ·
 Files: `mission_builder/config_migrator.py` (`_parse_combat_zone`),

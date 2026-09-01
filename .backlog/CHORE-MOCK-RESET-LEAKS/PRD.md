@@ -112,4 +112,4 @@ starts from zero — and the counter is cleared centrally.
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| 01 | [Reset what leaks, justify what stays](tickets/01-reset-what-leaks.md) | chore | ✅ done |
+| 01 | [Reset what leaks, justify what stays](tickets/01-reset-what-leaks.md) | chore | ✅ |

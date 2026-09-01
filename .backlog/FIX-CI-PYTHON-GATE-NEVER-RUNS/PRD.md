@@ -1,5 +1,5 @@
 ---
-Status: ⬜ ready
+Status: ✅ done — shipped 2026-09-01 (PR #879), and proven on a live pull request: #880 touches one root `.md` and showed 7 checks with no `python-quality` before the rebase, 10 with it after
 ---
 
 # FIX-CI-PYTHON-GATE-NEVER-RUNS — the Python gate does not run for most of what its suite checks

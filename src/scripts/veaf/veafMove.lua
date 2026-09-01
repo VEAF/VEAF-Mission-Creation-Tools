@@ -698,6 +698,39 @@ function veafMove.findEscortTask(groupName_escort)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Puts a group's escort back where the Mission Editor drew it, alongside the group itself.
+--
+-- Repairing the Escort task is not enough on its own. A respawn recreates the asset at its mission
+-- start position while its escort keeps flying wherever the elapsed mission time has taken it, so
+-- the repaired task hands the escort a charge it cannot reach: measured in game on 2026-08-28,
+-- 78 km and 82 km on the demo mission's tanker minutes after a respawn, one escort already landed,
+-- against the Escort task's own `engagementDistMax` of 60 000 m read off the live task.
+--
+-- Nothing is positioned here: the escort comes back exactly where the editor put it, which is where
+-- its charge has just been put back too. That is what makes the pair whole again.
+--
+-- The guard is the escort's **mission record**, not a live group: an escort that was shot down is
+-- precisely the case a respawn is for, and `Group.getByName` answers nil for it. This is also why
+-- this call belongs before `reestablishEscortTask`, whose own guard *is* the live group -- the
+-- escort has to be back before the repair looks for it.
+--
+-- @param escorted_groupName, string, the group whose escort is to be put back
+-- @return boolean, true when an escort was respawned; false when this group has no escort
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.respawnEscort(escorted_groupName)
+  local groupName_escort = escorted_groupName .. veafMove.EscortGroupNameSuffix
+
+  if not veaf.getGroupRecord(groupName_escort) then
+    veaf.loggers.get(veafMove.Id):trace("respawnEscort: %s has no escort in the mission", escorted_groupName)
+    return false
+  end
+
+  veaf.loggers.get(veafMove.Id):debug("Respawning the escort %s alongside %s", groupName_escort, escorted_groupName)
+  VeafGroupSpawn:new():forGroup(groupName_escort):withRoute(veaf.getGroupRoute(groupName_escort)):respawn()
+  return true
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Repairs the Escort task of a group's escort after the escorted group has been recreated.
 --
 -- DCS destroys the link the moment the escorted group is recreated -- respawned or teleported -- and

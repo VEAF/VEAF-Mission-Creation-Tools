@@ -85,8 +85,20 @@ local function _mission(groups)
     data.name = name
     table.insert(planes, data)
   end
-  env.mission.coalition.blue.country = { [1] = { plane = { group = planes } } }
+  -- The country is named and numbered because a respawn needs it: `veafDcsSpawner.addGroup` refuses
+  -- a group whose country it cannot resolve, and the snapshot takes the id from here.
+  env.mission.coalition.blue.country = { [1] = { name = "USA", id = country.id.USA, plane = { group = planes } } }
   veafMissionDb.buildSnapshot()
+end
+
+--- Give a group data table the single unit a respawn needs.
+--- `VeafGroupSpawn` refuses to spawn a group with no units, and refuses again when a unit has no
+--- position, so a group meant to be put back needs both — the escort-task lookups above do not.
+-- @param data table  group data from one of the builders above
+-- @param unitName string  the unit's name, which DCS wants unique
+local function _withUnits(data, unitName)
+  data.units = { { name = unitName, unitId = 1, type = "F-15C", x = 1000, y = 2000, alt = 6000 } }
+  return data
 end
 
 --- Make `veaf.scheduleFunction` run its argument at once, so scheduled work is observable.
@@ -313,6 +325,101 @@ function TestVeafMoveReestablishEscortTask:test_the_id_is_read_after_the_delay_n
   local tasks = _tasksPushedToEscort()
   luaunit.assertNotNil(tasks)
   luaunit.assertEquals(tasks[1].params.groupId, 4242, "the id was read before the respawn")
+end
+
+-- ============================================================================
+-- FIX-ESCORT-RESPAWN-DISTANCE — the escort is put back with its charge
+--
+-- Repairing the Escort task is not enough. A respawn puts the asset back where the Mission Editor
+-- drew it while its escort keeps flying wherever the elapsed mission time has taken it: measured in
+-- game on 2026-08-28, ~80 km apart minutes after a respawn, against the Escort task's own
+-- `engagementDistMax` of 60 000 m read off the live task. The repaired task therefore pointed the
+-- escort at a charge outside its own engagement distance.
+--
+-- David's call, 2026-08-28: the escort respawns with its charge. Both halves are needed — putting
+-- the escort back does not restore the task, because what breaks the task is the *escorted* group's
+-- id changing.
+-- ============================================================================
+TestVeafMoveRespawnEscort = {}
+
+function TestVeafMoveRespawnEscort:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafMoveRespawnEscort:tearDown()
+  dcs_mocks.reset()
+end
+
+--- The names of the groups handed to `coalition.addGroup`, in submission order.
+local function _respawnedNames()
+  local names = {}
+  for _, entry in ipairs(dcs_mocks.groupsAdded) do
+    table.insert(names, entry.group.name)
+  end
+  return names
+end
+
+--- A tanker and its escort in the mission, both spawnable; `alive` also registers the escort as a
+--- live group, which is what `Group.getByName` answers.
+function TestVeafMoveRespawnEscort:_pair(alive)
+  _mission({
+    ["Arco"] = _withUnits(_groupData(11, nil), "Arco-1"),
+    ["Arco escort"] = _withUnits(_groupData(20, 11), "Arco escort-1"),
+  })
+  dcs_mocks.addGroup("Arco", { _id = 11 })
+  if alive then
+    dcs_mocks.addGroup("Arco escort", { _id = 20 })
+  end
+end
+
+function TestVeafMoveRespawnEscort:test_the_escort_is_put_back()
+  self:_pair(true)
+
+  luaunit.assertTrue(veafMove.respawnEscort("Arco"))
+
+  luaunit.assertEquals(_respawnedNames(), { "Arco escort" }, "the escort must actually reach DCS")
+end
+
+function TestVeafMoveRespawnEscort:test_the_escorted_group_is_not_respawned_here()
+  -- The asset is the caller's business, and it has to come back *first*: this function does one thing.
+  self:_pair(true)
+
+  veafMove.respawnEscort("Arco")
+
+  luaunit.assertEquals(_respawnedNames(), { "Arco escort" })
+end
+
+function TestVeafMoveRespawnEscort:test_the_escort_comes_back_with_its_escort_task()
+  -- The route is the editor's, Escort task included, so the repair that follows has a task to fix.
+  -- A bare group put back without its route would leave nothing for `reestablishEscortTask` to reach.
+  self:_pair(true)
+
+  veafMove.respawnEscort("Arco")
+
+  local submitted = dcs_mocks.groupsAdded[1].group
+  luaunit.assertNotNil(submitted.route, "the escort must be put back with a route")
+  local tasks = submitted.route.points[2].task.params.tasks
+  luaunit.assertEquals(tasks[1].id, "Escort")
+end
+
+function TestVeafMoveRespawnEscort:test_a_group_with_no_escort_respawns_nothing()
+  _mission({ ["Arco"] = _withUnits(_groupData(11, nil), "Arco-1") })
+  dcs_mocks.addGroup("Arco", { _id = 11 })
+
+  luaunit.assertFalse(veafMove.respawnEscort("Arco"))
+
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0, "an asset with no escort must be left alone")
+end
+
+function TestVeafMoveRespawnEscort:test_an_escort_that_is_no_longer_flying_is_still_put_back()
+  -- The guard is the **mission record**, not a live group. An escort that was shot down is precisely
+  -- what a respawn is for, and `Group.getByName` answers nil for it -- which is also why this call
+  -- has to come before `reestablishEscortTask`, whose own guard is the live group.
+  self:_pair(false)
+
+  luaunit.assertTrue(veafMove.respawnEscort("Arco"))
+
+  luaunit.assertEquals(_respawnedNames(), { "Arco escort" })
 end
 
 -- ============================================================================

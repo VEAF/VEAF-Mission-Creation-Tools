@@ -13,11 +13,12 @@ come first.
 
 ---
 
-## ⏱ RELEASE GATE — three fixes are shipped and nobody has ever seen them work
+## ⏱ RELEASE GATE — fixes that are shipped and nobody has ever seen work
 
-Added 2026-09-01, taking the inventory of open lots. Three lots sit at `🧑 waiting-human` with their
-**code already merged**: it will go out with the next release whether or not anyone looks at it. Two
-of them had no entry in this file at all, so the wait had nowhere to end.
+Added 2026-09-01, taking the inventory of open lots. Three lots (R1–R3) sit at `🧑 waiting-human` with
+their **code already merged**: it will go out with the next release whether or not anyone looks at it.
+Two of them had no entry in this file at all, so the wait had nowhere to end. Items are appended here
+as later lots land in the same state, so read the list rather than a count.
 
 Each item below states what to run, what to look at, and **what each of the two outcomes means** — a
 check that cannot come out negative proves nothing.
@@ -70,6 +71,32 @@ any mission that has airfield ownership answers the same question.
 ### R4. The `100` (`SmallSizeFighter`) parking type
 
 Already written up at the end of this file — left there, it is a measurement rather than a gate.
+
+### R5. A respawned tanker's escort must be *with* it, not 80 km away
+
+Unblocks [`FIX-ESCORT-RESPAWN-DISTANCE`](.backlog/FIX-ESCORT-RESPAWN-DISTANCE/PRD.md), whose only
+remaining box is this one. Repairing the Escort task was already shipped and already proven to run;
+what it could not fix is the distance. Measured on 2026-08-28, minutes after a respawn: **78 km and
+82 km** between the demo mission's tanker and its escorts, one of them already landed at 14 m —
+against the Escort task's own `engagementDistMax` of **60 km**. The escort is now respawned with its
+charge, and only then is the task repaired.
+
+**Run**: the session mission, **F10 → ASSETS → Respawn Arco**. Read the escorts' distance to Arco
+straight away — the same reading that produced the 78/82 km above.
+
+- **Fixed**: a few hundred metres, in formation. The escort was put back with its charge.
+- **Not fixed**: tens of kilometres, or an escort still sitting on a runway. That means the escort was
+  not respawned at all, which is a different defect from the one this lot closed.
+
+Then the second half, which is easy to skip and is where the risk actually is: **shoot one escort
+down**, then respawn its asset. It should come back *and* escort. This is the only path no unit test
+can cover — the mocked `coalition.addGroup` does not register the group it is handed, so nothing off
+DCS can show whether the freshly created escort is already findable by the repair that runs a few
+instructions later.
+
+Worth expecting, so it is not read as a regression: the escort that comes back is a **fresh** one, so
+one that was engaged or damaged is replaced. That is the accepted cost of the design call made on
+2026-08-28, not a bug.
 
 **Reminders for whatever mission you build for these**: `security.disabled: true` goes at the **root**
 of `mission.yaml`, not under `modules:` (a check that asks for a password cannot be run), and playable

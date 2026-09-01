@@ -882,6 +882,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and the shipped engine version is still readable in the header of
   `published/src/scripts/community/CTLD.lua`.
 
+- **Respawning an asset now brings its escort back with it.** Repairing the Escort task, shipped
+  earlier, was only half the story: a respawn recreates the asset where the Mission Editor drew it
+  while its escort keeps flying wherever the elapsed mission time has taken it. Measured in game on
+  2026-08-28 on the demo mission's tanker, minutes after a respawn from the F10 menu: **78 km and
+  82 km** between charge and escort, one escort already landed at 14 m — against an
+  `engagementDistMax` of **60 km** declared by the Escort task itself. The repair was working and
+  provably so, and it was handing the escort a charge outside its own engagement distance.
+
+  So the escort is put back too, and only then is the task repaired. Both halves are needed and
+  neither replaces the other: what breaks the task is the **escorted** group's id changing, not the
+  escort's. The order is the asset, then its escort, then the repair.
+
+  Two consequences worth knowing. The escort that comes back is a **fresh** one, so an escort that
+  was engaged, damaged or low on fuel is replaced exactly as the asset is — the price of a respawn
+  meaning "put this back the way it started". And an escort that was **shot down** now comes back as
+  well, because the escort is looked for in the mission rather than among the groups still flying.
+  Documented on the ASSETS page in both languages; `linked` still has nothing to do with declaring an
+  escort.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

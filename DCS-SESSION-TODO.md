@@ -259,6 +259,56 @@ kilometres from the zone. Never measured. Also worth knowing: `FIX-WAVE-OFFSET-A
 day and **moves any mission using a non-zero `[latDelta,lonDelta]` offset**, so a zone with an offset
 is the interesting one to trigger.
 
+### R8. Does a teleported escort hold formation — and does it engage?
+
+Gates [`FIX-TELEPORT-ESCORT-WAYPOINT`](.backlog/FIX-TELEPORT-ESCORT-WAYPOINT/PRD.md), which cannot be
+started without this. Nothing shipped depends on it: this morning's escort fix
+(`FIX-ESCORT-RESPAWN-DISTANCE`, #882) respawns the escort and repairs the task, and never touches the
+teleport path's waypoint arithmetic.
+
+**Why it needs measuring rather than reading.** The repository tells two stories. In the code, right
+after the call that is supposed to make the escort escort:
+
+```lua
+veafMove.replaceMission(unitGroup_escort, EscortData)
+--this method appears to not work very well, the escort just doesn't defend the group
+```
+
+And `FIX-ESCORT-RESPAWN-TASK`'s PRD says the opposite — *"works (escort held for 30 min)"* — and used
+this path as the reference the respawn path was ported from. **They are not actually contradictory**:
+an escort can fly formation for thirty minutes without ever engaging anything. Which is why this is
+**two** observables and not one.
+
+**Run**: on the session mission, drop a map marker somewhere clear and type
+
+```
+_move tanker, name Arco, teleport
+```
+
+Then watch two things, separately:
+
+1. **Formation** — does the escort end up with Arco and stay with it?
+2. **Engagement** — bring a threat to the pair (a `-spawn` fighter, or fly at them red) and does the
+   escort actually engage it?
+
+**What each answer means.** Four combinations, and they do not lead to the same repair:
+
+| Formation | Engages | What it means, and what the lot then does |
+|---|---|---|
+| yes | yes | the path works; the code comment is wrong and gets deleted, and the lot is only the waypoint arithmetic |
+| yes | **no** | **both notes are true** — the author was right about engagement, `RESPAWN-TASK` right about formation. The Escort task is being written to a waypoint that is not the one carrying it: the arithmetic *is* the defect, and finding 2 of the PRD is the whole fix |
+| no | yes | unexpected; record exactly what was seen before anyone theorises |
+| no | no | the path has never worked. The answer is probably to rebuild it on the respawn mechanism shipped in #882 rather than correct its waypoints — and the ASSETS / MOVE pages need updating |
+
+**The control that is already built into the mission**, worth using here too: one escort is named
+`Arco escort` (matching the `<asset name> .. " escort"` convention) and the other is deliberately left
+as `Arco-escort1`. So a run can tell a working repair from a silent no-op — only the first is ever
+found by name.
+
+**What to write down**: the mission, the date, and the two answers. Whichever of the two notes turns
+out wrong gets corrected in the code comment *and* in `FIX-ESCORT-RESPAWN-TASK`'s PRD — the point of
+this item is that the repository stops telling two stories.
+
 ### Reste de la session
 
 - **0b** — l'avertissement de dépréciation dans `dcs.log`, qui doit être **absent**.

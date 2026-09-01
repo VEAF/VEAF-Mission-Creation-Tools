@@ -1,6 +1,6 @@
 # FIX-TELEPORT-ESCORT-WAYPOINT — the teleport path still rewrites the wrong waypoints, and may not work at all
 
-Status: ⬜ ready — **blocked on a measurement in DCS**, which is David's to run
+Status: 🧑 waiting-human — **blocked on a measurement in DCS**, written up as item **R8** of `DCS-SESSION-TODO.md` (two observables, four possible answers, and they do not lead to the same repair)
 
 Origin: two things found while sizing option (b) of
 [`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md) on 2026-08-28, and ruled out

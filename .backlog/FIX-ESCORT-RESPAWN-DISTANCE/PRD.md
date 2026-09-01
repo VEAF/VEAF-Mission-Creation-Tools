@@ -1,6 +1,6 @@
 # FIX-ESCORT-RESPAWN-DISTANCE — a respawned asset reappears 80 km from its escort
 
-Status: 🔄 in-progress — option (a) **implemented and unit-tested**; only the in-game check is left
+Status: 🧑 waiting-human — option (a) **shipped 2026-09-01 (PR #882)** and unit-tested; the one thing left is item R5 of `DCS-SESSION-TODO.md`, which no unit test can answer (the mocked `coalition.addGroup` does not register the group it is handed)
 
 Origin: the in-game verification of [`FIX-ESCORT-RESPAWN-TASK`](../FIX-ESCORT-RESPAWN-TASK/PRD.md),
 run 2026-08-28 on `VEAF-session-2026-08-27`. That lot's repair is now proven to work; the escort

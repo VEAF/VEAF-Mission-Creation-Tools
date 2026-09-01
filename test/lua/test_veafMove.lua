@@ -454,14 +454,13 @@ function TestVeafMoveAdvanced:setUp()
   self._origSchedule = veaf.scheduleFunction
   self._origCountry = env.mission.coalition.blue.country
   self._origUnitsByName = veafMissionDb.unitsByName
+  self._origGroupsByName = veafMissionDb.groupsByName
+  self._origGroupsById = veafMissionDb.groupsById
 
   -- Execute scheduled functions synchronously (Lua 5.1: unpack, not table.unpack)
   veaf.scheduleFunction = function(fn, params, time)
     fn(unpack(params))
   end
-
-  -- KC-135 unit for findAllTankers inner loop
-  veafMissionDb.unitsByName = { ["KC135_TEST"] = { type = "KC-135", groupName = "TKR_GRP" } }
 
   -- Two tanker groups: one without Orbit task, one with.
   env.mission.coalition.blue.country = {
@@ -507,6 +506,14 @@ function TestVeafMoveAdvanced:setUp()
     },
   }
 
+  -- `veaf.getGroupData` answers out of the snapshot, not out of `env.mission`, so a test that plants
+  -- groups in the mission table has to reindex — writing the table alone leaves the lookup blind.
+  veafMissionDb.buildSnapshot()
+
+  -- KC-135 unit for findAllTankers inner loop. After the snapshot: buildSnapshot rebuilds unitsByName
+  -- from `env.mission`, which would drop this one.
+  veafMissionDb.unitsByName = { ["KC135_TEST"] = { type = "KC-135", groupName = "TKR_GRP" } }
+
   dcs_mocks.addGroup("TKR_NO_ORBIT", {})
   dcs_mocks.addGroup("TKR_WITH_ORBIT", {})
   for _, gname in ipairs({ "TKR_NO_ORBIT", "TKR_WITH_ORBIT" }) do
@@ -519,6 +526,8 @@ function TestVeafMoveAdvanced:tearDown()
   veaf.scheduleFunction = self._origSchedule
   env.mission.coalition.blue.country = self._origCountry
   veafMissionDb.unitsByName = self._origUnitsByName
+  veafMissionDb.groupsByName = self._origGroupsByName
+  veafMissionDb.groupsById = self._origGroupsById
   dcs_mocks.removeGroup("TKR_NO_ORBIT")
   dcs_mocks.removeGroup("TKR_WITH_ORBIT")
 end

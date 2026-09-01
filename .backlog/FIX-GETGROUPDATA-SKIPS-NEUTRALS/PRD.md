@@ -1,6 +1,6 @@
 # FIX-GETGROUPDATA-SKIPS-NEUTRALS — half the CAP templates are unreachable, and the error blames the wrong thing
 
-Status: ⬜ ready
+Status: ✅ done
 
 Found in game 2026-09-01: `-cap` and `-cap mig29` both failed with
 `spawnCombatAirPatrol: could not find a template for mig29`.
@@ -24,6 +24,19 @@ for coa_name, coa_data in pairs(env.mission.coalition) do
 
 **56 of 117 work.** All fourteen MiG-29 templates are neutral, which is why that name failed while
 others would have succeeded.
+
+### Confirmed in game, by the discriminating pair
+
+Same session, 2026-09-01: `-cap f15` **worked** while `-cap mig29` was refused.
+
+| Command | Templates | Coalition | Result |
+|---|---|---|---|
+| `-cap f15` | 4 | all **blue** | reached by `getGroupData` → spawned |
+| `-cap mig29` | 14 | all **neutrals** | never entered → `chosenTemplateData` nil → rejected |
+
+The name is matched in both cases; only the data read differs. That excludes the template table, the
+search pattern and the marker parser in one measurement — it is the `red or blue` filter and nothing
+else.
 
 ## Why the log accuses the wrong thing
 
@@ -65,18 +78,42 @@ and `findSpawnableAircraftGroupname`'s call to `veaf.getGroupData` from **2026-0
 `DROP-MIST`. The three functions on the lookup path are byte-identical between the 2026-08-28 build
 and today's, as are the 117 template groups, field by field.
 
+## Scope
+
+| # | Ticket | Type | Status |
+|---|--------|------|--------|
+| 01 | [Route `getGroupData` through the mission index](tickets/01-route-getgroupdata-through-the-index.md) | fix | ✅ |
+| 02 | [The CAP refusal must name the template it rejected](tickets/02-cap-refusal-names-the-template.md) | fix | ✅ |
+
 ## Definition of done
 
-- [ ] `veaf.getGroupData` finds a group whatever coalition holds it, neutral included
-- [ ] It goes through `veafMissionDb` rather than re-walking `env.mission` — one index, one answer
-- [ ] **Every other hand-rolled walk of `env.mission.coalition` enumerated** and either routed through
+- [x] `veaf.getGroupData` finds a group whatever coalition holds it, neutral included
+- [x] It goes through `veafMissionDb` rather than re-walking `env.mission` — one index, one answer
+- [x] **Every other hand-rolled walk of `env.mission.coalition` enumerated** and either routed through
       the index or shown to be correct; `veaf.lua:2435` was the only `red or blue` filter found, but
       that search was one pattern, not an enumeration
-- [ ] The error message names the template it rejected, not the string the user typed — a message
+- [x] The error message names the template it rejected, not the string the user typed — a message
       that states the wrong cause is worse than no message
-- [ ] A test drives a **neutral** group through `getGroupData`, and it fails before the fix
-- [ ] A test asserts the CAP error message contains the chosen template name
+- [x] A test drives a **neutral** group through `getGroupData`, and it fails before the fix
+- [x] A test asserts the CAP error message contains the chosen template name
+
+## What the enumeration found
+
+Three reads of `env.mission.coalition` in `src/scripts/veaf/`, no more: the walk that is fixed here,
+`buildSnapshot`'s own walk (no filter, correct, and now the only one), and `getBullseye`'s keyed
+read (no walk, correct). Full table in ticket 01.
+
+It also turned up **a second neutral defect one floor down**, inside the index this lot makes
+authoritative: the mission file spells the side `neutrals` and `coalition.side` spells it `NEUTRAL`,
+so every neutral record was indexed with `coalitionId = nil`. Fixed in ticket 01.
+
+And one **adjacent** site that is not an `env.mission` walk, left for David: `refreshDynamicSlots`
+sweeps `{ RED, BLUE }` of the runtime API and is the only coalition sweep in the module tree that
+omits `NEUTRAL`. Editor-declared neutral slots are already covered; whether DCS ever creates a
+*dynamic* neutral slot cannot be settled without the game.
 
 ## Worth checking in the same pass
 
 Whether anything else asks for `chosenTemplateData` and silently drops a template it had found.
+Checked: `findSpawnableAircraftGroupname` has two callers, and `spawnAFAC` reads the name only — see
+ticket 02.

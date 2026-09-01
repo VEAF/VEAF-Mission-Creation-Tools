@@ -164,3 +164,19 @@ Livré comme exécutable séparé, `veaf-logs.exe`. Sa dépendance Qt est option
 
 - Le script communautaire **Hercules Cargo**.
 - L'injection de **MiST** — voir l'encadré ci-dessus.
+
+---
+
+## Merci
+
+À **Paluche**, **Reaper** et **Angrydad** pour les idées apportées pendant la session de démo.
+Plusieurs d'entre elles ont orienté ce qui a été construit ici, et d'autres sont au programme.
+
+À **Tripack**, dont les retours sur les presets radio ont ouvert un chantier toujours en cours : les
+presets par défaut livrés avec l'outil ne couvrent pas encore tout ce qu'une mission demande. Ce n'est
+pas dans cette version, mais c'est en route.
+
+Et, comme pour la 6.17.0 : **la plupart des défauts corrigés ici ont été trouvés en vol, pas par les
+tests**. Une suite verte ne dit rien de ce qui se passe dans DCS — les correctifs de cette version
+ajoutent donc, chaque fois que c'est possible, un test sur ce qui branche le code, et pas seulement
+sur le code lui-même.

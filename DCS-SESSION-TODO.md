@@ -15,7 +15,7 @@ come first.
 
 ## ⏱ RELEASE GATE — fixes that are shipped and nobody has ever seen work
 
-Added 2026-09-01, taking the inventory of open lots. Three lots (R1–R3) sit at `🧑 waiting-human` with
+Added 2026-09-01, taking the inventory of open lots. Several lots sit at `🧑 waiting-human` with
 their **code already merged**: it will go out with the next release whether or not anyone looks at it.
 Two of them had no entry in this file at all, so the wait had nowhere to end. Items are appended here
 as later lots land in the same state, so read the list rather than a count.
@@ -242,6 +242,22 @@ deux côtés. Consigné dans
 **`TestMenuFR-fixed.miz`** corrige les trois défauts (drapeau, radio, midi), et **le slot a été pris en
 jeu le 2026-08-15** — *"le A-10 fonctionne"*. Le correctif est donc mesuré, pas supposé, et cette
 mission est celle à utiliser pour la suite de la session.
+
+### R6. A FARP escort on clear ground must not move
+
+Unblocks [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md)
+(shipped 2026-09-01) and item 04 of `FIX-PLACEMENT-IGNORES-SCENERY`. **Written up as item 25 at the
+end of this file** — three markers, and the point worth repeating here: *a run where nothing moves in
+any of the three is a failure, not a pass*. It would mean the fix turned tier 1 off.
+
+### R7. A wave — or a QRA — launched by a VEAF command lands in its zone
+
+Unblocks [`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md) (shipped
+2026-09-01, in two modules). **Written up in French at the very end of this file.** The position handed
+to the command carried no easting, which reads as zero — the theatre's central meridian, hundreds of
+kilometres from the zone. Never measured. Also worth knowing: `FIX-WAVE-OFFSET-AXES` shipped the same
+day and **moves any mission using a non-zero `[latDelta,lonDelta]` offset**, so a zone with an offset
+is the interesting one to trigger.
 
 ### Reste de la session
 

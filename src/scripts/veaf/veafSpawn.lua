@@ -11,12 +11,13 @@
 --
 -- See the documentation : https://veaf.github.io/documentation/
 --
--- This file is a proxy that loads the 5 sub-modules:
+-- This file is a proxy that loads the 6 sub-modules:
 --   veafSpawnCore.lua     (constants, event handling, drawing, group spawn, mission master)
 --   veafSpawnParser.lua   (text parser: convertLaserToFreq, markTextAnalysis)
 --   veafSpawnGround.lua   (FARP, FOB, infantry, armored, air defense, convoy)
 --   veafSpawnAircraft.lua (aircraft, CAP, AFAC, JTAC)
---   veafSpawnEffects.lua  (cargo, bomb, smoke, flares, destroy, teleport)
+--   veafSpawnObjects.lua  (cargo, logistic, static, teleport, destroy)
+--   veafSpawnEffects.lua  (bomb, smoke, signal flare, illumination flare)
 --
 -- In the concatenated build (veaf-scripts.lua) the sub-modules are already
 -- inlined before this file, so the dofile calls are skipped.
@@ -39,5 +40,6 @@ if not veafSpawn or not veafSpawn.Id then
   dofile(_dir .. "veafSpawnParser.lua")
   dofile(_dir .. "veafSpawnGround.lua")
   dofile(_dir .. "veafSpawnAircraft.lua")
+  dofile(_dir .. "veafSpawnObjects.lua")
   dofile(_dir .. "veafSpawnEffects.lua")
 end

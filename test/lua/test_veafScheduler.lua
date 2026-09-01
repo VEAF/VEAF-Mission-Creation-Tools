@@ -88,7 +88,7 @@ function TestVeafScheduler:test_noVarsIsAllowed()
   luaunit.assertTrue(ran)
 end
 
---- `{ pos, nil, nil, color }` is a real argument list in veafSpawnEffects: `#` is undefined on a
+--- `{ pos, nil, nil, color }` is a real argument list in veafSpawnObjects: `#` is undefined on a
 --- table with holes, so an adapter that uses it drops the trailing arguments silently.
 function TestVeafScheduler:test_argumentsWithHolesAreUnpackedInFull()
   local got = { n = -1 }

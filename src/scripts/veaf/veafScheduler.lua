@@ -44,7 +44,7 @@ veafScheduler.lastId = 0
 
 --- Number of positional slots in an argument table, holes included.
 ---
---- `{ position, nil, nil, color }` is a real call in `veafSpawnEffects`, and `#` is undefined on a
+--- `{ position, nil, nil, color }` is a real call in `veafSpawnObjects`, and `#` is undefined on a
 --- table with holes — it may answer 1 and silently drop the colour. Lua 5.1, which DCS runs, has
 --- `table.maxn` for exactly this; it was removed in 5.2, so a newer interpreter falls back to a
 --- scan of the numeric keys.

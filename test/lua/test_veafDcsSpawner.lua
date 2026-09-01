@@ -140,7 +140,7 @@ function TestVeafDcsSpawnerAddStatic:test_the_mist_wrapper_form_is_flattened()
 end
 
 function TestVeafDcsSpawnerAddStatic:test_a_static_with_no_heading_gets_a_random_one()
-  -- Nothing in veafSpawnEffects sets a heading. Defaulting to zero would line every cargo drop up on
+  -- Nothing in veafSpawnObjects sets a heading. Defaulting to zero would line every cargo drop up on
   -- the same axis — visible in game, invisible to a test that only checks the object exists.
   dcs_mocks.setRandomSequence({ 0.5 })
 

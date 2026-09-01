@@ -54,6 +54,7 @@ from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import enabled_module_config, find_undefined_lua_functions, generate_config_lua
 from veaf_libs.lua_i18n import load_runtime_catalog
 from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.lua_syntax import LuaSyntaxError
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_file
@@ -2466,7 +2467,23 @@ class MissionBuilderWorker(BaseWorker):
         image_keys = {entry.checklist_id: entry.resource_keys for entry in self.checklist_images}
 
         config_file = scripts_dir / "veaf-config.lua"
-        content = generate_config_lua(yaml_dict, checklists=checklists, checklist_images=image_keys)
+        # The generator checks its own output before handing it over. DCS refuses a
+        # `veaf-config.lua` that does not parse *as a whole*, so one malformed value
+        # means no VEAF module initialises at all — and the only trace is in `dcs.log`,
+        # after the mission has been loaded. Stop here instead of shipping it.
+        try:
+            content = generate_config_lua(yaml_dict, checklists=checklists, checklist_images=image_keys)
+        except LuaSyntaxError as exc:
+            logger.error(
+                t(
+                    "builder.generated_config_not_valid_lua",
+                    line=exc.line,
+                    reason=exc.reason,
+                    source=exc.source_line,
+                ),
+                exception_type=RuntimeError,
+            )
+            raise  # pragma: no cover - logger.error aborts first; keeps mypy honest
         config_file.write_text(content, encoding="utf-8")
         logger.info(t("builder.veaf_config_generated", file=config_file))
 

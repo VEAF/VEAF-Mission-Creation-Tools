@@ -1,6 +1,6 @@
 # FIX-TELEPORT-ESCORT-WAYPOINT — the teleport path still rewrites the wrong waypoints, and may not work at all
 
-Status: 🧑 waiting-human — **blocked on a measurement in DCS**, written up as item **R8** of `DCS-SESSION-TODO.md` (two observables, four possible answers, and they do not lead to the same repair)
+Status: ⬜ ready — **finding 1 is answered** (measured in game 2026-09-01: the teleported escort holds formation *and* engages, so the path works and the code comment claiming otherwise is gone). What is left is finding 2, the waypoint arithmetic, and it no longer waits on anything.
 
 Origin: two things found while sizing option (b) of
 [`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md) on 2026-08-28, and ruled out

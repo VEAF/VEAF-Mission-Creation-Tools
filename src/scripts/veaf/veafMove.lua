@@ -882,7 +882,15 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
   end
 
   veafMove.replaceMission(unitGroup_escort, EscortData)
-  --this method appears to not work very well, the escort just doesn't defend the group
+  -- Measured in game on 2026-09-01, on the session mission's Arco: the teleported escort holds
+  -- formation **and** engages. The note that stood here — "this method appears to not work very well,
+  -- the escort just doesn't defend the group" — is wrong, and it had been contradicting
+  -- FIX-ESCORT-RESPAWN-TASK's own PRD ("works, escort held for 30 min") for long enough that the
+  -- repository told two stories about the same path. It tells one now.
+  --
+  -- What is still open is FIX-TELEPORT-ESCORT-WAYPOINT's second finding: the rewrite below assumes
+  -- the Escort task sits on the LAST waypoint, while `findEscortTask` was taught to search every
+  -- waypoint because the demo mission puts it on waypoint 2 of 3.
 
   --veaf.goRoute(groupName_escort, route_escort)
   --works even worse, sends them to X=0, Z=0

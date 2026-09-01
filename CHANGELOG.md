@@ -17,6 +17,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`veaf-logs.exe` was missing from the release page everyone actually opens.** The release workflow
+  uploaded it to the versioned release (`published-v6.18.0`) and stopped there, while GitHub points
+  every visitor — and every download link — at the floating `published-latest`. The tool shipped with
+  6.18.0 and was unreachable: 10 assets on the versioned release, 9 on the one people see.
+
+  The map-capture kit and the cross-platform binaries already mirrored onto `published-latest`, each
+  with a guard so a release candidate never overwrites what production users download. The veaf-logs
+  step was written later and never got the same treatment; it does now.
+
+  6.18.0 itself was repaired by hand, so the asset is downloadable from the Latest release without
+  waiting for the next version. The new test sweeps **every** asset the workflow uploads rather than
+  checking veaf-logs alone, so the next one added cannot repeat this.
+
 ## [6.18.0] — 2026-09-01
 
 ### Added

@@ -309,6 +309,39 @@ found by name.
 out wrong gets corrected in the code comment *and* in `FIX-ESCORT-RESPAWN-TASK`'s PRD — the point of
 this item is that the repository stops telling two stories.
 
+### R9. Does DCS lift an aircraft spawned too low, or let it die there?
+
+Unblocks [`FIX-AIR-SPAWN-ALTITUDE-GUARD`](.backlog/FIX-AIR-SPAWN-ALTITUDE-GUARD/PRD.md) ticket 02, and
+it is a **question about DCS**, not a check of a fix — nothing to rebuild, and no VEAF script is under
+suspicion. It is the only thing standing between the lot and closure.
+
+What is established without the game: `veafUnits.checkPositionForUnit`'s rule *"an aircraft will not
+spawn below 10 m"* read `spawnPosition.z`, the **easting**, so it had never refused anything anywhere a
+mission is flown. It now reads the altitude and refuses a point **under the terrain** — that much is
+right whatever the answer here.
+
+What it cannot say: whether merely *not being underground* is enough. The author of the line wrote 10 m,
+and the MiST-derived spawner in our own scripts applies exactly that margin and, when a requested
+altitude does not clear it, **lifts** the aircraft into an altitude band instead of refusing it. So MiST
+did not trust DCS to clamp. If DCS does clamp, that machinery is unnecessary here and the lot closes as
+a non-finding.
+
+**Run**: spawn an aircraft group at an explicit low altitude over flat ground — `_spawn group` with an
+`alt` of a couple of metres is the shortest route, and a bare `-spawn` of an air group with no `alt` at
+all is the same case (the altitude then comes out as the ground height). Watch the F10 map and the
+aircraft itself.
+
+- **DCS clamps**: the aircraft appears flying, at some altitude of the game's choosing. Then form A —
+  what shipped — is the complete answer, and ticket 02 closes.
+- **DCS does not clamp**: the aircraft appears at ground level and crashes, or is destroyed on spawn.
+  Then a clearance margin is needed, and the useful detail is *what* happened — an explosion, a landed
+  aircraft, or a group that never appears — because it decides whether refusing is acceptable or whether
+  the caller has to lift it the way `veafDcsSpawner` does.
+
+Worth noting either way: **an aircraft placed as a static must still work on the coast.** A static sits
+at 1 m over water and at sea level, so if `_spawn unit, name <aircraft>, static` on a beach ever reports
+*"cannot find a suitable position"*, that is this lot's regression and it should be said plainly.
+
 ### Reste de la session
 
 - **0b** — l'avertissement de dépréciation dans `dcs.log`, qui doit être **absent**.

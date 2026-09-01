@@ -63,10 +63,15 @@ This is the common case rather than an edge one: you place a static FARP in the 
 unlocks spawning on it once the zone is captured), then run `-farp` on top of it. Before, the escort
 came down on its pads — close enough that a helicopter landing there met a truck.
 
-Three things worth knowing:
+Four things worth knowing:
 
 - **A FARP with clear ground does not move.** The original bearing is tried first, so a mission that
   works keeps its layout exactly.
+- **Forests are avoided too**, on top of units, statics and pads: DCS cannot answer *"is this spot
+  clear?"* for trees, so the module asks it for a list of tree-free spots and picks from that list. The
+  promise above still holds: when the spot you asked for lies in the same clearing as the nearest
+  tree-free spot, it is kept as is — until this fix the escort was moved a few dozen metres even in open
+  countryside.
 - The whole group is checked, not just its first vehicle: the escort occupies a line some thirty metres
   long, and a clear spot whose tail overhangs would still block a pad.
 - If no bearing is clear, the FARP is built anyway, at its original position. A FARP refusing to exist

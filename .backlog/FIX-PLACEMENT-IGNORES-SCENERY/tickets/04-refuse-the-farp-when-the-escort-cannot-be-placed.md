@@ -92,6 +92,13 @@ Two caveats worth carrying, neither of which changes that conclusion:
   ([`veafGrass.lua:439`](../../../src/scripts/veaf/veafGrass.lua)), so it is invisible in a normal
   `info`-level log. `T4-FORET` fell through to the bearing walk with no line saying why. Anyone
   re-running this needs `veafGrass.LogLevel = "debug"`, or that line has to move to info.
+  **Done 2026-09-01 by `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`: it logs at info, no debug level needed.**
+
+**What `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` changes for this ticket** (opened out of the `T1-DEGAGE`
+finding below, delivered 2026-09-01): the exhaustion figure above still stands and does not need
+re-running — the new guard only adds an earlier way to *accept* a bearing, so a case that did not exhaust
+before cannot start exhausting now. What it does change is the `T1-DEGAGE` row: that escort should no
+longer move at all, which is the half of this ticket's definition of done that was unprovable.
 
 ## What the measurement also revealed, and what it does to this ticket's non-regression
 
@@ -111,9 +118,10 @@ this ticket adds, so it cannot be proven as written until the tier-1 behaviour i
 
 The fix is not to test the requested bearing first: `allClear` cannot see forests, so that would put
 escorts back in the trees. The tenable route is the `gap` tier 1 already computes — if the closest cloud
-candidate is within `PLACEMENT_CLEARANCE` of the wanted spot, keep the wanted spot. **Not decided, and
-not in scope here**; raised with David 2026-08-28 and awaiting his call on whether it is a lot of its own
-or an item of this one.
+candidate is within `PLACEMENT_CLEARANCE` of the wanted spot, keep the wanted spot. ~~**Not decided, and
+not in scope here**~~ — David's call the same day: **a lot of its own**,
+[`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](../../FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md), which
+implemented exactly that route on 2026-09-01 and is waiting on its own in-game proof.
 
 ## The threshold question ticket 03 must answer first
 

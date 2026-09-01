@@ -951,6 +951,29 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   now has a test of its own: the sub-modules are enumerated from disk, and a file the proxy does not
   load, a file it loads that no longer exists, or an order that diverges from the bundle each fail.
 
+- **Changed — six places asked DCS the same question about the ground; now one does.** Whether a point
+  is water decided five spawn placements and whether a downed pilot is reachable at all, and each site
+  read `land.getSurfaceType` itself: `veafUnits.checkPositionForUnit`, the spawn-point search, the CSAR
+  survivor placement, `veaf.findPointInZone`, `veafSanctuary`, and the `mist.isTerrainValid` port added
+  during DROP-MIST. None of them called another. They now share one predicate and three named surface
+  lists, and `land.getSurfaceType` appears exactly once in the shipped scripts.
+
+  **No spawn moves.** Each site's answer was written down first — one sweep per site, enumerated over
+  every surface DCS can report rather than sampled — and those sweeps were green against the unchanged
+  code before anything was rerouted, then green again after. Four separate sabotages of the shared
+  predicate were checked to turn them red, so the safety net is known to work rather than assumed to.
+
+  **One real defect fixed on the way.** `veafSanctuary` decided between spawning warships and spawning a
+  SAM site on `surfaceType == 2 or surfaceType == 3` — the numbers `land.SurfaceType` happens to give
+  shallow water and water today. Nothing pins those values: renumbered upstream, a sanctuary would have
+  answered a speedboat with a Patriot and raised no error anywhere. It now names the constants, proven by
+  a test that renumbers them and still expects ships.
+
+  The surfaces themselves are unchanged, including the two asymmetries that make this area confusing and
+  that a careless unification would have flattened: shallow water counts as **dry ground** for a vehicle
+  and for a downed pilot (a survivor wading off a beach is rescuable), and **not wet enough** for a ship
+  placed by `findPointInZone`.
+
 ## [6.17.0] — 2026-08-26
 
 **Released.** This version consolidates the ten patch versions from **6.16.1 to 6.16.10**, whose detailed

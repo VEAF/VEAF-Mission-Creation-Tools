@@ -1,6 +1,8 @@
 # CHORE-ONE-TERRAIN-CHECK — six places ask DCS the same question about the ground
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-01. One predicate in `veaf.lua`, three named surface lists, and
+`land.getSurfaceType` now appears exactly once in `src/scripts/veaf/`. Every answer verified unchanged
+by sweeps written first; see *What implementation found that this document did not say*.
 
 Origin: David, 2026-08-28, on the `DROP-MIST` ticket 07 port of `mist.isTerrainValid` — *"on a déjà des
 trucs pour ça dans notre code, non ?"*. Yes: five of them, and the port made a sixth.
@@ -67,10 +69,53 @@ wrong once. Each site keeps its current answer, asserted by a test **before** th
 deduplication into it would make a regression indistinguishable from a porting mistake. That is the
 same reason `FIX-AIRWAVES-COMMAND-EASTING` was left out of the geometry port.
 
+## Scope
+
+| # | Ticket | Risk | Status |
+|---|---|---|---|
+| 01 | Pin today's answer at all six sites, before anything is rerouted | none — tests only, green against the unchanged code | ✅ |
+| 02 | One predicate, in `veaf.lua`, and five sites routed through it | medium — five of the six decide placement; guarded by ticket 01 | ✅ |
+| 03 | `veafSanctuary` stops comparing raw surface numbers | low — same verdict, proven by a renumbering test | ✅ |
+
 ## Definition of done
 
-- [ ] One predicate, and no module reads `land.getSurfaceType` directly except it
-- [ ] `checkPositionForUnit` keeps its signature and its rule; its callers are untouched
-- [ ] `veafSanctuary` names its constants
-- [ ] A test per site asserting today's answer, written **before** the rerouting
-- [ ] `stylua --check` and `luacheck` clean
+- [x] One predicate, and no module reads `land.getSurfaceType` directly except it
+- [x] `checkPositionForUnit` keeps its signature and its rule; its callers are untouched
+- [x] `veafSanctuary` names its constants
+- [x] A test per site asserting today's answer, written **before** the rerouting
+- [x] `stylua --check` clean; `luacheck` left to CI (no Windows binary on this machine)
+
+## What implementation found that this document did not say
+
+Written down rather than folded in silently: this PRD is dated 2026-08-28 and `DROP-MIST` closed on
+2026-08-31 in between.
+
+**1. `veaf.isTerrainValid` already existed — in the wrong place.** `veafDcsSpawner.lua` ended with
+`veaf.isTerrainValid = veafDcsSpawner.isTerrainValid`, a façade assignment made *after* `veaf.lua` has
+loaded. Three of the six sites live in `veaf.lua`, and `test_veaf.lua` loads nothing else, so the name
+was unreachable from exactly the sites that needed it. The body moved into `veaf.lua`; `veafDcsSpawner`
+now borrows the name instead of owning it, and the façade line is gone.
+
+**2. `findPointInZone` cannot call `terrainForCategory`, and doing so would have moved a spawn.**
+`veafDcsSpawner.terrainForCategory("ship")` answers `{ SHALLOW_WATER, WATER }`; `findPointInZone`
+accepts `WATER` alone for a ship. The move described above would therefore have let a ship draw a
+shallow-water point that is refused today — the precise thing *What this must not do* forbids. Only its
+ground half is genuinely the shared list (`veaf.DRIVABLE_TERRAIN`); its ship half keeps `veaf.OPEN_WATER`.
+
+**3. "Five of the six answer *not water*, with shallow water counted as dry" is wrong about
+`veafSanctuary`.** It counts shallow water as **water** (`== 2 or == 3`), the opposite of the CSAR
+decision, and it is right to: a sanctuary over the shallows wants ships. There are two pure "not water"
+sites, not three — `acceptableGroundPoint` and `resolveCsarSurvivorPoint` — plus the ground branch of
+`checkPositionForUnit`, which is inside the site this document says keeps its own rule. Hence three
+named lists rather than one.
+
+**4. `veaf.findPointInZone` had no test whatsoever** before ticket 01. It is called from four modules.
+
+**5. Found in passing, deliberately not fixed: `checkPositionForUnit`'s aircraft rule reads the
+easting.** Two lines above, `spawnPosition.z` is used as the easting to query the surface; the height
+test then reads the same field as an altitude (`spawnPosition.z <= 10`). Every caller hands in a
+`veaf.placePointOnLand` result, whose height is in `y` — `veafSpawnAircraft` even writes
+`spawnSpot.y = alt` just before calling. So *"an aircraft wants more than 10 m"* actually tests whether
+the spawn point is more than 10 m east of the theatre's origin, and no error is raised either way
+(`docs/agents/dcs-coordinates.md`). This lot is forbidden from moving any of these answers, so the
+behaviour is pinned by a test that says what it does, and the defect is left for its own ticket.

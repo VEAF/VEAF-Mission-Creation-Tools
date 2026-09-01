@@ -499,6 +499,96 @@ function TestSanctuaryDeployDefensesHandover:test_water_and_land_both_deploy()
   luaunit.assertEquals(#self:_deploy(1, 0), 2, "land, first wave")
 end
 
+-- ---------------------------------------------------------------------------
+-- CHORE-ONE-TERRAIN-CHECK — which defences the surface picks
+--
+-- `deployDefenses` chose between a ship and a SAM on `surfaceType == 2 or surfaceType == 3`. That is
+-- right today, for a reason nothing in the code holds: 2 and 3 are the numbers `land.SurfaceType`
+-- happens to give SHALLOW_WATER and WATER. This is the one entry of the six that was a latent defect
+-- rather than a duplication — renumber those values upstream and a sanctuary answers a speedboat with a
+-- Patriot, with no error anywhere.
+--
+-- So the verdict is asserted twice: once through the surface names, and once with the numbers moved.
+-- The second test is the one that cannot pass while the comparison is written as raw numbers.
+-- ---------------------------------------------------------------------------
+TestSanctuaryDeployDefensesSurface = {}
+
+function TestSanctuaryDeployDefensesSurface:setUp()
+  self.calls = {}
+  self._shortcuts = veafShortcuts
+  self._surface = land.getSurfaceType
+  self._surfaceTypes = land.SurfaceType
+  local test = self
+  veafShortcuts = {
+    ExecuteAlias = function(aliasName)
+      table.insert(test.calls, aliasName)
+    end,
+  }
+
+  self.zone = VeafSanctuaryZone:new()
+  self.zone:setName("Test Sanctuary")
+  self.zone:setCoalition(2) -- blue: ships are -burke / -ticonderoga, SAMs are -roland / -patriot
+
+  self.unit = {
+    getVelocity = function()
+      return { x = 10, y = 0, z = 10 }
+    end,
+    getPosition = function()
+      return { p = { x = 0, y = 0, z = 0 }, x = { x = math.cos(math.pi / 2), y = 0, z = math.sin(math.pi / 2) } }
+    end,
+  }
+end
+
+function TestSanctuaryDeployDefensesSurface:tearDown()
+  veafShortcuts = self._shortcuts
+  land.getSurfaceType = self._surface
+  land.SurfaceType = self._surfaceTypes
+end
+
+--- Deploys over a zone made entirely of `surfaceValue`, and returns the aliases that were spawned.
+function TestSanctuaryDeployDefensesSurface:_aliasesOver(surfaceValue)
+  self.calls = {}
+  land.getSurfaceType = function()
+    return surfaceValue
+  end
+  self.zone:deployDefenses({ x = 1000, y = 0, z = 2000 }, self.unit, 0)
+  return self.calls
+end
+
+function TestSanctuaryDeployDefensesSurface:test_water_and_shallow_water_both_get_ships()
+  for _, name in ipairs({ "WATER", "SHALLOW_WATER" }) do
+    local aliases = self:_aliasesOver(land.SurfaceType[name])
+    luaunit.assertEquals(aliases, { "-burke", "-burke" }, name .. " must be defended by ships")
+  end
+end
+
+function TestSanctuaryDeployDefensesSurface:test_land_road_and_runway_all_get_sams()
+  for _, name in ipairs({ "LAND", "ROAD", "RUNWAY" }) do
+    local aliases = self:_aliasesOver(land.SurfaceType[name])
+    luaunit.assertEquals(aliases, { "-roland", "-roland" }, name .. " must be defended by SAMs")
+  end
+end
+
+function TestSanctuaryDeployDefensesSurface:test_the_choice_survives_a_renumbering_of_land_SurfaceType()
+  -- The proof that naming the constants buys something. `land.SurfaceType` is DCS's table, not ours;
+  -- this test moves its values and asks the same questions. Raw `== 2 or == 3` answers "land" for a
+  -- renumbered WATER and puts a Patriot to sea.
+  land.SurfaceType = { LAND = 11, SHALLOW_WATER = 12, WATER = 13, ROAD = 14, RUNWAY = 15 }
+
+  luaunit.assertEquals(self:_aliasesOver(13), { "-burke", "-burke" }, "renumbered WATER is still water")
+  luaunit.assertEquals(self:_aliasesOver(12), { "-burke", "-burke" }, "renumbered SHALLOW_WATER is still water")
+  luaunit.assertEquals(self:_aliasesOver(11), { "-roland", "-roland" }, "renumbered LAND is still land")
+end
+
+function TestSanctuaryDeployDefensesSurface:test_the_harder_wave_follows_the_same_verdict()
+  self.calls = {}
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+  self.zone:deployDefenses({ x = 1000, y = 0, z = 2000 }, self.unit, veafSanctuary.HARDER_DEFENSES_AFTER + 1)
+  luaunit.assertEquals(self.calls, { "-burke", "-burke", "-ticonderoga", "-ticonderoga" })
+end
+
 function TestSanctuaryDeployDefensesHandover:test_the_harder_wave_is_handed_over_correctly_too()
   -- Four more calls, in a separate block that was shifted the same way.
   local calls = self:_deploy(2, veafSanctuary.HARDER_DEFENSES_AFTER + 1)

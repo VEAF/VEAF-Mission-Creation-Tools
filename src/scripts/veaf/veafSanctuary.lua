@@ -431,9 +431,13 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
     end
 
     local spawnedGroupsNames = {}
-    local surfaceType = land.getSurfaceType(veaf.makeVec2(position))
-    veaf.loggers.get(veafSanctuary.Id):trace(string.format("surfaceType=%s", veaf.p(surfaceType)))
-    if surfaceType == 2 or surfaceType == 3 then
+    -- This used to read `surfaceType == 2 or surfaceType == 3`, which is shallow water or water *today*:
+    -- `land.SurfaceType` is DCS's table and nothing pins its values, so a renumbering upstream would have
+    -- answered a speedboat with a Patriot and raised nothing (CHORE-ONE-TERRAIN-CHECK). Same verdict,
+    -- named.
+    local isOverWater = veaf.isTerrainValid(veaf.makeVec2(position), veaf.WATER_TERRAIN)
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("isOverWater=%s", veaf.p(isOverWater)))
+    if isOverWater then
       -- this is water
       veafShortcuts.ExecuteAlias(
         ship1,
@@ -486,7 +490,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
     self:addSpawnedGroups(spawnedGroupsNames)
     veaf.loggers.get(veafSanctuary.Id):trace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
     if timeInZone > veafSanctuary.HARDER_DEFENSES_AFTER then
-      if surfaceType == 2 or surfaceType == 3 then
+      if isOverWater then
         -- this is water
         veafShortcuts.ExecuteAlias(
           ship2,

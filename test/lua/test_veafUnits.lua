@@ -271,6 +271,85 @@ function TestVeafUnitsCheckPositionForUnit:test_air_unit_at_high_alt_returns_tru
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafUnitsCheckPositionForUnitSurfaces
+-- ---------------------------------------------------------------------------
+-- CHORE-ONE-TERRAIN-CHECK — the verdict this site gives **today**, surface by surface, pinned before
+-- the six duplicated terrain checks were routed through one predicate.
+--
+-- Enumerated from `land.SurfaceType` rather than sampled, because the two directions do not mirror each
+-- other: SHALLOW_WATER is dry enough for a tank and not wet enough for a ship. A unification that
+-- reached for one "wet" list would flip one of the two without any error anywhere.
+--
+-- The aircraft rule is asserted as it stands, not as it reads. `spawnPosition.z` is the **easting** two
+-- lines above, where the surface is queried; the height test reads the same field as an altitude. Every
+-- caller hands in a `veaf.placePointOnLand` result, whose height is in `y`. That is a separate defect
+-- and CHORE-ONE-TERRAIN-CHECK is explicitly forbidden from moving any of these answers, so it is
+-- recorded here rather than fixed.
+TestVeafUnitsCheckPositionForUnitSurfaces = {}
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:setUp()
+  self._surface = land.getSurfaceType
+  self._navalStatics = dcsUnits.NavalStatics
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:tearDown()
+  land.getSurfaceType = self._surface
+  dcsUnits.NavalStatics = self._navalStatics
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:_surfaceIs(name)
+  land.getSurfaceType = function()
+    return land.SurfaceType[name]
+  end
+end
+
+--- Asks the question once per surface DCS knows about, and checks each answer against `expected`.
+function TestVeafUnitsCheckPositionForUnitSurfaces:_sweep(unit, expected)
+  for _, name in ipairs({ "LAND", "SHALLOW_WATER", "WATER", "ROAD", "RUNWAY" }) do
+    self:_surfaceIs(name)
+    luaunit.assertEquals(veafUnits.checkPositionForUnit({ x = 0, y = 0, z = 100 }, unit), expected[name], name)
+  end
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_a_ground_unit_stands_on_everything_but_open_water()
+  self:_sweep({ vehicle = true }, { LAND = true, SHALLOW_WATER = true, WATER = false, ROAD = true, RUNWAY = true })
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_a_naval_unit_wants_open_water_and_shallow_water_will_not_do()
+  self:_sweep({ naval = true }, { LAND = false, SHALLOW_WATER = false, WATER = true, ROAD = false, RUNWAY = false })
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_an_offshore_static_follows_the_naval_rule()
+  -- A set keyed by type name, the shape `veaf_build/dcs_data/units_lua.py` renders and the one
+  -- `veaf.findInTable` needs — it is a `data[key]` lookup, not a list scan.
+  dcsUnits.NavalStatics = { ["Oil platform"] = true }
+  self:_sweep(
+    { static = true, typeName = "Oil platform" },
+    { LAND = false, SHALLOW_WATER = false, WATER = true, ROAD = false, RUNWAY = false }
+  )
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_a_static_that_is_not_offshore_follows_the_ground_rule()
+  -- A set keyed by type name, the shape `veaf_build/dcs_data/units_lua.py` renders and the one
+  -- `veaf.findInTable` needs — it is a `data[key]` lookup, not a list scan.
+  dcsUnits.NavalStatics = { ["Oil platform"] = true }
+  self:_sweep(
+    { static = true, typeName = "Comms tower M" },
+    { LAND = true, SHALLOW_WATER = true, WATER = false, ROAD = true, RUNWAY = true }
+  )
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_an_aircraft_ignores_the_surface_entirely()
+  self:_sweep({ air = true }, { LAND = true, SHALLOW_WATER = true, WATER = true, ROAD = true, RUNWAY = true })
+end
+
+function TestVeafUnitsCheckPositionForUnitSurfaces:test_an_aircraft_is_refused_at_ten_and_accepted_above_it()
+  self:_surfaceIs("WATER")
+  luaunit.assertFalse(veafUnits.checkPositionForUnit({ x = 0, y = 0, z = 10 }, { air = true }), "10 is not more than 10")
+  luaunit.assertTrue(veafUnits.checkPositionForUnit({ x = 0, y = 0, z = 11 }, { air = true }))
+end
+
+-- ---------------------------------------------------------------------------
 -- TestVeafUnitsDatabases
 -- ---------------------------------------------------------------------------
 TestVeafUnitsDatabases = {}

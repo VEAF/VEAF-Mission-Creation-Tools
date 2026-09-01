@@ -1173,6 +1173,71 @@ function veaf.placePointOnLand(vec3)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- terrain
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Is this point on one of these surfaces?
+---
+--- The single place this framework reads `land.getSurfaceType`. Six sites used to ask it themselves and
+--- none of them called another (CHORE-ONE-TERRAIN-CHECK); the shape is the one the `mist.isTerrainValid`
+--- port already had, because a list of accepted surfaces is the only form general enough to express both
+--- directions — a vehicle that must stay out of the sea and a ship that requires it.
+---
+--- Surfaces are named, never numbered: `land.SurfaceType` belongs to DCS, and a renumbering upstream
+--- would silently invert any comparison written against the values.
+---
+--- Accepts either coordinate shape — a vec3's `z` is the easting that `land.getSurfaceType` wants as
+--- `y`, which is the confusion `docs/agents/dcs-coordinates.md` exists for.
+---
+--- @param point table a vec2 (x, y) or a vec3 (x, y, z)
+--- @param surfaces table|string a surface name, or a list of them
+--- @return boolean
+function veaf.isTerrainValid(point, surfaces)
+  if type(point) ~= "table" or type(point.x) ~= "number" then
+    return false
+  end
+  local flat = { x = point.x, y = point.z or point.y }
+  if type(flat.y) ~= "number" then
+    return false
+  end
+
+  local wanted = surfaces
+  if type(wanted) == "string" then
+    wanted = { wanted }
+  end
+  if type(wanted) ~= "table" then
+    return false
+  end
+
+  local actual = land.getSurfaceType(flat)
+  for _, name in pairs(wanted) do
+    if type(name) == "string" and land.SurfaceType[string.upper(name)] == actual then
+      return true
+    end
+  end
+  return false
+end
+
+--- Open water, and only open water — `SHALLOW_WATER` is **not** in this list.
+---
+--- The list to test against wherever the question is "is this the sea", so that a point which is *not*
+--- on it counts as dry ground. Shallow water is dry by decision, not by oversight: FIX-CSAR-SPAWNS-ON-WATER
+--- settled that a survivor wading a few metres off a beach is rescuable, and the ground spawn search
+--- follows the same rule so the two never disagree about the same metre of shoreline.
+veaf.OPEN_WATER = { "WATER" }
+
+--- What a hull floats on, shallow water included. The opposite question from `veaf.OPEN_WATER`, and a
+--- different answer at the water's edge: a boat may sit in the shallows, a survivor there is not at sea.
+veaf.WATER_TERRAIN = { "SHALLOW_WATER", "WATER" }
+
+--- What a vehicle drives on.
+---
+--- `RUNWAY` is deliberate and was arrived at twice independently, by MiST and by `veaf.findPointInZone`:
+--- DCS reports a dam's surface as `RUNWAY`, so excluding it would refuse a convoy the crossing its route
+--- was drawn to take.
+veaf.DRIVABLE_TERRAIN = { "LAND", "ROAD", "RUNWAY" }
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- spawn point search
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1187,8 +1252,8 @@ veaf.doNotAvoidScenery = false
 
 --- Places a candidate on the terrain and tells whether a ground unit can stand there
 -- Placing first normalises vec2 and vec3 inputs, so the surface test always has a z.
--- Only WATER is rejected, which is the criterion veafUnits.checkPositionForUnit applies
--- to a ground unit — SHALLOW_WATER keeps passing, as it does today.
+-- Only open water is rejected, which is the criterion veafUnits.checkPositionForUnit applies
+-- to a ground unit — SHALLOW_WATER keeps passing, as it does today (veaf.OPEN_WATER).
 -- The shape guard is not paranoia: tier 1 candidates come from an undocumented API whose
 -- return shape we have not measured, and veaf.placePointOnLand would raise on a non-table
 -- — outside the pcall, which only wraps the call to the singleton itself.
@@ -1198,7 +1263,7 @@ local function acceptableGroundPoint(candidate)
     return nil
   end
   local placed = veaf.placePointOnLand(candidate)
-  if land.getSurfaceType({ x = placed.x, y = placed.z }) ~= land.SurfaceType.WATER then
+  if not veaf.isTerrainValid(placed, veaf.OPEN_WATER) then
     return placed
   end
   return nil
@@ -1637,20 +1702,26 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
 end
 
 --- Find a suitable point for spawning a unit in a <dispersion>-sized circle around a spot
+---
+--- The surfaces are this site's own list and cannot be swapped for either of the other two: a ship here
+--- is refused `SHALLOW_WATER` (which `veafDcsSpawner.terrainForCategory("ship")` allows), and a ground
+--- group here is refused it too (which `acceptableGroundPoint` accepts). CHORE-ONE-TERRAIN-CHECK left
+--- both answers exactly where they were and only stopped the module reading the surface itself.
 function veaf.findPointInZone(spawnSpot, dispersion, isShip)
+  local surfaces = veaf.DRIVABLE_TERRAIN
+  if isShip then
+    surfaces = veaf.OPEN_WATER
+  end
   local unitPosition
   local tryCounter = 1000
   local dispersion = dispersion or 0
   local _dispersion = dispersion
   repeat -- Place the unit in a "dispersion" ft radius circle from the spawn spot
     unitPosition = veaf.getRandomPointInCircle(spawnSpot, _dispersion)
-    local landType = land.getSurfaceType(unitPosition)
+    local isAcceptable = veaf.isTerrainValid(unitPosition, surfaces)
     tryCounter = tryCounter - 1
     _dispersion = _dispersion + dispersion
-  until (
-      (isShip and landType == land.SurfaceType.WATER)
-      or (not isShip and (landType == land.SurfaceType.LAND or landType == land.SurfaceType.ROAD or landType == land.SurfaceType.RUNWAY))
-    ) or tryCounter == 0
+  until isAcceptable or tryCounter == 0
   if tryCounter == 0 then
     return nil
   else
@@ -3980,14 +4051,14 @@ veaf.CSAR_SURVIVOR_SEARCH_RADIUS_METRES = 500
 --- `WATER` only. A survivor wading a few metres off a beach is rescuable, and calling that open sea
 --- would declare him dead next to dry land.
 ---
---- Coordinates: `land.getSurfaceType` takes a **vec2 whose `y` is the easting**, while the point handed
---- in is a runtime vec3 whose `y` is the altitude (`docs/agents/dcs-coordinates.md`). Passing `y = y`
---- asks about a spot a hundred kilometres away and answers without complaint.
+--- Coordinates: `veaf.isTerrainValid` takes either shape and narrows a vec3's `z` into the easting
+--- `land.getSurfaceType` wants as `y` (`docs/agents/dcs-coordinates.md`). Asking about `y` instead would
+--- name a spot a hundred kilometres away and answer without complaint.
 function veaf.resolveCsarSurvivorPoint(point)
   if type(point) ~= "table" or not point.x or not point.z then
     return nil
   end
-  if land.getSurfaceType({ x = point.x, y = point.z }) ~= land.SurfaceType.WATER then
+  if not veaf.isTerrainValid(point, veaf.OPEN_WATER) then
     return point
   end
   veaf.loggers

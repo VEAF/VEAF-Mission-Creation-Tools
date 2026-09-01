@@ -1997,6 +1997,28 @@ function TestVeafFindSpawnPoint:test_no_acceptable_point_anywhere_returns_nil()
   luaunit.assertEquals(self._jitterCalls, veaf.SPAWN_SEARCH_ATTEMPTS, "the jitter tier must be bounded")
 end
 
+-- CHORE-ONE-TERRAIN-CHECK — what `acceptableGroundPoint` accepts **today**, enumerated.
+--
+-- It rejects WATER and nothing else, so SHALLOW_WATER passes: the CSAR decision of
+-- FIX-CSAR-SPAWNS-ON-WATER, "a survivor wading a few metres off a beach is rescuable". Sampling three
+-- surfaces would not catch a rewrite that turned the test into a positive list and forgot one of them,
+-- so all five are asked.
+function TestVeafFindSpawnPoint:test_every_surface_but_open_water_is_acceptable_ground()
+  for _, name in ipairs({ "LAND", "SHALLOW_WATER", "ROAD", "RUNWAY" }) do
+    land.getSurfaceType = function()
+      return land.SurfaceType[name]
+    end
+    self:_jitterSequence({ 700 })
+    luaunit.assertNotNil(veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000), name .. " must be acceptable ground")
+  end
+
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+  self:_jitterSequence({ 700 })
+  luaunit.assertNil(veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000), "open water must not be")
+end
+
 function TestVeafFindSpawnPoint:test_singleton_proposal_wins_over_the_jitter()
   Disposition = {
     getSimpleZones = function()
@@ -3688,6 +3710,114 @@ end
 
 function TestVeafCsarSurvivorPoint:test_a_nil_point_is_refused_rather_than_raising()
   luaunit.assertNil(veaf.resolveCsarSurvivorPoint(nil))
+end
+
+-- CHORE-ONE-TERRAIN-CHECK — the same enumeration as `acceptableGroundPoint`, at the site where the
+-- answer decides whether a downed pilot exists at all. Only WATER sends the search out; the other four
+-- surfaces leave him exactly where he ejected.
+function TestVeafCsarSurvivorPoint:test_only_open_water_sends_the_survivor_looking_for_dry_ground()
+  for _, name in ipairs({ "LAND", "SHALLOW_WATER", "ROAD", "RUNWAY" }) do
+    self:_allSurface(land.SurfaceType[name])
+    local searched = false
+    veaf.findSpawnPoint = function()
+      searched = true
+      return nil
+    end
+    luaunit.assertNotNil(veaf.resolveCsarSurvivorPoint({ x = 10, y = 0, z = 20 }), name .. " is dry ground")
+    luaunit.assertFalse(searched, name .. " must not trigger a search")
+  end
+
+  self:_allSurface(land.SurfaceType.WATER)
+  local searched = false
+  veaf.findSpawnPoint = function()
+    searched = true
+    return nil
+  end
+  luaunit.assertNil(veaf.resolveCsarSurvivorPoint({ x = 10, y = 0, z = 20 }))
+  luaunit.assertTrue(searched, "open water must trigger the search")
+end
+
+-- ===========================================================================
+-- CHORE-ONE-TERRAIN-CHECK — veaf.findPointInZone, surface by surface
+--
+-- This site had no test at all, and it carries the rule MiST also had, written out inline: a ship wants
+-- WATER, anything else wants LAND / ROAD / RUNWAY. Two details are easy to lose in a deduplication and
+-- are pinned here on purpose, because they make this site's list its own:
+--   * a ship is refused SHALLOW_WATER, while `veafDcsSpawner.terrainForCategory("ship")` allows it;
+--   * a vehicle is refused SHALLOW_WATER, while `acceptableGroundPoint` accepts it.
+-- So neither of the other two lists can be substituted here, whatever the surface names suggest.
+-- ===========================================================================
+TestVeafFindPointInZone = {}
+
+function TestVeafFindPointInZone:setUp()
+  self._surface = land.getSurfaceType
+  self._rand = veaf.getRandomPointInCircle
+  -- `getRandomPointInCircle` lives in veafGeo, which this file does not load. The stub answers the shape
+  -- the real one returns — `{ x = <northing>, y = <easting> }`, a mission-table vec2, no `z` — and
+  -- records the dispersion it was handed so the widening can be asserted.
+  self.draws = {}
+  veaf.getRandomPointInCircle = function(spot, dispersion)
+    table.insert(self.draws, dispersion)
+    return { x = (spot.x or 0) + #self.draws, y = dispersion }
+  end
+end
+
+function TestVeafFindPointInZone:tearDown()
+  land.getSurfaceType = self._surface
+  veaf.getRandomPointInCircle = self._rand
+end
+
+function TestVeafFindPointInZone:_surfaceIs(name)
+  land.getSurfaceType = function()
+    return land.SurfaceType[name]
+  end
+end
+
+--- Does a zone made entirely of `name` yield a point for this kind of group?
+function TestVeafFindPointInZone:_accepts(isShip, name)
+  self:_surfaceIs(name)
+  self.draws = {}
+  return veaf.findPointInZone({ x = 0, y = 0, z = 0 }, 10, isShip) ~= nil
+end
+
+function TestVeafFindPointInZone:test_a_ground_group_takes_land_road_or_runway_and_no_water_at_all()
+  luaunit.assertTrue(self:_accepts(false, "LAND"), "LAND")
+  luaunit.assertTrue(self:_accepts(false, "ROAD"), "ROAD")
+  luaunit.assertTrue(self:_accepts(false, "RUNWAY"), "RUNWAY")
+  luaunit.assertFalse(self:_accepts(false, "SHALLOW_WATER"), "shallow water is dry for CSAR, but not here")
+  luaunit.assertFalse(self:_accepts(false, "WATER"), "WATER")
+end
+
+function TestVeafFindPointInZone:test_a_ship_takes_open_water_only()
+  luaunit.assertTrue(self:_accepts(true, "WATER"), "WATER")
+  luaunit.assertFalse(self:_accepts(true, "SHALLOW_WATER"), "a shallow-water draw is refused at this site today")
+  luaunit.assertFalse(self:_accepts(true, "LAND"), "LAND")
+  luaunit.assertFalse(self:_accepts(true, "ROAD"), "ROAD")
+  luaunit.assertFalse(self:_accepts(true, "RUNWAY"), "RUNWAY")
+end
+
+function TestVeafFindPointInZone:test_the_drawn_point_is_returned_as_drawn()
+  self:_surfaceIs("LAND")
+  self.draws = {}
+  local point = veaf.findPointInZone({ x = 500, y = 0, z = 0 }, 10, false)
+  luaunit.assertEquals(point.x, 501, "the first draw, unmoved — this site does not place on land")
+  luaunit.assertEquals(#self.draws, 1)
+end
+
+function TestVeafFindPointInZone:test_each_failed_draw_widens_the_circle_by_one_dispersion()
+  self:_surfaceIs("WATER")
+  self.draws = {}
+  veaf.findPointInZone({ x = 0, y = 0, z = 0 }, 10, false)
+  luaunit.assertEquals(self.draws[1], 10)
+  luaunit.assertEquals(self.draws[2], 20)
+  luaunit.assertEquals(self.draws[3], 30)
+end
+
+function TestVeafFindPointInZone:test_the_search_gives_up_after_a_thousand_draws()
+  self:_surfaceIs("WATER")
+  self.draws = {}
+  luaunit.assertNil(veaf.findPointInZone({ x = 0, y = 0, z = 0 }, 10, false))
+  luaunit.assertEquals(#self.draws, 1000, "the loop must stay bounded")
 end
 
 -- ===========================================================================

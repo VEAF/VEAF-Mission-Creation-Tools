@@ -755,6 +755,23 @@ function TestVeafDcsSpawnerTerrain:test_nonsense_is_not_valid_terrain()
   luaunit.assertFalse(veafDcsSpawner.isTerrainValid({ x = 1, y = 2 }, nil))
 end
 
+-- CHORE-ONE-TERRAIN-CHECK — the whole truth table, since this predicate is the one the other five sites
+-- were routed through. Twenty-five cells: every surface DCS can report against every surface a caller
+-- can ask for. Sampling would leave room for a name that matches more than its own surface.
+function TestVeafDcsSpawnerTerrain:test_each_surface_matches_its_own_name_and_no_other()
+  local names = { "LAND", "SHALLOW_WATER", "WATER", "ROAD", "RUNWAY" }
+  for _, actual in ipairs(names) do
+    self:_surfaceIs(actual)
+    for _, asked in ipairs(names) do
+      luaunit.assertEquals(
+        veafDcsSpawner.isTerrainValid({ x = 1, y = 2 }, { asked }),
+        asked == actual,
+        string.format("on %s, asked for %s", actual, asked)
+      )
+    end
+  end
+end
+
 function TestVeafDcsSpawnerTerrain:test_a_ship_belongs_on_water()
   luaunit.assertEquals(veafDcsSpawner.terrainForCategory("ship"), { "SHALLOW_WATER", "WATER" })
 end

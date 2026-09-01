@@ -1,6 +1,6 @@
 # 02 — Verify in game that a FARP on open ground does not move
 
-Status: 🧑 waiting-human
+Status: ✅ done — run in game 2026-09-01, and the answer is **negative**: the escort moved on all three markers, open ground included. The twelve measurements are in the PRD; ticket 03 replaces the method.
 Type: verification
 
 Nothing here can be done without DCS running. The unit tests prove the rule; only the game can say

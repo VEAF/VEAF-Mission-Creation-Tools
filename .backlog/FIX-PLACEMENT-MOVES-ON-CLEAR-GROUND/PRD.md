@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — the escort is moved even when the requested spot is free
 
-Status: 🧑 waiting-human — the fix and its tests landed 2026-09-01; **the in-game proof is all that
+Status: ⬜ ready — **reopened 2026-09-01: ticket 01's guard is inert in the field.** Measured in game, it never fires; the approach needs replacing, not tuning. Ticket 01 stays ✅ (it shipped and is honestly described); a new ticket carries the replacement.
 remains** (ticket 02)
 
 Origin: measured in game 2026-08-28 while running
@@ -77,7 +77,8 @@ a few dozen metres is exactly the outcome that history was guarding against.
 | # | Ticket | Risk | Status |
 |---|---|---|---|
 | 01 | Keep the requested bearing when the cloud proves it clear | medium — changes where every FARP escort lands | ✅ |
-| 02 | Verify in game that a FARP on open ground does not move | needs DCS | 🧑 |
+| 02 | Verify in game that a FARP on open ground does not move | needs DCS | ✅ |
+| 03 | [Ask about the wanted spot itself, not its nearest neighbour](tickets/03-ask-about-the-wanted-spot-itself.md) | medium — replaces ticket 01's method | ⬜ |
 
 ## What ticket 01 delivered (2026-09-01)
 
@@ -98,6 +99,48 @@ sabotage table is in [ticket 01](tickets/01-keep-the-bearing-the-cloud-proves-cl
 
 The PRD's note was applied: `no usable point in Disposition's cloud, walking the bearings instead` is
 now at **info**, so no one has to set `veafGrass.LogLevel = "debug"` to find out why a group moved.
+
+## Measured in game 2026-09-01 — the guard never fires
+
+David ran three `-farp` markers, one of them on open ground with nothing within a kilometre. The
+escort was moved **every time**, and the guard's own line — `bearing N is inside a scenery-clear
+area, keeping it` — does not appear once in the whole session.
+
+The decision was then instrumented (#898) to log both operands before it is taken. Twelve decisions:
+
+| gap (m) | 61.8 | 46.3 | 83.9 | 81.3 | 58.5 | 43.9 | 97.0 | 82.5 | 73.1 | 48.5 | 69.4 | 127.0 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+Against `PLACEMENT_CLEARANCE = 12`. **The nearest candidate ever seen sits at 43.9 m — nearly four
+times the threshold.** The occupancy probe answered `true` on half of them, so it is not what refuses.
+
+### Why the approach cannot work, not just this threshold
+
+`Disposition.getSimpleZones(centre, radius, safeRadius, attempts)` **samples at random** inside the
+circle; it does not tessellate it. Nothing makes a sample land near the requested spot, and twelve
+measurements say none comes close.
+
+So *"the nearest candidate proves the wanted spot"* is unsound as a method, whatever the constant.
+Widening the threshold to 130 m would accept a spot nothing has shown to be clear — the original
+defect, mirrored.
+
+### What the tests did not catch, and why
+
+`test_a_candidate_proving_the_wanted_spot_keeps_the_bearing_and_the_distance` builds its `gap` at
+`PLACEMENT_CLEARANCE * 0.5` — a value chosen so the branch runs. The geometry it checks is true; the
+situation it checks is one the game does not produce. A test that constructs its own input can only
+ever confirm the theorem, never the premise.
+
+### The route that remains
+
+Ask about **the wanted spot itself** instead of deducing from a neighbour: `Disposition.getSimpleZones`
+centred on `wanted[1]` with a small radius, and read whether DCS offers a free zone there. Same API,
+same knowledge of forests, asked at the right place. `Disposition.getPointHeight` and
+`getPointWater` exist alongside it and may be cheaper — establish which answers the question before
+building on either.
+
+Whatever replaces it must be measured against a **real** `-farp`, not a fabricated gap, before it is
+called done.
 
 ## Definition of done
 

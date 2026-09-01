@@ -102,6 +102,44 @@ one that was engaged or damaged is replaced. That is the accepted cost of the de
 of `mission.yaml`, not under `modules:` (a check that asks for a password cannot be run), and playable
 slots are `parking-cold` — never an air start.
 
+### R11. A spawned CAP shoots at the fighter and not at the man on the parachute
+
+Unblocks [`FIX-CAP-ENGAGES-PARACHUTES`](.backlog/FIX-CAP-ENGAGES-PARACHUTES/PRD.md), whose only
+remaining box is this one. Added 2026-09-01, when the lot was implemented.
+
+**Two separate things to look at, and the second is the one no test can reach.**
+
+**Run, part one — the patrol works at all.** Spawn a CAP from a marker (`-cap mig29`) with a hostile
+flight inside its patrol radius, and watch what it does. This is the half that failed on 2026-09-01,
+when fourteen CAPs were destroyed by three F-14s without returning fire.
+
+- **Fixed**: the patrol turns onto the enemy flight and shoots. When the enemy leaves or dies, it goes
+  back to flying its racetrack instead of continuing straight ahead.
+- **Not fixed**: it flies its route and never turns, or it turns and never fires. Then read
+  `dcs.log` for `VEAF-SPAWN|D|` — *"Watchdog has targets"* with no *"Engaging target!"* after it means
+  the target list is being emptied again, and *"Watchdog found no targets"* while an enemy is plainly on
+  the radar means the filter is refusing something it should not. Both lines are `debug`, so the mission
+  needs `logLevel: debug` under `SPAWN` — which, until
+  [`FIX-PER-MODULE-LOGLEVEL-INERT`](.backlog/FIX-PER-MODULE-LOGLEVEL-INERT/PRD.md) is closed, means the
+  **global** level, not the per-module one.
+
+**Run, part two — the parachute.** Get a pilot into the air under a canopy inside the CAP's patrol
+radius (eject from a slot, or shoot down an AI flight) while an enemy fighter is also in the zone.
+
+- **Fixed**: the CAP goes for the fighter. With the fighter gone and only the parachute left, it goes
+  back on patrol with air-to-air prohibited rather than orbiting the canopy.
+- **Not fixed**: it chases the parachute. That would mean DCS hands an ejected pilot a descriptor
+  carrying the `Air` attribute — i.e. it copies the aircraft's — and the filter needs a second
+  discriminator. **This is the outcome no workstation can predict**: the filter is built on the
+  attribute table of the 883 units `dcsUnits` ships, and an ejected pilot is not in it. If it comes out
+  this way, the useful thing to bring back is the trace of one detection: with `logLevel: trace` under
+  `SPAWN`, the `targetType=` and `targetAttributes=` lines say exactly what DCS thinks a man under a
+  parachute is, and the filter can then be routed on whatever that turns out to be.
+
+Worth expecting, so it is not read as a defect: a **tanker or an AWACS is a legitimate CAP target** and
+the patrol will go for one. The 2026-09-01 log shows Arco the KC-135 correctly listed — at low priority,
+behind the fighters.
+
 ---
 
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)

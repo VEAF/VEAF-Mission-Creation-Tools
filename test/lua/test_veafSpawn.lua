@@ -4,6 +4,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
+dofile(src .. "/dcsUnits.lua")
 dofile(src .. "/veafScheduler.lua")
 dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
@@ -3098,6 +3099,367 @@ function TestVeafSpawnCloneUnitNames:test_an_afac_still_answers_to_its_callsign(
   luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.units[1].name, "Enfield 9 1")
   luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.name, "Springfield 9 1")
   luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.units[1].name, "Springfield 9 1")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafSpawnCapTargetFilter — FIX-CAP-ENGAGES-PARACHUTES
+--
+-- What a spawned CAP is allowed to shoot at, and what the watchdog does when nothing on its radar is
+-- worth shooting at. The tests go through `startCapWatchdog` and read the tasks and options that
+-- reach the controller, not just the predicate: the defect these cover was never in a handler, it was
+-- in what the watchdog did with the handler's answer.
+-- ---------------------------------------------------------------------------
+TestVeafSpawnCapTargetFilter = {}
+
+local CAP_ZONE = { x = 0, y = 0, radius = 100000 }
+
+--- A detected object, shaped the way `Controller.getDetectedTargets` hands one over.
+---
+--- Every field is a method, because that is how the real thing answers and because the filter has to
+--- survive one of them raising.
+local function detectedObject(spec)
+  local object = {}
+  object.getCategory = spec.getCategory or function()
+    return spec.objectCategory or Object.Category.UNIT
+  end
+  object.getID = function()
+    return spec.id or 1
+  end
+  object.getName = function()
+    return spec.name or "target"
+  end
+  object.getTypeName = function()
+    return spec.typeName or "F-14B"
+  end
+  object.isActive = function()
+    return spec.active ~= false
+  end
+  object.inAir = function()
+    return spec.inAir ~= false
+  end
+  object.getCoalition = function()
+    return spec.coalition or coalition.side.BLUE
+  end
+  object.getGroup = function()
+    return {
+      getName = function()
+        return spec.groupName or "Arco escort"
+      end,
+      getCategory = function()
+        return spec.groupCategory or Group.Category.AIRPLANE
+      end,
+    }
+  end
+  object.getDesc = function()
+    return { attributes = spec.attributes or {} }
+  end
+  object.getPosition = function()
+    return { p = spec.point or { x = 0, y = 6000, z = 1000 } }
+  end
+  return object
+end
+
+--- An F-14B escort: the attributes are the ones the 2026-09-01 log printed for `Pilot #009`.
+local function aFighter(id)
+  return detectedObject({
+    id = id or 33,
+    name = "Pilot #009",
+    typeName = "F-14B",
+    attributes = { ["Air"] = true, ["All"] = true, ["Battle airplanes"] = true, ["Fighters"] = true },
+  })
+end
+
+--- A man hanging under a parachute.
+---
+--- He keeps his aircraft's group, so the group category still says AIRPLANE, and he is `inAir()` —
+--- the two things the old filter asked. What separates him is his own descriptor, which is not an
+--- aircraft's. Item **R11** of `DCS-SESSION-TODO.md` is what confirms the descriptor DCS really hands
+--- back for one; this test fixes the *shape* of the case, not ED's exact attribute list.
+local function anEjectedPilot(id)
+  return detectedObject({
+    id = id or 90,
+    name = "Pilot #006",
+    typeName = "Ejected pilot",
+    groupCategory = Group.Category.AIRPLANE,
+    attributes = { ["All"] = true, ["Infantry"] = true, ["NonArmoredUnits"] = true },
+  })
+end
+
+--- Put a two-tick-capable CAP in the sky, seeing exactly `detectedObjects`.
+local function aCapSeeing(detectedObjects)
+  local capController = {
+    getDetectedTargets = function()
+      return detectedObjects
+    end,
+  }
+  dcs_mocks.addUnit("cap-1", {
+    inAir = function()
+      return true
+    end,
+    isActive = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = 0, y = 8000, z = 0 }
+    end,
+    getController = function()
+      return capController
+    end,
+  })
+  local capUnit = Unit.getByName("cap-1")
+  dcs_mocks.addGroup("cap", {
+    getUnits = function()
+      return { capUnit }
+    end,
+  })
+end
+
+--- The `EngageUnit` tasks the watchdog pushed onto the CAP's controller, in order.
+local function engagedUnitIds()
+  local ids = {}
+  for _, pushed in ipairs(dcs_mocks.tasksPushed) do
+    if pushed.task and pushed.task.id == "EngageUnit" then
+      table.insert(ids, pushed.task.params.unitId)
+    end
+  end
+  return ids
+end
+
+--- The last value the watchdog gave an option, or nil if it never set it.
+local function lastOptionValue(optionId)
+  local value = nil
+  for _, option in ipairs(dcs_mocks.optionsSet) do
+    if option.id == optionId then
+      value = option.value
+    end
+  end
+  return value
+end
+
+function TestVeafSpawnCapTargetFilter:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnCapTargetFilter:tearDown()
+  dcs_mocks.reset()
+end
+
+-- --- the enumeration -------------------------------------------------------
+
+--- The whole shipped unit database, not a handful of picked cases.
+---
+--- The filter's claim is that `Air` marks an aircraft and nothing else. That claim is checked against
+--- every one of the 883 entries `dcsUnits` ships, so the day ED adds an aircraft without the attribute
+--- — or a ground unit with it — this fails instead of a CAP quietly ignoring or chasing it.
+function TestVeafSpawnCapTargetFilter:test_air_attribute_marks_exactly_the_aircraft()
+  local mismatched = {}
+  local aircraftSeen, groundSeen = 0, 0
+  for unitType, unitData in pairs(dcsUnits.DcsUnitsDatabase) do
+    local isAircraft = (unitData.kind == "air")
+    local carriesAir = ((unitData.attribute or {})[veafSpawn.CAP_AIR_ATTRIBUTE] == true)
+    if isAircraft then
+      aircraftSeen = aircraftSeen + 1
+    else
+      groundSeen = groundSeen + 1
+    end
+    if isAircraft ~= carriesAir then
+      table.insert(mismatched, tostring(unitType))
+    end
+  end
+  luaunit.assertTrue(aircraftSeen > 100, "the database must hold aircraft, or this sweep proves nothing")
+  luaunit.assertTrue(groundSeen > 100, "and it must hold non-aircraft too, or the sweep only proves half of it")
+  luaunit.assertEquals(table.concat(mismatched, ", "), "", "Air must mark exactly the aircraft")
+end
+
+--- The object categories a radar can return are listed, not sampled.
+function TestVeafSpawnCapTargetFilter:test_only_units_are_engageable_object_categories()
+  for categoryName, isEngageable in pairs(veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORY_NAMES) do
+    local categoryValue = Object.Category[categoryName]
+    luaunit.assertNotNil(categoryValue, "unknown Object.Category." .. categoryName)
+    luaunit.assertEquals(veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORIES[categoryValue] or false, isEngageable, categoryName)
+  end
+  luaunit.assertTrue(veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORIES[Object.Category.UNIT])
+  luaunit.assertFalse(veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORIES[Object.Category.STATIC] or false)
+end
+
+-- --- the predicate ---------------------------------------------------------
+
+function TestVeafSpawnCapTargetFilter:test_an_enemy_fighter_is_engageable()
+  luaunit.assertTrue(veafSpawn.isCapEngageableTarget(aFighter(), coalition.side.RED))
+end
+
+function TestVeafSpawnCapTargetFilter:test_an_ejected_pilot_is_not_engageable()
+  local engageable, reason = veafSpawn.isCapEngageableTarget(anEjectedPilot(), coalition.side.RED)
+  luaunit.assertFalse(engageable)
+  luaunit.assertEquals(reason, "not an aircraft")
+end
+
+function TestVeafSpawnCapTargetFilter:test_a_friendly_fighter_is_not_engageable()
+  local engageable, reason = veafSpawn.isCapEngageableTarget(aFighter(), coalition.side.BLUE)
+  luaunit.assertFalse(engageable)
+  luaunit.assertEquals(reason, "not hostile")
+end
+
+function TestVeafSpawnCapTargetFilter:test_a_static_is_not_engageable()
+  local object = detectedObject({ objectCategory = Object.Category.STATIC, attributes = { ["Air"] = true } })
+  luaunit.assertFalse(veafSpawn.isCapEngageableTarget(object, coalition.side.RED))
+end
+
+function TestVeafSpawnCapTargetFilter:test_a_ship_is_not_engageable()
+  local object = detectedObject({
+    groupCategory = Group.Category.SHIP,
+    attributes = { ["Ships"] = true },
+    inAir = false,
+  })
+  luaunit.assertFalse(veafSpawn.isCapEngageableTarget(object, coalition.side.RED))
+end
+
+--- A detected object that raises must be refused, not propagated.
+---
+--- `getDetectedTargets` handed the 2026-09-01 session an object that answered *"Static doesn't
+--- exist"*, twice. The watchdog re-arms itself from its own tail, so the raise did not cost one tick:
+--- it stopped that CAP's watchdog for the rest of the mission.
+function TestVeafSpawnCapTargetFilter:test_an_object_that_raises_is_refused_not_propagated()
+  local exploding = detectedObject({
+    getCategory = function()
+      error("Static doesn't exist")
+    end,
+  })
+  luaunit.assertFalse(veafSpawn.isCapEngageableTarget(exploding, coalition.side.RED))
+end
+
+-- --- the wiring ------------------------------------------------------------
+
+--- The point of the whole lot: the parachute is on the radar, the fighter is on the radar, and only
+--- the fighter is engaged.
+function TestVeafSpawnCapTargetFilter:test_the_watchdog_engages_the_fighter_and_not_the_pilot()
+  aCapSeeing({ { object = anEjectedPilot(90) }, { object = aFighter(33) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(engagedUnitIds(), { 33 }, "only the fighter must be engaged")
+end
+
+function TestVeafSpawnCapTargetFilter:test_the_watchdog_allows_air_to_air_when_it_engages()
+  aCapSeeing({ { object = aFighter(33) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertFalse(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA))
+  luaunit.assertEquals(lastOptionValue(AI.Option.Air.id.ROE), AI.Option.Air.val.ROE.WEAPON_FREE)
+end
+
+--- Nothing worth engaging is not the same as nothing detected.
+---
+--- Four parachutes used to be enough to make the patrol "busy": the list was not empty, so the
+--- watchdog reported targets, lifted `PROHIBIT_AA`, pushed no task, and skipped the branch that hands
+--- the CAP back its patrol. It must now reach that branch.
+function TestVeafSpawnCapTargetFilter:test_a_sky_full_of_parachutes_leaves_the_cap_on_patrol()
+  aCapSeeing({ { object = anEjectedPilot(90) }, { object = anEjectedPilot(91) }, { object = anEjectedPilot(92) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(engagedUnitIds(), {}, "nothing worth engaging must be engaged")
+  luaunit.assertTrue(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA), "air-to-air must go back to prohibited")
+  -- Prohibiting air-to-air while the CAP is inside its own zone is something only the "nothing worth
+  -- engaging" branch does, so these two assertions *are* the proof that it was reached.
+  luaunit.assertEquals(lastOptionValue(AI.Option.Air.id.ROE), AI.Option.Air.val.ROE.RETURN_FIRE)
+end
+
+--- One object that raises must not cost the CAP the target next to it, nor its watchdog.
+function TestVeafSpawnCapTargetFilter:test_a_raising_object_costs_neither_the_target_nor_the_watchdog()
+  local exploding = detectedObject({
+    getCategory = function()
+      error("Static doesn't exist")
+    end,
+  })
+  aCapSeeing({ { object = exploding }, { object = aFighter(33) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(engagedUnitIds(), { 33 })
+  -- The tick must have finished, which is what re-arms the watchdog. Before the fix the raise came out
+  -- of `startCapWatchdog` itself, so this test would not even reach its assertions.
+  luaunit.assertNotNil(next(dcs_mocks.scheduledTasks), "the watchdog must re-arm itself")
+end
+
+--- A target the CAP still has on radar must not expire.
+---
+--- `seenAt` was written once and never refreshed, so a contact tracked without interruption was
+--- declared outdated `CAP_WATCHDOG_DELAY * 2` after it was first seen, thrown out of the list, and
+--- registered again as brand new on the next tick. The log of 2026-09-01 is a wall of "new detection
+--- of targetName=Pilot #009" for that reason. On the tick that throws it out the CAP engages nothing,
+--- goes back to `PROHIBIT_AA` and gives back its tasks — with the enemy fighter still on its nose.
+function TestVeafSpawnCapTargetFilter:test_a_target_still_on_radar_does_not_expire()
+  aCapSeeing({ { object = aFighter(33) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE) -- the first tick
+  local moreTicks = dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+  luaunit.assertEquals(moreTicks, 3, "the watchdog must have run past CAP_WATCHDOG_DELAY * 2, or this proves nothing")
+  luaunit.assertEquals(
+    #engagedUnitIds(),
+    1 + moreTicks,
+    "a target still on radar must be engaged on every tick, not dropped after twice the watchdog delay"
+  )
+  luaunit.assertFalse(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA), "and air-to-air must stay allowed")
+end
+
+--- The tasks the watchdog took back must be the tasks the watchdog pushed.
+---
+--- The cleanup counted the tasks it had pushed precisely so as not to disturb the route underneath
+--- them, then called `resetTask`, which ED describes as clearing **all** tasks from the queue. Undoing
+--- a `pushTask` is `popTask`.
+function TestVeafSpawnCapTargetFilter:test_the_cleanup_pops_its_own_tasks_and_never_resets_the_queue()
+  local fighter = aFighter(33)
+  local alive = true
+  fighter.isActive = function()
+    return alive
+  end
+  local sky = { { object = fighter } }
+  aCapSeeing(sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#engagedUnitIds(), 1, "a task must have been pushed, or the cleanup has nothing to undo")
+
+  -- the fighter is shot down; the next tick has nothing worth engaging
+  alive = false
+  sky[1] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+
+  luaunit.assertTrue(#dcs_mocks.tasksPopped > 0, "the pushed task must be taken back")
+  for _, popped in ipairs(dcs_mocks.tasksPopped) do
+    luaunit.assertNil(popped.reset, "resetTask clears the patrol route too and must never be used here")
+  end
+end
+
+--- A target that is gone is removed — because the list now holds the target.
+---
+--- The list used to store the CAP's **own** detecting aeroplane in the `unit` field, so this check
+--- asked whether the patrol was still flying instead of whether the enemy was still there.
+function TestVeafSpawnCapTargetFilter:test_a_target_that_disappears_is_dropped()
+  local fighter = aFighter(33)
+  local alive = true
+  fighter.isActive = function()
+    return alive
+  end
+  local sky = { { object = fighter } }
+  aCapSeeing(sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#engagedUnitIds(), 1)
+
+  -- it is shot down, and the radar no longer reports it
+  alive = false
+  sky[1] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+
+  luaunit.assertEquals(#engagedUnitIds(), 1, "a dead target must not be engaged again")
+  luaunit.assertTrue(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA), "and the CAP must go back on patrol")
+end
+
+--- A template with no first-waypoint task is named, so the mission maker can repair it.
+---
+--- 12 of the reference mission's 117 `veafSpawn-` templates are in that state. They used to spawn in
+--- silence, which is why nobody knew.
+function TestVeafSpawnCapTargetFilter:test_a_template_without_a_first_waypoint_task_is_named()
+  local originalFind = veafSpawn.findSpawnableAircraftGroupname
+  veafSpawn.findSpawnableAircraftGroupname = function()
+    return "veafSpawn-NOTASK", { groupId = 1, units = {}, route = { points = { [1] = {} } } }
+  end
+  veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, "NOTASK", "usa", 0, 0, 0, 20, nil, 60, "random", true, false)
+  veafSpawn.findSpawnableAircraftGroupname = originalFind
+  local warnings = dcs_mocks.findLog("has no usable task on its first waypoint")
+  luaunit.assertTrue(#warnings > 0, "the template must be named")
+  luaunit.assertStrContains(warnings[1].text, "veafSpawn-NOTASK")
 end
 
 os.exit(luaunit.LuaUnit.run())

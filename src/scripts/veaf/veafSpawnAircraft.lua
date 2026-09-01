@@ -960,35 +960,28 @@ function veafSpawn.spawnCombatAirPatrol(
           ["properties"] = {
             ["addopt"] = {}, -- end of ["addopt"]
           }, -- end of ["properties"]
+          -- The patrol waypoint carries no task of its own, and that is a decision, not an omission.
+          --
+          -- An `EngageTargetsInZone` task used to sit here, commented out, saying nothing about
+          -- whether the watchdog was meant to replace it or to complement it. It cannot complement it:
+          -- the two mechanisms are incompatible by construction.
+          --
+          -- * The group is spawned with `PROHIBIT_AA = true` and the watchdog owns that option from
+          --   then on. A route task telling the group to engage air targets is inert for exactly as
+          --   long as the watchdog is silent, and redundant the moment it speaks.
+          -- * `startCapWatchdog` undoes its own tasking through the controller's task queue — the
+          --   queue this route task would live in. ED's own description of `resetTask` is "clears
+          --   **all** tasks from this controller's task queue"; even the narrower `popTask` used now
+          --   pops whatever is on top. A route-level engage task in that queue is something the
+          --   watchdog would eventually remove without ever knowing it was there.
+          --
+          -- So the watchdog is the single mechanism, deliberately: it is the one that can weigh
+          -- targets by priority (`FIX-CAP-ENGAGES-PARACHUTES`) and hand the group back its patrol when
+          -- there is nothing worth engaging.
           ["task"] = {
             ["id"] = "ComboTask",
             ["params"] = {
-              ["tasks"] = {
-                -- [1] =
-                -- {
-                --     ["number"] = 1,
-                --     ["auto"] = false,
-                --     ["enabled"] = true,
-                --     ["id"] = "EngageTargetsInZone",
-                --     ["params"] = {
-                --         ["noTargetTypes"] = {
-                --             [1] = "Cruise missiles",
-                --             [2] = "Antiship Missiles",
-                --             [3] = "AA Missiles",
-                --             [4] = "AG Missiles",
-                --             [5] = "SA Missiles",
-                --         }, -- end of ["noTargetTypes"]
-                --         ["priority"] = 0,
-                --         ["targetTypes"] = {
-                --             [1] = "Air",
-                --         }, -- end of ["targetTypes"]
-                --         ["value"] = "Air;",
-                --         ["x"] = parameters.targetZone.x,
-                --         ["y"] = parameters.targetZone.y,
-                --         ["zoneRadius"] = parameters.targetZone.radius,
-                --     }, -- end of ["params"]
-                -- }, -- end of [1]
-              }, -- end of ["tasks"]
+              ["tasks"] = {}, -- end of ["tasks"]
             }, -- end of ["params"]
           }, -- end of ["task"]
           ["type"] = "Turning Point",
@@ -1088,6 +1081,22 @@ function veafSpawn.spawnCombatAirPatrol(
     end
   end
   --veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateWp1Task=%s", veaf.p(chosenTemplateWp1Task))
+
+  -- A template with nothing usable on its first waypoint spawns a CAP with none of the options its
+  -- author meant it to fly with — no ROE, no reaction to threat, no radar or ECM setting. 12 of the
+  -- 117 `veafSpawn-` templates in the reference mission are in that state (Mig-21, Mig-23S, Mig-25,
+  -- F-14A, F-5, M-2000), and until now they spawned silently.
+  --
+  -- Deliberately a warning and not a fabricated default: air-to-air behaviour is set on the
+  -- controller by the watchdog on every tick (`PROHIBIT_AA` and ROE), so a synthesised waypoint task
+  -- would add nothing the CAP does not already get. What is missing is the *template author's* own
+  -- options, and only he can supply them. Naming the template is what lets him.
+  if not chosenTemplateWp1Task then
+    veaf.loggers.get(veafSpawn.Id):warn(
+      "template %s has no usable task on its first waypoint; the CAP spawns without its options (add a ComboTask with a WrappedAction to the template)",
+      veaf.p(chosenTemplateName)
+    )
+  end
 
   -- compute route
   local headingRad = math.rad(hdg)
@@ -1199,6 +1208,122 @@ function veafSpawn.spawnCombatAirPatrol(
   return _spawnedGroup.name
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- CAP target selection
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- What a CAP's radar can hand back, and which of it is worth a second look.
+---
+--- `Controller.getDetectedTargets` returns **objects**, not aircraft, and DCS has exactly six object
+--- categories. They are enumerated here rather than discovered one crash at a time: on 2026-09-01 a
+--- detected object that was not a unit raised *"Static doesn't exist"* inside the watchdog, twice, and
+--- since the watchdog reschedules itself from its own tail, the raise left that CAP with no watchdog
+--- at all for the rest of the mission.
+---
+--- Only `UNIT` gets past it; the aircraft test proper is `veafSpawn.CAP_AIR_ATTRIBUTE` below.
+veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORY_NAMES = {
+  UNIT = true,
+  WEAPON = false, -- a missile in flight: a threat, not a target
+  STATIC = false,
+  BASE = false,
+  SCENERY = false,
+  CARGO = false,
+}
+
+--- The same enumeration, keyed by the value `getCategory` actually returns.
+---
+--- Built from the names rather than written as `[Object.Category.CARGO] = false` literals on purpose:
+--- a table constructor whose key is nil raises *"table index is nil"*, and this runs at script load,
+--- so one enumerator ED renames would stop the whole VEAF framework from loading rather than cost this
+--- one filter a line.
+veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORIES = {}
+for categoryName, isEngageable in pairs(veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORY_NAMES) do
+  local categoryValue = Object.Category[categoryName]
+  if categoryValue ~= nil then
+    veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORIES[categoryValue] = isEngageable
+  end
+end
+
+--- The unit attribute that tells an aircraft from everything else a radar returns.
+---
+--- Enumerated from the shipped DCS unit database rather than picked by hand: of its 883 entries, all
+--- 170 aircraft carry `Air`, and not one vehicle, ship, static or infantry entry does —
+--- `TestVeafSpawnCapTargetFilter:test_air_attribute_marks_exactly_the_aircraft` sweeps the whole table
+--- to hold that true, so the day ED adds an aircraft without it the suite says so.
+---
+--- Why an attribute and not a name: the group category cannot tell an aircraft from a man hanging
+--- under a parachute, because an ejected pilot keeps his aircraft's group. Matching on a name
+--- (`Pilot`, `Parachutist`, …) would be worse than useless — a mission maker names his units in his
+--- own language, and DCS's own default unit name for an *aircraft* is `Pilot #001`, which is exactly
+--- what the 2026-09-01 log was full of. An ED attribute is the same string in every mission.
+veafSpawn.CAP_AIR_ATTRIBUTE = "Air"
+
+--- Call a method on a detected object without trusting the object to still be there.
+---
+--- Every accessor on a detected object can raise — that is the *"Static doesn't exist"* above — and a
+--- raise anywhere in the watchdog stops it forever. Returns nil for anything that does not answer.
+local function askDetectedObject(object, method, ...)
+  local objectType = type(object)
+  if objectType ~= "table" and objectType ~= "userdata" then
+    return nil
+  end
+  local ok, accessor = pcall(function()
+    return object[method]
+  end)
+  if not ok or type(accessor) ~= "function" then
+    return nil
+  end
+  local called, result = pcall(accessor, object, ...)
+  if not called then
+    return nil
+  end
+  return result
+end
+
+--- Is this detected object something a CAP should be tasked against?
+---
+--- @param target table|nil a `getDetectedTargets` entry's `.object`
+--- @param capCoalition number the CAP's own coalition
+--- @return boolean true when the watchdog should list and engage it
+--- @return string|nil why it was refused, for the trace; nil when it was accepted
+function veafSpawn.isCapEngageableTarget(target, capCoalition)
+  if target == nil then
+    return false, "no object"
+  end
+
+  local objectCategory = askDetectedObject(target, "getCategory")
+  if not veafSpawn.CAP_ENGAGEABLE_OBJECT_CATEGORIES[objectCategory] then
+    return false, "object category " .. tostring(objectCategory)
+  end
+
+  -- `isActive` keeps a late-activated group out of it; `inAir` is true for anything off the ground,
+  -- a man under a parachute included, so it is a necessary test and never a sufficient one.
+  if not (askDetectedObject(target, "isActive") and askDetectedObject(target, "inAir")) then
+    return false, "not airborne"
+  end
+
+  local targetCoalition = askDetectedObject(target, "getCoalition")
+  if targetCoalition == nil or targetCoalition == capCoalition then
+    return false, "not hostile"
+  end
+
+  local targetGroup = askDetectedObject(target, "getGroup")
+  local targetGroupCategory = targetGroup and askDetectedObject(targetGroup, "getCategory")
+  if targetGroupCategory ~= Group.Category.AIRPLANE and targetGroupCategory ~= Group.Category.HELICOPTER then
+    return false, "group category " .. tostring(targetGroupCategory)
+  end
+
+  -- The test the group category cannot do. An ejected pilot is still a member of his aircraft's
+  -- AIRPLANE group and is still `inAir()` under his canopy; his own descriptor is not an aircraft's.
+  local targetDescription = askDetectedObject(target, "getDesc")
+  local targetAttributes = targetDescription and targetDescription.attributes
+  if type(targetAttributes) ~= "table" or not targetAttributes[veafSpawn.CAP_AIR_ATTRIBUTE] then
+    return false, "not an aircraft"
+  end
+
+  return true, nil
+end
+
 function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)
   veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.startCapWatchdog(capGroupName=%s)", veaf.lp(capGroupName))
   veaf.loggers.get(veafSpawn.Id):trace("capZone=%s", veaf.lp(capZone))
@@ -1247,30 +1372,22 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
           -- process each target and compute its priority, then add it to the targets list
           for _, detectedTarget in pairs(detectedTargets) do
             local target = detectedTarget.object
-            local targetId = target:getID()
-            local targetGroup = target:getGroup()
-            local targetGroupName = targetGroup:getName()
-            local targetName = target:getName()
-            veaf.loggers.get(veafSpawn.Id):trace(
-              "Checking targetGroupName=%s, targetName=%s, targetId=%s",
-              veaf.lp(targetGroupName),
-              veaf.lp(targetName),
-              veaf.lp(targetId)
-            )
-            local targetIsAirborne = target:isActive() and target:inAir()
-            local targetCoalition = target:getCoalition()
-            local targetGroupCategory = targetGroup:getCategory()
-            veaf.loggers.get(veafSpawn.Id):trace("targetIsAirborne=%s", veaf.lp(targetIsAirborne))
-            veaf.loggers.get(veafSpawn.Id):trace("targetCoalition=%s", veaf.lp(targetCoalition))
-            veaf.loggers.get(veafSpawn.Id):trace("targetGroupCategory=%s", veaf.lp(targetGroupCategory))
-
-            if
-              targetIsAirborne ~= nil
-              and targetGroupCategory ~= nil
-              and targetCoalition ~= nil
-              and targetCoalition ~= capCoalition
-              and (targetGroupCategory == Group.Category.AIRPLANE or targetGroupCategory == Group.Category.HELICOPTER)
-            then
+            -- The filter runs *before* anything is read off the object. It used to run after four
+            -- dereferences, which is how a detected static could raise "Static doesn't exist" and take
+            -- the whole watchdog down with it.
+            local isEngageable, refusalReason = veafSpawn.isCapEngageableTarget(target, capCoalition)
+            if not isEngageable then
+              veaf.loggers.get(veafSpawn.Id):trace("Discarding a detected object: %s", veaf.lp(refusalReason))
+            else
+              local targetId = target:getID()
+              local targetName = target:getName()
+              local targetGroupName = target:getGroup():getName()
+              veaf.loggers.get(veafSpawn.Id):trace(
+                "Checking targetGroupName=%s, targetName=%s, targetId=%s",
+                veaf.lp(targetGroupName),
+                veaf.lp(targetName),
+                veaf.lp(targetId)
+              )
               local targetPosition = target:getPosition().p
               local targetDistanceFromCapZoneCenter = veaf.get2DDist(targetPosition, capZone)
               veaf.loggers.get(veafSpawn.Id):trace("targetPosition=%s", veaf.lp(targetPosition))
@@ -1339,13 +1456,28 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
                     -- no, it's an old target, let's mark it as old
                     veaf.loggers.get(veafSpawn.Id):debug("redetection (previous run) of targetName=%s", veaf.lp(targetName))
                     targetData.isNew = false
+                    -- This is a *tracking* list: a target the CAP still has on radar is not a stale
+                    -- one. Leaving `seenAt` at the first sighting made every contact expire after
+                    -- `CAP_WATCHDOG_DELAY * 2` and be re-registered as brand new on the next tick —
+                    -- the endless "new detection of targetName=..." the 2026-09-01 log is full of, and
+                    -- a fresh `EngageUnit` pushed onto the AI every couple of ticks for a target it
+                    -- was already attacking.
+                    targetData.seenAt = timestamp
+                    targetData.priority = targetPriority
+                    targetData.target = target
                   end
                 else
                   -- new target! register in into the target list
                   veaf.loggers
                     .get(veafSpawn.Id)
                     :debug("new detection of targetName=%s, priority=%s", veaf.lp(targetName), veaf.lp(targetPriority))
-                  targetsList[targetId] = { isNew = true, seenAt = timestamp, priority = targetPriority, targetId = targetId, unit = unit }
+                  -- `target`, not the CAP aircraft that saw it. The field used to hold the *detecting*
+                  -- unit, so the freshness check below asked whether the patrol's own aeroplane was
+                  -- still flying instead of whether the enemy was still there. On 2026-09-01 that made
+                  -- a watchdog throw away four freshly detected F-14s in the same tick it registered
+                  -- them, engaging nothing while reporting that it had targets.
+                  targetsList[targetId] =
+                    { isNew = true, seenAt = timestamp, priority = targetPriority, targetId = targetId, target = target }
                 end
               end
             end
@@ -1369,28 +1501,43 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
       return
     end
 
-    controller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
-    controller:setOption(0, 0) --weapons free
-    --sort the list in reverse priority order so that the last task to be pushed in spot #1 is the one with the lowest priority, couldn't quite figure out which way works best, since this one makes the least sense it seems appropriate for DCS
-    table.sort(targetsList, function(a, b)
+    -- The list is keyed by DCS unit id, so it is a map and never an array: `#targetsList` is 0 and
+    -- `table.sort` on it sorted nothing at all, which is how the priority ladder computed above came
+    -- to decide nothing. Copied into a real array first, and iterated from that copy — which also
+    -- makes it safe to delete entries from the map while walking it.
+    --
+    -- Sorted in reverse priority order so that the last task pushed — the one that ends up on top of
+    -- the controller's stack — is the lowest-priority one. That is the original author's call, kept.
+    local sortedTargets = {}
+    for _, targetData in pairs(targetsList) do
+      table.insert(sortedTargets, targetData)
+    end
+    table.sort(sortedTargets, function(a, b)
       return a.priority < b.priority
     end)
     veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.lp(targetsList))
-    local foundTargets = false
-    for targetId, targetData in pairs(targetsList) do
-      if not foundTargets then
-        -- only write that once!
-        veaf.loggers.get(veafSpawn.Id):debug("Watchdog has targets ! Allowing AA for CAP")
-        foundTargets = true
-      end
+
+    -- `engagedTargets` counts targets actually **engaged**, not targets listed. It used to be set on
+    -- the first entry of the list, before that entry had been checked, so a list holding nothing but
+    -- stale contacts still reported "Watchdog has targets", still lifted `PROHIBIT_AA`, pushed no task
+    -- at all, and skipped the branch that hands the CAP back its patrol. That is a CAP flying weapons
+    -- free with nothing to do, which is what "they never returned fire" looked like from the cockpit.
+    local engagedTargets = 0
+    for _, targetData in ipairs(sortedTargets) do
+      local targetId = targetData.targetId
       if
-        not Unit.isExist(targetData.unit)
-        or not targetData.unit:inAir()
+        not veafSpawn.isCapEngageableTarget(targetData.target, capCoalition)
         or timestamp > targetData.seenAt + veafSpawn.CAP_WATCHDOG_DELAY * 2
       then
         veaf.loggers.get(veafSpawn.Id):trace("Target is outdated, landed or doesn't exist, removing it from the list")
         targetsList[targetId] = nil
       else
+        if engagedTargets == 0 then
+          -- only write that once!
+          veaf.loggers.get(veafSpawn.Id):debug("Watchdog has targets ! Allowing AA for CAP")
+          controller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
+          controller:setOption(0, 0) --weapons free
+        end
         veaf.loggers.get(veafSpawn.Id):trace("Engaging target!")
         local engageUnit = {
           id = "EngageUnit",
@@ -1402,16 +1549,23 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
         }
         controller:pushTask(engageUnit)
         numberOfTasksAddedByWatchdog = numberOfTasksAddedByWatchdog + 1
+        engagedTargets = engagedTargets + 1
       end
     end
 
-    if not foundTargets then
-      -- no targets, let's remove all the tasks we added (taking care not to remove the original task, which is to fly along the route)
+    if engagedTargets == 0 then
+      -- nothing worth engaging: take back the tasks we pushed, and let the CAP fly its patrol again
       veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, removing all tasks and prohibiting AA for CAP")
       while controller:hasTask() and numberOfTasksAddedByWatchdog > 0 do
         veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.lp(numberOfTasksAddedByWatchdog))
-        controller:resetTask()
-        veaf.loggers.get(veafSpawn.Id):trace("resetTask() called")
+        -- `popTask`, not `resetTask`. ED describes them as "removes the highest priority task from
+        -- this controller's task queue" and "clears **all** tasks from this controller's task queue,
+        -- causing controlled units to cease their current activity" respectively. The loop counts the
+        -- tasks it pushed precisely so as not to touch the route underneath them — and then called the
+        -- one that removes the route too. `popTask` is the inverse of the `pushTask` above, so the
+        -- comment and the code finally say the same thing.
+        controller:popTask()
+        veaf.loggers.get(veafSpawn.Id):trace("popTask() called")
         numberOfTasksAddedByWatchdog = numberOfTasksAddedByWatchdog - 1
       end
       controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)

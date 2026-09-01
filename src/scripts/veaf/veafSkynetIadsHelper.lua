@@ -345,13 +345,26 @@ function veafSkynet.getNearestIADSSite(networkName, dcsGroup)
 
       if site_name and currentGroupName ~= site_name then
         if ewrFlag then
+          -- An EWR is registered by *unit* name, so its group has to be resolved from the unit. Neither
+          -- end of that chain was checked, and Skynet's register outlives the units in it: a radar
+          -- destroyed since the network was built -- the very thing this search walks over -- took the
+          -- whole point-defence search down on `Unit.getGroup(nil)`.
           local unit = Unit.getByName(site_name)
-          local group = Unit.getGroup(unit)
-          site_name = Group.getName(group)
+          local group = unit and unit:getGroup()
+          if group then
+            site_name = group:getName()
+          else
+            veaf.loggers
+              .get(veafSkynet.Id)
+              :warn(string.format("searchForGroup: the EWR unit [%s] is gone from DCS ; it is skipped", veaf.p(site_name)))
+            site_name = nil
+          end
         end
         veaf.loggers.get(veafSkynet.Id):trace(string.format("Checked Site groupName : %s", veaf.p(site_name)))
 
-        local groupAvgPosition = veaf.getAveragePosition(site_name)
+        -- A skipped EWR leaves `site_name` nil, and `getAveragePosition` answers nil for it, so the
+        -- site falls out of the search at the `if groupAvgPosition` below.
+        local groupAvgPosition = site_name and veaf.getAveragePosition(site_name)
         veaf.loggers.get(veafSkynet.Id):debug(string.format("Checked Site groupAvgPosition : %s", veaf.p(groupAvgPosition)))
 
         if groupAvgPosition then

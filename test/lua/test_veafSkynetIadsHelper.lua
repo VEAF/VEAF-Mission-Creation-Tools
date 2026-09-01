@@ -1403,4 +1403,111 @@ function TestVeafSkynetDefendsOnlyLiveSites:test_no_sites_at_all_is_still_nil()
   luaunit.assertNil(veafSkynet.findSkynetElementToDefend(_defence({}, {}), { type = "single" }))
 end
 
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS — the point-defence search and a radar that is gone
+--
+-- `getNearestIADSSite` walks the network's early-warning radars, which are registered by **unit**
+-- name, and resolved the group from the unit in three unchecked steps:
+--
+--     local unit = Unit.getByName(site_name)
+--     local group = Unit.getGroup(unit)
+--     site_name = Group.getName(group)
+--
+-- Skynet's register outlives the units in it — a radar destroyed since the network was built is
+-- precisely what this loop walks over — so `Unit.getGroup(nil)` took the whole search down, and with
+-- it the point defence of the site being placed.
+--
+-- The mocks reproduce it as DCS does: an EWR named in the network but never registered with
+-- `dcs_mocks.addUnit` is a radar DCS no longer knows.
+-- ============================================================================
+TestVeafSkynetVanishedEwr = {}
+
+--- An IADS answering one EWR site and no SAM site.
+local function _iadsWithEwr(ewrUnitName)
+  return {
+    getEarlyWarningRadars = function()
+      return { { dcsName = ewrUnitName } }
+    end,
+    getSAMSites = function()
+      return {}
+    end,
+  }
+end
+
+--- The group asking for a point defence: alive, blue, and not the EWR.
+local function _askingGroup(name)
+  dcs_mocks.addUnit(name .. "-1", {
+    getPosition = function()
+      return { p = { x = 0, y = 0, z = 0 } }
+    end,
+  })
+  dcs_mocks.addGroup(name, {
+    getUnits = function()
+      return { Unit.getByName(name .. "-1") }
+    end,
+  })
+  return Group.getByName(name)
+end
+
+function TestVeafSkynetVanishedEwr:setUp()
+  dcs_mocks.reset()
+  self._savedStructure = veafSkynet.structure
+  veafSkynet.structure = {
+    ["blue iads"] = { iads = _iadsWithEwr("DEAD-EWR-UNIT"), coalitionID = coalition.side.BLUE },
+  }
+  self._logger = veaf.loggers.get(veafSkynet.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+end
+
+function TestVeafSkynetVanishedEwr:tearDown()
+  self._logger.warn = self._originalWarn
+  veafSkynet.structure = self._savedStructure
+  dcs_mocks.reset()
+end
+
+-- The defect itself: without the guard this raises on `Unit.getGroup(nil)`.
+function TestVeafSkynetVanishedEwr:test_a_dead_ewr_does_not_take_the_search_down()
+  local group = _askingGroup("SA-15-POINT-DEFENCE")
+  local ok, err = pcall(veafSkynet.getNearestIADSSite, "blue iads", group)
+  luaunit.assertTrue(ok, string.format("getNearestIADSSite raised on an EWR that is gone: %s", tostring(err)))
+end
+
+function TestVeafSkynetVanishedEwr:test_the_warning_names_the_radar()
+  veafSkynet.getNearestIADSSite("blue iads", _askingGroup("SA-15-POINT-DEFENCE"))
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find("DEAD-EWR-UNIT", 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the EWR unit that is gone")
+end
+
+-- The ordinary path is untouched: an EWR whose unit is alive still resolves to its group name, and no
+-- warning is raised for it.
+function TestVeafSkynetVanishedEwr:test_a_live_ewr_still_resolves_to_its_group()
+  dcs_mocks.addUnit("LIVE-EWR-UNIT", {
+    getPosition = function()
+      return { p = { x = 500, y = 0, z = 500 } }
+    end,
+    getGroup = function()
+      return Group.getByName("LIVE-EWR-GROUP")
+    end,
+  })
+  dcs_mocks.addGroup("LIVE-EWR-GROUP", {
+    getUnits = function()
+      return { Unit.getByName("LIVE-EWR-UNIT") }
+    end,
+  })
+  veafSkynet.structure["blue iads"].iads = _iadsWithEwr("LIVE-EWR-UNIT")
+  local nearest = veafSkynet.getNearestIADSSite("blue iads", _askingGroup("SA-15-POINT-DEFENCE"))
+  luaunit.assertEquals(nearest, "LIVE-EWR-GROUP")
+  luaunit.assertEquals(#self.warned, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

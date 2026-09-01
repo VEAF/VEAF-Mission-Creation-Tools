@@ -2237,9 +2237,22 @@ function VeafCombatOperation:updatePrimaryTasks()
       for _, requiredCombatZoneName in pairs(candidateTaskingOrder.requiredCompleteNames) do
         local requiredCombatZone = veafCombatZone.GetZone(requiredCombatZoneName)
 
-        -- if any of required tasking order is active, then tasking order is not eligible
-        ---@diagnostic disable-next-line: need-check-nil
-        if requiredCombatZone:isActive() then
+        -- `GetZone` answers nil for a name it does not know -- a prerequisite misspelled in
+        -- mission.yaml -- and it has already said so, loudly, on screen and in the log. Dereferencing
+        -- it anyway took the whole operation down; a `need-check-nil` was silencing the linter that
+        -- pointed at this exact line.
+        --
+        -- A zone that does not exist cannot be active, so it cannot block: the requirement is skipped
+        -- rather than treated as unfulfilled, which would deadlock the operation for good on a typo.
+        if not requiredCombatZone then
+          veaf.loggers.get(veafCombatZone.Id):warn(
+            string.format(
+              "updatePrimaryTasks: unknown required zone [%s] ; it cannot block, so it is ignored",
+              veaf.p(requiredCombatZoneName)
+            )
+          )
+        elseif requiredCombatZone:isActive() then
+          -- if any of required tasking order is active, then tasking order is not eligible
           requirementFulfilled = false
           break
         end

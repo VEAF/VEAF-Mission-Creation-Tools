@@ -1,6 +1,6 @@
 # 01 — Guard, or prove unreachable
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix · Files: see the table in the PRD
 
@@ -31,9 +31,9 @@ was silencing the warning instead of leaving it disabled over corrected code.
 
 ## Definition of done
 
-- [ ] Every location in the PRD table is guarded or documented as unreachable
-- [ ] The four silenced `need-check-nil` are resolved or re-justified
-- [ ] `getAvgGroupPos` no longer calls a method on a string
-- [ ] Tests through the mocks wherever the path is reachable
-- [ ] The PR states, per location, what was done and why
-- [ ] `poetry run test-lua` green, `stylua --check` clean
+- [x] Every location in the PRD table is guarded or documented as unreachable
+- [x] The four silenced `need-check-nil` are resolved or re-justified
+- [x] `getAvgGroupPos` no longer calls a method on a string
+- [x] Tests through the mocks wherever the path is reachable
+- [x] The PR states, per location, what was done and why
+- [x] `poetry run test-lua` green, `stylua --check` clean

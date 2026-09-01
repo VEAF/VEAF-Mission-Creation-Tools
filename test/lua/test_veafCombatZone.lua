@@ -3309,4 +3309,102 @@ function TestVeafCombatZoneSpawnCountResolution:test_a_count_does_not_leak_to_an
   luaunit.assertEquals(#self.infos, 0)
 end
 
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS — a combat operation crashed on a misspelled prerequisite
+--
+-- `VeafCombatOperation:updatePrimaryTasks` resolves each tasking order's `requiredCompleteNames`
+-- through `veafCombatZone.GetZone`, which answers **nil** for a name it does not know — and says so
+-- loudly, on screen and in the log, because a mission maker's typo is exactly what it is for. The
+-- result was then dereferenced anyway, under a `---@diagnostic disable-next-line: need-check-nil`: the
+-- linter had found this line and been told to be quiet.
+--
+-- The decision the guard makes: a zone that does not exist cannot be active, so it cannot block. It is
+-- skipped and warned about. Treating it as unfulfilled instead would deadlock the whole operation for
+-- the rest of the mission, over a typo — a worse failure, and a silent one.
+-- ============================================================================
+TestVeafCombatOperationUnknownPrerequisite = {}
+
+--- A tasking order over an active zone, requiring the named zones to be complete first.
+local function _taskingOrderRequiring(zoneName, requiredNames)
+  return {
+    zone = {
+      isActive = function()
+        return true
+      end,
+      getFriendlyName = function()
+        return zoneName
+      end,
+    },
+    requiredCompleteNames = requiredNames,
+    getZone = function(self)
+      return self.zone
+    end,
+  }
+end
+
+function TestVeafCombatOperationUnknownPrerequisite:setUp()
+  dcs_mocks.reset()
+  self._savedZonesDict = veafCombatZone.zonesDict
+  -- Empty on purpose: this is what a mission.yaml naming a zone that does not exist produces.
+  veafCombatZone.zonesDict = {}
+  self._logger = veaf.loggers.get(veafCombatZone.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+
+  self.operation = VeafCombatOperation:new()
+  self.operation.missionEditorZoneName = "OPERATION-1"
+  self.operation.primaryTaskingOrders = {}
+  self.operation.taskingOrderDict = { ["TASK-1"] = _taskingOrderRequiring("TASK-1", { "NO-SUCH-PREREQUISITE" }) }
+end
+
+function TestVeafCombatOperationUnknownPrerequisite:tearDown()
+  self._logger.warn = self._originalWarn
+  veafCombatZone.zonesDict = self._savedZonesDict
+  dcs_mocks.reset()
+end
+
+-- The defect itself: without the guard this raises on `requiredCombatZone:isActive()`.
+function TestVeafCombatOperationUnknownPrerequisite:test_an_unknown_prerequisite_does_not_raise()
+  local ok, err = pcall(function()
+    self.operation:updatePrimaryTasks()
+  end)
+  luaunit.assertTrue(ok, string.format("updatePrimaryTasks raised on a prerequisite zone that does not exist: %s", tostring(err)))
+end
+
+-- And the decision it makes: the task is eligible, because nothing that does not exist is blocking it.
+function TestVeafCombatOperationUnknownPrerequisite:test_the_task_is_not_deadlocked_by_a_zone_that_does_not_exist()
+  self.operation:updatePrimaryTasks()
+  luaunit.assertEquals(#self.operation.primaryTaskingOrders, 1)
+end
+
+function TestVeafCombatOperationUnknownPrerequisite:test_the_warning_names_the_prerequisite()
+  self.operation:updatePrimaryTasks()
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find("NO-SUCH-PREREQUISITE", 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the prerequisite zone nobody can find")
+end
+
+-- The ordinary path is untouched: a prerequisite that exists and is still active still blocks.
+function TestVeafCombatOperationUnknownPrerequisite:test_a_prerequisite_that_exists_still_blocks()
+  veafCombatZone.zonesDict = {
+    ["prerequisite-1"] = {
+      isActive = function()
+        return true
+      end,
+    },
+  }
+  self.operation.taskingOrderDict = { ["TASK-1"] = _taskingOrderRequiring("TASK-1", { "PREREQUISITE-1" }) }
+  self.operation:updatePrimaryTasks()
+  luaunit.assertEquals(#self.operation.primaryTaskingOrders, 0)
+  luaunit.assertEquals(#self.warned, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

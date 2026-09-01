@@ -1036,10 +1036,27 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
   end
 
   -- actually spawn groups
-  veaf.addGroup({ country = country, category = "GROUND_UNIT", name = veafCasMission.casGroupName, hidden = false, units = dcsUnits })
+  local spawned =
+    veaf.addGroup({ country = country, category = "GROUND_UNIT", name = veafCasMission.casGroupName, hidden = false, units = dcsUnits })
+
+  -- `addGroup` answers false on an unknown country or an empty unit list, and its return used to be
+  -- discarded -- which is exactly when the lookup below comes back nil. Both are checked now: the
+  -- rest of this function builds a radio menu, a watchdog and an AFAC around a group that does not
+  -- exist, so there is nothing to carry on with.
+  local casGroup = spawned and Group.getByName(veafCasMission.casGroupName)
+  if not casGroup then
+    veaf.loggers.get(veafCasMission.Id):warn(
+      string.format(
+        "generateCasMission: the CAS group [%s] could not be created ; the mission is not started",
+        veaf.p(veafCasMission.casGroupName)
+      )
+    )
+    trigger.action.outText(veaf.t("cas.spawn_failed"), 15)
+    return
+  end
 
   -- set AI options
-  local controller = Group.getByName(veafCasMission.casGroupName):getController()
+  local controller = casGroup:getController()
   controller:setOption(9, 2) -- set alarm state to red
   controller:setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, disperseOnAttack) -- set disperse on attack according to the option
 
@@ -1122,19 +1139,29 @@ function veafCasMission.reportTargetInformation(unitName)
   if requestingUnit and requestingUnit:getCoalition() == coalition.side.RED then
     bullseyeData = veaf.getBullseye("red")
   end
-  local bullseye = veaf.makeVec3(bullseyeData, 0)
-  ---@diagnostic disable-next-line: need-check-nil
-  local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
-  local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
-  local dist = veaf.get2DDist(averageGroupPosition, bullseye)
-  local distMetric = veaf.round(dist / 1000, 0)
-  local distImperial = veaf.round(veaf.metersToNM(dist), 0)
-  local fromBullseye = veaf.t("cas.report_bullseye_value", dir, distMetric, distImperial)
+  -- `getBullseye` answers nil for a side the mission declares no bullseye for, and `makeVec3` reads
+  -- `vec.z` straight away, so the report used to raise one line *before* the `need-check-nil` that was
+  -- silencing the linter here. The three other lines of the report do not need a bullseye, so only
+  -- that one is dropped.
+  local bullseye = bullseyeData and veaf.makeVec3(bullseyeData, 0)
 
   message = message .. veaf.t("cas.report_latlon_decimal", veaf.toStringLL(lat, lon, 2))
   message = message .. veaf.t("cas.report_latlon_dms", veaf.toStringLL(lat, lon, 0, true))
   message = message .. veaf.t("cas.report_mgrs", mgrsString)
-  message = message .. veaf.t("cas.report_bullseye", fromBullseye)
+  if bullseye then
+    local vec =
+      { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
+    local dir = veaf.round(math.deg(veaf.getDir(vec, bullseye)), 0)
+    local dist = veaf.get2DDist(averageGroupPosition, bullseye)
+    local distMetric = veaf.round(dist / 1000, 0)
+    local distImperial = veaf.round(veaf.metersToNM(dist), 0)
+    local fromBullseye = veaf.t("cas.report_bullseye_value", dir, distMetric, distImperial)
+    message = message .. veaf.t("cas.report_bullseye", fromBullseye)
+  else
+    veaf.loggers
+      .get(veafCasMission.Id)
+      :warn("reportTargetInformation: the mission declares no bullseye for this side ; the report omits it")
+  end
   message = message .. "\n"
 
   message = message .. veaf.t("cas.report_weather_header") .. veafWeatherData.getWeatherString(averageGroupPosition, unitName)

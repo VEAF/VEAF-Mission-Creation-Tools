@@ -1255,7 +1255,15 @@ function veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)
 end
 
 function veafWeather.messageAtcClosestAirbase(unitName, forUnit)
+  -- The name comes from an F10 menu entry, and a pilot can be dead, slotted out or respawned between
+  -- opening the menu and choosing the item. The lookup was unchecked, and `getNearestAirbase` calls
+  -- `dcsUnit:getPoint()` on the spot -- so a unit that had just gone took the ATC report down. There is
+  -- nobody left to answer, so this simply stops.
   local dcsUnit = Unit.getByName(unitName)
+  if not dcsUnit then
+    veaf.loggers.get(veafWeather.Id):warn(string.format("messageAtcClosestAirbase: unit [%s] is gone ; no ATC report", veaf.p(unitName)))
+    return
+  end
   local veafAirbase = veafAirbases.getNearestAirbase(dcsUnit)
   if veafAirbase then
     -- getAtisString returns nil when the airbase's DCS object is gone — the guard that fixed issue

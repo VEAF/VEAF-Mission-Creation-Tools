@@ -563,4 +563,76 @@ function TestSanctuaryDeployDefensesHandover:test_the_harder_wave_spreads_on_bot
   end
 end
 
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS -- a misnamed trigger zone crashed the set-up
+--
+-- `addZoneFromTriggerZone` asked DCS for the zone, then tested `triggerZoneName` -- the *parameter*,
+-- which is truthy by then -- instead of the answer, and read `triggerZone.radius` under a
+-- `---@diagnostic disable-next-line: need-check-nil`. The linter had found this exact line and was
+-- told to be quiet. A trigger zone misspelled in mission.yaml therefore raised inside the mission
+-- script instead of naming the zone nobody could find.
+--
+-- The mocks answer nil for a zone that was never registered with `dcs_mocks.addZone`, which is what
+-- `trigger.misc.getZone` does in DCS.
+-- ============================================================================
+TestSanctuaryZoneFromMissingTriggerZone = {}
+
+function TestSanctuaryZoneFromMissingTriggerZone:setUp()
+  dcs_mocks.reset()
+  veafSanctuary.zonesList = {}
+  self._logger = veaf.loggers.get(veafSanctuary.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+end
+
+function TestSanctuaryZoneFromMissingTriggerZone:tearDown()
+  self._logger.warn = self._originalWarn
+  veafSanctuary.zonesList = {}
+  dcs_mocks.reset()
+end
+
+--- Does any captured warning contain this text?
+local function _warningMentions(warnings, text)
+  for _, warning in ipairs(warnings) do
+    if warning:find(text, 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+-- The defect itself. Without the fix this raises on `triggerZone.radius`.
+function TestSanctuaryZoneFromMissingTriggerZone:test_a_zone_dcs_does_not_know_does_not_raise()
+  local ok, err = pcall(veafSanctuary.addZoneFromTriggerZone, "NO-SUCH-ZONE")
+  luaunit.assertTrue(ok, string.format("addZoneFromTriggerZone raised on an unknown zone: %s", tostring(err)))
+end
+
+function TestSanctuaryZoneFromMissingTriggerZone:test_a_zone_dcs_does_not_know_adds_nothing()
+  luaunit.assertNil(veafSanctuary.addZoneFromTriggerZone("NO-SUCH-ZONE"))
+  luaunit.assertEquals(#veafSanctuary.zonesList, 0)
+end
+
+-- A warning that does not name the zone is one no mission maker can act on: the whole point is to
+-- tell them which name in their mission.yaml has no zone behind it.
+function TestSanctuaryZoneFromMissingTriggerZone:test_the_warning_names_the_zone()
+  veafSanctuary.addZoneFromTriggerZone("NO-SUCH-ZONE")
+  luaunit.assertTrue(_warningMentions(self.warned, "NO-SUCH-ZONE"), "the warning must name the missing trigger zone")
+end
+
+-- ...and the ordinary path is untouched: a registered zone still becomes a sanctuary zone carrying
+-- the trigger zone's radius and centre.
+function TestSanctuaryZoneFromMissingTriggerZone:test_a_zone_dcs_knows_is_still_added()
+  dcs_mocks.addZone("SANCTUARY-KUTAISI", 1000, 2000, 7500)
+  local zone = veafSanctuary.addZoneFromTriggerZone("SANCTUARY-KUTAISI")
+  luaunit.assertNotNil(zone)
+  luaunit.assertEquals(zone:getName(), "SANCTUARY-KUTAISI")
+  luaunit.assertEquals(zone:getRadius(), 7500)
+  luaunit.assertEquals(#veafSanctuary.zonesList, 1)
+  luaunit.assertEquals(#self.warned, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -315,4 +315,114 @@ function TestVeafMoveReestablishEscortTask:test_the_id_is_read_after_the_delay_n
   luaunit.assertEquals(tasks[1].params.groupId, 4242, "the id was read before the respawn")
 end
 
+-- ============================================================================
+-- FIX-UNGUARDED-DCS-LOOKUPS — the lookup taken *after* the teleport
+--
+-- `teleportEscort` checks the escort group exists, computes its new waypoints, teleports it, and then
+-- looks it up again — because a teleport destroys the group and recreates it, so the object it held is
+-- stale. That second lookup was never checked, and its answer goes straight to `replaceMission`, whose
+-- first statement is `unitGroup:getName()`. The guard above tested a different object entirely: the
+-- group as it was before the teleport.
+--
+-- The same shape sits on the other two teleport paths, `moveTanker` and `moveAfac`, and all three are
+-- fixed together. Here the teleport is stubbed to leave nothing behind, which is what a teleport that
+-- fails to recreate its group looks like from this side.
+-- ============================================================================
+TestVeafMoveEscortLostByTheTeleport = {}
+
+function TestVeafMoveEscortLostByTheTeleport:setUp()
+  dcs_mocks.reset()
+  self._savedGroupSpawn = VeafGroupSpawn
+  self._savedSchedule = veaf.scheduleFunction
+  -- `replaceMission` does its work in a scheduled call, and that is where `unitGroup:getName()` sits.
+  -- Left on the mock scheduler it never runs, and the test would pass without the guard by never
+  -- reaching the defect at all.
+  _runScheduledImmediately()
+  self._logger = veaf.loggers.get(veafMove.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  self._logger.warn = function(_, text, ...)
+    table.insert(warned, tostring(text))
+  end
+
+  -- veafSpawnCore is not loaded by this suite; a fluent stub is all `teleportEscort` uses of it. The
+  -- teleport removes the group from the registry and puts nothing back, so the lookup that follows it
+  -- comes back empty.
+  self.teleported = false
+  local test = self
+  VeafGroupSpawn = {
+    new = function(self_)
+      local spawn
+      spawn = {
+        forGroup = function(_, name)
+          spawn._name = name
+          return spawn
+        end,
+        at = function()
+          return spawn
+        end,
+        teleport = function()
+          test.teleported = true
+          dcs_mocks.removeGroup(spawn._name)
+          return nil
+        end,
+      }
+      return spawn
+    end,
+  }
+
+  -- A tanker and its escort, both alive, the escort carrying an Escort task on a two-point route.
+  dcs_mocks.addGroup("Arco", { _id = 11 })
+  dcs_mocks.addGroup("Arco escort", { _id = 20 })
+  _mission({ ["Arco escort"] = _groupData(20, 11) })
+end
+
+function TestVeafMoveEscortLostByTheTeleport:tearDown()
+  self._logger.warn = self._originalWarn
+  VeafGroupSpawn = self._savedGroupSpawn
+  veaf.scheduleFunction = self._savedSchedule
+  dcs_mocks.reset()
+end
+
+function TestVeafMoveEscortLostByTheTeleport:_move()
+  return pcall(
+    veafMove.teleportEscort,
+    "Arco",
+    { x = 5000, y = 5000, alt = 6000, speed = 200 },
+    { x = 1000, y = 1000, alt = 6000, speed = 200 }
+  )
+end
+
+-- The defect itself: without the guard, the nil goes to `replaceMission` and the scheduled call dies.
+-- (It dies on `missionData` rather than on the group, because a nil first element leaves a hole in the
+-- argument table `veaf.scheduleFunction` unpacks — which only makes the failure harder to read.)
+function TestVeafMoveEscortLostByTheTeleport:test_an_escort_lost_by_its_teleport_does_not_raise()
+  local ok, err = self:_move()
+  luaunit.assertTrue(ok, string.format("teleportEscort raised when the escort did not come back: %s", tostring(err)))
+end
+
+-- It must have got as far as the teleport, or the test proves nothing about what follows it.
+function TestVeafMoveEscortLostByTheTeleport:test_the_teleport_did_happen()
+  self:_move()
+  luaunit.assertTrue(self.teleported, "the case under test is the lookup *after* the teleport")
+end
+
+-- No mission is pushed to a group that is not there.
+function TestVeafMoveEscortLostByTheTeleport:test_no_task_is_pushed()
+  self:_move()
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 0)
+end
+
+function TestVeafMoveEscortLostByTheTeleport:test_the_warning_names_the_escort()
+  self:_move()
+  local named = false
+  for _, warning in ipairs(self.warned) do
+    if warning:find("Arco escort", 1, true) then
+      named = true
+    end
+  end
+  luaunit.assertTrue(named, "the warning must name the escort group that did not come back")
+end
+
 os.exit(luaunit.LuaUnit.run())

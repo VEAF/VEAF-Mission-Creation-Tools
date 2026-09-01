@@ -104,7 +104,18 @@ function veafCarrierOperations.startCarrierOperations(parameters)
   end
 
   -- find the actual carrier unit
+  -- The `if not carrier then` above vouches for VEAF's own record of the carrier, built when the
+  -- module initialized; it says nothing about the DCS group still being there when a pilot asks for
+  -- air operations, which can be a very long time later. An empty lookup used to take the command
+  -- down on `group:getUnits()`.
   local group = Group.getByName(groupName)
+  if not group then
+    veaf.loggers
+      .get(veafCarrierOperations.Id)
+      :warn(string.format("startCarrierOperations: DCS no longer knows the carrier group [%s]", veaf.p(groupName)))
+    veaf.outTextForGroup(userUnitName, veaf.t("carrier.not_found", groupName), 5)
+    return
+  end
   for _, unit in pairs(group:getUnits()) do
     local unitType = unit:getDesc()["typeName"]
     for knownCarrierType, data in pairs(veafCarrierOperations.AllCarriers) do

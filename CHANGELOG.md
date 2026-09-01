@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.18.0] — 2026-09-01
+
 ### Added
 
 - **`veaf-logs`, a reader for DCS logs.** A DCS log buries what matters under noise nobody can act on.

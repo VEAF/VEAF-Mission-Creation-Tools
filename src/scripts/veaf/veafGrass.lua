@@ -357,6 +357,11 @@ end
 --- which is #232's arbitration — the escort serves the FARP and the crew wants it close — stated directly
 --- rather than approximated by a bearing step.
 ---
+--- The cloud never contains the spot the caller asked for, so selecting from it unconditionally moved
+--- every group it could answer for. The nearest candidate's `gap` is read as a statement about the
+--- wanted spot instead: within `PLACEMENT_CLEARANCE` of it, the wanted spot shares that candidate's
+--- clearing and is returned unchanged (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND).
+---
 --- Disposition stays quality-only, never correctness (ADR 0018): absent, raising, or answering nonsense,
 --- this returns nil and the bearing walk takes over.
 --- @return number|nil bearing, number|nil scale
@@ -425,6 +430,24 @@ local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
     return left.gap < right.gap
   end)
 
+  -- The spot the caller asked for is never one of Disposition's candidates, so without this the cloud
+  -- moved every group it could answer for — measured in game on 2026-08-28, a FARP with nothing within
+  -- a kilometre still had its escort swung 25 degrees out (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND).
+  --
+  -- Probing the wanted spot first is not the answer: `allClear` cannot see forests, which is the whole
+  -- reason this tier exists. The `gap` can. Every candidate was asked of Disposition with a safe radius
+  -- of `extent + PLACEMENT_CLEARANCE`, and the group's footprint reaches `extent` from `wanted[1]`, so a
+  -- candidate whose gap is at most PLACEMENT_CLEARANCE puts every position the group would occupy inside
+  -- the clearing that candidate proves. The wanted spot is out of the trees, and only the occupancy probe
+  -- is left to consult — Disposition never knew about units, statics or the apron anyway.
+  local nearest = options[1]
+  if nearest and nearest.gap <= veafGrass.PLACEMENT_CLEARANCE and allClear(baseAngle, 1) then
+    veaf.loggers
+      .get(veafGrass.Id)
+      :info("findClearBearing: bearing %s is inside a scenery-clear area, keeping it", veaf.p(math.floor(baseAngle)))
+    return baseAngle, 1
+  end
+
   for _, option in ipairs(options) do
     -- Disposition knows nothing about other groups or the FARP's own pads, so the occupancy probe still
     -- decides. The two criteria compose; neither replaces the other.
@@ -436,7 +459,11 @@ local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
     end
   end
 
-  veaf.loggers.get(veafGrass.Id):debug("findClearBearing: no usable point in Disposition's cloud, walking the bearings instead")
+  -- At info, not debug: this line is the only thing that tells a *why* from a *what* when a group has
+  -- moved. The 2026-08-28 in-game run could not say why the forest case fell through to tier 2 because
+  -- this was invisible at the default log level, and it only fires when the cloud answered and nothing
+  -- in it survived — once per group at worst, never in the nominal case.
+  veaf.loggers.get(veafGrass.Id):info("findClearBearing: no usable point in Disposition's cloud, walking the bearings instead")
   return nil
 end
 
@@ -471,6 +498,11 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
   -- once for a cloud, keep what lands in the band we accept, and take the one nearest the spot actually
   -- wanted. Selecting from a cloud is also what makes its measured radius overshoot harmless (asked
   -- 800 m in game on 2026-08-06, answered 2035-2258 m), since the distance filter is ours.
+  --
+  -- It can also answer "keep what you asked for": when the nearest candidate is close enough to the
+  -- wanted spot to prove it shares the same clearing, it returns `baseAngle, 1`. Tier 2's intent below —
+  -- the original bearing first, so the group stays where it was aimed — was unreachable while this tier
+  -- returned a candidate whenever the cloud answered at all.
   local cloudAngle, cloudScale = bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
   if cloudAngle then
     return cloudAngle, cloudScale

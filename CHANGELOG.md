@@ -246,6 +246,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   genuine and are fixed, and the fourth, in third-party JSON reading code, now records why it is
   harmless instead of merely being quiet.
 
+- **A FARP escort placed on empty ground no longer wanders off.** Since escorts learned to avoid
+  forests, they were asking DCS for a list of tree-free spots and always taking one of them — and the
+  spot you actually asked for is never on that list. So the escort moved even with nothing within a
+  kilometre: measured in game, *bearing 0 requested, 25 used*, a few dozen metres away for no reason.
+  It now recognises the case where the spot you asked for sits inside the same clearing as the nearest
+  tree-free spot DCS proposed, and leaves it exactly where you put it. An escort that really is in the
+  trees, on an apron, or on top of something still moves — that part is unchanged, and is tested from
+  both sides so that "does not move when it should not" cannot quietly become "never moves". The log
+  also says out loud when it could not find a tree-free spot at all, instead of only in debug mode.
+
 ### Changed
 
 - **A FARP, a FOB and a CTLD beacon are now documented as going exactly where you put them.** No

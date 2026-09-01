@@ -57,9 +57,10 @@ Le décor (tentes, dépôts, escorte) est placé à distance fixe du FARP, dans 
 
 C'est le cas courant plus qu'un cas limite : on pose un FARP statique dans la mission (c'est lui qui autorise l'apparition sur ce FARP une fois la zone prise), puis on lance `-farp` par-dessus. Avant, l'escorte se posait sur les plateformes, assez près pour qu'un hélicoptère qui atterrit y trouve un camion.
 
-Deux précisions :
+Quatre précisions :
 
 - **Un FARP dégagé ne bouge pas.** La direction d'origine est essayée en premier, donc une mission qui fonctionne garde exactement son décor.
+- **Les forêts sont évitées aussi**, en plus des unités, des objets statiques et des plateformes : DCS ne sait pas répondre « cet endroit est-il dégagé ? » pour des arbres, donc le module lui demande une liste d'emplacements sans arbres et choisit dans cette liste. La promesse ci-dessus tient malgré tout : si l'emplacement demandé se trouve dans la même clairière que le point sans arbres le plus proche, il est conservé tel quel — jusqu'à ce correctif, l'escorte était déplacée de quelques dizaines de mètres même en pleine campagne.
 - Le groupe entier est vérifié, pas seulement son premier véhicule : l'escorte occupe une ligne d'une trentaine de mètres, et un emplacement libre dont la queue dépasse bloquerait quand même une plateforme.
 - Si aucune direction n'est libre, le FARP est construit quand même, à sa position d'origine. Un FARP qui refuserait d'exister parce que l'endroit est encombré serait pire.
 

@@ -459,6 +459,66 @@ function TestVeafGrassSceneryCloud:test_the_second_candidate_is_tried_when_the_f
   luaunit.assertAlmostEquals(angle, 270, 0.01)
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — the wanted spot is never one of Disposition's candidates
+--
+-- Measured in game 2026-08-28: a `-farp` on open ground, nothing within a kilometre, still logged
+-- `FARP escort: bearing 0 requested, 25 used at 1.054x distance`. Tier 1 ran before the requested
+-- bearing was ever tested, and the cloud only *proposes* points — so as long as it answered at all,
+-- the escort moved.
+--
+-- Testing `allClear(baseAngle, 1)` up front would be the wrong fix: the occupancy probe does not see
+-- forests, so it would put escorts back in the trees. The `gap` settles it instead. Each candidate is
+-- asked of Disposition with a safe radius of `extent + PLACEMENT_CLEARANCE`, so a candidate lying
+-- within `PLACEMENT_CLEARANCE` of the wanted spot puts the group's whole footprint inside that same
+-- proven clearing: the wanted spot is in a clearing too, and there is nothing to move away from.
+--
+-- These tests drive the boundary off the `gap` — the candidate's distance to the wanted spot — rather
+-- than off the shape of the code, so they still mean something if the tier is rewritten.
+-- ---------------------------------------------------------------------------
+
+--- A runtime vec3 at an absolute northing/easting: the easting lives in `z`, `y` is the altitude.
+--- The wanted spot for bearing 90 at scale 1 is northing 0, easting 150, so the northing given here
+--- *is* the gap to it — see docs/agents/dcs-coordinates.md before reading this as `{x, y}`.
+local function _cloudPointNorthEast(north, east)
+  return { x = north, y = 0, z = east }
+end
+
+function TestVeafGrassSceneryCloud:test_a_candidate_proving_the_wanted_spot_keeps_the_bearing_and_the_distance()
+  -- Gap of half the clearance: the wanted spot is inside the clearing this candidate proves.
+  self:_cloud({ _cloudPointNorthEast(veafGrass.PLACEMENT_CLEARANCE * 0.5, 150) })
+  local angle, scale = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(angle, 90, "a spot proven clear of scenery must keep its bearing")
+  luaunit.assertEquals(scale, 1, "and its distance")
+end
+
+function TestVeafGrassSceneryCloud:test_a_candidate_too_far_to_prove_the_wanted_spot_still_moves_the_group()
+  -- Gap of twice the clearance: nothing says the wanted spot is out of the trees, so tier 1 keeps
+  -- doing what it was added for. This is the half that turns the fix into a silent regression if it
+  -- is left untested.
+  self:_cloud({ _cloudPointNorthEast(veafGrass.PLACEMENT_CLEARANCE * 2, 150) })
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertNotEquals(math.floor(angle + 0.5), 90, "an unproven spot must still be left for a scenery-clear one")
+end
+
+function TestVeafGrassSceneryCloud:test_a_proven_wanted_spot_that_is_occupied_is_still_left()
+  -- Disposition knows forests; it knows nothing about units, statics or the FARP's own apron. The two
+  -- criteria compose, so proving the clearing never overrides the occupancy probe.
+  self:_cloud({ _cloudPointNorthEast(veafGrass.PLACEMENT_CLEARANCE * 0.5, 150) })
+  veafGrass.isSpotOccupied = function(position)
+    return math.abs((position.bearing or 0) - 90) < 0.01
+  end
+  local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertNotEquals(math.floor(angle + 0.5), 90, "an occupied spot must move even when the scenery is clear")
+end
+
+function TestVeafGrassSceneryCloud:test_the_nearest_candidate_decides_whatever_order_the_cloud_arrives_in()
+  -- The far candidate comes first in the cloud. Ordering by gap is what makes "does anything prove the
+  -- wanted spot?" a question about the *nearest* point rather than about the first one DCS listed.
+  self:_cloud({ _cloudPoint(180, 150), _cloudPointNorthEast(veafGrass.PLACEMENT_CLEARANCE * 0.5, 150) })
+  luaunit.assertEquals(veafGrass.findClearBearing(90, _scaledGroupAt, _own), 90)
+end
+
 -- ADR 0018: Disposition is quality-only, never correctness. Absent, raising or answering nonsense, the
 -- search must degrade to the bearing walk and never abort a FARP.
 function TestVeafGrassSceneryCloud:test_no_singleton_degrades_to_the_bearing_walk()

@@ -591,3 +591,30 @@ est et **la raison est enfin sourcée** plutôt que déduite de l'absence de con
 
 Sans enjeu : personne n'attend ce changement, il n'ouvrirait aucun terrain. C'est une vérification
 de confort, à faire si une session DCS a du temps de reste.
+
+---
+
+## 25. The FARP escort on clear ground must not move — unblocks `FIX-PLACEMENT-IGNORES-SCENERY` 04
+
+Opened by [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md),
+whose code fix and tests landed 2026-09-01. Item 21's own non-regression case failed on 2026-08-28: a
+`-farp` on open ground, nothing within a kilometre, logged `FARP escort: bearing 0 requested, 25 used at
+1.054x distance`. Tier 1 of `findClearBearing` selected out of `Disposition`'s cloud before testing the
+requested bearing, and the wanted spot is never one of the cloud's candidates.
+
+Three markers, on the session mission rebuilt with `--dev-mode` against the fix. Grep `dcs.log` for
+`FARP escort:` and `findClearBearing:`.
+
+| Marker | Case | Expected |
+|---|---|---|
+| open ground, nothing within a kilometre | the non-regression | bearings **equal**, `1x`, plus `bearing N is inside a scenery-clear area, keeping it` |
+| in or beside a wood | the reason tier 1 exists | bearings **differ**, escort visibly out of the trees |
+| beside a static FARP | the reason the occupancy probe still decides | bearings differ or scale above 1, escort off the apron |
+
+**A run where nothing moves in any of the three is a failure, not a pass** — it would mean the fix
+turned tier 1 off. The last two rows are the half that makes this a real check.
+
+`no usable point in Disposition's cloud, walking the bearings instead` now logs at **info**, so the
+old instruction to set `veafGrass.LogLevel = "debug"` for this no longer applies.
+
+Full protocol: [ticket 02](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/tickets/02-verify-in-game-that-nothing-moves.md).

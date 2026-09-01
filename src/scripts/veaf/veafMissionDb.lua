@@ -618,6 +618,10 @@ end
 -- `veafEventHandler` uses, and for the same reason.
 veafMissionDb.initialize()
 
+-- Order 5 says "first", and the load-time call above already makes that true. The generated
+-- `veaf-config.lua` has no declared place for this module, so when a mission lists it the call lands
+-- in the unordered bucket, near-last — a second snapshot rebuild. See
+-- docs/agents/module-initialisation.md.
 veaf.registerModule(veafMissionDb.Id, veafMissionDb.initialize, { enable = true }, 5)
 
 veaf.loggers.get(veafMissionDb.Id):info(veaf.loggers.get(veafMissionDb.Id):getVersionInfo())

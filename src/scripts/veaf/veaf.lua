@@ -86,6 +86,16 @@ function veaf.isEnabled(moduleId)
 end
 
 --- Register a module so that veaf.initialize() can initialize it.
+---
+--- Read `docs/agents/module-initialisation.md` before adding or moving a registration. Two things
+--- there are not visible from here:
+---   * nothing consumes this registry yet. `veaf.initialize()` is never called; what actually starts
+---     the modules is the generated `veaf-config.lua`, which calls them one by one in an order of its
+---     own (`_MODULE_INIT_ORDER` in `lua_config_generator.py`), and only for the modules the mission
+---     enables. The `order` declared here is therefore a statement of intent, not today's sequence.
+---   * the two lists are kept in step by `test/python/veaf_libs/test_module_init_registry.py`, which
+---     fails when a module registers without a place in the generator's order, or the reverse.
+---
 --- @param id         string   — module identifier (e.g. veafSpawn.Id)
 --- @param initFn     function — zero-argument wrapper calling the module's initialize()
 --- @param defaults   table    — default config values merged into veaf.config[id]

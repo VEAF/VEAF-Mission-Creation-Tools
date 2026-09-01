@@ -44,6 +44,16 @@ from veaf_libs.lua_syntax import check_lua_syntax
 
 #: Recommended module initialisation order.
 #: INTERPRETER **must** remain last.
+#:
+#: This list, not ``veaf.registerModule``'s ``order`` argument, is what actually orders a mission's
+#: initialisation today: the generated file calls each module in turn and never calls
+#: ``veaf.initialize()``, so the Lua registry is inert. The two are kept in step by
+#: ``test/python/veaf_libs/test_module_init_registry.py``; the table of what each mechanism does,
+#: module by module, is in ``docs/agents/module-initialisation.md``.
+#:
+#: A module absent from this list is still initialised when the mission enables it — it lands in the
+#: unordered bucket just before INTERPRETER (see ``ordered_ids`` below), which is where COMMANDS and
+#: MISSIONDB currently end up despite registering at orders 15 and 5.
 _MODULE_INIT_ORDER: list[str] = [
     "SECURITY",
     "RADIO",

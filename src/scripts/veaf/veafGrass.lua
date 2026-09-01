@@ -441,10 +441,27 @@ local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
   -- the clearing that candidate proves. The wanted spot is out of the trees, and only the occupancy probe
   -- is left to consult — Disposition never knew about units, statics or the apron anyway.
   local nearest = options[1]
-  if nearest and nearest.gap <= veafGrass.PLACEMENT_CLEARANCE and allClear(baseAngle, 1) then
+  -- Measured in game 2026-09-01: this guard never fired. Three `-farp` markers, one of them on ground
+  -- with nothing within a kilometre, and the escort was moved every time — the "keeping it" line below
+  -- never appeared once. Two candidate reasons, and the log could not tell them apart: the nearest gap
+  -- may simply exceed the clearance in the field, or the occupancy probe may be refusing the wanted
+  -- spot because the FARP itself has just been placed there.
+  --
+  -- So both operands are logged before the decision, not after it. The unit test that covers this
+  -- guard builds its `gap` at half the clearance — a value chosen to make the branch run, never
+  -- confronted with real terrain — which is exactly why nothing said the guard was inert.
+  local probeClear = allClear(baseAngle, 1)
+  veaf.loggers.get(veafGrass.Id):debug(
+    "findClearBearing: nearest gap=%s vs clearance=%s, occupancy probe on the wanted spot=%s, candidates=%s",
+    veaf.p(nearest and nearest.gap),
+    veaf.p(veafGrass.PLACEMENT_CLEARANCE),
+    veaf.p(probeClear),
+    veaf.p(#options)
+  )
+  if nearest and nearest.gap <= veafGrass.PLACEMENT_CLEARANCE and probeClear then
     veaf.loggers
       .get(veafGrass.Id)
-      :info("findClearBearing: bearing %s is inside a scenery-clear area, keeping it", veaf.p(math.floor(baseAngle)))
+      :debug("findClearBearing: bearing %s is inside a scenery-clear area, keeping it", veaf.p(math.floor(baseAngle)))
     return baseAngle, 1
   end
 
@@ -454,7 +471,7 @@ local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
     if allClear(option.angle, option.scale) then
       veaf.loggers
         .get(veafGrass.Id)
-        :info("findClearBearing: scenery-clear bearing %s at %sx distance", veaf.p(math.floor(option.angle)), veaf.p(option.scale))
+        :debug("findClearBearing: scenery-clear bearing %s at %sx distance", veaf.p(math.floor(option.angle)), veaf.p(option.scale))
       return option.angle, option.scale
     end
   end
@@ -463,7 +480,7 @@ local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
   -- moved. The 2026-08-28 in-game run could not say why the forest case fell through to tier 2 because
   -- this was invisible at the default log level, and it only fires when the cloud answered and nothing
   -- in it survived — once per group at worst, never in the nominal case.
-  veaf.loggers.get(veafGrass.Id):info("findClearBearing: no usable point in Disposition's cloud, walking the bearings instead")
+  veaf.loggers.get(veafGrass.Id):debug("findClearBearing: no usable point in Disposition's cloud, walking the bearings instead")
   return nil
 end
 
@@ -514,7 +531,7 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
     -- The original bearing first at every distance, so the group stays where it was aimed when it can.
     if allClear(baseAngle, scale) then
       if scale ~= 1 then
-        veaf.loggers.get(veafGrass.Id):info("findClearBearing: kept bearing %s, pushed out to %sx", veaf.p(baseAngle), veaf.p(scale))
+        veaf.loggers.get(veafGrass.Id):debug("findClearBearing: kept bearing %s, pushed out to %sx", veaf.p(baseAngle), veaf.p(scale))
       end
       return baseAngle, scale
     end
@@ -528,13 +545,13 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
       if allClear(candidate, scale) then
         veaf.loggers
           .get(veafGrass.Id)
-          :info("findClearBearing: moved from %s to %s at %sx to find clear ground", veaf.p(baseAngle), veaf.p(candidate), veaf.p(scale))
+          :debug("findClearBearing: moved from %s to %s at %sx to find clear ground", veaf.p(baseAngle), veaf.p(candidate), veaf.p(scale))
         return candidate, scale
       end
     end
   end
 
-  veaf.loggers.get(veafGrass.Id):info("findClearBearing: nothing clear at any bearing or distance, keeping %s", veaf.p(baseAngle))
+  veaf.loggers.get(veafGrass.Id):debug("findClearBearing: nothing clear at any bearing or distance, keeping %s", veaf.p(baseAngle))
   return baseAngle, 1
 end
 
@@ -1886,7 +1903,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   -- if the new FARP sits 50 m from a static one, every bearing at 150 m is ~150 m away from it, none is
   -- refused, and nothing moves — correctly, by this fix's own rule. Logging both angles is what tells the
   -- two apart from outside.
-  veaf.loggers.get(veafGrass.Id):info(
+  veaf.loggers.get(veafGrass.Id):debug(
     "FARP escort: bearing %s requested, %s used at %sx distance",
     veaf.p(math.floor(angle)),
     veaf.p(math.floor(escortAngle)),

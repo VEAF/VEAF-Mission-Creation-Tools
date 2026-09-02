@@ -1,6 +1,6 @@
 # 01 — Step 5 edits the mission it already built
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: docs
 
@@ -36,8 +36,8 @@ walkthrough never mentions it.
 
 ## Definition of done
 
-- [ ] Step 5 opens the `.miz` built at step 4 instead of creating a mission
-- [ ] Step 4 says, in one sentence, that the filename is only preserved when the `.miz` is spelled
+- [x] Step 5 opens the `.miz` built at step 4 instead of creating a mission
+- [x] Step 4 says, in one sentence, that the filename is only preserved when the `.miz` is spelled
       out, and links to the build card for the dated form
-- [ ] Both languages
-- [ ] `poetry run docs-check` passes
+- [x] Both languages
+- [x] `poetry run docs-check` passes

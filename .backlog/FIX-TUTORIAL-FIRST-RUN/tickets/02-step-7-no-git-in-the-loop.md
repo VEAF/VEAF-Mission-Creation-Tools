@@ -1,6 +1,6 @@
 # 02 — Step 7 stops teaching git, and explains it instead
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: docs
 
@@ -39,10 +39,10 @@ Step 0's "ce sera votre dépôt Git" is the other half of the confusion and goes
 
 ## Definition of done
 
-- [ ] No `git` command anywhere in the walkthrough
-- [ ] Step 7 restores by copy
-- [ ] A call-out explains what version control buys a mission maker, and links to Pro Git in the
+- [x] No `git` command anywhere in the walkthrough
+- [x] Step 7 restores by copy
+- [x] A call-out explains what version control buys a mission maker, and links to Pro Git in the
       page's own language
-- [ ] Step 0 no longer asserts the folder is a git repository
-- [ ] Both languages
-- [ ] `poetry run docs-check` passes
+- [x] Step 0 no longer asserts the folder is a git repository
+- [x] Both languages
+- [x] `poetry run docs-check` passes

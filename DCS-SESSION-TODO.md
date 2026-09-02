@@ -140,6 +140,42 @@ Worth expecting, so it is not read as a defect: a **tanker or an AWACS is a legi
 the patrol will go for one. The 2026-09-01 log shows Arco the KC-135 correctly listed — at low priority,
 behind the fighters.
 
+### R12. A combat zone's smoke must actually appear
+
+Unblocks [`FIX-TUTORIAL-FIRST-RUN`](.backlog/FIX-TUTORIAL-FIRST-RUN/PRD.md) ticket 05, merged in #908
+and never seen in game. Paluche reported it on 2026-09-02 against 6.18.0: he asked a zone for smoke,
+got the confirmation message *"Bien reçu, fumée ROUGE demandée sur …"*, and no smoke came — while
+illumination flares from the same menu worked.
+
+`spawnSmoke` schedules its only shell for exactly `timer.getTime()`, and one site asks for
+`timer.getTime() - 1`. The illumination flare, the one that worked, is the only one of the four
+effects with a strictly positive delay. Until #828 this went through MiST, whose 10 ms loop ran
+anything overdue at the next tick; it now goes through one native `timer.scheduleFunction` per task.
+`veafScheduler` therefore arms a task due now, or overdue, for the next tick instead.
+
+**The hypothesis this checks — and it is only a hypothesis**: that DCS silently discards a call
+scheduled for a time already elapsed. Nothing on a workstation can settle it, which is why the fix
+was written to be correct either way.
+
+**Run**: any mission with a combat zone (the tutorial's `CZ-Alpha` does), activate it, then
+**F10 → ZONES DE COMBAT → \<zone\> → the smoke command**. Also try `_smoke` on an F10 marker, which
+takes the same path with the same single shell.
+
+- **Fixed**: red smoke rises at the zone. That confirms both the fix and the hypothesis behind it —
+  DCS was dropping the past-due call.
+- **Not fixed**: still the message and no smoke. Then the scheduler was never the cause, and the
+  hypothesis is dead. The useful thing to bring back is a `dcs.log` with `logLevel: trace` under
+  `SPAWN`: `spawnSmoke` traces its `spawnSpot=` and `placePointOnLand` traces the height it resolved,
+  so the next suspect — a point DCS will not render smoke at — becomes readable. Look for
+  `error in scheduled function` too; the scheduler logs any raise there, and its absence has already
+  been established as meaning the call was made.
+
+While the mission is up, one free observation for the same lot: `standard` turns **STTS** on, and no
+workstation here could load it without an SRS server. The tutorial now tells a reader without SRS to
+set `STTS: false` at step 2, so this is only about knowing whether leaving it **on** without SRS is
+noisy at start-up. Grep the log for `STTS` — if it is silent, the tutorial's note can relax from
+"switch it off" to "it does nothing".
+
 ---
 
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)

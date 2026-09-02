@@ -1,6 +1,6 @@
 # 04 — The build says which modules it picked up
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: feat
 
@@ -34,8 +34,8 @@ Rules:
 
 ## Definition of done
 
-- [ ] The build reports active modules, with entry counts for the list-shaped ones
-- [ ] The message is in both locale catalogues
-- [ ] Unit test on the reporting, including the "nothing configured" case
-- [ ] `--cov-fail-under` bumped per the ratchet policy in `CLAUDE.md`
-- [ ] Python gate clean (`ruff check`, `ruff format --check`, `mypy`)
+- [x] The build reports active modules, with entry counts for the list-shaped ones
+- [x] The message is in both locale catalogues
+- [x] Unit test on the reporting, including the "nothing configured" case
+- [x] `--cov-fail-under` bumped per the ratchet policy in `CLAUDE.md`
+- [x] Python gate clean (`ruff check`, `ruff format --check`, `mypy`)

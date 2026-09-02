@@ -1,6 +1,6 @@
 # FIX-TUTORIAL-FIRST-RUN — the walkthrough asks for three things that cannot be done
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 Origin: Paluche's write-up of his first run through
 [`doc/mission-maker/TUTORIAL.md`](../../doc/mission-maker/TUTORIAL.md), reported 2026-09-02 against
@@ -57,6 +57,26 @@ past.
 | 04 | [The build says which modules it picked up](tickets/04-build-reports-active-modules.md) | feat |
 | 05 | [A task due now still runs](tickets/05-scheduler-floor.md) | fix |
 | 06 | [`prepare --template` asks before rewriting `mission.yaml`](tickets/06-prepare-keeps-mission-yaml.md) | fix |
+
+## Landed 2026-09-02 — #908, merged on green CI
+
+All six tickets are implemented and merged. The lot stays `🧑 waiting-human` for **one observation
+that needs the game**, tracked as item R12 in [`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md):
+does the scheduler floor actually make a combat zone's smoke appear? That also settles the
+hypothesis behind ticket 05 — whether DCS discards a call scheduled for a time already elapsed — and
+nothing on a workstation can answer it.
+
+Sourcery's weekly 250 000-character budget was spent when the PR opened, so it answered with its
+rate-limit message instead of a review. Merged on CI alone, David's call, to be re-read later.
+
+Two things worth keeping from the measurements:
+
+- `standard` reports the **same three warnings and zero errors** as `minimal`, word for word, and
+  the `pipeline:` block is identical in both — which is what made switching the tutorial's tier a
+  contained change rather than a rewrite of steps 3 and 4.
+- The reported-modules line was **rendered before being quoted** in the tutorial, and that is how
+  `NAMEDPOINTS (0), SHORTCUTS (0)` was caught: an optional list reporting zero reads as a problem
+  where there is none. Only the five modules a list *defines* are counted.
 
 ## Out of scope
 

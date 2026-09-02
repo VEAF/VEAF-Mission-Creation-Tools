@@ -1,6 +1,6 @@
 # 05 — A task due now still runs
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 Type: fix
 
@@ -53,9 +53,9 @@ then means "just before the smoke" rather than "one second ago", which is what i
 
 ## Definition of done
 
-- [ ] A task scheduled for `timer.getTime()`, or earlier, is armed for a time in the future
-- [ ] Repetition and stop time keep their current semantics
-- [ ] Unit tests: due-now, overdue, comfortably-future (unchanged), and one asserting `spawnSmoke`
+- [x] A task scheduled for `timer.getTime()`, or earlier, is armed for a time in the future
+- [x] Repetition and stop time keep their current semantics
+- [x] Unit tests: due-now, overdue, comfortably-future (unchanged), and one asserting `spawnSmoke`
       reaches `trigger.action.smoke` with a usable point — the wiring, not the handler
-- [ ] `luacheck` + `stylua --check` clean
-- [ ] Lua coverage floor bumped per the ratchet policy
+- [x] `luacheck` + `stylua --check` clean
+- [x] Lua coverage floor bumped per the ratchet policy

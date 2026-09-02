@@ -1,6 +1,6 @@
 # 06 — `prepare --template` asks before rewriting `mission.yaml`
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: fix
 
@@ -35,12 +35,12 @@ line saying the template was **not** applied.
 
 ## Definition of done
 
-- [ ] `prepare --template` on a folder with an existing `mission.yaml` does not overwrite it silently
-- [ ] `--force` still replaces, non-interactive runs still keep (the existing contract of
+- [x] `prepare --template` on a folder with an existing `mission.yaml` does not overwrite it silently
+- [x] `--force` still replaces, non-interactive runs still keep (the existing contract of
       `_ask_replace`)
-- [ ] Declining leaves the file byte-for-byte untouched, and the run says the template was not
+- [x] Declining leaves the file byte-for-byte untouched, and the run says the template was not
       applied
-- [ ] A fresh folder still gets its generated `mission.yaml` with no prompt
-- [ ] Unit tests for all four paths
-- [ ] `--cov-fail-under` bumped per the ratchet policy
-- [ ] Python gate clean
+- [x] A fresh folder still gets its generated `mission.yaml` with no prompt
+- [x] Unit tests for all four paths
+- [x] `--cov-fail-under` bumped per the ratchet policy
+- [x] Python gate clean

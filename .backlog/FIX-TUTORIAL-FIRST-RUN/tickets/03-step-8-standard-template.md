@@ -1,6 +1,6 @@
 # 03 — Step 8 gets a block it can actually uncomment
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: docs
 
@@ -49,11 +49,11 @@ step becomes a check, not an action.
 
 ## Definition of done
 
-- [ ] Step 1 uses `--template standard`, and says what the tier buys
-- [ ] Step 2's `modules:` excerpt matches what `standard` writes
-- [ ] Step 8 uncomments a block that exists, states the `#`-only edit, and flips `training`
-- [ ] Step 8 has a "how you know" that holds before DCS is launched
-- [ ] Step 6 does not promise a menu smaller than the one `standard` produces
-- [ ] Step 9 reads as a verification
-- [ ] Both languages
-- [ ] `poetry run docs-check` passes
+- [x] Step 1 uses `--template standard`, and says what the tier buys
+- [x] Step 2's `modules:` excerpt matches what `standard` writes
+- [x] Step 8 uncomments a block that exists, states the `#`-only edit, and flips `training`
+- [x] Step 8 has a "how you know" that holds before DCS is launched
+- [x] Step 6 does not promise a menu smaller than the one `standard` produces
+- [x] Step 9 reads as a verification
+- [x] Both languages
+- [x] `poetry run docs-check` passes

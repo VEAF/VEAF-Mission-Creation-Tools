@@ -133,7 +133,7 @@ Initialise un dossier de mission VEAF avec les modèles par défaut.
 
 | Options | Type | Défaut | Description |
 |---|---|---|---|
-| `--template` / `-t` | `str` | *(aucun)* | Preset de modules pour le mission.yaml généré : minimal | standard | full | custom (custom = choix interactif). Omettre pour garder le défaut livré. |
+| `--template` / `-t` | `str` | *(aucun)* | Preset de modules pour le mission.yaml généré : minimal | standard | full | custom (custom = choix interactif). Omettre pour garder le défaut livré. Sur un dossier où `mission.yaml` existe déjà, le template n'est appliqué que si vous acceptez de remplacer ce fichier (ou avec `--force`) : garder le vôtre le laisse intact, et la commande le signale. |
 | `--list-templates` | `boolean` | `false` | Liste les templates disponibles et quitte. |
 | `--theatre` | `str` | *(aucun)* | Génère une mission vierge synthétique pour ce théâtre DCS dans src/mission (sans passer par DCS). Omettre pour laisser src/mission vide. |
 | `--list-theatres` | `boolean` | `false` | Liste les théâtres pour lesquels une mission vierge peut être générée, puis quitte. |

@@ -14,7 +14,9 @@ quatre choses, puis exécute les étapes optionnelles dont elle trouve le fichie
 ```
 
 1. lit `src/mission/` (la mission DCS décompressée) ;
-2. génère `src/scripts/veaf-config.lua` depuis `mission.yaml` ;
+2. génère `src/scripts/veaf-config.lua` depuis `mission.yaml`, et **annonce les modules
+   qu'il y a lus** — avec leur nombre d'entrées pour ceux qui portent une liste, par exemple
+   `COMBATZONE (1)` ; un module que vous venez d'ajouter et qui n'apparaît pas n'a pas été lu ;
 3. **retire les déclencheurs VEAF existants**, puis en injecte de neufs qui chargent les scripts
    VEAF et les vôtres au démarrage ;
 4. écrit le `.miz`.

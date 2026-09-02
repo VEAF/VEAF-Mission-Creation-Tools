@@ -28,6 +28,16 @@ veafScheduler.Id = "SCHEDULER"
 -- trace level, specific to this module (uncomment for debugging)
 --veafScheduler.LogLevel = "trace"
 
+--- Smallest delay this module will hand to the native timer, in seconds.
+---
+--- MiST's loop ran every 0.01 s and executed anything whose time had come **or gone**, so a task
+--- asked for "now" — or for a moment already past — was simply run on the next tick. One native
+--- `timer.scheduleFunction` per task does not offer that guarantee, and callers rely on it: with
+--- the default single shell, `veafSpawn.spawnSmoke` asks for exactly `timer.getTime()`, and
+--- `veafSpawnEffects` asks for `timer.getTime() - 1` for the burst under a multi-shell plume. This
+--- is the floor that keeps them equivalent to what MiST did.
+veafScheduler.MinimumDelay = 0.01
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -111,7 +121,8 @@ end
 ---
 --- @param f function the function to call
 --- @param vars table|nil its arguments, unpacked positionally into the call
---- @param t number model time of the first run
+--- @param t number model time of the first run; a time already reached is pushed to the next tick
+---   (`veafScheduler.MinimumDelay`) rather than handed to the native timer as-is
 --- @param rep number|nil seconds between runs; nil for a one-shot task
 --- @param st number|nil model time from which a repeating task no longer runs
 --- @return number the id to hand to `veafScheduler.removeFunction`
@@ -127,6 +138,14 @@ function veafScheduler.scheduleFunction(f, vars, t, rep, st)
   local id = veafScheduler.lastId
   local task = { f = f, vars = vars, argCount = argCount(vars), rep = rep, st = st }
   veafScheduler.tasks[id] = task
+  -- A task due now, or overdue, is armed for the next tick instead — see `MinimumDelay`. Asking
+  -- the native timer for a moment that has already passed is not something to rely on, and a
+  -- dropped task leaves no trace at all: `spawnSmoke` reported success and no smoke ever appeared.
+  local earliest = timer.getTime() + veafScheduler.MinimumDelay
+  if t < earliest then
+    veaf.loggers.get(veafScheduler.Id):trace("task %s asked for %s, armed at %s", veaf.p(id), veaf.p(t), veaf.p(earliest))
+    t = earliest
+  end
   task.nativeId = timer.scheduleFunction(runTask, id, t)
   veaf.loggers.get(veafScheduler.Id):trace("scheduled task %s at %s (rep=%s, st=%s)", veaf.p(id), veaf.p(t), veaf.p(rep), veaf.p(st))
   return id

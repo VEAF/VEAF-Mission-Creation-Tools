@@ -51,7 +51,12 @@ from veaf_libs.ctld_config import (
 from veaf_libs.dcs_countries import all_country_ids
 from veaf_libs.i18n import current_language, t, tn
 from veaf_libs.logger import logger
-from veaf_libs.lua_config_generator import enabled_module_config, find_undefined_lua_functions, generate_config_lua
+from veaf_libs.lua_config_generator import (
+    enabled_module_config,
+    find_undefined_lua_functions,
+    generate_config_lua,
+    summarize_active_modules,
+)
 from veaf_libs.lua_i18n import load_runtime_catalog
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.lua_syntax import LuaSyntaxError
@@ -2486,6 +2491,28 @@ class MissionBuilderWorker(BaseWorker):
             raise  # pragma: no cover - logger.error aborts first; keeps mypy honest
         config_file.write_text(content, encoding="utf-8")
         logger.info(t("builder.veaf_config_generated", file=config_file))
+        self._report_active_modules(yaml_dict)
+
+    @staticmethod
+    def _report_active_modules(yaml_dict: dict) -> None:
+        """Say which modules the build activated, and how many entries the list-shaped ones carry.
+
+        Until this line, the build acknowledged no module it read: a mission maker who added a
+        combat zone got ``Generated 'veaf-config.lua' from mission.yaml`` and nothing else, and the
+        next thing that could tell them anything was the F10 menu in game. The counts are what
+        catch the real mistake — a ``combat_zones:`` list that resolved to nothing looks exactly
+        like a healthy build without them.
+
+        Silent when nothing is configured: a message every build prints is a message nobody reads.
+
+        Args:
+            yaml_dict: Parsed ``mission.yaml``, as handed to ``generate_config_lua``.
+        """
+        summary = summarize_active_modules(yaml_dict)
+        if not summary:
+            return
+        rendered = ", ".join(mod_id if count is None else f"{mod_id} ({count})" for mod_id, count in summary)
+        logger.info(t("builder.active_modules", count=len(summary), modules=rendered))
 
     def _resolve_checklists(self, yaml_dict: dict) -> list[Checklist]:
         """Resolve the guided checklists this mission activates, and render their images.

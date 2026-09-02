@@ -272,7 +272,7 @@ The GitHub Actions workflow (`.github/workflows/lua-ci.yml`) runs on every push 
 **`lua-coverage`** — Ubuntu latest
 1. Checkout repository
 2. Install `lua5.1` + `luacov` via LuaRocks, then Poetry and dependencies
-3. Run `poetry run test-lua --cov-fail-under 79` (luacov line coverage)
+3. Run `poetry run test-lua --cov-fail-under 80` (luacov line coverage)
 4. Fail if coverage drops below the ratchet floor (the number only ever goes up)
 
 ### Running StyLua Locally

@@ -665,5 +665,89 @@ class TestConfigMigrator(unittest.TestCase):
         self.assertEqual(result.mission_name, "Alpha")
 
 
+class TestSummarizeActiveModules(unittest.TestCase):
+    """The build's acknowledgement of what it read — FIX-TUTORIAL-FIRST-RUN ticket 04.
+
+    A mission maker who adds a combat zone gets one line saying `veaf-config.lua` was generated,
+    and nothing about the zone. The next thing that could tell them anything is the F10 menu, in
+    game, after a load.
+    """
+
+    def summary(self, mission_yaml: dict) -> dict[str, int | None]:
+        from veaf_libs.lua_config_generator import summarize_active_modules
+
+        return dict(summarize_active_modules(mission_yaml))
+
+    def test_an_enabled_feature_module_is_listed_without_a_count(self) -> None:
+        self.assertEqual(self.summary({"modules": {"SPAWN": True}}), {"SPAWN": None})
+
+    def test_a_disabled_module_is_not_listed(self) -> None:
+        self.assertEqual(self.summary({"modules": {"SPAWN": False}}), {})
+
+    def test_a_module_disabled_by_its_own_key_is_not_listed(self) -> None:
+        self.assertEqual(self.summary({"modules": {"COMBATZONE": {"enabled": False}}}), {})
+
+    def test_a_mandatory_module_with_an_empty_body_is_listed(self) -> None:
+        # `UNITS:` with nothing after the colon is how the scaffold writes infrastructure modules.
+        self.assertEqual(self.summary({"modules": {"UNITS": None}}), {"UNITS": None})
+
+    def test_combat_zones_are_counted(self) -> None:
+        summary = self.summary(
+            {
+                "modules": {
+                    "COMBATZONE": {
+                        "enabled": True,
+                        "combat_zones": [
+                            {"zone_name": "CZ-Alpha"},
+                            {"zone_name": "CZ-Bravo"},
+                        ],
+                    }
+                }
+            }
+        )
+        self.assertEqual(summary, {"COMBATZONE": 2})
+
+    def test_a_list_that_resolved_to_nothing_is_counted_as_zero(self) -> None:
+        # The case the line exists for: today a `combat_zones:` that resolved to nothing looks
+        # exactly like a healthy build. Zero is not None — one says "declared and empty", the
+        # other "carries no list at all".
+        self.assertEqual(self.summary({"modules": {"COMBATZONE": {"enabled": True}}}), {"COMBATZONE": 0})
+
+    def test_every_list_shaped_module_is_counted(self) -> None:
+        summary = self.summary(
+            {
+                "modules": {
+                    "QRA": {"definitions": [{"name": "a"}]},
+                    "ASSETS": {"assets": [{"name": "a"}, {"name": "b"}]},
+                    "AIRWAVES": {"airwave_zones": [{"name": "a"}]},
+                    "SANCTUARY": {"sanctuary_zones": [{"name": "a"}, {"name": "b"}, {"name": "c"}]},
+                }
+            }
+        )
+        self.assertEqual(summary, {"QRA": 1, "ASSETS": 2, "AIRWAVES": 1, "SANCTUARY": 3})
+
+    def test_an_optional_list_is_not_counted(self) -> None:
+        """`SHORTCUTS: true` works without a `shortcuts:` list, so `(0)` there would read as a
+        problem where there is none — and bury the counts that mean something. Measured on the
+        `standard` template, which reported `NAMEDPOINTS (0), SHORTCUTS (0)` in a line of 24."""
+        summary = self.summary({"modules": {"SHORTCUTS": True, "NAMEDPOINTS": True}})
+        self.assertEqual(summary, {"SHORTCUTS": None, "NAMEDPOINTS": None})
+
+    def test_the_legacy_lua_modules_key_is_read_too(self) -> None:
+        self.assertEqual(self.summary({"lua_modules": {"SPAWN": True}}), {"SPAWN": None})
+
+    def test_nothing_configured_summarises_to_nothing(self) -> None:
+        self.assertEqual(self.summary({}), {})
+        self.assertEqual(self.summary({"mission": {"name": "Alpha"}}), {})
+
+    def test_the_order_is_stable_and_alphabetical(self) -> None:
+        from veaf_libs.lua_config_generator import summarize_active_modules
+
+        ids = [
+            mod for mod, _ in summarize_active_modules({"modules": {"SPAWN": True, "COMBATZONE": {}, "RADIO": True}})
+        ]
+        self.assertEqual(ids, sorted(ids))
+
+
 if __name__ == "__main__":
     unittest.main()

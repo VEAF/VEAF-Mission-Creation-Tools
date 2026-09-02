@@ -14,7 +14,9 @@ then runs the optional steps whose file it finds.
 ```
 
 1. reads `src/mission/` (the exploded DCS mission);
-2. generates `src/scripts/veaf-config.lua` from `mission.yaml`;
+2. generates `src/scripts/veaf-config.lua` from `mission.yaml`, and **reports the modules it
+   read there** — with their entry count for those that carry a list, e.g. `COMBATZONE (1)`; a
+   module you have just added and which does not appear was not read;
 3. **strips the existing VEAF triggers**, then injects fresh ones that load the VEAF scripts and
    yours at start-up;
 4. writes the `.miz`.

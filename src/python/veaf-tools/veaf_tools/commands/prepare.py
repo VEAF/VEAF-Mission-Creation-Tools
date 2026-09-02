@@ -240,6 +240,13 @@ def prepare(
         # Files that must never be overwritten, even with --force, to preserve user customizations
         NEVER_OVERWRITE: frozenset[str] = frozenset({".gitignore"})
 
+        # Whether the maker's own mission.yaml was kept during the copy below. `--template` used to
+        # rewrite the file unconditionally, straight past this decision: "keep all" saved every
+        # other file and lost the one that carries the module configuration, the security block and
+        # the build settings. Found through the tutorial, which sent a beginner into `prepare` to
+        # restore an unrelated file (FIX-TUTORIAL-FIRST-RUN ticket 06).
+        mission_yaml_kept = False
+
         # Copy default files from defaults source
         logger.info(t("cmd.prepare.copying_defaults", path=defaults_source_path))
         for source_file in defaults_source_path.rglob("*"):
@@ -271,6 +278,8 @@ def prepare(
                     else:
                         logger.debug(f"Skipped: {relative_path}")
                         files_skipped += 1
+                        if relative_path == Path("mission.yaml"):
+                            mission_yaml_kept = True
                 else:
                     shutil.copy2(source_file, dest_file)
                     logger.debug(f"Installed: {relative_path}")
@@ -278,7 +287,14 @@ def prepare(
 
         # Apply the chosen template: regenerate mission.yaml from the selected module set
         # (overwrites the copied default). No --template keeps the shipped default as-is.
-        if enabled_modules is not None:
+        #
+        # Skipped when the maker chose to keep their own mission.yaml: the template write goes
+        # through the same decision as every other existing file, rather than around it. Saying so
+        # matters — a kept file means `--template` did nothing at all, and silence there lets
+        # someone conclude the opposite.
+        if enabled_modules is not None and mission_yaml_kept:
+            console.print(t("cmd.prepare.template_not_applied", template=template))
+        elif enabled_modules is not None:
             from veaf_libs.mission_template import generate_mission_yaml
 
             (p_mission_folder / "mission.yaml").write_text(generate_mission_yaml(enabled_modules), encoding="utf-8")

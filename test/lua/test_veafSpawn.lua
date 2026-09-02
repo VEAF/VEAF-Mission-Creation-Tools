@@ -327,20 +327,66 @@ function TestVeafSpawnEffects:test_spawnBomb_at_altitude()
   luaunit.assertTrue(true)
 end
 
+--- The single-shell smoke is the one Paluche never saw: it is scheduled for exactly
+--- `timer.getTime()`, and the framework used to hand that to the native timer as-is
+--- (FIX-TUTORIAL-FIRST-RUN ticket 05). Asserting the call is what the old `assertTrue(true)` could
+--- not do — this fails if the effect never reaches the engine, whatever the reason.
 function TestVeafSpawnEffects:test_spawnSmoke_single()
-  veafSpawn.spawnSmoke({ x = 0, y = 0, z = 0 }, trigger.smokeColor.Red, 50, 1)
-  luaunit.assertTrue(true)
+  timer.setTime(500) -- a mission well under way, as it is when a player asks for smoke
+  veafSpawn.spawnSmoke({ x = 1000, y = 0, z = 2000 }, trigger.smokeColor.Red, 50, 1)
+
+  dcs_mocks.runScheduled(505)
+
+  luaunit.assertEquals(#dcs_mocks.effects, 1)
+  local effect = dcs_mocks.effects[1]
+  luaunit.assertEquals(effect.kind, "smoke")
+  luaunit.assertEquals(effect.color, trigger.smokeColor.Red)
+  -- A usable point: on the ground, and inside the requested radius of where it was asked for.
+  luaunit.assertNotNil(effect.position)
+  luaunit.assertNotNil(effect.position.y)
+  luaunit.assertTrue(math.abs(effect.position.x - 1000) <= 50)
+  luaunit.assertTrue(math.abs(effect.position.z - 2000) <= 50)
 end
 
+--- `trigger.smokeColor.Green` is **0**, so a colour that travels as a falsy-looking number must
+--- still arrive. Green is also the default a marker command gets when no colour is named.
+function TestVeafSpawnEffects:test_spawnSmoke_green_is_not_lost()
+  timer.setTime(500)
+  veafSpawn.spawnSmoke({ x = 0, y = 0, z = 0 }, trigger.smokeColor.Green, 0, 1)
+
+  dcs_mocks.runScheduled(505)
+
+  luaunit.assertEquals(#dcs_mocks.effects, 1)
+  luaunit.assertEquals(dcs_mocks.effects[1].color, trigger.smokeColor.Green)
+end
+
+--- shells>1 adds a burst under each plume, and the first one is asked for `timer.getTime() - 1` —
+--- a full second in the past. Both plumes and both bursts must still reach the engine.
 function TestVeafSpawnEffects:test_spawnSmoke_multiple_shells()
-  -- shells>1 triggers the explosion branch
+  timer.setTime(500)
   veafSpawn.spawnSmoke({ x = 0, y = 0, z = 0 }, trigger.smokeColor.Green, 50, 2)
-  luaunit.assertTrue(true)
+
+  dcs_mocks.runScheduled(520) -- shells are 5 s apart, randomised by 30 %
+
+  local counts = { smoke = 0, explosion = 0 }
+  for _, effect in ipairs(dcs_mocks.effects) do
+    counts[effect.kind] = (counts[effect.kind] or 0) + 1
+  end
+  luaunit.assertEquals(counts.smoke, 2)
+  luaunit.assertEquals(counts.explosion, 2)
 end
 
+--- The other effect scheduled for "now" with a single shell, and so the other one that could be
+--- lost without a word.
 function TestVeafSpawnEffects:test_spawnSignalFlare()
+  timer.setTime(500)
   veafSpawn.spawnSignalFlare({ x = 0, y = 0, z = 0 }, 0, 1, trigger.flareColor.RED)
-  luaunit.assertTrue(true)
+
+  dcs_mocks.runScheduled(505)
+
+  luaunit.assertEquals(#dcs_mocks.effects, 1)
+  luaunit.assertEquals(dcs_mocks.effects[1].kind, "signalFlare")
+  luaunit.assertEquals(dcs_mocks.effects[1].color, trigger.flareColor.RED)
 end
 
 function TestVeafSpawnEffects:test_spawnIlluminationFlare_simple()

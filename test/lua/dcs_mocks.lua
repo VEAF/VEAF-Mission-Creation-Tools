@@ -27,6 +27,14 @@ dcs_mocks.eventHandlers = {} -- handlers passed to world.addEventHandler, in ord
 dcs_mocks.staticsAdded = {} -- captured coalition.addStaticObject calls, as { countryId, object }
 dcs_mocks.groupsAdded = {} -- captured coalition.addGroup calls, as { countryId, categoryId, group }
 
+--- Captured `trigger.action` world effects, in call order, as
+--- `{ kind = "smoke"|"signalFlare"|"illuminationBomb"|"explosion", position = <vec3>, ... }`.
+---
+--- These four used to be no-ops, and the suites that exercised them asserted `assertTrue(true)` —
+--- so `spawnSmoke` reaching the engine, or not, was invisible. It was not: it scheduled its only
+--- shell for a time already reached (FIX-TUTORIAL-FIRST-RUN ticket 05).
+dcs_mocks.effects = {}
+
 -- Registre des groupes, declare ICI et pas plus bas : `coalition.getGroups` le lit, et un local declare
 -- apres son usage laisse la fermeture capturer la globale — c'est-a-dire nil.
 local _group_registry = {} -- nom → table du groupe simule
@@ -192,10 +200,18 @@ trigger = {
     radioTransmission = function(...) end,
     setMarkupColor = function(...) end,
     setUserFlag = function(flag, val) end,
-    smoke = function(...) end,
-    signalFlare = function(...) end,
-    illuminationBomb = function(...) end,
-    explosion = function(...) end,
+    smoke = function(position, color)
+      table.insert(dcs_mocks.effects, { kind = "smoke", position = position, color = color })
+    end,
+    signalFlare = function(position, color, azimuth)
+      table.insert(dcs_mocks.effects, { kind = "signalFlare", position = position, color = color, azimuth = azimuth })
+    end,
+    illuminationBomb = function(position, power)
+      table.insert(dcs_mocks.effects, { kind = "illuminationBomb", position = position, power = power })
+    end,
+    explosion = function(position, power)
+      table.insert(dcs_mocks.effects, { kind = "explosion", position = position, power = power })
+    end,
   },
   misc = {
     getUserFlag = function(flag)
@@ -672,6 +688,7 @@ function dcs_mocks.reset()
   dcs_mocks.eventHandlers = {}
   dcs_mocks.staticsAdded = {}
   dcs_mocks.groupsAdded = {}
+  dcs_mocks.effects = {}
   dcs_mocks.messages = {}
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.cockpitArguments = {}

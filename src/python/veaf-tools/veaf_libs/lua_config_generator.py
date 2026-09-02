@@ -329,6 +329,63 @@ def _normalize_module_cfg(value: object) -> dict:
     return {}
 
 
+#: Per module, the config key holding the list that module **is**: without entries it has nothing
+#: to do at all, so a count of zero is worth seeing. Every key here is one the generator itself
+#: reads in :func:`_emit_module_body`.
+#:
+#: Deliberately not here: `NAMEDPOINTS.custom_points` and `SHORTCUTS.shortcuts`. Those lists are
+#: optional additions to a module that already works without them — `SHORTCUTS: true` ships the
+#: built-in aliases, `NAMEDPOINTS: true` the theatre's own points — so reporting `(0)` for them
+#: reads as a problem where there is none, and buries the counts that do mean something.
+_MODULE_LIST_KEYS: dict[str, str] = {
+    "AIRWAVES": "airwave_zones",
+    "ASSETS": "assets",
+    "COMBATZONE": "combat_zones",
+    "QRA": "definitions",
+    "SANCTUARY": "sanctuary_zones",
+}
+
+
+def summarize_active_modules(mission_yaml: dict) -> list[tuple[str, int | None]]:
+    """The modules a build activates, with how many entries the list-shaped ones carry.
+
+    What this answers is "did the build read what I wrote?" — the question a mission maker cannot
+    answer today. ``Generated 'veaf-config.lua' from mission.yaml`` is the only line the build
+    prints about its configuration, and it says nothing about the combat zone that was just added.
+    ``validate`` does not close the gap either: it is silent on success by design, so *0 errors*
+    means the YAML is coherent, not that COMBATZONE reached the mission.
+
+    The count is the point. A ``combat_zones:`` key that resolved to an empty list is
+    indistinguishable from a healthy build in today's output, so a declared-but-empty list reports
+    ``0`` while a module that carries no list at all reports ``None``.
+
+    Dependencies auto-enabled by :func:`_resolve_deps` are deliberately **not** folded in: this
+    describes what the file asks for, and each auto-resolution already logs a warning of its own.
+    Folding them in here would also mean running the resolution twice and duplicating those
+    warnings.
+
+    Args:
+        mission_yaml: Parsed content of ``mission.yaml``, the same dict handed to
+            :func:`generate_config_lua`.
+
+    Returns:
+        ``(module_id, entry_count_or_None)`` pairs, sorted by module id.
+    """
+    raw: dict = mission_yaml.get("lua_modules") or mission_yaml.get("modules") or {}
+    summary: list[tuple[str, int | None]] = []
+    for mod_id, raw_cfg in raw.items():
+        cfg = _normalize_module_cfg(raw_cfg)
+        if not _get_module_enabled(cfg, True):
+            continue
+        list_key = _MODULE_LIST_KEYS.get(mod_id)
+        if list_key is None:
+            summary.append((mod_id, None))
+        else:
+            entries = cfg.get(list_key) or []
+            summary.append((mod_id, len(entries) if isinstance(entries, list) else 0))
+    return sorted(summary)
+
+
 #: Dependency graph: module_id → list of module IDs it requires.
 _MODULE_DEPS: dict[str, list[str]] = {
     # Core

@@ -131,7 +131,7 @@ Initialize a VEAF mission folder with default templates.
 
 | Options | Type | Default | Description |
 |---|---|---|---|
-| `--template` / `-t` | `str` | *(none)* | Module preset for the generated mission.yaml: minimal | standard | full | custom (custom = pick modules interactively). Omit to keep the shipped default. |
+| `--template` / `-t` | `str` | *(none)* | Module preset for the generated mission.yaml: minimal | standard | full | custom (custom = pick modules interactively). Omit to keep the shipped default. On a folder that already has a `mission.yaml`, the template is applied only if you agree to replace that file (or with `--force`): keeping yours leaves it untouched, and the command says so. |
 | `--list-templates` | `boolean` | `false` | List the available templates and exit. |
 | `--theatre` | `str` | *(none)* | Lay down a synthetic blank mission for this DCS theatre into src/mission (no DCS round-trip). Omit to leave src/mission empty. |
 | `--list-theatres` | `boolean` | `false` | List the theatres a blank mission can be generated for, and exit. |

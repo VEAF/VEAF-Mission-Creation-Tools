@@ -17,6 +17,59 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **An effect asked for "now" could simply never happen.** A combat zone's smoke printed its
+  confirmation message and produced no smoke, while illumination flares from the same menu worked.
+  `spawnSmoke` schedules its only shell for exactly `timer.getTime()`, and one site asks for
+  `timer.getTime() - 1` — a full second in the past. Until 6.18.0 this went through MiST, whose own
+  10 ms loop ran anything overdue at the next tick and so could never drop a task; it now goes
+  through one native `timer.scheduleFunction` per task, which offers no such guarantee.
+
+  `veafScheduler` now arms a task due now, or overdue, for the next tick instead of handing an
+  elapsed time to the native timer. That restores the contract every caller was written against, and
+  covers the four sites that could lose an effect — bomb, smoke, signal flare — rather than patching
+  each one. Whether DCS really discards a past-due call is **not** established; it needs the game,
+  and the fix is correct either way.
+
+  Reported by Paluche while following the tutorial. The smoke, signal-flare and multi-shell paths
+  now assert that the effect reaches the engine: their tests asserted `assertTrue(true)`, so
+  `trigger.action.smoke` being called, or not, was invisible.
+
+- **`prepare --template` overwrote your `mission.yaml` past its own prompt.** `prepare` guards every
+  existing file behind a replace/keep menu and then wrote `mission.yaml` unconditionally whenever
+  `--template` was passed — so "keep all" saved every file except the one carrying the module
+  configuration, the security block and the build settings. The template write now goes through the
+  same decision as everything else, and a kept file is reported as "template not applied", because a
+  kept file means `--template` did nothing at all.
+
+### Added
+
+- **The build says which modules it read.** One `info` line after `veaf-config.lua` is written,
+  naming the active modules, with an entry count for those that carry a list — `COMBATZONE (1)`,
+  `QRA (2)`. Before this, adding a combat zone got you `Generated 'veaf-config.lua' from
+  mission.yaml` and nothing else: the next thing that could tell you anything was the F10 menu, in
+  game, after a load. The counts are what catch the real mistake, since a `combat_zones:` list that
+  resolved to nothing was indistinguishable from a healthy build.
+
+### Changed
+
+- **The first-mission tutorial asked for three things that cannot be done.** From Paluche's write-up
+  of his first run through it: step 5 had him *create* a mission and save it under the name step 4
+  had just built — contradicting the page's own call-out that the file to reopen is the one at the
+  root; step 7 restored a file with `git checkout` in a folder the walkthrough never made a
+  repository; step 8 had him uncomment a `COMBATZONE` block that `--template minimal` does not write
+  at all.
+
+  Step 5 now reopens the `.miz` it built. Step 7 restores by copy, and version control moves to a
+  call-out of its own — what it buys a mission maker, and a link to Pro Git in the page's language —
+  instead of a command to type. Step 1 switches to `--template standard`, so the block step 8
+  uncomments exists, with the `#`-and-three-spaces rule spelled out because YAML indentation is the
+  structure. Step 8 gains a "how you know" that works before DCS is launched, and step 9 becomes a
+  verification: placing a blue slot at step 5 has usually already given the airfield to blue, and
+  the shipped `warehouses.yaml` needs no edit. Step 4 warns that the filename is only preserved when
+  the `.miz` is spelled out.
+
 ## [6.18.0] — 2026-09-01
 
 ### Added

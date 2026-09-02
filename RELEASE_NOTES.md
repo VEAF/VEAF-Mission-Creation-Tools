@@ -1,182 +1,107 @@
-# VEAF Mission Creation Tools — 6.18.0
+# VEAF Mission Creation Tools — 6.19.0
 
-**MiST s'en va, et vos missions s'allègent de 336 Ko.**
+**Paluche a suivi le tutoriel du début à la fin, et il a trouvé trois instructions impossibles à
+exécuter.** Pas des imprécisions : des étapes qui demandent une chose que l'outil ne permet pas.
+Cette version les corrige, et corrige au passage un défaut qu'il a trouvé en vol — la fumée qui ne
+sortait pas.
 
-Depuis toujours, chaque mission VEAF embarquait MiST — la bibliothèque historique de scripting DCS —
-parce que nos scripts s'appuyaient dessus. Ils ne l'appellent plus du tout. CTLD s'en était détaché de
-lui-même en v2, CSAR et Skynet ont été portés, le script Hercules a été retiré. Les dernières lignes
-qui la mentionnaient encore étaient du code mort.
-
-Ce que VEAF lui empruntait, VEAF le fait maintenant lui-même : la planification des tâches, les
-mathématiques et les vecteurs, la géométrie, l'écriture des coordonnées, la création des groupes et
-des objets statiques, la lecture et l'écriture des routes, et l'inventaire de ce que contient la
-mission.
-
-L'autre nouveauté de cette version est un outil : **`veaf-logs`**, un lecteur de journaux DCS qui
-connaît nos scripts et masque le reste.
+C'est le genre de retour qu'aucune suite de tests ne remplace : le tutoriel était vert de tous les
+contrôles automatiques, et infaisable pour quelqu'un qui le lit pour la première fois.
 
 ---
 
 ## ⚠️ À lire avant de mettre à jour
 
-Trois changements modifient le comportement de missions déjà en service.
+### La fumée et les fusées de signalisation ne sortaient plus
 
-### 1. Vos zones de combat vont spawner moins
+Depuis la **6.18.0**, une demande de fumée pouvait n'avoir aucun effet : le message de confirmation
+s'affichait, et rien n'apparaissait.
 
-`#spawnchance` ne pouvait pas refuser un spawn. La zone tirait un nombre au hasard par élément et
-recommençait jusqu'à dix fois, en **forçant** le tirage à la dernière tentative. Dans le cas courant —
-un élément seul, `#spawncount` valant 1 par défaut — cela donnait neuf tirages au hasard suivis d'un
-tirage garanti : l'élément spawnait toujours. Même `#spawnchance=0` spawnait.
+Ça touchait la fumée d'une **zone de combat**, mais aussi les commandes de marqueur
+**`_spawn smoke`** et **`_spawn flare`** — toutes trois demandent un seul obus par défaut, et c'est
+exactement le cas qui était perdu. Une demande de plusieurs obus (`#shells=3`) sortait, elle : seul
+le premier était affecté.
 
-Autrement dit, `#spawnchance` changeait **quand**, jamais **si**. L'embuscade à quatre MANPADS de la
-documentation promettait « environ deux actifs » et en livrait quatre, à chaque fois.
+La cause est dans la 6.18.0, où VEAF a cessé d'utiliser MiST pour planifier ses tâches. MiST
+exécutait au tick suivant tout ce qui était en retard ; le remplacement passait l'heure demandée
+telle quelle au planificateur de DCS, et ces trois effets demandent « maintenant ». Le planificateur
+VEAF cale désormais toute tâche due — ou en retard — sur le tick suivant.
 
-La probabilité est désormais respectée telle qu'elle est écrite : un tirage par élément, et
-`#spawnchance=0` ne spawne jamais. **Une mission en service qui utilise `#spawnchance` produira donc
-moins d'ennemis qu'avant** — c'est-à-dire ce que son auteur avait demandé.
+**Si vous observez encore une fumée qui se confirme sans apparaître, dites-le** : la cause exacte
+côté DCS n'a pas pu être établie depuis un poste de développement, et le correctif a été écrit pour
+être juste dans les deux cas.
 
-Les tentatives multiples sont conservées lorsque vous avez **écrit** un `#spawncount` : la promesse
-d'un nombre est tenue, `#spawncount=2` sur quatre éléments groupés livre bien exactement deux
-éléments, même à 50 % chacun.
+### `prepare --template` ne remplace plus votre `mission.yaml` sans le demander
 
-### 2. Un décalage de vague ou de QRA se déplace là où son nom le dit
+`prepare` demande fichier par fichier s'il faut remplacer ou garder — mais avec `--template`, il
+réécrivait `mission.yaml` de toute façon. Répondre « tout garder » sauvait donc tous vos fichiers
+**sauf** celui qui porte votre configuration de modules, votre bloc de sécurité et vos réglages de
+build.
 
-Le préfixe `[latDelta,lonDelta]` et le réglage `setRespawnDefaultOffset(latitude, longitude)`
-appliquaient leurs deux nombres **aux mauvais axes** : le premier déplaçait vers l'est, le second vers
-le sud, et le nord était soustrait en plus — un décalage « latitude » positif éloignait donc du pôle.
+C'est comme ça que Paluche a perdu ses modifications, alors qu'il essayait de restaurer un fichier
+sans rapport.
 
-**Cela déplace les missions existantes.** Une mission qui pose un décalage non nul spawnera ailleurs,
-jusqu'à deux fois la valeur du décalage. Un décalage réglé à l'œil contre l'ancien comportement doit
-être réécrit tel qu'il se lit. Une mission qui n'en pose aucun n'est pas concernée : le défaut livré
-est `[0, 0]`.
+Désormais la réponse est respectée, et si vous gardez votre fichier, l'outil vous dit que le
+template **n'a pas été appliqué** — parce que dans ce cas `--template` n'a rien fait du tout.
 
-### 3. MiST n'est plus injecté — sauf si votre script l'appelle
-
-Vos propres scripts peuvent encore appeler MiST. Un tel appel aurait échoué en vol avec
-`attempt to index nil (global 'mist')`, pas au build. **Le build regarde donc** : il lit vos
-`src/scripts/*.lua`, et injecte MiST dès qu'il y trouve un appel, en nommant le fichier qui l'a
-demandé. Les commentaires et les chaînes de caractères ne comptent pas.
-
-`convert-v5` pose la même question, ce qui est l'essentiel pour migrer : une mission v5 embarquait
-MiST dans tous les cas, donc sa présence ne prouve rien — mais une mission convertie dont le
-HoundElint appelle `mist.DBs.humansByName` la conserve.
-
-`MIST: true` reste disponible pour ce qu'une analyse ne peut pas voir : un script qui en charge un
-autre, ou un accès par `_G["mist"]`. En revanche `MIST: false` **ne l'emporte pas** sur la détection —
-l'honorer casserait la mission en vol pour respecter une ligne de configuration.
+**Si vous scriptez `prepare --template` en comptant sur l'écrasement, ajoutez `--force`.**
 
 ---
 
-## `veaf-logs` — lire un journal DCS
+## Le tutoriel, réparé
 
-Un journal DCS enterre ce qui compte sous du bruit sur lequel personne ne peut agir. Ce lecteur
-connaît nos scripts et masque le reste : sur un `dcs.log` courant, il ramène 416 lignes sévères à
-**69**.
+[Le tutoriel](https://veaf.github.io/documentation/mission-maker/TUTORIAL/) mène du dossier vide à
+une mission qui tourne. Trois de ses étapes ne pouvaient pas être suivies :
 
-Trois choses qu'un lecteur de journaux généraliste ne peut structurellement pas faire :
+- **Étape 5** demandait de *créer* une mission et de l'enregistrer sous le nom du fichier construit
+  à l'étape 4 — deux fichiers pour un seul nom, alors que la page dit vingt lignes plus bas que le
+  fichier à rouvrir est celui de la racine. On rouvre maintenant le `.miz` que le build vient de
+  produire, ce qui est d'ailleurs la boucle que le tutoriel enseigne partout ailleurs.
 
-- **une trace d'appel reste avec son erreur** — filtrer sur les erreurs ne cache plus le
-  `stack traceback` qui les explique ;
-- **le niveau affiché est le vrai.** DCS journalise tout le Lua en `INFO SCRIPTING`, donc un
-  avertissement `VEAF|W|` arrive étiqueté INFO. L'outil le lit dans le préfixe, et filtrer sur
-  WARNING fait enfin apparaître les avertissements de VEAF, CTLD et CSAR ;
-- **les erreurs inoffensives d'ED sont masquées par famille** — modèles de dégâts corrompus, masses
-  d'emport négatives, voies de circulation manquantes — chacune activable, avec le compte de ce qui
-  est caché, pour que le filtre ne soit jamais silencieux.
+- **Étape 7** faisait restaurer un fichier avec `git checkout`, dans un dossier que le tutoriel
+  n'avait jamais transformé en dépôt Git. La commande ne pouvait pas fonctionner. On restaure
+  maintenant par copie, et la gestion de versions est expliquée pour ce qu'elle est — un outil qui
+  s'apprend pour lui-même, avec un lien vers un cours gratuit — au lieu d'être une commande à taper
+  au milieu d'un premier parcours.
 
-Chaque catégorie dispose d'un troisième état entre « affiché » et « masqué » : le **contexte**, qui la
-conserve autour des lignes qui comptent, à la manière de `grep -C`. Un jeu de filtres complet
-s'enregistre en **profil** ; trois sont livrés avec l'outil.
+- **Étape 8** faisait décommenter un bloc `COMBATZONE` que le modèle choisi à l'étape 1 n'écrit
+  pas. Le tutoriel utilise désormais le modèle `standard`, où le bloc existe, et la règle du
+  décommentage est écrite noir sur blanc : on retire le `#` **et les trois espaces qui le suivent**,
+  jamais l'indentation. En YAML, l'indentation *est* la structure, et c'est l'erreur qui coûte une
+  heure.
 
-Il lit un journal serveur de **119 Mo en 8,6 secondes avec 37 Mo de mémoire**, en indexant en tâche de
-fond pendant que vous lisez déjà les premières lignes. Il ne garde jamais le journal ouvert — sous
-Windows, cela empêcherait DCS de faire tourner le sien au lancement.
-
-Livré comme exécutable séparé, `veaf-logs.exe`. Sa dépendance Qt est optionnelle, donc
-`veaf-tools.exe` ne grossit pas. Documenté dans `doc/mission-maker/LOGS.md`.
+Deux autres étapes ont été reprises pour la même raison. **L'étape 9** demandait d'attribuer un
+aérodrome à la coalition bleue — ce qui est déjà fait dès qu'on y a posé un slot bleu à l'étape 5 :
+c'est devenu une vérification. Et **l'étape 4** prévient d'un piège de nommage : le nom que vous
+donnez au build n'est conservé que s'il se termine par `.miz`. Sans l'extension, le fichier reçoit
+la date du jour, et on ne reconnaît plus « le fichier de la racine » que la page ne cesse de citer.
 
 ---
 
-## Ce qui se pose au sol se pose enfin où vous l'avez demandé
+## Le build dit ce qu'il a lu
 
-- **L'escorte d'une FARP pouvait être garée à travers un bâtiment, ou dans un bois.** Elle regarde
-  maintenant le terrain avant de se poser, et une escorte placée sur un terrain dégagé ne s'en va
-  plus.
-- **Deux spawns au sol posaient leurs unités sans regarder le terrain.**
-- **Un avion ne peut plus être spawné dans le décor** : le contrôle censé l'en empêcher lisait une
-  longitude à la place d'une altitude.
-- **Une FARP, une FOB et une balise CTLD** sont désormais documentées comme allant exactement là où
-  vous les posez.
-- **Six endroits posaient à DCS la même question sur le sol** ; un seul le fait maintenant — et l'un
-  des six se trompait.
+Ajouter une zone de combat à `mission.yaml` et lancer le build ne donnait aucun signe que la zone
+avait été prise en compte. Le build annonce maintenant les modules qu'il a lus, avec le nombre
+d'entrées pour ceux qui portent une liste :
 
-## Les coordonnées
+> Modules VEAF actifs (23) : AIRBASES, CACHE, CARRIER, CASMISSION, **COMBATZONE (1)**, COMMANDS, …
 
-- Une coordonnée pouvait afficher `42 60'` au lieu de `43 00'`.
-- Une coordonnée valant exactement zéro était lue Sud et Ouest.
-- **Un guillemet dans une valeur de `mission.yaml` ne casse plus toute la mission.** Une coordonnée
-  écrite comme DCS l'affiche rendait le fichier de configuration généré illisible par Lua — et donc
-  **aucun** module VEAF ne s'initialisait, sans le moindre message. Le build refuse maintenant de
-  livrer un fichier qui ne se lit pas, et dit à quelle ligne.
+Le nombre est le plus utile : une liste `combat_zones:` qui n'a rien donné ressemblait exactement à
+un build en bonne santé. `COMBATZONE (0)` vous dit qu'il y a un problème d'écriture ; l'absence de
+`COMBATZONE` vous dit que le bloc n'est pas au bon endroit dans le fichier.
 
-## Spawns aériens et patrouilles
-
-- **Les patrouilles répondent à nouveau sur tous les modèles.** Plus de la moitié des modèles d'avions
-  livrés — dont tous les MiG-29 — étaient introuvables, parce que la recherche n'entrait que dans les
-  coalitions rouge et bleue et que ces modèles sont neutres. 61 modèles sur 117 étaient invisibles.
-- **Spawner deux fois le même groupe ne supprime plus le premier.** Le clone gardait les noms d'unités
-  du modèle, et DCS supprime ce qu'il connaît déjà avant de le recréer. Cela touchait les patrouilles,
-  les AFAC et les missions de combat.
-- **Une patrouille engage à nouveau le combat.** Sa liste de cibles mémorisait l'avion qui détecte au
-  lieu de la cible détectée : le contrôle de fraîcheur demandait donc si la patrouille vole encore, et
-  jetait ses cibles à chaque passage après avoir déjà levé l'interdiction de tir air-air. Les
-  patrouilles volaient donc sans rien à engager.
-- **Une vague ou une QRA lancée par une commande VEAF arrive dans sa propre zone**, et non sur le
-  méridien du théâtre.
-- **Poser un groupe où vous voulez est devenu une phrase**, au lieu d'une table de clés à retenir.
-
-## Escortes et transport
-
-- **Un asset qui réapparaît ramène son escorte avec lui.** Elle rentrait à la maison si sa tâche
-  `Escort` n'était pas posée sur le tout dernier point de route.
-- **Téléporter un groupe apparu en cours de mission** échouait sur « country not found ».
-- **CSAR ne démarrait dans aucune mission**, et aucun test ne pouvait le voir.
-
-## Aérodromes
-
-- **Sept aérodromes refusaient tous les avions** que vous tentiez d'y garer.
-- **Les aérodromes n'étaient plus approvisionnés** en avions que leur terrain ne peut pas accueillir.
-
-## Outillage et documentation
-
-- L'exécutable propose enfin l'arborescence de commandes par thème que la documentation décrit.
-- `validate` nomme désormais **chaque** pays qu'une coalition a laissé sans affectation.
-- Une zone de combat dit quels groupes elle a laissés de côté, et ne perd plus un `#spawncount`
-  déclaré.
-- `convert-other --update` faisait le travail sans en rendre compte.
-- `extract-aircraft-groups --merge` enrichit un catalogue au lieu de le recommencer.
-- `prepare --template minimal` ne livre plus cinq scripts communautaires dont vous n'avez pas voulu.
-- **Tous les exemples de commande de la documentation s'exécutent tels quels dans PowerShell.**
-- La documentation enseigne VMCT au lieu de se contenter de le documenter, et ne dit plus que MiST
-  est obligatoire.
-
-## Retiré
-
-- Le script communautaire **Hercules Cargo**.
-- L'injection de **MiST** — voir l'encadré ci-dessus.
+C'est aussi le contrôle qui manquait à l'étape 8 du tutoriel : on sait maintenant que la zone est
+passée **avant** de lancer DCS.
 
 ---
 
 ## Merci
 
-À **Paluche**, **Reaper** et **Angrydad** pour les idées apportées pendant la session de démo.
-Plusieurs d'entre elles ont orienté ce qui a été construit ici, et d'autres sont au programme.
+À **Paluche**, pour avoir suivi le tutoriel jusqu'au bout et écrit ce qu'il a rencontré, étape par
+étape. Ses cinq remarques sont toutes fondées, et trois d'entre elles décrivaient des instructions
+que personne ne pouvait exécuter. Un tutoriel ne se teste pas autrement que comme il l'a fait.
 
-À **Tripack**, dont les retours sur les presets radio ont ouvert un chantier toujours en cours : les
-presets par défaut livrés avec l'outil ne couvrent pas encore tout ce qu'une mission demande. Ce n'est
-pas dans cette version, mais c'est en route.
-
-Et, comme pour la 6.17.0 : **la plupart des défauts corrigés ici ont été trouvés en vol, pas par les
-tests**. Une suite verte ne dit rien de ce qui se passe dans DCS — les correctifs de cette version
-ajoutent donc, chaque fois que c'est possible, un test sur ce qui branche le code, et pas seulement
-sur le code lui-même.
+Et le rappel de la 6.18.0 vaut encore : **la plupart des défauts corrigés ici ont été trouvés en
+usage, pas par les tests**. Les tests de la fumée, eux, ne vérifiaient rien du tout — ils
+s'assuraient que l'appel ne plantait pas, sans jamais regarder si l'effet arrivait dans le jeu. Ils
+le vérifient maintenant.

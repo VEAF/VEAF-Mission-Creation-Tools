@@ -264,6 +264,69 @@ function TestVeafScheduler:test_aTaskThatRemovesItselfDoesNotRepeat()
 end
 
 -- ---------------------------------------------------------------------------
+-- A task that is already due
+--
+-- The mock runs anything with `time <= untilTime`, exactly as MiST's own loop did, so it cannot
+-- show a past-due task being dropped. What these tests pin is the **contract**: whatever the
+-- caller asks for, the native timer is armed for a time in the future. See ticket 05 of
+-- FIX-TUTORIAL-FIRST-RUN — `spawnSmoke` asks for `timer.getTime()`, and the smoke never came.
+-- ---------------------------------------------------------------------------
+
+--- The time the one pending task was armed for on the native timer.
+local function nativeTimeOfOnlyTask()
+  local found
+  for _, task in pairs(dcs_mocks.scheduledTasks) do
+    luaunit.assertNil(found, "expected exactly one native task")
+    found = task
+  end
+  luaunit.assertNotNil(found, "expected a native task")
+  return found.time
+end
+
+function TestVeafScheduler:test_aTaskDueNowIsArmedForTheFuture()
+  timer.setTime(100)
+  veaf.scheduleFunction(function() end, {}, timer.getTime())
+
+  luaunit.assertTrue(nativeTimeOfOnlyTask() > 100)
+end
+
+function TestVeafScheduler:test_anOverdueTaskIsArmedForTheFuture()
+  timer.setTime(100)
+  veaf.scheduleFunction(function() end, {}, 99) -- veafSpawnEffects schedules `getTime() - 1`
+
+  luaunit.assertTrue(nativeTimeOfOnlyTask() > 100)
+end
+
+function TestVeafScheduler:test_aFutureTaskKeepsTheTimeItAskedFor()
+  timer.setTime(100)
+  veaf.scheduleFunction(function() end, {}, 160)
+
+  luaunit.assertEquals(nativeTimeOfOnlyTask(), 160)
+end
+
+function TestVeafScheduler:test_aTaskDueNowStillRuns()
+  timer.setTime(100)
+  local ran = false
+  veaf.scheduleFunction(function()
+    ran = true
+  end, {}, timer.getTime())
+
+  dcs_mocks.runScheduled(101)
+  luaunit.assertTrue(ran)
+end
+
+function TestVeafScheduler:test_anOverdueRepeatingTaskStillRepeats()
+  timer.setTime(100)
+  local count = 0
+  veaf.scheduleFunction(function()
+    count = count + 1
+  end, {}, 90, 5)
+
+  dcs_mocks.runScheduled(120)
+  luaunit.assertTrue(count >= 4) -- the clamped first run, then every 5 seconds
+end
+
+-- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------
 os.exit(luaunit.LuaUnit.run())

@@ -15,6 +15,8 @@ import luadata  # type: ignore[import-untyped]
 import yaml
 from mission_tools import (
     DEFAULT_SCRIPTS_LOCATION,
+    GENERATED_LUA_ARTIFACTS,
+    SPAWN_DATA_ARTIFACT,
     DcsMission,
     collect_files_from_globs,
     create_miz,
@@ -114,6 +116,23 @@ _EXPECTED_SCRIPTS: frozenset[str] = frozenset(
         OVERRIDE_SCRIPT_NAME,
     }
 )
+
+
+def _without_generated_artifacts(files: dict[str, bytes]) -> dict[str, bytes]:
+    """Drop the files the build injects itself, whatever collected them.
+
+    The mission-folder globs (``src/scripts/*.lua``, ``src/mission/**``) take everything they
+    find, so a copy of the generated spawn database or of ``dcs-bridge.lua`` left in the folder
+    would be embedded alongside the one the pipeline injects — two copies of the same tables in
+    the mission (FIX-EXTRACT-GENERATED-ARTIFACTS-02).
+
+    Args:
+        files: Collected files, keyed by their path inside the ``.miz``.
+
+    Returns:
+        The same mapping without the generated artifacts.
+    """
+    return {key: content for key, content in files.items() if Path(key).name not in GENERATED_LUA_ARTIFACTS}
 
 
 @dataclass
@@ -1151,10 +1170,12 @@ class MissionBuilderWorker(BaseWorker):
         defaults_folder: Path = (
             (self.scripts_path or (self.mission_folder / "published")) / "src" / "defaults" / "mission-folder"
         )
-        self.collected_mission_script_files = collect_files_from_globs(
-            base_folder=self.mission_folder,
-            file_patterns=get_mission_script_files(),
-            alternative_folder=defaults_folder,
+        self.collected_mission_script_files = _without_generated_artifacts(
+            collect_files_from_globs(
+                base_folder=self.mission_folder,
+                file_patterns=get_mission_script_files(),
+                alternative_folder=defaults_folder,
+            )
         )
         return self.collected_mission_script_files
 
@@ -1166,8 +1187,15 @@ class MissionBuilderWorker(BaseWorker):
         defaults_folder: Path = (
             (self.scripts_path or (self.mission_folder / "published")) / "src" / "defaults" / "mission-folder"
         )
-        self.collected_mission_data_files = collect_files_from_globs(
-            base_folder=self.mission_folder, file_patterns=get_mission_data_files(), alternative_folder=defaults_folder
+        # Filtered like the scripts: `src/mission/**` takes everything too, and a copy of a
+        # generated artifact there would be embedded with no warning at all, since the
+        # src/scripts/ check cannot see it.
+        self.collected_mission_data_files = _without_generated_artifacts(
+            collect_files_from_globs(
+                base_folder=self.mission_folder,
+                file_patterns=get_mission_data_files(),
+                alternative_folder=defaults_folder,
+            )
         )
         return self.collected_mission_data_files
 
@@ -1376,6 +1404,15 @@ class MissionBuilderWorker(BaseWorker):
         if scripts_dir.is_dir():
             for lua_file in scripts_dir.glob("*.lua"):
                 if lua_file.name in _EXPECTED_SCRIPTS:
+                    continue
+                # The build's own injected Lua, handed back by an extraction
+                # (FIX-EXTRACT-GENERATED-ARTIFACTS-02). Checked before the custom_scripts
+                # declaration on purpose: declaring it is precisely what must not work, since
+                # it would pin a stale copy of generated data into the mission.
+                if lua_file.name in GENERATED_LUA_ARTIFACTS:
+                    logger.warning(t("builder.generated_artifact_in_sources", file=lua_file.name))
+                    if lua_file.name == SPAWN_DATA_ARTIFACT:
+                        logger.warning(t("builder.generated_artifact_spawn_data_hint", file=lua_file.name))
                     continue
                 if lua_file.name in declared_custom_names:
                     logger.info(t("builder.custom_lua_included", file=lua_file.name))

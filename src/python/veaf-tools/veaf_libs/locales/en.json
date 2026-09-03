@@ -89,6 +89,8 @@
   "builder.dynamic_loader_missing": "Dynamic loading ({mode}) cannot find the framework loader at '{path}'. In dev mode set build.scripts_path to a VEAF-Mission-Creation-Tools checkout; in prod mode the bundle ships in published/ (run the updater first).",
   "builder.era_detected": "Auto-detected mission era: {era} (set mission.era in mission.yaml to override)",
   "builder.folder_not_found": "The input mission folder '{path}' does not exist or is not a folder",
+  "builder.generated_artifact_in_sources": "'src/scripts/{file}' is not a script anybody wrote: the build generates it and injects it into the mission every time. It usually lands there after extracting a mission that was already built. It is left out of this build, so nothing is broken — delete it from your mission folder to silence this. Do NOT declare it under 'custom_scripts:': that would freeze an out-of-date copy into your mission.",
+  "builder.generated_artifact_spawn_data_hint": "'{file}' holds the spawn database used by '_spawn unit' and '_spawn group'. To add or override your own spawnables, edit 'src/spawn-groups.yaml' — never the Lua.",
   "builder.generated_config_not_valid_lua": "Cannot build: the generated veaf-config.lua is not valid Lua at line {line} ({reason}). DCS refuses the whole file, so no VEAF module would start — no radio menu, no spawn. The line reads: {source}",
   "builder.generating_config": "Generating veaf-config.lua from mission.yaml...",
   "builder.generating_dynamic_config": "Generating veafDynamicConfig.lua (dynamic mission scripts)...",

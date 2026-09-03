@@ -407,6 +407,131 @@ class TestOldScriptsDetection(unittest.TestCase):
         self.assertTrue(any("Unknown.lua" in w for w in unexpected), "Unknown.lua must warn")
 
 
+class TestGeneratedArtifactInSources(unittest.TestCase):
+    """FIX-EXTRACT-GENERATED-ARTIFACTS-02: the build's own injected Lua left in src/scripts/.
+
+    It is not an "unexpected" file to be adopted under ``custom_scripts:`` — that would
+    freeze a stale copy of the spawn database into the mission. It gets its own message and
+    is left out of the build, so the mission carries only the copy the pipeline injects.
+    """
+
+    def setUp(self) -> None:
+        set_language("en")
+
+    def tearDown(self) -> None:
+        set_language("en")
+
+    def _folder_with(self, *names: str) -> Path:
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        scripts_dir = tmpdir / "src" / "scripts"
+        scripts_dir.mkdir(parents=True)
+        for name in names:
+            (scripts_dir / name).write_text("-- generated\n", encoding="utf-8")
+        (tmpdir / "published" / "src" / "defaults" / "mission-folder").mkdir(parents=True, exist_ok=True)
+        return tmpdir
+
+    def _warnings(self, mission_folder: Path, custom_scripts: list[CustomScript] | None = None) -> list[str]:
+        from unittest.mock import patch
+
+        from veaf_libs.logger import logger
+
+        worker = _make_worker(
+            mission_folder,
+            mission_folder / "published" / "src" / "defaults" / "mission-folder",
+            {},
+            custom_scripts=custom_scripts,
+        )
+        warnings: list[str] = []
+        orig_warning = logger.warning
+
+        def capture_warning(msg, *args, **kwargs):
+            warnings.append(msg % args if args else str(msg))
+            return orig_warning(msg, *args, **kwargs)
+
+        with patch.object(logger, "warning", side_effect=capture_warning):
+            worker.complete_src_folder_with_defaults()
+        return warnings
+
+    def _collected(self, mission_folder: Path, custom_scripts: list[CustomScript] | None = None) -> dict[str, bytes]:
+        worker = _make_worker(
+            mission_folder,
+            mission_folder / "published" / "src" / "defaults" / "mission-folder",
+            {},
+            custom_scripts=custom_scripts,
+        )
+        return worker.get_collected_mission_script_files()
+
+    def test_a_copy_under_src_mission_is_not_embedded_either(self) -> None:
+        """The other door: `src/mission/**` takes everything, and warns about nothing."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        mission_dir = tmpdir / "src" / "mission" / "l10n" / "DEFAULT"
+        mission_dir.mkdir(parents=True)
+        (mission_dir / "veaf-spawn-data.lua").write_text("-- generated\n", encoding="utf-8")
+        (mission_dir / "dictionary").write_text("dictionary = {}\n", encoding="utf-8")
+        (tmpdir / "published" / "src" / "defaults" / "mission-folder").mkdir(parents=True)
+
+        worker = _make_worker(tmpdir, tmpdir / "published" / "src" / "defaults" / "mission-folder", {})
+        collected = worker.get_collected_mission_data_files()
+
+        self.assertEqual([key for key in collected if key.endswith("veaf-spawn-data.lua")], [])
+        self.assertTrue(
+            any(key.endswith("dictionary") for key in collected),
+            "the rest of src/mission/ must still be collected",
+        )
+
+    def test_spawn_data_gets_its_own_message(self) -> None:
+        warnings = self._warnings(self._folder_with("veaf-spawn-data.lua"))
+
+        self.assertFalse(
+            any("Unexpected Lua file" in w for w in warnings),
+            "a generated artifact must not be reported as an unexpected file",
+        )
+        self.assertTrue(
+            any("veaf-spawn-data.lua" in w and "spawn-groups.yaml" in w for w in warnings),
+            f"expected the generated-artifact message, got: {warnings}",
+        )
+
+    def test_dcs_bridge_gets_its_own_message(self) -> None:
+        warnings = self._warnings(self._folder_with("dcs-bridge.lua"))
+
+        self.assertFalse(any("Unexpected Lua file" in w for w in warnings))
+        self.assertTrue(any("dcs-bridge.lua" in w for w in warnings))
+
+    def test_generated_artifact_is_not_embedded(self) -> None:
+        collected = self._collected(self._folder_with("veaf-spawn-data.lua", "dcs-bridge.lua"))
+
+        self.assertEqual(
+            [key for key in collected if key.endswith(("veaf-spawn-data.lua", "dcs-bridge.lua"))],
+            [],
+            "the build must embed only the copy the pipeline injects",
+        )
+
+    def test_declaring_it_as_a_custom_script_does_not_rescue_it(self) -> None:
+        """Honouring the declaration would reinstate the bug while looking like consent."""
+        folder = self._folder_with("veaf-spawn-data.lua")
+        declared = [CustomScript(path="veaf-spawn-data.lua")]
+
+        warnings = self._warnings(folder, custom_scripts=declared)
+        collected = self._collected(folder, custom_scripts=declared)
+
+        self.assertTrue(any("veaf-spawn-data.lua" in w for w in warnings))
+        self.assertEqual([key for key in collected if key.endswith("veaf-spawn-data.lua")], [])
+
+    def test_a_real_v5_residue_is_untouched(self) -> None:
+        folder = self._folder_with("veafSecurity.lua")
+
+        warnings = self._warnings(folder)
+        collected = self._collected(folder)
+
+        self.assertTrue(any("Unexpected Lua file" in w and "veafSecurity.lua" in w for w in warnings))
+        self.assertTrue(
+            any(key.endswith("veafSecurity.lua") for key in collected),
+            "an unexpected script is still embedded — only generated artifacts are dropped",
+        )
+
+
 class TestCustomScriptsLoadTrigger(unittest.TestCase):
     """Tests for _resolves_load_trigger() — custom script trigger generation logic."""
 

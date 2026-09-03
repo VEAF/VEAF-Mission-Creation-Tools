@@ -17,6 +17,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The build's own output came back as a mission source.** Reported by Tripack: building his
+  mission warned about an unexpected `src/scripts/veaf-spawn-data.lua` — a file nobody wrote. It is
+  the spawn database (`_spawn unit` / `_spawn group`) rendered from YAML and injected into the
+  `.miz` at every build. Extraction moved **every** remaining `l10n/DEFAULT/*.lua` into
+  `src/scripts/`, and the cleanup that runs first only knew the VEAF, legacy and community scripts —
+  not the files injected through a `VEAF_MapKey_*` map resource, whose names lived in the injectors.
+  So extracting a v6 mission handed its own output back, and the next build embedded that stale copy
+  **and** re-injected a fresh one, leaving two copies of the spawn database in the mission. Same
+  defect for `dcs-bridge.lua`.
+
+  Fixed at both ends. Extraction now strips what the mission's own `mapResource` says a VEAF build
+  injected, so an artifact added later is covered without another edit. And a generated artifact
+  found in `src/scripts/` gets its own build message — this is build output, delete it, and the
+  spawn database is edited in `src/spawn-groups.yaml` — instead of the generic "unexpected Lua file"
+  warning, whose advice to declare it under `custom_scripts:` was the one thing that must not be
+  done with it: that would freeze an out-of-date copy into the mission. Declaring it no longer
+  rescues it, deliberately. The file is left out of the build, so nothing is broken while the
+  mission folder still carries it.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

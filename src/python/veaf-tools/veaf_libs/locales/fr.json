@@ -89,6 +89,8 @@
   "builder.dynamic_loader_missing": "Le chargement dynamique ({mode}) ne trouve pas le loader framework à '{path}'. En mode dev, pointez build.scripts_path vers un clone de VEAF-Mission-Creation-Tools ; en mode prod, le bundle est livré dans published/ (lancez d'abord l'updater).",
   "builder.era_detected": "Ère de mission auto-détectée : {era} (définissez mission.era dans mission.yaml pour forcer)",
   "builder.folder_not_found": "Le dossier de mission '{path}' n'existe pas ou n'est pas un dossier",
+  "builder.generated_artifact_in_sources": "'src/scripts/{file}' n'est pas un script écrit par quelqu'un : c'est la construction qui le génère et l'injecte dans la mission à chaque fois. Il arrive généralement là après l'extraction d'une mission déjà construite. Il est laissé de côté pour cette construction, donc rien n'est cassé — supprimez-le de votre dossier mission pour ne plus voir ce message. Ne le déclarez PAS dans 'custom_scripts:' : cela figerait une copie périmée dans votre mission.",
+  "builder.generated_artifact_spawn_data_hint": "'{file}' contient la base de données de spawn utilisée par '_spawn unit' et '_spawn group'. Pour ajouter ou remplacer vos propres spawnables, modifiez 'src/spawn-groups.yaml' — jamais le Lua.",
   "builder.generated_config_not_valid_lua": "Build impossible : le veaf-config.lua généré n'est pas du Lua valide à la ligne {line} ({reason}). DCS refuse le fichier entier, donc aucun module VEAF ne démarrerait — pas de menu radio, pas de spawn. La ligne en cause : {source}",
   "builder.generating_config": "Génération de veaf-config.lua depuis mission.yaml...",
   "builder.generating_dynamic_config": "Génération de veafDynamicConfig.lua (scripts de mission dynamiques)...",

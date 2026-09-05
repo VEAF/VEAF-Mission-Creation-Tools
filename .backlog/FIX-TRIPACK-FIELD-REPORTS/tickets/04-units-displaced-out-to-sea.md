@@ -1,6 +1,6 @@
 # 04 — ZU-23s of a combat zone come up kilometres out to sea
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Type: fix
 
@@ -41,30 +41,73 @@ spawn translates the *whole group* by one offset measured against its first unit
 which is exactly the observed magnitude, and exactly the trap `referencePositionOf`'s own docstring
 describes for a group straddling a zone edge.
 
-So the candidate is **the anchor**, not the radius. Three readings, none of them conclusive:
+So the candidate is **the anchor**, not the radius.
 
-1. `referencePositionOf` anchors on `Group.getByName(name):getUnit(1)` — the first **live** unit. With
-   `AAA-1` destroyed it returns `AAA-2`, 1 976 m away. But zone elements are built once, in
-   `VeafCombatZone:initialize` via `AddZone`, so a later loss should not re-anchor. *Should* — this is
-   read, not measured.
-2. The record's `units` order comes from `pairs(groupData.units)`
-   ([`veafMissionDb.lua:201`](../../../src/scripts/veaf/veafMissionDb.lua)). The mission's table is a
-   clean sequence here, so `pairs` walks it in order — but a group with a hole in its unit table would
-   fall into the hash part, and the order would then be arbitrary.
-3. Ruled out: CTLD. `CTLDVehicleSpawner` registers this zone's `Hawk` battery and its `Ural-375`, and
-   **not** the ZU-23s, so it is not moving them.
+## What was measured (2026-09-05)
 
-## What is needed
+`test/lua/test_veafCombatZone_displacement.lua` drives the real path — `VeafCombatZone:initialize` →
+`buildGroupElement` → `referencePositionOf` → `spawnElement` → `VeafGroupSpawn:respawn` — with the
+five editor coordinates above as the fixture, and asserts on the unit positions handed to
+`coalition.addGroup`. No run of DCS was available.
 
-A `debug` run: `VeafCombatZone:spawnElement` traces the declared position, the radius and the point
-found, and `_drawOrigin` the offset. Those three numbers turn this into arithmetic. Failing that,
-reproduce here — a zone whose group is deliberately spread over kilometres, activated repeatedly,
-with units killed between activations to exercise reading 1.
+**The defect is real and it is the anchor.** The offset was read from **two different sources**:
+
+| End of the offset | Source | What "unit 1" means there |
+|---|---|---|
+| `VeafGroupSpawn._drawOrigin` (`data.units[1]`) | the mission record | the unit the **Mission Editor** put first |
+| `veafCombatZone.referencePositionOf` | `Group:getUnit(1)` | the first **live** unit; the index shifts as DCS compacts its list |
+
+When the two disagree, the offset becomes the spacing between two different units and every unit of
+the group is translated by it. Measured on the real coordinates, before the fix:
+
+| Scenario | Worst displacement |
+|---|---|
+| Everything alive, units met in editor order (baseline) | ≤ 50 m — the default dispersion, nothing else |
+| `AAA-1` lost **before** `initialize` | **1 975.9 m** — the `AAA-1`→`AAA-2` spacing, on all five |
+| Live list out of editor order, everything alive | **3 340.4 m** — the `AAA-1`→`AAA-4` spacing, on all five |
+| `AAA-1` lost **after** `initialize` | ≤ 50 m — the element holds a position measured once, no re-anchor |
+| Five activate/deactivate cycles in a row | ≤ 50 m — no drift, no compounding |
+| The zone meeting the units out of order (`plainUnits[1]`) | ≤ 50 m — the anchor never was the unit the zone met |
+
+## What was ruled out
+
+- **The spawn radius.** 50 m, and `veaf.findSpawnPoint` bounds every tier to it — tier 1 explicitly
+  distance-tests Disposition's answers, which are not bounded by its radius argument.
+- **Compounding across activations.** The element's position is measured once, in `initialize`; a
+  later death does not re-anchor it and five cycles produced no drift.
+- **`plainUnits[1]`, the first unit the *zone* met.** It only decides the element's coalition. Both
+  the anchor and that list come from DCS's own `getUnits()` order, so the documented fallback cannot
+  disagree with the primary path.
+- **`pairs(groupData.units)` ordering.** The mission's unit table is a clean 1..5 sequence.
+- **CTLD.** `CTLDVehicleSpawner` registers this zone's Hawk battery and its Ural-375, not the ZU-23s.
+
+## The fix
+
+`referencePositionOf` now reads the anchor from the **mission record, by name** — the same unit
+`_drawOrigin` measures against — so both ends name the same unit and the offset is zero by
+construction, whatever DCS's live list looks like. A record whose unit 1 is no longer alive falls
+back on that unit's **editor position** (offset zero, the group comes up where it was drawn) instead
+of on some other unit, which is the defect itself.
+
+## What is still not established
+
+**Which of the two reproducing scenarios happened in Tripack's mission**, if either. Both require
+`Group:getUnit(1)` to differ from the record's `units[1]`, and at mission start, with all five
+ZU-23s alive, they should be the same object. The fix removes the whole family rather than a case
+that was observed — honest framing: the mechanism is proven, the trigger is not.
+
+An in-game check is queued in `DCS-SESSION-TODO.md`. What would settle it in one line is a `debug`
+run of the mission: `spawnElement` traces the declared position and the point found, and
+`_drawOrigin` the offset — three numbers that turn the remaining question into arithmetic.
 
 ## Definition of done
 
-- [ ] The displacement is reproduced, with the numbers that show it
-- [ ] Its cause is named
-- [ ] Fix, plus a test asserting the **built group's** unit positions — a widely spread group keeps
+- [x] The displacement is reproduced, with the numbers that show it
+- [x] Its cause is named — two sources for one offset
+- [x] Fix, plus a test asserting the **built group's** unit positions — a widely spread group keeps
       its shape and every unit lands where the zone put it
-- [ ] `luacheck` + `stylua --check` clean; Lua coverage floor bumped per the ratchet policy
+- [x] `stylua --check` clean; `luacheck` crashes on this workstation (Lua version mismatch in the
+      luarocks install), so the CI Lua gate is the one that answers for it
+- [x] Lua coverage measured at **80.33 %** against a floor of 80 — already inside the ~2-point band,
+      so the floor is left where it is rather than bumped onto a 0.33-point margin
+- [ ] Confirmed in game against Tripack's mission (see `DCS-SESSION-TODO.md`)

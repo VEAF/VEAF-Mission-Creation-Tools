@@ -1,6 +1,6 @@
 # 06 — A door for pilots, not only mission makers
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs
 
@@ -32,7 +32,7 @@ call, and worth asking before writing.
 
 ## Definition of done
 
-- [ ] A pilot-facing entry point exists and is reachable from the menu, both languages
-- [ ] The *Explain* and *Prepare a report* actions documented, with their limits stated
-- [ ] Cross-links with the support page, both directions
-- [ ] `poetry run docs-check` passes
+- [x] A pilot-facing entry point exists and is reachable from the menu, both languages
+- [x] The *Explain* and *Prepare a report* actions documented, with their limits stated
+- [x] Cross-links with the support page, both directions
+- [x] `poetry run docs-check` passes

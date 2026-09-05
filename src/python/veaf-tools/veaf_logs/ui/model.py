@@ -193,6 +193,16 @@ class LogModel(QAbstractTableModel):
             self._cache[index] = entry
         return entry
 
+    def visible_indices(self) -> list[int]:
+        """Indices des entrees affichees, dans l'ordre du journal.
+
+        C'est ce que voit l'utilisateur, et donc ce sur quoi porte l'analyse :
+        la reconstruire en rappelant `evaluate` donnerait la meme chose au prix
+        d'un second balayage, et surtout pourrait en differer si un filtre a
+        change depuis le dernier rafraichissement.
+        """
+        return list(self._visible)
+
     def row_of_index(self, index: int) -> int:
         """Ligne affichee correspondant a une entree, ou -1 si elle est masquee."""
         from bisect import bisect_left

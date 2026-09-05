@@ -185,6 +185,63 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A support page**, in both languages: where to go depending on your situation, what to provide,
   and where the two logs actually live — the tool's and DCS's.
 
+- **`veaf-logs` explains what it shows, and prepares the report.** *Analyse → Expliquer ce qui est
+  affiché* (`Ctrl+E`) answers in two layers, and the order between them is the whole design. The
+  **catalogue answers first**: every pattern `rules.json` recognises is rendered with its own
+  reviewed wording, as it stands — no model, no cost, no network. The **model puts it in context
+  second**, only if you press *Analyser en ligne*, and where the catalogue is silent it is told to
+  say *motif non catalogué* rather than propose a cause. The worst failure of a feature like this is
+  not silence, it is a plausible wrong answer: the reader cannot tell it from a right one and will
+  spend his evening on it, so the two layers carry their own headings rather than a disclaimer at
+  the bottom nobody reads. With no network the catalogue layer stands alone and no error dialog
+  appears.
+
+  What leaves the machine is the excerpt on screen, **bounded** and **redacted** through the same
+  helper as `doctor`. Bounded means the whole rendered text, header included — measured on a real
+  11.1 MB `dcs.log` (87 989 records), 3 356 records survive a *Diagnostic* filter and 157 of them fit
+  a 16 000-character ceiling, in 0.3 s. The header names the categories set to ✕: a log filtered down
+  to "no errors" because `ERROR` was unticked must not read as a clean log.
+
+  A message that recurs and that the catalogue does not explain comes back as a **proposed
+  `rules.json` entry**, in the file's own shape, with identifiers and values already replaced by
+  wildcards and the regex checked before it is offered. Nothing is written to `rules.json`: the
+  catalogue stays hand-curated, which is exactly what makes its wording quotable.
+
+  *Préparer un rapport* assembles the `doctor` block, the excerpt, the catalogue matches and what
+  the analysis could not explain into one block on the clipboard, sized to fit a Discord message and
+  stating what it removed to get there. It is a paste, not a transmission. The format is a versioned
+  contract (`veaf-logs-report/1`) with a parser beside its producer and a round-trip test, documented
+  in *Report block format* under Developer.
+
+- **A pilot-facing door**, in both languages: *DCS se comporte mal — lire son journal*, in the Pilot
+  Guide menu. `veaf-logs` was documented under Mission Maker only, and a pilot with a crashing DCS
+  has no reason to open that section — half the audience could not find the tool.
+
+- **The report block now fits the Discord message it is sized for, and its own field describes it.**
+  The `truncated` field lives inside the block it measures, so writing it changed the length it had
+  been measured from. Swept across realistic `doctor` sizes and ceilings on the real 11 MB `dcs.log`
+  (87 989 records), 30 of 240 blocks came back over their own limit — Discord refuses those — and
+  every *OUI — N caractères* was wrong: understated by 21 when the block overflowed, overstated by
+  12 when it did not, and in 59 cases the block fitted while announcing it had to be pasted in two
+  messages. After: none over the limit, and over 106 genuine overflow cases the announced number is
+  the block's own length exactly. The overflow notice also keeps the list of what was dropped, which
+  it used to overwrite.
+
+- **Three defects in the rules a log analysis proposes**, all found on the real archives and all
+  changing what a maintainer is offered. An apostrophe in a contraction opened a quoted span, so
+  `can't load destroyed model 'X' for 'Y'` produced a rule that kept the unit names as literals and
+  turned *load destroyed model* into a wildcard — the exact inverse of the intent, and a rule that
+  could never fire on another model. A long decimal was read as a hexadecimal identifier, so the
+  same message split into two proposals depending on the magnitude of its number (`×71` and `×24`
+  where the truth was `×95`). And a Windows path made a wildcard repeat three times in a row, giving
+  a pattern that took 1.9 s on a 1 600-character line that nearly matches — against 0.006 ms once
+  collapsed — where a `rules.json` pattern is applied to every line of an 11 MB log.
+
+- **An excerpt emptied by the size ceiling no longer reads as a quiet log.** It printed *aucune ligne
+  retenue par les filtres courants* directly under a header saying *87 989 omises par la limite de
+  taille*. The filters had retained those lines; the ceiling took them. Two different facts, two
+  different sentences.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

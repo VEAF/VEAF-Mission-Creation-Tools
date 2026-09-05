@@ -1,6 +1,6 @@
 # 01 — A bounded, redacted excerpt out of what is on screen
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -36,11 +36,11 @@ the same machinery and inherits the same obligation.
 
 ## Definition of done
 
-- [ ] One entry point producing the excerpt from the current view state
-- [ ] Ceiling enforced, omissions stated in the output
-- [ ] Redaction applied, asserted on a Windows user path, an IPv4 address and a token-shaped string
-- [ ] Excluded categories declared in the excerpt header
-- [ ] Context lines never reintroduce an excluded category — asserted by a test that fails if the
+- [x] One entry point producing the excerpt from the current view state
+- [x] Ceiling enforced, omissions stated in the output
+- [x] Redaction applied, asserted on a Windows user path, an IPv4 address and a token-shaped string
+- [x] Excluded categories declared in the excerpt header
+- [x] Context lines never reintroduce an excluded category — asserted by a test that fails if the
       guard is removed
-- [ ] Unit tests on a synthetic log fixture, no GUI needed
-- [ ] `poetry run pytest`, ruff check + format, mypy clean
+- [x] Unit tests on a synthetic log fixture, no GUI needed
+- [x] `poetry run pytest`, ruff check + format, mypy clean

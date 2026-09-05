@@ -169,7 +169,8 @@ def render(body: str, links: Sequence[str], lang: str) -> str:
     trimmed = body.strip()
     if len(trimmed) > room:
         notice = text("ask.truncated", lang)
-        trimmed = trimmed[: max(room - len(notice) - 1, 0)].rstrip() + "…\n" + notice
+        # Two characters reserved, not one: the ellipsis *and* the newline before the notice.
+        trimmed = trimmed[: max(room - len(notice) - 2, 0)].rstrip() + "…\n" + notice
     return f"{trimmed}\n\n{footer}" if trimmed else footer
 
 

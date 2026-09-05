@@ -12,6 +12,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from veaf_support_bot.quota import (
     DEGRADED_PER_WINDOW,
@@ -54,7 +55,7 @@ class _QuotaTestCase(unittest.TestCase):
         self.addCleanup(self._directory.cleanup)
         self.path = Path(self._directory.name) / "quota.json"
 
-    def keeper(self, clock: _Clock | None = None, **limits: float | int) -> QuotaKeeper:
+    def keeper(self, clock: _Clock | None = None, **limits: Any) -> QuotaKeeper:
         """Build a keeper on the test's own file.
 
         Args:

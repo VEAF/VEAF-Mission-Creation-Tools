@@ -24,6 +24,10 @@ from veaf_support_bot.config import (
 MINIMAL = {
     "SUPPORT_BOT_DISCORD_TOKEN": "a-token",
     "SUPPORT_BOT_DISCORD_GUILD_ID": "123456789012345678",
+    # Required since ticket 02: the Worker refuses the `discord` client mode without it, so a
+    # service missing it would start and answer every question with "my configuration is
+    # incomplete" -- a deployment mistake that belongs at startup, not in a thread.
+    "SUPPORT_BOT_WORKER_SECRET": "a-worker-secret",
 }
 
 
@@ -35,6 +39,7 @@ class TestRequiredVariables(unittest.TestCase):
         message = str(raised.exception)
         self.assertIn("SUPPORT_BOT_DISCORD_TOKEN", message)
         self.assertIn("SUPPORT_BOT_DISCORD_GUILD_ID", message)
+        self.assertIn("SUPPORT_BOT_WORKER_SECRET", message)
 
     def test_problems_are_reported_together_not_one_per_restart(self) -> None:
         """One error listing everything, so a deployment is fixed in a single pass."""
@@ -48,8 +53,8 @@ class TestRequiredVariables(unittest.TestCase):
             )
 
         message = str(raised.exception)
-        self.assertIn("4 configuration problem(s)", message)
-        for expected in ("DISCORD_TOKEN", "DISCORD_GUILD_ID", "LOG_LEVEL", "HEALTH_PORT"):
+        self.assertIn("5 configuration problem(s)", message)
+        for expected in ("DISCORD_TOKEN", "DISCORD_GUILD_ID", "WORKER_SECRET", "LOG_LEVEL", "HEALTH_PORT"):
             self.assertIn(expected, message)
 
     def test_a_blank_value_counts_as_missing(self) -> None:
@@ -193,16 +198,30 @@ class TestTheTokenNeverLeaks(unittest.TestCase):
         rendered = repr(self.config)
 
         self.assertNotIn("a-token", rendered)
+        self.assertNotIn("a-worker-secret", rendered)
         self.assertIn(REDACTED, rendered)
 
     def test_the_loggable_mapping_is_redacted(self) -> None:
         self.assertEqual(self.config.redacted()["discord_token"], REDACTED)
+
+    def test_the_worker_secret_is_redacted_too(self) -> None:
+        """It is a credential like the token: it is what proves the bot to the Worker."""
+        self.assertEqual(self.config.redacted()["worker_secret"], REDACTED)
+
+    def test_no_secret_survives_a_full_render_of_the_configuration(self) -> None:
+        """Enumerated from the values, not from a list of the two that are secret today."""
+        rendered = f"{self.config!r} {self.config.redacted()}"
+
+        for secret in ("a-token", "a-worker-secret"):
+            with self.subTest(secret=secret):
+                self.assertNotIn(secret, rendered)
 
     def test_an_absent_token_is_not_masked_into_looking_present(self) -> None:
         """A dry run must read as "no token", not as "a token I am hiding from you"."""
         config = SupportBotConfig.from_env({"SUPPORT_BOT_DRY_RUN": "true"})
 
         self.assertEqual(config.redacted()["discord_token"], "")
+        self.assertEqual(config.redacted()["worker_secret"], "")
 
     def test_no_reader_echoes_the_value_it_rejected(self) -> None:
         """The leak that was measured: a token pasted into the wrong variable, printed in full.
@@ -222,6 +241,10 @@ class TestTheTokenNeverLeaks(unittest.TestCase):
             "SUPPORT_BOT_SHUTDOWN_GRACE_SECONDS": "seconds",
             "SUPPORT_BOT_DRY_RUN": "flag",
             "SUPPORT_BOT_WORKER_ENDPOINT": "url",
+            "SUPPORT_BOT_QUOTA_GLOBAL_PER_DAY": "integer",
+            "SUPPORT_BOT_QUOTA_USER_PER_DAY": "integer",
+            "SUPPORT_BOT_QUOTA_USER_PER_WINDOW": "integer",
+            "SUPPORT_BOT_QUOTA_USER_WINDOW_SECONDS": "seconds",
         }
         for variable, reader in rejecting.items():
             with self.subTest(variable=variable, reader=reader):

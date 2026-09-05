@@ -324,6 +324,13 @@ class SupportBotService:
             gateway: The running gateway task.
             timeout: Seconds left. At or below zero, the task is cancelled outright.
         """
+        if gateway.done():
+            # It already ended on its own, and `_gateway_ended` already logged why. Awaiting it here
+            # would re-raise that same failure and report it a second time as a dirty close. The
+            # exception is retrieved so asyncio does not later report it as never retrieved.
+            if not gateway.cancelled():
+                gateway.exception()
+            return
         connection = self._connection
         try:
             if connection is not None and timeout > 0:

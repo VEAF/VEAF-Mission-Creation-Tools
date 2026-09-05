@@ -31,6 +31,25 @@ so the decision can be revisited without rewriting the lot. The quality of code 
 **measured on real reports** before it is taken for granted — it is the one place where the change
 could cost something real.
 
+## The call budget, and why the agent must not be chatty — 2026-09-05
+
+David set the ceiling at **50 analyses per day**, all users together. That number is what makes the
+design, because Gemini's free tier is counted in **requests per day**, and an agent exploring a
+checkout freely spends ten to twenty of them per investigation. At 250 RPD that is sixteen analyses
+a day, not fifty; the developer forum reports Flash dropping to 20 RPD in December 2025, which would
+be less than one. The real figure for the project is on AI Studio's *Rate limits* page and must be
+read before anything is written.
+
+So the runtime is built the other way round: **the service pre-assembles, the model concludes.**
+A stack trace names a file and a line, so the neighbourhood, the callers and the prior art are
+extracted with no model at all — deterministic, free, and more exact than asking a model to go and
+look. One or two calls then carry that prepared context. Budget: **at most three model calls per
+analysis**, enforced by the runtime, so fifty analyses fit inside 250 RPD with room for the
+documentation chatbot sharing the tier.
+
+If the measured quota makes even that impossible, the options are a lower daily ceiling, or
+reopening the provider question with figures rather than intuition. Not a chattier agent.
+
 ## Why an agent and not the RAG
 
 This is where reading the code pays. A stack trace names a file and a line — `veafNamedPoints.lua:4219`

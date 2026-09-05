@@ -163,11 +163,21 @@ by everything the association runs on that key. The service enforces its own per
 ceilings on top, so a burst of curiosity cannot exhaust in an afternoon what the documentation
 chatbot needs for the rest of the day.
 
-### C3. One figure I need from you
+### C3. The ceiling, and the figure I still need
 
-**The daily ceiling of the service** — how many report analyses per day, all users together, before
-it answers "come back tomorrow". It is a quota decision now, not a budget one, but it is still
-yours: it decides whose requests get refused when the day is busy.
+**50 analyses per day**, all users together, set on 2026-09-05. Beyond that the bot answers "come
+back tomorrow" rather than eating the quota the website's chatbot needs.
+
+That number shapes the design rather than just configuring it. The free tier is counted in
+**requests per day**, and an agent left to explore a checkout spends ten to twenty of them per
+analysis — which would put fifty analyses out of reach on any plausible free-tier figure. So the
+service pre-assembles the context itself, with no model involved, and spends **at most three calls**
+per analysis on concluding.
+
+**What I still need:** the actual RPD figure for your project. It is on AI Studio's *Rate limits*
+page, under the project you just created. If it turns out to be low enough that even three calls
+per analysis do not fit fifty a day, the ceiling comes down or the provider question reopens — with
+figures, not intuition.
 
 ---
 
@@ -271,8 +281,8 @@ Copy this into the thread when you have done a part, so I know what to wire in.
       → token, application ID, guild ID, channel IDs
 - [ ] **B** — GitHub App created, installed on the repository only, permissions as listed
       → App ID, Installation ID, private key
-- [ ] **C** — Gemini key created for the service, separate from the Worker's
-      → key, daily service ceiling
+- [ ] **C** — Gemini key created in its **own project**, separate from the Worker's
+      → key, and the RPD figure shown on AI Studio's Rate limits page
 - [ ] **D1** — Worker deployed (`npx wrangler deploy`), without which none of the hardening is live
 - [ ] **D2** — shared secret set on the Worker and in the service environment
 - [ ] **D3** — service running, `.env` filled from `.env.example`

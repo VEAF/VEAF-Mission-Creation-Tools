@@ -16,10 +16,16 @@ invoice, and the runtime stays provider-agnostic.
   pull or event-driven — is open question 2 of the PRD and is decided with the service skeleton.
 - **A bounded tool surface**: read a file, read a range of lines, search. Nothing that writes, and
   nothing that runs code from the repository.
-- **A per-investigation ceiling** — in calls and in tokens — enforced by the runtime, not requested
-  of the model. When it is reached the investigation stops and says so; a truncated analysis is
-  reported as truncated.
-- **A daily ceiling** for the whole service, on top of the per-user quota from
+- **A per-investigation ceiling of at most three model calls**, enforced by the runtime and not
+  requested of the model. This is the load-bearing constraint: the free tier counts **requests per
+  day**, David's ceiling is 50 analyses a day, and a freely exploring agent spends ten to twenty
+  calls each — which does not fit in any plausible free-tier figure. The service therefore
+  pre-assembles the context with no model at all (the trace names a file and a line, so the
+  neighbourhood, the callers and the prior art are extracted deterministically) and the model is
+  asked to conclude, not to look. When the ceiling is reached the investigation stops and says so;
+  a truncated analysis is reported as truncated.
+- **A daily ceiling of 50 analyses** for the whole service — David's figure, 2026-09-05 — on top of
+  the per-user quota from
   [`FEAT-SUPPORT-DISCORD-QA` ticket 03](../../FEAT-SUPPORT-DISCORD-QA/tickets/03-per-user-quota.md).
   Reaching it degrades the flow to unassisted reporting rather than breaking it.
 

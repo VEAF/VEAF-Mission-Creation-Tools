@@ -175,6 +175,42 @@ Tickets 02 and 03 sit on the combat-zone spawn path and are workable now; 04 and
 for want of the reporter's mission file and a `debug` run, with a purpose-built test mission as the
 fallback if neither arrives.
 
+### New since that order — the support programme (2026-09-05)
+
+Five lots came out of one design session, not out of a report: David's idea of a Discord assistant
+that answers on the documentation, guides a bug report, and opens the issue itself — extended during
+the session to suggestions and to a general DCS log analyser.
+
+The session moved the idea twice, on measurements rather than on taste.
+
+- **The report was not the weak part.** 4 user-opened issues are still open, the newest from March
+  2024; the last one filed by a user at all is #304, January 2026; the issue forms have been in place
+  since 2026-05-20 and **0 of the last 60 issues used them**. The regulars already attach the log, the
+  mission and the screenshots. What is missing every time is the tool version, the DCS version and the
+  steps — facts a model can only ask for, and a command can read. Hence a diagnostic lot **first**.
+- **The analyser cannot live on Discord.** David's own `dcs.log` measures 11.1 MB, past the upload
+  ceiling, while `veaf-logs` already holds the file with its rules applied. So the machine bounds the
+  material and the service only analyses it — which became the programme's second principle.
+
+Two principles hold it together, and they are decisions: **the free tier carries the volume, the paid
+model is reserved for value** — hence `/ask` and the log analyser on the existing Worker, and a Claude
+agent only on `/bug`; and **the user's machine produces the bounded material, the service analyses it**.
+
+| Order | Lot | Runs where | Why here |
+|-------|-----|-----------|----------|
+| **1** | [`FEAT-SUPPORT-DIAGNOSTIC`](.backlog/FEAT-SUPPORT-DIAGNOSTIC/PRD.md) | user's machine | the only piece that keeps its value if the bot is never built, and `doctor`'s output is the contract lots 2 and 4 consume |
+| **2** | [`FEAT-SUPPORT-LOG-ANALYSIS`](.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md) | user's machine | still no infrastructure, no secret, no cost; also closes the Worker's `X-VEAF-Client` bypass, being the first lot to add a second client |
+| **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) | service + Worker | proves the channel, the permissions and the quotas with no paid model and no write access |
+| **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) | service | the big one, and the only one that spends money and writes to a public repository — **to be sequenced into several PRs** |
+| **5** | [`FEAT-SUPPORT-SUGGESTIONS`](.backlog/FEAT-SUPPORT-SUGGESTIONS/PRD.md) | service | adds a flow on lot 4's infrastructure; if it needs new plumbing, lot 4 factored badly |
+
+Three decisions worth recording, because they were argued and could be reopened: the issue is filed by
+a **machine account** (which is why lot 4 owes the GitHub → Discord relay), the user **validates the
+draft** before anything is published, and the issue is written **in the user's language** — a departure
+from the English-only rule for technical content, matching what the tracker already contains.
+
+Nothing here is started, and none of it needs DCS.
+
 ### Blocked on a person, or on a DCS session
 
 Not on a decision anyone can take at a keyboard here. The ones needing the game started are collected, in

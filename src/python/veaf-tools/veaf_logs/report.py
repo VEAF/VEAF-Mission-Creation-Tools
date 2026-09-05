@@ -229,8 +229,11 @@ def build_report(
     # body renders no section at all, so the two delimiter lines it will cost are subtracted here.
     room = budget - without_excerpt() - _section_overhead("excerpt")
     if len(bodies["excerpt"]) > room:
-        if room >= MIN_EXCERPT_CHARS:
-            bodies["excerpt"] = _fence_safe(analysis.excerpt.rebound(room).to_text())
+        shrunk = analysis.excerpt.rebound(room) if room >= MIN_EXCERPT_CHARS else None
+        # A header saying "0 records shown" is not an excerpt, it is a claim that one existed. When
+        # the room only pays for the header, the section goes and the field says so.
+        if shrunk is not None and shrunk.entries:
+            bodies["excerpt"] = _fence_safe(shrunk.to_text())
         else:
             bodies["excerpt"] = ""
             dropped.append("excerpt")

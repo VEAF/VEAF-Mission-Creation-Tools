@@ -353,18 +353,21 @@ def _bound(current: Excerpt, entries: Sequence[ExcerptEntry], max_chars: int, al
         already: Records dropped before this call, added to what each pass drops.
 
     Returns:
-        An excerpt that fits, or — when a single record is longer than the entire ceiling and is the
-        only thing left — the shortest one reachable. It never comes back holding records the budget
-        did not pay for.
+        An excerpt whose rendered text fits, holding as many records as the ceiling paid for — none
+        at all when it paid for none.
     """
     budget = max_chars
     for _ in range(_FIT_PASSES):
-        overflow = len(current.to_text()) - max_chars
-        if overflow <= 0:
-            return current
-        budget -= overflow + _FIT_MARGIN
+        # Fit first, *then* measure. Measuring what came in and subtracting that overflow would
+        # charge the budget for records the fit was going to drop anyway: an excerpt rendered at
+        # 16 000 characters and rebounded to 1 200 came back empty, because the 14 800-character
+        # overflow of the *old* rendering was taken off the *new* budget.
         kept, dropped = _fit(entries, budget)
         current = replace(current, entries=kept, omitted=already + dropped)
+        overflow = len(current.to_text()) - max_chars
+        if overflow <= 0:
+            break
+        budget -= overflow + _FIT_MARGIN
     return current
 
 
@@ -395,12 +398,9 @@ def build_excerpt(
     # The guard: whatever produced the selection, a record of an excluded category never travels.
     allowed = [index for index in indices if 0 <= index < len(store) and not is_excluded(store, filters, index)]
     entries = [_to_excerpt_entry(store.entry(index)) for index in allowed]
-    kept, omitted = _fit(entries, max_chars)
     excerpt = Excerpt(
-        entries=kept,
         total_indexed=len(store),
         selected=len(entries),
-        omitted=omitted,
         excluded=excluded_keys(filters),
         context_only=context_keys(filters),
         searches=[item.describe() for item in filters.text_filters if item.enabled and item.pattern],

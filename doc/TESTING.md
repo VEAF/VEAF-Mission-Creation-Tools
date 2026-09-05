@@ -164,6 +164,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafCombatMission.lua` | Cycle de vie d'une mission de combat |
 | `test_veafAirbases.lua` | Recherche de données aérodromes |
 | `test_veafCombatZone.lua` | Activation de zone, scoring, machine à états |
+| `test_veafCombatZone_displacement.lua` | Ancrage du spawn d'un groupe très étalé : il garde sa forme |
 | `test_veafUnits.lua` | Recherche de templates d'unités, filtrage par catégorie |
 | `test_veafAssets.lua` | Enregistrement d'assets, suivi d'état |
 | `test_veafAssist.lua` | Assistance pilote : checklists, progression, menus |

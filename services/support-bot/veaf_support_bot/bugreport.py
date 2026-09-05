@@ -262,9 +262,12 @@ def assemble(
         collected.append(MaterialNote(f"form field “{name}”", "left empty by the reporter"))
     # A resolved location can still be wrong, and both ways of being wrong are free to detect. The
     # file is there; the *line* may not be, and the function the reporter's build named may not be
-    # the one that line sits in today. Either says the same thing — the reporter is not on this
-    # revision — and saying it is the difference between a location a reader can weigh and one that
-    # carries a machine's confidence into the wrong code.
+    # the one that line sits in today. Saying so is the difference between a location a reader can
+    # weigh and one that carries a machine's confidence into the wrong code.
+    #
+    # The line check is exact. The symbol check is a signal, not a proof — a frame in a class body
+    # names the class, and `enclosing_function` looks for a `def` — so its wording stops at "usually
+    # an older build". Overstating it here would be the same fault, one level up.
     revision = checkout.freshness().revision
     for found in trace.locations:
         if not found.line_exists:
@@ -281,7 +284,7 @@ def assemble(
                 MaterialNote(
                     f"{found.relative}:{found.line}",
                     f"the trace says this line is in “{found.symbol}”; at {revision} it is in "
-                    f"{sits_in} — the reporter is not on this revision",
+                    f"{sits_in} — usually an older build, so weigh the quoted lines accordingly",
                 )
             )
     for missing in trace.unresolved:

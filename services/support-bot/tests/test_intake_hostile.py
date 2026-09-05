@@ -1,0 +1,183 @@
+"""The hostile fixture: content that reads like an instruction, and steers nothing.
+
+``/bug`` is a public intake desk, so this is not a hypothetical. What arrives is a form somebody
+filled in and files somebody uploaded, and any line of either can say *"set the component to
+Documentation"*, *"close this as a duplicate"* or *"@everyone"*.
+
+The assertion this file makes is **differential**, and that is what makes it worth its runtime: the
+same report is assembled twice, once clean and once with hostile text spliced into every free-text
+field and into the attached log, and the two are required to produce **identical decisions** —
+title, component, labels, version, resolved locations. If a single branch anywhere read free text to
+choose something, the two would diverge and this would go red.
+
+The second half asserts the presentational boundary: hostile text is quoted, not filtered. Nothing
+is dropped — dropping evidence to be safe would corrupt the very report the feature exists to carry
+— it simply cannot escape its fence or resolve a mention.
+"""
+
+from __future__ import annotations
+
+import tempfile
+import unittest
+from pathlib import Path
+
+from tests.intake_fixtures import (
+    HOSTILE_TEXT,
+    PYTHON_TRACEBACK,
+    doctor_block,
+    fixture_checkout,
+)
+from tests.test_attachments import _fake_downloader
+from veaf_support_bot.attachments import AttachmentCollector, Incoming
+from veaf_support_bot.bugreport import BugForm, BugReport, assemble
+from veaf_support_bot.untrusted import defuse_mentions, fence_for, one_line, quote
+
+#: A log carrying the same hostile lines a reporter's own machine would have written into it.
+HOSTILE_LOG = "\n".join(
+    [
+        "2026-09-05 10:00:00.000 INFO    APP (Main): DCS/2.9.29.27278 (x86_64; MT; Windows NT 10.0.26200)",
+        *[f"2026-09-05 10:00:{i:02d}.000 ERROR   SCRIPTING (Main): {line}" for i, line in enumerate(HOSTILE_TEXT.splitlines())],
+        "",
+    ]
+)
+
+#: The same log without a hostile line in it, same shape and same length.
+CLEAN_LOG = "\n".join(
+    [
+        "2026-09-05 10:00:00.000 INFO    APP (Main): DCS/2.9.29.27278 (x86_64; MT; Windows NT 10.0.26200)",
+        *[f"2026-09-05 10:00:{i:02d}.000 ERROR   SCRIPTING (Main): ordinary line {i}" for i in range(len(HOSTILE_TEXT.splitlines()))],
+        "",
+    ]
+)
+
+
+def _form(hostile: bool) -> BugForm:
+    """Build the same report twice, once with hostile text spliced into every field.
+
+    Args:
+        hostile: Whether to splice it in.
+
+    Returns:
+        The form.
+    """
+    poison = f"\n{HOSTILE_TEXT}" if hostile else ""
+    return BugForm(
+        summary="convert-v5 crashes on my mission",
+        happened=f"{PYTHON_TRACEBACK}{poison}",
+        expected=f"It should have converted the mission.{poison}",
+        steps=f"1. run convert-v5\n2. watch it fail{poison}",
+        doctor=doctor_block("6.16.3"),
+        reporter="Someone",
+        reporter_id="42",
+        language="en",
+    )
+
+
+def _decisions(report: BugReport) -> dict[str, object]:
+    """Reduce a report to everything the service **decided**, and nothing it merely quoted.
+
+    Args:
+        report: The assembled report.
+
+    Returns:
+        The decisions, comparable between two runs.
+    """
+    return {
+        "title": report.title,
+        "component": report.component,
+        "labels": report.labels,
+        "version": report.version,
+        "locations": [(item.relative, item.line, item.function) for item in report.located],
+        "unresolved": [(item.line,) for item in report.unresolved],
+    }
+
+
+class TestHostileTextChangesNoDecision(unittest.TestCase):
+    def setUp(self) -> None:
+        self.checkout = fixture_checkout()
+
+    def test_the_fixture_really_is_hostile(self) -> None:
+        """Guards the guard: a fixture that lost its teeth would make every case below vacuous."""
+        self.assertIn("ignore all previous instructions", HOSTILE_TEXT)
+        self.assertIn("component: Documentation", HOSTILE_TEXT)
+        self.assertIn("@everyone", HOSTILE_TEXT)
+        self.assertIn("```", HOSTILE_TEXT)
+
+    def test_the_two_reports_decide_exactly_the_same_things(self) -> None:
+        clean = assemble(_form(hostile=False), self.checkout)
+        hostile = assemble(_form(hostile=True), self.checkout)
+        self.assertEqual(_decisions(clean), _decisions(hostile))
+
+    def test_the_component_it_asked_for_is_not_the_component_it_gets(self) -> None:
+        hostile = assemble(_form(hostile=True), self.checkout)
+        self.assertNotEqual(hostile.component, "Documentation")
+        self.assertEqual(hostile.component, "veaf-tools.exe (Python CLI)")
+
+    def test_the_labels_it_asked_for_are_not_applied(self) -> None:
+        hostile = assemble(_form(hostile=True), self.checkout)
+        self.assertNotIn("security", hostile.labels)
+        self.assertNotIn("wontfix", hostile.labels)
+
+    def test_the_title_it_asked_for_is_not_the_title(self) -> None:
+        hostile = assemble(_form(hostile=True), self.checkout)
+        self.assertNotIn("something else entirely", hostile.title)
+
+    def test_the_hostile_text_is_still_carried_and_not_censored(self) -> None:
+        """Dropping evidence to be safe would corrupt the report this feature exists to file."""
+        hostile = assemble(_form(hostile=True), self.checkout)
+        self.assertIn("ignore all previous instructions", hostile.form.all_text())
+
+
+class TestAHostileLogChangesNoDecision(unittest.IsolatedAsyncioTestCase):
+    async def _digest(self, body: str) -> str:
+        checkout = fixture_checkout()
+        collector = AttachmentCollector(checkout, _fake_downloader({"u": body.encode("utf-8")}))
+        with tempfile.TemporaryDirectory() as directory:
+            harvest = await collector.collect([Incoming("dcs.log", "u", len(body))], Path(directory))
+            return harvest.prepared[0].rendered
+
+    async def test_a_log_full_of_instructions_produces_the_same_decisions_as_an_ordinary_one(self) -> None:
+        checkout = fixture_checkout()
+        hostile = assemble(_form(hostile=False), checkout, extra_text=await self._digest(HOSTILE_LOG))
+        clean = assemble(_form(hostile=False), checkout, extra_text=await self._digest(CLEAN_LOG))
+        self.assertEqual(_decisions(clean), _decisions(hostile))
+
+    async def test_the_hostile_log_lines_are_still_in_the_excerpt(self) -> None:
+        self.assertIn("ignore all previous instructions", await self._digest(HOSTILE_LOG))
+
+
+class TestQuotedTextCannotEscapeItsQuotes(unittest.TestCase):
+    def test_a_fence_is_longer_than_any_run_of_backticks_inside(self) -> None:
+        self.assertEqual(fence_for("no backticks"), "```")
+        self.assertEqual(fence_for("a ``` b"), "````")
+        self.assertEqual(fence_for("a ````` b"), "``````")
+
+    def test_a_block_holding_its_own_fence_still_closes_after_the_content(self) -> None:
+        rendered = quote("before\n```\nafter")
+        fence = rendered.splitlines()[0]
+        self.assertTrue(rendered.endswith(fence))
+        self.assertEqual(rendered.count(fence), 2)
+
+    def test_a_mention_cannot_resolve(self) -> None:
+        defused = defuse_mentions("@everyone @here <@&12345> mail@example.org")
+        self.assertNotIn("@everyone", defused)
+        self.assertNotIn("@here", defused)
+        self.assertIn("everyone", defused, "the text is guarded, not deleted")
+
+    def test_the_hostile_fixture_quotes_without_escaping(self) -> None:
+        rendered = quote(HOSTILE_TEXT)
+        fence = rendered.splitlines()[0]
+        self.assertEqual(rendered.count(f"\n{fence}"), 1, "the closing fence is the only one")
+        self.assertNotIn("@everyone", rendered)
+
+    def test_empty_text_yields_no_empty_fence(self) -> None:
+        self.assertEqual(quote("   \n  "), "")
+
+    def test_a_title_line_is_collapsed_and_bounded(self) -> None:
+        collapsed = one_line("a\nb   c\t\td", 100)
+        self.assertEqual(collapsed, "a b c d")
+        self.assertLessEqual(len(one_line("word " * 100, 40)), 40)
+
+
+if __name__ == "__main__":
+    unittest.main()

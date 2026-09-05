@@ -1,6 +1,6 @@
 # 02 — The Worker learns to serve more than one kind of client
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 
@@ -54,10 +54,10 @@ here.
 
 ## Definition of done
 
-- [ ] Client modes declared, with a limit per mode
-- [ ] A self-declared header alone no longer grants browser-bypassing access
-- [ ] Rate limiting fails closed; a KV outage cannot remove the limit
-- [ ] Body size ceiling enforced before parsing
-- [ ] A log-analysis mode accepting an excerpt plus matched catalogue entries
-- [ ] Unit tests extended, including the fail-closed path and the body ceiling
-- [ ] Deployment steps written down in the Worker README, which is stale and gets refreshed here
+- [x] Client modes declared, with a limit per mode
+- [x] A self-declared header alone no longer grants browser-bypassing access
+- [x] Rate limiting fails closed; a KV outage cannot remove the limit
+- [x] Body size ceiling enforced before parsing
+- [x] A log-analysis mode accepting an excerpt plus matched catalogue entries
+- [x] Unit tests extended, including the fail-closed path and the body ceiling
+- [x] Deployment steps written down in the Worker README, which is stale and gets refreshed here

@@ -38,6 +38,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rescues it, deliberately. The file is left out of the build, so nothing is broken while the
   mission folder still carries it.
 
+- **A header was enough to use the documentation chatbot's Worker from anywhere.** Its admission
+  check read `cliHeader === "cli" || origin allow-listed`: anyone sending `X-VEAF-Client: cli` was
+  admitted whatever their origin, so the browser allow-list protected nothing and the Worker — and
+  the shared free Gemini quota behind it — was open to any caller. The per-IP rate limit that was
+  supposed to make up for it returned `true` from its own `catch`, so a KV outage removed every
+  limit instead of tightening one. And nothing capped the request body before it was parsed.
+
+  The Worker now declares a client vocabulary (`web`, `cli`, `logs`, `discord`), each with its own
+  quota, routes and body ceiling. A request carrying an `Origin` is judged on the allow-list alone
+  and its self-declared header is ignored; without an `Origin` the header only *selects* a mode and
+  buys nothing beyond that mode's quota. Rate limiting falls back to a much stricter per-isolate
+  ceiling when KV is unreachable, never to none. Bodies are bounded while streaming, before parsing.
+  A new `POST /analyze` route explains a bounded DCS log excerpt against the catalogue entries the
+  caller matched locally, saying "pattern not catalogued" rather than guessing a culprit — the mode
+  the forthcoming `veaf-logs` analysis will use. The documentation widget and `veaf-tools ask` are
+  unaffected: both keep the access they had.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

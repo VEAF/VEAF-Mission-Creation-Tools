@@ -196,6 +196,27 @@ function degradedAllow(key, now = Date.now()) {
 }
 
 /**
+ * Read a KV rate-limit counter, treating anything that is not a plain non-negative integer as the
+ * worst case (the ceiling itself, so the caller is refused).
+ *
+ * Absent is zero — that is the normal first request. A *present but unreadable* value is not:
+ * `parseInt("NaN")` is `NaN`, `NaN >= limit` is false, so a corrupted counter used to let requests
+ * straight through, and writing `String(NaN + 1)` back with a fresh 24 h TTL kept it corrupted for
+ * good. A poisoned counter now closes its own gate and, since nothing rewrites it, expires on the
+ * TTL it already carries.
+ *
+ * @param {string|null} raw The stored value.
+ * @param {number} limit The ceiling to report when the value cannot be trusted.
+ * @returns {number} The counter value, or `limit` when it is unreadable.
+ */
+function readCounter(raw, limit) {
+  if (raw === null || raw === undefined) return 0;
+  const text = String(raw).trim();
+  if (!text) return 0;
+  return /^\d+$/.test(text) ? Number(text) : limit;
+}
+
+/**
  * Per-client, per-subject rate-limiting backed by KV. KV is eventually consistent and the
  * read-then-write is not atomic, which is acceptable for an abuse guard on a POC.
  *
@@ -209,14 +230,17 @@ function degradedAllow(key, now = Date.now()) {
  * @returns {Promise<boolean>} True when the request is allowed.
  */
 async function allowRequest(env, client, subject) {
-  const spec = CLIENTS[client];
+  // Own-property lookup, never a bare read: `CLIENTS["constructor"]` is `Object`, which is truthy
+  // and has no `perWindow`, so every comparison below would be `>= undefined` — i.e. false — and
+  // the request would be allowed. `resolveClient` already refuses those names, and so does this.
+  const spec = Object.prototype.hasOwnProperty.call(CLIENTS, client) ? CLIENTS[client] : null;
   if (!spec) return false;
   const minKey = `rl:min:${client}:${subject}`;
   const dayKey = `rl:day:${client}:${subject}`;
   try {
     const [minRaw, dayRaw] = await Promise.all([env.CHAT_KV.get(minKey), env.CHAT_KV.get(dayKey)]);
-    const minCount = minRaw ? parseInt(minRaw, 10) : 0;
-    const dayCount = dayRaw ? parseInt(dayRaw, 10) : 0;
+    const minCount = readCounter(minRaw, spec.perWindow);
+    const dayCount = readCounter(dayRaw, spec.perDay);
     if (minCount >= spec.perWindow || dayCount >= spec.perDay) return false;
     await Promise.all([
       env.CHAT_KV.put(minKey, String(minCount + 1), { expirationTtl: RL_WINDOW }),

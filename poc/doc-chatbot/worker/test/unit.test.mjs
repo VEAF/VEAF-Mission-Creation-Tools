@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chunkMarkdown, MAX_CHARS } from "../scripts/build-index.mjs";
-import {
+import worker, {
   latestQuery,
   toGeminiContents,
   upstreamErrorMessage,
@@ -24,6 +24,7 @@ function fakeKv({ broken = false, values = {} } = {}) {
     throw new Error("KV unavailable");
   };
   return {
+    store, // exposed so a test can assert what was — or was not — written back
     CHAT_KV: {
       async get(key) {
         return broken ? boom() : (store.get(key) ?? null);
@@ -33,6 +34,34 @@ function fakeKv({ broken = false, values = {} } = {}) {
       },
     },
   };
+}
+
+/**
+ * A full Worker `env`: the KV double above plus the bindings `fetch` reads directly
+ * (`GEMINI_API_KEY`, and any Secret a client mode is gated on).
+ */
+function workerEnv({ kv = {}, ...bindings } = {}) {
+  const env = fakeKv({ values: kv });
+  return { GEMINI_API_KEY: "test-key", ...bindings, store: env.store, CHAT_KV: env.CHAT_KV };
+}
+
+/** Build a request the way a real caller would, so `worker.fetch` sees the actual headers. */
+function call(route, { origin, client, secret, headers = {}, body, ip = "203.0.113.1", method = "POST" } = {}) {
+  const h = new Headers({ "CF-Connecting-IP": ip, ...headers });
+  if (origin) h.set("Origin", origin);
+  if (client) h.set("X-VEAF-Client", client);
+  if (secret !== undefined) h.set("X-VEAF-Auth", secret);
+  const init = { method, headers: h };
+  if (body !== undefined) {
+    init.body = body instanceof ReadableStream || typeof body === "string" ? body : JSON.stringify(body);
+    if (body instanceof ReadableStream) init.duplex = "half";
+  }
+  return new Request(`https://chat.example${route}`, init);
+}
+
+/** The rate-limit keys the Worker wrote — they name the client mode it actually resolved. */
+function rateLimitKeys(env) {
+  return [...env.store.keys()].filter((k) => k.startsWith("rl:")).sort();
 }
 
 /** Wrap a string in a ReadableStream of Uint8Array chunks, as a Request body would arrive. */
@@ -201,8 +230,35 @@ test("allowRequest fails closed: a KV outage degrades the limit instead of remov
   assert.equal(await allowRequest(env, "cli", ip), false);
 });
 
-test("allowRequest refuses an undeclared client outright", async () => {
+test("allowRequest refuses an undeclared client outright, inherited names included", async () => {
   assert.equal(await allowRequest(fakeKv(), "not-a-client", "1.2.3.4"), false);
+  // A bare `CLIENTS[client]` read answered `Object` for these — truthy, and with no quota fields,
+  // so every `count >= undefined` comparison was false and the request went through.
+  for (const name of ["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"]) {
+    assert.equal(await allowRequest(fakeKv(), name, "1.2.3.4"), false, `${name} is not a client`);
+  }
+});
+
+test("allowRequest treats an unreadable counter as the ceiling and does not rewrite it", async () => {
+  // `parseInt("NaN")` is `NaN`, and `NaN >= perDay` is false — so a poisoned counter used to open
+  // the gate, and `String(NaN + 1)` wrote `"NaN"` straight back with a fresh 24 h TTL, keeping it
+  // open for good. Measured before the fix: 10 of 200 requests admitted, value still "NaN".
+  for (const poison of ["NaN", "abc", "-1", "1e3", "9.5"]) {
+    const day = fakeKv({ values: { "rl:day:cli:7.7.7.7": poison } });
+    assert.equal(await allowRequest(day, "cli", "7.7.7.7"), false, `daily counter "${poison}"`);
+    const min = fakeKv({ values: { "rl:min:cli:7.7.7.7": poison } });
+    assert.equal(await allowRequest(min, "cli", "7.7.7.7"), false, `burst counter "${poison}"`);
+  }
+  const env = fakeKv({ values: { "rl:day:cli:7.7.7.7": "NaN" } });
+  assert.equal(await allowRequest(env, "cli", "7.7.7.7"), false);
+  assert.equal(env.store.get("rl:day:cli:7.7.7.7"), "NaN", "the poisoned value must not be refreshed");
+  assert.equal(env.store.has("rl:min:cli:7.7.7.7"), false, "a refused request writes no counter");
+});
+
+test("allowRequest still reads an absent or empty counter as zero", async () => {
+  const env = fakeKv({ values: { "rl:min:cli:7.7.7.9": "" } });
+  assert.equal(await allowRequest(env, "cli", "7.7.7.9"), true);
+  assert.equal(env.store.get("rl:min:cli:7.7.7.9"), "1");
 });
 
 test("declaredBodyTooLarge rejects an over-ceiling Content-Length, tolerates a missing one", () => {
@@ -259,4 +315,166 @@ test("buildAnalysisContents truncates an over-long excerpt and keeps the questio
 test("buildAnalysisContents works without a question", () => {
   const [content] = buildAnalysisContents("ERROR something", null);
   assert.ok(content.parts[0].text.includes("ERROR something"));
+});
+
+// ---------------------------------------------------------------------------------------------
+// Wiring: everything below drives the real entry point, `worker.fetch(request, env)`.
+//
+// The tests above exercise the handlers in isolation, which is exactly how green bugs ship on this
+// repository: the handler is right and nothing checks that it is still plugged in. What these lock
+// is the plumbing — that `X-VEAF-Auth` is the header actually read, that `spec.routes` really
+// filters, that `spec.maxBody` is the ceiling handed to `readBoundedText`, that the call site
+// resolves a *mode* rather than a boolean, and that `/analyze` is a declared route.
+//
+// The lever used throughout: the rate-limit keys the Worker writes name the mode it resolved, and
+// a request that reaches a *later* rejection (400/413/429) is one that got past admission.
+// ---------------------------------------------------------------------------------------------
+
+test("fetch: the widget's allow-listed Origin resolves to the web client", async () => {
+  const env = workerEnv();
+  const res = await worker.fetch(
+    call("/chat", { origin: "https://veaf.github.io", body: { lang: "fr" } }),
+    env,
+  );
+  // 400, not 403: admission passed and the empty message list is what failed.
+  assert.equal(res.status, 400);
+  assert.equal(res.headers.get("Access-Control-Allow-Origin"), "https://veaf.github.io");
+  assert.deepEqual(rateLimitKeys(env), ["rl:day:web:203.0.113.1", "rl:min:web:203.0.113.1"]);
+});
+
+test("fetch: X-VEAF-Client selects the cli mode when there is no Origin", async () => {
+  const env = workerEnv();
+  const res = await worker.fetch(call("/chat", { client: "cli", body: { lang: "fr" } }), env);
+  assert.equal(res.status, 400);
+  assert.deepEqual(rateLimitKeys(env), ["rl:day:cli:203.0.113.1", "rl:min:cli:203.0.113.1"]);
+});
+
+test("fetch: a hostile Origin is refused even while it declares the cli header", async () => {
+  // The bypass this whole change exists to close, checked where it was actually exploitable.
+  const env = workerEnv();
+  const res = await worker.fetch(
+    call("/chat", {
+      origin: "https://evil.example",
+      client: "cli",
+      body: { lang: "fr", messages: [{ role: "user", content: "hi" }] },
+    }),
+    env,
+  );
+  assert.equal(res.status, 403);
+  assert.equal(res.headers.get("Access-Control-Allow-Origin"), null, "no CORS grant either");
+  assert.deepEqual(rateLimitKeys(env), [], "a refused caller never reaches the rate limiter");
+});
+
+test("fetch: each mode only reaches the routes its spec declares", async () => {
+  const analyze = { lang: "fr", excerpt: "ERROR boom" };
+  const chat = { lang: "fr", messages: [{ role: "user", content: "hi" }] };
+  const refused = [
+    ["/analyze", { origin: "https://veaf.github.io", body: analyze }], // web is /chat only
+    ["/analyze", { client: "cli", body: analyze }],
+    ["/chat", { client: "logs", body: chat }], // logs is /analyze only
+  ];
+  for (const [route, opts] of refused) {
+    const res = await worker.fetch(call(route, opts), workerEnv());
+    assert.equal(res.status, 403, `${route} must be out of scope for ${JSON.stringify(opts)}`);
+  }
+
+  // ...and /analyze really is a declared route for `logs`: an empty excerpt earns a 400, not a 404.
+  const env = workerEnv();
+  const admitted = await worker.fetch(
+    call("/analyze", { client: "logs", body: { lang: "fr", excerpt: "  " } }),
+    env,
+  );
+  assert.equal(admitted.status, 400);
+  assert.deepEqual(rateLimitKeys(env), ["rl:day:logs:203.0.113.1", "rl:min:logs:203.0.113.1"]);
+
+  // An undeclared path is a 404, decided before admission runs at all.
+  const unknown = await worker.fetch(call("/explain", { client: "logs", body: analyze }), workerEnv());
+  assert.equal(unknown.status, 404);
+});
+
+test("fetch: the body ceiling is the one the resolved client declares", async () => {
+  const payload = "x".repeat(100 * 1024); // over cli's 64 KiB, under logs' 128 KiB
+
+  const declared = await worker.fetch(call("/chat", { client: "cli", body: payload }), workerEnv());
+  assert.equal(declared.status, 413, "a declared length above CLIENTS.cli.maxBody is refused");
+
+  const roomier = await worker.fetch(call("/analyze", { client: "logs", body: payload }), workerEnv());
+  assert.equal(roomier.status, 400, "the same size fits CLIENTS.logs.maxBody, so it is parsed");
+
+  // A stream body carries no Content-Length, so only the streaming ceiling can catch it.
+  const streamed = await worker.fetch(
+    call("/chat", { client: "cli", body: bodyStream(payload, 4096) }),
+    workerEnv(),
+  );
+  assert.equal(streamed.status, 413, "an undeclared body length is still bounded while streaming");
+});
+
+test("fetch: the discord mode is gated on X-VEAF-Auth matching the configured Secret", async () => {
+  const body = { lang: "fr", excerpt: "", subject: "pilot-42" };
+  const send = (env, opts) => worker.fetch(call("/analyze", { client: "discord", body, ...opts }), env);
+  const configured = () => workerEnv({ DISCORD_CLIENT_SECRET: "s3cret" });
+
+  // 1. Secret never set: groundwork is a closed door, not an open one.
+  assert.equal((await send(workerEnv(), { secret: "s3cret" })).status, 403);
+  // 2. Set but empty: an empty Secret must not be matched by an empty header.
+  assert.equal((await send(workerEnv({ DISCORD_CLIENT_SECRET: "" }), { secret: "" })).status, 403);
+  // 3. Set, wrong secret presented.
+  assert.equal((await send(configured(), { secret: "wrong" })).status, 403);
+  // 4. Right secret, wrong header: X-VEAF-Auth is the header that is read, and only it.
+  assert.equal((await send(configured(), { headers: { Authorization: "s3cret" } })).status, 403);
+
+  // 5. Right secret in X-VEAF-Auth: admitted (400 on the empty excerpt), and the quota is carried
+  //    per Discord user rather than per IP — a whole Discord sits behind one address.
+  const env = configured();
+  assert.equal((await send(env, { secret: "s3cret" })).status, 400);
+  assert.deepEqual(rateLimitKeys(env), ["rl:day:discord:u:pilot-42", "rl:min:discord:u:pilot-42"]);
+});
+
+test("fetch: a caller at its daily ceiling gets a localized 429", async () => {
+  const env = workerEnv({ kv: { "rl:day:cli:203.0.113.9": String(CLIENTS.cli.perDay) } });
+  const res = await worker.fetch(
+    call("/chat", {
+      client: "cli",
+      ip: "203.0.113.9",
+      body: { lang: "en", messages: [{ role: "user", content: "hi" }] },
+    }),
+    env,
+  );
+  assert.equal(res.status, 429);
+  assert.match(await res.text(), /Too many requests/);
+});
+
+test("fetch: /analyze streams the answer back as SSE, framed by the catalogue", async () => {
+  const upstream = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    upstream.push({ url: String(url), body: JSON.parse(init.body) });
+    const chunk = JSON.stringify({ candidates: [{ content: { parts: [{ text: "voilà" }] } }] });
+    return new Response(`data: ${chunk}\n\n`, { status: 200 });
+  };
+  try {
+    const res = await worker.fetch(
+      call("/analyze", {
+        client: "logs",
+        body: {
+          lang: "fr",
+          excerpt: "ERROR boom",
+          matches: [{ id: "damage-model", help: "Cosmétique." }],
+        },
+      }),
+      workerEnv(),
+    );
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get("Content-Type"), /text\/event-stream/);
+    const text = await res.text();
+    assert.match(text, /data: \{"text":"voilà"\}/);
+    assert.match(text, /data: \[DONE\]/);
+
+    assert.equal(upstream.length, 1, "exactly one upstream call");
+    const instruction = upstream[0].body.systemInstruction.parts[0].text;
+    assert.ok(instruction.includes("Cosmétique."), "the catalogue wording frames the answer");
+    assert.ok(upstream[0].body.contents[0].parts[0].text.includes("ERROR boom"));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

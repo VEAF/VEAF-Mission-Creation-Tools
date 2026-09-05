@@ -7,7 +7,9 @@ works on a report nobody will ever be shown — so the order is recorded and ass
 
 from __future__ import annotations
 
+import asyncio
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from typing import Any, cast
@@ -17,6 +19,7 @@ from tests.test_attachments import _fake_downloader
 from tests.test_toolkit import SYNTHETIC_LOG
 from veaf_support_bot.attachments import AttachmentCollector, Incoming, Prepared
 from veaf_support_bot.bugreport import BugForm
+from veaf_support_bot.checkout import Checkout, Freshness
 from veaf_support_bot.intake import (
     PREVIEW_MAX_CHARS,
     BugIntake,
@@ -279,6 +282,89 @@ class TestTheRealDownloader(unittest.IsolatedAsyncioTestCase):
         target = Path(self.directory.name) / "big.log"
         with self.assertRaises(TooLarge):
             await http_download(self.url, target, 1024)
+
+
+#: How long each blocking seam is made to take. Long enough that a loop held by it misses a great
+#: many ticks, short enough that the case costs under a second.
+BLOCK_SECONDS = 0.3
+
+#: How often the ticker below wakes. A loop that is free turns ~30 times per blocking seam; a loop
+#: that is held turns not at all.
+TICK_SECONDS = 0.01
+
+
+class _BlockingCheckout(Checkout):
+    """A checkout whose refresh blocks the way a hung ``git fetch`` does."""
+
+    def refresh(self, *, force: bool = False) -> Freshness:
+        """Sleep, then answer.
+
+        Args:
+            force: Ignored.
+
+        Returns:
+            The unchanged freshness.
+        """
+        time.sleep(BLOCK_SECONDS)
+        return self.freshness()
+
+
+class _BlockingCollector(AttachmentCollector):
+    """A collector whose reduction blocks the way parsing an 8 MB mission does."""
+
+    def _reduce(self, name: str, kind: str, path: Path, size: int, rejected: list[Any]) -> Prepared:
+        """Sleep, then reduce.
+
+        Args:
+            name: Passed through.
+            kind: Passed through.
+            path: Passed through.
+            size: Passed through.
+            rejected: Passed through.
+
+        Returns:
+            The prepared attachment.
+        """
+        time.sleep(BLOCK_SECONDS)
+        return cast(Prepared, super()._reduce(name, kind, path, size, rejected))
+
+
+class TestOneReportDoesNotHoldTheEventLoop(unittest.IsolatedAsyncioTestCase):
+    """`/bug` shares its loop with `/ask` and with the gateway's ~41 s heartbeat.
+
+    None of the work is I/O-bound and none of it awaits, so the only thing that keeps the loop
+    turning is that it runs in a worker thread. Asserted by counting the ticks a concurrent task
+    gets while a report is built: on the loop it gets none, off it it gets dozens.
+    """
+
+    async def test_the_loop_keeps_turning_while_a_report_is_built(self) -> None:
+        body = SYNTHETIC_LOG.encode("utf-8")
+        checkout = _BlockingCheckout(fixture_checkout().root, refresh_seconds=900.0)
+        collector = _BlockingCollector(checkout, _fake_downloader({"u": body}))
+        intake = BugIntake(checkout, collector, refresh=True)
+        submission = BugSubmission(
+            form=BugForm("s", PYTHON_TRACEBACK, "e", "st", doctor_block(), language="en"),
+            attachments=[Incoming("dcs.log", "u", len(body))],
+        )
+
+        ticks = 0
+        running = True
+
+        async def ticker() -> None:
+            nonlocal ticks
+            while running:
+                await asyncio.sleep(TICK_SECONDS)
+                ticks += 1
+
+        beat = asyncio.create_task(ticker())
+        with tempfile.TemporaryDirectory() as directory:
+            await intake.build(submission, Path(directory))
+        running = False
+        await beat
+
+        # Two blocking seams of BLOCK_SECONDS each, so a free loop sees ~60 ticks. The floor is set
+        # far below that: what is being asserted is "the loop turned", not a throughput.
+        self.assertGreater(ticks, 10, "the event loop was held for the whole report")
 
 
 if __name__ == "__main__":

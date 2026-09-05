@@ -35,6 +35,7 @@ never got filed because a file was 30 MB.
 
 from __future__ import annotations
 
+import asyncio
 import zipfile
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -288,7 +289,11 @@ class AttachmentCollector:
                 continue
 
             spent += written
-            prepared.append(self._reduce(shown, kind, target, written, rejected))
+            # Off the loop: `_reduce` parses a `.miz` and indexes a whole log, and neither awaits
+            # anything. Measured against the real repository, `summarise_mission` on an 8 MB mission
+            # is 3.4 s — long enough on its own to make the gateway miss a heartbeat, and it would
+            # stall every other command besides.
+            prepared.append(await asyncio.to_thread(self._reduce, shown, kind, target, written, rejected))
 
         return Harvest(prepared=tuple(prepared), rejected=tuple(rejected))
 

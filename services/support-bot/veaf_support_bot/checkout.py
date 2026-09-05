@@ -27,6 +27,7 @@ This module runs ``git`` and nothing else. It never imports from the checkout �
 from __future__ import annotations
 
 import subprocess
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -167,6 +168,7 @@ class Checkout:
         self.branch = branch
         self.refresh_seconds = refresh_seconds
         self._logger = get_logger("checkout")
+        self._lock = threading.Lock()
         self._freshness = Freshness(revision=self._read_revision())
         self._last_attempt = 0.0
 
@@ -241,12 +243,31 @@ class Checkout:
 
         Blocking: it runs ``git``. Call it from a worker thread, never on the event loop.
 
+        Serialised on a lock, and the ``due`` check is taken **inside** it. Without that, two
+        reports arriving inside one interval both read ``due()`` as true, and both run
+        ``git reset --hard`` in the same working tree: the loser dies on ``.git/index.lock`` and
+        marks a checkout stale that is in fact perfectly current. Holding the lock across the whole
+        attempt is deliberate — the second caller wants the answer the first one is fetching, not a
+        second fetch — and :data:`GIT_TIMEOUT_SECONDS` is what bounds the wait.
+
         Args:
             force: Refresh even when :meth:`due` says no.
 
         Returns:
             The freshness after the attempt. A failed attempt returns the previous revision with
             :attr:`Freshness.stale` set — the service keeps working on what it has.
+        """
+        with self._lock:
+            return self._refresh_locked(force=force)
+
+    def _refresh_locked(self, *, force: bool) -> Freshness:
+        """Do the refresh, with :attr:`_lock` already held.
+
+        Args:
+            force: Refresh even when :meth:`due` says no.
+
+        Returns:
+            The freshness after the attempt.
         """
         if not force and not self.due():
             return self._freshness

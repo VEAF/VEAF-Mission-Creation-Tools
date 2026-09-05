@@ -40,6 +40,7 @@ The form's text, the log's lines, the mission's tables: none of it selects a cod
 
 from __future__ import annotations
 
+import asyncio
 import tempfile
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -188,10 +189,17 @@ class BugIntake:
         Returns:
             The assembled report.
         """
+        # Everything below is blocking, and this coroutine shares its loop with `/ask` and with the
+        # gateway's heartbeat. `Checkout.refresh` says so itself — *"call it from a worker thread,
+        # never on the event loop"* — and a hung `fetch` holds it for `GIT_TIMEOUT_SECONDS` per
+        # command against a heartbeat of ~41 s, which is a disconnect and then a not-ready service.
+        # The reduction is not innocent either: measured against the real repository, one ordinary
+        # `/bug` with an 8 MB mission attached spends ~6 s in `summarise_mission`, the checkout walk
+        # and the caller search. None of it awaits anything, so none of it yields.
         if self._refresh and self._checkout.due():
-            self._checkout.refresh()
+            await asyncio.to_thread(self._checkout.refresh)
         harvest = await self._collector.collect(submission.attachments, workdir)
-        return self._assemble(submission.form, harvest)
+        return await asyncio.to_thread(self._assemble, submission.form, harvest)
 
     def _assemble(self, form: BugForm, harvest: Harvest) -> BugReport:
         """Fold the harvest into a report.

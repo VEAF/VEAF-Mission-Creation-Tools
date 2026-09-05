@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 
@@ -180,6 +182,92 @@ class TestResolvingWithoutGit(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             (Path(directory) / "sub").mkdir()
             self.assertIsNone(Checkout(Path(directory)).resolve("sub"))
+
+
+class TestTwoReportsAtOnceRefreshOnce(unittest.TestCase):
+    """Two ``/bug`` submissions inside one interval must not both reset the same working tree.
+
+    Without the lock the sequence is: both read ``due()`` as true, both call ``git reset --hard``,
+    and the loser dies on ``.git/index.lock`` — marking a checkout stale that is in fact current.
+    The test counts the ``git`` pass rather than watching for the lock file, because the count is
+    the property and the lock file is only one way it shows.
+    """
+
+    #: How long the window between deciding "due" and recording the attempt is held open, and how
+    #: long the git pass takes. The window is real and narrow; widening it is what makes the case
+    #: decide the same way every run instead of once in twenty.
+    WINDOW_SECONDS = 0.05
+    GIT_SECONDS = 0.2
+
+    def _checkout(self, attempts: list[float], *, widen: bool) -> Checkout:
+        """Build a checkout whose git pass is counted and slow enough to overlap.
+
+        Args:
+            attempts: Where each attempt records its start time.
+            widen: Whether ``due`` holds the window open, so the interleaving is the one being
+                asserted about rather than whichever one the scheduler happened to pick.
+
+        Returns:
+            The checkout.
+        """
+        checkout = Checkout(Path(tempfile.mkdtemp()), refresh_seconds=900.0)
+        real_due = checkout.due
+
+        def fetch_and_reset() -> str:
+            attempts.append(time.time())
+            time.sleep(self.GIT_SECONDS)
+            return ""
+
+        def slow_due(now: float | None = None) -> bool:
+            answer = real_due(now)
+            if widen:
+                time.sleep(self.WINDOW_SECONDS)
+            return answer
+
+        checkout._fetch_and_reset = fetch_and_reset  # type: ignore[method-assign]
+        checkout._read_revision = lambda: "abc123def"  # type: ignore[method-assign]
+        checkout.due = slow_due  # type: ignore[method-assign]
+        return checkout
+
+    def _both_report(self, checkout: Checkout, gate: threading.Barrier) -> list[Freshness]:
+        """Drive two threads through the call site :meth:`BugIntake.build` uses.
+
+        Args:
+            checkout: The checkout under test.
+            gate: Released once both threads have read ``due()`` as true.
+
+        Returns:
+            What each thread got back.
+        """
+        results: list[Freshness] = []
+
+        def report() -> None:
+            if checkout.due():
+                gate.wait()
+                results.append(checkout.refresh())
+            else:
+                results.append(checkout.freshness())
+
+        threads = [threading.Thread(target=report) for _ in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        return results
+
+    def test_two_reports_deciding_a_refresh_is_due_run_git_once(self) -> None:
+        attempts: list[float] = []
+        checkout = self._checkout(attempts, widen=True)
+        self._both_report(checkout, threading.Barrier(2, timeout=5))
+        self.assertEqual(len(attempts), 1, "both threads ran `git reset --hard` in the same tree")
+        self.assertFalse(checkout.freshness().stale)
+
+    def test_the_second_caller_waits_for_the_first_ones_answer(self) -> None:
+        """Not merely one fetch: the second caller must get the refreshed state, not the old one."""
+        attempts: list[float] = []
+        checkout = self._checkout(attempts, widen=False)
+        results = self._both_report(checkout, threading.Barrier(2, timeout=5))
+        self.assertEqual(len(set(results)), 1, "one of the two answered from before the refresh")
 
 
 if __name__ == "__main__":

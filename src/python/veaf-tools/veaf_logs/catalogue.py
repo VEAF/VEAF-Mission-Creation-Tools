@@ -31,6 +31,11 @@ KIND_NOISE = "noise"
 KIND_SOURCE = "source"
 KIND_SUBSYSTEM = "subsystem"
 
+#: One catalogue entry as the Worker's ``/analyze`` route reads it. Deliberately narrower than
+#: ``dict[str, object]``: this value is serialised straight into a JSON body, and a type that admits
+#: anything is a type that lets an unserialisable value through to a runtime failure.
+WorkerMatch = dict[str, str | int]
+
 
 @dataclass(frozen=True)
 class CatalogueMatch:
@@ -171,7 +176,7 @@ def render_catalogue(matches: list[CatalogueMatch]) -> str:
     return "\n\n".join(blocks)
 
 
-def to_worker_matches(matches: list[CatalogueMatch]) -> list[dict[str, object]]:
+def to_worker_matches(matches: list[CatalogueMatch]) -> list[WorkerMatch]:
     """Shape the matches the way the Worker's ``/analyze`` route reads them.
 
     Args:

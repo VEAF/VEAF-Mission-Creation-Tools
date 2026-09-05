@@ -9,10 +9,13 @@ consume.
 
 Three properties, and each one exists because its absence caused a specific failure.
 
-**Bounded.** A hard ceiling in characters, applied after selection, with the drop stated
-(``… 412 entrées omises …``) instead of silent. The head and the tail are both kept: the first
+**Bounded.** A hard ceiling in characters on the **rendered** excerpt, header included, with the drop
+stated (``… 412 entrées omises …``) instead of silent. The head and the tail are both kept: the first
 records carry the cause, the last ones carry the symptom, and a naive "keep the last N" throws away
-half of every chain.
+half of every chain. The ceiling covers the whole text rather than the records alone: measured on
+the real 11 MB ``dcs.log``, a 16 000-character budget spent on the records alone rendered to 16 143
+characters once the header and the omission marker were added, so a caller sizing a Discord message
+against it would have been wrong by exactly the part it could not see.
 
 **Honest about what was hidden.** The header states which categories were set to ✕. A log filtered
 down to "no errors" because the user unticked ``ERROR`` must not read as a clean log, so an excluded
@@ -31,7 +34,7 @@ anyway. The check is cheap, and the caller may hand in indices computed by somet
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from veaf_libs.redaction import redact
 
@@ -54,6 +57,15 @@ MAX_CONTINUATION_LINES = 8
 
 #: Appended to a line cut at :data:`MAX_CHARS_PER_LINE`.
 TRUNCATION_MARK = " […]"
+
+#: How many times the fit is retried after the header turned out to cost more than expected. The
+#: header grows by at most a handful of characters per pass (the omitted count gains a digit), so a
+#: second pass converges; the third and fourth exist so the loop cannot be the thing that fails.
+_FIT_PASSES = 4
+
+#: Slack subtracted along with the measured overflow, so a pass that gains a digit somewhere does not
+#: need a pass of its own.
+_FIT_MARGIN = 16
 
 #: Levels whose absence changes the meaning of the whole excerpt. Hiding one of these is what turns
 #: a broken session into a clean-looking log, so it is stated rather than listed.
@@ -156,6 +168,22 @@ class Excerpt:
                 "l'absence de ces lignes dans cet extrait ne prouve rien."
             )
         return lines
+
+    def rebound(self, max_chars: int) -> Excerpt:
+        """Return the same excerpt refitted to a tighter ceiling.
+
+        The report block needs this: it has to fit a Discord message, and dropping the excerpt whole
+        to get there would leave a report with nothing in it but the machine's own description.
+        Dropping *records* keeps the section, and the header keeps stating how many went.
+
+        Args:
+            max_chars: The new ceiling, applied to the whole rendered text.
+
+        Returns:
+            An excerpt whose :meth:`to_text` fits, carrying the accumulated omission count. The
+            original is untouched.
+        """
+        return _bound(self, self.entries, max_chars, already=self.omitted)
 
     def to_text(self) -> str:
         """Render the whole excerpt: the header, then the records.
@@ -280,10 +308,14 @@ def _fit(entries: Sequence[ExcerptEntry], max_chars: int) -> tuple[list[ExcerptE
         max_chars: The character ceiling for the rendered records.
 
     Returns:
-        The kept records in log order, and how many were dropped.
+        The kept records in log order, and how many were dropped. A budget of zero or less keeps
+        nothing: a caller that reserved no room asked for no records, and returning one anyway is how
+        a ceiling stops being one.
     """
     if not entries:
         return [], 0
+    if max_chars <= 0:
+        return [], len(entries)
     budget = max_chars
     head: list[ExcerptEntry] = []
     tail: list[ExcerptEntry] = []
@@ -306,6 +338,36 @@ def _fit(entries: Sequence[ExcerptEntry], max_chars: int) -> tuple[list[ExcerptE
     return kept, len(entries) - len(kept)
 
 
+def _bound(current: Excerpt, entries: Sequence[ExcerptEntry], max_chars: int, already: int = 0) -> Excerpt:
+    """Refit *current* until its whole rendered text sits inside *max_chars*.
+
+    The record budget and the rendered length are not the same number: the header states its own
+    counts, and the omission marker only exists once something was omitted, so both appear *after*
+    the records were chosen. Rather than guess a reserve, the overflow is measured and given back.
+
+    Args:
+        current: The excerpt to shrink.
+        entries: Every record it may draw from, in log order — the fit restarts from these each pass,
+            so the omission count stays a count of the whole selection.
+        max_chars: The ceiling on ``current.to_text()``.
+        already: Records dropped before this call, added to what each pass drops.
+
+    Returns:
+        An excerpt that fits, or — when a single record is longer than the entire ceiling and is the
+        only thing left — the shortest one reachable. It never comes back holding records the budget
+        did not pay for.
+    """
+    budget = max_chars
+    for _ in range(_FIT_PASSES):
+        overflow = len(current.to_text()) - max_chars
+        if overflow <= 0:
+            return current
+        budget -= overflow + _FIT_MARGIN
+        kept, dropped = _fit(entries, budget)
+        current = replace(current, entries=kept, omitted=already + dropped)
+    return current
+
+
 def build_excerpt(
     store: LogStore,
     filters: FilterSet,
@@ -323,7 +385,7 @@ def build_excerpt(
             list of categories the header has to declare.
         visible: The record indices the view holds. Defaults to re-running
             :func:`~veaf_logs.filters.evaluate`, which is what the interface displays.
-        max_chars: Character ceiling for the rendered records, header excluded.
+        max_chars: Character ceiling on the whole rendered excerpt, header included.
 
     Returns:
         The excerpt. Every field is already redacted, and the header states what was excluded, so
@@ -334,7 +396,7 @@ def build_excerpt(
     allowed = [index for index in indices if 0 <= index < len(store) and not is_excluded(store, filters, index)]
     entries = [_to_excerpt_entry(store.entry(index)) for index in allowed]
     kept, omitted = _fit(entries, max_chars)
-    return Excerpt(
+    excerpt = Excerpt(
         entries=kept,
         total_indexed=len(store),
         selected=len(entries),
@@ -343,3 +405,4 @@ def build_excerpt(
         context_only=context_keys(filters),
         searches=[item.describe() for item in filters.text_filters if item.enabled and item.pattern],
     )
+    return _bound(excerpt, entries, max_chars)

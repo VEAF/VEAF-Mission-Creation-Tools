@@ -20,7 +20,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from .catalogue import CatalogueMatch, match_catalogue, render_catalogue, to_worker_matches, uncatalogued_entries
+from .catalogue import (
+    CatalogueMatch,
+    WorkerMatch,
+    match_catalogue,
+    render_catalogue,
+    to_worker_matches,
+    uncatalogued_entries,
+)
 from .excerpt import DEFAULT_MAX_CHARS, Excerpt, build_excerpt
 from .filters import FilterSet
 from .proposals import ProposedRule, propose_rules, render_proposals
@@ -94,7 +101,7 @@ class Analysis:
 
 
 #: The signature of the online layer, so a test can hand in something that does not use the network.
-OnlineLayer = Callable[[str, list[dict[str, object]]], str]
+OnlineLayer = Callable[[str, list[WorkerMatch]], str]
 
 
 def analyse(
@@ -161,7 +168,7 @@ def default_online_layer(question: str = "", lang: str = "fr") -> OnlineLayer:
         :class:`~veaf_logs.worker_client.AnalysisUnavailable` when the Worker cannot answer.
     """
 
-    def layer(excerpt: str, matches: list[dict[str, object]]) -> str:
+    def layer(excerpt: str, matches: list[WorkerMatch]) -> str:
         return analyse_excerpt(excerpt, matches, question=question, lang=lang)
 
     return layer

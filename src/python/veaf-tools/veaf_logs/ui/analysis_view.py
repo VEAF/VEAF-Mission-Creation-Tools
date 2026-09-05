@@ -3,6 +3,10 @@
 The catalogue layer costs nothing and needs no network, so it is computed and shown before the
 dialog even appears. The online layer is opt-in, behind a button, and runs on its own thread: a
 request can take tens of seconds, and a frozen window is indistinguishable from a crashed one.
+
+Nothing leaves the machine until the *Analyser en ligne* button is pressed, and what leaves then is
+the excerpt the user is looking at, already redacted and already bounded. *Préparer un rapport*
+sends nothing at all: it fills the clipboard, and the user decides where to paste it.
 """
 
 from __future__ import annotations
@@ -21,7 +25,8 @@ from PySide6.QtWidgets import (
 )
 
 from ..analysis import Analysis
-from ..catalogue import to_worker_matches
+from ..catalogue import WorkerMatch, to_worker_matches
+from ..report import build_report, to_clipboard_text
 from ..worker_client import AnalysisUnavailable, analyse_excerpt
 
 
@@ -31,7 +36,7 @@ class OnlineAnalysisThread(QThread):
     answered = Signal(str)
     failed = Signal(str)
 
-    def __init__(self, excerpt: str, matches: list[dict[str, object]], question: str, parent=None) -> None:
+    def __init__(self, excerpt: str, matches: list[WorkerMatch], question: str, parent=None) -> None:
         """Prepare the request.
 
         Args:
@@ -89,7 +94,7 @@ class AnalysisDialog(QDialog):
 
         self.report_button = QPushButton("Préparer un rapport")
         self.report_button.setToolTip("Copie un bloc collable dans /bug : diagnostic, extrait, catalogue, analyse.")
-        self.report_button.clicked.connect(self.report_requested.emit)
+        self.report_button.clicked.connect(self.copy_report)
 
         self.status = QLabel("")
 
@@ -142,6 +147,21 @@ class AnalysisDialog(QDialog):
         self.status.setText(message)
         self.online_button.setEnabled(True)
 
+    # -- report block -----------------------------------------------------
+
+    def copy_report(self) -> None:
+        """Assemble the report block and put it on the clipboard.
+
+        The diagnostic half is collected here rather than at construction: it reads the tool's own
+        log and probes the DCS install, which is work nobody should pay for by opening a window.
+        A collection that fails costs the diagnostic section, never the report — the excerpt and the
+        catalogue are the half the user came for.
+        """
+        self.report_requested.emit()
+        block = build_report(self.analysis, _doctor_report())
+        QApplication.clipboard().setText(to_clipboard_text(block))
+        self.status.setText(f"Rapport copié ({len(block)} caractères). Colle-le dans /bug.")
+
     def copy_text(self) -> None:
         """Copy the whole rendered analysis to the clipboard."""
         QApplication.clipboard().setText(self.text.toPlainText())
@@ -152,6 +172,22 @@ class AnalysisDialog(QDialog):
         if thread is not None and thread.isRunning():
             thread.wait(1000)
         super().closeEvent(event)
+
+
+def _doctor_report():
+    """Collect the ``veaf-tools doctor`` report, or ``None`` when it cannot be collected.
+
+    Returns:
+        The :class:`~veaf_libs.diagnostics.DiagnosticReport`, or ``None``. ``build_report`` accepts
+        ``None`` and simply carries no diagnostic section, which is a smaller loss than a dialog
+        that refuses to produce a report because it could not read a log file.
+    """
+    try:
+        from veaf_libs.diagnostics import build_report as collect
+
+        return collect()
+    except Exception:  # pragma: no cover - defensive: collection touches the filesystem
+        return None
 
 
 def _with_commentary(analysis: Analysis, commentary: str, error: str) -> Analysis:

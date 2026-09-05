@@ -21,6 +21,8 @@ import json
 
 import requests
 
+from .catalogue import WorkerMatch
+
 #: Production Worker endpoint. Same Worker as the documentation chatbot, different route.
 DEFAULT_ENDPOINT = "https://veaf-docs-chatbot.veaf.workers.dev/analyze"
 
@@ -32,9 +34,7 @@ LOGS_HEADER = {"X-VEAF-Client": "logs"}
 TIMEOUT = 45
 
 #: What the caller is told when the Worker cannot be reached at all.
-UNREACHABLE = (
-    "Analyse en ligne indisponible (pas de réponse du service). Le catalogue ci-dessus reste valable."
-)
+UNREACHABLE = "Analyse en ligne indisponible (pas de réponse du service). Le catalogue ci-dessus reste valable."
 
 
 class AnalysisUnavailable(RuntimeError):
@@ -43,7 +43,7 @@ class AnalysisUnavailable(RuntimeError):
 
 def analyse_excerpt(
     excerpt: str,
-    matches: list[dict[str, object]],
+    matches: list[WorkerMatch],
     question: str = "",
     lang: str = "fr",
     endpoint: str = DEFAULT_ENDPOINT,

@@ -77,8 +77,18 @@ FENCE_ESCAPE = "'''"
 _LINE_BREAK = re.compile(r"[\r\n]+")
 
 #: Order in which sections are dropped when the block does not fit. The doctor block is never
-#: dropped — it is the half of the report a maintainer cannot reconstruct from anything else.
-_SACRIFICE_ORDER: tuple[str, ...] = ("proposals", "analysis", "catalogue", "excerpt")
+#: dropped — it is the half of the report a maintainer cannot reconstruct from anything else — and
+#: neither is the excerpt, which is *shrunk* instead: see :data:`MIN_EXCERPT_CHARS`.
+_SACRIFICE_ORDER: tuple[str, ...] = ("proposals", "analysis", "catalogue")
+
+#: The smallest excerpt worth keeping. Below this the section is dropped like any other, because a
+#: header plus two records is not an excerpt, it is a claim that one existed.
+#:
+#: This is why the excerpt is not simply on the sacrifice list. Measured against the real 11 MB
+#: ``dcs.log`` on 2026-09-05: the default excerpt renders to ~16 000 characters and a Discord message
+#: holds 2 000, so an excerpt dropped whole would have been dropped in **every** real report — the
+#: block would have carried the machine's description and nothing about the problem it describes.
+MIN_EXCERPT_CHARS = 200
 
 
 @dataclass(frozen=True)
@@ -123,6 +133,11 @@ def _section(name: str, body: str) -> list[str]:
     return [f"--- {name} ---", *body.splitlines(), f"--- {name} end ---"]
 
 
+def _section_overhead(name: str) -> int:
+    """Characters one section costs on top of its body: its two delimiters and their line breaks."""
+    return len(f"--- {name} ---") + len(f"--- {name} end ---") + 2
+
+
 def _describe_excluded(analysis: Analysis) -> str:
     """Summarise the excluded categories on one line, for the field section."""
     parts = [f"{kind}={','.join(keys)}" for kind, keys in analysis.excerpt.excluded.items()]
@@ -160,8 +175,10 @@ def build_report(
     Returns:
         The block, **without** the code fence — :func:`to_clipboard_text` adds that — already
         redacted as a whole, so an assembled value that slipped through a part is still caught.
-        When it does not fit, sections are dropped whole in :data:`_SACRIFICE_ORDER` and the
-        ``truncated`` field names what went, rather than the text being cut at the boundary.
+        When it does not fit: the commentary and the proposals are dropped whole in
+        :data:`_SACRIFICE_ORDER` first, then the excerpt is *shrunk* to whatever room is left, and
+        the ``truncated`` field names what went — never a cut at the boundary, which reads to the
+        receiver exactly like a complete block.
     """
     fields: dict[str, str] = {
         "schema": SCHEMA,
@@ -187,23 +204,46 @@ def build_report(
     budget = max_chars - len(FENCE_OPEN) - len(FENCE_CLOSE) - 2
     dropped: list[str] = []
     fields["truncated"] = "non"
-    block = redact(_compose(fields, bodies))
+
+    def note_dropped() -> None:
+        fields["truncated"] = "sections retirées pour tenir dans un message : " + ", ".join(dropped)
+
+    def without_excerpt() -> int:
+        """Length of the block as it stands with no excerpt section — i.e. what the excerpt may use."""
+        return len(redact(_compose(fields, {**bodies, "excerpt": ""})))
+
+    # Free room *before* sizing the excerpt, not after: the commentary and the proposals are the
+    # cheapest things to lose, and an excerpt sized against a block that still carried them would be
+    # shorter than the one that fits.
     for name in _SACRIFICE_ORDER:
-        if len(block) <= budget:
+        if without_excerpt() <= budget:
             break
         if not bodies.get(name):
             continue
         bodies[name] = ""
         dropped.append(name)
-        fields["truncated"] = "sections retirées pour tenir dans un message : " + ", ".join(dropped)
-        block = redact(_compose(fields, bodies))
+        note_dropped()
+
+    # The excerpt takes what is left rather than being dropped whole: measuring the block without it
+    # gives the room exactly, so nothing has to be guessed about how long a header runs. An empty
+    # body renders no section at all, so the two delimiter lines it will cost are subtracted here.
+    room = budget - without_excerpt() - _section_overhead("excerpt")
+    if len(bodies["excerpt"]) > room:
+        if room >= MIN_EXCERPT_CHARS:
+            bodies["excerpt"] = _fence_safe(analysis.excerpt.rebound(room).to_text())
+        else:
+            bodies["excerpt"] = ""
+            dropped.append("excerpt")
+            note_dropped()
+
+    block = redact(_compose(fields, bodies))
     if len(block) > budget and doctor is not None and doctor.recent_errors:
         # Last resort before giving up on the ceiling: the doctor's own error records. Its *fields*
         # are the half of the report nobody can reconstruct afterwards, so they stay whatever
         # happens; a stack trace can be pasted separately.
         bodies["doctor"] = _fence_safe(DiagnosticReport(fields=doctor.fields).to_block())
         dropped.append("doctor.recent-errors")
-        fields["truncated"] = "sections retirées pour tenir dans un message : " + ", ".join(dropped)
+        note_dropped()
         block = redact(_compose(fields, bodies))
     if len(block) > budget:
         # Nothing left to drop but the fields themselves. Saying so beats cutting at the boundary:

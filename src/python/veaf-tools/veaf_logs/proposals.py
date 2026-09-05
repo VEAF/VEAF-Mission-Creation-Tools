@@ -15,9 +15,10 @@ precisely what makes its wording quotable — so nothing here writes to it, and 
 says outright that it is a placeholder rather than pretending to be an explanation.
 
 **A generated regex is checked before it is offered.** Left alone, a pattern derived from one
-message is either so specific it never fires again or so general it swallows the log; and a
-quantifier nested in a quantified group is the classic shape that makes a regular expression take
-exponential time on a line that nearly matches. :func:`validate_pattern` refuses all three.
+message is either so specific it never fires again or so general it swallows the log; one that opens
+on a wildcard is not recognising a message at all; and a quantifier nested in a quantified group is
+the classic shape that makes a regular expression take exponential time on a line that nearly
+matches. :func:`validate_pattern` refuses all four.
 """
 
 from __future__ import annotations
@@ -57,7 +58,11 @@ _NORMALISERS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"'[^']*'"), "<q>"),
     (re.compile(r'"[^"]*"'), "<q>"),
     (re.compile(r"\[[^\]]*\]"), "<b>"),
-    (re.compile(r"(?:[A-Za-z]:)?[\\/][\w .\\/+-]{3,}"), "<path>"),
+    # No space in the class, deliberately. With one, this rule swallowed the rest of the sentence:
+    # measured on the real ``dcs.log``, ``Source coremods/tech/… is already mounted to the same
+    # mount /textures/.`` normalised to ``Source coremods<path>`` and the proposed rule lost the
+    # very words that identify the complaint.
+    (re.compile(r"(?:[A-Za-z]:)?[\\/][\w.\\/+-]{3,}"), "<path>"),
     (re.compile(r"\b0[xX][0-9A-Fa-f]+\b"), "<hex>"),
     (re.compile(r"\b[0-9A-Fa-f]{8,}\b"), "<hex>"),
     (re.compile(r"\b\d+(?:\.\d+)*\b"), "<n>"),
@@ -78,6 +83,13 @@ _PLACEHOLDER_PATTERNS: dict[str, str] = {
 
 #: Splits a normalised message into placeholders and the literal text between them.
 _PLACEHOLDER_SPLIT = re.compile("(" + "|".join(re.escape(name) for name in _PLACEHOLDER_PATTERNS) + ")")
+
+#: The wildcard fragments, as they appear in a generated pattern. A rule that *starts* with one of
+#: them is the unanchored kind the ticket refuses: it begins by matching anything, so what follows
+#: can be found anywhere in any line. This is what "anchored" means for this catalogue — not a
+#: leading ``^``: 21 of the 22 hand-curated ``rules.json`` noise patterns have no ``^`` and are
+#: perfectly sound, because every one of them opens on literal text.
+_WILDCARD_FRAGMENTS: frozenset[str] = frozenset(_PLACEHOLDER_PATTERNS.values())
 
 #: A quantifier applied to a group that already contains one — the shape that backtracks
 #: exponentially. Nothing generated here should produce it, which is exactly why it is checked.
@@ -191,6 +203,8 @@ def validate_pattern(pattern: str, sample: str) -> str:
         return "motif trop long"
     if _NESTED_QUANTIFIER.search(pattern):
         return "quantificateur imbriqué (risque d'explosion combinatoire)"
+    if any(pattern.startswith(fragment) for fragment in _WILDCARD_FRAGMENTS):
+        return "motif non ancré : il commence par un joker et se retrouverait n'importe où"
     if literal_chars(pattern) < MIN_LITERAL_CHARS:
         return "trop peu de texte littéral : le motif attraperait n'importe quoi"
     try:

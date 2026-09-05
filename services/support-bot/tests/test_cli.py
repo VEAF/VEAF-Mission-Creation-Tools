@@ -150,6 +150,19 @@ class TestHealthcheckProbe(CaptureLogs):
 
         self.assertEqual(healthcheck({"SUPPORT_BOT_HEALTH_HOST": "0.0.0.0", "SUPPORT_BOT_HEALTH_PORT": str(port)}), 0)
 
+    def test_an_ephemeral_port_is_reported_as_unprobeable_not_as_a_dead_service(self) -> None:
+        """`HEALTH_PORT=0` is accepted by the configuration but leaves the probe nothing to dial.
+
+        The number the OS picked lives only inside the running process. Dialling port 0 fails with a
+        connection error indistinguishable from a dead service, so the probe says what is actually
+        wrong instead of blaming the instance.
+        """
+        self.assertEqual(healthcheck({"SUPPORT_BOT_HEALTH_PORT": "0"}), 1)
+
+        output = self.stream.getvalue()
+        self.assertIn("ephemeral port", output)
+        self.assertNotIn("readiness probe failed", output)
+
     def test_an_unreadable_port_falls_back_to_the_default(self) -> None:
         """A probe must not crash on a malformed variable — it falls back and reports the truth."""
         port = self._serve(ready=True)

@@ -64,6 +64,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a misconfigured container refuses to start, that Docker's health check turns it healthy, and that
   `SIGTERM` really reaches the process.
 
+  Three findings from the review of that skeleton, fixed before it ever ran anywhere. **The shutdown
+  was bounded everywhere except at the end of it:** closing the health endpoint waited without a
+  limit, and since Python 3.12 that wait includes every connection handler, so anyone holding a
+  socket held the process. Measured on the shipped image's interpreter with a one-second grace: no
+  connection, 0.00 s; one idle TCP connection — a port scan reaches it, the container binds
+  `0.0.0.0` — 5.01 s; a client sending one header every four seconds, still blocked past a minute,
+  with a ceiling near five minutes because the read timeout was applied per line and not per request.
+  `docker stop` kills at ten seconds, so the `service.stopped` line was simply never written: the
+  silent death the whole module exists to prevent. The grace period now bounds the sequence end to
+  end, the request head has one deadline instead of one per line, and a connection that outlives the
+  budget has its socket cut and the abort logged. Same three measurements now: 0.00 s, 1.00 s,
+  1.01 s. **A configuration error could publish the bot token:** every reader but two echoed the
+  value it refused, and that message goes to stdout at `CRITICAL`, straight into a log collector.
+  Pasting the token into `SUPPORT_BOT_DISCORD_GUILD_ID` — the variable right below it in
+  `.env.example`, another opaque string from the same Discord screen — printed it in full. Messages
+  now describe the shape of what was refused (`is not an integer (got 47 characters)`) and never its
+  text. **And the `Support Bot` gate did not run for everything its tests assert on:** two of them
+  check, through `git check-ignore`, that the root `.gitignore` really hides the service's `.env`,
+  and that file triggered no workflow in the repository — a later reshuffle of those lines would have
+  un-guarded the secret with every check green.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

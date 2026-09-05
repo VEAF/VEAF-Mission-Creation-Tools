@@ -12,7 +12,7 @@ arrive in ticket 02.
 from __future__ import annotations
 
 #: Service version. Independent of the tools release; kept in step with the service's own
-#: ``pyproject.toml`` by ``tests/test_version.py``.
+#: ``pyproject.toml`` by ``tests/test_packaging.py``.
 __version__ = "0.1.0"
 
 __all__ = ["__version__"]

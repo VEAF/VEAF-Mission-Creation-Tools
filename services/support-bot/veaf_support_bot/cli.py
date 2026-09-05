@@ -75,7 +75,8 @@ def healthcheck(env: Mapping[str, str] | None = None) -> int:
         env: Environment mapping; defaults to ``os.environ``.
 
     Returns:
-        ``0`` when the instance answered ``200`` on ``/readyz``, ``1`` otherwise.
+        ``0`` when the instance answered ``200`` on ``/readyz``, ``1`` otherwise — including when
+        the configuration makes the endpoint unreachable by this probe at all.
     """
     environ = os.environ if env is None else env
     host = (environ.get(f"{ENV_PREFIX}HEALTH_HOST") or "").strip() or "127.0.0.1"
@@ -89,6 +90,15 @@ def healthcheck(env: Mapping[str, str] | None = None) -> int:
         port = DEFAULT_HEALTH_PORT
 
     logger = get_logger("healthcheck")
+    if port == 0:
+        # `HEALTH_PORT=0` asks the OS for an ephemeral port, and the number it picked exists only in
+        # the running process — never in this probe's environment. Dialling port 0 would fail with a
+        # connection error that reads like a dead service, so say what is actually wrong instead.
+        logger.warning(
+            "readiness cannot be probed on an ephemeral port",
+            extra={"event": "healthcheck.ephemeral_port", "variable": f"{ENV_PREFIX}HEALTH_PORT"},
+        )
+        return 1
     url = f"http://{host}:{port}/readyz"
     try:
         # The URL is built here from a host and a port, never taken from user input.

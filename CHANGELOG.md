@@ -66,6 +66,53 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   client name off the prototype chain, where `constructor` and `toString` answered with a quota-less
   object that compared favourably against every ceiling.
 
+### Added
+
+- **A place for a service to live, and a first one in it.** The repository had two shapes — CLI
+  executables and a serverless Worker — and the documentation assistant coming to the VEAF Discord is
+  neither: it is a process that has to stay up. `services/support-bot/` holds it, as its own Poetry
+  project deployed independently of the tools release, so nobody waits for a version to restart a
+  bot. Its version is deliberately outside the lockstep between `pyproject.toml` and the two agent
+  manifests.
+
+  This is the skeleton, not the bot: it does not talk to Discord yet. What it does carry is what a
+  self-hosted service needs before it needs features. Configuration comes only from the environment,
+  with no secret in the repository, and a missing or malformed variable stops the process **at
+  startup** — listing every problem at once, and exiting 78 (`EX_CONFIG`) so a supervisor can tell a
+  wrong deployment from a crash — rather than surfacing on the first user question. It answers
+  `/healthz`, `/readyz` and `/status`, and logs a heartbeat line, because the failure mode of every
+  self-hosted bot is dying silently while the container still says *running* and the VEAF has no
+  supervision for it. Logs are one JSON object per line on stdout, each carrying an `event` key, and
+  the bot token is redacted in both the startup line and any traceback. `SIGTERM` runs a real
+  shutdown — readiness drops first, work in flight gets a grace period, the rest is cancelled and
+  reported — so a container restart cannot leave a half-answered thread behind.
+
+  The image runs the same module a direct launch runs, so the documented command is a rehearsal of
+  the deployment rather than a second code path; the `Support Bot` workflow builds it and checks that
+  a misconfigured container refuses to start, that Docker's health check turns it healthy, and that
+  `SIGTERM` really reaches the process.
+
+  Three findings from the review of that skeleton, fixed before it ever ran anywhere. **The shutdown
+  was bounded everywhere except at the end of it:** closing the health endpoint waited without a
+  limit, and since Python 3.12 that wait includes every connection handler, so anyone holding a
+  socket held the process. Measured on the shipped image's interpreter with a one-second grace: no
+  connection, 0.00 s; one idle TCP connection — a port scan reaches it, the container binds
+  `0.0.0.0` — 5.01 s; a client sending one header every four seconds, still blocked past a minute,
+  with a ceiling near five minutes because the read timeout was applied per line and not per request.
+  `docker stop` kills at ten seconds, so the `service.stopped` line was simply never written: the
+  silent death the whole module exists to prevent. The grace period now bounds the sequence end to
+  end, the request head has one deadline instead of one per line, and a connection that outlives the
+  budget has its socket cut and the abort logged. Same three measurements now: 0.00 s, 1.00 s,
+  1.01 s. **A configuration error could publish the bot token:** every reader but two echoed the
+  value it refused, and that message goes to stdout at `CRITICAL`, straight into a log collector.
+  Pasting the token into `SUPPORT_BOT_DISCORD_GUILD_ID` — the variable right below it in
+  `.env.example`, another opaque string from the same Discord screen — printed it in full. Messages
+  now describe the shape of what was refused (`is not an integer (got 47 characters)`) and never its
+  text. **And the `Support Bot` gate did not run for everything its tests assert on:** two of them
+  check, through `git check-ignore`, that the root `.gitignore` really hides the service's `.env`,
+  and that file triggered no workflow in the repository — a later reshuffle of those lines would have
+  un-guarded the secret with every check green.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

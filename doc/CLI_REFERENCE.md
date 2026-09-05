@@ -584,6 +584,25 @@ Affiche les informations sur VEAF Mission Creation Tools.
 veaf-tools about
 ```
 
+### `veaf-tools doctor` {#doctor}
+
+Rassemble les versions, chemins et erreurs récentes qu'un rapport de bug exige : version de l'outil, version de DCS, système, emplacement des journaux. La commande affiche d'abord un tableau lisible, puis un **bloc à coller** tel quel dans un signalement.
+
+Les chemins Windows contiennent votre nom de compte : le bloc est **caviardé avant d'être affiché** (`C:\Users\<user>\…`), ainsi que les adresses IP et tout ce qui ressemble à un jeton. Il est donc sûr à publier.
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--paste` | `boolean` | `false` | N'affiche que le bloc à coller, sans le tableau lisible. |
+| `--errors` | `integer` | `3` | Nombre d'erreurs récentes du journal de l'outil à inclure (0 pour aucune). |
+
+```powershell
+.\veaf-tools.exe doctor
+```
+
+La commande fonctionne même sans DCS installé, sans `VEAF_HOME` défini et sans journal : les faits qu'elle ne peut pas lire valent `unknown`, le reste est produit quand même.
+
+**Voir aussi** : [Obtenir de l'aide](SUPPORT.md), et [le format du bloc](developer/diagnostic-block.md) pour ceux qui l'exploitent.
+
 ### `veaf-tools ask` {#ask}
 
 Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive.

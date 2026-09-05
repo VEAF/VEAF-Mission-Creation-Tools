@@ -198,7 +198,7 @@ agent only on `/bug`; and **the user's machine produces the bounded material, th
 
 | Order | Lot | Runs where | Why here |
 |-------|-----|-----------|----------|
-| **1** | [`FEAT-SUPPORT-DIAGNOSTIC`](.backlog/FEAT-SUPPORT-DIAGNOSTIC/PRD.md) | user's machine | the only piece that keeps its value if the bot is never built, and `doctor`'s output is the contract lots 2 and 4 consume |
+| **1** | [`FEAT-SUPPORT-DIAGNOSTIC`](.backlog/FEAT-SUPPORT-DIAGNOSTIC/PRD.md) — **done 2026-09-05** | user's machine | the only piece that keeps its value if the bot is never built, and `doctor`'s output is the contract lots 2 and 4 consume — now shipped as `veaf-tools-doctor/1`, with its parser and a round-trip test |
 | **2** | [`FEAT-SUPPORT-LOG-ANALYSIS`](.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md) | user's machine | still no infrastructure, no secret, no cost; also closes the Worker's `X-VEAF-Client` bypass, being the first lot to add a second client |
 | **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) | service + Worker | proves the channel, the permissions and the quotas with no paid model and no write access |
 | **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) | service | the big one, and the only one that spends money and writes to a public repository — **to be sequenced into several PRs** |
@@ -209,7 +209,7 @@ a **machine account** (which is why lot 4 owes the GitHub → Discord relay), th
 draft** before anything is published, and the issue is written **in the user's language** — a departure
 from the English-only rule for technical content, matching what the tracker already contains.
 
-Nothing here is started, and none of it needs DCS.
+Lot 1 landed on 2026-09-05; lots 2 to 5 are not started. None of it needs DCS.
 
 ### Blocked on a person, or on a DCS session
 

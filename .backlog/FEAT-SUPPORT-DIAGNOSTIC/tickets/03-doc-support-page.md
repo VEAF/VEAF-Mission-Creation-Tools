@@ -1,6 +1,6 @@
 # 03 — The documentation points at the log that exists
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs
 
@@ -48,9 +48,9 @@ This is also the page the Discord bot will link to, so it must exist before
 
 ## Definition of done
 
-- [ ] The two wrong log paths in `TOOLS_REFERENCE` corrected, FR and EN
-- [ ] A support page shipped as `page.md` **and** `page.en.md`, both in the `mkdocs.yml` `nav` with
+- [x] The two wrong log paths in `TOOLS_REFERENCE` corrected, FR and EN
+- [x] A support page shipped as `page.md` **and** `page.en.md`, both in the `mkdocs.yml` `nav` with
       their `nav_translations` entry
-- [ ] It covers: which channel for what, `doctor`, where the two logs are, what to attach
-- [ ] Linked from `doc/index.md` and from the pilot guide, both languages
-- [ ] `poetry run docs-check` passes
+- [x] It covers: which channel for what, `doctor`, where the two logs are, what to attach
+- [x] Linked from `doc/index.md` and from the pilot guide, both languages
+- [x] `poetry run docs-check` passes

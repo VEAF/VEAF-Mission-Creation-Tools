@@ -1,6 +1,6 @@
 # FEAT-SUPPORT-DIAGNOSTIC — the three facts every bug report is missing
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: design session of 2026-09-05, David's idea of a Discord assistant that answers on the
 documentation, guides a bug report and opens the issue itself. The session split that idea into
@@ -68,11 +68,24 @@ is never journalled.
 
 ## Open questions
 
-1. **The exact field list of `doctor`** is what decides whether future issues are usable. Draft it,
-   put it in front of David, and only then write the formatter.
-2. **How the DCS version is read** — from `%USERPROFILE%\Saved Games\DCS*\Logs\dcs.log`'s header,
-   from the install directory, or both, and what happens when DCS is absent (the PwC workstation
-   case).
+Both were answered by the implementation rather than left blocking, and **both remain open to
+revision** — the field list and the DCS-version source are cheap to change while nothing consumes
+the block yet, and expensive once lots 2 and 4 read it.
+
+1. **The exact field list of `doctor`.** Shipped as the ticket's candidate table, one key per fact,
+   17 in all: `schema`, `generated`, four `tool.*`, three `machine.*`, five `dcs.*`, three `veaf.*`,
+   plus the recent-error records in their own delimited section. Dropped from the candidate list:
+   nothing. Added: `schema` and `generated`, without which a consumer cannot tell which format it is
+   reading or how stale the report is. The order is `FIELD_ORDER` in `veaf_libs/diagnostics.py` and
+   the full table is in `doc/developer/diagnostic-block.md`.
+2. **How the DCS version is read.** From the **header of `dcs.log`**, not the install directory.
+   DCS states itself once, on the sixth line, as `DCS/2.9.29.27278 (x86_64; MT; Windows NT …)` —
+   measured on a real log, 2026-09-05. That works for every install layout and needs no guess about
+   where the game was put; the install directory would need one. Which write folder to read is
+   decided by **the freshest `dcs.log`** among `Saved Games/DCS*` folders that actually hold one —
+   a machine carries `DCS` beside `DCS.openbeta` and the per-module folders the updater leaves
+   behind (`DCS_F14`, `DCS.C130J`), and only the ones with a log are installs. DCS absent reports
+   `dcs.detected: no` and four `unknown`s, and nothing else in the report is affected.
 
 ## Scope
 
@@ -81,3 +94,24 @@ is never journalled.
 | 01 | [`veaf-tools doctor` collects the facts nobody supplies](tickets/01-doctor-command.md) | feat |
 | 02 | [The user log finally records stack traces](tickets/02-log-records-tracebacks.md) | fix |
 | 03 | [The documentation points at the log that exists](tickets/03-doc-support-page.md) | docs |
+
+## What shipped
+
+- `veaf-tools doctor`, at the root of the command tree and in the wizard, with two renderings: a
+  table, and a delimited block carrying `schema: veaf-tools-doctor/1`.
+- `veaf_libs/redaction.py` — written once here, reused by lots 2 and 4 rather than reinvented.
+  Account names, e-mail addresses, credentials and routable IPv4 addresses go; loopback stays,
+  because it is diagnostic and carries nothing.
+- `veaf_libs/diagnostics.py` — the collectors, the block writer and **its parser**, side by side so
+  the two halves cannot drift, with a round-trip test over the whole field set.
+- The log file now records stack traces (`exception()` passes `exc_info`), journals an uncaught
+  exception through a `sys.excepthook` installed in `main()` before it reaches stderr, and rotates
+  at 2 MB keeping three older files. Console output is unchanged, asserted by test.
+- `doc/SUPPORT.md` / `.en.md` in the nav, `doc/developer/diagnostic-block.md` / `.en.md` for the
+  contract, `doctor` in `CLI_REFERENCE`, and the two wrong log paths in `TOOLS_REFERENCE` corrected
+  in both languages.
+
+Two things the tickets did not ask for and the machine made necessary: a **per-line length cap** on
+the error records (a real record ran past 400 characters on one line, which line-capping alone would
+not have bounded), and a byte-count that reads in MB (the log measured **87 MB** on David's machine,
+which is the same fact that made rotation urgent rather than tidy).

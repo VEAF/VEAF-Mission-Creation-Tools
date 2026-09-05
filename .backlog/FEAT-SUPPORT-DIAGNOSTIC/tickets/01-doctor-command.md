@@ -1,6 +1,6 @@
 # 01 — `veaf-tools doctor` collects the facts nobody supplies
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -48,11 +48,11 @@ server addresses. Redaction is written once, in this lot, and reused by
 
 ## Definition of done
 
-- [ ] `veaf-tools doctor` exists, is registered in `command_tree.py` and reachable from the TUI
-- [ ] Two renderings: console and a paste block whose format carries a version marker
-- [ ] Redaction helper applied to every path and address, unit-tested against a Windows user path,
+- [x] `veaf-tools doctor` exists, is registered in `command_tree.py` and reachable from the TUI
+- [x] Two renderings: console and a paste block whose format carries a version marker
+- [x] Redaction helper applied to every path and address, unit-tested against a Windows user path,
       an IPv4 address and a token-shaped string
-- [ ] Works with DCS absent, with `VEAF_HOME` unset, and with no log file
-- [ ] Unit tests for each collector, with the environment mocked
-- [ ] `poetry run pytest`, ruff check + format, and mypy on the shipped package all clean
-- [ ] `--cov-fail-under` raised to stay within ~2 points of the measured coverage
+- [x] Works with DCS absent, with `VEAF_HOME` unset, and with no log file
+- [x] Unit tests for each collector, with the environment mocked
+- [x] `poetry run pytest`, ruff check + format, and mypy on the shipped package all clean
+- [x] `--cov-fail-under` raised to stay within ~2 points of the measured coverage

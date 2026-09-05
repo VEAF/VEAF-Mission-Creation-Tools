@@ -1,13 +1,28 @@
-"""Tests for veaf_libs.logger.Logger transient-output routing."""
+"""Tests for veaf_libs.logger.Logger transient-output routing, and what reaches the log file.
+
+The file half was added by FEAT-SUPPORT-DIAGNOSTIC ticket 02. Three things changed there, and each
+one is pinned below: the stack trace of an exception is written (it never was), an uncaught
+exception is journalled before it reaches the terminal (it never was), and the file rotates (it grew
+for ever — measured at 87 MB on a real machine, which is why nobody ever opened it).
+
+The constraint on all three is that **the console must not move**. So the tests assert not only what
+the file gains, but what the console still shows: exactly the message, and nothing more.
+"""
 
 from __future__ import annotations
 
 import io
+import logging
+import logging.handlers
+import sys
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 from rich.console import Console
-from veaf_libs.logger import Logger, configure_stdio_encoding
+from veaf_libs import logger as logger_module
+from veaf_libs.logger import Logger, configure_stdio_encoding, install_excepthook
 
 
 def _recording_console() -> Console:
@@ -140,6 +155,162 @@ class TestLoggerVerboseConfiguresStatus(unittest.TestCase):
         log = self._logger_with_mock_status("test-logger-stop", terminal=True)
         log.stop_status()
         log.status.stop.assert_called_once()
+
+
+class _FileLoggerCase(unittest.TestCase):
+    """Base for tests that read the log file back.
+
+    Each test gets its own ``VEAF_HOME`` and its own logger name: ``logging.getLogger`` is a
+    process-wide registry, so a shared name would reuse the previous test's file handler and read
+    the wrong file.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = TemporaryDirectory()
+        self.home = Path(self._tmp.name)
+        self._env = patch.dict("os.environ", {"VEAF_HOME": str(self.home)})
+        self._env.start()
+        self.addCleanup(self._env.stop)
+        self.addCleanup(self._tmp.cleanup)
+
+    def make_logger(self, name: str, console: Console | None = None) -> Logger:
+        """Build a logger writing into this test's home, and close its handlers afterwards."""
+        log = Logger(logger_name=name, console=console)
+        self.addCleanup(lambda: [handler.close() for handler in log.logger.handlers])
+        self.addCleanup(log.logger.handlers.clear)
+        return log
+
+    def read_log(self, name: str) -> str:
+        return (self.home / f"{name}.log").read_text(encoding="utf-8")
+
+
+class TestTheLogFileRecordsStackTraces(_FileLoggerCase):
+    """`exception()` used to write the message and drop the only part that says where it broke."""
+
+    def test_the_traceback_reaches_the_file(self) -> None:
+        name = "test-logger-trace"
+        log = self.make_logger(name)
+        try:
+            raise ValueError("boom")
+        except ValueError as caught:
+            with self.assertRaises(ValueError):
+                log.exception(caught)
+        written = self.read_log(name)
+        self.assertIn("boom", written)
+        self.assertIn("Traceback (most recent call last)", written)
+        self.assertIn("test_the_traceback_reaches_the_file", written)
+
+    def test_a_cause_chain_is_written_whole(self) -> None:
+        name = "test-logger-chain"
+        log = self.make_logger(name)
+        try:
+            try:
+                raise KeyError("root cause")
+            except KeyError as root:
+                raise RuntimeError("outer failure") from root
+        except RuntimeError as caught:
+            with self.assertRaises(RuntimeError):
+                log.exception(caught)
+        written = self.read_log(name)
+        self.assertIn("root cause", written)
+        self.assertIn("outer failure", written)
+
+    def test_the_console_still_shows_the_message_and_nothing_else(self) -> None:
+        # The trace goes to the file sink only: what the user reads must not move.
+        console = _recording_console()
+        log = self.make_logger("test-logger-trace-console", console)
+        try:
+            raise ValueError("boom")
+        except ValueError as caught:
+            with self.assertRaises(ValueError):
+                log.exception(caught)
+        self.assertEqual(console.export_text().strip(), "boom")
+
+    def test_a_plain_error_writes_no_traceback(self) -> None:
+        name = "test-logger-plain"
+        log = self.make_logger(name)
+        with self.assertRaises(RuntimeError):
+            log.error("plain failure", exception_type=RuntimeError)
+        self.assertNotIn("Traceback", self.read_log(name))
+
+
+class TestUncaughtExceptionsAreJournalled(_FileLoggerCase):
+    """A crash used to leave a traceback on stderr and nothing at all in the log."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        original = sys.excepthook
+        self.addCleanup(lambda: setattr(sys, "excepthook", original))
+
+    def _raise_through(self, hook, error: BaseException) -> None:
+        try:
+            raise error
+        except BaseException:
+            hook(*sys.exc_info())  # type: ignore[misc]
+
+    def test_the_crash_is_written_to_the_file(self) -> None:
+        name = "test-logger-uncaught"
+        log = self.make_logger(name)
+        with patch.object(sys, "excepthook", lambda *args: None):
+            hook = install_excepthook(log)
+            self._raise_through(hook, ValueError("unhandled boom"))
+        written = self.read_log(name)
+        self.assertIn("ValueError: unhandled boom", written)
+        self.assertIn("Traceback (most recent call last)", written)
+
+    def test_the_user_still_sees_what_they_saw_before(self) -> None:
+        # The previous hook is called with the same arguments: stderr output is unchanged.
+        seen: list[tuple] = []
+        with patch.object(sys, "excepthook", lambda *args: seen.append(args)):
+            hook = install_excepthook(self.make_logger("test-logger-uncaught-chain"))
+            self._raise_through(hook, ValueError("boom"))
+        self.assertEqual(len(seen), 1)
+        self.assertIs(seen[0][0], ValueError)
+
+    def test_a_ctrl_c_is_passed_through_without_being_journalled(self) -> None:
+        name = "test-logger-interrupt"
+        log = self.make_logger(name)
+        seen: list[tuple] = []
+        with patch.object(sys, "excepthook", lambda *args: seen.append(args)):
+            hook = install_excepthook(log)
+            self._raise_through(hook, KeyboardInterrupt())
+        self.assertEqual(len(seen), 1, "the interrupt must still reach the previous hook")
+        self.assertNotIn("KeyboardInterrupt", self.read_log(name))
+
+    def test_installing_twice_does_not_chain_twice(self) -> None:
+        log = self.make_logger("test-logger-idempotent")
+        seen: list[tuple] = []
+        with patch.object(sys, "excepthook", lambda *args: seen.append(args)):
+            install_excepthook(log)
+            hook = install_excepthook(log)
+            self._raise_through(hook, ValueError("boom"))
+        self.assertEqual(len(seen), 1, "the original hook must be called once, not once per install")
+
+
+class TestTheLogFileRotates(_FileLoggerCase):
+    """It appended for ever, which is exactly why nobody read it."""
+
+    def test_rotation_fires_and_keeps_the_backup(self) -> None:
+        name = "test-logger-rotation"
+        with patch.object(logger_module, "LOG_MAX_BYTES", 512), patch.object(logger_module, "LOG_BACKUP_COUNT", 2):
+            log = self.make_logger(name)
+            for index in range(200):
+                log.info(f"line {index} " + "x" * 80, no_console=True)
+        self.assertTrue((self.home / f"{name}.log.1").is_file(), "no backup file: rotation never fired")
+        self.assertLess((self.home / f"{name}.log").stat().st_size, 4096)
+
+    def test_retention_is_bounded(self) -> None:
+        name = "test-logger-retention"
+        with patch.object(logger_module, "LOG_MAX_BYTES", 256), patch.object(logger_module, "LOG_BACKUP_COUNT", 2):
+            log = self.make_logger(name)
+            for index in range(400):
+                log.info(f"line {index} " + "x" * 80, no_console=True)
+        backups = sorted(self.home.glob(f"{name}.log.*"))
+        self.assertEqual(len(backups), 2, "backupCount must cap how many rolled files survive")
+
+    def test_the_handler_is_a_rotating_one(self) -> None:
+        log = self.make_logger("test-logger-handler-kind")
+        self.assertIsInstance(log.logger.handlers[0], logging.handlers.RotatingFileHandler)
 
 
 if __name__ == "__main__":

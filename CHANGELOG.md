@@ -38,6 +38,43 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rescues it, deliberately. The file is left out of the build, so nothing is broken while the
   mission folder still carries it.
 
+### Added
+
+- **`veaf-tools doctor` reads out the three facts every bug report is missing.** Tool version, DCS
+  version and where the logs are: mechanical facts sitting on the user's machine that the tool never
+  read out, so every report had to start with "which version?". The command prints a readable table,
+  then a delimited block to paste into a Discord message or a GitHub issue as-is.
+
+  Everything it prints is **redacted before it is shown**, because the block is designed to be
+  published by someone who will not reread it: the Windows account name becomes `<user>`, routable
+  addresses `<ip>`, tokens and passwords `<redacted>`. Loopback addresses are kept — they say
+  something and carry nothing. The redaction helper (`veaf_libs.redaction`) is written once here for
+  the log-analysis and bug-intake lots to reuse.
+
+  The block is a versioned contract (`veaf-tools-doctor/1`) with a parser beside its producer and a
+  round-trip test, documented in *Diagnostic block format* under Developer. The command works with
+  no DCS installed, no `VEAF_HOME` set and no log file: a fact it cannot read reports `unknown` and
+  the rest is produced anyway.
+
+- **A support page**, in both languages: where to go depending on your situation, what to provide,
+  and where the two logs actually live — the tool's and DCS's.
+
+### Fixed
+
+- **The user log finally records stack traces, and a crash leaves something behind.** `exception()`
+  logged the message and dropped the traceback, so the file recorded that something failed and lost
+  the only part that says where. An uncaught exception was journalled nowhere at all: the traceback
+  went to stderr, scrolled away, and the log kept no trace of the crash. Both now reach the log file,
+  and what the console shows is unchanged — asserted by a test, not by reading.
+
+  The file also **rotates** now, at 2 MB with three older files kept beside it. It appended for ever,
+  which is exactly why nobody opened it: measured at 87 MB on a real machine.
+
+- **The documentation pointed at a log that is not there.** `TOOLS_REFERENCE` told the reader to look
+  for `veaf-tools.log` *in the current directory*, in both languages and in two places. It is written
+  to `%USERPROFILE%\.veaf\veaf-tools.log` (or `$VEAF_HOME`). Someone following the page found nothing
+  and concluded there was no log.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

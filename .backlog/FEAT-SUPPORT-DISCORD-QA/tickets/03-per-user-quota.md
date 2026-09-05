@@ -32,7 +32,7 @@ and the Worker gets a `discord` client mode with a ceiling sized for a server ra
 - The audience is the VEAF Discord open to the DCS public, so the quota is the only thing standing
   between an unknown visitor and the free-tier ceiling that also serves the documentation widget and
   the CLI. Sizing it is a real decision, not a placeholder.
-- These counters are reused, with a much lower ceiling and a real budget, by
+- These counters are reused, with a much lower ceiling, by
   [`FEAT-SUPPORT-BUG-INTAKE`](../../FEAT-SUPPORT-BUG-INTAKE/PRD.md). Build them once.
 
 ## Definition of done

@@ -117,6 +117,12 @@ after a rollover the live log is nearly empty and the whole history sits in `.1`
 For the DCS log, [`veaf-logs`](mission-maker/LOGS.en.md) opens it and shows only what matters; the
 raw file is often over 10 MB, which is neither readable nor sendable as-is.
 
+## When it is DCS that is wrong {#dcs-trouble}
+
+If the problem is in game — a mission that will not load, a module refusing to start, a missing VEAF
+menu — `veaf-logs` can also **explain** what it reads, and prepare a ready-made report block. See
+[DCS is misbehaving](pilot/dcs-trouble.en.md), written for someone who has never run a VEAF command.
+
 ## Reporting a security vulnerability {#security}
 
 **Do not open a public issue.** Use

@@ -192,16 +192,24 @@ The session moved the idea twice, on measurements rather than on taste.
   ceiling, while `veaf-logs` already holds the file with its rules applied. So the machine bounds the
   material and the service only analyses it — which became the programme's second principle.
 
-Two principles hold it together, and they are decisions: **the free tier carries the volume, the paid
-model is reserved for value** — hence `/ask` and the log analyser on the existing Worker, and a Claude
+Two principles hold it together, and they are decisions: **the free tier carries the volume, and depth
+is rationed rather than bought** — hence `/ask` and the log analyser on the existing Worker, and an
 agent only on `/bug`; and **the user's machine produces the bounded material, the service analyses it**.
+
+The first principle was written as *"the paid model is reserved for value"* and changed on 2026-09-05,
+before a line of lot 4 was written: the **Anthropic API is not covered by the VEAF's Max Non-Profit
+plan**, so it would have meant a separate subscription and a payment method for something that runs a
+handful of times a month. Everything runs on Gemini's free tier, which the documentation chatbot has
+used in production since June. The lot 4 runtime stays provider-agnostic, and the quality of its code
+analysis is to be **measured on real reports** rather than assumed — that is the one place the change
+could cost something real.
 
 | Order | Lot | Runs where | Why here |
 |-------|-----|-----------|----------|
 | **1** | [`FEAT-SUPPORT-DIAGNOSTIC`](.backlog/FEAT-SUPPORT-DIAGNOSTIC/PRD.md) — **done 2026-09-05** | user's machine | the only piece that keeps its value if the bot is never built, and `doctor`'s output is the contract lots 2 and 4 consume — now shipped as `veaf-tools-doctor/1`, with its parser and a round-trip test |
 | **2** | [`FEAT-SUPPORT-LOG-ANALYSIS`](.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md) | user's machine | still no infrastructure, no secret, no cost; also closes the Worker's `X-VEAF-Client` bypass, being the first lot to add a second client |
-| **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) | service + Worker | proves the channel, the permissions and the quotas with no paid model and no write access |
-| **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) | service | the big one, and the only one that spends money and writes to a public repository — **to be sequenced into several PRs** |
+| **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) | service + Worker | proves the channel, the permissions and the quotas with no agent and no write access |
+| **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) | service | the big one, and the only one that runs an agent and writes to a public repository — **to be sequenced into several PRs** |
 | **5** | [`FEAT-SUPPORT-SUGGESTIONS`](.backlog/FEAT-SUPPORT-SUGGESTIONS/PRD.md) | service | adds a flow on lot 4's infrastructure; if it needs new plumbing, lot 4 factored badly |
 
 Three decisions worth recording, because they were argued and could be reopened: the issue is filed by

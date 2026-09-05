@@ -40,11 +40,11 @@ time.
 ## Constraints
 
 - Reuses everything from [`FEAT-SUPPORT-BUG-INTAKE`](../FEAT-SUPPORT-BUG-INTAKE/PRD.md): agent
-  runtime, budget and quotas, draft and consent, GitHub App, relay. This lot adds a flow, not an
+  runtime, quotas, draft and consent, GitHub App, relay. This lot adds a flow, not an
   infrastructure — if it needs new plumbing, that is a signal the bug lot left something unshared.
 - Issue written in the user's language, like a bug report.
-- No paid call is made before the prior-art sweep has run; a suggestion answered by an existing page
-  should cost almost nothing.
+- No agent call is made before the prior-art sweep has run; a suggestion answered by an existing
+  page should consume almost nothing.
 
 ## Open question
 

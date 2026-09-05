@@ -7,7 +7,7 @@ without any of it; nothing runs until these are done.
 Work through it **in order**. Each part says when it becomes necessary, so nothing is created months
 before it is used.
 
-> **Interface labels are those of September 2026.** Discord, GitHub and Anthropic all move their
+> **Interface labels are those of September 2026.** Discord, GitHub and Google all move their
 > console layouts; if a label below does not exist any more, the step still describes what to look
 > for.
 
@@ -61,6 +61,10 @@ Choose the channel or channels where `/ask` is allowed, and tell me which — th
 itself rather than answering everywhere. If a dedicated channel is created for it, its name goes in
 the user documentation.
 
+To read a channel's ID: **User Settings** → **Advanced** → turn on **Developer Mode**, then
+right-click the channel → **Copy Channel ID**. The same gesture on the server name gives the server
+(guild) ID.
+
 **Values to hand over:** the bot token, the application ID, the server (guild) ID, and the
 allowed channel IDs.
 
@@ -82,11 +86,19 @@ anybody.
 3. **GitHub App name**: what will appear as the author of every issue it files. Choose it carefully,
    it is public and it is what a reporter will see.
 4. **Homepage URL**: the repository URL is fine.
-5. **Webhook**: needed for the GitHub → Discord relay (lot 4, ticket 06). Two options:
-   - the service is reachable from the internet: tick **Active**, set the URL, and generate a
-     **webhook secret** — keep it; it goes into the service environment under a `SUPPORT_BOT_` name fixed when lot 4 lands;
-   - it is not reachable: untick **Active** for now, and the relay polls instead. Tell me which,
-     because it changes what gets built.
+5. **Webhook**: leave **Active unticked**. Nothing else to do on this screen.
+
+   *Why, in case you wonder later.* When someone answers an issue on GitHub, the bot has to learn
+   about it so it can repost the answer into the Discord thread. There are two ways for it to learn.
+   GitHub can **push** the news to the bot the moment it happens — that is the webhook, and it is
+   instant, but it requires the bot to have a public address reachable from the internet: a domain
+   name, an open port, a certificate. Behind a home router that means real network configuration.
+   Or the bot can **ask** GitHub every few minutes what changed — no public address, no open port,
+   works anywhere.
+
+   For a bug report, a few minutes of delay changes nothing, so the bot asks. If the service ever
+   ends up on a host with a public address and the delay starts to annoy, switching is a small
+   change: tick Active, set the URL, generate the secret, and the relay stops polling.
 
 ### B2. Permissions — grant exactly these
 
@@ -98,8 +110,8 @@ Under **Repository permissions**:
 | Metadata | Read-only | mandatory, granted automatically |
 | Contents | Read-only | read `.backlog/` and the sources for the prior-art sweep |
 
-Everything else stays **No access**. Under **Subscribe to events**, if the webhook is active:
-**Issues** and **Issue comment**, nothing else.
+Everything else stays **No access**. **Subscribe to events** can be left entirely unticked — those
+events are only delivered through a webhook, and we are not using one.
 
 **Where can this GitHub App be installed?** → *Only on this account*.
 
@@ -113,45 +125,59 @@ Everything else stays **No access**. Under **Subscribe to events**, if the webho
 4. After installing, the URL of the installation settings page ends with a number: that is the
    **Installation ID**. Note it.
 
-**Values to hand over:** App ID, Installation ID, the `.pem` private key, and the webhook secret if
-you set one.
+**Values to hand over:** App ID, Installation ID, and the `.pem` private key.
 
 If anything leaks: same settings page, delete the private key and generate a new one. The app keeps
 working under the new key; the old one is dead.
 
 ---
 
-## Part C — The Anthropic API key and the budget
+## Part C — The Gemini API key
 
-**Needed for:** `FEAT-SUPPORT-BUG-INTAKE` (lot 4). This is the only paid part of the programme —
-`/ask` and the log analyser run on the free tier.
+**Needed for:** `FEAT-SUPPORT-BUG-INTAKE` (lot 4), where an agent reads the sources to place a
+hypothesis in the issue it files.
 
-### C1. Create a scoped key
+The programme originally put a paid Claude model here, on the reasoning that the rare, high-value
+event was worth paying for. That changed on 2026-09-05: the Anthropic API is **not** covered by the
+VEAF's Max Non-Profit plan, so it would have been a separate subscription, a payment method and a
+recurring justification — for something that will run a handful of times a month. Everything now
+runs on Gemini's free tier, which the documentation chatbot has used in production since June.
 
-1. Open <https://console.anthropic.com/>, sign in with an account the association controls.
-2. **API keys** → **Create key**. Name it after the service so it can be revoked without collateral.
-3. Copy it once, into the service environment — under a `SUPPORT_BOT_` name fixed when lot 4 lands.
+### C1. Create a key for the service
 
-### C2. Set a spending limit at the provider, not only in the code
+1. Open <https://aistudio.google.com/apikey>, signed in with an account the association controls.
+2. **Create API key**. When it asks which project to attach it to, choose **Create project** and
+   name it for the bot — do **not** reuse the project that already carries the Worker's key.
 
-The service enforces its own per-user quota and daily ceiling, but that is our code guarding our
-code. Set a hard limit at the provider too, so a bug on our side cannot become an invoice:
+   That is not tidiness. Gemini's free-tier rate limits apply **per project, not per key**, so two
+   keys in one project share one quota: a burst of curiosity on `/ask` would eat the allowance the
+   website's chatbot needs for the rest of the day. A separate project also means either key can be
+   revoked without taking the other down. Daily counters reset at midnight Pacific time, which is
+   late afternoon in Europe.
+3. Copy the key once, into the service environment.
 
-1. **Settings** → **Billing** / **Limits**.
-2. Set a **monthly spend limit**. It cuts everything off when reached, abruptly — which is exactly
-   what you want as a last resort, and why the in-service ceiling exists to be hit first.
+### C2. Watch the quota rather than a bill
 
-### C3. Two figures I need from you
+There is no invoice to cap here, so the thing to watch is the **free-tier quota**, which is shared
+by everything the association runs on that key. The service enforces its own per-user and daily
+ceilings on top, so a burst of curiosity cannot exhaust in an afternoon what the documentation
+chatbot needs for the rest of the day.
 
-These are decisions, not settings I can pick for you:
+### C3. The ceiling, and the figure I still need
 
-- **The monthly budget.** Order of magnitude from the design session: 0.20 to 1 € per report
-  analysed. The observed volume of user reports is close to zero — the last one filed by a user
-  dates from January 2026 — so the real risk is curiosity on announcement day, not sustained load.
-- **The daily ceiling of the service**, which must sit below the provider limit so the bot degrades
-  gracefully instead of being cut off mid-sentence.
+**50 analyses per day**, all users together, set on 2026-09-05. Beyond that the bot answers "come
+back tomorrow" rather than eating the quota the website's chatbot needs.
 
-Tell me both and I wire them in as defaults.
+That number shapes the design rather than just configuring it. The free tier is counted in
+**requests per day**, and an agent left to explore a checkout spends ten to twenty of them per
+analysis — which would put fifty analyses out of reach on any plausible free-tier figure. So the
+service pre-assembles the context itself, with no model involved, and spends **at most three calls**
+per analysis on concluding.
+
+**What I still need:** the actual RPD figure for your project. It is on AI Studio's *Rate limits*
+page, under the project you just created. If it turns out to be low enough that even three calls
+per analysis do not fit fifty a day, the ceiling comes down or the provider question reopens — with
+figures, not intuition.
 
 ---
 
@@ -176,7 +202,14 @@ in, and there is no `discord` mode for the bot to use.
 ### D2. Set the shared secret between the Worker and the bot
 
 The `discord` client mode is **refused until a secret exists on the Worker side**. Generate a long
-random value, keep it, and set it in both places:
+random value, keep it, and set it in both places. It is a shared password: any long random string
+does, as long as the Worker and the bot hold the same one. To generate one in PowerShell:
+
+```powershell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Max 256 }))
+```
+
+Copy that value, then paste it when the next command asks for it:
 
 ```bash
 cd poc/doc-chatbot/worker && npx wrangler secret put DISCORD_CLIENT_SECRET
@@ -247,9 +280,9 @@ Copy this into the thread when you have done a part, so I know what to wire in.
 - [ ] **A** — Discord application created, bot invited to the server, channels chosen
       → token, application ID, guild ID, channel IDs
 - [ ] **B** — GitHub App created, installed on the repository only, permissions as listed
-      → App ID, Installation ID, private key, webhook secret or "polling"
-- [ ] **C** — Anthropic key created, provider spend limit set
-      → key, monthly budget, daily service ceiling
+      → App ID, Installation ID, private key
+- [ ] **C** — Gemini key created in its **own project**, separate from the Worker's
+      → key, and the RPD figure shown on AI Studio's Rate limits page
 - [ ] **D1** — Worker deployed (`npx wrangler deploy`), without which none of the hardening is live
 - [ ] **D2** — shared secret set on the Worker and in the service environment
 - [ ] **D3** — service running, `.env` filled from `.env.example`

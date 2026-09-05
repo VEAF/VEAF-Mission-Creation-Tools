@@ -4,7 +4,7 @@ Status: ✅ done
 
 Origin: design session of 2026-09-05. Lot 3 of the programme described in
 [`FEAT-SUPPORT-DIAGNOSTIC`](../FEAT-SUPPORT-DIAGNOSTIC/PRD.md). This is the first lot that puts a
-service in front of users; it deliberately carries **no paid model and no write access to GitHub**,
+service in front of users; it deliberately carries **no agent and no write access to GitHub**,
 so that the channel, the permissions and the quotas are proven before
 [`FEAT-SUPPORT-BUG-INTAKE`](../FEAT-SUPPORT-BUG-INTAKE/PRD.md) adds either.
 

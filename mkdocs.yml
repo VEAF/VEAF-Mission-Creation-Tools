@@ -70,6 +70,8 @@ plugins:
             Home: Accueil
             Getting help: Obtenir de l'aide
             Diagnostic block format: Format du bloc de diagnostic
+            Report block format: Format du bloc de rapport
+            When DCS misbehaves: DCS se comporte mal
             Pilot Guide: Guide Pilote
             Overview: Aperçu
             Guide: Guide
@@ -119,6 +121,7 @@ nav:
   - Pilot Guide:
     - Overview: pilot/README.md
     - Guide: pilot/GUIDE.md
+    - When DCS misbehaves: pilot/dcs-trouble.md
     - Aliases: ALIASES.md
   - Mission Maker:
     - Overview: mission-maker/README.md
@@ -181,6 +184,7 @@ nav:
     - Radio preset projection: developer/radio-preset-projection.md
     - Export JSON contract: developer/export-json-contract.md
     - Diagnostic block format: developer/diagnostic-block.md
+    - Report block format: developer/report-block.md
     - Smoke harness (in-DCS): developer/smoke-harness.md
     - Testing: TESTING.md
   - References:

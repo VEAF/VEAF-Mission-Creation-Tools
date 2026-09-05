@@ -1,6 +1,6 @@
 # 03 — Explain: the catalogue first, ignorance admitted
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -45,10 +45,10 @@ degraded mode.
 
 ## Definition of done
 
-- [ ] An *Explain* action on the current view, in `veaf-logs`
-- [ ] Catalogue matches rendered verbatim from `rules.json`, before any model output
-- [ ] Model output visually distinct, and stating "not catalogued" instead of guessing
-- [ ] Offline degraded mode: catalogue only, no error dialog
-- [ ] Unit tests on the assembly and on the degraded path, with the Worker mocked
-- [ ] `poetry run pytest`, ruff check + format, mypy clean
-- [ ] `--cov-fail-under` raised to stay within ~2 points of measured coverage
+- [x] An *Explain* action on the current view, in `veaf-logs`
+- [x] Catalogue matches rendered verbatim from `rules.json`, before any model output
+- [x] Model output visually distinct, and stating "not catalogued" instead of guessing
+- [x] Offline degraded mode: catalogue only, no error dialog
+- [x] Unit tests on the assembly and on the degraded path, with the Worker mocked
+- [x] `poetry run pytest`, ruff check + format, mypy clean
+- [x] `--cov-fail-under` raised to stay within ~2 points of measured coverage

@@ -1,6 +1,6 @@
 # FEAT-SUPPORT-LOG-ANALYSIS — explain a DCS log where the log actually is
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: design session of 2026-09-05. David's second idea: an analyser that handles **any** DCS
 problem — not only VEAF ones, though it should be especially good on VEAF missions — to help a
@@ -68,8 +68,20 @@ traceable output; it sits on the free side of the line by construction. Note the
 1. **Discoverability for pilots.** `veaf-logs` is documented under `doc/mission-maker/` only, yet
    half the audience of this lot is pilots. They need a door of their own — ticket 06 opens it, the
    shape is David's call.
+
+   **Answered by the implementation, 2026-09-05, and open to being overruled:** a **standalone page**
+   (`doc/pilot/dcs-trouble.md`, *DCS se comporte mal*) rather than a section of `pilot/GUIDE.md`. The
+   problem the ticket names is discoverability through the menu, and a section buried in a document
+   about F10 menus is exactly as invisible as the mission-maker page it replaces. Moving it into
+   `GUIDE.md` later is a copy-paste.
+
 2. **Where proposed catalogue entries go**: an automatic PR, a local file the user sends, or a
    message in a channel. Ticket 04 ships the detection; the delivery channel is undecided.
+
+   **Still undecided, and recorded as deferred** in [ticket 04](tickets/04-proposed-catalogue-entries.md#recorded-as-deferred-2026-09-05).
+   The detection and the candidate entries ship; the proposals are shown in the *Explain* window and
+   are copyable, so contributing one needs no new infrastructure. Nothing was wired, because each of
+   the three routes costs something only David can weigh.
 
 ## Scope
 

@@ -1,6 +1,6 @@
 # 04 — Unknown recurring patterns come back as proposed rules
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -38,13 +38,29 @@ Undecided, and it is David's call (open question 2 of the PRD):
 The detection and the candidate-entry generation ship here regardless; the transport is wired once
 the route is chosen.
 
+### Recorded as deferred, 2026-09-05
+
+**No transport was wired, and that is deliberate.** The three routes are still exactly as costed
+above and the choice is David's, not the implementer's: an automatic PR needs a credential in a
+desktop tool, which the ticket itself calls a hard no; a local file depends on someone bothering;
+and the Discord channel does not exist before lot 3. Picking one to close a checkbox would have
+built the wrong one.
+
+What ships is the proposal, rendered where the user already is: the *Explain* window shows the
+candidate entries under **PROPOSITIONS DE RÈGLES**, in `rules.json` shape, and the whole analysis is
+copyable. Someone who wants to contribute one can paste it into an issue today with no new
+infrastructure — which is also, in practice, route 2 minus the file.
+
+Measured on the real logs, the volume this has to carry is small: 1 to 5 proposals per log across
+the live `dcs.log` and its 18 rotated archives.
+
 ## Definition of done
 
-- [ ] Recurrence detection over normalised messages, unit-tested on a fixture where the same error
+- [x] Recurrence detection over normalised messages, unit-tested on a fixture where the same error
       appears with varying identifiers
-- [ ] Candidate entries generated in `rules.json` shape, with a valid `match` regex
-- [ ] Generated regexes validated before being offered — an unanchored or catastrophic pattern is
+- [x] Candidate entries generated in `rules.json` shape, with a valid `match` regex
+- [x] Generated regexes validated before being offered — an unanchored or catastrophic pattern is
       rejected rather than proposed
-- [ ] Nothing is written to `rules.json` automatically
-- [ ] The chosen delivery route implemented, or explicitly recorded as deferred with the reason
-- [ ] `poetry run pytest`, ruff check + format, mypy clean
+- [x] Nothing is written to `rules.json` automatically
+- [x] The chosen delivery route implemented, or explicitly recorded as deferred with the reason
+- [x] `poetry run pytest`, ruff check + format, mypy clean

@@ -562,6 +562,13 @@ class IssueFiler:
         consistent and an issue created seconds ago is routinely absent from it, which is exactly
         the moment this runs.
 
+        **It sees one page — the 100 most recently created issues.** That is enough for what it
+        defends against, because a re-submission arrives while the reporter is still in the thread
+        and a restart replays what was in flight. What it does not cover is the same report filed
+        again long after 100 issues have gone by, and the ledger is what covers that: this is a
+        second line, not a replacement. Paging further would cost up to five ``GET`` calls on every
+        report to close a case the ledger already closes whenever it is readable.
+
         Args:
             key: The report's idempotency key.
 

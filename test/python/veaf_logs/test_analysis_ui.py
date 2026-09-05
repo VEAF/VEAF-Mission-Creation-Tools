@@ -238,7 +238,3 @@ class TestRapport:
         relu = parse_report_block(QApplication.clipboard().text())
         assert relu.doctor is None
         assert relu.fields["schema"]
-
-    def test_copier_le_texte_copie_ce_qui_est_affiche(self, dialogue, app):
-        dialogue.copy_text()
-        assert QApplication.clipboard().text() == dialogue.text.toPlainText()

@@ -63,8 +63,6 @@ class OnlineAnalysisThread(QThread):
 class AnalysisDialog(QDialog):
     """Shows an analysis, and offers to enrich it online or to turn it into a report block."""
 
-    report_requested = Signal()
-
     def __init__(self, analysis: Analysis, parent=None) -> None:
         """Build the dialog around an already computed, offline analysis.
 
@@ -157,14 +155,9 @@ class AnalysisDialog(QDialog):
         A collection that fails costs the diagnostic section, never the report — the excerpt and the
         catalogue are the half the user came for.
         """
-        self.report_requested.emit()
         block = build_report(self.analysis, _doctor_report())
         QApplication.clipboard().setText(to_clipboard_text(block))
         self.status.setText(f"Rapport copié ({len(block)} caractères). Colle-le dans /bug.")
-
-    def copy_text(self) -> None:
-        """Copy the whole rendered analysis to the clipboard."""
-        QApplication.clipboard().setText(self.text.toPlainText())
 
     def closeEvent(self, event) -> None:
         """Wait for a running request rather than leaving a thread behind."""

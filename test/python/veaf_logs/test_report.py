@@ -22,7 +22,6 @@ from veaf_logs.report import (
     FENCE_CLOSE,
     FENCE_OPEN,
     FIELD_ORDER,
-    MIN_EXCERPT_CHARS,
     SCHEMA,
     SECTIONS,
     build_report,
@@ -43,6 +42,16 @@ JOURNAL = [
 # Un journal assez long pour que l'extrait complet depasse largement un message
 # Discord : c'est le cas reel, mesure a ~16 000 caracteres sur le dcs.log de David.
 GROS = [f"2026-08-31 12:00:{i % 60:02d}.000 ERROR   APP (Main): panne numero {i} sur le terrain" for i in range(400)]
+
+# Un journal qui porte les cinq sections du bloc, propositions comprises : le
+# meme message inconnu revient assez souvent pour franchir MIN_OCCURRENCES.
+COMPLET = [
+    *JOURNAL,
+    *[
+        f"2026-08-31 11:51:{i:02d}.000 ERROR   APP (Main): impossible de charger le decor numero {i} du terrain"
+        for i in range(4)
+    ],
+]
 
 
 def indexer(rules, lignes) -> LogStore:
@@ -167,12 +176,17 @@ class TestAllerRetour:
 
     @pytest.mark.parametrize("section", SECTIONS)
     def test_chaque_section_declaree_se_relit(self, rules, doctor, section):
-        """Enumere depuis SECTIONS : aucune n'est perdue par le lecteur."""
-        analysis = analyse_de(rules, JOURNAL, online=lambda *_: "commentaire du modele")
+        """Enumere depuis SECTIONS : aucune n'est perdue par le lecteur.
+
+        Sans garde `if`, et sur un journal qui produit les cinq. Le journal court
+        n'offrait aucune proposition, donc la parametrisation `proposals`
+        n'assertait rien : elle passait sur un bloc qui ne portait pas la section.
+        """
+        analysis = analyse_de(rules, COMPLET, online=lambda *_: "commentaire du modele")
+        assert analysis.proposals, "le journal doit produire une proposition, sinon le cas n'est pas couvert"
         bloc = build_report(analysis, doctor, max_chars=20000)
-        relu = parse_report_block(bloc)
-        if f"--- {section} ---" in bloc:
-            assert section in relu.sections
+        assert f"--- {section} ---" in bloc
+        assert section in parse_report_block(bloc).sections
 
     def test_le_bloc_se_retrouve_au_milieu_d_un_message(self, analysis):
         entoure = f"Salut, voila mon souci :\n\n{to_clipboard_text(build_report(analysis))}\n\nMerci !"
@@ -350,5 +364,34 @@ class TestPressePapier:
         assert "```" not in bloc
         assert "'''" in bloc
 
-    def test_le_plancher_de_l_extrait_est_declare(self):
-        assert MIN_EXCERPT_CHARS > 0
+
+class TestPlancherDeLExtrait:
+    """Le plancher se prouve des deux cotes, sinon il n'est pas prouve.
+
+    L'assertion precedente — `MIN_EXCERPT_CHARS > 0` — portait sur une constante :
+    elle restait verte que `build_report` consulte le plancher ou non, qu'il vaille
+    200 ou 20 000, et que l'extrait soit garde ou jete. Meme forme que le
+    `redact("veafCombatMission")` du lot precedent et que `test_defaultSpawnRadii`.
+
+    Le cote « en dessous, la section part » est couvert par
+    `test_l_extrait_est_lache_quand_il_ne_reste_plus_de_place` ; c'est le
+    contre-cas qui manquait.
+    """
+
+    def test_au_dessus_du_plancher_la_section_garde_des_lignes(self, rules, doctor):
+        """Le contre-cas manquant : il tombe si le plancher monte ou si le test s'inverse.
+
+        Cherche le plus petit plafond qui laisse a l'extrait une place au-dessus
+        du plancher, plutot qu'un chiffre choisi a la main qui se decalerait au
+        premier changement de format du bloc.
+        """
+        analysis = analyse_de(rules, GROS)
+        garde = [
+            plafond
+            for plafond in range(800, 2400, 4)
+            if "excerpt" in parse_report_block(build_report(analysis, doctor, max_chars=plafond)).sections
+        ]
+        assert garde, "aucun plafond ne garde l'extrait : le plancher ne peut plus etre franchi"
+        relu = parse_report_block(build_report(analysis, doctor, max_chars=garde[0]))
+        assert int(relu.fields["excerpt.shown"]) > 0
+        assert "panne numero" in relu.sections["excerpt"]

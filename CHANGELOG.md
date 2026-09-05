@@ -75,6 +75,45 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to `%USERPROFILE%\.veaf\veaf-tools.log` (or `$VEAF_HOME`). Someone following the page found nothing
   and concluded there was no log.
 
+- **Redaction destroyed the diagnosis instead of protecting anything.** A rule replacing any run of
+  24+ characters mixing letters and digits was measured against the real tool log (last 3 MB, 1489
+  `ERROR` records): **74 substitutions, not one credential** — every hit a temporary directory or the
+  name of the thing that failed. Against the repository's own data files it matched 169 DCS GUIDs and
+  493 other identifiers, so `unknown payload HVAR_USN_Mk28_Mod4_Corsair` became `unknown payload
+  <redacted>`: keeping "it broke" and throwing away "on what". The rule is gone. A secret is now
+  recognised by context or by a known shape, which also fixes four measured leaks the old patterns
+  let through — `access_token=`, `client_secret=`, a JSON `"token": "…"`, and an e-mail address at
+  the end of a sentence — and adds IPv6, which had no pattern at all. Same run after the change:
+  **0 substitutions, 0 identifiers destroyed**, and the DCS version `DCS/2.9.10.1` no longer reads as
+  an IP address.
+
+- **The account name went through 56 times.** On the same 1489 records it survived in
+  `…\Temp\pytest-of-<name>\…`, on lines whose `C:\Users\<user>` had been redacted three segments
+  earlier: the rule only covered what sat directly under `Users/`, `home/` or `Documents and
+  Settings/`. It is now replaced wherever it appears, which also covers a `%USERPROFILE%` expansion,
+  a `USERNAME=` dump and a UNC share named after the machine's owner. Same run after the change: **0
+  survivals**.
+
+- **Log rotation failed loudly and lost the record when a second process held the file.** Windows
+  refuses to rename a held file, and `veaf-tools mcp` is a long-lived process holding this exact log:
+  measured, a `--- Logging error ---` traceback landed on **stderr in the middle of the command's
+  output** and the record was never written, repeating for every message. A blocked rollover is now
+  silent and costs nothing — the record is written and the file keeps growing until a run without a
+  second holder rotates it. The live file is also moved aside *before* the older files are aged, so a
+  rollover that cannot happen no longer erases the history it was about to shift.
+
+- **The first rollover hid the whole error history from `doctor`.** It read only the live log, never
+  the `.1`/`.2`/`.3` beside it — and the first rollover moves the entire previous log into `.1`,
+  leaving a live file of a few dozen bytes. On the machine this was written on that log is 87 MB, so
+  the first support conversation after the upgrade would have answered "no recent errors" to someone
+  reporting a crash. The rolled files are now read when the live one is short.
+
+- **A diagnostic block could carry a field nobody wrote.** A value containing a newline came back
+  from the parser as two fields, silently. No collector can produce one, but the bug-intake lot will
+  run that parser over text a stranger pasted into a public issue, so the producer now holds one
+  field to one line and the format documents both that invariant and the fact that a received block
+  is a claim, never a measurement.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

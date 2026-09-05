@@ -44,8 +44,14 @@ La commande affiche d'abord un tableau lisible, puis un bloc encadré par
 `=== VEAF-TOOLS DOCTOR BEGIN ===`. **C'est ce bloc qu'il faut copier** dans votre message Discord
 ou votre issue, tel quel.
 
-Il est conçu pour être publié : votre nom de compte Windows y est remplacé par `<user>`, les
-adresses IP par `<ip>` et tout ce qui ressemble à un mot de passe ou à un jeton par `<redacted>`.
+Il est conçu pour être publié : votre nom de compte Windows y est remplacé par `<user>` partout où
+il apparaît, les adresses IP par `<ip>`, les adresses e-mail par `<email>`, et les mots de passe et
+jetons par `<redacted>`.
+
+En revanche, les **noms de vos missions, de vos appareils et de vos armements sont conservés** : ce
+sont eux qui disent *sur quoi* ça a planté, et les masquer reviendrait à envoyer un rapport qui dit
+seulement « ça n'a pas marché ». Si l'un de ces noms vous paraît sensible, jetez un œil au bloc avant
+de le coller — c'est du texte, vous pouvez le modifier.
 
 Pour n'obtenir que le bloc, sans le tableau :
 
@@ -67,7 +73,9 @@ plutôt que dans `.veaf`. Le tableau de `doctor` en donne le chemin exact — c'
 sûre, elle vient de la machine.
 
 Le journal de l'outil est **tronqué automatiquement** : il roule à 2 Mo, et trois fichiers plus
-anciens sont conservés à côté (`veaf-tools.log.1`, `.2`, `.3`).
+anciens sont conservés à côté (`veaf-tools.log.1`, `.2`, `.3`). `doctor` va chercher les erreurs
+récentes dans ces fichiers-là aussi : juste après un roulement, le journal vivant est presque vide
+et tout l'historique se trouve dans `.1`.
 
 Pour le journal de DCS, [`veaf-logs`](mission-maker/LOGS.md) l'ouvre et n'en montre que ce qui
 compte ; le fichier brut fait souvent plus de 10 Mo, ce qui n'est ni lisible ni envoyable tel quel.

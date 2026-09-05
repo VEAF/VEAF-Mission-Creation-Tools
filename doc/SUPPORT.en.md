@@ -43,8 +43,14 @@ The command first prints a readable table, then a block delimited by
 `=== VEAF-TOOLS DOCTOR BEGIN ===`. **That block is what you copy** into your Discord message or
 your issue, as-is.
 
-It is built to be published: your Windows account name is replaced by `<user>`, IP addresses by
-`<ip>`, and anything shaped like a password or a token by `<redacted>`.
+It is built to be published: your Windows account name is replaced by `<user>` everywhere it
+appears, IP addresses by `<ip>`, e-mail addresses by `<email>`, and passwords and tokens by
+`<redacted>`.
+
+What is **kept** is the name of your missions, aircraft and payloads: those are what say *what* it
+broke on, and hiding them would leave a report that says only "it did not work". If one of those
+names looks sensitive to you, glance at the block before pasting it — it is plain text, you can edit
+it.
 
 To get only the block, without the table:
 
@@ -66,7 +72,8 @@ If you set the `VEAF_HOME` environment variable, the tool log is written there r
 machine itself.
 
 The tool log is **trimmed automatically**: it rolls over at 2 MB, and three older files are kept
-beside it (`veaf-tools.log.1`, `.2`, `.3`).
+beside it (`veaf-tools.log.1`, `.2`, `.3`). `doctor` looks for recent errors in those too: just
+after a rollover the live log is nearly empty and the whole history sits in `.1`.
 
 For the DCS log, [`veaf-logs`](mission-maker/LOGS.en.md) opens it and shows only what matters; the
 raw file is often over 10 MB, which is neither readable nor sendable as-is.

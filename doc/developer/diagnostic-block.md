@@ -39,7 +39,10 @@ Trois règles, et rien d'autre :
    Il **arrive au milieu d'autre chose** (un message, des barrières de code) : un lecteur cherche
    ces deux lignes, il ne suppose pas que le bloc commence à la première ligne.
 2. Entre les deux délimiteurs, chaque ligne est `clef: valeur`. La séparation se fait sur le
-   **premier** `:` — une valeur peut en contenir d'autres (un chemin Windows, un horodatage).
+   **premier** `:` — une valeur peut en contenir d'autres (un chemin Windows, un horodatage). Une
+   clef et une valeur tiennent sur **une seule ligne** : le producteur écrase tout saut de ligne par
+   une espace, faute de quoi une valeur multi-lignes reviendrait sous la forme de deux champs, dont
+   un que personne n'a écrit.
 3. La section optionnelle encadrée par `--- recent-errors ---` et `--- recent-errors end ---`
    contient du **texte brut**. Un enregistrement commence à une ligne d'en-tête
    (`AAAA-MM-JJ HH:MM:SS,mmm - <logger> - <NIVEAU> - `) ; tout ce qui suit lui appartient, ce qui
@@ -80,12 +83,38 @@ collecté » se lisent pareil pour un humain, et un consommateur doit pouvoir le
 - Un lecteur **vérifie `schema` avant de parser**. Un bloc portant un schéma inconnu est un bloc
   dont il ne peut rien supposer.
 
+## Un bloc reçu n'est pas une mesure {#untrusted}
+
+`parse_block` lit du texte arrivé par une issue publique ou un message Discord. N'importe qui peut
+en taper un à la main. Le producteur garantit la **forme** (un champ = une ligne), jamais la
+**vérité** d'une valeur : un consommateur qui agit sur `tool.version` traite une déclaration, pas
+une lecture prise sur la machine. C'est un point de confiance, pas un détail d'analyse syntaxique —
+`FEAT-SUPPORT-BUG-INTAKE` est le premier à passer la frontière.
+
 ## Caviardage {#redaction}
 
 Tout ce que produit `doctor` passe par `veaf_libs.redaction.redact` **avant** d'être affiché : nom
-de compte Windows → `<user>`, adresse IPv4 routable → `<ip>`, adresse e-mail → `<email>`, jeton ou
+de compte → `<user>`, adresse IP routable (v4 et v6) → `<ip>`, adresse e-mail → `<email>`, jeton ou
 mot de passe → `<redacted>`. Les adresses de bouclage sont conservées : elles ne portent rien de
 personnel et disent quelque chose d'utile.
+
+Deux règles asymétriques, et l'asymétrie est délibérée.
+
+**L'identité est sur-caviardée.** Le nom de compte est remplacé partout où il apparaît, pas
+seulement sous `Users/` : il ressort dans un dossier temporaire (`Temp\pytest-of-Prénom\`), dans un
+nom de machine, dans un vidage de variables d'environnement. Mesuré sur 1489 enregistrements
+`ERROR` réels, il survivait **56 fois** à un caviardage qui avait pourtant traité le chemin
+d'origine trois segments plus tôt.
+
+**Les identifiants ne sont pas caviardés.** Il n'y a **pas** de règle d'entropie ici, et c'en est
+une décision : une première version remplaçait toute suite de 24 caractères ou plus mêlant lettres
+et chiffres. Mesurée sur le même journal, elle a produit **74 substitutions et zéro identifiant
+secret** ; mesurée sur les fichiers de données du dépôt, elle capturait 169 GUID DCS et 493 autres
+identifiants, dont `HVAR_USN_Mk28_Mod4_Corsair` et `M261_INBOARD_DE_M151_C_M274`. Autrement dit
+`unknown payload <redacted>` : on garde « ça a planté » et on jette « sur quoi ». Un secret est donc
+reconnu à son **contexte** (une affectation à une clef de type `token`, `password`, `access_token`,
+`client_secret`…) ou à sa **forme connue** (préfixe de jeton GitHub, JWT, URL de webhook,
+identifiants dans une URL). Une suite aléatoire sans étiquette ni forme connue passe, volontairement.
 
 Le caviardage se fait à la production, pas à la publication : au moment de publier, c'est un autre
 programme, sur une autre machine, et il est trop tard. Un consommateur peut repasser `redact` sur ce

@@ -1,5 +1,7 @@
+import contextlib
 import logging
 import logging.handlers
+import os
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -16,8 +18,72 @@ from veaf_libs.console_status import StatusLine
 LOG_MAX_BYTES: int = 2 * 1024 * 1024
 
 #: How many rolled-over files are kept beside the live one, so a crash from last week is still
-#: readable. Three plus the live file caps the whole thing at 8 MB.
+#: readable. Once the rotation is in a steady state that caps the set at four files, i.e. 8 MB —
+#: **not** immediately: an existing oversized log (87 MB was measured on a real machine) moves into
+#: ``.1`` whole on the first rollover and only leaves the set after three further ones.
+#: :func:`veaf_libs.diagnostics.collect_recent_errors` reads the rolled files for that reason.
 LOG_BACKUP_COUNT: int = 3
+
+
+class RollingFileHandler(logging.handlers.RotatingFileHandler):
+    """Rotate the log without ever losing a record or writing over the tool's own output.
+
+    ``RotatingFileHandler`` rotates **before** it writes, and Windows refuses to rename a file
+    another process holds open. Measured on Windows 11 / Python 3.13 with a second handle on the
+    file: ``PermissionError [WinError 32]``, a ``--- Logging error ---`` traceback on **stderr** in
+    the middle of whatever the user was running, and the record silently never written — repeating
+    for every record for as long as the handle is held. That is not a corner case here:
+    ``veaf-tools mcp`` is a long-lived process holding exactly this handler on exactly this file,
+    so any CLI run beside it hits this the moment the file crosses :data:`LOG_MAX_BYTES`.
+
+    Two things are therefore different from the stock handler.
+
+    **The live file is moved aside first.** The stock order deletes the oldest backup and ages the
+    rest *before* it discovers it cannot move the live file, so three blocked attempts would erase
+    the whole history. Here, a rollover that cannot start shifts nothing.
+
+    **A rollover that fails is silent and harmless.** The handler keeps appending to the file it
+    already has, so the record is written and nothing is printed; the next run without a second
+    holder rotates. An oversized log is a nuisance, a lost error record is the thing this lot exists
+    to prevent.
+    """
+
+    #: Where the live file is parked while the backups are aged. An orphan left by a process killed
+    #: mid-rollover is simply overwritten by the next one.
+    STAGING_SUFFIX = ".rolling"
+
+    def doRollover(self) -> None:  # noqa: N802 - the name is the logging framework's
+        """Roll the log over, doing nothing at all when the live file cannot be moved."""
+        if self.backupCount <= 0:
+            # No history kept: nothing to age, and the base class is already safe to swallow.
+            with contextlib.suppress(OSError):
+                super().doRollover()
+            return
+        if self.stream:
+            self.stream.close()
+            self.stream = None
+        staging = self.baseFilename + self.STAGING_SUFFIX
+        try:
+            os.replace(self.baseFilename, staging)
+        except OSError:
+            return
+        try:
+            self._age_backups()
+            os.replace(staging, self.rotation_filename(f"{self.baseFilename}.1"))
+        except OSError:
+            # Put the history back rather than strand it in a file nothing reads.
+            with contextlib.suppress(OSError):
+                os.replace(staging, self.baseFilename)
+        finally:
+            if not self.delay:
+                self.stream = self._open()
+
+    def _age_backups(self) -> None:
+        """Age every kept backup by one, dropping the oldest."""
+        for index in range(self.backupCount - 1, 0, -1):
+            source = self.rotation_filename(f"{self.baseFilename}.{index}")
+            if os.path.exists(source):
+                os.replace(source, self.rotation_filename(f"{self.baseFilename}.{index + 1}"))
 
 
 def configure_stdio_encoding() -> None:
@@ -68,7 +134,7 @@ class Logger:
             # Rotating file handler with UTF-8 encoding. It used to append for ever, which is why
             # nobody looked at the file: by the time it mattered it was megabytes of history with the
             # interesting part somewhere in the middle.
-            file_handler = logging.handlers.RotatingFileHandler(
+            file_handler = RollingFileHandler(
                 log_path,
                 mode="a",
                 maxBytes=LOG_MAX_BYTES,

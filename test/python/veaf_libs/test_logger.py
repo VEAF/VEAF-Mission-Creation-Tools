@@ -11,9 +11,11 @@ the file gains, but what the console still shows: exactly the message, and nothi
 
 from __future__ import annotations
 
+import contextlib
 import io
 import logging
 import logging.handlers
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -311,6 +313,105 @@ class TestTheLogFileRotates(_FileLoggerCase):
     def test_the_handler_is_a_rotating_one(self) -> None:
         log = self.make_logger("test-logger-handler-kind")
         self.assertIsInstance(log.logger.handlers[0], logging.handlers.RotatingFileHandler)
+
+
+class TestARolloverThatCannotHappen(_FileLoggerCase):
+    """Windows refuses to rename a file another process holds, and `veaf-tools mcp` holds this one.
+
+    Measured on Windows 11 / Python 3.13 with a second handle open on the log: the stock handler
+    raised `PermissionError [WinError 32]`, printed a `--- Logging error ---` traceback on **stderr**
+    in the middle of the command's output, and **never wrote the record** — for every record, for as
+    long as the handle was held. The rename is faked here so the behaviour is pinned on every
+    platform, and the real lock is exercised on Windows below.
+    """
+
+    @contextlib.contextmanager
+    def _held(self, base: str):  # type: ignore[no-untyped-def]
+        """Make *base* unmovable, exactly as a second open handle makes it on Windows.
+
+        Both primitives are blocked, not just the one this module happens to use, so the assertions
+        below fail against the stock ``RotatingFileHandler`` too — a guard that cannot fail is the
+        thing this lot was reviewed for.
+        """
+        real_replace, real_rename = os.replace, os.rename
+
+        def refuse(real):  # type: ignore[no-untyped-def]
+            def move(source, destination, **kwargs):  # type: ignore[no-untyped-def]
+                if str(source) == base:
+                    raise PermissionError(32, "The process cannot access the file")
+                return real(source, destination, **kwargs)
+
+            return move
+
+        with (
+            patch.object(os, "replace", refuse(real_replace)),
+            patch.object(os, "rename", refuse(real_rename)),
+        ):
+            yield
+
+    def _fill(self, log: Logger, lines: int = 60) -> None:
+        for index in range(lines):
+            log.error(f"line {index} " + "x" * 80, no_console=True, exception_type=None)
+
+    def test_the_record_is_written_instead_of_being_dropped(self) -> None:
+        name = "test-logger-locked-write"
+        with patch.object(logger_module, "LOG_MAX_BYTES", 512), patch.object(logger_module, "LOG_BACKUP_COUNT", 3):
+            log = self.make_logger(name)
+            base = str(self.home / f"{name}.log")
+            with self._held(base):
+                self._fill(log)
+        self.assertIn("line 59", self.read_log(name))
+
+    def test_nothing_is_printed_over_the_tool_output(self) -> None:
+        name = "test-logger-locked-quiet"
+        captured = io.StringIO()
+        with patch.object(logger_module, "LOG_MAX_BYTES", 512), patch.object(logger_module, "LOG_BACKUP_COUNT", 3):
+            log = self.make_logger(name)
+            base = str(self.home / f"{name}.log")
+            with (
+                self._held(base),
+                contextlib.redirect_stderr(captured),
+            ):
+                self._fill(log)
+        self.assertEqual(captured.getvalue(), "")
+
+    def test_a_blocked_rollover_does_not_age_the_backups(self) -> None:
+        # The stock order deletes the oldest backup and ages the rest *before* it discovers it
+        # cannot move the live file, so three blocked attempts would erase the history entirely.
+        name = "test-logger-locked-history"
+        (self.home / f"{name}.log.1").write_text("history one", encoding="utf-8")
+        (self.home / f"{name}.log.2").write_text("history two", encoding="utf-8")
+        with patch.object(logger_module, "LOG_MAX_BYTES", 512), patch.object(logger_module, "LOG_BACKUP_COUNT", 3):
+            log = self.make_logger(name)
+            base = str(self.home / f"{name}.log")
+            with self._held(base):
+                self._fill(log, lines=200)
+        self.assertEqual((self.home / f"{name}.log.1").read_text(encoding="utf-8"), "history one")
+        self.assertEqual((self.home / f"{name}.log.2").read_text(encoding="utf-8"), "history two")
+        self.assertFalse((self.home / f"{name}.log.3").exists(), "the history was aged by a rollover that failed")
+
+    def test_no_staging_file_is_left_behind(self) -> None:
+        name = "test-logger-locked-staging"
+        with patch.object(logger_module, "LOG_MAX_BYTES", 512), patch.object(logger_module, "LOG_BACKUP_COUNT", 3):
+            log = self.make_logger(name)
+            base = str(self.home / f"{name}.log")
+            with self._held(base):
+                self._fill(log)
+        staging = self.home / f"{name}.log{logger_module.RollingFileHandler.STAGING_SUFFIX}"
+        self.assertFalse(staging.exists())
+
+    @unittest.skipUnless(sys.platform == "win32", "only Windows locks a file against renaming")
+    def test_a_real_second_handle_costs_neither_the_record_nor_the_console(self) -> None:
+        name = "test-logger-really-locked"
+        captured = io.StringIO()
+        with patch.object(logger_module, "LOG_MAX_BYTES", 512), patch.object(logger_module, "LOG_BACKUP_COUNT", 3):
+            log = self.make_logger(name)
+            holder = (self.home / f"{name}.log").open("a", encoding="utf-8")
+            self.addCleanup(holder.close)
+            with contextlib.redirect_stderr(captured):
+                self._fill(log)
+        self.assertIn("line 59", self.read_log(name))
+        self.assertEqual(captured.getvalue(), "")
 
 
 if __name__ == "__main__":

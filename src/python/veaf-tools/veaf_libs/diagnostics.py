@@ -81,6 +81,13 @@ FIELD_ORDER: tuple[str, ...] = (
     "veaf.lua_modules",
 )
 
+#: Every line break inside a field name or value. A field is **one line** — that is the whole of the
+#: format's field section — so a value carrying a newline would come back as two fields, the second
+#: of them forged. No collector can produce one today, but ``FEAT-SUPPORT-BUG-INTAKE`` runs
+#: :func:`parse_block` over text a stranger pasted into a public issue, so the producer collapses
+#: them rather than leaving the invariant to the reader's goodwill.
+_LINE_BREAK = re.compile(r"[\r\n]+")
+
 #: How many log records :func:`collect_recent_errors` returns by default.
 DEFAULT_ERROR_COUNT = 3
 
@@ -99,6 +106,13 @@ TRUNCATION_MARK = " […]"
 #: How much of the tail of the log file is read. The log rotates at 2 MB (see
 #: :mod:`veaf_libs.logger`), and the last few error records are always near the end.
 _LOG_TAIL_BYTES = 512 * 1024
+
+#: How far the rolled-over logs (``veaf-tools.log.1``, ``.2``…) are followed when the live file does
+#: not hold enough records. The handler keeps three, but the number is probed rather than imported:
+#: the first rollover after an upgrade moves the *whole* previous log — 87 MB was measured on a real
+#: machine — into ``.1`` and leaves a 28-byte live file, and reading only the live file would have
+#: answered "no recent errors" to the very user reporting a crash.
+_MAX_ROLLED_LOGS = 9
 
 #: A record header written by the file formatter: ``2026-09-05 12:00:00,123 - veaf-tools - ERROR - …``
 _RECORD_HEADER = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} - \S+ - (?P<level>[A-Z]+) - ")
@@ -125,6 +139,10 @@ class DiagnosticReport:
     def to_block(self) -> str:
         """Render the paste block: the versioned, parseable form of this report.
 
+        A field name and its value are each collapsed onto **one line**: the reader splits the field
+        section by line, so a value carrying a newline would come back as two fields and the second
+        would be one the producer never wrote.
+
         Returns:
             The block, delimited by :data:`BLOCK_START` and :data:`BLOCK_END`, without a trailing
             newline. Fields come in :data:`FIELD_ORDER`; anything else the report happens to carry
@@ -134,7 +152,7 @@ class DiagnosticReport:
         ordered = [name for name in FIELD_ORDER if name in self.fields]
         extras = [name for name in self.fields if name not in FIELD_ORDER]
         for name in ordered + extras:
-            lines.append(f"{name}: {self.fields[name]}")
+            lines.append(f"{_one_line(name)}: {_one_line(self.fields[name])}")
         if self.recent_errors:
             lines.append(ERRORS_START)
             for record in self.recent_errors:
@@ -144,11 +162,28 @@ class DiagnosticReport:
         return "\n".join(lines)
 
 
+def _one_line(value: str) -> str:
+    """Collapse *value* onto a single line, so one field stays one line of the block.
+
+    Args:
+        value: A field name or a field value.
+
+    Returns:
+        The same text with every run of line breaks turned into a space, trimmed at both ends.
+    """
+    return _LINE_BREAK.sub(" ", value).strip()
+
+
 def parse_block(text: str) -> DiagnosticReport:
     """Read a paste block back into a report — the inverse of :meth:`DiagnosticReport.to_block`.
 
     The intake flow of ``FEAT-SUPPORT-BUG-INTAKE`` receives this block inside a free-form message,
     so the parser locates the delimiters rather than assuming the block starts at the first line.
+
+    **What comes back is untrusted.** The block travels through a public issue and anyone can type
+    one by hand: a field name and a value are only ever what the text said they were. The producer
+    guarantees the *shape* (:func:`_one_line`), never the truth of a value — a consumer that acts on
+    ``tool.version`` must treat it as a claim, not as a reading taken from the machine.
 
     Args:
         text: Any text containing exactly one block.
@@ -401,6 +436,42 @@ def collect_recent_errors(count: int = DEFAULT_ERROR_COUNT, log_path: Path | Non
     if count <= 0:
         return []
     path = log_path or tool_log_path()
+    records: list[list[str]] = []
+    for candidate in _log_files_newest_first(path):
+        records = _error_records_in(candidate) + records
+        if len(records) >= count:
+            break
+    trimmed = ["\n".join(_cap_line(line) for line in record[:MAX_LINES_PER_ERROR]) for record in records[-count:]]
+    return [redact(record) for record in trimmed]
+
+
+def _log_files_newest_first(path: Path) -> list[Path]:
+    """Return the live log and the rolled-over files behind it, newest first.
+
+    Args:
+        path: The live log file.
+
+    Returns:
+        ``[log, log.1, log.2, …]``, stopping at the first one that does not exist.
+    """
+    files = [path]
+    for index in range(1, _MAX_ROLLED_LOGS + 1):
+        rolled = path.with_name(f"{path.name}.{index}")
+        if not rolled.is_file():
+            break
+        files.append(rolled)
+    return files
+
+
+def _error_records_in(path: Path) -> list[list[str]]:
+    """Return the error records held in the tail of one log file, oldest first.
+
+    Args:
+        path: A live or rolled-over log file; one that does not exist yields nothing.
+
+    Returns:
+        One list of lines per ``ERROR``/``CRITICAL`` record, the header line first.
+    """
     try:
         if not path.is_file():
             return []
@@ -421,8 +492,7 @@ def collect_recent_errors(count: int = DEFAULT_ERROR_COUNT, log_path: Path | Non
             continue
         if keeping and records:
             records[-1].append(line)
-    trimmed = ["\n".join(_cap_line(line) for line in record[:MAX_LINES_PER_ERROR]) for record in records[-count:]]
-    return [redact(record) for record in trimmed]
+    return records
 
 
 def _cap_line(line: str) -> str:

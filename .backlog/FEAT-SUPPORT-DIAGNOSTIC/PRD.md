@@ -115,3 +115,22 @@ Two things the tickets did not ask for and the machine made necessary: a **per-l
 the error records (a real record ran past 400 characters on one line, which line-capping alone would
 not have bounded), and a byte-count that reads in MB (the log measured **87 MB** on David's machine,
 which is the same fact that made rotation urgent rather than tidy).
+
+## What the review corrected
+
+Six findings on PR #913, four of them serious, all measured against the real machine rather than
+against fixtures. They are worth keeping because each one names a rule of thumb that failed.
+
+| # | Finding | What it cost, measured |
+|---|---|---|
+| 1 | The entropy rule redacted DCS identifiers, not secrets | 74 substitutions and **0 credentials** over 1489 real `ERROR` records; 169 GUIDs and 493 identifiers in the repository's own data. `unknown payload <redacted>`. Now 0 / 0. |
+| 2 | The account name survived outside a home path | 56 survivals in the same records (`Temp\pytest-of-<name>`), on lines already redacted three segments earlier. Now 0. |
+| 3 | Rotation failed loudly and lost the record on Windows | 3 records out of 3 dropped and 4 KB of traceback on **stderr** with a second handle held — a mode `FileHandler` did not have, introduced by this lot. Now 3/3 written, 0 bytes on stderr. |
+| 4 | The first rollover hid the history from `doctor` | 1 record returned instead of 5; on a real 87 MB log the first support conversation would have shown "no recent errors" to someone reporting a crash. |
+| 5 | Pattern false negatives | IPv6, `access_token=`, `client_secret=`, JSON `"token": "…"`, an address ending a sentence, `127.0.1.1`, and `DCS/2.9.10.1` read as an IP address. |
+| 6 | The block's value contract | A multi-line value re-parsed as two fields, one of them forged — the parser being the trust boundary of `FEAT-SUPPORT-BUG-INTAKE`. |
+
+The guard that should have caught the first one, `test_a_module_name_is_not_mistaken_for_a_secret`,
+asserted on a 17-character string with no digit: it could not fail whatever the rule did. It is
+replaced by an **enumerated sweep** over every identifier of that shape the repository actually
+contains — the `test_defaultSpawnRadii` lesson, applied to a family rather than to a sample.

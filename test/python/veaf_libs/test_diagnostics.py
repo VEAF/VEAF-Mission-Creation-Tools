@@ -64,6 +64,19 @@ class TestTheBlockIsAContract(unittest.TestCase):
         body = [line for line in report.to_block().splitlines() if ":" in line]
         self.assertEqual(body[0].split(":")[0], "schema")
 
+    def test_a_value_cannot_forge_a_second_field(self) -> None:
+        # A field is one line, and nothing enforced it: a value carrying a newline came back as two
+        # fields, the second one never written by the producer. No collector can do that today, but
+        # FEAT-SUPPORT-BUG-INTAKE runs `parse_block` over text a stranger pasted into a public issue.
+        report = DiagnosticReport(fields={"schema": SCHEMA, "machine.os": "Windows\nevil: injected"})
+        parsed = parse_block(report.to_block())
+        self.assertNotIn("evil", parsed.fields)
+        self.assertEqual(parsed.fields["machine.os"], "Windows evil: injected")
+
+    def test_a_field_name_cannot_forge_one_either(self) -> None:
+        report = DiagnosticReport(fields={"schema": SCHEMA, "a\nb": "x"})
+        self.assertEqual(len(parse_block(report.to_block()).fields), 2)
+
     def test_an_unknown_field_still_travels(self) -> None:
         # A consumer reading what it knows must not lose a field this version added.
         report = DiagnosticReport(fields={"schema": SCHEMA, "future.thing": "42"})
@@ -211,6 +224,40 @@ class TestRecentErrors(unittest.TestCase):
 
     def test_a_missing_log_yields_nothing_rather_than_raising(self) -> None:
         self.assertEqual(collect_recent_errors(3, Path("no-such-file.log")), [])
+
+    def test_the_history_moved_into_the_rolled_file_is_still_read(self) -> None:
+        # The first rollover after the upgrade moves the *whole* previous log into `.1` — measured:
+        # a 40 MB log became a 28-byte live file and a 40 MB `.1`. Reading only the live file
+        # answered "no recent errors" to a user reporting a crash, on the one run that mattered.
+        with TemporaryDirectory() as tmp:
+            path = self._log(tmp, "2026-09-05 12:00:09,000 - veaf-tools - ERROR - after the rollover\n")
+            body = "".join(f"2026-09-05 12:00:0{i},000 - veaf-tools - ERROR - before{i}\n" for i in range(3))
+            (Path(tmp) / "veaf-tools.log.1").write_text(body, encoding="utf-8")
+            errors = collect_recent_errors(4, path)
+            self.assertEqual(
+                [e.split(" - ")[-1] for e in errors],
+                ["before0", "before1", "before2", "after the rollover"],
+            )
+
+    def test_the_rolled_files_are_only_read_when_the_live_one_is_short(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = self._log(
+                tmp,
+                "".join(f"2026-09-05 12:00:0{i},000 - veaf-tools - ERROR - live{i}\n" for i in range(3)),
+            )
+            (Path(tmp) / "veaf-tools.log.1").write_text(
+                "2026-09-05 11:00:00,000 - veaf-tools - ERROR - rolled\n", encoding="utf-8"
+            )
+            errors = collect_recent_errors(2, path)
+            self.assertEqual([e.split(" - ")[-1] for e in errors], ["live1", "live2"])
+
+    def test_a_gap_in_the_rolled_files_stops_the_search(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = self._log(tmp, "")
+            (Path(tmp) / "veaf-tools.log.2").write_text(
+                "2026-09-05 11:00:00,000 - veaf-tools - ERROR - orphan\n", encoding="utf-8"
+            )
+            self.assertEqual(collect_recent_errors(3, path), [])
 
     def test_asking_for_none_reads_nothing(self) -> None:
         self.assertEqual(collect_recent_errors(0, Path("no-such-file.log")), [])

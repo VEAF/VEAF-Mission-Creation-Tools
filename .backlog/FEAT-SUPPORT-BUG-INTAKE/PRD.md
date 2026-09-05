@@ -99,3 +99,4 @@ more calls.
 | 06 | [The answer comes back to where the user is](tickets/06-relay.md) | feat |
 | 07 | [Say what the machine wrote, and what it guessed](tickets/07-docs.md) | docs |
 | 08 | [One call, for members, while the quota lasts](tickets/08-ai-enrichment.md) | feat |
+| 09 | [Enumerate every path that publishes](tickets/09-enumerate-publishing-paths.md) | chore |

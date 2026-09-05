@@ -2249,6 +2249,33 @@ function TestVeafFindSpawnPoint:test_first_clear_candidate_of_several_is_taken()
   luaunit.assertEquals(self._jitterCalls, 0)
 end
 
+--- FIX-TRIPACK-FIELD-REPORTS ticket 02 — an explicit surface list, so a naval element can
+--- search on water instead of the land-only default.
+function TestVeafFindSpawnPoint:test_explicit_surfaces_accept_water_for_a_ship()
+  self:_waterAt({ 500 })
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000, nil, veaf.WATER_TERRAIN)
+  luaunit.assertNotNil(point, "a ship's surface list must accept open water")
+  luaunit.assertEquals(point.x, 500)
+end
+
+function TestVeafFindSpawnPoint:test_explicit_surfaces_still_reject_what_they_do_not_list()
+  -- Land everywhere (setUp default); a water-only surface list must refuse it.
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000, nil, veaf.WATER_TERRAIN)
+  luaunit.assertNil(point, "land must not satisfy a water-only surface list")
+end
+
+function TestVeafFindSpawnPoint:test_omitting_surfaces_keeps_the_land_only_default()
+  -- An unconverted caller passes only vec3/radius/safeRadius — the fourth argument must
+  -- default to today's land-only behaviour, not be silently required.
+  self:_waterAt({ 500 })
+  self:_jitterSequence({ 500, 600 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000, veaf.DEFAULT_SPAWN_CLEARANCE)
+  luaunit.assertNotNil(point)
+  luaunit.assertEquals(point.x, 600, "the water candidate at 500 must still be rejected")
+end
+
 -- ---------------------------------------------------------------------------
 -- Trigger-zone properties (FEAT-SCENERY-AWARE-SPAWN ticket 04)
 --

@@ -102,18 +102,32 @@ anybody.
 
 ### B2. Permissions — grant exactly these
 
-Under **Repository permissions**:
+These are the permissions the code actually needs, read off the implementation rather than guessed:
 
-| Permission | Level | Why |
+| Scope | Permission | Level |
 |---|---|---|
-| Issues | **Read and write** | file issues, comment, read prior art |
-| Metadata | Read-only | mandatory, granted automatically |
-| Contents | Read-only | read `.backlog/` and the sources for the prior-art sweep |
+| Repository | **Issues** | **Read and write** |
+| Repository | **Metadata** | Read-only *(mandatory, GitHub ticks it for you)* |
+| Repository | everything else | **No access** |
+| Organisation | everything | **No access** |
+| Account | everything | **No access** |
 
-Everything else stays **No access**. **Subscribe to events** can be left entirely unticked — those
-events are only delivered through a webhook, and we are not using one.
+**`Contents` is deliberately absent.** An earlier draft of this page asked for it; the prior-art
+sweep reads `.backlog/` and `ROADMAP.md` from the local checkout, never through the API, so the App
+never needs to read the repository's files. Granting it would also be the first step towards being
+able to commit to a public repository, which is a door worth leaving shut.
+
+**Subscribe to events**: leave everything unticked. Those events are only delivered through a
+webhook, and we are not using one (see B1).
 
 **Where can this GitHub App be installed?** → *Only on this account*.
+
+### B2b. Create one label, by hand
+
+The bot marks what it files with **`filed-by-bot`**, on top of `bug`. It does **not** create labels
+itself — letting a machine invent a taxonomy in a public tracker is your call, not its. Create it
+once in the repository's Labels page. Without it, issues are filed with `bug` alone and the bot says
+so rather than failing.
 
 ### B3. Issue the credentials
 
@@ -279,7 +293,8 @@ Copy this into the thread when you have done a part, so I know what to wire in.
 
 - [ ] **A** — Discord application created, bot invited to the server, channels chosen
       → token, application ID, guild ID, channel IDs
-- [ ] **B** — GitHub App created, installed on the repository only, permissions as listed
+- [ ] **B** — GitHub App created, installed on the repository only, permissions as listed, and the
+      `filed-by-bot` label created
       → App ID, Installation ID, private key
 - [ ] **C** — Gemini key created in its **own project**, separate from the Worker's
       → key, and the RPD figure shown on AI Studio's Rate limits page

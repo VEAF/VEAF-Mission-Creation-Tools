@@ -317,6 +317,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   days earlier, when the same defect swallowed `spawnSmoke`. Repetition, stop time and cancellation
   are unchanged. `skynet-iads-compiled.lua` is regenerated at build 05.09.2026.
 
+- **A combat zone's naval element now searches for water, not for dry land.** `veaf.findSpawnPoint`
+  only ever accepted dry ground, so a ship or submarine anchored near a quay was dragged onto it and
+  then correctly refused by the terrain check downstream — six groups of a real mission never spawned.
+  `findSpawnPoint` now takes the acceptable surfaces as a parameter (defaulting to today's land-only
+  criterion, so no other caller changes), and a combat zone reads the surfaces its element's category
+  calls for from the same table the spawner already uses.
+
+- **A terrain refusal now names what was actually wrong.** `_drawOrigin`'s error used to print only the
+  radius and the group name; it now also names the resolved category, the surfaces it accepted, the
+  point it tested, and the surface DCS reported there — enough to diagnose the naval-spawn defect above
+  from the log alone, without needing the mission file.
+
+- **A cloned or respawned group now carries the group-level fields the editor set on it.**
+  `veafMissionDb`'s group record held exactly ten fields, and `task` was not one of them — so a QRA
+  flight cloned from a pre-placed group reached DCS with its per-waypoint engagement intact and no
+  mission task at all, which is one read of *"tout se déclenche mais ils font leur nav tranquilos"*.
+  MiST carried this field, and the loss lands squarely on the version that dropped it. The record now
+  also carries `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication` and
+  `radioSet`, plus `hidden` — an editor-hidden group no longer becomes visible on the F10 map the
+  moment it is cloned.
+
 - **`/bug` on the support Discord: a form that becomes a filled bug report, with no model involved.**
   It asks the five things `.github/ISSUE_TEMPLATE/bug_report.yml` needs and takes up to three files,
   then does everything the free Gemini tier — measured at **20 requests a day** — cannot be trusted

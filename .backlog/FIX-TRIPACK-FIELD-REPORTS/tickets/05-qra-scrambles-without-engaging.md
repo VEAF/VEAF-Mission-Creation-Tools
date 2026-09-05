@@ -1,6 +1,6 @@
 # 05 — A cloned group loses the mission task the editor gave it
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 

@@ -911,3 +911,33 @@ regarder si l'interface de choix de slot propose quoi que ce soit du côté neut
 
 Utile même en cas de « non » : c'est la seule asymétrie de coalition qui reste dans l'arbre après ce
 lot, et savoir qu'elle est **voulue** évite qu'un prochain passage la « corrige » sans savoir.
+
+---
+
+## Une QRA clonée engage-t-elle vraiment, maintenant que `task` la suit ?
+
+Ouvert par `FIX-TRIPACK-FIELD-REPORTS` (ticket 05), correctif du 2026-09-05.
+
+Ce qui est établi sans DCS : `veafMissionDb`'s group record ne portait que dix champs, et `task`
+n'en faisait pas partie — vérifié, le mot n'apparaissait nulle part dans le fichier. Un clone ou un
+respawn atteignait donc `coalition.addGroup` sans tâche de groupe du tout, alors même que la tâche
+par point de route (`EngageTargetsInZone`) survivait, elle. Les tests unitaires prouvent que le champ
+suit désormais le clone jusqu'à l'appel — `task`, `taskSelected`, `uncontrolled`, `frequency`,
+`modulation`, `communication`, `radioSet` et `hidden`.
+
+Ce qu'ils ne peuvent pas dire : si l'absence de `task` est bien ce qui rendait Tripack's QRA
+« tranquilos » — sans engager — plutôt qu'un autre effet de bord. C'est plausible (une IA sans tâche
+de groupe peut plausiblement ignorer les tâches de route) mais pas prouvé hors du jeu.
+
+**À faire** : déployer une QRA dont un des groupes pré-placés porte `task = 'CAP'` et un
+`EngageTargetsInZone` sur une route, comme `CAP_AL_MINHAD-1` dans la mission de Tripack. Déclencher
+son scramble, faire pénétrer un intrus dans sa zone d'engagement.
+
+- **Attendu** : le groupe engage l'intrus, comme avant la régression (avant 6.19.0 / `REFACTOR-SPAWNER`).
+- **Ce qui contredirait le correctif** : le groupe continue sa route sans engager malgré `task` et
+  l'`EngageTargetsInZone` tous deux présents. Dans ce cas le dire : ça voudrait dire que la cause de
+  Tripack est ailleurs, et que ce correctif — juste en soi, puisqu'il restitue un champ que l'éditeur
+  a posé — ne referme pas son rapport.
+
+Accessoirement, vérifier au passage que le groupe cloné reste **caché** sur la carte F10 si l'éditeur
+l'avait déclaré `hidden = true` — capture d'écran de Tripack à comparer, plus rapide qu'un vol.

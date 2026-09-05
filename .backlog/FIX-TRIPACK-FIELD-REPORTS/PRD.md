@@ -122,10 +122,10 @@ drops `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication`
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
 | 01 | [Skynet's scheduler keeps the promise its docstring makes](tickets/01-skynet-scheduler-floor.md) | fix | 🧑 |
-| 02 | [A zone's naval element looks for water, not for dry land](tickets/02-naval-elements-look-for-water.md) | fix | ⬜ |
-| 03 | [Why the terrain check refuses a ship already at sea](tickets/03-measure-the-naval-refusal.md) | fix | ⬜ |
+| 02 | [A zone's naval element looks for water, not for dry land](tickets/02-naval-elements-look-for-water.md) | fix | ✅ |
+| 03 | [Why the terrain check refuses a ship already at sea](tickets/03-measure-the-naval-refusal.md) | fix | ✅ |
 | 04 | [ZU-23s of a combat zone come up kilometres out to sea](tickets/04-units-displaced-out-to-sea.md) | fix | ⬜ |
-| 05 | [A cloned group loses the mission task the editor gave it](tickets/05-qra-scrambles-without-engaging.md) | fix | ⬜ |
+| 05 | [A cloned group loses the mission task the editor gave it](tickets/05-qra-scrambles-without-engaging.md) | fix | ✅ |
 
 **All five are workable.** Tripack sent `Snowfox_20260903.miz`, its Skynet-off twin and the mission
 sources on 2026-09-05, and the measurements below replaced three open questions with answers. Only

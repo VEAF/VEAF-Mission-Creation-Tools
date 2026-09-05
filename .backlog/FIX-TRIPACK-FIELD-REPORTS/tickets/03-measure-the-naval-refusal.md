@@ -1,68 +1,59 @@
-# 03 — Why the terrain check refuses a ship already at sea
+# 03 — A ship at a quay is dragged ashore, then refused
 
 Status: ⬜ ready
 
 Type: fix
 
+Measured 2026-09-05 on Tripack's `Snowfox_20260903.miz`. This ticket asked a question; the mission
+answered it, and the answer is the opposite of what the log suggests.
+
 ## The fact
 
-Six groups of three combat zones are **not created at all**, identically on both 6.19.0 loads of
-Tripack's log:
+Six groups of three combat zones are never created:
 
 ```
-VEAF-SPAWNER|E|_drawOrigin|8777: no point within 0m of the requested spot is valid terrain for [CMBT_BANDAR_E_JASK - Cargo Ship]
-VEAF-SPAWNER|E|_drawOrigin|8777: no point within 0m of the requested spot is valid terrain for [CMBT_BANDAR_E_JASK - Navy]
-VEAF-SPAWNER|E|_drawOrigin|8777: no point within 0m of the requested spot is valid terrain for [CMBT_HAVADARYA - Submarine]
-VEAF-SPAWNER|E|_drawOrigin|8777: no point within 0m of the requested spot is valid terrain for [CMBT_HAVADARYA - Navy]
-VEAF-SPAWNER|E|_drawOrigin|8777: no point within 0m of the requested spot is valid terrain for [CMBT_HAVADARYA - Cargo Ship]
+VEAF-SPAWNER|E|_drawOrigin|8777: no point within 0m of the requested spot is valid terrain for [CMBT_BANDAR_E_JASK - Cargo Ship]   (also - Navy)
+VEAF-SPAWNER|E|_drawOrigin|8777: no point within 0m of the requested spot is valid terrain for [CMBT_HAVADARYA - Submarine]        (also - Navy, - Cargo Ship)
 VEAF-SPAWNER|E|_drawOrigin|8777: no point within 0m of the requested spot is valid terrain for [CMBT_RAJAEI - Cargo Ship]
 ```
 
-`_drawOrigin` exhausts its hundred attempts, returns `nil`, and `_spawn` returns `false`. Whatever
-those zones were meant to put on the water, the mission does not have it.
+All six are `ship` groups — read from the mission table, not assumed: `Dry-cargo ship-2`,
+`ALBATROS`, `NEUSTRASH`, `KILO`, `REZKY`. So `terrainForCategory` gives them `veaf.WATER_TERRAIN`,
+which accepts `WATER` and `SHALLOW_WATER`, and a hull sitting where the editor drew it passes.
 
-## What is not established
+## Why they are refused anyway: the search succeeded
 
-**Why the check fails.** Read on 2026-09-05, the path says it should pass:
+`spawnElement` runs `findSpawnPoint(position, 50)` **before** the spawn, and that function only ever
+returns dry land. Two populations follow, and the mission separates them cleanly:
 
-- radius is 0 (the message prints it), so `getRandomPointInCircle` returns the centre itself, and a
-  hundred attempts test the same point a hundred times;
-- the centre is the element's declared position, which for these groups is at sea — `findSpawnPoint`
-  had already failed on them and `spawnElement` logs *"keeping its declared position"*;
-- a `ship` category validates against `veaf.WATER_TERRAIN`, which holds both `WATER` and
-  `SHALLOW_WATER`;
-- `veafDcsSpawner.ANY_TERRAIN`, the fallback when a category is unknown, holds **every** surface DCS
-  names, so even a mis-resolved category should accept anything.
+| | Distance to land | `findSpawnPoint` | Result |
+|---|---|---|---|
+| **12 ships** (`CMBT_SOHAR - Navy`, `CMBT_QESHM_ISLAND - Submarine`, `CMBT_LAVAN_AIRPORT - Speedboat`, …) | > 50 m, out at sea | **fails** — logged, thirteen lines | position kept, `_drawOrigin` accepts water, **they spawn** |
+| **6 ships** (the three ports: Bandar-e-Jask, Havadarya, Rajaei) | < 50 m, alongside a quay | **succeeds** — finds the quay | ship moved onto dry land, `_drawOrigin` refuses it, **never created** |
 
-`makeVec3`, `veafGeo.getRandomPointInCircle` and `veaf.isTerrainValid` were each read and none of
-them drops the easting. So one of the four statements above is false in the running game, and
-guessing which costs more than measuring it.
+The cross-check is exact: **not one of the six refused groups appears among the thirteen logged
+search failures**, and every logged failure belongs to a ship that did spawn. The closest logged
+failure to any refused group is 16 km away.
 
-The two candidates worth testing first, in order:
+So the refusal is not a terrain-check defect. The point it was handed was genuinely dry — the
+search put it there. A ship at anchor in open water is safe precisely because the search could not
+find it any land to be dragged onto.
 
-1. **`data.category` is not what the code assumes.** These names read like statics (`Cargo Ship` is a
-   static in most missions), and a static travels a different branch of `_spawn`. What does
-   `veafMissionDb.getGroupRecord` actually put in `category` for each of the six?
-2. **The point tested is not the point logged.** `spawnElement` keeps the *declared* position on
-   failure, and that position comes from `referencePositionOf` — a live unit's runtime vec3. If the
-   element's unit 1 was filtered out of the zone, the anchor is another unit entirely.
+## What fixes it
 
-## How to measure
+**Ticket 02.** Once `findSpawnPoint` searches the surfaces the element's category calls for, a hull
+is never offered a quay and the refusal disappears. Nothing else is needed for the six groups.
 
-The error message is the instrument, and today it prints only the radius and the group name. Make
-it print what would settle this in one line: the resolved category, the surface list it tested
-against, the point, and the surface DCS reported. That is worth having permanently — a terrain
-refusal that names neither the surface nor the criterion cannot be diagnosed from a user's log,
-which is exactly the position this ticket is in.
-
-Then reproduce: a combat zone holding one ship group and one static ship, on water, `#spawnradius=`
-written and not written. Ticket 02 is landed first, so the search no longer sends a hull inland.
+What stays in this ticket is the reason the cause took a mission file to find: `_drawOrigin`'s
+error names the radius and the group and **nothing that identifies the mistake** — not the resolved
+category, not the surfaces it required, not the surface DCS actually reported at that point. With
+those four values the log alone would have said "a ship was asked to stand on `LAND`".
 
 ## Definition of done
 
-- [ ] `_drawOrigin`'s refusal names the category, the accepted surfaces, the point and the surface
-      DCS returned
-- [ ] The cause of the six refusals is named, with the measurement that shows it
-- [ ] The fix follows from that measurement; a ship declared at sea spawns
-- [ ] Unit tests covering the case found, written against the built group rather than the constant
+- [ ] `_drawOrigin`'s refusal names the category, the accepted surfaces, the point, and the surface
+      DCS returned there
+- [ ] A regression test on the combined path: an element declared on water, land within its spawn
+      radius, spawns **on water** — the case that produced these six failures
+- [ ] The six groups of `Snowfox_20260903.miz` spawn (verified against the built mission, or in game)
 - [ ] `luacheck` + `stylua --check` clean; Lua coverage floor bumped per the ratchet policy

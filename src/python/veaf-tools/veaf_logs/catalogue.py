@@ -31,6 +31,15 @@ KIND_NOISE = "noise"
 KIND_SOURCE = "source"
 KIND_SUBSYSTEM = "subsystem"
 
+#: What the catalogue layer says when it matched nothing. "The catalogue recognised nothing here" is
+#: itself an answer; an empty section reads as a bug.
+NOTHING_RECOGNISED = "Le catalogue ne reconnaît aucun motif dans cet extrait."
+
+#: Headings of the two rendered groups. Named rather than inlined, for the same reason as
+#: :data:`NOTHING_RECOGNISED`.
+HEADING_KNOWN = "Motifs connus (texte du catalogue, tel quel) :"
+HEADING_EMITTERS = "Émetteurs reconnus :"
+
 #: One catalogue entry as the Worker's ``/analyze`` route reads it. Deliberately narrower than
 #: ``dict[str, object]``: this value is serialised straight into a JSON body, and a type that admits
 #: anything is a type that lets an unserialisable value through to a runtime failure.
@@ -168,11 +177,11 @@ def render_catalogue(matches: list[CatalogueMatch]) -> str:
     emitters = [item for item in matches if item.kind != KIND_NOISE]
     blocks: list[str] = []
     if explained:
-        blocks.append("Motifs connus (texte du catalogue, tel quel) :\n" + "\n".join(m.render() for m in explained))
+        blocks.append(HEADING_KNOWN + "\n" + "\n".join(m.render() for m in explained))
     if emitters:
-        blocks.append("Émetteurs reconnus :\n" + "\n".join(m.render() for m in emitters))
+        blocks.append(HEADING_EMITTERS + "\n" + "\n".join(m.render() for m in emitters))
     if not blocks:
-        return "Le catalogue ne reconnaît aucun motif dans cet extrait."
+        return NOTHING_RECOGNISED
     return "\n\n".join(blocks)
 
 

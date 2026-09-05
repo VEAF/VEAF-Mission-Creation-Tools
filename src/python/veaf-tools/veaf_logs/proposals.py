@@ -47,6 +47,17 @@ MIN_LITERAL_CHARS = 12
 #: How long a generated label may be before it is elided.
 MAX_LABEL_CHARS = 60
 
+#: Why :func:`validate_pattern` refuses a candidate. Constants rather than literals in the ``return``
+#: statements: the interface shows these to the user, and a returned literal is exactly what
+#: ``test_no_hardcoded_english_prose`` flags across the whole shipped package.
+REJECT_EMPTY = "motif vide"
+REJECT_TOO_LONG = "motif trop long"
+REJECT_NESTED_QUANTIFIER = "quantificateur imbriqué (risque d'explosion combinatoire)"
+REJECT_UNANCHORED = "motif non ancré : il commence par un joker et se retrouverait n'importe où"
+REJECT_TOO_GENERAL = "trop peu de texte littéral : le motif attraperait n'importe quoi"
+REJECT_INVALID = "motif invalide"
+REJECT_NO_SELF_MATCH = "le motif ne retrouve pas la ligne dont il est issu"
+
 #: The ``help`` every proposal carries. It deliberately explains **nothing**: the value of a
 #: catalogue entry is that a human wrote and reviewed its wording, and a generated sentence dressed
 #: up as one would destroy exactly that.
@@ -198,21 +209,21 @@ def validate_pattern(pattern: str, sample: str) -> str:
         A reason, in French, or ``""`` when the pattern is fit to propose.
     """
     if not pattern:
-        return "motif vide"
+        return REJECT_EMPTY
     if len(pattern) > MAX_PATTERN_CHARS:
-        return "motif trop long"
+        return REJECT_TOO_LONG
     if _NESTED_QUANTIFIER.search(pattern):
-        return "quantificateur imbriqué (risque d'explosion combinatoire)"
+        return REJECT_NESTED_QUANTIFIER
     if any(pattern.startswith(fragment) for fragment in _WILDCARD_FRAGMENTS):
-        return "motif non ancré : il commence par un joker et se retrouverait n'importe où"
+        return REJECT_UNANCHORED
     if literal_chars(pattern) < MIN_LITERAL_CHARS:
-        return "trop peu de texte littéral : le motif attraperait n'importe quoi"
+        return REJECT_TOO_GENERAL
     try:
         compiled = re.compile(pattern)
     except re.error as exc:
-        return f"motif invalide : {exc}"
+        return f"{REJECT_INVALID} : {exc}"
     if not compiled.search(sample):
-        return "le motif ne retrouve pas la ligne dont il est issu"
+        return REJECT_NO_SELF_MATCH
     return ""
 
 

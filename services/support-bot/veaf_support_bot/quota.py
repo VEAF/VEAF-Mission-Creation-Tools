@@ -185,7 +185,9 @@ class QuotaStore:
             return _State(day="", global_count=0, users={})
         document = json.loads(self.path.read_text(encoding="utf-8"))
         if not isinstance(document, dict) or document.get("version") != STATE_VERSION:
-            raise ValueError(f"unsupported quota state version: {document.get('version') if isinstance(document, dict) else type(document).__name__}")
+            raise ValueError(
+                f"unsupported quota state version: {document.get('version') if isinstance(document, dict) else type(document).__name__}"
+            )
         users: dict[str, _UserCounters] = {}
         for user_id, raw in (document.get("users") or {}).items():
             users[str(user_id)] = _UserCounters(

@@ -22,8 +22,8 @@ already brings it in, so it costs no new dependency.
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator, Mapping
-from enum import Enum
+from collections.abc import AsyncIterator, Mapping, Sequence
+from enum import StrEnum
 from typing import Any, Final
 
 import aiohttp
@@ -43,7 +43,7 @@ MAX_QUESTION_CHARS: Final = 1000
 MAX_SUBJECT_CHARS: Final = 64
 
 
-class FailureKind(str, Enum):
+class FailureKind(StrEnum):
     """Why an exchange with the Worker did not produce an answer.
 
     Each value maps to one ``ask.error.*`` key in :mod:`veaf_support_bot.texts`, so adding a kind
@@ -143,7 +143,7 @@ class WorkerClient:
             headers["X-VEAF-Auth"] = self._secret
         return headers
 
-    def body(self, messages: list[Mapping[str, str]], lang: str, subject: str) -> dict[str, Any]:
+    def body(self, messages: Sequence[Mapping[str, str]], lang: str, subject: str) -> dict[str, Any]:
         """Build the request payload.
 
         Args:
@@ -157,7 +157,7 @@ class WorkerClient:
         """
         return {"lang": lang, "messages": list(messages), "subject": subject[:MAX_SUBJECT_CHARS]}
 
-    async def stream(self, messages: list[Mapping[str, str]], lang: str, subject: str) -> AsyncIterator[str]:
+    async def stream(self, messages: Sequence[Mapping[str, str]], lang: str, subject: str) -> AsyncIterator[str]:
         """Stream the answer to a conversation, one text fragment at a time.
 
         Args:
@@ -176,7 +176,12 @@ class WorkerClient:
         emitted = False
         try:
             async with self._session_factory(timeout=timeout) as session:
-                async with session.post(self._endpoint, json=self.body(messages, lang, subject)) as response:
+                post = session.post(
+                    self._endpoint,
+                    json=self.body(messages, lang, subject),
+                    headers=self.headers,
+                )
+                async with post as response:
                     if response.status != 200:
                         raise WorkerFailure(_classify(response.status), f"HTTP {response.status}")
                     async for raw in response.content:

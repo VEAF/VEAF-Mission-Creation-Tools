@@ -50,16 +50,14 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "quelques minutes ; si ça dure, dis-le sur le canal support."
         ),
         "ask.error.rate_limited": (
-            "L'assistant de documentation reçoit trop de questions en ce moment. Réessaie dans "
-            "quelques minutes."
+            "L'assistant de documentation reçoit trop de questions en ce moment. Réessaie dans quelques minutes."
         ),
         "ask.error.timeout": (
             "L'assistant de documentation a mis trop de temps à répondre. Réessaie ; si ça se "
             "reproduit, pose la question sur le canal support."
         ),
         "ask.error.empty": (
-            "L'assistant de documentation n'a renvoyé aucune réponse. Réessaie en reformulant la "
-            "question."
+            "L'assistant de documentation n'a renvoyé aucune réponse. Réessaie en reformulant la question."
         ),
         # Not a user error and not retryable: the Worker refuses this bot until its secret is
         # configured server-side. Saying "réessaie" would be a lie, so it says who can fix it.
@@ -74,8 +72,7 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         ),
         # --- local quota --------------------------------------------------------------------
         "quota.user-window": (
-            "Tu as posé plusieurs questions coup sur coup. Réessaie {reset_relative} "
-            "(vers {reset_time})."
+            "Tu as posé plusieurs questions coup sur coup. Réessaie {reset_relative} (vers {reset_time})."
         ),
         "quota.user-day": (
             "Tu as atteint ta limite de {limit} questions pour aujourd'hui. Elle se remet à zéro "
@@ -113,16 +110,14 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "lasts, say so on the support channel."
         ),
         "ask.error.rate_limited": (
-            "The documentation assistant is taking too many questions right now. Try again in a few "
-            "minutes."
+            "The documentation assistant is taking too many questions right now. Try again in a few minutes."
         ),
         "ask.error.timeout": (
             "The documentation assistant took too long to answer. Try again; if it happens twice, "
             "ask on the support channel."
         ),
         "ask.error.empty": (
-            "The documentation assistant returned nothing at all. Try again with a rephrased "
-            "question."
+            "The documentation assistant returned nothing at all. Try again with a rephrased question."
         ),
         # Not a user error and not retryable: the Worker refuses this bot until its secret is
         # configured server-side. Saying "try again" would be a lie, so it says who can fix it.
@@ -140,8 +135,7 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "You asked several questions in a row. Try again {reset_relative} (around {reset_time})."
         ),
         "quota.user-day": (
-            "You have reached your limit of {limit} questions for today. It resets {reset_relative} "
-            "(at {reset_time})."
+            "You have reached your limit of {limit} questions for today. It resets {reset_relative} (at {reset_time})."
         ),
         "quota.global-day": (
             "The bot has reached its limit of {limit} questions for today — it protects the free "

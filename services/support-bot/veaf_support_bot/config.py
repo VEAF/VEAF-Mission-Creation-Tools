@@ -11,8 +11,9 @@ Two properties this module exists to guarantee:
   A service that starts and only fails on the first user question is the failure mode this avoids.
 
 Neither secret — the Discord token, and the Worker's ``X-VEAF-Auth`` value — reaches a log line:
-:meth:`SupportBotConfig.redacted` masks both, ``repr`` of the configuration object is redacted too — so an accidental ``logger.info(config)`` or a stack trace
-cannot leak it — and **no problem message echoes the value it rejected**, only its shape (see
+:meth:`SupportBotConfig.redacted` masks both, and ``repr`` of the configuration object is redacted
+too, so an accidental ``logger.info(config)`` or a stack trace cannot leak either — and **no problem
+message echoes the value it rejected**, only its shape (see
 :func:`_shape`). That last one is not theoretical: the two Discord variables sit next to each other
 in ``.env.example``, both are long opaque strings copied out of the same Discord screen, and a
 configuration error is printed at ``CRITICAL`` on stdout, straight into a container log collector.
@@ -404,16 +405,10 @@ class SupportBotConfig:
             worker_client=reader.text("WORKER_CLIENT", DEFAULT_WORKER_CLIENT),
             worker_secret=worker_secret,
             quota_state_file=reader.text("QUOTA_STATE_FILE", DEFAULT_QUOTA_STATE_FILE),
-            quota_user_window_seconds=reader.seconds(
-                "QUOTA_USER_WINDOW_SECONDS", DEFAULT_QUOTA_USER_WINDOW_SECONDS
-            ),
-            quota_user_per_window=reader.integer(
-                "QUOTA_USER_PER_WINDOW", DEFAULT_QUOTA_USER_PER_WINDOW, minimum=1
-            ),
+            quota_user_window_seconds=reader.seconds("QUOTA_USER_WINDOW_SECONDS", DEFAULT_QUOTA_USER_WINDOW_SECONDS),
+            quota_user_per_window=reader.integer("QUOTA_USER_PER_WINDOW", DEFAULT_QUOTA_USER_PER_WINDOW, minimum=1),
             quota_user_per_day=reader.integer("QUOTA_USER_PER_DAY", DEFAULT_QUOTA_USER_PER_DAY, minimum=1),
-            quota_global_per_day=reader.integer(
-                "QUOTA_GLOBAL_PER_DAY", DEFAULT_QUOTA_GLOBAL_PER_DAY, minimum=1
-            ),
+            quota_global_per_day=reader.integer("QUOTA_GLOBAL_PER_DAY", DEFAULT_QUOTA_GLOBAL_PER_DAY, minimum=1),
             health_host=reader.text("HEALTH_HOST", DEFAULT_HEALTH_HOST),
             health_port=reader.port("HEALTH_PORT", DEFAULT_HEALTH_PORT),
             log_level=reader.choice("LOG_LEVEL", DEFAULT_LOG_LEVEL, LOG_LEVELS, upper=True),

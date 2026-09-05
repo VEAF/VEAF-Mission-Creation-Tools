@@ -210,9 +210,7 @@ class AskHandler:
             await exchange.announce(quota_message(decision, lang))
             return
 
-        await exchange.announce(
-            text("ask.header", lang, user=context.user_display, question=context.question)
-        )
+        await exchange.announce(text("ask.header", lang, user=context.user_display, question=context.question))
         opened = await exchange.open_thread(answer_module.thread_name(context.question))
         await exchange.post(text("ask.thinking", lang) if opened else text("ask.error.no_thread", lang))
 
@@ -246,9 +244,7 @@ class AskHandler:
             },
         )
 
-    async def _collect(
-        self, exchange: Exchange, context: AskContext, lang: str
-    ) -> tuple[str, WorkerFailure | None]:
+    async def _collect(self, exchange: Exchange, context: AskContext, lang: str) -> tuple[str, WorkerFailure | None]:
         """Stream the answer in, editing the message as it grows.
 
         Args:

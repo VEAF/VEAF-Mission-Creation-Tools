@@ -67,6 +67,33 @@ DEFAULT_QUOTA_USER_PER_DAY: Final = 15
 #: rebuilt. 200 leaves that headroom intact and is far above what the VEAF Discord asks in a day.
 DEFAULT_QUOTA_GLOBAL_PER_DAY: Final = 200
 
+# ---------------------------------------------------------------------------
+# FEAT-SUPPORT-BUG-INTAKE — the `/bug` intake. Grouped so a reader can see the whole feature's
+# configuration in one place, and so the ticket that adds the GitHub App appends below rather than
+# threading its variables through the ones above.
+# ---------------------------------------------------------------------------
+
+#: Filesystem path of the repository clone `/bug` reads. **Optional**: with no checkout the command
+#: is not published at all, and the rest of the service runs unchanged.
+#:
+#: It must be a clone the service owns. Refreshing it does `fetch` then a hard reset, so pointing it
+#: at a working copy somebody edits would throw that person's work away — see
+#: :mod:`veaf_support_bot.checkout`.
+DEFAULT_CHECKOUT_PATH: Final = ""
+
+DEFAULT_CHECKOUT_REMOTE: Final = "origin"
+DEFAULT_CHECKOUT_BRANCH: Final = "develop"
+
+#: Shortest gap between two refreshes of that clone. Fifteen minutes: a location pointing at a line
+#: that moved is the failure this guards against, and the repository does not move faster than that.
+#: ``0`` disables refreshing, which is how a deployment pins a revision on purpose.
+DEFAULT_CHECKOUT_REFRESH_SECONDS: Final = 900.0
+
+#: Largest single attachment one report may carry, and the largest total across it. Both bound work
+#: the service does on a stranger's behalf on a public command.
+DEFAULT_ATTACHMENT_MAX_BYTES: Final = 25 * 1024 * 1024
+DEFAULT_ATTACHMENT_TOTAL_BYTES: Final = 60 * 1024 * 1024
+
 #: Accepted values of ``SUPPORT_BOT_LOG_FORMAT``.
 LOG_FORMATS: Final = ("json", "text")
 
@@ -260,6 +287,33 @@ class _Reader:
             return default
         return value
 
+    def interval(self, name: str, default: float) -> float:
+        """Return a duration in seconds that may be zero.
+
+        Separate from :meth:`seconds` because zero is a meaningful setting for a *timer* — it turns
+        the timer off — while it is nonsense for a timeout or a grace period, which is why those
+        reject it.
+
+        Args:
+            name: Variable name without the prefix.
+            default: Value used when the variable is unset.
+
+        Returns:
+            The parsed duration, or *default* when it is negative or unparseable.
+        """
+        raw = self._raw(name)
+        if raw is None:
+            return default
+        try:
+            value = float(raw)
+        except ValueError:
+            self.problems.append(f"{ENV_PREFIX}{name} is not a number of seconds (got {_shape(raw)})")
+            return default
+        if value < 0:
+            self.problems.append(f"{ENV_PREFIX}{name}={value} must be >= 0")
+            return default
+        return value
+
     def flag(self, name: str, default: bool) -> bool:
         """Return a boolean value.
 
@@ -349,6 +403,12 @@ class SupportBotConfig:
         heartbeat_seconds: Interval between heartbeat log lines.
         shutdown_grace_seconds: How long in-flight work is given to finish on shutdown.
         dry_run: Start every moving part except the outside world. Used by the container smoke test.
+        checkout_path: Repository clone ``/bug`` reads; empty means the command is not published.
+        checkout_remote: Remote that clone is refreshed from.
+        checkout_branch: Branch it is reset onto.
+        checkout_refresh_seconds: Shortest gap between two refreshes; ``0`` pins the revision.
+        attachment_max_bytes: Largest single attachment one report may carry.
+        attachment_total_bytes: Largest total across one report.
     """
 
     discord_token: str
@@ -368,6 +428,12 @@ class SupportBotConfig:
     heartbeat_seconds: float
     shutdown_grace_seconds: float
     dry_run: bool
+    checkout_path: str = DEFAULT_CHECKOUT_PATH
+    checkout_remote: str = DEFAULT_CHECKOUT_REMOTE
+    checkout_branch: str = DEFAULT_CHECKOUT_BRANCH
+    checkout_refresh_seconds: float = DEFAULT_CHECKOUT_REFRESH_SECONDS
+    attachment_max_bytes: int = DEFAULT_ATTACHMENT_MAX_BYTES
+    attachment_total_bytes: int = DEFAULT_ATTACHMENT_TOTAL_BYTES
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> SupportBotConfig:
@@ -416,6 +482,12 @@ class SupportBotConfig:
             heartbeat_seconds=reader.seconds("HEARTBEAT_SECONDS", DEFAULT_HEARTBEAT_SECONDS),
             shutdown_grace_seconds=reader.seconds("SHUTDOWN_GRACE_SECONDS", DEFAULT_SHUTDOWN_GRACE_SECONDS),
             dry_run=dry_run,
+            checkout_path=reader.text("CHECKOUT_PATH", DEFAULT_CHECKOUT_PATH),
+            checkout_remote=reader.text("CHECKOUT_REMOTE", DEFAULT_CHECKOUT_REMOTE),
+            checkout_branch=reader.text("CHECKOUT_BRANCH", DEFAULT_CHECKOUT_BRANCH),
+            checkout_refresh_seconds=reader.interval("CHECKOUT_REFRESH_SECONDS", DEFAULT_CHECKOUT_REFRESH_SECONDS),
+            attachment_max_bytes=reader.integer("ATTACHMENT_MAX_BYTES", DEFAULT_ATTACHMENT_MAX_BYTES, minimum=1),
+            attachment_total_bytes=reader.integer("ATTACHMENT_TOTAL_BYTES", DEFAULT_ATTACHMENT_TOTAL_BYTES, minimum=1),
         )
         reader.raise_if_broken()
         return config
@@ -444,6 +516,12 @@ class SupportBotConfig:
             "heartbeat_seconds": self.heartbeat_seconds,
             "shutdown_grace_seconds": self.shutdown_grace_seconds,
             "dry_run": self.dry_run,
+            "checkout_path": self.checkout_path,
+            "checkout_remote": self.checkout_remote,
+            "checkout_branch": self.checkout_branch,
+            "checkout_refresh_seconds": self.checkout_refresh_seconds,
+            "attachment_max_bytes": self.attachment_max_bytes,
+            "attachment_total_bytes": self.attachment_total_bytes,
         }
 
     def __repr__(self) -> str:

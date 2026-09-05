@@ -243,7 +243,9 @@ class AttachmentCollector:
                 continue
             if item.size and item.size > self._max_file:
                 rejected.append(
-                    Rejected(name, f"too large ({describe_size(item.size)}; the limit is {describe_size(self._max_file)})")
+                    Rejected(
+                        name, f"too large ({describe_size(item.size)}; the limit is {describe_size(self._max_file)})"
+                    )
                 )
                 continue
             remaining = min(self._max_file, self._max_total - spent)
@@ -316,7 +318,9 @@ class AttachmentCollector:
             f"{digest.selected_records} of {digest.total_records} records kept by the *Diagnostic* profile; "
             f"{digest.uncatalogued} of them match no catalogue entry."
         )
-        return f"{header}\n\n{digest.catalogue}\n\n{digest.excerpt}", ("everything the Diagnostic profile filtered out",)
+        return f"{header}\n\n{digest.catalogue}\n\n{digest.excerpt}", (
+            "everything the Diagnostic profile filtered out",
+        )
 
     def _render_mission(self, path: Path) -> tuple[str, tuple[str, ...]]:
         """Summarise a mission through the tools' own export.

@@ -62,6 +62,14 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 no_implicit_optional = true
 
+# The tools' packages are not installed here: `veaf_support_bot/toolkit.py` imports them at run time
+# out of the repository checkout the `/bug` intake keeps fresh, which is a deliberate architecture
+# decision documented in that module's header. Every crossing goes through it, so this exemption is
+# scoped to the names it resolves and nothing else — it does not loosen the package's own strictness.
+[[tool.mypy.overrides]]
+module = ["veaf_libs.*", "veaf_logs.*", "mission_tools.*", "aiohttp"]
+ignore_missing_imports = true
+
 # ---------------------------------------------------------------------------
 # Pytest
 # ---------------------------------------------------------------------------

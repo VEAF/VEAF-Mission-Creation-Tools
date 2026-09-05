@@ -112,7 +112,12 @@ class BugForm:
         Returns:
             The field names, in form order.
         """
-        named = (("summary", self.summary), ("happened", self.happened), ("expected", self.expected), ("steps", self.steps))
+        named = (
+            ("summary", self.summary),
+            ("happened", self.happened),
+            ("expected", self.expected),
+            ("steps", self.steps),
+        )
         return tuple(name for name, value in named if not value.strip())
 
 
@@ -250,9 +255,10 @@ def assemble(
     for name in form.missing_fields():
         collected.append(MaterialNote(f"form field “{name}”", "left empty by the reporter"))
     for missing in trace.unresolved:
+        basename = PurePosixPath(missing.raw.replace("\\", "/")).name
         collected.append(
             MaterialNote(
-                f"{PurePosixPath(missing.raw.replace('\\', '/')).name}:{missing.line}",
+                f"{basename}:{missing.line}",
                 f"named by the trace, absent from the checkout at {checkout.freshness().revision}",
             )
         )

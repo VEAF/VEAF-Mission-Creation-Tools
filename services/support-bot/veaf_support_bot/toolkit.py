@@ -423,9 +423,13 @@ def _select_published_fields(table: dict[str, Any]) -> MissionSummary:
     weather = table.get("weather")
     if isinstance(weather, dict):
         summary = {
-            "temperature": weather.get("season", {}).get("temperature") if isinstance(weather.get("season"), dict) else None,
+            "temperature": weather.get("season", {}).get("temperature")
+            if isinstance(weather.get("season"), dict)
+            else None,
             "cloud_base": weather.get("clouds", {}).get("base") if isinstance(weather.get("clouds"), dict) else None,
-            "cloud_preset": weather.get("clouds", {}).get("preset") if isinstance(weather.get("clouds"), dict) else None,
+            "cloud_preset": weather.get("clouds", {}).get("preset")
+            if isinstance(weather.get("clouds"), dict)
+            else None,
         }
         kept = {key: value for key, value in summary.items() if value is not None}
         if kept:

@@ -78,6 +78,7 @@ _HEADINGS = {
         "located": "Localisation dans le code",
         "mission": "Mission",
         "logs": "Extrait de journal",
+        "quoted": "Fichiers cités",
         "files": "Fichiers joints",
         "priorart": "Antériorité",
         "missing": "Ce qui manque, et pourquoi",
@@ -103,6 +104,7 @@ _HEADINGS = {
         "located": "Located in the code",
         "mission": "Mission",
         "logs": "Log excerpt",
+        "quoted": "Quoted files",
         "files": "Attached files",
         "priorart": "Prior art",
         "missing": "What is missing, and why",
@@ -277,6 +279,10 @@ def render_body(report: BugReport, key: str, *, thread_url: str = "", carried: I
         parts.append(f"### {heading('mission', lang)}\n\n" + "\n\n".join(report.mission_summaries))
     if report.log_digests:
         parts.append(f"### {heading('logs', lang)}\n\n" + "\n\n".join(report.log_digests))
+    # Its own heading, never folded into the log excerpts: a `mission.yaml` printed under *Log
+    # excerpt* leaves a reader wondering why his configuration file is being called a log.
+    if report.quoted_files:
+        parts.append(f"### {heading('quoted', lang)}\n\n" + "\n\n".join(report.quoted_files))
 
     files = _render_manifest(carried, lang)
     if files:

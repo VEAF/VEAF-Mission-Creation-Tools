@@ -215,6 +215,25 @@ class TestThePriorArtSection(unittest.TestCase):
         self.assertIn(f"### {heading('priorart', 'en')}", render_body(report, "abc"))
 
 
+class TestTheThreeMaterialBuckets(unittest.TestCase):
+    """A configuration file must not come out of the renderer under a *log excerpt* heading."""
+
+    def test_a_quoted_file_gets_its_own_heading(self) -> None:
+        report = assemble(
+            BugForm(summary="s", happened="h", expected="e", steps="p", language="en"),
+            fixture_checkout(),
+            log_digests=("**dcs.log**\nan excerpt",),
+            quoted_files=("**mission.yaml**\nmodules: {}",),
+        )
+        body = render_body(report, "abc")
+        self.assertIn(f"### {heading('quoted', 'en')}", body)
+        self.assertIn("mission.yaml", body)
+        self.assertLess(
+            body.index(f"### {heading('logs', 'en')}"),
+            body.index(f"### {heading('quoted', 'en')}"),
+        )
+
+
 class TestWhatIsMissing(unittest.TestCase):
     """Absent is stated, never filled in."""
 

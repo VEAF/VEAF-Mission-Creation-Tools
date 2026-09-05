@@ -23,10 +23,19 @@ those calls, and asserting on the order needs the order to be observable.
 Opening a thread needs a permission the bot may not have. Losing the answer to that would be the
 worst outcome, so a thread failure is reported and the answer is posted where the question was
 asked. The exchange degrades; it does not vanish.
+
+## Nothing gets past the defer without answering
+
+Once the interaction is deferred, Discord shows "the bot is thinking" until something edits the
+response. So every step after the defer runs under one guard: an exception that nobody expected —
+Discord answering 500 to an ``announce``, a future text key that is not there, a bug in ``render`` —
+becomes a sentence rather than a placeholder that never resolves. The gateway's own handler only
+logs, so a failure that escapes here is one nobody in the thread ever sees.
 """
 
 from __future__ import annotations
 
+import asyncio
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -37,7 +46,7 @@ from veaf_support_bot import answer as answer_module
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.quota import QuotaDecision, QuotaKeeper
 from veaf_support_bot.texts import normalize_language, text
-from veaf_support_bot.worker import MAX_QUESTION_CHARS, WorkerClient, WorkerFailure
+from veaf_support_bot.worker import MAX_QUESTION_CHARS, FailureKind, WorkerClient, WorkerFailure
 
 #: Shortest gap between two edits of the streaming message. Discord allows about five message edits
 #: per five seconds per channel; anything faster buys no smoothness and spends the budget the final
@@ -181,7 +190,7 @@ class AskHandler:
         self._min_edit_chars = min_edit_chars
 
     async def handle(self, exchange: Exchange, context: AskContext) -> None:
-        """Answer one question.
+        """Answer one question, and answer it even when something unexpected goes wrong.
 
         Args:
             exchange: The Discord side of the conversation.
@@ -196,6 +205,45 @@ class AskHandler:
         # busy disk plus a Worker round trip is not a budget to gamble.
         await exchange.defer()
 
+        try:
+            await self._answer(exchange, context, lang)
+        except Exception as error:
+            # Past the defer, an escaping exception is not "an error nobody handled": it is a reader
+            # left on a placeholder until the interaction token dies fifteen minutes later. The
+            # gateway's default handler writes a log line and touches the interaction never again.
+            self._logger.exception(
+                "the /ask exchange failed after the acknowledgement",
+                extra={"event": "ask.crashed", "user": context.user_id, "error": type(error).__name__},
+            )
+            await self._apologize(exchange, lang)
+
+    async def _apologize(self, exchange: Exchange, lang: str) -> None:
+        """Put a sentence where the placeholder is, best effort.
+
+        :meth:`Exchange.edit` falls back to posting when nothing has been posted yet, so this reaches
+        the reader wherever the exchange stopped. Its own failure is swallowed: there is nothing
+        left to try, and raising here would replace one silent failure with the same one.
+
+        Args:
+            exchange: The Discord side of the conversation.
+            lang: ``"fr"`` or ``"en"``.
+        """
+        try:
+            await exchange.edit(text("ask.error.unexpected", lang))
+        except Exception as error:  # noqa: BLE001 - the last resort cannot have a resort of its own
+            self._logger.error(
+                "could not even tell the reader the exchange failed",
+                extra={"event": "ask.apology_failed", "error": type(error).__name__},
+            )
+
+    async def _answer(self, exchange: Exchange, context: AskContext, lang: str) -> None:
+        """Run the exchange, from the quota decision to the final edit.
+
+        Args:
+            exchange: The Discord side of the conversation.
+            context: The question and who asked it.
+            lang: ``"fr"`` or ``"en"``.
+        """
         decision = self._quota.check_and_consume(context.user_id)
         if not decision.allowed:
             self._logger.info(
@@ -262,16 +310,29 @@ class AskHandler:
         last_edit = self._clock()
         last_size = 0
         messages = answer_module.protocol_turns(context.question)
+        budget = self._worker.timeout
         try:
-            async for fragment in self._worker.stream(messages, lang, context.user_id):
-                collected.append(fragment)
-                size += len(fragment)
-                now = self._clock()
-                if size - last_size >= self._min_edit_chars and now - last_edit >= self._min_edit_interval:
-                    last_edit, last_size = now, size
-                    await exchange.edit(answer_module.render_partial("".join(collected), lang))
+            # The budget belongs here rather than only inside the client: aiohttp's own total timer
+            # is consulted while it waits on the socket, never while *this* loop awaits a Discord
+            # edit — and a rate-limited edit is exactly what discord.py sleeps through. Without this
+            # the loop can outlive the fifteen minutes a deferred interaction token gets, and the
+            # answer is then lost with the reader still on the placeholder.
+            async with asyncio.timeout(budget):
+                async for fragment in self._worker.stream(messages, lang, context.user_id):
+                    collected.append(fragment)
+                    size += len(fragment)
+                    now = self._clock()
+                    if size - last_size >= self._min_edit_chars and now - last_edit >= self._min_edit_interval:
+                        last_size = size
+                        await exchange.edit(answer_module.render_partial("".join(collected), lang))
+                        # Stamped *after* the edit, not before: an edit that takes longer than the
+                        # interval would otherwise satisfy the gate the moment it returned, so the
+                        # throttle would stop throttling precisely while Discord is pushing back.
+                        last_edit = self._clock()
         except WorkerFailure as failure:
             return "".join(collected), failure
+        except TimeoutError:
+            return "".join(collected), WorkerFailure(FailureKind.TIMEOUT, f"the exchange exceeded {budget}s")
         return "".join(collected), None
 
 

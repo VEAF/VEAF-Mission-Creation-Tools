@@ -12,7 +12,9 @@ import unittest
 from veaf_support_bot.answer import (
     DISCORD_MESSAGE_LIMIT,
     DISCORD_THREAD_NAME_LIMIT,
+    MAX_SOURCE_LABEL_CHARS,
     MAX_SOURCES,
+    SOURCES_KEYWORD,
     SOURCES_MARKER,
     protocol_turns,
     render,
@@ -21,10 +23,23 @@ from veaf_support_bot.answer import (
     split_sources,
     thread_name,
 )
+from veaf_support_bot.doc_pages_data import PAGES_BY_TITLE
 from veaf_support_bot.texts import support_page_url, text
 
 REAL_TITLE = "Obtenir de l'aide"
 REAL_TITLE_EN = "Getting help"
+
+
+def _real_titles(count: int) -> list[str]:
+    """Return *count* titles taken from the checked-in index, each resolving to its own page.
+
+    Args:
+        count: How many titles are wanted.
+
+    Returns:
+        Titles the corpus really has, one page each.
+    """
+    return sorted(PAGES_BY_TITLE["fr"])[:count]
 
 
 class TestTheProtocolTurn(unittest.TestCase):
@@ -83,6 +98,42 @@ class TestSplittingTheTrailer(unittest.TestCase):
 
         self.assertEqual(titles, ["A", "B"])
 
+    def test_the_shapes_a_model_reformats_the_marker_into_are_all_read(self) -> None:
+        """A wobble used to cost twice: the raw line stayed in the body *and* every title was lost.
+
+        Two of these are invited by the module itself — the instruction shows the marker inside
+        backticks, and the bot answers in French, where a space precedes a colon.
+        """
+        trailers = {
+            "plain": f"{SOURCES_MARKER} {REAL_TITLE}",
+            "backticked": f"`{SOURCES_MARKER} {REAL_TITLE}`",
+            "bold marker": f"**{SOURCES_MARKER}** {REAL_TITLE}",
+            "bold whole line": f"**{SOURCES_MARKER} {REAL_TITLE}**",
+            "italic": f"_{SOURCES_MARKER} {REAL_TITLE}_",
+            "french spacing": f"{SOURCES_KEYWORD} : {REAL_TITLE}",
+            "no-break space": f"{SOURCES_KEYWORD} : {REAL_TITLE}",
+            "narrow no-break space": f"{SOURCES_KEYWORD} : {REAL_TITLE}",
+            "thin space": f"{SOURCES_KEYWORD} : {REAL_TITLE}",
+            "bullet": f"- {SOURCES_MARKER} {REAL_TITLE}",
+            "heading": f"### {SOURCES_MARKER} {REAL_TITLE}",
+            "quote": f"> {SOURCES_MARKER} {REAL_TITLE}",
+            "indented": f"    {SOURCES_MARKER} {REAL_TITLE}",
+            "full-width colon": f"{SOURCES_KEYWORD}： {REAL_TITLE}",
+            "lowercase": f"Sources: {REAL_TITLE}",
+        }
+        for name, trailer in trailers.items():
+            with self.subTest(shape=name):
+                body, titles = split_sources(f"La réponse.\n{trailer}")
+
+                self.assertEqual(titles, [REAL_TITLE], f"titles lost on the {name} trailer")
+                self.assertEqual(body, "La réponse.", f"the protocol line leaked on the {name} trailer")
+
+    def test_a_sentence_that_merely_mentions_sources_is_not_a_trailer(self) -> None:
+        """The looser match must still need the colon: prose about sources is not a declaration."""
+        body, titles = split_sources("Les sources de la documentation sont dans doc/.")
+
+        self.assertEqual((body, titles), ("Les sources de la documentation sont dans doc/.", []))
+
 
 class TestLinks(unittest.TestCase):
     def test_a_real_title_becomes_a_link_to_its_page(self) -> None:
@@ -109,9 +160,31 @@ class TestLinks(unittest.TestCase):
         self.assertEqual(len(source_links([REAL_TITLE, "OBTENIR DE L'AIDE"], "fr")), 1)
 
     def test_the_footer_does_not_become_a_wall(self) -> None:
-        titles = [REAL_TITLE, "Référence CLI", "Lire les journaux de DCS", "Le build", "Les fiches", "Alias"]
+        """Six titles that all resolve, so the cap is what stops the sixth — not the corpus.
 
-        self.assertLessEqual(len(source_links(titles, "fr")), MAX_SOURCES)
+        The previous fixture used six invented names, four of which resolved to nothing: it returned
+        two links and satisfied ``<= MAX_SOURCES`` with three to spare, so it passed just as well
+        with the cap deleted.
+        """
+        titles = _real_titles(MAX_SOURCES + 1)
+        self.assertEqual(len(titles), MAX_SOURCES + 1, "the fixture must offer more titles than the cap")
+
+        self.assertEqual(len(source_links(titles, "fr")), MAX_SOURCES)
+
+    def test_a_label_the_model_padded_is_cut_rather_than_echoed_whole(self) -> None:
+        """``normalize_title`` strips decoration from the ends, so a padded title still resolves."""
+        padded = REAL_TITLE + "." * 500
+
+        (link,) = source_links([padded], "fr")
+
+        self.assertLessEqual(len(link), MAX_SOURCE_LABEL_CHARS + len(f"[]({support_page_url('fr')})") + 100)
+        self.assertNotIn("." * 200, link)
+
+    def test_a_real_title_is_never_cut(self) -> None:
+        """A cap that trimmed the corpus would be a bug of its own, so every real title is checked."""
+        for title in PAGES_BY_TITLE["fr"]:
+            with self.subTest(title=title):
+                self.assertLessEqual(len(title), MAX_SOURCE_LABEL_CHARS)
 
 
 class TestTheRenderedMessage(unittest.TestCase):
@@ -145,6 +218,40 @@ class TestTheRenderedMessage(unittest.TestCase):
     def test_an_answer_that_is_only_a_trailer_still_produces_a_message(self) -> None:
         """Discord refuses an empty message; a blank one would fail the edit and show nothing."""
         self.assertTrue(render("", [], "fr").strip())
+
+    def test_a_model_supplied_label_cannot_push_the_message_over_the_limit(self) -> None:
+        """The measured regression: five padded labels rendered 3299 characters.
+
+        Discord refuses that, ``InteractionExchange.edit`` swallows the refusal on purpose, and the
+        reader is left on the placeholder with no answer and no error.
+        """
+        padded = [title + "." * 500 for title in _real_titles(MAX_SOURCES)]
+
+        rendered = render("mot " * 900, source_links(padded, "fr"), "fr")
+
+        self.assertLessEqual(len(rendered), DISCORD_MESSAGE_LIMIT)
+
+    def test_a_footer_that_fills_the_message_costs_the_body_not_the_caveat(self) -> None:
+        """``render`` promises a message within the limit for *any* links it is handed.
+
+        Unreachable through ``source_links`` now that labels are capped, and asserted anyway: the
+        promise is the function's, so it must not depend on who happens to call it.
+        """
+        enormous = [f"[{'x' * 3000}](https://example.invalid/)"]
+
+        rendered = render("La réponse.", enormous, "fr")
+
+        self.assertLessEqual(len(rendered), DISCORD_MESSAGE_LIMIT)
+
+    def test_the_longest_real_footer_still_leaves_room_for_an_answer(self) -> None:
+        """The worst realistic case used to measure exactly 2000: a bound with no margin at all."""
+        longest = sorted(PAGES_BY_TITLE["fr"], key=len, reverse=True)[:MAX_SOURCES]
+
+        rendered = render("mot " * 900, source_links(longest, "fr"), "fr")
+
+        self.assertLessEqual(len(rendered), DISCORD_MESSAGE_LIMIT)
+        self.assertIn(text("ask.disclaimer", "fr"), rendered)
+        self.assertTrue(rendered.startswith("mot"), "the footer left no room for any answer at all")
 
 
 class TestTheStreamingPlaceholder(unittest.TestCase):

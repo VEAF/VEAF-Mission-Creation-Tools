@@ -70,6 +70,12 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "Je n'ai pas pu ouvrir de fil pour cette question — il me manque probablement la "
             "permission « Créer des fils publics ». Voici quand même la réponse."
         ),
+        # Not an upstream failure: a bug on this side. It still gets a sentence, because the
+        # alternative is a « le bot réfléchit » qui ne se résout jamais.
+        "ask.error.unexpected": (
+            "Quelque chose s'est mal passé de mon côté et je n'ai pas pu terminer cette réponse. "
+            "Réessaie ; si ça se reproduit, signale-le sur le canal support."
+        ),
         # --- local quota --------------------------------------------------------------------
         "quota.user-window": (
             "Tu as posé plusieurs questions coup sur coup. Réessaie {reset_relative} (vers {reset_time})."
@@ -134,6 +140,12 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "ask.error.no_thread": (
             "I could not open a thread for this question — I am probably missing the "
             '"Create Public Threads" permission. Here is the answer anyway.'
+        ),
+        # Not an upstream failure: a bug on this side. It still gets a sentence, because the
+        # alternative is a "the bot is thinking" that never resolves.
+        "ask.error.unexpected": (
+            "Something went wrong on my side and I could not finish this answer. Try again; if it "
+            "happens twice, say so on the support channel."
         ),
         # --- local quota --------------------------------------------------------------------
         "quota.user-window": (

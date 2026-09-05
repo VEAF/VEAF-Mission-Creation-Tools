@@ -31,10 +31,13 @@ DISCORD_MESSAGE_LIMIT: Final = 2000
 #: Longest name a Discord thread can carry.
 DISCORD_THREAD_NAME_LIMIT: Final = 100
 
-#: Marker the model is asked to put on the last line of its answer. Uppercase ASCII in both
+#: Keyword the model is asked to put on the last line of its answer. Uppercase ASCII in both
 #: languages on purpose: a localized marker would have to be matched in two spellings, and the model
 #: translates a French instruction's keyword often enough to matter.
-SOURCES_MARKER: Final = "SOURCES:"
+SOURCES_KEYWORD: Final = "SOURCES"
+
+#: The marker as the instruction shows it, keyword and colon.
+SOURCES_MARKER: Final = f"{SOURCES_KEYWORD}:"
 
 #: Separator between declared titles. A comma is not usable — documentation titles contain them.
 SOURCES_SEPARATOR: Final = "|"
@@ -43,7 +46,42 @@ SOURCES_SEPARATOR: Final = "|"
 #: this in one footer stops being a citation and becomes a wall.
 MAX_SOURCES: Final = 5
 
-_SOURCES_LINE_RE: Final = re.compile(rf"^\s*{SOURCES_MARKER}(?P<titles>.*)$", re.IGNORECASE | re.MULTILINE)
+#: Longest link label. The label is the title the **model** typed, and nothing upstream bounds it:
+#: :func:`~veaf_support_bot.doc_pages.normalize_title` only strips decoration from the ends, so
+#: ``"Le build" + "." * 500`` still resolves and would be echoed whole. Five of those rendered a
+#: 3299-character message, which Discord refuses — and the refusal is swallowed, so the reader is
+#: left on the placeholder with no answer and no error. The longest real French title is 79
+#: characters, so this cuts nothing the corpus actually has.
+MAX_SOURCE_LABEL_CHARS: Final = 100
+
+#: Decoration the model puts around a title, or around the trailer itself. Stripped from both ends
+#: of every declared title, in any order, so ``**`Le build`**`` and ``` `Le build`, ``` both resolve.
+_TITLE_TRIM: Final = " \t`*_"
+
+#: What may sit between the keyword and its colon: the decoration above, plus every horizontal space
+#: French typography puts before a colon — the ordinary one, the no-break, the narrow no-break and
+#: the thin space a word processor or a model substitutes for it.
+_MARKER_GAP: Final = " \t\u00a0\u202f\u2009`*_"
+
+#: What may sit before the keyword: the same, plus a bullet, a heading marker and a quote marker.
+_MARKER_LEAD: Final = _MARKER_GAP + "#>-"
+
+#: Matches the trailer, tolerating the reformattings a model actually produces.
+#:
+#: Only the exact ``SOURCES:`` at the start of a line used to be accepted, which failed twice over on
+#: any wobble: the raw protocol line stayed in the body the reader sees **and** every citation was
+#: lost, so a correctly sourced answer displayed "no page was cited". Two of those wobbles are
+#: invited by this module itself — the instruction shows the marker inside backticks, so a model
+#: copying the form it was shown writes ``` `SOURCES: ...` ```; and the bot answers in French, where
+#: typography puts a space before a colon. Bold, a heading marker, a quote and a bullet cost nothing
+#: more to accept, and neither does a full-width colon.
+#:
+#: The direction that matters stays safe: a title the corpus does not have is still dropped, so a
+#: looser trailer cannot invent a source.
+_SOURCES_LINE_RE: Final = re.compile(
+    rf"^[{re.escape(_MARKER_LEAD)}]*{SOURCES_KEYWORD}[{re.escape(_MARKER_GAP)}]*[:：∶](?P<titles>.*)$",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 _PROTOCOL: Final = (
     "For every answer in this conversation, finish with one final line, on its own, in exactly this "
@@ -95,7 +133,9 @@ def split_sources(answer: str) -> tuple[str, list[str]]:
     body = (answer[: last.start()] + answer[last.end() :]).strip()
     seen: list[str] = []
     for raw in last.group("titles").split(SOURCES_SEPARATOR):
-        title = raw.strip().strip("`*_")
+        # One pass over both sets, not whitespace then decoration: `` **Le build** `` leaves a
+        # leading space behind when the two are stripped in sequence.
+        title = raw.strip(_TITLE_TRIM)
         if title and title not in seen:
             seen.append(title)
     return body, seen
@@ -109,9 +149,9 @@ def source_links(titles: Iterable[str], lang: str) -> list[str]:
         lang: ``"fr"`` or ``"en"``; a title is only looked up in the asker's own corpus.
 
     Returns:
-        Markdown links, at most :data:`MAX_SOURCES` of them, in the order declared. A title with no
-        matching page yields nothing at all — never a guess, and never a bare title, which would
-        read as a source the reader cannot check.
+        Markdown links, at most :data:`MAX_SOURCES` of them, in the order declared, each label capped
+        at :data:`MAX_SOURCE_LABEL_CHARS`. A title with no matching page yields nothing at all —
+        never a guess, and never a bare title, which would read as a source the reader cannot check.
     """
     links: list[str] = []
     seen: set[str] = set()
@@ -122,7 +162,10 @@ def source_links(titles: Iterable[str], lang: str) -> list[str]:
         if url is None or url in seen:
             continue
         seen.add(url)
-        links.append(f"[{title}]({url})")
+        # The URL comes from the corpus and is bounded by it; the label does not, so it is the label
+        # that is cut. That is what keeps the footer a size :func:`render` can reserve room for.
+        label = title if len(title) <= MAX_SOURCE_LABEL_CHARS else title[: MAX_SOURCE_LABEL_CHARS - 1].rstrip() + "…"
+        links.append(f"[{label}]({url})")
         if len(links) == MAX_SOURCES:
             break
     return links
@@ -166,6 +209,11 @@ def render(body: str, links: Sequence[str], lang: str) -> str:
     footer = f"{footer}\n{text('ask.disclaimer', lang)}"
 
     room = DISCORD_MESSAGE_LIMIT - len(footer) - 2
+    if room <= 0:
+        # The footer alone fills the message. Nothing of the body can be shown, and the promise
+        # above still holds: sources and caveat are what must survive. Unreachable while labels are
+        # capped, and kept so the bound is a property of the code rather than of the corpus.
+        return footer[:DISCORD_MESSAGE_LIMIT]
     trimmed = body.strip()
     if len(trimmed) > room:
         notice = text("ask.truncated", lang)

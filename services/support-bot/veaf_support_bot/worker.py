@@ -30,6 +30,11 @@ import aiohttp
 
 #: How long the whole exchange may take. Comfortably above the Worker's own generation time, and
 #: well under the fifteen minutes Discord gives a deferred interaction.
+#:
+#: ``ClientTimeout(total=...)`` alone does **not** hold this: aiohttp only consults its timer while
+#: it is waiting on the socket, so once bytes are buffered a slow *consumer* — one awaiting a Discord
+#: edit that is being rate-limited — runs unbounded. The budget is therefore also applied around the
+#: consuming loop, in :meth:`~veaf_support_bot.ask.AskHandler._collect`.
 DEFAULT_TIMEOUT_SECONDS: Final = 60.0
 
 #: Longest question forwarded. Well under the Worker's 64 KiB body ceiling for this client; the
@@ -127,6 +132,19 @@ class WorkerClient:
         self._secret = secret
         self._timeout = timeout
         self._session_factory = session_factory or aiohttp.ClientSession
+
+    @property
+    def timeout(self) -> float:
+        """Return the seconds granted to one exchange.
+
+        Read by the caller rather than kept as a second number of its own: ``ClientTimeout`` only
+        bounds what this client *waits* for, and the consumer of :meth:`stream` has to hold the same
+        budget over its own work — see :meth:`~veaf_support_bot.ask.AskHandler._collect`.
+
+        Returns:
+            The budget in seconds.
+        """
+        return self._timeout
 
     @property
     def headers(self) -> dict[str, str]:

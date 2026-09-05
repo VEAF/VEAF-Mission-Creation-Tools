@@ -15,6 +15,7 @@ from typing import Any
 import aiohttp
 
 from veaf_support_bot.worker import (
+    DEFAULT_TIMEOUT_SECONDS,
     MAX_SUBJECT_CHARS,
     FailureKind,
     WorkerClient,
@@ -165,6 +166,24 @@ async def _collect(client: WorkerClient, subject: str = "42") -> str:
         The concatenated fragments.
     """
     return "".join([fragment async for fragment in client.stream([{"role": "user", "content": "q"}], "fr", subject)])
+
+
+class TestTheExchangeBudgetIsReadable(unittest.TestCase):
+    """The consumer has to hold the same budget, so it has to be able to read it.
+
+    ``ClientTimeout(total=...)`` only bounds what aiohttp waits for: measured against a real local
+    server, a stream with a slow consumer ran 12.25 s on a 2.0 s budget while a hanging server was
+    cut off at 2.00 s. The bound over the consuming loop lives in ``AskHandler._collect``, and it
+    reads this rather than keeping a second number that would drift.
+    """
+
+    def test_it_reports_the_budget_it_was_built_with(self) -> None:
+        self.assertEqual(_client(_FakeSession(200, []), secret="s").timeout, DEFAULT_TIMEOUT_SECONDS)
+
+    def test_an_overridden_budget_is_the_one_reported(self) -> None:
+        client = WorkerClient("https://worker.test/chat", "discord", "s", timeout=3.5)
+
+        self.assertEqual(client.timeout, 3.5)
 
 
 class TestTheRequest(unittest.IsolatedAsyncioTestCase):

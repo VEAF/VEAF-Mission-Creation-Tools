@@ -8,10 +8,11 @@ edit last — not merely that each step can be performed.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
-from veaf_support_bot.worker import WorkerFailure
+from veaf_support_bot.worker import DEFAULT_TIMEOUT_SECONDS, WorkerFailure
 
 
 class RecordingExchange:
@@ -22,18 +23,37 @@ class RecordingExchange:
         thread_allowed: Whether :meth:`open_thread` succeeds.
     """
 
-    def __init__(self, *, thread_allowed: bool = True) -> None:
+    def __init__(self, *, thread_allowed: bool = True, fails_on: Sequence[str] = ()) -> None:
         """Initialize the recorder.
 
         Args:
             thread_allowed: Whether opening a thread is permitted, so the degraded path is testable.
+            fails_on: Method names that raise ``RuntimeError`` after recording the call. Discord
+                answering 500 to an ``announce`` or a ``post`` is not a modelled failure anywhere in
+                the exchange, and once the interaction is deferred an escape leaves the reader on a
+                placeholder forever — so it has to be reachable from a test.
         """
         self.calls: list[tuple[str, str]] = []
         self.thread_allowed = thread_allowed
+        self._fails_on = set(fails_on)
+
+    def _record(self, method: str, content: str) -> None:
+        """Write one call down, and fail it when the test asked for that.
+
+        Args:
+            method: The method called.
+            content: Its argument.
+
+        Raises:
+            RuntimeError: When *method* is one of the methods this recorder was told to fail.
+        """
+        self.calls.append((method, content))
+        if method in self._fails_on:
+            raise RuntimeError(f"Discord refused {method}")
 
     async def defer(self) -> None:
         """Record the deferred acknowledgement."""
-        self.calls.append(("defer", ""))
+        self._record("defer", "")
 
     async def announce(self, content: str) -> None:
         """Record the visible question message.
@@ -41,7 +61,7 @@ class RecordingExchange:
         Args:
             content: The announced content.
         """
-        self.calls.append(("announce", content))
+        self._record("announce", content)
 
     async def open_thread(self, name: str) -> bool:
         """Record a thread creation attempt.
@@ -52,7 +72,7 @@ class RecordingExchange:
         Returns:
             :attr:`thread_allowed`.
         """
-        self.calls.append(("open_thread", name))
+        self._record("open_thread", name)
         return self.thread_allowed
 
     async def post(self, content: str) -> None:
@@ -61,7 +81,7 @@ class RecordingExchange:
         Args:
             content: The message content.
         """
-        self.calls.append(("post", content))
+        self._record("post", content)
 
     async def edit(self, content: str) -> None:
         """Record an edit.
@@ -69,7 +89,7 @@ class RecordingExchange:
         Args:
             content: The new content.
         """
-        self.calls.append(("edit", content))
+        self._record("edit", content)
 
     @property
     def steps(self) -> list[str]:
@@ -113,6 +133,8 @@ class FakeWorker:
     Attributes:
         seen: The arguments of each :meth:`stream` call, so a test can assert the question reached
             the Worker unmodified and the quota subject was the Discord user id.
+        timeout: The exchange budget, read by the handler — the real client exposes the same, and the
+            handler applies it around its own consuming loop.
     """
 
     def __init__(
@@ -121,6 +143,8 @@ class FakeWorker:
         failure: WorkerFailure | None = None,
         *,
         fail_after: int | None = None,
+        timeout: float = DEFAULT_TIMEOUT_SECONDS,
+        pause: float = 0.0,
     ) -> None:
         """Initialize the fake.
 
@@ -129,10 +153,15 @@ class FakeWorker:
             failure: Raised instead of finishing, when given.
             fail_after: Yield this many fragments before raising *failure*; ``None`` raises before
                 any fragment.
+            timeout: The exchange budget the handler is to hold.
+            pause: Seconds slept before each fragment, so a test can make the stream outlast a
+                budget without the consumer being the slow side.
         """
         self._fragments = list(fragments)
         self._failure = failure
         self._fail_after = fail_after
+        self._pause = pause
+        self.timeout = timeout
         self.seen: list[dict[str, Any]] = []
 
     async def stream(self, messages: Sequence[Any], lang: str, subject: str) -> AsyncIterator[str]:
@@ -155,6 +184,8 @@ class FakeWorker:
         for index, fragment in enumerate(self._fragments):
             if self._failure is not None and self._fail_after is not None and index >= self._fail_after:
                 raise self._failure
+            if self._pause:
+                await asyncio.sleep(self._pause)
             yield fragment
         if self._failure is not None:
             raise self._failure

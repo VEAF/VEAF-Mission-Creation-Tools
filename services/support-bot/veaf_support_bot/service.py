@@ -44,9 +44,13 @@ from veaf_support_bot.ask import AskHandler, build_handler
 from veaf_support_bot.attachments import AttachmentCollector, http_download
 from veaf_support_bot.checkout import CheckoutUnavailable, open_checkout
 from veaf_support_bot.config import SupportBotConfig
+from veaf_support_bot.filing import IssueFiler, Ledger, RepositoryIssues
+from veaf_support_bot.github_app import AppCredentials, GitHubApp, aiohttp_transport, read_private_key
 from veaf_support_bot.health import HealthServer, ServiceState
 from veaf_support_bot.intake import BugIntake
+from veaf_support_bot.priorart import PriorArtGate
 from veaf_support_bot.logging_setup import get_logger
+from veaf_support_bot.priorart import PriorArtSweeper
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
 
 
@@ -125,7 +129,44 @@ def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugI
         max_file_bytes=config.attachment_max_bytes,
         max_total_bytes=config.attachment_total_bytes,
     )
-    return BugIntake(checkout, collector, logger=report)
+    app = build_github_app(config)
+    return BugIntake(
+        checkout,
+        collector,
+        logger=report,
+        prior_art=PriorArtGate(PriorArtSweeper(checkout.root, RepositoryIssues(app) if app else None)),
+        filer=IssueFiler(app, Ledger(Path(config.github_ledger_file), report), logger=report,
+                         machine_label=config.github_machine_label)
+        if app
+        else None,
+    )
+
+
+def build_github_app(config: SupportBotConfig) -> GitHubApp | None:
+    """Build the authenticated GitHub client, when this deployment has an App.
+
+    Args:
+        config: The resolved configuration.
+
+    Returns:
+        The client, or ``None`` when no App is configured — in which case ``/bug`` still prepares
+        and shows a complete report, and says plainly that nothing was opened.
+
+    Raises:
+        GitHubError: The App is configured and its private key cannot be read. Deliberately fatal:
+            :func:`veaf_support_bot.config.SupportBotConfig.from_env` has already refused a
+            half-configured App, so reaching here with an unusable key is a deployment that would
+            collect reports it can never file. The service exits 78 on it, like every other
+            configuration failure — it does not find out on the first user's report.
+    """
+    if not config.files_issues:
+        return None
+    credentials = AppCredentials(
+        app_id=config.github_app_id,
+        installation_id=config.github_installation_id,
+        private_key_pem=read_private_key(config.github_private_key, config.github_private_key_file),
+    )
+    return GitHubApp(credentials, config.github_repository, aiohttp_transport)
 
 
 class InFlightTasks:

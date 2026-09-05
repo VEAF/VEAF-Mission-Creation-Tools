@@ -6,14 +6,16 @@ Type: docs
 
 ## What to write
 
-**For users**, on the support page: what `/bug` does, that files are read and filtered, that
-personal data is stripped before publication, that nothing is published before they click, that the
-issue is filed by a bot on their behalf, and that answers come back into the thread. Also the manual
+**For users**, on the support page: what `/bug` does, that files are read and filtered, that personal
+data is stripped before publication, that nothing is filed before they click, that the issue is filed
+by a bot on their behalf, and that answers come back into the thread. Say plainly that the **automatic
+hypothesis is a members' extra** and that its absence takes nothing away from the report — otherwise
+its absence reads as a failure. Also the manual
 step: to add something later, post in the thread.
 
-**For maintainers**, next to the service: how to read a machine-filed issue — which parts are facts,
-which part is a guess — how the prior-art sweep decided what it decided, and how to disable the
-agent flow if the shared quota runs short.
+**For maintainers**, next to the service: how to read a machine-filed issue — which parts are
+measured and which part is a guess — how the prior-art sweep decided what it decided, which Discord
+role gates the enrichment, and how to switch the enrichment off entirely without touching the intake.
 
 **In `CONTRIBUTING.md`**: the intake circuit gains a path. Today it says to pick a template; it
 should also say that a report can arrive through Discord and what that changes for triage.

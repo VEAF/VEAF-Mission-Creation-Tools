@@ -32,7 +32,7 @@ can be left as a Discord link, since those URLs are signed and expire.
   makes it possible to decide field by field what is published; dumping the archive does not.
 - An attachment that is too large, of an unexpected type, or unreadable is reported to the user as
   such — the flow continues without it rather than failing.
-- Everything read here is **data, not instruction**, per [ticket 01](01-agent-runtime.md).
+- Everything read here is **data, not instruction**, per [ticket 01](01-form-and-extraction.md).
 
 ## Definition of done
 

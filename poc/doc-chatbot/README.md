@@ -167,6 +167,10 @@ npx wrangler deploy --dry-run   # bundles without shipping, checks the bindings 
 npx wrangler deploy             # ships it
 ```
 
+Nothing under `worker/src/` is live until `npx wrangler deploy` has run — including the user-facing
+messages, which are Worker-side strings. A merged pull request changes what the *next* deploy will
+ship, not what visitors see today.
+
 Secrets are set once per environment and are not part of a deploy:
 
 ```bash
@@ -185,7 +189,11 @@ npx wrangler secret put DISCORD_CLIENT_SECRET   # only when the Discord bot lot 
       to KV on doc changes). It needs three repository secrets: `GEMINI_API_KEY`,
       `CLOUDFLARE_API_TOKEN` (Workers KV edit), `CLOUDFLARE_ACCOUNT_ID`. Note: the KV free tier
       allows 1,000 writes/day — a full re-index writes ~500 keys, so avoid many rebuilds per day.
-- [x] A Gemini 429 maps to the friendly "too many requests" message.
+- [x] A Gemini 429 maps to a friendly message, and the *daily* allowance is told apart from the
+      per-minute burst limit (the free tier is rationed per day and per project, so the site's whole
+      audience shares one daily allowance; the two 429s need opposite advice). The widget and
+      `veaf-tools ask` both read the Worker's wording out of the response body rather than
+      reporting a bare status.
 - [x] Unit tests under `worker/test/`, run by `npm test`.
 - [x] Declared client modes, admission that ignores a self-declared header for browsers,
       fail-closed rate limiting, body ceiling, `/analyze` log-analysis mode.

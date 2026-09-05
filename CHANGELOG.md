@@ -338,6 +338,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `radioSet`, plus `hidden` — an editor-hidden group no longer becomes visible on the F10 map the
   moment it is cloned.
 
+- **A combat zone's group is anchored on the unit the Mission Editor put first, not on the first one
+  still alive.** Spawning a zone's group translates all of its units by a single offset, and the two
+  ends of that offset were read from two different places: the spawner measures it against the
+  mission record's `units[1]`, while the zone element was anchored on `Group:getUnit(1)` — the first
+  *live* unit, an index DCS shifts as units are lost. Whenever the two disagreed the offset became
+  the spacing between two different units, and the whole group moved by it. On a group spread over
+  kilometres that is kilometres: measured on Tripack's `CMBT_ABU_MUSA_AIRPORT - AAA`, five ZU-23s
+  ringing Abu Musa 4 330 m apart, **1 976 m** with the first ZU-23 lost before the zone was built and
+  **3 340 m** with the live list out of editor order — enough to stand the south-western ones in open
+  water. Both ends now name the same unit, so the offset is zero by construction; a group whose first
+  unit is no longer alive falls back on that unit's editor position rather than on another unit.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

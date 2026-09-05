@@ -941,3 +941,37 @@ son scramble, faire pénétrer un intrus dans sa zone d'engagement.
 
 Accessoirement, vérifier au passage que le groupe cloné reste **caché** sur la carte F10 si l'éditeur
 l'avait déclaré `hidden = true` — capture d'écran de Tripack à comparer, plus rapide qu'un vol.
+
+## Zone de combat : un groupe très étalé garde-t-il sa forme ?
+
+Ouvert par `FIX-TRIPACK-FIELD-REPORTS` (ticket 04), correctif du 2026-09-05.
+
+Ce qui est établi sans DCS : le décalage qui translate tout le groupe d'une zone était lu à **deux
+sources différentes** — le spawner le mesure contre `units[1]` de l'enregistrement de mission (l'unité
+que l'éditeur a mise en premier), la zone ancrait l'élément sur `Group:getUnit(1)` (la première unité
+**vivante**, dont l'indice glisse quand DCS compacte sa liste). Dès qu'elles divergent, le décalage
+devient l'écart entre deux unités différentes et tout le groupe se déplace d'autant. Mesuré dans le
+harnais sur les vraies coordonnées de `CMBT_ABU_MUSA_AIRPORT - AAA` (cinq ZU-23 étalées sur 4 330 m) :
+**1 975,9 m** si la première ZU-23 est perdue avant la construction de la zone, **3 340,4 m** si la
+liste vivante n'est pas dans l'ordre de l'éditeur. Après correctif, ≤ 50 m dans les deux cas.
+
+Ce qu'ils ne peuvent pas dire : **lequel des deux scénarios s'est produit chez Tripack**, ni même si
+l'un des deux s'est produit. Au démarrage de la mission les cinq ZU-23 sont vivantes, et les deux
+« unité 1 » devraient donc désigner le même objet. Le correctif supprime toute la famille, il ne
+referme pas un cas observé.
+
+**À faire** : lancer `Snowfox_20260903.miz` avec le niveau de log `debug`, activer
+`CMBT_ABU_MUSA_AIRPORT`, et relever dans `dcs.log` les trois nombres que la zone trace déjà —
+`spawnElement` : `position=[...]` (la position déclarée) puis `found=[...]` (le point retenu), et
+`_drawOrigin` : le décalage. Comparer `position` aux coordonnées éditeur de `AAA-1`
+(`x = -30382,9 ; y = -122247,2`).
+
+- **Attendu après correctif** : `position` tombe sur `AAA-1` à quelques mètres près, le décalage est
+  inférieur à 50 m, et les cinq ZU-23 sont à terre sur la carte F10.
+- **Ce qui rouvrirait le sujet** : `position` tombe sur une **autre** ZU-23 (donc l'ancrage par nom
+  n'a pas suffi), ou les cinq sont bien à leur place et deux restent quand même dans l'eau — ça
+  voudrait dire que le déplacement n'était pas la cause du rapport de Tripack et qu'il faut chercher
+  ailleurs. Candidat restant, non traité ici : la validation de terrain
+  (`veaf.findSpawnPoint` dans `spawnElement`) ne teste que le point d'ancrage, jamais les quatre
+  autres unités du groupe — une unité déjà au bord de l'eau dans l'éditeur peut donc passer dedans
+  sans que rien ne le remarque.

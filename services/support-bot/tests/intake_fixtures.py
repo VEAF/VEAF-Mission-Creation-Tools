@@ -17,8 +17,10 @@ every run, and nothing ships from it.
 
 from __future__ import annotations
 
+import io
 import shutil
 import tempfile
+import zipfile
 from functools import lru_cache
 from pathlib import Path
 
@@ -209,3 +211,92 @@ schema: veaf-tools-doctor/1
 tool.version: 99.99.99
 === VEAF-TOOLS DOCTOR END ===
 """
+
+# ---------------------------------------------------------------------------
+# Personal data — the other half of what a public intake desk receives
+# ---------------------------------------------------------------------------
+#
+# `HOSTILE_TEXT` above covers text that reads like an instruction. That is not the only thing a
+# stranger's files carry, and the two properties are different: instruction-shaped text must steer
+# nothing, personal data must *reach* nothing. The material below is the second one, and it lives
+# here rather than in one test file because three separate paths published it — the archive listing,
+# the parser's own error message, and the attachment's name.
+
+#: The account name every fixture below is built around. Long enough that a coincidental match in an
+#: unrelated string is not plausible, and shaped like the real thing: DCS users upload
+#: ``dcs - Firstname Lastname.log`` and missions exported under their own name.
+PERSONAL_ACCOUNT = "Jean Dupont"
+
+#: Archive member names of the shape a ``~mis*.zip`` really holds.
+PERSONAL_MEMBERS: tuple[str, ...] = (
+    f"C:/Users/{PERSONAL_ACCOUNT}/Saved Games/DCS/Missions/secret-op.miz",
+    "home/jdupont/notes-jean.dupont@example.com.txt",
+)
+
+#: The e-mail address the fixtures carry, in a member name and in a filename.
+PERSONAL_EMAIL = "jean.dupont@example.com"
+
+#: The name Discord keeps for an uploaded file. It carries an address rather than only a name, and
+#: that is not a softening of the fixture — it is what the shared helper actually recognises. A bare
+#: account name is redacted **nowhere** in this service, filename or free text, because
+#: ``veaf_libs.redaction`` matches personal data by context and known shape and has no rule for a
+#: stranger's name. A fixture built on one would assert a property the service does not have.
+PERSONAL_FILENAME = f"dcs - {PERSONAL_EMAIL}.log"
+
+#: A mission whose Lua does not parse, with the account name **inside** the malformed region.
+#:
+#: The point is not the syntax error, it is where it sits: ``luadata`` quotes the bytes around the
+#: offset it choked on, so a fixture whose fault were far from anything personal would pass a test
+#: that a real report fails. The ``sortie`` value is unquoted, so the parser stops on it.
+UNREADABLE_MISSION_LUA = (
+    "mission = \n"
+    "{\n"
+    '    ["descriptionText"] = "Squadron briefing, flown by a real person",\n'
+    f'    ["sortie"] = Operation flown by {PERSONAL_ACCOUNT} himself,\n'
+    '    ["theatre"] = "Caucasus",\n'
+    "}\n"
+)
+
+
+def personal_archive() -> bytes:
+    """Build a ``~mis*.zip`` whose member names carry an account name and an e-mail address.
+
+    Returns:
+        The archive's bytes.
+    """
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for member in PERSONAL_MEMBERS:
+            archive.writestr(member, "not read: only the names are listed")
+    return buffer.getvalue()
+
+
+def unreadable_mission() -> bytes:
+    """Build a ``.miz`` the tools' own parser refuses, faulting next to the account name.
+
+    Returns:
+        The archive's bytes.
+    """
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("mission", UNREADABLE_MISSION_LUA)
+    return buffer.getvalue()
+
+
+def runs_of(text: str, length: int = 12) -> set[str]:
+    """Return every substring of *text* of the given length.
+
+    Used to assert that a published string quotes **nothing** out of a file, rather than that it
+    avoids the one needle a test author happened to think of. A parser's message travels with the
+    offset it faulted on; enumerating the file's own runs is what makes the assertion hold wherever
+    that offset lands.
+
+    Args:
+        text: The file's content.
+        length: Run length. Long enough that ordinary English in a published sentence cannot collide
+            with Lua source by accident.
+
+    Returns:
+        The runs.
+    """
+    return {text[index : index + length] for index in range(max(0, len(text) - length + 1))}

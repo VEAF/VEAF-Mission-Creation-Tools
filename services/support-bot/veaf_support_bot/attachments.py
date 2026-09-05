@@ -295,6 +295,18 @@ class AttachmentCollector:
     def _publishable(self, name: str) -> str:
         """Turn a filesystem-safe name into one that can be published.
 
+        The **stem** is redacted and the suffix is put back untouched. Redacting the whole string
+        would eat it: ``dcs - jean.dupont@example.com.log`` ends in what the e-mail pattern reads as
+        part of the domain, so the helper returns ``dcs - <email>`` and the refusal one screen below
+        would then say *"unsupported file type (no suffix)"* about a ``.log``. The suffix is also the
+        one part of the name this module has already decided about — :data:`ACCEPTED_SUFFIXES`.
+
+        What this does **not** do is invent a rule the shared helper does not have: a bare account
+        name (``Jean Dupont's dcs.exe``) is not redacted here, for the same reason it is not redacted
+        when the reporter types it into *"what happened"*. The helper recognises personal data by
+        context and known shape, deliberately, and growing a second set of patterns here is the one
+        thing :mod:`veaf_support_bot.toolkit` exists to prevent.
+
         Args:
             name: The output of :func:`safe_name`.
 
@@ -303,14 +315,15 @@ class AttachmentCollector:
             closed for the same reason :func:`veaf_support_bot.bugreport.safe_redact` does: a name
             nobody could redact is not a name to print in a public issue.
         """
+        parsed = PurePosixPath(name)
         try:
-            return redact(self._checkout.root, name)
+            return f"{redact(self._checkout.root, parsed.stem)}{parsed.suffix}"
         except ToolkitUnavailable as error:
             self._logger.warning(
                 "an attachment name could not be redacted; it is withheld",
                 extra={"event": "intake.name_not_redacted", "error": type(error).__name__},
             )
-            return UNREDACTED_NAME
+            return f"{UNREDACTED_NAME}{parsed.suffix}"
 
     def _reduce(self, name: str, kind: str, path: Path, size: int, rejected: list[Rejected]) -> Prepared:
         """Turn one downloaded file into what the issue says about it.

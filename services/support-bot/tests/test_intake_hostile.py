@@ -23,13 +23,23 @@ from pathlib import Path
 
 from tests.intake_fixtures import (
     HOSTILE_TEXT,
+    PERSONAL_ACCOUNT,
+    PERSONAL_EMAIL,
+    PERSONAL_FILENAME,
+    PERSONAL_MEMBERS,
     PYTHON_TRACEBACK,
+    UNREADABLE_MISSION_LUA,
     doctor_block,
     fixture_checkout,
+    personal_archive,
+    runs_of,
+    unreadable_mission,
 )
 from tests.test_attachments import _fake_downloader
-from veaf_support_bot.attachments import AttachmentCollector, Incoming
+from tests.test_toolkit import SYNTHETIC_LOG
+from veaf_support_bot.attachments import AttachmentCollector, Harvest, Incoming
 from veaf_support_bot.bugreport import BugForm, BugReport, assemble
+from veaf_support_bot.intake import BugIntake
 from veaf_support_bot.untrusted import defuse_mentions, fence_for, one_line, quote
 
 #: A log carrying the same hostile lines a reporter's own machine would have written into it.
@@ -183,6 +193,116 @@ class TestQuotedTextCannotEscapeItsQuotes(unittest.TestCase):
         collapsed = one_line("a\nb   c\t\td", 100)
         self.assertEqual(collapsed, "a b c d")
         self.assertLessEqual(len(one_line("word " * 100, 40)), 40)
+
+
+class TestNothingAReporterSuppliedIsPublishedRaw(unittest.IsolatedAsyncioTestCase):
+    """The second half of the fixture: personal data must reach nothing, wherever it arrives.
+
+    Three paths published it and none of them was covered here, which is precisely why they were
+    missed: the fixture carried instruction-shaped text and no account name, no filename and no
+    ``.miz`` content. Each case below asserts the leak is closed **and** that the report still says
+    what it is about — withholding by deleting the evidence would be its own bug.
+    """
+
+    async def _harvest(self, incoming: list[Incoming], bodies: dict[str, bytes]) -> Harvest:
+        """Run one attachment pass.
+
+        Args:
+            incoming: What the command carried.
+            bodies: URL to content.
+
+        Returns:
+            The harvest.
+        """
+        collector = AttachmentCollector(fixture_checkout(), _fake_downloader(bodies))
+        with tempfile.TemporaryDirectory() as directory:
+            return await collector.collect(incoming, Path(directory))
+
+    async def test_an_archive_member_name_is_redacted_like_any_other_text(self) -> None:
+        body = personal_archive()
+        harvest = await self._harvest([Incoming("~mis0001.zip", "zip", len(body))], {"zip": body})
+        listing = harvest.prepared[0].rendered
+        self.assertNotIn(PERSONAL_ACCOUNT, listing)
+        self.assertNotIn("jean.dupont@example.com", listing)
+        self.assertIn("<user>", listing, "the shape of the tree is still published, only the name is not")
+        self.assertIn("secret-op.miz", listing)
+
+    async def test_the_same_strings_in_a_text_file_and_in_an_archive_come_out_the_same(self) -> None:
+        """The differential form: two carriers of one string must not disagree about publishing it."""
+        archive = personal_archive()
+        quoted = ("- " + "\n- ".join(PERSONAL_MEMBERS) + "\n").encode("utf-8")
+        harvest = await self._harvest(
+            [Incoming("~mis0001.zip", "zip", len(archive)), Incoming("paths.txt", "txt", len(quoted))],
+            {"zip": archive, "txt": quoted},
+        )
+        rendered = {item.kind: item.rendered for item in harvest.prepared}
+        for kind in ("archive", "text"):
+            with self.subTest(kind=kind):
+                self.assertNotIn(PERSONAL_ACCOUNT, rendered[kind])
+
+    async def test_an_unreadable_mission_is_reported_without_quoting_the_mission(self) -> None:
+        body = unreadable_mission()
+        harvest = await self._harvest([Incoming("broken.miz", "miz", len(body))], {"miz": body})
+        self.assertEqual(len(harvest.rejected), 1, "the file is still attached and the reason still stated")
+        reason = harvest.rejected[0].reason
+        self.assertIn("could not be read", reason)
+        self.assertNotIn(PERSONAL_ACCOUNT, reason)
+        # Enumerated rather than sampled: the parser quotes whatever sits at the offset it faulted
+        # on, so the assertion is that *no* run of the mission's own bytes survives into the reason.
+        leaked = sorted(run for run in runs_of(UNREADABLE_MISSION_LUA) if run in reason)
+        self.assertEqual(leaked, [], "the published reason quotes the mission's own bytes")
+
+    async def test_the_reporters_filename_meets_redaction_like_the_text_beside_it(self) -> None:
+        """A name is reporter-supplied text; `safe_name` makes it safe for a disk, not for an issue."""
+        rejected_name = PERSONAL_FILENAME.replace(".log", ".exe")
+        harvest = await self._harvest(
+            [Incoming(PERSONAL_FILENAME, "log", len(SYNTHETIC_LOG)), Incoming(rejected_name, "exe", 2)],
+            {"log": SYNTHETIC_LOG.encode("utf-8"), "exe": b"MZ"},
+        )
+        published = [item.filename for item in harvest.prepared] + [item.filename for item in harvest.rejected]
+        for name in published:
+            with self.subTest(name=name):
+                self.assertNotIn(PERSONAL_EMAIL, name)
+                self.assertIn("<email>", name)
+        self.assertEqual(
+            sorted(published),
+            ["dcs - <email>.exe", "dcs - <email>.log"],
+            "the suffix survives redaction; it is what the refusal below quotes",
+        )
+        self.assertIn(".exe", harvest.rejected[0].reason, "the suffix is still named, so the refusal is actionable")
+
+    async def test_a_name_and_a_body_carrying_one_string_are_treated_alike(self) -> None:
+        """The differential form: two carriers of the same string must not disagree about it."""
+        quoted = f"the report was written by {PERSONAL_EMAIL}\n".encode()
+        harvest = await self._harvest(
+            [Incoming(PERSONAL_FILENAME, "log", 10), Incoming("about.txt", "txt", len(quoted))],
+            {"log": SYNTHETIC_LOG.encode("utf-8"), "txt": quoted},
+        )
+        as_a_name = [item.filename for item in harvest.prepared if item.kind == "log"][0]
+        as_a_body = [item.rendered for item in harvest.prepared if item.kind == "text"][0]
+        self.assertNotIn(PERSONAL_EMAIL, as_a_name)
+        self.assertNotIn(PERSONAL_EMAIL, as_a_body)
+
+    async def test_the_redacted_name_is_what_the_whole_report_carries(self) -> None:
+        """`Prepared.filename` reaches four places in the body; one raw copy is one too many."""
+        archive = personal_archive()
+        harvest = await self._harvest(
+            [Incoming(PERSONAL_FILENAME, "log", 10), Incoming("m.zip", "zip", len(archive))],
+            {"log": SYNTHETIC_LOG.encode("utf-8"), "zip": archive},
+        )
+        collector = AttachmentCollector(fixture_checkout(), _fake_downloader({}))
+        report = BugIntake(fixture_checkout(), collector)._assemble(_form(hostile=False), harvest)
+        published = "\n".join(
+            (
+                report.title,
+                *(f"{note.subject}: {note.reason}" for note in report.notes),
+                *report.log_digests,
+                *report.mission_summaries,
+                *report.quoted_files,
+            )
+        )
+        self.assertNotIn(PERSONAL_EMAIL, published)
+        self.assertNotIn(PERSONAL_ACCOUNT, published, "the account name arrives under `Users/`, where the helper sees it")
 
 
 if __name__ == "__main__":

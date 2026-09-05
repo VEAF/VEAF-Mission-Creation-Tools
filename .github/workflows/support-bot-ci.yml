@@ -4,17 +4,32 @@ name: Support Bot
 # repository-wide gate (`Python Quality`) does not cover it — `ruff check src/python/ test/python/
 # veaf_build/` and `mypy src/python/veaf-tools` are scoped to the shipped package — so the service
 # carries its own gate here rather than being widened into one that asserts on a different tree.
+#
+# The filter must cover everything the suite asserts on, not only the folder it lives in — a path a
+# test reads but does not trigger on is a decorative assertion. Measured on this repository:
+# #877, #875 and #866 each merged without ever running the Python gate, for that exact reason.
+#   .gitignore      test_git_really_ignores_the_real_environment_file /
+#                   test_git_does_not_ignore_the_documented_example — the secret rule lives in the
+#                   ROOT .gitignore and has to (a nested one is itself ignored), so a reshuffle of
+#                   those lines would un-guard the service's `.env` with every check still green.
+#   pyproject.toml  test_the_service_version_is_its_own (the root one, read to prove the service is
+#                   NOT in the tools version lockstep).
 on:
   push:
     branches: [develop, master]
     paths:
       - "services/support-bot/**"
       - ".github/workflows/support-bot-ci.yml"
-  # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose.
+      - ".gitignore"
+      - "pyproject.toml"
+  # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose; the two are
+  # kept identical by `test/python/test_ci_trigger_paths.py`.
   pull_request:
     paths:
       - "services/support-bot/**"
       - ".github/workflows/support-bot-ci.yml"
+      - ".gitignore"
+      - "pyproject.toml"
 
 defaults:
   run:

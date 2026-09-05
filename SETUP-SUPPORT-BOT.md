@@ -36,7 +36,7 @@ before it is used.
    *Message Content Intent*. Leave the three intents **off** unless the implementation says
    otherwise — an intent you do not need is a permission you must justify later.
 3. **Reset Token**, then copy the value. **It is shown once.** Put it straight into the service
-   environment as `DISCORD_BOT_TOKEN`.
+   environment as `SUPPORT_BOT_DISCORD_TOKEN`.
 4. If it ever leaks: same screen, **Reset Token** — the old one dies immediately.
 
 ### A3. Invite it to the VEAF server
@@ -61,7 +61,7 @@ Choose the channel or channels where `/ask` is allowed, and tell me which — th
 itself rather than answering everywhere. If a dedicated channel is created for it, its name goes in
 the user documentation.
 
-**Values to hand over:** `DISCORD_BOT_TOKEN`, the application ID, the server (guild) ID, and the
+**Values to hand over:** the bot token, the application ID, the server (guild) ID, and the
 allowed channel IDs.
 
 ---
@@ -84,7 +84,7 @@ anybody.
 4. **Homepage URL**: the repository URL is fine.
 5. **Webhook**: needed for the GitHub → Discord relay (lot 4, ticket 06). Two options:
    - the service is reachable from the internet: tick **Active**, set the URL, and generate a
-     **webhook secret** — keep it, it goes into the environment as `GITHUB_WEBHOOK_SECRET`;
+     **webhook secret** — keep it; it goes into the service environment under a `SUPPORT_BOT_` name fixed when lot 4 lands;
    - it is not reachable: untick **Active** for now, and the relay polls instead. Tell me which,
      because it changes what gets built.
 
@@ -130,7 +130,7 @@ working under the new key; the old one is dead.
 
 1. Open <https://console.anthropic.com/>, sign in with an account the association controls.
 2. **API keys** → **Create key**. Name it after the service so it can be revoked without collateral.
-3. Copy it once, into the environment as `ANTHROPIC_API_KEY`.
+3. Copy it once, into the service environment — under a `SUPPORT_BOT_` name fixed when lot 4 lands.
 
 ### C2. Set a spending limit at the provider, not only in the code
 
@@ -157,20 +157,86 @@ Tell me both and I wire them in as defaults.
 
 ## Part D — Deployment
 
-**To be completed** once the service skeleton lands: the runtime, the exact environment variable
-list, the container image name and the run commands come from that lot, and inventing them now would
-mean rewriting this section.
+The service skeleton has landed, so this is now real. Two things must happen before the bot can
+answer anything, and the first one is easy to forget.
 
-What is already decided: the service runs **either directly or in a container**, both supported, and
-it is deployed **independently of the tools release** — nobody waits for a version to restart the
-bot.
+### D1. Deploy the Worker — nothing new is live until you do
 
-What you will need to decide when we get there:
+The Worker is deployed **by hand**; the CI workflow only rebuilds the search index. So the
+hardening that closed the open-proxy hole, and the client modes the bot needs, are merged in the
+repository and **not in production**.
 
-- **Where it runs.** A VEAF machine alongside DCSServerBot, or a separate host. The design session
-  weighed both; the code does not care.
+```bash
+cd poc/doc-chatbot/worker && npx wrangler deploy
+```
+
+Until this runs, the live Worker is the old one: any caller sending `X-VEAF-Client: cli` still gets
+in, and there is no `discord` mode for the bot to use.
+
+### D2. Set the shared secret between the Worker and the bot
+
+The `discord` client mode is **refused until a secret exists on the Worker side**. Generate a long
+random value, keep it, and set it in both places:
+
+```bash
+cd poc/doc-chatbot/worker && npx wrangler secret put DISCORD_CLIENT_SECRET
+```
+
+The same value goes into the service environment, so the bot can present it. It is a secret: it
+never goes in the repository, and it is rotated by re-running the command and updating the service.
+
+### D3. Run the service
+
+Both modes run the same module with the same environment, so the documented command is a rehearsal
+of the deployment rather than a second code path.
+
+```bash
+poetry run python -m veaf_support_bot
+```
+
+```bash
+docker run -d --name support-bot -p 8081:8081 --env-file services/support-bot/.env veaf-support-bot
+```
+
+Copy `services/support-bot/.env.example` to `.env` and fill it. That file is already ignored by git
+— checked by a test, not by a comment.
+
+**Required:**
+
+| Variable | What it is |
+|---|---|
+| `SUPPORT_BOT_DISCORD_TOKEN` | the bot token from part A. Anyone holding it *is* the bot |
+| `SUPPORT_BOT_DISCORD_GUILD_ID` | the single server it serves. Right-click the server → Copy Server ID, with Developer Mode on |
+
+**Optional, shown with their defaults:** `SUPPORT_BOT_WORKER_ENDPOINT` (production Worker),
+`SUPPORT_BOT_WORKER_CLIENT` (`discord`), `SUPPORT_BOT_HEALTH_HOST` (`127.0.0.1`, the image sets
+`0.0.0.0`), `SUPPORT_BOT_HEALTH_PORT` (`8081`), `SUPPORT_BOT_LOG_LEVEL` (`INFO`),
+`SUPPORT_BOT_LOG_FORMAT` (`json`), `SUPPORT_BOT_HEARTBEAT_SECONDS` (`60`),
+`SUPPORT_BOT_SHUTDOWN_GRACE_SECONDS` (`10`), `SUPPORT_BOT_DRY_RUN` (`false`).
+
+A missing or malformed variable stops the process **at startup**, listing every problem at once and
+exiting with code **78**, so a supervisor can tell a wrong deployment from a crash. The token is
+never printed, not even when a value is refused.
+
+### D4. Check it is alive
+
+It answers `/healthz`, `/readyz` and `/status` on the health port, writes one heartbeat line per
+minute, and the container carries its own health check. Watch for the heartbeat rather than for the
+process: a bot that is up and doing nothing looks identical to a working one from the outside, and
+that is the failure mode of every self-hosted bot.
+
+`SIGTERM` runs a real shutdown, bounded end to end — a client holding a socket can no longer keep
+the process alive past its grace period.
+
+### D5. Three decisions still yours
+
+- **Where it runs.** A VEAF machine alongside DCSServerBot, or a separate host. The code does not
+  care; the design session weighed both.
 - **How it is restarted** when it dies, because it will.
-- **Who else can restart it**, so the bot does not stay down for a week when you are away.
+- **Who else can restart it**, so the bot does not stay down for a week while you are away.
+
+> The `/ask` command and its quotas are being built now; this section gains the variables they
+> introduce when that lands.
 
 ---
 
@@ -184,4 +250,7 @@ Copy this into the thread when you have done a part, so I know what to wire in.
       → App ID, Installation ID, private key, webhook secret or "polling"
 - [ ] **C** — Anthropic key created, provider spend limit set
       → key, monthly budget, daily service ceiling
-- [ ] **D** — deployment target chosen *(section written once the service skeleton lands)*
+- [ ] **D1** — Worker deployed (`npx wrangler deploy`), without which none of the hardening is live
+- [ ] **D2** — shared secret set on the Worker and in the service environment
+- [ ] **D3** — service running, `.env` filled from `.env.example`
+- [ ] **D5** — host chosen, restart policy decided, a second person able to restart it

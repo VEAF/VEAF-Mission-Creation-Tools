@@ -24,6 +24,7 @@ from veaf_support_bot.priorart import (
     SOURCE_ROADMAP,
     Candidate,
     IssueRecord,
+    Match,
     PriorArtGate,
     PriorArtSweeper,
     Sweep,
@@ -165,7 +166,7 @@ class TestScoring(unittest.TestCase):
         self.assertEqual(ordered[0].candidate.source, SOURCE_CLOSED_ISSUE)
 
 
-def _match(candidate: Candidate, score: float):
+def _match(candidate: Candidate, score: float) -> Match:
     """Build a match without going through the scorer.
 
     Args:
@@ -175,8 +176,6 @@ def _match(candidate: Candidate, score: float):
     Returns:
         The match.
     """
-    from veaf_support_bot.priorart import Match
-
     return Match(candidate=candidate, score=score, shared=("x",))
 
 
@@ -363,11 +362,11 @@ class TestTheseTestsDetectABrokenSweep(unittest.TestCase):
         from veaf_support_bot import priorart
 
         original = priorart.read_backlog
-        priorart.read_backlog = lambda root: ([], "")  # type: ignore[assignment]
+        priorart.read_backlog = lambda root: ([], "")
         try:
             self.assertTrue(self._fails("TestTheFourOutcomes.test_a_backlog_lot_produces_work_in_progress"))
         finally:
-            priorart.read_backlog = original  # type: ignore[assignment]
+            priorart.read_backlog = original
 
     def test_a_closed_lot_leaking_back_into_the_corpus_is_caught(self) -> None:
         from veaf_support_bot import priorart
@@ -379,7 +378,7 @@ class TestTheseTestsDetectABrokenSweep(unittest.TestCase):
                 self._fails("TestTheCheckoutSources.test_an_open_lot_is_a_candidate_and_a_closed_one_is_not")
             )
         finally:
-            priorart.CLOSED_LOT_STATUSES = original  # type: ignore[assignment]
+            priorart.CLOSED_LOT_STATUSES = original
 
     def test_a_tracker_failure_swallowed_into_silence_is_caught(self) -> None:
         from veaf_support_bot import priorart
@@ -401,13 +400,11 @@ class TestTheseTestsDetectABrokenSweep(unittest.TestCase):
         from veaf_support_bot import priorart
 
         original = priorart.EVIDENCE_MAX_TOKENS
-        priorart.EVIDENCE_MAX_TOKENS = 0  # type: ignore[assignment]
+        priorart.EVIDENCE_MAX_TOKENS = 0
         try:
-            self.assertTrue(
-                self._fails("TestTheRefusal.test_the_reporter_is_shown_the_evidence_before_being_asked")
-            )
+            self.assertTrue(self._fails("TestTheRefusal.test_the_reporter_is_shown_the_evidence_before_being_asked"))
         finally:
-            priorart.EVIDENCE_MAX_TOKENS = original  # type: ignore[assignment]
+            priorart.EVIDENCE_MAX_TOKENS = original
 
 
 if __name__ == "__main__":  # pragma: no cover

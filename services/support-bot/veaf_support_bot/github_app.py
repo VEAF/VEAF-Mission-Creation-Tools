@@ -43,7 +43,7 @@ import json
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -355,7 +355,9 @@ class GitHubApp:
         Raises:
             GitHubError: The call failed, or GitHub answered with an error status.
         """
-        return await self._call(method, path, headers={"Authorization": f"Bearer {await self.token()}"}, payload=payload)
+        return await self._call(
+            method, path, headers={"Authorization": f"Bearer {await self.token()}"}, payload=payload
+        )
 
     async def _call(
         self,
@@ -435,7 +437,7 @@ def _lifetime(expires_at: Any, now: float) -> float:
         except ValueError:
             return 3600.0
         if moment.tzinfo is None:
-            moment = moment.replace(tzinfo=timezone.utc)
+            moment = moment.replace(tzinfo=UTC)
         return max(0.0, moment.timestamp() - now)
     return 3600.0
 

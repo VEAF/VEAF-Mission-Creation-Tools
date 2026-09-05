@@ -259,9 +259,15 @@ def render_body(report: BugReport, key: str, *, thread_url: str = "", carried: I
     parts.append(f"### {heading('expected', lang)}\n\n{quote(report.form.expected)}")
     parts.append(f"### {heading('steps', lang)}\n\n{quote(report.form.steps)}")
 
-    context: list[str] = [heading("verbatim", lang), "", heading("revision", lang).format(revision=report.freshness.describe())]
+    context: list[str] = [
+        heading("verbatim", lang),
+        "",
+        heading("revision", lang).format(revision=report.freshness.describe()),
+    ]
     if report.form.doctor.strip():
-        context.append("\n<details><summary>veaf-tools doctor</summary>\n\n" + quote(report.form.doctor) + "\n</details>")
+        context.append(
+            "\n<details><summary>veaf-tools doctor</summary>\n\n" + quote(report.form.doctor) + "\n</details>"
+        )
     parts.append(f"### {heading('context', lang)}\n\n" + "\n".join(context))
 
     located = _render_locations(report)

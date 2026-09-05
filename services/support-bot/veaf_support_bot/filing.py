@@ -277,9 +277,7 @@ def _record_of(item: dict[str, Any]) -> IssueRecord:
     Returns:
         The record.
     """
-    labels = tuple(
-        str(label.get("name") or "") for label in item.get("labels") or [] if isinstance(label, dict)
-    )
+    labels = tuple(str(label.get("name") or "") for label in item.get("labels") or [] if isinstance(label, dict))
     return IssueRecord(
         number=int(item.get("number") or 0),
         title=str(item.get("title") or ""),
@@ -462,7 +460,9 @@ class IssueFiler:
         notes: list[str] = []
         for comment in render_attachment_comments(carried):
             try:
-                await self._app.request("POST", f"/repos/{self._app.repository}/issues/{number}/comments", {"body": comment})
+                await self._app.request(
+                    "POST", f"/repos/{self._app.repository}/issues/{number}/comments", {"body": comment}
+                )
             except GitHubError as error:
                 notes.append(f"an attachment could not be added to the issue: {error}")
                 self._logger.warning(

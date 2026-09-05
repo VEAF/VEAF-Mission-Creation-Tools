@@ -159,7 +159,9 @@ class TestResolvingTheKey(unittest.TestCase):
     """Two supported forms, and a refusal to guess between them."""
 
     def test_the_inline_form_expands_its_escaped_newlines(self) -> None:
-        self.assertEqual(read_private_key("-----BEGIN-----\\nbody\\n-----END-----", ""), "-----BEGIN-----\nbody\n-----END-----")
+        self.assertEqual(
+            read_private_key("-----BEGIN-----\\nbody\\n-----END-----", ""), "-----BEGIN-----\nbody\n-----END-----"
+        )
 
     def test_a_file_is_read(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

@@ -48,9 +48,8 @@ from veaf_support_bot.filing import IssueFiler, Ledger, RepositoryIssues
 from veaf_support_bot.github_app import AppCredentials, GitHubApp, aiohttp_transport, read_private_key
 from veaf_support_bot.health import HealthServer, ServiceState
 from veaf_support_bot.intake import BugIntake
-from veaf_support_bot.priorart import PriorArtGate
 from veaf_support_bot.logging_setup import get_logger
-from veaf_support_bot.priorart import PriorArtSweeper
+from veaf_support_bot.priorart import PriorArtGate, PriorArtSweeper
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
 
 
@@ -135,8 +134,12 @@ def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugI
         collector,
         logger=report,
         prior_art=PriorArtGate(PriorArtSweeper(checkout.root, RepositoryIssues(app) if app else None)),
-        filer=IssueFiler(app, Ledger(Path(config.github_ledger_file), report), logger=report,
-                         machine_label=config.github_machine_label)
+        filer=IssueFiler(
+            app,
+            Ledger(Path(config.github_ledger_file), report),
+            logger=report,
+            machine_label=config.github_machine_label,
+        )
         if app
         else None,
     )

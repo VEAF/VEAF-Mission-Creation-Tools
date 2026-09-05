@@ -238,9 +238,7 @@ class TestWhenItCannotFile(_Filing):
 
         report = replace(
             _report(),
-            attachments=(
-                Prepared(filename="veaf-tools.log", kind="log", path=folder / "veaf-tools.log", size=6),
-            ),
+            attachments=(Prepared(filename="veaf-tools.log", kind="log", path=folder / "veaf-tools.log", size=6),),
         )
         outcome = await self._filer().file(report)
         self.assertEqual(outcome.action, "created")
@@ -274,9 +272,7 @@ class TestCarryingTheFiles(_Filing):
 
         report = replace(
             _report(),
-            attachments=(
-                Prepared(filename="veaf-tools.log", kind="log", path=folder / "veaf-tools.log", size=20),
-            ),
+            attachments=(Prepared(filename="veaf-tools.log", kind="log", path=folder / "veaf-tools.log", size=20),),
         )
         await self._filer().file(report)
         self.assertTrue(any("the interesting line" in body for _, body in self.github.comments))

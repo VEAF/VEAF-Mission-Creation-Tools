@@ -43,8 +43,9 @@ time.
   runtime, quotas, draft and consent, GitHub App, relay. This lot adds a flow, not an
   infrastructure — if it needs new plumbing, that is a signal the bug lot left something unshared.
 - Issue written in the user's language, like a bug report.
-- No agent call is made before the prior-art sweep has run; a suggestion answered by an existing
-  page should consume almost nothing.
+- The prior-art sweep costs **no model call at all** — it is text matching over issues, `.backlog/`
+  and the documentation tree, all of it in the checkout. A suggestion answered by an existing page
+  consumes nothing.
 
 ## Open question
 

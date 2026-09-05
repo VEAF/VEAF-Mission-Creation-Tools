@@ -31,8 +31,9 @@ match is always shown with its evidence — the page, the function, the lot — 
 
 ## Cost
 
-This sweep runs before any agent call, and a suggestion resolved by an existing page should consume
-close to nothing. Reuse the agent runtime and its consumption accounting from
+This sweep needs **no model at all** — it is the same text matching lot 4 does over issues,
+`.backlog/` and `ROADMAP.md`, plus the documentation tree. Reuse that machinery, and the enrichment
+ceiling from
 [`FEAT-SUPPORT-BUG-INTAKE` ticket 08](../../FEAT-SUPPORT-BUG-INTAKE/tickets/08-ai-enrichment.md).
 
 ## Definition of done
@@ -41,6 +42,6 @@ close to nothing. Reuse the agent runtime and its consumption accounting from
 - [ ] Four distinct verdicts implemented, each with its own answer in the thread
 - [ ] "Exists but undocumented" reported separately from "exists"
 - [ ] Every match shows its evidence and can be rejected, after which the flow continues
-- [ ] No agent call before the sweep has run
+- [ ] The sweep itself makes no model call
 - [ ] Unit tests with a fixture repository, one per verdict, plus the rejection path
 - [ ] Quality gate clean

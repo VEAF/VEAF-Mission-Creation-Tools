@@ -145,6 +145,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veaf.lua` | Utilitaires de base, helpers string/table/vecteur, logging |
 | `test_veafCacheManager.lua` | Cache get/set/invalidate |
 | `test_veafScheduler.lua` | Planificateur sur le timer natif : répétition, heure d'arrêt, tâche en échec |
+| `test_skynetIadsUtils.lua` | Planificateur interne du Skynet vendorisé : une première exécution déjà passée est armée pour le tick suivant, répétition, heure d'arrêt et annulation inchangées |
 | `test_veafMath.lua` | Conversions d'unités, vecteurs, formes de coordonnées, copie profonde |
 | `test_veafGeo.lua` | Rendu texte des coordonnées, zones, positions moyennes, polygones |
 | `test_veafGeo_ported.lua` | Géométrie portée depuis MiST : tirage dans un cercle, unités en zone circulaire, cap, dessin de zone |

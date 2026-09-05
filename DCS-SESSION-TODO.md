@@ -176,6 +176,28 @@ set `STTS: false` at step 2, so this is only about knowing whether leaving it **
 noisy at start-up. Grep the log for `STTS` — if it is silent, the tutorial's note can relax from
 "switch it off" to "it does nothing".
 
+### R13. Skynet's SAMs must wake up, and its status page must have something to print
+
+Unblocks [`FIX-TRIPACK-FIELD-REPORTS`](.backlog/FIX-TRIPACK-FIELD-REPORTS/PRD.md) ticket 01. Tripack
+reported it on 2026-09-03 against 6.19.0: with `SKYNET.enabled: true` no SAM ever engaged and the
+radio menu showed neither status nor contacts; the same mission with Skynet off worked. Cause held
+and fixed — Skynet arms its contact cycle for one second of mission time, and the vendored scheduler
+handed that already-elapsed time to the native timer, so `evaluateContacts` never ran. The artefact
+is regenerated at build 05.09.2026.
+
+**This is the same wager as R12**, on the other side of the repository boundary, so run them in the
+same session: both fixes assume DCS drops a call scheduled for a time already gone.
+
+**Run**: a mission with `SKYNET.enabled: true` (Tripack's `Snowfox_20260903.miz` is the reported one).
+Let it come up, then **F10 → the Skynet menu → the status command**, and fly into a defended area.
+
+- **Fixed**: the status page lists sites and contacts, and SAMs engage.
+- **Not fixed**: still blank and still asleep. Then the lost task was not the cause and the diagnosis
+  is dead. Bring back a `dcs.log`: the banner line must read `SKYNET VERSION: 3.4.0RP-VEAF build
+  05.09.2026` — anything older means the mission carries a stale artefact and the check never
+  happened — and grep for `SkynetIADS: error in scheduled function`, which the module logs on any
+  raise inside a scheduled call.
+
 ---
 
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)

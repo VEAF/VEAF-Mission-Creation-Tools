@@ -145,6 +145,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veaf.lua` | Core utilities, string/table/vector helpers, logging |
 | `test_veafCacheManager.lua` | Cache get/set/invalidate |
 | `test_veafScheduler.lua` | Native-timer scheduler: repetition, stop time, a failing task |
+| `test_skynetIadsUtils.lua` | Vendored Skynet's own scheduler: an overdue first run is armed for the next tick, and repetition, stop time and cancellation are unchanged |
 | `test_veafMath.lua` | Unit conversions, vectors, coordinate shapes, deep copy |
 | `test_veafGeo.lua` | Coordinate text output, zones, average positions, polygons |
 | `test_veafGeo_ported.lua` | Geometry ported off MiST: random point in a circle, units in a circular zone, heading, zone drawing |

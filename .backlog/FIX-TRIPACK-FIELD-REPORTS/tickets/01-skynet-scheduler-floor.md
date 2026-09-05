@@ -1,6 +1,6 @@
 # 01 — Skynet's scheduler keeps the promise its docstring makes
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Type: fix
 
@@ -81,10 +81,27 @@ Then, per [`vendored.yaml`](../../../vendored.yaml) and in this order:
 
 ## Definition of done
 
-- [ ] A Skynet task scheduled for a time already elapsed runs at the next tick
-- [ ] Repetition, stop time and `removeFunction` keep their current semantics
-- [ ] Test in the fork covering due-now, overdue, and comfortably-future
-- [ ] Artefact regenerated, stylua'd, label and `vendored.yaml` `pinned:` updated together
-- [ ] `luacheck` + `stylua --check` clean on `src/scripts/veaf/ test/lua/`
-- [ ] In-game verification queued in `DCS-SESSION-TODO.md`: a mission with `SKYNET.enabled: true`
-      shows a populated IADS status and SAMs that engage
+- [x] A Skynet task scheduled for a time already elapsed runs at the next tick
+- [x] Repetition, stop time and `removeFunction` keep their current semantics
+- [x] Test covering due-now, overdue, and comfortably-future — **not in the fork**: its `unit-tests/`
+      run inside DCS from a `.miz` on top of MiST, so there is no headless harness to add a case to.
+      The coverage lives on this side, in `test/lua/test_skynetIadsUtils.lua`, asserted against the
+      vendored artefact itself. Verified both ways: three of its eight cases fail on the pre-fix
+      artefact.
+- [x] Artefact regenerated, stylua'd, label and `vendored.yaml` `pinned:` updated together
+      (build 05.09.2026). Diff against the previous artefact is two hunks — the version banner and
+      the 24 added lines — and nothing else moved.
+- [x] `luacheck` + `stylua --check` clean on `src/scripts/veaf/ test/lua/`
+- [x] In-game verification queued in `DCS-SESSION-TODO.md` as **R13**, paired with R12: both fixes
+      rest on the same unproven wager about the native timer, so they are checked in one session
+
+## What shipped
+
+- Fork: [VEAF/Skynet-IADS](https://github.com/VEAF/Skynet-IADS) branch `fix/scheduler-past-start-time`
+  — `MINIMUM_DELAY = 0.01` in `skynet-iads-utils.lua`, clamping the **first** run only. Repetition is
+  re-armed from `timer.getTime()` inside `runScheduledTask` and so is future by construction;
+  `stopTime` is a comparison, not a delay.
+- One open follow-up: `vendored.yaml`'s watch pin for `VEAF/Skynet-IADS`
+  (`demo-missions/skynet-iads-compiled.lua`, still `820d3cc0eb85`) can only be moved once the fork PR
+  is merged, since it names a commit on the fork's `master`. Until then the drift watcher will flag
+  the entry, correctly.

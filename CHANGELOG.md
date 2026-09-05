@@ -119,6 +119,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   field to one line and the format documents both that invariant and the fact that a received block
   is a claim, never a measurement.
 
+- **The documentation assistant said "try again shortly" for a wall that stands until morning.**
+  Google's free tier rations the assistant *per day and per project*, so the whole site shares one
+  daily allowance — and Gemini answers the same 429 for that as for the per-minute burst limit,
+  which clears in under a minute. The Worker mapped both to the burst wording, so a visitor who met
+  the day's ceiling was invited to keep retrying all evening. The two are now told apart from the
+  upstream error body, and the daily case says when the assistant comes back, in a local morning
+  hour rather than in Pacific midnight, and says that being rationed is not a breakage. It also
+  reaches the reader at last: the widget and `veaf-tools ask` both bailed on the HTTP status and
+  threw away the explanation the Worker had put in the body, showing a generic error instead. The
+  chatbot panel, the support page and the `ask` reference now also say up front that the allowance
+  is free, shared and refilled each morning — someone who meets a ceiling nobody mentioned
+  concludes the tool is broken.
+
 ### Added
 
 - **A place for a service to live, and a first one in it.** The repository had two shapes — CLI

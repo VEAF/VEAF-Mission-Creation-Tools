@@ -617,6 +617,10 @@ Ask a question about the VEAF documentation (AI assistant). With no question, st
 veaf-tools ask "comment activer une zone de combat au démarrage ?"
 ```
 
+The assistant runs on a free allowance shared with the website chatbot: on a busy day it can run
+out, and the command says so plainly when it does. See
+[the documentation assistant](SUPPORT.en.md#assistant).
+
 ### `veaf-tools mcp` {#mcp}
 
 Start the LLM-assisted mission-editing MCP server (stdio). Used by the veaf-mission-editor Claude plugin.

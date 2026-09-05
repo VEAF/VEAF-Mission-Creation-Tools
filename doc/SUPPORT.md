@@ -15,6 +15,17 @@ quelqu'un puisse vous répondre autre chose que « quelle version ? ».
 Le Discord est le plus rapide pour une question ; l'issue est le seul endroit où un défaut ne se
 perd pas. En cas de doute, demandez sur le Discord : quelqu'un vous dira s'il faut ouvrir une issue.
 
+## L'assistant de documentation {#assistant}
+
+Le bouton en bas à droite de ces pages ouvre un assistant qui répond à partir de la documentation.
+Il tourne sur une **allocation gratuite, partagée par tous les visiteurs du site** : un jour chargé,
+elle peut s'épuiser. L'assistant vous le dira alors, et vous dira quand il revient — l'allocation
+repart le matin suivant.
+
+Ce n'est pas une panne, et rien n'est perdu entre-temps : la documentation reste consultable, le
+Discord et les issues aussi. La commande [`veaf-tools ask`](CLI_REFERENCE.md#ask) interroge le même
+assistant, donc la même allocation.
+
 ## Demander au bot : `/ask` {#ask}
 
 Sur le Discord VEAF, la commande `/ask` répond aux questions **sur la documentation**.

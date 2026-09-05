@@ -15,6 +15,17 @@ someone can answer you with something other than "which version?".
 Discord is fastest for a question; an issue is the only place a defect does not get lost. When in
 doubt, ask on Discord: someone will tell you whether it is worth an issue.
 
+## The documentation assistant {#assistant}
+
+The button at the bottom right of these pages opens an assistant that answers from the
+documentation. It runs on a **free allowance, shared by every visitor of the site**: on a busy day
+it can run out. The assistant will say so when that happens, and say when it comes back — the
+allowance refills the next morning.
+
+Nothing is broken, and nothing is lost in the meantime: the documentation is still there, and so
+are Discord and the issues. The [`veaf-tools ask`](CLI_REFERENCE.en.md#ask) command talks to the
+same assistant, hence to the same allowance.
+
 ## Asking the bot: `/ask` {#ask}
 
 On the VEAF Discord, `/ask` answers questions **about the documentation**.

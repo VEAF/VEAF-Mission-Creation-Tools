@@ -1,6 +1,6 @@
 # 03 — The page tells visitors the assistant is rationed
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs
 
@@ -23,6 +23,9 @@ the tool is broken and never coming back.
 
 ## Definition of done
 
-- [ ] The passage exists in both languages, next to the chatbot and on the support page
-- [ ] It explains the ration and the reset without naming figures
-- [ ] `poetry run docs-check` passes
+- [x] The passage exists in both languages: in the widget's own welcome message (where the chatbot
+      lives), in a `{#assistant}` section of `doc/SUPPORT.md` / `.en.md`, and beside
+      `veaf-tools ask` in the CLI reference — the CLI spends the same allowance, and its readers
+      never see the widget.
+- [x] It explains the ration and the reset without naming figures
+- [x] `poetry run docs-check` passes

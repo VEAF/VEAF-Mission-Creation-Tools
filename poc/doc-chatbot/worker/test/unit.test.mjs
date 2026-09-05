@@ -5,6 +5,8 @@ import worker, {
   latestQuery,
   toGeminiContents,
   upstreamErrorMessage,
+  isDailyQuotaFailure,
+  MESSAGES,
   isAllowedClient,
   resolveClient,
   allowRequest,
@@ -124,9 +126,64 @@ test("toGeminiContents maps assistant->model, drops empties, trims history", () 
   assert.ok(out.every((m) => m.parts[0].text.trim().length > 0));
 });
 
-test("upstreamErrorMessage maps a Gemini 429 to the localized rate-limit message", () => {
-  assert.equal(upstreamErrorMessage("fr", 429), "Trop de requêtes, réessayez dans un instant.");
-  assert.equal(upstreamErrorMessage("en", 429), "Too many requests, please try again shortly.");
+/** A Gemini 429 body, shaped like the real one, for the quota id under test. */
+function quotaFailure(quotaId, extra = "") {
+  return JSON.stringify({
+    error: {
+      code: 429,
+      status: "RESOURCE_EXHAUSTED",
+      details: [
+        {
+          "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+          violations: [{ quotaId, quotaMetric: "generativelanguage.googleapis.com/x" }],
+        },
+      ],
+    },
+  }).concat(extra);
+}
+
+test("isDailyQuotaFailure recognizes a per-day quota id and not a per-minute one", () => {
+  assert.equal(isDailyQuotaFailure(quotaFailure("GenerateRequestsPerDayPerProjectPerModel-FreeTier")), true);
+  assert.equal(isDailyQuotaFailure(quotaFailure("GenerateRequestsPerMinutePerProjectPerModel-FreeTier")), false);
+  assert.equal(isDailyQuotaFailure('{"quotaId":"generate_requests_per_day"}'), true);
+});
+
+test("isDailyQuotaFailure treats a long retryDelay as a day-scale wait", () => {
+  // Google does not always name the period, but it does say how long to wait. Tens of seconds is
+  // a burst limit; anything past five minutes is not something a visitor should sit out.
+  assert.equal(isDailyQuotaFailure('{"retryDelay":"41s"}'), false);
+  assert.equal(isDailyQuotaFailure('{"retryDelay":"3600s"}'), true);
+});
+
+test("isDailyQuotaFailure says no when the body is missing or unreadable", () => {
+  // The per-minute wording only under-promises the wait; the daily one announces a rationing that
+  // may not have happened. So an unreadable body must not be read as an exhausted day.
+  assert.equal(isDailyQuotaFailure(undefined), false);
+  assert.equal(isDailyQuotaFailure(""), false);
+  assert.equal(isDailyQuotaFailure("<html>502 Bad Gateway</html>"), false);
+});
+
+test("upstreamErrorMessage tells a daily exhaustion apart from a per-minute throttle", () => {
+  const daily = quotaFailure("GenerateRequestsPerDayPerProjectPerModel-FreeTier");
+  const burst = quotaFailure("GenerateRequestsPerMinutePerProjectPerModel-FreeTier");
+  for (const lang of ["fr", "en"]) {
+    assert.equal(upstreamErrorMessage(lang, 429, daily), MESSAGES[lang].dailyQuota);
+    assert.equal(upstreamErrorMessage(lang, 429, burst), MESSAGES[lang].rateLimited);
+    assert.equal(upstreamErrorMessage(lang, 429), MESSAGES[lang].rateLimited, "no body: stay on the burst wording");
+  }
+});
+
+test("the daily message says when the assistant comes back, without Pacific midnight", () => {
+  // The reset is midnight Pacific, which no visitor can act on. Both languages must name a local
+  // morning hour instead, and neither may promise a wait of "a moment".
+  assert.match(MESSAGES.fr.dailyQuota, /9 h/);
+  assert.match(MESSAGES.fr.dailyQuota, /matin/);
+  assert.match(MESSAGES.en.dailyQuota, /09:00/);
+  assert.match(MESSAGES.en.dailyQuota, /morning/);
+  for (const lang of ["fr", "en"]) {
+    assert.doesNotMatch(MESSAGES[lang].dailyQuota, /Pacific|Pacifique/);
+    assert.notEqual(MESSAGES[lang].dailyQuota, MESSAGES[lang].rateLimited);
+  }
 });
 
 test("upstreamErrorMessage falls back to 'unavailable' for other failures", () => {
@@ -441,7 +498,31 @@ test("fetch: a caller at its daily ceiling gets a localized 429", async () => {
     env,
   );
   assert.equal(res.status, 429);
-  assert.match(await res.text(), /Too many requests/);
+  assert.match(await res.text(), /back in a minute/);
+});
+
+test("fetch: an exhausted daily Gemini quota reaches the caller as the daily message", async () => {
+  // The wiring, not the mapping: the upstream body has to be read and carried all the way to the
+  // SSE payload, or the visitor gets "try again shortly" for a wall that stands until morning.
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(quotaFailure("GenerateRequestsPerDayPerProjectPerModel-FreeTier"), { status: 429 });
+  try {
+    const res = await worker.fetch(
+      call("/chat", {
+        origin: "https://veaf.github.io",
+        ip: "203.0.113.44",
+        body: { lang: "fr", messages: [{ role: "user", content: "comment builder ?" }] },
+      }),
+      workerEnv(),
+    );
+    assert.equal(res.status, 429);
+    const body = await res.text();
+    assert.match(body, /allocation de questions pour la journée/);
+    assert.match(body, /9 h/);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 test("fetch: /analyze streams the answer back as SSE, framed by the catalogue", async () => {

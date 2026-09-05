@@ -6,12 +6,12 @@ Type: feat
 
 ## Why it is cheap here
 
-The corpus is tiny: **9 open issues** in total, and `.backlog/` is already in the agent's checkout.
+The corpus is tiny: **9 open issues** in total, and `.backlog/` is already in the service's checkout.
 Sweeping the existing work costs almost nothing, which is why this is not an optional refinement.
 
 ## What to build
 
-Before drafting anything, the agent looks at four places:
+Before the preview is rendered, the service looks at four places — all of it text matching, no model involved:
 
 | Source | Answers |
 |---|---|

@@ -185,6 +185,33 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A support page**, in both languages: where to go depending on your situation, what to provide,
   and where the two logs actually live — the tool's and DCS's.
 
+- **`/ask` on the VEAF Discord**, answered by the support bot service (`services/support-bot/`). The
+  question opens a **public thread** and the answer is written into it as it streams in, with links
+  to the documentation pages it used. Public on purpose: the answer serves the next person who asks
+  the same thing, and anyone passing by can correct the bot — which is the only correction loop that
+  catches a wrong answer, since no technical guard notices that the documentation changed in 6.19.
+
+  It answers **from the documentation and nothing else**, and says so on the support page along with
+  the consequence: a documentation gap becomes a wrong or missing answer, and the fix is to write the
+  page. When no page can be cited it says the question may be outside what the documentation covers
+  and points at the support page. Every upstream failure — unreachable, rate-limited, timed out,
+  refused — is one human sentence rather than a stack trace or, worse, silence.
+
+  The sources are honest rather than guessed. The Worker streams text and never tells the caller
+  which passages it retrieved, so the model is asked to declare the titles it used, and every
+  declared title is checked against the real `doc/` tree; anything the corpus does not have is
+  dropped. The bot can show fewer sources than it used, never one that does not exist.
+
+  Quotas live in the service, because the Worker counts per IP and a Discord bot is one IP for a
+  whole server: three questions a minute and fifteen a day per person, two hundred a day for the
+  whole bot — the only bound on total spend, sized against the free Gemini tier the website and
+  `veaf-tools ask` also share. A refusal names the reason and the reset time; the counters are
+  persisted, so a restart is not a way to get a fresh allowance, and when they cannot be kept the
+  bot answers at a much stricter rate and says so instead of quietly serving unlimited.
+
+  The bot does **not** read the sources, open issues or analyse logs. The support page says so, so
+  that their absence reads as a boundary rather than a bug.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

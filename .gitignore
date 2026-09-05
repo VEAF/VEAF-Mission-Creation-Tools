@@ -214,3 +214,6 @@ dcsUnits.lua
 services/support-bot/.env
 services/support-bot/.env.*
 !services/support-bot/.env.example
+
+# Its per-user quota counters, written by a local run. Runtime state, and it names Discord users.
+services/support-bot/state/

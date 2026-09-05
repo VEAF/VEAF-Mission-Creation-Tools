@@ -1,6 +1,6 @@
 # 03 — The quota follows the user, not the IP
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -37,10 +37,10 @@ and the Worker gets a `discord` client mode with a ceiling sized for a server ra
 
 ## Definition of done
 
-- [ ] Per-user short-window and daily counters
-- [ ] Global daily ceiling, configurable, with its value documented
-- [ ] A refused request answers with the reason and the reset time
-- [ ] Restart does not silently reset counters to unlimited
-- [ ] `discord` client mode used against the Worker
-- [ ] Unit tests: per-user limit, global limit, restart behaviour, message rendering
-- [ ] Quality gate clean
+- [x] Per-user short-window and daily counters
+- [x] Global daily ceiling, configurable, with its value documented
+- [x] A refused request answers with the reason and the reset time
+- [x] Restart does not silently reset counters to unlimited
+- [x] `discord` client mode used against the Worker
+- [x] Unit tests: per-user limit, global limit, restart behaviour, message rendering
+- [x] Quality gate clean

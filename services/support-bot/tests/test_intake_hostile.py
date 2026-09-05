@@ -36,7 +36,10 @@ from veaf_support_bot.untrusted import defuse_mentions, fence_for, one_line, quo
 HOSTILE_LOG = "\n".join(
     [
         "2026-09-05 10:00:00.000 INFO    APP (Main): DCS/2.9.29.27278 (x86_64; MT; Windows NT 10.0.26200)",
-        *[f"2026-09-05 10:00:{i:02d}.000 ERROR   SCRIPTING (Main): {line}" for i, line in enumerate(HOSTILE_TEXT.splitlines())],
+        *[
+            f"2026-09-05 10:00:{i:02d}.000 ERROR   SCRIPTING (Main): {line}"
+            for i, line in enumerate(HOSTILE_TEXT.splitlines())
+        ],
         "",
     ]
 )
@@ -45,7 +48,10 @@ HOSTILE_LOG = "\n".join(
 CLEAN_LOG = "\n".join(
     [
         "2026-09-05 10:00:00.000 INFO    APP (Main): DCS/2.9.29.27278 (x86_64; MT; Windows NT 10.0.26200)",
-        *[f"2026-09-05 10:00:{i:02d}.000 ERROR   SCRIPTING (Main): ordinary line {i}" for i in range(len(HOSTILE_TEXT.splitlines()))],
+        *[
+            f"2026-09-05 10:00:{i:02d}.000 ERROR   SCRIPTING (Main): ordinary line {i}"
+            for i in range(len(HOSTILE_TEXT.splitlines()))
+        ],
         "",
     ]
 )

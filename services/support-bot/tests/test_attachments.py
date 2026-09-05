@@ -11,12 +11,15 @@ from __future__ import annotations
 import tempfile
 import unittest
 import zipfile
+from collections.abc import Coroutine
 from pathlib import Path
+from typing import Any
 
 from tests.intake_fixtures import fixture_checkout, fixture_root
 from tests.test_toolkit import SYNTHETIC_LOG
 from veaf_support_bot.attachments import (
     AttachmentCollector,
+    Downloader,
     Incoming,
     TooLarge,
     classify,
@@ -25,7 +28,7 @@ from veaf_support_bot.attachments import (
 )
 
 
-def _fake_downloader(bodies: dict[str, bytes]):
+def _fake_downloader(bodies: dict[str, bytes]) -> Downloader:
     """Build a downloader serving fixed bodies, enforcing the ceiling the way the real one does.
 
     Args:
@@ -45,8 +48,17 @@ def _fake_downloader(bodies: dict[str, bytes]):
     return download
 
 
-def _failing_downloader(url: str, target: Path, ceiling: int):
-    """A downloader that always fails, standing for an expired or unreachable URL."""
+def _failing_downloader(url: str, target: Path, ceiling: int) -> Coroutine[Any, Any, int]:
+    """A downloader that always fails, standing for an expired or unreachable URL.
+
+    Args:
+        url: Ignored.
+        target: Ignored.
+        ceiling: Ignored.
+
+    Returns:
+        A coroutine that raises.
+    """
 
     async def _run() -> int:
         raise ConnectionError("the signed URL has expired")
@@ -146,9 +158,7 @@ class TestTheCollector(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(harvest.prepared[0].path, harvest.prepared[1].path)
 
     async def test_a_corrupt_archive_is_attached_with_its_reason(self) -> None:
-        harvest = await self._collector({"u": b"not a zip"}).collect(
-            [Incoming("~mis0001.zip", "u", 9)], self.workdir
-        )
+        harvest = await self._collector({"u": b"not a zip"}).collect([Incoming("~mis0001.zip", "u", 9)], self.workdir)
         self.assertEqual(len(harvest.prepared), 1, "the evidence still travels")
         self.assertIn("unreadable", harvest.rejected[0].reason)
 

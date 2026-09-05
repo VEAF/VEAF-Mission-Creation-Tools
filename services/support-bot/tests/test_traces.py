@@ -110,11 +110,19 @@ class TestFindingCallers(unittest.TestCase):
         callers, total = find_callers(root, "convert", defined_in)
         self.assertEqual(total, 2)
         named = {entry.split(":")[0] for entry in callers}
-        self.assertEqual(named, {"src/python/veaf-tools/mission_builder/caller_one.py", "src/python/veaf-tools/mission_builder/caller_two.py"})
+        self.assertEqual(
+            named,
+            {
+                "src/python/veaf-tools/mission_builder/caller_one.py",
+                "src/python/veaf-tools/mission_builder/caller_two.py",
+            },
+        )
 
     def test_a_function_nobody_calls_yields_nothing(self) -> None:
         root = fixture_root()
-        callers, total = find_callers(root, "nobody_calls_this", root / "src/python/veaf-tools/mission_builder/sample.py")
+        callers, total = find_callers(
+            root, "nobody_calls_this", root / "src/python/veaf-tools/mission_builder/sample.py"
+        )
         self.assertEqual((callers, total), ((), 0))
 
     def test_a_name_that_is_not_an_identifier_is_refused(self) -> None:

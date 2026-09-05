@@ -18,6 +18,8 @@ from tests.intake_fixtures import FORGED_BLOCK, doctor_block, fixture_root
 from veaf_support_bot.toolkit import (
     PUBLISHED_MISSION_FIELDS,
     ToolkitUnavailable,
+    _diagnostic_profile,
+    _mission_table,
     _select_published_fields,
     digest_log,
     expected_schema,
@@ -111,6 +113,36 @@ class TestTheLogDigest(unittest.TestCase):
             with self.assertRaises(ToolkitUnavailable):
                 digest_log(Path(empty) / "nowhere", self.log)
 
+    def test_a_log_the_reader_chokes_on_is_a_missing_section_not_a_lost_report(self) -> None:
+        with self.assertRaises(ToolkitUnavailable):
+            digest_log(fixture_root(), Path(self.directory.name) / "there-is-no-such-file.log")
+
+    def test_a_renamed_diagnostic_profile_falls_back_on_what_the_profile_does(self) -> None:
+        """Its display name is French prose; a reword must not silently pick the wrong profile."""
+
+        class _Renamed:
+            @staticmethod
+            def builtin_profiles(_: object) -> dict[str, object]:
+                class _Filters:
+                    context_lines = 0
+
+                class _WithContext:
+                    context_lines = 3
+
+                return {"Tout": _Filters(), "Erreurs et alentours": _WithContext()}
+
+        chosen = _diagnostic_profile(_Renamed(), object())  # type: ignore[arg-type]
+        self.assertEqual(chosen.context_lines, 3)
+
+    def test_a_catalogue_with_no_diagnostic_profile_at_all_refuses(self) -> None:
+        class _Nothing:
+            @staticmethod
+            def builtin_profiles(_: object) -> dict[str, object]:
+                return {}
+
+        with self.assertRaises(ToolkitUnavailable):
+            _diagnostic_profile(_Nothing(), object())  # type: ignore[arg-type]
+
 
 class TestTheMissionSummary(unittest.TestCase):
     #: A parsed mission table shaped like the real thing, including the fields that must not travel.
@@ -161,6 +193,26 @@ class TestTheMissionSummary(unittest.TestCase):
     def test_what_was_dropped_is_named(self) -> None:
         summary = _select_published_fields(dict(self.TABLE))
         self.assertIn("descriptionText", summary.withheld)
+
+    def test_the_dict_shape_of_a_sequence_table_is_counted_too(self) -> None:
+        """The Lua parser hands back a dict when the keys were never a contiguous 1..N."""
+        table = dict(self.TABLE)
+        table["coalition"] = {"blue": {"country": {"1": {"plane": {"group": {"1": {}, "2": {}}}}}}}
+        summary = _select_published_fields(table)
+        self.assertEqual(summary.fields["group_counts"], {"blue/plane": 2})
+
+    def test_a_mission_stating_none_of_the_published_fields_yields_an_empty_set(self) -> None:
+        summary = _select_published_fields({"descriptionText": "only prose"})
+        self.assertEqual(summary.fields, {})
+        self.assertEqual(summary.withheld, ("descriptionText",))
+
+    def test_the_parsed_table_is_found_wherever_the_parser_put_it(self) -> None:
+        class _Parsed:
+            mission_content = {"theatre": "Syria"}
+
+        self.assertEqual(_mission_table(_Parsed()), {"theatre": "Syria"})
+        self.assertEqual(_mission_table({"theatre": "Syria"}), {"theatre": "Syria"})
+        self.assertEqual(_mission_table(object()), {})
 
     def test_a_mission_the_parser_cannot_read_refuses_rather_than_crashing_the_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

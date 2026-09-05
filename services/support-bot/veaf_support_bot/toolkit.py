@@ -272,6 +272,15 @@ def digest_log(root: Path, path: Path, *, max_chars: int = DEFAULT_EXCERPT_CHARS
         ToolkitUnavailable: The log tooling is not reachable from the checkout, or the file could
             not be indexed. The caller attaches the file anyway and says the excerpt is missing.
     """
+    # Checked before anything else: the buffer swallows a read failure and reports a size of zero,
+    # so an unreadable file would otherwise produce a perfectly well-formed excerpt saying the log
+    # held nothing — which a reader cannot tell from a log that really held nothing.
+    try:
+        if not path.is_file() or path.stat().st_size == 0:
+            raise ToolkitUnavailable(f"{path.name} is empty or could not be read")
+    except OSError as error:
+        raise ToolkitUnavailable(f"{path.name} could not be read: {type(error).__name__}") from error
+
     rules_module = _module(root, "veaf_logs.rules")
     store_module = _module(root, "veaf_logs.store")
     buffer_module = _module(root, "veaf_logs.buffer")

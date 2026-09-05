@@ -82,9 +82,13 @@ class Freshness:
             location whose provenance renders blank is a location a reader cannot check.
         """
         if self.refreshed_at <= 0:
-            return f"{self.revision} (never refreshed by this service)"
-        age = max(0.0, (time.time() if now is None else now) - self.refreshed_at)
-        described = f"{self.revision}, refreshed {_humanise_age(age)}"
+            described = f"{self.revision} (never refreshed by this service)"
+        else:
+            age = max(0.0, (time.time() if now is None else now) - self.refreshed_at)
+            described = f"{self.revision}, refreshed {_humanise_age(age)}"
+        # The failure is appended in **both** cases. A checkout that has never refreshed *and* is
+        # failing is the worst case there is, and an early return on the first condition made it
+        # the one that said the least.
         return f"{described} — LAST REFRESH FAILED: {self.error}" if self.stale else described
 
 

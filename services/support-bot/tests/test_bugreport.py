@@ -58,7 +58,7 @@ def _form(**overrides: str) -> BugForm:
         "language": "en",
     }
     base.update(overrides)
-    return BugForm(**base)  # type: ignore[arg-type]
+    return BugForm(**base)
 
 
 class TestTheComponentTableIsTheTemplates(unittest.TestCase):

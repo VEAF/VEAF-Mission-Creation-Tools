@@ -171,20 +171,20 @@ def doctor_block(version: str = "6.16.3") -> str:
 
 
 #: A CPython traceback naming a file the fixture repository holds, on a machine that is not ours.
-PYTHON_TRACEBACK = r'''Traceback (most recent call last):
+PYTHON_TRACEBACK = r"""Traceback (most recent call last):
   File "C:\Users\Someone\dev\veaf\src\python\veaf-tools\mission_builder\caller_one.py", line 7, in run
     return convert(mission)
   File "C:\Users\Someone\dev\veaf\src\python\veaf-tools\mission_builder\sample.py", line 7, in convert
     return validated["result"]
 KeyError: 'result'
-'''
+"""
 
 #: A trace naming a file no revision of the repository has.
-MISSING_TRACEBACK = r'''Traceback (most recent call last):
+MISSING_TRACEBACK = r"""Traceback (most recent call last):
   File "C:\Users\Someone\dev\veaf\src\python\veaf-tools\mission_builder\removed_three_releases_ago.py", line 412, in gone
     raise RuntimeError("boom")
 RuntimeError: boom
-'''
+"""
 
 #: A DCS Lua error naming a script the fixture repository holds.
 LUA_ERROR = r"""2026-09-05 10:00:00.000 ERROR   SCRIPTING: Mission script error: [string "C:\Users\Someone\Saved Games\DCS\Missions\src\scripts\veaf\veafSample.lua"]:4: attempt to index a nil value"""

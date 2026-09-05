@@ -146,9 +146,15 @@ runs on Gemini's free tier, which the documentation chatbot has used in producti
 ### C1. Create a key for the service
 
 1. Open <https://aistudio.google.com/apikey>, signed in with an account the association controls.
-2. **Create API key**. Copy it once, into the service environment.
-3. Keep it separate from the Worker's own `GEMINI_API_KEY`. Two keys means one can be revoked
-   without taking the website's chatbot down with it, and it makes the two quotas readable apart.
+2. **Create API key**. When it asks which project to attach it to, choose **Create project** and
+   name it for the bot — do **not** reuse the project that already carries the Worker's key.
+
+   That is not tidiness. Gemini's free-tier rate limits apply **per project, not per key**, so two
+   keys in one project share one quota: a burst of curiosity on `/ask` would eat the allowance the
+   website's chatbot needs for the rest of the day. A separate project also means either key can be
+   revoked without taking the other down. Daily counters reset at midnight Pacific time, which is
+   late afternoon in Europe.
+3. Copy the key once, into the service environment.
 
 ### C2. Watch the quota rather than a bill
 

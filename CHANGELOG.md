@@ -450,6 +450,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   service refuses to start: taking bug reports for a week and quietly failing to file every one of
   them is a failure that belongs at startup.
 
+- **Support bot — an attachment carried into an issue is redacted, not merely quoted.** A `.log` or
+  a `.txt` small enough to travel whole was posted as an issue comment straight from the downloaded
+  file, so a Windows account name and an e-mail address reached a public repository verbatim while
+  the redacted view of the same file sat unused beside it. The bytes now go through the tools' own
+  redaction helper, and a file nobody could redact is described in the manifest instead of being
+  published.
+
+- **Support bot — a lost bookkeeping file no longer opens a second issue.** The hidden marker that
+  makes a report idempotent was only looked for when the local ledger remembered an interrupted
+  attempt, which is the one state a corrupt, missing or unwritable ledger never produces. The
+  search now runs for every report with no known issue number. An unreadable ledger is also moved
+  aside rather than overwritten, so one bad read no longer erases every other entry.
+
+- **Support bot — a GitHub App key that reads but cannot sign stops the service at startup.** A
+  truncated or non-RSA PEM used to pass every check and fail on the first bug report, a week later.
+
+- **Support bot — a backlog lot that could not be read is stated.** It used to become an empty
+  candidate that matched nothing, so a lot nobody had read was indistinguishable from a lot swept
+  and found irrelevant.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

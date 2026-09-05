@@ -227,7 +227,9 @@ def carry(prepared: Prepared, *, redactor: Callable[[str], str], limit: int = IN
     try:
         redacted = redactor(content)
     except ToolkitUnavailable as error:
-        return Carried(prepared, reason=f"it could not be redacted, so it is not published here ({error})", digest=digest)
+        return Carried(
+            prepared, reason=f"it could not be redacted, so it is not published here ({error})", digest=digest
+        )
     return Carried(prepared, text=redacted, digest=digest)
 
 

@@ -7,6 +7,7 @@ match the reporter rejects must leave the flow running, not end it.
 from __future__ import annotations
 
 import asyncio
+import tempfile
 import unittest
 from collections.abc import Sequence
 from pathlib import Path
@@ -195,6 +196,44 @@ class TestTheCheckoutSources(unittest.TestCase):
         self.assertEqual(lots, [])
         self.assertEqual(unreadable, [])
         self.assertIn("not a directory", problem)
+
+    def _backlog_with_one_unreadable_prd(self) -> Path:
+        """Build a checkout whose second lot cannot be read.
+
+        A directory where the file should be: ``read_text`` raises ``IsADirectoryError`` on POSIX
+        and ``PermissionError`` on Windows, and both are the ``OSError`` the reader catches — so the
+        case is exercised on either machine without touching file modes.
+
+        Returns:
+            The checkout root.
+        """
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        root = Path(folder.name)
+        (root / ".backlog" / "FEAT-READABLE").mkdir(parents=True)
+        (root / ".backlog" / "FEAT-READABLE" / "PRD.md").write_text(
+            "# The resolver drops an alias\n\nStatus: ⬜ ready\n", encoding="utf-8"
+        )
+        (root / ".backlog" / "FEAT-UNREADABLE" / "PRD.md").mkdir(parents=True)
+        return root
+
+    def test_an_unreadable_prd_is_a_stated_problem_and_not_a_candidate(self) -> None:
+        """An empty `Candidate` matched nothing, so the lot read as *swept and clean*."""
+        lots, problem, unreadable = read_backlog(self._backlog_with_one_unreadable_prd())
+        self.assertEqual(problem, "", "the directory itself was readable")
+        self.assertEqual([lot.reference for lot in lots], ["FEAT-READABLE"])
+        self.assertEqual(len(unreadable), 1)
+        self.assertIn("FEAT-UNREADABLE", unreadable[0])
+
+    def test_the_unreadable_lot_reaches_the_reader_of_the_issue(self) -> None:
+        """Asserted on `Sweep.problems`, not on the reader: the wire is what was missing."""
+        sweeper = PriorArtSweeper(self._backlog_with_one_unreadable_prd(), None)
+        sweep = asyncio.run(sweeper.sweep(RESOLVER_REPORT))
+        self.assertTrue(
+            any("FEAT-UNREADABLE" in problem for problem in sweep.problems),
+            f"the lot nobody could read is unsaid: {sweep.problems}",
+        )
+        self.assertIn("1 open backlog lot(s)", sweep.describe(), "the lots it did read are still counted")
 
     def test_each_roadmap_section_is_a_candidate(self) -> None:
         sections, problem = read_roadmap(fixture_root())

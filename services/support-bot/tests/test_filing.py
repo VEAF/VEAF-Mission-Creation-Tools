@@ -16,11 +16,12 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
-from tests.intake_fixtures import fixture_checkout
+from tests.intake_fixtures import PERSONAL_ACCOUNT, PERSONAL_EMAIL, PERSONAL_LOG, fixture_checkout
 from tests.test_github_app import credentials
 from veaf_support_bot.attachments import Prepared
 from veaf_support_bot.bugreport import BugForm, BugReport, assemble
 from veaf_support_bot.filing import (
+    CORRUPT_SUFFIX,
     MACHINE_LABEL,
     IssueFiler,
     Ledger,
@@ -43,8 +44,12 @@ class _GitHub:
         self.issues: list[dict[str, Any]] = []
         self.comments: list[tuple[int, str]] = []
         self.creations = 0
+        # Counted, not asserted away: ungating the marker search buys idempotency with one `GET`,
+        # and a test that does not measure the cost is a test that would not notice it growing.
+        self.searches = 0
         self.fail_create: Exception | None = None
         self.refuse_labels = False
+        self.fail_search = False
         self.fail_comment = False
 
     async def __call__(
@@ -80,6 +85,10 @@ class _GitHub:
             self.issues.append(item)
             return Response(201, item)
         if method == "GET":
+            if "state=all" in url:
+                self.searches += 1
+                if self.fail_search:
+                    return Response(503, {"message": "unavailable"})
             return Response(200, list(reversed(self.issues)))
         return Response(200, {})
 
@@ -227,6 +236,71 @@ class TestFilingOnce(_Filing):
         self.ledger_path.write_text("{not json", encoding="utf-8")
         self.assertEqual((await self._filer().file(_report())).action, "created")
 
+    async def test_losing_the_local_state_does_not_open_a_second_issue(self) -> None:
+        """The case the marker exists for, and the one the ledger cannot help with.
+
+        Enumerated rather than sampled: *interrupted* was the only damage covered, and it is the one
+        shape a lost ledger never takes. Both shapes below make `load()` return an empty mapping,
+        which is why gating the marker search on `state == "filing"` made it unreachable.
+        """
+        damage = {
+            "corrupt": lambda path: path.write_text("{not json", encoding="utf-8"),
+            "deleted": lambda path: path.unlink(),
+        }
+        for name, break_it in damage.items():
+            with self.subTest(ledger=name):
+                self.setUp()
+                report = _report()
+                first = await self._filer().file(report)
+                break_it(self.ledger_path)
+                retry = await self._filer().file(report)
+
+                self.assertEqual(first.action, "created")
+                self.assertEqual(retry.action, "reused", "the marker is the only trace left")
+                self.assertEqual(retry.number, first.number)
+                self.assertEqual(self.github.creations, 1)
+
+    async def test_the_marker_search_runs_before_the_first_creation_too(self) -> None:
+        """What the ungating costs, asserted rather than assumed: one `GET`, once."""
+        await self._filer().file(_report())
+        self.assertEqual(self.github.creations, 1)
+        self.assertEqual(self.github.searches, 1)
+
+    def test_an_unreadable_ledger_is_moved_aside_rather_than_overwritten(self) -> None:
+        """`record` rebuilt the document from `load()`, so one corrupt read erased every entry."""
+        self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+        self.ledger_path.write_text('{"version": 1, "reports": {"older": {"number": 7}}}x', encoding="utf-8")
+        Ledger(self.ledger_path).record("newer", {"number": 8})
+
+        aside = self.ledger_path.with_suffix(f"{self.ledger_path.suffix}{CORRUPT_SUFFIX}")
+        self.assertTrue(aside.is_file(), "the entries nobody could parse are still on disk")
+        self.assertIn('"older"', aside.read_text(encoding="utf-8"))
+        self.assertEqual(Ledger(self.ledger_path).load(), {"newer": {"number": 8}})
+
+    def test_a_ledger_that_cannot_even_be_moved_aside_still_records_the_new_entry(self) -> None:
+        """Moving the corrupt file aside is best effort; losing the *new* number would not be."""
+        self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+        self.ledger_path.write_text("{not json", encoding="utf-8")
+        # A non-empty directory where the copy would go: `replace` cannot overwrite it.
+        aside = self.ledger_path.with_suffix(f"{self.ledger_path.suffix}{CORRUPT_SUFFIX}")
+        (aside / "in-the-way").mkdir(parents=True)
+
+        Ledger(self.ledger_path).record("newer", {"number": 8})
+        self.assertEqual(Ledger(self.ledger_path).load(), {"newer": {"number": 8}})
+
+    async def test_a_recovery_search_that_fails_does_not_lose_the_report(self) -> None:
+        """Now on every filing's path, so its failure mode is asserted rather than assumed."""
+        self.github.fail_search = True
+        outcome = await self._filer().file(_report())
+        self.assertEqual(outcome.action, "created")
+        self.assertEqual(self.github.creations, 1)
+
+    async def test_a_lock_is_not_kept_for_every_report_the_service_ever_filed(self) -> None:
+        filer = self._filer()
+        for index in range(3):
+            await filer.file(_report(summary=f"report {index}"))
+        self.assertEqual(filer._locks, {}, "one lock per key, kept for the life of the process, is a leak")
+
 
 class TestWhenItCannotFile(_Filing):
     """A failure is an answer the reporter gets, never a silence."""
@@ -290,6 +364,22 @@ class TestCarryingTheFiles(_Filing):
         )
         await self._filer().file(report)
         self.assertTrue(any("the interesting line" in body for _, body in self.github.comments))
+
+    async def test_the_comment_that_reaches_github_is_redacted(self) -> None:
+        """Asserted on the wire, not on `carry`: the leak was one argument away from the transport."""
+        folder = Path(self.folder.name)
+        (folder / "dcs.log").write_text(PERSONAL_LOG, encoding="utf-8")
+        from dataclasses import replace
+
+        report = replace(
+            _report(),
+            attachments=(Prepared(filename="dcs.log", kind="log", path=folder / "dcs.log", size=len(PERSONAL_LOG)),),
+        )
+        await self._filer().file(report)
+        posted = "\n".join(body for _, body in self.github.comments)
+        self.assertNotIn(PERSONAL_ACCOUNT, posted)
+        self.assertNotIn(PERSONAL_EMAIL, posted)
+        self.assertIn("secret-op.miz", posted, "the evidence still travels")
 
 
 class TestTheIssueCorpus(_Filing):

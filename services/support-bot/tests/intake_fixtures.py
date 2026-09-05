@@ -322,6 +322,22 @@ UNREADABLE_MISSION_LUA = (
 )
 
 
+#: The **content** of an attached log, with the account name and the address in the bytes rather
+#: than in a name.
+#:
+#: The fourth path, and the one the fixture did not have: every case above puts personal data in a
+#: *name*, in an archive's member list or in a parser's error message. What an issue carries whole —
+#: the bytes of a ``.log`` or a ``.txt``, posted as a comment — travelled none of them, and that is
+#: exactly where the leak was found. Shaped like a real ``dcs.log``: a header line nothing personal,
+#: then a path under ``Users/`` and an address, which is what the shared helper recognises.
+PERSONAL_LOG = (
+    "2026-09-05 10:00:00.000 INFO    APP (Main): DCS/2.9.29.27278 (x86_64; MT; Windows NT 10.0.26200)\n"
+    "2026-09-05 10:00:01.000 ERROR   SCRIPTING (Main): could not open "
+    rf"C:\Users\{PERSONAL_ACCOUNT}\Saved Games\DCS\Missions\secret-op.miz" + "\n"
+    f"2026-09-05 10:00:02.000 ERROR   SCRIPTING (Main): reported by {PERSONAL_EMAIL}\n"
+)
+
+
 def personal_archive() -> bytes:
     """Build a ``~mis*.zip`` whose member names carry an account name and an e-mail address.
 

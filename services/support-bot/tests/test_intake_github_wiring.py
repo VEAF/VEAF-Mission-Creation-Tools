@@ -30,6 +30,7 @@ from veaf_support_bot.attachments import AttachmentCollector
 from veaf_support_bot.bugreport import BugForm
 from veaf_support_bot.config import ConfigurationError, SupportBotConfig
 from veaf_support_bot.filing import Outcome
+from veaf_support_bot.github_app import GitHubError
 from veaf_support_bot.intake import BugIntake, BugSubmission, render_match, sweep_query
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, PriorArtGate, PriorArtSweeper, Sweep
 from veaf_support_bot.service import build_github_app, build_intake
@@ -348,6 +349,36 @@ class TestTheServiceBuildsIt(unittest.TestCase):
         # Not the word "secret": `worker_secret` is a field *name* and appears in every repr.
         self.assertNotIn("MIIEbodyofthekey", repr(config))
         self.assertEqual(config.redacted()["github_private_key"], "***redacted***")
+
+    def test_a_key_that_reads_but_cannot_sign_also_stops_the_process(self) -> None:
+        """Reachable is not usable, and the difference used to surface a week later.
+
+        `read_private_key` proves the bytes were *there*. A truncated PEM reads back fine and dies
+        at the first `jwt()` — which is the first bug report, in a service whose health endpoints,
+        Discord connection and documentation answers are all green.
+        """
+        malformed = Path(self.folder.name) / "truncated.pem"
+        malformed.write_text(PEM[: len(PEM) // 2], encoding="utf-8")
+        with self.assertRaises(GitHubError) as caught:
+            build_github_app(self._configured(GITHUB_PRIVATE_KEY_FILE=str(malformed)))
+        self.assertIn("private key", str(caught.exception))
+        self.assertNotIn("PRIVATE KEY-----", str(caught.exception), "the message must not quote the key")
+
+    def test_a_key_that_is_not_rsa_stops_the_process_too(self) -> None:
+        """The second shape the reader cannot see: valid PEM, wrong algorithm."""
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+
+        elliptic = Path(self.folder.name) / "ec.pem"
+        elliptic.write_bytes(
+            ec.generate_private_key(ec.SECP256R1()).private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        )
+        with self.assertRaises(GitHubError):
+            build_github_app(self._configured(GITHUB_PRIVATE_KEY_FILE=str(elliptic)))
 
     def test_an_unreadable_key_stops_the_process_with_the_configuration_exit_code(self) -> None:
         # Two halves, because the wire has two ends: the build refuses, and the entry point turns

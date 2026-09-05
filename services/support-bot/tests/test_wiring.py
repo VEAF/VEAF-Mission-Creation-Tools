@@ -6,15 +6,20 @@ called it. So this file asserts only the connections, each one where cutting it 
 other test in this suite still passing:
 
 * ``/ask`` is **registered** on the command tree, with the name and the option Discord will send;
+* the **client the gateway connects** carries that command, and publishes it to the one guild —
+  registering correctly in a function nobody calls is the same bug one layer up;
 * the registered callback **reaches the handler**, with the interaction's user, locale and question;
 * an exchange is **tracked**, so a shutdown drains it instead of abandoning a placeholder;
 * the gateway **publishes readiness**, and a disconnection withdraws it;
 * the service **builds its counters from the configuration**, rather than from defaults;
 * the handler the service runs uses **those** counters, not a second set nobody enforces;
+* the gateway the service **actually builds** answers, and its exchanges are drainable;
 * ``/status`` **reports** them.
 
 Each of these is proved to detect a regression: ``TestTheseTestsDetectABrokenWiring`` cuts the wire
-and asserts the corresponding test fails.
+and asserts the corresponding test fails. Every cut is made in **production** code — a symbol in a
+shipped module, or the binding a shipped module resolves — never in a stand-in defined here: a
+detector that mutates its own double proves the double, not the wire.
 """
 
 from __future__ import annotations
@@ -285,6 +290,60 @@ class TestReadinessFollowsTheGateway(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(state.ready)
 
 
+class TestTheClientTheGatewayRunsOn(unittest.IsolatedAsyncioTestCase):
+    """One layer above ``register_commands``: the client the gateway actually connects.
+
+    ``TestTheCommandIsRegistered`` registers the commands itself and then asserts they are there, so
+    it proves the function works — never that :class:`~veaf_support_bot.discord_bot.SupportBotClient`
+    calls it. Cutting that call leaves the whole suite green and ``/ask`` simply does not exist on
+    the server.
+    """
+
+    def _client(self) -> discord_bot.SupportBotClient:
+        """Build a client that is never connected.
+
+        Returns:
+            The client.
+        """
+        handler = cast(AskHandler, _RecordingHandler())
+        return discord_bot.SupportBotClient(_config(), ServiceState(version="test"), handler)
+
+    async def test_the_client_carries_the_command_and_not_only_the_registrar(self) -> None:
+        self.assertIsNotNone(self._client().tree.get_command("ask"))
+
+    async def _publish(self) -> tuple[discord_bot.SupportBotClient, list[Any]]:
+        """Run ``setup_hook`` with the real sync replaced, and report what it was asked to publish.
+
+        Returns:
+            The client, and the ``guild`` argument of every sync call.
+        """
+        client = self._client()
+        synced_to: list[Any] = []
+
+        async def _record(*, guild: Any = None) -> list[Any]:
+            synced_to.append(guild)
+            return []
+
+        client.tree.sync = _record  # type: ignore[method-assign]
+        await client.setup_hook()
+        return client, synced_to
+
+    async def test_the_commands_are_published_to_the_configured_guild_and_nowhere_else(self) -> None:
+        """Global commands take up to an hour to propagate; the lot chose one guild, immediately."""
+        _, synced_to = await self._publish()
+
+        self.assertEqual(len(synced_to), 1)
+        assert synced_to[0] is not None, "the commands were synced globally instead of to the guild"
+        self.assertEqual(synced_to[0].id, _config().discord_guild_id)
+
+    async def test_the_guild_commands_are_the_ones_the_registrar_attached(self) -> None:
+        """``copy_global_to`` is what puts them there; without it the guild sync publishes nothing."""
+        client, _ = await self._publish()
+
+        names = {command.name for command in client.tree.get_commands(guild=client.guild)}
+        self.assertIn("ask", names)
+
+
 class TestTheServiceWiresItsOwnPieces(unittest.IsolatedAsyncioTestCase):
     """The counters the configuration describes, and the handler that actually enforces them."""
 
@@ -355,6 +414,27 @@ class TestTheServiceWiresItsOwnPieces(unittest.IsolatedAsyncioTestCase):
 
         assert body is not None
         self.assertTrue(body["details"]["degraded"])
+
+    async def test_the_gateway_it_builds_can_answer_and_is_drainable(self) -> None:
+        """``_build_gateway`` is the one piece of real wiring nothing else in this suite runs.
+
+        Dropping ``self.tasks`` there makes every exchange invisible to the drain — a ``docker stop``
+        then cuts one in half and leaves a "thinking" placeholder nobody ever edits.
+        """
+        service = self._service()
+        tracked: list[int] = []
+
+        class _ProbeHandler:
+            async def handle(self, exchange: Any, context: AskContext) -> None:
+                tracked.append(len(service.tasks))
+
+        service.handler = cast(AskHandler, _ProbeHandler())
+        gateway = cast(Any, service._build_gateway())  # noqa: SLF001 - the wiring is the point
+        callback = cast(Any, _ask_command(gateway.client.tree).callback)
+
+        await callback(_FakeInteraction(), "comment builder ?")
+
+        self.assertEqual(tracked, [1], "the exchange the real gateway runs was not tracked")
 
     async def test_no_discord_identity_reaches_the_status_endpoint(self) -> None:
         service = self._service()
@@ -529,17 +609,81 @@ class TestTheseTestsDetectABrokenWiring(unittest.IsolatedAsyncioTestCase):
             setattr(discord_bot, "register_commands", original)
             globals()["register_commands"] = original
 
-    def test_a_callback_that_never_calls_the_handler_is_detected(self) -> None:
-        original = _RecordingHandler.handle
+    def test_a_callback_that_loses_the_question_is_detected(self) -> None:
+        """Cut in the production module's own binding, so the real callback builds the bad context."""
+        original = discord_bot.AskContext
 
-        async def _never_records(self: Any, exchange: Any, context: AskContext) -> None:
-            return None
+        class _QuestionLosingContext(AskContext):
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                kwargs["question"] = ""
+                super().__init__(*args, **kwargs)
 
-        setattr(_RecordingHandler, "handle", _never_records)
+        setattr(discord_bot, "AskContext", _QuestionLosingContext)
         try:
             self._assert_detects(TestTheCommandReachesTheHandler, "test_the_question_reaches_the_handler")
         finally:
-            setattr(_RecordingHandler, "handle", original)
+            setattr(discord_bot, "AskContext", original)
+
+    def test_a_client_that_registers_no_command_is_detected(self) -> None:
+        """The blind spot one layer up: ``register_commands`` works, nobody calls it."""
+        original = discord_bot.register_commands
+
+        def _no_registration(*_: Any, **__: Any) -> None:
+            return None
+
+        setattr(discord_bot, "register_commands", _no_registration)
+        try:
+            self._assert_detects(
+                TestTheClientTheGatewayRunsOn, "test_the_client_carries_the_command_and_not_only_the_registrar"
+            )
+        finally:
+            setattr(discord_bot, "register_commands", original)
+
+    def test_a_global_sync_instead_of_a_guild_one_is_detected(self) -> None:
+        """Commands would still appear — up to an hour later, and on every server the bot joins."""
+        original = discord_bot.SupportBotClient.setup_hook
+
+        async def _sync_globally(self: Any) -> None:
+            await self.tree.sync()
+
+        setattr(discord_bot.SupportBotClient, "setup_hook", _sync_globally)
+        try:
+            self._assert_detects(
+                TestTheClientTheGatewayRunsOn,
+                "test_the_commands_are_published_to_the_configured_guild_and_nowhere_else",
+            )
+        finally:
+            setattr(discord_bot.SupportBotClient, "setup_hook", original)
+
+    def test_a_guild_sync_that_copies_nothing_is_detected(self) -> None:
+        original = discord_bot.SupportBotClient.setup_hook
+
+        async def _sync_an_empty_guild(self: Any) -> None:
+            await self.tree.sync(guild=self.guild)
+
+        setattr(discord_bot.SupportBotClient, "setup_hook", _sync_an_empty_guild)
+        try:
+            self._assert_detects(
+                TestTheClientTheGatewayRunsOn, "test_the_guild_commands_are_the_ones_the_registrar_attached"
+            )
+        finally:
+            setattr(discord_bot.SupportBotClient, "setup_hook", original)
+
+    def test_a_gateway_built_without_the_shutdown_registry_is_detected(self) -> None:
+        """``_build_gateway`` dropping ``self.tasks``: every exchange becomes invisible to the drain."""
+        original = discord_bot.SupportBotClient
+
+        class _TasklessClient(original):  # type: ignore[valid-type, misc]
+            def __init__(self, config: Any, state: Any, handler: Any, tasks: Any = None, **kwargs: Any) -> None:
+                super().__init__(config, state, handler, None, **kwargs)
+
+        setattr(discord_bot, "SupportBotClient", _TasklessClient)
+        try:
+            self._assert_detects(
+                TestTheServiceWiresItsOwnPieces, "test_the_gateway_it_builds_can_answer_and_is_drainable"
+            )
+        finally:
+            setattr(discord_bot, "SupportBotClient", original)
 
     def test_dropping_the_locale_is_detected(self) -> None:
         """The bug that answers every English speaker in French while nothing crashes."""

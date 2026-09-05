@@ -7,7 +7,7 @@ without any of it; nothing runs until these are done.
 Work through it **in order**. Each part says when it becomes necessary, so nothing is created months
 before it is used.
 
-> **Interface labels are those of September 2026.** Discord, GitHub and Anthropic all move their
+> **Interface labels are those of September 2026.** Discord, GitHub and Google all move their
 > console layouts; if a label below does not exist any more, the step still describes what to look
 > for.
 
@@ -132,37 +132,36 @@ working under the new key; the old one is dead.
 
 ---
 
-## Part C — The Anthropic API key and the budget
+## Part C — The Gemini API key
 
-**Needed for:** `FEAT-SUPPORT-BUG-INTAKE` (lot 4). This is the only paid part of the programme —
-`/ask` and the log analyser run on the free tier.
+**Needed for:** `FEAT-SUPPORT-BUG-INTAKE` (lot 4), where an agent reads the sources to place a
+hypothesis in the issue it files.
 
-### C1. Create a scoped key
+The programme originally put a paid Claude model here, on the reasoning that the rare, high-value
+event was worth paying for. That changed on 2026-09-05: the Anthropic API is **not** covered by the
+VEAF's Max Non-Profit plan, so it would have been a separate subscription, a payment method and a
+recurring justification — for something that will run a handful of times a month. Everything now
+runs on Gemini's free tier, which the documentation chatbot has used in production since June.
 
-1. Open <https://console.anthropic.com/>, sign in with an account the association controls.
-2. **API keys** → **Create key**. Name it after the service so it can be revoked without collateral.
-3. Copy it once, into the service environment — under a `SUPPORT_BOT_` name fixed when lot 4 lands.
+### C1. Create a key for the service
 
-### C2. Set a spending limit at the provider, not only in the code
+1. Open <https://aistudio.google.com/apikey>, signed in with an account the association controls.
+2. **Create API key**. Copy it once, into the service environment.
+3. Keep it separate from the Worker's own `GEMINI_API_KEY`. Two keys means one can be revoked
+   without taking the website's chatbot down with it, and it makes the two quotas readable apart.
 
-The service enforces its own per-user quota and daily ceiling, but that is our code guarding our
-code. Set a hard limit at the provider too, so a bug on our side cannot become an invoice:
+### C2. Watch the quota rather than a bill
 
-1. **Settings** → **Billing** / **Limits**.
-2. Set a **monthly spend limit**. It cuts everything off when reached, abruptly — which is exactly
-   what you want as a last resort, and why the in-service ceiling exists to be hit first.
+There is no invoice to cap here, so the thing to watch is the **free-tier quota**, which is shared
+by everything the association runs on that key. The service enforces its own per-user and daily
+ceilings on top, so a burst of curiosity cannot exhaust in an afternoon what the documentation
+chatbot needs for the rest of the day.
 
-### C3. Two figures I need from you
+### C3. One figure I need from you
 
-These are decisions, not settings I can pick for you:
-
-- **The monthly budget.** Order of magnitude from the design session: 0.20 to 1 € per report
-  analysed. The observed volume of user reports is close to zero — the last one filed by a user
-  dates from January 2026 — so the real risk is curiosity on announcement day, not sustained load.
-- **The daily ceiling of the service**, which must sit below the provider limit so the bot degrades
-  gracefully instead of being cut off mid-sentence.
-
-Tell me both and I wire them in as defaults.
+**The daily ceiling of the service** — how many report analyses per day, all users together, before
+it answers "come back tomorrow". It is a quota decision now, not a budget one, but it is still
+yours: it decides whose requests get refused when the day is busy.
 
 ---
 
@@ -266,8 +265,8 @@ Copy this into the thread when you have done a part, so I know what to wire in.
       → token, application ID, guild ID, channel IDs
 - [ ] **B** — GitHub App created, installed on the repository only, permissions as listed
       → App ID, Installation ID, private key
-- [ ] **C** — Anthropic key created, provider spend limit set
-      → key, monthly budget, daily service ceiling
+- [ ] **C** — Gemini key created for the service, separate from the Worker's
+      → key, daily service ceiling
 - [ ] **D1** — Worker deployed (`npx wrangler deploy`), without which none of the hardening is live
 - [ ] **D2** — shared secret set on the Worker and in the service environment
 - [ ] **D3** — service running, `.env` filled from `.env.example`

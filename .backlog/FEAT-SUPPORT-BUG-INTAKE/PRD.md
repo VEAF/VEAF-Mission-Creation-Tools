@@ -17,15 +17,30 @@ Afterwards, comments and closure on that issue are relayed back into the Discord
 `/ask` gets an escalation button into this flow, which is the passage the two commands were designed
 around.
 
+## The model: Gemini, not Claude — decided 2026-09-05
+
+The lot was designed around a paid Claude model, on the reasoning that a rare, high-value event is
+worth paying for. Then the VEAF's **Max Non-Profit plan turned out not to cover the Anthropic API**,
+which made it a separate subscription with its own payment method and its own justification — for
+something that will run a handful of times a month.
+
+Everything therefore runs on **Gemini's free tier**, which the documentation chatbot has used in
+production since June and which supports the tool calling this lot needs. Two consequences the
+tickets carry: the ceiling is a **quota**, not a budget, and the runtime stays **provider-agnostic**
+so the decision can be revisited without rewriting the lot. The quality of code analysis is to be
+**measured on real reports** before it is taken for granted — it is the one place where the change
+could cost something real.
+
 ## Why an agent and not the RAG
 
 This is where reading the code pays. A stack trace names a file and a line — `veafNamedPoints.lua:4219`
 — and a semantic search over chunks is the wrong instrument for an exact address. An agent with a
 checkout can open that line, walk back to the callers, and check a hypothesis.
 
-That is also why it stays **here and nowhere else**. The paid model is reserved for the rare,
-high-value event; `/ask` and the log analyser keep running on the free tier. Volume on one side,
-value on the other — the programme's first principle.
+That is also why the agent stays **here and nowhere else**: `/ask` and the log analyser need a
+passage of documentation, not a walk through the sources, and an agent turn costs many times a RAG
+turn in quota. Volume on one side, depth on the other — the programme's first principle, now
+expressed in quota rather than in currency.
 
 ## What the measurement says about the target
 
@@ -49,7 +64,7 @@ report complete, deduplicated, and answerable — and to make the person who fil
 | The agent gives a **labelled hypothesis** with file and line | it must be visually separable from the facts, and never read as a diagnosis |
 | Prior art is swept across issues **and** `.backlog/` | `CONTRIBUTING.md` says issues are an intake desk and the work lives in lots |
 | The issue is written **in the user's language** | departs from the repository's English-only rule for technical content, and matches what the tracker already contains |
-| Quota per user, global daily ceiling | reuses the counters from [`FEAT-SUPPORT-DISCORD-QA` ticket 03](../FEAT-SUPPORT-DISCORD-QA/tickets/03-per-user-quota.md), with a real budget behind them |
+| Quota per user, global daily ceiling | reuses the counters from [`FEAT-SUPPORT-DISCORD-QA` ticket 03](../FEAT-SUPPORT-DISCORD-QA/tickets/03-per-user-quota.md), guarding a shared free-tier quota rather than an invoice |
 
 ## Size warning
 
@@ -60,8 +75,9 @@ message 24 minutes after #795 was reviewed. **Sequence this into several PRs**, 
 
 ## Open questions
 
-1. **Which Claude model, and the monthly budget.** The daily ceiling must be a figure before the
-   first paid call is made, not after the first invoice.
+1. **The daily ceiling**, as a number of analyses per day for all users together. It is a quota
+   decision now, not a budget one — the free tier is shared with the documentation chatbot, so a
+   burst of curiosity must not exhaust in an afternoon what the website needs all day.
 2. **How the checkout stays fresh**: periodic pull or event-driven, decided with the service
    skeleton.
 3. **What `doctor` prints** — this lot parses it, so its format has to be settled in lot 1.

@@ -31,8 +31,8 @@ match is always shown with its evidence — the page, the function, the lot — 
 
 ## Cost
 
-This sweep runs before any paid call, and a suggestion resolved by an existing page should cost close
-to nothing. Reuse the agent runtime and the budget accounting from
+This sweep runs before any agent call, and a suggestion resolved by an existing page should consume
+close to nothing. Reuse the agent runtime and its consumption accounting from
 [`FEAT-SUPPORT-BUG-INTAKE` ticket 01](../../FEAT-SUPPORT-BUG-INTAKE/tickets/01-agent-runtime.md).
 
 ## Definition of done
@@ -41,6 +41,6 @@ to nothing. Reuse the agent runtime and the budget accounting from
 - [ ] Four distinct verdicts implemented, each with its own answer in the thread
 - [ ] "Exists but undocumented" reported separately from "exists"
 - [ ] Every match shows its evidence and can be rejected, after which the flow continues
-- [ ] No paid call before the sweep has run
+- [ ] No agent call before the sweep has run
 - [ ] Unit tests with a fixture repository, one per verdict, plus the rejection path
 - [ ] Quality gate clean

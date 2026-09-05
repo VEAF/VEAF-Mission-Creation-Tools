@@ -13,7 +13,7 @@ step: to add something later, post in the thread.
 
 **For maintainers**, next to the service: how to read a machine-filed issue — which parts are facts,
 which part is a guess — how the prior-art sweep decided what it decided, and how to disable the
-paid flow if the budget runs out.
+agent flow if the shared quota runs short.
 
 **In `CONTRIBUTING.md`**: the intake circuit gains a path. Today it says to pick a template; it
 should also say that a report can arrive through Discord and what that changes for triage.

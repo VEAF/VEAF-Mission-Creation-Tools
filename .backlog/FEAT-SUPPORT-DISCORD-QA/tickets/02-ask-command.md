@@ -30,8 +30,8 @@ It also gives the thread a durable identity, which lot 4 reuses to relay GitHub 
 
 - The thread is created from the question, so the question text is visible in the channel; the
   answer lives inside. That keeps the channel readable.
-- Nothing here writes to GitHub, and nothing here calls a paid model. That is deliberate: this lot
-  proves the channel, the permissions and the quotas first.
+- Nothing here writes to GitHub, and nothing here runs an agent. That is deliberate: this lot proves
+  the channel, the permissions and the quotas first.
 
 ## Definition of done
 

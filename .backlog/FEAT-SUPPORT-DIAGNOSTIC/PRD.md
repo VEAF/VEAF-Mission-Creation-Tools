@@ -18,7 +18,7 @@ the bot is never built.
 | 5 | [`FEAT-SUPPORT-SUGGESTIONS`](../FEAT-SUPPORT-SUGGESTIONS/PRD.md) | service |
 
 Two principles hold the programme together, and they are decisions, not preferences: **the free
-tier carries the volume, the paid model is reserved for value**; and **the user's machine produces
+tier carries the volume, and depth is rationed rather than bought**; and **the user's machine produces
 the bounded material, the service only analyses it**. Everything below follows from the second.
 
 ## Why this lot exists

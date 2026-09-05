@@ -204,6 +204,53 @@ class TestTheTokenNeverLeaks(unittest.TestCase):
 
         self.assertEqual(config.redacted()["discord_token"], "")
 
+    def test_no_reader_echoes_the_value_it_rejected(self) -> None:
+        """The leak that was measured: a token pasted into the wrong variable, printed in full.
+
+        The two Discord variables sit next to each other in ``.env.example``, both are long opaque
+        strings copied out of the same Discord screen, and the message below is printed at
+        ``CRITICAL`` on stdout — straight into a container log collector. Every reader that refuses a
+        value is checked, not only the one the slip was measured on.
+        """
+        token = "MTIzNDU2Nzg5.SECRET-TOKEN-CANARY.abcdefg"
+        rejecting = {
+            "SUPPORT_BOT_DISCORD_GUILD_ID": "integer",
+            "SUPPORT_BOT_HEALTH_PORT": "port",
+            "SUPPORT_BOT_LOG_LEVEL": "choice",
+            "SUPPORT_BOT_LOG_FORMAT": "choice",
+            "SUPPORT_BOT_HEARTBEAT_SECONDS": "seconds",
+            "SUPPORT_BOT_SHUTDOWN_GRACE_SECONDS": "seconds",
+            "SUPPORT_BOT_DRY_RUN": "flag",
+            "SUPPORT_BOT_WORKER_ENDPOINT": "url",
+        }
+        for variable, reader in rejecting.items():
+            with self.subTest(variable=variable, reader=reader):
+                with self.assertRaises(ConfigurationError) as raised:
+                    SupportBotConfig.from_env({**MINIMAL, variable: token})
+
+                message = str(raised.exception)
+                self.assertNotIn(token, message)
+                self.assertNotIn("SECRET-TOKEN-CANARY", message)
+                # Still diagnosable: the variable is named, and so is what was expected of it.
+                self.assertIn(variable, message)
+
+    def test_a_rejected_value_is_still_described_usefully(self) -> None:
+        """Naming the variable is not enough — the operator needs to recognise their own mistake."""
+        with self.assertRaises(ConfigurationError) as raised:
+            SupportBotConfig.from_env({**MINIMAL, "SUPPORT_BOT_HEALTH_PORT": '"8081"'})
+
+        message = str(raised.exception)
+        self.assertIn("is not an integer", message)
+        self.assertIn("6 characters", message)
+        self.assertIn("quotes included", message)
+
+    def test_a_value_that_parsed_is_reported_as_parsed(self) -> None:
+        """A number that got through ``int()`` is not a credential, and hiding it helps nobody."""
+        with self.assertRaises(ConfigurationError) as raised:
+            SupportBotConfig.from_env({**MINIMAL, "SUPPORT_BOT_HEALTH_PORT": "70000"})
+
+        self.assertIn("SUPPORT_BOT_HEALTH_PORT=70000", str(raised.exception))
+
     def test_redacted_covers_every_field_of_the_configuration(self) -> None:
         """A field added later must appear in the startup log, not quietly go unreported."""
         from dataclasses import fields

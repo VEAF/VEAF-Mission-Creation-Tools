@@ -10,9 +10,13 @@ Two properties this module exists to guarantee:
   operator fixes one deployment rather than discovering the second mistake after the first restart.
   A service that starts and only fails on the first user question is the failure mode this avoids.
 
-The token never reaches a log line: :meth:`SupportBotConfig.redacted` masks it, and ``repr`` of the
-configuration object is redacted too, so an accidental ``logger.info(config)`` or a stack trace
-cannot leak it.
+The token never reaches a log line: :meth:`SupportBotConfig.redacted` masks it, ``repr`` of the
+configuration object is redacted too — so an accidental ``logger.info(config)`` or a stack trace
+cannot leak it — and **no problem message echoes the value it rejected**, only its shape (see
+:func:`_shape`). That last one is not theoretical: the two Discord variables sit next to each other
+in ``.env.example``, both are long opaque strings copied out of the same Discord screen, and a
+configuration error is printed at ``CRITICAL`` on stdout, straight into a container log collector.
+A token pasted into the wrong one of the two would otherwise be published in full.
 """
 
 from __future__ import annotations
@@ -54,6 +58,25 @@ _FALSE: Final = frozenset({"0", "false", "no", "off"})
 
 #: What a redacted secret looks like in a log line or a ``repr``.
 REDACTED: Final = "***redacted***"
+
+
+def _shape(raw: str) -> str:
+    """Describe a rejected value without reproducing it.
+
+    Any variable can hold a pasted credential, and the message built from this ends up on stdout at
+    ``CRITICAL``. So the message reports what actually diagnoses the everyday mistakes — how long the
+    value is, and whether the quotes from a ``.env`` line came along with it — and never the text.
+
+    Args:
+        raw: The value the reader refused.
+
+    Returns:
+        A short description safe to print, e.g. ``"19 characters"``.
+    """
+    described = f"{len(raw)} character{'' if len(raw) == 1 else 's'}"
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "\"'":
+        described += ", quotes included"
+    return described
 
 
 class ConfigurationError(RuntimeError):
@@ -137,7 +160,7 @@ class _Reader:
             return default
         value = raw.upper() if upper else raw.lower()
         if value not in allowed:
-            self.problems.append(f"{ENV_PREFIX}{name}={raw!r} is not one of {', '.join(allowed)}")
+            self.problems.append(f"{ENV_PREFIX}{name} is not one of {', '.join(allowed)} (got {_shape(raw)})")
             return default
         return value
 
@@ -161,10 +184,10 @@ class _Reader:
         try:
             value = int(raw)
         except ValueError:
-            self.problems.append(f"{ENV_PREFIX}{name}={raw!r} is not an integer")
+            self.problems.append(f"{ENV_PREFIX}{name} is not an integer (got {_shape(raw)})")
             return default or 0
         if minimum is not None and value < minimum:
-            self.problems.append(f"{ENV_PREFIX}{name}={raw!r} must be >= {minimum}")
+            self.problems.append(f"{ENV_PREFIX}{name}={value} must be >= {minimum}")
             return default or 0
         return value
 
@@ -184,12 +207,13 @@ class _Reader:
         try:
             value = int(raw)
         except ValueError:
-            self.problems.append(f"{ENV_PREFIX}{name}={raw!r} is not an integer")
+            self.problems.append(f"{ENV_PREFIX}{name} is not an integer (got {_shape(raw)})")
             return default
         # 0 is allowed on purpose: it asks the OS for an ephemeral port, which is how the tests bind
-        # a real server without racing on a fixed number.
+        # a real server without racing on a fixed number. It is also the one port `--healthcheck`
+        # cannot probe, since the number the OS picked exists nowhere in the environment.
         if not 0 <= value <= 65535:
-            self.problems.append(f"{ENV_PREFIX}{name}={raw!r} is not a TCP port (0-65535)")
+            self.problems.append(f"{ENV_PREFIX}{name}={value} is not a TCP port (0-65535)")
             return default
         return value
 
@@ -209,10 +233,10 @@ class _Reader:
         try:
             value = float(raw)
         except ValueError:
-            self.problems.append(f"{ENV_PREFIX}{name}={raw!r} is not a number of seconds")
+            self.problems.append(f"{ENV_PREFIX}{name} is not a number of seconds (got {_shape(raw)})")
             return default
         if value <= 0:
-            self.problems.append(f"{ENV_PREFIX}{name}={raw!r} must be > 0")
+            self.problems.append(f"{ENV_PREFIX}{name}={value} must be > 0")
             return default
         return value
 
@@ -238,7 +262,8 @@ class _Reader:
         if value in _FALSE:
             return False
         self.problems.append(
-            f"{ENV_PREFIX}{name}={raw!r} is not a boolean ({'/'.join(sorted(_TRUE))} or {'/'.join(sorted(_FALSE))})"
+            f"{ENV_PREFIX}{name} is not a boolean ({'/'.join(sorted(_TRUE))} or {'/'.join(sorted(_FALSE))}); "
+            f"got {_shape(raw)}"
         )
         return default
 
@@ -257,7 +282,7 @@ class _Reader:
             return default
         parsed = urlparse(raw)
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
-            self.problems.append(f"{ENV_PREFIX}{name}={raw!r} is not an http(s) URL")
+            self.problems.append(f"{ENV_PREFIX}{name} is not an http(s) URL (got {_shape(raw)})")
             return default
         return raw
 

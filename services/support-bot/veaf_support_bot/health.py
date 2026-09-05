@@ -83,6 +83,18 @@ class ServiceState:
         self._not_ready_reason: str | None = "starting"
         self._last_heartbeat_at: float | None = None
         self._last_error: dict[str, Any] | None = None
+        self._details: Callable[[], Mapping[str, Any]] | None = None
+
+    def set_details_provider(self, provider: Callable[[], Mapping[str, Any]]) -> None:
+        """Attach a source of extra fields for ``/status``.
+
+        Used by the quota keeper: how much of the day's allowance is spent, and whether the counters
+        are being kept at all, is the first thing an operator asks when the bot starts refusing.
+
+        Args:
+            provider: Called on every snapshot; its mapping is merged under ``"details"``.
+        """
+        self._details = provider
 
     @property
     def ready(self) -> bool:
@@ -143,6 +155,7 @@ class ServiceState:
                 round(now - self._last_heartbeat_at, 3) if self._last_heartbeat_at is not None else None
             ),
             "last_error": self._last_error,
+            "details": dict(self._details()) if self._details is not None else {},
         }
 
 

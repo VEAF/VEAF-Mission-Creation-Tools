@@ -12,12 +12,58 @@ import asyncio
 import io
 import json
 import logging
+import tempfile
 import unittest
+from pathlib import Path
 
 from tests.http_probe import request
 from veaf_support_bot.config import SupportBotConfig
+from veaf_support_bot.health import ServiceState
 from veaf_support_bot.logging_setup import ROOT_LOGGER_NAME, configure_logging
 from veaf_support_bot.service import InFlightTasks, SupportBotService
+
+
+class _StubGateway:
+    """A Discord connection that never touches the network but behaves like one.
+
+    Ticket 02 made readiness mean "the gateway is connected", so a lifecycle test that built no
+    gateway would now be testing a service that stops on a failed login rather than one that runs.
+    The stub publishes readiness the way the real client's ``on_ready`` does, and stays up until it
+    is closed.
+    """
+
+    def __init__(self, state: ServiceState) -> None:
+        """Initialize the stub.
+
+        Args:
+            state: The state readiness is published on.
+        """
+        self._state = state
+        self._stop = asyncio.Event()
+
+    async def start(self) -> None:
+        """Publish readiness and stay connected until closed."""
+        self._state.mark_ready()
+        await self._stop.wait()
+
+    async def close(self) -> None:
+        """Disconnect."""
+        self._stop.set()
+
+
+def _service(**overrides: str) -> SupportBotService:
+    """Build a service over a stub gateway, in a temporary directory for its counters.
+
+    Args:
+        **overrides: Extra environment entries, without the ``SUPPORT_BOT_`` prefix.
+
+    Returns:
+        The service.
+    """
+    directory = tempfile.mkdtemp()
+    config = _config(QUOTA_STATE_FILE=str(Path(directory) / "quota.json"), **overrides)
+    state = ServiceState(version="test", dry_run=config.dry_run)
+    return SupportBotService(config, state=state, gateway=_StubGateway(state))
 
 
 def _config(**overrides: str) -> SupportBotConfig:
@@ -32,6 +78,7 @@ def _config(**overrides: str) -> SupportBotConfig:
     env = {
         "SUPPORT_BOT_DISCORD_TOKEN": "a-token",
         "SUPPORT_BOT_DISCORD_GUILD_ID": "1",
+        "SUPPORT_BOT_WORKER_SECRET": "a-worker-secret",
         "SUPPORT_BOT_HEALTH_PORT": "0",
         "SUPPORT_BOT_SHUTDOWN_GRACE_SECONDS": "0.2",
         "SUPPORT_BOT_HEARTBEAT_SECONDS": "0.05",
@@ -127,7 +174,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
         raise AssertionError("the service never became ready")
 
     async def test_it_serves_its_health_endpoint_once_started(self) -> None:
-        service = SupportBotService(_config())
+        service = _service()
         task = await self._ready_service(service)
 
         assert service.health.port is not None
@@ -140,7 +187,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
         await task
 
     async def test_stopping_makes_it_unready_before_it_closes_the_socket(self) -> None:
-        service = SupportBotService(_config())
+        service = _service()
         task = await self._ready_service(service)
 
         service.request_stop("test")
@@ -150,7 +197,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(service.state.snapshot()["not_ready_reason"], "shutting-down")
 
     async def test_the_health_endpoint_is_closed_on_shutdown(self) -> None:
-        service = SupportBotService(_config())
+        service = _service()
         task = await self._ready_service(service)
         port = service.health.port
         assert port is not None
@@ -162,7 +209,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
             await asyncio.wait_for(asyncio.open_connection("127.0.0.1", port), timeout=5)
 
     async def test_in_flight_work_is_drained_before_the_process_leaves(self) -> None:
-        service = SupportBotService(_config())
+        service = _service()
         task = await self._ready_service(service)
         finished = asyncio.Event()
 
@@ -178,7 +225,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
         self.assertIn("shutdown.draining", self.events())
 
     async def test_work_that_will_not_end_is_cancelled_and_reported(self) -> None:
-        service = SupportBotService(_config())
+        service = _service()
         task = await self._ready_service(service)
 
         async def stuck() -> None:
@@ -199,7 +246,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
         process then died on the kill with no ``service.stopped`` line: a silent death, which is the
         one thing this service is built not to do.
         """
-        service = SupportBotService(_config(SHUTDOWN_GRACE_SECONDS="0.3"))
+        service = _service(SHUTDOWN_GRACE_SECONDS="0.3")
         task = await self._ready_service(service)
         assert service.health.port is not None
         _, hanger = await asyncio.open_connection("127.0.0.1", service.health.port)
@@ -215,7 +262,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
 
     async def test_the_grace_period_bounds_the_whole_sequence_not_each_step(self) -> None:
         """Two steps each granted the full grace add up to a stop the container kills mid-way."""
-        service = SupportBotService(_config(SHUTDOWN_GRACE_SECONDS="0.4"))
+        service = _service(SHUTDOWN_GRACE_SECONDS="0.4")
         task = await self._ready_service(service)
         assert service.health.port is not None
         _, hanger = await asyncio.open_connection("127.0.0.1", service.health.port)
@@ -234,7 +281,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
         self.assertLess(elapsed, 1.2, f"the drain and the endpoint each took a full grace ({elapsed:.2f} s)")
 
     async def test_the_first_stop_reason_is_the_one_reported(self) -> None:
-        service = SupportBotService(_config())
+        service = _service()
         task = await self._ready_service(service)
 
         service.request_stop("signal SIGTERM")
@@ -249,7 +296,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stopped[0]["reason"], "signal SIGTERM")
 
     async def test_the_startup_line_never_carries_the_token(self) -> None:
-        service = SupportBotService(_config())
+        service = _service()
         task = await self._ready_service(service)
         service.request_stop("test")
         await task
@@ -258,7 +305,7 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
 
     async def test_it_beats_while_it_runs(self) -> None:
         """The heartbeat is what a log-based alert watches; without it, silence is ambiguous."""
-        service = SupportBotService(_config())
+        service = _service()
         task = await self._ready_service(service)
 
         for _ in range(200):
@@ -272,9 +319,14 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
         self.assertIn("service.heartbeat", self.events())
 
     async def test_a_dry_run_says_so_loudly_and_keeps_saying_it(self) -> None:
-        """A dry run left on in production must not become invisible once the log scrolls."""
-        service = SupportBotService(_config(DRY_RUN="true"))
-        task = await self._ready_service(service)
+        """A dry run left on in production must not become invisible once the log scrolls.
+
+        It is *not* waited on with :meth:`_ready_service`: a dry run never becomes ready, on
+        purpose. A process that answers nobody must not certify itself fit to serve, so the wait
+        here is for the heartbeat instead.
+        """
+        service = _service(DRY_RUN="true")
+        task = asyncio.ensure_future(service.run())
 
         for _ in range(200):
             if self.events().count("service.dry_run") >= 2:
@@ -286,6 +338,24 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
 
         self.assertGreaterEqual(self.events().count("service.dry_run"), 2)
         self.assertTrue(service.state.snapshot()["dry_run"])
+
+    async def test_a_dry_run_never_reports_itself_ready(self) -> None:
+        """A readiness probe that says yes here would certify a service serving no users."""
+        service = _service(DRY_RUN="true")
+        task = asyncio.ensure_future(service.run())
+        for _ in range(200):
+            if service.health.port is not None:
+                break
+            await asyncio.sleep(0.01)
+
+        assert service.health.port is not None
+        status, body = await request(service.health.port, "/readyz")
+        service.request_stop("test")
+        await task
+
+        self.assertEqual(status, 503)
+        assert body is not None
+        self.assertEqual(body["not_ready_reason"], "dry-run")
 
 
 if __name__ == "__main__":

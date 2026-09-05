@@ -1,6 +1,6 @@
 # 02 — `/ask` answers in a public thread
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -35,11 +35,11 @@ It also gives the thread a durable identity, which lot 4 reuses to relay GitHub 
 
 ## Definition of done
 
-- [ ] `/ask` registered and answering in a thread attached to the question
-- [ ] Deferred acknowledgement inside three seconds, then progressive edit
-- [ ] Sources cited as links to the documentation pages used
-- [ ] "Not covered by the documentation" answered as such, with a route to the support page
-- [ ] Upstream errors, including rate limiting, rendered as a sentence
-- [ ] Unit tests with the Discord layer and the Worker both mocked, covering: normal answer,
+- [x] `/ask` registered and answering in a thread attached to the question
+- [x] Deferred acknowledgement inside three seconds, then progressive edit
+- [x] Sources cited as links to the documentation pages used
+- [x] "Not covered by the documentation" answered as such, with a route to the support page
+- [x] Upstream errors, including rate limiting, rendered as a sentence
+- [x] Unit tests with the Discord layer and the Worker both mocked, covering: normal answer,
       unknown answer, upstream error, rate limit
-- [ ] Quality gate clean
+- [x] Quality gate clean

@@ -10,9 +10,10 @@ Two properties this module exists to guarantee:
   operator fixes one deployment rather than discovering the second mistake after the first restart.
   A service that starts and only fails on the first user question is the failure mode this avoids.
 
-The token never reaches a log line: :meth:`SupportBotConfig.redacted` masks it, ``repr`` of the
-configuration object is redacted too — so an accidental ``logger.info(config)`` or a stack trace
-cannot leak it — and **no problem message echoes the value it rejected**, only its shape (see
+Neither secret — the Discord token, and the Worker's ``X-VEAF-Auth`` value — reaches a log line:
+:meth:`SupportBotConfig.redacted` masks both, and ``repr`` of the configuration object is redacted
+too, so an accidental ``logger.info(config)`` or a stack trace cannot leak either — and **no problem
+message echoes the value it rejected**, only its shape (see
 :func:`_shape`). That last one is not theoretical: the two Discord variables sit next to each other
 in ``.env.example``, both are long opaque strings copied out of the same Discord screen, and a
 configuration error is printed at ``CRITICAL`` on stdout, straight into a container log collector.
@@ -46,6 +47,25 @@ DEFAULT_LOG_LEVEL: Final = "INFO"
 DEFAULT_LOG_FORMAT: Final = "json"
 DEFAULT_HEARTBEAT_SECONDS: Final = 60.0
 DEFAULT_SHUTDOWN_GRACE_SECONDS: Final = 10.0
+
+#: Where the per-user counters are kept between restarts. Relative to the working directory, so a
+#: direct run keeps them beside the service and the container mounts a volume at ``/app/state``.
+#: Counters that do not survive a restart are counters an operator can reset by restarting.
+DEFAULT_QUOTA_STATE_FILE: Final = "state/quota.json"
+
+#: Per-user ceilings. Both sit **below** what the Worker grants the ``discord`` client per subject
+#: (5 per minute, 40 per day), so a user meets the service's message — which names the reset time —
+#: rather than the Worker's bare refusal.
+DEFAULT_QUOTA_USER_WINDOW_SECONDS: Final = 60.0
+DEFAULT_QUOTA_USER_PER_WINDOW: Final = 3
+DEFAULT_QUOTA_USER_PER_DAY: Final = 15
+
+#: What the whole bot may spend in a UTC day. The Worker counts per user and therefore has no idea
+#: of the bot's total, so this is the only bound on it. Sized against the free Gemini tier the
+#: documentation widget and the CLI share: every question costs one embedding call, and the
+#: documentation index alone already uses about 900 of the 1000 daily embeddings on a day it is
+#: rebuilt. 200 leaves that headroom intact and is far above what the VEAF Discord asks in a day.
+DEFAULT_QUOTA_GLOBAL_PER_DAY: Final = 200
 
 #: Accepted values of ``SUPPORT_BOT_LOG_FORMAT``.
 LOG_FORMATS: Final = ("json", "text")
@@ -312,6 +332,16 @@ class SupportBotConfig:
         worker_endpoint: The documentation chatbot Worker ``/chat`` URL.
         worker_client: Value sent as ``X-VEAF-Client``, so the Worker can quota Discord separately
             from the CLI and the website.
+        worker_secret: Value sent as ``X-VEAF-Auth``, matched against the Worker's
+            ``DISCORD_CLIENT_SECRET``. Secret; never logged. Required, because the Worker refuses
+            this client mode without it — a bot that starts and answers every question with "my
+            configuration is incomplete" is a deployment mistake that should have stopped at
+            startup.
+        quota_state_file: Where the per-user counters are kept between restarts.
+        quota_user_window_seconds: Length of the per-user short window.
+        quota_user_per_window: Questions one user may ask inside that window.
+        quota_user_per_day: Questions one user may ask in a UTC day.
+        quota_global_per_day: Questions the whole bot may serve in a UTC day.
         health_host: Interface the health server binds to.
         health_port: Port the health server binds to; ``0`` asks the OS for an ephemeral one.
         log_level: Root level of the service logger.
@@ -325,6 +355,12 @@ class SupportBotConfig:
     discord_guild_id: int
     worker_endpoint: str
     worker_client: str
+    worker_secret: str
+    quota_state_file: str
+    quota_user_window_seconds: float
+    quota_user_per_window: int
+    quota_user_per_day: int
+    quota_global_per_day: int
     health_host: str
     health_port: int
     log_level: str
@@ -356,15 +392,23 @@ class SupportBotConfig:
             # A smoke run has no Discord identity by design, and must not invent one.
             discord_token = reader.text("DISCORD_TOKEN", default="")
             discord_guild_id = reader.integer("DISCORD_GUILD_ID", default=0, minimum=0)
+            worker_secret = reader.text("WORKER_SECRET", default="")
         else:
             discord_token = reader.required("DISCORD_TOKEN")
             discord_guild_id = reader.integer("DISCORD_GUILD_ID", minimum=1)
+            worker_secret = reader.required("WORKER_SECRET")
 
         config = cls(
             discord_token=discord_token,
             discord_guild_id=discord_guild_id,
             worker_endpoint=reader.url("WORKER_ENDPOINT", DEFAULT_WORKER_ENDPOINT),
             worker_client=reader.text("WORKER_CLIENT", DEFAULT_WORKER_CLIENT),
+            worker_secret=worker_secret,
+            quota_state_file=reader.text("QUOTA_STATE_FILE", DEFAULT_QUOTA_STATE_FILE),
+            quota_user_window_seconds=reader.seconds("QUOTA_USER_WINDOW_SECONDS", DEFAULT_QUOTA_USER_WINDOW_SECONDS),
+            quota_user_per_window=reader.integer("QUOTA_USER_PER_WINDOW", DEFAULT_QUOTA_USER_PER_WINDOW, minimum=1),
+            quota_user_per_day=reader.integer("QUOTA_USER_PER_DAY", DEFAULT_QUOTA_USER_PER_DAY, minimum=1),
+            quota_global_per_day=reader.integer("QUOTA_GLOBAL_PER_DAY", DEFAULT_QUOTA_GLOBAL_PER_DAY, minimum=1),
             health_host=reader.text("HEALTH_HOST", DEFAULT_HEALTH_HOST),
             health_port=reader.port("HEALTH_PORT", DEFAULT_HEALTH_PORT),
             log_level=reader.choice("LOG_LEVEL", DEFAULT_LOG_LEVEL, LOG_LEVELS, upper=True),
@@ -380,13 +424,19 @@ class SupportBotConfig:
         """Return the configuration as a loggable mapping, with secrets masked.
 
         Returns:
-            Every field, the Discord token replaced by :data:`REDACTED` when it holds anything.
+            Every field, each secret replaced by :data:`REDACTED` when it holds anything.
         """
         return {
             "discord_token": REDACTED if self.discord_token else "",
             "discord_guild_id": self.discord_guild_id,
             "worker_endpoint": self.worker_endpoint,
             "worker_client": self.worker_client,
+            "worker_secret": REDACTED if self.worker_secret else "",
+            "quota_state_file": self.quota_state_file,
+            "quota_user_window_seconds": self.quota_user_window_seconds,
+            "quota_user_per_window": self.quota_user_per_window,
+            "quota_user_per_day": self.quota_user_per_day,
+            "quota_global_per_day": self.quota_global_per_day,
             "health_host": self.health_host,
             "health_port": self.health_port,
             "log_level": self.log_level,

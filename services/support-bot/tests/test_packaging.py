@@ -91,6 +91,29 @@ class TestNoSecretIsCommitted(unittest.TestCase):
 
         self.assertEqual(stray, [], f"an environment file is sitting in the repository: {stray}")
 
+    def test_git_ignores_the_quota_counters(self) -> None:
+        """A local run writes them; they are runtime state, and they name Discord users.
+
+        Same shape as the ``.env`` rule and for the same reason: the pattern has to live in the
+        *root* ``.gitignore``, so the check asks git rather than reading a file.
+        """
+        if shutil.which("git") is None:
+            self.skipTest("git is not on PATH")
+
+        ignored = subprocess.run(
+            ["git", "check-ignore", "-q", "services/support-bot/state/quota.json"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(ignored.returncode, 0, "the quota counters are NOT ignored by git")
+
+    def test_no_counters_were_committed(self) -> None:
+        self.assertFalse(
+            (SERVICE_ROOT / "state").exists() and any((SERVICE_ROOT / "state").iterdir()),
+            "quota counters are sitting in the repository",
+        )
+
 
 class TestTheContainerRunsTheSameProgram(unittest.TestCase):
     """A "container mode" that differs from the direct run is a second program to debug."""

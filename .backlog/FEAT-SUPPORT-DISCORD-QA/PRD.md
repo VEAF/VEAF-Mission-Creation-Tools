@@ -1,6 +1,6 @@
 # FEAT-SUPPORT-DISCORD-QA — the documentation answers on Discord
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: design session of 2026-09-05. Lot 3 of the programme described in
 [`FEAT-SUPPORT-DIAGNOSTIC`](../FEAT-SUPPORT-DIAGNOSTIC/PRD.md). This is the first lot that puts a

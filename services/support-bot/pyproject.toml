@@ -18,6 +18,7 @@ packages = [{ include = "veaf_support_bot" }]
 # endpoints and the shutdown sequence are stdlib. It keeps the image small and the direct run
 # installable anywhere; ticket 02 adds the Discord library.
 python = "^3.11"
+discord-py = "^2.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"
@@ -72,8 +73,8 @@ addopts = [
     "--import-mode=importlib",
     "--cov=veaf_support_bot",
     "--cov-report=term-missing:skip-covered",
-    # Ratchet, never a target to relax: measured 93.66 % after the shutdown-bound tests.
-    "--cov-fail-under=92",
+    # Ratchet, never a target to relax: measured 96.01 % after the review fixes.
+    "--cov-fail-under=94",
 ]
 
 [tool.coverage.run]

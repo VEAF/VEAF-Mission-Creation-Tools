@@ -255,6 +255,53 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   taille*. The filters had retained those lines; the ceiling took them. Two different facts, two
   different sentences.
 
+- **`/ask` on the VEAF Discord**, answered by the support bot service (`services/support-bot/`). The
+  question opens a **public thread** and the answer is written into it as it streams in, with links
+  to the documentation pages it used. Public on purpose: the answer serves the next person who asks
+  the same thing, and anyone passing by can correct the bot — which is the only correction loop that
+  catches a wrong answer, since no technical guard notices that the documentation changed in 6.19.
+
+  It answers **from the documentation and nothing else**, and says so on the support page along with
+  the consequence: a documentation gap becomes a wrong or missing answer, and the fix is to write the
+  page. When no page can be cited it says the question may be outside what the documentation covers
+  and points at the support page. Every upstream failure — unreachable, rate-limited, timed out,
+  refused — is one human sentence rather than a stack trace or, worse, silence.
+
+  The sources are honest rather than guessed. The Worker streams text and never tells the caller
+  which passages it retrieved, so the model is asked to declare the titles it used, and every
+  declared title is checked against the real `doc/` tree; anything the corpus does not have is
+  dropped. The bot can show fewer sources than it used, never one that does not exist.
+
+  Quotas live in the service, because the Worker counts per IP and a Discord bot is one IP for a
+  whole server: three questions a minute and fifteen a day per person, two hundred a day for the
+  whole bot — the only bound on total spend, sized against the free Gemini tier the website and
+  `veaf-tools ask` also share. A refusal names the reason and the reset time; the counters are
+  persisted, so a restart is not a way to get a fresh allowance, and when they cannot be kept the
+  bot answers at a much stricter rate and says so instead of quietly serving unlimited.
+
+  The bot does **not** read the sources, open issues or analyse logs. The support page says so, so
+  that their absence reads as a boundary rather than a bug.
+
+- **The support bot survives its own bad days.** Review of the `/ask` lot found four ways the bot
+  could go quiet or overspend, all of them green in the test suite.
+
+  When the counters cannot be kept, the fallback held a ceiling *per minute* and dropped both daily
+  ones — 2880 questions a day at the shipped defaults against the 200 the healthy path allows, and
+  payable by one person. It now carries a day of its own, a tenth of the configured ceiling and never
+  more than one user's healthy day. `/status` reports that spend, because the persisted counter stops
+  moving while the fallback is running. A state file that was valid JSON of the wrong shape killed
+  the process before the health server existed, so the container restarted into the same death; it
+  now degrades, which is what the module always documented.
+
+  Past the acknowledgement, only an upstream failure used to reach the reader as a sentence —
+  anything else left them on "the bot is thinking" until the interaction died fifteen minutes later.
+  Every step is now guarded, and the whole exchange is bounded: the client's own timeout only covered
+  what it *waited* for, so a stream whose Discord edits were being rate-limited ran unbounded
+  (12.25 s measured on a 2.0 s budget). The `SOURCES:` trailer is also read in the shapes a model
+  actually writes it — backticked, bold, bulleted, or with the space French typography puts before a
+  colon — each of which used to lose every citation *and* leave the raw instruction line in the
+  answer.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

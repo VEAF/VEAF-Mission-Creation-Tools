@@ -14,6 +14,9 @@ name: Support Bot
 #                   those lines would un-guard the service's `.env` with every check still green.
 #   pyproject.toml  test_the_service_version_is_its_own (the root one, read to prove the service is
 #                   NOT in the tools version lockstep).
+#   doc/**          test_the_checked_in_index_is_what_the_generator_produces — the bot links the
+#                   documentation pages it cites from a generated index; a page renamed or retitled
+#                   without running this job leaves the bot citing a title that no longer exists.
 on:
   push:
     branches: [develop, master]
@@ -22,6 +25,7 @@ on:
       - ".github/workflows/support-bot-ci.yml"
       - ".gitignore"
       - "pyproject.toml"
+      - "doc/**"
   # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose; the two are
   # kept identical by `test/python/test_ci_trigger_paths.py`.
   pull_request:
@@ -30,6 +34,7 @@ on:
       - ".github/workflows/support-bot-ci.yml"
       - ".gitignore"
       - "pyproject.toml"
+      - "doc/**"
 
 defaults:
   run:
@@ -69,9 +74,10 @@ jobs:
   #
   # The quality job proves the code; it cannot prove the image. Everything that only exists in the
   # container is asserted here: that a misconfigured container refuses to start rather than idling,
-  # that the health endpoint answers from outside, that Docker's own health check turns the container
-  # healthy, and — the one that matters most — that SIGTERM reaches the process, so the clean
-  # shutdown actually runs on `docker stop` instead of the container being killed ten seconds later.
+  # that the health endpoints answer from outside and disagree the way they should in a dry run,
+  # that Docker's own health check actually runs, that the quota counters have somewhere to live,
+  # and — the one that matters most — that SIGTERM reaches the process, so the clean shutdown
+  # actually runs on `docker stop` instead of the container being killed ten seconds later.
   # ---------------------------------------------------------------------------
   container:
     runs-on: ubuntu-latest
@@ -90,43 +96,69 @@ jobs:
           echo "$output"
           test "$code" = "78" || { echo "expected EX_CONFIG (78), got $code"; exit 1; }
           echo "$output" | grep -q "SUPPORT_BOT_DISCORD_TOKEN is required"
+          # The Worker refuses this bot's client mode without it, so it is required at startup
+          # rather than discovered on the first question.
+          echo "$output" | grep -q "SUPPORT_BOT_WORKER_SECRET is required"
 
-      - name: It starts, becomes ready, and answers from outside the container
+      - name: It starts and answers from outside the container
         run: |
           docker run -d --name support-bot -p 8081:8081 \
             -e SUPPORT_BOT_DRY_RUN=true \
             -e SUPPORT_BOT_HEARTBEAT_SECONDS=2 \
             veaf-support-bot:ci
-          ready=0
+          alive=0
           for _ in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:8081/readyz > /dev/null; then ready=1; break; fi
+            if curl -sf http://127.0.0.1:8081/healthz > /dev/null; then alive=1; break; fi
             sleep 1
           done
-          test "$ready" = "1" || { docker logs support-bot; exit 1; }
+          test "$alive" = "1" || { docker logs support-bot; exit 1; }
           curl -s http://127.0.0.1:8081/status | tee status.json
           grep -q '"service": "veaf-support-bot"' status.json
-          grep -q '"ready": true' status.json
+          grep -q '"dry_run": true' status.json
+
+      # A dry run connects no gateway, so it can answer nobody. Liveness still says 200 — the
+      # process is alive and restarting it would not open a connection it was told not to open —
+      # but readiness must say no, or a probe certifies an empty service. This is the half of that
+      # rule only the container can prove: that the distinction survives to the outside.
+      - name: A dry run answers liveness but refuses readiness
+        run: |
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/healthz)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/readyz)" = "503"
+          curl -s http://127.0.0.1:8081/readyz | tee readyz.json
+          grep -q '"not_ready_reason": "dry-run"' readyz.json
+
+      - name: The quota counters have somewhere to live
+        run: |
+          docker exec support-bot sh -c 'test -w /app/state' \
+            || { echo "/app/state is not writable by the service user"; exit 1; }
 
       - name: The logs are structured, and the heartbeat beats
         run: |
           sleep 5
           docker logs support-bot > run.log 2>&1
           cat run.log
-          grep -q '"event": "service.ready"' run.log
           grep -q '"event": "service.heartbeat"' run.log
-          # A dry run left on in production must never be quiet.
+          # A dry run left on in production must never be quiet — and must say, in as many words,
+          # that it is serving nobody rather than quietly reporting itself ready.
           grep -q '"event": "service.dry_run"' run.log
+          grep -q '"event": "service.dry_run_not_ready"' run.log
 
-      - name: Docker's own health check turns the container healthy
+      # The HEALTHCHECK is wired and reflects readiness. It reports *unhealthy* here, which is the
+      # correct answer for a dry run and is what stops one sitting in production looking fine.
+      #
+      # That the probe can also say "healthy" is proved in the unit suite, where the same
+      # `--healthcheck` code is run against a live health server in both states (`tests/test_cli.py`,
+      # TestHealthcheckProbe). A check that can only fail one way proves nothing, so both directions
+      # are asserted — just not both here, since a real gateway needs a real token.
+      - name: Docker's own health check runs, and calls a dry run unhealthy
         run: |
           state=unknown
           for _ in $(seq 1 40); do
             state=$(docker inspect -f '{{.State.Health.Status}}' support-bot)
-            [ "$state" = "healthy" ] && break
+            [ "$state" = "unhealthy" ] && break
             sleep 2
           done
-          test "$state" = "healthy" || { docker logs support-bot; exit 1; }
+          test "$state" = "unhealthy" || { echo "health status was '$state'"; docker logs support-bot; exit 1; }
 
       - name: SIGTERM reaches the process and the shutdown sequence runs
         run: |

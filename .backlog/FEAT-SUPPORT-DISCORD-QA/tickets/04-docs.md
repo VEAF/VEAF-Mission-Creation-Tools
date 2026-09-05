@@ -1,6 +1,6 @@
 # 04 — Say what the bot is, and what it is not
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs
 
@@ -36,9 +36,9 @@ will read the silence as a bug.
 
 ## Definition of done
 
-- [ ] User-facing section on the support page, both languages, in the `nav`
-- [ ] Operator documentation next to the service: variables, Discord registration, permissions,
+- [x] User-facing section on the support page, both languages, in the `nav`
+- [x] Operator documentation next to the service: variables, Discord registration, permissions,
       quotas, liveness
-- [ ] The "answers from the documentation" limit stated explicitly, with its consequence
-- [ ] What the bot does not do yet, stated
-- [ ] `poetry run docs-check` passes
+- [x] The "answers from the documentation" limit stated explicitly, with its consequence
+- [x] What the bot does not do yet, stated
+- [x] `poetry run docs-check` passes

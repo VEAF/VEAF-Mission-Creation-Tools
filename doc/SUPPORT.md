@@ -26,6 +26,46 @@ Ce n'est pas une panne, et rien n'est perdu entre-temps : la documentation reste
 Discord et les issues aussi. La commande [`veaf-tools ask`](CLI_REFERENCE.md#ask) interroge le même
 assistant, donc la même allocation.
 
+## Demander au bot : `/ask` {#ask}
+
+Sur le Discord VEAF, la commande `/ask` répond aux questions **sur la documentation**.
+
+```text
+/ask question: comment ajouter un préréglage radio à une mission ?
+```
+
+Le bot ouvre un **fil public** sous votre question et y écrit sa réponse au fur et à mesure, avec
+les liens vers les pages qu'il a utilisées.
+
+Le fil est public exprès : la réponse sert à la personne suivante qui posera la même question, et
+n'importe qui peut y passer pour corriger le bot — « non, depuis la 6.19 ça marche autrement ». Sur
+un assistant de documentation, c'est la seule correction qui rattrape vraiment une réponse fausse.
+
+### Ce qu'il faut savoir avant de s'y fier
+
+- **Il répond à partir de la documentation, et de rien d'autre.** Il ne lit pas le code, ne regarde
+  pas votre mission, n'ouvre pas votre journal. Si la documentation ne couvre pas le sujet, il le
+  dit et vous renvoie vers cette page — c'est une réponse, pas une panne.
+- **Il peut se tromper, ou être en retard d'une version.** Vérifiez sur les pages qu'il cite ; c'est
+  pour ça qu'il les cite. Si la réponse est fausse, dites-le dans le fil : les gens autour la
+  liront.
+- **Une lacune de la documentation devient une réponse fausse ou absente.** Le correctif est
+  d'écrire la page, pas de régler le bot. Une question à laquelle il ne sait pas répondre est donc
+  utile : signalez-la, elle vaut un ticket de documentation.
+- **Il y a des quotas.** Quelques questions par minute et par personne, une limite par jour, et une
+  limite pour tout le serveur — elles protègent le quota gratuit que partagent aussi le site et la
+  ligne de commande. S'il refuse, il vous dit pourquoi et à quelle heure ça repart.
+
+### Ce qu'il ne fait **pas** (encore)
+
+Ni **ouvrir une issue** à votre place, ni **analyser un journal DCS**, ni **lire les sources**.
+Chacun de ces trois arrive plus tard, dans son propre chantier. Pour l'instant, un défaut se
+signale à la main — voir [Où s'adresser](#where).
+
+!!! tip "La même chose hors du Discord"
+    `.\veaf-tools.exe ask` pose les mêmes questions au même assistant, depuis votre machine. Voir
+    la [Référence CLI](CLI_REFERENCE.md).
+
 ## Ce qu'il faut fournir {#what-to-provide}
 
 Les signalements utiles se ressemblent tous. Trois choses, dans cet ordre :

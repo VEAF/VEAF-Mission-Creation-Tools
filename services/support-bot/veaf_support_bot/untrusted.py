@@ -35,8 +35,9 @@ from __future__ import annotations
 
 import re
 
-#: Longest run of a Markdown fence character considered; a fence longer than this is absurd and the
-#: text is escaped instead.
+#: Longest run of backticks a fence is allowed to grow to. A run this long in the content is not
+#: something anyone wrote on purpose, so it is broken up by :func:`bound_backtick_runs` instead —
+#: the fence itself is never capped, because a capped fence is one the content can close.
 MAX_FENCE = 40
 
 #: What replaces the ``@`` of a mention. A zero-width joiner would be invisible and would still be
@@ -64,17 +65,40 @@ def defuse_mentions(text: str) -> str:
     return _MENTION.sub(MENTION_GUARD, text)
 
 
-def fence_for(text: str) -> str:
-    """Return a code fence long enough that *text* cannot close it.
+def bound_backtick_runs(text: str) -> str:
+    """Break up any run of backticks long enough to make an absurd fence.
+
+    The escape :data:`MAX_FENCE` names. Capping the fence instead — which is what this module did —
+    does not work in the direction that matters: a line of exactly ``MAX_FENCE`` backticks then
+    meets a fence of the same length and **closes it**, which is the one thing the fence exists to
+    prevent. Splitting the run keeps the fence bounded and keeps the content readable, in the same
+    visible way :func:`defuse_mentions` does.
 
     Args:
         text: The content to be fenced.
 
     Returns:
-        A run of at least three backticks, one longer than the longest run inside *text*.
+        The text with every run of :data:`MAX_FENCE` or more backticks separated by a zero-width
+        space. Shorter runs — which is every run anyone writes on purpose — are untouched.
+    """
+    return _BACKTICKS.sub(
+        lambda run: "​".join(run.group()) if len(run.group()) >= MAX_FENCE else run.group(),
+        text,
+    )
+
+
+def fence_for(text: str) -> str:
+    """Return a code fence long enough that *text* cannot close it.
+
+    Args:
+        text: The content to be fenced, after :func:`bound_backtick_runs`.
+
+    Returns:
+        A run of at least three backticks, one longer than the longest run inside *text*. Not capped:
+        a cap is a fence the content can close, and the bound belongs on the content instead.
     """
     longest = max((len(run.group()) for run in _BACKTICKS.finditer(text)), default=0)
-    return "`" * max(3, min(longest + 1, MAX_FENCE))
+    return "`" * max(3, longest + 1)
 
 
 def quote(text: str, language: str = "") -> str:
@@ -90,8 +114,9 @@ def quote(text: str, language: str = "") -> str:
     """
     if not text.strip():
         return ""
-    fence = fence_for(text)
-    return f"{fence}{language}\n{defuse_mentions(text)}\n{fence}"
+    body = defuse_mentions(bound_backtick_runs(text))
+    fence = fence_for(body)
+    return f"{fence}{language}\n{body}\n{fence}"
 
 
 def one_line(text: str, limit: int) -> str:

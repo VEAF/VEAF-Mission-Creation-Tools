@@ -64,7 +64,9 @@ class Freshness:
             succeeded in this process.
         stale: ``True`` when the last refresh attempt failed. A stale checkout still produces
             locations; they are simply labelled as coming from an unverified revision.
-        error: Short description of the last failure, or an empty string.
+        error: Short description of the last failure, or an empty string. **Published** under every
+            location, so it names the command and its exit code and never quotes what git printed —
+            see :meth:`Checkout._fetch_and_reset`.
     """
 
     revision: str = UNKNOWN_REVISION
@@ -297,9 +299,14 @@ class Checkout:
         """Run the two commands a refresh is made of.
 
         Returns:
-            An empty string on success, or a short description of what went wrong. The description
-            is built from the command that failed and its **last** line of standard error; a fetch
-            failure can print a page, and the whole page has no place in a log line.
+            An empty string on success, or a short description of what went wrong — the command and
+            its exit code, and nothing git wrote. ``Freshness.error`` is **published**: it travels
+            under every location through :meth:`Freshness.describe`. What git prints on a failed
+            fetch is the remote's URL, a server-side path, sometimes a user name in an SSH prompt,
+            and this module cannot redact it — it never imports from the checkout, and the moment
+            this string is set is exactly the moment the checkout is not to be trusted. So the
+            detail goes to the service's own log, which is not published, and the reader gets a
+            fact he can act on plus a revision he can weigh.
         """
         for args in (
             ("fetch", "--quiet", "--prune", self.remote, self.branch),
@@ -313,7 +320,17 @@ class Checkout:
                 return f"git could not be run ({type(error).__name__})"
             if done.returncode != 0:
                 detail = (done.stderr or done.stdout).strip().splitlines()
-                return f"git {args[0]} exited {done.returncode}: {detail[-1] if detail else 'no output'}"
+                self._logger.warning(
+                    "a git command failed while refreshing the checkout",
+                    extra={
+                        "event": "checkout.git_failed",
+                        "command": args[0],
+                        "returncode": done.returncode,
+                        # Kept here and nowhere else: it names the remote.
+                        "detail": detail[-1] if detail else "",
+                    },
+                )
+                return f"git {args[0]} exited {done.returncode}"
         return ""
 
 

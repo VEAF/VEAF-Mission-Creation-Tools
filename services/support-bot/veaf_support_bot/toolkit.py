@@ -499,8 +499,48 @@ def _select_published_fields(table: dict[str, Any]) -> MissionSummary:
         if isinstance(zones, list | dict):
             fields["trigger_zone_count"] = len(zones)
 
-    withheld = tuple(sorted(str(key) for key in table if key not in {"theatre", "version", "start_time", "date"}))
-    return MissionSummary(fields=fields, withheld=withheld)
+    return MissionSummary(fields=fields, withheld=_describe_withheld(table, fields))
+
+
+#: Top-level mission keys the summary publishes whole. Anything else is either dropped or reduced.
+_PUBLISHED_WHOLE = frozenset({"theatre", "version", "start_time", "date"})
+
+#: Keys the summary reads but does **not** publish whole, and what is left out of each. Without
+#: these, the report claimed *"not published: weather"* in the same breath as it published the
+#: weather — an issue stating something a reader can see is false, which costs the whole section
+#: its credit.
+_PARTIALLY_PUBLISHED: dict[str, str] = {
+    "weather": "weather, beyond the temperature and cloud layer stated above",
+    "coalition": "coalition, beyond the group counts stated above — no group, unit or waypoint names",
+    "triggers": "triggers, beyond the number of zones stated above",
+}
+
+#: Which published field proves a partially published key was really read.
+_PROVES_READ: dict[str, str] = {"weather": "weather", "coalition": "coalitions", "triggers": "trigger_zone_count"}
+
+
+def _describe_withheld(table: dict[str, Any], fields: dict[str, Any]) -> tuple[str, ...]:
+    """Name what the mission held and the summary did not publish.
+
+    Args:
+        table: The parsed ``mission`` table.
+        fields: What :func:`_select_published_fields` decided to publish.
+
+    Returns:
+        One phrase per withheld key, sorted. A key the summary reduced rather than dropped is named
+        with what was left out of it, so the sentence stays true of a report that publishes a
+        weather block and a coalition count.
+    """
+    described: list[str] = []
+    for key in table:
+        if key in _PUBLISHED_WHOLE:
+            continue
+        partial = _PARTIALLY_PUBLISHED.get(str(key))
+        if partial is not None and _PROVES_READ[str(key)] in fields:
+            described.append(partial)
+        else:
+            described.append(str(key))
+    return tuple(sorted(described))
 
 
 def _count_groups(coalitions: dict[str, Any]) -> dict[str, int]:

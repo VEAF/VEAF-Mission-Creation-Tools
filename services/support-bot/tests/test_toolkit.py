@@ -259,6 +259,24 @@ class TestTheMissionSummary(unittest.TestCase):
         summary = _select_published_fields(dict(self.TABLE))
         self.assertIn("descriptionText", summary.withheld)
 
+    def test_nothing_is_claimed_withheld_that_the_same_report_publishes(self) -> None:
+        """An issue that says *not published: weather* while printing the weather loses its credit."""
+        summary = _select_published_fields(dict(self.TABLE))
+        for key, published in (("weather", "weather"), ("coalition", "coalitions"), ("triggers", "trigger_zone_count")):
+            with self.subTest(key=key):
+                self.assertIn(published, summary.fields, "the fixture must publish it, or this proves nothing")
+                self.assertNotIn(key, summary.withheld, "claimed withheld while being published")
+                stated = [entry for entry in summary.withheld if entry.startswith(key)]
+                self.assertEqual(len(stated), 1, "what was left out of it is still named")
+                self.assertIn("above", stated[0])
+
+    def test_a_key_that_really_was_dropped_is_still_named_plainly(self) -> None:
+        """A mission whose weather block is not a table has nothing published from it."""
+        table = dict(self.TABLE) | {"weather": "not a table"}
+        summary = _select_published_fields(table)
+        self.assertNotIn("weather", summary.fields)
+        self.assertIn("weather", summary.withheld)
+
     def test_the_dict_shape_of_a_sequence_table_is_counted_too(self) -> None:
         """The Lua parser hands back a dict when the keys were never a contiguous 1..N."""
         table = dict(self.TABLE)

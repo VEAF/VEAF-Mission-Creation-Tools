@@ -37,10 +37,11 @@ from tests.intake_fixtures import (
 )
 from tests.test_attachments import _fake_downloader
 from tests.test_toolkit import SYNTHETIC_LOG
-from veaf_support_bot.attachments import AttachmentCollector, Harvest, Incoming
+from veaf_support_bot.attachments import UNREDACTED_NAME, AttachmentCollector, Harvest, Incoming
+from veaf_support_bot.checkout import Checkout
 from veaf_support_bot.bugreport import BugForm, BugReport, assemble
 from veaf_support_bot.intake import BugIntake
-from veaf_support_bot.untrusted import defuse_mentions, fence_for, one_line, quote
+from veaf_support_bot.untrusted import MAX_FENCE, bound_backtick_runs, defuse_mentions, fence_for, one_line, quote
 
 #: A log carrying the same hostile lines a reporter's own machine would have written into it.
 HOSTILE_LOG = "\n".join(
@@ -186,6 +187,24 @@ class TestQuotedTextCannotEscapeItsQuotes(unittest.TestCase):
         self.assertEqual(rendered.count(f"\n{fence}"), 1, "the closing fence is the only one")
         self.assertNotIn("@everyone", rendered)
 
+    def test_a_line_of_exactly_max_fence_backticks_does_not_close_the_block(self) -> None:
+        """The cap used to bite here: 40 backticks in, a 40-backtick fence out, block closed early."""
+        rendered = quote(f"before\n{'`' * MAX_FENCE}\nafter")
+        fence = rendered.splitlines()[0]
+        self.assertTrue(rendered.endswith(f"\n{fence}"))
+        self.assertEqual(rendered.count(f"\n{fence}"), 1, "the closing fence is the only one")
+        self.assertIn("after", rendered.split(f"\n{fence}")[0], "the content is still inside the block")
+
+    def test_an_absurd_run_is_broken_up_rather_than_growing_the_fence(self) -> None:
+        bounded = bound_backtick_runs("`" * (MAX_FENCE * 3))
+        self.assertLess(len(fence_for(bounded)), MAX_FENCE)
+        self.assertEqual(bounded.count("`"), MAX_FENCE * 3, "the backticks are separated, not deleted")
+
+    def test_a_run_anyone_writes_on_purpose_is_untouched(self) -> None:
+        for text in ("`a`", "``b``", "```\ncode\n```"):
+            with self.subTest(text=text):
+                self.assertEqual(bound_backtick_runs(text), text)
+
     def test_empty_text_yields_no_empty_fence(self) -> None:
         self.assertEqual(quote("   \n  "), "")
 
@@ -282,6 +301,15 @@ class TestNothingAReporterSuppliedIsPublishedRaw(unittest.IsolatedAsyncioTestCas
         as_a_body = [item.rendered for item in harvest.prepared if item.kind == "text"][0]
         self.assertNotIn(PERSONAL_EMAIL, as_a_name)
         self.assertNotIn(PERSONAL_EMAIL, as_a_body)
+
+    async def test_a_name_that_cannot_be_redacted_is_withheld_rather_than_printed(self) -> None:
+        """Fails closed, like `safe_redact`: a name nobody could redact is not one to publish."""
+        with tempfile.TemporaryDirectory() as nowhere:
+            collector = AttachmentCollector(Checkout(Path(nowhere), refresh_seconds=0.0), _fake_downloader({}))
+            with tempfile.TemporaryDirectory() as directory:
+                harvest = await collector.collect([Incoming(PERSONAL_FILENAME, "u", 1)], Path(directory))
+        self.assertEqual(harvest.prepared, ())
+        self.assertEqual(harvest.rejected[0].filename, f"{UNREDACTED_NAME}.log")
 
     async def test_the_redacted_name_is_what_the_whole_report_carries(self) -> None:
         """`Prepared.filename` reaches four places in the body; one raw copy is one too many."""

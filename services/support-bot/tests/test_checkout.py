@@ -130,6 +130,32 @@ class TestRefreshing(unittest.TestCase):
         self.assertTrue(after.error)
         self.assertIn("LAST REFRESH FAILED", after.describe())
 
+    def test_the_published_failure_quotes_no_line_of_what_git_printed(self) -> None:
+        """`Freshness.error` travels under every location, and this module cannot redact it.
+
+        Which line of a failed fetch carries the remote's URL depends on the failure — a missing
+        local path names it first, an expired token names it in *"Authentication failed for '…'"*,
+        which is last. So the assertion is not about one line: none of what git wrote may appear in
+        a string the report publishes. The detail belongs in the service log, which does not travel.
+        """
+        missing = Path(self.directory.name) / "there-is-no-remote-here"
+        _git(self.clone, "remote", "set-url", "origin", str(missing))
+        printed = subprocess.run(
+            ["git", "-C", str(self.clone), "fetch", "--quiet", "--prune", "origin", "develop"],
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            check=False,
+        )
+        lines = [line.strip() for line in (printed.stderr or printed.stdout).splitlines() if line.strip()]
+        self.assertTrue(lines, "the fixture must actually make git complain, or this proves nothing")
+
+        published = Checkout(self.clone, refresh_seconds=1).refresh(force=True).describe()
+        self.assertIn("git fetch exited", published, "the failure is still named, and it is actionable")
+        for line in lines:
+            with self.subTest(line=line):
+                self.assertNotIn(line, published)
+
     def test_a_refresh_is_not_repeated_inside_its_interval(self) -> None:
         checkout = Checkout(self.clone, refresh_seconds=3600)
         checkout.refresh(force=True)

@@ -160,6 +160,21 @@ last call site is gone.
 > shipped. The order itself is delivered through 5. Refreshing §2 is a pending chore — a stale sequencing
 > file is read as work remaining, which this file says about itself two sections up.
 
+### New since that order — FIX-TRIPACK-FIELD-REPORTS (2026-09-05)
+
+[`FIX-TRIPACK-FIELD-REPORTS`](.backlog/FIX-TRIPACK-FIELD-REPORTS/PRD.md) goes **first**, ahead of
+anything else open: its ticket 01 is a release-blocking regression against the current 6.19.0 —
+Skynet is inert, every SAM in a mission that enables it stays asleep and the IADS status screen is
+blank. The cause is the defect `FIX-TUTORIAL-FIRST-RUN` ticket 05 fixed on 2026-09-02 in
+`veafScheduler`, present a second time in the compatibility module that replaced MiST **inside the
+Skynet fork**, where that fix did not reach. The lesson generalises past this lot: #828's
+replacement of MiST's overdue-tolerant loop was applied per repository, and any other copy of that
+scheduler owes the same floor.
+
+Tickets 02 and 03 sit on the combat-zone spawn path and are workable now; 04 and 05 are held at 🧑
+for want of the reporter's mission file and a `debug` run, with a purpose-built test mission as the
+fallback if neither arrives.
+
 ### Blocked on a person, or on a DCS session
 
 Not on a decision anyone can take at a keyboard here. The ones needing the game started are collected, in

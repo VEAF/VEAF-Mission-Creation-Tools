@@ -30,7 +30,12 @@
       clear: "Effacer",
       resize: "Redimensionner",
       error: "Une erreur est survenue.",
-      welcome: "Bonjour ! Posez-moi une question sur les outils VEAF.",
+      // Said up front, and not only when it happens: someone who meets the wall without warning
+      // concludes the assistant is broken, and does not come back.
+      welcome:
+        "Bonjour ! Posez-moi une question sur les outils VEAF.\n\n" +
+        "*Je tourne sur une allocation gratuite partagée par tous les visiteurs du site : " +
+        "un jour chargé, elle peut s'épuiser. Elle repart le matin suivant.*",
     },
     en: {
       title: "VEAF Assistant",
@@ -41,7 +46,10 @@
       clear: "Clear",
       resize: "Resize",
       error: "Something went wrong.",
-      welcome: "Hi! Ask me anything about the VEAF tools.",
+      welcome:
+        "Hi! Ask me anything about the VEAF tools.\n\n" +
+        "*I run on a free allowance shared by every visitor of the site: on a busy day it can " +
+        "run out. It refills the next morning.*",
     },
   };
 

@@ -9,6 +9,13 @@ that stays on the server forever. So the service:
 2. gives the work already in flight a bounded grace period to finish;
 3. cancels what is left and says so in a log line, rather than dying silently.
 
+``shutdown_grace_seconds`` bounds the sequence **end to end**, not each step: the health endpoint
+gets what the drain left of it, never a second helping. A shutdown that can add up to twice the
+configured grace is one that ``docker stop`` kills before its final line is written, which is the
+same silent death seen from the outside. The only overshoot is the second
+:data:`~veaf_support_bot.health._ABORT_TIMEOUT_SECONDS` grants the event loop to collect sockets it
+has already torn down.
+
 Ticket 01 has no in-flight work yet — :class:`InFlightTasks` is the hook ticket 02 hangs each
 ``/ask`` exchange on, and it is tested here on its own.
 """
@@ -160,15 +167,21 @@ class SupportBotService:
     async def _shutdown(self, heartbeat: asyncio.Task[Any]) -> None:
         """Take the service down in the order that keeps an exchange whole.
 
+        Every step draws on one deadline, ``shutdown_grace_seconds`` from now, so the whole sequence
+        is bounded by the number the operator configured rather than by the sum of its steps.
+
         Args:
             heartbeat: The heartbeat task to cancel.
         """
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + self.config.shutdown_grace_seconds
+
         self.state.mark_not_ready("shutting-down")
         heartbeat.cancel()
         await asyncio.gather(heartbeat, return_exceptions=True)
 
         cancelled = await self.tasks.drain(self.config.shutdown_grace_seconds)
-        await self.health.stop()
+        await self.health.stop(timeout=deadline - loop.time())
 
         self.logger.info(
             "stopped",

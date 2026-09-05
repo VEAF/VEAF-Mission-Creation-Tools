@@ -127,7 +127,10 @@ line carries an `event` key so alerts filter on a field rather than grep prose.
 `SUPPORT_BOT_LOG_FORMAT=text` switches to a readable one-line format for a terminal.
 
 The bot token never appears in a log line or in a traceback: the configuration object redacts it in
-both `repr` and the startup line.
+both `repr` and the startup line, and a configuration error never echoes the value it refused — only
+its shape (`is not an integer (got 47 characters)`). Pasting the token into `SUPPORT_BOT_DISCORD_GUILD_ID`
+is an easy first-deployment slip, and that message is printed at `CRITICAL` on stdout, where a log
+collector picks it up.
 
 ---
 
@@ -145,6 +148,15 @@ both `repr` and the startup line.
 Step 3 is the point of the whole sequence: from ticket 02 on, an `/ask` exchange is a thread opened,
 a placeholder posted and an answer edited in. Killed halfway, it leaves a visibly broken exchange on
 the server forever.
+
+`SUPPORT_BOT_SHUTDOWN_GRACE_SECONDS` bounds the **whole** sequence, not each step: step 5 gets what
+step 3 left of it. That matters because `docker stop` kills at ten seconds whatever the service
+intends — a shutdown that can add up to twice the configured grace is one whose final line is never
+written, and a bot that dies silently is the exact failure this service is built to make visible. A
+health connection still open when the budget runs out has its socket cut, and the abort is logged
+(`"event": "health.connections_aborted"`) rather than done quietly — that last step can add up to one
+more second, for the event loop to collect the aborted sockets, so the true ceiling is the grace plus
+a second.
 
 ---
 

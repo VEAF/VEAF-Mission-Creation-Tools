@@ -20,18 +20,31 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from logging import Logger
 from typing import Any, Final
 
 from veaf_support_bot.logging_setup import get_logger
 
-#: Longest request head accepted, and longest wait for it. A health endpoint talks to a monitor, not
-#: to the internet; anything larger or slower than this is not a health check.
+#: Longest request head accepted, and longest wait for **the whole of it**. A health endpoint talks
+#: to a monitor, not to the internet; anything larger or slower than this is not a health check.
+#: The budget is deliberately not per line: 64 lines at 5 s each would be a five-minute connection,
+#: and :meth:`HealthServer.stop` waits for connections.
 _MAX_HEADER_LINES: Final = 64
-_READ_TIMEOUT_SECONDS: Final = 5.0
+_REQUEST_TIMEOUT_SECONDS: Final = 5.0
 _STREAM_LIMIT: Final = 8192
+
+#: The only methods a read-only health endpoint answers; also the value of its ``Allow`` header.
+_ALLOWED_METHODS: Final = ("GET", "HEAD")
+
+#: Default budget :meth:`HealthServer.stop` grants the connections still open. The service overrides
+#: it with what is left of ``SUPPORT_BOT_SHUTDOWN_GRACE_SECONDS``.
+DEFAULT_CLOSE_TIMEOUT_SECONDS: Final = 2.0
+
+#: Grace given to the event loop to notice the aborted transports. Not a wait for a client: the
+#: sockets are already gone by then.
+_ABORT_TIMEOUT_SECONDS: Final = 1.0
 
 
 def _iso(timestamp: float) -> str:
@@ -150,6 +163,8 @@ class HealthServer:
         self._requested_port = port
         self._logger = logger or get_logger("health")
         self._server: asyncio.AbstractServer | None = None
+        #: The connections currently being served, so a shutdown can end the ones that overstay.
+        self._connections: set[asyncio.StreamWriter] = set()
         self.port: int | None = None
 
     async def start(self) -> int:
@@ -173,14 +188,52 @@ class HealthServer:
         )
         return self.port
 
-    async def stop(self) -> None:
-        """Stop serving and wait for in-flight connections to finish."""
-        if self._server is None:
+    async def stop(self, timeout: float = DEFAULT_CLOSE_TIMEOUT_SECONDS) -> None:
+        """Stop serving, giving the connections still open a **bounded** moment to finish.
+
+        The bound is the point. Since Python 3.12, :meth:`asyncio.Server.wait_closed` waits for every
+        connection handler, not merely for the listening socket, so an unbounded wait here hands the
+        end of the process to whoever holds a socket — an idle probe, a port scan, a client trickling
+        one header at a time. ``docker stop`` kills at ten seconds regardless, and the final
+        ``service.stopped`` line is then never written: exactly the silent death this module exists
+        to prevent.
+
+        Args:
+            timeout: Seconds granted to the connections still open. Whatever outlives it has its
+                transport aborted; a value at or below zero aborts them at once.
+        """
+        server = self._server
+        if server is None:
             return
-        self._server.close()
-        await self._server.wait_closed()
+        server.close()
+        if not await self._wait_closed(server, timeout):
+            stranded = len(self._connections)
+            for writer in tuple(self._connections):
+                writer.transport.abort()
+            self._logger.warning(
+                "aborted health connections that outlived the shutdown budget",
+                extra={"event": "health.connections_aborted", "connections": stranded, "timeout": timeout},
+            )
+            await self._wait_closed(server, _ABORT_TIMEOUT_SECONDS)
         self._server = None
         self._logger.info("health endpoint stopped", extra={"event": "health.stopped"})
+
+    async def _wait_closed(self, server: asyncio.AbstractServer, timeout: float) -> bool:
+        """Wait for *server* to report every connection gone, for at most *timeout* seconds.
+
+        Args:
+            server: The server being closed.
+            timeout: Seconds to wait; anything below zero is read as zero.
+
+        Returns:
+            ``True`` when the server closed within the budget, ``False`` when the budget expired.
+        """
+        try:
+            async with asyncio.timeout(max(timeout, 0.0)):
+                await server.wait_closed()
+        except TimeoutError:
+            return False
+        return True
 
     async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         """Serve one connection: read the request head, answer, close.
@@ -189,6 +242,7 @@ class HealthServer:
             reader: Connection reader.
             writer: Connection writer.
         """
+        self._connections.add(writer)
         try:
             request = await self._read_request(reader)
             if request is None:
@@ -196,9 +250,11 @@ class HealthServer:
                 return
             method, path = request
             status, reason, body = self._route(method, path)
-            await self._write(writer, status, reason, body, head_only=method == "HEAD")
+            headers = {"Allow": ", ".join(_ALLOWED_METHODS)} if status == 405 else None
+            await self._write(writer, status, reason, body, head_only=method == "HEAD", headers=headers)
         except (ConnectionError, asyncio.IncompleteReadError):
-            # A monitor that hangs up mid-probe is normal traffic, not an incident.
+            # A monitor that hangs up mid-probe is normal traffic, not an incident. So is a shutdown
+            # aborting this very connection.
             pass
         except asyncio.CancelledError:
             raise
@@ -207,6 +263,7 @@ class HealthServer:
             # it must never be the thing that kills it.
             self._logger.warning("health request failed", extra={"event": "health.request_failed", "error": str(error)})
         finally:
+            self._connections.discard(writer)
             writer.close()
             try:
                 await writer.wait_closed()
@@ -214,7 +271,11 @@ class HealthServer:
                 pass
 
     async def _read_request(self, reader: asyncio.StreamReader) -> tuple[str, str] | None:
-        """Read the request line and drain the headers.
+        """Read the request line and drain the headers, under a **single** deadline.
+
+        One budget for the whole head, not one per line. A per-line timeout is not a bound: a client
+        sending one header just inside the timeout holds the connection for :data:`_MAX_HEADER_LINES`
+        times that timeout — minutes — and :meth:`stop` then has that connection to wait for.
 
         Args:
             reader: Connection reader.
@@ -224,24 +285,22 @@ class HealthServer:
             malformed, oversized or too slow.
         """
         try:
-            raw = await asyncio.wait_for(reader.readline(), timeout=_READ_TIMEOUT_SECONDS)
+            async with asyncio.timeout(_REQUEST_TIMEOUT_SECONDS):
+                raw = await reader.readline()
+                parts = raw.decode("latin-1", errors="replace").split()
+                if len(parts) < 2:
+                    return None
+                method, target = parts[0].upper(), parts[1]
+
+                for _ in range(_MAX_HEADER_LINES):
+                    line = await reader.readline()
+                    if line in (b"\r\n", b"\n", b""):
+                        break
+
+                return method, target.split("?", 1)[0]
         except (TimeoutError, ValueError):
             # ValueError: asyncio raises LimitOverrunError (a ValueError) past the stream limit.
             return None
-        parts = raw.decode("latin-1", errors="replace").split()
-        if len(parts) < 2:
-            return None
-        method, target = parts[0].upper(), parts[1]
-
-        for _ in range(_MAX_HEADER_LINES):
-            try:
-                line = await asyncio.wait_for(reader.readline(), timeout=_READ_TIMEOUT_SECONDS)
-            except (TimeoutError, ValueError):
-                return None
-            if line in (b"\r\n", b"\n", b""):
-                break
-
-        return method, target.split("?", 1)[0]
 
     def _route(self, method: str, path: str) -> tuple[int, str, dict[str, Any]]:
         """Map a request to its response.
@@ -253,8 +312,8 @@ class HealthServer:
         Returns:
             ``(status code, reason phrase, JSON body)``.
         """
-        if method not in ("GET", "HEAD"):
-            return 405, "Method Not Allowed", {"error": "only GET and HEAD are supported"}
+        if method not in _ALLOWED_METHODS:
+            return 405, "Method Not Allowed", {"error": f"only {' and '.join(_ALLOWED_METHODS)} are supported"}
         if path == "/healthz":
             # Liveness: reaching this line proves the event loop still turns. It says nothing about
             # readiness on purpose — conflating the two makes a restart loop out of a transient
@@ -268,7 +327,14 @@ class HealthServer:
         return 404, "Not Found", {"error": "unknown endpoint", "endpoints": ["/healthz", "/readyz", "/status"]}
 
     async def _write(
-        self, writer: asyncio.StreamWriter, status: int, reason: str, body: dict[str, Any], *, head_only: bool
+        self,
+        writer: asyncio.StreamWriter,
+        status: int,
+        reason: str,
+        body: dict[str, Any],
+        *,
+        head_only: bool,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
         """Write a JSON response and flush it.
 
@@ -278,14 +344,18 @@ class HealthServer:
             reason: HTTP reason phrase.
             body: The JSON body.
             head_only: Send headers only (``HEAD`` request).
+            headers: Extra response headers, e.g. the ``Allow`` header RFC 9110 makes mandatory on a
+                ``405``.
         """
         encoded = json.dumps(body, ensure_ascii=False, default=str).encode("utf-8")
+        extra = "".join(f"{name}: {value}\r\n" for name, value in (headers or {}).items())
         head = (
             f"HTTP/1.1 {status} {reason}\r\n"
             "Content-Type: application/json; charset=utf-8\r\n"
             f"Content-Length: {len(encoded)}\r\n"
             "Cache-Control: no-store\r\n"
             "Connection: close\r\n"
+            f"{extra}"
             "\r\n"
         ).encode("latin-1")
         writer.write(head if head_only else head + encoded)

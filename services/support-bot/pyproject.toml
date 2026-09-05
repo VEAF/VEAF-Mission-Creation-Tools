@@ -72,7 +72,8 @@ addopts = [
     "--import-mode=importlib",
     "--cov=veaf_support_bot",
     "--cov-report=term-missing:skip-covered",
-    "--cov-fail-under=90",
+    # Ratchet, never a target to relax: measured 93.66 % after the shutdown-bound tests.
+    "--cov-fail-under=92",
 ]
 
 [tool.coverage.run]

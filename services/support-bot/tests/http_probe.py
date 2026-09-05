@@ -33,3 +33,24 @@ async def request(port: int, target: str, method: str = "GET") -> tuple[int, dic
     status_line, _, body = raw.partition(b"\r\n\r\n")
     status = int(status_line.split(b" ")[1])
     return status, json.loads(body) if body else None
+
+
+async def raw_head(port: int, target: str, method: str = "GET") -> str:
+    """Send one request and return the response head verbatim.
+
+    Args:
+        port: Port the server listens on.
+        target: Request target.
+        method: HTTP method.
+
+    Returns:
+        The status line and headers, as sent on the wire.
+    """
+    reader, writer = await asyncio.open_connection("127.0.0.1", port)
+    writer.write(f"{method} {target} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n".encode("latin-1"))
+    await writer.drain()
+    raw = await asyncio.wait_for(reader.read(), timeout=5)
+    writer.close()
+    await writer.wait_closed()
+
+    return raw.partition(b"\r\n\r\n")[0].decode("latin-1")

@@ -8,9 +8,13 @@ over the wire can disprove.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import unittest
+from collections.abc import AsyncIterator
+from unittest import mock
 
-from tests.http_probe import request
+from tests.http_probe import raw_head, request
+from veaf_support_bot import health
 from veaf_support_bot.health import HealthServer, ServiceState
 
 
@@ -168,6 +172,12 @@ class TestHealthEndpoints(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(status, 405)
 
+    async def test_the_refusal_says_which_methods_are_allowed(self) -> None:
+        """RFC 9110 makes ``Allow`` mandatory on a 405, and a bare refusal tells a client nothing."""
+        head = await raw_head(self.port, "/status", method="POST")
+
+        self.assertIn("allow: get, head", head.lower())
+
     async def test_head_returns_the_status_without_a_body(self) -> None:
         status, body = await request(self.port, "/healthz", method="HEAD")
 
@@ -197,6 +207,144 @@ class TestHealthEndpoints(unittest.IsolatedAsyncioTestCase):
         """The service logs the port it actually got; 0 in the log would be useless."""
         self.assertGreater(self.port, 0)
         self.assertEqual(self.server.port, self.port)
+
+
+class TestAClientCannotHoldTheShutdown(unittest.IsolatedAsyncioTestCase):
+    """The half of the shutdown no other test covered: a client that hangs *on*, not up.
+
+    Since Python 3.12, ``Server.wait_closed()`` waits for every connection handler, so an unbounded
+    wait in :meth:`HealthServer.stop` hands the end of the process to whoever holds a socket. On
+    ``python:3.13-slim`` — the deployed image — one idle TCP connection was enough to stall the stop
+    for the whole read timeout, and a client trickling a header just inside that timeout stalled it
+    for minutes, well past the ten seconds after which ``docker stop`` kills. The `service.stopped`
+    line was then never written: the silent death this module exists to make impossible.
+    """
+
+    async def asyncSetUp(self) -> None:
+        self.state = ServiceState(version="9.9.9")
+        self.server = HealthServer(self.state, "127.0.0.1", 0)
+        self.port = await self.server.start()
+        self.opened: list[asyncio.StreamWriter] = []
+
+    async def asyncTearDown(self) -> None:
+        for writer in self.opened:
+            writer.close()
+
+    async def _hold(self, *, preamble: bytes = b"") -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+        """Open a connection and keep it open, optionally after sending a partial request.
+
+        Args:
+            preamble: Bytes to send before going quiet.
+
+        Returns:
+            The reader and the writer, kept open until teardown.
+        """
+        reader, writer = await asyncio.open_connection("127.0.0.1", self.port)
+        if preamble:
+            writer.write(preamble)
+            await writer.drain()
+        self.opened.append(writer)
+        return reader, writer
+
+    @contextlib.asynccontextmanager
+    async def _trickling(self, interval: float) -> AsyncIterator[asyncio.StreamReader]:
+        """Run a client that sends one header every *interval* seconds and never finishes.
+
+        The interval is chosen just *under* the read timeout on purpose: such a client never idles
+        long enough to trip a per-line wait, which is what made the old bound no bound at all.
+
+        Args:
+            interval: Seconds between two header lines.
+
+        Yields:
+            The reader of the trickling connection.
+        """
+        reader, writer = await self._hold(preamble=b"GET /status HTTP/1.1\r\n")
+
+        async def trickle() -> None:
+            while True:
+                await asyncio.sleep(interval)
+                writer.write(b"X-Probe: still-here\r\n")
+                await writer.drain()
+
+        pest = asyncio.ensure_future(trickle())
+        try:
+            yield reader
+        finally:
+            pest.cancel()
+            await asyncio.gather(pest, return_exceptions=True)
+
+    async def _timed_stop(self, timeout: float) -> float:
+        """Stop the server and return how long it took.
+
+        Args:
+            timeout: Budget handed to :meth:`HealthServer.stop`.
+
+        Returns:
+            Seconds elapsed.
+        """
+        started = asyncio.get_running_loop().time()
+        await asyncio.wait_for(self.server.stop(timeout=timeout), timeout=60)
+        return asyncio.get_running_loop().time() - started
+
+    async def test_one_idle_connection_does_not_hold_the_shutdown(self) -> None:
+        """Measured before the fix: 4.8 s for a single connection that sends nothing at all."""
+        await self._hold()
+
+        self.assertLess(await self._timed_stop(0.2), 2.0)
+
+    async def test_many_idle_connections_do_not_hold_the_shutdown(self) -> None:
+        for _ in range(20):
+            await self._hold()
+
+        self.assertLess(await self._timed_stop(0.2), 2.0)
+
+    async def test_a_client_trickling_headers_does_not_hold_the_shutdown(self) -> None:
+        """Measured before the fix: still blocked after 60 s, with a ceiling near five minutes.
+
+        The read timeout is shrunk so the same arithmetic fits in a test: a header every 0.3 s under
+        a 0.5 s per-line wait never times out, and 64 of them are 19 s of shutdown. The point is that
+        ``stop`` returns on its own budget whatever the connection is doing.
+        """
+        with mock.patch.object(health, "_REQUEST_TIMEOUT_SECONDS", 0.5):
+            async with self._trickling(interval=0.3):
+                self.assertLess(await self._timed_stop(0.2), 2.0)
+
+    async def test_the_request_head_is_on_one_deadline_not_one_per_line(self) -> None:
+        """The other half: with no shutdown involved, the head deadline alone ends the connection."""
+        with mock.patch.object(health, "_REQUEST_TIMEOUT_SECONDS", 0.5):
+            async with self._trickling(interval=0.3) as reader:
+                started = asyncio.get_running_loop().time()
+                # The server answers 400 and closes as soon as the head deadline expires. Under a
+                # per-line budget it would keep reading for 64 x 0.3 s instead.
+                raw = await asyncio.wait_for(reader.read(), timeout=15)
+                elapsed = asyncio.get_running_loop().time() - started
+
+        self.assertIn(b"400", raw.split(b"\r\n")[0])
+        self.assertLess(elapsed, 5.0, "the deadline is being applied per line, not per request")
+
+    async def test_cutting_a_connection_short_is_reported_never_silent(self) -> None:
+        """Aborting someone's socket is a decision, and an operator has to be able to see it made."""
+        logger = mock.Mock()
+        self.server._logger = logger
+        await self._hold()
+
+        await self.server.stop(timeout=0.2)
+
+        events = [call.kwargs["extra"]["event"] for call in logger.warning.call_args_list]
+        self.assertIn("health.connections_aborted", events)
+
+    async def test_a_connection_still_being_served_is_given_its_budget(self) -> None:
+        """Bounded is not brutal: a probe already mid-request is answered, not cut off."""
+        reader, writer = await asyncio.open_connection("127.0.0.1", self.port)
+        self.opened.append(writer)
+        writer.write(b"GET /healthz HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+        await writer.drain()
+
+        await self.server.stop(timeout=5.0)
+        raw = await asyncio.wait_for(reader.read(), timeout=5)
+
+        self.assertIn(b"200", raw.split(b"\r\n")[0])
 
 
 class TestServerLifecycle(unittest.IsolatedAsyncioTestCase):

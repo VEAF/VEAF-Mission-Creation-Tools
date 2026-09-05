@@ -190,6 +190,49 @@ class TestServiceLifecycle(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("shutdown.cancelled", self.events())
 
+    async def test_a_client_holding_a_health_socket_cannot_stall_the_stop(self) -> None:
+        """The failure the whole shutdown sequence exists to prevent, reached from the outside.
+
+        ``docker stop`` kills at ten seconds. Before the bound, one idle TCP connection to the health
+        endpoint — a port scan is enough, and the container binds ``0.0.0.0`` — stretched the stop to
+        the read timeout, and a client trickling one header at a time stretched it to minutes. The
+        process then died on the kill with no ``service.stopped`` line: a silent death, which is the
+        one thing this service is built not to do.
+        """
+        service = SupportBotService(_config(SHUTDOWN_GRACE_SECONDS="0.3"))
+        task = await self._ready_service(service)
+        assert service.health.port is not None
+        _, hanger = await asyncio.open_connection("127.0.0.1", service.health.port)
+
+        started = asyncio.get_running_loop().time()
+        service.request_stop("test")
+        await asyncio.wait_for(task, timeout=30)
+        elapsed = asyncio.get_running_loop().time() - started
+        hanger.close()
+
+        self.assertLess(elapsed, 3.0, f"the shutdown was held by an idle client for {elapsed:.2f} s")
+        self.assertIn("service.stopped", self.events())
+
+    async def test_the_grace_period_bounds_the_whole_sequence_not_each_step(self) -> None:
+        """Two steps each granted the full grace add up to a stop the container kills mid-way."""
+        service = SupportBotService(_config(SHUTDOWN_GRACE_SECONDS="0.4"))
+        task = await self._ready_service(service)
+        assert service.health.port is not None
+        _, hanger = await asyncio.open_connection("127.0.0.1", service.health.port)
+
+        async def stuck() -> None:
+            await asyncio.sleep(30)
+
+        service.tasks.track(stuck(), name="stuck")
+        started = asyncio.get_running_loop().time()
+        service.request_stop("test")
+        await asyncio.wait_for(task, timeout=30)
+        elapsed = asyncio.get_running_loop().time() - started
+        hanger.close()
+
+        self.assertIn("shutdown.cancelled", self.events())
+        self.assertLess(elapsed, 1.2, f"the drain and the endpoint each took a full grace ({elapsed:.2f} s)")
+
     async def test_the_first_stop_reason_is_the_one_reported(self) -> None:
         service = SupportBotService(_config())
         task = await self._ready_service(service)

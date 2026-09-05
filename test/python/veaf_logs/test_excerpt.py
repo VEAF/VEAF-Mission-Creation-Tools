@@ -12,6 +12,8 @@ from veaf_logs.buffer import BytesBuffer
 from veaf_logs.excerpt import (
     DEFAULT_MAX_CHARS,
     MAX_CONTINUATION_LINES,
+    NOTHING_AFFORDED,
+    NOTHING_SELECTED,
     Excerpt,
     build_excerpt,
     context_keys,
@@ -219,6 +221,46 @@ class TestPlafond:
         assert len(serre.to_text()) <= 600
         assert serre.omitted >= large.omitted
         assert serre.omitted + len(serre.entries) == large.selected
+
+    @pytest.mark.parametrize("plafond", [1, 40, 100, 142])
+    def test_sous_l_en_tete_il_ne_reste_aucune_ligne(self, long_journal, plafond):
+        """L'en-tete est le plancher, et c'est ce que `rebound` promet au lecteur.
+
+        Il nomme les niveaux masques : le couper pour tenir un budget est la seule
+        chose que ce module existe pour refuser. Donc un plafond que l'en-tete
+        depasse deja ne rend aucun enregistrement, et *c'est* le signal que
+        `build_report` lit pour lacher la section. Mesure sur le vrai dcs.log :
+        143 caracteres pour un plafond de 100 sans aucun filtre, 529 pour un
+        plafond de 200 avec 22 familles de bruit a ✕, deux niveaux masques et une
+        recherche.
+        """
+        excerpt = build_excerpt(long_journal, FilterSet(), max_chars=plafond)
+        assert excerpt.entries == []
+        assert len(excerpt.to_text()) > plafond
+
+    def test_un_extrait_vide_par_le_plafond_ne_se_lit_pas_comme_un_journal_calme(self, long_journal):
+        """Contradiction mesuree : `87989 omises par la limite de taille` au-dessus
+        de `aucune ligne retenue par les filtres courants`.
+
+        Les filtres avaient bel et bien retenu ces lignes ; c'est le plafond qui
+        les a prises. Dans un module dont le contrat est qu'un journal filtre ne
+        doit jamais se lire comme un journal propre, les deux phrases doivent etre
+        distinctes.
+        """
+        excerpt = build_excerpt(long_journal, FilterSet(), max_chars=100)
+        rendu = excerpt.to_text()
+        assert excerpt.entries == []
+        assert excerpt.omitted == 400
+        assert NOTHING_AFFORDED in rendu
+        assert NOTHING_SELECTED not in rendu
+
+    def test_un_extrait_vide_par_les_filtres_le_dit_toujours(self, rules):
+        """Le cas voisin, qui ne doit pas avoir bouge : la, rien n'a ete retenu."""
+        vide = indexer(rules, ["2026-08-31 12:00:00.000 INFO    APP (Main): tout va bien"])
+        filtres = FilterSet(levels={"INFO": State.OFF})
+        rendu = build_excerpt(vide, filtres).to_text()
+        assert NOTHING_SELECTED in rendu
+        assert NOTHING_AFFORDED not in rendu
 
     def test_une_trace_de_pile_est_ecourtee(self, rules):
         suites = [f"\tframe {i}" for i in range(MAX_CONTINUATION_LINES + 5)]

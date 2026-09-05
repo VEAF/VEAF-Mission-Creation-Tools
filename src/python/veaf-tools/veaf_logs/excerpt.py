@@ -58,6 +58,14 @@ MAX_CONTINUATION_LINES = 8
 #: Appended to a line cut at :data:`MAX_CHARS_PER_LINE`.
 TRUNCATION_MARK = " […]"
 
+#: The body of an excerpt whose filters selected nothing at all.
+NOTHING_SELECTED = "(aucune ligne retenue par les filtres courants)"
+
+#: The body of an excerpt whose filters selected lines the character ceiling then could not pay for.
+#: A different sentence from :data:`NOTHING_SELECTED` because it is a different fact: the log is not
+#: quiet, the budget is small, and the header right above already says so.
+NOTHING_AFFORDED = "(la limite de taille n'a payé aucune ligne : voir le compte ci-dessus)"
+
 
 #: Levels whose absence changes the meaning of the whole excerpt. Hiding one of these is what turns
 #: a broken session into a clean-looking log, so it is stated rather than listed.
@@ -172,8 +180,17 @@ class Excerpt:
             max_chars: The new ceiling, applied to the whole rendered text.
 
         Returns:
-            An excerpt whose :meth:`to_text` fits, carrying the accumulated omission count. The
-            original is untouched.
+            An excerpt holding as many records as the ceiling paid for — **none at all when it paid
+            for none**, and that is the case a caller has to read. The header is the floor: it names
+            which severities are hidden, and cutting *that* to fit a budget is the one thing this
+            module exists to refuse, so an excerpt reduced to zero records still renders it. Measured
+            on the real ``dcs.log``: 143 characters for a 100-character ceiling with no filter, 529
+            for a 200-character ceiling once 22 noise families, two levels and a search are declared.
+            An excerpt that still holds records, on the other hand, always fits.
+
+            So: ``entries`` empty means *this did not fit*, and :func:`~veaf_logs.report.build_report`
+            drops the section on exactly that test rather than embedding a header on its own. The
+            original excerpt is untouched.
         """
         return _bound(self, self.entries, max_chars, already=self.omitted)
 
@@ -192,8 +209,14 @@ class Excerpt:
             blocks.append("\n".join(body))
         elif self.entries:
             blocks.append("\n".join(entry.render() for entry in self.entries))
+        elif self.omitted:
+            # The filters retained these lines; the ceiling is what took them. Saying "no line
+            # retained by the current filters" under a header announcing "87 989 omitted by the size
+            # limit" is a straight contradiction, in the one module whose stated contract is that a
+            # filtered log must never read as a clean one.
+            blocks.append(NOTHING_AFFORDED)
         else:
-            blocks.append("(aucune ligne retenue par les filtres courants)")
+            blocks.append(NOTHING_SELECTED)
         return "\n".join(blocks)
 
 
@@ -293,7 +316,9 @@ def _fit(entries: Sequence[ExcerptEntry], max_chars: int) -> tuple[list[ExcerptE
 
     The head carries the cause and the tail carries the symptom, so a budget is spent alternately on
     each rather than on a single window. A record whose own rendering already exceeds the whole
-    budget is still kept when it is the only one — an excerpt of nothing is worse than a long line.
+    budget is still kept here when it is the only one — but :func:`_bound` then drops it again if the
+    rendered text is still over the ceiling, and that is the right order of priority: the ceiling is
+    what this module promises, and its caller is sizing a Discord message against it.
 
     Args:
         entries: The selected records, in log order.
@@ -345,12 +370,14 @@ def _bound(current: Excerpt, entries: Sequence[ExcerptEntry], max_chars: int, al
     Args:
         current: The excerpt to shrink.
         entries: Every record it may draw from, in log order.
-        max_chars: The ceiling on ``current.to_text()``.
+        max_chars: The ceiling on ``current.to_text()``, the header included.
         already: Records dropped before this call, added to what this one drops.
 
     Returns:
-        An excerpt whose rendered text fits, holding as many records as the ceiling paid for — none
-        at all when it paid for none.
+        An excerpt holding as many records as the ceiling paid for — none at all when it paid for
+        none. With one record or more the rendered text fits; with none, what is left is the header,
+        which has no shorter honest form and is rendered whatever the ceiling. See
+        :meth:`Excerpt.rebound` for what a caller does with that.
     """
     kept, dropped = _fit(entries, max_chars)
     current = replace(current, entries=kept, omitted=already + dropped)
@@ -390,7 +417,9 @@ def build_excerpt(
             list of categories the header has to declare.
         visible: The record indices the view holds. Defaults to re-running
             :func:`~veaf_logs.filters.evaluate`, which is what the interface displays.
-        max_chars: Character ceiling on the whole rendered excerpt, header included.
+        max_chars: Character ceiling on the whole rendered excerpt, header included. It bounds the
+            records; the header is the floor below which nothing can go, so an excerpt the ceiling
+            leaves with no records renders its header anyway. See :meth:`Excerpt.rebound`.
 
     Returns:
         The excerpt. Every field is already redacted, and the header states what was excluded, so

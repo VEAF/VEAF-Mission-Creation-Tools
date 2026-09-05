@@ -395,3 +395,15 @@ class TestPlancherDeLExtrait:
         relu = parse_report_block(build_report(analysis, doctor, max_chars=garde[0]))
         assert int(relu.fields["excerpt.shown"]) > 0
         assert "panne numero" in relu.sections["excerpt"]
+
+    def test_un_en_tete_seul_n_entre_jamais_dans_le_bloc(self, rules, doctor):
+        """`rebound` rend l'en-tete quel que soit le budget ; le bloc ne le colle pas.
+
+        C'est la moitie du contrat qui est du cote de l'appelant, et elle se teste
+        ici : un extrait sans enregistrement n'est pas un extrait, il n'entre donc
+        pas dans le bloc — et le champ dit qu'il est parti.
+        """
+        relu = parse_report_block(build_report(analyse_de(rules, GROS), doctor, max_chars=700))
+        assert "excerpt" not in relu.sections
+        assert relu.fields["excerpt.shown"] == "0"
+        assert "excerpt" in relu.fields["truncated"]

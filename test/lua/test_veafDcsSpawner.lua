@@ -1281,6 +1281,29 @@ function TestVeafGroupSpawnChain:test_terrain_the_group_cannot_use_is_refused()
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
 end
 
+--- FIX-TRIPACK-FIELD-REPORTS ticket 03 — the refusal used to name only the radius and the group,
+--- which is what made this defect take Tripack's mission file to diagnose instead of the log alone.
+function TestVeafGroupSpawnChain:test_the_refusal_names_category_surfaces_point_and_actual_surface()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+  local logger = veaf.loggers.get(veafDcsSpawner.Id)
+  local savedError = logger.error
+  local captured
+  logger.error = function(_self, text, ...)
+    captured = { text, ... }
+  end
+
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRadius(500):respawn()
+
+  logger.error = savedError
+  luaunit.assertNotNil(captured, "the refusal must be logged")
+  local message = string.format(veaf.safeUnpack(captured))
+  luaunit.assertStrContains(message, "vehicle", false, "the resolved category")
+  luaunit.assertStrContains(message, "LAND", false, "an accepted surface")
+  luaunit.assertStrContains(message, "WATER", false, "the surface DCS actually reported")
+end
+
 function TestVeafGroupSpawnChain:test_any_terrain_skips_the_check()
   -- What veafMove uses for a dynamically spawned AFAC.
   land.getSurfaceType = function()

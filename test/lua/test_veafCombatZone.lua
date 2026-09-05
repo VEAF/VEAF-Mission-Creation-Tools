@@ -2097,6 +2097,132 @@ function TestVeafCombatZoneRenameOption:test_one_zone_declining_does_not_affect_
 end
 
 -- ============================================================================
+-- FIX-TRIPACK-FIELD-REPORTS ticket 02 — a naval element searches on water, not on dry land.
+--
+-- Tripack's log showed thirteen `findSpawnPoint` failures at 50 m, mechanical: `acceptableGroundPoint`
+-- only ever accepted dry land, and `spawnElement` called it for every element regardless of category,
+-- ships included. `spawnElement` must now read the element's category from the mission record and pass
+-- the matching surfaces, from the same `veafDcsSpawner.TERRAIN_BY_CATEGORY` the terrain check downstream
+-- already uses — and it must not narrow the search for anything but a naval element.
+-- ============================================================================
+TestVeafCombatZoneSpawnElementSurfaces = {}
+
+function TestVeafCombatZoneSpawnElementSurfaces:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Naval Zone"):setMissionEditorZoneName("NAVALZONE")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("NAVALZONE-SHIP")
+  self.el:setPosition({ x = 0, y = 0, z = 0 })
+  self.el:setCoalition(coalition.side.RED)
+  self.el:setDcsGroup(true)
+  self.el:setSpawnRadius(50)
+
+  self._spawnImpl = VeafGroupSpawn._spawn
+  VeafGroupSpawn._spawn = function()
+    return nil
+  end
+
+  self._findSpawnPointImpl = veaf.findSpawnPoint
+  self._capturedSurfaces = "not called"
+  veaf.findSpawnPoint = function(_vec3, _radius, _safeRadius, surfaces)
+    self._capturedSurfaces = surfaces
+    return nil
+  end
+
+  self._savedGroups = veafMissionDb.groupsByName
+  veafMissionDb.groupsByName = {}
+end
+
+function TestVeafCombatZoneSpawnElementSurfaces:tearDown()
+  VeafGroupSpawn._spawn = self._spawnImpl
+  veaf.findSpawnPoint = self._findSpawnPointImpl
+  veafMissionDb.groupsByName = self._savedGroups
+end
+
+function TestVeafCombatZoneSpawnElementSurfaces:test_a_ship_element_searches_on_water()
+  veafMissionDb.groupsByName["NAVALZONE-SHIP"] = { category = "ship" }
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self._capturedSurfaces, veafDcsSpawner.TERRAIN_BY_CATEGORY.ship)
+end
+
+function TestVeafCombatZoneSpawnElementSurfaces:test_a_vehicle_element_keeps_findspawnpoints_own_default()
+  veafMissionDb.groupsByName["NAVALZONE-SHIP"] = { category = "vehicle" }
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNil(self._capturedSurfaces, "a ground element's search must not narrow")
+end
+
+function TestVeafCombatZoneSpawnElementSurfaces:test_an_unknown_category_keeps_the_default_too()
+  -- no mission record at all for this element's name
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNil(self._capturedSurfaces)
+end
+
+-- ============================================================================
+-- FIX-TRIPACK-FIELD-REPORTS ticket 03 — the combined path. A ship at anchor near a quay used to be
+-- dragged onto dry land by `findSpawnPoint` and then refused by `_drawOrigin`'s own, correctly
+-- category-aware terrain check — the six groups of `Snowfox_20260903.miz` that never spawned.
+-- Ticket 02's fix makes the naval search accept water in the first place; this reproduces the whole
+-- path end to end, with nothing stubbed between the zone element and `coalition.addGroup`.
+-- ============================================================================
+TestVeafCombatZoneNavalSpawnRegression = {}
+
+function TestVeafCombatZoneNavalSpawnRegression:setUp()
+  dcs_mocks.reset()
+  Disposition = nil
+  land.getHeight = function()
+    return 0
+  end
+  -- The quay sits within 10 m of the declared position; open water lies beyond it.
+  land.getSurfaceType = function(vec2)
+    if math.abs(vec2.x) <= 10 then
+      return land.SurfaceType.LAND
+    end
+    return land.SurfaceType.WATER
+  end
+
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      ship = {
+        group = {
+          {
+            name = "ZONE-SHIP",
+            groupId = 7,
+            units = { { name = "ZONE-SHIP-1", unitId = 3, type = "Dry-cargo ship-2", x = 0, y = 0 } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  self.z = VeafCombatZone:new():setFriendlyName("Naval Zone"):setMissionEditorZoneName("NAVALZONE")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("ZONE-SHIP")
+  self.el:setPosition({ x = 0, y = 0, z = 0 })
+  self.el:setCoalition(coalition.side.BLUE)
+  self.el:setDcsGroup(true)
+  self.el:setSpawnRadius(50)
+
+  -- Two draws per findSpawnPoint attempt (theta, distance): the first candidate lands at x=5,
+  -- on the quay; the second lands at x=45, in open water and still within the 50 m search radius.
+  dcs_mocks.setRandomSequence({ 0, 0.01, 0, 0.81 })
+end
+
+function TestVeafCombatZoneNavalSpawnRegression:tearDown()
+  dcs_mocks.reset()
+end
+
+function TestVeafCombatZoneNavalSpawnRegression:test_a_ship_near_a_quay_spawns_on_water()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "the ship must be created, not refused")
+end
+
+-- ============================================================================
 -- FIX-COMBATZONE-ZONE-TYPE-SILENT, second pass — Sourcery's review point on #775.
 --
 -- The helper returned nil for "I cannot read this zone" and the caller wrote `or {}`, so the

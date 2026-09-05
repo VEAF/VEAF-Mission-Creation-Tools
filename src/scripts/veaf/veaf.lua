@@ -1260,20 +1260,24 @@ veaf.DEFAULT_SPAWN_CLEARANCE = 100
 --- Set to true to skip the scenery-aware tier of veaf.findSpawnPoint
 veaf.doNotAvoidScenery = false
 
---- Places a candidate on the terrain and tells whether a ground unit can stand there
+--- Every surface `veaf.findSpawnPoint` accepts when a caller does not say — today's land-only
+--- criterion, unchanged: everything but open water, so SHALLOW_WATER keeps passing as it does
+--- today (FIX-CSAR-SPAWNS-ON-WATER, "a survivor wading a few metres off a beach is rescuable").
+veaf.DEFAULT_SPAWN_TERRAIN = { "LAND", "SHALLOW_WATER", "ROAD", "RUNWAY" }
+
+--- Places a candidate on the terrain and tells whether it may be used
 -- Placing first normalises vec2 and vec3 inputs, so the surface test always has a z.
--- Only open water is rejected, which is the criterion veafUnits.checkPositionForUnit applies
--- to a ground unit — SHALLOW_WATER keeps passing, as it does today (veaf.OPEN_WATER).
 -- The shape guard is not paranoia: tier 1 candidates come from an undocumented API whose
 -- return shape we have not measured, and veaf.placePointOnLand would raise on a non-table
 -- — outside the pcall, which only wraps the call to the singleton itself.
--- @return vec3 placed on land, or nil when the candidate is unusable
-local function acceptableGroundPoint(candidate)
+-- @param surfaces table the surfaces this candidate may stand on
+-- @return vec3 placed on the terrain, or nil when the candidate is unusable
+local function acceptableGroundPoint(candidate, surfaces)
   if type(candidate) ~= "table" then
     return nil
   end
   local placed = veaf.placePointOnLand(candidate)
-  if not veaf.isTerrainValid(placed, veaf.OPEN_WATER) then
+  if veaf.isTerrainValid(placed, surfaces) then
     return placed
   end
   return nil
@@ -1298,9 +1302,12 @@ end
 -- @param vec3 centre point
 -- @param radius search radius in metres — honoured by **every** tier, see below
 -- @param safeRadius required clearance from scenery (default veaf.DEFAULT_SPAWN_CLEARANCE)
--- @return vec3 placed on land, or nil when no acceptable point was found
-function veaf.findSpawnPoint(vec3, radius, safeRadius)
+-- @param surfaces table surfaces the point may stand on (default veaf.DEFAULT_SPAWN_TERRAIN,
+--        today's land-only criterion — an omitted argument changes nothing for an existing caller)
+-- @return vec3 placed on the terrain, or nil when no acceptable point was found
+function veaf.findSpawnPoint(vec3, radius, safeRadius, surfaces)
   safeRadius = safeRadius or veaf.DEFAULT_SPAWN_CLEARANCE
+  surfaces = surfaces or veaf.DEFAULT_SPAWN_TERRAIN
 
   -- Tier 1 — every criterion, clearance from buildings and forests included.
   -- Disposition is a native but *undocumented* DCS singleton, found in TUM. Measured in a live
@@ -1318,7 +1325,7 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius)
     local ok, candidates = pcall(Disposition.getSimpleZones, vec3, radius, safeRadius, veaf.SPAWN_SEARCH_ATTEMPTS)
     if ok and type(candidates) == "table" then
       for _, candidate in ipairs(candidates) do
-        local placed = acceptableGroundPoint(candidate)
+        local placed = acceptableGroundPoint(candidate, surfaces)
         -- The distance test is not belt-and-braces: **Disposition's radius argument does not
         -- bound its answers.** Measured around one centre in wooded terrain — asked for 800 m
         -- it returned points 2035-2258 m out, and asked for 1600 m with a count of *one* it
@@ -1339,7 +1346,7 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius)
 
   -- Tier 2 — every criterion except clearance from scenery.
   for _ = 1, veaf.SPAWN_SEARCH_ATTEMPTS do
-    local placed = acceptableGroundPoint(veaf.getRandomPointInCircle(vec3, radius))
+    local placed = acceptableGroundPoint(veaf.getRandomPointInCircle(vec3, radius), surfaces)
     if placed then
       return placed
     end

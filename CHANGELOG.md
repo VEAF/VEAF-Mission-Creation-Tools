@@ -317,6 +317,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   days earlier, when the same defect swallowed `spawnSmoke`. Repetition, stop time and cancellation
   are unchanged. `skynet-iads-compiled.lua` is regenerated at build 05.09.2026.
 
+- **A combat zone's naval element now searches for water, not for dry land.** `veaf.findSpawnPoint`
+  only ever accepted dry ground, so a ship or submarine anchored near a quay was dragged onto it and
+  then correctly refused by the terrain check downstream — six groups of a real mission never spawned.
+  `findSpawnPoint` now takes the acceptable surfaces as a parameter (defaulting to today's land-only
+  criterion, so no other caller changes), and a combat zone reads the surfaces its element's category
+  calls for from the same table the spawner already uses.
+
+- **A terrain refusal now names what was actually wrong.** `_drawOrigin`'s error used to print only the
+  radius and the group name; it now also names the resolved category, the surfaces it accepted, the
+  point it tested, and the surface DCS reported there — enough to diagnose the naval-spawn defect above
+  from the log alone, without needing the mission file.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

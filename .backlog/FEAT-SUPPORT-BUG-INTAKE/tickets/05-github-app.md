@@ -1,6 +1,6 @@
 # 05 — The issue is filed by a GitHub App, not by a person
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -37,11 +37,51 @@ become indistinguishable from David's.
 
 ## Definition of done
 
-- [ ] GitHub App used, with least-privilege scopes documented
-- [ ] Credentials from the environment only; renewal handled
-- [ ] Issue filled in the template's shape, in the user's language, quotes untranslated
-- [ ] Labelled `bug` plus a machine-filed marker
-- [ ] Discord author and thread link recorded on the issue
-- [ ] Creation idempotent across double click, retry and restart — asserted by tests
-- [ ] Creation failure surfaced to the user
-- [ ] Quality gate clean
+- [x] GitHub App used, with least-privilege scopes documented
+- [x] Credentials from the environment only; renewal handled
+- [x] Issue filled in the template's shape, in the user's language, quotes untranslated
+- [x] Labelled `bug` plus a machine-filed marker
+- [x] Discord author and thread link recorded on the issue
+- [x] Creation idempotent across double click, retry and restart — asserted by tests
+- [x] Creation failure surfaced to the user
+- [x] Quality gate clean
+
+## The permissions to grant, exactly
+
+Installed on `VEAF/VEAF-Mission-Creation-Tools` **only**, webhook **inactive**, **no** events.
+
+| Scope | Permission | Level |
+|---|---|---|
+| Repository | **Issues** | **Read and write** |
+| Repository | **Metadata** | **Read-only** *(mandatory, selected by GitHub)* |
+| Repository | everything else | **No access** |
+| Organisation | everything | **No access** |
+| Account | everything | **No access** |
+
+`Contents` is deliberately **not** granted: the prior-art sweep reads `.backlog/` and `ROADMAP.md`
+from the local checkout, never through the API, so the App never needs to read the code.
+
+## What the ticket asked for and the platform does not allow
+
+**Re-uploading the attachments to the issue.** GitHub has **no REST endpoint that attaches a file to
+an issue** — the one the web interface uses is a session endpoint no App can call. The two
+API-reachable substitutes (committing the file to the repository, publishing it as a release asset)
+both need `Contents: write` on a **public** repository and would permanently publish a stranger's
+`dcs.log` into it. Neither was built.
+
+What was built instead: a **text** attachment small enough is carried *whole, inside the issue*, as
+a comment — it lives as long as the issue does and is a link to nothing. Everything else is listed
+with its name, its size and its SHA-256, and the issue says plainly that the bytes were not
+published; the bounded excerpt and the mission's shape are in the body either way. **No Discord URL
+is ever written into an issue.**
+
+If David wants the raw files to survive, the options are: a dedicated branch written through
+`Contents: write` (permanent, public, and a much broader permission), or asking the reporter for the
+file through the ticket 06 relay when a maintainer actually needs it.
+
+## The other thing to decide
+
+The bot **does not create labels**. If `filed-by-bot` does not exist in the repository, the issue is
+filed with `bug` alone and the reporter is told the label could not be applied. Letting a machine
+invent taxonomy in a public tracker looked like a maintainer's decision rather than the bot's — the
+label has to be created by hand, once.

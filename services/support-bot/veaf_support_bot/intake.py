@@ -43,7 +43,7 @@ from __future__ import annotations
 import asyncio
 import tempfile
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from logging import Logger
 from pathlib import Path
 from shutil import rmtree
@@ -52,13 +52,19 @@ from typing import Protocol
 from veaf_support_bot.attachments import AttachmentCollector, Harvest, Incoming
 from veaf_support_bot.bugreport import BugForm, BugReport, MaterialNote, assemble, safe_redact
 from veaf_support_bot.checkout import Checkout
+from veaf_support_bot.filing import Outcome
 from veaf_support_bot.logging_setup import get_logger
+from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, PriorArtGate, Sweep
 from veaf_support_bot.texts import normalize_language, text
 from veaf_support_bot.traces import Location
 from veaf_support_bot.untrusted import one_line, quote
 
 #: Longest preview posted back to the reporter. Discord's own message ceiling is 2000 characters.
 PREVIEW_MAX_CHARS = 1900
+
+#: Where a reporter is sent when the bot could not file for him. Never a dead end: the report is
+#: already rendered above the link, so it can be pasted straight into the form.
+REPOSITORY_URL = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
 
 #: Field lengths the modal enforces, mirrored here so the handler's bounds hold whatever calls it.
 SUMMARY_MAX_CHARS = 200
@@ -73,10 +79,13 @@ class BugSubmission:
     Attributes:
         form: What the reporter typed.
         attachments: The files declared as command options.
+        thread_url: Where this report was made, so the issue can point back at it. Ticket 06 fills
+            it; until then the issue says the thread was not recorded rather than inventing a link.
     """
 
     form: BugForm
     attachments: list[Incoming]
+    thread_url: str = ""
 
 
 class BugExchange(Protocol):
@@ -97,6 +106,37 @@ class BugExchange(Protocol):
 ReportSink = Callable[[BugReport], Awaitable[str]]
 
 
+class ReportFiler(Protocol):
+    """What the intake needs from :mod:`veaf_support_bot.filing`, and nothing more.
+
+    A protocol so the whole exchange — sweep, proposal, refusal, filing — is asserted without a
+    GitHub App, which does not exist yet.
+    """
+
+    async def file(self, report: BugReport, *, thread_url: str = "") -> Outcome:
+        """Open the issue for a report, exactly once.
+
+        Args:
+            report: The assembled report.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            What became of it.
+        """
+
+    async def comment_on(self, number: int, report: BugReport, *, thread_url: str = "") -> Outcome:
+        """Add the observation to an existing issue instead of opening a second one.
+
+        Args:
+            number: The issue to comment on.
+            report: The assembled report.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            What became of it.
+        """
+
+
 class BugIntake:
     """Runs one ``/bug`` exchange, from the submitted form to a filled report."""
 
@@ -108,6 +148,8 @@ class BugIntake:
         sink: ReportSink | None = None,
         logger: Logger | None = None,
         refresh: bool = True,
+        prior_art: PriorArtGate | None = None,
+        filer: ReportFiler | None = None,
     ) -> None:
         """Initialize the intake.
 
@@ -118,12 +160,20 @@ class BugIntake:
             logger: Logger to use; defaults to the service's ``intake`` logger.
             refresh: Whether to refresh the checkout when the timer says it is due. Off in tests,
                 which must not run ``git`` against a fixture.
+            prior_art: The four-source sweep and the step that lets the reporter refuse it. ``None``
+                skips the sweep entirely, and the issue then says nothing was checked rather than
+                implying it was.
+            filer: Where an accepted report is filed. ``None`` means this deployment has no GitHub
+                App yet: the report is prepared and shown, and the reporter is told plainly that
+                nothing was opened.
         """
         self._checkout = checkout
         self._collector = collector
         self._sink = sink
         self._logger = logger or get_logger("intake")
         self._refresh = refresh
+        self._prior_art = prior_art
+        self._filer = filer
 
     async def handle(self, exchange: BugExchange, submission: BugSubmission) -> BugReport | None:
         """Run one report end to end.
@@ -157,7 +207,7 @@ class BugIntake:
                 await self._say(exchange, text("bug.error.unexpected", lang))
                 return None
 
-            message = await self._sink(report) if self._sink is not None else render_preview(report, lang)
+            report, message = await self._decide(report, lang, submission.thread_url)
             await self._say(exchange, message)
         finally:
             rmtree(workdir, ignore_errors=True)
@@ -177,6 +227,94 @@ class BugIntake:
             },
         )
         return report
+
+    async def _decide(self, report: BugReport, lang: str, thread_url: str) -> tuple[BugReport, str]:
+        """Run the prior-art step, then either act on it or file the report.
+
+        The order is the whole of ticket 03: the sweep happens **before** anything is opened, and
+        its conclusion is never applied on its own — :class:`~veaf_support_bot.priorart.PriorArtGate`
+        returns whether the reporter accepted it, and a gate with nobody to ask returns ``False``.
+
+        Args:
+            report: The assembled report.
+            lang: ``"fr"`` or ``"en"``.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            A pair of the report, now carrying the finding, and what the reporter is told.
+        """
+        sweep, accepted = await self._sweep(report, lang)
+        report = replace(report, prior_art=sweep)
+        if accepted and sweep is not None:
+            return report, await self._act_on(sweep, report, lang, thread_url)
+        if self._sink is not None:
+            return report, await self._sink(report)
+        return report, await self._file(report, lang, thread_url)
+
+    async def _sweep(self, report: BugReport, lang: str) -> tuple[Sweep | None, bool]:
+        """Compare the report against everything already recorded.
+
+        Args:
+            report: The assembled report.
+            lang: ``"fr"`` or ``"en"``.
+
+        Returns:
+            A pair of the finding — ``None`` when no sweep is configured — and whether the reporter
+            accepted the proposed match.
+        """
+        if self._prior_art is None:
+            return None, False
+        sweep, accepted = await self._prior_art.run(sweep_query(report), lang)
+        self._logger.info(
+            "prior art swept",
+            extra={
+                "event": "intake.prior_art",
+                "verdict": sweep.verdict,
+                "accepted": accepted,
+                "reference": sweep.best.candidate.reference if sweep.best else "",
+                "score": sweep.best.score if sweep.best else 0.0,
+                "problems": list(sweep.problems),
+            },
+        )
+        return sweep, accepted
+
+    async def _act_on(self, sweep: Sweep, report: BugReport, lang: str, thread_url: str) -> str:
+        """Do what an accepted match asks for, which for three of the four verdicts is nothing.
+
+        Args:
+            sweep: The accepted finding.
+            report: The assembled report.
+            lang: ``"fr"`` or ``"en"``.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            What the reporter is told.
+        """
+        proposal = render_match(sweep, lang)
+        if sweep.verdict != DUPLICATE or self._filer is None:
+            return proposal
+        number = _issue_number(sweep)
+        if number == 0:
+            return proposal
+        outcome = await self._filer.comment_on(number, report, thread_url=thread_url)
+        return proposal + "\n\n" + _render_outcome(outcome, lang, report)
+
+    async def _file(self, report: BugReport, lang: str, thread_url: str) -> str:
+        """File the report, or say why nothing was filed.
+
+        Args:
+            report: The assembled report.
+            lang: ``"fr"`` or ``"en"``.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            What the reporter is told: the preview, plus what became of the issue.
+        """
+        preview = render_preview(report, lang)
+        if self._filer is None:
+            return preview + "\n\n" + text("filed.disabled", lang)
+        outcome = await self._filer.file(report, thread_url=thread_url)
+        return preview + "\n\n" + _render_outcome(outcome, lang, report)
 
     async def build(self, submission: BugSubmission, workdir: Path) -> BugReport:
         """Do the deterministic pass, attachments included.
@@ -345,6 +483,100 @@ def render_location(location: Location, lang: str) -> str:
     return head
 
 
+def sweep_query(report: BugReport) -> str:
+    """Build the text the prior-art sweep matches on.
+
+    The reporter's own words plus what the trace named, and **not** the attached log: a log shares
+    hundreds of words with every other log, so including it would match a report against everything
+    and turn the sweep into noise a reporter learns to dismiss.
+
+    Args:
+        report: The assembled report.
+
+    Returns:
+        The query.
+    """
+    form = report.form
+    located = " ".join(f"{item.relative} {item.function}" for item in report.located)
+    return "\n".join((form.summary, form.happened, form.expected, located))
+
+
+def _issue_number(sweep: Sweep) -> int:
+    """Read the issue number out of a matched ``#123`` reference.
+
+    Args:
+        sweep: The finding.
+
+    Returns:
+        The number, or ``0`` when the match is not an issue.
+    """
+    if sweep.best is None:
+        return 0
+    reference = sweep.best.candidate.reference
+    return int(reference[1:]) if reference.startswith("#") and reference[1:].isdigit() else 0
+
+
+def render_match(sweep: Sweep, lang: str) -> str:
+    """Render a proposed match **with its evidence**, so it can be disagreed with.
+
+    A proposal with no evidence is an assertion, and an assertion is what silences a real bug: the
+    reporter has no way to tell a good match from a bad one, concludes the desk already knows, and
+    goes away. So the shared words, the score and the reference are all printed.
+
+    Args:
+        sweep: The finding.
+        lang: ``"fr"`` or ``"en"``.
+
+    Returns:
+        The message, or an empty string when there is nothing to propose.
+    """
+    if sweep.best is None:
+        return ""
+    match = sweep.best
+    key = {
+        DUPLICATE: "priorart.duplicate",
+        FIXED: "priorart.fixed" if match.candidate.detail else "priorart.fixed_no_version",
+        IN_PROGRESS: "priorart.in_progress",
+    }[sweep.verdict]
+    values = {
+        "reference": match.candidate.reference,
+        "title": one_line(match.candidate.title, 140),
+        "evidence": "-# " + match.evidence(),
+        "url": match.candidate.url,
+    }
+    if key == "priorart.fixed":
+        values["version"] = match.candidate.detail
+    return text(key, lang, **values)
+
+
+def _render_outcome(outcome: Outcome, lang: str, report: BugReport) -> str:
+    """Render what became of the filing attempt.
+
+    A failure is a sentence the reporter reads, never a silence: he has spent five minutes on this
+    and must not walk away believing an issue exists.
+
+    Args:
+        outcome: What the filer returned.
+        lang: ``"fr"`` or ``"en"``.
+        report: The assembled report, for the fallback link.
+
+    Returns:
+        The message.
+    """
+    if outcome.action == "failed":
+        return text(
+            "filed.error",
+            lang,
+            reason=one_line(outcome.error, 300),
+            issue_url=f"{REPOSITORY_URL}/issues/new?template=bug_report.yml",
+        )
+    key = {"created": "filed.created", "reused": "filed.reused", "commented": "filed.commented"}[outcome.action]
+    message = text(key, lang, url=outcome.url or f"#{outcome.number}")
+    if outcome.notes:
+        message += "\n" + text("filed.notes", lang, notes="; ".join(outcome.notes))
+    return message
+
+
 def render_preview(report: BugReport, lang: str) -> str:
     """Render what the deterministic pass produced, for the reporter to see.
 
@@ -377,8 +609,12 @@ def render_preview(report: BugReport, lang: str) -> str:
         parts.append(text("bug.not_located", lang))
     if report.attachments:
         parts.append(text("bug.attached", lang, count=len(report.attachments)))
+    if report.prior_art is not None:
+        parts.append(text("priorart.checked", lang, checked=report.prior_art.describe()))
+        proposal = render_match(report.prior_art, lang)
+        if proposal:
+            parts.append(proposal)
     if report.notes:
         listed = "\n".join(f"- {note.subject}: {note.reason}" for note in report.notes)
         parts.append(text("bug.notes", lang) + "\n" + quote(listed))
-    parts.append(text("bug.next", lang))
     return "\n\n".join(parts)[:PREVIEW_MAX_CHARS]

@@ -1,6 +1,6 @@
 # 03 — Nothing gets reported twice
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -41,10 +41,36 @@ informs the decision, it does not take it.
 
 ## Definition of done
 
-- [ ] Sweep across open issues, closed issues, `.backlog/` and `ROADMAP.md`
-- [ ] Each outcome implemented: duplicate, already fixed, lot in progress, nothing found
-- [ ] A proposed match always shows its evidence and can be rejected by the user, who then continues
-- [ ] What was checked is recorded in the draft
-- [ ] Unit tests with the GitHub API mocked and a fixture backlog, one per outcome, including the
+- [x] Sweep across open issues, closed issues, `.backlog/` and `ROADMAP.md`
+- [x] Each outcome implemented: duplicate, already fixed, lot in progress, nothing found
+- [x] A proposed match always shows its evidence and can be rejected by the user, who then continues
+- [x] What was checked is recorded in the draft
+- [x] Unit tests with the GitHub API mocked and a fixture backlog, one per outcome, including the
       rejection path
-- [ ] Quality gate clean
+- [x] Quality gate clean
+
+## What was built
+
+`veaf_support_bot/priorart.py`. The corpus is four kinds of candidate; the score weights *signal*
+tokens — identifiers, file names, versions, anything that is not everyday vocabulary — three times
+an ordinary word, and a proposal needs either a shared signal token or five shared ordinary ones.
+The algorithm is deliberately legible: the score is printed with the words it was computed from, so
+a maintainer who thinks it is wrong can see why it is wrong. A similarity model would score better
+and explain nothing — and would cost a call this lot does not have.
+
+The version that carries a fix is a **lookup, not a guess**: the changelog cites issues as
+`[#123](…/issues/123)`, so the version is the nearest `## [x.y.z]` heading above the citation. An
+issue the changelog does not mention yields no version and the message says so.
+
+Only **open** lots are candidates. Proposing a `✅ done` lot would tell a reporter his bug is being
+worked on when it shipped months ago — the same silencing failure as a wrong duplicate.
+
+## Two decisions worth revisiting
+
+1. **With nobody to ask, the gate answers "rejected".** Ticket 04 owns the click that asks; until it
+   exists the sweep runs, the finding is printed with its evidence and attached to the issue, and
+   the report is filed. The alternative — auto-accepting a high-confidence match — would silence
+   reports on a machine's unverified conclusion, which is exactly what this ticket forbids.
+2. **The attached log is not part of the query.** A log shares hundreds of words with every other
+   log; including it would match a report against everything and teach reporters to dismiss the
+   proposal. The query is the reporter's own words plus what the trace named.

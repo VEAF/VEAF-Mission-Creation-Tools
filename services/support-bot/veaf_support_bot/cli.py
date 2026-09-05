@@ -29,6 +29,7 @@ from veaf_support_bot.config import (
     ConfigurationError,
     SupportBotConfig,
 )
+from veaf_support_bot.github_app import GitHubError
 from veaf_support_bot.logging_setup import configure_logging, get_logger
 from veaf_support_bot.service import SupportBotService
 
@@ -117,7 +118,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     Returns:
         The process exit code: ``0`` on a clean stop, :data:`EXIT_CONFIG_ERROR` when the environment
-        does not describe a runnable service, ``2`` on an unknown argument.
+        does not describe a runnable service — an unreadable GitHub App key included — and ``2`` on
+        an unknown argument.
     """
     args = list(sys.argv[1:] if argv is None else argv)
 
@@ -146,5 +148,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return EXIT_CONFIG_ERROR
 
     configure_logging(level=config.log_level, log_format=config.log_format)
-    _run(config)
+    try:
+        _run(config)
+    except GitHubError as error:
+        # The App is configured and its key is unusable. That is a deployment mistake and it belongs
+        # here, not in the first bug report the service fails to file a week from now — a service
+        # that collects reports it cannot deliver looks healthy from every side but the useful one.
+        get_logger("cli").critical(
+            f"the support bot cannot start: {error}",
+            extra={"event": "config.invalid", "subject": "github-app"},
+        )
+        return EXIT_CONFIG_ERROR
     return 0

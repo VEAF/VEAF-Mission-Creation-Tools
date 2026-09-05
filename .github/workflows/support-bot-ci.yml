@@ -100,6 +100,39 @@ jobs:
           # rather than discovered on the first question.
           echo "$output" | grep -q "SUPPORT_BOT_WORKER_SECRET is required"
 
+      # The App does not exist yet, so "no App at all" is the normal state and must stay silent.
+      # "Some of an App", though, is a container that would take bug reports for a week and fail to
+      # file every one of them — the exact failure that has to happen at startup instead.
+      - name: Half a GitHub App fails the same way a missing token does
+        run: |
+          set +e
+          # A key IS supplied here, so the leak check below has something real to catch: a
+          # configuration error is printed at CRITICAL straight into a log collector, and the one
+          # variable in this set that certainly holds a credential is this one.
+          output=$(docker run --rm \
+            -e SUPPORT_BOT_DISCORD_TOKEN=x \
+            -e SUPPORT_BOT_DISCORD_GUILD_ID=1 \
+            -e SUPPORT_BOT_WORKER_SECRET=x \
+            -e SUPPORT_BOT_GITHUB_APP_ID=123456 \
+            -e "SUPPORT_BOT_GITHUB_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----MIIEnotarealkey-----END RSA PRIVATE KEY-----" \
+            veaf-support-bot:ci 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+          test "$code" = "78" || { echo "expected EX_CONFIG (78), got $code"; exit 1; }
+          echo "$output" | grep -q "SUPPORT_BOT_GITHUB_INSTALLATION_ID is required"
+          if echo "$output" | grep -q "MIIEnotarealkey"; then
+            echo "the startup error echoed the private key it refused"; exit 1
+          fi
+
+      # `cryptography` is the App's only new runtime dependency and the image installs it by hand,
+      # so a Dockerfile that drifts from `pyproject.toml` is caught here rather than on the first
+      # issue the bot fails to file.
+      - name: The image can actually sign a GitHub App assertion
+        run: |
+          docker run --rm --entrypoint python veaf-support-bot:ci -c \
+            "from cryptography.hazmat.primitives.asymmetric import rsa; print('cryptography ok')"
+
       - name: It starts and answers from outside the container
         run: |
           docker run -d --name support-bot -p 8081:8081 \
@@ -127,10 +160,14 @@ jobs:
           curl -s http://127.0.0.1:8081/readyz | tee readyz.json
           grep -q '"not_ready_reason": "dry-run"' readyz.json
 
-      - name: The quota counters have somewhere to live
+      # Two things live there now: the quota counters, and the ledger of what `/bug` already
+      # filed. A ledger the service cannot write is one report becoming two issues after a restart.
+      - name: The quota counters and the filing ledger have somewhere to live
         run: |
           docker exec support-bot sh -c 'test -w /app/state' \
             || { echo "/app/state is not writable by the service user"; exit 1; }
+          docker exec support-bot sh -c 'test "$SUPPORT_BOT_GITHUB_LEDGER_FILE" = /app/state/filed-issues.json' \
+            || { echo "the filing ledger does not point into the mounted volume"; exit 1; }
 
       - name: The logs are structured, and the heartbeat beats
         run: |

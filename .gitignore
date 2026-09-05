@@ -215,5 +215,12 @@ services/support-bot/.env
 services/support-bot/.env.*
 !services/support-bot/.env.example
 
-# Its per-user quota counters, written by a local run. Runtime state, and it names Discord users.
+# Its per-user quota counters and its ledger of filed issues, written by a local run. Runtime
+# state, and the counters name Discord users.
 services/support-bot/state/
+
+# The GitHub App's private key. GitHub downloads it as a `.pem` and an operator testing locally will
+# put it wherever is convenient; this repository is public, so the pattern is deliberately wide and
+# not limited to the service directory. Prefer `SUPPORT_BOT_GITHUB_PRIVATE_KEY_FILE` pointing
+# somewhere outside the working copy entirely.
+*.pem

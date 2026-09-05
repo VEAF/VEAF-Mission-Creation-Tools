@@ -111,7 +111,6 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         ),
         "bug.attached": "📎 {count} fichier(s) préparé(s) pour être joints au ticket.",
         "bug.notes": "⚠️ **Ce qui manque, et pourquoi** :",
-        "bug.next": ("-# Rien n'a encore été publié : cette étape prépare le ticket, elle ne l'ouvre pas."),
         "bug.error.unexpected": (
             "Quelque chose s'est mal passé de mon côté pendant la préparation de ce rapport. "
             "Réessaie ; si ça se reproduit, signale-le sur le canal support."
@@ -119,6 +118,42 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "bug.error.no_checkout": (
             "Je ne peux pas préparer de rapport pour le moment : ma copie du dépôt est "
             "indisponible. Signale-le sur le canal support — ça ne se règle pas en réessayant."
+        ),
+        # --- ticket 03, l'antériorité : proposée avec sa preuve, jamais appliquée -------------
+        "priorart.checked": "-# 🔍 {checked}",
+        "priorart.duplicate": (
+            "🔁 **C'est peut-être déjà signalé.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Si c'est bien le même problème, ton observation y sera ajoutée plutôt que d'ouvrir un "
+            "second ticket. Si ce n'est pas le même, dis-le : ton rapport continue son chemin."
+        ),
+        "priorart.fixed": (
+            "✅ **C'est peut-être déjà corrigé.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Corrigé en **{version}** : si tu es sur une version antérieure, mets à jour et le "
+            "problème devrait disparaître. Si tu l'as déjà, dis-le : ton rapport continue."
+        ),
+        "priorart.fixed_no_version": (
+            "✅ **C'est peut-être déjà corrigé.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Le ticket est fermé, mais le changelog ne cite aucune version : à vérifier. Si ton "
+            "problème persiste, dis-le et ton rapport continue."
+        ),
+        "priorart.in_progress": (
+            "🛠️ **Un lot travaille peut-être déjà dessus.** {reference} — *{title}*\n{evidence}\n"
+            "{url}\nSi c'est bien ça, il n'y a rien à ouvrir. Sinon, dis-le et ton rapport continue."
+        ),
+        "priorart.rejected": "-# 👍 Compris, c'est autre chose : le rapport continue.",
+        # --- ticket 05, le dépôt du ticket ---------------------------------------------------
+        "filed.created": "✅ Ticket ouvert : {url}",
+        "filed.reused": "✅ Ce rapport avait déjà été déposé : {url} (rien n'a été ouvert deux fois).",
+        "filed.commented": "💬 Ton observation a été ajoutée au ticket existant : {url}",
+        "filed.notes": "-# ⚠️ {notes}",
+        "filed.error": (
+            "❌ **Je n'ai pas réussi à déposer ce ticket.** Raison : {reason}\n"
+            "Ton rapport n'est pas perdu — il est résumé ci-dessus. Signale-le sur le canal support, "
+            "ou ouvre le ticket toi-même : {issue_url}"
+        ),
+        "filed.disabled": (
+            "-# 📝 Aucun ticket n'a été ouvert : ce bot n'a pas encore d'identité GitHub configurée. "
+            "Le rapport ci-dessus est complet et peut être copié tel quel dans un ticket."
         ),
     },
     "en": {
@@ -203,7 +238,6 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         ),
         "bug.attached": "📎 {count} file(s) prepared for the issue.",
         "bug.notes": "⚠️ **What is missing, and why**:",
-        "bug.next": "-# Nothing has been published yet: this step prepares the issue, it does not open it.",
         "bug.error.unexpected": (
             "Something went wrong on my side while preparing this report. Try again; if it happens "
             "again, report it on the support channel."
@@ -211,6 +245,42 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "bug.error.no_checkout": (
             "I cannot prepare a report right now: my copy of the repository is unavailable. Report "
             "it on the support channel — retrying will not help."
+        ),
+        # --- ticket 03, prior art: proposed with its evidence, never applied ------------------
+        "priorart.checked": "-# 🔍 {checked}",
+        "priorart.duplicate": (
+            "🔁 **This may already be reported.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "If it is the same problem, your observation goes there instead of opening a second "
+            "issue. If it is not, say so: your report carries on."
+        ),
+        "priorart.fixed": (
+            "✅ **This may already be fixed.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Fixed in **{version}**: if you are on an earlier version, update and it should be "
+            "gone. If you already have it, say so and your report carries on."
+        ),
+        "priorart.fixed_no_version": (
+            "✅ **This may already be fixed.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "The issue is closed, but the changelog names no version for it — worth checking. If "
+            "your problem is still there, say so and your report carries on."
+        ),
+        "priorart.in_progress": (
+            "🛠️ **A lot may already be on it.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "If that is it, there is nothing to open. If not, say so and your report carries on."
+        ),
+        "priorart.rejected": "-# 👍 Understood, it is something else: the report carries on.",
+        # --- ticket 05, filing the issue -----------------------------------------------------
+        "filed.created": "✅ Issue opened: {url}",
+        "filed.reused": "✅ This report had already been filed: {url} (nothing was opened twice).",
+        "filed.commented": "💬 Your observation was added to the existing issue: {url}",
+        "filed.notes": "-# ⚠️ {notes}",
+        "filed.error": (
+            "❌ **I could not file this issue.** Reason: {reason}\n"
+            "Your report is not lost — it is summarised above. Report this on the support channel, "
+            "or open the issue yourself: {issue_url}"
+        ),
+        "filed.disabled": (
+            "-# 📝 No issue was opened: this bot has no GitHub identity configured yet. The report "
+            "above is complete and can be copied into an issue as it stands."
         ),
     },
 }

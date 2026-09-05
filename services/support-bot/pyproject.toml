@@ -28,6 +28,13 @@ discord-py = "^2.4"
 # a fork would drift from the parser every other tool in the repository uses, and it would be the
 # forked one deciding what a bug report publishes about somebody's mission.
 typer = "^0.12"
+# The one thing RS256 cannot be done without. A GitHub App proves itself with a JWT signed by an
+# RSA private key, and no stdlib module signs one. Hand-rolling PKCS1v15 over `pow()` would be a
+# hundred lines of unreviewed cryptography in a service that files to a public repository; this is
+# the package every GitHub App client in Python uses, and it is the only new dependency ticket 05
+# adds. The JWT itself is three base64url fields and is built in `github_app.py`, so PyJWT is not
+# needed on top of it.
+cryptography = ">=42"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"

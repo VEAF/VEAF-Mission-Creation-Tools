@@ -48,9 +48,18 @@ search:
 | an attached `.miz` | the mission's *shape* — theatre, date, weather, group counts, zone count — never its briefing or its group names |
 
 **Everything published is redacted first**, through the same `veaf_libs.redaction` the `doctor`
-command uses. And **everything read is data**: no line a reporter or a log wrote ever selects a code
-path. `tests/test_intake_hostile.py` holds that in place by assembling the same report twice, once
-with instruction-shaped text spliced into every field, and requiring identical decisions.
+command uses — the quoted body of a text file, the member names of an attached archive, the file
+name the reporter's own machine gave it, and every field of the form. What that helper recognises is
+personal data by *context* and by *known shape*: a home directory, an address, an IP, a credential.
+It deliberately has no rule for a bare account name, so a reporter who types his own name into
+*"what happened"*, or uploads `mission by Someone.miz`, publishes it — in a report he is filing
+himself, about himself. A `.miz` is not redacted but **summarised**: its published fields are chosen
+one by one, which is the stronger guarantee.
+
+And **everything read is data**: no line a reporter or a log wrote ever selects a code path.
+`tests/test_intake_hostile.py` holds both halves in place — it assembles the same report twice, once
+with instruction-shaped text spliced into every field, and requires identical decisions; and it
+carries personal data through every publishing path and requires none of it out the other end.
 
 ### The checkout, and how it stays fresh
 
@@ -64,6 +73,13 @@ timer (`SUPPORT_BOT_CHECKOUT_*`). Three consequences, all deliberate:
   stale and says so.
 - **Every location carries the revision it came from** — `at 4f2a1c9ab, refreshed 12 min ago` — so a
   reader can tell whether to trust it. That is what makes staleness harmless rather than misleading.
+  A location the revision **contradicts** is not merely labelled, it is called out: a line past the
+  end of the file, or a function name the trace claims and the file disagrees with, is reported as
+  coming from another build. A published failure names the git command and its exit code and never
+  what git printed, which is where the remote's address lives.
+- **The refresh, the reduction and the assembly run off the event loop**, in a worker thread, and
+  the refresh is serialised: none of that work awaits anything, and a `/bug` that held the loop
+  would take `/ask` and the Discord heartbeat down with it.
 
 With no `SUPPORT_BOT_CHECKOUT_PATH`, `/bug` is **not published at all**. A command in the picker
 that answers "I cannot do this" is a promise the service does not keep.

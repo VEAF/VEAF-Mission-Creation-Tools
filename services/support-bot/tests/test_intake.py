@@ -326,7 +326,7 @@ class _BlockingCollector(AttachmentCollector):
             The prepared attachment.
         """
         time.sleep(BLOCK_SECONDS)
-        return cast(Prepared, super()._reduce(name, kind, path, size, rejected))
+        return super()._reduce(name, kind, path, size, rejected)
 
 
 class TestOneReportDoesNotHoldTheEventLoop(unittest.IsolatedAsyncioTestCase):

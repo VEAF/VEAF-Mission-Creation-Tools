@@ -38,8 +38,8 @@ from tests.intake_fixtures import (
 from tests.test_attachments import _fake_downloader
 from tests.test_toolkit import SYNTHETIC_LOG
 from veaf_support_bot.attachments import UNREDACTED_NAME, AttachmentCollector, Harvest, Incoming
-from veaf_support_bot.checkout import Checkout
 from veaf_support_bot.bugreport import BugForm, BugReport, assemble
+from veaf_support_bot.checkout import Checkout
 from veaf_support_bot.intake import BugIntake
 from veaf_support_bot.untrusted import MAX_FENCE, bound_backtick_runs, defuse_mentions, fence_for, one_line, quote
 
@@ -330,7 +330,9 @@ class TestNothingAReporterSuppliedIsPublishedRaw(unittest.IsolatedAsyncioTestCas
             )
         )
         self.assertNotIn(PERSONAL_EMAIL, published)
-        self.assertNotIn(PERSONAL_ACCOUNT, published, "the account name arrives under `Users/`, where the helper sees it")
+        self.assertNotIn(
+            PERSONAL_ACCOUNT, published, "the account name arrives under `Users/`, where the helper sees it"
+        )
 
 
 if __name__ == "__main__":

@@ -332,6 +332,37 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   This is the first half of the intake: the issue is prepared, not yet opened. Filing it is the
   GitHub App of the same lot.
 
+- **Three reporter-supplied strings reached the report without being redacted, and one `/bug`
+  froze the bot for as long as it took.** Found in review of the intake above, and all measured.
+
+  The redaction gap was in the three places the text does not look like text: the **member names of
+  an attached archive** (a `~mis*.zip` is a DCS autosave, and its paths carry the account name),
+  the **message of the parser that refused a file** (`luadata` copies the malformed region of a
+  mission into its exception, so a fragment of a stranger's mission was published as the reason it
+  could not be read — same shape over a stranger's log), and the **filename itself** (`safe_name`
+  makes a name safe for a disk, which is not the same property as safe to publish). All three now
+  go through the tools' single redaction helper, and the parser's detail is kept in the service log
+  instead. Note the limit, since it is deliberate: that helper recognises personal data by context
+  and known shape, so an address in a filename is replaced and a bare name is not — exactly as when
+  a reporter types one into *"what happened"*.
+
+  The liveness bug was that the whole deterministic pass ran on the gateway's event loop, including
+  a `git fetch` its own docstring says must never run there. Measured against the real repository,
+  an ordinary report with a mission attached held the loop for about six seconds — enough to stall
+  every `/ask` beside it — and a hung fetch would have held it for up to four minutes against a
+  Discord heartbeat of roughly forty seconds, which is a disconnect. The pass now runs in a worker
+  thread, and the refresh takes a lock: two reports arriving in the same interval both used to run
+  `git reset --hard` in the same working tree.
+
+  Two smaller things the report was stating as facts: a line the current revision **does not have**
+  was published as a location, with the quoted neighbourhood silently empty, and the function the
+  trace named was never compared with the function that line sits in today. Both disagreements are
+  now stated, with the revision they were checked against — they are the cheapest signal there is
+  that the reporter is on an older build. Alongside them: the mission summary no longer claims to
+  withhold the weather in the report that publishes it, a line of exactly forty backticks no longer
+  closes the fence that was supposed to contain it, and a failed `git fetch` no longer publishes the
+  remote's address under every location.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

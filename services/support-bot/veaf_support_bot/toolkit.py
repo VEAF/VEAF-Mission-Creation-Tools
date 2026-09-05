@@ -36,6 +36,22 @@ So: the checkout is the dependency, and this module is the only door through it.
   excerpt is a stranger's log. Nothing here interprets any of it, and no value returned from these
   functions ever selects a code path by its content.
 
+## What a refresh does and does not make current
+
+A refresh resets the working tree, so everything the service **reads** — the files
+:mod:`veaf_support_bot.traces` quotes, the callers it searches — is current from the next report on.
+The modules imported through this door are not: Python caches them in ``sys.modules`` for the life
+of the process, so a running service keeps the ``veaf_libs.redaction`` it first imported even after
+a commit changes it. In practice that means a rule improved upstream reaches the bot on its next
+restart, not on its next fetch.
+
+That is a deliberate stop, not an oversight. Dropping the tools' modules out of ``sys.modules`` on
+every refresh is three lines, and it introduces a worse fault than the one it fixes: reports are now
+reduced in worker threads, so a purge landing between two :func:`_module` calls of one
+:func:`digest_log` would hand it a ``Rules`` from the old module and a ``LogStore`` from the new one.
+Making that safe needs the whole toolkit surface behind a read/write lock, which is a real design
+decision and not a tidy-up — so the staleness is stated here and the deployment restarts.
+
 ## The type-checking consequence, stated rather than hidden
 
 ``mypy`` runs in the service's own environment, where ``veaf_libs`` and ``veaf_logs`` do not exist.

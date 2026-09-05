@@ -33,7 +33,7 @@ match is always shown with its evidence — the page, the function, the lot — 
 
 This sweep runs before any agent call, and a suggestion resolved by an existing page should consume
 close to nothing. Reuse the agent runtime and its consumption accounting from
-[`FEAT-SUPPORT-BUG-INTAKE` ticket 01](../../FEAT-SUPPORT-BUG-INTAKE/tickets/01-agent-runtime.md).
+[`FEAT-SUPPORT-BUG-INTAKE` ticket 08](../../FEAT-SUPPORT-BUG-INTAKE/tickets/08-ai-enrichment.md).
 
 ## Definition of done
 

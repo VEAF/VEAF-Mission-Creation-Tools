@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from functools import partial
 from pathlib import Path
 
 from tests.intake_fixtures import fixture_checkout, fixture_root
@@ -26,6 +27,7 @@ from veaf_support_bot.issue_body import (
     render_prior_art,
 )
 from veaf_support_bot.priorart import DUPLICATE, NONE, Candidate, Match, Sweep
+from veaf_support_bot.toolkit import ToolkitUnavailable, redact
 
 #: A French log line with a home directory in it, quoted as evidence.
 FRENCH_REPORT = "La mission plante à l'ouverture, erreur « KeyError: 'coalition' »"
@@ -138,48 +140,60 @@ class TestCarryingTheAttachments(unittest.TestCase):
         path.write_bytes(content)
         return Prepared(filename=name, kind=kind, path=path, size=len(content))
 
+    def _carry(self, prepared: Prepared, **options: int) -> Carried:
+        """Carry one attachment through the **real** redaction helper.
+
+        Args:
+            prepared: The attachment.
+            **options: Passed through to :func:`carry`.
+
+        Returns:
+            The decision.
+        """
+        return carry(prepared, redactor=partial(redact, fixture_root()), **options)
+
     def test_a_small_text_file_travels_whole_inside_the_issue(self) -> None:
-        carried = carry(self._prepared("veaf-tools.log", "log", b"line one\nline two\n"))
+        carried = self._carry(self._prepared("veaf-tools.log", "log", b"line one\nline two\n"))
         self.assertIn("line two", carried.text)
         self.assertEqual(carried.reason, "")
 
     def test_a_binary_is_described_rather_than_carried(self) -> None:
-        carried = carry(self._prepared("mission.miz", "mission", b"PK\x03\x04binary"))
+        carried = self._carry(self._prepared("mission.miz", "mission", b"PK\x03\x04binary"))
         self.assertEqual(carried.text, "")
         self.assertIn("binary file", carried.reason)
 
     def test_a_text_file_past_the_ceiling_is_described_with_its_size(self) -> None:
-        carried = carry(self._prepared("big.log", "log", b"x" * (INLINE_MAX_CHARS + 10)))
+        carried = self._carry(self._prepared("big.log", "log", b"x" * (INLINE_MAX_CHARS + 10)))
         self.assertEqual(carried.text, "")
         self.assertIn(str(INLINE_MAX_CHARS + 10), carried.reason)
 
     def test_an_unreadable_file_says_so_instead_of_producing_an_empty_quote(self) -> None:
         prepared = Prepared(filename="gone.log", kind="log", path=self.root / "gone.log", size=10)
-        carried = carry(prepared)
+        carried = self._carry(prepared)
         self.assertIn("could not be read back", carried.reason)
 
     def test_the_manifest_names_every_file_and_its_digest(self) -> None:
-        carried = [carry(self._prepared("veaf-tools.log", "log", b"hello"))]
+        carried = [self._carry(self._prepared("veaf-tools.log", "log", b"hello"))]
         body = render_body(_report("en"), "abc", carried=carried)
         self.assertIn("veaf-tools.log", body)
         self.assertIn("sha256:", body)
 
     def test_the_manifest_says_plainly_when_the_bytes_are_not_in_the_issue(self) -> None:
-        carried = [carry(self._prepared("mission.miz", "mission", b"PK\x03\x04"))]
+        carried = [self._carry(self._prepared("mission.miz", "mission", b"PK\x03\x04"))]
         body = render_body(_report("en"), "abc", carried=carried)
         self.assertIn("not published here", body)
 
     def test_a_carried_file_becomes_a_comment_and_a_described_one_does_not(self) -> None:
         carried = [
-            carry(self._prepared("veaf-tools.log", "log", b"kept")),
-            carry(self._prepared("mission.miz", "mission", b"PK\x03\x04")),
+            self._carry(self._prepared("veaf-tools.log", "log", b"kept")),
+            self._carry(self._prepared("mission.miz", "mission", b"PK\x03\x04")),
         ]
         comments = render_attachment_comments(carried)
         self.assertEqual(len(comments), 1)
         self.assertIn("kept", comments[0])
 
     def test_no_discord_url_ever_reaches_the_issue(self) -> None:
-        carried = [carry(self._prepared("mission.miz", "mission", b"PK\x03\x04"))]
+        carried = [self._carry(self._prepared("mission.miz", "mission", b"PK\x03\x04"))]
         body = render_body(_report(), "abc", carried=carried)
         self.assertNotIn("cdn.discordapp.com", body)
         self.assertNotIn("discordapp.net", body)

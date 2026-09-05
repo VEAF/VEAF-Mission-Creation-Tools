@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Coroutine
+from functools import partial
 from logging import Logger
 from pathlib import Path
 from typing import Any, Protocol
@@ -51,6 +52,7 @@ from veaf_support_bot.intake import BugIntake
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import PriorArtGate, PriorArtSweeper
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
+from veaf_support_bot.toolkit import redact
 
 
 class Gateway(Protocol):
@@ -137,6 +139,9 @@ def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugI
         filer=IssueFiler(
             app,
             Ledger(Path(config.github_ledger_file), report),
+            # Bound to the same checkout the attachment pass redacts against: the whole file the
+            # issue carries and the excerpt above it must not disagree about what is publishable.
+            redactor=partial(redact, checkout.root),
             logger=report,
             machine_label=config.github_machine_label,
         )

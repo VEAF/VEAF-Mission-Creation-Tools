@@ -26,8 +26,9 @@ checked, and every note about what is missing and why.
 
 The attached files are a different matter, and the limit is GitHub's, not this module's: **the REST
 API has no endpoint that attaches a file to an issue** — the one the web interface uses is a session
-endpoint, not an API. So a file that is text and fits is carried *inside* the issue, whole, where it
-survives as long as the issue does; a file that is binary or too large is listed in the manifest
+endpoint, not an API. So a file that is text and fits is carried *inside* the issue, whole and
+**redacted**, where it survives as long as the issue does — whole is not raw, and a file nobody
+could redact is described instead of published; a file that is binary or too large is listed in the manifest
 with its size and its SHA-256, and the issue says plainly that the bytes were not published. Nothing
 is ever referenced by a Discord URL: those expire, and an issue whose evidence is a dead link is an
 issue with no evidence.
@@ -36,13 +37,14 @@ issue with no evidence.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
 from veaf_support_bot.attachments import Prepared
 from veaf_support_bot.bugreport import NOT_STATED, BugReport
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, Sweep
+from veaf_support_bot.toolkit import ToolkitUnavailable
 from veaf_support_bot.untrusted import one_line, quote
 
 #: Longest issue body GitHub accepts, with room left for the marker and the footer.
@@ -184,16 +186,30 @@ class Carried:
     digest: str = ""
 
 
-def carry(prepared: Prepared, *, limit: int = INLINE_MAX_CHARS) -> Carried:
+def carry(prepared: Prepared, *, redactor: Callable[[str], str], limit: int = INLINE_MAX_CHARS) -> Carried:
     """Decide how one attachment travels into the issue.
+
+    The bytes carried here are the **whole file**, not the reduced view
+    :attr:`~veaf_support_bot.attachments.Prepared.rendered` holds — that is the point of carrying
+    it — so they go through the same redaction the excerpt did. :func:`quote` is not a substitute:
+    it fences the text and defuses ``@`` mentions, which stops a comment breaking out of its block
+    and stops it pinging a team. Neither of those is personal data, and a ``dcs.log`` opens on
+    ``C:\\Users\\Firstname Lastname\\…``.
 
     Args:
         prepared: The file the attachment pass produced.
+        redactor: The single redaction helper, already bound to the checkout it resolves out of.
+            Required rather than defaulted: a default would make publishing raw bytes the outcome of
+            forgetting an argument.
         limit: Longest text carried whole.
 
     Returns:
-        The decision. Text that fits is read and carried; everything else is described, because the
-        REST API cannot attach a file to an issue and a Discord URL is dead within days.
+        The decision. Text that fits is read, redacted and carried; everything else is described,
+        because the REST API cannot attach a file to an issue and a Discord URL is dead within days.
+        A redaction that cannot run **withholds the bytes**, exactly as
+        :meth:`~veaf_support_bot.attachments.AttachmentCollector._publishable` withholds a name and
+        :func:`~veaf_support_bot.bugreport.safe_redact` withholds a quote: the file is still named,
+        sized and hashed in the manifest, and the reason is stated.
     """
     digest = digest_of(prepared.path)
     if prepared.kind not in INLINE_KINDS:
@@ -208,7 +224,11 @@ def carry(prepared: Prepared, *, limit: int = INLINE_MAX_CHARS) -> Carried:
         content = prepared.path.read_text(encoding="utf-8", errors="replace")
     except OSError as error:
         return Carried(prepared, reason=f"could not be read back ({type(error).__name__})", digest=digest)
-    return Carried(prepared, text=content, digest=digest)
+    try:
+        redacted = redactor(content)
+    except ToolkitUnavailable as error:
+        return Carried(prepared, reason=f"it could not be redacted, so it is not published here ({error})", digest=digest)
+    return Carried(prepared, text=redacted, digest=digest)
 
 
 def render_prior_art(sweep: Sweep, lang: str) -> str:

@@ -40,7 +40,7 @@ import asyncio
 import hashlib
 import json
 import time
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from logging import Logger
@@ -354,6 +354,7 @@ class IssueFiler:
         app: GitHubApp,
         ledger: Ledger,
         *,
+        redactor: Callable[[str], str],
         logger: Logger | None = None,
         machine_label: str = MACHINE_LABEL,
     ) -> None:
@@ -362,11 +363,14 @@ class IssueFiler:
         Args:
             app: The authenticated client.
             ledger: Where filed reports are recorded.
+            redactor: The single redaction helper, bound to the checkout it resolves out of. What
+                this filer publishes whole — the text attachments — goes through it.
             logger: Logger to use.
             machine_label: The label marking an issue as machine-filed.
         """
         self._app = app
         self._ledger = ledger
+        self._redactor = redactor
         self._logger = logger or get_logger("filing")
         self._machine_label = machine_label
         self._locks: dict[str, _Serialiser] = {}
@@ -472,7 +476,7 @@ class IssueFiler:
             self._remember(key, existing)
             return Outcome(action="reused", number=existing.number, url=existing.url)
 
-        carried = [carry(item) for item in report.attachments if isinstance(item, Prepared)]
+        carried = [carry(item, redactor=self._redactor) for item in report.attachments if isinstance(item, Prepared)]
         body = render_body(report, key, thread_url=thread_url, carried=carried)
         labels = self._labels_for(report)
 

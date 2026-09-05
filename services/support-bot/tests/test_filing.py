@@ -11,7 +11,8 @@ import asyncio
 import json
 import tempfile
 import unittest
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ from veaf_support_bot.filing import (
 )
 from veaf_support_bot.github_app import GitHubApp, Response
 from veaf_support_bot.issue_body import marker_for
+from veaf_support_bot.toolkit import redact
 
 
 class _GitHub:
@@ -104,6 +106,15 @@ def _report(**overrides: str) -> BugReport:
     return assemble(BugForm(**fields), fixture_checkout())
 
 
+def _redactor() -> Callable[[str], str]:
+    """Return the tools' own redaction helper, bound to the fixture checkout.
+
+    Returns:
+        The callable an :class:`IssueFiler` needs.
+    """
+    return partial(redact, fixture_checkout().root)
+
+
 class _Filing(unittest.IsolatedAsyncioTestCase):
     """Shared setup: a fake GitHub, a real ledger on disk."""
 
@@ -116,11 +127,14 @@ class _Filing(unittest.IsolatedAsyncioTestCase):
     def _filer(self) -> IssueFiler:
         """Build a filer over the shared fake.
 
+        The redactor is the **real** one, resolved out of the fixture checkout, for the same reason
+        the rest of this suite uses it: a stub would let a filer publish raw bytes and stay green.
+
         Returns:
             The filer.
         """
         app = GitHubApp(credentials(), "VEAF/VEAF-Mission-Creation-Tools", self.github)
-        return IssueFiler(app, Ledger(self.ledger_path))
+        return IssueFiler(app, Ledger(self.ledger_path), redactor=_redactor())
 
 
 class TestTheKey(unittest.TestCase):
@@ -205,7 +219,7 @@ class TestFilingOnce(_Filing):
         app = GitHubApp(credentials(), "o/n", self.github)
         blocked = Path(self.folder.name) / "state.json" / "nested" / "ledger.json"
         Path(self.folder.name, "state.json").write_text("not a directory", encoding="utf-8")
-        outcome = await IssueFiler(app, Ledger(blocked)).file(_report())
+        outcome = await IssueFiler(app, Ledger(blocked), redactor=_redactor()).file(_report())
         self.assertEqual(outcome.action, "created")
 
     async def test_a_corrupt_ledger_is_ignored_rather_than_losing_the_report(self) -> None:

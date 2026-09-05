@@ -269,18 +269,18 @@ function TestAbuMusaDeadFirstUnit:tearDown()
   tearDownFixture()
 end
 
---- `referencePositionOf` anchors on `Group:getUnit(1)`, and DCS compacts that list as units die. If a
---- ZU-23 is lost before the zone is built, unit 2 becomes "the first one" — 1 976 m from unit 1 — while
---- the mission record still starts at unit 1. The offset then carries that spacing.
-function TestAbuMusaDeadFirstUnit:test_a_dead_first_unit_at_initialize_time_displaces_the_group()
+--- The regression. `referencePositionOf` used to anchor on `Group:getUnit(1)`, and DCS compacts that
+--- list as units die: with the first ZU-23 lost before the zone is built, unit 2 became "the first one"
+--- — 1 976 m from unit 1 — while the mission record still started at unit 1, so the offset carried that
+--- spacing and translated all five. Measured before the fix: 1 976 m on every unit. The anchor now comes
+--- from the record, so a group that lost its first unit still comes up where it was drawn.
+function TestAbuMusaDeadFirstUnit:test_a_dead_first_unit_at_initialize_time_does_not_displace_the_group()
   local survivors = { EDITOR_UNITS[2].name, EDITOR_UNITS[3].name, EDITOR_UNITS[4].name, EDITOR_UNITS[5].name }
   setUpFixture(survivors)
+  dcs_mocks.removeUnit(EDITOR_UNITS[1].name)
   activateZone()
   local worst, name = worstDisplacement()
-  luaunit.assertTrue(
-    worst > 1000,
-    string.format("expected a kilometre-scale displacement, got %s m on %s", tostring(worst), tostring(name))
-  )
+  luaunit.assertTrue(worst <= 51, string.format("worst displacement %s m, on %s", tostring(worst), tostring(name)))
 end
 
 --- The same loss **after** the zone was built must change nothing: the element holds a position measured
@@ -325,10 +325,7 @@ function TestAbuMusaRepeatedActivations:test_five_cycles_never_drift()
   for cycle = 1, 5 do
     zone:activate()
     local worst, name = worstDisplacement()
-    luaunit.assertTrue(
-      worst <= 51,
-      string.format("cycle %d: worst displacement %s m, on %s", cycle, tostring(worst), tostring(name))
-    )
+    luaunit.assertTrue(worst <= 51, string.format("cycle %d: worst displacement %s m, on %s", cycle, tostring(worst), tostring(name)))
     zone:desactivate()
   end
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 5)
@@ -356,8 +353,10 @@ function TestAbuMusaUnitOrder:test_meeting_the_units_out_of_order_changes_nothin
   luaunit.assertTrue(worst <= 51, string.format("worst displacement %s m, on %s", tostring(worst), tostring(name)))
 end
 
---- DCS answering its units in an order that is not the editor's, with every unit alive.
-function TestAbuMusaUnitOrder:test_a_live_list_out_of_editor_order_displaces_the_group()
+--- The second regression, and the one that needs no death at all: DCS answering its units in an order
+--- that is not the editor's. `Group:getUnit(1)` was then unit 4 — 3 340 m from the record's unit 1 — and
+--- the whole group moved by it (measured before the fix). The anchor is named now, not indexed.
+function TestAbuMusaUnitOrder:test_a_live_list_out_of_editor_order_does_not_displace_the_group()
   local shuffled = {
     EDITOR_UNITS[4].name,
     EDITOR_UNITS[1].name,
@@ -367,8 +366,8 @@ function TestAbuMusaUnitOrder:test_a_live_list_out_of_editor_order_displaces_the
   }
   setUpFixture(shuffled)
   activateZone()
-  local worst = worstDisplacement()
-  luaunit.assertTrue(worst > 1000, string.format("expected a kilometre-scale displacement, got %s m", tostring(worst)))
+  local worst, name = worstDisplacement()
+  luaunit.assertTrue(worst <= 51, string.format("worst displacement %s m, on %s", tostring(worst), tostring(name)))
 end
 
 os.exit(luaunit.LuaUnit.run())

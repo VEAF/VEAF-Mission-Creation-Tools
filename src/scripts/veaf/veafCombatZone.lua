@@ -562,14 +562,39 @@ end
 --- first one", and a convoy comes up a truck-length down the road from where it was drawn — with
 --- `#spawnradius=0` written and no dispersion asked for.
 ---
---- Falls back on the unit it was handed when DCS cannot produce unit 1, since an element with no
---- position spawns nothing at all, which is worse than spawning thirty metres off.
+--- FIX-TRIPACK-FIELD-REPORTS ticket 04: the anchor is read from the **mission record**, by name, and not
+--- from `Group:getUnit(1)`. Both used to be called "unit 1", and they are not the same unit: the record's
+--- is the one the Mission Editor put first and the one `_drawOrigin` measures the offset against, while
+--- DCS's is the first *live* one — its list compacts as units die. Reading them from two sources made the
+--- offset the spacing between two different units whenever those sources disagreed, which for
+--- `CMBT_ABU_MUSA_AIRPORT - AAA` — five ZU-23s spread over 4 330 m around Abu Musa — moves every unit of
+--- the group by kilometres and puts the south-western ones out to sea. Same source, so the offset is zero
+--- by construction and no divergence is possible.
 ---
---- @param unit the unit the caller had, used as the fallback
+--- The fallbacks, in order: the record's own **editor** position when its unit 1 is not live (offset zero,
+--- so the group comes up exactly where it was drawn — never anchored on some other unit, which is the
+--- defect itself), then DCS's unit 1, then the unit the caller had. The last two carry a group with no
+--- mission record at all: an element with no position spawns nothing, which is worse than an imperfect one.
+---
+--- @param unit the unit the caller had, used as the last fallback
 --- @param group the group, as built by VeafCombatZone:initialize
 --- @return table a runtime vec3
 function veafCombatZone.referencePositionOf(unit, group)
   if not group.isStatic then
+    local record = veaf.getGroupRecord(group.name)
+    local anchor = record and record.units and record.units[1]
+    if anchor then
+      local liveAnchor = anchor.unitName and Unit.getByName(anchor.unitName)
+      if liveAnchor then
+        return liveAnchor:getPosition().p
+      end
+      -- Its editor position, in runtime shape: `x` is the northing, `z` the easting, and the altitude
+      -- is the terrain's — see docs/agents/dcs-coordinates.md.
+      veaf.loggers
+        .get(veafCombatZone.Id)
+        :info("group [%s] has no live [%s]; anchoring on its editor position", veaf.p(group.name), veaf.p(anchor.unitName))
+      return { x = anchor.x, y = land.getHeight({ x = anchor.x, y = anchor.y }), z = anchor.y }
+    end
     local dcsGroup = Group.getByName(group.name)
     local firstUnit = dcsGroup and dcsGroup:getUnit(1)
     if firstUnit then

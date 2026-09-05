@@ -161,10 +161,10 @@ def build_github_app(config: SupportBotConfig) -> GitHubApp | None:
         and shows a complete report, and says plainly that nothing was opened.
 
     Raises:
-        GitHubError: The App is configured and its private key cannot be read. Deliberately fatal:
-            :func:`veaf_support_bot.config.SupportBotConfig.from_env` has already refused a
-            half-configured App, so reaching here with an unusable key is a deployment that would
-            collect reports it can never file. The service exits 78 on it, like every other
+        GitHubError: The App is configured and its private key cannot be read **or cannot sign**.
+            Deliberately fatal: :func:`veaf_support_bot.config.SupportBotConfig.from_env` has already
+            refused a half-configured App, so reaching here with an unusable key is a deployment that
+            would collect reports it can never file. The service exits 78 on it, like every other
             configuration failure — it does not find out on the first user's report.
     """
     if not config.files_issues:
@@ -174,6 +174,12 @@ def build_github_app(config: SupportBotConfig) -> GitHubApp | None:
         installation_id=config.github_installation_id,
         private_key_pem=read_private_key(config.github_private_key, config.github_private_key_file),
     )
+    # Signing once here is what makes the docstring above true. `read_private_key` only proves the
+    # bytes were *reachable*: a truncated PEM, a passphrase-protected key, or an EC key pasted in
+    # place of an RSA one all read back fine and fail at the first `jwt()` — which is the first bug
+    # report, a week later, in a service that looks healthy from every side but the useful one. The
+    # token is thrown away; only the failure matters.
+    credentials.jwt()
     return GitHubApp(credentials, config.github_repository, aiohttp_transport)
 
 

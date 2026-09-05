@@ -38,6 +38,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rescues it, deliberately. The file is left out of the build, so nothing is broken while the
   mission folder still carries it.
 
+### Added
+
+- **A place for a service to live, and a first one in it.** The repository had two shapes — CLI
+  executables and a serverless Worker — and the documentation assistant coming to the VEAF Discord is
+  neither: it is a process that has to stay up. `services/support-bot/` holds it, as its own Poetry
+  project deployed independently of the tools release, so nobody waits for a version to restart a
+  bot. Its version is deliberately outside the lockstep between `pyproject.toml` and the two agent
+  manifests.
+
+  This is the skeleton, not the bot: it does not talk to Discord yet. What it does carry is what a
+  self-hosted service needs before it needs features. Configuration comes only from the environment,
+  with no secret in the repository, and a missing or malformed variable stops the process **at
+  startup** — listing every problem at once, and exiting 78 (`EX_CONFIG`) so a supervisor can tell a
+  wrong deployment from a crash — rather than surfacing on the first user question. It answers
+  `/healthz`, `/readyz` and `/status`, and logs a heartbeat line, because the failure mode of every
+  self-hosted bot is dying silently while the container still says *running* and the VEAF has no
+  supervision for it. Logs are one JSON object per line on stdout, each carrying an `event` key, and
+  the bot token is redacted in both the startup line and any traceback. `SIGTERM` runs a real
+  shutdown — readiness drops first, work in flight gets a grace period, the rest is cancelled and
+  reported — so a container restart cannot leave a half-answered thread behind.
+
+  The image runs the same module a direct launch runs, so the documented command is a rehearsal of
+  the deployment rather than a second code path; the `Support Bot` workflow builds it and checks that
+  a misconfigured container refuses to start, that Docker's health check turns it healthy, and that
+  `SIGTERM` really reaches the process.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

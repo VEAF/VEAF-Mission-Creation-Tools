@@ -1,0 +1,131 @@
+name: Support Bot
+
+# `services/support-bot/` is its own Python project, deployed independently of the tools release. The
+# repository-wide gate (`Python Quality`) does not cover it — `ruff check src/python/ test/python/
+# veaf_build/` and `mypy src/python/veaf-tools` are scoped to the shipped package — so the service
+# carries its own gate here rather than being widened into one that asserts on a different tree.
+on:
+  push:
+    branches: [develop, master]
+    paths:
+      - "services/support-bot/**"
+      - ".github/workflows/support-bot-ci.yml"
+  # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose.
+  pull_request:
+    paths:
+      - "services/support-bot/**"
+      - ".github/workflows/support-bot-ci.yml"
+
+defaults:
+  run:
+    working-directory: services/support-bot
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Lint (ruff check)
+        run: poetry run ruff check veaf_support_bot tests
+
+      - name: Format check (ruff format)
+        run: poetry run ruff format --check veaf_support_bot tests
+
+      # Stricter than the repository root's mypy: the package is new, so it starts clean.
+      - name: Type check (mypy)
+        run: poetry run mypy
+
+      - name: Tests (pytest + coverage)
+        run: poetry run pytest
+
+  # ---------------------------------------------------------------------------
+  # The other half of "runs identically when launched directly and when containerised".
+  #
+  # The quality job proves the code; it cannot prove the image. Everything that only exists in the
+  # container is asserted here: that a misconfigured container refuses to start rather than idling,
+  # that the health endpoint answers from outside, that Docker's own health check turns the container
+  # healthy, and — the one that matters most — that SIGTERM reaches the process, so the clean
+  # shutdown actually runs on `docker stop` instead of the container being killed ten seconds later.
+  # ---------------------------------------------------------------------------
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build the image
+        run: docker build -t veaf-support-bot:ci .
+
+      - name: A misconfigured container fails loudly instead of idling
+        run: |
+          set +e
+          output=$(docker run --rm veaf-support-bot:ci 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+          test "$code" = "78" || { echo "expected EX_CONFIG (78), got $code"; exit 1; }
+          echo "$output" | grep -q "SUPPORT_BOT_DISCORD_TOKEN is required"
+
+      - name: It starts, becomes ready, and answers from outside the container
+        run: |
+          docker run -d --name support-bot -p 8081:8081 \
+            -e SUPPORT_BOT_DRY_RUN=true \
+            -e SUPPORT_BOT_HEARTBEAT_SECONDS=2 \
+            veaf-support-bot:ci
+          ready=0
+          for _ in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8081/readyz > /dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" = "1" || { docker logs support-bot; exit 1; }
+          curl -s http://127.0.0.1:8081/status | tee status.json
+          grep -q '"service": "veaf-support-bot"' status.json
+          grep -q '"ready": true' status.json
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/healthz)" = "200"
+
+      - name: The logs are structured, and the heartbeat beats
+        run: |
+          sleep 5
+          docker logs support-bot > run.log 2>&1
+          cat run.log
+          grep -q '"event": "service.ready"' run.log
+          grep -q '"event": "service.heartbeat"' run.log
+          # A dry run left on in production must never be quiet.
+          grep -q '"event": "service.dry_run"' run.log
+
+      - name: Docker's own health check turns the container healthy
+        run: |
+          state=unknown
+          for _ in $(seq 1 40); do
+            state=$(docker inspect -f '{{.State.Health.Status}}' support-bot)
+            [ "$state" = "healthy" ] && break
+            sleep 2
+          done
+          test "$state" = "healthy" || { docker logs support-bot; exit 1; }
+
+      - name: SIGTERM reaches the process and the shutdown sequence runs
+        run: |
+          start=$(date +%s)
+          docker stop support-bot
+          elapsed=$(( $(date +%s) - start ))
+          docker logs support-bot > stop.log 2>&1
+          tail -n 20 stop.log
+          grep -q '"event": "shutdown.requested"' stop.log
+          grep -q '"reason": "signal SIGTERM"' stop.log
+          grep -q '"event": "service.stopped"' stop.log
+          # `docker stop` kills at 10s when the signal is ignored, so a fast exit is the proof.
+          test "$elapsed" -lt 8 || { echo "shutdown took ${elapsed}s — SIGTERM did not reach the process"; exit 1; }
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f support-bot || true

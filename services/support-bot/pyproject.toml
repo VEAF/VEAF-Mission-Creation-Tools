@@ -18,6 +18,7 @@ packages = [{ include = "veaf_support_bot" }]
 # endpoints and the shutdown sequence are stdlib. It keeps the image small and the direct run
 # installable anywhere; ticket 02 adds the Discord library.
 python = "^3.11"
+discord-py = "^2.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"

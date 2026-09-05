@@ -32,6 +32,7 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         # --- the exchange -------------------------------------------------------------------
         "ask.header": "**{user}** demande : {question}",
         "ask.thinking": "_Je cherche dans la documentation…_",
+        "ask.streaming": "_▌_",
         "ask.thread_name": "❓ {topic}",
         "ask.sources": "-# 📄 Sources : {links}",
         "ask.no_sources": (
@@ -60,6 +61,13 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "L'assistant de documentation n'a renvoyé aucune réponse. Réessaie en reformulant la "
             "question."
         ),
+        # Not a user error and not retryable: the Worker refuses this bot until its secret is
+        # configured server-side. Saying "réessaie" would be a lie, so it says who can fix it.
+        "ask.error.forbidden": (
+            "L'assistant de documentation refuse les questions venant de ce bot : sa configuration "
+            "côté serveur est incomplète. Signale-le sur le canal support — ça ne se règle pas en "
+            "réessayant."
+        ),
         "ask.error.no_thread": (
             "Je n'ai pas pu ouvrir de fil pour cette question — il me manque probablement la "
             "permission « Créer des fils publics ». Voici quand même la réponse."
@@ -87,6 +95,7 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         # --- the exchange -------------------------------------------------------------------
         "ask.header": "**{user}** asks: {question}",
         "ask.thinking": "_Looking through the documentation…_",
+        "ask.streaming": "_▌_",
         "ask.thread_name": "❓ {topic}",
         "ask.sources": "-# 📄 Sources: {links}",
         "ask.no_sources": (
@@ -114,6 +123,13 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "ask.error.empty": (
             "The documentation assistant returned nothing at all. Try again with a rephrased "
             "question."
+        ),
+        # Not a user error and not retryable: the Worker refuses this bot until its secret is
+        # configured server-side. Saying "try again" would be a lie, so it says who can fix it.
+        "ask.error.forbidden": (
+            "The documentation assistant is refusing questions from this bot: its server-side "
+            "configuration is incomplete. Report it on the support channel — retrying will not "
+            "help."
         ),
         "ask.error.no_thread": (
             "I could not open a thread for this question — I am probably missing the "

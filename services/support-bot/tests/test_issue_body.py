@@ -27,7 +27,7 @@ from veaf_support_bot.issue_body import (
     render_prior_art,
 )
 from veaf_support_bot.priorart import DUPLICATE, NONE, Candidate, Match, Sweep
-from veaf_support_bot.toolkit import ToolkitUnavailable, redact
+from veaf_support_bot.toolkit import redact
 
 #: A French log line with a home directory in it, quoted as evidence.
 FRENCH_REPORT = "La mission plante à l'ouverture, erreur « KeyError: 'coalition' »"

@@ -13,7 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     SUPPORT_BOT_HEALTH_HOST=0.0.0.0 \
     SUPPORT_BOT_HEALTH_PORT=8081 \
-    SUPPORT_BOT_QUOTA_STATE_FILE=/app/state/quota.json
+    SUPPORT_BOT_QUOTA_STATE_FILE=/app/state/quota.json \n    SUPPORT_BOT_GITHUB_LEDGER_FILE=/app/state/filed-issues.json
 
 WORKDIR /app
 
@@ -23,16 +23,23 @@ WORKDIR /app
 # `typer` is not used by this service at all: it is what the tools' own `.miz` parser imports, and
 # `/bug` summarises a mission through that parser rather than forking a second one. See the comment
 # in `pyproject.toml`.
-RUN pip install --no-cache-dir "discord.py>=2.4,<3" "typer>=0.12,<1"
+#
+# `cryptography` signs the GitHub App's JWT. It is the only way to do RS256 — no stdlib module signs
+# one — and hand-rolling PKCS1v15 in a service that writes to a public repository is not a trade
+# worth making.
+RUN pip install --no-cache-dir "discord.py>=2.4,<3" "typer>=0.12,<1" "cryptography>=42"
 
 COPY veaf_support_bot ./veaf_support_bot
 
-# Unprivileged, with exactly one writable directory: the per-user quota counters.
+# Unprivileged, with exactly one writable directory: the per-user quota counters, and the ledger of
+# what `/bug` has already filed.
 #
-# They must survive a restart — otherwise restarting the container is how anyone gets a fresh
-# allowance — so mount a volume here in production. Without one they survive a restart of the
-# process but not a `docker rm`. The service does not hide the difference: as soon as it cannot read
-# or write them it drops to a much stricter ceiling and says so, in the log and in `/status`.
+# Both must survive a restart — otherwise restarting the container is how anyone gets a fresh
+# allowance, and how one report becomes two issues — so mount a volume here in production. Without
+# one they survive a restart of the process but not a `docker rm`. The service does not hide the
+# difference: as soon as it cannot read or write the counters it drops to a much stricter ceiling
+# and says so, in the log and in `/status`; a ledger it cannot read falls back to the marker each
+# filed issue carries in its own body.
 RUN useradd --system --uid 10001 --user-group --no-create-home veaf \
     && mkdir -p /app/state \
     && chown -R veaf:veaf /app

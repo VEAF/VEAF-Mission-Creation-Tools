@@ -119,7 +119,7 @@ artifacts:
   - id: skynet
     source: https://github.com/VEAF/Skynet-IADS
     upstream: https://github.com/regroupement-patrouille/Skynet-IADS
-    pinned: "3.4.0RP-VEAF build 30.08.2026"
+    pinned: "3.4.0RP-VEAF build 05.09.2026"
     vendoring: compiled
     path: src/scripts/community/skynet-iads-compiled.lua
     # Three steps, and the second one is the one that gets forgotten: the artefact the fork commits is

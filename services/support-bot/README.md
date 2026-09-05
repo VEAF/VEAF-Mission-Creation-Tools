@@ -58,7 +58,9 @@ informs the decision and never takes it. With nobody to ask, the answer is *reje
 
 **Everything published is redacted first**, through the same `veaf_libs.redaction` the `doctor`
 command uses — the quoted body of a text file, the member names of an attached archive, the file
-name the reporter's own machine gave it, and every field of the form. What that helper recognises is
+name the reporter's own machine gave it, the bytes of an attachment carried whole into the issue,
+and every field of the form. Each of those **fails closed**: what the helper cannot reach is
+described rather than published. What that helper recognises is
 personal data by *context* and by *known shape*: a home directory, an address, an IP, a credential.
 It deliberately has no rule for a bare account name, so a reporter who types his own name into
 *"what happened"*, or uploads `mission by Someone.miz`, publishes it — in a report he is filing
@@ -279,7 +281,7 @@ call that needs it. Revoking the installation ends all of it in one click.
 |---|---|
 | Two clicks arriving together | a lock per report key — the second waits and reads the first one's result |
 | A retry after a timeout | the ledger, which already holds the issue number |
-| A restart between the `POST` and the answer | a hidden marker inside the issue body; the recovery search finds it |
+| A restart between the `POST` and the answer, or a ledger that is corrupt, missing or unwritable | a hidden marker inside the issue body; the recovery search runs for every report with no known number, so it needs nothing local to be intact |
 
 The key is derived from the report itself — the reporter, his five fields, the names and sizes of
 his attachments — so the same report always produces the same key and a restart can recompute it

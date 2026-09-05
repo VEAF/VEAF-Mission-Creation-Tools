@@ -153,7 +153,7 @@ runs on Gemini's free tier, which the documentation chatbot has used in producti
    keys in one project share one quota: a burst of curiosity on `/ask` would eat the allowance the
    website's chatbot needs for the rest of the day. A separate project also means either key can be
    revoked without taking the other down. Daily counters reset at midnight Pacific time, which is
-   late afternoon in Europe.
+   around 09:00 in Paris all year.
 3. Copy the key once, into the service environment.
 
 ### C2. Watch the quota rather than a bill

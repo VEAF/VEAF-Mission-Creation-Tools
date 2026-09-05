@@ -17,8 +17,10 @@ any more, with nothing saying why.
 
 - Tell the daily case apart from the per-minute case, and word them differently.
 - For the daily case, say when it comes back **in the reader's terms**. Quotas reset at midnight
-  Pacific, which is mid-morning in Europe — "try again tomorrow" is wrong for a European evening,
-  and "midnight Pacific" means nothing to a mission maker.
+  Pacific, which is around 09:00 in Paris all year — so "midnight Pacific" means nothing to a
+  mission maker, and "try again tomorrow" is right in the evening but **wrong at seven in the
+  morning**, when the service returns two hours later on the same day. Naming the morning holds at
+  both ends.
 - Same treatment in both languages, and in the CLI client (`veaf-tools ask`) which hits the same
   Worker.
 - The message must not read as a defect. Being rationed is a choice; sounding broken is a bug.

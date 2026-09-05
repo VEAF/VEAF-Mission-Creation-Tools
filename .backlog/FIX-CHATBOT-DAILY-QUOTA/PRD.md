@@ -37,8 +37,10 @@ silent failure.
 - The Worker already maps an upstream 429 to a user-facing message
   ([`src/index.js`](../../poc/doc-chatbot/worker/src/index.js)) — this lot makes that message say
   the right thing, it does not invent a mechanism.
-- Daily quotas reset at **midnight Pacific time**, which is late afternoon in Europe. A message
-  saying "try tomorrow" would be wrong for most of the European evening.
+- Daily quotas reset at **midnight Pacific time**, which is **around 09:00 in Paris** all year
+  (UTC-7 or UTC-8 against CEST or CET). So "try again tomorrow" is *correct* in a European evening
+  and **wrong in the early morning**, when the allowance returns in a couple of hours on the same
+  day. The wording has to hold at both ends of the day.
 - The Worker is deployed by hand (`npx wrangler deploy`); nothing here reaches production until
   that runs.
 - Both documentation languages, in lockstep.

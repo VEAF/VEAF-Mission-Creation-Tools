@@ -38,6 +38,34 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rescues it, deliberately. The file is left out of the build, so nothing is broken while the
   mission folder still carries it.
 
+- **A header was enough to use the documentation chatbot's Worker from anywhere.** Its admission
+  check read `cliHeader === "cli" || origin allow-listed`: anyone sending `X-VEAF-Client: cli` was
+  admitted whatever their origin, so the browser allow-list protected nothing and the Worker — and
+  the shared free Gemini quota behind it — was open to any caller. The per-IP rate limit that was
+  supposed to make up for it returned `true` from its own `catch`, so a KV outage removed every
+  limit instead of tightening one. And nothing capped the request body before it was parsed.
+
+  The Worker now declares a client vocabulary (`web`, `cli`, `logs`, `discord`), each with its own
+  quota, routes and body ceiling. A request carrying an `Origin` is judged on the allow-list alone
+  and its self-declared header is ignored; without an `Origin` the header only *selects* a mode and
+  buys nothing beyond that mode's quota. Rate limiting falls back to a much stricter per-isolate
+  ceiling when KV is unreachable, never to none. Bodies are bounded while streaming, before parsing.
+  A new `POST /analyze` route explains a bounded DCS log excerpt against the catalogue entries the
+  caller matched locally, saying "pattern not catalogued" rather than guessing a culprit — the mode
+  the forthcoming `veaf-logs` analysis will use. The documentation widget and `veaf-tools ask` keep
+  the access they had, with **one number moving**: because each mode now owns its bucket instead of
+  sharing one per-IP counter, `veaf-tools ask` gets **60 questions a day instead of 100**. The
+  browser widget keeps its 100. Both burst limits are unchanged at 10 per minute, and 60 questions
+  a day from one machine is well past what asking the documentation looks like in practice.
+
+  Two residual holes on that path were closed with it. A rate-limit counter that KV hands back
+  unreadable is now treated as the ceiling rather than as zero: `parseInt("NaN")` is `NaN` and
+  `NaN >= limit` is false, so a corrupted counter used to let requests straight through — and
+  writing `NaN + 1` back with a fresh 24 h expiry kept it corrupted indefinitely. Such a value is
+  now refused and left untouched, so it simply expires. And the counter lookup no longer reads the
+  client name off the prototype chain, where `constructor` and `toString` answered with a quota-less
+  object that compared favourably against every ceiling.
+
 ### Added
 
 - **A place for a service to live, and a first one in it.** The repository had two shapes — CLI

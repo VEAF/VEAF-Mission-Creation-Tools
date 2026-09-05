@@ -58,14 +58,6 @@ MAX_CONTINUATION_LINES = 8
 #: Appended to a line cut at :data:`MAX_CHARS_PER_LINE`.
 TRUNCATION_MARK = " […]"
 
-#: How many times the fit is retried after the header turned out to cost more than expected. The
-#: header grows by at most a handful of characters per pass (the omitted count gains a digit), so a
-#: second pass converges; the third and fourth exist so the loop cannot be the thing that fails.
-_FIT_PASSES = 4
-
-#: Slack subtracted along with the measured overflow, so a pass that gains a digit somewhere does not
-#: need a pass of its own.
-_FIT_MARGIN = 16
 
 #: Levels whose absence changes the meaning of the whole excerpt. Hiding one of these is what turns
 #: a broken session into a clean-looking log, so it is stated rather than listed.
@@ -341,34 +333,44 @@ def _fit(entries: Sequence[ExcerptEntry], max_chars: int) -> tuple[list[ExcerptE
 def _bound(current: Excerpt, entries: Sequence[ExcerptEntry], max_chars: int, already: int = 0) -> Excerpt:
     """Refit *current* until its whole rendered text sits inside *max_chars*.
 
-    The record budget and the rendered length are not the same number: the header states its own
-    counts, and the omission marker only exists once something was omitted, so both appear *after*
-    the records were chosen. Rather than guess a reserve, the overflow is measured and given back.
+    Two steps, and the second exists because the first cannot finish the job. :func:`_fit` spends a
+    budget on records, but the rendered text also carries the header — which states counts nobody
+    knows until the records are chosen — and the omission marker, which only exists once something
+    was omitted. What is left over is then given back **one record at a time**: giving back
+    characters does not work, because a record is indivisible. Measured on a real rotated archive, an
+    excerpt 29 characters over its ceiling stayed at exactly 130 records through four budget
+    reductions of 45 characters each, since none of them was as large as the record that would have
+    had to go.
 
     Args:
         current: The excerpt to shrink.
-        entries: Every record it may draw from, in log order — the fit restarts from these each pass,
-            so the omission count stays a count of the whole selection.
+        entries: Every record it may draw from, in log order.
         max_chars: The ceiling on ``current.to_text()``.
-        already: Records dropped before this call, added to what each pass drops.
+        already: Records dropped before this call, added to what this one drops.
 
     Returns:
         An excerpt whose rendered text fits, holding as many records as the ceiling paid for — none
         at all when it paid for none.
     """
-    budget = max_chars
-    for _ in range(_FIT_PASSES):
-        # Fit first, *then* measure. Measuring what came in and subtracting that overflow would
-        # charge the budget for records the fit was going to drop anyway: an excerpt rendered at
-        # 16 000 characters and rebounded to 1 200 came back empty, because the 14 800-character
-        # overflow of the *old* rendering was taken off the *new* budget.
-        kept, dropped = _fit(entries, budget)
-        current = replace(current, entries=kept, omitted=already + dropped)
-        overflow = len(current.to_text()) - max_chars
-        if overflow <= 0:
-            break
-        budget -= overflow + _FIT_MARGIN
+    kept, dropped = _fit(entries, max_chars)
+    current = replace(current, entries=kept, omitted=already + dropped)
+    while current.entries and len(current.to_text()) > max_chars:
+        current = replace(
+            current,
+            entries=_without_one(current.entries),
+            omitted=current.omitted + 1,
+        )
     return current
+
+
+def _without_one(entries: list[ExcerptEntry]) -> list[ExcerptEntry]:
+    """Return *entries* minus one record, taken from where the gap already is.
+
+    The head carries the cause and the tail carries the symptom; the omission marker already sits
+    between them, so widening that gap is the one removal that costs the reader nothing new.
+    """
+    cut = max(_split_point(len(entries)) - 1, 0)
+    return entries[:cut] + entries[cut + 1 :]
 
 
 def build_excerpt(

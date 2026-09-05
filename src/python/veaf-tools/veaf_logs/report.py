@@ -76,19 +76,38 @@ FENCE_ESCAPE = "'''"
 #: newline would come back as two fields, the second of them forged.
 _LINE_BREAK = re.compile(r"[\r\n]+")
 
-#: Order in which sections are dropped when the block does not fit. The doctor block is never
-#: dropped — it is the half of the report a maintainer cannot reconstruct from anything else — and
-#: neither is the excerpt, which is *shrunk* instead: see :data:`MIN_EXCERPT_CHARS`.
-_SACRIFICE_ORDER: tuple[str, ...] = ("proposals", "analysis", "catalogue")
+#: Order in which content is dropped when the block does not fit, least useful first. The excerpt is
+#: absent from it: it is *shrunk* into whatever the rest leaves, and only dropped below
+#: :data:`MIN_EXCERPT_CHARS`. The doctor's **fields** are absent too — they are the half of the
+#: report nobody can reconstruct afterwards, and they stay whatever happens.
+#:
+#: ``doctor.recent-errors`` sits in the middle of the list, and that placement is measured rather
+#: than guessed. On the machine this was written for, the doctor block ran to ~1 500 characters of a
+#: 1 988-character budget, almost all of it Python tracebacks from unrelated ``veaf-tools`` runs —
+#: and it pushed the excerpt, the catalogue and the proposals *all* out of a report about a DCS log.
+#: A stack trace from another tool is worth less here than the lines the user came to report.
+_DROP_ORDER: tuple[str, ...] = ("proposals", "analysis", "doctor.recent-errors", "catalogue")
 
 #: The smallest excerpt worth keeping. Below this the section is dropped like any other, because a
 #: header plus two records is not an excerpt, it is a claim that one existed.
 #:
-#: This is why the excerpt is not simply on the sacrifice list. Measured against the real 11 MB
+#: This is why the excerpt is not simply on the drop list. Measured against the real 11 MB
 #: ``dcs.log`` on 2026-09-05: the default excerpt renders to ~16 000 characters and a Discord message
 #: holds 2 000, so an excerpt dropped whole would have been dropped in **every** real report — the
 #: block would have carried the machine's description and nothing about the problem it describes.
 MIN_EXCERPT_CHARS = 200
+
+#: How much room the excerpt is worth freeing droppable sections for. Without it the drop loop stops
+#: as soon as the *rest* fits, which on the same real report left 100 characters — under the minimum,
+#: so the excerpt was dropped while the catalogue section survived. That trade is backwards: the
+#: catalogue's ids are already in the ``catalogue.matched`` field and its wording is one lookup away
+#: in ``rules.json``, whereas the log lines exist nowhere else.
+TARGET_EXCERPT_CHARS = 500
+
+#: What ``truncated`` names when the excerpt was kept but made smaller. A block whose excerpt was cut
+#: from 157 records to 7 has been truncated, whatever the fact that no section disappeared, and a
+#: ``truncated: non`` over it would be a straight untruth.
+EXCERPT_SHRUNK = "excerpt (réduit)"
 
 
 @dataclass(frozen=True)
@@ -206,48 +225,62 @@ def build_report(
     fields["truncated"] = "non"
 
     def note_dropped() -> None:
-        fields["truncated"] = "sections retirées pour tenir dans un message : " + ", ".join(dropped)
+        fields["truncated"] = "retiré pour tenir dans un message : " + ", ".join(dropped)
 
     def without_excerpt() -> int:
-        """Length of the block as it stands with no excerpt section — i.e. what the excerpt may use."""
+        """Length of the block as it stands with no excerpt section."""
         return len(redact(_compose(fields, {**bodies, "excerpt": ""})))
 
-    # Free room *before* sizing the excerpt, not after: the commentary and the proposals are the
-    # cheapest things to lose, and an excerpt sized against a block that still carried them would be
-    # shorter than the one that fits.
-    for name in _SACRIFICE_ORDER:
-        if without_excerpt() <= budget:
-            break
-        if not bodies.get(name):
-            continue
-        bodies[name] = ""
-        dropped.append(name)
-        note_dropped()
+    def room_for_excerpt() -> int:
+        """Characters the excerpt section's *body* may use. An empty body renders no section at all,
+        so the two delimiter lines it is about to cost are subtracted here."""
+        return budget - without_excerpt() - _section_overhead("excerpt")
 
-    # The excerpt takes what is left rather than being dropped whole: measuring the block without it
-    # gives the room exactly, so nothing has to be guessed about how long a header runs. An empty
-    # body renders no section at all, so the two delimiter lines it will cost are subtracted here.
-    room = budget - without_excerpt() - _section_overhead("excerpt")
+    def drop(name: str) -> bool:
+        """Remove one droppable piece by name; say whether there was anything to remove."""
+        if name == "doctor.recent-errors":
+            if doctor is None or not doctor.recent_errors or "--- recent-errors ---" not in bodies["doctor"]:
+                return False
+            bodies["doctor"] = _fence_safe(DiagnosticReport(fields=doctor.fields).to_block())
+            return True
+        if not bodies.get(name):
+            return False
+        bodies[name] = ""
+        return True
+
+    # Free room *before* sizing the excerpt, not after: an excerpt sized against a block that still
+    # carried what is about to be dropped would be shorter than the one that actually fits. The loop
+    # keeps going until the excerpt has a decent share, not merely until the rest fits.
+    for name in _DROP_ORDER:
+        if room_for_excerpt() >= TARGET_EXCERPT_CHARS:
+            break
+        if drop(name):
+            dropped.append(name)
+            note_dropped()
+
+    # The excerpt takes what is left rather than being dropped whole.
+    room = room_for_excerpt()
     if len(bodies["excerpt"]) > room:
         shrunk = analysis.excerpt.rebound(room) if room >= MIN_EXCERPT_CHARS else None
         # A header saying "0 records shown" is not an excerpt, it is a claim that one existed. When
         # the room only pays for the header, the section goes and the field says so.
         if shrunk is not None and shrunk.entries:
             bodies["excerpt"] = _fence_safe(shrunk.to_text())
+            # The fields describe the block, not the analysis it came from. Leaving them at their
+            # pre-shrink values would announce 157 records over a section holding 7 — and a consumer
+            # has no way to catch that, since it is reading the field precisely to avoid counting.
+            fields["excerpt.shown"] = str(len(shrunk.entries))
+            fields["excerpt.omitted"] = str(shrunk.omitted)
+            dropped.append(EXCERPT_SHRUNK)
+            note_dropped()
         else:
             bodies["excerpt"] = ""
+            fields["excerpt.shown"] = "0"
+            fields["excerpt.omitted"] = str(analysis.excerpt.selected)
             dropped.append("excerpt")
             note_dropped()
 
     block = redact(_compose(fields, bodies))
-    if len(block) > budget and doctor is not None and doctor.recent_errors:
-        # Last resort before giving up on the ceiling: the doctor's own error records. Its *fields*
-        # are the half of the report nobody can reconstruct afterwards, so they stay whatever
-        # happens; a stack trace can be pasted separately.
-        bodies["doctor"] = _fence_safe(DiagnosticReport(fields=doctor.fields).to_block())
-        dropped.append("doctor.recent-errors")
-        note_dropped()
-        block = redact(_compose(fields, bodies))
     if len(block) > budget:
         # Nothing left to drop but the fields themselves. Saying so beats cutting at the boundary:
         # a block cut mid-line reads like a complete one to whoever receives it.

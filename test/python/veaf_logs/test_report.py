@@ -73,6 +73,31 @@ def doctor() -> DiagnosticReport:
     )
 
 
+@pytest.fixture
+def gros_doctor() -> DiagnosticReport:
+    """Un rapport de la taille d'un vrai : ses traces pesaient ~700 caracteres sur la machine mesuree."""
+    trace = "\n".join(
+        [
+            "2026-09-05 12:00:00,123 - veaf-tools - ERROR - Failed to evaluate time expression",
+            "Traceback (most recent call last):",
+            *[f'  File "veaf_libs/module_{i}.py", line {i * 17}, in fonction_appelante' for i in range(8)],
+            "ValueError: unsupported expression element: Call",
+        ]
+    )
+    return DiagnosticReport(
+        fields={
+            "schema": DOCTOR_SCHEMA,
+            "tool.version": "6.19.0",
+            "tool.executable": r"C:\Users\<user>\AppData\Local\pypoetry\Cache\virtualenvs\veaf-py3.13\python.exe",
+            "machine.os": "Windows-11-10.0.26200-SP0",
+            "dcs.detected": "yes",
+            "dcs.version": "2.9.29.27278",
+            "dcs.write_dir": r"C:\Users\<user>\Saved Games\DCS",
+        },
+        recent_errors=[trace, trace],
+    )
+
+
 class TestAssemblage:
     """Le bloc porte les quatre morceaux que le ticket enumere."""
 
@@ -200,6 +225,34 @@ class TestBornes:
         assert "excerpt" in relu.sections
         assert relu.sections["excerpt"].strip()
         assert "panne numero" in relu.sections["excerpt"]
+
+    def test_les_enregistrements_du_doctor_partent_avant_l_extrait(self, rules, gros_doctor):
+        """Mesuré : les traces de `veaf-tools` mangeaient tout le message.
+
+        Une trace de pile d'un autre outil vaut moins, dans un rapport sur un
+        journal DCS, que les lignes que l'utilisateur vient signaler.
+        """
+        relu = parse_report_block(build_report(analyse_de(rules, GROS), gros_doctor))
+        assert "doctor.recent-errors" in relu.fields["truncated"]
+        rapport = relu.doctor
+        assert rapport is not None
+        assert rapport.recent_errors == []
+        assert rapport.fields["tool.version"] == "6.19.0"
+        assert "excerpt" in relu.sections
+
+    def test_le_champ_decrit_le_bloc_et_pas_l_analyse(self, rules, doctor):
+        """Un champ qui annonce 157 entrees au-dessus d'une section qui en porte 7 ment.
+
+        Le consommateur lit ce champ *pour ne pas avoir a compter* : il n'a aucun
+        moyen d'attraper l'ecart.
+        """
+        bloc = build_report(analyse_de(rules, GROS), doctor)
+        relu = parse_report_block(bloc)
+        lignes = [ligne for ligne in relu.sections["excerpt"].splitlines() if " ERROR " in ligne]
+        assert int(relu.fields["excerpt.shown"]) == len(lignes)
+        assert int(relu.fields["excerpt.shown"]) + int(relu.fields["excerpt.omitted"]) == int(
+            relu.fields["excerpt.selected"]
+        )
 
     def test_un_rapport_court_n_est_pas_annonce_comme_tronque(self, analysis):
         assert parse_report_block(build_report(analysis, max_chars=20000)).fields["truncated"] == "non"

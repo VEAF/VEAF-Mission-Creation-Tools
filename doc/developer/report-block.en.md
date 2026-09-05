@@ -101,16 +101,33 @@ The block is built to fit one Discord message — 2 000 characters, code fence i
 excerpt is more than ten times that: measured on 2026-09-05 against an 11.1 MB `dcs.log` (87 989
 records), the default excerpt renders to ~16 000 characters.
 
-The sacrifice order is therefore fixed, and asymmetric:
+The drop order is therefore fixed, and asymmetric. Pieces are removed, in this order, until the
+excerpt has about 500 characters to work with:
 
-1. `proposals`, then `analysis`, then `catalogue` are dropped **whole**;
-2. the excerpt is then **shrunk** to whatever room is left, never dropped while there is room to
-   show a few records;
-3. as a last resort the `doctor` block's error records go, but **never its fields**: they are the
-   half of the report nobody can reconstruct afterwards.
+1. `proposals`, then `analysis`;
+2. the `doctor` block's **error records** — not its fields;
+3. `catalogue`.
 
-The `truncated` field names what went at each step. A block cut at the boundary reads like a
-complete one to whoever receives it, so there is no such cut.
+The excerpt is then **shrunk** into whatever room is left, and dropped only when there is no longer
+enough to show a few records. The `doctor` block's **fields** never go: they are the half of the
+report nobody can reconstruct afterwards.
+
+Two of those placements are measured rather than guessed, on the real report of 2026-09-05:
+
+- `doctor`'s stack traces took ~1 500 of the 1 988 available characters, and pushed out the excerpt,
+  the catalogue **and** the proposals. A stack trace from another tool is worth less, in a report
+  about a DCS log, than the lines the user came to report.
+- `catalogue` goes before the excerpt because its ids are **already** in the `catalogue.matched`
+  field and its wording is one `rules.json` lookup away; the log records exist nowhere else.
+
+The `truncated` field names what went at each step, and `excerpt (réduit)` when the excerpt was kept
+but shortened — a `truncated: non` over an excerpt cut from 157 records to 7 would be a plain
+untruth. A block cut at the boundary, on the other hand, reads like a complete one to whoever
+receives it, so there is no such cut.
+
+When the excerpt is shrunk, `excerpt.shown` and `excerpt.omitted` are **recomputed**: the fields
+describe the block, not the analysis it came from. A consumer reads that field precisely to avoid
+counting, and so has no way to catch the discrepancy.
 
 ## Redaction {#redaction}
 

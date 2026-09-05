@@ -100,16 +100,34 @@ Le bloc est construit pour tenir dans un message Discord — 2 000 caractères, 
 comprise. L'extrait complet en fait plus de dix fois autant : mesuré le 05/09/2026 sur un `dcs.log`
 de 11,1 Mo (87 989 entrées), l'extrait par défaut se rend en ~16 000 caractères.
 
-L'ordre de sacrifice est donc fixe, et il est asymétrique :
+L'ordre de retrait est donc fixe, et il est asymétrique. On retire, dans cet ordre, jusqu'à ce que
+l'extrait dispose d'environ 500 caractères :
 
-1. `proposals`, puis `analysis`, puis `catalogue` sont retirées **en entier** ;
-2. l'extrait est ensuite **réduit** à la place qui reste, jamais supprimé tant qu'il reste de quoi
-   montrer quelques lignes ;
-3. en dernier recours, les enregistrements d'erreur du bloc `doctor` partent, mais **jamais ses
-   champs** : c'est la moitié du rapport que personne ne peut reconstituer après coup.
+1. `proposals`, puis `analysis` ;
+2. les **enregistrements d'erreur** du bloc `doctor` — pas ses champs ;
+3. `catalogue`.
 
-Le champ `truncated` nomme ce qui est parti à chaque étape. Un bloc coupé au ras de la limite se lit
-comme un bloc complet chez celui qui le reçoit : il n'y en a donc pas.
+L'extrait est ensuite **réduit** à la place restante, et n'est supprimé que s'il n'en reste plus de
+quoi montrer quelques lignes. Les **champs** du bloc `doctor` ne partent jamais : c'est la moitié du
+rapport que personne ne peut reconstituer après coup.
+
+Deux de ces placements sont mesurés plutôt que devinés, sur le rapport réel du 05/09/2026 :
+
+- Les traces de pile de `doctor` occupaient ~1 500 des 1 988 caractères disponibles, et poussaient
+  dehors l'extrait, le catalogue **et** les propositions. Une trace de pile d'un autre outil vaut
+  moins, dans un rapport sur un journal DCS, que les lignes qu'on vient signaler.
+- `catalogue` passe avant l'extrait parce que ses identifiants sont **déjà** dans le champ
+  `catalogue.matched`, et que leur texte est à une recherche de `rules.json` ; les lignes du journal,
+  elles, n'existent nulle part ailleurs.
+
+Le champ `truncated` nomme ce qui est parti à chaque étape, et `excerpt (réduit)` quand l'extrait a
+été conservé mais raccourci — un `truncated: non` au-dessus d'un extrait passé de 157 à 7 entrées
+serait un mensonge pur et simple. Un bloc coupé au ras de la limite, lui, se lit comme un bloc
+complet chez celui qui le reçoit : il n'y en a donc pas.
+
+Quand l'extrait est réduit, `excerpt.shown` et `excerpt.omitted` sont **recalculés** : les champs
+décrivent le bloc, pas l'analyse dont il sort. Un consommateur lit ce champ précisément pour ne pas
+avoir à compter, et n'a donc aucun moyen d'attraper l'écart.
 
 ## Caviardage {#redaction}
 

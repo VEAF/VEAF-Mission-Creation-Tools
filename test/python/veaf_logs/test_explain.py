@@ -38,9 +38,9 @@ from veaf_logs.catalogue import (
 from veaf_logs.excerpt import build_excerpt
 from veaf_logs.filters import FilterSet
 from veaf_logs.proposals import (
+    _PLACEHOLDER_PATTERNS,
     MIN_LITERAL_CHARS,
     PLACEHOLDER_HELP,
-    _PLACEHOLDER_PATTERNS,
     literal_chars,
     normalise,
     pattern_from,
@@ -334,9 +334,7 @@ class TestPropositionsDeRegles:
         assert propose_rules(rules, build_excerpt(journal, FilterSet())) == []
 
     def test_une_ligne_deja_cataloguee_n_est_jamais_proposee(self, rules):
-        connu = [
-            f"2026-08-31 12:00:{i:02d}.000 WARNING EDCORE (Main): hypervisor is active" for i in range(6)
-        ]
+        connu = [f"2026-08-31 12:00:{i:02d}.000 WARNING EDCORE (Main): hypervisor is active" for i in range(6)]
         assert propose_rules(rules, build_excerpt(indexer(rules, connu), FilterSet())) == []
 
     def test_rien_n_est_ecrit_dans_rules_json(self, rules, recurrent):

@@ -217,6 +217,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Guide menu. `veaf-logs` was documented under Mission Maker only, and a pilot with a crashing DCS
   has no reason to open that section — half the audience could not find the tool.
 
+- **The report block now fits the Discord message it is sized for, and its own field describes it.**
+  The `truncated` field lives inside the block it measures, so writing it changed the length it had
+  been measured from. Swept across realistic `doctor` sizes and ceilings on the real 11 MB `dcs.log`
+  (87 989 records), 30 of 240 blocks came back over their own limit — Discord refuses those — and
+  every *OUI — N caractères* was wrong: understated by 21 when the block overflowed, overstated by
+  12 when it did not, and in 59 cases the block fitted while announcing it had to be pasted in two
+  messages. After: none over the limit, and over 106 genuine overflow cases the announced number is
+  the block's own length exactly. The overflow notice also keeps the list of what was dropped, which
+  it used to overwrite.
+
+- **Three defects in the rules a log analysis proposes**, all found on the real archives and all
+  changing what a maintainer is offered. An apostrophe in a contraction opened a quoted span, so
+  `can't load destroyed model 'X' for 'Y'` produced a rule that kept the unit names as literals and
+  turned *load destroyed model* into a wildcard — the exact inverse of the intent, and a rule that
+  could never fire on another model. A long decimal was read as a hexadecimal identifier, so the
+  same message split into two proposals depending on the magnitude of its number (`×71` and `×24`
+  where the truth was `×95`). And a Windows path made a wildcard repeat three times in a row, giving
+  a pattern that took 1.9 s on a 1 600-character line that nearly matches — against 0.006 ms once
+  collapsed — where a `rules.json` pattern is applied to every line of an 11 MB log.
+
+- **An excerpt emptied by the size ceiling no longer reads as a quiet log.** It printed *aucune ligne
+  retenue par les filtres courants* directly under a header saying *87 989 omises par la limite de
+  taille*. The filters had retained those lines; the ceiling took them. Two different facts, two
+  different sentences.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

@@ -102,7 +102,9 @@ excerpt is more than ten times that: measured on 2026-09-05 against an 11.1 MB `
 records), the default excerpt renders to ~16 000 characters.
 
 The drop order is therefore fixed, and asymmetric. Pieces are removed, in this order, until the
-excerpt has about 500 characters to work with:
+excerpt has about 500 characters to work with — and then, if the block still does not fit, until it
+does: giving the excerpt a decent share is the right trade for a block that fits, and no reason at
+all to hand back one that does not.
 
 1. `proposals`, then `analysis`;
 2. the `doctor` block's **error records** — not its fields;
@@ -128,6 +130,13 @@ receives it, so there is no such cut.
 When the excerpt is shrunk, `excerpt.shown` and `excerpt.omitted` are **recomputed**: the fields
 describe the block, not the analysis it came from. A consumer reads that field precisely to avoid
 counting, and so has no way to catch the discrepancy.
+
+That field is **inside** the block it describes, so writing it changes the length it was measured
+from. This is measured rather than theoretical: across 240 swept sizes on the real `dcs.log`, 30
+blocks came back over their own limit because `truncated` grew after the excerpt's room had been
+computed, and every `OUI — N caractères` was wrong, in both directions. The block is therefore
+recomposed until its length stops moving, and the `OUI` also carries the list of what went — it used
+to overwrite it, and a reader needs it precisely when the block overflows.
 
 ## Redaction {#redaction}
 

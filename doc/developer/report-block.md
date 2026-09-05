@@ -101,7 +101,9 @@ comprise. L'extrait complet en fait plus de dix fois autant : mesuré le 05/09/2
 de 11,1 Mo (87 989 entrées), l'extrait par défaut se rend en ~16 000 caractères.
 
 L'ordre de retrait est donc fixe, et il est asymétrique. On retire, dans cet ordre, jusqu'à ce que
-l'extrait dispose d'environ 500 caractères :
+l'extrait dispose d'environ 500 caractères — puis, si le bloc ne rentre toujours pas, on continue
+de retirer jusqu'à ce qu'il rentre : donner une part correcte à l'extrait est le bon arbitrage pour
+un bloc qui tient, ce n'est pas une raison d'en rendre un qui déborde.
 
 1. `proposals`, puis `analysis` ;
 2. les **enregistrements d'erreur** du bloc `doctor` — pas ses champs ;
@@ -128,6 +130,14 @@ complet chez celui qui le reçoit : il n'y en a donc pas.
 Quand l'extrait est réduit, `excerpt.shown` et `excerpt.omitted` sont **recalculés** : les champs
 décrivent le bloc, pas l'analyse dont il sort. Un consommateur lit ce champ précisément pour ne pas
 avoir à compter, et n'a donc aucun moyen d'attraper l'écart.
+
+Ce champ est **dans** le bloc qu'il décrit, donc l'écrire change la longueur dont il a été tiré.
+C'est mesuré, pas théorique : sur 240 tailles balayées sur le `dcs.log` réel, 30 blocs revenaient
+au-dessus de leur propre limite parce que `truncated` grossissait après que la place de l'extrait
+avait été calculée, et tous les `OUI — N caractères` étaient faux, dans un sens comme dans l'autre.
+Le bloc est donc recomposé jusqu'à ce que sa longueur cesse de bouger, et le `OUI` porte aussi la
+liste de ce qui est parti — il l'écrasait auparavant, et un lecteur en a besoin justement quand le
+bloc déborde.
 
 ## Caviardage {#redaction}
 

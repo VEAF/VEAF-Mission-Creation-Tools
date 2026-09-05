@@ -619,6 +619,10 @@ Pose une question sur la documentation VEAF (assistant IA). Sans question, déma
 veaf-tools ask "comment activer une zone de combat au démarrage ?"
 ```
 
+L'assistant tourne sur une allocation gratuite partagée avec le chatbot du site : un jour chargé,
+elle peut s'épuiser, et la commande le dit alors clairement. Voir
+[l'assistant de documentation](SUPPORT.md#assistant).
+
 ### `veaf-tools mcp` {#mcp}
 
 Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Utilisé par le plugin Claude veaf-mission-editor.

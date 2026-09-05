@@ -31,6 +31,11 @@
       resize: "Redimensionner",
       error: "Une erreur est survenue.",
       welcome: "Bonjour ! Posez-moi une question sur les outils VEAF.",
+      // Said up front, and not only when it happens: someone who meets the wall without warning
+      // concludes the assistant is broken, and does not come back.
+      welcomeNote:
+        "Je tourne sur une allocation gratuite partagée par tous les visiteurs du site : " +
+        "un jour chargé, elle peut s'épuiser. Elle repart le matin suivant.",
     },
     en: {
       title: "VEAF Assistant",
@@ -42,6 +47,9 @@
       resize: "Resize",
       error: "Something went wrong.",
       welcome: "Hi! Ask me anything about the VEAF tools.",
+      welcomeNote:
+        "I run on a free allowance shared by every visitor of the site: on a busy day it can " +
+        "run out. It refills the next morning.",
     },
   };
 
@@ -158,8 +166,19 @@
     return bubble;
   }
 
+  /**
+   * Greet, and say once that the assistant is rationed.
+   *
+   * Built as real elements rather than through `markdownToNode`: the panel calls this without
+   * awaiting `ensureRenderers`, so on the very first open marked is still loading and markdown
+   * would render as its own source — literal asterisks and a run-on line.
+   */
   function welcomeOnce() {
-    if (!messagesEl.childElementCount) addBubble("assistant", markdownToNode(t.welcome));
+    if (messagesEl.childElementCount) return;
+    const content = document.createDocumentFragment();
+    content.appendChild(el("p", { text: t.welcome }));
+    content.appendChild(el("p", { class: "veaf-chat-note", text: t.welcomeNote }));
+    addBubble("assistant", content);
   }
 
   function togglePanel(open) {
@@ -181,6 +200,27 @@
     welcomeOnce();
   });
 
+  /**
+   * Pull the Worker's own error text out of an SSE body.
+   *
+   * The Worker answers a refusal with a real status (429 for a spent quota) *and* an SSE payload
+   * carrying the localized explanation. Reading only the status threw that explanation away, so a
+   * rationed assistant showed the same "something went wrong" as a crashed one.
+   */
+  function errorFromSse(text) {
+    for (const line of String(text || "").split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      try {
+        const parsed = JSON.parse(trimmed.slice(5).trim());
+        if (parsed && parsed.error) return String(parsed.error);
+      } catch {
+        // Not a JSON event; keep looking.
+      }
+    }
+    return null;
+  }
+
   /** POST the conversation and consume the SSE stream, invoking onChunk/onError per event. */
   async function streamAnswer({ endpoint, messages, lang: language, onChunk, onError }) {
     const res = await fetch(endpoint, {
@@ -188,7 +228,14 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages, lang: language }),
     });
-    if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
+    if (!res.ok || !res.body) {
+      const explained = res.body ? errorFromSse(await res.text().catch(() => "")) : null;
+      if (explained) {
+        onError(explained);
+        return;
+      }
+      throw new Error("HTTP " + res.status);
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();

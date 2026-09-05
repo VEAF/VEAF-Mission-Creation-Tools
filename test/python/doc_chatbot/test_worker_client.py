@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import unittest
 from unittest import mock
 
@@ -10,9 +11,10 @@ from doc_chatbot.worker_client import WorkerChatWorker
 
 
 class _StreamResp:
-    def __init__(self, status: int, lines: list[str]):
+    def __init__(self, status: int, lines: list[str], text: str | None = None):
         self.status_code = status
         self._lines = lines
+        self.text = "\n".join(lines) if text is None else text
 
     def __enter__(self):
         return self
@@ -22,6 +24,26 @@ class _StreamResp:
 
     def iter_lines(self, decode_unicode=False):
         yield from self._lines
+
+
+class _BrokenBodyResp:
+    """A refusal whose body cannot be read back (connection dropped mid-read)."""
+
+    def __init__(self, status: int):
+        self.status_code = status
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    @property
+    def text(self) -> str:
+        raise worker_client.requests.RequestException("connection dropped")
+
+    def iter_lines(self, decode_unicode=False):
+        yield from ()
 
 
 class TestWorkerChatWorker(unittest.TestCase):
@@ -65,6 +87,35 @@ class TestWorkerChatWorker(unittest.TestCase):
         with mock.patch.object(worker_client.requests, "post", return_value=_StreamResp(500, [])):
             with self.assertRaises(RuntimeError):
                 list(worker.ask("q"))
+
+    def test_non_200_surfaces_the_worker_message(self) -> None:
+        """A 429 carries the Worker's own explanation in its body; it must reach the user.
+
+        The daily allowance message says when the assistant comes back. Reporting only
+        ``error 429`` threw that away and made a rationed assistant look like a broken one.
+        """
+        daily = "L'assistant a épuisé son allocation de questions pour la journée. Vers 9 h."
+        resp = _StreamResp(429, [], text=f'data: {{"error": {json.dumps(daily, ensure_ascii=False)}}}\n\n')
+        worker = WorkerChatWorker(endpoint="https://x/chat")
+        with mock.patch.object(worker_client.requests, "post", return_value=resp):
+            with self.assertRaises(RuntimeError) as caught:
+                list(worker.ask("q"))
+        self.assertEqual(daily, str(caught.exception))
+
+    def test_non_200_without_a_message_falls_back_to_the_status(self) -> None:
+        worker = WorkerChatWorker(endpoint="https://x/chat")
+        resp = _StreamResp(502, [], text="<html>Bad gateway</html>")
+        with mock.patch.object(worker_client.requests, "post", return_value=resp):
+            with self.assertRaises(RuntimeError) as caught:
+                list(worker.ask("q"))
+        self.assertIn("502", str(caught.exception))
+
+    def test_non_200_with_an_unreadable_body_falls_back_to_the_status(self) -> None:
+        worker = WorkerChatWorker(endpoint="https://x/chat")
+        with mock.patch.object(worker_client.requests, "post", return_value=_BrokenBodyResp(429)):
+            with self.assertRaises(RuntimeError) as caught:
+                list(worker.ask("q"))
+        self.assertIn("429", str(caught.exception))
 
     def test_network_error_raises_runtimeerror(self) -> None:
         worker = WorkerChatWorker(endpoint="https://x/chat")

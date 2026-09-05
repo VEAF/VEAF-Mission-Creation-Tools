@@ -114,27 +114,83 @@ const CLIENTS = {
   },
 };
 
-/** Localized, user-facing messages (kept short, mirroring the Solde tone). */
+/**
+ * Localized, user-facing messages (kept short, mirroring the Solde tone).
+ *
+ * `rateLimited` and `dailyQuota` are both 429s, and they are *not* interchangeable. The first
+ * clears in under a minute; the second is the free tier's per-project daily allowance, which
+ * only refills when Google's quota day rolls over (midnight Pacific — around 09:00 in Paris,
+ * whatever the season, since both sides shift with daylight saving). Telling a visitor to "try
+ * again shortly" when the day's allowance is gone sends him retrying all evening for nothing.
+ *
+ * The daily wording also says *why*, because being rationed and being broken look identical from
+ * the outside: an assistant that answered a minute ago and now refuses reads as a defect unless
+ * it explains that it is running on a free, shared allowance.
+ */
 const MESSAGES = {
   fr: {
-    rateLimited: "Trop de requêtes, réessayez dans un instant.",
+    rateLimited: "Trop de questions à la fois — l'assistant repart dans une minute.",
+    dailyQuota:
+      "L'assistant a épuisé son allocation de questions pour la journée : elle est gratuite et " +
+      "partagée par tous les visiteurs du site. Elle repart chaque matin vers 9 h (heure de " +
+      "Paris) — revenez après. Ce n'est pas une panne, et la documentation reste consultable " +
+      "entre-temps.",
     unavailable: "Assistant momentanément indisponible.",
     badRequest: "Requête invalide.",
   },
   en: {
-    rateLimited: "Too many requests, please try again shortly.",
+    rateLimited: "Too many questions at once — the assistant is back in a minute.",
+    dailyQuota:
+      "The assistant has used up its question allowance for the day: it is free, and shared by " +
+      "every visitor of the site. The allowance refills each morning around 09:00 Central " +
+      "European time — come back after that. Nothing is broken, and the documentation itself " +
+      "stays available in the meantime.",
     unavailable: "Assistant temporarily unavailable.",
     badRequest: "Invalid request.",
   },
 };
 
+// A per-day quota violation names itself in the Gemini error body, e.g. the quota id
+// `GenerateRequestsPerDayPerProjectPerModel-FreeTier`. `PerMinute` ids do not match this.
+const DAILY_QUOTA_ID = /per[_-]?day/i;
+// `RetryInfo.retryDelay`, when Google sends one. A minute-scale limit asks for tens of seconds;
+// anything asking for more than this is not something the visitor should sit and wait out.
+const RETRY_DELAY = /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/;
+const RETRY_DELAY_MINUTE_SCALE = 300; // seconds
+
 /**
- * Map an upstream Gemini failure status to the right localized user message.
- * A 429 (the free-tier quota was hit) becomes the "too many requests" message
- * rather than the generic "unavailable", so the pilot knows to simply retry.
+ * Tell a *daily* quota exhaustion apart from a per-minute throttle, from the upstream error body.
+ *
+ * Gemini answers 429 for both, so the status alone cannot distinguish them. The body can: a
+ * `QuotaFailure` violation carries a `quotaId` that names its own period. When the body is absent
+ * or unrecognizable the answer is `false` — the per-minute wording is the smaller lie, since it
+ * merely under-promises the wait rather than announcing an outage that may not exist.
+ *
+ * @param {string|undefined|null} detail The raw upstream response body.
+ * @returns {boolean} True when the failure is the daily allowance, not a burst limit.
  */
-function upstreamErrorMessage(lang, status) {
-  return status === 429 ? MESSAGES[lang].rateLimited : MESSAGES[lang].unavailable;
+function isDailyQuotaFailure(detail) {
+  if (typeof detail !== "string" || !detail) return false;
+  if (DAILY_QUOTA_ID.test(detail)) return true;
+  const retry = RETRY_DELAY.exec(detail);
+  return retry ? Number(retry[1]) > RETRY_DELAY_MINUTE_SCALE : false;
+}
+
+/**
+ * Map an upstream Gemini failure to the right localized user message.
+ *
+ * A 429 is the free tier refusing, and it comes in two flavours that need opposite advice: the
+ * per-minute burst limit ("try again in a minute") and the per-day allowance ("come back
+ * tomorrow morning"). {@link isDailyQuotaFailure} reads the upstream body to tell them apart.
+ *
+ * @param {string} lang `"fr"` or `"en"`.
+ * @param {number|undefined} status The upstream HTTP status.
+ * @param {string} [detail] The raw upstream body, when it could be read.
+ * @returns {string} The localized message to show the caller.
+ */
+function upstreamErrorMessage(lang, status, detail) {
+  if (status !== 429) return MESSAGES[lang].unavailable;
+  return isDailyQuotaFailure(detail) ? MESSAGES[lang].dailyQuota : MESSAGES[lang].rateLimited;
 }
 
 /** Build the system instruction that frames the model as the VEAF docs assistant. */
@@ -269,6 +325,9 @@ async function embed(env, text, taskType) {
   if (!res.ok) {
     const err = new Error(`embed ${res.status}`);
     err.status = res.status;
+    // Carried so the caller can tell a daily quota exhaustion from a burst limit: both are 429,
+    // and only the body says which.
+    err.detail = await res.text().catch(() => "");
     throw err;
   }
   const json = await res.json();
@@ -375,7 +434,12 @@ async function streamGemini(env, lang, contents, instruction) {
         controller.enqueue(encoder.encode(sse({ error: msg })));
         controller.close();
       };
-      if (!upstream.ok || !upstream.body) return fail(upstreamErrorMessage(lang, upstream.status));
+      if (!upstream.ok || !upstream.body) {
+        // The body is what distinguishes a daily quota exhaustion from a burst limit; it is only
+        // read on the failure path, where the response is a small JSON error rather than a stream.
+        const detail = await upstream.text().catch(() => "");
+        return fail(upstreamErrorMessage(lang, upstream.status, detail));
+      }
 
       const reader = upstream.body.getReader();
       let buffer = "";
@@ -577,6 +641,8 @@ export {
   latestQuery,
   toGeminiContents,
   upstreamErrorMessage,
+  isDailyQuotaFailure,
+  MESSAGES,
   isAllowedClient,
   resolveClient,
   allowRequest,
@@ -676,7 +742,11 @@ export default {
     try {
       passages = await retrieveContext(env, lang, query);
     } catch (err) {
-      return sseError(lang, err?.status === 429 ? 429 : 502, upstreamErrorMessage(lang, err?.status));
+      return sseError(
+        lang,
+        err?.status === 429 ? 429 : 502,
+        upstreamErrorMessage(lang, err?.status, err?.detail),
+      );
     }
 
     return sseStream(

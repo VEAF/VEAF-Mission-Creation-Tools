@@ -30,12 +30,12 @@
       clear: "Effacer",
       resize: "Redimensionner",
       error: "Une erreur est survenue.",
+      welcome: "Bonjour ! Posez-moi une question sur les outils VEAF.",
       // Said up front, and not only when it happens: someone who meets the wall without warning
       // concludes the assistant is broken, and does not come back.
-      welcome:
-        "Bonjour ! Posez-moi une question sur les outils VEAF.\n\n" +
-        "*Je tourne sur une allocation gratuite partagée par tous les visiteurs du site : " +
-        "un jour chargé, elle peut s'épuiser. Elle repart le matin suivant.*",
+      welcomeNote:
+        "Je tourne sur une allocation gratuite partagée par tous les visiteurs du site : " +
+        "un jour chargé, elle peut s'épuiser. Elle repart le matin suivant.",
     },
     en: {
       title: "VEAF Assistant",
@@ -46,10 +46,10 @@
       clear: "Clear",
       resize: "Resize",
       error: "Something went wrong.",
-      welcome:
-        "Hi! Ask me anything about the VEAF tools.\n\n" +
-        "*I run on a free allowance shared by every visitor of the site: on a busy day it can " +
-        "run out. It refills the next morning.*",
+      welcome: "Hi! Ask me anything about the VEAF tools.",
+      welcomeNote:
+        "I run on a free allowance shared by every visitor of the site: on a busy day it can " +
+        "run out. It refills the next morning.",
     },
   };
 
@@ -166,8 +166,19 @@
     return bubble;
   }
 
+  /**
+   * Greet, and say once that the assistant is rationed.
+   *
+   * Built as real elements rather than through `markdownToNode`: the panel calls this without
+   * awaiting `ensureRenderers`, so on the very first open marked is still loading and markdown
+   * would render as its own source — literal asterisks and a run-on line.
+   */
   function welcomeOnce() {
-    if (!messagesEl.childElementCount) addBubble("assistant", markdownToNode(t.welcome));
+    if (messagesEl.childElementCount) return;
+    const content = document.createDocumentFragment();
+    content.appendChild(el("p", { text: t.welcome }));
+    content.appendChild(el("p", { class: "veaf-chat-note", text: t.welcomeNote }));
+    addBubble("assistant", content);
   }
 
   function togglePanel(open) {

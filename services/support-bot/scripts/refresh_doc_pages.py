@@ -14,6 +14,7 @@ also why the service's CI workflow triggers on ``doc/**``.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -47,6 +48,26 @@ PAGES_BY_TITLE: Final[dict[str, dict[str, str]]] = {
 '''
 
 
+def _quote(value: str) -> str:
+    """Render a string the way ``ruff format`` writes one: with double quotes.
+
+    ``repr`` picks single quotes, which the formatter then rewrites — so every
+    regeneration produced a file that failed ``ruff format --check``. Double quotes
+    everywhere, except where the value itself holds one and no apostrophe: there the
+    formatter switches to single quotes rather than escape, and so does this.
+
+    Args:
+        value: The string to quote.
+
+    Returns:
+        The value as a double-quoted Python literal.
+    """
+    if '"' in value and "'" not in value:
+        # What the formatter does: single quotes rather than escaping the double ones.
+        return "'" + value + "'"
+    return json.dumps(value, ensure_ascii=False)
+
+
 def render(index: dict[str, dict[str, str]]) -> str:
     """Render the index as the source of the generated module.
 
@@ -60,7 +81,7 @@ def render(index: dict[str, dict[str, str]]) -> str:
     for lang in sorted(index):
         lines.append(f'    "{lang}": {{\n')
         for title, path in sorted(index[lang].items()):
-            lines.append(f"        {title!r}: {path!r},\n")
+            lines.append(f"        {_quote(title)}: {_quote(path)},\n")
         lines.append("    },\n")
     lines.append("}\n")
     return "".join(lines)

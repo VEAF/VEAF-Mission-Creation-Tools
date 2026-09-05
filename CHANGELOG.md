@@ -66,6 +66,59 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   client name off the prototype chain, where `constructor` and `toString` answered with a quota-less
   object that compared favourably against every ceiling.
 
+- **The user log finally records stack traces, and a crash leaves something behind.** `exception()`
+  logged the message and dropped the traceback, so the file recorded that something failed and lost
+  the only part that says where. An uncaught exception was journalled nowhere at all: the traceback
+  went to stderr, scrolled away, and the log kept no trace of the crash. Both now reach the log file,
+  and what the console shows is unchanged — asserted by a test, not by reading.
+
+  The file also **rotates** now, at 2 MB with three older files kept beside it. It appended for ever,
+  which is exactly why nobody opened it: measured at 87 MB on a real machine.
+
+- **The documentation pointed at a log that is not there.** `TOOLS_REFERENCE` told the reader to look
+  for `veaf-tools.log` *in the current directory*, in both languages and in two places. It is written
+  to `%USERPROFILE%\.veaf\veaf-tools.log` (or `$VEAF_HOME`). Someone following the page found nothing
+  and concluded there was no log.
+
+- **Redaction destroyed the diagnosis instead of protecting anything.** A rule replacing any run of
+  24+ characters mixing letters and digits was measured against the real tool log (last 3 MB, 1489
+  `ERROR` records): **74 substitutions, not one credential** — every hit a temporary directory or the
+  name of the thing that failed. Against the repository's own data files it matched 169 DCS GUIDs and
+  493 other identifiers, so `unknown payload HVAR_USN_Mk28_Mod4_Corsair` became `unknown payload
+  <redacted>`: keeping "it broke" and throwing away "on what". The rule is gone. A secret is now
+  recognised by context or by a known shape, which also fixes four measured leaks the old patterns
+  let through — `access_token=`, `client_secret=`, a JSON `"token": "…"`, and an e-mail address at
+  the end of a sentence — and adds IPv6, which had no pattern at all. Same run after the change:
+  **0 substitutions, 0 identifiers destroyed**, and the DCS version `DCS/2.9.10.1` no longer reads as
+  an IP address.
+
+- **The account name went through 56 times.** On the same 1489 records it survived in
+  `…\Temp\pytest-of-<name>\…`, on lines whose `C:\Users\<user>` had been redacted three segments
+  earlier: the rule only covered what sat directly under `Users/`, `home/` or `Documents and
+  Settings/`. It is now replaced wherever it appears, which also covers a `%USERPROFILE%` expansion,
+  a `USERNAME=` dump and a UNC share named after the machine's owner. Same run after the change: **0
+  survivals**.
+
+- **Log rotation failed loudly and lost the record when a second process held the file.** Windows
+  refuses to rename a held file, and `veaf-tools mcp` is a long-lived process holding this exact log:
+  measured, a `--- Logging error ---` traceback landed on **stderr in the middle of the command's
+  output** and the record was never written, repeating for every message. A blocked rollover is now
+  silent and costs nothing — the record is written and the file keeps growing until a run without a
+  second holder rotates it. The live file is also moved aside *before* the older files are aged, so a
+  rollover that cannot happen no longer erases the history it was about to shift.
+
+- **The first rollover hid the whole error history from `doctor`.** It read only the live log, never
+  the `.1`/`.2`/`.3` beside it — and the first rollover moves the entire previous log into `.1`,
+  leaving a live file of a few dozen bytes. On the machine this was written on that log is 87 MB, so
+  the first support conversation after the upgrade would have answered "no recent errors" to someone
+  reporting a crash. The rolled files are now read when the live one is short.
+
+- **A diagnostic block could carry a field nobody wrote.** A value containing a newline came back
+  from the parser as two fields, silently. No collector can produce one, but the bug-intake lot will
+  run that parser over text a stranger pasted into a public issue, so the producer now holds one
+  field to one line and the format documents both that invariant and the fact that a received block
+  is a claim, never a measurement.
+
 ### Added
 
 - **A place for a service to live, and a first one in it.** The repository had two shapes — CLI
@@ -112,6 +165,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   check, through `git check-ignore`, that the root `.gitignore` really hides the service's `.env`,
   and that file triggered no workflow in the repository — a later reshuffle of those lines would have
   un-guarded the secret with every check green.
+
+- **`veaf-tools doctor` reads out the three facts every bug report is missing.** Tool version, DCS
+  version and where the logs are: mechanical facts sitting on the user's machine that the tool never
+  read out, so every report had to start with "which version?". The command prints a readable table,
+  then a delimited block to paste into a Discord message or a GitHub issue as-is.
+
+  Everything it prints is **redacted before it is shown**, because the block is designed to be
+  published by someone who will not reread it: the Windows account name becomes `<user>`, routable
+  addresses `<ip>`, tokens and passwords `<redacted>`. Loopback addresses are kept — they say
+  something and carry nothing. The redaction helper (`veaf_libs.redaction`) is written once here for
+  the log-analysis and bug-intake lots to reuse.
+
+  The block is a versioned contract (`veaf-tools-doctor/1`) with a parser beside its producer and a
+  round-trip test, documented in *Diagnostic block format* under Developer. The command works with
+  no DCS installed, no `VEAF_HOME` set and no log file: a fact it cannot read reports `unknown` and
+  the rest is produced anyway.
+
+- **A support page**, in both languages: where to go depending on your situation, what to provide,
+  and where the two logs actually live — the tool's and DCS's.
 
 ## [6.19.0] — 2026-09-02
 

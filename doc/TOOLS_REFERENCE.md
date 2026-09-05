@@ -623,7 +623,7 @@ Pour des informations de débogage détaillées :
 veaf-build publish --version 6.0.1 --verbose
 ```
 
-Consultez le fichier `veaf-tools.log` dans le répertoire courant pour les journaux détaillés.
+Consultez le fichier `veaf-tools.log` pour les journaux détaillés. Il est écrit dans **`%USERPROFILE%\.veaf\veaf-tools.log`** (ou dans `$VEAF_HOME` si vous avez défini cette variable), pas dans le répertoire courant. `.\veaf-tools.exe doctor` vous en affiche le chemin exact et les dernières erreurs.
 
 ---
 
@@ -813,7 +813,7 @@ Si vous rencontrez des problèmes :
 
 1. **Consultez la section Dépannage** ci-dessus
 2. **Lancez avec `--verbose`** pour voir la sortie détaillée
-3. **Vérifiez `veaf-tools.log`** dans le répertoire courant
+3. **Vérifiez `veaf-tools.log`** dans `%USERPROFILE%\.veaf\` (ou `$VEAF_HOME`) — voir [Obtenir de l'aide](SUPPORT.md)
 4. **Visitez la page des releases GitHub** pour confirmer que la release existe
 5. **Vérifiez votre connexion Internet** (la plupart des problèmes sont réseau)
 6. **Vérifiez les permissions du token** sur https://github.com/settings/tokens

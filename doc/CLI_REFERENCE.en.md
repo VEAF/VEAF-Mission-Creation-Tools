@@ -582,6 +582,25 @@ Show information about VEAF Mission Creation Tools.
 veaf-tools about
 ```
 
+### `veaf-tools doctor` {#doctor}
+
+Collect the versions, paths and recent errors a bug report needs: tool version, DCS version, operating system, where the logs live. The command first prints a readable table, then a **block to paste** as-is into a report.
+
+Windows paths carry your account name, so the block is **redacted before it is shown** (`C:\Users\<user>\…`), along with IP addresses and anything shaped like a token. It is safe to publish.
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--paste` | `boolean` | `false` | Print only the block to paste, without the readable table. |
+| `--errors` | `integer` | `3` | How many recent error records from the tool log to include (0 for none). |
+
+```powershell
+.\veaf-tools.exe doctor
+```
+
+It works with no DCS installed, no `VEAF_HOME` set and no log file: a fact it cannot read reports `unknown` and the rest is produced anyway.
+
+**See also** : [Getting help](SUPPORT.en.md), and [the block format](developer/diagnostic-block.en.md) for whoever consumes it.
+
 ### `veaf-tools ask` {#ask}
 
 Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session.

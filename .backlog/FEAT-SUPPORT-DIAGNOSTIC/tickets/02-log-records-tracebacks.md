@@ -1,6 +1,6 @@
 # 02 — The user log finally records stack traces
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 
@@ -38,12 +38,12 @@ anything with either.
 
 ## Definition of done
 
-- [ ] `exception()` writes the full traceback to the log file
-- [ ] An uncaught exception is journalled before the process dies, and the user still sees what they
+- [x] `exception()` writes the full traceback to the log file
+- [x] An uncaught exception is journalled before the process dies, and the user still sees what they
       see today on the console
-- [ ] Rotation in place, with a documented size and retention
-- [ ] Console output byte-identical to before on a representative command — asserted by a test, not
+- [x] Rotation in place, with a documented size and retention
+- [x] Console output byte-identical to before on a representative command — asserted by a test, not
       by reading
-- [ ] Unit tests covering: an exception with a cause chain, an uncaught exception, and rotation
+- [x] Unit tests covering: an exception with a cause chain, an uncaught exception, and rotation
       firing
-- [ ] `poetry run pytest`, ruff check + format, mypy clean
+- [x] `poetry run pytest`, ruff check + format, mypy clean

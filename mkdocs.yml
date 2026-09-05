@@ -68,6 +68,8 @@ plugins:
           build: true
           nav_translations:
             Home: Accueil
+            Getting help: Obtenir de l'aide
+            Diagnostic block format: Format du bloc de diagnostic
             Pilot Guide: Guide Pilote
             Overview: Aperçu
             Guide: Guide
@@ -113,6 +115,7 @@ extra:
 
 nav:
   - Home: index.md
+  - Getting help: SUPPORT.md
   - Pilot Guide:
     - Overview: pilot/README.md
     - Guide: pilot/GUIDE.md
@@ -177,6 +180,7 @@ nav:
     - Mission editing MCP: developer/mission-editing-mcp.md
     - Radio preset projection: developer/radio-preset-projection.md
     - Export JSON contract: developer/export-json-contract.md
+    - Diagnostic block format: developer/diagnostic-block.md
     - Smoke harness (in-DCS): developer/smoke-harness.md
     - Testing: TESTING.md
   - References:

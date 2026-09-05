@@ -27,7 +27,7 @@ whoever opens the lot.
 
 ## Reuse, not reinvention
 
-Draft and consent, GitHub App, relay and quotas all come from
+The form, the preview, the GitHub App, the relay and the quotas all come from
 [`FEAT-SUPPORT-BUG-INTAKE`](../../FEAT-SUPPORT-BUG-INTAKE/PRD.md). If any of it has to be rewritten
 here, that is a defect in the bug lot's factoring, not a task for this one.
 

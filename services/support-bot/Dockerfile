@@ -12,23 +12,37 @@ FROM python:3.13-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     SUPPORT_BOT_HEALTH_HOST=0.0.0.0 \
-    SUPPORT_BOT_HEALTH_PORT=8081
+    SUPPORT_BOT_HEALTH_PORT=8081 \
+    SUPPORT_BOT_QUOTA_STATE_FILE=/app/state/quota.json
 
 WORKDIR /app
 
-# No `pip install`: the service has no runtime dependency, so copying the package is the whole
-# install. When ticket 02 adds the Discord library this becomes a two-stage build.
+# The one runtime dependency, on its own layer and before the package is copied, so editing the code
+# does not re-resolve it on every build. The bound matches the service's `pyproject.toml`.
+RUN pip install --no-cache-dir "discord.py>=2.4,<3"
+
 COPY veaf_support_bot ./veaf_support_bot
 
-# Unprivileged, and no home directory to write into: the service keeps no local state.
+# Unprivileged, with exactly one writable directory: the per-user quota counters.
+#
+# They must survive a restart — otherwise restarting the container is how anyone gets a fresh
+# allowance — so mount a volume here in production. Without one they survive a restart of the
+# process but not a `docker rm`. The service does not hide the difference: as soon as it cannot read
+# or write them it drops to a much stricter ceiling and says so, in the log and in `/status`.
 RUN useradd --system --uid 10001 --user-group --no-create-home veaf \
+    && mkdir -p /app/state \
     && chown -R veaf:veaf /app
+VOLUME ["/app/state"]
 USER veaf
 
 EXPOSE 8081
 
 # What turns "the container is running" into "the bot is working". `--healthcheck` probes /readyz
 # and exits 0/1; Docker (and a compose or systemd unit reading the same signal) restarts on failure.
+#
+# Readiness means the Discord gateway is connected, so a container started with
+# SUPPORT_BOT_DRY_RUN=true reports **unhealthy** — deliberately. A dry run answers nobody, and a
+# health check that called it healthy would let one sit in production looking fine.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD ["python", "-m", "veaf_support_bot", "--healthcheck"]
 

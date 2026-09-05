@@ -15,6 +15,45 @@ someone can answer you with something other than "which version?".
 Discord is fastest for a question; an issue is the only place a defect does not get lost. When in
 doubt, ask on Discord: someone will tell you whether it is worth an issue.
 
+## Asking the bot: `/ask` {#ask}
+
+On the VEAF Discord, `/ask` answers questions **about the documentation**.
+
+```text
+/ask question: how do I add a radio preset to a mission?
+```
+
+The bot opens a **public thread** under your question and writes its answer there as it comes, with
+links to the pages it used.
+
+The thread is public on purpose: the answer serves the next person who asks the same thing, and
+anyone passing by can correct the bot — "no, since 6.19 it works differently". On a documentation
+assistant, that is the only correction that actually catches a wrong answer.
+
+### What to know before relying on it
+
+- **It answers from the documentation, and from nothing else.** It does not read the code, does not
+  look at your mission, does not open your log. If the documentation does not cover the subject it
+  says so and points you back at this page — that is an answer, not a failure.
+- **It can be wrong, or a version behind.** Check the pages it cites; that is why it cites them. If
+  the answer is wrong, say so in the thread: the people around will read it.
+- **A documentation gap becomes a wrong or missing answer.** The fix is to write the page, not to
+  tune the bot. So a question it cannot answer is useful: report it, it is worth a documentation
+  ticket.
+- **There are quotas.** A few questions per minute per person, a daily limit, and a limit for the
+  whole server — they protect the free allowance the website and the command line also share. When
+  it refuses, it tells you why and when it resets.
+
+### What it does **not** do (yet)
+
+It does not **open an issue** for you, does not **analyse a DCS log**, and does not **read the
+sources**. Each of those arrives later, in its own piece of work. For now a defect is reported by
+hand — see [Where to go](#where).
+
+!!! tip "The same thing outside Discord"
+    `.\veaf-tools.exe ask` asks the same assistant the same questions, from your own machine. See
+    the [CLI Reference](CLI_REFERENCE.en.md).
+
 ## What to provide {#what-to-provide}
 
 Useful reports all look alike. Three things, in this order:

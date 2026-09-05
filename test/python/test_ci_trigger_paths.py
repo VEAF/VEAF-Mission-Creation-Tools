@@ -43,6 +43,10 @@ PATHS_THE_SUPPORT_BOT_SUITE_READS = (
     ".github/workflows/support-bot-ci.yml",
     ".gitignore",
     "pyproject.toml",
+    # `tests/test_doc_pages.py` rebuilds the bot's page index from the real `doc/` tree and compares
+    # it to the checked-in one. A page renamed or retitled without this in the filter would leave
+    # the bot citing a title that no longer exists, with every check green.
+    "doc/**",
 )
 
 

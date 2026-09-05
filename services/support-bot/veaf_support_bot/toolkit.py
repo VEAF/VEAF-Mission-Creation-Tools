@@ -52,6 +52,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from veaf_support_bot.logging_setup import get_logger
+
 #: Where the tools' importable packages sit inside the repository.
 TOOLS_PACKAGE_ROOT = Path("src") / "python" / "veaf-tools"
 
@@ -78,6 +80,37 @@ def install(root: Path) -> None:
     target = str((root / TOOLS_PACKAGE_ROOT).resolve())
     if target not in sys.path:
         sys.path.append(target)
+
+
+def _unavailable(what: str, error: Exception, path: Path) -> str:
+    """Say that something could not be read, naming the failure's **type** and never its message.
+
+    A parser quotes the bytes it choked on. ``luadata`` copies the malformed region of a mission
+    into its ``ValueError``, and that region is a stranger's mission — move the offset a few bytes
+    and it is briefing prose instead of punctuation. The same holds of a log parser over a stranger's
+    log. Since this text travels ``ToolkitUnavailable`` → ``Rejected.reason`` → ``MaterialNote`` →
+    the published issue, the message is dropped from what is published and kept where a maintainer
+    can still read it: the service's own log.
+
+    Args:
+        what: The sentence the reader gets, e.g. ``"the mission could not be read"``.
+        error: The failure. Its type is published; its message is not.
+        path: The file it was reading, for the server-side record.
+
+    Returns:
+        The publishable reason.
+    """
+    get_logger("toolkit").warning(
+        what,
+        extra={
+            "event": "toolkit.unreadable",
+            "error": type(error).__name__,
+            # The detail is the point of logging this at all, and it is why it is not published.
+            "detail": str(error),
+            "file": path.name,
+        },
+    )
+    return f"{what}: {type(error).__name__}"
 
 
 def _module(root: Path, name: str) -> ModuleType:
@@ -297,7 +330,7 @@ def digest_log(root: Path, path: Path, *, max_chars: int = DEFAULT_EXCERPT_CHARS
         matches = catalogue_module.match_catalogue(rules, excerpt)
         uncatalogued = catalogue_module.uncatalogued_entries(rules, excerpt)
     except Exception as error:  # noqa: BLE001 - a malformed log must not take the report down
-        raise ToolkitUnavailable(f"the log could not be reduced: {type(error).__name__}: {error}") from error
+        raise ToolkitUnavailable(_unavailable("the log could not be reduced", error, path)) from error
 
     return LogDigest(
         excerpt=str(excerpt.to_text()),
@@ -400,7 +433,7 @@ def summarise_mission(root: Path, path: Path) -> MissionSummary:
         mission = miz_tools.read_miz(path)
         table = _mission_table(mission)
     except Exception as error:  # noqa: BLE001 - a corrupt or hostile archive is a missing section
-        raise ToolkitUnavailable(f"the mission could not be read: {type(error).__name__}: {error}") from error
+        raise ToolkitUnavailable(_unavailable("the mission could not be read", error, path)) from error
     return _select_published_fields(table)
 
 

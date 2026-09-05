@@ -19,7 +19,8 @@ arrive:
 3. **Reduce**: a log becomes a bounded excerpt through the shared builder, a mission becomes the
    explicitly chosen field set. The original still travels — reduction is for the issue body, not a
    substitute for the evidence.
-4. **Redact** every text artefact through the tools' single helper. A ``.miz`` is not redacted, it
+4. **Redact** every text artefact through the tools' single helper — the quoted body of a text
+   file, the member names of an archive, and the reporter's own filename. A ``.miz`` is not redacted, it
    is *summarised*: its published fields are chosen, which is the stronger guarantee, and the
    archive itself is only attached when the reporter's own summary shows nothing to withhold.
 5. **Hand back** :class:`Prepared` items for ticket 05 to upload, and :class:`Rejected` ones for the
@@ -75,6 +76,10 @@ MAX_QUOTED_TEXT_CHARS = 4000
 #: listing is a shape, not an inventory.
 MAX_ARCHIVE_MEMBERS = 40
 
+#: Stands in for an attachment name when redaction is not reachable. The file still travels and its
+#: reason is still stated; only the name a stranger chose is withheld.
+UNREDACTED_NAME = "(a filename that could not be redacted)"
+
 
 @dataclass(frozen=True)
 class Incoming:
@@ -99,7 +104,9 @@ class Prepared:
     """An attachment that survived, ready to be uploaded to the issue.
 
     Attributes:
-        filename: A safe name, derived from the reporter's.
+        filename: A safe, **redacted** name derived from the reporter's. Safe for the filesystem
+            and safe to publish are two different properties, and this is the second one; the
+            bytes live at :attr:`path`, under the first.
         kind: One of the values of :data:`ACCEPTED_SUFFIXES`.
         path: Where the bytes are on local disk.
         size: Actual size in bytes.
@@ -121,8 +128,9 @@ class Rejected:
     """An attachment that did not survive, and why.
 
     Attributes:
-        filename: The name as it arrived.
-        reason: A sentence the reporter reads. Never a stack trace.
+        filename: The reporter's name for the file, redacted.
+        reason: A sentence the reporter reads. Never a stack trace, and never a quotation of the
+            file's own content.
     """
 
     filename: str
@@ -236,21 +244,31 @@ class AttachmentCollector:
         spent = 0
 
         for item in incoming:
+            # Two names, because they answer two different questions. `safe_name` makes a name that
+            # can only name a file in one directory, which is what the download needs; `_publishable`
+            # makes one that can go in a public issue, which is what every `Prepared` and `Rejected`
+            # below carries. A name Discord kept — `dcs - Jean Dupont.log`, a mission exported under
+            # its author's own name — is reporter-supplied text like any other.
             name = safe_name(item.filename)
+            shown = self._publishable(name)
             kind = classify(name)
             if not kind:
-                rejected.append(Rejected(name, f"unsupported file type ({PurePosixPath(name).suffix or 'no suffix'})"))
+                rejected.append(
+                    Rejected(shown, f"unsupported file type ({PurePosixPath(shown).suffix or 'no suffix'})")
+                )
                 continue
             if item.size and item.size > self._max_file:
                 rejected.append(
                     Rejected(
-                        name, f"too large ({describe_size(item.size)}; the limit is {describe_size(self._max_file)})"
+                        shown, f"too large ({describe_size(item.size)}; the limit is {describe_size(self._max_file)})"
                     )
                 )
                 continue
             remaining = min(self._max_file, self._max_total - spent)
             if remaining <= 0:
-                rejected.append(Rejected(name, f"the report already reached {describe_size(self._max_total)} of files"))
+                rejected.append(
+                    Rejected(shown, f"the report already reached {describe_size(self._max_total)} of files")
+                )
                 continue
 
             target = _unique(workdir / name)
@@ -258,7 +276,7 @@ class AttachmentCollector:
                 written = await self._download(item.url, target, remaining)
             except TooLarge:
                 target.unlink(missing_ok=True)
-                rejected.append(Rejected(name, f"larger than the {describe_size(remaining)} left for this report"))
+                rejected.append(Rejected(shown, f"larger than the {describe_size(remaining)} left for this report"))
                 continue
             except Exception as error:  # noqa: BLE001 - one unreachable file is not a failed report
                 target.unlink(missing_ok=True)
@@ -266,19 +284,39 @@ class AttachmentCollector:
                     "an attachment could not be downloaded",
                     extra={"event": "intake.download_failed", "error": type(error).__name__},
                 )
-                rejected.append(Rejected(name, f"could not be downloaded ({type(error).__name__})"))
+                rejected.append(Rejected(shown, f"could not be downloaded ({type(error).__name__})"))
                 continue
 
             spent += written
-            prepared.append(self._reduce(name, kind, target, written, rejected))
+            prepared.append(self._reduce(shown, kind, target, written, rejected))
 
         return Harvest(prepared=tuple(prepared), rejected=tuple(rejected))
+
+    def _publishable(self, name: str) -> str:
+        """Turn a filesystem-safe name into one that can be published.
+
+        Args:
+            name: The output of :func:`safe_name`.
+
+        Returns:
+            The redacted name, or :data:`UNREDACTED_NAME` when redaction is not reachable. It fails
+            closed for the same reason :func:`veaf_support_bot.bugreport.safe_redact` does: a name
+            nobody could redact is not a name to print in a public issue.
+        """
+        try:
+            return redact(self._checkout.root, name)
+        except ToolkitUnavailable as error:
+            self._logger.warning(
+                "an attachment name could not be redacted; it is withheld",
+                extra={"event": "intake.name_not_redacted", "error": type(error).__name__},
+            )
+            return UNREDACTED_NAME
 
     def _reduce(self, name: str, kind: str, path: Path, size: int, rejected: list[Rejected]) -> Prepared:
         """Turn one downloaded file into what the issue says about it.
 
         Args:
-            name: The safe filename.
+            name: The publishable filename.
             kind: Its classification.
             path: Where it landed.
             size: Its actual size.
@@ -372,7 +410,11 @@ class AttachmentCollector:
         withheld: tuple[str, ...] = ("the archive's contents; only member names are listed",)
         if len(names) > len(shown):
             listing += f"\n- … and {len(names) - len(shown)} more"
-        return listing, withheld
+        # Member names are text a stranger wrote, exactly like the body of a `.txt`: a `~mis*.zip` is
+        # a DCS autosave and its paths carry the account name. Redacted here rather than at render
+        # time so step 4 of this module's header holds for every text artefact without exception —
+        # and so a redaction that cannot run refuses the listing instead of publishing it raw.
+        return redact(self._checkout.root, listing), withheld
 
 
 #: How long one attachment download is given.

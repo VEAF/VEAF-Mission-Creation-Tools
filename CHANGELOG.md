@@ -329,6 +329,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   point it tested, and the surface DCS reported there — enough to diagnose the naval-spawn defect above
   from the log alone, without needing the mission file.
 
+- **A cloned or respawned group now carries the group-level fields the editor set on it.**
+  `veafMissionDb`'s group record held exactly ten fields, and `task` was not one of them — so a QRA
+  flight cloned from a pre-placed group reached DCS with its per-waypoint engagement intact and no
+  mission task at all, which is one read of *"tout se déclenche mais ils font leur nav tranquilos"*.
+  MiST carried this field, and the loss lands squarely on the version that dropped it. The record now
+  also carries `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication` and
+  `radioSet`, plus `hidden` — an editor-hidden group no longer becomes visible on the F10 map the
+  moment it is cloned.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

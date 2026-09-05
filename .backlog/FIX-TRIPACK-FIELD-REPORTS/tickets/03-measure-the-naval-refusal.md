@@ -1,6 +1,6 @@
 # 03 — A ship at a quay is dragged ashore, then refused
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 

@@ -1528,4 +1528,96 @@ function TestVeafGroupSpawnChain:test_a_unit_with_no_position_creates_nothing()
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafGroupSpawnFieldForwarding
+-- ---------------------------------------------------------------------------
+-- FIX-TRIPACK-FIELD-REPORTS ticket 05 — the group-level fields a clone or respawn must carry
+-- through to `coalition.addGroup`, asserted on **the wiring**: what the spawn actually submits,
+-- not that some helper along the way was called. Reproduces Tripack's QRA report: a pre-placed
+-- `CAP_AL_MINHAD-1`-style group carries `task = 'CAP'`, and the clone used to submit none of it.
+-- ---------------------------------------------------------------------------
+TestVeafGroupSpawnFieldForwarding = {}
+
+function TestVeafGroupSpawnFieldForwarding:setUp()
+  dcs_mocks.reset()
+  land.getHeight = function()
+    return 0
+  end
+  land.getSurfaceType = function()
+    return land.SurfaceType.LAND
+  end
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = {
+        group = {
+          {
+            name = "CAP_AL_MINHAD-1",
+            groupId = 42,
+            task = "CAP",
+            taskSelected = true,
+            uncontrolled = false,
+            frequency = 251.5,
+            modulation = 0,
+            communication = true,
+            radioSet = true,
+            hidden = true,
+            units = { { name = "CAP_AL_MINHAD-1-1", unitId = 4, type = "F-15C", x = 1000, y = 2000, alt = 3000 } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+end
+
+local function lastSpawned()
+  local entries = dcs_mocks.groupsAdded
+  return entries[#entries] and entries[#entries].group
+end
+
+function TestVeafGroupSpawnFieldForwarding:test_a_clone_submits_the_editors_task()
+  VeafGroupSpawn:new():forGroup("CAP_AL_MINHAD-1"):at({ x = 5000, y = 0, z = 6000 }):clone()
+  luaunit.assertEquals(lastSpawned().task, "CAP")
+  luaunit.assertTrue(lastSpawned().taskSelected)
+end
+
+function TestVeafGroupSpawnFieldForwarding:test_a_clone_submits_the_radio_fields()
+  VeafGroupSpawn:new():forGroup("CAP_AL_MINHAD-1"):at({ x = 5000, y = 0, z = 6000 }):clone()
+  luaunit.assertEquals(lastSpawned().frequency, 251.5)
+  luaunit.assertEquals(lastSpawned().modulation, 0)
+  luaunit.assertTrue(lastSpawned().communication)
+  luaunit.assertTrue(lastSpawned().radioSet)
+end
+
+function TestVeafGroupSpawnFieldForwarding:test_a_clone_submits_uncontrolled()
+  VeafGroupSpawn:new():forGroup("CAP_AL_MINHAD-1"):at({ x = 5000, y = 0, z = 6000 }):clone()
+  luaunit.assertFalse(lastSpawned().uncontrolled)
+end
+
+--- The regression named explicitly in the ticket: the editor hid this group, so a scrambled QRA
+--- flight must not become visible on the F10 map just because it was cloned.
+function TestVeafGroupSpawnFieldForwarding:test_a_clone_keeps_the_editors_hidden_flag()
+  VeafGroupSpawn:new():forGroup("CAP_AL_MINHAD-1"):at({ x = 5000, y = 0, z = 6000 }):clone()
+  luaunit.assertTrue(lastSpawned().hidden, "the editor hid this group; the clone must stay hidden")
+end
+
+--- A group with no editor record at all (no `forGroup`, built inline) keeps `addGroup`'s own
+--- default: hidden must fall back to false, not be forced true by this fix.
+function TestVeafGroupSpawnFieldForwarding:test_a_group_with_no_editor_record_keeps_addgroups_default()
+  local result = VeafGroupSpawn:new()
+    :withGroupData({
+      name = "Inline",
+      country = "USA",
+      category = "vehicle",
+      units = { { type = "M-1 Abrams", x = 1, y = 2 } },
+    })
+    :at({ x = 10, y = 0, z = 20 })
+    :teleport()
+
+  luaunit.assertNotNil(result)
+  luaunit.assertFalse(lastSpawned().hidden)
+end
+
 os.exit(luaunit.LuaUnit.run())

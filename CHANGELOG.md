@@ -185,6 +185,38 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A support page**, in both languages: where to go depending on your situation, what to provide,
   and where the two logs actually live — the tool's and DCS's.
 
+- **`veaf-logs` explains what it shows, and prepares the report.** *Analyse → Expliquer ce qui est
+  affiché* (`Ctrl+E`) answers in two layers, and the order between them is the whole design. The
+  **catalogue answers first**: every pattern `rules.json` recognises is rendered with its own
+  reviewed wording, as it stands — no model, no cost, no network. The **model puts it in context
+  second**, only if you press *Analyser en ligne*, and where the catalogue is silent it is told to
+  say *motif non catalogué* rather than propose a cause. The worst failure of a feature like this is
+  not silence, it is a plausible wrong answer: the reader cannot tell it from a right one and will
+  spend his evening on it, so the two layers carry their own headings rather than a disclaimer at
+  the bottom nobody reads. With no network the catalogue layer stands alone and no error dialog
+  appears.
+
+  What leaves the machine is the excerpt on screen, **bounded** and **redacted** through the same
+  helper as `doctor`. Bounded means the whole rendered text, header included — measured on a real
+  11.1 MB `dcs.log` (87 989 records), 3 356 records survive a *Diagnostic* filter and 157 of them fit
+  a 16 000-character ceiling, in 0.3 s. The header names the categories set to ✕: a log filtered down
+  to "no errors" because `ERROR` was unticked must not read as a clean log.
+
+  A message that recurs and that the catalogue does not explain comes back as a **proposed
+  `rules.json` entry**, in the file's own shape, with identifiers and values already replaced by
+  wildcards and the regex checked before it is offered. Nothing is written to `rules.json`: the
+  catalogue stays hand-curated, which is exactly what makes its wording quotable.
+
+  *Préparer un rapport* assembles the `doctor` block, the excerpt, the catalogue matches and what
+  the analysis could not explain into one block on the clipboard, sized to fit a Discord message and
+  stating what it removed to get there. It is a paste, not a transmission. The format is a versioned
+  contract (`veaf-logs-report/1`) with a parser beside its producer and a round-trip test, documented
+  in *Report block format* under Developer.
+
+- **A pilot-facing door**, in both languages: *DCS se comporte mal — lire son journal*, in the Pilot
+  Guide menu. `veaf-logs` was documented under Mission Maker only, and a pilot with a crashing DCS
+  has no reason to open that section — half the audience could not find the tool.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

@@ -1,6 +1,6 @@
 # 05 — Prepare a report block the intake flow can read
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -38,9 +38,9 @@ not a file nobody can upload.
 
 ## Definition of done
 
-- [ ] A *Prepare a report* action producing the assembled block on the clipboard
-- [ ] Block format versioned and documented, in a place the intake lot can point to
-- [ ] Fits a Discord message, or states its own truncation
-- [ ] Redaction verified on the assembled block, not only on its parts
-- [ ] A round-trip test: the block is parsed back and yields the fields the intake flow expects
-- [ ] `poetry run pytest`, ruff check + format, mypy clean
+- [x] A *Prepare a report* action producing the assembled block on the clipboard
+- [x] Block format versioned and documented, in a place the intake lot can point to
+- [x] Fits a Discord message, or states its own truncation
+- [x] Redaction verified on the assembled block, not only on its parts
+- [x] A round-trip test: the block is parsed back and yields the fields the intake flow expects
+- [x] `poetry run pytest`, ruff check + format, mypy clean

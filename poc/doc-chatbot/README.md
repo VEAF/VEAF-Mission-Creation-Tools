@@ -13,7 +13,8 @@ MkDocs page (static, public)
        │  detects page language (FR/EN) → POST {messages, lang} (SSE)
        ▼
   Cloudflare Worker (poc/doc-chatbot/worker) — free tier
-       │  • Origin allow-list (anti-CSRF) + per-IP rate-limit (KV)
+       │  • declared client vocabulary + per-client rate-limit (KV), Origin allow-list for browsers
+       │  • body ceiling enforced before the payload is parsed
        │  • GEMINI_API_KEY held as a Worker Secret (never shipped to the client)
        │  • embeds the question (gemini-embedding-001, 768d)
        │  • ranks the language's doc vectors by cosine similarity IN THE WORKER
@@ -98,6 +99,41 @@ poetry run mkdocs serve
 `http://localhost:8000` and `http://127.0.0.1:8000` are on the Worker's Origin allow-list, and the
 widget auto-targets the local Worker on localhost.
 
+## Routes and clients
+
+The Worker serves two routes, and every caller belongs to a **declared client mode** (`CLIENTS` in
+`worker/src/index.js`). Each mode carries its own quota and its own body ceiling, so one client
+misbehaving cannot starve the documentation widget of the shared free Gemini quota.
+
+| Route | Purpose | Payload |
+|-------|---------|---------|
+| `POST /chat` | Grounded documentation answer (RAG) | `{ lang, messages: [{role, content}] }` |
+| `POST /analyze` | Explain a DCS log excerpt | `{ lang, excerpt, matches: [{id, label, help, count}], question? }` |
+
+| Client | Selected by | Routes | Burst / day | Body ceiling |
+|--------|-------------|--------|-------------|--------------|
+| `web` | an allow-listed `Origin` (the doc widget) | `/chat` | 10 / 60s, 100 / day | 64 KiB |
+| `cli` | `X-VEAF-Client: cli`, no `Origin` (`veaf-tools ask`) | `/chat` | 10 / 60s, 60 / day | 64 KiB |
+| `logs` | `X-VEAF-Client: logs`, no `Origin` (`veaf-logs`) | `/analyze` | 4 / 60s, 30 / day | 128 KiB |
+| `discord` | `X-VEAF-Client: discord` **plus** `X-VEAF-Auth` matching the `DISCORD_CLIENT_SECRET` Secret | both | 5 / 60s, 40 / day **per user** | 64 KiB |
+
+**How admission works, and what it deliberately does not do.** A request carrying an `Origin` is a
+browser request: the allow-list decides, and its `X-VEAF-Client` header is ignored outright. Without
+an `Origin`, the header *selects* a non-browser mode — it is a routing label, not a credential, and
+it buys nothing beyond that mode's own quota. It used to be treated as proof: `X-VEAF-Client: cli`
+short-circuited the allow-list entirely, so any caller at all could use the Worker (and VEAF's
+Gemini key) from anywhere.
+
+`discord` is groundwork for [`FEAT-SUPPORT-DISCORD-QA`](../../.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md):
+a whole Discord sits behind one IP, so that mode presents a shared Secret and passes its own
+per-user `subject` in the payload to carry the quota. While `DISCORD_CLIENT_SECRET` is unset, the
+mode is refused — an unconfigured Secret is a closed door, not an open one.
+
+**Rate limiting fails closed.** The KV counters are the normal path; if KV is unavailable the Worker
+falls back to a much stricter per-isolate ceiling (`DEGRADED_MAX_PER_WINDOW`). A KV outage degrades
+the limit, it never removes it. Callers without a `CF-Connecting-IP` still share one `unknown`
+bucket, which is strict rather than lax and is left as is.
+
 ## Configuration knobs (worker/src/index.js)
 
 | Constant | Default | Meaning |
@@ -105,25 +141,59 @@ widget auto-targets the local Worker on localhost.
 | `MODEL` | `gemini-2.5-flash-lite` | Gemini generation model (2.0-flash-lite is deprecated) |
 | `EMBED_MODEL` / `EMBED_DIMS` | `gemini-embedding-001` / `768` | Embedding model + dims (must match the built index) |
 | `TOP_K` | `6` | Passages retrieved per question |
-| `RL_MAX_PER_WINDOW` / `RL_WINDOW` | `10` / `60s` | Per-IP burst limit |
-| `RL_MAX_PER_DAY` | `100` | Per-IP daily limit |
-| `ALLOWED_ORIGINS` | localhost + veaf.github.io | Domain allow-list |
+| `CLIENTS` | see the table above | Client vocabulary: routes, quotas, body ceilings |
+| `RL_WINDOW` | `60s` | Burst window for every client |
+| `DEGRADED_MAX_PER_WINDOW` | `2` | Per-isolate ceiling used when KV is unreachable |
+| `MAX_EXCERPT_CHARS` / `MAX_MATCHES` | `40000` / `40` | Log excerpt and catalogue entries kept in an `/analyze` prompt |
+| `ALLOWED_ORIGINS` | localhost + veaf.github.io | Browser Origin allow-list |
 
-## Definition of Done (POC)
+## Tests
 
-- [ ] KV namespace created, `GEMINI_API_KEY` set, index built & uploaded.
-- [ ] Worker deployed to `*.workers.dev`; widget visible on local `mkdocs serve`.
-- [ ] FR page → streamed FR answer grounded in docs; EN page → streamed EN answer.
-- [ ] Several questions in quick succession all answer (no TPM ceiling at low traffic).
-- [ ] Non-allow-listed Origin → 403; >10 req/60s → graceful 429 message.
+```bash
+cd poc/doc-chatbot/worker
+npm test          # node --test, no network, no Cloudflare account needed
+```
 
-## Gaps for VEAF productionization (out of POC scope)
+## Deploying a change
 
-- Create a BACKLOG lot, branch from `develop`, add tests, open a PR.
-- **Automated re-indexing is wired** in `.github/workflows/docs-chatbot-index.yml` (rebuilds + uploads
-  to KV on doc changes). It needs three repository secrets: `GEMINI_API_KEY`, `CLOUDFLARE_API_TOKEN`
-  (Workers KV edit), `CLOUDFLARE_ACCOUNT_ID`. Note: KV free tier allows 1,000 writes/day — a full
-  re-index writes ~500 keys, so avoid many rebuilds per day.
-- Map a Gemini 429 to the friendly "too many requests" message (currently generic).
+The Worker is deployed **by hand** — there is no pipeline for it. The
+`.github/workflows/docs-chatbot-index.yml` workflow only rebuilds and uploads the KV index; it never
+touches the Worker code. So any change under `worker/src/` reaches production only when someone runs:
+
+```bash
+cd poc/doc-chatbot/worker
+npm test                        # gate
+npx wrangler deploy --dry-run   # bundles without shipping, checks the bindings resolve
+npx wrangler deploy             # ships it
+```
+
+Secrets are set once per environment and are not part of a deploy:
+
+```bash
+npx wrangler secret put GEMINI_API_KEY
+npx wrangler secret put DISCORD_CLIENT_SECRET   # only when the Discord bot lot ships
+```
+
+## State of the POC
+
+- [x] KV namespace created, `GEMINI_API_KEY` set, index built & uploaded.
+- [x] Worker deployed to `*.workers.dev`; widget live on the documentation site.
+- [x] FR page → streamed FR answer grounded in docs; EN page → streamed EN answer.
+- [x] Several questions in quick succession all answer (no TPM ceiling at low traffic).
+- [x] Non-allow-listed Origin → 403; over the burst limit → graceful 429 message.
+- [x] Automated re-indexing wired in `.github/workflows/docs-chatbot-index.yml` (rebuilds + uploads
+      to KV on doc changes). It needs three repository secrets: `GEMINI_API_KEY`,
+      `CLOUDFLARE_API_TOKEN` (Workers KV edit), `CLOUDFLARE_ACCOUNT_ID`. Note: the KV free tier
+      allows 1,000 writes/day — a full re-index writes ~500 keys, so avoid many rebuilds per day.
+- [x] A Gemini 429 maps to the friendly "too many requests" message.
+- [x] Unit tests under `worker/test/`, run by `npm test`.
+- [x] Declared client modes, admission that ignores a self-declared header for browsers,
+      fail-closed rate limiting, body ceiling, `/analyze` log-analysis mode.
+
+## Remaining
+
 - Integrate the widget into the versioned (mike) docs; pick which branch's docs to index.
 - Custom Worker domain and observability.
+- Per-client counters are read-then-written non-atomically in an eventually consistent KV, so the
+  burst limit is approximate under concurrency. Acceptable for an abuse guard; a Durable Object
+  would be the fix if it ever needs to be exact.

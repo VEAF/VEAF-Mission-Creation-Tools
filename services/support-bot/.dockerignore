@@ -1,0 +1,19 @@
+# Nothing but the package belongs in the image — and `.env` must never reach it: secrets are
+# injected at run time, never baked into a layer anyone can pull.
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+tests/
+README.md
+Dockerfile
+.dockerignore
+poetry.lock
+pyproject.toml

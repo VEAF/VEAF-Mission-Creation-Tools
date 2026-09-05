@@ -38,28 +38,33 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rescues it, deliberately. The file is left out of the build, so nothing is broken while the
   mission folder still carries it.
 
-### Added
+- **A header was enough to use the documentation chatbot's Worker from anywhere.** Its admission
+  check read `cliHeader === "cli" || origin allow-listed`: anyone sending `X-VEAF-Client: cli` was
+  admitted whatever their origin, so the browser allow-list protected nothing and the Worker — and
+  the shared free Gemini quota behind it — was open to any caller. The per-IP rate limit that was
+  supposed to make up for it returned `true` from its own `catch`, so a KV outage removed every
+  limit instead of tightening one. And nothing capped the request body before it was parsed.
 
-- **`veaf-tools doctor` reads out the three facts every bug report is missing.** Tool version, DCS
-  version and where the logs are: mechanical facts sitting on the user's machine that the tool never
-  read out, so every report had to start with "which version?". The command prints a readable table,
-  then a delimited block to paste into a Discord message or a GitHub issue as-is.
+  The Worker now declares a client vocabulary (`web`, `cli`, `logs`, `discord`), each with its own
+  quota, routes and body ceiling. A request carrying an `Origin` is judged on the allow-list alone
+  and its self-declared header is ignored; without an `Origin` the header only *selects* a mode and
+  buys nothing beyond that mode's quota. Rate limiting falls back to a much stricter per-isolate
+  ceiling when KV is unreachable, never to none. Bodies are bounded while streaming, before parsing.
+  A new `POST /analyze` route explains a bounded DCS log excerpt against the catalogue entries the
+  caller matched locally, saying "pattern not catalogued" rather than guessing a culprit — the mode
+  the forthcoming `veaf-logs` analysis will use. The documentation widget and `veaf-tools ask` keep
+  the access they had, with **one number moving**: because each mode now owns its bucket instead of
+  sharing one per-IP counter, `veaf-tools ask` gets **60 questions a day instead of 100**. The
+  browser widget keeps its 100. Both burst limits are unchanged at 10 per minute, and 60 questions
+  a day from one machine is well past what asking the documentation looks like in practice.
 
-  Everything it prints is **redacted before it is shown**, because the block is designed to be
-  published by someone who will not reread it: the Windows account name becomes `<user>`, routable
-  addresses `<ip>`, tokens and passwords `<redacted>`. Loopback addresses are kept — they say
-  something and carry nothing. The redaction helper (`veaf_libs.redaction`) is written once here for
-  the log-analysis and bug-intake lots to reuse.
-
-  The block is a versioned contract (`veaf-tools-doctor/1`) with a parser beside its producer and a
-  round-trip test, documented in *Diagnostic block format* under Developer. The command works with
-  no DCS installed, no `VEAF_HOME` set and no log file: a fact it cannot read reports `unknown` and
-  the rest is produced anyway.
-
-- **A support page**, in both languages: where to go depending on your situation, what to provide,
-  and where the two logs actually live — the tool's and DCS's.
-
-### Fixed
+  Two residual holes on that path were closed with it. A rate-limit counter that KV hands back
+  unreadable is now treated as the ceiling rather than as zero: `parseInt("NaN")` is `NaN` and
+  `NaN >= limit` is false, so a corrupted counter used to let requests straight through — and
+  writing `NaN + 1` back with a fresh 24 h expiry kept it corrupted indefinitely. Such a value is
+  now refused and left untouched, so it simply expires. And the counter lookup no longer reads the
+  client name off the prototype chain, where `constructor` and `toString` answered with a quota-less
+  object that compared favourably against every ceiling.
 
 - **The user log finally records stack traces, and a crash leaves something behind.** `exception()`
   logged the message and dropped the traceback, so the file recorded that something failed and lost
@@ -113,6 +118,72 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   run that parser over text a stranger pasted into a public issue, so the producer now holds one
   field to one line and the format documents both that invariant and the fact that a received block
   is a claim, never a measurement.
+
+### Added
+
+- **A place for a service to live, and a first one in it.** The repository had two shapes — CLI
+  executables and a serverless Worker — and the documentation assistant coming to the VEAF Discord is
+  neither: it is a process that has to stay up. `services/support-bot/` holds it, as its own Poetry
+  project deployed independently of the tools release, so nobody waits for a version to restart a
+  bot. Its version is deliberately outside the lockstep between `pyproject.toml` and the two agent
+  manifests.
+
+  This is the skeleton, not the bot: it does not talk to Discord yet. What it does carry is what a
+  self-hosted service needs before it needs features. Configuration comes only from the environment,
+  with no secret in the repository, and a missing or malformed variable stops the process **at
+  startup** — listing every problem at once, and exiting 78 (`EX_CONFIG`) so a supervisor can tell a
+  wrong deployment from a crash — rather than surfacing on the first user question. It answers
+  `/healthz`, `/readyz` and `/status`, and logs a heartbeat line, because the failure mode of every
+  self-hosted bot is dying silently while the container still says *running* and the VEAF has no
+  supervision for it. Logs are one JSON object per line on stdout, each carrying an `event` key, and
+  the bot token is redacted in both the startup line and any traceback. `SIGTERM` runs a real
+  shutdown — readiness drops first, work in flight gets a grace period, the rest is cancelled and
+  reported — so a container restart cannot leave a half-answered thread behind.
+
+  The image runs the same module a direct launch runs, so the documented command is a rehearsal of
+  the deployment rather than a second code path; the `Support Bot` workflow builds it and checks that
+  a misconfigured container refuses to start, that Docker's health check turns it healthy, and that
+  `SIGTERM` really reaches the process.
+
+  Three findings from the review of that skeleton, fixed before it ever ran anywhere. **The shutdown
+  was bounded everywhere except at the end of it:** closing the health endpoint waited without a
+  limit, and since Python 3.12 that wait includes every connection handler, so anyone holding a
+  socket held the process. Measured on the shipped image's interpreter with a one-second grace: no
+  connection, 0.00 s; one idle TCP connection — a port scan reaches it, the container binds
+  `0.0.0.0` — 5.01 s; a client sending one header every four seconds, still blocked past a minute,
+  with a ceiling near five minutes because the read timeout was applied per line and not per request.
+  `docker stop` kills at ten seconds, so the `service.stopped` line was simply never written: the
+  silent death the whole module exists to prevent. The grace period now bounds the sequence end to
+  end, the request head has one deadline instead of one per line, and a connection that outlives the
+  budget has its socket cut and the abort logged. Same three measurements now: 0.00 s, 1.00 s,
+  1.01 s. **A configuration error could publish the bot token:** every reader but two echoed the
+  value it refused, and that message goes to stdout at `CRITICAL`, straight into a log collector.
+  Pasting the token into `SUPPORT_BOT_DISCORD_GUILD_ID` — the variable right below it in
+  `.env.example`, another opaque string from the same Discord screen — printed it in full. Messages
+  now describe the shape of what was refused (`is not an integer (got 47 characters)`) and never its
+  text. **And the `Support Bot` gate did not run for everything its tests assert on:** two of them
+  check, through `git check-ignore`, that the root `.gitignore` really hides the service's `.env`,
+  and that file triggered no workflow in the repository — a later reshuffle of those lines would have
+  un-guarded the secret with every check green.
+
+- **`veaf-tools doctor` reads out the three facts every bug report is missing.** Tool version, DCS
+  version and where the logs are: mechanical facts sitting on the user's machine that the tool never
+  read out, so every report had to start with "which version?". The command prints a readable table,
+  then a delimited block to paste into a Discord message or a GitHub issue as-is.
+
+  Everything it prints is **redacted before it is shown**, because the block is designed to be
+  published by someone who will not reread it: the Windows account name becomes `<user>`, routable
+  addresses `<ip>`, tokens and passwords `<redacted>`. Loopback addresses are kept — they say
+  something and carry nothing. The redaction helper (`veaf_libs.redaction`) is written once here for
+  the log-analysis and bug-intake lots to reuse.
+
+  The block is a versioned contract (`veaf-tools-doctor/1`) with a parser beside its producer and a
+  round-trip test, documented in *Diagnostic block format* under Developer. The command works with
+  no DCS installed, no `VEAF_HOME` set and no log file: a fact it cannot read reports `unknown` and
+  the rest is produced anyway.
+
+- **A support page**, in both languages: where to go depending on your situation, what to provide,
+  and where the two logs actually live — the tool's and DCS's.
 
 ## [6.19.0] — 2026-09-02
 

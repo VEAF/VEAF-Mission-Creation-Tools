@@ -206,3 +206,11 @@ dcs-tokens.yaml
 # One of these reached a commit that way (SECREV-2 ticket 07); they are generated data, never sources.
 db.Units.lua
 dcsUnits.lua
+
+# Support bot service — its Discord token arrives through an environment file that is never
+# committed. `.env.example` is the documented placeholder version and is the only one tracked.
+# (A nested `services/support-bot/.gitignore` would not work: line 27 above ignores every nested
+# `.gitignore` in this repository.)
+services/support-bot/.env
+services/support-bot/.env.*
+!services/support-bot/.env.example

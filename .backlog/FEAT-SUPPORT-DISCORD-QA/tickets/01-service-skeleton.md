@@ -1,6 +1,6 @@
 # 01 — A service that runs directly or in a container
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -36,12 +36,39 @@ exists in Python.
 
 ## Definition of done
 
-- [ ] Service folder created, outside `poc/`, with its own README stating how to run it both ways
-- [ ] Configuration entirely from the environment; a missing required variable fails loudly at
+- [x] Service folder created, outside `poc/`, with its own README stating how to run it both ways
+- [x] Configuration entirely from the environment; a missing required variable fails loudly at
       startup rather than at the first request
-- [ ] Dockerfile, plus a documented direct-run command, both exercised
-- [ ] Health/state endpoint or equivalent, and structured logs
-- [ ] No secret committed — verified, given this repository already carries one such precedent
+- [x] Dockerfile, plus a documented direct-run command, both exercised
+- [x] Health/state endpoint or equivalent, and structured logs
+- [x] No secret committed — verified, given this repository already carries one such precedent
       elsewhere in the organisation
-- [ ] Unit tests on configuration loading and startup failure paths
-- [ ] Quality gate for the impacted language clean
+- [x] Unit tests on configuration loading and startup failure paths
+- [x] Quality gate for the impacted language clean
+
+## Outcome
+
+Delivered in `services/support-bot/`.
+
+**Runtime: Python.** The alternative was `discord.js` on Node — the better-trodden path for a
+Discord bot, and the only argument for it. Against: the Worker client
+(`src/python/veaf-tools/doc_chatbot/worker_client.py`) already speaks to the same chatbot backend,
+the logger, the i18n layer and the whole quality toolchain are configured, and lot 4 of the
+programme needs the `.miz` export machinery, which exists only in Python.
+
+The service is its own Poetry project (`services/support-bot/pyproject.toml`, version `0.1.0`) with
+**no runtime dependency** — configuration, structured logging, the health endpoints and the shutdown
+sequence are standard library. That keeps the image small, keeps the Discord library out of the
+`veaf-tools` executable when ticket 02 adds it, and makes the deployment cadence genuinely
+independent of the tools release.
+
+**"Both exercised"** means: the direct run was launched and probed on a workstation (health endpoint,
+`--healthcheck` probe, `/status`, heartbeat lines, exit code 78 on a missing variable); the container
+is built and driven in CI by the `Support Bot` workflow, which asserts that a misconfigured container
+refuses to start, that the endpoint answers from outside, that Docker's own health check turns the
+container healthy, and that `SIGTERM` reaches the process so the clean shutdown really runs on
+`docker stop`. Docker is not installed on the workstation, so CI is where that half lives.
+
+**Not done here, on purpose:** nothing connects to Discord yet. `SUPPORT_BOT_DISCORD_TOKEN` and
+`SUPPORT_BOT_DISCORD_GUILD_ID` are required and validated at startup — so a deployment is already
+correct before ticket 02 lands — but they are not used yet.

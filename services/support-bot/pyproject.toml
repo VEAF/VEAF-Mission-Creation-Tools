@@ -1,0 +1,87 @@
+[tool.poetry]
+name = "veaf-support-bot"
+# Deliberately independent of the repository root's `pyproject.toml` and of the two agent manifests:
+# this service is deployed on its own cadence, and nobody waits for a tools release to fix the bot.
+# It is NOT part of the version lockstep `test_plugin_version.py` enforces.
+version = "0.1.0"
+description = "The VEAF support bot — a long-running service answering documentation questions on Discord"
+authors = ["VEAF <https://www.veaf.org>"]
+license = "ISC"
+readme = "README.md"
+homepage = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
+repository = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
+package-mode = true
+packages = [{ include = "veaf_support_bot" }]
+
+[tool.poetry.dependencies]
+# No runtime dependency at all in the skeleton: configuration, structured logging, the health
+# endpoints and the shutdown sequence are stdlib. It keeps the image small and the direct run
+# installable anywhere; ticket 02 adds the Discord library.
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.4"
+mypy = ">=1.8"
+pytest = ">=8.0"
+pytest-cov = ">=5.0"
+
+[tool.poetry.scripts]
+veaf-support-bot = "veaf_support_bot.cli:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+# ---------------------------------------------------------------------------
+# Ruff — same settings as the repository root, so a contributor moving between
+# the tools and the service does not meet two styles.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/test_*.py" = ["F401"]
+
+# ---------------------------------------------------------------------------
+# Mypy — stricter than the root configuration on purpose. The root is loosened
+# for a decade of existing code; this package is new, so it starts clean and
+# stays clean.
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+files = ["veaf_support_bot", "tests"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "--tb=short",
+    "--import-mode=importlib",
+    "--cov=veaf_support_bot",
+    "--cov-report=term-missing:skip-covered",
+    # Ratchet, never a target to relax: measured 93.66 % after the shutdown-bound tests.
+    "--cov-fail-under=92",
+]
+
+[tool.coverage.run]
+source = ["veaf_support_bot"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

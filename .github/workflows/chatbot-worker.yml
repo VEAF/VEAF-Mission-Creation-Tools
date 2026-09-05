@@ -1,0 +1,50 @@
+# Runs the documentation chatbot Worker's unit tests.
+#
+# Added after FEAT-SUPPORT-LOG-ANALYSIS/02: the suite existed but no CI ever ran it on a pull
+# request. Its only caller was the `Rebuild docs chatbot index` workflow, which is `on: push` to
+# `develop` and filtered on `doc/**` plus `scripts/build-index.mjs` — neither `worker/src/**` nor
+# `worker/test/**`. A pull request rewriting the Worker's admission control therefore went green
+# without a single one of these tests running, and the merge did not run them either.
+#
+# The Worker itself is deployed by hand (`npx wrangler deploy`); this job gates the code, not the
+# deployment.
+name: Chatbot Worker
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+    paths:
+      - "poc/doc-chatbot/worker/**"
+      - ".github/workflows/chatbot-worker.yml"
+  pull_request:
+    paths:
+      - "poc/doc-chatbot/worker/**"
+      - ".github/workflows/chatbot-worker.yml"
+
+jobs:
+  worker-tests:
+    name: Worker unit tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: poc/doc-chatbot/worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      # `npm ci` also pulls wrangler, which the tests do not need — but the lockfile is the only
+      # install this package declares, and an out-of-sync lockfile is itself worth catching here.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test

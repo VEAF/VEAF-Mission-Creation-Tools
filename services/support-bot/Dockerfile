@@ -17,9 +17,13 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# The one runtime dependency, on its own layer and before the package is copied, so editing the code
-# does not re-resolve it on every build. The bound matches the service's `pyproject.toml`.
-RUN pip install --no-cache-dir "discord.py>=2.4,<3"
+# The runtime dependencies, on their own layer and before the package is copied, so editing the code
+# does not re-resolve them on every build. The bounds match the service's `pyproject.toml`.
+#
+# `typer` is not used by this service at all: it is what the tools' own `.miz` parser imports, and
+# `/bug` summarises a mission through that parser rather than forking a second one. See the comment
+# in `pyproject.toml`.
+RUN pip install --no-cache-dir "discord.py>=2.4,<3" "typer>=0.12,<1"
 
 COPY veaf_support_bot ./veaf_support_bot
 

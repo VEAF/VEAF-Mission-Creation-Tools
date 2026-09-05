@@ -302,6 +302,36 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   colon — each of which used to lose every citation *and* leave the raw instruction line in the
   answer.
 
+- **`/bug` on the support Discord: a form that becomes a filled bug report, with no model involved.**
+  It asks the five things `.github/ISSUE_TEMPLATE/bug_report.yml` needs and takes up to three files,
+  then does everything the free Gemini tier — measured at **20 requests a day** — cannot be trusted
+  to do: it parses the pasted `doctor` block for the tool and DCS versions, finds the `file:line` a
+  stack trace states (CPython, the tools' log, and the shape DCS actually emits for a Lua error),
+  maps it onto a repository checkout, quotes the lines around it and searches for the callers of the
+  function it sits in, reduces an attached `dcs.log` through the existing `veaf_logs` excerpt builder
+  and reports what `rules.json` recognises in the catalogue's own wording, and summarises an attached
+  `.miz` through the existing export — its theatre, date, weather and group *counts*, never its
+  briefing prose or its group names. Everything published is redacted first through the same
+  `veaf_libs.redaction` the `doctor` command uses.
+
+  **What is missing is stated, never filled in.** A version nobody pasted reads *"not stated"*; a
+  trace naming a file this revision does not have says so, with the revision it was checked against.
+  Every location carries that revision and its age, so a stale checkout produces facts a reader can
+  check rather than confident wrong ones.
+
+  **Nothing a reporter or a log writes selects a code path.** The component, the labels, the title
+  and the locations come from a checked-in lookup table, anchored patterns and a parse — never from
+  free text. A test assembles the same report twice, once with instruction-shaped text spliced into
+  every field and into the attached log, and requires the two to decide identically. The evidence
+  itself is never censored: hostile lines travel whole, quoted in a fence they cannot close.
+
+  Oversized, unknown, unreachable and corrupt attachments are each refused with a reason the reporter
+  reads, and the report continues without them. The command is published only when the deployment
+  gives the service a repository clone to read; without one it does not appear at all.
+
+  This is the first half of the intake: the issue is prepared, not yet opened. Filing it is the
+  GitHub App of the same lot.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

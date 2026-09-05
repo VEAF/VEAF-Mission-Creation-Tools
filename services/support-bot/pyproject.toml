@@ -19,6 +19,15 @@ packages = [{ include = "veaf_support_bot" }]
 # installable anywhere; ticket 02 adds the Discord library.
 python = "^3.11"
 discord-py = "^2.4"
+# Not used by a single line of this service. It is here because `/bug` summarises an attached `.miz`
+# through the tools' **own** parser rather than forking a second one, and that parser reaches
+# `veaf_libs.logger`, which imports `typer` at module scope. Measured: it is the only third-party
+# package missing — `luadata` lives in the repository and is imported from the checkout like the rest.
+#
+# The alternative was writing a second mission reader here, which is the one thing ticket 02 forbids:
+# a fork would drift from the parser every other tool in the repository uses, and it would be the
+# forked one deciding what a bug report publishes about somebody's mission.
+typer = "^0.12"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"

@@ -7,7 +7,7 @@ fixture would move every time somebody edits the file it points at.
 
 So the tests build a miniature repository once per session: a git-less directory holding a handful
 of source files the trace fixtures point at, plus **the real** ``veaf_libs`` and ``veaf_logs``
-modules copied out of the repository. Copying them rather than stubbing them is deliberate: the
+packages copied out of the repository. Copying them rather than stubbing them is deliberate: the
 point of :mod:`veaf_support_bot.toolkit` is that the service uses the tools' own redaction, the
 tools' own block parser and the tools' own excerpt builder, and a stub would prove none of that.
 
@@ -31,30 +31,25 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 #: Where the tools' importable packages sit inside it.
 TOOLS_ROOT = REPO_ROOT / "src" / "python" / "veaf-tools"
 
-#: Files copied out of ``veaf_libs``. Everything the seam needs, and nothing that would drag in a
-#: third-party dependency the service does not install.
-_VEAF_LIBS_FILES = ("__init__.py", "redaction.py", "diagnostics.py")
+#: The tools' packages copied into the fixture, whole.
+#:
+#: Whole rather than file by file, because the seam imports **through** them: the ``.miz`` summary
+#: reaches ``mission_tools`` which reaches ``luadata`` which reaches ``veaf_libs.logger``, and a
+#: hand-picked list would go stale the first time one of those grew an import.
+#:
+#: There is one root, not two, and that is not an accident of the fixture: ``sys.path`` is global, so
+#: a process can only have one checkout — which is exactly the production situation.
+_COPIED_PACKAGES = ("veaf_libs", "veaf_logs", "mission_tools", "luadata")
 
-#: Files copied out of ``veaf_logs``. The core of the log reader; ``ui/`` needs PySide6 and is left
-#: behind, which is exactly why the seam only ever imports these modules.
-_VEAF_LOGS_FILES = (
-    "__init__.py",
-    "buffer.py",
-    "parser.py",
-    "filters.py",
-    "store.py",
-    "rules.py",
-    "rules.json",
-    "profiles.py",
-    "excerpt.py",
-    "catalogue.py",
-)
+#: Never copied. ``veaf_logs/ui`` needs PySide6, and compiled caches are noise the caller search
+#: would have to walk.
+_NOT_COPIED = shutil.ignore_patterns("ui", "__pycache__", "*.pyc")
 
 #: A Python module the trace fixtures point at, with a function called from two other files.
 SAMPLE_MODULE = '''"""A module the trace fixtures name."""
 
 
-def convert(mission):
+def convert_fixture(mission):
     """Convert one mission."""
     validated = validate(mission)
     return validated["result"]
@@ -67,20 +62,20 @@ def validate(mission):
 
 SAMPLE_CALLER_ONE = '''"""One caller."""
 
-from sample import convert
+from sample import convert_fixture
 
 
 def run(mission):
-    return convert(mission)
+    return convert_fixture(mission)
 '''
 
 SAMPLE_CALLER_TWO = '''"""Another caller."""
 
-from sample import convert
+from sample import convert_fixture
 
 
 def batch(missions):
-    return [convert(one) for one in missions]
+    return [convert_fixture(one) for one in missions]
 '''
 
 #: A Lua file the Lua trace fixture names.
@@ -108,11 +103,9 @@ def fixture_root() -> Path:
     (root / ".git").mkdir()
 
     tools = root / "src" / "python" / "veaf-tools"
-    for package, names in (("veaf_libs", _VEAF_LIBS_FILES), ("veaf_logs", _VEAF_LOGS_FILES)):
-        target = tools / package
-        target.mkdir(parents=True)
-        for name in names:
-            shutil.copy2(TOOLS_ROOT / package / name, target / name)
+    tools.mkdir(parents=True)
+    for package in _COPIED_PACKAGES:
+        shutil.copytree(TOOLS_ROOT / package, tools / package, ignore=_NOT_COPIED)
 
     source = root / "src" / "python" / "veaf-tools" / "mission_builder"
     source.mkdir(parents=True)
@@ -173,8 +166,8 @@ def doctor_block(version: str = "6.16.3") -> str:
 #: A CPython traceback naming a file the fixture repository holds, on a machine that is not ours.
 PYTHON_TRACEBACK = r"""Traceback (most recent call last):
   File "C:\Users\Someone\dev\veaf\src\python\veaf-tools\mission_builder\caller_one.py", line 7, in run
-    return convert(mission)
-  File "C:\Users\Someone\dev\veaf\src\python\veaf-tools\mission_builder\sample.py", line 7, in convert
+    return convert_fixture(mission)
+  File "C:\Users\Someone\dev\veaf\src\python\veaf-tools\mission_builder\sample.py", line 7, in convert_fixture
     return validated["result"]
 KeyError: 'result'
 """

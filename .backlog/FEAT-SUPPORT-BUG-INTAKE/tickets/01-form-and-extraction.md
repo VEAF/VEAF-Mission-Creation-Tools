@@ -1,6 +1,6 @@
 # 01 — A form, and everything it becomes without a model
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -45,13 +45,13 @@ have drawn out.
 
 ## Definition of done
 
-- [ ] `/bug` opens a modal; submission is acknowledged inside Discord's three-second window
-- [ ] `doctor` block parsed when present, reported as missing when not — never guessed
-- [ ] Stack trace located to `file:line`, neighbourhood and callers extracted from the checkout
-- [ ] `rules.json` matches rendered with their own wording
-- [ ] Checkout freshness mechanism implemented and documented
-- [ ] Injected instructions in user text or file content steer nothing — asserted by a test carrying
+- [x] `/bug` opens a modal; submission is acknowledged inside Discord's three-second window
+- [x] `doctor` block parsed when present, reported as missing when not — never guessed
+- [x] Stack trace located to `file:line`, neighbourhood and callers extracted from the checkout
+- [x] `rules.json` matches rendered with their own wording
+- [x] Checkout freshness mechanism implemented and documented
+- [x] Injected instructions in user text or file content steer nothing — asserted by a test carrying
       a hostile fixture
-- [ ] Unit tests: a full report, a report with no trace, a trace pointing at a file that no longer
+- [x] Unit tests: a full report, a report with no trace, a trace pointing at a file that no longer
       exists, an empty field
-- [ ] Quality gate clean
+- [x] Quality gate clean

@@ -13,24 +13,72 @@ It answers `/ask` on the VEAF Discord, in a public thread, from the documentatio
 | **Shape** | A long-running service. Not a CLI, not a serverless Worker — the third shape in this repository. |
 | **Home** | `services/support-bot/`, its own Python project with its own `pyproject.toml`. |
 | **Release** | Deployed **independently** of the tools. Its version (`0.1.0`) is deliberately *not* the `veaf-tools` version, and it is **not** part of the lockstep between `pyproject.toml` and the two agent manifests. Nobody waits for a release to restart the bot. |
-| **Dependencies** | One at run time: `discord.py` (which brings `aiohttp`). Everything else is standard library. |
+| **Dependencies** | One at run time: `discord.py` (which brings `aiohttp`). Everything else is standard library — plus, for `/bug` only, the modules read out of the checkout (see below). |
 
 ### What it does **not** do
 
 Stated plainly, because a user who expects one of these will read its absence as a bug:
 
-- **It does not read the sources.** The corpus is `doc/`, 1.8 MB of documentation, and nothing else.
-  A question whose answer only exists in a `.lua` or a `.py` file has no answer here. Reading code
-  needs a different tool — an agent with a checkout, not a similarity search — and that arrives in
-  [`FEAT-SUPPORT-BUG-INTAKE`](../../.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md).
-- **It does not open issues.** `/bug` does not exist. When the bot does not know, it points at the
-  support page, which says where to report things.
-- **It does not analyse logs.** That is
-  [`FEAT-SUPPORT-LOG-ANALYSIS`](../../.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md), a separate lot and
-  a separate Worker route.
-- **It answers from the documentation, so a documentation gap is a wrong or missing answer.** The
-  fix is to write the page. There is nothing to retrain, and no way to correct the bot other than
-  correcting `doc/`. That is the point: `/ask` failing is a documentation ticket.
+- **`/ask` does not read the sources.** Its corpus is `doc/`, 1.8 MB of documentation, and nothing
+  else. A question whose answer only exists in a `.lua` or a `.py` file has no answer there.
+- **`/bug` does not open an issue yet.** It collects, extracts and prepares — the preview and the
+  click that files are [ticket 04](../../.backlog/FEAT-SUPPORT-BUG-INTAKE/tickets/04-draft-and-consent.md),
+  and the GitHub App that opens it is
+  [ticket 05](../../.backlog/FEAT-SUPPORT-BUG-INTAKE/tickets/05-github-app.md).
+- **Neither command calls a model to prepare a bug report.** The whole `/bug` path is deterministic
+  by design: the free Gemini tier is 20 requests a day, and a report must not depend on one.
+- **`/ask` answers from the documentation, so a documentation gap is a wrong or missing answer.**
+  The fix is to write the page. There is nothing to retrain, and no way to correct the bot other
+  than correcting `doc/`. That is the point: `/ask` failing is a documentation ticket.
+
+---
+
+## How `/bug` works, and why it needs a checkout
+
+`/bug` opens a **form** — five fields and up to three attachments — and turns it into a filled bug
+report **without calling any model at all**. Every part of that report is a parse, a lookup or a
+search:
+
+| From | Extracted |
+|---|---|
+| the `doctor` block the reporter pasted | the tool version, the DCS version, the OS — or *"not stated"*, never a guess |
+| a stack trace, in the form or in the attached log | the `file:line` it names, mapped onto the checkout |
+| that location | the lines around it, and the callers of the function it sits in |
+| an attached `dcs.log` | a bounded excerpt through `veaf_logs`, with what `rules.json` recognises, in the catalogue's own wording |
+| an attached `.miz` | the mission's *shape* — theatre, date, weather, group counts, zone count — never its briefing or its group names |
+
+**Everything published is redacted first**, through the same `veaf_libs.redaction` the `doctor`
+command uses. And **everything read is data**: no line a reporter or a log wrote ever selects a code
+path. `tests/test_intake_hostile.py` holds that in place by assembling the same report twice, once
+with instruction-shaped text spliced into every field, and requiring identical decisions.
+
+### The checkout, and how it stays fresh
+
+Turning a trace into `mission_builder/v5_converter.py:412` is only worth doing if the file on disk
+is the file the reporter is running, so the service keeps its **own clone** and refreshes it on a
+timer (`SUPPORT_BOT_CHECKOUT_*`). Three consequences, all deliberate:
+
+- **The clone must be the service's.** A refresh runs `git fetch` then `git reset --hard`, so
+  pointing it at a working copy somebody edits throws that person's work away.
+- **A failed refresh is survivable.** The previous revision keeps working; the checkout is marked
+  stale and says so.
+- **Every location carries the revision it came from** — `at 4f2a1c9ab, refreshed 12 min ago` — so a
+  reader can tell whether to trust it. That is what makes staleness harmless rather than misleading.
+
+With no `SUPPORT_BOT_CHECKOUT_PATH`, `/bug` is **not published at all**. A command in the picker
+that answers "I cannot do this" is a promise the service does not keep.
+
+### Where the service ends and `veaf-tools` begins
+
+The service is a separate project and its image carries only `veaf_support_bot` and `discord.py`.
+`/ask` handled that by generating a checked-in snapshot of the documentation index. `/bug` cannot:
+it already needs the repository on disk to read source lines, so the checkout **is** the dependency.
+
+`veaf_support_bot/toolkit.py` is the only door through it. It puts
+`<checkout>/src/python/veaf-tools` on `sys.path`, checks that the module it got really came from
+that root, and turns any failure into a stated missing section rather than a lost report. Vendoring
+a copy instead would create a second source of truth about a tree the service is already reading
+live.
 
 ---
 
@@ -105,6 +153,12 @@ CRITICAL veaf-support-bot.cli the support bot cannot start: 3 configuration prob
 | `SUPPORT_BOT_LOG_FORMAT` | no | `json` | `json` for a collector, `text` for a terminal. |
 | `SUPPORT_BOT_HEARTBEAT_SECONDS` | no | `60` | Interval between heartbeat log lines. |
 | `SUPPORT_BOT_SHUTDOWN_GRACE_SECONDS` | no | `10` | Bounds the **whole** shutdown sequence, not each step. |
+| `SUPPORT_BOT_CHECKOUT_PATH` | no | *(unset)* | A clone of this repository, **owned by the service**. Unset means `/bug` is not published at all. |
+| `SUPPORT_BOT_CHECKOUT_REMOTE` | no | `origin` | Remote that clone is refreshed from. |
+| `SUPPORT_BOT_CHECKOUT_BRANCH` | no | `develop` | Branch it is reset onto. |
+| `SUPPORT_BOT_CHECKOUT_REFRESH_SECONDS` | no | `900` | Shortest gap between two refreshes; `0` pins the revision. |
+| `SUPPORT_BOT_ATTACHMENT_MAX_BYTES` | no | `26214400` (25 MB) | Largest single file one bug report may carry. |
+| `SUPPORT_BOT_ATTACHMENT_TOTAL_BYTES` | no | `62914560` (60 MB) | Largest total across one bug report. |
 | `SUPPORT_BOT_DRY_RUN` | no | `false` | Start everything except the connection to Discord. |
 
 [`.env.example`](.env.example) carries the same list with the reasoning; `tests/test_packaging.py`

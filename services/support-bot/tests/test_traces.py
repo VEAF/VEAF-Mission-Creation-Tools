@@ -33,7 +33,7 @@ class TestFindingFrames(unittest.TestCase):
         frames = find_frames(PYTHON_TRACEBACK)
         self.assertEqual([frame.line for frame in frames], [7, 7])
         self.assertTrue(frames[0].path.endswith("sample.py"))
-        self.assertEqual(frames[0].symbol, "convert")
+        self.assertEqual(frames[0].symbol, "convert_fixture")
 
     def test_a_lua_error_yields_its_file_and_line(self) -> None:
         frames = find_frames(LUA_ERROR)
@@ -97,7 +97,7 @@ class TestReadingTheNeighbourhood(unittest.TestCase):
         self.assertEqual(quote_neighbourhood(self.lines, 9999), "")
 
     def test_the_enclosing_function_is_read_from_the_file(self) -> None:
-        self.assertEqual(enclosing_function(self.lines, 7), "convert")
+        self.assertEqual(enclosing_function(self.lines, 7), "convert_fixture")
 
     def test_a_line_above_every_definition_has_no_enclosing_function(self) -> None:
         self.assertEqual(enclosing_function(self.lines, 1), "")
@@ -107,7 +107,7 @@ class TestFindingCallers(unittest.TestCase):
     def test_both_callers_are_found_and_the_definition_is_not(self) -> None:
         root = fixture_root()
         defined_in = root / "src/python/veaf-tools/mission_builder/sample.py"
-        callers, total = find_callers(root, "convert", defined_in)
+        callers, total = find_callers(root, "convert_fixture", defined_in)
         self.assertEqual(total, 2)
         named = {entry.split(":")[0] for entry in callers}
         self.assertEqual(
@@ -128,7 +128,7 @@ class TestFindingCallers(unittest.TestCase):
     def test_a_name_that_is_not_an_identifier_is_refused(self) -> None:
         """The name can come from a trace, so it can be anything at all."""
         root = fixture_root()
-        self.assertEqual(find_callers(root, "convert(); import os; os.system", root / "x"), ((), 0))
+        self.assertEqual(find_callers(root, "convert_fixture(); import os; os.system", root / "x"), ((), 0))
 
 
 class TestTheWholePass(unittest.TestCase):
@@ -139,7 +139,7 @@ class TestTheWholePass(unittest.TestCase):
         reading = read_trace(self.checkout, PYTHON_TRACEBACK)
         self.assertEqual(reading.locations[0].relative, "src/python/veaf-tools/mission_builder/sample.py")
         self.assertEqual(reading.locations[0].line, 7)
-        self.assertEqual(reading.locations[0].function, "convert")
+        self.assertEqual(reading.locations[0].function, "convert_fixture")
         self.assertEqual(reading.locations[0].caller_total, 2)
         self.assertIn('validated["result"]', reading.locations[0].excerpt)
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from tests.intake_fixtures import FORGED_BLOCK, doctor_block, fixture_root
@@ -27,6 +28,70 @@ from veaf_support_bot.toolkit import (
     redact,
     summarise_mission,
 )
+
+#: A ``mission`` file shaped the way DCS writes one, small enough to read and complete enough that
+#: the real parser accepts it.
+_LUA_MISSION = """mission =
+{
+    ["theatre"] = "Caucasus",
+    ["version"] = 22,
+    ["start_time"] = 28800,
+    ["descriptionText"] = "Squadron briefing, with a real name in it",
+    ["date"] =
+    {
+        ["Year"] = 2016,
+        ["Month"] = 6,
+        ["Day"] = 21,
+    },
+    ["weather"] =
+    {
+        ["clouds"] =
+        {
+            ["base"] = 2000,
+            ["preset"] = "Preset10",
+        },
+        ["season"] =
+        {
+            ["temperature"] = 20,
+        },
+    },
+    ["triggers"] =
+    {
+        ["zones"] =
+        {
+            [1] =
+            {
+                ["name"] = "ZoneA",
+                ["radius"] = 1000,
+            },
+        },
+    },
+    ["coalition"] =
+    {
+        ["blue"] =
+        {
+            ["country"] =
+            {
+                [1] =
+                {
+                    ["id"] = 2,
+                    ["name"] = "USA",
+                    ["plane"] =
+                    {
+                        ["group"] =
+                        {
+                            [1] =
+                            {
+                                ["name"] = "VEAF 1-1",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+}
+"""
 
 #: A log shaped like the real thing: DCS records, one of them an error, and a home directory.
 SYNTHETIC_LOG = "\n".join(
@@ -220,6 +285,21 @@ class TestTheMissionSummary(unittest.TestCase):
             broken.write_bytes(b"not a zip at all")
             with self.assertRaises(ToolkitUnavailable):
                 summarise_mission(fixture_root(), broken)
+
+    def test_a_real_miz_goes_through_the_tools_own_parser(self) -> None:
+        """End to end: a real archive, the real ``read_miz``, and only the chosen fields out."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "test.miz"
+            with zipfile.ZipFile(path, "w") as archive:
+                archive.writestr("mission", _LUA_MISSION)
+                archive.writestr("options", "options = {}")
+                archive.writestr("warehouses", 'warehouses = { ["airports"] = {} }')
+            summary = summarise_mission(fixture_root(), path)
+        self.assertEqual(summary.fields["theatre"], "Caucasus")
+        self.assertEqual(summary.fields["trigger_zone_count"], 1)
+        self.assertEqual(summary.fields["group_counts"], {"blue/plane": 1})
+        self.assertNotIn("VEAF 1-1", repr(summary.fields), "group names are counted, never listed")
+        self.assertNotIn("Squadron briefing", repr(summary.fields))
 
 
 if __name__ == "__main__":

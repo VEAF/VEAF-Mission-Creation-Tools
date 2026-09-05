@@ -1,6 +1,6 @@
 # 02 — Attachments become bounded, redacted material
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -36,11 +36,11 @@ can be left as a Discord link, since those URLs are signed and expire.
 
 ## Definition of done
 
-- [ ] Download with size ceiling and type allow-list
-- [ ] Log filtering reusing the shared excerpt builder, not a second implementation
-- [ ] Mission summarised through the existing export, with the published field set decided explicitly
-- [ ] Redaction applied to every artefact before it leaves the service
-- [ ] Files re-uploaded to the issue; no reliance on Discord URLs surviving
-- [ ] Oversized, unknown and corrupt attachments each handled without aborting the flow
-- [ ] Unit tests on a large synthetic log, a real-shaped `.miz`, and each rejection path
-- [ ] Quality gate clean
+- [x] Download with size ceiling and type allow-list
+- [x] Log filtering reusing the shared excerpt builder, not a second implementation
+- [x] Mission summarised through the existing export, with the published field set decided explicitly
+- [x] Redaction applied to every artefact before it leaves the service
+- [x] Files re-uploaded to the issue; no reliance on Discord URLs surviving
+- [x] Oversized, unknown and corrupt attachments each handled without aborting the flow
+- [x] Unit tests on a large synthetic log, a real-shaped `.miz`, and each rejection path
+- [x] Quality gate clean

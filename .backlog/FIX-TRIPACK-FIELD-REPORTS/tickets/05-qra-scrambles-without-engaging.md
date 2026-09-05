@@ -1,55 +1,98 @@
-# 05 — QRA fighters scramble and never engage
+# 05 — A cloned group loses the mission task the editor gave it
 
-Status: 🧑 waiting-human
+Status: ⬜ ready
 
 Type: fix
 
+Measured 2026-09-05 on Tripack's `Snowfox_20260903.miz` and `src(4).zip`. The ticket opened with no
+diagnosis; the mission gave one.
+
 ## The report
 
-Tripack, 2026-09-03: *"réaction bizarre des avions de la QRA, tout se déclenche mais ils font leur
-nav tranquilos"*, with an F10 screenshot showing the QRA airborne and unbothered. Then the part that
-makes it a regression rather than a mission-design question:
+*"réaction bizarre des avions de la QRA, tout se déclenche mais ils font leur nav tranquilos … la
+semaine passée ils étaient méchants, rien touché de mon côté depuis"* — Tripack, 2026-09-03, between
+6.16.0 and 6.19.0.
 
-*"la semaine passée ils étaient méchants, rien touché de mon côté depuis"*
+## What his mission actually declares
 
-Between the two, his toolchain went from 6.16.0 to 6.19.0 — the same jump the log records.
+`QRA_SOUTH` deploys pre-placed DCS groups, so it takes the DCS-group branch of `VeafQRACore:deploy`
+and ends on `VeafGroupSpawn:…:clone()` ([`veafQraCore.lua:1042`](../../../src/scripts/veaf/veafQraCore.lua)):
 
-## What the log gives
+```lua
+:setRandomGroupsToDeployByEnemyQuantity(1, {"CAP_AL_MINHAD-1", …, "CAP_FUJAIRAH-6"}, 1)
+```
 
-Nothing. `VEAF-QRA` prints its load line four times and never speaks again: everything the manager
-says about a deployment is `debug` or `trace`, and the log is at `INFO`. Red aircraft were flying
-(a MiG-25PD and a MiG-23MLD are shot down at 19:14-19:15), but nothing ties them to the QRA.
+`CAP_AL_MINHAD-1`, read out of the mission table:
 
-## The hypothesis that was checked and ruled out
+| Field | Value |
+|---|---|
+| `task` | **`'CAP'`** |
+| `taskSelected` | `true` |
+| `uncontrolled` | `false` |
+| `frequency` / `modulation` | `251.5` / `0` |
+| `hidden` | `true` |
+| route wp2 | `ComboTask` holding **`EngageTargetsInZone`** |
 
-A cloned group flying a route stripped of its tasks is exactly what "they fly their nav quietly"
-looks like, and MiST's `getGroupRoute` did return a task-less route unless asked otherwise — a
-plausible thing for the port to have inherited.
+So the editor gives these fighters both halves of what makes them fight: a group-level mission task,
+and a per-waypoint engagement task.
 
-It did not. [`veafDcsSpawner.getGroupRoute`](../../../src/scripts/veaf/veafDcsSpawner.lua) projects
-`task` along with `alt`, `speed`, `airdromeId` and the rest, its docstring records that all eight
-call sites wanted tasks, and `_spawn` assigns the projected route to `data.route` before submitting.
-The QRA's DCS-group branch goes through that path
-([`veafQraCore.lua:1042`](../../../src/scripts/veaf/veafQraCore.lua)).
+## What the clone submits
 
-So the mechanism is elsewhere, and there is no second candidate yet.
+`_sourceData("clone")` reads `veafMissionDb.getGroupRecord`, and that record carries exactly ten
+fields: `groupName`, `groupId`, `coalition`, `coalitionId`, `category`, `country`, `countryId`,
+`units`, `route`, `missionData`. **The word `task` does not appear anywhere in
+[`veafMissionDb.lua`](../../../src/scripts/veaf/veafMissionDb.lua)** — verified, zero matches.
 
-## What is needed before this can be worked
+`addGroup` then fills in `hidden`, `visible` and `start_time` and submits. Nothing puts `task` back,
+and `veafQraCore` sets no task of its own after the spawn — no `setTask`, no `goRoute`, no
+`readyForCombat`.
 
-1. **Which QRA branch the mission uses** — a DCS group placed in the editor, or a VEAF command. The
-   two spawn through entirely different code.
-2. **A run with the VEAF logs at `debug`**, which is what makes `VeafQRACore:deploy` legible at all.
-3. **Tripack's `Snowfox_20260903.miz`**, asked for on 2026-09-05.
-4. A worthwhile bisect once the shape is known: 6.16.0 → 6.19.0 covers
-   [#840](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/840) (VEAF creates its own groups),
-   [#842](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/842) (the spawn builder) and
-   [#900](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/900) (a clone always renames its
-   units) — all three on the exact path a QRA scramble takes.
+So `coalition.addGroup` receives a CAP flight with **no mission task**. The per-waypoint
+`EngageTargetsInZone` survives, because the route projection does carry `task` per point; the group's
+own `'CAP'` does not.
+
+## Why this is a regression and not a long-standing gap
+
+MiST carried it. `mist.DBs` is built with
+`mist.DBs.units[coa][country][category][n].task = group_data.task`
+([`mist.lua:264`](../../../src/scripts/community/mist.lua)), and `getCurrentGroupData` restores
+`task`, `modulation`, `uncontrolled`, `radioSet`, `hidden` and `startTime` from what it recorded
+([`mist.lua:1030`](../../../src/scripts/community/mist.lua)). Every VEAF clone went through that
+table until `REFACTOR-SPAWNER` replaced it — which lands the change squarely between the version
+where Tripack's QRA was *"méchante"* and the one where it is not.
+
+**Not proven**: that DCS specifically makes an aircraft passive when `task` is absent. What is proven
+is the loss of a field the editor set and MiST forwarded. Settling the behaviour needs the game and
+belongs in `DCS-SESSION-TODO.md`; the fix does not wait on it, because forwarding what the mission
+maker wrote is correct either way.
+
+## The blast radius is wider than the QRA
+
+Every field the editor sets at group level and the record does not carry is lost by **every** clone
+and respawn — air waves, combat missions, combat zones, assets, `veafMove` escorts:
+
+`task`, `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication`, `radioSet`.
+
+Two are worth calling out. `frequency`/`communication` explains a comment already in the tree —
+`veafMove.lua:952`, *"have to set the frequency again as setTask seems to ignore missionData.frequency
+and switch the unit to 124AM"*, which reads like a symptom of this same loss. And `hidden`: the editor
+hides these QRA groups, `addGroup` defaults a missing `hidden` to `false`, so every scrambled flight
+becomes visible on the F10 map — cheap to check against Tripack's own screenshot.
+
+## The fix
+
+Carry the group-level fields in the record. `missionData` is already held by reference, so the data
+is there and the cost is naming the fields; do not project the whole editor table, which the record's
+own docstring rejects on purpose. Enumerate the fields from the mission schema rather than from the
+seven found here — the sweep is the deliverable, not a sample.
 
 ## Definition of done
 
-- [ ] The QRA's passivity is reproduced
-- [ ] Its cause is named, with the measurement that shows it
-- [ ] Fix, plus a test asserting **the wiring** — that a scrambled group reaches DCS carrying the
-      task that makes it fight — and not merely that the handler was called
+- [ ] A cloned or respawned group reaches DCS carrying the group-level fields the editor set,
+      `task` included
+- [ ] The field list is enumerated from the schema, not sampled, and a test walks it
+- [ ] Test asserts **the wiring**: what `coalition.addGroup` is handed for a QRA scramble, not that a
+      helper was called
+- [ ] `hidden` is forwarded rather than defaulted when the editor set it
+- [ ] In-game check queued in `DCS-SESSION-TODO.md`: a scrambled QRA engages
 - [ ] `luacheck` + `stylua --check` clean; Lua coverage floor bumped per the ratchet policy

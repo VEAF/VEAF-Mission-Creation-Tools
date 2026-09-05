@@ -87,6 +87,11 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "Le bot ne peut plus tenir ses compteurs à jour, il répond donc au ralenti par sécurité. "
             "Réessaie {reset_relative} (vers {reset_time})."
         ),
+        "quota.degraded-day": (
+            "Le bot ne peut plus tenir ses compteurs à jour : il s'est donc limité à {limit} "
+            "questions pour aujourd'hui, par sécurité. Ça se remet à zéro {reset_relative} (à "
+            "{reset_time}) — et signale-le sur le canal support, ça ne se répare pas tout seul."
+        ),
     },
     "en": {
         # --- the exchange -------------------------------------------------------------------
@@ -145,6 +150,11 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "quota.degraded": (
             "The bot can no longer keep its counters, so it is answering at a reduced rate as a "
             "precaution. Try again {reset_relative} (around {reset_time})."
+        ),
+        "quota.degraded-day": (
+            "The bot can no longer keep its counters, so it has held itself to {limit} questions for "
+            "today as a precaution. It resets {reset_relative} (at {reset_time}) — and please report "
+            "it on the support channel, this one does not fix itself."
         ),
     },
 }

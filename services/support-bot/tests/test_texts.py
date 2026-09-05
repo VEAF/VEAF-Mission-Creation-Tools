@@ -64,8 +64,14 @@ class TestEveryOutcomeHasASentence(unittest.TestCase):
                     self.assertIn("R", rendered)
 
     def test_the_reasons_were_actually_found(self) -> None:
-        """Guards the guard: an extractor that finds nothing makes the test above vacuous."""
-        self.assertEqual(_refusal_reasons(), {"user-window", "user-day", "global-day", "degraded"})
+        """Guards the guard: an extractor that finds nothing makes the test above vacuous.
+
+        Compared against the keeper's own declared list rather than one written here, so the two
+        ways a reason can go wrong both fail: one produced and never declared, and one declared that
+        nothing produces.
+        """
+        self.assertTrue(_refusal_reasons())
+        self.assertEqual(_refusal_reasons(), set(quota.REFUSAL_REASONS))
 
 
 class TestLanguageSelection(unittest.TestCase):

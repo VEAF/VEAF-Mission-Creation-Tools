@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,9 @@ from veaf_support_bot.quota import (
     QuotaStore,
     next_midnight,
 )
+
+#: The start of a UTC day, so "one whole day" is a span that crosses no midnight.
+MIDNIGHT = datetime(2026, 9, 5, 0, 0, 0, tzinfo=UTC).timestamp()
 
 #: A fixed instant, so "the next UTC midnight" is a number the tests can name.
 NOON = datetime(2026, 9, 5, 12, 0, 0, tzinfo=UTC).timestamp()
@@ -270,6 +274,169 @@ class TestFailingClosed(_QuotaTestCase):
         keeper = self.keeper()
 
         self.assertIn("could not be read", str(keeper.degraded_reason))
+
+
+class TestFailingClosedByTheDayToo(_QuotaTestCase):
+    """A window ceiling bounds a minute. The fault that triggers it lasts hours.
+
+    A volume that was never mounted or a bind mount the service cannot write to is not the Worker's
+    transient KV outage: it stays until somebody notices. So "stricter, never unlimited" has to hold
+    over a day as well, or the fallback outspends the ceiling it replaced.
+    """
+
+    def _serve_a_whole_day(self, keeper: QuotaKeeper, clock: _Clock, users: Sequence[str]) -> int:
+        """Ask once a second for one UTC day and count what went through.
+
+        Args:
+            keeper: The keeper under test.
+            clock: Its clock, moved forward a second at a time.
+            users: The askers, each asking once per second.
+
+        Returns:
+            How many questions were served.
+        """
+        served = 0
+        start = clock.now
+        while clock.now - start < 86400:
+            served += sum(1 for user in users if keeper.check_and_consume(user).allowed)
+            clock.now += 1.0
+        return served
+
+    def test_a_degraded_day_never_outspends_the_ceiling_it_replaced(self) -> None:
+        """The regression: two a minute is 2880 a day, against the 200 the healthy path allows."""
+        self.path.write_text("{", encoding="utf-8")
+        clock = _Clock(MIDNIGHT)
+        keeper = self.keeper(clock)
+        self.assertTrue(keeper.degraded)
+
+        served = self._serve_a_whole_day(keeper, clock, ["u1"])
+
+        self.assertLessEqual(served, QuotaLimits().global_per_day)
+
+    def test_one_user_alone_cannot_take_more_than_a_healthy_day_would_give_them(self) -> None:
+        """The degraded counter is for the whole bot, so its day must not exceed one user's."""
+        self.path.write_text("{", encoding="utf-8")
+        clock = _Clock(MIDNIGHT)
+        keeper = self.keeper(clock)
+
+        served = self._serve_a_whole_day(keeper, clock, ["u1"])
+
+        self.assertLessEqual(served, QuotaLimits().user_per_day)
+
+    def test_the_degraded_day_refuses_with_its_own_reason_and_the_next_midnight(self) -> None:
+        self.path.write_text("{", encoding="utf-8")
+        clock = _Clock(MIDNIGHT)
+        keeper = self.keeper(clock)
+        for _ in range(keeper.degraded_per_day):
+            self.assertTrue(keeper.check_and_consume("u1").allowed)
+            clock.now += 60
+
+        decision = keeper.check_and_consume("u1")
+
+        self.assertEqual(decision.reason, "degraded-day")
+        self.assertEqual(decision.reset_at, next_midnight(MIDNIGHT))
+        self.assertEqual(decision.limit, keeper.degraded_per_day)
+
+    def test_the_degraded_day_is_checked_before_the_degraded_window(self) -> None:
+        """A reader at both ceilings is told the one that actually governs, as in the healthy path."""
+        self.path.write_text("{", encoding="utf-8")
+        clock = _Clock(MIDNIGHT)
+        keeper = self.keeper(clock, global_per_day=DEGRADED_PER_WINDOW, user_per_day=DEGRADED_PER_WINDOW)
+        for _ in range(keeper.degraded_per_day):
+            keeper.check_and_consume("u1")
+
+        self.assertEqual(keeper.check_and_consume("u1").reason, "degraded-day")
+
+    def test_the_next_utc_day_gives_the_fallback_its_allowance_back(self) -> None:
+        self.path.write_text("{", encoding="utf-8")
+        clock = _Clock(MIDNIGHT)
+        keeper = self.keeper(clock)
+        for _ in range(keeper.degraded_per_day + 2):
+            keeper.check_and_consume("u1")
+            clock.now += 60
+
+        clock.now = next_midnight(MIDNIGHT) + 1
+
+        self.assertTrue(keeper.check_and_consume("u1").allowed)
+
+    def test_the_degraded_day_is_never_looser_than_the_configuration_it_stands_in_for(self) -> None:
+        """Enumerated over the ceilings an operator can actually set, not sampled by hand."""
+        for global_per_day in (1, 2, 10, 100, 200, 5000):
+            for user_per_day in (1, 3, 15, 400):
+                with self.subTest(global_per_day=global_per_day, user_per_day=user_per_day):
+                    keeper = QuotaKeeper(QuotaLimits(global_per_day=global_per_day, user_per_day=user_per_day))
+
+                    self.assertTrue(keeper.degraded)
+                    self.assertLessEqual(keeper.degraded_per_day, global_per_day)
+                    self.assertLessEqual(keeper.degraded_per_day, user_per_day)
+                    self.assertGreaterEqual(keeper.degraded_per_day, 1)
+
+    def test_a_one_second_window_does_not_turn_the_fallback_into_a_flood(self) -> None:
+        """``user_window_seconds`` has no lower bound but ``> 0``; the day is what holds then."""
+        self.path.write_text("{", encoding="utf-8")
+        clock = _Clock(MIDNIGHT)
+        keeper = self.keeper(clock, user_window_seconds=1)
+
+        served = self._serve_a_whole_day(keeper, clock, ["u1"])
+
+        self.assertEqual(served, keeper.degraded_per_day)
+
+    def test_the_status_endpoint_shows_the_fallback_s_own_spend(self) -> None:
+        """``global_count`` stops moving while degraded, so it alone would report a spend of zero."""
+        self.path.write_text("{", encoding="utf-8")
+        keeper = self.keeper(_Clock(MIDNIGHT))
+        keeper.check_and_consume("u1")
+
+        snapshot = keeper.snapshot()
+
+        self.assertEqual(snapshot["global_count"], 0)
+        self.assertEqual(snapshot["degraded_count"], 1)
+        self.assertEqual(snapshot["degraded_per_day"], keeper.degraded_per_day)
+
+
+class TestAStateFileOfTheWrongShape(_QuotaTestCase):
+    """A ``version: 1`` document whose insides are not what version 1 means.
+
+    This is the one failure mode with no ``/status`` to read: ``build_quota`` runs inside
+    ``SupportBotService.__init__``, before the health server exists, so an exception here exits the
+    process and the container restarts into the same death.
+    """
+
+    def _write(self, users: Any) -> None:
+        """Write a state document of the right version carrying *users*.
+
+        Args:
+            users: Whatever sits under the ``users`` key.
+        """
+        document = {"version": 1, "day": "2026-09-05", "global_count": 3, "users": users}
+        self.path.write_text(json.dumps(document), encoding="utf-8")
+
+    def test_a_users_list_degrades_rather_than_killing_the_service(self) -> None:
+        self._write(["u1", "u2"])
+
+        self.assertTrue(self.keeper().degraded)
+
+    def test_a_user_entry_that_is_not_a_mapping_degrades(self) -> None:
+        """Enumerated over the JSON types a schema change can leave there, not sampled."""
+        for entry in (1, "counters", None, [1, 2], True, 1.5):
+            with self.subTest(entry=entry):
+                self._write({"u1": entry})
+
+                self.assertTrue(self.keeper().degraded)
+
+    def test_it_says_the_state_could_not_be_read_like_every_other_unusable_file(self) -> None:
+        self._write(["u1"])
+
+        self.assertIn("could not be read", str(self.keeper().degraded_reason))
+
+    def test_a_well_shaped_document_is_still_read(self) -> None:
+        """The guard must reject a shape, not a file — a check that only fails proves nothing."""
+        self._write({"u1": {"window_start": 0.0, "window_count": 1, "day": "2026-09-05", "day_count": 1}})
+
+        keeper = self.keeper()
+
+        self.assertFalse(keeper.degraded)
+        self.assertEqual(keeper.snapshot()["global_count"], 3)
 
 
 class TestStatusReporting(_QuotaTestCase):

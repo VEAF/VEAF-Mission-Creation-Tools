@@ -27,9 +27,15 @@ reports nothing.
 
 **It fails closed.** Counters are persisted, so a restart does not hand everyone a fresh allowance.
 When the store cannot be read or cannot be written, the service does not carry on with counters that
-will evaporate: it drops to a much stricter in-memory ceiling for the whole bot and says so. That is
+will evaporate: it drops to much stricter in-memory ceilings for the whole bot and says so. That is
 the same choice the Worker makes when KV is unreachable, for the same reason — the previous
 behaviour there, returning "allowed", meant an outage silently removed every limit.
+
+The degraded ceilings are a **window and a day**, not a window alone. The Worker's own fallback
+covers a KV outage, which is transient; the trigger here is a durable local fault — a volume that
+was never mounted, a bind mount the service cannot write to, a corrupt file — and those last until a
+human notices. A window-only fallback is stricter by the minute and far looser by the day, which is
+the wrong way round for a fault that lasts hours.
 """
 
 from __future__ import annotations
@@ -54,6 +60,18 @@ STATE_VERSION: Final = 1
 #: point is to stay barely useful rather than to stay open, and it mirrors the Worker's own
 #: degraded ceiling.
 DEGRADED_PER_WINDOW: Final = 2
+
+#: Divisor applied to the configured global daily ceiling to get the degraded daily one. A window
+#: ceiling alone bounds a minute, not a day: at the shipped defaults, two per minute is 2880 a day
+#: against the 200 the healthy path allows. So the fallback carries a day of its own, a tenth of the
+#: bot's own ceiling — see :meth:`QuotaKeeper.degraded_per_day` for why it is also capped by what one
+#: user may ask.
+DEGRADED_DAY_DIVISOR: Final = 10
+
+#: Every reason a refusal can carry, which is also the suffix of its ``quota.*`` text key. Named here
+#: so the sentences can be checked against the reasons the keeper actually produces rather than
+#: against a list somebody remembered to extend.
+REFUSAL_REASONS: Final = ("user-window", "user-day", "global-day", "degraded", "degraded-day")
 
 
 def _day_of(now: float) -> str:
@@ -108,9 +126,9 @@ class QuotaDecision:
 
     Attributes:
         allowed: Whether the question goes through.
-        reason: Which ceiling refused it — ``"user-window"``, ``"user-day"``, ``"global-day"`` or
-            ``"degraded"``. ``None`` when allowed. The value is the suffix of the ``quota.*`` text
-            key, so a reason with no sentence is a failing test rather than a blank message.
+        reason: Which ceiling refused it — one of :data:`REFUSAL_REASONS`. ``None`` when allowed. The
+            value is the suffix of the ``quota.*`` text key, so a reason with no sentence is a
+            failing test rather than a blank message.
         reset_at: Unix timestamp at which the ceiling lifts. ``None`` when allowed.
         limit: The ceiling that refused, for the sentence that names it.
     """
@@ -178,6 +196,10 @@ class QuotaStore:
         Raises:
             OSError: When the file exists but cannot be read.
             ValueError: When it can be read but does not describe counters this version understands.
+                That includes a document of the right *version* and the wrong *shape*: a
+                ``version: 1`` file whose ``users`` is a list, or one user entry that is not a
+                mapping, is a schema change or a half-written file, and it must reach the caller as
+                the failure the docstring names rather than as an ``AttributeError`` nobody catches.
                 Both are deliberately loud: the caller turns either into degraded mode, and a
                 corrupt file silently read as "no counters" would be a full quota reset.
         """
@@ -188,8 +210,13 @@ class QuotaStore:
             raise ValueError(
                 f"unsupported quota state version: {document.get('version') if isinstance(document, dict) else type(document).__name__}"
             )
+        stored_users = document.get("users") or {}
+        if not isinstance(stored_users, dict):
+            raise ValueError(f"quota state 'users' is a {type(stored_users).__name__}, not a mapping")
         users: dict[str, _UserCounters] = {}
-        for user_id, raw in (document.get("users") or {}).items():
+        for user_id, raw in stored_users.items():
+            if not isinstance(raw, dict):
+                raise ValueError(f"quota state entry {user_id!r} is a {type(raw).__name__}, not a mapping")
             users[str(user_id)] = _UserCounters(
                 window_start=float(raw.get("window_start", 0.0)),
                 window_count=int(raw.get("window_count", 0)),
@@ -267,6 +294,8 @@ class QuotaKeeper:
         self._logger = logger or get_logger("quota")
         self._degraded_window_start = 0.0
         self._degraded_count = 0
+        self._degraded_day = ""
+        self._degraded_day_count = 0
         self._state = _State()
         self.degraded = False
         self.degraded_reason: str | None = None
@@ -276,11 +305,31 @@ class QuotaKeeper:
             return
         try:
             self._state = store.load()
-        except (OSError, ValueError, TypeError, KeyError) as error:
+        except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+            # ``AttributeError`` is the belt behind :meth:`QuotaStore.load`'s own shape check: this
+            # runs inside ``SupportBotService.__init__``, *before* the health server exists, so an
+            # escape here is a crash loop with no ``/status`` to read — the one failure the whole
+            # module is written to prevent.
             self._degrade(f"the quota state could not be read: {type(error).__name__}: {error}")
 
+    @property
+    def degraded_per_day(self) -> int:
+        """Return the whole bot's daily ceiling while the counters cannot be kept.
+
+        A tenth of the configured global ceiling, and never more than what a *single* user may ask in
+        a healthy day: degraded mode must be stricter on every axis the healthy path bounds, and the
+        degraded counter is for the whole bot, so anything above ``user_per_day`` would hand one
+        person more than a working store would. Never below one — a fallback that refuses everything
+        is a bot that has gone quiet, which is the failure this module opens by rejecting.
+
+        Returns:
+            The degraded daily ceiling.
+        """
+        tenth = self.limits.global_per_day // DEGRADED_DAY_DIVISOR
+        return max(1, min(self.limits.user_per_day, tenth))
+
     def _degrade(self, reason: str) -> None:
-        """Drop to the stricter in-memory ceiling and say so, once.
+        """Drop to the stricter in-memory ceilings and say so, once.
 
         Args:
             reason: Why persistence is unusable.
@@ -291,7 +340,12 @@ class QuotaKeeper:
         self.degraded_reason = reason
         self._logger.error(
             "quota counters are not being kept; answering at a reduced rate",
-            extra={"event": "quota.degraded", "reason": reason, "per_window": DEGRADED_PER_WINDOW},
+            extra={
+                "event": "quota.degraded",
+                "reason": reason,
+                "per_window": DEGRADED_PER_WINDOW,
+                "per_day": self.degraded_per_day,
+            },
         )
 
     def snapshot(self) -> dict[str, Any]:
@@ -299,7 +353,9 @@ class QuotaKeeper:
 
         Returns:
             The day, the bot's spend against its ceiling, how many users are tracked, and whether
-            persistence is working.
+            persistence is working. The degraded pair is reported too: while the counters are not
+            kept, ``global_count`` stops moving, so an operator reading only that would see a bot
+            answering and a spend of zero.
         """
         return {
             "day": self._state.day,
@@ -308,6 +364,8 @@ class QuotaKeeper:
             "tracked_users": len(self._state.users),
             "degraded": self.degraded,
             "degraded_reason": self.degraded_reason,
+            "degraded_count": self._degraded_day_count,
+            "degraded_per_day": self.degraded_per_day,
         }
 
     def check_and_consume(self, user_id: str) -> QuotaDecision:
@@ -376,19 +434,37 @@ class QuotaKeeper:
         return None
 
     def _degraded_decision(self, now: float) -> QuotaDecision:
-        """Apply the stricter in-memory ceiling.
+        """Apply the stricter in-memory ceilings: a day for the whole bot, then a window.
+
+        The day is checked first, mirroring the healthy path where the bot's own ceiling is met
+        before anyone's personal one — the reader is told the bound that actually governs.
+
+        The counters are in memory and a restart clears them. That is why they are small: the fault
+        that put the service here is usually still there after the restart, and the process is not
+        answering anybody while it restarts anyway.
 
         Args:
             now: The current timestamp.
 
         Returns:
-            The decision, refusing with ``"degraded"`` once the window's tiny allowance is spent.
+            The decision, refusing with ``"degraded-day"`` or ``"degraded"`` once the matching tiny
+            allowance is spent.
         """
+        today = _day_of(now)
+        if self._degraded_day != today:
+            self._degraded_day = today
+            self._degraded_day_count = 0
+        per_day = self.degraded_per_day
+        if self._degraded_day_count >= per_day:
+            return QuotaDecision(False, "degraded-day", next_midnight(now), per_day)
+
         if now - self._degraded_window_start >= self.limits.user_window_seconds:
             self._degraded_window_start = now
             self._degraded_count = 0
         if self._degraded_count >= DEGRADED_PER_WINDOW:
             reset = self._degraded_window_start + self.limits.user_window_seconds
             return QuotaDecision(False, "degraded", reset, DEGRADED_PER_WINDOW)
+
         self._degraded_count += 1
+        self._degraded_day_count += 1
         return QuotaDecision(True)

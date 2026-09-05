@@ -15,7 +15,7 @@ from typing import Any, cast
 from tests.fakes import FakeWorker, RecordingExchange
 from veaf_support_bot.answer import SOURCES_MARKER
 from veaf_support_bot.ask import AskContext, AskHandler, discord_timestamp, quota_message
-from veaf_support_bot.quota import QuotaDecision, QuotaKeeper, QuotaLimits, QuotaStore
+from veaf_support_bot.quota import REFUSAL_REASONS, QuotaDecision, QuotaKeeper, QuotaLimits, QuotaStore
 from veaf_support_bot.texts import support_page_url, text
 from veaf_support_bot.worker import FailureKind, WorkerFailure
 
@@ -362,7 +362,7 @@ class TestQuotaMessage(unittest.TestCase):
 
     def test_every_refusal_reason_has_a_sentence_in_both_languages(self) -> None:
         """Enumerated from the reasons the keeper can actually produce, not sampled by hand."""
-        for reason in ("user-window", "user-day", "global-day", "degraded"):
+        for reason in REFUSAL_REASONS:
             for lang in ("fr", "en"):
                 with self.subTest(reason=reason, lang=lang):
                     rendered = quota_message(QuotaDecision(False, reason, 1757030400.0, 15), lang)

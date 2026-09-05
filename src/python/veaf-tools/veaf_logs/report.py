@@ -109,6 +109,12 @@ TARGET_EXCERPT_CHARS = 500
 #: ``truncated: non`` over it would be a straight untruth.
 EXCERPT_SHRUNK = "excerpt (réduit)"
 
+#: How many times the block is recomposed before its own ``truncated`` field stops moving. The field
+#: is *inside* the block it describes, so writing it changes the length it was measured from. Two
+#: passes settle every case measured on the real ``dcs.log``; the third is there so that a
+#: pathological one terminates rather than loops.
+_MAX_RECOMPOSITIONS = 3
+
 
 @dataclass(frozen=True)
 class ReportBlock:
@@ -195,7 +201,7 @@ def build_report(
         The block, **without** the code fence — :func:`to_clipboard_text` adds that — already
         redacted as a whole, so an assembled value that slipped through a part is still caught.
         When it does not fit: the commentary and the proposals are dropped whole in
-        :data:`_SACRIFICE_ORDER` first, then the excerpt is *shrunk* to whatever room is left, and
+        :data:`_DROP_ORDER` first, then the excerpt is *shrunk* to whatever room is left, and
         the ``truncated`` field names what went — never a cut at the boundary, which reads to the
         receiver exactly like a complete block.
     """
@@ -224,8 +230,11 @@ def build_report(
     dropped: list[str] = []
     fields["truncated"] = "non"
 
-    def note_dropped() -> None:
-        fields["truncated"] = "retiré pour tenir dans un message : " + ", ".join(dropped)
+    def note_dropped(names: list[str]) -> None:
+        """Write what went. **Before** the room is measured, never after: this field is part of the
+        block, so a value written afterwards makes the block outgrow the room just computed for it —
+        which is how a 2 000-character ceiling returned 2 010 characters."""
+        fields["truncated"] = "retiré pour tenir dans un message : " + ", ".join(names)
 
     def without_excerpt() -> int:
         """Length of the block as it stands with no excerpt section."""
@@ -256,36 +265,108 @@ def build_report(
             break
         if drop(name):
             dropped.append(name)
-            note_dropped()
+            note_dropped(dropped)
 
-    # The excerpt takes what is left rather than being dropped whole.
-    room = room_for_excerpt()
-    if len(bodies["excerpt"]) > room:
-        shrunk = analysis.excerpt.rebound(room) if room >= MIN_EXCERPT_CHARS else None
-        # A header saying "0 records shown" is not an excerpt, it is a claim that one existed. When
-        # the room only pays for the header, the section goes and the field says so.
-        if shrunk is not None and shrunk.entries:
-            bodies["excerpt"] = _fence_safe(shrunk.to_text())
+    # The excerpt takes what is left rather than being dropped whole. The fields the shrink is about
+    # to write — ``truncated``, ``excerpt.shown``, ``excerpt.omitted`` — are themselves part of the
+    # block, so each pass writes them first and measures the room afterwards, and repeats until the
+    # room stops moving. Measuring once and growing after left the block 22 characters past a limit
+    # it had just been sized against, in 30 of 240 swept sizes on the real ``dcs.log``.
+    if len(bodies["excerpt"]) > room_for_excerpt():
+        note_dropped([*dropped, EXCERPT_SHRUNK])
+        shrunk = None
+        for _ in range(_MAX_RECOMPOSITIONS):
+            room = room_for_excerpt()
+            candidate = analysis.excerpt.rebound(room) if room >= MIN_EXCERPT_CHARS else None
+            if candidate is None or not candidate.entries:
+                shrunk = None
+                break
+            shrunk = candidate
+            bodies["excerpt"] = _fence_safe(candidate.to_text())
             # The fields describe the block, not the analysis it came from. Leaving them at their
             # pre-shrink values would announce 157 records over a section holding 7 — and a consumer
             # has no way to catch that, since it is reading the field precisely to avoid counting.
-            fields["excerpt.shown"] = str(len(shrunk.entries))
-            fields["excerpt.omitted"] = str(shrunk.omitted)
+            fields["excerpt.shown"] = str(len(candidate.entries))
+            fields["excerpt.omitted"] = str(candidate.omitted)
+            if len(redact(_compose(fields, bodies))) <= budget:
+                break
+        # A header saying "0 records shown" is not an excerpt, it is a claim that one existed. When
+        # the room only pays for the header, the section goes and the field says so.
+        if shrunk is not None:
             dropped.append(EXCERPT_SHRUNK)
-            note_dropped()
         else:
             bodies["excerpt"] = ""
             fields["excerpt.shown"] = "0"
             fields["excerpt.omitted"] = str(analysis.excerpt.selected)
             dropped.append("excerpt")
-            note_dropped()
+        note_dropped(dropped)
 
-    block = redact(_compose(fields, bodies))
+    def composed() -> str:
+        return redact(_compose(fields, bodies))
+
+    # Still over? Keep dropping. The first loop stops as soon as the excerpt has a decent share —
+    # the right trade for a block that fits, and no reason at all to hand back one that does not.
+    for name in _DROP_ORDER:
+        if len(composed()) <= budget:
+            break
+        if drop(name):
+            dropped.append(name)
+            note_dropped(dropped)
+
+    block = composed()
     if len(block) > budget:
         # Nothing left to drop but the fields themselves. Saying so beats cutting at the boundary:
         # a block cut mid-line reads like a complete one to whoever receives it.
-        fields["truncated"] = f"OUI — {len(block)} caractères pour une limite de {budget} : à coller en deux messages"
-        block = redact(_compose(fields, bodies))
+        block = _announce_overflow(fields, bodies, budget, dropped)
+    return block
+
+
+def _overflow_note(length: int, budget: int, dropped: list[str]) -> str:
+    """Word the "does not fit" notice.
+
+    It carries what was dropped as well as the size, for two reasons. The reader still needs to know
+    what is missing from a block that overflowed — that information used to be overwritten by this
+    very notice. And it makes the notice strictly longer than the one it replaces, which is what
+    keeps it true: a shorter replacement could bring the block back under the limit, leaving it
+    fitting while announcing that it does not. Measured before this, on 59 of 240 swept sizes.
+
+    Args:
+        length: The length the block actually has.
+        budget: The ceiling it is measured against, fence excluded.
+        dropped: What was already removed, in the order it went.
+
+    Returns:
+        The value for the ``truncated`` field.
+    """
+    note = f"OUI — {length} caractères pour une limite de {budget} : à coller en deux messages"
+    return f"{note} ; retiré : {', '.join(dropped)}" if dropped else note
+
+
+def _announce_overflow(fields: dict[str, str], bodies: dict[str, str], budget: int, dropped: list[str]) -> str:
+    """Write the overflow notice, and make the number in it describe the block actually returned.
+
+    The notice lives inside the block it measures, so writing it changes that measurement. Composing
+    once left every announcement wrong: understated by exactly 21 — the growth of the field itself —
+    on the real ``dcs.log``.
+
+    Args:
+        fields: The block's fields; ``truncated`` is written here.
+        bodies: The block's sections, already final.
+        budget: The ceiling the block is measured against, fence excluded.
+        dropped: What was already removed, named in the notice.
+
+    Returns:
+        The composed block, whose ``truncated`` field states its own exact length. The iteration
+        settles: the notice only varies by the number of digits in a length, and a longer block can
+        never carry a shorter number, so there is no pair of values for it to alternate between.
+    """
+    block = redact(_compose(fields, bodies))
+    for _ in range(_MAX_RECOMPOSITIONS):
+        fields["truncated"] = _overflow_note(len(block), budget, dropped)
+        recomposed = redact(_compose(fields, bodies))
+        if len(recomposed) == len(block):
+            return recomposed
+        block = recomposed
     return block
 
 

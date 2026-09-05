@@ -73,6 +73,24 @@ def doctor() -> DiagnosticReport:
     )
 
 
+def doctor_de_taille(caracteres: int) -> DiagnosticReport:
+    """Un rapport dont la section `recent-errors` fait a peu pres *caracteres*.
+
+    Le defaut du bloc n'apparaissait qu'a certaines tailles : c'est la ou le
+    champ `truncated` grossissait juste apres que la place avait ete mesuree.
+    """
+    lignes: list[str] = []
+    total = 0
+    while total < caracteres:
+        ligne = f'  File "veaf_libs/module_{len(lignes)}.py", line {len(lignes) * 17}, in fonction_appelante'
+        lignes.append(ligne)
+        total += len(ligne) + 1
+    return DiagnosticReport(
+        fields={"schema": DOCTOR_SCHEMA, "tool.version": "6.19.0", "dcs.detected": "yes"},
+        recent_errors=["\n".join(lignes)] if lignes else [],
+    )
+
+
 @pytest.fixture
 def gros_doctor() -> DiagnosticReport:
     """Un rapport de la taille d'un vrai : ses traces pesaient ~700 caracteres sur la machine mesuree."""
@@ -269,6 +287,52 @@ class TestBornes:
         relu = parse_report_block(build_report(analysis, doctor, max_chars=200))
         assert relu.fields["truncated"].startswith("OUI")
         assert "deux messages" in relu.fields["truncated"]
+
+    @pytest.mark.parametrize("taille_du_doctor", [0, 10, 120, 240, 360, 480, 590])
+    def test_le_bloc_rendu_ne_depasse_jamais_le_plafond(self, rules, taille_du_doctor):
+        """Mesure : 30 des 240 tailles balayees rendaient un bloc au-dessus de sa limite.
+
+        La cause etait en amont du plafond : le champ `truncated` etait ecrit
+        *apres* que la place de l'extrait avait ete mesuree, donc le bloc
+        grossissait au-dela de la place calculee pour lui.
+        """
+        analysis = analyse_de(rules, GROS, online=lambda *_: "commentaire " * 200)
+        bloc = build_report(analysis, doctor_de_taille(taille_du_doctor))
+        assert len(to_clipboard_text(bloc)) <= DISCORD_MESSAGE_LIMIT
+
+    @pytest.mark.parametrize("plafond", [200, 260, 320, 400, 480])
+    def test_le_chiffre_annonce_est_celui_du_bloc_rendu(self, rules, doctor, plafond):
+        """Chaque `OUI — N caracteres` etait decale de 21 : la croissance du champ lui-meme.
+
+        Le champ est *dans* le bloc qu'il mesure, donc l'ecrire change la
+        longueur dont il a ete tire.
+        """
+        bloc = build_report(analyse_de(rules, GROS), doctor, max_chars=plafond)
+        annonce = parse_report_block(bloc).fields["truncated"]
+        assert annonce.startswith("OUI")
+        chiffre = int(annonce.split("—")[1].split("caractères")[0].strip())
+        assert chiffre == len(bloc)
+
+    def test_un_bloc_qui_rentre_n_est_jamais_annonce_comme_trop_grand(self, rules, doctor):
+        """L'erreur allait dans les deux sens : 59 des 240 cas annoncaient `OUI` en rentrant.
+
+        Balaye tout le domaine ou le bloc bascule, plutot qu'un plafond choisi :
+        c'est a la frontiere que le champ mentait.
+        """
+        analysis = analyse_de(rules, GROS, online=lambda *_: "commentaire " * 200)
+        for plafond in range(200, 2400, 13):
+            bloc = build_report(analysis, doctor, max_chars=plafond)
+            budget = plafond - len(FENCE_OPEN) - len(FENCE_CLOSE) - 2
+            if parse_report_block(bloc).fields["truncated"].startswith("OUI"):
+                assert len(bloc) > budget, f"annonce OUI a {plafond} alors que le bloc rentre"
+            else:
+                assert len(bloc) <= budget, f"bloc de {len(bloc)} pour {budget} sans le dire, a {plafond}"
+
+    def test_ce_qui_a_ete_retire_survit_a_l_annonce_de_depassement(self, rules, doctor):
+        """Le `OUI` ecrasait la liste de ce qui manquait ; le lecteur en a besoin."""
+        annonce = parse_report_block(build_report(analyse_de(rules, GROS), doctor, max_chars=260)).fields["truncated"]
+        assert annonce.startswith("OUI")
+        assert "excerpt" in annonce
 
 
 class TestPressePapier:

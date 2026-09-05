@@ -14,8 +14,10 @@ Both are exact, both cost nothing, and both keep working when the day's model qu
    ``C:\\Users\\Someone\\veaf\\src\\...``. It is mapped by matching its **longest existing tail**
    against the checkout, so ``.../mission_builder/v5_converter.py`` resolves and
    ``.../somewhere-else/v5_converter.py`` resolves to the same file only when no longer tail
-   distinguishes them. A path that matches nothing resolves to nothing, which is the honest answer
-   for a file that no longer exists.
+   distinguishes them. When no tail matches, a **unique** basename does — DCS names a Lua chunk with
+   no directory at all — and a basename carried by two files does not, because that answer would be
+   a coin toss. A path that matches nothing resolves to nothing, which is the honest answer for a
+   file that no longer exists.
 3. **Read the neighbourhood and search for callers.** Both bounded, both textual.
 
 ## What this module refuses to do
@@ -31,7 +33,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from veaf_support_bot.checkout import Checkout
 
@@ -68,10 +70,14 @@ _PYTHON_FRAME = re.compile(r'^\s*File "(?P<path>[^"]+)", line (?P<line>\d+)(?:, 
 
 #: ``…\Scripts\veafSpawn.lua:1234: attempt to index a nil value`` — how DCS reports a Lua error, and
 #: how ``luacheck`` and ``stylua`` report a position too.
-_LUA_FRAME = re.compile(r"(?P<path>[\w./\\:~ -]*?[\w-]+\.lua):(?P<line>\d+):")
+#:
+#: The closing ``"]`` is optional and skipped: DCS wraps the chunk name as ``[string "…lua"]:12:``,
+#: so a pattern that required the colon to touch the suffix matched nothing at all on the one shape
+#: that actually comes out of the game.
+_LUA_FRAME = re.compile(r"""(?P<path>[\w./\\:~ -]*?[\w-]+\.lua)["'\]]*:(?P<line>\d+)""")
 
 #: ``  at mission_builder/v5_converter.py:412`` and the shapes the tools' logger writes.
-_BARE_FRAME = re.compile(r"(?P<path>[\w./\\:~ -]*?[\w-]+\.py):(?P<line>\d+)\b")
+_BARE_FRAME = re.compile(r"""(?P<path>[\w./\\:~ -]*?[\w-]+\.py)["'\]]*:(?P<line>\d+)\b""")
 
 #: A Python ``def`` or a Lua function, for naming the function a line sits in.
 _PYTHON_DEF = re.compile(r"^\s*(?:async\s+)?def\s+(?P<name>\w+)\s*\(")
@@ -217,7 +223,28 @@ def resolve_frame(checkout: Checkout, frame: _RawFrame) -> Path | None:
         found = checkout.resolve(tail)
         if found is not None:
             return found
-    return None
+    return unique_by_name(checkout.root.resolve(), PurePosixPath(frame.path.replace("\\", "/")).name)
+
+
+def unique_by_name(root: Path, basename: str) -> Path | None:
+    """Find a file by name alone, but only when exactly one file carries it.
+
+    DCS names a Lua chunk with no directory at all — ``[string "veafSpawn.lua"]:12:`` — so without
+    this a real in-game error would resolve to nothing. The uniqueness condition is what keeps that
+    from becoming a guess: two files sharing a name make the answer *unknown*, which is reported as
+    unresolved rather than picked at random.
+
+    Args:
+        root: The checkout root.
+        basename: The file name, with no directory part.
+
+    Returns:
+        The one file with that name, or ``None`` when there are none or several.
+    """
+    if not basename or "/" in basename or "\\" in basename:
+        return None
+    matches = [path for path in _searchable_files(root) if path.name == basename]
+    return matches[0] if len(matches) == 1 else None
 
 
 def _read_lines(path: Path) -> list[str]:

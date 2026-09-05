@@ -81,7 +81,13 @@ def install(root: Path) -> None:
 
 
 def _module(root: Path, name: str) -> ModuleType:
-    """Import one module out of the checkout.
+    """Import one module out of the checkout, and check that it really came from there.
+
+    The provenance check is not paranoia. ``sys.path`` is process-global, so once any root has been
+    installed, an import succeeds whatever root is asked for — and a stray ``veaf_libs`` installed
+    in the environment would be used while this function claimed to be reading the checkout. Since
+    the whole point of the seam is *"the checkout is the dependency"*, a module that did not come
+    from it is not the module the caller asked for.
 
     Args:
         root: The repository checkout root.
@@ -91,13 +97,18 @@ def _module(root: Path, name: str) -> ModuleType:
         The imported module.
 
     Raises:
-        ToolkitUnavailable: The module, or something it imports, is not there.
+        ToolkitUnavailable: The module, or something it imports, is not there — or the module that
+            answered lives somewhere other than *root*.
     """
     install(root)
     try:
-        return __import__(name, fromlist=["_"])
+        module = __import__(name, fromlist=["_"])
     except Exception as error:  # noqa: BLE001 - any import failure is the same answer to the caller
         raise ToolkitUnavailable(f"{name} could not be imported from the checkout: {type(error).__name__}") from error
+    origin = getattr(module, "__file__", None)
+    if origin is None or not Path(origin).resolve().is_relative_to((root / TOOLS_PACKAGE_ROOT).resolve()):
+        raise ToolkitUnavailable(f"{name} was resolved from {origin}, which is not inside {root}")
+    return module
 
 
 # ---------------------------------------------------------------------------

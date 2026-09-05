@@ -68,7 +68,7 @@ class WorkerChatWorker(BaseWorker):
 
         with response as resp:
             if resp.status_code != 200:
-                raise RuntimeError(t("ask.worker_error", status=resp.status_code))
+                raise RuntimeError(_refusal_message(resp))
             for raw in resp.iter_lines(decode_unicode=True):
                 line = raw.decode("utf-8") if isinstance(raw, bytes) else raw
                 if not line or not line.startswith("data:"):
@@ -81,6 +81,49 @@ class WorkerChatWorker(BaseWorker):
     def work(self) -> object:
         """Not used: the chatbot is driven interactively via :meth:`ask`."""
         raise NotImplementedError("WorkerChatWorker is driven via ask()")
+
+
+def _error_from_sse(body: str) -> str | None:
+    """Extract the Worker's own error text from an SSE body.
+
+    Args:
+        body: The raw response body.
+
+    Returns:
+        The localized message the Worker sent, or ``None`` when the body carries none.
+    """
+    for raw in body.splitlines():
+        line = raw.strip()
+        if not line.startswith("data:"):
+            continue
+        try:
+            data = json.loads(line[len("data:") :].strip())
+        except ValueError:
+            continue
+        if isinstance(data, dict) and data.get("error"):
+            return str(data["error"])
+    return None
+
+
+def _refusal_message(resp: Any) -> str:
+    """Explain a non-200 answer, preferring the Worker's own wording to a bare status code.
+
+    The Worker refuses with a real HTTP status *and* an SSE payload saying why — notably when the
+    free-tier daily allowance is spent, where the message says when the assistant comes back.
+    Reporting only ``error 429`` threw that away and made a rationed assistant look like a broken
+    one.
+
+    Args:
+        resp: The streamed :mod:`requests` response.
+
+    Returns:
+        The Worker's message when it sent one, otherwise the generic status message.
+    """
+    try:
+        explained = _error_from_sse(resp.text)
+    except requests.RequestException:  # body truncated or connection dropped mid-read
+        explained = None
+    return explained or str(t("ask.worker_error", status=resp.status_code))
 
 
 def _emit(payload: str) -> Iterator[str]:

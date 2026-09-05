@@ -882,6 +882,21 @@ function VeafGroupSpawn:_sourceData(verb)
   return record and veaf.deepCopy(record) or nil
 end
 
+--- The surface name DCS reports at a point, for a diagnosable refusal message.
+-- Mirrors the flattening `veaf.isTerrainValid` applies, so this reads the same surface it tested.
+-- @param point table a vec2 or vec3
+-- @return string a `land.SurfaceType` name, or the raw id when it does not match one
+local function surfaceNameAt(point)
+  local flat = { x = point.x, y = point.z or point.y }
+  local actual = land.getSurfaceType(flat)
+  for name, value in pairs(land.SurfaceType) do
+    if value == actual then
+      return name
+    end
+  end
+  return tostring(actual)
+end
+
 --- A point in the circle whose terrain suits this group, and the offset to reach it.
 function VeafGroupSpawn:_drawOrigin(data)
   local first = data.units[1]
@@ -890,16 +905,24 @@ function VeafGroupSpawn:_drawOrigin(data)
   end
 
   local surfaces = self.terrain or veafDcsSpawner.terrainForCategory(data.category)
+  local lastCandidate
   for _ = 1, VeafGroupSpawn.TERRAIN_ATTEMPTS do
     local candidate = veaf.getRandomPointInCircle(self.point, self.radius)
+    lastCandidate = candidate
     if self.anyTerrain or veafDcsSpawner.isTerrainValid(candidate, surfaces) then
       return { x = candidate.x - first.x, y = candidate.y - first.y }, candidate
     end
   end
 
-  veaf.loggers
-    .get(veafDcsSpawner.Id)
-    :error("no point within %sm of the requested spot is valid terrain for [%s]", veaf.p(self.radius), veaf.p(self.groupName))
+  veaf.loggers.get(veafDcsSpawner.Id):error(
+    "no point within %sm of the requested spot is valid terrain for [%s]: category [%s] accepts [%s], point [%s] is [%s]",
+    veaf.p(self.radius),
+    veaf.p(self.groupName),
+    veaf.p(data.category),
+    veaf.p(table.concat(surfaces, ", ")),
+    veaf.p(veaf.vecToString(lastCandidate)),
+    veaf.p(surfaceNameAt(lastCandidate))
+  )
   return nil, nil
 end
 

@@ -190,12 +190,25 @@ function veafMissionDb.buildSnapshot()
                   -- into the ten fields a caller reads; MiST walked `env.mission` from scratch on every
                   -- call to reach the same table.
                   route = groupData.route,
+                  -- FIX-TRIPACK-FIELD-REPORTS ticket 05: the group-level fields a clone, respawn or
+                  -- teleport needs to reproduce faithfully. MiST carried every one of these
+                  -- (mist.lua:264, mist.lua:1030); this record did not, so a cloned QRA flight reached
+                  -- DCS with its per-waypoint engagement intact and no mission task at all. `nil` when
+                  -- the editor never set one, so `addGroup`'s own default (`hidden` -> false) still
+                  -- applies to a group with no editor record.
+                  task = groupData.task,
+                  taskSelected = groupData.taskSelected,
+                  uncontrolled = groupData.uncontrolled,
+                  frequency = groupData.frequency,
+                  modulation = groupData.modulation,
+                  communication = groupData.communication,
+                  radioSet = groupData.radioSet,
+                  hidden = groupData.hidden,
                   -- The whole editor table for this group, by reference for the same reason as the
                   -- route. This is what `veaf.getGroupData` hands back: its callers read fields no
-                  -- record projects and none of them the same ones — `communication` and `frequency`
-                  -- for a tanker, a unit's `callsign`, `unitId` and `modulation` for a carrier's ATC.
-                  -- Projecting that set would be a second copy of the mission to keep in step, so the
-                  -- record carries the door rather than the rooms.
+                  -- record projects and none of them the same ones — a unit's `callsign` for a
+                  -- carrier's ATC, among others. Projecting that whole set would be a second copy of
+                  -- the mission to keep in step, so the record carries the door rather than the rooms.
                   missionData = groupData,
                 }
                 for _, unitData in pairs(groupData.units or {}) do

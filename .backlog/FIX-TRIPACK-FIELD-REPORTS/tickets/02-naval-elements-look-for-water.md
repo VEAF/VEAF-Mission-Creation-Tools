@@ -1,6 +1,6 @@
 # 02 — A zone's naval element looks for water, not for dry land
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 

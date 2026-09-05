@@ -1490,6 +1490,19 @@ function VeafCombatZone:destroySpawnedGroup(groupName)
   end
 end
 
+--- The surfaces a zone element's naval category may stand on, or nil to keep
+--- `veaf.findSpawnPoint`'s own land-only default unchanged for anything else.
+-- Read from `veafDcsSpawner.TERRAIN_BY_CATEGORY`, the same table the terrain check downstream
+-- already uses, so "what can this thing stand on" has one source instead of two that can disagree.
+local function surfacesForZoneElement(zoneElement)
+  local record = veaf.getGroupRecord(zoneElement:getName())
+  local category = record and record.category
+  if category and string.lower(category) == "ship" then
+    return veafDcsSpawner.TERRAIN_BY_CATEGORY.ship
+  end
+  return nil
+end
+
 function VeafCombatZone:spawnElement(zoneElement, now)
   veaf.loggers
     .get(veafCombatZone.Id)
@@ -1521,7 +1534,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- the mission loads, so a partially built zone would be worse than an imperfect one.
       -- Refusing is for what a command spawns (David, 2026-08-27), and per ADR 0018 the scenery
       -- criterion is quality-only, never correctness.
-      local found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius())
+      local found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius(), nil, surfacesForZoneElement(zoneElement))
       if found then
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("found=[%s]", veaf.vecToString(found)))
         position = { x = found.x, y = position.y, z = found.z }

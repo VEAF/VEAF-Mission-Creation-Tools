@@ -10,7 +10,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from tests.intake_fixtures import PYTHON_TRACEBACK, doctor_block, fixture_checkout
 from tests.test_attachments import _fake_downloader
@@ -102,7 +102,21 @@ class TestTheExchange(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(report.log_digests), 1)
         self.assertEqual(len(report.attachments), 1)
 
-    async def test_the_temporary_directory_does_not_survive_the_report(self) -> None:
+    async def test_the_downloaded_files_are_still_there_while_the_sink_runs(self) -> None:
+        """Ticket 05 uploads them to the issue; a cleanup before that hands it paths to nothing."""
+        seen: list[bool] = []
+
+        async def sink(report: object) -> str:
+            prepared = cast(Prepared, cast(Any, report).attachments[0])
+            seen.append(prepared.path.is_file())
+            return "filed"
+
+        await self._intake({"u": b"hello"}, sink=sink).handle(
+            self.exchange, BugSubmission(_form(), [Incoming("notes.txt", "u", 5)])
+        )
+        self.assertEqual(seen, [True])
+
+    async def test_the_temporary_directory_does_not_survive_the_exchange(self) -> None:
         body = b"hello"
         report = await self._intake({"u": body}).handle(
             self.exchange, BugSubmission(_form(), [Incoming("notes.txt", "u", 5)])
@@ -198,8 +212,8 @@ class TestTheTemporaryDirectoryIsCleanedEvenOnFailure(unittest.IsolatedAsyncioTe
 
         collector = _Exploding(checkout, _fake_downloader({}))
         intake = BugIntake(checkout, collector, refresh=False)
-        with self.assertRaises(RuntimeError):
-            await intake.build(BugSubmission(_form(), []))
+        exchange = RecordingExchange()
+        self.assertIsNone(await intake.handle(exchange, BugSubmission(_form(), [])))
         self.assertFalse(Path(collector.seen).exists())
 
 

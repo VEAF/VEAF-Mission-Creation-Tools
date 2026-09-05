@@ -137,22 +137,29 @@ class BugIntake:
         """
         lang = normalize_language(submission.form.language)
         await exchange.defer()
+        # The downloaded files live until the sink has had them. Ticket 05 uploads them to the
+        # issue, and a cleanup inside `build` would hand it paths that no longer exist — the exact
+        # shape of bug where the report is complete and the evidence is gone.
+        workdir = Path(tempfile.mkdtemp(prefix="veaf-bug-"))
         try:
-            report = await self.build(submission)
-        except Exception as error:
-            self._logger.exception(
-                "the /bug exchange failed after the acknowledgement",
-                extra={
-                    "event": "intake.crashed",
-                    "user": submission.form.reporter_id,
-                    "error": type(error).__name__,
-                },
-            )
-            await self._say(exchange, text("bug.error.unexpected", lang))
-            return None
+            try:
+                report = await self.build(submission, workdir)
+            except Exception as error:
+                self._logger.exception(
+                    "the /bug exchange failed after the acknowledgement",
+                    extra={
+                        "event": "intake.crashed",
+                        "user": submission.form.reporter_id,
+                        "error": type(error).__name__,
+                    },
+                )
+                await self._say(exchange, text("bug.error.unexpected", lang))
+                return None
 
-        message = await self._sink(report) if self._sink is not None else render_preview(report, lang)
-        await self._say(exchange, message)
+            message = await self._sink(report) if self._sink is not None else render_preview(report, lang)
+            await self._say(exchange, message)
+        finally:
+            rmtree(workdir, ignore_errors=True)
         self._logger.info(
             "bug report assembled",
             extra={
@@ -170,27 +177,21 @@ class BugIntake:
         )
         return report
 
-    async def build(self, submission: BugSubmission) -> BugReport:
+    async def build(self, submission: BugSubmission, workdir: Path) -> BugReport:
         """Do the deterministic pass, attachments included.
-
-        The temporary directory is removed whatever happens, including when the assembly raises: a
-        service that leaks an 11 MB log per report fills its disk in a week, and the files have no
-        use past the moment ticket 05 uploads them.
 
         Args:
             submission: The form and its attachments.
+            workdir: A directory the **caller** owns and removes. The prepared attachments point
+                into it, so it must outlive whatever consumes them — see :meth:`handle`.
 
         Returns:
             The assembled report.
         """
         if self._refresh and self._checkout.due():
             self._checkout.refresh()
-        workdir = Path(tempfile.mkdtemp(prefix="veaf-bug-"))
-        try:
-            harvest = await self._collector.collect(submission.attachments, workdir)
-            return self._assemble(submission.form, harvest)
-        finally:
-            rmtree(workdir, ignore_errors=True)
+        harvest = await self._collector.collect(submission.attachments, workdir)
+        return self._assemble(submission.form, harvest)
 
     def _assemble(self, form: BugForm, harvest: Harvest) -> BugReport:
         """Fold the harvest into a report.

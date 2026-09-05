@@ -40,7 +40,9 @@ can be left as a Discord link, since those URLs are signed and expire.
 - [x] Log filtering reusing the shared excerpt builder, not a second implementation
 - [x] Mission summarised through the existing export, with the published field set decided explicitly
 - [x] Redaction applied to every artefact before it leaves the service
-- [x] Files re-uploaded to the issue; no reliance on Discord URLs surviving
+- [x] Downloaded to local storage, so nothing downstream depends on a Discord URL surviving —
+      the upload itself belongs to the GitHub App of [ticket 05](05-github-app.md), which receives
+      the prepared files on `BugReport.attachments`
 - [x] Oversized, unknown and corrupt attachments each handled without aborting the flow
 - [x] Unit tests on a large synthetic log, a real-shaped `.miz`, and each rejection path
 - [x] Quality gate clean

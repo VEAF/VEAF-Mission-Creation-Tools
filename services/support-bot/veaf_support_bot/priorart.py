@@ -371,7 +371,7 @@ def rank(matches: Iterable[Match]) -> list[Match]:
 # ---------------------------------------------------------------------------
 
 
-def read_backlog(root: Path) -> tuple[list[Candidate], str]:
+def read_backlog(root: Path) -> tuple[list[Candidate], str, list[str]]:
     """Read the open lots out of ``.backlog/``.
 
     Only lots that are still open are candidates: a closed lot answers nothing, and proposing one
@@ -381,17 +381,23 @@ def read_backlog(root: Path) -> tuple[list[Candidate], str]:
         root: The checkout root.
 
     Returns:
-        A pair of the candidates and a problem description, which is empty on success.
+        A triple of the candidates, a problem describing why the **directory** could not be read
+        (empty on success), and one problem per lot whose ``PRD.md`` could not be read. The two are
+        separate because they mean different things to the reader of the issue: the first says the
+        backlog was not swept at all, the second says it was swept minus these lots — and a lot
+        turned into an all-but-empty :class:`Candidate`, which is what this used to do, is worse than
+        either. It cannot match anything, so it silently reads as *"swept, nothing found"*.
     """
     backlog = root / ".backlog"
     if not backlog.is_dir():
-        return [], f"{backlog} is not a directory"
+        return [], f"{backlog} is not a directory", []
     candidates: list[Candidate] = []
+    unreadable: list[str] = []
     for prd in sorted(backlog.glob("*/PRD.md")):
         try:
             content = prd.read_text(encoding="utf-8", errors="replace")
         except OSError as error:
-            candidates.append(Candidate(SOURCE_BACKLOG, prd.parent.name, prd.parent.name, detail=type(error).__name__))
+            unreadable.append(f"`.backlog/{prd.parent.name}/PRD.md` could not be read ({type(error).__name__})")
             continue
         status = _status_of(content)
         if any(glyph in status for glyph in CLOSED_LOT_STATUSES):
@@ -406,7 +412,7 @@ def read_backlog(root: Path) -> tuple[list[Candidate], str]:
                 detail=status,
             )
         )
-    return candidates, ""
+    return candidates, "", unreadable
 
 
 def read_roadmap(root: Path) -> tuple[list[Candidate], str]:
@@ -546,8 +552,11 @@ class PriorArtSweeper:
             checked.append(f"{len(open_records)} open issue(s)")
             checked.append(f"{len(closed_records)} recently closed issue(s)")
 
-        lots, problem = read_backlog(self.root)
+        lots, problem, unreadable = read_backlog(self.root)
         self._note(problem, "`.backlog/`")
+        # Per file, not per source: the sweep really did read the other lots, so the count below is
+        # still true and still worth showing. What must not happen is the missing ones going unsaid.
+        self._problems.extend(unreadable)
         if not problem:
             checked.append(f"{len(lots)} open backlog lot(s)")
         candidates += lots

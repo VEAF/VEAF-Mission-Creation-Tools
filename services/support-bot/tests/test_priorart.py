@@ -183,15 +183,17 @@ class TestTheCheckoutSources(unittest.TestCase):
     """``.backlog/`` and ``ROADMAP.md``, read off disk."""
 
     def test_an_open_lot_is_a_candidate_and_a_closed_one_is_not(self) -> None:
-        lots, problem = read_backlog(fixture_root())
+        lots, problem, unreadable = read_backlog(fixture_root())
         self.assertEqual(problem, "")
+        self.assertEqual(unreadable, [])
         references = [lot.reference for lot in lots]
         self.assertIn("FEAT-SAMPLE-RESOLVER", references)
         self.assertNotIn("FEAT-ALREADY-DONE", references)
 
     def test_a_missing_backlog_is_a_stated_problem_not_an_empty_result(self) -> None:
-        lots, problem = read_backlog(Path(__file__).parent / "no-such-checkout")
+        lots, problem, unreadable = read_backlog(Path(__file__).parent / "no-such-checkout")
         self.assertEqual(lots, [])
+        self.assertEqual(unreadable, [])
         self.assertIn("not a directory", problem)
 
     def test_each_roadmap_section_is_a_candidate(self) -> None:
@@ -362,7 +364,7 @@ class TestTheseTestsDetectABrokenSweep(unittest.TestCase):
         from veaf_support_bot import priorart
 
         original = priorart.read_backlog
-        priorart.read_backlog = lambda root: ([], "")
+        priorart.read_backlog = lambda root: ([], "", [])
         try:
             self.assertTrue(self._fails("TestTheFourOutcomes.test_a_backlog_lot_produces_work_in_progress"))
         finally:

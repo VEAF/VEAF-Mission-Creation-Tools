@@ -18,7 +18,9 @@ says outright that it is a placeholder rather than pretending to be an explanati
 message is either so specific it never fires again or so general it swallows the log; one that opens
 on a wildcard is not recognising a message at all; and a quantifier nested in a quantified group is
 the classic shape that makes a regular expression take exponential time on a line that nearly
-matches. :func:`validate_pattern` refuses all four.
+matches. :func:`validate_pattern` refuses all four — and a fifth, measured rather than anticipated:
+two *adjacent* unbounded quantifiers, which is the shape this module actually emits and which the
+nested-quantifier check cannot see, because nothing here ever emits a parenthesised group.
 """
 
 from __future__ import annotations
@@ -53,6 +55,7 @@ MAX_LABEL_CHARS = 60
 REJECT_EMPTY = "motif vide"
 REJECT_TOO_LONG = "motif trop long"
 REJECT_NESTED_QUANTIFIER = "quantificateur imbriqué (risque d'explosion combinatoire)"
+REJECT_ADJACENT_QUANTIFIERS = "deux jokers illimités côte à côte (risque d'explosion combinatoire)"
 REJECT_UNANCHORED = "motif non ancré : il commence par un joker et se retrouverait n'importe où"
 REJECT_TOO_GENERAL = "trop peu de texte littéral : le motif attraperait n'importe quoi"
 REJECT_INVALID = "motif invalide"
@@ -66,7 +69,17 @@ PLACEHOLDER_HELP = "Proposition automatique, non vérifiée : reformuler cette e
 #: The variable parts of a message, and the placeholder each becomes. Order matters: quoted and
 #: bracketed spans are consumed before the numbers inside them are.
 _NORMALISERS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"'[^']*'"), "<q>"),
+    # The lookbehind protects the apostrophe of a contraction, and it is the same class of defect
+    # the ``<path>`` rule below was already corrected for. Without it, ``'[^']*'`` opened on the
+    # ``'`` of ``can't`` and closed on the *opening* quote of the first real value, so every pairing
+    # after it was offset by one. Measured on ``dcs.log-20250916-100236.zip``:
+    # ``can't load destroyed model 'Ural-375_p_1' for '1L13 EWR'`` produced
+    # ``can'[^']*'Ural\-375_p_1'[^']*'1L13\ EWR'`` — the unit names, which are the *variable* part,
+    # baked in as literals, while ``load destroyed model`` and ``for``, which identify the
+    # complaint, became wildcards. The rule could never fire on another model, and
+    # ``validate_pattern`` accepted it. Contractions are at least as common in DCS messages as
+    # paths: ``can't``, ``don't``, ``doesn't``, ``isn't``.
+    (re.compile(r"(?<![A-Za-z0-9])'[^']*'"), "<q>"),
     (re.compile(r'"[^"]*"'), "<q>"),
     (re.compile(r"\[[^\]]*\]"), "<b>"),
     # No space in the class, deliberately. With one, this rule swallowed the rest of the sentence:
@@ -75,7 +88,13 @@ _NORMALISERS: tuple[tuple[re.Pattern[str], str], ...] = (
     # very words that identify the complaint.
     (re.compile(r"(?:[A-Za-z]:)?[\\/][\w.\\/+-]{3,}"), "<path>"),
     (re.compile(r"\b0[xX][0-9A-Fa-f]+\b"), "<hex>"),
-    (re.compile(r"\b[0-9A-Fa-f]{8,}\b"), "<hex>"),
+    # Not a run of digits, however long. A decimal is a valid hex string, so this rule used to
+    # swallow one and leave a shorter one to the ``<n>`` rule below — and the *same* message then
+    # normalised two different ways depending on the magnitude of its number. Measured on
+    # ``dcs.log-20250909-093710.zip``: ``More out of memory in SharedBuffer for N bytes`` produced
+    # two of the five offered proposals, ×9 and ×3, where a maintainer should have seen one
+    # recurrence of 12. A run that carries no ``a``-``f`` is a number, not an identifier.
+    (re.compile(r"\b(?![0-9]+\b)[0-9A-Fa-f]{8,}\b"), "<hex>"),
     (re.compile(r"\b\d+(?:\.\d+)*\b"), "<n>"),
 )
 
@@ -103,8 +122,23 @@ _PLACEHOLDER_SPLIT = re.compile("(" + "|".join(re.escape(name) for name in _PLAC
 _WILDCARD_FRAGMENTS: frozenset[str] = frozenset(_PLACEHOLDER_PATTERNS.values())
 
 #: A quantifier applied to a group that already contains one — the shape that backtracks
-#: exponentially. Nothing generated here should produce it, which is exactly why it is checked.
+#: exponentially. Nothing generated here produces it: :func:`pattern_from` emits no parenthesised
+#: group at all. It is checked because :func:`validate_pattern` also guards patterns that did not
+#: come from here.
 _NESTED_QUANTIFIER = re.compile(r"\([^()]*[*+][^()]*\)\s*[*+{]")
+
+#: One unbounded repetition, in the shapes this module emits: a character class or a class escape,
+#: followed by ``*`` or ``+``.
+_UNBOUNDED = r"(?:\[(?:[^\]\\]|\\.)*\]|\\[dDsSwW]|\.)[*+]"
+
+#: Two unbounded repetitions with nothing between them — the shape that *is* generated here, and the
+#: one the nested-quantifier guard cannot see. A Windows path makes ``<path>`` fire three times in a
+#: row: measured on ``dcs.log-20250814-120017.zip``, ``Removed C:\\Users\\<user>\\Saved
+#: Games\\DCS\\Logs\\dcs.…crash`` produced ``Removed\\ \\S+\\S+\\S+\\ Games\\S+``, which
+#: ``validate_pattern`` accepted. Every character the first repetition gives up the second takes, so
+#: a line that nearly matches walks the product: 0.5 ms at 100 characters, 262 ms at 800, 2.0 s at
+#: 1 600 — and a ``rules.json`` pattern is applied to every line of an 11 MB log.
+_ADJACENT_QUANTIFIERS = re.compile(_UNBOUNDED + _UNBOUNDED)
 
 #: Words worth keeping in a generated identifier.
 _WORD = re.compile(r"[A-Za-z]{3,}")
@@ -168,6 +202,13 @@ def pattern_from(normalised: str) -> str:
     Returns:
         The pattern, escaped except for the placeholders, capped at :data:`MAX_PATTERN_CHARS`. The
         cap cuts at a placeholder boundary so the result is never half an escape sequence.
+
+        Placeholders that touch and come back as the same fragment are emitted once. Several of them
+        share ``\\S+`` — ``<path>``, ``<user>``, ``<ip>`` — and a Windows path makes ``<path>`` fire
+        three times running, so the naive rendering was ``\\S+\\S+\\S+``: the same language as a
+        single ``\\S+``, matched by walking every way of splitting the text between the three. The
+        collapse is what makes the pattern linear; :data:`_ADJACENT_QUANTIFIERS` refuses the cases it
+        cannot merge, such as a ``<hex>`` next to a ``<n>``.
     """
     out: list[str] = []
     length = 0
@@ -175,6 +216,8 @@ def pattern_from(normalised: str) -> str:
         if not piece:
             continue
         fragment = _PLACEHOLDER_PATTERNS.get(piece) or re.escape(piece)
+        if out and fragment == out[-1] and piece in _PLACEHOLDER_PATTERNS:
+            continue
         if length + len(fragment) > MAX_PATTERN_CHARS:
             break
         out.append(fragment)
@@ -214,6 +257,8 @@ def validate_pattern(pattern: str, sample: str) -> str:
         return REJECT_TOO_LONG
     if _NESTED_QUANTIFIER.search(pattern):
         return REJECT_NESTED_QUANTIFIER
+    if _ADJACENT_QUANTIFIERS.search(pattern):
+        return REJECT_ADJACENT_QUANTIFIERS
     if any(pattern.startswith(fragment) for fragment in _WILDCARD_FRAGMENTS):
         return REJECT_UNANCHORED
     if literal_chars(pattern) < MIN_LITERAL_CHARS:

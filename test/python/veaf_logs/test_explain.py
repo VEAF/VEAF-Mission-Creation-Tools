@@ -368,6 +368,18 @@ class TestValidationDesMotifs:
         motif = "Erreur de chargement du module (a+)+ dans la mission"
         assert "imbriqué" in validate_pattern(motif, "x")
 
+    @pytest.mark.parametrize("joker", [r"\S+\S+", r"[0-9A-Fa-f]+[\d.]+", r"\S+[\d.]+"])
+    def test_deux_jokers_illimites_cote_a_cote_sont_refuses(self, joker):
+        """La garde des quantificateurs imbriques ne voyait pas la forme reellement generee.
+
+        Elle exige un groupe parenthese ; `pattern_from` n'en produit jamais. Ce
+        que le module produit, c'est des quantificateurs illimites adjacents —
+        mesure sur `dcs.log-20250814-120017.zip` : `\\S+\\S+\\S+` coutait 1,9 s
+        sur une ligne de 1 600 caracteres qui echoue de peu.
+        """
+        motif = "Erreur de chargement du module " + joker
+        assert "côte à côte" in validate_pattern(motif, "x")
+
     def test_un_motif_invalide_est_refuse(self):
         assert "invalide" in validate_pattern("Erreur de chargement [non fermee", "x")
 
@@ -410,6 +422,71 @@ class TestNormalisation:
         motif = pattern_from(normalise("Source coremods/x/y is already mounted to the same mount /z/."))
         assert "already" in motif
         assert "mounted" in motif
+
+    @pytest.mark.parametrize(
+        ("brut", "attendu"),
+        [
+            (
+                "can't load destroyed model 'Ural-375_p_1' for '1L13 EWR'",
+                "can't load destroyed model <q> for <q>",
+            ),
+            (
+                "Can't load image '/textures/x.dds'. Reason: The parameter is incorrect.",
+                "Can't load image <q>. Reason: The parameter is incorrect.",
+            ),
+            ("doesn't know the preset 'L'", "doesn't know the preset <q>"),
+        ],
+    )
+    def test_l_apostrophe_d_une_contraction_n_ouvre_pas_une_paire_de_guillemets(self, brut, attendu):
+        """Mesure sur `dcs.log-20250916-100236.zip` : la regle etait a l'envers.
+
+        `'[^']*'` demarrait sur le `'` de `can't` et se fermait sur le guillemet
+        *ouvrant* de la vraie valeur : le texte variable restait litteral et les
+        mots qui identifient la plainte devenaient des jokers.
+        """
+        assert normalise(brut) == attendu
+
+    def test_le_motif_d_une_contraction_garde_les_mots_qui_identifient_la_plainte(self):
+        """Le motif genere ×95 sur les archives reelles avait perdu `load image`.
+
+        Il attrapait alors une plainte differente — `Can't open file '…'. Reason:
+        The parameter is incorrect.` — et son libelle etait illisible.
+        """
+        import re
+
+        brut = "Can't load image '/textures/x.dds'. Reason: The parameter is incorrect."
+        motif = pattern_from(normalise(brut))
+        assert "load" in motif
+        assert "image" in motif
+        assert re.search(motif, brut)
+        assert not re.search(motif, "Can't open file '/a/b'. Reason: The parameter is incorrect.")
+
+    def test_un_decimal_long_reste_un_nombre(self):
+        """Un decimal de 8 chiffres est une chaine hexadecimale valide.
+
+        Sur les archives reelles, le meme message se normalisait donc en deux
+        formes selon l'ordre de grandeur de son nombre : `More out of memory in
+        SharedBuffer for N bytes` sortait ×71 au lieu de ×95.
+        """
+        gros = normalise("More out of memory in SharedBuffer for 22369776 bytes.")
+        petit = normalise("More out of memory in SharedBuffer for 8388736 bytes.")
+        assert gros == petit
+        assert "<n>" in gros
+
+    @pytest.mark.parametrize("brut", ["at address 0xDEADBEEF", "handle DEADBEEF12 released"])
+    def test_un_vrai_identifiant_hexadecimal_reste_un_hexadecimal(self, brut):
+        assert "<hex>" in normalise(brut)
+
+    def test_les_jokers_identiques_qui_se_touchent_sont_fusionnes(self):
+        """Un chemin Windows fait tirer `<path>` trois fois de suite.
+
+        Mesure sur `dcs.log-20250814-120017.zip` : `Added sound path: \\S+\\S+\\S+
+        Games\\S+`, accepte par `validate_pattern`, coutait 1,9 s sur une ligne de
+        1 600 caracteres qui echoue de peu — contre 0,006 ms une fois fusionne.
+        """
+        motif = pattern_from(normalise(r"Added sound path: C:\Users\<user>\Saved Games\DCS\Sounds"))
+        assert r"\S+\S+" not in motif
+        assert validate_pattern(motif, r"Added sound path: C:\Users\<user>\Saved Games\DCS\Sounds") == ""
 
 
 def re_escape(text: str) -> str:

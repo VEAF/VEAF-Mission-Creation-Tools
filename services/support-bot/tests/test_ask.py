@@ -526,32 +526,31 @@ class TestTheProgressiveEdit(unittest.IsolatedAsyncioTestCase):
     async def test_the_pacing_is_measured_from_the_end_of_an_edit_not_its_start(self) -> None:
         """An edit longer than the interval used to satisfy the gate the moment it returned.
 
-        The throttle then stopped throttling precisely while Discord was pushing back. The clock
-        here advances a full interval *inside* every edit, so a run that stamps the time before the
-        await sees the gate open on every fragment.
+        The throttle then stopped throttling precisely while Discord was pushing back — the one
+        moment it exists for. Here every edit costs more than the whole interval, and the stream
+        itself advances the clock only a little: stamping the time *before* the await lets every
+        remaining fragment through, 14 edits over 20 fragments against the 3 the gate allows.
         """
-        exchange = RecordingExchange()
-        clock = self._Clock(0.0)
+        clock = self._Clock(0.2)
 
         class _SlowEdits(RecordingExchange):
             async def edit(self, content: str) -> None:
                 clock.now += 2.0
                 await super().edit(content)
 
-        slow = _SlowEdits()
+        exchange = _SlowEdits()
         handler = _handler(
-            FakeWorker(["x" * 100 for _ in range(8)]),
+            FakeWorker(["x" * 10 for _ in range(20)]),
             clock=clock,
-            min_edit_chars=100,
+            min_edit_chars=1,
             min_edit_interval=1.5,
         )
 
-        await handler.handle(slow, _context())
+        await handler.handle(exchange, _context())
 
-        # Eight fragments, an edit costing more than the interval each time: every fragment would
-        # pass a gate stamped before the await. Half of them do when it is stamped after.
-        self.assertLess(len(slow.contents("edit")), 8, "the throttle disarmed itself under slow edits")
-        self.assertEqual(exchange.calls, [])
+        self.assertLessEqual(
+            len(exchange.contents("edit")), 5, "the throttle disarmed itself as soon as an edit ran long"
+        )
 
 
 class TestTheExchangeBudget(unittest.IsolatedAsyncioTestCase):

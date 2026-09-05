@@ -212,6 +212,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The bot does **not** read the sources, open issues or analyse logs. The support page says so, so
   that their absence reads as a boundary rather than a bug.
 
+- **The support bot survives its own bad days.** Review of the `/ask` lot found four ways the bot
+  could go quiet or overspend, all of them green in the test suite.
+
+  When the counters cannot be kept, the fallback held a ceiling *per minute* and dropped both daily
+  ones — 2880 questions a day at the shipped defaults against the 200 the healthy path allows, and
+  payable by one person. It now carries a day of its own, a tenth of the configured ceiling and never
+  more than one user's healthy day. `/status` reports that spend, because the persisted counter stops
+  moving while the fallback is running. A state file that was valid JSON of the wrong shape killed
+  the process before the health server existed, so the container restarted into the same death; it
+  now degrades, which is what the module always documented.
+
+  Past the acknowledgement, only an upstream failure used to reach the reader as a sentence —
+  anything else left them on "the bot is thinking" until the interaction died fifteen minutes later.
+  Every step is now guarded, and the whole exchange is bounded: the client's own timeout only covered
+  what it *waited* for, so a stream whose Discord edits were being rate-limited ran unbounded
+  (12.25 s measured on a 2.0 s budget). The `SOURCES:` trailer is also read in the shapes a model
+  actually writes it — backticked, bold, bulleted, or with the space French typography puts before a
+  colon — each of which used to lose every citation *and* leave the raw instruction line in the
+  answer.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

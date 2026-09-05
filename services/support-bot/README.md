@@ -52,6 +52,12 @@ Stated plainly, because a user who expects one of these will read its absence as
 If the bot cannot open a thread — usually a missing **Create Public Threads** permission — it says
 so and answers in the channel anyway. Losing the answer would be worse.
 
+**Nothing gets past step 1 without an answer.** Once the interaction is acknowledged, Discord shows
+"the bot is thinking" until something edits the response, so every later step runs under one guard:
+an upstream failure, a refusal from Discord itself, or a bug of ours all end as a sentence in the
+thread. The whole exchange is also bounded — 60 seconds by default — because a deferred interaction
+token dies after fifteen minutes, and an answer that arrives after that is an answer nobody sees.
+
 ---
 
 ## Running it
@@ -152,9 +158,15 @@ indistinguishable from a bot that is broken.
 
 The counters are kept in `SUPPORT_BOT_QUOTA_STATE_FILE` so a restart is not a way to get a fresh
 allowance. **Mount a volume at `/app/state`** in a container, or the counters die with the container.
-When the file cannot be read or written — a corrupt file, a volume that went away — the service does
-not carry on with counters nobody keeps: it drops to 2 questions per minute *for the whole bot*,
-says so at `ERROR`, and shows `"degraded": true` in `/status`. Stricter, never "unlimited".
+When the file cannot be read or written — a corrupt file, a volume that went away, a bind mount the
+service cannot write to — it does not carry on with counters nobody keeps: it drops to **2 questions
+per minute *and* a tenth of the daily ceiling, for the whole bot** (20 a day at the defaults, capped
+by what one user gets in a healthy day, so 15), says so at `ERROR`, and shows `"degraded": true` in
+`/status`. Stricter on every axis, never "unlimited".
+
+The daily half of that matters as much as the minute: what puts the service here is a *local* fault
+that lasts until somebody notices, not a passing outage. A window ceiling alone would be 2880
+questions a day — fourteen times what the healthy path allows, and payable by one person.
 
 ### Directly
 
@@ -230,14 +242,17 @@ Invoke-RestMethod http://127.0.0.1:8081/status
   "last_error": null,
   "details": {
     "day": "2026-09-05", "global_count": 12, "global_per_day": 200,
-    "tracked_users": 4, "degraded": false, "degraded_reason": null
+    "tracked_users": 4, "degraded": false, "degraded_reason": null,
+    "degraded_count": 0, "degraded_per_day": 15
   }
 }
 ```
 
 `details` is the first thing to look at when the bot starts refusing: `global_count` against
 `global_per_day` says whether the day's allowance is spent, and `degraded` says whether the counters
-are being kept at all. No Discord identity appears there — `/status` is an operator interface, not a
+are being kept at all. When it is `true`, read `degraded_count` against `degraded_per_day` instead —
+`global_count` stops moving while the counters are not kept, so it alone would show a bot answering
+and a spend of zero. No Discord identity appears there — `/status` is an operator interface, not a
 record of who asked what.
 
 The endpoint binds `127.0.0.1` by default: it is an operator interface, not a public one. Point an

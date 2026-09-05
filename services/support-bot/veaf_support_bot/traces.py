@@ -91,9 +91,15 @@ class Location:
     Attributes:
         relative: Path relative to the checkout root, using forward slashes.
         line: The 1-based line number the trace stated.
-        symbol: The function the trace named, when it named one.
-        function: The function the line actually sits in, read from the file.
-        excerpt: The quoted neighbourhood, each line prefixed with its number.
+        symbol: The function the **trace** named, when it named one. A claim about the reporter's
+            build, not about this revision.
+        function: The best name available for what the line is in — the trace's symbol when it gave
+            one, otherwise what the file says.
+        enclosing: The function the line sits in **in this revision**, read from the file. Empty
+            when the line is at module level, or when the revision does not have that line at all.
+        file_lines: How many lines the file has in this revision. Zero when it could not be read.
+        excerpt: The quoted neighbourhood, each line prefixed with its number. Empty when
+            :attr:`line_exists` is false.
         callers: Call sites of :attr:`function` elsewhere in the checkout.
         caller_total: How many call sites were found, which can exceed ``len(callers)``.
     """
@@ -102,9 +108,38 @@ class Location:
     line: int
     symbol: str = ""
     function: str = ""
+    enclosing: str = ""
+    file_lines: int = 0
     excerpt: str = ""
     callers: tuple[str, ...] = ()
     caller_total: int = 0
+
+    @property
+    def line_exists(self) -> bool:
+        """Whether this revision's file actually has the line the trace named.
+
+        Returns:
+            ``True`` when the line is inside the file as it stands now. A false answer is the fact
+            :mod:`veaf_support_bot.checkout`'s header is about: a location the revision does not
+            have is worse than no location, because it sends a maintainer to the wrong code with a
+            machine's confidence.
+        """
+        return bool(self.file_lines) and 1 <= self.line <= self.file_lines
+
+    @property
+    def stale_symbol(self) -> bool:
+        """Whether the trace's own symbol disagrees with the file about where this line is.
+
+        Comparing the two costs nothing and is the only staleness signal available when the file
+        still has the line: the reporter's build said the line was in one function, and in this
+        revision it is in another, or at module level. Only a plain identifier is compared —
+        CPython writes ``<module>``, ``<listcomp>`` and ``<lambda>`` for frames that name no
+        function, and those are not disagreements.
+
+        Returns:
+            ``True`` when the two names are both meaningful and different.
+        """
+        return self.line_exists and self.symbol.isidentifier() and self.symbol != self.enclosing
 
 
 @dataclass(frozen=True)
@@ -291,7 +326,7 @@ def quote_neighbourhood(lines: list[str], line_number: int, context: int = CONTE
 
     Returns:
         The quoted window, or an empty string when the file is shorter than the stated line — which
-        is itself a fact worth having, and the caller reports it.
+        is itself a fact worth having, and :attr:`Location.line_exists` is how the caller reports it.
     """
     if not lines or line_number < 1 or line_number > len(lines):
         return ""
@@ -404,7 +439,12 @@ def read_trace(checkout: Checkout, text: str, *, max_locations: int = MAX_LOCATI
             unresolved.append(Unresolved(raw=frame.path, line=frame.line))
             continue
         lines = _read_lines(resolved)
-        function = frame.symbol or enclosing_function(lines, frame.line)
+        # `enclosing_function` scans upwards from `min(line, len(lines))`, so on a line the file no
+        # longer has it answers with the last function in the file — a name invented out of a
+        # coordinate that does not exist. It is only asked when the line is really there.
+        within = 1 <= frame.line <= len(lines)
+        enclosing = enclosing_function(lines, frame.line) if within else ""
+        function = frame.symbol or enclosing
         if searchable is None:
             searchable = _searchable_files(root)
         callers, total = find_callers(root, function, resolved, searchable)
@@ -414,6 +454,8 @@ def read_trace(checkout: Checkout, text: str, *, max_locations: int = MAX_LOCATI
                 line=frame.line,
                 symbol=frame.symbol,
                 function=function,
+                enclosing=enclosing,
+                file_lines=len(lines),
                 excerpt=quote_neighbourhood(lines, frame.line),
                 callers=callers,
                 caller_total=total,

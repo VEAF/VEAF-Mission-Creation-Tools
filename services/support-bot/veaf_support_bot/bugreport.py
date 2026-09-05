@@ -260,12 +260,36 @@ def assemble(
         collected.append(MaterialNote("doctor block", facts.problem))
     for name in form.missing_fields():
         collected.append(MaterialNote(f"form field “{name}”", "left empty by the reporter"))
+    # A resolved location can still be wrong, and both ways of being wrong are free to detect. The
+    # file is there; the *line* may not be, and the function the reporter's build named may not be
+    # the one that line sits in today. Either says the same thing — the reporter is not on this
+    # revision — and saying it is the difference between a location a reader can weigh and one that
+    # carries a machine's confidence into the wrong code.
+    revision = checkout.freshness().revision
+    for found in trace.locations:
+        if not found.line_exists:
+            collected.append(
+                MaterialNote(
+                    f"{found.relative}:{found.line}",
+                    f"named by the trace, but at {revision} that file has {found.file_lines} lines — "
+                    "no neighbourhood could be quoted, and the line number is from another build",
+                )
+            )
+        elif found.stale_symbol:
+            sits_in = f"“{found.enclosing}”" if found.enclosing else "no function at all"
+            collected.append(
+                MaterialNote(
+                    f"{found.relative}:{found.line}",
+                    f"the trace says this line is in “{found.symbol}”; at {revision} it is in "
+                    f"{sits_in} — the reporter is not on this revision",
+                )
+            )
     for missing in trace.unresolved:
         basename = PurePosixPath(missing.raw.replace("\\", "/")).name
         collected.append(
             MaterialNote(
                 f"{basename}:{missing.line}",
-                f"named by the trace, absent from the checkout at {checkout.freshness().revision}",
+                f"named by the trace, absent from the checkout at {revision}",
             )
         )
 

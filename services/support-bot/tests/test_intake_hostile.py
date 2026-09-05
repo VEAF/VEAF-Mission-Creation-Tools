@@ -391,6 +391,8 @@ class TestNothingAReporterSuppliedIsPublishedRaw(unittest.IsolatedAsyncioTestCas
             _, carried = await self._personal_log(root=Path(nowhere))
         self.assertEqual(carried.text, "")
         self.assertIn("could not be redacted", carried.reason)
+        # The reason is published: it says what happened, never where this host keeps things.
+        self.assertNotIn(str(Path.cwd().anchor), carried.reason)
         self.assertEqual(render_attachment_comments([carried]), [])
         # The file is still named, sized and hashed: a withheld quote is not a withheld attachment.
         self.assertTrue(carried.digest)

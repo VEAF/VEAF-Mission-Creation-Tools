@@ -43,6 +43,7 @@ from pathlib import Path
 
 from veaf_support_bot.attachments import Prepared
 from veaf_support_bot.bugreport import NOT_STATED, BugReport
+from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, Sweep
 from veaf_support_bot.toolkit import ToolkitUnavailable
 from veaf_support_bot.untrusted import one_line, quote
@@ -227,9 +228,19 @@ def carry(prepared: Prepared, *, redactor: Callable[[str], str], limit: int = IN
     try:
         redacted = redactor(content)
     except ToolkitUnavailable as error:
-        return Carried(
-            prepared, reason=f"it could not be redacted, so it is not published here ({error})", digest=digest
+        # The reason is published, so it says *what* happened and not *where*: the helper's own
+        # failure names the checkout path it resolved against, which is this host's filesystem
+        # layout and belongs in the service's log, next to `_unavailable`'s reasoning about a
+        # parser's message. The detail is one grep away for a maintainer.
+        get_logger("filing").warning(
+            "an attachment could not be redacted; its bytes are withheld",
+            extra={
+                "event": "filing.attachment_not_redacted",
+                "file": prepared.filename,
+                "detail": str(error),
+            },
         )
+        return Carried(prepared, reason="it could not be redacted, so its bytes are not published", digest=digest)
     return Carried(prepared, text=redacted, digest=digest)
 
 

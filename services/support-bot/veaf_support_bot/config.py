@@ -94,6 +94,23 @@ DEFAULT_CHECKOUT_REFRESH_SECONDS: Final = 900.0
 DEFAULT_ATTACHMENT_MAX_BYTES: Final = 25 * 1024 * 1024
 DEFAULT_ATTACHMENT_TOTAL_BYTES: Final = 60 * 1024 * 1024
 
+# ---------------------------------------------------------------------------
+# FEAT-SUPPORT-BUG-INTAKE ticket 05 — the GitHub App the issue is filed under. Every value is
+# optional: with no App configured the intake still runs, prepares the report and shows it, and
+# says it cannot file. Configure ONE of them and they all become required together, because a
+# half-configured App is a service that collects reports it cannot deliver.
+# ---------------------------------------------------------------------------
+
+#: Repository the App is installed on, ``owner/name``.
+DEFAULT_GITHUB_REPOSITORY: Final = "VEAF/VEAF-Mission-Creation-Tools"
+
+#: Where the filed-report ledger lives. Beside the quota counters, and with the same requirement:
+#: it must survive a restart, or a restart mid-flight falls back to the slower in-issue marker.
+DEFAULT_GITHUB_LEDGER_FILE: Final = "state/filed-issues.json"
+
+#: Label marking an issue as filed by the machine.
+DEFAULT_GITHUB_MACHINE_LABEL: Final = "filed-by-bot"
+
 #: Accepted values of ``SUPPORT_BOT_LOG_FORMAT``.
 LOG_FORMATS: Final = ("json", "text")
 
@@ -409,6 +426,14 @@ class SupportBotConfig:
         checkout_refresh_seconds: Shortest gap between two refreshes; ``0`` pins the revision.
         attachment_max_bytes: Largest single attachment one report may carry.
         attachment_total_bytes: Largest total across one report.
+        github_app_id: The GitHub App's numeric id; empty means no App is configured and ``/bug``
+            prepares reports without filing them.
+        github_installation_id: The App's installation on the one repository it serves.
+        github_private_key: The App's private key, PEM, inline. **Secret**; never logged.
+        github_private_key_file: A file holding that key instead. Exactly one of the two.
+        github_repository: ``owner/name`` the issues are filed on.
+        github_ledger_file: Where filed reports are recorded, so a retry never files twice.
+        github_machine_label: Label marking an issue as machine-filed.
     """
 
     discord_token: str
@@ -434,6 +459,23 @@ class SupportBotConfig:
     checkout_refresh_seconds: float = DEFAULT_CHECKOUT_REFRESH_SECONDS
     attachment_max_bytes: int = DEFAULT_ATTACHMENT_MAX_BYTES
     attachment_total_bytes: int = DEFAULT_ATTACHMENT_TOTAL_BYTES
+    github_app_id: str = ""
+    github_installation_id: str = ""
+    github_private_key: str = ""
+    github_private_key_file: str = ""
+    github_repository: str = DEFAULT_GITHUB_REPOSITORY
+    github_ledger_file: str = DEFAULT_GITHUB_LEDGER_FILE
+    github_machine_label: str = DEFAULT_GITHUB_MACHINE_LABEL
+
+    @property
+    def files_issues(self) -> bool:
+        """Say whether this deployment can open an issue at all.
+
+        Returns:
+            ``True`` when the App is configured. ``False`` makes ``/bug`` a preparation step that
+            says so, which is what every deployment does until the App has been created.
+        """
+        return bool(self.github_app_id and self.github_installation_id)
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> SupportBotConfig:
@@ -488,7 +530,15 @@ class SupportBotConfig:
             checkout_refresh_seconds=reader.interval("CHECKOUT_REFRESH_SECONDS", DEFAULT_CHECKOUT_REFRESH_SECONDS),
             attachment_max_bytes=reader.integer("ATTACHMENT_MAX_BYTES", DEFAULT_ATTACHMENT_MAX_BYTES, minimum=1),
             attachment_total_bytes=reader.integer("ATTACHMENT_TOTAL_BYTES", DEFAULT_ATTACHMENT_TOTAL_BYTES, minimum=1),
+            github_app_id=reader.text("GITHUB_APP_ID", ""),
+            github_installation_id=reader.text("GITHUB_INSTALLATION_ID", ""),
+            github_private_key=reader.text("GITHUB_PRIVATE_KEY", ""),
+            github_private_key_file=reader.text("GITHUB_PRIVATE_KEY_FILE", ""),
+            github_repository=reader.text("GITHUB_REPOSITORY", DEFAULT_GITHUB_REPOSITORY),
+            github_ledger_file=reader.text("GITHUB_LEDGER_FILE", DEFAULT_GITHUB_LEDGER_FILE),
+            github_machine_label=reader.text("GITHUB_MACHINE_LABEL", DEFAULT_GITHUB_MACHINE_LABEL),
         )
+        _check_github(reader, config)
         reader.raise_if_broken()
         return config
 
@@ -522,6 +572,13 @@ class SupportBotConfig:
             "checkout_refresh_seconds": self.checkout_refresh_seconds,
             "attachment_max_bytes": self.attachment_max_bytes,
             "attachment_total_bytes": self.attachment_total_bytes,
+            "github_app_id": self.github_app_id,
+            "github_installation_id": self.github_installation_id,
+            "github_private_key": REDACTED if self.github_private_key else "",
+            "github_private_key_file": self.github_private_key_file,
+            "github_repository": self.github_repository,
+            "github_ledger_file": self.github_ledger_file,
+            "github_machine_label": self.github_machine_label,
         }
 
     def __repr__(self) -> str:
@@ -535,3 +592,52 @@ class SupportBotConfig:
         """
         fields = ", ".join(f"{key}={value!r}" for key, value in self.redacted().items())
         return f"{type(self).__name__}({fields})"
+
+
+#: The three things a usable GitHub App needs. Named as one because they stand or fall together.
+_GITHUB_PARTS: Final = ("GITHUB_APP_ID", "GITHUB_INSTALLATION_ID", "GITHUB_PRIVATE_KEY|GITHUB_PRIVATE_KEY_FILE")
+
+
+def _check_github(reader: _Reader, config: SupportBotConfig) -> None:
+    """Record a problem when the GitHub App is half configured.
+
+    The App does not exist yet — it is created by hand, in part B of the setup guide — so *no App at
+    all* is a supported, silent state: `/bug` prepares the report and says it cannot file it. What
+    is not supported is *some* of it. An App id with no key, or a key with no installation, is a
+    deployment that collects bug reports for a week and fails to file every one of them, and the
+    service must refuse to start rather than discover it on the first report.
+
+    Args:
+        reader: The reader collecting problems.
+        config: The configuration just built.
+    """
+    supplied = {
+        name
+        for name, value in zip(
+            _GITHUB_PARTS,
+            (
+                config.github_app_id,
+                config.github_installation_id,
+                config.github_private_key or config.github_private_key_file,
+            ),
+            strict=True,
+        )
+        if value
+    }
+    if not supplied:
+        return
+    for name in _GITHUB_PARTS:
+        if name not in supplied:
+            reader.problems.append(
+                f"{ENV_PREFIX}{name} is required once any other GitHub App variable is set "
+                f"(set: {', '.join(sorted(supplied))})"
+            )
+    if config.github_private_key and config.github_private_key_file:
+        reader.problems.append(
+            f"{ENV_PREFIX}GITHUB_PRIVATE_KEY and {ENV_PREFIX}GITHUB_PRIVATE_KEY_FILE are both set; keep one"
+        )
+    owner, _, name = config.github_repository.partition("/")
+    if not owner or not name or "/" in name:
+        reader.problems.append(
+            f"{ENV_PREFIX}GITHUB_REPOSITORY must be owner/name (got {_shape(config.github_repository)})"
+        )

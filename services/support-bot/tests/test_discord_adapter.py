@@ -45,6 +45,7 @@ class _Message:
         """
         self.content = content
         self.edits: list[str] = []
+        self.mentions: list[Any] = []
         self.edit_error: Exception | None = None
         self._thread_error = thread_error
 
@@ -64,11 +65,12 @@ class _Message:
             raise self._thread_error
         return _Thread(name)
 
-    async def edit(self, content: str) -> None:
+    async def edit(self, content: str, allowed_mentions: Any = None) -> None:
         """Record an edit.
 
         Args:
             content: The new content.
+            allowed_mentions: What the message is allowed to ping.
 
         Raises:
             Exception: :attr:`edit_error`, when set.
@@ -76,6 +78,7 @@ class _Message:
         if self.edit_error is not None:
             raise self.edit_error
         self.edits.append(content)
+        self.mentions.append(allowed_mentions)
 
 
 class _Thread:
@@ -89,17 +92,20 @@ class _Thread:
         """
         self.name = name
         self.sent: list[str] = []
+        self.mentions: list[Any] = []
 
-    async def send(self, content: str) -> _Message:
+    async def send(self, content: str, allowed_mentions: Any = None) -> _Message:
         """Record a message.
 
         Args:
             content: The content.
+            allowed_mentions: What the message is allowed to ping.
 
         Returns:
             The posted message.
         """
         self.sent.append(content)
+        self.mentions.append(allowed_mentions)
         return _Message(content)
 
 
@@ -109,18 +115,21 @@ class _Followup:
     def __init__(self) -> None:
         """Initialize the recorder."""
         self.sent: list[str] = []
+        self.mentions: list[Any] = []
 
-    async def send(self, content: str, wait: bool = False) -> _Message:
+    async def send(self, content: str, wait: bool = False, allowed_mentions: Any = None) -> _Message:
         """Record a followup message.
 
         Args:
             content: The content.
             wait: Whether the caller wants the message back.
+            allowed_mentions: What the message is allowed to ping.
 
         Returns:
             The posted message.
         """
         self.sent.append(content)
+        self.mentions.append(allowed_mentions)
         return _Message(content)
 
 
@@ -137,17 +146,20 @@ class _Interaction:
         self.followup = _Followup()
         self.original = _Message(thread_error=thread_error)
         self.edited: list[str] = []
+        self.mentions: list[Any] = []
 
-    async def edit_original_response(self, content: str) -> _Message:
+    async def edit_original_response(self, content: str, allowed_mentions: Any = None) -> _Message:
         """Record an edit of the acknowledgement.
 
         Args:
             content: The new content.
+            allowed_mentions: What the message is allowed to ping.
 
         Returns:
             The message.
         """
         self.edited.append(content)
+        self.mentions.append(allowed_mentions)
         self.original.content = content
         return self.original
 
@@ -250,6 +262,72 @@ class TestEditing(unittest.IsolatedAsyncioTestCase):
         exchange._message.edit_error = discord.HTTPException(cast(Any, _Stub()), "rate limited")  # type: ignore[union-attr]
 
         await exchange.edit("la réponse")  # must not raise
+
+
+def _pings_nothing(recorded: list[Any]) -> bool:
+    """Whether exactly one message was sent, allowed to ping nobody.
+
+    Asserts the property rather than object identity: ``AllowedMentions`` has no ``__eq__``, and
+    "everyone, roles and users are all off" is what actually has to hold.
+
+    Args:
+        recorded: The ``allowed_mentions`` values a fake recorded.
+
+    Returns:
+        ``True`` when one value was recorded and it suppresses every kind of mention.
+    """
+    if len(recorded) != 1 or recorded[0] is None:
+        return False
+    mentions = recorded[0]
+    return not (mentions.everyone or mentions.roles or mentions.users)
+
+
+class TestNothingItSendsCanPing(unittest.IsolatedAsyncioTestCase):
+    """Every message carries text the bot did not author — the question, and the model's answer.
+
+    Either can contain ``@everyone`` or a role mention, deliberately or because a documentation page
+    quotes one. Discord decides by permission, so the suppression is set at every call site rather
+    than left to the bot never being granted *Mention Everyone*. Enumerated over all four sends, not
+    sampled: a new one added without it is the whole bug.
+    """
+
+    async def test_the_question_message_cannot_ping(self) -> None:
+        interaction = _Interaction()
+
+        await _exchange(interaction).announce("**Zip** asks: @everyone")
+
+        self.assertTrue(_pings_nothing(interaction.mentions))
+
+    async def test_the_message_posted_in_a_thread_cannot_ping(self) -> None:
+        interaction = _Interaction()
+        exchange = _exchange(interaction)
+        await exchange.open_thread("❓ q")
+
+        await exchange.post("@everyone")
+
+        # The recorder standing in for the thread; the annotation says `discord.Thread`.
+        thread = cast(Any, exchange._thread)  # noqa: SLF001 - the recorder is the assertion
+        self.assertTrue(_pings_nothing(thread.mentions))
+
+    async def test_the_message_posted_without_a_thread_cannot_ping(self) -> None:
+        interaction = _Interaction(thread_error=discord.HTTPException(cast(Any, _Stub()), "no"))
+        exchange = _exchange(interaction)
+        await exchange.open_thread("❓ q")
+
+        await exchange.post("@everyone")
+
+        self.assertTrue(_pings_nothing(interaction.followup.mentions))
+
+    async def test_the_edited_answer_cannot_ping(self) -> None:
+        interaction = _Interaction()
+        exchange = _exchange(interaction)
+        await exchange.open_thread("❓ q")
+        await exchange.post("placeholder")
+
+        await exchange.edit("@everyone")
+
+        message = cast(Any, exchange._message)  # noqa: SLF001 - the recorder is the assertion
+        self.assertTrue(_pings_nothing(message.mentions))
 
 
 class TestTheGatewayAsksForNoPrivilegedIntent(unittest.TestCase):

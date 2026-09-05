@@ -41,6 +41,15 @@ INTENTS = discord.Intents.none()
 #: Longest question the slash command accepts, mirrored from the handler's own bound.
 QUESTION_MAX_LENGTH = 1000
 
+#: No message this bot sends ever pings anybody.
+#:
+#: Every message it writes carries text it did not author: the asker's own question, echoed into the
+#: channel, and the model's answer. Either can contain ``@everyone``, a role mention, or a user
+#: mention — deliberately or because the documentation quotes one. Discord resolves mentions in bot
+#: messages by permission, so this does not merely rely on the bot never being granted *Mention
+#: Everyone*: it removes the question entirely, at the call site, for every message.
+NO_MENTIONS = discord.AllowedMentions.none()
+
 
 class InteractionExchange:
     """The :class:`~veaf_support_bot.ask.Exchange` protocol over a real Discord interaction."""
@@ -67,7 +76,7 @@ class InteractionExchange:
         Args:
             content: The question line.
         """
-        await self._interaction.edit_original_response(content=content)
+        await self._interaction.edit_original_response(content=content, allowed_mentions=NO_MENTIONS)
 
     async def open_thread(self, name: str) -> bool:
         """Open a public thread on the question message.
@@ -99,9 +108,9 @@ class InteractionExchange:
             content: The message content.
         """
         if self._thread is not None:
-            self._message = await self._thread.send(content)
+            self._message = await self._thread.send(content, allowed_mentions=NO_MENTIONS)
         else:
-            self._message = await self._interaction.followup.send(content, wait=True)
+            self._message = await self._interaction.followup.send(content, wait=True, allowed_mentions=NO_MENTIONS)
 
     async def edit(self, content: str) -> None:
         """Replace the content of the message :meth:`post` created.
@@ -118,7 +127,7 @@ class InteractionExchange:
             await self.post(content)
             return
         try:
-            await self._message.edit(content=content)
+            await self._message.edit(content=content, allowed_mentions=NO_MENTIONS)
         except discord.HTTPException as error:
             self._logger.warning(
                 "could not edit the answer message",

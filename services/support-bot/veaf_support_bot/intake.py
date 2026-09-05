@@ -206,17 +206,24 @@ class BugIntake:
         notes = [MaterialNote(item.filename, item.reason) for item in harvest.rejected]
         logs: list[str] = []
         missions: list[str] = []
+        others: list[str] = []
         scanned: list[str] = []
+        # Three buckets, not two. A quoted `mission.yaml` filed under "log excerpts" would come out
+        # of ticket 04's renderer under a heading it does not belong to, and nobody would notice
+        # until a reader wondered why his configuration file was being called a log.
         for item in harvest.prepared:
             if not item.rendered:
                 continue
+            rendered = f"**{item.filename}**\n{item.rendered}"
             if item.kind == "log":
-                logs.append(f"**{item.filename}**\n{item.rendered}")
+                logs.append(rendered)
+                # Only a log is re-scanned for a trace: it is the one attachment that routinely
+                # carries the traceback the reporter did not think to copy into the form.
                 scanned.append(item.rendered)
             elif item.kind == "mission":
-                missions.append(f"**{item.filename}**\n{item.rendered}")
+                missions.append(rendered)
             else:
-                logs.append(f"**{item.filename}**\n{item.rendered}")
+                others.append(rendered)
             for withheld in item.withheld:
                 notes.append(MaterialNote(item.filename, f"not published: {withheld}"))
 
@@ -234,6 +241,7 @@ class BugIntake:
             extra_text="\n".join(scanned),
             mission_summaries=tuple(missions),
             log_digests=tuple(logs),
+            quoted_files=tuple(others),
             attachments=tuple(harvest.prepared),
         )
 

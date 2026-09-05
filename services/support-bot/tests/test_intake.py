@@ -102,6 +102,23 @@ class TestTheExchange(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(report.log_digests), 1)
         self.assertEqual(len(report.attachments), 1)
 
+    async def test_each_kind_of_attachment_lands_in_its_own_bucket(self) -> None:
+        """A `mission.yaml` filed under *log excerpts* would come out under the wrong heading."""
+        log = (SYNTHETIC_LOG + "\n").encode("utf-8")
+        yaml = b"modules:\n  spawn: true\n"
+        report = await self._intake({"a": log, "b": yaml}).handle(
+            self.exchange,
+            BugSubmission(
+                _form(),
+                [Incoming("dcs.log", "a", len(log)), Incoming("mission.yaml", "b", len(yaml))],
+            ),
+        )
+        assert report is not None
+        self.assertEqual(len(report.log_digests), 1)
+        self.assertEqual(len(report.quoted_files), 1)
+        self.assertIn("mission.yaml", report.quoted_files[0])
+        self.assertNotIn("mission.yaml", "".join(report.log_digests))
+
     async def test_the_downloaded_files_are_still_there_while_the_sink_runs(self) -> None:
         """Ticket 05 uploads them to the issue; a cleanup before that hands it paths to nothing."""
         seen: list[bool] = []

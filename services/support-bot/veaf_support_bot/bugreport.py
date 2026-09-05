@@ -151,6 +151,9 @@ class BugReport:
         attachments: Prepared files, redacted, ready to be uploaded to the issue.
         mission_summaries: Rendered mission shapes, one per ``.miz`` that could be read.
         log_digests: Rendered log excerpts with their catalogue matches.
+        quoted_files: Everything else that was small enough to quote — a `mission.yaml`, a
+            configuration file, an archive listing — kept apart from the two above so a renderer
+            cannot file a configuration file under a *log excerpts* heading.
     """
 
     form: BugForm
@@ -165,6 +168,7 @@ class BugReport:
     attachments: tuple[object, ...] = ()
     mission_summaries: tuple[str, ...] = ()
     log_digests: tuple[str, ...] = ()
+    quoted_files: tuple[str, ...] = ()
 
     @property
     def located(self) -> tuple[Location, ...]:
@@ -224,6 +228,7 @@ def assemble(
     extra_text: str = "",
     mission_summaries: tuple[str, ...] = (),
     log_digests: tuple[str, ...] = (),
+    quoted_files: tuple[str, ...] = (),
     attachments: tuple[object, ...] = (),
 ) -> BugReport:
     """Turn a submitted form into a filled report, using no model.
@@ -236,6 +241,7 @@ def assemble(
             appears in the attached log is located too.
         mission_summaries: Rendered mission shapes.
         log_digests: Rendered log excerpts.
+        quoted_files: Everything else small enough to quote.
         attachments: Prepared files to upload with the issue.
 
     Returns:
@@ -276,6 +282,7 @@ def assemble(
         attachments=attachments,
         mission_summaries=mission_summaries,
         log_digests=log_digests,
+        quoted_files=quoted_files,
     )
 
 

@@ -80,6 +80,13 @@ et tout l'historique se trouve dans `.1`.
 Pour le journal de DCS, [`veaf-logs`](mission-maker/LOGS.md) l'ouvre et n'en montre que ce qui
 compte ; le fichier brut fait souvent plus de 10 Mo, ce qui n'est ni lisible ni envoyable tel quel.
 
+## Quand c'est DCS qui ne va pas {#dcs-trouble}
+
+Si le problème est en jeu — une mission qui ne charge pas, un module qui refuse de démarrer, un menu
+VEAF absent — `veaf-logs` sait aussi **expliquer** ce qu'il lit, et préparer un bloc de signalement
+tout fait. Voir [DCS se comporte mal](pilot/dcs-trouble.md), écrit pour quelqu'un qui n'a jamais
+lancé une commande VEAF.
+
 ## Signaler une faille de sécurité {#security}
 
 **N'ouvrez pas d'issue publique.** Utilisez

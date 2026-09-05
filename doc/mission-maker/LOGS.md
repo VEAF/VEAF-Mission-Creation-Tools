@@ -136,6 +136,69 @@ elle donnerait une erreur que rien n'explique. Le clic droit propose en plus de
 copier le message **sans l'en-tête DCS**, quand on ne veut ni l'horodatage ni le
 sous-système.
 
+## Expliquer ce qui est affiché {#explain}
+
+**Analyse → Expliquer ce qui est affiché**, ou `Ctrl+E`. La réponse arrive en
+deux couches, séparées à l'écran, et l'ordre entre elles est tout le sujet.
+
+**Le catalogue répond en premier.** Chaque motif reconnu par `rules.json` est
+rendu avec son propre texte, repris tel quel. Aucun modèle, aucun coût, aucun
+réseau : cette couche seule est déjà une réponse, et c'est le mode dégradé du
+reste.
+
+**Le modèle met en contexte ensuite**, seulement si on appuie sur **Analyser en
+ligne**. Il reçoit l'extrait et les motifs déjà appariés localement, et il
+enchaîne : ce qui s'est passé en premier, ce qui n'en est qu'une conséquence, la
+ligne sur laquelle agir. Là où le catalogue est muet, il dit *motif non
+catalogué* au lieu de proposer une cause.
+
+Le pire échec de cette fonction n'est pas le silence, c'est une réponse
+plausible et fausse : *« ça vient de votre module X »* alors que non. Le lecteur
+n'a aucun moyen de la distinguer d'une bonne, et il y passera sa soirée. C'est
+pourquoi les deux couches sont titrées séparément plutôt que suivies d'un
+avertissement en bas, que personne ne lit.
+
+Sans réseau, sans quota, derrière un proxy d'entreprise : la couche catalogue
+répond et aucune boîte d'erreur n'apparaît.
+
+### Ce qui part de la machine {#explain-privacy}
+
+Rien, tant qu'on n'a pas appuyé sur **Analyser en ligne**. À ce moment-là part
+l'extrait affiché, **borné** (une limite en caractères, les omissions annoncées)
+et **caviardé** par le même code que `veaf-tools doctor` : nom de compte Windows
+→ `<user>`, adresses IP → `<ip>`, adresses e-mail → `<email>`, jetons et mots de
+passe → `<redacted>`. Les noms de missions, d'appareils et d'armements sont
+conservés : ce sont eux qui disent *sur quoi* ça a planté.
+
+L'en-tête de l'extrait déclare aussi les catégories mises à ✕. Un journal filtré
+jusqu'à « aucune erreur » parce qu'on a décoché `ERROR` ne doit pas se lire comme
+un journal propre.
+
+### Motifs récurrents non catalogués {#proposals}
+
+Un message qui revient et que `rules.json` n'explique pas est une **entrée
+manquante** du catalogue. L'analyse en propose une, dans la forme du fichier,
+identifiants et valeurs variables déjà remplacés par des jokers.
+
+Rien n'est écrit dans `rules.json` : une proposition reste une proposition, et
+c'est précisément parce que le catalogue est tenu à la main que son texte est
+citable. Le `help` généré n'explique volontairement rien, il dit qu'il est à
+reformuler.
+
+## Préparer un rapport {#report}
+
+Le bouton **Préparer un rapport** assemble en un bloc la sortie de
+`veaf-tools doctor`, l'extrait borné et caviardé, les motifs du catalogue et ce
+que l'analyse a conclu — y compris ce qu'elle n'a pas su expliquer — et le met
+dans le presse-papier, prêt à coller dans `#support` ou dans une issue.
+
+C'est un **collage**, pas un envoi : rien ne part tout seul. Le bloc est taillé
+pour tenir dans un message Discord ; quand tout ne rentre pas, il annonce ce
+qu'il a retiré au lieu d'être coupé en silence.
+
+Son format est versionné et documenté : voir
+[Format du bloc de rapport](../developer/report-block.md).
+
 ## Ce qu'il comprend du journal
 
 **Les traces de pile restent avec leur erreur.** Un `Mission script error` suivi

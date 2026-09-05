@@ -13,7 +13,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     SUPPORT_BOT_HEALTH_HOST=0.0.0.0 \
     SUPPORT_BOT_HEALTH_PORT=8081 \
-    SUPPORT_BOT_QUOTA_STATE_FILE=/app/state/quota.json \n    SUPPORT_BOT_GITHUB_LEDGER_FILE=/app/state/filed-issues.json
+    SUPPORT_BOT_QUOTA_STATE_FILE=/app/state/quota.json \
+    SUPPORT_BOT_GITHUB_LEDGER_FILE=/app/state/filed-issues.json
 
 WORKDIR /app
 

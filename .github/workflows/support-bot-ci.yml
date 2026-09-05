@@ -106,21 +106,24 @@ jobs:
       - name: Half a GitHub App fails the same way a missing token does
         run: |
           set +e
+          # A key IS supplied here, so the leak check below has something real to catch: a
+          # configuration error is printed at CRITICAL straight into a log collector, and the one
+          # variable in this set that certainly holds a credential is this one.
           output=$(docker run --rm \
             -e SUPPORT_BOT_DISCORD_TOKEN=x \
             -e SUPPORT_BOT_DISCORD_GUILD_ID=1 \
             -e SUPPORT_BOT_WORKER_SECRET=x \
             -e SUPPORT_BOT_GITHUB_APP_ID=123456 \
+            -e "SUPPORT_BOT_GITHUB_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----MIIEnotarealkey-----END RSA PRIVATE KEY-----" \
             veaf-support-bot:ci 2>&1)
           code=$?
           set -e
           echo "$output"
           test "$code" = "78" || { echo "expected EX_CONFIG (78), got $code"; exit 1; }
           echo "$output" | grep -q "SUPPORT_BOT_GITHUB_INSTALLATION_ID is required"
-          echo "$output" | grep -q "GITHUB_PRIVATE_KEY"
-          # And the value that was set is never echoed back — a configuration error is printed at
-          # CRITICAL straight into a log collector, and any of these variables can hold a pasted key.
-          echo "$output" | grep -qv "BEGIN RSA PRIVATE KEY"
+          if echo "$output" | grep -q "MIIEnotarealkey"; then
+            echo "the startup error echoed the private key it refused"; exit 1
+          fi
 
       # `cryptography` is the App's only new runtime dependency and the image installs it by hand,
       # so a Dockerfile that drifts from `pyproject.toml` is caught here rather than on the first

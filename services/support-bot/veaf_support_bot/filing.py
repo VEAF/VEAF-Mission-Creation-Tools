@@ -9,7 +9,7 @@ are three different failures and they need three different answers, so the modul
 |---|---|
 | Two clicks arriving together | an :class:`asyncio.Lock` per key — the second waits, then reads the first one's result |
 | A retry after a timeout, same process | the **ledger**, a small JSON file that already holds the issue number |
-| A restart after the ``POST`` was sent and the answer lost | the **marker**, an HTML comment carrying the key inside the issue; the recovery search finds it |
+| A restart after the ``POST`` was sent and the answer lost, **or any loss of the ledger** | the **marker**, an HTML comment carrying the key inside the issue; the recovery search runs on every report with no recorded number, so it does not need the ledger to be readable |
 
 The key is derived from the report itself — the reporter, his five fields, and the names and sizes
 of what he attached — so *the same report* always produces *the same key*, and a genuinely new
@@ -40,8 +40,9 @@ import asyncio
 import hashlib
 import json
 import time
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 from logging import Logger
 from pathlib import Path
 from typing import Any
@@ -78,6 +79,9 @@ MAX_PAGES = 5
 
 #: Version of the ledger document. A file of another version is refused rather than reinterpreted.
 LEDGER_VERSION = 1
+
+#: Appended to the ledger's name when an unreadable one is moved aside rather than overwritten.
+CORRUPT_SUFFIX = ".corrupt"
 
 
 @dataclass(frozen=True)
@@ -164,10 +168,24 @@ class Ledger:
         Returns:
             The entries by key. An unreadable or unrecognised file yields an empty mapping and a
             warning: refusing to file anything because a bookkeeping file is corrupt would lose
-            reports, and the marker search still stops a duplicate.
+            reports, and :meth:`IssueFiler._file_once` searches for the marker on **every** report
+            it has no number for, so the duplicate is still stopped.
+        """
+        return self._read()[0]
+
+    def _read(self) -> tuple[dict[str, dict[str, Any]], bool]:
+        """Read the file back, saying whether it could be understood.
+
+        The second value is what :meth:`record` needs and :meth:`load` does not: a caller that only
+        reads can treat *corrupt* and *absent* alike, and a caller about to **overwrite** cannot —
+        an empty mapping from a corrupt read, written back, is every other entry deleted.
+
+        Returns:
+            The entries, and whether the file on disk was readable. An absent file is readable: it
+            is the state a first run legitimately starts from.
         """
         if not self.path.exists():
-            return {}
+            return {}, True
         try:
             document = json.loads(self.path.read_text(encoding="utf-8"))
             if not isinstance(document, dict) or document.get("version") != LEDGER_VERSION:
@@ -180,8 +198,8 @@ class Ledger:
                 "the filing ledger could not be read; falling back to the in-issue marker",
                 extra={"event": "filing.ledger_unreadable", "error": f"{type(error).__name__}: {error}"},
             )
-            return {}
-        return {str(key): value for key, value in entries.items() if isinstance(value, dict)}
+            return {}, False
+        return {str(key): value for key, value in entries.items() if isinstance(value, dict)}, True
 
     def record(self, key: str, entry: dict[str, Any]) -> None:
         """Write one entry, keeping the others.
@@ -190,7 +208,9 @@ class Ledger:
             key: The report key.
             entry: What to record.
         """
-        entries = self.load()
+        entries, readable = self._read()
+        if not readable:
+            self._preserve()
         entries[key] = entry
         document = {"version": LEDGER_VERSION, "reports": entries}
         try:
@@ -203,6 +223,27 @@ class Ledger:
                 "the filing ledger could not be written; a retry will fall back to the in-issue marker",
                 extra={"event": "filing.ledger_unwritable", "error": f"{type(error).__name__}: {error}"},
             )
+
+    def _preserve(self) -> None:
+        """Move an unreadable ledger aside instead of writing over it.
+
+        A corrupt file still holds the issue numbers of every report filed before it broke, in a
+        form a human can read even when :func:`json.loads` cannot. Overwriting it is the one action
+        that makes the damage permanent, and it is what a plain rewrite does silently.
+        """
+        aside = self.path.with_suffix(f"{self.path.suffix}{CORRUPT_SUFFIX}")
+        try:
+            self.path.replace(aside)
+        except OSError as error:
+            self._logger.warning(
+                "the unreadable filing ledger could not be moved aside; it is about to be overwritten",
+                extra={"event": "filing.ledger_not_preserved", "error": f"{type(error).__name__}: {error}"},
+            )
+            return
+        self._logger.warning(
+            "the unreadable filing ledger was moved aside",
+            extra={"event": "filing.ledger_preserved", "path": str(aside)},
+        )
 
 
 class RepositoryIssues:
@@ -289,6 +330,22 @@ def _record_of(item: dict[str, Any]) -> IssueRecord:
     )
 
 
+@dataclass
+class _Serialiser:
+    """One key's lock, and how many callers still need it.
+
+    The count is what lets the entry be dropped: a plain ``dict`` of locks keyed by report never
+    shrinks, and a long-running service files reports for as long as it runs.
+
+    Attributes:
+        lock: The lock two simultaneous filings of the same report contend on.
+        waiting: How many callers hold it or are queued for it.
+    """
+
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    waiting: int = 0
+
+
 class IssueFiler:
     """Files one report as one issue, whatever happens twice."""
 
@@ -312,7 +369,29 @@ class IssueFiler:
         self._ledger = ledger
         self._logger = logger or get_logger("filing")
         self._machine_label = machine_label
-        self._locks: dict[str, asyncio.Lock] = {}
+        self._locks: dict[str, _Serialiser] = {}
+
+    @asynccontextmanager
+    async def _serialised(self, key: str) -> AsyncIterator[None]:
+        """Hold one report's lock, and forget the lock once nobody wants it.
+
+        Args:
+            key: The report's idempotency key.
+
+        Yields:
+            Nothing; the block runs with the key's lock held.
+        """
+        entry = self._locks.setdefault(key, _Serialiser())
+        entry.waiting += 1
+        try:
+            async with entry.lock:
+                yield
+        finally:
+            entry.waiting -= 1
+            if entry.waiting == 0:
+                # Safe to drop: every caller for this key has left, so nobody can be handed a second
+                # lock while a first one is still held.
+                self._locks.pop(key, None)
 
     async def file(self, report: BugReport, *, thread_url: str = "") -> Outcome:
         """Open the issue for one report, or return the one already opened for it.
@@ -326,12 +405,12 @@ class IssueFiler:
             because an exception here loses a report he has already spent five minutes on.
         """
         key = report_key(report)
-        async with self._locks.setdefault(key, asyncio.Lock()):
+        async with self._serialised(key):
             recorded = self._ledger.load().get(key) or {}
             if recorded.get("number"):
                 return Outcome(action="reused", number=int(recorded["number"]), url=str(recorded.get("url") or ""))
             try:
-                return await self._file_once(report, key, recorded, thread_url)
+                return await self._file_once(report, key, thread_url)
             except GitHubError as error:
                 self._logger.error(
                     "the issue could not be filed",
@@ -366,19 +445,20 @@ class IssueFiler:
         url = str(response.body.get("html_url") or "") if isinstance(response.body, dict) else ""
         return Outcome(action="commented", number=number, url=url)
 
-    async def _file_once(
-        self,
-        report: BugReport,
-        key: str,
-        recorded: dict[str, Any],
-        thread_url: str,
-    ) -> Outcome:
+    async def _file_once(self, report: BugReport, key: str, thread_url: str) -> Outcome:
         """Create the issue, having first made sure no earlier attempt already did.
+
+        The marker search runs on **every** report that has no recorded number, not only on one the
+        ledger remembers as interrupted. Gating it on ``state == "filing"`` made it unreachable in
+        the three situations it exists for — a ledger that is corrupt, one on a state volume that
+        was never mounted, and one whose write was swallowed — because each of those makes the
+        ledger read as *empty*, not as *interrupted*. The cost of the ungated search is one ``GET``
+        on the first filing of a genuinely new report; the cost of the gate was a second issue on a
+        public tracker, which is the outcome the ticket calls hardest to undo.
 
         Args:
             report: The assembled report.
             key: The report's idempotency key.
-            recorded: What the ledger holds for it, possibly an interrupted attempt.
             thread_url: Link back to the Discord thread.
 
         Returns:
@@ -387,11 +467,10 @@ class IssueFiler:
         Raises:
             GitHubError: The creation failed.
         """
-        if recorded.get("state") == "filing":
-            existing = await self._find_by_marker(key)
-            if existing is not None:
-                self._remember(key, existing)
-                return Outcome(action="reused", number=existing.number, url=existing.url)
+        existing = await self._find_by_marker(key)
+        if existing is not None:
+            self._remember(key, existing)
+            return Outcome(action="reused", number=existing.number, url=existing.url)
 
         carried = [carry(item) for item in report.attachments if isinstance(item, Prepared)]
         body = render_body(report, key, thread_url=thread_url, carried=carried)

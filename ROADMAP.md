@@ -204,12 +204,20 @@ used in production since June. The lot 4 runtime stays provider-agnostic, and th
 analysis is to be **measured on real reports** rather than assumed — that is the one place the change
 could cost something real.
 
+**Where it stands, end of 2026-09-05.** Lots 1 to 3 are merged: `veaf-tools doctor` with
+the redaction helper and a log that finally records stack traces; the *Explain* action in
+`veaf-logs` with the catalogue as authority; and `/ask` answering in public Discord threads,
+on a Worker whose admission control was closed on the way (`FIX-CHATBOT-DAILY-QUOTA` came out
+of the same measurement and shipped with them). Lot 4 is being written, and it is **not the
+lot described below**: see its PRD, redesigned the same day once the free tier was measured
+at 20 requests a day.
+
 | Order | Lot | Runs where | Why here |
 |-------|-----|-----------|----------|
 | **1** | [`FEAT-SUPPORT-DIAGNOSTIC`](.backlog/FEAT-SUPPORT-DIAGNOSTIC/PRD.md) — **done 2026-09-05** | user's machine | the only piece that keeps its value if the bot is never built, and `doctor`'s output is the contract lots 2 and 4 consume — now shipped as `veaf-tools-doctor/1`, with its parser and a round-trip test |
-| **2** | [`FEAT-SUPPORT-LOG-ANALYSIS`](.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md) | user's machine | still no infrastructure, no secret, no cost; also closes the Worker's `X-VEAF-Client` bypass, being the first lot to add a second client |
-| **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) | service + Worker | proves the channel, the permissions and the quotas with no agent and no write access |
-| **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) | service | the big one, and the only one that runs an agent and writes to a public repository — **to be sequenced into several PRs** |
+| **2** | [`FEAT-SUPPORT-LOG-ANALYSIS`](.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md) — **done 2026-09-05** | user's machine | still no infrastructure, no secret, no cost; also closes the Worker's `X-VEAF-Client` bypass, being the first lot to add a second client |
+| **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) — **done 2026-09-05** | service + Worker | proves the channel, the permissions and the quotas with no agent and no write access |
+| **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) — **in progress** | service | the big one, and the only one that runs an agent and writes to a public repository — **to be sequenced into several PRs** |
 | **5** | [`FEAT-SUPPORT-SUGGESTIONS`](.backlog/FEAT-SUPPORT-SUGGESTIONS/PRD.md) | service | adds a flow on lot 4's infrastructure; if it needs new plumbing, lot 4 factored badly |
 
 Three decisions worth recording, because they were argued and could be reopened: the issue is filed by

@@ -302,6 +302,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   colon — each of which used to lose every citation *and* leave the raw instruction line in the
   answer.
 
+- **Skynet left every SAM asleep and its status page blank.** Reported by Tripack with
+  `SKYNET.enabled: true`: no site ever engaged, the radio menu showed neither status nor contacts,
+  and the same mission with Skynet switched off worked perfectly. One lost task explains all three.
+  Skynet arms its contact-evaluation cycle with a hardcoded start time of **one second of mission
+  time**, and an IADS that initialises later than that — three minutes in, on his mission — asks the
+  DCS timer for a moment already gone. MiST, which the vendored Skynet no longer carries, ran an
+  overdue task on its next tick; the native timer is not something to rely on for that, and a
+  dropped task raises nothing, so `dcs.log` held no Skynet error at all. Since the whole cycle ends
+  with `printSystemStatus`, the status page had nothing to print either.
+
+  Fixed where the three call sites converge rather than at each of them: the fork's scheduler now
+  arms a first run due now, or overdue, for the next tick — the same floor `veafScheduler` got four
+  days earlier, when the same defect swallowed `spawnSmoke`. Repetition, stop time and cancellation
+  are unchanged. `skynet-iads-compiled.lua` is regenerated at build 05.09.2026.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

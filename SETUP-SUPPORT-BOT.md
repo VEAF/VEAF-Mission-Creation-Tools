@@ -61,6 +61,10 @@ Choose the channel or channels where `/ask` is allowed, and tell me which — th
 itself rather than answering everywhere. If a dedicated channel is created for it, its name goes in
 the user documentation.
 
+To read a channel's ID: **User Settings** → **Advanced** → turn on **Developer Mode**, then
+right-click the channel → **Copy Channel ID**. The same gesture on the server name gives the server
+(guild) ID.
+
 **Values to hand over:** the bot token, the application ID, the server (guild) ID, and the
 allowed channel IDs.
 
@@ -82,11 +86,19 @@ anybody.
 3. **GitHub App name**: what will appear as the author of every issue it files. Choose it carefully,
    it is public and it is what a reporter will see.
 4. **Homepage URL**: the repository URL is fine.
-5. **Webhook**: needed for the GitHub → Discord relay (lot 4, ticket 06). Two options:
-   - the service is reachable from the internet: tick **Active**, set the URL, and generate a
-     **webhook secret** — keep it; it goes into the service environment under a `SUPPORT_BOT_` name fixed when lot 4 lands;
-   - it is not reachable: untick **Active** for now, and the relay polls instead. Tell me which,
-     because it changes what gets built.
+5. **Webhook**: leave **Active unticked**. Nothing else to do on this screen.
+
+   *Why, in case you wonder later.* When someone answers an issue on GitHub, the bot has to learn
+   about it so it can repost the answer into the Discord thread. There are two ways for it to learn.
+   GitHub can **push** the news to the bot the moment it happens — that is the webhook, and it is
+   instant, but it requires the bot to have a public address reachable from the internet: a domain
+   name, an open port, a certificate. Behind a home router that means real network configuration.
+   Or the bot can **ask** GitHub every few minutes what changed — no public address, no open port,
+   works anywhere.
+
+   For a bug report, a few minutes of delay changes nothing, so the bot asks. If the service ever
+   ends up on a host with a public address and the delay starts to annoy, switching is a small
+   change: tick Active, set the URL, generate the secret, and the relay stops polling.
 
 ### B2. Permissions — grant exactly these
 
@@ -98,8 +110,8 @@ Under **Repository permissions**:
 | Metadata | Read-only | mandatory, granted automatically |
 | Contents | Read-only | read `.backlog/` and the sources for the prior-art sweep |
 
-Everything else stays **No access**. Under **Subscribe to events**, if the webhook is active:
-**Issues** and **Issue comment**, nothing else.
+Everything else stays **No access**. **Subscribe to events** can be left entirely unticked — those
+events are only delivered through a webhook, and we are not using one.
 
 **Where can this GitHub App be installed?** → *Only on this account*.
 
@@ -113,8 +125,7 @@ Everything else stays **No access**. Under **Subscribe to events**, if the webho
 4. After installing, the URL of the installation settings page ends with a number: that is the
    **Installation ID**. Note it.
 
-**Values to hand over:** App ID, Installation ID, the `.pem` private key, and the webhook secret if
-you set one.
+**Values to hand over:** App ID, Installation ID, and the `.pem` private key.
 
 If anything leaks: same settings page, delete the private key and generate a new one. The app keeps
 working under the new key; the old one is dead.
@@ -176,7 +187,14 @@ in, and there is no `discord` mode for the bot to use.
 ### D2. Set the shared secret between the Worker and the bot
 
 The `discord` client mode is **refused until a secret exists on the Worker side**. Generate a long
-random value, keep it, and set it in both places:
+random value, keep it, and set it in both places. It is a shared password: any long random string
+does, as long as the Worker and the bot hold the same one. To generate one in PowerShell:
+
+```powershell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Max 256 }))
+```
+
+Copy that value, then paste it when the next command asks for it:
 
 ```bash
 cd poc/doc-chatbot/worker && npx wrangler secret put DISCORD_CLIENT_SECRET
@@ -247,7 +265,7 @@ Copy this into the thread when you have done a part, so I know what to wire in.
 - [ ] **A** — Discord application created, bot invited to the server, channels chosen
       → token, application ID, guild ID, channel IDs
 - [ ] **B** — GitHub App created, installed on the repository only, permissions as listed
-      → App ID, Installation ID, private key, webhook secret or "polling"
+      → App ID, Installation ID, private key
 - [ ] **C** — Anthropic key created, provider spend limit set
       → key, monthly budget, daily service ceiling
 - [ ] **D1** — Worker deployed (`npx wrangler deploy`), without which none of the hardening is live

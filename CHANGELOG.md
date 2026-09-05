@@ -338,6 +338,67 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `radioSet`, plus `hidden` — an editor-hidden group no longer becomes visible on the F10 map the
   moment it is cloned.
 
+- **`/bug` on the support Discord: a form that becomes a filled bug report, with no model involved.**
+  It asks the five things `.github/ISSUE_TEMPLATE/bug_report.yml` needs and takes up to three files,
+  then does everything the free Gemini tier — measured at **20 requests a day** — cannot be trusted
+  to do: it parses the pasted `doctor` block for the tool and DCS versions, finds the `file:line` a
+  stack trace states (CPython, the tools' log, and the shape DCS actually emits for a Lua error),
+  maps it onto a repository checkout, quotes the lines around it and searches for the callers of the
+  function it sits in, reduces an attached `dcs.log` through the existing `veaf_logs` excerpt builder
+  and reports what `rules.json` recognises in the catalogue's own wording, and summarises an attached
+  `.miz` through the existing export — its theatre, date, weather and group *counts*, never its
+  briefing prose or its group names. Everything published is redacted first through the same
+  `veaf_libs.redaction` the `doctor` command uses.
+
+  **What is missing is stated, never filled in.** A version nobody pasted reads *"not stated"*; a
+  trace naming a file this revision does not have says so, with the revision it was checked against.
+  Every location carries that revision and its age, so a stale checkout produces facts a reader can
+  check rather than confident wrong ones.
+
+  **Nothing a reporter or a log writes selects a code path.** The component, the labels, the title
+  and the locations come from a checked-in lookup table, anchored patterns and a parse — never from
+  free text. A test assembles the same report twice, once with instruction-shaped text spliced into
+  every field and into the attached log, and requires the two to decide identically. The evidence
+  itself is never censored: hostile lines travel whole, quoted in a fence they cannot close.
+
+  Oversized, unknown, unreachable and corrupt attachments are each refused with a reason the reporter
+  reads, and the report continues without them. The command is published only when the deployment
+  gives the service a repository clone to read; without one it does not appear at all.
+
+  This is the first half of the intake: the issue is prepared, not yet opened. Filing it is the
+  GitHub App of the same lot.
+
+- **Three reporter-supplied strings reached the report without being redacted, and one `/bug`
+  froze the bot for as long as it took.** Found in review of the intake above, and all measured.
+
+  The redaction gap was in the three places the text does not look like text: the **member names of
+  an attached archive** (a `~mis*.zip` is a DCS autosave, and its paths carry the account name),
+  the **message of the parser that refused a file** (`luadata` copies the malformed region of a
+  mission into its exception, so a fragment of a stranger's mission was published as the reason it
+  could not be read — same shape over a stranger's log), and the **filename itself** (`safe_name`
+  makes a name safe for a disk, which is not the same property as safe to publish). All three now
+  go through the tools' single redaction helper, and the parser's detail is kept in the service log
+  instead. Note the limit, since it is deliberate: that helper recognises personal data by context
+  and known shape, so an address in a filename is replaced and a bare name is not — exactly as when
+  a reporter types one into *"what happened"*.
+
+  The liveness bug was that the whole deterministic pass ran on the gateway's event loop, including
+  a `git fetch` its own docstring says must never run there. Measured against the real repository,
+  an ordinary report with a mission attached held the loop for about six seconds — enough to stall
+  every `/ask` beside it — and a hung fetch would have held it for up to four minutes against a
+  Discord heartbeat of roughly forty seconds, which is a disconnect. The pass now runs in a worker
+  thread, and the refresh takes a lock: two reports arriving in the same interval both used to run
+  `git reset --hard` in the same working tree.
+
+  Two smaller things the report was stating as facts: a line the current revision **does not have**
+  was published as a location, with the quoted neighbourhood silently empty, and the function the
+  trace named was never compared with the function that line sits in today. Both disagreements are
+  now stated, with the revision they were checked against — they are the cheapest signal there is
+  that the reporter is on an older build. Alongside them: the mission summary no longer claims to
+  withhold the weather in the report that publishes it, a line of exactly forty backticks no longer
+  closes the fence that was supposed to contain it, and a failed `git fetch` no longer publishes the
+  remote's address under every location.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

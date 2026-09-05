@@ -41,8 +41,11 @@ from typing import Any, Protocol
 
 from veaf_support_bot import __version__
 from veaf_support_bot.ask import AskHandler, build_handler
+from veaf_support_bot.attachments import AttachmentCollector, http_download
+from veaf_support_bot.checkout import CheckoutUnavailable, open_checkout
 from veaf_support_bot.config import SupportBotConfig
 from veaf_support_bot.health import HealthServer, ServiceState
+from veaf_support_bot.intake import BugIntake
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
 
@@ -79,6 +82,50 @@ def build_quota(config: SupportBotConfig, logger: Logger | None = None) -> Quota
         global_per_day=config.quota_global_per_day,
     )
     return QuotaKeeper(limits, QuotaStore(Path(config.quota_state_file)), logger=logger)
+
+
+def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugIntake | None:
+    """Build the ``/bug`` intake, when the deployment gave it a repository to read.
+
+    A checkout is what turns a stack trace into a location, so without one the command is **not
+    published** rather than published and answering "I cannot do this": an unusable command in the
+    picker is a promise the service does not keep.
+
+    A configured path that turns out not to be a git working tree is a different matter — that is a
+    deployment mistake — but it is reported and skipped rather than raised, because the alternative
+    is a service that refuses to answer documentation questions over a feature it was not asked for.
+    The line in the log names the path and says ``/bug`` is off.
+
+    Args:
+        config: The resolved configuration.
+        logger: Logger to report an unusable path on.
+
+    Returns:
+        The intake, or ``None`` when there is no usable checkout.
+    """
+    if not config.checkout_path:
+        return None
+    report = logger or get_logger("service")
+    try:
+        checkout = open_checkout(
+            config.checkout_path,
+            remote=config.checkout_remote,
+            branch=config.checkout_branch,
+            refresh_seconds=config.checkout_refresh_seconds,
+        )
+    except CheckoutUnavailable as error:
+        report.error(
+            "/bug is disabled: the configured checkout is unusable",
+            extra={"event": "intake.no_checkout", "error": str(error)},
+        )
+        return None
+    collector = AttachmentCollector(
+        checkout,
+        http_download,
+        max_file_bytes=config.attachment_max_bytes,
+        max_total_bytes=config.attachment_total_bytes,
+    )
+    return BugIntake(checkout, collector, logger=report)
 
 
 class InFlightTasks:
@@ -179,6 +226,7 @@ class SupportBotService:
         self.tasks = InFlightTasks(self.logger)
         self.quota = quota or build_quota(config, self.logger)
         self.handler: AskHandler = build_handler(config, self.quota)
+        self.intake: BugIntake | None = build_intake(config, self.logger)
         self.state.set_details_provider(self.quota.snapshot)
         self._gateway = gateway
         self._connection: Gateway | None = gateway
@@ -196,7 +244,7 @@ class SupportBotService:
         """
         from veaf_support_bot.discord_bot import DiscordGateway, SupportBotClient
 
-        client = SupportBotClient(self.config, self.state, self.handler, self.tasks)
+        client = SupportBotClient(self.config, self.state, self.handler, self.tasks, self.intake)
         return DiscordGateway(client, self.config.discord_token)
 
     def request_stop(self, reason: str) -> None:

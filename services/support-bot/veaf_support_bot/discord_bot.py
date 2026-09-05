@@ -29,8 +29,17 @@ import discord
 from discord import app_commands
 
 from veaf_support_bot.ask import AskContext, AskHandler
+from veaf_support_bot.attachments import Incoming
+from veaf_support_bot.bugreport import BugForm
 from veaf_support_bot.config import SupportBotConfig
 from veaf_support_bot.health import ServiceState
+from veaf_support_bot.intake import (
+    DOCTOR_MAX_CHARS,
+    PARAGRAPH_MAX_CHARS,
+    SUMMARY_MAX_CHARS,
+    BugIntake,
+    BugSubmission,
+)
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.service import InFlightTasks
 
@@ -144,6 +153,7 @@ class SupportBotClient(discord.Client):
         state: ServiceState,
         handler: AskHandler,
         tasks: InFlightTasks | None = None,
+        intake: BugIntake | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the client without connecting.
@@ -154,6 +164,9 @@ class SupportBotClient(discord.Client):
             handler: The ``/ask`` handler.
             tasks: The registry a shutdown drains. An exchange that is not registered there is one
                 ``docker stop`` can cut in half, leaving a placeholder that is never edited.
+            intake: The ``/bug`` intake. ``None`` when the service has no checkout, in which case
+                ``/bug`` is not published at all — a command that answers "I cannot do this" is
+                worse than one that is not there.
             **kwargs: Passed to :class:`discord.Client`.
         """
         super().__init__(intents=INTENTS, **kwargs)
@@ -163,6 +176,8 @@ class SupportBotClient(discord.Client):
         self._logger = get_logger("discord")
         self.tree = app_commands.CommandTree(self)
         register_commands(self.tree, handler, self._logger, tasks)
+        if intake is not None:
+            register_bug_command(self.tree, intake, self._logger, tasks)
 
     @property
     def guild(self) -> discord.Object:
@@ -282,3 +297,208 @@ def register_commands(
                 extra={"event": "ask.crashed", "user": context.user_id, "error": type(error).__name__},
             )
             raise
+
+
+class ModalExchange:
+    """The :class:`~veaf_support_bot.intake.BugExchange` protocol over a modal submission.
+
+    Ephemeral throughout. The deterministic pass is a *preparation* step: it says what the service
+    read and what it could not, which concerns the reporter and nobody else. What becomes public is
+    the issue, and opening it is ticket 04's click.
+    """
+
+    def __init__(self, interaction: discord.Interaction, logger: Logger | None = None) -> None:
+        """Initialize the exchange.
+
+        Args:
+            interaction: The modal submission interaction.
+            logger: Logger to use; defaults to the service's ``discord`` logger.
+        """
+        self._interaction = interaction
+        self._logger = logger or get_logger("discord")
+
+    async def defer(self) -> None:
+        """Acknowledge the submission privately, inside Discord's three-second budget."""
+        await self._interaction.response.defer(thinking=True, ephemeral=True)
+
+    async def post(self, content: str) -> None:
+        """Replace the acknowledgement with what the service made of the report.
+
+        Args:
+            content: The message content.
+        """
+        await self._interaction.edit_original_response(content=content, allowed_mentions=NO_MENTIONS)
+
+
+class BugModal(discord.ui.Modal):
+    """The five fields ``.github/ISSUE_TEMPLATE/bug_report.yml`` needs, and nothing more.
+
+    Version and component are **not** asked. They come from the ``doctor`` block, or the issue says
+    they are missing — asking a reporter for a version is how a report ends up saying "latest".
+    """
+
+    def __init__(self, intake: BugIntake, attachments: list[Incoming], logger: Logger) -> None:
+        """Build the modal.
+
+        Args:
+            intake: What the submission is handed to.
+            attachments: The files the command carried, already flattened.
+            logger: Logger for a failure that escapes the handler.
+        """
+        super().__init__(title="Report a bug", timeout=None)
+        self._intake = intake
+        self._attachments = attachments
+        self._logger = logger
+        self.summary: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
+            label="In one line, what is wrong?",
+            style=discord.TextStyle.short,
+            max_length=SUMMARY_MAX_CHARS,
+            required=True,
+        )
+        self.happened: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
+            label="What happened?",
+            style=discord.TextStyle.paragraph,
+            max_length=PARAGRAPH_MAX_CHARS,
+            required=True,
+        )
+        self.expected: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
+            label="What did you expect?",
+            style=discord.TextStyle.paragraph,
+            max_length=PARAGRAPH_MAX_CHARS,
+            required=True,
+        )
+        self.steps: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
+            label="Steps to reproduce",
+            style=discord.TextStyle.paragraph,
+            max_length=PARAGRAPH_MAX_CHARS,
+            required=True,
+        )
+        self.doctor: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
+            label="Paste the output of: veaf-tools doctor",
+            style=discord.TextStyle.paragraph,
+            max_length=DOCTOR_MAX_CHARS,
+            required=False,
+        )
+        for item in (self.summary, self.happened, self.expected, self.steps, self.doctor):
+            self.add_item(item)
+
+    def submission(self, interaction: discord.Interaction) -> BugSubmission:
+        """Turn the filled modal into what the intake consumes.
+
+        Args:
+            interaction: The submission interaction.
+
+        Returns:
+            The submission.
+        """
+        return BugSubmission(
+            form=BugForm(
+                summary=str(self.summary.value),
+                happened=str(self.happened.value),
+                expected=str(self.expected.value),
+                steps=str(self.steps.value),
+                doctor=str(self.doctor.value or ""),
+                reporter=interaction.user.display_name,
+                reporter_id=str(interaction.user.id),
+                language=str(interaction.locale) if interaction.locale else "fr",
+            ),
+            attachments=self._attachments,
+        )
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Run the deterministic pass over the submitted form.
+
+        Args:
+            interaction: The submission interaction.
+        """
+        await self._intake.handle(ModalExchange(interaction, self._logger), self.submission(interaction))
+
+    # discord.py's `Modal.on_error` takes `(interaction, error)`; the `BaseView` it inherits from
+    # takes a third `Item` argument, and that is the signature mypy resolves. Matching the base would
+    # give the modal a handler the library never calls, so the narrower — correct — one is kept.
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:  # type: ignore[override]
+        """Log a failure the intake did not catch.
+
+        The intake already turns everything past its own acknowledgement into a sentence, so
+        reaching here means the failure happened before it — most often Discord refusing the defer.
+
+        Args:
+            interaction: The submission interaction.
+            error: What went wrong.
+        """
+        self._logger.exception(
+            "the /bug modal failed",
+            extra={"event": "bug.modal_failed", "error": type(error).__name__},
+        )
+
+
+def incoming_from(*attachments: discord.Attachment | None) -> list[Incoming]:
+    """Flatten the command's optional attachment options into what the collector reads.
+
+    Args:
+        *attachments: The options, any of which may be ``None``.
+
+    Returns:
+        The attachments that were actually supplied, in option order.
+    """
+    return [
+        Incoming(
+            filename=item.filename,
+            url=item.url,
+            size=int(item.size or 0),
+            content_type=str(item.content_type or ""),
+        )
+        for item in attachments
+        if item is not None
+    ]
+
+
+def register_bug_command(
+    tree: app_commands.CommandTree,
+    intake: BugIntake,
+    logger: Logger,
+    tasks: InFlightTasks | None = None,
+) -> None:
+    """Attach ``/bug`` to a command tree.
+
+    Split out of the client for the same reason ``/ask``'s registration is: a handler that works and
+    a command nobody attached is the shape of bug this repository has shipped green before.
+
+    The attachments are **command options** rather than files dropped in a thread. Discord uploads
+    them before the interaction exists, so no message intent is involved — see
+    :mod:`veaf_support_bot.intake` for why that decision is not a convenience.
+
+    Args:
+        tree: The command tree to attach to.
+        intake: The handler the command delegates to.
+        logger: Logger for failures that escape the modal.
+        tasks: Registry a shutdown drains. Unused by the command itself, which returns as soon as
+            the modal is open; the modal's own submission is a separate interaction with its own
+            fifteen-minute token, which ticket 04 tracks when it adds the click that files.
+    """
+
+    @tree.command(name="bug", description="Report a bug — a short form, and the files you have")
+    @app_commands.describe(
+        log="Your veaf-tools.log or dcs.log, if you have one",
+        mission="The .miz the problem happens on",
+        extra="Anything else: a mission.yaml, a configuration file",
+    )
+    async def bug(
+        interaction: discord.Interaction,
+        log: discord.Attachment | None = None,
+        mission: discord.Attachment | None = None,
+        extra: discord.Attachment | None = None,
+    ) -> None:
+        """Open the bug-report form.
+
+        Sending the modal **is** the acknowledgement, so this never spends the three-second budget
+        on anything else.
+
+        Args:
+            interaction: The invoking interaction.
+            log: An optional log file.
+            mission: An optional mission archive.
+            extra: One more optional file.
+        """
+        modal = BugModal(intake, incoming_from(log, mission, extra), logger)
+        await interaction.response.send_modal(modal)

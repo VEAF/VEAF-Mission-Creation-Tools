@@ -98,6 +98,28 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "questions pour aujourd'hui, par sécurité. Ça se remet à zéro {reset_relative} (à "
             "{reset_time}) — et signale-le sur le canal support, ça ne se répare pas tout seul."
         ),
+        # --- /bug, the deterministic intake --------------------------------------------------
+        "bug.received": "📥 Rapport reçu : **{title}**",
+        "bug.facts": ("-# Version déclarée : {version} · Composant : {component}\n-# Dépôt consulté : {revision}"),
+        "bug.located": "🔎 **Localisé dans le code** (d'après la trace, sans interprétation) :",
+        "bug.location": "- `{path}:{line}`",
+        "bug.in_function": "dans `{function}`",
+        "bug.callers": "  ↳ {count} appel(s) : {listed}",
+        "bug.not_located": (
+            "🔎 Aucune trace d'erreur exploitable dans ce rapport : rien n'a été localisé dans le "
+            "code. Ce n'est pas bloquant, ça retire juste une section."
+        ),
+        "bug.attached": "📎 {count} fichier(s) préparé(s) pour être joints au ticket.",
+        "bug.notes": "⚠️ **Ce qui manque, et pourquoi** :",
+        "bug.next": ("-# Rien n'a encore été publié : cette étape prépare le ticket, elle ne l'ouvre pas."),
+        "bug.error.unexpected": (
+            "Quelque chose s'est mal passé de mon côté pendant la préparation de ce rapport. "
+            "Réessaie ; si ça se reproduit, signale-le sur le canal support."
+        ),
+        "bug.error.no_checkout": (
+            "Je ne peux pas préparer de rapport pour le moment : ma copie du dépôt est "
+            "indisponible. Signale-le sur le canal support — ça ne se règle pas en réessayant."
+        ),
     },
     "en": {
         # --- the exchange -------------------------------------------------------------------
@@ -167,6 +189,28 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "The bot can no longer keep its counters, so it has held itself to {limit} questions for "
             "today as a precaution. It resets {reset_relative} (at {reset_time}) — and please report "
             "it on the support channel, this one does not fix itself."
+        ),
+        # --- /bug, the deterministic intake --------------------------------------------------
+        "bug.received": "📥 Report received: **{title}**",
+        "bug.facts": ("-# Claimed version: {version} · Component: {component}\n-# Repository consulted: {revision}"),
+        "bug.located": "🔎 **Located in the code** (from the trace, nothing inferred):",
+        "bug.location": "- `{path}:{line}`",
+        "bug.in_function": "in `{function}`",
+        "bug.callers": "  ↳ {count} call site(s): {listed}",
+        "bug.not_located": (
+            "🔎 No usable error trace in this report, so nothing was located in the code. Not a "
+            "blocker — it only removes one section."
+        ),
+        "bug.attached": "📎 {count} file(s) prepared for the issue.",
+        "bug.notes": "⚠️ **What is missing, and why**:",
+        "bug.next": "-# Nothing has been published yet: this step prepares the issue, it does not open it.",
+        "bug.error.unexpected": (
+            "Something went wrong on my side while preparing this report. Try again; if it happens "
+            "again, report it on the support channel."
+        ),
+        "bug.error.no_checkout": (
+            "I cannot prepare a report right now: my copy of the repository is unavailable. Report "
+            "it on the support channel — retrying will not help."
         ),
     },
 }

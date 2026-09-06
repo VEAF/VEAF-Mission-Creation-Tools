@@ -202,6 +202,20 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "rapport, lui, est complet."
         ),
         "hypothesis.absent.disabled": "-# 🤖 L'hypothèse automatique est désactivée sur ce déploiement.",
+        # --- ticket 06, le retour de l'information vers le fil ------------------------------
+        "relay.opened": (
+            "🐞 **{title}**\nTicket ouvert : {url}\nC'est ici que je te rapporterai ce qui s'y "
+            "passe. Pour ajouter quelque chose, écris dans ce fil : un mainteneur le reportera "
+            "sur le ticket (le bot n'écrit pas de Discord vers GitHub)."
+        ),
+        "relay.thread_name": "🐞 {topic}",
+        "relay.comment": "💬 **{author}** a répondu sur le ticket #{issue} ({url}) :",
+        "relay.truncated": "-# ✂️ Message tronqué — la suite est sur le ticket : {url}",
+        "relay.more": "-# 💬 Il y a d'autres messages sur le ticket, je les rapporterai au prochain passage : {url}",
+        "relay.closed": (
+            "✅ Le ticket #{issue} est **clos** : {url}\nSi ton problème persiste, dis-le ici — "
+            "un mainteneur pourra le rouvrir."
+        ),
         "match.button.same": "Oui, c'est ça",
         "match.button.different": "Non, le mien est différent",
         "escalate.button": "Signaler un bug",
@@ -379,6 +393,20 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "-# 🤖 No automatic hypothesis: the model returned nothing usable. Your report itself is complete."
         ),
         "hypothesis.absent.disabled": "-# 🤖 The automatic hypothesis is switched off on this deployment.",
+        # --- ticket 06, carrying the answer back into the thread ----------------------------
+        "relay.opened": (
+            "🐞 **{title}**\nIssue opened: {url}\nThis is where I will report what happens on it. "
+            "To add something, write in this thread and a maintainer will carry it over (the bot "
+            "does not write from Discord to GitHub)."
+        ),
+        "relay.thread_name": "🐞 {topic}",
+        "relay.comment": "💬 **{author}** replied on issue #{issue} ({url}):",
+        "relay.truncated": "-# ✂️ Message truncated — the rest is on the issue: {url}",
+        "relay.more": "-# 💬 There are more messages on the issue; I will bring them over next round: {url}",
+        "relay.closed": (
+            "✅ Issue #{issue} is **closed**: {url}\nIf your problem is still there, say so here — "
+            "a maintainer can reopen it."
+        ),
         "match.button.same": "Yes, that is it",
         "match.button.different": "No, mine is different",
         "escalate.button": "Report a bug",

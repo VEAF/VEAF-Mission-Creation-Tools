@@ -150,6 +150,38 @@ than assembled from fragments in whichever caller happens to ask. **The Worker i
 (`npx wrangler deploy`), so a change to that instruction only reaches production once somebody
 deploys it.
 
+### The answer comes back into a thread
+
+Filing under a machine account means the reporter is subscribed to nothing: a maintainer asking
+*"can you attach your `dcs.log`?"* on the issue would be talking to an empty room. So once he clicks
+**File the issue**, the bot opens a **public thread** in the channel and the issue links back to it.
+
+Every `SUPPORT_BOT_RELAY_POLL_SECONDS` (600 by default) the service asks GitHub what changed on the
+issues it filed, and carries into the thread:
+
+| What | Relayed |
+|---|---|
+| A comment a person wrote | yes, quoted, with who wrote it and a link |
+| The issue closing | yes, once, and the thread is renamed `✅ …` and archived |
+| Its own comments — including its hypothesis | **never**: that is the loop this must not have |
+| Labels, milestones, edits | no; relaying everything turns a thread into noise |
+
+**Polling, not a webhook.** The App is installed with no webhook and no events, so the service needs
+no inbound port, no public route and no signature check. Nobody is waiting in front of a bug report;
+the trade is not close.
+
+**One direction only.** Discord → GitHub is deliberately not built: it would open a write channel
+onto a public repository from a room anyone can join. The consequence is real and worth saying out
+loud to reporters: **to add something to his report, the reporter posts in the thread and a
+maintainer carries it over by hand.**
+
+The links live in `SUPPORT_BOT_RELAY_LINKS_FILE`. Losing that file does not lose a report — they are
+all on GitHub — but it does orphan the threads: they stop being answered. The cursor in it is a
+comment **id**, not a timestamp, so two comments in the same second cannot race.
+
+A deleted thread drops its own link and nothing else. A rate limit, an outage or an unreachable
+thread is retried next round: only a definitive *this thread no longer exists* ends a follow-up.
+
 ### The checkout, and how it stays fresh
 
 Turning a trace into `mission_builder/v5_converter.py:412` is only worth doing if the file on disk

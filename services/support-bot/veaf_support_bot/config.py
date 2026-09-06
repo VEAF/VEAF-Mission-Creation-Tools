@@ -29,6 +29,7 @@ from typing import Any, Final
 from urllib.parse import urlparse
 
 from veaf_support_bot.enrichment import DEFAULT_ENRICH_PER_DAY
+from veaf_support_bot.relay import DEFAULT_POLL_SECONDS
 
 #: Prefix shared by every variable the service reads.
 ENV_PREFIX: Final = "SUPPORT_BOT_"
@@ -118,6 +119,9 @@ DEFAULT_ENRICH_ENDPOINT: Final = "https://veaf-docs-chatbot.veaf.workers.dev/ana
 #: Where the enrichment allowance is counted, separately from `/ask`'s counters: two ceilings on
 #: one file would make a busy question day eat the day's hypotheses.
 DEFAULT_ENRICH_STATE_FILE: Final = "state/enrichment.json"
+
+#: Where the thread-to-issue links live, so a restart does not orphan every report already filed.
+DEFAULT_RELAY_LINKS_FILE: Final = "state/relay-links.json"
 
 #: Label marking an issue as filed by the machine.
 DEFAULT_GITHUB_MACHINE_LABEL: Final = "filed-by-bot"
@@ -452,6 +456,9 @@ class SupportBotConfig:
         enrich_endpoint: The Worker ``/analyze`` URL the one call goes to.
         enrich_state_file: Where the day's enrichment allowance is counted.
         enrich_per_day: Hypotheses the whole bot may produce in a UTC day.
+        relay_links_file: Where the thread ↔ issue links are kept between restarts.
+        relay_poll_seconds: Gap between two rounds of asking GitHub what changed on the issues this
+            service filed. The App has no webhook, by decision: this is how the news comes back.
     """
 
     discord_token: str
@@ -488,6 +495,8 @@ class SupportBotConfig:
     enrich_endpoint: str = DEFAULT_ENRICH_ENDPOINT
     enrich_state_file: str = DEFAULT_ENRICH_STATE_FILE
     enrich_per_day: int = DEFAULT_ENRICH_PER_DAY
+    relay_links_file: str = DEFAULT_RELAY_LINKS_FILE
+    relay_poll_seconds: float = DEFAULT_POLL_SECONDS
 
     @property
     def enriches(self) -> bool:
@@ -573,6 +582,8 @@ class SupportBotConfig:
             enrich_endpoint=reader.url("ENRICH_ENDPOINT", DEFAULT_ENRICH_ENDPOINT),
             enrich_state_file=reader.text("ENRICH_STATE_FILE", DEFAULT_ENRICH_STATE_FILE),
             enrich_per_day=reader.integer("ENRICH_PER_DAY", DEFAULT_ENRICH_PER_DAY, minimum=1),
+            relay_links_file=reader.text("RELAY_LINKS_FILE", DEFAULT_RELAY_LINKS_FILE),
+            relay_poll_seconds=reader.seconds("RELAY_POLL_SECONDS", DEFAULT_POLL_SECONDS),
         )
         _check_github(reader, config)
         reader.raise_if_broken()
@@ -619,6 +630,8 @@ class SupportBotConfig:
             "enrich_endpoint": self.enrich_endpoint,
             "enrich_state_file": self.enrich_state_file,
             "enrich_per_day": self.enrich_per_day,
+            "relay_links_file": self.relay_links_file,
+            "relay_poll_seconds": self.relay_poll_seconds,
         }
 
     def __repr__(self) -> str:

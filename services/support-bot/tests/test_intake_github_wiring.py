@@ -32,7 +32,7 @@ from veaf_support_bot.config import ConfigurationError, SupportBotConfig
 from veaf_support_bot.draft import CANCEL, EXPIRED, FILE, Draft
 from veaf_support_bot.filing import Outcome
 from veaf_support_bot.github_app import GitHubError
-from veaf_support_bot.intake import BugIntake, BugSubmission, render_match, sweep_query
+from veaf_support_bot.intake import BugIntake, BugSubmission, ThreadHandle, render_match, sweep_query
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, PriorArtGate, PriorArtSweeper, Sweep
 from veaf_support_bot.service import build_github_app, build_intake
 
@@ -45,19 +45,24 @@ class _Exchange:
     them would not be able to assert that nothing is filed before the answer.
     """
 
-    def __init__(self, *, decision: str = FILE, recognises: bool = False) -> None:
+    def __init__(self, *, decision: str = FILE, recognises: bool = False, threads_allowed: bool = True) -> None:
         """Initialize the double.
 
         Args:
             decision: What the reporter clicks on the draft.
             recognises: Whether he says a proposed match is his bug.
+            threads_allowed: Whether a follow-up thread can be opened, so the degraded path — a
+                filed report with nowhere to answer — stays reachable from a test.
         """
         self.deferred = False
         self.messages: list[str] = []
         self.drafts: list[str] = []
         self.proposals: list[str] = []
+        self.threads: list[str] = []
+        self.in_thread: list[str] = []
         self.decision = decision
         self.recognises = recognises
+        self.threads_allowed = threads_allowed
 
     async def defer(self) -> None:
         self.deferred = True
@@ -72,6 +77,15 @@ class _Exchange:
     async def confirm(self, content: str, lang: str) -> bool:
         self.proposals.append(content)
         return self.recognises
+
+    async def open_followup_thread(self, name: str) -> ThreadHandle:
+        self.threads.append(name)
+        if not self.threads_allowed:
+            return ThreadHandle()
+        return ThreadHandle(channel_id=10, thread_id=20, url="https://discord.test/threads/20")
+
+    async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:
+        self.in_thread.append(content)
 
 
 class _Filer:

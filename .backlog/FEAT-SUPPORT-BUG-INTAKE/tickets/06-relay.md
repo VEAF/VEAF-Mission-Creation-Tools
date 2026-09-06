@@ -1,6 +1,6 @@
 # 06 — The answer comes back to where the user is
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -39,10 +39,46 @@ cost.
 
 ## Definition of done
 
-- [ ] Durable thread ↔ issue association, surviving restart
-- [ ] Comments and closure relayed into the originating thread, in plain language
-- [ ] Thread marked when the issue closes
-- [ ] Deleted, archived and orphaned threads handled without failure
-- [ ] No relay loop on the bot's own activity
-- [ ] Unit tests: relay of a comment, of a closure, and each degraded case
-- [ ] Quality gate clean
+- [x] Durable thread ↔ issue association, surviving restart
+- [x] Comments and closure relayed into the originating thread, in plain language
+- [x] Thread marked when the issue closes
+- [x] Deleted, archived and orphaned threads handled without failure
+- [x] No relay loop on the bot's own activity
+- [x] Unit tests: relay of a comment, of a closure, and each degraded case
+- [x] Quality gate clean
+
+## What was built
+
+`veaf_support_bot/relay.py`: the link store, the watcher, and the round. The Discord half is
+`ClientThreadPoster`; the loop is a background task of the service.
+
+**The thread is opened after the click and before the filing.** After, because an abandoned draft
+must not leave a public thread about a report nobody filed. Before, because the issue carries the
+thread's address in its body, and rewriting an issue afterwards is a second write that can fail on
+its own. That also fills the `thread_url` ticket 04 left empty.
+
+**Polling, as decided.** The App has no webhook and no events, so a webhook would have cost a public
+route, a shared secret and a signature check for latency nobody is waiting on. One pair of calls per
+followed issue every ten minutes sits far inside the 5000/hour an installation gets.
+
+**The cursor is a comment id, never a timestamp.** Two comments in the same second would race, and
+the symptom would be "the reporter missed the one answer that mattered". A transient failure moves
+no cursor: `since` answers `None` rather than an empty state, so nothing is marked as seen.
+
+**The anti-loop filter sits at the delivery step, not at the read.** It was written in the watcher
+first, and the test that injects a state directly showed what that meant: any other producer of an
+`IssueState` would have been free to feed the loop. Moved to `_deliver`, where the posting happens.
+
+**One bad thread never ends the round.** A rate limit is retried; only a definitive *this thread no
+longer exists* drops a link. A restart finds an empty Discord cache — the bot runs on
+`Intents.none()` — so the poster **fetches** a thread it cannot see, which is what keeps the relay
+alive across a redeploy.
+
+## A bug this ticket found in passing
+
+`extra={"thread": ...}` on a log line **raises** `KeyError`: `LogRecord` already owns that field.
+It passed the relay's own tests, where no handler builds a record, and failed the moment the whole
+suite ran with logging configured — which is to say it would have failed in production, on the line
+reporting that a report had started being followed. Fixed, and `tests/test_log_fields.py` now walks
+the package's syntax tree and fails on **any** `extra=` key that collides with a record field, so
+the family is closed rather than this one member.

@@ -498,6 +498,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **says which**. The allowance fails closed, and the whole feature is **off** until
   `SUPPORT_BOT_ENRICH_ROLE_ID` is set.
 
+- **Support bot — what happens on the issue now comes back into Discord.** Filing under a machine
+  account left the reporter subscribed to nothing, so a maintainer's question reached an empty room.
+  Clicking *File the issue* now also opens a public thread, which the issue links back to; every ten
+  minutes the service asks GitHub what changed on the issues it filed and carries human comments and
+  the closure into that thread, in plain language, once each. Its own comments — the hypothesis
+  included — are never relayed, which is the loop this must not have. Polling rather than a webhook,
+  so the App still needs no inbound port and no events. One deleted thread stops being followed and
+  nothing else changes; a rate limit is retried. **Discord → GitHub is deliberately not built**: to
+  add something to his report, the reporter posts in the thread and a maintainer carries it over.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

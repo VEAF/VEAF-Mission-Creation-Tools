@@ -81,6 +81,12 @@ DOCTOR_MAX_CHARS = 4000
 ESCALATED_QUESTION_CHARS = 300
 ESCALATED_ANSWER_CHARS = 700
 
+#: Longest follow-up thread name. Discord's own ceiling is 100 characters.
+THREAD_NAME_MAX_CHARS = 90
+
+#: Longest title echoed into the opening message of that thread.
+TITLE_IN_THREAD_MAX_CHARS = 200
+
 
 @dataclass
 class BugSubmission:
@@ -143,6 +149,70 @@ class BugExchange(Protocol):
             ``True`` only when he says it is the same subject. Everything else — *mine is
             different*, a silence, a failure — answers ``False`` and the report carries on, because
             a machine's unanswered guess must never silence a real bug.
+        """
+
+    async def open_followup_thread(self, name: str) -> ThreadHandle:
+        """Open the public thread the issue's news will come back into.
+
+        The exchange itself is ephemeral: the preparation concerns the reporter and nobody else.
+        What is public is the report, once he has decided to file it — and it needs a room a
+        maintainer's answer can be carried into, because the issue is filed under a machine account
+        the reporter is subscribed to nothing on.
+
+        Args:
+            name: The thread name.
+
+        Returns:
+            Where it was opened. An empty handle means no thread could be opened — a missing
+            permission, a channel that holds none — and the report is filed anyway, saying the
+            thread was not recorded rather than inventing a link.
+        """
+
+    async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:
+        """Post the opening message once the issue exists and can be linked to.
+
+        Args:
+            handle: The thread opened by :meth:`open_followup_thread`.
+            content: What to post.
+        """
+
+
+@dataclass(frozen=True)
+class ThreadHandle:
+    """Where a report's follow-up thread lives, or nothing.
+
+    Attributes:
+        channel_id: The channel it belongs to. Kept alongside the thread id so a restart can reach
+            it without a warm Discord cache.
+        thread_id: The thread.
+        url: Its address, which is what the issue links back to.
+    """
+
+    channel_id: int = 0
+    thread_id: int = 0
+    url: str = ""
+
+    @property
+    def opened(self) -> bool:
+        """Say whether there is a thread to answer in.
+
+        Returns:
+            ``True`` when one was opened.
+        """
+        return self.thread_id > 0
+
+
+class ReportTracker(Protocol):
+    """What the intake needs from :mod:`veaf_support_bot.relay`, and nothing more."""
+
+    def remember(self, issue: int, *, channel_id: int, thread_id: int, lang: str) -> None:
+        """Record that one issue must report back into one thread.
+
+        Args:
+            issue: The issue that was filed.
+            channel_id: Channel the thread lives in.
+            thread_id: The thread.
+            lang: Language the reporter was answered in.
         """
 
 
@@ -270,6 +340,7 @@ class BugIntake:
         prior_art: PriorArtGate | None = None,
         filer: ReportFiler | None = None,
         enricher: Enricher | None = None,
+        tracker: ReportTracker | None = None,
     ) -> None:
         """Initialize the intake.
 
@@ -289,6 +360,8 @@ class BugIntake:
             enricher: The one model call, run **after** the issue exists. ``None`` files reports
                 with no hypothesis section at all, which is what a deployment without the paid path
                 looks like — not a degraded one.
+            tracker: What remembers which thread an issue must answer in. ``None`` files the report
+                and opens the thread all the same; what is lost is the follow-up, not the report.
         """
         self._checkout = checkout
         self._collector = collector
@@ -298,6 +371,7 @@ class BugIntake:
         self._prior_art = prior_art
         self._filer = filer
         self._enricher = enricher
+        self._tracker = tracker
 
     async def handle(self, exchange: BugExchange, submission: BugSubmission) -> BugReport | None:
         """Run one report end to end.
@@ -469,11 +543,64 @@ class BugIntake:
         )
         if choice != FILE:
             return text(DECLINED.get(choice, "draft.cancelled"), lang)
-        outcome = await self._filer.file(report, thread_url=submission.thread_url)
+        # The thread is opened *after* the click and *before* the filing: after, because an
+        # abandoned draft must not leave a public thread about a report nobody filed; before,
+        # because the issue carries its link and rewriting an issue body afterwards is a second
+        # write that can fail on its own.
+        handle = await self._open_thread(exchange, report, lang)
+        thread_url = handle.url or submission.thread_url
+        outcome = await self._filer.file(report, thread_url=thread_url)
         message = _render_outcome(outcome, lang, report)
         if outcome.action == "created" and outcome.number:
+            self._track(outcome.number, handle, lang)
+            if handle.opened:
+                # Posted after the filing, not at the opening: the message carries the issue's own
+                # address, and a thread announcing a link that does not exist yet is worse than one
+                # that arrives a second later.
+                await exchange.post_in_thread(
+                    handle,
+                    text(
+                        "relay.opened",
+                        lang,
+                        title=one_line(report.title, TITLE_IN_THREAD_MAX_CHARS),
+                        url=outcome.url or f"#{outcome.number}",
+                    ),
+                )
             message += await self._add_hypothesis(report, draft.body, outcome.number, lang, submission.roles)
         return message
+
+    async def _open_thread(self, exchange: BugExchange, report: BugReport, lang: str) -> ThreadHandle:
+        """Open the public thread this report's answers come back into.
+
+        Args:
+            exchange: The Discord side.
+            report: The report being filed.
+            lang: ``"fr"`` or ``"en"``.
+
+        Returns:
+            Where it was opened, or an empty handle. A thread that could not be opened is a
+            follow-up that will not happen — never a report that does not get filed.
+        """
+        name = text("relay.thread_name", lang, topic=one_line(report.title, THREAD_NAME_MAX_CHARS))
+        handle = await exchange.open_followup_thread(name)
+        if not handle.opened:
+            self._logger.warning(
+                "no follow-up thread was opened for a filed report",
+                extra={"event": "intake.no_thread", "user": report.form.reporter_id},
+            )
+        return handle
+
+    def _track(self, issue: int, handle: ThreadHandle, lang: str) -> None:
+        """Record that this issue must answer in this thread.
+
+        Args:
+            issue: The issue that was created.
+            handle: Where its thread is.
+            lang: The language it was answered in.
+        """
+        if self._tracker is None or not handle.opened:
+            return
+        self._tracker.remember(issue, channel_id=handle.channel_id, thread_id=handle.thread_id, lang=lang)
 
     async def _add_hypothesis(
         self,

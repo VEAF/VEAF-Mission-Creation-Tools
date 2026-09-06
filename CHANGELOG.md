@@ -508,6 +508,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   nothing else changes; a rate limit is retried. **Discord → GitHub is deliberately not built**: to
   add something to his report, the reporter posts in the thread and a maintainer carries it over.
 
+- **Support bot — redaction moved under every publishing path instead of being asked of each one.**
+  Four leaks of personal data reached review across three pull requests of this lot, and every one
+  took a path whose caller believed somebody else had redacted: an archive's member list, a parser's
+  error message, an attachment's file name, an attachment's bytes. The GitHub client now redacts
+  **every outgoing body**, recursively, on its way to the transport, and publishes nothing at all
+  when redaction cannot run — with a refusal message that names no path of its own, since that too
+  has leaked. A new test asserts it on the bytes handed to the transport and walks the package to
+  fail on any module that reaches a network outside the two clients, naming the file and the line;
+  the walk is itself put on trial against a deliberately leaky module.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

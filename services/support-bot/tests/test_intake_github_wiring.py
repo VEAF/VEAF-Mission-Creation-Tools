@@ -575,7 +575,7 @@ class TestTheseTestsDetectABrokenWiring(unittest.TestCase):
         from veaf_support_bot import service as module
 
         original = module.build_github_app
-        module.build_github_app = lambda config: None
+        module.build_github_app = lambda config, redactor=None: None
         try:
             self.assertTrue(
                 self._fails("TestTheServiceBuildsIt.test_a_configured_app_produces_a_filer_and_an_issue_backed_sweep")

@@ -90,8 +90,16 @@ An unsatisfying `/ask` answer carries a **Report a bug** button that opens the s
 with the question and the answer. What was expected and the steps stay empty on purpose: the
 exchange is the observation, the report is still his to make.
 
-**Everything published is redacted first**, through the same `veaf_libs.redaction` the `doctor`
-command uses — the quoted body of a text file, the member names of an attached archive, the file
+**Everything published is redacted at the transport.** Not by each caller: the GitHub client
+redacts *every outgoing body*, however deeply nested, on its way to the network, and refuses to send
+anything at all if redaction cannot run. That floor exists because the alternative was measured —
+four leaks of personal data reached review across three pull requests of this lot, and every one of
+them took a path whose caller believed somebody else had redacted. `tests/test_publishing_paths.py`
+asserts it on the bytes handed to the transport, and walks the package to fail on any module that
+reaches a network without going through one of the two clients.
+
+On top of that floor, callers still redact what they **quote** — through the same
+`veaf_libs.redaction` the `doctor` command uses — the quoted body of a text file, the member names of an attached archive, the file
 name the reporter's own machine gave it, the bytes of an attachment carried whole into the issue,
 and every field of the form. Each of those **fails closed**: what the helper cannot reach is
 described rather than published. What that helper recognises is

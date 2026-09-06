@@ -34,7 +34,7 @@ alive and restarting it would not connect a gateway it was told not to open.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from functools import partial
 from logging import Logger
 from pathlib import Path
@@ -54,7 +54,7 @@ from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import PriorArtGate, PriorArtSweeper
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
 from veaf_support_bot.relay import IssueWatcher, LinkStore, Relay
-from veaf_support_bot.toolkit import redact
+from veaf_support_bot.toolkit import ToolkitUnavailable, redact
 from veaf_support_bot.worker import HypothesisClient
 
 
@@ -151,7 +151,7 @@ def build_relay(config: SupportBotConfig, logger: Logger | None = None) -> Relay
         The relay, or ``None``.
     """
     report = logger or get_logger("relay")
-    app = build_github_app(config)
+    app = build_github_app(config, build_redactor(config))
     if app is None:
         return None
     return Relay(
@@ -250,7 +250,7 @@ def build_intake(
         max_file_bytes=config.attachment_max_bytes,
         max_total_bytes=config.attachment_total_bytes,
     )
-    app = build_github_app(config)
+    app = build_github_app(config, build_redactor(config))
     return BugIntake(
         checkout,
         collector,
@@ -272,11 +272,49 @@ def build_intake(
     )
 
 
-def build_github_app(config: SupportBotConfig) -> GitHubApp | None:
+def build_redactor(config: SupportBotConfig) -> Callable[[str], str]:
+    """Return what every outgoing body passes through, bound to the configured checkout.
+
+    Built from the configured path rather than from an open checkout: the relay needs one too, and
+    it has no checkout of its own. A deployment with no checkout at all gets a redactor that
+    **raises**, which stops the publication rather than letting it through — the failure this whole
+    ticket is about is redaction that fails open.
+
+    Args:
+        config: The resolved configuration.
+
+    Returns:
+        The redactor.
+    """
+    if not config.checkout_path:
+        return _refuse_to_publish
+    return partial(redact, Path(config.checkout_path))
+
+
+def _refuse_to_publish(text: str) -> str:
+    """Stand in for a redactor that does not exist.
+
+    Args:
+        text: What was about to be published.
+
+    Returns:
+        Never returns.
+
+    Raises:
+        ToolkitUnavailable: Always. A service with no checkout cannot redact, and publishing
+            unredacted is not the fallback.
+    """
+    raise ToolkitUnavailable("no checkout is configured, so nothing can be redacted before publishing")
+
+
+def build_github_app(config: SupportBotConfig, redactor: Callable[[str], str] | None = None) -> GitHubApp | None:
     """Build the authenticated GitHub client, when this deployment has an App.
 
     Args:
         config: The resolved configuration.
+        redactor: What every outgoing body passes through, on its way to the transport. Given here
+            rather than trusted to each caller: that is the floor ticket 09 puts under every
+            publishing path, including the ones nobody has written yet.
 
     Returns:
         The client, or ``None`` when no App is configured — in which case ``/bug`` still prepares
@@ -302,7 +340,7 @@ def build_github_app(config: SupportBotConfig) -> GitHubApp | None:
     # report, a week later, in a service that looks healthy from every side but the useful one. The
     # token is thrown away; only the failure matters.
     credentials.jwt()
-    return GitHubApp(credentials, config.github_repository, aiohttp_transport)
+    return GitHubApp(credentials, config.github_repository, aiohttp_transport, redactor=redactor)
 
 
 class InFlightTasks:

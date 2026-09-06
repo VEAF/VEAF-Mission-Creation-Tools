@@ -1,6 +1,6 @@
 # 09 — Enumerate every path that publishes, instead of testing a few
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: chore
 
@@ -52,9 +52,37 @@ have passed beside it.
 
 ## Definition of done
 
-- [ ] A test that derives the publishing paths from the code
-- [ ] It fails when a path is added without redaction — proved by adding one
-- [ ] It names the offending path in its failure message
-- [ ] The assertion sits on what reaches the transport
-- [ ] Every existing path passes, or is fixed
-- [ ] Quality gate clean
+- [x] A test that derives the publishing paths from the code
+- [x] It fails when a path is added without redaction — proved by adding one
+- [x] It names the offending path in its failure message
+- [x] The assertion sits on what reaches the transport
+- [x] Every existing path passes, or is fixed
+- [x] Quality gate clean
+
+## What was built, and why it is not only a test
+
+The ticket asked for a net. Writing one made it obvious that the net could not hold on its own: any
+test that enumerates *callers* is still a test of the callers we have, and the four leaks were all
+callers that believed somebody else had redacted.
+
+So the redaction moved **under** them. `GitHubApp` now redacts every outgoing body — recursively,
+strings only, non-strings untouched — on its way to the transport, and refuses to send anything when
+redaction cannot run. There is no way to reach GitHub that does not pass through it, which makes the
+property structural rather than remembered. Callers keep redacting what they *quote*, for their own
+bounds and their own wording; this is the floor under all of them, and applying it twice is
+harmless.
+
+`tests/test_publishing_paths.py` then asserts two things, neither of which is a list of names:
+
+1. what reaches the **transport** is redacted — asserted on the bytes handed to it, because #920's
+   leak was at an argument of the network call and a test on a return value passes right beside it;
+2. **nothing reaches a network any other way** — a syntax walk over the package flags any call
+   carrying a body (`json=`/`data=`) outside the two clients, naming the file and the line.
+
+The walk is put on trial: a module that posts to a network is written to a temporary directory and
+the same walk must flag it, by name. It is written outside the package on purpose — a test that
+leaves a landmine in the shipped tree is worse than the hole it guards.
+
+Two smaller decisions, both from the leaks already found: the refusal message names **no path of its
+own** (the reason published when redaction failed leaked the host's checkout path in #920), and a
+deployment with no checkout gets a redactor that raises rather than a passthrough.

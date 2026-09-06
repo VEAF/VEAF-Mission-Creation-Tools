@@ -485,6 +485,68 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   help carries a *Report a bug* button that opens the same form, pre-filled with the question and
   the answer.
 
+- **Support bot — a filed report can now carry one automatic hypothesis, labelled as a guess.** It
+  runs **after** the issue exists and spends **one** model call, gated on a VEAF Discord role and on
+  a daily allowance of 15 — measured against a free tier of 20 requests a day for the whole Google
+  project, shared with `/ask` and the log analysis. The model is handed the issue body, which already
+  carries the resolved `file:line`, the surrounding code, the callers, the catalogue matches and the
+  prior art, and is asked to *conclude on a prepared file* rather than to investigate. The result is
+  a comment under its own ⚠️ heading with the caveat directly beneath it, so a maintainer can tell in
+  one glance what was measured from what was guessed; the prompt instructs it to answer "not enough
+  to conclude" rather than blame something the report does not support. Not a member, allowance
+  spent, model unavailable, empty answer, switched off: in all five the issue stands as filed and
+  **says which**. The allowance fails closed, and the whole feature is **off** until
+  `SUPPORT_BOT_ENRICH_ROLE_ID` is set.
+
+- **Support bot — what happens on the issue now comes back into Discord.** Filing under a machine
+  account left the reporter subscribed to nothing, so a maintainer's question reached an empty room.
+  Clicking *File the issue* now also opens a public thread, which the issue links back to; every ten
+  minutes the service asks GitHub what changed on the issues it filed and carries human comments and
+  the closure into that thread, in plain language, once each. Its own comments — the hypothesis
+  included — are never relayed, which is the loop this must not have. Polling rather than a webhook,
+  so the App still needs no inbound port and no events. One deleted thread stops being followed and
+  nothing else changes; a rate limit is retried. **Discord → GitHub is deliberately not built**: to
+  add something to his report, the reporter posts in the thread and a maintainer carries it over.
+
+- **Support bot — redaction moved under every publishing path instead of being asked of each one.**
+  Four leaks of personal data reached review across three pull requests of this lot, and every one
+  took a path whose caller believed somebody else had redacted: an archive's member list, a parser's
+  error message, an attachment's file name, an attachment's bytes. The GitHub client now redacts
+  **every outgoing body**, recursively, on its way to the transport, and publishes nothing at all
+  when redaction cannot run — with a refusal message that names no path of its own, since that too
+  has leaked. A new test asserts it on the bytes handed to the transport and walks the package to
+  fail on any module that reaches a network outside the two clients, naming the file and the line;
+  the walk is itself put on trial against a deliberately leaky module.
+
+- **Documentation — `/bug` is documented for the people who use it and for the people who triage
+  it.** The support page gains a `/bug` section in both languages: what the form asks, what the bot
+  extracts without any AI, that nothing is published before the click, that personal data is
+  stripped — and the one thing that filter does not catch, which is what the reporter types himself.
+  `CONTRIBUTING.md` gains a second door into the intake desk and a section on reading an issue a bot
+  filed: the body is measured, the ⚠️ comment is a machine's guess, and the reporter is reachable on
+  Discord rather than on GitHub. The stale line saying the bot could not open an issue is gone.
+
+- **Support bot — the relay no longer drops the answers it promised to deliver.** Found by a review
+  pass over the whole lot, and the five defects it confirmed are fixed together. The per-round
+  ceiling of five relayed comments moved the cursor past the ones it had *not* posted, so anything
+  beyond the fifth was lost for ever while the reporter had just been told it would arrive next
+  round. A transient Discord failure — a 503, a permission lost for a minute, and the cold cache
+  every restart produces — was read as *this thread no longer exists* and stopped following the
+  report permanently; only a genuine `NotFound` does that now. A closed issue is no longer polled
+  for ever, which was a round growing without bound until the installation's hourly quota refused
+  everything for everybody. The state is written per link rather than once at the end, so a
+  shutdown mid-round no longer re-posts what it had just delivered. Comments past the hundredth on
+  one issue are now read, where the single fixed page had silently gone blind. And `/bug` now
+  follows a **reused** issue as well as a new one, instead of leaving a public thread linked to
+  nothing.
+
+- **Support bot — a mistyped `SUPPORT_BOT_ENRICH_ROLE_ID` is refused at startup.** Pasted as a
+  mention (`<@&123…>`) or as the role's name, it compared unequal to every id the bot ever sees:
+  the hypothesis was refused for every member, for ever, while each issue politely explained that
+  it is reserved for members — a configuration mistake that behaved like a working feature. The
+  value must now be a numeric id, and the refusal describes its shape without echoing it, since
+  this variable sits next to the bot token in `.env.example`.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

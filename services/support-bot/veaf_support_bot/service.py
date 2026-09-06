@@ -34,7 +34,7 @@ alive and restarting it would not connect a gateway it was told not to open.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from functools import partial
 from logging import Logger
 from pathlib import Path
@@ -44,15 +44,18 @@ from veaf_support_bot import __version__
 from veaf_support_bot.ask import AskHandler, build_handler
 from veaf_support_bot.attachments import AttachmentCollector, http_download
 from veaf_support_bot.checkout import CheckoutUnavailable, open_checkout
-from veaf_support_bot.config import SupportBotConfig
+from veaf_support_bot.config import DEFAULT_QUOTA_USER_WINDOW_SECONDS, SupportBotConfig
+from veaf_support_bot.enrichment import Enricher
 from veaf_support_bot.filing import IssueFiler, Ledger, RepositoryIssues
 from veaf_support_bot.github_app import AppCredentials, GitHubApp, aiohttp_transport, read_private_key
 from veaf_support_bot.health import HealthServer, ServiceState
-from veaf_support_bot.intake import BugIntake
+from veaf_support_bot.intake import BugIntake, ReportTracker
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import PriorArtGate, PriorArtSweeper
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
-from veaf_support_bot.toolkit import redact
+from veaf_support_bot.relay import IssueWatcher, LinkStore, Relay
+from veaf_support_bot.toolkit import ToolkitUnavailable, redact
+from veaf_support_bot.worker import HypothesisClient
 
 
 class Gateway(Protocol):
@@ -89,7 +92,124 @@ def build_quota(config: SupportBotConfig, logger: Logger | None = None) -> Quota
     return QuotaKeeper(limits, QuotaStore(Path(config.quota_state_file)), logger=logger)
 
 
-def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugIntake | None:
+def build_enricher(config: SupportBotConfig, logger: Logger | None = None) -> Enricher:
+    """Build the one-call enrichment, off unless a gating role was configured.
+
+    The role is what decides: everything else has a workable default, and a deployment that enriched
+    for everybody the moment it was installed would spend a shared association resource on a
+    decision nobody made. So an unset ``ENRICH_ROLE_ID`` produces an enricher that files reports with
+    no hypothesis at all — which is also how the feature is switched off without touching the intake.
+
+    Args:
+        config: The resolved configuration.
+        logger: Logger to use.
+
+    Returns:
+        The enricher. Never ``None``: it is the object that knows *why* there is no hypothesis, and
+        that sentence belongs on the issue.
+    """
+    report = logger or get_logger("service")
+    if not config.enriches:
+        return Enricher(None, role_id="", allowance=None, logger=report)
+    allowance = QuotaKeeper(
+        # One ceiling, expressed on all three axes: this counter exists to hold a *daily* total
+        # against a free tier of twenty requests, and a per-user window would let one member spend
+        # the day's hypotheses in a minute while another gets none.
+        QuotaLimits(
+            user_window_seconds=DEFAULT_QUOTA_USER_WINDOW_SECONDS,
+            user_per_window=config.enrich_per_day,
+            user_per_day=config.enrich_per_day,
+            global_per_day=config.enrich_per_day,
+        ),
+        QuotaStore(Path(config.enrich_state_file)),
+        logger=report,
+    )
+    return Enricher(
+        HypothesisClient(config.enrich_endpoint, config.worker_client, config.worker_secret),
+        role_id=config.enrich_role_id,
+        allowance=allowance,
+        logger=report,
+    )
+
+
+def build_relay(config: SupportBotConfig, logger: Logger | None = None) -> Relay | None:
+    """Build the GitHub → Discord relay, or nothing when there is no App to poll.
+
+    The relay is what pays the debt of filing under a machine account: the reporter is subscribed to
+    nothing, so a maintainer's question would otherwise be asked in an empty room. With no App
+    configured there are no issues of ours to poll, and the whole thing is skipped.
+
+    It is built **without** its Discord side: the client only exists once the gateway is built, and
+    a relay that demanded one at construction time would have to be built inside the connection —
+    where a dry run would never see it, and where the links file would be read on every reconnect.
+
+    Args:
+        config: The resolved configuration.
+        logger: Logger to use.
+
+    Returns:
+        The relay, or ``None``.
+    """
+    report = logger or get_logger("relay")
+    app = build_github_app(config, build_redactor(config))
+    if app is None:
+        return None
+    return Relay(
+        IssueWatcher(app, report),
+        _NoPoster(),
+        LinkStore(Path(config.relay_links_file), report),
+        repository=config.github_repository,
+        logger=report,
+    )
+
+
+class _NoPoster:
+    """The relay's Discord side before the gateway exists.
+
+    It refuses definitively, which the relay reads as "the thread is gone" — so it must never be
+    reached while the service is actually serving. It exists so :func:`build_relay` can run before
+    the connection does, and it is replaced the moment the client is built. Its calls are counted so
+    a test can prove the replacement happened.
+
+    Attributes:
+        calls: How many times it was asked to deliver something.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the placeholder."""
+        self.calls = 0
+
+    async def post_to_thread(self, channel_id: int, thread_id: int, content: str) -> bool:
+        """Refuse to post.
+
+        Args:
+            channel_id: Ignored.
+            thread_id: Ignored.
+            content: Ignored.
+
+        Returns:
+            ``False``.
+        """
+        self.calls += 1
+        return False
+
+    async def mark_closed(self, channel_id: int, thread_id: int) -> bool:
+        """Refuse to mark.
+
+        Args:
+            channel_id: Ignored.
+            thread_id: Ignored.
+
+        Returns:
+            ``False``.
+        """
+        self.calls += 1
+        return False
+
+
+def build_intake(
+    config: SupportBotConfig, logger: Logger | None = None, tracker: ReportTracker | None = None
+) -> BugIntake | None:
     """Build the ``/bug`` intake, when the deployment gave it a repository to read.
 
     A checkout is what turns a stack trace into a location, so without one the command is **not
@@ -130,7 +250,7 @@ def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugI
         max_file_bytes=config.attachment_max_bytes,
         max_total_bytes=config.attachment_total_bytes,
     )
-    app = build_github_app(config)
+    app = build_github_app(config, build_redactor(config))
     return BugIntake(
         checkout,
         collector,
@@ -147,14 +267,54 @@ def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugI
         )
         if app
         else None,
+        enricher=build_enricher(config, report),
+        tracker=tracker,
     )
 
 
-def build_github_app(config: SupportBotConfig) -> GitHubApp | None:
+def build_redactor(config: SupportBotConfig) -> Callable[[str], str]:
+    """Return what every outgoing body passes through, bound to the configured checkout.
+
+    Built from the configured path rather than from an open checkout: the relay needs one too, and
+    it has no checkout of its own. A deployment with no checkout at all gets a redactor that
+    **raises**, which stops the publication rather than letting it through — the failure this whole
+    ticket is about is redaction that fails open.
+
+    Args:
+        config: The resolved configuration.
+
+    Returns:
+        The redactor.
+    """
+    if not config.checkout_path:
+        return _refuse_to_publish
+    return partial(redact, Path(config.checkout_path))
+
+
+def _refuse_to_publish(text: str) -> str:
+    """Stand in for a redactor that does not exist.
+
+    Args:
+        text: What was about to be published.
+
+    Returns:
+        Never returns.
+
+    Raises:
+        ToolkitUnavailable: Always. A service with no checkout cannot redact, and publishing
+            unredacted is not the fallback.
+    """
+    raise ToolkitUnavailable("no checkout is configured, so nothing can be redacted before publishing")
+
+
+def build_github_app(config: SupportBotConfig, redactor: Callable[[str], str] | None = None) -> GitHubApp | None:
     """Build the authenticated GitHub client, when this deployment has an App.
 
     Args:
         config: The resolved configuration.
+        redactor: What every outgoing body passes through, on its way to the transport. Given here
+            rather than trusted to each caller: that is the floor ticket 09 puts under every
+            publishing path, including the ones nobody has written yet.
 
     Returns:
         The client, or ``None`` when no App is configured — in which case ``/bug`` still prepares
@@ -180,7 +340,7 @@ def build_github_app(config: SupportBotConfig) -> GitHubApp | None:
     # report, a week later, in a service that looks healthy from every side but the useful one. The
     # token is thrown away; only the failure matters.
     credentials.jwt()
-    return GitHubApp(credentials, config.github_repository, aiohttp_transport)
+    return GitHubApp(credentials, config.github_repository, aiohttp_transport, redactor=redactor)
 
 
 class InFlightTasks:
@@ -281,7 +441,8 @@ class SupportBotService:
         self.tasks = InFlightTasks(self.logger)
         self.quota = quota or build_quota(config, self.logger)
         self.handler: AskHandler = build_handler(config, self.quota)
-        self.intake: BugIntake | None = build_intake(config, self.logger)
+        self.relay: Relay | None = build_relay(config, self.logger)
+        self.intake: BugIntake | None = build_intake(config, self.logger, self.relay)
         self.state.set_details_provider(self.quota.snapshot)
         self._gateway = gateway
         self._connection: Gateway | None = gateway
@@ -297,9 +458,14 @@ class SupportBotService:
         Returns:
             The gateway.
         """
-        from veaf_support_bot.discord_bot import DiscordGateway, SupportBotClient
+        from veaf_support_bot.discord_bot import ClientThreadPoster, DiscordGateway, SupportBotClient
 
         client = SupportBotClient(self.config, self.state, self.handler, self.tasks, self.intake)
+        if self.relay is not None:
+            # The one thing the relay could not be given at construction time. Without this the
+            # relay would answer every round with "the thread is gone" and quietly forget every
+            # report it was following.
+            self.relay.attach(ClientThreadPoster(client, self.logger))
         return DiscordGateway(client, self.config.discord_token)
 
     def request_stop(self, reason: str) -> None:
@@ -337,6 +503,7 @@ class SupportBotService:
 
         await self.health.start()
         heartbeat = asyncio.ensure_future(self._heartbeat())
+        following = asyncio.ensure_future(self._relay_loop())
         gateway: asyncio.Task[Any] | None = None
 
         if self.config.dry_run:
@@ -365,6 +532,8 @@ class SupportBotService:
         try:
             await self._stop.wait()
         finally:
+            following.cancel()
+            await asyncio.gather(following, return_exceptions=True)
             await self._shutdown(heartbeat, gateway)
 
     def _gateway_ended(self, task: asyncio.Task[Any]) -> None:
@@ -450,6 +619,26 @@ class SupportBotService:
             )
         gateway.cancel()
         await asyncio.gather(gateway, return_exceptions=True)
+
+    async def _relay_loop(self) -> None:
+        """Poll the followed issues at the configured interval until cancelled.
+
+        Runs in its own task rather than on the heartbeat: the two intervals answer different
+        questions, and a round that hangs on a slow GitHub must not stop the line that proves the
+        process is alive. A round never raises, but the loop guards anyway — an exception escaping
+        here would silently end the follow-up for every report while the service looked healthy.
+        """
+        if self.relay is None or self.config.dry_run:
+            return
+        while True:
+            await asyncio.sleep(self.config.relay_poll_seconds)
+            try:
+                await self.relay.run_once()
+            except Exception as error:  # noqa: BLE001 - the loop must outlive one bad round
+                self.logger.exception(
+                    "a relay round failed",
+                    extra={"event": "relay.round_failed", "error": type(error).__name__},
+                )
 
     async def _heartbeat(self) -> None:
         """Emit a heartbeat line at the configured interval until cancelled."""

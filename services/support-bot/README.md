@@ -21,12 +21,14 @@ Stated plainly, because a user who expects one of these will read its absence as
 
 - **`/ask` does not read the sources.** Its corpus is `doc/`, 1.8 MB of documentation, and nothing
   else. A question whose answer only exists in a `.lua` or a `.py` file has no answer there.
-- **`/bug` does not open an issue yet.** It collects, extracts and prepares — the preview and the
-  click that files are [ticket 04](../../.backlog/FEAT-SUPPORT-BUG-INTAKE/tickets/04-draft-and-consent.md),
-  and the GitHub App that opens it is
-  [ticket 05](../../.backlog/FEAT-SUPPORT-BUG-INTAKE/tickets/05-github-app.md).
-- **Neither command calls a model to prepare a bug report.** The whole `/bug` path is deterministic
-  by design: the free Gemini tier is 20 requests a day, and a report must not depend on one.
+- **`/bug` files nothing without a click.** It collects, extracts, prepares and *shows* the issue;
+  only pressing *File the issue* publishes it. A draft nobody answers expires.
+- **No model prepares a bug report.** The whole preparation is deterministic by design — the free
+  Gemini tier is 20 requests a day, and a report must not depend on one. The single model call is
+  the **hypothesis**, which runs *after* the issue exists, is gated on a role and an allowance, and
+  whose absence costs a paragraph rather than a report.
+- **The relay is one-way.** GitHub → Discord only: a maintainer's comment reaches the reporter's
+  thread, and nothing written in that thread reaches GitHub.
 - **`/ask` answers from the documentation, so a documentation gap is a wrong or missing answer.**
   The fix is to write the page. There is nothing to retrain, and no way to correct the bot other
   than correcting `doc/`. That is the point: `/ask` failing is a documentation ticket.
@@ -54,7 +56,8 @@ of the four outcomes open nothing at all: *already reported* comments on the exi
 match is always **proposed with its evidence** — the reference, the score and the words the two
 texts share — and the reporter can say his is different, after which the report is filed as usual. A
 wrong "this is a duplicate" silences a real bug and the reporter will not insist, so the sweep
-informs the decision and never takes it. With nobody to ask, the answer is *rejected*.
+informs the decision and never takes it. A proposal nobody answers counts as *refused*, and the
+report carries on: the sweep never gets the benefit of a silence.
 
 ### Nothing is filed before the reporter clicks
 
@@ -90,8 +93,16 @@ An unsatisfying `/ask` answer carries a **Report a bug** button that opens the s
 with the question and the answer. What was expected and the steps stay empty on purpose: the
 exchange is the observation, the report is still his to make.
 
-**Everything published is redacted first**, through the same `veaf_libs.redaction` the `doctor`
-command uses — the quoted body of a text file, the member names of an attached archive, the file
+**Everything published is redacted at the transport.** Not by each caller: the GitHub client
+redacts *every outgoing body*, however deeply nested, on its way to the network, and refuses to send
+anything at all if redaction cannot run. That floor exists because the alternative was measured —
+four leaks of personal data reached review across three pull requests of this lot, and every one of
+them took a path whose caller believed somebody else had redacted. `tests/test_publishing_paths.py`
+asserts it on the bytes handed to the transport, and walks the package to fail on any module that
+reaches a network without going through one of the two clients.
+
+On top of that floor, callers still redact what they **quote** — through the same
+`veaf_libs.redaction` the `doctor` command uses — the quoted body of a text file, the member names of an attached archive, the file
 name the reporter's own machine gave it, the bytes of an attachment carried whole into the issue,
 and every field of the form. Each of those **fails closed**: what the helper cannot reach is
 described rather than published. What that helper recognises is
@@ -105,6 +116,82 @@ And **everything read is data**: no line a reporter or a log wrote ever selects 
 `tests/test_intake_hostile.py` holds both halves in place — it assembles the same report twice, once
 with instruction-shaped text spliced into every field, and requires identical decisions; and it
 carries personal data through every publishing path and requires none of it out the other end.
+
+### The automatic hypothesis — the only model call in `/bug`
+
+Everything above costs nothing and works when nothing else does. This adds **one** model call per
+report, **after** the issue is filed, posted as a clearly labelled comment. Three gates, all cheap,
+all checked before the call:
+
+| Gate | Value | Why |
+|---|---|---|
+| A Discord role | `SUPPORT_BOT_ENRICH_ROLE_ID` | read off the interaction: costs no API call, cannot be forged |
+| The day's allowance | `SUPPORT_BOT_ENRICH_PER_DAY`, default **15** | the free Gemini tier was measured at **20 requests a day for the whole Google project**, shared with `/ask` and the log analysis |
+| One call per report | enforced by the runtime | not requested of the model, which cannot be trusted to count |
+
+**To switch it off entirely, leave `SUPPORT_BOT_ENRICH_ROLE_ID` empty.** That is the default, and
+it is not a degraded mode: reports are filed complete, with no hypothesis section at all. Enriching
+for everybody the moment the service is installed would spend an association resource on a decision
+nobody made, and picking which role means "VEAF member" is not this service's call.
+
+The allowance **fails closed**: counters that cannot be read mean no hypothesis, never an unlimited
+one. That is the opposite of `/ask`'s degraded mode, and deliberately so — there, silence looks like
+a broken bot; here it costs one paragraph on an issue that is already filed.
+
+#### How to read a machine-filed issue
+
+Everything in the **body** is measured: parsed from the `doctor` block, resolved from the stack
+trace, quoted from a file, matched against `rules.json`, swept from the tracker and `.backlog/`.
+Nothing in it is guessed.
+
+The hypothesis is a **comment**, under its own `## ⚠️` heading, with the caveat directly beneath it:
+produced by a model, in one call, from the body alone, verified by nobody. It names a file and a
+line only when the body quotes them, and it is instructed to answer *"not enough to conclude"*
+rather than to blame something it cannot support. **It is a guess.** A maintainer three months later
+has to be able to tell in one glance which half he is reading, and closing a real bug on a machine's
+confident wrong guess is the failure the whole labelling scheme exists to prevent.
+
+When there is no hypothesis, the issue **says so and says why** — not a member, allowance spent,
+model unavailable, empty answer, switched off. An issue silent on the subject would leave a reader
+unable to tell a report nobody guessed at from a guess that was withheld.
+
+The prompt itself lives in the Worker (`poc/doc-chatbot/worker/src/index.js`,
+`bugHypothesisInstruction`), selected by `kind: "bug"` on the `/analyze` route — one place, rather
+than assembled from fragments in whichever caller happens to ask. **The Worker is deployed by hand**
+(`npx wrangler deploy`), so a change to that instruction only reaches production once somebody
+deploys it.
+
+### The answer comes back into a thread
+
+Filing under a machine account means the reporter is subscribed to nothing: a maintainer asking
+*"can you attach your `dcs.log`?"* on the issue would be talking to an empty room. So once he clicks
+**File the issue**, the bot opens a **public thread** in the channel and the issue links back to it.
+
+Every `SUPPORT_BOT_RELAY_POLL_SECONDS` (600 by default) the service asks GitHub what changed on the
+issues it filed, and carries into the thread:
+
+| What | Relayed |
+|---|---|
+| A comment a person wrote | yes, quoted, with who wrote it and a link |
+| The issue closing | yes, once, and the thread is renamed `✅ …` and archived |
+| Its own comments — including its hypothesis | **never**: that is the loop this must not have |
+| Labels, milestones, edits | no; relaying everything turns a thread into noise |
+
+**Polling, not a webhook.** The App is installed with no webhook and no events, so the service needs
+no inbound port, no public route and no signature check. Nobody is waiting in front of a bug report;
+the trade is not close.
+
+**One direction only.** Discord → GitHub is deliberately not built: it would open a write channel
+onto a public repository from a room anyone can join. The consequence is real and worth saying out
+loud to reporters: **to add something to his report, the reporter posts in the thread and a
+maintainer carries it over by hand.**
+
+The links live in `SUPPORT_BOT_RELAY_LINKS_FILE`. Losing that file does not lose a report — they are
+all on GitHub — but it does orphan the threads: they stop being answered. The cursor in it is a
+comment **id**, not a timestamp, so two comments in the same second cannot race.
+
+A deleted thread drops its own link and nothing else. A rate limit, an outage or an unreachable
+thread is retried next round: only a definitive *this thread no longer exists* ends a follow-up.
 
 ### The checkout, and how it stays fresh
 
@@ -230,6 +317,12 @@ CRITICAL veaf-support-bot.cli the support bot cannot start: 3 configuration prob
 | `SUPPORT_BOT_GITHUB_REPOSITORY` | no | `VEAF/VEAF-Mission-Creation-Tools` | Where issues are filed. |
 | `SUPPORT_BOT_GITHUB_LEDGER_FILE` | no | `state/filed-issues.json` | What was already filed, so a retry never opens a second issue. Must survive a restart. |
 | `SUPPORT_BOT_GITHUB_MACHINE_LABEL` | no | `filed-by-bot` | Label marking an issue as machine-filed. Must already exist in the repository. |
+| `SUPPORT_BOT_ENRICH_ROLE_ID` | no | — | Discord role opening the automatic hypothesis. **Empty switches the hypothesis off**, which is the default. Must be a numeric role id; anything else is refused at startup. |
+| `SUPPORT_BOT_ENRICH_PER_DAY` | no | `15` | Hypotheses the whole bot may produce in a UTC day, against a free tier measured at 20 requests a day for the whole Google project. |
+| `SUPPORT_BOT_ENRICH_STATE_FILE` | no | `state/enrichment.json` | Where that allowance is counted. Its own file, so a busy day of questions cannot eat the day's hypotheses. **Must survive a restart.** |
+| `SUPPORT_BOT_ENRICH_ENDPOINT` | no | Worker `/analyze` | Where the one call goes. `kind: "bug"` selects the hypothesis prompt on that route. |
+| `SUPPORT_BOT_RELAY_LINKS_FILE` | no | `state/relay-links.json` | The thread ↔ issue links. **Must survive a restart**: losing it orphans every thread already opened — the issues stay, but they stop being answered. |
+| `SUPPORT_BOT_RELAY_POLL_SECONDS` | no | `600` | Gap between two rounds of asking GitHub what changed. Each round costs two API calls per followed issue. |
 | `SUPPORT_BOT_DRY_RUN` | no | `false` | Start everything except the connection to Discord. |
 
 \* **The four starred rows stand or fall together.** None of them is required, and with none of

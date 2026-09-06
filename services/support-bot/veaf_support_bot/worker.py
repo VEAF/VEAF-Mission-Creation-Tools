@@ -47,6 +47,15 @@ MAX_QUESTION_CHARS: Final = 1000
 #: truncated subject would key two users to the same counter.
 MAX_SUBJECT_CHARS: Final = 64
 
+#: How long one hypothesis call may take. Shorter than a chat exchange because nobody is watching it
+#: stream: the issue is already filed, the reporter has his link, and this runs behind him.
+HYPOTHESIS_TIMEOUT_SECONDS: Final = 45.0
+
+#: Longest prepared report sent for a hypothesis. The Worker truncates its own excerpt at a similar
+#: bound; cutting here first means the *service* decides what is lost, and the issue body it is cut
+#: from is ordered facts-first.
+MAX_CONTEXT_CHARS: Final = 24000
+
 
 class FailureKind(StrEnum):
     """Why an exchange with the Worker did not produce an answer.
@@ -215,6 +224,107 @@ class WorkerClient:
 
         if not emitted:
             raise WorkerFailure(FailureKind.EMPTY, "the stream carried no text")
+
+
+class HypothesisClient:
+    """One call to the Worker's ``/analyze`` route, asking it to conclude on a prepared report.
+
+    The same transport, the same client mode and the same failure vocabulary as
+    :class:`WorkerClient`; what differs is the route and what is sent — no conversation, no
+    retrieval, one prepared file in and one hypothesis out. The Worker decides the prompt from
+    ``kind``, so what counts as "a machine's guess about a bug report" is written down in one place
+    rather than assembled here from fragments of instruction.
+    """
+
+    def __init__(
+        self,
+        endpoint: str,
+        client: str,
+        secret: str,
+        *,
+        timeout: float = HYPOTHESIS_TIMEOUT_SECONDS,
+        session_factory: Any | None = None,
+    ) -> None:
+        """Initialize the client.
+
+        Args:
+            endpoint: The Worker ``/analyze`` URL.
+            client: Value of the ``X-VEAF-Client`` header.
+            secret: Value of the ``X-VEAF-Auth`` header.
+            timeout: Seconds granted to the whole exchange.
+            session_factory: Callable returning an ``aiohttp.ClientSession``; injected by the tests.
+        """
+        self._endpoint = endpoint
+        self._client = client
+        self._secret = secret
+        self._timeout = timeout
+        self._session_factory = session_factory or aiohttp.ClientSession
+
+    @property
+    def headers(self) -> dict[str, str]:
+        """Return the headers the request carries.
+
+        Returns:
+            The request headers, with the auth header omitted rather than sent empty.
+        """
+        headers = {"Content-Type": "application/json", "X-VEAF-Client": self._client}
+        if self._secret:
+            headers["X-VEAF-Auth"] = self._secret
+        return headers
+
+    def body(self, context: str, lang: str, subject: str) -> dict[str, Any]:
+        """Build the request payload.
+
+        Args:
+            context: The prepared report.
+            lang: ``"fr"`` or ``"en"``.
+            subject: Rate-limit subject.
+
+        Returns:
+            The JSON body. ``kind`` selects the Worker's bug-hypothesis instruction; the prepared
+            file travels in ``excerpt``, which is the field that route already bounds.
+        """
+        return {
+            "lang": lang,
+            "kind": "bug",
+            "excerpt": context[:MAX_CONTEXT_CHARS],
+            "subject": subject[:MAX_SUBJECT_CHARS],
+        }
+
+    async def hypothesise(self, context: str, lang: str, subject: str) -> str:
+        """Make the one call, and return what came back.
+
+        Args:
+            context: The prepared report — everything the deterministic pass established.
+            lang: ``"fr"`` or ``"en"``.
+            subject: Rate-limit subject, the reporter's Discord id.
+
+        Returns:
+            The hypothesis, assembled from the streamed fragments.
+
+        Raises:
+            WorkerFailure: The exchange produced no answer, whatever the reason.
+        """
+        timeout = aiohttp.ClientTimeout(total=self._timeout)
+        collected: list[str] = []
+        try:
+            async with self._session_factory(timeout=timeout) as session:
+                post = session.post(self._endpoint, json=self.body(context, lang, subject), headers=self.headers)
+                async with post as response:
+                    if response.status != 200:
+                        raise WorkerFailure(_classify(response.status), f"HTTP {response.status}")
+                    async for raw in response.content:
+                        collected.extend(_fragments(raw))
+        except WorkerFailure:
+            raise
+        except TimeoutError as error:
+            raise WorkerFailure(FailureKind.TIMEOUT, str(error) or "timed out") from error
+        except aiohttp.ClientError as error:
+            raise WorkerFailure(FailureKind.UNAVAILABLE, f"{type(error).__name__}: {error}") from error
+        answer = "".join(collected)
+        if not answer.strip():
+            raise WorkerFailure(FailureKind.EMPTY, "the stream carried no text")
+        return answer
 
 
 def _fragments(raw: bytes) -> list[str]:

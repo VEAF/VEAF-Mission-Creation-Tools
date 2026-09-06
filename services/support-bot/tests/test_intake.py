@@ -25,6 +25,7 @@ from veaf_support_bot.intake import (
     PREVIEW_MAX_CHARS,
     BugIntake,
     BugSubmission,
+    ThreadHandle,
     _redacted_form,
     render_preview,
 )
@@ -55,6 +56,13 @@ class RecordingExchange:
     async def confirm(self, content: str, lang: str) -> bool:
         self.calls.append("confirm")
         return False
+
+    async def open_followup_thread(self, name: str) -> ThreadHandle:
+        self.calls.append("open_followup_thread")
+        return ThreadHandle()
+
+    async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:
+        self.calls.append("post_in_thread")
 
 
 class _RecordingCollector(AttachmentCollector):

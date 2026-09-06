@@ -16,8 +16,10 @@ import aiohttp
 
 from veaf_support_bot.worker import (
     DEFAULT_TIMEOUT_SECONDS,
+    MAX_CONTEXT_CHARS,
     MAX_SUBJECT_CHARS,
     FailureKind,
+    HypothesisClient,
     WorkerClient,
     WorkerFailure,
 )
@@ -297,6 +299,76 @@ class TestFailures(unittest.IsolatedAsyncioTestCase):
 
         self.assertNotEqual(raised.exception.detail, "")
         self.assertIn("indisponible", raised.exception.detail)
+
+
+class TestTheHypothesisCall(unittest.IsolatedAsyncioTestCase):
+    """The one call ticket 08 is allowed: same transport, different route, no conversation."""
+
+    def _client(self, session: _FakeSession) -> HypothesisClient:
+        """Build a hypothesis client over a fake session.
+
+        Args:
+            session: The session to use.
+
+        Returns:
+            The client.
+        """
+        return HypothesisClient(
+            "https://worker.test/analyze",
+            "discord",
+            "s3cret",
+            session_factory=lambda **_: session,
+        )
+
+    async def test_it_asks_the_analyze_route_for_the_bug_prompt(self) -> None:
+        session = _FakeSession(200, _sse({"text": "looks like sample.py:12"}))
+
+        await self._client(session).hypothesise("the prepared file", "fr", "42")
+
+        sent = session.requests[0]
+        self.assertEqual(sent["url"], "https://worker.test/analyze")
+        # `kind` is what selects the hypothesis instruction; without it the Worker reads the body as
+        # a DCS log and answers about a catalogue that has nothing to do with this report.
+        self.assertEqual(sent["json"]["kind"], "bug")
+        self.assertEqual(sent["json"]["excerpt"], "the prepared file")
+        self.assertEqual(sent["headers"]["X-VEAF-Client"], "discord")
+
+    async def test_the_fragments_are_joined_into_one_answer(self) -> None:
+        session = _FakeSession(200, _sse({"text": "the cause "}, {"text": "is X"}))
+
+        self.assertEqual(await self._client(session).hypothesise("c", "en", "42"), "the cause is X")
+
+    async def test_an_over_long_context_is_bounded_before_it_is_sent(self) -> None:
+        session = _FakeSession(200, _sse({"text": "ok"}))
+
+        await self._client(session).hypothesise("x" * (MAX_CONTEXT_CHARS * 3), "en", "42")
+
+        self.assertEqual(len(session.requests[0]["json"]["excerpt"]), MAX_CONTEXT_CHARS)
+
+    async def test_a_refusal_is_a_failure_the_caller_can_name(self) -> None:
+        session = _FakeSession(429, [])
+
+        with self.assertRaises(WorkerFailure) as caught:
+            await self._client(session).hypothesise("c", "en", "42")
+
+        self.assertEqual(caught.exception.kind, FailureKind.RATE_LIMITED)
+
+    async def test_a_stream_with_no_text_is_a_failure_rather_than_an_empty_hypothesis(self) -> None:
+        """An empty guess published as a guess would be worse than no section at all."""
+        session = _FakeSession(200, _sse())
+
+        with self.assertRaises(WorkerFailure) as caught:
+            await self._client(session).hypothesise("c", "en", "42")
+
+        self.assertEqual(caught.exception.kind, FailureKind.EMPTY)
+
+    async def test_a_transport_error_becomes_unavailable(self) -> None:
+        session = _FakeSession(error=aiohttp.ClientError("no route to host"))
+
+        with self.assertRaises(WorkerFailure) as caught:
+            await self._client(session).hypothesise("c", "en", "42")
+
+        self.assertEqual(caught.exception.kind, FailureKind.UNAVAILABLE)
 
 
 if __name__ == "__main__":

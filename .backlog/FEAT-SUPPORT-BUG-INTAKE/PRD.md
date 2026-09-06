@@ -1,6 +1,6 @@
 # FEAT-SUPPORT-BUG-INTAKE — from "it does not work" to an issue somebody can act on
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: design session of 2026-09-05, **redesigned the same day** once the free-tier quota was
 measured. Lot 4 of the programme described in
@@ -84,8 +84,10 @@ more calls.
 ## Open questions
 
 1. **Which Discord role** gates the enrichment, and who grants it. David's call; the code reads a
-   role id from the environment.
-2. **How the checkout stays fresh**: periodic pull or event-driven, decided with the service.
+   role id from the environment. **Still open, and it does not block anything**: the enrichment is
+   off while `SUPPORT_BOT_ENRICH_ROLE_ID` is unset, and reports are filed complete without it.
+2. ~~**How the checkout stays fresh**~~ — settled in ticket 01: a periodic refresh with a bounded
+   interval, reported on the issue as the revision every location was resolved against.
 
 ## Scope
 
@@ -100,3 +102,20 @@ more calls.
 | 07 | [Say what the machine wrote, and what it guessed](tickets/07-docs.md) | docs |
 | 08 | [One call, for members, while the quota lasts](tickets/08-ai-enrichment.md) | feat |
 | 09 | [Enumerate every path that publishes](tickets/09-enumerate-publishing-paths.md) | chore |
+
+## How it shipped
+
+| PR | Tickets |
+|---|---|
+| [#919](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/919) | 01, 02 |
+| [#920](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/920) | 03, 05 |
+| [#922](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/922) | 04 |
+| *(this branch)* | 06, 07, 08, 09 |
+
+Split rather than shipped as one, because Sourcery stops reviewing past ~150 000 characters of diff.
+
+**What is left before the service does everything described here:** set
+`SUPPORT_BOT_ENRICH_ROLE_ID` to the VEAF role, create the `filed-by-bot` label by hand, and deploy
+the Worker (`npx wrangler deploy`) so the bug-hypothesis prompt is live. None of the three blocks
+the intake: without them, reports are collected, previewed, filed and followed up — with no
+hypothesis and, until the label exists, with `bug` alone.

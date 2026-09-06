@@ -56,15 +56,73 @@ un assistant de documentation, c'est la seule correction qui rattrape vraiment u
   limite pour tout le serveur — elles protègent le quota gratuit que partagent aussi le site et la
   ligne de commande. S'il refuse, il vous dit pourquoi et à quelle heure ça repart.
 
-### Ce qu'il ne fait **pas** (encore)
+### Ce qu'il ne fait **pas**
 
-Ni **ouvrir une issue** à votre place, ni **analyser un journal DCS**, ni **lire les sources**.
-Chacun de ces trois arrive plus tard, dans son propre chantier. Pour l'instant, un défaut se
-signale à la main — voir [Où s'adresser](#where).
+Il ne lit pas les sources et ne regarde pas votre mission. En revanche, si sa réponse ne règle pas
+votre problème, le bouton **« Signaler un bug »** sous la réponse ouvre le formulaire de
+[`/bug`](#bug) avec votre question et sa réponse déjà dedans.
 
 !!! tip "La même chose hors du Discord"
     `.\veaf-tools.exe ask` pose les mêmes questions au même assistant, depuis votre machine. Voir
     la [Référence CLI](CLI_REFERENCE.md).
+
+## Signaler un bug depuis Discord : `/bug` {#bug}
+
+Sur le Discord VEAF, `/bug` ouvre un **formulaire** : ce qui s'est passé, ce que vous attendiez, les
+étapes, et le bloc [`veaf-tools doctor`](#doctor). Vous pouvez y joindre un journal, une mission,
+un fichier de configuration.
+
+**Vous n'avez pas besoin d'un compte GitHub.** Le ticket est ouvert par un robot, en votre nom :
+votre pseudo Discord y est cité comme rapporteur, et rien d'autre de votre identité.
+
+### Ce que le bot fait de votre formulaire
+
+Tout ce qui suit se fait **sans intelligence artificielle** — ce sont des lectures et des recherches,
+donc c'est exact, et ça marche même quand tout le reste est en panne :
+
+- il lit le bloc `doctor` pour en tirer la version, celle de DCS, le système ;
+- si votre message ou votre journal contient une erreur, il en extrait le **fichier et la ligne**,
+  puis va lire le code autour dans le dépôt ;
+- il réduit un journal de 11 Mo à l'extrait qui compte, avec ce que son catalogue y reconnaît ;
+- il résume la mission jointe — théâtre, date, météo, nombre de groupes — sans publier son contenu ;
+- il compare votre problème aux tickets ouverts, aux tickets récemment fermés, aux chantiers en
+  cours et à la feuille de route. **Si c'est déjà corrigé, il vous le dit et n'ouvre rien** : c'est
+  le meilleur résultat possible, vous êtes débloqué tout de suite.
+
+### Rien n'est publié avant votre clic
+
+Le bot vous montre le ticket **tel qu'il partira**, puis attend. Trois boutons : **déposer**,
+**corriger** (le formulaire revient avec vos réponses), **annuler**. Si vous ne cliquez pas,
+l'aperçu expire au bout de huit minutes et rien n'est déposé.
+
+C'est important parce que vous avez tapé trois champs et qu'une vingtaine de lignes vont être
+publiées : l'extrait de journal, le code, votre environnement. Le clic est le moment où vous voyez
+la différence et où vous pouvez dire *non, pas ça*.
+
+**Vos données personnelles sont retirées avant publication** : chemins de votre disque, adresses,
+identifiants. Si le filtrage ne peut pas s'exécuter, **rien n'est publié** — jamais de repli sur le
+texte brut. Un cas échappe à ce filtre : ce que vous tapez vous-même. Si vous écrivez votre nom
+dans « ce qui s'est passé », ou si votre mission s'appelle `mission de Jean Dupont.miz`, il sera
+publié.
+
+### Ce qui se passe ensuite
+
+Le bot ouvre un **fil public** et y met le lien du ticket. Quand quelqu'un répond sur le ticket, ou
+quand il est fermé, **le bot le rapporte dans ce fil** : vous n'avez pas à surveiller GitHub.
+
+Dans l'autre sens, c'est **manuel** : pour ajouter quelque chose — un fichier oublié, une précision —
+écrivez-le dans le fil, un mainteneur le reportera sur le ticket. Le bot n'écrit pas de Discord vers
+GitHub, et c'est délibéré : ça ouvrirait une porte d'écriture sur un dépôt public depuis un salon
+où n'importe qui peut entrer.
+
+### L'hypothèse automatique
+
+Sur les tickets déposés par un **membre VEAF**, et tant que l'allocation du jour n'est pas épuisée,
+un modèle ajoute une **hypothèse** sur la cause : un commentaire séparé, signalé comme une
+supposition de machine, avec le fichier et la ligne suspectés.
+
+Ce n'est pas un diagnostic, et **son absence n'enlève rien à votre signalement** : le reste du
+ticket est mesuré, cité ou analysé, jamais deviné. Quand elle manque, le ticket dit pourquoi.
 
 ## Ce qu'il faut fournir {#what-to-provide}
 

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from logging import Logger
-from typing import Any
+from typing import Any, cast
 
 import discord
 from discord import app_commands
@@ -48,6 +48,7 @@ from veaf_support_bot.intake import (
     SUMMARY_MAX_CHARS,
     BugIntake,
     BugSubmission,
+    ThreadHandle,
     escalation_form,
 )
 from veaf_support_bot.logging_setup import get_logger
@@ -79,6 +80,18 @@ _DIFFERENT = "different"
 #: waiting on, so it is measured in "while the thread is still being read" rather than in the
 #: interaction budget the draft's buttons live inside.
 ESCALATION_EXPIRY_SECONDS = 3600
+
+#: Longest thread name Discord accepts.
+THREAD_NAME_CEILING = 100
+
+#: Channel kinds a public follow-up thread can hang off. A thread, a forum post and a direct
+#: message cannot, and the report is then filed without a follow-up rather than not filed. Named
+#: rather than inlined so a test can stand in front of the one branch that matters here.
+THREADABLE: tuple[type, ...] = (discord.TextChannel,)
+
+#: Prefix added to a followed thread's name once its issue is closed, so the state is visible
+#: in the channel list without opening anything.
+CLOSED_MARK = "✅ "
 
 
 class InteractionExchange:
@@ -442,6 +455,70 @@ class ModalExchange:
         """
         await self._interaction.edit_original_response(content=content, view=None, allowed_mentions=NO_MENTIONS)
 
+    async def open_followup_thread(self, name: str) -> ThreadHandle:
+        """Open the public thread the issue's news will come back into.
+
+        A thread cannot hang off an ephemeral response, so this posts a short public anchor in the
+        channel and threads off it. That anchor is the *only* thing `/bug` makes public on its own:
+        the report itself is on the issue, and the preparation stays in the reporter's ephemeral
+        message.
+
+        Args:
+            name: The thread name.
+
+        Returns:
+            Where it was opened, or an empty handle when Discord refused — most often a missing
+            *Create Public Threads*, or a channel that cannot hold threads. The report is filed
+            either way; what is lost is the follow-up.
+        """
+        raw = self._interaction.channel
+        if not isinstance(raw, THREADABLE):
+            # A thread, a forum post, a DM: nothing to hang a public thread off. Reported rather
+            # than raised, because it must not cost the report.
+            self._logger.warning(
+                "no follow-up thread: the command was not used in a text channel",
+                extra={"event": "bug.thread_channel", "channel": type(raw).__name__},
+            )
+            return ThreadHandle()
+        # THREADABLE is the runtime check — named so a test can stand in front of this one branch —
+        # and this is the same statement for the type checker, which cannot read a tuple built at
+        # module scope.
+        channel = cast(discord.TextChannel, raw)
+        try:
+            anchor = await channel.send(name, allowed_mentions=NO_MENTIONS)
+            thread = await anchor.create_thread(name=name[:THREAD_NAME_CEILING])
+        except (discord.HTTPException, discord.ClientException) as error:
+            self._logger.warning(
+                "no follow-up thread could be opened",
+                extra={"event": "bug.thread_failed", "error": f"{type(error).__name__}: {error}"},
+            )
+            return ThreadHandle()
+        return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url, handle=thread)
+
+    async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:
+        """Post the opening message inside the follow-up thread.
+
+        Args:
+            handle: The thread that was opened.
+            content: What to post.
+        """
+        thread = handle.handle if handle.handle is not None else self._interaction.client.get_channel(handle.thread_id)
+        if not hasattr(thread, "send"):
+            # Nothing to post through. Said out loud rather than skipped: the reporter would
+            # otherwise be left with a public thread and no idea which issue it belongs to.
+            self._logger.warning(
+                "the follow-up thread could not be reached to announce the issue",
+                extra={"event": "bug.thread_unreachable", "discord_thread": handle.thread_id},
+            )
+            return
+        try:
+            await thread.send(content, allowed_mentions=NO_MENTIONS)
+        except discord.HTTPException as error:
+            self._logger.warning(
+                "the follow-up thread could not be opened with a message",
+                extra={"event": "bug.thread_message_failed", "error": type(error).__name__},
+            )
+
     async def decide(self, content: str, lang: str) -> str:
         """Show the draft with its buttons and wait for one to be pressed.
 
@@ -751,6 +828,7 @@ class BugModal(discord.ui.Modal):
                 language=str(interaction.locale) if interaction.locale else "fr",
             ),
             attachments=self._attachments,
+            roles=role_ids_of(interaction.user),
         )
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -803,6 +881,150 @@ class BugModal(discord.ui.Modal):
             "the /bug modal failed",
             extra={"event": "bug.modal_failed", "error": type(error).__name__},
         )
+
+
+class ClientThreadPoster:
+    """The :class:`~veaf_support_bot.relay.ThreadPoster` protocol over the gateway connection.
+
+    The relay runs in a background task with no interaction of its own, so it reaches Discord
+    through the client. A thread the cache does not hold is fetched once — the bot runs on
+    ``Intents.none()``, so the cache is cold after every restart, and a relay that only worked on
+    warm state would go quiet exactly when the service came back up.
+    """
+
+    def __init__(self, client: discord.Client, logger: Logger | None = None) -> None:
+        """Initialize the poster.
+
+        Args:
+            client: The connected gateway client.
+            logger: Logger to use.
+        """
+        self._client = client
+        self._logger = logger or get_logger("relay")
+
+    async def _thread(self, thread_id: int) -> discord.Thread | None:
+        """Resolve one thread, from the cache or from the API.
+
+        Args:
+            thread_id: The thread.
+
+        Returns:
+            The thread, or ``None`` only when Discord says it does not exist.
+
+        Raises:
+            discord.HTTPException: Discord could not answer *this time* — a 5xx, a rate limit, a
+                permission lost for a moment. The distinction matters more than it looks: the relay
+                reads ``None`` as **the thread is gone for good** and drops the link, so folding a
+                503 into it would stop following a report for ever, on every link, the first time
+                Discord had a bad minute after a restart. Raising leaves the link alone and the
+                round counts a failure.
+        """
+        cached = self._client.get_channel(thread_id)
+        if isinstance(cached, discord.Thread):
+            return cached
+        try:
+            fetched = await self._client.fetch_channel(thread_id)
+        except discord.NotFound:
+            self._logger.info(
+                "a followed thread no longer exists",
+                extra={"event": "relay.thread_gone", "discord_thread": thread_id},
+            )
+            return None
+        except (discord.HTTPException, discord.ClientException) as error:
+            self._logger.warning(
+                "a followed thread could not be resolved this round",
+                extra={"event": "relay.thread_unreachable", "discord_thread": thread_id, "error": type(error).__name__},
+            )
+            raise
+        return fetched if isinstance(fetched, discord.Thread) else None
+
+    async def post_to_thread(self, channel_id: int, thread_id: int, content: str) -> bool:
+        """Post one message into a followed thread.
+
+        Args:
+            channel_id: The channel the thread belongs to, unused here and kept by the store so a
+                restart can reach the thread without a warm cache.
+            thread_id: The thread.
+            content: What to post.
+
+        Returns:
+            ``True`` when it was posted; ``False`` when the thread is gone for good, which is the
+            one answer that makes the relay stop following that report.
+        """
+        thread = await self._thread(thread_id)
+        if thread is None:
+            return False
+        try:
+            # An archived thread accepts a message and un-archives itself, so no special case is
+            # needed for one — only for one that no longer exists.
+            await thread.send(content, allowed_mentions=NO_MENTIONS)
+        except discord.NotFound:
+            return False
+        except discord.HTTPException as error:
+            self._logger.warning(
+                "a relayed message was refused",
+                extra={"event": "relay.refused", "discord_thread": thread_id, "error": type(error).__name__},
+            )
+            # Transient: raised so the relay counts a failure and tries again, rather than dropping
+            # a link because Discord was rate-limiting.
+            raise
+        return True
+
+    async def mark_closed(self, channel_id: int, thread_id: int) -> bool:
+        """Tag the thread as settled once its issue is closed.
+
+        Args:
+            channel_id: The channel the thread belongs to.
+            thread_id: The thread.
+
+        Returns:
+            Whether the tag was applied. Cosmetic: the closure is also said in words, so a refusal
+            here never fails a round.
+        """
+        try:
+            thread = await self._thread(thread_id)
+        except (discord.HTTPException, discord.ClientException):
+            # Cosmetic, and the closure is also said in words: a refusal here never fails a round.
+            return False
+        if thread is None:
+            return False
+        name = thread.name if thread.name.startswith(CLOSED_MARK) else f"{CLOSED_MARK}{thread.name}"
+        try:
+            await thread.edit(name=name[:THREAD_NAME_CEILING], archived=True)
+        except (discord.HTTPException, discord.ClientException) as error:
+            self._logger.info(
+                "the thread could not be marked as closed",
+                extra={"event": "relay.mark_failed", "discord_thread": thread_id, "error": type(error).__name__},
+            )
+            return False
+        return True
+
+
+def role_ids_of(user: object) -> tuple[str, ...]:
+    """Return the role ids the interaction says its author holds.
+
+    Read off the interaction rather than fetched: Discord sends the member object — role ids
+    included — inside every guild interaction, so the check costs no API call and cannot be forged
+    by the reporter.
+
+    Which attribute carries them is not a detail. ``Member.roles`` resolves each id against the
+    **guild cache** and silently drops what it cannot find, and this bot runs on
+    ``Intents.none()`` — no guild intent, so that cache can be empty. Reading ``roles`` alone would
+    therefore hand back an empty tuple on a perfectly ordinary member, and the enrichment gate would
+    refuse every reporter forever while looking like it was working. ``Member._roles`` is the raw
+    list from the payload, which is what the interaction actually stated; ``roles`` stays as the
+    fallback for anything that exposes only the resolved form.
+
+    Args:
+        user: The interaction's author.
+
+    Returns:
+        The role ids as strings, matching the configured id's own type.
+    """
+    raw = getattr(user, "_roles", None)
+    if raw is not None:
+        return tuple(str(int(role_id)) for role_id in raw)
+    return tuple(str(role.id) for role in getattr(user, "roles", ()) if getattr(role, "id", None) is not None)
 
 
 def incoming_from(*attachments: discord.Attachment | None) -> list[Incoming]:

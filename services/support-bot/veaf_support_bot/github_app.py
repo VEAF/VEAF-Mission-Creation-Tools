@@ -299,6 +299,7 @@ class GitHubApp:
         transport: Transport,
         *,
         api_root: str = API_ROOT,
+        redactor: Callable[[str], str] | None = None,
     ) -> None:
         """Initialize the client without contacting GitHub.
 
@@ -307,12 +308,49 @@ class GitHubApp:
             repository: ``owner/name`` of the one repository the App is installed on.
             transport: How a request is made.
             api_root: API root, overridable for a test or a GitHub Enterprise host.
+            redactor: What every outgoing body passes through. ``None`` publishes bodies as they
+                are, which is only ever right in a test — see :meth:`_scrubbed`.
         """
         self.credentials = credentials
         self.repository = repository
         self.api_root = api_root.rstrip("/")
         self._transport = transport
+        self._redactor = redactor
         self._token: _Token | None = None
+
+    def _scrubbed(self, payload: Any) -> Any:
+        """Redact every string in an outgoing body, however deeply it is nested.
+
+        This is where redaction *actually* happens, rather than in each caller that builds something
+        publishable. Four leaks reached review across three pull requests of this lot, and each one
+        took a path the callers' own guards did not cover: an archive's member list, a parser's
+        error message, an attachment's file name, an attachment's bytes. Every one of them was
+        published by a caller that believed somebody else had redacted.
+
+        Putting it here makes the property structural: a new publishing path cannot be written
+        without it, because there is no way to reach GitHub that does not come through this method.
+        Callers still redact what they *quote* — the excerpt, the manifest — for their own reasons;
+        this is the floor under all of them, and applying it twice is harmless.
+
+        Args:
+            payload: The body about to be sent.
+
+        Returns:
+            The same structure with every string redacted.
+
+        Raises:
+            GitHubError: Redaction is unavailable. Nothing is published: failing closed here is the
+                whole point, and the message names no path — the reason published on a failure is
+                itself something that has leaked before.
+        """
+        if self._redactor is None:
+            return payload
+        try:
+            return _map_strings(payload, self._redactor)
+        except GitHubError:
+            raise
+        except Exception as error:
+            raise GitHubError(f"nothing was published: redaction is unavailable ({type(error).__name__})") from error
 
     async def token(self, now: float | None = None) -> str:
         """Return a usable installation token, minting one when the held one is near its end.
@@ -381,7 +419,7 @@ class GitHubApp:
         Raises:
             GitHubError: The transport failed, or the status is not a success.
         """
-        body = None if payload is None else json.dumps(payload).encode("utf-8")
+        body = None if payload is None else json.dumps(self._scrubbed(payload)).encode("utf-8")
         common = {
             "Accept": API_ACCEPT,
             "X-GitHub-Api-Version": API_VERSION,
@@ -398,6 +436,26 @@ class GitHubApp:
         if 200 <= response.status < 300:
             return response
         raise GitHubError(f"GitHub answered {response.status}: {_scrub(_message_of(response.body))}", response.status)
+
+
+def _map_strings(value: Any, transform: Callable[[str], str]) -> Any:
+    """Apply *transform* to every string inside a JSON-shaped structure.
+
+    Args:
+        value: A string, a list, a mapping, or a scalar.
+        transform: What to apply to each string.
+
+    Returns:
+        The same shape, with every string transformed. Keys are left alone: they are field names
+        this service chose, never reporter-supplied text.
+    """
+    if isinstance(value, str):
+        return transform(value)
+    if isinstance(value, list):
+        return [_map_strings(item, transform) for item in value]
+    if isinstance(value, dict):
+        return {key: _map_strings(item, transform) for key, item in value.items()}
+    return value
 
 
 def _message_of(body: Any) -> str:

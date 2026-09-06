@@ -1,6 +1,6 @@
 # 07 — Say what the machine wrote, and what it guessed
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs
 
@@ -34,9 +34,37 @@ labelling scheme exists to contain, and documentation is half of it.
 
 ## Definition of done
 
-- [ ] User-facing section on the support page, both languages, covering the privacy and consent
+- [x] User-facing section on the support page, both languages, covering the privacy and consent
       steps explicitly
-- [ ] Maintainer documentation next to the service, including how to switch the paid flow off
-- [ ] `CONTRIBUTING.md` intake section updated
-- [ ] The "hypothesis is a guess" line stated in both the user and maintainer documents
-- [ ] `poetry run docs-check` passes
+- [x] Maintainer documentation next to the service, including how to switch the paid flow off
+- [x] `CONTRIBUTING.md` intake section updated
+- [x] The "hypothesis is a guess" line stated in both the user and maintainer documents
+- [x] `poetry run docs-check` passes
+
+## What was written
+
+**For users** — `doc/SUPPORT.md` and `.en.md` gain a `/bug` section under an explicit `{#bug}`
+anchor: what the form asks, what the bot makes of it *without any AI*, that nothing is published
+before the click, that personal data is stripped and that a filter which cannot run publishes
+nothing. It also states the one thing the filter does not catch — **what the reporter types
+himself**, including his own name in a field or in a mission's file name — because a promise of
+privacy that quietly has a hole is worse than no promise.
+
+The stale paragraph went with it: the `/ask` page said the bot could not open an issue. It now
+points at the escalation button.
+
+**For maintainers** — the service's `README.md` grew alongside each ticket rather than in one pass
+at the end: how the click works, how to read a machine-filed issue, which role gates the hypothesis
+and how to switch it off (leave `SUPPORT_BOT_ENRICH_ROLE_ID` empty), how the relay polls and what it
+does not do.
+
+**In `CONTRIBUTING.md`** — the intake desk now has two doors, and a section on triaging an issue a
+bot filed: the body is measured, the ⚠️ comment is a guess, **the reporter is on Discord** and is
+reached by answering on the issue, and the attachments are described rather than attached.
+
+## The line held
+
+"The hypothesis is a guess" is stated in four places — the issue's own comment, the sentence the
+reporter reads, the user documentation and the maintainer documentation. That is deliberate
+repetition: the risk it contains is somebody three months from now reading a machine's guess as a
+diagnosis and closing a real bug on it.

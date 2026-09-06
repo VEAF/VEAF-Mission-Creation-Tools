@@ -83,9 +83,11 @@ more calls.
 
 ## Open questions
 
-1. **Which Discord role** gates the enrichment, and who grants it. David's call; the code reads a
-   role id from the environment. **Still open, and it does not block anything**: the enrichment is
-   off while `SUPPORT_BOT_ENRICH_ROLE_ID` is unset, and reports are filed complete without it.
+1. ~~**Which Discord role** gates the enrichment~~ — settled 2026-09-06: the **mission maker** role
+   of the VEAF Discord. Not the broader "member" role, and the reason is what the hypothesis
+   contains: it names a file and a line of the repository, which is useful to somebody who will go
+   and look, and noise to somebody who reported a crash and wants it fixed. The id lives in
+   `SUPPORT_BOT_ENRICH_ROLE_ID`, never in the repository.
 2. ~~**How the checkout stays fresh**~~ — settled in ticket 01: a periodic refresh with a bounded
    interval, reported on the issue as the revision every location was resolved against.
 
@@ -114,8 +116,7 @@ more calls.
 
 Split rather than shipped as one, because Sourcery stops reviewing past ~150 000 characters of diff.
 
-**What is left before the service does everything described here:** set
-`SUPPORT_BOT_ENRICH_ROLE_ID` to the VEAF role, create the `filed-by-bot` label by hand, and deploy
-the Worker (`npx wrangler deploy`) so the bug-hypothesis prompt is live. None of the three blocks
-the intake: without them, reports are collected, previewed, filed and followed up — with no
-hypothesis and, until the label exists, with `bug` alone.
+**What is left before the service does everything described here:** the Worker was deployed and the
+`filed-by-bot` label created on 2026-09-06. The last step is setting `SUPPORT_BOT_ENRICH_ROLE_ID`
+to the mission maker role and restarting the service — until then reports are collected, previewed,
+filed and followed up, with no hypothesis section at all.

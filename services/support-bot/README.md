@@ -129,6 +129,11 @@ all checked before the call:
 | The day's allowance | `SUPPORT_BOT_ENRICH_PER_DAY`, default **15** | the free Gemini tier was measured at **20 requests a day for the whole Google project**, shared with `/ask` and the log analysis |
 | One call per report | enforced by the runtime | not requested of the model, which cannot be trusted to count |
 
+On the VEAF Discord the role is **mission maker**, decided 2026-09-06. Not the broader *member*
+role: the hypothesis names a file and a line of the repository, which is useful to somebody who will
+go and look and noise to somebody who reported a crash and wants it fixed. The id itself lives in
+the environment, never here.
+
 **To switch it off entirely, leave `SUPPORT_BOT_ENRICH_ROLE_ID` empty.** That is the default, and
 it is not a degraded mode: reports are filed complete, with no hypothesis section at all. Enriching
 for everybody the moment the service is installed would spend an association resource on a decision

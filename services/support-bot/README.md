@@ -2,7 +2,7 @@
 
 The long-running process behind the documentation assistant on the VEAF Discord.
 
-It answers `/ask` on the VEAF Discord, in a public thread, from the documentation and nothing else.
+It answers `/ask` on the VEAF Discord, in a public thread, from the documentation and nothing else; it turns `/bug` into a filled bug report and `/suggest` into a feature request — after checking whether the thing already exists.
 
 ---
 
@@ -261,6 +261,90 @@ so and answers in the channel anyway. Losing the answer would be worse.
 an upstream failure, a refusal from Discord itself, or a bug of ours all end as a sentence in the
 thread. The whole exchange is also bounded — 60 seconds by default — because a deferred interaction
 token dies after fifteen minutes, and an answer that arrives after that is an answer nobody sees.
+
+---
+
+## How `/suggest` works
+
+`/suggest` takes an idea and either answers it from the documentation or files a feature request. It
+adds no infrastructure: the form, the preview, the click, the GitHub App, the relay and the quotas
+are `/bug`'s, and the sweep over issues, lots and roadmap is the same one.
+
+1. A **modal** collects five fields — the summary, the problem, the wanted behaviour, alternatives,
+   context — and the **component** rides on the command as a choice, bound to the options of
+   `.github/ISSUE_TEMPLATE/feature_request.yml`. A modal can only hold text inputs, and a component
+   typed by hand is one nobody can filter on.
+2. The **documentation is asked** whether the thing already exists. One exchange with the Worker,
+   the request itself as the retrieval query, an answer that either explains how to do it or says
+   the documentation is silent.
+3. If it answered, the answer and its pages are put to the asker: *is that what you meant?* A yes
+   opens nothing. A no carries on, and what the documentation said goes into the issue.
+4. The **deterministic sweep** then runs over the open issues, `.backlog/` and `ROADMAP.md` — already
+   requested, already scheduled, already declined. Same code, same evidence, same refusable step.
+5. The issue is rendered **as it will be filed**, and only a click files it, under `enhancement` and
+   `filed-by-bot`.
+
+### Why the documentation is asked and not searched
+
+The obvious design is the one this lot started with: sweep `doc/` by text matching, like the
+duplicate sweep, at no model cost. **Measured on the real tree, it does not work.** The words that
+name a feature are everywhere in the documentation, because the pages cross-reference each other:
+
+| word | pages containing it | pages with it in a heading |
+|---|---|---|
+| `csar` | 24 / 144 (17%) | 6 |
+| `combat` | 69 / 144 (48%) | 20 |
+| `zone` | 87 / 144 (60%) | 20 |
+
+No threshold separates *the page describing CSAR* from *the twenty-four pages mentioning CSAR*.
+Three scorings were written and measured before this was accepted — plain overlap scored 82% on
+`add`, `radio` and `way`; rarity weighting matched a request for SMS alerts against the support page
+at 57%. The duplicate sweep works because two reports of the same bug share identifiers a reporter
+pasted; a suggestion written in ordinary language has none.
+
+So the flow asks the question `/ask` already answers, from the same corpus, with the same sources and
+on the same allowance. It costs **one model call per suggestion**, charged to the asker's own `/ask`
+quota — and a spent quota does not refuse the suggestion, it only means the issue says the
+documentation was not consulted.
+
+Pressing *Edit* on the draft restarts the whole exchange, so it asks again and charges again. At the
+default three questions a minute, somebody polishing his wording twice meets his own quota on the
+third pass — the refusal is honest, and the suggestion still goes through with the documentation
+recorded as not consulted, but it is worth knowing before it happens.
+
+### The three outcomes of that question, and why they are three
+
+*It exists* and *the documentation is silent* are findings. *The documentation could not be asked* —
+the Worker was down, the allowance was spent — is a **missing step**, and an issue that folds it into
+"nothing was found" tells its reader the documentation was checked when it was not.
+
+The silent case is the useful one for the project: if the feature does exist, the request is a
+documentation gap rather than a feature request, and the filed issue says so.
+
+### It needs the checkout too, for a reason that is not obvious
+
+`/suggest` looks as though it could run without one — asking the documentation only needs the
+Worker. But everything this service publishes goes through a redactor **bound to a checkout**, and
+with no checkout there is nothing to redact against, so nothing can be filed. A published `/suggest`
+would then answer every request with *no issue was opened: this bot has no GitHub identity
+configured yet* — false where the App is correctly configured, and an operator would go and re-check
+credentials that are already right. So it is not published without a checkout, exactly as `/bug` is
+not.
+
+### The closed issues are swept for a bug and not for a suggestion
+
+The sweep is the bug flow's, minus one source. *This was fixed in 6.19, update and it should be
+gone* is the outcome that unblocks a reporter on the spot; told to somebody asking for a feature
+that does not exist yet, the same sentence sends him to install a version that has nothing to do
+with his idea — and he will not argue with a bot.
+
+### What it does not do
+
+- **No design sketch.** A wrong sketch in a public issue steers the discussion into a wall, durably,
+  and it is expensive to unwind. The issue states the problem, the request and the prior art.
+- **No judgement on the idea.** The tracker records it; whether it is done is a maintainer's call,
+  and the documentation says so out loud so that an issue open for a year disappoints nobody.
+- **Nothing public before the click**, exactly as `/bug`: the thread is opened after it.
 
 ---
 

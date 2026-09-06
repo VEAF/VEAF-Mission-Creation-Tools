@@ -1,6 +1,6 @@
 # 03 — Tell people what a suggestion becomes
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs
 
@@ -32,10 +32,16 @@ happens.
 - Both languages in lockstep, in the `nav` with their `nav_translations` entry.
 - Explicit English anchors on cross-linked sections.
 
+## The label decision
+
+**No distinct label** (decided 2026-09-06 with David). `enhancement` + `filed-by-bot` already
+isolates machine-filed suggestions exactly, and a third term would be vocabulary to maintain for a
+filter anyone can write. Recorded in `docs/agents/triage-labels.md`, where triage happens.
+
 ## Definition of done
 
-- [ ] User-facing section on the support page, both languages
-- [ ] The "an issue is a report, not a commitment" expectation stated
-- [ ] Maintainer note on reading a machine-filed suggestion
-- [ ] The label decision recorded, and reflected in `docs/agents/triage-labels.md` if it adds a term
-- [ ] `poetry run docs-check` passes
+- [x] User-facing section on the support page, both languages
+- [x] The "an issue is a report, not a commitment" expectation stated
+- [x] Maintainer note on reading a machine-filed suggestion
+- [x] The label decision recorded, and reflected in `docs/agents/triage-labels.md`
+- [x] `poetry run docs-check` passes

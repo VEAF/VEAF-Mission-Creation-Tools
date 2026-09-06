@@ -34,6 +34,7 @@ class RecordingExchange:
                 placeholder forever — so it has to be reachable from a test.
         """
         self.calls: list[tuple[str, str]] = []
+        self.escalations: list[tuple[str, str, str]] = []
         self.thread_allowed = thread_allowed
         self._fails_on = set(fails_on)
 
@@ -90,6 +91,21 @@ class RecordingExchange:
             content: The new content.
         """
         self._record("edit", content)
+
+    async def offer_escalation(self, question: str, answer: str, lang: str) -> None:
+        """Record that the report form was offered, and with what.
+
+        The transcript keeps the pair rather than a flag: what the escalation carries into the form
+        is the whole point of it, and a test asserting only that *something* was offered would pass
+        on a button that escalates an empty exchange.
+
+        Args:
+            question: What was asked.
+            answer: What the bot replied.
+            lang: The language it was offered in.
+        """
+        self.escalations.append((question, answer, lang))
+        self._record("offer_escalation", answer)
 
     @property
     def steps(self) -> list[str]:

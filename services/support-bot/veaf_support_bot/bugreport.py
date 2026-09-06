@@ -137,7 +137,7 @@ class MaterialNote:
 
 @dataclass(frozen=True)
 class BugReport:
-    """A filled report, ready for the issue body ticket 04 renders and ticket 05 files.
+    """A filled report, ready for the issue body :mod:`veaf_support_bot.issue_body` renders.
 
     Attributes:
         form: The raw form, kept whole.

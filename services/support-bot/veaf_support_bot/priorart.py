@@ -658,27 +658,29 @@ class PriorArtGate:
 
     Attributes:
         sweeper: What runs the sweep.
-        confirmation: Who is asked. ``None`` means **nobody can be asked**, and the gate then always
-            returns "rejected": with no way to obtain consent, silencing a report on a machine's
-            unverified guess is the one outcome this ticket exists to prevent. The finding is still
-            attached to the report and printed with its evidence.
     """
 
     sweeper: PriorArtSweeper
-    confirmation: MatchConfirmation | None = None
 
-    async def run(self, query: str, lang: str) -> tuple[Sweep, bool]:
+    async def run(self, query: str, lang: str, *, confirmation: MatchConfirmation | None = None) -> tuple[Sweep, bool]:
         """Sweep, and find out whether the match is accepted.
 
         Args:
             query: The report's own words.
             lang: ``"fr"`` or ``"en"``.
+            confirmation: Who is asked, **for this report**. It is an argument and not a field
+                because the buttons hang off the reporter's own message: there is no reporter to ask
+                at start-up, which is why ticket 03 could only ever answer "rejected". ``None``
+                means nobody can be asked and the gate answers "rejected" — with no way to obtain
+                consent, silencing a report on a machine's unverified guess is the one outcome this
+                step exists to prevent. The finding is still attached to the report and printed with
+                its evidence.
 
         Returns:
             A pair of the finding and whether it was **accepted** — ``True`` stops the flow, and the
             caller acts on :attr:`Sweep.verdict` instead of filing.
         """
         sweep = await self.sweeper.sweep(query)
-        if not sweep.found or self.confirmation is None:
+        if not sweep.found or confirmation is None:
             return sweep, False
-        return sweep, bool(await self.confirmation.confirm(sweep, lang))
+        return sweep, bool(await confirmation.confirm(sweep, lang))

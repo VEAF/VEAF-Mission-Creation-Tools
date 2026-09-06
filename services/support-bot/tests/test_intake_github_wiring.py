@@ -29,6 +29,7 @@ from tests.test_priorart import RESOLVER_REPORT, _Issues, _resolver_issue
 from veaf_support_bot.attachments import AttachmentCollector
 from veaf_support_bot.bugreport import BugForm
 from veaf_support_bot.config import ConfigurationError, SupportBotConfig
+from veaf_support_bot.draft import CANCEL, EXPIRED, FILE, Draft
 from veaf_support_bot.filing import Outcome
 from veaf_support_bot.github_app import GitHubError
 from veaf_support_bot.intake import BugIntake, BugSubmission, render_match, sweep_query
@@ -37,17 +38,40 @@ from veaf_support_bot.service import build_github_app, build_intake
 
 
 class _Exchange:
-    """A :class:`~veaf_support_bot.intake.BugExchange` that records what the reporter was told."""
+    """A :class:`~veaf_support_bot.intake.BugExchange` that records what the reporter was told.
 
-    def __init__(self) -> None:
+    It is also who answers the two questions, because ticket 04 put them on the exchange: what the
+    reporter is *shown* and what he *answers* are the same conversation, and a double that split
+    them would not be able to assert that nothing is filed before the answer.
+    """
+
+    def __init__(self, *, decision: str = FILE, recognises: bool = False) -> None:
+        """Initialize the double.
+
+        Args:
+            decision: What the reporter clicks on the draft.
+            recognises: Whether he says a proposed match is his bug.
+        """
         self.deferred = False
         self.messages: list[str] = []
+        self.drafts: list[str] = []
+        self.proposals: list[str] = []
+        self.decision = decision
+        self.recognises = recognises
 
     async def defer(self) -> None:
         self.deferred = True
 
     async def post(self, content: str) -> None:
         self.messages.append(content)
+
+    async def decide(self, content: str, lang: str) -> str:
+        self.drafts.append(content)
+        return self.decision
+
+    async def confirm(self, content: str, lang: str) -> bool:
+        self.proposals.append(content)
+        return self.recognises
 
 
 class _Filer:
@@ -65,6 +89,12 @@ class _Filer:
     async def comment_on(self, number: int, report: Any, *, thread_url: str = "") -> Outcome:
         self.commented.append(number)
         return Outcome(action="commented", number=number, url=f"https://example.invalid/issues/{number}#c")
+
+    def draft_of(self, report: Any, *, thread_url: str = "") -> Draft:
+        return Draft(title=report.title, body=f"body of {report.title}")
+
+    def comment_draft_of(self, report: Any, *, thread_url: str = "") -> Draft:
+        return Draft(title=report.title, body=f"observation on {report.title}")
 
 
 class _Answer:
@@ -115,18 +145,19 @@ def _submission(summary: str = RESOLVER_REPORT.splitlines()[0]) -> BugSubmission
     )
 
 
-def _gate(answer: bool | None, **issues: Any) -> PriorArtGate:
+def _gate(**issues: Any) -> PriorArtGate:
     """Build a gate over the fixture checkout.
 
+    Who answers the proposal is no longer the gate's business: it is the exchange, per report. See
+    :class:`_Exchange`.
+
     Args:
-        answer: What the reporter answers, or ``None`` for nobody to ask.
         **issues: ``opened`` and ``closed`` issue records.
 
     Returns:
         The gate.
     """
-    sweeper = PriorArtSweeper(fixture_root(), _Issues(**issues))
-    return PriorArtGate(sweeper, None if answer is None else _Answer(answer))
+    return PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(**issues)))
 
 
 class TestTheQuery(unittest.TestCase):
@@ -160,8 +191,8 @@ class TestTheSweepRunsBeforeAnythingOpens(unittest.IsolatedAsyncioTestCase):
     """Ticket 03's whole point: the four sources are consulted first."""
 
     async def test_the_finding_is_attached_to_the_report(self) -> None:
-        intake = _intake(prior_art=_gate(False, opened=[_resolver_issue()]), filer=_Filer())
-        report = await intake.handle(_Exchange(), _submission())
+        intake = _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=_Filer())
+        report = await intake.handle(_Exchange(recognises=False), _submission())
         assert report is not None
         assert report.prior_art is not None
         self.assertEqual(report.prior_art.verdict, DUPLICATE)
@@ -177,17 +208,26 @@ class TestWhatAnAcceptedMatchDoes(unittest.IsolatedAsyncioTestCase):
 
     async def test_an_accepted_duplicate_comments_and_opens_nothing(self) -> None:
         filer = _Filer()
-        intake = _intake(prior_art=_gate(True, opened=[_resolver_issue()]), filer=filer)
-        exchange = _Exchange()
+        intake = _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=filer)
+        exchange = _Exchange(recognises=True, decision=FILE)
         await intake.handle(exchange, _submission())
         self.assertEqual(filer.commented, [712])
         self.assertEqual(filer.filed, [])
         self.assertIn("#712", exchange.messages[0])
 
+    async def test_the_observation_is_shown_before_it_is_added(self) -> None:
+        """A comment on a public tracker publishes as much as an issue does."""
+        filer = _Filer()
+        intake = _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=filer)
+        exchange = _Exchange(recognises=True, decision=CANCEL)
+        await intake.handle(exchange, _submission())
+        self.assertEqual(len(exchange.drafts), 1)
+        self.assertEqual(filer.commented, [], "a refused observation must not be added anyway")
+
     async def test_an_accepted_fix_opens_nothing_and_names_the_version(self) -> None:
         filer = _Filer()
-        intake = _intake(prior_art=_gate(True, closed=[_resolver_issue(state="closed")]), filer=filer)
-        exchange = _Exchange()
+        intake = _intake(prior_art=_gate(closed=[_resolver_issue(state="closed")]), filer=filer)
+        exchange = _Exchange(recognises=True)
         await intake.handle(exchange, _submission())
         self.assertEqual(filer.filed, [])
         self.assertEqual(filer.commented, [])
@@ -195,8 +235,8 @@ class TestWhatAnAcceptedMatchDoes(unittest.IsolatedAsyncioTestCase):
 
     async def test_an_accepted_lot_opens_nothing(self) -> None:
         filer = _Filer()
-        intake = _intake(prior_art=_gate(True), filer=filer)
-        exchange = _Exchange()
+        intake = _intake(prior_art=_gate(), filer=filer)
+        exchange = _Exchange(recognises=True)
         await intake.handle(exchange, _submission())
         self.assertEqual((filer.filed, filer.commented), ([], []))
         self.assertIn("FEAT-SAMPLE-RESOLVER", exchange.messages[0])
@@ -207,28 +247,30 @@ class TestTheRefusalDoesNotEndTheReport(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_rejected_duplicate_is_filed_anyway(self) -> None:
         filer = _Filer()
-        intake = _intake(prior_art=_gate(False, opened=[_resolver_issue()]), filer=filer)
-        exchange = _Exchange()
+        intake = _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=filer)
+        exchange = _Exchange(recognises=False)
         await intake.handle(exchange, _submission())
         self.assertEqual(len(filer.filed), 1)
         self.assertEqual(filer.commented, [])
         self.assertIn("https://example.invalid/issues/901", exchange.messages[0])
 
-    async def test_with_nobody_to_ask_the_report_is_filed_and_the_finding_recorded(self) -> None:
+    async def test_a_refused_match_still_records_the_finding_on_the_report(self) -> None:
         filer = _Filer()
-        intake = _intake(prior_art=_gate(None, opened=[_resolver_issue()]), filer=filer)
-        exchange = _Exchange()
+        intake = _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=filer)
+        exchange = _Exchange(recognises=False)
         report = await intake.handle(exchange, _submission())
         self.assertEqual(len(filer.filed), 1)
         assert report is not None and report.prior_art is not None
         self.assertTrue(report.prior_art.found)
 
-    async def test_the_proposal_shown_to_the_reporter_carries_its_evidence(self) -> None:
-        intake = _intake(prior_art=_gate(None, opened=[_resolver_issue()]), filer=_Filer())
-        exchange = _Exchange()
+    async def test_the_proposal_put_to_the_reporter_carries_its_evidence(self) -> None:
+        intake = _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=_Filer())
+        exchange = _Exchange(recognises=False)
         await intake.handle(exchange, _submission())
-        self.assertIn("#712", exchange.messages[0])
-        self.assertIn("match on", exchange.messages[0])
+        # The evidence travels with the question, not after it: a proposal a reporter is asked to
+        # accept without seeing why it was made is the silencing this sweep exists to avoid.
+        self.assertIn("#712", exchange.proposals[0])
+        self.assertIn("match on", exchange.proposals[0])
 
 
 class TestWhatTheReporterIsTold(unittest.IsolatedAsyncioTestCase):
@@ -453,7 +495,7 @@ class TestTheseTestsDetectABrokenWiring(unittest.TestCase):
 
         original = module.BugIntake._sweep
 
-        async def _no_sweep(self, report, lang):  # type: ignore[no-untyped-def]
+        async def _no_sweep(self, exchange, report, lang):  # type: ignore[no-untyped-def]
             return None, False
 
         module.BugIntake._sweep = _no_sweep  # type: ignore[method-assign]
@@ -469,8 +511,8 @@ class TestTheseTestsDetectABrokenWiring(unittest.TestCase):
 
         original = module.BugIntake._act_on
 
-        async def _file_regardless(self, sweep, report, lang, thread_url):  # type: ignore[no-untyped-def]
-            return await self._file(report, lang, thread_url)
+        async def _file_regardless(self, exchange, sweep, report, lang, thread_url):  # type: ignore[no-untyped-def]
+            return await self._file(exchange, report, lang, thread_url)
 
         module.BugIntake._act_on = _file_regardless  # type: ignore[method-assign]
         try:
@@ -485,14 +527,14 @@ class TestTheseTestsDetectABrokenWiring(unittest.TestCase):
 
         original = module.BugIntake._decide
 
-        async def _stop_on_any_match(self, report, lang, thread_url):  # type: ignore[no-untyped-def]
-            sweep, _ = await self._sweep(report, lang)
+        async def _stop_on_any_match(self, exchange, report, lang, thread_url):  # type: ignore[no-untyped-def]
+            sweep, _ = await self._sweep(exchange, report, lang)
             from dataclasses import replace
 
             report = replace(report, prior_art=sweep)
             if sweep is not None and sweep.found:
                 return report, render_match(sweep, lang)
-            return report, await self._file(report, lang, thread_url)
+            return report, await self._file(exchange, report, lang, thread_url)
 
         module.BugIntake._decide = _stop_on_any_match  # type: ignore[method-assign]
         try:
@@ -526,7 +568,7 @@ class TestTheseTestsDetectABrokenWiring(unittest.TestCase):
         from veaf_support_bot import service as module
 
         original = module.PriorArtGate
-        module.PriorArtGate = lambda sweeper: None  # type: ignore[assignment,misc]
+        module.PriorArtGate = lambda sweeper: None  # type: ignore[assignment,misc,return-value]
         try:
             self.assertTrue(
                 self._fails("TestTheServiceBuildsIt.test_an_intake_without_an_app_still_sweeps_the_checkout")

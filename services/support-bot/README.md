@@ -56,6 +56,40 @@ texts share — and the reporter can say his is different, after which the repor
 wrong "this is a duplicate" silences a real bug and the reporter will not insist, so the sweep
 informs the decision and never takes it. With nobody to ask, the answer is *rejected*.
 
+### Nothing is filed before the reporter clicks
+
+What he is then shown is **the issue itself** — the exact title and body that would be created, not
+a summary of them — with three buttons:
+
+| Button | What it does |
+|---|---|
+| **File the issue** | the only path that reaches GitHub |
+| **Edit** | reopens the form with his answers still in it, and re-runs the whole pass |
+| **Cancel** | nothing is filed, and nothing is kept |
+
+He typed three fields; twenty lines get published, under a machine account that does not carry his
+name. The log excerpt, the extracted code and the environment are material he never wrote, so the
+click is where he can see the difference and say *not that*.
+
+The **comment** added to an existing issue goes through the same click. Recognising an issue as
+his is not the same act as agreeing to publish twenty lines under it, and a comment on a public
+tracker carries exactly what an issue carries.
+
+A draft nobody answers **expires** after eight minutes and says so — an abandoned draft must never
+turn into an issue later. Both waits, the prior-art proposal and the draft, fit inside the fifteen
+minutes Discord keeps an interaction alive, because the last thing the exchange does is write the
+outcome onto that same message. And every way this step can fail — a silence, a refusal, Discord
+refusing to show the draft at all — leaves the tracker untouched: the irreversible direction is the
+one that needs a click.
+
+The preview is bounded to what a Discord message holds, and what it had to leave out is **stated**,
+with the count of lines and characters that go into the issue anyway. A fenced block the cut ran
+through is closed, so the rest of the message still renders.
+
+An unsatisfying `/ask` answer carries a **Report a bug** button that opens the same form, pre-filled
+with the question and the answer. What was expected and the steps stay empty on purpose: the
+exchange is the observation, the report is still his to make.
+
 **Everything published is redacted first**, through the same `veaf_libs.redaction` the `doctor`
 command uses — the quoted body of a text file, the member names of an attached archive, the file
 name the reporter's own machine gave it, the bytes of an attachment carried whole into the issue,
@@ -123,6 +157,9 @@ live.
    checked against the real `doc/` tree. A title the corpus does not have is dropped. The bot can
    therefore show *fewer* sources than it used — never one that does not exist.
 5. No page cited reads as "the documentation may not cover this", with a route to the support page.
+6. The answer carries a **Report a bug** button for an hour, which opens `/bug`'s form pre-filled
+   with the exchange. An answer that did not help is where somebody gives up, and it is also where a
+   real bug most often surfaces first.
 
 If the bot cannot open a thread — usually a missing **Create Public Threads** permission — it says
 so and answers in the channel anyway. Losing the answer would be worse.

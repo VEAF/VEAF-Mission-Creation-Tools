@@ -330,36 +330,36 @@ class TestTheRefusal(unittest.IsolatedAsyncioTestCase):
     """The guard: a proposal the reporter refuses must not end his report."""
 
     async def test_an_accepted_match_is_reported_as_accepted(self) -> None:
-        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])), _Answer(True))
-        sweep, accepted = await gate.run(RESOLVER_REPORT, "fr")
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
+        sweep, accepted = await gate.run(RESOLVER_REPORT, "fr", confirmation=_Answer(True))
         self.assertTrue(accepted)
         self.assertEqual(sweep.verdict, DUPLICATE)
 
     async def test_a_rejected_match_leaves_the_flow_running(self) -> None:
         answer = _Answer(False)
-        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])), answer)
-        sweep, accepted = await gate.run(RESOLVER_REPORT, "fr")
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
+        sweep, accepted = await gate.run(RESOLVER_REPORT, "fr", confirmation=answer)
         self.assertFalse(accepted)
         self.assertTrue(sweep.found, "the finding survives the refusal, so the issue can record it")
 
     async def test_the_reporter_is_shown_the_evidence_before_being_asked(self) -> None:
         answer = _Answer(False)
-        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])), answer)
-        await gate.run(RESOLVER_REPORT, "fr")
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
+        await gate.run(RESOLVER_REPORT, "fr", confirmation=answer)
         self.assertEqual(len(answer.shown), 1)
         assert answer.shown[0].best is not None
         self.assertTrue(answer.shown[0].best.shared, "a proposal with no shared word is an assertion")
 
     async def test_with_nobody_to_ask_the_gate_refuses_rather_than_silencing_the_report(self) -> None:
-        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])), None)
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
         sweep, accepted = await gate.run(RESOLVER_REPORT, "fr")
         self.assertTrue(sweep.found)
         self.assertFalse(accepted)
 
     async def test_nothing_found_is_never_offered_for_confirmation(self) -> None:
         answer = _Answer(True)
-        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues()), answer)
-        _, accepted = await gate.run("the radio menu shows Cyrillic on a Kola map at dusk", "fr")
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues()))
+        _, accepted = await gate.run("the radio menu shows Cyrillic on a Kola map at dusk", "fr", confirmation=answer)
         self.assertFalse(accepted)
         self.assertEqual(answer.shown, [])
 
@@ -390,7 +390,7 @@ class TestTheseTestsDetectABrokenSweep(unittest.TestCase):
 
         original = priorart.PriorArtGate.run
 
-        async def _always_accept(self, query: str, lang: str):  # type: ignore[no-untyped-def]
+        async def _always_accept(self, query: str, lang: str, *, confirmation=None):  # type: ignore[no-untyped-def]
             return await self.sweeper.sweep(query), True
 
         priorart.PriorArtGate.run = _always_accept  # type: ignore[method-assign]

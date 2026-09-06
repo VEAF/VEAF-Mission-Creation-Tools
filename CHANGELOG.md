@@ -470,6 +470,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   candidate that matched nothing, so a lot nobody had read was indistinguishable from a lot swept
   and found irrelevant.
 
+- **Support bot — a `/bug` report is now shown before it is filed, and nothing is published without
+  a click.** The reporter sees the issue itself — the exact title and body that would be created,
+  not a summary of them — with *File the issue*, *Edit* and *Cancel*. He types three fields and
+  twenty lines get published under a machine account, so the click is where he can see the log
+  excerpt, the extracted code and the environment that were added on his behalf, and say *not that*.
+  *Edit* reopens the form with his answers still in it. A draft nobody answers expires after eight
+  minutes and says so, and every other way this step can fail — a silence, a refusal, Discord
+  refusing to show the draft — leaves the tracker untouched. The preview is bounded to what Discord
+  accepts and **states** what it left out, with the counts. The prior-art proposal is now actually
+  put to the reporter with its evidence, where it previously had nobody to ask and always answered
+  *rejected* — and the comment added to an existing issue goes through the same click, since a
+  comment on a public tracker publishes as much as an issue does. And an `/ask` answer that did not
+  help carries a *Report a bug* button that opens the same form, pre-filled with the question and
+  the answer.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

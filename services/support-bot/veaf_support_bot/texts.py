@@ -155,6 +155,42 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "-# 📝 Aucun ticket n'a été ouvert : ce bot n'a pas encore d'identité GitHub configurée. "
             "Le rapport ci-dessus est complet et peut être copié tel quel dans un ticket."
         ),
+        # --- ticket 04, l'aperçu et le clic qui dépose ----------------------------------------
+        "draft.header": (
+            "📋 **Voici le ticket tel qu'il sera déposé**, au nom du bot et pas au tien. "
+            "Rien n'est publié tant que tu n'as pas cliqué."
+        ),
+        "draft.header_comment": (
+            "📋 **Voici ce qui sera ajouté au ticket existant**, au nom du bot et pas au tien. "
+            "Rien n'est publié tant que tu n'as pas cliqué."
+        ),
+        "draft.title": "**Titre :** {title}",
+        "draft.truncated": (
+            "-# ✂️ Aperçu coupé ici : {lines} lignes de plus ({chars} caractères) partiront dans "
+            "le ticket. Rien n'est retiré du ticket lui-même."
+        ),
+        "draft.button.file": "Déposer le ticket",
+        "draft.button.edit": "Corriger",
+        "draft.button.cancel": "Annuler",
+        "draft.cancelled": "🗑️ Annulé : rien n'a été déposé, et rien n'est conservé.",
+        "draft.expired": (
+            "⏳ **Cet aperçu a expiré** et rien n'a été déposé. Relance `/bug` quand tu veux — un "
+            "brouillon abandonné ne devient jamais un ticket tout seul."
+        ),
+        "draft.editing": (
+            "✏️ Le formulaire s'est rouvert avec tes réponses. Rien n'a été déposé : le nouvel "
+            "aperçu remplacera celui-ci."
+        ),
+        "draft.no_consent": (
+            "-# 📝 Aucun ticket n'a été ouvert : je n'ai personne à qui demander le clic. Un ticket "
+            "n'est jamais déposé sans que son auteur l'ait vu — signale-le sur le canal support."
+        ),
+        "match.button.same": "Oui, c'est ça",
+        "match.button.different": "Non, le mien est différent",
+        "escalate.button": "Signaler un bug",
+        "escalate.happened": (
+            "J'ai posé cette question au bot :\n{question}\n\nSa réponse ne règle pas mon problème :\n{answer}"
+        ),
     },
     "en": {
         # --- the exchange -------------------------------------------------------------------
@@ -281,6 +317,41 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "filed.disabled": (
             "-# 📝 No issue was opened: this bot has no GitHub identity configured yet. The report "
             "above is complete and can be copied into an issue as it stands."
+        ),
+        # --- ticket 04, the preview and the click that files ----------------------------------
+        "draft.header": (
+            "📋 **This is the issue as it will be filed**, under the bot's name and not yours. "
+            "Nothing is published until you click."
+        ),
+        "draft.header_comment": (
+            "📋 **This is what will be added to the existing issue**, under the bot's name and not "
+            "yours. Nothing is published until you click."
+        ),
+        "draft.title": "**Title:** {title}",
+        "draft.truncated": (
+            "-# ✂️ Preview cut here: {lines} more lines ({chars} characters) go into the issue. "
+            "Nothing is removed from the issue itself."
+        ),
+        "draft.button.file": "File the issue",
+        "draft.button.edit": "Edit",
+        "draft.button.cancel": "Cancel",
+        "draft.cancelled": "🗑️ Cancelled: nothing was filed, and nothing is kept.",
+        "draft.expired": (
+            "⏳ **This preview expired** and nothing was filed. Run `/bug` again whenever you want "
+            "— an abandoned draft never turns into an issue on its own."
+        ),
+        "draft.editing": (
+            "✏️ The form reopened with your answers. Nothing was filed: the new preview replaces this one."
+        ),
+        "draft.no_consent": (
+            "-# 📝 No issue was opened: there is nobody I can ask for the click. An issue is never "
+            "filed without its author having seen it — report this on the support channel."
+        ),
+        "match.button.same": "Yes, that is it",
+        "match.button.different": "No, mine is different",
+        "escalate.button": "Report a bug",
+        "escalate.happened": (
+            "I asked the bot this question:\n{question}\n\nIts answer does not solve my problem:\n{answer}"
         ),
     },
 }

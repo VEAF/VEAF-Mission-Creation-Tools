@@ -20,6 +20,7 @@ from tests.test_toolkit import SYNTHETIC_LOG
 from veaf_support_bot.attachments import AttachmentCollector, Incoming, Prepared
 from veaf_support_bot.bugreport import BugForm
 from veaf_support_bot.checkout import Checkout, Freshness
+from veaf_support_bot.draft import CANCEL
 from veaf_support_bot.intake import (
     PREVIEW_MAX_CHARS,
     BugIntake,
@@ -30,7 +31,11 @@ from veaf_support_bot.intake import (
 
 
 class RecordingExchange:
-    """Records the order the exchange was driven in."""
+    """Records the order the exchange was driven in.
+
+    These tests run without a filer, so the draft is never reached; the two questions are here
+    because the protocol has them, and they answer the way an unreachable reporter would.
+    """
 
     def __init__(self) -> None:
         self.calls: list[str] = []
@@ -42,6 +47,14 @@ class RecordingExchange:
     async def post(self, content: str) -> None:
         self.calls.append("post")
         self.posted.append(content)
+
+    async def decide(self, content: str, lang: str) -> str:
+        self.calls.append("decide")
+        return CANCEL
+
+    async def confirm(self, content: str, lang: str) -> bool:
+        self.calls.append("confirm")
+        return False
 
 
 class _RecordingCollector(AttachmentCollector):

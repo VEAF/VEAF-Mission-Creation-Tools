@@ -518,6 +518,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   fail on any module that reaches a network outside the two clients, naming the file and the line;
   the walk is itself put on trial against a deliberately leaky module.
 
+- **Documentation — `/bug` is documented for the people who use it and for the people who triage
+  it.** The support page gains a `/bug` section in both languages: what the form asks, what the bot
+  extracts without any AI, that nothing is published before the click, that personal data is
+  stripped — and the one thing that filter does not catch, which is what the reporter types himself.
+  `CONTRIBUTING.md` gains a second door into the intake desk and a section on reading an issue a bot
+  filed: the body is measured, the ⚠️ comment is a machine's guess, and the reporter is reachable on
+  Discord rather than on GitHub. The stale line saying the bot could not open an issue is gone.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

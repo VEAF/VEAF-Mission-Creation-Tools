@@ -55,15 +55,72 @@ assistant, that is the only correction that actually catches a wrong answer.
   whole server — they protect the free allowance the website and the command line also share. When
   it refuses, it tells you why and when it resets.
 
-### What it does **not** do (yet)
+### What it does **not** do
 
-It does not **open an issue** for you, does not **analyse a DCS log**, and does not **read the
-sources**. Each of those arrives later, in its own piece of work. For now a defect is reported by
-hand — see [Where to go](#where).
+It does not read the sources and does not look at your mission. If its answer does not solve your
+problem, though, the **Report a bug** button under the answer opens the [`/bug`](#bug) form with
+your question and its answer already in it.
 
 !!! tip "The same thing outside Discord"
     `.\veaf-tools.exe ask` asks the same assistant the same questions, from your own machine. See
     the [CLI Reference](CLI_REFERENCE.en.md).
+
+## Reporting a bug from Discord: `/bug` {#bug}
+
+On the VEAF Discord, `/bug` opens a **form**: what happened, what you expected, the steps, and the
+[`veaf-tools doctor`](#doctor) block. You can attach a log, a mission, a configuration file.
+
+**You do not need a GitHub account.** The issue is opened by a bot, on your behalf: your Discord
+name is credited as the reporter, and nothing else about you.
+
+### What the bot makes of your form
+
+Everything below happens **without any AI** — these are reads and searches, so they are exact, and
+they work when nothing else does:
+
+- it reads the `doctor` block for the tool version, the DCS version, the operating system;
+- if your text or your log contains an error, it extracts the **file and the line**, then reads the
+  surrounding code in the repository;
+- it reduces an 11 MB log to the excerpt that matters, with whatever its catalogue recognises in it;
+- it summarises the attached mission — theatre, date, weather, group counts — without publishing its
+  contents;
+- it compares your problem against the open issues, the recently closed ones, the lots in progress
+  and the roadmap. **If it is already fixed, it tells you and opens nothing**: that is the best
+  outcome available, and you are unblocked immediately.
+
+### Nothing is published before you click
+
+The bot shows you the issue **as it will be filed**, then waits. Three buttons: **file**, **edit**
+(the form comes back with your answers), **cancel**. If you do not click, the preview expires after
+eight minutes and nothing is filed.
+
+That matters because you typed three fields and about twenty lines are about to be published: the
+log excerpt, the code, your environment. The click is where you see the difference and can say *not
+that*.
+
+**Your personal data is stripped before publication**: paths from your disk, addresses, credentials.
+If that filtering cannot run, **nothing is published** — never a fallback to the raw text. One thing
+escapes the filter: what you type yourself. Write your name in *what happened*, or call your mission
+`mission by John Smith.miz`, and it gets published.
+
+### What happens next
+
+The bot opens a **public thread** and puts the issue's link in it. When somebody answers on the
+issue, or when it is closed, **the bot reports it in that thread**: you do not have to watch GitHub.
+
+The other direction is **manual**: to add something — a file you forgot, a detail — write it in the
+thread and a maintainer will carry it over to the issue. The bot does not write from Discord to
+GitHub, deliberately: that would open a write channel onto a public repository from a room anybody
+can join.
+
+### The automatic hypothesis
+
+On issues filed by a **VEAF member**, and while the day's allowance lasts, a model adds a
+**hypothesis** about the cause: a separate comment, labelled as a machine's guess, naming the
+suspected file and line.
+
+It is not a diagnosis, and **its absence takes nothing away from your report**: everything else in
+the issue is measured, quoted or parsed, never guessed. When it is missing, the issue says why.
 
 ## What to provide {#what-to-provide}
 

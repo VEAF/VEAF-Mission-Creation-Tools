@@ -526,6 +526,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   filed: the body is measured, the ⚠️ comment is a machine's guess, and the reporter is reachable on
   Discord rather than on GitHub. The stale line saying the bot could not open an issue is gone.
 
+- **Support bot — the relay no longer drops the answers it promised to deliver.** Found by a review
+  pass over the whole lot, and the five defects it confirmed are fixed together. The per-round
+  ceiling of five relayed comments moved the cursor past the ones it had *not* posted, so anything
+  beyond the fifth was lost for ever while the reporter had just been told it would arrive next
+  round. A transient Discord failure — a 503, a permission lost for a minute, and the cold cache
+  every restart produces — was read as *this thread no longer exists* and stopped following the
+  report permanently; only a genuine `NotFound` does that now. A closed issue is no longer polled
+  for ever, which was a round growing without bound until the installation's hourly quota refused
+  everything for everybody. The state is written per link rather than once at the end, so a
+  shutdown mid-round no longer re-posts what it had just delivered. Comments past the hundredth on
+  one issue are now read, where the single fixed page had silently gone blind. And `/bug` now
+  follows a **reused** issue as well as a new one, instead of leaving a public thread linked to
+  nothing.
+
+- **Support bot — a mistyped `SUPPORT_BOT_ENRICH_ROLE_ID` is refused at startup.** Pasted as a
+  mention (`<@&123…>`) or as the role's name, it compared unequal to every id the bot ever sees:
+  the hypothesis was refused for every member, for ever, while each issue politely explained that
+  it is reserved for members — a configuration mistake that behaved like a working feature. The
+  value must now be a numeric id, and the refusal describes its shape without echoing it, since
+  this variable sits next to the bot token in `.env.example`.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

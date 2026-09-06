@@ -221,6 +221,38 @@ class _Reader:
         """
         return self._raw(name) or default
 
+    def snowflake(self, name: str, default: str) -> str:
+        """Return an optional Discord id, refusing anything that is not one.
+
+        Kept as a string because that is what an interaction's payload carries, but **validated**:
+        a role id copied as ``<@&1234567890>`` — the form Discord's *Copy mention* produces — or
+        pasted as the role's *name* would compare unequal to every id the bot ever sees. Nothing
+        would fail; the feature would simply refuse every member for ever, while every issue said
+        politely that the hypothesis is reserved for members. A configuration mistake that behaves
+        like a working feature is exactly what this reader exists to turn into a startup refusal.
+
+        Args:
+            name: Variable name without the prefix.
+            default: Value used when the variable is unset.
+
+        Returns:
+            The configured id, or *default*.
+        """
+        raw = self._raw(name)
+        if not raw:
+            return default
+        if not raw.isdigit():
+            # `_shape`, never the value: this variable sits next to the bot token in
+            # `.env.example`, both are long opaque strings from the same Discord screen, and this
+            # message is printed at CRITICAL straight into a container log. A token pasted here by
+            # mistake must not be published by the error that rejects it.
+            self.problems.append(
+                f"{ENV_PREFIX}{name} must be a numeric Discord role id (right-click the role > "
+                f"Copy Role ID, with Developer Mode on), got {_shape(raw)}"
+            )
+            return default
+        return raw
+
     def choice(self, name: str, default: str, allowed: tuple[str, ...], *, upper: bool = False) -> str:
         """Return an optional value constrained to a fixed vocabulary.
 
@@ -578,7 +610,7 @@ class SupportBotConfig:
             github_repository=reader.text("GITHUB_REPOSITORY", DEFAULT_GITHUB_REPOSITORY),
             github_ledger_file=reader.text("GITHUB_LEDGER_FILE", DEFAULT_GITHUB_LEDGER_FILE),
             github_machine_label=reader.text("GITHUB_MACHINE_LABEL", DEFAULT_GITHUB_MACHINE_LABEL),
-            enrich_role_id=reader.text("ENRICH_ROLE_ID", ""),
+            enrich_role_id=reader.snowflake("ENRICH_ROLE_ID", ""),
             enrich_endpoint=reader.url("ENRICH_ENDPOINT", DEFAULT_ENRICH_ENDPOINT),
             enrich_state_file=reader.text("ENRICH_STATE_FILE", DEFAULT_ENRICH_STATE_FILE),
             enrich_per_day=reader.integer("ENRICH_PER_DAY", DEFAULT_ENRICH_PER_DAY, minimum=1),

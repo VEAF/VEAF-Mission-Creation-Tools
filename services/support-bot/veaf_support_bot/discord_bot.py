@@ -493,7 +493,7 @@ class ModalExchange:
                 extra={"event": "bug.thread_failed", "error": f"{type(error).__name__}: {error}"},
             )
             return ThreadHandle()
-        return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url)
+        return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url, handle=thread)
 
     async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:
         """Post the opening message inside the follow-up thread.
@@ -502,8 +502,14 @@ class ModalExchange:
             handle: The thread that was opened.
             content: What to post.
         """
-        thread = self._interaction.client.get_channel(handle.thread_id)
-        if not isinstance(thread, discord.Thread):
+        thread = handle.handle if handle.handle is not None else self._interaction.client.get_channel(handle.thread_id)
+        if not hasattr(thread, "send"):
+            # Nothing to post through. Said out loud rather than skipped: the reporter would
+            # otherwise be left with a public thread and no idea which issue it belongs to.
+            self._logger.warning(
+                "the follow-up thread could not be reached to announce the issue",
+                extra={"event": "bug.thread_unreachable", "discord_thread": handle.thread_id},
+            )
             return
         try:
             await thread.send(content, allowed_mentions=NO_MENTIONS)
@@ -903,19 +909,33 @@ class ClientThreadPoster:
             thread_id: The thread.
 
         Returns:
-            The thread, or ``None`` when it cannot be reached at all.
+            The thread, or ``None`` only when Discord says it does not exist.
+
+        Raises:
+            discord.HTTPException: Discord could not answer *this time* — a 5xx, a rate limit, a
+                permission lost for a moment. The distinction matters more than it looks: the relay
+                reads ``None`` as **the thread is gone for good** and drops the link, so folding a
+                503 into it would stop following a report for ever, on every link, the first time
+                Discord had a bad minute after a restart. Raising leaves the link alone and the
+                round counts a failure.
         """
         cached = self._client.get_channel(thread_id)
         if isinstance(cached, discord.Thread):
             return cached
         try:
             fetched = await self._client.fetch_channel(thread_id)
-        except (discord.HTTPException, discord.ClientException) as error:
-            self._logger.warning(
-                "a followed thread could not be resolved",
-                extra={"event": "relay.thread_unreachable", "discord_thread": thread_id, "error": type(error).__name__},
+        except discord.NotFound:
+            self._logger.info(
+                "a followed thread no longer exists",
+                extra={"event": "relay.thread_gone", "discord_thread": thread_id},
             )
             return None
+        except (discord.HTTPException, discord.ClientException) as error:
+            self._logger.warning(
+                "a followed thread could not be resolved this round",
+                extra={"event": "relay.thread_unreachable", "discord_thread": thread_id, "error": type(error).__name__},
+            )
+            raise
         return fetched if isinstance(fetched, discord.Thread) else None
 
     async def post_to_thread(self, channel_id: int, thread_id: int, content: str) -> bool:
@@ -961,7 +981,11 @@ class ClientThreadPoster:
             Whether the tag was applied. Cosmetic: the closure is also said in words, so a refusal
             here never fails a round.
         """
-        thread = await self._thread(thread_id)
+        try:
+            thread = await self._thread(thread_id)
+        except (discord.HTTPException, discord.ClientException):
+            # Cosmetic, and the closure is also said in words: a refusal here never fails a round.
+            return False
         if thread is None:
             return False
         name = thread.name if thread.name.startswith(CLOSED_MARK) else f"{CLOSED_MARK}{thread.name}"

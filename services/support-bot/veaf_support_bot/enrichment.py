@@ -36,7 +36,7 @@ from veaf_support_bot.bugreport import BugReport
 from veaf_support_bot.issue_body import render_hypothesis, render_no_hypothesis
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.quota import QuotaKeeper
-from veaf_support_bot.worker import WorkerFailure
+from veaf_support_bot.worker import FailureKind, WorkerFailure
 
 #: Enrichments a day, against a free tier measured at 20 requests per Google project per day. The
 #: five left over are margin: the same project also serves ``/ask``'s fallbacks and the log
@@ -176,7 +176,11 @@ class Enricher:
                 "the hypothesis could not be obtained",
                 extra={"event": "enrichment.failed", "kind": failure.kind.value, "detail": failure.detail},
             )
-            return self._refusal(MODEL_UNAVAILABLE, lang)
+            # An empty stream is raised by the client rather than returned, so mapping the kind back
+            # is what keeps the five reasons five. Reading them all as "the model did not answer"
+            # would tell a maintainer to retry a model that answered perfectly well, with nothing.
+            reason = EMPTY_ANSWER if failure.kind is FailureKind.EMPTY else MODEL_UNAVAILABLE
+            return self._refusal(reason, lang)
         if not answer.strip():
             self._logger.warning("the model returned nothing", extra={"event": "enrichment.empty"})
             return self._refusal(EMPTY_ANSWER, lang)

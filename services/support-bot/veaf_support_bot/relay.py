@@ -51,8 +51,10 @@ from veaf_support_bot.untrusted import one_line, quote
 LINKS_VERSION = 1
 
 #: How often the tracked issues are polled, in seconds. Nobody is waiting in front of a bug report,
-#: and each round is one API call per tracked issue: ten minutes keeps a busy day well inside the
-#: 5000 requests an hour a GitHub App installation gets.
+#: and each round costs **two** API calls per tracked issue — the issue's state and its comments.
+#: At ten minutes that is 12 calls an hour per followed report, against the 5000 an hour a GitHub
+#: App installation gets; a link is dropped as soon as its issue closes, which is what keeps that
+#: number from growing without end.
 DEFAULT_POLL_SECONDS = 600.0
 
 #: Comments carried into the thread in one round, per issue. A maintainer pasting a long exchange
@@ -65,6 +67,11 @@ MAX_COMMENT_CHARS = 1200
 
 #: Longest author name shown, so a display name cannot push the message over Discord's ceiling.
 MAX_AUTHOR_CHARS = 80
+
+#: Comments asked for per page, and how many pages one round will read. The product bounds the
+#: work an issue with a very long discussion can ask of a single round.
+COMMENT_PAGE_SIZE = 100
+MAX_COMMENT_PAGES = 5
 
 
 @dataclass
@@ -274,6 +281,34 @@ class IssueWatcher:
         self._app = app
         self._logger = logger or get_logger("relay")
 
+    async def _recent_comments(self, issue: int) -> list[Any]:
+        """Read the newest page of an issue's comments, and the pages before it while they matter.
+
+        Args:
+            issue: The issue number.
+
+        Returns:
+            The decoded comment objects of the pages read.
+
+        Raises:
+            GitHubError: A page could not be read. The caller turns that into a transient answer.
+        """
+        path = f"/repos/{self._app.repository}/issues/{issue}/comments?per_page={COMMENT_PAGE_SIZE}"
+        first = await self._app.request("GET", f"{path}&page=1")
+        items: list[Any] = first.body if isinstance(first.body, list) else []
+        if len(items) < COMMENT_PAGE_SIZE:
+            return items
+        # A full first page means there are more. Walk forward, bounded: an issue with thousands of
+        # comments must not turn one round into a hundred calls, and the ceiling is announced by the
+        # `relay.more` message rather than reached in silence.
+        for page in range(2, MAX_COMMENT_PAGES + 1):
+            response = await self._app.request("GET", f"{path}&page={page}")
+            batch = response.body if isinstance(response.body, list) else []
+            items.extend(batch)
+            if len(batch) < COMMENT_PAGE_SIZE:
+                break
+        return items
+
     async def since(self, issue: int, last_comment_id: int) -> IssueState | None:
         """Read the comments newer than the cursor, and whether the issue is closed.
 
@@ -288,9 +323,12 @@ class IssueWatcher:
         """
         try:
             issue_response = await self._app.request("GET", f"/repos/{self._app.repository}/issues/{issue}")
-            comments_response = await self._app.request(
-                "GET", f"/repos/{self._app.repository}/issues/{issue}/comments?per_page=100"
-            )
+            # Last page first. GitHub returns an issue's comments oldest-first, so a fixed
+            # ``page=1`` would freeze on the hundred *oldest* ones: past the hundredth comment the
+            # relay would find nothing new for ever, with no error and no log line. Reading the last
+            # page — and walking back while it is still ahead of the cursor — keeps the newest ones
+            # in view whatever the issue's length.
+            items = await self._recent_comments(issue)
         except GitHubError as error:
             self._logger.warning(
                 "an issue could not be polled",
@@ -298,7 +336,6 @@ class IssueWatcher:
             )
             return None
         body: dict[str, Any] = issue_response.body if isinstance(issue_response.body, dict) else {}
-        items: list[Any] = comments_response.body if isinstance(comments_response.body, list) else []
         comments = [_comment_of(item) for item in items if isinstance(item, dict)]
         # Not filtered here. Whose comment gets relayed is the relay's rule, and it belongs at the
         # step that posts — a filter on the way *in* leaves every other producer of an `IssueState`
@@ -483,7 +520,10 @@ class Relay:
                 continue
             result.polled += 1
             await self._deliver(link, result)
-        self._store.save(self._links)
+            # Persisted per link, not once at the end. A shutdown cancels this loop, and
+            # `CancelledError` is not an `Exception` in 3.11 — so a save deferred to the end is a
+            # save that never happens, and every message already posted is posted again on restart.
+            self._store.save(self._links)
         if result.relayed or result.closed or result.dropped:
             self._logger.info(
                 "relay round done",
@@ -513,22 +553,24 @@ class Relay:
             return
 
         url = self._url(link.issue)
-        carried = relayable(state.comments)[:MAX_RELAYED_PER_ROUND]
+        posted = 0
         for comment in state.comments:
-            if comment not in carried:
-                # A bot's comment — most often this service's own hypothesis. Not posted, but the
+            if comment.by_bot:
+                # A bot's comment — most often this service's own hypothesis. Not posted, and the
                 # cursor moves past it, or every round would read it again for nothing.
                 link.last_comment_id = max(link.last_comment_id, comment.identifier)
                 continue
+            if posted >= MAX_RELAYED_PER_ROUND:
+                # The ceiling. The cursor stops **here**, before this comment, so the next round
+                # starts on it: advancing past a comment that was not posted is how a reporter
+                # loses the one answer that mattered, and it was promised to him below.
+                await self._post(link, text("relay.more", link.lang, url=url), result)
+                break
             if not await self._post(link, render_comment(comment, link.issue, url, link.lang), result):
                 return
             link.last_comment_id = comment.identifier
+            posted += 1
             result.relayed += 1
-
-        if relayable(state.comments)[MAX_RELAYED_PER_ROUND:]:
-            # Said, not silently skipped: the reporter is told there is more on the issue, and the
-            # cursor stays where it is so the rest arrives next round.
-            await self._post(link, text("relay.more", link.lang, url=url), result)
 
         if state.closed and not link.closed:
             if not await self._post(link, render_closed(link.issue, url, link.lang), result):
@@ -536,6 +578,12 @@ class Relay:
             await self._poster.mark_closed(link.channel_id, link.thread_id)
             link.closed = True
             result.closed += 1
+            # Stop following it. Nothing more will be relayed from a closed issue, and a link that
+            # is never dropped makes the round grow for ever: at two calls per link every ten
+            # minutes, a few hundred filed reports would exhaust the installation's hourly quota
+            # and silence the relay for everybody. If the issue is reopened, the reporter is told
+            # in this very message to say so in the thread.
+            self._links.pop(link.issue, None)
 
     async def _post(self, link: Link, content: str, result: Round) -> bool:
         """Post one message, and drop the link when the thread is gone for good.

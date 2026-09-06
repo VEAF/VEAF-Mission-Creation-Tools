@@ -21,12 +21,14 @@ Stated plainly, because a user who expects one of these will read its absence as
 
 - **`/ask` does not read the sources.** Its corpus is `doc/`, 1.8 MB of documentation, and nothing
   else. A question whose answer only exists in a `.lua` or a `.py` file has no answer there.
-- **`/bug` does not open an issue yet.** It collects, extracts and prepares — the preview and the
-  click that files are [ticket 04](../../.backlog/FEAT-SUPPORT-BUG-INTAKE/tickets/04-draft-and-consent.md),
-  and the GitHub App that opens it is
-  [ticket 05](../../.backlog/FEAT-SUPPORT-BUG-INTAKE/tickets/05-github-app.md).
-- **Neither command calls a model to prepare a bug report.** The whole `/bug` path is deterministic
-  by design: the free Gemini tier is 20 requests a day, and a report must not depend on one.
+- **`/bug` files nothing without a click.** It collects, extracts, prepares and *shows* the issue;
+  only pressing *File the issue* publishes it. A draft nobody answers expires.
+- **No model prepares a bug report.** The whole preparation is deterministic by design — the free
+  Gemini tier is 20 requests a day, and a report must not depend on one. The single model call is
+  the **hypothesis**, which runs *after* the issue exists, is gated on a role and an allowance, and
+  whose absence costs a paragraph rather than a report.
+- **The relay is one-way.** GitHub → Discord only: a maintainer's comment reaches the reporter's
+  thread, and nothing written in that thread reaches GitHub.
 - **`/ask` answers from the documentation, so a documentation gap is a wrong or missing answer.**
   The fix is to write the page. There is nothing to retrain, and no way to correct the bot other
   than correcting `doc/`. That is the point: `/ask` failing is a documentation ticket.
@@ -54,7 +56,8 @@ of the four outcomes open nothing at all: *already reported* comments on the exi
 match is always **proposed with its evidence** — the reference, the score and the words the two
 texts share — and the reporter can say his is different, after which the report is filed as usual. A
 wrong "this is a duplicate" silences a real bug and the reporter will not insist, so the sweep
-informs the decision and never takes it. With nobody to ask, the answer is *rejected*.
+informs the decision and never takes it. A proposal nobody answers counts as *refused*, and the
+report carries on: the sweep never gets the benefit of a silence.
 
 ### Nothing is filed before the reporter clicks
 
@@ -314,6 +317,12 @@ CRITICAL veaf-support-bot.cli the support bot cannot start: 3 configuration prob
 | `SUPPORT_BOT_GITHUB_REPOSITORY` | no | `VEAF/VEAF-Mission-Creation-Tools` | Where issues are filed. |
 | `SUPPORT_BOT_GITHUB_LEDGER_FILE` | no | `state/filed-issues.json` | What was already filed, so a retry never opens a second issue. Must survive a restart. |
 | `SUPPORT_BOT_GITHUB_MACHINE_LABEL` | no | `filed-by-bot` | Label marking an issue as machine-filed. Must already exist in the repository. |
+| `SUPPORT_BOT_ENRICH_ROLE_ID` | no | — | Discord role opening the automatic hypothesis. **Empty switches the hypothesis off**, which is the default. Must be a numeric role id; anything else is refused at startup. |
+| `SUPPORT_BOT_ENRICH_PER_DAY` | no | `15` | Hypotheses the whole bot may produce in a UTC day, against a free tier measured at 20 requests a day for the whole Google project. |
+| `SUPPORT_BOT_ENRICH_STATE_FILE` | no | `state/enrichment.json` | Where that allowance is counted. Its own file, so a busy day of questions cannot eat the day's hypotheses. **Must survive a restart.** |
+| `SUPPORT_BOT_ENRICH_ENDPOINT` | no | Worker `/analyze` | Where the one call goes. `kind: "bug"` selects the hypothesis prompt on that route. |
+| `SUPPORT_BOT_RELAY_LINKS_FILE` | no | `state/relay-links.json` | The thread ↔ issue links. **Must survive a restart**: losing it orphans every thread already opened — the issues stay, but they stop being answered. |
+| `SUPPORT_BOT_RELAY_POLL_SECONDS` | no | `600` | Gap between two rounds of asking GitHub what changed. Each round costs two API calls per followed issue. |
 | `SUPPORT_BOT_DRY_RUN` | no | `false` | Start everything except the connection to Discord. |
 
 \* **The four starred rows stand or fall together.** None of them is required, and with none of

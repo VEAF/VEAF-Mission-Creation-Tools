@@ -186,11 +186,16 @@ class ThreadHandle:
             it without a warm Discord cache.
         thread_id: The thread.
         url: Its address, which is what the issue links back to.
+        handle: The library object the thread was opened from, kept so posting into it needs no
+            cache lookup. The bot runs on ``Intents.none()``, so a freshly created thread is
+            routinely absent from the cache: resolving it by id right after creating it is a
+            silent way to lose the message that carries the issue's address.
     """
 
     channel_id: int = 0
     thread_id: int = 0
     url: str = ""
+    handle: object | None = None
 
     @property
     def opened(self) -> bool:
@@ -551,7 +556,10 @@ class BugIntake:
         thread_url = handle.url or submission.thread_url
         outcome = await self._filer.file(report, thread_url=thread_url)
         message = _render_outcome(outcome, lang, report)
-        if outcome.action == "created" and outcome.number:
+        # `reused` is an issue that already exists — a re-submission, or a retry after a restart.
+        # Gating this on `created` alone left the reporter with a public thread nobody had linked to
+        # an issue, and no follow-up on an issue that was perfectly real.
+        if outcome.action in ("created", "reused") and outcome.number:
             self._track(outcome.number, handle, lang)
             if handle.opened:
                 # Posted after the filing, not at the opening: the message carries the issue's own

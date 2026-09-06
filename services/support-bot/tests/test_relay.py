@@ -27,7 +27,9 @@ from tests.test_github_app import PEM, credentials
 from veaf_support_bot.config import SupportBotConfig
 from veaf_support_bot.github_app import GitHubApp, Response
 from veaf_support_bot.relay import (
+    COMMENT_PAGE_SIZE,
     LINKS_VERSION,
+    MAX_COMMENT_PAGES,
     MAX_RELAYED_PER_ROUND,
     Comment,
     IssueState,
@@ -555,6 +557,179 @@ class _Silent:
 
     async def close(self) -> None:
         """Close nothing."""
+
+
+class TestWhatTheCeilingMustNotLose(unittest.IsolatedAsyncioTestCase):
+    """Found in review, noted 100: the cursor advanced past comments the code promised to relay.
+
+    The bug: the branch written for a bot's comment also caught the human comments the per-round
+    ceiling had rejected, and moved the cursor over them. Five were relayed, the reporter was told
+    the rest would come next round, and they never did — silently, for ever. The old test asserted
+    the count and the message, never the cursor: that was the angle blind.
+    """
+
+    async def test_the_cursor_stops_at_the_ceiling_so_the_rest_arrives_next_round(self) -> None:
+        comments = tuple(_comment(index) for index in range(1, 9))
+        poster = _Poster()
+        relay, store = _relay(_Watcher(IssueState(comments=comments)), poster, links=[_link()])
+
+        await relay.run_once()
+
+        self.assertEqual(store.load()[901].last_comment_id, MAX_RELAYED_PER_ROUND)
+
+    async def test_the_ones_it_could_not_carry_are_carried_next_round(self) -> None:
+        first = tuple(_comment(index, f"answer {index}") for index in range(1, 9))
+        rest = tuple(_comment(index, f"answer {index}") for index in range(6, 9))
+        poster = _Poster()
+        relay, _ = _relay(_Watcher(IssueState(comments=first), IssueState(comments=rest)), poster, links=[_link()])
+
+        await relay.run_once()
+        await relay.run_once()
+
+        bodies = [content for _, content in poster.posted]
+        for identifier in (6, 7, 8):
+            with self.subTest(comment=identifier):
+                self.assertTrue(any(f"answer {identifier}" in body for body in bodies))
+
+    async def test_a_bot_comment_between_two_human_ones_does_not_hold_the_cursor(self) -> None:
+        """The reason the branch existed: its own hypothesis must not be re-read every round."""
+        comments = (_comment(1), _comment(2, bot=True), _comment(3))
+        relay, store = _relay(_Watcher(IssueState(comments=comments)), _Poster(), links=[_link()])
+
+        await relay.run_once()
+
+        self.assertEqual(store.load()[901].last_comment_id, 3)
+
+
+class TestATransientDiscordFailureKeepsTheReport(unittest.IsolatedAsyncioTestCase):
+    """Found in review, noted 75: a 503 dropped every followed report, permanently."""
+
+    async def test_a_raised_failure_keeps_the_link(self) -> None:
+        relay, store = _relay(
+            _Watcher(IssueState(comments=(_comment(1),))),
+            _Poster(raises=RuntimeError("Discord answered 503")),
+            links=[_link()],
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.dropped, 0)
+        self.assertIn(901, store.load(), "a bad minute at Discord must not end a follow-up")
+
+    async def test_only_a_definitive_refusal_drops_it(self) -> None:
+        relay, store = _relay(_Watcher(IssueState(comments=(_comment(1),))), _Poster(gone=True), links=[_link()])
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.dropped, 1)
+        self.assertEqual(store.load(), {})
+
+
+class TestTheRoundDoesNotGrowForEver(unittest.IsolatedAsyncioTestCase):
+    """Found in review, noted 75: nothing was ever dropped, so the round grew until the API refused."""
+
+    async def test_a_closed_issue_stops_being_followed(self) -> None:
+        poster = _Poster()
+        relay, store = _relay(_Watcher(IssueState(closed=True)), poster, links=[_link()])
+
+        await relay.run_once()
+
+        self.assertEqual(store.load(), {}, "a closed issue has nothing left to relay")
+        self.assertEqual(relay.tracked, 0)
+
+    async def test_the_closure_is_still_announced_before_it_stops(self) -> None:
+        poster = _Poster()
+        relay, _ = _relay(_Watcher(IssueState(closed=True)), poster, links=[_link()])
+
+        await relay.run_once()
+
+        self.assertIn("closed", poster.posted[0][1])
+        self.assertEqual(poster.marked, [20])
+
+    async def test_each_link_is_saved_as_it_goes(self) -> None:
+        """A shutdown cancels the loop, and a save deferred to the end never happens."""
+        saves: list[int] = []
+        relay, store = _relay(
+            _Watcher(IssueState(comments=(_comment(1),))),
+            _Poster(),
+            links=[_link(901), _link(902, thread_id=21)],
+        )
+        original = store.save
+
+        def _counting(links: Any) -> None:
+            saves.append(len(links))
+            original(links)
+
+        store.save = _counting  # type: ignore[method-assign]
+
+        await relay.run_once()
+
+        self.assertGreaterEqual(len(saves), 2, "the state must be persisted per link, not once at the end")
+
+
+class TestALongDiscussionStaysVisible(unittest.IsolatedAsyncioTestCase):
+    """Found in review, noted 50: past the hundredth comment the issue went silent for good."""
+
+    async def test_more_than_one_page_is_read(self) -> None:
+        page_one = [_api_comment(index) for index in range(1, COMMENT_PAGE_SIZE + 1)]
+        page_two = [_api_comment(COMMENT_PAGE_SIZE + 1)]
+        transport = _PagedTransport([page_one, page_two])
+        watcher = IssueWatcher(GitHubApp(credentials(), "o/n", transport))
+
+        state = await watcher.since(901, COMMENT_PAGE_SIZE)
+
+        assert state is not None
+        self.assertEqual([comment.identifier for comment in state.comments], [COMMENT_PAGE_SIZE + 1])
+
+    async def test_a_short_first_page_costs_one_call(self) -> None:
+        transport = _PagedTransport([[_api_comment(1)]])
+        watcher = IssueWatcher(GitHubApp(credentials(), "o/n", transport))
+
+        await watcher.since(901, 0)
+
+        self.assertEqual(len([url for url in transport.urls if "/comments" in url]), 1)
+
+    async def test_the_pages_read_in_one_round_are_bounded(self) -> None:
+        full = [[_api_comment(index) for index in range(1, COMMENT_PAGE_SIZE + 1)]] * (MAX_COMMENT_PAGES + 4)
+        transport = _PagedTransport(full)
+        watcher = IssueWatcher(GitHubApp(credentials(), "o/n", transport))
+
+        await watcher.since(901, 0)
+
+        self.assertEqual(len([url for url in transport.urls if "/comments" in url]), MAX_COMMENT_PAGES)
+
+
+class _PagedTransport:
+    """A transport serving one list of comments per page."""
+
+    def __init__(self, pages: list[list[dict[str, Any]]]) -> None:
+        """Initialize the transport.
+
+        Args:
+            pages: What each page returns, in order.
+        """
+        self.pages = pages
+        self.urls: list[str] = []
+
+    async def __call__(self, method: str, url: str, headers: Any, body: Any) -> Response:
+        """Answer one call.
+
+        Args:
+            method: The HTTP method.
+            url: The URL.
+            headers: The request headers.
+            body: The request body.
+
+        Returns:
+            The canned response.
+        """
+        if url.endswith("/access_tokens"):
+            return Response(201, {"token": "ghs-t", "expires_at": "2999-01-01T00:00:00Z"})
+        self.urls.append(url)
+        if "/comments" not in url:
+            return Response(200, {"number": 901, "state": "open"})
+        page = int(url.rsplit("page=", 1)[1])
+        return Response(200, self.pages[page - 1] if page <= len(self.pages) else [])
 
 
 if __name__ == "__main__":

@@ -55,19 +55,16 @@ from veaf_support_bot.bugreport import BugForm, BugReport, MaterialNote, assembl
 from veaf_support_bot.checkout import Checkout
 from veaf_support_bot.draft import CANCEL, EDIT, EXPIRED, FILE, Draft
 from veaf_support_bot.enrichment import DISABLED, Enricher
+from veaf_support_bot.exchange import ThreadExchange, ThreadHandle
 from veaf_support_bot.filing import Outcome
 from veaf_support_bot.logging_setup import get_logger
-from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, PriorArtGate, Sweep
-from veaf_support_bot.texts import normalize_language, text
+from veaf_support_bot.priorart import DUPLICATE, PriorArtGate, Sweep, render_match
+from veaf_support_bot.texts import REPOSITORY_URL, normalize_language, text
 from veaf_support_bot.traces import Location
 from veaf_support_bot.untrusted import one_line, quote
 
 #: Longest preview posted back to the reporter. Discord's own message ceiling is 2000 characters.
 PREVIEW_MAX_CHARS = 1900
-
-#: Where a reporter is sent when the bot could not file for him. Never a dead end: the report is
-#: already rendered above the link, so it can be pasted straight into the form.
-REPOSITORY_URL = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
 
 #: Field lengths the modal enforces, mirrored here so the handler's bounds hold whatever calls it.
 SUMMARY_MAX_CHARS = 200
@@ -108,105 +105,6 @@ class BugSubmission:
     roles: tuple[str, ...] = ()
 
 
-class BugExchange(Protocol):
-    """What :meth:`BugIntake.handle` needs from Discord, and nothing more."""
-
-    async def defer(self) -> None:
-        """Acknowledge the modal submission, inside Discord's three-second budget."""
-
-    async def post(self, content: str) -> None:
-        """Show the reporter what the service made of his report.
-
-        Args:
-            content: The message content.
-        """
-
-    async def decide(self, content: str, lang: str) -> str:
-        """Show the draft and return what the reporter chose to do with it.
-
-        This is the step that publishes, or does not. It lives on the exchange rather than on the
-        service because the buttons hang off *this* reporter's own message: a consent object built
-        once at start-up would have nowhere to draw them.
-
-        Args:
-            content: The draft, rendered and bounded.
-            lang: ``"fr"`` or ``"en"``, for the button labels.
-
-        Returns:
-            One of :data:`~veaf_support_bot.draft.CHOICES`. Anything that is not
-            :data:`~veaf_support_bot.draft.FILE` leaves the tracker untouched, so a silence, a
-            refusal and a Discord failure are all safe answers.
-        """
-
-    async def confirm(self, content: str, lang: str) -> bool:
-        """Show a prior-art match with its evidence and return whether the reporter recognised it.
-
-        Args:
-            content: The proposal, with the evidence it was computed from.
-            lang: ``"fr"`` or ``"en"``, for the button labels.
-
-        Returns:
-            ``True`` only when he says it is the same subject. Everything else — *mine is
-            different*, a silence, a failure — answers ``False`` and the report carries on, because
-            a machine's unanswered guess must never silence a real bug.
-        """
-
-    async def open_followup_thread(self, name: str) -> ThreadHandle:
-        """Open the public thread the issue's news will come back into.
-
-        The exchange itself is ephemeral: the preparation concerns the reporter and nobody else.
-        What is public is the report, once he has decided to file it — and it needs a room a
-        maintainer's answer can be carried into, because the issue is filed under a machine account
-        the reporter is subscribed to nothing on.
-
-        Args:
-            name: The thread name.
-
-        Returns:
-            Where it was opened. An empty handle means no thread could be opened — a missing
-            permission, a channel that holds none — and the report is filed anyway, saying the
-            thread was not recorded rather than inventing a link.
-        """
-
-    async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:
-        """Post the opening message once the issue exists and can be linked to.
-
-        Args:
-            handle: The thread opened by :meth:`open_followup_thread`.
-            content: What to post.
-        """
-
-
-@dataclass(frozen=True)
-class ThreadHandle:
-    """Where a report's follow-up thread lives, or nothing.
-
-    Attributes:
-        channel_id: The channel it belongs to. Kept alongside the thread id so a restart can reach
-            it without a warm Discord cache.
-        thread_id: The thread.
-        url: Its address, which is what the issue links back to.
-        handle: The library object the thread was opened from, kept so posting into it needs no
-            cache lookup. The bot runs on ``Intents.none()``, so a freshly created thread is
-            routinely absent from the cache: resolving it by id right after creating it is a
-            silent way to lose the message that carries the issue's address.
-    """
-
-    channel_id: int = 0
-    thread_id: int = 0
-    url: str = ""
-    handle: object | None = None
-
-    @property
-    def opened(self) -> bool:
-        """Say whether there is a thread to answer in.
-
-        Returns:
-            ``True`` when one was opened.
-        """
-        return self.thread_id > 0
-
-
 class ReportTracker(Protocol):
     """What the intake needs from :mod:`veaf_support_bot.relay`, and nothing more."""
 
@@ -233,7 +131,7 @@ class _AskTheReporter:
         exchange: Who gets asked.
     """
 
-    def __init__(self, exchange: BugExchange) -> None:
+    def __init__(self, exchange: ThreadExchange) -> None:
         """Initialize the adapter.
 
         Args:
@@ -378,7 +276,7 @@ class BugIntake:
         self._enricher = enricher
         self._tracker = tracker
 
-    async def handle(self, exchange: BugExchange, submission: BugSubmission) -> BugReport | None:
+    async def handle(self, exchange: ThreadExchange, submission: BugSubmission) -> BugReport | None:
         """Run one report end to end.
 
         Args:
@@ -432,7 +330,7 @@ class BugIntake:
         return report
 
     async def _decide(
-        self, exchange: BugExchange, report: BugReport, lang: str, submission: BugSubmission
+        self, exchange: ThreadExchange, report: BugReport, lang: str, submission: BugSubmission
     ) -> tuple[BugReport, str]:
         """Run the prior-art step, then either act on it or file the report.
 
@@ -457,7 +355,7 @@ class BugIntake:
             return report, await self._sink(report)
         return report, await self._file(exchange, report, lang, submission)
 
-    async def _sweep(self, exchange: BugExchange, report: BugReport, lang: str) -> tuple[Sweep | None, bool]:
+    async def _sweep(self, exchange: ThreadExchange, report: BugReport, lang: str) -> tuple[Sweep | None, bool]:
         """Compare the report against everything already recorded.
 
         Args:
@@ -485,7 +383,7 @@ class BugIntake:
         return sweep, accepted
 
     async def _act_on(
-        self, exchange: BugExchange, sweep: Sweep, report: BugReport, lang: str, submission: BugSubmission
+        self, exchange: ThreadExchange, sweep: Sweep, report: BugReport, lang: str, submission: BugSubmission
     ) -> str:
         """Do what an accepted match asks for, which for three of the four verdicts is nothing.
 
@@ -521,7 +419,7 @@ class BugIntake:
         outcome = await self._filer.comment_on(number, report, thread_url=submission.thread_url)
         return proposal + "\n\n" + _render_outcome(outcome, lang, report)
 
-    async def _file(self, exchange: BugExchange, report: BugReport, lang: str, submission: BugSubmission) -> str:
+    async def _file(self, exchange: ThreadExchange, report: BugReport, lang: str, submission: BugSubmission) -> str:
         """Show the issue, wait for the click, and file it — or say why nothing was filed.
 
         The order is ticket 04's whole point: the reporter sees the body that will be published,
@@ -577,7 +475,7 @@ class BugIntake:
             message += await self._add_hypothesis(report, draft.body, outcome.number, lang, submission.roles)
         return message
 
-    async def _open_thread(self, exchange: BugExchange, report: BugReport, lang: str) -> ThreadHandle:
+    async def _open_thread(self, exchange: ThreadExchange, report: BugReport, lang: str) -> ThreadHandle:
         """Open the public thread this report's answers come back into.
 
         Args:
@@ -736,7 +634,7 @@ class BugIntake:
             attachments=tuple(harvest.prepared),
         )
 
-    async def _say(self, exchange: BugExchange, message: str) -> None:
+    async def _say(self, exchange: ThreadExchange, message: str) -> None:
         """Post to the reporter, best effort.
 
         Args:
@@ -901,39 +799,6 @@ def _issue_number(sweep: Sweep) -> int:
         return 0
     reference = sweep.best.candidate.reference
     return int(reference[1:]) if reference.startswith("#") and reference[1:].isdigit() else 0
-
-
-def render_match(sweep: Sweep, lang: str) -> str:
-    """Render a proposed match **with its evidence**, so it can be disagreed with.
-
-    A proposal with no evidence is an assertion, and an assertion is what silences a real bug: the
-    reporter has no way to tell a good match from a bad one, concludes the desk already knows, and
-    goes away. So the shared words, the score and the reference are all printed.
-
-    Args:
-        sweep: The finding.
-        lang: ``"fr"`` or ``"en"``.
-
-    Returns:
-        The message, or an empty string when there is nothing to propose.
-    """
-    if sweep.best is None:
-        return ""
-    match = sweep.best
-    key = {
-        DUPLICATE: "priorart.duplicate",
-        FIXED: "priorart.fixed" if match.candidate.detail else "priorart.fixed_no_version",
-        IN_PROGRESS: "priorart.in_progress",
-    }[sweep.verdict]
-    values = {
-        "reference": match.candidate.reference,
-        "title": one_line(match.candidate.title, 140),
-        "evidence": "-# " + match.evidence(),
-        "url": match.candidate.url,
-    }
-    if key == "priorart.fixed":
-        values["version"] = match.candidate.detail
-    return text(key, lang, **values)
 
 
 def _render_outcome(outcome: Outcome, lang: str, report: BugReport) -> str:

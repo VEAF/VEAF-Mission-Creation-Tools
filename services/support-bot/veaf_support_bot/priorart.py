@@ -48,6 +48,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
+from veaf_support_bot.texts import text as localized
+from veaf_support_bot.untrusted import one_line
+
 #: No source found anything worth proposing.
 NONE = "none"
 
@@ -521,10 +524,16 @@ class PriorArtSweeper:
         root: The checkout root the two file sources are read from.
         issues: Where the issue halves come from; ``None`` sweeps the checkout only, which is what a
             deployment with no GitHub credentials does.
+        closed_issues: Whether a recently closed issue may be proposed. True for a bug report, where
+            *this was fixed in 6.19, update* is the outcome that unblocks the reporter on the spot.
+            **False for a suggestion**: the same sentence told to somebody asking for a feature that
+            does not exist sends him to install a version that has nothing to do with his idea, and
+            he does not argue with a bot.
     """
 
     root: Path
     issues: IssueSource | None = None
+    closed_issues: bool = True
     _problems: list[str] = field(default_factory=list, init=False, repr=False)
 
     async def sweep(self, query: str) -> Sweep:
@@ -547,10 +556,12 @@ class PriorArtSweeper:
 
         open_records, closed_records, tracker_read = await self._issue_records()
         candidates += [_from_issue(record, SOURCE_OPEN_ISSUE) for record in open_records]
-        candidates += [_from_issue(record, SOURCE_CLOSED_ISSUE, self.root) for record in closed_records]
+        if self.closed_issues:
+            candidates += [_from_issue(record, SOURCE_CLOSED_ISSUE, self.root) for record in closed_records]
         if tracker_read:
             checked.append(f"{len(open_records)} open issue(s)")
-            checked.append(f"{len(closed_records)} recently closed issue(s)")
+            if self.closed_issues:
+                checked.append(f"{len(closed_records)} recently closed issue(s)")
 
         lots, problem, unreadable = read_backlog(self.root)
         self._note(problem, "`.backlog/`")
@@ -684,3 +695,36 @@ class PriorArtGate:
         if not sweep.found or confirmation is None:
             return sweep, False
         return sweep, bool(await confirmation.confirm(sweep, lang))
+
+
+def render_match(sweep: Sweep, lang: str) -> str:
+    """Render a proposed match **with its evidence**, so it can be disagreed with.
+
+    A proposal with no evidence is an assertion, and an assertion is what silences a real bug: the
+    reporter has no way to tell a good match from a bad one, concludes the desk already knows, and
+    goes away. So the shared words, the score and the reference are all printed.
+
+    Args:
+        sweep: The finding.
+        lang: ``"fr"`` or ``"en"``.
+
+    Returns:
+        The message, or an empty string when there is nothing to propose.
+    """
+    if sweep.best is None:
+        return ""
+    match = sweep.best
+    key = {
+        DUPLICATE: "priorart.duplicate",
+        FIXED: "priorart.fixed" if match.candidate.detail else "priorart.fixed_no_version",
+        IN_PROGRESS: "priorart.in_progress",
+    }[sweep.verdict]
+    values = {
+        "reference": match.candidate.reference,
+        "title": one_line(match.candidate.title, 140),
+        "evidence": "-# " + match.evidence(),
+        "url": match.candidate.url,
+    }
+    if key == "priorart.fixed":
+        values["version"] = match.candidate.detail
+    return localized(key, lang, **values)

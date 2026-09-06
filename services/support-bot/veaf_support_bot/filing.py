@@ -388,6 +388,31 @@ class IssueFiler:
         self._machine_label = machine_label
         self._locks: dict[str, _Serialiser] = {}
 
+    @property
+    def app(self) -> GitHubApp:
+        """Return the authenticated client this filer publishes through.
+
+        Read by the assembly, which builds the prior-art sweep's issue source from the same client
+        rather than authenticating a second one: two clients would mean two installation tokens
+        refreshed on two schedules for one App.
+
+        Returns:
+            The client.
+        """
+        return self._app
+
+    @property
+    def machine_label(self) -> str:
+        """Return the label marking an issue as machine-filed.
+
+        Read by a caller that renders its own labels — the suggestion flow does, since ``enhancement``
+        is not a label this filer would ever add to a bug report.
+
+        Returns:
+            The label.
+        """
+        return self._machine_label
+
     def _carried(self, report: BugReport) -> list[Carried]:
         """Prepare the text attachments this report carries whole.
 
@@ -469,18 +494,37 @@ class IssueFiler:
             because an exception here loses a report he has already spent five minutes on.
         """
         key = report_key(report)
-        async with self._serialised(key):
-            recorded = self._ledger.load().get(key) or {}
-            if recorded.get("number"):
-                return Outcome(action="reused", number=int(recorded["number"]), url=str(recorded.get("url") or ""))
-            try:
-                return await self._file_once(report, key, thread_url)
-            except GitHubError as error:
-                self._logger.error(
-                    "the issue could not be filed",
-                    extra={"event": "filing.failed", "key": key, "status": error.status, "error": str(error)},
-                )
-                return Outcome(action="failed", error=str(error))
+
+        def prepare() -> tuple[str, str, tuple[str, ...], list[Carried]]:
+            # Inside the closure, so a report the ledger already knows about costs neither the
+            # attachment reads nor the redaction pass they go through.
+            carried = self._carried(report)
+            body = render_body(report, key, thread_url=thread_url, carried=carried)
+            return report.title, body, self._labels_for(report), carried
+
+        return await self._file(key, prepare)
+
+    async def file_prepared(self, key: str, title: str, body: str, labels: Sequence[str]) -> Outcome:
+        """File an issue somebody else rendered, under the same guarantees a report gets.
+
+        The suggestion flow files through here: it has no attachments, no checkout pass and no
+        component table, but it needs the *whole* of what makes filing safe — one issue per key
+        however many times it is asked, a recovery search when the ledger lost the answer, and a
+        failure that comes back as an outcome rather than an exception. Rewriting that for the
+        second issue shape would be two mechanisms drifting apart on a public tracker.
+
+        Args:
+            key: The idempotency key. The body **must** carry
+                :func:`~veaf_support_bot.issue_body.marker_for` of this key, which is what the
+                recovery search greps for.
+            title: The issue title.
+            body: The issue body, already rendered.
+            labels: The labels to ask for, in order.
+
+        Returns:
+            The outcome. Never raises, for the reason :meth:`file` does not.
+        """
+        return await self._file(key, lambda: (title, body, tuple(labels), []))
 
     async def comment_on(self, number: int, report: BugReport, *, thread_url: str = "") -> Outcome:
         """Add the new observation to an existing issue instead of opening a second one.
@@ -536,7 +580,34 @@ class IssueFiler:
         url = str(response.body.get("html_url") or "") if isinstance(response.body, dict) else ""
         return Outcome(action="commented", number=number, url=url)
 
-    async def _file_once(self, report: BugReport, key: str, thread_url: str) -> Outcome:
+    async def _file(self, key: str, prepare: Callable[[], tuple[str, str, tuple[str, ...], list[Carried]]]) -> Outcome:
+        """File one issue for one key, whatever happens twice.
+
+        Args:
+            key: The idempotency key.
+            prepare: Renders the issue — title, body, labels and the attachments to post after it.
+                Called only when there is something to file, since preparing a report reads and
+                redacts every file it carries.
+
+        Returns:
+            The outcome. Never raises.
+        """
+        async with self._serialised(key):
+            recorded = self._ledger.load().get(key) or {}
+            if recorded.get("number"):
+                return Outcome(action="reused", number=int(recorded["number"]), url=str(recorded.get("url") or ""))
+            try:
+                return await self._file_once(key, prepare)
+            except GitHubError as error:
+                self._logger.error(
+                    "the issue could not be filed",
+                    extra={"event": "filing.failed", "key": key, "status": error.status, "error": str(error)},
+                )
+                return Outcome(action="failed", error=str(error))
+
+    async def _file_once(
+        self, key: str, prepare: Callable[[], tuple[str, str, tuple[str, ...], list[Carried]]]
+    ) -> Outcome:
         """Create the issue, having first made sure no earlier attempt already did.
 
         The marker search runs on **every** report that has no recorded number, not only on one the
@@ -548,9 +619,8 @@ class IssueFiler:
         public tracker, which is the outcome the ticket calls hardest to undo.
 
         Args:
-            report: The assembled report.
-            key: The report's idempotency key.
-            thread_url: Link back to the Discord thread.
+            key: The idempotency key.
+            prepare: Renders what is to be filed.
 
         Returns:
             The outcome.
@@ -563,13 +633,21 @@ class IssueFiler:
             self._remember(key, existing)
             return Outcome(action="reused", number=existing.number, url=existing.url)
 
-        carried = self._carried(report)
-        body = render_body(report, key, thread_url=thread_url, carried=carried)
-        labels = self._labels_for(report)
+        title, body, labels, carried = prepare()
 
         self._ledger.record(key, {"state": "filing", "started": time.time()})
-        response, notes = await self._create(report.title, body, labels)
+        response, notes = await self._create(title, body, labels)
         item = _record_of(response if isinstance(response, dict) else {})
+        if not item.number:
+            # A 2xx whose body is not an issue object. Reporting this as *created* hands the
+            # reporter `#0` as his issue address, records a zero in the ledger, and leaves the
+            # follow-up thread pointing at nothing. A success message is the one thing that must not
+            # be sent when there is no issue.
+            self._logger.error(
+                "GitHub accepted the issue but returned no number",
+                extra={"event": "filing.no_number", "key": key},
+            )
+            return Outcome(action="failed", error="GitHub returned no issue number")
         self._remember(key, item)
         notes += await self._attach(item.number, carried)
         self._logger.info(

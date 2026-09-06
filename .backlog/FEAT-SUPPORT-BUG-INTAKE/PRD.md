@@ -110,7 +110,7 @@ more calls.
 | [#919](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/919) | 01, 02 |
 | [#920](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/920) | 03, 05 |
 | [#922](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/922) | 04 |
-| *(this branch)* | 06, 07, 08, 09 |
+| [#923](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/923) | 06, 07, 08, 09 |
 
 Split rather than shipped as one, because Sourcery stops reviewing past ~150 000 characters of diff.
 

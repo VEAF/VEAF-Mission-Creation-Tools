@@ -217,7 +217,7 @@ at 20 requests a day.
 | **1** | [`FEAT-SUPPORT-DIAGNOSTIC`](.backlog/FEAT-SUPPORT-DIAGNOSTIC/PRD.md) — **done 2026-09-05** | user's machine | the only piece that keeps its value if the bot is never built, and `doctor`'s output is the contract lots 2 and 4 consume — now shipped as `veaf-tools-doctor/1`, with its parser and a round-trip test |
 | **2** | [`FEAT-SUPPORT-LOG-ANALYSIS`](.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md) — **done 2026-09-05** | user's machine | still no infrastructure, no secret, no cost; also closes the Worker's `X-VEAF-Client` bypass, being the first lot to add a second client |
 | **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) — **done 2026-09-05** | service + Worker | proves the channel, the permissions and the quotas with no agent and no write access |
-| **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) — **in progress** | service | the big one, and the only one that runs an agent and writes to a public repository — **to be sequenced into several PRs** |
+| **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) — **done 2026-09-06** | service | the big one, and the only one that writes to a public repository. Shipped in four sequenced PRs (#919, #920, #922, #923). Three steps remain **outside the code** before it does everything it describes: set `SUPPORT_BOT_ENRICH_ROLE_ID`, create the `filed-by-bot` label, deploy the Worker |
 | **5** | [`FEAT-SUPPORT-SUGGESTIONS`](.backlog/FEAT-SUPPORT-SUGGESTIONS/PRD.md) | service | adds a flow on lot 4's infrastructure; if it needs new plumbing, lot 4 factored badly |
 
 Three decisions worth recording, because they were argued and could be reopened: the issue is filed by

@@ -399,6 +399,77 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   closes the fence that was supposed to contain it, and a failed `git fetch` no longer publishes the
   remote's address under every location.
 
+- **A bug report is now compared against what already exists, before anything is opened.** Four
+  sources, all of it text matching and **not one model call**: the open issues, the recently closed
+  ones, the `.backlog/` lots and `ROADMAP.md`. `CONTRIBUTING.md` says issues are an intake desk and
+  the work lives in lots, so sweeping issues alone would have missed most of the answer — and the
+  two file sources are read from the checkout the intake already keeps fresh, which is why this
+  costs nothing.
+
+  **Three of the four outcomes open nothing.** *Already reported* adds the new observation to the
+  existing issue instead of a second one. *Already fixed* answers with the version that carries the
+  fix, read off the changelog entry citing the issue rather than guessed — the most valuable
+  outcome, since the reporter is unblocked on the spot. *A lot is on it* names the lot. Only
+  *nothing found* opens an issue, and the issue records what was swept, so a reader can see it
+  happened.
+
+  **A match is proposed, never applied.** It comes with its evidence — the reference, the score and
+  the exact words the two texts share — and the reporter can say his is different, after which his
+  report is filed as usual. A wrong "this is a duplicate" silences a real bug and the reporter will
+  not insist; with nobody available to ask, the answer is therefore *rejected*, never *accepted*.
+  A source that could not be read is stated as such: "nine issues, none of them yours" and "the
+  tracker was down" must not look the same.
+
+- **The issue is filed by a GitHub App, in the reporter's language.** The bot has its own identity
+  rather than borrowing a person's: one repository, one permission (*Issues: read and write*, plus
+  the *Metadata: read-only* GitHub attaches to every App), and nothing usable at rest — the private
+  key on the host only signs a nine-minute JWT, which mints an installation token good for an hour
+  and renewed on the call that needs it. Revoking the installation ends all of it in one click.
+
+  The body follows `.github/ISSUE_TEMPLATE/bug_report.yml` — a form **0 of the last 60 issues** had
+  used — and is written in the reporter's language, which departs from the repository's English-only
+  rule and matches what the tracker actually contains. Quoted material is never translated and never
+  reworded. It carries the `bug` label plus a `filed-by-bot` marker, the Discord author, and a link
+  back to the thread.
+
+  **One report can never become two issues.** A lock covers the double click, a ledger on disk
+  covers the retry, and a hidden marker inside the issue itself covers a restart between the request
+  and its answer — the only one of the three that survives losing all local state. A failure to file
+  is said in the thread, with the reason and a link to the form, rather than swallowed into a log
+  while the reporter believes an issue exists.
+
+  **One thing the ticket asked for is not possible**: GitHub has no REST endpoint that attaches a
+  file to an issue. A text attachment that fits is therefore carried *whole, inside* the issue,
+  where it lives as long as the issue does; a `.miz`, an archive or an 11 MB log is listed with its
+  size and its SHA-256 and the issue says plainly that the bytes were not published. A Discord
+  attachment URL is never written into an issue — those expire, and evidence behind a dead link is
+  no evidence.
+
+  With no App configured — which is every deployment until one is created — `/bug` still collects,
+  reads and shows a complete report, and says nothing was opened. With *half* an App configured, the
+  service refuses to start: taking bug reports for a week and quietly failing to file every one of
+  them is a failure that belongs at startup.
+
+- **Support bot — an attachment carried into an issue is redacted, not merely quoted.** A `.log` or
+  a `.txt` small enough to travel whole was posted as an issue comment straight from the downloaded
+  file, so a Windows account name and an e-mail address reached a public repository verbatim while
+  the redacted view of the same file sat unused beside it. The bytes now go through the tools' own
+  redaction helper, and a file nobody could redact is described in the manifest instead of being
+  published.
+
+- **Support bot — a lost bookkeeping file no longer opens a second issue.** The hidden marker that
+  makes a report idempotent was only looked for when the local ledger remembered an interrupted
+  attempt, which is the one state a corrupt, missing or unwritable ledger never produces. The
+  search now runs for every report with no known issue number. An unreadable ledger is also moved
+  aside rather than overwritten, so one bad read no longer erases every other entry.
+
+- **Support bot — a GitHub App key that reads but cannot sign stops the service at startup.** A
+  truncated or non-RSA PEM used to pass every check and fail on the first bug report, a week later.
+
+- **Support bot — a backlog lot that could not be read is stated.** It used to become an empty
+  candidate that matched nothing, so a lot nobody had read was indistinguishable from a lot swept
+  and found irrelevant.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

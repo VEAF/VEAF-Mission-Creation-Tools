@@ -47,9 +47,20 @@ search:
 | an attached `dcs.log` | a bounded excerpt through `veaf_logs`, with what `rules.json` recognises, in the catalogue's own wording |
 | an attached `.miz` | the mission's *shape* — theatre, date, weather, group counts, zone count — never its briefing or its group names |
 
+Before anything is opened, the report is compared against **four places** — the open issues, the
+recently closed ones, `.backlog/` and `ROADMAP.md` — by text matching, with no model involved. Three
+of the four outcomes open nothing at all: *already reported* comments on the existing issue,
+*already fixed* answers with the version that carries the fix, and *a lot is on it* names the lot. A
+match is always **proposed with its evidence** — the reference, the score and the words the two
+texts share — and the reporter can say his is different, after which the report is filed as usual. A
+wrong "this is a duplicate" silences a real bug and the reporter will not insist, so the sweep
+informs the decision and never takes it. With nobody to ask, the answer is *rejected*.
+
 **Everything published is redacted first**, through the same `veaf_libs.redaction` the `doctor`
 command uses — the quoted body of a text file, the member names of an attached archive, the file
-name the reporter's own machine gave it, and every field of the form. What that helper recognises is
+name the reporter's own machine gave it, the bytes of an attachment carried whole into the issue,
+and every field of the form. Each of those **fails closed**: what the helper cannot reach is
+described rather than published. What that helper recognises is
 personal data by *context* and by *known shape*: a home directory, an address, an IP, a credential.
 It deliberately has no rule for a bare account name, so a reporter who types his own name into
 *"what happened"*, or uploads `mission by Someone.miz`, publishes it — in a report he is filing
@@ -175,7 +186,20 @@ CRITICAL veaf-support-bot.cli the support bot cannot start: 3 configuration prob
 | `SUPPORT_BOT_CHECKOUT_REFRESH_SECONDS` | no | `900` | Shortest gap between two refreshes; `0` pins the revision. |
 | `SUPPORT_BOT_ATTACHMENT_MAX_BYTES` | no | `26214400` (25 MB) | Largest single file one bug report may carry. |
 | `SUPPORT_BOT_ATTACHMENT_TOTAL_BYTES` | no | `62914560` (60 MB) | Largest total across one bug report. |
+| `SUPPORT_BOT_GITHUB_APP_ID` | no* | *(unset)* | The GitHub App's id. Unset means `/bug` prepares reports and files nothing. |
+| `SUPPORT_BOT_GITHUB_INSTALLATION_ID` | no* | *(unset)* | The App's installation on the one repository it serves. |
+| `SUPPORT_BOT_GITHUB_PRIVATE_KEY` | no* | *(unset)* | **Secret.** The App's key, PEM, inline with `\n` escapes. |
+| `SUPPORT_BOT_GITHUB_PRIVATE_KEY_FILE` | no* | *(unset)* | **Secret.** The same key as a file. Exactly one of the two. |
+| `SUPPORT_BOT_GITHUB_REPOSITORY` | no | `VEAF/VEAF-Mission-Creation-Tools` | Where issues are filed. |
+| `SUPPORT_BOT_GITHUB_LEDGER_FILE` | no | `state/filed-issues.json` | What was already filed, so a retry never opens a second issue. Must survive a restart. |
+| `SUPPORT_BOT_GITHUB_MACHINE_LABEL` | no | `filed-by-bot` | Label marking an issue as machine-filed. Must already exist in the repository. |
 | `SUPPORT_BOT_DRY_RUN` | no | `false` | Start everything except the connection to Discord. |
+
+\* **The four starred rows stand or fall together.** None of them is required, and with none of
+them set `/bug` still collects, reads and shows a complete report — it simply says nothing was
+opened. Set *any one* of the first three and the service **refuses to start** until the others are
+set too: a half-configured App is a bot that takes bug reports for a week and quietly fails to file
+every one of them, and that failure belongs at startup (exit `78`) rather than in the first report.
 
 [`.env.example`](.env.example) carries the same list with the reasoning; `tests/test_packaging.py`
 fails when the two drift apart, in either direction.
@@ -197,6 +221,89 @@ Once, at <https://discord.com/developers/applications>:
    `SUPPORT_BOT_DISCORD_GUILD_ID`. Commands are published to that guild only, so they appear
    immediately instead of taking up to an hour to propagate, and the bot stays un-invitable
    elsewhere.
+
+### Registering the GitHub App
+
+The bot files issues under **its own identity**, not under anybody's account. A personal access
+token would be a long-lived credential on the host carrying every right its owner has, whose leak
+nobody would notice; reusing an existing one would make the bot's writes indistinguishable from a
+maintainer's and impossible to revoke separately.
+
+Once, at <https://github.com/settings/apps/new> (or the organisation's *Settings → Developer
+settings → GitHub Apps*):
+
+1. **Name** it something a reader will recognise on an issue — it is the author line every filed
+   issue carries. **Homepage URL**: this repository.
+2. **Uncheck "Active" under Webhook.** The bot never receives events; it only calls out.
+3. **Repository permissions — grant exactly these, and nothing else:**
+
+   | Permission | Level | What it is for |
+   |---|---|---|
+   | **Issues** | **Read and write** | create the issue, comment on an existing one, apply `bug` and `filed-by-bot`, and list issues for the prior-art sweep |
+   | **Metadata** | **Read-only** | mandatory; GitHub selects it automatically and it cannot be removed |
+
+   Leave **every other repository permission at *No access*** — Contents included: the sweep reads
+   `.backlog/` and `ROADMAP.md` from the **local checkout**, never through the API, so the App never
+   needs to read the code. Leave **every organisation permission** and **every account permission**
+   at *No access*, and subscribe to **no events**.
+4. **Where can this GitHub App be installed?** → *Only on this account*.
+5. **Create GitHub App**, then **Generate a private key**. The `.pem` GitHub downloads is
+   `SUPPORT_BOT_GITHUB_PRIVATE_KEY_FILE` (or, pasted with `\n` escapes,
+   `SUPPORT_BOT_GITHUB_PRIVATE_KEY` — set one, never both). The **App ID** on that same page is
+   `SUPPORT_BOT_GITHUB_APP_ID`.
+6. **Install App** → pick **Only select repositories** → `VEAF/VEAF-Mission-Creation-Tools`. The
+   number at the end of the resulting settings URL
+   (`.../settings/installations/<number>`) is `SUPPORT_BOT_GITHUB_INSTALLATION_ID`.
+7. Create the `filed-by-bot` label in the repository. **The bot does not create labels** — inventing
+   taxonomy in a public tracker is a maintainer's decision — so without it the issue is filed with
+   `bug` alone and says in the thread that the label could not be applied.
+
+What sits on the host afterwards is a private key that **can do nothing on its own**: it signs a
+nine-minute JWT, which mints an installation token that expires in an hour and is renewed on the
+call that needs it. Revoking the installation ends all of it in one click.
+
+#### What the issue looks like
+
+- **In the reporter's language.** This departs from the repository's English-only rule for technical
+  content and matches what the tracker actually contains — the regulars report in French. What the
+  reporter typed, what his log said, what his mission is called are **never translated and never
+  reworded**: they are quoted verbatim inside a fence they cannot escape.
+- **In the shape of `.github/ISSUE_TEMPLATE/bug_report.yml`** — version, component, what happened,
+  what was expected, steps, context. The form has been used by **0 of the last 60 issues**; the
+  machine fills it every time. `tests/test_issue_body.py` reads the YAML and fails if a label moves.
+- **Labelled `bug` and `filed-by-bot`**, so machine-filed issues are findable and countable.
+- **Attributed** to the Discord author, with a link back to the thread.
+- **No hypothesis.** The body says so in as many words: everything in it is read, parsed or quoted.
+
+#### Filed once, whatever happens twice
+
+| What happens twice | What stops a second issue |
+|---|---|
+| Two clicks arriving together | a lock per report key — the second waits and reads the first one's result |
+| A retry after a timeout | the ledger, which already holds the issue number |
+| A restart between the `POST` and the answer, or a ledger that is corrupt, missing or unwritable | a hidden marker inside the issue body; the recovery search runs for every report with no known number, so it needs nothing local to be intact |
+
+The key is derived from the report itself — the reporter, his five fields, the names and sizes of
+his attachments — so the same report always produces the same key and a restart can recompute it
+from nothing else.
+
+#### The one thing the API cannot do: attach a file
+
+**GitHub has no REST endpoint that attaches a file to an issue.** The one the web interface uses is
+a session endpoint, not part of the API, and no App can call it. The alternatives that *are* API
+reachable — committing the file to the repository, or publishing it as a release asset — both need
+`Contents: write` on a **public** repository and would publish a stranger's log there permanently.
+
+So the service does the honest thing instead:
+
+- a **text** attachment small enough is carried **whole, inside the issue**, as a comment. It lives
+  as long as the issue does and is not a link to anything;
+- everything else — a `.miz`, a `.zip`, an 11 MB `dcs.log` — is listed in a manifest with its name,
+  its size and its SHA-256, and the issue **says plainly that the bytes were not published**. The
+  bounded excerpt and the mission's shape are in the body either way.
+
+A Discord attachment URL is **never** written into an issue: those expire within days, and an issue
+whose evidence is a dead link is an issue with no evidence.
 
 ### The other half: the Worker Secret
 
@@ -418,7 +525,8 @@ The bot links the pages it cites from an index generated out of `doc/` and check
 page, or changing its first heading, makes that index stale:
 
 ```powershell
-poetry run python scriptsefresh_doc_pages.py
+poetry run python scripts
+efresh_doc_pages.py
 ```
 
 `tests/test_doc_pages.py` rebuilds the index from the real tree and fails when the checked-in copy

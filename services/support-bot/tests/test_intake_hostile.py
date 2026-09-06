@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from functools import partial
 from pathlib import Path
 
 from tests.intake_fixtures import (
@@ -26,6 +27,7 @@ from tests.intake_fixtures import (
     PERSONAL_ACCOUNT,
     PERSONAL_EMAIL,
     PERSONAL_FILENAME,
+    PERSONAL_LOG,
     PERSONAL_MEMBERS,
     PYTHON_TRACEBACK,
     UNREADABLE_MISSION_LUA,
@@ -37,10 +39,12 @@ from tests.intake_fixtures import (
 )
 from tests.test_attachments import _fake_downloader
 from tests.test_toolkit import SYNTHETIC_LOG
-from veaf_support_bot.attachments import UNREDACTED_NAME, AttachmentCollector, Harvest, Incoming
+from veaf_support_bot.attachments import UNREDACTED_NAME, AttachmentCollector, Harvest, Incoming, Prepared
 from veaf_support_bot.bugreport import BugForm, BugReport, assemble
 from veaf_support_bot.checkout import Checkout
 from veaf_support_bot.intake import BugIntake
+from veaf_support_bot.issue_body import Carried, carry, render_attachment_comments
+from veaf_support_bot.toolkit import redact
 from veaf_support_bot.untrusted import MAX_FENCE, bound_backtick_runs, defuse_mentions, fence_for, one_line, quote
 
 #: A log carrying the same hostile lines a reporter's own machine would have written into it.
@@ -237,6 +241,27 @@ class TestNothingAReporterSuppliedIsPublishedRaw(unittest.IsolatedAsyncioTestCas
         with tempfile.TemporaryDirectory() as directory:
             return await collector.collect(incoming, Path(directory))
 
+    async def _personal_log(self, root: Path | None = None) -> tuple[Prepared, Carried]:
+        """Download :data:`PERSONAL_LOG` and decide how it travels into the issue.
+
+        The workdir outlives the call, unlike :meth:`_harvest`'s: :func:`carry` re-reads the file
+        off disk, which is the whole point of the finding this covers.
+
+        Args:
+            root: Checkout the redaction resolves out of. A directory holding no tools makes the
+                helper unreachable, which is the fail-closed case.
+
+        Returns:
+            The prepared attachment and the carrying decision.
+        """
+        body = PERSONAL_LOG.encode("utf-8")
+        collector = AttachmentCollector(fixture_checkout(), _fake_downloader({"log": body}))
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        harvest = await collector.collect([Incoming("dcs.log", "log", len(body))], Path(directory.name))
+        prepared = harvest.prepared[0]
+        return prepared, carry(prepared, redactor=partial(redact, root or fixture_checkout().root))
+
     async def test_an_archive_member_name_is_redacted_like_any_other_text(self) -> None:
         body = personal_archive()
         harvest = await self._harvest([Incoming("~mis0001.zip", "zip", len(body))], {"zip": body})
@@ -333,6 +358,44 @@ class TestNothingAReporterSuppliedIsPublishedRaw(unittest.IsolatedAsyncioTestCas
         self.assertNotIn(
             PERSONAL_ACCOUNT, published, "the account name arrives under `Users/`, where the helper sees it"
         )
+
+    async def test_the_bytes_carried_whole_into_the_issue_are_redacted_too(self) -> None:
+        """The fourth path: the file's own content, posted as a comment on a public repository.
+
+        The three cases above cover a *name*, a member list and a parser's message. This one covers
+        the bytes, which is where the leak was: `carry` read `Prepared.path` — the raw download —
+        while the redacted view sat beside it, and `quote` fenced it without redacting anything.
+        """
+        prepared, carried = await self._personal_log()
+        published = "\n".join(render_attachment_comments([carried]))
+
+        self.assertNotIn(PERSONAL_ACCOUNT, published)
+        self.assertNotIn(PERSONAL_EMAIL, published)
+        self.assertIn("<user>", published)
+        # Still evidence: withholding by deleting the log would be its own bug.
+        self.assertIn("secret-op.miz", published)
+        self.assertIn("2026-09-05 10:00:01.000", published)
+        self.assertEqual(prepared.filename, "dcs.log")
+
+    async def test_the_excerpt_and_the_carried_bytes_agree_on_what_is_publishable(self) -> None:
+        """The differential form again: one file, two renderings, one answer about the same string."""
+        prepared, carried = await self._personal_log()
+        for label, text in (("excerpt", prepared.rendered), ("carried", carried.text)):
+            with self.subTest(rendering=label):
+                self.assertNotIn(PERSONAL_ACCOUNT, text)
+                self.assertNotIn(PERSONAL_EMAIL, text)
+
+    async def test_bytes_nobody_could_redact_are_withheld_rather_than_published(self) -> None:
+        """Fails closed, like the filename above: what cannot be redacted is described, not posted."""
+        with tempfile.TemporaryDirectory() as nowhere:
+            _, carried = await self._personal_log(root=Path(nowhere))
+        self.assertEqual(carried.text, "")
+        self.assertIn("could not be redacted", carried.reason)
+        # The reason is published: it says what happened, never where this host keeps things.
+        self.assertNotIn(str(Path.cwd().anchor), carried.reason)
+        self.assertEqual(render_attachment_comments([carried]), [])
+        # The file is still named, sized and hashed: a withheld quote is not a withheld attachment.
+        self.assertTrue(carried.digest)
 
 
 if __name__ == "__main__":

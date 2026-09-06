@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 
 from veaf_support_bot.checkout import Checkout, Freshness
+from veaf_support_bot.priorart import Sweep
 from veaf_support_bot.toolkit import DoctorFacts, ToolkitUnavailable, parse_doctor_block, redact
 from veaf_support_bot.traces import Location, TraceReading, Unresolved, read_trace
 from veaf_support_bot.untrusted import one_line
@@ -154,6 +155,9 @@ class BugReport:
         quoted_files: Everything else that was small enough to quote — a `mission.yaml`, a
             configuration file, an archive listing — kept apart from the two above so a renderer
             cannot file a configuration file under a *log excerpts* heading.
+        prior_art: What the four-source sweep found, or ``None`` when no sweep ran. It is attached
+            to the report rather than acted on here: the sweep informs the decision, the reporter
+            takes it.
     """
 
     form: BugForm
@@ -169,6 +173,7 @@ class BugReport:
     mission_summaries: tuple[str, ...] = ()
     log_digests: tuple[str, ...] = ()
     quoted_files: tuple[str, ...] = ()
+    prior_art: Sweep | None = None
 
     @property
     def located(self) -> tuple[Location, ...]:
@@ -230,6 +235,7 @@ def assemble(
     log_digests: tuple[str, ...] = (),
     quoted_files: tuple[str, ...] = (),
     attachments: tuple[object, ...] = (),
+    prior_art: Sweep | None = None,
 ) -> BugReport:
     """Turn a submitted form into a filled report, using no model.
 
@@ -243,6 +249,7 @@ def assemble(
         log_digests: Rendered log excerpts.
         quoted_files: Everything else small enough to quote.
         attachments: Prepared files to upload with the issue.
+        prior_art: What the prior-art sweep found, when one ran.
 
     Returns:
         The report.
@@ -310,6 +317,7 @@ def assemble(
         mission_summaries=mission_summaries,
         log_digests=log_digests,
         quoted_files=quoted_files,
+        prior_art=prior_art,
     )
 
 

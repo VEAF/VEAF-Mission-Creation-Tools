@@ -121,7 +121,71 @@ def fixture_root() -> Path:
 
     (root / "doc").mkdir()
     (root / "doc" / "GUIDE.md").write_text("# Guide\n", encoding="utf-8")
+    _write_prior_art(root)
     return root
+
+
+#: An open lot, the shape ``.backlog/<LOT>/PRD.md`` really has.
+OPEN_LOT = """# FEAT-SAMPLE-RESOLVER — the resolver drops an alias
+
+Status: 🔄 in-progress
+
+The `veafSample.resolve` alias table loses an entry when the mission carries two aliases of the
+same name, and the spawner then places the group at the wrong airfield.
+"""
+
+#: A closed lot. It must never be proposed: telling a reporter his bug is being worked on when the
+#: lot shipped months ago is the same silencing failure as a wrong duplicate.
+CLOSED_LOT = """# FEAT-ALREADY-DONE — the converter kept a stale warehouse
+
+Status: ✅ done
+
+The `v5_converter` copied a warehouse table nobody had refreshed.
+"""
+
+#: A roadmap with one section that names a parked subject.
+ROADMAP = """# Roadmap
+
+## 1. Where we are
+
+Everything shipped.
+
+## 2. Parked deliberately
+
+The `mission_builder` catalogue rewrite is parked: the airdromes table would have to be regenerated
+per theatre and nobody has asked for it.
+"""
+
+#: A changelog that cites an issue under a released heading, and another under `[Unreleased]`.
+CHANGELOG = """# Changelog
+
+## [Unreleased]
+
+- something not released yet, see #909
+
+## [6.19.0] — 2026-09-02
+
+- **the resolver no longer drops an alias** ([#712](https://example.invalid/issues/712)).
+
+## [6.18.0] — 2026-09-01
+
+- an older fix, #404.
+"""
+
+
+def _write_prior_art(root: Path) -> None:
+    """Add the three prior-art sources the sweep reads out of a checkout.
+
+    Args:
+        root: The fixture repository root.
+    """
+    backlog = root / ".backlog"
+    (backlog / "FEAT-SAMPLE-RESOLVER").mkdir(parents=True)
+    (backlog / "FEAT-SAMPLE-RESOLVER" / "PRD.md").write_text(OPEN_LOT, encoding="utf-8")
+    (backlog / "FEAT-ALREADY-DONE").mkdir(parents=True)
+    (backlog / "FEAT-ALREADY-DONE" / "PRD.md").write_text(CLOSED_LOT, encoding="utf-8")
+    (root / "ROADMAP.md").write_text(ROADMAP, encoding="utf-8")
+    (root / "CHANGELOG.md").write_text(CHANGELOG, encoding="utf-8")
 
 
 def fixture_checkout(refresh_seconds: float = 0.0) -> Checkout:
@@ -255,6 +319,22 @@ UNREADABLE_MISSION_LUA = (
     f'    ["sortie"] = Operation flown by {PERSONAL_ACCOUNT} himself,\n'
     '    ["theatre"] = "Caucasus",\n'
     "}\n"
+)
+
+
+#: The **content** of an attached log, with the account name and the address in the bytes rather
+#: than in a name.
+#:
+#: The fourth path, and the one the fixture did not have: every case above puts personal data in a
+#: *name*, in an archive's member list or in a parser's error message. What an issue carries whole —
+#: the bytes of a ``.log`` or a ``.txt``, posted as a comment — travelled none of them, and that is
+#: exactly where the leak was found. Shaped like a real ``dcs.log``: a header line nothing personal,
+#: then a path under ``Users/`` and an address, which is what the shared helper recognises.
+PERSONAL_LOG = (
+    "2026-09-05 10:00:00.000 INFO    APP (Main): DCS/2.9.29.27278 (x86_64; MT; Windows NT 10.0.26200)\n"
+    "2026-09-05 10:00:01.000 ERROR   SCRIPTING (Main): could not open "
+    rf"C:\Users\{PERSONAL_ACCOUNT}\Saved Games\DCS\Missions\secret-op.miz" + "\n"
+    f"2026-09-05 10:00:02.000 ERROR   SCRIPTING (Main): reported by {PERSONAL_EMAIL}\n"
 )
 
 

@@ -96,18 +96,23 @@ _PROTOCOL: Final = (
 _PROTOCOL_ACK: Final = "Understood. I will end every answer with that line."
 
 
-def protocol_turns(question: str) -> list[dict[str, str]]:
+def protocol_turns(question: str, *, extra: str = "") -> list[dict[str, str]]:
     """Build the conversation sent to the Worker for one question.
 
     Args:
         question: The user's question, verbatim.
+        extra: A further instruction for callers asking something other than a plain question —
+            :mod:`veaf_support_bot.existing` asks whether a feature already exists. It joins the
+            instruction turn rather than the question, because the Worker embeds the last user turn
+            to retrieve passages and instructions in it would poison the retrieval.
 
     Returns:
         Three turns: the protocol instruction, the model's acknowledgement, and the question. The
         question is last and untouched, which is what keeps the Worker's retrieval query clean.
     """
+    instruction = f"{extra}\n\n{_PROTOCOL}" if extra else _PROTOCOL
     return [
-        {"role": "user", "content": _PROTOCOL},
+        {"role": "user", "content": instruction},
         {"role": "assistant", "content": _PROTOCOL_ACK},
         {"role": "user", "content": question},
     ]

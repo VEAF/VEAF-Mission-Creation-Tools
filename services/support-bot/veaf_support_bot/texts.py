@@ -27,6 +27,11 @@ DEFAULT_LANGUAGE: Final = "fr"
 #: (``mission_builder/v5_converter.py``). English lives under ``/en/``, French at the root.
 DOC_SITE_BASE: Final = "https://veaf.github.io/documentation/dev"
 
+#: The repository itself. Here rather than beside one of its callers: both flows link it — the
+#: bug intake to its issue form, the suggestion flow to the feature request one — and neither of
+#: those two modules can import the other.
+REPOSITORY_URL: Final = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
+
 _TEXTS: Final[dict[str, dict[str, str]]] = {
     "fr": {
         # --- the exchange -------------------------------------------------------------------

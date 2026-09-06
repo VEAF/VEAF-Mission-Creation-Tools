@@ -41,7 +41,7 @@ CANCEL: Final = "cancel"
 #: an abandoned draft turning into an issue days later is the failure this value exists to prevent.
 EXPIRED: Final = "expired"
 
-#: Every answer :meth:`~veaf_support_bot.intake.BugExchange.decide` may return.
+#: Every answer :meth:`~veaf_support_bot.exchange.ThreadExchange.decide` may return.
 CHOICES: Final = (FILE, EDIT, CANCEL, EXPIRED)
 
 #: Longest draft message posted back. Discord's own ceiling is 2000 characters; the margin carries

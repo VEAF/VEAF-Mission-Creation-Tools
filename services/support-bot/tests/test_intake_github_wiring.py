@@ -32,13 +32,13 @@ from veaf_support_bot.config import ConfigurationError, SupportBotConfig
 from veaf_support_bot.draft import CANCEL, EXPIRED, FILE, Draft
 from veaf_support_bot.filing import Outcome
 from veaf_support_bot.github_app import GitHubError
-from veaf_support_bot.intake import BugIntake, BugSubmission, ThreadHandle, render_match, sweep_query
-from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, PriorArtGate, PriorArtSweeper, Sweep
+from veaf_support_bot.intake import BugIntake, BugSubmission, ThreadHandle, sweep_query
+from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, PriorArtGate, PriorArtSweeper, Sweep, render_match
 from veaf_support_bot.service import build_github_app, build_intake
 
 
 class _Exchange:
-    """A :class:`~veaf_support_bot.intake.BugExchange` that records what the reporter was told.
+    """A :class:`~veaf_support_bot.exchange.ThreadExchange` that records what the reporter was told.
 
     It is also who answers the two questions, because ticket 04 put them on the exchange: what the
     reporter is *shown* and what he *answers* are the same conversation, and a double that split

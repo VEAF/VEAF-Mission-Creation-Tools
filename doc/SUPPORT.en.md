@@ -122,6 +122,59 @@ suspected file and line.
 It is not a diagnosis, and **its absence takes nothing away from your report**: everything else in
 the issue is measured, quoted or parsed, never guessed. When it is missing, the issue says why.
 
+## Suggest an improvement: `/suggest` {#suggest}
+
+On the VEAF Discord, `/suggest` is for asking for **what does not exist yet** — a feature, a setting,
+a command. As with `/bug`, you need no GitHub account.
+
+### It starts by checking whether it already exists
+
+That is the point of the command. A good share of requests are about something that **already
+exists** and nobody found: the best answer then is the page explaining it, right now, rather than an
+issue that will wait for months.
+
+So the bot checks, in this order:
+
+1. **the documentation** — it puts your request to the assistant, which answers with the matching
+   pages. If that answers your need, you say so and **nothing is opened**;
+2. **the open issues** — somebody may have asked already;
+3. **the lots under way and the roadmap** — it may be planned already, or deliberately turned down,
+   with the reasons.
+
+Every time, the bot shows you **what it found and why**, and you can answer *no, that is not it*:
+your request carries on. A machine does not get to decide on your behalf that your idea already
+exists.
+
+If the documentation says nothing about the subject, the issue records that. It is useful: if the
+feature does exist, this is not a feature request, it is a **page to write** — and the cheapest fix
+there is.
+
+### What it asks you, and why
+
+The form asks first **what problem you are trying to solve**, before the solution you imagined. That
+is the field everybody skips, and the one that makes a request decidable: a solution with no problem
+cannot be compared with anything, cannot be met another way, and cannot be declined for a reason
+anyone can state.
+
+The bot writes **no technical sketch**. It states your need and what was checked; where it would fit
+and what it would touch is the work of whoever picks the subject up.
+
+### Nothing is published before your click
+
+As with `/bug`: the issue is shown to you as it will be filed, with three buttons — **file**,
+**edit**, **cancel**. With no click, nothing is filed. The bot then opens a public thread and
+carries back what happens on the issue.
+
+### What an issue means, and what it does not
+
+Said plainly, because it is what disappoints people who did not read it first: **an issue is a
+record, not a commitment.** A bug is true or false and can be verified; an improvement is only wanted
+or not, and the project's maintainer decides that alone.
+
+A feature request therefore has [two possible futures](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/CONTRIBUTING.md):
+it is picked up in a lot, or it stays open as a report. The second is not a failure: it records that
+somebody needed it, and the third person to ask will weigh more than the first.
+
 ## What to provide {#what-to-provide}
 
 Useful reports all look alike. Three things, in this order:

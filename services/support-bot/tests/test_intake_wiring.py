@@ -34,6 +34,7 @@ from veaf_support_bot import discord_bot
 from veaf_support_bot import service as service_module
 from veaf_support_bot.attachments import AttachmentCollector
 from veaf_support_bot.bugreport import BugForm
+from veaf_support_bot.checkout import CheckoutUnavailable
 from veaf_support_bot.config import SupportBotConfig
 from veaf_support_bot.discord_bot import BugModal, register_bug_command
 from veaf_support_bot.intake import BugIntake, BugSubmission
@@ -220,6 +221,28 @@ class TestTheModalReachesTheIntake(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(modal.doctor.required, "a reporter with no doctor block must still be able to file")
 
 
+def _app_settings() -> dict[str, str]:
+    """Return the environment of a deployment whose GitHub App is fully configured.
+
+    The key is generated rather than fixed: :func:`~veaf_support_bot.service.build_github_app` signs
+    a JWT at construction, so it has to be a real RSA key — and one checked into a repository would
+    be a credential-shaped string in a public tree.
+
+    Returns:
+        The three variables that make ``files_issues`` true.
+    """
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    pem = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("ascii")
+    return {"GITHUB_APP_ID": "1", "GITHUB_INSTALLATION_ID": "2", "GITHUB_PRIVATE_KEY": pem.replace("\n", "\\n")}
+
+
 class TestTheServiceBuildsTheIntake(unittest.TestCase):
     def test_no_checkout_means_no_bug_command_at_all(self) -> None:
         """A command that answers 'I cannot do this' is a promise the service does not keep."""
@@ -251,10 +274,56 @@ class TestTheServiceBuildsTheIntake(unittest.TestCase):
         self.assertIn("ask", names, "adding /bug must not have unpublished /ask")
 
     def test_a_service_with_no_checkout_publishes_only_ask(self) -> None:
+        """Both writing commands need the checkout, for two different reasons.
+
+        ``/bug`` needs it to turn a stack trace into a location. ``/suggest`` looks as though it
+        does not — asking the documentation only needs the Worker — but everything it publishes
+        goes through a redactor bound to a checkout, so without one it could take a request and
+        never file it, while blaming a GitHub App that is correctly configured.
+        """
         service = SupportBotService(_config())
         gateway = service._build_gateway()
         names = {command.name for command in cast(Any, gateway).client.tree.get_commands()}
         self.assertEqual(names, {"ask"})
+
+    def test_the_client_the_gateway_runs_carries_the_suggest_command(self) -> None:
+        """The same blind spot as above, for the second flow: registration works, nobody calls it."""
+        service = SupportBotService(_config(CHECKOUT_PATH=str(fixture_root())))
+        gateway = service._build_gateway()
+        names = {command.name for command in cast(Any, gateway).client.tree.get_commands()}
+        self.assertEqual(names, {"ask", "bug", "suggest"})
+
+    def test_an_unusable_checkout_is_opened_once_not_once_per_flow(self) -> None:
+        """Three identical failures in a start-up log read like three separate problems."""
+        attempts: list[str] = []
+        original = service_module.open_checkout
+
+        def _counting(path: str, **kwargs: Any) -> Any:
+            attempts.append(path)
+            raise CheckoutUnavailable(f"{path} is not a working tree")
+
+        setattr(service_module, "open_checkout", _counting)
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                SupportBotService(_config(CHECKOUT_PATH=directory))
+        finally:
+            setattr(service_module, "open_checkout", original)
+
+        self.assertEqual(len(attempts), 1, attempts)
+
+    def test_both_flows_file_through_the_same_ledger_writer(self) -> None:
+        """Two filers would lose each other's entries, and a lost entry is a second issue.
+
+        The App is configured here on purpose: without it every filer is ``None`` and the two
+        assertions below compare ``None`` to ``None``, which they did until a review said so.
+        """
+        service = SupportBotService(_config(CHECKOUT_PATH=str(fixture_root()), **_app_settings()))
+
+        self.assertIsNotNone(service.filer)
+        assert service.intake is not None
+        assert service.suggest is not None
+        self.assertIs(service.intake._filer, service.filer)
+        self.assertIs(service.suggest._filer, service.filer)
 
 
 class TestTheseTestsDetectABrokenWiring(unittest.TestCase):

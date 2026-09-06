@@ -547,6 +547,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   value must now be a numeric id, and the refusal describes its shape without echoing it, since
   this variable sits next to the bot token in `.env.example`.
 
+- **Support bot — `/suggest`, an idea weighed against what already exists.** On the VEAF Discord,
+  `/suggest` collects a feature request — the problem first, then the wanted behaviour — and files
+  it as the repository's own `feature_request.yml`, in the asker's language, under `enhancement`.
+  Before anything is drafted it asks whether the thing exists already: the documentation assistant
+  is put the request and answers with its pages, and the open issues, `.backlog/` and `ROADMAP.md`
+  are swept the way `/bug` sweeps them for duplicates. Three of those four answers open nothing.
+  Neither check concludes on its own — both are shown with their evidence and can be refused, and a
+  refusal carries the suggestion on, because a wrong *it already exists* silences a real idea. As
+  with `/bug`, nothing is published before the click, and the public thread is opened after it.
+
+  The lot planned to sweep the documentation by text matching, at no model cost. Measured on the
+  real tree, that does not work: the words naming a feature are in 17% to 60% of the 144 pages,
+  because good documentation cross-references itself, and three successive scorings still matched a
+  request for SMS alerts against the support page at 57%. Asking the assistant is the same question
+  `/ask` answers, from the same corpus and on the same allowance — one model call per suggestion,
+  and a spent quota does not refuse the suggestion, it only records that the documentation was not
+  consulted. *The documentation is silent* and *the documentation could not be asked* stay
+  distinguishable in the filed issue: only the first is a finding, and it is the one that says a
+  page may be missing.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

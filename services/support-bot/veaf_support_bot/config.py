@@ -28,6 +28,8 @@ from dataclasses import dataclass
 from typing import Any, Final
 from urllib.parse import urlparse
 
+from veaf_support_bot.enrichment import DEFAULT_ENRICH_PER_DAY
+
 #: Prefix shared by every variable the service reads.
 ENV_PREFIX: Final = "SUPPORT_BOT_"
 
@@ -107,6 +109,15 @@ DEFAULT_GITHUB_REPOSITORY: Final = "VEAF/VEAF-Mission-Creation-Tools"
 #: Where the filed-report ledger lives. Beside the quota counters, and with the same requirement:
 #: it must survive a restart, or a restart mid-flight falls back to the slower in-issue marker.
 DEFAULT_GITHUB_LEDGER_FILE: Final = "state/filed-issues.json"
+
+#: Worker route the one enrichment call goes to. Its own URL rather than one derived from the
+#: ``/chat`` endpoint: `veaf_logs` already names it in full, and a derived URL silently points at
+#: the wrong place the day either address changes.
+DEFAULT_ENRICH_ENDPOINT: Final = "https://veaf-docs-chatbot.veaf.workers.dev/analyze"
+
+#: Where the enrichment allowance is counted, separately from `/ask`'s counters: two ceilings on
+#: one file would make a busy question day eat the day's hypotheses.
+DEFAULT_ENRICH_STATE_FILE: Final = "state/enrichment.json"
 
 #: Label marking an issue as filed by the machine.
 DEFAULT_GITHUB_MACHINE_LABEL: Final = "filed-by-bot"
@@ -434,6 +445,13 @@ class SupportBotConfig:
         github_repository: ``owner/name`` the issues are filed on.
         github_ledger_file: Where filed reports are recorded, so a retry never files twice.
         github_machine_label: Label marking an issue as machine-filed.
+        enrich_role_id: Discord role that opens the automatic hypothesis. **Empty switches the
+            enrichment off entirely**, which is the documented way to stop spending the shared
+            allowance without touching the intake — and the honest default, since guessing which
+            role means "VEAF member" is not this service's decision to make.
+        enrich_endpoint: The Worker ``/analyze`` URL the one call goes to.
+        enrich_state_file: Where the day's enrichment allowance is counted.
+        enrich_per_day: Hypotheses the whole bot may produce in a UTC day.
     """
 
     discord_token: str
@@ -466,6 +484,20 @@ class SupportBotConfig:
     github_repository: str = DEFAULT_GITHUB_REPOSITORY
     github_ledger_file: str = DEFAULT_GITHUB_LEDGER_FILE
     github_machine_label: str = DEFAULT_GITHUB_MACHINE_LABEL
+    enrich_role_id: str = ""
+    enrich_endpoint: str = DEFAULT_ENRICH_ENDPOINT
+    enrich_state_file: str = DEFAULT_ENRICH_STATE_FILE
+    enrich_per_day: int = DEFAULT_ENRICH_PER_DAY
+
+    @property
+    def enriches(self) -> bool:
+        """Say whether this deployment adds an automatic hypothesis at all.
+
+        Returns:
+            ``True`` when a gating role is configured. Everything else about the enrichment has a
+            usable default; the role does not, and running without one would enrich for everybody.
+        """
+        return bool(self.enrich_role_id)
 
     @property
     def files_issues(self) -> bool:
@@ -537,6 +569,10 @@ class SupportBotConfig:
             github_repository=reader.text("GITHUB_REPOSITORY", DEFAULT_GITHUB_REPOSITORY),
             github_ledger_file=reader.text("GITHUB_LEDGER_FILE", DEFAULT_GITHUB_LEDGER_FILE),
             github_machine_label=reader.text("GITHUB_MACHINE_LABEL", DEFAULT_GITHUB_MACHINE_LABEL),
+            enrich_role_id=reader.text("ENRICH_ROLE_ID", ""),
+            enrich_endpoint=reader.url("ENRICH_ENDPOINT", DEFAULT_ENRICH_ENDPOINT),
+            enrich_state_file=reader.text("ENRICH_STATE_FILE", DEFAULT_ENRICH_STATE_FILE),
+            enrich_per_day=reader.integer("ENRICH_PER_DAY", DEFAULT_ENRICH_PER_DAY, minimum=1),
         )
         _check_github(reader, config)
         reader.raise_if_broken()
@@ -579,6 +615,10 @@ class SupportBotConfig:
             "github_repository": self.github_repository,
             "github_ledger_file": self.github_ledger_file,
             "github_machine_label": self.github_machine_label,
+            "enrich_role_id": self.enrich_role_id,
+            "enrich_endpoint": self.enrich_endpoint,
+            "enrich_state_file": self.enrich_state_file,
+            "enrich_per_day": self.enrich_per_day,
         }
 
     def __repr__(self) -> str:

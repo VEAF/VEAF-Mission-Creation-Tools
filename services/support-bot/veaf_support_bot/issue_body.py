@@ -46,7 +46,7 @@ from veaf_support_bot.bugreport import NOT_STATED, BugReport
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, Sweep
 from veaf_support_bot.toolkit import ToolkitUnavailable
-from veaf_support_bot.untrusted import one_line, quote
+from veaf_support_bot.untrusted import defuse_mentions, one_line, quote
 
 #: Longest issue body GitHub accepts, with room left for the marker and the footer.
 BODY_MAX_CHARS = 60000
@@ -86,8 +86,34 @@ _HEADINGS = {
         "priorart": "Antériorité",
         "missing": "Ce qui manque, et pourquoi",
         "no_hypothesis": (
-            "_Aucune hypothèse : ce rapport a été rempli sans modèle. Tout ce qui précède est lu, "
-            "analysé ou cité — rien n'est deviné._"
+            "_Tout ce qui précède est lu, analysé ou cité — rien n'est deviné. Une hypothèse "
+            "automatique, si elle existe, est ajoutée en commentaire et signalée comme telle._"
+        ),
+        "hypothesis": "⚠️ Hypothèse automatique — une supposition de machine, pas un diagnostic",
+        "hypothesis_caveat": (
+            "_Produite par un modèle à partir du corps ci-dessus, en un seul appel, sans accès au "
+            "dépôt ni à la mission. Rien ici n'a été vérifié : à confronter au code avant d'agir. "
+            "Tout le reste du ticket est mesuré, cité ou parsé._"
+        ),
+        "hypothesis.absent.not_a_member": (
+            "_Pas d'hypothèse automatique : elle est réservée aux membres VEAF. Le rapport "
+            "ci-dessus est complet — il lui manque une supposition, pas un fait._"
+        ),
+        "hypothesis.absent.ceiling_reached": (
+            "_Pas d'hypothèse automatique : le quota du jour est épuisé. Le rapport ci-dessus est "
+            "complet — il lui manque une supposition, pas un fait._"
+        ),
+        "hypothesis.absent.model_unavailable": (
+            "_Pas d'hypothèse automatique : le modèle n'a pas répondu. Le rapport ci-dessus est "
+            "complet — il lui manque une supposition, pas un fait._"
+        ),
+        "hypothesis.absent.empty_answer": (
+            "_Pas d'hypothèse automatique : le modèle n'a rien renvoyé d'exploitable. Le rapport "
+            "ci-dessus est complet — il lui manque une supposition, pas un fait._"
+        ),
+        "hypothesis.absent.disabled": (
+            "_Pas d'hypothèse automatique : elle est désactivée sur ce déploiement. Le rapport "
+            "ci-dessus est complet — il lui manque une supposition, pas un fait._"
         ),
         "filed_by": "Rapporté sur Discord par **{reporter}** · déposé automatiquement par le bot de support VEAF.",
         "thread": "Fil d'origine : {url}",
@@ -112,8 +138,34 @@ _HEADINGS = {
         "priorart": "Prior art",
         "missing": "What is missing, and why",
         "no_hypothesis": (
-            "_No hypothesis: this report was filled in without a model. Everything above is read, "
-            "parsed or quoted — none of it is guessed._"
+            "_Everything above is read, parsed or quoted — none of it is guessed. An automatic "
+            "hypothesis, where there is one, is added as a comment and labelled as such._"
+        ),
+        "hypothesis": "⚠️ Automatic hypothesis — a machine's guess, not a diagnosis",
+        "hypothesis_caveat": (
+            "_Produced by a model from the body above, in a single call, with no access to the "
+            "repository or the mission. Nothing here was verified: check it against the code before "
+            "acting on it. Everything else in this issue is measured, quoted or parsed._"
+        ),
+        "hypothesis.absent.not_a_member": (
+            "_No automatic hypothesis: it is a VEAF members' extra. The report above is complete — "
+            "what it lacks is a guess, not a fact._"
+        ),
+        "hypothesis.absent.ceiling_reached": (
+            "_No automatic hypothesis: the day's allowance is spent. The report above is complete — "
+            "what it lacks is a guess, not a fact._"
+        ),
+        "hypothesis.absent.model_unavailable": (
+            "_No automatic hypothesis: the model did not answer. The report above is complete — "
+            "what it lacks is a guess, not a fact._"
+        ),
+        "hypothesis.absent.empty_answer": (
+            "_No automatic hypothesis: the model returned nothing usable. The report above is "
+            "complete — what it lacks is a guess, not a fact._"
+        ),
+        "hypothesis.absent.disabled": (
+            "_No automatic hypothesis: it is switched off on this deployment. The report above is "
+            "complete — what it lacks is a guess, not a fact._"
         ),
         "filed_by": "Reported on Discord by **{reporter}** · filed automatically by the VEAF support bot.",
         "thread": "Original thread: {url}",
@@ -392,6 +444,47 @@ def render_attachment_comments(carried: Iterable[Carried]) -> list[str]:
             header += f", `sha256:{item.digest}`"
         comments.append(f"{header}\n\n{quote(item.text)}"[:COMMENT_MAX_CHARS])
     return comments
+
+
+def render_hypothesis(text: str, lang: str) -> str:
+    """Render the model's guess as a comment nobody can mistake for a measurement.
+
+    The label is at **block level**, above the text, and the caveat is directly under the heading
+    rather than as a footnote: a disclaimer at the bottom of a long comment is a disclaimer nobody
+    reads. A maintainer opening this issue three months from now has to be able to tell in one
+    glance what was measured from what was guessed — that is the whole containment for a machine
+    hypothesis on a public tracker, and it is why the label is not a tone but a heading.
+
+    Args:
+        text: The hypothesis, in Markdown, already bounded by the caller.
+        lang: ``"fr"`` or ``"en"``.
+
+    Returns:
+        The comment body.
+    """
+    parts = [
+        f"## {heading('hypothesis', lang)}",
+        heading("hypothesis_caveat", lang),
+        defuse_mentions(text),
+    ]
+    return "\n\n".join(parts)[:COMMENT_MAX_CHARS]
+
+
+def render_no_hypothesis(reason: str, lang: str) -> str:
+    """Say, on the issue, that there is no hypothesis and why.
+
+    The absence is written down rather than left silent: an issue that says nothing leaves a reader
+    unable to tell a report nobody guessed at from a guess that was withheld — and the reporter must
+    never read the absence as his report having failed, because it did not.
+
+    Args:
+        reason: One of :data:`~veaf_support_bot.enrichment.ABSENT_REASONS`.
+        lang: ``"fr"`` or ``"en"``.
+
+    Returns:
+        The comment body.
+    """
+    return heading(f"hypothesis.absent.{reason}", lang)
 
 
 def render_duplicate_comment(report: BugReport, lang: str, thread_url: str = "") -> str:

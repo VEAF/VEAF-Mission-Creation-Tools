@@ -508,6 +508,34 @@ class IssueFiler:
         url = str(response.body.get("html_url") or "") if isinstance(response.body, dict) else ""
         return Outcome(action="commented", number=number, url=url)
 
+    async def add_comment(self, number: int, body: str) -> Outcome:
+        """Add one comment to an issue this service filed.
+
+        Used by the enrichment, which runs after the issue exists: whatever it produces — a
+        hypothesis or the sentence saying there is none — lands here. A failure is reported rather
+        than raised, because by this point the report is safe on the tracker and losing the comment
+        must not look like losing the report.
+
+        Args:
+            number: The issue.
+            body: The comment body, already rendered.
+
+        Returns:
+            What became of it.
+        """
+        try:
+            response = await self._app.request(
+                "POST", f"/repos/{self._app.repository}/issues/{number}/comments", {"body": body}
+            )
+        except GitHubError as error:
+            self._logger.warning(
+                "the comment could not be added",
+                extra={"event": "filing.comment_failed", "issue": number, "error": str(error)},
+            )
+            return Outcome(action="failed", error=str(error))
+        url = str(response.body.get("html_url") or "") if isinstance(response.body, dict) else ""
+        return Outcome(action="commented", number=number, url=url)
+
     async def _file_once(self, report: BugReport, key: str, thread_url: str) -> Outcome:
         """Create the issue, having first made sure no earlier attempt already did.
 

@@ -485,6 +485,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   help carries a *Report a bug* button that opens the same form, pre-filled with the question and
   the answer.
 
+- **Support bot — a filed report can now carry one automatic hypothesis, labelled as a guess.** It
+  runs **after** the issue exists and spends **one** model call, gated on a VEAF Discord role and on
+  a daily allowance of 15 — measured against a free tier of 20 requests a day for the whole Google
+  project, shared with `/ask` and the log analysis. The model is handed the issue body, which already
+  carries the resolved `file:line`, the surrounding code, the callers, the catalogue matches and the
+  prior art, and is asked to *conclude on a prepared file* rather than to investigate. The result is
+  a comment under its own ⚠️ heading with the caveat directly beneath it, so a maintainer can tell in
+  one glance what was measured from what was guessed; the prompt instructs it to answer "not enough
+  to conclude" rather than blame something the report does not support. Not a member, allowance
+  spent, model unavailable, empty answer, switched off: in all five the issue stands as filed and
+  **says which**. The allowance fails closed, and the whole feature is **off** until
+  `SUPPORT_BOT_ENRICH_ROLE_ID` is set.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

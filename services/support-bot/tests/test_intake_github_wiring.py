@@ -81,6 +81,7 @@ class _Filer:
         self.outcome = outcome or Outcome(action="created", number=901, url="https://example.invalid/issues/901")
         self.filed: list[Any] = []
         self.commented: list[int] = []
+        self.comments: list[tuple[int, str]] = []
 
     async def file(self, report: Any, *, thread_url: str = "") -> Outcome:
         self.filed.append(report)
@@ -95,6 +96,10 @@ class _Filer:
 
     def comment_draft_of(self, report: Any, *, thread_url: str = "") -> Draft:
         return Draft(title=report.title, body=f"observation on {report.title}")
+
+    async def add_comment(self, number: int, body: str) -> Outcome:
+        self.comments.append((number, body))
+        return Outcome(action="commented", number=number, url=f"https://example.invalid/issues/{number}#c")
 
 
 class _Answer:

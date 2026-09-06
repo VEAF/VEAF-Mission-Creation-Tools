@@ -751,6 +751,7 @@ class BugModal(discord.ui.Modal):
                 language=str(interaction.locale) if interaction.locale else "fr",
             ),
             attachments=self._attachments,
+            roles=role_ids_of(interaction.user),
         )
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -803,6 +804,33 @@ class BugModal(discord.ui.Modal):
             "the /bug modal failed",
             extra={"event": "bug.modal_failed", "error": type(error).__name__},
         )
+
+
+def role_ids_of(user: object) -> tuple[str, ...]:
+    """Return the role ids the interaction says its author holds.
+
+    Read off the interaction rather than fetched: Discord sends the member object — role ids
+    included — inside every guild interaction, so the check costs no API call and cannot be forged
+    by the reporter.
+
+    Which attribute carries them is not a detail. ``Member.roles`` resolves each id against the
+    **guild cache** and silently drops what it cannot find, and this bot runs on
+    ``Intents.none()`` — no guild intent, so that cache can be empty. Reading ``roles`` alone would
+    therefore hand back an empty tuple on a perfectly ordinary member, and the enrichment gate would
+    refuse every reporter forever while looking like it was working. ``Member._roles`` is the raw
+    list from the payload, which is what the interaction actually stated; ``roles`` stays as the
+    fallback for anything that exposes only the resolved form.
+
+    Args:
+        user: The interaction's author.
+
+    Returns:
+        The role ids as strings, matching the configured id's own type.
+    """
+    raw = getattr(user, "_roles", None)
+    if raw is not None:
+        return tuple(str(int(role_id)) for role_id in raw)
+    return tuple(str(role.id) for role in getattr(user, "roles", ()) if getattr(role, "id", None) is not None)
 
 
 def incoming_from(*attachments: discord.Attachment | None) -> list[Incoming]:

@@ -262,7 +262,7 @@ class TestWhatIsMissing(unittest.TestCase):
         self.assertIn("past the size ceiling", body)
 
     def test_the_body_says_no_hypothesis_was_made(self) -> None:
-        self.assertIn("No hypothesis", render_body(_report("en"), "abc"))
+        self.assertIn("none of it is guessed", render_body(_report("en"), "abc"))
 
     def test_the_revision_every_location_came_from_is_stated(self) -> None:
         report = _report("en")

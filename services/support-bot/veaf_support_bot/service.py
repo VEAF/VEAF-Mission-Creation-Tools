@@ -44,7 +44,8 @@ from veaf_support_bot import __version__
 from veaf_support_bot.ask import AskHandler, build_handler
 from veaf_support_bot.attachments import AttachmentCollector, http_download
 from veaf_support_bot.checkout import CheckoutUnavailable, open_checkout
-from veaf_support_bot.config import SupportBotConfig
+from veaf_support_bot.config import DEFAULT_QUOTA_USER_WINDOW_SECONDS, SupportBotConfig
+from veaf_support_bot.enrichment import Enricher
 from veaf_support_bot.filing import IssueFiler, Ledger, RepositoryIssues
 from veaf_support_bot.github_app import AppCredentials, GitHubApp, aiohttp_transport, read_private_key
 from veaf_support_bot.health import HealthServer, ServiceState
@@ -53,6 +54,7 @@ from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import PriorArtGate, PriorArtSweeper
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
 from veaf_support_bot.toolkit import redact
+from veaf_support_bot.worker import HypothesisClient
 
 
 class Gateway(Protocol):
@@ -87,6 +89,46 @@ def build_quota(config: SupportBotConfig, logger: Logger | None = None) -> Quota
         global_per_day=config.quota_global_per_day,
     )
     return QuotaKeeper(limits, QuotaStore(Path(config.quota_state_file)), logger=logger)
+
+
+def build_enricher(config: SupportBotConfig, logger: Logger | None = None) -> Enricher:
+    """Build the one-call enrichment, off unless a gating role was configured.
+
+    The role is what decides: everything else has a workable default, and a deployment that enriched
+    for everybody the moment it was installed would spend a shared association resource on a
+    decision nobody made. So an unset ``ENRICH_ROLE_ID`` produces an enricher that files reports with
+    no hypothesis at all — which is also how the feature is switched off without touching the intake.
+
+    Args:
+        config: The resolved configuration.
+        logger: Logger to use.
+
+    Returns:
+        The enricher. Never ``None``: it is the object that knows *why* there is no hypothesis, and
+        that sentence belongs on the issue.
+    """
+    report = logger or get_logger("service")
+    if not config.enriches:
+        return Enricher(None, role_id="", allowance=None, logger=report)
+    allowance = QuotaKeeper(
+        # One ceiling, expressed on all three axes: this counter exists to hold a *daily* total
+        # against a free tier of twenty requests, and a per-user window would let one member spend
+        # the day's hypotheses in a minute while another gets none.
+        QuotaLimits(
+            user_window_seconds=DEFAULT_QUOTA_USER_WINDOW_SECONDS,
+            user_per_window=config.enrich_per_day,
+            user_per_day=config.enrich_per_day,
+            global_per_day=config.enrich_per_day,
+        ),
+        QuotaStore(Path(config.enrich_state_file)),
+        logger=report,
+    )
+    return Enricher(
+        HypothesisClient(config.enrich_endpoint, config.worker_client, config.worker_secret),
+        role_id=config.enrich_role_id,
+        allowance=allowance,
+        logger=report,
+    )
 
 
 def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugIntake | None:
@@ -147,6 +189,7 @@ def build_intake(config: SupportBotConfig, logger: Logger | None = None) -> BugI
         )
         if app
         else None,
+        enricher=build_enricher(config, report),
     )
 
 

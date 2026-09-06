@@ -185,6 +185,23 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "-# 📝 Aucun ticket n'a été ouvert : je n'ai personne à qui demander le clic. Un ticket "
             "n'est jamais déposé sans que son auteur l'ait vu — signale-le sur le canal support."
         ),
+        # --- ticket 08, l'hypothèse automatique -------------------------------------------
+        "hypothesis.added": "-# 🤖 Une hypothèse automatique a été ajoutée au ticket, signalée comme une supposition.",
+        "hypothesis.absent.not_a_member": (
+            "-# 🤖 Pas d'hypothèse automatique : c'est un bonus réservé aux membres VEAF. Ton "
+            "rapport, lui, est complet."
+        ),
+        "hypothesis.absent.ceiling_reached": (
+            "-# 🤖 Pas d'hypothèse automatique : le quota du jour est épuisé. Ton rapport, lui, est complet."
+        ),
+        "hypothesis.absent.model_unavailable": (
+            "-# 🤖 Pas d'hypothèse automatique : le modèle n'a pas répondu. Ton rapport, lui, est complet."
+        ),
+        "hypothesis.absent.empty_answer": (
+            "-# 🤖 Pas d'hypothèse automatique : le modèle n'a rien renvoyé d'exploitable. Ton "
+            "rapport, lui, est complet."
+        ),
+        "hypothesis.absent.disabled": "-# 🤖 L'hypothèse automatique est désactivée sur ce déploiement.",
         "match.button.same": "Oui, c'est ça",
         "match.button.different": "Non, le mien est différent",
         "escalate.button": "Signaler un bug",
@@ -347,6 +364,21 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "-# 📝 No issue was opened: there is nobody I can ask for the click. An issue is never "
             "filed without its author having seen it — report this on the support channel."
         ),
+        # --- ticket 08, the automatic hypothesis ------------------------------------------
+        "hypothesis.added": "-# 🤖 An automatic hypothesis was added to the issue, labelled as a guess.",
+        "hypothesis.absent.not_a_member": (
+            "-# 🤖 No automatic hypothesis: it is a VEAF members' extra. Your report itself is complete."
+        ),
+        "hypothesis.absent.ceiling_reached": (
+            "-# 🤖 No automatic hypothesis: the day's allowance is spent. Your report itself is complete."
+        ),
+        "hypothesis.absent.model_unavailable": (
+            "-# 🤖 No automatic hypothesis: the model did not answer. Your report itself is complete."
+        ),
+        "hypothesis.absent.empty_answer": (
+            "-# 🤖 No automatic hypothesis: the model returned nothing usable. Your report itself is complete."
+        ),
+        "hypothesis.absent.disabled": "-# 🤖 The automatic hypothesis is switched off on this deployment.",
         "match.button.same": "Yes, that is it",
         "match.button.different": "No, mine is different",
         "escalate.button": "Report a bug",

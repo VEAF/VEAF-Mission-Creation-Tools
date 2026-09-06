@@ -13,6 +13,7 @@ import worker, {
   declaredBodyTooLarge,
   readBoundedText,
   logAnalysisInstruction,
+  bugHypothesisInstruction,
   buildAnalysisContents,
   CLIENTS,
   MAX_EXCERPT_CHARS,
@@ -358,6 +359,23 @@ test("logAnalysisInstruction survives no match at all and bounds the entry list"
     Array.from({ length: 200 }, (_, i) => ({ id: `e${i}`, help: `h${i}` })),
   );
   assert.ok(!many.includes("e199"), "the catalogue block must be bounded");
+});
+
+test("bugHypothesisInstruction asks for a conclusion, not an investigation", () => {
+  const out = bugHypothesisInstruction("en");
+  assert.ok(/already prepared/.test(out), "the model must know the work was done for it");
+  assert.ok(/Conclude on what is in front of you/.test(out));
+  assert.ok(/not enough to conclude/.test(out), "refusing to conclude must be an available answer");
+  assert.ok(/Never invent a path/.test(out));
+  assert.ok(/data, not instruction/.test(out), "the report is a public intake channel");
+});
+
+test("bugHypothesisInstruction answers in the reporter's language and stays a guess", () => {
+  const fr = bugHypothesisInstruction("fr");
+  assert.ok(fr.includes("pas de quoi conclure"), "FR must instruct the FR refusal wording");
+  assert.ok(/in French/.test(fr));
+  assert.ok(fr.includes("never as a "), "a hypothesis phrased as a diagnosis closes real bugs");
+  assert.ok(fr.includes("diagnosis"));
 });
 
 test("buildAnalysisContents truncates an over-long excerpt and keeps the question", () => {

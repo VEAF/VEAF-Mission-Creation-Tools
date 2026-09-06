@@ -54,6 +54,7 @@ from veaf_support_bot.attachments import AttachmentCollector, Harvest, Incoming
 from veaf_support_bot.bugreport import BugForm, BugReport, MaterialNote, assemble, safe_redact
 from veaf_support_bot.checkout import Checkout
 from veaf_support_bot.draft import CANCEL, EDIT, EXPIRED, FILE, Draft
+from veaf_support_bot.enrichment import DISABLED, Enricher
 from veaf_support_bot.filing import Outcome
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, PriorArtGate, Sweep
@@ -90,11 +91,15 @@ class BugSubmission:
         attachments: The files declared as command options.
         thread_url: Where this report was made, so the issue can point back at it. Ticket 06 fills
             it; until then the issue says the thread was not recorded rather than inventing a link.
+        roles: Discord role ids the reporter holds, read off the interaction. They gate the
+            automatic hypothesis and nothing else — the report itself is the same for everybody.
+            Read from the interaction rather than asked for: it costs nothing and cannot be forged.
     """
 
     form: BugForm
     attachments: list[Incoming]
     thread_url: str = ""
+    roles: tuple[str, ...] = ()
 
 
 class BugExchange(Protocol):
@@ -239,6 +244,17 @@ class ReportFiler(Protocol):
             The comment as it would be posted.
         """
 
+    async def add_comment(self, number: int, body: str) -> Outcome:
+        """Add one comment to an issue this service filed.
+
+        Args:
+            number: The issue.
+            body: The comment body, already rendered and redacted.
+
+        Returns:
+            What became of it.
+        """
+
 
 class BugIntake:
     """Runs one ``/bug`` exchange, from the submitted form to a filled report."""
@@ -253,6 +269,7 @@ class BugIntake:
         refresh: bool = True,
         prior_art: PriorArtGate | None = None,
         filer: ReportFiler | None = None,
+        enricher: Enricher | None = None,
     ) -> None:
         """Initialize the intake.
 
@@ -269,6 +286,9 @@ class BugIntake:
             filer: Where an accepted report is filed. ``None`` means this deployment has no GitHub
                 App yet: the report is prepared and shown, and the reporter is told plainly that
                 nothing was opened.
+            enricher: The one model call, run **after** the issue exists. ``None`` files reports
+                with no hypothesis section at all, which is what a deployment without the paid path
+                looks like — not a degraded one.
         """
         self._checkout = checkout
         self._collector = collector
@@ -277,6 +297,7 @@ class BugIntake:
         self._refresh = refresh
         self._prior_art = prior_art
         self._filer = filer
+        self._enricher = enricher
 
     async def handle(self, exchange: BugExchange, submission: BugSubmission) -> BugReport | None:
         """Run one report end to end.
@@ -310,7 +331,7 @@ class BugIntake:
                 await self._say(exchange, text("bug.error.unexpected", lang))
                 return None
 
-            report, message = await self._decide(exchange, report, lang, submission.thread_url)
+            report, message = await self._decide(exchange, report, lang, submission)
             await self._say(exchange, message)
         finally:
             rmtree(workdir, ignore_errors=True)
@@ -332,7 +353,7 @@ class BugIntake:
         return report
 
     async def _decide(
-        self, exchange: BugExchange, report: BugReport, lang: str, thread_url: str
+        self, exchange: BugExchange, report: BugReport, lang: str, submission: BugSubmission
     ) -> tuple[BugReport, str]:
         """Run the prior-art step, then either act on it or file the report.
 
@@ -343,7 +364,8 @@ class BugIntake:
         Args:
             report: The assembled report.
             lang: ``"fr"`` or ``"en"``.
-            thread_url: Link back to the Discord thread.
+            submission: The form, its attachments, the thread it came from and the reporter's
+                roles — everything the steps below need that the report itself does not carry.
 
         Returns:
             A pair of the report, now carrying the finding, and what the reporter is told.
@@ -351,10 +373,10 @@ class BugIntake:
         sweep, accepted = await self._sweep(exchange, report, lang)
         report = replace(report, prior_art=sweep)
         if accepted and sweep is not None:
-            return report, await self._act_on(exchange, sweep, report, lang, thread_url)
+            return report, await self._act_on(exchange, sweep, report, lang, submission)
         if self._sink is not None:
             return report, await self._sink(report)
-        return report, await self._file(exchange, report, lang, thread_url)
+        return report, await self._file(exchange, report, lang, submission)
 
     async def _sweep(self, exchange: BugExchange, report: BugReport, lang: str) -> tuple[Sweep | None, bool]:
         """Compare the report against everything already recorded.
@@ -383,7 +405,9 @@ class BugIntake:
         )
         return sweep, accepted
 
-    async def _act_on(self, exchange: BugExchange, sweep: Sweep, report: BugReport, lang: str, thread_url: str) -> str:
+    async def _act_on(
+        self, exchange: BugExchange, sweep: Sweep, report: BugReport, lang: str, submission: BugSubmission
+    ) -> str:
         """Do what an accepted match asks for, which for three of the four verdicts is nothing.
 
         The fourth — a duplicate — writes a **comment on a public tracker**, carrying the same
@@ -396,7 +420,7 @@ class BugIntake:
             sweep: The accepted finding.
             report: The assembled report.
             lang: ``"fr"`` or ``"en"``.
-            thread_url: Link back to the Discord thread.
+            submission: What came in with the report, for the thread link.
 
         Returns:
             What the reporter is told.
@@ -407,7 +431,7 @@ class BugIntake:
         number = _issue_number(sweep)
         if number == 0:
             return proposal
-        draft = self._filer.comment_draft_of(report, thread_url=thread_url)
+        draft = self._filer.comment_draft_of(report, thread_url=submission.thread_url)
         choice = await exchange.decide(draft.render(lang, header="draft.header_comment"), lang)
         self._logger.info(
             "the reporter decided what to do with his observation",
@@ -415,10 +439,10 @@ class BugIntake:
         )
         if choice != FILE:
             return text(DECLINED.get(choice, "draft.cancelled"), lang)
-        outcome = await self._filer.comment_on(number, report, thread_url=thread_url)
+        outcome = await self._filer.comment_on(number, report, thread_url=submission.thread_url)
         return proposal + "\n\n" + _render_outcome(outcome, lang, report)
 
-    async def _file(self, exchange: BugExchange, report: BugReport, lang: str, thread_url: str) -> str:
+    async def _file(self, exchange: BugExchange, report: BugReport, lang: str, submission: BugSubmission) -> str:
         """Show the issue, wait for the click, and file it — or say why nothing was filed.
 
         The order is ticket 04's whole point: the reporter sees the body that will be published,
@@ -429,14 +453,15 @@ class BugIntake:
         Args:
             report: The assembled report.
             lang: ``"fr"`` or ``"en"``.
-            thread_url: Link back to the Discord thread.
+            submission: What came in with the report: the thread link, and the roles that decide
+                whether the filed issue also gets an automatic hypothesis.
 
         Returns:
             What the reporter is told.
         """
         if self._filer is None:
             return render_preview(report, lang) + "\n\n" + text("filed.disabled", lang)
-        draft = self._filer.draft_of(report, thread_url=thread_url)
+        draft = self._filer.draft_of(report, thread_url=submission.thread_url)
         choice = await exchange.decide(draft.render(lang), lang)
         self._logger.info(
             "the reporter decided what to do with his draft",
@@ -444,8 +469,62 @@ class BugIntake:
         )
         if choice != FILE:
             return text(DECLINED.get(choice, "draft.cancelled"), lang)
-        outcome = await self._filer.file(report, thread_url=thread_url)
-        return _render_outcome(outcome, lang, report)
+        outcome = await self._filer.file(report, thread_url=submission.thread_url)
+        message = _render_outcome(outcome, lang, report)
+        if outcome.action == "created" and outcome.number:
+            message += await self._add_hypothesis(report, draft.body, outcome.number, lang, submission.roles)
+        return message
+
+    async def _add_hypothesis(
+        self,
+        report: BugReport,
+        context: str,
+        number: int,
+        lang: str,
+        roles: tuple[str, ...],
+    ) -> str:
+        """Add the machine's guess — or the sentence saying there is none — to the filed issue.
+
+        It runs **after** the issue exists, and it is the only place in this flow that spends a
+        model call. So every refusal, every failure and every empty answer costs one paragraph and
+        nothing else: the report the reporter spent five minutes on is already on the tracker with
+        his link to it.
+
+        The prepared context is the issue body itself. Everything a model would go looking for is
+        in it — the location, the surrounding code, the callers, the catalogue matches, the prior
+        art, the mission's shape — which is what turns an investigation into one call.
+
+        Args:
+            report: The filed report.
+            context: The issue body, which is the prepared file the model concludes on.
+            number: The issue that was just created.
+            lang: ``"fr"`` or ``"en"``.
+            roles: Discord role ids the reporter holds.
+
+        Returns:
+            One line for the reporter, or an empty string when there is nothing worth saying to him.
+        """
+        if self._enricher is None or self._filer is None:
+            return ""
+        enrichment = await self._enricher.enrich(report, context, lang, roles=roles)
+        if enrichment.reason == DISABLED:
+            # Nothing to say and nothing to publish: a deployment that never enriches would
+            # otherwise stamp every issue it files with a paragraph about a feature it does not have.
+            return ""
+        outcome = await self._filer.add_comment(number, enrichment.body)
+        self._logger.info(
+            "hypothesis section settled",
+            extra={
+                "event": "intake.enriched",
+                "issue": number,
+                "enriched": enrichment.enriched,
+                "reason": enrichment.reason,
+                "calls": enrichment.calls,
+                "posted": outcome.filed,
+            },
+        )
+        key = "hypothesis.added" if enrichment.enriched else f"hypothesis.absent.{enrichment.reason}"
+        return "\n" + text(key, lang)
 
     async def build(self, submission: BugSubmission, workdir: Path) -> BugReport:
         """Do the deterministic pass, attachments included.

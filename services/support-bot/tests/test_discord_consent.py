@@ -27,6 +27,7 @@ from veaf_support_bot.discord_bot import (
     ModalExchange,
     _ChoiceView,
     _EscalationView,
+    role_ids_of,
 )
 from veaf_support_bot.draft import CANCEL, DRAFT_EXPIRY_SECONDS, EDIT, EXPIRED, FILE, MATCH_EXPIRY_SECONDS
 from veaf_support_bot.intake import BugIntake
@@ -44,8 +45,10 @@ class _Stub:
 class _User:
     """The parts of a Discord user the adapter reads."""
 
-    id = 4242
-    display_name = "Tripack"
+    def __init__(self) -> None:
+        """Initialize the user, with no role until a test gives it one."""
+        self.id = 4242
+        self.display_name = "Tripack"
 
 
 class _Response:
@@ -517,6 +520,61 @@ async def _never(click: discord.Interaction) -> None:
     Args:
         click: The click.
     """
+
+
+class _CachelessRole:
+    """A role id the guild cache could not resolve — what ``Intents.none()`` produces."""
+
+    def __init__(self, role_id: int) -> None:
+        """Initialize the role.
+
+        Args:
+            role_id: Its id.
+        """
+        self.id = role_id
+
+
+class TestTheRolesAreReadOffTheInteraction(unittest.TestCase):
+    """The gate that decides who gets a hypothesis, and the way it can silently refuse everybody.
+
+    ``Member.roles`` resolves each id against the guild cache and drops what it cannot find, and
+    this bot runs on ``Intents.none()``. A gate reading only that would refuse every reporter
+    forever while looking healthy — the exact shape of failure this repository has shipped green
+    before, so it is asserted on the raw payload attribute the interaction actually carries.
+    """
+
+    def test_the_raw_payload_ids_are_used_even_with_an_empty_guild_cache(self) -> None:
+        member = _User()
+        member._roles = [111, 222]  # type: ignore[attr-defined]
+        member.roles = []  # type: ignore[attr-defined]
+
+        self.assertEqual(role_ids_of(member), ("111", "222"))
+
+    def test_resolved_roles_are_used_when_that_is_all_there_is(self) -> None:
+        class _Resolved:
+            roles = [_CachelessRole(333)]
+
+        self.assertEqual(role_ids_of(_Resolved()), ("333",))
+
+    def test_a_user_with_no_roles_at_all_is_not_an_error(self) -> None:
+        """A direct message, or a member of no role: refused enrichment, never a crash."""
+        self.assertEqual(role_ids_of(object()), ())
+
+    def test_the_ids_are_strings_so_they_compare_with_the_configured_one(self) -> None:
+        """An int id against a string from the environment silently matches nothing."""
+        member = _User()
+        member._roles = [444]  # type: ignore[attr-defined]
+
+        self.assertIsInstance(role_ids_of(member)[0], str)
+
+    def test_the_submission_carries_them_to_the_intake(self) -> None:
+        modal = BugModal(_intake(), [], get_logger("test"), prefill=_form())
+        interaction = _Submission()
+        interaction.user._roles = [555]  # type: ignore[attr-defined]
+
+        submission = modal.submission(cast(discord.Interaction, cast(object, interaction)))
+
+        self.assertEqual(submission.roles, ("555",))
 
 
 if __name__ == "__main__":

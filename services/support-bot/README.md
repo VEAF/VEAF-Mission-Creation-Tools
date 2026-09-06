@@ -106,6 +106,50 @@ And **everything read is data**: no line a reporter or a log wrote ever selects 
 with instruction-shaped text spliced into every field, and requires identical decisions; and it
 carries personal data through every publishing path and requires none of it out the other end.
 
+### The automatic hypothesis — the only model call in `/bug`
+
+Everything above costs nothing and works when nothing else does. This adds **one** model call per
+report, **after** the issue is filed, posted as a clearly labelled comment. Three gates, all cheap,
+all checked before the call:
+
+| Gate | Value | Why |
+|---|---|---|
+| A Discord role | `SUPPORT_BOT_ENRICH_ROLE_ID` | read off the interaction: costs no API call, cannot be forged |
+| The day's allowance | `SUPPORT_BOT_ENRICH_PER_DAY`, default **15** | the free Gemini tier was measured at **20 requests a day for the whole Google project**, shared with `/ask` and the log analysis |
+| One call per report | enforced by the runtime | not requested of the model, which cannot be trusted to count |
+
+**To switch it off entirely, leave `SUPPORT_BOT_ENRICH_ROLE_ID` empty.** That is the default, and
+it is not a degraded mode: reports are filed complete, with no hypothesis section at all. Enriching
+for everybody the moment the service is installed would spend an association resource on a decision
+nobody made, and picking which role means "VEAF member" is not this service's call.
+
+The allowance **fails closed**: counters that cannot be read mean no hypothesis, never an unlimited
+one. That is the opposite of `/ask`'s degraded mode, and deliberately so — there, silence looks like
+a broken bot; here it costs one paragraph on an issue that is already filed.
+
+#### How to read a machine-filed issue
+
+Everything in the **body** is measured: parsed from the `doctor` block, resolved from the stack
+trace, quoted from a file, matched against `rules.json`, swept from the tracker and `.backlog/`.
+Nothing in it is guessed.
+
+The hypothesis is a **comment**, under its own `## ⚠️` heading, with the caveat directly beneath it:
+produced by a model, in one call, from the body alone, verified by nobody. It names a file and a
+line only when the body quotes them, and it is instructed to answer *"not enough to conclude"*
+rather than to blame something it cannot support. **It is a guess.** A maintainer three months later
+has to be able to tell in one glance which half he is reading, and closing a real bug on a machine's
+confident wrong guess is the failure the whole labelling scheme exists to prevent.
+
+When there is no hypothesis, the issue **says so and says why** — not a member, allowance spent,
+model unavailable, empty answer, switched off. An issue silent on the subject would leave a reader
+unable to tell a report nobody guessed at from a guess that was withheld.
+
+The prompt itself lives in the Worker (`poc/doc-chatbot/worker/src/index.js`,
+`bugHypothesisInstruction`), selected by `kind: "bug"` on the `/analyze` route — one place, rather
+than assembled from fragments in whichever caller happens to ask. **The Worker is deployed by hand**
+(`npx wrangler deploy`), so a change to that instruction only reaches production once somebody
+deploys it.
+
 ### The checkout, and how it stays fresh
 
 Turning a trace into `mission_builder/v5_converter.py:412` is only worth doing if the file on disk

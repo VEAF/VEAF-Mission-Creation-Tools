@@ -14,10 +14,11 @@ order needs the order to be observable without a Discord connection.
    operation, and neither is walking a checkout for callers.
 3. **Attachments first, then assembly.** A trace often appears only in the attached log, never in
    the form, so the log excerpt is scanned for locations along with the typed fields.
-4. **The report goes to a sink.** Filing it is ticket 05's GitHub App and previewing it is
-   ticket 04; this lot ends at a complete :class:`~veaf_support_bot.bugreport.BugReport` and a seam
-   to hand it through. The default sink renders it back to the reporter, so the deterministic path
-   is observable end to end before either of those exists.
+4. **Sweep, show, then file — in that order.** The prior-art sweep runs before anything is opened;
+   the issue is then rendered *as it will be filed* and put to the reporter with three buttons; and
+   only a press of *File the issue* reaches GitHub. Every other answer — edit, cancel, a silence —
+   leaves the tracker untouched and says which one it was. A deployment with no GitHub App at all
+   still shows the deterministic pass, so the pipeline stays observable end to end.
 
 ## Attachments arrive on the command, not in the thread
 
@@ -52,6 +53,7 @@ from typing import Protocol
 from veaf_support_bot.attachments import AttachmentCollector, Harvest, Incoming
 from veaf_support_bot.bugreport import BugForm, BugReport, MaterialNote, assemble, safe_redact
 from veaf_support_bot.checkout import Checkout
+from veaf_support_bot.draft import CANCEL, EDIT, EXPIRED, FILE, Draft
 from veaf_support_bot.filing import Outcome
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, PriorArtGate, Sweep
@@ -70,6 +72,13 @@ REPOSITORY_URL = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
 SUMMARY_MAX_CHARS = 200
 PARAGRAPH_MAX_CHARS = 1200
 DOCTOR_MAX_CHARS = 4000
+
+#: How much of an escalated ``/ask`` exchange is carried into the form. Discord **refuses** a modal
+#: whose pre-filled value is longer than the field, so an unsatisfying answer of two thousand
+#: characters would not produce a truncated form — it would produce no form at all. The two bounds
+#: leave room for the sentence that introduces them.
+ESCALATED_QUESTION_CHARS = 300
+ESCALATED_ANSWER_CHARS = 700
 
 
 @dataclass
@@ -101,9 +110,81 @@ class BugExchange(Protocol):
             content: The message content.
         """
 
+    async def decide(self, content: str, lang: str) -> str:
+        """Show the draft and return what the reporter chose to do with it.
+
+        This is the step that publishes, or does not. It lives on the exchange rather than on the
+        service because the buttons hang off *this* reporter's own message: a consent object built
+        once at start-up would have nowhere to draw them.
+
+        Args:
+            content: The draft, rendered and bounded.
+            lang: ``"fr"`` or ``"en"``, for the button labels.
+
+        Returns:
+            One of :data:`~veaf_support_bot.draft.CHOICES`. Anything that is not
+            :data:`~veaf_support_bot.draft.FILE` leaves the tracker untouched, so a silence, a
+            refusal and a Discord failure are all safe answers.
+        """
+
+    async def confirm(self, content: str, lang: str) -> bool:
+        """Show a prior-art match with its evidence and return whether the reporter recognised it.
+
+        Args:
+            content: The proposal, with the evidence it was computed from.
+            lang: ``"fr"`` or ``"en"``, for the button labels.
+
+        Returns:
+            ``True`` only when he says it is the same subject. Everything else — *mine is
+            different*, a silence, a failure — answers ``False`` and the report carries on, because
+            a machine's unanswered guess must never silence a real bug.
+        """
+
+
+class _AskTheReporter:
+    """The :class:`~veaf_support_bot.priorart.MatchConfirmation` protocol, over the exchange.
+
+    The sweep speaks in :class:`~veaf_support_bot.priorart.Sweep` objects and the exchange speaks in
+    strings, so the rendering — which is where the *evidence* is put in front of the reporter —
+    happens here, on this side of the seam. Discord never sees a sweep, and the intake never draws a
+    button.
+
+    Attributes:
+        exchange: Who gets asked.
+    """
+
+    def __init__(self, exchange: BugExchange) -> None:
+        """Initialize the adapter.
+
+        Args:
+            exchange: The Discord side.
+        """
+        self._exchange = exchange
+
+    async def confirm(self, sweep: Sweep, lang: str) -> bool:
+        """Put the match, with its evidence, to the reporter.
+
+        Args:
+            sweep: The finding.
+            lang: ``"fr"`` or ``"en"``.
+
+        Returns:
+            Whether he recognised it as the same subject.
+        """
+        return await self._exchange.confirm(render_match(sweep, lang), lang)
+
 
 #: What a finished report is handed to. Returns the sentence the reporter reads.
 ReportSink = Callable[[BugReport], Awaitable[str]]
+
+#: What the reporter is told for each answer that is not "file it". Written as a table rather than
+#: as branches so a new answer cannot be added without a sentence to go with it — a decision the
+#: reporter makes and the bot does not acknowledge reads exactly like a bot that crashed.
+DECLINED: dict[str, str] = {
+    EDIT: "draft.editing",
+    CANCEL: "draft.cancelled",
+    EXPIRED: "draft.expired",
+}
 
 
 class ReportFiler(Protocol):
@@ -134,6 +215,28 @@ class ReportFiler(Protocol):
 
         Returns:
             What became of it.
+        """
+
+    def draft_of(self, report: BugReport, *, thread_url: str = "") -> Draft:
+        """Render the issue exactly as :meth:`file` would create it.
+
+        Args:
+            report: The assembled report.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            The title and body that would be sent.
+        """
+
+    def comment_draft_of(self, report: BugReport, *, thread_url: str = "") -> Draft:
+        """Render what :meth:`comment_on` would add to an existing issue.
+
+        Args:
+            report: The assembled report.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            The comment as it would be posted.
         """
 
 
@@ -207,7 +310,7 @@ class BugIntake:
                 await self._say(exchange, text("bug.error.unexpected", lang))
                 return None
 
-            report, message = await self._decide(report, lang, submission.thread_url)
+            report, message = await self._decide(exchange, report, lang, submission.thread_url)
             await self._say(exchange, message)
         finally:
             rmtree(workdir, ignore_errors=True)
@@ -228,7 +331,9 @@ class BugIntake:
         )
         return report
 
-    async def _decide(self, report: BugReport, lang: str, thread_url: str) -> tuple[BugReport, str]:
+    async def _decide(
+        self, exchange: BugExchange, report: BugReport, lang: str, thread_url: str
+    ) -> tuple[BugReport, str]:
         """Run the prior-art step, then either act on it or file the report.
 
         The order is the whole of ticket 03: the sweep happens **before** anything is opened, and
@@ -243,15 +348,15 @@ class BugIntake:
         Returns:
             A pair of the report, now carrying the finding, and what the reporter is told.
         """
-        sweep, accepted = await self._sweep(report, lang)
+        sweep, accepted = await self._sweep(exchange, report, lang)
         report = replace(report, prior_art=sweep)
         if accepted and sweep is not None:
-            return report, await self._act_on(sweep, report, lang, thread_url)
+            return report, await self._act_on(exchange, sweep, report, lang, thread_url)
         if self._sink is not None:
             return report, await self._sink(report)
-        return report, await self._file(report, lang, thread_url)
+        return report, await self._file(exchange, report, lang, thread_url)
 
-    async def _sweep(self, report: BugReport, lang: str) -> tuple[Sweep | None, bool]:
+    async def _sweep(self, exchange: BugExchange, report: BugReport, lang: str) -> tuple[Sweep | None, bool]:
         """Compare the report against everything already recorded.
 
         Args:
@@ -264,7 +369,7 @@ class BugIntake:
         """
         if self._prior_art is None:
             return None, False
-        sweep, accepted = await self._prior_art.run(sweep_query(report), lang)
+        sweep, accepted = await self._prior_art.run(sweep_query(report), lang, confirmation=_AskTheReporter(exchange))
         self._logger.info(
             "prior art swept",
             extra={
@@ -278,10 +383,16 @@ class BugIntake:
         )
         return sweep, accepted
 
-    async def _act_on(self, sweep: Sweep, report: BugReport, lang: str, thread_url: str) -> str:
+    async def _act_on(self, exchange: BugExchange, sweep: Sweep, report: BugReport, lang: str, thread_url: str) -> str:
         """Do what an accepted match asks for, which for three of the four verdicts is nothing.
 
+        The fourth — a duplicate — writes a **comment on a public tracker**, carrying the same
+        material an issue would: his words, his environment, what was extracted on his behalf.
+        Recognising an issue as his is not the same act as agreeing to publish twenty lines under
+        it, so this goes through the same click as the issue does.
+
         Args:
+            exchange: The Discord side, which is who gets asked.
             sweep: The accepted finding.
             report: The assembled report.
             lang: ``"fr"`` or ``"en"``.
@@ -296,11 +407,24 @@ class BugIntake:
         number = _issue_number(sweep)
         if number == 0:
             return proposal
+        draft = self._filer.comment_draft_of(report, thread_url=thread_url)
+        choice = await exchange.decide(draft.render(lang, header="draft.header_comment"), lang)
+        self._logger.info(
+            "the reporter decided what to do with his observation",
+            extra={"event": "intake.decided_comment", "user": report.form.reporter_id, "choice": choice},
+        )
+        if choice != FILE:
+            return text(DECLINED.get(choice, "draft.cancelled"), lang)
         outcome = await self._filer.comment_on(number, report, thread_url=thread_url)
         return proposal + "\n\n" + _render_outcome(outcome, lang, report)
 
-    async def _file(self, report: BugReport, lang: str, thread_url: str) -> str:
-        """File the report, or say why nothing was filed.
+    async def _file(self, exchange: BugExchange, report: BugReport, lang: str, thread_url: str) -> str:
+        """Show the issue, wait for the click, and file it — or say why nothing was filed.
+
+        The order is ticket 04's whole point: the reporter sees the body that will be published,
+        under a machine account that does not carry his name, and nothing reaches GitHub until he
+        says so. Every path that is not a click leaves the tracker untouched and says which one it
+        was, because a draft nobody acted on must never become an issue later.
 
         Args:
             report: The assembled report.
@@ -308,13 +432,20 @@ class BugIntake:
             thread_url: Link back to the Discord thread.
 
         Returns:
-            What the reporter is told: the preview, plus what became of the issue.
+            What the reporter is told.
         """
-        preview = render_preview(report, lang)
         if self._filer is None:
-            return preview + "\n\n" + text("filed.disabled", lang)
+            return render_preview(report, lang) + "\n\n" + text("filed.disabled", lang)
+        draft = self._filer.draft_of(report, thread_url=thread_url)
+        choice = await exchange.decide(draft.render(lang), lang)
+        self._logger.info(
+            "the reporter decided what to do with his draft",
+            extra={"event": "intake.decided", "user": report.form.reporter_id, "choice": choice},
+        )
+        if choice != FILE:
+            return text(DECLINED.get(choice, "draft.cancelled"), lang)
         outcome = await self._filer.file(report, thread_url=thread_url)
-        return preview + "\n\n" + _render_outcome(outcome, lang, report)
+        return _render_outcome(outcome, lang, report)
 
     async def build(self, submission: BugSubmission, workdir: Path) -> BugReport:
         """Do the deterministic pass, attachments included.
@@ -464,6 +595,48 @@ def _split_fields(form: BugForm, redacted_text: str) -> tuple[str, str, str, str
     return out[0], out[1], out[2], out[3], out[4]
 
 
+def escalation_form(
+    question: str,
+    answer: str,
+    *,
+    reporter: str,
+    reporter_id: str,
+    language: str,
+) -> BugForm:
+    """Turn an unsatisfying ``/ask`` exchange into the start of a report.
+
+    What it fills is *what happened*: the question and the answer are the observation, not the
+    diagnosis. *What was expected* and *the steps* are deliberately left empty — the form still
+    requires them, so escalating remains a report somebody wrote rather than a transcript nobody
+    read.
+
+    Args:
+        question: What was asked.
+        answer: What the bot replied.
+        reporter: The asker's display name.
+        reporter_id: The asker's Discord id.
+        language: The language of the exchange.
+
+    Returns:
+        The pre-filled form.
+    """
+    return BugForm(
+        summary=one_line(question, SUMMARY_MAX_CHARS),
+        happened=text(
+            "escalate.happened",
+            normalize_language(language),
+            question=one_line(question, ESCALATED_QUESTION_CHARS),
+            answer=one_line(answer, ESCALATED_ANSWER_CHARS),
+        )[:PARAGRAPH_MAX_CHARS],
+        expected="",
+        steps="",
+        doctor="",
+        reporter=reporter,
+        reporter_id=reporter_id,
+        language=language,
+    )
+
+
 def render_location(location: Location, lang: str) -> str:
     """Render one resolved location for the preview.
 
@@ -578,11 +751,12 @@ def _render_outcome(outcome: Outcome, lang: str, report: BugReport) -> str:
 
 
 def render_preview(report: BugReport, lang: str) -> str:
-    """Render what the deterministic pass produced, for the reporter to see.
+    """Render what the deterministic pass produced, for a deployment that files nothing.
 
-    This is a **preview**, not the issue body: ticket 04 owns the body and the click that files it.
-    What it proves today is that the pass ran and what it found — which is what makes the pipeline
-    observable before a GitHub App exists.
+    This is a **summary of the pass**, not the issue body — the body, and the click that publishes
+    it, are :class:`~veaf_support_bot.draft.Draft`. It is what a service with no GitHub App shows:
+    proof that the pass ran and what it found, so the pipeline stays observable without a tracker
+    to write to.
 
     Args:
         report: The assembled report.

@@ -49,6 +49,7 @@ from typing import Any
 
 from veaf_support_bot.attachments import Prepared
 from veaf_support_bot.bugreport import BASE_LABEL, BugReport
+from veaf_support_bot.draft import Draft
 from veaf_support_bot.github_app import GitHubApp, GitHubError
 from veaf_support_bot.issue_body import (
     Carried,
@@ -113,6 +114,18 @@ class Outcome:
             ``True`` for every action but ``"failed"``.
         """
         return self.action != "failed"
+
+
+def _language_of(report: BugReport) -> str:
+    """Return the language the issue is written in.
+
+    Args:
+        report: The assembled report.
+
+    Returns:
+        ``"fr"`` or ``"en"`` — an unrecognised locale is written in English rather than refused.
+    """
+    return report.form.language if report.form.language in ("fr", "en") else "en"
 
 
 def report_key(report: BugReport) -> str:
@@ -375,6 +388,53 @@ class IssueFiler:
         self._machine_label = machine_label
         self._locks: dict[str, _Serialiser] = {}
 
+    def _carried(self, report: BugReport) -> list[Carried]:
+        """Prepare the text attachments this report carries whole.
+
+        Args:
+            report: The assembled report.
+
+        Returns:
+            One :class:`~veaf_support_bot.issue_body.Carried` per prepared attachment.
+        """
+        return [carry(item, redactor=self._redactor) for item in report.attachments if isinstance(item, Prepared)]
+
+    def draft_of(self, report: BugReport, *, thread_url: str = "") -> Draft:
+        """Render the issue exactly as :meth:`file` would create it.
+
+        This is what ticket 04 shows the reporter before anything is published. It is the *same*
+        string builder the filing path uses, called with the same arguments — a preview rendered by
+        a second implementation could only ever prove that two functions disagree, which is the one
+        thing a consent step must not do.
+
+        Args:
+            report: The assembled report.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            The title and body that would be sent.
+        """
+        return Draft(
+            title=report.title,
+            body=render_body(report, report_key(report), thread_url=thread_url, carried=self._carried(report)),
+        )
+
+    def comment_draft_of(self, report: BugReport, *, thread_url: str = "") -> Draft:
+        """Render what :meth:`comment_on` would add to an existing issue.
+
+        A comment on a public tracker publishes the same material an issue does — the reporter's
+        words, his environment, what was extracted on his behalf. So it goes through the same click,
+        and through the same renderer, for the same reason :meth:`draft_of` does.
+
+        Args:
+            report: The assembled report.
+            thread_url: Link back to the Discord thread.
+
+        Returns:
+            The comment as it would be posted. The title is the report's, for the preview header.
+        """
+        return Draft(title=report.title, body=render_duplicate_comment(report, _language_of(report), thread_url))
+
     @asynccontextmanager
     async def _serialised(self, key: str) -> AsyncIterator[None]:
         """Hold one report's lock, and forget the lock once nobody wants it.
@@ -433,12 +493,11 @@ class IssueFiler:
         Returns:
             The outcome.
         """
-        lang = report.form.language if report.form.language in ("fr", "en") else "en"
         try:
             response = await self._app.request(
                 "POST",
                 f"/repos/{self._app.repository}/issues/{number}/comments",
-                {"body": render_duplicate_comment(report, lang, thread_url)},
+                {"body": self.comment_draft_of(report, thread_url=thread_url).body},
             )
         except GitHubError as error:
             self._logger.error(
@@ -476,7 +535,7 @@ class IssueFiler:
             self._remember(key, existing)
             return Outcome(action="reused", number=existing.number, url=existing.url)
 
-        carried = [carry(item, redactor=self._redactor) for item in report.attachments if isinstance(item, Prepared)]
+        carried = self._carried(report)
         body = render_body(report, key, thread_url=thread_url, carried=carried)
         labels = self._labels_for(report)
 

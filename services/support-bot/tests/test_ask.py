@@ -125,7 +125,9 @@ class TestTheOrderOfTheExchange(unittest.IsolatedAsyncioTestCase):
 
         await _handler(FakeWorker(["la réponse"])).handle(exchange, _context())
 
-        self.assertEqual(exchange.steps[-1], "edit")
+        # The escalation offer comes after, and writes nothing: what the asker is left reading is
+        # still the edited answer.
+        self.assertEqual([step for step in exchange.steps if step != "offer_escalation"][-1], "edit")
         self.assertIn("la réponse", exchange.final)
 
 

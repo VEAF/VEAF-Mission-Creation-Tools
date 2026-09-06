@@ -98,6 +98,20 @@ class Exchange(Protocol):
             content: The new content.
         """
 
+    async def offer_escalation(self, question: str, answer: str, lang: str) -> None:
+        """Offer to turn an unsatisfying answer into a bug report.
+
+        An answer that did not help is the moment the asker is most likely to give up, and the
+        documentation bot is where a real bug most often shows up first. The offer carries the
+        question and the answer into the report form, so escalating costs a click rather than a
+        retype.
+
+        Args:
+            question: What was asked.
+            answer: What the bot replied.
+            lang: ``"fr"`` or ``"en"``.
+        """
+
 
 @dataclass
 class AskContext:
@@ -279,6 +293,7 @@ class AskHandler:
         body, titles = answer_module.split_sources(collected)
         links = answer_module.source_links(titles, lang)
         await exchange.edit(answer_module.render(body, links, lang))
+        await exchange.offer_escalation(context.question, body, lang)
         self._logger.info(
             "question answered",
             extra={

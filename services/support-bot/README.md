@@ -269,6 +269,34 @@ token dies after fifteen minutes, and an answer that arrives after that is an an
 Both ways run the same module, `python -m veaf_support_bot`, with the same environment. There is no
 "container mode" in the code, which is what makes the direct run a real rehearsal of the deployment.
 
+### Where it runs
+
+**Nowhere yet, as of 2026-09-06.** The code is merged, the Worker is deployed and the
+`filed-by-bot` label exists, but no process is running anywhere: there is no host to log into and
+nothing to restart. This paragraph is here because "where is it deployed?" is the first question
+anyone asks, and a README that only explains *how* to start the service silently implies that
+somebody, somewhere, already did.
+
+When the first deployment happens, **replace this section with the answer** — the host, how to reach
+it, and who owns it.
+
+What that host has to provide, beyond running the process:
+
+- **Persistent storage for `state/`.** Four files must survive a restart: the quota counters, the
+  enrichment allowance, the filed-issue ledger and the thread ↔ issue links. Losing the last one
+  orphans every thread already opened — the issues stay, but they stop being answered.
+- **A git checkout the service owns** (`SUPPORT_BOT_CHECKOUT_PATH`). Without it `/bug` is not
+  published at all.
+- **Outbound network** to Discord, GitHub and the Worker. Nothing has to reach the service from
+  outside except, optionally, an uptime monitor on `/readyz`.
+
+The values already decided, so nobody has to rediscover them:
+
+| Setting | Value | Decided |
+|---|---|---|
+| `SUPPORT_BOT_ENRICH_ROLE_ID` | `566946889841377281` (*mission maker*) | 2026-09-06 |
+| `SUPPORT_BOT_GITHUB_MACHINE_LABEL` | `filed-by-bot`, already created on the repository | 2026-09-05 |
+
 ### Configuration
 
 Everything comes from the environment; nothing is read from a file in the repository, and no secret

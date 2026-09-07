@@ -59,8 +59,14 @@ DRAFT_EXPIRY_SECONDS: Final = 480
 #: Longest title shown in the draft header. The issue keeps its own; this is the preview line.
 TITLE_MAX_CHARS: Final = 200
 
-#: A line that is nothing but an HTML comment.
-_COMMENT_LINE: Final = re.compile(r"\s*<!--.*-->\s*$")
+#: A line that is nothing but **this service's own** marker comment.
+#:
+#: Narrow on purpose, and the narrowness is the point. Hiding every HTML comment would also hide one
+#: that arrived inside a reporter's own material — a log line, a quoted `.xml`, a fenced snippet —
+#: and the preview would then differ from the issue in a way nobody could see. What this module
+#: promises is that the draft *is* the body that gets filed; the marker is the one line the service
+#: writes for machines rather than for the reader.
+_COMMENT_LINE: Final = re.compile(r"\s*<!--\s*veaf-support-bot:[^>]*-->\s*$")
 
 #: The fence a Markdown code block opens and closes with.
 _FENCE: Final = "```"
@@ -110,15 +116,15 @@ class Draft:
 
 
 def _without_comments(body: str) -> str:
-    """Drop the HTML comments a Markdown renderer hides and Discord does not.
+    """Drop the service's own marker line, which a Markdown renderer hides and Discord does not.
 
     Args:
         body: The issue body, exactly as it will be filed.
 
     Returns:
-        The same text with whole-line HTML comments removed. Only whole lines: a comment opened
-        mid-sentence is not something this service writes, and cutting inside a line would change
-        the prose around it.
+        The same text with the marker line removed, and nothing else — a comment a reporter's own
+        material carries stays, because the preview must not differ from the issue anywhere the
+        reader cannot see.
     """
     kept = [line for line in body.split("\n") if not _COMMENT_LINE.match(line)]
     return "\n".join(kept).lstrip("\n")

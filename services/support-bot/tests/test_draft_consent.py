@@ -164,11 +164,16 @@ class TestThePreviewShowsWhatAReaderCanRead(unittest.TestCase):
 
         self.assertIn(MARKER_PREFIX, draft.body)
 
-    def test_any_html_comment_is_hidden_the_same_way(self) -> None:
-        """The rule is what Discord shows, not one particular string."""
-        rendered = Draft(title="t", body="<!-- anything -->\n\nvisible").render("en")
+    def test_a_comment_the_reporter_supplied_is_still_shown(self) -> None:
+        """The preview must not differ from the issue anywhere the reader cannot see it.
 
-        self.assertNotIn("<!--", rendered)
+        A `dcs.log`, a quoted `.xml`, a fenced snippet: a reporter's own material can carry an HTML
+        comment, and hiding those would make the preview a summary of the issue rather than the
+        issue itself — the one thing this module exists to prevent.
+        """
+        rendered = Draft(title="t", body="<!-- something he pasted -->\n\nvisible").render("en")
+
+        self.assertIn("something he pasted", rendered)
         self.assertIn("visible", rendered)
 
 

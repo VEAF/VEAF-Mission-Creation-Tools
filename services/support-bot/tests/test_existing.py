@@ -51,7 +51,7 @@ def check(
     worker: FakeWorker,
     request: str = REQUEST,
     lang: str = "fr",
-    issues: Sequence[tuple[int, str]] = (),
+    issues: Sequence[tuple[int, str, str]] = (),
 ) -> DocumentationCheck:
     """Run one check against a scripted Worker.
 
@@ -148,7 +148,10 @@ class TestARequestAlreadyMadeInOtherWords(unittest.TestCase):
     and `#178 Gérer la destruction du -cap` are one subject in three vocabularies.
     """
 
-    OPEN = ((240, "-cap un peu plus selectif"), (187, "Modifications du watchdog de CAP"))
+    OPEN = (
+        (240, "-cap un peu plus selectif", "https://github.test/issues/240"),
+        (187, "Modifications du watchdog de CAP", "https://github.test/issues/187"),
+    )
 
     def test_the_open_issues_travel_in_the_call_the_flow_already_makes(self) -> None:
         """One call, two answers: joining the titles costs no extra model request."""

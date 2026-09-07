@@ -116,11 +116,13 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "{reset_time}) — et signale-le sur le canal support, ça ne se répare pas tout seul."
         ),
         "suggest.named_issue": (
-            "🔎 **Ta demande ressemble à un ticket déjà ouvert : #{issue}.**\n"
+            "🔎 **Ta demande ressemble à un ticket déjà ouvert :**\n"
+            "> [#{issue} — {title}]({url})\n\n"
             "Ce rapprochement vient d'une lecture du sens, pas d'une comparaison de mots — deux "
             "personnes ne décrivent jamais le même besoin avec le même vocabulaire. Ouvre-le et "
             "dis-moi : c'est bien la même chose, ou pas ?"
         ),
+        "suggest.no_title": "(sans titre)",
         "suggest.settled.named_issue": (
             "Entendu, rien de nouveau n'est ouvert : le ticket #{issue} porte déjà ce besoin."
         ),
@@ -213,6 +215,13 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "priorart.closest": "Correspondance la plus proche : {proposed}, {answer}.",
         "priorart.also_considered": "également envisagé :",
         "priorart.deterministic": "_Balayage déterministe : appariement de mots, aucun modèle._",
+        "withheld.mission": (
+            "résumée : seuls les champs listés plus haut sont publiés — ni les noms de groupes, "
+            "ni le briefing, ni les déclencheurs"
+        ),
+        "withheld.log": "réduit par le profil *Diagnostic* : seul l'extrait ci-dessus est publié",
+        "withheld.text": "cité en partie : seul l'extrait ci-dessus est publié",
+        "withheld.archive": "listé seulement : le contenu des fichiers n'est pas publié",
         # --- /bug, the deterministic intake --------------------------------------------------
         "bug.received": "📥 Rapport reçu : **{title}**",
         "bug.facts": ("-# Version déclarée : {version} · Composant : {component}\n-# Dépôt consulté : {revision}"),
@@ -474,11 +483,13 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "it on the support channel, this one does not fix itself."
         ),
         "suggest.named_issue": (
-            "🔎 **Your request looks like an issue that is already open: #{issue}.**\n"
+            "🔎 **Your request looks like an issue that is already open:**\n"
+            "> [#{issue} — {title}]({url})\n\n"
             "That match comes from reading the meaning, not from comparing words — no two people "
             "describe the same need with the same vocabulary. Open it and tell me: is it the same "
             "thing, or not?"
         ),
+        "suggest.no_title": "(untitled)",
         "suggest.settled.named_issue": ("Understood, nothing new is opened: issue #{issue} already carries this need."),
         # --- ticket 01: what the forms *show*, and not only what they say --------------------
         "command.ask.description": "Ask a question about the VEAF Mission Creation Tools documentation",
@@ -545,6 +556,12 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "priorart.closest": "Closest match: {proposed}, {answer}.",
         "priorart.also_considered": "also considered:",
         "priorart.deterministic": "_Deterministic sweep: word matching, no model._",
+        "withheld.mission": (
+            "summarised: only the fields listed above are published — no group names, no briefing, no triggers"
+        ),
+        "withheld.log": "reduced by the *Diagnostic* profile: only the excerpt above is published",
+        "withheld.text": "quoted in part: only the excerpt above is published",
+        "withheld.archive": "listed only: the files' contents are not published",
         # --- /bug, the deterministic intake --------------------------------------------------
         "bug.received": "📥 Report received: **{title}**",
         "bug.facts": ("-# Claimed version: {version} · Component: {component}\n-# Repository consulted: {revision}"),

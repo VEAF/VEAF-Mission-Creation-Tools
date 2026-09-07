@@ -129,15 +129,21 @@ class BugForm:
 
 @dataclass(frozen=True)
 class MaterialNote:
-    """One thing the report could not do, said out loud.
+    """One thing the report could not do — or chose not to do — said out loud.
 
     Attributes:
         subject: What it is about, e.g. a file name or ``"log excerpt"``.
         reason: Why it is not there.
+        deliberate: Whether this is a **decision** rather than a failure. A ``.miz`` summarised
+            instead of published, a log reduced by its profile: those protect the reporter, and
+            issue #938 showed what happens when they are told as absences — 25 of the 28 lines under
+            *what is missing* were the service doing its job, and the two real findings were at the
+            bottom of them.
     """
 
     subject: str
     reason: str
+    deliberate: bool = False
 
 
 @dataclass(frozen=True)

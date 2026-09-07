@@ -316,9 +316,24 @@ jobs:
           test -s files.txt || { echo "the export listed nothing at all"; exit 1; }
           grep -q "app/veaf_support_bot/__init__.py" files.txt \
             || { echo "the listing does not even hold the package; the check would prove nothing"; exit 1; }
-          if grep -Ei '(^|/)\.env($|\.)|\.pem$|(^|/)id_rsa($|\.)|(^|/)run/secrets/.' files.txt; then
+          # Anchored on where THIS project's files can land, not on extensions anywhere. Measured
+          # on the first run (34150557474): a bare `\.pem$` matched the base image's public CA
+          # bundle — /etc/ssl/certs/*.pem, usr/local/lib/.../certifi/cacert.pem — and failed the
+          # job on 150 certificates whose whole purpose is to be public. What a secret of ours would
+          # look like is a file under the working directory, the unprivileged user's home, root's,
+          # or a mounted secret path.
+          if grep -Ei '(^|/)\.env($|\.)|^run/secrets/.|^(app|root|home/[^/]+)/.*(\.pem|\.key|id_rsa)' files.txt; then
             echo "the image carries something that looks like a secret"; exit 1
           fi
+          # The check has to be able to fail, and the CA bundle proves only that it does not fire on
+          # a public certificate. So run the same expression against a listing that DOES hold a
+          # planted secret: an expression narrowed until it matches nothing would otherwise sail
+          # through every future build.
+          { echo "app/.env"; echo "app/veaf_support_bot/__init__.py"; } > planted.txt
+          if ! grep -Ei '(^|/)\.env($|\.)|^run/secrets/.|^(app|root|home/[^/]+)/.*(\.pem|\.key|id_rsa)' planted.txt; then
+            echo "the secret check no longer catches a planted secret"; exit 1
+          fi
+          rm -f planted.txt
 
       # `develop` is the channel the Docker host follows today. `latest` is published from `master`,
       # so it exists the day a release happens — a compose pinned to it before that would find no

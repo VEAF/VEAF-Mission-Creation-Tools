@@ -134,6 +134,8 @@ role: the hypothesis names a file and a line of the repository, which is useful 
 go and look and noise to somebody who reported a crash and wants it fixed. The id itself lives in
 the environment, never here.
 
+**More than one role may open it**: `SUPPORT_BOT_ENRICH_ROLE_ID` takes a comma-separated list, and holding any one of them is enough — which role means "VEAF member" is the association's decision, and it may well answer with two.
+
 **To switch it off entirely, leave `SUPPORT_BOT_ENRICH_ROLE_ID` empty.** That is the default, and
 it is not a degraded mode: reports are filed complete, with no hypothesis section at all. Enriching
 for everybody the moment the service is installed would spend an association resource on a decision
@@ -602,7 +604,7 @@ CRITICAL veaf-support-bot.cli the support bot cannot start: 3 configuration prob
 | `SUPPORT_BOT_GITHUB_REPOSITORY` | no | `VEAF/VEAF-Mission-Creation-Tools` | Where issues are filed. |
 | `SUPPORT_BOT_GITHUB_LEDGER_FILE` | no | `state/filed-issues.json` | What was already filed, so a retry never opens a second issue. Must survive a restart. |
 | `SUPPORT_BOT_GITHUB_MACHINE_LABEL` | no | `filed-by-bot` | Label marking an issue as machine-filed. Must already exist in the repository. |
-| `SUPPORT_BOT_ENRICH_ROLE_ID` | no | — | Discord role opening the automatic hypothesis. **Empty switches the hypothesis off**, which is the default. Must be a numeric role id; anything else is refused at startup. |
+| `SUPPORT_BOT_ENRICH_ROLE_ID` | no | — | Discord role opening the automatic hypothesis, or **several separated by commas** — holding any one of them is enough. **Empty switches the hypothesis off**, which is the default. Every entry must be a numeric role id; one malformed entry is refused at startup. |
 | `SUPPORT_BOT_ENRICH_PER_DAY` | no | `15` | Hypotheses the whole bot may produce in a UTC day, against a free tier measured at 20 requests a day for the whole Google project. |
 | `SUPPORT_BOT_ENRICH_STATE_FILE` | no | `state/enrichment.json` | Where that allowance is counted. Its own file, so a busy day of questions cannot eat the day's hypotheses. **Must survive a restart.** |
 | `SUPPORT_BOT_ENRICH_ENDPOINT` | no | Worker `/analyze` | Where the one call goes. `kind: "bug"` selects the hypothesis prompt on that route. |

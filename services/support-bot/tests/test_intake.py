@@ -29,6 +29,7 @@ from veaf_support_bot.intake import (
     _redacted_form,
     render_preview,
 )
+from veaf_support_bot.texts import DEFAULT_LANGUAGE
 
 
 class RecordingExchange:
@@ -72,9 +73,11 @@ class _RecordingCollector(AttachmentCollector):
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self._exchange = exchange
 
-    async def collect(self, incoming: list[Incoming], workdir: Path):  # type: ignore[no-untyped-def]
+    async def collect(  # type: ignore[no-untyped-def]
+        self, incoming: list[Incoming], workdir: Path, lang: str = DEFAULT_LANGUAGE
+    ):
         self._exchange.calls.append("collect")
-        return await super().collect(incoming, workdir)
+        return await super().collect(incoming, workdir, lang)
 
 
 def _form(**overrides: str) -> BugForm:
@@ -170,7 +173,7 @@ class TestTheExchange(unittest.IsolatedAsyncioTestCase):
         """A placeholder that never resolves is the silent failure this service exists to avoid."""
 
         class _Exploding(AttachmentCollector):
-            async def collect(self, incoming, workdir):  # type: ignore[no-untyped-def]
+            async def collect(self, incoming, workdir, lang=DEFAULT_LANGUAGE):  # type: ignore[no-untyped-def]
                 raise RuntimeError("boom")
 
         intake = BugIntake(
@@ -242,12 +245,50 @@ class TestThePreview(unittest.TestCase):
         self.assertIn(report.freshness.revision, render_preview(report, "en"))
 
 
+class TestTheReportersLanguageReachesWhatIsWrittenIntoTheIssue(unittest.IsolatedAsyncioTestCase):
+    """Issue #929 carried English sentences under French headings.
+
+    The catalogue entries alone fix nothing: what made those sentences English was that the pass
+    writing them was never told which language the report is in. So what is asserted here is the
+    wiring — a French form reaching the collector as French — rather than the existence of a
+    translation nobody passes.
+    """
+
+    async def test_the_form_s_language_reaches_the_attachment_pass(self) -> None:
+        seen: list[str] = []
+        checkout = fixture_checkout()
+
+        class _Watching(AttachmentCollector):
+            async def collect(self, incoming, workdir, lang=DEFAULT_LANGUAGE):  # type: ignore[no-untyped-def]
+                seen.append(lang)
+                return await super().collect(incoming, workdir, lang)
+
+        intake = BugIntake(checkout, _Watching(checkout, _fake_downloader({})), refresh=False)
+        await intake.handle(RecordingExchange(), BugSubmission(_form(language="en"), []))
+
+        self.assertEqual(seen, ["en"])
+
+    async def test_a_french_report_is_prepared_in_french(self) -> None:
+        seen: list[str] = []
+        checkout = fixture_checkout()
+
+        class _Watching(AttachmentCollector):
+            async def collect(self, incoming, workdir, lang=DEFAULT_LANGUAGE):  # type: ignore[no-untyped-def]
+                seen.append(lang)
+                return await super().collect(incoming, workdir, lang)
+
+        intake = BugIntake(checkout, _Watching(checkout, _fake_downloader({})), refresh=False)
+        await intake.handle(RecordingExchange(), BugSubmission(_form(language="fr"), []))
+
+        self.assertEqual(seen, ["fr"])
+
+
 class TestTheTemporaryDirectoryIsCleanedEvenOnFailure(unittest.IsolatedAsyncioTestCase):
     async def test_a_crash_during_assembly_leaves_nothing_behind(self) -> None:
         checkout = fixture_checkout()
 
         class _Exploding(AttachmentCollector):
-            async def collect(self, incoming, workdir):  # type: ignore[no-untyped-def]
+            async def collect(self, incoming, workdir, lang=DEFAULT_LANGUAGE):  # type: ignore[no-untyped-def]
                 self.seen = workdir
                 raise RuntimeError("boom")
 
@@ -333,7 +374,9 @@ class _BlockingCheckout(Checkout):
 class _BlockingCollector(AttachmentCollector):
     """A collector whose reduction blocks the way parsing an 8 MB mission does."""
 
-    def _reduce(self, name: str, kind: str, path: Path, size: int, rejected: list[Any]) -> Prepared:
+    def _reduce(
+        self, name: str, kind: str, path: Path, size: int, rejected: list[Any], lang: str = DEFAULT_LANGUAGE
+    ) -> Prepared:
         """Sleep, then reduce.
 
         Args:
@@ -342,12 +385,13 @@ class _BlockingCollector(AttachmentCollector):
             path: Passed through.
             size: Passed through.
             rejected: Passed through.
+            lang: Passed through.
 
         Returns:
             The prepared attachment.
         """
         time.sleep(BLOCK_SECONDS)
-        return super()._reduce(name, kind, path, size, rejected)
+        return super()._reduce(name, kind, path, size, rejected, lang)
 
 
 class TestOneReportDoesNotHoldTheEventLoop(unittest.IsolatedAsyncioTestCase):

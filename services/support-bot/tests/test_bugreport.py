@@ -74,6 +74,22 @@ class TestTheComponentTableIsTheTemplates(unittest.TestCase):
     def test_the_catch_all_is_an_option_too(self) -> None:
         self.assertIn(UNKNOWN_COMPONENT, TEMPLATE.read_text(encoding="utf-8"))
 
+    def test_every_lua_script_is_lua_and_not_the_catch_all(self) -> None:
+        """Issue #929 was filed as `Other` over `src/scripts/community/AIEN.lua`.
+
+        The table knew `src/scripts/veaf/` and nothing else under `src/scripts/`, so every
+        community-shipped script — Lua that runs in a mission exactly like the VEAF ones — landed in
+        the catch-all. The component drives a label, so those reports were unfilterable.
+        """
+        for path in (
+            "src/scripts/veaf/veafSpawn.lua",
+            "src/scripts/community/AIEN.lua",
+            "src/scripts/community/mist.lua",
+            "src/scripts/hooks/veafHook.lua",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(component_for(path), ("Lua runtime scripts (in-mission)", "lua"))
+
     def test_the_longest_prefix_wins(self) -> None:
         """The updater sits inside the CLI's own tree, so order in the table is load-bearing."""
         self.assertEqual(component_for("src/python/veaf-tools/veaf-tools-updater.py")[0], "veaf-tools-updater.exe")

@@ -1,6 +1,6 @@
 # 03 — More than one role may open the hypothesis
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 

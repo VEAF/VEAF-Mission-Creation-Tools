@@ -57,7 +57,11 @@ UNKNOWN_COMPONENT = "Other"
 #: ``tests/test_bugreport.py`` asserts they still exist in that file — a renamed dropdown option
 #: would otherwise leave the bot writing a component nobody can filter on.
 COMPONENT_RULES: tuple[tuple[str, str, str], ...] = (
-    ("src/scripts/veaf/", "Lua runtime scripts (in-mission)", "lua"),
+    # The whole of `src/scripts/`, not `src/scripts/veaf/`. Issue #929 was filed as `Other` over
+    # `src/scripts/community/AIEN.lua` — Lua that runs inside a mission exactly like the VEAF
+    # scripts, and unfilterable because the component drives a label. What lives under here is Lua
+    # for the mission by construction: the framework, the community scripts it ships, the hooks.
+    ("src/scripts/", "Lua runtime scripts (in-mission)", "lua"),
     ("test/lua/", "Lua runtime scripts (in-mission)", "lua"),
     ("veaf_build/", "veaf-build (build pipeline)", "build"),
     ("doc/", "Documentation", "documentation"),

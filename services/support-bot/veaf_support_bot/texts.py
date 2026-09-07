@@ -111,6 +111,30 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "questions pour aujourd'hui, par sécurité. Ça se remet à zéro {reset_relative} (à "
             "{reset_time}) — et signale-le sur le canal support, ça ne se répare pas tout seul."
         ),
+        # --- ce qu'une pièce jointe devient dans le ticket ------------------------------------
+        # Écrit dans le ticket, donc dans la langue du rapporteur. Les deux comptes ci-dessous
+        # portent sur des choses différentes — les enregistrements que le profil garde, et les
+        # lignes que l'extrait affiche — et se lisaient comme une contradiction quand ils se
+        # suivaient sans être nommés (relevé sur #929 : « 1202 retenus » puis « 48 entrées ... 1202
+        # retenues »).
+        "attachment.log_digest": (
+            "Journal réduit par le profil *Diagnostic* : **{kept}** enregistrements retenus sur "
+            "{total}, dont {uncatalogued} sans correspondance au catalogue. Le décompte entre "
+            "crochets plus bas porte sur les lignes **affichées dans l'extrait**, pas sur les "
+            "enregistrements retenus."
+        ),
+        "attachment.too_large": (
+            "{size} octets, au-delà des {limit} qu'un ticket peut porter — voir l'extrait ci-dessus"
+        ),
+        "attachment.binary": "fichier binaire ({kind}), qu'un ticket ne peut pas porter",
+        "attachment.unreadable": "n'a pas pu être relu ({error})",
+        "attachment.unsupported": "type de fichier non accepté ({suffix})",
+        "attachment.too_large_for_the_limit": "trop volumineux ({size} ; la limite est {limit})",
+        "attachment.budget_spent": "le rapport a déjà atteint {total} de fichiers",
+        "attachment.over_what_is_left": "plus volumineux que les {left} restants pour ce rapport",
+        "attachment.download_failed": "n'a pas pu être téléchargé ({error})",
+        "attachment.not_summarised": "joint, mais non résumé : {error}",
+        "attachment.file_unreadable": "joint, mais illisible : {error}",
         # --- /bug, the deterministic intake --------------------------------------------------
         "bug.received": "📥 Rapport reçu : **{title}**",
         "bug.facts": ("-# Version déclarée : {version} · Composant : {component}\n-# Dépôt consulté : {revision}"),
@@ -371,6 +395,22 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "today as a precaution. It resets {reset_relative} (at {reset_time}) — and please report "
             "it on the support channel, this one does not fix itself."
         ),
+        # --- what an attachment becomes in the issue ------------------------------------------
+        "attachment.log_digest": (
+            "Log reduced by the *Diagnostic* profile: **{kept}** records kept out of {total}, "
+            "{uncatalogued} of them matching no catalogue entry. The bracketed count further down "
+            "measures the lines **shown in the excerpt**, not the records kept."
+        ),
+        "attachment.too_large": "{size} bytes, past the {limit} an issue can carry — see the excerpt above",
+        "attachment.binary": "binary file ({kind}), which an issue cannot hold",
+        "attachment.unreadable": "could not be read back ({error})",
+        "attachment.unsupported": "unsupported file type ({suffix})",
+        "attachment.too_large_for_the_limit": "too large ({size}; the limit is {limit})",
+        "attachment.budget_spent": "the report already reached {total} of files",
+        "attachment.over_what_is_left": "larger than the {left} left for this report",
+        "attachment.download_failed": "could not be downloaded ({error})",
+        "attachment.not_summarised": "attached, but not summarised: {error}",
+        "attachment.file_unreadable": "attached, but unreadable: {error}",
         # --- /bug, the deterministic intake --------------------------------------------------
         "bug.received": "📥 Report received: **{title}**",
         "bug.facts": ("-# Claimed version: {version} · Component: {component}\n-# Repository consulted: {revision}"),

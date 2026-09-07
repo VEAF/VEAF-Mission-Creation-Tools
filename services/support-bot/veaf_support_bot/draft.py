@@ -22,6 +22,7 @@ through, and returns what it left out so the message can say so.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Final
 
@@ -58,6 +59,15 @@ DRAFT_EXPIRY_SECONDS: Final = 480
 #: Longest title shown in the draft header. The issue keeps its own; this is the preview line.
 TITLE_MAX_CHARS: Final = 200
 
+#: A line that is nothing but **this service's own** marker comment.
+#:
+#: Narrow on purpose, and the narrowness is the point. Hiding every HTML comment would also hide one
+#: that arrived inside a reporter's own material — a log line, a quoted `.xml`, a fenced snippet —
+#: and the preview would then differ from the issue in a way nobody could see. What this module
+#: promises is that the draft *is* the body that gets filed; the marker is the one line the service
+#: writes for machines rather than for the reader.
+_COMMENT_LINE: Final = re.compile(r"\s*<!--\s*veaf-support-bot:[^>]*-->\s*$")
+
 #: The fence a Markdown code block opens and closes with.
 _FENCE: Final = "```"
 
@@ -88,15 +98,36 @@ class Draft:
             The message.
         """
         opening = text(header, lang) + "\n" + text("draft.title", lang, title=one_line(self.title, TITLE_MAX_CHARS))
+        # What GitHub hides, Discord shows. The body opens with the idempotency marker — an HTML
+        # comment the recovery search greps for, invisible in a rendered issue — and on the first
+        # real run the preview therefore opened with a line nobody can read. Hidden here, at the
+        # rendering, so `self.body` stays exactly what gets filed: dropping the marker from the body
+        # instead is how one report becomes two issues after a restart.
+        shown = _without_comments(self.body)
         # The notice is measured before the cut rather than after: a body folded to exactly the
         # remaining room, then given a notice, would overshoot the ceiling by the notice's length.
         notice = text("draft.truncated", lang, lines=9999, chars=999999)
         budget = limit - len(opening) - len("\n\n") - len(notice) - len("\n\n")
-        kept, lines, chars = fold(self.body, max(budget, 0))
+        kept, lines, chars = fold(shown, max(budget, 0))
         parts = [opening, kept]
         if chars:
             parts.append(text("draft.truncated", lang, lines=lines, chars=chars))
         return "\n\n".join(parts)
+
+
+def _without_comments(body: str) -> str:
+    """Drop the service's own marker line, which a Markdown renderer hides and Discord does not.
+
+    Args:
+        body: The issue body, exactly as it will be filed.
+
+    Returns:
+        The same text with the marker line removed, and nothing else — a comment a reporter's own
+        material carries stays, because the preview must not differ from the issue anywhere the
+        reader cannot see.
+    """
+    kept = [line for line in body.split("\n") if not _COMMENT_LINE.match(line)]
+    return "\n".join(kept).lstrip("\n")
 
 
 def fold(body: str, budget: int) -> tuple[str, int, int]:

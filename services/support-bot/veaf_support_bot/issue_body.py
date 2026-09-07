@@ -45,6 +45,7 @@ from veaf_support_bot.attachments import Prepared
 from veaf_support_bot.bugreport import NOT_STATED, BugReport
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, Sweep
+from veaf_support_bot.texts import DEFAULT_LANGUAGE, text
 from veaf_support_bot.toolkit import ToolkitUnavailable
 from veaf_support_bot.untrusted import defuse_mentions, one_line, quote
 
@@ -119,7 +120,7 @@ _HEADINGS = {
         "thread": "Fil d'origine : {url}",
         "no_thread": "Fil d'origine : (non enregistré)",
         "not_published": "non publié ici : {reason}",
-        "carried": "carried in full below",
+        "carried": "repris intégralement ci-dessous",
         "revision": "Dépôt consulté : {revision}",
         "verbatim": "_Cité tel quel, sans traduction ni reformulation._",
     },
@@ -239,7 +240,13 @@ class Carried:
     digest: str = ""
 
 
-def carry(prepared: Prepared, *, redactor: Callable[[str], str], limit: int = INLINE_MAX_CHARS) -> Carried:
+def carry(
+    prepared: Prepared,
+    *,
+    redactor: Callable[[str], str],
+    limit: int = INLINE_MAX_CHARS,
+    lang: str = DEFAULT_LANGUAGE,
+) -> Carried:
     """Decide how one attachment travels into the issue.
 
     The bytes carried here are the **whole file**, not the reduced view
@@ -255,6 +262,8 @@ def carry(prepared: Prepared, *, redactor: Callable[[str], str], limit: int = IN
             Required rather than defaulted: a default would make publishing raw bytes the outcome of
             forgetting an argument.
         limit: Longest text carried whole.
+        lang: The reporter's language. These reasons are printed in the issue's manifest,
+            among his own headings — English ones under French headings is what #929 showed.
 
     Returns:
         The decision. Text that fits is read, redacted and carried; everything else is described,
@@ -266,17 +275,17 @@ def carry(prepared: Prepared, *, redactor: Callable[[str], str], limit: int = IN
     """
     digest = digest_of(prepared.path)
     if prepared.kind not in INLINE_KINDS:
-        return Carried(prepared, reason=f"binary file ({prepared.kind}), which an issue cannot hold", digest=digest)
+        return Carried(prepared, reason=text("attachment.binary", lang, kind=prepared.kind), digest=digest)
     if prepared.size > limit:
         return Carried(
             prepared,
-            reason=f"{prepared.size} bytes, past the {limit} an issue can carry — see the excerpt above",
+            reason=text("attachment.too_large", lang, size=prepared.size, limit=limit),
             digest=digest,
         )
     try:
         content = prepared.path.read_text(encoding="utf-8", errors="replace")
     except OSError as error:
-        return Carried(prepared, reason=f"could not be read back ({type(error).__name__})", digest=digest)
+        return Carried(prepared, reason=text("attachment.unreadable", lang, error=type(error).__name__), digest=digest)
     try:
         redacted = redactor(content)
     except ToolkitUnavailable as error:

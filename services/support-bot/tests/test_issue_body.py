@@ -11,6 +11,7 @@ import tempfile
 import unittest
 from functools import partial
 from pathlib import Path
+from typing import Any
 
 from tests.intake_fixtures import fixture_checkout, fixture_root
 from veaf_support_bot.attachments import Prepared
@@ -140,7 +141,7 @@ class TestCarryingTheAttachments(unittest.TestCase):
         path.write_bytes(content)
         return Prepared(filename=name, kind=kind, path=path, size=len(content))
 
-    def _carry(self, prepared: Prepared, **options: int) -> Carried:
+    def _carry(self, prepared: Prepared, **options: Any) -> Carried:
         """Carry one attachment through the **real** redaction helper.
 
         Args:
@@ -160,7 +161,7 @@ class TestCarryingTheAttachments(unittest.TestCase):
     def test_a_binary_is_described_rather_than_carried(self) -> None:
         carried = self._carry(self._prepared("mission.miz", "mission", b"PK\x03\x04binary"))
         self.assertEqual(carried.text, "")
-        self.assertIn("binary file", carried.reason)
+        self.assertIn("binaire", carried.reason, "the manifest speaks the reporter's language")
 
     def test_a_text_file_past_the_ceiling_is_described_with_its_size(self) -> None:
         carried = self._carry(self._prepared("big.log", "log", b"x" * (INLINE_MAX_CHARS + 10)))
@@ -170,7 +171,7 @@ class TestCarryingTheAttachments(unittest.TestCase):
     def test_an_unreadable_file_says_so_instead_of_producing_an_empty_quote(self) -> None:
         prepared = Prepared(filename="gone.log", kind="log", path=self.root / "gone.log", size=10)
         carried = self._carry(prepared)
-        self.assertIn("could not be read back", carried.reason)
+        self.assertIn("relu", carried.reason)
 
     def test_the_manifest_names_every_file_and_its_digest(self) -> None:
         carried = [self._carry(self._prepared("veaf-tools.log", "log", b"hello"))]

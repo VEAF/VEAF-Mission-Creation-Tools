@@ -35,6 +35,7 @@ from veaf_support_bot.intake import (
     SUMMARY_MAX_CHARS,
     escalation_form,
 )
+from veaf_support_bot.issue_body import MARKER_PREFIX, marker_for
 from veaf_support_bot.texts import text
 
 
@@ -136,6 +137,44 @@ class TestNothingIsFiledBeforeTheClick(unittest.IsolatedAsyncioTestCase):
         # and not the issue body — the two are different publications and get different previews.
         self.assertIn("observation on", exchange.drafts[0])
         self.assertEqual((filer.filed, filer.commented), ([], []))
+
+
+class TestThePreviewShowsWhatAReaderCanRead(unittest.TestCase):
+    """The body is the issue's, verbatim — but a Discord preview is not GitHub.
+
+    Every draft opens with `<!-- veaf-support-bot:report=... -->`, which GitHub hides as an HTML
+    comment and which the recovery search greps for. Discord renders it as text, so the preview
+    David saw on the first real run opened with a line nobody can read.
+    """
+
+    def test_the_marker_is_not_shown_to_the_reporter(self) -> None:
+        body = marker_for("ad7bd4fe8e96c2232cc9da0f52e32b89") + "\n\n### Version\n\n6.19.0"
+
+        rendered = Draft(title="t", body=body).render("en")
+
+        self.assertNotIn("veaf-support-bot:report=", rendered)
+        self.assertIn("6.19.0", rendered, "hiding the marker must not hide the issue with it")
+
+    def test_the_body_that_gets_filed_still_carries_it(self) -> None:
+        """Losing it would let one report become two issues, which is what it exists to prevent."""
+        body = marker_for("abc123") + "\n\n### Version\n\n6.19.0"
+        draft = Draft(title="t", body=body)
+
+        draft.render("fr")
+
+        self.assertIn(MARKER_PREFIX, draft.body)
+
+    def test_a_comment_the_reporter_supplied_is_still_shown(self) -> None:
+        """The preview must not differ from the issue anywhere the reader cannot see it.
+
+        A `dcs.log`, a quoted `.xml`, a fenced snippet: a reporter's own material can carry an HTML
+        comment, and hiding those would make the preview a summary of the issue rather than the
+        issue itself — the one thing this module exists to prevent.
+        """
+        rendered = Draft(title="t", body="<!-- something he pasted -->\n\nvisible").render("en")
+
+        self.assertIn("something he pasted", rendered)
+        self.assertIn("visible", rendered)
 
 
 class TestTruncationIsAnnounced(unittest.TestCase):

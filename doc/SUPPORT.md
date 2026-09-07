@@ -92,6 +92,10 @@ Sur le Discord VEAF, `/bug` ouvre un **formulaire** : ce qui s'est passé, ce qu
 étapes, et le bloc [`veaf-tools doctor`](#doctor). Vous pouvez y joindre un journal, une mission,
 un fichier de configuration.
 
+Le formulaire, comme les descriptions des commandes, s'affiche **dans la langue de votre client
+Discord** — français ou anglais. Le bot vous répond ensuite dans cette même langue, et le ticket est
+rédigé dedans.
+
 **Vous n'avez pas besoin d'un compte GitHub.** Le ticket est ouvert par un robot, en votre nom :
 votre pseudo Discord y est cité comme rapporteur, et rien d'autre de votre identité.
 

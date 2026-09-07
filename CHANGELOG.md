@@ -690,6 +690,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   or not, and a second person asking for the same thing is the only signal of priority it will ever
   carry.
 
+- **The bot's forms and its command picker speak the user's language.** The service translated every
+  sentence it *says* and no label it *shows*: two modal titles, eleven field labels, a placeholder
+  and the three command descriptions were hard-coded English, in a service whose default language is
+  French — David switched his Discord client to French to check, and nothing moved. The forms now
+  take the locale of the interaction that opens them, which is possible because a modal is built
+  when the command is typed. The **command picker** could not be fixed that way: descriptions and
+  option names are registered once, before any interaction exists, so they go through Discord's own
+  `app_commands.Translator`, whose table it stores and serves per client language. What stays
+  English on purpose is a component's **value** — those are the issue templates' options, word for
+  word, and a translated value is a component nobody can filter on.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

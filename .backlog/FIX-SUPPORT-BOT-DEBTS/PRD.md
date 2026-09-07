@@ -1,6 +1,6 @@
 # FIX-SUPPORT-BOT-DEBTS — four things the support bot owes
 
-Status: 🔄 in-progress — seven of eight are done; only 01 (the modal and command translation) remains
+Status: ✅ done — all eight tickets, shipped as four sequenced PRs (#934, #935, #936 and this one)
 
 Origin: three debts recorded across lots 4 and 5 of the support programme, plus one found by David
 on **2026-09-07, the first time the bot ran in front of a human**. Grouped because none of them is

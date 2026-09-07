@@ -61,7 +61,7 @@ from veaf_support_bot.suggest import SuggestIntake, SuggestSubmission
 from veaf_support_bot.suggestion import COMPONENTS, UNKNOWN_COMPONENT, SuggestionForm
 from veaf_support_bot.suggestion import PARAGRAPH_MAX_CHARS as SUGGESTION_PARAGRAPH_MAX_CHARS
 from veaf_support_bot.suggestion import SUMMARY_MAX_CHARS as SUGGESTION_SUMMARY_MAX_CHARS
-from veaf_support_bot.texts import text
+from veaf_support_bot.texts import DEFAULT_LANGUAGE, normalize_language, text
 
 
 def _intents() -> discord.Intents:
@@ -118,6 +118,80 @@ THREADABLE: tuple[type, ...] = (discord.TextChannel,)
 CLOSED_MARK = "✅ "
 
 
+#: Which catalogue key each registered string is translated from.
+#:
+#: The command picker is the first thing any mission maker sees of this bot, before typing anything,
+#: and it is the one surface a per-interaction fix cannot reach: descriptions and choice names are
+#: registered **once**, before any interaction exists. Discord solves that with a translation table
+#: it stores itself and serves per client language, which is what `VeafTranslator` fills.
+#:
+#: Keyed by the English source string rather than by a command path: that is what
+#: `app_commands.locale_str` carries into `translate`, and building it from the same catalogue the
+#: rest of the service reads is what keeps `tests/test_texts.py` covering these too.
+_REGISTERED_STRINGS: dict[str, str] = {
+    "Ask a question about the VEAF Mission Creation Tools documentation": "command.ask.description",
+    "What do you want to know?": "command.ask.question",
+    "Report a bug — a short form, and the files you have": "command.bug.description",
+    "Your veaf-tools.log or dcs.log, if you have one": "command.bug.log",
+    "The .miz the problem happens on": "command.bug.mission",
+    "Anything else: a mission.yaml, a configuration file": "command.bug.extra",
+    "Suggest an improvement — checked against what already exists": "command.suggest.description",
+    "Which part of the toolchain this is about": "command.suggest.component",
+}
+
+#: Discord locales that mean "French". A client set to Canadian French gets the French table rather
+#: than the English default, which is the whole point of translating this surface at all.
+_FRENCH_LOCALES = frozenset({"fr", "fr-FR", "fr-CA"})
+
+
+class VeafTranslator(app_commands.Translator):
+    """Serves Discord the French half of the registered surface.
+
+    What it deliberately does **not** translate is a component's *value*: those are the options of
+    `.github/ISSUE_TEMPLATE/feature_request.yml`, word for word, and a translated value is a
+    component nobody can filter on. Discord separates a choice's displayed name from its value, so a
+    French label over an English value is exactly what this produces.
+    """
+
+    async def translate(
+        self,
+        string: app_commands.locale_str,
+        locale: discord.Locale,
+        context: app_commands.TranslationContext,
+    ) -> str | None:
+        """Return the French rendering of one registered string.
+
+        Args:
+            string: The source string, as declared at registration.
+            locale: The client's language.
+            context: What is being translated — unused: the source string is unique enough, and
+                keying on it is what lets one table cover descriptions and option names alike.
+
+        Returns:
+            The translation, or ``None`` to leave Discord with the declared English. ``None`` is
+            also the honest answer for a string nobody added a key for: a missing translation shows
+            the original rather than a placeholder.
+        """
+        if str(locale) not in _FRENCH_LOCALES:
+            return None
+        key = _REGISTERED_STRINGS.get(str(string))
+        return text(key, "fr") if key else None
+
+
+def _locale_of(interaction: discord.Interaction) -> str:
+    """Return the language a form opened from this interaction should be shown in.
+
+    Args:
+        interaction: The invoking interaction.
+
+    Returns:
+        ``"fr"`` or ``"en"``. Discord reports the client's own locale, which is what makes the
+        *shown* half of ticket 01 possible at all: a modal is built when the command is typed, so
+        unlike a command description it has an interaction to read.
+    """
+    return normalize_language(str(interaction.locale) if interaction.locale else None)
+
+
 def escalation_opener(
     intake: BugIntake,
     question: str,
@@ -157,7 +231,7 @@ def escalation_opener(
             reporter_id=str(click.user.id),
             language=lang,
         )
-        await click.response.send_modal(BugModal(intake, [], logger, prefill=prefill, tasks=tasks))
+        await click.response.send_modal(BugModal(intake, [], logger, prefill=prefill, tasks=tasks, lang=lang))
 
     return open_form
 
@@ -497,6 +571,10 @@ class SupportBotClient(discord.Client):
 
     async def setup_hook(self) -> None:
         """Publish the command set to the configured guild, before the gateway goes live."""
+        # Before the copy and the sync, because the translations are what gets *uploaded* with the
+        # commands: a translator installed afterwards would sit there translating nothing until the
+        # next restart.
+        await self.tree.set_translator(VeafTranslator())
         self.tree.copy_global_to(guild=self.guild)
         synced = await self.tree.sync(guild=self.guild)
         self._logger.info(
@@ -1030,6 +1108,7 @@ class BugModal(discord.ui.Modal):
         *,
         prefill: BugForm | None = None,
         tasks: InFlightTasks | None = None,
+        lang: str = DEFAULT_LANGUAGE,
     ) -> None:
         """Build the modal.
 
@@ -1042,42 +1121,45 @@ class BugModal(discord.ui.Modal):
                 fields to fix a typo in one does not fix the typo.
             tasks: Registry a shutdown drains. The submission is its own interaction, living for
                 fifteen minutes across two questions, so it is the one that has to be tracked.
+            lang: The language the form is *shown* in. Read off the interaction that opens it, which
+                is possible precisely because a modal is built when the command is typed — the
+                command's own description is not, which is what the translator further down is for.
         """
-        super().__init__(title="Report a bug", timeout=None)
+        super().__init__(title=text("form.bug.title", lang), timeout=None)
         self._intake = intake
         self._attachments = attachments
         self._logger = logger
         self._tasks = tasks
         self.summary: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
-            label="In one line, what is wrong?",
+            label=text("form.bug.summary", lang),
             style=discord.TextStyle.short,
             max_length=SUMMARY_MAX_CHARS,
             required=True,
             default=prefill.summary if prefill else None,
         )
         self.happened: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
-            label="What happened?",
+            label=text("form.bug.happened", lang),
             style=discord.TextStyle.paragraph,
             max_length=PARAGRAPH_MAX_CHARS,
             required=True,
             default=prefill.happened if prefill else None,
         )
         self.expected: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
-            label="What did you expect?",
+            label=text("form.bug.expected", lang),
             style=discord.TextStyle.paragraph,
             max_length=PARAGRAPH_MAX_CHARS,
             required=True,
             default=prefill.expected if prefill else None,
         )
         self.steps: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
-            label="Steps to reproduce",
+            label=text("form.bug.steps", lang),
             style=discord.TextStyle.paragraph,
             max_length=PARAGRAPH_MAX_CHARS,
             required=True,
             default=prefill.steps if prefill else None,
         )
         self.doctor: discord.ui.TextInput[BugModal] = discord.ui.TextInput(
-            label="Paste the output of: veaf-tools doctor",
+            label=text("form.bug.doctor", lang),
             style=discord.TextStyle.paragraph,
             max_length=DOCTOR_MAX_CHARS,
             required=False,
@@ -1131,6 +1213,7 @@ class BugModal(discord.ui.Modal):
                     self._logger,
                     prefill=submission.form,
                     tasks=self._tasks,
+                    lang=normalize_language(submission.form.language),
                 )
             )
 
@@ -1396,6 +1479,7 @@ class SuggestModal(discord.ui.Modal):
         *,
         prefill: SuggestionForm | None = None,
         tasks: InFlightTasks | None = None,
+        lang: str = DEFAULT_LANGUAGE,
     ) -> None:
         """Build the modal.
 
@@ -1408,13 +1492,13 @@ class SuggestModal(discord.ui.Modal):
             tasks: Registry a shutdown drains. The submission is its own interaction, living for
                 fifteen minutes across two questions, so it is the one that has to be tracked.
         """
-        super().__init__(title="Suggest an improvement", timeout=None)
+        super().__init__(title=text("form.suggest.title", lang), timeout=None)
         self._intake = intake
         self._component = component
         self._logger = logger
         self._tasks = tasks
         self.summary: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
-            label="In one line, what would you like?",
+            label=text("form.suggest.summary", lang),
             style=discord.TextStyle.short,
             max_length=SUGGESTION_SUMMARY_MAX_CHARS,
             required=True,
@@ -1424,29 +1508,29 @@ class SuggestModal(discord.ui.Modal):
         # decidable: a solution with no problem cannot be weighed, met another way, or declined for
         # a reason anybody can state.
         self.problem: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
-            label="What problem does this solve?",
-            placeholder="What is painful today, and how often it costs you",
+            label=text("form.suggest.problem", lang),
+            placeholder=text("form.suggest.problem.placeholder", lang),
             style=discord.TextStyle.paragraph,
             max_length=SUGGESTION_PARAGRAPH_MAX_CHARS,
             required=True,
             default=prefill.problem if prefill else None,
         )
         self.solution: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
-            label="What would you like to happen?",
+            label=text("form.suggest.solution", lang),
             style=discord.TextStyle.paragraph,
             max_length=SUGGESTION_PARAGRAPH_MAX_CHARS,
             required=True,
             default=prefill.solution if prefill else None,
         )
         self.alternatives: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
-            label="Anything else you considered?",
+            label=text("form.suggest.alternatives", lang),
             style=discord.TextStyle.paragraph,
             max_length=SUGGESTION_PARAGRAPH_MAX_CHARS,
             required=False,
             default=prefill.alternatives if prefill else None,
         )
         self.context: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
-            label="Anything else? Examples, links",
+            label=text("form.suggest.context", lang),
             style=discord.TextStyle.paragraph,
             max_length=SUGGESTION_PARAGRAPH_MAX_CHARS,
             required=False,
@@ -1499,6 +1583,7 @@ class SuggestModal(discord.ui.Modal):
                     self._logger,
                     prefill=submission.form,
                     tasks=self._tasks,
+                    lang=normalize_language(submission.form.language),
                 )
             )
 
@@ -1562,4 +1647,6 @@ def register_suggest_command(
             component: The part of the toolchain the idea is about.
         """
         picked = component.value if component else UNKNOWN_COMPONENT
-        await interaction.response.send_modal(SuggestModal(intake, picked, logger, tasks=tasks))
+        await interaction.response.send_modal(
+            SuggestModal(intake, picked, logger, tasks=tasks, lang=_locale_of(interaction))
+        )

@@ -43,9 +43,10 @@ from typing import Any, Protocol
 from veaf_support_bot import __version__
 from veaf_support_bot.ask import AskHandler, build_handler
 from veaf_support_bot.attachments import AttachmentCollector, http_download
-from veaf_support_bot.checkout import CheckoutUnavailable, open_checkout
+from veaf_support_bot.checkout import Checkout, CheckoutUnavailable, open_checkout
 from veaf_support_bot.config import DEFAULT_QUOTA_USER_WINDOW_SECONDS, SupportBotConfig
 from veaf_support_bot.enrichment import Enricher
+from veaf_support_bot.existing import AskTheDocumentation
 from veaf_support_bot.filing import IssueFiler, Ledger, RepositoryIssues
 from veaf_support_bot.github_app import AppCredentials, GitHubApp, aiohttp_transport, read_private_key
 from veaf_support_bot.health import HealthServer, ServiceState
@@ -54,8 +55,9 @@ from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import PriorArtGate, PriorArtSweeper
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
 from veaf_support_bot.relay import IssueWatcher, LinkStore, Relay
+from veaf_support_bot.suggest import SuggestIntake
 from veaf_support_bot.toolkit import ToolkitUnavailable, redact
-from veaf_support_bot.worker import HypothesisClient
+from veaf_support_bot.worker import HypothesisClient, WorkerClient
 
 
 class Gateway(Protocol):
@@ -207,32 +209,39 @@ class _NoPoster:
         return False
 
 
-def build_intake(
-    config: SupportBotConfig, logger: Logger | None = None, tracker: ReportTracker | None = None
-) -> BugIntake | None:
-    """Build the ``/bug`` intake, when the deployment gave it a repository to read.
+class _Unset:
+    """What an omitted argument is, as opposed to one supplied as ``None``.
 
-    A checkout is what turns a stack trace into a location, so without one the command is **not
-    published** rather than published and answering "I cannot do this": an unusable command in the
-    picker is a promise the service does not keep.
+    The two mean different things to a builder that can open a checkout for itself: *open one* and
+    *there is none, and the caller already found that out*. Conflating them made the assembly open —
+    and log the failure of — the same unusable working copy three times per start-up, which reads
+    like three separate problems.
+    """
 
-    A configured path that turns out not to be a git working tree is a different matter — that is a
-    deployment mistake — but it is reported and skipped rather than raised, because the alternative
-    is a service that refuses to answer documentation questions over a feature it was not asked for.
-    The line in the log names the path and says ``/bug`` is off.
+
+#: The sentinel itself.
+UNSET = _Unset()
+
+
+def build_checkout(config: SupportBotConfig, logger: Logger | None = None) -> Checkout | None:
+    """Open the working copy both flows read, when the deployment configured one.
+
+    A configured path that turns out not to be a git working tree is a deployment mistake, but it is
+    reported and skipped rather than raised: the alternative is a service that refuses to answer
+    documentation questions over a feature it was not asked for. The line in the log names the path.
 
     Args:
         config: The resolved configuration.
         logger: Logger to report an unusable path on.
 
     Returns:
-        The intake, or ``None`` when there is no usable checkout.
+        The checkout, or ``None`` when there is none or it cannot be used.
     """
     if not config.checkout_path:
         return None
     report = logger or get_logger("service")
     try:
-        checkout = open_checkout(
+        return open_checkout(
             config.checkout_path,
             remote=config.checkout_remote,
             branch=config.checkout_branch,
@@ -244,31 +253,137 @@ def build_intake(
             extra={"event": "intake.no_checkout", "error": str(error)},
         )
         return None
+
+
+def build_filer(config: SupportBotConfig, checkout: Checkout | None, logger: Logger | None = None) -> IssueFiler | None:
+    """Build the one filer both flows publish through.
+
+    **One**, deliberately. The ledger that guarantees one issue per report is a whole-file rewrite
+    of a small JSON document, and two filers writing it would lose each other's entries — which is
+    not a lost line in a file, it is a second issue on a public tracker.
+
+    Args:
+        config: The resolved configuration.
+        checkout: The working copy the redactor is bound to.
+        logger: Logger to use.
+
+    Returns:
+        The filer, or ``None`` when this deployment has no GitHub App.
+    """
+    report = logger or get_logger("service")
+    # Before the App, not after: authenticating one needs the private key off disk, and a
+    # deployment with no checkout has no use for it.
+    if checkout is None:
+        return None
+    app = build_github_app(config, build_redactor(config))
+    if app is None:
+        return None
+    return IssueFiler(
+        app,
+        Ledger(Path(config.github_ledger_file), report),
+        # Bound to the same checkout the attachment pass redacts against: the whole file the issue
+        # carries and the excerpt above it must not disagree about what is publishable.
+        redactor=partial(redact, checkout.root),
+        logger=report,
+        machine_label=config.github_machine_label,
+    )
+
+
+def build_intake(
+    config: SupportBotConfig,
+    logger: Logger | None = None,
+    tracker: ReportTracker | None = None,
+    *,
+    checkout: Checkout | None | _Unset = UNSET,
+    filer: IssueFiler | None | _Unset = UNSET,
+) -> BugIntake | None:
+    """Build the ``/bug`` intake, when the deployment gave it a repository to read.
+
+    A checkout is what turns a stack trace into a location, so without one the command is **not
+    published** rather than published and answering "I cannot do this": an unusable command in the
+    picker is a promise the service does not keep.
+
+    Args:
+        config: The resolved configuration.
+        logger: Logger to report an unusable path on.
+        tracker: What remembers which thread an issue answers in.
+        checkout: An already-open working copy; one is opened when omitted. ``None`` means the
+            caller already tried and there is none — it does **not** ask for another attempt.
+        filer: The shared filer; one is built when omitted.
+
+    Returns:
+        The intake, or ``None`` when there is no usable checkout.
+    """
+    report = logger or get_logger("service")
+    opened = build_checkout(config, report) if isinstance(checkout, _Unset) else checkout
+    if opened is None:
+        return None
+    built = build_filer(config, opened, report) if isinstance(filer, _Unset) else filer
     collector = AttachmentCollector(
-        checkout,
+        opened,
         http_download,
         max_file_bytes=config.attachment_max_bytes,
         max_total_bytes=config.attachment_total_bytes,
     )
-    app = build_github_app(config, build_redactor(config))
+    issues = RepositoryIssues(built.app) if built is not None else None
     return BugIntake(
-        checkout,
+        opened,
         collector,
         logger=report,
-        prior_art=PriorArtGate(PriorArtSweeper(checkout.root, RepositoryIssues(app) if app else None)),
-        filer=IssueFiler(
-            app,
-            Ledger(Path(config.github_ledger_file), report),
-            # Bound to the same checkout the attachment pass redacts against: the whole file the
-            # issue carries and the excerpt above it must not disagree about what is publishable.
-            redactor=partial(redact, checkout.root),
-            logger=report,
-            machine_label=config.github_machine_label,
-        )
-        if app
-        else None,
+        prior_art=PriorArtGate(PriorArtSweeper(opened.root, issues)),
+        filer=built,
         enricher=build_enricher(config, report),
         tracker=tracker,
+    )
+
+
+def build_suggest(
+    config: SupportBotConfig,
+    quota: QuotaKeeper,
+    logger: Logger | None = None,
+    tracker: ReportTracker | None = None,
+    *,
+    checkout: Checkout | None | _Unset = UNSET,
+    filer: IssueFiler | None | _Unset = UNSET,
+) -> SuggestIntake | None:
+    """Build the ``/suggest`` flow, when the deployment can actually file what it prepares.
+
+    It looks as though this needs no checkout — asking the documentation only needs the Worker. But
+    the redactor every published body passes through is bound to a checkout, so **without one
+    nothing can be filed at all**, and the command would answer every suggestion with *no issue was
+    opened: this bot has no GitHub identity configured yet* — false, and pointing an operator at
+    credentials that are correct. A command that cannot do what it offers is a promise the service
+    does not keep, so it is not published, exactly as ``/bug`` is not.
+
+    Args:
+        config: The resolved configuration.
+        quota: The counters the documentation question is charged against — the service's own, so
+            one exchange cannot spend what another was refused.
+        logger: Logger to use.
+        tracker: What remembers which thread an issue answers in.
+        checkout: An already-open working copy; one is opened when omitted. ``None`` means the
+            caller already tried and there is none.
+        filer: The shared filer; one is built when omitted.
+
+    Returns:
+        The flow, or ``None`` when there is no usable checkout.
+    """
+    report = logger or get_logger("suggest")
+    opened = build_checkout(config, report) if isinstance(checkout, _Unset) else checkout
+    if opened is None:
+        return None
+    built = build_filer(config, opened, report) if isinstance(filer, _Unset) else filer
+    worker = WorkerClient(config.worker_endpoint, config.worker_client, config.worker_secret)
+    issues = RepositoryIssues(built.app) if built is not None else None
+    # Without the closed issues: see PriorArtSweeper.closed_issues.
+    prior_art = PriorArtGate(PriorArtSweeper(opened.root, issues, closed_issues=False))
+    return SuggestIntake(
+        documentation=AskTheDocumentation(worker, logger=report),
+        quota=quota,
+        prior_art=prior_art,
+        filer=built,
+        tracker=tracker,
+        logger=report,
     )
 
 
@@ -442,7 +557,15 @@ class SupportBotService:
         self.quota = quota or build_quota(config, self.logger)
         self.handler: AskHandler = build_handler(config, self.quota)
         self.relay: Relay | None = build_relay(config, self.logger)
-        self.intake: BugIntake | None = build_intake(config, self.logger, self.relay)
+        # Opened and built once, then shared: one working copy to refresh, and one ledger writer.
+        self.checkout: Checkout | None = build_checkout(config, self.logger)
+        self.filer: IssueFiler | None = build_filer(config, self.checkout, self.logger)
+        self.intake: BugIntake | None = build_intake(
+            config, self.logger, self.relay, checkout=self.checkout, filer=self.filer
+        )
+        self.suggest: SuggestIntake | None = build_suggest(
+            config, self.quota, self.logger, self.relay, checkout=self.checkout, filer=self.filer
+        )
         self.state.set_details_provider(self.quota.snapshot)
         self._gateway = gateway
         self._connection: Gateway | None = gateway
@@ -460,7 +583,7 @@ class SupportBotService:
         """
         from veaf_support_bot.discord_bot import ClientThreadPoster, DiscordGateway, SupportBotClient
 
-        client = SupportBotClient(self.config, self.state, self.handler, self.tasks, self.intake)
+        client = SupportBotClient(self.config, self.state, self.handler, self.tasks, self.intake, suggest=self.suggest)
         if self.relay is not None:
             # The one thing the relay could not be given at construction time. Without this the
             # relay would answer every round with "the thread is gone" and quietly forget every

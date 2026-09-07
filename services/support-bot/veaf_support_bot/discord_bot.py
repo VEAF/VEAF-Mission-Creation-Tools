@@ -53,6 +53,10 @@ from veaf_support_bot.intake import (
 )
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.service import InFlightTasks
+from veaf_support_bot.suggest import SuggestIntake, SuggestSubmission
+from veaf_support_bot.suggestion import COMPONENTS, UNKNOWN_COMPONENT, SuggestionForm
+from veaf_support_bot.suggestion import PARAGRAPH_MAX_CHARS as SUGGESTION_PARAGRAPH_MAX_CHARS
+from veaf_support_bot.suggestion import SUMMARY_MAX_CHARS as SUGGESTION_SUMMARY_MAX_CHARS
 from veaf_support_bot.texts import text
 
 #: Gateway intents. The default set minus every privileged one: the bot reads slash-command options,
@@ -260,6 +264,7 @@ class SupportBotClient(discord.Client):
         handler: AskHandler,
         tasks: InFlightTasks | None = None,
         intake: BugIntake | None = None,
+        suggest: SuggestIntake | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the client without connecting.
@@ -273,6 +278,9 @@ class SupportBotClient(discord.Client):
             intake: The ``/bug`` intake. ``None`` when the service has no checkout, in which case
                 ``/bug`` is not published at all — a command that answers "I cannot do this" is
                 worse than one that is not there.
+            suggest: The ``/suggest`` flow. ``None`` when the service has no checkout, in which
+                case it is not published either: everything it publishes goes through a redactor
+                bound to a checkout, so without one it could prepare a request and never file it.
             **kwargs: Passed to :class:`discord.Client`.
         """
         super().__init__(intents=INTENTS, **kwargs)
@@ -284,6 +292,8 @@ class SupportBotClient(discord.Client):
         register_commands(self.tree, handler, self._logger, tasks, intake)
         if intake is not None:
             register_bug_command(self.tree, intake, self._logger, tasks)
+        if suggest is not None:
+            register_suggest_command(self.tree, suggest, self._logger, tasks)
 
     @property
     def guild(self) -> discord.Object:
@@ -409,7 +419,7 @@ def register_commands(
 
 
 class ModalExchange:
-    """The :class:`~veaf_support_bot.intake.BugExchange` protocol over a modal submission.
+    """The :class:`~veaf_support_bot.exchange.ThreadExchange` protocol over a modal submission.
 
     Ephemeral throughout. The preparation is a private step: it says what the service read and what
     it could not, which concerns the reporter and nobody else. What becomes public is the issue, and
@@ -426,6 +436,7 @@ class ModalExchange:
         interaction: discord.Interaction,
         reopen: Callable[[discord.Interaction], Awaitable[None]] | None = None,
         logger: Logger | None = None,
+        event_prefix: str = "bug",
     ) -> None:
         """Initialize the exchange.
 
@@ -435,10 +446,14 @@ class ModalExchange:
                 interaction. ``None`` leaves the button out, which is what an escalation with no
                 form behind it needs.
             logger: Logger to use; defaults to the service's ``discord`` logger.
+            event_prefix: What this exchange calls itself in the log. Two flows share this adapter,
+                and an operator counting one command's failures must not be shown the other's —
+                every failure here was reported as ``bug.*`` whichever command produced it.
         """
         self._interaction = interaction
         self._reopen = reopen
         self._logger = logger or get_logger("discord")
+        self._event_prefix = event_prefix
 
     async def defer(self) -> None:
         """Acknowledge the submission privately, inside Discord's three-second budget."""
@@ -477,7 +492,7 @@ class ModalExchange:
             # than raised, because it must not cost the report.
             self._logger.warning(
                 "no follow-up thread: the command was not used in a text channel",
-                extra={"event": "bug.thread_channel", "channel": type(raw).__name__},
+                extra={"event": f"{self._event_prefix}.thread_channel", "channel": type(raw).__name__},
             )
             return ThreadHandle()
         # THREADABLE is the runtime check — named so a test can stand in front of this one branch —
@@ -490,7 +505,7 @@ class ModalExchange:
         except (discord.HTTPException, discord.ClientException) as error:
             self._logger.warning(
                 "no follow-up thread could be opened",
-                extra={"event": "bug.thread_failed", "error": f"{type(error).__name__}: {error}"},
+                extra={"event": f"{self._event_prefix}.thread_failed", "error": f"{type(error).__name__}: {error}"},
             )
             return ThreadHandle()
         return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url, handle=thread)
@@ -508,7 +523,7 @@ class ModalExchange:
             # otherwise be left with a public thread and no idea which issue it belongs to.
             self._logger.warning(
                 "the follow-up thread could not be reached to announce the issue",
-                extra={"event": "bug.thread_unreachable", "discord_thread": handle.thread_id},
+                extra={"event": f"{self._event_prefix}.thread_unreachable", "discord_thread": handle.thread_id},
             )
             return
         try:
@@ -516,7 +531,7 @@ class ModalExchange:
         except discord.HTTPException as error:
             self._logger.warning(
                 "the follow-up thread could not be opened with a message",
-                extra={"event": "bug.thread_message_failed", "error": type(error).__name__},
+                extra={"event": f"{self._event_prefix}.thread_message_failed", "error": type(error).__name__},
             )
 
     async def decide(self, content: str, lang: str) -> str:
@@ -1098,3 +1113,189 @@ def register_bug_command(
         """
         modal = BugModal(intake, incoming_from(log, mission, extra), logger, tasks=tasks)
         await interaction.response.send_modal(modal)
+
+
+class SuggestModal(discord.ui.Modal):
+    """The five fields ``.github/ISSUE_TEMPLATE/feature_request.yml`` needs.
+
+    The component is **not** among them: a modal can only hold text inputs, and a component typed
+    by hand is a component nobody can filter on. It is a command option instead, bound to
+    :data:`~veaf_support_bot.suggestion.COMPONENTS`, so Discord itself draws the template's own
+    dropdown.
+    """
+
+    def __init__(
+        self,
+        intake: SuggestIntake,
+        component: str,
+        logger: Logger,
+        *,
+        prefill: SuggestionForm | None = None,
+        tasks: InFlightTasks | None = None,
+    ) -> None:
+        """Build the modal.
+
+        Args:
+            intake: What the submission is handed to.
+            component: The component picked on the command.
+            logger: Logger for a failure that escapes the handler.
+            prefill: Answers to open the form with — what *Edit* gives back. Somebody who has to
+                retype four fields to fix a typo in one does not fix the typo.
+            tasks: Registry a shutdown drains. The submission is its own interaction, living for
+                fifteen minutes across two questions, so it is the one that has to be tracked.
+        """
+        super().__init__(title="Suggest an improvement", timeout=None)
+        self._intake = intake
+        self._component = component
+        self._logger = logger
+        self._tasks = tasks
+        self.summary: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
+            label="In one line, what would you like?",
+            style=discord.TextStyle.short,
+            max_length=SUGGESTION_SUMMARY_MAX_CHARS,
+            required=True,
+            default=prefill.summary if prefill else None,
+        )
+        # First, and required, because it is the field people skip and the one that makes a request
+        # decidable: a solution with no problem cannot be weighed, met another way, or declined for
+        # a reason anybody can state.
+        self.problem: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
+            label="What problem does this solve?",
+            placeholder="What is painful today, and how often it costs you",
+            style=discord.TextStyle.paragraph,
+            max_length=SUGGESTION_PARAGRAPH_MAX_CHARS,
+            required=True,
+            default=prefill.problem if prefill else None,
+        )
+        self.solution: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
+            label="What would you like to happen?",
+            style=discord.TextStyle.paragraph,
+            max_length=SUGGESTION_PARAGRAPH_MAX_CHARS,
+            required=True,
+            default=prefill.solution if prefill else None,
+        )
+        self.alternatives: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
+            label="Anything else you considered?",
+            style=discord.TextStyle.paragraph,
+            max_length=SUGGESTION_PARAGRAPH_MAX_CHARS,
+            required=False,
+            default=prefill.alternatives if prefill else None,
+        )
+        self.context: discord.ui.TextInput[SuggestModal] = discord.ui.TextInput(
+            label="Anything else? Examples, links",
+            style=discord.TextStyle.paragraph,
+            max_length=SUGGESTION_PARAGRAPH_MAX_CHARS,
+            required=False,
+            default=prefill.context if prefill else None,
+        )
+        for item in (self.summary, self.problem, self.solution, self.alternatives, self.context):
+            self.add_item(item)
+
+    def submission(self, interaction: discord.Interaction) -> SuggestSubmission:
+        """Turn the filled modal into what the flow consumes.
+
+        Args:
+            interaction: The submission interaction.
+
+        Returns:
+            The submission.
+        """
+        return SuggestSubmission(
+            form=SuggestionForm(
+                summary=str(self.summary.value),
+                problem=str(self.problem.value),
+                solution=str(self.solution.value),
+                alternatives=str(self.alternatives.value or ""),
+                context=str(self.context.value or ""),
+                component=self._component,
+                asker=interaction.user.display_name,
+                asker_id=str(interaction.user.id),
+                language=str(interaction.locale) if interaction.locale else "fr",
+            )
+        )
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Ask the documentation, sweep what is planned, then ask what to do with the result.
+
+        Args:
+            interaction: The submission interaction.
+        """
+        submission = self.submission(interaction)
+
+        async def reopen(click: discord.Interaction) -> None:
+            """Give the form back, with the answers still in it.
+
+            Args:
+                click: The *Edit* click, which is the interaction the modal must answer.
+            """
+            await click.response.send_modal(
+                SuggestModal(
+                    self._intake,
+                    self._component,
+                    self._logger,
+                    prefill=submission.form,
+                    tasks=self._tasks,
+                )
+            )
+
+        exchange = ModalExchange(interaction, reopen, self._logger, event_prefix="suggest")
+        running = self._intake.handle(exchange, submission)
+        if self._tasks is None:
+            await running
+        else:
+            # Awaited, not fired and forgotten: a shutdown must wait for the last message rather
+            # than leave somebody on a draft whose buttons answer nobody.
+            await self._tasks.track(running, name=f"suggest:{submission.form.asker_id}")
+
+    # Same override as BugModal's, for the same reason: discord.py calls the two-argument form.
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:  # type: ignore[override]
+        """Log a failure the flow did not catch.
+
+        Args:
+            interaction: The submission interaction.
+            error: What went wrong.
+        """
+        self._logger.exception(
+            "the /suggest modal failed",
+            extra={"event": "suggest.modal_failed", "error": type(error).__name__},
+        )
+
+
+def register_suggest_command(
+    tree: app_commands.CommandTree,
+    intake: SuggestIntake,
+    logger: Logger,
+    tasks: InFlightTasks | None = None,
+) -> None:
+    """Attach ``/suggest`` to a command tree.
+
+    Split out of the client for the same reason ``/ask``'s and ``/bug``'s registrations are: a
+    handler that works and a command nobody attached is the shape of bug this repository has
+    shipped green before.
+
+    Args:
+        tree: The command tree to attach to.
+        intake: The handler the command delegates to.
+        logger: Logger for failures that escape the modal.
+        tasks: Registry a shutdown drains. The command returns as soon as the modal is open; what
+            is tracked is the modal's submission, a separate interaction with its own token.
+    """
+
+    @tree.command(name="suggest", description="Suggest an improvement — checked against what already exists")
+    @app_commands.describe(component="Which part of the toolchain this is about")
+    @app_commands.choices(component=[app_commands.Choice(name=name, value=name) for name in COMPONENTS])
+    async def suggest(
+        interaction: discord.Interaction,
+        component: app_commands.Choice[str] | None = None,
+    ) -> None:
+        """Open the suggestion form.
+
+        Sending the modal **is** the acknowledgement, so this never spends the three-second budget
+        on anything else.
+
+        Args:
+            interaction: The invoking interaction.
+            component: The part of the toolchain the idea is about.
+        """
+        picked = component.value if component else UNKNOWN_COMPONENT
+        await interaction.response.send_modal(SuggestModal(intake, picked, logger, tasks=tasks))

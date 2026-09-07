@@ -124,6 +124,60 @@ supposition de machine, avec le fichier et la ligne suspectés.
 Ce n'est pas un diagnostic, et **son absence n'enlève rien à votre signalement** : le reste du
 ticket est mesuré, cité ou analysé, jamais deviné. Quand elle manque, le ticket dit pourquoi.
 
+## Proposer une amélioration : `/suggest` {#suggest}
+
+Sur le Discord VEAF, `/suggest` sert à demander **ce qui n'existe pas encore** — une fonctionnalité,
+un réglage, une commande. Comme pour `/bug`, vous n'avez pas besoin d'un compte GitHub.
+
+### Il commence par regarder si ça existe déjà
+
+C'est le point de la commande. Une bonne partie des demandes portent sur quelque chose qui **existe
+déjà** et que personne n'a trouvé : dans ce cas, la meilleure réponse est la page qui l'explique,
+tout de suite, plutôt qu'un ticket qui attendra des mois.
+
+Le bot vérifie donc, dans cet ordre :
+
+1. **la documentation** — il pose votre demande à l'assistant, qui répond avec les pages
+   correspondantes. Si ça répond à votre besoin, vous le dites et **rien n'est ouvert** ;
+2. **les tickets ouverts** — quelqu'un l'a peut-être déjà demandé ;
+3. **les chantiers en cours et la feuille de route** — c'est peut-être déjà prévu, ou explicitement
+   écarté, avec les raisons.
+
+À chaque fois, le bot vous montre **ce qu'il a trouvé et pourquoi**, et vous pouvez répondre *non,
+ce n'est pas ça* : votre demande continue son chemin. Une machine ne décide pas à votre place que
+votre idée existe déjà.
+
+Si la documentation ne dit rien du sujet, le ticket le note. C'est utile : si la fonctionnalité
+existe en réalité, ce n'est pas une demande d'évolution, c'est une **page à écrire** — et c'est le
+correctif le moins cher qui soit.
+
+### Ce qu'il vous demande, et pourquoi
+
+Le formulaire demande d'abord **quel problème vous cherchez à résoudre**, avant la solution que vous
+imaginez. C'est le champ que tout le monde saute, et c'est celui qui rend une demande décidable :
+une solution sans problème ne peut être ni comparée à autre chose, ni obtenue autrement, ni refusée
+pour une raison qu'on puisse énoncer.
+
+Le bot n'écrit **aucune ébauche technique**. Il énonce votre besoin et ce qui a été vérifié ; où ça
+se brancherait et ce que ça toucherait, c'est le travail de qui prendra le sujet.
+
+### Rien n'est publié avant votre clic
+
+Comme pour `/bug` : le ticket vous est montré tel qu'il partira, avec trois boutons — **déposer**,
+**corriger**, **annuler**. Sans clic, rien n'est déposé. Ensuite, le bot ouvre un fil public et y
+rapporte ce qui se passe sur le ticket.
+
+### Ce qu'un ticket veut dire, et ce qu'il ne veut pas dire
+
+À dire franchement, parce que c'est ce qui déçoit quand on ne l'a pas lu avant : **un ticket est un
+enregistrement, pas un engagement.** Un bug est vrai ou faux et se vérifie ; une évolution est
+seulement souhaitée ou non, et c'est le mainteneur du projet qui tranche, seul.
+
+Un ticket d'évolution a donc [deux avenirs possibles](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/CONTRIBUTING.md) :
+il est repris dans un chantier, ou il reste ouvert comme un témoignage. Le second n'est pas un
+échec : il enregistre que quelqu'un en a eu besoin, et le troisième qui le demandera pèsera plus
+lourd que le premier.
+
 ## Ce qu'il faut fournir {#what-to-provide}
 
 Les signalements utiles se ressemblent tous. Trois choses, dans cet ordre :

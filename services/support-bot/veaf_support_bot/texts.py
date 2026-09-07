@@ -227,6 +227,42 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "escalate.happened": (
             "J'ai posé cette question au bot :\n{question}\n\nSa réponse ne règle pas mon problème :\n{answer}"
         ),
+        # --- /suggest, l'idee confrontee a ce qui existe deja ---------------------------------
+        "suggest.missing": (
+            "Il manque des champs obligatoires ({fields}). Relance `/suggest` : sans le probleme "
+            "que tu veux resoudre, personne ne peut arbitrer la demande."
+        ),
+        "suggest.documentation.question": (
+            "\U0001f4d6 **La documentation semble deja repondre a ta demande.** Voici ce qu'elle dit :\n\n"
+            "{answer}\n\n"
+            "Est-ce que ca repond a ce que tu voulais ? Si non, dis-le : ta suggestion continue son chemin."
+        ),
+        "suggest.documentation.pages": "-# \U0001f4c4 Pages citees : {links}",
+        "suggest.settled.documentation": (
+            "\u2705 Parfait — rien n'a ete ouvert. Si la page est difficile a trouver, dis-le sur le "
+            "canal support : c'est la documentation qu'on corrigera."
+        ),
+        "suggest.settled.prior_art": "\u2705 Rien n'a ete ouvert : le sujet est deja suivi la-bas.",
+        "suggest.filed.reused": "\u2705 Cette suggestion avait deja ete deposee : {url} (rien n'a ete ouvert deux fois).",
+        "suggest.thread.name": "\U0001f4a1 {topic}",
+        "suggest.thread.failed": (
+            "\u274c Le d\u00e9p\u00f4t du ticket a \u00e9chou\u00e9 : ce fil reste ouvert mais ne renvoie \u00e0 aucun "
+            "ticket. La demande n'est pas perdue \u2014 elle a \u00e9t\u00e9 montr\u00e9e \u00e0 son auteur, qui peut "
+            "relancer `/suggest`."
+        ),
+        "suggest.error.after_filing": (
+            "\u26a0\ufe0f Le ticket **a bien \u00e9t\u00e9 ouvert**, mais quelque chose a cass\u00e9 juste apr\u00e8s. Ne "
+            "relance pas `/suggest` : tu ouvrirais un doublon. Regarde le fil ci-dessus, ou dis-le sur "
+            "le canal support."
+        ),
+        "suggest.thread.opening": (
+            "**{title}**\nSuggestion enregistree : {url}\n"
+            "-# Les reponses des mainteneurs sur ce ticket seront rapportees ici."
+        ),
+        "suggest.error.unexpected": (
+            "\u274c Quelque chose a casse pendant la preparation de ta suggestion. Rien n'a ete ouvert. "
+            "Reessaie, et si ca se reproduit dis-le sur le canal support."
+        ),
     },
     "en": {
         # --- the exchange -------------------------------------------------------------------
@@ -417,6 +453,41 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "escalate.button": "Report a bug",
         "escalate.happened": (
             "I asked the bot this question:\n{question}\n\nIts answer does not solve my problem:\n{answer}"
+        ),
+        # --- /suggest, the idea weighed against what already exists ---------------------------
+        "suggest.missing": (
+            "Required fields are missing ({fields}). Run `/suggest` again: without the problem you "
+            "are trying to solve, nobody can weigh the request."
+        ),
+        "suggest.documentation.question": (
+            "\U0001f4d6 **The documentation seems to answer this already.** Here is what it says:\n\n"
+            "{answer}\n\n"
+            "Is that what you were after? If not, say so: your suggestion carries on."
+        ),
+        "suggest.documentation.pages": "-# \U0001f4c4 Pages cited: {links}",
+        "suggest.settled.documentation": (
+            "\u2705 Good — nothing was opened. If that page is hard to find, say so on the support "
+            "channel: the documentation is what we will fix."
+        ),
+        "suggest.settled.prior_art": "\u2705 Nothing was opened: the subject is already tracked there.",
+        "suggest.filed.reused": "\u2705 This suggestion had already been filed: {url} (nothing was opened twice).",
+        "suggest.thread.name": "\U0001f4a1 {topic}",
+        "suggest.thread.failed": (
+            "\u274c Filing the issue failed: this thread stays open but points at no issue. The "
+            "request is not lost \u2014 it was shown to the person who made it, and `/suggest` can be "
+            "run again."
+        ),
+        "suggest.error.after_filing": (
+            "\u26a0\ufe0f The issue **was opened**, but something broke right after. Do not run "
+            "`/suggest` again: you would open a duplicate. Check the thread above, or say so on the "
+            "support channel."
+        ),
+        "suggest.thread.opening": (
+            "**{title}**\nSuggestion recorded: {url}\n-# Maintainers' answers on that issue will be carried back here."
+        ),
+        "suggest.error.unexpected": (
+            "\u274c Something broke while preparing your suggestion. Nothing was opened. Try again, "
+            "and if it happens twice say so on the support channel."
         ),
     },
 }

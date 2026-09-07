@@ -218,7 +218,7 @@ at 20 requests a day.
 | **2** | [`FEAT-SUPPORT-LOG-ANALYSIS`](.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md) — **done 2026-09-05** | user's machine | still no infrastructure, no secret, no cost; also closes the Worker's `X-VEAF-Client` bypass, being the first lot to add a second client |
 | **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) — **done 2026-09-05** | service + Worker | proves the channel, the permissions and the quotas with no agent and no write access |
 | **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) — **done 2026-09-06** | service | the big one, and the only one that writes to a public repository. Shipped in four sequenced PRs (#919, #920, #922, #923). Three steps remain **outside the code** before it does everything it describes: set `SUPPORT_BOT_ENRICH_ROLE_ID`, create the `filed-by-bot` label, deploy the Worker |
-| **5** | [`FEAT-SUPPORT-SUGGESTIONS`](.backlog/FEAT-SUPPORT-SUGGESTIONS/PRD.md) | service | adds a flow on lot 4's infrastructure; if it needs new plumbing, lot 4 factored badly |
+| **5** | [`FEAT-SUPPORT-SUGGESTIONS`](.backlog/FEAT-SUPPORT-SUGGESTIONS/PRD.md) — **done 2026-09-06** | service | adds a flow on lot 4's infrastructure. It did need new plumbing twice, and both were factorings lot 4 owed rather than new machinery: the Discord seam moved to `exchange.py`, and the filer gained `file_prepared` behind one shared ledger writer. The documentation check turned out to cost a model call — measured, argued in ticket 01 |
 
 Three decisions worth recording, because they were argued and could be reopened: the issue is filed by
 a **machine account** (which is why lot 4 owes the GitHub → Discord relay), the user **validates the

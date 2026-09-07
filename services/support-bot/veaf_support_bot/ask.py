@@ -332,13 +332,14 @@ class AskHandler:
         links = answer_module.source_links(titles, lang)
         thread = await self._thread_of(exchange)
         memory = self._memory
-        continuable = memory is not None and thread is not None
-        await exchange.edit(answer_module.render(body, links, lang, continuable=continuable))
+        # Recorded *before* the final edit, and the answer only invites a follow-up when that
+        # actually reached the disk. The other order reads better and lies: on a read-only state
+        # volume the answer would end with "mention me in this thread", the record would fail with a
+        # warning nobody sees, and the reader following that invitation would be answered by
+        # silence — the one outcome the invitation exists to prevent.
+        recorded = memory.remember(thread, context.question, body, lang) if memory and thread else False
+        await exchange.edit(answer_module.render(body, links, lang, continuable=recorded))
         await exchange.offer_escalation(context.question, body, lang)
-        if memory is not None and thread is not None:
-            # After the answer is on screen, never before: recording is a convenience, and a state
-            # volume that has gone read-only must cost the follow-up rather than the answer.
-            memory.remember(thread, context.question, body, lang)
         self._logger.info(
             "question answered",
             extra={

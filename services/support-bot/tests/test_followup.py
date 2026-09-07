@@ -289,6 +289,15 @@ class TheFirstAnswerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("voici la réponse.", exchange.final)
         self.assertNotIn(text("ask.continue", "fr"), exchange.final)
 
+    async def test_a_record_that_could_not_be_written_promises_nothing(self) -> None:
+        """An invitation over a record nobody kept leads the reader into silence."""
+        memory = ThreadMemory(Path(self._dir.name) / "nope" / "\0" / "ask-threads.json")
+        handler = AskHandler(cast(Any, self.worker), self.quota, memory=memory)
+        exchange = RecordingExchange()
+        await handler.handle(exchange, AskContext("42", "Zip", "une question ?", "fr"))
+        self.assertIn("voici la réponse.", exchange.final)
+        self.assertNotIn(text("ask.continue", "fr"), exchange.final)
+
     async def test_a_handler_without_a_memory_promises_nothing_either(self) -> None:
         """The deployment where the state volume is not there: the answer is unchanged."""
         handler = AskHandler(cast(Any, self.worker), self.quota)

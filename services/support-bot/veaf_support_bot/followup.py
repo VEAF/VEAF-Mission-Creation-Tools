@@ -44,7 +44,7 @@ import json
 import re
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from logging import Logger
 from pathlib import Path
 from typing import Any
@@ -202,7 +202,11 @@ class ThreadMemory:
             return None
         if self._expired(conversation, self._clock()):
             return None
-        return conversation
+        # A copy, not the live record. Two people can mention the bot in the same thread within a
+        # second, and both exchanges would otherwise hold the same list: the first to finish appends
+        # its question and answer to it, and the second sends a conversation carrying turns nobody
+        # in it wrote — with two user turns in a row, which is not a shape the model reads.
+        return replace(conversation, turns=[dict(turn) for turn in conversation.turns])
 
     def forgotten_language(self, thread_id: str) -> str | None:
         """Say whether a thread was continuable and is not any more.
@@ -225,7 +229,7 @@ class ThreadMemory:
             return None
         return conversation.lang
 
-    def remember(self, thread_id: str, question: str, answer: str, lang: str = DEFAULT_LANGUAGE) -> None:
+    def remember(self, thread_id: str, question: str, answer: str, lang: str = DEFAULT_LANGUAGE) -> bool:
         """Record one exchange, opening the thread's record when it is the first.
 
         Args:
@@ -233,6 +237,11 @@ class ThreadMemory:
             question: What was asked — the opening question for a new thread, the follow-up after.
             answer: What the bot replied.
             lang: The language it was answered in, kept so a follow-up is answered in the same one.
+
+        Returns:
+            Whether it reached the disk. The caller needs this rather than a log line: it is what
+            decides whether the answer may invite a follow-up, and an invitation over a record that
+            was never written leads the reader into silence.
         """
         threads = self._loaded()
         now = self._clock()
@@ -250,7 +259,7 @@ class ThreadMemory:
         conversation.updated_at = now
         for stale in [key for key, value in threads.items() if self._expired(value, now)]:
             del threads[stale]
-        self._save(threads)
+        return self._save(threads)
 
     def _expired(self, conversation: ThreadConversation, now: float) -> bool:
         """Say whether a record is too old to continue.
@@ -308,11 +317,14 @@ class ThreadMemory:
                 threads[conversation.thread_id] = conversation
         return threads
 
-    def _save(self, threads: dict[str, ThreadConversation]) -> None:
+    def _save(self, threads: dict[str, ThreadConversation]) -> bool:
         """Write every record out.
 
         Args:
             threads: The records to persist.
+
+        Returns:
+            Whether the file was written.
         """
         document = {
             "version": THREADS_VERSION,
@@ -335,6 +347,8 @@ class ThreadMemory:
                 "the thread records could not be written",
                 extra={"event": "followup.unwritable", "path": str(self.path), "error": str(error)},
             )
+            return False
+        return True
 
 
 def _conversation_of(entry: Any) -> ThreadConversation | None:

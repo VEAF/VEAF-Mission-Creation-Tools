@@ -94,6 +94,9 @@ jobs:
       - name: The image can refresh the clone the service owns
         run: |
           docker run --rm --entrypoint git veaf-support-bot:ci --version
+          # The entry point bounds the first clone with it, so that a stalled connection cannot
+          # hold PID 1 for ever and keep `/ask` from ever starting.
+          docker run --rm --entrypoint timeout veaf-support-bot:ci --version
 
       # And the entry point really fills an empty checkout volume. Run with no configuration, so
       # the service still exits 78 straight after — what is asserted is the clone, which happens
@@ -119,6 +122,26 @@ jobs:
           if echo "$output" | grep -q "github.com/VEAF"; then
             echo "the entrypoint printed the clone URL"; exit 1
           fi
+
+      # The cleanup that clears a half-written clone must not clear anything else. Pointed at a
+      # directory holding data and no `.git` — which is what `/app/state` is, and what an operator
+      # who mistypes the checkout path would hand it — it has to refuse and say so. Reported by
+      # review: the destructive form of this would have erased the quota counters, the filed-issue
+      # ledger and the thread links on the next start, silently.
+      - name: The clone never deletes what is not a clone
+        run: |
+          set +e
+          output=$(docker run --rm \
+            -e SUPPORT_BOT_CHECKOUT_PATH=/app/state \
+            -e SUPPORT_BOT_QUOTA_STATE_FILE=/app/state/quota.json \
+            --entrypoint sh veaf-support-bot:ci -c \
+            'printf "{}" > /app/state/quota.json
+             /usr/local/bin/docker-entrypoint.sh 2>&1
+             echo "STILL THERE: $(cat /app/state/quota.json)"')
+          set -e
+          echo "$output"
+          echo "$output" | grep -q "is not empty and not a git repository"
+          echo "$output" | grep -q "STILL THERE: {}"
 
       - name: A misconfigured container fails loudly instead of idling
         run: |

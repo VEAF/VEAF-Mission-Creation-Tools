@@ -33,9 +33,14 @@ services:
     secrets:
       - github_app_key
 
-    # A self-hosted Discord bot dies silently: the process is up, the container says *running*, and
-    # the only symptom is that nobody gets an answer. The image declares its own HEALTHCHECK —
-    # readiness means the Discord gateway is connected — and this restarts what that check condemns.
+    # What this does and does not cover, because the difference matters here more than usual.
+    #
+    # It restarts the container when the process **exits** — a crash, an OOM kill, a host reboot.
+    # It does **not** act on the HEALTHCHECK: outside Swarm, Docker marks a container `unhealthy`
+    # and leaves it running. So the failure this service is shaped around — the process alive with
+    # the Discord gateway gone, nobody getting an answer — is *reported* by the health check and
+    # recovered by nobody. Watching for that needs something outside Compose: an uptime monitor on
+    # `/readyz` (uncomment the port below), or a supervisor that recreates unhealthy containers.
     #
     # The cost of that, worth knowing before it puzzles somebody: Compose cannot exclude an
     # exit code, so a **misconfiguration** restarts for ever too. Exit 78 means restarting

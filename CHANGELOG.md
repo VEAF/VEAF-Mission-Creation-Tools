@@ -605,8 +605,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ringing Abu Musa 4 330 m apart, **1 976 m** with the first ZU-23 lost before the zone was built and
   **3 340 m** with the live list out of editor order — enough to stand the south-western ones in open
   water. Both ends now name the same unit, and read it at the same instant, so the offset is the
-  dispersion and nothing else; a group whose first
-  unit is no longer alive falls back on that unit's editor position rather than on another unit.
+  dispersion and nothing else. The anchor is that unit's editor position, whether or not it is still
+  alive — the group comes up where it was drawn.
 - **A combat zone's dispersion default can be set from `mission.yaml`, per mission or per zone.**
   Air defences placed in the revetments a map provides were scattered by the 50 m default, which puts
   a launcher on the berm instead of inside it — and on the YAML workflow the default could not be

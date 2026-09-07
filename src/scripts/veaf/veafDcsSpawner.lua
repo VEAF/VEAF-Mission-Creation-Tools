@@ -721,6 +721,13 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
   local static = StaticObject.getByName(groupName)
   if static and static:isExist() and record and record.units and record.units[1] then
     local data = veaf.deepCopy(record)
+    -- The same clearing as the group branch above, and for the same reason. MiST forced these two off
+    -- *before* it split group from static (mist.lua:1040, ahead of the `objType == "group"` test at
+    -- :1045), so a teleported static was covered too. Placing it only on the group branch left a
+    -- static hidden in the Mission Editor coming back hidden after a move — the very regression
+    -- ticket 02 exists to undo, surviving for statics. Found by the review of #933.
+    data.uncontrolled = false
+    data.hidden = false
     local position = static:getPosition()
     if position and position.p then
       data.units[1].x = position.p.x

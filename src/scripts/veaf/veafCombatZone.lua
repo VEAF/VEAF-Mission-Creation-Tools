@@ -581,8 +581,10 @@ end
 --- The visible consequence, accepted deliberately (David, 2026-09-07): a group that had moved is put
 --- back where it was **drawn**, not where it had got to. That is what respawning a zone means.
 ---
---- The fallbacks, in order: DCS's unit 1, then the unit the caller had. Both carry a group with no
---- mission record at all: an element with no position spawns nothing, which is worse than an imperfect one.
+--- The fallbacks, in order: DCS's unit 1, then the unit the caller had. They are reached when there is
+--- no usable record — none at all, or one with no `units[1]` — where an element with no position spawns
+--- nothing, which is worse than an imperfect one. There is no liveness test any more: the editor
+--- position is returned whether or not that unit is still alive.
 ---
 --- @param unit the unit the caller had, used as the last fallback
 --- @param group the group, as built by VeafCombatZone:initialize
@@ -592,11 +594,16 @@ function veafCombatZone.referencePositionOf(unit, group)
     local record = veaf.getGroupRecord(group.name)
     local anchor = record and record.units and record.units[1]
     if anchor then
-      -- The editor position, in runtime shape: `x` is the northing, `z` the easting, and `y` the
-      -- altitude — the terrain's, or the unit's own when the editor gave it one (an aircraft's
-      -- cruising altitude, which the terrain height would silently discard).
-      -- See docs/agents/dcs-coordinates.md.
-      return { x = anchor.x, y = anchor.alt or land.getHeight({ x = anchor.x, y = anchor.y }), z = anchor.y }
+      -- The editor position, in runtime shape: `x` is the northing, `z` the easting, `y` the terrain's
+      -- altitude. See docs/agents/dcs-coordinates.md.
+      --
+      -- **Not** the record's own `alt`, which was tried and taken back out: a mission-table altitude is
+      -- MSL under `alt_type = "BARO"` and **AGL** under `"RADIO"`, a runtime vec3's `y` is always MSL,
+      -- and the record does not carry `alt_type` — so there is no way to tell here which one it holds.
+      -- Reading an AGL value as MSL would hand `_altitudeFor` a height below the clearance it tests,
+      -- which drops the aircraft into a random band instead of its drawn altitude. The terrain height
+      -- is what this branch returned before, and what every ground group wants.
+      return { x = anchor.x, y = land.getHeight({ x = anchor.x, y = anchor.y }), z = anchor.y }
     end
     local dcsGroup = Group.getByName(group.name)
     local firstUnit = dcsGroup and dcsGroup:getUnit(1)
@@ -1631,9 +1638,8 @@ local function surfacesForZoneElement(zoneElement)
     return veafDcsSpawner.TERRAIN_BY_CATEGORY.ship
   end
   -- A hull placed as a **static object** lives in the mission's `static` section, so its `category`
-  -- reads "static" and the search below would look for dry land — the silent half of ticket 02's
-  -- defect, since `static` resolves to "any surface" downstream and the quay is then accepted without
-  -- a word. Its own DCS sub-type says what it is: `Ships`, against `Fortifications`, `Heliports`,
+  -- reads "static" and the search below would look for dry land — the silent half of
+  -- FIX-TRIPACK-FIELD-REPORTS ticket 02, whose naval fix only recognised hulls placed as groups. Its own DCS sub-type says what it is: `Ships`, against `Fortifications`, `Heliports`,
   -- `Cargos`. Read from unit 1, which for a static *is* the object.
   local firstUnit = record.units and record.units[1]
   local staticCategory = firstUnit and firstUnit.staticCategory
@@ -1707,10 +1713,6 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- on the first unit it met, or on the first live one, while the spawn subtracts the mission
       -- record's first. FIX-TRIPACK-FIELD-REPORTS ticket 04 made both ends the same unit, and this
       -- lot's ticket 01 made them the same instant, so waypoint 1 moves by the dispersion alone.
-      -- The same surfaces the search used, so the two halves of the decision agree. Without it a
-      -- static ship is looked for on water and then validated against "any surface", which accepts
-      -- the quay — ticket 03's silent half. `nil` for everything else, which leaves the category's
-      -- own list in charge exactly as before.
       local newGroup = VeafGroupSpawn:new()
         :forGroup(zoneElement:getName())
         :named(newGroupName)

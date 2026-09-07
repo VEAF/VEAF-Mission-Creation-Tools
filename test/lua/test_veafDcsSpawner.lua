@@ -915,20 +915,23 @@ function TestVeafDcsSpawnerCurrentGroupData:test_a_teleport_does_not_carry_the_e
   luaunit.assertFalse(data.hidden, "and visible on the F10 map")
 end
 
---- The other half, and the reason this is two tests: ticket 05 must survive. A **clone** still
---- carries what the editor set, so the fix cannot be "drop the fields from the record".
-function TestVeafDcsSpawnerCurrentGroupData:test_a_clone_still_carries_the_editors_uncontrolled()
+--- The static branch needed the same clearing, and did not have it. MiST applied its rule *before*
+--- splitting group from static (mist.lua:1040, ahead of the `objType == "group"` test), so a
+--- teleported static was covered too. Found by the review of #933: a static hidden in the editor and
+--- moved by `_move` came back hidden, which is this ticket's own regression surviving for statics.
+function TestVeafDcsSpawnerCurrentGroupData:test_a_teleported_static_comes_back_visible()
   env.mission.coalition.blue.country = {
     [1] = {
       name = "USA",
       id = country.id.USA,
-      plane = {
+      static = {
         group = {
           {
-            name = "Arco",
-            groupId = 7,
+            name = "Bunker",
+            groupId = 9,
+            hidden = true,
             uncontrolled = true,
-            units = { { name = "Arco-1", unitId = 3, type = "KC-135", skill = "High" } },
+            units = { { name = "Bunker", unitId = 5, type = "Sandbag_06", category = "Fortifications", x = 0, y = 0 } },
           },
         },
       },
@@ -936,9 +939,29 @@ function TestVeafDcsSpawnerCurrentGroupData:test_a_clone_still_carries_the_edito
   }
   veafMissionDb.buildSnapshot()
 
-  local record = veafMissionDb.getGroupRecord("Arco")
+  -- The harness has no StaticObject registry, so the one live static is stood up here and taken back
+  -- down after. `getPosition` is all this branch reads off it.
+  local savedGetByName = StaticObject.getByName
+  StaticObject.getByName = function(name)
+    if name ~= "Bunker" then
+      return nil
+    end
+    return {
+      isExist = function()
+        return true
+      end,
+      getPosition = function()
+        return { p = { x = 10, y = 0, z = 20 } }
+      end,
+    }
+  end
 
-  luaunit.assertTrue(record.uncontrolled, "the record a clone reads keeps the editor's value")
+  local data = veafDcsSpawner.getCurrentGroupData("Bunker")
+  StaticObject.getByName = savedGetByName
+
+  luaunit.assertNotNil(data, "the static must be found")
+  luaunit.assertFalse(data.hidden, "a teleported static comes back visible")
+  luaunit.assertFalse(data.uncontrolled, "and controlled, as MiST left it")
 end
 
 function TestVeafDcsSpawnerCurrentGroupData:test_the_editors_country_is_not_overwritten()
@@ -1663,6 +1686,19 @@ end
 function TestVeafGroupSpawnFieldForwarding:test_a_clone_keeps_the_editors_hidden_flag()
   VeafGroupSpawn:new():forGroup("CAP_AL_MINHAD-1"):at({ x = 5000, y = 0, z = 6000 }):clone()
   luaunit.assertTrue(lastSpawned().hidden, "the editor hid this group; the clone must stay hidden")
+end
+
+--- The other half of FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 02: only the **teleport** drops these,
+--- so a clone must still carry an editor `uncontrolled = true`. Asserted through the verb — the first
+--- version of this test read the record instead and would have survived clearing the field in every
+--- verb, which is exactly what it existed to forbid (review of #933).
+function TestVeafGroupSpawnFieldForwarding:test_a_clone_carries_an_uncontrolled_editor_group()
+  local record = veafMissionDb.getGroupRecord("CAP_AL_MINHAD-1")
+  record.uncontrolled = true
+
+  VeafGroupSpawn:new():forGroup("CAP_AL_MINHAD-1"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  luaunit.assertTrue(lastSpawned().uncontrolled, "a clone reproduces what the editor set")
 end
 
 --- A group with no editor record at all (no `forGroup`, built inline) keeps `addGroup`'s own

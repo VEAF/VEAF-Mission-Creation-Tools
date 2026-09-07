@@ -116,3 +116,39 @@ going wrong. Found by the review of #918.
 also going to tighten the spawn's terrain check for a static hull; the search fix alone turns out to
 be enough — the suite passes untouched — and tightening the check would have refused a `Ships` static
 a mission maker had deliberately run aground. The reasoning is in the ticket.
+
+## Post-PR review of this lot (#933)
+
+Reviewed by an agent, Sourcery's budget still being spent. Six points, all acted on — and the first
+is the same defect class this lot was opened to clean up:
+
+1. **An orphaned comment.** Removing `:onTerrain()` from the spawn chain left the four comment lines
+   that described it, hanging off the paragraph about `offsettingFirstWaypoint()` and asserting the
+   opposite of what shipped: that the search and the validation agree, where ticket 03 says they
+   deliberately do not. A confident false sentence, in a file whose invariants live in its comments.
+   Removed.
+2. **The teleport's clearing missed statics.** MiST applied its rule *before* splitting group from
+   static (`mist.lua:1040`, ahead of the `objType == "group"` test), so a teleported static was
+   covered too. The fix sat only on the group branch, leaving a static hidden in the editor coming
+   back hidden — this ticket's own regression, surviving. Fixed, with a test.
+3. **The "clone still carries it" test never cloned.** It read the record and asserted a field on it,
+   so clearing `uncontrolled` in *every* verb would have left it green — precisely what it existed to
+   forbid. Replaced by one that goes through `:clone()` and reads what reaches `coalition.addGroup`;
+   verified by mutation.
+4. **`anchor.alt` was taken back out.** A mission-table altitude is MSL under `alt_type = "BARO"` and
+   **AGL** under `"RADIO"`, a runtime vec3's `y` is always MSL, and the record carries no `alt_type` —
+   so there is no way to tell which one it holds. Reading AGL as MSL drops an aircraft into a random
+   altitude band. The terrain height is what the branch returned before and what ground groups want.
+   Better no altitude than a wrong one.
+5. Two stale clauses, in the CHANGELOG and the docstring, still describing a liveness fallback that no
+   longer exists. Corrected — both in text this PR had edited to remove a *different* false claim.
+6. `staticCategory` sits one letter-order away from the spawner's existing `categoryStatic`, which
+   does something else. Named in a comment rather than renamed: reusing that name would make a
+   respawned static submit `category = "Ships"`, a behaviour change nothing here measured.
+
+What the review checked and found clean: the offset really is zero now, `referencePositionOf` has one
+caller and its position one consumer, the early `return nil` in `surfacesForZoneElement` is
+behaviour-preserving, the `table.concat` hardening has no `and`/`or` trap, the CSAR no-record case is
+unaffected, `staticCategory` is absent rather than nil-crashing for every non-static, and ticket 03's
+reasoning for not tightening the validation holds — a `Ships` static run aground deliberately keeps
+its declared position when the water search fails.

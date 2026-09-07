@@ -121,6 +121,12 @@ local function unitRecord(unitData, groupData, context)
     groupId = groupData.groupId,
     type = unitData.type,
     -- The DCS sub-type of a **static** object: `Ships`, `Fortifications`, `Heliports`, `Cargos`…
+    --
+    -- Not to be confused with `categoryStatic`, one letter-order away, which `veafDcsSpawner.addStatic`
+    -- reads off the object it is about to *create* and hoists onto `category`. This one describes what
+    -- the Mission Editor holds. Keeping them apart is deliberate: reusing that name here would make a
+    -- respawned static submit `category = "Ships"` instead of `"static"`, which is a behaviour change
+    -- nothing in this lot measured. Noted by the review of #933.
     -- Under its own key, never over `category`, which every caller reads as the mission-table section
     -- the group came from (`plane`, `vehicle`, `ship`, `static`).
     --

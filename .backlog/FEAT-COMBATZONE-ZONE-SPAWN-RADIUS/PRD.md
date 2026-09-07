@@ -1,6 +1,6 @@
 # FEAT-COMBATZONE-ZONE-SPAWN-RADIUS — the dispersion default, settable from `mission.yaml`
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: Tripack, relayed by David on 2026-09-07. He places air defences in the revetments the Syria
 map draws for exactly that purpose, and a spawn that scatters a launcher by tens of metres puts it on
@@ -93,3 +93,27 @@ contract of every existing mission. And it would not help him anyway: his zone n
   `math.random()` with a constant 0, so in the harness no spawn ever scatters and a dispersion
   assertion passes whichever way it is written. Found the hard way in FIX-TRIPACK-FIELD-REPORTS
   ticket 04.
+
+## Delivered
+
+Both tickets, one branch, one PR. What went in:
+
+- `lua_config_generator` reads `default_spawn_radius` / `default_spawn_radius_statics` at both levels
+  **by presence**, and the per-zone pair is emitted into the chain before `:initialize()`.
+- `VeafCombatZone:setDefaultSpawnRadius` / `…ForStatics`, resolved at element-build time by
+  `resolveDefaultSpawnRadius` so a global assignment and an `AddZone` call are order-independent.
+  `buildGroupElement` takes the zone as an optional fourth argument, which leaves every existing
+  caller — and the tests that build an element outside a zone — on the module globals.
+- A call after `initialize()` is refused with a logged error rather than ignored.
+
+**Both test suites were verified to fail**, which is the only reason to trust them:
+
+| Mutation | What fell |
+|---|---|
+| generator back to `if x := cfg.get(...)` | the 4 Python tests asserting `0`, and only those |
+| the zone unplugged from `buildGroupElement` | 4 of the 9 Lua tests |
+
+One thing found and **not** turned into a change: `~= nil` versus `or` in `resolveDefaultSpawnRadius`
+is not a fix in Lua, because `0` is truthy there — no test can tell the two apart. The comment that
+claimed otherwise was corrected rather than left to mislead the next reader; the real version of that
+trap lives on the Python side, where `0` *is* falsy, and it is what ticket 01's tests exist to catch.

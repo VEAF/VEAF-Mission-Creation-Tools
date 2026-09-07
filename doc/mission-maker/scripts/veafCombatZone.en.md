@@ -502,6 +502,38 @@ Names then read `<zone name> [r] <real name>#<id>`. The coalition tag and the id
 | `veafCombatZone.SecondsBetweenFlareRequests` | `120` | Flare mark cooldown (s) |
 | `veafCombatZone.RadioMenuName` | `"COMBAT ZONES"` | F10 submenu label |
 | `veafCombatZone.DefaultSpawnRadiusForUnits` | `50` | Default unit scatter radius (m) |
+| `veafCombatZone.DefaultSpawnRadiusForStatics` | `0` | Same, for static objects (m) |
+## Scatter radius: the three levels {#spawn-radius-levels}
+
+When a zone activates, a group that says nothing is scattered around its position. That suits a
+convoy; it does not suit a battery placed in the hardened emplacements a map provides, where a few
+tens of metres put a launcher on the berm instead of inside it.
+
+Three levels, most specific first — the first one found wins:
+
+| Level | Where you write it | Applies to |
+|-------|--------------------|------------|
+| the group | `#spawnradius=0` in the group's name, or in one of its units' names | that group |
+| the zone | `default_spawn_radius` on a `combat_zones` entry | every untagged group of that zone |
+| the mission | `default_spawn_radius` under `combat_zone_settings` | every zone |
+
+**`0` means "exactly where I placed them"** — not "nearly". The placement is identical to the
+Mission Editor's, to the metre.
+
+Static objects have their own setting, `default_spawn_radius_statics`, because their built-in default
+is already `0`: one setting for both would start scattering statics that stand still today.
+
+```yaml
+COMBATZONE:
+  combat_zone_settings:
+    default_spawn_radius: 50          # the usual default, mission-wide
+  combat_zones:
+    - zone_name: CMBT_PALMYRA
+      default_spawn_radius: 0         # everything here is placed to the metre: do not move it
+    - zone_name: CMBT_TIYAS           # this one keeps the 50 m
+```
+
+---
 
 ---
 

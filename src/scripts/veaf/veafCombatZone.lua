@@ -618,8 +618,11 @@ end
 --- @param unit the group's first unit, which gives the element its position and coalition
 --- @param group the group, as built by VeafCombatZone:initialize
 --- @param tags the group's collected tags
+--- @param zone VeafCombatZone|nil the zone this element belongs to, whose own default wins over the
+---   mission-wide one. Optional so the existing callers and tests that build an element outside a
+---   zone keep working on the module globals.
 --- @return VeafCombatZoneElement
-function veafCombatZone.buildGroupElement(unit, group, tags)
+function veafCombatZone.buildGroupElement(unit, group, tags, zone)
   local element = VeafCombatZoneElement:new()
   element:setCoalition(unit:getCoalition())
   element:setPosition(veafCombatZone.referencePositionOf(unit, group))
@@ -631,7 +634,17 @@ function veafCombatZone.buildGroupElement(unit, group, tags)
     element:setDcsGroup(true)
   end
   if not tags.spawnRadius then
-    local default = group.isStatic and veafCombatZone.DefaultSpawnRadiusForStatics or veafCombatZone.DefaultSpawnRadiusForUnits
+    -- The zone's own default when it set one, the mission-wide global otherwise. Resolved here rather
+    -- than stored on the zone at construction time, so a `veafCombatZone.DefaultSpawnRadiusFor*`
+    -- assignment and an `AddZone` call are order-independent in a generated config.
+    local default
+    if zone then
+      default = zone:resolveDefaultSpawnRadius(group.isStatic)
+    elseif group.isStatic then
+      default = veafCombatZone.DefaultSpawnRadiusForStatics
+    else
+      default = veafCombatZone.DefaultSpawnRadiusForUnits
+    end
     element:setSpawnRadius(default)
   end
   if not element:getSpawnGroup() then
@@ -688,6 +701,12 @@ function VeafCombatZone:new(objectToCopy)
   -- coalition whose units must be destroyed for the zone to complete (1 = red, 2 = blue).
   -- Defaults to red: the players are blue and the zone holds the red opposition.
   objectToCreate.enemyCoalition = veafCombatZone.DEFAULT_ENEMY_COALITION
+  -- dispersion this zone gives a group that wrote no `#spawnradius=` tag, in metres, or nil to use
+  -- the mission-wide `veafCombatZone.DefaultSpawnRadiusFor*`. **nil rather than the global's value**:
+  -- read eagerly here, a zone built before the mission's own default was set would freeze the
+  -- built-in 50 m, and the generator has no ordering guarantee between the two.
+  objectToCreate.defaultSpawnRadius = nil
+  objectToCreate.defaultSpawnRadiusForStatics = nil
   -- coalition the F10 menu is restricted to; nil = derive it from enemyCoalition
   objectToCreate.radioMenuCoalition = nil
   -- DCS groups that have been spawned (for cleaning up later)
@@ -831,6 +850,75 @@ function VeafCombatZone:setTraining(value)
     self.showZonePositionInfo = true
   end
   return self
+end
+
+--- Dispersion this zone gives a group that wrote no `#spawnradius=` tag, in metres.
+---
+--- For the mission maker who placed a zone's objects deliberately — air defences in the revetments a
+--- map provides, aircraft on hardstands — where the mission-wide default is fine everywhere else.
+--- `0` means "exactly where I drew them", and since FIX-TRIPACK-FIELD-REPORTS ticket 04 that is an
+--- identity spawn rather than merely a small one.
+---
+--- A group's own `#spawnradius=` still wins: this is the default for the ones that stated nothing.
+---
+--- **Must be called before `initialize()`**, which is what builds the elements and applies the
+--- default. Called after, it would be read by nobody — so it says so, loudly, rather than leaving a
+--- mission maker to wonder why their line did nothing. The generator emits `:initialize()` last, so
+--- generated configs are safe by construction; a hand-written one can order it any way it likes.
+---
+--- @param value number|nil metres, or nil to fall back on the mission-wide default
+--- @return VeafCombatZone self
+function VeafCombatZone:setDefaultSpawnRadius(value)
+  if self.zoneElements and #self.zoneElements > 0 then
+    veaf.loggers.get(veafCombatZone.Id):error(
+      "setDefaultSpawnRadius(%s) called on [%s] after initialize(): its elements already have their radius, so this has no effect. Move the call before initialize().",
+      veaf.p(value),
+      veaf.p(self.missionEditorZoneName)
+    )
+    return self
+  end
+  self.defaultSpawnRadius = tonumber(value)
+  return self
+end
+
+--- See `VeafCombatZone:setDefaultSpawnRadius`; the statics' counterpart, whose built-in default is 0.
+--- @param value number|nil metres, or nil to fall back on the mission-wide default
+--- @return VeafCombatZone self
+function VeafCombatZone:setDefaultSpawnRadiusForStatics(value)
+  if self.zoneElements and #self.zoneElements > 0 then
+    veaf.loggers.get(veafCombatZone.Id):error(
+      "setDefaultSpawnRadiusForStatics(%s) called on [%s] after initialize(): its elements already have their radius, so this has no effect. Move the call before initialize().",
+      veaf.p(value),
+      veaf.p(self.missionEditorZoneName)
+    )
+    return self
+  end
+  self.defaultSpawnRadiusForStatics = tonumber(value)
+  return self
+end
+
+--- The dispersion an untagged group of this zone gets: the zone's own default when it set one, the
+--- mission-wide global otherwise. Read at element-build time, never cached.
+--- @param isStatic boolean whether the group is a static object
+--- @return number metres
+function VeafCombatZone:resolveDefaultSpawnRadius(isStatic)
+  if isStatic then
+    -- `~= nil` rather than `or` is a statement of intent, not a fix: **in Lua `0` is truthy**, so
+    -- `self.x or global` behaves identically here and a test cannot tell the two apart. Written this
+    -- way because the question being asked is "did the zone state a value", which is exactly the
+    -- distinction FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT lost when it asked "is the value falsy"
+    -- — in the *other* direction, where `not 0` is false and three years of `#spawnradius=0` were
+    -- read as silence. The generator side of this feature has the real version of that trap, since
+    -- `0` is falsy in Python.
+    if self.defaultSpawnRadiusForStatics ~= nil then
+      return self.defaultSpawnRadiusForStatics
+    end
+    return veafCombatZone.DefaultSpawnRadiusForStatics
+  end
+  if self.defaultSpawnRadius ~= nil then
+    return self.defaultSpawnRadius
+  end
+  return veafCombatZone.DefaultSpawnRadiusForUnits
 end
 
 function VeafCombatZone:isShowUnitsList()
@@ -1287,7 +1375,7 @@ function VeafCombatZone:initialize()
       end
       if #plainUnits > 0 then
         -- it's a group or a static unit
-        self:addZoneElement(veafCombatZone.buildGroupElement(plainUnits[1], group, tags))
+        self:addZoneElement(veafCombatZone.buildGroupElement(plainUnits[1], group, tags, self))
       end
     end
   end

@@ -123,6 +123,11 @@ DEFAULT_ENRICH_STATE_FILE: Final = "state/enrichment.json"
 #: Where the thread-to-issue links live, so a restart does not orphan every report already filed.
 DEFAULT_RELAY_LINKS_FILE: Final = "state/relay-links.json"
 
+#: Where the `/ask` threads live, so mentioning the bot in one still continues the conversation after
+#: a rebuild. Its own file: these records are pruned by age and rewritten on every answer, while the
+#: relay links are kept until an issue closes.
+DEFAULT_ASK_THREADS_FILE: Final = "state/ask-threads.json"
+
 #: Label marking an issue as filed by the machine.
 DEFAULT_GITHUB_MACHINE_LABEL: Final = "filed-by-bot"
 
@@ -488,6 +493,9 @@ class SupportBotConfig:
         enrich_endpoint: The Worker ``/analyze`` URL the one call goes to.
         enrich_state_file: Where the day's enrichment allowance is counted.
         enrich_per_day: Hypotheses the whole bot may produce in a UTC day.
+        ask_threads_file: Where the ``/ask`` threads are kept between restarts, so a follow-up finds
+            what the thread was about. Unreadable or unwritable costs the continuation and nothing
+            else — the answer itself never depends on it.
         relay_links_file: Where the thread ↔ issue links are kept between restarts.
         relay_poll_seconds: Gap between two rounds of asking GitHub what changed on the issues this
             service filed. The App has no webhook, by decision: this is how the news comes back.
@@ -527,6 +535,7 @@ class SupportBotConfig:
     enrich_endpoint: str = DEFAULT_ENRICH_ENDPOINT
     enrich_state_file: str = DEFAULT_ENRICH_STATE_FILE
     enrich_per_day: int = DEFAULT_ENRICH_PER_DAY
+    ask_threads_file: str = DEFAULT_ASK_THREADS_FILE
     relay_links_file: str = DEFAULT_RELAY_LINKS_FILE
     relay_poll_seconds: float = DEFAULT_POLL_SECONDS
 
@@ -614,6 +623,7 @@ class SupportBotConfig:
             enrich_endpoint=reader.url("ENRICH_ENDPOINT", DEFAULT_ENRICH_ENDPOINT),
             enrich_state_file=reader.text("ENRICH_STATE_FILE", DEFAULT_ENRICH_STATE_FILE),
             enrich_per_day=reader.integer("ENRICH_PER_DAY", DEFAULT_ENRICH_PER_DAY, minimum=1),
+            ask_threads_file=reader.text("ASK_THREADS_FILE", DEFAULT_ASK_THREADS_FILE),
             relay_links_file=reader.text("RELAY_LINKS_FILE", DEFAULT_RELAY_LINKS_FILE),
             relay_poll_seconds=reader.seconds("RELAY_POLL_SECONDS", DEFAULT_POLL_SECONDS),
         )
@@ -662,6 +672,7 @@ class SupportBotConfig:
             "enrich_endpoint": self.enrich_endpoint,
             "enrich_state_file": self.enrich_state_file,
             "enrich_per_day": self.enrich_per_day,
+            "ask_threads_file": self.ask_threads_file,
             "relay_links_file": self.relay_links_file,
             "relay_poll_seconds": self.relay_poll_seconds,
         }

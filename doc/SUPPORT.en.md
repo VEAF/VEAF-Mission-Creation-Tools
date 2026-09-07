@@ -41,6 +41,25 @@ The thread is public on purpose: the answer serves the next person who asks the 
 anyone passing by can correct the bot — "no, since 6.19 it works differently". On a documentation
 assistant, that is the only correction that actually catches a wrong answer.
 
+### Asking a follow-up {#followup}
+
+One answer usually raises the next question. In the thread, **mention the bot** and ask it:
+
+```text
+@VEAF Tools Bot and if I want to build a mission? are there templates?
+```
+
+It answers with what came before in mind, so the question can be as elliptical as that one — no need
+to restate the subject.
+
+Three things to know:
+
+- **it only reads the messages that mention it.** The rest of the conversation in the thread never
+  reaches it — not out of politeness: Discord does not hand it the text of messages it is not named
+  in;
+- **it only works in the threads it opened** for an `/ask`. Mentioning it anywhere else does nothing;
+- **each follow-up counts as one question** against the quotas, exactly like an `/ask`.
+
 ### What to know before relying on it
 
 - **It answers from the documentation, and from nothing else.** It does not read the code, does not

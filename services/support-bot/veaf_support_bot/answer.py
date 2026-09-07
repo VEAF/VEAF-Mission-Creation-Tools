@@ -193,13 +193,17 @@ def thread_name(question: str) -> str:
     return text("ask.thread_name", "en", topic=topic)
 
 
-def render(body: str, links: Sequence[str], lang: str) -> str:
+def render(body: str, links: Sequence[str], lang: str, *, continuable: bool = False) -> str:
     """Assemble the message posted in the thread.
 
     Args:
         body: The answer text, trailer already removed.
         links: Markdown links to the pages cited, possibly none.
         lang: ``"fr"`` or ``"en"``.
+        continuable: Whether a follow-up can be asked by mentioning the bot in this thread. Nobody
+            discovers that by accident, so the answer says it — and only where it is true: a thread
+            that could not be opened, or records the service cannot write, would otherwise promise
+            something that then does nothing.
 
     Returns:
         The message content, within :data:`DISCORD_MESSAGE_LIMIT`. The footer — sources and the
@@ -212,6 +216,8 @@ def render(body: str, links: Sequence[str], lang: str) -> str:
         else text("ask.no_sources", lang, support_url=support_page_url(lang))
     )
     footer = f"{footer}\n{text('ask.disclaimer', lang)}"
+    if continuable:
+        footer = f"{footer}\n{text('ask.continue', lang)}"
 
     room = DISCORD_MESSAGE_LIMIT - len(footer) - 2
     if room <= 0:

@@ -41,6 +41,7 @@ from veaf_support_bot.draft import (
     FILE,
     MATCH_EXPIRY_SECONDS,
 )
+from veaf_support_bot.followup import strip_mentions
 from veaf_support_bot.health import ServiceState
 from veaf_support_bot.intake import (
     DOCTOR_MAX_CHARS,
@@ -59,9 +60,30 @@ from veaf_support_bot.suggestion import PARAGRAPH_MAX_CHARS as SUGGESTION_PARAGR
 from veaf_support_bot.suggestion import SUMMARY_MAX_CHARS as SUGGESTION_SUMMARY_MAX_CHARS
 from veaf_support_bot.texts import text
 
-#: Gateway intents. The default set minus every privileged one: the bot reads slash-command options,
-#: never message content or member lists, so asking for more would be permission it does not need.
-INTENTS = discord.Intents.none()
+
+def _intents() -> discord.Intents:
+    """Build the gateway intents this service connects with.
+
+    Nothing privileged, which is the whole point. ``guild_messages`` is what delivers the *event*
+    for a message posted in the guild; the message's **text** is a separate, privileged intent
+    (``message_content``) this service does not ask for — and Discord fills `content` anyway in two
+    documented cases, one of which is a message that **mentions the app**.
+
+    So a follow-up works and nothing else is readable: the bot receives an empty `content` for every
+    message that does not name it. *It cannot read what is not addressed to it* is a property of the
+    connection rather than a rule this code has to keep, which is why the feature was built this way.
+
+    Returns:
+        The intents.
+    """
+    intents = discord.Intents.none()
+    intents.guild_messages = True
+    return intents
+
+
+#: Gateway intents. Slash-command options, and the text of a message that mentions the bot — see
+#: :func:`_intents` for why that second one needs no privilege.
+INTENTS = _intents()
 
 #: Longest question the slash command accepts, mirrored from the handler's own bound.
 QUESTION_MAX_LENGTH = 1000
@@ -96,6 +118,50 @@ THREADABLE: tuple[type, ...] = (discord.TextChannel,)
 #: Prefix added to a followed thread's name once its issue is closed, so the state is visible
 #: in the channel list without opening anything.
 CLOSED_MARK = "✅ "
+
+
+def escalation_opener(
+    intake: BugIntake,
+    question: str,
+    answer: str,
+    lang: str,
+    logger: Logger,
+    tasks: InFlightTasks | None,
+) -> Callable[[discord.Interaction], Awaitable[None]]:
+    """Build what a *Report a bug* button does when pressed.
+
+    Shared by the two ways an answer reaches a reader — a slash command and a follow-up in the
+    thread — so the escalated report is prepared identically whichever one he came through.
+
+    Args:
+        intake: What the escalated report is handed to, passed in rather than read back off an
+            exchange so the closure cannot outlive the check that it exists.
+        question: What was asked.
+        answer: What the bot replied.
+        lang: ``"fr"`` or ``"en"``.
+        logger: Logger handed to the report's own modal.
+        tasks: Registry a shutdown drains, handed to that modal.
+
+    Returns:
+        A coroutine function opening the report form, pre-filled with the exchange.
+    """
+
+    async def open_form(click: discord.Interaction) -> None:
+        """Open the report form on the asker's own click.
+
+        Args:
+            click: The click, which is the interaction the modal must answer.
+        """
+        prefill = escalation_form(
+            question,
+            answer,
+            reporter=click.user.display_name,
+            reporter_id=str(click.user.id),
+            language=lang,
+        )
+        await click.response.send_modal(BugModal(intake, [], logger, prefill=prefill, tasks=tasks))
+
+    return open_form
 
 
 class InteractionExchange:
@@ -235,23 +301,148 @@ class InteractionExchange:
         Returns:
             A coroutine function opening the report form, pre-filled with the exchange.
         """
+        return escalation_opener(intake, question, answer, lang, self._logger, self._tasks)
 
-        async def open_form(click: discord.Interaction) -> None:
-            """Open the report form on the asker's own click.
+    async def thread_id(self) -> str | None:
+        """Return the thread the answer went into, when one was opened.
 
-            Args:
-                click: The click, which is the interaction the modal must answer.
-            """
-            prefill = escalation_form(
-                question,
-                answer,
-                reporter=click.user.display_name,
-                reporter_id=str(click.user.id),
-                language=lang,
+        Returns:
+            The thread id as a string, or ``None`` when the answer was posted in the channel
+            because no thread could be opened — nothing to continue there.
+        """
+        return None if self._thread is None else str(self._thread.id)
+
+
+class ThreadExchange:
+    """The :class:`~veaf_support_bot.ask.Exchange` protocol over a follow-up posted in a thread.
+
+    Same handler, same order of steps, same failure handling — only the Discord side differs, and it
+    differs by being simpler: there is no interaction to acknowledge and no thread to open, because
+    the reader is already standing in the one his question continues.
+    """
+
+    def __init__(
+        self,
+        channel: discord.abc.Messageable,
+        thread_id: str,
+        logger: Logger | None = None,
+        *,
+        intake: BugIntake | None = None,
+        tasks: InFlightTasks | None = None,
+    ) -> None:
+        """Initialize the exchange.
+
+        Args:
+            channel: Where to write, which is the thread the mention was posted in.
+            thread_id: That thread's id, passed rather than read off the channel: the client runs
+                with a cold cache, so what arrives with a message may be a partial channel that
+                answers nothing else.
+            logger: Logger to use; defaults to the service's ``discord`` logger.
+            intake: What an escalation hands its form to, as for a slash command.
+            tasks: Registry a shutdown drains, passed on to the escalated report's own modal.
+        """
+        self._channel = channel
+        self._thread_id = thread_id
+        self._logger = logger or get_logger("discord")
+        self._intake = intake
+        self._tasks = tasks
+        self._message: discord.Message | None = None
+
+    async def defer(self) -> None:
+        """Do nothing: a message is not an interaction, and Discord is not counting to three."""
+        return None
+
+    async def announce(self, content: str) -> None:
+        """Say something in the thread before the answer — in practice, a quota refusal.
+
+        Args:
+            content: What to say.
+        """
+        await self._send(content)
+
+    async def open_thread(self, name: str) -> bool:
+        """Report that a thread exists, because the exchange is already inside one.
+
+        Args:
+            name: Ignored; nothing is created.
+
+        Returns:
+            Always ``True``.
+        """
+        return True
+
+    async def post(self, content: str) -> None:
+        """Post the message the answer will be streamed into.
+
+        Args:
+            content: The placeholder.
+        """
+        self._message = await self._send(content)
+
+    async def edit(self, content: str) -> None:
+        """Replace the content of the message :meth:`post` created.
+
+        A failed intermediate edit is swallowed for the same reason as in a slash-command exchange:
+        Discord rate-limits edits, and losing a progress update must not lose the answer.
+
+        Args:
+            content: The new content.
+        """
+        if self._message is None:
+            await self.post(content)
+            return
+        try:
+            await self._message.edit(content=content, allowed_mentions=NO_MENTIONS)
+        except discord.HTTPException as error:
+            self._logger.warning(
+                "could not edit the follow-up answer",
+                extra={"event": "followup.edit_failed", "error": f"{type(error).__name__}: {error}"},
             )
-            await click.response.send_modal(BugModal(intake, [], self._logger, prefill=prefill, tasks=self._tasks))
 
-        return open_form
+    async def offer_escalation(self, question: str, answer: str, lang: str) -> None:
+        """Attach a *Report a bug* button to the answer, as a slash command would.
+
+        A follow-up is where an unsatisfying answer most often ends up — the reader has already
+        tried once — so this is the last place the offer should be missing.
+
+        Args:
+            question: What was asked.
+            answer: What the bot replied.
+            lang: ``"fr"`` or ``"en"``.
+        """
+        if self._intake is None or self._message is None:
+            return
+        view = _EscalationView(
+            label=text("escalate.button", lang),
+            open_form=escalation_opener(self._intake, question, answer, lang, self._logger, self._tasks),
+            logger=self._logger,
+        )
+        try:
+            view.message = await self._message.edit(view=view, allowed_mentions=NO_MENTIONS)
+        except discord.HTTPException as error:
+            self._logger.warning(
+                "could not offer the escalation button on a follow-up",
+                extra={"event": "followup.escalation_failed", "error": type(error).__name__},
+            )
+
+    async def thread_id(self) -> str | None:
+        """Return the thread the conversation lives in.
+
+        Returns:
+            The thread id, which is the same one the follow-up was recognised by.
+        """
+        return self._thread_id
+
+    async def _send(self, content: str) -> discord.Message:
+        """Write one message into the thread.
+
+        Args:
+            content: What to write.
+
+        Returns:
+            The message.
+        """
+        return await self._channel.send(content, allowed_mentions=NO_MENTIONS)
 
 
 class SupportBotClient(discord.Client):
@@ -287,6 +478,8 @@ class SupportBotClient(discord.Client):
         self._config = config
         self._state = state
         self._handler = handler
+        self._tasks = tasks
+        self._intake = intake
         self._logger = get_logger("discord")
         self.tree = app_commands.CommandTree(self)
         register_commands(self.tree, handler, self._logger, tasks, intake)
@@ -316,6 +509,77 @@ class SupportBotClient(discord.Client):
                 "commands": [command.name for command in synced],
             },
         )
+
+    async def on_message(self, message: discord.Message) -> None:
+        """Continue an ``/ask`` when the bot is mentioned in the thread it opened.
+
+        Every other message is dropped, and mostly it was never readable in the first place: without
+        the privileged content intent Discord delivers an empty ``content`` for anything that does
+        not name the bot.
+
+        Args:
+            message: The message that arrived.
+        """
+        try:
+            await self._maybe_followup(message)
+        except Exception as error:
+            # The gateway's own handler logs and moves on, which would leave the mention answered by
+            # nothing at all. Logged here, where the event is named.
+            self._logger.exception(
+                "a mention could not be handled",
+                extra={"event": "followup.crashed", "error": type(error).__name__},
+            )
+
+    async def _maybe_followup(self, message: discord.Message) -> None:
+        """Decide whether a message is a follow-up, and run it when it is.
+
+        Four conditions, each closing a way this becomes noise or a loop: the bot is mentioned, the
+        thread is one it opened for an ``/ask``, the author is a human, and something was actually
+        asked.
+
+        Args:
+            message: The message that arrived.
+        """
+        memory = self._handler.memory
+        if memory is None or self.user is None:
+            return
+        # Ourselves first: every answer this service posts quotes the reader's question, mention
+        # included, so a bot that answered its own messages would answer for ever.
+        if message.author.bot or message.author.id == self.user.id:
+            return
+        if not any(mentioned.id == self.user.id for mentioned in message.mentions):
+            return
+        thread_id = str(message.channel.id)
+        conversation = memory.conversation(thread_id)
+        if conversation is None:
+            forgotten = memory.forgotten_language(thread_id)
+            if forgotten is not None:
+                # The reader is following an invitation the bot itself wrote at the end of its
+                # answer. Silence there reads as a breakage; a thread this service never opened —
+                # somebody else's, or a `/bug` thread — says nothing at all.
+                await message.channel.send(text("ask.followup.forgotten", forgotten), allowed_mentions=NO_MENTIONS)
+            return
+        question = strip_mentions(message.content, str(self.user.id))
+        if not question:
+            return
+        context = AskContext(
+            user_id=str(message.author.id),
+            user_display=message.author.display_name,
+            question=question,
+            locale=conversation.lang,
+            conversation=conversation,
+        )
+        exchange = ThreadExchange(message.channel, thread_id, self._logger, intake=self._intake, tasks=self._tasks)
+        self._logger.info(
+            "a follow-up was asked in a thread",
+            extra={"event": "followup.received", "user": context.user_id, "discord_thread": thread_id},
+        )
+        if self._tasks is None:
+            await self._handler.handle(exchange, context)
+        else:
+            # Tracked like a slash-command exchange, so a shutdown waits for the final edit instead
+            # of leaving a placeholder in the thread for ever.
+            await self._tasks.track(self._handler.handle(exchange, context), name=f"followup:{context.user_id}")
 
     async def on_ready(self) -> None:
         """Mark the service ready: the gateway is connected and commands can arrive."""

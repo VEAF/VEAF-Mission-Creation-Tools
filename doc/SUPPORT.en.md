@@ -89,6 +89,9 @@ your question and its answer already in it.
 On the VEAF Discord, `/bug` opens a **form**: what happened, what you expected, the steps, and the
 [`veaf-tools doctor`](#doctor) block. You can attach a log, a mission, a configuration file.
 
+The form, like the command descriptions, is shown **in your Discord client's language** — French or
+English. The bot then answers you in that same language, and the issue is written in it.
+
 **You do not need a GitHub account.** The issue is opened by a bot, on your behalf: your Discord
 name is credited as the reporter, and nothing else about you.
 

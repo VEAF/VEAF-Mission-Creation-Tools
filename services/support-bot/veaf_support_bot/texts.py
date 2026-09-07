@@ -6,10 +6,14 @@ user-facing string is never built by concatenating fragments in the code, and Fr
 written side by side so one cannot quietly fall behind. ``tests/test_texts.py`` asserts the two
 catalogues hold exactly the same keys and the same placeholders.
 
-Only *answers* follow the asker. The ``/ask`` command's own name and description are what Discord
-shows in the command picker, and localising those needs an ``app_commands.Translator`` and a
-round-trip through Discord's command registration; they stay in English, which is also the
-repository's language for anything structural.
+Two surfaces, and both are here since ticket 01. What the bot **says** follows the asker's own
+locale, read off his interaction. What Discord **registers once** — the command descriptions and the
+choice names in the component menu — cannot: they exist before any interaction does. Those go through
+``app_commands.Translator``, whose table Discord stores per client language, and their keys live in
+this same catalogue so the parity test covers them too.
+
+What stays untranslated on purpose is a component's **value**: those are the options of the issue
+templates, word for word, and a translated value is a component nobody can filter on.
 """
 
 from __future__ import annotations
@@ -120,6 +124,37 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "suggest.settled.named_issue": (
             "Entendu, rien de nouveau n'est ouvert : le ticket #{issue} porte déjà ce besoin."
         ),
+        # --- ticket 01 : ce que les formulaires *montrent*, et pas seulement ce qu'ils disent ---
+        # Ce que Discord enregistre une fois pour toutes : les descriptions de commandes et les
+        # noms d'options, tels que le sélecteur les montre. C'est la première chose qu'un mission
+        # maker voit du bot, avant même d'avoir tapé quoi que ce soit — et la seule surface qu'un
+        # correctif par interaction ne peut pas atteindre, puisqu'elle existe avant toute
+        # interaction. Traduites via `app_commands.Translator`, dont Discord stocke la table.
+        "command.ask.description": "Poser une question sur la documentation des outils VEAF",
+        "command.ask.question": "Que voulez-vous savoir ?",
+        "command.bug.description": "Signaler un bug — un formulaire court, et les fichiers que vous avez",
+        "command.bug.log": "Votre veaf-tools.log ou dcs.log, si vous en avez un",
+        "command.bug.mission": "Le .miz sur lequel le problème se produit",
+        "command.bug.extra": "Autre chose : un mission.yaml, un fichier de configuration",
+        "command.suggest.description": "Proposer une amélioration — confrontée à ce qui existe déjà",
+        "command.suggest.component": "De quelle partie de la chaîne d'outils il s'agit",
+        # Le service traduisait chaque phrase qu'il prononce et aucun libellé qu'il affiche. David a
+        # basculé son client Discord en français pour vérifier, le 2026-09-07 : rien n'a bougé. Le
+        # français est la langue par défaut du service, et sa surface la plus visible était
+        # entièrement anglaise.
+        "form.bug.title": "Signaler un bug",
+        "form.bug.summary": "En une ligne, qu'est-ce qui ne va pas ?",
+        "form.bug.happened": "Que s'est-il passé ?",
+        "form.bug.expected": "À quoi vous attendiez-vous ?",
+        "form.bug.steps": "Comment le reproduire",
+        "form.bug.doctor": "Collez la sortie de : veaf-tools doctor",
+        "form.suggest.title": "Proposer une amélioration",
+        "form.suggest.summary": "En une ligne, que souhaiteriez-vous ?",
+        "form.suggest.problem": "Quel problème cela résout-il ?",
+        "form.suggest.problem.placeholder": "Ce qui est pénible aujourd'hui, et à quelle fréquence ça vous coûte",
+        "form.suggest.solution": "Que voudriez-vous qu'il se passe ?",
+        "form.suggest.alternatives": "Avez-vous envisagé autre chose ?",
+        "form.suggest.context": "Autre chose ? Exemples, liens",
         # --- ticket 07 : la seconde voix, consignée sur le ticket existant --------------------
         # Une demande est souhaitée ou non, et une seule personne tranche. *Quelqu'un d'autre qui
         # demande la même chose* est le seul signal de priorité qu'une demande portera jamais, et il
@@ -445,6 +480,28 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "thing, or not?"
         ),
         "suggest.settled.named_issue": ("Understood, nothing new is opened: issue #{issue} already carries this need."),
+        # --- ticket 01: what the forms *show*, and not only what they say --------------------
+        "command.ask.description": "Ask a question about the VEAF Mission Creation Tools documentation",
+        "command.ask.question": "What do you want to know?",
+        "command.bug.description": "Report a bug — a short form, and the files you have",
+        "command.bug.log": "Your veaf-tools.log or dcs.log, if you have one",
+        "command.bug.mission": "The .miz the problem happens on",
+        "command.bug.extra": "Anything else: a mission.yaml, a configuration file",
+        "command.suggest.description": "Suggest an improvement — checked against what already exists",
+        "command.suggest.component": "Which part of the toolchain this is about",
+        "form.bug.title": "Report a bug",
+        "form.bug.summary": "In one line, what is wrong?",
+        "form.bug.happened": "What happened?",
+        "form.bug.expected": "What did you expect?",
+        "form.bug.steps": "Steps to reproduce",
+        "form.bug.doctor": "Paste the output of: veaf-tools doctor",
+        "form.suggest.title": "Suggest an improvement",
+        "form.suggest.summary": "In one line, what would you like?",
+        "form.suggest.problem": "What problem does this solve?",
+        "form.suggest.problem.placeholder": "What is painful today, and how often it costs you",
+        "form.suggest.solution": "What would you like to happen?",
+        "form.suggest.alternatives": "Anything else you considered?",
+        "form.suggest.context": "Anything else? Examples, links",
         # --- ticket 07: the second voice, recorded on the existing issue ---------------------
         "suggest.observation.header": (
             "💬 **This is what would be added to the issue**, under your Discord name. Nothing is "

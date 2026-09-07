@@ -591,6 +591,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **3 340 m** with the live list out of editor order — enough to stand the south-western ones in open
   water. Both ends now name the same unit, so the offset is zero by construction; a group whose first
   unit is no longer alive falls back on that unit's editor position rather than on another unit.
+- **A combat zone's dispersion default can be set from `mission.yaml`, per mission or per zone.**
+  Air defences placed in the revetments a map provides were scattered by the 50 m default, which puts
+  a launcher on the berm instead of inside it — and on the YAML workflow the default could not be
+  changed at all, since `veaf-config.lua` is generated. Two new keys: `default_spawn_radius` under
+  `combat_zone_settings` for the whole mission, and the same key on a `combat_zones` entry for one
+  zone. A group's own `#spawnradius=` still wins over both. `default_spawn_radius_statics` is the
+  statics' counterpart, kept separate because their built-in default is already `0`. Both are read by
+  presence rather than truthiness, so `0` — the value the feature exists for — survives the generator.
 
 ## [6.19.0] — 2026-09-02
 

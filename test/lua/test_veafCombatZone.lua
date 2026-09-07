@@ -3533,4 +3533,162 @@ function TestVeafCombatOperationUnknownPrerequisite:test_a_prerequisite_that_exi
   luaunit.assertEquals(#self.warned, 0)
 end
 
+-- ---------------------------------------------------------------------------
+-- FEAT-COMBATZONE-ZONE-SPAWN-RADIUS — a zone's own dispersion default
+-- ---------------------------------------------------------------------------
+
+--- Tripack places air defences in the revetments the Syria map draws for them, and a spawn that
+--- scatters a launcher by tens of metres puts it on the berm instead of inside it. A zone can now
+--- carry its own default for the groups that wrote no `#spawnradius=` tag.
+---
+--- Three levels, most specific first: the group's tag, then the zone, then the module global. The
+--- pairs asserted here are the ones a truthiness test would collapse — a **written zero** must be a
+--- value at every level, never "unstated".
+TestVeafCombatZoneSpawnRadiusDefault = {}
+
+function TestVeafCombatZoneSpawnRadiusDefault:setUp()
+  self._units = veafCombatZone.DefaultSpawnRadiusForUnits
+  self._statics = veafCombatZone.DefaultSpawnRadiusForStatics
+  self.unit = {
+    getName = function()
+      return "CMBT_PALMYRA - SA-6"
+    end,
+    getCoalition = function()
+      return coalition.side.RED
+    end,
+    getPosition = function()
+      return { p = { x = 10, y = 0, z = 20 } }
+    end,
+  }
+  self.group = {
+    name = "CMBT_PALMYRA - SA-6",
+    isStatic = false,
+    units = { self.unit },
+    unitNames = { "CMBT_PALMYRA - SA-6" },
+  }
+  self._getByName = Group.getByName
+  Group.getByName = function()
+    return nil -- no live group: buildGroupElement falls back on the unit it was handed
+  end
+end
+
+function TestVeafCombatZoneSpawnRadiusDefault:tearDown()
+  Group.getByName = self._getByName
+  veafCombatZone.DefaultSpawnRadiusForUnits = self._units
+  veafCombatZone.DefaultSpawnRadiusForStatics = self._statics
+end
+
+--- The zone the mission maker declared, before `initialize()` has run.
+function TestVeafCombatZoneSpawnRadiusDefault:_zone()
+  return VeafCombatZone:new():setMissionEditorZoneName("CMBT_PALMYRA")
+end
+
+function TestVeafCombatZoneSpawnRadiusDefault:test_without_a_zone_default_the_global_applies()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 50
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {}, self:_zone())
+  luaunit.assertEquals(element:getSpawnRadius(), 50)
+end
+
+--- The value the whole feature exists for.
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_zone_default_of_zero_pins_its_groups()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 50
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 0, "a written zero is a value, not an absence")
+end
+
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_zone_default_overrides_a_non_zero_global()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 50
+  local zone = self:_zone():setDefaultSpawnRadius(300)
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 300)
+end
+
+--- And the other direction, which a `self.x or global` expression would get wrong: the mission set 0
+--- and this zone wants dispersion back.
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_zone_can_scatter_where_the_mission_pinned()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 0
+  local zone = self:_zone():setDefaultSpawnRadius(120)
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 120)
+end
+
+--- A group's own tag still wins — including over a zone that pinned everything else.
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_group_tag_beats_the_zone_default()
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, { spawnRadius = "200" }, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 200)
+end
+
+function TestVeafCombatZoneSpawnRadiusDefault:test_statics_keep_their_own_lane()
+  veafCombatZone.DefaultSpawnRadiusForStatics = 0
+  local staticGroup = {
+    name = "CMBT_PALMYRA - Bunker",
+    isStatic = true,
+    units = { self.unit },
+    unitNames = { "CMBT_PALMYRA - Bunker" },
+  }
+  -- A unit default set on the zone must not start scattering its statics.
+  local zone = self:_zone():setDefaultSpawnRadius(250)
+  local element = veafCombatZone.buildGroupElement(self.unit, staticGroup, {}, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 0)
+
+  local pinned = self:_zone():setDefaultSpawnRadiusForStatics(40)
+  local scattered = veafCombatZone.buildGroupElement(self.unit, staticGroup, {}, pinned)
+  luaunit.assertEquals(scattered:getSpawnRadius(), 40)
+end
+
+--- No zone at all — every caller that builds an element outside a zone, tests included — keeps
+--- reading the module globals.
+function TestVeafCombatZoneSpawnRadiusDefault:test_no_zone_falls_back_on_the_globals()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 77
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {})
+  luaunit.assertEquals(element:getSpawnRadius(), 77)
+end
+
+--- `initialize()` is what applies the default, so a setter called after it would be read by nobody.
+--- It refuses instead of pretending, and leaves the value it already had.
+--- The guard reads the `initialized` flag, so it holds whatever `initialize()` found. Two earlier
+--- versions of this guard were wrong and both are covered below: it first read `zone.zoneElements`, a
+--- name no code in the module has ever written, so it never fired at all; then it counted
+--- `self.elements`, which misses a zone that initialised and found nothing (Sourcery, PR #930).
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_call_after_initialize_is_refused_not_ignored()
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  zone.initialized = true -- as initialize() leaves it, on every one of its exits
+  zone:addZoneElement(veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone))
+
+  zone:setDefaultSpawnRadius(500)
+  luaunit.assertEquals(zone.defaultSpawnRadius, 0, "the late call must not take effect silently")
+  zone:setDefaultSpawnRadiusForStatics(500)
+  luaunit.assertNil(zone.defaultSpawnRadiusForStatics, "the statics' setter refuses just the same")
+end
+
+--- Sourcery's case: a zone whose trigger zone held nothing. Its element list is empty, so a guard
+--- that counted elements would have accepted a setter that can no longer take effect.
+function TestVeafCombatZoneSpawnRadiusDefault:test_an_initialised_but_empty_zone_still_refuses()
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  zone.initialized = true
+  luaunit.assertEquals(#(zone:getZoneElements() or {}), 0, "this zone found nothing to hold")
+
+  zone:setDefaultSpawnRadius(500)
+  luaunit.assertEquals(zone.defaultSpawnRadius, 0, "an empty zone is still an initialised zone")
+end
+
+--- And the flag really is raised by `initialize()`, rather than only by tests setting it by hand —
+--- including on the earliest exit, where the zone has no name at all and nothing was built.
+function TestVeafCombatZoneSpawnRadiusDefault:test_initialize_raises_the_flag_even_when_it_bails_out()
+  local zone = VeafCombatZone:new() -- no mission editor zone name: initialize() returns immediately
+  luaunit.assertFalse(zone.initialized, "a fresh zone is configurable")
+  zone:initialize()
+  luaunit.assertTrue(zone.initialized, "a bailed-out initialize() still closes the door")
+end
+
+--- The other side of the guard: while the zone holds no element, the setter works. Without this the
+--- test above passes against a setter that refuses *always* — which would break the whole feature.
+function TestVeafCombatZoneSpawnRadiusDefault:test_the_setter_works_before_any_element_exists()
+  local zone = self:_zone()
+  luaunit.assertEquals(zone:setDefaultSpawnRadius(0).defaultSpawnRadius, 0)
+  luaunit.assertEquals(zone:setDefaultSpawnRadiusForStatics(40).defaultSpawnRadiusForStatics, 40)
+end
+
 os.exit(luaunit.LuaUnit.run())

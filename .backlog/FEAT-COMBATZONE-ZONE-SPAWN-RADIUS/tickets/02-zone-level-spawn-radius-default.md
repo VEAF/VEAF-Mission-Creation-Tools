@@ -1,6 +1,6 @@
 # 02 — A zone carries its own default
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -66,20 +66,20 @@ the same line meaning different things depending on where it sits.
 
 ## Definition of done
 
-- [ ] `default_spawn_radius` on a `combat_zones` entry reaches the generated chain and changes the
+- [x] `default_spawn_radius` on a `combat_zones` entry reaches the generated chain and changes the
       default its untagged groups get
-- [ ] `0` survives the generator: read by presence, not by truthiness — the same trap as ticket 01
-- [ ] `#spawnradius=` on a group still overrides it; the module global still applies to a zone that
+- [x] `0` survives the generator: read by presence, not by truthiness — the same trap as ticket 01
+- [x] `#spawnradius=` on a group still overrides it; the module global still applies to a zone that
       sets nothing — all three levels asserted, including the pair (zone default 0, group tag absent)
       versus (zone default 50, group tag `#spawnradius=0`), which must stay distinguishable
-- [ ] Statics' default is handled deliberately, with the decision written in the code's comment
-- [ ] A call after `initialize()` does not fail silently
-- [ ] Tests assert the **built element's** radius and the **spawned unit positions**, not the setter's
+- [x] Statics' default is handled deliberately, with the decision written in the code's comment
+- [x] A call after `initialize()` does not fail silently
+- [x] Tests assert the **built element's** radius and the **spawned unit positions**, not the setter's
       stored value — and drive `dcs_mocks.setRandomSequence`, since the mocks' constant-0
       `math.random` makes any dispersion assertion pass both ways otherwise
-- [ ] `doc/mission-maker/scripts/veafCombatZone.md` **and** `.en.md` document the three levels and
+- [x] `doc/mission-maker/scripts/veafCombatZone.md` **and** `.en.md` document the three levels and
       their precedence; `poetry run docs-check` clean
-- [ ] `luacheck` + `stylua --check` clean; Lua coverage floor per the ratchet policy
-- [ ] `src/defaults/mission-folder/mission.yaml` documents the key on a `combat_zones` entry
+- [x] `luacheck` + `stylua --check` clean; Lua coverage floor per the ratchet policy
+- [x] `src/defaults/mission-folder/mission.yaml` documents the key on a `combat_zones` entry
       (defaults lockstep, CLAUDE.md §9.7)
-- [ ] Told to Tripack, with ticket 01's mission-wide key for the case where he wants every zone pinned
+- [x] Told to Tripack, with ticket 01's mission-wide key for the case where he wants every zone pinned

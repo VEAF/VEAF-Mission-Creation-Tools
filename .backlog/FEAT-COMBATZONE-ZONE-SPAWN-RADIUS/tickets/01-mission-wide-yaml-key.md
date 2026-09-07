@@ -1,6 +1,6 @@
 # 01 — The mission-wide default comes from `mission.yaml`
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -57,14 +57,14 @@ to wonder which one moved.
 
 ## Definition of done
 
-- [ ] `default_spawn_radius: 0` in `combat_zone_settings` reaches the generated config and applies
-- [ ] A Python test asserts **0 specifically**, not just some value — the truthiness trap is the
+- [x] `default_spawn_radius: 0` in `combat_zone_settings` reaches the generated config and applies
+- [x] A Python test asserts **0 specifically**, not just some value — the truthiness trap is the
       reason for the ticket, so the test has to be able to catch it
-- [ ] `default_spawn_radius_statics` handled, with the pair's reason in the comment
-- [ ] An absent key changes nothing in the generated output (byte-identical against the current
+- [x] `default_spawn_radius_statics` handled, with the pair's reason in the comment
+- [x] An absent key changes nothing in the generated output (byte-identical against the current
       generator on an existing `mission.yaml`)
-- [ ] `src/defaults/mission-folder/mission.yaml` documents both keys in the `COMBATZONE` block
+- [x] `src/defaults/mission-folder/mission.yaml` documents both keys in the `COMBATZONE` block
       (defaults lockstep, CLAUDE.md §9.7)
-- [ ] `doc/mission-maker/scripts/veafCombatZone.md` **and** `.en.md` document the key and its
+- [x] `doc/mission-maker/scripts/veafCombatZone.md` **and** `.en.md` document the key and its
       precedence; `poetry run docs-check` clean
-- [ ] ruff + ruff format + mypy clean over the whole Python tree, as CI runs them
+- [x] ruff + ruff format + mypy clean over the whole Python tree, as CI runs them

@@ -147,6 +147,13 @@ modules:
   #       event_message_combatzonecomplete: Combat Zone complete!
   #       watchdog_check_interval: 30
   #       radio_menu_name: Combat Zones
+  #       # Dispersion given to a group that carries no `#spawnradius=` tag, in metres.
+  #       # 0 = place every group exactly where the Mission Editor drew it, which is what you
+  #       # want when objects sit in revetments or on hardstands. Built-in: 50 for units, 0 for
+  #       # statics. A group's own `#spawnradius=` still wins, and a zone's own key below wins
+  #       # over this one.
+  #       default_spawn_radius: 50
+  #       default_spawn_radius_statics: 0
   #     combat_zones:
   #       - type: zone
   #         zone_name: CZ-Alpha
@@ -155,6 +162,8 @@ modules:
   #         radio_menu_prefix: BLUE   # prefix shown before the zone label in the menu
   #         training: false
   #         active_at_start: true   # activate this zone automatically at mission start
+  #         default_spawn_radius: 0   # this zone only: pin its groups where they were drawn
+  #                                   # (omit to use the mission-wide value above)
   #         completable: true       # false = never auto-completes on its own
   #         rename_units_sequentially: true   # false = keep the Mission Editor unit names
   #                                           # (useful while debugging a .miz)

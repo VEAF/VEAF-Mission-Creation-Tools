@@ -506,6 +506,40 @@ restent dans les deux cas.
 | `veafCombatZone.SecondsBetweenFlareRequests` | `120` | Délai entre marquages fusée (s) |
 | `veafCombatZone.RadioMenuName` | `"COMBAT ZONES"` | Libellé du sous-menu F10 |
 | `veafCombatZone.DefaultSpawnRadiusForUnits` | `50` | Rayon de dispersion par défaut (m) |
+| `veafCombatZone.DefaultSpawnRadiusForStatics` | `0` | Idem pour les objets statiques (m) |
+## Rayon de dispersion : les trois niveaux {#spawn-radius-levels}
+
+À l'activation d'une zone, un groupe qui ne dit rien est dispersé autour de sa position. C'est
+souhaitable pour un convoi, mais pas pour une batterie posée dans les emplacements bétonnés que la
+carte fournit : quelques dizaines de mètres suffisent à mettre un lanceur sur le merlon au lieu
+d'être dedans.
+
+Trois niveaux, du plus précis au plus général — le premier trouvé gagne :
+
+| Niveau | Où l'écrire | Portée |
+|--------|-------------|--------|
+| le groupe | `#spawnradius=0` dans le nom du groupe ou d'une de ses unités | ce groupe |
+| la zone | `default_spawn_radius` sur une entrée de `combat_zones` | tous les groupes non tagués de cette zone |
+| la mission | `default_spawn_radius` sous `combat_zone_settings` | toutes les zones |
+
+**`0` veut dire « exactement là où je les ai placés »** — pas « presque ». Le placement est
+strictement identique à celui de l'éditeur de mission.
+
+Les objets statiques ont leur propre réglage, `default_spawn_radius_statics`, parce que leur défaut
+intégré vaut déjà `0` : un réglage unique pour les deux se mettrait à disperser des statiques
+aujourd'hui immobiles.
+
+```yaml
+COMBATZONE:
+  combat_zone_settings:
+    default_spawn_radius: 50          # le défaut habituel, pour toute la mission
+  combat_zones:
+    - zone_name: CMBT_PALMYRA
+      default_spawn_radius: 0         # ici, tout est placé au mètre : ne rien bouger
+    - zone_name: CMBT_TIYAS           # celle-ci garde les 50 m
+```
+
+---
 
 ---
 

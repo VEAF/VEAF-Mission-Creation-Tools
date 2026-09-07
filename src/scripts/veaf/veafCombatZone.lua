@@ -567,13 +567,21 @@ end
 --- is the one the Mission Editor put first and the one `_drawOrigin` measures the offset against, while
 --- DCS's is the first *live* one — its list compacts as units die. Reading them from two sources made the
 --- offset the spacing between two different units whenever those sources disagreed, which for
---- `CMBT_ABU_MUSA_AIRPORT - AAA` — five ZU-23s spread over 4 330 m around Abu Musa — moves every unit of
---- the group by kilometres and puts the south-western ones out to sea. Same source, so the offset is zero
---- by construction and no divergence is possible.
+--- `CMBT_ABU_MUSA_AIRPORT - AAA` — five ZU-23s spread over 4 330 m around Abu Musa — moved every unit of
+--- the group by kilometres and put the south-western ones out to sea.
 ---
---- The fallbacks, in order: the record's own **editor** position when its unit 1 is not live (offset zero,
---- so the group comes up exactly where it was drawn — never anchored on some other unit, which is the
---- defect itself), then DCS's unit 1, then the unit the caller had. The last two carry a group with no
+--- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 01: it is the record's **editor** position, not that unit's
+--- live one. Same source was not enough — the two ends also have to be read at the same *instant*. The
+--- anchor was live while `_drawOrigin` subtracts the editor position, so the offset was whatever unit 1
+--- had drifted since mission start, applied to the whole group: measured at 100 m of displacement for
+--- 100 m of drift. `initialize()` runs seconds into the mission, so a pre-placed ship already under way
+--- or a CAP already airborne carried it; stationary ground units did not, which is why Tripack's report
+--- never showed it. Reading the editor position makes the offset zero for real — source *and* instant.
+---
+--- The visible consequence, accepted deliberately (David, 2026-09-07): a group that had moved is put
+--- back where it was **drawn**, not where it had got to. That is what respawning a zone means.
+---
+--- The fallbacks, in order: DCS's unit 1, then the unit the caller had. Both carry a group with no
 --- mission record at all: an element with no position spawns nothing, which is worse than an imperfect one.
 ---
 --- @param unit the unit the caller had, used as the last fallback
@@ -584,16 +592,11 @@ function veafCombatZone.referencePositionOf(unit, group)
     local record = veaf.getGroupRecord(group.name)
     local anchor = record and record.units and record.units[1]
     if anchor then
-      local liveAnchor = anchor.unitName and Unit.getByName(anchor.unitName)
-      if liveAnchor then
-        return liveAnchor:getPosition().p
-      end
-      -- Its editor position, in runtime shape: `x` is the northing, `z` the easting, and the altitude
-      -- is the terrain's — see docs/agents/dcs-coordinates.md.
-      veaf.loggers
-        .get(veafCombatZone.Id)
-        :info("group [%s] has no live [%s]; anchoring on its editor position", veaf.p(group.name), veaf.p(anchor.unitName))
-      return { x = anchor.x, y = land.getHeight({ x = anchor.x, y = anchor.y }), z = anchor.y }
+      -- The editor position, in runtime shape: `x` is the northing, `z` the easting, and `y` the
+      -- altitude — the terrain's, or the unit's own when the editor gave it one (an aircraft's
+      -- cruising altitude, which the terrain height would silently discard).
+      -- See docs/agents/dcs-coordinates.md.
+      return { x = anchor.x, y = anchor.alt or land.getHeight({ x = anchor.x, y = anchor.y }), z = anchor.y }
     end
     local dcsGroup = Group.getByName(group.name)
     local firstUnit = dcsGroup and dcsGroup:getUnit(1)
@@ -1620,8 +1623,21 @@ end
 -- already uses, so "what can this thing stand on" has one source instead of two that can disagree.
 local function surfacesForZoneElement(zoneElement)
   local record = veaf.getGroupRecord(zoneElement:getName())
-  local category = record and record.category
+  if not record then
+    return nil
+  end
+  local category = record.category
   if category and string.lower(category) == "ship" then
+    return veafDcsSpawner.TERRAIN_BY_CATEGORY.ship
+  end
+  -- A hull placed as a **static object** lives in the mission's `static` section, so its `category`
+  -- reads "static" and the search below would look for dry land — the silent half of ticket 02's
+  -- defect, since `static` resolves to "any surface" downstream and the quay is then accepted without
+  -- a word. Its own DCS sub-type says what it is: `Ships`, against `Fortifications`, `Heliports`,
+  -- `Cargos`. Read from unit 1, which for a static *is* the object.
+  local firstUnit = record.units and record.units[1]
+  local staticCategory = firstUnit and firstUnit.staticCategory
+  if staticCategory and string.lower(staticCategory) == "ships" then
     return veafDcsSpawner.TERRAIN_BY_CATEGORY.ship
   end
   return nil
@@ -1686,10 +1702,15 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- on roads, bridges and passes, and would draw a different track on every activation. Waypoint 1
       -- is not a design choice — it is where the group starts — so it is the one that must move.
       --
-      -- Unconditional, including when spawnRadius is 0: the delta is *not* only the dispersion. MiST
-      -- measures it against the mission table's unit 1, while the element's position comes from the
-      -- first unit the zone happened to meet (see buildGroupElement), so a group whose units were not
-      -- met in editor order carries a delta of its own intra-group spacing.
+      -- Unconditional, including when spawnRadius is 0: the delta is the dispersion *and* nothing
+      -- else now. It used to also carry the gap between two readings of "unit 1" — the zone anchored
+      -- on the first unit it met, or on the first live one, while the spawn subtracts the mission
+      -- record's first. FIX-TRIPACK-FIELD-REPORTS ticket 04 made both ends the same unit, and this
+      -- lot's ticket 01 made them the same instant, so waypoint 1 moves by the dispersion alone.
+      -- The same surfaces the search used, so the two halves of the decision agree. Without it a
+      -- static ship is looked for on water and then validated against "any surface", which accepts
+      -- the quay — ticket 03's silent half. `nil` for everything else, which leaves the category's
+      -- own list in charge exactly as before.
       local newGroup = VeafGroupSpawn:new()
         :forGroup(zoneElement:getName())
         :named(newGroupName)

@@ -879,6 +879,68 @@ function TestVeafDcsSpawnerCurrentGroupData:test_a_group_the_editor_never_placed
   luaunit.assertEquals(data.countryId, country.id.USA, "the country comes from the live unit")
 end
 
+--- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 02 — a **teleport** does not carry the editor's
+--- cold-and-dark, where a clone and a respawn do.
+---
+--- MiST drew the line here: `getCurrentGroupData` forced `uncontrolled = false; hidden = false` for
+--- every group it had not created itself, i.e. every Mission Editor group (mist.lua:1040).
+--- FIX-TRIPACK-FIELD-REPORTS ticket 05 taught the record to carry both — right for the verbs that
+--- rebuild a group from its editor definition — and this function starts from that record, so the
+--- teleport inherited them silently. An aircraft parked cold and moved by `_move group` arrived
+--- flyable up to 6.19.0 and arrived cold after it.
+function TestVeafDcsSpawnerCurrentGroupData:test_a_teleport_does_not_carry_the_editors_uncontrolled()
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = {
+        group = {
+          {
+            name = "Arco",
+            groupId = 7,
+            uncontrolled = true,
+            hidden = true,
+            units = { { name = "Arco-1", unitId = 3, type = "KC-135", skill = "High" } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+  self:_liveGroup(1, 2, 3)
+
+  local data = veafDcsSpawner.getCurrentGroupData("Arco")
+
+  luaunit.assertFalse(data.uncontrolled, "a teleported aircraft comes back flyable")
+  luaunit.assertFalse(data.hidden, "and visible on the F10 map")
+end
+
+--- The other half, and the reason this is two tests: ticket 05 must survive. A **clone** still
+--- carries what the editor set, so the fix cannot be "drop the fields from the record".
+function TestVeafDcsSpawnerCurrentGroupData:test_a_clone_still_carries_the_editors_uncontrolled()
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      plane = {
+        group = {
+          {
+            name = "Arco",
+            groupId = 7,
+            uncontrolled = true,
+            units = { { name = "Arco-1", unitId = 3, type = "KC-135", skill = "High" } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  local record = veafMissionDb.getGroupRecord("Arco")
+
+  luaunit.assertTrue(record.uncontrolled, "the record a clone reads keeps the editor's value")
+end
+
 function TestVeafDcsSpawnerCurrentGroupData:test_the_editors_country_is_not_overwritten()
   -- The live lookup is a fallback, not a replacement: an editor group keeps what the snapshot says.
   --

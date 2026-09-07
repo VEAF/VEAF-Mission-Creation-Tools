@@ -120,6 +120,15 @@ local function unitRecord(unitData, groupData, context)
     groupName = groupData.name,
     groupId = groupData.groupId,
     type = unitData.type,
+    -- The DCS sub-type of a **static** object: `Ships`, `Fortifications`, `Heliports`, `Cargos`…
+    -- Under its own key, never over `category`, which every caller reads as the mission-table section
+    -- the group came from (`plane`, `vehicle`, `ship`, `static`).
+    --
+    -- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 03: a ship placed as a static object is in the
+    -- `static` section, so it read as "static" everywhere and the spawn-point search looked for dry
+    -- land — dragging a hull onto the quay, and the terrain check then accepted it because `static`
+    -- resolves to "any surface". The group case failed loudly; this one was silent.
+    staticCategory = unitData.category,
     x = unitData.x,
     y = unitData.y,
     alt = unitData.alt,
@@ -190,12 +199,23 @@ function veafMissionDb.buildSnapshot()
                   -- into the ten fields a caller reads; MiST walked `env.mission` from scratch on every
                   -- call to reach the same table.
                   route = groupData.route,
-                  -- FIX-TRIPACK-FIELD-REPORTS ticket 05: the group-level fields a clone, respawn or
-                  -- teleport needs to reproduce faithfully. MiST carried every one of these
-                  -- (mist.lua:264, mist.lua:1030); this record did not, so a cloned QRA flight reached
-                  -- DCS with its per-waypoint engagement intact and no mission task at all. `nil` when
-                  -- the editor never set one, so `addGroup`'s own default (`hidden` -> false) still
-                  -- applies to a group with no editor record.
+                  -- FIX-TRIPACK-FIELD-REPORTS ticket 05: the group-level fields a clone or a respawn
+                  -- needs to reproduce faithfully. This record carried none of them, so a cloned QRA
+                  -- flight reached DCS with its per-waypoint engagement intact and no mission task at
+                  -- all. `nil` when the editor never set one, so `addGroup`'s own default
+                  -- (`hidden` -> false) still applies to a group with no editor record.
+                  --
+                  -- **Not a straight restoration, and the first version of this comment said it was.**
+                  -- MiST's editor database carried seven of these — `task`, `hidden`, `radioSet`,
+                  -- `uncontrolled`, `frequency`, `modulation`, `startTime` (mist.lua:264). It carried
+                  -- neither `taskSelected` nor `communication`: both appear **zero** times in
+                  -- `mist.lua`, so they are new design. And `startTime`, which MiST did carry, is
+                  -- deliberately left out — a spawn decides its own timing. Corrected after the
+                  -- post-merge review of #918.
+                  --
+                  -- The **teleport** is not in this list any more either: `getCurrentGroupData` reads
+                  -- this record and then clears `uncontrolled` and `hidden`, which is where MiST drew
+                  -- the same line (mist.lua:1040). See FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 02.
                   task = groupData.task,
                   taskSelected = groupData.taskSelected,
                   uncontrolled = groupData.uncontrolled,

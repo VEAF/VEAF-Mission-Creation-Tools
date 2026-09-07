@@ -2223,6 +2223,95 @@ function TestVeafCombatZoneNavalSpawnRegression:test_a_ship_near_a_quay_spawns_o
 end
 
 -- ============================================================================
+-- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 03 — the silent half of the naval defect.
+--
+-- The fix above keys on the element's category being `ship`, which is the mission-table section the
+-- group was read from. A hull placed as a **static object** is in the `static` section, so it kept the
+-- land-only search and was dragged onto the quay exactly as before — and unlike the group case
+-- nothing refused it, because `static` resolves to "any surface" downstream. It spawned on dry land
+-- without a word.
+--
+-- What tells a hull apart is its own DCS sub-type, which the static carries: `Ships`, against
+-- `Fortifications`, `Heliports`, `Cargos`. Measured on Tripack's mission, where 103 statics hold no
+-- ship at all — so this is prevention, and the data was already there.
+-- ============================================================================
+TestVeafCombatZoneStaticShip = {}
+
+function TestVeafCombatZoneStaticShip:_fixture(staticCategory, unitType)
+  dcs_mocks.reset()
+  Disposition = nil
+  land.getHeight = function()
+    return 0
+  end
+  -- Same shoreline as the group case: the quay within 10 m, open water beyond.
+  land.getSurfaceType = function(vec2)
+    if math.abs(vec2.x) <= 10 then
+      return land.SurfaceType.LAND
+    end
+    return land.SurfaceType.WATER
+  end
+
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      static = {
+        group = {
+          {
+            name = "ZONE-STATIC",
+            groupId = 8,
+            units = { { name = "ZONE-STATIC", unitId = 4, type = unitType, category = staticCategory, x = 0, y = 0 } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  local zone = VeafCombatZone:new():setFriendlyName("Naval Zone"):setMissionEditorZoneName("NAVALZONE")
+  zone:setActive(true)
+
+  local element = VeafCombatZoneElement:new()
+  element:setName("ZONE-STATIC")
+  element:setPosition({ x = 0, y = 0, z = 0 })
+  element:setCoalition(coalition.side.BLUE)
+  element:setDcsStatic(true)
+  element:setSpawnRadius(50)
+
+  -- Two draws per attempt (theta, distance): the first candidate lands at x=5, on the quay; the
+  -- second at x=45, in open water and still inside the 50 m radius.
+  dcs_mocks.setRandomSequence({ 0, 0.01, 0, 0.81 })
+  return zone, element
+end
+
+function TestVeafCombatZoneStaticShip:tearDown()
+  dcs_mocks.setRandomSequence(nil)
+  dcs_mocks.reset()
+end
+
+--- The defect: a static hull was moved to x=5, on the quay, and created there in silence.
+function TestVeafCombatZoneStaticShip:test_a_static_ship_is_not_left_on_the_quay()
+  local zone, element = self:_fixture("Ships", "Dry-cargo ship-2")
+  zone:spawnElement(element, true)
+
+  luaunit.assertEquals(#dcs_mocks.staticsAdded + #dcs_mocks.groupsAdded, 1, "the hull must be created")
+  local submitted = dcs_mocks.staticsAdded[1] or dcs_mocks.groupsAdded[1]
+  local placed = submitted.object or (submitted.group and submitted.group.units[1])
+  luaunit.assertTrue(math.abs(placed.x) > 10, string.format("placed at x=%s, which is the quay", tostring(placed.x)))
+end
+
+--- And every other static is untouched: a bunker still wants dry land, so the quay is right for it.
+function TestVeafCombatZoneStaticShip:test_a_fortification_still_takes_the_land()
+  local zone, element = self:_fixture("Fortifications", "Sandbag_06")
+  zone:spawnElement(element, true)
+
+  luaunit.assertEquals(#dcs_mocks.staticsAdded + #dcs_mocks.groupsAdded, 1, "the bunker must be created")
+  local submitted = dcs_mocks.staticsAdded[1] or dcs_mocks.groupsAdded[1]
+  local placed = submitted.object or (submitted.group and submitted.group.units[1])
+  luaunit.assertTrue(math.abs(placed.x) <= 10, string.format("placed at x=%s, off the land", tostring(placed.x)))
+end
+
+-- ============================================================================
 -- FIX-COMBATZONE-ZONE-TYPE-SILENT, second pass — Sourcery's review point on #775.
 --
 -- The helper returned nil for "I cannot read this zone" and the caller wrote `or {}`, so the

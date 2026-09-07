@@ -87,6 +87,30 @@ jobs:
       - name: Build the image
         run: docker build -t veaf-support-bot:ci .
 
+      # The hole this closes: the image shipped a whole lot with no `git`, so `open_checkout`
+      # refused the directory and **neither `/bug` nor `/suggest` was published** — the bot answered
+      # `/ask` and nothing else. Every test passed, because none of them asked the image whether it
+      # could do the one thing the service needs from the operating system.
+      - name: The image can refresh the clone the service owns
+        run: |
+          docker run --rm --entrypoint git veaf-support-bot:ci --version
+
+      # And the entry point really fills an empty checkout volume. Run with no configuration, so
+      # the service still exits 78 straight after — what is asserted is the clone, which happens
+      # first and prints its own line.
+      - name: The entry point clones into an empty checkout volume
+        run: |
+          set +e
+          output=$(docker run --rm \
+            -e SUPPORT_BOT_CHECKOUT_PATH=/app/checkout \
+            -e VEAF_CLONE_URL=https://github.com/VEAF/VEAF-Mission-Creation-Tools.git \
+            veaf-support-bot:ci 2>&1)
+          set -e
+          echo "$output"
+          echo "$output" | grep -q "entrypoint: clone ready"
+          # And the shell handed over: the configuration verdict below it can only come from Python.
+          echo "$output" | grep -q "the support bot cannot start"
+
       - name: A misconfigured container fails loudly instead of idling
         run: |
           set +e

@@ -1,0 +1,57 @@
+# The support bot, as the VEAF Docker host runs it.
+#
+# The whole procedure on that host:
+#
+#   git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
+#   cd VEAF-Mission-Creation-Tools/services/support-bot
+#   cp .env.example .env    # then fill it in — see README, "Where it runs"
+#   docker compose up -d --build
+#
+# Updating is `git pull` then the same `up -d --build`: everything that must survive lives on the
+# two volumes below, so rebuilding costs a restart and nothing else.
+#
+# Built on place from git, by decision (2026-09-07): no registry, no publishing credential, and the
+# service ships with the repository it serves.
+
+services:
+  support-bot:
+    build: .
+    image: veaf-support-bot:local
+    container_name: veaf-support-bot
+
+    # The service reads its configuration from the environment and never from a file — which is why
+    # the container is its natural home. `.env` never reaches a layer: `.dockerignore` excludes it
+    # and `tests/test_packaging.py` asserts that.
+    env_file: .env
+
+    # A self-hosted Discord bot dies silently: the process is up, the container says *running*, and
+    # the only symptom is that nobody gets an answer. The image declares its own HEALTHCHECK —
+    # readiness means the Discord gateway is connected — and this restarts what that check condemns.
+    restart: unless-stopped
+
+    volumes:
+      # What cannot be rebuilt. Four files: the per-user quota counters, the day's enrichment
+      # allowance, the ledger of what was already filed, and the thread-to-issue links — losing the
+      # last one orphans every thread already opened, so the issues stay and stop being answered.
+      - state:/app/state
+      # What can be rebuilt: the clone the service owns. The entry point creates it on first start;
+      # losing this volume costs one shallow clone.
+      - checkout:/app/checkout
+
+    # Nothing calls this service from outside — it calls Discord, GitHub and the Worker. The health
+    # endpoint is reachable from the host through `docker exec` or `docker inspect`, which is what a
+    # human debugging it uses. Uncomment to put /readyz in front of an uptime monitor:
+    # ports:
+    #   - "127.0.0.1:8081:8081"
+
+    # A log that grows without bound is how a small host runs out of disk months later, on the one
+    # file nobody thinks about.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  state:
+  checkout:

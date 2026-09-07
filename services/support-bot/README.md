@@ -355,31 +355,78 @@ Both ways run the same module, `python -m veaf_support_bot`, with the same envir
 
 ### Where it runs
 
-**Nowhere yet, as of 2026-09-06.** The code is merged, the Worker is deployed and the
-`filed-by-bot` label exists, but no process is running anywhere: there is no host to log into and
-nothing to restart. This paragraph is here because "where is it deployed?" is the first question
-anyone asks, and a README that only explains *how* to start the service silently implies that
-somebody, somewhere, already did.
+**The VEAF Docker host** — decided 2026-09-07. **Not deployed yet as of that date**: the code is
+merged, the Worker is deployed, the `filed-by-bot` label exists, and no process answers a single
+`/ask`. When the first deployment happens, replace this sentence with the host's name and how to
+reach it.
 
-When the first deployment happens, **replace this section with the answer** — the host, how to reach
-it, and who owns it.
+#### Why not the game server
 
-What that host has to provide, beyond running the process:
+The first idea was a script started at boot on `dcs.veaf.org`, and it is worth saying why not,
+because it is the obvious place and somebody will suggest it again:
 
-- **Persistent storage for `state/`.** Four files must survive a restart: the quota counters, the
-  enrichment allowance, the filed-issue ledger and the thread ↔ issue links. Losing the last one
-  orphans every thread already opened — the issues stay, but they stop being answered.
-- **A git checkout the service owns** (`SUPPORT_BOT_CHECKOUT_PATH`). Without it `/bug` is not
-  published at all.
-- **Outbound network** to Discord, GitHub and the Worker. Nothing has to reach the service from
-  outside except, optionally, an uptime monitor on `/readyz`.
+- **the service has nothing to do on the game machine.** It does not read the DCS log, does not talk
+  to the game, needs no local access — only outbound calls to Discord, GitHub and the Worker. Put it
+  there and you add a process, a clone and a `git fetch` every fifteen minutes to the machine that
+  has to hold sixty frames a second;
+- **restarting.** Compose has `restart: unless-stopped` and this image declares its own
+  `HEALTHCHECK`. A Windows scheduled task starts a process once and does not restart a dead one,
+  which is the failure this service is shaped around — it dies silently, and the only symptom is
+  that nobody gets an answer;
+- **the token.** It does not sit in a file on the desktop of a server several people log into.
 
-The values already decided, so nobody has to rediscover them:
+#### The procedure, end to end
 
-| Setting | Value | Decided |
-|---|---|---|
-| `SUPPORT_BOT_ENRICH_ROLE_ID` | `566946889841377281` (*mission maker*) | 2026-09-06 |
-| `SUPPORT_BOT_GITHUB_MACHINE_LABEL` | `filed-by-bot`, already created on the repository | 2026-09-05 |
+```bash
+git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
+cd VEAF-Mission-Creation-Tools/services/support-bot
+cp .env.example .env        # then fill it in: the three required variables, and the App's four
+docker compose up -d --build
+```
+
+Built on place from git, by decision: no registry, no publishing credential, and the service ships
+with the repository it serves. Updating is `git pull` then the same `up -d --build` — everything that
+must survive lives on the two volumes, so a rebuild costs a restart.
+
+#### What to check once it is up
+
+```bash
+docker compose logs -f --tail=50 support-bot   # the heartbeat line, once a minute
+docker compose ps                              # healthy, not just running
+docker compose exec support-bot python -m veaf_support_bot --healthcheck
+```
+
+And the thing that will bite first: **`/bug` and `/suggest` are only published when the checkout is
+usable.** If they are missing from Discord's command picker while `/ask` works, the clone is the
+place to look —
+
+```bash
+docker compose exec support-bot git -C /app/checkout log --oneline -1
+```
+
+The entry point clones it on first start, shallow and single-branch, from `VEAF_CLONE_URL` (default:
+the public repository). That variable belongs to the **image**, not to the service, which is why it
+carries no `SUPPORT_BOT_` prefix and is not in `.env.example`: that file lists what the Python
+reads, and `tests/test_packaging.py` asserts the two lists match in both directions.
+
+A clone that fails does **not** stop the service: a momentarily unreachable GitHub would otherwise
+take `/ask` down with it, and `/ask` needs nothing from the repository. The log says so at
+`WARNING`, and the two commands stay absent until the next start.
+
+#### Rehearsing it without Docker
+
+The image runs `python -m veaf_support_bot`, the same module a direct launch runs, so a direct run is
+a real rehearsal rather than a second code path. On Windows, where Docker may not be installed:
+
+```powershell
+cd services\support-bot
+.\scripts\run.ps1
+```
+
+That script reads the same `.env` the container would and puts it in **one process's** environment —
+nothing is written to the machine's own environment, where every other program could read the bot
+token. Exit code **78** means the configuration is wrong and restarting will not help; it prints
+every problem at once.
 
 ### Configuration
 

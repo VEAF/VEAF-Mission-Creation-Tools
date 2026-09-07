@@ -6,6 +6,7 @@ version living in two files, and a secret committed by accident.
 
 from __future__ import annotations
 
+import pathlib
 import re
 import shutil
 import subprocess
@@ -87,9 +88,30 @@ class TestNoSecretIsCommitted(unittest.TestCase):
         self.assertEqual(ignored.returncode, 1, ".env.example is ignored — the operator's list is invisible")
 
     def test_no_environment_file_was_committed_next_to_the_example(self) -> None:
-        stray = sorted(p.name for p in SERVICE_ROOT.glob(".env*") if p.name != ".env.example")
+        """Asks git what is **tracked**, not the filesystem what exists.
 
-        self.assertEqual(stray, [], f"an environment file is sitting in the repository: {stray}")
+        Listing the directory was wrong in the one situation that matters: the README tells the
+        operator to copy ``.env.example`` to ``.env`` and fill it in, so a machine that actually
+        runs the bot has one — and the whole suite failed there, on the first real run, for a file
+        the documentation had asked for. What must never happen is that file being *committed*, and
+        only git can answer that.
+        """
+        if shutil.which("git") is None:
+            self.skipTest("git is not on PATH")
+
+        listed = subprocess.run(
+            ["git", "ls-files", "--", "services/support-bot/.env*"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        tracked = sorted(
+            pathlib.PurePosixPath(line).name
+            for line in listed.stdout.splitlines()
+            if line.strip() and pathlib.PurePosixPath(line).name != ".env.example"
+        )
+        self.assertEqual(tracked, [], f"an environment file is committed: {tracked}")
 
     def test_git_ignores_the_quota_counters(self) -> None:
         """A local run writes them; they are runtime state, and they name Discord users.
@@ -121,8 +143,32 @@ class TestTheContainerRunsTheSameProgram(unittest.TestCase):
     def setUp(self) -> None:
         self.dockerfile = (SERVICE_ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-    def test_the_entrypoint_is_the_documented_module(self) -> None:
-        self.assertIn('ENTRYPOINT ["python", "-m", "veaf_support_bot"]', self.dockerfile)
+    def test_the_entrypoint_hands_over_to_the_documented_module(self) -> None:
+        """The signal has to reach Python, whatever stands in front of it.
+
+        The entry point is a shell script now — it clones the checkout the container owns, which
+        nobody else can create — so the module is no longer the ``ENTRYPOINT`` line. What still has
+        to be true is that the script **execs** it: without that word the shell keeps PID 1,
+        swallows the SIGTERM ``docker stop`` sends, and the graceful shutdown never runs.
+
+        Asserted on the script, not on a mention of the module in the Dockerfile: the previous form
+        of this test went on passing after the change, matching the string in a comment.
+        """
+        script = (SERVICE_ROOT / "docker-entrypoint.sh").read_text(encoding="utf-8")
+
+        self.assertIn('ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]', self.dockerfile)
+        self.assertIn('exec python -m veaf_support_bot "$@"', script)
+
+    def test_the_image_can_refresh_its_own_clone(self) -> None:
+        """Without git, `/bug` and `/suggest` are not published — and nothing else says so.
+
+        The service refreshes the clone it owns with `git fetch` and `git reset --hard`, and refuses
+        a directory with no `.git`. The image shipped a whole lot without git, answering only
+        `/ask`; the CI builds it and never asked. This is the static half — the CI runs
+        `git --version` in the built image.
+        """
+        self.assertIn("install --no-install-recommends -y git", self.dockerfile)
+        self.assertIn("/app/checkout", self.dockerfile)
 
     def test_the_image_declares_a_health_check(self) -> None:
         """Without it, "the container is running" is all a supervisor ever knows."""

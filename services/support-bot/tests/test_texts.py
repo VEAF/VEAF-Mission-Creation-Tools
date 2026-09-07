@@ -126,9 +126,7 @@ class TheBotSaysTu(unittest.TestCase):
     IMPERATIVE = re.compile(r"(?:^|[.!?]\s+|\n|—\s+)([A-ZÉÈÀ][a-zéèêàçûîô]+ez)\b")
 
     def test_no_french_string_addresses_the_reader_as_vous(self) -> None:
-        offenders = {
-            key: value for key, value in texts._TEXTS["fr"].items() if self.PRONOUN.search(value)
-        }
+        offenders = {key: value for key, value in texts._TEXTS["fr"].items() if self.PRONOUN.search(value)}
 
         self.assertEqual(offenders, {}, "these say vous; the rest of the bot says tu")
 

@@ -124,9 +124,16 @@ drops `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication`
 | 01 | [Skynet's scheduler keeps the promise its docstring makes](tickets/01-skynet-scheduler-floor.md) | fix | 🧑 |
 | 02 | [A zone's naval element looks for water, not for dry land](tickets/02-naval-elements-look-for-water.md) | fix | ✅ |
 | 03 | [Why the terrain check refuses a ship already at sea](tickets/03-measure-the-naval-refusal.md) | fix | ✅ |
-| 04 | [ZU-23s of a combat zone come up kilometres out to sea](tickets/04-units-displaced-out-to-sea.md) | fix | ⬜ |
+| 04 | [ZU-23s of a combat zone come up kilometres out to sea](tickets/04-units-displaced-out-to-sea.md) | fix | 🧑 |
 | 05 | [A cloned group loses the mission task the editor gave it](tickets/05-qra-scrambles-without-engaging.md) | fix | ✅ |
 
 **All five are workable.** Tripack sent `Snowfox_20260903.miz`, its Skynet-off twin and the mission
-sources on 2026-09-05, and the measurements below replaced three open questions with answers. Only
-ticket 04 still lacks a named cause, and it now has a bounded hypothesis to test rather than a blank.
+sources on 2026-09-05, and the measurements below replaced three open questions with answers.
+
+Ticket 04 was worked the same day and the hypothesis held: the offset that translates a zone's group
+is read from **two sources** — the mission record's `units[1]` at one end, `Group:getUnit(1)` at the
+other — and any disagreement between them moves the whole group by the spacing between two different
+units. Measured on the real coordinates: 1 976 m and 3 340 m in the two scenarios that make them
+disagree. The anchor is now read from the record by name, so they cannot. What is **not** established
+is that either scenario occurred in Tripack's mission, which is why the ticket sits at 🧑 with an
+in-game check queued rather than closed.

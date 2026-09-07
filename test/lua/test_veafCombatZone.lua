@@ -3648,11 +3648,27 @@ end
 
 --- `initialize()` is what applies the default, so a setter called after it would be read by nobody.
 --- It refuses instead of pretending, and leaves the value it already had.
-function TestVeafCombatZoneSpawnRadiusDefault:test_a_call_after_initialize_is_refused_not_ignored()
+--- The guard reads the field the class actually fills, `self.elements`, populated by `addZoneElement`
+--- — and not a name invented by the test. The first version of this test set `zone.zoneElements`,
+--- which no code in the module has ever written: it passed, and it proved nothing about the guard.
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_call_after_elements_exist_is_refused_not_ignored()
   local zone = self:_zone():setDefaultSpawnRadius(0)
-  zone.zoneElements = { {} } -- as initialize() would have left it
+  -- What initialize() leaves behind: one element per group it met, through the real setter.
+  zone:addZoneElement(veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone))
+  luaunit.assertEquals(#zone:getZoneElements(), 1, "fixture must actually hold an element")
+
   zone:setDefaultSpawnRadius(500)
   luaunit.assertEquals(zone.defaultSpawnRadius, 0, "the late call must not take effect silently")
+  zone:setDefaultSpawnRadiusForStatics(500)
+  luaunit.assertNil(zone.defaultSpawnRadiusForStatics, "the statics' setter refuses just the same")
+end
+
+--- The other side of the guard: while the zone holds no element, the setter works. Without this the
+--- test above passes against a setter that refuses *always* — which would break the whole feature.
+function TestVeafCombatZoneSpawnRadiusDefault:test_the_setter_works_before_any_element_exists()
+  local zone = self:_zone()
+  luaunit.assertEquals(zone:setDefaultSpawnRadius(0).defaultSpawnRadius, 0)
+  luaunit.assertEquals(zone:setDefaultSpawnRadiusForStatics(40).defaultSpawnRadiusForStatics, 40)
 end
 
 os.exit(luaunit.LuaUnit.run())

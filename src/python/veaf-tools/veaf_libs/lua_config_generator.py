@@ -695,7 +695,7 @@ def _emit_module_body(
             ("default_spawn_radius_statics", "DefaultSpawnRadiusForStatics"),
         ):
             if yaml_key in cz_settings and cz_settings[yaml_key] is not None:
-                lines.append(f"    {var_name}.{lua_global} = {cz_settings[yaml_key]}")
+                lines.append(f"    {var_name}.{lua_global} = {_to_lua_scalar(cz_settings[yaml_key])}")
         if rmn := cz_settings.get("radio_menu_name"):
             lines.append(f"    {var_name}.RadioMenuName = {_lua_text(rmn)}")
         if czrmn := cz_settings.get("combat_zone_menu_name"):
@@ -798,7 +798,7 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
         ("default_spawn_radius_statics", "setDefaultSpawnRadiusForStatics"),
     ):
         if yaml_key in zone_def and zone_def[yaml_key] is not None:
-            lines.append(f"{indent}    :{setter}({zone_def[yaml_key]})")
+            lines.append(f"{indent}    :{setter}({_to_lua_scalar(zone_def[yaml_key])})")
     # `enemy_coalition` picks the side whose units must die for the zone to complete, and
     # which tally the F10 report calls "enemies". RED is the runtime default, so it is not
     # emitted — existing generated configs stay byte-identical.

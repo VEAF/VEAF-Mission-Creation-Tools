@@ -869,7 +869,7 @@ end
 --- @param value number|nil metres, or nil to fall back on the mission-wide default
 --- @return VeafCombatZone self
 function VeafCombatZone:setDefaultSpawnRadius(value)
-  if self.zoneElements and #self.zoneElements > 0 then
+  if self.elements and #self.elements > 0 then
     veaf.loggers.get(veafCombatZone.Id):error(
       "setDefaultSpawnRadius(%s) called on [%s] after initialize(): its elements already have their radius, so this has no effect. Move the call before initialize().",
       veaf.p(value),
@@ -885,7 +885,7 @@ end
 --- @param value number|nil metres, or nil to fall back on the mission-wide default
 --- @return VeafCombatZone self
 function VeafCombatZone:setDefaultSpawnRadiusForStatics(value)
-  if self.zoneElements and #self.zoneElements > 0 then
+  if self.elements and #self.elements > 0 then
     veaf.loggers.get(veafCombatZone.Id):error(
       "setDefaultSpawnRadiusForStatics(%s) called on [%s] after initialize(): its elements already have their radius, so this has no effect. Move the call before initialize().",
       veaf.p(value),

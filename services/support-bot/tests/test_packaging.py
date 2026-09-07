@@ -208,7 +208,10 @@ class TestTheContainerRunsTheSameProgram(unittest.TestCase):
         self.assertIn("SUPPORT_BOT_HEALTH_HOST=0.0.0.0", self.dockerfile)
 
     def test_the_image_does_not_run_as_root(self) -> None:
-        self.assertIn("USER veaf", self.dockerfile)
+        self.assertIn("USER appuser", self.dockerfile)
+        # Not named after the product: issue #940, where an account called `veaf` had the
+        # redactor publish `veaf-tools.exe` as `<user>-tools.exe` and corrupt the marker with it.
+        self.assertNotIn("USER veaf", self.dockerfile)
 
     def test_the_environment_file_never_reaches_a_layer(self) -> None:
         ignored = (SERVICE_ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()

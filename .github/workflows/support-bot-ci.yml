@@ -271,3 +271,72 @@ jobs:
       - name: Clean up
         if: always()
         run: docker rm -f support-bot || true
+
+  # ---------------------------------------------------------------------------
+  # Publishing the image, so the Docker host does not have to build it
+  # ---------------------------------------------------------------------------
+  #
+  # Decided 2026-09-07 with David, replacing "built on place from git": bringing the bot up meant a
+  # full clone of this repository — the tools, the documentation, the Lua, the missions — on a
+  # machine that runs a Python service needing none of it. The host now holds three files.
+  #
+  # On a push only. A pull request gets a read-only token, and publishing a branch that has not been
+  # reviewed would give away the thing the gate is for.
+  publish:
+    needs: [quality, container]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The workflow's own token, so there is no personal access token to place or rotate. The
+      # package is made public once, by hand, on its GitHub page: one created by a first push is
+      # private, and a private one would put a `docker login` on the Docker host to protect code
+      # that is already readable on GitHub.
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build the image
+        run: docker build -t veaf-support-bot:publish .
+
+      # What David asked for, and the reason it inspects the *image* rather than the build context:
+      # `.dockerignore` reasons about what is offered to the build, and what has to be proved is what
+      # came out of it. A future `COPY` reaching for a key would sail past a context-only check.
+      #
+      # The listing is taken once and asserted to be non-empty first. A grep over an empty listing
+      # finds nothing and passes, which is how a check that can only succeed gets shipped.
+      - name: The image carries no secret
+        run: |
+          docker create --name inspect-me veaf-support-bot:publish
+          docker export inspect-me | tar -t > files.txt
+          docker rm inspect-me
+          test -s files.txt || { echo "the export listed nothing at all"; exit 1; }
+          grep -q "app/veaf_support_bot/__init__.py" files.txt \
+            || { echo "the listing does not even hold the package; the check would prove nothing"; exit 1; }
+          if grep -Ei '(^|/)\.env($|\.)|\.pem$|(^|/)id_rsa($|\.)|(^|/)run/secrets/.' files.txt; then
+            echo "the image carries something that looks like a secret"; exit 1
+          fi
+
+      # `develop` is the channel the Docker host follows today. `latest` is published from `master`,
+      # so it exists the day a release happens — a compose pinned to it before that would find no
+      # image at all, which is why the tag lives in the host's `.env` rather than in `compose.yml`.
+      #
+      # The `sha-` tag is what makes a rollback one line in that file, without waiting for a fix to
+      # go through CI.
+      - name: Tag and push
+        run: |
+          image=ghcr.io/veaf/veaf-support-bot
+          short=$(echo "${{ github.sha }}" | cut -c1-12)
+          case "${{ github.ref_name }}" in
+            develop) channel=develop ;;
+            master)  channel=latest ;;
+            *)       echo "nothing is published from ${{ github.ref_name }}"; exit 0 ;;
+          esac
+          docker tag veaf-support-bot:publish "$image:$channel"
+          docker tag veaf-support-bot:publish "$image:sha-$short"
+          docker push "$image:$channel"
+          docker push "$image:sha-$short"
+          echo "published $image:$channel and $image:sha-$short"

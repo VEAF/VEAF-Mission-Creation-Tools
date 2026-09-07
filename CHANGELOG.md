@@ -615,6 +615,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   confidently over the wrong pages. A follow-up spends one question of the asker's allowance, like
   any other.
 
+### Changed
+
+- **The bot's image is built by CI and pulled from GHCR, so its host stops cloning this repository.**
+  Bringing the service up meant a full clone of VMCT — tools, documentation, Lua, missions — on a
+  machine that runs a Python service needing none of it. `services/support-bot/compose.yml` now
+  names `ghcr.io/veaf/veaf-support-bot`, the tag coming from the host's own `.env`: `develop` today,
+  `latest` once a release is published from `master`, a `sha-` tag to roll back in one line. The
+  host holds three files and one command. The package is public, so no registry credential lives on
+  it; the push uses the workflow's own token; and the publish job **inspects the built image** —
+  not the build context — refusing to push one that carries a `.env`, a key, or anything under
+  `/run/secrets`. Unchanged, and easy to misread as gone: the container still clones the repository
+  on first start, shallow, into its own volume, because that clone is what `/bug` and `/suggest`
+  read.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

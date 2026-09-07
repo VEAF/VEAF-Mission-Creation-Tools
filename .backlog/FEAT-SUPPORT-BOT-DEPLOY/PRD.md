@@ -1,6 +1,6 @@
 # FEAT-SUPPORT-BOT-DEPLOY — the bot runs somewhere
 
-Status: 🧑 waiting-human — the code shipped in #926; the deployment itself needs the host
+Status: ✅ done — the code shipped in #926; deployed on the VEAF Docker host 2026-09-07
 
 Origin: decided 2026-09-07 with David. The five lots of the support programme are done and **nothing
 runs**: the code is merged, the Worker is deployed, the `filed-by-bot` label exists, and no process
@@ -63,3 +63,25 @@ image rather than with a `compose.yml`.
 | 02 | [One command brings it up, and brings it back](tickets/02-compose.md) | feat |
 | 03 | [A direct run, for the rehearsal](tickets/03-direct-run.md) | feat |
 | 04 | [Say where it runs and how to touch it](tickets/04-docs.md) | docs |
+
+## The first deployment, 2026-09-07
+
+Up on the VEAF Docker host, built on place from a clone of `develop`. What the container reported
+one minute in: `Up (healthy)`, `clone ready` on the checkout volume, `commands synced` with
+`["ask", "bug", "suggest"]` on the guild, the gateway connected as *VEAF Tools Bot*, and the App's
+private key readable at `/run/secrets/github_app_key`.
+
+Two things the doing taught, both now in the service README:
+
+- **the operator account has no root on that host, and needs none.** The only step that looked like
+  it did was restricting the key to the container's `uid 10001`, which is a hardening, not a
+  requirement: a `scp` leaves the file at `0644` and the unprivileged user reads it. Where the
+  hardening is wanted without root, the daemon itself performs the `chown`;
+- **nothing verifies at startup that the key can be read.** An unreadable one gives a bot that
+  starts, reports itself healthy, answers `/ask`, and fails on the first report it tries to file —
+  so the check belongs in the deployment procedure, run as the service's own user, and it is.
+
+Announced on the Discord with a short French how-to pointing at the documentation's support page.
+That link had to go to the `dev` build of the site: the page shipped after 6.19.0 (2026-09-02), so
+`latest` does not carry it. **Worth revisiting at the next release** — the announcement should then
+point at `latest`.

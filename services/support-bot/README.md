@@ -355,10 +355,13 @@ Both ways run the same module, `python -m veaf_support_bot`, with the same envir
 
 ### Where it runs
 
-**The VEAF Docker host** — decided 2026-09-07. **Not deployed yet as of that date**: the code is
-merged, the Worker is deployed, the `filed-by-bot` label exists, and no process answers a single
-`/ask`. When the first deployment happens, replace this sentence with the host's name and how to
-reach it.
+**The VEAF Docker host** — decided and **deployed 2026-09-07**, as a Compose stack built on place
+from a clone of `develop`. Ask a VEAF administrator for the machine and the path; this file names
+neither, because the repository is public.
+
+One thing that shaped the procedure below and is easy to assume away: **the account that runs it is
+in the `docker` group and has no root on that host.** Nothing here needs any — see
+[the private key](#the-private-key-needs-no-root) for the one step that looks like it does.
 
 #### Why not the game server
 
@@ -399,6 +402,31 @@ The App's private key does **not** go in `.env`: `compose.yml` mounts `github-ap
 `/run/secrets/github_app_key` and points the service at it. That keeps the heaviest secret out of
 `docker inspect` and out of the container's config on disk — the Discord token has no file form and
 stays in the environment, which is worth knowing before pasting an `inspect` output anywhere.
+
+##### The private key needs no root
+
+The container runs as an unprivileged `uid 10001`, and Compose bind-mounts that `.pem` with the
+host's own ownership. So the key must be **readable by that uid** — which a `scp` already leaves it
+(`0644`), and which is why the deployment needed no `sudo` at all.
+
+What no amount of care catches by itself: **nothing verifies at startup that the key can be read.**
+An unreadable one gives a bot that starts, reports itself healthy, answers `/ask`, and fails on the
+first report it tries to file. One command says which it is, and it runs as the service's own user:
+
+```bash
+docker compose exec support-bot head -1 /run/secrets/github_app_key
+```
+
+Restricting the key to that uid — worth doing where other accounts share the host — is a `chown` an
+admin can run with `sudo`, or, without root, through the daemon itself:
+
+```bash
+docker run --rm -v "$PWD:/w" alpine sh -c "chown 10001:10001 /w/github-app.pem && chmod 400 /w/github-app.pem"
+```
+
+That is not a privilege bypass: reaching the Docker daemon is already root-equivalent on the machine,
+which is inherent to being able to deploy anything there. The cost to know is that replacing the file
+afterwards takes the same detour.
 
 **Already decided, do not re-decide:**
 

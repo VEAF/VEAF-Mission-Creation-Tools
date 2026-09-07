@@ -641,6 +641,23 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
     -- table further down and an airplane comes back a helicopter. That is the shape of #299.
     data.category = veafDcsSpawner.EDITOR_CATEGORY_BY_GROUP_CATEGORY[group:getCategory()] or group:getCategory()
 
+    -- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 02: a **teleport** does not carry the editor's
+    -- cold-and-dark, where a clone and a respawn do.
+    --
+    -- MiST drew that line at exactly this point: `getCurrentGroupData` forwarded
+    -- `task/modulation/uncontrolled/radioSet/hidden/startTime` only for groups MiST had created
+    -- itself, and forced `uncontrolled = false; hidden = false` for every other one — i.e. for every
+    -- Mission Editor group (mist.lua:1040). FIX-TRIPACK-FIELD-REPORTS ticket 05 taught the record to
+    -- carry both, which is right for the verbs that rebuild a group from its editor definition, and
+    -- this function starts from that same record — so the teleport silently inherited them too.
+    --
+    -- What that looked like: an aircraft parked `uncontrolled` in the editor and moved by
+    -- `_move group`, `veafSpawnObjects` or an escort teleport arrived flyable up to 6.19.0 and
+    -- arrived cold after it. Restored on David's call, 2026-09-07 — nobody asked for the change, and
+    -- an aircraft that arrives unusable is hard to diagnose from the cockpit.
+    data.uncontrolled = false
+    data.hidden = false
+
     data.units = {}
     local liveUnits = group:getUnits() or {}
 
@@ -704,6 +721,13 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
   local static = StaticObject.getByName(groupName)
   if static and static:isExist() and record and record.units and record.units[1] then
     local data = veaf.deepCopy(record)
+    -- The same clearing as the group branch above, and for the same reason. MiST forced these two off
+    -- *before* it split group from static (mist.lua:1040, ahead of the `objType == "group"` test at
+    -- :1045), so a teleported static was covered too. Placing it only on the group branch left a
+    -- static hidden in the Mission Editor coming back hidden after a move — the very regression
+    -- ticket 02 exists to undo, surviving for statics. Found by the review of #933.
+    data.uncontrolled = false
+    data.hidden = false
     local position = static:getPosition()
     if position and position.p then
       data.units[1].x = position.p.x
@@ -919,7 +943,7 @@ function VeafGroupSpawn:_drawOrigin(data)
     veaf.p(self.radius),
     veaf.p(self.groupName),
     veaf.p(data.category),
-    veaf.p(table.concat(surfaces, ", ")),
+    veaf.p((type(surfaces) == "table" and table.concat(surfaces, ", ") or tostring(surfaces))),
     veaf.p(veaf.vecToString(lastCandidate)),
     veaf.p(surfaceNameAt(lastCandidate))
   )

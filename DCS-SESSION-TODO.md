@@ -960,11 +960,19 @@ l'un des deux s'est produit. Au démarrage de la mission les cinq ZU-23 sont viv
 « unité 1 » devraient donc désigner le même objet. Le correctif supprime toute la famille, il ne
 referme pas un cas observé.
 
-**À faire** : lancer `Snowfox_20260903.miz` avec le niveau de log `debug`, activer
-`CMBT_ABU_MUSA_AIRPORT`, et relever dans `dcs.log` les trois nombres que la zone trace déjà —
-`spawnElement` : `position=[...]` (la position déclarée) puis `found=[...]` (le point retenu), et
-`_drawOrigin` : le décalage. Comparer `position` aux coordonnées éditeur de `AAA-1`
-(`x = -30382,9 ; y = -122247,2`).
+**À faire** : lancer `Snowfox_20260903.miz` avec le niveau de log **`trace`** sur la zone de combat
+(`logLevel: trace` sous `COMBATZONE` dans `mission.yaml`), activer `CMBT_ABU_MUSA_AIRPORT`, et
+relever dans `dcs.log` les deux lignes que la zone trace — `spawnElement` : `position=[...]` (la
+position déclarée) puis `found=[...]` (le point retenu).
+
+> **Corrigé le 2026-09-07.** Cette consigne demandait `debug` et **trois** nombres. Elle était
+> inexécutable : les deux positions sont tracées en `trace`, pas en `debug`, et le troisième nombre —
+> le décalage calculé par `_drawOrigin` — n'est journalisé à aucun niveau. Elle aurait consommé une
+> session DCS pour rien. Trouvé par la relecture post-merge de la PR #921.
+
+Comparer `position` aux coordonnées éditeur de `AAA-1` — attention à la convention : la trace runtime
+écrit l'est en `z`, là où le fichier de mission l'écrit en `y`. Donc `position.x` se compare à
+`x = -30382,9` et `position.z` à `y = -122247,2`.
 
 - **Attendu après correctif** : `position` tombe sur `AAA-1` à quelques mètres près, le décalage est
   inférieur à 50 m, et les cinq ZU-23 sont à terre sur la carte F10.

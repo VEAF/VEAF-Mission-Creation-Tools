@@ -450,4 +450,62 @@ function TestAbuMusaFixedPlacement:test_the_spawn_point_search_is_not_consulted(
   luaunit.assertFalse(searched, "a zero spawn radius must not search for a spawn point")
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 01 — the anchor is read at the editor's instant
+-- ---------------------------------------------------------------------------
+
+--- FIX-TRIPACK-FIELD-REPORTS ticket 04 made both ends of the offset read the same *source*. It was
+--- not enough: the anchor was that unit's **live** position while `_drawOrigin` subtracts its
+--- **editor** position, so the offset was whatever unit 1 had drifted since mission start — and it
+--- was applied to every unit of the group.
+---
+--- `initialize()` runs seconds into a mission, so a pre-placed ship already under way or a CAP already
+--- airborne carried it. Tripack's ZU-23s stand still, which is why his report never showed this half.
+TestAbuMusaDriftedAnchor = {}
+
+function TestAbuMusaDriftedAnchor:tearDown()
+  tearDownFixture()
+end
+
+--- Move the live unit 1 away from where the editor drew it, leaving the other four in place.
+---
+--- The already-registered object is edited in place rather than re-registered: `registerLiveGroup`
+--- captured the unit references when it built the group, so replacing the entry would leave the group
+--- holding the old object and the drift invisible.
+local function driftUnitOne(metres)
+  local drifted = EDITOR_UNITS[1]
+  local unit = Unit.getByName(drifted.name)
+  local moved = { x = drifted.x + metres, y = 0, z = drifted.y }
+  unit._point = moved
+  unit.getPoint = function()
+    return moved
+  end
+  unit.getPosition = function()
+    return { p = moved }
+  end
+end
+
+--- The measurement: 100 m of drift used to translate all five units by 100 m.
+function TestAbuMusaDriftedAnchor:test_a_drifted_first_unit_does_not_drag_the_group()
+  setUpFixture(editorOrder())
+  driftUnitOne(100)
+  activateZone()
+  local worst, name = worstDisplacement()
+  luaunit.assertTrue(worst <= 51, string.format("worst displacement %s m, on %s", tostring(worst), tostring(name)))
+end
+
+--- And with no dispersion asked for, the promise is exact: the group is put back where it was drawn,
+--- however far its first unit had got. This is the behaviour David chose on 2026-09-07 — a respawn
+--- returns a group to its drawn position rather than to wherever it had reached.
+function TestAbuMusaDriftedAnchor:test_a_drifted_first_unit_still_lands_on_the_editor_positions()
+  setUpFixture(editorOrder(), nil, GROUP_NAME .. " #spawnradius=0")
+  driftUnitOne(1500)
+  activateZone()
+  local moved = spawnedPositions()
+  for _, unit in ipairs(EDITOR_UNITS) do
+    luaunit.assertAlmostEquals(moved[unit.name].x, unit.x, 0.001, unit.name .. " northing")
+    luaunit.assertAlmostEquals(moved[unit.name].y, unit.y, 0.001, unit.name .. " easting")
+  end
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -131,6 +131,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   chatbot panel, the support page and the `ask` reference now also say up front that the allowance
   is free, shared and refilled each morning — someone who meets a ceiling nobody mentioned
   concludes the tool is broken.
+- **A combat zone puts a group back where the Mission Editor drew it.** The offset that moves a
+  respawned group was measured between two *instants*: the anchor was its first unit's live position,
+  while the spawner subtracts that unit's editor position — so the offset was whatever the unit had
+  drifted since mission start, applied to every unit of the group. Measured at 100 m of displacement
+  for 100 m of drift. A pre-placed ship already under way or a CAP already airborne carried it;
+  stationary ground units did not. A group that had moved is now returned to its drawn position.
+- **A teleported aircraft comes back flyable again.** An aircraft parked cold and dark in the Mission
+  Editor and moved by `_move group`, `veafSpawnObjects` or an escort teleport arrived flyable up to
+  6.19.0 and arrived cold after it; a group hidden from the F10 map stayed hidden. A clone and a
+  respawn still reproduce what the editor set — only the teleport does not, which is where MiST drew
+  the same line.
+- **A ship placed as a static object is no longer left on the quay.** The naval spawn fix recognised
+  only hulls placed as groups, so one placed as scenery was still moved onto dry land — and in
+  silence, since a static's terrain check accepts any surface. A static now says what it is through
+  its own DCS sub-type.
 
 ### Added
 
@@ -589,8 +604,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   kilometres that is kilometres: measured on Tripack's `CMBT_ABU_MUSA_AIRPORT - AAA`, five ZU-23s
   ringing Abu Musa 4 330 m apart, **1 976 m** with the first ZU-23 lost before the zone was built and
   **3 340 m** with the live list out of editor order — enough to stand the south-western ones in open
-  water. Both ends now name the same unit, so the offset is zero by construction; a group whose first
-  unit is no longer alive falls back on that unit's editor position rather than on another unit.
+  water. Both ends now name the same unit, and read it at the same instant, so the offset is the
+  dispersion and nothing else. The anchor is that unit's editor position, whether or not it is still
+  alive — the group comes up where it was drawn.
 - **A combat zone's dispersion default can be set from `mission.yaml`, per mission or per zone.**
   Air defences placed in the revetments a map provides were scattered by the 50 m default, which puts
   a launcher on the berm instead of inside it — and on the YAML workflow the default could not be

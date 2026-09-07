@@ -20,7 +20,7 @@ from tests.test_toolkit import SYNTHETIC_LOG
 from veaf_support_bot.attachments import AttachmentCollector, Incoming, Prepared
 from veaf_support_bot.bugreport import BugForm
 from veaf_support_bot.checkout import Checkout, Freshness
-from veaf_support_bot.draft import DIFFERENT, CANCEL
+from veaf_support_bot.draft import CANCEL, DIFFERENT
 from veaf_support_bot.intake import (
     PREVIEW_MAX_CHARS,
     BugIntake,

@@ -1,6 +1,6 @@
 # 06 — *It already exists* needs a page to point at
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 

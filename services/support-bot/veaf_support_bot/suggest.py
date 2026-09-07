@@ -39,6 +39,7 @@ component comes from a Discord choice bound to :data:`~veaf_support_bot.suggesti
 
 from __future__ import annotations
 
+import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -59,7 +60,7 @@ from veaf_support_bot.exchange import ThreadExchange, ThreadHandle
 from veaf_support_bot.existing import DocumentationCheck, DocumentationSource
 from veaf_support_bot.filing import Outcome
 from veaf_support_bot.logging_setup import get_logger
-from veaf_support_bot.priorart import PriorArtGate, Sweep, render_match
+from veaf_support_bot.priorart import DUPLICATE, SOURCE_OPEN_ISSUE, Candidate, Match, PriorArtGate, Sweep, render_match
 from veaf_support_bot.quota import QuotaKeeper
 from veaf_support_bot.suggestion import (
     BASE_LABEL,
@@ -69,7 +70,7 @@ from veaf_support_bot.suggestion import (
     suggestion_key,
 )
 from veaf_support_bot.texts import REPOSITORY_URL, normalize_language, text
-from veaf_support_bot.untrusted import one_line
+from veaf_support_bot.untrusted import one_line, quote
 
 #: The family of prior-art sentences this flow speaks from. Not the bug flow's: that one tells the
 #: reporter his observation will be added to the existing issue, and then adds it. This flow opens
@@ -143,6 +144,21 @@ class PreparedFiler(Protocol):
             What became of it.
         """
 
+    async def add_comment(self, number: int, body: str) -> Outcome:
+        """Add one comment to an existing issue.
+
+        The same call the enrichment uses, which is what ticket 07 means by *one mechanism*: the
+        bug flow's own duplicate comment and this one both end here rather than each growing a
+        renderer-shaped method of their own.
+
+        Args:
+            number: The issue to comment on.
+            body: The comment body, already rendered.
+
+        Returns:
+            What became of it.
+        """
+
 
 class SuggestionTracker(Protocol):
     """What this flow needs from :mod:`veaf_support_bot.relay`, and nothing more."""
@@ -188,6 +204,54 @@ class _AskTheAsker:
             What he answered: ``SAME``, ``DIFFERENT`` or ``UNANSWERED``.
         """
         return await self._exchange.confirm(render_match(sweep, lang, family=PRIOR_ART_FAMILY), lang)
+
+
+def _issue_number(sweep: Sweep) -> int | None:
+    """Read the issue number out of a finding, when the finding is a GitHub issue at all.
+
+    Args:
+        sweep: The finding the asker recognised.
+
+    Returns:
+        The number, or ``None`` when the match is a lot or a roadmap section — which are not places
+        a comment can be added.
+    """
+    if sweep.best is None:
+        return None
+    matched = re.fullmatch(r"#(\d+)", sweep.best.candidate.reference.strip())
+    return int(matched.group(1)) if matched else None
+
+
+def render_observation(form: SuggestionForm, lang: str) -> str:
+    """Render what gets added to the existing issue.
+
+    Args:
+        form: The submitted form.
+        lang: ``"fr"`` or ``"en"``.
+
+    Returns:
+        The comment body: who asked, and the problem in his own words. Quoted rather than pasted,
+        for the same reason every other published field is.
+    """
+    return text(
+        "suggest.observation.body",
+        lang,
+        asker=one_line(form.asker, 80),
+        problem=quote(form.problem),
+    )
+
+
+def _match_for(number: int) -> Match:
+    """Wrap an issue the model named in the shape the rest of the flow already speaks.
+
+    Args:
+        number: The issue number.
+
+    Returns:
+        A match carrying that reference. The score is 0: this one was not measured by word overlap,
+        and printing a number it did not earn would be evidence the sweep never produced.
+    """
+    return Match(candidate=Candidate(source=SOURCE_OPEN_ISSUE, reference=f"#{number}", title=""), score=0.0)
 
 
 class SuggestIntake:
@@ -306,6 +370,11 @@ class SuggestIntake:
             await self._say(exchange, text("suggest.settled.documentation", lang))
             return None
 
+        if check.issue and self._may_ask(started, "a request already made in other words"):
+            settled = await self._propose_the_named_issue(exchange, form, check.issue, lang, started)
+            if settled:
+                return None
+
         sweep, answer = await self._sweep(exchange, form, lang, started)
         # Only an explicit *yes* settles a request. A silence means the asker never saw the
         # proposal or never answered it, and dropping his request on that would be the machine
@@ -319,9 +388,93 @@ class SuggestIntake:
                 exchange,
                 render_match(sweep, lang, family=PRIOR_ART_FAMILY) + "\n\n" + text("suggest.settled.prior_art", lang),
             )
+            await self._record_the_second_voice(exchange, form, sweep, lang)
             return None
 
         return await self._file(exchange, submission, check, sweep, lang, asked=asked, progress=progress)
+
+    async def _propose_the_named_issue(
+        self, exchange: ThreadExchange, form: SuggestionForm, number: int, lang: str, started: float
+    ) -> bool:
+        """Put the issue the model recognised to the asker, with what it is, and take his answer.
+
+        A model saying *this is #240* is a proposal like any other: it is shown with the issue it
+        names and a way to refuse it, and a refusal carries the request on untouched. What it is not
+        is a decision — the whole reason the deterministic sweep proposes rather than applies.
+
+        Args:
+            exchange: The Discord side.
+            form: The submitted form.
+            number: The issue the model named, already validated against the ones it was offered.
+            lang: ``"fr"`` or ``"en"``.
+            started: When the interaction was acknowledged.
+
+        Returns:
+            Whether the request is settled. ``False`` for a refusal **and** for a silence: neither
+            is an agreement, and only an agreement may stop somebody's request.
+        """
+        answer = await exchange.confirm(text("suggest.named_issue", lang, issue=number), lang)
+        self._logger.info(
+            "a request already made in other words was proposed",
+            extra={"event": "suggest.named_issue", "issue": number, "answer": answer},
+        )
+        if answer != SAME:
+            return False
+        await self._say(exchange, text("suggest.settled.named_issue", lang, issue=number))
+        await self._record_the_second_voice(exchange, form, Sweep(verdict=DUPLICATE, best=_match_for(number)), lang)
+        return True
+
+    async def _record_the_second_voice(
+        self, exchange: ThreadExchange, form: SuggestionForm, sweep: Sweep, lang: str
+    ) -> None:
+        """Offer to add the asker's observation to the issue he just recognised as his own.
+
+        Why it is worth doing at all: a suggestion is only wanted or not, and one person deciding.
+        *A second person asking for the same thing* is the only signal of priority a suggestion will
+        ever carry — and until this existed it was thrown away entirely. The asker was told the
+        subject is tracked elsewhere, and nothing anywhere recorded that one more person needed it.
+
+        Two guards, both deliberate:
+
+        * it is **drafted and shown**, and posted only on a second click. Recognising an issue as
+          one's own is not the same act as agreeing to publish under it, and this publishes words on
+          a public tracker;
+        * it carries the problem as the asker stated it and who asked, and nothing else. The issue
+          already holds a feature request; a second copy of the template would bury the one line a
+          maintainer actually needs.
+
+        Args:
+            exchange: The Discord side.
+            form: The submitted form.
+            sweep: The finding the asker recognised, which carries the issue's reference.
+            lang: ``"fr"`` or ``"en"``.
+        """
+        number = _issue_number(sweep)
+        if self._filer is None or number is None:
+            return
+        body = render_observation(form, lang)
+        decision = await exchange.decide(
+            Draft(title=text("suggest.observation.title", lang, issue=number), body=body).render(
+                lang, header="suggest.observation.header"
+            ),
+            lang,
+        )
+        if decision != FILE:
+            # Every other answer posts nothing, expiry included. The request was already settled by
+            # his own *yes*; what he declined here is publishing under his name.
+            await self._say(exchange, text("suggest.observation.declined", lang))
+            return
+        outcome = await self._filer.add_comment(number, body)
+        self._logger.info(
+            "a second voice was recorded on an existing issue",
+            extra={"event": "suggest.observed", "issue": number, "action": outcome.action},
+        )
+        await self._say(
+            exchange,
+            text("suggest.observation.recorded", lang, issue=number)
+            if outcome.action == "commented"
+            else text("suggest.observation.failed", lang, issue=number),
+        )
 
     def _may_ask(self, started: float, what: str) -> bool:
         """Say whether one more timed question still leaves room for the consent click.
@@ -350,6 +503,32 @@ class SuggestIntake:
         )
         return False
 
+    async def _open_issues(self) -> tuple[tuple[int, str], ...]:
+        """Read the open issues' numbers and titles, for the second question of the same call.
+
+        Ticket 05: a duplicate is recognised today by comparing words, and no two humans write the
+        same request in the same words. The titles ride along with the documentation question rather
+        than costing a call of their own — measured 2026-09-07, ten open issues and under 600
+        characters of titles.
+
+        Returns:
+            The issues, or an empty tuple when there is no gate, no source, or the tracker could not
+            be read. A tracker that cannot be reached costs the *recognition*, never the suggestion:
+            the deterministic sweep still runs afterwards and the issue still records what happened.
+        """
+        source = self._prior_art.sweeper.issues if self._prior_art is not None else None
+        if source is None:
+            return ()
+        try:
+            records = await source.open_issues()
+        except Exception as error:  # noqa: BLE001 - a courtesy check must not cost a suggestion
+            self._logger.warning(
+                "the open issues could not be read, so the request is not compared against them",
+                extra={"event": "suggest.issues_unavailable", "error": type(error).__name__},
+            )
+            return ()
+        return tuple((record.number, record.title) for record in records)
+
     async def _ask_documentation(self, form: SuggestionForm, lang: str) -> DocumentationCheck:
         """Ask the documentation whether this already exists, if there is an allowance for it.
 
@@ -366,6 +545,7 @@ class SuggestIntake:
         """
         if self._documentation is None:
             return DocumentationCheck(problem="not configured")
+        issues = await self._open_issues()
         if self._quota is not None:
             decision = self._quota.check_and_consume(form.asker_id)
             if not decision.allowed:
@@ -374,7 +554,7 @@ class SuggestIntake:
                     extra={"event": "suggest.check_refused", "user": form.asker_id, "reason": decision.reason},
                 )
                 return DocumentationCheck(problem=f"quota: {decision.reason}")
-        return await self._documentation.check(form.all_text(), lang, form.asker_id)
+        return await self._documentation.check(form.all_text(), lang, form.asker_id, issues)
 
     async def _sweep(
         self, exchange: ThreadExchange, form: SuggestionForm, lang: str, started: float

@@ -158,14 +158,32 @@ tout de suite, plutôt qu'un ticket qui attendra des mois.
 Le bot vérifie donc, dans cet ordre :
 
 1. **la documentation** — il pose votre demande à l'assistant, qui répond avec les pages
-   correspondantes. Si ça répond à votre besoin, vous le dites et **rien n'est ouvert** ;
-2. **les tickets ouverts** — quelqu'un l'a peut-être déjà demandé ;
+   correspondantes. Si ça répond à votre besoin, vous le dites et **rien n'est ouvert**. Il ne dit
+   « ça existe déjà » que s'il peut vous montrer **au moins une page** : une affirmation sans page à
+   ouvrir n'est pas une réponse ;
+2. **les tickets ouverts, sur le sens et pas seulement sur les mots** — dans la même question, il
+   compare votre demande aux titres des tickets ouverts. Deux personnes ne décrivent jamais le même
+   besoin avec le même vocabulaire, et une comparaison de mots passe donc à côté d'un doublon
+   évident pour un lecteur humain ;
 3. **les chantiers en cours et la feuille de route** — c'est peut-être déjà prévu, ou explicitement
    écarté, avec les raisons.
 
 À chaque fois, le bot vous montre **ce qu'il a trouvé et pourquoi**, et vous pouvez répondre *non,
 ce n'est pas ça* : votre demande continue son chemin. Une machine ne décide pas à votre place que
-votre idée existe déjà.
+votre idée existe déjà — et **son silence non plus** : si vous ne répondez pas, votre demande suit
+son cours comme si de rien n'était.
+
+### Si c'est bien le même besoin, votre voix est ajoutée au ticket {#second-voice}
+
+Quand vous reconnaissez un ticket comme le vôtre, le bot vous propose d'y **ajouter votre
+observation** : qui vous êtes et le besoin dans vos mots, rien de plus — le ticket contient déjà une
+demande.
+
+Comme partout ailleurs, il vous le **montre d'abord** et ne publie qu'après votre clic. Reconnaître
+un ticket comme le sien n'est pas la même chose qu'accepter d'écrire dessous.
+
+Ça compte : une demande d'évolution est souhaitée ou non, et **une deuxième personne qui demande la
+même chose est le seul signal de priorité qu'elle portera jamais**.
 
 Si la documentation ne dit rien du sujet, le ticket le note. C'est utile : si la fonctionnalité
 existe en réalité, ce n'est pas une demande d'évolution, c'est une **page à écrire** — et c'est le

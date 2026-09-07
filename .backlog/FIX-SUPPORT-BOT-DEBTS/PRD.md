@@ -1,6 +1,6 @@
 # FIX-SUPPORT-BOT-DEBTS — four things the support bot owes
 
-Status: 🔄 in-progress — 02, 03, 04 and 08 are done; 01, 05, 06 and 07 remain
+Status: 🔄 in-progress — seven of eight are done; only 01 (the modal and command translation) remains
 
 Origin: three debts recorded across lots 4 and 5 of the support programme, plus one found by David
 on **2026-09-07, the first time the bot ran in front of a human**. Grouped because none of them is

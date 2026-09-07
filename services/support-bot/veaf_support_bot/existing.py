@@ -46,6 +46,7 @@ rather than linked. See :mod:`veaf_support_bot.untrusted`.
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator, Mapping, Sequence
 from dataclasses import dataclass
 from logging import Logger
@@ -54,6 +55,7 @@ from typing import Protocol
 from veaf_support_bot import answer as answer_module
 from veaf_support_bot.ask import MAX_QUESTION_CHARS
 from veaf_support_bot.logging_setup import get_logger
+from veaf_support_bot.untrusted import one_line
 from veaf_support_bot.worker import WorkerFailure
 
 #: The documentation describes a way to do it.
@@ -98,6 +100,41 @@ _TASK = (
     "feature the documentation does not describe, and never guess at one that might exist."
 )
 
+#: The second question, asked in the **same** call — measured 2026-09-07: ten open issues, short
+#: titles, the whole list under 600 characters, so joining them costs on the order of 200 tokens and
+#: no second model call at all.
+#:
+#: Why a model is asked this when a word matcher already sweeps the tracker: two people writing the
+#: same request share no identifier, only ordinary words. The tracker proves it — ``#240 -cap un peu
+#: plus selectif``, ``#187 Modifications du watchdog de CAP``, ``#178 Gérer la destruction du -cap``
+#: are one subject in three vocabularies, and somebody writing *"je voudrais que la CAP arrête de
+#: tirer sur les pilotes en parachute"* may share no word with any of them while a human reader sees
+#: the connection instantly.
+#:
+#: The answer is a **line**, not prose to interpret: an unparsable answer is simply no match, and a
+#: number that is not one of the numbers offered is discarded rather than trusted.
+_ISSUE_TASK = (
+    "\n\nSecond, and separately: here are the issues currently open on the tracker. If the user's "
+    "request is one of them — the same need, however differently worded — end your whole answer "
+    "with a final line reading exactly `{marker} #<number>`, using one of the numbers below. If it "
+    "is none of them, do not write that line at all. Never invent a number, and never name an issue "
+    "that is not in this list.\n\n{issues}"
+)
+
+#: Longest issue title carried into the prompt. A title is a line, not a paragraph.
+ISSUE_TITLE_MAX_CHARS = 120
+
+#: The marker that final line carries. Uppercase and unpunctuated, like the absence keyword above.
+ISSUE_KEYWORD = "ISSUE"
+
+#: How many open issues travel with the request. The tracker held ten when this was measured; the
+#: bound is here so a tracker that grows to two hundred does not quietly turn one prompt into a
+#: paste the retrieval cannot carry.
+MAX_ISSUES_OFFERED = 40
+
+#: A final line naming one issue, with the decoration a model puts around it.
+_ISSUE_LINE = re.compile(rf"^[\s>*_`-]*{ISSUE_KEYWORD}[\s:]*#(\d+)[\s.`*_]*$", re.MULTILINE | re.IGNORECASE)
+
 
 @dataclass(frozen=True)
 class DocumentationCheck:
@@ -114,12 +151,16 @@ class DocumentationCheck:
             real tree.
         problem: Why the documentation could not be consulted. Empty unless the verdict is
             :data:`UNKNOWN`.
+        issue: An open issue the model recognised as the same request, or ``0``. Independent of
+            :attr:`verdict`: the documentation being silent and the tracker already holding the
+            request are different facts, and a request can be both undocumented and already asked.
     """
 
     verdict: str = UNKNOWN
     answer: str = ""
     links: tuple[str, ...] = ()
     problem: str = ""
+    issue: int = 0
 
     @property
     def found(self) -> bool:
@@ -178,13 +219,18 @@ class DocumentationSource(Protocol):
     driven, in a test, by a scripted answer rather than by an HTTP client.
     """
 
-    async def check(self, request: str, lang: str, subject: str) -> DocumentationCheck:
-        """Ask whether the documentation already describes a way to do this.
+    async def check(
+        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str]] = ()
+    ) -> DocumentationCheck:
+        """Ask whether the documentation already describes a way to do this, and whether the request
+        is one of the open issues.
 
         Args:
             request: What the user would like, in his own words.
             lang: ``"fr"`` or ``"en"``.
             subject: Per-user rate-limit subject.
+            issues: The open issues, as ``(number, title)``, for the second question of the same
+                call. Empty asks the documentation question alone.
 
         Returns:
             The finding.
@@ -204,14 +250,22 @@ class AskTheDocumentation:
         self._worker = worker
         self._logger = logger or get_logger("suggest")
 
-    async def check(self, request: str, lang: str, subject: str) -> DocumentationCheck:
-        """Ask whether the documentation already describes a way to do this.
+    async def check(
+        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str]] = ()
+    ) -> DocumentationCheck:
+        """Ask whether the documentation already describes a way to do this — and whether it is one
+        of the open issues.
+
+        Two answers from one call. The second question is ticket 05: a duplicate is recognised today
+        by comparing words, and no two humans write the same request in the same words.
 
         Args:
             request: What the user would like, in his own words. Sent as the last turn and
                 untouched, because it is what the Worker embeds to retrieve passages.
             lang: ``"fr"`` or ``"en"``.
             subject: Per-user rate-limit subject, as the Worker counts them.
+            issues: The open issues, as ``(number, title)``. Empty asks the documentation question
+                alone, which is what a deployment with no tracker access does.
 
         Returns:
             The finding. Never raises: every failure becomes :data:`UNKNOWN` with its reason, since
@@ -222,7 +276,8 @@ class AskTheDocumentation:
         # to 5000 characters, and it is the *last user turn* the Worker embeds to retrieve passages.
         # ``/ask`` trims at the same number for the same reason — past it, retrieval is being handed
         # a paste and does nothing useful with it.
-        turns = answer_module.protocol_turns(" ".join(request.split())[:MAX_QUESTION_CHARS], extra=_TASK)
+        task = _TASK + _issue_task(issues)
+        turns = answer_module.protocol_turns(" ".join(request.split())[:MAX_QUESTION_CHARS], extra=task)
         try:
             collected = "".join([fragment async for fragment in self._worker.stream(turns, lang, subject)])
         except WorkerFailure as failure:
@@ -233,6 +288,11 @@ class AskTheDocumentation:
             return DocumentationCheck(verdict=UNKNOWN, problem=failure.kind.value)
 
         body, titles = answer_module.split_sources(collected)
+        named = _named_issue(body, issues)
+        # Read off the body, then removed from it: the line is an instruction to this code, and
+        # leaving `ISSUE #240` at the end of a paragraph shown to a human is the same defect the
+        # idempotency marker had in the Discord preview.
+        body = _ISSUE_LINE.sub("", body).strip()
         if not body.strip():
             self._logger.warning(
                 "the documentation assistant answered nothing at all",
@@ -244,13 +304,67 @@ class AskTheDocumentation:
                 "the documentation says nothing about this request",
                 extra={"event": "suggest.checked", "verdict": ABSENT},
             )
-            return DocumentationCheck(verdict=ABSENT)
+            return DocumentationCheck(verdict=ABSENT, issue=named)
         links = answer_module.source_links(titles, lang)
+        if not links:
+            # Measured in front of a human, 2026-09-07: the first real `/suggest` announced *"la
+            # documentation semble déjà répondre à ta demande"* and displayed, as that answer, *"la
+            # documentation ne décrit pas de moyen de dessiner une route pour qu'un convoi la
+            # suive"* — the exact opposite of what it concluded. The model is told to answer the
+            # keyword when the documentation does not cover a subject; it answered in prose, so the
+            # keyword check saw nothing and the absence of a keyword was read as presence.
+            #
+            # Requiring a **citation** does not depend on guessing what a sentence means, and it is
+            # the rule the whole service already runs on: a link the asker can open is what lets him
+            # contradict the machine. An answer with no page to open is not an answer that something
+            # exists. It also covers the case the log line below names: a model that cited a page
+            # the corpus does not have, whose title was dropped as unverifiable.
+            self._logger.info(
+                "the documentation answered without citing a page, so it is read as silence",
+                extra={"event": "suggest.checked", "verdict": ABSENT, "reason": "no-citation"},
+            )
+            return DocumentationCheck(verdict=ABSENT, issue=named)
         self._logger.info(
             "the documentation describes a way to do this",
             extra={"event": "suggest.checked", "verdict": EXISTS, "pages": len(links)},
         )
-        return DocumentationCheck(verdict=EXISTS, answer=body[:ANSWER_MAX_CHARS], links=tuple(links))
+        return DocumentationCheck(verdict=EXISTS, answer=body[:ANSWER_MAX_CHARS], links=tuple(links), issue=named)
+
+
+def _issue_task(issues: Sequence[tuple[int, str]]) -> str:
+    """Render the second question, or nothing when there is no tracker to compare against.
+
+    Args:
+        issues: The open issues, as ``(number, title)``.
+
+    Returns:
+        The instruction to append, empty when *issues* is.
+    """
+    if not issues:
+        return ""
+    listed = "\n".join(
+        f"- #{number} {one_line(title, ISSUE_TITLE_MAX_CHARS)}" for number, title in issues[:MAX_ISSUES_OFFERED]
+    )
+    return _ISSUE_TASK.format(marker=ISSUE_KEYWORD, issues=listed)
+
+
+def _named_issue(body: str, issues: Sequence[tuple[int, str]]) -> int:
+    """Read back which issue the model named, if any, and refuse one it invented.
+
+    Args:
+        body: The answer body, trailer already removed.
+        issues: The issues that were offered.
+
+    Returns:
+        The issue number, or ``0``. A number outside the offered list is dropped: a model naming
+        ``#999`` would otherwise send an asker to an issue nobody wrote, which is worse than not
+        recognising his request at all.
+    """
+    found = _ISSUE_LINE.search(body)
+    if found is None:
+        return 0
+    number = int(found.group(1))
+    return number if any(number == offered for offered, _ in issues) else 0
 
 
 def says_nothing(body: str) -> bool:

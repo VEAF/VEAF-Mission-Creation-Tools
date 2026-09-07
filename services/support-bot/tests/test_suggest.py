@@ -103,8 +103,11 @@ class ScriptedDocumentation:
         self.finding = finding
         self.asked: list[tuple[str, str, str]] = []
 
-    async def check(self, request: str, lang: str, subject: str) -> DocumentationCheck:
+    async def check(
+        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str]] = ()
+    ) -> DocumentationCheck:
         self.asked.append((request, lang, subject))
+        self.offered = tuple(issues)
         return self.finding
 
 
@@ -115,11 +118,16 @@ class RecordingFiler:
 
     def __init__(self, outcome: Outcome | None = None) -> None:
         self.filed: list[dict[str, object]] = []
+        self.comments: list[tuple[int, str]] = []
         self._outcome = outcome or Outcome(action="created", number=7, url="https://github.test/issues/7")
 
     async def file_prepared(self, key: str, title: str, body: str, labels: Sequence[str]) -> Outcome:
         self.filed.append({"key": key, "title": title, "body": body, "labels": tuple(labels)})
         return self._outcome
+
+    async def add_comment(self, number: int, body: str) -> Outcome:
+        self.comments.append((number, body))
+        return Outcome(action="commented", number=number, url=f"https://github.test/issues/{number}#c1")
 
 
 class RecordingTracker:
@@ -304,6 +312,95 @@ def a_matching_form(**overrides: str) -> SuggestionForm:
     return a_form(summary=summary, problem=RESOLVER_REPORT, solution=rest, **overrides)
 
 
+class TestARequestAlreadyMadeInOtherWords(unittest.TestCase):
+    """Ticket 05, at the flow level: what the model recognises is a proposal like any other."""
+
+    def test_a_recognised_issue_is_put_to_the_asker(self) -> None:
+        documentation = ScriptedDocumentation(DocumentationCheck(verdict=ABSENT, issue=240))
+        exchange = RecordingExchange(confirms=[False])
+
+        run(SuggestIntake(documentation=documentation, filer=RecordingFiler()), exchange)
+
+        self.assertTrue(any("#240" in shown for shown in exchange.shown))
+
+    def test_a_refusal_carries_the_request_on(self) -> None:
+        """A model saying *this is #240* is a proposal, and a wrong one must not silence anybody."""
+        documentation = ScriptedDocumentation(DocumentationCheck(verdict=ABSENT, issue=240))
+        filer = RecordingFiler()
+
+        run(SuggestIntake(documentation=documentation, filer=filer), RecordingExchange(confirms=[False], choice=FILE))
+
+        self.assertEqual(len(filer.filed), 1, "his request was still filed")
+
+    def test_a_silence_carries_the_request_on_too(self) -> None:
+        """Neither is an agreement, and only an agreement may stop somebody's request."""
+        documentation = ScriptedDocumentation(DocumentationCheck(verdict=ABSENT, issue=240))
+        filer = RecordingFiler()
+
+        run(SuggestIntake(documentation=documentation, filer=filer), RecordingExchange(choice=FILE))
+
+        self.assertEqual(len(filer.filed), 1)
+
+    def test_an_accepted_recognition_opens_nothing(self) -> None:
+        documentation = ScriptedDocumentation(DocumentationCheck(verdict=ABSENT, issue=240))
+        filer = RecordingFiler()
+
+        run(
+            SuggestIntake(documentation=documentation, filer=filer),
+            RecordingExchange(confirms=[True], choice=CANCEL),
+        )
+
+        self.assertEqual(filer.filed, [])
+
+
+class TestTheSecondVoiceIsRecorded(unittest.TestCase):
+    """Ticket 07: the message used to promise this, and the flow dropped it.
+
+    *A second person asking for the same thing* is the only signal of priority a suggestion carries,
+    and it was thrown away: the asker was told the subject is tracked elsewhere, and nothing
+    anywhere recorded that one more person needed it.
+    """
+
+    def test_an_accepted_duplicate_offers_to_add_the_observation(self) -> None:
+        documentation = ScriptedDocumentation(DocumentationCheck(verdict=ABSENT, issue=240))
+        filer = RecordingFiler()
+
+        run(
+            SuggestIntake(documentation=documentation, filer=filer),
+            RecordingExchange(confirms=[True], choice=FILE),
+        )
+
+        self.assertEqual(len(filer.comments), 1)
+        number, body = filer.comments[0]
+        self.assertEqual(number, 240)
+        self.assertIn(a_form().asker, body, "a maintainer needs to know who else asked")
+
+    def test_it_posts_nothing_without_the_second_click(self) -> None:
+        """Recognising an issue as one's own is not agreeing to publish under it."""
+        documentation = ScriptedDocumentation(DocumentationCheck(verdict=ABSENT, issue=240))
+        filer = RecordingFiler()
+
+        run(
+            SuggestIntake(documentation=documentation, filer=filer),
+            RecordingExchange(confirms=[True], choice=CANCEL),
+        )
+
+        self.assertEqual(filer.comments, [])
+
+    def test_it_carries_the_problem_and_not_the_whole_template(self) -> None:
+        """The issue already holds a feature request; a second copy buries the one useful line."""
+        documentation = ScriptedDocumentation(DocumentationCheck(verdict=ABSENT, issue=240))
+        filer = RecordingFiler()
+
+        run(
+            SuggestIntake(documentation=documentation, filer=filer),
+            RecordingExchange(confirms=[True], choice=FILE),
+        )
+
+        body = filer.comments[0][1]
+        self.assertNotIn("### ", body, "no headings: this is an observation, not a second request")
+
+
 class TestThePriorArtSweep(unittest.TestCase):
     """The issues, the lots and the roadmap, swept the way the bug flow sweeps them."""
 
@@ -460,7 +557,9 @@ class TestWhenItGoesWrong(unittest.TestCase):
 
     def test_a_crash_after_the_acknowledgement_is_told_to_the_asker(self) -> None:
         class Exploding(ScriptedDocumentation):
-            async def check(self, request: str, lang: str, subject: str) -> DocumentationCheck:
+            async def check(
+                self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str]] = ()
+            ) -> DocumentationCheck:
                 raise RuntimeError("boom")
 
         exchange = RecordingExchange()

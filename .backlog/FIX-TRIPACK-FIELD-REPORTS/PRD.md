@@ -1,6 +1,6 @@
 # FIX-TRIPACK-FIELD-REPORTS — three defects a 6.19.0 flight surfaced, one of them our own fix left half-applied
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Origin: Tripack's session of 2026-09-03 on `Snowfox_20260903.miz` (Persian Gulf), reported the same
 evening with screenshots and `dcs.log`. Three reports, unrelated in the code and related in time:
@@ -137,3 +137,35 @@ units. Measured on the real coordinates: 1 976 m and 3 340 m in the two scenario
 disagree. The anchor is now read from the record by name, so they cannot. What is **not** established
 is that either scenario occurred in Tripack's mission, which is why the ticket sits at 🧑 with an
 in-game check queued rather than closed.
+
+## All five landed — the lot waits only on the game
+
+| # | | Shipped in |
+|---|---|---|
+| 01 | Skynet's scheduler floor | fork [#5](https://github.com/VEAF/Skynet-IADS/pull/5) + [#917](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/917) |
+| 02, 05 | naval terrain search, and the group fields a clone dropped | [#918](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/918) |
+| 03 | the refusal now names the surface it required | [#918](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/918) |
+| 04 | one anchor for the offset, and `#spawnradius=0` proven to be an identity spawn | [#921](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/921) |
+
+Two observations still need DCS started, both queued in
+[`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md) and deliberately paired:
+
+- **R12 + R13** rest on the same unproven wager — does the native timer discard a call scheduled for
+  a time already elapsed? One session settles the smoke of FIX-TUTORIAL-FIRST-RUN and Skynet's
+  contact cycle at once.
+- **Ticket 04's trigger**: the mechanism is proven and the family removed, but nothing shows which
+  scenario fired in Tripack's own mission. A `debug` run of it answers in three numbers.
+
+Sourcery reviewed none of the four PRs: its weekly 250 000-character budget was spent when the first
+one opened, so every merge here was CI-green-plus-David's-call rather than a clean review. Worth
+re-reading when the budget resets.
+
+**Two follow-ups came out of the lot rather than out of the reports**, and are recorded where they
+belong instead of here:
+
+- [`FEAT-COMBATZONE-ZONE-SPAWN-RADIUS`](../FEAT-COMBATZONE-ZONE-SPAWN-RADIUS/PRD.md) — Tripack's
+  revetments: a zone-level default, since the group tag and the mission-wide global already exist.
+- The harness cannot see dispersion at all: `dcs_mocks` answers `math.random()` with a constant 0, so
+  every draw lands on the centre and a dispersion assertion passes both ways. Written up in ticket
+  04, and the reason `dcs_mocks.setRandomSequence` has to be driven by any test that means to
+  exercise a radius.

@@ -640,16 +640,38 @@ whose evidence is a dead link is an issue with no evidence.
 
 ### The other half: the Worker Secret
 
-`SUPPORT_BOT_WORKER_SECRET` is a **shared** secret. Pick a value, then set it on both sides:
+This bot does not answer documentation questions itself: it calls the Worker that has served the
+documentation chatbot since June. That Worker refuses its `discord` client mode unless the caller
+presents a shared password in an `X-VEAF-Auth` header.
+
+**It is a value you choose**, and it goes on both sides under two different names:
+
+| Side | Name |
+|---|---|
+| The Worker (Cloudflare) | `DISCORD_CLIENT_SECRET` |
+| This service (`.env`) | `SUPPORT_BOT_WORKER_SECRET` |
+
+> **`DISCORD_CLIENT_SECRET` has nothing to do with Discord's own "Client Secret".** It is not the
+> OAuth secret from the Discord developer portal, and nothing from that portal goes here. The name
+> was chosen on the Worker side and it is misleading — it means *the password the Discord bot must
+> present*. This tripped up the first person to set it up, which is why the warning is here.
+
+Pick a value — `python -c "import secrets; print(secrets.token_urlsafe(32))"` gives a good one —
+then set it on the Worker:
 
 ```powershell
 cd poc\doc-chatbot\worker
 npx wrangler secret put DISCORD_CLIENT_SECRET
 ```
 
+and paste the same value into `SUPPORT_BOT_WORKER_SECRET`. Cloudflare never shows a Secret again
+after it is set, so if the current value is lost, put a new one and update both sides; overwriting
+it breaks nothing else, since this mode is the only thing that uses it.
+
 Until that Secret exists on the Worker, the `discord` client mode is **refused outright** — it is
 groundwork, not an open door. The bot then answers every question with "the documentation assistant
-is refusing questions from this bot", which says plainly that retrying will not help.
+is refusing questions from this bot", which says plainly that retrying will not help. That is also
+how you find out the two values do not match: ask it one question.
 
 ### The quotas, and where to change them
 

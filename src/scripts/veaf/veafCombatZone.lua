@@ -707,6 +707,8 @@ function VeafCombatZone:new(objectToCopy)
   -- built-in 50 m, and the generator has no ordering guarantee between the two.
   objectToCreate.defaultSpawnRadius = nil
   objectToCreate.defaultSpawnRadiusForStatics = nil
+  -- set by initialize(), and read by the setters whose value it is too late to change
+  objectToCreate.initialized = false
   -- coalition the F10 menu is restricted to; nil = derive it from enemyCoalition
   objectToCreate.radioMenuCoalition = nil
   -- DCS groups that have been spawned (for cleaning up later)
@@ -866,10 +868,14 @@ end
 --- mission maker to wonder why their line did nothing. The generator emits `:initialize()` last, so
 --- generated configs are safe by construction; a hand-written one can order it any way it likes.
 ---
+--- The refusal reads an `initialized` flag rather than counting the zone's elements: a zone that
+--- initialised and found nothing in its trigger zone has an empty element list, and counting would
+--- have accepted a late call there — found by Sourcery on PR #930.
+---
 --- @param value number|nil metres, or nil to fall back on the mission-wide default
 --- @return VeafCombatZone self
 function VeafCombatZone:setDefaultSpawnRadius(value)
-  if self.elements and #self.elements > 0 then
+  if self.initialized then
     veaf.loggers.get(veafCombatZone.Id):error(
       "setDefaultSpawnRadius(%s) called on [%s] after initialize(): its elements already have their radius, so this has no effect. Move the call before initialize().",
       veaf.p(value),
@@ -885,7 +891,7 @@ end
 --- @param value number|nil metres, or nil to fall back on the mission-wide default
 --- @return VeafCombatZone self
 function VeafCombatZone:setDefaultSpawnRadiusForStatics(value)
-  if self.elements and #self.elements > 0 then
+  if self.initialized then
     veaf.loggers.get(veafCombatZone.Id):error(
       "setDefaultSpawnRadiusForStatics(%s) called on [%s] after initialize(): its elements already have their radius, so this has no effect. Move the call before initialize().",
       veaf.p(value),
@@ -1294,6 +1300,11 @@ end
 
 function VeafCombatZone:initialize()
   veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:initialize()", veaf.p(self.missionEditorZoneName)))
+  -- Raised on **entry**, deliberately. This function has several early returns — no zone name, no
+  -- trigger zone — and each leaves the zone half-built; a flag set on the way out would miss them and
+  -- report the zone as still configurable. And the precondition the setters state is "before
+  -- initialize()", not "before initialize() succeeded".
+  self.initialized = true
 
   -- check parameters
   if not self.missionEditorZoneName then

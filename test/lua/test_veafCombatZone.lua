@@ -3648,19 +3648,39 @@ end
 
 --- `initialize()` is what applies the default, so a setter called after it would be read by nobody.
 --- It refuses instead of pretending, and leaves the value it already had.
---- The guard reads the field the class actually fills, `self.elements`, populated by `addZoneElement`
---- — and not a name invented by the test. The first version of this test set `zone.zoneElements`,
---- which no code in the module has ever written: it passed, and it proved nothing about the guard.
-function TestVeafCombatZoneSpawnRadiusDefault:test_a_call_after_elements_exist_is_refused_not_ignored()
+--- The guard reads the `initialized` flag, so it holds whatever `initialize()` found. Two earlier
+--- versions of this guard were wrong and both are covered below: it first read `zone.zoneElements`, a
+--- name no code in the module has ever written, so it never fired at all; then it counted
+--- `self.elements`, which misses a zone that initialised and found nothing (Sourcery, PR #930).
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_call_after_initialize_is_refused_not_ignored()
   local zone = self:_zone():setDefaultSpawnRadius(0)
-  -- What initialize() leaves behind: one element per group it met, through the real setter.
+  zone.initialized = true -- as initialize() leaves it, on every one of its exits
   zone:addZoneElement(veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone))
-  luaunit.assertEquals(#zone:getZoneElements(), 1, "fixture must actually hold an element")
 
   zone:setDefaultSpawnRadius(500)
   luaunit.assertEquals(zone.defaultSpawnRadius, 0, "the late call must not take effect silently")
   zone:setDefaultSpawnRadiusForStatics(500)
   luaunit.assertNil(zone.defaultSpawnRadiusForStatics, "the statics' setter refuses just the same")
+end
+
+--- Sourcery's case: a zone whose trigger zone held nothing. Its element list is empty, so a guard
+--- that counted elements would have accepted a setter that can no longer take effect.
+function TestVeafCombatZoneSpawnRadiusDefault:test_an_initialised_but_empty_zone_still_refuses()
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  zone.initialized = true
+  luaunit.assertEquals(#(zone:getZoneElements() or {}), 0, "this zone found nothing to hold")
+
+  zone:setDefaultSpawnRadius(500)
+  luaunit.assertEquals(zone.defaultSpawnRadius, 0, "an empty zone is still an initialised zone")
+end
+
+--- And the flag really is raised by `initialize()`, rather than only by tests setting it by hand —
+--- including on the earliest exit, where the zone has no name at all and nothing was built.
+function TestVeafCombatZoneSpawnRadiusDefault:test_initialize_raises_the_flag_even_when_it_bails_out()
+  local zone = VeafCombatZone:new() -- no mission editor zone name: initialize() returns immediately
+  luaunit.assertFalse(zone.initialized, "a fresh zone is configurable")
+  zone:initialize()
+  luaunit.assertTrue(zone.initialized, "a bailed-out initialize() still closes the door")
 end
 
 --- The other side of the guard: while the zone holds no element, the setter works. Without this the

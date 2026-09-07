@@ -380,9 +380,38 @@ because it is the obvious place and somebody will suggest it again:
 ```bash
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
 cd VEAF-Mission-Creation-Tools/services/support-bot
-cp .env.example .env        # then fill it in: the three required variables, and the App's four
+cp .env.example .env        # then fill it in — see the two tables below
+cp /wherever/it/is.pem github-app.pem      # the GitHub App's private key, mounted as a secret
 docker compose up -d --build
 ```
+
+**What to paste**, and nothing else — everything not listed here has a default that works:
+
+| Variable | Where it comes from |
+|---|---|
+| `SUPPORT_BOT_DISCORD_TOKEN` | Discord Developer Portal → the application → *Bot* → the token. Anyone holding it **is** the bot. |
+| `SUPPORT_BOT_DISCORD_GUILD_ID` | Discord → right-click the server → *Copy Server ID* (Developer Mode on). |
+| `SUPPORT_BOT_WORKER_SECRET` | The **same value** as `DISCORD_CLIENT_SECRET` on the deployed Worker, or it answers 403. |
+| `SUPPORT_BOT_GITHUB_APP_ID` | The App's settings page. |
+| `SUPPORT_BOT_GITHUB_INSTALLATION_ID` | The installation's URL on the repository: `…/installations/<this number>`. |
+
+The App's private key does **not** go in `.env`: `compose.yml` mounts `github-app.pem` at
+`/run/secrets/github_app_key` and points the service at it. That keeps the heaviest secret out of
+`docker inspect` and out of the container's config on disk — the Discord token has no file form and
+stays in the environment, which is worth knowing before pasting an `inspect` output anywhere.
+
+**Already decided, do not re-decide:**
+
+| Setting | Value | Decided |
+|---|---|---|
+| `SUPPORT_BOT_ENRICH_ROLE_ID` | `566946889841377281` (*mission maker*) | 2026-09-06 |
+| `SUPPORT_BOT_GITHUB_MACHINE_LABEL` | `filed-by-bot`, already created on the repository | 2026-09-05 |
+| `SUPPORT_BOT_CHECKOUT_PATH` | `/app/checkout` — **fixed by the image, leave it alone in a container** | 2026-09-07 |
+
+That last one is a trap worth naming: `.env.example` documents the variable for a host that runs the
+service directly, and uncommenting it inside a container points the clone at a path the unprivileged
+user cannot create. The clone then fails, the container starts, the health check says *healthy*, and
+`/bug` and `/suggest` are silently absent.
 
 Built on place from git, by decision: no registry, no publishing credential, and the service ships
 with the repository it serves. Updating is `git pull` then the same `up -d --build` — everything that

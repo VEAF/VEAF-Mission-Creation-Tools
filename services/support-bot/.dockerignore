@@ -3,6 +3,8 @@
 .env
 .env.*
 !.env.example
+# The App's key sits beside compose.yml, which is the build context.
+*.pem
 .venv/
 __pycache__/
 *.py[cod]

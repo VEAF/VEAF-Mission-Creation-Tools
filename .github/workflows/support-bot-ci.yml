@@ -98,23 +98,32 @@ jobs:
       # And the entry point really fills an empty checkout volume. Run with no configuration, so
       # the service still exits 78 straight after — what is asserted is the clone, which happens
       # first and prints its own line.
+      #
+      # This is the ONE step that clones. The image sets SUPPORT_BOT_CHECKOUT_PATH, so every other
+      # `docker run` below would otherwise pay the same 87 MiB — and one of them waits 30 seconds
+      # for a health endpoint, a budget that would then include a network clone and go red on a
+      # hiccup at github.com. They pass an empty value to opt out.
       - name: The entry point clones into an empty checkout volume
         run: |
           set +e
           output=$(docker run --rm \
-            -e SUPPORT_BOT_CHECKOUT_PATH=/app/checkout \
             -e VEAF_CLONE_URL=https://github.com/VEAF/VEAF-Mission-Creation-Tools.git \
             veaf-support-bot:ci 2>&1)
           set -e
           echo "$output"
           echo "$output" | grep -q "entrypoint: clone ready"
-          # And the shell handed over: the configuration verdict below it can only come from Python.
+          # Python ran after the shell. That it was *exec*ed rather than forked is asserted by the
+          # SIGTERM step further down, which measures how long the shutdown takes.
           echo "$output" | grep -q "the support bot cannot start"
+          # The URL never reaches the log: it can carry a token when a private repository is cloned.
+          if echo "$output" | grep -q "github.com/VEAF"; then
+            echo "the entrypoint printed the clone URL"; exit 1
+          fi
 
       - name: A misconfigured container fails loudly instead of idling
         run: |
           set +e
-          output=$(docker run --rm veaf-support-bot:ci 2>&1)
+          output=$(docker run --rm -e SUPPORT_BOT_CHECKOUT_PATH= veaf-support-bot:ci 2>&1)
           code=$?
           set -e
           echo "$output"
@@ -134,6 +143,7 @@ jobs:
           # configuration error is printed at CRITICAL straight into a log collector, and the one
           # variable in this set that certainly holds a credential is this one.
           output=$(docker run --rm \
+            -e SUPPORT_BOT_CHECKOUT_PATH= \
             -e SUPPORT_BOT_DISCORD_TOKEN=x \
             -e SUPPORT_BOT_DISCORD_GUILD_ID=1 \
             -e SUPPORT_BOT_WORKER_SECRET=x \
@@ -160,6 +170,7 @@ jobs:
       - name: It starts and answers from outside the container
         run: |
           docker run -d --name support-bot -p 8081:8081 \
+            -e SUPPORT_BOT_CHECKOUT_PATH= \
             -e SUPPORT_BOT_DRY_RUN=true \
             -e SUPPORT_BOT_HEARTBEAT_SECONDS=2 \
             veaf-support-bot:ci

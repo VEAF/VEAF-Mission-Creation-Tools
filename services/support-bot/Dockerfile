@@ -72,7 +72,10 @@ EXPOSE 8081
 # Readiness means the Discord gateway is connected, so a container started with
 # SUPPORT_BOT_DRY_RUN=true reports **unhealthy** — deliberately. A dry run answers nobody, and a
 # health check that called it healthy would let one sit in production looking fine.
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+# The grace period covers the first start, which now includes cloning the checkout the
+# container owns — 87 MiB, measured. Fifteen seconds was calibrated before that existed, and
+# made a healthy first start report `unhealthy` on a modest link.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD ["python", "-m", "veaf_support_bot", "--healthcheck"]
 
 # The entry point clones the checkout on first start, then hands over with `exec` — so SIGTERM

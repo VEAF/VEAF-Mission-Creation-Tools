@@ -213,6 +213,10 @@ dcsUnits.lua
 # `.gitignore` in this repository.)
 services/support-bot/.env
 services/support-bot/.env.*
+# The GitHub App's private key. `compose.yml` mounts it as a secret from beside itself, so the
+# README asks for it *inside* this tracked directory — which is exactly where `git add -A` would
+# have found it. Same reason it lives here rather than in a nested ignore file.
+services/support-bot/*.pem
 !services/support-bot/.env.example
 
 # Its per-user quota counters and its ledger of filed issues, written by a local run. Runtime

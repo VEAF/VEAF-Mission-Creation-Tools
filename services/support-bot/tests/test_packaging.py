@@ -106,12 +106,38 @@ class TestNoSecretIsCommitted(unittest.TestCase):
             text=True,
             check=False,
         )
+        # Outside a git repository — an sdist, a tarball — the command fails, stdout is empty, and
+        # the assertion below would pass having measured nothing.
+        self.assertEqual(listed.returncode, 0, listed.stderr)
         tracked = sorted(
             pathlib.PurePosixPath(line).name
             for line in listed.stdout.splitlines()
             if line.strip() and pathlib.PurePosixPath(line).name != ".env.example"
         )
         self.assertEqual(tracked, [], f"an environment file is committed: {tracked}")
+
+    def test_git_ignores_the_github_app_key(self) -> None:
+        """The README asks for it inside a tracked directory, so only an ignore rule stops it.
+
+        `compose.yml` mounts the key as a secret from beside itself — the natural place, and the one
+        `git add -A` sweeps. The rule lives in the **root** ignore file, because a nested one here
+        would look right and do nothing.
+        """
+        if shutil.which("git") is None:
+            self.skipTest("git is not on PATH")
+
+        ignored = subprocess.run(
+            ["git", "check-ignore", "-q", "services/support-bot/github-app.pem"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(ignored.returncode, 0, "the GitHub App key is NOT ignored by git")
+
+    def test_no_private_key_reaches_a_layer(self) -> None:
+        ignored = (SERVICE_ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
+
+        self.assertIn("*.pem", ignored)
 
     def test_git_ignores_the_quota_counters(self) -> None:
         """A local run writes them; they are runtime state, and they name Discord users.
@@ -168,7 +194,10 @@ class TestTheContainerRunsTheSameProgram(unittest.TestCase):
         `git --version` in the built image.
         """
         self.assertIn("install --no-install-recommends -y git", self.dockerfile)
-        self.assertIn("/app/checkout", self.dockerfile)
+        # Not just a mention of the path: the ENV line alone would satisfy that, and the directory,
+        # its owner and its volume could all disappear with the test still green.
+        self.assertIn("mkdir -p /app/state /app/checkout", self.dockerfile)
+        self.assertIn('VOLUME ["/app/state", "/app/checkout"]', self.dockerfile)
 
     def test_the_image_declares_a_health_check(self) -> None:
         """Without it, "the container is running" is all a supervisor ever knows."""

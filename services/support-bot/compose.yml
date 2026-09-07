@@ -22,11 +22,25 @@ services:
     # The service reads its configuration from the environment and never from a file — which is why
     # the container is its natural home. `.env` never reaches a layer: `.dockerignore` excludes it
     # and `tests/test_packaging.py` asserts that.
+    #
+    # What it does reach is `docker inspect` and the container's config on disk, in clear. That is
+    # inherent for the Discord token, which has no file form. It is **not** inherent for the GitHub
+    # App's private key — the secret whose leak is heaviest, since it writes to a public repository —
+    # so that one comes through a mount below and never through the environment.
     env_file: .env
+    environment:
+      SUPPORT_BOT_GITHUB_PRIVATE_KEY_FILE: /run/secrets/github_app_key
+    secrets:
+      - github_app_key
 
     # A self-hosted Discord bot dies silently: the process is up, the container says *running*, and
     # the only symptom is that nobody gets an answer. The image declares its own HEALTHCHECK —
     # readiness means the Discord gateway is connected — and this restarts what that check condemns.
+    #
+    # The cost of that, worth knowing before it puzzles somebody: Compose cannot exclude an
+    # exit code, so a **misconfiguration** restarts for ever too. Exit 78 means restarting
+    # will not help, and the service prints every problem at once before it — so a container
+    # looping at startup is read by scrolling to the FIRST message, not by hunting a crash.
     restart: unless-stopped
 
     volumes:
@@ -55,3 +69,10 @@ services:
 volumes:
   state:
   checkout:
+
+secrets:
+  # Put the App's .pem beside this file. It is mounted read-only at /run/secrets/github_app_key,
+  # stays out of `docker inspect`, and `SUPPORT_BOT_GITHUB_PRIVATE_KEY` must then be left unset:
+  # the service refuses both forms at once rather than picking one.
+  github_app_key:
+    file: ./github-app.pem

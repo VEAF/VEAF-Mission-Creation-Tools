@@ -57,8 +57,16 @@ function Import-DotEnv {
         Deliberately literal: no interpolation, no command substitution, no `export`. A value is
         everything after the first `=`, trimmed of one matching pair of surrounding quotes — which
         is what Docker's own --env-file does, and what somebody pasting a PEM or a token expects.
-        A malformed line is named rather than skipped in silence: a missing token reads exactly like
-        a token that was never pasted, and the two are debugged very differently.
+
+        A malformed line is reported **by its line number and nothing else**. Never its content:
+        this file holds a bot token and a private key, PowerShell sends warnings to stderr, and the
+        documented way to run this at boot redirects stderr to a log nobody treats as a secret. An
+        earlier version interpolated the line — measured in review, pasting a multi-line PEM wrote
+        its body into that log, one warning per line.
+
+        A name that is not a variable name is refused for the same reason: a base64 line whose
+        padding contains `=` parses as an assignment, and `SetEnvironmentVariable` would then create
+        a variable *named* after key material.
     #>
     param([Parameter(Mandatory)] [string] $Path)
 
@@ -72,13 +80,25 @@ function Import-DotEnv {
         $line++
         $text = $raw.Trim()
         if ($text.Length -eq 0 -or $text.StartsWith('#')) { continue }
+        # Before the split, not after: a `-----BEGIN …` line holds no `=` at all, so a guard placed
+        # after would never see the one mistake it exists for. Refusing here also stops the parse
+        # before the body of the key, whose base64 padding would otherwise read as an assignment.
+        if ($text.StartsWith('-----BEGIN')) {
+            Write-Error ("${Path} line ${line}: a PEM cannot be pasted across lines in this file. " +
+                'Put the key in a file of its own and point SUPPORT_BOT_GITHUB_PRIVATE_KEY_FILE ' +
+                'at it, or use SUPPORT_BOT_GITHUB_PRIVATE_KEY with literal \n escapes on one line.')
+        }
         $split = $text.IndexOf('=')
         if ($split -lt 1) {
-            Write-Warning "$Path line ${line}: no '=' in '$text' — ignored"
+            Write-Warning "${Path} line ${line}: no '=' — ignored (content not shown)"
             continue
         }
         $name = $text.Substring(0, $split).Trim()
         $value = $text.Substring($split + 1).Trim()
+        if ($name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
+            Write-Warning "${Path} line ${line}: not a variable name — ignored (content not shown)"
+            continue
+        }
         if ($value.Length -ge 2 -and
             (($value.StartsWith('"') -and $value.EndsWith('"')) -or
              ($value.StartsWith("'") -and $value.EndsWith("'")))) {

@@ -229,21 +229,21 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         ),
         # --- /suggest, l'idee confrontee a ce qui existe deja ---------------------------------
         "suggest.missing": (
-            "Il manque des champs obligatoires ({fields}). Relance `/suggest` : sans le probleme "
-            "que tu veux resoudre, personne ne peut arbitrer la demande."
+            "Il manque des champs obligatoires ({fields}). Relance `/suggest` : sans le problème "
+            "que tu veux résoudre, personne ne peut arbitrer la demande."
         ),
         "suggest.documentation.question": (
-            "\U0001f4d6 **La documentation semble deja repondre a ta demande.** Voici ce qu'elle dit :\n\n"
+            "\U0001f4d6 **La documentation semble déjà répondre à ta demande.** Voici ce qu'elle dit :\n\n"
             "{answer}\n\n"
-            "Est-ce que ca repond a ce que tu voulais ? Si non, dis-le : ta suggestion continue son chemin."
+            "Est-ce que ça répond à ce que tu voulais ? Si non, dis-le : ta suggestion continue son chemin."
         ),
         "suggest.documentation.pages": "-# \U0001f4c4 Pages citees : {links}",
         "suggest.settled.documentation": (
-            "\u2705 Parfait — rien n'a ete ouvert. Si la page est difficile a trouver, dis-le sur le "
+            "\u2705 Parfait — rien n'a été ouvert. Si la page est difficile à trouver, dis-le sur le "
             "canal support : c'est la documentation qu'on corrigera."
         ),
-        "suggest.settled.prior_art": "\u2705 Rien n'a ete ouvert : le sujet est deja suivi la-bas.",
-        "suggest.filed.reused": "\u2705 Cette suggestion avait deja ete deposee : {url} (rien n'a ete ouvert deux fois).",
+        "suggest.settled.prior_art": "\u2705 Rien n'a été ouvert : le sujet est déjà suivi là-bas.",
+        "suggest.filed.reused": "\u2705 Cette suggestion avait déjà été déposée : {url} (rien n'a été ouvert deux fois).",
         "suggest.thread.name": "\U0001f4a1 {topic}",
         "suggest.thread.failed": (
             "\u274c Le d\u00e9p\u00f4t du ticket a \u00e9chou\u00e9 : ce fil reste ouvert mais ne renvoie \u00e0 aucun "
@@ -256,12 +256,12 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "le canal support."
         ),
         "suggest.thread.opening": (
-            "**{title}**\nSuggestion enregistree : {url}\n"
-            "-# Les reponses des mainteneurs sur ce ticket seront rapportees ici."
+            "**{title}**\nSuggestion enregistrée : {url}\n"
+            "-# Les réponses des mainteneurs sur ce ticket seront rapportées ici."
         ),
         "suggest.error.unexpected": (
-            "\u274c Quelque chose a casse pendant la preparation de ta suggestion. Rien n'a ete ouvert. "
-            "Reessaie, et si ca se reproduit dis-le sur le canal support."
+            "\u274c Quelque chose a cassé pendant la préparation de ta suggestion. Rien n'a été "
+            "ouvert. Réessaie, et si ça se reproduit dis-le sur le canal support."
         ),
     },
     "en": {

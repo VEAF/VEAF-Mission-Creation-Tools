@@ -72,10 +72,18 @@ EXPOSE 8081
 # Readiness means the Discord gateway is connected, so a container started with
 # SUPPORT_BOT_DRY_RUN=true reports **unhealthy** — deliberately. A dry run answers nobody, and a
 # health check that called it healthy would let one sit in production looking fine.
-# The grace period covers the first start, which now includes cloning the checkout the
-# container owns — 87 MiB, measured. Fifteen seconds was calibrated before that existed, and
-# made a healthy first start report `unhealthy` on a modest link.
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+# **Do not raise `--start-period` without reading this.** The three numbers are tied to the CI step
+# that asserts a dry run is called *unhealthy*: grace 15s + interval 30s + retries 3 puts the
+# verdict at about 75 seconds, and that step waits 80. Raising the grace to 120s to cover the first
+# clone made Docker answer `starting` for two minutes, `unhealthy` never, and the step timed out —
+# measured on run 34114967333.
+#
+# What the short grace costs instead is cosmetic, and worth knowing: while the entry point clones
+# the checkout (87 MiB, measured) the health endpoint is not up yet, so a first start can show
+# `unhealthy` in `docker compose ps` for a minute. Docker does **not** restart an unhealthy
+# container outside Swarm — `restart: unless-stopped` acts on exits, not on health — so nothing
+# loops. It settles on its own once the clone finishes and the gateway connects.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD ["python", "-m", "veaf_support_bot", "--healthcheck"]
 
 # The entry point clones the checkout on first start, then hands over with `exec` — so SIGTERM

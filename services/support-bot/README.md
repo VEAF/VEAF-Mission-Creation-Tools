@@ -425,6 +425,16 @@ docker compose ps                              # healthy, not just running
 docker compose exec support-bot python -m veaf_support_bot --healthcheck
 ```
 
+**A first start can show `unhealthy` for a minute, and that is not a failure.** The entry point
+clones the checkout before the service starts, so the health endpoint is not up yet while that runs.
+Docker does not restart an unhealthy container outside Swarm — `restart: unless-stopped` acts on
+exits, not on health — so nothing loops; it settles once the clone finishes and the Discord gateway
+connects. If it is still `unhealthy` after a few minutes, read the log: the answer is in it.
+
+The other side of that: a container **looping** at startup is a *configuration* problem, not a
+crash. Compose cannot exclude an exit code, so exit 78 — which means precisely *restarting will not
+help* — restarts for ever too. Scroll to the **first** message; it lists every problem at once.
+
 And the thing that will bite first: **`/bug` and `/suggest` are only published when the checkout is
 usable.** If they are missing from Discord's command picker while `/ask` works, the clone is the
 place to look —

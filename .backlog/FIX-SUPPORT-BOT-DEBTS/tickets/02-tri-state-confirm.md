@@ -1,6 +1,6 @@
 # 02 — *He said no* and *he said nothing* are not the same answer
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 

@@ -47,17 +47,18 @@ class ThreadExchange(Protocol):
             refusal and a Discord failure are all safe answers.
         """
 
-    async def confirm(self, content: str, lang: str) -> bool:
-        """Show a prior-art match with its evidence and return whether the person recognised it.
+    async def confirm(self, content: str, lang: str) -> str:
+        """Show a prior-art match with its evidence and return what the person answered.
 
         Args:
             content: The proposal, with the evidence it was computed from.
             lang: ``"fr"`` or ``"en"``, for the button labels.
 
         Returns:
-            ``True`` only when he says it is the same subject. Everything else — *mine is
-            different*, a silence, a failure — answers ``False`` and the report carries on, because
-            a machine's unanswered guess must never silence a real bug.
+            One of :data:`~veaf_support_bot.draft.SAME`, :data:`~veaf_support_bot.draft.DIFFERENT`
+            or :data:`~veaf_support_bot.draft.UNANSWERED`. Only ``SAME`` may stop a report: a
+            silence and a Discord that never showed the question are not opinions, and until this
+            returned three values the issue could not say which of the three had happened.
         """
 
     async def open_followup_thread(self, name: str) -> ThreadHandle:

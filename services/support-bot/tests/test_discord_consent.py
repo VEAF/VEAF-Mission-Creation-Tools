@@ -29,7 +29,17 @@ from veaf_support_bot.discord_bot import (
     _EscalationView,
     role_ids_of,
 )
-from veaf_support_bot.draft import CANCEL, DRAFT_EXPIRY_SECONDS, EDIT, EXPIRED, FILE, MATCH_EXPIRY_SECONDS
+from veaf_support_bot.draft import (
+    CANCEL,
+    DIFFERENT,
+    DRAFT_EXPIRY_SECONDS,
+    EDIT,
+    EXPIRED,
+    FILE,
+    MATCH_EXPIRY_SECONDS,
+    SAME,
+    UNANSWERED,
+)
 from veaf_support_bot.intake import BugIntake
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.service import InFlightTasks
@@ -239,20 +249,36 @@ class TestWhatASilenceMeans(unittest.IsolatedAsyncioTestCase):
 
 
 class TestTheProposalIsPutToTheReporter(unittest.IsolatedAsyncioTestCase):
-    async def test_recognising_the_match_answers_yes(self) -> None:
+    """Three things can happen, and the exchange now reports which — ticket 02.
+
+    They lead to the same action for two of them: only a *yes* may stop a report. What changes is
+    what the issue is able to say afterwards, and *he said his is different* was being written under
+    a silence.
+    """
+
+    async def test_recognising_the_match_answers_same(self) -> None:
         interaction = _Interaction(press="Yes, that is it")
 
-        self.assertTrue(await _modal_exchange(interaction).confirm("#712 looks like yours", "en"))
+        self.assertEqual(await _modal_exchange(interaction).confirm("#712 looks like yours", "en"), SAME)
 
-    async def test_saying_it_is_different_answers_no(self) -> None:
+    async def test_saying_it_is_different_answers_different(self) -> None:
         interaction = _Interaction(press="No, mine is different")
 
-        self.assertFalse(await _modal_exchange(interaction).confirm("#712 looks like yours", "en"))
+        self.assertEqual(await _modal_exchange(interaction).confirm("#712 looks like yours", "en"), DIFFERENT)
 
-    async def test_a_discord_failure_answers_no_rather_than_silencing_the_report(self) -> None:
+    async def test_a_discord_failure_answers_unanswered_rather_than_a_refusal(self) -> None:
+        """The question was never shown, so nobody refused anything."""
         interaction = _Interaction(edit_error=discord.HTTPException(cast(Any, _Stub()), "gone"))
 
-        self.assertFalse(await _modal_exchange(interaction).confirm("#712", "en"))
+        self.assertEqual(await _modal_exchange(interaction).confirm("#712", "en"), UNANSWERED)
+
+    def test_a_silence_answers_unanswered(self) -> None:
+        """A silence is not an opinion, and it used to arrive as *he said his is different*.
+
+        Asserted on the view's own default rather than by waiting: the real wait is five minutes,
+        and a test that sleeps through it would be a test nobody runs.
+        """
+        self.assertEqual(_ChoiceView(default=UNANSWERED, timeout=1).choice, UNANSWERED)
 
 
 class TestTheButtonsAreTakenAwayWithTheAnswer(unittest.IsolatedAsyncioTestCase):

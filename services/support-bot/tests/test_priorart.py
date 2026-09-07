@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from tests.intake_fixtures import fixture_root
+from veaf_support_bot.draft import DIFFERENT, SAME, UNANSWERED
 from veaf_support_bot.priorart import (
     DUPLICATE,
     FIXED,
@@ -72,11 +73,11 @@ class _BrokenIssues:
 class _Answer:
     """A confirmation that always gives the same answer, and remembers what it was shown."""
 
-    def __init__(self, answer: bool) -> None:
+    def __init__(self, answer: str) -> None:
         self.answer = answer
         self.shown: list[Sweep] = []
 
-    async def confirm(self, sweep: Sweep, lang: str) -> bool:
+    async def confirm(self, sweep: Sweep, lang: str) -> str:
         self.shown.append(sweep)
         return self.answer
 
@@ -331,19 +332,34 @@ class TestTheRefusal(unittest.IsolatedAsyncioTestCase):
 
     async def test_an_accepted_match_is_reported_as_accepted(self) -> None:
         gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
-        sweep, accepted = await gate.run(RESOLVER_REPORT, "fr", confirmation=_Answer(True))
-        self.assertTrue(accepted)
+        sweep, answer = await gate.run(RESOLVER_REPORT, "fr", confirmation=_Answer(SAME))
+        self.assertEqual(answer, SAME)
         self.assertEqual(sweep.verdict, DUPLICATE)
 
     async def test_a_rejected_match_leaves_the_flow_running(self) -> None:
-        answer = _Answer(False)
+        confirmation = _Answer(DIFFERENT)
         gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
-        sweep, accepted = await gate.run(RESOLVER_REPORT, "fr", confirmation=answer)
-        self.assertFalse(accepted)
+        sweep, answer = await gate.run(RESOLVER_REPORT, "fr", confirmation=confirmation)
+        self.assertEqual(answer, DIFFERENT)
         self.assertTrue(sweep.found, "the finding survives the refusal, so the issue can record it")
 
+    async def test_a_silence_is_not_reported_as_a_refusal(self) -> None:
+        """The whole of ticket 02: three things happen and two of them are not opinions.
+
+        Same action — the report carries on — and a different fact, which is what the issue records.
+        """
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
+        _, answer = await gate.run(RESOLVER_REPORT, "fr", confirmation=_Answer(UNANSWERED))
+        self.assertEqual(answer, UNANSWERED)
+
+    async def test_an_answer_outside_the_vocabulary_is_read_as_unanswered(self) -> None:
+        """Fail closed: an answer nobody wrote a case for must never mean agreement."""
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
+        _, answer = await gate.run(RESOLVER_REPORT, "fr", confirmation=_Answer("yes please"))
+        self.assertEqual(answer, UNANSWERED)
+
     async def test_the_reporter_is_shown_the_evidence_before_being_asked(self) -> None:
-        answer = _Answer(False)
+        answer = _Answer(DIFFERENT)
         gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
         await gate.run(RESOLVER_REPORT, "fr", confirmation=answer)
         self.assertEqual(len(answer.shown), 1)
@@ -352,16 +368,18 @@ class TestTheRefusal(unittest.IsolatedAsyncioTestCase):
 
     async def test_with_nobody_to_ask_the_gate_refuses_rather_than_silencing_the_report(self) -> None:
         gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[_resolver_issue()])))
-        sweep, accepted = await gate.run(RESOLVER_REPORT, "fr")
+        sweep, answer = await gate.run(RESOLVER_REPORT, "fr")
         self.assertTrue(sweep.found)
-        self.assertFalse(accepted)
+        self.assertEqual(answer, UNANSWERED, "nobody was asked, which is not the same as a refusal")
 
     async def test_nothing_found_is_never_offered_for_confirmation(self) -> None:
-        answer = _Answer(True)
+        confirmation = _Answer(SAME)
         gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues()))
-        _, accepted = await gate.run("the radio menu shows Cyrillic on a Kola map at dusk", "fr", confirmation=answer)
-        self.assertFalse(accepted)
-        self.assertEqual(answer.shown, [])
+        _, answer = await gate.run(
+            "the radio menu shows Cyrillic on a Kola map at dusk", "fr", confirmation=confirmation
+        )
+        self.assertEqual(answer, UNANSWERED)
+        self.assertEqual(confirmation.shown, [])
 
 
 class TestTheseTestsDetectABrokenSweep(unittest.TestCase):

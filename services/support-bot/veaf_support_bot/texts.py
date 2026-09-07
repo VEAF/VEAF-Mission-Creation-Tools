@@ -135,6 +135,19 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "attachment.download_failed": "n'a pas pu être téléchargé ({error})",
         "attachment.not_summarised": "joint, mais non résumé : {error}",
         "attachment.file_unreadable": "joint, mais illisible : {error}",
+        # --- l'antériorité telle qu'elle est consignée dans le ticket ------------------------
+        # Trois réponses possibles et non deux : « il a dit que ce n'est pas pareil » est un avis
+        # qu'un lecteur peut peser, « personne n'a répondu » n'en est pas un. Le protocole ne
+        # renvoyait qu'un booléen, et les deux arrivaient ici comme la même chose.
+        "priorart.proposed.duplicate": "un ticket ouvert proche a été proposé",
+        "priorart.proposed.fixed": "un ticket déjà fermé a été proposé",
+        "priorart.proposed.in_progress": "un chantier en cours a été proposé",
+        "priorart.answer.same": "et le rapporteur l'a reconnu comme le sien",
+        "priorart.answer.different": "et le rapporteur a dit que le sien est différent",
+        "priorart.answer.unanswered": "et personne n'a répondu — ni accord, ni refus",
+        "priorart.closest": "Correspondance la plus proche : {proposed}, {answer}.",
+        "priorart.also_considered": "également envisagé :",
+        "priorart.deterministic": "_Balayage déterministe : appariement de mots, aucun modèle._",
         # --- /bug, the deterministic intake --------------------------------------------------
         "bug.received": "📥 Rapport reçu : **{title}**",
         "bug.facts": ("-# Version déclarée : {version} · Composant : {component}\n-# Dépôt consulté : {revision}"),
@@ -411,6 +424,16 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "attachment.download_failed": "could not be downloaded ({error})",
         "attachment.not_summarised": "attached, but not summarised: {error}",
         "attachment.file_unreadable": "attached, but unreadable: {error}",
+        # --- prior art, as the issue records it ----------------------------------------------
+        "priorart.proposed.duplicate": "a similar open issue was proposed",
+        "priorart.proposed.fixed": "a closed issue was proposed",
+        "priorart.proposed.in_progress": "existing work was proposed",
+        "priorart.answer.same": "and the reporter recognised it as his own",
+        "priorart.answer.different": "and the reporter said his is different",
+        "priorart.answer.unanswered": "and nobody answered — neither agreement nor refusal",
+        "priorart.closest": "Closest match: {proposed}, {answer}.",
+        "priorart.also_considered": "also considered:",
+        "priorart.deterministic": "_Deterministic sweep: word matching, no model._",
         # --- /bug, the deterministic intake --------------------------------------------------
         "bug.received": "📥 Report received: **{title}**",
         "bug.facts": ("-# Claimed version: {version} · Component: {component}\n-# Repository consulted: {revision}"),

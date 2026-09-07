@@ -35,11 +35,14 @@ from veaf_support_bot.bugreport import BugForm
 from veaf_support_bot.config import SupportBotConfig
 from veaf_support_bot.draft import (
     CANCEL,
+    DIFFERENT,
     DRAFT_EXPIRY_SECONDS,
     EDIT,
     EXPIRED,
     FILE,
     MATCH_EXPIRY_SECONDS,
+    SAME,
+    UNANSWERED,
 )
 from veaf_support_bot.followup import strip_mentions
 from veaf_support_bot.health import ServiceState
@@ -96,11 +99,6 @@ QUESTION_MAX_LENGTH = 1000
 #: messages by permission, so this does not merely rely on the bot never being granted *Mention
 #: Everyone*: it removes the question entirely, at the call site, for every message.
 NO_MENTIONS = discord.AllowedMentions.none()
-
-#: The two answers to a prior-art proposal. Local to this module: the protocol they implement
-#: speaks in booleans, so nothing outside needs to name them.
-_SAME = "same"
-_DIFFERENT = "different"
 
 #: How long the escalation button stays on an answer. It sits on a public message that nobody is
 #: waiting on, so it is measured in "while the thread is still being read" rather than in the
@@ -818,7 +816,7 @@ class ModalExchange:
         view.add_item(_ChoiceButton(CANCEL, text("draft.button.cancel", lang), discord.ButtonStyle.secondary))
         return await self._ask(content, view, on_failure=CANCEL, event="bug.draft_failed")
 
-    async def confirm(self, content: str, lang: str) -> bool:
+    async def confirm(self, content: str, lang: str) -> str:
         """Show a prior-art match with its evidence and wait for the reporter's answer.
 
         Args:
@@ -826,15 +824,17 @@ class ModalExchange:
             lang: ``"fr"`` or ``"en"``.
 
         Returns:
-            ``True`` only when he pressed *yes, that is it*. A silence, a refusal and a Discord
-            failure all answer ``False``, and the report carries on being filed: a machine's
-            unanswered guess must never silence a real bug.
+            :data:`~veaf_support_bot.draft.SAME` when he pressed *yes, that is it*;
+            :data:`~veaf_support_bot.draft.DIFFERENT` when he said his is different; and
+            :data:`~veaf_support_bot.draft.UNANSWERED` for a silence **and** for a Discord that
+            refused to display the question. Both of the last two used to be reported as *he said
+            his is different*, which put an opinion in the issue that nobody had expressed. What
+            they share is that only the first may stop a report.
         """
-        view = _ChoiceView(default=_DIFFERENT, timeout=MATCH_EXPIRY_SECONDS)
-        view.add_item(_ChoiceButton(_SAME, text("match.button.same", lang), discord.ButtonStyle.primary))
-        view.add_item(_ChoiceButton(_DIFFERENT, text("match.button.different", lang), discord.ButtonStyle.secondary))
-        answer = await self._ask(content, view, on_failure=_DIFFERENT, event="bug.match_failed")
-        return answer == _SAME
+        view = _ChoiceView(default=UNANSWERED, timeout=MATCH_EXPIRY_SECONDS)
+        view.add_item(_ChoiceButton(SAME, text("match.button.same", lang), discord.ButtonStyle.primary))
+        view.add_item(_ChoiceButton(DIFFERENT, text("match.button.different", lang), discord.ButtonStyle.secondary))
+        return await self._ask(content, view, on_failure=UNANSWERED, event="bug.match_failed")
 
     async def _ask(self, content: str, view: _ChoiceView, *, on_failure: str, event: str) -> str:
         """Put one question on the reporter's message and wait for it to be answered.

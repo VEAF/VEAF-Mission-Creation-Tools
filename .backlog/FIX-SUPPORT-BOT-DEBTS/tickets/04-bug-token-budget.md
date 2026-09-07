@@ -1,6 +1,6 @@
 # 04 — `/bug` runs on the same tight token budget `/suggest` was fixed for
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 

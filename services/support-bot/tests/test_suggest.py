@@ -16,7 +16,7 @@ from pathlib import Path
 
 from tests.intake_fixtures import fixture_root
 from tests.test_priorart import RESOLVER_REPORT, _Issues, _resolver_issue
-from veaf_support_bot.draft import CANCEL, EXPIRED, FILE
+from veaf_support_bot.draft import CANCEL, DIFFERENT, EXPIRED, FILE, SAME
 from veaf_support_bot.exchange import ThreadHandle
 from veaf_support_bot.existing import ABSENT, EXISTS, UNKNOWN, DocumentationCheck
 from veaf_support_bot.filing import Outcome
@@ -81,10 +81,11 @@ class RecordingExchange:
         self.shown.append(content)
         return self._choice
 
-    async def confirm(self, content: str, lang: str) -> bool:
+    async def confirm(self, content: str, lang: str) -> str:
         self.calls.append("confirm")
         self.shown.append(content)
-        return self._confirms.pop(0) if self._confirms else False
+        answered = self._confirms.pop(0) if self._confirms else False
+        return SAME if answered else DIFFERENT
 
     async def open_followup_thread(self, name: str) -> ThreadHandle:
         self.calls.append("open_followup_thread")

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +29,17 @@ from tests.test_priorart import RESOLVER_REPORT, _Issues, _resolver_issue
 from veaf_support_bot.attachments import AttachmentCollector
 from veaf_support_bot.bugreport import BugForm
 from veaf_support_bot.config import ConfigurationError, SupportBotConfig
-from veaf_support_bot.draft import CANCEL, EXPIRED, FILE, Draft
+from veaf_support_bot.draft import (
+    CANCEL,
+    DIFFERENT,
+    EXPIRED,
+    FILE,
+    MATCH_EXPIRY_SECONDS,
+    SAME,
+    TOKEN_LIFETIME_SECONDS,
+    UNANSWERED,
+    Draft,
+)
 from veaf_support_bot.filing import Outcome
 from veaf_support_bot.github_app import GitHubError
 from veaf_support_bot.intake import BugIntake, BugSubmission, ThreadHandle, sweep_query
@@ -74,9 +84,9 @@ class _Exchange:
         self.drafts.append(content)
         return self.decision
 
-    async def confirm(self, content: str, lang: str) -> bool:
+    async def confirm(self, content: str, lang: str) -> str:
         self.proposals.append(content)
-        return self.recognises
+        return SAME if self.recognises else DIFFERENT
 
     async def open_followup_thread(self, name: str) -> ThreadHandle:
         self.threads.append(name)
@@ -123,9 +133,9 @@ class _Answer:
         self.answer = answer
         self.asked = 0
 
-    async def confirm(self, sweep: Sweep, lang: str) -> bool:
+    async def confirm(self, sweep: Sweep, lang: str) -> str:
         self.asked += 1
-        return self.answer
+        return SAME if self.answer else DIFFERENT
 
 
 def _intake(**kwargs: Any) -> BugIntake:
@@ -220,6 +230,63 @@ class TestTheSweepRunsBeforeAnythingOpens(unittest.IsolatedAsyncioTestCase):
         report = await _intake(filer=_Filer()).handle(_Exchange(), _submission())
         assert report is not None
         self.assertIsNone(report.prior_art, "an absent sweep must not read as a sweep that found nothing")
+
+
+def _late_clock(elapsed: float) -> Callable[[], float]:
+    """Return a clock that reports *elapsed* seconds between the first call and the next.
+
+    Args:
+        elapsed: How far into the interaction token the exchange should appear to be.
+
+    Returns:
+        The clock.
+    """
+    calls = iter([0.0, elapsed, elapsed, elapsed, elapsed, elapsed])
+    return lambda: next(calls, elapsed)
+
+
+class TestTheTokenOutlivesTheConsent(unittest.IsolatedAsyncioTestCase):
+    """Ticket 04: `/bug` spends 780 of a token's 900 seconds on two waits.
+
+    The failure this prevents is the worst kind the service has. Somebody lets the first question
+    expire, takes his time over the draft, presses *File the issue* — and the token is dead. He has
+    consented to something that will never happen, and he cannot be told, because telling him needs
+    the same token.
+    """
+
+    async def test_a_late_exchange_skips_the_question_and_still_files(self) -> None:
+        filer = _Filer()
+        exchange = _Exchange(decision=FILE)
+        # Far enough in that the two waits plus the closing margin no longer fit.
+        clock = _late_clock(TOKEN_LIFETIME_SECONDS - MATCH_EXPIRY_SECONDS)
+
+        await _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=filer, clock=clock).handle(
+            exchange, _submission()
+        )
+
+        self.assertEqual(exchange.proposals, [], "the check gave way")
+        self.assertEqual(len(filer.filed), 1, "the consent did not")
+
+    async def test_the_finding_is_still_recorded_when_nobody_was_asked(self) -> None:
+        """A skipped question is not a skipped sweep: the issue still says what was found."""
+        filer = _Filer()
+        clock = _late_clock(TOKEN_LIFETIME_SECONDS - MATCH_EXPIRY_SECONDS)
+
+        report = await _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=filer, clock=clock).handle(
+            _Exchange(decision=FILE), _submission()
+        )
+
+        assert report is not None and report.prior_art is not None
+        self.assertTrue(report.prior_art.found)
+        self.assertEqual(report.prior_art_answer, UNANSWERED, "nobody was asked, and the issue says so")
+
+    async def test_an_exchange_that_starts_on_time_still_asks(self) -> None:
+        """The bound must not be a switch that turns the check off for everybody."""
+        exchange = _Exchange(decision=FILE)
+
+        await _intake(prior_art=_gate(opened=[_resolver_issue()]), filer=_Filer()).handle(exchange, _submission())
+
+        self.assertEqual(len(exchange.proposals), 1)
 
 
 class TestWhatAnAcceptedMatchDoes(unittest.IsolatedAsyncioTestCase):
@@ -514,8 +581,8 @@ class TestTheseTestsDetectABrokenWiring(unittest.TestCase):
 
         original = module.BugIntake._sweep
 
-        async def _no_sweep(self, exchange, report, lang):  # type: ignore[no-untyped-def]
-            return None, False
+        async def _no_sweep(self, exchange, report, lang, started=0.0):  # type: ignore[no-untyped-def]
+            return None, UNANSWERED
 
         module.BugIntake._sweep = _no_sweep  # type: ignore[method-assign]
         try:
@@ -546,8 +613,8 @@ class TestTheseTestsDetectABrokenWiring(unittest.TestCase):
 
         original = module.BugIntake._decide
 
-        async def _stop_on_any_match(self, exchange, report, lang, thread_url):  # type: ignore[no-untyped-def]
-            sweep, _ = await self._sweep(exchange, report, lang)
+        async def _stop_on_any_match(self, exchange, report, lang, thread_url, started=0.0):  # type: ignore[no-untyped-def]
+            sweep, _ = await self._sweep(exchange, report, lang, started)
             from dataclasses import replace
 
             report = replace(report, prior_art=sweep)

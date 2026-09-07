@@ -48,6 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
+from veaf_support_bot.draft import ANSWERS, UNANSWERED
 from veaf_support_bot.texts import text as localized
 from veaf_support_bot.untrusted import one_line
 
@@ -650,7 +651,7 @@ def _from_issue(record: IssueRecord, source: str, root: Path | None = None) -> C
 class MatchConfirmation(Protocol):
     """Asks the reporter whether a proposed match really is his bug."""
 
-    async def confirm(self, sweep: Sweep, lang: str) -> bool:
+    async def confirm(self, sweep: Sweep, lang: str) -> str:
         """Show the match with its evidence and return the reporter's answer.
 
         Args:
@@ -658,8 +659,8 @@ class MatchConfirmation(Protocol):
             lang: ``"fr"`` or ``"en"``.
 
         Returns:
-            ``True`` when the reporter agrees it is the same subject — nothing is opened. ``False``
-            when he says his is different, and the report goes on being filed.
+            :data:`~veaf_support_bot.draft.SAME`, :data:`~veaf_support_bot.draft.DIFFERENT` or
+            :data:`~veaf_support_bot.draft.UNANSWERED`.
         """
 
 
@@ -673,7 +674,7 @@ class PriorArtGate:
 
     sweeper: PriorArtSweeper
 
-    async def run(self, query: str, lang: str, *, confirmation: MatchConfirmation | None = None) -> tuple[Sweep, bool]:
+    async def run(self, query: str, lang: str, *, confirmation: MatchConfirmation | None = None) -> tuple[Sweep, str]:
         """Sweep, and find out whether the match is accepted.
 
         Args:
@@ -688,13 +689,18 @@ class PriorArtGate:
                 its evidence.
 
         Returns:
-            A pair of the finding and whether it was **accepted** — ``True`` stops the flow, and the
-            caller acts on :attr:`Sweep.verdict` instead of filing.
+            A pair of the finding and what the reporter answered. Only
+            :data:`~veaf_support_bot.draft.SAME` stops the flow; a sweep that found nothing, and one
+            nobody could be asked about, both answer :data:`~veaf_support_bot.draft.UNANSWERED` —
+            which is what they are, and is not the same fact as a refusal.
         """
         sweep = await self.sweeper.sweep(query)
         if not sweep.found or confirmation is None:
-            return sweep, False
-        return sweep, bool(await confirmation.confirm(sweep, lang))
+            return sweep, UNANSWERED
+        answered = await confirmation.confirm(sweep, lang)
+        # An answer outside the vocabulary is read as *nobody answered*, never as agreement: the
+        # safe direction is the one that leaves the tracker untouched.
+        return sweep, answered if answered in ANSWERS else UNANSWERED
 
 
 def render_match(sweep: Sweep, lang: str, *, family: str = "priorart") -> str:

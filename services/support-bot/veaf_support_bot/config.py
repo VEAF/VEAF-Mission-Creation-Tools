@@ -258,6 +258,45 @@ class _Reader:
             return default
         return raw
 
+    def snowflakes(self, name: str) -> tuple[str, ...]:
+        """Return a comma-separated list of Discord ids, refusing anything that is not one.
+
+        Which role means "VEAF member" is the association's decision, and the association may well
+        answer with two — *mission maker* and *staff*, say. A deployment that has one must not have
+        to learn a syntax for it, so one id is simply a list of length one.
+
+        Every entry goes through the same validation as a lone id, for the same reason: an entry
+        that is a mention or a role *name* compares unequal to every id the bot will ever see, and
+        the hypothesis would then be refused for everybody, for ever, while each issue politely
+        explained it is a members' extra.
+
+        Args:
+            name: Variable name without the prefix.
+
+        Returns:
+            The ids, in the order given, with duplicates and blanks dropped. Empty when unset —
+            which switches the hypothesis off entirely, and is the default.
+        """
+        raw = self._raw(name)
+        if not raw:
+            return ()
+        ids: list[str] = []
+        for entry in raw.split(","):
+            candidate = entry.strip()
+            if not candidate:
+                continue
+            if not candidate.isdigit():
+                # `_shape`, never the value — see `snowflake` for why this message must not quote it.
+                self.problems.append(
+                    f"{ENV_PREFIX}{name} must be one numeric Discord role id, or several separated "
+                    f"by commas (right-click the role > Copy Role ID, with Developer Mode on); "
+                    f"got {_shape(candidate)}"
+                )
+                continue
+            if candidate not in ids:
+                ids.append(candidate)
+        return tuple(ids)
+
     def choice(self, name: str, default: str, allowed: tuple[str, ...], *, upper: bool = False) -> str:
         """Return an optional value constrained to a fixed vocabulary.
 
@@ -486,7 +525,8 @@ class SupportBotConfig:
         github_repository: ``owner/name`` the issues are filed on.
         github_ledger_file: Where filed reports are recorded, so a retry never files twice.
         github_machine_label: Label marking an issue as machine-filed.
-        enrich_role_id: Discord role that opens the automatic hypothesis. **Empty switches the
+        enrich_role_ids: Discord roles that open the automatic hypothesis, one or several.
+            **Empty switches the
             enrichment off entirely**, which is the documented way to stop spending the shared
             allowance without touching the intake — and the honest default, since guessing which
             role means "VEAF member" is not this service's decision to make.
@@ -531,7 +571,7 @@ class SupportBotConfig:
     github_repository: str = DEFAULT_GITHUB_REPOSITORY
     github_ledger_file: str = DEFAULT_GITHUB_LEDGER_FILE
     github_machine_label: str = DEFAULT_GITHUB_MACHINE_LABEL
-    enrich_role_id: str = ""
+    enrich_role_ids: tuple[str, ...] = ()
     enrich_endpoint: str = DEFAULT_ENRICH_ENDPOINT
     enrich_state_file: str = DEFAULT_ENRICH_STATE_FILE
     enrich_per_day: int = DEFAULT_ENRICH_PER_DAY
@@ -547,7 +587,7 @@ class SupportBotConfig:
             ``True`` when a gating role is configured. Everything else about the enrichment has a
             usable default; the role does not, and running without one would enrich for everybody.
         """
-        return bool(self.enrich_role_id)
+        return bool(self.enrich_role_ids)
 
     @property
     def files_issues(self) -> bool:
@@ -619,7 +659,7 @@ class SupportBotConfig:
             github_repository=reader.text("GITHUB_REPOSITORY", DEFAULT_GITHUB_REPOSITORY),
             github_ledger_file=reader.text("GITHUB_LEDGER_FILE", DEFAULT_GITHUB_LEDGER_FILE),
             github_machine_label=reader.text("GITHUB_MACHINE_LABEL", DEFAULT_GITHUB_MACHINE_LABEL),
-            enrich_role_id=reader.snowflake("ENRICH_ROLE_ID", ""),
+            enrich_role_ids=reader.snowflakes("ENRICH_ROLE_ID"),
             enrich_endpoint=reader.url("ENRICH_ENDPOINT", DEFAULT_ENRICH_ENDPOINT),
             enrich_state_file=reader.text("ENRICH_STATE_FILE", DEFAULT_ENRICH_STATE_FILE),
             enrich_per_day=reader.integer("ENRICH_PER_DAY", DEFAULT_ENRICH_PER_DAY, minimum=1),
@@ -668,7 +708,7 @@ class SupportBotConfig:
             "github_repository": self.github_repository,
             "github_ledger_file": self.github_ledger_file,
             "github_machine_label": self.github_machine_label,
-            "enrich_role_id": self.enrich_role_id,
+            "enrich_role_ids": list(self.enrich_role_ids),
             "enrich_endpoint": self.enrich_endpoint,
             "enrich_state_file": self.enrich_state_file,
             "enrich_per_day": self.enrich_per_day,

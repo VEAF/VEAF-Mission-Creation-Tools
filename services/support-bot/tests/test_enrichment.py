@@ -23,7 +23,7 @@ from tests.test_intake_github_wiring import _Exchange, _Filer, _submission
 from veaf_support_bot.attachments import AttachmentCollector
 from veaf_support_bot.bugreport import BugForm, BugReport
 from veaf_support_bot.checkout import Freshness
-from veaf_support_bot.config import SupportBotConfig
+from veaf_support_bot.config import ConfigurationError, SupportBotConfig
 from veaf_support_bot.draft import FILE
 from veaf_support_bot.enrichment import (
     ABSENT_REASONS,
@@ -139,7 +139,102 @@ def _enricher(model: Any = None, *, role: str = MEMBER, allowance: QuotaKeeper |
     Returns:
         The enricher.
     """
-    return Enricher(model, role_id=role, allowance=allowance if allowance is not None else _allowance())
+    return Enricher(
+        model,
+        role_ids=(role,) if role else (),
+        allowance=allowance if allowance is not None else _allowance(),
+    )
+
+
+def _config_with(**overrides: str) -> Any:
+    """Resolve a configuration with the given variables set.
+
+    Args:
+        **overrides: Variables to set, without the ``SUPPORT_BOT_`` prefix.
+
+    Returns:
+        The configuration.
+    """
+    env = {
+        "SUPPORT_BOT_DISCORD_TOKEN": "a-token",
+        "SUPPORT_BOT_DISCORD_GUILD_ID": "1",
+        "SUPPORT_BOT_WORKER_SECRET": "a-secret",
+        "SUPPORT_BOT_HEALTH_PORT": "0",
+    }
+    env.update({f"SUPPORT_BOT_{key}": value for key, value in overrides.items()})
+    return SupportBotConfig.from_env(env)
+
+
+def _problems_with(**overrides: str) -> list[str]:
+    """Return the configuration problems the given variables produce.
+
+    Args:
+        **overrides: Variables to set, without the ``SUPPORT_BOT_`` prefix.
+
+    Returns:
+        The problems, empty when the configuration is accepted.
+    """
+    env = {
+        "SUPPORT_BOT_DISCORD_TOKEN": "a-token",
+        "SUPPORT_BOT_DISCORD_GUILD_ID": "1",
+        "SUPPORT_BOT_WORKER_SECRET": "a-secret",
+        "SUPPORT_BOT_HEALTH_PORT": "0",
+    }
+    env.update({f"SUPPORT_BOT_{key}": value for key, value in overrides.items()})
+    try:
+        SupportBotConfig.from_env(env)
+    except ConfigurationError as error:
+        return [str(error)]
+    return []
+
+
+class TestMoreThanOneRoleMayOpenIt(unittest.IsolatedAsyncioTestCase):
+    """Which role means "VEAF member" is the association's decision, and it may name two.
+
+    Recorded as a debt when lot 4 shipped. The deployment that has one role must not have to learn
+    a syntax for it, so one id stays a list of length one.
+    """
+
+    def test_one_id_still_works(self) -> None:
+        config = _config_with(ENRICH_ROLE_ID="566946889841377281")
+
+        self.assertEqual(config.enrich_role_ids, ("566946889841377281",))
+        self.assertTrue(config.enriches)
+
+    def test_several_ids_are_accepted_with_whitespace_around_them(self) -> None:
+        config = _config_with(ENRICH_ROLE_ID=" 111 , 222,333 ")
+
+        self.assertEqual(config.enrich_role_ids, ("111", "222", "333"))
+
+    def test_empty_still_switches_the_whole_thing_off(self) -> None:
+        config = _config_with(ENRICH_ROLE_ID="")
+
+        self.assertEqual(config.enrich_role_ids, ())
+        self.assertFalse(config.enriches)
+
+    def test_a_malformed_entry_is_refused_at_startup_without_quoting_it(self) -> None:
+        """A mention or a role name compares unequal to every id, for ever, in silence."""
+        problems = _problems_with(ENRICH_ROLE_ID="111,<@&222>")
+
+        self.assertTrue(problems, "a mention among the ids must stop the service")
+        joined = " ".join(problems)
+        self.assertIn("ENRICH_ROLE_ID", joined)
+        self.assertNotIn("<@&222>", joined, "the message describes the shape, never the value")
+
+    async def test_a_member_holding_either_role_gets_the_hypothesis(self) -> None:
+        enricher = Enricher(_Model("because of X"), role_ids=("111", "222"), allowance=_allowance())
+
+        for held in (("111",), ("222",), ("999", "222")):
+            with self.subTest(held=held):
+                outcome = await enricher.enrich(_report(), "context", "fr", roles=held)
+                self.assertIn("because of X", outcome.body)
+
+    async def test_a_member_holding_neither_gets_the_stated_refusal(self) -> None:
+        enricher = Enricher(_Model("because of X"), role_ids=("111", "222"), allowance=_allowance())
+
+        outcome = await enricher.enrich(_report(), "context", "fr", roles=("999",))
+
+        self.assertNotIn("because of X", outcome.body)
 
 
 class TestTheGates(unittest.IsolatedAsyncioTestCase):

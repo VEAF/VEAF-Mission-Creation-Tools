@@ -629,6 +629,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on first start, shallow, into its own volume, because that clone is what `/bug` and `/suggest`
   read.
 
+- **Four rough edges the bot's first real run showed, and a hypothesis more than one role can open.**
+  A bug report located in `src/scripts/community/AIEN.lua` was filed as component *Other* — Lua that
+  runs inside a mission exactly like the VEAF scripts, and unfilterable, because the component table
+  knew `src/scripts/veaf/` and nothing else under `src/scripts/`. The log digest and the attachment
+  manifest were written in English inside otherwise French issues: they now come from the catalogue
+  and follow the reporter's language, which required passing that language into the attachment pass
+  at all — the missing argument was the actual cause. The two counters that read as a contradiction
+  (*1202 records kept* beside *48 entries of 10455 indexed, 1202 kept*) now name what each of them
+  measures. And the idempotency marker no longer opens the Discord preview: GitHub hides it as an
+  HTML comment, Discord rendered it as an unreadable first line, so the preview drops HTML comments
+  while the filed issue keeps the marker the recovery search greps for. Finally,
+  `SUPPORT_BOT_ENRICH_ROLE_ID` accepts a comma-separated list — which role means "VEAF member" is
+  the association's decision and it may well answer with two — with every entry validated exactly as
+  the single id was.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

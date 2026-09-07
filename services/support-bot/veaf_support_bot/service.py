@@ -112,7 +112,7 @@ def build_enricher(config: SupportBotConfig, logger: Logger | None = None) -> En
     """
     report = logger or get_logger("service")
     if not config.enriches:
-        return Enricher(None, role_id="", allowance=None, logger=report)
+        return Enricher(None, role_ids=(), allowance=None, logger=report)
     allowance = QuotaKeeper(
         # One ceiling, expressed on all three axes: this counter exists to hold a *daily* total
         # against a free tier of twenty requests, and a per-user window would let one member spend
@@ -128,7 +128,7 @@ def build_enricher(config: SupportBotConfig, logger: Logger | None = None) -> En
     )
     return Enricher(
         HypothesisClient(config.enrich_endpoint, config.worker_client, config.worker_secret),
-        role_id=config.enrich_role_id,
+        role_ids=config.enrich_role_ids,
         allowance=allowance,
         logger=report,
     )

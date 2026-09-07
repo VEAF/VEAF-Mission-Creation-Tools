@@ -1,6 +1,6 @@
 # 08 — Four rough edges the first real run showed
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 

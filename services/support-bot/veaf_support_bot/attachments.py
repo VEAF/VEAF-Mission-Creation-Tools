@@ -43,6 +43,7 @@ from pathlib import Path, PurePosixPath
 
 from veaf_support_bot.checkout import Checkout
 from veaf_support_bot.logging_setup import get_logger
+from veaf_support_bot.texts import DEFAULT_LANGUAGE, text
 from veaf_support_bot.toolkit import ToolkitUnavailable, digest_log, redact, summarise_mission
 
 #: Largest single attachment downloaded, in bytes. Above it the file is refused with its size named,
@@ -230,12 +231,15 @@ class AttachmentCollector:
         self._max_total = max_total_bytes
         self._logger = get_logger("intake")
 
-    async def collect(self, incoming: list[Incoming], workdir: Path) -> Harvest:
+    async def collect(self, incoming: list[Incoming], workdir: Path, lang: str = DEFAULT_LANGUAGE) -> Harvest:
         """Run the whole pass.
 
         Args:
             incoming: What the thread carried.
             workdir: A directory the caller owns and cleans up.
+            lang: The reporter's language. Everything this pass writes ends up in the issue,
+                among French headings for a French reporter — and until this argument existed
+                it was English there, which is what #929 showed.
 
         Returns:
             The harvest. Never raises for one bad file.
@@ -255,20 +259,29 @@ class AttachmentCollector:
             kind = classify(name)
             if not kind:
                 rejected.append(
-                    Rejected(shown, f"unsupported file type ({PurePosixPath(shown).suffix or 'no suffix'})")
+                    Rejected(
+                        shown,
+                        text("attachment.unsupported", lang, suffix=PurePosixPath(shown).suffix or "—"),
+                    )
                 )
                 continue
             if item.size and item.size > self._max_file:
                 rejected.append(
                     Rejected(
-                        shown, f"too large ({describe_size(item.size)}; the limit is {describe_size(self._max_file)})"
+                        shown,
+                        text(
+                            "attachment.too_large_for_the_limit",
+                            lang,
+                            size=describe_size(item.size),
+                            limit=describe_size(self._max_file),
+                        ),
                     )
                 )
                 continue
             remaining = min(self._max_file, self._max_total - spent)
             if remaining <= 0:
                 rejected.append(
-                    Rejected(shown, f"the report already reached {describe_size(self._max_total)} of files")
+                    Rejected(shown, text("attachment.budget_spent", lang, total=describe_size(self._max_total)))
                 )
                 continue
 
@@ -277,7 +290,9 @@ class AttachmentCollector:
                 written = await self._download(item.url, target, remaining)
             except TooLarge:
                 target.unlink(missing_ok=True)
-                rejected.append(Rejected(shown, f"larger than the {describe_size(remaining)} left for this report"))
+                rejected.append(
+                    Rejected(shown, text("attachment.over_what_is_left", lang, left=describe_size(remaining)))
+                )
                 continue
             except Exception as error:  # noqa: BLE001 - one unreachable file is not a failed report
                 target.unlink(missing_ok=True)
@@ -285,7 +300,7 @@ class AttachmentCollector:
                     "an attachment could not be downloaded",
                     extra={"event": "intake.download_failed", "error": type(error).__name__},
                 )
-                rejected.append(Rejected(shown, f"could not be downloaded ({type(error).__name__})"))
+                rejected.append(Rejected(shown, text("attachment.download_failed", lang, error=type(error).__name__)))
                 continue
 
             spent += written
@@ -293,7 +308,7 @@ class AttachmentCollector:
             # anything. Measured against the real repository, `summarise_mission` on an 8 MB mission
             # is 3.4 s — long enough on its own to make the gateway miss a heartbeat, and it would
             # stall every other command besides.
-            prepared.append(await asyncio.to_thread(self._reduce, shown, kind, target, written, rejected))
+            prepared.append(await asyncio.to_thread(self._reduce, shown, kind, target, written, rejected, lang))
 
         return Harvest(prepared=tuple(prepared), rejected=tuple(rejected))
 
@@ -330,7 +345,7 @@ class AttachmentCollector:
             )
             return f"{UNREDACTED_NAME}{parsed.suffix}"
 
-    def _reduce(self, name: str, kind: str, path: Path, size: int, rejected: list[Rejected]) -> Prepared:
+    def _reduce(self, name: str, kind: str, path: Path, size: int, rejected: list[Rejected], lang: str) -> Prepared:
         """Turn one downloaded file into what the issue says about it.
 
         Args:
@@ -339,6 +354,7 @@ class AttachmentCollector:
             path: Where it landed.
             size: Its actual size.
             rejected: Collector for problems that do not stop the file from being attached.
+            lang: The reporter's language, in which every note below is written.
 
         Returns:
             The prepared attachment. A reduction that fails still yields an attachment: the file
@@ -351,34 +367,38 @@ class AttachmentCollector:
             "archive": self._render_archive,
         }[kind]
         try:
-            rendered, withheld = renderer(path)
+            rendered, withheld = renderer(path, lang)
         except ToolkitUnavailable as error:
-            rejected.append(Rejected(name, f"attached, but not summarised: {error}"))
+            rejected.append(Rejected(name, text("attachment.not_summarised", lang, error=str(error))))
             rendered, withheld = "", ()
         except (OSError, ValueError, zipfile.BadZipFile) as error:
-            rejected.append(Rejected(name, f"attached, but unreadable: {type(error).__name__}"))
+            rejected.append(Rejected(name, text("attachment.file_unreadable", lang, error=type(error).__name__)))
             rendered, withheld = "", ()
         return Prepared(filename=name, kind=kind, path=path, size=size, rendered=rendered, withheld=withheld)
 
-    def _render_log(self, path: Path) -> tuple[str, tuple[str, ...]]:
+    def _render_log(self, path: Path, lang: str) -> tuple[str, tuple[str, ...]]:
         """Reduce a log through the shared excerpt builder.
 
         Args:
             path: The downloaded log.
+            lang: The reporter's language.
 
         Returns:
             The rendered excerpt with its catalogue matches, and what was withheld.
         """
         digest = digest_log(self._checkout.root, path)
-        header = (
-            f"{digest.selected_records} of {digest.total_records} records kept by the *Diagnostic* profile; "
-            f"{digest.uncatalogued} of them match no catalogue entry."
+        header = text(
+            "attachment.log_digest",
+            lang,
+            kept=digest.selected_records,
+            total=digest.total_records,
+            uncatalogued=digest.uncatalogued,
         )
         return f"{header}\n\n{digest.catalogue}\n\n{digest.excerpt}", (
             "everything the Diagnostic profile filtered out",
         )
 
-    def _render_mission(self, path: Path) -> tuple[str, tuple[str, ...]]:
+    def _render_mission(self, path: Path, lang: str) -> tuple[str, tuple[str, ...]]:
         """Summarise a mission through the tools' own export.
 
         Args:
@@ -391,7 +411,7 @@ class AttachmentCollector:
         lines = [f"- {key}: {value}" for key, value in sorted(summary.fields.items())]
         return "\n".join(lines) or "(the mission stated none of the published fields)", summary.withheld
 
-    def _render_text(self, path: Path) -> tuple[str, tuple[str, ...]]:
+    def _render_text(self, path: Path, lang: str) -> tuple[str, tuple[str, ...]]:
         """Quote a small text file, redacted.
 
         Args:
@@ -405,7 +425,7 @@ class AttachmentCollector:
             return "", (f"the file is {len(content)} characters; it is attached rather than quoted",)
         return redact(self._checkout.root, content), ()
 
-    def _render_archive(self, path: Path) -> tuple[str, tuple[str, ...]]:
+    def _render_archive(self, path: Path, lang: str) -> tuple[str, tuple[str, ...]]:
         """List the shape of an archive without extracting it.
 
         A ``~mis*.zip`` is a DCS autosave of the whole mission tree. Listing member names says what

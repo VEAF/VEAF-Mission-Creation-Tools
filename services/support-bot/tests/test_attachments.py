@@ -26,6 +26,7 @@ from veaf_support_bot.attachments import (
     describe_size,
     safe_name,
 )
+from veaf_support_bot.texts import text
 
 
 def _fake_downloader(bodies: dict[str, bytes]) -> Downloader:
@@ -103,7 +104,7 @@ class TestTheCollector(unittest.IsolatedAsyncioTestCase):
         prepared = harvest.prepared[0]
         self.assertEqual(prepared.kind, "log")
         self.assertTrue(prepared.path.is_file(), "the file must survive for the issue to carry it")
-        self.assertIn("records kept", prepared.rendered)
+        self.assertIn(text("attachment.log_digest", "fr", kept=5, total=62, uncatalogued=4), prepared.rendered)
         self.assertNotIn("Firstname Lastname", prepared.rendered)
 
     async def test_a_file_larger_than_the_ceiling_is_refused_by_its_declared_size(self) -> None:
@@ -111,7 +112,7 @@ class TestTheCollector(unittest.IsolatedAsyncioTestCase):
             [Incoming("big.log", "u", size=99999)], self.workdir
         )
         self.assertEqual(harvest.prepared, ())
-        self.assertIn("too large", harvest.rejected[0].reason)
+        self.assertIn("trop volumineux", harvest.rejected[0].reason)
 
     async def test_a_lying_content_length_is_caught_while_reading(self) -> None:
         """Discord's declared size is a claim; the bytes that arrive are the fact."""
@@ -119,18 +120,18 @@ class TestTheCollector(unittest.IsolatedAsyncioTestCase):
             [Incoming("big.log", "u", size=1)], self.workdir
         )
         self.assertEqual(harvest.prepared, ())
-        self.assertIn("larger than", harvest.rejected[0].reason)
+        self.assertIn("restants", harvest.rejected[0].reason)
 
     async def test_an_unsupported_type_is_refused_by_name(self) -> None:
         harvest = await self._collector({}).collect([Incoming("payload.exe", "u", 10)], self.workdir)
         self.assertEqual(harvest.prepared, ())
-        self.assertIn("unsupported", harvest.rejected[0].reason)
+        self.assertIn(".exe", harvest.rejected[0].reason)
 
     async def test_an_unreachable_url_is_refused_and_the_pass_continues(self) -> None:
         collector = AttachmentCollector(self.checkout, _failing_downloader)
         harvest = await collector.collect([Incoming("dcs.log", "u", 10)], self.workdir)
         self.assertEqual(harvest.prepared, ())
-        self.assertIn("could not be downloaded", harvest.rejected[0].reason)
+        self.assertIn("ConnectionError", harvest.rejected[0].reason)
 
     async def test_one_bad_file_does_not_stop_the_others(self) -> None:
         bodies = {"good": b"hello there", "bad": b"x"}
@@ -160,7 +161,7 @@ class TestTheCollector(unittest.IsolatedAsyncioTestCase):
     async def test_a_corrupt_archive_is_attached_with_its_reason(self) -> None:
         harvest = await self._collector({"u": b"not a zip"}).collect([Incoming("~mis0001.zip", "u", 9)], self.workdir)
         self.assertEqual(len(harvest.prepared), 1, "the evidence still travels")
-        self.assertIn("unreadable", harvest.rejected[0].reason)
+        self.assertIn("BadZipFile", harvest.rejected[0].reason)
 
     async def test_an_archive_is_listed_and_never_extracted(self) -> None:
         buffer = self.workdir / "source.zip"

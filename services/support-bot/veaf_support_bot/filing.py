@@ -422,7 +422,11 @@ class IssueFiler:
         Returns:
             One :class:`~veaf_support_bot.issue_body.Carried` per prepared attachment.
         """
-        return [carry(item, redactor=self._redactor) for item in report.attachments if isinstance(item, Prepared)]
+        return [
+            carry(item, redactor=self._redactor, lang=report.form.language)
+            for item in report.attachments
+            if isinstance(item, Prepared)
+        ]
 
     def draft_of(self, report: BugReport, *, thread_url: str = "") -> Draft:
         """Render the issue exactly as :meth:`file` would create it.

@@ -579,7 +579,10 @@ class BugIntake:
         # and the caller search. None of it awaits anything, so none of it yields.
         if self._refresh and self._checkout.due():
             await asyncio.to_thread(self._checkout.refresh)
-        harvest = await self._collector.collect(submission.attachments, workdir)
+        # The reporter's language, because everything this pass writes lands in the issue among his
+        # own headings. Issue #929 carried English sentences under French ones for want of this
+        # argument.
+        harvest = await self._collector.collect(submission.attachments, workdir, submission.form.language)
         return await asyncio.to_thread(self._assemble, submission.form, harvest)
 
     def _assemble(self, form: BugForm, harvest: Harvest) -> BugReport:

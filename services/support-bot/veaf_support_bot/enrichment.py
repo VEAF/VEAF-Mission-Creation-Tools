@@ -105,7 +105,7 @@ class Enricher:
         self,
         model: HypothesisModel | None,
         *,
-        role_id: str,
+        role_ids: tuple[str, ...],
         allowance: QuotaKeeper | None,
         logger: Logger | None = None,
     ) -> None:
@@ -114,7 +114,8 @@ class Enricher:
         Args:
             model: What makes the call. ``None`` disables enrichment entirely — the documented way
                 to switch the paid path off without touching the intake.
-            role_id: Discord role that opens the enrichment. Empty disables it the same way: a role
+            role_ids: Discord roles that open the enrichment, any one of which is enough. Empty
+                disables it the same way: a role
                 nobody holds is not a default worth guessing, and the alternative — enriching for
                 everyone until an id is configured — spends a shared association resource on a
                 decision nobody made.
@@ -123,7 +124,7 @@ class Enricher:
             logger: Logger to use.
         """
         self._model = model
-        self._role_id = role_id
+        self._role_ids = frozenset(role_ids)
         self._allowance = allowance
         self._logger = logger or get_logger("enrichment")
 
@@ -134,7 +135,7 @@ class Enricher:
         Returns:
             ``True`` when a model and a role are both configured.
         """
-        return self._model is not None and bool(self._role_id)
+        return self._model is not None and bool(self._role_ids)
 
     def _refusal(self, reason: str, lang: str) -> Enrichment:
         """Build the outcome of a report that was not enriched.
@@ -162,9 +163,9 @@ class Enricher:
             exception here would turn a missing paragraph into a lost report.
         """
         model = self._model
-        if model is None or not self._role_id:
+        if model is None or not self._role_ids:
             return self._refusal(DISABLED, lang)
-        if self._role_id not in roles:
+        if self._role_ids.isdisjoint(roles):
             return self._refusal(NOT_A_MEMBER, lang)
         if not self._spend(report.form.reporter_id):
             return self._refusal(CEILING_REACHED, lang)

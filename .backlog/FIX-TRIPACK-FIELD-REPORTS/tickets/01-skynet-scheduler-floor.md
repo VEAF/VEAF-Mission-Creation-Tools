@@ -91,7 +91,10 @@ Then, per [`vendored.yaml`](../../../vendored.yaml) and in this order:
 - [x] Artefact regenerated, stylua'd, label and `vendored.yaml` `pinned:` updated together
       (build 05.09.2026). Diff against the previous artefact is two hunks — the version banner and
       the 24 added lines — and nothing else moved.
-- [x] `luacheck` + `stylua --check` clean on `src/scripts/veaf/ test/lua/`
+- [x] `stylua --check` clean on `src/scripts/veaf/ test/lua/`; **`luacheck` was not run locally** —
+      it crashes on this workstation (luarocks is on Lua 5.5), so the CI Luacheck job is what
+      answered for it, and it passed on #917. Ticked as CI-verified rather than as run here, per
+      Sourcery's remark on the merged PR: the box originally claimed a check that had not happened.
 - [x] In-game verification queued in `DCS-SESSION-TODO.md` as **R13**, paired with R12: both fixes
       rest on the same unproven wager about the native timer, so they are checked in one session
 
@@ -105,3 +108,24 @@ Then, per [`vendored.yaml`](../../../vendored.yaml) and in this order:
   (`demo-missions/skynet-iads-compiled.lua`, still `820d3cc0eb85`) can only be moved once the fork PR
   is merged, since it names a commit on the fork's `master`. Until then the drift watcher will flag
   the entry, correctly.
+
+## Post-merge review, 2026-09-07 (#917)
+
+Sourcery's weekly budget came back, so the merged PR was re-reviewed on David's instruction. Two
+remarks, both fair:
+
+1. **The `luacheck` checkbox claimed a check that had not run** — fixed above.
+2. **`bug_risk`: the first-run clamp can push a task past its own `stopTime`.** A task scheduled
+   while `timer.getTime() < stopTime <= timer.getTime() + 0.01` is pushed to the next tick, and
+   `runScheduledTask` then discards it as expired **before** calling it — so it runs zero times,
+   where an overdue task previously still ran once.
+
+   Correct as written, and **unreachable in the shipped artefact**: measured on all four call sites,
+   none passes a `stopTime` at all — `activate` (1, interval), `scanForHarms` (1, 2),
+   `goSilentToEvadeHARM` (`timer.getTime() + n`, 1), `masterArmOn` (1, 10). The fifth argument exists
+   only in the signature.
+
+   Left open rather than fixed silently: the module is a generic API offered upstream, so the defect
+   is worth closing on principle, but doing it costs a fork PR plus the three-step artefact
+   regeneration (recompile, stylua, re-label) for a path no caller takes. **David's call** — it is
+   recorded here so it is not lost either way.

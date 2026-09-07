@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.20.0] — 2026-09-07
+
 ### Fixed
 
 - **The build's own output came back as a mission source.** Reported by Tripack: building his

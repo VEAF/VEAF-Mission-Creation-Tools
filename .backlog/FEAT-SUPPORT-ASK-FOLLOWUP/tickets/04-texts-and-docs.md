@@ -1,6 +1,8 @@
 # 04 — Say so, in both languages and in the documentation
 
-Type: docs · Status: ✅ done
+Status: ✅ done — merged in #931
+
+Type: docs
 
 ## What
 

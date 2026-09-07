@@ -1,6 +1,6 @@
 # FEAT-SUPPORT-ASK-FOLLOWUP — the thread answers back
 
-Status: 🔄 in-progress — the four tickets are done; the PR is open
+Status: ✅ done — merged in #931
 
 Origin: David, 2026-09-07, hours after the bot went up on the Docker host. *"Après `/ask` ça ouvre un
 fil, mais quand on répond dans le fil ça ne repart pas au bot… c'est dommage."* His own shape for the

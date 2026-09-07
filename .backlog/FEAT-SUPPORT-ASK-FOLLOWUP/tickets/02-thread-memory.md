@@ -1,6 +1,8 @@
 # 02 — The thread remembers what it was about
 
-Type: feat · Status: ✅ done
+Status: ✅ done — merged in #931
+
+Type: feat
 
 ## What
 

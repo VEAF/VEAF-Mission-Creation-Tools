@@ -1,6 +1,8 @@
 # 03 — Retrieve on the question, not on the ellipsis
 
-Type: feat · Status: ✅ done
+Status: ✅ done — merged in #931
+
+Type: feat
 
 ## What
 

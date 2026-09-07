@@ -1,6 +1,8 @@
 # 01 — The bot hears a mention, and only where it should
 
-Type: feat · Status: ✅ done
+Status: ✅ done — merged in #931
+
+Type: feat
 
 ## What
 

@@ -107,5 +107,44 @@ class TestTheSupportPageLink(unittest.TestCase):
         self.assertEqual(texts.support_page_url("en"), f"{texts.DOC_SITE_BASE}/en/SUPPORT/")
 
 
+class TheBotSaysTu(unittest.TestCase):
+    """One register throughout — French has two, and a service using both reads as two services.
+
+    Measured 2026-09-07, while the command descriptions were being written: 29 keys tutoyaient and
+    12 vouvoyaient, and the formal ones were the most visible of the lot — the command picker, which
+    is the first thing a mission maker sees. This is a squadron's Discord, not a bank.
+
+    Both forms are caught: the pronoun, and the imperative addressed to *vous*, which slips in
+    without one — *"Corrigez-la dans ce fil"* carried the formal register with no `vous` in sight.
+    """
+
+    #: `vous`, `votre`, `vos` — the plain form.
+    PRONOUN = re.compile(r"\b(vous|Vous|votre|Votre|vos|Vos)\b")
+
+    #: A verb in `-ez` opening a clause: `Corrigez-la`, `Mentionnez-moi`, `Collez la sortie`. Anchored
+    #: on a clause boundary so `assez` and `chez` are not read as commands.
+    IMPERATIVE = re.compile(r"(?:^|[.!?]\s+|\n|—\s+)([A-ZÉÈÀ][a-zéèêàçûîô]+ez)\b")
+
+    def test_no_french_string_addresses_the_reader_as_vous(self) -> None:
+        offenders = {key: value for key, value in texts._TEXTS["fr"].items() if self.PRONOUN.search(value)}
+
+        self.assertEqual(offenders, {}, "these say vous; the rest of the bot says tu")
+
+    def test_no_french_string_commands_the_reader_formally(self) -> None:
+        offenders = {
+            key: self.IMPERATIVE.findall(value)
+            for key, value in texts._TEXTS["fr"].items()
+            if self.IMPERATIVE.search(value)
+        }
+
+        self.assertEqual(offenders, {}, "these give an order in the vous form")
+
+    def test_the_check_can_still_fail(self) -> None:
+        """A pattern narrowed until it matches nothing would let the next one through."""
+        self.assertTrue(self.PRONOUN.search("Collez votre journal"))
+        self.assertTrue(self.IMPERATIVE.search("Corrigez-la dans ce fil"))
+        self.assertFalse(self.IMPERATIVE.search("il y en a assez"))
+
+
 if __name__ == "__main__":
     unittest.main()

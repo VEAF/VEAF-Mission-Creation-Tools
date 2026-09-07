@@ -87,6 +87,14 @@ MESSAGE_MAX_CHARS = 1900
 #: whole exchange runs inside: past it, an edit is refused and whatever the asker clicked is lost.
 TOKEN_LIFETIME_SECONDS = 900
 
+#: Longest issue title shown in a proposal. A title is a line: past this it is the proposal itself
+#: that becomes unreadable, which defeats the point of showing one.
+ISSUE_TITLE_IN_PROPOSAL_CHARS = 120
+
+#: The label this service puts on every bug report it files. A feature request cannot be a duplicate
+#: of one, so issues carrying it are not offered to the model at all.
+BUG_LABEL = "bug"
+
 #: Left at the end for the last message — the outcome of the filing, or the sentence saying why
 #: nothing was filed. An expiry the service can no longer announce is an expiry nobody learns about.
 CLOSING_MARGIN_SECONDS = 30
@@ -241,17 +249,22 @@ def render_observation(form: SuggestionForm, lang: str) -> str:
     )
 
 
-def _match_for(number: int) -> Match:
+def _match_for(number: int, title: str = "", url: str = "") -> Match:
     """Wrap an issue the model named in the shape the rest of the flow already speaks.
 
     Args:
         number: The issue number.
+        title: Its title, so the comment and the log name the issue rather than a bare number.
+        url: Where to read it.
 
     Returns:
         A match carrying that reference. The score is 0: this one was not measured by word overlap,
         and printing a number it did not earn would be evidence the sweep never produced.
     """
-    return Match(candidate=Candidate(source=SOURCE_OPEN_ISSUE, reference=f"#{number}", title=""), score=0.0)
+    return Match(
+        candidate=Candidate(source=SOURCE_OPEN_ISSUE, reference=f"#{number}", title=title, url=url),
+        score=0.0,
+    )
 
 
 class SuggestIntake:
@@ -371,7 +384,15 @@ class SuggestIntake:
             return None
 
         if check.issue and self._may_ask(started, "a request already made in other words"):
-            settled = await self._propose_the_named_issue(exchange, form, check.issue, lang, started)
+            settled = await self._propose_the_named_issue(
+                exchange,
+                form,
+                check.issue,
+                lang,
+                started,
+                title=check.issue_title,
+                url=check.issue_url,
+            )
             if settled:
                 return None
 
@@ -394,7 +415,14 @@ class SuggestIntake:
         return await self._file(exchange, submission, check, sweep, lang, asked=asked, progress=progress)
 
     async def _propose_the_named_issue(
-        self, exchange: ThreadExchange, form: SuggestionForm, number: int, lang: str, started: float
+        self,
+        exchange: ThreadExchange,
+        form: SuggestionForm,
+        number: int,
+        lang: str,
+        started: float,
+        title: str = "",
+        url: str = "",
     ) -> bool:
         """Put the issue the model recognised to the asker, with what it is, and take his answer.
 
@@ -408,12 +436,23 @@ class SuggestIntake:
             number: The issue the model named, already validated against the ones it was offered.
             lang: ``"fr"`` or ``"en"``.
             started: When the interaction was acknowledged.
+            title: That issue's title, which is the **evidence**. A proposal a reader cannot judge
+                without opening GitHub is an assertion, and an assertion is what silences a real
+                request: measured on #938, where the title alone would have settled it in a second.
+            url: Where to read it.
 
         Returns:
             Whether the request is settled. ``False`` for a refusal **and** for a silence: neither
             is an agreement, and only an agreement may stop somebody's request.
         """
-        answer = await exchange.confirm(text("suggest.named_issue", lang, issue=number), lang)
+        proposal = text(
+            "suggest.named_issue",
+            lang,
+            issue=number,
+            title=one_line(title, ISSUE_TITLE_IN_PROPOSAL_CHARS) if title else text("suggest.no_title", lang),
+            url=url or f"{REPOSITORY_URL}/issues/{number}",
+        )
+        answer = await exchange.confirm(proposal, lang)
         self._logger.info(
             "a request already made in other words was proposed",
             extra={"event": "suggest.named_issue", "issue": number, "answer": answer},
@@ -503,7 +542,7 @@ class SuggestIntake:
         )
         return False
 
-    async def _open_issues(self) -> tuple[tuple[int, str], ...]:
+    async def _open_issues(self) -> tuple[tuple[int, str, str], ...]:
         """Read the open issues' numbers and titles, for the second question of the same call.
 
         Ticket 05: a duplicate is recognised today by comparing words, and no two humans write the
@@ -512,8 +551,8 @@ class SuggestIntake:
         characters of titles.
 
         Returns:
-            The issues, or an empty tuple when there is no gate, no source, or the tracker could not
-            be read. A tracker that cannot be reached costs the *recognition*, never the suggestion:
+            The issues as ``(number, title, url)``, without the bug reports, or an empty tuple when
+            there is no gate, no source, or the tracker could not be read. A tracker that cannot be reached costs the *recognition*, never the suggestion:
             the deterministic sweep still runs afterwards and the issue still records what happened.
         """
         source = self._prior_art.sweeper.issues if self._prior_art is not None else None
@@ -527,7 +566,18 @@ class SuggestIntake:
                 extra={"event": "suggest.issues_unavailable", "error": type(error).__name__},
             )
             return ()
-        return tuple((record.number, record.title) for record in records)
+        # A feature request cannot be a duplicate of a **bug report**: they are different natures,
+        # and the tracker says which is which with the label this service itself applies. Measured
+        # 2026-09-07: asked for a UI resembling ctld-tools', the model proposed #938 — a bug report
+        # titled *La mission ne fonctionne pas*, filed five minutes earlier.
+        #
+        # What is deliberately not filtered is the *origin*: an issue this bot opened for somebody
+        # else is a perfectly good duplicate.
+        return tuple(
+            (record.number, record.title, record.url)
+            for record in records
+            if BUG_LABEL not in {label.lower() for label in record.labels}
+        )
 
     async def _ask_documentation(self, form: SuggestionForm, lang: str) -> DocumentationCheck:
         """Ask the documentation whether this already exists, if there is an allowance for it.

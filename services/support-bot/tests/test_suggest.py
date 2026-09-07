@@ -104,7 +104,7 @@ class ScriptedDocumentation:
         self.asked: list[tuple[str, str, str]] = []
 
     async def check(
-        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str]] = ()
+        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str, str]] = ()
     ) -> DocumentationCheck:
         self.asked.append((request, lang, subject))
         self.offered = tuple(issues)
@@ -353,6 +353,100 @@ class TestARequestAlreadyMadeInOtherWords(unittest.TestCase):
         self.assertEqual(filer.filed, [])
 
 
+class TheProposalShowsWhatItProposes(unittest.TestCase):
+    """Measured on issue #938, minutes after the feature shipped.
+
+    Asked for a UI resembling ctld-tools', the bot answered *« Ta demande ressemble à un ticket déjà
+    ouvert : #938 »* — David's own bug report, filed five minutes earlier, titled *La mission ne
+    fonctionne pas*. It showed the number and nothing else, so judging it meant opening GitHub.
+
+    The whole service runs on the opposite rule: a match is proposed **with its evidence**, because a
+    wrong "this is a duplicate" silences a real request and the asker will not insist.
+    """
+
+    def test_the_proposal_carries_the_title_and_the_link(self) -> None:
+        documentation = ScriptedDocumentation(
+            DocumentationCheck(
+                verdict=ABSENT,
+                issue=240,
+                issue_title="-cap un peu plus selectif",
+                issue_url="https://github.test/issues/240",
+            )
+        )
+        exchange = RecordingExchange(confirms=[False], choice=FILE)
+
+        run(SuggestIntake(documentation=documentation, filer=RecordingFiler()), exchange)
+
+        proposed = next(shown for shown in exchange.shown if "#240" in shown)
+        self.assertIn("-cap un peu plus selectif", proposed)
+        self.assertIn("https://github.test/issues/240", proposed)
+
+    def test_an_issue_with_no_title_still_produces_a_readable_proposal(self) -> None:
+        documentation = ScriptedDocumentation(DocumentationCheck(verdict=ABSENT, issue=240))
+        exchange = RecordingExchange(confirms=[False], choice=FILE)
+
+        run(SuggestIntake(documentation=documentation, filer=RecordingFiler()), exchange)
+
+        proposed = next(shown for shown in exchange.shown if "#240" in shown)
+        self.assertIn(text("suggest.no_title", "fr"), proposed)
+
+
+class ABugReportIsNotADuplicateOfASuggestion(unittest.IsolatedAsyncioTestCase):
+    """Two different natures, and the tracker says which is which.
+
+    #938 was offered to the model because every open issue was, bug reports included. A feature
+    request cannot be a duplicate of a bug report — and what is *not* filtered is the origin: an
+    issue this bot opened for somebody else is a perfectly good duplicate.
+    """
+
+    async def test_bug_reports_are_not_offered_to_the_model(self) -> None:
+        from tests.test_priorart import _Issues, _resolver_issue
+        from veaf_support_bot.priorart import IssueRecord, PriorArtGate, PriorArtSweeper
+
+        a_bug = IssueRecord(
+            number=938,
+            title="La mission ne fonctionne pas",
+            body="",
+            url="https://github.test/issues/938",
+            state="open",
+            labels=("bug", "filed-by-bot", "lua"),
+        )
+        a_request = IssueRecord(
+            number=240,
+            title="-cap un peu plus selectif",
+            body="",
+            url="https://github.test/issues/240",
+            state="open",
+            labels=("enhancement",),
+        )
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[a_bug, a_request])))
+        intake = SuggestIntake(documentation=ScriptedDocumentation(DocumentationCheck()), prior_art=gate)
+
+        offered = await intake._open_issues()  # noqa: SLF001 - the filter is the point of the test
+
+        self.assertEqual([number for number, _, _ in offered], [240])
+
+    async def test_an_issue_the_bot_filed_is_still_offered(self) -> None:
+        """What is filtered is the nature, not the origin."""
+        from tests.test_priorart import _Issues
+        from veaf_support_bot.priorart import IssueRecord, PriorArtGate, PriorArtSweeper
+
+        filed_by_the_bot = IssueRecord(
+            number=929,
+            title="pouvoir dessiner la route d'un convoi",
+            body="",
+            url="https://github.test/issues/929",
+            state="open",
+            labels=("filed-by-bot",),
+        )
+        gate = PriorArtGate(PriorArtSweeper(fixture_root(), _Issues(opened=[filed_by_the_bot])))
+        intake = SuggestIntake(documentation=ScriptedDocumentation(DocumentationCheck()), prior_art=gate)
+
+        offered = await intake._open_issues()  # noqa: SLF001
+
+        self.assertEqual([number for number, _, _ in offered], [929])
+
+
 class TestTheSecondVoiceIsRecorded(unittest.TestCase):
     """Ticket 07: the message used to promise this, and the flow dropped it.
 
@@ -558,7 +652,7 @@ class TestWhenItGoesWrong(unittest.TestCase):
     def test_a_crash_after_the_acknowledgement_is_told_to_the_asker(self) -> None:
         class Exploding(ScriptedDocumentation):
             async def check(
-                self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str]] = ()
+                self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str, str]] = ()
             ) -> DocumentationCheck:
                 raise RuntimeError("boom")
 

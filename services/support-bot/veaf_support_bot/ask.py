@@ -338,7 +338,17 @@ class AskHandler:
         # warning nobody sees, and the reader following that invitation would be answered by
         # silence — the one outcome the invitation exists to prevent.
         recorded = memory.remember(thread, context.question, body, lang) if memory and thread else False
-        await exchange.edit(answer_module.render(body, links, lang, continuable=recorded))
+        # Only on the answer that *opens* a thread. A reader who is already continuing one knows he
+        # can continue it, and the line costs 146 characters of body — measured — on exactly the
+        # exchanges that carry the most context and produce the longest answers.
+        invite = recorded and context.conversation is None
+        # A thread has room for more than one message, which is the whole of FIX-ASK-LONG-ANSWERS:
+        # the first part replaces the streaming placeholder, the rest are posted after it, and the
+        # exchange switches its editing target on `post`, so the escalation button lands on the last.
+        parts = answer_module.render_messages(body, links, lang, continuable=invite)
+        await exchange.edit(parts[0])
+        for part in parts[1:]:
+            await exchange.post(part)
         await exchange.offer_escalation(context.question, body, lang)
         self._logger.info(
             "question answered",

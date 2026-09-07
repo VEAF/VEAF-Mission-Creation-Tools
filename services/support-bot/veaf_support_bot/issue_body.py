@@ -87,6 +87,7 @@ _HEADINGS = {
         "files": "Fichiers joints",
         "priorart": "Antériorité",
         "missing": "Ce qui manque, et pourquoi",
+        "withheld": "Ce qui n'est volontairement pas publié",
         "no_hypothesis": (
             "_Tout ce qui précède est lu, analysé ou cité — rien n'est deviné. Une hypothèse "
             "automatique, si elle existe, est ajoutée en commentaire et signalée comme telle._"
@@ -139,6 +140,7 @@ _HEADINGS = {
         "files": "Attached files",
         "priorart": "Prior art",
         "missing": "What is missing, and why",
+        "withheld": "What is deliberately not published",
         "no_hypothesis": (
             "_Everything above is read, parsed or quoted — none of it is guessed. An automatic "
             "hypothesis, where there is one, is added as a comment and labelled as such._"
@@ -403,9 +405,16 @@ def render_body(report: BugReport, key: str, *, thread_url: str = "", carried: I
         parts.append(
             f"### {heading('priorart', lang)}\n\n{render_prior_art(report.prior_art, lang, report.prior_art_answer)}"
         )
-    if report.notes:
-        listed = "\n".join(f"- **{note.subject}** — {note.reason}" for note in report.notes)
+    # Two lists, because they answer two questions: what a maintainer may act on, and what the
+    # service withheld on purpose. Told as one, the second buries the first — measured on #938.
+    missing = [note for note in report.notes if not note.deliberate]
+    withheld = [note for note in report.notes if note.deliberate]
+    if missing:
+        listed = "\n".join(f"- **{note.subject}** — {note.reason}" for note in missing)
         parts.append(f"### {heading('missing', lang)}\n\n{listed}")
+    if withheld:
+        listed = "\n".join(f"- **{note.subject}** — {note.reason}" for note in withheld)
+        parts.append(f"### {heading('withheld', lang)}\n\n{listed}")
 
     parts.append(heading("no_hypothesis", lang))
     parts.append("---")

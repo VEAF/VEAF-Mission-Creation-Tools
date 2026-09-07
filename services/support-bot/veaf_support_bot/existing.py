@@ -154,6 +154,11 @@ class DocumentationCheck:
         issue: An open issue the model recognised as the same request, or ``0``. Independent of
             :attr:`verdict`: the documentation being silent and the tracker already holding the
             request are different facts, and a request can be both undocumented and already asked.
+        issue_title: That issue's title, and :attr:`issue_url` its address. They are **the
+            evidence**: a proposal a reader cannot judge without opening GitHub is an assertion, and
+            an assertion is what silences a real request. Carried here rather than looked up again by
+            the flow, which would mean a second call to the tracker for something already in hand.
+        issue_url: Where to read it.
     """
 
     verdict: str = UNKNOWN
@@ -161,6 +166,8 @@ class DocumentationCheck:
     links: tuple[str, ...] = ()
     problem: str = ""
     issue: int = 0
+    issue_title: str = ""
+    issue_url: str = ""
 
     @property
     def found(self) -> bool:
@@ -220,7 +227,7 @@ class DocumentationSource(Protocol):
     """
 
     async def check(
-        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str]] = ()
+        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str, str]] = ()
     ) -> DocumentationCheck:
         """Ask whether the documentation already describes a way to do this, and whether the request
         is one of the open issues.
@@ -229,8 +236,8 @@ class DocumentationSource(Protocol):
             request: What the user would like, in his own words.
             lang: ``"fr"`` or ``"en"``.
             subject: Per-user rate-limit subject.
-            issues: The open issues, as ``(number, title)``, for the second question of the same
-                call. Empty asks the documentation question alone.
+            issues: The open issues, as ``(number, title, url)``, for the second question of the
+                same call. Empty asks the documentation question alone.
 
         Returns:
             The finding.
@@ -251,7 +258,7 @@ class AskTheDocumentation:
         self._logger = logger or get_logger("suggest")
 
     async def check(
-        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str]] = ()
+        self, request: str, lang: str, subject: str, issues: Sequence[tuple[int, str, str]] = ()
     ) -> DocumentationCheck:
         """Ask whether the documentation already describes a way to do this — and whether it is one
         of the open issues.
@@ -264,8 +271,8 @@ class AskTheDocumentation:
                 untouched, because it is what the Worker embeds to retrieve passages.
             lang: ``"fr"`` or ``"en"``.
             subject: Per-user rate-limit subject, as the Worker counts them.
-            issues: The open issues, as ``(number, title)``. Empty asks the documentation question
-                alone, which is what a deployment with no tracker access does.
+            issues: The open issues, as ``(number, title, url)``. Empty asks the documentation
+                question alone, which is what a deployment with no tracker access does.
 
         Returns:
             The finding. Never raises: every failure becomes :data:`UNKNOWN` with its reason, since
@@ -288,7 +295,7 @@ class AskTheDocumentation:
             return DocumentationCheck(verdict=UNKNOWN, problem=failure.kind.value)
 
         body, titles = answer_module.split_sources(collected)
-        named = _named_issue(body, issues)
+        named, named_title, named_url = _named_issue(body, issues)
         # Read off the body, then removed from it: the line is an instruction to this code, and
         # leaving `ISSUE #240` at the end of a paragraph shown to a human is the same defect the
         # idempotency marker had in the Discord preview.
@@ -304,7 +311,7 @@ class AskTheDocumentation:
                 "the documentation says nothing about this request",
                 extra={"event": "suggest.checked", "verdict": ABSENT},
             )
-            return DocumentationCheck(verdict=ABSENT, issue=named)
+            return DocumentationCheck(verdict=ABSENT, issue=named, issue_title=named_title, issue_url=named_url)
         links = answer_module.source_links(titles, lang)
         if not links:
             # Measured in front of a human, 2026-09-07: the first real `/suggest` announced *"la
@@ -323,19 +330,26 @@ class AskTheDocumentation:
                 "the documentation answered without citing a page, so it is read as silence",
                 extra={"event": "suggest.checked", "verdict": ABSENT, "reason": "no-citation"},
             )
-            return DocumentationCheck(verdict=ABSENT, issue=named)
+            return DocumentationCheck(verdict=ABSENT, issue=named, issue_title=named_title, issue_url=named_url)
         self._logger.info(
             "the documentation describes a way to do this",
             extra={"event": "suggest.checked", "verdict": EXISTS, "pages": len(links)},
         )
-        return DocumentationCheck(verdict=EXISTS, answer=body[:ANSWER_MAX_CHARS], links=tuple(links), issue=named)
+        return DocumentationCheck(
+            verdict=EXISTS,
+            answer=body[:ANSWER_MAX_CHARS],
+            links=tuple(links),
+            issue=named,
+            issue_title=named_title,
+            issue_url=named_url,
+        )
 
 
-def _issue_task(issues: Sequence[tuple[int, str]]) -> str:
+def _issue_task(issues: Sequence[tuple[int, str, str]]) -> str:
     """Render the second question, or nothing when there is no tracker to compare against.
 
     Args:
-        issues: The open issues, as ``(number, title)``.
+        issues: The open issues, as ``(number, title, url)``.
 
     Returns:
         The instruction to append, empty when *issues* is.
@@ -343,12 +357,12 @@ def _issue_task(issues: Sequence[tuple[int, str]]) -> str:
     if not issues:
         return ""
     listed = "\n".join(
-        f"- #{number} {one_line(title, ISSUE_TITLE_MAX_CHARS)}" for number, title in issues[:MAX_ISSUES_OFFERED]
+        f"- #{number} {one_line(title, ISSUE_TITLE_MAX_CHARS)}" for number, title, _ in issues[:MAX_ISSUES_OFFERED]
     )
     return _ISSUE_TASK.format(marker=ISSUE_KEYWORD, issues=listed)
 
 
-def _named_issue(body: str, issues: Sequence[tuple[int, str]]) -> int:
+def _named_issue(body: str, issues: Sequence[tuple[int, str, str]]) -> tuple[int, str, str]:
     """Read back which issue the model named, if any, and refuse one it invented.
 
     Args:
@@ -356,15 +370,19 @@ def _named_issue(body: str, issues: Sequence[tuple[int, str]]) -> int:
         issues: The issues that were offered.
 
     Returns:
-        The issue number, or ``0``. A number outside the offered list is dropped: a model naming
-        ``#999`` would otherwise send an asker to an issue nobody wrote, which is worse than not
-        recognising his request at all.
+        The issue, as ``(number, title, url)``, or ``(0, "", "")``. A number outside the offered list
+        is dropped: a model naming ``#999`` would otherwise send an asker to an issue nobody wrote,
+        which is worse than not recognising his request at all. The title travels with it because it
+        is the evidence the proposal is judged on.
     """
     found = _ISSUE_LINE.search(body)
     if found is None:
-        return 0
+        return 0, "", ""
     number = int(found.group(1))
-    return number if any(number == offered for offered, _ in issues) else 0
+    for offered, title, url in issues:
+        if offered == number:
+            return number, title, url
+    return 0, "", ""
 
 
 def says_nothing(body: str) -> bool:

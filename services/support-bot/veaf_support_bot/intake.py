@@ -648,8 +648,11 @@ class BugIntake:
                 missions.append(rendered)
             else:
                 others.append(rendered)
-            for withheld in item.withheld:
-                notes.append(MaterialNote(item.filename, f"not published: {withheld}"))
+            if item.withheld:
+                # One line for the file, whatever its field count. Which fields were withheld is not
+                # information a reader wants — that the file was summarised rather than published,
+                # is. Issue #938 carried twenty-five of these for one mission.
+                notes.append(MaterialNote(item.filename, text(f"withheld.{item.kind}", form.language), deliberate=True))
 
         # The typed fields are redacted here rather than at render time: a home directory in "what
         # happened" is exactly as public as one in a log, and doing it once means no renderer can

@@ -14,6 +14,14 @@ this same catalogue so the parity test covers them too.
 
 What stays untranslated on purpose is a component's **value**: those are the options of the issue
 templates, word for word, and a translated value is a component nobody can filter on.
+
+## One register: the bot says *tu*
+
+French has two ways of addressing somebody and a service that uses both reads as two services. This
+one tutoie, everywhere — it is a squadron's Discord, not a bank. Measured 2026-09-07 while the
+command descriptions were being written: 29 keys tutoyaient, 12 vouvoyaient, and the formal ones
+were the most visible of all, in the command picker. The check is a reading, not a test: a lone
+*vous* in a sentence is easy to see, and a rule nobody can state is a rule nobody follows.
 """
 
 from __future__ import annotations
@@ -50,16 +58,16 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         ),
         "ask.disclaimer": (
             "-# Réponse produite à partir de la documentation VEAF ; elle peut être fausse ou "
-            "dépassée. Corrigez-la dans ce fil si c'est le cas."
+            "dépassée. Corrige-la dans ce fil si c'est le cas."
         ),
         "ask.truncated": "-# ✂️ Réponse tronquée : elle dépassait ce qu'un message Discord peut porter.",
         "ask.continue": (
-            "-# 💬 Une question complémentaire ? Mentionnez-moi dans ce fil et je réponds avec ce qui "
+            "-# 💬 Une question complémentaire ? Mentionne-moi dans ce fil et je réponds avec ce qui "
             "précède en tête. Chaque relance compte comme une question."
         ),
         "ask.followup.forgotten": (
             "Je ne retrouve plus ce dont parlait ce fil — il est peut-être trop ancien, ou le service "
-            "a été redémarré depuis. Reposez la question avec `/ask` et j'ouvre un nouveau fil."
+            "a été redémarré depuis. Repose la question avec `/ask` et j'ouvre un nouveau fil."
         ),
         # --- upstream failures --------------------------------------------------------------
         "ask.error.unavailable": (
@@ -116,11 +124,13 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "{reset_time}) — et signale-le sur le canal support, ça ne se répare pas tout seul."
         ),
         "suggest.named_issue": (
-            "🔎 **Ta demande ressemble à un ticket déjà ouvert : #{issue}.**\n"
+            "🔎 **Ta demande ressemble à un ticket déjà ouvert :**\n"
+            "> [#{issue} — {title}]({url})\n\n"
             "Ce rapprochement vient d'une lecture du sens, pas d'une comparaison de mots — deux "
             "personnes ne décrivent jamais le même besoin avec le même vocabulaire. Ouvre-le et "
             "dis-moi : c'est bien la même chose, ou pas ?"
         ),
+        "suggest.no_title": "(sans titre)",
         "suggest.settled.named_issue": (
             "Entendu, rien de nouveau n'est ouvert : le ticket #{issue} porte déjà ce besoin."
         ),
@@ -131,9 +141,9 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         # correctif par interaction ne peut pas atteindre, puisqu'elle existe avant toute
         # interaction. Traduites via `app_commands.Translator`, dont Discord stocke la table.
         "command.ask.description": "Poser une question sur la documentation des outils VEAF",
-        "command.ask.question": "Que voulez-vous savoir ?",
-        "command.bug.description": "Signaler un bug — un formulaire court, et les fichiers que vous avez",
-        "command.bug.log": "Votre veaf-tools.log ou dcs.log, si vous en avez un",
+        "command.ask.question": "Que veux-tu savoir ?",
+        "command.bug.description": "Signaler un bug — un formulaire court, et les fichiers que tu as",
+        "command.bug.log": "Ton veaf-tools.log ou dcs.log, si tu en as un",
         "command.bug.mission": "Le .miz sur lequel le problème se produit",
         "command.bug.extra": "Autre chose : un mission.yaml, un fichier de configuration",
         "command.suggest.description": "Proposer une amélioration — confrontée à ce qui existe déjà",
@@ -145,15 +155,15 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "form.bug.title": "Signaler un bug",
         "form.bug.summary": "En une ligne, qu'est-ce qui ne va pas ?",
         "form.bug.happened": "Que s'est-il passé ?",
-        "form.bug.expected": "À quoi vous attendiez-vous ?",
+        "form.bug.expected": "À quoi t'attendais-tu ?",
         "form.bug.steps": "Comment le reproduire",
-        "form.bug.doctor": "Collez la sortie de : veaf-tools doctor",
+        "form.bug.doctor": "Colle la sortie de : veaf-tools doctor",
         "form.suggest.title": "Proposer une amélioration",
-        "form.suggest.summary": "En une ligne, que souhaiteriez-vous ?",
+        "form.suggest.summary": "En une ligne, que souhaiterais-tu ?",
         "form.suggest.problem": "Quel problème cela résout-il ?",
-        "form.suggest.problem.placeholder": "Ce qui est pénible aujourd'hui, et à quelle fréquence ça vous coûte",
-        "form.suggest.solution": "Que voudriez-vous qu'il se passe ?",
-        "form.suggest.alternatives": "Avez-vous envisagé autre chose ?",
+        "form.suggest.problem.placeholder": "Ce qui est pénible aujourd'hui, et à quelle fréquence ça te coûte",
+        "form.suggest.solution": "Que voudrais-tu qu'il se passe ?",
+        "form.suggest.alternatives": "As-tu envisagé autre chose ?",
         "form.suggest.context": "Autre chose ? Exemples, liens",
         # --- ticket 07 : la seconde voix, consignée sur le ticket existant --------------------
         # Une demande est souhaitée ou non, et une seule personne tranche. *Quelqu'un d'autre qui
@@ -213,6 +223,13 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "priorart.closest": "Correspondance la plus proche : {proposed}, {answer}.",
         "priorart.also_considered": "également envisagé :",
         "priorart.deterministic": "_Balayage déterministe : appariement de mots, aucun modèle._",
+        "withheld.mission": (
+            "résumée : seuls les champs listés plus haut sont publiés — ni les noms de groupes, "
+            "ni le briefing, ni les déclencheurs"
+        ),
+        "withheld.log": "réduit par le profil *Diagnostic* : seul l'extrait ci-dessus est publié",
+        "withheld.text": "cité en partie : seul l'extrait ci-dessus est publié",
+        "withheld.archive": "listé seulement : le contenu des fichiers n'est pas publié",
         # --- /bug, the deterministic intake --------------------------------------------------
         "bug.received": "📥 Rapport reçu : **{title}**",
         "bug.facts": ("-# Version déclarée : {version} · Composant : {component}\n-# Dépôt consulté : {revision}"),
@@ -474,11 +491,13 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "it on the support channel, this one does not fix itself."
         ),
         "suggest.named_issue": (
-            "🔎 **Your request looks like an issue that is already open: #{issue}.**\n"
+            "🔎 **Your request looks like an issue that is already open:**\n"
+            "> [#{issue} — {title}]({url})\n\n"
             "That match comes from reading the meaning, not from comparing words — no two people "
             "describe the same need with the same vocabulary. Open it and tell me: is it the same "
             "thing, or not?"
         ),
+        "suggest.no_title": "(untitled)",
         "suggest.settled.named_issue": ("Understood, nothing new is opened: issue #{issue} already carries this need."),
         # --- ticket 01: what the forms *show*, and not only what they say --------------------
         "command.ask.description": "Ask a question about the VEAF Mission Creation Tools documentation",
@@ -545,6 +564,12 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "priorart.closest": "Closest match: {proposed}, {answer}.",
         "priorart.also_considered": "also considered:",
         "priorart.deterministic": "_Deterministic sweep: word matching, no model._",
+        "withheld.mission": (
+            "summarised: only the fields listed above are published — no group names, no briefing, no triggers"
+        ),
+        "withheld.log": "reduced by the *Diagnostic* profile: only the excerpt above is published",
+        "withheld.text": "quoted in part: only the excerpt above is published",
+        "withheld.archive": "listed only: the files' contents are not published",
         # --- /bug, the deterministic intake --------------------------------------------------
         "bug.received": "📥 Report received: **{title}**",
         "bug.facts": ("-# Claimed version: {version} · Component: {component}\n-# Repository consulted: {revision}"),

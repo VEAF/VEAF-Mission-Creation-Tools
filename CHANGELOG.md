@@ -701,6 +701,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   English on purpose is a component's **value** — those are the issue templates' options, word for
   word, and a translated value is a component nobody can filter on.
 
+- **Four places the bot's output buried what mattered, all four seen on the live Discord within an
+  hour of shipping.** A long answer to a follow-up was cut at Discord's 2000 characters with a
+  notice — in a **thread**, where a second message costs nothing; answers now overflow into further
+  messages, split on line boundaries, code fences closed and reopened across the cut, with the
+  sources and the caveat on the last one. The follow-up invitation, which had taken 146 of the
+  body's 1849 characters, is now written once per thread rather than under every answer. A bug
+  report with a mission attached had a *what is missing* section of 28 lines, **26 of them
+  deliberate** — every `.miz` field the service summarises rather than publishes — which buried the
+  two real findings; missing and withheld are now two lists, and an attachment contributes one line
+  instead of twenty-five. And a duplicate proposed by the model showed a bare issue number: it now
+  shows the title and the link, because a proposal a reader cannot judge without opening GitHub is
+  an assertion — and bug reports are no longer offered as duplicates of a suggestion, which is what
+  made the bot propose *La mission ne fonctionne pas* for a request about a user interface.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

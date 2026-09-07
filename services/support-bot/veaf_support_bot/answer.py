@@ -31,6 +31,16 @@ DISCORD_MESSAGE_LIMIT: Final = 2000
 #: Longest name a Discord thread can carry.
 DISCORD_THREAD_NAME_LIMIT: Final = 100
 
+#: The fence a Markdown code block opens and closes with.
+_FENCE: Final = "```"
+
+#: What reopening a fence costs at the top of a part: the fence and its newline.
+_FENCE_COST: Final = 4
+
+#: Smallest room a part may have, whatever the footer costs. A footer longer than the message itself
+#: would otherwise reduce every part to nothing and loop for ever.
+_MIN_PART_ROOM: Final = 200
+
 #: Keyword the model is asked to put on the last line of its answer. Uppercase ASCII in both
 #: languages on purpose: a localized marker would have to be matched in two spellings, and the model
 #: translates a French instruction's keyword often enough to matter.
@@ -231,6 +241,157 @@ def render(body: str, links: Sequence[str], lang: str, *, continuable: bool = Fa
         # Two characters reserved, not one: the ellipsis *and* the newline before the notice.
         trimmed = trimmed[: max(room - len(notice) - 2, 0)].rstrip() + "…\n" + notice
     return f"{trimmed}\n\n{footer}" if trimmed else footer
+
+
+#: Most messages one answer may spend. Past a handful, an answer is not an answer any more, and the
+#: notice that exists today says what was left out. Five messages is about 10 000 characters — four
+#: times what the longest real answer measured, and still an amount a reader can scroll.
+MAX_ANSWER_MESSAGES: Final = 5
+
+
+def render_messages(
+    body: str,
+    links: Sequence[str],
+    lang: str,
+    *,
+    continuable: bool = False,
+) -> list[str]:
+    """Assemble the answer as the messages a thread will carry.
+
+    `/ask` answers inside a thread, and a thread has room for more than one message — which is what
+    this exists for. Before it, everything past 2000 characters was cut with a notice: honest, and a
+    waste, on exactly the exchanges that carry the most context.
+
+    Args:
+        body: The answer text, trailer already removed.
+        links: Markdown links to the pages cited, possibly none.
+        lang: ``"fr"`` or ``"en"``.
+        continuable: Whether the answer invites a follow-up. It rides on the **last** message, with
+            the rest of the footer.
+
+    Returns:
+        One message per part, each within :data:`DISCORD_MESSAGE_LIMIT`, in order. The footer —
+        sources, caveat, and the invitation when there is one — is on the last, and its room is
+        reserved there before that part is filled: an answer that loses its sources loses the one
+        thing that lets a reader contradict it.
+    """
+    footer = _footer(links, lang, continuable=continuable)
+    trimmed = body.strip()
+    if not trimmed:
+        return [footer[:DISCORD_MESSAGE_LIMIT]]
+
+    parts = _split(trimmed, DISCORD_MESSAGE_LIMIT, len(footer) + 2)
+    cut = parts.pop() if len(parts) > MAX_ANSWER_MESSAGES else ""
+    if cut:
+        parts = parts[:MAX_ANSWER_MESSAGES]
+        parts[-1] = _with_notice(parts[-1], lang, footer)
+    parts[-1] = f"{parts[-1]}\n\n{footer}" if parts[-1] else footer
+    return parts
+
+
+def _footer(links: Sequence[str], lang: str, *, continuable: bool) -> str:
+    """Build what the last message ends on.
+
+    Args:
+        links: Markdown links to the pages cited, possibly none.
+        lang: ``"fr"`` or ``"en"``.
+        continuable: Whether to invite a follow-up.
+
+    Returns:
+        The footer.
+    """
+    footer = (
+        text("ask.sources", lang, links=" · ".join(links))
+        if links
+        else text("ask.no_sources", lang, support_url=support_page_url(lang))
+    )
+    footer = f"{footer}\n{text('ask.disclaimer', lang)}"
+    if continuable:
+        footer = f"{footer}\n{text('ask.continue', lang)}"
+    return footer
+
+
+def _split(body: str, limit: int, last_reserved: int) -> list[str]:
+    """Cut a body into parts, on line boundaries, keeping fenced blocks renderable.
+
+    Args:
+        body: The answer text.
+        limit: Longest message.
+        last_reserved: Room the footer needs on whichever part turns out to be the last. Reserved on
+            **every** part rather than guessed: which one is last is only known once the split is
+            done, and a part that fitted exactly would then overflow by the footer's length.
+
+    Returns:
+        The parts, in order, each within *limit*. A part that ends inside a fenced code block is
+        closed, and the next one reopens the fence — half a block renders as prose, which is worse
+        than a cut sentence.
+    """
+    room = max(limit - last_reserved, _MIN_PART_ROOM)
+    parts: list[str] = []
+    current: list[str] = []
+    length = 0
+    open_fence = False
+
+    for line in body.split("\n"):
+        # A single line longer than a whole message is not a line anybody wrote: it is a paste, and
+        # it is cut on the character rather than dropped.
+        for chunk in _chunks(line, room - (_FENCE_COST if open_fence else 0)):
+            addition = len(chunk) + (1 if current else 0)
+            if current and length + addition > room:
+                parts.append(_seal(current, open_fence))
+                current, length = ([_FENCE] if open_fence else []), (_FENCE_COST if open_fence else 0)
+            current.append(chunk)
+            length += len(chunk) + (1 if len(current) > 1 else 0)
+            if chunk.lstrip().startswith(_FENCE):
+                open_fence = not open_fence
+
+    parts.append(_seal(current, open_fence))
+    return parts or [""]
+
+
+def _chunks(line: str, room: int) -> list[str]:
+    """Cut one line into pieces no longer than *room*.
+
+    Args:
+        line: The line.
+        room: Longest piece.
+
+    Returns:
+        The pieces, or the line itself when it already fits.
+    """
+    if len(line) <= room:
+        return [line]
+    return [line[start : start + room] for start in range(0, len(line), max(room, 1))]
+
+
+def _seal(lines: list[str], open_fence: bool) -> str:
+    """Close a part, closing a fenced block it ends inside of.
+
+    Args:
+        lines: The part's lines.
+        open_fence: Whether a fence is open at the end of it.
+
+    Returns:
+        The part.
+    """
+    part = "\n".join(lines).rstrip()
+    return f"{part}\n{_FENCE}" if open_fence and part else part
+
+
+def _with_notice(part: str, lang: str, footer: str) -> str:
+    """Make room on the last part for the notice saying the answer was cut.
+
+    Args:
+        part: The last part.
+        lang: ``"fr"`` or ``"en"``.
+        footer: What will be appended after it.
+
+    Returns:
+        The part, ending on the notice.
+    """
+    notice = text("ask.truncated", lang)
+    room = DISCORD_MESSAGE_LIMIT - len(footer) - len(notice) - 4
+    return f"{part[: max(room, 0)].rstrip()}…\n{notice}"
 
 
 def render_partial(body: str, lang: str) -> str:

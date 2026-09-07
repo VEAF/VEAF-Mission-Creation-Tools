@@ -567,6 +567,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   distinguishable in the filed issue: only the first is a finding, and it is the one that says a
   page may be missing.
 
+- **Support bot — the container can run `/bug` and `/suggest`.** The image was built on
+  `python:3.13-slim` with three pip packages and **no `git`**, while the service owns a clone it
+  refreshes itself (`git fetch --prune`, then `git reset --hard`). Without `git`, and with an empty
+  checkout volume, `open_checkout` refused the directory and **neither command was published** — a
+  container answering `/ask` and nothing else, with every test green, because the `container` job
+  built the image and never asked it whether `git` was there. The image now installs `git`, declares
+  a volume for the clone, and its entry point creates that clone on first start — shallow and
+  single-branch, since the service reads files and never history. A clone that fails is a warning
+  and not a dead bot: an unreachable GitHub must not take `/ask` down with it. The entry point ends
+  on `exec`, so `docker stop` still reaches Python and the graceful shutdown still runs. Ships with
+  a `compose.yml` for the VEAF Docker host, a PowerShell launcher for a direct rehearsal, and the
+  README section that says where it runs instead of asking.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

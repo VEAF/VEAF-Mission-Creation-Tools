@@ -87,10 +87,66 @@ jobs:
       - name: Build the image
         run: docker build -t veaf-support-bot:ci .
 
+      # The hole this closes: the image shipped a whole lot with no `git`, so `open_checkout`
+      # refused the directory and **neither `/bug` nor `/suggest` was published** — the bot answered
+      # `/ask` and nothing else. Every test passed, because none of them asked the image whether it
+      # could do the one thing the service needs from the operating system.
+      - name: The image can refresh the clone the service owns
+        run: |
+          docker run --rm --entrypoint git veaf-support-bot:ci --version
+          # The entry point bounds the first clone with it, so that a stalled connection cannot
+          # hold PID 1 for ever and keep `/ask` from ever starting.
+          docker run --rm --entrypoint timeout veaf-support-bot:ci --version
+
+      # And the entry point really fills an empty checkout volume. Run with no configuration, so
+      # the service still exits 78 straight after — what is asserted is the clone, which happens
+      # first and prints its own line.
+      #
+      # This is the ONE step that clones. The image sets SUPPORT_BOT_CHECKOUT_PATH, so every other
+      # `docker run` below would otherwise pay the same 87 MiB — and one of them waits 30 seconds
+      # for a health endpoint, a budget that would then include a network clone and go red on a
+      # hiccup at github.com. They pass an empty value to opt out.
+      - name: The entry point clones into an empty checkout volume
+        run: |
+          set +e
+          output=$(docker run --rm \
+            -e VEAF_CLONE_URL=https://github.com/VEAF/VEAF-Mission-Creation-Tools.git \
+            veaf-support-bot:ci 2>&1)
+          set -e
+          echo "$output"
+          echo "$output" | grep -q "entrypoint: clone ready"
+          # Python ran after the shell. That it was *exec*ed rather than forked is asserted by the
+          # SIGTERM step further down, which measures how long the shutdown takes.
+          echo "$output" | grep -q "the support bot cannot start"
+          # The URL never reaches the log: it can carry a token when a private repository is cloned.
+          if echo "$output" | grep -q "github.com/VEAF"; then
+            echo "the entrypoint printed the clone URL"; exit 1
+          fi
+
+      # The cleanup that clears a half-written clone must not clear anything else. Pointed at a
+      # directory holding data and no `.git` — which is what `/app/state` is, and what an operator
+      # who mistypes the checkout path would hand it — it has to refuse and say so. Reported by
+      # review: the destructive form of this would have erased the quota counters, the filed-issue
+      # ledger and the thread links on the next start, silently.
+      - name: The clone never deletes what is not a clone
+        run: |
+          set +e
+          output=$(docker run --rm \
+            -e SUPPORT_BOT_CHECKOUT_PATH=/app/state \
+            -e SUPPORT_BOT_QUOTA_STATE_FILE=/app/state/quota.json \
+            --entrypoint sh veaf-support-bot:ci -c \
+            'printf "{}" > /app/state/quota.json
+             /usr/local/bin/docker-entrypoint.sh 2>&1
+             echo "STILL THERE: $(cat /app/state/quota.json)"')
+          set -e
+          echo "$output"
+          echo "$output" | grep -q "is not empty and not a git repository"
+          echo "$output" | grep -q "STILL THERE: {}"
+
       - name: A misconfigured container fails loudly instead of idling
         run: |
           set +e
-          output=$(docker run --rm veaf-support-bot:ci 2>&1)
+          output=$(docker run --rm -e SUPPORT_BOT_CHECKOUT_PATH= veaf-support-bot:ci 2>&1)
           code=$?
           set -e
           echo "$output"
@@ -110,6 +166,7 @@ jobs:
           # configuration error is printed at CRITICAL straight into a log collector, and the one
           # variable in this set that certainly holds a credential is this one.
           output=$(docker run --rm \
+            -e SUPPORT_BOT_CHECKOUT_PATH= \
             -e SUPPORT_BOT_DISCORD_TOKEN=x \
             -e SUPPORT_BOT_DISCORD_GUILD_ID=1 \
             -e SUPPORT_BOT_WORKER_SECRET=x \
@@ -136,6 +193,7 @@ jobs:
       - name: It starts and answers from outside the container
         run: |
           docker run -d --name support-bot -p 8081:8081 \
+            -e SUPPORT_BOT_CHECKOUT_PATH= \
             -e SUPPORT_BOT_DRY_RUN=true \
             -e SUPPORT_BOT_HEARTBEAT_SECONDS=2 \
             veaf-support-bot:ci

@@ -1,0 +1,83 @@
+# The support bot, as the VEAF Docker host runs it.
+#
+# The whole procedure on that host:
+#
+#   git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
+#   cd VEAF-Mission-Creation-Tools/services/support-bot
+#   cp .env.example .env    # then fill it in — see README, "Where it runs"
+#   docker compose up -d --build
+#
+# Updating is `git pull` then the same `up -d --build`: everything that must survive lives on the
+# two volumes below, so rebuilding costs a restart and nothing else.
+#
+# Built on place from git, by decision (2026-09-07): no registry, no publishing credential, and the
+# service ships with the repository it serves.
+
+services:
+  support-bot:
+    build: .
+    image: veaf-support-bot:local
+    container_name: veaf-support-bot
+
+    # The service reads its configuration from the environment and never from a file — which is why
+    # the container is its natural home. `.env` never reaches a layer: `.dockerignore` excludes it
+    # and `tests/test_packaging.py` asserts that.
+    #
+    # What it does reach is `docker inspect` and the container's config on disk, in clear. That is
+    # inherent for the Discord token, which has no file form. It is **not** inherent for the GitHub
+    # App's private key — the secret whose leak is heaviest, since it writes to a public repository —
+    # so that one comes through a mount below and never through the environment.
+    env_file: .env
+    environment:
+      SUPPORT_BOT_GITHUB_PRIVATE_KEY_FILE: /run/secrets/github_app_key
+    secrets:
+      - github_app_key
+
+    # What this does and does not cover, because the difference matters here more than usual.
+    #
+    # It restarts the container when the process **exits** — a crash, an OOM kill, a host reboot.
+    # It does **not** act on the HEALTHCHECK: outside Swarm, Docker marks a container `unhealthy`
+    # and leaves it running. So the failure this service is shaped around — the process alive with
+    # the Discord gateway gone, nobody getting an answer — is *reported* by the health check and
+    # recovered by nobody. Watching for that needs something outside Compose: an uptime monitor on
+    # `/readyz` (uncomment the port below), or a supervisor that recreates unhealthy containers.
+    #
+    # The cost of that, worth knowing before it puzzles somebody: Compose cannot exclude an
+    # exit code, so a **misconfiguration** restarts for ever too. Exit 78 means restarting
+    # will not help, and the service prints every problem at once before it — so a container
+    # looping at startup is read by scrolling to the FIRST message, not by hunting a crash.
+    restart: unless-stopped
+
+    volumes:
+      # What cannot be rebuilt. Four files: the per-user quota counters, the day's enrichment
+      # allowance, the ledger of what was already filed, and the thread-to-issue links — losing the
+      # last one orphans every thread already opened, so the issues stay and stop being answered.
+      - state:/app/state
+      # What can be rebuilt: the clone the service owns. The entry point creates it on first start;
+      # losing this volume costs one shallow clone.
+      - checkout:/app/checkout
+
+    # Nothing calls this service from outside — it calls Discord, GitHub and the Worker. The health
+    # endpoint is reachable from the host through `docker exec` or `docker inspect`, which is what a
+    # human debugging it uses. Uncomment to put /readyz in front of an uptime monitor:
+    # ports:
+    #   - "127.0.0.1:8081:8081"
+
+    # A log that grows without bound is how a small host runs out of disk months later, on the one
+    # file nobody thinks about.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  state:
+  checkout:
+
+secrets:
+  # Put the App's .pem beside this file. It is mounted read-only at /run/secrets/github_app_key,
+  # stays out of `docker inspect`, and `SUPPORT_BOT_GITHUB_PRIVATE_KEY` must then be left unset:
+  # the service refuses both forms at once rather than picking one.
+  github_app_key:
+    file: ./github-app.pem

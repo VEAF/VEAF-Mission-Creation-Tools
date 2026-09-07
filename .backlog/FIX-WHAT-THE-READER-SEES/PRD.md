@@ -80,6 +80,7 @@ wrong is calling it *missing*, and drowning in it the two lines that really are:
 | 02 | [The invitation is written once per thread](tickets/02-invitation-once.md) | fix |
 | 03 | [What is missing, and what was kept back, are two lists](tickets/03-missing-versus-withheld.md) | fix |
 | 04 | [A proposal from the model shows its evidence](tickets/04-a-proposal-shows-its-evidence.md) | fix |
+| 05 | [The bot says *tu*, everywhere](tickets/05-one-register.md) | fix |
 
 ## Definition of done
 
@@ -91,4 +92,5 @@ wrong is calling it *missing*, and drowning in it the two lines that really are:
   missing is readable at a glance;
 - a duplicate proposed by the model shows the title and the link of what it proposes, and a bug
   report is never proposed as a duplicate of a suggestion;
+- no French string addresses the reader as *vous*, and a test says so;
 - unit tests per case; quality gate clean.

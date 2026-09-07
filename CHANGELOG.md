@@ -673,6 +673,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   leave room for the consent click it is **skipped** — the sweep still runs and the issue still
   records what it found. The numbers live in one place both flows read.
 
+- **`/suggest` recognises a request already made in other words, needs a page before saying
+  something exists, and records the second voice on it.** Three things the first real run showed.
+  A duplicate was found by comparing words, and no two humans write the same request the same way —
+  the tracker holds `#240 -cap un peu plus selectif`, `#187 Modifications du watchdog de CAP` and
+  `#178 Gérer la destruction du -cap`, one subject in three vocabularies. The open issues' titles now
+  travel **inside the call the flow already makes**, so one request answers both questions at no
+  extra spend, and what the model recognises is proposed with the issue it names and refused with a
+  click, like every other match. Second: the bot announced *"la documentation semble déjà répondre à
+  ta demande"* over an answer that said the opposite — the model had answered in prose where a
+  keyword was asked for. Saying *it already exists* now requires **at least one cited page**, which
+  does not depend on guessing what a sentence means and matches the rule the service already runs
+  on: a link the asker can open is what lets him contradict the machine. Third, and the one that was
+  a promise the flow did not keep: an accepted duplicate now offers to **add the asker's observation
+  to the existing issue**, drafted, shown, and posted only on a second click. A suggestion is wanted
+  or not, and a second person asking for the same thing is the only signal of priority it will ever
+  carry.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

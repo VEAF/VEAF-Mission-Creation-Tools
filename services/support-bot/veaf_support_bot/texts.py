@@ -111,6 +111,36 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "questions pour aujourd'hui, par sécurité. Ça se remet à zéro {reset_relative} (à "
             "{reset_time}) — et signale-le sur le canal support, ça ne se répare pas tout seul."
         ),
+        "suggest.named_issue": (
+            "🔎 **Ta demande ressemble à un ticket déjà ouvert : #{issue}.**\n"
+            "Ce rapprochement vient d'une lecture du sens, pas d'une comparaison de mots — deux "
+            "personnes ne décrivent jamais le même besoin avec le même vocabulaire. Ouvre-le et "
+            "dis-moi : c'est bien la même chose, ou pas ?"
+        ),
+        "suggest.settled.named_issue": (
+            "Entendu, rien de nouveau n'est ouvert : le ticket #{issue} porte déjà ce besoin."
+        ),
+        # --- ticket 07 : la seconde voix, consignée sur le ticket existant --------------------
+        # Une demande est souhaitée ou non, et une seule personne tranche. *Quelqu'un d'autre qui
+        # demande la même chose* est le seul signal de priorité qu'une demande portera jamais, et il
+        # était jeté : on disait à l'auteur que le sujet est suivi ailleurs, et rien nulle part
+        # n'enregistrait qu'une personne de plus en avait besoin.
+        "suggest.observation.header": (
+            "💬 **Voici ce qui serait ajouté au ticket**, sous ton nom Discord. Rien n'est publié "
+            "tant que tu n'as pas cliqué."
+        ),
+        "suggest.observation.title": "Observation à ajouter au ticket #{issue}",
+        "suggest.observation.body": (
+            "**{asker}** a demandé la même chose sur le Discord VEAF. Le besoin, dans ses mots :\n\n"
+            "{problem}\n\n"
+            "-# Ajouté automatiquement par le bot de support VEAF, avec son accord explicite."
+        ),
+        "suggest.observation.recorded": "✅ C'est ajouté au ticket #{issue} : une voix de plus y est consignée.",
+        "suggest.observation.declined": "D'accord, rien n'a été publié sur le ticket.",
+        "suggest.observation.failed": (
+            "Je n'ai pas réussi à écrire sur le ticket #{issue}. Rien n'est perdu de ton côté — tu "
+            "peux commenter toi-même si tu as un compte GitHub."
+        ),
         # --- ce qu'une pièce jointe devient dans le ticket ------------------------------------
         # Écrit dans le ticket, donc dans la langue du rapporteur. Les deux comptes ci-dessous
         # portent sur des choses différentes — les enregistrements que le profil garde, et les
@@ -407,6 +437,30 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "The bot can no longer keep its counters, so it has held itself to {limit} questions for "
             "today as a precaution. It resets {reset_relative} (at {reset_time}) — and please report "
             "it on the support channel, this one does not fix itself."
+        ),
+        "suggest.named_issue": (
+            "🔎 **Your request looks like an issue that is already open: #{issue}.**\n"
+            "That match comes from reading the meaning, not from comparing words — no two people "
+            "describe the same need with the same vocabulary. Open it and tell me: is it the same "
+            "thing, or not?"
+        ),
+        "suggest.settled.named_issue": ("Understood, nothing new is opened: issue #{issue} already carries this need."),
+        # --- ticket 07: the second voice, recorded on the existing issue ---------------------
+        "suggest.observation.header": (
+            "💬 **This is what would be added to the issue**, under your Discord name. Nothing is "
+            "published until you click."
+        ),
+        "suggest.observation.title": "Observation to add to issue #{issue}",
+        "suggest.observation.body": (
+            "**{asker}** asked for the same thing on the VEAF Discord. The need, in his words:\n\n"
+            "{problem}\n\n"
+            "-# Added automatically by the VEAF support bot, with his explicit consent."
+        ),
+        "suggest.observation.recorded": "✅ Added to issue #{issue}: one more voice is recorded there.",
+        "suggest.observation.declined": "All right, nothing was published on the issue.",
+        "suggest.observation.failed": (
+            "I could not write to issue #{issue}. Nothing is lost on your side — you can comment "
+            "yourself if you have a GitHub account."
         ),
         # --- what an attachment becomes in the issue ------------------------------------------
         "attachment.log_digest": (

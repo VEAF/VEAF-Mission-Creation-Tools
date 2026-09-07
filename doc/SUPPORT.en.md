@@ -155,14 +155,30 @@ issue that will wait for months.
 So the bot checks, in this order:
 
 1. **the documentation** — it puts your request to the assistant, which answers with the matching
-   pages. If that answers your need, you say so and **nothing is opened**;
-2. **the open issues** — somebody may have asked already;
+   pages. If that answers your need, you say so and **nothing is opened**. It only says *this
+   already exists* when it can show you **at least one page**: a claim with no page to open is not
+   an answer;
+2. **the open issues, by meaning and not only by words** — in the same question, it compares your
+   request against the titles of the open issues. No two people describe the same need with the same
+   vocabulary, so word matching walks straight past a duplicate a human reader would see at once;
 3. **the lots under way and the roadmap** — it may be planned already, or deliberately turned down,
    with the reasons.
 
 Every time, the bot shows you **what it found and why**, and you can answer *no, that is not it*:
 your request carries on. A machine does not get to decide on your behalf that your idea already
-exists.
+exists — and **neither does its silence**: if you do not answer, your request carries on as though
+nothing had been proposed.
+
+### If it really is the same need, your voice is added to the issue {#second-voice}
+
+When you recognise an issue as yours, the bot offers to **add your observation** to it: who you are
+and the need in your own words, and nothing else — the issue already holds a request.
+
+As everywhere else, it **shows you first** and publishes only after your click. Recognising an issue
+as your own is not the same act as agreeing to write under it.
+
+It matters: a feature request is wanted or not, and **a second person asking for the same thing is
+the only signal of priority it will ever carry**.
 
 If the documentation says nothing about the subject, the issue records that. It is useful: if the
 feature does exist, this is not a feature request, it is a **page to write** — and the cheapest fix

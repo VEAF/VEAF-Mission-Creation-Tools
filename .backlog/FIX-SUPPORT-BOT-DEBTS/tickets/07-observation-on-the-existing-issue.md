@@ -1,6 +1,6 @@
 # 07 — Do what the message promised: record the second voice
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 

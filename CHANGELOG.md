@@ -600,6 +600,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   statics' counterpart, kept separate because their built-in default is already `0`. Both are read by
   presence rather than truthiness, so `0` — the value the feature exists for — survives the generator.
 
+- **A thread that answers back: mention the bot to continue an `/ask`.** The answer opened a thread
+  and nothing could be asked in it — a second question meant a second `/ask` in the channel,
+  retyping the context the thread already held. Now **mentioning the bot inside the thread it
+  opened** asks the next question with the exchange in mind, so a follow-up can be as elliptical as
+  *"et si je veux créer une mission ? on a des modèles ?"*. Three things shaped it. The bot reads
+  **only** the messages that name it — not by convention: message content is a privileged intent
+  this service asks for nowhere, and Discord delivers the text of a message only when the app is
+  mentioned in it, so *the bot cannot read what is not addressed to it* is a property of the
+  connection. What each thread was about is kept on the state volume, beside the quota counters, so
+  a rebuild does not end a conversation. And the retrieval query joins the thread's opening question
+  to the follow-up: the Worker picks the documentation passages from the last user turn alone, and
+  an ellipsis on its own retrieves nothing about the subject — the model would then answer
+  confidently over the wrong pages. A follow-up spends one question of the asker's allowance, like
+  any other.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

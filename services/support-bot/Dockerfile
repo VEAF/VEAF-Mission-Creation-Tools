@@ -17,6 +17,7 @@ ENV PYTHONUNBUFFERED=1 \
     SUPPORT_BOT_GITHUB_LEDGER_FILE=/app/state/filed-issues.json \
     SUPPORT_BOT_ENRICH_STATE_FILE=/app/state/enrichment.json \
     SUPPORT_BOT_RELAY_LINKS_FILE=/app/state/relay-links.json \
+    SUPPORT_BOT_ASK_THREADS_FILE=/app/state/ask-threads.json \
     SUPPORT_BOT_CHECKOUT_PATH=/app/checkout
 
 WORKDIR /app

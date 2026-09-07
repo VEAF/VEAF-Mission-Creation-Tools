@@ -23,11 +23,12 @@ class RecordingExchange:
         thread_allowed: Whether :meth:`open_thread` succeeds.
     """
 
-    def __init__(self, *, thread_allowed: bool = True, fails_on: Sequence[str] = ()) -> None:
+    def __init__(self, *, thread_allowed: bool = True, fails_on: Sequence[str] = (), thread: str = "thread-1") -> None:
         """Initialize the recorder.
 
         Args:
             thread_allowed: Whether opening a thread is permitted, so the degraded path is testable.
+            thread: The id :meth:`thread_id` reports once a thread exists.
             fails_on: Method names that raise ``RuntimeError`` after recording the call. Discord
                 answering 500 to an ``announce`` or a ``post`` is not a modelled failure anywhere in
                 the exchange, and once the interaction is deferred an escape leaves the reader on a
@@ -36,6 +37,7 @@ class RecordingExchange:
         self.calls: list[tuple[str, str]] = []
         self.escalations: list[tuple[str, str, str]] = []
         self.thread_allowed = thread_allowed
+        self.thread = thread
         self._fails_on = set(fails_on)
 
     def _record(self, method: str, content: str) -> None:
@@ -106,6 +108,15 @@ class RecordingExchange:
         """
         self.escalations.append((question, answer, lang))
         self._record("offer_escalation", answer)
+
+    async def thread_id(self) -> str | None:
+        """Return the thread the answer went into.
+
+        Returns:
+            :attr:`thread`, which is ``None`` when the recorder was told no thread could be opened —
+            the case where an exchange is not continuable because there is nowhere to continue it.
+        """
+        return self.thread if self.thread_allowed else None
 
     @property
     def steps(self) -> list[str]:

@@ -41,6 +41,26 @@ Le fil est public exprès : la réponse sert à la personne suivante qui posera 
 n'importe qui peut y passer pour corriger le bot — « non, depuis la 6.19 ça marche autrement ». Sur
 un assistant de documentation, c'est la seule correction qui rattrape vraiment une réponse fausse.
 
+### Poser une question complémentaire {#followup}
+
+Une réponse appelle souvent une autre question. Dans le fil, **mentionnez le bot** et posez-la :
+
+```text
+@VEAF Tools Bot et si je veux créer une mission ? on a des modèles ?
+```
+
+Il répond avec ce qui précède en tête, donc la question peut être aussi elliptique que celle-là :
+inutile de rappeler le sujet.
+
+Trois choses à savoir :
+
+- **il ne lit que les messages qui le mentionnent.** Le reste de la conversation dans le fil ne lui
+  parvient pas — ce n'est pas une politesse, c'est Discord qui ne lui transmet pas le texte des
+  messages où il n'est pas nommé ;
+- **ça ne marche que dans les fils qu'il a ouverts** pour un `/ask`. Le mentionner ailleurs ne
+  déclenche rien ;
+- **chaque relance compte comme une question** dans les quotas, au même titre qu'un `/ask`.
+
 ### Ce qu'il faut savoir avant de s'y fier
 
 - **Il répond à partir de la documentation, et de rien d'autre.** Il ne lit pas le code, ne regarde

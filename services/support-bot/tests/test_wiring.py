@@ -352,6 +352,10 @@ class TestTheServiceWiresItsOwnPieces(unittest.IsolatedAsyncioTestCase):
         self._directory = tempfile.TemporaryDirectory()
         self.addCleanup(self._directory.cleanup)
         self.state_file = str(Path(self._directory.name) / "quota.json")
+        # The thread records go to the same throwaway directory, for the same reason: a service
+        # built from defaults writes them beside the sources, and `test_packaging.py` fails the
+        # moment one lands in the repository.
+        self.threads_file = str(Path(self._directory.name) / "ask-threads.json")
 
     def _service(self, **overrides: str) -> SupportBotService:
         """Build a service on the test's own counters file.
@@ -362,7 +366,9 @@ class TestTheServiceWiresItsOwnPieces(unittest.IsolatedAsyncioTestCase):
         Returns:
             The service.
         """
-        return SupportBotService(_config(QUOTA_STATE_FILE=self.state_file, **overrides))
+        return SupportBotService(
+            _config(QUOTA_STATE_FILE=self.state_file, ASK_THREADS_FILE=self.threads_file, **overrides)
+        )
 
     async def test_the_configured_ceilings_are_the_ones_enforced(self) -> None:
         """A keeper built from defaults would enforce numbers nobody configured."""

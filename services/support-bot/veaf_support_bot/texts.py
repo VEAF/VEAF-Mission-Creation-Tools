@@ -49,6 +49,14 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "dépassée. Corrigez-la dans ce fil si c'est le cas."
         ),
         "ask.truncated": "-# ✂️ Réponse tronquée : elle dépassait ce qu'un message Discord peut porter.",
+        "ask.continue": (
+            "-# 💬 Une question complémentaire ? Mentionnez-moi dans ce fil et je réponds avec ce qui "
+            "précède en tête. Chaque relance compte comme une question."
+        ),
+        "ask.followup.forgotten": (
+            "Je ne retrouve plus ce dont parlait ce fil — il est peut-être trop ancien, ou le service "
+            "a été redémarré depuis. Reposez la question avec `/ask` et j'ouvre un nouveau fil."
+        ),
         # --- upstream failures --------------------------------------------------------------
         "ask.error.unavailable": (
             "Je n'arrive pas à joindre l'assistant de documentation pour le moment. Réessaie dans "
@@ -302,6 +310,14 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "this thread if it is."
         ),
         "ask.truncated": "-# ✂️ Answer truncated: it was longer than a Discord message can carry.",
+        "ask.continue": (
+            "-# 💬 A follow-up? Mention me in this thread and I answer with what came before in mind. "
+            "Each follow-up counts as one question."
+        ),
+        "ask.followup.forgotten": (
+            "I no longer have what this thread was about — it may be too old, or the service was "
+            "restarted since. Ask again with `/ask` and I will open a new thread."
+        ),
         # --- upstream failures --------------------------------------------------------------
         "ask.error.unavailable": (
             "I cannot reach the documentation assistant right now. Try again in a few minutes; if it "

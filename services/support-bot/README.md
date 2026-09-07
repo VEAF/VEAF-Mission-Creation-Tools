@@ -574,6 +574,7 @@ CRITICAL veaf-support-bot.cli the support bot cannot start: 3 configuration prob
 | `SUPPORT_BOT_ENRICH_STATE_FILE` | no | `state/enrichment.json` | Where that allowance is counted. Its own file, so a busy day of questions cannot eat the day's hypotheses. **Must survive a restart.** |
 | `SUPPORT_BOT_ENRICH_ENDPOINT` | no | Worker `/analyze` | Where the one call goes. `kind: "bug"` selects the hypothesis prompt on that route. |
 | `SUPPORT_BOT_RELAY_LINKS_FILE` | no | `state/relay-links.json` | The thread ↔ issue links. **Must survive a restart**: losing it orphans every thread already opened — the issues stay, but they stop being answered. |
+| `SUPPORT_BOT_ASK_THREADS_FILE` | no | `state/ask-threads.json` | What each `/ask` thread was about, so mentioning the bot in one continues it. **Must survive a restart**; losing it costs the follow-up, never the answer. |
 | `SUPPORT_BOT_RELAY_POLL_SECONDS` | no | `600` | Gap between two rounds of asking GitHub what changed. Each round costs two API calls per followed issue. |
 | `SUPPORT_BOT_DRY_RUN` | no | `false` | Start everything except the connection to Discord. |
 

@@ -40,9 +40,11 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from logging import Logger
+from pathlib import Path
 from typing import Any, Protocol
 
 from veaf_support_bot import answer as answer_module
+from veaf_support_bot.followup import ThreadConversation, ThreadMemory, followup_turns
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.quota import QuotaDecision, QuotaKeeper
 from veaf_support_bot.texts import normalize_language, text
@@ -112,6 +114,16 @@ class Exchange(Protocol):
             lang: ``"fr"`` or ``"en"``.
         """
 
+    async def thread_id(self) -> str | None:
+        """Return the id of the thread the answer lives in, once there is one.
+
+        It is what a follow-up is recognised by, so an exchange that could not open a thread
+        returns ``None`` and is simply not continuable — there is nowhere to continue it.
+
+        Returns:
+            The thread id, or ``None``.
+        """
+
 
 @dataclass
 class AskContext:
@@ -122,12 +134,17 @@ class AskContext:
         user_display: How to name the asker in the thread's opening line.
         question: The question, verbatim.
         locale: The locale Discord reported, or ``None``.
+        conversation: What the thread has already said, when this question continues one. ``None``
+            for a plain ``/ask``, which is what makes a follow-up a *variant* of the exchange rather
+            than a second implementation of it: the order of steps, the quota, the streaming and the
+            failure handling are the ones this handler already guarantees.
     """
 
     user_id: str
     user_display: str
     question: str
     locale: str | None = None
+    conversation: ThreadConversation | None = None
 
 
 def discord_timestamp(moment: float, style: str) -> str:
@@ -184,12 +201,16 @@ class AskHandler:
         logger: Logger | None = None,
         min_edit_interval: float = MIN_EDIT_INTERVAL_SECONDS,
         min_edit_chars: int = MIN_EDIT_CHARS,
+        memory: ThreadMemory | None = None,
     ) -> None:
         """Initialize the handler.
 
         Args:
             worker: The documentation chatbot client.
             quota: The per-user counters.
+            memory: Where answered threads are recorded so a mention can continue them. ``None``
+                leaves the exchange exactly as it was, and the answer then does not advertise a
+                follow-up — a promise nothing would honour.
             clock: Source of monotonic-ish timestamps for the edit pacing; defaults to
                 :func:`time.monotonic`.
             logger: Logger to use; defaults to the service's ``ask`` logger.
@@ -202,6 +223,16 @@ class AskHandler:
         self._logger = logger or get_logger("ask")
         self._min_edit_interval = min_edit_interval
         self._min_edit_chars = min_edit_chars
+        self._memory = memory
+
+    @property
+    def memory(self) -> ThreadMemory | None:
+        """Return where answered threads are recorded, so the gateway can recognise a follow-up.
+
+        Returns:
+            The memory, or ``None`` when the handler was built without one.
+        """
+        return self._memory
 
     async def handle(self, exchange: Exchange, context: AskContext) -> None:
         """Answer one question, and answer it even when something unexpected goes wrong.
@@ -272,9 +303,16 @@ class AskHandler:
             await exchange.announce(quota_message(decision, lang))
             return
 
-        await exchange.announce(text("ask.header", lang, user=context.user_display, question=context.question))
-        opened = await exchange.open_thread(answer_module.thread_name(context.question))
-        await exchange.post(text("ask.thinking", lang) if opened else text("ask.error.no_thread", lang))
+        if context.conversation is None:
+            await exchange.announce(text("ask.header", lang, user=context.user_display, question=context.question))
+            opened = await exchange.open_thread(answer_module.thread_name(context.question))
+            await exchange.post(text("ask.thinking", lang) if opened else text("ask.error.no_thread", lang))
+        else:
+            # A follow-up is already inside its thread: there is nothing to announce — the reader's
+            # own message says what was asked — and nothing to open. It starts where a first
+            # question starts once the thread exists, on the placeholder.
+            opened = True
+            await exchange.post(text("ask.thinking", lang))
 
         collected, failure = await self._collect(exchange, context, lang)
         if failure is not None:
@@ -292,7 +330,15 @@ class AskHandler:
 
         body, titles = answer_module.split_sources(collected)
         links = answer_module.source_links(titles, lang)
-        await exchange.edit(answer_module.render(body, links, lang))
+        thread = await self._thread_of(exchange)
+        memory = self._memory
+        # Recorded *before* the final edit, and the answer only invites a follow-up when that
+        # actually reached the disk. The other order reads better and lies: on a read-only state
+        # volume the answer would end with "mention me in this thread", the record would fail with a
+        # warning nobody sees, and the reader following that invitation would be answered by
+        # silence — the one outcome the invitation exists to prevent.
+        recorded = memory.remember(thread, context.question, body, lang) if memory and thread else False
+        await exchange.edit(answer_module.render(body, links, lang, continuable=recorded))
         await exchange.offer_escalation(context.question, body, lang)
         self._logger.info(
             "question answered",
@@ -306,6 +352,25 @@ class AskHandler:
                 "linked_sources": len(links),
             },
         )
+
+    async def _thread_of(self, exchange: Exchange) -> str | None:
+        """Ask the exchange which thread the answer lives in, without letting that fail the answer.
+
+        Args:
+            exchange: The Discord side of the conversation.
+
+        Returns:
+            The thread id, or ``None`` when there is none or Discord refused to say. The answer is
+            already written by the time this runs, so a failure here costs the follow-up alone.
+        """
+        try:
+            return await exchange.thread_id()
+        except Exception as error:  # noqa: BLE001 - a convenience must not take the answer with it
+            self._logger.warning(
+                "could not identify the thread the answer went to",
+                extra={"event": "ask.thread_unknown", "error": type(error).__name__},
+            )
+            return None
 
     async def _collect(self, exchange: Exchange, context: AskContext, lang: str) -> tuple[str, WorkerFailure | None]:
         """Stream the answer in, editing the message as it grows.
@@ -324,7 +389,11 @@ class AskHandler:
         size = 0
         last_edit = self._clock()
         last_size = 0
-        messages = answer_module.protocol_turns(context.question)
+        messages = (
+            followup_turns(context.conversation, context.question)
+            if context.conversation is not None
+            else answer_module.protocol_turns(context.question)
+        )
         budget = self._worker.timeout
         try:
             # The budget belongs here rather than only inside the client: aiohttp's own total timer
@@ -357,10 +426,12 @@ def build_handler(config: Any, quota: QuotaKeeper, **kwargs: Any) -> AskHandler:
     Args:
         config: The :class:`~veaf_support_bot.config.SupportBotConfig` in force.
         quota: The per-user counters.
-        **kwargs: Passed through to :class:`AskHandler`, so a test can inject a clock.
+        **kwargs: Passed through to :class:`AskHandler`, so a test can inject a clock or its own
+            memory. A caller that passes ``memory`` wins over the configured path.
 
     Returns:
         The handler.
     """
     worker = WorkerClient(config.worker_endpoint, config.worker_client, config.worker_secret)
+    kwargs.setdefault("memory", ThreadMemory(Path(config.ask_threads_file)))
     return AskHandler(worker, quota, **kwargs)

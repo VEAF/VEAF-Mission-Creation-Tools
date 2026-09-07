@@ -19,6 +19,21 @@ pays them.
 | 02 | [*He said no* and *he said nothing* are not the same answer](tickets/02-tri-state-confirm.md) | Two agent reviews of lot 5 |
 | 03 | [More than one role may open the hypothesis](tickets/03-several-roles.md) | Review of lot 4, ticket 08 |
 | 04 | [`/bug` runs on the same tight token budget `/suggest` was fixed for](tickets/04-bug-token-budget.md) | Finding 50 of lot 4's review, uncorrected |
+| 05 | [A request already made in other words](tickets/05-duplicate-by-meaning.md) | David, first real run |
+| 06 | [*It already exists* needs a page to point at](tickets/06-exists-needs-a-source.md) | David, first real run |
+| 07 | [Do what the message promised: record the second voice](tickets/07-observation-on-the-existing-issue.md) | David, first real run |
+| 08 | [Four rough edges the first real run showed](tickets/08-first-run-finish.md) | David, first real run |
+
+## What the first real run added
+
+Four of the eight came from one afternoon: 2026-09-07, David running the three commands against the
+live Discord, the live Worker and the live tracker. Everything worked — `/ask` answered with its
+sources, `/suggest` filed #928, `/bug` filed #929 with an automatic hypothesis that found a link
+between three log lines nobody had connected.
+
+What he saw *while* it worked is tickets 05 to 08, and one of them is a design correction rather
+than a defect: **a duplicate is recognised by comparing words, and no human types the same words
+twice.** That observation reframes the feature, and it is ticket 05.
 
 ## What this lot is not
 

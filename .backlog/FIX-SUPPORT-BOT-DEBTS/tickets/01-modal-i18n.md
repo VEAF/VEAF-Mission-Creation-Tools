@@ -43,18 +43,38 @@ nobody can filter on.
 Discord separates a choice's *displayed name* from its *value*, so a French label over an English
 value is possible — but the names of choices are declared at registration, like the descriptions.
 
-## Open question
+## Decided: the translator is in scope
 
-**Whether to adopt `app_commands.Translator`.** It is the only way to localise command descriptions
-and choice names, and it is a machinery of its own — a class, a locale table, and a registration
-hook. The modals need none of it. Options: fix the modals now and leave the picker in English; or
-adopt the translator and do both. Worth deciding before writing, since the second doubles the ticket.
+The question was whether to adopt `app_commands.Translator` — the only way to localise command
+descriptions and choice names, and a machinery of its own (a class, a locale table, a registration
+hook) that the modals do not need.
+
+**Decided 2026-09-07 by David, with a screenshot of the command picker:**
+
+```
+/ask      Ask a question about the VEAF Mission Creation Tools documentation
+/bug      Report a bug — a short form, and the files you have
+/suggest  Suggest an improvement — checked against what already exists
+```
+
+That is the first thing any mission maker sees of this bot, before typing anything, and it is the
+one surface a per-interaction fix cannot reach: descriptions are registered once, before any
+interaction exists. So the translator is in scope, and this ticket has two halves:
+
+1. **the modals** — titles, labels, placeholders — from `texts.py`, using the locale of the
+   interaction that opened them;
+2. **the registered surface** — the three command descriptions, and the component choice *names* —
+   through `app_commands.Translator`, whose table Discord stores and serves per client language.
+
+The second half is also what makes a French label possible over an English component **value**,
+which must stay word for word the issue templates' own.
 
 ## Definition of done
 
 - [ ] Modal titles, field labels and placeholders come from `texts.py`, in both languages
 - [ ] The language comes from the interaction, not from a constant
 - [ ] Component **values** unchanged, and the tests asserting they match the templates still pass
-- [ ] The open question decided and recorded
+- [ ] Command descriptions and choice names localised through `app_commands.Translator`
+- [ ] Discord's picker shows French to a French client, verified in the client and not only in a test
 - [ ] Unit tests: a modal built for `fr` and one for `en` carry different labels
 - [ ] Quality gate clean

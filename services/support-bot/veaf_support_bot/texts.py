@@ -228,6 +228,28 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "J'ai posé cette question au bot :\n{question}\n\nSa réponse ne règle pas mon problème :\n{answer}"
         ),
         # --- /suggest, l'idee confrontee a ce qui existe deja ---------------------------------
+        # --- /suggest : l'antériorité, dite sans promettre ce que ce flux ne fait pas ---------
+        "suggest.priorart.duplicate": (
+            "🔁 **C'est peut-être déjà demandé.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Si c'est bien la même demande, **aucun ticket ne sera ouvert** : le sujet est déjà "
+            "suivi là-bas, et tu peux commenter ce ticket directement pour ajouter ton avis. Si ce "
+            "n'est pas la même, dis-le : ta suggestion continue son chemin."
+        ),
+        "suggest.priorart.in_progress": (
+            "🔁 **C'est peut-être déjà prévu.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Si c'est bien ça, **aucun ticket ne sera ouvert** : le travail est déjà décrit là. Si "
+            "ce n'est pas la même chose, dis-le : ta suggestion continue son chemin."
+        ),
+        "suggest.priorart.fixed": (
+            "✅ **C'est peut-être déjà fait.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Livré dans la **{version}** : si tu es sur une version antérieure, mets à jour. Si ce "
+            "n'est pas ça, dis-le : ta suggestion continue son chemin."
+        ),
+        "suggest.priorart.fixed_no_version": (
+            "✅ **C'est peut-être déjà fait.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Le ticket est fermé, sans version identifiée. Si ce n'est pas ça, dis-le : ta "
+            "suggestion continue son chemin."
+        ),
         "suggest.missing": (
             "Il manque des champs obligatoires ({fields}). Relance `/suggest` : sans le problème "
             "que tu veux résoudre, personne ne peut arbitrer la demande."
@@ -455,6 +477,28 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "I asked the bot this question:\n{question}\n\nIts answer does not solve my problem:\n{answer}"
         ),
         # --- /suggest, the idea weighed against what already exists ---------------------------
+        # --- /suggest: prior art, said without promising what this flow does not do -----------
+        "suggest.priorart.duplicate": (
+            "🔁 **This may already be asked for.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "If it is the same request, **no issue will be opened**: the subject is already tracked "
+            "there, and you can comment on that issue yourself to add your view. If it is not the "
+            "same, say so: your suggestion carries on."
+        ),
+        "suggest.priorart.in_progress": (
+            "🔁 **This may already be planned.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "If that is it, **no issue will be opened**: the work is described there already. If it "
+            "is not the same thing, say so: your suggestion carries on."
+        ),
+        "suggest.priorart.fixed": (
+            "✅ **This may already be done.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "Shipped in **{version}**: if you are on an earlier version, update. If that is not it, "
+            "say so: your suggestion carries on."
+        ),
+        "suggest.priorart.fixed_no_version": (
+            "✅ **This may already be done.** {reference} — *{title}*\n{evidence}\n{url}\n"
+            "The issue is closed, with no version identified. If that is not it, say so: your "
+            "suggestion carries on."
+        ),
         "suggest.missing": (
             "Required fields are missing ({fields}). Run `/suggest` again: without the problem you "
             "are trying to solve, nobody can weigh the request."

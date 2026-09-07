@@ -15,7 +15,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from tests.intake_fixtures import fixture_root
-from tests.test_priorart import RESOLVER_REPORT
+from tests.test_priorart import RESOLVER_REPORT, _Issues, _resolver_issue
 from veaf_support_bot.draft import CANCEL, EXPIRED, FILE
 from veaf_support_bot.exchange import ThreadHandle
 from veaf_support_bot.existing import ABSENT, EXISTS, UNKNOWN, DocumentationCheck
@@ -320,6 +320,32 @@ class TestThePriorArtSweep(unittest.TestCase):
 
         self.assertIn("confirm", exchange.calls)
         self.assertIn(FIXTURE_LOT, exchange.shown[0])
+
+    def test_the_match_promises_only_what_this_flow_does(self) -> None:
+        """The bug flow says *your observation goes there instead of opening a second issue* — and
+        adds it. This flow opens nothing and comments nothing, so speaking that family would tell
+        somebody his opinion was recorded when it was in fact dropped.
+
+        Found by David on the first real run, against a real open issue — which is why the sweep
+        here is given one: the sentence at fault belongs to the **duplicate** verdict, and a backlog
+        match would never have shown it.
+        """
+        gate = PriorArtGate(sweeper=PriorArtSweeper(root=self.root, issues=_Issues(opened=[_resolver_issue()])))
+        exchange = RecordingExchange(confirms=[True])
+
+        run(SuggestIntake(prior_art=gate, filer=RecordingFiler()), exchange, a_matching_form())
+
+        shown = exchange.shown[0]
+        promise = "ton observation y sera ajoutée"
+        # The guard on the guard: if the bug family stopped making that promise, this test would
+        # pass while measuring nothing.
+        self.assertIn(
+            promise,
+            text("priorart.duplicate", "fr", reference="", title="", evidence="", url=""),
+            "the bug family no longer promises this; the test below discriminates nothing",
+        )
+        self.assertIn("aucun ticket ne sera ouvert", shown)
+        self.assertNotIn(promise, shown)
 
     def test_an_accepted_match_opens_nothing(self) -> None:
         filer = RecordingFiler()

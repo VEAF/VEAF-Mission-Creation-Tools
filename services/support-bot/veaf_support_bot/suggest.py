@@ -70,6 +70,11 @@ from veaf_support_bot.suggestion import (
 from veaf_support_bot.texts import REPOSITORY_URL, normalize_language, text
 from veaf_support_bot.untrusted import one_line
 
+#: The family of prior-art sentences this flow speaks from. Not the bug flow's: that one tells the
+#: reporter his observation will be added to the existing issue, and then adds it. This flow opens
+#: nothing and comments nothing on an accepted match, so it must not promise either.
+PRIOR_ART_FAMILY = "suggest.priorart"
+
 #: Longest message this flow sends. Discord refuses anything over 2000 characters, and a
 #: refusal here is total silence: the asker keeps the ephemeral placeholder for ever, having
 #: filled five fields. Measured before this bound existed: the no-filer path rendered 2040
@@ -181,7 +186,7 @@ class _AskTheAsker:
         Returns:
             Whether he recognised it as the same subject.
         """
-        return await self._exchange.confirm(render_match(sweep, lang), lang)
+        return await self._exchange.confirm(render_match(sweep, lang, family=PRIOR_ART_FAMILY), lang)
 
 
 class SuggestIntake:
@@ -304,7 +309,10 @@ class SuggestIntake:
                 "existing work already covers the request",
                 extra={"event": "suggest.settled", "user": form.asker_id, "by": sweep.verdict},
             )
-            await self._say(exchange, render_match(sweep, lang) + "\n\n" + text("suggest.settled.prior_art", lang))
+            await self._say(
+                exchange,
+                render_match(sweep, lang, family=PRIOR_ART_FAMILY) + "\n\n" + text("suggest.settled.prior_art", lang),
+            )
             return None
 
         return await self._file(exchange, submission, check, sweep, lang, asked=asked, progress=progress)

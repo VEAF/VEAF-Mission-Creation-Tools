@@ -697,7 +697,7 @@ class PriorArtGate:
         return sweep, bool(await confirmation.confirm(sweep, lang))
 
 
-def render_match(sweep: Sweep, lang: str) -> str:
+def render_match(sweep: Sweep, lang: str, *, family: str = "priorart") -> str:
     """Render a proposed match **with its evidence**, so it can be disagreed with.
 
     A proposal with no evidence is an assertion, and an assertion is what silences a real bug: the
@@ -707,6 +707,11 @@ def render_match(sweep: Sweep, lang: str) -> str:
     Args:
         sweep: The finding.
         lang: ``"fr"`` or ``"en"``.
+        family: Which family of sentences to speak from. The default is the bug flow's, and it
+            **promises an action**: *your observation goes there instead of opening a second issue*,
+            which that flow performs. A suggestion accepting a match opens nothing and comments
+            nothing, so it passes its own family — reported by David on the first real run, where
+            the bot promised to record an opinion it would then have dropped.
 
     Returns:
         The message, or an empty string when there is nothing to propose.
@@ -715,9 +720,9 @@ def render_match(sweep: Sweep, lang: str) -> str:
         return ""
     match = sweep.best
     key = {
-        DUPLICATE: "priorart.duplicate",
-        FIXED: "priorart.fixed" if match.candidate.detail else "priorart.fixed_no_version",
-        IN_PROGRESS: "priorart.in_progress",
+        DUPLICATE: f"{family}.duplicate",
+        FIXED: f"{family}.fixed" if match.candidate.detail else f"{family}.fixed_no_version",
+        IN_PROGRESS: f"{family}.in_progress",
     }[sweep.verdict]
     values = {
         "reference": match.candidate.reference,

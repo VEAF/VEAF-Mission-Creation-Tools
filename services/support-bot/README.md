@@ -380,13 +380,36 @@ because it is the obvious place and somebody will suggest it again:
 
 #### The procedure, end to end
 
+Three files in a directory of its own. **No checkout of this repository** — the image is built by
+CI and pulled from GHCR, decided 2026-09-07:
+
 ```bash
-git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
-cd VEAF-Mission-Creation-Tools/services/support-bot
-cp .env.example .env        # then fill it in — see the two tables below
-cp /wherever/it/is.pem github-app.pem      # the GitHub App's private key, mounted as a secret
-docker compose up -d --build
+mkdir -p /srv/veaf-support-bot && cd /srv/veaf-support-bot
+curl -O https://raw.githubusercontent.com/VEAF/VEAF-Mission-Creation-Tools/develop/services/support-bot/compose.yml
+# put `.env` beside it — see the table below — and the GitHub App's key as `github-app.pem`
+docker compose up -d
 ```
+
+Updating is `docker compose pull && docker compose up -d`: everything that must survive lives on the
+two volumes, so a new image costs a restart.
+
+**The container still clones this repository on first start**, into its own volume, shallow and
+single-branch. That clone is the product — `/bug` and `/suggest` read the sources to turn a stack
+trace into a file and a line — and it is not what this arrangement removed. What went away is the
+clone that used to *build* the image on the host: the tools, the documentation, the Lua and the
+missions, on a machine running a Python service that needs none of them.
+
+**Which image it follows** comes from `.env`, so changing channel never means editing `compose.yml`:
+
+| `VEAF_BOT_IMAGE_TAG` | What it is |
+|---|---|
+| *(unset)* → `develop` | What CI publishes from `develop`. **The right value today** |
+| `latest` | Published from `master`, so it exists the day a release does — not before |
+| `sha-abc123def456` | Any build. This is what makes a rollback one line and two commands |
+
+That name deliberately carries no `SUPPORT_BOT_` prefix: that one belongs to the service,
+`.env.example` lists exactly what the Python reads, and `tests/test_packaging.py` fails on a
+variable in one list and not the other. Compose reads `./.env` for interpolation on its own.
 
 **What to paste**, and nothing else — everything not listed here has a default that works:
 
@@ -441,9 +464,19 @@ service directly, and uncommenting it inside a container points the clone at a p
 user cannot create. The clone then fails, the container starts, the health check says *healthy*, and
 `/bug` and `/suggest` are silently absent.
 
-Built on place from git, by decision: no registry, no publishing credential, and the service ships
-with the repository it serves. Updating is `git pull` then the same `up -d --build` — everything that
-must survive lives on the two volumes, so a rebuild costs a restart.
+**Built by CI, published to GHCR, pulled by the host** — decided 2026-09-07, replacing a first
+arrangement that built on place from a clone. The package is **public**, because the image carries
+only code that is already public: no `docker login` on the host, and no access token to place or
+rotate there in order to protect what anyone can read on GitHub. The push uses the workflow's own
+`GITHUB_TOKEN`, and the job refuses to publish an image carrying a `.env`, a key, or anything under
+`/run/secrets` — inspecting the built image rather than the build context, since what has to be
+proved is what came out.
+
+A local build, from a checkout, is still one command:
+
+```bash
+docker build -t veaf-support-bot services/support-bot
+```
 
 #### What to check once it is up
 

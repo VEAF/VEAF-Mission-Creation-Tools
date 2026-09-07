@@ -247,6 +247,75 @@ def _variables_documented() -> set[str]:
     return set(re.findall(rf"^#?{ENV_PREFIX}([A-Z0-9_]+)=", text, re.MULTILINE))
 
 
+class TestTheHostPullsWhatCiPublished(unittest.TestCase):
+    """The deployment shape, decided 2026-09-07: CI builds the image, the host only pulls it.
+
+    Asserted here rather than trusted, because both halves fail silently. A `compose.yml` that kept
+    `build: .` would work on a developer's machine and fail on a host with no checkout; a publish
+    job that pushed under another name would leave that host pulling an image nobody updates.
+    """
+
+    def setUp(self) -> None:
+        """Read the two files this shape is spread across."""
+        self.compose = (SERVICE_ROOT / "compose.yml").read_text(encoding="utf-8")
+        self.workflow = (REPO_ROOT / ".github" / "workflows" / "support-bot-ci.yml").read_text(encoding="utf-8")
+
+    def test_the_compose_file_pulls_the_published_image(self) -> None:
+        self.assertIn("image: ghcr.io/veaf/veaf-support-bot:", self.compose)
+
+    def test_it_does_not_build_on_the_host(self) -> None:
+        """A build context is exactly what the host no longer has.
+
+        Read as text rather than parsed: PyYAML is not a dependency of this service, and adding one
+        to assert on a deployment file would be a strange trade. Comment lines are dropped first, so
+        the sentence explaining that `--build` no longer works cannot satisfy the search.
+        """
+        directives = [line.strip() for line in self.compose.splitlines() if not line.strip().startswith("#")]
+
+        self.assertEqual(
+            [line for line in directives if line.startswith("build:")],
+            [],
+            "the host has no checkout to build from",
+        )
+
+    def test_the_tag_defaults_to_the_channel_that_exists_today(self) -> None:
+        """`latest` is published from `master`; pinning to it before a release finds no image."""
+        self.assertIn("${VEAF_BOT_IMAGE_TAG:-develop}", self.compose)
+
+    def test_the_deployment_variable_is_not_one_the_service_reads(self) -> None:
+        """`.env.example` and the code are asserted against each other; a stray name breaks both."""
+        self.assertNotIn("SUPPORT_BOT_IMAGE_TAG", self.compose)
+
+    def test_ci_publishes_the_name_the_compose_file_pulls(self) -> None:
+        """The failure this closes: an image published under a name nothing consumes."""
+        self.assertIn("image=ghcr.io/veaf/veaf-support-bot", self.workflow)
+
+    def test_both_channels_are_published(self) -> None:
+        """`develop` for now, `latest` from master so the channel exists the day a release does."""
+        self.assertIn("develop) channel=develop", self.workflow)
+        self.assertIn("master)  channel=latest", self.workflow)
+
+    def test_nothing_is_published_from_a_pull_request(self) -> None:
+        """A read-only token, and a branch nobody reviewed."""
+        self.assertIn("if: github.event_name == 'push'", self.workflow)
+
+    def test_the_publish_job_waits_for_the_gate_it_is_meant_to_follow(self) -> None:
+        """Publishing an image whose tests never ran is publishing an untested image."""
+        self.assertIn("needs: [quality, container]", self.workflow)
+
+    def test_the_image_is_inspected_for_secrets_before_it_is_pushed(self) -> None:
+        """David's one condition on this lot, and the step must come before the push."""
+        checked = self.workflow.index("The image carries no secret")
+        pushed = self.workflow.index("Tag and push")
+
+        self.assertLess(checked, pushed, "the secret check runs after the push")
+
+    def test_that_check_asserts_it_measured_something(self) -> None:
+        """A grep over an empty listing finds no secret and passes for the wrong reason."""
+        self.assertIn("the export listed nothing at all", self.workflow)
+        self.assertIn("the listing does not even hold the package", self.workflow)
+
+
 class TestDocumentedVariablesMatchTheCode(unittest.TestCase):
     """`.env.example` is the operator's only list; a variable missing from it does not exist."""
 

@@ -1,22 +1,39 @@
 # The support bot, as the VEAF Docker host runs it.
 #
-# The whole procedure on that host:
+# Three files in a directory of its own, and no clone of this repository:
 #
-#   git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
-#   cd VEAF-Mission-Creation-Tools/services/support-bot
-#   cp .env.example .env    # then fill it in — see README, "Where it runs"
-#   docker compose up -d --build
+#   curl -O https://raw.githubusercontent.com/VEAF/VEAF-Mission-Creation-Tools/develop/services/support-bot/compose.yml
+#   # put `.env` (see .env.example) and `github-app.pem` beside it
+#   docker compose up -d
 #
-# Updating is `git pull` then the same `up -d --build`: everything that must survive lives on the
-# two volumes below, so rebuilding costs a restart and nothing else.
+# Updating is `docker compose pull && docker compose up -d`: everything that must survive lives on
+# the two volumes below, so a new image costs a restart and nothing else.
 #
-# Built on place from git, by decision (2026-09-07): no registry, no publishing credential, and the
-# service ships with the repository it serves.
+# The container still clones the repository on first start, into its own volume — shallow,
+# single-branch, 87 MiB. That one is the product: `/bug` and `/suggest` read the sources to turn a
+# stack trace into a file and a line. What this file stopped needing is the clone that *built* the
+# image.
 
 services:
   support-bot:
-    build: .
-    image: veaf-support-bot:local
+    # Built by CI and pulled from here, so this host needs no checkout of the repository — decided
+    # 2026-09-07, replacing a `build: .` that cost a full clone of the tools, the documentation, the
+    # Lua and the missions on a machine running a Python service that needs none of them.
+    #
+    # The tag comes from `.env` (compose reads that file for interpolation on its own) so switching
+    # channels never means editing this file:
+    #
+    #   VEAF_BOT_IMAGE_TAG=develop     what CI publishes from `develop` — the right value today
+    #   VEAF_BOT_IMAGE_TAG=latest      published from `master`, so it exists once a release does
+    #   VEAF_BOT_IMAGE_TAG=sha-abc123  any build, which is how a rollback is one line
+    #
+    # It carries no `SUPPORT_BOT_` prefix on purpose: that prefix is the service's own, `.env.example`
+    # lists exactly what the Python reads, and `tests/test_packaging.py` fails on a variable in one
+    # list and not the other. Same reason as `VEAF_CLONE_URL`.
+    #
+    # `docker compose up --build` does not work here any more — there is no build context. From a
+    # checkout, the local build is `docker build -t veaf-support-bot services/support-bot`.
+    image: ghcr.io/veaf/veaf-support-bot:${VEAF_BOT_IMAGE_TAG:-develop}
     container_name: veaf-support-bot
 
     # The service reads its configuration from the environment and never from a file — which is why

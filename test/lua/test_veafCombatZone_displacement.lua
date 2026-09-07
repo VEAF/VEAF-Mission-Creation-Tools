@@ -43,6 +43,11 @@ local EDITOR_UNITS = {
 -- Fixture
 -- ---------------------------------------------------------------------------
 
+--- The group name the current fixture uses. Normally `GROUP_NAME`; a fixture that exercises a
+--- `#spawnradius=` tag appends it here, because a combat zone reads its tags from the **names** the
+--- Mission Editor gave the group and its units.
+local activeGroupName = GROUP_NAME
+
 --- The mission table the zone and the spawner both read, rebuilt from EDITOR_UNITS.
 local function buildMissionSnapshot()
   local units = {}
@@ -65,7 +70,7 @@ local function buildMissionSnapshot()
       -- the `country` table, and the mocks carry only RUSSIA and USA. Nothing under test reads it.
       name = "RUSSIA",
       id = country.id.RUSSIA,
-      vehicle = { group = { { name = GROUP_NAME, groupId = 900, units = units } } },
+      vehicle = { group = { { name = activeGroupName, groupId = 900, units = units } } },
     },
   }
   veafMissionDb.buildSnapshot()
@@ -87,7 +92,7 @@ local function registerLiveGroup(liveOrder)
         return coalition.side.RED
       end,
       getGroup = function()
-        return Group.getByName(GROUP_NAME)
+        return Group.getByName(activeGroupName)
       end,
     })
     byName[unit.name] = Unit.getByName(unit.name)
@@ -98,7 +103,7 @@ local function registerLiveGroup(liveOrder)
     table.insert(live, byName[name])
   end
 
-  dcs_mocks.addGroup(GROUP_NAME, {
+  dcs_mocks.addGroup(activeGroupName, {
     getUnits = function()
       return live
     end,
@@ -116,7 +121,11 @@ local function registerLiveGroup(liveOrder)
 end
 
 --- Everything the zone needs to exist and to find its units, with a flat all-land island.
-local function setUpFixture(liveOrder, unitNamesTheZoneSees)
+---
+--- `groupNameOverride` renames the **group** only, so a fixture can carry a `#spawnradius=` tag; the
+--- unit names stay as EDITOR_UNITS holds them, which is what `displacements()` keys on.
+local function setUpFixture(liveOrder, unitNamesTheZoneSees, groupNameOverride)
+  activeGroupName = groupNameOverride or GROUP_NAME
   dcs_mocks.reset()
   dcs_mocks.clearUnitsAndGroups()
   Disposition = nil
@@ -150,6 +159,7 @@ local function setUpFixture(liveOrder, unitNamesTheZoneSees)
 end
 
 local function tearDownFixture()
+  activeGroupName = GROUP_NAME
   veaf.triggerZones[ZONE_NAME] = nil
   dcs_mocks.zones[ZONE_NAME] = nil
   dcs_mocks.clearUnitsAndGroups()
@@ -368,6 +378,76 @@ function TestAbuMusaUnitOrder:test_a_live_list_out_of_editor_order_does_not_disp
   activateZone()
   local worst, name = worstDisplacement()
   luaunit.assertTrue(worst <= 51, string.format("worst displacement %s m, on %s", tostring(worst), tostring(name)))
+end
+
+-- ---------------------------------------------------------------------------
+-- `#spawnradius=0` — "these are placed exactly where I want them"
+-- ---------------------------------------------------------------------------
+
+--- Tripack asked for a way to keep a zone's elements exactly where he drew them: his Syrian air
+--- defences sit in revetments the map provides, and a metre of dispersion puts a launcher on the berm
+--- instead of inside it. `#spawnradius=0` is that request, and it already existed — but on its own it
+--- was not enough, which is what `veafCombatZone.lua`'s own comment said out loud:
+---
+--- > Unconditional, including when spawnRadius is 0: the delta is *not* only the dispersion.
+---
+--- The dispersion was only one of the two terms. The other was the offset between the anchor and the
+--- record's unit 1, and it applied whatever the radius — so a group could move with dispersion switched
+--- off. Ticket 04 makes both terms zero, so this asserts **exactly zero**, not "within the radius":
+--- with no dispersion asked for and every unit alive where the editor put it, a spawn must be the
+--- identity.
+TestAbuMusaFixedPlacement = {}
+
+local FIXED_GROUP_NAME = GROUP_NAME .. " #spawnradius=0"
+
+function TestAbuMusaFixedPlacement:setUp()
+  setUpFixture(editorOrder(), nil, FIXED_GROUP_NAME)
+  -- **This is what makes the suite discriminating.** The mocks answer `math.random()` with 0, so
+  -- `getRandomPointInCircle` lands exactly on the centre whatever the radius — which means a
+  -- "nothing moved" assertion passes with a 50 m radius just as happily as with a zero one, and
+  -- proves nothing at all. Measured: without this line, dropping the tag from FIXED_GROUP_NAME
+  -- leaves `test_not_one_unit_moves_at_all` green. Feeding 0.5 draws a real displacement of
+  -- `50 * sqrt(0.5)` ≈ 35 m for the default radius, while a written zero short-circuits the draw
+  -- before it happens (`veafGeo.getRandomPointInCircle`, `if r <= 0`).
+  dcs_mocks.setRandomSequence({ 0.5 })
+end
+
+function TestAbuMusaFixedPlacement:tearDown()
+  dcs_mocks.setRandomSequence(nil)
+  tearDownFixture()
+end
+
+function TestAbuMusaFixedPlacement:test_the_tag_reaches_the_zone_element()
+  local zone = activateZone()
+  local elements = zone:getZoneElements()
+  luaunit.assertEquals(#elements, 1)
+  luaunit.assertEquals(elements[1]:getSpawnRadius(), 0, "#spawnradius=0 must survive as a written zero")
+end
+
+--- The promise made to a mission maker who writes `#spawnradius=0`: not "less than the radius", but
+--- not one metre. Asserted to the millimetre on all five units.
+function TestAbuMusaFixedPlacement:test_not_one_unit_moves_at_all()
+  activateZone()
+  local moved = spawnedPositions()
+  for _, unit in ipairs(EDITOR_UNITS) do
+    luaunit.assertAlmostEquals(moved[unit.name].x, unit.x, 0.001, unit.name .. " northing moved")
+    luaunit.assertAlmostEquals(moved[unit.name].y, unit.y, 0.001, unit.name .. " easting moved")
+  end
+end
+
+--- And the terrain search must not even be consulted: tier 1 exists to *move* a point, so a zero radius
+--- has to skip it. If `findSpawnPoint` ran, a scenery-aware candidate could displace the group despite
+--- the tag.
+function TestAbuMusaFixedPlacement:test_the_spawn_point_search_is_not_consulted()
+  local searched = false
+  local realFindSpawnPoint = veaf.findSpawnPoint
+  veaf.findSpawnPoint = function(...)
+    searched = true
+    return realFindSpawnPoint(...)
+  end
+  activateZone()
+  veaf.findSpawnPoint = realFindSpawnPoint
+  luaunit.assertFalse(searched, "a zero spawn radius must not search for a spawn point")
 end
 
 os.exit(luaunit.LuaUnit.run())

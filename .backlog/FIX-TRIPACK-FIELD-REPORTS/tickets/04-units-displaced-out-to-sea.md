@@ -100,10 +100,38 @@ An in-game check is queued in `DCS-SESSION-TODO.md`. What would settle it in one
 run of the mission: `spawnElement` traces the declared position and the point found, and
 `_drawOrigin` the offset — three numbers that turn the remaining question into arithmetic.
 
+## `#spawnradius=0` is now guaranteed, and the harness had to be pushed to prove it
+
+Tripack asked for a way to keep a zone's elements exactly where he drew them — his Syrian air
+defences sit in revetments the map provides, and a metre of dispersion puts a launcher on the berm
+instead of inside it. `#spawnradius=0` already expressed that request, but on its own it did not
+deliver it, and `veafCombatZone.lua`'s own comment said why:
+
+> Unconditional, including when spawnRadius is 0: the delta is *not* only the dispersion.
+
+The dispersion was one of two terms; the anchor offset was the other, and it applied whatever the
+radius. This ticket makes the second term zero, so `TestAbuMusaFixedPlacement` asserts **exactly
+zero** — to the millimetre, on all five units — rather than "within the radius", and also that
+`findSpawnPoint` is never consulted at all.
+
+**A limit of the harness, found while making that test discriminating.** `dcs_mocks` answers
+`math.random()` with a constant **0**, so `veafGeo.getRandomPointInCircle` lands on the centre
+whatever radius it is given: in this harness *no spawn ever disperses*. A "nothing moved" assertion
+therefore passes with a 50 m radius exactly as it does with a written zero. Measured: with the tag
+removed from the fixture, the test stayed **green** until `dcs_mocks.setRandomSequence({ 0.5 })` was
+fed in, which draws a real `50 * sqrt(0.5)` ≈ 35.36 m and makes all three cases fail as they should.
+
+The same caveat applies to this suite's pre-existing `worst <= 51` assertions: they catch a
+kilometre-scale anchor error, which does not depend on the draw, but they do **not** exercise the
+dispersion. Any future test that means to assert something about dispersion has to drive the
+sequence.
+
 ## Definition of done
 
 - [x] The displacement is reproduced, with the numbers that show it
 - [x] Its cause is named — two sources for one offset
+- [x] `#spawnradius=0` produces an identity spawn, asserted to the millimetre and verified to fail
+      without the tag (three cases, 35.36 m of drift)
 - [x] Fix, plus a test asserting the **built group's** unit positions — a widely spread group keeps
       its shape and every unit lands where the zone put it
 - [x] `stylua --check` clean; `luacheck` crashes on this workstation (Lua version mismatch in the

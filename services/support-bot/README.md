@@ -452,6 +452,27 @@ A clone that fails does **not** stop the service: a momentarily unreachable GitH
 take `/ask` down with it, and `/ask` needs nothing from the repository. The log says so at
 `WARNING`, and the two commands stay absent until the next start.
 
+#### Filling `.env` without pasting secrets around
+
+```powershell
+cd services\support-bot
+.\scripts\setup-local.ps1
+```
+
+It asks for what is missing and writes it in place. Three things it does deliberately:
+
+- **the bot token is read masked**, so it does not end up in a terminal's scrollback or a shell
+  history — and the shared Worker secret is *generated* rather than asked for, since the only two
+  places it has to match are the two the script writes it to. Nobody needs to read it;
+- **it offers to set that secret on the Worker** (`DISCORD_CLIENT_SECRET`), through stdin so the
+  value never appears in a command line. That is an outbound change to a deployed service, so it
+  asks first;
+- **a stand-in from `.env.example` counts as missing.** `put-the-bot-token-here` is not a token, and
+  reporting it as set would hand the service a value Discord refuses.
+
+Re-running it is safe: what already has a real value is left alone unless `-Force` is given. What it
+never does is show a value back — the closing summary lists setting *names*.
+
 #### Rehearsing it without Docker
 
 The image runs `python -m veaf_support_bot`, the same module a direct launch runs, so a direct run is

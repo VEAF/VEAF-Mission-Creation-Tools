@@ -176,6 +176,28 @@ set `STTS: false` at step 2, so this is only about knowing whether leaving it **
 noisy at start-up. Grep the log for `STTS` — if it is silent, the tutorial's note can relax from
 "switch it off" to "it does nothing".
 
+### R13. Skynet's SAMs must wake up, and its status page must have something to print
+
+Unblocks [`FIX-TRIPACK-FIELD-REPORTS`](.backlog/FIX-TRIPACK-FIELD-REPORTS/PRD.md) ticket 01. Tripack
+reported it on 2026-09-03 against 6.19.0: with `SKYNET.enabled: true` no SAM ever engaged and the
+radio menu showed neither status nor contacts; the same mission with Skynet off worked. Cause held
+and fixed — Skynet arms its contact cycle for one second of mission time, and the vendored scheduler
+handed that already-elapsed time to the native timer, so `evaluateContacts` never ran. The artefact
+is regenerated at build 05.09.2026.
+
+**This is the same wager as R12**, on the other side of the repository boundary, so run them in the
+same session: both fixes assume DCS drops a call scheduled for a time already gone.
+
+**Run**: a mission with `SKYNET.enabled: true` (Tripack's `Snowfox_20260903.miz` is the reported one).
+Let it come up, then **F10 → the Skynet menu → the status command**, and fly into a defended area.
+
+- **Fixed**: the status page lists sites and contacts, and SAMs engage.
+- **Not fixed**: still blank and still asleep. Then the lost task was not the cause and the diagnosis
+  is dead. Bring back a `dcs.log`: the banner line must read `SKYNET VERSION: 3.4.0RP-VEAF build
+  05.09.2026` — anything older means the mission carries a stale artefact and the check never
+  happened — and grep for `SkynetIADS: error in scheduled function`, which the module logs on any
+  raise inside a scheduled call.
+
 ---
 
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)
@@ -889,3 +911,75 @@ regarder si l'interface de choix de slot propose quoi que ce soit du côté neut
 
 Utile même en cas de « non » : c'est la seule asymétrie de coalition qui reste dans l'arbre après ce
 lot, et savoir qu'elle est **voulue** évite qu'un prochain passage la « corrige » sans savoir.
+
+---
+
+## Une QRA clonée engage-t-elle vraiment, maintenant que `task` la suit ?
+
+Ouvert par `FIX-TRIPACK-FIELD-REPORTS` (ticket 05), correctif du 2026-09-05.
+
+Ce qui est établi sans DCS : `veafMissionDb`'s group record ne portait que dix champs, et `task`
+n'en faisait pas partie — vérifié, le mot n'apparaissait nulle part dans le fichier. Un clone ou un
+respawn atteignait donc `coalition.addGroup` sans tâche de groupe du tout, alors même que la tâche
+par point de route (`EngageTargetsInZone`) survivait, elle. Les tests unitaires prouvent que le champ
+suit désormais le clone jusqu'à l'appel — `task`, `taskSelected`, `uncontrolled`, `frequency`,
+`modulation`, `communication`, `radioSet` et `hidden`.
+
+Ce qu'ils ne peuvent pas dire : si l'absence de `task` est bien ce qui rendait Tripack's QRA
+« tranquilos » — sans engager — plutôt qu'un autre effet de bord. C'est plausible (une IA sans tâche
+de groupe peut plausiblement ignorer les tâches de route) mais pas prouvé hors du jeu.
+
+**À faire** : déployer une QRA dont un des groupes pré-placés porte `task = 'CAP'` et un
+`EngageTargetsInZone` sur une route, comme `CAP_AL_MINHAD-1` dans la mission de Tripack. Déclencher
+son scramble, faire pénétrer un intrus dans sa zone d'engagement.
+
+- **Attendu** : le groupe engage l'intrus, comme avant la régression (avant 6.19.0 / `REFACTOR-SPAWNER`).
+- **Ce qui contredirait le correctif** : le groupe continue sa route sans engager malgré `task` et
+  l'`EngageTargetsInZone` tous deux présents. Dans ce cas le dire : ça voudrait dire que la cause de
+  Tripack est ailleurs, et que ce correctif — juste en soi, puisqu'il restitue un champ que l'éditeur
+  a posé — ne referme pas son rapport.
+
+Accessoirement, vérifier au passage que le groupe cloné reste **caché** sur la carte F10 si l'éditeur
+l'avait déclaré `hidden = true` — capture d'écran de Tripack à comparer, plus rapide qu'un vol.
+
+## Zone de combat : un groupe très étalé garde-t-il sa forme ?
+
+Ouvert par `FIX-TRIPACK-FIELD-REPORTS` (ticket 04), correctif du 2026-09-05.
+
+Ce qui est établi sans DCS : le décalage qui translate tout le groupe d'une zone était lu à **deux
+sources différentes** — le spawner le mesure contre `units[1]` de l'enregistrement de mission (l'unité
+que l'éditeur a mise en premier), la zone ancrait l'élément sur `Group:getUnit(1)` (la première unité
+**vivante**, dont l'indice glisse quand DCS compacte sa liste). Dès qu'elles divergent, le décalage
+devient l'écart entre deux unités différentes et tout le groupe se déplace d'autant. Mesuré dans le
+harnais sur les vraies coordonnées de `CMBT_ABU_MUSA_AIRPORT - AAA` (cinq ZU-23 étalées sur 4 330 m) :
+**1 975,9 m** si la première ZU-23 est perdue avant la construction de la zone, **3 340,4 m** si la
+liste vivante n'est pas dans l'ordre de l'éditeur. Après correctif, ≤ 50 m dans les deux cas.
+
+Ce qu'ils ne peuvent pas dire : **lequel des deux scénarios s'est produit chez Tripack**, ni même si
+l'un des deux s'est produit. Au démarrage de la mission les cinq ZU-23 sont vivantes, et les deux
+« unité 1 » devraient donc désigner le même objet. Le correctif supprime toute la famille, il ne
+referme pas un cas observé.
+
+**À faire** : lancer `Snowfox_20260903.miz` avec le niveau de log **`trace`** sur la zone de combat
+(`logLevel: trace` sous `COMBATZONE` dans `mission.yaml`), activer `CMBT_ABU_MUSA_AIRPORT`, et
+relever dans `dcs.log` les deux lignes que la zone trace — `spawnElement` : `position=[...]` (la
+position déclarée) puis `found=[...]` (le point retenu).
+
+> **Corrigé le 2026-09-07.** Cette consigne demandait `debug` et **trois** nombres. Elle était
+> inexécutable : les deux positions sont tracées en `trace`, pas en `debug`, et le troisième nombre —
+> le décalage calculé par `_drawOrigin` — n'est journalisé à aucun niveau. Elle aurait consommé une
+> session DCS pour rien. Trouvé par la relecture post-merge de la PR #921.
+
+Comparer `position` aux coordonnées éditeur de `AAA-1` — attention à la convention : la trace runtime
+écrit l'est en `z`, là où le fichier de mission l'écrit en `y`. Donc `position.x` se compare à
+`x = -30382,9` et `position.z` à `y = -122247,2`.
+
+- **Attendu après correctif** : `position` tombe sur `AAA-1` à quelques mètres près, le décalage est
+  inférieur à 50 m, et les cinq ZU-23 sont à terre sur la carte F10.
+- **Ce qui rouvrirait le sujet** : `position` tombe sur une **autre** ZU-23 (donc l'ancrage par nom
+  n'a pas suffi), ou les cinq sont bien à leur place et deux restent quand même dans l'eau — ça
+  voudrait dire que le déplacement n'était pas la cause du rapport de Tripack et qu'il faut chercher
+  ailleurs. Candidat restant, non traité ici : la validation de terrain
+  (`veaf.findSpawnPoint` dans `spawnElement`) ne teste que le point d'ancrage, jamais les quatre
+  autres unités du groupe — une unité déjà au bord de l'eau dans l'éditeur peut donc passer dedans
+  sans que rien ne le remarque.

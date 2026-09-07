@@ -160,6 +160,73 @@ last call site is gone.
 > shipped. The order itself is delivered through 5. Refreshing §2 is a pending chore — a stale sequencing
 > file is read as work remaining, which this file says about itself two sections up.
 
+### New since that order — FIX-TRIPACK-FIELD-REPORTS (2026-09-05)
+
+[`FIX-TRIPACK-FIELD-REPORTS`](.backlog/FIX-TRIPACK-FIELD-REPORTS/PRD.md) goes **first**, ahead of
+anything else open: its ticket 01 is a release-blocking regression against the current 6.19.0 —
+Skynet is inert, every SAM in a mission that enables it stays asleep and the IADS status screen is
+blank. The cause is the defect `FIX-TUTORIAL-FIRST-RUN` ticket 05 fixed on 2026-09-02 in
+`veafScheduler`, present a second time in the compatibility module that replaced MiST **inside the
+Skynet fork**, where that fix did not reach. The lesson generalises past this lot: #828's
+replacement of MiST's overdue-tolerant loop was applied per repository, and any other copy of that
+scheduler owes the same floor.
+
+Tickets 02 and 03 sit on the combat-zone spawn path and are workable now; 04 and 05 are held at 🧑
+for want of the reporter's mission file and a `debug` run, with a purpose-built test mission as the
+fallback if neither arrives.
+
+### New since that order — the support programme (2026-09-05)
+
+Five lots came out of one design session, not out of a report: David's idea of a Discord assistant
+that answers on the documentation, guides a bug report, and opens the issue itself — extended during
+the session to suggestions and to a general DCS log analyser.
+
+The session moved the idea twice, on measurements rather than on taste.
+
+- **The report was not the weak part.** 4 user-opened issues are still open, the newest from March
+  2024; the last one filed by a user at all is #304, January 2026; the issue forms have been in place
+  since 2026-05-20 and **0 of the last 60 issues used them**. The regulars already attach the log, the
+  mission and the screenshots. What is missing every time is the tool version, the DCS version and the
+  steps — facts a model can only ask for, and a command can read. Hence a diagnostic lot **first**.
+- **The analyser cannot live on Discord.** David's own `dcs.log` measures 11.1 MB, past the upload
+  ceiling, while `veaf-logs` already holds the file with its rules applied. So the machine bounds the
+  material and the service only analyses it — which became the programme's second principle.
+
+Two principles hold it together, and they are decisions: **the free tier carries the volume, and depth
+is rationed rather than bought** — hence `/ask` and the log analyser on the existing Worker, and an
+agent only on `/bug`; and **the user's machine produces the bounded material, the service analyses it**.
+
+The first principle was written as *"the paid model is reserved for value"* and changed on 2026-09-05,
+before a line of lot 4 was written: the **Anthropic API is not covered by the VEAF's Max Non-Profit
+plan**, so it would have meant a separate subscription and a payment method for something that runs a
+handful of times a month. Everything runs on Gemini's free tier, which the documentation chatbot has
+used in production since June. The lot 4 runtime stays provider-agnostic, and the quality of its code
+analysis is to be **measured on real reports** rather than assumed — that is the one place the change
+could cost something real.
+
+**Where it stands, end of 2026-09-05.** Lots 1 to 3 are merged: `veaf-tools doctor` with
+the redaction helper and a log that finally records stack traces; the *Explain* action in
+`veaf-logs` with the catalogue as authority; and `/ask` answering in public Discord threads,
+on a Worker whose admission control was closed on the way (`FIX-CHATBOT-DAILY-QUOTA` came out
+of the same measurement and shipped with them). Lot 4 is being written, and it is **not the
+lot described below**: see its PRD, redesigned the same day once the free tier was measured
+at 20 requests a day.
+
+| Order | Lot | Runs where | Why here |
+|-------|-----|-----------|----------|
+| **1** | [`FEAT-SUPPORT-DIAGNOSTIC`](.backlog/FEAT-SUPPORT-DIAGNOSTIC/PRD.md) — **done 2026-09-05** | user's machine | the only piece that keeps its value if the bot is never built, and `doctor`'s output is the contract lots 2 and 4 consume — now shipped as `veaf-tools-doctor/1`, with its parser and a round-trip test |
+| **2** | [`FEAT-SUPPORT-LOG-ANALYSIS`](.backlog/FEAT-SUPPORT-LOG-ANALYSIS/PRD.md) — **done 2026-09-05** | user's machine | still no infrastructure, no secret, no cost; also closes the Worker's `X-VEAF-Client` bypass, being the first lot to add a second client |
+| **3** | [`FEAT-SUPPORT-DISCORD-QA`](.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md) — **done 2026-09-05** | service + Worker | proves the channel, the permissions and the quotas with no agent and no write access |
+| **4** | [`FEAT-SUPPORT-BUG-INTAKE`](.backlog/FEAT-SUPPORT-BUG-INTAKE/PRD.md) — **done 2026-09-06** | service | the big one, and the only one that writes to a public repository. Shipped in four sequenced PRs (#919, #920, #922, #923). Three steps remain **outside the code** before it does everything it describes: set `SUPPORT_BOT_ENRICH_ROLE_ID`, create the `filed-by-bot` label, deploy the Worker |
+| **5** | [`FEAT-SUPPORT-SUGGESTIONS`](.backlog/FEAT-SUPPORT-SUGGESTIONS/PRD.md) — **done 2026-09-06** | service | adds a flow on lot 4's infrastructure. It did need new plumbing twice, and both were factorings lot 4 owed rather than new machinery: the Discord seam moved to `exchange.py`, and the filer gained `file_prepared` behind one shared ledger writer. The documentation check turned out to cost a model call — measured, argued in ticket 01 |
+
+Three decisions worth recording, because they were argued and could be reopened: the issue is filed by
+a **machine account** (which is why lot 4 owes the GitHub → Discord relay), the user **validates the
+draft** before anything is published, and the issue is written **in the user's language** — a departure
+from the English-only rule for technical content, matching what the tracker already contains.
+
+Lot 1 landed on 2026-09-05; lots 2 to 5 are not started. None of it needs DCS.
+
 ### Blocked on a person, or on a DCS session
 
 Not on a decision anyone can take at a keyboard here. The ones needing the game started are collected, in

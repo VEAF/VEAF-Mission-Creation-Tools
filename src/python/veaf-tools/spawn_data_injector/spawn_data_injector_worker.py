@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from mission_tools import DEFAULT_SCRIPTS_LOCATION, read_miz, write_miz
+from mission_tools import DEFAULT_SCRIPTS_LOCATION, SPAWN_DATA_ARTIFACT, read_miz, write_miz
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.i18n import t, tn
@@ -28,9 +28,11 @@ from veaf_libs.logger import logger
 
 from spawn_data_injector.spawn_data_emitter import load_framework_spawn_data, render_spawn_data_lua
 
-#: Map-resource key and embedded filename for the generated spawn-data module.
+#: Map-resource key and embedded filename for the generated spawn-data module. The name is
+#: declared in ``mission_constants`` rather than here so the extractor and the builder can
+#: recognise this file as build output (FIX-EXTRACT-GENERATED-ARTIFACTS).
 _MAP_KEY = "VEAF_MapKey_SpawnData"
-_RESOURCE_FILENAME = "veaf-spawn-data.lua"
+_RESOURCE_FILENAME = SPAWN_DATA_ARTIFACT
 
 
 @dataclass

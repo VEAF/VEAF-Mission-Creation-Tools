@@ -1,0 +1,357 @@
+name: Support Bot
+
+# `services/support-bot/` is its own Python project, deployed independently of the tools release. The
+# repository-wide gate (`Python Quality`) does not cover it — `ruff check src/python/ test/python/
+# veaf_build/` and `mypy src/python/veaf-tools` are scoped to the shipped package — so the service
+# carries its own gate here rather than being widened into one that asserts on a different tree.
+#
+# The filter must cover everything the suite asserts on, not only the folder it lives in — a path a
+# test reads but does not trigger on is a decorative assertion. Measured on this repository:
+# #877, #875 and #866 each merged without ever running the Python gate, for that exact reason.
+#   .gitignore      test_git_really_ignores_the_real_environment_file /
+#                   test_git_does_not_ignore_the_documented_example — the secret rule lives in the
+#                   ROOT .gitignore and has to (a nested one is itself ignored), so a reshuffle of
+#                   those lines would un-guard the service's `.env` with every check still green.
+#   pyproject.toml  test_the_service_version_is_its_own (the root one, read to prove the service is
+#                   NOT in the tools version lockstep).
+#   doc/**          test_the_checked_in_index_is_what_the_generator_produces — the bot links the
+#                   documentation pages it cites from a generated index; a page renamed or retitled
+#                   without running this job leaves the bot citing a title that no longer exists.
+on:
+  push:
+    branches: [develop, master]
+    paths:
+      - "services/support-bot/**"
+      - ".github/workflows/support-bot-ci.yml"
+      - ".gitignore"
+      - "pyproject.toml"
+      - "doc/**"
+  # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose; the two are
+  # kept identical by `test/python/test_ci_trigger_paths.py`.
+  pull_request:
+    paths:
+      - "services/support-bot/**"
+      - ".github/workflows/support-bot-ci.yml"
+      - ".gitignore"
+      - "pyproject.toml"
+      - "doc/**"
+
+defaults:
+  run:
+    working-directory: services/support-bot
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Lint (ruff check)
+        run: poetry run ruff check veaf_support_bot tests
+
+      - name: Format check (ruff format)
+        run: poetry run ruff format --check veaf_support_bot tests
+
+      # Stricter than the repository root's mypy: the package is new, so it starts clean.
+      - name: Type check (mypy)
+        run: poetry run mypy
+
+      - name: Tests (pytest + coverage)
+        run: poetry run pytest
+
+  # ---------------------------------------------------------------------------
+  # The other half of "runs identically when launched directly and when containerised".
+  #
+  # The quality job proves the code; it cannot prove the image. Everything that only exists in the
+  # container is asserted here: that a misconfigured container refuses to start rather than idling,
+  # that the health endpoints answer from outside and disagree the way they should in a dry run,
+  # that Docker's own health check actually runs, that the quota counters have somewhere to live,
+  # and — the one that matters most — that SIGTERM reaches the process, so the clean shutdown
+  # actually runs on `docker stop` instead of the container being killed ten seconds later.
+  # ---------------------------------------------------------------------------
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build the image
+        run: docker build -t veaf-support-bot:ci .
+
+      # The hole this closes: the image shipped a whole lot with no `git`, so `open_checkout`
+      # refused the directory and **neither `/bug` nor `/suggest` was published** — the bot answered
+      # `/ask` and nothing else. Every test passed, because none of them asked the image whether it
+      # could do the one thing the service needs from the operating system.
+      - name: The image can refresh the clone the service owns
+        run: |
+          docker run --rm --entrypoint git veaf-support-bot:ci --version
+          # The entry point bounds the first clone with it, so that a stalled connection cannot
+          # hold PID 1 for ever and keep `/ask` from ever starting.
+          docker run --rm --entrypoint timeout veaf-support-bot:ci --version
+
+      # And the entry point really fills an empty checkout volume. Run with no configuration, so
+      # the service still exits 78 straight after — what is asserted is the clone, which happens
+      # first and prints its own line.
+      #
+      # This is the ONE step that clones. The image sets SUPPORT_BOT_CHECKOUT_PATH, so every other
+      # `docker run` below would otherwise pay the same 87 MiB — and one of them waits 30 seconds
+      # for a health endpoint, a budget that would then include a network clone and go red on a
+      # hiccup at github.com. They pass an empty value to opt out.
+      - name: The entry point clones into an empty checkout volume
+        run: |
+          set +e
+          output=$(docker run --rm \
+            -e VEAF_CLONE_URL=https://github.com/VEAF/VEAF-Mission-Creation-Tools.git \
+            veaf-support-bot:ci 2>&1)
+          set -e
+          echo "$output"
+          echo "$output" | grep -q "entrypoint: clone ready"
+          # Python ran after the shell. That it was *exec*ed rather than forked is asserted by the
+          # SIGTERM step further down, which measures how long the shutdown takes.
+          echo "$output" | grep -q "the support bot cannot start"
+          # The URL never reaches the log: it can carry a token when a private repository is cloned.
+          if echo "$output" | grep -q "github.com/VEAF"; then
+            echo "the entrypoint printed the clone URL"; exit 1
+          fi
+
+      # The cleanup that clears a half-written clone must not clear anything else. Pointed at a
+      # directory holding data and no `.git` — which is what `/app/state` is, and what an operator
+      # who mistypes the checkout path would hand it — it has to refuse and say so. Reported by
+      # review: the destructive form of this would have erased the quota counters, the filed-issue
+      # ledger and the thread links on the next start, silently.
+      - name: The clone never deletes what is not a clone
+        run: |
+          set +e
+          output=$(docker run --rm \
+            -e SUPPORT_BOT_CHECKOUT_PATH=/app/state \
+            -e SUPPORT_BOT_QUOTA_STATE_FILE=/app/state/quota.json \
+            --entrypoint sh veaf-support-bot:ci -c \
+            'printf "{}" > /app/state/quota.json
+             /usr/local/bin/docker-entrypoint.sh 2>&1
+             echo "STILL THERE: $(cat /app/state/quota.json)"')
+          set -e
+          echo "$output"
+          echo "$output" | grep -q "is not empty and not a git repository"
+          echo "$output" | grep -q "STILL THERE: {}"
+
+      - name: A misconfigured container fails loudly instead of idling
+        run: |
+          set +e
+          output=$(docker run --rm -e SUPPORT_BOT_CHECKOUT_PATH= veaf-support-bot:ci 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+          test "$code" = "78" || { echo "expected EX_CONFIG (78), got $code"; exit 1; }
+          echo "$output" | grep -q "SUPPORT_BOT_DISCORD_TOKEN is required"
+          # The Worker refuses this bot's client mode without it, so it is required at startup
+          # rather than discovered on the first question.
+          echo "$output" | grep -q "SUPPORT_BOT_WORKER_SECRET is required"
+
+      # The App does not exist yet, so "no App at all" is the normal state and must stay silent.
+      # "Some of an App", though, is a container that would take bug reports for a week and fail to
+      # file every one of them — the exact failure that has to happen at startup instead.
+      - name: Half a GitHub App fails the same way a missing token does
+        run: |
+          set +e
+          # A key IS supplied here, so the leak check below has something real to catch: a
+          # configuration error is printed at CRITICAL straight into a log collector, and the one
+          # variable in this set that certainly holds a credential is this one.
+          output=$(docker run --rm \
+            -e SUPPORT_BOT_CHECKOUT_PATH= \
+            -e SUPPORT_BOT_DISCORD_TOKEN=x \
+            -e SUPPORT_BOT_DISCORD_GUILD_ID=1 \
+            -e SUPPORT_BOT_WORKER_SECRET=x \
+            -e SUPPORT_BOT_GITHUB_APP_ID=123456 \
+            -e "SUPPORT_BOT_GITHUB_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----MIIEnotarealkey-----END RSA PRIVATE KEY-----" \
+            veaf-support-bot:ci 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+          test "$code" = "78" || { echo "expected EX_CONFIG (78), got $code"; exit 1; }
+          echo "$output" | grep -q "SUPPORT_BOT_GITHUB_INSTALLATION_ID is required"
+          if echo "$output" | grep -q "MIIEnotarealkey"; then
+            echo "the startup error echoed the private key it refused"; exit 1
+          fi
+
+      # `cryptography` is the App's only new runtime dependency and the image installs it by hand,
+      # so a Dockerfile that drifts from `pyproject.toml` is caught here rather than on the first
+      # issue the bot fails to file.
+      - name: The image can actually sign a GitHub App assertion
+        run: |
+          docker run --rm --entrypoint python veaf-support-bot:ci -c \
+            "from cryptography.hazmat.primitives.asymmetric import rsa; print('cryptography ok')"
+
+      - name: It starts and answers from outside the container
+        run: |
+          docker run -d --name support-bot -p 8081:8081 \
+            -e SUPPORT_BOT_CHECKOUT_PATH= \
+            -e SUPPORT_BOT_DRY_RUN=true \
+            -e SUPPORT_BOT_HEARTBEAT_SECONDS=2 \
+            veaf-support-bot:ci
+          alive=0
+          for _ in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8081/healthz > /dev/null; then alive=1; break; fi
+            sleep 1
+          done
+          test "$alive" = "1" || { docker logs support-bot; exit 1; }
+          curl -s http://127.0.0.1:8081/status | tee status.json
+          grep -q '"service": "veaf-support-bot"' status.json
+          grep -q '"dry_run": true' status.json
+
+      # A dry run connects no gateway, so it can answer nobody. Liveness still says 200 — the
+      # process is alive and restarting it would not open a connection it was told not to open —
+      # but readiness must say no, or a probe certifies an empty service. This is the half of that
+      # rule only the container can prove: that the distinction survives to the outside.
+      - name: A dry run answers liveness but refuses readiness
+        run: |
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/healthz)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/readyz)" = "503"
+          curl -s http://127.0.0.1:8081/readyz | tee readyz.json
+          grep -q '"not_ready_reason": "dry-run"' readyz.json
+
+      # Two things live there now: the quota counters, and the ledger of what `/bug` already
+      # filed. A ledger the service cannot write is one report becoming two issues after a restart.
+      - name: The quota counters and the filing ledger have somewhere to live
+        run: |
+          docker exec support-bot sh -c 'test -w /app/state' \
+            || { echo "/app/state is not writable by the service user"; exit 1; }
+          docker exec support-bot sh -c 'test "$SUPPORT_BOT_GITHUB_LEDGER_FILE" = /app/state/filed-issues.json' \
+            || { echo "the filing ledger does not point into the mounted volume"; exit 1; }
+
+      - name: The logs are structured, and the heartbeat beats
+        run: |
+          sleep 5
+          docker logs support-bot > run.log 2>&1
+          cat run.log
+          grep -q '"event": "service.heartbeat"' run.log
+          # A dry run left on in production must never be quiet — and must say, in as many words,
+          # that it is serving nobody rather than quietly reporting itself ready.
+          grep -q '"event": "service.dry_run"' run.log
+          grep -q '"event": "service.dry_run_not_ready"' run.log
+
+      # The HEALTHCHECK is wired and reflects readiness. It reports *unhealthy* here, which is the
+      # correct answer for a dry run and is what stops one sitting in production looking fine.
+      #
+      # That the probe can also say "healthy" is proved in the unit suite, where the same
+      # `--healthcheck` code is run against a live health server in both states (`tests/test_cli.py`,
+      # TestHealthcheckProbe). A check that can only fail one way proves nothing, so both directions
+      # are asserted — just not both here, since a real gateway needs a real token.
+      - name: Docker's own health check runs, and calls a dry run unhealthy
+        run: |
+          state=unknown
+          for _ in $(seq 1 40); do
+            state=$(docker inspect -f '{{.State.Health.Status}}' support-bot)
+            [ "$state" = "unhealthy" ] && break
+            sleep 2
+          done
+          test "$state" = "unhealthy" || { echo "health status was '$state'"; docker logs support-bot; exit 1; }
+
+      - name: SIGTERM reaches the process and the shutdown sequence runs
+        run: |
+          start=$(date +%s)
+          docker stop support-bot
+          elapsed=$(( $(date +%s) - start ))
+          docker logs support-bot > stop.log 2>&1
+          tail -n 20 stop.log
+          grep -q '"event": "shutdown.requested"' stop.log
+          grep -q '"reason": "signal SIGTERM"' stop.log
+          grep -q '"event": "service.stopped"' stop.log
+          # `docker stop` kills at 10s when the signal is ignored, so a fast exit is the proof.
+          test "$elapsed" -lt 8 || { echo "shutdown took ${elapsed}s — SIGTERM did not reach the process"; exit 1; }
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f support-bot || true
+
+  # ---------------------------------------------------------------------------
+  # Publishing the image, so the Docker host does not have to build it
+  # ---------------------------------------------------------------------------
+  #
+  # Decided 2026-09-07 with David, replacing "built on place from git": bringing the bot up meant a
+  # full clone of this repository — the tools, the documentation, the Lua, the missions — on a
+  # machine that runs a Python service needing none of it. The host now holds three files.
+  #
+  # On a push only. A pull request gets a read-only token, and publishing a branch that has not been
+  # reviewed would give away the thing the gate is for.
+  publish:
+    needs: [quality, container]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The workflow's own token, so there is no personal access token to place or rotate. The
+      # package is made public once, by hand, on its GitHub page: one created by a first push is
+      # private, and a private one would put a `docker login` on the Docker host to protect code
+      # that is already readable on GitHub.
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build the image
+        run: docker build -t veaf-support-bot:publish .
+
+      # What David asked for, and the reason it inspects the *image* rather than the build context:
+      # `.dockerignore` reasons about what is offered to the build, and what has to be proved is what
+      # came out of it. A future `COPY` reaching for a key would sail past a context-only check.
+      #
+      # The listing is taken once and asserted to be non-empty first. A grep over an empty listing
+      # finds nothing and passes, which is how a check that can only succeed gets shipped.
+      - name: The image carries no secret
+        run: |
+          docker create --name inspect-me veaf-support-bot:publish
+          docker export inspect-me | tar -t > files.txt
+          docker rm inspect-me
+          test -s files.txt || { echo "the export listed nothing at all"; exit 1; }
+          grep -q "app/veaf_support_bot/__init__.py" files.txt \
+            || { echo "the listing does not even hold the package; the check would prove nothing"; exit 1; }
+          # Anchored on where THIS project's files can land, not on extensions anywhere. Measured
+          # on the first run (34150557474): a bare `\.pem$` matched the base image's public CA
+          # bundle — /etc/ssl/certs/*.pem, usr/local/lib/.../certifi/cacert.pem — and failed the
+          # job on 150 certificates whose whole purpose is to be public. What a secret of ours would
+          # look like is a file under the working directory, the unprivileged user's home, root's,
+          # or a mounted secret path.
+          if grep -Ei '(^|/)\.env($|\.)|^run/secrets/.|^(app|root|home/[^/]+)/.*(\.pem|\.key|id_rsa)' files.txt; then
+            echo "the image carries something that looks like a secret"; exit 1
+          fi
+          # The check has to be able to fail, and the CA bundle proves only that it does not fire on
+          # a public certificate. So run the same expression against a listing that DOES hold a
+          # planted secret: an expression narrowed until it matches nothing would otherwise sail
+          # through every future build.
+          { echo "app/.env"; echo "app/veaf_support_bot/__init__.py"; } > planted.txt
+          if ! grep -Ei '(^|/)\.env($|\.)|^run/secrets/.|^(app|root|home/[^/]+)/.*(\.pem|\.key|id_rsa)' planted.txt; then
+            echo "the secret check no longer catches a planted secret"; exit 1
+          fi
+          rm -f planted.txt
+
+      # `develop` is the channel the Docker host follows today. `latest` is published from `master`,
+      # so it exists the day a release happens — a compose pinned to it before that would find no
+      # image at all, which is why the tag lives in the host's `.env` rather than in `compose.yml`.
+      #
+      # The `sha-` tag is what makes a rollback one line in that file, without waiting for a fix to
+      # go through CI.
+      - name: Tag and push
+        run: |
+          image=ghcr.io/veaf/veaf-support-bot
+          short=$(echo "${{ github.sha }}" | cut -c1-12)
+          case "${{ github.ref_name }}" in
+            develop) channel=develop ;;
+            master)  channel=latest ;;
+            *)       echo "nothing is published from ${{ github.ref_name }}"; exit 0 ;;
+          esac
+          docker tag veaf-support-bot:publish "$image:$channel"
+          docker tag veaf-support-bot:publish "$image:sha-$short"
+          docker push "$image:$channel"
+          docker push "$image:sha-$short"
+          echo "published $image:$channel and $image:sha-$short"

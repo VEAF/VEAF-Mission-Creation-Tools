@@ -76,7 +76,7 @@ COMMAND_GROUPS: tuple[CommandGroup, ...] = (
 
 #: Commands that stay at the root, because grouping them would be filing for filing's sake: they are
 #: about the tool itself rather than about a mission.
-ROOT_COMMANDS: tuple[str, ...] = ("about", "ask", "user-config", "mcp")
+ROOT_COMMANDS: tuple[str, ...] = ("about", "doctor", "ask", "user-config", "mcp")
 
 #: The wizard has no root: every entry needs a heading, so the root commands get one. The CLI keeps
 #: them at the top level — same placement, expressed the way each interface can express it.

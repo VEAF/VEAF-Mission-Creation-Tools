@@ -64,6 +64,24 @@ suggère le contraire de ce qui va se passer.
 Et `generate_load_trigger: false` n'exclut pas le fichier du `.miz` — il l'embarque **sans** le
 charger. C'est à votre `mission-script.lua` de faire le `dofile`.
 
+## Un fichier que le build a généré {#generated-artifacts}
+
+Certains `.lua` de `src/scripts/` ne viennent de personne : c'est le build qui les fabrique et les
+injecte dans la mission à chaque construction. Ils atterrissent dans le dossier de mission après
+l'extraction d'une mission déjà construite.
+
+| Fichier | Ce que c'est | Où se modifie le contenu |
+|---|---|---|
+| `veaf-spawn-data.lua` | la base de données de spawn (`_spawn unit` / `_spawn group`) | `src/spawn-groups.yaml` |
+| `dcs-bridge.lua` | le pont d'exécution utilisé par l'outillage | rien à modifier, il est téléchargé |
+
+Le build les laisse de côté et vous le signale : rien n'est cassé, votre mission reçoit la version
+fraîche que la construction injecte. **Supprimez-les de votre dossier de mission** pour ne plus voir
+le message.
+
+Ne les déclarez pas dans `custom_scripts:` — cela figerait dans votre mission une copie périmée de
+données que le build régénère.
+
 ## Pour aller plus loin {#more}
 
 - [Référence `mission.yaml` — `custom_scripts:`](../../MISSION_YAML_REFERENCE.md#custom-scripts)

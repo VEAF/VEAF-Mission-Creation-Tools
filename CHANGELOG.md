@@ -17,6 +17,721 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.20.0] — 2026-09-07
+
+### Fixed
+
+- **The build's own output came back as a mission source.** Reported by Tripack: building his
+  mission warned about an unexpected `src/scripts/veaf-spawn-data.lua` — a file nobody wrote. It is
+  the spawn database (`_spawn unit` / `_spawn group`) rendered from YAML and injected into the
+  `.miz` at every build. Extraction moved **every** remaining `l10n/DEFAULT/*.lua` into
+  `src/scripts/`, and the cleanup that runs first only knew the VEAF, legacy and community scripts —
+  not the files injected through a `VEAF_MapKey_*` map resource, whose names lived in the injectors.
+  So extracting a v6 mission handed its own output back, and the next build embedded that stale copy
+  **and** re-injected a fresh one, leaving two copies of the spawn database in the mission. Same
+  defect for `dcs-bridge.lua`.
+
+  Fixed at both ends. Extraction now strips what the mission's own `mapResource` says a VEAF build
+  injected, so an artifact added later is covered without another edit. And a generated artifact
+  found in `src/scripts/` gets its own build message — this is build output, delete it, and the
+  spawn database is edited in `src/spawn-groups.yaml` — instead of the generic "unexpected Lua file"
+  warning, whose advice to declare it under `custom_scripts:` was the one thing that must not be
+  done with it: that would freeze an out-of-date copy into the mission. Declaring it no longer
+  rescues it, deliberately. The file is left out of the build, so nothing is broken while the
+  mission folder still carries it.
+
+- **A header was enough to use the documentation chatbot's Worker from anywhere.** Its admission
+  check read `cliHeader === "cli" || origin allow-listed`: anyone sending `X-VEAF-Client: cli` was
+  admitted whatever their origin, so the browser allow-list protected nothing and the Worker — and
+  the shared free Gemini quota behind it — was open to any caller. The per-IP rate limit that was
+  supposed to make up for it returned `true` from its own `catch`, so a KV outage removed every
+  limit instead of tightening one. And nothing capped the request body before it was parsed.
+
+  The Worker now declares a client vocabulary (`web`, `cli`, `logs`, `discord`), each with its own
+  quota, routes and body ceiling. A request carrying an `Origin` is judged on the allow-list alone
+  and its self-declared header is ignored; without an `Origin` the header only *selects* a mode and
+  buys nothing beyond that mode's quota. Rate limiting falls back to a much stricter per-isolate
+  ceiling when KV is unreachable, never to none. Bodies are bounded while streaming, before parsing.
+  A new `POST /analyze` route explains a bounded DCS log excerpt against the catalogue entries the
+  caller matched locally, saying "pattern not catalogued" rather than guessing a culprit — the mode
+  the forthcoming `veaf-logs` analysis will use. The documentation widget and `veaf-tools ask` keep
+  the access they had, with **one number moving**: because each mode now owns its bucket instead of
+  sharing one per-IP counter, `veaf-tools ask` gets **60 questions a day instead of 100**. The
+  browser widget keeps its 100. Both burst limits are unchanged at 10 per minute, and 60 questions
+  a day from one machine is well past what asking the documentation looks like in practice.
+
+  Two residual holes on that path were closed with it. A rate-limit counter that KV hands back
+  unreadable is now treated as the ceiling rather than as zero: `parseInt("NaN")` is `NaN` and
+  `NaN >= limit` is false, so a corrupted counter used to let requests straight through — and
+  writing `NaN + 1` back with a fresh 24 h expiry kept it corrupted indefinitely. Such a value is
+  now refused and left untouched, so it simply expires. And the counter lookup no longer reads the
+  client name off the prototype chain, where `constructor` and `toString` answered with a quota-less
+  object that compared favourably against every ceiling.
+
+- **The user log finally records stack traces, and a crash leaves something behind.** `exception()`
+  logged the message and dropped the traceback, so the file recorded that something failed and lost
+  the only part that says where. An uncaught exception was journalled nowhere at all: the traceback
+  went to stderr, scrolled away, and the log kept no trace of the crash. Both now reach the log file,
+  and what the console shows is unchanged — asserted by a test, not by reading.
+
+  The file also **rotates** now, at 2 MB with three older files kept beside it. It appended for ever,
+  which is exactly why nobody opened it: measured at 87 MB on a real machine.
+
+- **The documentation pointed at a log that is not there.** `TOOLS_REFERENCE` told the reader to look
+  for `veaf-tools.log` *in the current directory*, in both languages and in two places. It is written
+  to `%USERPROFILE%\.veaf\veaf-tools.log` (or `$VEAF_HOME`). Someone following the page found nothing
+  and concluded there was no log.
+
+- **Redaction destroyed the diagnosis instead of protecting anything.** A rule replacing any run of
+  24+ characters mixing letters and digits was measured against the real tool log (last 3 MB, 1489
+  `ERROR` records): **74 substitutions, not one credential** — every hit a temporary directory or the
+  name of the thing that failed. Against the repository's own data files it matched 169 DCS GUIDs and
+  493 other identifiers, so `unknown payload HVAR_USN_Mk28_Mod4_Corsair` became `unknown payload
+  <redacted>`: keeping "it broke" and throwing away "on what". The rule is gone. A secret is now
+  recognised by context or by a known shape, which also fixes four measured leaks the old patterns
+  let through — `access_token=`, `client_secret=`, a JSON `"token": "…"`, and an e-mail address at
+  the end of a sentence — and adds IPv6, which had no pattern at all. Same run after the change:
+  **0 substitutions, 0 identifiers destroyed**, and the DCS version `DCS/2.9.10.1` no longer reads as
+  an IP address.
+
+- **The account name went through 56 times.** On the same 1489 records it survived in
+  `…\Temp\pytest-of-<name>\…`, on lines whose `C:\Users\<user>` had been redacted three segments
+  earlier: the rule only covered what sat directly under `Users/`, `home/` or `Documents and
+  Settings/`. It is now replaced wherever it appears, which also covers a `%USERPROFILE%` expansion,
+  a `USERNAME=` dump and a UNC share named after the machine's owner. Same run after the change: **0
+  survivals**.
+
+- **Log rotation failed loudly and lost the record when a second process held the file.** Windows
+  refuses to rename a held file, and `veaf-tools mcp` is a long-lived process holding this exact log:
+  measured, a `--- Logging error ---` traceback landed on **stderr in the middle of the command's
+  output** and the record was never written, repeating for every message. A blocked rollover is now
+  silent and costs nothing — the record is written and the file keeps growing until a run without a
+  second holder rotates it. The live file is also moved aside *before* the older files are aged, so a
+  rollover that cannot happen no longer erases the history it was about to shift.
+
+- **The first rollover hid the whole error history from `doctor`.** It read only the live log, never
+  the `.1`/`.2`/`.3` beside it — and the first rollover moves the entire previous log into `.1`,
+  leaving a live file of a few dozen bytes. On the machine this was written on that log is 87 MB, so
+  the first support conversation after the upgrade would have answered "no recent errors" to someone
+  reporting a crash. The rolled files are now read when the live one is short.
+
+- **A diagnostic block could carry a field nobody wrote.** A value containing a newline came back
+  from the parser as two fields, silently. No collector can produce one, but the bug-intake lot will
+  run that parser over text a stranger pasted into a public issue, so the producer now holds one
+  field to one line and the format documents both that invariant and the fact that a received block
+  is a claim, never a measurement.
+
+- **The documentation assistant said "try again shortly" for a wall that stands until morning.**
+  Google's free tier rations the assistant *per day and per project*, so the whole site shares one
+  daily allowance — and Gemini answers the same 429 for that as for the per-minute burst limit,
+  which clears in under a minute. The Worker mapped both to the burst wording, so a visitor who met
+  the day's ceiling was invited to keep retrying all evening. The two are now told apart from the
+  upstream error body, and the daily case says when the assistant comes back, in a local morning
+  hour rather than in Pacific midnight, and says that being rationed is not a breakage. It also
+  reaches the reader at last: the widget and `veaf-tools ask` both bailed on the HTTP status and
+  threw away the explanation the Worker had put in the body, showing a generic error instead. The
+  chatbot panel, the support page and the `ask` reference now also say up front that the allowance
+  is free, shared and refilled each morning — someone who meets a ceiling nobody mentioned
+  concludes the tool is broken.
+- **A combat zone puts a group back where the Mission Editor drew it.** The offset that moves a
+  respawned group was measured between two *instants*: the anchor was its first unit's live position,
+  while the spawner subtracts that unit's editor position — so the offset was whatever the unit had
+  drifted since mission start, applied to every unit of the group. Measured at 100 m of displacement
+  for 100 m of drift. A pre-placed ship already under way or a CAP already airborne carried it;
+  stationary ground units did not. A group that had moved is now returned to its drawn position.
+- **A teleported aircraft comes back flyable again.** An aircraft parked cold and dark in the Mission
+  Editor and moved by `_move group`, `veafSpawnObjects` or an escort teleport arrived flyable up to
+  6.19.0 and arrived cold after it; a group hidden from the F10 map stayed hidden. A clone and a
+  respawn still reproduce what the editor set — only the teleport does not, which is where MiST drew
+  the same line.
+- **A ship placed as a static object is no longer left on the quay.** The naval spawn fix recognised
+  only hulls placed as groups, so one placed as scenery was still moved onto dry land — and in
+  silence, since a static's terrain check accepts any surface. A static now says what it is through
+  its own DCS sub-type.
+
+### Added
+
+- **A place for a service to live, and a first one in it.** The repository had two shapes — CLI
+  executables and a serverless Worker — and the documentation assistant coming to the VEAF Discord is
+  neither: it is a process that has to stay up. `services/support-bot/` holds it, as its own Poetry
+  project deployed independently of the tools release, so nobody waits for a version to restart a
+  bot. Its version is deliberately outside the lockstep between `pyproject.toml` and the two agent
+  manifests.
+
+  This is the skeleton, not the bot: it does not talk to Discord yet. What it does carry is what a
+  self-hosted service needs before it needs features. Configuration comes only from the environment,
+  with no secret in the repository, and a missing or malformed variable stops the process **at
+  startup** — listing every problem at once, and exiting 78 (`EX_CONFIG`) so a supervisor can tell a
+  wrong deployment from a crash — rather than surfacing on the first user question. It answers
+  `/healthz`, `/readyz` and `/status`, and logs a heartbeat line, because the failure mode of every
+  self-hosted bot is dying silently while the container still says *running* and the VEAF has no
+  supervision for it. Logs are one JSON object per line on stdout, each carrying an `event` key, and
+  the bot token is redacted in both the startup line and any traceback. `SIGTERM` runs a real
+  shutdown — readiness drops first, work in flight gets a grace period, the rest is cancelled and
+  reported — so a container restart cannot leave a half-answered thread behind.
+
+  The image runs the same module a direct launch runs, so the documented command is a rehearsal of
+  the deployment rather than a second code path; the `Support Bot` workflow builds it and checks that
+  a misconfigured container refuses to start, that Docker's health check turns it healthy, and that
+  `SIGTERM` really reaches the process.
+
+  Three findings from the review of that skeleton, fixed before it ever ran anywhere. **The shutdown
+  was bounded everywhere except at the end of it:** closing the health endpoint waited without a
+  limit, and since Python 3.12 that wait includes every connection handler, so anyone holding a
+  socket held the process. Measured on the shipped image's interpreter with a one-second grace: no
+  connection, 0.00 s; one idle TCP connection — a port scan reaches it, the container binds
+  `0.0.0.0` — 5.01 s; a client sending one header every four seconds, still blocked past a minute,
+  with a ceiling near five minutes because the read timeout was applied per line and not per request.
+  `docker stop` kills at ten seconds, so the `service.stopped` line was simply never written: the
+  silent death the whole module exists to prevent. The grace period now bounds the sequence end to
+  end, the request head has one deadline instead of one per line, and a connection that outlives the
+  budget has its socket cut and the abort logged. Same three measurements now: 0.00 s, 1.00 s,
+  1.01 s. **A configuration error could publish the bot token:** every reader but two echoed the
+  value it refused, and that message goes to stdout at `CRITICAL`, straight into a log collector.
+  Pasting the token into `SUPPORT_BOT_DISCORD_GUILD_ID` — the variable right below it in
+  `.env.example`, another opaque string from the same Discord screen — printed it in full. Messages
+  now describe the shape of what was refused (`is not an integer (got 47 characters)`) and never its
+  text. **And the `Support Bot` gate did not run for everything its tests assert on:** two of them
+  check, through `git check-ignore`, that the root `.gitignore` really hides the service's `.env`,
+  and that file triggered no workflow in the repository — a later reshuffle of those lines would have
+  un-guarded the secret with every check green.
+
+- **`veaf-tools doctor` reads out the three facts every bug report is missing.** Tool version, DCS
+  version and where the logs are: mechanical facts sitting on the user's machine that the tool never
+  read out, so every report had to start with "which version?". The command prints a readable table,
+  then a delimited block to paste into a Discord message or a GitHub issue as-is.
+
+  Everything it prints is **redacted before it is shown**, because the block is designed to be
+  published by someone who will not reread it: the Windows account name becomes `<user>`, routable
+  addresses `<ip>`, tokens and passwords `<redacted>`. Loopback addresses are kept — they say
+  something and carry nothing. The redaction helper (`veaf_libs.redaction`) is written once here for
+  the log-analysis and bug-intake lots to reuse.
+
+  The block is a versioned contract (`veaf-tools-doctor/1`) with a parser beside its producer and a
+  round-trip test, documented in *Diagnostic block format* under Developer. The command works with
+  no DCS installed, no `VEAF_HOME` set and no log file: a fact it cannot read reports `unknown` and
+  the rest is produced anyway.
+
+- **A support page**, in both languages: where to go depending on your situation, what to provide,
+  and where the two logs actually live — the tool's and DCS's.
+
+- **`veaf-logs` explains what it shows, and prepares the report.** *Analyse → Expliquer ce qui est
+  affiché* (`Ctrl+E`) answers in two layers, and the order between them is the whole design. The
+  **catalogue answers first**: every pattern `rules.json` recognises is rendered with its own
+  reviewed wording, as it stands — no model, no cost, no network. The **model puts it in context
+  second**, only if you press *Analyser en ligne*, and where the catalogue is silent it is told to
+  say *motif non catalogué* rather than propose a cause. The worst failure of a feature like this is
+  not silence, it is a plausible wrong answer: the reader cannot tell it from a right one and will
+  spend his evening on it, so the two layers carry their own headings rather than a disclaimer at
+  the bottom nobody reads. With no network the catalogue layer stands alone and no error dialog
+  appears.
+
+  What leaves the machine is the excerpt on screen, **bounded** and **redacted** through the same
+  helper as `doctor`. Bounded means the whole rendered text, header included — measured on a real
+  11.1 MB `dcs.log` (87 989 records), 3 356 records survive a *Diagnostic* filter and 157 of them fit
+  a 16 000-character ceiling, in 0.3 s. The header names the categories set to ✕: a log filtered down
+  to "no errors" because `ERROR` was unticked must not read as a clean log.
+
+  A message that recurs and that the catalogue does not explain comes back as a **proposed
+  `rules.json` entry**, in the file's own shape, with identifiers and values already replaced by
+  wildcards and the regex checked before it is offered. Nothing is written to `rules.json`: the
+  catalogue stays hand-curated, which is exactly what makes its wording quotable.
+
+  *Préparer un rapport* assembles the `doctor` block, the excerpt, the catalogue matches and what
+  the analysis could not explain into one block on the clipboard, sized to fit a Discord message and
+  stating what it removed to get there. It is a paste, not a transmission. The format is a versioned
+  contract (`veaf-logs-report/1`) with a parser beside its producer and a round-trip test, documented
+  in *Report block format* under Developer.
+
+- **A pilot-facing door**, in both languages: *DCS se comporte mal — lire son journal*, in the Pilot
+  Guide menu. `veaf-logs` was documented under Mission Maker only, and a pilot with a crashing DCS
+  has no reason to open that section — half the audience could not find the tool.
+
+- **The report block now fits the Discord message it is sized for, and its own field describes it.**
+  The `truncated` field lives inside the block it measures, so writing it changed the length it had
+  been measured from. Swept across realistic `doctor` sizes and ceilings on the real 11 MB `dcs.log`
+  (87 989 records), 30 of 240 blocks came back over their own limit — Discord refuses those — and
+  every *OUI — N caractères* was wrong: understated by 21 when the block overflowed, overstated by
+  12 when it did not, and in 59 cases the block fitted while announcing it had to be pasted in two
+  messages. After: none over the limit, and over 106 genuine overflow cases the announced number is
+  the block's own length exactly. The overflow notice also keeps the list of what was dropped, which
+  it used to overwrite.
+
+- **Three defects in the rules a log analysis proposes**, all found on the real archives and all
+  changing what a maintainer is offered. An apostrophe in a contraction opened a quoted span, so
+  `can't load destroyed model 'X' for 'Y'` produced a rule that kept the unit names as literals and
+  turned *load destroyed model* into a wildcard — the exact inverse of the intent, and a rule that
+  could never fire on another model. A long decimal was read as a hexadecimal identifier, so the
+  same message split into two proposals depending on the magnitude of its number (`×71` and `×24`
+  where the truth was `×95`). And a Windows path made a wildcard repeat three times in a row, giving
+  a pattern that took 1.9 s on a 1 600-character line that nearly matches — against 0.006 ms once
+  collapsed — where a `rules.json` pattern is applied to every line of an 11 MB log.
+
+- **An excerpt emptied by the size ceiling no longer reads as a quiet log.** It printed *aucune ligne
+  retenue par les filtres courants* directly under a header saying *87 989 omises par la limite de
+  taille*. The filters had retained those lines; the ceiling took them. Two different facts, two
+  different sentences.
+
+- **`/ask` on the VEAF Discord**, answered by the support bot service (`services/support-bot/`). The
+  question opens a **public thread** and the answer is written into it as it streams in, with links
+  to the documentation pages it used. Public on purpose: the answer serves the next person who asks
+  the same thing, and anyone passing by can correct the bot — which is the only correction loop that
+  catches a wrong answer, since no technical guard notices that the documentation changed in 6.19.
+
+  It answers **from the documentation and nothing else**, and says so on the support page along with
+  the consequence: a documentation gap becomes a wrong or missing answer, and the fix is to write the
+  page. When no page can be cited it says the question may be outside what the documentation covers
+  and points at the support page. Every upstream failure — unreachable, rate-limited, timed out,
+  refused — is one human sentence rather than a stack trace or, worse, silence.
+
+  The sources are honest rather than guessed. The Worker streams text and never tells the caller
+  which passages it retrieved, so the model is asked to declare the titles it used, and every
+  declared title is checked against the real `doc/` tree; anything the corpus does not have is
+  dropped. The bot can show fewer sources than it used, never one that does not exist.
+
+  Quotas live in the service, because the Worker counts per IP and a Discord bot is one IP for a
+  whole server: three questions a minute and fifteen a day per person, two hundred a day for the
+  whole bot — the only bound on total spend, sized against the free Gemini tier the website and
+  `veaf-tools ask` also share. A refusal names the reason and the reset time; the counters are
+  persisted, so a restart is not a way to get a fresh allowance, and when they cannot be kept the
+  bot answers at a much stricter rate and says so instead of quietly serving unlimited.
+
+  The bot does **not** read the sources, open issues or analyse logs. The support page says so, so
+  that their absence reads as a boundary rather than a bug.
+
+- **The support bot survives its own bad days.** Review of the `/ask` lot found four ways the bot
+  could go quiet or overspend, all of them green in the test suite.
+
+  When the counters cannot be kept, the fallback held a ceiling *per minute* and dropped both daily
+  ones — 2880 questions a day at the shipped defaults against the 200 the healthy path allows, and
+  payable by one person. It now carries a day of its own, a tenth of the configured ceiling and never
+  more than one user's healthy day. `/status` reports that spend, because the persisted counter stops
+  moving while the fallback is running. A state file that was valid JSON of the wrong shape killed
+  the process before the health server existed, so the container restarted into the same death; it
+  now degrades, which is what the module always documented.
+
+  Past the acknowledgement, only an upstream failure used to reach the reader as a sentence —
+  anything else left them on "the bot is thinking" until the interaction died fifteen minutes later.
+  Every step is now guarded, and the whole exchange is bounded: the client's own timeout only covered
+  what it *waited* for, so a stream whose Discord edits were being rate-limited ran unbounded
+  (12.25 s measured on a 2.0 s budget). The `SOURCES:` trailer is also read in the shapes a model
+  actually writes it — backticked, bold, bulleted, or with the space French typography puts before a
+  colon — each of which used to lose every citation *and* leave the raw instruction line in the
+  answer.
+
+- **Skynet left every SAM asleep and its status page blank.** Reported by Tripack with
+  `SKYNET.enabled: true`: no site ever engaged, the radio menu showed neither status nor contacts,
+  and the same mission with Skynet switched off worked perfectly. One lost task explains all three.
+  Skynet arms its contact-evaluation cycle with a hardcoded start time of **one second of mission
+  time**, and an IADS that initialises later than that — three minutes in, on his mission — asks the
+  DCS timer for a moment already gone. MiST, which the vendored Skynet no longer carries, ran an
+  overdue task on its next tick; the native timer is not something to rely on for that, and a
+  dropped task raises nothing, so `dcs.log` held no Skynet error at all. Since the whole cycle ends
+  with `printSystemStatus`, the status page had nothing to print either.
+
+  Fixed where the three call sites converge rather than at each of them: the fork's scheduler now
+  arms a first run due now, or overdue, for the next tick — the same floor `veafScheduler` got four
+  days earlier, when the same defect swallowed `spawnSmoke`. Repetition, stop time and cancellation
+  are unchanged. `skynet-iads-compiled.lua` is regenerated at build 05.09.2026.
+
+- **A combat zone's naval element now searches for water, not for dry land.** `veaf.findSpawnPoint`
+  only ever accepted dry ground, so a ship or submarine anchored near a quay was dragged onto it and
+  then correctly refused by the terrain check downstream — six groups of a real mission never spawned.
+  `findSpawnPoint` now takes the acceptable surfaces as a parameter (defaulting to today's land-only
+  criterion, so no other caller changes), and a combat zone reads the surfaces its element's category
+  calls for from the same table the spawner already uses.
+
+- **A terrain refusal now names what was actually wrong.** `_drawOrigin`'s error used to print only the
+  radius and the group name; it now also names the resolved category, the surfaces it accepted, the
+  point it tested, and the surface DCS reported there — enough to diagnose the naval-spawn defect above
+  from the log alone, without needing the mission file.
+
+- **A cloned or respawned group now carries the group-level fields the editor set on it.**
+  `veafMissionDb`'s group record held exactly ten fields, and `task` was not one of them — so a QRA
+  flight cloned from a pre-placed group reached DCS with its per-waypoint engagement intact and no
+  mission task at all, which is one read of *"tout se déclenche mais ils font leur nav tranquilos"*.
+  MiST carried this field, and the loss lands squarely on the version that dropped it. The record now
+  also carries `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication` and
+  `radioSet`, plus `hidden` — an editor-hidden group no longer becomes visible on the F10 map the
+  moment it is cloned.
+
+- **`/bug` on the support Discord: a form that becomes a filled bug report, with no model involved.**
+  It asks the five things `.github/ISSUE_TEMPLATE/bug_report.yml` needs and takes up to three files,
+  then does everything the free Gemini tier — measured at **20 requests a day** — cannot be trusted
+  to do: it parses the pasted `doctor` block for the tool and DCS versions, finds the `file:line` a
+  stack trace states (CPython, the tools' log, and the shape DCS actually emits for a Lua error),
+  maps it onto a repository checkout, quotes the lines around it and searches for the callers of the
+  function it sits in, reduces an attached `dcs.log` through the existing `veaf_logs` excerpt builder
+  and reports what `rules.json` recognises in the catalogue's own wording, and summarises an attached
+  `.miz` through the existing export — its theatre, date, weather and group *counts*, never its
+  briefing prose or its group names. Everything published is redacted first through the same
+  `veaf_libs.redaction` the `doctor` command uses.
+
+  **What is missing is stated, never filled in.** A version nobody pasted reads *"not stated"*; a
+  trace naming a file this revision does not have says so, with the revision it was checked against.
+  Every location carries that revision and its age, so a stale checkout produces facts a reader can
+  check rather than confident wrong ones.
+
+  **Nothing a reporter or a log writes selects a code path.** The component, the labels, the title
+  and the locations come from a checked-in lookup table, anchored patterns and a parse — never from
+  free text. A test assembles the same report twice, once with instruction-shaped text spliced into
+  every field and into the attached log, and requires the two to decide identically. The evidence
+  itself is never censored: hostile lines travel whole, quoted in a fence they cannot close.
+
+  Oversized, unknown, unreachable and corrupt attachments are each refused with a reason the reporter
+  reads, and the report continues without them. The command is published only when the deployment
+  gives the service a repository clone to read; without one it does not appear at all.
+
+  This is the first half of the intake: the issue is prepared, not yet opened. Filing it is the
+  GitHub App of the same lot.
+
+- **Three reporter-supplied strings reached the report without being redacted, and one `/bug`
+  froze the bot for as long as it took.** Found in review of the intake above, and all measured.
+
+  The redaction gap was in the three places the text does not look like text: the **member names of
+  an attached archive** (a `~mis*.zip` is a DCS autosave, and its paths carry the account name),
+  the **message of the parser that refused a file** (`luadata` copies the malformed region of a
+  mission into its exception, so a fragment of a stranger's mission was published as the reason it
+  could not be read — same shape over a stranger's log), and the **filename itself** (`safe_name`
+  makes a name safe for a disk, which is not the same property as safe to publish). All three now
+  go through the tools' single redaction helper, and the parser's detail is kept in the service log
+  instead. Note the limit, since it is deliberate: that helper recognises personal data by context
+  and known shape, so an address in a filename is replaced and a bare name is not — exactly as when
+  a reporter types one into *"what happened"*.
+
+  The liveness bug was that the whole deterministic pass ran on the gateway's event loop, including
+  a `git fetch` its own docstring says must never run there. Measured against the real repository,
+  an ordinary report with a mission attached held the loop for about six seconds — enough to stall
+  every `/ask` beside it — and a hung fetch would have held it for up to four minutes against a
+  Discord heartbeat of roughly forty seconds, which is a disconnect. The pass now runs in a worker
+  thread, and the refresh takes a lock: two reports arriving in the same interval both used to run
+  `git reset --hard` in the same working tree.
+
+  Two smaller things the report was stating as facts: a line the current revision **does not have**
+  was published as a location, with the quoted neighbourhood silently empty, and the function the
+  trace named was never compared with the function that line sits in today. Both disagreements are
+  now stated, with the revision they were checked against — they are the cheapest signal there is
+  that the reporter is on an older build. Alongside them: the mission summary no longer claims to
+  withhold the weather in the report that publishes it, a line of exactly forty backticks no longer
+  closes the fence that was supposed to contain it, and a failed `git fetch` no longer publishes the
+  remote's address under every location.
+
+- **A bug report is now compared against what already exists, before anything is opened.** Four
+  sources, all of it text matching and **not one model call**: the open issues, the recently closed
+  ones, the `.backlog/` lots and `ROADMAP.md`. `CONTRIBUTING.md` says issues are an intake desk and
+  the work lives in lots, so sweeping issues alone would have missed most of the answer — and the
+  two file sources are read from the checkout the intake already keeps fresh, which is why this
+  costs nothing.
+
+  **Three of the four outcomes open nothing.** *Already reported* adds the new observation to the
+  existing issue instead of a second one. *Already fixed* answers with the version that carries the
+  fix, read off the changelog entry citing the issue rather than guessed — the most valuable
+  outcome, since the reporter is unblocked on the spot. *A lot is on it* names the lot. Only
+  *nothing found* opens an issue, and the issue records what was swept, so a reader can see it
+  happened.
+
+  **A match is proposed, never applied.** It comes with its evidence — the reference, the score and
+  the exact words the two texts share — and the reporter can say his is different, after which his
+  report is filed as usual. A wrong "this is a duplicate" silences a real bug and the reporter will
+  not insist; with nobody available to ask, the answer is therefore *rejected*, never *accepted*.
+  A source that could not be read is stated as such: "nine issues, none of them yours" and "the
+  tracker was down" must not look the same.
+
+- **The issue is filed by a GitHub App, in the reporter's language.** The bot has its own identity
+  rather than borrowing a person's: one repository, one permission (*Issues: read and write*, plus
+  the *Metadata: read-only* GitHub attaches to every App), and nothing usable at rest — the private
+  key on the host only signs a nine-minute JWT, which mints an installation token good for an hour
+  and renewed on the call that needs it. Revoking the installation ends all of it in one click.
+
+  The body follows `.github/ISSUE_TEMPLATE/bug_report.yml` — a form **0 of the last 60 issues** had
+  used — and is written in the reporter's language, which departs from the repository's English-only
+  rule and matches what the tracker actually contains. Quoted material is never translated and never
+  reworded. It carries the `bug` label plus a `filed-by-bot` marker, the Discord author, and a link
+  back to the thread.
+
+  **One report can never become two issues.** A lock covers the double click, a ledger on disk
+  covers the retry, and a hidden marker inside the issue itself covers a restart between the request
+  and its answer — the only one of the three that survives losing all local state. A failure to file
+  is said in the thread, with the reason and a link to the form, rather than swallowed into a log
+  while the reporter believes an issue exists.
+
+  **One thing the ticket asked for is not possible**: GitHub has no REST endpoint that attaches a
+  file to an issue. A text attachment that fits is therefore carried *whole, inside* the issue,
+  where it lives as long as the issue does; a `.miz`, an archive or an 11 MB log is listed with its
+  size and its SHA-256 and the issue says plainly that the bytes were not published. A Discord
+  attachment URL is never written into an issue — those expire, and evidence behind a dead link is
+  no evidence.
+
+  With no App configured — which is every deployment until one is created — `/bug` still collects,
+  reads and shows a complete report, and says nothing was opened. With *half* an App configured, the
+  service refuses to start: taking bug reports for a week and quietly failing to file every one of
+  them is a failure that belongs at startup.
+
+- **Support bot — an attachment carried into an issue is redacted, not merely quoted.** A `.log` or
+  a `.txt` small enough to travel whole was posted as an issue comment straight from the downloaded
+  file, so a Windows account name and an e-mail address reached a public repository verbatim while
+  the redacted view of the same file sat unused beside it. The bytes now go through the tools' own
+  redaction helper, and a file nobody could redact is described in the manifest instead of being
+  published.
+
+- **Support bot — a lost bookkeeping file no longer opens a second issue.** The hidden marker that
+  makes a report idempotent was only looked for when the local ledger remembered an interrupted
+  attempt, which is the one state a corrupt, missing or unwritable ledger never produces. The
+  search now runs for every report with no known issue number. An unreadable ledger is also moved
+  aside rather than overwritten, so one bad read no longer erases every other entry.
+
+- **Support bot — a GitHub App key that reads but cannot sign stops the service at startup.** A
+  truncated or non-RSA PEM used to pass every check and fail on the first bug report, a week later.
+
+- **Support bot — a backlog lot that could not be read is stated.** It used to become an empty
+  candidate that matched nothing, so a lot nobody had read was indistinguishable from a lot swept
+  and found irrelevant.
+
+- **Support bot — a `/bug` report is now shown before it is filed, and nothing is published without
+  a click.** The reporter sees the issue itself — the exact title and body that would be created,
+  not a summary of them — with *File the issue*, *Edit* and *Cancel*. He types three fields and
+  twenty lines get published under a machine account, so the click is where he can see the log
+  excerpt, the extracted code and the environment that were added on his behalf, and say *not that*.
+  *Edit* reopens the form with his answers still in it. A draft nobody answers expires after eight
+  minutes and says so, and every other way this step can fail — a silence, a refusal, Discord
+  refusing to show the draft — leaves the tracker untouched. The preview is bounded to what Discord
+  accepts and **states** what it left out, with the counts. The prior-art proposal is now actually
+  put to the reporter with its evidence, where it previously had nobody to ask and always answered
+  *rejected* — and the comment added to an existing issue goes through the same click, since a
+  comment on a public tracker publishes as much as an issue does. And an `/ask` answer that did not
+  help carries a *Report a bug* button that opens the same form, pre-filled with the question and
+  the answer.
+
+- **Support bot — a filed report can now carry one automatic hypothesis, labelled as a guess.** It
+  runs **after** the issue exists and spends **one** model call, gated on a VEAF Discord role and on
+  a daily allowance of 15 — measured against a free tier of 20 requests a day for the whole Google
+  project, shared with `/ask` and the log analysis. The model is handed the issue body, which already
+  carries the resolved `file:line`, the surrounding code, the callers, the catalogue matches and the
+  prior art, and is asked to *conclude on a prepared file* rather than to investigate. The result is
+  a comment under its own ⚠️ heading with the caveat directly beneath it, so a maintainer can tell in
+  one glance what was measured from what was guessed; the prompt instructs it to answer "not enough
+  to conclude" rather than blame something the report does not support. Not a member, allowance
+  spent, model unavailable, empty answer, switched off: in all five the issue stands as filed and
+  **says which**. The allowance fails closed, and the whole feature is **off** until
+  `SUPPORT_BOT_ENRICH_ROLE_ID` is set.
+
+- **Support bot — what happens on the issue now comes back into Discord.** Filing under a machine
+  account left the reporter subscribed to nothing, so a maintainer's question reached an empty room.
+  Clicking *File the issue* now also opens a public thread, which the issue links back to; every ten
+  minutes the service asks GitHub what changed on the issues it filed and carries human comments and
+  the closure into that thread, in plain language, once each. Its own comments — the hypothesis
+  included — are never relayed, which is the loop this must not have. Polling rather than a webhook,
+  so the App still needs no inbound port and no events. One deleted thread stops being followed and
+  nothing else changes; a rate limit is retried. **Discord → GitHub is deliberately not built**: to
+  add something to his report, the reporter posts in the thread and a maintainer carries it over.
+
+- **Support bot — redaction moved under every publishing path instead of being asked of each one.**
+  Four leaks of personal data reached review across three pull requests of this lot, and every one
+  took a path whose caller believed somebody else had redacted: an archive's member list, a parser's
+  error message, an attachment's file name, an attachment's bytes. The GitHub client now redacts
+  **every outgoing body**, recursively, on its way to the transport, and publishes nothing at all
+  when redaction cannot run — with a refusal message that names no path of its own, since that too
+  has leaked. A new test asserts it on the bytes handed to the transport and walks the package to
+  fail on any module that reaches a network outside the two clients, naming the file and the line;
+  the walk is itself put on trial against a deliberately leaky module.
+
+- **Documentation — `/bug` is documented for the people who use it and for the people who triage
+  it.** The support page gains a `/bug` section in both languages: what the form asks, what the bot
+  extracts without any AI, that nothing is published before the click, that personal data is
+  stripped — and the one thing that filter does not catch, which is what the reporter types himself.
+  `CONTRIBUTING.md` gains a second door into the intake desk and a section on reading an issue a bot
+  filed: the body is measured, the ⚠️ comment is a machine's guess, and the reporter is reachable on
+  Discord rather than on GitHub. The stale line saying the bot could not open an issue is gone.
+
+- **Support bot — the relay no longer drops the answers it promised to deliver.** Found by a review
+  pass over the whole lot, and the five defects it confirmed are fixed together. The per-round
+  ceiling of five relayed comments moved the cursor past the ones it had *not* posted, so anything
+  beyond the fifth was lost for ever while the reporter had just been told it would arrive next
+  round. A transient Discord failure — a 503, a permission lost for a minute, and the cold cache
+  every restart produces — was read as *this thread no longer exists* and stopped following the
+  report permanently; only a genuine `NotFound` does that now. A closed issue is no longer polled
+  for ever, which was a round growing without bound until the installation's hourly quota refused
+  everything for everybody. The state is written per link rather than once at the end, so a
+  shutdown mid-round no longer re-posts what it had just delivered. Comments past the hundredth on
+  one issue are now read, where the single fixed page had silently gone blind. And `/bug` now
+  follows a **reused** issue as well as a new one, instead of leaving a public thread linked to
+  nothing.
+
+- **Support bot — a mistyped `SUPPORT_BOT_ENRICH_ROLE_ID` is refused at startup.** Pasted as a
+  mention (`<@&123…>`) or as the role's name, it compared unequal to every id the bot ever sees:
+  the hypothesis was refused for every member, for ever, while each issue politely explained that
+  it is reserved for members — a configuration mistake that behaved like a working feature. The
+  value must now be a numeric id, and the refusal describes its shape without echoing it, since
+  this variable sits next to the bot token in `.env.example`.
+
+- **Support bot — `/suggest`, an idea weighed against what already exists.** On the VEAF Discord,
+  `/suggest` collects a feature request — the problem first, then the wanted behaviour — and files
+  it as the repository's own `feature_request.yml`, in the asker's language, under `enhancement`.
+  Before anything is drafted it asks whether the thing exists already: the documentation assistant
+  is put the request and answers with its pages, and the open issues, `.backlog/` and `ROADMAP.md`
+  are swept the way `/bug` sweeps them for duplicates. Three of those four answers open nothing.
+  Neither check concludes on its own — both are shown with their evidence and can be refused, and a
+  refusal carries the suggestion on, because a wrong *it already exists* silences a real idea. As
+  with `/bug`, nothing is published before the click, and the public thread is opened after it.
+
+  The lot planned to sweep the documentation by text matching, at no model cost. Measured on the
+  real tree, that does not work: the words naming a feature are in 17% to 60% of the 144 pages,
+  because good documentation cross-references itself, and three successive scorings still matched a
+  request for SMS alerts against the support page at 57%. Asking the assistant is the same question
+  `/ask` answers, from the same corpus and on the same allowance — one model call per suggestion,
+  and a spent quota does not refuse the suggestion, it only records that the documentation was not
+  consulted. *The documentation is silent* and *the documentation could not be asked* stay
+  distinguishable in the filed issue: only the first is a finding, and it is the one that says a
+  page may be missing.
+
+- **Support bot — the container can run `/bug` and `/suggest`.** The image was built on
+  `python:3.13-slim` with three pip packages and **no `git`**, while the service owns a clone it
+  refreshes itself (`git fetch --prune`, then `git reset --hard`). Without `git`, and with an empty
+  checkout volume, `open_checkout` refused the directory and **neither command was published** — a
+  container answering `/ask` and nothing else, with every test green, because the `container` job
+  built the image and never asked it whether `git` was there. The image now installs `git`, declares
+  a volume for the clone, and its entry point creates that clone on first start — shallow and
+  single-branch, since the service reads files and never history. A clone that fails is a warning
+  and not a dead bot: an unreachable GitHub must not take `/ask` down with it. The entry point ends
+  on `exec`, so `docker stop` still reaches Python and the graceful shutdown still runs. Ships with
+  a `compose.yml` for the VEAF Docker host, a PowerShell launcher for a direct rehearsal, and the
+  README section that says where it runs instead of asking.
+
+- **A combat zone's group is anchored on the unit the Mission Editor put first, not on the first one
+  still alive.** Spawning a zone's group translates all of its units by a single offset, and the two
+  ends of that offset were read from two different places: the spawner measures it against the
+  mission record's `units[1]`, while the zone element was anchored on `Group:getUnit(1)` — the first
+  *live* unit, an index DCS shifts as units are lost. Whenever the two disagreed the offset became
+  the spacing between two different units, and the whole group moved by it. On a group spread over
+  kilometres that is kilometres: measured on Tripack's `CMBT_ABU_MUSA_AIRPORT - AAA`, five ZU-23s
+  ringing Abu Musa 4 330 m apart, **1 976 m** with the first ZU-23 lost before the zone was built and
+  **3 340 m** with the live list out of editor order — enough to stand the south-western ones in open
+  water. Both ends now name the same unit, and read it at the same instant, so the offset is the
+  dispersion and nothing else. The anchor is that unit's editor position, whether or not it is still
+  alive — the group comes up where it was drawn.
+- **A combat zone's dispersion default can be set from `mission.yaml`, per mission or per zone.**
+  Air defences placed in the revetments a map provides were scattered by the 50 m default, which puts
+  a launcher on the berm instead of inside it — and on the YAML workflow the default could not be
+  changed at all, since `veaf-config.lua` is generated. Two new keys: `default_spawn_radius` under
+  `combat_zone_settings` for the whole mission, and the same key on a `combat_zones` entry for one
+  zone. A group's own `#spawnradius=` still wins over both. `default_spawn_radius_statics` is the
+  statics' counterpart, kept separate because their built-in default is already `0`. Both are read by
+  presence rather than truthiness, so `0` — the value the feature exists for — survives the generator.
+
+- **A thread that answers back: mention the bot to continue an `/ask`.** The answer opened a thread
+  and nothing could be asked in it — a second question meant a second `/ask` in the channel,
+  retyping the context the thread already held. Now **mentioning the bot inside the thread it
+  opened** asks the next question with the exchange in mind, so a follow-up can be as elliptical as
+  *"et si je veux créer une mission ? on a des modèles ?"*. Three things shaped it. The bot reads
+  **only** the messages that name it — not by convention: message content is a privileged intent
+  this service asks for nowhere, and Discord delivers the text of a message only when the app is
+  mentioned in it, so *the bot cannot read what is not addressed to it* is a property of the
+  connection. What each thread was about is kept on the state volume, beside the quota counters, so
+  a rebuild does not end a conversation. And the retrieval query joins the thread's opening question
+  to the follow-up: the Worker picks the documentation passages from the last user turn alone, and
+  an ellipsis on its own retrieves nothing about the subject — the model would then answer
+  confidently over the wrong pages. A follow-up spends one question of the asker's allowance, like
+  any other.
+
+### Changed
+
+- **The bot's image is built by CI and pulled from GHCR, so its host stops cloning this repository.**
+  Bringing the service up meant a full clone of VMCT — tools, documentation, Lua, missions — on a
+  machine that runs a Python service needing none of it. `services/support-bot/compose.yml` now
+  names `ghcr.io/veaf/veaf-support-bot`, the tag coming from the host's own `.env`: `develop` today,
+  `latest` once a release is published from `master`, a `sha-` tag to roll back in one line. The
+  host holds three files and one command. The package is public, so no registry credential lives on
+  it; the push uses the workflow's own token; and the publish job **inspects the built image** —
+  not the build context — refusing to push one that carries a `.env`, a key, or anything under
+  `/run/secrets`. Unchanged, and easy to misread as gone: the container still clones the repository
+  on first start, shallow, into its own volume, because that clone is what `/bug` and `/suggest`
+  read.
+
+- **Four rough edges the bot's first real run showed, and a hypothesis more than one role can open.**
+  A bug report located in `src/scripts/community/AIEN.lua` was filed as component *Other* — Lua that
+  runs inside a mission exactly like the VEAF scripts, and unfilterable, because the component table
+  knew `src/scripts/veaf/` and nothing else under `src/scripts/`. The log digest and the attachment
+  manifest were written in English inside otherwise French issues: they now come from the catalogue
+  and follow the reporter's language, which required passing that language into the attachment pass
+  at all — the missing argument was the actual cause. The two counters that read as a contradiction
+  (*1202 records kept* beside *48 entries of 10455 indexed, 1202 kept*) now name what each of them
+  measures. And the idempotency marker no longer opens the Discord preview: GitHub hides it as an
+  HTML comment, Discord rendered it as an unreadable first line, so the preview drops HTML comments
+  while the filed issue keeps the marker the recovery search greps for. Finally,
+  `SUPPORT_BOT_ENRICH_ROLE_ID` accepts a comma-separated list — which role means "VEAF member" is
+  the association's decision and it may well answer with two — with every entry validated exactly as
+  the single id was.
+
+- **The bot stops recording an opinion nobody expressed, and `/bug` stops asking a question its
+  token cannot outlive.** A prior-art proposal had three possible endings — *yes it is mine*, *no
+  mine is different*, and nobody answering (a silence, or a Discord that never displayed the
+  question) — and the protocol returned a boolean, so the last two arrived as the same `False`. The
+  safe direction was right: only a *yes* ever stopped a report. What was wrong is what the issue
+  then said, which was *the reporter said his is different* under a silence. Three states now travel
+  from the buttons to the issue body, in both languages, and every caller was read rather than
+  adapted — the duplicate comment, which publishes on a public tracker, still requires an explicit
+  yes. Alongside it, `/bug` gained the bound `/suggest` already had: its two waits spend 780 of a
+  token's 900 seconds, before the preparation that precedes them, so when a question would no longer
+  leave room for the consent click it is **skipped** — the sweep still runs and the issue still
+  records what it found. The numbers live in one place both flows read.
+
+- **`/suggest` recognises a request already made in other words, needs a page before saying
+  something exists, and records the second voice on it.** Three things the first real run showed.
+  A duplicate was found by comparing words, and no two humans write the same request the same way —
+  the tracker holds `#240 -cap un peu plus selectif`, `#187 Modifications du watchdog de CAP` and
+  `#178 Gérer la destruction du -cap`, one subject in three vocabularies. The open issues' titles now
+  travel **inside the call the flow already makes**, so one request answers both questions at no
+  extra spend, and what the model recognises is proposed with the issue it names and refused with a
+  click, like every other match. Second: the bot announced *"la documentation semble déjà répondre à
+  ta demande"* over an answer that said the opposite — the model had answered in prose where a
+  keyword was asked for. Saying *it already exists* now requires **at least one cited page**, which
+  does not depend on guessing what a sentence means and matches the rule the service already runs
+  on: a link the asker can open is what lets him contradict the machine. Third, and the one that was
+  a promise the flow did not keep: an accepted duplicate now offers to **add the asker's observation
+  to the existing issue**, drafted, shown, and posted only on a second click. A suggestion is wanted
+  or not, and a second person asking for the same thing is the only signal of priority it will ever
+  carry.
+
+- **The bot's forms and its command picker speak the user's language.** The service translated every
+  sentence it *says* and no label it *shows*: two modal titles, eleven field labels, a placeholder
+  and the three command descriptions were hard-coded English, in a service whose default language is
+  French — David switched his Discord client to French to check, and nothing moved. The forms now
+  take the locale of the interaction that opens them, which is possible because a modal is built
+  when the command is typed. The **command picker** could not be fixed that way: descriptions and
+  option names are registered once, before any interaction exists, so they go through Discord's own
+  `app_commands.Translator`, whose table it stores and serves per client language. What stays
+  English on purpose is a component's **value** — those are the issue templates' options, word for
+  word, and a translated value is a component nobody can filter on.
+
+- **Four places the bot's output buried what mattered, all four seen on the live Discord within an
+  hour of shipping.** A long answer to a follow-up was cut at Discord's 2000 characters with a
+  notice — in a **thread**, where a second message costs nothing; answers now overflow into further
+  messages, split on line boundaries, code fences closed and reopened across the cut, with the
+  sources and the caveat on the last one. The follow-up invitation, which had taken 146 of the
+  body's 1849 characters, is now written once per thread rather than under every answer. A bug
+  report with a mission attached had a *what is missing* section of 28 lines, **26 of them
+  deliberate** — every `.miz` field the service summarises rather than publishes — which buried the
+  two real findings; missing and withheld are now two lists, and an attachment contributes one line
+  instead of twenty-five. And a duplicate proposed by the model showed a bare issue number: it now
+  shows the title and the link, because a proposal a reader cannot judge without opening GitHub is
+  an assertion — and bug reports are no longer offered as duplicates of a suggestion, which is what
+  made the bot propose *La mission ne fonctionne pas* for a request about a user interface.
+
+- **The redactor no longer eats the product's own name — nor the bug-report marker it corrupted.**
+  Found on issue #940, the first `/suggest` filed from the Docker deployment, whose title read *« Que
+  \<user\>-tools.exe propose une UI graphique comme ctld-tools.exe »*. The container ran as `veaf`,
+  so the account-name pass matched inside `veaf-tools`: the hyphen is not a word character, so the
+  guard that protects `veafSpawn.lua` did not apply. It was more than cosmetic — the same redaction
+  runs over the idempotency marker, so `veaf-support-bot:report=` was published mangled while the
+  recovery search greps for exactly that string, meaning a filed report could no longer be
+  recognised and a retry would open a second issue. Two independent guards now, because a deployment
+  can rename its user and cannot rename the product: the container's account is `appuser` (uid
+  unchanged at 10001, which is what an operator chowns the GitHub App's key to), and
+  `veaf_libs.redaction` refuses to treat the words this product says about itself as account names —
+  which also covers the mission maker whose Windows account happens to be named `veaf`. The
+  home-directory rule is untouched: `C:\Users\veaf\…` is still redacted, because there the letters
+  are unambiguously an account name.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

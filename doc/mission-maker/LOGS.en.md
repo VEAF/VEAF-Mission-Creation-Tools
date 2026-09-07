@@ -131,6 +131,65 @@ without it would give an error nothing explains. The right-click menu also offer
 the message **without the DCS header**, for when you want neither the timestamp
 nor the subsystem.
 
+## Explaining what is on screen {#explain}
+
+**Analyse → Expliquer ce qui est affiché**, or `Ctrl+E`. The answer comes in two
+layers, kept apart on screen, and the order between them is the whole design.
+
+**The catalogue answers first.** Every pattern `rules.json` recognises is
+rendered with its own wording, as it stands. No model, no cost, no network: this
+layer alone is already an answer, and it is the degraded mode for the rest.
+
+**The model puts it in context second**, only if you press **Analyser en ligne**.
+It receives the excerpt and the patterns already matched locally, and it chains:
+what happened first, what is only a consequence of it, which line to act on.
+Where the catalogue is silent it says *pattern not catalogued* instead of
+proposing a cause.
+
+The worst failure of this feature is not silence, it is a plausible wrong answer:
+*"it comes from your module X"* when it does not. The reader has no way to tell
+it from a right one, and will spend his evening on it. That is why the two layers
+carry their own headings rather than a disclaimer at the bottom nobody reads.
+
+With no network, no quota left, behind a corporate proxy: the catalogue layer
+answers and no error dialog appears.
+
+### What leaves the machine {#explain-privacy}
+
+Nothing, until **Analyser en ligne** is pressed. At that point what leaves is the
+excerpt on screen, **bounded** (a character ceiling, omissions stated) and
+**redacted** by the same code as `veaf-tools doctor`: Windows account name →
+`<user>`, IP addresses → `<ip>`, e-mail addresses → `<email>`, tokens and
+passwords → `<redacted>`. Mission, aircraft and payload names are kept: they are
+what says *what* it crashed on.
+
+The excerpt header also declares the categories set to ✕. A log filtered down to
+"no errors" because `ERROR` was unticked must not read as a clean log.
+
+### Recurring uncatalogued patterns {#proposals}
+
+A message that recurs and that `rules.json` does not explain is a **missing
+catalogue entry**. The analysis proposes one, in the file's own shape, with
+identifiers and variable values already replaced by wildcards.
+
+Nothing is written to `rules.json`: a proposal stays a proposal, and it is
+precisely because the catalogue is hand-curated that its wording is quotable. The
+generated `help` deliberately explains nothing — it says it is to be reworded.
+
+## Preparing a report {#report}
+
+The **Préparer un rapport** button assembles into one block the output of
+`veaf-tools doctor`, the bounded and redacted excerpt, the catalogue matches and
+what the analysis concluded — including what it could not explain — and puts it
+on the clipboard, ready to paste into `#support` or an issue.
+
+It is a **paste**, not a transmission: nothing leaves on its own. The block is
+sized to fit one Discord message; when it does not all fit, it states what it
+removed rather than being cut in silence.
+
+Its format is versioned and documented: see
+[Report block format](../developer/report-block.en.md).
+
 ## What it understands of the log
 
 **Stack traces stay with their error.** A `Mission script error` followed by its

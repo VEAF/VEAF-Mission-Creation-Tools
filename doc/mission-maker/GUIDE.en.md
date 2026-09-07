@@ -530,6 +530,7 @@ The build tells you how many it added.
 | `ask` | Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session. |
 | `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json; `--parking` also writes the parking spots to `parking/<theatre>.json`. |
 | `convert-other` | Adopt a third-party (non-VEAF) .miz mission onto the v6 toolchain. |
+| `doctor` | Collect the versions, paths and recent errors a bug report needs, and produce a redacted block to paste into a report — see [Getting help](../SUPPORT.en.md). |
 | `explore-cockpit` | Explore a live cockpit: name a control to see it, or move one to name it. |
 | `generate-config` | Generate a documented mission.yaml template for a mission folder. |
 | `inject-bridge` | Embed the dcs-bridge + a start trigger into a .miz, turning it into a bridge mission. |
@@ -1008,6 +1009,10 @@ modules:
 We recommend [Klogg](https://klogg.filimonov.dev/) — a fast log viewer with regex highlighting. Load `dcs.log` and filter on `VEAF` to see only VEAF messages.
 
 A ready-to-use Klogg highlight profile is included in the repository at [`tools/klogg/veaf.conf`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/klogg/veaf.conf). It colour-codes log levels (errors in red, warnings in orange, VEAF info in green, debug in teal, trace in grey) and highlights MIST and CTLD entries. To install it: open Klogg → *File > Import highlights…* and select the file.
+
+### Reporting what you find there
+
+If the log shows an error you cannot explain, [Getting help](../SUPPORT.en.md) says where to report it and what to attach — the `dcs.log` excerpt, and the block from `.\veaf-tools.exe doctor` that carries the versions.
 
 ---
 

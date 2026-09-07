@@ -37,6 +37,14 @@ local function buildTestMission()
               [1] = {
                 name = "Chevy",
                 groupId = 10,
+                task = "CAP",
+                taskSelected = true,
+                uncontrolled = false,
+                frequency = 251.5,
+                modulation = 0,
+                communication = true,
+                radioSet = true,
+                hidden = true,
                 units = {
                   [1] = {
                     name = "Chevy11",
@@ -182,6 +190,35 @@ end
 
 function TestVeafMissionDbSnapshot:test_aGroupCarriesItsUnits()
   luaunit.assertEquals(#veaf.getGroupRecord("Chevy").units, 2)
+end
+
+--- FIX-TRIPACK-FIELD-REPORTS ticket 05 — the group-level fields a clone or respawn needs to
+--- reproduce faithfully. `task` is the one that made a QRA flight scramble without engaging: MiST
+--- carried it (mist.lua:264), and the ten-field record here did not.
+function TestVeafMissionDbSnapshot:test_aGroupCarriesTheFieldsAClonerRelies()
+  local record = veaf.getGroupRecord("Chevy")
+  luaunit.assertEquals(record.task, "CAP")
+  luaunit.assertTrue(record.taskSelected)
+  luaunit.assertFalse(record.uncontrolled)
+  luaunit.assertEquals(record.frequency, 251.5)
+  luaunit.assertEquals(record.modulation, 0)
+  luaunit.assertTrue(record.communication)
+  luaunit.assertTrue(record.radioSet)
+  luaunit.assertTrue(record.hidden)
+end
+
+--- A group the editor never gave any of these fields must not fabricate one — `nil` stays `nil`, so
+--- `addGroup`'s own defaulting (hidden -> false when the editor said nothing) still applies.
+function TestVeafMissionDbSnapshot:test_a_group_without_the_fields_carries_nil_not_a_fabricated_default()
+  local record = veaf.getGroupRecord("Convoy")
+  luaunit.assertNil(record.task)
+  luaunit.assertNil(record.taskSelected)
+  luaunit.assertNil(record.uncontrolled)
+  luaunit.assertNil(record.frequency)
+  luaunit.assertNil(record.modulation)
+  luaunit.assertNil(record.communication)
+  luaunit.assertNil(record.radioSet)
+  luaunit.assertNil(record.hidden)
 end
 
 --- A record exists for a unit that has not spawned and for one already destroyed — the whole reason

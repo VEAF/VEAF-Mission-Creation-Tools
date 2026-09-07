@@ -562,14 +562,49 @@ end
 --- first one", and a convoy comes up a truck-length down the road from where it was drawn — with
 --- `#spawnradius=0` written and no dispersion asked for.
 ---
---- Falls back on the unit it was handed when DCS cannot produce unit 1, since an element with no
---- position spawns nothing at all, which is worse than spawning thirty metres off.
+--- FIX-TRIPACK-FIELD-REPORTS ticket 04: the anchor is read from the **mission record**, by name, and not
+--- from `Group:getUnit(1)`. Both used to be called "unit 1", and they are not the same unit: the record's
+--- is the one the Mission Editor put first and the one `_drawOrigin` measures the offset against, while
+--- DCS's is the first *live* one — its list compacts as units die. Reading them from two sources made the
+--- offset the spacing between two different units whenever those sources disagreed, which for
+--- `CMBT_ABU_MUSA_AIRPORT - AAA` — five ZU-23s spread over 4 330 m around Abu Musa — moved every unit of
+--- the group by kilometres and put the south-western ones out to sea.
 ---
---- @param unit the unit the caller had, used as the fallback
+--- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 01: it is the record's **editor** position, not that unit's
+--- live one. Same source was not enough — the two ends also have to be read at the same *instant*. The
+--- anchor was live while `_drawOrigin` subtracts the editor position, so the offset was whatever unit 1
+--- had drifted since mission start, applied to the whole group: measured at 100 m of displacement for
+--- 100 m of drift. `initialize()` runs seconds into the mission, so a pre-placed ship already under way
+--- or a CAP already airborne carried it; stationary ground units did not, which is why Tripack's report
+--- never showed it. Reading the editor position makes the offset zero for real — source *and* instant.
+---
+--- The visible consequence, accepted deliberately (David, 2026-09-07): a group that had moved is put
+--- back where it was **drawn**, not where it had got to. That is what respawning a zone means.
+---
+--- The fallbacks, in order: DCS's unit 1, then the unit the caller had. They are reached when there is
+--- no usable record — none at all, or one with no `units[1]` — where an element with no position spawns
+--- nothing, which is worse than an imperfect one. There is no liveness test any more: the editor
+--- position is returned whether or not that unit is still alive.
+---
+--- @param unit the unit the caller had, used as the last fallback
 --- @param group the group, as built by VeafCombatZone:initialize
 --- @return table a runtime vec3
 function veafCombatZone.referencePositionOf(unit, group)
   if not group.isStatic then
+    local record = veaf.getGroupRecord(group.name)
+    local anchor = record and record.units and record.units[1]
+    if anchor then
+      -- The editor position, in runtime shape: `x` is the northing, `z` the easting, `y` the terrain's
+      -- altitude. See docs/agents/dcs-coordinates.md.
+      --
+      -- **Not** the record's own `alt`, which was tried and taken back out: a mission-table altitude is
+      -- MSL under `alt_type = "BARO"` and **AGL** under `"RADIO"`, a runtime vec3's `y` is always MSL,
+      -- and the record does not carry `alt_type` — so there is no way to tell here which one it holds.
+      -- Reading an AGL value as MSL would hand `_altitudeFor` a height below the clearance it tests,
+      -- which drops the aircraft into a random band instead of its drawn altitude. The terrain height
+      -- is what this branch returned before, and what every ground group wants.
+      return { x = anchor.x, y = land.getHeight({ x = anchor.x, y = anchor.y }), z = anchor.y }
+    end
     local dcsGroup = Group.getByName(group.name)
     local firstUnit = dcsGroup and dcsGroup:getUnit(1)
     if firstUnit then
@@ -593,8 +628,11 @@ end
 --- @param unit the group's first unit, which gives the element its position and coalition
 --- @param group the group, as built by VeafCombatZone:initialize
 --- @param tags the group's collected tags
+--- @param zone VeafCombatZone|nil the zone this element belongs to, whose own default wins over the
+---   mission-wide one. Optional so the existing callers and tests that build an element outside a
+---   zone keep working on the module globals.
 --- @return VeafCombatZoneElement
-function veafCombatZone.buildGroupElement(unit, group, tags)
+function veafCombatZone.buildGroupElement(unit, group, tags, zone)
   local element = VeafCombatZoneElement:new()
   element:setCoalition(unit:getCoalition())
   element:setPosition(veafCombatZone.referencePositionOf(unit, group))
@@ -606,7 +644,17 @@ function veafCombatZone.buildGroupElement(unit, group, tags)
     element:setDcsGroup(true)
   end
   if not tags.spawnRadius then
-    local default = group.isStatic and veafCombatZone.DefaultSpawnRadiusForStatics or veafCombatZone.DefaultSpawnRadiusForUnits
+    -- The zone's own default when it set one, the mission-wide global otherwise. Resolved here rather
+    -- than stored on the zone at construction time, so a `veafCombatZone.DefaultSpawnRadiusFor*`
+    -- assignment and an `AddZone` call are order-independent in a generated config.
+    local default
+    if zone then
+      default = zone:resolveDefaultSpawnRadius(group.isStatic)
+    elseif group.isStatic then
+      default = veafCombatZone.DefaultSpawnRadiusForStatics
+    else
+      default = veafCombatZone.DefaultSpawnRadiusForUnits
+    end
     element:setSpawnRadius(default)
   end
   if not element:getSpawnGroup() then
@@ -663,6 +711,14 @@ function VeafCombatZone:new(objectToCopy)
   -- coalition whose units must be destroyed for the zone to complete (1 = red, 2 = blue).
   -- Defaults to red: the players are blue and the zone holds the red opposition.
   objectToCreate.enemyCoalition = veafCombatZone.DEFAULT_ENEMY_COALITION
+  -- dispersion this zone gives a group that wrote no `#spawnradius=` tag, in metres, or nil to use
+  -- the mission-wide `veafCombatZone.DefaultSpawnRadiusFor*`. **nil rather than the global's value**:
+  -- read eagerly here, a zone built before the mission's own default was set would freeze the
+  -- built-in 50 m, and the generator has no ordering guarantee between the two.
+  objectToCreate.defaultSpawnRadius = nil
+  objectToCreate.defaultSpawnRadiusForStatics = nil
+  -- set by initialize(), and read by the setters whose value it is too late to change
+  objectToCreate.initialized = false
   -- coalition the F10 menu is restricted to; nil = derive it from enemyCoalition
   objectToCreate.radioMenuCoalition = nil
   -- DCS groups that have been spawned (for cleaning up later)
@@ -806,6 +862,79 @@ function VeafCombatZone:setTraining(value)
     self.showZonePositionInfo = true
   end
   return self
+end
+
+--- Dispersion this zone gives a group that wrote no `#spawnradius=` tag, in metres.
+---
+--- For the mission maker who placed a zone's objects deliberately — air defences in the revetments a
+--- map provides, aircraft on hardstands — where the mission-wide default is fine everywhere else.
+--- `0` means "exactly where I drew them", and since FIX-TRIPACK-FIELD-REPORTS ticket 04 that is an
+--- identity spawn rather than merely a small one.
+---
+--- A group's own `#spawnradius=` still wins: this is the default for the ones that stated nothing.
+---
+--- **Must be called before `initialize()`**, which is what builds the elements and applies the
+--- default. Called after, it would be read by nobody — so it says so, loudly, rather than leaving a
+--- mission maker to wonder why their line did nothing. The generator emits `:initialize()` last, so
+--- generated configs are safe by construction; a hand-written one can order it any way it likes.
+---
+--- The refusal reads an `initialized` flag rather than counting the zone's elements: a zone that
+--- initialised and found nothing in its trigger zone has an empty element list, and counting would
+--- have accepted a late call there — found by Sourcery on PR #930.
+---
+--- @param value number|nil metres, or nil to fall back on the mission-wide default
+--- @return VeafCombatZone self
+function VeafCombatZone:setDefaultSpawnRadius(value)
+  if self.initialized then
+    veaf.loggers.get(veafCombatZone.Id):error(
+      "setDefaultSpawnRadius(%s) called on [%s] after initialize(): its elements already have their radius, so this has no effect. Move the call before initialize().",
+      veaf.p(value),
+      veaf.p(self.missionEditorZoneName)
+    )
+    return self
+  end
+  self.defaultSpawnRadius = tonumber(value)
+  return self
+end
+
+--- See `VeafCombatZone:setDefaultSpawnRadius`; the statics' counterpart, whose built-in default is 0.
+--- @param value number|nil metres, or nil to fall back on the mission-wide default
+--- @return VeafCombatZone self
+function VeafCombatZone:setDefaultSpawnRadiusForStatics(value)
+  if self.initialized then
+    veaf.loggers.get(veafCombatZone.Id):error(
+      "setDefaultSpawnRadiusForStatics(%s) called on [%s] after initialize(): its elements already have their radius, so this has no effect. Move the call before initialize().",
+      veaf.p(value),
+      veaf.p(self.missionEditorZoneName)
+    )
+    return self
+  end
+  self.defaultSpawnRadiusForStatics = tonumber(value)
+  return self
+end
+
+--- The dispersion an untagged group of this zone gets: the zone's own default when it set one, the
+--- mission-wide global otherwise. Read at element-build time, never cached.
+--- @param isStatic boolean whether the group is a static object
+--- @return number metres
+function VeafCombatZone:resolveDefaultSpawnRadius(isStatic)
+  if isStatic then
+    -- `~= nil` rather than `or` is a statement of intent, not a fix: **in Lua `0` is truthy**, so
+    -- `self.x or global` behaves identically here and a test cannot tell the two apart. Written this
+    -- way because the question being asked is "did the zone state a value", which is exactly the
+    -- distinction FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT lost when it asked "is the value falsy"
+    -- — in the *other* direction, where `not 0` is false and three years of `#spawnradius=0` were
+    -- read as silence. The generator side of this feature has the real version of that trap, since
+    -- `0` is falsy in Python.
+    if self.defaultSpawnRadiusForStatics ~= nil then
+      return self.defaultSpawnRadiusForStatics
+    end
+    return veafCombatZone.DefaultSpawnRadiusForStatics
+  end
+  if self.defaultSpawnRadius ~= nil then
+    return self.defaultSpawnRadius
+  end
+  return veafCombatZone.DefaultSpawnRadiusForUnits
 end
 
 function VeafCombatZone:isShowUnitsList()
@@ -1181,6 +1310,11 @@ end
 
 function VeafCombatZone:initialize()
   veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:initialize()", veaf.p(self.missionEditorZoneName)))
+  -- Raised on **entry**, deliberately. This function has several early returns — no zone name, no
+  -- trigger zone — and each leaves the zone half-built; a flag set on the way out would miss them and
+  -- report the zone as still configurable. And the precondition the setters state is "before
+  -- initialize()", not "before initialize() succeeded".
+  self.initialized = true
 
   -- check parameters
   if not self.missionEditorZoneName then
@@ -1262,7 +1396,7 @@ function VeafCombatZone:initialize()
       end
       if #plainUnits > 0 then
         -- it's a group or a static unit
-        self:addZoneElement(veafCombatZone.buildGroupElement(plainUnits[1], group, tags))
+        self:addZoneElement(veafCombatZone.buildGroupElement(plainUnits[1], group, tags, self))
       end
     end
   end
@@ -1490,6 +1624,31 @@ function VeafCombatZone:destroySpawnedGroup(groupName)
   end
 end
 
+--- The surfaces a zone element's naval category may stand on, or nil to keep
+--- `veaf.findSpawnPoint`'s own land-only default unchanged for anything else.
+-- Read from `veafDcsSpawner.TERRAIN_BY_CATEGORY`, the same table the terrain check downstream
+-- already uses, so "what can this thing stand on" has one source instead of two that can disagree.
+local function surfacesForZoneElement(zoneElement)
+  local record = veaf.getGroupRecord(zoneElement:getName())
+  if not record then
+    return nil
+  end
+  local category = record.category
+  if category and string.lower(category) == "ship" then
+    return veafDcsSpawner.TERRAIN_BY_CATEGORY.ship
+  end
+  -- A hull placed as a **static object** lives in the mission's `static` section, so its `category`
+  -- reads "static" and the search below would look for dry land — the silent half of
+  -- FIX-TRIPACK-FIELD-REPORTS ticket 02, whose naval fix only recognised hulls placed as groups. Its own DCS sub-type says what it is: `Ships`, against `Fortifications`, `Heliports`,
+  -- `Cargos`. Read from unit 1, which for a static *is* the object.
+  local firstUnit = record.units and record.units[1]
+  local staticCategory = firstUnit and firstUnit.staticCategory
+  if staticCategory and string.lower(staticCategory) == "ships" then
+    return veafDcsSpawner.TERRAIN_BY_CATEGORY.ship
+  end
+  return nil
+end
+
 function VeafCombatZone:spawnElement(zoneElement, now)
   veaf.loggers
     .get(veafCombatZone.Id)
@@ -1521,7 +1680,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- the mission loads, so a partially built zone would be worse than an imperfect one.
       -- Refusing is for what a command spawns (David, 2026-08-27), and per ADR 0018 the scenery
       -- criterion is quality-only, never correctness.
-      local found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius())
+      local found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius(), nil, surfacesForZoneElement(zoneElement))
       if found then
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("found=[%s]", veaf.vecToString(found)))
         position = { x = found.x, y = position.y, z = found.z }
@@ -1549,10 +1708,11 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- on roads, bridges and passes, and would draw a different track on every activation. Waypoint 1
       -- is not a design choice — it is where the group starts — so it is the one that must move.
       --
-      -- Unconditional, including when spawnRadius is 0: the delta is *not* only the dispersion. MiST
-      -- measures it against the mission table's unit 1, while the element's position comes from the
-      -- first unit the zone happened to meet (see buildGroupElement), so a group whose units were not
-      -- met in editor order carries a delta of its own intra-group spacing.
+      -- Unconditional, including when spawnRadius is 0: the delta is the dispersion *and* nothing
+      -- else now. It used to also carry the gap between two readings of "unit 1" — the zone anchored
+      -- on the first unit it met, or on the first live one, while the spawn subtracts the mission
+      -- record's first. FIX-TRIPACK-FIELD-REPORTS ticket 04 made both ends the same unit, and this
+      -- lot's ticket 01 made them the same instant, so waypoint 1 moves by the dispersion alone.
       local newGroup = VeafGroupSpawn:new()
         :forGroup(zoneElement:getName())
         :named(newGroupName)

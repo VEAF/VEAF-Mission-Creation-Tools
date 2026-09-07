@@ -1,0 +1,100 @@
+# The support bot, as the VEAF Docker host runs it.
+#
+# Three files in a directory of its own, and no clone of this repository:
+#
+#   curl -O https://raw.githubusercontent.com/VEAF/VEAF-Mission-Creation-Tools/develop/services/support-bot/compose.yml
+#   # put `.env` (see .env.example) and `github-app.pem` beside it
+#   docker compose up -d
+#
+# Updating is `docker compose pull && docker compose up -d`: everything that must survive lives on
+# the two volumes below, so a new image costs a restart and nothing else.
+#
+# The container still clones the repository on first start, into its own volume — shallow,
+# single-branch, 87 MiB. That one is the product: `/bug` and `/suggest` read the sources to turn a
+# stack trace into a file and a line. What this file stopped needing is the clone that *built* the
+# image.
+
+services:
+  support-bot:
+    # Built by CI and pulled from here, so this host needs no checkout of the repository — decided
+    # 2026-09-07, replacing a `build: .` that cost a full clone of the tools, the documentation, the
+    # Lua and the missions on a machine running a Python service that needs none of them.
+    #
+    # The tag comes from `.env` (compose reads that file for interpolation on its own) so switching
+    # channels never means editing this file:
+    #
+    #   VEAF_BOT_IMAGE_TAG=develop     what CI publishes from `develop` — the right value today
+    #   VEAF_BOT_IMAGE_TAG=latest      published from `master`, so it exists once a release does
+    #   VEAF_BOT_IMAGE_TAG=sha-abc123  any build, which is how a rollback is one line
+    #
+    # It carries no `SUPPORT_BOT_` prefix on purpose: that prefix is the service's own, `.env.example`
+    # lists exactly what the Python reads, and `tests/test_packaging.py` fails on a variable in one
+    # list and not the other. Same reason as `VEAF_CLONE_URL`.
+    #
+    # `docker compose up --build` does not work here any more — there is no build context. From a
+    # checkout, the local build is `docker build -t veaf-support-bot services/support-bot`.
+    image: ghcr.io/veaf/veaf-support-bot:${VEAF_BOT_IMAGE_TAG:-develop}
+    container_name: veaf-support-bot
+
+    # The service reads its configuration from the environment and never from a file — which is why
+    # the container is its natural home. `.env` never reaches a layer: `.dockerignore` excludes it
+    # and `tests/test_packaging.py` asserts that.
+    #
+    # What it does reach is `docker inspect` and the container's config on disk, in clear. That is
+    # inherent for the Discord token, which has no file form. It is **not** inherent for the GitHub
+    # App's private key — the secret whose leak is heaviest, since it writes to a public repository —
+    # so that one comes through a mount below and never through the environment.
+    env_file: .env
+    environment:
+      SUPPORT_BOT_GITHUB_PRIVATE_KEY_FILE: /run/secrets/github_app_key
+    secrets:
+      - github_app_key
+
+    # What this does and does not cover, because the difference matters here more than usual.
+    #
+    # It restarts the container when the process **exits** — a crash, an OOM kill, a host reboot.
+    # It does **not** act on the HEALTHCHECK: outside Swarm, Docker marks a container `unhealthy`
+    # and leaves it running. So the failure this service is shaped around — the process alive with
+    # the Discord gateway gone, nobody getting an answer — is *reported* by the health check and
+    # recovered by nobody. Watching for that needs something outside Compose: an uptime monitor on
+    # `/readyz` (uncomment the port below), or a supervisor that recreates unhealthy containers.
+    #
+    # The cost of that, worth knowing before it puzzles somebody: Compose cannot exclude an
+    # exit code, so a **misconfiguration** restarts for ever too. Exit 78 means restarting
+    # will not help, and the service prints every problem at once before it — so a container
+    # looping at startup is read by scrolling to the FIRST message, not by hunting a crash.
+    restart: unless-stopped
+
+    volumes:
+      # What cannot be rebuilt. Four files: the per-user quota counters, the day's enrichment
+      # allowance, the ledger of what was already filed, and the thread-to-issue links — losing the
+      # last one orphans every thread already opened, so the issues stay and stop being answered.
+      - state:/app/state
+      # What can be rebuilt: the clone the service owns. The entry point creates it on first start;
+      # losing this volume costs one shallow clone.
+      - checkout:/app/checkout
+
+    # Nothing calls this service from outside — it calls Discord, GitHub and the Worker. The health
+    # endpoint is reachable from the host through `docker exec` or `docker inspect`, which is what a
+    # human debugging it uses. Uncomment to put /readyz in front of an uptime monitor:
+    # ports:
+    #   - "127.0.0.1:8081:8081"
+
+    # A log that grows without bound is how a small host runs out of disk months later, on the one
+    # file nobody thinks about.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  state:
+  checkout:
+
+secrets:
+  # Put the App's .pem beside this file. It is mounted read-only at /run/secrets/github_app_key,
+  # stays out of `docker inspect`, and `SUPPORT_BOT_GITHUB_PRIVATE_KEY` must then be left unset:
+  # the service refuses both forms at once rather than picking one.
+  github_app_key:
+    file: ./github-app.pem

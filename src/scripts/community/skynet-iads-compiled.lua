@@ -1,4 +1,4 @@
-env.info("--- SKYNET VERSION: 3.4.0RP-VEAF build 30.08.2026 | BUILD TIME: 30.08.2026 1926Z ---")
+env.info("--- SKYNET VERSION: 3.4.0RP-VEAF build 05.09.2026 | BUILD TIME: 05.09.2026 1434Z ---")
 do
   --[[
 SkynetIADSUtils -- the handful of helpers Skynet used to borrow from MiST.
@@ -148,6 +148,23 @@ it, the reason is written at the call site.
   local scheduledTasks = {}
   local lastTaskId = 0
 
+  --- Smallest delay this module will ever hand to the native timer, in seconds.
+  --
+  -- MiST's task list was walked by a loop re-armed every 0.01 s that ran anything whose time had
+  -- come **or gone**, so a task asked for a moment already past simply ran on the next tick. One
+  -- native timer.scheduleFunction per task carries no such promise, and Skynet leans on it hard:
+  -- SkynetIADS:activate, SkynetIADS:scanForHarms and SkynetIADSJammer:masterArmOn all pass a
+  -- hardcoded startTime of 1 -- one second of mission time. Only goSilentToEvadeHARM passes an
+  -- absolute future time.
+  --
+  -- Measured 2026-09-03 on a Persian Gulf mission whose IADS initialised at 18:29:48, some three
+  -- minutes in: evaluateContacts never ran once. Every SAM stayed dark (the IADS darkens a site's
+  -- radar when it registers it, and only re-enables it from that cycle), the status page stayed
+  -- blank (printSystemStatus is the last statement of evaluateContacts), and dcs.log carried no
+  -- Skynet error at all -- the signature of a lost task rather than a crash. This floor is what
+  -- keeps those three hardcoded call sites equivalent to what they got under MiST.
+  local MINIMUM_DELAY = 0.01
+
   --- Runs one scheduled task and answers when it should run next, or nil to stop.
   local function runScheduledTask(id)
     local task = scheduledTasks[id]
@@ -194,6 +211,13 @@ it, the reason is written at the call site.
     lastTaskId = lastTaskId + 1
     local id = lastTaskId
     scheduledTasks[id] = { fn = fn, args = args or {}, repeatInterval = repeatInterval, stopTime = stopTime }
+    -- A first run due now, or overdue, is armed for the next tick instead -- see MINIMUM_DELAY.
+    -- Only the first run is clamped: repetition is re-armed from timer.getTime() inside
+    -- runScheduledTask, so it is future by construction, and stopTime is a comparison, not a delay.
+    local earliest = timer.getTime() + MINIMUM_DELAY
+    if startTime < earliest then
+      startTime = earliest
+    end
     timer.scheduleFunction(runScheduledTask, id, startTime)
     return id
   end

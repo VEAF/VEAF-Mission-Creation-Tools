@@ -680,6 +680,22 @@ def _emit_module_body(
             lines.append(f"    {var_name}.EventMessages.CombatZoneComplete = nil")
         if wci := cz_settings.get("watchdog_check_interval"):
             lines.append(f"    {var_name}.SecondsBetweenWatchdogChecks = {wci}")
+        # Read by **presence**, not by truthiness, and that is the whole point of the key: `0` is the
+        # value a mission maker writes to say "place my groups exactly where I drew them" (revetments,
+        # hardened shelters), and `if x := cfg.get(...)` — the shape of every neighbouring key here —
+        # would drop precisely that one and leave the built-in 50 m in place. The Lua side made the
+        # same mistake with `not 0` and it hid `#spawnradius=0` for three years
+        # (FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT).
+        #
+        # Units and statics stay two keys because they are two globals with two different built-in
+        # defaults (50 and 0). One key writing both would silently start scattering the statics that
+        # are pinned today.
+        for yaml_key, lua_global in (
+            ("default_spawn_radius", "DefaultSpawnRadiusForUnits"),
+            ("default_spawn_radius_statics", "DefaultSpawnRadiusForStatics"),
+        ):
+            if yaml_key in cz_settings and cz_settings[yaml_key] is not None:
+                lines.append(f"    {var_name}.{lua_global} = {_to_lua_scalar(cz_settings[yaml_key])}")
         if rmn := cz_settings.get("radio_menu_name"):
             lines.append(f"    {var_name}.RadioMenuName = {_lua_text(rmn)}")
         if czrmn := cz_settings.get("combat_zone_menu_name"):
@@ -771,6 +787,18 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
     # their authors gave them precisely because nobody was meant to see them.
     if zone_def.get("radio_menu_disabled"):
         lines.append(f"{indent}    :disableRadioMenu()")
+    # This zone's own dispersion default, for the mission maker who placed its objects deliberately —
+    # air defences in the revetments a map provides — while the rest of the mission scatters normally.
+    #
+    # Read by **presence**, like the mission-wide key above and for the same reason: `0` is the value
+    # this key exists for, and a truthiness test would drop exactly it. Emitted before `:initialize()`,
+    # which is appended by the caller and is what applies the default.
+    for yaml_key, setter in (
+        ("default_spawn_radius", "setDefaultSpawnRadius"),
+        ("default_spawn_radius_statics", "setDefaultSpawnRadiusForStatics"),
+    ):
+        if yaml_key in zone_def and zone_def[yaml_key] is not None:
+            lines.append(f"{indent}    :{setter}({_to_lua_scalar(zone_def[yaml_key])})")
     # `enemy_coalition` picks the side whose units must die for the zone to complete, and
     # which tally the F10 report calls "enemies". RED is the runtime default, so it is not
     # emitted — existing generated configs stay byte-identical.

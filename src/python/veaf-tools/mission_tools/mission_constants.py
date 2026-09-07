@@ -5,6 +5,47 @@ from veaf_libs.i18n import t
 
 DEFAULT_SCRIPTS_LOCATION: str = "l10n/DEFAULT"
 
+#: Prefix of the map-resource keys under which a VEAF build registers what it injects.
+VEAF_MAP_KEY_PREFIX: str = "VEAF_MapKey"
+
+#: Lua files the build generates and injects into the ``.miz`` through a
+#: ``VEAF_MapKey_*`` map resource. They are build output, never mission sources: an
+#: extraction must not hand them back into ``src/scripts/``, and a build must not embed a
+#: leftover copy alongside the one the pipeline injects
+#: (FIX-EXTRACT-GENERATED-ARTIFACTS). Names are the fallback; a mission that still carries
+#: its ``mapResource`` is read from it instead, see :func:`get_generated_lua_artifacts`.
+#: The rendered spawn database, injected under ``VEAF_MapKey_SpawnData`` (ADR 0005).
+SPAWN_DATA_ARTIFACT: str = "veaf-spawn-data.lua"
+
+#: The runtime bridge, injected under ``VEAF_MapKey_DcsBridge``.
+DCS_BRIDGE_ARTIFACT: str = "dcs-bridge.lua"
+
+GENERATED_LUA_ARTIFACTS: frozenset[str] = frozenset({SPAWN_DATA_ARTIFACT, DCS_BRIDGE_ARTIFACT})
+
+
+def get_generated_lua_artifacts(map_resource_content: dict[str, str] | None) -> set[str]:
+    """Return the Lua file names a VEAF build injected into this mission.
+
+    Reads the mission's own ``mapResource`` rather than a list of names, so an artifact
+    added later is covered without another edit here; the known names
+    (:data:`GENERATED_LUA_ARTIFACTS`) are added on top for a mission whose map resource no
+    longer carries the key.
+
+    Only ``.lua`` entries are returned: the sounds and images injected under the same
+    prefix are not scripts and nothing re-embeds them from ``src/scripts/``.
+
+    Args:
+        map_resource_content: The mission's parsed ``mapResource``, or ``None``.
+
+    Returns:
+        The base names of the generated Lua files.
+    """
+    artifacts = set(GENERATED_LUA_ARTIFACTS)
+    for key, value in (map_resource_content or {}).items():
+        if str(key).startswith(VEAF_MAP_KEY_PREFIX) and str(value).lower().endswith(".lua"):
+            artifacts.add(Path(str(value)).name)
+    return artifacts
+
 
 def get_legacy_script_files() -> list[tuple[str, str]]:
     """Get list of files that should be removed from any newly extracted mission; they are old VEAF files that are not used anymore"""

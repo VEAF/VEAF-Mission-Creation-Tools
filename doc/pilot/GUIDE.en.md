@@ -385,6 +385,7 @@ Yes: add `side blue` to your command.
 
 ## Community and Support
 
+- **[Getting help](../SUPPORT.en.md)** — where to go depending on your situation, and what to provide.
 - **VEAF Discord**: [veaf.org/discord](https://www.veaf.org/discord) — `#support` channel for real-time help.
 - **Website**: [veaf.org](https://www.veaf.org)
 - **GitHub**: [github.com/VEAF/VEAF-Mission-Creation-Tools](https://github.com/VEAF/VEAF-Mission-Creation-Tools)

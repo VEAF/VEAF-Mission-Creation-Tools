@@ -623,7 +623,7 @@ For detailed debug info:
 veaf-build publish --version 6.0.1 --verbose
 ```
 
-Check the `veaf-tools.log` file in current directory for detailed logs.
+Check the `veaf-tools.log` file for detailed logs. It is written to **`%USERPROFILE%\.veaf\veaf-tools.log`** (or to `$VEAF_HOME` if you set that variable), not to the current directory. `.\veaf-tools.exe doctor` prints its exact path and the last errors it recorded.
 
 ---
 
@@ -813,7 +813,7 @@ If you encounter issues:
 
 1. **Check troubleshooting section** above
 2. **Run with `--verbose`** to see detailed output
-3. **Check `veaf-tools.log`** in current directory
+3. **Check `veaf-tools.log`** in `%USERPROFILE%\.veaf\` (or `$VEAF_HOME`) — see [Getting help](SUPPORT.en.md)
 4. **Visit GitHub release page** to verify release exists
 5. **Check your internet connection** (most issues are network)
 6. **Verify token permissions** at https://github.com/settings/tokens

@@ -1,0 +1,131 @@
+# 01 — Skynet's scheduler keeps the promise its docstring makes
+
+Status: 🧑 waiting-human
+
+Type: fix
+
+## The report
+
+Tripack, 2026-09-03, on a mission built with 6.19.0 and `SKYNET.enabled: true`:
+
+*"IADS fonctionne avec la dernière version chez vous? tous mes sam sont inactifs, et je n'arrive pas
+à afficher le statut … ni les contacts. pourtant activé"*
+
+Then, half an hour later, the measurement that closes the question:
+
+*"même mission relancée en l'ayant coupé, les sam fonctionnent nickel. c'est donc skynet qui est
+pété"*
+
+## What the code says
+
+`SkynetIADS:activate` arms its contact cycle with a **start time of `1`** — one second of mission
+time:
+
+```lua
+self.ewRadarScanMistTaskID = SkynetIADSUtils.scheduleFunction(SkynetIADS.evaluateContacts, { self }, 1, self.contactUpdateInterval)
+```
+
+In Tripack's log the IADS initialises at 18:29:48, about three minutes into the mission, so that
+time is long past. Two more sites do the same: `scanForHarms` and `SkynetIADSJammer:masterArmOn`.
+Only `goSilentToEvadeHARM` passes `timer.getTime() + n`.
+
+MiST accepted a past time by construction — its task list was walked by a 10 ms loop that ran
+anything with `t <= now` ([`mist.lua:1526`](../../../src/scripts/community/mist.lua)). The
+compatibility module written for [#846](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/846)
+hands the value to the native timer unchanged
+([`skynet-iads-compiled.lua:197`](../../../src/scripts/community/skynet-iads-compiled.lua)), while
+its own docstring says the opposite:
+
+> `@param startTime` seconds since mission start at which to run it first; **a time already past
+> means the next tick**
+
+It does not. That is the whole defect.
+
+## Why all three symptoms are this one task
+
+| Symptom | Mechanism |
+|---|---|
+| every SAM inactive | Skynet darkens a site's radar when it registers it and only re-enables it from the contact cycle |
+| status blank | `printSystemStatus()` is the last statement of `SkynetIADS:evaluateContacts` ([`:1923`](../../../src/scripts/community/skynet-iads-compiled.lua)); the radio menu only flips a flag that this call reads |
+| contacts blank | same call, same flag |
+| Skynet off, SAMs fine | with no IADS nothing darkens them |
+
+No `SKYNET` error appears anywhere in `dcs.log` — the signature of a lost task rather than a crash.
+
+## The precedent
+
+This is the same defect as **FIX-TUTORIAL-FIRST-RUN ticket 05**, found on 2026-09-02 on
+`spawnSmoke` and fixed by clamping inside `veafScheduler`
+([`veafScheduler.lua:139`](../../../src/scripts/veaf/veafScheduler.lua)). That fix stopped at the
+repository boundary: Skynet's compatibility module is a second implementation of the same
+replacement, living in the fork, and it was not carried along.
+
+Whether DCS truly discards a call scheduled for an elapsed time is **still unproven** — it is item
+R12 of [`DCS-SESSION-TODO.md`](../../../DCS-SESSION-TODO.md). It does not need to be settled here:
+the contract MiST held is that a task due now or overdue still runs, and restoring it costs one tick
+if DCS turns out to be forgiving.
+
+## The fix
+
+In [`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS), `SkynetIADSUtils.scheduleFunction`
+clamps the first run to no earlier than the next tick, exactly as `veafScheduler` does. One place,
+not three call sites, so any future Skynet release keeps the guarantee.
+
+Then, per [`vendored.yaml`](../../../vendored.yaml) and in this order:
+
+1. recompile `skynet-iads-compiled.lua` from the fork's sources (`build-tools/build-compiled-script.ps1`);
+2. **run stylua on it** — the step that gets forgotten, and skipping it turns the next sync into a
+   4000-line reformatting diff;
+3. re-apply the `RP-VEAF` version label, and bump the build date in the label and in `vendored.yaml`'s
+   `pinned:`.
+
+## Definition of done
+
+- [x] A Skynet task scheduled for a time already elapsed runs at the next tick
+- [x] Repetition, stop time and `removeFunction` keep their current semantics
+- [x] Test covering due-now, overdue, and comfortably-future — **not in the fork**: its `unit-tests/`
+      run inside DCS from a `.miz` on top of MiST, so there is no headless harness to add a case to.
+      The coverage lives on this side, in `test/lua/test_skynetIadsUtils.lua`, asserted against the
+      vendored artefact itself. Verified both ways: three of its eight cases fail on the pre-fix
+      artefact.
+- [x] Artefact regenerated, stylua'd, label and `vendored.yaml` `pinned:` updated together
+      (build 05.09.2026). Diff against the previous artefact is two hunks — the version banner and
+      the 24 added lines — and nothing else moved.
+- [x] `stylua --check` clean on `src/scripts/veaf/ test/lua/`; **`luacheck` was not run locally** —
+      it crashes on this workstation (luarocks is on Lua 5.5), so the CI Luacheck job is what
+      answered for it, and it passed on #917. Ticked as CI-verified rather than as run here, per
+      Sourcery's remark on the merged PR: the box originally claimed a check that had not happened.
+- [x] In-game verification queued in `DCS-SESSION-TODO.md` as **R13**, paired with R12: both fixes
+      rest on the same unproven wager about the native timer, so they are checked in one session
+
+## What shipped
+
+- Fork: [VEAF/Skynet-IADS](https://github.com/VEAF/Skynet-IADS) branch `fix/scheduler-past-start-time`
+  — `MINIMUM_DELAY = 0.01` in `skynet-iads-utils.lua`, clamping the **first** run only. Repetition is
+  re-armed from `timer.getTime()` inside `runScheduledTask` and so is future by construction;
+  `stopTime` is a comparison, not a delay.
+- One open follow-up: `vendored.yaml`'s watch pin for `VEAF/Skynet-IADS`
+  (`demo-missions/skynet-iads-compiled.lua`, still `820d3cc0eb85`) can only be moved once the fork PR
+  is merged, since it names a commit on the fork's `master`. Until then the drift watcher will flag
+  the entry, correctly.
+
+## Post-merge review, 2026-09-07 (#917)
+
+Sourcery's weekly budget came back, so the merged PR was re-reviewed on David's instruction. Two
+remarks, both fair:
+
+1. **The `luacheck` checkbox claimed a check that had not run** — fixed above.
+2. **`bug_risk`: the first-run clamp can push a task past its own `stopTime`.** A task scheduled
+   while `timer.getTime() < stopTime <= timer.getTime() + 0.01` is pushed to the next tick, and
+   `runScheduledTask` then discards it as expired **before** calling it — so it runs zero times,
+   where an overdue task previously still ran once.
+
+   Correct as written, and **unreachable in the shipped artefact**: measured on all four call sites,
+   none passes a `stopTime` at all — `activate` (1, interval), `scanForHarms` (1, 2),
+   `goSilentToEvadeHARM` (`timer.getTime() + n`, 1), `masterArmOn` (1, 10). The fifth argument exists
+   only in the signature.
+
+   Left open rather than fixed silently: the module is a generic API offered upstream, so the defect
+   is worth closing on principle, but doing it costs a fork PR plus the three-step artefact
+   regeneration (recompile, stylua, re-label) for a path no caller takes. **David's call** — it is
+   recorded here so it is not lost either way.

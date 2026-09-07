@@ -206,3 +206,25 @@ dcs-tokens.yaml
 # One of these reached a commit that way (SECREV-2 ticket 07); they are generated data, never sources.
 db.Units.lua
 dcsUnits.lua
+
+# Support bot service — its Discord token arrives through an environment file that is never
+# committed. `.env.example` is the documented placeholder version and is the only one tracked.
+# (A nested `services/support-bot/.gitignore` would not work: line 27 above ignores every nested
+# `.gitignore` in this repository.)
+services/support-bot/.env
+services/support-bot/.env.*
+# The GitHub App's private key. `compose.yml` mounts it as a secret from beside itself, so the
+# README asks for it *inside* this tracked directory — which is exactly where `git add -A` would
+# have found it. Same reason it lives here rather than in a nested ignore file.
+services/support-bot/*.pem
+!services/support-bot/.env.example
+
+# Its per-user quota counters and its ledger of filed issues, written by a local run. Runtime
+# state, and the counters name Discord users.
+services/support-bot/state/
+
+# The GitHub App's private key. GitHub downloads it as a `.pem` and an operator testing locally will
+# put it wherever is convenient; this repository is public, so the pattern is deliberately wide and
+# not limited to the service directory. Prefer `SUPPORT_BOT_GITHUB_PRIVATE_KEY_FILE` pointing
+# somewhere outside the working copy entirely.
+*.pem

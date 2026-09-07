@@ -103,12 +103,35 @@ Optional body — wrap at 100 chars.
 
 ## Reporting bugs & requesting features
 
-Use [GitHub Issues](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues):
+Two ways in, and they land in the same place:
 
-- **Bug report** → choose the *Bug Report* template
-- **Feature request** → choose the *Feature Request* template
+- **From GitHub** — [open an issue](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues) and
+  choose the *Bug Report* or *Feature Request* template.
+- **From Discord** — `/bug` on the [VEAF Discord](https://www.veaf.org/discord) opens a form and
+  files the issue for you, under a bot account. No GitHub account needed. See
+  [Getting help](doc/SUPPORT.en.md#bug).
 
-For questions and real-time discussion, join the [VEAF Discord](https://www.veaf.org/discord).
+For questions and real-time discussion, the Discord is the fastest route.
+
+### Triaging an issue that a bot filed {#bot-filed}
+
+An issue labelled `filed-by-bot` arrives through `/bug`, and reads differently from a hand-written
+one — usefully so, and with one trap:
+
+- **The body is measured, not narrated.** The versions come from a pasted `doctor` block, the
+  `file:line` from a stack trace resolved against the repository, the log excerpt from the rules
+  catalogue, the *Prior art* section from a sweep of the issues, `.backlog/` and `ROADMAP.md`. What
+  is missing is stated as missing rather than guessed.
+- **A comment headed ⚠️ is a machine's guess.** It carries a suspected file and line and it has been
+  verified by nobody. Read it as a lead, never as a diagnosis — closing a real report on it is the
+  one failure the labelling exists to prevent.
+- **The reporter is on Discord, not on GitHub.** He is credited in the body and the issue links back
+  to his thread. Answering *on the issue* reaches him: the bot carries comments and the closure back
+  into that thread. He cannot answer from there — to add something, he writes in the thread and a
+  maintainer carries it over.
+- **The attachments are described, not attached.** GitHub has no API to attach a file to an issue;
+  small text files are quoted inside the issue, and everything else is listed with its size and
+  SHA-256. If you need the raw file, ask in the thread.
 
 ### What happens to an issue {#issue-intake}
 

@@ -308,6 +308,11 @@ COMMANDS: list[CommandSpec] = [
         description=t("tui.cmd.about.description"),
         prompts=[],
     ),
+    CommandSpec(
+        cli_name="doctor",
+        description=t("tui.cmd.doctor.description"),
+        prompts=[],
+    ),
 ]
 
 _COMMAND_MAP: dict[str, CommandSpec] = {cmd.cli_name: cmd for cmd in COMMANDS}

@@ -641,6 +641,23 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
     -- table further down and an airplane comes back a helicopter. That is the shape of #299.
     data.category = veafDcsSpawner.EDITOR_CATEGORY_BY_GROUP_CATEGORY[group:getCategory()] or group:getCategory()
 
+    -- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 02: a **teleport** does not carry the editor's
+    -- cold-and-dark, where a clone and a respawn do.
+    --
+    -- MiST drew that line at exactly this point: `getCurrentGroupData` forwarded
+    -- `task/modulation/uncontrolled/radioSet/hidden/startTime` only for groups MiST had created
+    -- itself, and forced `uncontrolled = false; hidden = false` for every other one — i.e. for every
+    -- Mission Editor group (mist.lua:1040). FIX-TRIPACK-FIELD-REPORTS ticket 05 taught the record to
+    -- carry both, which is right for the verbs that rebuild a group from its editor definition, and
+    -- this function starts from that same record — so the teleport silently inherited them too.
+    --
+    -- What that looked like: an aircraft parked `uncontrolled` in the editor and moved by
+    -- `_move group`, `veafSpawnObjects` or an escort teleport arrived flyable up to 6.19.0 and
+    -- arrived cold after it. Restored on David's call, 2026-09-07 — nobody asked for the change, and
+    -- an aircraft that arrives unusable is hard to diagnose from the cockpit.
+    data.uncontrolled = false
+    data.hidden = false
+
     data.units = {}
     local liveUnits = group:getUnits() or {}
 
@@ -704,6 +721,13 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
   local static = StaticObject.getByName(groupName)
   if static and static:isExist() and record and record.units and record.units[1] then
     local data = veaf.deepCopy(record)
+    -- The same clearing as the group branch above, and for the same reason. MiST forced these two off
+    -- *before* it split group from static (mist.lua:1040, ahead of the `objType == "group"` test at
+    -- :1045), so a teleported static was covered too. Placing it only on the group branch left a
+    -- static hidden in the Mission Editor coming back hidden after a move — the very regression
+    -- ticket 02 exists to undo, surviving for statics. Found by the review of #933.
+    data.uncontrolled = false
+    data.hidden = false
     local position = static:getPosition()
     if position and position.p then
       data.units[1].x = position.p.x
@@ -882,6 +906,21 @@ function VeafGroupSpawn:_sourceData(verb)
   return record and veaf.deepCopy(record) or nil
 end
 
+--- The surface name DCS reports at a point, for a diagnosable refusal message.
+-- Mirrors the flattening `veaf.isTerrainValid` applies, so this reads the same surface it tested.
+-- @param point table a vec2 or vec3
+-- @return string a `land.SurfaceType` name, or the raw id when it does not match one
+local function surfaceNameAt(point)
+  local flat = { x = point.x, y = point.z or point.y }
+  local actual = land.getSurfaceType(flat)
+  for name, value in pairs(land.SurfaceType) do
+    if value == actual then
+      return name
+    end
+  end
+  return tostring(actual)
+end
+
 --- A point in the circle whose terrain suits this group, and the offset to reach it.
 function VeafGroupSpawn:_drawOrigin(data)
   local first = data.units[1]
@@ -890,16 +929,24 @@ function VeafGroupSpawn:_drawOrigin(data)
   end
 
   local surfaces = self.terrain or veafDcsSpawner.terrainForCategory(data.category)
+  local lastCandidate
   for _ = 1, VeafGroupSpawn.TERRAIN_ATTEMPTS do
     local candidate = veaf.getRandomPointInCircle(self.point, self.radius)
+    lastCandidate = candidate
     if self.anyTerrain or veafDcsSpawner.isTerrainValid(candidate, surfaces) then
       return { x = candidate.x - first.x, y = candidate.y - first.y }, candidate
     end
   end
 
-  veaf.loggers
-    .get(veafDcsSpawner.Id)
-    :error("no point within %sm of the requested spot is valid terrain for [%s]", veaf.p(self.radius), veaf.p(self.groupName))
+  veaf.loggers.get(veafDcsSpawner.Id):error(
+    "no point within %sm of the requested spot is valid terrain for [%s]: category [%s] accepts [%s], point [%s] is [%s]",
+    veaf.p(self.radius),
+    veaf.p(self.groupName),
+    veaf.p(data.category),
+    veaf.p((type(surfaces) == "table" and table.concat(surfaces, ", ") or tostring(surfaces))),
+    veaf.p(veaf.vecToString(lastCandidate)),
+    veaf.p(surfaceNameAt(lastCandidate))
+  )
   return nil, nil
 end
 

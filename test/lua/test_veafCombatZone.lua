@@ -2097,6 +2097,221 @@ function TestVeafCombatZoneRenameOption:test_one_zone_declining_does_not_affect_
 end
 
 -- ============================================================================
+-- FIX-TRIPACK-FIELD-REPORTS ticket 02 — a naval element searches on water, not on dry land.
+--
+-- Tripack's log showed thirteen `findSpawnPoint` failures at 50 m, mechanical: `acceptableGroundPoint`
+-- only ever accepted dry land, and `spawnElement` called it for every element regardless of category,
+-- ships included. `spawnElement` must now read the element's category from the mission record and pass
+-- the matching surfaces, from the same `veafDcsSpawner.TERRAIN_BY_CATEGORY` the terrain check downstream
+-- already uses — and it must not narrow the search for anything but a naval element.
+-- ============================================================================
+TestVeafCombatZoneSpawnElementSurfaces = {}
+
+function TestVeafCombatZoneSpawnElementSurfaces:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Naval Zone"):setMissionEditorZoneName("NAVALZONE")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("NAVALZONE-SHIP")
+  self.el:setPosition({ x = 0, y = 0, z = 0 })
+  self.el:setCoalition(coalition.side.RED)
+  self.el:setDcsGroup(true)
+  self.el:setSpawnRadius(50)
+
+  self._spawnImpl = VeafGroupSpawn._spawn
+  VeafGroupSpawn._spawn = function()
+    return nil
+  end
+
+  self._findSpawnPointImpl = veaf.findSpawnPoint
+  self._capturedSurfaces = "not called"
+  veaf.findSpawnPoint = function(_vec3, _radius, _safeRadius, surfaces)
+    self._capturedSurfaces = surfaces
+    return nil
+  end
+
+  self._savedGroups = veafMissionDb.groupsByName
+  veafMissionDb.groupsByName = {}
+end
+
+function TestVeafCombatZoneSpawnElementSurfaces:tearDown()
+  VeafGroupSpawn._spawn = self._spawnImpl
+  veaf.findSpawnPoint = self._findSpawnPointImpl
+  veafMissionDb.groupsByName = self._savedGroups
+end
+
+function TestVeafCombatZoneSpawnElementSurfaces:test_a_ship_element_searches_on_water()
+  veafMissionDb.groupsByName["NAVALZONE-SHIP"] = { category = "ship" }
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self._capturedSurfaces, veafDcsSpawner.TERRAIN_BY_CATEGORY.ship)
+end
+
+function TestVeafCombatZoneSpawnElementSurfaces:test_a_vehicle_element_keeps_findspawnpoints_own_default()
+  veafMissionDb.groupsByName["NAVALZONE-SHIP"] = { category = "vehicle" }
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNil(self._capturedSurfaces, "a ground element's search must not narrow")
+end
+
+function TestVeafCombatZoneSpawnElementSurfaces:test_an_unknown_category_keeps_the_default_too()
+  -- no mission record at all for this element's name
+  self.z:spawnElement(self.el, true)
+  luaunit.assertNil(self._capturedSurfaces)
+end
+
+-- ============================================================================
+-- FIX-TRIPACK-FIELD-REPORTS ticket 03 — the combined path. A ship at anchor near a quay used to be
+-- dragged onto dry land by `findSpawnPoint` and then refused by `_drawOrigin`'s own, correctly
+-- category-aware terrain check — the six groups of `Snowfox_20260903.miz` that never spawned.
+-- Ticket 02's fix makes the naval search accept water in the first place; this reproduces the whole
+-- path end to end, with nothing stubbed between the zone element and `coalition.addGroup`.
+-- ============================================================================
+TestVeafCombatZoneNavalSpawnRegression = {}
+
+function TestVeafCombatZoneNavalSpawnRegression:setUp()
+  dcs_mocks.reset()
+  Disposition = nil
+  land.getHeight = function()
+    return 0
+  end
+  -- The quay sits within 10 m of the declared position; open water lies beyond it.
+  land.getSurfaceType = function(vec2)
+    if math.abs(vec2.x) <= 10 then
+      return land.SurfaceType.LAND
+    end
+    return land.SurfaceType.WATER
+  end
+
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      ship = {
+        group = {
+          {
+            name = "ZONE-SHIP",
+            groupId = 7,
+            units = { { name = "ZONE-SHIP-1", unitId = 3, type = "Dry-cargo ship-2", x = 0, y = 0 } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  self.z = VeafCombatZone:new():setFriendlyName("Naval Zone"):setMissionEditorZoneName("NAVALZONE")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("ZONE-SHIP")
+  self.el:setPosition({ x = 0, y = 0, z = 0 })
+  self.el:setCoalition(coalition.side.BLUE)
+  self.el:setDcsGroup(true)
+  self.el:setSpawnRadius(50)
+
+  -- Two draws per findSpawnPoint attempt (theta, distance): the first candidate lands at x=5,
+  -- on the quay; the second lands at x=45, in open water and still within the 50 m search radius.
+  dcs_mocks.setRandomSequence({ 0, 0.01, 0, 0.81 })
+end
+
+function TestVeafCombatZoneNavalSpawnRegression:tearDown()
+  dcs_mocks.reset()
+end
+
+function TestVeafCombatZoneNavalSpawnRegression:test_a_ship_near_a_quay_spawns_on_water()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "the ship must be created, not refused")
+end
+
+-- ============================================================================
+-- FIX-SPAWN-ANCHOR-AND-STATIC-SHIPS ticket 03 — the silent half of the naval defect.
+--
+-- The fix above keys on the element's category being `ship`, which is the mission-table section the
+-- group was read from. A hull placed as a **static object** is in the `static` section, so it kept the
+-- land-only search and was dragged onto the quay exactly as before — and unlike the group case
+-- nothing refused it, because `static` resolves to "any surface" downstream. It spawned on dry land
+-- without a word.
+--
+-- What tells a hull apart is its own DCS sub-type, which the static carries: `Ships`, against
+-- `Fortifications`, `Heliports`, `Cargos`. Measured on Tripack's mission, where 103 statics hold no
+-- ship at all — so this is prevention, and the data was already there.
+-- ============================================================================
+TestVeafCombatZoneStaticShip = {}
+
+function TestVeafCombatZoneStaticShip:_fixture(staticCategory, unitType)
+  dcs_mocks.reset()
+  Disposition = nil
+  land.getHeight = function()
+    return 0
+  end
+  -- Same shoreline as the group case: the quay within 10 m, open water beyond.
+  land.getSurfaceType = function(vec2)
+    if math.abs(vec2.x) <= 10 then
+      return land.SurfaceType.LAND
+    end
+    return land.SurfaceType.WATER
+  end
+
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      static = {
+        group = {
+          {
+            name = "ZONE-STATIC",
+            groupId = 8,
+            units = { { name = "ZONE-STATIC", unitId = 4, type = unitType, category = staticCategory, x = 0, y = 0 } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  local zone = VeafCombatZone:new():setFriendlyName("Naval Zone"):setMissionEditorZoneName("NAVALZONE")
+  zone:setActive(true)
+
+  local element = VeafCombatZoneElement:new()
+  element:setName("ZONE-STATIC")
+  element:setPosition({ x = 0, y = 0, z = 0 })
+  element:setCoalition(coalition.side.BLUE)
+  element:setDcsStatic(true)
+  element:setSpawnRadius(50)
+
+  -- Two draws per attempt (theta, distance): the first candidate lands at x=5, on the quay; the
+  -- second at x=45, in open water and still inside the 50 m radius.
+  dcs_mocks.setRandomSequence({ 0, 0.01, 0, 0.81 })
+  return zone, element
+end
+
+function TestVeafCombatZoneStaticShip:tearDown()
+  dcs_mocks.setRandomSequence(nil)
+  dcs_mocks.reset()
+end
+
+--- The defect: a static hull was moved to x=5, on the quay, and created there in silence.
+function TestVeafCombatZoneStaticShip:test_a_static_ship_is_not_left_on_the_quay()
+  local zone, element = self:_fixture("Ships", "Dry-cargo ship-2")
+  zone:spawnElement(element, true)
+
+  luaunit.assertEquals(#dcs_mocks.staticsAdded + #dcs_mocks.groupsAdded, 1, "the hull must be created")
+  local submitted = dcs_mocks.staticsAdded[1] or dcs_mocks.groupsAdded[1]
+  local placed = submitted.object or (submitted.group and submitted.group.units[1])
+  luaunit.assertTrue(math.abs(placed.x) > 10, string.format("placed at x=%s, which is the quay", tostring(placed.x)))
+end
+
+--- And every other static is untouched: a bunker still wants dry land, so the quay is right for it.
+function TestVeafCombatZoneStaticShip:test_a_fortification_still_takes_the_land()
+  local zone, element = self:_fixture("Fortifications", "Sandbag_06")
+  zone:spawnElement(element, true)
+
+  luaunit.assertEquals(#dcs_mocks.staticsAdded + #dcs_mocks.groupsAdded, 1, "the bunker must be created")
+  local submitted = dcs_mocks.staticsAdded[1] or dcs_mocks.groupsAdded[1]
+  local placed = submitted.object or (submitted.group and submitted.group.units[1])
+  luaunit.assertTrue(math.abs(placed.x) <= 10, string.format("placed at x=%s, off the land", tostring(placed.x)))
+end
+
+-- ============================================================================
 -- FIX-COMBATZONE-ZONE-TYPE-SILENT, second pass — Sourcery's review point on #775.
 --
 -- The helper returned nil for "I cannot read this zone" and the caller wrote `or {}`, so the
@@ -3405,6 +3620,164 @@ function TestVeafCombatOperationUnknownPrerequisite:test_a_prerequisite_that_exi
   self.operation:updatePrimaryTasks()
   luaunit.assertEquals(#self.operation.primaryTaskingOrders, 0)
   luaunit.assertEquals(#self.warned, 0)
+end
+
+-- ---------------------------------------------------------------------------
+-- FEAT-COMBATZONE-ZONE-SPAWN-RADIUS — a zone's own dispersion default
+-- ---------------------------------------------------------------------------
+
+--- Tripack places air defences in the revetments the Syria map draws for them, and a spawn that
+--- scatters a launcher by tens of metres puts it on the berm instead of inside it. A zone can now
+--- carry its own default for the groups that wrote no `#spawnradius=` tag.
+---
+--- Three levels, most specific first: the group's tag, then the zone, then the module global. The
+--- pairs asserted here are the ones a truthiness test would collapse — a **written zero** must be a
+--- value at every level, never "unstated".
+TestVeafCombatZoneSpawnRadiusDefault = {}
+
+function TestVeafCombatZoneSpawnRadiusDefault:setUp()
+  self._units = veafCombatZone.DefaultSpawnRadiusForUnits
+  self._statics = veafCombatZone.DefaultSpawnRadiusForStatics
+  self.unit = {
+    getName = function()
+      return "CMBT_PALMYRA - SA-6"
+    end,
+    getCoalition = function()
+      return coalition.side.RED
+    end,
+    getPosition = function()
+      return { p = { x = 10, y = 0, z = 20 } }
+    end,
+  }
+  self.group = {
+    name = "CMBT_PALMYRA - SA-6",
+    isStatic = false,
+    units = { self.unit },
+    unitNames = { "CMBT_PALMYRA - SA-6" },
+  }
+  self._getByName = Group.getByName
+  Group.getByName = function()
+    return nil -- no live group: buildGroupElement falls back on the unit it was handed
+  end
+end
+
+function TestVeafCombatZoneSpawnRadiusDefault:tearDown()
+  Group.getByName = self._getByName
+  veafCombatZone.DefaultSpawnRadiusForUnits = self._units
+  veafCombatZone.DefaultSpawnRadiusForStatics = self._statics
+end
+
+--- The zone the mission maker declared, before `initialize()` has run.
+function TestVeafCombatZoneSpawnRadiusDefault:_zone()
+  return VeafCombatZone:new():setMissionEditorZoneName("CMBT_PALMYRA")
+end
+
+function TestVeafCombatZoneSpawnRadiusDefault:test_without_a_zone_default_the_global_applies()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 50
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {}, self:_zone())
+  luaunit.assertEquals(element:getSpawnRadius(), 50)
+end
+
+--- The value the whole feature exists for.
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_zone_default_of_zero_pins_its_groups()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 50
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 0, "a written zero is a value, not an absence")
+end
+
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_zone_default_overrides_a_non_zero_global()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 50
+  local zone = self:_zone():setDefaultSpawnRadius(300)
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 300)
+end
+
+--- And the other direction, which a `self.x or global` expression would get wrong: the mission set 0
+--- and this zone wants dispersion back.
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_zone_can_scatter_where_the_mission_pinned()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 0
+  local zone = self:_zone():setDefaultSpawnRadius(120)
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 120)
+end
+
+--- A group's own tag still wins — including over a zone that pinned everything else.
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_group_tag_beats_the_zone_default()
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, { spawnRadius = "200" }, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 200)
+end
+
+function TestVeafCombatZoneSpawnRadiusDefault:test_statics_keep_their_own_lane()
+  veafCombatZone.DefaultSpawnRadiusForStatics = 0
+  local staticGroup = {
+    name = "CMBT_PALMYRA - Bunker",
+    isStatic = true,
+    units = { self.unit },
+    unitNames = { "CMBT_PALMYRA - Bunker" },
+  }
+  -- A unit default set on the zone must not start scattering its statics.
+  local zone = self:_zone():setDefaultSpawnRadius(250)
+  local element = veafCombatZone.buildGroupElement(self.unit, staticGroup, {}, zone)
+  luaunit.assertEquals(element:getSpawnRadius(), 0)
+
+  local pinned = self:_zone():setDefaultSpawnRadiusForStatics(40)
+  local scattered = veafCombatZone.buildGroupElement(self.unit, staticGroup, {}, pinned)
+  luaunit.assertEquals(scattered:getSpawnRadius(), 40)
+end
+
+--- No zone at all — every caller that builds an element outside a zone, tests included — keeps
+--- reading the module globals.
+function TestVeafCombatZoneSpawnRadiusDefault:test_no_zone_falls_back_on_the_globals()
+  veafCombatZone.DefaultSpawnRadiusForUnits = 77
+  local element = veafCombatZone.buildGroupElement(self.unit, self.group, {})
+  luaunit.assertEquals(element:getSpawnRadius(), 77)
+end
+
+--- `initialize()` is what applies the default, so a setter called after it would be read by nobody.
+--- It refuses instead of pretending, and leaves the value it already had.
+--- The guard reads the `initialized` flag, so it holds whatever `initialize()` found. Two earlier
+--- versions of this guard were wrong and both are covered below: it first read `zone.zoneElements`, a
+--- name no code in the module has ever written, so it never fired at all; then it counted
+--- `self.elements`, which misses a zone that initialised and found nothing (Sourcery, PR #930).
+function TestVeafCombatZoneSpawnRadiusDefault:test_a_call_after_initialize_is_refused_not_ignored()
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  zone.initialized = true -- as initialize() leaves it, on every one of its exits
+  zone:addZoneElement(veafCombatZone.buildGroupElement(self.unit, self.group, {}, zone))
+
+  zone:setDefaultSpawnRadius(500)
+  luaunit.assertEquals(zone.defaultSpawnRadius, 0, "the late call must not take effect silently")
+  zone:setDefaultSpawnRadiusForStatics(500)
+  luaunit.assertNil(zone.defaultSpawnRadiusForStatics, "the statics' setter refuses just the same")
+end
+
+--- Sourcery's case: a zone whose trigger zone held nothing. Its element list is empty, so a guard
+--- that counted elements would have accepted a setter that can no longer take effect.
+function TestVeafCombatZoneSpawnRadiusDefault:test_an_initialised_but_empty_zone_still_refuses()
+  local zone = self:_zone():setDefaultSpawnRadius(0)
+  zone.initialized = true
+  luaunit.assertEquals(#(zone:getZoneElements() or {}), 0, "this zone found nothing to hold")
+
+  zone:setDefaultSpawnRadius(500)
+  luaunit.assertEquals(zone.defaultSpawnRadius, 0, "an empty zone is still an initialised zone")
+end
+
+--- And the flag really is raised by `initialize()`, rather than only by tests setting it by hand —
+--- including on the earliest exit, where the zone has no name at all and nothing was built.
+function TestVeafCombatZoneSpawnRadiusDefault:test_initialize_raises_the_flag_even_when_it_bails_out()
+  local zone = VeafCombatZone:new() -- no mission editor zone name: initialize() returns immediately
+  luaunit.assertFalse(zone.initialized, "a fresh zone is configurable")
+  zone:initialize()
+  luaunit.assertTrue(zone.initialized, "a bailed-out initialize() still closes the door")
+end
+
+--- The other side of the guard: while the zone holds no element, the setter works. Without this the
+--- test above passes against a setter that refuses *always* — which would break the whole feature.
+function TestVeafCombatZoneSpawnRadiusDefault:test_the_setter_works_before_any_element_exists()
+  local zone = self:_zone()
+  luaunit.assertEquals(zone:setDefaultSpawnRadius(0).defaultSpawnRadius, 0)
+  luaunit.assertEquals(zone:setDefaultSpawnRadiusForStatics(40).defaultSpawnRadiusForStatics, 40)
 end
 
 os.exit(luaunit.LuaUnit.run())

@@ -95,6 +95,7 @@ Full reference: [Developer Guide](developer/README.en.md)
 
 ## Community & Support
 
+- **[Getting help](SUPPORT.en.md)** — where to go, what to provide, where the logs are
 - [VEAF Discord](https://www.veaf.org/discord) — real-time help
 - [GitHub Issues](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues) — bug reports and feature requests
 - [VEAF Website](https://www.veaf.org)

@@ -534,6 +534,7 @@ Le build vous dit combien il en a ajouté.
 | `ask` | Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive. |
 | `capture-map` | Capture les aérodromes d'un théâtre depuis une mission-pont en cours (via dcs-serve) dans <théâtre>.json ; `--parking` ajoute les places de parking dans `parking/<théâtre>.json`. |
 | `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
+| `doctor` | Rassemble les versions, chemins et erreurs récentes qu'un rapport de bug exige, et produit un bloc caviardé à coller dans un signalement — voir [Obtenir de l'aide](../SUPPORT.md). |
 | `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
 | `generate-config` | Génère un modèle mission.yaml documenté pour un dossier de mission. |
 | `inject-bridge` | Injecte le dcs-bridge + un trigger de démarrage dans un .miz (mission-pont). |
@@ -1013,6 +1014,10 @@ modules:
 Nous recommandons [Klogg](https://klogg.filimonov.dev/) — un visualiseur de logs rapide avec surligneur regex. Chargez `dcs.log` et filtrez sur `VEAF` pour ne voir que les messages VEAF.
 
 Un profil de surligneur Klogg prêt à l'emploi est inclus dans le dépôt : [`tools/klogg/veaf.conf`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/tools/klogg/veaf.conf). Il code les niveaux de log par couleur (erreurs en rouge, avertissements en orange, info VEAF en vert, debug en bleu-vert, trace en gris) et met en évidence les entrées MIST et CTLD. Pour l'installer : Klogg → *Fichier > Importer les surligneurs…* et sélectionnez le fichier.
+
+### Signaler ce que vous y trouvez
+
+Si le journal montre une erreur que vous ne vous expliquez pas, [Obtenir de l'aide](../SUPPORT.md) dit où la signaler et quoi joindre — extrait du `dcs.log`, et le bloc de `.\veaf-tools.exe doctor` qui porte les versions.
 
 ---
 

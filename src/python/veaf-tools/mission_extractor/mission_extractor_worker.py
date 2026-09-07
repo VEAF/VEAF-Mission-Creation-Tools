@@ -7,8 +7,10 @@ import tempfile
 from pathlib import Path
 
 from mission_tools import (
+    DEFAULT_SCRIPTS_LOCATION,
     extract_miz,
     get_community_script_files,
+    get_generated_lua_artifacts,
     get_legacy_script_files,
     get_mission_files_to_cleanup_on_extract,
     get_veaf_script_files,
@@ -130,6 +132,14 @@ class MissionExtractorWorker(BaseWorker):
             for veaf_file_in_mission in [Path(dest) / Path(path).name for path, dest in script_files]:
                 file_in_temp: Path = temp_dir / veaf_file_in_mission
                 rm_file_or_dir(file_in_temp)
+
+            # Remove the Lua the build injects by map resource (spawn data, dcs-bridge).
+            # Those lists above only know files that exist in the repository; a generated
+            # artifact matches none of them, so it used to be moved into src/scripts/ by the
+            # *.lua sweep below and handed back as a mission source
+            # (FIX-EXTRACT-GENERATED-ARTIFACTS-01).
+            for artifact_name in get_generated_lua_artifacts(dcs_mission.map_resource_content):
+                rm_file_or_dir(temp_dir / DEFAULT_SCRIPTS_LOCATION / artifact_name)
 
             # Create the src and src/scripts folders if needed
             src_scripts_folder = self.mission_folder / "src" / "scripts"

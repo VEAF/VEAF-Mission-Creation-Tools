@@ -22,6 +22,7 @@ on:
       #   doc/**         test_documented_lua_defaults, test_v5_converter, test_docs_check
       #   plugin/**      test_plugin_version (the version lockstep)
       #   *.md           test_changelog_process
+      #   support-bot-ci.yml  test_ci_trigger_paths, which now guards that workflow's own filter
       # Measured 2026-09-01: #877, #875 and #866 each merged without ever running pytest, ruff or
       # mypy, and #877 carried a stale scope table that turned `develop` red on the very test meant
       # to catch it. `test_ci_trigger_paths.py` now keeps this list honest.
@@ -30,6 +31,7 @@ on:
       - "doc/**"
       - "plugin/**"
       - "*.md"
+      - ".github/workflows/support-bot-ci.yml"
   # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose; the two are
   # kept identical by `test_ci_trigger_paths.py`.
   pull_request:
@@ -45,6 +47,7 @@ on:
       - "doc/**"
       - "plugin/**"
       - "*.md"
+      - ".github/workflows/support-bot-ci.yml"
 
 jobs:
   python-quality:

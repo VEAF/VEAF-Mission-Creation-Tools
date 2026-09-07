@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..analysis import analyse
 from ..appearance import DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, clamp_font_size
 from ..filters import FilterSet, highlight_patterns
 from ..parser import Entry
@@ -46,6 +47,7 @@ from ..rules import Rules
 from ..session import OpenFile, Session
 from ..store import LogStore
 from ..tailer import LogSource, LogUnavailable, archive_members
+from .analysis_view import AnalysisDialog
 from .delegate import MessageDelegate
 from .indexing import ProgressiveIndexer
 from .model import COL_LEVEL, COL_LINE, COL_MESSAGE, COL_SOURCE, COL_TIME, LogModel
@@ -583,6 +585,9 @@ class MainWindow(QMainWindow):
         self._action(rules_menu, "Recharger le catalogue", "F5", self.reload_rules)
         self._action(rules_menu, "Ouvrir rules.json", None, self.open_rules_file)
 
+        analyse_menu = self.menuBar().addMenu("&Analyse")
+        self._action(analyse_menu, "Expliquer ce qui est affiche…", "Ctrl+E", self.explain_current_view)
+
     def _action(self, menu, text, shortcut, slot, checkable=False) -> QAction:
         action = QAction(text, self)
         if shortcut:
@@ -815,6 +820,24 @@ class MainWindow(QMainWindow):
         self.detail_enabled = checked
         for tab in self._tabs():
             tab.set_detail_enabled(checked)
+
+    # -- analyse ----------------------------------------------------------
+
+    def explain_current_view(self) -> None:
+        """Explique ce qui est affiche : catalogue d'abord, modele a la demande.
+
+        La couche catalogue est calculee ici, avant que la fenetre n'apparaisse :
+        elle ne coute rien et ne demande pas le reseau, et c'est elle qui reste
+        quand la seconde ne repond pas. Rien ne part de la machine tant que
+        l'utilisateur n'a pas appuye sur « Analyser en ligne ».
+        """
+        tab = self.current_tab()
+        if tab is None:
+            self.status.showMessage("Aucun journal ouvert a analyser.", 3000)
+            return
+        analysis = analyse(tab.store, self.rules, tab.model.filters, visible=tab.model.visible_indices())
+        dialog = AnalysisDialog(analysis, self)
+        dialog.exec()
 
     # -- copie ------------------------------------------------------------
 

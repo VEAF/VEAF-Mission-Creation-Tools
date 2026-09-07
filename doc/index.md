@@ -95,6 +95,7 @@ Référence complète : [Guide du développeur](developer/README.md)
 
 ## Communauté & Support
 
+- **[Obtenir de l'aide](SUPPORT.md)** — où s'adresser, quoi fournir, où sont les journaux
 - [VEAF Discord](https://www.veaf.org/discord) — aide en temps réel
 - [Issues GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues) — signalement de bugs et demandes de fonctionnalités
 - [Site VEAF](https://www.veaf.org)

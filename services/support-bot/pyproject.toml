@@ -1,0 +1,112 @@
+[tool.poetry]
+name = "veaf-support-bot"
+# Deliberately independent of the repository root's `pyproject.toml` and of the two agent manifests:
+# this service is deployed on its own cadence, and nobody waits for a tools release to fix the bot.
+# It is NOT part of the version lockstep `test_plugin_version.py` enforces.
+version = "0.1.0"
+description = "The VEAF support bot — a long-running service answering documentation questions on Discord"
+authors = ["VEAF <https://www.veaf.org>"]
+license = "ISC"
+readme = "README.md"
+homepage = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
+repository = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
+package-mode = true
+packages = [{ include = "veaf_support_bot" }]
+
+[tool.poetry.dependencies]
+# No runtime dependency at all in the skeleton: configuration, structured logging, the health
+# endpoints and the shutdown sequence are stdlib. It keeps the image small and the direct run
+# installable anywhere; ticket 02 adds the Discord library.
+python = "^3.11"
+discord-py = "^2.4"
+# Not used by a single line of this service. It is here because `/bug` summarises an attached `.miz`
+# through the tools' **own** parser rather than forking a second one, and that parser reaches
+# `veaf_libs.logger`, which imports `typer` at module scope. Measured: it is the only third-party
+# package missing — `luadata` lives in the repository and is imported from the checkout like the rest.
+#
+# The alternative was writing a second mission reader here, which is the one thing ticket 02 forbids:
+# a fork would drift from the parser every other tool in the repository uses, and it would be the
+# forked one deciding what a bug report publishes about somebody's mission.
+typer = "^0.12"
+# The one thing RS256 cannot be done without. A GitHub App proves itself with a JWT signed by an
+# RSA private key, and no stdlib module signs one. Hand-rolling PKCS1v15 over `pow()` would be a
+# hundred lines of unreviewed cryptography in a service that files to a public repository; this is
+# the package every GitHub App client in Python uses, and it is the only new dependency ticket 05
+# adds. The JWT itself is three base64url fields and is built in `github_app.py`, so PyJWT is not
+# needed on top of it.
+cryptography = ">=42"
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.4"
+mypy = ">=1.8"
+pytest = ">=8.0"
+pytest-cov = ">=5.0"
+
+[tool.poetry.scripts]
+veaf-support-bot = "veaf_support_bot.cli:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+# ---------------------------------------------------------------------------
+# Ruff — same settings as the repository root, so a contributor moving between
+# the tools and the service does not meet two styles.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/test_*.py" = ["F401"]
+
+# ---------------------------------------------------------------------------
+# Mypy — stricter than the root configuration on purpose. The root is loosened
+# for a decade of existing code; this package is new, so it starts clean and
+# stays clean.
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+files = ["veaf_support_bot", "tests"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+
+# The tools' packages are not installed here: `veaf_support_bot/toolkit.py` imports them at run time
+# out of the repository checkout the `/bug` intake keeps fresh, which is a deliberate architecture
+# decision documented in that module's header. Every crossing goes through it, so this exemption is
+# scoped to the names it resolves and nothing else — it does not loosen the package's own strictness.
+[[tool.mypy.overrides]]
+module = ["veaf_libs.*", "veaf_logs.*", "mission_tools.*", "aiohttp"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "--tb=short",
+    "--import-mode=importlib",
+    "--cov=veaf_support_bot",
+    "--cov-report=term-missing:skip-covered",
+    # Ratchet, never a target to relax: measured 95.08 % with the `/bug` intake in.
+    "--cov-fail-under=95",
+]
+
+[tool.coverage.run]
+source = ["veaf_support_bot"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

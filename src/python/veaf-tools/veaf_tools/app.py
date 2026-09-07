@@ -4,7 +4,7 @@ from importlib.metadata import version as _pkg_version
 
 import typer
 from veaf_libs.i18n import set_language, set_language_from_argv, t, tn  # noqa: F401  (tn re-exported for commands)
-from veaf_libs.logger import configure_stdio_encoding, console, logger  # noqa: F401
+from veaf_libs.logger import configure_stdio_encoding, console, install_excepthook, logger  # noqa: F401
 from veaf_libs.update_checker import check_for_updates
 
 try:
@@ -55,6 +55,10 @@ def main() -> None:
     extract-aircraft-groups`` did not exist while ``poetry run veaf-tools`` had it
     (FIX-EXE-COMMAND-TREE). It now calls this function instead.
     """
+    # A crash must leave something behind: the traceback goes to the log file before it reaches
+    # stderr, where it used to scroll away with nothing kept (FEAT-SUPPORT-DIAGNOSTIC ticket 02).
+    install_excepthook()
+
     # Parse --lang early so --help is rendered in the right language.
     set_language_from_argv()
 

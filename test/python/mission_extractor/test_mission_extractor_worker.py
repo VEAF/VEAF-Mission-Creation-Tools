@@ -122,5 +122,98 @@ class TestMissionExtractorRefresh(unittest.TestCase):
             self.assertEqual((folder / "src" / "scripts" / "Engine.lua").read_text(encoding="utf-8"), "-- NEW\n")
 
 
+class TestMissionExtractorGeneratedArtifacts(unittest.TestCase):
+    """The build's own injected Lua must not come back as a mission source.
+
+    FIX-EXTRACT-GENERATED-ARTIFACTS-01: extraction moved every remaining
+    ``l10n/DEFAULT/*.lua`` into ``src/scripts/``, including the files the build
+    injects through a ``VEAF_MapKey_*`` map resource (``veaf-spawn-data.lua``,
+    ``dcs-bridge.lua``). The next build then embedded that stale copy alongside
+    the freshly injected one.
+    """
+
+    def _miz(self, miz: Path, scripts: dict[str, bytes], map_resource: dict[str, str]) -> None:
+        entries = "".join(f'    ["{key}"] = "{value}",\n' for key, value in map_resource.items())
+        with zipfile.ZipFile(miz, "w") as zf:
+            zf.writestr("mission", MINIMAL_MISSION_LUA)
+            zf.writestr("options", MINIMAL_OPTIONS_LUA)
+            zf.writestr("warehouses", MINIMAL_WAREHOUSES_LUA)
+            zf.writestr("theatre", b"Caucasus")
+            zf.writestr("l10n/DEFAULT/dictionary", b"dictionary = {\n}\n")
+            zf.writestr("l10n/DEFAULT/mapResource", f"mapResource = {{\n{entries}}}\n".encode())
+            for name, body in scripts.items():
+                zf.writestr(f"l10n/DEFAULT/{name}", body)
+
+    def _extract(self, folder: Path, scripts: dict[str, bytes], map_resource: dict[str, str]) -> None:
+        from mission_extractor.mission_extractor_worker import MissionExtractorWorker
+
+        miz = folder / "test.miz"
+        self._miz(miz, scripts, map_resource)
+        MissionExtractorWorker(mission_folder=folder, input_mission_path=miz).extract_mission()
+
+    def test_spawn_data_is_not_extracted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            self._extract(
+                folder,
+                {"veaf-spawn-data.lua": b"-- generated\n"},
+                {"VEAF_MapKey_SpawnData": "veaf-spawn-data.lua"},
+            )
+
+            self.assertFalse((folder / "src" / "scripts" / "veaf-spawn-data.lua").exists())
+            # …and not in src/mission/ either, which is what feeds the next build.
+            self.assertFalse((folder / "src" / "mission" / "l10n" / "DEFAULT" / "veaf-spawn-data.lua").exists())
+
+    def test_dcs_bridge_is_not_extracted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            self._extract(
+                folder,
+                {"dcs-bridge.lua": b"-- generated\n"},
+                {"VEAF_MapKey_DcsBridge": "dcs-bridge.lua"},
+            )
+
+            self.assertFalse((folder / "src" / "scripts" / "dcs-bridge.lua").exists())
+
+    def test_artifact_without_its_map_key_is_still_stripped(self) -> None:
+        """A mission whose mapResource was rewritten still must not get the file back."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            self._extract(folder, {"veaf-spawn-data.lua": b"-- generated\n"}, {})
+
+            self.assertFalse((folder / "src" / "scripts" / "veaf-spawn-data.lua").exists())
+
+    def test_script_named_by_a_foreign_map_key_is_extracted(self) -> None:
+        """We strip our own output, not a mission maker's script."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            self._extract(
+                folder,
+                {"Engine.lua": b"-- theirs\n"},
+                {"ResKey_Action_1": "Engine.lua"},
+            )
+
+            self.assertTrue((folder / "src" / "scripts" / "Engine.lua").exists())
+
+    def test_unreferenced_script_is_extracted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            self._extract(folder, {"Engine.lua": b"-- theirs\n"}, {})
+
+            self.assertTrue((folder / "src" / "scripts" / "Engine.lua").exists())
+
+    def test_veaf_map_key_pointing_at_a_lua_file_is_stripped_by_the_map_resource(self) -> None:
+        """Data-driven, so an artifact added later needs no edit here."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            self._extract(
+                folder,
+                {"veaf-future-thing.lua": b"-- generated\n"},
+                {"VEAF_MapKey_FutureThing": "veaf-future-thing.lua"},
+            )
+
+            self.assertFalse((folder / "src" / "scripts" / "veaf-future-thing.lua").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

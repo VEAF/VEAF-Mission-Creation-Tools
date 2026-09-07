@@ -292,6 +292,76 @@ class TestWhichAccountNamesAreReplaced(unittest.TestCase):
         self.assertEqual(self._names_for("user"), ())
 
 
+class TestAnAccountNamedAfterTheProduct(unittest.TestCase):
+    r"""Issue #940: `veaf-tools` was filed as `<user>-tools`, marker included.
+
+    The container ran as `veaf` — `useradd --uid 10001 … veaf` in the image — so `getpass.getuser()`
+    answered `veaf`, and the literal pass matched it inside `veaf-tools`: the `-` is not a word
+    character, so the guard that protects `veafSpawn.lua` did not apply.
+
+    Beyond the container it is not hypothetical either: a mission maker whose Windows account is
+    named `veaf`, on an association machine, would file exactly the same mangled report — and the
+    `doctor` block he pasted would be mangled with it.
+
+    What must not give way is the *path* rule. `C:\Users\veaf\…` is still an account name: there,
+    the letters are unambiguous, and that rule is the one catching the real leak.
+    """
+
+    def _names_for(self, account: str) -> tuple[str, ...]:
+        redaction._account_patterns.cache_clear()
+        self.addCleanup(redaction._account_patterns.cache_clear)
+        with (
+            patch.object(Path, "home", staticmethod(lambda: Path(f"C:/Users/{account}"))),
+            patch("getpass.getuser", return_value=account),
+        ):
+            return tuple(pattern.pattern for pattern in redaction._account_patterns())
+
+    def test_an_account_named_after_the_product_is_not_replaced_as_a_literal(self) -> None:
+        self.assertEqual(self._names_for("veaf"), ())
+
+    def test_the_product_name_survives_in_prose(self) -> None:
+        with (
+            patch.object(Path, "home", staticmethod(lambda: Path("C:/Users/veaf"))),
+            patch("getpass.getuser", return_value="veaf"),
+        ):
+            redaction._account_patterns.cache_clear()
+            self.addCleanup(redaction._account_patterns.cache_clear)
+
+            out = redact("Que veaf-tools.exe propose une UI comme ctld-tools.exe")
+
+        self.assertIn("veaf-tools.exe", out)
+
+    def test_the_support_bot_marker_survives(self) -> None:
+        """The recovery search greps for it; corrupted, one report becomes two issues."""
+        with (
+            patch.object(Path, "home", staticmethod(lambda: Path("C:/Users/veaf"))),
+            patch("getpass.getuser", return_value="veaf"),
+        ):
+            redaction._account_patterns.cache_clear()
+            self.addCleanup(redaction._account_patterns.cache_clear)
+
+            out = redact("<!-- veaf-support-bot:report=24f4efdc3289b9105d22637c7d6c5f5f -->")
+
+        self.assertIn("veaf-support-bot:report=", out)
+
+    def test_a_home_directory_named_veaf_is_still_redacted(self) -> None:
+        """The path rule does not give way: there, the letters are an account name."""
+        with (
+            patch.object(Path, "home", staticmethod(lambda: Path("C:/Users/veaf"))),
+            patch("getpass.getuser", return_value="veaf"),
+        ):
+            redaction._account_patterns.cache_clear()
+            self.addCleanup(redaction._account_patterns.cache_clear)
+
+            out = redact(r"C:\Users\veaf\Saved Games\DCS\Logs\dcs.log")
+
+        self.assertEqual(out, rf"C:\Users\{USER_PLACEHOLDER}\Saved Games\DCS\Logs\dcs.log")
+
+    def test_an_ordinary_name_is_still_replaced_everywhere(self) -> None:
+        """The 56-survival case that made the literal pass exist must keep working."""
+        self.assertEqual(len(self._names_for("David")), 1)
+
+
 class TestEmails(unittest.TestCase):
     def test_an_email_is_replaced(self) -> None:
         self.assertEqual(redact("reported by pilot@example.org"), f"reported by {EMAIL_PLACEHOLDER}")

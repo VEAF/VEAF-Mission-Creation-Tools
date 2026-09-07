@@ -52,7 +52,25 @@ SECRET_PLACEHOLDER = "<redacted>"
 
 #: The bare words inside the placeholders above. An account name equal to one of them would make
 #: redaction non-idempotent (``<user>`` → ``<<user>>``), so such a name is left alone.
-_PLACEHOLDER_WORDS: frozenset[str] = frozenset({"user", "ip", "email", "redacted"})
+#: Account names the literal pass refuses to act on — **not** because they are generic, but because
+#: replacing them costs more than the name protects.
+#:
+#: Two families. The placeholders (``user``, ``ip``…) would make redaction non-idempotent, chewing
+#: through what a previous pass wrote. The product's own words are the second, added after issue
+#: **#940**: the support bot's container ran as ``veaf``, so ``veaf-tools.exe`` was published as
+#: ``<user>-tools.exe`` — and with it the idempotency marker ``veaf-support-bot:report=`` that the
+#: recovery search greps for, so a filed report could no longer be recognised and one report would
+#: become two issues.
+#:
+#: Beyond that container it is not hypothetical: a mission maker whose Windows account is named
+#: ``veaf`` — on a machine set up for the association — would file exactly the same mangled report,
+#: with his pasted ``doctor`` block mangled along with it.
+#:
+#: What this does **not** loosen is the home-directory rule: ``C:\Users\veaf\…`` is still redacted.
+#: There the letters are unambiguously an account name, and that rule is the one catching the real
+#: leak. Only the bare-literal pass gives way, and only for the words this product says about itself
+#: constantly.
+_PLACEHOLDER_WORDS: frozenset[str] = frozenset({"user", "ip", "email", "redacted", "veaf", "dcs"})
 
 #: Shortest account name replaced on sight. A two-letter name (``jd``) appears inside ordinary words
 #: and would shred the text it is meant to protect.

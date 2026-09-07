@@ -715,6 +715,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   an assertion — and bug reports are no longer offered as duplicates of a suggestion, which is what
   made the bot propose *La mission ne fonctionne pas* for a request about a user interface.
 
+- **The redactor no longer eats the product's own name — nor the bug-report marker it corrupted.**
+  Found on issue #940, the first `/suggest` filed from the Docker deployment, whose title read *« Que
+  \<user\>-tools.exe propose une UI graphique comme ctld-tools.exe »*. The container ran as `veaf`,
+  so the account-name pass matched inside `veaf-tools`: the hyphen is not a word character, so the
+  guard that protects `veafSpawn.lua` did not apply. It was more than cosmetic — the same redaction
+  runs over the idempotency marker, so `veaf-support-bot:report=` was published mangled while the
+  recovery search greps for exactly that string, meaning a filed report could no longer be
+  recognised and a retry would open a second issue. Two independent guards now, because a deployment
+  can rename its user and cannot rename the product: the container's account is `appuser` (uid
+  unchanged at 10001, which is what an operator chowns the GitHub App's key to), and
+  `veaf_libs.redaction` refuses to treat the words this product says about itself as account names —
+  which also covers the mission maker whose Windows account happens to be named `veaf`. The
+  home-directory rule is untouched: `C:\Users\veaf\…` is still redacted, because there the letters
+  are unambiguously an account name.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

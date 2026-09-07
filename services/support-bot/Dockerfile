@@ -54,16 +54,28 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 # difference: as soon as it cannot read or write the counters it drops to a much stricter ceiling
 # and says so, in the log and in `/status`; a ledger it cannot read falls back to the marker each
 # filed issue carries in its own body.
-RUN useradd --system --uid 10001 --user-group --no-create-home veaf \
+#
+# The account is named `appuser` and **not** after the product, which issue #940 measured the hard
+# way: it used to be `veaf`, so the redactor — which replaces the current account's name wherever it
+# appears — published `veaf-tools.exe` as `<user>-tools.exe`, and corrupted the idempotency marker
+# `veaf-support-bot:report=` along with it. The recovery search greps for that marker, so a filed
+# report stopped being recognisable and one report could become two issues. The tools now refuse to
+# redact their own name, and this account no longer carries it: two independent guards, because a
+# deployment can rename its user and cannot rename the product.
+#
+# The uid stays 10001: it is what the README tells an operator to `chown` the GitHub App's key to,
+# and changing it would silently make that key unreadable — a bot that starts, answers `/ask` and
+# fails every report it files.
+RUN useradd --system --uid 10001 --user-group --no-create-home appuser \
     && mkdir -p /app/state /app/checkout \
     && chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && chown -R veaf:veaf /app
+    && chown -R appuser:appuser /app
 # Two volumes, and they carry different kinds of loss. `state/` holds what cannot be rebuilt — the
 # quota counters, the enrichment allowance, the filed-issue ledger, the thread-to-issue links, whose
 # loss orphans every thread already opened. `checkout/` holds what can: losing it costs one clone on
 # the next start. Both are declared so a `docker rm` cannot take the first with it.
 VOLUME ["/app/state", "/app/checkout"]
-USER veaf
+USER appuser
 
 EXPOSE 8081
 

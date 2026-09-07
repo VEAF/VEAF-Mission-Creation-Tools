@@ -76,6 +76,41 @@ DRAFT_EXPIRY_SECONDS: Final = 480
 #: Longest title shown in the draft header. The issue keeps its own; this is the preview line.
 TITLE_MAX_CHARS: Final = 200
 
+#: How long Discord keeps a deferred interaction token alive. Every wait of a flow — the prior-art
+#: proposal, the documentation check, the draft itself — spends the **same** one.
+TOKEN_LIFETIME_SECONDS: Final = 900
+
+#: Kept aside for the last message: writing the outcome onto the message the buttons hang off. A
+#: budget that fits exactly is a budget that does not, once Discord has a slow second.
+CLOSING_MARGIN_SECONDS: Final = 30
+
+
+def room_for_a_question(spent: float) -> bool:
+    """Say whether one more timed question still leaves room for the consent click.
+
+    The rule both flows run on, in the module that owns the two waits it measures. `/suggest` had
+    it and `/bug` did not, though `/bug` is where the arithmetic is tightest: 300 + 480 of 900
+    seconds on two waits, before counting the preparation that precedes them — downloading an 11 MB
+    log, summarising a mission, walking a checkout for callers.
+
+    The failure it prevents is the worst kind this service has: somebody lets the first question
+    expire, takes his time over the draft, presses **File the issue** — and the token is dead. He
+    has consented to something that will never happen, and he cannot even be told, because telling
+    him needs the same token.
+
+    So the *checks* give way and the consent never does.
+
+    Args:
+        spent: Seconds elapsed since the interaction was acknowledged.
+
+    Returns:
+        Whether asking one more question still leaves the draft its full wait plus the closing
+        margin.
+    """
+    needed = MATCH_EXPIRY_SECONDS + DRAFT_EXPIRY_SECONDS + CLOSING_MARGIN_SECONDS
+    return spent + needed <= TOKEN_LIFETIME_SECONDS
+
+
 #: A line that is nothing but **this service's own** marker comment.
 #:
 #: Narrow on purpose, and the narrowness is the point. Hiding every HTML comment would also hide one

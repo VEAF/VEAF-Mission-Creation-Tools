@@ -660,6 +660,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the association's decision and it may well answer with two — with every entry validated exactly as
   the single id was.
 
+- **The bot stops recording an opinion nobody expressed, and `/bug` stops asking a question its
+  token cannot outlive.** A prior-art proposal had three possible endings — *yes it is mine*, *no
+  mine is different*, and nobody answering (a silence, or a Discord that never displayed the
+  question) — and the protocol returned a boolean, so the last two arrived as the same `False`. The
+  safe direction was right: only a *yes* ever stopped a report. What was wrong is what the issue
+  then said, which was *the reporter said his is different* under a silence. Three states now travel
+  from the buttons to the issue body, in both languages, and every caller was read rather than
+  adapted — the duplicate comment, which publishes on a public tracker, still requires an explicit
+  yes. Alongside it, `/bug` gained the bound `/suggest` already had: its two waits spend 780 of a
+  token's 900 seconds, before the preparation that precedes them, so when a question would no longer
+  leave room for the consent click it is **skipped** — the sweep still runs and the issue still
+  records what it found. The numbers live in one place both flows read.
+
 ## [6.19.0] — 2026-09-02
 
 ### Fixed

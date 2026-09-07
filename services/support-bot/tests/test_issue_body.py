@@ -16,6 +16,7 @@ from typing import Any
 from tests.intake_fixtures import fixture_checkout, fixture_root
 from veaf_support_bot.attachments import Prepared
 from veaf_support_bot.bugreport import BugForm, BugReport, MaterialNote, assemble
+from veaf_support_bot.draft import DIFFERENT, SAME, UNANSWERED
 from veaf_support_bot.issue_body import (
     INLINE_MAX_CHARS,
     Carried,
@@ -212,10 +213,31 @@ class TestThePriorArtSection(unittest.TestCase):
         return Sweep(verdict=DUPLICATE, best=match, checked=("9 open issue(s)",))
 
     def test_a_rejected_match_is_recorded_with_its_evidence(self) -> None:
-        rendered = render_prior_art(self._sweep(), "en")
+        rendered = render_prior_art(self._sweep(), "en", DIFFERENT)
         self.assertIn("#712", rendered)
         self.assertIn("veafsample.resolve", rendered)
-        self.assertIn("rejected by the reporter", rendered)
+        self.assertIn("said his is different", rendered)
+
+    def test_a_silence_is_not_written_up_as_a_refusal(self) -> None:
+        """Ticket 02, where it is finally visible: the issue says which of the three happened."""
+        rendered = render_prior_art(self._sweep(), "en", UNANSWERED)
+
+        self.assertIn("nobody answered", rendered)
+        self.assertNotIn("said his is different", rendered)
+
+    def test_the_three_answers_read_differently(self) -> None:
+        """A distinction nothing can see is a distinction that was not made."""
+        sweep = self._sweep()
+        rendered = {answer: render_prior_art(sweep, "fr", answer) for answer in (SAME, DIFFERENT, UNANSWERED)}
+
+        self.assertEqual(len(set(rendered.values())), 3)
+
+    def test_the_section_is_written_in_the_reporters_language(self) -> None:
+        """It sat in English under French headings, like the manifest of ticket 08."""
+        self.assertNotEqual(
+            render_prior_art(self._sweep(), "fr", DIFFERENT),
+            render_prior_art(self._sweep(), "en", DIFFERENT),
+        )
 
     def test_what_was_checked_is_recorded_even_when_nothing_matched(self) -> None:
         rendered = render_prior_art(Sweep(verdict=NONE, checked=("9 open issue(s)",)), "en")

@@ -47,14 +47,13 @@ from typing import Protocol
 
 from veaf_support_bot.draft import (
     CANCEL,
-    DRAFT_EXPIRY_SECONDS,
     EDIT,
     EXPIRED,
     FILE,
-    MATCH_EXPIRY_SECONDS,
     SAME,
     UNANSWERED,
     Draft,
+    room_for_a_question,
 )
 from veaf_support_bot.exchange import ThreadExchange, ThreadHandle
 from veaf_support_bot.existing import DocumentationCheck, DocumentationSource
@@ -343,8 +342,7 @@ class SuggestIntake:
             still recorded in the issue, it is simply not put to the asker.
         """
         spent = self._clock() - started
-        needed = MATCH_EXPIRY_SECONDS + DRAFT_EXPIRY_SECONDS + CLOSING_MARGIN_SECONDS
-        if spent + needed <= TOKEN_LIFETIME_SECONDS:
+        if room_for_a_question(spent):
             return True
         self._logger.info(
             "a check was not put to the asker: the interaction token would not outlive it",

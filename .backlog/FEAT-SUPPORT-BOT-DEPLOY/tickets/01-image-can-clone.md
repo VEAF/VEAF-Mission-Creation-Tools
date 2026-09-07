@@ -1,6 +1,6 @@
 # 01 — The image can refresh its own clone
 
-Status: ⬜ ready
+Status: ✅ done — merged in #926
 
 Type: fix
 
@@ -42,9 +42,26 @@ exists to close is a command silently absent, which every current test tolerates
 
 ## Definition of done
 
-- [ ] `git` present in the image, verified by running it in the built image in CI
-- [ ] Entry point clones once into an empty checkout volume, and never again
-- [ ] Shallow, single-branch clone; the refresh still works against it
-- [ ] `exec` preserved, so `SIGTERM` still reaches Python
-- [ ] `VEAF_CLONE_URL` documented where the deployment is documented, not in `.env.example`
-- [ ] Quality gate clean
+- [x] `git` present in the image, verified by running it in the built image in CI
+- [x] Entry point clones once into an empty checkout volume, and never again
+- [x] Shallow, single-branch clone; the refresh still works against it — and it names the remote
+      `SUPPORT_BOT_CHECKOUT_REMOTE` says, since a clone that always said `origin` made every
+      refresh fail on a deployment that overrode it
+- [x] `exec` preserved, so `SIGTERM` still reaches Python
+- [x] `VEAF_CLONE_URL` documented where the deployment is documented, not in `.env.example`
+- [x] Quality gate clean
+
+## What review added to this ticket
+
+Three defects that were **introduced here**, not found here:
+
+- the cleanup that clears a half-written clone deleted the contents of whatever the checkout path
+  pointed at. Aimed at `/app/state` — the other writable volume — it would have erased the quota
+  counters, the filed-issue ledger and the thread links, silently, on the next start. A directory
+  is now only wiped when it *contains* a `.git`; the CI asserts a `/app/state` with a real file in
+  it survives;
+- the clone had **no timeout**, so a stalled connection would hold PID 1 for ever and `/ask` would
+  never start — contradicting the sentence three lines above it in the same file;
+- the health grace period was raised to 120 s to cover the clone, which broke the step asserting a
+  dry run is called *unhealthy*: with that grace Docker answers `starting` for two minutes and
+  `unhealthy` never. The three numbers are tied together, and the Dockerfile now says so.

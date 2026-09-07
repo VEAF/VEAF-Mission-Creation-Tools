@@ -1,6 +1,6 @@
 # 04 — Say where it runs and how to touch it
 
-Status: ⬜ ready
+Status: ✅ done — merged in #926
 
 Type: docs
 
@@ -23,8 +23,13 @@ already; where the process runs is not their business.
 
 ## Definition of done
 
-- [ ] *Where it runs* answers the question instead of asking it
-- [ ] The Docker procedure, end to end, runnable by somebody who has not read this lot
-- [ ] Why not the game server, in one paragraph
-- [ ] What to look at when it does not answer
-- [ ] `poetry run docs-check` passes if anything under `doc/` moved
+- [x] *Where it runs* answers the question — with the honest answer, which is still **not deployed
+      yet**: the section it replaces existed because "how to start it" had been written as if
+      somebody already had
+- [x] The Docker procedure, end to end, with the two tables of what to paste and what is already
+      decided
+- [x] Why not the game server, in one paragraph
+- [x] What to look at when it does not answer — including that a first start can show `unhealthy`
+      while the clone runs, and that a container *looping* is the opposite case: a configuration
+      error whose exit code means restarting will not help
+- [x] `poetry run docs-check` passes

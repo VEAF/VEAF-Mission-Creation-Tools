@@ -1,6 +1,6 @@
 # 03 — A direct run, for the rehearsal
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #926
 
 Type: feat
 
@@ -33,5 +33,16 @@ deployment, since it is the same module with the same environment.
 
 - [x] Reads `.env`, process scope, no interpolation
 - [x] Propagates the exit code, 78 included
-- [ ] Documented where the direct run is documented
-- [ ] Quality gate clean
+- [x] Documented where the direct run is documented
+- [x] Quality gate clean
+
+## The defect review found in it
+
+**It printed the content of any line it could not parse.** On a file that holds only secrets, that
+is the secret: pasting a multi-line PEM — the form `.env.example` documents, so the mistake is the
+ordinary one — wrote the key body to stderr, one warning per line, into the log the boot procedure
+redirects. Measured in review.
+
+It now reports a line number and nothing else, refuses a `-----BEGIN` line *before* the parse
+reaches the key's body, and rejects a name that is not a variable name, since a base64 padding `=`
+parses as an assignment and would have created a variable **named** after key material.

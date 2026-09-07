@@ -1,6 +1,6 @@
 # FEAT-SUPPORT-BOT-DEPLOY — the bot runs somewhere
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — the code shipped in #926; the deployment itself needs the host
 
 Origin: decided 2026-09-07 with David. The five lots of the support programme are done and **nothing
 runs**: the code is merged, the Worker is deployed, the `filed-by-bot` label exists, and no process

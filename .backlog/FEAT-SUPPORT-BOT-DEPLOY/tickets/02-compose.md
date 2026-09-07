@@ -1,6 +1,6 @@
 # 02 — One command brings it up, and brings it back
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — written and merged in #926; nobody has run it on the host yet
 
 Type: feat
 
@@ -29,8 +29,20 @@ Discord, GitHub and the Worker, and answers `/readyz` to whatever runs beside it
 
 ## Definition of done
 
-- [ ] `compose.yml` builds and starts the service with state and checkout on named volumes
+- [x] `compose.yml` builds and starts the service with state and checkout on named volumes
+- [x] The App's private key comes through a compose **secret**, not the environment, so it stays out
+      of `docker inspect` — and is ignored by git and excluded from the build context, since the
+      documented place for it is a tracked directory
 - [ ] `docker compose up -d` on a clean host produces a bot that answers, given a filled `.env`
 - [ ] A killed container comes back on its own
 - [ ] The state files are still there after `docker compose down && up -d`
-- [ ] Quality gate clean
+- [x] Quality gate clean
+
+The three unchecked boxes need the host. What is written cannot be proven here: Docker is not
+installed on the machine this was written on.
+
+**One thing the file cannot do, and says so:** `restart: unless-stopped` acts on *exits*, not on
+health. Outside Swarm, Docker marks a container `unhealthy` and leaves it running — so the failure
+this service is shaped around, the process alive with the Discord gateway gone, is recovered by
+nobody. Watching for it needs an uptime monitor on `/readyz` or a supervisor that recreates
+unhealthy containers.

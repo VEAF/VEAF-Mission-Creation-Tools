@@ -52,6 +52,8 @@ from veaf_support_bot.draft import (
     EXPIRED,
     FILE,
     MATCH_EXPIRY_SECONDS,
+    SAME,
+    UNANSWERED,
     Draft,
 )
 from veaf_support_bot.exchange import ThreadExchange, ThreadHandle
@@ -176,7 +178,7 @@ class _AskTheAsker:
         """
         self._exchange = exchange
 
-    async def confirm(self, sweep: Sweep, lang: str) -> bool:
+    async def confirm(self, sweep: Sweep, lang: str) -> str:
         """Put the match, with its evidence, to the asker.
 
         Args:
@@ -184,7 +186,7 @@ class _AskTheAsker:
             lang: ``"fr"`` or ``"en"``.
 
         Returns:
-            Whether he recognised it as the same subject.
+            What he answered: ``SAME``, ``DIFFERENT`` or ``UNANSWERED``.
         """
         return await self._exchange.confirm(render_match(sweep, lang, family=PRIOR_ART_FAMILY), lang)
 
@@ -295,7 +297,9 @@ class SuggestIntake:
 
         check = await self._ask_documentation(form, lang)
         asked = check.found and self._may_ask(started, "documentation")
-        if asked and await exchange.confirm(render_documentation(check, lang), lang):
+        # `== SAME`, not truthiness: every non-empty string was true, so a future value — or a
+        # stand-in returning something else — would have settled the request without a yes.
+        if asked and await exchange.confirm(render_documentation(check, lang), lang) == SAME:
             self._logger.info(
                 "the documentation already answered the request",
                 extra={"event": "suggest.settled", "user": form.asker_id, "by": "documentation"},
@@ -303,8 +307,11 @@ class SuggestIntake:
             await self._say(exchange, text("suggest.settled.documentation", lang))
             return None
 
-        sweep, accepted = await self._sweep(exchange, form, lang, started)
-        if accepted and sweep is not None:
+        sweep, answer = await self._sweep(exchange, form, lang, started)
+        # Only an explicit *yes* settles a request. A silence means the asker never saw the
+        # proposal or never answered it, and dropping his request on that would be the machine
+        # deciding his idea already exists.
+        if answer == SAME and sweep is not None:
             self._logger.info(
                 "existing work already covers the request",
                 extra={"event": "suggest.settled", "user": form.asker_id, "by": sweep.verdict},
@@ -373,7 +380,7 @@ class SuggestIntake:
 
     async def _sweep(
         self, exchange: ThreadExchange, form: SuggestionForm, lang: str, started: float
-    ) -> tuple[Sweep | None, bool]:
+    ) -> tuple[Sweep | None, str]:
         """Compare the request against what is already reported, scheduled or declined.
 
         Args:
@@ -386,23 +393,26 @@ class SuggestIntake:
 
         Returns:
             A pair of the finding — ``None`` when no sweep is configured — and whether the asker
-            accepted the proposed match.
+            answered about the proposed match. A sweep nobody could be asked about — no gate,
+            or no room left in the token for one more question — answers ``UNANSWERED``,
+            which is what it is: not a refusal, and never an agreement.
         """
         if self._prior_art is None:
-            return None, False
+            return None, UNANSWERED
         confirmation = _AskTheAsker(exchange) if self._may_ask(started, "prior art") else None
-        sweep, accepted = await self._prior_art.run(form.all_text(), lang, confirmation=confirmation)
+        answer: str
+        sweep, answer = await self._prior_art.run(form.all_text(), lang, confirmation=confirmation)
         self._logger.info(
             "prior art swept",
             extra={
                 "event": "suggest.prior_art",
                 "verdict": sweep.verdict,
-                "accepted": accepted,
+                "answer": answer,
                 "reference": sweep.best.candidate.reference if sweep.best else "",
                 "problems": list(sweep.problems),
             },
         )
-        return sweep, accepted
+        return sweep, answer
 
     async def _file(
         self,

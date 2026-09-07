@@ -45,6 +45,23 @@ EXPIRED: Final = "expired"
 #: Every answer :meth:`~veaf_support_bot.exchange.ThreadExchange.decide` may return.
 CHOICES: Final = (FILE, EDIT, CANCEL, EXPIRED)
 
+#: He recognised the proposed match as his own subject.
+SAME: Final = "same"
+
+#: He said his is different. An opinion, and the report carries on.
+DIFFERENT: Final = "different"
+
+#: Nobody answered — a silence, or a Discord that never showed the question.
+#:
+#: Kept apart from :data:`DIFFERENT` because the two are not the same fact and the issue says which.
+#: They lead to the same **action**, deliberately: an unanswered guess must never silence a real
+#: report. What they must never lead to is agreement, which is why the vocabulary is three values
+#: rather than a boolean nobody could widen later.
+UNANSWERED: Final = "unanswered"
+
+#: Every answer :meth:`~veaf_support_bot.exchange.ThreadExchange.confirm` may return.
+ANSWERS: Final = (SAME, DIFFERENT, UNANSWERED)
+
 #: Longest draft message posted back. Discord's own ceiling is 2000 characters; the margin carries
 #: the truncation notice, which must fit *after* the cut has been decided.
 DRAFT_MAX_CHARS: Final = 1900

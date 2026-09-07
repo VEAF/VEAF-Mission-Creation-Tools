@@ -43,6 +43,7 @@ from pathlib import Path
 
 from veaf_support_bot.attachments import Prepared
 from veaf_support_bot.bugreport import NOT_STATED, BugReport
+from veaf_support_bot.draft import DIFFERENT, SAME, UNANSWERED
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import DUPLICATE, FIXED, IN_PROGRESS, Sweep
 from veaf_support_bot.texts import DEFAULT_LANGUAGE, text
@@ -305,8 +306,25 @@ def carry(
     return Carried(prepared, text=redacted, digest=digest)
 
 
-def render_prior_art(sweep: Sweep, lang: str) -> str:
-    """Render what the sweep checked and what it proposed.
+#: What was proposed, per verdict — the noun the sentence below is built on.
+_PROPOSED: dict[str, str] = {
+    DUPLICATE: "priorart.proposed.duplicate",
+    FIXED: "priorart.proposed.fixed",
+    IN_PROGRESS: "priorart.proposed.in_progress",
+}
+
+#: What became of the proposal. Three keys, because three things can happen and a reader deciding
+#: what to do with this issue needs to know which: a refusal is an opinion he can weigh, a silence
+#: is not — and until the exchange returned three values, the issue could not tell them apart.
+_ANSWERED: dict[str, str] = {
+    DIFFERENT: "priorart.answer.different",
+    UNANSWERED: "priorart.answer.unanswered",
+    SAME: "priorart.answer.same",
+}
+
+
+def render_prior_art(sweep: Sweep, lang: str, answer: str = UNANSWERED) -> str:
+    """Render what the sweep checked, what it proposed, and what the reporter answered.
 
     Recorded even when nothing matched: a reader who cannot see that the sweep ran has to run it
     again himself.
@@ -314,23 +332,23 @@ def render_prior_art(sweep: Sweep, lang: str) -> str:
     Args:
         sweep: The finding.
         lang: ``"fr"`` or ``"en"``.
+        answer: What the reporter said about the proposal — ``SAME``, ``DIFFERENT`` or
+            ``UNANSWERED``. The last one covers both a silence and a Discord that never displayed
+            the question; neither is an opinion, and the sentence says so rather than claiming he
+            disagreed.
 
     Returns:
         The section body.
     """
     lines = [sweep.describe()]
     if sweep.best is not None:
-        outcome = {
-            DUPLICATE: "a similar open issue was proposed and the reporter said his is different",
-            FIXED: "a closed issue was proposed and the reporter said his is different",
-            IN_PROGRESS: "existing work was proposed and the reporter said his is different",
-        }[sweep.verdict]
-        lines.append(f"Closest match, **rejected by the reporter** ({outcome}):")
+        proposed = text(_PROPOSED[sweep.verdict], lang)
+        became = text(_ANSWERED.get(answer, "priorart.answer.unanswered"), lang)
+        lines.append(text("priorart.closest", lang, proposed=proposed, answer=became))
         lines.append(f"- {sweep.best.evidence()}")
         for other in sweep.alternatives:
-            lines.append(f"- also considered: {other.evidence()}")
-    if lang == "fr":
-        lines.append("_Balayage déterministe : appariement de mots, aucun modèle._")
+            lines.append(f"- {text('priorart.also_considered', lang)} {other.evidence()}")
+    lines.append(text("priorart.deterministic", lang))
     return "\n".join(lines)
 
 
@@ -382,7 +400,9 @@ def render_body(report: BugReport, key: str, *, thread_url: str = "", carried: I
     if files:
         parts.append(f"### {heading('files', lang)}\n\n{files}")
     if report.prior_art is not None:
-        parts.append(f"### {heading('priorart', lang)}\n\n{render_prior_art(report.prior_art, lang)}")
+        parts.append(
+            f"### {heading('priorart', lang)}\n\n{render_prior_art(report.prior_art, lang, report.prior_art_answer)}"
+        )
     if report.notes:
         listed = "\n".join(f"- **{note.subject}** — {note.reason}" for note in report.notes)
         parts.append(f"### {heading('missing', lang)}\n\n{listed}")

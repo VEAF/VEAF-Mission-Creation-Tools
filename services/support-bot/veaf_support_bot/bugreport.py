@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 
 from veaf_support_bot.checkout import Checkout, Freshness
+from veaf_support_bot.draft import UNANSWERED
 from veaf_support_bot.priorart import Sweep
 from veaf_support_bot.toolkit import DoctorFacts, ToolkitUnavailable, parse_doctor_block, redact
 from veaf_support_bot.traces import Location, TraceReading, Unresolved, read_trace
@@ -162,6 +163,11 @@ class BugReport:
         prior_art: What the four-source sweep found, or ``None`` when no sweep ran. It is attached
             to the report rather than acted on here: the sweep informs the decision, the reporter
             takes it.
+        prior_art_answer: What the reporter answered about the proposed match —
+            :data:`~veaf_support_bot.draft.SAME`, :data:`~veaf_support_bot.draft.DIFFERENT` or
+            :data:`~veaf_support_bot.draft.UNANSWERED`. Kept because the three are different facts
+            and the issue says which: *he said his is different* and *nobody answered* used to
+            arrive here as the same ``False``.
     """
 
     form: BugForm
@@ -178,6 +184,7 @@ class BugReport:
     log_digests: tuple[str, ...] = ()
     quoted_files: tuple[str, ...] = ()
     prior_art: Sweep | None = None
+    prior_art_answer: str = UNANSWERED
 
     @property
     def located(self) -> tuple[Location, ...]:

@@ -53,7 +53,7 @@ from typing import Protocol
 from veaf_support_bot.attachments import AttachmentCollector, Harvest, Incoming
 from veaf_support_bot.bugreport import BugForm, BugReport, MaterialNote, assemble, safe_redact
 from veaf_support_bot.checkout import Checkout
-from veaf_support_bot.draft import CANCEL, EDIT, EXPIRED, FILE, Draft
+from veaf_support_bot.draft import CANCEL, EDIT, EXPIRED, FILE, SAME, UNANSWERED, Draft
 from veaf_support_bot.enrichment import DISABLED, Enricher
 from veaf_support_bot.exchange import ThreadExchange, ThreadHandle
 from veaf_support_bot.filing import Outcome
@@ -139,7 +139,7 @@ class _AskTheReporter:
         """
         self._exchange = exchange
 
-    async def confirm(self, sweep: Sweep, lang: str) -> bool:
+    async def confirm(self, sweep: Sweep, lang: str) -> str:
         """Put the match, with its evidence, to the reporter.
 
         Args:
@@ -147,7 +147,7 @@ class _AskTheReporter:
             lang: ``"fr"`` or ``"en"``.
 
         Returns:
-            Whether he recognised it as the same subject.
+            What he answered: ``SAME``, ``DIFFERENT`` or ``UNANSWERED``.
         """
         return await self._exchange.confirm(render_match(sweep, lang), lang)
 
@@ -347,15 +347,17 @@ class BugIntake:
         Returns:
             A pair of the report, now carrying the finding, and what the reporter is told.
         """
-        sweep, accepted = await self._sweep(exchange, report, lang)
-        report = replace(report, prior_art=sweep)
-        if accepted and sweep is not None:
+        sweep, answer = await self._sweep(exchange, report, lang)
+        report = replace(report, prior_art=sweep, prior_art_answer=answer)
+        # Only an explicit *yes* may stop a report. A silence and a Discord that never showed the
+        # question are not opinions, and this branch is the one that comments on a public tracker.
+        if answer == SAME and sweep is not None:
             return report, await self._act_on(exchange, sweep, report, lang, submission)
         if self._sink is not None:
             return report, await self._sink(report)
         return report, await self._file(exchange, report, lang, submission)
 
-    async def _sweep(self, exchange: ThreadExchange, report: BugReport, lang: str) -> tuple[Sweep | None, bool]:
+    async def _sweep(self, exchange: ThreadExchange, report: BugReport, lang: str) -> tuple[Sweep | None, str]:
         """Compare the report against everything already recorded.
 
         Args:
@@ -363,24 +365,25 @@ class BugIntake:
             lang: ``"fr"`` or ``"en"``.
 
         Returns:
-            A pair of the finding — ``None`` when no sweep is configured — and whether the reporter
-            accepted the proposed match.
+            A pair of the finding — ``None`` when no sweep is configured — and what the reporter
+            answered about the proposed match.
         """
         if self._prior_art is None:
-            return None, False
-        sweep, accepted = await self._prior_art.run(sweep_query(report), lang, confirmation=_AskTheReporter(exchange))
+            return None, UNANSWERED
+        answer: str
+        sweep, answer = await self._prior_art.run(sweep_query(report), lang, confirmation=_AskTheReporter(exchange))
         self._logger.info(
             "prior art swept",
             extra={
                 "event": "intake.prior_art",
                 "verdict": sweep.verdict,
-                "accepted": accepted,
+                "answer": answer,
                 "reference": sweep.best.candidate.reference if sweep.best else "",
                 "score": sweep.best.score if sweep.best else 0.0,
                 "problems": list(sweep.problems),
             },
         )
-        return sweep, accepted
+        return sweep, answer
 
     async def _act_on(
         self, exchange: ThreadExchange, sweep: Sweep, report: BugReport, lang: str, submission: BugSubmission

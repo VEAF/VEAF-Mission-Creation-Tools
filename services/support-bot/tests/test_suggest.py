@@ -614,6 +614,14 @@ class TestWhatIsFiled(unittest.TestCase):
 
         self.assertIn("https://discord.test/threads/20", str(filer.filed[0]["body"]))
 
+    def test_the_asker_is_told_where_his_thread_is(self) -> None:
+        """A post in a forum is nowhere near the channel he typed in; the answer must say so."""
+        exchange = RecordingExchange(choice=FILE)
+
+        run(SuggestIntake(filer=RecordingFiler()), exchange)
+
+        self.assertIn("https://discord.test/threads/20", exchange.posted[-1])
+
     def test_the_thread_is_told_the_issue_address(self) -> None:
         exchange = RecordingExchange(choice=FILE)
 

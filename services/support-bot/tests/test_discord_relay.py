@@ -103,6 +103,7 @@ class _Client:
         *,
         fetch_error: Exception | None = None,
         forum_id: int = 0,
+        forum_tags: dict[str, str] | None = None,
     ) -> None:
         """Initialize the client.
 
@@ -111,12 +112,15 @@ class _Client:
             fetched: What ``fetch_channel`` returns.
             fetch_error: Raised by ``fetch_channel``, when given.
             forum_id: The follow-up forum this deployment is configured with; ``0`` is none.
+            forum_tags: The tag each flow's post is opened under, by flow name. Defaults to the
+                shipped defaults, which is what production runs with.
         """
         self._cached = cached
         self._fetched = fetched
         self._fetch_error = fetch_error
         self.fetches = 0
         self.followup_forum_id = forum_id
+        self.followup_forum_tags = {"bug": "issue", "suggest": "suggestion"} if forum_tags is None else forum_tags
 
     def get_channel(self, channel_id: int) -> Any:
         """Return the cached channel.
@@ -366,26 +370,46 @@ class TestOpeningTheFollowUpThread(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(handle.opened)
 
 
+class _Tag:
+    """One of a forum's tags."""
+
+    def __init__(self, name: str, tag_id: int) -> None:
+        """Initialize the tag.
+
+        Args:
+            name: What it is called on the forum.
+            tag_id: Its id.
+        """
+        self.name = name
+        self.id = tag_id
+
+
 class _Forum:
     """A forum channel that can open a post, or refuse to."""
 
-    def __init__(self, *, error: Exception | None = None) -> None:
+    def __init__(self, *, error: Exception | None = None, tags: list[str] | None = None) -> None:
         """Initialize the forum.
 
         Args:
             error: Raised by :meth:`create_thread`, when given.
+            tags: The names of the tags this forum carries.
         """
         self.id = 30
         self.posts: list[tuple[str, str]] = []
+        self.applied: list[list[str]] = []
+        self.available_tags = [_Tag(name, 100 + i) for i, name in enumerate(tags or [])]
         self._error = error
 
-    async def create_thread(self, *, name: str, content: str, allowed_mentions: Any = None) -> Any:
+    async def create_thread(
+        self, *, name: str, content: str, allowed_mentions: Any = None, applied_tags: Any = None
+    ) -> Any:
         """Open a post.
 
         Args:
             name: Its title.
             content: Its opening message, which Discord requires.
             allowed_mentions: What it may ping.
+            applied_tags: The tags it carries.
 
         Returns:
             The ``ThreadWithMessage`` pair the library gives back.
@@ -396,6 +420,7 @@ class _Forum:
         if self._error is not None:
             raise self._error
         self.posts.append((name, content))
+        self.applied.append([tag.name for tag in applied_tags or []])
         opened = _OpenedThread()
         opened.name = name
         return _ThreadWithMessage(opened)
@@ -519,6 +544,100 @@ class TestTheFollowUpGoesIntoTheForum(unittest.IsolatedAsyncioTestCase):
         handle = await self._exchange(object(), client).open_followup_thread("a report")
 
         self.assertFalse(handle.opened)
+
+
+class TestThePostCarriesTheTagTheForumRequires(unittest.IsolatedAsyncioTestCase):
+    """A forum can require a tag on every post, and Discord refuses an untagged one outright.
+
+    That is not a hypothetical: the VEAF forum has *Tags requis lorsque les gens postent* on, and
+    the first `/bug` after the forum was configured came back with error code 40067. The tag is
+    looked up by name because Discord's interface offers no way to copy a tag's id.
+    """
+
+    def setUp(self) -> None:
+        """Let the fakes be the two channel kinds this branch tells apart."""
+        for target, kinds in (("THREADABLE", (_Channel,)), ("FORUMABLE", (_Forum,))):
+            patch = mock.patch(f"veaf_support_bot.discord_bot.{target}", kinds)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def _exchange(self, client: Any, *, flow: str = "bug") -> ModalExchange:
+        """Build a modal exchange over a fake interaction, for one of the two flows.
+
+        Args:
+            client: The gateway client the forum and its tags are read from.
+            flow: Which command this exchange serves — the prefix it logs under.
+
+        Returns:
+            The exchange.
+        """
+        interaction = _Interaction(_Channel(), client)
+        return ModalExchange(
+            cast(discord.Interaction, cast(object, interaction)), None, get_logger("test"), event_prefix=flow
+        )
+
+    async def test_a_bug_post_is_tagged_issue(self) -> None:
+        forum = _Forum(tags=["issue", "suggestion", "question"])
+
+        await self._exchange(_Client(cached=forum, forum_id=30)).open_followup_thread("a report")
+
+        self.assertEqual(forum.applied, [["issue"]])
+
+    async def test_a_suggestion_post_is_tagged_suggestion(self) -> None:
+        """The same adapter serves both flows, and each must carry its own tag."""
+        forum = _Forum(tags=["issue", "suggestion", "question"])
+
+        await self._exchange(_Client(cached=forum, forum_id=30), flow="suggest").open_followup_thread("an idea")
+
+        self.assertEqual(forum.applied, [["suggestion"]])
+
+    async def test_the_name_is_matched_whatever_its_case(self) -> None:
+        """The tag is typed by a human on Discord and by another in a `.env`; they will differ."""
+        forum = _Forum(tags=["Issue"])
+
+        await self._exchange(_Client(cached=forum, forum_id=30)).open_followup_thread("a report")
+
+        self.assertEqual(forum.applied, [["Issue"]])
+
+    async def test_a_tag_the_forum_does_not_carry_still_posts(self) -> None:
+        """A forum that requires no tag must not lose its follow-up over a name that never matched."""
+        forum = _Forum(tags=["bugs", "ideas"])
+
+        handle = await self._exchange(_Client(cached=forum, forum_id=30)).open_followup_thread("a report")
+
+        self.assertEqual((handle.channel_id, handle.thread_id), (30, 20))
+        self.assertEqual(forum.applied, [[]])
+
+    async def test_an_unmatched_tag_says_which_tags_exist(self) -> None:
+        """The one line that turns "the forum does not work" into "the tag is called bugs"."""
+        forum = _Forum(tags=["bugs", "ideas"])
+
+        with self.assertLogs("veaf-support-bot.test", level="WARNING") as logged:
+            await self._exchange(_Client(cached=forum, forum_id=30)).open_followup_thread("a report")
+
+        recorded = [record for record in logged.records if getattr(record, "event", "") == "bug.forum_tag_missing"]
+        self.assertEqual(len(recorded), 1)
+        self.assertEqual(getattr(recorded[0], "wanted"), "issue")
+        self.assertEqual(getattr(recorded[0], "available"), ["bugs", "ideas"])
+
+    async def test_no_tag_configured_posts_without_one(self) -> None:
+        forum = _Forum(tags=["issue"])
+
+        await self._exchange(_Client(cached=forum, forum_id=30, forum_tags={})).open_followup_thread("a report")
+
+        self.assertEqual(forum.applied, [[]])
+
+    async def test_a_forum_requiring_a_tag_falls_back_when_none_matched(self) -> None:
+        """Exactly the production failure: no tag applied, Discord refuses, the anchor takes over."""
+        forum = _Forum(tags=["bugs"], error=_refused("A tag is required to create a forum post"))
+        channel = _Channel()
+        interaction = _Interaction(channel, _Client(cached=forum, forum_id=30))
+        exchange = ModalExchange(cast(discord.Interaction, cast(object, interaction)), None, get_logger("test"))
+
+        handle = await exchange.open_followup_thread("a report")
+
+        self.assertEqual((handle.channel_id, handle.thread_id), (10, 20))
+        self.assertEqual(channel.sent, ["a report"])
 
 
 if __name__ == "__main__":

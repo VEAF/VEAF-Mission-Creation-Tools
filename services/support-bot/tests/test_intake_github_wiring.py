@@ -380,6 +380,23 @@ class TestWhatTheReporterIsTold(unittest.IsolatedAsyncioTestCase):
         await _intake(filer=filer).handle(exchange, _submission())
         self.assertIn("already been filed", exchange.messages[0])
 
+    async def test_the_answer_says_where_the_follow_up_is(self) -> None:
+        """Obvious while the thread hung in the same channel; invisible once it is a forum post."""
+        filer = _Filer(Outcome(action="created", number=901, url="https://example.invalid/issues/901"))
+        exchange = _Exchange()
+
+        await _intake(filer=filer).handle(exchange, _submission())
+
+        self.assertIn("https://discord.test/threads/20", exchange.messages[0])
+
+    async def test_no_thread_leaves_no_dangling_label(self) -> None:
+        filer = _Filer(Outcome(action="created", number=901, url="https://example.invalid/issues/901"))
+        exchange = _Exchange(threads_allowed=False)
+
+        await _intake(filer=filer).handle(exchange, _submission())
+
+        self.assertNotIn("discord.test/threads", exchange.messages[0])
+
     async def test_a_degraded_creation_reports_its_notes(self) -> None:
         filer = _Filer(Outcome(action="created", number=901, url="u", notes=("labels could not be applied",)))
         exchange = _Exchange()

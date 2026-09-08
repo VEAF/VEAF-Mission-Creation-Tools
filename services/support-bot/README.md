@@ -180,8 +180,21 @@ which is what a follow-up that lives for weeks wants, and it keeps the channel t
 typed in free of anchor messages. Unset, the bot posts a short public message in the channel the
 command was used in and threads off it.
 
+Either way, the private answer the reporter gets ends with the thread's **link**. That was pointless
+while the thread hung three lines below in the same channel, and it is the only thing telling him
+where his report went once it is a post somewhere else.
+
+**Tags.** A forum can be set to require a tag on every post — the VEAF one is — and Discord refuses
+an untagged post outright, with error code 40067. The bot applies one: `SUPPORT_BOT_FORUM_TAG_BUG`
+(default `issue`) and `SUPPORT_BOT_FORUM_TAG_SUGGESTION` (default `suggestion`), matched
+case-insensitively against the forum's own tags. They are **names** rather than ids because
+Discord's interface has no *Copy Tag ID*; a name is the only thing you can read off the screen. A
+name the forum does not carry is not a failure on its own — the post is attempted untagged, which
+any forum that does not require one accepts — but the log then names the tags the forum *does* have
+(`bug.forum_tag_missing`), which is how a typo is found without reading code.
+
 The forum is also the fallback's own fallback: a forum id that is wrong, points at something that is
-not a forum, or cannot be posted in (no *Create Posts*, or a forum requiring a tag on every post)
+not a forum, or cannot be posted in (no *Create Posts*, or a required tag that matched nothing)
 falls back to that anchored thread, with a warning in the log. **A misconfiguration there never
 costs a report** — at worst it costs the room the answers come back into.
 
@@ -430,7 +443,7 @@ variable in one list and not the other. Compose reads `./.env` for interpolation
 |---|---|
 | `SUPPORT_BOT_DISCORD_TOKEN` | Discord Developer Portal → the application → *Bot* → the token. Anyone holding it **is** the bot. |
 | `SUPPORT_BOT_DISCORD_GUILD_ID` | Discord → right-click the server → *Copy Server ID* (Developer Mode on). |
-| `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` | Optional. Discord → right-click the forum channel → *Copy Channel ID*. Where `/bug` and `/suggest` follow-ups are opened as posts; unset keeps them in the channel the command was used in. |
+| `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` | Optional. Discord → right-click the forum channel → *Copy Channel ID*. Where `/bug` and `/suggest` follow-ups are opened as posts; unset keeps them in the channel the command was used in. The tags default to `issue` and `suggestion`, which is what the VEAF forum calls them — a forum spelling them otherwise needs `SUPPORT_BOT_FORUM_TAG_BUG` / `_SUGGESTION`. |
 | `SUPPORT_BOT_WORKER_SECRET` | The **same value** as `DISCORD_CLIENT_SECRET` on the deployed Worker, or it answers 403. |
 | `SUPPORT_BOT_GITHUB_APP_ID` | The App's settings page. |
 | `SUPPORT_BOT_GITHUB_INSTALLATION_ID` | The installation's URL on the repository: `…/installations/<this number>`. |
@@ -590,6 +603,8 @@ CRITICAL veaf-support-bot.cli the support bot cannot start: 3 configuration prob
 | `SUPPORT_BOT_DISCORD_TOKEN` | **yes** | — | The bot token. **Secret.** Anyone holding it *is* the bot. |
 | `SUPPORT_BOT_DISCORD_GUILD_ID` | **yes** | — | The one guild served. Commands are published there and nowhere else. |
 | `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` | no | *(unset)* | Forum channel `/bug` and `/suggest` follow-ups are opened in, as posts. Unset — or unusable — anchors them in the channel the command was used in instead. |
+| `SUPPORT_BOT_FORUM_TAG_BUG` | no | `issue` | Tag a `/bug` post carries, by name, matched whatever its case. A forum may require one; a name it does not carry posts untagged and says which tags exist. |
+| `SUPPORT_BOT_FORUM_TAG_SUGGESTION` | no | `suggestion` | The same, for a `/suggest` post. |
 | `SUPPORT_BOT_WORKER_SECRET` | **yes** | — | **Secret.** Sent as `X-VEAF-Auth`; must equal the Worker's `DISCORD_CLIENT_SECRET`. |
 | `SUPPORT_BOT_WORKER_ENDPOINT` | no | the production Worker `/chat` | Override to test against a preview deployment. |
 | `SUPPORT_BOT_WORKER_CLIENT` | no | `discord` | Sent as `X-VEAF-Client`; the Worker quotas this mode apart from the CLI and the website. |

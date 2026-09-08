@@ -1,6 +1,6 @@
 # FEAT-BOT-FORUM-TAGS — the post the forum actually accepts, and a link to find it
 
-Status: 🔄 in-progress — both tickets implemented, PR open
+Status: ✅ done — merged 2026-09-08 in #945, after #943 shipped the forum itself.
 
 ## Why this lot exists
 

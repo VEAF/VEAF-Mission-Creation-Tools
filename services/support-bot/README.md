@@ -648,9 +648,13 @@ Once, at <https://discord.com/developers/applications>:
    guild with the generated URL.
    - Without *Create Public Threads* the bot still answers, in the channel, saying why.
    - Without *Send Messages in Threads* it opens a thread it cannot write in. Grant both.
-   - Add **Create Posts** on the forum channel if one is configured through
-     `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID`; without it, follow-ups fall back to an anchored thread
-     in the channel the command was used in.
+   - A forum configured through `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` normally needs **nothing
+     granted on the channel itself**: opening a post there is *Send Messages* — which a forum's
+     permission screen labels *Create Posts* — and writing into it is *Send Messages in Threads*,
+     both already granted above. Only a channel-level override denying either one has to be
+     lifted; short of that, a public forum inherits what the bot already has. If a post is refused
+     anyway, the log says so as `bug.forum_failed` with Discord's own message, and the follow-up
+     falls back to an anchored thread in the channel the command was used in.
 4. Right-click the server → **Copy Server ID** (Developer Mode must be on). That is
    `SUPPORT_BOT_DISCORD_GUILD_ID`. Commands are published to that guild only, so they appear
    immediately instead of taking up to an hour to propagate, and the bot stays un-invitable

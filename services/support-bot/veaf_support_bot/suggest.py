@@ -701,7 +701,12 @@ class SuggestIntake:
         labels = tuple(label for label in (BASE_LABEL, self._filer.machine_label) if label)
         outcome = await self._filer.file_prepared(key, title, body, labels)
         progress["filed"] = bool(outcome.number)
-        await self._say(exchange, render_outcome(outcome, lang))
+        summary = render_outcome(outcome, lang)
+        if handle.opened and outcome.number:
+            # Only when there is something to read there: a thread whose filing failed is told so
+            # in the thread itself, and pointing the asker at it from here would read as success.
+            summary += "\n" + text("filed.followup", lang, url=handle.url)
+        await self._say(exchange, summary)
         if not handle.opened:
             return outcome
         if not outcome.number:

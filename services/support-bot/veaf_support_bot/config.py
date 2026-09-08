@@ -87,6 +87,12 @@ DEFAULT_CHECKOUT_PATH: Final = ""
 DEFAULT_CHECKOUT_REMOTE: Final = "origin"
 DEFAULT_CHECKOUT_BRANCH: Final = "develop"
 
+#: Forum tags the follow-up posts are opened under, by the name they carry on the forum. These two
+#: defaults are the VEAF forum's own tags, so that deployment configures nothing; any other one
+#: overrides them, and an empty value posts with no tag at all.
+DEFAULT_FORUM_TAG_BUG: Final = "issue"
+DEFAULT_FORUM_TAG_SUGGESTION: Final = "suggestion"
+
 #: Shortest gap between two refreshes of that clone. Fifteen minutes: a location pointing at a line
 #: that moved is the failure this guards against, and the repository does not move faster than that.
 #: ``0`` disables refreshing, which is how a deployment pins a revision on purpose.
@@ -497,6 +503,13 @@ class SupportBotConfig:
             the better home for a follow-up, because it carries a title and a state of its own;
             the anchor remains the fallback for every deployment that has no forum, and for the
             one that has a misconfigured one.
+        forum_tag_bug: Name of the forum tag applied to a ``/bug`` follow-up post, matched
+            case-insensitively against the forum's own tags. A forum can be set to **require** a tag
+            on every post, which is what the VEAF one does — an untagged post is refused outright.
+            Named rather than numbered because Discord's interface offers no *Copy Tag ID*: a name
+            is the only thing a deployment can reasonably write down. A name the forum does not
+            carry — including every name, on a forum with no tags at all — posts without one.
+        forum_tag_suggestion: The same, for a ``/suggest`` follow-up post.
         worker_endpoint: The documentation chatbot Worker ``/chat`` URL.
         worker_client: Value sent as ``X-VEAF-Client``, so the Worker can quota Discord separately
             from the CLI and the website.
@@ -564,8 +577,10 @@ class SupportBotConfig:
     heartbeat_seconds: float
     shutdown_grace_seconds: float
     dry_run: bool
-    # Optional, so it sits in the defaulted half rather than next to the guild id it belongs with.
+    # Optional, so they sit in the defaulted half rather than next to the guild id they belong with.
     discord_forum_channel_id: int = 0
+    forum_tag_bug: str = DEFAULT_FORUM_TAG_BUG
+    forum_tag_suggestion: str = DEFAULT_FORUM_TAG_SUGGESTION
     checkout_path: str = DEFAULT_CHECKOUT_PATH
     checkout_remote: str = DEFAULT_CHECKOUT_REMOTE
     checkout_branch: str = DEFAULT_CHECKOUT_BRANCH
@@ -655,6 +670,8 @@ class SupportBotConfig:
             shutdown_grace_seconds=reader.seconds("SHUTDOWN_GRACE_SECONDS", DEFAULT_SHUTDOWN_GRACE_SECONDS),
             dry_run=dry_run,
             discord_forum_channel_id=reader.integer("DISCORD_FORUM_CHANNEL_ID", default=0, minimum=0),
+            forum_tag_bug=reader.text("FORUM_TAG_BUG", DEFAULT_FORUM_TAG_BUG),
+            forum_tag_suggestion=reader.text("FORUM_TAG_SUGGESTION", DEFAULT_FORUM_TAG_SUGGESTION),
             checkout_path=reader.text("CHECKOUT_PATH", DEFAULT_CHECKOUT_PATH),
             checkout_remote=reader.text("CHECKOUT_REMOTE", DEFAULT_CHECKOUT_REMOTE),
             checkout_branch=reader.text("CHECKOUT_BRANCH", DEFAULT_CHECKOUT_BRANCH),
@@ -690,6 +707,8 @@ class SupportBotConfig:
             "discord_token": REDACTED if self.discord_token else "",
             "discord_guild_id": self.discord_guild_id,
             "discord_forum_channel_id": self.discord_forum_channel_id,
+            "forum_tag_bug": self.forum_tag_bug,
+            "forum_tag_suggestion": self.forum_tag_suggestion,
             "worker_endpoint": self.worker_endpoint,
             "worker_client": self.worker_client,
             "worker_secret": REDACTED if self.worker_secret else "",

@@ -323,6 +323,15 @@ class TestTheClientTheGatewayRunsOn(unittest.IsolatedAsyncioTestCase):
     async def test_a_deployment_without_a_forum_publishes_zero(self) -> None:
         self.assertEqual(self._client().followup_forum_id, 0)
 
+    async def test_the_client_publishes_a_forum_tag_per_flow(self) -> None:
+        """Keyed by the prefix each exchange knows itself as, which is how it picks its own."""
+        handler = cast(AskHandler, _RecordingHandler())
+        config = _config(FORUM_TAG_BUG="bugs", FORUM_TAG_SUGGESTION="ideas")
+
+        client = discord_bot.SupportBotClient(config, ServiceState(version="test"), handler)
+
+        self.assertEqual(client.followup_forum_tags, {"bug": "bugs", "suggest": "ideas"})
+
     async def _publish(self) -> tuple[discord_bot.SupportBotClient, list[Any]]:
         """Run ``setup_hook`` with the real sync replaced, and report what it was asked to publish.
 

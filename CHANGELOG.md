@@ -28,6 +28,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Every way the forum can fail — an id that is wrong or points at something that is not a forum, a
   missing *Create Posts*, a forum that requires a tag on every post — falls back to the old anchored
   thread with a warning in the log, so a misconfiguration costs neither the follow-up nor the report.
+- **That post now carries the tag the forum asks for, and the answer says where it is.** Tried in
+  production the day it shipped, the post was refused: the VEAF forum requires a tag on every post
+  and the bot applied none (Discord error 40067). It now applies one — `SUPPORT_BOT_FORUM_TAG_BUG`
+  (default `issue`) and `SUPPORT_BOT_FORUM_TAG_SUGGESTION` (default `suggestion`), matched
+  case-insensitively against the forum's own tags, by **name** because Discord's interface offers no
+  way to copy a tag's id. A name the forum does not carry posts untagged, which any forum that does
+  not require one accepts, and the log then names the tags it does have. The private answer closing
+  a `/bug` or a `/suggest` also ends with a **link to the follow-up thread**: obvious while it hung
+  in the same channel, and the only clue once it is a post somewhere else.
 
 ## [6.20.0] — 2026-09-07
 

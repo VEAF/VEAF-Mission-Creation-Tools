@@ -587,6 +587,18 @@ class SupportBotClient(discord.Client):
         """
         return self._config.discord_forum_channel_id
 
+    @property
+    def followup_forum_tags(self) -> dict[str, str]:
+        """Return the forum tag each flow's post is opened under, by the flow's log prefix.
+
+        Keyed by the prefix the exchange already knows itself as (``bug`` / ``suggest``), so the
+        adapter picks its own tag without a second setting threaded down to it.
+
+        Returns:
+            A mapping of flow name to tag name, as the forum spells it.
+        """
+        return {"bug": self._config.forum_tag_bug, "suggest": self._config.forum_tag_suggestion}
+
     async def setup_hook(self) -> None:
         """Publish the command set to the configured guild, before the gateway goes live."""
         # Before the copy and the sync, because the translations are what gets *uploaded* with the
@@ -921,12 +933,14 @@ class ModalExchange:
         # Same statement twice, as above: FORUMABLE is the runtime check a test stands in front of,
         # and this is what the type checker reads.
         forum = cast(discord.ForumChannel, channel)
+        tags = self._tags_of(forum)
         try:
             created = await forum.create_thread(
-                name=name[:THREAD_NAME_CEILING], content=name, allowed_mentions=NO_MENTIONS
+                name=name[:THREAD_NAME_CEILING], content=name, allowed_mentions=NO_MENTIONS, applied_tags=tags
             )
         except (discord.HTTPException, discord.ClientException) as error:
-            # Most often a missing *Create Posts*, or a forum that requires a tag on every post.
+            # Most often a missing *Create Posts*, or — when no tag was applied — a forum that
+            # requires one on every post. Both end here, and both keep the anchored thread.
             self._logger.warning(
                 "no follow-up post could be opened in the forum",
                 extra={"event": f"{self._event_prefix}.forum_failed", "error": f"{type(error).__name__}: {error}"},
@@ -934,6 +948,41 @@ class ModalExchange:
             return ThreadHandle()
         thread = created.thread
         return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url, handle=thread)
+
+    def _tags_of(self, forum: discord.ForumChannel) -> list[discord.ForumTag]:
+        """Return the forum tag this flow's post carries, when the forum has it.
+
+        A forum can be set to require a tag on every post — the VEAF one is — and Discord refuses an
+        untagged post there outright. The tag is looked up by **name**, case-insensitively, because
+        that is the only form a deployment can write down: the interface has no *Copy Tag ID*.
+
+        A name the forum does not carry is not treated as a failure. The post is attempted with no
+        tag, which every forum that does not require one accepts; the refusal, if it comes, is the
+        caller's fallback. What must not happen is a silent mismatch, so the warning names the tags
+        the forum actually has — that line is what turns "the forum does not work" into "the tag is
+        called *bugs*, not *bug*".
+
+        Args:
+            forum: The resolved forum channel.
+
+        Returns:
+            A single-tag list, or an empty one when nothing matched or nothing was configured.
+        """
+        wanted = str(getattr(self._interaction.client, "followup_forum_tags", {}).get(self._event_prefix, "")).strip()
+        if not wanted:
+            return []
+        for tag in forum.available_tags:
+            if tag.name.casefold() == wanted.casefold():
+                return [tag]
+        self._logger.warning(
+            "the configured forum tag is not one this forum carries",
+            extra={
+                "event": f"{self._event_prefix}.forum_tag_missing",
+                "wanted": wanted,
+                "available": [tag.name for tag in forum.available_tags],
+            },
+        )
+        return []
 
     async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:
         """Post the opening message inside the follow-up thread.

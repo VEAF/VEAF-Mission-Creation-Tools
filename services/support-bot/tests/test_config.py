@@ -97,6 +97,17 @@ class TestDefaults(unittest.TestCase):
 
         self.assertEqual(config.discord_forum_channel_id, 1545700692713537656)
 
+    def test_the_forum_tags_default_to_the_veaf_forums_own(self) -> None:
+        """So the production deployment configures a channel id and nothing else."""
+        self.assertEqual((self.config.forum_tag_bug, self.config.forum_tag_suggestion), ("issue", "suggestion"))
+
+    def test_the_forum_tags_can_be_named_per_deployment(self) -> None:
+        config = SupportBotConfig.from_env(
+            {**MINIMAL, "SUPPORT_BOT_FORUM_TAG_BUG": "bugs", "SUPPORT_BOT_FORUM_TAG_SUGGESTION": "ideas"}
+        )
+
+        self.assertEqual((config.forum_tag_bug, config.forum_tag_suggestion), ("bugs", "ideas"))
+
     def test_a_follow_up_forum_that_is_not_a_number_stops_the_startup(self) -> None:
         """A channel *name* pasted where its id belongs would silently disable the forum."""
         with self.assertRaises(ConfigurationError) as raised:

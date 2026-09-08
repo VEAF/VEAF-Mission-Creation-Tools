@@ -277,6 +277,7 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "filed.created": "✅ Ticket ouvert : {url}",
         "filed.reused": "✅ Ce rapport avait déjà été déposé : {url} (rien n'a été ouvert deux fois).",
         "filed.commented": "💬 Ton observation a été ajoutée au ticket existant : {url}",
+        "filed.followup": "💬 Le suivi se passe ici : {url}",
         "filed.notes": "-# ⚠️ {notes}",
         "filed.error": (
             "❌ **Je n'ai pas réussi à déposer ce ticket.** Raison : {reason}\n"
@@ -617,6 +618,7 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "filed.created": "✅ Issue opened: {url}",
         "filed.reused": "✅ This report had already been filed: {url} (nothing was opened twice).",
         "filed.commented": "💬 Your observation was added to the existing issue: {url}",
+        "filed.followup": "💬 The follow-up happens here: {url}",
         "filed.notes": "-# ⚠️ {notes}",
         "filed.error": (
             "❌ **I could not file this issue.** Reason: {reason}\n"

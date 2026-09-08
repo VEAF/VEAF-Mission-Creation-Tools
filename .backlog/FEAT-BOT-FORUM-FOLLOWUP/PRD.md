@@ -1,6 +1,7 @@
 # FEAT-BOT-FORUM-FOLLOWUP — the follow-up of a report belongs in a forum
 
-Status: 🔄 in-progress
+Status: ✅ done — merged 2026-09-08 in #943. The forum id is set on the Docker host's `.env`
+and takes effect at the next `docker compose pull && docker compose up -d`.
 
 ## Why this lot exists
 

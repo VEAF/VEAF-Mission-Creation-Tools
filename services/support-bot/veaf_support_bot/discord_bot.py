@@ -113,6 +113,11 @@ THREAD_NAME_CEILING = 100
 #: rather than inlined so a test can stand in front of the one branch that matters here.
 THREADABLE: tuple[type, ...] = (discord.TextChannel,)
 
+#: Channel kinds a follow-up post can be opened in. Named for the same reason as
+#: :data:`THREADABLE`: it is the one branch that separates "the configured id is the forum this
+#: deployment meant" from "it is a text channel, a category, or something in another guild".
+FORUMABLE: tuple[type, ...] = (discord.ForumChannel,)
+
 #: Prefix added to a followed thread's name once its issue is closed, so the state is visible
 #: in the channel list without opening anything.
 CLOSED_MARK = "✅ "
@@ -569,6 +574,19 @@ class SupportBotClient(discord.Client):
         """
         return discord.Object(id=self._config.discord_guild_id)
 
+    @property
+    def followup_forum_id(self) -> int:
+        """Return the forum channel a ``/bug`` or ``/suggest`` follow-up is opened in.
+
+        Published on the client because that is what every exchange already has a reference to,
+        and the id is a single deployment-wide setting rather than something a command carries.
+
+        Returns:
+            The configured channel id, or ``0`` when there is no forum and the follow-up hangs off
+            a public anchor instead.
+        """
+        return self._config.discord_forum_channel_id
+
     async def setup_hook(self) -> None:
         """Publish the command set to the configured guild, before the gateway goes live."""
         # Before the copy and the sync, because the translations are what gets *uploaded* with the
@@ -813,19 +831,26 @@ class ModalExchange:
     async def open_followup_thread(self, name: str) -> ThreadHandle:
         """Open the public thread the issue's news will come back into.
 
-        A thread cannot hang off an ephemeral response, so this posts a short public anchor in the
-        channel and threads off it. That anchor is the *only* thing `/bug` makes public on its own:
-        the report itself is on the issue, and the preparation stays in the reporter's ephemeral
-        message.
+        Two ways, in order. When a forum channel is configured, the follow-up is a **post** in it:
+        that is where a long-lived thread with a title and a state of its own belongs, and it keeps
+        the channel the command was used in free of anchors. Otherwise — and whenever the forum
+        cannot be reached — a thread cannot hang off an ephemeral response, so this posts a short
+        public anchor in the channel and threads off it.
+
+        Either way, what `/bug` makes public on its own is only this: the report itself is on the
+        issue, and the preparation stays in the reporter's ephemeral message.
 
         Args:
             name: The thread name.
 
         Returns:
             Where it was opened, or an empty handle when Discord refused — most often a missing
-            *Create Public Threads*, or a channel that cannot hold threads. The report is filed
-            either way; what is lost is the follow-up.
+            *Create Posts* / *Create Public Threads*, or a channel that cannot hold threads. The
+            report is filed either way; what is lost is the follow-up.
         """
+        forum = await self._open_forum_post(name)
+        if forum.opened:
+            return forum
         raw = self._interaction.channel
         if not isinstance(raw, THREADABLE):
             # A thread, a forum post, a DM: nothing to hang a public thread off. Reported rather
@@ -848,6 +873,66 @@ class ModalExchange:
                 extra={"event": f"{self._event_prefix}.thread_failed", "error": f"{type(error).__name__}: {error}"},
             )
             return ThreadHandle()
+        return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url, handle=thread)
+
+    async def _open_forum_post(self, name: str) -> ThreadHandle:
+        """Open the follow-up as a post in the configured forum channel.
+
+        Every way this can fail returns an empty handle and a warning rather than raising: the
+        caller then falls back to the anchored thread, and none of it may cost the report. A forum
+        that is misconfigured today must not be the reason a report has no follow-up.
+
+        The forum is resolved through the API when the cache does not hold it, because the bot runs
+        on :data:`INTENTS` — with no cache to fill, ``get_channel`` answers ``None`` for a channel
+        that is perfectly reachable.
+
+        Args:
+            name: The post's title, which Discord also needs as its opening message.
+
+        Returns:
+            Where the post was opened, or an empty handle when no forum is configured or it could
+            not be used.
+        """
+        client = self._interaction.client
+        # Read off the client rather than threaded through four constructors: the id is one
+        # deployment-wide setting, and this adapter already reaches the client to resolve a thread.
+        forum_id = int(getattr(client, "followup_forum_id", 0) or 0)
+        if forum_id <= 0:
+            return ThreadHandle()
+        channel = client.get_channel(forum_id)
+        try:
+            if channel is None:
+                channel = await client.fetch_channel(forum_id)
+        except (discord.HTTPException, discord.ClientException) as error:
+            self._logger.warning(
+                "the follow-up forum could not be reached",
+                extra={"event": f"{self._event_prefix}.forum_unreachable", "error": f"{type(error).__name__}: {error}"},
+            )
+            return ThreadHandle()
+        if not isinstance(channel, FORUMABLE):
+            # An id pointing at a text channel, a category, or a channel in another guild. Said out
+            # loud: the deployment believes it configured a forum, and silence would let it keep
+            # believing that while every follow-up quietly went somewhere else.
+            self._logger.warning(
+                "the configured follow-up channel is not a forum",
+                extra={"event": f"{self._event_prefix}.forum_kind", "channel": type(channel).__name__},
+            )
+            return ThreadHandle()
+        # Same statement twice, as above: FORUMABLE is the runtime check a test stands in front of,
+        # and this is what the type checker reads.
+        forum = cast(discord.ForumChannel, channel)
+        try:
+            created = await forum.create_thread(
+                name=name[:THREAD_NAME_CEILING], content=name, allowed_mentions=NO_MENTIONS
+            )
+        except (discord.HTTPException, discord.ClientException) as error:
+            # Most often a missing *Create Posts*, or a forum that requires a tag on every post.
+            self._logger.warning(
+                "no follow-up post could be opened in the forum",
+                extra={"event": f"{self._event_prefix}.forum_failed", "error": f"{type(error).__name__}: {error}"},
+            )
+            return ThreadHandle()
+        thread = created.thread
         return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url, handle=thread)
 
     async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:

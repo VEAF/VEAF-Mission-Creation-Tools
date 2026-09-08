@@ -127,8 +127,9 @@ escapes the filter: what you type yourself. Write your name in *what happened*, 
 
 ### What happens next
 
-The bot opens a **public thread** and puts the issue's link in it. When somebody answers on the
-issue, or when it is closed, **the bot reports it in that thread**: you do not have to watch GitHub.
+The bot opens a **public thread** — in the Discord forum channel dedicated to the tools, when there
+is one — and puts the issue's link in it. When somebody answers on the issue, or when it is closed,
+**the bot reports it in that thread**: you do not have to watch GitHub.
 
 The other direction is **manual**: to add something — a file you forgot, a detail — write it in the
 thread and a maintainer will carry it over to the issue. The bot does not write from Discord to

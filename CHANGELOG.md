@@ -17,6 +17,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The support bot opens its follow-ups in a forum channel.** A `/bug` or `/suggest` follow-up used
+  to be a thread hanging off a short public message the bot had to post in whichever channel the
+  command was typed in — a technical necessity, since a thread cannot hang off an ephemeral reply.
+  Set `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` and it becomes a **post in that forum** instead, with a
+  title and an open/closed state of its own and no anchor message left behind. `/ask` deliberately
+  keeps its thread in the channel: a question answered in ten minutes does not belong in a forum.
+  Every way the forum can fail — an id that is wrong or points at something that is not a forum, a
+  missing *Create Posts*, a forum that requires a tag on every post — falls back to the old anchored
+  thread with a warning in the log, so a misconfiguration costs neither the follow-up nor the report.
+
 ## [6.20.0] — 2026-09-07
 
 ### Fixed

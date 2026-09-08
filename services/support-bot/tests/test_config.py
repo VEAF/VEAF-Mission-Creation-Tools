@@ -88,6 +88,22 @@ class TestDefaults(unittest.TestCase):
         self.assertEqual(self.config.log_format, "json")
         self.assertFalse(self.config.dry_run)
 
+    def test_no_follow_up_forum_is_configured_by_default(self) -> None:
+        """Zero is what makes the follow-up hang off a public anchor, as it did before forums."""
+        self.assertEqual(self.config.discord_forum_channel_id, 0)
+
+    def test_a_follow_up_forum_is_read_when_it_is_set(self) -> None:
+        config = SupportBotConfig.from_env({**MINIMAL, "SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID": "1545700692713537656"})
+
+        self.assertEqual(config.discord_forum_channel_id, 1545700692713537656)
+
+    def test_a_follow_up_forum_that_is_not_a_number_stops_the_startup(self) -> None:
+        """A channel *name* pasted where its id belongs would silently disable the forum."""
+        with self.assertRaises(ConfigurationError) as raised:
+            SupportBotConfig.from_env({**MINIMAL, "SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID": "#bug-reports"})
+
+        self.assertIn("SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID is not an integer", str(raised.exception))
+
     def test_the_health_endpoint_is_not_public_by_default(self) -> None:
         """Binding 0.0.0.0 is the container's decision, taken in the Dockerfile, not a default."""
         self.assertEqual(self.config.health_host, "127.0.0.1")

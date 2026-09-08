@@ -131,8 +131,9 @@ publié.
 
 ### Ce qui se passe ensuite
 
-Le bot ouvre un **fil public** et y met le lien du ticket. Quand quelqu'un répond sur le ticket, ou
-quand il est fermé, **le bot le rapporte dans ce fil** : vous n'avez pas à surveiller GitHub.
+Le bot ouvre un **fil public** — dans le salon forum du Discord consacré aux outils, s'il y en a un
+— et y met le lien du ticket. Quand quelqu'un répond sur le ticket, ou quand il est fermé, **le bot
+le rapporte dans ce fil** : vous n'avez pas à surveiller GitHub.
 
 Dans l'autre sens, c'est **manuel** : pour ajouter quelque chose — un fichier oublié, une précision —
 écrivez-le dans le fil, un mainteneur le reportera sur le ticket. Le bot n'écrit pas de Discord vers

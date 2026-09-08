@@ -311,6 +311,18 @@ class TestTheClientTheGatewayRunsOn(unittest.IsolatedAsyncioTestCase):
     async def test_the_client_carries_the_command_and_not_only_the_registrar(self) -> None:
         self.assertIsNotNone(self._client().tree.get_command("ask"))
 
+    async def test_the_client_publishes_the_configured_follow_up_forum(self) -> None:
+        """What every exchange reads the forum from; unpublished, the setting would do nothing."""
+        handler = cast(AskHandler, _RecordingHandler())
+        config = _config(DISCORD_FORUM_CHANNEL_ID="1545700692713537656")
+
+        client = discord_bot.SupportBotClient(config, ServiceState(version="test"), handler)
+
+        self.assertEqual(client.followup_forum_id, 1545700692713537656)
+
+    async def test_a_deployment_without_a_forum_publishes_zero(self) -> None:
+        self.assertEqual(self._client().followup_forum_id, 0)
+
     async def _publish(self) -> tuple[discord_bot.SupportBotClient, list[Any]]:
         """Run ``setup_hook`` with the real sync replaced, and report what it was asked to publish.
 

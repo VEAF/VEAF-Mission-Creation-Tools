@@ -491,6 +491,12 @@ class SupportBotConfig:
         discord_token: The Discord bot token. Secret; never logged.
         discord_guild_id: The one guild the bot serves. The lot deliberately keeps the bot
             un-invitable to arbitrary servers, and this is where that decision is expressed.
+        discord_forum_channel_id: Forum channel the follow-up of a ``/bug`` or a ``/suggest`` is
+            opened in, as a post. ``0`` — the default — keeps the historical behaviour: a public
+            anchor message in the channel the command was used in, threaded off it. The forum is
+            the better home for a follow-up, because it carries a title and a state of its own;
+            the anchor remains the fallback for every deployment that has no forum, and for the
+            one that has a misconfigured one.
         worker_endpoint: The documentation chatbot Worker ``/chat`` URL.
         worker_client: Value sent as ``X-VEAF-Client``, so the Worker can quota Discord separately
             from the CLI and the website.
@@ -558,6 +564,8 @@ class SupportBotConfig:
     heartbeat_seconds: float
     shutdown_grace_seconds: float
     dry_run: bool
+    # Optional, so it sits in the defaulted half rather than next to the guild id it belongs with.
+    discord_forum_channel_id: int = 0
     checkout_path: str = DEFAULT_CHECKOUT_PATH
     checkout_remote: str = DEFAULT_CHECKOUT_REMOTE
     checkout_branch: str = DEFAULT_CHECKOUT_BRANCH
@@ -646,6 +654,7 @@ class SupportBotConfig:
             heartbeat_seconds=reader.seconds("HEARTBEAT_SECONDS", DEFAULT_HEARTBEAT_SECONDS),
             shutdown_grace_seconds=reader.seconds("SHUTDOWN_GRACE_SECONDS", DEFAULT_SHUTDOWN_GRACE_SECONDS),
             dry_run=dry_run,
+            discord_forum_channel_id=reader.integer("DISCORD_FORUM_CHANNEL_ID", default=0, minimum=0),
             checkout_path=reader.text("CHECKOUT_PATH", DEFAULT_CHECKOUT_PATH),
             checkout_remote=reader.text("CHECKOUT_REMOTE", DEFAULT_CHECKOUT_REMOTE),
             checkout_branch=reader.text("CHECKOUT_BRANCH", DEFAULT_CHECKOUT_BRANCH),
@@ -680,6 +689,7 @@ class SupportBotConfig:
         return {
             "discord_token": REDACTED if self.discord_token else "",
             "discord_guild_id": self.discord_guild_id,
+            "discord_forum_channel_id": self.discord_forum_channel_id,
             "worker_endpoint": self.worker_endpoint,
             "worker_client": self.worker_client,
             "worker_secret": REDACTED if self.worker_secret else "",

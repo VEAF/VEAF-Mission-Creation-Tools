@@ -198,6 +198,42 @@ Let it come up, then **F10 → the Skynet menu → the status command**, and fly
   happened — and grep for `SkynetIADS: error in scheduled function`, which the module logs on any
   raise inside a scheduled call.
 
+### R14. A combat zone's SAM must not join the IADS as a corpse
+
+Unblocks [`FIX-SKYNET-ADDS-DESTROYED-GROUPS`](.backlog/FIX-SKYNET-ADDS-DESTROYED-GROUPS/PRD.md), the
+whole lot. #946, Tripack 2026-09-08: the status page announced *16 SAM sites with a destroyed radar*
+at mission start, with nothing shot at. Cause held and fixed — `coalition.getGroups` still lists a
+group DCS destroyed a moment earlier, and the enrolment runs one second after every combat zone has
+cleaned itself out, so the corpses were enrolled as SAM sites whose radar never existed.
+
+**Run**: `Skynet-test_20260908.miz`, the minimal reproduction Tripack built for exactly this — one
+combat zone `TESTCZ` holding `TESTCZ - SA6`, three red SAM groups and one EWR outside it. It sets
+`debugRed = true`, so **the status page goes to `dcs.log`** and the whole check is readable from the
+log: no need to open the F10 menu, though the in-game page says the same thing.
+
+**Where to look, and this needed checking rather than assuming**: the aggregate
+`SAM: n | … | Raddest: n` line goes through `trigger.action.outText` — **screen only, never the log**.
+What `debugRed` puts in the log is `samSiteStatusEnvOutput`, i.e. `printSAMSiteStatus`, which writes
+**one `GROUP: <name> | TYPE: <nato>` line per site in the network**. That is the better check anyway:
+it names the site instead of making you count. So grep `SKYNET: GROUP:` and
+`VEAF-SKYNET.*ADD GROUP REFUSED`.
+
+- **Fixed**: three `GROUP:` lines — the S-300, the Kub and the 2S6, all outside the zone — and **no
+  `TESTCZ - SA6`**, plus one `ADD GROUP REFUSED [TESTCZ - SA6]: DCS no longer holds this group`.
+- **Not fixed**: a fourth `GROUP: TESTCZ - SA6` line. Then the corpse was still enrolled and the guard
+  is not on the path this mission takes — bring back the log, because the question becomes which of
+  the four doors into the network the group came through.
+- **Neither**: a fourth `GROUP:` line whose name is *not* `TESTCZ - SA6` but a zone-suffixed variant.
+  That is the zone's **respawned** group, a different matter — `dynamic_spawn` is off here, so nothing
+  should have integrated it, and it would be worth a ticket of its own rather than a line here.
+
+The refusal is logged at `info`, so it shows without touching the mission's log level (the default is
+`info`, and this mission sets none).
+
+The zone is activated at `t + 1` by the config (`veafCombatZone.ActivateZone("TESTCZ", true)`), the
+same second the enrolment fires, so the timing this lot is about is exercised whether or not the
+guard holds.
+
 ---
 
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)

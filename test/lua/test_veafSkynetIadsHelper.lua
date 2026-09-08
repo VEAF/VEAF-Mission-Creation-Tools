@@ -9,6 +9,10 @@ dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
+-- A real dependency since #946: veafSkynet listens for units being lost, to tell a site the enemy
+-- destroyed from one a script despawned. The module tolerates the dispatcher being absent, and
+-- loading it here is what lets the ledger be exercised rather than stubbed.
+dofile(src .. "/veafEventHandler.lua")
 dofile(src .. "/veafSkynetIadsHelper.lua")
 
 -- ---------------------------------------------------------------------------
@@ -261,6 +265,29 @@ function TestVeafSkynetGetStringSkynetElement:test_exists_without_nato_name_uses
   }
   local s = veafSkynet.getStringSkynetElement(el)
   luaunit.assertStrContains(s, "SA-15 Tor")
+end
+
+-- The two cases #946 changed this function for. `removeSkynetElement` logs through it, on elements
+-- picked precisely for having lost their DCS object, so raising here would take the sweep down.
+function TestVeafSkynetGetStringSkynetElement:test_a_nil_representation_says_so_instead_of_raising()
+  local el = { dcsName = "SAM-gone", typeName = "SA-6", dcsRepresentation = nil }
+  local ok, s = pcall(veafSkynet.getStringSkynetElement, el)
+  luaunit.assertTrue(ok, "describing an element whose representation is gone must not raise: " .. tostring(s))
+  luaunit.assertStrContains(s, "does not exist")
+end
+
+function TestVeafSkynetGetStringSkynetElement:test_a_nil_name_does_not_raise_on_concatenation()
+  local el = {
+    dcsName = nil,
+    typeName = "SA-6",
+    dcsRepresentation = {
+      isExist = function()
+        return false
+      end,
+    },
+  }
+  local ok = pcall(veafSkynet.getStringSkynetElement, el)
+  luaunit.assertTrue(ok, "an element with no name must be describable")
 end
 
 function TestVeafSkynetGetStringSkynetElement:test_exists_with_static_metatable_shows_static()
@@ -749,7 +776,15 @@ local function _skynetElement(dcsName, groupExists)
     getID = function()
       return 4242
     end,
-    enableEmission = function(_) end,
+    -- Refuses the way DCS refuses. It used to answer whether the group existed or not, which is why
+    -- `test_a_destroyed_group_does_not_raise` below passed against an unguarded
+    -- `getDCSRepresentation():enableEmission(true)` — the test asserted the handler, not the wiring
+    -- (#946).
+    enableEmission = function(_)
+      if not groupExists then
+        error("group [" .. tostring(dcsName) .. "] no longer exists, enableEmission is not available on it", 2)
+      end
+    end,
   }
   setmetatable(dcsRepresentation, Group)
   return {
@@ -1508,6 +1543,538 @@ function TestVeafSkynetVanishedEwr:test_a_live_ewr_still_resolves_to_its_group()
   local nearest = veafSkynet.getNearestIADSSite("blue iads", _askingGroup("SA-15-POINT-DEFENCE"))
   luaunit.assertEquals(nearest, "LIVE-EWR-GROUP")
   luaunit.assertEquals(#self.warned, 0)
+end
+
+-------------------------------------------------------------------------------------------------
+-- FIX-SKYNET-ADDS-DESTROYED-GROUPS — #946
+--
+-- Tripack, 2026-09-08: the IADS status page announces sixteen SAM sites with a destroyed radar at
+-- mission start, with nothing shot at. `Raddest` counts sites where `hasWorkingRadar()` is false,
+-- and a site Skynet accepted always holds a search radar — so those radars *no longer exist*.
+--
+-- A combat zone destroys every group inside it while the config script loads; veafSkynet enrols the
+-- map one second later by walking `coalition.getGroups`, and DCS still lists what it has just
+-- destroyed — the quirk the Skynet compatibility layer documents above its own `forEachLiveGroup`
+-- guard. Nothing removed the corpses afterwards either: `removeSkynetElement` existed and only the
+-- point-defence path could reach it.
+-------------------------------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- Tickets 01 + 02 — a destroyed group never enters a network
+-- ---------------------------------------------------------------------------
+TestVeafSkynetDestroyedGroupsStayOut = {}
+
+--- A red group carrying one SAM unit, alive or not.
+--- `getUnits` is deliberately **left to the mock's default**, which raises once `isExist()` is false
+--- exactly as DCS does: that is what makes a missing guard fail here instead of passing.
+local function _redSamGroup(name, exists)
+  dcs_mocks.addUnit(name .. "-1", {
+    getTypeName = function()
+      return "Kub 2P25 ln"
+    end,
+  })
+  local data = {
+    _coalition = coalition.side.RED,
+    getCoalition = function()
+      return coalition.side.RED
+    end,
+  }
+  if exists then
+    data.getUnits = function()
+      return { Unit.getByName(name .. "-1") }
+    end
+  else
+    data.isExist = function()
+      return false
+    end
+  end
+  dcs_mocks.addGroup(name, data)
+  return Group.getByName(name)
+end
+
+function TestVeafSkynetDestroyedGroupsStayOut:setUp()
+  dcs_mocks.reset()
+  veafSkynet.structure = {}
+  veafSkynet.iadsSamUnitsTypes = { ["Kub 2P25 ln"] = true }
+  veafSkynet.iadsEwrUnitsTypes = {}
+  veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
+  self.enrolled = {}
+  local enrolled = self.enrolled
+  self.iads = _makeMockIads("red iads")
+  self.iads.addSAMSite = function(_, groupName)
+    table.insert(enrolled, groupName)
+    return { dcsName = groupName }
+  end
+  veafSkynet.structure["red iads"] = { iads = self.iads, coalitionID = coalition.side.RED, groups = {} }
+end
+
+function TestVeafSkynetDestroyedGroupsStayOut:tearDown()
+  dcs_mocks.reset()
+  veafSkynet.structure = {}
+end
+
+function TestVeafSkynetDestroyedGroupsStayOut:test_a_destroyed_group_is_refused()
+  local result = veafSkynet.addGroupToNetwork("red iads", _redSamGroup("DEAD-SAM", false), false, false, nil, true)
+  luaunit.assertFalse(result)
+  luaunit.assertEquals(#self.enrolled, 0, "a group DCS no longer holds was enrolled as a SAM site")
+end
+
+function TestVeafSkynetDestroyedGroupsStayOut:test_a_destroyed_group_does_not_raise()
+  -- Without the guard the refusal is not a `false`, it is an error: `isGroupUsable` asks a destroyed
+  -- group for its units, which raises and takes the whole enrolment down with it.
+  local ok, err = pcall(veafSkynet.addGroupToNetwork, "red iads", _redSamGroup("DEAD-SAM", false), false, false, nil, true)
+  luaunit.assertTrue(ok, "adding a destroyed group must be refused, not raise: " .. tostring(err))
+end
+
+function TestVeafSkynetDestroyedGroupsStayOut:test_a_live_group_is_still_enrolled()
+  -- The control. A guard that refuses everything looks identical to a guard that works.
+  local result = veafSkynet.addGroupToNetwork("red iads", _redSamGroup("LIVE-SAM", true), false, false, nil, true)
+  luaunit.assertTrue(result)
+  luaunit.assertEquals(self.enrolled, { "LIVE-SAM" })
+end
+
+function TestVeafSkynetDestroyedGroupsStayOut:test_a_nil_group_is_refused_instead_of_raising()
+  -- The `nil` guard used to sit *below* the `dcsGroup:getName()` of the opening log line, so it could
+  -- never fire and a nil group raised where it claimed to return false.
+  local ok, result = pcall(veafSkynet.addGroupToNetwork, "red iads", nil, false, false, nil, true)
+  luaunit.assertTrue(ok, "a nil group must be refused, not raise")
+  luaunit.assertFalse(result)
+end
+
+-- ---------------------------------------------------------------------------
+-- Ticket 01 — the start-up enrolment inherits the guard
+-- ---------------------------------------------------------------------------
+TestVeafSkynetInitSkipsDestroyedGroups = {}
+
+function TestVeafSkynetInitSkipsDestroyedGroups:setUp()
+  dcs_mocks.reset()
+  -- `_initialize` now arms a real repeating task and two real event callbacks. Left alone, each test
+  -- here leaks both into global state and the next suite inherits them — the class of leak
+  -- CHORE-MOCK-RESET-LEAKS exists to stop. Saved and restored rather than merely cleared, so a suite
+  -- running after this one sees what it saw before.
+  self._savedSkynetIADS = SkynetIADS
+  self._savedDcsUnits = dcsUnits
+  self._savedCallbacks = veafEventHandler.callbacks
+  self._savedSchedule = veaf.scheduleFunction
+  veafEventHandler.callbacks = {}
+  veaf.scheduleFunction = function()
+    return 0
+  end
+  veafSkynet.initialized = false
+  veafSkynet.structure = {}
+  veafSkynet.iadsSamUnitsTypes = {}
+  veafSkynet.iadsEwrUnitsTypes = {}
+  veafSkynet.CommandCentersPreinitialize = {}
+  veafSkynet.monitorDynamicSpawnHandler = nil
+  veafSkynet.vanishedSitesSweepArmed = false
+  veafSkynet.loadAllAtInit = {
+    [tostring(coalition.side.BLUE)] = true,
+    [tostring(coalition.side.RED)] = true,
+  }
+  self.enrolled = {}
+  local enrolled = self.enrolled
+  -- A one-entry database, so `_initialize` builds `iadsSamUnitsTypes` from it the way it does in a
+  -- mission instead of the suite asserting against a table it wrote itself.
+  SkynetIADS = {
+    database = { ["Kub"] = { type = "complex", launchers = { ["Kub 2P25 ln"] = {} } } },
+    create = function(_, name)
+      local iads = _makeMockIads(name)
+      iads.addSAMSite = function(_, groupName)
+        table.insert(enrolled, groupName)
+        return { dcsName = groupName }
+      end
+      return iads
+    end,
+  }
+  dcsUnits = { DcsUnitsDatabase = {} }
+end
+
+function TestVeafSkynetInitSkipsDestroyedGroups:tearDown()
+  dcs_mocks.reset()
+  veaf.scheduleFunction = self._savedSchedule
+  veafEventHandler.callbacks = self._savedCallbacks
+  SkynetIADS = self._savedSkynetIADS
+  dcsUnits = self._savedDcsUnits
+  veafSkynet.structure = {}
+  veafSkynet.vanishedSitesSweepArmed = false
+end
+
+--- The defect, at the place it was reported: `coalition.getGroups` hands back both groups, one of
+--- them destroyed a moment earlier by a combat zone cleaning itself out.
+function TestVeafSkynetInitSkipsDestroyedGroups:test_only_the_live_group_joins_the_network()
+  _redSamGroup("CMBT_TESTCZ - SA6", false)
+  _redSamGroup("SAM-OUTSIDE-THE-ZONE", true)
+  veafSkynet._initialize(false, false, false, false)
+  luaunit.assertEquals(self.enrolled, { "SAM-OUTSIDE-THE-ZONE" })
+end
+
+function TestVeafSkynetInitSkipsDestroyedGroups:test_the_enrolment_survives_a_corpse_in_the_listing()
+  -- Not the same assertion: above says the corpse stays out, this says it does not take the rest of
+  -- the map with it. Asking a destroyed group for its units raises, and a raise inside this loop
+  -- aborts every group after it.
+  _redSamGroup("CMBT_TESTCZ - SA6", false)
+  _redSamGroup("SAM-OUTSIDE-THE-ZONE", true)
+  local ok, err = pcall(veafSkynet._initialize, false, false, false, false)
+  luaunit.assertTrue(ok, "the start-up enrolment died on a destroyed group: " .. tostring(err))
+end
+
+-- ---------------------------------------------------------------------------
+-- Ticket 03 — a despawned site leaves the network, a destroyed one stays
+-- ---------------------------------------------------------------------------
+TestVeafSkynetVanishedSitesSweep = {}
+
+--- A Skynet element wrapping a Group (a SAM site) or a Unit (an EWR), holding one radar unit.
+local function _sweepableElement(dcsName, radarUnitName, exists, metatable)
+  local dcsRepresentation = {
+    isExist = function()
+      return exists
+    end,
+    getName = function()
+      return dcsName
+    end,
+    getID = function()
+      return 77
+    end,
+    enableEmission = function(_)
+      if not exists then
+        error("[" .. dcsName .. "] no longer exists, enableEmission is not available on it", 2)
+      end
+    end,
+  }
+  setmetatable(dcsRepresentation, metatable or Group)
+  return {
+    dcsName = dcsName,
+    typeName = "Kub 1S91 str",
+    dcsRepresentation = dcsRepresentation,
+    searchRadars = { { dcsName = radarUnitName } },
+    trackingRadars = {},
+    launchers = {},
+    cleanUp = function(_) end,
+    getDCSRepresentation = function(_)
+      return dcsRepresentation
+    end,
+  }
+end
+
+function TestVeafSkynetVanishedSitesSweep:setUp()
+  veafSkynet.structure = {}
+  veafSkynet.lostUnits = {}
+end
+
+function TestVeafSkynetVanishedSitesSweep:tearDown()
+  veafSkynet.structure = {}
+  veafSkynet.lostUnits = {}
+end
+
+--- Install one network holding the given SAM sites and EWRs, plus a `groups` entry per element.
+function TestVeafSkynetVanishedSitesSweep:_network(samSites, ewRadars)
+  local groups = {}
+  for _, list in ipairs({ samSites, ewRadars }) do
+    for _, element in ipairs(list) do
+      groups[element.dcsName] = { forceEwr = false }
+    end
+  end
+  veafSkynet.structure["red iads"] = {
+    iads = { samSites = samSites, earlyWarningRadars = ewRadars },
+    coalitionID = coalition.side.RED,
+    groups = groups,
+  }
+  return veafSkynet.structure["red iads"]
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_a_despawned_site_leaves_the_network()
+  local network = self:_network({ _sweepableElement("CMBT_TESTCZ - SA6", "SA6-radar", false) }, {})
+  local removed = veafSkynet.removeVanishedSites("red iads")
+  luaunit.assertEquals(removed, 1)
+  luaunit.assertEquals(#network.iads.samSites, 0)
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_a_despawned_site_frees_its_group_name()
+  -- The functional half: `addGroupToNetwork` refuses a group the network already lists, so a dead
+  -- entry holding the name is what stops a respawned site from ever rejoining the IADS.
+  local network = self:_network({ _sweepableElement("CMBT_TESTCZ - SA6", "SA6-radar", false) }, {})
+  veafSkynet.removeVanishedSites("red iads")
+  luaunit.assertNil(network.groups["CMBT_TESTCZ - SA6"])
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_a_destroyed_site_is_kept()
+  -- The assertion that makes the ledger load-bearing. Skynet is meant to report the sites the player
+  -- killed: `Raddest` and `Destroyed:` are the SEAD readout. Drop this and a sweep that removes
+  -- everything looks correct.
+  veafSkynet.onUnitLost({ initiator = { unitName = "SA6-radar" } })
+  local network = self:_network({ _sweepableElement("SAM-SHOT-AT", "SA6-radar", false) }, {})
+  local removed = veafSkynet.removeVanishedSites("red iads")
+  luaunit.assertEquals(removed, 0)
+  luaunit.assertEquals(#network.iads.samSites, 1)
+  luaunit.assertNotNil(network.groups["SAM-SHOT-AT"], "a site the player destroyed must stay in the network")
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_a_live_site_is_left_alone()
+  local network = self:_network({ _sweepableElement("SAM-ALIVE", "SA6-radar", true) }, {})
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 0)
+  luaunit.assertEquals(#network.iads.samSites, 1)
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_a_despawned_ewr_leaves_the_network()
+  -- Through `iads.earlyWarningRadars`: the getter hands back a delegator **copy**, which is why the
+  -- removal that used to be attempted on it was commented out as "not removed here".
+  local network = self:_network({}, { _sweepableElement("DESPAWNED-EWR", "DESPAWNED-EWR", false, Unit) })
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 1)
+  luaunit.assertEquals(#network.iads.earlyWarningRadars, 0)
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_a_destroyed_ewr_is_kept()
+  veafSkynet.onUnitLost({ initiator = { unitName = "SHOT-EWR" } })
+  local network = self:_network({}, { _sweepableElement("SHOT-EWR", "SHOT-EWR", false, Unit) })
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 0)
+  luaunit.assertEquals(#network.iads.earlyWarningRadars, 1)
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_the_sweep_does_not_raise_on_a_despawned_site()
+  -- `removeSkynetElement` handed emission back to the DCS object unguarded, two lines under a comment
+  -- saying the function is reached precisely when that object is gone.
+  self:_network({ _sweepableElement("CMBT_TESTCZ - SA6", "SA6-radar", false) }, {})
+  local ok, err = pcall(veafSkynet.removeVanishedSites, "red iads")
+  luaunit.assertTrue(ok, "the sweep raised on the very case it exists for: " .. tostring(err))
+end
+
+--- The cascade the sweep must not set off. `SkynetIADSAbstractRadarElement:cleanUp` cleans up the
+--- element's point defences too, and those are separate sites that are still alive — cleaning one up
+--- unregisters its event handlers and kills its HARM scan without clearing `harmScanID`, so it never
+--- restarts. The site would go deaf for the rest of the mission while still being listed as active.
+function TestVeafSkynetVanishedSitesSweep:test_a_live_point_defence_is_detached_not_cleaned_up()
+  local pointDefence = {
+    dcsName = "TOR-POINT-DEFENCE",
+    isAPointDefence = true,
+    cleanedUp = false,
+    cleanUp = function(self)
+      self.cleanedUp = true
+    end,
+    setIsAPointDefence = function(self, state)
+      self.isAPointDefence = state
+    end,
+  }
+  local site = _sweepableElement("CMBT_TESTCZ - SA6", "SA6-radar", false)
+  site.pointDefences = { pointDefence }
+  -- The real cleanUp, so the cascade is exercised rather than stubbed away.
+  site.cleanUp = function(self)
+    for i = 1, #self.pointDefences do
+      self.pointDefences[i]:cleanUp()
+    end
+  end
+  self:_network({ site }, {})
+
+  veafSkynet.removeVanishedSites("red iads")
+
+  luaunit.assertFalse(pointDefence.cleanedUp, "a live point defence was cleaned up with the site it defended")
+  luaunit.assertFalse(pointDefence.isAPointDefence, "the point defence still believes it defends a site that has left the mission")
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_a_network_with_no_iads_is_not_an_error()
+  veafSkynet.structure["red iads"] = { coalitionID = coalition.side.RED, groups = {} }
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 0)
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_an_unknown_network_is_not_an_error()
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("no such network"), 0)
+end
+
+function TestVeafSkynetVanishedSitesSweep:test_sweeping_walks_every_network()
+  local red = self:_network({ _sweepableElement("RED-DESPAWNED", "red-radar", false) }, {})
+  local blueSites = { _sweepableElement("BLUE-DESPAWNED", "blue-radar", false) }
+  veafSkynet.structure["blue iads"] = {
+    iads = { samSites = blueSites, earlyWarningRadars = {} },
+    coalitionID = coalition.side.BLUE,
+    groups = { ["BLUE-DESPAWNED"] = {} },
+  }
+  veafSkynet.sweepVanishedSites()
+  luaunit.assertEquals(#red.iads.samSites, 0)
+  luaunit.assertEquals(#blueSites, 0)
+end
+
+-- ---------------------------------------------------------------------------
+-- Ticket 03 — the ledger itself
+-- ---------------------------------------------------------------------------
+TestVeafSkynetLostUnitsLedger = {}
+
+function TestVeafSkynetLostUnitsLedger:setUp()
+  veafSkynet.lostUnits = {}
+end
+
+function TestVeafSkynetLostUnitsLedger:test_a_death_records_the_unit_name()
+  veafSkynet.onUnitLost({ initiator = { unitName = "SA6-radar" } })
+  luaunit.assertTrue(veafSkynet.lostUnits["SA6-radar"])
+end
+
+function TestVeafSkynetLostUnitsLedger:test_a_dynamic_slot_unit_is_recorded_too()
+  -- A dynamic-slot unit reaches a callback as the raw DCS object, answering `getName()` and nothing
+  -- else. `unitNameFromEvent` is what covers both shapes, and reading only one of them is a silent
+  -- failure — the defect that cost the 6.16.0 welcome brief.
+  veafSkynet.onUnitLost({
+    initiator = {
+      getName = function()
+        return "DYN-SLOT-1"
+      end,
+    },
+  })
+  luaunit.assertTrue(veafSkynet.lostUnits["DYN-SLOT-1"])
+end
+
+function TestVeafSkynetLostUnitsLedger:test_an_event_with_no_unit_records_nothing()
+  veafSkynet.onUnitLost({})
+  luaunit.assertEquals(next(veafSkynet.lostUnits), nil)
+end
+
+function TestVeafSkynetLostUnitsLedger:test_a_unit_born_again_is_no_longer_counted_as_lost()
+  -- Without this the ledger only grows, and a reused unit name reads as a kill forever: a combat zone
+  -- whose SAM was shot once, deactivated and reactivated, spawns under the same unit names unless the
+  -- zone renames them — and the next despawn would be kept instead of swept.
+  veafSkynet.onUnitLost({ initiator = { unitName = "SA6-radar" } })
+  veafSkynet.onUnitBorn({ initiator = { unitName = "SA6-radar" } })
+  luaunit.assertNil(veafSkynet.lostUnits["SA6-radar"])
+end
+
+function TestVeafSkynetLostUnitsLedger:test_a_birth_leaves_other_losses_alone()
+  veafSkynet.onUnitLost({ initiator = { unitName = "SA6-radar" } })
+  veafSkynet.onUnitBorn({ initiator = { unitName = "SOMETHING-ELSE" } })
+  luaunit.assertTrue(veafSkynet.lostUnits["SA6-radar"])
+end
+
+function TestVeafSkynetLostUnitsLedger:test_a_reborn_site_is_swept_after_being_despawned()
+  -- The two halves together, at the level the sweep sees them.
+  veafSkynet.onUnitLost({ initiator = { unitName = "SA6-radar" } })
+  veafSkynet.onUnitBorn({ initiator = { unitName = "SA6-radar" } })
+  veafSkynet.structure["red iads"] = {
+    iads = { samSites = { _sweepableElement("CMBT_TESTCZ - SA6", "SA6-radar", false) }, earlyWarningRadars = {} },
+    coalitionID = coalition.side.RED,
+    groups = { ["CMBT_TESTCZ - SA6"] = {} },
+  }
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 1)
+  veafSkynet.structure = {}
+end
+
+-- ---------------------------------------------------------------------------
+-- Ticket 03 — arming is idempotent
+-- ---------------------------------------------------------------------------
+TestVeafSkynetSweepArming = {}
+
+function TestVeafSkynetSweepArming:setUp()
+  veafSkynet.vanishedSitesSweepArmed = false
+  self.previousCallbacks = veafEventHandler.callbacks
+  veafEventHandler.callbacks = {}
+  self.scheduled = 0
+  self.previousSchedule = veaf.scheduleFunction
+  local this = self
+  veaf.scheduleFunction = function()
+    this.scheduled = this.scheduled + 1
+    return this.scheduled
+  end
+end
+
+function TestVeafSkynetSweepArming:tearDown()
+  veaf.scheduleFunction = self.previousSchedule
+  veafEventHandler.callbacks = self.previousCallbacks
+  veafSkynet.vanishedSitesSweepArmed = false
+end
+
+--- The names of the callbacks currently registered, in order.
+local function _callbackNames()
+  local names = {}
+  for _, callback in ipairs(veafEventHandler.callbacks) do
+    table.insert(names, callback.name)
+  end
+  return names
+end
+
+function TestVeafSkynetSweepArming:test_arming_registers_both_callbacks_and_one_schedule()
+  veafSkynet._armVanishedSitesSweep()
+  luaunit.assertEquals(_callbackNames(), { "veafSkynet.onUnitLost", "veafSkynet.onUnitBorn" })
+  luaunit.assertEquals(self.scheduled, 1)
+end
+
+function TestVeafSkynetSweepArming:test_arming_twice_changes_nothing()
+  -- A reinitialisation must not stack a second set of callbacks nor a second schedule: every loss
+  -- would be recorded twice and every sweep run twice, which is the shape of #824.
+  veafSkynet._armVanishedSitesSweep()
+  veafSkynet._armVanishedSitesSweep()
+  luaunit.assertEquals(#veafEventHandler.callbacks, 2)
+  luaunit.assertEquals(self.scheduled, 1)
+end
+
+function TestVeafSkynetSweepArming:test_the_schedule_repeats()
+  local captured = nil
+  veaf.scheduleFunction = function(fn, vars, t, rep)
+    captured = { fn = fn, time = t, rep = rep }
+    return 1
+  end
+  veafSkynet._armVanishedSitesSweep()
+  luaunit.assertEquals(captured.fn, veafSkynet.sweepVanishedSites)
+  luaunit.assertEquals(captured.rep, veafSkynet.SecondsBetweenVanishedSitesSweeps)
+end
+
+-- ---------------------------------------------------------------------------
+-- The helper the three tickets share
+-- ---------------------------------------------------------------------------
+TestVeafSkynetDcsObjectStillExists = {}
+
+function TestVeafSkynetDcsObjectStillExists:test_nil_does_not_exist()
+  luaunit.assertFalse(veafSkynet.dcsObjectStillExists(nil))
+end
+
+function TestVeafSkynetDcsObjectStillExists:test_a_live_object_exists()
+  luaunit.assertTrue(veafSkynet.dcsObjectStillExists({
+    isExist = function()
+      return true
+    end,
+  }))
+end
+
+function TestVeafSkynetDcsObjectStillExists:test_a_destroyed_object_does_not()
+  luaunit.assertFalse(veafSkynet.dcsObjectStillExists({
+    isExist = function()
+      return false
+    end,
+  }))
+end
+
+function TestVeafSkynetDcsObjectStillExists:test_an_object_that_cannot_answer_is_given_the_benefit()
+  -- Phrased as Skynet's own `forEachLiveGroup` phrases it: a handle without the method must not take
+  -- the whole enrolment down with it.
+  luaunit.assertTrue(veafSkynet.dcsObjectStillExists({}))
+end
+
+-- ---------------------------------------------------------------------------
+-- The log line must not be the thing that raises
+-- ---------------------------------------------------------------------------
+TestVeafSkynetSafeDcsName = {}
+
+function TestVeafSkynetSafeDcsName:test_a_live_object_gives_its_name()
+  luaunit.assertEquals(
+    veafSkynet.safeDcsName({
+      getName = function()
+        return "SAM-1"
+      end,
+    }),
+    "SAM-1"
+  )
+end
+
+function TestVeafSkynetSafeDcsName:test_an_object_that_refuses_gives_a_placeholder()
+  -- The case it exists for: the message that says "DCS no longer holds this group" used to ask that
+  -- very group for its name, so on a handle that refuses every method the refusal itself raised.
+  luaunit.assertEquals(
+    veafSkynet.safeDcsName({
+      getName = function()
+        error("group no longer exists")
+      end,
+    }),
+    "?"
+  )
+end
+
+function TestVeafSkynetSafeDcsName:test_nil_and_nameless_objects_give_a_placeholder()
+  luaunit.assertEquals(veafSkynet.safeDcsName(nil), "?")
+  luaunit.assertEquals(veafSkynet.safeDcsName({}), "?")
 end
 
 os.exit(luaunit.LuaUnit.run())

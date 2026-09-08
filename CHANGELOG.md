@@ -38,6 +38,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a `/bug` or a `/suggest` also ends with a **link to the follow-up thread**: obvious while it hung
   in the same channel, and the only clue once it is a post somewhere else.
 
+### Fixed
+
+- **The IADS no longer enrols groups DCS has already destroyed.** Reported by Tripack (#946): at
+  mission start the IADS status page announced *16 SAM sites with a destroyed radar*, with nothing
+  shot at. `Raddest` counts sites whose radar does not answer, and a site Skynet accepted always
+  holds a search radar — so those radars no longer existed. A combat zone destroys every group
+  inside it while the mission's config script loads, `veafSkynet` enrols the map one second later by
+  walking `coalition.getGroups`, and DCS still lists what it has just destroyed. The guard now sits
+  at the single door every caller goes through, so it also covers the birth-event handler, the radio
+  menu and the `_skynet` markers; the `nil`-group check on the same three lines, which sat below the
+  dereference that would raise and so could never fire, was moved above it.
+- **A site whose group is despawned now leaves its IADS network.** Deactivating a combat zone takes
+  its air defences with it, and the sites stayed in the network for the rest of the mission —
+  inflating the status page, walked on every detection cycle, and holding their group name, since a
+  group the network already lists is refused. A sweep every
+  `veafSkynet.SecondsBetweenVanishedSitesSweeps` seconds (default 60) removes them. Sites the player
+  **destroyed** are kept, because that is what the `Raddest` and `Destroyed` columns report and it is
+  how a successful SEAD reads — the two cases are indistinguishable on the object, so they are told
+  apart by whether DCS ever reported one of the site's units lost.
+
 ## [6.20.0] — 2026-09-07
 
 ### Fixed

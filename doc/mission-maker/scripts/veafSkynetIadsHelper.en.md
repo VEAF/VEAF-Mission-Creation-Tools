@@ -68,6 +68,8 @@ The module scans all groups in the mission at startup and adds eligible ones to 
 
 The module always creates two Skynet networks: one for **blue** coalition, one for **red**.
 
+Only groups DCS still holds are enrolled. The distinction matters: DCS keeps listing a group for a short while after destroying it, and this module initialises just after every combat zone has cleaned itself out at startup. Such a group used to appear in the network as a SAM site whose radar never existed — counted as *radar destroyed* on the IADS status page for the rest of the mission.
+
 ---
 
 ## Global properties (set before `initialize`)
@@ -120,6 +122,16 @@ veafSkynet.setDynamicSpawn("red iads", false)
 ### Startup delay — `veafSkynet.DelayForStartup`
 
 Seconds to wait before initialising networks (default: `1`). Increase if other modules initialise groups with a delay.
+
+### Vanished-site sweep — `veafSkynet.SecondsBetweenVanishedSitesSweeps` {#vanished-sites}
+
+Seconds between two cleanup passes over the networks (default: `60`).
+
+A site whose group **leaves the mission without being destroyed** — which is what happens when a combat zone is deactivated and takes its air defences with it — used to be kept in the network until the end of the game. It inflated the status page, was walked on every detection cycle, and **held its group name**: the module refuses to enrol a group the network already lists. The sweep removes those sites and frees the name.
+
+Worth stating, because the distinction matters: freeing the name is not enough to bring back a group that reappears **under the same name within** the sweep interval. Enrolment happens on the birth event, which has already fired and been refused, and nothing retries it afterwards. This does not affect combat zones, which give each respawn a fresh name.
+
+Sites the player **destroyed** are kept: they are what the `Raddest` and `Destroyed` columns of the status page count, and that is how a successful SEAD reads.
 
 ---
 

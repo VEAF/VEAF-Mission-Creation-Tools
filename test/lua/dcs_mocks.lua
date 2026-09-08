@@ -820,6 +820,14 @@ function dcs_mocks.addUnit(name, data)
   u.getDrawArgumentValue = u.getDrawArgumentValue or function(self, arg)
     return (self._drawArgs or {})[arg]
   end
+  -- Same contract as the group double: a unit declaring `isExist() == false` refuses what DCS
+  -- refuses on a destroyed unit, so a missing guard fails the test instead of passing it (#946).
+  u.enableEmission = u.enableEmission
+    or function()
+      if not u:isExist() then
+        error(string.format("unit [%s] no longer exists, enableEmission is not available on it", name), 2)
+      end
+    end
   u.destroy = u.destroy or function() end
   _unit_registry[name] = u
 end
@@ -827,20 +835,40 @@ end
 --- Register a mock group so that Group.getByName(name) returns it.
 -- @param name  Group name string
 -- @param data  Table with group attributes.
+--
+-- A group declaring `isExist = function() return false end` behaves like a destroyed group in DCS:
+-- the calls DCS refuses on one **raise**. A double that answers them happily makes a missing guard
+-- indistinguishable from a working one: that is how #946's unguarded `enableEmission` survived a
+-- test written for exactly that case. (That test builds its own double rather than using this one —
+-- see `_skynetElement` in test_veafSkynetIadsHelper.lua — so this contract is what stops the next
+-- such test from being written toothless here.)
 function dcs_mocks.addGroup(name, data)
   local g = data or {}
   g.name = name
   g.isExist = g.isExist ~= nil and g.isExist or function()
     return true
   end
+  local function _refuseWhenGone(what)
+    if not g:isExist() then
+      error(string.format("group [%s] no longer exists, %s is not available on it", name, what), 2)
+    end
+  end
+  -- `getName` refuses too. DCS documents no method as safe on a released object, and code that asks a
+  -- corpse for its name before checking is exactly what this contract has to be able to fail on: the
+  -- start-up enrolment did, one line above the guard (#946).
   g.getName = g.getName or function()
+    _refuseWhenGone("getName")
     return name
   end
   g.getID = g.getID or function()
     return g._id or 1
   end
   g.getUnits = g.getUnits or function()
+    _refuseWhenGone("getUnits")
     return {}
+  end
+  g.enableEmission = g.enableEmission or function()
+    _refuseWhenGone("enableEmission")
   end
   g.destroy = g.destroy or function() end
   _group_registry[name] = g

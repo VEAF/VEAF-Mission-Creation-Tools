@@ -40,6 +40,11 @@ veafSkynet.DelayForDynamicIntegration = 1
 -- maximum x or y (z in DCS) between a SAM site and it's point defenses in meters
 veafSkynet.MaxPointDefenseDistanceFromSite = 10000
 
+-- seconds between two sweeps looking for sites whose group has left the mission.
+-- A minute is short enough that the status page never lies for long, and long enough that the sweep
+-- costs nothing next to the contact-evaluation cycle it is protecting (#946).
+veafSkynet.SecondsBetweenVanishedSitesSweeps = 60
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -98,13 +103,114 @@ veafSkynet.structure = {}
 --(stay out of every network) or a network name. Entries are consumed on integration.
 veafSkynet.declaredSpawns = {}
 
+--- Unit names DCS has reported lost, as a set. Read by `veafSkynet.removeVanishedSites` to tell a
+--- site the enemy destroyed from a site a script despawned — see there for why that matters.
+---
+--- It holds **every** unit death in the mission, not only the ones belonging to an IADS, and only a
+--- birth under the same name takes an entry out. That is deliberate: the obvious filter — record a
+--- death only when the unit's type is one Skynet knows — reads `unitType` off the event, and that is
+--- precisely what stops resolving once the unit is gone (`completeUnitFromName` asks
+--- `Unit.getByName`). A missed radar death would make the sweep read a kill as a despawn and remove a
+--- site the player earned, so the set is left to grow rather than filtered on a field that can be
+--- nil. A busy multi-hour mission costs on the order of a hundred kilobytes for it.
+veafSkynet.lostUnits = {}
+
+--- Whether the death callback and the periodic sweep are in place. See `_armVanishedSitesSweep`.
+veafSkynet.vanishedSitesSweepArmed = false
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafSkynet.getStringSkynetElement(skynetElement)
-  local s = skynetElement.dcsName
 
-  if not skynetElement.dcsRepresentation:isExist() then
+--- True when DCS still holds this object.
+---
+--- `coalition.getGroups` can hand back a group that has been **destroyed**. That is not a suspicion:
+--- it is the reason the Skynet compatibility layer wraps its own listing in `forEachLiveGroup`
+--- (`src/scripts/community/skynet-iads-compiled.lua`), whose comment records that asking such a
+--- group for its units raises. veafSkynet enrols the map `DelayForStartup` seconds into the mission,
+--- which is *after* every combat zone has destroyed the groups standing inside it
+--- (`veafCombatZone.lua`, *"remove all units in the trigger zone (we want it CLEAN !)"*), so the
+--- listing it walks is routinely carrying corpses. Enrolling one produced a SAM site whose radar
+--- never existed, counted as *radar destroyed* on the IADS status page for the rest of the mission
+--- and holding its group name against any respawn (#946).
+---
+--- `not dcsObject.isExist` is deliberate, and phrased as `forEachLiveGroup` phrases it: a handle that
+--- cannot answer the question must not take the whole enrolment down with it.
+---
+--- @param dcsObject table|nil a DCS Group, Unit or StaticObject handle
+--- @return boolean true when the object is still part of the mission
+function veafSkynet.dcsObjectStillExists(dcsObject)
+  if not dcsObject then
+    return false
+  end
+  if not dcsObject.isExist then
+    return true
+  end
+  return dcsObject:isExist() and true or false
+end
+
+--- The object's name for a log line, or `"?"`, without ever raising.
+---
+--- Through `pcall` on purpose: the one place a name is wanted is a message about an object DCS has
+--- released, and such an object can refuse every method — `getName` included. A log line must not be
+--- the thing that raises.
+---
+--- @param dcsObject table|nil
+--- @return string
+function veafSkynet.safeDcsName(dcsObject)
+  if not dcsObject or not dcsObject.getName then
+    return "?"
+  end
+  local ok, name = pcall(dcsObject.getName, dcsObject)
+  if ok and type(name) == "string" then
+    return name
+  end
+  return "?"
+end
+
+--- Record that DCS reported a unit lost, so a sweep can tell a kill from a despawn.
+---
+--- Keyed on **unit** name rather than group name on purpose: `veafEventHandler.completeUnitFromName`
+--- resolves a unit's group through `Unit.getByName`, which is exactly what has stopped answering by
+--- the time a death is reported, so the group name reaching a callback is unreliable where the unit
+--- name is not.
+---
+--- @param event table the event handed to a `veafEventHandler` callback
+function veafSkynet.onUnitLost(event)
+  local unitName = veafEventHandler.unitNameFromEvent(event)
+  if unitName then
+    veaf.loggers.get(veafSkynet.Id):trace("unit lost: %s", veaf.lp(unitName))
+    veafSkynet.lostUnits[unitName] = true
+  end
+end
+
+--- Forget that a unit of this name was ever lost, because one is alive again.
+---
+--- Without this the ledger only grows, and a **reused unit name** would then read as a kill forever:
+--- a combat zone whose SAM was shot once, deactivated and activated again spawns units under the same
+--- names unless the zone renames them sequentially, and the next despawn of that site would be kept
+--- as *destroyed* rather than swept — quietly reinstating the defect the sweep exists to fix.
+---
+--- A separate callback rather than one function inspecting the event's type: the transformed event
+--- carries the event **table**, populated only once `veafEventHandler.initialize` has run, so reading
+--- it would make the branch depend on initialisation order for nothing.
+---
+--- @param event table the event handed to a `veafEventHandler` callback
+function veafSkynet.onUnitBorn(event)
+  local unitName = veafEventHandler.unitNameFromEvent(event)
+  if unitName and veafSkynet.lostUnits[unitName] then
+    veaf.loggers.get(veafSkynet.Id):trace("unit born again, no longer counted as lost: %s", veaf.lp(unitName))
+    veafSkynet.lostUnits[unitName] = nil
+  end
+end
+
+function veafSkynet.getStringSkynetElement(skynetElement)
+  local s = tostring(skynetElement.dcsName)
+
+  -- Through the helper rather than `dcsRepresentation:isExist()` so that describing an element whose
+  -- representation is nil says so instead of raising. That matters because this is what the log line
+  -- of `removeSkynetElement` calls, on elements chosen for having lost their object (#946).
+  if not veafSkynet.dcsObjectStillExists(skynetElement.dcsRepresentation) then
     return s .. " (dcs object does not exist)"
   end
 
@@ -204,16 +310,46 @@ function veafSkynet.removeSkynetElement(skynetElement, veafSkynetNetwork)
     end
   end
 
+  -- Detached **before** cleanUp, and this is not tidiness. `SkynetIADSAbstractRadarElement:cleanUp`
+  -- walks `self.pointDefences` and cleans each one up too — but a point defence is a separate site
+  -- that is still alive, still listed in `iads.samSites` and still commanded. Cleaning it up calls
+  -- `world.removeEventHandler` on it, and `SkynetIADSAbstractElement:onEvent` is what makes an
+  -- element react to the world: on `S_EVENT_DEAD` it goes dark when its power source or connection
+  -- node is gone and tells its children, and on `S_EVENT_SHOT` it runs `weaponFired`, which is how
+  -- HARM detection sees anything at all. Unregistered, the site keeps being commanded while blind to
+  -- both, for the rest of the mission, and nothing says so.
+  --
+  -- Unreachable before #946, because the only caller was the point-defence path in `Dcs` mode, where
+  -- the element being removed *is* the point defence and holds none of its own. The sweep is the
+  -- first caller that meets a parent, so the cascade has to be cut here rather than at the call site.
+  -- Losing its parent leaves a point defence an ordinary site, which is the right outcome: the site
+  -- it was defending has left the mission.
+  veafSkynet.removePointDefencesFromSkynetElement(skynetElement)
+
   skynetElement:cleanUp()
-  skynetElement:getDCSRepresentation():enableEmission(true)
+
+  -- Guarded, unlike the call this replaces: the VMR-096 note below states that this function is
+  -- reached precisely when the DCS representation is gone, and `enableEmission` raises on an object
+  -- DCS no longer holds. Handing emission back to something that has left the mission is meaningless
+  -- anyway. Nothing had noticed because the only caller was the point-defence path, which runs on
+  -- live sites; the sweep added in #946 is the first caller that meets corpses by design.
+  local dcsRepresentation = skynetElement:getDCSRepresentation()
+  if veafSkynet.dcsObjectStillExists(dcsRepresentation) then
+    dcsRepresentation:enableEmission(true)
+  end
 
   local list = iads.samSites
   veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list)
 
   _removeSkynetElementFromList(list, skynetElement)
-  --_removeSkynetElementFromList(iads:getEarlyWarningRadars(), skynetElement)
+  -- Commented out since the day it was written (`3002aaad`, 2023-11-02, the commit that created this
+  -- function), and the trace below recorded the consequence as "not removed here" without saying
+  -- why: `iads:getEarlyWarningRadars()` hands back a delegator **copy**
+  -- (`createTableDelegator`), so removing from it would have removed nothing. The field is the real
+  -- list, which is what this now uses.
+  _removeSkynetElementFromList(iads.earlyWarningRadars, skynetElement)
 
-  veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list) -- not removed here
+  veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list)
 
   -- VMR-096: getDcsGroupFromSkynetElement returns nil once the DCS representation is gone, which
   -- is exactly the case this function is called in — so asking the group for its name raised, and
@@ -226,6 +362,96 @@ function veafSkynet.removeSkynetElement(skynetElement, veafSkynetNetwork)
     veafSkynetNetwork.groups[groupName] = nil
   else
     veaf.loggers.get(veafSkynet.Id):warn("cannot tell which group to remove from the network for a skynet element with no name")
+  end
+end
+
+--- True when DCS reported any of the element's units lost.
+---
+--- The element's own `dcsName` is checked alongside its units'. For a SAM site that name is a *group*
+--- name, which will not normally appear in a set keyed on unit names; when it does collide the
+--- element is treated as destroyed and therefore **kept**, which is the behaviour that shipped before
+--- the sweep existed — so the collision costs a stale entry, never a site removed by mistake.
+local function _wasReportedLost(skynetElement)
+  if skynetElement.dcsName and veafSkynet.lostUnits[skynetElement.dcsName] then
+    return true
+  end
+  -- Named one by one rather than iterated as a literal table: any of the three can be nil on an
+  -- element Skynet never completed, and a nil inside a table constructor makes `pairs` unreliable.
+  local lists = { skynetElement.searchRadars, skynetElement.trackingRadars, skynetElement.launchers }
+  for i = 1, 3 do
+    local units = lists[i]
+    if units then
+      for j = 1, #units do
+        if units[j].dcsName and veafSkynet.lostUnits[units[j].dcsName] then
+          return true
+        end
+      end
+    end
+  end
+  return false
+end
+
+--- Remove from one list every element whose DCS object is gone and that nothing reported lost.
+--- Walked backwards because `removeSkynetElement` removes from the very list being iterated.
+--- @return number how many were removed
+local function _sweepSkynetElements(network, elements)
+  if not elements then
+    return 0
+  end
+  local removed = 0
+  for i = #elements, 1, -1 do
+    local skynetElement = elements[i]
+    if skynetElement and not veafSkynet.dcsObjectStillExists(skynetElement.dcsRepresentation) then
+      if _wasReportedLost(skynetElement) then
+        veaf.loggers.get(veafSkynet.Id):trace("keeping destroyed element [%s], it was shot", veaf.lp(tostring(skynetElement.dcsName)))
+      else
+        veaf.loggers.get(veafSkynet.Id):debug("removing despawned element [%s] from the network", veaf.lp(tostring(skynetElement.dcsName)))
+        veafSkynet.removeSkynetElement(skynetElement, network)
+        removed = removed + 1
+      end
+    end
+  end
+  return removed
+end
+
+--- Drop the sites of one network whose group was despawned rather than destroyed.
+---
+--- **Why not simply "every site whose object is gone".** Skynet is *meant* to keep the sites the
+--- player destroyed: `Raddest` for SAM sites and `Destroyed:` for early-warning radars are the SEAD
+--- readout, and a mission maker watching an IADS come apart wants to read `EW: 6 | Destroyed: 4`, not
+--- `EW: 2 | Destroyed: 0`. Removing a kill would delete that.
+---
+--- And a kill cannot be told from a despawn by looking at the object: both answer
+--- `isExist() == false` and both make `SkynetIADSSamSite:isDestroyed()` true. What separates them is
+--- the **event** — DCS raises `S_EVENT_DEAD` / `S_EVENT_UNIT_LOST` for a unit that was killed and
+--- nothing at all for one a script removed. Hence `veafSkynet.lostUnits`, and hence this sweep only
+--- removes what nobody ever reported losing.
+---
+--- What it exists for: a combat zone being deactivated takes its air defences with it, and the sites
+--- stayed in the network for the rest of the mission — inflating the status page, walked on every
+--- contact-evaluation cycle, and holding their group name against a respawn, since
+--- `addGroupToNetwork` refuses a name the network already lists (#946).
+---
+--- @param networkName string
+--- @return number how many elements were removed
+function veafSkynet.removeVanishedSites(networkName)
+  local network = veafSkynet.getNetwork(networkName)
+  if not network or not network.iads then
+    veaf.loggers.get(veafSkynet.Id):trace("removeVanishedSites: no IADS for network %s", veaf.lp(networkName))
+    return 0
+  end
+
+  local removed = _sweepSkynetElements(network, network.iads.samSites) + _sweepSkynetElements(network, network.iads.earlyWarningRadars)
+  if removed > 0 then
+    veaf.loggers.get(veafSkynet.Id):info("network %s: removed %s despawned element(s)", veaf.lp(networkName), veaf.lp(removed))
+  end
+  return removed
+end
+
+--- Sweep every network. This is what the periodic schedule calls.
+function veafSkynet.sweepVanishedSites()
+  for networkName, _ in pairs(veafSkynet.structure) do
+    veafSkynet.removeVanishedSites(networkName)
   end
 end
 
@@ -761,14 +987,35 @@ function veafSkynet.isGroupUsable(dcsGroup)
 end
 
 function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefense, alreadyAddedGroups, silent)
-  veaf.loggers
-    .get(veafSkynet.Id)
-    :debug("ADD GROUP START [" .. dcsGroup:getName() .. "] [id=" .. dcsGroup:getID() .. "] to IADS network [" .. networkName .. "]")
-
+  -- Both guards precede the first dereference, which is where the `nil` one always belonged: it used
+  -- to sit *below* the `dcsGroup:getName()` of the log line, so it could never fire — a nil group
+  -- raised instead of being refused.
   if not dcsGroup then
     veaf.loggers.get(veafSkynet.Id):error("No group to find to add to network")
     return false
   end
+
+  -- #946: this is the single door every caller goes through — the start-up enrolment walking
+  -- `coalition.getGroups`, the birth-event handler, the radio menu and the `_skynet` markers — so it
+  -- is where the "DCS still lists what it destroyed" check belongs. See
+  -- `veafSkynet.dcsObjectStillExists`.
+  --
+  -- `info`, not `debug`, and not `error` either. Not error, because a group that died before its
+  -- deferred integration ran is ordinary mission life. But not debug: the default log level is
+  -- `info` (`veaf.BaseLogLevel = 3` in veaf.lua) and no shipped mission raises it, so a debug line
+  -- would be invisible exactly where it is needed. The whole reason this defect reached a bug report
+  -- is that nothing anywhere said a word about it — sixteen sites enrolled dead, in silence. One
+  -- line per refusal, naming the group, is what makes it readable in a log nobody had to configure.
+  if not veafSkynet.dcsObjectStillExists(dcsGroup) then
+    veaf.loggers
+      .get(veafSkynet.Id)
+      :info("ADD GROUP REFUSED [%s]: DCS no longer holds this group", veaf.lp(veafSkynet.safeDcsName(dcsGroup)))
+    return false
+  end
+
+  veaf.loggers
+    .get(veafSkynet.Id)
+    :debug("ADD GROUP START [" .. dcsGroup:getName() .. "] [id=" .. dcsGroup:getID() .. "] to IADS network [" .. networkName .. "]")
 
   if not veafSkynet.isGroupUsable(dcsGroup) then
     veaf.loggers.get(veafSkynet.Id):trace("Group is not usable for skynet")
@@ -1007,7 +1254,12 @@ local function initializeIADS(networkName, coa, inRadio, debug)
   local alreadyAddedGroups = {}
   local dcsGroups = coalition.getGroups(coa)
   for _, dcsGroup in pairs(dcsGroups) do
-    if veafSkynet.structure[networkName] then
+    -- #946: tested here as well as inside addGroupToNetwork, and not out of caution. This loop asks
+    -- the handle for its name **before** reaching that function, and a DCS object that has left the
+    -- mission can refuse any method — the Skynet compatibility layer records `getUnits` raising and
+    -- there is nothing to say `getName` is safer. A raise here does not skip one group: it aborts the
+    -- whole enrolment, and every group listed after the corpse never joins the IADS.
+    if veafSkynet.structure[networkName] and veafSkynet.dcsObjectStillExists(dcsGroup) then
       local groupName = dcsGroup:getName()
       if groupName then
         local structureData = veafSkynet.structure[networkName].groups[groupName]
@@ -1241,7 +1493,37 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
   -- arms the shared birth handler if any network was created wanting dynamic integration
   veafSkynet.refreshDynamicSpawnMonitoring()
 
+  veafSkynet._armVanishedSitesSweep()
+
   veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
+end
+
+--- Watch for units being lost, and sweep the networks periodically (#946).
+---
+--- Idempotent, because a reinitialisation must not stack a second death callback (`addCallback` does
+--- not deduplicate) nor a second schedule: every unit lost would be recorded twice and every sweep
+--- run twice, which is the shape of #824.
+function veafSkynet._armVanishedSitesSweep()
+  if veafSkynet.vanishedSitesSweepArmed then
+    return
+  end
+  veafSkynet.vanishedSitesSweepArmed = true
+
+  -- Guarded the way veafMissionDb guards it: the module is loadable without the event handler, and a
+  -- missing dispatcher must cost the ledger, not the IADS.
+  if veafEventHandler and veafEventHandler.addCallback then
+    veafEventHandler.addCallback("veafSkynet.onUnitLost", { "S_EVENT_DEAD", "S_EVENT_UNIT_LOST" }, veafSkynet.onUnitLost)
+    veafEventHandler.addCallback("veafSkynet.onUnitBorn", { "S_EVENT_BIRTH" }, veafSkynet.onUnitBorn)
+  else
+    veaf.loggers.get(veafSkynet.Id):warn("no event handler: a site whose group is destroyed cannot be told from one that was despawned")
+  end
+
+  veaf.scheduleFunction(
+    veafSkynet.sweepVanishedSites,
+    {},
+    timer.getTime() + veafSkynet.SecondsBetweenVanishedSitesSweeps,
+    veafSkynet.SecondsBetweenVanishedSitesSweeps
+  )
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

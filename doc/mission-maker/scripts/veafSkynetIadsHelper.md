@@ -68,6 +68,8 @@ Le module parcourt la liste de tous les groupes de la mission au démarrage, et 
 
 Le module crée toujours deux réseaux Skynet : un pour la coalition **bleue**, un pour la coalition **rouge**.
 
+Seuls les groupes que DCS possède encore sont intégrés. La nuance a son importance : DCS continue de lister pendant un court instant les groupes qu'il vient de détruire, et l'initialisation du module arrive juste après le nettoyage que fait chaque zone de combat au démarrage. Un tel groupe apparaissait auparavant dans le réseau comme un site SAM dont le radar n'a jamais existé — compté « radar détruit » sur la page de statut IADS pour toute la mission.
+
 ---
 
 ## Propriétés globales (à définir avant `initialize`)
@@ -120,6 +122,16 @@ veafSkynet.setDynamicSpawn("red iads", false)
 ### Délai de démarrage — `veafSkynet.DelayForStartup`
 
 Nombre de secondes à attendre avant d'initialiser les réseaux (défaut : `1`). À augmenter si d'autres modules initialisent des groupes en retard.
+
+### Balayage des sites disparus — `veafSkynet.SecondsBetweenVanishedSitesSweeps` {#vanished-sites}
+
+Nombre de secondes entre deux passages de nettoyage des réseaux (défaut : `60`).
+
+Un site dont le groupe **quitte la mission sans être détruit** — c'est le cas quand une zone de combat est désactivée et emporte ses défenses aériennes — était conservé dans le réseau jusqu'à la fin de la partie. Il gonflait la page de statut, était parcouru à chaque cycle de détection, et **retenait le nom de son groupe** : le module refuse d'intégrer un groupe que le réseau liste déjà. Le balayage retire ces sites et libère le nom.
+
+À noter, parce que la nuance compte : libérer le nom ne suffit pas à faire rejoindre le réseau à un groupe qui réapparaît **sous le même nom pendant** l'intervalle de balayage. L'intégration se fait sur l'événement d'apparition, qui est déjà passé et a été refusé ; rien ne la relance ensuite. Ce cas ne concerne pas les zones de combat, qui donnent un nom neuf à chaque réapparition.
+
+Les sites que le joueur a **détruits**, eux, restent dans le réseau : ce sont eux que comptent les colonnes `Raddest` et `Destroyed` de la page de statut, et c'est la lecture d'une SEAD réussie.
 
 ---
 

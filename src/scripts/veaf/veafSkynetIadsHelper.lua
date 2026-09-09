@@ -544,13 +544,52 @@ function veafSkynet.measureRadarRange(skynetElement)
   return maxRange, radarCount, liveRadarCount
 end
 
---- The element's own DCS handle, or nil, without ever raising.
+--- The DCS handle of a Skynet element or of one of its radar wrappers, or nil, without ever raising.
+--- Both are `SkynetIADSAbstractDCSObjectWrapper` descendants, so one reader serves both.
 local function _dcsRepresentationOf(skynetElement)
   if not skynetElement or not skynetElement.getDCSRepresentation then
     return nil
   end
   local ok, dcsRepresentation = pcall(skynetElement.getDCSRepresentation, skynetElement)
   return ok and dcsRepresentation or nil
+end
+
+--- One string naming this element's radar units, for a log line: `name/type/live/resolvable`.
+---
+--- `resolvable` is `Unit.getByName(name) ~= nil`. The two together are what a log needs to separate
+--- the three states this repository could not tell apart on Tripack's 2026-09-09 log: a wrapper
+--- holding a unit DCS no longer has, a wrapper holding a unit DCS has but under another name, and a
+--- unit that is plainly there and answers no sensors. Only the third is a DCS question.
+---
+--- @param skynetElement table|nil
+--- @return string
+function veafSkynet.describeRadarUnits(skynetElement)
+  if not skynetElement or not skynetElement.getRadars then
+    return "none"
+  end
+  local ok, radars = pcall(skynetElement.getRadars, skynetElement)
+  if not ok or type(radars) ~= "table" then
+    return "unreadable"
+  end
+  local described = {}
+  for _, radar in pairs(radars) do
+    local name = tostring(radar.dcsName)
+    local resolved, unit = pcall(Unit.getByName, name)
+    table.insert(
+      described,
+      string.format(
+        "%s/%s/live=%s/resolvable=%s",
+        name,
+        tostring(radar.typeName),
+        tostring(veafSkynet.dcsObjectStillExists(_dcsRepresentationOf(radar)) and true or false),
+        tostring((resolved and unit) and true or false)
+      )
+    )
+  end
+  if #described == 0 then
+    return "none"
+  end
+  return table.concat(described, " ; ")
 end
 
 --- Read the range data again for an element whose radars all reported nothing, and rebuild the
@@ -654,12 +693,18 @@ function veafSkynet.checkRadarRange(networkName, skynetElement)
   elseif liveRadarCount > 0 then
     ending = "re-reading is switched off (MaxRangeRechecks = 0)"
   end
+  -- The radar **units** are named, not just the group. Four readings of Tripack's log could not tell
+  -- whether Skynet had hold of the right unit, because the line named the group only — and the group
+  -- name of a zone respawn (`TESTCZ [r] TESTCZ - SA6#10316`) says nothing about the unit underneath.
+  -- `resolvable` is the other half: it says whether `Unit.getByName` can find that unit at all, which
+  -- separates "Skynet holds a unit DCS has forgotten" from "the unit is there and silent".
   veaf.loggers.get(veafSkynet.Id):info(
-    "RADAR RANGE ZERO [%s]: radars=%s live=%s launchers=%s - the site detects nothing, %s",
+    "RADAR RANGE ZERO [%s]: radars=%s live=%s launchers=%s radarUnits=%s - the site detects nothing, %s",
     veaf.lp(elementName),
     veaf.lp(radarCount),
     veaf.lp(liveRadarCount),
     veaf.lp(skynetElement.launchers and #skynetElement.launchers or 0),
+    veaf.lp(veafSkynet.describeRadarUnits(skynetElement)),
     veaf.lp(ending)
   )
   if willRetry then

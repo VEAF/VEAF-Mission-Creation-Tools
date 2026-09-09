@@ -237,7 +237,27 @@ function veafMissionDb.buildSnapshot()
                   -- the mission to keep in step, so the record carries the door rather than the rooms.
                   missionData = groupData,
                 }
-                for _, unitData in pairs(groupData.units or {}) do
+                -- **`ipairs`, and the order it preserves is load-bearing.** `pairs` walks a Lua table in
+                -- hash order, so the units of every record came out shuffled — and a group respawned
+                -- from a record is submitted to `coalition.addGroup` in that order.
+                --
+                -- Measured in game on 2026-09-09, against DCS itself through the bridge: a SAM group
+                -- whose **first** unit is not its radar is created with **no sensors at all**, on every
+                -- unit. `Unit.getSensors()` answers nil, so Skynet reads a detection range of zero,
+                -- the site never considers a target in range, never goes live and never fires — and it
+                -- is counted under `Raddest` on the status page, because `isRadarWorking()` goes
+                -- through `getSensors()` too. Both of #946's symptoms, from this one word.
+                --
+                -- Proved in both directions rather than argued: five units in the record's shuffled
+                -- order gave 0/5 units with sensors; the *same five* with the radar moved back to first
+                -- gave 5/5; and a two-unit group that worked was broken by putting the launcher first.
+                -- Eleven other probes cleared `coldAtStart`, `playerCanDrive`, `unitId`, `groupId`,
+                -- `missionData`, `route`, `task`, the coordinates and `coalition.addGroup` itself.
+                --
+                -- It is not only the sensors: everything that anchors on "unit 1" of a respawned group
+                -- — the spawn offset of FIX-TRIPACK-FIELD-REPORTS ticket 04 among them — was anchoring
+                -- on whichever unit the hash order happened to put there.
+                for _, unitData in ipairs(groupData.units or {}) do
                   if unitData.name then
                     local record = unitRecord(unitData, groupData, context)
                     veafMissionDb.unitsByName[record.unitName] = record

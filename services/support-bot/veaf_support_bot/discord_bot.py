@@ -1495,6 +1495,39 @@ class ClientThreadPoster:
             return False
         return True
 
+    async def mark_reopened(self, channel_id: int, thread_id: int) -> bool:
+        """Take the settled mark back off, once the issue is open again.
+
+        Args:
+            channel_id: The channel the thread belongs to.
+            thread_id: The thread.
+
+        Returns:
+            Whether the mark was removed. Cosmetic like :meth:`mark_closed`, so a refusal never
+            fails a round: the reopening is said in words as well.
+        """
+        try:
+            thread = await self._thread(thread_id)
+        except (discord.HTTPException, discord.ClientException):
+            return False
+        if thread is None:
+            return False
+        name = thread.name.removeprefix(CLOSED_MARK)
+        if name == thread.name and not thread.archived:
+            # Nothing to undo. Worth the check rather than an idempotent edit: Discord allows a
+            # thread **two renames every ten minutes**, and spending one to write the name it
+            # already has is how the rename that matters gets refused.
+            return True
+        try:
+            await thread.edit(name=name or thread.name, archived=False)
+        except (discord.HTTPException, discord.ClientException) as error:
+            self._logger.info(
+                "the thread could not be marked as reopened",
+                extra={"event": "relay.unmark_failed", "discord_thread": thread_id, "error": type(error).__name__},
+            )
+            return False
+        return True
+
 
 def role_ids_of(user: object) -> tuple[str, ...]:
     """Return the role ids the interaction says its author holds.

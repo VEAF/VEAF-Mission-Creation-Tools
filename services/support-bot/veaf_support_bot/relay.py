@@ -30,13 +30,23 @@ loop this module has to not have — and neither is a label, a milestone or an e
 
 A deleted thread, an archived thread, a reporter who left the server, a GitHub outage: none of them
 may stop the relay for everybody else. Each is skipped, counted and logged; the link is dropped only
-when Discord says the thread is gone for good.
+when Discord says the thread is gone for good, or when GitHub says the **issue** is.
+
+## A closure is not the end of the conversation
+
+Announcing a closure used to drop the link, to bound how many issues a round polls. Measured on
+#946, closed one evening and reopened the next morning: the reopening reached a relay that no longer
+knew the issue existed, and ten comments were written into a thread that had been archived and
+marked as settled. So a closed link is now **kept** for `KEEP_CLOSED_SECONDS`, which is what carries
+a reopening back to the reporter, and the ceiling it was protecting is bounded by that window
+instead.
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from logging import Logger
 from pathlib import Path
@@ -53,8 +63,10 @@ LINKS_VERSION = 1
 #: How often the tracked issues are polled, in seconds. Nobody is waiting in front of a bug report,
 #: and each round costs **two** API calls per tracked issue — the issue's state and its comments.
 #: At ten minutes that is 12 calls an hour per followed report, against the 5000 an hour a GitHub
-#: App installation gets; a link is dropped as soon as its issue closes, which is what keeps that
-#: number from growing without end.
+#: App installation gets, so the round stays affordable up to some 400 followed reports. What keeps
+#: it under that is `KEEP_CLOSED_SECONDS`: a link is let go a week after its issue closed. It used to
+#: be dropped at the closure itself, which bounded the round harder and cost the reporter every
+#: reopening — read that constant before concluding anything about quota pressure here.
 DEFAULT_POLL_SECONDS = 600.0
 
 #: Comments carried into the thread in one round, per issue. A maintainer pasting a long exchange
@@ -73,6 +85,28 @@ MAX_AUTHOR_CHARS = 80
 COMMENT_PAGE_SIZE = 100
 MAX_COMMENT_PAGES = 5
 
+#: How long a link whose issue is closed is kept before it is forgotten. It is what carries a
+#: **reopening** back to the thread, and a week is long enough that a reopening later than that is a
+#: new conversation anyway. The cost is small: at two calls per link per round, six rounds an hour,
+#: ten closed links spend 120 of the 5000 calls an hour a GitHub App installation gets.
+KEEP_CLOSED_SECONDS = 7 * 24 * 3600.0
+
+#: The statuses that mean the issue itself is gone and asking again can only fail. `410` is the only
+#: member on purpose: GitHub answers it with *"This issue was deleted"* and nothing else. A `404` is
+#: that same deletion **and** an installation whose access was revoked for a minute, so dropping
+#: every link on the first `404` would unsubscribe every reporter at once over a transient fault.
+GONE_STATUSES = (410,)
+
+
+class IssueGone(Exception):
+    """The issue itself no longer exists, so following it can only fail from now on.
+
+    Distinct from the ``None`` a watcher returns for a transient failure: that one holds the cursor
+    and tries again next round, which is right for an outage and wrong for a deletion — three
+    deleted issues were polled every ten minutes for a day, and their warnings were the only thing
+    in the log of a relay that had stopped relaying.
+    """
+
 
 @dataclass
 class Link:
@@ -85,7 +119,14 @@ class Link:
         lang: Language the reporter was answered in.
         last_comment_id: Highest comment id already relayed. ``0`` means none yet — deliberately
             **not** a timestamp: two comments in the same second would race, and ids only grow.
-        closed: Whether the closure has already been announced, so it is announced once.
+        closed: Whether the closure has already been announced, so it is announced once. Cleared
+            again when the issue is reopened, which is what makes the reopening announced once too.
+        closed_since: When the closure was announced, as a Unix timestamp; ``0.0`` while the issue
+            is open. What the retention window is measured from.
+        closed_marked: Whether the **thread** currently carries the settled mark. Tracked apart
+            from :attr:`closed` because the two can disagree: Discord allows a thread two renames
+            every ten minutes, so a rename can be refused. Held until the rename succeeds, or a
+            reopened report would keep a thread named as closed for ever.
         failures: Consecutive rounds this link could not be delivered to.
     """
 
@@ -95,6 +136,8 @@ class Link:
     lang: str = "fr"
     last_comment_id: int = 0
     closed: bool = False
+    closed_since: float = 0.0
+    closed_marked: bool = False
     failures: int = 0
 
 
@@ -156,6 +199,18 @@ class ThreadPoster(Protocol):
         Returns:
             Whether the mark was applied. A refusal is cosmetic and never fails a round: the closure
             is also said in words.
+        """
+
+    async def mark_reopened(self, channel_id: int, thread_id: int) -> bool:
+        """Take the settled mark back off, once the issue is open again.
+
+        Args:
+            channel_id: The channel the thread belongs to.
+            thread_id: The thread.
+
+        Returns:
+            Whether the mark was removed. Cosmetic like its counterpart — the reopening is said in
+            words too — so a refusal never fails a round.
         """
 
 
@@ -227,6 +282,8 @@ class LinkStore:
                     "lang": link.lang,
                     "last_comment_id": link.last_comment_id,
                     "closed": link.closed,
+                    "closed_since": link.closed_since,
+                    "closed_marked": link.closed_marked,
                     "failures": link.failures,
                 }
                 for link in links.values()
@@ -262,6 +319,11 @@ def _link_of(entry: Any) -> Link | None:
             lang=normalize_language(str(entry.get("lang", "fr"))),
             last_comment_id=int(entry.get("last_comment_id", 0)),
             closed=bool(entry.get("closed", False)),
+            closed_since=float(entry.get("closed_since", 0.0)),
+            # Defaults to `closed` rather than to False: a link persisted as closed was normally
+            # marked when it closed, and a file written before this field existed — or one an
+            # operator repaired by hand — must not leave a `✅` nobody will take off.
+            closed_marked=bool(entry.get("closed_marked", entry.get("closed", False))),
             failures=int(entry.get("failures", 0)),
         )
     except (KeyError, TypeError, ValueError):
@@ -320,6 +382,10 @@ class IssueWatcher:
             What changed, or ``None`` when GitHub could not be asked — which is a *transient*
             answer: nothing is relayed and nothing is marked as seen, so the next round tries again
             rather than losing the comment.
+
+        Raises:
+            IssueGone: The issue was deleted. Definitive, so the caller stops following it rather
+                than asking again every ten minutes for ever.
         """
         try:
             issue_response = await self._app.request("GET", f"/repos/{self._app.repository}/issues/{issue}")
@@ -330,6 +396,10 @@ class IssueWatcher:
             # in view whatever the issue's length.
             items = await self._recent_comments(issue)
         except GitHubError as error:
+            # Either call can be the one that answers `410`: an issue can be deleted between the
+            # read of its state and the read of its comments.
+            if error.status in GONE_STATUSES:
+                raise IssueGone(str(error)) from error
             self._logger.warning(
                 "an issue could not be polled",
                 extra={"event": "relay.poll_failed", "issue": issue, "error": str(error)},
@@ -412,6 +482,20 @@ def render_closed(issue: int, url: str, lang: str) -> str:
     return text("relay.closed", lang, issue=issue, url=url)
 
 
+def render_reopened(issue: int, url: str, lang: str) -> str:
+    """Render the reopening of an issue.
+
+    Args:
+        issue: The issue number.
+        url: Where to read it.
+        lang: ``"fr"`` or ``"en"``.
+
+    Returns:
+        The message.
+    """
+    return text("relay.reopened", lang, issue=issue, url=url)
+
+
 @dataclass
 class Round:
     """What one polling round did, for the log and for the tests.
@@ -420,14 +504,18 @@ class Round:
         polled: Links looked at.
         relayed: Messages posted into threads.
         closed: Closures announced.
-        dropped: Links given up on because the thread is gone.
+        reopened: Reopenings announced.
+        dropped: Links given up on because the thread, or the issue, is gone.
+        forgotten: Links let go because their issue has been closed for the whole window.
         failed: Links that could not be reached this round and stay for the next.
     """
 
     polled: int = 0
     relayed: int = 0
     closed: int = 0
+    reopened: int = 0
     dropped: int = 0
+    forgotten: int = 0
     failed: int = 0
     notes: list[str] = field(default_factory=list)
 
@@ -443,6 +531,7 @@ class Relay:
         *,
         repository: str,
         logger: Logger | None = None,
+        clock: Callable[[], float] | None = None,
     ) -> None:
         """Initialize the relay.
 
@@ -452,12 +541,15 @@ class Relay:
             store: Where the links are kept.
             repository: ``owner/name``, for the issue links written into the messages.
             logger: Logger to use.
+            clock: Source of Unix timestamps; defaults to :func:`time.time`. Injected so the
+                retention window can be tested without waiting a week for it.
         """
         self._watcher = watcher
         self._poster = poster
         self._store = store
         self._repository = repository
         self._logger = logger or get_logger("relay")
+        self._clock: Callable[[], float] = clock or time.time
         self._links: dict[int, Link] = store.load()
 
     def attach(self, poster: ThreadPoster) -> None:
@@ -518,13 +610,24 @@ class Relay:
             link = self._links.get(issue)
             if link is None:
                 continue
-            result.polled += 1
-            await self._deliver(link, result)
+            if self._expired(link):
+                # Checked before the round spends a call on it: a link whose window is over has
+                # nothing left to say, and asking GitHub about it first would be two calls to learn
+                # what the clock already knows.
+                self._links.pop(issue, None)
+                result.forgotten += 1
+                self._logger.info(
+                    "a report closed long enough ago is no longer followed",
+                    extra={"event": "relay.forgotten", "issue": link.issue},
+                )
+            else:
+                result.polled += 1
+                await self._deliver(link, result)
             # Persisted per link, not once at the end. A shutdown cancels this loop, and
             # `CancelledError` is not an `Exception` in 3.11 — so a save deferred to the end is a
             # save that never happens, and every message already posted is posted again on restart.
             self._store.save(self._links)
-        if result.relayed or result.closed or result.dropped:
+        if result.relayed or result.closed or result.reopened or result.dropped or result.forgotten:
             self._logger.info(
                 "relay round done",
                 extra={
@@ -532,11 +635,34 @@ class Relay:
                     "polled": result.polled,
                     "relayed": result.relayed,
                     "closed": result.closed,
+                    "reopened": result.reopened,
                     "dropped": result.dropped,
+                    "forgotten": result.forgotten,
                     "failed": result.failed,
                 },
             )
         return result
+
+    def _expired(self, link: Link) -> bool:
+        """Say whether a closed link has been closed long enough to let go of.
+
+        Args:
+            link: The link, whose ``closed_since`` is repaired in place when it says nothing usable.
+
+        Returns:
+            Whether the retention window is over.
+        """
+        if not link.closed:
+            return False
+        now = self._clock()
+        if not 0.0 < link.closed_since <= now:
+            # Absent — a file written before this window existed, or edited by hand — or ahead of
+            # the clock, which an NTP correction can produce. Either way the window starts now:
+            # letting a link go early is the failure this whole mechanism exists to prevent, so the
+            # ambiguous case must never resolve to it.
+            link.closed_since = now
+            return False
+        return now - link.closed_since >= KEEP_CLOSED_SECONDS
 
     async def _deliver(self, link: Link, result: Round) -> None:
         """Deliver one issue's news into its thread.
@@ -545,7 +671,19 @@ class Relay:
             link: The link to deliver.
             result: The round's tally, updated in place.
         """
-        state = await self._watcher.since(link.issue, link.last_comment_id)
+        try:
+            state = await self._watcher.since(link.issue, link.last_comment_id)
+        except IssueGone as error:
+            # Definitive, unlike the `None` below: the issue was deleted, and every future round
+            # would ask for it again and warn again. Dropped once, said once.
+            self._links.pop(link.issue, None)
+            result.dropped += 1
+            result.notes.append(f"#{link.issue}: the issue is gone")
+            self._logger.info(
+                "a report is no longer followed: its issue is gone",
+                extra={"event": "relay.issue_gone", "issue": link.issue, "error": str(error)},
+            )
+            return
         if state is None:
             # Transient: the cursor is not moved, so nothing is lost — the next round sees the same
             # comments again.
@@ -553,6 +691,25 @@ class Relay:
             return
 
         url = self._url(link.issue)
+        # The reopening comes first, before any comment. What follows it is everything said on the
+        # issue while nobody was listening, and it reads backwards arriving under a thread still
+        # named `✅` and still archived.
+        if link.closed and not state.closed:
+            if not await self._post(link, render_reopened(link.issue, url, link.lang), result):
+                return
+            link.closed = False
+            link.closed_since = 0.0
+            result.reopened += 1
+        if not state.closed and link.closed_marked:
+            # Deliberately **not** part of the branch above, and not gated on its success either.
+            # Discord allows a thread two renames every ten minutes and the closure spent one, so
+            # this rename can be refused — and neither outcome may stop the round: holding the
+            # announcement behind it would cost the reporter his messages over a cosmetic call,
+            # while clearing the flag anyway would leave a live thread named `✅` for ever, with no
+            # later round in a position to retry. So the flag survives a refusal and only a
+            # success clears it.
+            link.closed_marked = not await self._poster.mark_reopened(link.channel_id, link.thread_id)
+
         posted = 0
         for comment in state.comments:
             if comment.by_bot:
@@ -575,15 +732,17 @@ class Relay:
         if state.closed and not link.closed:
             if not await self._post(link, render_closed(link.issue, url, link.lang), result):
                 return
-            await self._poster.mark_closed(link.channel_id, link.thread_id)
+            link.closed_marked = await self._poster.mark_closed(link.channel_id, link.thread_id)
             link.closed = True
+            link.closed_since = self._clock()
             result.closed += 1
-            # Stop following it. Nothing more will be relayed from a closed issue, and a link that
-            # is never dropped makes the round grow for ever: at two calls per link every ten
-            # minutes, a few hundred filed reports would exhaust the installation's hourly quota
-            # and silence the relay for everybody. If the issue is reopened, the reporter is told
-            # in this very message to say so in the thread.
-            self._links.pop(link.issue, None)
+            # Kept, not dropped. A link that is never let go makes the round grow for ever — at two
+            # calls per link every ten minutes, a few hundred reports would exhaust the
+            # installation's hourly quota and silence the relay for everybody — but dropping it
+            # *here* is worse, and was the bug: the `relay.closed` message invites the reporter to
+            # say so if the problem persists, a maintainer answers that by **reopening** the issue,
+            # and the link is the only thing that can carry the reopening back to him. So the
+            # ceiling is held by `KEEP_CLOSED_SECONDS` instead, and `_expired` does the letting go.
 
     async def _post(self, link: Link, content: str, result: Round) -> bool:
         """Post one message, and drop the link when the thread is gone for good.

@@ -349,6 +349,9 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
             "✅ Le ticket #{issue} est **clos** : {url}\nSi ton problème persiste, dis-le ici — "
             "un mainteneur pourra le rouvrir."
         ),
+        "relay.reopened": (
+            "🔄 Le ticket #{issue} a été **rouvert** : {url}\nJe rapporte ici ce qui s'y est dit depuis."
+        ),
         "match.button.same": "Oui, c'est ça",
         "match.button.different": "Non, le mien est différent",
         "escalate.button": "Signaler un bug",
@@ -686,6 +689,9 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "relay.closed": (
             "✅ Issue #{issue} is **closed**: {url}\nIf your problem is still there, say so here — "
             "a maintainer can reopen it."
+        ),
+        "relay.reopened": (
+            "🔄 Issue #{issue} has been **reopened**: {url}\nI am bringing over what has been said on it since."
         ),
         "match.button.same": "Yes, that is it",
         "match.button.different": "No, mine is different",

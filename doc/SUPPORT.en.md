@@ -131,6 +131,11 @@ The bot opens a **public thread** — in the Discord forum channel dedicated to 
 is one — and puts the issue's link in it. When somebody answers on the issue, or when it is closed,
 **the bot reports it in that thread**: you do not have to watch GitHub.
 
+A closed issue can be **reopened** — that is the normal answer to a *"it is still not working"*
+written in the thread. The bot then announces it there, takes the `✅` mark off the thread and puts
+it back in service, then brings over what was said on the issue in the meantime. It follows a closed
+issue for another week; after that, write in the thread and a maintainer will pick it up.
+
 The other direction is **manual**: to add something — a file you forgot, a detail — write it in the
 thread and a maintainer will carry it over to the issue. The bot does not write from Discord to
 GitHub, deliberately: that would open a write channel onto a public repository from a room anybody

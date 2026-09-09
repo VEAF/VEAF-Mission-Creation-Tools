@@ -208,6 +208,19 @@ class _NoPoster:
         self.calls += 1
         return False
 
+    async def mark_reopened(self, channel_id: int, thread_id: int) -> bool:
+        """Refuse to unmark.
+
+        Args:
+            channel_id: Ignored.
+            thread_id: Ignored.
+
+        Returns:
+            ``False``.
+        """
+        self.calls += 1
+        return False
+
 
 class _Unset:
     """What an omitted argument is, as opposed to one supplied as ``None``.

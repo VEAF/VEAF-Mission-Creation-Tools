@@ -90,6 +90,53 @@ of the six production changes was reverted on its own and verified to turn the s
 is in the lot's report. What the code cannot settle is why DCS answers `nil`, which is written up as
 a DCS-session item.
 
+## What the pre-merge review caught in this lot's own code
+
+Five passes (conformity to the repository's instructions, obvious bugs in the diff, history of the
+modified lines, prior pull requests on these files, directives written in the code's comments).
+Sourcery could not review: the weekly 250 000-character budget was spent, as it was for #947.
+
+Two findings at or above the reporting threshold, both fixed:
+
+1. **The coverage rebuild woke a network somebody had switched off.** `SkynetIADS:buildRadarCoverage`
+   ends by calling `informChildrenOfStateChange()` on every SAM site — the vendored comment says it
+   is *"to make sure autonomous sites go live"* — and a parentless site whose autonomous behaviour is
+   the default `AUTONOMOUS_STATE_DCS_AI` then goes live: radar on, alarm state red.
+   `deactivateNetwork` deliberately leaves `samSites` populated and only marks the network, and
+   `sweepVanishedSites` walks **every** network, so the periodic sweep would have relit a deactivated
+   one — around the refusal `delayedActivate` exists to enforce (#261), and with those elements'
+   world event handlers already unregistered by `cleanUp()`. Two passes found it independently.
+   `rebuildRadarCoverage` now refuses a deactivated network.
+2. **The written justification for not requiring `dynamic_spawn` was wrong** — and it was the whole
+   argument, so an inaccurate comment here is a defect in itself. It said the start-up enrolment takes
+   an active zone's batteries because `loadAllAtInit` is true. The history pass objected that a zone's
+   `initialize` destroys the editor groups synchronously, before that enrolment ever runs. It is right
+   about the mechanism and wrong about the conclusion, and Tripack's log settles it: what was enrolled
+   at 09:58:02.591 is `TESTCZ [r] TESTCZ - SA6#10262` — a **respawn**, as the name says — because
+   `ActivateZone` schedules the activation at `timer.getTime() + 1` and `DelayForStartup` is `1`. The
+   real story is worse than the one first written: membership was decided by which of two tasks
+   scheduled for the same second ran first. Corrected in the code comment, in the ticket and in both
+   documentation pages.
+
+Three below the threshold, fixed anyway:
+
+- the lot index row was written in French, which the repository's own instructions forbid for
+  technical documentation;
+- the two new settings (`DelayForRangeRecheck`, `MaxRangeRechecks`) were announced in the changelog
+  and documented nowhere, while the preceding lot documented its own knob on that same page;
+- `RADAR RANGE ZERO` promised a re-read even when none was coming (no live radar left, or
+  `MaxRangeRechecks = 0`) — misleading in the one log this lot exists to make readable. It now names
+  which of the three cases applies. Two more new comments overstated what the code does (the
+  idempotence of `setupRangeData`, and "the same criterion that chose the alarm state", which only
+  holds when no `#alarm=` tag was stated) and were corrected.
+
+One finding was checked and **dismissed with its evidence**: that a zone's `#command` air defences
+would be left orphaned. The SAM shortcuts carry `skynet true` (`veafShortcuts.lua:837`), so they take
+`veafSpawnCore`'s explicit integration path at spawn time. And one gap is recorded rather than fixed,
+in ticket 02: a combat-zone **early-warning radar** given a route would not rejoin the network, since
+the gate is `isMobile()`. No mission in the repository exercises it and this lot has no measurement
+of it.
+
 ## Definition of done
 
 - the three tickets, each with tests that fail when the production change is reverted

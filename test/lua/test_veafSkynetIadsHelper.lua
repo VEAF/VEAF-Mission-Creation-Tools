@@ -2354,6 +2354,23 @@ function TestVeafSkynetCoverageAfterRemoval:test_a_sweep_that_removes_nothing_le
   luaunit.assertEquals(self.coverageRebuilds, 0)
 end
 
+function TestVeafSkynetCoverageAfterRemoval:test_a_deactivated_network_is_not_woken_by_a_sweep()
+  -- #261: `buildRadarCoverage` ends by telling every SAM site to reconsider its state, and an
+  -- autonomous site with no live parent goes live — radar on. `deactivateNetwork` leaves the site
+  -- list populated, so the periodic sweep reaches a network somebody switched off on purpose.
+  self:_network({ _sweepableElement("CMBT_TESTCZ - SA6", "SA6-radar", false) })
+  veafSkynet.structure["red iads"].deactivated = true
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 1, "the site must still be removed")
+  luaunit.assertEquals(self.coverageRebuilds, 0, "a deactivated network was relit by the sweep")
+end
+
+function TestVeafSkynetCoverageAfterRemoval:test_a_deactivated_network_refuses_a_direct_rebuild()
+  self:_network({})
+  veafSkynet.structure["red iads"].deactivated = true
+  luaunit.assertFalse(veafSkynet.rebuildRadarCoverage("red iads"))
+  luaunit.assertEquals(self.coverageRebuilds, 0)
+end
+
 function TestVeafSkynetCoverageAfterRemoval:test_a_network_without_an_iads_does_not_raise()
   veafSkynet.structure["red iads"] = { coalitionID = coalition.side.RED, groups = {} }
   local ok = pcall(veafSkynet.rebuildRadarCoverage, "red iads")
@@ -2450,6 +2467,15 @@ function TestVeafSkynetIntegrateMissionSpawn:test_the_birth_event_path_still_hon
   _redSamGroup("SOMEONE-ELSES-SAM", true)
   veafSkynet._integrateSpawn("SOMEONE-ELSES-SAM", coalition.side.RED, true)
   luaunit.assertEquals(#self.enrolled, 0)
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_it_leaves_the_work_to_a_network_that_integrates_spawns()
+  -- #151's rule: the two paths are exclusive. With the flag on, the birth-event handler is armed and
+  -- `coalition.addGroup` fires the event, so this path must not ask for a second integration.
+  veafSkynet.structure["red iads"].dynamicSpawn = true
+  _redSamGroup("TESTCZ [r] TESTCZ - SA6#10262", true)
+  veafSkynet.integrateMissionSpawn("TESTCZ [r] TESTCZ - SA6#10262")
+  luaunit.assertEquals(#self.scheduled, 0)
 end
 
 function TestVeafSkynetIntegrateMissionSpawn:test_a_group_that_is_gone_is_not_integrated()

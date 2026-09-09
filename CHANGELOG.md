@@ -83,7 +83,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   graph is built once, when the network activates, so a removal left the departed site listed as a
   child of everything that could see it: on Tripack's log the early-warning radar still announced
   five sites in its covered area, four of which had left the network — and went on informing them of
-  contacts, cleaned up as they were.
+  contacts, cleaned up as they were. A network somebody switched off on purpose is left alone: Skynet
+  rebuilds a coverage by telling every site to reconsider its state, which lights up the autonomous
+  ones, and a deactivated network must stay off until someone reactivates it.
 
 ## [6.20.0] — 2026-09-07
 

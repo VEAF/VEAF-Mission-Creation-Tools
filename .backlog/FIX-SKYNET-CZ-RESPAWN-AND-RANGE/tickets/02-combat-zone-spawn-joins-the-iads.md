@@ -21,15 +21,24 @@ on**. That decision stands, and this ticket does not reopen it. What it repairs 
 flag does not govern:
 
 `veafSkynet.loadAllAtInit` is `true` for both coalitions (`veafSkynetIadsHelper.lua:54`), so the
-start-up enrolment takes **every** eligible group on the map — a combat zone's air defences included,
-with `dynamic_spawn` off. That is what Tripack sees: `4 SAM` at mission start, his zone's SA-6 among
-them. Cycle the zone and it is gone for good.
+start-up enrolment takes **every** eligible group standing on the map at `DelayForStartup` — one
+second in. And `veafCombatZone.ActivateZone` schedules a zone's activation at `timer.getTime() + 1`
+(`veafCombatZone.lua:2714`): **the same second**.
 
-So the same site is in the network at second one and out of it at second sixty, under one
-configuration. A mission maker cannot read that as an option; it reads as the IADS losing sites as
-the mission runs. `dynamic_spawn` keeps its meaning — groups the Mission Editor or a third-party
-script spawns — and a zone respawning content the author placed in it stops being a spawn nobody
-asked for.
+The pre-merge history pass challenged this, and was half right. The zone's `initialize` destroys the
+editor groups inside the trigger zone synchronously, while the config script loads, so the group the
+enrolment finds is never the editor one — it is the group the *activation* has just respawned, and
+only if the activation ran first. It did, on Tripack's run: `TESTCZ [r] TESTCZ - SA6#10262` — a
+respawn, as its name says — was enrolled at **09:58:02.591**, in the same millisecond as
+`Creating IADS for RED`, and `dynamic_spawn` is absent from that mission's `veaf-config.lua`.
+
+Which makes the case for this ticket stronger than first written: without it, whether a zone's
+battery belongs to the IADS is decided by the order of two tasks scheduled for the same second. It
+joined at mission start, left at the first sweep after a deactivation, and never came back. Requiring
+`dynamic_spawn` would not fix that — it would only make the first second agree with the rest by
+dropping the site from both. `dynamic_spawn` keeps its meaning (groups the Mission Editor or a
+third-party script spawns); a zone announcing what it puts back is what makes the answer the same at
+second one and at second six hundred.
 
 ## What to build
 
@@ -58,3 +67,16 @@ Double integration is not a risk: `addGroupToNetwork` refuses a group the networ
 - the integration is skipped when the group is gone by the time it runs, and when the module is not
   initialised
 - reverting the production change makes the new tests fail
+
+## Known limit, left as it is
+
+The gate is `not isMobile()` — a route with more than one waypoint. That is the criterion the alarm
+state already uses, and it is SAM-shaped: an **early-warning radar** a zone spawns with a route would
+not rejoin the network, although a moving radar still sees. Not fixed here, because the fix would be
+a second, EWR-specific criterion for a case no mission in the repository exercises, and this lot has
+no measurement of it. Recorded so the next reader does not take the omission for an oversight.
+
+Found by the pre-merge review pass on prior pull requests, which also surfaced the exclusivity rule
+#151 posed for the two integration paths (*"doing it here as well would integrate the same group
+twice"*). That one **was** fixed: `integrateMissionSpawn` now leaves the work to a network whose
+`dynamicSpawn` is on, instead of scheduling an integration that network would refuse.

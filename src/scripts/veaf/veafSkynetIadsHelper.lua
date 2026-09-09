@@ -482,6 +482,20 @@ function veafSkynet.rebuildRadarCoverage(networkName)
     veaf.loggers.get(veafSkynet.Id):trace("rebuildRadarCoverage: no IADS for network %s", veaf.lp(networkName))
     return false
   end
+  -- #261, and this is not caution: `SkynetIADS:buildRadarCoverage` ends by calling
+  -- `informChildrenOfStateChange()` on **every** SAM site — the vendored comment there says it is
+  -- "to make sure autonomous sites go live" — and a site with no live parent whose autonomous
+  -- behaviour is the default `AUTONOMOUS_STATE_DCS_AI` then goes live: radar on, alarm state red.
+  -- `deactivateNetwork` deliberately leaves `samSites` populated and only marks the network, so the
+  -- periodic sweep walks a deactivated network too and would relight it here, around the refusal
+  -- `delayedActivate` exists to enforce. Worse, those elements have had `cleanUp()` called on them,
+  -- so they would come back up with their world event handlers unregistered.
+  if network.deactivated then
+    veaf.loggers
+      .get(veafSkynet.Id)
+      :trace("rebuildRadarCoverage: network %s was deactivated on purpose, leaving its coverage alone", veaf.lp(networkName))
+    return false
+  end
   local ok, err = pcall(network.iads.buildRadarCoverage, network.iads)
   if not ok then
     veaf.loggers.get(veafSkynet.Id):warn("network %s: rebuilding the radar coverage raised: %s", veaf.lp(networkName), veaf.lp(err))
@@ -544,8 +558,15 @@ end
 ---
 --- Re-reading **is** the repair: why DCS hands back a nil `getSensors()` for a radar unit it still
 --- holds is not observable from a log, so the dependency on that one reading being lucky is removed
---- rather than explained. `setupRangeData` only reads DCS and assigns a number, so asking again is
---- safe and idempotent.
+--- rather than explained.
+---
+--- Asking again is safe, but not idempotent, and the difference is worth stating rather than
+--- glossing: `SkynetIADSSAMSearchRadar:setupRangeData` increments its own `triedSensors` counter on
+--- every nil-sensor read, and the launcher variant guards its ammo bookkeeping on that counter
+--- staying `<= 2` ("we set initial values only the first time the method is called"). A handful of
+--- re-reads pushes it past that gate for good. Harmless here — the search-radar fallback into the
+--- launcher's range data is ungated, which is the path this uses — and bounded by
+--- `MaxRangeRechecks`, so the counter moves by at most three.
 ---
 --- @param networkName string
 --- @param skynetElement table
@@ -623,16 +644,25 @@ function veafSkynet.checkRadarRange(networkName, skynetElement)
       :debug("RADAR RANGE [%s]: %s m from %s radar(s)", veaf.lp(elementName), veaf.lp(maxRange), veaf.lp(radarCount))
     return
   end
+  -- `MaxRangeRechecks` is a mission-settable number, so zero has to mean zero rather than one.
+  local willRetry = liveRadarCount > 0 and veafSkynet.MaxRangeRechecks > 0
+  -- The verdict is part of the line, because the line is the diagnosis: promising a re-read that is
+  -- not coming would make this log misleading in exactly the place the lot exists to make readable.
+  local ending = "no radar left to ask, nothing to re-read"
+  if willRetry then
+    ending = string.format("re-reading in %s s", tostring(veafSkynet.DelayForRangeRecheck))
+  elseif liveRadarCount > 0 then
+    ending = "re-reading is switched off (MaxRangeRechecks = 0)"
+  end
   veaf.loggers.get(veafSkynet.Id):info(
-    "RADAR RANGE ZERO [%s]: radars=%s live=%s launchers=%s - the site detects nothing, re-reading in %s s",
+    "RADAR RANGE ZERO [%s]: radars=%s live=%s launchers=%s - the site detects nothing, %s",
     veaf.lp(elementName),
     veaf.lp(radarCount),
     veaf.lp(liveRadarCount),
     veaf.lp(skynetElement.launchers and #skynetElement.launchers or 0),
-    veaf.lp(veafSkynet.DelayForRangeRecheck)
+    veaf.lp(ending)
   )
-  -- `MaxRangeRechecks` is a mission-settable number, so zero has to mean zero rather than one.
-  if liveRadarCount > 0 and veafSkynet.MaxRangeRechecks > 0 then
+  if willRetry then
     veaf.scheduleFunction(
       veafSkynet.recheckRadarRange,
       { networkName, skynetElement, veafSkynet.MaxRangeRechecks },
@@ -1086,10 +1116,22 @@ end
 --- IADS drained as the mission ran.
 ---
 --- Why not simply require `dynamic_spawn` here, which FIX-SKYNET-DYNAMICSPAWN-SCOPE established as
---- the documented way to integrate mid-mission spawns: `veafSkynet.loadAllAtInit` is true for both
---- coalitions, so the start-up enrolment already takes an active zone's batteries **without** that
---- flag. The same site would be in the network at second one and out of it at second sixty under one
---- configuration, which no mission maker can read as an option.
+--- the documented way to integrate mid-mission spawns: because without this, whether a zone's
+--- battery is in the network is decided by a **race**, and the race is won at mission start and lost
+--- for the rest of the game.
+---
+--- `veafCombatZone.ActivateZone` schedules the zone's activation at `timer.getTime() + 1`
+--- (veafCombatZone.lua) and `veafSkynet.DelayForStartup` is `1` — the same second. The zone's
+--- `initialize` has already destroyed the editor groups standing in the trigger zone, synchronously,
+--- while the config script loaded; so what the enrolment can find is the group the *activation* has
+--- just respawned, and only if the activation ran first. Measured on Tripack's log of 2026-09-09: it
+--- did, and `TESTCZ [r] TESTCZ - SA6#10262` was enrolled at 09:58:02.591 by `loadAllAtInit` — with
+--- `dynamic_spawn` absent from that mission's configuration.
+---
+--- So the site was in the network at second one, out of it after the first sweep, and never back.
+--- Requiring the flag would not fix that; it would only make the first second consistent with the
+--- rest by removing the site from both. Telling the network explicitly, every time the zone puts a
+--- battery back, is what makes the answer the same at second one and at second six hundred.
 ---
 --- The coalition is read from the group rather than passed in, so a caller holding a country id
 --- cannot get it wrong. Integrating twice is not a risk: `addGroupToNetwork` refuses a group the
@@ -1106,6 +1148,20 @@ function veafSkynet.integrateMissionSpawn(groupName)
     return
   end
   local coalitionId = dcsGroup:getCoalition()
+  -- #151 posed the two integration paths as exclusive — "when the target network integrates dynamic
+  -- spawns, its birth-event handler does the work […] so doing it here as well would integrate the
+  -- same group twice" (veafSpawnCore.lua). A network with `dynamicSpawn` on has that handler armed,
+  -- and `coalition.addGroup` fires the birth event this call would race, so the work is left to it.
+  -- The second integration would be refused rather than duplicated, but "refused" is not the same
+  -- promise as "never asked", and the rule is the repository's, not this function's to bend.
+  if veafSkynet.integratesDynamicSpawns(veafSkynet.defaultIADS[tostring(coalitionId)]) then
+    veaf.loggers.get(veafSkynet.Id):trace(
+      "integrateMissionSpawn: the network of coalition %s integrates spawns itself, leaving %s to it",
+      veaf.lp(coalitionId),
+      veaf.lp(groupName)
+    )
+    return
+  end
   -- Deferred like the birth-event path, and for the same reason: veafSpawn declares a spawn's
   -- `skynet` option once its handler has returned a group name, which can be after this call.
   veaf.scheduleFunction(

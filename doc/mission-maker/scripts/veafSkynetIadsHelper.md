@@ -108,7 +108,7 @@ Se règle depuis `mission.yaml` (`dynamic_spawn`), ou avant `initialize` avec `v
 
 **Ce que ça règle.** Sans lui, un SAM apparu en cours de mission ne rejoint aucun réseau, et rien ne le dit.
 
-**Les zones de combat n'en ont pas besoin.** Une défense antiaérienne qu'une zone de combat remet sur la carte rejoint le réseau de sa coalition **quel que soit** ce réglage, comme elle le faisait au démarrage de la mission : le contenu qu'un auteur a placé dans une zone n'est pas une apparition que personne n'a demandée. Seuls les éléments qui **restent en place** sont concernés — un convoi qui traverse la zone n'a rien à faire dans un réseau de défense aérienne, exactement comme pour l'état d'alerte qu'il reçoit.
+**Les zones de combat n'en ont pas besoin.** Une défense antiaérienne qu'une zone de combat remet sur la carte rejoint le réseau de sa coalition **quel que soit** ce réglage : le contenu qu'un auteur a placé dans une zone n'est pas une apparition que personne n'a demandée. Sans cela, l'appartenance au réseau se jouait sur un hasard d'ordonnancement — l'activation d'une zone et l'enrôlement de démarrage sont programmés à la même seconde, donc une batterie de zone entrait dans le réseau si l'activation passait la première, et n'y revenait jamais après un cycle de la zone. Seuls les éléments qui **restent en place** sont concernés : un convoi qui traverse la zone n'a rien à faire dans un réseau de défense aérienne. Le critère est le même que celui de l'état d'alerte quand aucune balise `#alarm=` n'est posée — une balise explicite change l'état d'alerte, pas l'appartenance au réseau.
 
 **Qui décide, groupe par groupe.** L'option `skynet` d'une commande d'apparition reste maîtresse : `skynet false` garde le groupe **hors** de tout réseau (c'est ce que portent les raccourcis de convoi), et `skynet <nom de réseau>` l'envoie dans ce réseau précis plutôt que dans celui de sa coalition. Un groupe qu'aucune commande VEAF n'a déclaré — posé dans l'éditeur, créé par un script tiers — rejoint le réseau de sa coalition : c'est précisément à quoi sert ce réglage.
 
@@ -131,9 +131,17 @@ Nombre de secondes entre deux passages de nettoyage des réseaux (défaut : `60`
 
 Un site dont le groupe **quitte la mission sans être détruit** — c'est le cas quand une zone de combat est désactivée et emporte ses défenses aériennes — était conservé dans le réseau jusqu'à la fin de la partie. Il gonflait la page de statut, était parcouru à chaque cycle de détection, et **retenait le nom de son groupe** : le module refuse d'intégrer un groupe que le réseau liste déjà. Le balayage retire ces sites et libère le nom.
 
-À noter, parce que la nuance compte : libérer le nom ne suffit pas à faire rejoindre le réseau à un groupe qui réapparaît **sous le même nom pendant** l'intervalle de balayage. L'intégration se fait sur l'événement d'apparition, qui est déjà passé et a été refusé ; rien ne la relance ensuite. Ce cas ne concerne pas les zones de combat, qui donnent un nom neuf à chaque réapparition.
+À noter, parce que la nuance compte : libérer le nom ne suffit pas à faire rejoindre le réseau à un groupe qui réapparaît **sous le même nom pendant** l'intervalle de balayage. L'intégration se fait sur l'événement d'apparition, qui est déjà passé et a été refusé ; rien ne la relance ensuite. Ce cas ne concerne pas les zones de combat : elles donnent un nom neuf à chaque réapparition, et surtout elles annoncent elles-mêmes au réseau les défenses qu'elles remettent en place — voir [Apparitions en cours de mission](#dynamic-spawn).
 
 Les sites que le joueur a **détruits**, eux, restent dans le réseau : ce sont eux que comptent les colonnes `Raddest` et `Destroyed` de la page de statut, et c'est la lecture d'une SEAD réussie.
+
+### Portée radar illisible — `veafSkynet.DelayForRangeRecheck` / `veafSkynet.MaxRangeRechecks` {#radar-range-recheck}
+
+Nombre de secondes entre deux lectures de la portée d'un radar (défaut : `5`), et nombre de lectures tentées (défaut : `3`). À `0`, aucune relecture.
+
+Skynet lit la portée de détection d'un radar **une seule fois**, à l'instant où le site entre dans le réseau. Si DCS ne la donne pas à cet instant précis, elle reste à zéro pour le reste de la mission : le site ne détecte rien, ne s'allume jamais — même quand un avion lui passe dessus — et la page de statut le compte en `Raddest`, comme si son radar avait été détruit. Un site dans cet état est donc réinterrogé, et sa couverture est refaite dès qu'une lecture aboutit.
+
+Un site concerné laisse une ligne dans le journal (`RADAR RANGE ZERO`, puis `RADAR RANGE RECOVERED` ou `RADAR RANGE STILL ZERO`), avec le nombre de radars et de rampes du site. Une mission dont tous les sites répondent normalement n'écrit rien.
 
 ---
 

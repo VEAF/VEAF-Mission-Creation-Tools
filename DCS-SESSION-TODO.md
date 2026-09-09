@@ -1019,3 +1019,60 @@ Comparer `position` aux coordonnées éditeur de `AAA-1` — attention à la con
   (`veaf.findSpawnPoint` dans `spawnElement`) ne teste que le point d'ancrage, jamais les quatre
   autres unités du groupe — une unité déjà au bord de l'eau dans l'éditeur peut donc passer dedans
   sans que rien ne le remarque.
+
+---
+
+## Le SA-6 d'une zone de combat : radar muet, puis absent du réseau
+
+Ouvert par `FIX-SKYNET-CZ-RESPAWN-AND-RANGE`, correctif du 2026-09-09. Suite des deux retours de
+Tripack sur [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946).
+
+Ce qui est établi sans DCS, depuis son journal du 2026-09-09 :
+
+- son SA-6 de zone de combat est bien dans le réseau, ses rampes répondent, les trois autres sites le
+  voient — et **il ne voit personne**. Sa portée radar est nulle. Skynet la lit **une seule fois**, à
+  l'entrée dans le réseau, dans `getSensors()` ; si cette unique réponse est `nil`, la portée reste à
+  zéro pour toute la mission. C'est ce qui produit à la fois le « radar détruit » du tableau et le
+  site qui ne s'allume jamais ;
+- après désactivation puis réactivation de la zone, le site ne rejoint **plus du tout** le réseau : la
+  chaîne de respawn ne parle pas à Skynet, et le rattrapage par événement de naissance est éteint par
+  défaut. Preuve dans son journal, sans le fichier de mission : le SA-6 posé au marqueur est intégré
+  **2 ms** après sa naissance, là où ce rattrapage attend une seconde.
+
+Ce que ça ne dit pas, et qui demande le jeu : **pourquoi DCS répond `nil`** sur un radar qu'il détient
+encore. Quatre hypothèses sont éliminées dans le ticket 01 du lot (dont celle proposée à Tripack le
+2026-09-09 : le radar pas encore né). Le correctif supprime la dépendance à cette lecture unique — il
+n'explique pas la réponse de DCS.
+
+**À faire** : reconstruire le `.miz` de test de Tripack (`Skynet-test_20260908.miz`, une zone
+`TESTCZ` avec un `TESTCZ - SA6`, trois sites hors zone, `debug_red: true`) avec les scripts de cette
+branche, le lancer, et relever dans `dcs.log` :
+
+1. au démarrage, la ligne `RADAR RANGE ZERO [TESTCZ …]: radars=N live=N launchers=N` — **c'est elle
+   qui nomme la cause DCS** :
+   - `radars=1 live=1` → le radar est là, DCS le détient, et il ne répond pas : la lecture arrive trop
+     tôt ou `getSensors()` ne répond pas sur une unité fraîchement créée ;
+   - `radars=1 live=0` → le handle est mort alors que le groupe vit : c'est le groupe respawné qui
+     porte un cadavre d'unité, et il faut regarder le nettoyage de zone ;
+   - `radars=0` → Skynet a accepté un site sans radar, ce que `addSAMSite` est censé refuser : c'est
+     alors la reconnaissance de type qu'il faut regarder ;
+   - **aucune ligne du tout** → la portée est lue correctement dans ce build, et le défaut A ne se
+     reproduit pas — auquel cas ne pas conclure trop vite, comparer avec le journal du 2026-09-09 ;
+2. la suite : `RADAR RANGE RECOVERED [...]: N m on re-read` (la relecture a réussi, donc c'était
+   l'instant de la lecture) ou `RADAR RANGE STILL ZERO` (trois relectures, toujours rien : c'est
+   l'unité elle-même) ;
+3. `SAM: 4 | … | Raddest: 0` au démarrage, puis **désactiver et réactiver la zone** par le menu radio
+   (`ZONES DE COMBAT → SAM → TESTCZ`) : le compteur doit revenir à **4 SAM**, alors qu'il restait à 3
+   avant ce lot. Le journal doit montrer un `GOING LIVE` pour le groupe respawné, une seconde après sa
+   naissance ;
+4. voler dans la zone d'interception du SA-6 : il doit s'allumer et tirer.
+
+- **Attendu après correctif** : `Raddest: 0` au démarrage ou après relecture, `4 SAM` après le cycle
+  de zone, et le SA-6 qui engage.
+- **Ce qui rouvrirait le sujet** : `RADAR RANGE STILL ZERO` après les trois relectures — la portée
+  n'est alors pas récupérable par une nouvelle lecture, et il faudra la calculer autrement (la base de
+  types de Skynet porte une portée nominale par type, qui pourrait servir de repli).
+
+Cette vérification est **surtout celle de Tripack** : la mission est la sienne et le journal du
+2026-09-09 vient de son poste. Une session DCS locale peut la faire, mais la mission de test doit
+alors être reconstruite depuis ses sources.

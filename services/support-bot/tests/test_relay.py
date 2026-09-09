@@ -7,7 +7,8 @@ nothing tells anybody it stopped. So what is asserted here is mostly *not* the h
 * a comment already carried over is not carried over twice, across a restart included;
 * a transient GitHub failure moves no cursor, so nothing is lost;
 * a deleted thread drops one link and leaves every other report followed;
-* a closure is announced once.
+* a *deleted issue* drops one too — the failure that is not transient, however alike it looks;
+* a closure is announced once, and a **reopening** reaches the thread rather than nowhere.
 
 The cursor is a comment **id**, never a timestamp: two comments in the same second would race, and
 this is the kind of bug that shows up as "the reporter missed the one answer that mattered".
@@ -28,10 +29,12 @@ from veaf_support_bot.config import SupportBotConfig
 from veaf_support_bot.github_app import GitHubApp, Response
 from veaf_support_bot.relay import (
     COMMENT_PAGE_SIZE,
+    KEEP_CLOSED_SECONDS,
     LINKS_VERSION,
     MAX_COMMENT_PAGES,
     MAX_RELAYED_PER_ROUND,
     Comment,
+    IssueGone,
     IssueState,
     IssueWatcher,
     Link,
@@ -46,13 +49,14 @@ from veaf_support_bot.service import SupportBotService, _NoPoster, build_relay
 class _Watcher:
     """A watcher with scripted answers, one per round."""
 
-    def __init__(self, *rounds: IssueState | None) -> None:
+    def __init__(self, *rounds: IssueState | None | Exception) -> None:
         """Initialize the watcher.
 
         Args:
-            *rounds: What each successive round returns; the last one repeats.
+            *rounds: What each successive round returns; the last one repeats. An exception is
+                raised rather than returned, which is how the deleted issue is scripted.
         """
-        self._rounds = list(rounds) or [IssueState()]
+        self._rounds: list[IssueState | None | Exception] = list(rounds) or [IssueState()]
         self.seen: list[tuple[int, int]] = []
 
     async def since(self, issue: int, last_comment_id: int) -> IssueState | None:
@@ -64,25 +68,41 @@ class _Watcher:
 
         Returns:
             The scripted state.
+
+        Raises:
+            Exception: The one scripted for this round.
         """
         self.seen.append((issue, last_comment_id))
-        return self._rounds[min(len(self.seen) - 1, len(self._rounds) - 1)]
+        answer = self._rounds[min(len(self.seen) - 1, len(self._rounds) - 1)]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
 
 
 class _Poster:
     """A poster that records what reached which thread."""
 
-    def __init__(self, *, gone: bool = False, raises: Exception | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        gone: bool = False,
+        raises: Exception | None = None,
+        refuse_marks: int = 0,
+    ) -> None:
         """Initialize the poster.
 
         Args:
             gone: Whether every thread answers "I no longer exist".
             raises: Raised instead of posting, for the transient case.
+            refuse_marks: How many of the first mark calls are refused — Discord allows a thread
+                only two renames every ten minutes.
         """
         self.posted: list[tuple[int, str]] = []
         self.marked: list[int] = []
+        self.unmarked: list[int] = []
         self.gone = gone
         self.raises = raises
+        self.refuse_marks = refuse_marks
 
     async def post_to_thread(self, channel_id: int, thread_id: int, content: str) -> bool:
         """Record a post.
@@ -113,10 +133,34 @@ class _Poster:
             thread_id: The thread.
 
         Returns:
-            ``True``.
+            Whether it was applied.
         """
         self.marked.append(thread_id)
-        return True
+        return self._accepted()
+
+    async def mark_reopened(self, channel_id: int, thread_id: int) -> bool:
+        """Record the removal of a closure mark.
+
+        Args:
+            channel_id: The channel.
+            thread_id: The thread.
+
+        Returns:
+            Whether it was removed.
+        """
+        self.unmarked.append(thread_id)
+        return self._accepted()
+
+    def _accepted(self) -> bool:
+        """Say whether this mark call is accepted, spending one refusal when it is not.
+
+        Returns:
+            Whether Discord took it.
+        """
+        if self.refuse_marks <= 0:
+            return True
+        self.refuse_marks -= 1
+        return False
 
 
 def _comment(identifier: int, body: str = "can you attach your dcs.log?", *, bot: bool = False) -> Comment:
@@ -133,13 +177,25 @@ def _comment(identifier: int, body: str = "can you attach your dcs.log?", *, bot
     return Comment(identifier=identifier, author="veaf-bot[bot]" if bot else "Zip", body=body, by_bot=bot)
 
 
-def _relay(watcher: _Watcher, poster: Any, *, links: list[Link] | None = None) -> tuple[Relay, LinkStore]:
+#: A fixed "now" for the retention tests, so a window measured in days needs no waiting and no
+#: dependence on the machine's clock.
+NOW = 1_700_000_000.0
+
+
+def _relay(
+    watcher: _Watcher,
+    poster: Any,
+    *,
+    links: list[Link] | None = None,
+    clock: Any = None,
+) -> tuple[Relay, LinkStore]:
     """Build a relay over a temporary store.
 
     Args:
         watcher: What answers for GitHub.
         poster: What answers for Discord.
         links: Links to start from.
+        clock: Source of timestamps, for the retention window.
 
     Returns:
         The relay and its store.
@@ -148,7 +204,14 @@ def _relay(watcher: _Watcher, poster: Any, *, links: list[Link] | None = None) -
     store = LinkStore(Path(folder) / "relay-links.json")
     if links:
         store.save({link.issue: link for link in links})
-    return Relay(watcher, poster, store, repository="VEAF/VEAF-Mission-Creation-Tools"), store  # type: ignore[arg-type]
+    relay = Relay(
+        watcher,  # type: ignore[arg-type]
+        poster,
+        store,
+        repository="VEAF/VEAF-Mission-Creation-Tools",
+        clock=clock,
+    )
+    return relay, store
 
 
 def _link(issue: int = 901, **overrides: Any) -> Link:
@@ -356,17 +419,30 @@ class TestTheRenderedMessage(unittest.TestCase):
 class _Transport:
     """A GitHub transport answering the two calls one round makes."""
 
-    def __init__(self, comments: list[dict[str, Any]], state: str = "open", *, fail: bool = False) -> None:
+    def __init__(
+        self,
+        comments: list[dict[str, Any]],
+        state: str = "open",
+        *,
+        fail: bool = False,
+        status: int = 503,
+        fail_comments: bool = False,
+    ) -> None:
         """Initialize the transport.
 
         Args:
             comments: What the comments endpoint returns.
             state: The issue state.
             fail: Whether every call is refused.
+            status: The status a refused call answers with.
+            fail_comments: Whether only the *comments* call is refused — an issue can be deleted
+                between the read of its state and the read of its comments.
         """
         self.comments = comments
         self.state = state
         self.fail = fail
+        self.status = status
+        self.fail_comments = fail_comments
         self.urls: list[str] = []
 
     async def __call__(self, method: str, url: str, headers: Any, body: Any) -> Response:
@@ -385,8 +461,10 @@ class _Transport:
             return Response(201, {"token": "ghs-t", "expires_at": "2999-01-01T00:00:00Z"})
         self.urls.append(url)
         if self.fail:
-            return Response(503, {"message": "unavailable"})
+            return Response(self.status, {"message": "unavailable"})
         if url.endswith("/comments") or "/comments?" in url:
+            if self.fail_comments:
+                return Response(self.status, {"message": "This issue was deleted"})
             return Response(200, self.comments)
         return Response(200, {"number": 901, "state": self.state})
 
@@ -418,6 +496,26 @@ class TestReadingTheIssue(unittest.IsolatedAsyncioTestCase):
             The watcher.
         """
         return IssueWatcher(GitHubApp(credentials(), "VEAF/VEAF-Mission-Creation-Tools", transport))
+
+    async def test_a_deleted_issue_is_definitive(self) -> None:
+        transport = _Transport([], fail=True, status=410)
+
+        with self.assertRaises(IssueGone):
+            await self._watcher(transport).since(901, 0)
+
+    async def test_an_issue_deleted_between_the_two_calls_is_definitive_too(self) -> None:
+        transport = _Transport([_api_comment(1)], fail_comments=True, status=410)
+
+        with self.assertRaises(IssueGone):
+            await self._watcher(transport).since(901, 0)
+
+    async def test_the_transient_statuses_stay_transient(self) -> None:
+        """A `404` is a deletion **and** a permission lost for a minute; only `410` has one meaning."""
+        for status in (403, 404, 429, 500, 503):
+            with self.subTest(status=status):
+                state = await self._watcher(_Transport([], fail=True, status=status)).since(901, 0)
+
+                self.assertIsNone(state)
 
     async def test_only_comments_past_the_cursor_come_back(self) -> None:
         transport = _Transport([_api_comment(1), _api_comment(9)])
@@ -506,7 +604,9 @@ class TestTheServiceRunsIt(unittest.IsolatedAsyncioTestCase):
         placeholder = _NoPoster()
 
         self.assertFalse(asyncio.run(placeholder.post_to_thread(1, 2, "x")))
-        self.assertEqual(placeholder.calls, 1)
+        self.assertFalse(asyncio.run(placeholder.mark_closed(1, 2)))
+        self.assertFalse(asyncio.run(placeholder.mark_reopened(1, 2)))
+        self.assertEqual(placeholder.calls, 3, "every refusal is counted, so a test can prove it was replaced")
 
     async def test_attaching_replaces_the_placeholder(self) -> None:
         poster = _Poster()
@@ -625,17 +725,261 @@ class TestATransientDiscordFailureKeepsTheReport(unittest.IsolatedAsyncioTestCas
         self.assertEqual(store.load(), {})
 
 
-class TestTheRoundDoesNotGrowForEver(unittest.IsolatedAsyncioTestCase):
-    """Found in review, noted 75: nothing was ever dropped, so the round grew until the API refused."""
+class TestAClosureIsNotTheEnd(unittest.IsolatedAsyncioTestCase):
+    """#946: closed one evening, reopened the next morning, ten comments relayed nowhere.
 
-    async def test_a_closed_issue_stops_being_followed(self) -> None:
+    The link used to be dropped the moment the closure was announced. That is the only thing that
+    can carry a reopening back to the reporter, and `relay.closed` invites him to ask for exactly
+    that — so the drop silenced the thread on the normal answer to its own last sentence.
+    """
+
+    async def test_a_reopening_is_announced_and_unmarks_the_thread(self) -> None:
         poster = _Poster()
-        relay, store = _relay(_Watcher(IssueState(closed=True)), poster, links=[_link()])
+        relay, _ = _relay(
+            _Watcher(IssueState(closed=False)),
+            poster,
+            links=[_link(closed=True, closed_since=NOW - 3600.0, closed_marked=True)],
+            clock=lambda: NOW,
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.reopened, 1)
+        self.assertIn("reopened", poster.posted[0][1])
+        self.assertEqual(poster.unmarked, [20])
+
+    async def test_a_reopening_is_announced_once(self) -> None:
+        poster = _Poster()
+        relay, _ = _relay(
+            _Watcher(IssueState(closed=False)),
+            poster,
+            links=[_link(closed=True, closed_since=NOW - 3600.0)],
+            clock=lambda: NOW,
+        )
+
+        first = await relay.run_once()
+        second = await relay.run_once()
+
+        self.assertEqual((first.reopened, second.reopened), (1, 0))
+        self.assertEqual(len(poster.posted), 1, "an open issue must not be reopened every round")
+
+    async def test_the_reopening_comes_before_what_was_said_since(self) -> None:
+        """Otherwise the backlog lands under a thread still named `✅` and still archived."""
+        poster = _Poster()
+        relay, _ = _relay(
+            _Watcher(IssueState(comments=(_comment(1), _comment(2)), closed=False)),
+            poster,
+            links=[_link(closed=True, closed_since=NOW - 3600.0)],
+            clock=lambda: NOW,
+        )
 
         await relay.run_once()
 
-        self.assertEqual(store.load(), {}, "a closed issue has nothing left to relay")
+        self.assertIn("reopened", poster.posted[0][1])
+        self.assertEqual(len(poster.posted), 3, "the reopening, then both comments")
+
+    async def test_a_link_closed_within_the_window_is_still_polled(self) -> None:
+        watcher = _Watcher(IssueState(closed=True))
+        relay, store = _relay(
+            watcher,
+            _Poster(),
+            links=[_link(closed=True, closed_since=NOW - KEEP_CLOSED_SECONDS + 60.0)],
+            clock=lambda: NOW,
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.forgotten, 0)
+        self.assertEqual(len(watcher.seen), 1, "it must still be asked about, or a reopening is lost")
+        self.assertIn(901, store.load())
+
+    async def test_a_link_closed_for_the_whole_window_is_forgotten(self) -> None:
+        watcher = _Watcher(IssueState(closed=True))
+        relay, store = _relay(
+            watcher,
+            _Poster(),
+            links=[_link(closed=True, closed_since=NOW - KEEP_CLOSED_SECONDS)],
+            clock=lambda: NOW,
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.forgotten, 1)
+        self.assertEqual(store.load(), {})
         self.assertEqual(relay.tracked, 0)
+        self.assertEqual(watcher.seen, [], "the clock already knows; the round must spend no call")
+
+    async def test_a_closed_link_with_no_moment_is_given_the_whole_window(self) -> None:
+        """A file written before this window existed, or edited by hand: never dropped on sight."""
+        relay, store = _relay(
+            _Watcher(IssueState(closed=True)),
+            _Poster(),
+            links=[_link(closed=True, closed_since=0.0)],
+            clock=lambda: NOW,
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.forgotten, 0)
+        self.assertEqual(store.load()[901].closed_since, NOW)
+
+    async def test_a_closed_link_ahead_of_the_clock_is_given_the_whole_window(self) -> None:
+        """An NTP correction moves the clock back; it must not forget every closed report."""
+        relay, store = _relay(
+            _Watcher(IssueState(closed=True)),
+            _Poster(),
+            links=[_link(closed=True, closed_since=NOW + 86400.0)],
+            clock=lambda: NOW,
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.forgotten, 0)
+        self.assertEqual(store.load()[901].closed_since, NOW)
+
+    async def test_a_refused_unmark_is_retried_until_it_takes(self) -> None:
+        """Discord allows two renames per ten minutes; the closure already spent one."""
+        poster = _Poster(refuse_marks=1)
+        relay, store = _relay(
+            _Watcher(IssueState(closed=False)),
+            poster,
+            links=[_link(closed=True, closed_since=NOW - 3600.0, closed_marked=True)],
+            clock=lambda: NOW,
+        )
+
+        first = await relay.run_once()
+        self.assertTrue(store.load()[901].closed_marked, "a refused rename must not be forgotten")
+
+        second = await relay.run_once()
+
+        self.assertEqual(poster.unmarked, [20, 20])
+        self.assertFalse(store.load()[901].closed_marked)
+        self.assertEqual((first.reopened, second.reopened), (1, 0), "and it is announced only once")
+
+    async def test_a_refused_unmark_never_holds_back_the_messages(self) -> None:
+        poster = _Poster(refuse_marks=5)
+        relay, _ = _relay(
+            _Watcher(IssueState(comments=(_comment(1),), closed=False)),
+            poster,
+            links=[_link(closed=True, closed_since=NOW - 3600.0, closed_marked=True)],
+            clock=lambda: NOW,
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual((result.reopened, result.relayed), (1, 1))
+        self.assertEqual(len(poster.posted), 2, "a cosmetic refusal must not cost the reporter a word")
+
+    async def test_a_closure_whose_mark_was_refused_arms_no_unmark(self) -> None:
+        poster = _Poster(refuse_marks=1)
+        relay, store = _relay(
+            _Watcher(IssueState(closed=True), IssueState(closed=False)),
+            poster,
+            links=[_link()],
+            clock=lambda: NOW,
+        )
+
+        await relay.run_once()
+        self.assertFalse(store.load()[901].closed_marked, "nothing was marked, so nothing to undo")
+
+        await relay.run_once()
+
+        self.assertEqual(poster.unmarked, [], "no thread carries a mark to take off")
+
+    async def test_a_link_persisted_as_closed_is_assumed_to_be_marked(self) -> None:
+        """A file written before the field existed, or repaired by hand: the `✅` must come off."""
+        poster = _Poster()
+        folder = tempfile.mkdtemp()
+        path = Path(folder) / "relay-links.json"
+        path.write_text(
+            json.dumps(
+                {"version": LINKS_VERSION, "links": [{"issue": 901, "channel_id": 10, "thread_id": 20, "closed": True}]}
+            ),
+            encoding="utf-8",
+        )
+        store = LinkStore(path)
+        relay = Relay(
+            _Watcher(IssueState(closed=False)),  # type: ignore[arg-type]
+            poster,
+            store,
+            repository="VEAF/VEAF-Mission-Creation-Tools",
+            clock=lambda: NOW,
+        )
+
+        await relay.run_once()
+
+        self.assertEqual(poster.unmarked, [20])
+
+    async def test_a_thread_gone_during_the_reopening_drops_the_link(self) -> None:
+        """And stops there: the comments behind it have nowhere to go either."""
+        poster = _Poster(gone=True)
+        relay, store = _relay(
+            _Watcher(IssueState(comments=(_comment(1),), closed=False)),
+            poster,
+            links=[_link(closed=True, closed_since=NOW - 3600.0)],
+            clock=lambda: NOW,
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual((result.dropped, result.reopened, result.relayed), (1, 0, 0))
+        self.assertEqual(store.load(), {})
+        self.assertEqual(poster.unmarked, [], "a gone thread must not be renamed")
+
+    async def test_the_closure_records_when_it_happened(self) -> None:
+        relay, store = _relay(
+            _Watcher(IssueState(closed=True)),
+            _Poster(),
+            links=[_link()],
+            clock=lambda: NOW,
+        )
+
+        await relay.run_once()
+
+        self.assertEqual(store.load()[901].closed_since, NOW)
+
+
+class TestADeletedIssueStopsBeingPolled(unittest.IsolatedAsyncioTestCase):
+    """Live on 2026-09-09: three deleted issues warned every ten minutes for a day.
+
+    Every `GitHubError` was transient, which is right for an outage and wrong for a deletion. Their
+    warnings were also the *only* content in the log, so a relay that had stopped relaying anything
+    read as one that was working.
+    """
+
+    async def test_a_deleted_issue_drops_its_link(self) -> None:
+        relay, store = _relay(
+            _Watcher(IssueGone("GitHub answered 410: This issue was deleted")),
+            _Poster(),
+            links=[_link()],
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.dropped, 1)
+        self.assertEqual(store.load(), {})
+
+    async def test_the_other_reports_stay_followed(self) -> None:
+        watcher = _Watcher(IssueGone("gone"), IssueState(comments=(_comment(1),)))
+        poster = _Poster()
+        relay, store = _relay(watcher, poster, links=[_link(901), _link(902, thread_id=21)])
+
+        await relay.run_once()
+
+        self.assertEqual(list(store.load()), [902])
+        self.assertEqual([thread for thread, _ in poster.posted], [21])
+
+    async def test_a_transient_failure_still_holds_the_link(self) -> None:
+        relay, store = _relay(_Watcher(None), _Poster(), links=[_link(last_comment_id=7)])
+
+        result = await relay.run_once()
+
+        self.assertEqual((result.failed, result.dropped), (1, 0))
+        self.assertEqual(store.load()[901].last_comment_id, 7, "the cursor must not move")
+
+
+class TestTheRoundDoesNotGrowForEver(unittest.IsolatedAsyncioTestCase):
+    """Found in review, noted 75: nothing was ever dropped, so the round grew until the API refused."""
 
     async def test_the_closure_is_still_announced_before_it_stops(self) -> None:
         poster = _Poster()

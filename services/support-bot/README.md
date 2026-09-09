@@ -205,8 +205,16 @@ issues it filed, and carries into the thread:
 |---|---|
 | A comment a person wrote | yes, quoted, with who wrote it and a link |
 | The issue closing | yes, once, and the thread is renamed `✅ …` and archived |
+| The issue **reopening** | yes, once, the `✅` comes off and the thread is un-archived |
 | Its own comments — including its hypothesis | **never**: that is the loop this must not have |
 | Labels, milestones, edits | no; relaying everything turns a thread into noise |
+
+**A closed issue is followed for another week.** The closure used to end the follow-up, which read
+as the sensible way to keep the round from growing — until #946 was closed one evening, reopened the
+next morning, and ten comments were written into a thread that had gone silent. `relay.closed`
+invites the reporter to say so if his problem persists, and a maintainer answers that by reopening
+the issue: the link is the only thing that can carry that back to him. So it is kept for seven days
+after the closure and let go afterwards, which bounds the round just as well.
 
 **Polling, not a webhook.** The App is installed with no webhook and no events, so the service needs
 no inbound port, no public route and no signature check. Nobody is waiting in front of a bug report;
@@ -223,6 +231,67 @@ comment **id**, not a timestamp, so two comments in the same second cannot race.
 
 A deleted thread drops its own link and nothing else. A rate limit, an outage or an unreachable
 thread is retried next round: only a definitive *this thread no longer exists* ends a follow-up.
+
+A deleted **issue** ends one too. GitHub answers `410 Gone` — *"This issue was deleted"* — and that
+is the one status treated as final; the link is dropped once, with one `relay.issue_gone` line. A
+`404` is deliberately *not*: it is that same deletion **and** an installation whose access dropped
+for a minute, and unsubscribing every reporter at once over a transient fault is the worse failure.
+Before this distinction existed, three deleted issues warned every ten minutes for a day, and those
+warnings were the only thing in the log — so a relay that had stopped relaying anything at all read,
+at a glance, like one that was working.
+
+#### Putting a lost link back by hand
+
+The links file is the only place the thread ↔ issue pairing lives, so an entry lost to a bug or a
+bad edit needs replacing by hand. Nothing is unrecoverable: the **issue body carries the thread's
+address**, which is what the filing writes into it.
+
+The service rewrites the whole file at every link of every round and runs as uid 10001, so the edit
+happens with the container stopped, and through a throwaway root container on the same volume —
+never `docker cp`, which leaves the file owned by root and unwritable by the service.
+
+```bash
+docker inspect veaf-support-bot --format '{{range .Mounts}}{{.Name}} {{.Destination}}{{"\n"}}{{end}}'
+docker compose stop
+docker run --rm -v <state-volume>:/state -it alpine sh -c 'vi /state/relay-links.json && chown 10001:10001 /state/relay-links.json'
+docker compose up -d
+```
+
+One entry looks like this. `channel_id` is the forum channel from the service's own configuration —
+`post_to_thread` never reads it, it is kept so a cold cache can still resolve the thread after a
+restart — and `thread_id` is the second number in the `discord.com/channels/<guild>/<thread>` link
+in the issue body.
+
+```json
+{
+  "issue": 946,
+  "channel_id": 1545700692713537656,
+  "thread_id": 1546930226301509713,
+  "lang": "fr",
+  "last_comment_id": 5590879617,
+  "closed": true,
+  "closed_since": 1788896964.0
+}
+```
+
+Two fields decide what the reporter sees next, and both are easy to get wrong:
+
+- `last_comment_id` is the last comment **already relayed**. Everything after it is delivered, five
+  a round, so setting it to the newest comment resumes from now and setting it further back replays
+  the backlog on purpose.
+- `closed` and `closed_since` are what make a reopening land. On an issue that is open again,
+  writing `closed: true` with the real closure moment has the next round announce the reopening,
+  take the `✅` off the thread and un-archive it before the backlog arrives; writing `false` leaves
+  a thread still named `✅` and still archived, quietly filling with messages. A `closed_since`
+  older than the seven-day window would have the round forget the link on the spot — though a value
+  that is absent, zero or ahead of the clock is treated as *now* rather than as expired, so the
+  ambiguous case never loses a link.
+
+A fourth field, `closed_marked`, records whether the **thread** wears the mark, which is not the
+same statement as `closed`: Discord allows a thread two renames every ten minutes, so the rename
+can be refused, and the flag survives the refusal to be retried on a later round. It needs no
+writing by hand — omitted, it defaults to whatever `closed` says, which is the truth in every case
+a repair produces.
 
 ### The checkout, and how it stays fresh
 

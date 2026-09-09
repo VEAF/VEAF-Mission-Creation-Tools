@@ -86,6 +86,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   contacts, cleaned up as they were. A network somebody switched off on purpose is left alone: Skynet
   rebuilds a coverage by telling every site to reconsider its state, which lights up the autonomous
   ones, and a deactivated network must stay off until someone reactivates it.
+- **Closing a support issue no longer unsubscribes its reporter for good.** The relay dropped the
+  Discord ↔ GitHub link the moment it announced a closure, to keep each polling round from growing
+  without end. Found on #946, closed one evening and reopened the next morning: the reopening
+  reached a relay that no longer knew the issue existed, and **ten** comments were written into a
+  thread that had been archived, marked `✅` and left silent. The message announcing a closure
+  invites the reporter to say so if his problem persists, and a maintainer answers that by reopening
+  the issue — so the one action the sentence asks for was also the one that cut the channel. A
+  closed link is now kept for a week: a reopening is announced in the thread, the `✅` comes off, the
+  thread is un-archived, and what was said meanwhile is brought over. The ceiling that the drop was
+  protecting is held by that window instead, and it was never in danger — a closed link costs 12 of
+  the 5000 API calls an hour the installation gets.
+- **A deleted issue stops being polled.** Every GitHub failure was treated as transient, which is
+  right for an outage and wrong for a deletion: three issues deleted on GitHub were asked about
+  every ten minutes for a day. `410 Gone` now drops the link once, with one log line; `404` stays
+  transient on purpose, since it also means an installation whose access dropped for a minute, and
+  unsubscribing every reporter over a transient fault is the worse failure. Those warnings were also
+  the *only* content in the log, which is what made a relay that had stopped relaying anything read,
+  at a glance, like one that was working.
 
 ## [6.20.0] — 2026-09-07
 

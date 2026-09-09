@@ -52,14 +52,16 @@ def _gone(reason: str = "unknown channel") -> discord.NotFound:
 class _Thread:
     """A thread that records what was sent, and can refuse."""
 
-    def __init__(self, name: str = "a report", *, error: Exception | None = None) -> None:
+    def __init__(self, name: str = "a report", *, error: Exception | None = None, archived: bool = False) -> None:
         """Initialize the thread.
 
         Args:
             name: Its name.
             error: Raised by :meth:`send`, when given.
+            archived: Whether it is archived, which is what a closure leaves behind.
         """
         self.name = name
+        self.archived = archived
         self.sent: list[str] = []
         self.edits: list[dict[str, Any]] = []
         self.edit_error: Exception | None = None
@@ -231,6 +233,47 @@ class TestPostingIntoAFollowedThread(unittest.IsolatedAsyncioTestCase):
         client = _Client(cached=thread)
 
         self.assertFalse(await _poster(client).mark_closed(10, 20))
+
+    async def test_the_mark_and_the_archive_come_off_when_the_issue_reopens(self) -> None:
+        thread = _Thread(name=f"{CLOSED_MARK}a report", archived=True)
+        client = _Client(cached=thread)
+
+        self.assertTrue(await _poster(client).mark_reopened(10, 20))
+        self.assertEqual(thread.edits[0]["name"], "a report")
+        self.assertFalse(thread.edits[0]["archived"])
+
+    async def test_a_thread_with_nothing_to_undo_costs_no_call(self) -> None:
+        """Discord allows two renames per ten minutes; spending one on a no-op wastes the one that counts."""
+        thread = _Thread(name="a report", archived=False)
+        client = _Client(cached=thread)
+
+        self.assertTrue(await _poster(client).mark_reopened(10, 20))
+        self.assertEqual(thread.edits, [])
+
+    async def test_an_archived_thread_that_was_never_marked_is_still_unarchived(self) -> None:
+        thread = _Thread(name="a report", archived=True)
+        client = _Client(cached=thread)
+
+        self.assertTrue(await _poster(client).mark_reopened(10, 20))
+        self.assertEqual(thread.edits[0]["name"], "a report")
+        self.assertFalse(thread.edits[0]["archived"])
+
+    async def test_a_refused_unmark_is_cosmetic_too(self) -> None:
+        thread = _Thread(name=f"{CLOSED_MARK}a report", archived=True)
+        thread.edit_error = _refused("forbidden")
+        client = _Client(cached=thread)
+
+        self.assertFalse(await _poster(client).mark_reopened(10, 20))
+
+    async def test_a_thread_gone_before_the_unmark_is_not_an_error(self) -> None:
+        client = _Client(fetch_error=_gone())
+
+        self.assertFalse(await _poster(client).mark_reopened(10, 20))
+
+    async def test_a_thread_unreachable_before_the_unmark_is_not_an_error_either(self) -> None:
+        client = _Client(fetch_error=_refused())
+
+        self.assertFalse(await _poster(client).mark_reopened(10, 20))
 
 
 class _Anchor:

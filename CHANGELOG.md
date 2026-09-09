@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.21.0] — 2026-09-09
+
 ### Added
 
 - **The support bot opens its follow-ups in a forum channel.** A `/bug` or `/suggest` follow-up used

@@ -2096,6 +2096,7 @@ local function _radar(name, maximumRange, exists, sensorRangeOnReRead)
   }
   local radar = {
     dcsName = name,
+    typeName = "Kub 1S91 str",
     maximumRange = maximumRange,
     setupRangeDataCalls = 0,
     getDCSRepresentation = function(self)
@@ -2503,6 +2504,50 @@ function TestVeafSkynetIntegrateMissionSpawn:test_a_spawn_declared_out_of_the_ia
   veafSkynet.declaredSpawns["CONVOY"] = false
   veafSkynet._integrateSpawn("CONVOY", coalition.side.RED, false)
   luaunit.assertEquals(#self.enrolled, 0)
+end
+
+-- ---------------------------------------------------------------------------
+-- The line that has to name the units
+-- ---------------------------------------------------------------------------
+TestVeafSkynetDescribeRadarUnits = {}
+
+function TestVeafSkynetDescribeRadarUnits:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafSkynetDescribeRadarUnits:tearDown()
+  dcs_mocks.reset()
+end
+
+function TestVeafSkynetDescribeRadarUnits:test_an_element_with_no_radar_says_none()
+  luaunit.assertEquals(veafSkynet.describeRadarUnits(nil), "none")
+  luaunit.assertEquals(veafSkynet.describeRadarUnits({}), "none")
+  luaunit.assertEquals(veafSkynet.describeRadarUnits(_siteWithRadars("S", {}, true)), "none")
+end
+
+function TestVeafSkynetDescribeRadarUnits:test_a_resolvable_radar_is_named_with_its_type()
+  dcs_mocks.addUnit("SA6-radar", {})
+  local described = veafSkynet.describeRadarUnits(_siteWithRadars("S", { _radar("SA6-radar", 0, true, nil) }, true))
+  luaunit.assertStrContains(described, "SA6-radar")
+  luaunit.assertStrContains(described, "Kub 1S91 str")
+  luaunit.assertStrContains(described, "live=true")
+  luaunit.assertStrContains(described, "resolvable=true")
+end
+
+function TestVeafSkynetDescribeRadarUnits:test_a_radar_dcs_cannot_resolve_says_so()
+  -- The state the previous log could not distinguish from the other two.
+  local described = veafSkynet.describeRadarUnits(_siteWithRadars("S", { _radar("GONE-radar", 0, false, nil) }, true))
+  luaunit.assertStrContains(described, "live=false")
+  luaunit.assertStrContains(described, "resolvable=false")
+end
+
+function TestVeafSkynetDescribeRadarUnits:test_it_does_not_raise_on_an_element_that_refuses()
+  local ok = pcall(veafSkynet.describeRadarUnits, {
+    getRadars = function()
+      error("no")
+    end,
+  })
+  luaunit.assertTrue(ok)
 end
 
 os.exit(luaunit.LuaUnit.run())

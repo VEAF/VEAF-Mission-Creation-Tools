@@ -104,6 +104,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unsubscribing every reporter over a transient fault is the worse failure. Those warnings were also
   the *only* content in the log, which is what made a relay that had stopped relaying anything read,
   at a glance, like one that was working.
+- **A group VEAF respawns keeps its editor unit order, and its SAM battery keeps its eyes.** Third and
+  last round of #946. `veafMissionDb.buildSnapshot` walked a group's units with `pairs`, which has no
+  defined order, so every mission record carried them shuffled — and a respawn hands that order
+  straight to `coalition.addGroup`. Measured in game against DCS itself: **a SAM group whose first
+  unit is not its radar is created with no sensors at all**, on every unit. `Unit.getSensors()`
+  answers nil, Skynet reads a detection range of zero, and the site never considers a target in
+  range, never goes live, never fires — and is counted under `Raddest` on the status page, because
+  `isRadarWorking()` goes through `getSensors()` too. Both of the reported symptoms, from one word.
+  Proved in both directions: Tripack's five units in the shuffled order gave 0/5 with sensors, the
+  same five with the radar back in first gave 5/5, and a working pair was broken by putting the
+  launcher first. Eleven further probes cleared `coldAtStart`, `playerCanDrive`, `unitId`, `groupId`,
+  `missionData`, `route`, `task`, the coordinates and `coalition.addGroup` itself. It is not only the
+  sensors: everything anchoring on "unit 1" of a respawned group — the spawn offset of
+  FIX-TRIPACK-FIELD-REPORTS ticket 04 among them — was anchoring on whichever unit the hash order
+  happened to put there. The radar re-read added earlier in this lot is withdrawn: it was built on an
+  explanation this measurement retired, and `Unit.getByName` hands back the very same handle anyway.
+  The diagnostic line that names each radar unit stays, as a canary for any other cause.
 
 ## [6.20.0] — 2026-09-07
 

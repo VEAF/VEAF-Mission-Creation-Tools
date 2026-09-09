@@ -1,6 +1,6 @@
 # FIX-SKYNET-CZ-RESPAWN-AND-RANGE — a combat zone's air defences, after the first second
 
-Status: 🧑 waiting-human — **the three fixes are in**, awaiting the reading of Tripack's next log
+Status: ✅ done — the root cause was found on the fourth round and **verified in game 2026-09-09**
 
 Origin: the second and third rounds of [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946).
 FIX-SKYNET-ADDS-DESTROYED-GROUPS shipped the corpse guard and the sweep; Tripack ran the resulting
@@ -82,13 +82,21 @@ commanding elements that have been cleaned up. A regression introduced by #947.
 | 01 | [a radar with no range is asked again](tickets/01-radar-range-is-not-final.md) | A, plus the instrumentation that will name the DCS cause |
 | 02 | [a combat zone's spawn joins the IADS](tickets/02-combat-zone-spawn-joins-the-iads.md) | B |
 | 03 | [a removal rebuilds the coverage](tickets/03-removal-rebuilds-the-coverage.md) | C |
+| 04 | [the radar must be the first unit](tickets/04-the-radar-must-be-the-first-unit.md) | the root cause, found in game |
 
 ## Where it stands
 
-All three tickets are done. 170 tests in the Skynet suite and 301 in the combat-zone suite, and each
-of the six production changes was reverted on its own and verified to turn the suite red — the table
-is in the lot's report. What the code cannot settle is why DCS answers `nil`, which is written up as
-a DCS-session item.
+All four tickets are done, and the DCS-side question the first three left open is **answered**: DCS
+gives a SAM group no sensors at all when its first unit is not its radar, and `buildSnapshot` was
+shuffling that order with `pairs`. See [ticket 04](tickets/04-the-radar-must-be-the-first-unit.md) for
+the fourteen probes that settled it in the running mission, in both directions.
+
+That answer retires ticket 01's re-read — it rested on the explanation the measurement replaced, and
+`Unit.getByName` hands back the same handle anyway — so the scaffolding was removed and its tests with
+it. The diagnostic line naming each radar unit is kept, as a canary for any other cause.
+
+**Verified in game 2026-09-09** on `Skynet-test_20260908-fix946f`: no `RADAR RANGE` line at all, the
+zone's SA-6 active and tracking the F/A-18 at 7 NM, and it fired.
 
 ## What the pre-merge review caught in this lot's own code
 

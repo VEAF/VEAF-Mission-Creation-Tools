@@ -527,6 +527,82 @@ function TestVeafGetGroupDataEveryCoalition:test_aNeutralRecordCarriesTheNeutral
   luaunit.assertEquals(veaf.getGroupRecord("veafSpawn-SU27-RED").coalitionId, coalition.side.RED)
 end
 
+-------------------------------------------------------------------------------------------------
+-- #946 — the order of a group's units is what DCS reads as its identity
+--
+-- `buildSnapshot` walked `groupData.units` with `pairs`, which has no defined order, so every record
+-- carried its units shuffled. A group respawned from a record is handed to `coalition.addGroup` in
+-- that order, and **DCS gives a SAM group no sensors at all when its first unit is not its radar**.
+--
+-- Measured in game on 2026-09-09 through the bridge, in both directions: the five units of Tripack's
+-- SA-6 in the record's shuffled order came up 0/5 with sensors; the same five with the radar moved
+-- back to first came up 5/5; and a working two-unit group was broken by putting the launcher first.
+-- Downstream that means a range of zero, a site that never goes live and never fires, and a count
+-- under `Raddest` on the status page — both symptoms of #946 from one word.
+-------------------------------------------------------------------------------------------------
+
+TestVeafMissionDbUnitOrder = {}
+
+function TestVeafMissionDbUnitOrder:setUp()
+  self._savedMission = env.mission
+end
+
+function TestVeafMissionDbUnitOrder:tearDown()
+  env.mission = self._savedMission
+  veafMissionDb.buildSnapshot()
+end
+
+--- A SAM battery whose radar is first, as the Mission Editor writes it, plus a non-array key.
+--- The stray key is what makes this test fail **deterministically** on `pairs`: Lua may well walk a
+--- small array in order by luck, so asserting the order alone would be flaky, but `pairs` always
+--- visits `units.someKey` and `ipairs` never does.
+local function _missionWithBattery()
+  local units = {
+    { name = "SAM-1", unitId = 301, type = "Kub 1S91 str", x = 10, y = 20 },
+    { name = "SAM-2", unitId = 302, type = "Kub 2P25 ln", x = 30, y = 40 },
+    { name = "SAM-3", unitId = 303, type = "Kub 2P25 ln", x = 50, y = 60 },
+  }
+  units.editorLeftovers = { name = "NOT-A-UNIT", unitId = 999, type = "Kub 2P25 ln", x = 0, y = 0 }
+  return {
+    theatre = "Caucasus",
+    coalition = {
+      red = {
+        country = {
+          [1] = { id = 0, name = "Russia", vehicle = { group = { [1] = { name = "SAM", groupId = 30, units = units } } } },
+        },
+      },
+    },
+  }
+end
+
+function TestVeafMissionDbUnitOrder:test_the_record_keeps_the_editor_order()
+  env.mission = _missionWithBattery()
+  veafMissionDb.buildSnapshot()
+  local record = veafMissionDb.getGroupRecord("SAM")
+  luaunit.assertNotNil(record)
+  local types = {}
+  for _, unit in ipairs(record.units) do
+    table.insert(types, unit.type)
+  end
+  luaunit.assertEquals(types, { "Kub 1S91 str", "Kub 2P25 ln", "Kub 2P25 ln" })
+end
+
+function TestVeafMissionDbUnitOrder:test_the_radar_stays_first()
+  -- The assertion in the terms the defect is about: a respawn hands unit 1 to DCS as the group's
+  -- leader, and a SAM battery led by a launcher is created blind.
+  env.mission = _missionWithBattery()
+  veafMissionDb.buildSnapshot()
+  luaunit.assertEquals(veafMissionDb.getGroupRecord("SAM").units[1].type, "Kub 1S91 str")
+end
+
+function TestVeafMissionDbUnitOrder:test_a_non_array_key_is_not_a_unit()
+  -- What makes the two assertions above bite rather than pass by luck.
+  env.mission = _missionWithBattery()
+  veafMissionDb.buildSnapshot()
+  luaunit.assertEquals(#veafMissionDb.getGroupRecord("SAM").units, 3)
+  luaunit.assertNil(veafMissionDb.unitsByName["NOT-A-UNIT"])
+end
+
 -- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------

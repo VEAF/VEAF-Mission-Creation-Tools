@@ -104,9 +104,11 @@ Set from `mission.yaml` (`dynamic_spawn`), or before `initialize` with `veafSkyn
 | `false` | Only groups present at startup are integrated (**default**) |
 | `true` | Groups appearing during the mission also join the existing networks |
 
-**What it costs.** Once on, the module watches **every unit birth** in the mission to spot eligible groups. That is why it is off by default: turn it on when the mission spawns SAMs while it runs (combat zones, dynamic campaign), not as a matter of course.
+**What it costs.** Once on, the module watches **every unit birth** in the mission to spot eligible groups. That is why it is off by default: turn it on when the mission spawns SAMs while it runs (a dynamic campaign, a third-party script), not as a matter of course.
 
-**What it fixes.** Without it, a SAM appearing during the mission — a combat-zone one included — joins no network at all, and nothing says so.
+**What it fixes.** Without it, a SAM appearing during the mission joins no network at all, and nothing says so.
+
+**Combat zones do not need it.** An air defence a combat zone puts back on the map joins its coalition's network **whatever** this setting says, exactly as it did at mission start: content the author placed inside a zone is not a spawn nobody asked for. Only elements that **stay put** are concerned — a convoy driving through the zone has no business in an air-defence network, the same call that decides the alarm state it gets.
 
 **Who decides, group by group.** A spawn command's `skynet` option stays in charge: `skynet false` keeps the group **out** of every network (which is what the convoy shortcuts carry), and `skynet <network name>` sends it to that network rather than its coalition's. A group no VEAF command declared — placed in the Mission Editor, created by a third-party script — joins its coalition's network, which is exactly what this setting is for.
 

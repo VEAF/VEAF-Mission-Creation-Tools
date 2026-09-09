@@ -104,9 +104,11 @@ Se règle depuis `mission.yaml` (`dynamic_spawn`), ou avant `initialize` avec `v
 | `false` | Seuls les groupes présents au démarrage sont intégrés (**défaut**) |
 | `true` | Les groupes apparus en cours de mission rejoignent aussi les réseaux existants |
 
-**Ce que ça coûte.** Activé, le module surveille **chaque apparition d'unité** de la mission pour repérer les groupes éligibles. C'est pour cette raison que le réglage est éteint par défaut : à activer quand la mission fait apparaître des SAM en cours de partie (zones de combat, campagne dynamique), pas systématiquement.
+**Ce que ça coûte.** Activé, le module surveille **chaque apparition d'unité** de la mission pour repérer les groupes éligibles. C'est pour cette raison que le réglage est éteint par défaut : à activer quand la mission fait apparaître des SAM en cours de partie (campagne dynamique, script tiers), pas systématiquement.
 
-**Ce que ça règle.** Sans lui, un SAM apparu en cours de mission — y compris par une zone de combat — ne rejoint aucun réseau, et rien ne le dit.
+**Ce que ça règle.** Sans lui, un SAM apparu en cours de mission ne rejoint aucun réseau, et rien ne le dit.
+
+**Les zones de combat n'en ont pas besoin.** Une défense antiaérienne qu'une zone de combat remet sur la carte rejoint le réseau de sa coalition **quel que soit** ce réglage, comme elle le faisait au démarrage de la mission : le contenu qu'un auteur a placé dans une zone n'est pas une apparition que personne n'a demandée. Seuls les éléments qui **restent en place** sont concernés — un convoi qui traverse la zone n'a rien à faire dans un réseau de défense aérienne, exactement comme pour l'état d'alerte qu'il reçoit.
 
 **Qui décide, groupe par groupe.** L'option `skynet` d'une commande d'apparition reste maîtresse : `skynet false` garde le groupe **hors** de tout réseau (c'est ce que portent les raccourcis de convoi), et `skynet <nom de réseau>` l'envoie dans ce réseau précis plutôt que dans celui de sa coalition. Un groupe qu'aucune commande VEAF n'a déclaré — posé dans l'éditeur, créé par un script tiers — rejoint le réseau de sa coalition : c'est précisément à quoi sert ce réglage.
 

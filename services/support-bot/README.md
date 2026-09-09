@@ -172,7 +172,31 @@ deploys it.
 
 Filing under a machine account means the reporter is subscribed to nothing: a maintainer asking
 *"can you attach your `dcs.log`?"* on the issue would be talking to an empty room. So once he clicks
-**File the issue**, the bot opens a **public thread** in the channel and the issue links back to it.
+**File the issue**, the bot opens a **public thread** and the issue links back to it.
+
+Where that thread lives is a deployment setting. With `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` set, it
+is a **post in that forum channel** — a forum carries a title and an open/closed state of its own,
+which is what a follow-up that lives for weeks wants, and it keeps the channel the commands are
+typed in free of anchor messages. Unset, the bot posts a short public message in the channel the
+command was used in and threads off it.
+
+Either way, the private answer the reporter gets ends with the thread's **link**. That was pointless
+while the thread hung three lines below in the same channel, and it is the only thing telling him
+where his report went once it is a post somewhere else.
+
+**Tags.** A forum can be set to require a tag on every post — the VEAF one is — and Discord refuses
+an untagged post outright, with error code 40067. The bot applies one: `SUPPORT_BOT_FORUM_TAG_BUG`
+(default `issue`) and `SUPPORT_BOT_FORUM_TAG_SUGGESTION` (default `suggestion`), matched
+case-insensitively against the forum's own tags. They are **names** rather than ids because
+Discord's interface has no *Copy Tag ID*; a name is the only thing you can read off the screen. A
+name the forum does not carry is not a failure on its own — the post is attempted untagged, which
+any forum that does not require one accepts — but the log then names the tags the forum *does* have
+(`bug.forum_tag_missing`), which is how a typo is found without reading code.
+
+The forum is also the fallback's own fallback: a forum id that is wrong, points at something that is
+not a forum, or cannot be posted in (no *Create Posts*, or a required tag that matched nothing)
+falls back to that anchored thread, with a warning in the log. **A misconfiguration there never
+costs a report** — at worst it costs the room the answers come back into.
 
 Every `SUPPORT_BOT_RELAY_POLL_SECONDS` (600 by default) the service asks GitHub what changed on the
 issues it filed, and carries into the thread:
@@ -181,8 +205,16 @@ issues it filed, and carries into the thread:
 |---|---|
 | A comment a person wrote | yes, quoted, with who wrote it and a link |
 | The issue closing | yes, once, and the thread is renamed `✅ …` and archived |
+| The issue **reopening** | yes, once, the `✅` comes off and the thread is un-archived |
 | Its own comments — including its hypothesis | **never**: that is the loop this must not have |
 | Labels, milestones, edits | no; relaying everything turns a thread into noise |
+
+**A closed issue is followed for another week.** The closure used to end the follow-up, which read
+as the sensible way to keep the round from growing — until #946 was closed one evening, reopened the
+next morning, and ten comments were written into a thread that had gone silent. `relay.closed`
+invites the reporter to say so if his problem persists, and a maintainer answers that by reopening
+the issue: the link is the only thing that can carry that back to him. So it is kept for seven days
+after the closure and let go afterwards, which bounds the round just as well.
 
 **Polling, not a webhook.** The App is installed with no webhook and no events, so the service needs
 no inbound port, no public route and no signature check. Nobody is waiting in front of a bug report;
@@ -199,6 +231,67 @@ comment **id**, not a timestamp, so two comments in the same second cannot race.
 
 A deleted thread drops its own link and nothing else. A rate limit, an outage or an unreachable
 thread is retried next round: only a definitive *this thread no longer exists* ends a follow-up.
+
+A deleted **issue** ends one too. GitHub answers `410 Gone` — *"This issue was deleted"* — and that
+is the one status treated as final; the link is dropped once, with one `relay.issue_gone` line. A
+`404` is deliberately *not*: it is that same deletion **and** an installation whose access dropped
+for a minute, and unsubscribing every reporter at once over a transient fault is the worse failure.
+Before this distinction existed, three deleted issues warned every ten minutes for a day, and those
+warnings were the only thing in the log — so a relay that had stopped relaying anything at all read,
+at a glance, like one that was working.
+
+#### Putting a lost link back by hand
+
+The links file is the only place the thread ↔ issue pairing lives, so an entry lost to a bug or a
+bad edit needs replacing by hand. Nothing is unrecoverable: the **issue body carries the thread's
+address**, which is what the filing writes into it.
+
+The service rewrites the whole file at every link of every round and runs as uid 10001, so the edit
+happens with the container stopped, and through a throwaway root container on the same volume —
+never `docker cp`, which leaves the file owned by root and unwritable by the service.
+
+```bash
+docker inspect veaf-support-bot --format '{{range .Mounts}}{{.Name}} {{.Destination}}{{"\n"}}{{end}}'
+docker compose stop
+docker run --rm -v <state-volume>:/state -it alpine sh -c 'vi /state/relay-links.json && chown 10001:10001 /state/relay-links.json'
+docker compose up -d
+```
+
+One entry looks like this. `channel_id` is the forum channel from the service's own configuration —
+`post_to_thread` never reads it, it is kept so a cold cache can still resolve the thread after a
+restart — and `thread_id` is the second number in the `discord.com/channels/<guild>/<thread>` link
+in the issue body.
+
+```json
+{
+  "issue": 946,
+  "channel_id": 1545700692713537656,
+  "thread_id": 1546930226301509713,
+  "lang": "fr",
+  "last_comment_id": 5590879617,
+  "closed": true,
+  "closed_since": 1788896964.0
+}
+```
+
+Two fields decide what the reporter sees next, and both are easy to get wrong:
+
+- `last_comment_id` is the last comment **already relayed**. Everything after it is delivered, five
+  a round, so setting it to the newest comment resumes from now and setting it further back replays
+  the backlog on purpose.
+- `closed` and `closed_since` are what make a reopening land. On an issue that is open again,
+  writing `closed: true` with the real closure moment has the next round announce the reopening,
+  take the `✅` off the thread and un-archive it before the backlog arrives; writing `false` leaves
+  a thread still named `✅` and still archived, quietly filling with messages. A `closed_since`
+  older than the seven-day window would have the round forget the link on the spot — though a value
+  that is absent, zero or ahead of the clock is treated as *now* rather than as expired, so the
+  ambiguous case never loses a link.
+
+A fourth field, `closed_marked`, records whether the **thread** wears the mark, which is not the
+same statement as `closed`: Discord allows a thread two renames every ten minutes, so the rename
+can be refused, and the flag survives the refusal to be retried on a later round. It needs no
+writing by hand — omitted, it defaults to whatever `closed` says, which is the truth in every case
+a repair produces.
 
 ### The checkout, and how it stays fresh
 
@@ -419,6 +512,7 @@ variable in one list and not the other. Compose reads `./.env` for interpolation
 |---|---|
 | `SUPPORT_BOT_DISCORD_TOKEN` | Discord Developer Portal → the application → *Bot* → the token. Anyone holding it **is** the bot. |
 | `SUPPORT_BOT_DISCORD_GUILD_ID` | Discord → right-click the server → *Copy Server ID* (Developer Mode on). |
+| `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` | Optional. Discord → right-click the forum channel → *Copy Channel ID*. Where `/bug` and `/suggest` follow-ups are opened as posts; unset keeps them in the channel the command was used in. The tags default to `issue` and `suggestion`, which is what the VEAF forum calls them — a forum spelling them otherwise needs `SUPPORT_BOT_FORUM_TAG_BUG` / `_SUGGESTION`. |
 | `SUPPORT_BOT_WORKER_SECRET` | The **same value** as `DISCORD_CLIENT_SECRET` on the deployed Worker, or it answers 403. |
 | `SUPPORT_BOT_GITHUB_APP_ID` | The App's settings page. |
 | `SUPPORT_BOT_GITHUB_INSTALLATION_ID` | The installation's URL on the repository: `…/installations/<this number>`. |
@@ -577,6 +671,9 @@ CRITICAL veaf-support-bot.cli the support bot cannot start: 3 configuration prob
 |---|---|---|---|
 | `SUPPORT_BOT_DISCORD_TOKEN` | **yes** | — | The bot token. **Secret.** Anyone holding it *is* the bot. |
 | `SUPPORT_BOT_DISCORD_GUILD_ID` | **yes** | — | The one guild served. Commands are published there and nowhere else. |
+| `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` | no | *(unset)* | Forum channel `/bug` and `/suggest` follow-ups are opened in, as posts. Unset — or unusable — anchors them in the channel the command was used in instead. |
+| `SUPPORT_BOT_FORUM_TAG_BUG` | no | `issue` | Tag a `/bug` post carries, by name, matched whatever its case. A forum may require one; a name it does not carry posts untagged and says which tags exist. |
+| `SUPPORT_BOT_FORUM_TAG_SUGGESTION` | no | `suggestion` | The same, for a `/suggest` post. |
 | `SUPPORT_BOT_WORKER_SECRET` | **yes** | — | **Secret.** Sent as `X-VEAF-Auth`; must equal the Worker's `DISCORD_CLIENT_SECRET`. |
 | `SUPPORT_BOT_WORKER_ENDPOINT` | no | the production Worker `/chat` | Override to test against a preview deployment. |
 | `SUPPORT_BOT_WORKER_CLIENT` | no | `discord` | Sent as `X-VEAF-Client`; the Worker quotas this mode apart from the CLI and the website. |
@@ -635,6 +732,13 @@ Once, at <https://discord.com/developers/applications>:
    guild with the generated URL.
    - Without *Create Public Threads* the bot still answers, in the channel, saying why.
    - Without *Send Messages in Threads* it opens a thread it cannot write in. Grant both.
+   - A forum configured through `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` normally needs **nothing
+     granted on the channel itself**: opening a post there is *Send Messages* — which a forum's
+     permission screen labels *Create Posts* — and writing into it is *Send Messages in Threads*,
+     both already granted above. Only a channel-level override denying either one has to be
+     lifted; short of that, a public forum inherits what the bot already has. If a post is refused
+     anyway, the log says so as `bug.forum_failed` with Discord's own message, and the follow-up
+     falls back to an anchored thread in the channel the command was used in.
 4. Right-click the server → **Copy Server ID** (Developer Mode must be on). That is
    `SUPPORT_BOT_DISCORD_GUILD_ID`. Commands are published to that guild only, so they appear
    immediately instead of taking up to an hour to propagate, and the bot stays un-invitable

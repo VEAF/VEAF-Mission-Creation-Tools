@@ -113,6 +113,11 @@ THREAD_NAME_CEILING = 100
 #: rather than inlined so a test can stand in front of the one branch that matters here.
 THREADABLE: tuple[type, ...] = (discord.TextChannel,)
 
+#: Channel kinds a follow-up post can be opened in. Named for the same reason as
+#: :data:`THREADABLE`: it is the one branch that separates "the configured id is the forum this
+#: deployment meant" from "it is a text channel, a category, or something in another guild".
+FORUMABLE: tuple[type, ...] = (discord.ForumChannel,)
+
 #: Prefix added to a followed thread's name once its issue is closed, so the state is visible
 #: in the channel list without opening anything.
 CLOSED_MARK = "✅ "
@@ -569,6 +574,31 @@ class SupportBotClient(discord.Client):
         """
         return discord.Object(id=self._config.discord_guild_id)
 
+    @property
+    def followup_forum_id(self) -> int:
+        """Return the forum channel a ``/bug`` or ``/suggest`` follow-up is opened in.
+
+        Published on the client because that is what every exchange already has a reference to,
+        and the id is a single deployment-wide setting rather than something a command carries.
+
+        Returns:
+            The configured channel id, or ``0`` when there is no forum and the follow-up hangs off
+            a public anchor instead.
+        """
+        return self._config.discord_forum_channel_id
+
+    @property
+    def followup_forum_tags(self) -> dict[str, str]:
+        """Return the forum tag each flow's post is opened under, by the flow's log prefix.
+
+        Keyed by the prefix the exchange already knows itself as (``bug`` / ``suggest``), so the
+        adapter picks its own tag without a second setting threaded down to it.
+
+        Returns:
+            A mapping of flow name to tag name, as the forum spells it.
+        """
+        return {"bug": self._config.forum_tag_bug, "suggest": self._config.forum_tag_suggestion}
+
     async def setup_hook(self) -> None:
         """Publish the command set to the configured guild, before the gateway goes live."""
         # Before the copy and the sync, because the translations are what gets *uploaded* with the
@@ -813,19 +843,26 @@ class ModalExchange:
     async def open_followup_thread(self, name: str) -> ThreadHandle:
         """Open the public thread the issue's news will come back into.
 
-        A thread cannot hang off an ephemeral response, so this posts a short public anchor in the
-        channel and threads off it. That anchor is the *only* thing `/bug` makes public on its own:
-        the report itself is on the issue, and the preparation stays in the reporter's ephemeral
-        message.
+        Two ways, in order. When a forum channel is configured, the follow-up is a **post** in it:
+        that is where a long-lived thread with a title and a state of its own belongs, and it keeps
+        the channel the command was used in free of anchors. Otherwise — and whenever the forum
+        cannot be reached — a thread cannot hang off an ephemeral response, so this posts a short
+        public anchor in the channel and threads off it.
+
+        Either way, what `/bug` makes public on its own is only this: the report itself is on the
+        issue, and the preparation stays in the reporter's ephemeral message.
 
         Args:
             name: The thread name.
 
         Returns:
             Where it was opened, or an empty handle when Discord refused — most often a missing
-            *Create Public Threads*, or a channel that cannot hold threads. The report is filed
-            either way; what is lost is the follow-up.
+            *Create Posts* / *Create Public Threads*, or a channel that cannot hold threads. The
+            report is filed either way; what is lost is the follow-up.
         """
+        forum = await self._open_forum_post(name)
+        if forum.opened:
+            return forum
         raw = self._interaction.channel
         if not isinstance(raw, THREADABLE):
             # A thread, a forum post, a DM: nothing to hang a public thread off. Reported rather
@@ -849,6 +886,103 @@ class ModalExchange:
             )
             return ThreadHandle()
         return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url, handle=thread)
+
+    async def _open_forum_post(self, name: str) -> ThreadHandle:
+        """Open the follow-up as a post in the configured forum channel.
+
+        Every way this can fail returns an empty handle and a warning rather than raising: the
+        caller then falls back to the anchored thread, and none of it may cost the report. A forum
+        that is misconfigured today must not be the reason a report has no follow-up.
+
+        The forum is resolved through the API when the cache does not hold it, because the bot runs
+        on :data:`INTENTS` — with no cache to fill, ``get_channel`` answers ``None`` for a channel
+        that is perfectly reachable.
+
+        Args:
+            name: The post's title, which Discord also needs as its opening message.
+
+        Returns:
+            Where the post was opened, or an empty handle when no forum is configured or it could
+            not be used.
+        """
+        client = self._interaction.client
+        # Read off the client rather than threaded through four constructors: the id is one
+        # deployment-wide setting, and this adapter already reaches the client to resolve a thread.
+        forum_id = int(getattr(client, "followup_forum_id", 0) or 0)
+        if forum_id <= 0:
+            return ThreadHandle()
+        channel = client.get_channel(forum_id)
+        try:
+            if channel is None:
+                channel = await client.fetch_channel(forum_id)
+        except (discord.HTTPException, discord.ClientException) as error:
+            self._logger.warning(
+                "the follow-up forum could not be reached",
+                extra={"event": f"{self._event_prefix}.forum_unreachable", "error": f"{type(error).__name__}: {error}"},
+            )
+            return ThreadHandle()
+        if not isinstance(channel, FORUMABLE):
+            # An id pointing at a text channel, a category, or a channel in another guild. Said out
+            # loud: the deployment believes it configured a forum, and silence would let it keep
+            # believing that while every follow-up quietly went somewhere else.
+            self._logger.warning(
+                "the configured follow-up channel is not a forum",
+                extra={"event": f"{self._event_prefix}.forum_kind", "channel": type(channel).__name__},
+            )
+            return ThreadHandle()
+        # Same statement twice, as above: FORUMABLE is the runtime check a test stands in front of,
+        # and this is what the type checker reads.
+        forum = cast(discord.ForumChannel, channel)
+        tags = self._tags_of(forum)
+        try:
+            created = await forum.create_thread(
+                name=name[:THREAD_NAME_CEILING], content=name, allowed_mentions=NO_MENTIONS, applied_tags=tags
+            )
+        except (discord.HTTPException, discord.ClientException) as error:
+            # Most often a missing *Create Posts*, or — when no tag was applied — a forum that
+            # requires one on every post. Both end here, and both keep the anchored thread.
+            self._logger.warning(
+                "no follow-up post could be opened in the forum",
+                extra={"event": f"{self._event_prefix}.forum_failed", "error": f"{type(error).__name__}: {error}"},
+            )
+            return ThreadHandle()
+        thread = created.thread
+        return ThreadHandle(channel_id=channel.id, thread_id=thread.id, url=thread.jump_url, handle=thread)
+
+    def _tags_of(self, forum: discord.ForumChannel) -> list[discord.ForumTag]:
+        """Return the forum tag this flow's post carries, when the forum has it.
+
+        A forum can be set to require a tag on every post — the VEAF one is — and Discord refuses an
+        untagged post there outright. The tag is looked up by **name**, case-insensitively, because
+        that is the only form a deployment can write down: the interface has no *Copy Tag ID*.
+
+        A name the forum does not carry is not treated as a failure. The post is attempted with no
+        tag, which every forum that does not require one accepts; the refusal, if it comes, is the
+        caller's fallback. What must not happen is a silent mismatch, so the warning names the tags
+        the forum actually has — that line is what turns "the forum does not work" into "the tag is
+        called *bugs*, not *bug*".
+
+        Args:
+            forum: The resolved forum channel.
+
+        Returns:
+            A single-tag list, or an empty one when nothing matched or nothing was configured.
+        """
+        wanted = str(getattr(self._interaction.client, "followup_forum_tags", {}).get(self._event_prefix, "")).strip()
+        if not wanted:
+            return []
+        for tag in forum.available_tags:
+            if tag.name.casefold() == wanted.casefold():
+                return [tag]
+        self._logger.warning(
+            "the configured forum tag is not one this forum carries",
+            extra={
+                "event": f"{self._event_prefix}.forum_tag_missing",
+                "wanted": wanted,
+                "available": [tag.name for tag in forum.available_tags],
+            },
+        )
+        return []
 
     async def post_in_thread(self, handle: ThreadHandle, content: str) -> None:
         """Post the opening message inside the follow-up thread.
@@ -1357,6 +1491,39 @@ class ClientThreadPoster:
             self._logger.info(
                 "the thread could not be marked as closed",
                 extra={"event": "relay.mark_failed", "discord_thread": thread_id, "error": type(error).__name__},
+            )
+            return False
+        return True
+
+    async def mark_reopened(self, channel_id: int, thread_id: int) -> bool:
+        """Take the settled mark back off, once the issue is open again.
+
+        Args:
+            channel_id: The channel the thread belongs to.
+            thread_id: The thread.
+
+        Returns:
+            Whether the mark was removed. Cosmetic like :meth:`mark_closed`, so a refusal never
+            fails a round: the reopening is said in words as well.
+        """
+        try:
+            thread = await self._thread(thread_id)
+        except (discord.HTTPException, discord.ClientException):
+            return False
+        if thread is None:
+            return False
+        name = thread.name.removeprefix(CLOSED_MARK)
+        if name == thread.name and not thread.archived:
+            # Nothing to undo. Worth the check rather than an idempotent edit: Discord allows a
+            # thread **two renames every ten minutes**, and spending one to write the name it
+            # already has is how the rename that matters gets refused.
+            return True
+        try:
+            await thread.edit(name=name or thread.name, archived=False)
+        except (discord.HTTPException, discord.ClientException) as error:
+            self._logger.info(
+                "the thread could not be marked as reopened",
+                extra={"event": "relay.unmark_failed", "discord_thread": thread_id, "error": type(error).__name__},
             )
             return False
         return True

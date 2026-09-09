@@ -277,6 +277,7 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "filed.created": "✅ Ticket ouvert : {url}",
         "filed.reused": "✅ Ce rapport avait déjà été déposé : {url} (rien n'a été ouvert deux fois).",
         "filed.commented": "💬 Ton observation a été ajoutée au ticket existant : {url}",
+        "filed.followup": "💬 Le suivi se passe ici : {url}",
         "filed.notes": "-# ⚠️ {notes}",
         "filed.error": (
             "❌ **Je n'ai pas réussi à déposer ce ticket.** Raison : {reason}\n"
@@ -347,6 +348,9 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "relay.closed": (
             "✅ Le ticket #{issue} est **clos** : {url}\nSi ton problème persiste, dis-le ici — "
             "un mainteneur pourra le rouvrir."
+        ),
+        "relay.reopened": (
+            "🔄 Le ticket #{issue} a été **rouvert** : {url}\nJe rapporte ici ce qui s'y est dit depuis."
         ),
         "match.button.same": "Oui, c'est ça",
         "match.button.different": "Non, le mien est différent",
@@ -617,6 +621,7 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "filed.created": "✅ Issue opened: {url}",
         "filed.reused": "✅ This report had already been filed: {url} (nothing was opened twice).",
         "filed.commented": "💬 Your observation was added to the existing issue: {url}",
+        "filed.followup": "💬 The follow-up happens here: {url}",
         "filed.notes": "-# ⚠️ {notes}",
         "filed.error": (
             "❌ **I could not file this issue.** Reason: {reason}\n"
@@ -684,6 +689,9 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "relay.closed": (
             "✅ Issue #{issue} is **closed**: {url}\nIf your problem is still there, say so here — "
             "a maintainer can reopen it."
+        ),
+        "relay.reopened": (
+            "🔄 Issue #{issue} has been **reopened**: {url}\nI am bringing over what has been said on it since."
         ),
         "match.button.same": "Yes, that is it",
         "match.button.different": "No, mine is different",

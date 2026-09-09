@@ -37,8 +37,19 @@ veafSkynet.DelayForRestart = 20
 -- seconds anyway, so this delay costs nothing observable.
 veafSkynet.DelayForDynamicIntegration = 1
 
+-- A radar that reported no range at all is asked again: how long to wait between readings, and how
+-- many readings to try. Skynet reads a radar's range **once**, when the element is built, so a single
+-- unlucky answer decided a site's range for the whole mission (#946, second round).
+veafSkynet.DelayForRangeRecheck = 5
+veafSkynet.MaxRangeRechecks = 3
+
 -- maximum x or y (z in DCS) between a SAM site and it's point defenses in meters
 veafSkynet.MaxPointDefenseDistanceFromSite = 10000
+
+-- seconds between two sweeps looking for sites whose group has left the mission.
+-- A minute is short enough that the status page never lies for long, and long enough that the sweep
+-- costs nothing next to the contact-evaluation cycle it is protecting (#946).
+veafSkynet.SecondsBetweenVanishedSitesSweeps = 60
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -98,13 +109,114 @@ veafSkynet.structure = {}
 --(stay out of every network) or a network name. Entries are consumed on integration.
 veafSkynet.declaredSpawns = {}
 
+--- Unit names DCS has reported lost, as a set. Read by `veafSkynet.removeVanishedSites` to tell a
+--- site the enemy destroyed from a site a script despawned — see there for why that matters.
+---
+--- It holds **every** unit death in the mission, not only the ones belonging to an IADS, and only a
+--- birth under the same name takes an entry out. That is deliberate: the obvious filter — record a
+--- death only when the unit's type is one Skynet knows — reads `unitType` off the event, and that is
+--- precisely what stops resolving once the unit is gone (`completeUnitFromName` asks
+--- `Unit.getByName`). A missed radar death would make the sweep read a kill as a despawn and remove a
+--- site the player earned, so the set is left to grow rather than filtered on a field that can be
+--- nil. A busy multi-hour mission costs on the order of a hundred kilobytes for it.
+veafSkynet.lostUnits = {}
+
+--- Whether the death callback and the periodic sweep are in place. See `_armVanishedSitesSweep`.
+veafSkynet.vanishedSitesSweepArmed = false
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafSkynet.getStringSkynetElement(skynetElement)
-  local s = skynetElement.dcsName
 
-  if not skynetElement.dcsRepresentation:isExist() then
+--- True when DCS still holds this object.
+---
+--- `coalition.getGroups` can hand back a group that has been **destroyed**. That is not a suspicion:
+--- it is the reason the Skynet compatibility layer wraps its own listing in `forEachLiveGroup`
+--- (`src/scripts/community/skynet-iads-compiled.lua`), whose comment records that asking such a
+--- group for its units raises. veafSkynet enrols the map `DelayForStartup` seconds into the mission,
+--- which is *after* every combat zone has destroyed the groups standing inside it
+--- (`veafCombatZone.lua`, *"remove all units in the trigger zone (we want it CLEAN !)"*), so the
+--- listing it walks is routinely carrying corpses. Enrolling one produced a SAM site whose radar
+--- never existed, counted as *radar destroyed* on the IADS status page for the rest of the mission
+--- and holding its group name against any respawn (#946).
+---
+--- `not dcsObject.isExist` is deliberate, and phrased as `forEachLiveGroup` phrases it: a handle that
+--- cannot answer the question must not take the whole enrolment down with it.
+---
+--- @param dcsObject table|nil a DCS Group, Unit or StaticObject handle
+--- @return boolean true when the object is still part of the mission
+function veafSkynet.dcsObjectStillExists(dcsObject)
+  if not dcsObject then
+    return false
+  end
+  if not dcsObject.isExist then
+    return true
+  end
+  return dcsObject:isExist() and true or false
+end
+
+--- The object's name for a log line, or `"?"`, without ever raising.
+---
+--- Through `pcall` on purpose: the one place a name is wanted is a message about an object DCS has
+--- released, and such an object can refuse every method — `getName` included. A log line must not be
+--- the thing that raises.
+---
+--- @param dcsObject table|nil
+--- @return string
+function veafSkynet.safeDcsName(dcsObject)
+  if not dcsObject or not dcsObject.getName then
+    return "?"
+  end
+  local ok, name = pcall(dcsObject.getName, dcsObject)
+  if ok and type(name) == "string" then
+    return name
+  end
+  return "?"
+end
+
+--- Record that DCS reported a unit lost, so a sweep can tell a kill from a despawn.
+---
+--- Keyed on **unit** name rather than group name on purpose: `veafEventHandler.completeUnitFromName`
+--- resolves a unit's group through `Unit.getByName`, which is exactly what has stopped answering by
+--- the time a death is reported, so the group name reaching a callback is unreliable where the unit
+--- name is not.
+---
+--- @param event table the event handed to a `veafEventHandler` callback
+function veafSkynet.onUnitLost(event)
+  local unitName = veafEventHandler.unitNameFromEvent(event)
+  if unitName then
+    veaf.loggers.get(veafSkynet.Id):trace("unit lost: %s", veaf.lp(unitName))
+    veafSkynet.lostUnits[unitName] = true
+  end
+end
+
+--- Forget that a unit of this name was ever lost, because one is alive again.
+---
+--- Without this the ledger only grows, and a **reused unit name** would then read as a kill forever:
+--- a combat zone whose SAM was shot once, deactivated and activated again spawns units under the same
+--- names unless the zone renames them sequentially, and the next despawn of that site would be kept
+--- as *destroyed* rather than swept — quietly reinstating the defect the sweep exists to fix.
+---
+--- A separate callback rather than one function inspecting the event's type: the transformed event
+--- carries the event **table**, populated only once `veafEventHandler.initialize` has run, so reading
+--- it would make the branch depend on initialisation order for nothing.
+---
+--- @param event table the event handed to a `veafEventHandler` callback
+function veafSkynet.onUnitBorn(event)
+  local unitName = veafEventHandler.unitNameFromEvent(event)
+  if unitName and veafSkynet.lostUnits[unitName] then
+    veaf.loggers.get(veafSkynet.Id):trace("unit born again, no longer counted as lost: %s", veaf.lp(unitName))
+    veafSkynet.lostUnits[unitName] = nil
+  end
+end
+
+function veafSkynet.getStringSkynetElement(skynetElement)
+  local s = tostring(skynetElement.dcsName)
+
+  -- Through the helper rather than `dcsRepresentation:isExist()` so that describing an element whose
+  -- representation is nil says so instead of raising. That matters because this is what the log line
+  -- of `removeSkynetElement` calls, on elements chosen for having lost their object (#946).
+  if not veafSkynet.dcsObjectStillExists(skynetElement.dcsRepresentation) then
     return s .. " (dcs object does not exist)"
   end
 
@@ -204,16 +316,46 @@ function veafSkynet.removeSkynetElement(skynetElement, veafSkynetNetwork)
     end
   end
 
+  -- Detached **before** cleanUp, and this is not tidiness. `SkynetIADSAbstractRadarElement:cleanUp`
+  -- walks `self.pointDefences` and cleans each one up too — but a point defence is a separate site
+  -- that is still alive, still listed in `iads.samSites` and still commanded. Cleaning it up calls
+  -- `world.removeEventHandler` on it, and `SkynetIADSAbstractElement:onEvent` is what makes an
+  -- element react to the world: on `S_EVENT_DEAD` it goes dark when its power source or connection
+  -- node is gone and tells its children, and on `S_EVENT_SHOT` it runs `weaponFired`, which is how
+  -- HARM detection sees anything at all. Unregistered, the site keeps being commanded while blind to
+  -- both, for the rest of the mission, and nothing says so.
+  --
+  -- Unreachable before #946, because the only caller was the point-defence path in `Dcs` mode, where
+  -- the element being removed *is* the point defence and holds none of its own. The sweep is the
+  -- first caller that meets a parent, so the cascade has to be cut here rather than at the call site.
+  -- Losing its parent leaves a point defence an ordinary site, which is the right outcome: the site
+  -- it was defending has left the mission.
+  veafSkynet.removePointDefencesFromSkynetElement(skynetElement)
+
   skynetElement:cleanUp()
-  skynetElement:getDCSRepresentation():enableEmission(true)
+
+  -- Guarded, unlike the call this replaces: the VMR-096 note below states that this function is
+  -- reached precisely when the DCS representation is gone, and `enableEmission` raises on an object
+  -- DCS no longer holds. Handing emission back to something that has left the mission is meaningless
+  -- anyway. Nothing had noticed because the only caller was the point-defence path, which runs on
+  -- live sites; the sweep added in #946 is the first caller that meets corpses by design.
+  local dcsRepresentation = skynetElement:getDCSRepresentation()
+  if veafSkynet.dcsObjectStillExists(dcsRepresentation) then
+    dcsRepresentation:enableEmission(true)
+  end
 
   local list = iads.samSites
   veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list)
 
   _removeSkynetElementFromList(list, skynetElement)
-  --_removeSkynetElementFromList(iads:getEarlyWarningRadars(), skynetElement)
+  -- Commented out since the day it was written (`3002aaad`, 2023-11-02, the commit that created this
+  -- function), and the trace below recorded the consequence as "not removed here" without saying
+  -- why: `iads:getEarlyWarningRadars()` hands back a delegator **copy**
+  -- (`createTableDelegator`), so removing from it would have removed nothing. The field is the real
+  -- list, which is what this now uses.
+  _removeSkynetElementFromList(iads.earlyWarningRadars, skynetElement)
 
-  veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list) -- not removed here
+  veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list)
 
   -- VMR-096: getDcsGroupFromSkynetElement returns nil once the DCS representation is gone, which
   -- is exactly the case this function is called in — so asking the group for its name raised, and
@@ -226,6 +368,351 @@ function veafSkynet.removeSkynetElement(skynetElement, veafSkynetNetwork)
     veafSkynetNetwork.groups[groupName] = nil
   else
     veaf.loggers.get(veafSkynet.Id):warn("cannot tell which group to remove from the network for a skynet element with no name")
+  end
+end
+
+--- True when DCS reported any of the element's units lost.
+---
+--- The element's own `dcsName` is checked alongside its units'. For a SAM site that name is a *group*
+--- name, which will not normally appear in a set keyed on unit names; when it does collide the
+--- element is treated as destroyed and therefore **kept**, which is the behaviour that shipped before
+--- the sweep existed — so the collision costs a stale entry, never a site removed by mistake.
+local function _wasReportedLost(skynetElement)
+  if skynetElement.dcsName and veafSkynet.lostUnits[skynetElement.dcsName] then
+    return true
+  end
+  -- Named one by one rather than iterated as a literal table: any of the three can be nil on an
+  -- element Skynet never completed, and a nil inside a table constructor makes `pairs` unreliable.
+  local lists = { skynetElement.searchRadars, skynetElement.trackingRadars, skynetElement.launchers }
+  for i = 1, 3 do
+    local units = lists[i]
+    if units then
+      for j = 1, #units do
+        if units[j].dcsName and veafSkynet.lostUnits[units[j].dcsName] then
+          return true
+        end
+      end
+    end
+  end
+  return false
+end
+
+--- Remove from one list every element whose DCS object is gone and that nothing reported lost.
+--- Walked backwards because `removeSkynetElement` removes from the very list being iterated.
+--- @return number how many were removed
+local function _sweepSkynetElements(network, elements)
+  if not elements then
+    return 0
+  end
+  local removed = 0
+  for i = #elements, 1, -1 do
+    local skynetElement = elements[i]
+    if skynetElement and not veafSkynet.dcsObjectStillExists(skynetElement.dcsRepresentation) then
+      if _wasReportedLost(skynetElement) then
+        veaf.loggers.get(veafSkynet.Id):trace("keeping destroyed element [%s], it was shot", veaf.lp(tostring(skynetElement.dcsName)))
+      else
+        veaf.loggers.get(veafSkynet.Id):debug("removing despawned element [%s] from the network", veaf.lp(tostring(skynetElement.dcsName)))
+        veafSkynet.removeSkynetElement(skynetElement, network)
+        removed = removed + 1
+      end
+    end
+  end
+  return removed
+end
+
+--- Drop the sites of one network whose group was despawned rather than destroyed.
+---
+--- **Why not simply "every site whose object is gone".** Skynet is *meant* to keep the sites the
+--- player destroyed: `Raddest` for SAM sites and `Destroyed:` for early-warning radars are the SEAD
+--- readout, and a mission maker watching an IADS come apart wants to read `EW: 6 | Destroyed: 4`, not
+--- `EW: 2 | Destroyed: 0`. Removing a kill would delete that.
+---
+--- And a kill cannot be told from a despawn by looking at the object: both answer
+--- `isExist() == false` and both make `SkynetIADSSamSite:isDestroyed()` true. What separates them is
+--- the **event** — DCS raises `S_EVENT_DEAD` / `S_EVENT_UNIT_LOST` for a unit that was killed and
+--- nothing at all for one a script removed. Hence `veafSkynet.lostUnits`, and hence this sweep only
+--- removes what nobody ever reported losing.
+---
+--- What it exists for: a combat zone being deactivated takes its air defences with it, and the sites
+--- stayed in the network for the rest of the mission — inflating the status page, walked on every
+--- contact-evaluation cycle, and holding their group name against a respawn, since
+--- `addGroupToNetwork` refuses a name the network already lists (#946).
+---
+--- @param networkName string
+--- @return number how many elements were removed
+function veafSkynet.removeVanishedSites(networkName)
+  local network = veafSkynet.getNetwork(networkName)
+  if not network or not network.iads then
+    veaf.loggers.get(veafSkynet.Id):trace("removeVanishedSites: no IADS for network %s", veaf.lp(networkName))
+    return 0
+  end
+
+  local removed = _sweepSkynetElements(network, network.iads.samSites) + _sweepSkynetElements(network, network.iads.earlyWarningRadars)
+  if removed > 0 then
+    veaf.loggers.get(veafSkynet.Id):info("network %s: removed %s despawned element(s)", veaf.lp(networkName), veaf.lp(removed))
+    -- The parent/child radar graph is built once, when the network activates, and a removal used to
+    -- leave the departed element listed as a **child** of everything that could see it. Measured on
+    -- Tripack's log of 2026-09-09 at 10:03:13: three sites destroyed by command and one swept, and the
+    -- EW radar still announced `SAM SITES IN COVERED AREA: 5`, naming four elements no longer in the
+    -- network - which `informChildrenOfStateChange` then went on commanding, cleaned up as they were.
+    -- Once per sweep that removed something, not once per element.
+    veafSkynet.rebuildRadarCoverage(networkName)
+  end
+  return removed
+end
+
+--- Sweep every network. This is what the periodic schedule calls.
+function veafSkynet.sweepVanishedSites()
+  for networkName, _ in pairs(veafSkynet.structure) do
+    veafSkynet.removeVanishedSites(networkName)
+  end
+end
+
+--- Rebuild a network's parent/child radar graph.
+---
+--- `SkynetIADS:buildRadarCoverage` is the whole graph at once, which is what activation runs. Called
+--- through `pcall` because the callers reach it right after elements have left the network, and an
+--- element Skynet has cleaned up can refuse a method.
+---
+--- @param networkName string
+--- @return boolean true when the coverage was rebuilt
+function veafSkynet.rebuildRadarCoverage(networkName)
+  local network = veafSkynet.getNetwork(networkName)
+  if not network or not network.iads or not network.iads.buildRadarCoverage then
+    veaf.loggers.get(veafSkynet.Id):trace("rebuildRadarCoverage: no IADS for network %s", veaf.lp(networkName))
+    return false
+  end
+  -- #261, and this is not caution: `SkynetIADS:buildRadarCoverage` ends by calling
+  -- `informChildrenOfStateChange()` on **every** SAM site — the vendored comment there says it is
+  -- "to make sure autonomous sites go live" — and a site with no live parent whose autonomous
+  -- behaviour is the default `AUTONOMOUS_STATE_DCS_AI` then goes live: radar on, alarm state red.
+  -- `deactivateNetwork` deliberately leaves `samSites` populated and only marks the network, so the
+  -- periodic sweep walks a deactivated network too and would relight it here, around the refusal
+  -- `delayedActivate` exists to enforce. Worse, those elements have had `cleanUp()` called on them,
+  -- so they would come back up with their world event handlers unregistered.
+  if network.deactivated then
+    veaf.loggers
+      .get(veafSkynet.Id)
+      :trace("rebuildRadarCoverage: network %s was deactivated on purpose, leaving its coverage alone", veaf.lp(networkName))
+    return false
+  end
+  local ok, err = pcall(network.iads.buildRadarCoverage, network.iads)
+  if not ok then
+    veaf.loggers.get(veafSkynet.Id):warn("network %s: rebuilding the radar coverage raised: %s", veaf.lp(networkName), veaf.lp(err))
+    return false
+  end
+  veaf.loggers.get(veafSkynet.Id):trace("network %s: radar coverage rebuilt", veaf.lp(networkName))
+  return true
+end
+
+--- The widest detection range this element's radars report, and the counts behind that number.
+---
+--- Skynet reads a radar's range in `SkynetIADSSAMSearchRadar:setupRangeData`, called from
+--- `buildSingleUnit` at the instant the element is built (`skynet-iads-compiled.lua`), out of
+--- `getSensors()`. The value lands in `maximumRange` and **nothing reads the sensors again**. When
+--- that one answer is `nil`, the range stays 0 for the rest of the mission: the site detects nothing,
+--- never goes live however close a player flies, and every status page counts it under `Raddest`,
+--- since `isRadarWorking()` goes through `getSensors()` too and a search radar carrying no
+--- ammunition gets nothing from the `getAmmo()` fallback either. One unread field, both of the
+--- symptoms Tripack reported (#946).
+---
+--- @param skynetElement table|nil a Skynet SAM site or EW radar
+--- @return number maxRange the widest range reported, 0 when no radar reported one
+--- @return number radarCount how many radars the element holds
+--- @return number liveRadarCount how many of those DCS still holds
+function veafSkynet.measureRadarRange(skynetElement)
+  local maxRange, radarCount, liveRadarCount = 0, 0, 0
+  if not skynetElement or not skynetElement.getRadars then
+    return maxRange, radarCount, liveRadarCount
+  end
+  local ok, radars = pcall(skynetElement.getRadars, skynetElement)
+  if not ok or type(radars) ~= "table" then
+    return maxRange, radarCount, liveRadarCount
+  end
+  for _, radar in pairs(radars) do
+    radarCount = radarCount + 1
+    if radar.getDCSRepresentation and veafSkynet.dcsObjectStillExists(radar:getDCSRepresentation()) then
+      liveRadarCount = liveRadarCount + 1
+    end
+    if radar.getMaxRangeFindingTarget then
+      local range = radar:getMaxRangeFindingTarget()
+      if type(range) == "number" and range > maxRange then
+        maxRange = range
+      end
+    end
+  end
+  return maxRange, radarCount, liveRadarCount
+end
+
+--- The DCS handle of a Skynet element or of one of its radar wrappers, or nil, without ever raising.
+--- Both are `SkynetIADSAbstractDCSObjectWrapper` descendants, so one reader serves both.
+local function _dcsRepresentationOf(skynetElement)
+  if not skynetElement or not skynetElement.getDCSRepresentation then
+    return nil
+  end
+  local ok, dcsRepresentation = pcall(skynetElement.getDCSRepresentation, skynetElement)
+  return ok and dcsRepresentation or nil
+end
+
+--- One string naming this element's radar units, for a log line: `name/type/live/resolvable`.
+---
+--- `resolvable` is `Unit.getByName(name) ~= nil`. The two together are what a log needs to separate
+--- the three states this repository could not tell apart on Tripack's 2026-09-09 log: a wrapper
+--- holding a unit DCS no longer has, a wrapper holding a unit DCS has but under another name, and a
+--- unit that is plainly there and answers no sensors. Only the third is a DCS question.
+---
+--- @param skynetElement table|nil
+--- @return string
+function veafSkynet.describeRadarUnits(skynetElement)
+  if not skynetElement or not skynetElement.getRadars then
+    return "none"
+  end
+  local ok, radars = pcall(skynetElement.getRadars, skynetElement)
+  if not ok or type(radars) ~= "table" then
+    return "unreadable"
+  end
+  local described = {}
+  for _, radar in pairs(radars) do
+    local name = tostring(radar.dcsName)
+    local resolved, unit = pcall(Unit.getByName, name)
+    table.insert(
+      described,
+      string.format(
+        "%s/%s/live=%s/resolvable=%s",
+        name,
+        tostring(radar.typeName),
+        tostring(veafSkynet.dcsObjectStillExists(_dcsRepresentationOf(radar)) and true or false),
+        tostring((resolved and unit) and true or false)
+      )
+    )
+  end
+  if #described == 0 then
+    return "none"
+  end
+  return table.concat(described, " ; ")
+end
+
+--- Read the range data again for an element whose radars all reported nothing, and rebuild the
+--- coverage as soon as one of them answers.
+---
+--- Re-reading **is** the repair: why DCS hands back a nil `getSensors()` for a radar unit it still
+--- holds is not observable from a log, so the dependency on that one reading being lucky is removed
+--- rather than explained.
+---
+--- Asking again is safe, but not idempotent, and the difference is worth stating rather than
+--- glossing: `SkynetIADSSAMSearchRadar:setupRangeData` increments its own `triedSensors` counter on
+--- every nil-sensor read, and the launcher variant guards its ammo bookkeeping on that counter
+--- staying `<= 2` ("we set initial values only the first time the method is called"). A handful of
+--- re-reads pushes it past that gate for good. Harmless here — the search-radar fallback into the
+--- launcher's range data is ungated, which is the path this uses — and bounded by
+--- `MaxRangeRechecks`, so the counter moves by at most three.
+---
+--- @param networkName string
+--- @param skynetElement table
+--- @param attemptsLeft number
+function veafSkynet.recheckRadarRange(networkName, skynetElement, attemptsLeft)
+  if not veafSkynet.dcsObjectStillExists(_dcsRepresentationOf(skynetElement)) then
+    return
+  end
+
+  local _, _, liveRadarCount = veafSkynet.measureRadarRange(skynetElement)
+  if liveRadarCount == 0 then
+    -- Nothing left to ask. An element whose radars have all left the mission is the sweep's business,
+    -- not this function's.
+    return
+  end
+
+  local ok, radars = pcall(skynetElement.getRadars, skynetElement)
+  if ok and type(radars) == "table" then
+    for _, radar in pairs(radars) do
+      if radar.setupRangeData then
+        pcall(radar.setupRangeData, radar)
+      end
+    end
+  end
+
+  local elementName = veafSkynet.safeDcsName(_dcsRepresentationOf(skynetElement))
+  local maxRange = veafSkynet.measureRadarRange(skynetElement)
+  if maxRange > 0 then
+    veaf.loggers
+      .get(veafSkynet.Id)
+      :info("RADAR RANGE RECOVERED [%s]: %s m on re-read, rebuilding the coverage", veaf.lp(elementName), veaf.lp(maxRange))
+    -- Without this the number would be right and unused: the parent/child graph was built while the
+    -- range was still zero, so the site would go on seeing nobody.
+    veafSkynet.rebuildRadarCoverage(networkName)
+    return
+  end
+
+  if attemptsLeft > 1 then
+    veaf.scheduleFunction(
+      veafSkynet.recheckRadarRange,
+      { networkName, skynetElement, attemptsLeft - 1 },
+      timer.getTime() + veafSkynet.DelayForRangeRecheck
+    )
+  else
+    veaf.loggers.get(veafSkynet.Id):info(
+      "RADAR RANGE STILL ZERO [%s]: %s re-read(s) asked, DCS reports no sensor range",
+      veaf.lp(elementName),
+      veaf.lp(veafSkynet.MaxRangeRechecks)
+    )
+  end
+end
+
+--- Check what an element's radars reported when it joined a network, and schedule a re-read when the
+--- answer was "nothing".
+---
+--- Silent at `info` on the healthy case — one line per **faulty** element, not one per element, so a
+--- mission carrying sixty batteries does not pay for this. `info` rather than `debug` for the reason
+--- the previous lot recorded: the default level is `info` (`veaf.BaseLogLevel = 3` in veaf.lua) and no
+--- shipped mission raises it, so a `debug` line would be invisible exactly where it is needed. The
+--- counts belong in the line: they separate "the radar unit is not there" from "it is there and
+--- silent" from "it has left the mission", which is what will name the DCS-side cause this repository
+--- cannot measure on its own.
+---
+--- @param networkName string
+--- @param skynetElement table|nil
+function veafSkynet.checkRadarRange(networkName, skynetElement)
+  if not skynetElement then
+    return
+  end
+  local maxRange, radarCount, liveRadarCount = veafSkynet.measureRadarRange(skynetElement)
+  local elementName = veafSkynet.safeDcsName(_dcsRepresentationOf(skynetElement))
+  if maxRange > 0 then
+    veaf.loggers
+      .get(veafSkynet.Id)
+      :debug("RADAR RANGE [%s]: %s m from %s radar(s)", veaf.lp(elementName), veaf.lp(maxRange), veaf.lp(radarCount))
+    return
+  end
+  -- `MaxRangeRechecks` is a mission-settable number, so zero has to mean zero rather than one.
+  local willRetry = liveRadarCount > 0 and veafSkynet.MaxRangeRechecks > 0
+  -- The verdict is part of the line, because the line is the diagnosis: promising a re-read that is
+  -- not coming would make this log misleading in exactly the place the lot exists to make readable.
+  local ending = "no radar left to ask, nothing to re-read"
+  if willRetry then
+    ending = string.format("re-reading in %s s", tostring(veafSkynet.DelayForRangeRecheck))
+  elseif liveRadarCount > 0 then
+    ending = "re-reading is switched off (MaxRangeRechecks = 0)"
+  end
+  -- The radar **units** are named, not just the group. Four readings of Tripack's log could not tell
+  -- whether Skynet had hold of the right unit, because the line named the group only — and the group
+  -- name of a zone respawn (`TESTCZ [r] TESTCZ - SA6#10316`) says nothing about the unit underneath.
+  -- `resolvable` is the other half: it says whether `Unit.getByName` can find that unit at all, which
+  -- separates "Skynet holds a unit DCS has forgotten" from "the unit is there and silent".
+  veaf.loggers.get(veafSkynet.Id):info(
+    "RADAR RANGE ZERO [%s]: radars=%s live=%s launchers=%s radarUnits=%s - the site detects nothing, %s",
+    veaf.lp(elementName),
+    veaf.lp(radarCount),
+    veaf.lp(liveRadarCount),
+    veaf.lp(skynetElement.launchers and #skynetElement.launchers or 0),
+    veaf.lp(veafSkynet.describeRadarUnits(skynetElement)),
+    veaf.lp(ending)
+  )
+  if willRetry then
+    veaf.scheduleFunction(
+      veafSkynet.recheckRadarRange,
+      { networkName, skynetElement, veafSkynet.MaxRangeRechecks },
+      timer.getTime() + veafSkynet.DelayForRangeRecheck
+    )
   end
 end
 
@@ -613,7 +1100,17 @@ function veafSkynet.resolveDynamicSpawnNetwork(groupName, coalitionId)
   return veafSkynet.defaultIADS[tostring(coalitionId)]
 end
 
-function veafSkynet._integrateDynamicSpawn(groupName, coalitionId)
+--- Integrate one spawned group into its network.
+---
+--- `requireDynamicSpawn` is what separates the two callers. The birth-event handler sees **every**
+--- eligible group DCS reports, including whatever a third-party script spawns, so it must honour the
+--- network's `dynamicSpawn` flag. A mission feature respawning content the mission author placed on
+--- the map is not in that category — see veafSkynet.integrateMissionSpawn.
+---
+--- @param groupName string
+--- @param coalitionId number
+--- @param requireDynamicSpawn boolean
+function veafSkynet._integrateSpawn(groupName, coalitionId, requireDynamicSpawn)
   local dcsGroup = Group.getByName(groupName)
   if not dcsGroup then
     veaf.loggers.get(veafSkynet.Id):trace(string.format("group %s no longer exists, not integrating it", veaf.p(groupName)))
@@ -635,7 +1132,7 @@ function veafSkynet._integrateDynamicSpawn(groupName, coalitionId)
   end
   -- #261: the flag is per network, so one coalition switching dynamic integration off leaves the
   -- other one working.
-  if not network.dynamicSpawn then
+  if requireDynamicSpawn and not network.dynamicSpawn then
     veaf.loggers.get(veafSkynet.Id):trace(string.format("network %s does not integrate dynamically spawned groups", veaf.p(networkName)))
     return
   end
@@ -647,6 +1144,76 @@ function veafSkynet._integrateDynamicSpawn(groupName, coalitionId)
     veafSkynet.initializePointDefences(network)
     --iads:buildRadarCoverage()
   end
+end
+
+function veafSkynet._integrateDynamicSpawn(groupName, coalitionId)
+  veafSkynet._integrateSpawn(groupName, coalitionId, true)
+end
+
+--- Integrate a group a mission feature has just respawned into its coalition's default network,
+--- whether or not that network integrates dynamic spawns.
+---
+--- What this exists for: a combat zone respawns its groups through `VeafGroupSpawn:respawn()` ->
+--- `veafDcsSpawner.addGroup` -> `coalition.addGroup`, and no link in that chain knows Skynet exists.
+--- The only catch-all is the birth-event handler, which is armed only when a network carries
+--- `dynamicSpawn == true` — off by default. So the sweep #946 added removed a zone's air defences
+--- when the zone was switched off, and nothing put them back: on a mission that cycles its zones, the
+--- IADS drained as the mission ran.
+---
+--- Why not simply require `dynamic_spawn` here, which FIX-SKYNET-DYNAMICSPAWN-SCOPE established as
+--- the documented way to integrate mid-mission spawns: because without this, whether a zone's
+--- battery is in the network is decided by a **race**, and the race is won at mission start and lost
+--- for the rest of the game.
+---
+--- `veafCombatZone.ActivateZone` schedules the zone's activation at `timer.getTime() + 1`
+--- (veafCombatZone.lua) and `veafSkynet.DelayForStartup` is `1` — the same second. The zone's
+--- `initialize` has already destroyed the editor groups standing in the trigger zone, synchronously,
+--- while the config script loaded; so what the enrolment can find is the group the *activation* has
+--- just respawned, and only if the activation ran first. Measured on Tripack's log of 2026-09-09: it
+--- did, and `TESTCZ [r] TESTCZ - SA6#10262` was enrolled at 09:58:02.591 by `loadAllAtInit` — with
+--- `dynamic_spawn` absent from that mission's configuration.
+---
+--- So the site was in the network at second one, out of it after the first sweep, and never back.
+--- Requiring the flag would not fix that; it would only make the first second consistent with the
+--- rest by removing the site from both. Telling the network explicitly, every time the zone puts a
+--- battery back, is what makes the answer the same at second one and at second six hundred.
+---
+--- The coalition is read from the group rather than passed in, so a caller holding a country id
+--- cannot get it wrong. Integrating twice is not a risk: `addGroupToNetwork` refuses a group the
+--- network already lists.
+---
+--- @param groupName string|nil
+function veafSkynet.integrateMissionSpawn(groupName)
+  if not groupName or not veafSkynet.initialized then
+    return
+  end
+  local dcsGroup = Group.getByName(groupName)
+  if not veafSkynet.dcsObjectStillExists(dcsGroup) then
+    veaf.loggers.get(veafSkynet.Id):trace(string.format("group %s does not exist, not integrating it", veaf.p(groupName)))
+    return
+  end
+  local coalitionId = dcsGroup:getCoalition()
+  -- #151 posed the two integration paths as exclusive — "when the target network integrates dynamic
+  -- spawns, its birth-event handler does the work […] so doing it here as well would integrate the
+  -- same group twice" (veafSpawnCore.lua). A network with `dynamicSpawn` on has that handler armed,
+  -- and `coalition.addGroup` fires the birth event this call would race, so the work is left to it.
+  -- The second integration would be refused rather than duplicated, but "refused" is not the same
+  -- promise as "never asked", and the rule is the repository's, not this function's to bend.
+  if veafSkynet.integratesDynamicSpawns(veafSkynet.defaultIADS[tostring(coalitionId)]) then
+    veaf.loggers.get(veafSkynet.Id):trace(
+      "integrateMissionSpawn: the network of coalition %s integrates spawns itself, leaving %s to it",
+      veaf.lp(coalitionId),
+      veaf.lp(groupName)
+    )
+    return
+  end
+  -- Deferred like the birth-event path, and for the same reason: veafSpawn declares a spawn's
+  -- `skynet` option once its handler has returned a group name, which can be after this call.
+  veaf.scheduleFunction(
+    veafSkynet._integrateSpawn,
+    { groupName, coalitionId, false },
+    timer.getTime() + veafSkynet.DelayForDynamicIntegration
+  )
 end
 
 function veafSkynet.OnDynamicSpawn(event)
@@ -761,14 +1328,35 @@ function veafSkynet.isGroupUsable(dcsGroup)
 end
 
 function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefense, alreadyAddedGroups, silent)
-  veaf.loggers
-    .get(veafSkynet.Id)
-    :debug("ADD GROUP START [" .. dcsGroup:getName() .. "] [id=" .. dcsGroup:getID() .. "] to IADS network [" .. networkName .. "]")
-
+  -- Both guards precede the first dereference, which is where the `nil` one always belonged: it used
+  -- to sit *below* the `dcsGroup:getName()` of the log line, so it could never fire — a nil group
+  -- raised instead of being refused.
   if not dcsGroup then
     veaf.loggers.get(veafSkynet.Id):error("No group to find to add to network")
     return false
   end
+
+  -- #946: this is the single door every caller goes through — the start-up enrolment walking
+  -- `coalition.getGroups`, the birth-event handler, the radio menu and the `_skynet` markers — so it
+  -- is where the "DCS still lists what it destroyed" check belongs. See
+  -- `veafSkynet.dcsObjectStillExists`.
+  --
+  -- `info`, not `debug`, and not `error` either. Not error, because a group that died before its
+  -- deferred integration ran is ordinary mission life. But not debug: the default log level is
+  -- `info` (`veaf.BaseLogLevel = 3` in veaf.lua) and no shipped mission raises it, so a debug line
+  -- would be invisible exactly where it is needed. The whole reason this defect reached a bug report
+  -- is that nothing anywhere said a word about it — sixteen sites enrolled dead, in silence. One
+  -- line per refusal, naming the group, is what makes it readable in a log nobody had to configure.
+  if not veafSkynet.dcsObjectStillExists(dcsGroup) then
+    veaf.loggers
+      .get(veafSkynet.Id)
+      :info("ADD GROUP REFUSED [%s]: DCS no longer holds this group", veaf.lp(veafSkynet.safeDcsName(dcsGroup)))
+    return false
+  end
+
+  veaf.loggers
+    .get(veafSkynet.Id)
+    :debug("ADD GROUP START [" .. dcsGroup:getName() .. "] [id=" .. dcsGroup:getID() .. "] to IADS network [" .. networkName .. "]")
 
   if not veafSkynet.isGroupUsable(dcsGroup) then
     veaf.loggers.get(veafSkynet.Id):trace("Group is not usable for skynet")
@@ -791,6 +1379,9 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
     return false
   end
   local didSomething = false
+  -- The element this call put in the network, kept past the unit loop so its radar range can be
+  -- checked once the group is in (#946, second round). `addedSite` itself is per-unit.
+  local addedElement = nil
 
   veaf.loggers
     .get(veafSkynet.Id)
@@ -950,6 +1541,7 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
       end
 
       if addedSite then
+        addedElement = addedSite
         break -- if something has been added for this group no need to check the remaining units
       end
     end
@@ -973,6 +1565,10 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
 
     --add the added site to the structure of the network it was added to
     veafSkynet.structure[networkName].groups[groupName] = { forceEwr = forceEwr, pointDefense = defended_name }
+
+    -- Last, so a site that reports no radar range at all is caught at the one moment its range was
+    -- ever read. See veafSkynet.checkRadarRange.
+    veafSkynet.checkRadarRange(networkName, addedElement)
   end
 
   return didSomething
@@ -1007,7 +1603,12 @@ local function initializeIADS(networkName, coa, inRadio, debug)
   local alreadyAddedGroups = {}
   local dcsGroups = coalition.getGroups(coa)
   for _, dcsGroup in pairs(dcsGroups) do
-    if veafSkynet.structure[networkName] then
+    -- #946: tested here as well as inside addGroupToNetwork, and not out of caution. This loop asks
+    -- the handle for its name **before** reaching that function, and a DCS object that has left the
+    -- mission can refuse any method — the Skynet compatibility layer records `getUnits` raising and
+    -- there is nothing to say `getName` is safer. A raise here does not skip one group: it aborts the
+    -- whole enrolment, and every group listed after the corpse never joins the IADS.
+    if veafSkynet.structure[networkName] and veafSkynet.dcsObjectStillExists(dcsGroup) then
       local groupName = dcsGroup:getName()
       if groupName then
         local structureData = veafSkynet.structure[networkName].groups[groupName]
@@ -1241,7 +1842,37 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
   -- arms the shared birth handler if any network was created wanting dynamic integration
   veafSkynet.refreshDynamicSpawnMonitoring()
 
+  veafSkynet._armVanishedSitesSweep()
+
   veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
+end
+
+--- Watch for units being lost, and sweep the networks periodically (#946).
+---
+--- Idempotent, because a reinitialisation must not stack a second death callback (`addCallback` does
+--- not deduplicate) nor a second schedule: every unit lost would be recorded twice and every sweep
+--- run twice, which is the shape of #824.
+function veafSkynet._armVanishedSitesSweep()
+  if veafSkynet.vanishedSitesSweepArmed then
+    return
+  end
+  veafSkynet.vanishedSitesSweepArmed = true
+
+  -- Guarded the way veafMissionDb guards it: the module is loadable without the event handler, and a
+  -- missing dispatcher must cost the ledger, not the IADS.
+  if veafEventHandler and veafEventHandler.addCallback then
+    veafEventHandler.addCallback("veafSkynet.onUnitLost", { "S_EVENT_DEAD", "S_EVENT_UNIT_LOST" }, veafSkynet.onUnitLost)
+    veafEventHandler.addCallback("veafSkynet.onUnitBorn", { "S_EVENT_BIRTH" }, veafSkynet.onUnitBorn)
+  else
+    veaf.loggers.get(veafSkynet.Id):warn("no event handler: a site whose group is destroyed cannot be told from one that was despawned")
+  end
+
+  veaf.scheduleFunction(
+    veafSkynet.sweepVanishedSites,
+    {},
+    timer.getTime() + veafSkynet.SecondsBetweenVanishedSitesSweeps,
+    veafSkynet.SecondsBetweenVanishedSitesSweeps
+  )
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

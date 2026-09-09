@@ -504,6 +504,10 @@ class BugIntake:
                         url=outcome.url or f"#{outcome.number}",
                     ),
                 )
+                # Where the follow-up lives, said in the reporter's own answer. It used to be
+                # obvious — the thread hung in the channel he had just typed in, three lines below.
+                # A post in a forum is somewhere else entirely, and nothing else would tell him.
+                message += "\n" + text("filed.followup", lang, url=handle.url)
             message += await self._add_hypothesis(report, draft.body, outcome.number, lang, submission.roles)
         return message
 

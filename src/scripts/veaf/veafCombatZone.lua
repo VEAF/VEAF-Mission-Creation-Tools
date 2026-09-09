@@ -1730,6 +1730,22 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         -- unless its unit name stated one. A single default served the convoys of #290 and silenced
         -- every SAM battery in a combat zone (PR #762).
         veaf.readyForCombat(newGroup.name, zoneElement:resolveAlarmState())
+        -- An air defence a zone puts back on the map rejoins the IADS. Nothing in the respawn chain
+        -- (VeafGroupSpawn -> veafDcsSpawner.addGroup -> coalition.addGroup) tells Skynet anything, and
+        -- the birth-event handler that would otherwise catch the group is off by default — so a
+        -- battery that made it into the network at mission start (the start-up enrolment and this
+        -- zone's activation are both scheduled one second in, and whichever runs first decides) left
+        -- it at the first sweep after a deactivation and never came back.
+        --
+        -- Restricted to what stays put, by the same `isMobile()` the alarm state consults when no
+        -- `#alarm=` tag was stated: a battery holding a position belongs in the network, a convoy
+        -- driving through it does not. An explicit tag moves the alarm state and not this, which is
+        -- right — `#alarm=` says how a group fights, not whether it is part of an air-defence network.
+        -- `isDcsGroup`, because this branch also builds statics, and a static is never a group Skynet
+        -- can use: asking would resolve nothing and log a line per bunker.
+        if veafSkynet and zoneElement:isDcsGroup() and not zoneElement:isMobile() then
+          veafSkynet.integrateMissionSpawn(newGroup.name)
+        end
       else
         veaf.loggers
           .get(veafCombatZone.Id)

@@ -198,6 +198,42 @@ Let it come up, then **F10 → the Skynet menu → the status command**, and fly
   happened — and grep for `SkynetIADS: error in scheduled function`, which the module logs on any
   raise inside a scheduled call.
 
+### R14. A combat zone's SAM must not join the IADS as a corpse
+
+Unblocks [`FIX-SKYNET-ADDS-DESTROYED-GROUPS`](.backlog/FIX-SKYNET-ADDS-DESTROYED-GROUPS/PRD.md), the
+whole lot. #946, Tripack 2026-09-08: the status page announced *16 SAM sites with a destroyed radar*
+at mission start, with nothing shot at. Cause held and fixed — `coalition.getGroups` still lists a
+group DCS destroyed a moment earlier, and the enrolment runs one second after every combat zone has
+cleaned itself out, so the corpses were enrolled as SAM sites whose radar never existed.
+
+**Run**: `Skynet-test_20260908.miz`, the minimal reproduction Tripack built for exactly this — one
+combat zone `TESTCZ` holding `TESTCZ - SA6`, three red SAM groups and one EWR outside it. It sets
+`debugRed = true`, so **the status page goes to `dcs.log`** and the whole check is readable from the
+log: no need to open the F10 menu, though the in-game page says the same thing.
+
+**Where to look, and this needed checking rather than assuming**: the aggregate
+`SAM: n | … | Raddest: n` line goes through `trigger.action.outText` — **screen only, never the log**.
+What `debugRed` puts in the log is `samSiteStatusEnvOutput`, i.e. `printSAMSiteStatus`, which writes
+**one `GROUP: <name> | TYPE: <nato>` line per site in the network**. That is the better check anyway:
+it names the site instead of making you count. So grep `SKYNET: GROUP:` and
+`VEAF-SKYNET.*ADD GROUP REFUSED`.
+
+- **Fixed**: three `GROUP:` lines — the S-300, the Kub and the 2S6, all outside the zone — and **no
+  `TESTCZ - SA6`**, plus one `ADD GROUP REFUSED [TESTCZ - SA6]: DCS no longer holds this group`.
+- **Not fixed**: a fourth `GROUP: TESTCZ - SA6` line. Then the corpse was still enrolled and the guard
+  is not on the path this mission takes — bring back the log, because the question becomes which of
+  the four doors into the network the group came through.
+- **Neither**: a fourth `GROUP:` line whose name is *not* `TESTCZ - SA6` but a zone-suffixed variant.
+  That is the zone's **respawned** group, a different matter — `dynamic_spawn` is off here, so nothing
+  should have integrated it, and it would be worth a ticket of its own rather than a line here.
+
+The refusal is logged at `info`, so it shows without touching the mission's log level (the default is
+`info`, and this mission sets none).
+
+The zone is activated at `t + 1` by the config (`veafCombatZone.ActivateZone("TESTCZ", true)`), the
+same second the enrolment fires, so the timing this lot is about is exercised whether or not the
+guard holds.
+
 ---
 
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)
@@ -983,3 +1019,60 @@ Comparer `position` aux coordonnées éditeur de `AAA-1` — attention à la con
   (`veaf.findSpawnPoint` dans `spawnElement`) ne teste que le point d'ancrage, jamais les quatre
   autres unités du groupe — une unité déjà au bord de l'eau dans l'éditeur peut donc passer dedans
   sans que rien ne le remarque.
+
+---
+
+## Le SA-6 d'une zone de combat : radar muet, puis absent du réseau
+
+Ouvert par `FIX-SKYNET-CZ-RESPAWN-AND-RANGE`, correctif du 2026-09-09. Suite des deux retours de
+Tripack sur [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946).
+
+Ce qui est établi sans DCS, depuis son journal du 2026-09-09 :
+
+- son SA-6 de zone de combat est bien dans le réseau, ses rampes répondent, les trois autres sites le
+  voient — et **il ne voit personne**. Sa portée radar est nulle. Skynet la lit **une seule fois**, à
+  l'entrée dans le réseau, dans `getSensors()` ; si cette unique réponse est `nil`, la portée reste à
+  zéro pour toute la mission. C'est ce qui produit à la fois le « radar détruit » du tableau et le
+  site qui ne s'allume jamais ;
+- après désactivation puis réactivation de la zone, le site ne rejoint **plus du tout** le réseau : la
+  chaîne de respawn ne parle pas à Skynet, et le rattrapage par événement de naissance est éteint par
+  défaut. Preuve dans son journal, sans le fichier de mission : le SA-6 posé au marqueur est intégré
+  **2 ms** après sa naissance, là où ce rattrapage attend une seconde.
+
+Ce que ça ne dit pas, et qui demande le jeu : **pourquoi DCS répond `nil`** sur un radar qu'il détient
+encore. Quatre hypothèses sont éliminées dans le ticket 01 du lot (dont celle proposée à Tripack le
+2026-09-09 : le radar pas encore né). Le correctif supprime la dépendance à cette lecture unique — il
+n'explique pas la réponse de DCS.
+
+**À faire** : reconstruire le `.miz` de test de Tripack (`Skynet-test_20260908.miz`, une zone
+`TESTCZ` avec un `TESTCZ - SA6`, trois sites hors zone, `debug_red: true`) avec les scripts de cette
+branche, le lancer, et relever dans `dcs.log` :
+
+1. au démarrage, la ligne `RADAR RANGE ZERO [TESTCZ …]: radars=N live=N launchers=N` — **c'est elle
+   qui nomme la cause DCS** :
+   - `radars=1 live=1` → le radar est là, DCS le détient, et il ne répond pas : la lecture arrive trop
+     tôt ou `getSensors()` ne répond pas sur une unité fraîchement créée ;
+   - `radars=1 live=0` → le handle est mort alors que le groupe vit : c'est le groupe respawné qui
+     porte un cadavre d'unité, et il faut regarder le nettoyage de zone ;
+   - `radars=0` → Skynet a accepté un site sans radar, ce que `addSAMSite` est censé refuser : c'est
+     alors la reconnaissance de type qu'il faut regarder ;
+   - **aucune ligne du tout** → la portée est lue correctement dans ce build, et le défaut A ne se
+     reproduit pas — auquel cas ne pas conclure trop vite, comparer avec le journal du 2026-09-09 ;
+2. la suite : `RADAR RANGE RECOVERED [...]: N m on re-read` (la relecture a réussi, donc c'était
+   l'instant de la lecture) ou `RADAR RANGE STILL ZERO` (trois relectures, toujours rien : c'est
+   l'unité elle-même) ;
+3. `SAM: 4 | … | Raddest: 0` au démarrage, puis **désactiver et réactiver la zone** par le menu radio
+   (`ZONES DE COMBAT → SAM → TESTCZ`) : le compteur doit revenir à **4 SAM**, alors qu'il restait à 3
+   avant ce lot. Le journal doit montrer un `GOING LIVE` pour le groupe respawné, une seconde après sa
+   naissance ;
+4. voler dans la zone d'interception du SA-6 : il doit s'allumer et tirer.
+
+- **Attendu après correctif** : `Raddest: 0` au démarrage ou après relecture, `4 SAM` après le cycle
+  de zone, et le SA-6 qui engage.
+- **Ce qui rouvrirait le sujet** : `RADAR RANGE STILL ZERO` après les trois relectures — la portée
+  n'est alors pas récupérable par une nouvelle lecture, et il faudra la calculer autrement (la base de
+  types de Skynet porte une portée nominale par type, qui pourrait servir de repli).
+
+Cette vérification est **surtout celle de Tripack** : la mission est la sienne et le journal du
+2026-09-09 vient de son poste. Une session DCS locale peut la faire, mais la mission de test doit
+alors être reconstruite depuis ses sources.

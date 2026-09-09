@@ -17,6 +17,113 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.21.0] — 2026-09-09
+
+### Added
+
+- **The support bot opens its follow-ups in a forum channel.** A `/bug` or `/suggest` follow-up used
+  to be a thread hanging off a short public message the bot had to post in whichever channel the
+  command was typed in — a technical necessity, since a thread cannot hang off an ephemeral reply.
+  Set `SUPPORT_BOT_DISCORD_FORUM_CHANNEL_ID` and it becomes a **post in that forum** instead, with a
+  title and an open/closed state of its own and no anchor message left behind. `/ask` deliberately
+  keeps its thread in the channel: a question answered in ten minutes does not belong in a forum.
+  Every way the forum can fail — an id that is wrong or points at something that is not a forum, a
+  missing *Create Posts*, a forum that requires a tag on every post — falls back to the old anchored
+  thread with a warning in the log, so a misconfiguration costs neither the follow-up nor the report.
+- **That post now carries the tag the forum asks for, and the answer says where it is.** Tried in
+  production the day it shipped, the post was refused: the VEAF forum requires a tag on every post
+  and the bot applied none (Discord error 40067). It now applies one — `SUPPORT_BOT_FORUM_TAG_BUG`
+  (default `issue`) and `SUPPORT_BOT_FORUM_TAG_SUGGESTION` (default `suggestion`), matched
+  case-insensitively against the forum's own tags, by **name** because Discord's interface offers no
+  way to copy a tag's id. A name the forum does not carry posts untagged, which any forum that does
+  not require one accepts, and the log then names the tags it does have. The private answer closing
+  a `/bug` or a `/suggest` also ends with a **link to the follow-up thread**: obvious while it hung
+  in the same channel, and the only clue once it is a post somewhere else.
+
+### Fixed
+
+- **The IADS no longer enrols groups DCS has already destroyed.** Reported by Tripack (#946): at
+  mission start the IADS status page announced *16 SAM sites with a destroyed radar*, with nothing
+  shot at. `Raddest` counts sites whose radar does not answer, and a site Skynet accepted always
+  holds a search radar — so those radars no longer existed. A combat zone destroys every group
+  inside it while the mission's config script loads, `veafSkynet` enrols the map one second later by
+  walking `coalition.getGroups`, and DCS still lists what it has just destroyed. The guard now sits
+  at the single door every caller goes through, so it also covers the birth-event handler, the radio
+  menu and the `_skynet` markers; the `nil`-group check on the same three lines, which sat below the
+  dereference that would raise and so could never fire, was moved above it.
+- **A site whose group is despawned now leaves its IADS network.** Deactivating a combat zone takes
+  its air defences with it, and the sites stayed in the network for the rest of the mission —
+  inflating the status page, walked on every detection cycle, and holding their group name, since a
+  group the network already lists is refused. A sweep every
+  `veafSkynet.SecondsBetweenVanishedSitesSweeps` seconds (default 60) removes them. Sites the player
+  **destroyed** are kept, because that is what the `Raddest` and `Destroyed` columns report and it is
+  how a successful SEAD reads — the two cases are indistinguishable on the object, so they are told
+  apart by whether DCS ever reported one of the site's units lost.
+- **A SAM site whose radar reported no range at all is asked again.** Second round of #946: Tripack
+  ran the fix above and his combat zone's SA-6 was still announced with a destroyed radar, and still
+  never fired at an aircraft flying over it. Both symptoms come out of one field. Skynet reads a
+  radar's detection range **once**, when the site joins the network, out of `getSensors()`; when that
+  single answer is `nil` the range stays zero for the rest of the mission, so the site detects
+  nothing and every status page counts it as a destroyed radar. The reading is now verified: a site
+  reporting no range is re-read up to `veafSkynet.MaxRangeRechecks` times (default 3),
+  `veafSkynet.DelayForRangeRecheck` seconds apart (default 5), and the coverage is rebuilt as soon as
+  a radar answers. A site in that state also gets one line in the log — the number of radars it
+  holds, how many DCS still holds, and how many launchers — because why DCS answers `nil` on a live
+  radar unit cannot be measured from a mission file.
+- **A combat zone's air defences rejoin the IADS when the zone comes back.** The sweep above removes
+  a deactivated zone's SAM sites, and nothing put them back: a zone respawns its groups through
+  `coalition.addGroup` and no link in that chain tells Skynet anything, while the birth-event handler
+  that would otherwise catch them is off unless the mission sets `dynamic_spawn`. So on a mission
+  that cycles its zones the network drained as the mission ran — measured on Tripack's log, `4 SAM`
+  at start and `3 SAM` after one deactivate/reactivate, for the rest of the run. A zone now tells the
+  IADS about what it puts back, whatever `dynamic_spawn` says, since the start-up enrolment already
+  takes an active zone's batteries without that flag: the same site was in the network at second one
+  and out of it at second sixty under one configuration. Only elements that **stay put** are
+  concerned — a convoy driving through a zone has no business in an air-defence network, the same
+  call that decides the alarm state it gets.
+- **Removing a site from an IADS network now rebuilds the radar coverage.** The parent/child radar
+  graph is built once, when the network activates, so a removal left the departed site listed as a
+  child of everything that could see it: on Tripack's log the early-warning radar still announced
+  five sites in its covered area, four of which had left the network — and went on informing them of
+  contacts, cleaned up as they were. A network somebody switched off on purpose is left alone: Skynet
+  rebuilds a coverage by telling every site to reconsider its state, which lights up the autonomous
+  ones, and a deactivated network must stay off until someone reactivates it.
+- **Closing a support issue no longer unsubscribes its reporter for good.** The relay dropped the
+  Discord ↔ GitHub link the moment it announced a closure, to keep each polling round from growing
+  without end. Found on #946, closed one evening and reopened the next morning: the reopening
+  reached a relay that no longer knew the issue existed, and **ten** comments were written into a
+  thread that had been archived, marked `✅` and left silent. The message announcing a closure
+  invites the reporter to say so if his problem persists, and a maintainer answers that by reopening
+  the issue — so the one action the sentence asks for was also the one that cut the channel. A
+  closed link is now kept for a week: a reopening is announced in the thread, the `✅` comes off, the
+  thread is un-archived, and what was said meanwhile is brought over. The ceiling that the drop was
+  protecting is held by that window instead, and it was never in danger — a closed link costs 12 of
+  the 5000 API calls an hour the installation gets.
+- **A deleted issue stops being polled.** Every GitHub failure was treated as transient, which is
+  right for an outage and wrong for a deletion: three issues deleted on GitHub were asked about
+  every ten minutes for a day. `410 Gone` now drops the link once, with one log line; `404` stays
+  transient on purpose, since it also means an installation whose access dropped for a minute, and
+  unsubscribing every reporter over a transient fault is the worse failure. Those warnings were also
+  the *only* content in the log, which is what made a relay that had stopped relaying anything read,
+  at a glance, like one that was working.
+- **A group VEAF respawns keeps its editor unit order, and its SAM battery keeps its eyes.** Third and
+  last round of #946. `veafMissionDb.buildSnapshot` walked a group's units with `pairs`, which has no
+  defined order, so every mission record carried them shuffled — and a respawn hands that order
+  straight to `coalition.addGroup`. Measured in game against DCS itself: **a SAM group whose first
+  unit is not its radar is created with no sensors at all**, on every unit. `Unit.getSensors()`
+  answers nil, Skynet reads a detection range of zero, and the site never considers a target in
+  range, never goes live, never fires — and is counted under `Raddest` on the status page, because
+  `isRadarWorking()` goes through `getSensors()` too. Both of the reported symptoms, from one word.
+  Proved in both directions: Tripack's five units in the shuffled order gave 0/5 with sensors, the
+  same five with the radar back in first gave 5/5, and a working pair was broken by putting the
+  launcher first. Eleven further probes cleared `coldAtStart`, `playerCanDrive`, `unitId`, `groupId`,
+  `missionData`, `route`, `task`, the coordinates and `coalition.addGroup` itself. It is not only the
+  sensors: everything anchoring on "unit 1" of a respawned group — the spawn offset of
+  FIX-TRIPACK-FIELD-REPORTS ticket 04 among them — was anchoring on whichever unit the hash order
+  happened to put there. The radar re-read added earlier in this lot is withdrawn: it was built on an
+  explanation this measurement retired, and `Unit.getByName` hands back the very same handle anyway.
+  The diagnostic line that names each radar unit stays, as a canary for any other cause.
+
 ## [6.20.0] — 2026-09-07
 
 ### Fixed

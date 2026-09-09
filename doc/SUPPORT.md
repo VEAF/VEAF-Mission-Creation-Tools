@@ -131,8 +131,14 @@ publié.
 
 ### Ce qui se passe ensuite
 
-Le bot ouvre un **fil public** et y met le lien du ticket. Quand quelqu'un répond sur le ticket, ou
-quand il est fermé, **le bot le rapporte dans ce fil** : vous n'avez pas à surveiller GitHub.
+Le bot ouvre un **fil public** — dans le salon forum du Discord consacré aux outils, s'il y en a un
+— et y met le lien du ticket. Quand quelqu'un répond sur le ticket, ou quand il est fermé, **le bot
+le rapporte dans ce fil** : vous n'avez pas à surveiller GitHub.
+
+Un ticket fermé peut être **rouvert** — c'est la réponse normale à un « ça ne marche toujours pas »
+écrit dans le fil. Le bot l'annonce alors dans le fil, lui retire sa marque `✅` et le remet en
+service, puis rapporte ce qui a été dit sur le ticket entre-temps. Il suit un ticket fermé pendant
+une semaine encore ; passé ce délai, écrivez dans le fil et un mainteneur reprendra la main.
 
 Dans l'autre sens, c'est **manuel** : pour ajouter quelque chose — un fichier oublié, une précision —
 écrivez-le dans le fil, un mainteneur le reportera sur le ticket. Le bot n'écrit pas de Discord vers

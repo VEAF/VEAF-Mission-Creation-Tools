@@ -56,7 +56,9 @@ precisely the failure this ticket exists to prevent, so the ambiguous case must 
 * it is announced **once** — a second round on the same open issue says nothing;
 * the announcement precedes the relayed comments;
 * a link closed for less than the window survives the round and is still polled;
-* a link closed for longer is forgotten, and costs no call to the watcher;
+* a link closed for longer is forgotten, and costs no call to the watcher — asserted **inside**
+  `TestTheRoundDoesNotGrowForEver`, the class review note 75 created, because the bound it names has
+  changed shape rather than gone away and that class is where a reader looks for it;
 * a link with no `closed_since` is given the full window instead of being dropped;
 * a refused rename keeps `closed_marked` and is retried next round, without announcing twice;
 * a refused rename costs neither the announcement nor a single relayed comment;

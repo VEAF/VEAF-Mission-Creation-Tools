@@ -63,8 +63,10 @@ LINKS_VERSION = 1
 #: How often the tracked issues are polled, in seconds. Nobody is waiting in front of a bug report,
 #: and each round costs **two** API calls per tracked issue — the issue's state and its comments.
 #: At ten minutes that is 12 calls an hour per followed report, against the 5000 an hour a GitHub
-#: App installation gets; a link is dropped as soon as its issue closes, which is what keeps that
-#: number from growing without end.
+#: App installation gets, so the round stays affordable up to some 400 followed reports. What keeps
+#: it under that is `KEEP_CLOSED_SECONDS`: a link is let go a week after its issue closed. It used to
+#: be dropped at the closure itself, which bounded the round harder and cost the reporter every
+#: reopening — read that constant before concluding anything about quota pressure here.
 DEFAULT_POLL_SECONDS = 600.0
 
 #: Comments carried into the thread in one round, per issue. A maintainer pasting a long exchange

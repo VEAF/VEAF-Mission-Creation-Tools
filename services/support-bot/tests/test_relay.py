@@ -793,22 +793,6 @@ class TestAClosureIsNotTheEnd(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(watcher.seen), 1, "it must still be asked about, or a reopening is lost")
         self.assertIn(901, store.load())
 
-    async def test_a_link_closed_for_the_whole_window_is_forgotten(self) -> None:
-        watcher = _Watcher(IssueState(closed=True))
-        relay, store = _relay(
-            watcher,
-            _Poster(),
-            links=[_link(closed=True, closed_since=NOW - KEEP_CLOSED_SECONDS)],
-            clock=lambda: NOW,
-        )
-
-        result = await relay.run_once()
-
-        self.assertEqual(result.forgotten, 1)
-        self.assertEqual(store.load(), {})
-        self.assertEqual(relay.tracked, 0)
-        self.assertEqual(watcher.seen, [], "the clock already knows; the round must spend no call")
-
     async def test_a_closed_link_with_no_moment_is_given_the_whole_window(self) -> None:
         """A file written before this window existed, or edited by hand: never dropped on sight."""
         relay, store = _relay(
@@ -979,7 +963,30 @@ class TestADeletedIssueStopsBeingPolled(unittest.IsolatedAsyncioTestCase):
 
 
 class TestTheRoundDoesNotGrowForEver(unittest.IsolatedAsyncioTestCase):
-    """Found in review, noted 75: nothing was ever dropped, so the round grew until the API refused."""
+    """Found in review, noted 75: nothing was ever dropped, so the round grew until the API refused.
+
+    The bound has since changed shape and this class holds the test that proves it. Dropping the
+    link at the closure bounded the round hardest and cost the reporter every reopening (#946), so a
+    closed link is let go a week later instead — which bounds the round only as long as something
+    actually does the letting go. That is what `test_a_closed_issue_stops_being_followed` asserts,
+    and it is the test that fails if a refactor stops calling `_expired` before `_deliver`.
+    """
+
+    async def test_a_closed_issue_stops_being_followed(self) -> None:
+        watcher = _Watcher(IssueState(closed=True))
+        relay, store = _relay(
+            watcher,
+            _Poster(),
+            links=[_link(closed=True, closed_since=NOW - KEEP_CLOSED_SECONDS)],
+            clock=lambda: NOW,
+        )
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.forgotten, 1)
+        self.assertEqual(store.load(), {}, "a closed issue eventually has nothing left to relay")
+        self.assertEqual(relay.tracked, 0)
+        self.assertEqual(watcher.seen, [], "and it stops costing the round its two calls")
 
     async def test_the_closure_is_still_announced_before_it_stops(self) -> None:
         poster = _Poster()

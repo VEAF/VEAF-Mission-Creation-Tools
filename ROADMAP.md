@@ -160,10 +160,18 @@ last call site is gone.
 > shipped. The order itself is delivered through 5. Refreshing §2 is a pending chore — a stale sequencing
 > file is read as work remaining, which this file says about itself two sections up.
 
-### New since that order — FIX-TRIPACK-FIELD-REPORTS (2026-09-05)
+### New since that order — FIX-TRIPACK-FIELD-REPORTS (2026-09-05) — **delivered**
 
-[`FIX-TRIPACK-FIELD-REPORTS`](.backlog/FIX-TRIPACK-FIELD-REPORTS/PRD.md) goes **first**, ahead of
-anything else open: its ticket 01 is a release-blocking regression against the current 6.19.0 —
+> **Delivered in 6.20.0 and 6.21.0.** Ticket 01's regression shipped fixed in 6.20.0. What it
+> uncovered ran three rounds further, through [#947](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/947),
+> [#949](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/949) and
+> [#951](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/951): the root cause was that
+> `veafMissionDb` shuffled a group's unit order, and DCS gives a SAM group no sensors at all when its
+> first unit is not its radar. Verified in game 2026-09-09. Issue #946 is closed; the paragraph below
+> is kept for the reasoning it records.
+
+[`FIX-TRIPACK-FIELD-REPORTS`](.backlog/FIX-TRIPACK-FIELD-REPORTS/PRD.md) went **first**, ahead of
+anything else open: its ticket 01 was a release-blocking regression against 6.19.0 —
 Skynet is inert, every SAM in a mission that enables it stays asleep and the IADS status screen is
 blank. The cause is the defect `FIX-TUTORIAL-FIRST-RUN` ticket 05 fixed on 2026-09-02 in
 `veafScheduler`, present a second time in the compatibility module that replaced MiST **inside the

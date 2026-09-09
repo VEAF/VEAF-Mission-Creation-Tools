@@ -1,6 +1,6 @@
 # 03 — put #946 back in the relay
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 The code fix does not repair the live link: #946's entry is already gone from
 `/app/state/relay-links.json`, and nothing recreates it. This is the one-off repair, plus the

@@ -1,6 +1,6 @@
 # 01 — a reopened issue is followed again
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## The defect
 

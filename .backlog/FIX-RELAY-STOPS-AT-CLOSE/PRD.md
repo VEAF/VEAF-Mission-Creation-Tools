@@ -1,6 +1,6 @@
 # FIX-RELAY-STOPS-AT-CLOSE — closing an issue unsubscribes its reporter for good
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Origin: David, 2026-09-09. The bot had relayed nothing to Discord for a day and its log showed only
 a heartbeat and three `relay.poll_failed` warnings. Both halves of that are bugs, and neither is the

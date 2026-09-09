@@ -1,6 +1,6 @@
 # 02 — a deleted issue stops being polled
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## The defect
 

@@ -2077,4 +2077,432 @@ function TestVeafSkynetSafeDcsName:test_nil_and_nameless_objects_give_a_placehol
   luaunit.assertEquals(veafSkynet.safeDcsName({}), "?")
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-SKYNET-CZ-RESPAWN-AND-RANGE ticket 01 — a radar with no range is asked again
+-- ---------------------------------------------------------------------------
+TestVeafSkynetRadarRange = {}
+
+--- A radar wrapper as Skynet builds one: a `maximumRange` a single `setupRangeData` call decided,
+--- and a DCS handle behind it. `sensorRangeOnReRead` is what a second reading would answer, which is
+--- the whole question this ticket asks.
+local function _radar(name, maximumRange, exists, sensorRangeOnReRead)
+  local dcsRepresentation = {
+    isExist = function()
+      return exists
+    end,
+    getName = function()
+      return name
+    end,
+  }
+  local radar = {
+    dcsName = name,
+    maximumRange = maximumRange,
+    setupRangeDataCalls = 0,
+    getDCSRepresentation = function(self)
+      return dcsRepresentation
+    end,
+    getMaxRangeFindingTarget = function(self)
+      return self.maximumRange
+    end,
+  }
+  radar.setupRangeData = function(self)
+    self.setupRangeDataCalls = self.setupRangeDataCalls + 1
+    if sensorRangeOnReRead then
+      self.maximumRange = sensorRangeOnReRead
+    end
+  end
+  return radar
+end
+
+--- A SAM site holding the given radars, plus one launcher, the way Tripack's site reported itself:
+--- `HAS AMMO: true` while its radar answered nothing.
+local function _siteWithRadars(dcsName, radars, exists)
+  local dcsRepresentation = {
+    isExist = function()
+      return exists ~= false
+    end,
+    getName = function()
+      return dcsName
+    end,
+  }
+  return {
+    dcsName = dcsName,
+    launchers = { { dcsName = dcsName .. "-launcher" } },
+    getDCSRepresentation = function(_)
+      return dcsRepresentation
+    end,
+    getRadars = function(_)
+      return radars
+    end,
+  }
+end
+
+function TestVeafSkynetRadarRange:setUp()
+  self._savedSchedule = veaf.scheduleFunction
+  self.scheduled = {}
+  local scheduled = self.scheduled
+  veaf.scheduleFunction = function(fn, args, when)
+    table.insert(scheduled, { fn = fn, args = args, when = when })
+    return #scheduled
+  end
+  self.coverageRebuilds = {}
+  local coverageRebuilds = self.coverageRebuilds
+  veafSkynet.structure["red iads"] = {
+    iads = {
+      samSites = {},
+      earlyWarningRadars = {},
+      buildRadarCoverage = function(_)
+        table.insert(coverageRebuilds, true)
+      end,
+    },
+    coalitionID = coalition.side.RED,
+    groups = {},
+  }
+end
+
+function TestVeafSkynetRadarRange:tearDown()
+  veaf.scheduleFunction = self._savedSchedule
+  veafSkynet.structure = {}
+end
+
+function TestVeafSkynetRadarRange:test_measure_reports_the_widest_range_and_its_counts()
+  local site = _siteWithRadars("SA6", { _radar("search", 55000, true), _radar("track", 24000, true) }, true)
+  local maxRange, radarCount, liveRadarCount = veafSkynet.measureRadarRange(site)
+  luaunit.assertEquals(maxRange, 55000)
+  luaunit.assertEquals(radarCount, 2)
+  luaunit.assertEquals(liveRadarCount, 2)
+end
+
+function TestVeafSkynetRadarRange:test_measure_counts_a_radar_dcs_no_longer_holds_apart()
+  -- The counts are what the log line carries, and what separates "the radar is silent" from "the
+  -- radar has left the mission" for whoever reads the next log.
+  local site = _siteWithRadars("SA6", { _radar("search", 0, false) }, true)
+  local maxRange, radarCount, liveRadarCount = veafSkynet.measureRadarRange(site)
+  luaunit.assertEquals(maxRange, 0)
+  luaunit.assertEquals(radarCount, 1)
+  luaunit.assertEquals(liveRadarCount, 0)
+end
+
+function TestVeafSkynetRadarRange:test_measure_does_not_raise_on_nil_or_on_an_element_without_radars()
+  luaunit.assertEquals(veafSkynet.measureRadarRange(nil), 0)
+  luaunit.assertEquals(veafSkynet.measureRadarRange({}), 0)
+  local refuses = {
+    getRadars = function()
+      error("this element has left the mission")
+    end,
+  }
+  local ok, maxRange = pcall(veafSkynet.measureRadarRange, refuses)
+  luaunit.assertTrue(ok, "measuring an element that refuses its radars must not raise")
+  luaunit.assertEquals(maxRange, 0)
+end
+
+function TestVeafSkynetRadarRange:test_a_site_with_a_range_is_left_alone()
+  -- The control: a healthy site must not be re-read, and must not print a line at info level either.
+  veafSkynet.checkRadarRange("red iads", _siteWithRadars("SA6", { _radar("search", 55000, true) }, true))
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetRadarRange:test_a_site_reporting_no_range_is_scheduled_for_a_re_read()
+  -- The defect, at the state Tripack's log shows: a live radar handle whose range is zero.
+  veafSkynet.checkRadarRange("red iads", _siteWithRadars("SA6", { _radar("search", 0, true) }, true))
+  luaunit.assertEquals(#self.scheduled, 1)
+  luaunit.assertEquals(self.scheduled[1].fn, veafSkynet.recheckRadarRange)
+  luaunit.assertEquals(self.scheduled[1].args[1], "red iads")
+  luaunit.assertEquals(self.scheduled[1].args[3], veafSkynet.MaxRangeRechecks)
+end
+
+function TestVeafSkynetRadarRange:test_zero_rechecks_means_zero()
+  -- MaxRangeRechecks is a number a mission can set, and `attemptsLeft > 1` would have turned a
+  -- declared zero into one reading.
+  local saved = veafSkynet.MaxRangeRechecks
+  veafSkynet.MaxRangeRechecks = 0
+  veafSkynet.checkRadarRange("red iads", _siteWithRadars("SA6", { _radar("search", 0, true) }, true))
+  veafSkynet.MaxRangeRechecks = saved
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetRadarRange:test_a_site_whose_radars_are_gone_is_not_re_read()
+  -- Nothing to ask. That element is the sweep's business.
+  veafSkynet.checkRadarRange("red iads", _siteWithRadars("SA6", { _radar("search", 0, false) }, true))
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetRadarRange:test_a_nil_element_is_ignored()
+  local ok = pcall(veafSkynet.checkRadarRange, "red iads", nil)
+  luaunit.assertTrue(ok)
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetRadarRange:test_the_re_read_asks_the_radar_again()
+  local radar = _radar("search", 0, true, 55000)
+  veafSkynet.recheckRadarRange("red iads", _siteWithRadars("SA6", { radar }, true), 3)
+  luaunit.assertEquals(radar.setupRangeDataCalls, 1)
+  luaunit.assertEquals(radar.maximumRange, 55000)
+end
+
+function TestVeafSkynetRadarRange:test_a_recovered_range_rebuilds_the_coverage()
+  -- Without this the number would be right and unused: the parent/child graph was built while the
+  -- range was still zero, so the site would go on seeing nobody.
+  veafSkynet.recheckRadarRange("red iads", _siteWithRadars("SA6", { _radar("search", 0, true, 55000) }, true), 3)
+  luaunit.assertEquals(#self.coverageRebuilds, 1)
+  luaunit.assertEquals(#self.scheduled, 0, "a recovered site must not be re-read again")
+end
+
+function TestVeafSkynetRadarRange:test_a_range_still_zero_is_asked_again_until_the_attempts_run_out()
+  local site = _siteWithRadars("SA6", { _radar("search", 0, true) }, true)
+  veafSkynet.recheckRadarRange("red iads", site, 3)
+  luaunit.assertEquals(#self.scheduled, 1)
+  luaunit.assertEquals(self.scheduled[1].args[3], 2)
+
+  self.scheduled = {}
+  local scheduled = self.scheduled
+  veaf.scheduleFunction = function(fn, args, when)
+    table.insert(scheduled, { fn = fn, args = args, when = when })
+    return #scheduled
+  end
+  veafSkynet.recheckRadarRange("red iads", site, 1)
+  luaunit.assertEquals(#scheduled, 0, "the last attempt must not schedule another one")
+  luaunit.assertEquals(#self.coverageRebuilds, 0)
+end
+
+function TestVeafSkynetRadarRange:test_an_element_dcs_no_longer_holds_is_not_re_read()
+  local radar = _radar("search", 0, true, 55000)
+  veafSkynet.recheckRadarRange("red iads", _siteWithRadars("SA6", { radar }, false), 3)
+  luaunit.assertEquals(radar.setupRangeDataCalls, 0)
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetRadarRange:test_a_site_joining_a_network_is_checked()
+  -- The wiring: addGroupToNetwork is the single door, so the check belongs behind it rather than at
+  -- each call site.
+  dcs_mocks.reset()
+  local savedTypes = veafSkynet.iadsSamUnitsTypes
+  local savedMode = veafSkynet.GroupIntegrationMode
+  veafSkynet.iadsSamUnitsTypes = { ["Kub 2P25 ln"] = true }
+  veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
+  local iads = _makeMockIads("red iads")
+  iads.addSAMSite = function(_, groupName)
+    return _siteWithRadars(groupName, { _radar("search", 0, true) }, true)
+  end
+  iads.buildRadarCoverage = function(_) end
+  veafSkynet.structure["red iads"] = { iads = iads, coalitionID = coalition.side.RED, groups = {} }
+
+  veafSkynet.addGroupToNetwork("red iads", _redSamGroup("LIVE-SAM", true), false, false, nil, true)
+
+  local reReads = 0
+  for _, entry in ipairs(self.scheduled) do
+    if entry.fn == veafSkynet.recheckRadarRange then
+      reReads = reReads + 1
+    end
+  end
+  luaunit.assertEquals(reReads, 1, "a site joining the network with no radar range was not checked")
+
+  veafSkynet.iadsSamUnitsTypes = savedTypes
+  veafSkynet.GroupIntegrationMode = savedMode
+  dcs_mocks.reset()
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-SKYNET-CZ-RESPAWN-AND-RANGE ticket 03 — a removal rebuilds the coverage
+-- ---------------------------------------------------------------------------
+TestVeafSkynetCoverageAfterRemoval = {}
+
+function TestVeafSkynetCoverageAfterRemoval:setUp()
+  veafSkynet.structure = {}
+  veafSkynet.lostUnits = {}
+  self.coverageRebuilds = 0
+end
+
+function TestVeafSkynetCoverageAfterRemoval:tearDown()
+  veafSkynet.structure = {}
+  veafSkynet.lostUnits = {}
+end
+
+--- One network whose IADS counts how many times its coverage was rebuilt.
+function TestVeafSkynetCoverageAfterRemoval:_network(samSites)
+  local groups = {}
+  for _, element in ipairs(samSites) do
+    groups[element.dcsName] = { forceEwr = false }
+  end
+  local this = self
+  veafSkynet.structure["red iads"] = {
+    iads = {
+      samSites = samSites,
+      earlyWarningRadars = {},
+      buildRadarCoverage = function(_)
+        this.coverageRebuilds = this.coverageRebuilds + 1
+      end,
+    },
+    coalitionID = coalition.side.RED,
+    groups = groups,
+  }
+end
+
+function TestVeafSkynetCoverageAfterRemoval:test_a_sweep_that_removes_something_rebuilds_the_coverage()
+  -- The defect, measured on Tripack's log at 10:03:13: the EW radar still announced five sites in its
+  -- covered area, four of which had left the network — and went on commanding them.
+  self:_network({ _sweepableElement("CMBT_TESTCZ - SA6", "SA6-radar", false) })
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 1)
+  luaunit.assertEquals(self.coverageRebuilds, 1)
+end
+
+function TestVeafSkynetCoverageAfterRemoval:test_a_sweep_that_removes_nothing_leaves_the_coverage_alone()
+  -- The control: rebuilding the whole graph is O(n squared) on the elements, so it must not run on
+  -- every sweep of an untouched network.
+  self:_network({ _sweepableElement("LIVE-SAM", "SAM-radar", true) })
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 0)
+  luaunit.assertEquals(self.coverageRebuilds, 0)
+end
+
+function TestVeafSkynetCoverageAfterRemoval:test_a_deactivated_network_is_not_woken_by_a_sweep()
+  -- #261: `buildRadarCoverage` ends by telling every SAM site to reconsider its state, and an
+  -- autonomous site with no live parent goes live — radar on. `deactivateNetwork` leaves the site
+  -- list populated, so the periodic sweep reaches a network somebody switched off on purpose.
+  self:_network({ _sweepableElement("CMBT_TESTCZ - SA6", "SA6-radar", false) })
+  veafSkynet.structure["red iads"].deactivated = true
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 1, "the site must still be removed")
+  luaunit.assertEquals(self.coverageRebuilds, 0, "a deactivated network was relit by the sweep")
+end
+
+function TestVeafSkynetCoverageAfterRemoval:test_a_deactivated_network_refuses_a_direct_rebuild()
+  self:_network({})
+  veafSkynet.structure["red iads"].deactivated = true
+  luaunit.assertFalse(veafSkynet.rebuildRadarCoverage("red iads"))
+  luaunit.assertEquals(self.coverageRebuilds, 0)
+end
+
+function TestVeafSkynetCoverageAfterRemoval:test_a_network_without_an_iads_does_not_raise()
+  veafSkynet.structure["red iads"] = { coalitionID = coalition.side.RED, groups = {} }
+  local ok = pcall(veafSkynet.rebuildRadarCoverage, "red iads")
+  luaunit.assertTrue(ok)
+  luaunit.assertFalse(veafSkynet.rebuildRadarCoverage("red iads"))
+  luaunit.assertFalse(veafSkynet.rebuildRadarCoverage("no such network"))
+end
+
+function TestVeafSkynetCoverageAfterRemoval:test_a_coverage_rebuild_that_raises_is_reported_not_propagated()
+  -- It is called right after corpses have been dropped, so it must survive an element that refuses a
+  -- method rather than take the sweep down with it.
+  veafSkynet.structure["red iads"] = {
+    iads = {
+      samSites = {},
+      earlyWarningRadars = {},
+      buildRadarCoverage = function(_)
+        error("an element has left the mission")
+      end,
+    },
+    coalitionID = coalition.side.RED,
+    groups = {},
+  }
+  local ok, result = pcall(veafSkynet.rebuildRadarCoverage, "red iads")
+  luaunit.assertTrue(ok, "a raising coverage rebuild must be reported, not propagated")
+  luaunit.assertFalse(result)
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-SKYNET-CZ-RESPAWN-AND-RANGE ticket 02 — a mission feature's respawn joins the IADS
+-- ---------------------------------------------------------------------------
+TestVeafSkynetIntegrateMissionSpawn = {}
+
+function TestVeafSkynetIntegrateMissionSpawn:setUp()
+  dcs_mocks.reset()
+  self._savedSchedule = veaf.scheduleFunction
+  self._savedInitialized = veafSkynet.initialized
+  self.scheduled = {}
+  local scheduled = self.scheduled
+  veaf.scheduleFunction = function(fn, args, when)
+    table.insert(scheduled, { fn = fn, args = args, when = when })
+    return #scheduled
+  end
+  veafSkynet.initialized = true
+  veafSkynet.declaredSpawns = {}
+  veafSkynet.iadsSamUnitsTypes = { ["Kub 2P25 ln"] = true }
+  veafSkynet.iadsEwrUnitsTypes = {}
+  veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
+  self.enrolled = {}
+  local enrolled = self.enrolled
+  self.iads = _makeMockIads("red iads")
+  self.iads.addSAMSite = function(_, groupName)
+    table.insert(enrolled, groupName)
+    return { dcsName = groupName }
+  end
+  self.iads.buildRadarCoverage = function(_) end
+  -- dynamicSpawn deliberately **off**: that is the shipped default, and the configuration Tripack ran.
+  veafSkynet.structure["red iads"] = {
+    iads = self.iads,
+    coalitionID = coalition.side.RED,
+    groups = {},
+    dynamicSpawn = false,
+  }
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:tearDown()
+  veaf.scheduleFunction = self._savedSchedule
+  veafSkynet.initialized = self._savedInitialized
+  veafSkynet.structure = {}
+  veafSkynet.declaredSpawns = {}
+  dcs_mocks.reset()
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_a_respawned_group_is_scheduled_for_integration()
+  _redSamGroup("TESTCZ [r] TESTCZ - SA6#10262", true)
+  veafSkynet.integrateMissionSpawn("TESTCZ [r] TESTCZ - SA6#10262")
+  luaunit.assertEquals(#self.scheduled, 1)
+  luaunit.assertEquals(self.scheduled[1].fn, veafSkynet._integrateSpawn)
+  luaunit.assertEquals(self.scheduled[1].args[1], "TESTCZ [r] TESTCZ - SA6#10262")
+  luaunit.assertEquals(self.scheduled[1].args[2], coalition.side.RED)
+  luaunit.assertFalse(self.scheduled[1].args[3], "a mission respawn must not require the dynamicSpawn flag")
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_it_joins_a_network_that_does_not_integrate_dynamic_spawns()
+  -- The defect: with `dynamicSpawn` off — the default — nothing put a deactivated zone's air defences
+  -- back into the network once the #946 sweep had removed them.
+  _redSamGroup("TESTCZ [r] TESTCZ - SA6#10262", true)
+  veafSkynet._integrateSpawn("TESTCZ [r] TESTCZ - SA6#10262", coalition.side.RED, false)
+  luaunit.assertEquals(self.enrolled, { "TESTCZ [r] TESTCZ - SA6#10262" })
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_the_birth_event_path_still_honours_the_flag()
+  -- The other half, and the reason the flag check moved rather than disappeared: the birth-event
+  -- handler sees every group DCS reports, third-party scripts included, so #151 and #261 still hold.
+  _redSamGroup("SOMEONE-ELSES-SAM", true)
+  veafSkynet._integrateSpawn("SOMEONE-ELSES-SAM", coalition.side.RED, true)
+  luaunit.assertEquals(#self.enrolled, 0)
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_it_leaves_the_work_to_a_network_that_integrates_spawns()
+  -- #151's rule: the two paths are exclusive. With the flag on, the birth-event handler is armed and
+  -- `coalition.addGroup` fires the event, so this path must not ask for a second integration.
+  veafSkynet.structure["red iads"].dynamicSpawn = true
+  _redSamGroup("TESTCZ [r] TESTCZ - SA6#10262", true)
+  veafSkynet.integrateMissionSpawn("TESTCZ [r] TESTCZ - SA6#10262")
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_a_group_that_is_gone_is_not_integrated()
+  _redSamGroup("DEAD-ON-ARRIVAL", false)
+  veafSkynet.integrateMissionSpawn("DEAD-ON-ARRIVAL")
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_nothing_happens_before_the_module_is_initialised()
+  _redSamGroup("TOO-EARLY", true)
+  veafSkynet.initialized = false
+  veafSkynet.integrateMissionSpawn("TOO-EARLY")
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_a_nil_group_name_is_ignored()
+  local ok = pcall(veafSkynet.integrateMissionSpawn, nil)
+  luaunit.assertTrue(ok)
+  luaunit.assertEquals(#self.scheduled, 0)
+end
+
+function TestVeafSkynetIntegrateMissionSpawn:test_a_spawn_declared_out_of_the_iads_stays_out()
+  -- `skynet false` is a per-spawn statement, and this path must not override it either.
+  _redSamGroup("CONVOY", true)
+  veafSkynet.declaredSpawns["CONVOY"] = false
+  veafSkynet._integrateSpawn("CONVOY", coalition.side.RED, false)
+  luaunit.assertEquals(#self.enrolled, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -3780,4 +3780,85 @@ function TestVeafCombatZoneSpawnRadiusDefault:test_the_setter_works_before_any_e
   luaunit.assertEquals(zone:setDefaultSpawnRadiusForStatics(40).defaultSpawnRadiusForStatics, 40)
 end
 
+-- ============================================================================
+-- FIX-SKYNET-CZ-RESPAWN-AND-RANGE ticket 02
+--
+-- A zone's air defences leave the IADS when the zone is switched off — the sweep #946 added does
+-- that — and nothing put them back: the respawn chain (VeafGroupSpawn -> veafDcsSpawner.addGroup ->
+-- coalition.addGroup) never mentions Skynet, and the birth-event handler that would otherwise catch
+-- the group is off by default. Measured on Tripack's log of 2026-09-09: `4 SAM` at mission start,
+-- `3 SAM` after his zone was cycled, for the rest of the run.
+-- ============================================================================
+TestVeafCombatZoneSpawnJoinsTheIads = {}
+
+function TestVeafCombatZoneSpawnJoinsTheIads:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Test Zone"):setMissionEditorZoneName("TESTCZ")
+  self.z:setActive(true)
+
+  self.el = VeafCombatZoneElement:new()
+  self.el:setName("TESTCZ - SA6")
+  self.el:setPosition({ x = 0, y = 0, z = 0 })
+  self.el:setCoalition(coalition.side.RED)
+  self.el:setDcsGroup(true)
+
+  self._spawnImpl = VeafGroupSpawn._spawn
+  VeafGroupSpawn._spawn = function()
+    return { name = "TESTCZ [r] TESTCZ - SA6#10262" }
+  end
+
+  self._readyForCombat = veaf.readyForCombat
+  veaf.readyForCombat = function() end
+
+  self.integrated = {}
+  local integrated = self.integrated
+  self._savedSkynet = veafSkynet
+  veafSkynet = {
+    integrateMissionSpawn = function(groupName)
+      table.insert(integrated, groupName)
+    end,
+  }
+end
+
+function TestVeafCombatZoneSpawnJoinsTheIads:tearDown()
+  VeafGroupSpawn._spawn = self._spawnImpl
+  veaf.readyForCombat = self._readyForCombat
+  veafSkynet = self._savedSkynet
+end
+
+function TestVeafCombatZoneSpawnJoinsTheIads:test_a_battery_that_stays_put_rejoins_the_iads()
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(self.integrated, { "TESTCZ [r] TESTCZ - SA6#10262" })
+end
+
+function TestVeafCombatZoneSpawnJoinsTheIads:test_a_convoy_does_not()
+  -- The same criterion that just chose the alarm state: something with a route to drive is not an air
+  -- defence holding a position, and the IADS is not where it belongs.
+  self.el:setRoute({ { x = 0, y = 0 }, { x = 1000, y = 1000 } })
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(#self.integrated, 0)
+end
+
+function TestVeafCombatZoneSpawnJoinsTheIads:test_a_static_is_not_offered_to_the_iads()
+  -- The same branch builds statics, and a static is never a group Skynet can use.
+  self.el:setDcsGroup(false)
+  self.el:setDcsStatic(true)
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(#self.integrated, 0)
+end
+
+function TestVeafCombatZoneSpawnJoinsTheIads:test_a_failed_respawn_integrates_nothing()
+  VeafGroupSpawn._spawn = function()
+    return nil
+  end
+  self.z:spawnElement(self.el, true)
+  luaunit.assertEquals(#self.integrated, 0)
+end
+
+function TestVeafCombatZoneSpawnJoinsTheIads:test_a_mission_without_skynet_does_not_raise()
+  -- veafSkynet is optional in a mission's bundle, and a zone must spawn its content either way.
+  veafSkynet = nil
+  local ok, err = pcall(VeafCombatZone.spawnElement, self.z, self.el, true)
+  luaunit.assertTrue(ok, "a zone must spawn its groups with no IADS loaded: " .. tostring(err))
+end
+
 os.exit(luaunit.LuaUnit.run())

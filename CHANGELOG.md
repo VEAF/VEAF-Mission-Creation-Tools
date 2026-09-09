@@ -57,6 +57,35 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **destroyed** are kept, because that is what the `Raddest` and `Destroyed` columns report and it is
   how a successful SEAD reads — the two cases are indistinguishable on the object, so they are told
   apart by whether DCS ever reported one of the site's units lost.
+- **A SAM site whose radar reported no range at all is asked again.** Second round of #946: Tripack
+  ran the fix above and his combat zone's SA-6 was still announced with a destroyed radar, and still
+  never fired at an aircraft flying over it. Both symptoms come out of one field. Skynet reads a
+  radar's detection range **once**, when the site joins the network, out of `getSensors()`; when that
+  single answer is `nil` the range stays zero for the rest of the mission, so the site detects
+  nothing and every status page counts it as a destroyed radar. The reading is now verified: a site
+  reporting no range is re-read up to `veafSkynet.MaxRangeRechecks` times (default 3),
+  `veafSkynet.DelayForRangeRecheck` seconds apart (default 5), and the coverage is rebuilt as soon as
+  a radar answers. A site in that state also gets one line in the log — the number of radars it
+  holds, how many DCS still holds, and how many launchers — because why DCS answers `nil` on a live
+  radar unit cannot be measured from a mission file.
+- **A combat zone's air defences rejoin the IADS when the zone comes back.** The sweep above removes
+  a deactivated zone's SAM sites, and nothing put them back: a zone respawns its groups through
+  `coalition.addGroup` and no link in that chain tells Skynet anything, while the birth-event handler
+  that would otherwise catch them is off unless the mission sets `dynamic_spawn`. So on a mission
+  that cycles its zones the network drained as the mission ran — measured on Tripack's log, `4 SAM`
+  at start and `3 SAM` after one deactivate/reactivate, for the rest of the run. A zone now tells the
+  IADS about what it puts back, whatever `dynamic_spawn` says, since the start-up enrolment already
+  takes an active zone's batteries without that flag: the same site was in the network at second one
+  and out of it at second sixty under one configuration. Only elements that **stay put** are
+  concerned — a convoy driving through a zone has no business in an air-defence network, the same
+  call that decides the alarm state it gets.
+- **Removing a site from an IADS network now rebuilds the radar coverage.** The parent/child radar
+  graph is built once, when the network activates, so a removal left the departed site listed as a
+  child of everything that could see it: on Tripack's log the early-warning radar still announced
+  five sites in its covered area, four of which had left the network — and went on informing them of
+  contacts, cleaned up as they were. A network somebody switched off on purpose is left alone: Skynet
+  rebuilds a coverage by telling every site to reconsider its state, which lights up the autonomous
+  ones, and a deactivated network must stay off until someone reactivates it.
 
 ## [6.20.0] — 2026-09-07
 

@@ -104,9 +104,11 @@ Set from `mission.yaml` (`dynamic_spawn`), or before `initialize` with `veafSkyn
 | `false` | Only groups present at startup are integrated (**default**) |
 | `true` | Groups appearing during the mission also join the existing networks |
 
-**What it costs.** Once on, the module watches **every unit birth** in the mission to spot eligible groups. That is why it is off by default: turn it on when the mission spawns SAMs while it runs (combat zones, dynamic campaign), not as a matter of course.
+**What it costs.** Once on, the module watches **every unit birth** in the mission to spot eligible groups. That is why it is off by default: turn it on when the mission spawns SAMs while it runs (a dynamic campaign, a third-party script), not as a matter of course.
 
-**What it fixes.** Without it, a SAM appearing during the mission — a combat-zone one included — joins no network at all, and nothing says so.
+**What it fixes.** Without it, a SAM appearing during the mission joins no network at all, and nothing says so.
+
+**Combat zones do not need it.** An air defence a combat zone puts back on the map joins its coalition's network **whatever** this setting says: content the author placed inside a zone is not a spawn nobody asked for. Without that, belonging to the network came down to scheduling luck — a zone's activation and the start-up enrolment are scheduled for the same second, so a zone's battery joined the network if the activation happened to run first, and never rejoined it after the zone was cycled. Only elements that **stay put** are concerned: a convoy driving through the zone has no business in an air-defence network. The criterion is the one the alarm state uses when no `#alarm=` tag is stated — an explicit tag changes the alarm state, not the network membership.
 
 **Who decides, group by group.** A spawn command's `skynet` option stays in charge: `skynet false` keeps the group **out** of every network (which is what the convoy shortcuts carry), and `skynet <network name>` sends it to that network rather than its coalition's. A group no VEAF command declared — placed in the Mission Editor, created by a third-party script — joins its coalition's network, which is exactly what this setting is for.
 
@@ -129,9 +131,17 @@ Seconds between two cleanup passes over the networks (default: `60`).
 
 A site whose group **leaves the mission without being destroyed** — which is what happens when a combat zone is deactivated and takes its air defences with it — used to be kept in the network until the end of the game. It inflated the status page, was walked on every detection cycle, and **held its group name**: the module refuses to enrol a group the network already lists. The sweep removes those sites and frees the name.
 
-Worth stating, because the distinction matters: freeing the name is not enough to bring back a group that reappears **under the same name within** the sweep interval. Enrolment happens on the birth event, which has already fired and been refused, and nothing retries it afterwards. This does not affect combat zones, which give each respawn a fresh name.
+Worth stating, because the distinction matters: freeing the name is not enough to bring back a group that reappears **under the same name within** the sweep interval. Enrolment happens on the birth event, which has already fired and been refused, and nothing retries it afterwards. This does not affect combat zones: they give each respawn a fresh name, and above all they tell the network themselves about the air defences they put back — see [Groups appearing during the mission](#dynamic-spawn).
 
 Sites the player **destroyed** are kept: they are what the `Raddest` and `Destroyed` columns of the status page count, and that is how a successful SEAD reads.
+
+### Unreadable radar range — `veafSkynet.DelayForRangeRecheck` / `veafSkynet.MaxRangeRechecks` {#radar-range-recheck}
+
+Seconds between two readings of a radar's range (default: `5`), and how many readings to try (default: `3`). At `0`, nothing is re-read.
+
+Skynet reads a radar's detection range **once**, at the instant the site joins the network. If DCS does not hand it over at that precise moment, the range stays at zero for the rest of the mission: the site detects nothing, never goes live — not even when an aircraft flies over it — and the status page counts it under `Raddest`, as though its radar had been shot. A site in that state is therefore asked again, and its coverage is rebuilt as soon as a reading succeeds.
+
+Such a site leaves a line in the log (`RADAR RANGE ZERO`, then `RADAR RANGE RECOVERED` or `RADAR RANGE STILL ZERO`), carrying the site's radar and launcher counts. A mission whose sites all answer normally writes nothing.
 
 ---
 

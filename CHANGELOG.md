@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.22.1] — 2026-09-12
+
 ### Fixed
 
 - **6.22.0 missions had no radio menu at all — not CTLD's, not VEAF's.** The mission booted and was

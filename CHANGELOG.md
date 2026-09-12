@@ -32,6 +32,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   put back on the map came back on every datalink display and in the mission planner. All three now
   travel with a clone, a respawn and a static.
 
+### Changed
+
+- **CTLD updated to 2.0.0-rc8.** Troops can be picked up at a built FOB (the setting existed and
+  nothing consulted it) and at a built FARP (which had no troop pickup at all); a quarter of the FM
+  beacon band — 36–39.9, 46–49.9, 56–59.9 and 66–69.9 MHz — was unreachable and now is not; and a
+  mission that skips `ctld.initialize()` fails with a message that says so instead of an arithmetic
+  error deep in the engine. No setting was renamed or removed. The two new ones
+  (`troopPickupAtFARP`, on by default with a 150 m radius, and `farpTroopPickupRadius`) reach a
+  mission through the usual scaffold, since the configuration catalogue is read out of the vendored
+  engine itself.
+- **TheUniversalMission updated to 0.3.251019**, from 0.1.250722. TUM is opt-in and off by default,
+  so a mission that does not ask for it is unaffected. Upstream's notes say only *"many improvements
+  and bug fixes"*.
+
 ## [6.21.0] — 2026-09-09
 
 ### Added

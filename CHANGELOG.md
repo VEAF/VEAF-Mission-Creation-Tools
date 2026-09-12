@@ -17,6 +17,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A static hidden in a combat zone no longer vanishes for good.** A static object answers, at
+  runtime, to the name of its **unit**, and the Mission Editor names the unit of every duplicated
+  static `<group>-1` — while the mission index is keyed by group name. A combat zone recorded the
+  runtime name, destroyed the object when the zone deactivated (`StaticObject.getByName` does take
+  that name), and then failed to put it back, logging `cannot respawn [… -1]: no group data`. Found
+  in the server log attached to #953, where five of eight neutral statics were lost and the three
+  named the other way survived. The same lookup also left a static teleport with no editor definition
+  and made a hull placed as a static lose its naval terrain check.
+- **A respawned group is as hidden as the Mission Editor made it.** The mission record carried
+  `hidden` alone; the editor writes `hiddenOnMFD` and `hiddenOnPlanner` alongside it, so anything VEAF
+  put back on the map came back on every datalink display and in the mission planner. All three now
+  travel with a clone, a respawn and a static.
+
 ## [6.21.0] — 2026-09-09
 
 ### Added

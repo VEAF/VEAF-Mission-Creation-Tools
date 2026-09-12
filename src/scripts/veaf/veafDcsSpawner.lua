@@ -627,7 +627,10 @@ end
 --- @param groupName string
 --- @return table|nil the group data, or nil when neither a group nor a static answers to that name
 function veafDcsSpawner.getCurrentGroupData(groupName)
-  local record = veafMissionDb.getGroupRecord(groupName)
+  -- The static branch below finds its object through `StaticObject.getByName`, which takes the
+  -- **unit** name — so the record has to be reachable by that same name, or a teleported static
+  -- carries no editor definition at all. See `getGroupRecordForObject`.
+  local record = veafMissionDb.getGroupRecordForObject(groupName)
   local group = Group.getByName(groupName)
 
   if group and group:isExist() then
@@ -728,6 +731,12 @@ function veafDcsSpawner.getCurrentGroupData(groupName)
     -- ticket 02 exists to undo, surviving for statics. Found by the review of #933.
     data.uncontrolled = false
     data.hidden = false
+    -- The identity is the object's, not its group's. The record can now be reached through the unit
+    -- name (FIX-STATIC-RESPAWN-BY-UNIT-NAME), and it names the **group** — so without this a static
+    -- called `Bunker 02-4-1` would be moved *and* renamed `Bunker 02-4`, since `_spawn` falls back on
+    -- `data.groupName`. The group branch above sets the same two fields for the same reason.
+    data.name = groupName
+    data.groupName = groupName
     local position = static:getPosition()
     if position and position.p then
       data.units[1].x = position.p.x
@@ -902,7 +911,12 @@ function VeafGroupSpawn:_sourceData(verb)
     return veaf.getCurrentGroupData(self.groupName)
   end
   -- clone and respawn both read the editor definition; only clone asks for a new identity.
-  local record = veafMissionDb.getGroupRecord(self.groupName)
+  --
+  -- `ForObject`, because the name a caller holds came off a live object: a static answers to its
+  -- **unit** name and the snapshot is keyed by group, so `Sandbag 02-4-1` resolved to nothing and the
+  -- verb refused with `no group data` — after the combat zone had already destroyed the object.
+  -- FIX-STATIC-RESPAWN-BY-UNIT-NAME, from the log attached to #953.
+  local record = veafMissionDb.getGroupRecordForObject(self.groupName)
   return record and veaf.deepCopy(record) or nil
 end
 

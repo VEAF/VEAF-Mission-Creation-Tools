@@ -234,6 +234,40 @@ The zone is activated at `t + 1` by the config (`veafCombatZone.ActivateZone("TE
 same second the enrolment fires, so the timing this lot is about is exercised whether or not the
 guard holds.
 
+### R15. Does DCS still hide a group it did not place itself?
+
+Settles the open half of [#953](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/953),
+which [`FIX-STATIC-RESPAWN-BY-UNIT-NAME`](.backlog/FIX-STATIC-RESPAWN-BY-UNIT-NAME/PRD.md) states and
+deliberately does not answer. Tripack reports QRA aircraft and neutral statics, all `hidden` in the
+Mission Editor, showing on the F10 map of a **remote** server. Everything measurable from a keyboard
+says the framework is not losing the flag: his `.miz` carries `hidden = true` on all of them, the
+respawn chain forwards it end to end, and tests now lock that for a clone, a respawn and a static.
+What no reading can settle is whether **DCS** honours `hidden` on an object created through
+`coalition.addGroup` / `addStaticObject` at all — there is no API that answers it, only the map.
+
+**Run**: any mission holding a group hidden in the editor — `verify-mission-c` will do, tick *Hidden
+On Map* on one red group and rebuild. In game, open the F10 map, then respawn that group by script
+(`-respawn` through a marker, or activate a combat zone that holds it). Look at the same map before
+and after.
+
+- **Honoured** (the group is absent before *and* after the respawn): the flag survives a dynamic
+  spawn, and #953's cause is on Tripack's side — his mission sets `forcedOptions.optionsView =
+  "optview_all"`, which forces every client joining a server to the full map view, while his own
+  `options` file says `optview_onlyallies`. That is exactly the "remote server only" shape of his
+  report. Answer him with that and close.
+- **Ignored** (absent before, visible after): DCS drops `hidden` for anything a script creates, and
+  every VEAF verb that puts an editor group back on the map exposes it. Then the lot to open is about
+  saying so — documenting the limit for mission makers, and deciding whether a combat zone should
+  avoid respawning what it could merely deactivate. Do **not** file it as a framework regression: the
+  flag is submitted, and the tests prove it.
+- **Visible both times**: the map option is already showing everything, so this mission cannot answer
+  the question. Check the mission's forced options before drawing anything from it.
+
+Worth doing on a **dedicated server** rather than a self-hosted session if one is at hand, since that
+is the only configuration in which the reporter sees it.
+
+---
+
 ---
 
 ## ✅ SETTLED — there was no DCS SAM bug (2026-08-22)

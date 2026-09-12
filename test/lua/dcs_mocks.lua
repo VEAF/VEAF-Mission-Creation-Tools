@@ -412,9 +412,14 @@ coalition = {
 -- ---------------------------------------------------------------------------
 -- country
 -- ---------------------------------------------------------------------------
+-- INSURGENTS carries id 17, per `veaf_libs/data/dcs-schema/dcs-world-api.lua`, and it is here because
+-- the neutral coalition is where mission makers put scenery statics — the case
+-- FIX-STATIC-RESPAWN-BY-UNIT-NAME reproduces (#953). What matters to `resolveCountry` is that the two
+-- tables below agree with each other; the schema's own `country.name` list is shifted by one against
+-- its ids, so it is not the thing to copy.
 country = {
-  name = { [0] = "RUSSIA", [2] = "USA" },
-  id = { RUSSIA = 0, USA = 2 },
+  name = { [0] = "RUSSIA", [2] = "USA", [17] = "INSURGENTS" },
+  id = { RUSSIA = 0, USA = 2, INSURGENTS = 17 },
 }
 
 -- ---------------------------------------------------------------------------

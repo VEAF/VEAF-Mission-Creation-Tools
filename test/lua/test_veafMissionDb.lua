@@ -89,6 +89,37 @@ local function buildTestMission()
         },
       },
     },
+    -- Two statics, in the two name shapes a mission actually contains. The Mission Editor names the
+    -- unit after its group the first time and appends `-1` to every copy, so both live side by side in
+    -- the same mission — Tripack's had three of the first shape and five of the second (#953).
+    neutrals = {
+      country = {
+        [1] = {
+          id = 3,
+          name = "insurgents",
+          static = {
+            group = {
+              [1] = {
+                name = "Sandbag 06-1",
+                groupId = 30,
+                hidden = true,
+                hiddenOnMFD = true,
+                hiddenOnPlanner = true,
+                units = { [1] = { name = "Sandbag 06-1", unitId = 301, type = "Sandbox", x = 7000, y = 8000 } },
+              },
+              [2] = {
+                name = "Sandbag 02-4",
+                groupId = 31,
+                hidden = true,
+                hiddenOnMFD = true,
+                hiddenOnPlanner = true,
+                units = { [1] = { name = "Sandbag 02-4-1", unitId = 311, type = "Sandbox", x = 7100, y = 8100 } },
+              },
+            },
+          },
+        },
+      },
+    },
   }
   veafMissionDb.buildSnapshot()
 end
@@ -219,6 +250,65 @@ function TestVeafMissionDbSnapshot:test_a_group_without_the_fields_carries_nil_n
   luaunit.assertNil(record.communication)
   luaunit.assertNil(record.radioSet)
   luaunit.assertNil(record.hidden)
+end
+
+--- FIX-STATIC-RESPAWN-BY-UNIT-NAME ticket 02 — the editor writes all three hide flags together, and
+--- the record carried one. Anything VEAF puts back on the map came back on every datalink display.
+function TestVeafMissionDbSnapshot:test_aGroupCarriesAllThreeHideFlags()
+  local record = veaf.getGroupRecord("Sandbag 02-4")
+  luaunit.assertTrue(record.hidden)
+  luaunit.assertTrue(record.hiddenOnMFD)
+  luaunit.assertTrue(record.hiddenOnPlanner)
+end
+
+function TestVeafMissionDbSnapshot:test_aGroupWithoutHideFlagsCarriesNilForTheThree()
+  local record = veaf.getGroupRecord("Convoy")
+  luaunit.assertNil(record.hidden)
+  luaunit.assertNil(record.hiddenOnMFD)
+  luaunit.assertNil(record.hiddenOnPlanner)
+end
+
+-- ---------------------------------------------------------------------------
+-- Resolving a live object's name to its group record
+-- ---------------------------------------------------------------------------
+
+--- FIX-STATIC-RESPAWN-BY-UNIT-NAME ticket 01 — a static answers at runtime to the name of its
+--- **unit**, and the snapshot is keyed by **group**. Everything that respawned a static looked its
+--- runtime name up as a group, found nothing, and gave up: in Tripack's mission (#953) five of eight
+--- neutral statics were destroyed when their zone deactivated and never came back.
+function TestVeafMissionDbSnapshot:test_aStaticResolvesFromItsUnitName()
+  local record = veafMissionDb.getGroupRecordForObject("Sandbag 02-4-1")
+  luaunit.assertNotNil(record)
+  luaunit.assertEquals(record.groupName, "Sandbag 02-4")
+end
+
+--- The shape that already worked has to keep working: when the editor named the unit after its group,
+--- the group lookup hits first and the unit index is never consulted.
+function TestVeafMissionDbSnapshot:test_aStaticNamedLikeItsGroupStillResolvesToTheGroup()
+  local record = veafMissionDb.getGroupRecordForObject("Sandbag 06-1")
+  luaunit.assertNotNil(record)
+  luaunit.assertEquals(record.groupName, "Sandbag 06-1")
+end
+
+function TestVeafMissionDbSnapshot:test_aGroupNameResolvesToItself()
+  luaunit.assertEquals(veafMissionDb.getGroupRecordForObject("Chevy").groupName, "Chevy")
+end
+
+--- A unit of a multi-ship resolves to its group too: the fallback is about names, not about statics.
+function TestVeafMissionDbSnapshot:test_aUnitOfAGroupResolvesToItsGroup()
+  luaunit.assertEquals(veafMissionDb.getGroupRecordForObject("Chevy12").groupName, "Chevy")
+end
+
+function TestVeafMissionDbSnapshot:test_anUnknownNameResolvesToNothing()
+  luaunit.assertNil(veafMissionDb.getGroupRecordForObject("nobody"))
+  luaunit.assertNil(veafMissionDb.getGroupRecordForObject(nil))
+end
+
+--- `getGroupRecord` is left as it is: `veafMove` asks it "is there a group called this", and widening
+--- it would make that question answer yes for a unit name.
+function TestVeafMissionDbSnapshot:test_getGroupRecordStillAnswersNilForAUnitName()
+  luaunit.assertNil(veaf.getGroupRecord("Sandbag 02-4-1"))
+  luaunit.assertNil(veaf.getGroupRecord("Chevy12"))
 end
 
 --- A record exists for a unit that has not spawned and for one already destroyed — the whole reason

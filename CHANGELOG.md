@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.22.0] — 2026-09-12
+
 ### Fixed
 
 - **A static hidden in a combat zone no longer vanishes for good.** A static object answers, at

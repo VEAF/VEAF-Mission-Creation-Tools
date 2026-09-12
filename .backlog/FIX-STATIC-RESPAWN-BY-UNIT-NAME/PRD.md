@@ -1,6 +1,6 @@
 # FIX-STATIC-RESPAWN-BY-UNIT-NAME — a static whose unit is not named like its group is never put back
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #954, 2026-09-12
 
 Found in [#953](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/953)'s attachments, which
 Tripack filed about something else: his server log carries twelve
@@ -73,4 +73,4 @@ in [`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md), with both outcomes stated
 - [x] `hiddenOnMFD` and `hiddenOnPlanner` survive a clone and a respawn
 - [x] Tests cover both name shapes (unit == group, and unit == group .. "-1"), because the mission
       that found this had both and only one half was broken
-- [ ] Tripack answered on #953: his five lost sandbags, and his `optview_all` forced option
+- [x] Tripack answered on #953: his five lost sandbags, and his `optview_all` forced option

@@ -1,6 +1,6 @@
 # 01 — vendor CTLD rc9 and gate the community-script load
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 See the PRD for the root cause and why the whole VEAF framework goes down with CTLD.
 

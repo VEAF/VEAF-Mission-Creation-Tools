@@ -1,6 +1,6 @@
 # FIX-CTLD-RC9-LOAD-GATE — CTLD rc8 kills every radio menu; vendor rc9 and gate the loading
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Reported by **Tripack** on the VEAF Discord, 2026-09-12, against VEAF Tools 6.22.0 —
 [#957](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/957).
@@ -77,6 +77,13 @@ the point being that a reader can tell the difference between "not covered" and 
 - `poetry run test-lua` green; Python quality gate green.
 - `CHANGELOG.md` `[Unreleased]` entry appended at the end of the section.
 - Released as **6.22.1**: 6.22.0 is published and every CTLD mission built with it is broken.
+
+All of the above is met. Shipped in **6.22.1** (2026-09-12), PR #958 + release PR #959; upstream
+VEAF/CTLD#144 released as `2.0.0-rc9`. Issue #957 answered and closed.
+
+The one item that is **not** claimed: nobody has flown a mission built from this. The gate proves the
+file loads outside DCS — which is the failure that was reported — and CTLD's CI proves the same on
+every build, but an in-game check is still worth doing when convenient.
 
 ## Out of scope
 

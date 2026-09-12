@@ -15,6 +15,12 @@
 -- So: load each vendored community script the way a mission does, with nothing but the DCS mocks,
 -- and fail if the main chunk raises. Each script gets its own test rather than one loop, so a
 -- failure names the culprit in the report instead of stopping the sweep at the first one.
+--
+-- The `NN_` in each test name is load order, and it is load-bearing. luaunit runs a class's methods
+-- in alphabetical order, not declaration order, and these all share one Lua state -- so without the
+-- numbers the scripts would load in an order no mission ever produces (aien, csar, ctld, mist...).
+-- The numbers make alphabetical order match `get_community_script_files()`: mist, stts, ctld, aien,
+-- csar, skynet. Keep them in step if that list is ever reordered.
 local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
 luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua") -- sets the `dcs_mocks` global, like every other suite here
@@ -35,46 +41,54 @@ end
 TestCommunityScriptsLoad = {}
 
 -- ---------------------------------------------------------------------------
--- The opt-out scripts: on unless a mission says otherwise, so every one of these
--- is loaded by a default build and every one of them can break a mission.
+-- A test that cannot fail proves nothing: check the mocks are actually in place, so that a future
+-- `dcs_mocks.lua` returning early could not turn this whole file green by loading nothing.
 -- ---------------------------------------------------------------------------
 
-function TestCommunityScriptsLoad:test_ctld_loads()
+function TestCommunityScriptsLoad:test_00_the_dcs_mocks_are_present()
+  luaunit.assertNotNil(dcs_mocks, "dcs_mocks.lua must have defined its global")
+  luaunit.assertNotNil(env, "the DCS `env` global must exist before any script loads")
+  luaunit.assertNotNil(timer, "the DCS `timer` global must exist before any script loads")
+  luaunit.assertNotNil(coalition, "the DCS `coalition` global must exist before any script loads")
+end
+
+-- ---------------------------------------------------------------------------
+-- The scripts, in `get_community_script_files()` order — which is the order a build injects them
+-- and, thanks to the numbering, the order these run in.
+-- ---------------------------------------------------------------------------
+
+function TestCommunityScriptsLoad:test_01_mist_loads()
+  -- Opt-in since DROP-MIST, but the builder turns it back on by itself when a mission script
+  -- mentions `mist.`, so it still reaches real missions.
+  local ok, err = loadScript("mist.lua")
+  luaunit.assertTrue(ok, "mist.lua must load without raising:\n" .. tostring(err))
+end
+
+function TestCommunityScriptsLoad:test_02_stts_loads()
+  local ok, err = loadScript("DCS-SimpleTextToSpeech.lua")
+  luaunit.assertTrue(ok, "DCS-SimpleTextToSpeech.lua must load without raising:\n" .. tostring(err))
+end
+
+function TestCommunityScriptsLoad:test_03_ctld_loads()
   -- The regression that motivated this file. rc8 raises here with
   -- "CTLD configuration is not loaded" from its own scene self-registration.
   local ok, err = loadScript("CTLD.lua")
   luaunit.assertTrue(ok, "CTLD.lua must load without raising:\n" .. tostring(err))
 end
 
-function TestCommunityScriptsLoad:test_csar_loads()
-  local ok, err = loadScript("CSAR.lua")
-  luaunit.assertTrue(ok, "CSAR.lua must load without raising:\n" .. tostring(err))
-end
-
-function TestCommunityScriptsLoad:test_aien_loads()
+function TestCommunityScriptsLoad:test_04_aien_loads()
   local ok, err = loadScript("AIEN.lua")
   luaunit.assertTrue(ok, "AIEN.lua must load without raising:\n" .. tostring(err))
 end
 
-function TestCommunityScriptsLoad:test_skynet_loads()
+function TestCommunityScriptsLoad:test_05_csar_loads()
+  local ok, err = loadScript("CSAR.lua")
+  luaunit.assertTrue(ok, "CSAR.lua must load without raising:\n" .. tostring(err))
+end
+
+function TestCommunityScriptsLoad:test_06_skynet_loads()
   local ok, err = loadScript("skynet-iads-compiled.lua")
   luaunit.assertTrue(ok, "skynet-iads-compiled.lua must load without raising:\n" .. tostring(err))
-end
-
-function TestCommunityScriptsLoad:test_stts_loads()
-  local ok, err = loadScript("DCS-SimpleTextToSpeech.lua")
-  luaunit.assertTrue(ok, "DCS-SimpleTextToSpeech.lua must load without raising:\n" .. tostring(err))
-end
-
--- ---------------------------------------------------------------------------
--- The opt-in scripts.
--- ---------------------------------------------------------------------------
-
-function TestCommunityScriptsLoad:test_mist_loads()
-  -- Opt-in since DROP-MIST, but the builder turns it back on by itself when a mission script
-  -- mentions `mist.`, so it still reaches real missions.
-  local ok, err = loadScript("mist.lua")
-  luaunit.assertTrue(ok, "mist.lua must load without raising:\n" .. tostring(err))
 end
 
 -- TheUniversalMission.lua is deliberately **not** covered, and that is a reasoned exclusion rather
@@ -89,18 +103,6 @@ end
 --
 -- Covering it means building a territory-zone fixture (zones + airbases + a player faction), which
 -- is real work and its own lot. Until then TUM is guarded only by the pin test and the drift watch.
-
--- ---------------------------------------------------------------------------
--- A test that cannot fail proves nothing: check the mocks are actually in place, so that a future
--- `dcs_mocks.lua` returning early could not turn this whole file green by loading nothing.
--- ---------------------------------------------------------------------------
-
-function TestCommunityScriptsLoad:test_the_dcs_mocks_are_present()
-  luaunit.assertNotNil(dcs_mocks, "dcs_mocks.lua must have defined its global")
-  luaunit.assertNotNil(env, "the DCS `env` global must exist before any script loads")
-  luaunit.assertNotNil(timer, "the DCS `timer` global must exist before any script loads")
-  luaunit.assertNotNil(coalition, "the DCS `coalition` global must exist before any script loads")
-end
 
 -- ---------------------------------------------------------------------------
 -- Run

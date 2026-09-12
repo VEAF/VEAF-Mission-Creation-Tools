@@ -17,6 +17,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **6.22.0 missions had no radio menu at all — not CTLD's, not VEAF's.** The mission booted and was
+  playable, with one line in `dcs.log` about *"CTLD configuration is not loaded"* as the only clue
+  (#957, reported by Tripack). The vendored CTLD `2.0.0-rc8` did not load: it raised inside its own
+  main chunk, while its built-in FARP and FOB scenes registered themselves. VEAF emits its whole
+  loading trigger as one concatenated Lua chunk with CTLD ahead of the framework, so that single
+  raise took `veaf-scripts.lua` and `mission-script.lua` down with it. CTLD is on unless a mission
+  turns it off, so this hit every 6.22.0 mission that had not opted out. Fixed upstream
+  ([VEAF/CTLD#144](https://github.com/VEAF/CTLD/pull/144)) and vendored here as **`2.0.0-rc9`**;
+  rebuild your mission with 6.22.1 and the menus are back. Nothing in a mission's configuration was
+  at fault and nothing needs changing.
+- **New guard so a vendored script cannot break a mission unnoticed again.**
+  `test/lua/test_community_scripts_load.lua` now *loads* each vendored community script under Lua
+  5.1 with the DCS mocks, instead of merely checking it parses — which is all the previous check
+  did, and why rc8 came through clean. Six of the seven are covered; `TheUniversalMission.lua` is
+  excluded on purpose (it auto-initializes and requires BLUFOR/REDFOR territory zones, which is why
+  it is opt-in), documented as such in the test rather than silently skipped.
+
 ## [6.22.0] — 2026-09-12
 
 ### Fixed

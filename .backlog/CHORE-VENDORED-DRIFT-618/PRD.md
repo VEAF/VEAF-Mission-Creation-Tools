@@ -44,6 +44,17 @@ consult, concluding instead that no 5.1 existed on this machine.
 Syntax is not behaviour: **neither artefact was run in DCS**. That guarantee is the one the previous
 pin already had — upstream ships these files inside missions people fly.
 
+> **2026-09-12, hours later — that caveat was the hole, and rc8 fell straight through it.**
+> `assert(loadfile(...))` parses a file; it does not run it. The vendored rc8 **raises inside its own
+> main chunk**, so every 6.22.0 mission with CTLD enabled came up with no radio menu at all — CTLD's
+> *and* VEAF's, since they share one concatenated loading chunk. Reported by Tripack as
+> [#957](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/957); fixed upstream in
+> [VEAF/CTLD#144](https://github.com/VEAF/CTLD/pull/144) and vendored as rc9 by
+> [`FIX-CTLD-RC9-LOAD-GATE`](../FIX-CTLD-RC9-LOAD-GATE/PRD.md), which also adds the gate that was
+> missing on both sides: a test that **loads** each vendored community script instead of parsing it.
+> The sentence above was honest about what it did not claim. The lesson is that the missing claim was
+> the one that mattered.
+
 ## Tickets
 
 | # | Ticket | Status |

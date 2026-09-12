@@ -153,6 +153,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMissionDb_scenery.lua` | Registre des objets de décor détruits : enregistrement, recherche par zone, abonnement à l'événement |
 | `test_veafDcsSpawner.lua` | Création de statiques à l'exécution : pays, identifiants, formes, cap aléatoire |
 | `test_csar_init.lua` | Initialisation de CSAR, dans l'ordre de chargement d'une vraie mission (CSAR avant VEAF) : un seul gestionnaire d'événements quoi qu'il arrive |
+| `test_community_scripts_load.lua` | Chaque script communautaire vendorisé se charge sans lever, avec les seuls mocks DCS — la porte qui manquait quand CTLD rc8 a livré un fichier qui ne se chargeait pas (#957). TUM en est exclu et le dit : il s'auto-initialise et exige des zones de territoire |
 | `test_veafInterpreter.lua` | Tokeniseur de texte marqueur |
 | `test_veafTime.lua` | Parsing de temps, formatage, helpers temps DCS |
 | `test_veafSecurity.lua` | Niveaux de sécurité, gestion des admins |

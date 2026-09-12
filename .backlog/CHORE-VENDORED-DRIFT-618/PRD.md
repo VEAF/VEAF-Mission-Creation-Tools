@@ -27,12 +27,22 @@ update on the Python side.
   v0.3.251019 release. The release tag is the only trustworthy version, which is why the artefact
   cannot join `SELF_DECLARED` in `test_vendored_pins_match_the_files.py`.
 
-## What could not be verified here, and is not claimed
+## Verified here, and what is still not claimed
 
-Neither artefact was run in DCS. `luac`-style syntax checking is not available for Lua **5.1** on this
-workstation (only 5.5 is installed, where a `for` control variable is `const`, so **the outgoing v0.1
-file fails the same check** — the test does not discriminate). The guarantee is the same one the
-previous pin had: upstream ships these files inside missions people fly.
+Both files load cleanly under a real **Lua 5.1** interpreter — the version DCS runs:
+
+```
+"/c/Program Files (x86)/Lua/5.1/lua.exe" -e "assert(loadfile('<file>'))"   -> OK for both
+```
+
+Worth stating how that was nearly missed: `lua` **on the PATH** here is scoop's 5.5, where a `for`
+control variable is `const`, so it rejects both the incoming *and* the outgoing file — a check that
+fails either way decides nothing. The 5.1 binary is installed off-PATH at the path above; see
+[[lua-tests-need-lua-51]], which says exactly this and which the first pass of this lot did not
+consult, concluding instead that no 5.1 existed on this machine.
+
+Syntax is not behaviour: **neither artefact was run in DCS**. That guarantee is the one the previous
+pin already had — upstream ships these files inside missions people fly.
 
 ## Tickets
 

@@ -24,3 +24,6 @@ diff is then **410 added / 30 removed**, which can be read.
   caught a file swapped without its pin
 - CTLD's version constant reads `2.0.0-rc8`; TUM's reads `0.1.250722` in every release, so there is
   nothing to assert there (see the PRD)
+- Both files load under real Lua 5.1 (`C:\Program Files (x86)\Lua.1\lua.exe`, off the PATH).
+  The `lua` on the PATH is 5.5 and rejects both the new and the old file over `const` loop variables,
+  so it is not the interpreter to judge with.

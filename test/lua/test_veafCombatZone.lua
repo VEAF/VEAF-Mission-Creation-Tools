@@ -2312,6 +2312,94 @@ function TestVeafCombatZoneStaticShip:test_a_fortification_still_takes_the_land(
 end
 
 -- ============================================================================
+-- FIX-STATIC-RESPAWN-BY-UNIT-NAME — the zone end of the same chain.
+--
+-- `getGroupNameOfUnit` records what a live static answers to, which is its **unit** name, and the
+-- Mission Editor names the unit of every duplicated static `<group>-1`. The respawn then looked that
+-- up as a group name and refused with `no group data`, while the deactivation that preceded it had
+-- destroyed the object — `StaticObject.getByName` takes the unit name. Destroyed and not put back.
+--
+-- Twelve such lines in the server log attached to #953, for five of that mission's eight neutral
+-- sandbags; the three others are named the old way and always worked. Both shapes are asserted here,
+-- through `spawnElement` rather than through the spawner, because the pair of names is exactly what
+-- the zone contributes to the chain.
+-- ============================================================================
+TestVeafCombatZoneStaticUnitName = {}
+
+function TestVeafCombatZoneStaticUnitName:_fixture(groupName, unitName)
+  dcs_mocks.reset()
+  Disposition = nil
+  land.getHeight = function()
+    return 0
+  end
+  land.getSurfaceType = function()
+    return land.SurfaceType.LAND
+  end
+
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      static = {
+        group = {
+          {
+            name = groupName,
+            groupId = 9,
+            hidden = true,
+            hiddenOnMFD = true,
+            hiddenOnPlanner = true,
+            units = { { name = unitName, unitId = 6, type = "Sandbag_06", category = "Fortifications", x = 0, y = 0 } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  local zone = VeafCombatZone:new():setFriendlyName("Sandbag Zone"):setMissionEditorZoneName("CMBT_AL_DHAFRA_AIRPORT")
+  zone:setActive(true)
+
+  -- The element carries the name the zone read off the live object: the unit's.
+  local element = VeafCombatZoneElement:new()
+  element:setName(unitName)
+  element:setPosition({ x = 0, y = 0, z = 0 })
+  element:setCoalition(coalition.side.BLUE)
+  element:setDcsStatic(true)
+  element:setSpawnRadius(0)
+  return zone, element
+end
+
+function TestVeafCombatZoneStaticUnitName:tearDown()
+  dcs_mocks.reset()
+end
+
+function TestVeafCombatZoneStaticUnitName:test_a_static_whose_unit_is_suffixed_is_put_back()
+  local zone, element = self:_fixture("Sandbag 02-4", "Sandbag 02-4-1")
+  zone:spawnElement(element, true)
+
+  luaunit.assertEquals(#dcs_mocks.staticsAdded, 1, "the zone destroyed it on deactivation; it must come back")
+end
+
+function TestVeafCombatZoneStaticUnitName:test_a_static_named_like_its_group_is_still_put_back()
+  local zone, element = self:_fixture("Sandbag 06-1", "Sandbag 06-1")
+  zone:spawnElement(element, true)
+
+  luaunit.assertEquals(#dcs_mocks.staticsAdded, 1)
+end
+
+--- What the mission maker hid stays hidden through the zone's own respawn, on the three surfaces the
+--- editor writes together.
+function TestVeafCombatZoneStaticUnitName:test_the_static_the_zone_puts_back_is_still_hidden()
+  local zone, element = self:_fixture("Sandbag 02-4", "Sandbag 02-4-1")
+  zone:spawnElement(element, true)
+
+  local submitted = dcs_mocks.staticsAdded[1].object
+  luaunit.assertTrue(submitted.hidden)
+  luaunit.assertTrue(submitted.hiddenOnMFD)
+  luaunit.assertTrue(submitted.hiddenOnPlanner)
+end
+
+-- ============================================================================
 -- FIX-COMBATZONE-ZONE-TYPE-SILENT, second pass — Sourcery's review point on #775.
 --
 -- The helper returned nil for "I cannot read this zone" and the caller wrote `or {}`, so the

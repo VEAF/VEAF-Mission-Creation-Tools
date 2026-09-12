@@ -1,134 +1,94 @@
-# VEAF Mission Creation Tools — 6.21.0
+# VEAF Mission Creation Tools — 6.22.0
 
-**Une batterie SAM qu'une zone de combat remet sur la carte voit, s'allume et tire.** Elle ne le
-faisait plus. Elle avait l'air normale — présente, complète, munitions pleines — et elle laissait
-passer les avions sans un mot, pendant que la console IADS annonçait des radars détruits que
-personne n'avait touchés.
+**Un objet statique qu'une zone de combat replace revient.** Il ne revenait pas toujours. Il
+disparaissait à la première désactivation de la zone, définitivement, et rien ne le signalait à
+l'écran — cinq sacs de sable sur huit dans la mission où le défaut a été trouvé.
 
-Cette version corrige cela, et six défauts voisins trouvés en tirant sur le même fil.
-
-Elle apporte aussi la suite du bot de support : ses suivis ouvrent désormais un post dans le canal
-forum du Discord, avec le tag que le forum exige.
+Cette version corrige cela, et livre CTLD **2.0.0-rc8**, qui apporte le ramassage de troupes aux FOB
+et aux FARP construits.
 
 ---
 
 ## ⚠️ À lire avant de mettre à jour
 
-Aucune rupture d'interface : rien de ce que vous écrivez dans `mission.yaml` ou dans vos scripts ne
-change. Mais **deux comportements changent**, et une mission qui s'appuyait sur les anciens lira
-autre chose.
+Rien ne change dans ce que vous écrivez : ni `mission.yaml`, ni vos scripts, ni vos zones. Mais
+**deux comportements arrivent activés**, et il vaut mieux le savoir avant de builder.
 
-### Le décompte des sites IADS baisse au lieu de gonfler
+### Le ramassage de troupes aux FARP est actif par défaut
 
-Un site dont le groupe **quitte la mission sans être détruit** — typiquement une zone de combat
-qu'on désactive, qui emporte ses défenses avec elle — restait dans le réseau jusqu'à la fin de la
-partie. Il gonflait la page de statut et son nom restait pris.
+CTLD rc8 ajoute le ramassage de troupes sur les trois FARP construits (standard, Alpha, Countryside),
+avec un rayon de 150 m. Jusqu'ici les FARP n'en avaient aucun. Si vous ne le voulez pas dans votre
+mission, désactivez `troopPickupAtFARP` dans l'outil de configuration CTLD.
 
-Il en sort maintenant. Si vous lisiez le nombre de sites SAM comme un total stable, il devient un
-nombre qui suit ce qui est réellement sur la carte.
+### Si — et seulement si — vous activez TheUniversalMission
 
-**Les sites que vos pilotes ont détruits, eux, restent affichés** : c'est le tableau de chasse, et
-c'est la lecture d'une SEAD réussie. La distinction se fait sur ce que DCS rapporte — un site tombé
-sous les coups est signalé, un site retiré par un script ne l'est pas.
-
-### Les défenses d'une zone de combat rejoignent l'IADS sans `dynamic_spawn`
-
-Une défense antiaérienne qu'une zone de combat replace rejoint le réseau de sa coalition **quel que
-soit** ce réglage. Le contenu qu'un auteur a placé dans une zone n'est pas une apparition que
-personne n'a demandée.
-
-Auparavant l'appartenance au réseau se jouait sur un hasard d'ordonnancement : l'activation d'une
-zone et l'enrôlement de démarrage sont programmés à la même seconde, donc une batterie entrait dans
-le réseau si l'activation passait la première — et n'y revenait jamais après un cycle de la zone.
-
-Seuls les éléments qui **restent en place** sont concernés : un convoi qui traverse la zone n'a rien
-à faire dans un réseau de défense aérienne.
+Le script communautaire TUM passe de la version 0.1 à la **0.3**. Il reste **désactivé par défaut** :
+une mission qui ne l'active pas explicitement ne voit aucune différence. Si vous l'utilisez, sachez
+que l'auteur ne publie pas de détail de ses changements — nous avons vérifié que la convention des
+zones BLUFOR/REDFOR est inchangée, mais un essai avant de jouer sérieusement reste prudent.
 
 ---
 
-## Les SAM des zones de combat
+## Les objets statiques d'une zone de combat
 
-Sept correctifs, un même symptôme vu de sept endroits.
+### Ils disparaissaient pour de bon
 
-### Une batterie remise en place était aveugle
+Un objet statique porte deux noms dans l'éditeur : celui du **groupe**, et celui de l'**unité** qu'il
+contient. Ils sont identiques tant que vous ne dupliquez rien. Dès que vous copiez un statique,
+l'éditeur nomme l'unité `<groupe>-1` — et c'est là que ça se jouait.
 
-C'est la cause racine, et elle tient en un mot. Quand une zone de combat replace une batterie,
-l'outil reconstruit le groupe à partir de ce qu'il a mémorisé de l'éditeur — et il le reconstruisait
-en **mélangeant l'ordre des véhicules**.
+Une zone de combat retenait le nom de l'unité, puis cherchait un groupe portant ce nom au moment de
+remettre l'objet en place. Elle ne le trouvait pas, donc ne le recréait pas. La destruction, elle,
+fonctionnait parfaitement : l'objet partait à la désactivation de la zone et ne revenait jamais.
 
-Or DCS attend que le **radar soit le premier véhicule du groupe**. S'il ne l'est pas, le jeu crée la
-batterie sans aucun capteur : pas seulement le radar, *tous* les véhicules. Le site ne voit donc
-rien, ne s'allume jamais, ne tire jamais — et la console IADS l'affiche en « radar détruit »
-puisqu'elle constate qu'aucun radar ne répond. Un seul défaut, deux symptômes qui n'avaient l'air
-d'avoir aucun rapport.
+C'est corrigé, pour les deux façons de nommer. Rien à changer dans vos missions : les statiques déjà
+placés reviennent, y compris ceux que vous aviez dupliqués.
 
-Cela dépassait Skynet : tout ce qui s'appuyait sur « la première unité » d'un groupe replacé
-s'appuyait en réalité sur une unité tirée au hasard.
+Deux autres situations tombaient sur exactement le même défaut, et sont réparées avec :
 
-### Le réseau enrôlait des groupes que DCS venait de détruire
+- **un statique déplacé par script** n'emportait pas sa définition ;
+- **un navire posé en objet statique** perdait sa vérification « peut être sur l'eau », et se voyait
+  chercher une place sur la terre ferme.
 
-Au démarrage, la console annonçait des sites au radar détruit alors que rien n'avait été tiré. DCS
-continue de lister pendant un court instant les groupes qu'il vient de retirer, et l'enrôlement du
-réseau arrive juste après le nettoyage que fait chaque zone de combat. Ces fantômes entraient dans
-le réseau et y restaient.
+### Ce que vous avez caché reste caché
 
-Le journal nomme désormais chaque groupe fantôme écarté, sans que vous ayez à activer quoi que ce soit.
+L'éditeur écrit trois options ensemble quand vous masquez un groupe : sur la carte, sur les écrans
+de bord, et dans le planificateur. L'outil n'en retenait qu'une. Tout ce qu'il replaçait revenait
+donc visible sur les liaisons de données et dans le planificateur, même si vous l'aviez masqué
+partout. Les trois voyagent maintenant ensemble, pour un clonage, un replacement et un statique.
 
-### Un radar sans portée est réinterrogé, et le journal le nomme
-
-Si un site rapporte une portée de détection nulle, il est réinterrogé plusieurs fois plutôt que
-laissé pour mort sur une seule lecture malheureuse. Et s'il reste muet, le journal nomme l'unité
-radar concernée, son type, et ce que DCS en dit — de quoi diagnostiquer sans avoir à deviner.
-
-### Le graphe de couverture est reconstruit quand un site part
-
-Un site retiré du réseau restait listé comme couvert par tous ceux qui pouvaient le voir. Les radars
-d'alerte annonçaient des sites qui n'existaient plus.
-
-### Et le reste
-
-Retirer un site ne rend plus muettes les défenses rapprochées qui le protégeaient — elles restaient
-listées et commandées, mais sourdes aux événements du jeu. Une batterie replacée sous son propre nom
-peut rejoindre le réseau au lieu d'être refusée. Et décrire un site dont l'objet DCS a disparu ne
-provoque plus d'erreur.
+> **Une question reste ouverte**, et elle est signalée ici parce qu'elle a été rapportée : sur un
+> serveur distant, des unités marquées « cachées » apparaissent sur la carte F10. Nous avons vérifié
+> que la mission construite est correcte et que l'outil transmet bien le réglage. Reste à établir si
+> DCS lui-même respecte « caché » sur un objet recréé pendant la partie. En attendant, si vous
+> constatez le symptôme, regardez les **options forcées** de votre mission : une vue de carte réglée
+> sur « tout voir » s'impose à tous les clients qui rejoignent un serveur, et montre tout.
 
 ---
 
-## Le bot de support ouvre ses suivis dans le forum
+## CTLD 2.0.0-rc8
 
-Un `/bug` ou un `/suggest` créait un fil accroché à un message que le bot devait poster dans le canal
-où vous aviez tapé la commande. C'est maintenant un **post dans le canal forum** dédié, avec son
-titre, son état ouvert/fermé, et plus de message d'ancrage qui traîne. `/ask` reste dans le canal :
-une question et sa réponse n'ont pas vocation à devenir un sujet de forum.
+Aucun réglage n'a été renommé ni supprimé, et chaque valeur par défaut existante garde son
+comportement.
 
-Le post porte le **tag** que le forum réclame — le forum du VEAF les exige, et Discord refuse un post
-sans tag. Les tags sont reconnus par leur nom (`issue`, `suggestion` par défaut), parce que Discord
-n'offre aucun moyen de copier l'identifiant d'un tag.
-
-Et la réponse privée qui clôt votre commande vous donne le **lien du fil** : évident tant qu'il
-pendait trois lignes plus bas, indispensable dès lors qu'il est ailleurs.
-
-Deux corrections sur le suivi des tickets : fermer une issue ne vous **désabonnait** plus
-définitivement de ses suites, et une issue supprimée cesse d'être interrogée au lieu de l'être
-indéfiniment.
-
----
-
-## Pour les développeurs
-
-- L'index des groupes de mission conserve l'ordre des unités de l'éditeur. Tout ce qui reconstruit un
-  groupe à partir de cet index le soumet désormais à DCS dans l'ordre où il a été dessiné.
-- Le retrait d'un élément d'un réseau IADS détache d'abord ses défenses rapprochées, reconstruit la
-  couverture, et n'appelle plus le jeu sur un objet qu'il a libéré.
-- Un site du réseau dont l'objet DCS a disparu se décrit sans lever d'erreur, ce qui rend les lignes
-  de diagnostic utilisables là où elles servent.
+- **Les troupes peuvent enfin être embarquées à un FOB construit.** Le réglage existait depuis la
+  réécriture, activé par défaut — mais rien dans le menu F10 ne le consultait, donc un FOB n'offrait
+  jamais l'embarquement, quel que soit son réglage.
+- **Et à un FARP construit**, ce qui n'existait pas du tout. Les trois FARP intégrés enregistrent
+  leur zone d'embarquement dès la fin de la construction, et la retirent quand DCS détruit le FARP.
+- **Un quart de la bande FM était inaccessible.** Les plages 36–39.9, 46–49.9, 56–59.9 et 66–69.9 MHz
+  étaient ignorées — y compris des fréquences ordinaires comme 38.00 MHz. Les 460 pas de 30.0 à
+  75.9 MHz sont joignables.
+- Pour les scripteurs : une balise posée par script peut être demandée **sur une fréquence précise**,
+  et une zone d'embarquement de troupes peut être ajoutée **sur n'importe quel objet nommé** — unité,
+  statique, groupe ou aérodrome — et plus seulement sur une zone de déclenchement.
 
 ---
 
-*Merci à **Tripack** : il a rapporté le défaut, fourni son journal, puis construit une petite mission
-de test qui reproduisait le problème à coup sûr, et essuyé trois versions successives. Sans cette
-mission, la cause n'aurait pas été trouvée.*
+## Merci
 
-*Quant à la validation finale, elle a consisté à aller narguer le SA-6 remis en état. Il a fallu
-faire demi-tour pour rentrer dans son enveloppe, et il nous a descendus. On n'avait jamais été aussi
-contents de mourir.*
+À **Tripack**, qui a rapporté le symptôme de la carte F10 et surtout joint sa mission et le journal
+de son serveur : c'est dans ce journal qu'a été trouvé le défaut des statiques, qu'il n'avait pas vu
+et qui lui coûtait des objets à chaque partie. Il est aussi le testeur de CTLD rc8.
+
+À **Zip**, pour les deux défauts CTLD corrigés dans rc8.

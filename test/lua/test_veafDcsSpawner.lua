@@ -964,6 +964,52 @@ function TestVeafDcsSpawnerCurrentGroupData:test_a_teleported_static_comes_back_
   luaunit.assertFalse(data.uncontrolled, "and controlled, as MiST left it")
 end
 
+--- FIX-STATIC-RESPAWN-BY-UNIT-NAME — reaching the record through the unit name must not rename the
+--- object it describes. The record is the **group**'s, so it names `Bunker 02-4`, while the live
+--- object — and every caller holding a reference to it — knows `Bunker 02-4-1`. Submitting the group
+--- name would move the static *and* give it a new identity, which is worse than the refusal this
+--- lookup replaced: `veafMove` and the combat zone both track their objects by that name.
+function TestVeafDcsSpawnerCurrentGroupData:test_a_teleported_static_keeps_the_name_it_answers_to()
+  env.mission.coalition.blue.country = {
+    [1] = {
+      name = "USA",
+      id = country.id.USA,
+      static = {
+        group = {
+          {
+            name = "Bunker 02-4",
+            groupId = 9,
+            units = { { name = "Bunker 02-4-1", unitId = 5, type = "Sandbag_06", category = "Fortifications", x = 0, y = 0 } },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  local savedGetByName = StaticObject.getByName
+  StaticObject.getByName = function(name)
+    if name ~= "Bunker 02-4-1" then
+      return nil
+    end
+    return {
+      isExist = function()
+        return true
+      end,
+      getPosition = function()
+        return { p = { x = 10, y = 0, z = 20 } }
+      end,
+    }
+  end
+
+  local data = veafDcsSpawner.getCurrentGroupData("Bunker 02-4-1")
+  StaticObject.getByName = savedGetByName
+
+  luaunit.assertNotNil(data, "the static must be found through its unit name")
+  luaunit.assertEquals(data.name, "Bunker 02-4-1", "the teleport must not rename the object")
+  luaunit.assertEquals(data.groupName, "Bunker 02-4-1")
+end
+
 function TestVeafDcsSpawnerCurrentGroupData:test_the_editors_country_is_not_overwritten()
   -- The live lookup is a fallback, not a replacement: an editor group keeps what the snapshot says.
   --
@@ -1716,6 +1762,118 @@ function TestVeafGroupSpawnFieldForwarding:test_a_group_with_no_editor_record_ke
 
   luaunit.assertNotNil(result)
   luaunit.assertFalse(lastSpawned().hidden)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafStaticRespawnByUnitName
+-- ---------------------------------------------------------------------------
+-- FIX-STATIC-RESPAWN-BY-UNIT-NAME ticket 01 — a static answers at runtime to the name of its unit,
+-- and a combat zone records that name. The respawn looked it up as a group name, found nothing and
+-- logged `no group data`; the deactivation that preceded it had already destroyed the object, since
+-- `StaticObject.getByName` does take the unit name. Twelve such lines in the log attached to #953,
+-- for five of the eight neutral statics of that mission — the three others are named the other way.
+-- ---------------------------------------------------------------------------
+TestVeafStaticRespawnByUnitName = {}
+
+function TestVeafStaticRespawnByUnitName:setUp()
+  dcs_mocks.reset()
+  land.getHeight = function()
+    return 0
+  end
+  land.getSurfaceType = function()
+    return land.SurfaceType.LAND
+  end
+  env.mission.coalition.neutrals = {
+    country = {
+      [1] = {
+        name = "Insurgents",
+        id = country.id.INSURGENTS,
+        static = {
+          group = {
+            -- The copy: the editor appends `-1` to the unit of a duplicated static.
+            {
+              name = "Sandbag 02-4",
+              groupId = 31,
+              hidden = true,
+              hiddenOnMFD = true,
+              hiddenOnPlanner = true,
+              units = { { name = "Sandbag 02-4-1", unitId = 311, type = "Sandbox", x = 7100, y = 8100 } },
+            },
+            -- The original: unit and group share a name, which is the half that always worked.
+            {
+              name = "Sandbag 06-1",
+              groupId = 30,
+              hidden = true,
+              hiddenOnMFD = true,
+              hiddenOnPlanner = true,
+              units = { { name = "Sandbag 06-1", unitId = 301, type = "Sandbox", x = 7000, y = 8000 } },
+            },
+          },
+        },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+end
+
+local function lastStatic()
+  local entries = dcs_mocks.staticsAdded
+  return entries[#entries] and entries[#entries].object
+end
+
+function TestVeafStaticRespawnByUnitName:test_a_static_respawns_from_its_unit_name()
+  local result = VeafGroupSpawn:new():forGroup("Sandbag 02-4-1"):at({ x = 7100, y = 0, z = 8100 }):respawn()
+
+  luaunit.assertNotNil(result)
+  luaunit.assertEquals(#dcs_mocks.staticsAdded, 1, "the object the zone destroyed has to come back")
+end
+
+function TestVeafStaticRespawnByUnitName:test_a_static_named_like_its_group_still_respawns()
+  local result = VeafGroupSpawn:new():forGroup("Sandbag 06-1"):at({ x = 7000, y = 0, z = 8000 }):respawn()
+
+  luaunit.assertNotNil(result)
+  luaunit.assertEquals(#dcs_mocks.staticsAdded, 1)
+end
+
+--- The hide flags travel with it: a sandbag the mission maker hid must not reappear on the F10 map,
+--- on a datalink display, or in the planner because a combat zone put it back.
+function TestVeafStaticRespawnByUnitName:test_a_respawned_static_keeps_the_editors_hide_flags()
+  VeafGroupSpawn:new():forGroup("Sandbag 02-4-1"):at({ x = 7100, y = 0, z = 8100 }):respawn()
+
+  luaunit.assertTrue(lastStatic().hidden)
+  luaunit.assertTrue(lastStatic().hiddenOnMFD)
+  luaunit.assertTrue(lastStatic().hiddenOnPlanner)
+end
+
+--- Ticket 02, through the group verb rather than the record: the editor sets the three together.
+function TestVeafStaticRespawnByUnitName:test_a_cloned_group_keeps_the_two_other_hide_flags()
+  env.mission.coalition.blue.country[1].plane = {
+    group = {
+      {
+        name = "CAP_FUJAIRAH-1",
+        groupId = 43,
+        hidden = true,
+        hiddenOnMFD = true,
+        hiddenOnPlanner = true,
+        units = { { name = "CAP_FUJAIRAH-1-1", unitId = 5, type = "F-15C", x = 1000, y = 2000, alt = 3000 } },
+      },
+    },
+  }
+  veafMissionDb.buildSnapshot()
+
+  VeafGroupSpawn:new():forGroup("CAP_FUJAIRAH-1"):at({ x = 5000, y = 0, z = 6000 }):clone()
+
+  local entries = dcs_mocks.groupsAdded
+  local spawned = entries[#entries] and entries[#entries].group
+  luaunit.assertTrue(spawned.hiddenOnMFD)
+  luaunit.assertTrue(spawned.hiddenOnPlanner)
+end
+
+--- An unknown name still creates nothing: the fallback widens *how* a name is resolved, not *what*
+--- a missing group means.
+function TestVeafStaticRespawnByUnitName:test_an_unknown_name_still_creates_nothing()
+  luaunit.assertFalse(VeafGroupSpawn:new():forGroup("Sandbag 99-9"):at({ x = 1, y = 0, z = 2 }):respawn())
+  luaunit.assertEquals(#dcs_mocks.staticsAdded, 0)
 end
 
 os.exit(luaunit.LuaUnit.run())

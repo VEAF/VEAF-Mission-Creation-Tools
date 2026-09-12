@@ -230,6 +230,12 @@ function veafMissionDb.buildSnapshot()
                   communication = groupData.communication,
                   radioSet = groupData.radioSet,
                   hidden = groupData.hidden,
+                  -- The Mission Editor writes the three hide flags together, and this record carried
+                  -- one of them — so everything VEAF put back on the map came back on every datalink
+                  -- display and in the planner, whatever DCS does with `hidden` itself. Measured on
+                  -- the mission attached to #953: 446 of its 469 groups carry all three.
+                  hiddenOnMFD = groupData.hiddenOnMFD,
+                  hiddenOnPlanner = groupData.hiddenOnPlanner,
                   -- The whole editor table for this group, by reference for the same reason as the
                   -- route. This is what `veaf.getGroupData` hands back: its callers read fields no
                   -- record projects and none of them the same ones — a unit's `callsign` for a
@@ -310,6 +316,36 @@ end
 --- @return table|nil
 function veafMissionDb.getGroupRecord(groupName)
   return veafMissionDb.groupsByName[groupName]
+end
+
+--- The group record behind the name of a **live object**, or nil.
+---
+--- A static object answers, at runtime, to the name of its *unit*; the snapshot is keyed by *group*
+--- name, and the two are only the same when nothing was ever duplicated in the Mission Editor — a
+--- copy of `Sandbag 02-4` holds a unit called `Sandbag 02-4-1`. Every caller that starts from a live
+--- object and needs its editor definition therefore has to try both, which is what this does: the
+--- group of that name, else the group the unit of that name belongs to.
+---
+--- FIX-STATIC-RESPAWN-BY-UNIT-NAME: without it, `VeafGroupSpawn` answered `no group data` and a
+--- combat zone's statics — destroyed on deactivation, since `StaticObject.getByName` *does* take the
+--- unit name — were never put back. Twelve such lines in the log attached to #953.
+---
+--- `getGroupRecord` is deliberately left narrow: `veafMove` asks it whether a group of some name
+--- exists, and a lookup that also answers for unit names would make that question lie.
+--- @param objectName string a group name, or the name of one of its units
+--- @return table|nil
+function veafMissionDb.getGroupRecordForObject(objectName)
+  if not objectName then
+    return nil
+  end
+  local record = veafMissionDb.groupsByName[objectName]
+  if record then
+    return record
+  end
+  -- Named `unit`, not `unitRecord`: that one is the module-local builder above, and shadowing it here
+  -- would work and would read as a mistake.
+  local unit = veafMissionDb.unitsByName[objectName]
+  return unit and veafMissionDb.groupsByName[unit.groupName] or nil
 end
 
 --- The mission record of a group, by its editor id, or nil.
@@ -634,6 +670,7 @@ veaf.getNextUnitId = veafMissionDb.getNextUnitId
 veaf.getUnitRecord = veafMissionDb.getUnitRecord
 veaf.getUnitRecordById = veafMissionDb.getUnitRecordById
 veaf.getGroupRecord = veafMissionDb.getGroupRecord
+veaf.getGroupRecordForObject = veafMissionDb.getGroupRecordForObject
 veaf.getGroupRecordById = veafMissionDb.getGroupRecordById
 veaf.getAllUnitRecords = veafMissionDb.getAllUnitRecords
 veaf.getAllGroupRecords = veafMissionDb.getAllGroupRecords

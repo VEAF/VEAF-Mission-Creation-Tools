@@ -53,12 +53,12 @@ artifacts:
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc7"
+    pinned: "2.0.0-rc8"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
     watch:
-      - { kind: github-release, repo: VEAF/CTLD, pinned: "published-v2.0.0-rc7" }
+      - { kind: github-release, repo: VEAF/CTLD, pinned: "published-v2.0.0-rc8" }
 
   - id: csar
     source: https://github.com/VEAF/DCS-CSAR
@@ -82,15 +82,26 @@ artifacts:
       - { kind: github-file, repo: VEAF/AIEN, ref: stable, pinned: "f239b4bb7529" }
       - { kind: github-release, repo: Chromium18/AIEN, pinned: "v1.4.0191", role: upstream-ref }
 
+  # Two traps, both met while syncing v0.1 -> v0.3 (#618, 2026-09-12).
+  #
+  # 1. **There is no `TheUniversalMission.lua` asset.** A release ships `.miz` files and PDFs, nothing
+  #    else; the script lives inside each mission as `l10n/DEFAULT/Script.lua` and is what we vendor,
+  #    renamed. The earlier `manual_steps` said to re-download a file that has never existed, which is
+  #    why this entry could not be updated by following it. The `.miz` files are ~10 MB each; the
+  #    script is byte-identical across theatres (checked on Marianas and Syria), so any one will do.
+  # 2. **The script's own version constant lies.** `TUM.VERSION_STRING` still reads `0.1.250722` in
+  #    the v0.3.251019 release. The only trustworthy version is the release tag we took it from, which
+  #    is why this artefact is absent from `SELF_DECLARED` in
+  #    `test/python/test_vendored_pins_match_the_files.py` — adding it would fail on a correct sync.
   - id: tum
     source: https://github.com/akaAgar/the-universal-mission-for-dcs-world
     upstream: https://github.com/akaAgar/the-universal-mission-for-dcs-world
-    pinned: "0.1.250722"
+    pinned: "0.3.251019"
     vendoring: verbatim
     path: src/scripts/community/TheUniversalMission.lua
-    manual_steps: "(verbatim) re-download TheUniversalMission.lua from the matching upstream release."
+    manual_steps: "(verbatim) download any theatre's .miz from the matching upstream release, extract l10n/DEFAULT/Script.lua from it, and save it as TheUniversalMission.lua with LF line endings. Release notes say only 'many improvements and bug fixes', so the diff is the only changelog there is."
     watch:
-      - { kind: github-release, repo: akaAgar/the-universal-mission-for-dcs-world, pinned: "v0.1.250722" }
+      - { kind: github-release, repo: akaAgar/the-universal-mission-for-dcs-world, pinned: "v0.3.251019" }
 
   # Three repositories deep, and ours is the reference one now. That is the whole point of this note.
   #

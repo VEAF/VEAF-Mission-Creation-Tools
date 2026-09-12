@@ -1629,7 +1629,10 @@ end
 -- Read from `veafDcsSpawner.TERRAIN_BY_CATEGORY`, the same table the terrain check downstream
 -- already uses, so "what can this thing stand on" has one source instead of two that can disagree.
 local function surfacesForZoneElement(zoneElement)
-  local record = veaf.getGroupRecord(zoneElement:getName())
+  -- A zone element holds the name of a live object, and a static's is its **unit** name — so a hull
+  -- placed as a static and duplicated in the editor (`… -1`) resolved to no record at all, and was
+  -- searched a spot on dry land. FIX-STATIC-RESPAWN-BY-UNIT-NAME.
+  local record = veaf.getGroupRecordForObject(zoneElement:getName())
   if not record then
     return nil
   end

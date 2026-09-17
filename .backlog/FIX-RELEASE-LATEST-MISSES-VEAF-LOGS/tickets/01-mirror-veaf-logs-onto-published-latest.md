@@ -19,12 +19,33 @@ did not.
 ## What was done
 
 1. The same mirror, with the same guard, appended to the veaf-logs step.
-2. `test/python/test_release_mirrors_every_asset.py` — four tests:
+2. `test/python/test_release_mirrors_every_asset.py` — six tests:
    - the workflow still uploads to both kinds of release (a guard on the module's own assumption);
+   - **every upload command yields at least one asset** — see the review note below;
    - veaf-logs specifically reaches `published-latest`;
    - **every** asset uploaded to a versioned release is also uploaded to `published-latest` — the
      sweep, so the next asset added cannot repeat this;
+   - the sweep is shown to fail, on each of the three spellings the workflow uses;
    - each mirror carries a pre-release guard.
+
+## The sweep was a sample, and the review caught it — 2026-09-17
+
+The first version matched assets by filename, requiring a `.exe` or `.zip` extension, and read each
+upload command only to the end of its **line**. Measured against `release.yml`, that saw **one**
+upload argument out of seven: the capture kit is passed as `"$KIT"` (a shell variable carries no
+filename), and the two standalone-binary commands put their assets past a `\` continuation, where
+the cross-platform binaries have no extension at all. Four of the six commands yielded an empty
+set, and an empty set is subtracted away without a trace — so `veaf-tools-linux-arm64` added to the
+versioned upload and forgotten on the mirror would have shipped green. The very defect this ticket
+exists to prevent, from the very test written to prevent it.
+
+The fix identifies an asset by **the argument as written** — continuations joined, `shlex` for the
+words, `file#label` split, whitespace in `${{ … }}` collapsed. All six commands and all four assets
+now enter the comparison. Two tests were added rather than one: a check that no command yields an
+empty set (the silence that hid this), and `test_the_sweep_notices_an_unmirrored_asset`, which
+proves the sweep falls both ways on each spelling. Verified against the real workflow by removing
+each of the three mirrors in turn: `['dist/${{ matrix.asset }}', 'dist/${{ matrix.updater_asset }}']`,
+`['$KIT']`, `['dist/veaf-logs.exe']` — and nothing reported when they are in place.
 3. 6.18.0 repaired by hand: `veaf-logs.exe` downloaded from `published-v6.18.0` and uploaded to
    `published-latest`, then re-downloaded from `published-latest` to prove it — HTTP 200,
    40 256 564 bytes, identical size.

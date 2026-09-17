@@ -50,10 +50,13 @@ nothing. The lesson is in [`verify-a-check-can-fail-both-ways`](../../CLAUDE.md)
 - [x] `veaf-logs.exe` reaches `published-latest`, with the pre-release guard the other two mirrors
       carry — a release candidate must not overwrite what production users download
 - [x] **A sweep, not a special case**: the test pairs *every* asset uploaded to the versioned release
-      against the mirrored ones, so the next asset added cannot repeat this
+      against the mirrored ones, so the next asset added cannot repeat this — and it really is every
+      asset, which the first version was not: see the 2026-09-17 note in ticket 01
 - [x] A guard asserting each mirror is protected against a pre-release
 - [x] The tests proven to fail on the previous workflow — 2 of the 4 do; the other two are the
       guards that check the test's own assumptions, and they held before as they do now
+- [x] **The sweep proven to fall both ways**, on each of the three argument spellings the workflow
+      uses, and against the real workflow with each of the three mirrors removed in turn
 - [x] 6.18.0 repaired by hand: the asset was downloaded from the versioned release and uploaded to
       `published-latest`, then re-downloaded from there to prove it (HTTP 200, 40 256 564 bytes)
 

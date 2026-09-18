@@ -63,7 +63,7 @@ artifacts:
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc10"
+    pinned: "2.0.0-rc11"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
@@ -71,7 +71,7 @@ artifacts:
       - {
           kind: github-release,
           repo: VEAF/CTLD,
-          pinned: "published-v2.0.0-rc10",
+          pinned: "published-v2.0.0-rc11",
           prereleases: true,
           tag_pattern: "^published-v",
         }

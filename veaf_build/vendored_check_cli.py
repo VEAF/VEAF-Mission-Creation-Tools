@@ -84,9 +84,11 @@ class _RequestsGitHubClient:
     def _newest_of_listing(self, repo: str, tag_pattern: str) -> str | None:
         """Return the newest non-draft release tag matching ``tag_pattern`` (empty: any).
 
-        The listing is capped at one page: a repo whose newest matching release is more than
-        30 releases old resolves to ``None``, which the report shows as an error rather than
-        passing silently.
+        The listing is capped at one page of 100, GitHub's maximum: a repo whose newest matching
+        release is older than its 100 most recent ones resolves to ``None``, which the report
+        shows as an error rather than passing silently. Following pagination would buy nothing
+        real — the only watch using this publishes a matching release about every ten days, and
+        the single tag it must skip is republished, not accumulated.
         """
         try:
             matcher = re.compile(tag_pattern) if tag_pattern else None
@@ -95,7 +97,7 @@ class _RequestsGitHubClient:
             # it — one unresolved watch is visible in the report, a crashed run is not.
             return None
         try:
-            resp = self._get(f"/repos/{repo}/releases", params={"per_page": "30"})
+            resp = self._get(f"/repos/{repo}/releases", params={"per_page": "100"})
         except requests.RequestException:
             return None
         if resp.status_code != 200:

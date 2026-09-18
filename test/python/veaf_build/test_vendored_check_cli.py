@@ -115,6 +115,9 @@ class TestRequestsGitHubClient(unittest.TestCase):
         with patch("requests.get", return_value=self._resp(200, listing)) as get:
             self.assertEqual(client.latest_release("o/r", prereleases=True), "published-v2.0.0-rc10")
         self.assertTrue(get.call_args[0][0].endswith("/repos/o/r/releases"))
+        # One page, but GitHub's largest: the listing is not paginated, so the page size is what
+        # bounds how far back an eligible release may sit.
+        self.assertEqual(get.call_args.kwargs["params"], {"per_page": "100"})
 
     def test_prereleases_skip_a_moving_tag_the_pattern_excludes(self) -> None:
         """CTLD republishes a `dev` release on every master build; it must not read as drift."""

@@ -53,6 +53,25 @@ class TestRenderMarkdown(unittest.TestCase):
         md = cli._render_markdown(_CLEAN)
         self.assertIn("up to date", md)
 
+    def test_release_error_names_the_prerelease_cause(self) -> None:
+        """The old wording only said "check it still exists" and sent readers hunting nothing."""
+        report = CheckReport(
+            artifacts=_ARTIFACTS,
+            results=(WatchResult("tum", "github-release", "u/t", "", "0.1", None, "error"),),
+        )
+        md = cli._render_markdown(report)
+        self.assertIn("check the repo/ref still exists", md)
+        self.assertIn("prereleases: true", md)
+
+    def test_file_error_keeps_the_plain_wording(self) -> None:
+        report = CheckReport(
+            artifacts=_ARTIFACTS,
+            results=(WatchResult("tum", "github-file", "u/t", "", "abc", None, "error"),),
+        )
+        md = cli._render_markdown(report)
+        self.assertIn("check the repo/ref still exists", md)
+        self.assertNotIn("prereleases", md)
+
 
 class TestMain(unittest.TestCase):
     def test_json_and_exit_on_drift(self) -> None:
@@ -86,6 +105,56 @@ class TestRequestsGitHubClient(unittest.TestCase):
         with patch("requests.get", return_value=self._resp(404, {})):
             self.assertIsNone(client.latest_release("o/r"))
 
+    def test_prereleases_take_the_newest_of_the_listing(self) -> None:
+        """A repo whose every release is a pre-release: /releases/latest would 404."""
+        listing = [
+            {"tag_name": "published-v2.0.0-rc9", "published_at": "2026-09-12T19:53:03Z", "draft": False},
+            {"tag_name": "published-v2.0.0-rc10", "published_at": "2026-09-16T23:55:27Z", "draft": False},
+        ]
+        client = cli._RequestsGitHubClient()
+        with patch("requests.get", return_value=self._resp(200, listing)) as get:
+            self.assertEqual(client.latest_release("o/r", prereleases=True), "published-v2.0.0-rc10")
+        self.assertTrue(get.call_args[0][0].endswith("/repos/o/r/releases"))
+        # One page, but GitHub's largest: the listing is not paginated, so the page size is what
+        # bounds how far back an eligible release may sit.
+        self.assertEqual(get.call_args.kwargs["params"], {"per_page": "100"})
+
+    def test_prereleases_skip_a_moving_tag_the_pattern_excludes(self) -> None:
+        """CTLD republishes a `dev` release on every master build; it must not read as drift."""
+        listing = [
+            {"tag_name": "dev", "published_at": "2026-09-18T08:00:00Z", "draft": False},
+            {"tag_name": "published-v2.0.0-rc10", "published_at": "2026-09-16T23:55:27Z", "draft": False},
+        ]
+        client = cli._RequestsGitHubClient()
+        with patch("requests.get", return_value=self._resp(200, listing)):
+            self.assertEqual(
+                client.latest_release("o/r", prereleases=True, tag_pattern="^published-v"),
+                "published-v2.0.0-rc10",
+            )
+
+    def test_prereleases_ignore_drafts(self) -> None:
+        listing = [
+            {"tag_name": "published-v2.0.0-rc11", "published_at": "2026-09-20T00:00:00Z", "draft": True},
+            {"tag_name": "published-v2.0.0-rc10", "published_at": "2026-09-16T23:55:27Z", "draft": False},
+        ]
+        client = cli._RequestsGitHubClient()
+        with patch("requests.get", return_value=self._resp(200, listing)):
+            self.assertEqual(client.latest_release("o/r", prereleases=True), "published-v2.0.0-rc10")
+
+    def test_a_malformed_pattern_does_not_take_the_run_down(self) -> None:
+        client = cli._RequestsGitHubClient()
+        with patch("requests.get") as get:
+            self.assertIsNone(client.latest_release("o/r", prereleases=True, tag_pattern="^publi(shed"))
+        get.assert_not_called()
+
+    def test_prereleases_with_nothing_matching(self) -> None:
+        listing = [{"tag_name": "dev", "published_at": "2026-09-18T08:00:00Z", "draft": False}]
+        client = cli._RequestsGitHubClient()
+        with patch("requests.get", return_value=self._resp(200, listing)):
+            self.assertIsNone(client.latest_release("o/r", prereleases=True, tag_pattern="^published-v"))
+        with patch("requests.get", return_value=self._resp(404, [])):
+            self.assertIsNone(client.latest_release("o/r", prereleases=True))
+
     def test_latest_file_commit(self) -> None:
         client = cli._RequestsGitHubClient()
         with patch("requests.get", return_value=self._resp(200, [{"sha": "abc"}])):
@@ -106,7 +175,7 @@ class TestRunCheckReadsManifest(unittest.TestCase):
     def test_real_manifest_with_fake_client(self) -> None:
         # Smoke test: the shipped vendored.yaml parses and evaluates without network.
         class Fake:
-            def latest_release(self, repo):
+            def latest_release(self, repo, prereleases=False, tag_pattern=""):
                 return None
 
             def latest_file_commit(self, repo, ref, file):

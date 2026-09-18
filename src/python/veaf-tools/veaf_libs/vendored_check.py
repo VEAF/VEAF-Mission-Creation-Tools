@@ -41,6 +41,13 @@ class Watch:
         file: Path inside ``repo`` for ``github-file`` (empty -> track branch HEAD).
         pinned: Baseline value (a release tag, or a commit SHA).
         role: Optional marker, e.g. ``upstream-ref``.
+        prereleases: Track pre-releases too, for a repo that publishes nothing else.
+            ``/releases/latest`` skips pre-releases by design, so such a repo answers 404
+            and reads as an error forever (VEAF/CTLD went 17 days behind that way).
+        tag_pattern: Regular expression a tag must match to be considered, and only
+            meaningful with ``prereleases``. A repo that publishes pre-releases often also
+            republishes a moving tag (CTLD's ``dev``, rewritten on every master build);
+            without a pattern that tag is the newest thing there and reads as drift weekly.
     """
 
     kind: str
@@ -49,6 +56,8 @@ class Watch:
     file: str
     pinned: str
     role: str
+    prereleases: bool = False
+    tag_pattern: str = ""
 
 
 @dataclass(frozen=True)
@@ -124,8 +133,12 @@ class CheckReport:
 class GitHubClient(Protocol):
     """Minimal GitHub read interface the checker needs (injected for testing)."""
 
-    def latest_release(self, repo: str) -> str | None:
-        """Return the latest release tag of ``repo`` (``None`` if none/unresolved)."""
+    def latest_release(self, repo: str, prereleases: bool = False, tag_pattern: str = "") -> str | None:
+        """Return the latest release tag of ``repo`` (``None`` if none/unresolved).
+
+        With ``prereleases``, pre-releases count too; ``tag_pattern`` then restricts which
+        tags are eligible.
+        """
         ...
 
     def latest_file_commit(self, repo: str, ref: str, file: str | None) -> str | None:
@@ -152,6 +165,8 @@ def parse_manifest(data: dict[str, Any]) -> tuple[Artifact, ...]:
                 file=str(w.get("file", "")),
                 pinned=str(w.get("pinned", "")),
                 role=str(w.get("role", "")),
+                prereleases=bool(w.get("prereleases", False)),
+                tag_pattern=str(w.get("tag_pattern", "")),
             )
             for w in (entry.get("watch") or [])
         )
@@ -191,7 +206,7 @@ def evaluate_watch(artifact: Artifact, watch: Watch, client: GitHubClient) -> Wa
         return WatchResult(artifact.id, watch.kind, watch.repo, watch.role, watch.pinned, None, STATUS_MANUAL)
 
     if watch.kind == KIND_RELEASE:
-        latest = client.latest_release(watch.repo)
+        latest = client.latest_release(watch.repo, watch.prereleases, watch.tag_pattern)
         if latest is None:
             return WatchResult(artifact.id, watch.kind, watch.repo, watch.role, watch.pinned, None, STATUS_ERROR)
         status = STATUS_UP_TO_DATE if latest == watch.pinned else STATUS_DRIFTED

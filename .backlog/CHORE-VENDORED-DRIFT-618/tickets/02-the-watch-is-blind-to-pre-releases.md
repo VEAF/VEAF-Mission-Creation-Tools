@@ -1,6 +1,6 @@
 # 02 — The watch is blind to pre-releases, and says the wrong thing about it
 
-Status: ⬜ ready — **needs David's decision**, because it changes what the weekly issue reports
+Status: ✅ done — **David chose (c)** on 2026-09-18, with (b)'s wording as its consequence
 
 ## The finding
 
@@ -40,3 +40,27 @@ drifts without changing how every other watch behaves.
 
 Whichever option is chosen is implemented, `check-vendored` reports something true about CTLD, and
 the `vendored.yaml` note agrees with the code.
+
+## What was built
+
+`prereleases: true` on a watch lists the releases instead of asking for `/releases/latest`. Only
+CTLD's watch carries it; the seven other release watches are untouched, and a test asserts that a
+plain watch still asks for stable releases only.
+
+**A second field was needed, and the option as written would not have survived without it.** CTLD
+republishes a `dev` release on every `master` build — a moving tag, a pre-release like the rest. It
+was the newest release in the listing at 23:55:05 on 2026-09-16, twenty-two seconds before rc10, and
+it will be the newest again after the next build that cuts no rc. Listing without a filter would
+therefore have reported drift towards `dev` most weeks: the noise option (a) was rejected for, pulled
+in through the back door. `tag_pattern: "^published-v"` restricts what is eligible.
+
+Also carried out, per the decision: the error line in the recap issue now names the pre-release cause
+next to *"check the repo/ref still exists"*, for any release watch that fails to resolve.
+
+Proven against the live API rather than asserted (a check must be able to fall both ways):
+
+```
+plain /releases/latest on VEAF/CTLD : None          <- the 404 this ticket is about
+listing, ^published-v              : published-v2.0.0-rc10
+pinned rc10 -> up-to-date ; pinned rc9 -> drifted (latest published-v2.0.0-rc10)
+```

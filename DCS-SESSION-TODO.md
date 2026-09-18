@@ -266,6 +266,28 @@ and after.
 Worth doing on a **dedicated server** rather than a self-hosted session if one is at hand, since that
 is the only configuration in which the reporter sees it.
 
+**Measured 2026-09-18 on his second mission** (`TEST-Training-Chypres_20250909.miz`, v5 framework
+1.56.0, attached to #953), which narrows the question rather than answering it. His 138 neutral
+statics are identical in the file — `hidden = true`, `Fortifications`, no other flag — so nothing in
+the mission explains why he sees some and not others. What differs is mission start: **27** of them
+are both inside a declared combat zone *and* named after it, which is the exact rule
+`findUnitsInCombatZone` applies, so `VeafCombatZone:initialize()` destroys them; the other **111**
+are left untouched. The sandbag his own screenshot has selected (N34°42.408 E33°05.428) is
+`Statique_g M92 Sac de sable 02-11`, one of the 111 — it lies inside the BARRAGE circle but is not
+named after it, so no script ever touched it, and it is on the map with `hidden = true`.
+
+So the "visible both times" branch is already settled **for a neutral object that no script created**:
+the flag is not honoured, and the framework cannot be the cause. His two screenshots (same view, same
+instant, Game Master vs Tactical Commander) add that the red groups vanish for the blue commander
+while the neutral sandbags stay — consistent with DCS applying `hidden` towards **opposing**
+coalitions only, a neutral object being nobody's enemy. Not proven: the red groups could equally be
+hidden by ordinary fog of war.
+
+What the run must therefore still answer, and it now needs a **red** group to be discriminating:
+does an object **recreated** by `coalition.addGroup` / `addStaticObject` keep the flag? Testing it on
+a neutral one proves nothing, since those show anyway. He was asked to try the neutral → red switch
+on one sandbag, which would confirm the coalition reading on its own.
+
 ---
 
 ---

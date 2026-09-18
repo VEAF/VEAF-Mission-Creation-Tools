@@ -1,6 +1,6 @@
 # 01 — Wake a dark site when an aircraft enters its kill zone
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 ## Problem
 
@@ -22,16 +22,35 @@ usable, non-autonomous SAM site a chance to wake on proximity alone:
 - the wake must survive `targetCycleUpdateEnd`, i.e. it must set `targetsInRange` the same way a
   radar-designated contact does.
 
-Two settings, both on the IADS instance with a setter, both surfaced by `veafSkynet`:
+Two settings, both on the IADS instance with a setter, both surfaced by `veafSkynet`: whether a
+dark site may wake with no radar contact at all, and how far out that counts. **The second one is
+not settled — see below.**
 
-| setting | default | meaning |
+## The shape of the wake-up is a design decision, not an implementation detail
+
+This ticket first said "the whole kill zone, on by default". That is wrong as written, and the
+history says why: on a SA-10 it means lighting up at 75 km, which is the IADS switched off for
+exactly the systems it exists to protect — which is what `a68dfd32` deliberately stopped doing
+(see [ticket 02](02-actasew-override-is-wiped.md) for the 2022 record).
+
+Three forms, to be settled with the historical IADS devs before any code:
+
+| | What it does | What it costs |
 |---|---|---|
-| proximity wake-up | **on** | whether a dark site may wake with no radar contact at all |
-| proximity range percent | 100 | share of the site's kill zone that counts as "overhead" |
+| **A. Short passive watch** *(recommended)* | Each site gains a non-emitting sensor of fixed, settable radius (10–15 km) that wakes it with no radar involved | Models spotters and the regiment's field telephone, so it survives a purist's objection. Settles the reported case ("very close"). Leaves long-range systems quiet |
+| **B. Wake on the whole kill zone** | The site lights up as soon as an intruder is inside its firing envelope | Matches what the player expects, and cancels the IADS for long-range systems |
+| **C. Revert the 2022 decision** | Put `actAsEW(true)` back on the large systems | No new code. Large SAMs emit permanently, SEAD becomes trivial — precisely what was removed |
 
-The default is on: the mission maker who wants a purist IADS switches it off, and everyone else
-gets the behaviour they already expected. State that choice in the PR body — it changes existing
-missions.
+**A variant worth raising, because it is more elegant than A:** hang the passive watch on the
+**point defences** rather than on every site. `initializePointDefences` already identifies them,
+and a Shilka or a SA-19 is the short-range, optical sensor this is trying to model. They are dark
+too today — `pointDefencesGoLive` is only reached from the `harmSilenceID` branch of `goDark`. Not
+measured: whether point defences are present and close enough often enough to cover the reported
+case on their own.
+
+The on/off default is a second decision: **on** means every existing mission changes behaviour,
+**off** means nobody finds it and the same report comes back in six months. Recommended: on, stated
+plainly in the PR body.
 
 ## Cost to watch
 
@@ -41,8 +60,9 @@ loop: on a mission with sixty batteries that is sixty sweeps every five seconds.
 
 ## Definition of done
 
-- A site whose EWRs report nothing goes live when a hostile aircraft enters its kill zone.
+- A site whose EWRs report nothing goes live when a hostile aircraft enters the agreed wake-up
+  radius.
 - It goes dark again once the aircraft leaves, on the normal cycle, with no special case.
-- Tests, both directions: wakes on proximity; does **not** wake for an aircraft outside the kill
-  zone, for a friendly aircraft, or when the setting is off.
+- Tests, both directions: wakes on proximity; does **not** wake for an aircraft outside the radius,
+  for a friendly aircraft, or when the setting is off.
 - `poetry run test-lua` green.

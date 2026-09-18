@@ -28,6 +28,24 @@ iads:getSAMSitesByNatoName("Hawk"):setActAsEW(false)
 `ewr`, or set to watch from `mission-script.lua`, reverts to silent the moment any other group
 joins the network — a combat zone activating, a dynamic spawn, anything. Nothing is logged.
 
+## Where the list comes from, and why that matters to the conversation
+
+Until 2022-04-05 the helper did the exact opposite — `setActAsEW(**true**)` on SA-10, SA-6, Patriot
+and Hawk — so the large systems watched permanently and saw for themselves. That is the behaviour
+the 2026-09-17 reporter expects. It was removed on purpose:
+
+| commit | date | author | |
+|---|---|---|---|
+| `a68dfd32` | 2022-04-05 | David Pierron | *"IADS: removed defaulting to EWR for SAM sites"* — flips the four to `false`, adds `Mcc-sr` false and `Ewr` true |
+| `7ead5793` | 2022-05-20 | David Pierron | drops `Ewr` and `Mcc-sr` from the list |
+| `3002aaad` | 2023-11-02 | Flogas | Skynet improvements |
+| `d4e1b66c` | 2024-03-10 | Flogas | network deactivation |
+
+So today's behaviour is a deliberate four-year-old VEAF trade-off, not a Skynet defect. The list
+itself is defensible and this ticket does not propose dropping it — what is wrong is that it
+overrides an **explicit** request, silently. Take that to the historical devs as a question about
+the trade-off, not as a verdict.
+
 ## What to decide, then build
 
 The reset itself is defensible: those five are the systems a mission maker least wants emitting

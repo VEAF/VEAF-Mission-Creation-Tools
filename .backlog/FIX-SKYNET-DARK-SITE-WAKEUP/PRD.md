@@ -1,6 +1,6 @@
 # FIX-SKYNET-DARK-SITE-WAKEUP — a SAM under IADS control cannot notice the aircraft overhead
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Origin: The Reaper, 2026-09-17, on a mission built with veaf-tools:
 
@@ -55,7 +55,29 @@ within 5 seconds unless the helper also writes `samSite.targetsInRange = true` �
 Skynet's internal state on every cycle. Inside `evaluateContacts`, the same behaviour is a few
 lines at the point that already owns the decision.
 
-**Open question for David**: confirm the fork rather than the helper.
+## This is a VEAF trade-off from 2022, not a Skynet defect
+
+Until `a68dfd32` (2022-04-05, David Pierron, *"IADS: removed defaulting to EWR for SAM sites"*) the
+helper set `actAsEW(**true**)` on SA-10, SA-6, Patriot and Hawk: the large systems watched
+permanently and saw for themselves, which is exactly the behaviour the reporter expects. It was
+removed on purpose, finished by `7ead5793` (2022-05-20), and the list was carried forward by Flogas
+in `3002aaad` (2023) and `d4e1b66c` (2024).
+
+Frame the conversation accordingly: the question is not why Skynet is broken, it is whether a
+four-year-old trade-off still holds and what replaces it. Ticket 02 carries the record.
+
+## Decisions to settle with the historical IADS devs, before any code
+
+| # | Decision | Recommendation |
+|---|---|---|
+| 1 | Fork or helper | The fork — `targetCycleUpdateEnd` undoes any outside `goLive` within one cycle |
+| 2 | Wake-up shape: short passive watch / whole kill zone / revert 2022 | Short passive watch, settable radius; explore hanging it on the point defences ([ticket 01](tickets/01-proximity-wakeup.md)) |
+| 3 | Default on or off | On — off means nobody finds it and the same report returns in six months. It changes existing missions, say so in the PR |
+| 4 | The five-NATO-name reset | Keep the list, honour an explicit watch request ([ticket 02](tickets/02-actasew-override-is-wiped.md)) |
+
+A fifth, cheap: ask them whether they have already seen the blind A-50s of
+[INVESTIGATE-SKYNET-AWACS-BLIND](../INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md). One sentence from them
+may close that lot.
 
 ## Tickets
 

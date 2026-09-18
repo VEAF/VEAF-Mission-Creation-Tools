@@ -34,6 +34,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   uploads rather than checking veaf-logs alone, so the next one added cannot repeat this — and it is
   shown to fail when a mirror is removed, on each of the three ways the workflow spells an asset.
 
+- **The drift watch was blind to the one artefact VEAF writes itself.** It resolves a release watch
+  through GitHub's `/releases/latest`, which skips pre-releases by design. Every VEAF/CTLD release is
+  one, so that endpoint answered 404 week after week and the recap issue printed *"check the repo/ref
+  still exists"* about releases that were there the whole time. Measured cost: rc8 shipped on
+  2026-08-26 and the vendored copy stayed on rc7 for seventeen days across three weekly runs, in
+  silence.
+
+  A watch can now carry `prereleases: true`, which lists the releases instead, plus an optional
+  `tag_pattern` — needed here because CTLD also republishes a moving `dev` release on every `master`
+  build, which would otherwise read as drift every week. Only CTLD's watch sets them, so the seven
+  other release watches behave exactly as before; a repo cutting stable releases must not set them,
+  or a beta would look like drift. The error wording now names the pre-release cause as well.
+
+### Changed
+
+- **Vendored CTLD `2.0.0-rc9` → `2.0.0-rc10`**, verbatim, the first bump the watch itself reported.
+  Two F10 menu defects reported in flight: a transport asking for one thing on the menu and getting
+  another, and the rebuild that caused it. The configuration catalogue the build extracts from
+  `CTLD.lua` is byte-identical between the two, so no mission configuration changes.
+
 ## [6.22.1] — 2026-09-12
 
 ### Fixed

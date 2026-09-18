@@ -1,6 +1,6 @@
 # CHORE-VENDORED-DRIFT-618 — clear the drift watch, and say what it cannot see
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 [#618](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/618) is the standing recap issue the
 `vendored-drift-watch` workflow edits in place. On 2026-09-12 it reported two drifted artefacts and
@@ -60,11 +60,13 @@ pin already had — upstream ships these files inside missions people fly.
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Sync CTLD rc8 and TUM v0.3](tickets/01-sync-ctld-and-tum.md) | ✅ |
-| 02 | [The watch is blind to pre-releases](tickets/02-the-watch-is-blind-to-pre-releases.md) | ⬜ |
+| 02 | [The watch is blind to pre-releases](tickets/02-the-watch-is-blind-to-pre-releases.md) | ✅ |
+| 03 | [Sync CTLD rc10](tickets/03-sync-ctld-rc10.md) | ✅ |
 
 ## Definition of done
 
 - [x] `poetry run check-vendored` reports **0 drifted**
 - [x] `vendored.yaml` pins match the files (`test_vendored_pins_match_the_files.py`)
 - [x] The TUM entry's `manual_steps` describes a procedure that can actually be followed
-- [ ] Ticket 02 decided by David — it changes what the weekly issue reports, which is his call
+- [x] Ticket 02 decided by David — **(c)**, an opt-in per watch, on 2026-09-18
+- [x] The check reports something true about CTLD, and the `vendored.yaml` note agrees with the code

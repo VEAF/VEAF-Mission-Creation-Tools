@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -28,6 +29,7 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 from veaf_libs.vendored_check import (  # type: ignore[import-not-found]
+    KIND_RELEASE,
     STATUS_DRIFTED,
     STATUS_ERROR,
     STATUS_MANUAL,
@@ -56,8 +58,20 @@ class _RequestsGitHubClient:
     def _get(self, path: str, params: dict[str, str] | None = None) -> requests.Response:
         return requests.get(f"{_API}{path}", headers=self._headers, params=params, timeout=_TIMEOUT)
 
-    def latest_release(self, repo: str) -> str | None:
-        """Return the latest release tag of ``repo`` (``None`` if unresolved)."""
+    def latest_release(self, repo: str, prereleases: bool = False, tag_pattern: str = "") -> str | None:
+        """Return the latest release tag of ``repo`` (``None`` if unresolved).
+
+        Args:
+            repo: ``OWNER/NAME``.
+            prereleases: List every release instead of asking for ``/releases/latest``,
+                which skips pre-releases by design.
+            tag_pattern: Regular expression a tag must match to be eligible (pre-releases only).
+
+        Returns:
+            The newest eligible tag, or ``None``.
+        """
+        if prereleases:
+            return self._newest_of_listing(repo, tag_pattern)
         try:
             resp = self._get(f"/repos/{repo}/releases/latest")
         except requests.RequestException:
@@ -66,6 +80,37 @@ class _RequestsGitHubClient:
             return None
         tag = resp.json().get("tag_name")
         return str(tag) if tag else None
+
+    def _newest_of_listing(self, repo: str, tag_pattern: str) -> str | None:
+        """Return the newest non-draft release tag matching ``tag_pattern`` (empty: any).
+
+        The listing is capped at one page: a repo whose newest matching release is more than
+        30 releases old resolves to ``None``, which the report shows as an error rather than
+        passing silently.
+        """
+        try:
+            matcher = re.compile(tag_pattern) if tag_pattern else None
+        except re.error:
+            # A malformed pattern in the manifest must not take the whole weekly run down with
+            # it — one unresolved watch is visible in the report, a crashed run is not.
+            return None
+        try:
+            resp = self._get(f"/repos/{repo}/releases", params={"per_page": "30"})
+        except requests.RequestException:
+            return None
+        if resp.status_code != 200:
+            return None
+        eligible = [
+            release
+            for release in resp.json() or []
+            if not release.get("draft")
+            and release.get("tag_name")
+            and (matcher is None or matcher.search(str(release["tag_name"])))
+        ]
+        if not eligible:
+            return None
+        newest = max(eligible, key=lambda release: str(release.get("published_at") or ""))
+        return str(newest["tag_name"])
 
     def latest_file_commit(self, repo: str, ref: str, file: str | None) -> str | None:
         """Return the latest commit SHA on ``ref`` (for ``file`` if given)."""
@@ -153,9 +198,13 @@ def _render_markdown(report: CheckReport) -> str:
     if report.errors:
         lines += ["", "### Errors (could not resolve upstream)", ""]
         for r in report.errors:
-            lines.append(
-                f"- **{r.artifact_id}** ({r.kind} {r.repo}): pinned `{r.pinned}` — check the repo/ref still exists."
-            )
+            hint = "check the repo/ref still exists"
+            if r.kind == KIND_RELEASE:
+                # The other, likelier cause: `/releases/latest` skips pre-releases, so a repo that
+                # cuts nothing else 404s for ever. Saying only "check it still exists" sent a reader
+                # hunting a deleted release while CTLD sat 17 days behind (CHORE-VENDORED-DRIFT-618).
+                hint += ", or set `prereleases: true` on the watch if it publishes only pre-releases"
+            lines.append(f"- **{r.artifact_id}** ({r.kind} {r.repo}): pinned `{r.pinned}` — {hint}.")
 
     if report.manual:
         lines += ["", "### Manual re-checks (no automatable source)", ""]

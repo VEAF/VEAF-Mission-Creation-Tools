@@ -17,6 +17,77 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.23.0] — 2026-09-18
+
+### Fixed
+
+- **`veaf-logs.exe` is missing from the release page everyone actually opens.** The release workflow
+  uploads it to the versioned release and stops there, while GitHub points every visitor — and every
+  download link — at the floating `published-latest`. The tool has shipped since 6.18.0 and has been
+  unreachable that whole time: 10 assets on `published-v6.22.1`, 9 on the one people see.
+
+  The map-capture kit and the cross-platform binaries already mirrored onto `published-latest`, each
+  with a guard so a release candidate never overwrites what production users download. The veaf-logs
+  step was written later and never got the same treatment; it does now.
+
+  `published-v6.18.0` was repaired by hand when the defect was found, but `published-latest` is
+  rewritten by every release and four have shipped since, so the asset is absent again today — the
+  next release is what puts it back for good. The new test sweeps **every** asset the workflow
+  uploads rather than checking veaf-logs alone, so the next one added cannot repeat this — and it is
+  shown to fail when a mirror is removed, on each of the three ways the workflow spells an asset.
+
+- **The drift watch was blind to the one artefact VEAF writes itself.** It resolves a release watch
+  through GitHub's `/releases/latest`, which skips pre-releases by design. Every VEAF/CTLD release is
+  one, so that endpoint answered 404 week after week and the recap issue printed *"check the repo/ref
+  still exists"* about releases that were there the whole time. Measured cost: rc8 shipped on
+  2026-08-26 and the vendored copy stayed on rc7 for seventeen days across three weekly runs, in
+  silence.
+
+  A watch can now carry `prereleases: true`, which lists the releases instead, plus an optional
+  `tag_pattern` — needed here because CTLD also republishes a moving `dev` release on every `master`
+  build, which would otherwise read as drift every week. Only CTLD's watch sets them, so the seven
+  other release watches behave exactly as before; a repo cutting stable releases must not set them,
+  or a beta would look like drift. The error wording now names the pre-release cause as well.
+
+### Changed
+
+- **Vendored CTLD `2.0.0-rc9` → `2.0.0-rc10`**, verbatim, the first bump the watch itself reported.
+  Two F10 menu defects reported in flight: a transport asking for one thing on the menu and getting
+  another, and the rebuild that caused it. The configuration catalogue the build extracts from
+  `CTLD.lua` is byte-identical between the two, so no mission configuration changes.
+
+- **Vendored CTLD `2.0.0-rc10` → `2.0.0-rc11`**, verbatim, carrying the fix for a defect reported
+  from a live VEAF session: changing slot or coalition raised *"attempt to call method 'getName'
+  (a nil value)"* in CTLD's player-leave handler. DCS delivers that event about a millisecond after
+  releasing the unit, so `event.initiator` is present but carries no methods — the handler aborted
+  before forgetting the player or tearing his F10 menu down. Two more fixes ride along: a
+  non-transport pilot now keeps the CTLD functions that concern him (recon above all, which any
+  pilot can use, and which `addPlayerAircraftByType = false` used to cut entirely), and a cancelled
+  menu rebuild can no longer land on the next occupant of a recycled group id. The configuration
+  catalogue the build extracts from `CTLD.lua` is byte-identical between the two, so no mission
+  configuration changes.
+
+## [6.22.1] — 2026-09-12
+
+### Fixed
+
+- **6.22.0 missions had no radio menu at all — not CTLD's, not VEAF's.** The mission booted and was
+  playable, with one line in `dcs.log` about *"CTLD configuration is not loaded"* as the only clue
+  (#957, reported by Tripack). The vendored CTLD `2.0.0-rc8` did not load: it raised inside its own
+  main chunk, while its built-in FARP and FOB scenes registered themselves. VEAF emits its whole
+  loading trigger as one concatenated Lua chunk with CTLD ahead of the framework, so that single
+  raise took `veaf-scripts.lua` and `mission-script.lua` down with it. CTLD is on unless a mission
+  turns it off, so this hit every 6.22.0 mission that had not opted out. Fixed upstream
+  ([VEAF/CTLD#144](https://github.com/VEAF/CTLD/pull/144)) and vendored here as **`2.0.0-rc9`**;
+  rebuild your mission with 6.22.1 and the menus are back. Nothing in a mission's configuration was
+  at fault and nothing needs changing.
+- **New guard so a vendored script cannot break a mission unnoticed again.**
+  `test/lua/test_community_scripts_load.lua` now *loads* each vendored community script under Lua
+  5.1 with the DCS mocks, instead of merely checking it parses — which is all the previous check
+  did, and why rc8 came through clean. Six of the seven are covered; `TheUniversalMission.lua` is
+  excluded on purpose (it auto-initializes and requires BLUFOR/REDFOR territory zones, which is why
+  it is opt-in), documented as such in the test rather than silently skipped.
+
 ## [6.22.0] — 2026-09-12
 
 ### Fixed

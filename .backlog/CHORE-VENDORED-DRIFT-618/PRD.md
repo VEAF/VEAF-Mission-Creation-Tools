@@ -1,6 +1,6 @@
 # CHORE-VENDORED-DRIFT-618 — clear the drift watch, and say what it cannot see
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 [#618](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/618) is the standing recap issue the
 `vendored-drift-watch` workflow edits in place. On 2026-09-12 it reported two drifted artefacts and
@@ -44,16 +44,29 @@ consult, concluding instead that no 5.1 existed on this machine.
 Syntax is not behaviour: **neither artefact was run in DCS**. That guarantee is the one the previous
 pin already had — upstream ships these files inside missions people fly.
 
+> **2026-09-12, hours later — that caveat was the hole, and rc8 fell straight through it.**
+> `assert(loadfile(...))` parses a file; it does not run it. The vendored rc8 **raises inside its own
+> main chunk**, so every 6.22.0 mission with CTLD enabled came up with no radio menu at all — CTLD's
+> *and* VEAF's, since they share one concatenated loading chunk. Reported by Tripack as
+> [#957](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/957); fixed upstream in
+> [VEAF/CTLD#144](https://github.com/VEAF/CTLD/pull/144) and vendored as rc9 by
+> [`FIX-CTLD-RC9-LOAD-GATE`](../FIX-CTLD-RC9-LOAD-GATE/PRD.md), which also adds the gate that was
+> missing on both sides: a test that **loads** each vendored community script instead of parsing it.
+> The sentence above was honest about what it did not claim. The lesson is that the missing claim was
+> the one that mattered.
+
 ## Tickets
 
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Sync CTLD rc8 and TUM v0.3](tickets/01-sync-ctld-and-tum.md) | ✅ |
-| 02 | [The watch is blind to pre-releases](tickets/02-the-watch-is-blind-to-pre-releases.md) | ⬜ |
+| 02 | [The watch is blind to pre-releases](tickets/02-the-watch-is-blind-to-pre-releases.md) | ✅ |
+| 03 | [Sync CTLD rc10](tickets/03-sync-ctld-rc10.md) | ✅ |
 
 ## Definition of done
 
 - [x] `poetry run check-vendored` reports **0 drifted**
 - [x] `vendored.yaml` pins match the files (`test_vendored_pins_match_the_files.py`)
 - [x] The TUM entry's `manual_steps` describes a procedure that can actually be followed
-- [ ] Ticket 02 decided by David — it changes what the weekly issue reports, which is his call
+- [x] Ticket 02 decided by David — **(c)**, an opt-in per watch, on 2026-09-18
+- [x] The check reports something true about CTLD, and the `vendored.yaml` note agrees with the code

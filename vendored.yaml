@@ -26,6 +26,12 @@
 #             - github-release: the release tag we sit on
 #             - github-file:    the commit SHA we synced from (short SHA ok)
 #     role:   upstream-ref         (optional; marks the "did upstream move?" watch)
+#     prereleases: true            (github-release only; the repo publishes nothing but
+#                                  pre-releases, which `/releases/latest` skips by design —
+#                                  list them instead. Do not set it on a repo that cuts
+#                                  stable releases: a beta would then read as drift.)
+#     tag_pattern: "^published-v"  (github-release + prereleases; regex a tag must match.
+#                                  Needed wherever the repo also republishes a moving tag.)
 #
 # Drift = the live value (latest release tag / latest file commit) differs from the
 # watch `pinned`. `manual` watches never auto-compare; they are re-surfaced as
@@ -48,17 +54,27 @@ artifacts:
   # CTLD 2 is a full VEAF rewrite, not a fork: it deliberately carries NO `upstream` and a
   # single watch. The ciribob lineage ended with v1 — "did the origin ship something to port?"
   # has no answer for a rewrite, so the two-watch convention above does not apply here.
-  # Until VEAF/CTLD cuts a stable 2.0.0, `/releases/latest` skips the -rc pre-releases and the
-  # watch reports `unresolved` rather than drift. Expected; do not "fix" it by listing releases.
+  # Until VEAF/CTLD cuts a stable 2.0.0 every release is a pre-release, which `/releases/latest`
+  # skips by design — so that endpoint 404s and the watch used to report an error for ever. An
+  # earlier version of this note said to accept it; the cost was then measured: rc8 shipped on
+  # 2026-08-26 and we stayed on rc7 for seventeen days across three weekly runs, in silence, on
+  # the one artefact VEAF writes itself and updates most often. Hence `prereleases`, and the
+  # `tag_pattern` that keeps the `dev` release — rewritten on every master build — out of it.
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc8"
+    pinned: "2.0.0-rc11"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
     watch:
-      - { kind: github-release, repo: VEAF/CTLD, pinned: "published-v2.0.0-rc8" }
+      - {
+          kind: github-release,
+          repo: VEAF/CTLD,
+          pinned: "published-v2.0.0-rc11",
+          prereleases: true,
+          tag_pattern: "^published-v",
+        }
 
   - id: csar
     source: https://github.com/VEAF/DCS-CSAR

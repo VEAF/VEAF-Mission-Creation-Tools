@@ -1,94 +1,83 @@
-# VEAF Mission Creation Tools — 6.22.0
+# VEAF Mission Creation Tools — 6.23.0
 
-**Un objet statique qu'une zone de combat replace revient.** Il ne revenait pas toujours. Il
-disparaissait à la première désactivation de la zone, définitivement, et rien ne le signalait à
-l'écran — cinq sacs de sable sur huit dans la mission où le défaut a été trouvé.
+**Tout ce qui est corrigé ici a été signalé en vol.** Pas un audit, pas un nettoyage de fond : des
+pilotes et des mission makers ont vu quelque chose d'anormal, l'ont remonté, et voilà les
+correctifs. Le moteur CTLD passe de la **2.0.0-rc9** à la **2.0.0-rc11**, et l'outil de lecture des
+logs redevient téléchargeable.
 
-Cette version corrige cela, et livre CTLD **2.0.0-rc8**, qui apporte le ramassage de troupes aux FOB
-et aux FARP construits.
-
----
-
-## ⚠️ À lire avant de mettre à jour
-
-Rien ne change dans ce que vous écrivez : ni `mission.yaml`, ni vos scripts, ni vos zones. Mais
-**deux comportements arrivent activés**, et il vaut mieux le savoir avant de builder.
-
-### Le ramassage de troupes aux FARP est actif par défaut
-
-CTLD rc8 ajoute le ramassage de troupes sur les trois FARP construits (standard, Alpha, Countryside),
-avec un rayon de 150 m. Jusqu'ici les FARP n'en avaient aucun. Si vous ne le voulez pas dans votre
-mission, désactivez `troopPickupAtFARP` dans l'outil de configuration CTLD.
-
-### Si — et seulement si — vous activez TheUniversalMission
-
-Le script communautaire TUM passe de la version 0.1 à la **0.3**. Il reste **désactivé par défaut** :
-une mission qui ne l'active pas explicitement ne voit aucune différence. Si vous l'utilisez, sachez
-que l'auteur ne publie pas de détail de ses changements — nous avons vérifié que la convention des
-zones BLUFOR/REDFOR est inchangée, mais un essai avant de jouer sérieusement reste prudent.
+**Si vous avez une mission en service, reconstruisez-la avec cette version** : c'est tout ce qu'il y
+a à faire.
 
 ---
 
-## Les objets statiques d'une zone de combat
+## 🚁 CTLD — cinq correctifs, tous venus du terrain
 
-### Ils disparaissaient pour de bon
+### Le menu F10 déclenchait la mauvaise commande
 
-Un objet statique porte deux noms dans l'éditeur : celui du **groupe**, et celui de l'**unité** qu'il
-contient. Ils sont identiques tant que vous ne dupliquez rien. Dès que vous copiez un statique,
-l'éditeur nomme l'unité `<groupe>-1` — et c'est là que ça se jouait.
+Un C-130 posé sur une zone de ramassage demande « Load Standard Group »… et lâche un fumigène rouge.
+Le menu CTLD se reconstruit entièrement à chaque rafraîchissement, et quand un rafraîchissement de
+fond tombait pendant que vous naviguiez dans le menu, votre clic suivant tombait sur l'arborescence
+reconstruite. Les rafraîchissements de fond attendent désormais que vous ayez fini.
 
-Une zone de combat retenait le nom de l'unité, puis cherchait un groupe portant ce nom au moment de
-remettre l'objet en place. Elle ne le trouvait pas, donc ne le recréait pas. La destruction, elle,
-fonctionnait parfaitement : l'objet partait à la désactivation de la zone et ne revenait jamais.
+### Une caisse HAWK ou Patriot restait indéfiniment dans « Unpack »
 
-C'est corrigé, pour les deux façons de nommer. Rien à changer dans vos missions : les statiques déjà
-placés reviennent, y compris ceux que vous aviez dupliqués.
+Après avoir assemblé un système HAWK, le menu continuait d'annoncer une caisse disponible. Cliquer
+dessus échouait à chaque fois, sans jamais nettoyer l'entrée. Les caisses réellement consommées par
+l'assemblage disparaissent maintenant, y compris celles dont le système n'a théoriquement pas besoin.
 
-Deux autres situations tombaient sur exactement le même défaut, et sont réparées avec :
+### Changer de slot ou de coalition laissait une erreur et un menu fantôme
 
-- **un statique déplacé par script** n'emportait pas sa définition ;
-- **un navire posé en objet statique** perdait sa vérification « peut être sur l'eau », et se voyait
-  chercher une place sur la terre ferme.
+Le symptôme visible était dans le `dcs.log` :
 
-### Ce que vous avez caché reste caché
+```
+CTLDDCSEventBridge:onEvent handler error [onPlayerLeaveUnit / eventId=21]:
+attempt to call method 'getName' (a nil value)
+```
 
-L'éditeur écrit trois options ensemble quand vous masquez un groupe : sur la carte, sur les écrans
-de bord, et dans le planificateur. L'outil n'en retenait qu'une. Tout ce qu'il replaçait revenait
-donc visible sur les liaisons de données et dans le planificateur, même si vous l'aviez masqué
-partout. Les trois voyagent maintenant ensemble, pour un clonage, un replacement et un statique.
+À chaque changement de slot ou de coalition. Derrière cette ligne, le nettoyage du joueur partant ne
+se faisait pas : il restait enregistré et son menu CTLD n'était jamais démonté. Les appareils à
+équipage multiple en souffraient le plus — leur menu n'était plus jamais démonté du tout.
 
-> **Une question reste ouverte**, et elle est signalée ici parce qu'elle a été rapportée : sur un
-> serveur distant, des unités marquées « cachées » apparaissent sur la carte F10. Nous avons vérifié
-> que la mission construite est correcte et que l'outil transmet bien le réglage. Reste à établir si
-> DCS lui-même respecte « caché » sur un objet recréé pendant la partie. En attendant, si vous
-> constatez le symptôme, regardez les **options forcées** de votre mission : une vue de carte réglée
-> sur « tout voir » s'impose à tous les clients qui rejoignent un serveur, et montre tout.
+### Un rafraîchissement annulé pouvait retomber sur le joueur suivant
 
----
+DCS réutilise les identifiants de groupe. Un rafraîchissement de menu annulé au départ d'un joueur
+pouvait encore se déclencher chez celui qui reprenait le même slot, dans sa première seconde de vol.
 
-## CTLD 2.0.0-rc8
+### Les pilotes non-transport retrouvent ce qui les concerne
 
-Aucun réglage n'a été renommé ni supprimé, et chaque valeur par défaut existante garde son
-comportement.
+La reconnaissance CTLD est utilisable par **n'importe quel pilote**, avion de chasse compris. Or un
+pilote sans capacité de transport pouvait se retrouver sans aucun menu CTLD, donc sans reconnaissance.
 
-- **Les troupes peuvent enfin être embarquées à un FOB construit.** Le réglage existait depuis la
-  réécriture, activé par défaut — mais rien dans le menu F10 ne le consultait, donc un FOB n'offrait
-  jamais l'embarquement, quel que soit son réglage.
-- **Et à un FARP construit**, ce qui n'existait pas du tout. Les trois FARP intégrés enregistrent
-  leur zone d'embarquement dès la fin de la construction, et la retirent quand DCS détruit le FARP.
-- **Un quart de la bande FM était inaccessible.** Les plages 36–39.9, 46–49.9, 56–59.9 et 66–69.9 MHz
-  étaient ignorées — y compris des fréquences ordinaires comme 38.00 MHz. Les 460 pas de 30.0 à
-  75.9 MHz sont joignables.
-- Pour les scripteurs : une balise posée par script peut être demandée **sur une fréquence précise**,
-  et une zone d'embarquement de troupes peut être ajoutée **sur n'importe quel objet nommé** — unité,
-  statique, groupe ou aérodrome — et plus seulement sur une zone de déclenchement.
+Désormais son menu contient **RECON**, **Smoke**, **List Beacons**, **JTAC Status** et **FOBs List** ;
+il n'a plus **Check Cargo**, qui ne pouvait de toute façon lui répondre que « rien à bord ».
+Les commandes de transport — troupes, caisses, véhicules, pose de balises — restent réservées aux
+appareils qui transportent.
+
+**Un point d'attention si votre mission utilise `addPlayerAircraftByType: false`** pour réserver CTLD
+à une liste de slots nommés : ces pilotes-là voient maintenant apparaître ce menu réduit. Le réglage
+continue de faire ce pour quoi il existe — réserver le **transport** à votre liste — mais il ne masque
+plus les fonctions qui n'ont rien à voir avec le transport. Si vous teniez à ne rien afficher du tout,
+chaque fonction garde son propre interrupteur : `reconF10Menu`, `enableSmokeDrop`,
+`enabledRadioBeaconDrop`, `JTAC_jtacStatusF10`.
+
+Aucun autre réglage ne change, et votre `ctld-config.yaml` n'a pas besoin d'être retouché.
 
 ---
 
-## Merci
+## 📥 `veaf-logs.exe` est de nouveau téléchargeable
 
-À **Tripack**, qui a rapporté le symptôme de la carte F10 et surtout joint sa mission et le journal
-de son serveur : c'est dans ce journal qu'a été trouvé le défaut des statiques, qu'il n'avait pas vu
-et qui lui coûtait des objets à chaque partie. Il est aussi le testeur de CTLD rc8.
+L'outil de lecture des logs existe depuis la **6.18.0**, mais il n'était présent que sur les pages de
+version, jamais sur la page « Latest » vers laquelle pointent tous les liens de téléchargement.
+Autrement dit : disponible sur le papier, introuvable en pratique pendant quatre versions.
 
-À **Zip**, pour les deux défauts CTLD corrigés dans rc8.
+Il est là, et un contrôle automatique vérifie désormais **chaque** fichier publié, pour que le
+prochain outil ajouté ne disparaisse pas de la même façon.
+
+---
+
+## Comment mettre à jour
+
+1. Téléchargez `veaf-tools.exe` ci-dessous.
+2. Reconstruisez vos missions.
+
+Rien d'autre : pas de migration, pas de changement de configuration.

@@ -58,11 +58,16 @@ _FIXTURE = {
 class FakeClient:
     """Deterministic GitHub client for tests (no network)."""
 
-    def __init__(self, releases=None, commits=None):
+    def __init__(self, releases=None, commits=None, prereleases=None):
         self.releases = releases or {}
         self.commits = commits or {}
+        self.prereleases = prereleases or {}
+        self.release_calls = []
 
-    def latest_release(self, repo):
+    def latest_release(self, repo, prereleases=False, tag_pattern=""):
+        self.release_calls.append((repo, prereleases, tag_pattern))
+        if prereleases:
+            return self.prereleases.get(repo)
         return self.releases.get(repo)
 
     def latest_file_commit(self, repo, ref, file):
@@ -81,6 +86,33 @@ class TestParseManifest(unittest.TestCase):
 
     def test_empty_document(self) -> None:
         self.assertEqual(parse_manifest({}), ())
+
+    def test_prerelease_options_default_to_off(self) -> None:
+        artifacts = parse_manifest(_FIXTURE)
+        watch = artifacts[1].watches[0]
+        self.assertFalse(watch.prereleases)
+        self.assertEqual(watch.tag_pattern, "")
+
+    def test_prerelease_options_are_read(self) -> None:
+        data = {
+            "artifacts": [
+                {
+                    "id": "rc-only",
+                    "watch": [
+                        {
+                            "kind": "github-release",
+                            "repo": "VEAF/CTLD",
+                            "pinned": "published-v2.0.0-rc9",
+                            "prereleases": True,
+                            "tag_pattern": "^published-v",
+                        }
+                    ],
+                }
+            ]
+        }
+        watch = parse_manifest(data)[0].watches[0]
+        self.assertTrue(watch.prereleases)
+        self.assertEqual(watch.tag_pattern, "^published-v")
 
 
 class TestEvaluateWatch(unittest.TestCase):
@@ -102,6 +134,26 @@ class TestEvaluateWatch(unittest.TestCase):
         w = Watch("github-release", "up/Gone", "", "", "1.0", "")
         r = evaluate_watch(self.artifact, w, FakeClient())
         self.assertEqual(r.status, STATUS_ERROR)
+
+    def test_a_plain_watch_asks_for_stable_releases_only(self) -> None:
+        w = Watch("github-release", "up/Thing", "", "", "1.0", "")
+        client = FakeClient(releases={"up/Thing": "1.0"})
+        evaluate_watch(self.artifact, w, client)
+        self.assertEqual(client.release_calls, [("up/Thing", False, "")])
+
+    def test_a_prerelease_watch_sees_what_latest_hides(self) -> None:
+        """The CTLD case: /releases/latest 404s, so a plain watch can only report an error."""
+        w = Watch("github-release", "VEAF/CTLD", "", "", "rc9", "", prereleases=True, tag_pattern="^published-v")
+        client = FakeClient(prereleases={"VEAF/CTLD": "rc10"})
+        r = evaluate_watch(self.artifact, w, client)
+        self.assertEqual(r.status, STATUS_DRIFTED)
+        self.assertEqual(r.latest, "rc10")
+        self.assertEqual(client.release_calls, [("VEAF/CTLD", True, "^published-v")])
+
+    def test_a_prerelease_watch_up_to_date(self) -> None:
+        w = Watch("github-release", "VEAF/CTLD", "", "", "rc10", "", prereleases=True)
+        client = FakeClient(prereleases={"VEAF/CTLD": "rc10"})
+        self.assertEqual(evaluate_watch(self.artifact, w, client).status, STATUS_UP_TO_DATE)
 
     def test_file_match_short_vs_full_sha(self) -> None:
         w = Watch("github-file", "VEAF/Thing", "master", "", "abc123", "")

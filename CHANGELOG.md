@@ -54,6 +54,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   another, and the rebuild that caused it. The configuration catalogue the build extracts from
   `CTLD.lua` is byte-identical between the two, so no mission configuration changes.
 
+- **Vendored CTLD `2.0.0-rc10` → `2.0.0-rc11`**, verbatim, carrying the fix for a defect reported
+  from a live VEAF session: changing slot or coalition raised *"attempt to call method 'getName'
+  (a nil value)"* in CTLD's player-leave handler. DCS delivers that event about a millisecond after
+  releasing the unit, so `event.initiator` is present but carries no methods — the handler aborted
+  before forgetting the player or tearing his F10 menu down. Two more fixes ride along: a
+  non-transport pilot now keeps the CTLD functions that concern him (recon above all, which any
+  pilot can use, and which `addPlayerAircraftByType = false` used to cut entirely), and a cancelled
+  menu rebuild can no longer land on the next occupant of a recycled group id. The configuration
+  catalogue the build extracts from `CTLD.lua` is byte-identical between the two, so no mission
+  configuration changes.
+
 ## [6.22.1] — 2026-09-12
 
 ### Fixed

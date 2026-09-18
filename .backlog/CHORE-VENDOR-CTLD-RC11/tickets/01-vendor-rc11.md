@@ -1,6 +1,6 @@
 # 01 — Take the rc11 asset and move both pins
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What changes
 
@@ -24,8 +24,8 @@ Status: ⬜ ready
 
 ## Acceptance
 
-- [ ] `ctld.VERSION` in the vendored file reads `2.0.0-rc11`, with no CR in the file.
-- [ ] `poetry run check-vendored` reports the ctld pin up to date.
-- [ ] `poetry run test-lua` green, `test_community_scripts_load.lua` among the suites that ran.
-- [ ] `test_vendored_pins_match_the_files.py` green.
-- [ ] Python quality gate clean (ruff check, ruff format --check, mypy).
+- [x] `ctld.VERSION` in the vendored file reads `2.0.0-rc11`, with no CR in the file.
+- [x] `poetry run check-vendored` reports the ctld pin up to date.
+- [x] `poetry run test-lua` green, `test_community_scripts_load.lua` among the suites that ran.
+- [x] `test_vendored_pins_match_the_files.py` green.
+- [x] Python quality gate clean (ruff check, ruff format --check, mypy).

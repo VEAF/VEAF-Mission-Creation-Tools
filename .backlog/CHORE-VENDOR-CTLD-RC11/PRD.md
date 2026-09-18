@@ -1,6 +1,6 @@
 # CHORE-VENDOR-CTLD-RC11 — take CTLD 2.0.0-rc11, which carries the fix for a live VEAF report
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-09-18 (PR #962)
 
 `published-v2.0.0-rc11` shipped on 2026-09-18. It closes the defect Zip reported from a live VEAF
 multiplayer session the day before, plus two more found in its wake — all three fixed upstream and

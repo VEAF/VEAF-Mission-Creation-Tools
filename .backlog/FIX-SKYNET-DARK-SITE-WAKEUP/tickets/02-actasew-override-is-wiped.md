@@ -1,6 +1,10 @@
 # 02 — An explicit EW-watch request is wiped by the next group joining
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
+
+> **Blocked: do not implement.** This ticket waits on David's conversation with **Flogas**
+> and the historical IADS developers — see the [PRD](../PRD.md). No code, no branch, no PR
+> before the decisions listed there are settled.
 
 ## Problem
 

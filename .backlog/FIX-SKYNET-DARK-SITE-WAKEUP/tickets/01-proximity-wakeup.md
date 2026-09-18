@@ -2,6 +2,10 @@
 
 Status: 🧑 waiting-human
 
+> **Blocked: do not implement.** This ticket waits on David's conversation with **Flogas**
+> and the historical IADS developers — see the [PRD](../PRD.md). No code, no branch, no PR
+> before the decisions listed there are settled.
+
 ## Problem
 
 A SAM under IADS control has its emission switched off, so it cannot detect anything itself. It is

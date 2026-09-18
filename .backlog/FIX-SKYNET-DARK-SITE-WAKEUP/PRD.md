@@ -2,6 +2,14 @@
 
 Status: 🧑 waiting-human
 
+> **DO NOT IMPLEMENT ANY OF THIS YET.** The lot is blocked on a conversation David is to have with
+> **Flogas** and the historical IADS developers. Nothing here — not the wake-up, not the `actAsEW`
+> reset, not the documentation that describes both — may be coded, branched or opened as a PR before
+> that conversation has settled the four decisions listed below. This is not caution about the code:
+> the behaviour under discussion is a deliberate VEAF trade-off from 2022 (see below), and changing
+> it without its authors would be deciding in their place. An agent picking this lot up stops here
+> and asks David where the conversation stands.
+
 Origin: The Reaper, 2026-09-17, on a mission built with veaf-tools:
 
 > *"J'ai configuré Skynet sur une mission avec les outils VEAF. J'ai un problème, quand il y a des

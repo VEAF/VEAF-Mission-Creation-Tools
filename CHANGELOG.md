@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.23.0] — 2026-09-18
+
 ### Fixed
 
 - **`veaf-logs.exe` is missing from the release page everyone actually opens.** The release workflow

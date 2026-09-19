@@ -54,11 +54,6 @@ back to the [index](README.en.md).
 > Group 'Alert-CAP-1' declared in QRA is absent from the mission — place it in the Mission Editor,
 > or the feature fails at runtime.
 
-At build time the same finding appears in a slightly longer form, with an example of what breaks:
-
-> Group 'Alert-CAP-1' declared in QRA is not present in the mission — it must be placed in the
-> Mission Editor, otherwise the feature fails at runtime (e.g. veafAssets.respawn).
-
 **In the editor.** The name must match the group name in the DCS editor **exactly** — the one in
 the left-hand column, not the name of a unit inside the group. Capitals, spaces and dashes
 included.

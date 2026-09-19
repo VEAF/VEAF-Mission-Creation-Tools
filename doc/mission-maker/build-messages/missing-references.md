@@ -55,12 +55,6 @@ famille — retournez à l'[index](README.md).
 > Le groupe 'Alert-CAP-1' déclaré dans QRA est absent de la mission — placez-le dans le Mission
 > Editor, sinon la fonctionnalité échoue au runtime.
 
-Au build, le même constat s'affiche sous une forme un peu plus longue, avec un exemple de ce qui
-casse :
-
-> Le groupe 'Alert-CAP-1' déclaré dans QRA est absent de la mission — il doit être placé dans le
-> Mission Editor, sinon la fonctionnalité échoue au runtime (ex. veafAssets.respawn).
-
 **Dans l'éditeur.** Le nom doit correspondre **exactement** au nom du groupe dans l'éditeur DCS —
 celui de la colonne de gauche, pas le nom d'une unité à l'intérieur du groupe. Majuscules,
 espaces et tirets compris.

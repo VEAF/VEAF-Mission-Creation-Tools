@@ -26,6 +26,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Documented a defect in the vendored DCS schema (`v0.3.5`): its `types["country.name"]` table is indexed by position rather than by country id, so 78 of its 92 countries carry the wrong name and id 92 has no entry. Country ids come from `dcs-countries.yaml`, which is correct and which every tool already uses, so no behaviour changes — but the schema is vendored to be consulted, and it was misleading readers. Reported upstream, and the schema's (correct) `country.id` table is now locked against ours by a test so a future pin bump cannot break it in silence.
 
+### Added
+
+- New documentation section **Build messages** (Mission Maker menu), in French and English: six pages covering the build and `validate` messages that actually cost somebody something — coalitions and countries, missing Mission-Editor references, the Lua files in your mission folder, routes and tables, and modules and community scripts. Each message says what it means in Mission Editor terms, how to reproduce it, the ways out and what it is *not*; the coalitions page carries the full DCS country id table. Measured before and after with the same detector: of the 98 messages the tools can print, **1** had its wording anywhere under `doc/`, now **36**. The remaining messages are deliberately left alone rather than given generated stubs.
+
 ## [6.23.0] — 2026-09-18
 
 ### Fixed

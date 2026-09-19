@@ -7,6 +7,7 @@ quelqu'un puisse vous répondre autre chose que « quelle version ? ».
 
 | Votre situation | Le bon endroit |
 |---|---|
+| Le build a affiché un message et vous ne savez pas quoi en faire | [Les messages du build](mission-maker/build-messages/README.md) |
 | Une question, un doute, « est-ce que c'est normal ? » | [Discord VEAF](https://www.veaf.org/discord), canal `#support` |
 | Quelque chose ne fonctionne pas comme annoncé | [une issue GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/new/choose) |
 | Une idée, un manque | [une issue GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/new/choose), formulaire « feature request » |

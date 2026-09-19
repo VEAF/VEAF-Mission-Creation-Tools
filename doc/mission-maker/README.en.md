@@ -77,6 +77,7 @@ See the [full scripts catalogue](scripts/README.en.md) for all 17+ modules.
 | [Discover VMCT](DISCOVER.en.md) | Ten minutes: what the pieces are and how they fit |
 | [Tutorial — your first mission](TUTORIAL.en.md) | One thread, from an empty folder to a mission that runs |
 | [Concept cards](concepts/README.en.md) | One short page per concept, with a working example |
+| [Build messages](build-messages/README.en.md) | The build printed something and you want to know what to do about it |
 | [Full Guide](GUIDE.en.md) | Detailed setup, configuration, and build workflow |
 | [Migration Guide](MIGRATION_GUIDE.en.md) | Converting from VEAF MCT v5 or adding VEAF MCT to an existing mission |
 | [Scripts Reference](scripts/README.en.md) | Per-module documentation with commands and config examples |

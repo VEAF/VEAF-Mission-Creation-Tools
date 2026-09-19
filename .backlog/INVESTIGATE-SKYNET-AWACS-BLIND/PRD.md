@@ -29,7 +29,7 @@ airborne ones saw none.
 An EWR that covers a site keeps that site **non-autonomous** — that is `setToCorrectAutonomousState`
 — whether or not it ever feeds it a contact. So a blind AWACS holds sixteen batteries under network
 control while contributing nothing to waking them. It is an amplifier of
-[FIX-SKYNET-DARK-SITE-WAKEUP](../FIX-SKYNET-DARK-SITE-WAKEUP/PRD.md), not a duplicate of it.
+the last line of defense (`FEAT-LAST-LINE-OF-DEFENSE` in [VEAF/Skynet-IADS](https://github.com/VEAF/Skynet-IADS)), not a duplicate of it.
 
 ## Hypotheses to test, in order of cheapness
 

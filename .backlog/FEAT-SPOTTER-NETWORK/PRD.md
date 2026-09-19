@@ -1,10 +1,14 @@
 # FEAT-SPOTTER-NETWORK — ground units see aircraft, and pass the word along
 
-Status: ⬜ ready (design first, no code before the design is costed)
+Status: ⏸ paused
 
-Origin: David's idea, settled in principle with Flogas on 2026-09-19 alongside
-[FIX-SKYNET-DARK-SITE-WAKEUP](../FIX-SKYNET-DARK-SITE-WAKEUP/PRD.md). Deliberately **VEAF code,
-outside Skynet** — in `veafSkynetIadsHelper.lua` or in a module of its own.
+> **Paused, not blocked on anyone here.** Its entry point into Skynet — the public wake-up added by
+> `FEAT-LAST-LINE-OF-DEFENSE` in [`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS) — is not
+> released yet, and there is nothing useful to start before it is. Nobody should pick this up.
+
+Origin: David's idea, settled in principle with Flogas on 2026-09-19 alongside the last line of
+defense. Deliberately **VEAF code, outside Skynet** — in `veafSkynetIadsHelper.lua` or in a module
+of its own.
 
 ## The idea
 
@@ -17,8 +21,9 @@ are close enough to relay it.
 Where it lands:
 
 - **a unit that is a SAM site in a Skynet network** → Skynet wakes it as if an EWR had seen the
-  aircraft, through the public entry point built by
-  [ticket 01](../FIX-SKYNET-DARK-SITE-WAKEUP/tickets/01-proximity-wakeup.md);
+  aircraft, through the public entry point built by `FEAT-LAST-LINE-OF-DEFENSE` in the
+  [Skynet repository](https://github.com/VEAF/Skynet-IADS). That entry point exists **for this
+  feature**: without it, the helper would have to write into Skynet's internal state on every cycle;
 - **any other unit, or a mission not using Skynet** → the unit is put on alert. Note the vocabulary:
   what wakes a DCS ground unit is the **alarm state** (`ALARM_STATE = RED`), not the rules of
   engagement; Skynet's `goLive` sets both. Confirm which is wanted when writing it.
@@ -42,10 +47,13 @@ sized with numbers rather than assumed:
 
 Also to settle in design:
 
-- the detection table per unit type, and how much randomness (drawn once per unit, as in ticket 01,
-  or per attempt);
+- the detection table per unit type, and how much randomness — drawn once per unit, as the last
+  line of defense draws its radius once per site, or per attempt;
 - whether a unit that is itself under Skynet control may act as a spotter, and whether a dark SAM
   site can see with its own eyes (it should — that is the point);
+- how this interacts with the last line of defense, which already wakes a site on close proximity:
+  the spotter network is the long-range half of the same idea, and the two must not fight over the
+  same site;
 - whether the alert carries the aircraft's position, or only "something is out there";
 - what a player-visible effect would be, if any, so the feature is not invisible.
 
@@ -58,6 +66,8 @@ Also to settle in design:
 
 ## Dependency
 
-Starts after [ticket 01](../FIX-SKYNET-DARK-SITE-WAKEUP/tickets/01-proximity-wakeup.md) has shipped:
-the public entry point it exposes is how this feature wakes a SAM site without reaching into
-Skynet's internal state.
+Starts once `FEAT-LAST-LINE-OF-DEFENSE` has shipped in `VEAF/Skynet-IADS` **and** the new version is
+vendored here by
+[FIX-SKYNET-HELPER-AND-VENDORING](../FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md).
+Both, in that order: the entry point has to exist in the artifact this repository ships before any
+VEAF code can call it.

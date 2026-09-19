@@ -1,4 +1,4 @@
-# 03 — Document what a network SAM does and does not see
+# 02 — Document what a network SAM does and does not see
 
 Status: ⬜ ready
 
@@ -34,15 +34,20 @@ nowhere on the mission-maker side.
 In `veafSkynetIadsHelper.md` and its `.en.md` twin, keeping anchors identical across languages:
 
 1. The two conditions for a site to light up, and the fact that proximity alone is not one of them
-   beyond the last-line-of-defense radius from [ticket 01](01-proximity-wakeup.md).
-2. The last line of defense itself: what it does, its radius, how to switch it off for a mission
-   that wants a purist IADS.
+   beyond the last-line-of-defense radius added on the Skynet side.
+2. The last line of defense itself: a dark site keeps a short virtual detection radius of its own
+   (10–15 km, drawn once per site), measured flat, and stays lit 45 s after the last pass. How to
+   switch it off for a mission that wants a purist IADS, and the honest limit — a short-range piece
+   can light up for an aircraft it cannot reach, because the radius ignores the firing envelope on
+   purpose.
 3. The EWR-loss inversion, stated as expected behaviour rather than left to be discovered.
 4. What "covered" really means, so nobody reads the status page as "this battery is being watched".
 5. The `ewr` spawn option: what a watch site is, what it costs (visible and targetable), and the
    advice to sacrifice a short-range battery rather than the system being protected.
 6. A table of the four ways a group joins a network, per the list above.
-7. How to diagnose: `debug_red: true`, then the three readings of the status page — EWR with no
+7. The new `mission.yaml` keys, with their defaults, and the note that they are global to both
+   coalitions while `dynamic_spawn` is per network.
+8. How to diagnose: `debug_red: true`, then the three readings of the status page — EWR with no
    contacts, EWR with contacts but the site still `ACTIVE: false`, or site already `AUTONOMOUS`.
 
 ## Definition of done

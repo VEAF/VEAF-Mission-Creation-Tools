@@ -1,4 +1,4 @@
-# 02 — Remove the two dead `actAsEW` reset blocks
+# 01 — Remove the two dead `actAsEW` reset blocks
 
 Status: ⬜ ready
 
@@ -49,12 +49,15 @@ that is already true: Skynet builds every radar element with `instance.actAsEW =
 | `veafSkynetIadsHelper.lua:1370` | `batchMode` then only feeds one trace line. Keep both — the trace is useful when reading a log |
 | `test/lua/test_veafSkynetIadsHelper.lua:116` | `natoMock` and `getSAMSitesByNatoName` in `_makeMockIads` exist only to absorb these calls |
 
-## The one risk to check first
+## The risk, checked
 
-A mission already using `ewr` on a SA-10, SA-6, SA-5, Patriot or Hawk will see that site **really
-lit permanently** after the fix, where it is dark today. That is what its author asked for, but
-nobody has ever seen it happen, so it will read as a regression. The option is documented nowhere,
-so this is unlikely — check the VEAF mission repositories before merging.
+A mission already using `ewr` on a SA-10, SA-6, SA-5, Patriot or Hawk would see that site **really
+lit permanently** after the fix, where it is dark today — what its author asked for, but never seen,
+so it would read as a regression.
+
+**Swept on 2026-09-19**: none of the 84 repositories under `D:\dev\_VEAF` uses the option, outside
+`node_modules` and `published` copies of veaf-tools itself. The only `ewr` occurrences are CTLD
+vocabulary. Nothing to migrate.
 
 ## Definition of done
 

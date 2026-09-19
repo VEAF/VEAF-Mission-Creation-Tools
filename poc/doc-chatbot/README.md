@@ -178,6 +178,33 @@ npx wrangler secret put GEMINI_API_KEY
 npx wrangler secret put DISCORD_CLIENT_SECRET   # only when the Discord bot lot ships
 ```
 
+### Tuning the relevance floor — `MIN_SIMILARITY`
+
+Retrieval ranks every indexed passage by cosine similarity and keeps the best ones. Ranking alone
+always yields results, however unrelated: on a question the documentation does not cover, the model
+used to receive six confident-looking excerpts and answer from them, because nothing told it the
+search had failed. `MIN_SIMILARITY` is the cosine floor under which a passage is dropped; when
+nothing clears it, the assistant is told the search found nothing and says so instead of answering.
+
+It is a plain Worker variable, not a secret, so it can be tuned without a redeploy of the source:
+
+```bash
+npx wrangler secret put MIN_SIMILARITY   # or set it as a var in the Cloudflare dashboard
+```
+
+**The shipped default (`0.35`) is a guard against the plainly off-topic, not a measured value.** A
+value outside `(0, 1)`, or one that does not parse, falls back to it rather than disabling the floor
+(`0`) or gagging the assistant (`1`).
+
+To calibrate it properly you need the Gemini key: ask a dozen questions the documentation *does*
+answer and a dozen it does not, record the top similarity of each, and set the floor between the two
+clouds. Raise it carefully — a floor set too high is worse than none, since it silences the
+assistant on questions it could have answered.
+
+Note that a floor is only half the remedy: a passage can clear any threshold and still not answer the
+question, which is why the system instruction also tells the model that the excerpts are search
+results that may have missed, and to decline rather than guess.
+
 ## State of the POC
 
 - [x] KV namespace created, `GEMINI_API_KEY` set, index built & uploaded.

@@ -22,6 +22,7 @@ absent they are skipped (reported once as a warning).
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +30,7 @@ import yaml
 
 from veaf_libs.config_override import find_unknown_segments, read_corpus
 from veaf_libs.conversion_profile import incompatible_modules_enabled
+from veaf_libs.dcs_countries import describe_country_id
 from veaf_libs.i18n import t
 from veaf_libs.mission_table import CATEGORIES, indexed
 from veaf_libs.yaml_validator import check_yaml_syntax, collect_module_issues
@@ -179,6 +181,18 @@ def _country_id(value: object) -> int | None:
         return None
 
 
+def _describe_ids(country_ids: Iterable[int]) -> str:
+    """Render a set of country ids as a readable, sorted list such as ``[5 (France), 68 (USSR)]``.
+
+    Args:
+        country_ids: The ids to render.
+
+    Returns:
+        A bracketed, comma-separated list, each id followed by its country name when DCS knows one.
+    """
+    return "[" + ", ".join(describe_country_id(country_id) for country_id in sorted(country_ids)) + "]"
+
+
 def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
     """Report a mission DCS would refuse, or that no pilot can enter.
 
@@ -240,8 +254,10 @@ def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
                     t(
                         "validate.side_missing_countries",
                         side=side,
-                        missing=sorted(missing),
-                        listed=sorted(listed),
+                        # Named, not merely numbered: the reader has no table to resolve a bare id
+                        # against, and both lists have to be compared to decide what to change.
+                        missing=_describe_ids(missing),
+                        listed=_describe_ids(listed),
                     ),
                 )
             )

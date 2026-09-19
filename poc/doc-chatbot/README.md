@@ -88,9 +88,21 @@ Re-run these whenever the documentation changes (this is what the CI workflow au
 
 ## Deploy the Worker
 
+**CI does this now.** A push to `develop` touching `poc/doc-chatbot/worker/**` runs the unit tests
+and, if they pass, deploys — see `.github/workflows/chatbot-worker.yml`. You should not need the
+command below.
+
+It is kept for a first deploy, a rollback, or a local account. Note that deploying by hand from a
+branch ships *that* branch's code to production:
+
 ```bash
 npx wrangler deploy
 ```
+
+> **Why CI does it.** Until 2026-09-19 the Worker was deployed by hand and the workflow only ran the
+> tests. A fix merged, green, in the repository could sit undeployed for weeks with nothing saying
+> so — which is exactly what happened to #966, while the assistant kept giving the answer that fix
+> had removed.
 
 Note the deployed URL (e.g. `https://veaf-docs-chatbot.<your-subdomain>.workers.dev`) and set
 `PROD_ENDPOINT` in `doc/assets/chatbot/veaf-chatbot-config.js`. That config is environment-aware

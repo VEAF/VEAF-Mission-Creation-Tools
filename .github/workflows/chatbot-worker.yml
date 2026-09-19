@@ -6,8 +6,11 @@
 # `worker/test/**`. A pull request rewriting the Worker's admission control therefore went green
 # without a single one of these tests running, and the merge did not run them either.
 #
-# The Worker itself is deployed by hand (`npx wrangler deploy`); this job gates the code, not the
-# deployment.
+# Since 2026-09-19 this workflow also *ships* the Worker, on a push to `develop`. It used to gate
+# the code and stop there, which is how #966 sat merged and green in the repository while production
+# ran the previous version — the assistant kept inventing a `mission.yaml` key the fix had removed,
+# and nobody could tell from the repository that it was not live. The index had the same disease at
+# the same time (#968); this is the other half of it.
 name: Chatbot Worker
 
 on:
@@ -48,3 +51,65 @@ jobs:
 
       - name: Run unit tests
         run: npm test
+
+  # Ships what the job above just gated. Deliberately a separate job rather than a step: `needs`
+  # makes "the tests passed" a precondition of deploying rather than a convention, and the `if`
+  # keeps every pull request and every other branch out.
+  deploy:
+    name: Deploy the Worker
+    needs: worker-tests
+    if: github.repository == 'VEAF/VEAF-Mission-Creation-Tools' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Never two deploys at once, and never cancel one in flight: a half-applied deploy is worse
+    # than a queued one, and the loser of a race would leave production on the older code.
+    concurrency:
+      group: chatbot-worker-deploy
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: poc/doc-chatbot/worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The token is known to hold **KV edit** (that is what the index workflow uses). **Workers
+      # Scripts edit** is a different permission and nothing has needed it before, so the first run
+      # of this job may fail on it. That is the correct outcome: widen the token, do not work
+      # around it. Secrets set on the Worker (GEMINI_API_KEY, DISCORD_CLIENT_SECRET) survive a
+      # deploy and are not re-uploaded here.
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+
+      # `wrangler deploy` has no local mode, so the silent no-op that cost the index six weeks is
+      # not available here — a failure is a non-zero exit. This probe is the cheap belt: it proves
+      # the Worker **answers and routes**, and deliberately nothing more. It does **not** prove the
+      # version just deployed is the one answering.
+      #
+      # Neither request reaches Gemini: admission is refused before the model, so this costs no
+      # quota. `/nope` must be unknown (404) and `/analyze` must be known-but-refused (403) — if
+      # both came back the same, the probe would be telling us nothing.
+      - name: Smoke-probe the deployed Worker
+        run: |
+          set -euo pipefail
+          base=https://veaf-docs-chatbot.veaf.workers.dev
+          probe() {
+            curl -s -o /dev/null -w '%{http_code}' -X POST \
+              -H 'Content-Type: application/json' --data '{}' --max-time 20 "$base$1"
+          }
+          unknown=$(probe /nope)
+          known=$(probe /analyze)
+          echo "POST /nope -> $unknown (want 404), POST /analyze -> $known (want 403)"
+          [ "$unknown" = "404" ] && [ "$known" = "403" ]

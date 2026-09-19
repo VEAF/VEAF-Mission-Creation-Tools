@@ -7,6 +7,7 @@ import {
   parseChecks,
   KV_MISSING_SENTINEL,
 } from "../scripts/verify-index-upload.mjs";
+import { l2normalize, topScore, summarise, separation, readVectors } from "../scripts/calibrate-floor.mjs";
 import worker, {
   latestQuery,
   toGeminiContents,
@@ -764,4 +765,66 @@ test("a triple cut short by the next flag is refused, not read as a file named -
     () => parseChecks(["--vec", "fr", "a.bin", "--txt", "fr", "b.json", "c.json"]),
     /needs three values/,
   );
+});
+
+// ── calibrate-floor: the maths the measurement rests on ──
+// A calibration that scores wrongly produces a number that looks just as authoritative, so the
+// parts that can be checked without the Gemini API are checked here.
+
+test("l2normalize gives a unit vector, and leaves a zero vector alone", () => {
+  const unit = l2normalize([3, 4]);
+  assert.ok(Math.abs(Math.hypot(unit[0], unit[1]) - 1) < 1e-6);
+  assert.deepEqual(Array.from(l2normalize([0, 0])), [0, 0]);
+});
+
+test("topScore is the cosine with the best chunk, not with the first or the last", () => {
+  const dims = 2;
+  // Three chunks: orthogonal, opposite, then a close match — the best must win from any position.
+  const vectors = Float32Array.from([0, 1, -1, 0, 1, 0]);
+  const query = l2normalize([1, 0]);
+  assert.ok(Math.abs(topScore(query, vectors, dims) - 1) < 1e-6);
+});
+
+test("a truncated index blob is refused rather than scored on garbage", () => {
+  // 5 floats cannot be whole 2-wide vectors: a half-downloaded file must not quietly score.
+  assert.throws(() => topScore(Float32Array.from([1, 0]), Float32Array.from([1, 0, 0, 1, 1]), 2), /not a multiple/);
+});
+
+test("summarise reports the range and the median", () => {
+  assert.deepEqual(summarise([0.4, 0.2, 0.6]), { n: 3, min: 0.2, median: 0.4, max: 0.6 });
+  assert.deepEqual(summarise([0.2, 0.4]), { n: 2, min: 0.2, median: 0.3, max: 0.4 });
+});
+
+test("separation says the clouds part when they do", () => {
+  const s = separation([0.7, 0.8], [0.3, 0.4]);
+  assert.equal(s.separable, true);
+  assert.equal(s.overlap, 0);
+});
+
+test("separation counts the overlap when they do not part", () => {
+  // One undocumented question scores above the weakest documented one.
+  const s = separation([0.5, 0.8], [0.3, 0.6]);
+  assert.equal(s.separable, false);
+  assert.ok(s.overlap > 0, "an overlap must be counted, not rounded away");
+});
+
+test("separation refuses to judge an empty group instead of calling it separable", () => {
+  assert.throws(() => separation([0.5, 0.6], []), /undocumented group is empty/);
+  assert.throws(() => separation([], [0.2]), /documented group is empty/);
+  assert.throws(() => separation([], []), /documented and undocumented group is empty/);
+});
+
+test("a blob that is not a whole number of floats is refused, not rounded down", () => {
+  // Measured: `new Float32Array(buf.buffer, 0, 4098/4)` truncates to 1024 floats without a word.
+  assert.throws(() => readVectors(Buffer.alloc(4098)), /not a whole number of floats/);
+  assert.throws(() => readVectors(Buffer.alloc(0)), /is empty/);
+  assert.equal(readVectors(Buffer.alloc(8)).length, 2);
+});
+
+test("readVectors copes with a Buffer that is not 4-aligned", () => {
+  // Node pools small reads, so a Buffer's byteOffset can be anything; reinterpreting in place throws.
+  const pool = Buffer.alloc(16);
+  const misaligned = pool.subarray(2, 10);
+  assert.equal(misaligned.byteOffset % 4, 2, "the fixture must actually be misaligned");
+  assert.equal(readVectors(misaligned).length, 2);
 });

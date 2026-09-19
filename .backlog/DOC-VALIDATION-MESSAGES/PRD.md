@@ -157,7 +157,7 @@ What was verified instead, from here:
    `mission.yaml`" correction in chunk 1, the neutral-statics rebuttal in chunk 2, the country table
    in chunk 5. The retriever keeps the top 6, so none of them is out of reach.
 
-**Asked after the merge, and it failed — for a reason that is not this lot.** The index workflow ran green a minute after #967 merged; the assistant still answered with the invented `mission.yaml` key. `docs-chatbot-index.yml` writes to wrangler's **local** store and prints `Success!`, and has done since the chatbot's first commit, so the live index predates `TUTORIAL.md` (2026-08-31). Tracked as [FIX-CHATBOT-INDEX-NEVER-UPLOADED](../FIX-CHATBOT-INDEX-NEVER-UPLOADED/PRD.md); this lot stays 🧑 until the question can be asked against a real index.
+**Asked after the merge, and it failed — for a reason that is not this lot.** The index workflow ran green a minute after #967 merged; the assistant still answered with the invented `mission.yaml` key. `docs-chatbot-index.yml` writes to wrangler's **local** store and prints `Success!`, and has done since the chatbot's first commit, so the live index predates `TUTORIAL.md` (2026-08-31). Tracked as [FIX-CHATBOT-INDEX-UPLOADS-LOCALLY](../FIX-CHATBOT-INDEX-UPLOADS-LOCALLY/PRD.md); this lot stays 🧑 until the question can be asked against a real index.
 
 ## Definition of done
 

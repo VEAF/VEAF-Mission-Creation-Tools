@@ -1,6 +1,6 @@
 # 07 — Re-measure, and ask the assistant the original question
 
-Status: 🧑 waiting-human
+Status: ✅ done
 
 Type: chore
 
@@ -25,5 +25,6 @@ explicitly rather than reporting a check that was not run — and record what *w
 
 - [x] The new figure measured and written into the PRD — **1 → 36**, both languages, with a
       detector fixed to see a message quoted across wrapped lines
-- [ ] The assistant asked the coalition question, with the answer recorded — or the reason it could
-      not be asked, with what was verified in its place
+- [x] The assistant asked the coalition question, and it answers correctly — see the PRD's
+      *The assistant, asked*. It took FIX-CHATBOT-INDEX-UPLOADS-LOCALLY first: the first attempt
+      failed because the index had been stale since 2026-08-08

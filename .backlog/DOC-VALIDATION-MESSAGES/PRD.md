@@ -1,6 +1,6 @@
 # DOC-VALIDATION-MESSAGES — 96 of the 98 messages the tools print are documented nowhere
 
-Status: 🧑 waiting-human
+Status: ✅ done
 
 Opened 2026-09-19, out of [FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON](../FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON/PRD.md),
 which fixed one message and taught the assistant to admit ignorance. This lot is the reason it had to
@@ -159,6 +159,34 @@ What was verified instead, from here:
 
 **Asked after the merge, and it failed — for a reason that is not this lot.** The index workflow ran green a minute after #967 merged; the assistant still answered with the invented `mission.yaml` key. `docs-chatbot-index.yml` writes to wrangler's **local** store and prints `Success!`, and has done since the chatbot's first commit, so the live index predates `TUTORIAL.md` (2026-08-31). Tracked as [FIX-CHATBOT-INDEX-UPLOADS-LOCALLY](../FIX-CHATBOT-INDEX-UPLOADS-LOCALLY/PRD.md); this lot stays 🧑 until the question can be asked against a real index.
 
+### The assistant, asked — 2026-09-19 {#assistant-asked}
+
+The first attempt, straight after this lot merged, still produced the invented `mission.yaml` key.
+That was not this lot: the rebuild workflow had been writing to wrangler's local store since
+2026-08-08, so the index was six weeks stale. Fixed in
+[FIX-CHATBOT-INDEX-UPLOADS-LOCALLY](../FIX-CHATBOT-INDEX-UPLOADS-LOCALLY/PRD.md) (#968), whose first
+run reported `Resource location: remote` and `Index verified`.
+
+Asked again, on the real index:
+
+> **Q.** *Camp 'red' : les pays [68 (USSR)] possèdent des unités mais ne figurent pas dans
+> coalitions.red. Qu'est-ce que ça veut dire et que dois-je faire ?*
+>
+> **A.** …DCS ouvrira l'écran CHANGING COALITIONS […] **deux options** : ajouter l'identifiant
+> numérique à `coalitions.red` — *"n'écrire que le nombre seul (68), jamais le nom"* — dans
+> l'éditeur DCS puis ré-extraire ; ou réaffecter les objets à un pays déjà listé.
+
+No `mission.yaml` key, both ways out, the right place to fix it, and it cites the new page's own
+section. And the false lead that started all of this:
+
+> **Q.** *Est-ce que mes objets statiques neutres peuvent être la cause de ce message sur le camp
+> red ?*
+>
+> **A.** *Non […] les objets statiques comptent bien comme des unités pour ce contrôle […] mais un
+> objet neutre appartient au camp `neutrals`, et le contrôle est fait camp par camp.*
+
+That is the whole chain closed: message → page → retrieval → answer.
+
 ## Definition of done
 
 - [x] The shape above is decided and recorded here
@@ -168,7 +196,7 @@ What was verified instead, from here:
       out, and what it is *not*
 - [x] `poetry run docs-check` green
 - [x] Re-measure the 2-of-98 figure at closing time and record the new one here
-- [ ] Spot-check that the documentation assistant now answers the reported coalition question
-      correctly, since grounding it was the point — **the one item left**, and the only reason
-      this lot is 🧑 rather than ✅. It needs the index CI rebuilds on merge; see the outcome
-      section for what was verified in its place
+- [x] Spot-check that the documentation assistant now answers the reported coalition question
+      correctly, since grounding it was the point — **done 2026-09-19**, after
+      [FIX-CHATBOT-INDEX-UPLOADS-LOCALLY](../FIX-CHATBOT-INDEX-UPLOADS-LOCALLY/PRD.md) made the
+      rebuild actually upload. See *The assistant, asked* below

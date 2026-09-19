@@ -1,6 +1,6 @@
 # FIX-CHATBOT-INDEX-UPLOADS-LOCALLY — the index workflow writes to a throwaway folder and reports success
 
-Status: ⬜ ready
+Status: ✅ done — merged as #968
 
 Opened 2026-09-19, out of [DOC-VALIDATION-MESSAGES](../DOC-VALIDATION-MESSAGES/PRD.md), whose
 closing check was to ask the documentation assistant the question that started the whole chain. It
@@ -92,11 +92,40 @@ true of the repository and false of the assistant.
 - `preview_id` is set in `wrangler.toml`. Make sure the fix targets the production namespace
   (`9599c6c3af6649b291ed8fdc26545dce`), which is what `--preview false` already asks for.
 
+## Outcome — verified on the first real run, 2026-09-19 {#outcome}
+
+Merged as #968. The run it triggered on `develop` is the proof this could not carry itself:
+
+```
+Upload the index to KV      Resource location: remote     (×4)
+Verify the index really landed   Index verified: the namespace holds exactly what this build produced.
+```
+
+`remote` on all four uploads, and the read-back agreed byte for byte — so the token did hold KV
+write permission, which was the other possible outcome and had been untestable while nothing left
+the runner.
+
+Asked immediately afterwards, the assistant answers the coalition question correctly and rules out
+the neutral statics, quoting the new page. Recorded in
+[DOC-VALIDATION-MESSAGES](../DOC-VALIDATION-MESSAGES/PRD.md#assistant-asked), which this unblocked
+and which is now ✅.
+
+**Found while rehearsing the check, and worth remembering:** `wrangler kv key get` on a key that is
+not there **exits 0** and prints `Value not found` to stdout. `set -euo pipefail` cannot see it and
+a redirect leaves a 16-byte file that reads like a value — so any check built on "did the command
+succeed" or "is the file non-empty" would have passed. Only the byte comparison catches it.
+
+## Still open, and not this lot {#still-open}
+
+The Worker **code** is deployed by hand (`npx wrangler deploy`); `chatbot-worker.yml` gates the code
+and does not ship it. So #966's similarity floor may still not be live. Same neighbourhood, separate
+question, and worth its own look.
+
 ## Definition of done
 
-- [ ] The index really lands in the production KV namespace, verified by reading it back
-- [ ] The upload step fails loudly when it writes nothing, with a test or an assertion in the workflow
-- [ ] The live assistant answers the coalition question from the new page
-- [ ] `DOC-VALIDATION-MESSAGES` ticket 07 closed, and that lot moved to ✅
-- [ ] Recorded how far back the staleness went, so the claim "the documentation covers this" can be
-      re-read against the lots that made it
+- [x] The index really lands in the production KV namespace, verified by reading it back
+- [x] The upload step fails loudly when it writes nothing, with a test or an assertion in the workflow
+- [x] The live assistant answers the coalition question from the new page
+- [x] `DOC-VALIDATION-MESSAGES` ticket 07 closed, and that lot moved to ✅
+- [x] Recorded how far back the staleness went, so the claim "the documentation covers this" can be
+      re-read against the lots that made it — **2026-08-05 to 2026-08-31**, bracketed by probes

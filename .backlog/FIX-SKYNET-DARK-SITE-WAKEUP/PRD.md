@@ -1,14 +1,10 @@
 # FIX-SKYNET-DARK-SITE-WAKEUP — a SAM under IADS control cannot notice the aircraft overhead
 
-Status: 🧑 waiting-human
+Status: ⬜ ready
 
-> **DO NOT IMPLEMENT ANY OF THIS YET.** The lot is blocked on a conversation David is to have with
-> **Flogas** and the historical IADS developers. Nothing here — not the wake-up, not the `actAsEW`
-> reset, not the documentation that describes both — may be coded, branched or opened as a PR before
-> that conversation has settled the four decisions listed below. This is not caution about the code:
-> the behaviour under discussion is a deliberate VEAF trade-off from 2022 (see below), and changing
-> it without its authors would be deciding in their place. An agent picking this lot up stops here
-> and asks David where the conversation stands.
+> **Unblocked 2026-09-19.** David settled this with Flogas and the historical IADS developers. The
+> decisions are recorded below; the tickets carry them. No further conversation is needed before
+> coding.
 
 Origin: The Reaper, 2026-09-17, on a mission built with veaf-tools:
 
@@ -71,37 +67,48 @@ permanently and saw for themselves, which is exactly the behaviour the reporter 
 removed on purpose, finished by `7ead5793` (2022-05-20), and the list was carried forward by Flogas
 in `3002aaad` (2023) and `d4e1b66c` (2024).
 
-Frame the conversation accordingly: the question is not why Skynet is broken, it is whether a
-four-year-old trade-off still holds and what replaces it. Ticket 02 carries the record.
+That framing is what the 2026-09-19 conversation settled: the question was never why Skynet is
+broken, it was whether a four-year-old trade-off still held. It does not, and ticket 02 carries the
+record.
 
-## Decisions to settle with the historical IADS devs, before any code
+## Decisions taken, 2026-09-19
 
-| # | Decision | Recommendation |
+| # | Decision | Outcome |
 |---|---|---|
-| 1 | Fork or helper | The fork — `targetCycleUpdateEnd` undoes any outside `goLive` within one cycle |
-| 2 | Wake-up shape: short passive watch / whole kill zone / revert 2022 | Short passive watch, settable radius; explore hanging it on the point defences ([ticket 01](tickets/01-proximity-wakeup.md)) |
-| 3 | Default on or off | On — off means nobody finds it and the same report returns in six months. It changes existing missions, say so in the PR |
-| 4 | The five-NATO-name reset | Keep the list, honour an explicit watch request ([ticket 02](tickets/02-actasew-override-is-wiped.md)) |
+| 1 | Fork or helper | **The fork.** `targetCycleUpdateEnd` undoes any outside `goLive` within one cycle |
+| 2 | Wake-up shape | **A — last line of defense.** A dark site keeps a short *virtual* detection radius of its own, 10–15 km, randomised; a hostile aircraft inside it makes the site go live with no radar contact anywhere. B (whole kill zone) and C (revert 2022) rejected |
+| 3 | Default on or off | **On.** It changes existing missions; the PR body says so |
+| 4 | The five-NATO-name reset | **Remove both blocks.** They are left over from a behaviour dropped in 2022 and have no purpose now — see [ticket 02](tickets/02-actasew-override-is-wiped.md) |
 
-A fifth, cheap: ask them whether they have already seen the blind A-50s of
-[INVESTIGATE-SKYNET-AWACS-BLIND](../INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md). One sentence from them
-may close that lot.
+Three design points the decisions left open, settled by recommendation and correctable in review:
+
+- **The random radius is drawn once per site**, at build time, not per cycle — redrawn each cycle it
+  makes a site blink every 5 s for an aircraft loitering near the mean.
+- **The proximity wake-up ignores the kill-zone test.** Otherwise a Shilka, useful range ~2.5 km,
+  never wakes inside a 10–15 km radius, and short-range pieces are the whole point of a last line of
+  defense.
+- **The wake-up is exposed as a public entry point of the fork**, used by this feature first, because
+  [FEAT-SPOTTER-NETWORK](../FEAT-SPOTTER-NETWORK/PRD.md) must wake a site from outside Skynet and the
+  alternative is the helper writing into Skynet's internal state every cycle.
+
+A separate finding is still open and independent:
+[INVESTIGATE-SKYNET-AWACS-BLIND](../INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md).
 
 ## Tickets
 
 | # | Ticket |
 |---|---|
-| 01 | [Wake a dark site when an aircraft enters its kill zone](tickets/01-proximity-wakeup.md) |
-| 02 | [An explicit EW-watch request is wiped by the next group joining](tickets/02-actasew-override-is-wiped.md) |
+| 01 | [Last line of defense: a dark site wakes on close proximity](tickets/01-proximity-wakeup.md) |
+| 02 | [Remove the two dead `actAsEW` reset blocks](tickets/02-actasew-override-is-wiped.md) |
 | 03 | [Document what a network SAM does and does not see](tickets/03-document-the-dark-site-contract.md) |
 
 ## Definition of done
 
-- A dark network site goes live when a hostile aircraft enters its kill zone, with no radar contact
-  required, and stays live while the aircraft is there.
+- A dark network site goes live when a hostile aircraft enters its last-line-of-defense radius,
+  with no radar contact required, and stays live while the aircraft is there.
 - The behaviour is switchable and its range is settable, because it is a deliberate departure from
   the IADS principle and not every mission wants it.
 - Lua tests cover both directions: a site wakes on proximity, and a site does **not** wake for an
-  aircraft outside its kill zone or of the wrong coalition.
+  aircraft outside its radius or of the wrong coalition.
 - `doc/mission-maker/scripts/veafSkynetIadsHelper.md` and its `.en.md` twin say plainly that a
   network SAM is blind, and describe the new setting.

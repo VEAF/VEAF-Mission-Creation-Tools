@@ -1,69 +1,64 @@
-# 02 — An explicit EW-watch request is wiped by the next group joining
+# 02 — Remove the two dead `actAsEW` reset blocks
 
-Status: 🧑 waiting-human
+Status: ⬜ ready
 
-> **Blocked: do not implement.** This ticket waits on David's conversation with **Flogas**
-> and the historical IADS developers — see the [PRD](../PRD.md). No code, no branch, no PR
-> before the decisions listed there are settled.
+## Decision
 
-## Problem
+Settled with Flogas, 2026-09-19: **the two blocks are useless, remove them and clean up around
+them.**
 
-Marking a site as an EW watch (`setActAsEW(true)`) keeps it lit and lets it wake its neighbours.
-It is the workaround a mission maker reaches for when there is no room for a real EWR, and it is
-what the spawn option `ewr` asks for.
+## The history, which is what makes them useless
 
-`veafSkynetIadsHelper.lua` then undoes it. Two places reset five NATO types unconditionally:
+At the start, VEAF forced the large systems into EW-watch mode — they watched permanently and saw
+for themselves. A block was then added so that when a **real** EWR joined the network after
+start-up, those large systems dropped their watch duty: with a proper radar on station they no
+longer needed to do the job themselves. It sat at the end of the network-initialisation block, and
+a twin was placed in the per-group path.
 
-- [`addGroupToNetwork`](../../../src/scripts/veaf/veafSkynetIadsHelper.lua:1551), guarded by
-  `not batchMode and not forceEwr and not pointDefense` — the guard covers *the group being added*,
-  not the sites already in the network;
-- [`buildNetwork`](../../../src/scripts/veaf/veafSkynetIadsHelper.lua:1636), after the enrolment
-  loop, with no guard at all.
+Then the forcing was dropped. `a68dfd32` (2022-04-05, *"IADS: removed defaulting to EWR for SAM
+sites"*) **flipped both blocks from `true` to `false`** rather than deleting them, adding `Mcc-sr`
+false, `SA-5` false and `Ewr` true; `7ead5793` (2022-05-20) removed `Mcc-sr` and `Ewr`. Flogas
+carried the list forward in `3002aaad` (2023) and `d4e1b66c` (2024).
 
-```lua
-iads:getSAMSitesByNatoName("SA-10"):setActAsEW(false)
-iads:getSAMSitesByNatoName("SA-6"):setActAsEW(false)
-iads:getSAMSitesByNatoName("SA-5"):setActAsEW(false)
-iads:getSAMSitesByNatoName("Patriot"):setActAsEW(false)
-iads:getSAMSitesByNatoName("Hawk"):setActAsEW(false)
-```
+Since nothing forces the watch on anymore, telling those five types to drop it asks for something
+that is already true: Skynet builds every radar element with `instance.actAsEW = false`
+(`skynet-iads-compiled.lua:2585`). The blocks have no purpose left.
 
-`getSAMSitesByNatoName` returns **every** site of that type in the network. So a SA-10 spawned with
-`ewr`, or set to watch from `mission-script.lua`, reverts to silent the moment any other group
-joins the network — a combat zone activating, a dynamic spawn, anything. Nothing is logged.
+## What they still do, all of it unwanted
 
-## Where the list comes from, and why that matters to the conversation
+1. **They kill an explicit request.** `getSAMSitesByNatoName` returns *every* site of that type in
+   the network, so a SA-10 marked as a watch — by the `ewr` spawn option or by hand in
+   `mission-script.lua` — is silenced. Worse, the order of operations in `initializeIADS` means the
+   enrolment loop sets the watch and the block right after it undoes it, so on these five types
+   `ewr` has **never** worked, not even at first start-up.
+2. **They send a stray `goDark()`.** `setActAsEW` calls `goDark()` outside its state-change test, so
+   every group joining the network sends an extinction order to all SA-10, SA-6, SA-5, Patriot and
+   Hawk in it. Bounded by `goDark`'s own guards and repaired on the next cycle, so minor — but it
+   goes away with the blocks.
+3. **They can break Flogas's point-defence mechanism.** `pointDefencesGoLive()` puts a point defence
+   into `actAsEW(true)` so it watches while the site it protects is silenced by an anti-radiation
+   missile. A point defence of one of the five types gets switched straight back off. Unlikely in
+   practice, real all the same.
 
-Until 2022-04-05 the helper did the exact opposite — `setActAsEW(**true**)` on SA-10, SA-6, Patriot
-and Hawk — so the large systems watched permanently and saw for themselves. That is the behaviour
-the 2026-09-17 reporter expects. It was removed on purpose:
+## What to remove
 
-| commit | date | author | |
-|---|---|---|---|
-| `a68dfd32` | 2022-04-05 | David Pierron | *"IADS: removed defaulting to EWR for SAM sites"* — flips the four to `false`, adds `Mcc-sr` false and `Ewr` true |
-| `7ead5793` | 2022-05-20 | David Pierron | drops `Ewr` and `Mcc-sr` from the list |
-| `3002aaad` | 2023-11-02 | Flogas | Skynet improvements |
-| `d4e1b66c` | 2024-03-10 | Flogas | network deactivation |
+| Where | What |
+|---|---|
+| `veafSkynetIadsHelper.lua:1549-1560` | the block, its `if not batchMode and not forceEwr and not pointDefense` guard, and the "Specific configuration applied" trace |
+| `veafSkynetIadsHelper.lua:1635-1642` | the twin block and its comment |
+| `veafSkynetIadsHelper.lua:1370` | `batchMode` then only feeds one trace line. Keep both — the trace is useful when reading a log |
+| `test/lua/test_veafSkynetIadsHelper.lua:116` | `natoMock` and `getSAMSitesByNatoName` in `_makeMockIads` exist only to absorb these calls |
 
-So today's behaviour is a deliberate four-year-old VEAF trade-off, not a Skynet defect. The list
-itself is defensible and this ticket does not propose dropping it — what is wrong is that it
-overrides an **explicit** request, silently. Take that to the historical devs as a question about
-the trade-off, not as a verdict.
+## The one risk to check first
 
-## What to decide, then build
-
-The reset itself is defensible: those five are the systems a mission maker least wants emitting
-permanently, and the line predates the `ewr` option. What is wrong is that it overrides an explicit
-request and does so silently.
-
-Recommended: record per site that its EW watch was asked for, and skip it in both resets. Failing
-that, at minimum log at `info` when the reset turns off a watch someone requested — a silent
-override is the failure mode the whole lot exists to remove.
+A mission already using `ewr` on a SA-10, SA-6, SA-5, Patriot or Hawk will see that site **really
+lit permanently** after the fix, where it is dark today. That is what its author asked for, but
+nobody has ever seen it happen, so it will read as a regression. The option is documented nowhere,
+so this is unlikely — check the VEAF mission repositories before merging.
 
 ## Definition of done
 
-- A site marked as an EW watch keeps it, whatever joins the network afterwards, including the five
-  named types.
-- A test asserts it: mark a SA-10 as watch, add another group, assert the watch survives. Today
-  that test fails.
-- No behaviour change for sites nobody asked to watch.
+- Both blocks gone, the test mocks they required gone with them.
+- A new test: mark a SA-10 as an EW watch, add another group to the network, assert the watch
+  survives. It fails today.
+- `poetry run test-lua` green, `CHANGELOG.md` updated.

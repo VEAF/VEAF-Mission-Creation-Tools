@@ -1,10 +1,6 @@
 # 03 — Document what a network SAM does and does not see
 
-Status: 🧑 waiting-human
-
-> **Blocked: do not implement.** This ticket waits on David's conversation with **Flogas**
-> and the historical IADS developers — see the [PRD](../PRD.md). No code, no branch, no PR
-> before the decisions listed there are settled.
+Status: ⬜ ready
 
 ## Problem
 
@@ -17,7 +13,18 @@ trips over:
 
 Nor does it say the corollary: destroying the EWRs makes the remaining sites *more* aggressive,
 because they revert to the DCS AI. Both are surprising, both are correct, and both were reported as
-bugs by a mission maker on 2026-09-17.
+bugs on 2026-09-17.
+
+Two more things the page never says, both surfaced by that investigation:
+
+- **"Covered" does not mean "informed".** Coverage is a flat 2D distance between the EWR's radar and
+  the battery's, compared against the EWR's detection range — no horizon, no terrain, no altitude.
+  It means the EWR is *near* the battery, never that it is feeding it. One 55G6 listed 18 batteries
+  under its coverage in the reported log.
+- **Joining the network depends on how the group arrived**: Mission Editor → yes; combat zone →
+  yes, whatever `dynamic_spawn` says; VEAF spawn command → only if the command carries `skynet`;
+  third-party script → only when `dynamic_spawn` is on. Two identical batteries behave in opposite
+  ways depending on their origin.
 
 The `ewr` spawn option — the one lever that gives a site permanent watch duty — is documented
 nowhere on the mission-maker side.
@@ -26,13 +33,16 @@ nowhere on the mission-maker side.
 
 In `veafSkynetIadsHelper.md` and its `.en.md` twin, keeping anchors identical across languages:
 
-1. A short section on the two conditions for a site to light up, and the fact that proximity is
-   not one of them by itself before the setting from ticket 01.
-2. The EWR-loss inversion, stated as expected behaviour rather than left to be discovered.
-3. The `ewr` spawn option: what a watch site is, what it costs (it is visible and targetable), and
-   the advice to sacrifice a short-range battery rather than the system being protected.
-4. The new proximity setting from ticket 01, once its name is fixed.
-5. How to diagnose: `debug_red: true`, then the three readings of the status page — EWR with no
+1. The two conditions for a site to light up, and the fact that proximity alone is not one of them
+   beyond the last-line-of-defense radius from [ticket 01](01-proximity-wakeup.md).
+2. The last line of defense itself: what it does, its radius, how to switch it off for a mission
+   that wants a purist IADS.
+3. The EWR-loss inversion, stated as expected behaviour rather than left to be discovered.
+4. What "covered" really means, so nobody reads the status page as "this battery is being watched".
+5. The `ewr` spawn option: what a watch site is, what it costs (visible and targetable), and the
+   advice to sacrifice a short-range battery rather than the system being protected.
+6. A table of the four ways a group joins a network, per the list above.
+7. How to diagnose: `debug_red: true`, then the three readings of the status page — EWR with no
    contacts, EWR with contacts but the site still `ACTIVE: false`, or site already `AUTONOMOUS`.
 
 ## Definition of done

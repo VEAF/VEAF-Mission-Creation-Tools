@@ -92,6 +92,9 @@ most common question a mission maker has. That is [DOC-VALIDATION-MESSAGES](../D
 - [x] 02 — the instruction frames the excerpts as search results and forbids inventing
 - [x] 02 — an empty retrieval gets its own instruction instead of an empty context
 - [x] 02 — a broken index still fails loudly instead of reading as "not documented" (found in review)
-- [ ] Documentation updated, quality gates green, coverage gate bumped on the CI's measurement
+- [x] Documentation updated, quality gates green
+- [x] Coverage gate bumped on the CI's measurement: 86.70 % measured, gate 86.5 → **86.6**. Left a
+      tenth of margin rather than pinned to the measurement — a gate flush against it fails the next
+      pull request that merely deletes a covered line, which teaches people to lower it.
 - [ ] The floor is calibrated once someone runs the questions against the live index (carried in the
       PRD above, not a checkbox here: it needs a key this lot cannot reach)

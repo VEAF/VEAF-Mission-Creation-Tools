@@ -21,6 +21,11 @@ In other words, a yellow message does not stop you from flying the mission. It t
 of what you configured will do nothing in the air — which you normally find out an hour later, in
 DCS, with no message at all.
 
+> **A message can go by without your seeing it.** Information lines are shown on a status line that
+> keeps rewriting itself: in a terminal they scroll past too fast. Warnings and errors, on the
+> other hand, stay on screen. To read everything back, add `--verbose` or redirect the output to a
+> file.
+
 The same checks run without rebuilding:
 
 ```powershell

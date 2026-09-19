@@ -21,6 +21,11 @@ Autrement dit, un message jaune ne vous empêche pas de lancer la mission. Il vo
 de ce que vous avez configuré ne fera rien en vol — ce qui se constate en général une heure plus
 tard, dans DCS, sans aucun message.
 
+> **Un message peut passer sans que vous le voyiez.** Les lignes d'information s'affichent sur une
+> ligne d'état qui se réécrit en permanence : dans un terminal, elles défilent trop vite. Les
+> avertissements et les erreurs, eux, restent à l'écran. Pour tout relire, ajoutez `--verbose` ou
+> redirigez la sortie vers un fichier.
+
 La même chose se vérifie sans reconstruire :
 
 ```powershell

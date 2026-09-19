@@ -17,6 +17,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Documented a defect in the vendored DCS schema (`v0.3.5`): its `types["country.name"]` table is indexed by position rather than by country id, so 78 of its 92 countries carry the wrong name and id 92 has no entry. Country ids come from `dcs-countries.yaml`, which is correct and which every tool already uses, so no behaviour changes — but the schema is vendored to be consulted, and it was misleading readers. Reported upstream, and the schema's (correct) `country.id` table is now locked against ours by a test so a future pin bump cannot break it in silence.
+
 ## [6.23.0] — 2026-09-18
 
 ### Fixed

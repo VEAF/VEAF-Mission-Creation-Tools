@@ -16,6 +16,22 @@ Vendored artifacts
 - dcs-world-api-schema.json  -- machine-readable API description (audit reference)
 - dcs-world-api.lua          -- EmmyLua annotations for LuaLS autocomplete (.luarc.json)
 
+Known defect in this copy -- country names
+------------------------------------------
+Do not read country names from `types["country.name"]` in dcs-world-api-schema.json.
+Measured against v0.3.5 on 2026-09-19: DCS has no country at id 14, and that table
+renumbers its names sequentially across the hole, so every country from id 14 onward
+carries the name of the one below it -- 78 of the 92 entries are wrong, and New
+Zealand (id 92) is missing from it entirely.
+
+`types["country.id"]` is correct and reproduces the hole faithfully. The repository's
+own table, veaf_libs/data/dcs-countries.yaml, is the source of truth for country ids
+and is what every VMCT lookup uses; nothing here reads the broken table.
+
+Reported upstream as YoloWingPixie/dcs-world-schema#22. Re-check at the next bump
+and drop this section once it is fixed; test/python/test_vendored_schema_country_ids.py
+guards the id table meanwhile.
+
 Updating
 --------
 Updating these files is an explicit bump commit: re-download the assets from a

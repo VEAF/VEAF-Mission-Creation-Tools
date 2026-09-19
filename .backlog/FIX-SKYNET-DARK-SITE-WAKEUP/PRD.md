@@ -91,6 +91,12 @@ Three design points the decisions left open, settled by recommendation and corre
   [FEAT-SPOTTER-NETWORK](../FEAT-SPOTTER-NETWORK/PRD.md) must wake a site from outside Skynet and the
   alternative is the helper writing into Skynet's internal state every cycle.
 
+A fifth decision followed on the same day, once the AWACS question was pulled on: coverage is
+recomputed as if it never changed, and the incremental rebuild used for a moving AWACS never purges
+anything. [Ticket 04](tickets/04-refresh-radar-coverage-for-what-moves.md) adds a periodic refresh,
+under three constraints that are part of the decision — sweep what moves rather than everything,
+touch the state only of what actually changed, and keep the immediate reaction to an EWR's death.
+
 A separate finding is still open and independent:
 [INVESTIGATE-SKYNET-AWACS-BLIND](../INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md).
 
@@ -101,6 +107,7 @@ A separate finding is still open and independent:
 | 01 | [Last line of defense: a dark site wakes on close proximity](tickets/01-proximity-wakeup.md) |
 | 02 | [Remove the two dead `actAsEW` reset blocks](tickets/02-actasew-override-is-wiped.md) |
 | 03 | [Document what a network SAM does and does not see](tickets/03-document-the-dark-site-contract.md) |
+| 04 | [Refresh radar coverage for whatever moves](tickets/04-refresh-radar-coverage-for-what-moves.md) |
 
 ## Definition of done
 
@@ -110,5 +117,8 @@ A separate finding is still open and independent:
   the IADS principle and not every mission wants it.
 - Lua tests cover both directions: a site wakes on proximity, and a site does **not** wake for an
   aircraft outside its radius or of the wrong coalition.
+- Coverage follows what moves: an AWACS in transit loses the batteries it left behind, a mobile SAM
+  site's parents follow it, and a live site whose parents did not change is never sent dark by the
+  sweep.
 - `doc/mission-maker/scripts/veafSkynetIadsHelper.md` and its `.en.md` twin say plainly that a
   network SAM is blind, and describe the new setting.

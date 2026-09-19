@@ -5,8 +5,9 @@ of the reasons this page exists.
 
 ## The one fact that explains almost everything {#community-opt-out}
 
-**Community scripts are enabled by default.** You do not have to write anything in `mission.yaml`
-for CTLD, CSAR or MiST to be candidates for embedding: they are there unless you take them out.
+**Most community scripts are enabled by default.** You do not have to write anything in
+`mission.yaml` for CTLD or CSAR to be candidates for embedding: they are there unless you take them
+out.
 
 That is convenient, but it has an unpleasant side effect: a warning may be about a module you
 **never** asked for, and the message then reads as an accusation. To take a module out:
@@ -15,6 +16,12 @@ That is convenient, but it has an unpleasant side effect: a warning may be about
 modules:
   CTLD: false
 ```
+
+**Two exceptions, the other way round.** `TUM` and `MIST` are *opt-in*: absent unless you explicitly
+write `TUM: true` or `MIST: true`. TUM because it imposes a design contract on the mission; MiST
+because no VEAF script calls it any more, and carrying 336 KB for nobody stopped making sense. The
+build does turn MiST back on by itself if it spots a call in one of your scripts — see
+[MiST was injected for your scripts](lua-files.en.md#builder-mist-injected-for-custom-scripts).
 
 ## CTLD is enabled, but with no configuration {#builder-ctld-no-config}
 
@@ -118,6 +125,11 @@ territories.
 is simply absent. So this build warning is the only notice you will get.
 
 **The ways out.** Create the zones in the editor, or disable TUM in `mission.yaml`.
+
+**What it is not — and mind the converse.** The check only verifies the zone **names**. TUM's
+contract goes further: each territory must also **own an airbase**. Two correctly named zones over
+empty terrain therefore make the warning go away without TUM starting. This check's silence does not
+guarantee that TUM will work.
 
 ## A module is incompatible with the conversion profile {#validate-incompatible-module}
 

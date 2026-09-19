@@ -11,7 +11,7 @@ depends only on the box:
 
 | Kind | Files | What the build does with them |
 |---|---|---|
-| **Expected** | `mission-script.lua`, `veaf-config.lua`, `veafDynamicConfig.lua`, `ctld-config.yaml`, the override script | Handles them, silently |
+| **Expected** | `mission-script.lua`, `veaf-config.lua`, `veafDynamicConfig.lua`, `CTLD_userConfig.lua`, `veaf-config-override.lua` | Handles them, silently |
 | **Declared** by you | everything listed under `custom_scripts:` in `mission.yaml` | Embeds them, and says so in verbose mode |
 | **Generated** by itself | `veaf-spawn-data.lua`, `dcs-bridge.lua` | **Ignores** the folder's copy and injects its own |
 

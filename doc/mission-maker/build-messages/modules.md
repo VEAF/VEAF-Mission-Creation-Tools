@@ -5,9 +5,9 @@ non — et c'est même une des raisons d'être de cette page.
 
 ## Le fait qui explique presque tout {#community-opt-out}
 
-**Les scripts communautaires sont activés par défaut.** Vous n'avez rien à écrire dans
-`mission.yaml` pour que CTLD, CSAR ou MiST soient candidats à l'embarquement : ils sont là sauf si
-vous les retirez.
+**La plupart des scripts communautaires sont activés par défaut.** Vous n'avez rien à écrire dans
+`mission.yaml` pour que CTLD ou CSAR soient candidats à l'embarquement : ils sont là sauf si vous
+les retirez.
 
 C'est confortable, mais ça a un effet de bord désagréable : un avertissement peut vous parler d'un
 module que vous n'avez **jamais** demandé, et le message se lit alors comme une accusation. Pour
@@ -17,6 +17,13 @@ sortir un module :
 modules:
   CTLD: false
 ```
+
+**Deux exceptions, dans l'autre sens.** `TUM` et `MIST` sont *opt-in* : absents sauf si vous écrivez
+explicitement `TUM: true` ou `MIST: true`. TUM parce qu'il impose un contrat de conception à la
+mission ; MiST parce que plus aucun script VEAF ne l'appelle, et qu'embarquer 336 Ko pour personne
+n'avait plus de sens. Le build rallume quand même MiST tout seul s'il repère un appel dans l'un de
+vos scripts — voir
+[MiST a été injecté pour vos scripts](lua-files.md#builder-mist-injected-for-custom-scripts).
 
 ## CTLD est activé, mais sans configuration {#builder-ctld-no-config}
 
@@ -122,6 +129,11 @@ menu : le module est simplement absent. Cet avertissement de build est donc la s
 que vous aurez.
 
 **Les issues.** Créer les zones dans l'éditeur, ou désactiver TUM dans `mission.yaml`.
+
+**Ce que ce n'est pas — et attention à la réciproque.** Le contrôle ne vérifie que les **noms** des
+zones. Le contrat de TUM va plus loin : chaque territoire doit aussi **posséder un aérodrome**. Deux
+zones correctement nommées sur du terrain vide font donc disparaître l'avertissement sans que TUM
+démarre pour autant. Le silence de ce contrôle ne garantit pas que TUM fonctionnera.
 
 ## Un module est incompatible avec le profil de conversion {#validate-incompatible-module}
 

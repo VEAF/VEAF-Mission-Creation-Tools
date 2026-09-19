@@ -12,7 +12,7 @@ vous recevez dépend uniquement de la case :
 
 | Sorte | Fichiers | Ce que le build en fait |
 |---|---|---|
-| **Attendus** | `mission-script.lua`, `veaf-config.lua`, `veafDynamicConfig.lua`, `ctld-config.yaml`, le script d'override | Il les traite, sans rien dire |
+| **Attendus** | `mission-script.lua`, `veaf-config.lua`, `veafDynamicConfig.lua`, `CTLD_userConfig.lua`, `veaf-config-override.lua` | Il les traite, sans rien dire |
 | **Déclarés** par vous | tout ce que `custom_scripts:` de `mission.yaml` énumère | Il les embarque, et l'annonce en mode bavard |
 | **Générés** par lui-même | `veaf-spawn-data.lua`, `dcs-bridge.lua` | Il **ignore** la copie du dossier et injecte la sienne |
 

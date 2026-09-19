@@ -27,6 +27,16 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 /**
+ * What `wrangler kv key get` prints, **to stdout and exiting 0**, when the key is not there.
+ *
+ * Measured on 2026-09-19 against wrangler 4.120: a missing key is not an error as far as the shell
+ * is concerned, so `set -e` does not catch it and a redirect produces a 16-byte file that looks like
+ * a value. Without this, an absent key is reported as a size mismatch — true, but it sends the
+ * reader looking for a stale index that is not there.
+ */
+export const KV_MISSING_SENTINEL = "Value not found";
+
+/**
  * Compare what was uploaded with what came back out of the namespace.
  *
  * @param {string} label What is being checked, for the failure message.
@@ -40,6 +50,9 @@ export function compareBytes(label, expected, actual) {
   }
   if (actual.length === 0) {
     return `${label}: the namespace returned 0 bytes — the upload did not happen`;
+  }
+  if (Buffer.from(actual).toString("utf8").trim() === KV_MISSING_SENTINEL) {
+    return `${label}: the key is not in the namespace — this build's entries were never uploaded`;
   }
   if (actual.length !== expected.length) {
     return (
@@ -89,8 +102,11 @@ export function parseChecks(argv) {
     if (kind !== "--vec" && kind !== "--txt") {
       throw new Error(`unknown argument ${JSON.stringify(kind)} — expected --vec or --txt`);
     }
-    const [lang, built, readBack] = argv.slice(i + 1, i + 4);
-    if (!lang || !built || !readBack) {
+    const values = argv.slice(i + 1, i + 4);
+    // A triple cut short by the next flag would otherwise be read as a file named "--txt", and fail
+    // later as "nothing came back" — a true statement about the wrong thing.
+    const [lang, built, readBack] = values;
+    if (values.length < 3 || values.some((v) => !v || v.startsWith("--"))) {
       throw new Error(`${kind} needs three values: <lang> <built-file> <read-back-file>`);
     }
     checks.push({ kind, lang, built, readBack });
@@ -135,6 +151,14 @@ export async function runChecks(checks) {
 }
 
 async function main(argv) {
+  // The workflow needs the last key of a bulk file in order to fetch it back. Doing it here rather
+  // than with an inline `node -e` in the YAML keeps that parsing in tested code, and spares the
+  // workflow a snippet whose CommonJS-versus-ESM behaviour depends on the Node version.
+  if (argv[0] === "--print-last-key") {
+    if (!argv[1]) throw new Error("--print-last-key needs a bulk file");
+    process.stdout.write(lastBulkEntry(await readFile(argv[1], "utf8")).key);
+    return 0;
+  }
   const problems = await runChecks(parseChecks(argv));
   if (problems.length) {
     console.error("The index is NOT in the namespace:");

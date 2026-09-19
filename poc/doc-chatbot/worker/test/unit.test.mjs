@@ -1,7 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chunkMarkdown, MAX_CHARS } from "../scripts/build-index.mjs";
-import { compareBytes, lastBulkEntry, parseChecks } from "../scripts/verify-index-upload.mjs";
+import {
+  compareBytes,
+  lastBulkEntry,
+  parseChecks,
+  KV_MISSING_SENTINEL,
+} from "../scripts/verify-index-upload.mjs";
 import worker, {
   latestQuery,
   toGeminiContents,
@@ -703,6 +708,14 @@ test("an empty read-back is a problem", () => {
   assert.match(compareBytes("vectors (fr)", Buffer.from("abc"), Buffer.alloc(0)), /0 bytes/);
 });
 
+test("wrangler's missing-key output is recognised, not read as a value", () => {
+  // `kv key get` exits 0 and prints this to stdout for an absent key, so the shell cannot tell.
+  const problem = compareBytes("texts (fr)", Buffer.alloc(40), Buffer.from(`${KV_MISSING_SENTINEL}
+`));
+  assert.match(problem, /the key is not in the namespace/);
+  assert.doesNotMatch(problem, /older index/, "an absent key is not a stale index");
+});
+
 test("a stale index of a different size is named as stale", () => {
   const problem = compareBytes("vectors (fr)", Buffer.alloc(40), Buffer.alloc(24));
   assert.match(problem, /holds 24 bytes, the build produced 40/);
@@ -744,4 +757,11 @@ test("the checks are parsed as triples, and a truncated one is refused", () => {
 
 test("asking for no check at all is refused rather than passing vacuously", () => {
   assert.throws(() => parseChecks([]), /no checks requested/);
+});
+
+test("a triple cut short by the next flag is refused, not read as a file named --txt", () => {
+  assert.throws(
+    () => parseChecks(["--vec", "fr", "a.bin", "--txt", "fr", "b.json", "c.json"]),
+    /needs three values/,
+  );
 });

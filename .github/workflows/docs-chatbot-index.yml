@@ -98,11 +98,7 @@ jobs:
           for lang in fr en; do
             npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:vec:$lang" \
               > "remote-vec-$lang.bin"
-            last_key=$(node -e "
-              const fs = require('node:fs');
-              const entries = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-              process.stdout.write(entries[entries.length - 1].key);
-            " "txt-$lang.json")
+            last_key=$(node scripts/verify-index-upload.mjs --print-last-key "txt-$lang.json")
             npx wrangler kv key get --remote --binding CHAT_KV --preview false "$last_key" \
               > "remote-txt-$lang.json"
           done

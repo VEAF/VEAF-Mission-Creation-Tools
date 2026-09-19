@@ -72,7 +72,7 @@ npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
 # Prove it landed — reads the index back out of the namespace and compares it byte for byte:
 for lang in fr en; do
   npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:vec:$lang" > "remote-vec-$lang.bin"
-  last=$(node -e "const e=require('node:fs').readFileSync(process.argv[1],'utf8');process.stdout.write(JSON.parse(e).at(-1).key)" "txt-$lang.json")
+  last=$(node scripts/verify-index-upload.mjs --print-last-key "txt-$lang.json")
   npx wrangler kv key get --remote --binding CHAT_KV --preview false "$last" > "remote-txt-$lang.json"
 done
 node scripts/verify-index-upload.mjs \

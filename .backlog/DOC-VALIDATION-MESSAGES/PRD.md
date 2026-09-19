@@ -1,6 +1,6 @@
 # DOC-VALIDATION-MESSAGES — 96 of the 98 messages the tools print are documented nowhere
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Opened 2026-09-19, out of [FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON](../FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON/PRD.md),
 which fixed one message and taught the assistant to admit ignorance. This lot is the reason it had to
@@ -53,6 +53,42 @@ would satisfy the count and change nothing for the reader, which is the failure 
 
 **Not recommended: a `docs-check` rule requiring every message to be documented.** It would turn the
 tail into an obligation and reward stub pages. Worth revisiting only once the dozen exist.
+
+## Decision, 2026-09-19 — shape 3, laid out as shape 1 {#decision}
+
+**Option 3 then 1, as recommended, with the tail explicitly left alone.**
+
+Messages are grouped into **families**, one page each, under a new `Build messages` section of the
+Mission Maker menu. Within a page, each message gets an explicit anchor derived from its locale key
+(`validate.side_missing_countries` → `{#validate-side-missing-countries}`), so a future `--explain`
+flag, or the message text itself, can link straight to it without depending on a heading wording.
+
+### How "generates real support traffic" was decided, having no telemetry
+
+The project has no counter on its messages. What it does have is a backlog where a lot gets opened
+when somebody is stuck, so the proxy used here is: **a message is in scope when the repository can
+show it cost someone something**, or when it leaves the mission maker with nowhere to go.
+
+| Criterion | Example |
+|---|---|
+| A lot was opened from a real report about it | `FIX-EXTRACT-GENERATED-ARTIFACTS` (Tripack, 2026-09-03), `DOC-CTLD-TOOLS-DOWNLOAD`, `FIX-DEFAULT-COMMUNITY-NOISE` |
+| DCS refuses the mission, or the editor refuses the route | `validate.side_missing_countries` (the reported case), `validate.route_no_locked_time` |
+| The feature dies at runtime, with nothing said in game | `validate.missing_group`, `validate.tum_zones_missing` |
+
+That yields **33 messages across 6 pages**, not 98. The rest is deliberately untouched: it is
+mostly progress reporting (`builder.creating_mission`, `builder.injecting_scripts`) or a message
+whose one sentence is already the whole answer.
+
+### What is *not* done, and why
+
+**No `docs-check` rule requiring every message to be documented**, per the PRD's own warning. It
+would turn the remaining 65 into an obligation discharged by stubs, which is the failure mode
+`CHORE-TESTING-DOC-COUNTS` already met here. The question is worth reopening once these six pages
+have been in front of readers.
+
+**No generated page.** A generated table cannot say what a message *is not*, and that is where the
+support time goes — in the reported case, ruling out the mission maker's neutral statics took
+reading the validator.
 
 ## Definition of done
 

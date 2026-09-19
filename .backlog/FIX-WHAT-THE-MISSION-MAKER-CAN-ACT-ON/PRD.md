@@ -1,6 +1,6 @@
 # FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON — a dead-end error message, and a bot that fills the gap by inventing
 
-Status: 🔄 in-progress
+Status: ✅ done — merged as #966
 
 Opened 2026-09-19 from a real support exchange. A mission maker hit this on a build:
 
@@ -96,5 +96,15 @@ most common question a mission maker has. That is [DOC-VALIDATION-MESSAGES](../D
 - [x] Coverage gate bumped on the CI's measurement: 86.70 % measured, gate 86.5 → **86.6**. Left a
       tenth of margin rather than pinned to the measurement — a gate flush against it fails the next
       pull request that merely deletes a covered line, which teaches people to lower it.
-- [ ] The floor is calibrated once someone runs the questions against the live index (carried in the
-      PRD above, not a checkbox here: it needs a key this lot cannot reach)
+
+## Carried forward — two things this lot cannot do itself
+
+**The Worker is deployed by hand.** Merging changes what the *next* `npx wrangler deploy` will ship,
+not what visitors get today; the CI job only gates the code. Until someone deploys, the assistant in
+production still answers from six unfiltered passages.
+
+**The floor wants calibrating**, with the Gemini key this workstation does not hold: a dozen
+questions the documentation answers, a dozen it does not, record the top similarity of each, set the
+floor between the two clouds. `MIN_SIMILARITY` takes the value without touching the code, so this
+needs no lot of its own — and until it happens, the second half of the remedy (the model judging the
+excerpts) is what carries the fix. Raise it carefully: too high is worse than none.

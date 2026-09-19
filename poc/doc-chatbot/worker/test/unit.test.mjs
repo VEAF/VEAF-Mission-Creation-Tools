@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chunkMarkdown, MAX_CHARS } from "../scripts/build-index.mjs";
+import {
+  compareBytes,
+  lastBulkEntry,
+  parseChecks,
+  KV_MISSING_SENTINEL,
+} from "../scripts/verify-index-upload.mjs";
 import worker, {
   latestQuery,
   toGeminiContents,
@@ -688,4 +694,74 @@ test("a passage above the floor is still injected", async () => {
     assert.match(passages, /Coalitions/);
     assert.match(passages, /body/);
   });
+});
+
+// ── verify-index-upload: a green run must mean the bytes are in the namespace ──
+// These cover the failure the upload step could not tell apart from success for six weeks:
+// it wrote to wrangler's local store, printed `Success!`, and the live index stayed frozen.
+
+test("a read-back that never happened is a problem, not a pass", () => {
+  assert.match(compareBytes("vectors (fr)", Buffer.from("abc"), null), /nothing came back/);
+});
+
+test("an empty read-back is a problem", () => {
+  assert.match(compareBytes("vectors (fr)", Buffer.from("abc"), Buffer.alloc(0)), /0 bytes/);
+});
+
+test("wrangler's missing-key output is recognised, not read as a value", () => {
+  // `kv key get` exits 0 and prints this to stdout for an absent key, so the shell cannot tell.
+  const problem = compareBytes("texts (fr)", Buffer.alloc(40), Buffer.from(`${KV_MISSING_SENTINEL}
+`));
+  assert.match(problem, /the key is not in the namespace/);
+  assert.doesNotMatch(problem, /older index/, "an absent key is not a stale index");
+});
+
+test("a stale index of a different size is named as stale", () => {
+  const problem = compareBytes("vectors (fr)", Buffer.alloc(40), Buffer.alloc(24));
+  assert.match(problem, /holds 24 bytes, the build produced 40/);
+  assert.match(problem, /older index is still in place/);
+});
+
+test("same length but different bytes still fails", () => {
+  const problem = compareBytes("vectors (fr)", Buffer.from([1, 2, 3]), Buffer.from([1, 2, 4]));
+  assert.match(problem, /different bytes/);
+});
+
+test("identical bytes are the only thing that passes", () => {
+  assert.equal(compareBytes("vectors (fr)", Buffer.from([1, 2, 3]), Buffer.from([1, 2, 3])), null);
+});
+
+test("the bulk entry checked is the last one, which a shorter stale index lacks", () => {
+  const bulk = JSON.stringify([
+    { key: "idx:txt:fr:0", value: "first" },
+    { key: "idx:txt:fr:1", value: "last" },
+  ]);
+  assert.deepEqual(lastBulkEntry(bulk), { key: "idx:txt:fr:1", value: "last" });
+});
+
+test("an empty bulk file is a build that produced nothing, and says so", () => {
+  assert.throws(() => lastBulkEntry("[]"), /nothing to upload/);
+});
+
+test("a bulk entry without a string key/value pair is rejected", () => {
+  assert.throws(() => lastBulkEntry(JSON.stringify([{ key: "k" }])), /string key\/value pair/);
+});
+
+test("the checks are parsed as triples, and a truncated one is refused", () => {
+  assert.deepEqual(parseChecks(["--vec", "fr", "a.bin", "b.bin"]), [
+    { kind: "--vec", lang: "fr", built: "a.bin", readBack: "b.bin" },
+  ]);
+  assert.throws(() => parseChecks(["--vec", "fr", "a.bin"]), /needs three values/);
+  assert.throws(() => parseChecks(["--oops", "fr", "a", "b"]), /expected --vec or --txt/);
+});
+
+test("asking for no check at all is refused rather than passing vacuously", () => {
+  assert.throws(() => parseChecks([]), /no checks requested/);
+});
+
+test("a triple cut short by the next flag is refused, not read as a file named --txt", () => {
+  assert.throws(
+    () => parseChecks(["--vec", "fr", "a.bin", "--txt", "fr", "b.json", "c.json"]),
+    /needs three values/,
+  );
 });

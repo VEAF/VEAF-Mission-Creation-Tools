@@ -3,18 +3,25 @@ main = "src/index.js"
 compatibility_date = "2025-01-01"
 
 # Wrangler 4 (bumped from 3.90 on 2026-08-08 to close 11 Dependabot alerts, all of them in
-# wrangler's own dev-only dependency tree). Nothing in this file had to change: `deploy --dry-run`
-# accepts it as-is, the CHAT_KV binding resolves, and the `wrangler kv key put` form the
-# docs-chatbot-index workflow calls still exists. Keep `compatibility_date` as it is — moving it
-# changes Workers runtime semantics, which is unrelated to the tooling version.
+# wrangler's own dev-only dependency tree). Keep `compatibility_date` as it is — moving it changes
+# Workers runtime semantics, which is unrelated to the tooling version.
+#
+# That bump DID break something, found on 2026-09-19: `kv key put` and `kv bulk put` default to the
+# **local** Miniflare store in wrangler 4, where wrangler 3 defaulted to remote. The commands below
+# kept working, kept printing `Success!`, and stopped uploading anything — the live index froze in
+# early August and the assistant answered from it for six weeks. Hence `--remote` everywhere below,
+# and a read-back check in the docs-chatbot-index workflow.
+#
+# The lesson for the next bump: the check recorded here was that the command *still exists*. What
+# needed checking was that it still does the same thing.
 
 # KV namespace: per-IP rate-limit counters AND the embeddings index (binary vectors + texts).
 # The similarity search runs in the Worker, so no paid vector DB is needed. Load the index with:
 #   node scripts/build-index.mjs   # writes vec-{lang}.bin + txt-{lang}.json
-#   npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
-#   npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
-#   npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json
-#   npx wrangler kv bulk put --binding CHAT_KV --preview false txt-en.json
+#   npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+#   npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+#   npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json
+#   npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
 [[kv_namespaces]]
 binding = "CHAT_KV"
 id = "9599c6c3af6649b291ed8fdc26545dce"

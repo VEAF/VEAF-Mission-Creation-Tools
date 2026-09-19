@@ -1,4 +1,4 @@
-# FIX-CHATBOT-INDEX-NEVER-UPLOADED — the index workflow writes to a throwaway folder and reports success
+# FIX-CHATBOT-INDEX-UPLOADS-LOCALLY — the index workflow writes to a throwaway folder and reports success
 
 Status: ⬜ ready
 
@@ -35,22 +35,33 @@ Success!
 store is a directory inside the runner, deleted with the runner. The workflow has been embedding the
 whole documentation, writing it to a temporary folder, printing `Success!`, and uploading nothing.
 
-**It has never worked.** The upload command and the `wrangler` pin both date from the chatbot's
-first commit, `b8000101` (2026-06-11, #414), and neither has been touched since. Every run in the
-history is green.
+**Correction to the first version of this PRD, which said it had never worked.** It did. The upload
+command dates from the chatbot's first commit (`b8000101`, 2026-06-11, #414) and has never been
+touched — but the `wrangler` pin has: `^3.90.0` until **2026-08-08**, then `^4.120.0` (`33214954`,
+#671, closing Dependabot alerts). **Wrangler 3 defaulted `kv key put` to remote; wrangler 4 defaults
+to local.** The command kept working and stopped uploading.
 
-## How stale the production index is
+The wrong claim came from a `git log -S '"wrangler"'` on `package.json`, which is blind to a change
+of *value* — the string count does not move — while `wrangler.toml`'s own comment said otherwise and
+was right.
 
-Probed with two more questions:
+## How stale the production index is — bracketed, not guessed
 
-- Asked for a step-by-step tutorial, the assistant answers from the *old* `mission-maker/README.md`
-  quick start. It does not know `TUTORIAL.md`, added **2026-08-31** (#863).
-- It quotes `veaf-tools.exe extract`, the bare form, dropped in favour of `.\veaf-tools.exe` on
-  **2026-09-01** (`DOC-POWERSHELL-COMMAND-EXAMPLES`).
+Three probes through `.\veaf-tools.exe ask`:
 
-So the live index is older than both, and on the evidence above it is the one somebody uploaded by
-hand when the POC was built. **Roughly three months of documentation is invisible to the assistant**
-— and to the Discord `/ask` command, which reads the same index.
+| Probe | Page, and when it was added | Does the assistant know it? |
+|---|---|---|
+| *Comment adopter une mission Foothold…* | `FOOTHOLD.md`, **2026-08-05** | **yes** |
+| *Existe-t-il un tutoriel pas à pas…* | `TUTORIAL.md`, **2026-08-31** | no — it answers from the old README quick start |
+| (same answer) | the `.\veaf-tools.exe` convention, **2026-09-01** | no — it still quotes the bare form |
+
+So the index froze between **2026-08-05 and 2026-08-31**, which straddles the wrangler bump of
+2026-08-08 exactly. **Six weeks of documentation is invisible to the assistant** — and to the
+Discord `/ask` command, which reads the same index.
+
+The most quotable part of the bump commit is its own note in `wrangler.toml`: *"the `wrangler kv key
+put` form the docs-chatbot-index workflow calls still exists"*. The check made was that the command
+still existed. What needed checking was that it still did the same thing.
 
 That also means every previous lot that ended with *"the documentation now covers this"* has been
 true of the repository and false of the assistant.

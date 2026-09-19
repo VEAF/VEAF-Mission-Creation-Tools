@@ -64,13 +64,27 @@ npx wrangler secret put GEMINI_API_KEY
 node scripts/build-index.mjs
 
 # Upload to KV:
-npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
-npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
-npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json
-npx wrangler kv bulk put --binding CHAT_KV --preview false txt-en.json
+npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json
+npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
+
+# Prove it landed — reads the index back out of the namespace and compares it byte for byte:
+for lang in fr en; do
+  npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:vec:$lang" > "remote-vec-$lang.bin"
+  last=$(node scripts/verify-index-upload.mjs --print-last-key "txt-$lang.json")
+  npx wrangler kv key get --remote --binding CHAT_KV --preview false "$last" > "remote-txt-$lang.json"
+done
+node scripts/verify-index-upload.mjs \
+  --vec fr vec-fr.bin remote-vec-fr.bin --vec en vec-en.bin remote-vec-en.bin \
+  --txt fr txt-fr.json remote-txt-fr.json --txt en txt-en.json remote-txt-en.json
 ```
 
 Re-run these whenever the documentation changes (this is what the CI workflow automates).
+
+> **`--remote` is load-bearing.** Without it wrangler 4 writes to its local Miniflare store and
+> still prints `Success!`. That is how the live index sat frozen from 2026-08-08 to 2026-09-19 while
+> every CI run was green — the verification step above exists so it cannot happen again silently.
 
 ## Deploy the Worker
 

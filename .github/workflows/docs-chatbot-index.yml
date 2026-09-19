@@ -63,12 +63,47 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: node scripts/build-index.mjs
 
+      # `--remote` is not optional decoration: without it wrangler 4 writes to its **local**
+      # Miniflare store — here, a directory inside this runner — and still prints `Success!`. That
+      # is what happened on every run between the wrangler 3 → 4 bump (2026-08-08, #671) and
+      # 2026-09-19: the whole documentation was embedded, written to a temporary folder, and thrown
+      # away with the runner, while the live assistant answered from an index frozen in early
+      # August. Wrangler 3 defaulted to remote, which is why the bump changed the behaviour without
+      # changing the command.
       - name: Upload the index to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
-          npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
-          npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json
-          npx wrangler kv bulk put --binding CHAT_KV --preview false txt-en.json
+          npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+          npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+          npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json
+          npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
+
+      # Read the index back out of the namespace and compare it with what was just built, so a green
+      # run means the bytes are there. The flag above fixes today's bug; this step is what makes the
+      # next silent no-op impossible — six weeks of green runs uploading nothing is the failure this
+      # job could not tell apart from success.
+      #
+      # `kv key get` writes the raw value to stdout with no banner (measured against the local store
+      # on 2026-09-19: 4096 bytes in, 4096 identical bytes out), so redirecting it is safe. The text
+      # entry checked is the **last** of the bulk file — the one a shorter, older index does not have
+      # at all.
+      - name: Verify the index really landed
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          for lang in fr en; do
+            npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:vec:$lang" \
+              > "remote-vec-$lang.bin"
+            last_key=$(node scripts/verify-index-upload.mjs --print-last-key "txt-$lang.json")
+            npx wrangler kv key get --remote --binding CHAT_KV --preview false "$last_key" \
+              > "remote-txt-$lang.json"
+          done
+          node scripts/verify-index-upload.mjs \
+            --vec fr vec-fr.bin remote-vec-fr.bin \
+            --vec en vec-en.bin remote-vec-en.bin \
+            --txt fr txt-fr.json remote-txt-fr.json \
+            --txt en txt-en.json remote-txt-en.json

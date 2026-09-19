@@ -70,11 +70,18 @@ jobs:
               echo "::error::idx:vec:$lang is not in the namespace — nothing to calibrate against."
               exit 1
             fi
+            # Its own pipeline, so a failure is the pipeline's failure. Wrapping it in a `{ … }`
+            # group that ends on an `echo` would hand the group that `echo`'s exit status instead,
+            # and a spent Gemini key would leave a green step with an empty report — which is the
+            # very defect this whole neighbourhood was fixed for. Measured, not assumed:
+            # `{ echo; false; echo; } | tee` survives under `set -euo pipefail`.
+            node scripts/calibrate-floor.mjs --lang "$lang" --vectors "vec-$lang.bin" \
+              | tee "report-$lang.txt"
             {
               echo "## Floor calibration — \`$lang\`"
               echo ""
               echo '```'
-              node scripts/calibrate-floor.mjs --lang "$lang" --vectors "vec-$lang.bin"
+              cat "report-$lang.txt"
               echo '```'
-            } | tee -a "$GITHUB_STEP_SUMMARY"
+            } >> "$GITHUB_STEP_SUMMARY"
           done

@@ -107,10 +107,43 @@ export function summarise(scores) {
  * @returns {{separable: boolean, gapLow: number, gapHigh: number, overlap: number}}
  */
 export function separation(documented, undocumented) {
+  // `Math.max(...[])` is -Infinity and `Math.min(...[])` is Infinity, so an empty group would make
+  // `separable` true with nothing behind it — a confident verdict drawn from no measurement.
+  const empty = [
+    ...(documented.length ? [] : ["documented"]),
+    ...(undocumented.length ? [] : ["undocumented"]),
+  ];
+  if (empty.length) {
+    throw new Error(`nothing to compare: the ${empty.join(" and ")} group is empty`);
+  }
   const gapLow = Math.max(...undocumented);
   const gapHigh = Math.min(...documented);
   const overlap = documented.filter((s) => s <= gapLow).length + undocumented.filter((s) => s >= gapHigh).length;
   return { separable: gapHigh > gapLow, gapLow, gapHigh, overlap };
+}
+
+/**
+ * Reinterpret a downloaded index blob as Float32s, refusing anything that is not whole.
+ *
+ * Two traps, both silent if left alone. A byte length that is not a multiple of 4 makes the
+ * `Float32Array` constructor **truncate** rather than complain — a 4098-byte file becomes 1024
+ * floats and the last two bytes vanish (measured). And Node pools small reads, so a Buffer's
+ * `byteOffset` is not guaranteed to be 4-aligned, which the constructor does reject, but only by
+ * throwing something obscure.
+ *
+ * @param {Buffer} buf The file as read.
+ * @param {string} name The file name, for the message.
+ * @returns {Float32Array} The vectors.
+ * @throws {Error} When the blob is not a whole number of 32-bit floats.
+ */
+export function readVectors(buf, name = "the index blob") {
+  if (buf.byteLength === 0) throw new Error(`${name} is empty`);
+  if (buf.byteLength % 4 !== 0) {
+    throw new Error(`${name} holds ${buf.byteLength} bytes, not a whole number of floats — truncated download?`);
+  }
+  // Copy when the view is not 4-aligned; reinterpreting in place would throw on a pooled Buffer.
+  const aligned = buf.byteOffset % 4 === 0 ? buf : Buffer.from(buf);
+  return new Float32Array(aligned.buffer, aligned.byteOffset, aligned.byteLength / 4);
 }
 
 async function embedQuery(key, text) {
@@ -143,8 +176,7 @@ async function main(argv) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
 
-  const buf = await readFile(vectorsFile);
-  const vectors = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
+  const vectors = readVectors(await readFile(vectorsFile), vectorsFile);
   const all = JSON.parse(await readFile(questionsFile, "utf8"));
   const questions = all[lang];
   if (!questions) throw new Error(`no questions for language ${JSON.stringify(lang)}`);

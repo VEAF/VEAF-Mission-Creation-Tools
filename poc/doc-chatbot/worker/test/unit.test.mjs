@@ -7,7 +7,7 @@ import {
   parseChecks,
   KV_MISSING_SENTINEL,
 } from "../scripts/verify-index-upload.mjs";
-import { l2normalize, topScore, summarise, separation } from "../scripts/calibrate-floor.mjs";
+import { l2normalize, topScore, summarise, separation, readVectors } from "../scripts/calibrate-floor.mjs";
 import worker, {
   latestQuery,
   toGeminiContents,
@@ -806,4 +806,25 @@ test("separation counts the overlap when they do not part", () => {
   const s = separation([0.5, 0.8], [0.3, 0.6]);
   assert.equal(s.separable, false);
   assert.ok(s.overlap > 0, "an overlap must be counted, not rounded away");
+});
+
+test("separation refuses to judge an empty group instead of calling it separable", () => {
+  assert.throws(() => separation([0.5, 0.6], []), /undocumented group is empty/);
+  assert.throws(() => separation([], [0.2]), /documented group is empty/);
+  assert.throws(() => separation([], []), /documented and undocumented group is empty/);
+});
+
+test("a blob that is not a whole number of floats is refused, not rounded down", () => {
+  // Measured: `new Float32Array(buf.buffer, 0, 4098/4)` truncates to 1024 floats without a word.
+  assert.throws(() => readVectors(Buffer.alloc(4098)), /not a whole number of floats/);
+  assert.throws(() => readVectors(Buffer.alloc(0)), /is empty/);
+  assert.equal(readVectors(Buffer.alloc(8)).length, 2);
+});
+
+test("readVectors copes with a Buffer that is not 4-aligned", () => {
+  // Node pools small reads, so a Buffer's byteOffset can be anything; reinterpreting in place throws.
+  const pool = Buffer.alloc(16);
+  const misaligned = pool.subarray(2, 10);
+  assert.equal(misaligned.byteOffset % 4, 2, "the fixture must actually be misaligned");
+  assert.equal(readVectors(misaligned).length, 2);
 });

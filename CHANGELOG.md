@@ -17,6 +17,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Build validation now names the countries it reports instead of printing bare DCS ids: `les pays [68 (USSR)] …` rather than `les pays [68]`. Both lists are named — the missing countries and the ones already assigned — since choosing between adding a country to the side and re-assigning the objects means comparing them. The message also says to write the number alone, and names that second way out. Reported by a mission maker who could not tell what country `68` was and wondered whether his neutral static objects were the cause (they are never counted: the check reads one side at a time).
+- The documentation assistant no longer answers from passages that do not cover the question. Its retrieval kept its six best matches with no relevance floor, so every question — including ones the documentation does not cover at all — reached the model as six excerpts presented as the relevant documentation, which is how it came to invent a `mission.yaml` key that does not exist. Passages below a configurable similarity floor (`MIN_SIMILARITY`) are now dropped, an empty result makes the assistant say the documentation does not cover the question and point to the Discord, and the model is told that the excerpts are search results that may have missed.
+
 ### Changed
 
 - Documented a defect in the vendored DCS schema (`v0.3.5`): its `types["country.name"]` table is indexed by position rather than by country id, so 78 of its 92 countries carry the wrong name and id 92 has no entry. Country ids come from `dcs-countries.yaml`, which is correct and which every tool already uses, so no behaviour changes — but the schema is vendored to be consulted, and it was misleading readers. Reported upstream, and the schema's (correct) `country.id` table is now locked against ours by a test so a future pin bump cannot break it in silence.

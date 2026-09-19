@@ -18,6 +18,10 @@ import worker, {
   CLIENTS,
   MAX_EXCERPT_CHARS,
   DEGRADED_MAX_PER_WINDOW,
+  systemInstruction,
+  minSimilarity,
+  DEFAULT_MIN_SIMILARITY,
+  retrieveContext,
 } from "../src/index.js";
 
 /** A KV double: an in-memory map, or a store whose every operation throws (KV outage). */
@@ -576,4 +580,112 @@ test("fetch: /analyze streams the answer back as SSE, framed by the catalogue", 
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+// --- Relevance floor -------------------------------------------------------
+// A ranking-only retrieval always returns its top K, so "a passage was found" never meant "the
+// answer was found". The model was handed six confident-looking excerpts for a question the docs do
+// not cover and answered from them. These cover both halves of the remedy: the floor that drops
+// plainly unrelated passages, and the instruction that makes the model judge what survives.
+
+test("an out-of-range or unparseable similarity floor falls back to the default", () => {
+  assert.equal(minSimilarity({}), DEFAULT_MIN_SIMILARITY);
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "not a number" }), DEFAULT_MIN_SIMILARITY);
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "0" }), DEFAULT_MIN_SIMILARITY, "0 would disable it");
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "1" }), DEFAULT_MIN_SIMILARITY, "1 would gag it");
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "-0.5" }), DEFAULT_MIN_SIMILARITY);
+});
+
+test("a sane similarity floor is honoured", () => {
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "0.62" }), 0.62);
+});
+
+test("the default floor is low enough to be a floor, not a gag", () => {
+  assert.ok(DEFAULT_MIN_SIMILARITY > 0 && DEFAULT_MIN_SIMILARITY < 0.5);
+});
+
+test("with passages, the model is told the search may have missed", () => {
+  const instruction = systemInstruction("fr", "# Une page\n\ndu texte");
+  assert.ok(instruction.includes("du texte"), "the passages are still injected");
+  assert.match(instruction, /not a guaranteed answer/, "the excerpts are framed as best matches");
+  assert.match(instruction, /Never invent/, "inventing a setting or command is ruled out");
+  assert.match(instruction, /French/, "the reply language is still pinned");
+});
+
+test("with no passage, the model is forbidden to answer from its own knowledge", () => {
+  const instruction = systemInstruction("en", "");
+  assert.match(instruction, /found nothing relevant/);
+  assert.match(instruction, /Do NOT answer from your own knowledge/);
+  assert.match(instruction, /Discord/, "the visitor is sent somewhere a human can help");
+  assert.match(instruction, /English/);
+});
+
+// A missing index and a question outside the documentation must NOT look alike. Dropping passages
+// below the floor made an empty result ordinary, and that very nearly turned a broken deployment
+// into a polite "the documentation does not cover that" on every question, with nothing to alert
+// anyone. Each test uses its own `lang` key because the vector cache is module-level.
+
+/** Fake a Gemini embedding endpoint returning `vector`, and a KV holding the given index. */
+function retrievalEnv(lang, vector, texts = {}) {
+  const buf = new Float32Array(vector);
+  const values = { [`idx:vec:${lang}`]: buf.buffer, ...texts };
+  const store = new Map(Object.entries(values));
+  return {
+    GEMINI_API_KEY: "test-key",
+    CHAT_KV: { async get(key) { return store.get(key) ?? null; } },
+  };
+}
+
+function withFakeEmbedding(vector, fn) {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ embedding: { values: vector } }), { status: 200 });
+  return fn().finally(() => {
+    globalThis.fetch = realFetch;
+  });
+}
+
+test("vectors present but no text behind them is an error, not an empty answer", async () => {
+  // One indexed vector pointing the same way as the query: it scores 1.0 and clears any floor.
+  // Its text is absent from KV — a half-finished index upload.
+  const unit = new Array(768).fill(0);
+  unit[0] = 1;
+  await withFakeEmbedding(unit, async () => {
+    await assert.rejects(
+      () => retrieveContext(retrievalEnv("xa", unit), "xa", "anything"),
+      /no passages retrieved/,
+      "a broken index must surface, not read as 'not documented'",
+    );
+  });
+});
+
+test("a question unrelated to every passage yields an empty context rather than an error", async () => {
+  // The indexed vector is orthogonal to the query, so it scores 0 and cannot clear the floor.
+  const indexed = new Array(768).fill(0);
+  indexed[0] = 1;
+  const query = new Array(768).fill(0);
+  query[1] = 1;
+  await withFakeEmbedding(query, async () => {
+    const passages = await retrieveContext(
+      retrievalEnv("xb", indexed, { "idx:txt:xb:0": { title: "T", text: "body" } }),
+      "xb",
+      "something else entirely",
+    );
+    assert.equal(passages, "", "off-topic is an ordinary outcome the caller explains");
+    assert.match(systemInstruction("fr", passages), /found nothing relevant/);
+  });
+});
+
+test("a passage above the floor is still injected", async () => {
+  const unit = new Array(768).fill(0);
+  unit[0] = 1;
+  await withFakeEmbedding(unit, async () => {
+    const passages = await retrieveContext(
+      retrievalEnv("xc", unit, { "idx:txt:xc:0": { title: "Coalitions", text: "body" } }),
+      "xc",
+      "a matching question",
+    );
+    assert.match(passages, /Coalitions/);
+    assert.match(passages, /body/);
+  });
 });

@@ -1,6 +1,6 @@
 # 02 — Coalitions and countries — the reported case
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/build-messages/coalitions.md` + `.en.md`
 
@@ -31,8 +31,8 @@ Messages: `validate.side_missing_countries`, `validate.side_without_country`,
 
 ## Definition of done
 
-- [ ] Both languages, in the `nav` with `nav_translations`
-- [ ] One explicit anchor per message, derived from its locale key
-- [ ] The country table is generated from the repository's own data, not typed by hand
-- [ ] The neutral-statics false lead is addressed head on
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, in the `nav` with `nav_translations`
+- [x] One explicit anchor per message, derived from its locale key
+- [x] The country table is generated from the repository's own data, not typed by hand
+- [x] The neutral-statics false lead is addressed head on
+- [x] `poetry run docs-check` passes

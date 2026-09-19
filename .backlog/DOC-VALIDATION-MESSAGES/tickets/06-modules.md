@@ -1,6 +1,6 @@
 # 06 — Modules and community scripts
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/build-messages/modules.md` + `.en.md`
 
@@ -29,7 +29,7 @@ Messages: `builder.ctld_no_config`, `builder.ctld_no_config_by_default`,
 
 ## Definition of done
 
-- [ ] Both languages, in the `nav` with `nav_translations`
-- [ ] One explicit anchor per message, derived from its locale key
-- [ ] The opt-out default is stated once, up front, and linked from the messages that depend on it
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, in the `nav` with `nav_translations`
+- [x] One explicit anchor per message, derived from its locale key
+- [x] The opt-out default is stated once, up front, and linked from the messages that depend on it
+- [x] `poetry run docs-check` passes

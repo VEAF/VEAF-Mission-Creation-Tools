@@ -1,6 +1,6 @@
 # 07 — Re-measure, and ask the assistant the original question
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Type: chore
 
@@ -23,6 +23,7 @@ explicitly rather than reporting a check that was not run — and record what *w
 
 ## Definition of done
 
-- [ ] The new figure measured and written into the PRD
+- [x] The new figure measured and written into the PRD — **1 → 36**, both languages, with a
+      detector fixed to see a message quoted across wrapped lines
 - [ ] The assistant asked the coalition question, with the answer recorded — or the reason it could
       not be asked, with what was verified in its place

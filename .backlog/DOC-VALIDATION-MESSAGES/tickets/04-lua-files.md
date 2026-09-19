@@ -1,6 +1,6 @@
 # 04 — The Lua files in your mission folder
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/build-messages/lua-files.md` + `.en.md`
 
@@ -28,8 +28,8 @@ Messages: `builder.unexpected_lua_file`, `builder.generated_artifact_in_sources`
 
 ## Definition of done
 
-- [ ] Both languages, in the `nav` with `nav_translations`
-- [ ] One explicit anchor per message, derived from its locale key
-- [ ] The list of expected file names matches `_EXPECTED_SCRIPTS` and `GENERATED_LUA_ARTIFACTS`
-- [ ] Links to the existing custom-scripts card rather than re-teaching it
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, in the `nav` with `nav_translations`
+- [x] One explicit anchor per message, derived from its locale key
+- [x] The list of expected file names matches `_EXPECTED_SCRIPTS` and `GENERATED_LUA_ARTIFACTS`
+- [x] Links to the existing custom-scripts card rather than re-teaching it
+- [x] `poetry run docs-check` passes

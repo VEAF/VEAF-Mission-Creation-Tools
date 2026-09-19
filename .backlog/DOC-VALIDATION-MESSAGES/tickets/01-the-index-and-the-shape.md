@@ -1,6 +1,6 @@
 # 01 — The index page, and the shape the others follow
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/build-messages/README.md` + `.en.md`, `mkdocs.yml`
 
@@ -17,8 +17,8 @@ The page a mission maker lands on with a message in hand. It has to do three thi
 
 ## Definition of done
 
-- [ ] Both languages, in the `nav` with `nav_translations`
-- [ ] The table lists every message the lot covers, each linking to its explicit anchor
-- [ ] States plainly that the list is not exhaustive, and where to go otherwise
-- [ ] No version number written by hand; PowerShell examples use `.\veaf-tools.exe`
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, in the `nav` with `nav_translations`
+- [x] The table lists every message the lot covers, each linking to its explicit anchor
+- [x] States plainly that the list is not exhaustive, and where to go otherwise
+- [x] No version number written by hand; PowerShell examples use `.\veaf-tools.exe`
+- [x] `poetry run docs-check` passes

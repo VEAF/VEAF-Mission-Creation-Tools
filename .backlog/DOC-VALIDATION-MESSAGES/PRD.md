@@ -1,6 +1,6 @@
 # DOC-VALIDATION-MESSAGES — 96 of the 98 messages the tools print are documented nowhere
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 Opened 2026-09-19, out of [FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON](../FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON/PRD.md),
 which fixed one message and taught the assistant to admit ignorance. This lot is the reason it had to
@@ -90,14 +90,86 @@ have been in front of readers.
 support time goes — in the reported case, ruling out the mission maker's neutral statics took
 reading the validator.
 
+## Outcome — measured 1 → 36, and four messages that cannot be printed {#outcome}
+
+### The re-measurement, and why the opening figure moved
+
+The opening measurement's detector compared an **unbroken** message string against raw markdown.
+Documentation wraps at a hundred columns and quotes messages inside blockquotes, so a message
+quoted verbatim in a page would not have been detected at all. The detector was therefore fixed
+(whitespace normalised, blockquote markers stripped) and **both** states were measured with it:
+
+| | before (`origin/develop`) | after |
+|---|---|---|
+| `validate.*` / `builder.*` keys | 98 | 98 |
+| Documented, French | **1** | **36** |
+| Documented, English | **1** | **36** |
+
+The before figure is 1, not the PRD's 2: the original count added the French and the English hit of
+the *same* message, `builder.active_modules`. Nothing else was ever documented, in either language.
+
+36 rather than the 33 planned — a few messages (`builder.modules_conflict`,
+`builder.incompatible_modules`, `validate.presets_no_aircraft`…) are quoted in passing on a page
+that covers their family.
+
+### Four messages the tools cannot actually print
+
+Found while checking each message against its producer, which is the part of this work that had to
+happen anyway:
+
+| Key | Why it is dead |
+|---|---|
+| `builder.declared_group_missing` | Referenced nowhere; the build reports that situation through `validate.missing_group` |
+| `builder.orphan_lua_module` | Referenced nowhere (its twin `builder.orphan_pipeline_file` is live) |
+| `builder.injecting_scripts` | Referenced nowhere |
+| `builder.mandatory_community_kept` | Referenced, but behind `MANDATORY_COMMUNITY_SCRIPTS`, now an empty `frozenset` — the branch cannot be taken |
+
+None of them is documented here: documenting a message nobody can receive is worse than leaving it
+out. **Deleting the four keys is left out of this lot deliberately** — it is a code change in a
+documentation lot, and the fourth needs a decision (is MiST meant to be mandatory again, or is the
+empty set the intent?) that belongs with whoever owns the module list. Worth its own chore.
+
+Two other claims were corrected against the code rather than paraphrased from the message:
+
+- `builder.mandatory_module_enable` goes through `logger.error`, which raises `typer.Abort`, so it
+  **stops the build** — and it only fires on the expanded form carrying an `enable`/`enabled` key,
+  not on `UNITS: false`.
+- info-level messages are printed on a transient status line that immediately rewrites itself, so
+  they can scroll past unseen. Said on the index page and where it matters, since two of the CTLD
+  messages are info-level.
+
+### The assistant check — what was and was not done
+
+**Not done as specified, and the reason is concrete:** rebuilding the retrieval index needs a
+Gemini API key, which this workstation does not hold (`.dev.vars` absent, `GEMINI_API_KEY` unset).
+Asking the live assistant today would only measure the *old* index and prove nothing.
+
+What was verified instead, from here:
+
+1. **The index rebuild is automatic**, contrary to the caveat carried over from the previous lot —
+   that one is about the Worker *code*. `.github/workflows/docs-chatbot-index.yml` fires on a push
+   to `develop` touching `doc/**`, rebuilds the embeddings and upserts them into KV. So merging
+   this lot re-indexes the new pages without anyone doing anything.
+2. **The new folder is picked up**: `collectMarkdown` recurses into subdirectories.
+3. **The answer survives chunking**: the indexer's own `chunkMarkdown` (lifted verbatim from
+   `build-index.mjs` rather than re-implemented) splits `coalitions.md` into 7 chunks, and the three
+   passages that answer the reported question land in three of them — the message and the "not in
+   `mission.yaml`" correction in chunk 1, the neutral-statics rebuttal in chunk 2, the country table
+   in chunk 5. The retriever keeps the top 6, so none of them is out of reach.
+
+**Still to do once the index has rebuilt:** ask the assistant the coalition question and check the
+answer. That is one question, and it needs nothing but the live site.
+
 ## Definition of done
 
-- [ ] The shape above is decided and recorded here
-- [ ] The messages that generate real support traffic are documented, FR **and** EN, in the `nav`,
+- [x] The shape above is decided and recorded here
+- [x] The messages that generate real support traffic are documented, FR **and** EN, in the `nav`,
       with explicit English anchors (`{#...}`) per the repository's documentation rules
-- [ ] Each page says what the message means in Mission Editor terms, how to reproduce it, the ways
+- [x] Each page says what the message means in Mission Editor terms, how to reproduce it, the ways
       out, and what it is *not*
-- [ ] `poetry run docs-check` green
-- [ ] Re-measure the 2-of-98 figure at closing time and record the new one here
+- [x] `poetry run docs-check` green
+- [x] Re-measure the 2-of-98 figure at closing time and record the new one here
 - [ ] Spot-check that the documentation assistant now answers the reported coalition question
-      correctly, since grounding it was the point
+      correctly, since grounding it was the point — **the one item left**, and the only reason
+      this lot is 🧑 rather than ✅. It needs the index CI rebuilds on merge; see the outcome
+      section for what was verified in its place

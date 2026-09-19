@@ -1,6 +1,6 @@
 # 03 — References to things the Mission Editor does not have
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/build-messages/missing-references.md` + `.en.md`
 
@@ -32,7 +32,7 @@ Messages: `builder.reference_issues_header`, `validate.missing_group` /
 
 ## Definition of done
 
-- [ ] Both languages, in the `nav` with `nav_translations`
-- [ ] One explicit anchor per message, derived from its locale key
-- [ ] The checked `mission.yaml` sections are listed, matching `group_validation.py`
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, in the `nav` with `nav_translations`
+- [x] One explicit anchor per message, derived from its locale key
+- [x] The checked `mission.yaml` sections are listed, matching `group_validation.py`
+- [x] `poetry run docs-check` passes

@@ -1,6 +1,6 @@
 # 05 — Routes DCS refuses, and holed mission tables
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: docs · Files: `doc/mission-maker/build-messages/routes-and-tables.md` + `.en.md`
 
@@ -28,7 +28,7 @@ Messages: `validate.route_no_locked_time`, `validate.route_contradictory_locks`,
 
 ## Definition of done
 
-- [ ] Both languages, in the `nav` with `nav_translations`
-- [ ] One explicit anchor per message, derived from its locale key
-- [ ] The lock rule is stated as the editor's checkboxes, not as `ETA_locked` / `speed_locked` alone
-- [ ] `poetry run docs-check` passes
+- [x] Both languages, in the `nav` with `nav_translations`
+- [x] One explicit anchor per message, derived from its locale key
+- [x] The lock rule is stated as the editor's checkboxes, not as `ETA_locked` / `speed_locked` alone
+- [x] `poetry run docs-check` passes

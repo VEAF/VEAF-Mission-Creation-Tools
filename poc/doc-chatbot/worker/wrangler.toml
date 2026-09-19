@@ -22,6 +22,26 @@ compatibility_date = "2025-01-01"
 #   npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
 #   npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json
 #   npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
+# Retrieval similarity floor. Measured 2026-09-19 against the live index, 24 questions per language
+# (`scripts/calibrate-floor.mjs`, run by the chatbot-floor-calibration workflow):
+#
+#            documented           undocumented
+#   fr       0.694 – 0.846        0.605 – 0.736     clouds OVERLAP
+#   en       0.750 – 0.831        0.578 – 0.724     clouds separate
+#
+# Two things that measurement settled. First, the shipped default of 0.35 was a **no-op**: nothing
+# scored below 0.578, so it never filtered anything. Second, no floor can separate the two in
+# French — an undocumented question reaches 0.736 while a documented one drops to 0.694.
+#
+# So 0.6: comfortably below every documented question measured (0.09 under the French minimum), and
+# above the genuinely unrelated tail. It is deliberately modest. Real questions are worded worse
+# than the ones in the calibration set and will score lower, and of the two mistakes only one is
+# invisible — a floor too high gags a documented question and reads exactly like missing
+# documentation. What actually lets the assistant decline is the model judging the excerpts (#966),
+# not this number.
+[vars]
+MIN_SIMILARITY = "0.6"
+
 [[kv_namespaces]]
 binding = "CHAT_KV"
 id = "9599c6c3af6649b291ed8fdc26545dce"

@@ -1,6 +1,6 @@
 # 02 — Put a measured number under the floor
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat · Files: `poc/doc-chatbot/worker/scripts/calibrate-floor.mjs`, its questions file,
 `.github/workflows/docs-chatbot-index.yml` (or its own), `wrangler.toml`
@@ -43,7 +43,7 @@ Record the numbers in the PRD, including the overlap if there is one. If the clo
 
 ## Definition of done
 
-- [ ] A script that reproduces the Worker's retrieval scoring, with unit tests on the maths
-- [ ] At least a dozen questions each way, in both languages, in a file that can be added to
-- [ ] Run against the **live** index, and the per-question scores recorded in the PRD
-- [ ] A value chosen and version-controlled, or the default kept with the reason written down
+- [x] A script that reproduces the Worker's retrieval scoring, with unit tests on the maths
+- [x] At least a dozen questions each way, in both languages, in a file that can be added to
+- [x] Run against the **live** index, and the per-question scores recorded in the PRD
+- [x] A value chosen and version-controlled, or the default kept with the reason written down

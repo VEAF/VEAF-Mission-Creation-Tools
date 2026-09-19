@@ -115,11 +115,31 @@ not there **exits 0** and prints `Value not found` to stdout. `set -euo pipefail
 a redirect leaves a 16-byte file that reads like a value — so any check built on "did the command
 succeed" or "is the file non-empty" would have passed. Only the byte comparison catches it.
 
-## Still open, and not this lot {#still-open}
+## Still open, and not this lot — the Worker code {#still-open}
 
 The Worker **code** is deployed by hand (`npx wrangler deploy`); `chatbot-worker.yml` gates the code
-and does not ship it. So #966's similarity floor may still not be live. Same neighbourhood, separate
-question, and worth its own look.
+and does not ship it. Established 2026-09-19, so this needs no re-investigation:
+
+- **What is live is recent.** `POST /analyze` answers **403** (route known, admission refused) while
+  `POST /nope` answers **404**. That route only exists since #911 (2026-09-05), so the deployed
+  Worker is at least that new. The probe costs no Gemini quota — admission fails before the model.
+- **What is not live is #966**, and by construction rather than by inference: `worker/src/` has
+  exactly one commit since the previous deploy window — `87ce9257`, merged **today** — and nothing
+  deploys automatically. So the similarity floor and the "these excerpts are search results"
+  framing, the half of the original bug fix that makes the assistant able to decline, are still
+  sitting in the repository.
+- Consistent with a probe: asked something plainly off-topic, the live assistant declines in one
+  sentence without pointing at the Discord, where `emptyHandedInstruction` asks for two or three
+  sentences that do. Consistent, not decisive — the floor is deliberately low, so this alone would
+  not have settled it.
+
+**One command from the repository owner closes it**, from `poc/doc-chatbot/worker`. Worth deciding
+separately whether that deploy should be automated at all, given it is the second thing in this
+neighbourhood to be silently out of date.
+
+**And the calibration #966 deferred is now actually possible.** It asks for a dozen questions the
+documentation answers and a dozen it does not, to set `MIN_SIMILARITY` between the two clouds — but
+until this lot, that would have measured a six-week-old index, which is to say noise.
 
 ## Definition of done
 

@@ -488,19 +488,6 @@ def strip_native_load_triggers(dcs_mission: "DcsMission", labels: list[str]) -> 
     logger.info(tn("builder.stripped_native_triggers", len(indices_to_remove)))
 
 
-#: Community scripts that are hard dependencies of the VEAF scripts and are always injected,
-#: regardless of (or despite) the `modules:` entry. Disabling one is warned about and ignored.
-#:
-#: Empty since DROP-MIST ticket 08. It held only ``mist``, on the grounds that the VEAF scripts used
-#: it pervasively; they no longer call it at all, and neither does any community script we ship.
-#: MiST is now opt-in like TUM, and the builder turns it back on by itself for a mission whose own
-#: scripts call it — see ``mission_scripts_referencing_mist``.
-#:
-#: Kept rather than deleted because the mechanism below is the answer to "this dependency must be
-#: injected whatever the mission says", which is a thing that will be true again.
-MANDATORY_COMMUNITY_SCRIPTS: frozenset[str] = frozenset()
-
-
 def resolve_dynamic_mode(cli_override: bool | None, build_cfg: dict) -> bool:
     """Resolve the dynamic-loading flag (IMC2-008).
 
@@ -836,16 +823,6 @@ class MissionBuilderWorker(BaseWorker):
                     enabled = False
                 else:
                     enabled = bool(script_cfg)
-                if script_id in MANDATORY_COMMUNITY_SCRIPTS:
-                    # MiST is a hard dependency of the VEAF scripts — always inject it.
-                    # A bare `MIST:` (None) is the mandatory default form (kept silently);
-                    # an explicit disable is the user trying to turn it off → warn and keep.
-                    explicitly_disabled = script_cfg is False or (
-                        isinstance(script_cfg, dict) and script_cfg.get("enabled") is False
-                    )
-                    if explicitly_disabled:
-                        logger.warning(t("builder.mandatory_community_kept", id=script_id))
-                    enabled = True
                 if enabled:
                     self.enabled_community_script_ids.add(script_id)
                 else:
@@ -1353,11 +1330,15 @@ class MissionBuilderWorker(BaseWorker):
         defaults_folder: Path = (
             (self.scripts_path or (self.mission_folder / "published" / "src")) / "defaults" / "mission-folder"
         )
-        # Map default filenames to the pipeline/module that owns them so that we
-        # skip copying when the user has explicitly disabled the corresponding step.
-        # Keys are bare filenames (no directory).  Values are dicts with either
-        # "pipeline" (key in self.pipeline_cfg) or "lua_module" (key in
-        # self.mission_yaml["lua_modules"]).
+        # Map default filenames to the pipeline step that owns them so that we
+        # skip copying when the user has explicitly disabled it. Keys are bare
+        # filenames (no directory); values carry "pipeline", a key of
+        # self.pipeline_cfg.
+        #
+        # This used to promise a "lua_module" variant as well. No default file ever
+        # belonged to one, so the map never held such an entry and the loop below
+        # never read one — and its message went with the other unreachable keys
+        # (CHORE-DROP-DEAD-MESSAGE-KEYS).
         _DEFAULT_FILE_MODULE_MAP: dict[str, dict[str, str]] = {
             "spawnables.yaml": {"pipeline": "spawnable_aircrafts"},
             "dynamic-slot-templates.yaml": {"pipeline": "dynamic_slot_templates"},

@@ -115,6 +115,8 @@ A frozen copy (release `v0.3.5`) is vendored under `src/python/veaf-tools/veaf_l
 
 Updating this copy is an explicit bump commit (re-download the artifacts from a newer release). Drift-watch is handled by the VENDORED-DRIFT-WATCH lot.
 
+> **⚠️ Do not read country names from the schema.** The source of truth for country ids is `src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml` — it is what every tool uses, through `veaf_libs.dcs_countries`. In the vendored schema, the `types["country.name"]` table is wrong: DCS has no country at id 14, and that table renumbers its names across the hole, so **78 of the 92 countries carry the name of the one below them** and New Zealand (92) has vanished from it entirely. Measured against release `v0.3.5` on 2026-09-19 and reported upstream. The `types["country.id"]` table *is* correct, and `test/python/test_vendored_schema_country_ids.py` locks it against our own table so a future bump cannot break it in silence.
+
 ## Vendored third-party artifacts — drift watch
 
 We freeze (commit a copy of) several third-party artifacts: community Lua (`mist`, `CTLD`, `CSAR`, `AIEN`, `TheUniversalMission`, `Skynet`, `Hercules_Cargo`, `DCS-SimpleTextToSpeech`), the Python `luadata` lib, sounds, and the DCS schema above. The **`vendored.yaml`** manifest (repo root) is the single source of truth for every pin: per artifact it records the real `source` (established by **content comparison**, never by assuming a VEAF fork is the origin), the `upstream`, the `vendoring` mode (`verbatim` / `adapted` / `fork` / `compiled`), and the `manual_steps` to update it (a plain re-copy vs a fork-rebase / recompile).

@@ -115,6 +115,8 @@ Une copie figée (release `v0.3.5`) est vendorée sous `src/python/veaf-tools/ve
 
 Mettre à jour cette copie = un commit de bump explicite (re-télécharger les artefacts d'une release plus récente). La veille de dérive est gérée par le lot VENDORED-DRIFT-WATCH.
 
+> **⚠️ Ne pas lire les noms de pays dans le schéma.** La source de vérité des identifiants de pays est `src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml` (c'est elle qu'utilisent tous les outils, via `veaf_libs.dcs_countries`). Dans le schéma vendoré, la table `types["country.name"]` est fausse : DCS n'a aucun pays à l'identifiant 14, et cette table renumérote ses noms sans tenir compte du trou — **78 des 92 pays y portent le nom de leur voisin du dessous**, et la Nouvelle-Zélande (92) en a purement disparu. Mesuré sur la release `v0.3.5` le 2026-09-19, signalé en amont. La table `types["country.id"]`, elle, est correcte, et `test/python/test_vendored_schema_country_ids.py` la verrouille contre notre propre table pour qu'un futur bump ne puisse pas la casser en silence.
+
 ## Artefacts tiers vendorés — veille de dérive
 
 On fige (commit d'une copie) plusieurs artefacts tiers : Lua communautaire (`mist`, `CTLD`, `CSAR`, `AIEN`, `TheUniversalMission`, `Skynet`, `Hercules_Cargo`, `DCS-SimpleTextToSpeech`), la lib Python `luadata`, des sons, et le schéma DCS ci-dessus. Le manifeste **`vendored.yaml`** (racine du repo) est la source de vérité unique des pins : par artefact il enregistre la `source` réelle (établie par **comparaison de contenu**, jamais en supposant qu'un fork VEAF est l'origine), l'`upstream`, le mode `vendoring` (`verbatim` / `adapted` / `fork` / `compiled`), et les `manual_steps` pour mettre à jour (re-copie vs rebase de fork / recompilation).

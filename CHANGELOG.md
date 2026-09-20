@@ -17,6 +17,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.23.1] — 2026-09-20
+
+### Fixed
+
+- Build validation now names the countries it reports instead of printing bare DCS ids: `les pays [68 (USSR)] …` rather than `les pays [68]`. Both lists are named — the missing countries and the ones already assigned — since choosing between adding a country to the side and re-assigning the objects means comparing them. The message also says to write the number alone, and names that second way out. Reported by a mission maker who could not tell what country `68` was and wondered whether his neutral static objects were the cause (they are never counted: the check reads one side at a time).
+- The documentation assistant no longer answers from passages that do not cover the question. Its retrieval kept its six best matches with no relevance floor, so every question — including ones the documentation does not cover at all — reached the model as six excerpts presented as the relevant documentation, which is how it came to invent a `mission.yaml` key that does not exist. Passages below a configurable similarity floor (`MIN_SIMILARITY`) are now dropped, an empty result makes the assistant say the documentation does not cover the question and point to the Discord, and the model is told that the excerpts are search results that may have missed.
+- The documentation assistant was answering from an index frozen since early August. The workflow that rebuilds it ran green on every documentation change and uploaded nothing: `wrangler kv key put` and `kv bulk put` default to wrangler's **local** store, which in CI is a directory inside the runner, and they still print `Success!`. Wrangler 3 defaulted to remote, so the 2026-08-08 dependency bump changed the behaviour without changing the command. The uploads now pass `--remote`, and the job reads the index back out of the namespace and compares it with what it just built — a green run now means the bytes are there. Bracketed by probing the live assistant: it knew a page added 2026-08-05 and not one added 2026-08-31.
+- The documentation assistant's retrieval floor now has a measured value. It shipped at `0.35` saying in so many words that this was a guess; measured against the live index over 24 questions per language, it turns out **nothing scores below 0.578**, so that floor never filtered anything at all. Set to `0.6` — still modest, because no floor separates the two clouds in French (an undocumented question reaches 0.736 where a documented one drops to 0.694) and because gagging a documented question is the one mistake nobody can see. The value is now version-controlled in `wrangler.toml` instead of a dashboard setting, and the Worker is deployed by CI rather than by hand, which is what let #966 sit undeployed for a day.
+- Removed four messages the tools could never print: `builder.declared_group_missing`, `builder.orphan_lua_module` and `builder.injecting_scripts` were referenced nowhere, and `builder.mandatory_community_kept` sat behind a `frozenset` left empty when MiST became opt-in. The dead branch goes with it, along with an inner comment ("MiST is a hard dependency of the VEAF scripts") that had been contradicting the empty set beside it ever since. Found by checking each of the 98 build and validation messages against the code that emits it, while writing the Build messages documentation.
+
+### Changed
+
+- Documented a defect in the vendored DCS schema (`v0.3.5`): its `types["country.name"]` table is indexed by position rather than by country id, so 78 of its 92 countries carry the wrong name and id 92 has no entry. Country ids come from `dcs-countries.yaml`, which is correct and which every tool already uses, so no behaviour changes — but the schema is vendored to be consulted, and it was misleading readers. Reported upstream, and the schema's (correct) `country.id` table is now locked against ours by a test so a future pin bump cannot break it in silence.
+
+### Added
+
+- New documentation section **Build messages** (Mission Maker menu), in French and English: six pages covering the build and `validate` messages that actually cost somebody something — coalitions and countries, missing Mission-Editor references, the Lua files in your mission folder, routes and tables, and modules and community scripts. Each message says what it means in Mission Editor terms, how to reproduce it, the ways out and what it is *not*; the coalitions page carries the full DCS country id table. Measured before and after with the same detector: of the 98 messages the tools can print, **1** had its wording anywhere under `doc/`, now **36**. The remaining messages are deliberately left alone rather than given generated stubs.
+
 ## [6.23.0] — 2026-09-18
 
 ### Fixed

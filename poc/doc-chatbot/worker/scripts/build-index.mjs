@@ -221,8 +221,8 @@ async function main() {
     console.log(`  ${lang}: ${recs.length} vectors -> vec-${lang}.bin, txt-${lang}.json`);
   }
   console.log("\nNext — upload the index to KV (see wrangler.toml header), e.g.:");
-  console.log('  npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin');
-  console.log("  npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json");
+  console.log('  npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin');
+  console.log("  npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json");
 }
 
 // Run only when executed directly (not when imported by tests).

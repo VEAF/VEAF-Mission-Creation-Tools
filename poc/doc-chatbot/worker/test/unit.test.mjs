@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chunkMarkdown, MAX_CHARS } from "../scripts/build-index.mjs";
+import {
+  compareBytes,
+  lastBulkEntry,
+  parseChecks,
+  KV_MISSING_SENTINEL,
+} from "../scripts/verify-index-upload.mjs";
+import { l2normalize, topScore, summarise, separation, readVectors } from "../scripts/calibrate-floor.mjs";
 import worker, {
   latestQuery,
   toGeminiContents,
@@ -18,6 +25,10 @@ import worker, {
   CLIENTS,
   MAX_EXCERPT_CHARS,
   DEGRADED_MAX_PER_WINDOW,
+  systemInstruction,
+  minSimilarity,
+  DEFAULT_MIN_SIMILARITY,
+  retrieveContext,
 } from "../src/index.js";
 
 /** A KV double: an in-memory map, or a store whose every operation throws (KV outage). */
@@ -576,4 +587,244 @@ test("fetch: /analyze streams the answer back as SSE, framed by the catalogue", 
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+// --- Relevance floor -------------------------------------------------------
+// A ranking-only retrieval always returns its top K, so "a passage was found" never meant "the
+// answer was found". The model was handed six confident-looking excerpts for a question the docs do
+// not cover and answered from them. These cover both halves of the remedy: the floor that drops
+// plainly unrelated passages, and the instruction that makes the model judge what survives.
+
+test("an out-of-range or unparseable similarity floor falls back to the default", () => {
+  assert.equal(minSimilarity({}), DEFAULT_MIN_SIMILARITY);
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "not a number" }), DEFAULT_MIN_SIMILARITY);
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "0" }), DEFAULT_MIN_SIMILARITY, "0 would disable it");
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "1" }), DEFAULT_MIN_SIMILARITY, "1 would gag it");
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "-0.5" }), DEFAULT_MIN_SIMILARITY);
+});
+
+test("a sane similarity floor is honoured", () => {
+  assert.equal(minSimilarity({ MIN_SIMILARITY: "0.62" }), 0.62);
+});
+
+test("the default floor is low enough to be a floor, not a gag", () => {
+  assert.ok(DEFAULT_MIN_SIMILARITY > 0 && DEFAULT_MIN_SIMILARITY < 0.5);
+});
+
+test("with passages, the model is told the search may have missed", () => {
+  const instruction = systemInstruction("fr", "# Une page\n\ndu texte");
+  assert.ok(instruction.includes("du texte"), "the passages are still injected");
+  assert.match(instruction, /not a guaranteed answer/, "the excerpts are framed as best matches");
+  assert.match(instruction, /Never invent/, "inventing a setting or command is ruled out");
+  assert.match(instruction, /French/, "the reply language is still pinned");
+});
+
+test("with no passage, the model is forbidden to answer from its own knowledge", () => {
+  const instruction = systemInstruction("en", "");
+  assert.match(instruction, /found nothing relevant/);
+  assert.match(instruction, /Do NOT answer from your own knowledge/);
+  assert.match(instruction, /Discord/, "the visitor is sent somewhere a human can help");
+  assert.match(instruction, /English/);
+});
+
+// A missing index and a question outside the documentation must NOT look alike. Dropping passages
+// below the floor made an empty result ordinary, and that very nearly turned a broken deployment
+// into a polite "the documentation does not cover that" on every question, with nothing to alert
+// anyone. Each test uses its own `lang` key because the vector cache is module-level.
+
+/** Fake a Gemini embedding endpoint returning `vector`, and a KV holding the given index. */
+function retrievalEnv(lang, vector, texts = {}) {
+  const buf = new Float32Array(vector);
+  const values = { [`idx:vec:${lang}`]: buf.buffer, ...texts };
+  const store = new Map(Object.entries(values));
+  return {
+    GEMINI_API_KEY: "test-key",
+    CHAT_KV: { async get(key) { return store.get(key) ?? null; } },
+  };
+}
+
+function withFakeEmbedding(vector, fn) {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ embedding: { values: vector } }), { status: 200 });
+  return fn().finally(() => {
+    globalThis.fetch = realFetch;
+  });
+}
+
+test("vectors present but no text behind them is an error, not an empty answer", async () => {
+  // One indexed vector pointing the same way as the query: it scores 1.0 and clears any floor.
+  // Its text is absent from KV — a half-finished index upload.
+  const unit = new Array(768).fill(0);
+  unit[0] = 1;
+  await withFakeEmbedding(unit, async () => {
+    await assert.rejects(
+      () => retrieveContext(retrievalEnv("xa", unit), "xa", "anything"),
+      /no passages retrieved/,
+      "a broken index must surface, not read as 'not documented'",
+    );
+  });
+});
+
+test("a question unrelated to every passage yields an empty context rather than an error", async () => {
+  // The indexed vector is orthogonal to the query, so it scores 0 and cannot clear the floor.
+  const indexed = new Array(768).fill(0);
+  indexed[0] = 1;
+  const query = new Array(768).fill(0);
+  query[1] = 1;
+  await withFakeEmbedding(query, async () => {
+    const passages = await retrieveContext(
+      retrievalEnv("xb", indexed, { "idx:txt:xb:0": { title: "T", text: "body" } }),
+      "xb",
+      "something else entirely",
+    );
+    assert.equal(passages, "", "off-topic is an ordinary outcome the caller explains");
+    assert.match(systemInstruction("fr", passages), /found nothing relevant/);
+  });
+});
+
+test("a passage above the floor is still injected", async () => {
+  const unit = new Array(768).fill(0);
+  unit[0] = 1;
+  await withFakeEmbedding(unit, async () => {
+    const passages = await retrieveContext(
+      retrievalEnv("xc", unit, { "idx:txt:xc:0": { title: "Coalitions", text: "body" } }),
+      "xc",
+      "a matching question",
+    );
+    assert.match(passages, /Coalitions/);
+    assert.match(passages, /body/);
+  });
+});
+
+// ── verify-index-upload: a green run must mean the bytes are in the namespace ──
+// These cover the failure the upload step could not tell apart from success for six weeks:
+// it wrote to wrangler's local store, printed `Success!`, and the live index stayed frozen.
+
+test("a read-back that never happened is a problem, not a pass", () => {
+  assert.match(compareBytes("vectors (fr)", Buffer.from("abc"), null), /nothing came back/);
+});
+
+test("an empty read-back is a problem", () => {
+  assert.match(compareBytes("vectors (fr)", Buffer.from("abc"), Buffer.alloc(0)), /0 bytes/);
+});
+
+test("wrangler's missing-key output is recognised, not read as a value", () => {
+  // `kv key get` exits 0 and prints this to stdout for an absent key, so the shell cannot tell.
+  const problem = compareBytes("texts (fr)", Buffer.alloc(40), Buffer.from(`${KV_MISSING_SENTINEL}
+`));
+  assert.match(problem, /the key is not in the namespace/);
+  assert.doesNotMatch(problem, /older index/, "an absent key is not a stale index");
+});
+
+test("a stale index of a different size is named as stale", () => {
+  const problem = compareBytes("vectors (fr)", Buffer.alloc(40), Buffer.alloc(24));
+  assert.match(problem, /holds 24 bytes, the build produced 40/);
+  assert.match(problem, /older index is still in place/);
+});
+
+test("same length but different bytes still fails", () => {
+  const problem = compareBytes("vectors (fr)", Buffer.from([1, 2, 3]), Buffer.from([1, 2, 4]));
+  assert.match(problem, /different bytes/);
+});
+
+test("identical bytes are the only thing that passes", () => {
+  assert.equal(compareBytes("vectors (fr)", Buffer.from([1, 2, 3]), Buffer.from([1, 2, 3])), null);
+});
+
+test("the bulk entry checked is the last one, which a shorter stale index lacks", () => {
+  const bulk = JSON.stringify([
+    { key: "idx:txt:fr:0", value: "first" },
+    { key: "idx:txt:fr:1", value: "last" },
+  ]);
+  assert.deepEqual(lastBulkEntry(bulk), { key: "idx:txt:fr:1", value: "last" });
+});
+
+test("an empty bulk file is a build that produced nothing, and says so", () => {
+  assert.throws(() => lastBulkEntry("[]"), /nothing to upload/);
+});
+
+test("a bulk entry without a string key/value pair is rejected", () => {
+  assert.throws(() => lastBulkEntry(JSON.stringify([{ key: "k" }])), /string key\/value pair/);
+});
+
+test("the checks are parsed as triples, and a truncated one is refused", () => {
+  assert.deepEqual(parseChecks(["--vec", "fr", "a.bin", "b.bin"]), [
+    { kind: "--vec", lang: "fr", built: "a.bin", readBack: "b.bin" },
+  ]);
+  assert.throws(() => parseChecks(["--vec", "fr", "a.bin"]), /needs three values/);
+  assert.throws(() => parseChecks(["--oops", "fr", "a", "b"]), /expected --vec or --txt/);
+});
+
+test("asking for no check at all is refused rather than passing vacuously", () => {
+  assert.throws(() => parseChecks([]), /no checks requested/);
+});
+
+test("a triple cut short by the next flag is refused, not read as a file named --txt", () => {
+  assert.throws(
+    () => parseChecks(["--vec", "fr", "a.bin", "--txt", "fr", "b.json", "c.json"]),
+    /needs three values/,
+  );
+});
+
+// ── calibrate-floor: the maths the measurement rests on ──
+// A calibration that scores wrongly produces a number that looks just as authoritative, so the
+// parts that can be checked without the Gemini API are checked here.
+
+test("l2normalize gives a unit vector, and leaves a zero vector alone", () => {
+  const unit = l2normalize([3, 4]);
+  assert.ok(Math.abs(Math.hypot(unit[0], unit[1]) - 1) < 1e-6);
+  assert.deepEqual(Array.from(l2normalize([0, 0])), [0, 0]);
+});
+
+test("topScore is the cosine with the best chunk, not with the first or the last", () => {
+  const dims = 2;
+  // Three chunks: orthogonal, opposite, then a close match — the best must win from any position.
+  const vectors = Float32Array.from([0, 1, -1, 0, 1, 0]);
+  const query = l2normalize([1, 0]);
+  assert.ok(Math.abs(topScore(query, vectors, dims) - 1) < 1e-6);
+});
+
+test("a truncated index blob is refused rather than scored on garbage", () => {
+  // 5 floats cannot be whole 2-wide vectors: a half-downloaded file must not quietly score.
+  assert.throws(() => topScore(Float32Array.from([1, 0]), Float32Array.from([1, 0, 0, 1, 1]), 2), /not a multiple/);
+});
+
+test("summarise reports the range and the median", () => {
+  assert.deepEqual(summarise([0.4, 0.2, 0.6]), { n: 3, min: 0.2, median: 0.4, max: 0.6 });
+  assert.deepEqual(summarise([0.2, 0.4]), { n: 2, min: 0.2, median: 0.3, max: 0.4 });
+});
+
+test("separation says the clouds part when they do", () => {
+  const s = separation([0.7, 0.8], [0.3, 0.4]);
+  assert.equal(s.separable, true);
+  assert.equal(s.overlap, 0);
+});
+
+test("separation counts the overlap when they do not part", () => {
+  // One undocumented question scores above the weakest documented one.
+  const s = separation([0.5, 0.8], [0.3, 0.6]);
+  assert.equal(s.separable, false);
+  assert.ok(s.overlap > 0, "an overlap must be counted, not rounded away");
+});
+
+test("separation refuses to judge an empty group instead of calling it separable", () => {
+  assert.throws(() => separation([0.5, 0.6], []), /undocumented group is empty/);
+  assert.throws(() => separation([], [0.2]), /documented group is empty/);
+  assert.throws(() => separation([], []), /documented and undocumented group is empty/);
+});
+
+test("a blob that is not a whole number of floats is refused, not rounded down", () => {
+  // Measured: `new Float32Array(buf.buffer, 0, 4098/4)` truncates to 1024 floats without a word.
+  assert.throws(() => readVectors(Buffer.alloc(4098)), /not a whole number of floats/);
+  assert.throws(() => readVectors(Buffer.alloc(0)), /is empty/);
+  assert.equal(readVectors(Buffer.alloc(8)).length, 2);
+});
+
+test("readVectors copes with a Buffer that is not 4-aligned", () => {
+  // Node pools small reads, so a Buffer's byteOffset can be anything; reinterpreting in place throws.
+  const pool = Buffer.alloc(16);
+  const misaligned = pool.subarray(2, 10);
+  assert.equal(misaligned.byteOffset % 4, 2, "the fixture must actually be misaligned");
+  assert.equal(readVectors(misaligned).length, 2);
 });

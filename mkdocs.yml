@@ -89,6 +89,12 @@ plugins:
             Dynamic slots: Slots dynamiques
             Spawnable groups: Groupes spawnables
             Weather variants: Variantes météo
+            Build messages: Les messages du build
+            Coalitions and countries: Coalitions et pays
+            Missing references: Références manquantes
+            The Lua files in your folder: Les fichiers Lua du dossier
+            Routes and tables: Routes et tables
+            Modules and community scripts: Modules et scripts communautaires
             Migration Guide: Guide de Migration
             Scripts: Scripts
             Developer: Développeur
@@ -138,6 +144,13 @@ nav:
       - Dynamic slots: mission-maker/concepts/dynamic-slots.md
       - Spawnable groups: mission-maker/concepts/spawnables.md
       - Weather variants: mission-maker/concepts/weather-variants.md
+    - Build messages:
+      - Overview: mission-maker/build-messages/README.md
+      - Coalitions and countries: mission-maker/build-messages/coalitions.md
+      - Missing references: mission-maker/build-messages/missing-references.md
+      - The Lua files in your folder: mission-maker/build-messages/lua-files.md
+      - Routes and tables: mission-maker/build-messages/routes-and-tables.md
+      - Modules and community scripts: mission-maker/build-messages/modules.md
     - Guide: mission-maker/GUIDE.md
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
     - Adopt a third-party mission: mission-maker/CONVERT_OTHER.md

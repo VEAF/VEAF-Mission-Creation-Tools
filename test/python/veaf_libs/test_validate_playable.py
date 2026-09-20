@@ -119,6 +119,25 @@ class TestPartiallyAssignedSide:
         assert "5" in errors[0] and "80" in errors[0], f"the missing ids are what make it fixable: {errors[0]}"
         assert "coalitions.blue" in errors[0], f"the table to edit must be named: {errors[0]}"
 
+    def test_the_message_names_the_countries_rather_than_only_numbering_them(self) -> None:
+        """A bare id is a dead end: the reader has no table to resolve it against.
+
+        Reported by a mission maker who got `[68]`, could not tell what country that was, and asked
+        whether his neutral statics were to blame. Both lists are named, not just the missing one —
+        he has to compare them to decide whether to add the country or re-flag the object.
+        """
+        mission = _multi_country_mission(listed={1: 2}, owners=[2, 5, 80])
+        errors = _messages(validate_mission_content({}, mission), ERROR)
+        assert "5 (France)" in errors[0], f"the missing country must be named: {errors[0]}"
+        assert "80 (Combined Joint Task Forces Blue)" in errors[0], errors[0]
+        assert "2 (USA)" in errors[0], f"the countries already listed must be named too: {errors[0]}"
+
+    def test_an_id_dcs_does_not_know_is_still_shown(self) -> None:
+        """DCS has no country 14. Hiding it would drop the one datum that explains the mission."""
+        mission = _multi_country_mission(listed={1: 2}, owners=[2, 14])
+        errors = _messages(validate_mission_content({}, mission), ERROR)
+        assert "14" in errors[0], f"an unknown id is itself the finding: {errors[0]}"
+
     def test_a_fully_assigned_side_stays_silent(self) -> None:
         mission = _multi_country_mission(listed={1: 2, 2: 5, 3: 80}, owners=[2, 5, 80])
         assert _messages(validate_mission_content({}, mission), ERROR) == []

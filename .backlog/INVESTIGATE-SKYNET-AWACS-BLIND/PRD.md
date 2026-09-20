@@ -29,7 +29,15 @@ airborne ones saw none.
 An EWR that covers a site keeps that site **non-autonomous** — that is `setToCorrectAutonomousState`
 — whether or not it ever feeds it a contact. So a blind AWACS holds sixteen batteries under network
 control while contributing nothing to waking them. It is an amplifier of
-[FIX-SKYNET-DARK-SITE-WAKEUP](../FIX-SKYNET-DARK-SITE-WAKEUP/PRD.md), not a duplicate of it.
+the last line of defense (`FEAT-LAST-LINE-OF-DEFENSE` in [VEAF/Skynet-IADS](https://github.com/VEAF/Skynet-IADS)), not a duplicate of it.
+
+## Nobody upstream can help — this is ours
+
+Asked of Flogas on 2026-09-18: he has never seen it, and says it is pure VEAF. That fits the code.
+**Skynet never enrols an AWACS on its own** — upstream expects a mission author to add one
+explicitly. It is `veafSkynetIadsHelper.lua:1817` that makes every aircraft carrying the DCS `AWACS`
+attribute eligible, automatically, for its coalition's network. So the situation this lot
+investigates only exists in VEAF missions, and the investigation is entirely on us.
 
 ## Hypotheses to test, in order of cheapness
 

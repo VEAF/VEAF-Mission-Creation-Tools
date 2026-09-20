@@ -64,19 +64,45 @@ npx wrangler secret put GEMINI_API_KEY
 node scripts/build-index.mjs
 
 # Upload to KV:
-npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
-npx wrangler kv key  put --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
-npx wrangler kv bulk put --binding CHAT_KV --preview false txt-fr.json
-npx wrangler kv bulk put --binding CHAT_KV --preview false txt-en.json
+npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json
+npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
+
+# Prove it landed — reads the index back out of the namespace and compares it byte for byte:
+for lang in fr en; do
+  npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:vec:$lang" > "remote-vec-$lang.bin"
+  last=$(node scripts/verify-index-upload.mjs --print-last-key "txt-$lang.json")
+  npx wrangler kv key get --remote --binding CHAT_KV --preview false "$last" > "remote-txt-$lang.json"
+done
+node scripts/verify-index-upload.mjs \
+  --vec fr vec-fr.bin remote-vec-fr.bin --vec en vec-en.bin remote-vec-en.bin \
+  --txt fr txt-fr.json remote-txt-fr.json --txt en txt-en.json remote-txt-en.json
 ```
 
 Re-run these whenever the documentation changes (this is what the CI workflow automates).
 
+> **`--remote` is load-bearing.** Without it wrangler 4 writes to its local Miniflare store and
+> still prints `Success!`. That is how the live index sat frozen from 2026-08-08 to 2026-09-19 while
+> every CI run was green — the verification step above exists so it cannot happen again silently.
+
 ## Deploy the Worker
+
+**CI does this now.** A push to `develop` touching `poc/doc-chatbot/worker/**` runs the unit tests
+and, if they pass, deploys — see `.github/workflows/chatbot-worker.yml`. You should not need the
+command below.
+
+It is kept for a first deploy, a rollback, or a local account. Note that deploying by hand from a
+branch ships *that* branch's code to production:
 
 ```bash
 npx wrangler deploy
 ```
+
+> **Why CI does it.** Until 2026-09-19 the Worker was deployed by hand and the workflow only ran the
+> tests. A fix merged, green, in the repository could sit undeployed for weeks with nothing saying
+> so — which is exactly what happened to #966, while the assistant kept giving the answer that fix
+> had removed.
 
 Note the deployed URL (e.g. `https://veaf-docs-chatbot.<your-subdomain>.workers.dev`) and set
 `PROD_ENDPOINT` in `doc/assets/chatbot/veaf-chatbot-config.js`. That config is environment-aware
@@ -177,6 +203,33 @@ Secrets are set once per environment and are not part of a deploy:
 npx wrangler secret put GEMINI_API_KEY
 npx wrangler secret put DISCORD_CLIENT_SECRET   # only when the Discord bot lot ships
 ```
+
+### Tuning the relevance floor — `MIN_SIMILARITY`
+
+Retrieval ranks every indexed passage by cosine similarity and keeps the best ones. Ranking alone
+always yields results, however unrelated: on a question the documentation does not cover, the model
+used to receive six confident-looking excerpts and answer from them, because nothing told it the
+search had failed. `MIN_SIMILARITY` is the cosine floor under which a passage is dropped; when
+nothing clears it, the assistant is told the search found nothing and says so instead of answering.
+
+It is a plain Worker variable, not a secret, so it can be tuned without a redeploy of the source:
+
+```bash
+npx wrangler secret put MIN_SIMILARITY   # or set it as a var in the Cloudflare dashboard
+```
+
+**The shipped default (`0.35`) is a guard against the plainly off-topic, not a measured value.** A
+value outside `(0, 1)`, or one that does not parse, falls back to it rather than disabling the floor
+(`0`) or gagging the assistant (`1`).
+
+To calibrate it properly you need the Gemini key: ask a dozen questions the documentation *does*
+answer and a dozen it does not, record the top similarity of each, and set the floor between the two
+clouds. Raise it carefully — a floor set too high is worse than none, since it silences the
+assistant on questions it could have answered.
+
+Note that a floor is only half the remedy: a passage can clear any threshold and still not answer the
+question, which is why the system instruction also tells the model that the excerpts are search
+results that may have missed, and to decline rather than guess.
 
 ## State of the POC
 

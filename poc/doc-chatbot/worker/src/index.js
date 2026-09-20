@@ -34,6 +34,15 @@ const MODEL = "gemini-2.5-flash-lite";
 const EMBED_MODEL = "gemini-embedding-001";
 const EMBED_DIMS = 768; // embedding dimensionality (must match the index built by build-index.mjs)
 const TOP_K = 6; // passages retrieved per question
+
+// Cosine floor under which a passage is dropped rather than injected. Ranking alone always yields
+// TOP_K passages, however unrelated: on a question the documentation does not cover, the model used
+// to receive six confident-looking excerpts and answer from them, because nothing ever told it the
+// search had failed. This is a floor against the plainly off-topic, NOT an arbiter of relevance —
+// a passage can clear it and still not answer the question, which is why the system instruction
+// makes the model judge the excerpts too. Deliberately low, and not yet calibrated against the live
+// index: set MIN_SIMILARITY in the Worker environment to tune it without a redeploy of this file.
+const DEFAULT_MIN_SIMILARITY = 0.35;
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const MAX_HISTORY = 12; // trim very long conversations sent to the model
@@ -196,13 +205,42 @@ function upstreamErrorMessage(lang, status, detail) {
 /** Build the system instruction that frames the model as the VEAF docs assistant. */
 function systemInstruction(lang, passages) {
   const langName = lang === "en" ? "English" : "French";
+  if (!passages) return emptyHandedInstruction(langName);
   const guide =
     `You are the VEAF Mission Creation Tools documentation assistant. ` +
     `Answer ONLY using the documentation excerpts provided below. ` +
     `Always reply in ${langName} to match the user. ` +
-    `If the answer is not in the excerpts, say so plainly and point to the most relevant section. ` +
+    // The excerpts come from an automatic similarity search that returns its best matches whatever
+    // they are, so "an excerpt was found" never means "the answer is in it". Saying so is what lets
+    // the model decline: a mission maker asking what a build message means got a confident,
+    // invented answer built out of passages that merely shared its vocabulary.
+    `The excerpts are the best matches of an automatic search, not a guaranteed answer: they may ` +
+    `share the question's vocabulary while addressing something else entirely. Before answering, ` +
+    `check that they really cover what was asked. If they do not, say so plainly in one sentence, ` +
+    `do not guess, and point to the closest documented subject and to the VEAF Discord. ` +
+    `Never invent a file, a setting, a command or a procedure that is not in the excerpts. ` +
     `Be concise, use Markdown, and reference doc page titles when helpful.`;
   return `${guide}\n\n---\n\n${passages}`;
+}
+
+/**
+ * The instruction used when no passage cleared the similarity floor.
+ *
+ * Answering from an empty context is how an assistant invents; being told there is nothing is what
+ * lets it send the visitor somewhere useful instead.
+ *
+ * @param {string} langName `"English"` or `"French"`.
+ * @returns {string} A system instruction that forbids answering from knowledge.
+ */
+function emptyHandedInstruction(langName) {
+  return (
+    `You are the VEAF Mission Creation Tools documentation assistant. ` +
+    `A search of the documentation found nothing relevant to this question. ` +
+    `Reply in ${langName}, in two or three sentences: say plainly that the documentation does not ` +
+    `cover it, suggest rephrasing with the exact wording of the tool, and point to the VEAF ` +
+    `Discord for help from a human. Do NOT answer from your own knowledge of DCS or of these ` +
+    `tools, and do not invent a page, a setting or a command.`
+  );
 }
 
 function corsHeaders(origin) {
@@ -382,14 +420,41 @@ async function retrieveContext(env, lang, query) {
   }
   top.sort((a, b) => b.score - a.score);
 
+  // An index that ranks nothing is a broken deployment, not a question outside the documentation.
+  // The two must not be conflated: with the index missing, the assistant would otherwise answer
+  // "that is not documented" to every question in the world, politely, with nothing raising an
+  // alarm — the failure this function used to report by throwing.
+  if (!top.length) throw new Error("no vectors indexed");
+
+  const floor = minSimilarity(env);
+  const relevant = top.filter((m) => m.score >= floor);
+  // The one genuinely empty-handed case: passages exist, none of them is about this. The caller
+  // turns it into an answer that says so, rather than an error.
+  if (!relevant.length) return "";
+
   const texts = await Promise.all(
-    top.map((m) => env.CHAT_KV.get(`idx:txt:${lang}:${m.i}`, { type: "json" })),
+    relevant.map((m) => env.CHAT_KV.get(`idx:txt:${lang}:${m.i}`, { type: "json" })),
   );
   const passages = texts
     .filter(Boolean)
     .map((m) => `# ${m.title || m.path || ""}\n\n${m.text}`);
+  // Vectors ranked but no text behind any of them: the same broken deployment, one step later.
   if (!passages.length) throw new Error("no passages retrieved");
   return passages.join("\n\n---\n\n");
+}
+
+/**
+ * Read the similarity floor from the environment, falling back to the default.
+ *
+ * @param {object} env Worker bindings.
+ * @returns {number} The cosine floor to apply, clamped to a sane range.
+ */
+function minSimilarity(env) {
+  const raw = Number.parseFloat(env?.MIN_SIMILARITY);
+  // A misconfigured value must not silently gag the assistant (1.0 filters everything) nor disable
+  // the floor (0 keeps every passage): out-of-range and unparseable both fall back to the default.
+  if (!Number.isFinite(raw) || raw <= 0 || raw >= 1) return DEFAULT_MIN_SIMILARITY;
+  return raw;
 }
 
 /** Convert the widget message history into Gemini `contents`. */
@@ -694,6 +759,10 @@ export {
   CLIENTS,
   MAX_EXCERPT_CHARS,
   DEGRADED_MAX_PER_WINDOW,
+  systemInstruction,
+  minSimilarity,
+  DEFAULT_MIN_SIMILARITY,
+  retrieveContext,
 };
 
 export default {

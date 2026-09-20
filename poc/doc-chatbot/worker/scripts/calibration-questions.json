@@ -1,0 +1,75 @@
+{
+  "_comment": [
+    "Questions for scripts/calibrate-floor.mjs. Two groups per language: ones the documentation",
+    "answers, and ones it does not.",
+    "",
+    "The undocumented ones are deliberately NOT absurd. A floor calibrated against 'what is the",
+    "recipe for tarte tatin' would be set far too high, because the real problem is the question",
+    "that shares the documentation's vocabulary while being about something else: DCS itself, a",
+    "third-party tool, the association. Those are the ones that used to reach the model dressed as",
+    "'the relevant documentation'.",
+    "",
+    "Add to these rather than replacing them — a floor is only as good as the questions it was",
+    "measured against, and the set is more useful when it grows."
+  ],
+  "fr": {
+    "documented": [
+      "Comment déclarer un script personnalisé dans mission.yaml ?",
+      "Que veut dire le message disant que des pays ne figurent pas dans coalitions.red ?",
+      "Comment ouvrir un aérodrome aux slots dynamiques ?",
+      "À quoi sert la commande convert-v5 ?",
+      "Comment définir une variante météo de ma mission ?",
+      "Comment faire apparaître un groupe avec un marqueur sur la carte F10 ?",
+      "Pourquoi le build signale un fichier Lua inattendu dans src/scripts ?",
+      "Comment configurer une zone de combat activable à la demande ?",
+      "Comment donner les mêmes préréglages radio à toute une coalition ?",
+      "Où sont les journaux de DCS et comment les lire ?",
+      "Comment adopter une mission Foothold avec la moulinette ?",
+      "Que faire quand l'éditeur DCS refuse d'enregistrer une route ?"
+    ],
+    "undocumented": [
+      "Comment régler le pas d'hélice du Spitfire en montée ?",
+      "Quelle est la portée du radar du F-16 en mode RWS ?",
+      "Comment installer DCS World sous Linux avec Proton ?",
+      "Combien coûte le module Afghanistan ?",
+      "Comment configurer DCSServerBot pour un serveur dédié ?",
+      "Quelle est la procédure d'appontage sur le Charles de Gaulle ?",
+      "Comment régler TacView pour qu'il enregistre automatiquement ?",
+      "Quel est le calendrier des entraînements du VEAF ?",
+      "Comment changer la langue de l'interface de DCS ?",
+      "Peut-on utiliser VEAF MCT sur une console Xbox ?",
+      "Quelle est la vraie fréquence ATC de la base de Nellis ?",
+      "Comment mapper un joystick Virpil dans DCS ?"
+    ]
+  },
+  "en": {
+    "documented": [
+      "How do I declare a custom script in mission.yaml?",
+      "What does the message about countries missing from coalitions.red mean?",
+      "How do I open an airfield to dynamic slots?",
+      "What is the convert-v5 command for?",
+      "How do I define a weather variant of my mission?",
+      "How do I spawn a group from an F10 map marker?",
+      "Why does the build report an unexpected Lua file in src/scripts?",
+      "How do I set up a combat zone players can activate on demand?",
+      "How do I give a whole coalition the same radio presets?",
+      "Where are the DCS logs and how do I read them?",
+      "How do I adopt a Foothold mission with the moulinette?",
+      "What do I do when the DCS editor refuses to save a route?"
+    ],
+    "undocumented": [
+      "How do I set the Spitfire's propeller pitch during a climb?",
+      "What is the F-16 radar range in RWS mode?",
+      "How do I install DCS World on Linux with Proton?",
+      "How much does the Afghanistan module cost?",
+      "How do I configure DCSServerBot for a dedicated server?",
+      "What is the recovery procedure on the Charles de Gaulle?",
+      "How do I make TacView record automatically?",
+      "What is the VEAF training schedule?",
+      "How do I change the DCS interface language?",
+      "Can I use VEAF MCT on an Xbox console?",
+      "What is the real-world ATC frequency of Nellis air force base?",
+      "How do I map a Virpil joystick in DCS?"
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+name: Calibrate the chatbot similarity floor
+
+# Measures where `MIN_SIMILARITY` should sit, against the index **actually being served**.
+#
+# Manual on purpose (`workflow_dispatch`): this is a measurement, not a gate. It costs about one
+# embedding per question — some 24 per language, against a free-tier allowance of 1000 a day that
+# the index rebuild also draws on — and its output is a judgement for a human to make, not a number
+# to apply automatically.
+#
+# Needs the same two secrets as the index rebuild, plus the Gemini key:
+#   GEMINI_API_KEY        — embeddings, same model and dimensionality as the index and the Worker
+#   CLOUDFLARE_API_TOKEN  — KV read
+#   CLOUDFLARE_ACCOUNT_ID
+#
+# The vectors are pulled from KV rather than rebuilt locally, deliberately: the question is what the
+# live assistant scores, and "what is served" and "what the repository would build" are not the same
+# thing — see FIX-CHATBOT-INDEX-UPLOADS-LOCALLY, where they differed by six weeks.
+
+on:
+  workflow_dispatch:
+    inputs:
+      lang:
+        description: "Language to calibrate (fr, en, or both)"
+        required: false
+        default: "both"
+        type: choice
+        options: ["both", "fr", "en"]
+
+concurrency:
+  group: chatbot-floor-calibration
+  cancel-in-progress: false
+
+jobs:
+  calibrate:
+    name: Score the questions against the live index
+    runs-on: ubuntu-latest
+    if: github.repository == 'VEAF/VEAF-Mission-Creation-Tools'
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: poc/doc-chatbot/worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch the live index and score the questions
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LANGS: ${{ inputs.lang }}
+        run: |
+          set -euo pipefail
+          if [ "$LANGS" = "both" ]; then langs="fr en"; else langs="$LANGS"; fi
+          for lang in $langs; do
+            npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:vec:$lang" \
+              > "vec-$lang.bin"
+            # A missing key does not fail the command — it prints "Value not found" and exits 0
+            # (measured 2026-09-19). Scoring that as an index would produce a confident wrong floor.
+            if [ "$(head -c 15 "vec-$lang.bin")" = "Value not found" ]; then
+              echo "::error::idx:vec:$lang is not in the namespace — nothing to calibrate against."
+              exit 1
+            fi
+            # Its own pipeline, so a failure is the pipeline's failure. Wrapping it in a `{ … }`
+            # group that ends on an `echo` would hand the group that `echo`'s exit status instead,
+            # and a spent Gemini key would leave a green step with an empty report — which is the
+            # very defect this whole neighbourhood was fixed for. Measured, not assumed:
+            # `{ echo; false; echo; } | tee` survives under `set -euo pipefail`.
+            node scripts/calibrate-floor.mjs --lang "$lang" --vectors "vec-$lang.bin" \
+              | tee "report-$lang.txt"
+            {
+              echo "## Floor calibration — \`$lang\`"
+              echo ""
+              echo '```'
+              cat "report-$lang.txt"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done

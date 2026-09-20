@@ -1,6 +1,6 @@
 # CHORE-DROP-DEAD-MESSAGE-KEYS — four messages the tools cannot print
 
-Status: 🔄 in-progress
+Status: ✅ done — merged as #970
 
 Opened 2026-09-19, out of [DOC-VALIDATION-MESSAGES](../DOC-VALIDATION-MESSAGES/PRD.md), which found
 them by checking each of the 98 `validate.*` / `builder.*` messages against the code that emits it —
@@ -51,6 +51,6 @@ much larger job than this one.
 
 ## Definition of done
 
-- [ ] The four keys gone from **both** locale files, which stay in step
-- [ ] The dead branch, its constant and its stale comment gone
-- [ ] `poetry run pytest`, ruff check + format, mypy clean
+- [x] The four keys gone from **both** locale files, which stay in step
+- [x] The dead branch, its constant and its stale comment gone
+- [x] `poetry run pytest`, ruff check + format, mypy clean

@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.23.1] — 2026-09-20
+
 ### Fixed
 
 - Build validation now names the countries it reports instead of printing bare DCS ids: `les pays [68 (USSR)] …` rather than `les pays [68]`. Both lists are named — the missing countries and the ones already assigned — since choosing between adding a country to the side and re-assigning the objects means comparing them. The message also says to write the number alone, and names that second way out. Reported by a mission maker who could not tell what country `68` was and wondered whether his neutral static objects were the cause (they are never counted: the check reads one side at a time).

@@ -1,77 +1,85 @@
-# VEAF Mission Creation Tools — 6.23.0
+# VEAF Mission Creation Tools — 6.23.1
 
-**Tout ce qui est corrigé ici a été signalé en vol.** Pas un audit, pas un nettoyage de fond : des
-pilotes et des mission makers ont vu quelque chose d'anormal, l'ont remonté, et voilà les
-correctifs. Le moteur CTLD passe de la **2.0.0-rc9** à la **2.0.0-rc11**, et l'outil de lecture des
-logs redevient téléchargeable.
+**Cette version ne change rien à vos missions — elle change ce que les outils vous expliquent.**
 
-**Si vous avez une mission en service, reconstruisez-la avec cette version** : c'est tout ce qu'il y
-a à faire.
+**Merci à Tripack**, dont le retour est à l'origine de tout ce qui suit. Il a construit sa mission et
+reçu ceci :
 
----
+> Camp 'red' : les pays **[68]** possèdent des unités mais ne figurent pas dans coalitions.red
 
-## 🚁 CTLD — cinq correctifs, tous venus du terrain
+Il n'avait aucun moyen de savoir que 68 est l'URSS. Il a supposé que ses objets statiques neutres
+étaient en cause — ils ne l'étaient pas — et a fini par demander à l'assistant de documentation, qui
+lui a conseillé de modifier une clé que `mission.yaml` ne contient pas.
 
-### Le menu F10 déclenchait la mauvaise commande
+Trois choses étaient cassées d'un coup : le message ne donnait pas de quoi agir, la documentation ne
+disait rien de ce cas, et l'assistant inventait plutôt que d'admettre qu'il ne savait pas. Tout ce
+qui suit vient de là.
 
-Un C-130 posé sur une zone de ramassage demande « Load Standard Group »… et lâche un fumigène rouge.
-Le menu CTLD se reconstruit entièrement à chaque rafraîchissement, et quand un rafraîchissement de
-fond tombait pendant que vous naviguiez dans le menu, votre clic suivant tombait sur l'arborescence
-reconstruite. Les rafraîchissements de fond attendent désormais que vous ayez fini.
+C'est le genre de retour qui vaut de l'or : signaler qu'un message est incompréhensible est beaucoup
+plus utile qu'on ne le croit, et personne d'autre que celui qui le reçoit ne peut le dire.
 
-### Une caisse HAWK ou Patriot restait indéfiniment dans « Unpack »
-
-Après avoir assemblé un système HAWK, le menu continuait d'annoncer une caisse disponible. Cliquer
-dessus échouait à chaque fois, sans jamais nettoyer l'entrée. Les caisses réellement consommées par
-l'assemblage disparaissent maintenant, y compris celles dont le système n'a théoriquement pas besoin.
-
-### Changer de slot ou de coalition laissait une erreur et un menu fantôme
-
-Le symptôme visible était dans le `dcs.log` :
-
-```
-CTLDDCSEventBridge:onEvent handler error [onPlayerLeaveUnit / eventId=21]:
-attempt to call method 'getName' (a nil value)
-```
-
-À chaque changement de slot ou de coalition. Derrière cette ligne, le nettoyage du joueur partant ne
-se faisait pas : il restait enregistré et son menu CTLD n'était jamais démonté. Les appareils à
-équipage multiple en souffraient le plus — leur menu n'était plus jamais démonté du tout.
-
-### Un rafraîchissement annulé pouvait retomber sur le joueur suivant
-
-DCS réutilise les identifiants de groupe. Un rafraîchissement de menu annulé au départ d'un joueur
-pouvait encore se déclencher chez celui qui reprenait le même slot, dans sa première seconde de vol.
-
-### Les pilotes non-transport retrouvent ce qui les concerne
-
-La reconnaissance CTLD est utilisable par **n'importe quel pilote**, avion de chasse compris. Or un
-pilote sans capacité de transport pouvait se retrouver sans aucun menu CTLD, donc sans reconnaissance.
-
-Désormais son menu contient **RECON**, **Smoke**, **List Beacons**, **JTAC Status** et **FOBs List** ;
-il n'a plus **Check Cargo**, qui ne pouvait de toute façon lui répondre que « rien à bord ».
-Les commandes de transport — troupes, caisses, véhicules, pose de balises — restent réservées aux
-appareils qui transportent.
-
-**Un point d'attention si votre mission utilise `addPlayerAircraftByType: false`** pour réserver CTLD
-à une liste de slots nommés : ces pilotes-là voient maintenant apparaître ce menu réduit. Le réglage
-continue de faire ce pour quoi il existe — réserver le **transport** à votre liste — mais il ne masque
-plus les fonctions qui n'ont rien à voir avec le transport. Si vous teniez à ne rien afficher du tout,
-chaque fonction garde son propre interrupteur : `reconF10Menu`, `enableSmokeDrop`,
-`enabledRadioBeaconDrop`, `JTAC_jtacStatusF10`.
-
-Aucun autre réglage ne change, et votre `ctld-config.yaml` n'a pas besoin d'être retouché.
+> **Aucun script Lua n'a changé.** Rien ne se comporte différemment en vol. Reconstruire vos missions
+> avec cette version est utile, mais rien ne presse.
 
 ---
 
-## 📥 `veaf-logs.exe` est de nouveau téléchargeable
+## 📖 Une nouvelle section de documentation : « Les messages du build »
 
-L'outil de lecture des logs existe depuis la **6.18.0**, mais il n'était présent que sur les pages de
-version, jamais sur la page « Latest » vers laquelle pointent tous les liens de téléchargement.
-Autrement dit : disponible sur le papier, introuvable en pratique pendant quatre versions.
+La question la plus fréquente que reçoit le projet est *« le build a affiché ça, je fais quoi ? »*.
+Les outils peuvent afficher une centaine de messages différents ; **un seul** avait son texte quelque
+part dans la documentation.
 
-Il est là, et un contrôle automatique vérifie désormais **chaque** fichier publié, pour que le
-prochain outil ajouté ne disparaisse pas de la même façon.
+Six pages neuves, en français et en anglais, dans le menu **Créateur de Mission** :
+
+| Page | Ce qu'elle couvre |
+|---|---|
+| **Coalitions et pays** | l'écran *CHANGING COALITIONS*, et la table complète des pays DCS |
+| **Références manquantes** | un groupe, une zone, une unité ou un aérodrome que `mission.yaml` nomme et que la mission n'a pas |
+| **Les fichiers Lua du dossier** | pourquoi le build parle d'un `.lua` « inattendu » dans `src/scripts/` — page née d'un autre signalement de Tripack |
+| **Routes et tables** | les routes que l'éditeur DCS refuse d'enregistrer, et les tables trouées |
+| **Modules et scripts communautaires** | CTLD, TUM, profils de conversion, sections dépréciées |
+
+Chaque message y est traité de la même façon : **ce qu'il veut dire dans l'éditeur DCS**, comment
+retrouver la situation, les issues possibles avec leur compromis — et surtout **ce qu'il ne veut
+pas dire**, parce que c'est là que part le temps.
+
+La page d'accueil de la section répond d'abord à la question que tout le monde se pose : *est-ce que
+le build a échoué ?* La réponse est presque toujours non, et un message jaune ne vous empêche pas de
+voler.
+
+---
+
+## 🔢 Les messages nomment les pays au lieu de vous donner un numéro
+
+Le message d'origine devient :
+
+> Camp 'red' : les pays **[68 (USSR)]** possèdent des unités mais ne figurent pas dans
+> coalitions.red (**[0 (Russia), 81 (Combined Joint Task Forces Red)]**)
+
+**Les deux listes** sont nommées, pas seulement celle qui manque : choisir entre *ajouter le pays au
+camp* et *réaffecter les objets à un pays déjà présent* suppose de comparer les deux. Le message
+précise aussi d'écrire **le nombre seul** — `68`, jamais `68 (USSR)`.
+
+Un identifiant que DCS ne connaît pas reste affiché tel quel, sans nom. C'est déjà une information :
+la mission contient un pays qui n'existe pas dans cette version du jeu.
+
+---
+
+## 🤖 L'assistant de documentation sait dire qu'il ne sait pas
+
+Il répondait à partir de ses six meilleurs résultats de recherche, **sans aucun seuil de
+pertinence**. Quelle que soit la question — y compris hors sujet — six extraits lui arrivaient
+présentés comme « la documentation pertinente », avec la consigne de répondre à partir d'eux. La
+consigne « si la réponse n'y est pas, dis-le » ne pouvait pas s'appliquer : rien ne lui signalait
+jamais que les extraits étaient mauvais.
+
+Désormais il écarte les passages trop éloignés, on lui dit que les extraits sont des résultats de
+recherche qui peuvent avoir manqué leur cible, et il vous renvoie vers le Discord plutôt que
+d'inventer.
+
+**Et il répondait depuis un index figé début août.** Le mécanisme qui le reconstruit signalait un
+succès à chaque passage sans jamais rien envoyer : six semaines de documentation lui étaient
+invisibles. C'est réparé, et le mécanisme vérifie maintenant ce qu'il a écrit au lieu de l'annoncer.
 
 ---
 
@@ -80,4 +88,13 @@ prochain outil ajouté ne disparaisse pas de la même façon.
 1. Téléchargez `veaf-tools.exe` ci-dessous.
 2. Reconstruisez vos missions.
 
-Rien d'autre : pas de migration, pas de changement de configuration.
+Rien d'autre : pas de migration, pas de changement de configuration, et aucun réglage à revoir.
+
+---
+
+## Un message vous laisse perplexe ?
+
+Dites-le. Les six pages ci-dessus existent parce que quelqu'un a signalé qu'il ne comprenait pas ce
+qu'on lui affichait — et il reste une bonne soixantaine de messages que la documentation ne couvre
+pas encore. Le canal `#support` du [Discord VEAF](https://www.veaf.org/discord) est le plus rapide,
+et la commande `/ask` y cherche dans ces pages.

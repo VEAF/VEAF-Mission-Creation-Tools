@@ -2,7 +2,9 @@
 
 Status: ✅ done — merged as #966
 
-Opened 2026-09-19 from a real support exchange. A mission maker hit this on a build:
+Opened 2026-09-19 from a real support exchange. **Tripack** hit this on a build (named here
+2026-09-20, when the 6.23.1 release notes credited him — the repository had only ever said
+"a mission maker"):
 
 > Camp 'red' : les pays **[68]** possèdent des unités mais ne figurent pas dans coalitions.red
 > ([0, 18, 19, 24, 27, 34, 37, 38, 43, 47, 81]) […]

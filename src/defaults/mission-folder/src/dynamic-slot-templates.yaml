@@ -4563,6 +4563,123 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        F-15E S4+ Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 432
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: F-15E S4+ Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: F-15E S4+ Template Red
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                      1:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 1
+                        params:
+                          action:
+                            id: EPLRS
+                            params:
+                              groupId: 14
+                              value: true
+                      2:
+                        auto: true
+                        enabled: true
+                        id: WrappedAction
+                        number: 2
+                        params:
+                          action:
+                            id: Option
+                            params:
+                              name: 35
+                              value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                HumanOrchestra: false
+                IFF_M2_CODE: auto
+                InitAirborneTime: 0
+                InitAlertStatus: false
+                LCFTLaserCode: 611
+                MountNVG: false
+                NetCrewControlPriority: 0
+                RCFTLaserCode: 611
+                SoloFlight: false
+                Sta2LaserCode: 611
+                Sta5LaserCode: 611
+                Sta8LaserCode: 611
+                needsGCAlign: false
+              alt: 2000
+              alt_type: BARO
+              callsign: 100
+              heading: 0
+              name: 'F-15E S4+ Template Red #01'
+              onboard_num: 085
+              payload:
+                ammo_type: 1
+                chaff: 120
+                flare: 60
+                fuel: 10245.529841878
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+                  2:
+                    CLSID: '{F15E_EXTTANK}'
+                  3:
+                    CLSID: '{6CEB49FC-DED8-4DED-B053-E1F033FF72D3}'
+                  4:
+                    CLSID: '{CFT_L_CBU_87_x_3}'
+                  7:
+                    CLSID: '{F-15E_AAQ-14_LANTIRN}'
+                  8:
+                    CLSID: '{5335D97A-35A5-4643-9D9B-026C75961E52}'
+                  9:
+                    CLSID: '{F-15E_AAQ-13_LANTIRN}'
+                  12:
+                    CLSID: '{CFT_R_GBU_12_x_4}'
+                  13:
+                    CLSID: '{6CEB49FC-DED8-4DED-B053-E1F033FF72D3}'
+                  14:
+                    CLSID: '{F15E_EXTTANK}'
+                  15:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+              psi: 0
+              skill: Client
+              speed: 138.88888888889
+              type: F-15ESE
+              unitId: 482
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         F-16CM Template Red:
           communication: true
           dynSpawnTemplate: true
@@ -7364,124 +7481,6 @@ airplanes:
               y: 0
           x: 0
           y: 0
-      Russia:
-        F-15E S4+ Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 243
-          groupId: 432
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: F-15E S4+ Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 2000
-                alt_type: BARO
-                formation_template: ''
-                name: F-15E S4+ Template Red
-                speed: 138.88888888889
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 14
-                              value: true
-                      2:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 2
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                HumanOrchestra: false
-                IFF_M2_CODE: auto
-                InitAirborneTime: 0
-                InitAlertStatus: false
-                LCFTLaserCode: 611
-                MountNVG: false
-                NetCrewControlPriority: 0
-                RCFTLaserCode: 611
-                SoloFlight: false
-                Sta2LaserCode: 611
-                Sta5LaserCode: 611
-                Sta8LaserCode: 611
-                needsGCAlign: false
-              alt: 2000
-              alt_type: BARO
-              callsign: 100
-              heading: 0
-              name: 'F-15E S4+ Template Red #01'
-              onboard_num: 085
-              payload:
-                ammo_type: 1
-                chaff: 120
-                flare: 60
-                fuel: 10245.529841878
-                gun: 100
-                pylons:
-                  1:
-                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
-                  2:
-                    CLSID: '{F15E_EXTTANK}'
-                  3:
-                    CLSID: '{6CEB49FC-DED8-4DED-B053-E1F033FF72D3}'
-                  4:
-                    CLSID: '{CFT_L_CBU_87_x_3}'
-                  7:
-                    CLSID: '{F-15E_AAQ-14_LANTIRN}'
-                  8:
-                    CLSID: '{5335D97A-35A5-4643-9D9B-026C75961E52}'
-                  9:
-                    CLSID: '{F-15E_AAQ-13_LANTIRN}'
-                  12:
-                    CLSID: '{CFT_R_GBU_12_x_4}'
-                  13:
-                    CLSID: '{6CEB49FC-DED8-4DED-B053-E1F033FF72D3}'
-                  14:
-                    CLSID: '{F15E_EXTTANK}'
-                  15:
-                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
-              psi: 0
-              skill: Client
-              speed: 138.88888888889
-              type: F-15ESE
-              unitId: 482
-              x: 0
-              y: 0
-          x: 0
-          y: 0
 helicopters:
   coalitions:
     blue:
@@ -7721,7 +7720,7 @@ helicopters:
               y: 0
           x: 0
           y: 0
-        CH-47F Template-1:
+        CH-47F Template:
           communication: true
           dynSpawnTemplate: true
           frequency: 251
@@ -7729,7 +7728,7 @@ helicopters:
           hidden: true
           lateActivation: true
           modulation: 0
-          name: CH-47F Template-1
+          name: CH-47F Template
           radioSet: false
           route:
             points:
@@ -7769,7 +7768,7 @@ helicopters:
                 3: 3
               heading: 0.68067840827779
               livery_id: us army standard
-              name: 'CH-47F Template-1 #01'
+              name: 'CH-47F Template #01'
               onboard_num: '032'
               payload:
                 chaff: 120

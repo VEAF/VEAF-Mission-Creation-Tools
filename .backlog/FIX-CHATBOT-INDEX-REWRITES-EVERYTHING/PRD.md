@@ -1,6 +1,6 @@
 # FIX-CHATBOT-INDEX-REWRITES-EVERYTHING — one reindex costs more than a day's free quota
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Found on 2026-09-21 while watching CI after a merge: `Rebuild docs chatbot index` had been **red for
 three consecutive merges** and nobody had noticed.
@@ -51,20 +51,41 @@ guarded and one not, and the header comment reads as though both were covered.
 
 ## What to do
 
-**Upload only what changed**, the same way embeddings are already reused. The cache the embedding step
-persists with `actions/cache` is keyed on the chunk's content hash, so the information needed to skip
-an unchanged chunk is already there.
+**Stop spending a write per chunk.** The texts become **one KV value per language**, positionally
+aligned with the vector blob that is already stored that way: `idx:vec:{lang}` and `idx:txt:{lang}`.
+Four writes per rebuild, whether one heading changed or the whole documentation did.
 
-Two traps to design around, both from this repository's own history:
+### The scheme this replaced, and why it was dropped
 
-- **The key is the chunk's index** (`idx:txt:fr:17`), not its content. Insert a heading near the top
-  of a page and every subsequent chunk shifts, so an index-keyed store has to rewrite the tail anyway.
-  Keying on a content hash, with one small manifest listing the current order, would make an edit cost
-  its own chunks and nothing else.
+The first sketch here was to key each chunk on a content hash, with a small manifest giving the
+order, so an edit would cost its own chunks and nothing else. It was written before anything on the
+Worker side was measured. Two numbers, taken 2026-09-21 (Node 26, over the current `doc/`):
+
+- The Worker **already** loads a 2.12 MB vector blob per isolate. The French texts add 1.09 MB and
+  **1.23 ms** of `JSON.parse`, once per isolate — against a free-plan ceiling of 10 ms of CPU per
+  request, and next to the cosine loop's **0.35 ms spent on every single request**. The change also
+  *removes* the six per-question KV reads that fetched the top-K texts one key at a time.
+- Content-addressed keys would have needed a first run rewriting all 1 395 entries under the new
+  naming — over the cap again — so a resume mechanism, a per-run write budget and a diffing script.
+  Three times the code, the same visible result, and a two-day migration.
+
+### Two traps to design around, both from this repository's own history
+
+- **The key was the chunk's index** (`idx:txt:fr:17`), not its content. Insert a heading near the
+  top of a page and every subsequent chunk shifts. That is not only a write-cost problem: the
+  Worker cached the vector blob per isolate and fetched the texts fresh, so an isolate holding the
+  old blob after a rebuild served passages shifted by the number of chunks inserted, with nothing
+  raising an error. Loading both halves together and refusing a length disagreement closes that.
 - **A `kv key get` on a missing key exits 0**, and a wrangler major changed `kv key put` from remote to
   local without changing the command — six weeks of green, empty reindexing went unnoticed that way
   (see the `a-dependency-bump-can-change-a-default` memory). So whatever this lot does, it has to end
   with a check that reads a known key **back from the remote namespace** and fails loudly on a miss.
+
+### Residue
+
+The 1 395 old `idx:txt:{lang}:{i}` keys stay in the namespace, unread. Deleting them counts as
+writes, which would cost the two days of quota this change exists to save; they are about 2 MB of a
+1 GB free allowance.
 
 ## Definition of done
 

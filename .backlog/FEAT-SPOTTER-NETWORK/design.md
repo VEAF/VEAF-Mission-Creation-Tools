@@ -134,8 +134,10 @@ picks up units that appeared and disappeared, so no DCS event has to be listened
 
 **That is the answer to a question worth asking** (David, 2026-09-21): a combat zone spawning a
 hundred units at once cannot trigger a burst of rebuilds, because nothing is triggered by spawning
-at all. The integration cost is a single spike at the next pass, and the bench already measures it
-— the "patch 5 %" column is exactly 100 units out of 2 000, at **8.7 ms**.
+at all. The integration cost is a single spike at the next pass, and the bench measures exactly
+that case — 100 units re-edged against 2 000 — at **13.7 ms** with the set representation, on the
+densest layout. With lists it is 86 ms, which is the reason the representation is part of the
+design rather than an implementation detail.
 
 The trade-off, which is real: a freshly spawned group takes up to 30 s to enter the graph. Its
 **detection** works immediately, since that is the 5 s loop and it does not depend on the graph —
@@ -208,23 +210,38 @@ interpreter would give.
 
 ### Timings
 
-| layout | units | edges | components | largest | build | sweep | move check | patch 5 % |
-|---|---|---|---|---|---|---|---|---|
-| uniform | 500 | 417 | 197 | 22 | 5.0 ms | <0.1 ms | 0.05 ms | 0.7 ms |
-| uniform | 2000 | 6 955 | 15 | 1 972 | 80 ms | 0.75 ms | 0.1 ms | 8.7 ms |
-| clusters | 500 | 3 157 | 37 | 24 | 5.3 ms | 0.05 ms | 0.05 ms | 0.7 ms |
-| clusters | 2000 | 17 141 | 107 | 72 | 77 ms | 0.2 ms | 0.2 ms | 8.3 ms |
-| front | 500 | 7 533 | 13 | 128 | 5.7 ms | 0.35 ms | <0.1 ms | 0.7 ms |
-| front | 2000 | 72 299 | 1 | 2 000 | 85 ms | 4.05 ms | 0.15 ms | 9.0 ms |
+All of it **at the settled 20 km range**, which matters: the sweep and the patch are O(edges), and
+widening from 10 to 20 km roughly triples them. An earlier draft of this table was measured at
+10 km and understated both by a wide margin.
 
-**The cost the PRD called "the whole problem" does not exist.** A full rebuild at 2 000 units is
-85 ms; spread over a 30 s loop that is 0.28 % of one core. A sweep — one alert crossing a fully
-connected 2 000-unit network — is 4 ms. Spatial bucketing is not needed at any mission size we
+| layout | units | edges | comps | largest | build | sweep | move check | patch, lists | patch, sets |
+|---|---|---|---|---|---|---|---|---|---|
+| uniform | 500 | 1 710 | 4 | 495 | 5.7 ms | 0.2 ms | <0.1 ms | 1.0 ms | 0.7 ms |
+| uniform | 2000 | 26 678 | 1 | 2 000 | 86 ms | 1.75 ms | 0.15 ms | 10.3 ms | 9.7 ms |
+| clusters | 500 | 4 552 | 28 | 48 | 5.7 ms | 0.1 ms | 0.05 ms | 0.7 ms | 0.7 ms |
+| clusters | 2000 | 35 164 | 36 | 360 | 86 ms | 1.55 ms | 0.15 ms | 11.3 ms | 9.3 ms |
+| front | 500 | 15 471 | 3 | 308 | 7.3 ms | 0.75 ms | 0.05 ms | 2.3 ms | 0.7 ms |
+| front | 2000 | **230 577** | 1 | 2 000 | 113 ms | 10.6 ms | 0.15 ms | **86 ms** | **13.7 ms** |
+
+**The cost the PRD called "the whole problem" does not exist.** A full rebuild of the worst case —
+2 000 units on a dense front, 230 577 edges — is 113 ms, run once per 30 s loop. A sweep, one alert
+crossing that whole network, is 10.6 ms. Spatial bucketing is not needed at any mission size we
 ship, and that whole chapter of the PRD can be dropped.
 
-**The movement check is free**: 0.15 ms for 2 000 units, measured. It is fair to record that the
-three staged loops therefore optimise almost nothing measurable; they were chosen for correctness of
+**The movement check is free**: 0.15 ms for 2 000 units. It is fair to record that the three staged
+loops therefore optimise almost nothing measurable; they were chosen for correctness of
 dimensioning rather than for cost, and they do no harm.
+
+**Hold the adjacency as sets, not lists** — `adjacency[i][j] = true` rather than an array of
+indices. Removing a back-edge from a list means scanning it, so patching costs O(degree²) per node,
+and on the dense front that is the single most expensive operation in the whole mechanism: **86 ms**
+against **13.7 ms** for the same work on sets, a factor of six. Everywhere else the two are within
+noise, so there is no case for lists. The sweep pays a little for `pairs` over `ipairs` and it does
+not show at this scale.
+
+That last column is also the answer to *"what does a combat zone spawning a hundred units cost?"* —
+it is exactly the measurement, 100 units re-edged against 2 000, and the answer is **13.7 ms** with
+sets on the worst layout we could build.
 
 ### Connectivity, which is the real finding
 

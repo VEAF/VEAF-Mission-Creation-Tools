@@ -41,9 +41,14 @@ The bench is [`test/lua/bench_spotter_network.lua`](../../test/lua/bench_spotter
 it overturned this PRD's own premise.
 
 **The quadratic cost this document called "the whole problem" is not one.** Measured on Lua 5.1.5,
-the interpreter DCS runs: a full graph rebuild at 2 000 units is 85 ms, run once per 30 s loop; one
-alert crossing a fully connected 2 000-unit network is 4 ms; a movement check over 2 000 units is
-0.15 ms. **Spatial bucketing is not needed** and is struck from this lot.
+the interpreter DCS runs, at the settled 20 km range and on the worst layout built — 2 000 units on
+a dense front, 230 577 edges: a full graph rebuild is 113 ms, run once per 30 s loop; one alert
+crossing that whole network is 10.6 ms; a movement check over 2 000 units is 0.15 ms.
+**Spatial bucketing is not needed** and is struck from this lot.
+
+One implementation choice does come out of the bench rather than out of taste: **the adjacency is
+held as sets, not lists**. Re-edging a hundred units — a combat zone spawning at once — costs 86 ms
+with lists and **13.7 ms** with sets, because removing a back-edge from a list means scanning it.
 
 **The real problem is connectivity.** At the 10 km radio range this document assumed, the largest
 connected pocket covers 5.1 % of a scattered mission — an alert would never leave the group that

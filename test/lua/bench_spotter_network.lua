@@ -16,7 +16,9 @@
 -- it is fragmented into dozens of isolated pockets is not a cheap network, it is an
 -- absent one.
 
-local RADIO_RANGE = 10000 -- metres, the radio edge length
+-- The default settled on 2026-09-21. It matters for the timings below and not only for the
+-- reach: the sweep is O(edges), and widening the range from 10 to 20 km roughly triples them.
+local RADIO_RANGE = 20000 -- metres, the radio edge length
 local RADIO_RANGE_SQ = RADIO_RANGE * RADIO_RANGE
 local RANGE_SWEEP = { 5000, 10000, 20000, 30000, 40000 } -- what the second table varies
 local MOVE_THRESHOLD = 2000 -- metres a unit must cover before its edges are recomputed
@@ -221,10 +223,27 @@ local function movementCheck(units, references)
 end
 
 --- Recomputing the edges of the units that moved: each against everybody.
+--
+-- Both sides are maintained. Rewriting only adjacency[i] would be cheaper and would still
+-- measure the quadratic scan, but it leaves the graph asymmetric: a unit that moves out of
+-- range keeps a stale back-edge from its former neighbour, and an alert goes on relaying
+-- through a link that no longer exists until the next full rebuild. The implementation will
+-- copy this function, so it had better be right rather than merely fast.
 local function patchNodes(units, adjacency, moved)
   local count = #units
   for m = 1, #moved do
     local i = moved[m]
+
+    local previous = adjacency[i]
+    for k = 1, #previous do
+      local other = adjacency[previous[k]]
+      for idx = #other, 1, -1 do
+        if other[idx] == i then
+          table.remove(other, idx)
+        end
+      end
+    end
+
     local ui = units[i]
     local uix, uiz = ui.x, ui.z
     local fresh = {}
@@ -235,6 +254,70 @@ local function patchNodes(units, adjacency, moved)
         local dz = uiz - uj.z
         if dx * dx + dz * dz <= RADIO_RANGE_SQ then
           fresh[#fresh + 1] = j
+        end
+      end
+    end
+    adjacency[i] = fresh
+
+    for k = 1, #fresh do
+      local other = adjacency[fresh[k]]
+      other[#other + 1] = i
+    end
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- The same graph held as sets rather than lists
+--
+-- Removing a back-edge from a list means scanning it, so patching costs O(degree^2) per
+-- node and that is what dominates at a 20 km range. Held as a set, `adjacency[i][j] = true`,
+-- the removal is a single assignment. The sweep pays a little more for `pairs` instead of
+-- `ipairs`; this measures whether the trade is worth making.
+-- ---------------------------------------------------------------------------
+
+local function buildGraphSets(units, range)
+  local count = #units
+  local rangeSq = (range or RADIO_RANGE) ^ 2
+  local adjacency = {}
+  for i = 1, count do
+    adjacency[i] = {}
+  end
+  for i = 1, count - 1 do
+    local ui = units[i]
+    local uix, uiz = ui.x, ui.z
+    for j = i + 1, count do
+      local uj = units[j]
+      local dx = uix - uj.x
+      local dz = uiz - uj.z
+      if dx * dx + dz * dz <= rangeSq then
+        adjacency[i][j] = true
+        adjacency[j][i] = true
+      end
+    end
+  end
+  return adjacency
+end
+
+local function patchNodesSets(units, adjacency, moved)
+  local count = #units
+  for m = 1, #moved do
+    local i = moved[m]
+
+    for previous in pairs(adjacency[i]) do
+      adjacency[previous][i] = nil
+    end
+
+    local ui = units[i]
+    local uix, uiz = ui.x, ui.z
+    local fresh = {}
+    for j = 1, count do
+      if j ~= i then
+        local uj = units[j]
+        local dx = uix - uj.x
+        local dz = uiz - uj.z
+        if dx * dx + dz * dz <= RADIO_RANGE_SQ then
+          fresh[j] = true
+          adjacency[j][i] = true
         end
       end
     end
@@ -264,8 +347,8 @@ local LAYOUTS = {
 print("FEAT-SPOTTER-NETWORK cost bench")
 print(string.format("Lua %s | radio range %d m | move threshold %d m", _VERSION, RADIO_RANGE, MOVE_THRESHOLD))
 print("")
-print("layout     units   edges  comps  largest   build_ms  sweep_ms  check_ms  patch_ms(5%)")
-print(string.rep("-", 92))
+print("layout     units   edges  comps  largest   build_ms  sweep_ms  check_ms  patch_list  patch_sets")
+print(string.rep("-", 104))
 
 for _, layout in ipairs(LAYOUTS) do
   for _, count in ipairs(UNIT_COUNTS) do
@@ -307,9 +390,14 @@ for _, layout in ipairs(LAYOUTS) do
       patchNodes(units, adjacency, moved)
     end)
 
+    local setAdjacency = buildGraphSets(units)
+    local patchSetMs = timeIt(3, function()
+      patchNodesSets(units, setAdjacency, moved)
+    end)
+
     print(
       string.format(
-        "%-9s %6d %7d %6d %8d %10.2f %9.3f %9.3f %13.2f",
+        "%-9s %6d %7d %6d %8d %10.2f %9.3f %9.3f %10.2f %10.2f",
         layout.name,
         count,
         edges,
@@ -318,7 +406,8 @@ for _, layout in ipairs(LAYOUTS) do
         buildMs,
         sweepMs,
         checkMs,
-        patchMs
+        patchMs,
+        patchSetMs
       )
     )
   end
@@ -327,7 +416,8 @@ end
 print("")
 print("comps    = connected components; an alert never leaves the one it starts in")
 print("largest  = units in the biggest component, i.e. the real reach of the network")
-print("patch    = recomputing the edges of the 5% of units that crossed the threshold")
+print("patch_list = re-edging the 5% that moved, adjacency held as lists")
+print("patch_sets = the same, adjacency held as sets -- back-edge removal is O(1)")
 
 -- ---------------------------------------------------------------------------
 -- How the radio range changes the network that exists at all
@@ -363,9 +453,12 @@ for _, layout in ipairs(LAYOUTS) do
     end
     local largest = largestSum / DRAWS
     local hops = hopSum / DRAWS
+    -- %.0f, not %d: these are averages, and string.format("%d", 413.4) truncates on 5.1 but
+    -- raises "number has no integer representation" from 5.2 on. The bench exists to be
+    -- re-run by someone else, quite possibly on a newer interpreter.
     print(
       string.format(
-        "%-9s %9d %7d %6d %8d %8.1f %6.1f %11d",
+        "%-9s %9d %7.0f %6.0f %8.0f %8.1f %6.1f %11.0f",
         layout.name,
         range / 1000,
         edgeSum / DRAWS,

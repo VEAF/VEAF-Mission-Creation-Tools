@@ -333,6 +333,3 @@ dcs_bridge:
 # Persisted build settings — set via --dev-mode / --scripts-path CLI flags.
 # Note: scripts_path is usually machine-specific.
 #
-build:
-  dev_mode: true
-  scripts_path: "D:/dev/_VEAF/VEAF-Mission-Creation-Tools"

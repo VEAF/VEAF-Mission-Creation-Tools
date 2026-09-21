@@ -461,6 +461,39 @@ function TestSpotterDetectionBeat:test_a_tank_reports_an_aircraft_within_range()
   luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedTank->BlueJet" })
 end
 
+function TestSpotterDetectionBeat:test_a_side_with_an_empty_sky_keeps_its_hands_off_the_other_sides_latches()
+  -- The defect that made the whole map view invisible, measured in game on 2026-09-21 and introduced
+  -- the same morning. `veafSkynet.spotterLatches` is keyed by spotter name alone -- it has **no
+  -- coalition dimension** -- while `dropLatchesForVanishedContacts` is called once per coalition from
+  -- the beat with only that coalition's contact list. So the pass for a side whose sky holds no enemy
+  -- aircraft walked the whole table and gave up every other side's latches.
+  --
+  -- A mission with spotters on both sides is the normal case, so in practice no latch survived a
+  -- beat: the alert was raised and cancelled within one period, the contact cross and the detection
+  -- circle never drew at all, and the heartbeat had nothing to speak for.
+  --
+  -- **Why no existing test caught it:** every one of them mounts a single coalition, so
+  -- `getSpotterCoalitions()` returned one side and the second pass never happened. `test_the_live_
+  -- geometry_that_would_not_latch_in_game` was green for exactly that reason while the feature was
+  -- dead in game.
+  --
+  -- Called directly rather than through two beats, deliberately: `pairs()` fixes no order over the
+  -- coalitions, so a test that ran beats would pass or fail on the order the table happened to have.
+  self:_layout(2000)
+  veafSkynet.spotterDetectionBeat()
+  luaunit.assertNotNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"], "precondition: red is holding the jet")
+  luaunit.assertEquals(#veafSkynet.listHostileAircraft(coalition.side.BLUE), 0, "premise: blue's sky is empty")
+
+  -- Blue's pass, with blue's own (empty) contact list.
+  veafSkynet.dropLatchesForVanishedContacts(veafSkynet.listHostileAircraft(coalition.side.BLUE), coalition.side.BLUE)
+  luaunit.assertNotNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"], "blue has no business giving up a red spotter's latch")
+
+  -- The other direction, so the filter cannot pass by never dropping anything at all: red's own pass,
+  -- with the aircraft gone from its list, *must* give it up.
+  veafSkynet.dropLatchesForVanishedContacts({}, coalition.side.RED)
+  luaunit.assertNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"], "red's own pass, with the contact gone, gives it up")
+end
+
 function TestSpotterDetectionBeat:test_a_late_activated_aircraft_is_not_a_contact()
   -- Found in game on 2026-09-21, and it is a product defect rather than a rig artefact: late
   -- activation is ordinary in real missions. A group waiting to be activated is **fully visible** to
@@ -1831,7 +1864,9 @@ function TestSpotterMapView:test_a_spotter_with_nothing_in_sight_is_drawn_grey()
   luaunit.assertTrue(grey >= 1, "a spotter that sees nothing shows its detection range in grey")
 end
 
-function TestSpotterMapView:test_the_circle_turns_red_when_the_spotter_is_holding_a_contact()
+function TestSpotterMapView:test_the_circle_turns_orange_when_the_spotter_is_holding_a_contact()
+  -- Orange, David's colour rule of 2026-09-21: one colour per kind of circle, so red is only ever a
+  -- live battery's engagement envelope and orange is only ever a pair of eyes on something.
   self:_node("Scout", 1000, 2000)
   veafSkynet.getSpotterProfile(self.spotter, "Scout")
   self:_scoutSees()
@@ -1839,16 +1874,19 @@ function TestSpotterMapView:test_the_circle_turns_red_when_the_spotter_is_holdin
   veafSkynet.showSpotterView(RED, true)
   veafSkynet._redrawSpotterView()
 
-  local red, grey = 0, 0
+  local orange, grey, red = 0, 0, 0
   for _, c in ipairs(self:_shapes("circle")) do
-    if _is(c.colour, "red") then
-      red = red + 1
+    if _is(c.colour, "orange") then
+      orange = orange + 1
     elseif _is(c.colour, "grey") then
       grey = grey + 1
+    elseif _is(c.colour, "red") then
+      red = red + 1
     end
   end
-  luaunit.assertEquals(red, 1, "the holder's circle is red")
+  luaunit.assertEquals(orange, 1, "the holder's circle is orange")
   luaunit.assertEquals(grey, 0, "and not grey as well")
+  luaunit.assertEquals(red, 0, "and never red, which now means a live battery's reach")
 end
 
 function TestSpotterMapView:test_a_relayed_contact_does_not_turn_a_spotters_circle_red()
@@ -1870,15 +1908,15 @@ function TestSpotterMapView:test_a_relayed_contact_does_not_turn_a_spotters_circ
   veafSkynet.showSpotterView(RED, true)
   veafSkynet._redrawSpotterView()
 
-  local red, grey = 0, 0
+  local orange, grey = 0, 0
   for _, c in ipairs(self:_shapes("circle")) do
-    if _is(c.colour, "red") then
-      red = red + 1
+    if _is(c.colour, "orange") then
+      orange = orange + 1
     elseif _is(c.colour, "grey") then
       grey = grey + 1
     end
   end
-  luaunit.assertEquals(red, 1, "only the spotter that actually saw it is red")
+  luaunit.assertEquals(orange, 1, "only the spotter that actually saw it is orange")
   luaunit.assertEquals(grey, 1, "the one that was merely told keeps a grey range")
 
   -- ...and it is still shown as alerted, which is the other half of the distinction.
@@ -1913,10 +1951,12 @@ function TestSpotterMapView:test_an_alerted_node_is_blue_and_a_quiet_one_is_grey
   luaunit.assertEquals(grey, 1, "Relay could be told and has not been")
 end
 
-function TestSpotterMapView:test_a_dark_site_shows_a_grey_engagement_envelope()
-  -- The reversal of 2026-09-21: dropping the envelope of a dark site was decided while grey was
-  -- unreadable. With a readable grey it is the most eloquent shape on the map — *this battery covers
-  -- the corridor, it could fire, and nobody has told it anything* — which is the whole demonstration.
+function TestSpotterMapView:test_a_dark_site_shows_no_engagement_envelope()
+  -- Settled by David on 2026-09-21, looking at the map: drawing a dark site's envelope in grey made
+  -- grey mean two different things at once — *this battery could fire and has not been told* and
+  -- *this pair of eyes is looking at nothing* — with no way to tell the two circles apart. One colour
+  -- per kind of circle: red is a battery's reach, orange a spotter's sight, grey only ever an idle
+  -- spotter. The price is that `SamIsolated`'s silence now reads from its node square alone.
   self:_node("Scout", 1000, 2000)
   veafSkynet.getSpotterProfile(self.spotter, "Scout")
   self:_scoutSees()
@@ -1961,11 +2001,60 @@ function TestSpotterMapView:test_a_dark_site_shows_a_grey_engagement_envelope()
       envelope = c
     end
   end
-  luaunit.assertNotNil(envelope, "a dark site still shows what it *could* reach")
-  luaunit.assertTrue(_is(envelope.colour, "grey"), "but in grey, because it is not reaching anything")
+  luaunit.assertNil(envelope, "a dark site draws no envelope at all")
 end
 
-function TestSpotterMapView:test_a_destroyed_aircraft_releases_the_red_circle_at_once()
+function TestSpotterMapView:test_a_live_site_shows_a_red_engagement_envelope()
+  -- The other half of the rule, so the pair can fail in both directions: a battery that is live shows
+  -- what it covers, in red.
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_scoutSees()
+
+  local iads = {
+    getSAMSites = function()
+      return {
+        {
+          dcsName = "LiveSite",
+          isActive = function()
+            return true
+          end,
+          getElementPosition = function()
+            return { x = 1000, y = 0, z = 2000 }
+          end,
+          getLaunchers = function()
+            return {
+              {
+                getRange = function()
+                  return 25000
+                end,
+              },
+            }
+          end,
+        },
+      }
+    end,
+  }
+  local realGetIADS = veafSkynet.getIADS
+  veafSkynet.getIADS = function()
+    return iads
+  end
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  veafSkynet.getIADS = realGetIADS
+
+  local envelope = nil
+  for _, c in ipairs(self:_shapes("circle")) do
+    if c.radius and c.radius > 20000 then
+      envelope = c
+    end
+  end
+  luaunit.assertNotNil(envelope, "a live site shows what it reaches")
+  luaunit.assertTrue(_is(envelope.colour, "red"), "and in red, which is what red now means")
+end
+
+function TestSpotterMapView:test_a_destroyed_aircraft_releases_the_detection_circle_at_once()
   -- Found in game on 2026-09-21. The intruder was shot down, every detection latch was released
   -- correctly, and the spotter that had raised the alert kept a big red "I can see it" circle for the
   -- whole `SpotterForgetDelay` — six minutes of the map confidently showing an aircraft that no longer
@@ -1975,13 +2064,13 @@ function TestSpotterMapView:test_a_destroyed_aircraft_releases_the_red_circle_at
   self:_scoutSees()
   veafSkynet.showSpotterView(RED, true)
   veafSkynet._redrawSpotterView()
-  local red = 0
+  local orange = 0
   for _, c in ipairs(self:_shapes("circle")) do
-    if _is(c.colour, "red") then
-      red = red + 1
+    if _is(c.colour, "orange") then
+      orange = orange + 1
     end
   end
-  luaunit.assertEquals(red, 1, "while it is seeing it, the circle is red")
+  luaunit.assertEquals(orange, 1, "while it is seeing it, the circle is orange")
 
   -- The aircraft dies: the latch goes, the contact record stays for another six minutes.
   veafSkynet.spotterLatches["Scout"] = nil
@@ -1989,7 +2078,7 @@ function TestSpotterMapView:test_a_destroyed_aircraft_releases_the_red_circle_at
   veafSkynet._redrawSpotterView()
 
   for _, c in ipairs(self:_shapes("circle")) do
-    luaunit.assertFalse(_is(c.colour, "red"), "nothing is being seen any more, so nothing is red")
+    luaunit.assertFalse(_is(c.colour, "orange"), "nothing is being seen any more, so nothing is orange")
   end
   -- ...and the node is still shown as holding the memory, which is the other half of the distinction.
   local blue = 0
@@ -1999,6 +2088,65 @@ function TestSpotterMapView:test_a_destroyed_aircraft_releases_the_red_circle_at
     end
   end
   luaunit.assertEquals(blue, 1, "the network still remembers, and says so with the square")
+end
+
+function TestSpotterMapView:test_an_element_of_a_live_battery_gets_a_red_square()
+  -- David's rule of 2026-09-21: the square says what a node *knows* -- grey not told, blue told --
+  -- and red overrides both for an element of a battery that is actually live, because "activated" is
+  -- the more specific state and a live site has necessarily been told.
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_scoutSees()
+  local battery = self:_node("Battery", 5000, 2000)
+  veafSkynet.getSpotterProfile(battery, "Battery")
+  -- Told, so that without the override it would be blue: that is what makes the assertion mean
+  -- something rather than merely distinguishing red from grey.
+  veafSkynet.deliverSpotterMessage(RED, "Battery", { kind = "alert", aircraft = "Bandit", origin = "Scout", via = "Scout", stamp = 1 })
+
+  local iads = {
+    getSAMSites = function()
+      return {
+        {
+          dcsName = "LiveBattery",
+          isActive = function()
+            return true
+          end,
+          getDCSRepresentation = function()
+            return _group("LiveBattery", { battery })
+          end,
+          getElementPosition = function()
+            return { x = 5000, y = 0, z = 2000 }
+          end,
+          getLaunchers = function()
+            return { {
+              getRange = function()
+                return 10000
+              end,
+            } }
+          end,
+        },
+      }
+    end,
+  }
+  local realGetIADS = veafSkynet.getIADS
+  veafSkynet.getIADS = function()
+    return iads
+  end
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  veafSkynet.getIADS = realGetIADS
+
+  local red, blue = 0, 0
+  for _, sq in ipairs(self:_shapes("square")) do
+    if _is(sq.colour, "red") then
+      red = red + 1
+    elseif _is(sq.colour, "blue") then
+      blue = blue + 1
+    end
+  end
+  luaunit.assertEquals(red, 1, "the live battery's element is red")
+  luaunit.assertEquals(blue, 1, "and the spotter that was told, and is not a battery, stays blue")
 end
 
 function TestSpotterMapView:test_a_link_that_carried_nothing_is_a_grey_line()

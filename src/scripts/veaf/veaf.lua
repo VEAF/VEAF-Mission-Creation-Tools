@@ -5012,10 +5012,10 @@ VeafDrawingOnMap.COLORS = {
   -- here rather than passed as raw RGBA at the call site, because a colour nobody can name is a
   -- colour the next caller re-invents slightly differently.
   ["orange"] = { 1, 0.55, 0, 1 },
-  -- Dark rather than light, and measured rather than picked: at {0.6, 0.6, 0.6} a thin dashed line is
-  -- invisible on the sand-coloured DCS map at any zoom that shows a whole network. Grey here means
-  -- "inactive", not "faint" -- it still has to be read.
-  ["grey"] = { 0.15, 0.15, 0.15, 1 },
+  -- Mid grey, settled by looking at it on the map rather than by picking a number. {0.6, 0.6, 0.6}
+  -- is invisible on the sand-coloured DCS map; {0.15, 0.15, 0.15} reads as a black line and {0.7} as
+  -- white. Grey here means "inactive", not "faint" -- it still has to be read.
+  ["grey"] = { 0.42, 0.42, 0.42, 1 },
 }
 
 function VeafDrawingOnMap:new(objectToCopy)

@@ -2526,22 +2526,42 @@ function veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
     present[contact.name] = true
   end
 
+  -- **Only this coalition's spotters**, and it is the whole reason the feature did not work.
+  --
+  -- `spotterLatches` is keyed by spotter name alone: it has no coalition dimension. This function is
+  -- called once per coalition from the beat, with only *that* coalition's contact list — so without
+  -- this filter, the pass for a side whose sky holds no enemy aircraft walks the whole table and
+  -- gives up **every other side's** latches, emitting a cancellation for each.
+  --
+  -- Measured 2026-09-21 on the walkthrough mission, and the control fails both ways: planting a red
+  -- latch and calling this with blue's (empty) contact list dropped it, while calling it with red's
+  -- own list kept it. A mission with spotters on both sides is the normal case, so in practice no
+  -- latch ever survived a beat: the alert was raised and cancelled within one period, the map view's
+  -- contact cross and detection circle never drew at all, and the heartbeat had nothing to speak
+  -- for. The two shapes were not merely unverified, they were unobservable.
+  local mine = {}
+  for _, spotter in ipairs(veafSkynet.listSpotters(coa) or {}) do
+    mine[spotter.name] = true
+  end
+
   for spotterName, latches in pairs(veafSkynet.spotterLatches) do
-    local gone = {}
-    for aircraft, latch in pairs(latches) do
-      if latch.triggered and not present[aircraft] then
-        table.insert(gone, aircraft)
+    if mine[spotterName] then
+      local gone = {}
+      for aircraft, latch in pairs(latches) do
+        if latch.triggered and not present[aircraft] then
+          table.insert(gone, aircraft)
+        end
       end
-    end
-    for _, aircraft in ipairs(gone) do
-      latches[aircraft] = nil
-      veaf.loggers
-        .get(veafSkynet.Id)
-        :debug(string.format("spotter [%s] gave up [%s]: no longer a contact", veaf.p(spotterName), veaf.p(aircraft)))
-      veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, aircraft)
-    end
-    if not next(latches) then
-      veafSkynet.spotterLatches[spotterName] = nil
+      for _, aircraft in ipairs(gone) do
+        latches[aircraft] = nil
+        veaf.loggers
+          .get(veafSkynet.Id)
+          :debug(string.format("spotter [%s] gave up [%s]: no longer a contact", veaf.p(spotterName), veaf.p(aircraft)))
+        veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, aircraft)
+      end
+      if not next(latches) then
+        veafSkynet.spotterLatches[spotterName] = nil
+      end
     end
   end
 end
@@ -3617,18 +3637,28 @@ veafSkynet.spotterViewRefreshArmed = false
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- What the map view draws
 --
--- Green circle: a spotter's detection range. Red when it is holding a contact, with a cross on the
--- contact itself. Orange circle: a SAM site's engagement envelope, read from its launchers rather
--- than guessed. Square on every node the alert could reach: blue when it has been alerted, grey when
--- it has not. Grey line for a link, red arrow for a link that actually carried an alert.
+-- David's colour rule, settled by looking at the map on 2026-09-21. The **square** says what a node
+-- *knows*, the **circle** says what it can *see*, and each colour means one thing only:
+--
+--   | shape  | grey                  | blue      | orange                 | red                     |
+--   |--------|-----------------------|-----------|------------------------|-------------------------|
+--   | square | has not been told     | was told  | --                     | live battery's element  |
+--   | circle | spotter, nothing seen | --        | spotter with a contact | live battery's envelope |
+--
+-- A dark battery draws **no** envelope at all: a grey envelope made grey mean two different things
+-- at once, with no way to tell a battery nobody had told from a pair of eyes looking at nothing.
+--
+-- Plus a red cross on each contact somebody is holding, a grey dashed line for a link, and a solid
+-- red line for a link that actually carried an alert — which is what keeps the path of a report
+-- readable now that a square no longer distinguishes a relay from an endpoint.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Draw only the pockets currently holding a contact, rather than the whole network.
 ---
 --- **Off by default**, and that is a correction rather than a preference. It shipped on, and on a
 --- quiet network that meant an empty map — which contradicts the specification it was built to: a
---- green circle on every spotter and a **grey** square on every node that *could* be alerted and is
---- not are states that only exist while nothing is happening. Switching it on hid exactly the two
+--- **grey** circle on every spotter and a **grey** square on every node that *could* be alerted and
+--- is not are states that only exist while nothing is happening. Switching it on hid exactly the two
 --- things it was meant to show.
 ---
 --- It stays available, through the F10 menu and from a mission script, because the cost it guards
@@ -3963,8 +3993,12 @@ function veafSkynet.paintSpotterView(coa, markers)
     end
   end
 
-  -- 2. Detection ranges: red for a spotter **seeing** something itself, grey for one that is not.
+  -- 2. Detection ranges: **orange** for a spotter seeing something itself, grey for one that is not.
   -- `seeing`, not `alerted`: see the note above the two tables.
+  --
+  -- Orange and not red, David's call on 2026-09-21: one colour per kind of circle. Red is reserved
+  -- for a SAM's engagement envelope, so a red circle on the map always means "this battery is live
+  -- and this is what it covers" and never "this pair of eyes is looking at something".
   for unitName, point in pairs(points) do
     local profile = veafSkynet.spotterProfiles[unitName]
     if point and profile and profile.range > 0 then
@@ -3973,56 +4007,85 @@ function veafSkynet.paintSpotterView(coa, markers)
         VeafCircleOnMap:new()
           :setCenter(point)
           :setRadius(profile.range)
-          :setColor(active and "red" or "grey")
+          :setColor(active and "orange" or "grey")
           :setLineType(active and "solid" or "dashed")
           :setFillColor("transparent")
       )
     end
   end
 
-  -- 3. One square per node the alert can reach: blue when it has been told, grey when it has not.
-  local side = veafSkynet.SpotterViewNodeSquareRadius * 2
-  for unitName, point in pairs(points) do
-    if point then
-      paint(
-        VeafSquareOnMap:new():setCenter(point):setSide(side):setColor(alerted[unitName] and "blue" or "grey"):setFillColor("transparent")
-      )
+  -- The live batteries, read once and used twice: to colour a node square red, and to draw an
+  -- envelope. Only a live site matters for either, which is the whole of David's rule below.
+  local liveSites, liveSiteUnits = {}, {}
+  local iads = veafSkynet.getIADS(veafSkynet.defaultIADS[tostring(coa)])
+  if iads then
+    local gotSites, sites = pcall(iads.getSAMSites, iads)
+    if gotSites and sites then
+      for i = 1, #sites do
+        local site = sites[i]
+        local asked, live = pcall(site.isActive, site)
+        if asked and live then
+          table.insert(liveSites, site)
+          local dcsGroup = _dcsRepresentationOf(site)
+          local gotUnits, siteUnits = pcall(function()
+            return dcsGroup and dcsGroup.getUnits and dcsGroup:getUnits()
+          end)
+          if gotUnits and siteUnits then
+            for _, dcsUnit in pairs(siteUnits) do
+              local name = veafSkynet.safeDcsName(dcsUnit)
+              if name then
+                liveSiteUnits[name] = true
+              end
+            end
+          end
+        end
+      end
     end
   end
 
-  -- 4. Engagement envelopes: orange when the site is live, dark grey and dashed when it is not.
+  -- 3. One square per node: **red for an element of a live battery, blue for a node that has been
+  -- told, grey for one that has not.**
   --
-  -- This went back and forth, and the reversal is worth recording. They were dropped for dark sites
-  -- because the isolated Kub's 25 km circle swept across the map as a pale arc that said nothing —
-  -- but that was measured while grey was `{0.6, 0.6, 0.6}`, i.e. invisible on a sand-coloured map.
-  -- With a readable grey the same circle becomes the single most eloquent shape of the picture: *this
-  -- battery covers the whole corridor, it could fire, and nobody has told it anything*. That is the
-  -- demonstration. David's original rule — grey for what is inactive — was right; the case for
-  -- dropping it was really a case against an unreadable colour.
-  local iads = veafSkynet.getIADS(veafSkynet.defaultIADS[tostring(coa)])
-  if iads then
-    local got, sites = pcall(iads.getSAMSites, iads)
-    if got and sites then
-      for i = 1, #sites do
-        local site = sites[i]
-        local range = veafSkynet.samEngagementRange(site)
-        -- `getElementPosition()` is Skynet's own accessor: it answers from a live launcher, falling
-        -- back to the group's first unit. Anchoring on the site rather than on each of its units is
-        -- what gives a battery one envelope instead of three overlapping ones.
-        local asked, live = pcall(site.isActive, site)
-        local active = asked and live
-        local located, centre = pcall(site.getElementPosition, site)
-        if located and centre and range > 0 then
-          paint(
-            VeafCircleOnMap:new()
-              :setCenter(centre)
-              :setRadius(range)
-              :setColor(active and "orange" or "grey")
-              :setLineType(active and "solid" or "dashed")
-              :setFillColor("transparent")
-          )
-        end
+  -- David's rule, settled 2026-09-21. The square says *what this node knows*, the circle says *what
+  -- it can see* — so the propagation stays readable on the squares (a relay that was told is blue even
+  -- though it is looking at nothing) while the circles carry the detection state. Red takes
+  -- precedence over blue: a live site has necessarily been told, and "activated" is the more specific
+  -- of the two.
+  local side = veafSkynet.SpotterViewNodeSquareRadius * 2
+  for unitName, point in pairs(points) do
+    if point then
+      local colour = "grey"
+      if liveSiteUnits[unitName] then
+        colour = "red"
+      elseif alerted[unitName] then
+        colour = "blue"
       end
+      paint(VeafSquareOnMap:new():setCenter(point):setSide(side):setColor(colour):setFillColor("transparent"))
+    end
+  end
+
+  -- 4. Engagement envelopes: **red and solid for a live site, and nothing at all for a dark one.**
+  --
+  -- This went back and forth twice; David settled it on 2026-09-21 by looking at the map, and the
+  -- reason is legibility rather than clutter. Drawing a dark site's envelope in grey made grey mean
+  -- two different things at once — *this battery could fire and has not been told* and *this pair of
+  -- eyes is looking at nothing* — with no way to tell which circle was which. One colour per kind of
+  -- circle: red is a battery's reach, orange is a spotter's sight, grey is only ever an idle
+  -- spotter.
+  --
+  -- **What this costs, said out loud:** `SamIsolated`'s 25 km circle was the most eloquent shape of
+  -- the demonstration — *it covers the whole corridor, it could fire, and nobody tells it anything*.
+  -- Without an envelope, its silence now reads only from its node square staying grey while every
+  -- other node turns blue. That is a weaker statement, and it is the price of the colour rule.
+  for i = 1, #liveSites do
+    local site = liveSites[i]
+    local range = veafSkynet.samEngagementRange(site)
+    -- `getElementPosition()` is Skynet's own accessor: it answers from a live launcher, falling back
+    -- to the group's first unit. Anchoring on the site rather than on each of its units is what gives
+    -- a battery one envelope instead of three overlapping ones.
+    local located, centre = pcall(site.getElementPosition, site)
+    if located and centre and range > 0 then
+      paint(VeafCircleOnMap:new():setCenter(centre):setRadius(range):setColor("red"):setLineType("solid"):setFillColor("transparent"))
     end
   end
 

@@ -97,6 +97,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   switched off so the verdict cannot come from a radius drawn at random. Run it with
   `veaf-tools smoke-test --suite spotter`. Its README states what it does **not** prove, too.
 
+- **The spotter network's map view, to a colour rule that means one thing per colour.** A node's
+  **square** says what it knows — grey not told, blue told, red an element of a battery that is
+  actually live — and its **circle** says what it can see: grey for a spotter holding nothing, orange
+  for one with a contact in sight, red for a live battery's engagement envelope. A dark battery draws
+  no envelope at all, because a grey one made grey mean two different things at once with no way to
+  tell the circles apart. Plus a red cross on each held contact, and a solid red link where an alert
+  actually travelled.
+
+### Fixed
+
+- **The spotter network gave up every contact it acquired, within one detection beat.**
+  `spotterLatches` is keyed by spotter name and has no coalition dimension, while the pass that
+  gives up latches for aircraft that have left the sky is called **once per coalition** with only
+  that coalition's contact list. So the pass for a side whose sky held no enemy aircraft walked the
+  whole table and cancelled every other side's detections — and a mission with spotters on both
+  sides is the normal case. In practice the alert was raised and cancelled within one period: the
+  map view's contact cross and detection circle never drew at all, and the heartbeat had nothing to
+  speak for. Measured in game on 2026-09-21; the new control fails in both directions.
+
 ## [6.23.1] — 2026-09-20
 
 ### Fixed

@@ -1,4 +1,4 @@
-env.info("--- SKYNET VERSION: 3.4.0RP-VEAF build 05.09.2026 | BUILD TIME: 05.09.2026 1434Z ---")
+env.info("--- SKYNET VERSION: 3.5.0 | BUILD TIME: 21.09.2026 1038Z ---")
 do
   --[[
 SkynetIADSUtils -- the handful of helpers Skynet used to borrow from MiST.
@@ -16,7 +16,7 @@ it, the reason is written at the call site.
   SkynetIADSUtils = {}
 
   -- Lua 5.1 in DCS; the fallbacks keep the file loadable under a newer interpreter (unit tests).
-  local unpack = unpack or table.unpack
+  local unpack = unpack or table.unpack -- luacheck: ignore 143
   local maxn = table.maxn
     or function(t)
       local n = 0
@@ -637,7 +637,7 @@ do
         ["ZSU-23-4 Shilka"] = {},
       },
       ["name"] = {
-        ["NATO"] = "Zues",
+        ["NATO"] = "Zeus",
       },
       ["harm_detection_chance"] = 10,
     },
@@ -794,13 +794,13 @@ do
 
   --EW radars used in multiple SAM systems:
 
-  s300PMU164N6Esr = {
+  local s300PMU164N6Esr = {
     ["name"] = {
       ["NATO"] = "Big Bird",
     },
   }
 
-  s300PMU140B6MDsr = {
+  local s300PMU140B6MDsr = {
     ["name"] = {
       ["NATO"] = "Clam Shell",
     },
@@ -959,11 +959,11 @@ do
   s300launchers["S-300PS 5P85DE ln"] = {}
   s300launchers["S-300PS 5P85CE ln"] = {}
 
-  local s300launchers = samTypesDB["S-300PS"]["launchers"]
+  s300launchers = samTypesDB["S-300PS"]["launchers"]
   s300launchers["S-300PS 5P85DE ln"] = {}
   s300launchers["S-300PS 5P85CE ln"] = {}
 
-  local s300launchers = samTypesDB["S-300PMU1"]["launchers"]
+  s300launchers = samTypesDB["S-300PMU1"]["launchers"]
   s300launchers["S-300PS 5P85DE ln"] = {}
   s300launchers["S-300PS 5P85CE ln"] = {}
 
@@ -1009,7 +1009,7 @@ New launcher for the SA-3 complex:
   --[[
 New launcher for the SA-2 complex: HQ_2_Guideline_LN
 --]]
-  local s125launchers = samTypesDB["S-75"]["launchers"]
+  s125launchers = samTypesDB["S-75"]["launchers"]
   s125launchers["HQ_2_Guideline_LN"] = {}
 
   --[[
@@ -1101,7 +1101,6 @@ SA-20B Gargoyle B:
 
 --]]
 end
-
 do
   SkynetIADSLogger = {}
   SkynetIADSLogger.__index = SkynetIADSLogger
@@ -1571,6 +1570,10 @@ do
   SkynetIADS = {}
   SkynetIADS.__index = SkynetIADS
 
+  -- Single source of truth for the shipped artifact's version. Read by
+  -- build-tools/build-compiled-script.ps1 and stamped into the banner it writes.
+  SkynetIADS.version = "3.5.0"
+
   SkynetIADS.database = samTypesDB
 
   function SkynetIADS:create(name)
@@ -1581,6 +1584,7 @@ do
     iads.samSites = {}
     iads.commandCenters = {}
     iads.ewRadarScanMistTaskID = nil
+    iads.coverageRefreshMistTaskID = nil
     iads.coalition = nil
     iads.contacts = {}
     iads.maxTargetAge = 32
@@ -1591,16 +1595,184 @@ do
       iads.name = ""
     end
     iads.contactUpdateInterval = 5
+    iads.lastLineOfDefenceEnabled = true
+    iads.lastLineOfDefenceMinRadius = 10000
+    iads.lastLineOfDefenceMaxRadius = 15000
+    iads.lastLineOfDefencePersistence = 45
+    iads.coverageRefreshInterval = 10
     world.addEventHandler(iads)
     return iads
   end
 
-  function SkynetIADS:onEvent(event)
-    if event.id == world.event.S_EVENT_BIRTH then
-      env.info("New Object Spawned")
-      --	self:addSAMSite(event.initiator:getGroup():getName());
+  -- Last line of defense ------------------------------------------------------------------------
+  --
+  -- A SAM site held dark by the network has its emission switched off, so it is blind: the only
+  -- route back to life is an EW radar that covers it holding the target. Fly under the radar
+  -- horizon and no battery reacts, whatever the distance — proximity to the site is an input
+  -- nowhere in the cycle, because the only sensor that could measure it is the one that was just
+  -- switched off. So a dark site keeps a short virtual detection radius of its own, Skynet's, with
+  -- no DCS radar involved.
+  --
+  -- On by default: off means nobody finds it, and the report comes back in six months.
+
+  function SkynetIADS:setLastLineOfDefence(state)
+    if state == true or state == false then
+      self.lastLineOfDefenceEnabled = state
+    end
+    return self
+  end
+
+  function SkynetIADS:getLastLineOfDefence()
+    return self.lastLineOfDefenceEnabled
+  end
+
+  --- Bounds, in metres, of the radius each site draws once for the whole mission.
+  function SkynetIADS:setLastLineOfDefenceRadius(minRadius, maxRadius)
+    if minRadius and maxRadius and minRadius > 0 and maxRadius >= minRadius then
+      self.lastLineOfDefenceMinRadius = minRadius
+      self.lastLineOfDefenceMaxRadius = maxRadius
+      --sites that already drew a radius have to draw again, from the new bounds
+      for i = 1, #self.samSites do
+        self.samSites[i]:clearLastLineOfDefenceRadius()
+      end
+    end
+    return self
+  end
+
+  --- Answers the minimum and the maximum, in that order.
+  function SkynetIADS:getLastLineOfDefenceRadius()
+    return self.lastLineOfDefenceMinRadius, self.lastLineOfDefenceMaxRadius
+  end
+
+  --- How long a site stays lit after the last contact reported to it, in seconds.
+  function SkynetIADS:setLastLineOfDefencePersistence(seconds)
+    if seconds and seconds >= 0 then
+      self.lastLineOfDefencePersistence = seconds
+    end
+    return self
+  end
+
+  function SkynetIADS:getLastLineOfDefencePersistence()
+    return self.lastLineOfDefencePersistence
+  end
+
+  --- Wakes a SAM site on a DCS unit, as if something had reported that aircraft to the network.
+  --
+  -- This is a public entry point of Skynet, and the last line of defense below is its first
+  -- caller. It is public because code outside Skynet — VEAF's spotter network — has to be able to
+  -- wake a site, and the alternative is that code writing into targetsInRange and its friends on
+  -- every cycle.
+  --
+  -- Unlike SkynetIADSSamSite:informOfContact() it does not require the target to be inside the
+  -- firing envelope: a site lights up because something told it the aircraft is there, not because
+  -- it can hit it. Requiring the kill zone would mean a Shilka, useful range ~2.5 km, never wakes.
+  -- Everything else still holds — the site's own go-live constraints, and goLive()'s guards, so a
+  -- site silenced to evade a HARM, out of ammunition, without power or destroyed stays dark.
+  --
+  -- Answers whether the site is live after the call.
+  function SkynetIADS:reportContact(dcsUnit, samSite)
+    if dcsUnit == nil or samSite == nil or dcsUnit:isExist() == false then
+      return false
+    end
+    local contact = SkynetIADSContact:create({ object = dcsUnit }, samSite)
+    if samSite:areGoLiveConstraintsSatisfied(contact) == false then
+      return false
+    end
+    samSite:goLive()
+    if samSite:isActive() == false then
+      return false
+    end
+    samSite:markContactReported()
+    return true
+  end
+
+  --- Every hostile aircraft and helicopter currently flying.
+  --
+  -- Enumerated once per cycle and shared by every site: a mission carrying sixty batteries would
+  -- otherwise sweep the coalitions sixty times every five seconds. Neutral is not hostile.
+  function SkynetIADS:getHostileAirUnits()
+    local hostileUnits = {}
+    local categories = { Group.Category.AIRPLANE, Group.Category.HELICOPTER }
+    for _, coalitionID in pairs(coalition.side) do
+      if coalitionID ~= self:getCoalition() and coalitionID ~= coalition.side.NEUTRAL then
+        for i = 1, #categories do
+          local groups = coalition.getGroups(coalitionID, categories[i]) or {}
+          for _, group in pairs(groups) do
+            --coalition.getGroups can hand back a group that no longer exists; asking it for
+            --its units raises, and inside a pairs loop that aborts the whole listing
+            if group and (group.isExist == nil or group:isExist()) then
+              for _, unit in pairs(group:getUnits() or {}) do
+                if unit:isExist() and unit:inAir() then
+                  table.insert(hostileUnits, unit)
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    return hostileUnits
+  end
+
+  --- Is this site one the last line of defense has to look after?
+  --
+  -- The sites that matter are the ones something is holding in the dark: the network, or their own
+  -- autonomous behaviour when it is set to stay dark. A site already triggered by an EW radar this
+  -- cycle, one acting as an EW radar, and one the DCS AI is already running are all left alone.
+  function SkynetIADS:isSiteEligibleForLastLineOfDefence(samSite)
+    if samSite:hasTargetsInRange() or samSite:getActAsEW() then
+      return false
+    end
+    if samSite:getAutonomousState() == false then
+      return true
+    end
+    return samSite:getAutonomousBehaviour() == SkynetIADSAbstractRadarElement.AUTONOMOUS_STATE_DARK
+  end
+
+  --- Wakes every dark site an enemy aircraft is flying over.
+  function SkynetIADS:evaluateLastLineOfDefence(samSites)
+    if self.lastLineOfDefenceEnabled == false then
+      return
+    end
+    local hostileUnits = nil
+    local hostilePositions = nil
+    for i = 1, #samSites do
+      local samSite = samSites[i]
+      if self:isSiteEligibleForLastLineOfDefence(samSite) then
+        --built at most once per cycle, and not at all when every site is already busy. The
+        --positions are read here too: asking each unit again for every site would be one DCS
+        --call per site per aircraft, sixty times over on a mission carrying sixty batteries
+        if hostileUnits == nil then
+          hostileUnits = self:getHostileAirUnits()
+          if #hostileUnits == 0 then
+            --nothing is flying; reading each site's position would be pure waste
+            return
+          end
+          hostilePositions = {}
+          for j = 1, #hostileUnits do
+            hostilePositions[j] = hostileUnits[j]:getPosition().p
+          end
+        end
+        local samSitePosition = samSite:getElementPosition()
+        if samSitePosition ~= nil then
+          local radius = samSite:getLastLineOfDefenceRadius()
+          for j = 1, #hostileUnits do
+            --2D, the way Skynet measures everything else
+            local distance = samSite:getDistanceToUnit(samSitePosition, hostilePositions[j])
+            if distance <= radius and self:reportContact(hostileUnits[j], samSite) then
+              break
+            end
+          end
+        end
+      end
     end
   end
+
+  -- Skynet acts on no world event of its own: the elements handle the ones that matter to them,
+  -- through SkynetIADSAbstractElement:onEvent. This is deliberately still registered in create():
+  -- it is the obvious place for the next network-level event feature, and an empty handler costs
+  -- one dispatch per event.
+  function SkynetIADS:onEvent(event) end
 
   function SkynetIADS:setUpdateInterval(interval)
     self.contactUpdateInterval = interval
@@ -1613,14 +1785,20 @@ do
         self.coalitionID = coalitionID
       end
       if self.coalitionID ~= coalitionID then
-        self:printOutputToLog("element: " .. item:getName() .. " has a different coalition than the IADS", true)
+        local message = "element: " .. item:getName() .. " has a different coalition than the IADS"
+        self:printOutputToLog(message)
+        self:printOutput(message, true)
       end
     end
   end
 
-  function SkynetIADS:addJammer(jammer)
-    table.insert(self.jammers, jammer)
-  end
+  -- SkynetIADS:addJammer() was removed in FIX-JAMMER-SILENCE-OUTLIVES-THE-JAMMER. It inserted into
+  -- self.jammers, a field create() never initialised, so every call raised "table expected, got
+  -- nil" and took the mission's setup script down with it -- and nothing anywhere read that field,
+  -- so making it succeed would only have meant a registration that did nothing. A jammer is
+  -- attached to a network by handing the network to its constructor:
+  --     jammer = SkynetIADSJammer:create(Unit.getByName("F-4 AI"), redIADS)
+  -- and a second network with jammer:addIADS(blueIADS). See documentation/api.md.
 
   function SkynetIADS:getCoalition()
     return self.coalitionID
@@ -1676,16 +1854,17 @@ do
         self:addEarlyWarningRadar(unitName)
       end
     end
+    self:rebuildRadarCoverageAfterBulkReAdd()
     return self:createTableDelegator(self.earlyWarningRadars)
   end
 
   function SkynetIADS:addEarlyWarningRadar(earlyWarningRadarUnitName)
     local earlyWarningRadarUnit = Unit.getByName(earlyWarningRadarUnitName)
     if earlyWarningRadarUnit == nil then
-      self:printOutputToLog(
-        "you have added an EW Radar that does not exist, check name of Unit in Setup and Mission editor: " .. earlyWarningRadarUnitName,
-        true
-      )
+      local message = "you have added an EW Radar that does not exist, check name of Unit in Setup and Mission editor: "
+        .. earlyWarningRadarUnitName
+      self:printOutputToLog(message)
+      self:printOutput(message, true)
       return
     end
     self:setCoalition(earlyWarningRadarUnit)
@@ -1698,14 +1877,23 @@ do
     end
     ewRadar:setupElements()
     ewRadar:setCachedTargetsMaxAge(self:getCachedTargetsMaxAge())
+    -- setActAsEW(true) is a state change, so it ends in informChildrenOfStateChange() -> every
+    -- child setToCorrectAutonomousState() -> goDark(). It has to run while this radar still has
+    -- no children, or joining the mission would switch off every battery it covers, including one
+    -- lit by designation. Building the coverage afterwards also means the radar already acts as
+    -- EW when buildRadarCoverageForEarlyWarningRadar() asks who is now covered -- until it does,
+    -- it is not a valid parent, so the answer would be that nothing changed.
+    ewRadar:setActAsEW(true)
     -- for performance improvement, if iads is not scanning no update coverage update needs to be done, will be executed once when iads activates
     if self.ewRadarScanMistTaskID ~= nil then
       self:buildRadarCoverageForEarlyWarningRadar(ewRadar)
     end
-    ewRadar:setActAsEW(true)
     ewRadar:setToCorrectAutonomousState()
     ewRadar:goLive()
     table.insert(self.earlyWarningRadars, ewRadar)
+    --after the insert, not before: the connector reads self.earlyWarningRadars, so a radar
+    --refreshed while it is still only a local is a radar MOOSE never hears about
+    self:refreshMooseConnector()
     if self:getDebugSettings().addedEWRadar then
       self:printOutputToLog("ADDED: " .. ewRadar:getDescription())
     end
@@ -1746,7 +1934,28 @@ do
         end
       end
     end
+    self:rebuildRadarCoverageAfterBulkReAdd()
     return self:createTableDelegator(self.samSites)
+  end
+
+  --- Unwires the elements a *ByPrefix call discarded, by rebuilding the whole coverage graph.
+  --
+  -- Those two functions replace an entire list, and nothing else removes an association: the
+  -- per-element rebuild in addSAMSite() / addEarlyWarningRadar() only ever adds, and
+  -- refreshRadarCoverage() walks getAbstracRadarElements(), which reads the current lists — a
+  -- discarded object is in neither, so it is never visited and stays wired in forever. A discarded
+  -- EW radar still passes every test a parent is given (its DCS unit exists, it has power, a
+  -- connection node, it acts as EW), so the battery believes it is covered by a radar the IADS no
+  -- longer polls, and stays dark under nobody's watch. A discarded SAM site stays a child of its
+  -- EW radar and keeps driving the controller of the DCS group the live site also owns.
+  --
+  -- buildRadarCoverage() is the only code that purges, and it purges all three holders. It is
+  -- guarded exactly as the incremental rebuild is: before activate() there is no coverage to
+  -- rebuild, and activate() will do it once.
+  function SkynetIADS:rebuildRadarCoverageAfterBulkReAdd()
+    if self.ewRadarScanMistTaskID ~= nil then
+      self:buildRadarCoverage()
+    end
   end
 
   function SkynetIADS:getSAMSitesByPrefix(prefix)
@@ -1765,10 +1974,10 @@ do
   function SkynetIADS:addSAMSite(samSiteName)
     local samSiteDCS = Group.getByName(samSiteName)
     if samSiteDCS == nil then
-      self:printOutputToLog(
-        "you have added an SAM Site that does not exist, check name of Group in Setup and Mission editor: " .. tostring(samSiteName),
-        true
-      )
+      local message = "you have added an SAM Site that does not exist, check name of Group in Setup and Mission editor: "
+        .. tostring(samSiteName)
+      self:printOutputToLog(message)
+      self:printOutput(message, true)
       return
     end
     self:setCoalition(samSiteDCS)
@@ -1778,7 +1987,9 @@ do
     samSite:goLive()
     samSite:setCachedTargetsMaxAge(self:getCachedTargetsMaxAge())
     if samSite:getNatoName() == "UNKNOWN" then
-      self:printOutputToLog("you have added an SAM site that Skynet IADS can not handle: " .. samSite:getDCSName(), true)
+      local message = "you have added an SAM site that Skynet IADS can not handle: " .. samSite:getDCSName()
+      self:printOutputToLog(message)
+      self:printOutput(message, true)
       samSite:cleanUp()
     else
       samSite:goDark()
@@ -1789,7 +2000,18 @@ do
       -- for performance improvement, if iads is not scanning no update coverage update needs to be done, will be executed once when iads activates
       if self.ewRadarScanMistTaskID ~= nil then
         self:buildRadarCoverageForSAMSite(samSite)
+        -- and then applied unconditionally, which the rebuild's own guard cannot do: a site
+        -- one statement old has never had its autonomous state applied at all, isAutonomous
+        -- is the constructor's default, so "has the answer changed?" reads a value that
+        -- never meant anything. Left to the guard, a battery whose only neighbours are no
+        -- use to it -- another SAM site, which does not act as EW and so is not a valid
+        -- parent -- would stay dark for the rest of the mission instead of being handed back
+        -- to the DCS AI. Nothing can be lost by applying it here: the site is dark, and
+        -- there is no designation yet to switch off. activate() does exactly this for every
+        -- site, through buildRadarCoverage().
+        samSite:setToCorrectAutonomousState()
       end
+      self:refreshMooseConnector()
       return samSite
     end
   end
@@ -1894,10 +2116,9 @@ do
       local ewRadar = ewRadars[i]
       --call go live in case ewRadar had to shut down (HARM attack)
       ewRadar:goLive()
-      -- if an awacs has traveled more than a predeterminded distance we update the autonomous state of the SAMs
-      if getmetatable(ewRadar) == SkynetIADSAWACSRadar and ewRadar:isUpdateOfAutonomousStateOfSAMSitesRequired() then
-        self:buildRadarCoverageForEarlyWarningRadar(ewRadar)
-      end
+      -- an element that has moved is picked up by SkynetIADS:refreshRadarCoverage(). It used to
+      -- be handled here, for AWACS only, by buildRadarCoverageForEarlyWarningRadar -- which only
+      -- ever adds, so an AWACS in transit accumulated every battery it had ever flown near
       local ewContacts = ewRadar:getDetectedTargets()
       if #ewContacts > 0 then
         local samSitesUnderCoverage = ewRadar:getUsableChildRadars()
@@ -1923,18 +2144,51 @@ do
         local contact = self.contacts[j]
         -- the DCS Radar only returns enemy aircraft, if that should change a coalition check will be required
         -- currently every type of object in the air is handed of to the SAM site, including missiles
-        local description = contact:getDesc()
-        local category = description.category
-        if
-          category
-          and category ~= Unit.Category.GROUND_UNIT
-          and category ~= Unit.Category.SHIP
-          and category ~= Unit.Category.STRUCTURE
-        then
+        --local description = contact:getDesc()
+        --local category = description.category
+        --if category and category ~= Unit.Category.GROUND_UNIT and category ~= Unit.Category.SHIP and category ~= Unit.Category.STRUCTURE then
+        --	samToTrigger:informOfContact(contact)
+        --end
+        --[[
+				Above code will not always work, as it assumes the contact is a unit. But actually a contact can be a unit or a weapon.
+				Categories returned by description.category will not be the same for a unit or a weapon:
+					Unit.Category = { AIRPLANE=0, HELICOPTER=1, GROUND_UNIT=2, SHIP=3, STRUCTURE=4 }
+					Weapon.Category = { SHELL=0, MISSILE=1, ROCKET=2, BOMB=3 }
+
+				So as it is, as we consider only the units categories that are not in [2, 3, 4]:
+					An airplane or a helicopter will be passed to the sites as designed
+					A missile (HARM, JSOW...) will be passed as well but only by chance because its category is equal to AIRPLANE
+					A bomb though will not be passed because its category is equal to SHIP
+
+				This has become an issue since the Phalanx has been introduced, as it is a unit capable of engaging incoming bombs.
+				As it is now, a Phalanx will be kept off when bombs are inbound.
+
+				Proposed correction consist in correctly considering the contact object category, before looking at its description category.
+				I also think it would be better to test for categories to include, rather than categories to exclude, but this is another matter.
+
+				Note 1: we could enhance that by only turning the site on when they can indeed engage the target, like it is done for the HARMs.
+				Note 2: maybe the shells and rockets can be engaged by the CRAMs as it is in real life ?
+
+				Modified code follows...
+			]]
+
+        local bShouldInform = false
+        local objectCategory = contact:getCategory()
+        local category = contact:getDesc().category
+
+        if objectCategory == Object.Category.UNIT then
+          bShouldInform = category ~= Unit.Category.GROUND_UNIT and category ~= Unit.Category.SHIP and category ~= Unit.Category.STRUCTURE
+        elseif objectCategory == Object.Category.WEAPON then
+          bShouldInform = category ~= Weapon.Category.SHELL and category ~= Weapon.Category.ROCKET
+        end
+
+        if category and bShouldInform then
           samToTrigger:informOfContact(contact)
         end
       end
     end
+
+    self:evaluateLastLineOfDefence(samSites)
 
     for i = 1, #samSites do
       local samSite = samSites[i]
@@ -2002,6 +2256,16 @@ do
 
   -- this method rebuilds the radar coverage of the IADS, a complete rebuild is only required the first time the IADS is activated
   -- during runtime it is sufficient to call buildRadarCoverageForSAMSite or buildRadarCoverageForEarlyWarningRadar method that just updates the IADS for one unit, this saves script execution time
+  --
+  -- That last sentence is true for an **addition** -- a new SAM site, a new fixed EW radar -- and
+  -- false for anything that **moves**: those two only ever add, through
+  -- insertToTableIfNotAlreadyAdded, and this is the only function that clears anything. Applying
+  -- them to an AWACS in transit is what made it accumulate every battery it had ever flown near.
+  -- Movement is refreshRadarCoverage()'s job, and it purges.
+  --
+  -- It is false for a **removal** too, which is the other half of the same thing: a *ByPrefix call
+  -- replaces a whole list, and the elements it drops stay wired in until something clears. So this
+  -- runs at runtime as well, from rebuildRadarCoverageAfterBulkReAdd().
   function SkynetIADS:buildRadarCoverage()
     --to build the basic radar coverage we use all SAM sites. Checks if SAM site has power or a connection node is done when using the SAM site later on
     local samSites = self:getSAMSites()
@@ -2037,6 +2301,9 @@ do
   end
 
   function SkynetIADS:buildRadarCoverageForAbstractRadarElement(abstractRadarElement)
+    --the reference point the next sweep measures movement against; laying it down only at the
+    --first sweep would put it after the element has already moved, so the move would measure zero
+    abstractRadarElement:markCoverageUpdated()
     local abstractRadarElements = self:getAbstracRadarElements()
     for i = 1, #abstractRadarElements do
       local aElementToCompare = abstractRadarElements[i]
@@ -2051,25 +2318,152 @@ do
     end
   end
 
+  --- Records that parent covers child. Deliberately quiet: the caller decides who is told about it.
+  --
+  -- This used to go through addParentRadar(), which ends in informChildrenOfStateChange() ->
+  -- resetAutonomousState() -> goDark(), so writing down a fact of geometry switched a radar off.
+  -- buildRadarCoverage() notifies every SAM site once at the end of its own rebuild, and the two
+  -- incremental entry points below notify what they changed.
   function SkynetIADS:buildRadarAssociation(parent, child)
-    --chilren should only be SAM sites not EW radars
+    --only SAM sites are children, and only SAM sites have parent radars: EW radars are neither
     if getmetatable(child) == SkynetIADSSamSite then
       parent:addChildRadar(child)
+      child:addParentRadarWithoutStateChange(parent)
     end
-    --Only SAM Sites should have parent Radars, not EW Radars
-    if getmetatable(child) == SkynetIADSSamSite then
-      child:addParentRadar(parent)
+  end
+
+  --- Has this site's autonomy actually changed? Then correct it; otherwise leave it alone.
+  --
+  -- setToCorrectAutonomousState() on a covered site means resetAutonomousState() and therefore
+  -- goDark(), and goDark()'s own guards protect a site that has acquired a track or has missiles in
+  -- flight, but not one that has just gone live on designation and not yet locked on (see 3a94937
+  -- for what that looks like in game: launchers up, slew onto the target, back to travel state, and
+  -- no shot). A site is autonomous exactly when no valid parent covers it, so the two disagreeing
+  -- is what "this site's situation changed" means.
+  --
+  -- Note this is the *autonomy* that is compared, not the parent list: a site that gains a second
+  -- parent while keeping its first has not changed sides, and switching it off over that would be
+  -- the very defect above.
+  function SkynetIADS:updateAutonomousStateIfChanged(samSite)
+    if samSite:hasValidParentRadar() == samSite:getAutonomousState() then
+      samSite:setToCorrectAutonomousState()
     end
   end
 
   function SkynetIADS:buildRadarCoverageForSAMSite(samSite)
     self:buildRadarCoverageForAbstractRadarElement(samSite)
     self:addSingleRadarToCommandCenters(samSite)
+    --the site that just joined is the only one whose own autonomy can have changed: it does not
+    --act as EW, so it is not a valid parent for anybody else
+    self:updateAutonomousStateIfChanged(samSite)
   end
 
   function SkynetIADS:buildRadarCoverageForEarlyWarningRadar(ewRadar)
     self:buildRadarCoverageForAbstractRadarElement(ewRadar)
     self:addSingleRadarToCommandCenters(ewRadar)
+    --the sites this radar now covers are the ones whose answer can have changed. They are read
+    --off the argument, not off self.earlyWarningRadars: addEarlyWarningRadar() inserts the radar
+    --into that list only after this has run, so it is not in getAbstracRadarElements() yet.
+    local coveredSites = ewRadar:getChildRadars()
+    for i = 1, #coveredSites do
+      self:updateAutonomousStateIfChanged(coveredSites[i])
+    end
+  end
+
+  -- Coverage refresh ----------------------------------------------------------------------------
+  --
+  -- Which battery sits under which radar is geometry, and geometry changes when something moves.
+  -- Until now it was computed once and treated as if it never changed: buildRadarCoverage() is the
+  -- only thing that clears anything, and the incremental rebuild used for a moving AWACS only ever
+  -- adds. So an AWACS in transit accumulated every battery it had ever flown near and held them
+  -- all non-autonomous from hundreds of kilometres away, and a mobile SAM site — a SA-15, a SA-8,
+  -- a Shilka in a convoy — was refreshed by nothing at all.
+
+  function SkynetIADS:setCoverageRefreshInterval(interval)
+    if interval and interval >= 0 then
+      self.coverageRefreshInterval = interval
+      if self.ewRadarScanMistTaskID ~= nil then
+        self:scheduleCoverageRefresh()
+      end
+    end
+    return self
+  end
+
+  function SkynetIADS:getCoverageRefreshInterval()
+    return self.coverageRefreshInterval
+  end
+
+  --- (Re)arms the periodic sweep. An interval of 0 stops it.
+  function SkynetIADS:scheduleCoverageRefresh()
+    SkynetIADSUtils.removeFunction(self.coverageRefreshMistTaskID)
+    self.coverageRefreshMistTaskID = nil
+    if self.coverageRefreshInterval > 0 then
+      self.coverageRefreshMistTaskID =
+        SkynetIADSUtils.scheduleFunction(SkynetIADS.refreshRadarCoverage, { self }, 1, self.coverageRefreshInterval)
+    end
+  end
+
+  --- Re-evaluates the coverage of every element that has moved since the last sweep.
+  --
+  -- Only mobile elements are re-evaluated — the geometry between two fixed elements never changes
+  -- — which is M x N instead of the N^2 of a full rebuild.
+  --
+  -- And a site's autonomous state is only touched when the answer has actually changed.
+  -- buildRadarCoverage() ends with informChildrenOfStateChange() on every SAM, which for a covered
+  -- site means resetAutonomousState() and therefore goDark(). Run periodically as-is, that would
+  -- hand an extinction order to the whole network on every sweep — and goDark()'s guards protect a
+  -- site that has acquired a track or has missiles in flight, but not one that has just gone live
+  -- on designation and not yet locked on (see the fix in 3a94937 for what that looks like in game:
+  -- launchers up, slew onto the target, back to travel state, and no shot).
+  --
+  -- Note this is the *autonomy* that is compared, not the parent list: a site that gains a second
+  -- parent while keeping its first has not changed sides, and switching it off over that would be
+  -- the very defect above, triggered by nothing more than an AWACS arriving on station.
+  function SkynetIADS.refreshRadarCoverage(self)
+    local abstractRadarElements = self:getAbstracRadarElements()
+
+    local movedElements = {}
+    for i = 1, #abstractRadarElements do
+      local abstractRadarElement = abstractRadarElements[i]
+      if abstractRadarElement:hasMovedSinceLastCoverageUpdate() then
+        table.insert(movedElements, abstractRadarElement)
+      end
+    end
+    if #movedElements == 0 then
+      return
+    end
+
+    for i = 1, #movedElements do
+      local movedElement = movedElements[i]
+      for j = 1, #abstractRadarElements do
+        local elementToCompare = abstractRadarElements[j]
+        if elementToCompare ~= movedElement then
+          self:updateRadarAssociation(elementToCompare, movedElement)
+          self:updateRadarAssociation(movedElement, elementToCompare)
+        end
+      end
+    end
+
+    local samSites = self:getSAMSites()
+    for i = 1, #samSites do
+      self:updateAutonomousStateIfChanged(samSites[i])
+    end
+  end
+
+  --- Adds the association when the child now sits inside the parent's detection range, removes it
+  --- when it no longer does. Deliberately quiet: the caller decides who is told about it.
+  function SkynetIADS:updateRadarAssociation(parent, child)
+    --children should only be SAM sites, not EW radars
+    if getmetatable(child) ~= SkynetIADSSamSite then
+      return
+    end
+    if child:isInRadarDetectionRangeOf(parent) then
+      parent:addChildRadar(child)
+      child:addParentRadarWithoutStateChange(parent)
+    else
+      parent:removeChildRadar(child)
+      child:removeParentRadar(parent)
+    end
   end
 
   function SkynetIADS:mergeContact(contact)
@@ -2114,6 +2508,7 @@ do
     SkynetIADSUtils.removeFunction(self.ewRadarScanMistTaskID)
     self.ewRadarScanMistTaskID = SkynetIADSUtils.scheduleFunction(SkynetIADS.evaluateContacts, { self }, 1, self.contactUpdateInterval)
     self:buildRadarCoverage()
+    self:scheduleCoverageRefresh()
   end
 
   function SkynetIADS:setupSAMSitesAndThenActivate(setupTime)
@@ -2125,6 +2520,8 @@ do
 
   function SkynetIADS:deactivate()
     SkynetIADSUtils.removeFunction(self.ewRadarScanMistTaskID)
+    SkynetIADSUtils.removeFunction(self.coverageRefreshMistTaskID)
+    self.coverageRefreshMistTaskID = nil
     SkynetIADSUtils.removeFunction(self.samSetupMistTaskID)
     self:deativateSAMSites()
     self:deactivateEarlyWarningRadars()
@@ -2153,26 +2550,32 @@ do
   end
 
   function SkynetIADS:addRadioMenu()
+    --a second call would issue the whole set of menu calls again and overwrite self.radioMenu
+    --with the second path, leaving the first submenu referenced nowhere and out of
+    --removeRadioMenu()'s reach. A mission that re-runs its setup on a respawn does exactly that.
+    if self.radioMenu ~= nil then
+      return
+    end
     self.radioMenu = missionCommands.addSubMenu("SKYNET IADS " .. self:getCoalitionString())
-    local displayIADSStatus = missionCommands.addCommand(
+    missionCommands.addCommand(
       "show IADS Status",
       self.radioMenu,
       SkynetIADS.updateDisplay,
       { self = self, value = true, option = "IADSStatus" }
     )
-    local displayIADSStatus = missionCommands.addCommand(
+    missionCommands.addCommand(
       "hide IADS Status",
       self.radioMenu,
       SkynetIADS.updateDisplay,
       { self = self, value = false, option = "IADSStatus" }
     )
-    local displayIADSStatus = missionCommands.addCommand(
+    missionCommands.addCommand(
       "show contacts",
       self.radioMenu,
       SkynetIADS.updateDisplay,
       { self = self, value = true, option = "contacts" }
     )
-    local displayIADSStatus = missionCommands.addCommand(
+    missionCommands.addCommand(
       "hide contacts",
       self.radioMenu,
       SkynetIADS.updateDisplay,
@@ -2182,6 +2585,9 @@ do
 
   function SkynetIADS:removeRadioMenu()
     missionCommands.removeItem(self.radioMenu)
+    --cleared so addRadioMenu() can issue the menu again: the guard there is about a menu that
+    --exists, not one that once did
+    self.radioMenu = nil
   end
 
   function SkynetIADS.updateDisplay(params)
@@ -2215,6 +2621,23 @@ do
       self.mooseConnector = SkynetMooseA2ADispatcherConnector:create(self)
     end
     return self.mooseConnector
+  end
+
+  --- Hands MOOSE's A2A dispatcher the element list it now has to work from.
+  --
+  -- Call it wherever self.samSites or self.earlyWarningRadars changes. It used to happen by
+  -- itself, at the end of informChildrenOfStateChange(), which recording a radar's coverage
+  -- reached -- so it fired N^2 times during a setup, never once for an early warning radar added
+  -- while the mission runs (the radar joins the list after that code has run), and not at all
+  -- once the coverage was recorded quietly.
+  --
+  -- Only when a connector already exists: getMooseConnector() would build one, and a mission that
+  -- never called addMooseSetGroup() has no use for it. One that did has it, and the update costs
+  -- nothing until a SET_GROUP is registered -- which the documented setup does last.
+  function SkynetIADS:refreshMooseConnector()
+    if self.mooseConnector ~= nil then
+      self.mooseConnector:update()
+    end
   end
 
   function SkynetIADS:addMooseSetGroup(mooseSetGroup)
@@ -2372,6 +2795,19 @@ do
     return not isAdded
   end
 
+  --- Answers a copy of `tbl` without `object`. Counterpart of insertToTableIfNotAlreadyAdded:
+  --- until the coverage sweep needed it, removing a single parent or child radar was impossible,
+  --- the only tools being clearParentRadars/clearChildRadars, which are all-or-nothing.
+  function SkynetIADSAbstractDCSObjectWrapper:removeFromTable(tbl, object)
+    local remaining = {}
+    for i = 1, #tbl do
+      if tbl[i] ~= object then
+        table.insert(remaining, tbl[i])
+      end
+    end
+    return remaining
+  end
+
   -- helper code for class inheritance
   function inheritsFrom(baseClass)
     local new_class = {}
@@ -2419,7 +2855,6 @@ do
     return new_class
   end
 end
-
 do
   SkynetIADSAbstractElement = {}
   SkynetIADSAbstractElement = inheritsFrom(SkynetIADSAbstractDCSObjectWrapper)
@@ -2554,6 +2989,9 @@ do
   SkynetIADSAbstractRadarElement.HARM_TO_SAM_ASPECT = 15
   SkynetIADSAbstractRadarElement.HARM_LOOKAHEAD_NM = 20
 
+  --- How far an element has to travel before its radar coverage is recomputed, in NM.
+  SkynetIADSAbstractRadarElement.COVERAGE_UPDATE_MOVEMENT_NM = 10
+
   function SkynetIADSAbstractRadarElement:create(dcsElementWithRadar, iads)
     local instance = self:superClass():create(dcsElementWithRadar, iads)
     setmetatable(instance, self)
@@ -2569,6 +3007,7 @@ do
     instance.searchRadars = {}
     instance.parentRadars = {}
     instance.childRadars = {}
+    instance.lastCoverageUpdatePosition = nil
     instance.missilesInFlight = {}
     instance.pointDefences = {}
     instance.harmDecoys = {}
@@ -2619,8 +3058,17 @@ do
       local pointDefence = self.pointDefences[i]
       pointDefence:cleanUp()
     end
+    -- The state has to go with the timers. goLive() refuses while harmSilenceID is set, so a
+    -- site torn down mid-evasion would stay deaf for the rest of the mission -- to the network,
+    -- to autonomy, and to the last line of defense -- with nothing left to clear the field: the
+    -- task that would have is the one just removed. Not finishHarmDefence(), which ends in
+    -- goAutonomous() and would light a DCS-AI site's radar on the way out; teardown forgets the
+    -- HARM defence, it does not finish it.
     SkynetIADSUtils.removeFunction(self.harmScanID)
+    self.harmScanID = nil
     SkynetIADSUtils.removeFunction(self.harmSilenceID)
+    self.harmSilenceID = nil
+    self.harmShutdownTime = 0
     --call method from super class
     self:removeEventHandlers()
   end
@@ -2649,9 +3097,26 @@ do
     table.insert(self.harmDecoys, harmDecoy)
   end
 
+  --- Records a parent and announces it. Part of the script's public surface; nothing inside the
+  --- IADS calls it any more -- everything that builds coverage uses the quiet version below and
+  --- decides for itself who needs telling.
   function SkynetIADSAbstractRadarElement:addParentRadar(parentRadar)
-    self:insertToTableIfNotAlreadyAdded(self.parentRadars, parentRadar)
+    self:addParentRadarWithoutStateChange(parentRadar)
     self:informChildrenOfStateChange()
+  end
+
+  -- Every piece of code that builds coverage -- SkynetIADS:buildRadarAssociation(),
+  -- SkynetIADS:updateRadarAssociation() and therefore refreshRadarCoverage() -- goes through this
+  -- one and then decides for itself which sites actually changed. It must not go through
+  -- addParentRadar: informChildrenOfStateChange() ends in resetAutonomousState() -> goDark(), so
+  -- recording a fact of geometry would hand an extinction order to every battery in range, and a
+  -- periodic sweep would do it to the whole network every ten seconds.
+  function SkynetIADSAbstractRadarElement:addParentRadarWithoutStateChange(parentRadar)
+    self:insertToTableIfNotAlreadyAdded(self.parentRadars, parentRadar)
+  end
+
+  function SkynetIADSAbstractRadarElement:removeParentRadar(parentRadar)
+    self.parentRadars = self:removeFromTable(self.parentRadars, parentRadar)
   end
 
   function SkynetIADSAbstractRadarElement:getParentRadars()
@@ -2664,6 +3129,10 @@ do
 
   function SkynetIADSAbstractRadarElement:addChildRadar(childRadar)
     self:insertToTableIfNotAlreadyAdded(self.childRadars, childRadar)
+  end
+
+  function SkynetIADSAbstractRadarElement:removeChildRadar(childRadar)
+    self.childRadars = self:removeFromTable(self.childRadars, childRadar)
   end
 
   function SkynetIADSAbstractRadarElement:getChildRadars()
@@ -2696,7 +3165,12 @@ do
     self.iads:getMooseConnector():update()
   end
 
-  function SkynetIADSAbstractRadarElement:setToCorrectAutonomousState()
+  --- Does at least one parent radar still connect this element to the IADS?
+  --
+  -- This is the whole of the autonomy question, and it is a *query*: unlike
+  -- setToCorrectAutonomousState() below it changes nothing, so the coverage sweep can ask whether
+  -- a site's answer has actually changed before acting on it.
+  function SkynetIADSAbstractRadarElement:hasValidParentRadar()
     local parents = self:getParentRadars()
     for i = 1, #parents do
       local parent = parents[i]
@@ -2710,11 +3184,18 @@ do
         and parent:getActAsEW() == true
         and parent:isDestroyed() == false
       then
-        self:resetAutonomousState()
-        return
+        return true
       end
     end
-    self:goAutonomous()
+    return false
+  end
+
+  function SkynetIADSAbstractRadarElement:setToCorrectAutonomousState()
+    if self:hasValidParentRadar() then
+      self:resetAutonomousState()
+    else
+      self:goAutonomous()
+    end
   end
 
   function SkynetIADSAbstractRadarElement:setAutonomousBehaviour(mode)
@@ -3010,7 +3491,7 @@ do
     local unitTypeName = unit:getTypeName()
     for unitName, unitPerformanceData in pairs(unitData) do
       if unitName == unitTypeName then
-        samElement = class:create(unit)
+        local samElement = class:create(unit)
         samElement:setupRangeData()
         table.insert(tableToAdd, samElement)
       end
@@ -3189,25 +3670,112 @@ do
     return (isSearchRadarInRange and isTrackingRadarInRange and isLauncherInRange)
   end
 
-  function SkynetIADSAbstractRadarElement:isInRadarDetectionRangeOf(abstractRadarElement)
+  --- Where this element is, as a single vec3. A site is a point.
+  --
+  -- A Group has no getPosition() in DCS, so a SAM site has to answer from one of its units; the
+  -- radars come first because they are what the geometry is about, and the launchers and the raw
+  -- representation are there so an element whose radars are all destroyed still has a position.
+  -- Answers nil when nothing of the element is left.
+  function SkynetIADSAbstractRadarElement:getElementPosition()
     local radars = self:getRadars()
-    local abstractRadarElementRadars = abstractRadarElement:getRadars()
     for i = 1, #radars do
       local radar = radars[i]
-      for j = 1, #abstractRadarElementRadars do
-        local abstractRadarElementRadar = abstractRadarElementRadars[j]
-        if abstractRadarElementRadar:isExist() and radar:isExist() then
-          local distance = self:getDistanceToUnit(
-            radar:getDCSRepresentation():getPosition().p,
-            abstractRadarElementRadar:getDCSRepresentation():getPosition().p
-          )
-          if abstractRadarElementRadar:getMaxRangeFindingTarget() >= distance then
-            return true
-          end
+      if radar:isExist() then
+        return radar:getDCSRepresentation():getPosition().p
+      end
+    end
+    for i = 1, #self.launchers do
+      local launcher = self.launchers[i]
+      if launcher:isExist() then
+        return launcher:getDCSRepresentation():getPosition().p
+      end
+    end
+    local dcsRepresentation = self:getDCSRepresentation()
+    if dcsRepresentation == nil or dcsRepresentation:isExist() == false then
+      return nil
+    end
+    if getmetatable(dcsRepresentation) == Group then
+      local units = dcsRepresentation:getUnits()
+      if units and units[1] then
+        return units[1]:getPosition().p
+      end
+      return nil
+    end
+    return dcsRepresentation:getPosition().p
+  end
+
+  --- How far this element's best radar sees, in metres. 0 when it has no working radar.
+  function SkynetIADSAbstractRadarElement:getMaxDetectionRange()
+    local maxRange = 0
+    local radars = self:getRadars()
+    for i = 1, #radars do
+      local radar = radars[i]
+      if radar:isExist() then
+        local range = radar:getMaxRangeFindingTarget()
+        if range > maxRange then
+          maxRange = range
         end
       end
     end
-    return false
+    return maxRange
+  end
+
+  -- One position and one maximum range per element, rather than every pair of radars of the two
+  -- elements: iterating radar pairs costs a factor of four for the few metres that separate the
+  -- units inside one group, and it is what made a periodic coverage sweep too expensive to run.
+  -- The initial build and the sweep both come through here, so a borderline association cannot
+  -- flip between the two.
+  function SkynetIADSAbstractRadarElement:isInRadarDetectionRangeOf(abstractRadarElement)
+    local maxRange = abstractRadarElement:getMaxDetectionRange()
+    if maxRange <= 0 then
+      return false
+    end
+    local position = self:getElementPosition()
+    local otherPosition = abstractRadarElement:getElementPosition()
+    if position == nil or otherPosition == nil then
+      return false
+    end
+    return maxRange >= self:getDistanceToUnit(position, otherPosition)
+  end
+
+  --- Takes the current position as the reference the next movement is measured against.
+  --
+  -- Called whenever coverage is actually built for this element. Without it the reference point
+  -- would be laid down by the first sweep, which happens *after* the element has moved, so the
+  -- move that mattered would measure zero and be missed.
+  function SkynetIADSAbstractRadarElement:markCoverageUpdated()
+    self.lastCoverageUpdatePosition = self:getElementPosition()
+  end
+
+  --- How far this element has moved since the last time coverage was rebuilt for it, in NM.
+  function SkynetIADSAbstractRadarElement:getDistanceTraveledSinceLastUpdate()
+    local currentPosition = self:getElementPosition()
+    if currentPosition == nil then
+      return 0
+    end
+    if self.lastCoverageUpdatePosition == nil then
+      self.lastCoverageUpdatePosition = currentPosition
+    end
+    return SkynetIADSUtils.round(SkynetIADSUtils.metersToNM(self:getDistanceToUnit(self.lastCoverageUpdatePosition, currentPosition)))
+  end
+
+  function SkynetIADSAbstractRadarElement:getMaxAllowedMovementForAutonomousUpdateInNM()
+    --fixed to 10 nm miles to better fit small SAM sites
+    return SkynetIADSAbstractRadarElement.COVERAGE_UPDATE_MOVEMENT_NM
+  end
+
+  --- Has this element moved far enough that its coverage is worth recomputing?
+  --
+  -- Asking it moves the reference point, so two calls in a row answer true then false. It was an
+  -- AWACS-only notion until the coverage sweep: a SA-15 or a Shilka driving in a convoy kept the
+  -- parents it had when it spawned, for the whole mission, because the check tested the class.
+  function SkynetIADSAbstractRadarElement:hasMovedSinceLastCoverageUpdate()
+    local maxAllowedMovement = self:getMaxAllowedMovementForAutonomousUpdateInNM()
+    local hasMoved = self:getDistanceTraveledSinceLastUpdate() > maxAllowedMovement
+    if hasMoved then
+      self:markCoverageUpdated()
+    end
+    return hasMoved
   end
 
   function SkynetIADSAbstractRadarElement:getDistanceToUnit(unitPosA, unitPosB)
@@ -3475,7 +4043,6 @@ do
     local instance = self:superClass():create(radarUnit, iads)
     setmetatable(instance, self)
     self.__index = self
-    instance.lastUpdatePosition = nil
     instance.natoName = radarUnit:getTypeName()
     return instance
   end
@@ -3490,33 +4057,14 @@ do
   -- AWACs will not scan for HARMS
   function SkynetIADSAWACSRadar:scanForHarms() end
 
-  function SkynetIADSAWACSRadar:getMaxAllowedMovementForAutonomousUpdateInNM()
-    --local radarRange = SkynetIADSUtils.metersToNM(self.searchRadars[1]:getMaxRangeFindingTarget())
-    --return SkynetIADSUtils.round(radarRange / 10)
-    --fixed to 10 nm miles to better fit small SAM sites
-    return 10
-  end
-
+  -- The movement check used to live here, and being a method of this class is exactly what made it
+  -- apply to AWACS and to nothing else that moves. It is now
+  -- SkynetIADSAbstractRadarElement:hasMovedSinceLastCoverageUpdate(); this name is kept because it
+  -- is part of the public surface of the script.
   function SkynetIADSAWACSRadar:isUpdateOfAutonomousStateOfSAMSitesRequired()
-    local isUpdateRequired = self:getDistanceTraveledSinceLastUpdate() > self:getMaxAllowedMovementForAutonomousUpdateInNM()
-    if isUpdateRequired then
-      self.lastUpdatePosition = nil
-    end
-    return isUpdateRequired
-  end
-
-  function SkynetIADSAWACSRadar:getDistanceTraveledSinceLastUpdate()
-    local currentPosition = nil
-    if self.lastUpdatePosition == nil and self:getDCSRepresentation():isExist() then
-      self.lastUpdatePosition = self:getDCSRepresentation():getPosition().p
-    end
-    if self:getDCSRepresentation():isExist() then
-      currentPosition = self:getDCSRepresentation():getPosition().p
-    end
-    return SkynetIADSUtils.round(SkynetIADSUtils.metersToNM(self:getDistanceToUnit(self.lastUpdatePosition, currentPosition)))
+    return self:hasMovedSinceLastCoverageUpdate()
   end
 end
-
 do
   SkynetIADSCommandCenter = {}
   SkynetIADSCommandCenter = inheritsFrom(SkynetIADSAbstractRadarElement)
@@ -3606,15 +4154,22 @@ do
       return SkynetIADSContact.HARM
     end
 
-    -- self:getDCSRepresentation():getCategory() will fail with an error if self:getDCSRepresentation() is not nil but the unit is destroyed. The error will obviously interrupt the treatment that called getTypeName(), with consequences I did not try to track.
-    -- Using Object.getCategory instead will get us nil in that case.
-    if self:getDCSRepresentation() ~= nil then
-      local category = Object.getCategory(self:getDCSRepresentation())
-      if category == Object.Category.UNIT then
-        return self.typeName
-      end
+    -- a contact can be a unit or a weapon (missile, bomb, rocket, shell); in both cases self.typeName holds the DCS type name
+    local category = self:getCategory()
+    if category == Object.Category.UNIT or category == Object.Category.WEAPON then
+      return self.typeName
     end
     return "UNKNOWN"
+  end
+
+  function SkynetIADSContact:getCategory()
+    -- Note: we don't use self:getDCSRepresentation():getCategory()
+    -- because it will fail with an error if self:getDCSRepresentation() is not nil but the unit is destroyed.
+    -- Using the static Object.getCategory instead gets us nil in that case, and we only call it once there is a representation to pass it.
+    if self:getDCSRepresentation() ~= nil then
+      return Object.getCategory(self:getDCSRepresentation())
+    end
+    return nil
   end
 
   function SkynetIADSContact:getPosition()
@@ -3686,7 +4241,6 @@ do
     return SkynetIADSUtils.round(timer.getAbsTime() - self.lastTimeSeen)
   end
 end
-
 do
   SkynetIADSEWRadar = {}
   SkynetIADSEWRadar = inheritsFrom(SkynetIADSAbstractRadarElement)
@@ -3839,6 +4393,23 @@ do
     return SkynetIADSUtils.metersToNM(SkynetIADSUtils.get3DDist(self.emitter:getPosition().p, radarUnit:getPosition().p))
   end
 
+  -- I try to emulate the system as it would work in real life, so a jammer can only jam a SAM site if has line of sight to at least one radar in the group
+  -- Of the radars it can see, the nearest is the one it works against. Returns nil when it can see none.
+  function SkynetIADSJammer:getDistanceToNearestVisibleRadar(samSite)
+    local nearest = nil
+    local radars = samSite:getRadars()
+    for i = 1, #radars do
+      local radar = radars[i]
+      if self:hasLineOfSightToRadar(radar) then
+        local distance = self:getDistanceNMToRadarUnit(radar)
+        if nearest == nil or distance < nearest then
+          nearest = distance
+        end
+      end
+    end
+    return nearest
+  end
+
   function SkynetIADSJammer.runCycle(self)
     if self.emitter:isExist() == false then
       self:masterArmSafe()
@@ -3850,15 +4421,10 @@ do
       local samSites = iads:getActiveSAMSites()
       for j = 1, #samSites do
         local samSite = samSites[j]
-        local radars = samSite:getRadars()
-        local hasLOS = false
-        local distance = 0
         local natoName = samSite:getNatoName()
-        for l = 1, #radars do
-          local radar = radars[l]
-          distance = self:getDistanceNMToRadarUnit(radar)
-          -- I try to emulate the system as it would work in real life, so a jammer can only jam a SAM site if has line of sight to at least one radar in the group
-          if self:isKnownRadarEmitter(natoName) and self:hasLineOfSightToRadar(radar) and distance <= self.maximumEffectiveDistanceNM then
+        if self:isKnownRadarEmitter(natoName) then
+          local distance = self:getDistanceToNearestVisibleRadar(samSite)
+          if distance ~= nil and distance <= self.maximumEffectiveDistanceNM then
             if iads:getDebugSettings().jammerProbability then
               iads:printOutput("JAMMER: Distance: " .. distance)
             end
@@ -3988,7 +4554,6 @@ do
     return self:isInHorizontalRange(target)
   end
 end
-
 do
   SkynetIADSSamSite = {}
   SkynetIADSSamSite = inheritsFrom(SkynetIADSAbstractRadarElement)
@@ -3999,7 +4564,48 @@ do
     self.__index = self
     sam.targetsInRange = false
     sam.goLiveConstraints = {}
+    sam.lastLineOfDefenceRadius = nil
+    sam.lastReportedContactTime = nil
     return sam
+  end
+
+  --- The radius inside which this site notices an aircraft with no radar of its own, in metres.
+  --
+  -- Drawn once and kept for the whole mission: redrawn every cycle, an aircraft loitering near the
+  -- mean would make the site blink every five seconds, and a pilot could learn the exact distance
+  -- from a fixed one. It is drawn on first use rather than at creation so that a mission calling
+  -- SkynetIADS:setLastLineOfDefenceRadius() after adding its sites gets the bounds it asked for —
+  -- that setter clears what was drawn.
+  function SkynetIADSSamSite:getLastLineOfDefenceRadius()
+    if self.lastLineOfDefenceRadius == nil then
+      local minRadius, maxRadius = self.iads:getLastLineOfDefenceRadius()
+      self.lastLineOfDefenceRadius = SkynetIADSUtils.random(minRadius, maxRadius)
+    end
+    return self.lastLineOfDefenceRadius
+  end
+
+  function SkynetIADSSamSite:clearLastLineOfDefenceRadius()
+    self.lastLineOfDefenceRadius = nil
+  end
+
+  --- Records that something reported a contact to this site; see SkynetIADS:reportContact.
+  function SkynetIADSSamSite:markContactReported()
+    self.lastReportedContactTime = timer.getTime()
+  end
+
+  --- Is that report recent enough to keep the site lit?
+  --
+  -- Without it targetCycleUpdateEnd() sends the site dark five seconds after the aircraft leaves,
+  -- so a fast pass lights it for a single cycle and a racetrack makes it blink.
+  function SkynetIADSSamSite:hasFreshReportedContact()
+    if self.lastReportedContactTime == nil then
+      return false
+    end
+    return (timer.getTime() - self.lastReportedContactTime) < self.iads:getLastLineOfDefencePersistence()
+  end
+
+  function SkynetIADSSamSite:hasTargetsInRange()
+    return self.targetsInRange
   end
 
   function SkynetIADSSamSite:addGoLiveConstraint(constraintName, constraint)
@@ -4052,11 +4658,20 @@ do
   end
 
   function SkynetIADSSamSite:targetCycleUpdateEnd()
+    if self.targetsInRange == true or self.actAsEW == true or self:hasFreshReportedContact() then
+      return
+    end
+    if self:getAutonomousState() == false and self:getAutonomousBehaviour() == SkynetIADSAbstractRadarElement.AUTONOMOUS_STATE_DCS_AI then
+      self:goDark()
+    end
+    -- A site the network does not hold, and whose autonomous behaviour is to stay dark, is never
+    -- lit by anything but a reported contact -- the branch above deliberately leaves it alone. So
+    -- nothing else would ever switch it back off, and the last line of defense would light it for
+    -- the rest of the mission. Only a site that was actually woken that way is touched here.
     if
-      self.targetsInRange == false
-      and self.actAsEW == false
-      and self:getAutonomousState() == false
-      and self:getAutonomousBehaviour() == SkynetIADSAbstractRadarElement.AUTONOMOUS_STATE_DCS_AI
+      self.lastReportedContactTime ~= nil
+      and self:getAutonomousState() == true
+      and self:getAutonomousBehaviour() == SkynetIADSAbstractRadarElement.AUTONOMOUS_STATE_DARK
     then
       self:goDark()
     end

@@ -1,6 +1,6 @@
 # CHORE-SUPPORT-BOT-GHCR — the image is built once, in CI
 
-Status: 🔄 in-progress — the three tickets are done; the PR is open
+Status: ✅ done — the three tickets are done; PR #932 merged 2026-09-07
 
 Origin: David, 2026-09-07, the evening the bot went up. *"On va construire l'image docker du bot dans
 un CI (et déposer sur ghcr) — attention à ce qu'elle n'emporte aucun secret. Ensuite le

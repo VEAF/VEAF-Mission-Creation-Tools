@@ -5007,6 +5007,15 @@ VeafDrawingOnMap.COLORS = {
   ["pink"] = { 1, 0, 0, 0.3 },
   ["green"] = { 0, 1, 0, 1 },
   ["blue"] = { 0, 0, 1, 1 },
+  -- Added for the Skynet spotter view, which needs a third and a fourth state beyond red/green:
+  -- orange for a SAM's engagement envelope, grey for a node that could be alerted and is not. Named
+  -- here rather than passed as raw RGBA at the call site, because a colour nobody can name is a
+  -- colour the next caller re-invents slightly differently.
+  ["orange"] = { 1, 0.55, 0, 1 },
+  -- Mid grey, settled by looking at it on the map rather than by picking a number. {0.6, 0.6, 0.6}
+  -- is invisible on the sand-coloured DCS map; {0.15, 0.15, 0.15} reads as a black line and {0.7} as
+  -- white. Grey here means "inactive", not "faint" -- it still has to be read.
+  ["grey"] = { 0.42, 0.42, 0.42, 1 },
 }
 
 function VeafDrawingOnMap:new(objectToCopy)

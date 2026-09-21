@@ -143,18 +143,33 @@ artifacts:
   # One reading to avoid, since it cost a wrong decision once: do not read `ahead=N` as a sign of
   # life. The four commits the Regroupement fork leads walder by all date from 2025, and taking that
   # counter for a pulse is what made an earlier version of this note call it "the living branch".
+  #
+  # Since **2026-09-21 the project is maintained jointly** by VEAF and the Regroupement de
+  # Patrouilles (BFR, NAWACS), in VEAF/Skynet-IADS. That is why the version label lost its `RP`
+  # suffix and 3.5.0 is a plain number belonging to neither community alone -- do not "restore" it.
   - id: skynet
     source: https://github.com/VEAF/Skynet-IADS
     upstream: https://github.com/regroupement-patrouille/Skynet-IADS
-    pinned: "3.4.0RP-VEAF build 05.09.2026"
-    vendoring: compiled
+    pinned: "3.5.0"
+    vendoring: adapted
     path: src/scripts/community/skynet-iads-compiled.lua
-    # Three steps, and the second one is the one that gets forgotten: the artefact the fork commits is
-    # unformatted, ours is run through stylua. Skipping it makes the next sync a 4000-line diff in
-    # which the real change cannot be seen.
-    manual_steps: "Recompile skynet-iads-compiled.lua from the VEAF/Skynet-IADS sources (build-tools/build-compiled-script.ps1), run stylua on it, and re-apply the 'RP-VEAF' version label."
+    # Two steps, and the second is the one that gets forgotten. Measured on the 3.5.0 sync: taking
+    # the release asset as published shows a **9085-line** diff against the copy carried here, where
+    # the same asset run through stylua shows **843** -- the real change. The formatting pass is what
+    # makes a Skynet bump reviewable at all, so it survives the move to a downloadable asset.
+    manual_steps: "Download the skynet-iads-compiled.lua asset from the matching VEAF/Skynet-IADS release (do NOT rebuild from sources: the release asset is what CI built and verified from the tagged sources), then run stylua on it with the repo config."
     watch:
-      - { kind: github-file, repo: VEAF/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "cde577d1ac79" }
+      # A `github-release` watch, not a `github-file` one. Skynet stopped committing its build
+      # artefact when its build was redone on the CTLD model -- `demo-missions/skynet-iads-compiled.lua`
+      # is `.gitignore`d there now and rebuilt by CI, so the last commit touching that path is
+      # `112c544`, the one that **deleted** it, and it will stay the last one for ever. The old watch
+      # read `drifted` against that deletion; pinning it there would have made it permanently green
+      # and permanently blind, which is exactly the failure this file exists to prevent.
+      #
+      # No `prereleases`/`tag_pattern` here, deliberately: Skynet's release workflow marks any tag
+      # that is not a plain `vX.Y.Z` as a pre-release, and `/releases/latest` skips those by design.
+      # Setting `prereleases: true` would be the one way to make a `v3.6.0-rc1` read as drift.
+      - { kind: github-release, repo: VEAF/Skynet-IADS, pinned: "v3.5.0" }
       - { kind: github-file, repo: regroupement-patrouille/Skynet-IADS, ref: master, file: demo-missions/skynet-iads-compiled.lua, pinned: "f18b919bd435", role: upstream-ref }
       - { kind: github-release, repo: walder/Skynet-IADS, pinned: "3.3.0", role: upstream-ref }
 

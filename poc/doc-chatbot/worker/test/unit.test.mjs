@@ -1,12 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chunkMarkdown, MAX_CHARS } from "../scripts/build-index.mjs";
 import {
-  compareBytes,
-  lastBulkEntry,
-  parseChecks,
-  KV_MISSING_SENTINEL,
-} from "../scripts/verify-index-upload.mjs";
+  chunkMarkdown,
+  MAX_CHARS,
+  buildLanguageValues,
+  KV_KEYS_PER_LANGUAGE,
+  KV_WRITE_COST_FILE,
+} from "../scripts/build-index.mjs";
+import { compareBytes, parseChecks, KV_MISSING_SENTINEL } from "../scripts/verify-index-upload.mjs";
 import { l2normalize, topScore, summarise, separation, readVectors } from "../scripts/calibrate-floor.mjs";
 import worker, {
   latestQuery,
@@ -110,6 +111,77 @@ test("chunkMarkdown never emits a chunk larger than MAX_CHARS", () => {
   for (const c of chunkMarkdown(md)) {
     assert.ok(c.length <= MAX_CHARS, `chunk length ${c.length} exceeds MAX_CHARS ${MAX_CHARS}`);
   }
+});
+
+// ── the index layout: what a rebuild costs in KV writes ──
+// The texts used to be one KV entry per chunk: 1397 writes per rebuild (measured 2026-09-21 over
+// doc/) against a free-tier cap of 1000 a day, account-wide and shared with the Worker's own
+// rate-limit counters. A single full reindex could not fit in a day. These two tests are the guard
+// against that coming back by way of a per-chunk key.
+
+/** A language's worth of fake chunks, with a unit vector each. */
+function fakeRecords(n) {
+  const cache = {};
+  const recs = [];
+  for (let i = 0; i < n; i++) {
+    const hash = `h${i}`;
+    const v = new Array(768).fill(0);
+    v[i % 768] = 1;
+    cache[hash] = v;
+    recs.push({ text: `chunk ${i}`, title: `Page ${i}`, path: `doc/p${i}.md`, hash });
+  }
+  return { recs, cache };
+}
+
+test("the cost file keeps the name the workflow reads", () => {
+  // `.github/workflows/docs-chatbot-index.yml` cats this name to build the job summary. A rename
+  // here with no test would only surface in CI, after the run has already spent its KV writes.
+  assert.equal(KV_WRITE_COST_FILE, "kv-write-cost.txt");
+});
+
+test("one language costs two KV keys, whatever the documentation's size", () => {
+  assert.equal(KV_KEYS_PER_LANGUAGE, 2, "idx:vec:{lang} and idx:txt:{lang}, and nothing per chunk");
+  for (const n of [1, 40, 2000]) {
+    const { recs, cache } = fakeRecords(n);
+    assert.equal(Object.keys(buildLanguageValues(recs, cache)).length, KV_KEYS_PER_LANGUAGE);
+  }
+});
+
+test("the two halves line up, and are the same length", () => {
+  const { recs, cache } = fakeRecords(5);
+  const { vec, txt } = buildLanguageValues(recs, cache);
+  assert.equal(vec.length, 5 * 768 * 4, "five 768-dim Float32 vectors");
+  const texts = JSON.parse(txt);
+  assert.equal(texts.length, 5, "one passage per vector — the Worker refuses any other count");
+  assert.deepEqual(texts[3], { text: "chunk 3", title: "Page 3", path: "doc/p3.md" });
+  // Position 2 of the blob must hold the unit vector of chunk 2, not of any other.
+  const slice = new Float32Array(vec.buffer, vec.byteOffset + 2 * 768 * 4, 768);
+  assert.equal(slice[2], 1, "vector i describes passage i");
+});
+
+// The embedding cache is keyed on the chunk text alone, so it survives a change of model or of
+// EMBED_DIMS and hands back vectors of the wrong width. Measured 2026-09-21 before the guard: a
+// 384-wide entry among 768-wide ones produced a blob of exactly the right length and a passage
+// array of exactly the right count, so the Worker's length check passed and that passage ranked
+// on a half-zeroed vector. The dimension has to be checked where the blob is packed; nothing
+// downstream can see it.
+
+test("a cached vector of the wrong width is refused, not zero-padded into the blob", () => {
+  const { recs, cache } = fakeRecords(3);
+  cache[recs[1].hash] = new Array(384).fill(0.5);
+  assert.throws(() => buildLanguageValues(recs, cache), /is 384 wide, expected 768/);
+});
+
+test("a wider cached vector is refused too, before it spills into the next chunk's slot", () => {
+  const { recs, cache } = fakeRecords(3);
+  cache[recs[1].hash] = new Array(1536).fill(0.5);
+  assert.throws(() => buildLanguageValues(recs, cache), /is 1536 wide, expected 768/);
+});
+
+test("a chunk with no cached vector names the page instead of 'undefined is not iterable'", () => {
+  const { recs, cache } = fakeRecords(3);
+  delete cache[recs[2].hash];
+  assert.throws(() => buildLanguageValues(recs, cache), /no embedding cached for doc\/p2\.md/);
 });
 
 test("latestQuery returns the most recent user message", () => {
@@ -632,11 +704,19 @@ test("with no passage, the model is forbidden to answer from its own knowledge",
 // into a polite "the documentation does not cover that" on every question, with nothing to alert
 // anyone. Each test uses its own `lang` key because the vector cache is module-level.
 
-/** Fake a Gemini embedding endpoint returning `vector`, and a KV holding the given index. */
-function retrievalEnv(lang, vector, texts = {}) {
+/**
+ * Fake a Gemini embedding endpoint returning `vector`, and a KV holding the given index.
+ *
+ * The index is two keys: the vector blob and the passage array, in the same order. `texts`
+ * defaults to one entry per vector so the halves agree — a disagreement is its own test.
+ */
+function retrievalEnv(lang, vector, texts) {
   const buf = new Float32Array(vector);
-  const values = { [`idx:vec:${lang}`]: buf.buffer, ...texts };
-  const store = new Map(Object.entries(values));
+  const count = Math.floor(buf.length / 768);
+  const passages = texts ?? Array.from({ length: count }, (_, i) => ({ title: `T${i}`, text: "body" }));
+  const store = new Map(
+    Object.entries({ [`idx:vec:${lang}`]: buf.buffer, [`idx:txt:${lang}`]: passages }),
+  );
   return {
     GEMINI_API_KEY: "test-key",
     CHAT_KV: { async get(key) { return store.get(key) ?? null; } },
@@ -654,14 +734,46 @@ function withFakeEmbedding(vector, fn) {
 
 test("vectors present but no text behind them is an error, not an empty answer", async () => {
   // One indexed vector pointing the same way as the query: it scores 1.0 and clears any floor.
-  // Its text is absent from KV — a half-finished index upload.
+  // Its entry in the passage array is empty — a build that produced a hole.
   const unit = new Array(768).fill(0);
   unit[0] = 1;
   await withFakeEmbedding(unit, async () => {
     await assert.rejects(
-      () => retrieveContext(retrievalEnv("xa", unit), "xa", "anything"),
+      () => retrieveContext(retrievalEnv("xa", unit, [null]), "xa", "anything"),
       /no passages retrieved/,
       "a broken index must surface, not read as 'not documented'",
+    );
+  });
+});
+
+test("a text value that is not a passage array is refused", async () => {
+  // An absent key means the old per-chunk layout (see the transition tests below). A key that is
+  // present but holds something else is a corrupt index, and must not be read as either.
+  const unit = new Array(768).fill(0);
+  unit[0] = 1;
+  const buf = new Float32Array(unit);
+  const store = new Map([
+    ["idx:vec:xd", buf.buffer],
+    ["idx:txt:xd", { passages: ["not an array"] }],
+  ]);
+  const env = {
+    GEMINI_API_KEY: "test-key",
+    CHAT_KV: { async get(key) { return store.get(key) ?? null; } },
+  };
+  await withFakeEmbedding(unit, async () => {
+    await assert.rejects(() => retrieveContext(env, "xd", "anything"), /no passages for xd/);
+  });
+});
+
+test("halves of different lengths are refused instead of answering off by one", async () => {
+  // Two vectors, one passage: the layout this replaced could reach that state by caching an old
+  // blob against a freshly uploaded text set, and it served the wrong passage without an error.
+  const two = new Array(768 * 2).fill(0);
+  two[0] = 1;
+  await withFakeEmbedding(new Array(768).fill(0), async () => {
+    await assert.rejects(
+      () => retrieveContext(retrievalEnv("xe", two, [{ title: "T", text: "body" }]), "xe", "q"),
+      /disagree for xe: 2 vectors, 1 texts/,
     );
   });
 });
@@ -674,7 +786,7 @@ test("a question unrelated to every passage yields an empty context rather than 
   query[1] = 1;
   await withFakeEmbedding(query, async () => {
     const passages = await retrieveContext(
-      retrievalEnv("xb", indexed, { "idx:txt:xb:0": { title: "T", text: "body" } }),
+      retrievalEnv("xb", indexed, [{ title: "T", text: "body" }]),
       "xb",
       "something else entirely",
     );
@@ -683,12 +795,52 @@ test("a question unrelated to every passage yields an empty context rather than 
   });
 });
 
+// TRANSITION (remove with the shim in loadIndex): the Worker deploys on a merge and the index is
+// rebuilt by a separate workflow with no ordering between them, so the new code reaches production
+// before `idx:txt:{lang}` exists — and a rebuild that fails on the KV quota leaves it there. Five
+// rebuilds had already failed on quota the day this shipped, so without the fallback the assistant
+// would have answered 502 to every question for hours.
+test("with no text blob yet, the old per-chunk keys still answer", async () => {
+  const unit = new Array(768).fill(0);
+  unit[0] = 1;
+  const buf = new Float32Array(unit);
+  const legacy = new Map([
+    ["idx:vec:xf", buf.buffer],
+    ["idx:txt:xf:0", { title: "Coalitions", text: "body" }],
+  ]);
+  const env = {
+    GEMINI_API_KEY: "test-key",
+    CHAT_KV: { async get(key) { return legacy.get(key) ?? null; } },
+  };
+  await withFakeEmbedding(unit, async () => {
+    const passages = await retrieveContext(env, "xf", "a matching question");
+    assert.match(passages, /Coalitions/, "the pre-2026-09-21 layout is still served");
+  });
+});
+
+test("with neither layout present, a broken index still surfaces", async () => {
+  const unit = new Array(768).fill(0);
+  unit[0] = 1;
+  const buf = new Float32Array(unit);
+  const env = {
+    GEMINI_API_KEY: "test-key",
+    CHAT_KV: { async get(key) { return key === "idx:vec:xg" ? buf.buffer : null; } },
+  };
+  await withFakeEmbedding(unit, async () => {
+    await assert.rejects(
+      () => retrieveContext(env, "xg", "anything"),
+      /no passages retrieved/,
+      "the fallback must not turn a missing index into a polite 'not documented'",
+    );
+  });
+});
+
 test("a passage above the floor is still injected", async () => {
   const unit = new Array(768).fill(0);
   unit[0] = 1;
   await withFakeEmbedding(unit, async () => {
     const passages = await retrieveContext(
-      retrievalEnv("xc", unit, { "idx:txt:xc:0": { title: "Coalitions", text: "body" } }),
+      retrievalEnv("xc", unit, [{ title: "Coalitions", text: "body" }]),
       "xc",
       "a matching question",
     );
@@ -730,22 +882,6 @@ test("same length but different bytes still fails", () => {
 
 test("identical bytes are the only thing that passes", () => {
   assert.equal(compareBytes("vectors (fr)", Buffer.from([1, 2, 3]), Buffer.from([1, 2, 3])), null);
-});
-
-test("the bulk entry checked is the last one, which a shorter stale index lacks", () => {
-  const bulk = JSON.stringify([
-    { key: "idx:txt:fr:0", value: "first" },
-    { key: "idx:txt:fr:1", value: "last" },
-  ]);
-  assert.deepEqual(lastBulkEntry(bulk), { key: "idx:txt:fr:1", value: "last" });
-});
-
-test("an empty bulk file is a build that produced nothing, and says so", () => {
-  assert.throws(() => lastBulkEntry("[]"), /nothing to upload/);
-});
-
-test("a bulk entry without a string key/value pair is rejected", () => {
-  assert.throws(() => lastBulkEntry(JSON.stringify([{ key: "k" }])), /string key\/value pair/);
 });
 
 test("the checks are parsed as triples, and a truncated one is refused", () => {

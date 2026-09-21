@@ -214,6 +214,20 @@ modules:
   AIEN: false
   CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }
   SKYNET: false             # extended: SKYNET -> { enabled: true, include_red_in_radio: false, dynamic_spawn: false, ... }
+                            # the spotter network lives here too, and ships off:
+                            #   spotter_network: false          ground units see aircraft and relay the contact
+                            #   spotter_radio_range_km: 20      below ~20 the net stays a set of islands
+                            #   spotter_propagation_speed_kmh: 3600   hop period = range / speed
+                            #   spotter_view: "off"             "off" | "on" | "radio", F10 map view
+                            #     quote it: YAML reads a bare on/off as a boolean
+                            #     "radio" puts an on/off in the F10 menu instead of drawing at once
+                            #     the view is COALITION-wide: every pilot of that side sees it
+                            # Skynet 3.5.0's last line of defence, which ships ON:
+                            #   last_line_of_defence: true      a dark site keeps a short radius of its own
+                            #   last_line_of_defence_min_radius_km: 10   each site draws its own, between the bounds
+                            #   last_line_of_defence_max_radius_km: 15
+                            #   last_line_of_defence_persistence_s: 45   how long it stays lit after the last pass
+                            #   coverage_refresh_interval_s: 10  how often the coverage graph is swept (0 = never)
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 
 # Note: SKYNET, CSAR and QRA are configured entirely inside the `modules:` block

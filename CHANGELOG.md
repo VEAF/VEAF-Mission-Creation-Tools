@@ -17,6 +17,218 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.24.0] — 2026-09-21
+
+### Added
+
+- **Spotter network (`modules.SKYNET.spotter_network`, off by default).** A ground unit that sees a
+  hostile aircraft reports it, and the report travels from unit to unit over the radio, one hop at a
+  time. A SAM site that receives it does **not** light up: it holds the contact and waits, exactly as
+  it would for an early-warning radar, and goes live only when the aircraft enters its own firing
+  envelope. Every other Skynet guard still applies. Seeing and relaying are separate: a SAM site
+  relays but never spots, which is what makes a line of batteries wake in the direction of the
+  penetration, and a player flying for that coalition becomes a spotter. Terrain counts — an aircraft
+  following a valley is not seen by the spotter behind the crest. Two further settings,
+  `spotter_radio_range_km` (20) and `spotter_propagation_speed_kmh` (3 600): the radio range decides
+  whether the network is connected on *your* map at all, and the hop period is derived from the two
+  so widening the range slows the hops instead of silently doubling how fast an alert travels. With
+  `debug_red` / `debug_blue` on, a status page in `dcs.log` says how many pockets the network has, who
+  saw what and which site was woken — which matters because a site can now light up for three
+  different reasons. A fourth setting, `spotter_view`, offers an F10 map view of who is seeing what:
+  `"off"`, `"on"`, or `"radio"` — the last putting a *Show / Hide the spotter view* switch in the F10
+  menu, per coalition, reachable by a game master. Quote the value: YAML reads a bare `on`/`off` as a
+  boolean. The view is a **coalition** view, since DCS cannot draw for a game master alone, so every
+  pilot of that side sees it. See
+  [the documentation](doc/mission-maker/scripts/veafSkynetIadsHelper.md#spotter-network).
+
+- **Last line of defence for Skynet sites (`modules.SKYNET.last_line_of_defence`, on by default).**
+  A site under network control now keeps a short virtual detection radius of its own and lights up
+  inside it, instead of being entirely blind between two early-warning hand-overs. **This changes
+  existing missions**: flying under the radar horizon no longer means flying untouched. Each site
+  draws its own radius once between `last_line_of_defence_min_radius_km` (10) and
+  `last_line_of_defence_max_radius_km` (15), and stays lit `last_line_of_defence_persistence_s` (45)
+  seconds after the last pass. The radius is measured flat and ignores the firing envelope on
+  purpose, so a short-range piece can light up for an aircraft it cannot reach; set
+  `last_line_of_defence: false` for a purist IADS. A fifth setting,
+  `coverage_refresh_interval_s` (10), is how often Skynet rebuilds the "which EWR covers which
+  battery" graph — `0` switches the sweep off. See
+  [the documentation](doc/mission-maker/scripts/veafSkynetIadsHelper.md#last-line-of-defence).
+
+- **Twelve aircraft added to the shipped dynamic-slot catalogue, each in both coalitions**:
+  C-130J-30, F-100D, F-14B(U), La-7, MB-339A/PAN, MiG-29A Fulcrum, P-47D-40, P-51D-30-NA, T-45,
+  J-11A, MiG-29S and Su-33 — 24 templates, taking the catalogue from 104 to 128 with all 64 blue
+  types still mirrored in red. **Eleven templates that came out with empty pylons now come out
+  armed** (F-16CM, F/A-18C, Ka-50 III, M-2000C and MiG-29G on the blue side; F-16CM, F-5E-3,
+  F/A-18C, Ka-50, M-2000C and Su-27 on the red), so 33 of the 128 carry a loadout instead of 18.
+  Grafted from a catalogue a mission maker extracted from his own mission and sent in; it covered
+  only 17 red templates against our 52, so it was grafted rather than swapped in.
+
+- **The shipped dynamic-slot catalogue is now held to its invariants by a test**: a template is
+  hidden, late-activated, carries no position and no password, and is named the same way in its
+  catalogue key, its group, its unit and its route point — the name being what the warehouses step
+  links a stocked aircraft to. The blue and red type lists must match, and the template and armed
+  counts are ratchet floors that only rise.
+
+- **A rig that proves a spotter report travels** — `test/veaf-tools/demo-spotter-network`, driven
+  through the DCS bridge with nobody flying: a MANPADS spotter 10 km from a battery with no eyes of
+  its own, a control battery 60 km away that no report can reach, and the last line of defence
+  switched off so the verdict cannot come from a radius drawn at random. Run it with
+  `veaf-tools smoke-test --suite spotter`. Its README states what it does **not** prove, too.
+
+- **The spotter network's map view, to a colour rule that means one thing per colour.** A node's
+  **square** says what it knows — grey not told, blue told, red an element of a battery that is
+  actually live — and its **circle** says what it can see: grey for a spotter holding nothing, orange
+  for one with a contact in sight, red for a live battery's engagement envelope. A dark battery draws
+  no envelope at all, because a grey one made grey mean two different things at once with no way to
+  tell the circles apart. Plus a red cross on each held contact, and a solid red link where an alert
+  actually travelled.
+
+### Changed
+
+- **Skynet IADS updated from `3.4.0RP-VEAF` to [3.5.0](https://github.com/VEAF/Skynet-IADS/releases/tag/v3.5.0)**,
+  the first release under joint VEAF / Regroupement de Patrouilles maintenance. Beyond the last line
+  of defence above, three fixes change what a VEAF mission does **at respawn**, because the helper
+  re-adds sites by prefix every time: declaring that a radar covers a battery no longer switches that
+  battery off; a bulk re-add no longer leaves discarded elements wired into the coverage graph, where
+  a battery believed itself covered by a radar the IADS no longer polls; and a site torn down while
+  evading a HARM no longer stays deaf for the rest of the mission. Skynet's four setup warnings —
+  an unknown group name, an unknown unit name, an element of the wrong coalition, a group it has no
+  SAM data for — are **shown on screen again** after five years of being written to the log only, so
+  a mission carrying a typo will announce it on load.
+
+### Fixed
+
+- **The `ewr` spawn option now works on SA-10, SA-6, SA-5, Patriot and Hawk.** Two internal sweeps
+  reset those five NATO types to watch-off — one at the end of every group enrolment, its twin right
+  after the start-up enrolment loop — so a site marked as an early-warning watch was silenced
+  immediately, and had been since the option existed. They were a leftover from the days when VEAF
+  forced the large systems into watch mode; the forcing was dropped in 2022 and the sweeps were only
+  flipped from `true` to `false` rather than deleted. Removing them also stops a stray extinction
+  order being sent to every site of those five types each time a group joins a network, and stops
+  Flogas's point-defence mechanism being undone when the point defence is one of them.
+
+- **The Skynet drift watch could no longer fire.** It watched a file in `VEAF/Skynet-IADS` that the
+  repository stopped committing when its build moved to CI, so the newest commit touching that path
+  was the one deleting it — permanently. It now watches the GitHub releases, like CTLD.
+
+- **The spotter network kept no trace of having worked.** The record naming which site a relayed
+  report woke was wiped on every status cycle — by two assignments placed *outside* the debug test, so
+  they ran whether or not anything had printed. *"Did the spotter network wake anything on the server
+  last night?"* therefore had no answer, and could not have one. There is now a durable history, the
+  last 200 wake-ups per coalition with their mission time, readable with
+  `veafSkynet.getSpotterWakeUpLog(coalition.side.RED)` and documented on
+  [the module's page](doc/mission-maker/scripts/veafSkynetIadsHelper.md#diagnosing-a-dark-site). Two
+  smaller defects went with it: the status page now drains **only the coalition it just printed** (a
+  mission running red in debug and blue not lost blue's records on red's page, so switching blue's
+  debug on later showed an empty first page reading as *nothing happened*), and the page buckets are
+  no longer filled at all for a coalition that will never print them.
+
+- **`extract-aircraft-groups` wrote a catalogue it could not read back.** The extraction opened its
+  output file without naming an encoding, so on a French Windows it wrote the locale codepage while
+  every reader of that file opens it as UTF-8. One accented livery or callsign was enough: the run
+  reported success, and the next command — a build, an injection, or a second extraction with
+  `--merge` — died on a decoding error naming a byte offset, or simply refused to do anything. Found
+  on a 78-template extract a mission maker sent in, which carried two accented callsigns.
+
+- **Injected aircraft templates are now hidden from the map and left inactive by the injector**,
+  rather than because the shipped catalogue happened to say so. Nothing in the code set those two
+  flags; all 104 default templates carried them, so the output looked right. A catalogue extracted
+  from a mission where nobody ticked the boxes by hand — the normal case — put every template group
+  on the F10 map. Measured on the same extract: 78 of them.
+
+- **A mod aircraft is no longer filed as a helicopter.** Dynamic-slot templates are categorized by
+  the unit's real DCS category, read from the bundled units database — which is generated from the
+  stock game and cannot list a mod. Those types fell through to the table DCS had filed them in, and
+  DCS files every dynamic-slot template under `helicopter` whatever the aircraft, so the A-4E-C and
+  the OV-10A Bronco shipped as helicopters in both coalitions and were offered on helicopter pads.
+  A small curated table now covers the mod airframes, consulted after the generated database so it
+  can never contradict it, and the default catalogue is corrected. Two long-standing blemishes went
+  with it: `CH-47F Template-1` is now `CH-47F Template`, and `F-15E S4+ Template Red` moved from
+  `Russia` to `CJTF Red` where the other 51 red templates live.
+
+- **Validating an aircraft-group catalogue no longer reports the tool's own output as suspect.** The
+  "unusual field" check listed the group keys it knew, and five the tool itself produces were not
+  among them — including `dynSpawnTemplate`, the flag that *defines* a dynamic-slot template, and
+  `hiddenOnPlanner` / `hiddenOnMFD`, which the injector writes one step earlier. Measured on the two
+  shipped catalogues: 262 messages, all of them noise, in the stream whose job is to point out a
+  typo. A genuine one was invisible in there.
+
+- **The spotter network gave up every contact it acquired, within one detection beat.**
+  `spotterLatches` is keyed by spotter name and has no coalition dimension, while the pass that
+  gives up latches for aircraft that have left the sky is called **once per coalition** with only
+  that coalition's contact list. So the pass for a side whose sky held no enemy aircraft walked the
+  whole table and cancelled every other side's detections — and a mission with spotters on both
+  sides is the normal case. In practice the alert was raised and cancelled within one period: the
+  map view's contact cross and detection circle never drew at all, and the heartbeat had nothing to
+  speak for. Measured in game on 2026-09-21; the new control fails in both directions.
+
+- **The spotter network reasons about groups, not vehicles.** One DCS group is one node of the radio
+  network however many vehicles it holds: it sits at the **median point** of its live ones and sees as
+  far as whichever of them sees furthest. Found by David on the F10 map after spawning two transport
+  groups to link a distant SA-6 into the network — the graph held **37 nodes for 10 groups** and drew
+  **538 links** against a draw budget of 400 shapes, so the view was truncated by construction and the
+  picture was a mat of grey strokes. Each 11-vehicle convoy was contributing eleven overlapping range
+  circles, eleven stacked squares and 55 links to itself. Per group the same layout is 10 nodes and at
+  most 45 links, and it is not only drawing: the graph, the propagation and the three graph passes were
+  all O(vehicles²). Losing one vehicle no longer releases a contact the rest of the convoy is still
+  watching, and a group mixing a MANPADS with a blind Shilka sees 10 km. A **contact** stays a single
+  aircraft — the cross on the map marks one, and a flight of four is four.
+
+- **The spotter network's map view is documented, with pictures.** The mission-maker page now walks
+  one alert from start to finish in five screenshots taken from a live mission: the network at rest,
+  a post seeing the aircraft and the battery it warns lighting up, the word crossing 95 km of front,
+  the defence going quiet again as the aircraft leaves, and the air patrols taking over. Each step
+  explains the mechanic it shows -- who sees how far and why a plain truck sees further than a
+  self-propelled anti-aircraft gun, what decides who can talk to whom, why a warned battery waits
+  until the aircraft is in its *own* firing range, and how the cancellation travels back the same way.
+  It also says plainly that these views are **diagnostic mode** (`spotter_view` plus `debug_red`),
+  off by default, and how to switch them on -- including reopening the F10 map afterwards, which is
+  the most common reason for "it draws nothing".
+
+  These are the first screenshots in the documentation, so `doc/assets/img/README.md` now says which
+  format to use for what: measured on them, a full map screenshot costs **6.0 MB as PNG against
+  1.1 MB as JPEG** for no visible difference, while a cropped shot of flat interface colour is the
+  other way round.
+
+- **The spotter network's wake-up history re-wrote the same wake-up every five seconds.** Read in a
+  live mission holding **one** aircraft that had not moved: 117 entries, two per hand-over pass, about
+  24 lines a minute for as long as the contact was held. The hand-over recorded a *state* — this site
+  is holding this aircraft — where the history answers a question about *events*. Since the history is
+  capped at 200 entries per coalition with the oldest dropped first, one held contact erased the whole
+  thing in about eight minutes, so *did the network wake anything last night?* was answered with the
+  last eight minutes of a single contact. A wake-up is now recorded on the **transition**: the site
+  was not already holding that aircraft one check ago. A held contact costs one line; a site that
+  loses the contact and is woken again by the same aircraft still costs a second, because that
+  flapping is what this history is the only witness to — whether it lost it by the aircraft leaving
+  its envelope, by the alert being cancelled, by being destroyed and rebuilt, or by its whole network
+  being switched off and on again. Skynet is still told on every check, unchanged — it ages contacts
+  out.
+
+- The documentation assistant was answering from a frozen index again, for a different reason: one
+  rebuild cost more than a day of Cloudflare's free KV write allowance, so the first documentation
+  merge of the day spent it and every merge after it failed before writing a byte. The texts were
+  stored as one KV entry per chunk — 157 pages give 1 395 chunks, against a cap of 1 000 writes a
+  day, account-wide and shared with the assistant's own rate-limit counters. They are now one value
+  per language, aligned with the vector blob already stored that way, so a rebuild costs four
+  writes whether one heading changed or the whole documentation did. The Worker loads both halves
+  of an index together, and refuses one whose halves disagree on length instead of answering with a
+  passage shifted by however many chunks were inserted since. The indexer refuses a cached vector
+  of the wrong width for the same reason, one step earlier: the embedding cache is keyed on the
+  chunk text alone, so a change of model or dimensionality brings back stale vectors that the
+  packer used to zero-pad into place, leaving the blob length and the passage count both exactly
+  right and the passage ranking on half a vector. The rebuild job now prints what it spent, and
+  reads all four values back from the remote namespace. Until the new index is live the Worker
+  still serves the old per-chunk entries: it is deployed by one workflow and the index rebuilt by
+  another, with no ordering between them, so the new code reaches production first and a rebuild
+  that fails on the quota leaves it there — five had already failed the day this shipped. That
+  fallback comes out once production holds the new layout.
+
+- `poetry run reindex-docs`, the by-hand equivalent of that rebuild, had never received the
+  `--remote` fix the workflow got in 6.23.1: it wrote the index to wrangler's local store and
+  printed success, so every hand-run reindex since the 2026-08-08 wrangler bump uploaded nothing.
+  Its test checked the flags someone had thought of — the namespace and the preview switch — which
+  is what kept the omission invisible. It now uploads remotely, reads all four values back, and
+  compares them, and its test asserts the flag on every command.
 ## [6.23.1] — 2026-09-20
 
 ### Fixed

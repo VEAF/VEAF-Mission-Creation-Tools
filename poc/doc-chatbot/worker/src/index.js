@@ -25,7 +25,8 @@
  * Bindings expected (see wrangler.toml):
  *   - env.GEMINI_API_KEY  (Secret)         Google Gemini API key (used for embeddings + generation).
  *   - env.CHAT_KV         (KV namespace)   rate-limit counters + the embeddings index
- *                                          (`idx:vec:{lang}` binary blob, `idx:txt:{lang}:{i}` JSON).
+ *                                          (`idx:vec:{lang}` binary blob, `idx:txt:{lang}` JSON
+ *                                          array — two keys per language, see loadIndex).
  *   - env.DISCORD_CLIENT_SECRET (Secret)   optional; until it is set, the `discord` client mode
  *                                          is refused outright (it is groundwork, not an open door).
  */
@@ -381,17 +382,53 @@ function l2normalize(v) {
   return v;
 }
 
-// Per-isolate cache of the language-scoped vector blobs (loaded once, reused across requests).
-const vecCache = {};
+// Per-isolate cache of the language-scoped index (loaded once, reused across requests).
+const indexCache = {};
 
-/** Load the binary Float32 vector blob for a language from KV (cached on the isolate). */
-async function loadVectors(env, lang) {
-  if (!vecCache[lang]) {
-    const buf = await env.CHAT_KV.get(`idx:vec:${lang}`, { type: "arrayBuffer" });
+/**
+ * Load a language's index from KV: the vector blob and the passage texts, together.
+ *
+ * Two keys, whatever the documentation's size — `idx:vec:{lang}` and `idx:txt:{lang}`. The texts
+ * used to be one KV entry per chunk, which cost 1397 writes per rebuild against a free-tier cap of
+ * 1000 a day, so a full reindex could not fit in a day (measured 2026-09-21).
+ *
+ * The two halves are fetched in the same call and cached as one object, because they only mean
+ * anything together: entry `i` of the texts describes vector `i` of the blob. Loading them at
+ * different moments, as the per-chunk layout did, let an isolate hold old vectors and read new
+ * texts — every passage off by the number of chunks inserted since, with nothing raising an error.
+ * The length check below is what turns that class of skew into a failure instead of a wrong answer.
+ *
+ * TRANSITION, remove once `idx:txt:{lang}` is in production for both languages: `texts` is null
+ * when that key does not exist yet, and the caller then reads the old per-chunk `idx:txt:{lang}:{i}`
+ * entries for the few passages it needs. This exists because the Worker and the index are shipped
+ * by two workflows with no ordering between them — `chatbot-worker.yml` deploys on any push to
+ * `develop` touching `worker/**`, `docs-chatbot-index.yml` rebuilds the index separately — so the
+ * new code reaches production first, and a rebuild that fails leaves it there. On the day this
+ * shipped that was the likely case, not the unlucky one: five rebuilds had already failed on the
+ * KV write quota, so without this the assistant would have answered 502 to every question until
+ * the quota reset at midnight UTC. A missing index still surfaces, one step later, as the
+ * "no passages retrieved" the caller raises when nothing comes back.
+ */
+async function loadIndex(env, lang) {
+  if (!indexCache[lang]) {
+    const [buf, texts] = await Promise.all([
+      env.CHAT_KV.get(`idx:vec:${lang}`, { type: "arrayBuffer" }),
+      env.CHAT_KV.get(`idx:txt:${lang}`, { type: "json" }),
+    ]);
     if (!buf) throw new Error(`no index for ${lang}`);
-    vecCache[lang] = new Float32Array(buf);
+    const vectors = new Float32Array(buf);
+    const count = Math.floor(vectors.length / EMBED_DIMS);
+    if (texts === null || texts === undefined) {
+      indexCache[lang] = { vectors, texts: null, count };
+      return indexCache[lang];
+    }
+    if (!Array.isArray(texts)) throw new Error(`no passages for ${lang}`);
+    if (count !== texts.length) {
+      throw new Error(`index halves disagree for ${lang}: ${count} vectors, ${texts.length} texts`);
+    }
+    indexCache[lang] = { vectors, texts, count };
   }
-  return vecCache[lang];
+  return indexCache[lang];
 }
 
 /**
@@ -401,8 +438,7 @@ async function loadVectors(env, lang) {
  */
 async function retrieveContext(env, lang, query) {
   const q = l2normalize(Float32Array.from(await embed(env, query, "RETRIEVAL_QUERY")));
-  const vecs = await loadVectors(env, lang);
-  const count = Math.floor(vecs.length / EMBED_DIMS);
+  const { vectors: vecs, texts, count } = await loadIndex(env, lang);
 
   // Keep the running top-K (small, so an array + sort is cheaper than a heap here).
   const top = [];
@@ -432,10 +468,15 @@ async function retrieveContext(env, lang, query) {
   // turns it into an answer that says so, rather than an error.
   if (!relevant.length) return "";
 
-  const texts = await Promise.all(
-    relevant.map((m) => env.CHAT_KV.get(`idx:txt:${lang}:${m.i}`, { type: "json" })),
-  );
-  const passages = texts
+  // `texts` is null only while the namespace still holds the pre-2026-09-21 per-chunk layout; see
+  // loadIndex. Reading only the top-K keys keeps that path at the six reads the old code did,
+  // rather than pulling the whole documentation one key at a time.
+  const selected = texts
+    ? relevant.map((m) => texts[m.i])
+    : await Promise.all(
+        relevant.map((m) => env.CHAT_KV.get(`idx:txt:${lang}:${m.i}`, { type: "json" })),
+      );
+  const passages = selected
     .filter(Boolean)
     .map((m) => `# ${m.title || m.path || ""}\n\n${m.text}`);
   // Vectors ranked but no text behind any of them: the same broken deployment, one step later.

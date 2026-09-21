@@ -371,6 +371,45 @@ def _csar_water_check_lua(mode: str) -> str:
 #: records its scenery avoidance as *asserted, not measured*, because the probe was deferred. These
 #: entries measure the parts that do not need a village to stand next to; the avoidance itself needs a
 #: mission placed near one, which is what the committed smoke mission is for.
+def _spotter_history_lua(site: str) -> str:
+    """Build the Lua counting how often *site* appears in the durable spotter wake-up history.
+
+    Everything is serialised to a string, because a Lua number and a Lua table both arrive as ``''``
+    over this transport — see :data:`TRANSPORT_LOSS`. The count is **tagged** rather than returned
+    bare for the same reason ``disposition-returns-points`` tags its own: ``woken:0`` says "asked,
+    nothing found", an empty reply says "the answer never made it", and those are different facts.
+
+    Both coalitions are walked. The rig runs its network red, but pinning the coalition here would
+    make the check silently unable to see a rig built the other way round.
+
+    Args:
+        site: The DCS group name of the battery to look for, as it appears in ``"<site> <- <aircraft>"``.
+
+    Returns:
+        A Lua chunk returning ``"veaf-absent"``, ``"no-spotter-history"``, ``"no-such-site"`` or
+        ``"woken:<n>"``.
+    """
+    # Bound to a name rather than returned inline, for the reason spelled out in
+    # `_csar_water_check_lua`: the prose detector flags any `return` of a long string containing a
+    # space, and a Lua chunk is neither prose nor user-visible.
+    chunk = (
+        "if type(veafSkynet) ~= 'table' then return 'veaf-absent' end "
+        "if type(veafSkynet.getSpotterWakeUpLog) ~= 'function' then return 'no-spotter-history' end "
+        "local total = 0 "
+        "for _, coa in pairs({0, 1, 2}) do "
+        "  local ok, history = pcall(veafSkynet.getSpotterWakeUpLog, coa) "
+        "  if ok and type(history) == 'table' then "
+        "    for _, entry in ipairs(history) do "
+        f"      if type(entry) == 'table' and tostring(entry.line):find('{site}', 1, true) then total = total + 1 end "
+        "    end "
+        "  end "
+        "end "
+        f"if total == 0 and not Group.getByName('{site}') then return 'no-such-site' end "
+        "return 'woken:' .. tostring(total)"
+    )
+    return chunk
+
+
 CHECKS: tuple[Check, ...] = (
     Check(
         name="disposition-exists",
@@ -510,6 +549,40 @@ CHECKS: tuple[Check, ...] = (
         "the survivor is inside the 500 m rescue radius, so he must exist *and* stand on dry ground. A "
         "'lost' verdict here would mean a rescuable pilot written off — the failure mode the open-sea "
         "check cannot see, since losing him is its expected answer.",
+        transport=Transport.BRIDGE,
+    ),
+)
+
+#: The spotter-network rig's checks, **deliberately not in** :data:`CHECKS`.
+#:
+#: They assert on a geometry only `test/veaf-tools/demo-spotter-network` carries, so on any other
+#: mission they would report two failures for ever — and a harness whose default run is permanently
+#: red is a harness nobody reads, which is how the CTLD load gate was missed. Folding them in with an
+#: expectation that accepts "no-such-site" was the other option and is worse: a pass that means "did
+#: not measure" is the green-light-earned-by-accident this module already warns about.
+#:
+#: Run them with ``veaf-tools smoke-test --suite spotter`` against the rig.
+SPOTTER_CHECKS: tuple[Check, ...] = (
+    Check(
+        name="spotter-relay-reached-the-network-battery",
+        lua=_spotter_history_lua("NetworkSa6"),
+        expect=lambda v: isinstance(v, str) and v.startswith("woken:") and v[6:].isdigit() and int(v[6:]) > 0,
+        why="FEAT-SPOTTER-NETWORK, the question a DCS session existed to answer: does a report travel "
+        "from the unit that saw the aircraft to a battery that never did? Read from the durable "
+        "wake-up history rather than the status page's bucket, which is drained on every cycle — "
+        "reading that from outside races the drain and reports a false negative. Only the "
+        "demo-spotter-network rig carries this geometry, and this suite is meaningless anywhere "
+        "else: another mission answers 'no-such-site', which fails. That is why it is opt-in.",
+        transport=Transport.BRIDGE,
+    ),
+    Check(
+        name="spotter-relay-did-not-reach-the-control-battery",
+        lua=_spotter_history_lua("ControlSa6"),
+        expect=lambda v: v == "woken:0",
+        why="The half that lets the check above fail. ControlSa6 sits 60 km away, far outside the "
+        "20 km radio range, so no report can reach it: a run where both batteries are woken is "
+        "measuring something other than the relay. A verification that cannot come out negative is "
+        "worth nothing, and this lot exists because one was found.",
         transport=Transport.BRIDGE,
     ),
 )

@@ -12,6 +12,7 @@ are all driven from the F10 menu and a map marker, so none of them needs its own
 | 9 | [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) | Does a respawned escort still follow its tanker? |
 | 10 | [#101](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/101) | Does a **teleported** escort still defend? |
 | 12 | [#87](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/87) | Can red run carrier ops, and can red stop blue's? |
+| 13 | [FEAT-SPOTTER-NETWORK](../../../.backlog/archive/FEAT-SPOTTER-NETWORK.md) | Do ground units spot an aircraft, pass the word, and wake a battery that never saw it? ⏸ waits on the Skynet vendoring |
 
 **Check 11 (#128) IS here now, and the sentence that used to stand here was wrong.** It read *"it needs
 a real multiplayer server with a game-master client; a solo session cannot answer it"* — which came from
@@ -233,6 +234,64 @@ coalition-scoped menu paths reach him, while `USAGE_ForGroup` never can.
   the global path could — a hypothesis, not a result.
 - **A contrasting `humanGroups` reading with a slot taken**, so the zeros measured for the game master sit
   against a known-good value rather than standing alone.
+
+### 8 · FEAT-SPOTTER-NETWORK — does the word travel? (check 13) {#check-13}
+
+⚠️ **This mission can no longer answer "does the word travel?".** Do not read a `woke:` line here as
+proof of the spotter network — measured 2026-09-21, and it is the lot that unblocked this check that
+broke it:
+
+| | Measured |
+|---|---|
+| red units here able to spot | **two Ural-375 trucks** — the EWR and the three SA-6 are excluded from spotting by design |
+| a truck's sight range | **3 km** |
+| those trucks → nearest SA-6 | **8.9 km** |
+| last-line-of-defence radius, now shipped on | **10–15 km** |
+
+Being seen by a truck means flying within 3 km of it, hence 6–12 km from the battery — **inside its
+own radius**. The battery lights up by itself, and nothing distinguishes that from a relayed contact.
+
+**That question now lives in [`demo-spotter-network`](../demo-spotter-network/README.md)**, a rig
+built so the two cannot be confused, with a control battery out of radio reach and the last line of
+defence switched off. Run `veaf-tools smoke-test --suite spotter` against it.
+
+**What this check is still worth taking in a session**, and why it was not deleted: the F10 menu
+half below, which `demo-spotter-network` does not cover. Plus two readings 3.5.0 brought that nothing
+off-line can show — a battery waking with no `woke:` line and no EWR contact is the last line of
+defence doing its job rather than a defect, and Skynet's four **setup warnings** are shown on screen
+again after five years of going to the log only. `WARNING: you have added an SAM site that Skynet
+IADS can not handle` is the one a VEAF mission can plausibly produce, since a lenient-mode group can
+qualify on one unit and still not match a Skynet database entry. Note whether any appears, and on
+which group.
+
+**What to look for in `dcs.log`**, with `debug_red: true` temporarily set so the status page prints.
+The `woke:` row below is kept because it is still worth *seeing*; it is no longer worth *concluding
+from*, for the reason above:
+
+| What the log says | What it means |
+|---|---|
+| `spotter network is on, but this Skynet build has no reportContact` | the build is carrying a pre-3.5.0 artifact — stop here, the check cannot run |
+| `spotter network on: radio range 20000 m, hop 20 s` | the settings reached the module |
+| `graph: N units, M links, P pockets` with `P` large and the largest pocket small | the mission's units are too spread out for the word to travel; the feature is working and has nothing to work with |
+| `saw: <unit> -> <aircraft>` | a ground unit acquired an aircraft |
+| `woke: <site> <- <aircraft>` | a battery went live on a report rather than on its own radar |
+
+~~**The reading that answers the question** is `woke:` naming a site whose own units never appear in
+any `saw:` line.~~ **That reasoning held until the last line of defence shipped on**, and is kept
+struck through rather than deleted so nobody re-derives it: on this mission's geometry a battery lit
+by its own radius produces the same reading. `demo-spotter-network` is where it holds, because the
+distances there were chosen to make it hold.
+
+**The map view rides along**, set to `"radio"`, which is the mode carrying code of its own. In the
+F10 menu there should be a **SPOTTER NETWORK** entry with *Show the spotter view* under it; using it
+should draw a marker at each spotter holding a contact and change the entry to *Hide*. Two things it
+is worth checking while there, because neither is provable off-line:
+
+| Reading | What it means |
+|---|---|
+| the entry is visible while flying a **red** slot, and absent from a blue one | the coalition scoping works |
+| the entry is visible to a **game master**, who has no group | the toggle really was posted without a group restriction (#128) |
+| the entry reads `menu.skynet.spotterview.show` | a translation is missing — report it, do not ignore it |
 
 ## Recording the outcome
 

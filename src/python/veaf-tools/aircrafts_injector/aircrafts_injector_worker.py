@@ -39,6 +39,21 @@ _DCS_UNITS_YAML = Path(__file__).resolve().parent.parent / "veaf_libs" / "data" 
 #: DCS top-level category → extraction bucket (airplanes/helicopters).
 _CATEGORY_TO_BUCKET = {"plane": "airplanes", "helicopter": "helicopters"}
 
+#: Mod aircraft (lowercase type id) → bucket, for types ``dcsUnits.yaml`` cannot know.
+#:
+#: ``dcsUnits.yaml`` is generated from the ``dcs-lua-datamine`` pin and carries **stock**
+#: content only; it also says "DO NOT EDIT BY HAND — CI fails if this file drifts from the
+#: generator output", so a mod type cannot be added to it. Without this table such a type
+#: falls through to the DCS table it was found in, and DCS files dynamic-slot templates under
+#: ``helicopter`` whatever the aircraft — which is how a Skyhawk and a Bronco came to ship as
+#: helicopters. Consulted **after** the units DB, so a type that later enters the datamine
+#: wins and its entry here simply becomes dead weight.
+_MOD_AIRCRAFT_BUCKET = {
+    "a-4e-c": "airplanes",  # Community A-4E-C
+    "bronco-ov-10a": "airplanes",  # OV-10A Bronco
+    "t-45": "airplanes",  # VNAO T-45C Goshawk
+}
+
 
 @functools.lru_cache(maxsize=1)
 def _aircraft_family_by_type() -> dict[str, str]:
@@ -54,20 +69,35 @@ def _aircraft_family_by_type() -> dict[str, str]:
     return mapping
 
 
+def aircraft_bucket_for_type(unit_type: str) -> str | None:
+    """Return ``airplanes``/``helicopters`` for a DCS aircraft type, or ``None`` if unknown.
+
+    The canonical units DB decides; :data:`_MOD_AIRCRAFT_BUCKET` covers only the types that DB
+    cannot carry. Callers that need a decision for an unknown type supply their own fallback.
+
+    Args:
+        unit_type: The DCS unit type id (case-insensitive), e.g. ``"A-10C_2"``.
+
+    Returns:
+        The extraction bucket, or ``None`` when neither source knows the type.
+    """
+    key = unit_type.lower()
+    return _aircraft_family_by_type().get(key) or _MOD_AIRCRAFT_BUCKET.get(key)
+
+
 def aircraft_category_for_group(group: dict, fallback: str) -> str:
     """Return ``airplanes``/``helicopters`` from the group's first unit **type** (DCS units DB).
 
     DCS files dynamic-slot template groups under the *helicopter* table regardless of the real
     aircraft, so routing by the group's DCS location mis-categorizes airplanes. Categorize by the
-    unit's real DCS category instead; fall back to *fallback* (the DCS location) when the type is
-    unknown to the units DB. See FIX-DYNSLOT-TEMPLATE-CATEGORY.
+    unit's real DCS category instead; fall back to *fallback* (the DCS location) when neither the
+    units DB nor the mod table knows the type. See FIX-DYNSLOT-TEMPLATE-CATEGORY.
     """
     units = group.get("units") or []
     if isinstance(units, dict):  # a Lua/keyed table deserializes as a dict, not a list
         units = list(units.values())
     if units and isinstance(units[0], dict):
-        unit_type = str(units[0].get("type", "")).lower()
-        family = _aircraft_family_by_type().get(unit_type)
+        family = aircraft_bucket_for_type(str(units[0].get("type", "")))
         if family:
             return family
     return fallback
@@ -398,6 +428,16 @@ class AircraftGroupsYAMLValidator:
             "modulation",
             "visible",
             "start_time",
+            # Fields the tool's own output carries, which it used to call "unusual": the
+            # dynamic-slot flag is what *defines* the family, and hiddenOnPlanner/hiddenOnMFD
+            # are written by the injector itself. Measured on the shipped catalogues before
+            # this list was completed: 262 info messages, every one of them noise, which is
+            # how a reader stops reading them. DTC is a module's data cartridge.
+            "dynSpawnTemplate",
+            "uncontrollable",
+            "hiddenOnPlanner",
+            "hiddenOnMFD",
+            "DTC",
         }
 
         for key in group.keys():
@@ -720,6 +760,15 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         that list while leaving the dynamic-slot spawning (which references the
         template by name) intact (FIX-TEMPLATE-SLOTS-VISIBLE).
 
+        ``hidden`` (drawn on the F10 map) and ``lateActivation`` are forced here
+        rather than read from the catalogue: FIX-TEMPLATE-SLOTS-VISIBLE assumed the
+        injector emitted them, when in fact the shipped catalogue merely happened to
+        carry them on all 104 of its templates. A catalogue extracted from a mission
+        where nobody ticked those boxes by hand — measured on a 78-template extract,
+        ``hidden: false`` throughout and no ``lateActivation`` at all — put every
+        template group on the map. A template is only ever referenced by name; it is
+        never meant to be seen or to be active.
+
         Args:
             group: The group dict to inject.
 
@@ -729,6 +778,8 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         prepared = copy.deepcopy(group)
         prepared["hiddenOnPlanner"] = True
         prepared["hiddenOnMFD"] = True
+        prepared["hidden"] = True
+        prepared["lateActivation"] = True
         prepared["password"] = _TEMPLATE_SLOT_PASSWORD
         return prepared
 
@@ -1528,7 +1579,13 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             logger.info(t("aircraft_injector.writing_templates", path=path))
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            with open(path, "w") as yaml_file:
+            # UTF-8 explicitly: without it Python writes in the process locale's codepage
+            # (cp1252 on a French Windows) while every reader of this file opens it as UTF-8,
+            # so a single accented livery or callsign produced a catalogue the tool could not
+            # read back — silently at write time. `allow_unicode=True` stays: escaping the
+            # accents would keep the file machine-readable and make it unreadable to the
+            # mission maker, who is documented as editing it by hand.
+            with open(path, "w", encoding="utf-8") as yaml_file:
                 yaml.dump(structure, yaml_file, default_flow_style=False, sort_keys=True, allow_unicode=True)
             if not silent:
                 logger.info(t("aircraft_injector.templates_written", path=path))

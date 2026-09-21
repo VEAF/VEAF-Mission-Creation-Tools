@@ -63,7 +63,11 @@ def test_rejects_a_lua_54_interpreter(monkeypatch: pytest.MonkeyPatch) -> None:
 
     message = str(excinfo.value)
     assert "Lua 5.4.8" in message  # names what it found instead of failing blind
-    assert "scoop install lua51" in message
+    # The help names a source that actually ships 5.1, rather than the `scoop install
+    # lua51` it used to advertise: no scoop package ships 5.1 (checked 2026-09-21), so
+    # that advice sent people looking for something that does not exist.
+    assert "Install Lua 5.1:" in message
+    assert "luabinaries" in message
 
 
 def test_prefers_the_51_candidate_over_a_54_lua(monkeypatch: pytest.MonkeyPatch) -> None:

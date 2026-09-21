@@ -28,6 +28,25 @@ that was sitting in `verify-mission-c`'s README until today.
 
 Nothing in the scripting API can see him, name him, count him, or notice him arriving.
 
+## …but he **is** on a coalition, for map marks
+
+Measured **2026-09-21** by David, with one `markToAll` and one `markToCoalition(RED)` marker placed
+side by side on the F10 map:
+
+| Role taken | Sees |
+|---|---|
+| Game master **blue** | the `markToAll` marker only |
+| Game master **red** | both |
+
+So the invisibility above is about *units, groups and events* — not about coalition scoping of drawn
+marks. `trigger.action.markToCoalition(..., coalition.side.RED, ...)` reaches a **red** game master
+and is invisible to a blue one.
+
+This is worth stating because the obvious inference from the table above — *"he has no group, so he
+probably has no coalition either, so a coalition-scoped view cannot reach him"* — is wrong, and
+inferring it cost a false bug report against a drawing path that was correct all along. The only
+defect was watching a red network from the blue side.
+
 ## But menus do reach him — and the coalition filter works
 
 Read off the F10 menu while holding the role on the **blue** side:

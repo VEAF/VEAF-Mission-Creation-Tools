@@ -359,6 +359,63 @@ class TestInjectedTemplateHiddenFromSlotList(unittest.TestCase):
         self.assertTrue(injected["password"])  # locked slot password (b)
 
 
+class TestInjectedTemplateHiddenFromTheMap(unittest.TestCase):
+    """FEAT-DYNSLOT-CATALOGUE-REFRESH ticket 02: `hidden` / `lateActivation` come from the
+    injector, not from the catalogue.
+
+    FIX-TEMPLATE-SLOTS-VISIBLE recorded that the injector "already emits hidden: true and
+    lateActivation: true". It did not: all 104 shipped templates happened to carry them, and
+    no code ever wrote them. The extract VEAF received on 2026-09-21 carries `hidden: false`
+    on all 78 of its templates and no `lateActivation` at all — the shape the Mission Editor
+    produces when nobody ticks the boxes by hand — so injecting it drew 78 template groups on
+    the F10 map. A template exists to be referenced by name; it is never meant to be seen.
+    """
+
+    @staticmethod
+    def _catalogue_of_a_visible_template() -> dict:
+        """A catalogue in the shape a plain Mission Editor extraction produces."""
+        data = _yaml_data(["tmpl-a10"])
+        template = data["airplanes"]["coalitions"]["blue"]["USA"]["tmpl-a10"]
+        template["hidden"] = False
+        template.pop("lateActivation", None)
+        return data
+
+    def test_a_visible_template_is_hidden_on_injection(self) -> None:
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])
+        worker.yaml_data = self._catalogue_of_a_visible_template()
+
+        worker.inject_groups(mode="add", silent=True)
+
+        injected = next(g for g in _get_groups(worker) if g["name"] == "tmpl-a10")
+        self.assertTrue(injected["hidden"], "an injected template must not be drawn on the F10 map")
+        self.assertTrue(injected["lateActivation"], "an injected template must not be activated")
+
+    def test_a_replaced_template_is_hidden_too(self) -> None:
+        """Both insertion paths, as for hiddenOnPlanner/hiddenOnMFD."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups(["tmpl-a10"])
+        worker.yaml_data = self._catalogue_of_a_visible_template()
+
+        worker.inject_groups(mode="replace", silent=True)
+
+        injected = next(g for g in _get_groups(worker) if g["name"] == "tmpl-a10")
+        self.assertTrue(injected["hidden"])
+        self.assertTrue(injected["lateActivation"])
+
+    def test_the_catalogue_is_not_mutated(self) -> None:
+        """The deep-copy contract: hardening the injected group leaves the source alone."""
+        worker = _worker()
+        worker.dcs_mission = _mission_with_groups([])
+        worker.yaml_data = self._catalogue_of_a_visible_template()
+        source = worker.yaml_data["airplanes"]["coalitions"]["blue"]["USA"]["tmpl-a10"]
+
+        worker.inject_groups(mode="add", silent=True)
+
+        self.assertFalse(source["hidden"])
+        self.assertNotIn("lateActivation", source)
+
+
 class TestInjectGroupsDictContainer(unittest.TestCase):
     """FIX-AIRCRAFT-INJECT-DICT-GROUP — a country whose ["group"] is a dict (luadata turns an
     empty `{}` or a keyed Lua table into a dict, not a list) must not crash inject_groups."""

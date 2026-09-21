@@ -1,6 +1,6 @@
 # FIX-REDACTED-PRODUCT-NAME — the redactor ate the product's own name
 
-Status: 🔄 in-progress — the two tickets are done; the PR is open
+Status: ✅ done — the two tickets are done; PR #941 merged 2026-09-07
 
 Origin: David, 2026-09-07, reading issue **#940** — the first `/suggest` filed from the Docker
 deployment:

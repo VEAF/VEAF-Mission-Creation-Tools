@@ -41,9 +41,16 @@ Two consequences of drawing per group, both of which simplify the code:
       `test_the_shape_budget_stops_the_drawing_and_says_so` still passes.
 - [x] `poetry run test-lua` green, `stylua` clean.
 
-The `liveSiteUnits` set that maps a site's unit names onto "red square" did **not** collapse away as
-this ticket predicted. It is still built from the site's units, because that is what makes the
-lookup answer for a node; the envelope loop now reuses it instead of walking the IADS a second time.
+The set that maps a live battery onto "red square" **did** collapse, and getting there found a
+defect the review caught before it shipped: it was keyed by the site's **unit** names while the
+square loop looks it up by node name, which is now a **group** name. The lookup always missed, so
+**the red square never drew at all**. Proven by drawing the view against a faithful fixture — a real
+unit inside the site's group — which produced zero red squares.
+
+The suite could not see it: the fixture handed the Skynet site double a *group* where DCS hands a
+unit, so `safeDcsName` returned the group name and the broken lookup accidentally matched. The
+fixture now holds a unit, and the test fails when the defect is put back. Keyed by the site's group
+name, the unit walk disappears entirely — a Skynet SAM site *is* a group.
 
 `_spotterPoint` split in two, which is the rename that stops the confusion recurring:
 `_contactPoint(unitName)` for an aircraft, and the group median for a node.

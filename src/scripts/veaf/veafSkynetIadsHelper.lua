@@ -2454,8 +2454,20 @@ end
 --- @param dcsGroup table|nil a DCS Group handle
 --- @return table|nil a runtime vec3, or nil when the group has no live unit left
 function veafSkynet.spotterGroupMedianPoint(dcsGroup)
+  return veafSkynet.spotterMedianOfUnits(veafSkynet.liveUnitsOf(dcsGroup))
+end
+
+--- The same, over a unit list the caller has already gathered.
+---
+--- Split out so `listSpotterNodes` can call `liveUnitsOf` **once** per group and derive both the
+--- median and the profile from it: the group-taking forms each walked the group's units, and the beat
+--- enumerates the coalition twice, so one beat swept every group four times.
+---
+--- @param liveUnits table array of live DCS Unit handles
+--- @return table|nil a runtime vec3, or nil when the list is empty
+function veafSkynet.spotterMedianOfUnits(liveUnits)
   local xs, ys, zs = {}, {}, {}
-  for _, dcsUnit in ipairs(veafSkynet.liveUnitsOf(dcsGroup)) do
+  for _, dcsUnit in ipairs(liveUnits) do
     local got, point = pcall(dcsUnit.getPoint, dcsUnit)
     if got and point then
       table.insert(xs, point.x)
@@ -2499,8 +2511,16 @@ local _SPOTTER_CLASS_RANK = {
 --- @param dcsGroup table|nil a DCS Group handle
 --- @return table `{ range = <metres>, relays = <boolean>, class = <speed class> }`, never nil
 function veafSkynet.getSpotterGroupProfile(dcsGroup)
+  return veafSkynet.spotterProfileOfUnits(veafSkynet.liveUnitsOf(dcsGroup))
+end
+
+--- The same, over a unit list the caller has already gathered. See `spotterMedianOfUnits`.
+---
+--- @param liveUnits table array of live DCS Unit handles
+--- @return table `{ range = <metres>, relays = <boolean>, class = <speed class> }`, never nil
+function veafSkynet.spotterProfileOfUnits(liveUnits)
   local best = { range = 0, relays = false, class = veafSkynet.SpotterSpeedClasses.Slow }
-  for _, dcsUnit in ipairs(veafSkynet.liveUnitsOf(dcsGroup)) do
+  for _, dcsUnit in ipairs(liveUnits) do
     local name = veafSkynet.safeDcsName(dcsUnit)
     local profile = veafSkynet.getSpotterProfile(dcsUnit, name)
     if profile.range > best.range then
@@ -2670,19 +2690,30 @@ end
 --- @param contacts table the aircraft currently visible to this coalition, as `listHostileAircraft`
 ---        returns them
 --- @param coa number the coalition whose latches to check
-function veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
+function veafSkynet.dropLatchesForVanishedContacts(contacts, coa, spotters, spottersKnown)
   local present = {}
   for _, contact in ipairs(contacts) do
     present[contact.name] = true
   end
+
+  -- **The spotter list is the caller's**, because the beat has just built it: enumerating the
+  -- coalition again here doubled the sweep, and on a quiet sky it added one where there was none.
+  if spotters == nil then
+    spotters, spottersKnown = veafSkynet.listSpotters(coa)
+  end
   local seeing = {}
-  for _, spotter in ipairs(veafSkynet.listSpotters(coa) or {}) do
+  for _, spotter in ipairs(spotters or {}) do
     seeing[spotter.name] = true
   end
 
   local latchesByName = veafSkynet.latchesOf(coa)
   for spotterName, latches in pairs(latchesByName) do
-    local spotterGone = not seeing[spotterName]
+    -- **Only when the list is trustworthy.** `coalition.getGroups` raises around mission-state
+    -- transitions, and a failed lookup comes back as an empty list — indistinguishable from "this
+    -- side has no spotters left". Read as the latter it cancels every contact the side holds, waking
+    -- every holder to drop it, and the next beat re-acquires and re-alerts the lot: one failed call
+    -- for a full cancel/alert flap. So a lookup that could not be made gives nothing up.
+    local spotterGone = spottersKnown ~= false and not seeing[spotterName]
     local gone = {}
     for aircraft, latch in pairs(latches) do
       if latch.triggered and (spotterGone or not present[aircraft]) then
@@ -2751,41 +2782,51 @@ end
 ---
 --- @param coa number a coalition id
 --- @return table array of `{ name = <group name>, group = <DCS Group>, point = <vec3>, profile = <table> }`
+--- @return table array of nodes, and a boolean saying whether the coalition could be **asked** at all
 function veafSkynet.listSpotterNodes(coa)
   local nodes = {}
   local ok, dcsGroups = pcall(coalition.getGroups, coa)
   if not ok or not dcsGroups then
-    return nodes
+    -- **The second return value matters.** An empty list and a failed lookup are the same table, and
+    -- a caller that reads "no spotters" out of a failed lookup draws the wrong conclusion — see
+    -- `dropLatchesForVanishedContacts`, where it would cancel every contact the side holds.
+    return nodes, false
   end
   for _, dcsGroup in pairs(dcsGroups) do
     if veafSkynet.dcsObjectStillExists(dcsGroup) then
       local name = veafSkynet.safeDcsName(dcsGroup)
-      local point = veafSkynet.spotterGroupMedianPoint(dcsGroup)
+      -- `liveUnitsOf` **once** per group, and both the median and the profile derived from it. Calling
+      -- the group-taking forms here walked every group's units twice, and the beat enumerates the
+      -- coalition twice, so a single beat swept each group four times.
+      local live = veafSkynet.liveUnitsOf(dcsGroup)
+      local point = veafSkynet.spotterMedianOfUnits(live)
       if name and name ~= "?" and point then
         table.insert(nodes, {
           name = name,
           group = dcsGroup,
           point = point,
-          profile = veafSkynet.getSpotterGroupProfile(dcsGroup),
+          profile = veafSkynet.spotterProfileOfUnits(live),
         })
       end
     end
   end
-  return nodes
+  return nodes, true
 end
 
 --- Every group of this coalition that can see something, at its median point.
 ---
 --- @param coa number a coalition id
 --- @return table array of `{ name, group, point, profile }`
+--- @return boolean whether the coalition could be asked at all
 function veafSkynet.listSpotters(coa)
   local spotters = {}
-  for _, node in ipairs(veafSkynet.listSpotterNodes(coa)) do
+  local nodes, asked = veafSkynet.listSpotterNodes(coa)
+  for _, node in ipairs(nodes) do
     if node.profile.range > 0 then
       table.insert(spotters, node)
     end
   end
-  return spotters
+  return spotters, asked
 end
 
 --- Every airborne aircraft of the opposing coalition — what a spotter is looking for.
@@ -2855,12 +2896,16 @@ function veafSkynet.spotterDetectionBeat()
     -- the mission: the heartbeat keeps speaking for a jet shot down two hours ago, the contact is
     -- refreshed and therefore never forgotten, and every status page lists it as live. Both are given
     -- up here, explicitly, before anything else.
-    veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
+    -- Enumerated **once** per coalition per beat, and shared with the pass above: it used to build
+    -- its own list, so a beat swept every group of the side twice — four times counting the double
+    -- unit walk inside, and twice on a quiet sky where the old beat swept none.
+    local spotters, spottersKnown = veafSkynet.listSpotters(coa)
+    veafSkynet.dropLatchesForVanishedContacts(contacts, coa, spotters, spottersKnown)
 
     if #contacts > 0 then
       -- One spotter per **group**, at its median point: no `getPoint` here, because a group has no
       -- position of its own and `listSpotters` has already medianed over its live units.
-      for _, spotter in ipairs(veafSkynet.listSpotters(coa)) do
+      for _, spotter in ipairs(spotters) do
         local spotterPoint = spotter.point
         local rangeSq = spotter.profile.range * spotter.profile.range
         local marginSq = rangeSq * veafSkynet.SpotterLossMargin * veafSkynet.SpotterLossMargin
@@ -3989,8 +4034,13 @@ end
 --- Draw one coalition's view, appending every shape id to `markers`.
 ---
 --- Everything is drawn through `VeafDrawingOnMap`, so the colours are named and the shapes are the
---- ones the rest of VEAF uses. The order matters for legibility: envelopes first, then links, then
---- the node squares and contacts on top, so the small symbols are never buried under a circle.
+--- ones the rest of VEAF uses.
+---
+--- **The order is the draw budget's, not legibility's**, and this docstring used to say the opposite
+--- of the code — it claimed envelopes first and links before the squares. What the code does, and
+--- what `SpotterViewMaxShapes` explains: contacts, then detection ranges, then node squares, then
+--- envelopes, and **links last**, because there are more links than of anything else and they are
+--- what a truncated view can most afford to lose.
 ---
 --- @param coa number
 --- @param markers table the id list to append to, so `eraseSpotterView` can take them all back down
@@ -4166,7 +4216,13 @@ function veafSkynet.paintSpotterView(coa, markers)
 
   -- The live batteries, read once and used twice: to colour a node square red, and to draw an
   -- envelope. Only a live site matters for either, which is the whole of David's rule below.
-  local liveSites, liveSiteUnits = {}, {}
+  --
+  -- **Keyed by the site's GROUP name, because that is what a node is.** It was keyed by its unit
+  -- names, which never matched: the square loop looks the set up with a node name, so the red never
+  -- fired. Found by review before this shipped, and proven by drawing the view with a faithful
+  -- fixture — a real unit inside the site's group — which produced zero red squares. A Skynet SAM
+  -- site *is* a group, so there is no unit walk to do at all.
+  local liveSites, liveSiteNodes = {}, {}
   local iads = veafSkynet.getIADS(veafSkynet.defaultIADS[tostring(coa)])
   if iads then
     local gotSites, sites = pcall(iads.getSAMSites, iads)
@@ -4176,17 +4232,9 @@ function veafSkynet.paintSpotterView(coa, markers)
         local asked, live = pcall(site.isActive, site)
         if asked and live then
           table.insert(liveSites, site)
-          local dcsGroup = _dcsRepresentationOf(site)
-          local gotUnits, siteUnits = pcall(function()
-            return dcsGroup and dcsGroup.getUnits and dcsGroup:getUnits()
-          end)
-          if gotUnits and siteUnits then
-            for _, dcsUnit in pairs(siteUnits) do
-              local name = veafSkynet.safeDcsName(dcsUnit)
-              if name then
-                liveSiteUnits[name] = true
-              end
-            end
+          local name = veafSkynet.safeDcsName(_dcsRepresentationOf(site))
+          if name and name ~= "?" then
+            liveSiteNodes[name] = true
           end
         end
       end
@@ -4202,12 +4250,12 @@ function veafSkynet.paintSpotterView(coa, markers)
   -- precedence over blue: a live site has necessarily been told, and "activated" is the more specific
   -- of the two.
   local side = veafSkynet.SpotterViewNodeSquareRadius * 2
-  for unitName, point in pairs(points) do
+  for nodeName, point in pairs(points) do
     if point then
       local colour = "grey"
-      if liveSiteUnits[unitName] then
+      if liveSiteNodes[nodeName] then
         colour = "red"
-      elseif alerted[unitName] then
+      elseif alerted[nodeName] then
         colour = "blue"
       end
       paint(VeafSquareOnMap:new():setCenter(point):setSide(side):setColor(colour):setFillColor("transparent"))

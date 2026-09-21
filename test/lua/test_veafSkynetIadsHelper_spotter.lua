@@ -744,6 +744,62 @@ function TestSpotterDetectionBeat:test_the_line_of_sight_is_traced_from_the_medi
   luaunit.assertEquals(seenFrom[1].x, 0, "traced from the median, the lower of the two middles")
 end
 
+function TestSpotterDetectionBeat:test_a_failed_group_lookup_gives_nothing_up()
+  -- Found by review. An empty spotter list and a **failed** one are the same table, and read as
+  -- "this side has no spotters left" a failure cancels every contact the side holds: every holder is
+  -- woken to drop it, and the next beat re-acquires and re-alerts the lot. One raised call for a full
+  -- cancel/alert flap. `coalition.getGroups` does raise around mission-state transitions.
+  self:_layout(2000)
+  veafSkynet.spotterDetectionBeat()
+  luaunit.assertNotNil(veafSkynet.latchesOf(coalition.side.RED)["RedGroup"]["BlueJet"], "precondition")
+
+  local emitted = {}
+  local realEmit = veafSkynet.emitSpotterMessage
+  veafSkynet.emitSpotterMessage = function(coa, kind, origin, aircraft)
+    table.insert(emitted, kind)
+    return realEmit(coa, kind, origin, aircraft)
+  end
+  coalition.getGroups = function()
+    error("DCS is between mission states")
+  end
+
+  local nodes, asked = veafSkynet.listSpotterNodes(coalition.side.RED)
+  luaunit.assertEquals(#nodes, 0, "nothing came back")
+  luaunit.assertFalse(asked, "and it says so, which is the whole point")
+
+  -- The aircraft is **still present**: that is what isolates the spotter half of the pass. Passing an
+  -- empty contact list drops the latch for the aircraft-gone reason and proves nothing about the
+  -- guard -- which is how the first version of this test failed.
+  veafSkynet.dropLatchesForVanishedContacts({ { name = "BlueJet", unit = self.bandit } }, coalition.side.RED)
+  veafSkynet.emitSpotterMessage = realEmit
+
+  luaunit.assertNotNil(
+    (veafSkynet.latchesOf(coalition.side.RED)["RedGroup"] or {})["BlueJet"],
+    "a lookup that could not be made gives nothing up"
+  )
+  luaunit.assertEquals(#emitted, 0, "and cancels nothing across the network")
+end
+
+function TestSpotterDetectionBeat:test_a_successful_lookup_still_gives_up_a_spotter_that_has_gone()
+  -- The other direction, so the guard above cannot pass by never dropping anything at all.
+  self:_layout(2000)
+  veafSkynet.spotterDetectionBeat()
+  luaunit.assertNotNil(veafSkynet.latchesOf(coalition.side.RED)["RedGroup"]["BlueJet"], "precondition")
+
+  -- The lookup works and honestly reports no spotters: the group has gone.
+  _stubGetGroups({})
+  local _, asked = veafSkynet.listSpotterNodes(coalition.side.RED)
+  luaunit.assertTrue(asked, "the lookup succeeded")
+
+  -- The aircraft is still present, so the only reason to give the contact up is the spotter.
+  veafSkynet.dropLatchesForVanishedContacts({ { name = "BlueJet", unit = self.bandit } }, coalition.side.RED)
+
+  luaunit.assertNil(
+    (veafSkynet.latchesOf(coalition.side.RED)["RedGroup"] or {})["BlueJet"],
+    "the spotter really is gone, so the contact is given up"
+  )
+end
+
 function TestSpotterDetectionBeat:test_a_late_activated_aircraft_is_not_a_contact()
   -- Found in game on 2026-09-21, and it is a product defect rather than a rig artefact: late
   -- activation is ordinary in real missions. A group waiting to be activated is **fully visible** to
@@ -2455,8 +2511,7 @@ function TestSpotterMapView:test_an_element_of_a_live_battery_gets_a_red_square(
   self:_node("Scout", 1000, 2000)
   veafSkynet.getSpotterProfile(self.spotter, "Scout")
   self:_scoutSees()
-  local battery = self:_node("Battery", 5000, 2000)
-  veafSkynet.getSpotterProfile(battery, "Battery")
+  self:_node("Battery", 5000, 2000)
   -- Told, so that without the override it would be blue: that is what makes the assertion mean
   -- something rather than merely distinguishing red from grey.
   veafSkynet.deliverSpotterMessage(RED, "Battery", { kind = "alert", aircraft = "Bandit", origin = "Scout", via = "Scout", stamp = 1 })
@@ -2465,12 +2520,17 @@ function TestSpotterMapView:test_an_element_of_a_live_battery_gets_a_red_square(
     getSAMSites = function()
       return {
         {
-          dcsName = "LiveBattery",
+          -- **The site's DCS representation is the node's own group**, holding real units named the
+          -- way DCS names them. Handing it a *group* where DCS hands a unit is what made the first
+          -- version of this test green against a broken lookup: `safeDcsName` then returned the group
+          -- name, which happened to be the string the square loop asks for, so the test could not see
+          -- that the set was keyed by unit name and the lookup by node name.
+          dcsName = "Battery",
           isActive = function()
             return true
           end,
           getDCSRepresentation = function()
-            return _group("LiveBattery", { battery })
+            return Group.getByName("Battery")
           end,
           getElementPosition = function()
             return { x = 5000, y = 0, z = 2000 }

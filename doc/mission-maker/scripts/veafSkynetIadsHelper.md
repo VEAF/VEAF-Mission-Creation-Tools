@@ -191,6 +191,20 @@ Cette trace n'est pas décorative : une fois cette fonctionnalité en service, u
 pour **trois** raisons — un radar de veille lointaine, sa dernière ligne de défense, ou un guetteur.
 Sans la page, la question n'a pas de réponse.
 
+**Voir ce qui se passe, sur la carte.** Le module peut poser un marqueur F10 à chaque guetteur qui
+tient un contact, avec un cercle à sa portée de détection. C'est éteint, et ça s'allume réseau par
+réseau depuis `mission-script.lua` :
+
+```lua
+veafSkynet.showSpotterView(coalition.side.RED, true)
+```
+
+> ⚠️ **C'est une vue de coalition, et ça ne peut pas être plus étroit.** DCS ne sait dessiner que
+> pour tout le monde, pour une coalition, ou pour un groupe — et un game master n'a pas de groupe
+> (c'est aussi pour ça qu'aucune commande radio de groupe ne lui parvient). Donc **tous les pilotes
+> de cette coalition voient ces marqueurs**, ce qui sur un réseau rouge offre aux pilotes rouges un
+> suivi en direct des avions bleus. À réserver aux tests et aux missions où c'est voulu.
+
 > Le réseau vit dans le module Skynet et ne fait rien quand Skynet est éteint : il n'y a pas de mode
 > de repli pour les missions sans IADS.
 

@@ -188,6 +188,20 @@ That trace is not decoration: once this feature is in service a site can light u
 reasons — an early-warning radar, its last line of defence, or a spotter. Without the page the
 question has no answer.
 
+**Seeing what happens, on the map.** The module can put an F10 marker at each spotter currently
+holding a contact, with a circle at its detection range. It is off, and it is switched on per network
+from `mission-script.lua`:
+
+```lua
+veafSkynet.showSpotterView(coalition.side.RED, true)
+```
+
+> ⚠️ **It is a coalition view, and it cannot be anything narrower.** DCS can only draw for everyone,
+> for a coalition, or for a group — and a game master has no group (which is also why no group radio
+> command reaches one). So **every pilot of that coalition sees these markers**, which on a red
+> network hands red pilots a live tracker of blue aircraft. Keep it for testing and for missions where
+> that is what you want.
+
 > The network lives inside the Skynet module and does nothing when Skynet is off: there is no
 > fallback mode for missions without an IADS.
 

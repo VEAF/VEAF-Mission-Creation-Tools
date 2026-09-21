@@ -1296,6 +1296,181 @@ function TestSpotterStatusPage:test_an_empty_graph_is_described_without_falling_
 end
 
 -- ---------------------------------------------------------------------------
+-- The map view
+-- ---------------------------------------------------------------------------
+TestSpotterMapView = {}
+
+function TestSpotterMapView:setUp()
+  _resetSpotterState()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.spotterViewCoalitions = {}
+  veafSkynet.spotterViewMarkers = {}
+  veafSkynet.spotterRedrawScheduled = nil
+  veafSkynet.structure = { ["red iads"] = { coalitionID = RED } }
+
+  self.scheduled = {}
+  self.previousSchedule = veaf.scheduleFunction
+  veaf.scheduleFunction = function(fn, vars, t, rep)
+    table.insert(self.scheduled, { fn = fn, vars = vars, time = t, rep = rep })
+    return #self.scheduled
+  end
+
+  self.marked = {}
+  self.removed = {}
+  self.previousMark = trigger.action.markToCoalition
+  self.previousCircle = trigger.action.circleToAll
+  self.previousRemove = trigger.action.removeMark
+  trigger.action.markToCoalition = function(id, text, _, coa)
+    table.insert(self.marked, { id = id, text = text, coalition = coa })
+  end
+  trigger.action.circleToAll = function(_, id)
+    table.insert(self.marked, { id = id, circle = true })
+  end
+  trigger.action.removeMark = function(id)
+    table.insert(self.removed, id)
+  end
+
+  self.spotter = _unit("Scout", { ["Tanks"] = true }, 1000, 0, 2000)
+  self.previousGetByName = Unit.getByName
+  Unit.getByName = function(name)
+    if name == "Scout" then
+      return self.spotter
+    end
+    return nil
+  end
+end
+
+function TestSpotterMapView:tearDown()
+  veaf.scheduleFunction = self.previousSchedule
+  trigger.action.markToCoalition = self.previousMark
+  trigger.action.circleToAll = self.previousCircle
+  trigger.action.removeMark = self.previousRemove
+  Unit.getByName = self.previousGetByName
+  veafSkynet.spotterViewCoalitions = {}
+  veafSkynet.spotterRedrawScheduled = nil
+end
+
+function TestSpotterMapView:_scoutSees()
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  veafSkynet.deliverSpotterMessage(RED, "Scout", { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = 1 })
+end
+
+function TestSpotterMapView:_redrawRequests()
+  local count = 0
+  for _, task in ipairs(self.scheduled) do
+    if task.fn == veafSkynet._redrawSpotterView then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+function TestSpotterMapView:test_a_hundred_requests_in_a_row_schedule_one_redraw()
+  for _ = 1, 100 do
+    veafSkynet.requestSpotterViewRedraw()
+  end
+  luaunit.assertEquals(self:_redrawRequests(), 1)
+end
+
+function TestSpotterMapView:test_the_flag_is_cleared_so_a_later_request_still_works()
+  -- The assertion that catches `veafRadio._refreshRadioMenu`'s shape, which clears its flag inside a
+  -- conditional. A test counting only the first burst passes on the broken version.
+  veafSkynet.requestSpotterViewRedraw()
+  veafSkynet._redrawSpotterView()
+  veafSkynet.requestSpotterViewRedraw()
+  luaunit.assertEquals(self:_redrawRequests(), 2)
+end
+
+function TestSpotterMapView:test_the_flag_is_cleared_even_when_there_is_nothing_to_draw()
+  -- No coalition switched on: the redraw returns having done nothing, and must still re-arm. A
+  -- coalescing guard that never re-arms is worse than none, because the first redraw looks like proof
+  -- that it works.
+  veafSkynet.spotterViewCoalitions = {}
+  veafSkynet.requestSpotterViewRedraw()
+  veafSkynet._redrawSpotterView()
+  luaunit.assertNil(veafSkynet.spotterRedrawScheduled)
+  veafSkynet.requestSpotterViewRedraw()
+  luaunit.assertEquals(self:_redrawRequests(), 2)
+end
+
+function TestSpotterMapView:test_the_flag_is_cleared_even_when_the_feature_is_off()
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet.SpotterNetwork = false
+  veafSkynet._redrawSpotterView()
+  luaunit.assertNil(veafSkynet.spotterRedrawScheduled)
+end
+
+function TestSpotterMapView:test_nothing_is_drawn_until_the_view_is_switched_on()
+  self:_scoutSees()
+  veafSkynet._redrawSpotterView()
+  luaunit.assertEquals(#self.marked, 0)
+end
+
+function TestSpotterMapView:test_it_marks_the_spotter_that_raised_the_alert()
+  self:_scoutSees()
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  luaunit.assertTrue(#self.marked >= 1)
+  luaunit.assertStrContains(self.marked[1].text, "Scout sees Bandit")
+  luaunit.assertEquals(self.marked[1].coalition, RED)
+end
+
+function TestSpotterMapView:test_it_marks_only_where_the_alert_was_raised()
+  -- Every unit of the pocket holds the contact; a marker on each is a wall of markers all saying the
+  -- same thing.
+  self:_scoutSees()
+  veafSkynet.deliverSpotterMessage(RED, "Relay", { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = 1 })
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  local markers = 0
+  for _, entry in ipairs(self.marked) do
+    if entry.text then
+      markers = markers + 1
+    end
+  end
+  luaunit.assertEquals(markers, 1)
+end
+
+function TestSpotterMapView:test_a_cancelled_contact_is_not_drawn()
+  self:_scoutSees()
+  veafSkynet.deliverSpotterMessage(RED, "Scout", { kind = "cancel", aircraft = "Bandit", origin = "Scout", stamp = 2 })
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  luaunit.assertEquals(#self.marked, 0)
+end
+
+function TestSpotterMapView:test_drawing_twice_replaces_rather_than_stacks()
+  self:_scoutSees()
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  local first = #self.marked
+  veafSkynet._redrawSpotterView()
+  luaunit.assertEquals(#self.marked, first * 2) -- drawn again...
+  luaunit.assertEquals(#self.removed, first) -- ...and the first set was taken off the map
+end
+
+function TestSpotterMapView:test_switching_the_view_off_removes_what_it_drew()
+  self:_scoutSees()
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  local drawn = #self.marked
+  veafSkynet.showSpotterView(RED, false)
+  luaunit.assertEquals(#self.removed, drawn)
+  luaunit.assertNil(veafSkynet.spotterViewMarkers[RED])
+end
+
+function TestSpotterMapView:test_an_acquisition_asks_for_a_redraw()
+  -- Wiring: the view is useless if nothing ever asks it to refresh.
+  veafSkynet.onSpotterAcquired(RED, "Scout", "Bandit", self.spotter)
+  luaunit.assertEquals(self:_redrawRequests(), 1)
+end
+
+function TestSpotterMapView:test_a_loss_asks_for_a_redraw()
+  veafSkynet.onSpotterLost(RED, "Scout", "Bandit")
+  luaunit.assertEquals(self:_redrawRequests(), 1)
+end
+
+-- ---------------------------------------------------------------------------
 -- Wiring — the loop is actually scheduled
 --
 -- The defect class that shipped green in August: tests that called the handler and never what

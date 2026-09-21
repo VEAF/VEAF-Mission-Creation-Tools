@@ -2403,6 +2403,7 @@ function veafSkynet.onSpotterAcquired(coa, spotterName, contactName, dcsContact)
   -- back from a contact held by a dozen units to the eye that first saw it.
   table.insert(veafSkynet.spotterStatusAcquisitions, tostring(spotterName) .. " -> " .. tostring(contactName))
   veafSkynet.emitSpotterMessage(coa, "alert", spotterName, contactName, dcsContact)
+  veafSkynet.requestSpotterViewRedraw()
 end
 
 --- Called when a spotter gives up a contact, after the beat tolerance has run out: it puts a
@@ -2414,6 +2415,7 @@ end
 function veafSkynet.onSpotterLost(coa, spotterName, contactName)
   veaf.loggers.get(veafSkynet.Id):debug(string.format("spotter [%s] lost [%s]", veaf.p(spotterName), veaf.p(contactName)))
   veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, contactName, nil)
+  veafSkynet.requestSpotterViewRedraw()
 end
 
 --- Forget everything a spotter knew. Called when it leaves the mission, so a dead unit does not keep
@@ -3241,6 +3243,124 @@ function veafSkynet._armSpotterStatus()
   end
   veafSkynet.spotterStatusArmed = true
   veaf.scheduleFunction(veafSkynet.spotterStatusPage, {}, timer.getTime() + veafSkynet.SpotterStatusPeriod, veafSkynet.SpotterStatusPeriod)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — the map view
+--
+-- Where the status page answers *"why did that happen"* in the log afterwards, this answers
+-- *"what is happening"* while it happens: a marker on the F10 map at each spotter currently holding a
+-- contact, with a circle at the range it is seeing from.
+--
+-- **It is a coalition view, and it cannot be anything narrower.** DCS offers `markToAll`,
+-- `markToCoalition` and `markToGroup`, and a game master has no group (which is also why no
+-- `USAGE_ForGroup` radio command reaches one). So everybody flying for that coalition sees these
+-- markers too, and on a red network that hands red pilots a live tracker of blue aircraft. It is off
+-- by default and switched on per network, deliberately.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Coalitions whose map view is switched on, as a set. Empty by default.
+veafSkynet.spotterViewCoalitions = {}
+
+--- The marker ids currently drawn, per coalition, so a redraw replaces rather than stacks.
+veafSkynet.spotterViewMarkers = {}
+
+--- Set when a redraw has been asked for and not yet run. See `veafSkynet.requestSpotterViewRedraw`.
+veafSkynet.spotterRedrawScheduled = nil
+
+--- Seconds a redraw request waits, so a burst of them becomes one redraw.
+veafSkynet.SpotterRedrawDelay = 1
+
+--- Show or hide the map view for one coalition.
+---
+--- @param coa number a coalition id
+--- @param bEnabled boolean
+function veafSkynet.showSpotterView(coa, bEnabled)
+  if bEnabled then
+    veafSkynet.spotterViewCoalitions[coa] = true
+    veafSkynet.requestSpotterViewRedraw()
+  else
+    veafSkynet.spotterViewCoalitions[coa] = nil
+    veafSkynet.eraseSpotterView(coa)
+  end
+end
+
+--- Remove everything drawn for one coalition.
+---
+--- @param coa number
+function veafSkynet.eraseSpotterView(coa)
+  for _, markerId in ipairs(veafSkynet.spotterViewMarkers[coa] or {}) do
+    pcall(trigger.action.removeMark, markerId)
+  end
+  veafSkynet.spotterViewMarkers[coa] = nil
+end
+
+--- Ask for a redraw, at most one per `SpotterRedrawDelay` however many times it is called.
+---
+--- This is the one place in the feature where work genuinely arrives in bursts: every alert, every
+--- cancellation and every graph pass is a reason to redraw, and a combat zone spawning changes the
+--- picture hundreds of times at once. Without the guard, ticket 02's "a spawn triggers nothing"
+--- property is undone here.
+---
+--- The pattern is `veafRadio.refreshRadioMenu`'s, **with one difference that matters**: that one
+--- clears its flag *inside* `if not veafRadio.dontCreateMenus then` (`veafRadio.lua:630`), so with
+--- menus off the flag stays set forever and the guard never re-arms. It is harmless there, because
+--- with menus off there is nothing the guard was protecting. It would not be harmless here: any early
+--- return in the redraw — nothing to draw, the view switched off, the feature off — would latch the
+--- flag and kill every later redraw for the rest of the mission. A coalescing guard that never
+--- re-arms is worse than none, because the first redraw makes it look as though it works.
+function veafSkynet.requestSpotterViewRedraw()
+  if veafSkynet.spotterRedrawScheduled then
+    return
+  end
+  veafSkynet.spotterRedrawScheduled =
+    veaf.scheduleFunction(veafSkynet._redrawSpotterView, {}, timer.getTime() + veafSkynet.SpotterRedrawDelay)
+end
+
+--- Redraw every switched-on coalition's view.
+function veafSkynet._redrawSpotterView()
+  -- First act, unconditionally, before anything that can return early. See the comment above.
+  veafSkynet.spotterRedrawScheduled = nil
+
+  for coa, _ in pairs(veafSkynet.spotterViewCoalitions) do
+    veafSkynet.eraseSpotterView(coa)
+    if veafSkynet.SpotterNetwork then
+      local markers = {}
+      veafSkynet.spotterViewMarkers[coa] = markers
+      for unitName, known in pairs(veafSkynet.spotterContacts[coa] or {}) do
+        for aircraft, contact in pairs(known) do
+          -- Only where the alert was raised: a marker per unit *holding* it would put one on every
+          -- unit of the pocket, which is a wall of markers saying the same thing.
+          if not contact.cancelled and contact.origin == unitName then
+            local dcsUnit = Unit.getByName(unitName)
+            if veafSkynet.dcsObjectStillExists(dcsUnit) then
+              local gotPoint, point = pcall(dcsUnit.getPoint, dcsUnit)
+              if gotPoint and point then
+                local markerId = veaf.getUniqueIdentifier()
+                pcall(
+                  trigger.action.markToCoalition,
+                  markerId,
+                  string.format("%s sees %s", tostring(unitName), tostring(aircraft)),
+                  point,
+                  coa,
+                  true,
+                  nil
+                )
+                table.insert(markers, markerId)
+
+                local profile = veafSkynet.spotterProfiles[unitName]
+                if profile and profile.range > 0 then
+                  local circleId = veaf.getUniqueIdentifier()
+                  pcall(trigger.action.circleToAll, coa, circleId, point, profile.range, nil, nil, 3, true)
+                  table.insert(markers, circleId)
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
 end
 
 --- Put the hand-over on the clock, on the detection beat's own cadence: a contact is worth acting on

@@ -42,10 +42,20 @@ works.
 
 ## Scope
 
-- Markers are for the **game master**, not for every player: a live picture of where the other side
-  is looking is exactly what a player must not have. Draw to the game master's coalition, and check
-  against `veafSecurity` how that role is established in this repository before inventing anything.
+**Checked while implementing, 2026-09-21, and it changes what this ticket can deliver.** DCS offers
+`markToAll`, `markToCoalition` and `markToGroup` — nothing narrower — and a game master has **no
+group**, which is also why no `USAGE_ForGroup` radio command reaches one. There is therefore **no way
+to draw for a game master alone.**
+
+So the view is a **coalition** view, and every pilot of that coalition sees it too. On a red network
+that hands red pilots a live tracker of blue aircraft: a real balance change, not a debug aid.
+Shipped off, switched on per network from `mission-script.lua`, and the documentation says so in as
+many words. **Worth David's decision at review**, since a coalition-wide intel feed is not the thing
+the design asked for; dropping it is one revert.
+
 - Toggleable. Nobody wants several hundred markers on permanently.
+- Marked **only where the alert was raised**, not at every unit holding it: every unit of the pocket
+  holds the same contact, and a marker on each is a wall of markers all saying one thing.
 - Drawing goes through the helpers already in `veaf.lua` / `veafGeo.lua`
   (`trigger.action.markToCoalition`, `circleToAll`, `lineToAll`, `removeMark`) rather than fresh
   calls into `trigger.action`.

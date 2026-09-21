@@ -258,6 +258,13 @@ modules:
     # Checks 6 and 7 both need it: their premise is a group spawned during the mission reaching
     # the IADS. With it off they re-measure the documented default and prove nothing.
     dynamic_spawn: true
+    # ON for check 13. The feature ships off, and a demonstration mission running with it on is
+    # part of what FEAT-SPOTTER-NETWORK owes -- without one it is the `ewr` option again: present,
+    # undocumented, and dead for four years. Left at the shipped defaults on purpose, so what the
+    # session measures is what a mission maker gets.
+    spotter_network: true
+    spotter_radio_range_km: 20
+    spotter_propagation_speed_kmh: 3600
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 
 # Note: SKYNET, CSAR and QRA are configured entirely inside the `modules:` block

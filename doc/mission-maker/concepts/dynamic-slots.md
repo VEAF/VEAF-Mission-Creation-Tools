@@ -66,8 +66,9 @@ Le build annonce alors le résultat : « Warehouses : 2 aéroports configurés, 
 ## Le piège {#gotcha}
 
 **Les modèles livrés sont un point de départ, pas un catalogue prêt à l'emploi.** DCS sert au pilote
-l'appareil *tel que le modèle le décrit*. Sur les modèles fournis par défaut, une petite minorité
-seulement porte un emport : un A-10C II sort armé et peint, un UH-1H ou un F/A-18C sortent **nus**.
+l'appareil *tel que le modèle le décrit*. Sur les modèles fournis par défaut, un quart seulement
+porte un emport : un A-10C II ou un F/A-18C sortent armés et peints, un UH-1H ou un AV-8B sortent
+**nus**.
 
 Pour donner des appareils équipés : configurez-les une fois dans une mission, dans l'éditeur DCS,
 puis régénérez le fichier depuis cette mission.

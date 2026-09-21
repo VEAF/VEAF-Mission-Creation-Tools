@@ -67,8 +67,9 @@ The build then reports the result: "Warehouses: 2 airports configured, 53 templa
 ## The gotcha {#gotcha}
 
 **The shipped templates are a starting point, not a ready-made catalogue.** DCS gives the pilot the
-aircraft exactly *as the template describes it*. Among the shipped templates, only a small minority
-carry a payload: an A-10C II comes out armed and painted, a UH-1H or an F/A-18C comes out **bare**.
+aircraft exactly *as the template describes it*. Among the shipped templates, only a quarter carry a
+payload: an A-10C II or an F/A-18C comes out armed and painted, a UH-1H or an AV-8B comes out
+**bare**.
 
 To hand out equipped aircraft, configure them once in a mission in the DCS editor, then regenerate
 the file from that mission.

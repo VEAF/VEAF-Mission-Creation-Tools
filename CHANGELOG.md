@@ -50,6 +50,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `coverage_refresh_interval_s` (10), is how often Skynet rebuilds the "which EWR covers which
   battery" graph — `0` switches the sweep off. See
   [the documentation](doc/mission-maker/scripts/veafSkynetIadsHelper.md#last-line-of-defence).
+- **Twelve aircraft added to the shipped dynamic-slot catalogue, each in both coalitions**:
+  C-130J-30, F-100D, F-14B(U), La-7, MB-339A/PAN, MiG-29A Fulcrum, P-47D-40, P-51D-30-NA, T-45,
+  J-11A, MiG-29S and Su-33 — 24 templates, taking the catalogue from 104 to 128 with all 64 blue
+  types still mirrored in red. **Eleven templates that came out with empty pylons now come out
+  armed** (F-16CM, F/A-18C, Ka-50 III, M-2000C and MiG-29G on the blue side; F-16CM, F-5E-3,
+  F/A-18C, Ka-50, M-2000C and Su-27 on the red), so 33 of the 128 carry a loadout instead of 18.
+  Grafted from a catalogue a mission maker extracted from his own mission and sent in; it covered
+  only 17 red templates against our 52, so it was grafted rather than swapped in.
+- **The shipped dynamic-slot catalogue is now held to its invariants by a test**: a template is
+  hidden, late-activated, carries no position and no password, and is named the same way in its
+  catalogue key, its group, its unit and its route point — the name being what the warehouses step
+  links a stocked aircraft to. The blue and red type lists must match, and the template and armed
+  counts are ratchet floors that only rise.
 
 ### Changed
 
@@ -88,6 +101,32 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   mission running red in debug and blue not lost blue's records on red's page, so switching blue's
   debug on later showed an empty first page reading as *nothing happened*), and the page buckets are
   no longer filled at all for a coalition that will never print them.
+- **`extract-aircraft-groups` wrote a catalogue it could not read back.** The extraction opened its
+  output file without naming an encoding, so on a French Windows it wrote the locale codepage while
+  every reader of that file opens it as UTF-8. One accented livery or callsign was enough: the run
+  reported success, and the next command — a build, an injection, or a second extraction with
+  `--merge` — died on a decoding error naming a byte offset, or simply refused to do anything. Found
+  on a 78-template extract a mission maker sent in, which carried two accented callsigns.
+- **Injected aircraft templates are now hidden from the map and left inactive by the injector**,
+  rather than because the shipped catalogue happened to say so. Nothing in the code set those two
+  flags; all 104 default templates carried them, so the output looked right. A catalogue extracted
+  from a mission where nobody ticked the boxes by hand — the normal case — put every template group
+  on the F10 map. Measured on the same extract: 78 of them.
+- **A mod aircraft is no longer filed as a helicopter.** Dynamic-slot templates are categorized by
+  the unit's real DCS category, read from the bundled units database — which is generated from the
+  stock game and cannot list a mod. Those types fell through to the table DCS had filed them in, and
+  DCS files every dynamic-slot template under `helicopter` whatever the aircraft, so the A-4E-C and
+  the OV-10A Bronco shipped as helicopters in both coalitions and were offered on helicopter pads.
+  A small curated table now covers the mod airframes, consulted after the generated database so it
+  can never contradict it, and the default catalogue is corrected. Two long-standing blemishes went
+  with it: `CH-47F Template-1` is now `CH-47F Template`, and `F-15E S4+ Template Red` moved from
+  `Russia` to `CJTF Red` where the other 51 red templates live.
+- **Validating an aircraft-group catalogue no longer reports the tool's own output as suspect.** The
+  "unusual field" check listed the group keys it knew, and five the tool itself produces were not
+  among them — including `dynSpawnTemplate`, the flag that *defines* a dynamic-slot template, and
+  `hiddenOnPlanner` / `hiddenOnMFD`, which the injector writes one step earlier. Measured on the two
+  shipped catalogues: 262 messages, all of them noise, in the stream whose job is to point out a
+  typo. A genuine one was invisible in there.
 
 ### Added
 

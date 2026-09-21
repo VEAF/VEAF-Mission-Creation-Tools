@@ -1,8 +1,8 @@
 # FEAT-SPOTTER-NETWORK — ground units see aircraft, and pass the word along
 
-Status: ⬜ ready — **design done, costed and fully settled**, see [`design.md`](design.md). The four
-points it left open were answered on 2026-09-21; nothing is awaiting a decision. Implementation not
-started.
+Status: 🔄 in-progress — **design done, costed and fully settled**, see [`design.md`](design.md). The
+four points it left open were answered on 2026-09-21; nothing is awaiting a decision. The six
+tickets were cut on 2026-09-21; implementation is under way.
 
 Origin: David's idea, settled in principle with Flogas on 2026-09-19 alongside the last line of
 defense, then designed decision by decision with David on 2026-09-20. Deliberately **VEAF code,
@@ -70,17 +70,17 @@ the helper's own tests already do. Only the in-game verification waits on
 A cleaner door in Skynet — a contact entering the network's own list so it ages, refreshes and logs
 with the others — is worth proposing **after** this has run, designed on a measured need.
 
-## Proposed breakdown
+## Breakdown
 
-Not written as tickets yet: the design is settled, so they can be cut whenever implementation
-starts. Ticket 6 is separate on purpose, so it can slip without holding the mechanism.
+Cut on 2026-09-21, once the design was closed. Ticket 06 is separate on purpose, so it can slip
+without holding the mechanism.
 
-1. The unit table, detection, the latch and line of sight
-2. The graph and its three refresh loops
-3. Propagation: alert, cancellation, heartbeat
-4. Hand-over to Skynet, and the three `mission.yaml` settings
-5. The status page
-6. The game-master map view — separate, so it can slip
+1. [Detection: the unit table, the latch, and line of sight](tickets/01-detection-the-unit-table-and-the-latch.md)
+2. [The graph and its three refresh loops](tickets/02-the-graph-and-its-three-refresh-loops.md)
+3. [Propagation: alert, cancellation, heartbeat](tickets/03-propagation-alert-cancellation-heartbeat.md)
+4. [Hand-over to Skynet, and the three `mission.yaml` settings](tickets/04-hand-over-to-skynet-and-the-three-settings.md)
+5. [The status page](tickets/05-the-status-page.md)
+6. [The game master map view](tickets/06-the-game-master-map-view.md) — separate, so it can slip
 
 ## Definition of done
 

@@ -1,6 +1,6 @@
 # 03 — Vendor Skynet 3.5.0
 
-Status: ⬜ ready — **unblocked 2026-09-21**, the release is out
+Status: 🧑 waiting-human — vendored 2026-09-21; only the in-game reading is owed
 
 ## Take the release asset, do not rebuild
 
@@ -102,11 +102,40 @@ left, and it is invisible from anywhere but here.
 
 ## Definition of done
 
-- The artifact is the `v3.5.0` release asset, and its banner reads
-  `SKYNET VERSION: 3.5.0 | BUILD TIME: 21.09.2026 1011Z`.
-- It loads **and runs** under Lua 5.1 with the DCS mocks.
-- `mission.yaml` and the shipped default carry the new keys, with the same names and defaults as the
-  Skynet side.
-- **Check 13 of `verify-mission-c` run and its reading recorded**, which closes
-  `FEAT-SPOTTER-NETWORK`.
-- `poetry run test-lua` and `poetry run pytest` green, `CHANGELOG.md` updated.
+- [x] The artifact is the `v3.5.0` release asset, and its banner reads
+      `SKYNET VERSION: 3.5.0 | BUILD TIME: 21.09.2026 1038Z`. *(`1038Z`, not the `1011Z` written
+      above: the release was rebuilt before publication. The asset is the one attached to the tag.)*
+- [x] It loads **and runs** under Lua 5.1 with the DCS mocks —
+      `test_community_scripts_load.lua::test_06_skynet_loads`, which executes the main chunk rather
+      than parsing it.
+- [x] `mission.yaml` and the shipped default carry the new keys, with the same names and defaults as
+      the Skynet side. Spelled `last_line_of_defence` (British), matching the Skynet API
+      (`setLastLineOfDefence`) and this page's documentation; the lot's own name uses the American
+      spelling and the code follows the API it calls.
+- [ ] **Check 13 of `verify-mission-c` run and its reading recorded**, which closes
+      `FEAT-SPOTTER-NETWORK`. ⏸ **needs DCS** — the only item left in this lot.
+- [x] `poetry run test-lua` (49 suites) and `poetry run pytest` green, `CHANGELOG.md` updated.
+
+## The end-to-end build, read from the `.miz` rather than from the yaml
+
+`verify-mission-c` rebuilt and unzipped on 2026-09-21:
+
+- `l10n/DEFAULT/skynet-iads-compiled.lua` opens on
+  `env.info("--- SKYNET VERSION: 3.5.0 | BUILD TIME: 21.09.2026 1038Z ---")`;
+- it carries `SkynetIADS:reportContact`, `setLastLineOfDefence` and `setCoverageRefreshInterval`,
+  and no longer carries `addJammer`;
+- `veaf-config.lua` writes only the keys that mission declares, so the last-line-of-defence settings
+  are absent from it and the Lua defaults stand — which is the documented behaviour, not an omission.
+
+## On the setup warnings, stated as what it is
+
+The four warnings are back on screen. Three of them the helper cannot plausibly produce: it adds SAM
+sites and EWRs by names it just read off live DCS handles, and it already refuses a group whose
+coalition does not match the network. The fourth — *"you have added an SAM site that Skynet IADS can
+not handle"* — **is** plausible, because in `Lenient` mode a group qualifies on a single unit type
+Skynet knows while Skynet's own group matching can still return `UNKNOWN`.
+
+That cannot be measured without DCS, so it is **not** claimed either way here: it is written into
+[check 13](../../../test/veaf-tools/verify-mission-c/README.md#check-13) as something to read in the
+same session. The escape hatch, if a VEAF mission turns out to produce them, is
+`getDebugSettings().warnings = false`, which keeps the log copy.

@@ -1,6 +1,6 @@
 # 01 — Remove the two dead `actAsEW` reset blocks
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Decision
 

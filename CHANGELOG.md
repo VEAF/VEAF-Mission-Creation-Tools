@@ -38,6 +38,45 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   boolean. The view is a **coalition** view, since DCS cannot draw for a game master alone, so every
   pilot of that side sees it. See
   [the documentation](doc/mission-maker/scripts/veafSkynetIadsHelper.md#spotter-network).
+- **Last line of defence for Skynet sites (`modules.SKYNET.last_line_of_defence`, on by default).**
+  A site under network control now keeps a short virtual detection radius of its own and lights up
+  inside it, instead of being entirely blind between two early-warning hand-overs. **This changes
+  existing missions**: flying under the radar horizon no longer means flying untouched. Each site
+  draws its own radius once between `last_line_of_defence_min_radius_km` (10) and
+  `last_line_of_defence_max_radius_km` (15), and stays lit `last_line_of_defence_persistence_s` (45)
+  seconds after the last pass. The radius is measured flat and ignores the firing envelope on
+  purpose, so a short-range piece can light up for an aircraft it cannot reach; set
+  `last_line_of_defence: false` for a purist IADS. A fifth setting,
+  `coverage_refresh_interval_s` (10), is how often Skynet rebuilds the "which EWR covers which
+  battery" graph — `0` switches the sweep off. See
+  [the documentation](doc/mission-maker/scripts/veafSkynetIadsHelper.md#last-line-of-defence).
+
+### Changed
+
+- **Skynet IADS updated from `3.4.0RP-VEAF` to [3.5.0](https://github.com/VEAF/Skynet-IADS/releases/tag/v3.5.0)**,
+  the first release under joint VEAF / Regroupement de Patrouilles maintenance. Beyond the last line
+  of defence above, three fixes change what a VEAF mission does **at respawn**, because the helper
+  re-adds sites by prefix every time: declaring that a radar covers a battery no longer switches that
+  battery off; a bulk re-add no longer leaves discarded elements wired into the coverage graph, where
+  a battery believed itself covered by a radar the IADS no longer polls; and a site torn down while
+  evading a HARM no longer stays deaf for the rest of the mission. Skynet's four setup warnings —
+  an unknown group name, an unknown unit name, an element of the wrong coalition, a group it has no
+  SAM data for — are **shown on screen again** after five years of being written to the log only, so
+  a mission carrying a typo will announce it on load.
+
+### Fixed
+
+- **The `ewr` spawn option now works on SA-10, SA-6, SA-5, Patriot and Hawk.** Two internal sweeps
+  reset those five NATO types to watch-off — one at the end of every group enrolment, its twin right
+  after the start-up enrolment loop — so a site marked as an early-warning watch was silenced
+  immediately, and had been since the option existed. They were a leftover from the days when VEAF
+  forced the large systems into watch mode; the forcing was dropped in 2022 and the sweeps were only
+  flipped from `true` to `false` rather than deleted. Removing them also stops a stray extinction
+  order being sent to every site of those five types each time a group joins a network, and stops
+  Flogas's point-defence mechanism being undone when the point defence is one of them.
+- **The Skynet drift watch could no longer fire.** It watched a file in `VEAF/Skynet-IADS` that the
+  repository stopped committing when its build moved to CI, so the newest commit touching that path
+  was the one deleting it — permanently. It now watches the GitHub releases, like CTLD.
 
 ## [6.23.1] — 2026-09-20
 

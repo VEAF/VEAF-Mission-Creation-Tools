@@ -506,6 +506,117 @@ def test_mission_yaml_template_documents_the_spotter_network():
 
 
 # ---------------------------------------------------------------------------
+# External modules — Skynet 3.5.0's last line of defence
+#
+# Unlike the spotter network these ship **on**, so they change what an existing mission does: a dark
+# site now keeps a short radius of its own instead of being blind between EWR hand-overs.
+# ---------------------------------------------------------------------------
+
+
+def test_the_last_line_of_defence_can_be_switched_off():
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "last_line_of_defence": False}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.LastLineOfDefence = false" in lua
+
+
+def test_the_last_line_of_defence_radii_are_converted_from_km_to_metres():
+    yaml_data: dict = {
+        "external_modules": {
+            "skynet": {
+                "enabled": True,
+                "last_line_of_defence_min_radius_km": 10,
+                "last_line_of_defence_max_radius_km": 15,
+            }
+        }
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.LastLineOfDefenceMinRadius = 10000" in lua
+    assert "veafSkynet.LastLineOfDefenceMaxRadius = 15000" in lua
+    assert "10000.0" not in lua
+
+
+def test_the_persistence_and_the_coverage_sweep_are_written_in_seconds():
+    """Both are seconds on either side, so there is nothing to convert — and nothing to get wrong by
+    converting."""
+    yaml_data: dict = {
+        "external_modules": {
+            "skynet": {"enabled": True, "last_line_of_defence_persistence_s": 45, "coverage_refresh_interval_s": 10}
+        }
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.LastLineOfDefencePersistence = 45" in lua
+    assert "veafSkynet.CoverageRefreshInterval = 10" in lua
+
+
+def test_a_zero_coverage_sweep_is_written_rather_than_dropped():
+    """Zero switches the sweep off in Skynet, so it is a statement and not an absent key."""
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "coverage_refresh_interval_s": 0}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.CoverageRefreshInterval = 0" in lua
+
+
+def test_the_last_line_of_defence_settings_are_not_written_when_absent():
+    """Same rule as every other SKYNET key: an unwritten line leaves the Lua default standing and
+    does not silently undo a ``module_settings:`` line."""
+    lua = generate_config_lua({"external_modules": {"skynet": {"enabled": True}}})
+    for setting in (
+        "LastLineOfDefence",
+        "LastLineOfDefenceMinRadius",
+        "LastLineOfDefenceMaxRadius",
+        "LastLineOfDefencePersistence",
+        "CoverageRefreshInterval",
+    ):
+        assert f"veafSkynet.{setting}" not in lua, setting
+
+
+def test_the_last_line_of_defence_settings_are_written_before_initialize():
+    yaml_data: dict = {
+        "external_modules": {
+            "skynet": {
+                "enabled": True,
+                "last_line_of_defence": True,
+                "last_line_of_defence_min_radius_km": 10,
+                "last_line_of_defence_persistence_s": 45,
+                "coverage_refresh_interval_s": 10,
+            }
+        }
+    }
+    lua = generate_config_lua(yaml_data)
+    for setting in (
+        "LastLineOfDefence =",
+        "LastLineOfDefenceMinRadius",
+        "LastLineOfDefencePersistence",
+        "CoverageRefreshInterval",
+    ):
+        assert lua.index(f"veafSkynet.{setting}") < lua.index("veafSkynet.initialize("), setting
+
+
+def test_an_unreadable_last_line_of_defence_number_warns_and_does_not_kill_the_build(caplog):
+    import logging
+
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "last_line_of_defence_persistence_s": None}}}
+    with caplog.at_level(logging.WARNING):
+        lua = generate_config_lua(yaml_data)
+    assert "last_line_of_defence_persistence_s" in caplog.text
+    assert "veafSkynet.LastLineOfDefencePersistence" not in lua
+    assert "veafSkynet.initialize(" in lua
+
+
+def test_mission_yaml_template_documents_the_last_line_of_defence():
+    """It ships **on** and changes existing missions, so the one place a mission maker can discover
+    how to switch it off has to name it."""
+    template = generate_mission_yaml_template()
+    for key in (
+        "last_line_of_defence",
+        "last_line_of_defence_min_radius_km",
+        "last_line_of_defence_max_radius_km",
+        "last_line_of_defence_persistence_s",
+        "coverage_refresh_interval_s",
+    ):
+        assert key in template, key
+
+
+# ---------------------------------------------------------------------------
 # External modules — CSAR
 # ---------------------------------------------------------------------------
 

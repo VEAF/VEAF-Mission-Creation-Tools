@@ -446,8 +446,8 @@ def resolve_module_dependencies(enabled_ids: set[str]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def _spotter_number(skynet_cfg: dict, key: str, unit: str, example: float) -> float | None:
-    """Read one numeric spotter-network setting, or ``None`` when it is absent or unusable.
+def _skynet_number(skynet_cfg: dict, key: str, unit: str, example: float) -> float | None:
+    """Read one numeric ``modules.SKYNET`` setting, or ``None`` when it is absent or unusable.
 
     ``None`` for an absent key is deliberate and follows ``dynamic_spawn``: nothing is
     written, so ``veafSkynetIadsHelper.lua``'s own default stands and a
@@ -477,16 +477,12 @@ def _spotter_number(skynet_cfg: dict, key: str, unit: str, example: float) -> fl
         return None
     value = skynet_cfg[key]
     if isinstance(value, bool) or value is None:
-        logger.warning(
-            t("generator.spotter_setting_not_a_number", setting=key, value=value, unit=unit, example=example)
-        )
+        logger.warning(t("generator.skynet_setting_not_a_number", setting=key, value=value, unit=unit, example=example))
         return None
     try:
         return float(value)
     except (TypeError, ValueError):
-        logger.warning(
-            t("generator.spotter_setting_not_a_number", setting=key, value=value, unit=unit, example=example)
-        )
+        logger.warning(t("generator.skynet_setting_not_a_number", setting=key, value=value, unit=unit, example=example))
         return None
 
 
@@ -1971,20 +1967,43 @@ def generate_config_lua(
         if "spotter_network" in skynet_cfg:
             sn = "true" if skynet_cfg["spotter_network"] else "false"
             lines.append(f"    veafSkynet.SpotterNetwork = {sn}")
-        radio_range_km = _spotter_number(skynet_cfg, "spotter_radio_range_km", "km", 20)
+        radio_range_km = _skynet_number(skynet_cfg, "spotter_radio_range_km", "km", 20)
         if radio_range_km is not None:
             radio_range_m = radio_range_km * 1000
             lines.append(f"    veafSkynet.SpotterRadioRange = {_to_lua_scalar(_whole_if_it_can_be(radio_range_m))}")
         # km/h to m/s. A speed is exposed rather than a hop period on purpose: the period is
         # range / speed, so exposing both would let widening the range silently double how fast
         # an alert crosses the map.
-        speed_kmh = _spotter_number(skynet_cfg, "spotter_propagation_speed_kmh", "km/h", 3600)
+        speed_kmh = _skynet_number(skynet_cfg, "spotter_propagation_speed_kmh", "km/h", 3600)
         if speed_kmh is not None:
             speed_ms = speed_kmh / 3.6
             lines.append(f"    veafSkynet.SpotterPropagationSpeed = {_to_lua_scalar(_whole_if_it_can_be(speed_ms))}")
         spotter_view = _spotter_view_mode(skynet_cfg)
         if spotter_view is not None:
             lines.append(f"    veafSkynet.SpotterView = {_lua_text(spotter_view)}")
+        # Skynet 3.5.0's last line of defence and coverage sweep, under the same "only when the
+        # field is given" rule as everything above it. The radii are written in kilometres and
+        # stored in metres, like the spotter range.
+        if "last_line_of_defence" in skynet_cfg:
+            lld = "true" if skynet_cfg["last_line_of_defence"] else "false"
+            lines.append(f"    veafSkynet.LastLineOfDefence = {lld}")
+        # The example in the warning is each bound's own default, not a shared one: suggesting 10 for
+        # the maximum would tell an author to collapse the 10-15 spread the feature exists for.
+        for key, lua_name, example_km in (
+            ("last_line_of_defence_min_radius_km", "LastLineOfDefenceMinRadius", 10),
+            ("last_line_of_defence_max_radius_km", "LastLineOfDefenceMaxRadius", 15),
+        ):
+            radius_km = _skynet_number(skynet_cfg, key, "km", example_km)
+            if radius_km is not None:
+                lines.append(f"    veafSkynet.{lua_name} = {_to_lua_scalar(_whole_if_it_can_be(radius_km * 1000))}")
+        persistence_s = _skynet_number(skynet_cfg, "last_line_of_defence_persistence_s", "seconds", 45)
+        if persistence_s is not None:
+            lines.append(
+                f"    veafSkynet.LastLineOfDefencePersistence = {_to_lua_scalar(_whole_if_it_can_be(persistence_s))}"
+            )
+        coverage_s = _skynet_number(skynet_cfg, "coverage_refresh_interval_s", "seconds", 10)
+        if coverage_s is not None:
+            lines.append(f"    veafSkynet.CoverageRefreshInterval = {_to_lua_scalar(_whole_if_it_can_be(coverage_s))}")
         lines.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
         lines.append("end")
         lines.append("")
@@ -2174,6 +2193,11 @@ def generate_mission_yaml_template(
                 "  #                                   # QUOTE IT: YAML reads a bare on/off as a boolean.",
                 '  #                                   # "radio" puts an on/off in the F10 menu instead of drawing at once.',
                 "  #                                   # The view is COALITION-wide: every pilot of that side sees it.",
+                "  #   last_line_of_defence: true      # a dark site keeps a short radius of its own and lights up inside it",
+                "  #   last_line_of_defence_min_radius_km: 10   # each site draws its own radius between the two bounds",
+                "  #   last_line_of_defence_max_radius_km: 15",
+                "  #   last_line_of_defence_persistence_s: 45   # how long it stays lit after the last pass",
+                "  #   coverage_refresh_interval_s: 10          # how often the radar coverage graph is swept (0 = never)",
             ]
         elif upper == "CTLD":
             # CTLD 2 takes no settings here: its configuration is the mission's

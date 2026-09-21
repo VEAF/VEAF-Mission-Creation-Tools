@@ -93,6 +93,36 @@ veafSkynet.PointDefenceMode = veafSkynet.PointDefenceModes.None -- no point defe
 -- not disable dynamic integration for the other one (#261).
 veafSkynet.DynamicSpawn = false -- false by default
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Skynet 3.5.0 settings, written by the build from `modules.SKYNET`.
+--
+-- Spelling note: `Defence` throughout, because that is what the Skynet API is called
+-- (`SkynetIADS:setLastLineOfDefence`) and what this page's documentation already uses. The backlog
+-- lot is named with the American spelling; the code follows the API it calls.
+--
+-- These are global to both coalitions, unlike `DynamicSpawn` which becomes per network. Per-network
+-- values would only be worth the plumbing once a mission asks for two different IADS doctrines.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- A dark site keeps a short virtual detection radius of its own and lights up inside it.
+---
+--- **On by default**, which changes existing missions: before 3.5.0 a site under network control was
+--- entirely blind between EWR hand-overs, so flying under the radar horizon meant flying untouched.
+--- Switch it off for a purist IADS.
+veafSkynet.LastLineOfDefence = true
+
+--- Bounds of that radius, in metres. Each site draws its own once, between the two, so a front does
+--- not present a uniform ring a pilot can learn. Measured flat — the radius ignores altitude and the
+--- firing envelope on purpose, so a short-range piece can light up for an aircraft it cannot reach.
+veafSkynet.LastLineOfDefenceMinRadius = 10000
+veafSkynet.LastLineOfDefenceMaxRadius = 15000
+
+--- How long a site stays lit after the last pass through its radius, in seconds.
+veafSkynet.LastLineOfDefencePersistence = 45
+
+--- Seconds between two sweeps of the radar coverage graph. Zero switches the sweep off.
+veafSkynet.CoverageRefreshInterval = 10
+
 veafSkynet.SkynetElementStates = {
   Autonomous = 0,
   Live = 1,
@@ -1553,16 +1583,13 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
   end
 
   if didSomething then
-    if not batchMode and not forceEwr and not pointDefense then
-      -- specific configurations, for each SAM type
-      veaf.loggers.get(veafSkynet.Id):trace("Specific configuration applied")
-
-      iads:getSAMSitesByNatoName("SA-10"):setActAsEW(false)
-      iads:getSAMSitesByNatoName("SA-6"):setActAsEW(false)
-      iads:getSAMSitesByNatoName("SA-5"):setActAsEW(false)
-      iads:getSAMSitesByNatoName("Patriot"):setActAsEW(false)
-      iads:getSAMSitesByNatoName("Hawk"):setActAsEW(false)
-    end
+    -- No per-NATO-type `setActAsEW(false)` sweep here, and that is a removal rather than an
+    -- oversight. VEAF used to force the large systems into EW watch, so a block was added to drop
+    -- that watch once a real EWR joined; the forcing went away in a68dfd32 (2022) but the block was
+    -- only flipped from `true` to `false` and carried forward ever since. Skynet already builds
+    -- every radar element with `actAsEW = false`, so the sweep asked for what was already true --
+    -- while silencing any SA-10/SA-6/SA-5/Patriot/Hawk explicitly marked as a watch by the `ewr`
+    -- spawn option, which is why that option had never worked on those five types.
 
     -- reactivate (rebuild coverage) the IADS
     veaf.loggers.get(veafSkynet.Id):trace("reactivate (rebuild coverage) the IADS")
@@ -1638,13 +1665,9 @@ local function initializeIADS(networkName, coa, inRadio, debug)
     veafSkynet.loadAllAtInit[tostring(coa)] = false
   end
 
-  veaf.loggers.get(veafSkynet.Id):trace("Specific configuration applied")
-  -- specific configurations, for each SAM type
-  iads:getSAMSitesByNatoName("SA-10"):setActAsEW(false)
-  iads:getSAMSitesByNatoName("SA-6"):setActAsEW(false)
-  iads:getSAMSitesByNatoName("SA-5"):setActAsEW(false)
-  iads:getSAMSitesByNatoName("Patriot"):setActAsEW(false)
-  iads:getSAMSitesByNatoName("Hawk"):setActAsEW(false)
+  -- The twin of the sweep removed in addGroupToNetwork, and removed for the same reasons. This one
+  -- ran right after the enrolment loop above, so it undid every watch that loop had just set: on
+  -- these five NATO types the `ewr` option had never worked, not even at first start-up.
 
   veafSkynet.initializePointDefences(veafSkynet.getNetwork(networkName)) -- Management of point defences (Flogas) - initialization
 
@@ -1656,6 +1679,68 @@ local function initializeIADS(networkName, coa, inRadio, debug)
   --activate (build coverage) the IADS
   veaf.loggers.get(veafSkynet.Id):debug("activate (build coverage) the IADS")
   veafSkynet.delayedActivate(networkName)
+end
+
+--- Hand the Skynet 3.5.0 settings to a freshly created IADS, and check they were taken.
+--
+-- Called at creation rather than at initialization: `setLastLineOfDefenceRadius` clears every radius
+-- already drawn, so setting it once here is what keeps a site's radius stable for the whole mission.
+--
+-- **Skynet's setters validate and refuse in silence.** `setLastLineOfDefenceRadius` drops the pair
+-- whole when `max < min` — which a mission reaches just by naming one bound past the other's shipped
+-- default, e.g. `last_line_of_defence_min_radius_km: 20` alone against a max left at 15 — and the
+-- duration setters drop a negative value the same way. Writing a setting and never reading it back
+-- is how a documented key ends up doing nothing with nobody told, so every value is read back and a
+-- refusal is said out loud, naming what was asked and what stands.
+--
+-- The method guard is the shape `reportContact` uses further down: a mission that supplies its own
+-- pre-3.5.0 Skynet gets one plain warning instead of a raise that would abort network creation and
+-- leave the mission with no IADS at all.
+--
+-- @param iads table the Skynet IADS just created
+-- @param networkName string the network's name, for the log lines
+function veafSkynet.applyLastLineOfDefenceSettings(iads, networkName)
+  if not iads.setLastLineOfDefence then
+    veaf.loggers.get(veafSkynet.Id):warn(
+      "this Skynet build predates 3.5.0: the last line of defence and the coverage sweep cannot be set, and modules.SKYNET's settings for them are inert (vendor a Skynet release that carries them)"
+    )
+    return
+  end
+
+  iads:setLastLineOfDefence(veafSkynet.LastLineOfDefence)
+  iads:setLastLineOfDefenceRadius(veafSkynet.LastLineOfDefenceMinRadius, veafSkynet.LastLineOfDefenceMaxRadius)
+  iads:setLastLineOfDefencePersistence(veafSkynet.LastLineOfDefencePersistence)
+  iads:setCoverageRefreshInterval(veafSkynet.CoverageRefreshInterval)
+
+  local function refused(what, asked, standing)
+    veaf.loggers.get(veafSkynet.Id):warn(
+      "SKYNET [%s]: %s was refused — asked for %s, Skynet stands at %s. Check the value in mission.yaml",
+      veaf.lp(networkName),
+      veaf.lp(what),
+      veaf.lp(asked),
+      veaf.lp(standing)
+    )
+  end
+
+  local minRadius, maxRadius = iads:getLastLineOfDefenceRadius()
+  if minRadius ~= veafSkynet.LastLineOfDefenceMinRadius or maxRadius ~= veafSkynet.LastLineOfDefenceMaxRadius then
+    -- Named as the pair, because Skynet refuses the pair: the reader has to see both to understand
+    -- that the bound they did not touch is what rejected the one they did.
+    refused(
+      "the last-line-of-defence radius (min/max, in metres)",
+      tostring(veafSkynet.LastLineOfDefenceMinRadius) .. "/" .. tostring(veafSkynet.LastLineOfDefenceMaxRadius),
+      tostring(minRadius) .. "/" .. tostring(maxRadius)
+    )
+  end
+  if iads:getLastLineOfDefence() ~= veafSkynet.LastLineOfDefence then
+    refused("the last line of defence on/off", veafSkynet.LastLineOfDefence, iads:getLastLineOfDefence())
+  end
+  if iads:getLastLineOfDefencePersistence() ~= veafSkynet.LastLineOfDefencePersistence then
+    refused("the last-line-of-defence persistence (s)", veafSkynet.LastLineOfDefencePersistence, iads:getLastLineOfDefencePersistence())
+  end
+  if iads:getCoverageRefreshInterval() ~= veafSkynet.CoverageRefreshInterval then
+    refused("the coverage sweep interval (s)", veafSkynet.CoverageRefreshInterval, iads:getCoverageRefreshInterval())
+  end
 end
 
 local function createNetwork(networkName, coa, loadUnits, UserAdd)
@@ -1695,6 +1780,7 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
       local iads = SkynetIADS:create(networkName)
       iads.coalitionID = coa
       if iads then
+        veafSkynet.applyLastLineOfDefenceSettings(iads, networkName)
         if not veafSkynet.structure[networkName] then
           veaf.loggers.get(veafSkynet.Id):trace("network is new")
           veafSkynet.structure[networkName] = {}

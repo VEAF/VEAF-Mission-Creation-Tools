@@ -222,6 +222,12 @@ modules:
                             #     quote it: YAML reads a bare on/off as a boolean
                             #     "radio" puts an on/off in the F10 menu instead of drawing at once
                             #     the view is COALITION-wide: every pilot of that side sees it
+                            # Skynet 3.5.0's last line of defence, which ships ON:
+                            #   last_line_of_defence: true      a dark site keeps a short radius of its own
+                            #   last_line_of_defence_min_radius_km: 10   each site draws its own, between the bounds
+                            #   last_line_of_defence_max_radius_km: 15
+                            #   last_line_of_defence_persistence_s: 45   how long it stays lit after the last pass
+                            #   coverage_refresh_interval_s: 10  how often the coverage graph is swept (0 = never)
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 
 # Note: SKYNET, CSAR and QRA are configured entirely inside the `modules:` block

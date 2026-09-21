@@ -113,7 +113,6 @@ end
 -- Shared mock helpers (module-level)
 -- ---------------------------------------------------------------------------
 local function _makeMockIads(name)
-  local natoMock = { setActAsEW = function() end }
   return {
     name = name,
     coalitionID = nil,
@@ -129,11 +128,53 @@ local function _makeMockIads(name)
     addEarlyWarningRadar = function(self, uname)
       return {}
     end,
-    getSAMSitesByNatoName = function(self, nname)
-      return natoMock
-    end,
     activate = function(self) end,
     deactivate = function(self) end,
+    -- The Skynet 3.5.0 settings `createNetwork` applies to every network it builds.
+    --
+    -- These reproduce Skynet's **guards**, not just its storage: every one of those setters
+    -- validates and returns in silence when it refuses (skynet-iads-compiled.lua:1618-1655, 2382).
+    -- A mock that stored whatever it was handed would make the read-back in
+    -- `applyLastLineOfDefenceSettings` untestable — and that read-back exists precisely because the
+    -- refusals are silent. The starting values are Skynet's own defaults, so a refused call leaves
+    -- them standing here exactly as it would in game.
+    lastLineOfDefence = true,
+    lastLineOfDefenceMinRadius = 10000,
+    lastLineOfDefenceMaxRadius = 15000,
+    lastLineOfDefencePersistence = 45,
+    coverageRefreshInterval = 10,
+    setLastLineOfDefence = function(self, state)
+      if state == true or state == false then
+        self.lastLineOfDefence = state
+      end
+    end,
+    getLastLineOfDefence = function(self)
+      return self.lastLineOfDefence
+    end,
+    setLastLineOfDefenceRadius = function(self, minRadius, maxRadius)
+      if minRadius and maxRadius and minRadius > 0 and maxRadius >= minRadius then
+        self.lastLineOfDefenceMinRadius, self.lastLineOfDefenceMaxRadius = minRadius, maxRadius
+      end
+    end,
+    getLastLineOfDefenceRadius = function(self)
+      return self.lastLineOfDefenceMinRadius, self.lastLineOfDefenceMaxRadius
+    end,
+    setLastLineOfDefencePersistence = function(self, seconds)
+      if seconds and seconds >= 0 then
+        self.lastLineOfDefencePersistence = seconds
+      end
+    end,
+    getLastLineOfDefencePersistence = function(self)
+      return self.lastLineOfDefencePersistence
+    end,
+    setCoverageRefreshInterval = function(self, interval)
+      if interval and interval >= 0 then
+        self.coverageRefreshInterval = interval
+      end
+    end,
+    getCoverageRefreshInterval = function(self)
+      return self.coverageRefreshInterval
+    end,
     getCoalitionString = function(self)
       return "blue"
     end,
@@ -647,6 +688,216 @@ function TestVeafSkynetAddGroupToNetwork:test_ewr_added_returns_true()
   local dcsGroup = _makeGroupWithUnits({ "EWR-UNIT" })
   local result = veafSkynet.addGroupToNetwork("blue iads", dcsGroup, false, false, nil, true)
   luaunit.assertTrue(result)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafSkynetEwrWatchSurvives
+--
+-- An explicit EW-watch request must outlive the next group joining the network.
+--
+-- It did not, and had never done so on SA-10, SA-6, SA-5, Patriot and Hawk: two `setActAsEW(false)`
+-- sweeps over those five NATO names — one at the end of `addGroupToNetwork`, its twin right after
+-- the enrolment loop in `initializeIADS` — silenced every site of the type, including one the `ewr`
+-- spawn option had just marked as a watch. The sweeps were a leftover from the days when VEAF forced
+-- the large systems into EW watch: `a68dfd32` (2022) dropped the forcing and flipped the sweeps from
+-- `true` to `false` instead of deleting them.
+--
+-- The test drives the behaviour, not the call: the mock's `getSAMSitesByNatoName` returns the very
+-- site that was marked, so a sweep coming back would flip this assertion red rather than go unseen.
+-- ---------------------------------------------------------------------------
+TestVeafSkynetEwrWatchSurvives = {}
+
+--- Build a mock IADS that remembers its SAM sites and can hand them back by NATO name.
+-- @param name string the network name
+-- @param natoNameOf function unit-type -> NATO name, so a site can be found the way Skynet finds it
+local function _makeMockIadsWithNatoLookup(name, natoNameOf)
+  local iads = _makeMockIads(name)
+  local sites = {}
+  iads.addSAMSite = function(self, groupName)
+    local site = {
+      dcsName = groupName,
+      natoName = natoNameOf(groupName),
+      actAsEW = false,
+      setActAsEW = function(selfSite, value)
+        selfSite.actAsEW = value
+      end,
+      getNatoName = function(selfSite)
+        return selfSite.natoName
+      end,
+    }
+    sites[#sites + 1] = site
+    return site
+  end
+  iads.getSAMSites = function(self)
+    return sites
+  end
+  -- Skynet returns a delegator standing for every site of that type; one `setActAsEW` on it reaches
+  -- them all. That is precisely what made the sweep destructive, so the mock reproduces it.
+  iads.getSAMSitesByNatoName = function(self, natoName)
+    return {
+      setActAsEW = function(selfDelegator, value)
+        for _, site in ipairs(sites) do
+          if site.natoName == natoName then
+            site:setActAsEW(value)
+          end
+        end
+      end,
+    }
+  end
+  return iads
+end
+
+--- Build a DCS group mock with its own name, so two groups can join the same network.
+local function _makeNamedGroup(groupName, unitType)
+  local group = _makeGroupWithUnits({ unitType })
+  group.getName = function()
+    return groupName
+  end
+  return group
+end
+
+function TestVeafSkynetEwrWatchSurvives:setUp()
+  veafSkynet.structure = {}
+  veafSkynet.iadsSamUnitsTypes = { ["SA-10 SR"] = true, ["SA-6 Launcher"] = true }
+  veafSkynet.iadsEwrUnitsTypes = {}
+  veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
+  dcsUnits = { DcsUnitsDatabase = {} }
+  self.iads = _makeMockIadsWithNatoLookup("blue iads", function(groupName)
+    return groupName:match("SA%-10") and "SA-10" or "SA-6"
+  end)
+  veafSkynet.structure["blue iads"] = { iads = self.iads, coalitionID = coalition.side.BLUE, groups = {} }
+end
+
+function TestVeafSkynetEwrWatchSurvives:test_a_marked_sa10_still_watches_after_another_group_joins()
+  luaunit.assertTrue(veafSkynet.addGroupToNetwork("blue iads", _makeNamedGroup("SA-10 SITE", "SA-10 SR"), true, false, nil, true))
+  local watcher = self.iads:getSAMSites()[1]
+  luaunit.assertTrue(watcher.actAsEW, "the `ewr` request must reach the site in the first place")
+
+  luaunit.assertTrue(veafSkynet.addGroupToNetwork("blue iads", _makeNamedGroup("SA-6 SITE", "SA-6 Launcher"), false, false, nil, true))
+  luaunit.assertTrue(watcher.actAsEW, "a second group joining the network must not silence a site explicitly marked as an EW watch")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafSkynetLastLineOfDefenceSettings
+--
+-- The wiring, not the handler: Skynet 3.5.0 carries the last line of defence and the coverage
+-- sweep, and `mission.yaml` exposes them — but a setting nobody hands to the IADS is a documented
+-- key that does nothing. `createNetwork` is the single place a network is built, so that is where
+-- the check belongs.
+-- ---------------------------------------------------------------------------
+TestVeafSkynetLastLineOfDefenceSettings = {}
+
+function TestVeafSkynetLastLineOfDefenceSettings:setUp()
+  self.saved = {
+    veafSkynet.LastLineOfDefence,
+    veafSkynet.LastLineOfDefenceMinRadius,
+    veafSkynet.LastLineOfDefenceMaxRadius,
+    veafSkynet.LastLineOfDefencePersistence,
+    veafSkynet.CoverageRefreshInterval,
+  }
+  -- Saved and restored, like `TestVeafSkynetVanishedEwr` does below: every class in this file shares
+  -- one Lua state, so a flag left flipped here is read by whatever sorts after it.
+  self._savedInitialized = veafSkynet.initialized
+  veafSkynet.initialized = true
+  veafSkynet.structure = { ["blue iads"] = { iads = _makeMockIads("blue iads"), coalitionID = coalition.side.BLUE, groups = {} } }
+  self._logger = veaf.loggers.get(veafSkynet.Id)
+  self._originalWarn = self._logger.warn
+  self.warned = {}
+  local warned = self.warned
+  -- The arguments are kept, not only the format string: these warnings name *which* setting was
+  -- refused through a `%s`, so a double that recorded the template alone could not tell the radius
+  -- warning from the persistence one — and would pass whichever of the four actually fired.
+  self._logger.warn = function(_, text, ...)
+    local parts = { tostring(text) }
+    for _, arg in ipairs({ ... }) do
+      table.insert(parts, tostring(arg))
+    end
+    table.insert(warned, table.concat(parts, " | "))
+  end
+end
+
+function TestVeafSkynetLastLineOfDefenceSettings:tearDown()
+  self._logger.warn = self._originalWarn
+  veafSkynet.initialized = self._savedInitialized
+  veafSkynet.LastLineOfDefence = self.saved[1]
+  veafSkynet.LastLineOfDefenceMinRadius = self.saved[2]
+  veafSkynet.LastLineOfDefenceMaxRadius = self.saved[3]
+  veafSkynet.LastLineOfDefencePersistence = self.saved[4]
+  veafSkynet.CoverageRefreshInterval = self.saved[5]
+end
+
+function TestVeafSkynetLastLineOfDefenceSettings:test_the_shipped_defaults_are_the_skynet_ones()
+  luaunit.assertTrue(self.saved[1], "the last line of defence ships on")
+  luaunit.assertEquals(self.saved[2], 10000)
+  luaunit.assertEquals(self.saved[3], 15000)
+  luaunit.assertEquals(self.saved[4], 45)
+  luaunit.assertEquals(self.saved[5], 10)
+end
+
+function TestVeafSkynetLastLineOfDefenceSettings:test_every_setting_reaches_the_iads_it_creates()
+  -- Values no default could produce, so a stub that ignored them would read as green.
+  veafSkynet.LastLineOfDefence = false
+  veafSkynet.LastLineOfDefenceMinRadius = 3000
+  veafSkynet.LastLineOfDefenceMaxRadius = 4000
+  veafSkynet.LastLineOfDefencePersistence = 7
+  veafSkynet.CoverageRefreshInterval = 21
+
+  veafSkynet.reinitializeNetwork("blue iads")
+
+  local iads = veafSkynet.structure["blue iads"].iads
+  -- `assertEquals(..., false)` and not `assertFalse`: the mock starts this field at `nil`, which is
+  -- falsy, so `assertFalse` would pass on a `createNetwork` that never called the setter at all.
+  luaunit.assertEquals(iads.lastLineOfDefence, false, "`last_line_of_defence: false` must reach the IADS")
+  luaunit.assertEquals(iads.lastLineOfDefenceMinRadius, 3000)
+  luaunit.assertEquals(iads.lastLineOfDefenceMaxRadius, 4000)
+  luaunit.assertEquals(iads.lastLineOfDefencePersistence, 7)
+  luaunit.assertEquals(iads.coverageRefreshInterval, 21)
+  luaunit.assertEquals(self.warned, {}, "settings Skynet accepted must not warn about anything")
+end
+
+-- ---------------------------------------------------------------------------
+-- A refused setting is said out loud.
+--
+-- Skynet's setters validate and return **in silence**, so a value it rejects used to leave the
+-- mission running on the shipped default with nothing in the log. The reachable case is not an
+-- absurd value: naming one radius bound past the other's shipped default is enough.
+-- ---------------------------------------------------------------------------
+
+function TestVeafSkynetLastLineOfDefenceSettings:test_one_bound_past_the_others_default_is_refused_and_reported()
+  -- What a mission maker writes to widen the radius: `last_line_of_defence_min_radius_km: 20`, and
+  -- nothing else. The max stays at the shipped 15 km, so the pair is inverted and Skynet drops it
+  -- whole — both bounds, not just the one that crossed.
+  veafSkynet.LastLineOfDefenceMinRadius = 20000
+
+  veafSkynet.reinitializeNetwork("blue iads")
+
+  local iads = veafSkynet.structure["blue iads"].iads
+  luaunit.assertEquals(iads.lastLineOfDefenceMinRadius, 10000, "Skynet keeps its own bounds when it refuses the pair")
+  luaunit.assertEquals(#self.warned, 1, "a refused radius must leave exactly one warning")
+  luaunit.assertStrContains(self.warned[1], "radius")
+end
+
+function TestVeafSkynetLastLineOfDefenceSettings:test_a_negative_duration_is_refused_and_reported()
+  veafSkynet.LastLineOfDefencePersistence = -5
+
+  veafSkynet.reinitializeNetwork("blue iads")
+
+  luaunit.assertEquals(veafSkynet.structure["blue iads"].iads.lastLineOfDefencePersistence, 45)
+  luaunit.assertEquals(#self.warned, 1)
+  luaunit.assertStrContains(self.warned[1], "persistence")
+end
+
+function TestVeafSkynetLastLineOfDefenceSettings:test_a_pre_350_skynet_warns_instead_of_raising()
+  -- A mission that supplies its own older Skynet. Calling the setters bare would raise inside
+  -- network creation and leave the mission with no IADS at all; the guard degrades instead, the way
+  -- the spotter network's `reportContact` door does.
+  local old = _makeMockIads("blue iads")
+  old.setLastLineOfDefence = nil
+  local ok, err = pcall(veafSkynet.applyLastLineOfDefenceSettings, old, "blue iads")
+
+  luaunit.assertTrue(ok, string.format("an older Skynet must not take network creation down: %s", tostring(err)))
+  luaunit.assertEquals(#self.warned, 1)
+  luaunit.assertStrContains(self.warned[1], "3.5.0")
 end
 
 -- ---------------------------------------------------------------------------

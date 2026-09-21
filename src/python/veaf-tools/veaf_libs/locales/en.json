@@ -614,7 +614,7 @@
   "generator.dep_auto_resolution_disabled": "Module '{mod_id}' requires '{dep}' but '{dep}' is disabled — auto-enabling '{dep}'",
   "generator.module_setting_shadowed": "module_settings: '{setting}' is written at line {first} and assigned again at line {last} by a module block, which wins. Move the setting into that module's own section, or remove it here — left as is it looks applied and is not.",
   "generator.module_setting_superseded": "module_settings: '{setting}' is also set by the documented mission field '{field}', which wins. The module_settings entry is a migration leftover and is ignored — remove it.",
-  "generator.spotter_setting_not_a_number": "modules.SKYNET: '{setting}' is not a number ('{value}'), so it is ignored and the shipped default is used. Write a plain number, in {unit} — for example '{setting}: {example}'.",
+  "generator.skynet_setting_not_a_number": "modules.SKYNET: '{setting}' is not a number ('{value}'), so it is ignored and the shipped default is used. Write a plain number, in {unit} — for example '{setting}: {example}'.",
   "generator.spotter_view_unknown": "modules.SKYNET: spotter_view '{value}' is not one of {allowed}, so it is ignored and the shipped default (off) is used. Quote the value — 'spotter_view: \"on\"' — because YAML reads a bare on/off as a boolean.",
   "generator.dep_auto_resolution_missing": "Module '{mod_id}' requires '{dep}' which is not configured — auto-enabling '{dep}'",
   "group_injector.reading_mission": "Reading mission file {path}",

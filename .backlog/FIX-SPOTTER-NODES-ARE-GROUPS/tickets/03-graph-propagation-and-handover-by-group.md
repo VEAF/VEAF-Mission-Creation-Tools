@@ -1,6 +1,6 @@
 # 03 — The graph, the propagation and the hand-over keyed by group
 
-Status: ⬜ ready
+Status: ✅ done
 
 The part that removes the O(units²), which is the measured defect.
 
@@ -39,8 +39,25 @@ So the view was truncated by construction: the links alone exceeded the budget.
 - A relayed contact's `via` names the group that passed it on.
 - The hand-over still names the right battery, with the existing wake-up assertions.
 
+## What the code lost, which is the good part
+
+- `listSpotters` and `listSpotterRelays` were two copies of the same group-then-unit walk; both are
+  now filters over one `listSpotterNodes`.
+- `handOverSpotterAlerts` walked the site's units and unioned what each of them held, into a set so
+  an aircraft two launchers held was not reported twice. A Skynet SAM site *is* a group, so that is
+  **one lookup** now, and the test whose premise was "two of the site's units hold it" is
+  re-expressed as "alerted twice, reported once" — the property is structural rather than defended
+  by a union.
+- `spotterHeartbeat` recovered a spotter's coalition by asking every coalition's graph which one held
+  it as a node; the partition gives it straight off the key. **The graph membership test stayed**,
+  and dropping it was a mistake caught by an existing test: `emitSpotterMessage` appends a wave
+  unconditionally, so a spotter that is not a node would emit a wave with an empty frontier, once per
+  heartbeat, for ever.
+
 ## Definition of done
 
-- [ ] Nodes, adjacency, contacts, hand-over and reporting all keyed by group.
-- [ ] The node and link counts above pinned by a test.
-- [ ] `poetry run test-lua` green, `stylua` clean.
+- [x] Nodes, adjacency, contacts, hand-over and reporting all keyed by group.
+- [x] The counts pinned: two 11-vehicle convoys are **2** nodes and **1** link, not 22 and 121.
+- [x] A convoy shuffling in place is **not** re-edged — asserted as the node position being exactly
+      unchanged, because "moved less than the threshold" would pass on a node nothing ever updates.
+- [x] `poetry run test-lua` green, `stylua` clean.

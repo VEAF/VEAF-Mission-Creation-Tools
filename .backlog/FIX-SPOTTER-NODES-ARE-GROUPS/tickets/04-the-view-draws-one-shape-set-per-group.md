@@ -1,6 +1,6 @@
 # 04 — The view draws one shape set per group
 
-Status: ⬜ ready
+Status: ✅ done
 
 What David was looking at when he found the defect: a mat of grey strokes with the demonstration
 underneath it.
@@ -35,7 +35,15 @@ Two consequences of drawing per group, both of which simplify the code:
 
 ## Definition of done
 
-- [ ] One shape set per group.
-- [ ] The colour rule preserved, its existing assertions re-expressed in groups.
-- [ ] The truncation warning proved still reachable.
-- [ ] `poetry run test-lua` green, `stylua` clean.
+- [x] One shape set per group: an 11-vehicle convoy draws **one** circle and **one** square.
+- [x] The colour rule preserved, its assertions re-expressed in groups.
+- [x] The truncation warning proved still reachable —
+      `test_the_shape_budget_stops_the_drawing_and_says_so` still passes.
+- [x] `poetry run test-lua` green, `stylua` clean.
+
+The `liveSiteUnits` set that maps a site's unit names onto "red square" did **not** collapse away as
+this ticket predicted. It is still built from the site's units, because that is what makes the
+lookup answer for a node; the envelope loop now reuses it instead of walking the IADS a second time.
+
+`_spotterPoint` split in two, which is the rename that stops the confusion recurring:
+`_contactPoint(unitName)` for an aircraft, and the group median for a node.

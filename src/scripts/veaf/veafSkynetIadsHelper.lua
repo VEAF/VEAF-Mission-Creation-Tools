@@ -217,11 +217,11 @@ function veafSkynet.onUnitLost(event)
   if unitName then
     veaf.loggers.get(veafSkynet.Id):trace("unit lost: %s", veaf.lp(unitName))
     veafSkynet.lostUnits[unitName] = true
-    -- A dead spotter keeps no contacts. Left behind, its latch would hold an aircraft as *triggered*
-    -- for the rest of the mission and never re-report it should the unit come back under the same
-    -- name — and, once propagation is in, a contact nobody is still looking at would be refreshed by
-    -- the heartbeat forever.
-    veafSkynet.forgetSpotter(unitName)
+    -- **No latch is released here, and that is deliberate.** A spotter is a *group* now, so one
+    -- vehicle dying must not release a contact the rest of the convoy is still looking at — and the
+    -- unit name this event carries is not a latch key any more. Releasing a latch whose group has
+    -- gone, or has gone blind, belongs to `dropLatchesForVanishedContacts`, which the detection beat
+    -- runs every five seconds and which can tell the two apart.
   end
 end
 
@@ -2300,8 +2300,22 @@ veafSkynet.SpotterDefaultProfile = { range = 0, relays = false, class = veafSkyn
 --- respawned under the same name keeps the eyes it had, rather than drawing a new pair.
 veafSkynet.spotterProfiles = {}
 
---- Per spotter name, per contact name: `{ triggered = <boolean>, missedBeats = <number> }`.
---- A spotter is *armed* until it reports, *triggered* while it keeps seeing the same aircraft.
+--- Per **coalition**, per spotter group name, per contact name:
+--- `{ triggered = <boolean>, missedBeats = <number> }`. A spotter is *armed* until it reports,
+--- *triggered* while it keeps seeing the same aircraft.
+---
+--- **Partitioned by coalition, and that is a correction rather than a decoration.** It was keyed by
+--- spotter name alone, while the pass that gives up latches for aircraft that have left the sky runs
+--- **once per coalition** with only that coalition's contact list — so the pass for a side whose sky
+--- held no enemy aircraft walked the whole table and cancelled every other side's detections.
+--- A mission with spotters on both sides is the normal case, so no latch survived a beat at all
+--- (measured in game, 2026-09-21).
+---
+--- Filtering the walk by the coalition's live spotters fixed that, and was the right thing for a
+--- savepoint, but it cannot answer the question this lot needs: *has this spotter's group gone?* A
+--- group that no longer exists cannot be asked its coalition, so a latch left by a destroyed group
+--- would either be immortal or be dropped by whichever side happened to sweep it. The coalition has
+--- to be part of the key.
 veafSkynet.spotterLatches = {}
 
 --- Whether the detection pass is scheduled. Idempotent for the same reason
@@ -2545,6 +2559,19 @@ function veafSkynet.spotterHasLineOfSight(spotterPoint, contactPoint)
   return visible and true or false
 end
 
+--- One coalition's latch table, created empty on first use.
+---
+--- @param coa number a coalition id
+--- @return table `{ [spotterGroupName] = { [contactName] = latch } }`
+function veafSkynet.latchesOf(coa)
+  local latches = veafSkynet.spotterLatches[coa]
+  if not latches then
+    latches = {}
+    veafSkynet.spotterLatches[coa] = latches
+  end
+  return latches
+end
+
 --- Advance one spotter's latch for one aircraft, for one beat.
 ---
 --- Armed and the aircraft comes into range with line of sight → reports once and becomes triggered,
@@ -2552,18 +2579,19 @@ end
 --- `SpotterLossBeats` consecutive beats without contact it re-arms, and will report that aircraft
 --- again on reacquisition.
 ---
---- @param spotterName string
+--- @param coa number the spotter's coalition id
+--- @param spotterName string the spotter **group's** name
 --- @param contactName string
 --- @param inRange boolean is the aircraft within the spotter's own drawn range
 --- @param stillInRange boolean is it within range × the loss margin
 --- @param seesIt function () -> boolean, the line-of-sight ray, called at most once and only on a
 ---        transition
 --- @return string|nil `"acquired"`, `"lost"`, or nil when nothing changed
-function veafSkynet.stepSpotterLatch(spotterName, contactName, inRange, stillInRange, seesIt)
-  local latches = veafSkynet.spotterLatches[spotterName]
+function veafSkynet.stepSpotterLatch(coa, spotterName, contactName, inRange, stillInRange, seesIt)
+  local latches = veafSkynet.latchesOf(coa)[spotterName]
   if not latches then
     latches = {}
-    veafSkynet.spotterLatches[spotterName] = latches
+    veafSkynet.latchesOf(coa)[spotterName] = latches
   end
   local latch = latches[contactName]
 
@@ -2617,18 +2645,27 @@ function veafSkynet.onSpotterLost(coa, spotterName, contactName)
   veafSkynet.requestSpotterViewRedraw()
 end
 
---- Re-arm every latch holding an aircraft that is no longer a contact, and cancel what it started.
+--- Re-arm every latch this coalition holds that nothing justifies any more, and cancel what it
+--- started. Two cases, both of which the detection loop cannot reach by itself.
 ---
---- The detection loop can only step the pairs it walks, and it walks the aircraft currently in the
---- sky. An aircraft that is destroyed, that lands, or that leaves the mission simply stops appearing
---- — so without this its latches would stay *triggered* for good. That is not a tidy-up detail: a
---- triggered latch is what the heartbeat speaks for, so one jet shot down while it was being watched
---- leaves a phantom contact crossing the whole network every two minutes until the mission ends, held
---- forever because each heartbeat refreshes it past the forget delay.
+--- **The aircraft is gone.** The loop only walks the aircraft currently in the sky, so one that is
+--- destroyed, lands, or leaves the mission simply stops appearing. Left alone its latches stay
+--- *triggered* for good, and a triggered latch is what the heartbeat speaks for: a jet shot down
+--- while it was being watched would cross the whole network every two minutes until the mission ends,
+--- refreshed past the forget delay by each heartbeat.
+---
+--- **The spotter is gone, or has gone blind.** A group that is destroyed, or whose furthest-seeing
+--- unit dies leaving only blind ones, drops out of `listSpotters` and is likewise never walked again.
+--- This **replaces** `forgetSpotter` being called on every unit death: under the group model losing
+--- one truck must not release a contact the rest of the convoy is still looking at, and the unit name
+--- a death event carries is not a latch key any more.
 ---
 --- A cancellation is sent rather than the contact merely dropped locally, for the same reason the
---- mechanism prefers cancellations everywhere else: the sites holding it are elsewhere on the map and
+--- mechanism prefers cancellations everywhere else: the nodes holding it are elsewhere on the map and
 --- have no other way of being told.
+---
+--- Only this coalition's partition is touched, which is why the partition exists — see
+--- `veafSkynet.spotterLatches`.
 ---
 --- @param contacts table the aircraft currently visible to this coalition, as `listHostileAircraft`
 ---        returns them
@@ -2638,53 +2675,36 @@ function veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
   for _, contact in ipairs(contacts) do
     present[contact.name] = true
   end
-
-  -- **Only this coalition's spotters**, and it is the whole reason the feature did not work.
-  --
-  -- `spotterLatches` is keyed by spotter name alone: it has no coalition dimension. This function is
-  -- called once per coalition from the beat, with only *that* coalition's contact list — so without
-  -- this filter, the pass for a side whose sky holds no enemy aircraft walks the whole table and
-  -- gives up **every other side's** latches, emitting a cancellation for each.
-  --
-  -- Measured 2026-09-21 on the walkthrough mission, and the control fails both ways: planting a red
-  -- latch and calling this with blue's (empty) contact list dropped it, while calling it with red's
-  -- own list kept it. A mission with spotters on both sides is the normal case, so in practice no
-  -- latch ever survived a beat: the alert was raised and cancelled within one period, the map view's
-  -- contact cross and detection circle never drew at all, and the heartbeat had nothing to speak
-  -- for. The two shapes were not merely unverified, they were unobservable.
-  local mine = {}
+  local seeing = {}
   for _, spotter in ipairs(veafSkynet.listSpotters(coa) or {}) do
-    mine[spotter.name] = true
+    seeing[spotter.name] = true
   end
 
-  for spotterName, latches in pairs(veafSkynet.spotterLatches) do
-    if mine[spotterName] then
-      local gone = {}
-      for aircraft, latch in pairs(latches) do
-        if latch.triggered and not present[aircraft] then
-          table.insert(gone, aircraft)
-        end
-      end
-      for _, aircraft in ipairs(gone) do
-        latches[aircraft] = nil
-        veaf.loggers
-          .get(veafSkynet.Id)
-          :debug(string.format("spotter [%s] gave up [%s]: no longer a contact", veaf.p(spotterName), veaf.p(aircraft)))
-        veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, aircraft)
-      end
-      if not next(latches) then
-        veafSkynet.spotterLatches[spotterName] = nil
+  local latchesByName = veafSkynet.latchesOf(coa)
+  for spotterName, latches in pairs(latchesByName) do
+    local spotterGone = not seeing[spotterName]
+    local gone = {}
+    for aircraft, latch in pairs(latches) do
+      if latch.triggered and (spotterGone or not present[aircraft]) then
+        table.insert(gone, aircraft)
       end
     end
+    for _, aircraft in ipairs(gone) do
+      latches[aircraft] = nil
+      veaf.loggers.get(veafSkynet.Id):debug(
+        string.format(
+          "spotter [%s] gave up [%s]: %s",
+          veaf.p(spotterName),
+          veaf.p(aircraft),
+          spotterGone and "it can no longer see anything" or "no longer a contact"
+        )
+      )
+      veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, aircraft)
+    end
+    if not next(latches) then
+      latchesByName[spotterName] = nil
+    end
   end
-end
-
---- Forget everything a spotter knew. Called when it leaves the mission, so a dead unit does not keep
---- a contact alive through the heartbeat.
----
---- @param spotterName string
-function veafSkynet.forgetSpotter(spotterName)
-  veafSkynet.spotterLatches[spotterName] = nil
 end
 
 --- The coalitions that have a live Skynet network, as a set.
@@ -2718,32 +2738,51 @@ function veafSkynet.getOpposingCoalition(coa)
   return nil
 end
 
---- Every unit of this coalition that can see something, with the profile it drew.
+--- Every **group** of this coalition that is a node of the spotter network.
+---
+--- One node per DCS group, and that is the whole point of `FIX-SPOTTER-NODES-ARE-GROUPS`. Measured in
+--- game on 2026-09-21 with two parked 11-vehicle convoys: a node per *unit* gave 37 nodes and 538
+--- links for 10 groups, against a draw budget of 400 shapes, so the map view was truncated by
+--- construction — and eleven vehicles in one parking space were treated as eleven independent radio
+--- stations, which they are not. Per group the same layout is 10 nodes and at most 45 links.
+---
+--- A group with no live unit has no median point and is therefore not a node at all, which is how a
+--- destroyed group leaves the network without any event being listened to.
 ---
 --- @param coa number a coalition id
---- @return table array of `{ name = <string>, unit = <DCS Unit>, profile = <table> }`
-function veafSkynet.listSpotters(coa)
-  local spotters = {}
+--- @return table array of `{ name = <group name>, group = <DCS Group>, point = <vec3>, profile = <table> }`
+function veafSkynet.listSpotterNodes(coa)
+  local nodes = {}
   local ok, dcsGroups = pcall(coalition.getGroups, coa)
   if not ok or not dcsGroups then
-    return spotters
+    return nodes
   end
   for _, dcsGroup in pairs(dcsGroups) do
     if veafSkynet.dcsObjectStillExists(dcsGroup) then
-      local gotUnits, dcsUnits_ = pcall(dcsGroup.getUnits, dcsGroup)
-      if gotUnits and dcsUnits_ then
-        for _, dcsUnit in pairs(dcsUnits_) do
-          if veafSkynet.dcsObjectStillExists(dcsUnit) then
-            local name = veafSkynet.safeDcsName(dcsUnit)
-            if name then
-              local profile = veafSkynet.getSpotterProfile(dcsUnit, name)
-              if profile.range > 0 then
-                table.insert(spotters, { name = name, unit = dcsUnit, profile = profile })
-              end
-            end
-          end
-        end
+      local name = veafSkynet.safeDcsName(dcsGroup)
+      local point = veafSkynet.spotterGroupMedianPoint(dcsGroup)
+      if name and name ~= "?" and point then
+        table.insert(nodes, {
+          name = name,
+          group = dcsGroup,
+          point = point,
+          profile = veafSkynet.getSpotterGroupProfile(dcsGroup),
+        })
       end
+    end
+  end
+  return nodes
+end
+
+--- Every group of this coalition that can see something, at its median point.
+---
+--- @param coa number a coalition id
+--- @return table array of `{ name, group, point, profile }`
+function veafSkynet.listSpotters(coa)
+  local spotters = {}
+  for _, node in ipairs(veafSkynet.listSpotterNodes(coa)) do
+    if node.profile.range > 0 then
+      table.insert(spotters, node)
     end
   end
   return spotters
@@ -2811,44 +2850,46 @@ function veafSkynet.spotterDetectionBeat()
   for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
     local contacts = veafSkynet.listHostileAircraft(coa)
 
-    -- Aircraft that are no longer in the sky cannot be stepped by the loop below, because the loop
-    -- only walks the ones that are. Left alone, their latches stay *triggered* for the rest of the
-    -- mission: the heartbeat keeps speaking for a jet that was shot down two hours ago, the contact
-    -- is refreshed and therefore never forgotten, and every status page lists it as live. So they are
-    -- given up here, explicitly, before anything else.
+    -- Neither a vanished aircraft nor a vanished spotter can be stepped by the loop below, because it
+    -- only walks what is currently there. Left alone their latches stay *triggered* for the rest of
+    -- the mission: the heartbeat keeps speaking for a jet shot down two hours ago, the contact is
+    -- refreshed and therefore never forgotten, and every status page lists it as live. Both are given
+    -- up here, explicitly, before anything else.
     veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
 
     if #contacts > 0 then
-      local spotters = veafSkynet.listSpotters(coa)
-      for _, spotter in ipairs(spotters) do
-        local gotPoint, spotterPoint = pcall(spotter.unit.getPoint, spotter.unit)
-        if gotPoint and spotterPoint then
-          local rangeSq = spotter.profile.range * spotter.profile.range
-          local marginSq = rangeSq * veafSkynet.SpotterLossMargin * veafSkynet.SpotterLossMargin
-          for _, contact in ipairs(contacts) do
-            local gotContact, contactPoint = pcall(contact.unit.getPoint, contact.unit)
-            if gotContact and contactPoint then
-              local distanceSq = _slantRangeSq(spotterPoint, contactPoint)
-              local seen = nil
-              local event = veafSkynet.stepSpotterLatch(
-                spotter.name,
-                contact.name,
-                distanceSq <= rangeSq,
-                distanceSq <= marginSq,
-                function()
-                  -- Memoised for this pair on this beat: the latch may ask twice on a transition, and
-                  -- the ray is the expensive part.
-                  if seen == nil then
-                    seen = veafSkynet.spotterHasLineOfSight(spotterPoint, contactPoint)
-                  end
-                  return seen
+      -- One spotter per **group**, at its median point: no `getPoint` here, because a group has no
+      -- position of its own and `listSpotters` has already medianed over its live units.
+      for _, spotter in ipairs(veafSkynet.listSpotters(coa)) do
+        local spotterPoint = spotter.point
+        local rangeSq = spotter.profile.range * spotter.profile.range
+        local marginSq = rangeSq * veafSkynet.SpotterLossMargin * veafSkynet.SpotterLossMargin
+        for _, contact in ipairs(contacts) do
+          -- The contact stays a **unit**: the cross on the map marks an aircraft, and a flight of
+          -- four is four aircraft. Only the network's own nodes became groups.
+          local gotContact, contactPoint = pcall(contact.unit.getPoint, contact.unit)
+          if gotContact and contactPoint then
+            local distanceSq = _slantRangeSq(spotterPoint, contactPoint)
+            local seen = nil
+            local event = veafSkynet.stepSpotterLatch(
+              coa,
+              spotter.name,
+              contact.name,
+              distanceSq <= rangeSq,
+              distanceSq <= marginSq,
+              function()
+                -- Memoised for this pair on this beat: the latch may ask twice on a transition, and
+                -- the ray is the expensive part.
+                if seen == nil then
+                  seen = veafSkynet.spotterHasLineOfSight(spotterPoint, contactPoint)
                 end
-              )
-              if event == "acquired" then
-                veafSkynet.onSpotterAcquired(coa, spotter.name, contact.name, contact.unit)
-              elseif event == "lost" then
-                veafSkynet.onSpotterLost(coa, spotter.name, contact.name)
+                return seen
               end
+            )
+            if event == "acquired" then
+              veafSkynet.onSpotterAcquired(coa, spotter.name, contact.name, contact.unit)
+            elseif event == "lost" then
+              veafSkynet.onSpotterLost(coa, spotter.name, contact.name)
             end
           end
         end
@@ -2969,29 +3010,9 @@ end
 --- @return table array of `{ name = <string>, x = <number>, z = <number> }`
 function veafSkynet.listSpotterRelays(coa, class)
   local relays = {}
-  local ok, dcsGroups = pcall(coalition.getGroups, coa)
-  if not ok or not dcsGroups then
-    return relays
-  end
-  for _, dcsGroup in pairs(dcsGroups) do
-    if veafSkynet.dcsObjectStillExists(dcsGroup) then
-      local gotUnits, groupUnits = pcall(dcsGroup.getUnits, dcsGroup)
-      if gotUnits and groupUnits then
-        for _, dcsUnit in pairs(groupUnits) do
-          if veafSkynet.dcsObjectStillExists(dcsUnit) then
-            local name = veafSkynet.safeDcsName(dcsUnit)
-            if name then
-              local profile = veafSkynet.getSpotterProfile(dcsUnit, name)
-              if profile.relays and profile.class == class then
-                local gotPoint, point = pcall(dcsUnit.getPoint, dcsUnit)
-                if gotPoint and point then
-                  table.insert(relays, { name = name, x = point.x, z = point.z })
-                end
-              end
-            end
-          end
-        end
-      end
+  for _, node in ipairs(veafSkynet.listSpotterNodes(coa)) do
+    if node.profile.relays and node.profile.class == class then
+      table.insert(relays, { name = node.name, x = node.point.x, z = node.point.z })
     end
   end
   return relays
@@ -3276,13 +3297,21 @@ function veafSkynet.spotterHeartbeat()
   if not veafSkynet.SpotterNetwork then
     return
   end
-  local coalitions = veafSkynet.getSpotterCoalitions()
-  for spotterName, latches in pairs(veafSkynet.spotterLatches) do
-    for aircraft, latch in pairs(latches) do
-      if latch.triggered then
-        -- The spotter's own coalition is wherever it is already a node; a unit belongs to one graph.
-        for coa, _ in pairs(coalitions) do
-          if veafSkynet.getSpotterGraph(coa).nodes[spotterName] then
+  -- The coalition comes straight off the latch table's own key now that it is partitioned by side,
+  -- instead of being recovered by asking every coalition's graph which one held the spotter.
+  --
+  -- **The graph membership test stays**, and dropping it was a mistake worth recording: it looked
+  -- like part of the coalition search it was tangled up with, and it is not.
+  -- `emitSpotterMessage` appends a wave to `spotterWaves[coa]` unconditionally, so a spotter that is
+  -- not a node emits a wave with an empty frontier — one that can reach nothing and that the
+  -- heartbeat would add to again every period. A node joins the graph at its class's next pass, up
+  -- to 30 s after it spawns, and during that window it detects but genuinely cannot relay.
+  for coa, latchesByName in pairs(veafSkynet.spotterLatches) do
+    local nodes = veafSkynet.getSpotterGraph(coa).nodes
+    for spotterName, latches in pairs(latchesByName) do
+      if nodes[spotterName] then
+        for aircraft, latch in pairs(latches) do
+          if latch.triggered then
             veafSkynet.emitSpotterMessage(coa, "alert", spotterName, aircraft)
           end
         end
@@ -3369,20 +3398,18 @@ function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
   if not dcsGroup then
     return
   end
-  local gotUnits, siteUnits = pcall(dcsGroup.getUnits, dcsGroup)
-  if not gotUnits or not siteUnits then
+  local groupName = veafSkynet.safeDcsName(dcsGroup)
+  if not groupName or groupName == "?" then
     return
   end
 
-  -- Collected across the site's units first, so an aircraft two of them hold is reported once.
+  -- **One lookup**, because a node is a group and a Skynet SAM site *is* a group. This used to walk
+  -- the site's units and union what each of them held, collecting into a set so an aircraft two
+  -- launchers held was not reported twice — all of which existed only because contacts were keyed by
+  -- unit.
   local held = {}
-  for _, dcsUnit in pairs(siteUnits) do
-    local unitName = veafSkynet.safeDcsName(dcsUnit)
-    if unitName then
-      for _, dcsAircraft in ipairs(veafSkynet.getHeldSpotterAircraft(coa, unitName)) do
-        held[veafSkynet.safeDcsName(dcsAircraft) or tostring(dcsAircraft)] = dcsAircraft
-      end
-    end
+  for _, dcsAircraft in ipairs(veafSkynet.getHeldSpotterAircraft(coa, groupName)) do
+    held[veafSkynet.safeDcsName(dcsAircraft) or tostring(dcsAircraft)] = dcsAircraft
   end
   if not next(held) then
     return
@@ -3854,11 +3881,15 @@ function veafSkynet.requestSpotterViewRedraw()
     veaf.scheduleFunction(veafSkynet._redrawSpotterView, {}, timer.getTime() + veafSkynet.SpotterRedrawDelay)
 end
 
---- The live position of a named unit, or nil when it is gone.
+--- The live position of a named aircraft, or nil when it is gone.
+---
+--- **A contact, not a node.** The network's nodes are groups and are located by their median point;
+--- a contact stays a single unit, because the cross on the map marks one aircraft and a flight of
+--- four is four aircraft.
 ---
 --- @param unitName string
 --- @return table|nil a runtime vec3
-local function _spotterPoint(unitName)
+local function _contactPoint(unitName)
   local dcsUnit = Unit.getByName(unitName)
   if not veafSkynet.dcsObjectStillExists(dcsUnit) then
     return nil
@@ -4049,7 +4080,7 @@ function veafSkynet.paintSpotterView(coa, markers)
   -- for `SpotterForgetDelay` — six minutes. Reading `origin` therefore kept a big red "I can see it"
   -- circle on a spotter for six minutes after the aircraft had ceased to exist. The latch is the live
   -- detection state; a contact record is a memory, and memories are what the node squares show.
-  for spotterName, latches in pairs(veafSkynet.spotterLatches or {}) do
+  for spotterName, latches in pairs(veafSkynet.latchesOf(coa)) do
     if scope[spotterName] then
       for aircraft, latch in pairs(latches) do
         if latch and latch.triggered then
@@ -4069,9 +4100,15 @@ function veafSkynet.paintSpotterView(coa, markers)
     end
   end
 
-  local points = {}
-  for unitName, _ in pairs(scope) do
-    points[unitName] = _spotterPoint(unitName)
+  -- A node is a **group**, so its position is the median of its live units and its detection range is
+  -- its furthest-seeing unit's. Both are read here, once per redraw, rather than cached on the graph
+  -- node: a range stored on the node would go on claiming eyes the group no longer has once its best
+  -- pair of eyes died.
+  local points, ranges = {}, {}
+  for nodeName, _ in pairs(scope) do
+    local dcsGroup = Group.getByName(nodeName)
+    points[nodeName] = veafSkynet.spotterGroupMedianPoint(dcsGroup)
+    ranges[nodeName] = veafSkynet.getSpotterGroupProfile(dcsGroup).range
   end
 
   -- The colour rule, David's, 2026-09-21: **grey means nothing is happening here.** Colour is spent
@@ -4088,7 +4125,7 @@ function veafSkynet.paintSpotterView(coa, markers)
   for _, aircraft in pairs(seeing) do
     if not drawn[aircraft] then
       drawn[aircraft] = true
-      local point = _spotterPoint(aircraft)
+      local point = _contactPoint(aircraft)
       if point then
         paintLink(
           { x = point.x - cross, y = point.y, z = point.z - cross },
@@ -4112,14 +4149,14 @@ function veafSkynet.paintSpotterView(coa, markers)
   -- Orange and not red, David's call on 2026-09-21: one colour per kind of circle. Red is reserved
   -- for a SAM's engagement envelope, so a red circle on the map always means "this battery is live
   -- and this is what it covers" and never "this pair of eyes is looking at something".
-  for unitName, point in pairs(points) do
-    local profile = veafSkynet.spotterProfiles[unitName]
-    if point and profile and profile.range > 0 then
-      local active = seeing[unitName] ~= nil
+  for nodeName, point in pairs(points) do
+    local range = ranges[nodeName]
+    if point and range and range > 0 then
+      local active = seeing[nodeName] ~= nil
       paint(
         VeafCircleOnMap:new()
           :setCenter(point)
-          :setRadius(profile.range)
+          :setRadius(range)
           :setColor(active and "orange" or "grey")
           :setLineType(active and "solid" or "dashed")
           :setFillColor("transparent")

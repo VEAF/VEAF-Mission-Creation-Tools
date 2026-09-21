@@ -50,7 +50,7 @@ modules:
 | `debug_blue` | booléen | `false` | Debug verbeux Skynet pour la coalition bleue |
 | `dynamic_spawn` | booléen | `false` | Intégrer aussi les groupes apparus **en cours de mission** — voir [Apparitions en cours de mission](#dynamic-spawn) |
 | `spotter_network` | booléen | `false` | Activer le réseau de guetteurs — voir [Réseau de guetteurs](#spotter-network) |
-| `spotter_radio_range_km` | nombre | `20` | Distance à laquelle une unité peut relayer une alerte, en kilomètres |
+| `spotter_radio_range_km` | nombre | `20` | Distance à laquelle un groupe peut relayer une alerte, en kilomètres |
 | `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse à laquelle l'alerte traverse la carte, en km/h |
 | `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | Vue carte F10 du réseau — voir [Voir ce qui se passe, sur la carte](#spotter-view) |
 | `last_line_of_defence` | booléen | `true` | Un site éteint garde un rayon court et s'y allume seul — voir [Dernière ligne de défense](#last-line-of-defence) |
@@ -230,8 +230,8 @@ veafSkynet.setDynamicSpawn("red iads", false)
 
 ### Réseau de guetteurs — `spotter_network` {#spotter-network}
 
-Une unité au sol qui voit un avion ennemi le signale, et le signalement se propage d'unité en unité
-par la radio, un bond à la fois. Un site SAM qui le reçoit **ne s'allume pas** : il garde le contact
+Un **groupe** au sol qui voit un avion ennemi le signale, et le signalement se propage de groupe en
+groupe par la radio, un bond à la fois. Un site SAM qui le reçoit **ne s'allume pas** : il garde le contact
 et attend, exactement comme il le ferait pour un radar de veille lointaine, et ne passe en émission
 que lorsque l'avion entre dans son enveloppe de tir. C'est donc un **radar de veille distribué**, pas
 un déclencheur de réveil.
@@ -244,11 +244,21 @@ rendort.
 | Valeur | Description |
 |--------|-------------|
 | `false` | Rien ne change (**défaut**) |
-| `true` | Les unités au sol voient les avions et se passent le mot |
+| `true` | Les groupes au sol voient les avions et se passent le mot |
 
-**Qui voit quoi.** La portée de détection dépend du type d'unité, et chaque unité tire la sienne
-une fois pour la mission, à ±20 % de la valeur du tableau. Le relief compte : un avion qui suit une
-vallée n'est pas vu par le guetteur situé derrière la crête.
+**Le groupe est l'unité de raisonnement.** Un groupe DCS est **un** guetteur, quel qu'en soit le
+nombre de véhicules : un convoi de onze camions garés au même endroit n'est pas onze stations radio
+indépendantes. Le groupe est situé au **point médian** de ses véhicules vivants, et il **voit aussi
+loin que celui d'entre eux qui voit le plus loin** — donc un groupe mêlant un MANPADS et un Shilka
+voit à 10 km, le Shilka étant aveugle.
+
+> Le point médian est une approximation assumée : un groupe **étiré** sur plusieurs kilomètres — un
+> convoi en route — n'a qu'un point, donc sa portée et sa position radio sont fausses de la moitié de
+> sa longueur. Nulle pour un groupe à l'arrêt, négligeable devant des portées de 3 à 20 km.
+
+**Qui voit quoi.** La portée de détection dépend du type d'unité, et chaque unité tire la sienne une
+fois pour la mission, à ±20 % de la valeur du tableau ; le groupe retient la meilleure. Le relief
+compte : un avion qui suit une vallée n'est pas vu par le guetteur situé derrière la crête.
 
 | Unité | Voit à | Relaie |
 |-------|--------|--------|
@@ -294,8 +304,24 @@ Sans la page, la question n'a pas de réponse.
 
 #### Voir ce qui se passe, sur la carte {#spotter-view}
 
-Le module peut poser un marqueur F10 à chaque guetteur qui tient un contact, avec un cercle à sa
-portée de détection. Trois valeurs pour `spotter_view` :
+Le module peut dessiner le réseau sur la carte F10. Une forme par **groupe**, et une seule
+signification par couleur :
+
+| Forme | Gris | Bleu | Orange | Rouge |
+|-------|------|------|--------|-------|
+| **Carré** (le nœud) | pas prévenu | prévenu | — | élément d'une batterie allumée |
+| **Cercle** (la portée) | guetteur qui ne voit rien | — | guetteur qui tient un contact | enveloppe de tir d'une batterie allumée |
+
+Le carré dit ce que le nœud **sait**, le cercle ce qu'il **voit**. Une batterie éteinte ne dessine
+**aucune** enveloppe : en gris, le gris voudrait dire deux choses à la fois — *cette batterie pourrait
+tirer et personne ne l'a prévenue* et *ces yeux ne regardent rien* — sans moyen de distinguer les deux
+cercles.
+
+S'y ajoutent une **croix rouge** sur chaque contact tenu, un trait **gris pointillé** pour un lien
+radio, et un trait **rouge continu** pour un lien qui a effectivement porté une alerte — c'est ce qui
+rend le chemin d'un signalement lisible.
+
+Trois valeurs pour `spotter_view` :
 
 | Valeur | Effet |
 |--------|-------|

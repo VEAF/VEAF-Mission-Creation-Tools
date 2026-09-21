@@ -8,6 +8,11 @@
 local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
 luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")
+
+-- Declared here rather than half way down the file: a `local` is only in scope *after* its
+-- declaration, so helpers defined above it saw nil and a latch keyed by coalition then blew up
+-- with "table index is nil".
+local RED = coalition.side.RED
 local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafScheduler.lua")
@@ -72,9 +77,13 @@ local function _unit(name, attributes, x, y, z)
   }
 end
 
---- A DCS group holding those units.
+--- A DCS group holding those units, **registered so `Group.getByName` answers for it**.
+---
+--- Registering matters now that a network node is a group: the map view resolves a node's name back
+--- to a group to median over its live units, and a double that only exists in the caller's local
+--- variable would make every node pointless.
 local function _group(name, units)
-  return {
+  local g = {
     getName = function()
       return name
     end,
@@ -85,6 +94,8 @@ local function _group(name, units)
       return units
     end,
   }
+  dcs_mocks.addGroup(name, g)
+  return g
 end
 
 --- Make `coalition.getGroups` answer with a fixed, per-coalition, per-category listing.
@@ -396,7 +407,7 @@ end
 
 --- Run one beat of the latch, with a line of sight that always answers `visible`.
 local function _beat(inRange, stillInRange, visible)
-  return veafSkynet.stepSpotterLatch("spotter", "bandit", inRange, stillInRange, function()
+  return veafSkynet.stepSpotterLatch(RED, "spotter", "bandit", inRange, stillInRange, function()
     return visible
   end)
 end
@@ -456,19 +467,28 @@ function TestSpotterLatch:test_the_margin_does_not_let_it_be_acquired_from_outsi
 end
 
 function TestSpotterLatch:test_two_spotters_latch_independently()
-  veafSkynet.stepSpotterLatch("alpha", "bandit", true, true, function()
+  veafSkynet.stepSpotterLatch(RED, "alpha", "bandit", true, true, function()
     return true
   end)
-  local event = veafSkynet.stepSpotterLatch("bravo", "bandit", true, true, function()
+  local event = veafSkynet.stepSpotterLatch(RED, "bravo", "bandit", true, true, function()
     return true
   end)
   luaunit.assertEquals(event, "acquired")
 end
 
-function TestSpotterLatch:test_a_forgotten_spotter_keeps_nothing()
+function TestSpotterLatch:test_a_latch_released_because_its_spotter_went_re_arms()
+  -- Was `forgetSpotter`, which nothing in production called any more once a spotter became a group:
+  -- a unit death must not release the convoy's latch, so releasing one belongs to the beat's own
+  -- vanished pass. Asserting the property through that path tests the wiring instead of a handler.
   _beat(true, true, true)
-  veafSkynet.forgetSpotter("spotter")
-  luaunit.assertEquals(_beat(true, true, true), "acquired")
+  luaunit.assertNotNil(veafSkynet.latchesOf(RED)["spotter"]["bandit"], "precondition: it is holding it")
+
+  -- No live spotter of this coalition is called "spotter" -- `coalition.getGroups` is not stubbed
+  -- here -- so the pass sees the spotter as gone and gives the contact up.
+  veafSkynet.dropLatchesForVanishedContacts({}, RED)
+  luaunit.assertNil((veafSkynet.latchesOf(RED)["spotter"] or {})["bandit"])
+
+  luaunit.assertEquals(_beat(true, true, true), "acquired", "and it reports again on reacquisition")
 end
 
 -- ---------------------------------------------------------------------------
@@ -595,7 +615,7 @@ end
 function TestSpotterDetectionBeat:test_a_tank_reports_an_aircraft_within_range()
   self:_layout(2000)
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedTank->BlueJet" })
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedGroup->BlueJet" })
 end
 
 function TestSpotterDetectionBeat:test_a_side_with_an_empty_sky_keeps_its_hands_off_the_other_sides_latches()
@@ -618,17 +638,110 @@ function TestSpotterDetectionBeat:test_a_side_with_an_empty_sky_keeps_its_hands_
   -- coalitions, so a test that ran beats would pass or fail on the order the table happened to have.
   self:_layout(2000)
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertNotNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"], "precondition: red is holding the jet")
+  luaunit.assertNotNil((veafSkynet.latchesOf(RED)["RedGroup"] or {})["BlueJet"], "precondition: red is holding the jet")
   luaunit.assertEquals(#veafSkynet.listHostileAircraft(coalition.side.BLUE), 0, "premise: blue's sky is empty")
 
   -- Blue's pass, with blue's own (empty) contact list.
   veafSkynet.dropLatchesForVanishedContacts(veafSkynet.listHostileAircraft(coalition.side.BLUE), coalition.side.BLUE)
-  luaunit.assertNotNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"], "blue has no business giving up a red spotter's latch")
+  luaunit.assertNotNil((veafSkynet.latchesOf(RED)["RedGroup"] or {})["BlueJet"], "blue has no business giving up a red spotter's latch")
 
   -- The other direction, so the filter cannot pass by never dropping anything at all: red's own pass,
   -- with the aircraft gone from its list, *must* give it up.
   veafSkynet.dropLatchesForVanishedContacts({}, coalition.side.RED)
-  luaunit.assertNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"], "red's own pass, with the contact gone, gives it up")
+  luaunit.assertNil((veafSkynet.latchesOf(RED)["RedGroup"] or {})["BlueJet"], "red's own pass, with the contact gone, gives it up")
+end
+
+function TestSpotterDetectionBeat:test_a_convoy_reports_once_and_not_once_per_vehicle()
+  -- Eleven vehicles in one parking space are one pair of eyes, not eleven. Before the group model
+  -- each of them latched and raised its own alert, so a single aircraft produced eleven identical
+  -- reports crossing the network.
+  local units = {}
+  for i = 1, 11 do
+    table.insert(units, _unit("Convoy-" .. i, { ["Trucks"] = true }, i * 20, 0, i * 20))
+  end
+  local bandit = _unit("BlueJet", { ["Air"] = true }, 0, 1000, 2000)
+  _stubGetGroups({
+    [coalition.side.RED] = { _group("Convoy", units) },
+    [coalition.side.BLUE .. ":" .. Group.Category.AIRPLANE] = { _group("BlueGroup", { bandit }) },
+  })
+
+  veafSkynet.spotterDetectionBeat()
+
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":Convoy->BlueJet" }, "one report, from the group")
+end
+
+function TestSpotterDetectionBeat:test_losing_one_vehicle_does_not_release_the_convoys_contact()
+  -- The rule that makes a group the unit of reasoning: the convoy is still looking at the aircraft.
+  local units = {}
+  for i = 1, 3 do
+    table.insert(units, _unit("Convoy-" .. i, { ["Trucks"] = true }, i * 20, 0, i * 20))
+  end
+  local bandit = _unit("BlueJet", { ["Air"] = true }, 0, 1000, 2000)
+  _stubGetGroups({
+    [coalition.side.RED] = { _group("Convoy", units) },
+    [coalition.side.BLUE .. ":" .. Group.Category.AIRPLANE] = { _group("BlueGroup", { bandit }) },
+  })
+  veafSkynet.spotterDetectionBeat()
+  luaunit.assertNotNil(veafSkynet.latchesOf(coalition.side.RED)["Convoy"]["BlueJet"])
+
+  units[2].isExist = function()
+    return false
+  end
+  veafSkynet.spotterDetectionBeat()
+
+  luaunit.assertNotNil(
+    (veafSkynet.latchesOf(coalition.side.RED)["Convoy"] or {})["BlueJet"],
+    "one vehicle died out of three; the convoy still sees it"
+  )
+  luaunit.assertEquals(#self.acquired, 1, "and it did not re-report")
+end
+
+function TestSpotterDetectionBeat:test_a_convoy_that_loses_every_vehicle_gives_the_contact_up()
+  -- The other direction, so the rule above cannot pass by never releasing anything.
+  local units = { _unit("Convoy-1", { ["Trucks"] = true }, 0, 0, 0) }
+  local bandit = _unit("BlueJet", { ["Air"] = true }, 0, 1000, 2000)
+  _stubGetGroups({
+    [coalition.side.RED] = { _group("Convoy", units) },
+    [coalition.side.BLUE .. ":" .. Group.Category.AIRPLANE] = { _group("BlueGroup", { bandit }) },
+  })
+  veafSkynet.spotterDetectionBeat()
+  luaunit.assertNotNil(veafSkynet.latchesOf(coalition.side.RED)["Convoy"]["BlueJet"])
+
+  units[1].isExist = function()
+    return false
+  end
+  veafSkynet.spotterDetectionBeat()
+
+  luaunit.assertNil(
+    (veafSkynet.latchesOf(coalition.side.RED)["Convoy"] or {})["BlueJet"],
+    "nothing of the group is left, so it holds nothing"
+  )
+end
+
+function TestSpotterDetectionBeat:test_the_line_of_sight_is_traced_from_the_median()
+  -- A group's ray leaves from where the group *is*. Two vehicles 20 km apart on the northing axis
+  -- median to the lower of the two, so the distance to the aircraft is measured from there and not
+  -- from whichever unit DCS happened to list first.
+  local near = _unit("Pair-1", { ["MANPADS"] = true }, 0, 0, 0)
+  local far = _unit("Pair-2", { ["MANPADS"] = true }, 20000, 0, 0)
+  -- 9 km from `near`, 11 km from `far`: inside a MANPADS' 10 km only from the median.
+  local bandit = _unit("BlueJet", { ["Air"] = true }, 0, 100, 9000)
+  _stubGetGroups({
+    [coalition.side.RED] = { _group("Pair", { near, far }) },
+    [coalition.side.BLUE .. ":" .. Group.Category.AIRPLANE] = { _group("BlueGroup", { bandit }) },
+  })
+  local seenFrom = {}
+  local realLos = veafSkynet.spotterHasLineOfSight
+  veafSkynet.spotterHasLineOfSight = function(spotterPoint, contactPoint)
+    table.insert(seenFrom, { x = spotterPoint.x, z = spotterPoint.z })
+    return realLos(spotterPoint, contactPoint)
+  end
+
+  veafSkynet.spotterDetectionBeat()
+  veafSkynet.spotterHasLineOfSight = realLos
+
+  luaunit.assertEquals(#seenFrom, 1, "one ray for one group, not one per vehicle")
+  luaunit.assertEquals(seenFrom[1].x, 0, "traced from the median, the lower of the two middles")
 end
 
 function TestSpotterDetectionBeat:test_a_late_activated_aircraft_is_not_a_contact()
@@ -658,7 +771,7 @@ function TestSpotterDetectionBeat:test_an_activated_aircraft_is_still_a_contact(
 
   veafSkynet.spotterDetectionBeat()
 
-  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedTank->BlueJet" })
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedGroup->BlueJet" })
 end
 
 function TestSpotterDetectionBeat:test_the_live_geometry_that_would_not_latch_in_game()
@@ -679,7 +792,7 @@ function TestSpotterDetectionBeat:test_the_live_geometry_that_would_not_latch_in
 
   veafSkynet.spotterDetectionBeat()
 
-  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":Igla->Probe-1" }, "5.2 km is well inside 9.9 km")
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedGroup->Probe-1" }, "5.2 km is well inside 9.9 km")
 end
 
 function TestSpotterDetectionBeat:test_it_reports_once_and_then_stays_quiet()
@@ -803,7 +916,7 @@ function TestSpotterDetectionBeat:test_the_beat_reports_a_loss_after_the_toleran
   veafSkynet.spotterDetectionBeat()
   luaunit.assertEquals(#self.lost, 0)
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertEquals(self.lost, { coalition.side.RED .. ":RedTank->BlueJet" })
+  luaunit.assertEquals(self.lost, { coalition.side.RED .. ":RedGroup->BlueJet" })
 end
 
 function TestSpotterDetectionBeat:test_an_aircraft_that_leaves_the_sky_re_arms_the_latch()
@@ -813,11 +926,11 @@ function TestSpotterDetectionBeat:test_an_aircraft_that_leaves_the_sky_re_arms_t
   -- it, and the contact was refreshed past the forget delay forever.
   self:_layout(2000)
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertTrue(veafSkynet.spotterLatches["RedTank"]["BlueJet"].triggered)
+  luaunit.assertTrue(veafSkynet.latchesOf(RED)["RedGroup"]["BlueJet"].triggered)
 
   _stubGetGroups({ [coalition.side.RED] = { _group("RedGroup", { self.tank }) } })
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"])
+  luaunit.assertNil((veafSkynet.latchesOf(RED)["RedGroup"] or {})["BlueJet"])
 end
 
 function TestSpotterDetectionBeat:test_a_landed_aircraft_re_arms_the_latch_too()
@@ -828,7 +941,7 @@ function TestSpotterDetectionBeat:test_a_landed_aircraft_re_arms_the_latch_too()
     return false
   end
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"])
+  luaunit.assertNil((veafSkynet.latchesOf(RED)["RedGroup"] or {})["BlueJet"])
 end
 
 function TestSpotterDetectionBeat:test_giving_up_a_vanished_contact_cancels_it_on_the_network()
@@ -869,7 +982,7 @@ function TestSpotterDetectionBeat:test_a_contact_still_in_the_sky_keeps_its_latc
   for _ = 1, 10 do
     veafSkynet.spotterDetectionBeat()
   end
-  luaunit.assertTrue(veafSkynet.spotterLatches["RedTank"]["BlueJet"].triggered)
+  luaunit.assertTrue(veafSkynet.latchesOf(RED)["RedGroup"]["BlueJet"].triggered)
   luaunit.assertEquals(#self.acquired, 1)
 end
 
@@ -887,7 +1000,7 @@ function TestSpotterDetectionBeat:test_a_dead_group_does_not_take_the_beat_down(
     [coalition.side.BLUE .. ":" .. Group.Category.AIRPLANE] = { _group("BlueGroup", { self.bandit }) },
   })
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedTank->BlueJet" })
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedGroup->BlueJet" })
 end
 
 function TestSpotterDetectionBeat:test_the_beat_returns_nothing()
@@ -917,17 +1030,23 @@ function TestSpotterGraph:tearDown()
   coalition.getGroups = _realGetGroups
 end
 
---- Put these RED relays on the map. `units` is an array of `{ name, x, z, attributes }`.
+--- Put these RED relays on the map, **one group per spec**. `units` is an array of
+--- `{ name, x, z, attributes }`, and `spec.name` names the *group*, which is what a graph node is.
+---
+--- One group each and not one group holding them all: a node is a group now, so a single group would
+--- be a single node and "two relays within radio range are linked" would have nothing to link. The
+--- unit inside each group is named `<group>-1`, and `self.units[name]` still reaches it so a test can
+--- kill it.
 function TestSpotterGraph:_relays(units)
-  local built = {}
+  local groups = {}
   self.units = {}
   for _, spec in ipairs(units) do
-    local unit = _unit(spec.name, spec.attributes or { ["Tanks"] = true }, spec.x, 0, spec.z)
+    local unit = _unit(spec.name .. "-1", spec.attributes or { ["Tanks"] = true }, spec.x, 0, spec.z)
     self.units[spec.name] = unit
-    table.insert(built, unit)
+    table.insert(groups, _group(spec.name, { unit }))
   end
-  _stubGetGroups({ [coalition.side.RED] = { _group("RedGroup", built) } })
-  return built
+  _stubGetGroups({ [coalition.side.RED] = groups })
+  return groups
 end
 
 function TestSpotterGraph:_graph()
@@ -977,6 +1096,78 @@ function TestSpotterGraph:test_a_unit_that_dies_leaves_at_the_next_pass()
   luaunit.assertNil(self:_graph().nodes["B"])
   -- And its back-edge went with it, which is the half a naive removal leaves behind.
   luaunit.assertNil(self:_graph().adjacency["A"]["B"])
+end
+
+--- A group of `count` vehicles parked within a few hundred metres of (x, z).
+---
+--- Parked, not strung out: this is the layout David was looking at when he found the defect, two
+--- transport groups sitting still to link a distant battery into the network.
+function TestSpotterGraph:_convoy(name, count, x, z)
+  local units = {}
+  for i = 1, count do
+    table.insert(units, _unit(name .. "-" .. i, { ["Trucks"] = true }, x + i * 20, 0, z + i * 20))
+  end
+  self.units[name] = units[1]
+  return _group(name, units)
+end
+
+function TestSpotterGraph:test_a_convoy_is_one_node_and_not_one_per_vehicle()
+  -- **The measurement this lot exists for.** Read out of the live graph on 2026-09-21, on the
+  -- walkthrough mission with two parked 11-vehicle transport groups: 37 nodes for 10 DCS groups and
+  -- 538 links, against a draw budget of 400 shapes -- so the map view was truncated by construction
+  -- and the demonstration disappeared under a mat of grey strokes.
+  self.units = {}
+  _stubGetGroups({
+    [coalition.side.RED] = {
+      self:_convoy("Legion", 11, 0, 0),
+      self:_convoy("Dragons", 11, 0, 5000),
+    },
+  })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+
+  local nodes = 0
+  for _, _ in pairs(self:_graph().nodes) do
+    nodes = nodes + 1
+  end
+  luaunit.assertEquals(nodes, 2, "two groups, two nodes -- not twenty-two")
+
+  -- And one edge between them, not 11 x 11. Counted as directed entries, so a single undirected
+  -- link is two.
+  local edges = 0
+  for _, neighbours in pairs(self:_graph().adjacency) do
+    for _, _ in pairs(neighbours) do
+      edges = edges + 1
+    end
+  end
+  luaunit.assertEquals(edges, 2, "one link between the two convoys, not 121")
+end
+
+function TestSpotterGraph:test_a_convoy_shuffling_in_place_is_not_re_edged()
+  -- The move threshold is measured on the **median**, so vehicles rearranging themselves inside a
+  -- parked convoy move the node by metres and re-edge nothing. Measured on a unit, the same shuffle
+  -- re-edged the whole graph.
+  self.units = {}
+  local convoy = self:_convoy("Legion", 11, 0, 0)
+  _stubGetGroups({ [coalition.side.RED] = { convoy, self:_convoy("Dragons", 11, 0, 5000) } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  local before = self:_graph().nodes["Legion"]
+  local x0, z0 = before.x, before.z
+
+  -- Every vehicle shifts by 50 m, in opposite directions, so the median barely moves.
+  local i = 0
+  for _, unit in ipairs(convoy.getUnits()) do
+    i = i + 1
+    local sign = (i % 2 == 0) and 1 or -1
+    unit._point.x = unit._point.x + sign * 50
+  end
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+
+  -- **Exactly** unchanged, not merely close: below the threshold the pass does not call
+  -- `reEdgeSpotterNode` at all, so the stored position is untouched. Asserting "moved less than the
+  -- threshold" would pass just as well on a node that is never updated by anything.
+  local after = self:_graph().nodes["Legion"]
+  luaunit.assertEquals(after.x, x0, "the node was not re-edged")
+  luaunit.assertEquals(after.z, z0, "nor across the corridor")
 end
 
 function TestSpotterGraph:test_a_pass_only_touches_its_own_class()
@@ -1120,8 +1311,6 @@ end
 -- ---------------------------------------------------------------------------
 TestSpotterPropagation = {}
 
-local RED = coalition.side.RED
-
 function TestSpotterPropagation:setUp()
   _resetSpotterState()
   veafSkynet.SpotterNetwork = true
@@ -1153,6 +1342,23 @@ end
 local function _holds(unitName, aircraft)
   local contact = veafSkynet.getSpotterContacts(RED, unitName)[aircraft]
   return contact ~= nil and not contact.cancelled
+end
+
+function TestSpotterPropagation:test_a_relayed_contact_records_the_node_it_was_heard_from()
+  -- `via` was only ever *supplied* by tests before this one, never asserted as something the
+  -- propagation produces -- so the field the map view draws its solid red links from was untested.
+  -- It names a **node**, which is a group, and it is the only record of the path a report took: the
+  -- propagation knew it and used to throw it away.
+  _chain("A", "B", "C")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+
+  luaunit.assertNil(veafSkynet.getSpotterContacts(RED, "A")["Bandit"].via, "A saw it itself")
+
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertEquals(veafSkynet.getSpotterContacts(RED, "B")["Bandit"].via, "A", "B heard it from A")
+
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertEquals(veafSkynet.getSpotterContacts(RED, "C")["Bandit"].via, "B", "C heard it from B, not from A")
 end
 
 function TestSpotterPropagation:test_the_spotter_holds_the_contact_immediately()
@@ -1324,7 +1530,7 @@ end
 
 function TestSpotterPropagation:test_the_heartbeat_keeps_a_held_contact_alive()
   _chain("A", "B")
-  veafSkynet.spotterLatches["A"] = { ["Bandit"] = { triggered = true, missedBeats = 0 } }
+  veafSkynet.latchesOf(RED)["A"] = { ["Bandit"] = { triggered = true, missedBeats = 0 } }
   veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
   veafSkynet.spotterPropagationTick()
 
@@ -1339,14 +1545,14 @@ end
 
 function TestSpotterPropagation:test_the_heartbeat_says_nothing_for_a_contact_no_longer_held()
   _chain("A", "B")
-  veafSkynet.spotterLatches["A"] = { ["Bandit"] = { triggered = false, missedBeats = 2 } }
+  veafSkynet.latchesOf(RED)["A"] = { ["Bandit"] = { triggered = false, missedBeats = 2 } }
   veafSkynet.spotterHeartbeat()
   luaunit.assertEquals(#(veafSkynet.spotterWaves[RED] or {}), 0)
 end
 
 function TestSpotterPropagation:test_the_heartbeat_says_nothing_for_a_spotter_off_the_graph()
   _chain("A", "B")
-  veafSkynet.spotterLatches["Ghost"] = { ["Bandit"] = { triggered = true, missedBeats = 0 } }
+  veafSkynet.latchesOf(RED)["Ghost"] = { ["Bandit"] = { triggered = true, missedBeats = 0 } }
   veafSkynet.spotterHeartbeat()
   luaunit.assertEquals(#(veafSkynet.spotterWaves[RED] or {}), 0)
 end
@@ -1414,11 +1620,14 @@ function TestSpotterHandover:tearDown()
   veafSkynet.spotterHandoverArmed = false
 end
 
---- Put the aircraft in the hands of one of the site's units.
+--- Put the aircraft in the hands of the site's **node**, which is its group.
+---
+--- It used to be delivered to one of its launchers by unit name, and the hand-over then had to walk
+--- the site's units and union what each held. A Skynet SAM site *is* a group, so that walk is gone.
 function TestSpotterHandover:_siteHolds()
   veafSkynet.deliverSpotterMessage(
     coalition.side.RED,
-    "Sam1",
+    "SamSite",
     { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = timer.getTime() }
   )
 end
@@ -1445,12 +1654,17 @@ function TestSpotterHandover:test_exactly_one_report_when_it_enters_the_envelope
   luaunit.assertEquals(self.reported, { "Bandit@SamSite" })
 end
 
-function TestSpotterHandover:test_an_aircraft_two_of_the_sites_units_hold_is_reported_once()
+function TestSpotterHandover:test_an_aircraft_alerted_twice_is_reported_once()
+  -- Was `test_an_aircraft_two_of_the_sites_units_hold_is_reported_once`, and its premise no longer
+  -- exists: a site is one node, so two of its launchers cannot hold the same aircraft separately.
+  -- The property still has to hold, though, and it is now structural rather than defended by a
+  -- union: contacts are keyed by aircraft under the node, so a second alert about the same one
+  -- replaces the first instead of adding to it.
   self:_siteHolds()
   veafSkynet.deliverSpotterMessage(
     coalition.side.RED,
-    "Sam2",
-    { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = timer.getTime() }
+    "SamSite",
+    { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = timer.getTime() + 1 }
   )
   veafSkynet.spotterHandoverPass()
   luaunit.assertEquals(#self.reported, 1)
@@ -1460,7 +1674,7 @@ function TestSpotterHandover:test_a_cancelled_contact_is_not_handed_over()
   self:_siteHolds()
   veafSkynet.deliverSpotterMessage(
     coalition.side.RED,
-    "Sam1",
+    "SamSite",
     { kind = "cancel", aircraft = "Bandit", origin = "Scout", stamp = timer.getTime() + 1 }
   )
   veafSkynet.spotterHandoverPass()
@@ -1868,13 +2082,20 @@ function TestSpotterMapView:tearDown()
 end
 
 --- Put a unit on the graph at (x, z), and make `Unit.getByName` answer for it.
+--- Put a **group** on the graph at (x, z), holding one unit, and register it so `Group.getByName`
+--- answers: `name` names the group, because that is what a node is.
+---
+--- The unit inside is `<name>-1` and `self.units[name]` still reaches it, so a test that wants to
+--- kill what the node is made of can. The returned value is the **group**, which is what a caller
+--- needs to hand to a Skynet site double.
 function TestSpotterMapView:_node(name, x, z, attributes)
-  local unit = _unit(name, attributes or { ["Tanks"] = true }, x, 0, z)
+  local unit = _unit(name .. "-1", attributes or { ["Tanks"] = true }, x, 0, z)
   self.units[name] = unit
+  local group = _group(name, { unit })
   local graph = veafSkynet.getSpotterGraph(RED)
   graph.nodes[name] = { x = x, z = z, class = veafSkynet.SpotterSpeedClasses.Mobile }
   graph.adjacency[name] = graph.adjacency[name] or {}
-  return unit
+  return group
 end
 
 --- Link two graph nodes, both ways, as the real graph does.
@@ -1891,8 +2112,8 @@ end
 --- detection circle and the contact for the node square, and conflating them kept a big red circle on
 --- a spotter for six minutes after the aircraft had been shot down.
 function TestSpotterMapView:_sees(spotterName, aircraft)
-  veafSkynet.spotterLatches[spotterName] = veafSkynet.spotterLatches[spotterName] or {}
-  veafSkynet.spotterLatches[spotterName][aircraft] = { triggered = true }
+  veafSkynet.latchesOf(RED)[spotterName] = veafSkynet.latchesOf(RED)[spotterName] or {}
+  veafSkynet.latchesOf(RED)[spotterName][aircraft] = { triggered = true }
 end
 
 --- Every captured shape of one kind.
@@ -2210,7 +2431,7 @@ function TestSpotterMapView:test_a_destroyed_aircraft_releases_the_detection_cir
   luaunit.assertEquals(orange, 1, "while it is seeing it, the circle is orange")
 
   -- The aircraft dies: the latch goes, the contact record stays for another six minutes.
-  veafSkynet.spotterLatches["Scout"] = nil
+  veafSkynet.latchesOf(RED)["Scout"] = nil
   self.marked = {}
   veafSkynet._redrawSpotterView()
 
@@ -2284,6 +2505,29 @@ function TestSpotterMapView:test_an_element_of_a_live_battery_gets_a_red_square(
   end
   luaunit.assertEquals(red, 1, "the live battery's element is red")
   luaunit.assertEquals(blue, 1, "and the spotter that was told, and is not a battery, stays blue")
+end
+
+function TestSpotterMapView:test_a_convoy_draws_one_circle_and_one_square()
+  -- **What David was looking at.** Eleven vehicles parked together used to draw eleven overlapping
+  -- range circles and eleven stacked squares, plus 55 links between themselves -- and the draw budget
+  -- is 400 shapes, so the rest of the picture was silently dropped.
+  local units = {}
+  for i = 1, 11 do
+    table.insert(units, _unit("Convoy-" .. i, { ["Trucks"] = true }, 1000 + i * 20, 0, 2000 + i * 20))
+  end
+  self.units["Convoy"] = units[1]
+  _group("Convoy", units)
+  local graph = veafSkynet.getSpotterGraph(RED)
+  graph.nodes["Convoy"] = { x = 1000, z = 2000, class = veafSkynet.SpotterSpeedClasses.Mobile }
+  graph.adjacency["Convoy"] = {}
+  veafSkynet.deliverSpotterMessage(RED, "Convoy", { kind = "alert", aircraft = "Bandit", origin = "Convoy", stamp = 1 })
+  self:_sees("Convoy", "Bandit")
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  luaunit.assertEquals(#self:_shapes("circle"), 1, "one detection circle for the convoy, not eleven")
+  luaunit.assertEquals(#self:_shapes("square"), 1, "one node square, not eleven stacked on each other")
 end
 
 function TestSpotterMapView:test_a_link_that_carried_nothing_is_a_grey_line()
@@ -2975,14 +3219,28 @@ function TestSpotterWiring:test_the_status_page_is_scheduled()
   veafSkynet.spotterStatusArmed = false
 end
 
-function TestSpotterWiring:test_a_lost_unit_forgets_what_it_was_watching()
-  veafSkynet.spotterLatches["RedTank"] = { ["BlueJet"] = { triggered = true, missedBeats = 0 } }
+function TestSpotterWiring:test_a_lost_unit_does_not_release_its_groups_contact()
+  -- **Inverted deliberately**, and this is the assertion that pins the group model. It used to say
+  -- that a unit death forgot everything the unit was watching, which was right while a spotter was a
+  -- unit. A spotter is a group now: losing one vehicle out of eleven must not release a contact the
+  -- rest of the convoy is still looking at, and the unit name a death event carries is not a latch
+  -- key any more.
+  --
+  -- What *does* release it is the detection beat's own vanished pass, which can tell a group that has
+  -- gone from one that has merely lost a truck — see
+  -- `TestSpotterLatch.test_a_latch_released_because_its_spotter_went_re_arms`.
+  veafSkynet.latchesOf(RED)["RedGroup"] = { ["BlueJet"] = { triggered = true, missedBeats = 0 } }
+
   veafSkynet.onUnitLost({ initiator = {
     getName = function()
       return "RedTank"
     end,
   } })
-  luaunit.assertNil(veafSkynet.spotterLatches["RedTank"])
+
+  luaunit.assertNotNil((veafSkynet.latchesOf(RED)["RedGroup"] or {})["BlueJet"], "one vehicle died; the group is still watching")
+  -- The ledger the vanished-sites sweep reads is still written, which is the other thing this
+  -- handler is for and the reason it is not simply deleted.
+  luaunit.assertTrue(veafSkynet.lostUnits["RedTank"])
 end
 
 -- ---------------------------------------------------------------------------

@@ -116,6 +116,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   map view's contact cross and detection circle never drew at all, and the heartbeat had nothing to
   speak for. Measured in game on 2026-09-21; the new control fails in both directions.
 
+- **The spotter network reasons about groups, not vehicles.** One DCS group is one node of the radio
+  network however many vehicles it holds: it sits at the **median point** of its live ones and sees as
+  far as whichever of them sees furthest. Found by David on the F10 map after spawning two transport
+  groups to link a distant SA-6 into the network — the graph held **37 nodes for 10 groups** and drew
+  **538 links** against a draw budget of 400 shapes, so the view was truncated by construction and the
+  picture was a mat of grey strokes. Each 11-vehicle convoy was contributing eleven overlapping range
+  circles, eleven stacked squares and 55 links to itself. Per group the same layout is 10 nodes and at
+  most 45 links, and it is not only drawing: the graph, the propagation and the three graph passes were
+  all O(vehicles²). Losing one vehicle no longer releases a contact the rest of the convoy is still
+  watching, and a group mixing a MANPADS with a blind Shilka sees 10 km. A **contact** stays a single
+  aircraft — the cross on the map marks one, and a flight of four is four.
+
 ## [6.23.1] — 2026-09-20
 
 ### Fixed

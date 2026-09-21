@@ -1188,6 +1188,114 @@ function TestSpotterHandover:test_a_skynet_without_the_door_warns_once_and_not_e
 end
 
 -- ---------------------------------------------------------------------------
+-- The status page
+-- ---------------------------------------------------------------------------
+TestSpotterStatusPage = {}
+
+function TestSpotterStatusPage:setUp()
+  _resetSpotterState()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.spotterStatusArmed = false
+  veafSkynet.spotterStatusAcquisitions = {}
+  veafSkynet.spotterStatusWakeUps = {}
+  veafSkynet.structure = { ["red iads"] = { coalitionID = RED, debugFlag = true } }
+end
+
+function TestSpotterStatusPage:tearDown()
+  veafSkynet.spotterStatusArmed = false
+end
+
+--- Everything the page wrote, as one string.
+local function _pageText()
+  local parts = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    table.insert(parts, tostring(entry.text))
+  end
+  return table.concat(parts, "\n")
+end
+
+function TestSpotterStatusPage:test_nothing_is_written_without_the_debug_flag()
+  -- A page that prints regardless is a log flood in every mission that never asked for it.
+  veafSkynet.structure["red iads"].debugFlag = false
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  luaunit.assertNotStrContains(_pageText(), "spotter network")
+end
+
+function TestSpotterStatusPage:test_nothing_is_written_when_the_feature_is_off()
+  veafSkynet.SpotterNetwork = false
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  luaunit.assertNotStrContains(_pageText(), "spotter network")
+end
+
+function TestSpotterStatusPage:test_it_names_the_aircraft_the_spotter_and_the_site()
+  -- Asserted against what a human reads, not against an internal table: that is the whole point of
+  -- this ticket, since three different mechanisms can now wake a site.
+  veafSkynet.deliverSpotterMessage(RED, "SamLauncher", { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = 1 })
+  table.insert(veafSkynet.spotterStatusAcquisitions, "Scout -> Bandit")
+  table.insert(veafSkynet.spotterStatusWakeUps, "SamSite <- Bandit")
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  local text = _pageText()
+  -- The header too, so the "nothing is written" tests above cannot pass vacuously on a page that
+  -- never prints at all.
+  luaunit.assertStrContains(text, "spotter network [red iads]")
+  luaunit.assertStrContains(text, "Scout -> Bandit")
+  luaunit.assertStrContains(text, "SamSite <- Bandit")
+  luaunit.assertStrContains(text, "SamLauncher")
+end
+
+function TestSpotterStatusPage:test_an_alerts_age_grows_so_a_stale_contact_looks_stale()
+  timer.setTime(100)
+  veafSkynet.deliverSpotterMessage(RED, "SamLauncher", { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = 1 })
+  timer.setTime(142)
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  luaunit.assertStrContains(_pageText(), "42 s old")
+end
+
+function TestSpotterStatusPage:test_a_cancelled_contact_is_not_listed_as_an_alert()
+  veafSkynet.deliverSpotterMessage(RED, "SamLauncher", { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = 1 })
+  veafSkynet.deliverSpotterMessage(RED, "SamLauncher", { kind = "cancel", aircraft = "Bandit", origin = "Scout", stamp = 2 })
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  luaunit.assertStrContains(_pageText(), "alert: none")
+end
+
+function TestSpotterStatusPage:test_what_happened_is_reported_once_and_not_forever()
+  table.insert(veafSkynet.spotterStatusAcquisitions, "Scout -> Bandit")
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  luaunit.assertStrContains(_pageText(), "Scout -> Bandit")
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  luaunit.assertNotStrContains(_pageText(), "Scout -> Bandit")
+end
+
+function TestSpotterStatusPage:test_the_graph_line_counts_pockets()
+  -- The figure that answers "why did my alert not travel". Two islands of two.
+  local graph = veafSkynet.getSpotterGraph(RED)
+  for _, pair in ipairs({ { "A", "B" }, { "Y", "Z" } }) do
+    for _, name in ipairs(pair) do
+      graph.nodes[name] = { x = 0, z = 0, class = veafSkynet.SpotterSpeedClasses.Mobile }
+      graph.adjacency[name] = graph.adjacency[name] or {}
+    end
+    graph.adjacency[pair[1]][pair[2]] = true
+    graph.adjacency[pair[2]][pair[1]] = true
+  end
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  luaunit.assertStrContains(_pageText(), "4 units, 2 links, 2 pockets, largest 2")
+end
+
+function TestSpotterStatusPage:test_an_empty_graph_is_described_without_falling_over()
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  luaunit.assertStrContains(_pageText(), "0 units, 0 links, 0 pockets, largest 0")
+end
+
+-- ---------------------------------------------------------------------------
 -- Wiring — the loop is actually scheduled
 --
 -- The defect class that shipped green in August: tests that called the handler and never what
@@ -1375,6 +1483,21 @@ function TestSpotterWiring:test_the_handover_pass_is_not_scheduled_when_the_feat
   for _, task in ipairs(self.scheduled) do
     luaunit.assertNotEquals(task.fn, veafSkynet.spotterHandoverPass)
   end
+end
+
+function TestSpotterWiring:test_the_status_page_is_scheduled()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.spotterStatusArmed = false
+  veafSkynet._armSpotterStatus()
+  local count = 0
+  for _, task in ipairs(self.scheduled) do
+    if task.fn == veafSkynet.spotterStatusPage then
+      count = count + 1
+      luaunit.assertEquals(task.rep, veafSkynet.SpotterStatusPeriod)
+    end
+  end
+  luaunit.assertEquals(count, 1)
+  veafSkynet.spotterStatusArmed = false
 end
 
 function TestSpotterWiring:test_a_lost_unit_forgets_what_it_was_watching()

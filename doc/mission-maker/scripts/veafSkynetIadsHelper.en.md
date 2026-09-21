@@ -179,6 +179,15 @@ range and double the speed of the alert without noticing. The hop period is deri
 so 20 s at the shipped values. At those settings an alert crosses a 200 km front in four minutes,
 against thirteen for a fighter to fly it.
 
+**Reading what happens.** With `debug_red` or `debug_blue` set to `true`, the module writes a status
+page into `dcs.log` every minute: how many units and links, **how many pockets** — the answer to
+"why did my alert not travel" — the live alerts with their age, who saw what since the previous page,
+and which site was woken by which alert.
+
+That trace is not decoration: once this feature is in service a site can light up for **three**
+reasons — an early-warning radar, its last line of defence, or a spotter. Without the page the
+question has no answer.
+
 > The network lives inside the Skynet module and does nothing when Skynet is off: there is no
 > fallback mode for missions without an IADS.
 

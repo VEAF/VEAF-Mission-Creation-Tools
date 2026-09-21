@@ -1854,6 +1854,7 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
   veafSkynet._armSpotterGraph()
   veafSkynet._armSpotterPropagation()
   veafSkynet._armSpotterHandover()
+  veafSkynet._armSpotterStatus()
 
   veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
 end
@@ -2398,6 +2399,9 @@ end
 --- @param dcsContact table the aircraft's DCS Unit handle
 function veafSkynet.onSpotterAcquired(coa, spotterName, contactName, dcsContact)
   veaf.loggers.get(veafSkynet.Id):debug(string.format("spotter [%s] acquired [%s]", veaf.p(spotterName), veaf.p(contactName)))
+  -- Recorded for the status page at the moment it happens: once the alert has spread there is no way
+  -- back from a contact held by a dozen units to the eye that first saw it.
+  table.insert(veafSkynet.spotterStatusAcquisitions, tostring(spotterName) .. " -> " .. tostring(contactName))
   veafSkynet.emitSpotterMessage(coa, "alert", spotterName, contactName, dcsContact)
 end
 
@@ -3080,6 +3084,10 @@ function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
       if iads.reportContact then
         local reported = pcall(iads.reportContact, iads, dcsAircraft, samSite)
         if reported then
+          table.insert(
+            veafSkynet.spotterStatusWakeUps,
+            tostring(samSite.dcsName) .. " <- " .. tostring(veafSkynet.safeDcsName(dcsAircraft))
+          )
           veaf.loggers.get(veafSkynet.Id):debug(
             string.format(
               "spotter network handed [%s] to [%s] on [%s]",
@@ -3099,6 +3107,140 @@ function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
       end
     end
   end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — the status page
+--
+-- On the model of Skynet's own, and behind the same switch: the per-network `debugFlag`, which comes
+-- from `debug_red` / `debug_blue`. No new setting.
+--
+-- This matters more here than a status page usually does. Once this ships there are **three** reasons
+-- a site can light up — an early-warning radar, the last line of defence, or a spotter — and an
+-- unexplained wake-up is already the most common report on this subject. With three causes and no
+-- trace the question is undecidable, for us and for the mission maker.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Seconds between two status pages. Slower than the beats it reports on: a page is read by a human
+--- afterwards, in a log, and one every five seconds would bury everything else in it.
+veafSkynet.SpotterStatusPeriod = 60
+
+--- Whether the status page is on the clock.
+veafSkynet.spotterStatusArmed = false
+
+--- Spotters that acquired a contact since the last page, as `"<spotter> -> <aircraft>"`. Recorded at
+--- the moment it happens, because by the time the page is printed the only thing left is a contact
+--- held by a dozen units and no way back to the eye that saw it.
+veafSkynet.spotterStatusAcquisitions = {}
+
+--- Sites woken since the last page, as `"<site> <- <aircraft>"`.
+veafSkynet.spotterStatusWakeUps = {}
+
+--- Count the graph, in one walk: nodes, edges, and connected components.
+---
+--- The component count is the figure that answers *"why did my alert not travel"*, which the
+--- connectivity measurements say will be the common question: at the shipped range, a mission whose
+--- contents are spread thin still only gathers a small share of its units into the largest pocket,
+--- and an alert never leaves the pocket it starts in.
+---
+--- @param graph table
+--- @return number nodes
+--- @return number edges
+--- @return number components
+--- @return number the size of the largest component
+function veafSkynet.describeSpotterGraph(graph)
+  local nodes, degrees = 0, 0
+  for name, _ in pairs(graph.nodes) do
+    nodes = nodes + 1
+    for _ in pairs(graph.adjacency[name] or {}) do
+      degrees = degrees + 1
+    end
+  end
+
+  local visited, components, largest = {}, 0, 0
+  for name, _ in pairs(graph.nodes) do
+    if not visited[name] then
+      components = components + 1
+      local size, stack = 0, { name }
+      visited[name] = true
+      while #stack > 0 do
+        local current = table.remove(stack)
+        size = size + 1
+        for neighbour, _ in pairs(graph.adjacency[current] or {}) do
+          if not visited[neighbour] then
+            visited[neighbour] = true
+            table.insert(stack, neighbour)
+          end
+        end
+      end
+      if size > largest then
+        largest = size
+      end
+    end
+  end
+
+  return nodes, degrees / 2, components, largest
+end
+
+--- Print one status page per network in debug mode, then forget what happened since the last one.
+function veafSkynet.spotterStatusPage()
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+
+  for networkName, veafSkynetNetwork in pairs(veafSkynet.structure) do
+    if veafSkynetNetwork and veafSkynetNetwork.debugFlag and veafSkynetNetwork.coalitionID then
+      local coa = veafSkynetNetwork.coalitionID
+      local logger = veaf.loggers.get(veafSkynet.Id)
+      local nodes, edges, components, largest = veafSkynet.describeSpotterGraph(veafSkynet.getSpotterGraph(coa))
+      logger:info(string.format("=== spotter network [%s] ===", tostring(networkName)))
+      logger:info(string.format("  graph: %d units, %d links, %d pockets, largest %d", nodes, edges, components, largest))
+
+      local now = timer.getTime()
+      local alerts = 0
+      for unitName, known in pairs(veafSkynet.spotterContacts[coa] or {}) do
+        for aircraft, contact in pairs(known) do
+          if not contact.cancelled then
+            alerts = alerts + 1
+            logger:info(
+              string.format(
+                "  alert: [%s] holds [%s] from [%s], %d s old",
+                tostring(unitName),
+                tostring(aircraft),
+                tostring(contact.origin),
+                math.floor(now - contact.heardAt)
+              )
+            )
+          end
+        end
+      end
+      if alerts == 0 then
+        logger:info("  alert: none")
+      end
+
+      for _, acquisition in ipairs(veafSkynet.spotterStatusAcquisitions) do
+        logger:info(string.format("  saw: %s", acquisition))
+      end
+      for _, wakeUp in ipairs(veafSkynet.spotterStatusWakeUps) do
+        logger:info(string.format("  woke: %s", wakeUp))
+      end
+    end
+  end
+
+  veafSkynet.spotterStatusAcquisitions = {}
+  veafSkynet.spotterStatusWakeUps = {}
+end
+
+--- Put the status page on the clock.
+function veafSkynet._armSpotterStatus()
+  if veafSkynet.spotterStatusArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  veafSkynet.spotterStatusArmed = true
+  veaf.scheduleFunction(veafSkynet.spotterStatusPage, {}, timer.getTime() + veafSkynet.SpotterStatusPeriod, veafSkynet.SpotterStatusPeriod)
 end
 
 --- Put the hand-over on the clock, on the detection beat's own cadence: a contact is worth acting on

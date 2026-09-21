@@ -182,6 +182,15 @@ bond est calculée : portée ÷ vitesse, soit 20 s avec les valeurs par défaut.
 l'alerte traverse un front de 200 km en quatre minutes, contre treize pour un chasseur qui le
 survole.
 
+**Lire ce qui se passe.** Avec `debug_red` ou `debug_blue` à `true`, le module écrit une page d'état
+dans `dcs.log` toutes les minutes : nombre d'unités et de liens, **nombre de poches** — la réponse à
+« pourquoi mon alerte n'est pas allée plus loin » —, les alertes en cours avec leur âge, qui a vu
+quoi depuis la page précédente et quel site a été réveillé par quelle alerte.
+
+Cette trace n'est pas décorative : une fois cette fonctionnalité en service, un site peut s'allumer
+pour **trois** raisons — un radar de veille lointaine, sa dernière ligne de défense, ou un guetteur.
+Sans la page, la question n'a pas de réponse.
+
 > Le réseau vit dans le module Skynet et ne fait rien quand Skynet est éteint : il n'y a pas de mode
 > de repli pour les missions sans IADS.
 

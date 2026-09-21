@@ -56,6 +56,12 @@ local function _unit(name, attributes, x, y, z)
     inAir = function()
       return true
     end,
+    -- Active unless a test says otherwise. A **late-activated** unit answers `isExist()` true and
+    -- `inAir()` true before it has been activated (measured in game 2026-09-21), so `isActive()` is
+    -- the only thing that tells the two apart — see `test_a_late_activated_aircraft_is_not_a_contact`.
+    isActive = function()
+      return true
+    end,
     getPoint = function()
       return point
     end,
@@ -453,6 +459,57 @@ function TestSpotterDetectionBeat:test_a_tank_reports_an_aircraft_within_range()
   self:_layout(2000)
   veafSkynet.spotterDetectionBeat()
   luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedTank->BlueJet" })
+end
+
+function TestSpotterDetectionBeat:test_a_late_activated_aircraft_is_not_a_contact()
+  -- Found in game on 2026-09-21, and it is a product defect rather than a rig artefact: late
+  -- activation is ordinary in real missions. A group waiting to be activated is **fully visible** to
+  -- the scripting API — `coalition.getGroups` returns it, `isExist()` answers true, and `inAir()`
+  -- answers **true** as well, thirty seconds before its activation. So the network held a contact on
+  -- an aircraft DCS had not put in the world, and woke real SAM sites for it.
+  --
+  -- `isActive()` is the only thing that separates the two, which is why the detection loop asks it.
+  self:_layout(2000)
+  self.bandit.isActive = function()
+    return false
+  end
+
+  veafSkynet.spotterDetectionBeat()
+
+  luaunit.assertEquals(self.acquired, {}, "a group awaiting activation is not flying and must not be reported")
+end
+
+function TestSpotterDetectionBeat:test_an_activated_aircraft_is_still_a_contact()
+  -- The other half, so the guard above cannot pass by rejecting everything.
+  self:_layout(2000)
+  self.bandit.isActive = function()
+    return true
+  end
+
+  veafSkynet.spotterDetectionBeat()
+
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedTank->BlueJet" })
+end
+
+function TestSpotterDetectionBeat:test_the_live_geometry_that_would_not_latch_in_game()
+  -- Rebuilt from a measured DCS session on 2026-09-21, where an in-mission recorder showed thirty
+  -- consecutive seconds of `alive=true contacts=1 latches=0`: a MANPADS spotter with a 9 855 m profile,
+  -- a hostile aircraft 5 217 m away at 2 000 m, and line of sight true — and no latch ever created.
+  --
+  -- Replaying exactly those numbers here says which side the fault is on: green means the beat is
+  -- sound and the difference lies in the live environment; red means the bug is on this desk.
+  local spotter = _unit("Igla", { ["MANPADS"] = true }, 0, 0, 0)
+  local bandit = _unit("Probe-1", { ["Air"] = true }, 0, 2000, 5217)
+  _stubGetGroups({
+    [coalition.side.RED] = { _group("RedGroup", { spotter }) },
+    [coalition.side.BLUE .. ":" .. Group.Category.AIRPLANE] = { _group("BlueGroup", { bandit }) },
+  })
+  local profile = veafSkynet.getSpotterProfile(spotter, "Igla")
+  luaunit.assertAlmostEquals(profile.range, 10000, 1, "the premise: a MANPADS sees 10 km")
+
+  veafSkynet.spotterDetectionBeat()
+
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":Igla->Probe-1" }, "5.2 km is well inside 9.9 km")
 end
 
 function TestSpotterDetectionBeat:test_it_reports_once_and_then_stays_quiet()
@@ -1586,44 +1643,117 @@ function TestSpotterMapView:setUp()
     return #self.scheduled
   end
 
+  -- Every primitive the view can draw is captured, with the colour, because the whole specification
+  -- is *which shape in which colour*: a circle that should be red and is green is a view saying the
+  -- opposite of the truth, and a test that only counts shapes cannot see it.
   self.marked = {}
   self.removed = {}
   self.previousMark = trigger.action.markToCoalition
   self.previousCircle = trigger.action.circleToAll
+  self.previousRect = trigger.action.rectToAll
+  self.previousLine = trigger.action.lineToAll
+  self.previousArrow = trigger.action.arrowToAll
   self.previousRemove = trigger.action.removeMark
   trigger.action.markToCoalition = function(id, text, _, coa)
     table.insert(self.marked, { id = id, text = text, coalition = coa })
   end
-  trigger.action.circleToAll = function(_, id)
-    table.insert(self.marked, { id = id, circle = true })
+  trigger.action.circleToAll = function(coa, id, centre, radius, colour)
+    table.insert(self.marked, { id = id, circle = true, coalition = coa, centre = centre, radius = radius, colour = colour })
+  end
+  trigger.action.rectToAll = function(coa, id, a, b, colour)
+    table.insert(self.marked, { id = id, square = true, coalition = coa, a = a, b = b, colour = colour })
+  end
+  trigger.action.lineToAll = function(coa, id, from, to, colour)
+    table.insert(self.marked, { id = id, line = true, coalition = coa, from = from, to = to, colour = colour })
+  end
+  trigger.action.arrowToAll = function(coa, id, to, from, colour)
+    table.insert(self.marked, { id = id, arrow = true, coalition = coa, from = from, to = to, colour = colour })
   end
   trigger.action.removeMark = function(id)
     table.insert(self.removed, id)
   end
 
-  self.spotter = _unit("Scout", { ["Tanks"] = true }, 1000, 0, 2000)
+  self.units = {}
   self.previousGetByName = Unit.getByName
   Unit.getByName = function(name)
-    if name == "Scout" then
-      return self.spotter
-    end
-    return nil
+    return self.units[name]
   end
+  self.spotter = _unit("Scout", { ["Tanks"] = true }, 1000, 0, 2000)
+  self.units["Scout"] = self.spotter
 end
 
 function TestSpotterMapView:tearDown()
   veaf.scheduleFunction = self.previousSchedule
   trigger.action.markToCoalition = self.previousMark
   trigger.action.circleToAll = self.previousCircle
+  trigger.action.rectToAll = self.previousRect
+  trigger.action.lineToAll = self.previousLine
+  trigger.action.arrowToAll = self.previousArrow
   trigger.action.removeMark = self.previousRemove
   Unit.getByName = self.previousGetByName
   veafSkynet.spotterViewCoalitions = {}
   veafSkynet.spotterRedrawScheduled = nil
+  veafSkynet.SpotterViewActivePocketsOnly = true
+  veafSkynet.SpotterViewMaxShapes = 400
+end
+
+--- Put a unit on the graph at (x, z), and make `Unit.getByName` answer for it.
+function TestSpotterMapView:_node(name, x, z, attributes)
+  local unit = _unit(name, attributes or { ["Tanks"] = true }, x, 0, z)
+  self.units[name] = unit
+  local graph = veafSkynet.getSpotterGraph(RED)
+  graph.nodes[name] = { x = x, z = z, class = veafSkynet.SpotterSpeedClasses.Mobile }
+  graph.adjacency[name] = graph.adjacency[name] or {}
+  return unit
+end
+
+--- Link two graph nodes, both ways, as the real graph does.
+function TestSpotterMapView:_link(a, b)
+  local graph = veafSkynet.getSpotterGraph(RED)
+  graph.adjacency[a][b] = true
+  graph.adjacency[b][a] = true
+end
+
+--- Mark a spotter as **currently seeing** an aircraft, by arming its detection latch.
+---
+--- Distinct from delivering it a contact on purpose: a latch is the live detection state, a contact
+--- record is a memory that outlives it by `SpotterForgetDelay`. The map view reads the latch for the
+--- detection circle and the contact for the node square, and conflating them kept a big red circle on
+--- a spotter for six minutes after the aircraft had been shot down.
+function TestSpotterMapView:_sees(spotterName, aircraft)
+  veafSkynet.spotterLatches[spotterName] = veafSkynet.spotterLatches[spotterName] or {}
+  veafSkynet.spotterLatches[spotterName][aircraft] = { triggered = true }
+end
+
+--- Every captured shape of one kind.
+function TestSpotterMapView:_shapes(kind)
+  local found = {}
+  for _, entry in ipairs(self.marked) do
+    if entry[kind] then
+      table.insert(found, entry)
+    end
+  end
+  return found
+end
+
+--- Whether a captured colour is the named one from the drawing palette.
+local function _is(colour, name)
+  local wanted = VeafDrawingOnMap.COLORS[name]
+  if not colour or not wanted then
+    return false
+  end
+  for i = 1, 3 do
+    if math.abs((colour[i] or -1) - wanted[i]) > 0.001 then
+      return false
+    end
+  end
+  return true
 end
 
 function TestSpotterMapView:_scoutSees()
   veafSkynet.getSpotterProfile(self.spotter, "Scout")
   veafSkynet.deliverSpotterMessage(RED, "Scout", { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = 1 })
+  self:_sees("Scout", "Bandit")
 end
 
 function TestSpotterMapView:_redrawRequests()
@@ -1677,29 +1807,363 @@ function TestSpotterMapView:test_nothing_is_drawn_until_the_view_is_switched_on(
   luaunit.assertEquals(#self.marked, 0)
 end
 
-function TestSpotterMapView:test_it_marks_the_spotter_that_raised_the_alert()
-  self:_scoutSees()
-  veafSkynet.showSpotterView(RED, true)
-  veafSkynet._redrawSpotterView()
-  luaunit.assertTrue(#self.marked >= 1)
-  luaunit.assertStrContains(self.marked[1].text, "Scout sees Bandit")
-  luaunit.assertEquals(self.marked[1].coalition, RED)
-end
+function TestSpotterMapView:test_a_spotter_with_nothing_in_sight_is_drawn_grey()
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  -- Something else in the pocket is holding a contact, so the pocket is in scope while Scout itself
+  -- has seen nothing.
+  self:_node("Relay", 2000, 2000)
+  self:_link("Scout", "Relay")
+  veafSkynet.deliverSpotterMessage(RED, "Relay", { kind = "alert", aircraft = "Bandit", origin = "Relay", stamp = 1 })
 
-function TestSpotterMapView:test_it_marks_only_where_the_alert_was_raised()
-  -- Every unit of the pocket holds the contact; a marker on each is a wall of markers all saying the
-  -- same thing.
-  self:_scoutSees()
-  veafSkynet.deliverSpotterMessage(RED, "Relay", { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = 1 })
   veafSkynet.showSpotterView(RED, true)
   veafSkynet._redrawSpotterView()
-  local markers = 0
-  for _, entry in ipairs(self.marked) do
-    if entry.text then
-      markers = markers + 1
+
+  -- David's colour rule, 2026-09-21: grey means nothing is happening here, and colour is spent only
+  -- on what is active. A busy corridor was otherwise a wall of red circles with nothing to contrast
+  -- against, which is what made the first render unreadable.
+  local grey = 0
+  for _, c in ipairs(self:_shapes("circle")) do
+    if _is(c.colour, "grey") then
+      grey = grey + 1
     end
   end
-  luaunit.assertEquals(markers, 1)
+  luaunit.assertTrue(grey >= 1, "a spotter that sees nothing shows its detection range in grey")
+end
+
+function TestSpotterMapView:test_the_circle_turns_red_when_the_spotter_is_holding_a_contact()
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_scoutSees()
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  local red, grey = 0, 0
+  for _, c in ipairs(self:_shapes("circle")) do
+    if _is(c.colour, "red") then
+      red = red + 1
+    elseif _is(c.colour, "grey") then
+      grey = grey + 1
+    end
+  end
+  luaunit.assertEquals(red, 1, "the holder's circle is red")
+  luaunit.assertEquals(grey, 0, "and not grey as well")
+end
+
+function TestSpotterMapView:test_a_relayed_contact_does_not_turn_a_spotters_circle_red()
+  -- Found on the map by David: the F-15C had flown out of every detection circle and all of them were
+  -- still red. Every node of a pocket *holds* the relayed contact, so colouring a detection range by
+  -- "holds something" turns every spotter red the moment one of them sees anything.
+  --
+  -- A detection range is about what this unit is seeing for itself — `contact.origin == unitName`.
+  -- Being told is what the node square says.
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  local watcher = self:_node("Watcher", 2000, 2000)
+  veafSkynet.getSpotterProfile(watcher, "Watcher")
+  self:_link("Scout", "Watcher")
+  self:_scoutSees()
+  -- Watcher was *told*, it saw nothing itself — so it gets a contact record and no latch.
+  veafSkynet.deliverSpotterMessage(RED, "Watcher", { kind = "alert", aircraft = "Bandit", origin = "Scout", via = "Scout", stamp = 1 })
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  local red, grey = 0, 0
+  for _, c in ipairs(self:_shapes("circle")) do
+    if _is(c.colour, "red") then
+      red = red + 1
+    elseif _is(c.colour, "grey") then
+      grey = grey + 1
+    end
+  end
+  luaunit.assertEquals(red, 1, "only the spotter that actually saw it is red")
+  luaunit.assertEquals(grey, 1, "the one that was merely told keeps a grey range")
+
+  -- ...and it is still shown as alerted, which is the other half of the distinction.
+  local blue = 0
+  for _, sq in ipairs(self:_shapes("square")) do
+    if _is(sq.colour, "blue") then
+      blue = blue + 1
+    end
+  end
+  luaunit.assertEquals(blue, 2, "both nodes have been told")
+end
+
+function TestSpotterMapView:test_an_alerted_node_is_blue_and_a_quiet_one_is_grey()
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_node("Relay", 2000, 2000)
+  self:_link("Scout", "Relay")
+  self:_scoutSees()
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  local blue, grey = 0, 0
+  for _, s in ipairs(self:_shapes("square")) do
+    if _is(s.colour, "blue") then
+      blue = blue + 1
+    elseif _is(s.colour, "grey") then
+      grey = grey + 1
+    end
+  end
+  luaunit.assertEquals(blue, 1, "only Scout has been told")
+  luaunit.assertEquals(grey, 1, "Relay could be told and has not been")
+end
+
+function TestSpotterMapView:test_a_dark_site_shows_a_grey_engagement_envelope()
+  -- The reversal of 2026-09-21: dropping the envelope of a dark site was decided while grey was
+  -- unreadable. With a readable grey it is the most eloquent shape on the map — *this battery covers
+  -- the corridor, it could fire, and nobody has told it anything* — which is the whole demonstration.
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_scoutSees()
+
+  local drew = {}
+  local iads = {
+    getSAMSites = function()
+      return {
+        {
+          dcsName = "DarkSite",
+          isActive = function()
+            return false
+          end,
+          getElementPosition = function()
+            return { x = 1000, y = 0, z = 2000 }
+          end,
+          getLaunchers = function()
+            return {
+              {
+                getRange = function()
+                  return 25000
+                end,
+              },
+            }
+          end,
+        },
+      }
+    end,
+  }
+  local realGetIADS = veafSkynet.getIADS
+  veafSkynet.getIADS = function()
+    return iads
+  end
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  veafSkynet.getIADS = realGetIADS
+
+  local envelope = nil
+  for _, c in ipairs(self:_shapes("circle")) do
+    if c.radius and c.radius > 20000 then
+      envelope = c
+    end
+  end
+  luaunit.assertNotNil(envelope, "a dark site still shows what it *could* reach")
+  luaunit.assertTrue(_is(envelope.colour, "grey"), "but in grey, because it is not reaching anything")
+end
+
+function TestSpotterMapView:test_a_destroyed_aircraft_releases_the_red_circle_at_once()
+  -- Found in game on 2026-09-21. The intruder was shot down, every detection latch was released
+  -- correctly, and the spotter that had raised the alert kept a big red "I can see it" circle for the
+  -- whole `SpotterForgetDelay` — six minutes of the map confidently showing an aircraft that no longer
+  -- existed. The contact record is a memory; the latch is the live detection state.
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_scoutSees()
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  local red = 0
+  for _, c in ipairs(self:_shapes("circle")) do
+    if _is(c.colour, "red") then
+      red = red + 1
+    end
+  end
+  luaunit.assertEquals(red, 1, "while it is seeing it, the circle is red")
+
+  -- The aircraft dies: the latch goes, the contact record stays for another six minutes.
+  veafSkynet.spotterLatches["Scout"] = nil
+  self.marked = {}
+  veafSkynet._redrawSpotterView()
+
+  for _, c in ipairs(self:_shapes("circle")) do
+    luaunit.assertFalse(_is(c.colour, "red"), "nothing is being seen any more, so nothing is red")
+  end
+  -- ...and the node is still shown as holding the memory, which is the other half of the distinction.
+  local blue = 0
+  for _, sq in ipairs(self:_shapes("square")) do
+    if _is(sq.colour, "blue") then
+      blue = blue + 1
+    end
+  end
+  luaunit.assertEquals(blue, 1, "the network still remembers, and says so with the square")
+end
+
+function TestSpotterMapView:test_a_link_that_carried_nothing_is_a_grey_line()
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_node("Relay", 2000, 2000)
+  self:_link("Scout", "Relay")
+  self:_scoutSees()
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  local lines = self:_shapes("line")
+  luaunit.assertEquals(#lines, 1, "one edge, drawn once and not once per direction")
+  luaunit.assertTrue(_is(lines[1].colour, "grey"))
+  luaunit.assertEquals(#self:_shapes("arrow"), 0)
+end
+
+function TestSpotterMapView:test_a_link_that_carried_an_alert_becomes_a_solid_red_line()
+  -- The reason `via` was added: the contact used to remember only the spotter that raised the alert,
+  -- so the edge it actually travelled could not be recovered afterwards.
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_node("Relay", 2000, 2000)
+  self:_link("Scout", "Relay")
+  self:_scoutSees()
+  veafSkynet.deliverSpotterMessage(RED, "Relay", { kind = "alert", aircraft = "Bandit", origin = "Scout", via = "Scout", stamp = 1 })
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  -- Lines and not arrows, which is a measured departure from the first specification: DCS sizes an
+  -- `arrowToAll` head itself, and on a 60 km corridor the heads came out about 8 km across — bigger
+  -- than a grid square, swamping everything else. Use is carried by colour and line style instead.
+  local links = self:_shapes("line")
+  local carried = nil
+  for _, l in ipairs(links) do
+    if _is(l.colour, "red") then
+      carried = l
+    end
+  end
+  luaunit.assertNotNil(carried, "the link that carried the alert is red")
+  luaunit.assertEquals(#self:_shapes("arrow"), 0, "no arrowheads: DCS makes them unusably large")
+end
+
+function TestSpotterMapView:test_a_link_stops_short_of_the_units_it_joins()
+  -- David asked for a gap so the line does not cover the unit symbols. There are no pixels on this
+  -- side, so the margin is metres — what is asserted is that both ends were pulled in, and by how far.
+  self:_node("Scout", 0, 0)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_node("Relay", 10000, 0)
+  self:_link("Scout", "Relay")
+  self:_scoutSees()
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  local line = self:_shapes("line")[1]
+  luaunit.assertNotNil(line)
+  local margin = veafSkynet.SpotterViewLinkMargin
+  luaunit.assertAlmostEquals(math.min(line.from.x, line.to.x), margin, 1)
+  luaunit.assertAlmostEquals(math.max(line.from.x, line.to.x), 10000 - margin, 1)
+end
+
+function TestSpotterMapView:test_an_idle_network_draws_nothing_at_all()
+  -- The scope rule, and the reason it is on by default: the densest layout benchmarked was 2 000
+  -- units and 234 000 edges, which is not an ugly map but a mission that stops responding.
+  self:_node("Scout", 1000, 2000)
+  self:_node("Relay", 2000, 2000)
+  self:_link("Scout", "Relay")
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  luaunit.assertEquals(#self.marked, 0, "nothing is happening, so nothing is drawn")
+end
+
+function TestSpotterMapView:test_a_view_with_nothing_to_draw_says_why_once()
+  -- The view draws from the spotter graph, which does not exist until the networks have been built
+  -- and the first graph pass has run. Switching it on before then draws nothing and used to give no
+  -- reason, which reads as a broken feature — it cost two rounds of "marche pas ton truc" before the
+  -- delay was identified.
+  veafSkynet.spotterViewEmptyWarned = {}
+  dcs_mocks.logs = {}
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  veafSkynet._redrawSpotterView()
+
+  local said = 0
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if tostring(entry.text):find("nothing to draw", 1, true) then
+      said = said + 1
+    end
+  end
+  luaunit.assertEquals(said, 1, "said once, not on every redraw")
+end
+
+function TestSpotterMapView:test_it_stops_saying_it_once_there_is_something_to_draw()
+  veafSkynet.spotterViewEmptyWarned = {}
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+  luaunit.assertTrue(veafSkynet.spotterViewEmptyWarned[RED], "warned while empty")
+
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_scoutSees()
+  veafSkynet._redrawSpotterView()
+
+  luaunit.assertNil(veafSkynet.spotterViewEmptyWarned[RED], "a network that fills up must be able to say it again later")
+end
+
+function TestSpotterMapView:test_a_pocket_with_no_contact_is_left_out()
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_node("FarAway", 500000, 500000)
+  self:_scoutSees()
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  for _, s in ipairs(self:_shapes("square")) do
+    luaunit.assertTrue(math.abs(s.a.x) < 100000, "the silent pocket must not be drawn")
+  end
+end
+
+function TestSpotterMapView:test_switching_the_scope_off_draws_the_whole_network()
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_node("FarAway", 500000, 500000)
+  self:_scoutSees()
+  veafSkynet.SpotterViewActivePocketsOnly = false
+
+  veafSkynet.showSpotterView(RED, true)
+  veafSkynet._redrawSpotterView()
+
+  local far = false
+  for _, s in ipairs(self:_shapes("square")) do
+    if math.abs(s.a.x) > 100000 then
+      far = true
+    end
+  end
+  luaunit.assertTrue(far, "with the scope off, a pocket holding nothing is still drawn")
+end
+
+function TestSpotterMapView:test_the_shape_budget_stops_the_drawing_and_says_so()
+  self:_node("Scout", 1000, 2000)
+  veafSkynet.getSpotterProfile(self.spotter, "Scout")
+  self:_node("Relay", 2000, 2000)
+  self:_link("Scout", "Relay")
+  self:_scoutSees()
+  veafSkynet.SpotterViewMaxShapes = 1
+
+  veafSkynet.showSpotterView(RED, true)
+  dcs_mocks.logs = {}
+  veafSkynet._redrawSpotterView()
+
+  luaunit.assertEquals(#self.marked, 1, "the budget is a hard stop")
+  local warned = false
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if tostring(entry.text):find("incomplete", 1, true) or tostring(entry.text):find("%s shapes") then
+      warned = true
+    end
+  end
+  luaunit.assertTrue(warned, "a truncated view must say it is truncated")
 end
 
 function TestSpotterMapView:test_a_cancelled_contact_is_not_drawn()
@@ -1791,6 +2255,55 @@ function TestSpotterViewModes:tearDown()
   veafSkynet.spotterViewCoalitions = {}
 end
 
+function TestSpotterViewModes:test_the_view_refreshes_on_its_own_clock()
+  -- Without this the view only redraws on what this module raises itself — a graph change, a spotter
+  -- acquiring or losing a contact. A battery going live or dark moves nothing, and that is a third of
+  -- what the picture shows: on 2026-09-21 four sites were switched off at t=40 s and their orange
+  -- engagement envelopes stayed on David's map until t=90 s, when the intruder appeared and triggered
+  -- a redraw for an unrelated reason.
+  veafSkynet.spotterViewRefreshArmed = false
+  local repeating = {}
+  local realSchedule = veaf.scheduleFunction
+  veaf.scheduleFunction = function(fn, vars, t, rep)
+    if rep then
+      table.insert(repeating, { fn = fn, rep = rep })
+    end
+    return #repeating
+  end
+
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet._armSpotterView()
+  veaf.scheduleFunction = realSchedule
+
+  local armed = nil
+  for _, task in ipairs(repeating) do
+    if task.fn == veafSkynet.requestSpotterViewRedraw then
+      armed = task
+    end
+  end
+  luaunit.assertNotNil(armed, "a repeating refresh must be armed")
+  luaunit.assertEquals(armed.rep, veafSkynet.SpotterViewRefreshPeriod)
+end
+
+function TestSpotterViewModes:test_the_refresh_is_armed_once()
+  veafSkynet.spotterViewRefreshArmed = false
+  local count = 0
+  local realSchedule = veaf.scheduleFunction
+  veaf.scheduleFunction = function(fn, vars, t, rep)
+    if fn == veafSkynet.requestSpotterViewRedraw then
+      count = count + 1
+    end
+    return count
+  end
+
+  veafSkynet._armSpotterViewRefresh()
+  veafSkynet._armSpotterViewRefresh()
+  veafSkynet._armSpotterViewRefresh()
+  veaf.scheduleFunction = realSchedule
+
+  luaunit.assertEquals(count, 1, "a reinitialisation must not stack a second refresh")
+end
+
 function TestSpotterViewModes:test_off_draws_nothing_and_offers_nothing()
   veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Off
   veafSkynet._armSpotterView()
@@ -1841,12 +2354,23 @@ function TestSpotterViewModes:test_the_switch_flips_the_view_and_the_label()
   local toggle = self.commands[1]
   toggle.method(toggle.parameters)
   luaunit.assertTrue(veafSkynet.spotterViewCoalitions[RED])
-  luaunit.assertEquals(self.commands[#self.commands].title, veaf.t("menu.skynet.spotterview.hide"))
+  -- The show/hide entry is the **first** of the submenu, not the last: with the view up the scope
+  -- switch sits after it. Reading the last one made this test follow whichever entry happened to be
+  -- added most recently, which is how it started asserting the scope title.
+  luaunit.assertEquals(self.commands[1].title, veaf.t("menu.skynet.spotterview.show"))
+  local rebuilt = nil
+  for _, command in ipairs(self.commands) do
+    if command.title == veaf.t("menu.skynet.spotterview.hide") then
+      rebuilt = command
+    end
+  end
+  luaunit.assertNotNil(rebuilt, "the rebuilt menu offers Hide")
 
-  local hide = self.commands[#self.commands]
+  local hide = rebuilt
   hide.method(hide.parameters)
   luaunit.assertNil(veafSkynet.spotterViewCoalitions[RED])
   luaunit.assertEquals(self.commands[#self.commands].title, veaf.t("menu.skynet.spotterview.show"))
+  luaunit.assertNil(veafSkynet.spotterViewCoalitions[RED])
 end
 
 function TestSpotterViewModes:test_the_switch_carries_its_own_coalition()
@@ -1869,7 +2393,9 @@ function TestSpotterViewModes:test_the_menu_is_replaced_rather_than_stacked()
   local menu = self.menus[1]
   local toggle = self.commands[1]
   toggle.method(toggle.parameters)
-  luaunit.assertEquals(#menu.commands, 1)
+  -- Two entries once the view is up — show/hide plus the scope switch — and that is the *rebuilt*
+  -- menu, not the old one with a new entry beside it. A third would mean the clear did not happen.
+  luaunit.assertEquals(#menu.commands, 2)
   luaunit.assertEquals(#self.menus, 1) -- and no second submenu was created either
 end
 
@@ -1934,14 +2460,17 @@ end
 function TestSpotterViewRealRadio:test_the_command_resolves_to_usage_for_all()
   -- Not "we passed nil" -- what the module made of it. A game master has no group, so anything but
   -- ForAll builds a menu the only intended audience cannot see (#128).
-  luaunit.assertEquals(#self.root.commands, 1)
+  luaunit.assertEquals(#self.root.commands, 1, "hidden: only the show switch")
   luaunit.assertEquals(self.root.commands[1].usage, veafRadio.USAGE_ForAll)
 end
 
 function TestSpotterViewRealRadio:test_toggling_repeatedly_never_stacks_a_second_entry()
+  -- One entry while the view is hidden, two while it is up — the show/hide switch plus the scope
+  -- switch. What this test is about is that neither ever *stacks*: the submenu is cleared and rebuilt.
   for i = 1, 5 do
     veafSkynet.toggleSpotterViewFromRadio(RED)
-    luaunit.assertEquals(#self.root.commands, 1, "after toggle " .. i)
+    local expected = veafSkynet.spotterViewCoalitions[RED] and 2 or 1
+    luaunit.assertEquals(#self.root.commands, expected, "after toggle " .. i)
   end
   luaunit.assertEquals(#self.root.subMenus, 0)
 end
@@ -2169,6 +2698,79 @@ function TestSpotterWiring:test_a_lost_unit_forgets_what_it_was_watching()
     end,
   } })
   luaunit.assertNil(veafSkynet.spotterLatches["RedTank"])
+end
+
+-- ---------------------------------------------------------------------------
+-- The scope switch on the radio menu
+--
+-- David's condition when he accepted "active pockets only" as the default: in `radio` mode the
+-- choice has to be reachable from the F10 menu, not only from a mission script.
+-- ---------------------------------------------------------------------------
+TestSpotterViewScopeMenu = {}
+
+function TestSpotterViewScopeMenu:setUp()
+  TestSpotterViewModes.setUp(self)
+  self._savedScope = veafSkynet.SpotterViewActivePocketsOnly
+  veafSkynet.SpotterViewActivePocketsOnly = true
+end
+
+function TestSpotterViewScopeMenu:tearDown()
+  veafSkynet.SpotterViewActivePocketsOnly = self._savedScope
+  TestSpotterViewModes.tearDown(self)
+end
+
+--- The titles currently offered, in order.
+function TestSpotterViewScopeMenu:_titles()
+  local titles = {}
+  for _, command in ipairs(self.commands) do
+    table.insert(titles, command.title)
+  end
+  return titles
+end
+
+function TestSpotterViewScopeMenu:test_the_scope_is_not_offered_while_the_view_is_hidden()
+  -- A control for a picture nobody is looking at does nothing visible, which reads as broken.
+  veafSkynet.buildSpotterViewRadioMenu(RED)
+  luaunit.assertEquals(#self.commands, 1, "only the show/hide entry")
+end
+
+function TestSpotterViewScopeMenu:test_it_is_offered_once_the_view_is_up()
+  veafSkynet.spotterViewCoalitions[RED] = true
+  veafSkynet.buildSpotterViewRadioMenu(RED)
+  luaunit.assertEquals(#self.commands, 2)
+  luaunit.assertStrContains(self:_titles()[2], veaf.t("menu.skynet.spotterview.scope.all"))
+end
+
+function TestSpotterViewScopeMenu:test_the_entry_names_what_using_it_will_do()
+  -- Same rule as show/hide: a DCS radio command's title is fixed once created, so the menu is rebuilt
+  -- and the title always describes the *next* use rather than the current state.
+  veafSkynet.spotterViewCoalitions[RED] = true
+
+  veafSkynet.buildSpotterViewRadioMenu(RED)
+  luaunit.assertStrContains(self:_titles()[2], veaf.t("menu.skynet.spotterview.scope.all"))
+
+  veafSkynet.toggleSpotterViewScopeFromRadio(RED)
+  luaunit.assertFalse(veafSkynet.SpotterViewActivePocketsOnly)
+  luaunit.assertStrContains(self:_titles()[#self:_titles()], veaf.t("menu.skynet.spotterview.scope.active"))
+end
+
+function TestSpotterViewScopeMenu:test_using_it_asks_for_a_redraw()
+  -- Flipping the scope changes the picture, so the picture has to be rebuilt; without this the menu
+  -- entry would appear to do nothing until something else happened to trigger a redraw.
+  veafSkynet.spotterViewCoalitions[RED] = true
+  veafSkynet.spotterRedrawScheduled = nil
+  local asked = 0
+  local realSchedule = veaf.scheduleFunction
+  veaf.scheduleFunction = function()
+    asked = asked + 1
+    return asked
+  end
+
+  veafSkynet.toggleSpotterViewScopeFromRadio(RED)
+
+  veaf.scheduleFunction = realSchedule
+  veafSkynet.spotterRedrawScheduled = nil
+  luaunit.assertEquals(asked, 1)
 end
 
 os.exit(luaunit.LuaUnit.run())

@@ -2640,8 +2640,16 @@ function veafSkynet.listHostileAircraft(coa)
             for _, dcsUnit in pairs(dcsUnits_) do
               if veafSkynet.dcsObjectStillExists(dcsUnit) then
                 local airborne, inAir = pcall(dcsUnit.inAir, dcsUnit)
+                -- `isActive()` and not just `inAir()`, and this is measured rather than defensive.
+                -- A **late-activated** group is fully visible here before it has been activated:
+                -- `coalition.getGroups` returns it, `isExist()` answers true and `inAir()` answers
+                -- **true** as well (measured 2026-09-21 on a group whose activation was still thirty
+                -- seconds away). Without this test the network holds a contact on an aircraft DCS has
+                -- not put in the world yet, and wakes real SAM sites for it — and late activation is
+                -- ordinary in real missions, not a rig artefact.
+                local queried, isActive = pcall(dcsUnit.isActive, dcsUnit)
                 local name = veafSkynet.safeDcsName(dcsUnit)
-                if name and airborne and inAir then
+                if name and airborne and inAir and queried and isActive then
                   table.insert(contacts, { name = name, unit = dcsUnit })
                 end
               end
@@ -3005,12 +3013,20 @@ function veafSkynet.deliverSpotterMessage(coa, unitName, message)
     return false
   end
 
+  -- `via` is the neighbour this unit heard it **from**, which is not `origin`: the origin is the
+  -- spotter that raised the alert, several hops away. The propagation knows the predecessor at the
+  -- moment it delivers — it is the frontier unit it is walking from — and used to throw it away, so
+  -- the path an alert actually took could not be reconstructed afterwards. The map view draws the
+  -- edges that carried an alert, and that is the one thing it needs.
+  --
+  -- Nil on the origin itself, which heard it from nobody.
   if message.kind == "cancel" then
     -- Remembered as a *stamped* cancellation rather than erased, so an alert still in flight behind
     -- it cannot re-light the site it has just extinguished.
-    known[message.aircraft] = { stamp = message.stamp, heardAt = timer.getTime(), origin = message.origin, cancelled = true }
+    known[message.aircraft] =
+      { stamp = message.stamp, heardAt = timer.getTime(), origin = message.origin, via = message.via, cancelled = true }
   else
-    known[message.aircraft] = { stamp = message.stamp, heardAt = timer.getTime(), origin = message.origin }
+    known[message.aircraft] = { stamp = message.stamp, heardAt = timer.getTime(), origin = message.origin, via = message.via }
   end
   return true
 end
@@ -3066,6 +3082,11 @@ function veafSkynet.spotterPropagationTick()
         local edges = graph.adjacency[unitName]
         if edges then
           for neighbour, _ in pairs(edges) do
+            -- Carried on the message rather than passed as an argument, because the message is what
+            -- `deliverSpotterMessage` stores. It is overwritten on every hop, which is correct: it
+            -- means "who I heard it from", and each neighbour is served by whichever frontier unit
+            -- reached it first — the nearest witness.
+            message.via = unitName
             if veafSkynet.deliverSpotterMessage(coa, neighbour, message) then
               nextFrontier[neighbour] = true
             end
@@ -3568,11 +3589,81 @@ veafSkynet.spotterViewCoalitions = {}
 --- The marker ids currently drawn, per coalition, so a redraw replaces rather than stacks.
 veafSkynet.spotterViewMarkers = {}
 
+--- Coalitions already told that their view has nothing to draw, so the line is said once.
+veafSkynet.spotterViewEmptyWarned = {}
+
 --- Set when a redraw has been asked for and not yet run. See `veafSkynet.requestSpotterViewRedraw`.
 veafSkynet.spotterRedrawScheduled = nil
 
 --- Seconds a redraw request waits, so a burst of them becomes one redraw.
 veafSkynet.SpotterRedrawDelay = 1
+
+--- Seconds between two unconditional refreshes of the view, while it is switched on.
+---
+--- **Not belt-and-braces: the view goes stale without it.** Redraws were requested on the two things
+--- this module raises itself — a graph change, a spotter acquiring or losing a contact — and on
+--- nothing else. So a battery going live or dark, which is a third of what the picture shows, moved
+--- nothing: on 2026-09-21 four sites were switched off at t=40 s and their orange engagement
+--- envelopes stayed on the map until t=90 s, when the intruder appeared and happened to trigger a
+--- redraw for another reason. A map that is confidently wrong for fifty seconds is worse than no map.
+---
+--- Five seconds is the detection beat's own cadence: faster is invisible to a human reading a map,
+--- slower lets a moving spotter's circle lag behind the unit it belongs to.
+veafSkynet.SpotterViewRefreshPeriod = 5
+
+--- Whether the periodic refresh has been put on the clock.
+veafSkynet.spotterViewRefreshArmed = false
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- What the map view draws
+--
+-- Green circle: a spotter's detection range. Red when it is holding a contact, with a cross on the
+-- contact itself. Orange circle: a SAM site's engagement envelope, read from its launchers rather
+-- than guessed. Square on every node the alert could reach: blue when it has been alerted, grey when
+-- it has not. Grey line for a link, red arrow for a link that actually carried an alert.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Draw only the pockets currently holding a contact, rather than the whole network.
+---
+--- **Off by default**, and that is a correction rather than a preference. It shipped on, and on a
+--- quiet network that meant an empty map — which contradicts the specification it was built to: a
+--- green circle on every spotter and a **grey** square on every node that *could* be alerted and is
+--- not are states that only exist while nothing is happening. Switching it on hid exactly the two
+--- things it was meant to show.
+---
+--- It stays available, through the F10 menu and from a mission script, because the cost it guards
+--- against is real: the densest layout benchmarked for this feature was 2 000 units and 234 000
+--- edges. On a mission that size, switch it on.
+veafSkynet.SpotterViewActivePocketsOnly = false
+
+--- The most shapes one coalition's view will draw.
+---
+--- This, and not the scope above, is what stops a huge network from becoming a mission that stops
+--- responding — which is why the draw order matters: contacts, detection ranges, node squares and
+--- envelopes are drawn **before** the links, so a view that runs out of budget loses the tens of
+--- thousands of grey lines rather than the handful of shapes carrying the information. Reaching the
+--- cap writes a line to the log, because a view silently showing three quarters of the truth is
+--- worse than one that says it is truncated.
+veafSkynet.SpotterViewMaxShapes = 400
+
+--- Metres trimmed from each end of a link, so the line stops short of the unit symbol.
+---
+--- David asked for "a few tens of pixels". There are no pixels here: DCS draws in world coordinates
+--- and the map zooms, so a fixed screen margin cannot be expressed. This is the honest translation —
+--- a fixed distance in metres, tuned to read as a gap at the zoom where a network is legible. Move
+--- it if it looks wrong in game; it cannot be derived.
+veafSkynet.SpotterViewLinkMargin = 400
+
+--- Half-side, in metres, of the square drawn around an alertable node.
+---
+--- 1500 rather than the 300 first tried and the 600 after it. A square is drawn in **world**
+--- coordinates while a DCS unit symbol is drawn at a constant size on screen, so the square has to be
+--- big enough to still frame the symbol at the zoom where a whole network fits — about 150 km across,
+--- where 600 m is eight pixels and simply is not there.
+veafSkynet.SpotterViewNodeSquareRadius = 1500
+
+--- Half-length, in metres, of each stroke of the cross drawn on a contact.
+veafSkynet.SpotterViewContactCrossRadius = 800
 
 --- Show or hide the map view for one coalition.
 ---
@@ -3620,6 +3711,357 @@ function veafSkynet.requestSpotterViewRedraw()
     veaf.scheduleFunction(veafSkynet._redrawSpotterView, {}, timer.getTime() + veafSkynet.SpotterRedrawDelay)
 end
 
+--- The live position of a named unit, or nil when it is gone.
+---
+--- @param unitName string
+--- @return table|nil a runtime vec3
+local function _spotterPoint(unitName)
+  local dcsUnit = Unit.getByName(unitName)
+  if not veafSkynet.dcsObjectStillExists(dcsUnit) then
+    return nil
+  end
+  local got, point = pcall(dcsUnit.getPoint, dcsUnit)
+  if got and point then
+    return point
+  end
+  return nil
+end
+
+--- A point `metres` along the way from `from` to `to`, in the horizontal plane.
+---
+--- Used to trim both ends of a link so the line stops short of the unit symbols rather than covering
+--- them. Returns `from` unchanged when the two are closer together than twice the margin, because a
+--- line trimmed past its own midpoint reverses and draws backwards.
+---
+--- @param from table runtime vec3
+--- @param to table runtime vec3
+--- @param metres number
+--- @return table a runtime vec3
+local function _stepTowards(from, to, metres)
+  local dx, dz = to.x - from.x, to.z - from.z
+  local length = math.sqrt(dx * dx + dz * dz)
+  if length <= metres * 2 then
+    return from
+  end
+  return { x = from.x + dx / length * metres, y = from.y, z = from.z + dz / length * metres }
+end
+
+--- How far a SAM site can actually shoot, in metres: the longest reach of its launchers.
+---
+--- Read from the site rather than from a table of our own, so it follows whatever DCS says about the
+--- type. Zero when the site has no launcher able to answer, and the caller then draws no envelope —
+--- an envelope of zero radius drawn as a dot would read as "engages nothing", which is a different
+--- claim from "we could not measure it".
+---
+--- @param samSite table a Skynet SAM site
+--- @return number
+function veafSkynet.samEngagementRange(samSite)
+  local got, launchers = pcall(samSite.getLaunchers, samSite)
+  if not got or not launchers then
+    return 0
+  end
+  local best = 0
+  for i = 1, #launchers do
+    local asked, range = pcall(launchers[i].getRange, launchers[i])
+    if asked and type(range) == "number" and range > best then
+      best = range
+    end
+  end
+  return best
+end
+
+--- The units the view should cover, as a set.
+---
+--- With `SpotterViewActivePocketsOnly` (the default) this is every node of every pocket that holds a
+--- live contact — so an idle network draws nothing at all, and a busy one draws only where the
+--- busyness is. Switched off, it is every node of the graph.
+---
+--- @param coa number
+--- @param graph table
+--- @return table set of unit names
+function veafSkynet.spotterViewScope(coa, graph)
+  local scope = {}
+  if not veafSkynet.SpotterViewActivePocketsOnly then
+    for name, _ in pairs(graph.nodes) do
+      scope[name] = true
+    end
+    return scope
+  end
+
+  -- Walk out from every unit holding a live contact. The walk is the pocket: adjacency is symmetric,
+  -- so reaching a node means it could have been reached by the alert too.
+  local queue = {}
+  for unitName, known in pairs(veafSkynet.spotterContacts[coa] or {}) do
+    for _, contact in pairs(known) do
+      if not contact.cancelled and graph.nodes[unitName] and not scope[unitName] then
+        scope[unitName] = true
+        table.insert(queue, unitName)
+        break
+      end
+    end
+  end
+  while #queue > 0 do
+    local current = table.remove(queue)
+    for neighbour, _ in pairs(graph.adjacency[current] or {}) do
+      if not scope[neighbour] then
+        scope[neighbour] = true
+        table.insert(queue, neighbour)
+      end
+    end
+  end
+  return scope
+end
+
+--- Draw one coalition's view, appending every shape id to `markers`.
+---
+--- Everything is drawn through `VeafDrawingOnMap`, so the colours are named and the shapes are the
+--- ones the rest of VEAF uses. The order matters for legibility: envelopes first, then links, then
+--- the node squares and contacts on top, so the small symbols are never buried under a circle.
+---
+--- @param coa number
+--- @param markers table the id list to append to, so `eraseSpotterView` can take them all back down
+function veafSkynet.paintSpotterView(coa, markers)
+  local graph = veafSkynet.getSpotterGraph(coa)
+  local scope = veafSkynet.spotterViewScope(coa, graph)
+  if not next(scope) then
+    -- Said once per coalition, and it earns its line. The view draws from the spotter graph, which
+    -- does not exist until the networks have been built and the first graph pass has run — several
+    -- seconds after the mission starts. Switching the view on before then draws nothing and gives no
+    -- reason, which reads as a broken feature: it cost two rounds of "marche pas ton truc" on
+    -- 2026-09-21 before the delay was identified. The flag clears as soon as something is drawn, so
+    -- a network that later empties says it again.
+    if not veafSkynet.spotterViewEmptyWarned[coa] then
+      veafSkynet.spotterViewEmptyWarned[coa] = true
+      veaf.loggers.get(veafSkynet.Id):info(
+        "spotter view [%s] is on but there is nothing to draw yet: the network has no spotter graph. It appears on its own once the IADS has finished starting up",
+        veaf.lp(tostring(coa))
+      )
+    end
+    return
+  end
+  veafSkynet.spotterViewEmptyWarned[coa] = nil
+
+  local budget = veafSkynet.SpotterViewMaxShapes
+  local truncated = false
+
+  --- Draw one `VeafDrawingOnMap` and hand its marker ids to the caller's list.
+  ---
+  --- The drawing objects keep their own ids in `dcsMarkerIds` and know how to erase themselves, but
+  --- this view owns a flat id list so `eraseSpotterView` stays one loop over one kind of thing.
+  local function paint(drawing)
+    if budget <= 0 then
+      truncated = true
+      return
+    end
+    budget = budget - 1
+    drawing:setCoalition(coa)
+    if pcall(drawing.draw, drawing) then
+      for _, id in pairs(drawing.dcsMarkerIds or {}) do
+        table.insert(markers, id)
+      end
+    end
+  end
+
+  --- Draw one straight stroke: a graph link, or one bar of a contact's cross.
+  ---
+  --- `trigger.action` directly, and **not** the base `VeafDrawingOnMap`, which is the one shape this
+  --- view cannot take from the module: its `draw()` puts a `markToCoalition` text marker at the first
+  --- point of every drawing. That is right for a named drawing and wrong for a graph link — a network
+  --- of a hundred links would come with a hundred text labels on top of the map.
+  ---
+  --- @param solid boolean solid when the stroke means something happened, dashed when it does not
+  local function paintLink(from, to, colour, solid)
+    if budget <= 0 then
+      truncated = true
+      return
+    end
+    budget = budget - 1
+    local id = veaf.getUniqueIdentifier()
+    local lineType = solid and VeafDrawingOnMap.LINE_TYPE["solid"] or VeafDrawingOnMap.LINE_TYPE["dashed"]
+    if pcall(trigger.action.lineToAll, coa, id, from, to, colour, lineType, true) then
+      table.insert(markers, id)
+    end
+  end
+
+  local GREY = VeafDrawingOnMap.COLORS["grey"]
+  local RED = VeafDrawingOnMap.COLORS["red"]
+
+  -- Which contacts each node holds, which of them it is **seeing for itself**, and over which link it
+  -- heard about the rest.
+  --
+  -- The two are not the same thing, and conflating them is what made the first render wrong: every
+  -- node of a pocket holds the relayed contact, so colouring a detection circle by "holds something"
+  -- turned **every** spotter's circle red the moment one of them saw anything — including spotters
+  -- the aircraft had long since flown past. David caught it on the map: the F-15C was outside every
+  -- circle and all of them were still red.
+  --
+  -- A contact whose `origin` is this unit is one it raised itself, which is what a detection range is
+  -- about. Being told is what the node square is about.
+  local alerted, seeing, usedLinks = {}, {}, {}
+
+  -- What a unit is **seeing right now** comes from its detection latch, not from a contact record.
+  --
+  -- Measured 2026-09-21, and it is why this is not `contact.origin == unitName`: when the intruder
+  -- was shot down, every latch was released correctly, but the contact records it had raised lived on
+  -- for `SpotterForgetDelay` — six minutes. Reading `origin` therefore kept a big red "I can see it"
+  -- circle on a spotter for six minutes after the aircraft had ceased to exist. The latch is the live
+  -- detection state; a contact record is a memory, and memories are what the node squares show.
+  for spotterName, latches in pairs(veafSkynet.spotterLatches or {}) do
+    if scope[spotterName] then
+      for aircraft, latch in pairs(latches) do
+        if latch and latch.triggered then
+          seeing[spotterName] = aircraft
+        end
+      end
+    end
+  end
+  for unitName, known in pairs(veafSkynet.spotterContacts[coa] or {}) do
+    for aircraft, contact in pairs(known) do
+      if not contact.cancelled and scope[unitName] then
+        alerted[unitName] = aircraft
+        if contact.via then
+          usedLinks[contact.via .. "\0" .. unitName] = true
+        end
+      end
+    end
+  end
+
+  local points = {}
+  for unitName, _ in pairs(scope) do
+    points[unitName] = _spotterPoint(unitName)
+  end
+
+  -- The colour rule, David's, 2026-09-21: **grey means nothing is happening here.** Colour is spent
+  -- only on what is active, so a quiet network reads as quiet and the eye goes straight to what
+  -- moved. It replaces an earlier scheme where a spotter's range was green whatever it was doing,
+  -- which made a busy corridor a wall of red circles with nothing to contrast against.
+
+  -- 1. A cross on each aircraft somebody is holding. **First**, because the draw budget is spent in
+  -- order and this is the single most informative shape on the map. Drawn from `Unit.getByName`,
+  -- because a contact deliberately carries no DCS handle — so an aircraft that has just died draws
+  -- nothing, which is the truth rather than a gap.
+  local drawn = {}
+  local cross = veafSkynet.SpotterViewContactCrossRadius
+  for _, aircraft in pairs(seeing) do
+    if not drawn[aircraft] then
+      drawn[aircraft] = true
+      local point = _spotterPoint(aircraft)
+      if point then
+        paintLink(
+          { x = point.x - cross, y = point.y, z = point.z - cross },
+          { x = point.x + cross, y = point.y, z = point.z + cross },
+          RED,
+          true
+        )
+        paintLink(
+          { x = point.x - cross, y = point.y, z = point.z + cross },
+          { x = point.x + cross, y = point.y, z = point.z - cross },
+          RED,
+          true
+        )
+      end
+    end
+  end
+
+  -- 2. Detection ranges: red for a spotter **seeing** something itself, grey for one that is not.
+  -- `seeing`, not `alerted`: see the note above the two tables.
+  for unitName, point in pairs(points) do
+    local profile = veafSkynet.spotterProfiles[unitName]
+    if point and profile and profile.range > 0 then
+      local active = seeing[unitName] ~= nil
+      paint(
+        VeafCircleOnMap:new()
+          :setCenter(point)
+          :setRadius(profile.range)
+          :setColor(active and "red" or "grey")
+          :setLineType(active and "solid" or "dashed")
+          :setFillColor("transparent")
+      )
+    end
+  end
+
+  -- 3. One square per node the alert can reach: blue when it has been told, grey when it has not.
+  local side = veafSkynet.SpotterViewNodeSquareRadius * 2
+  for unitName, point in pairs(points) do
+    if point then
+      paint(
+        VeafSquareOnMap:new():setCenter(point):setSide(side):setColor(alerted[unitName] and "blue" or "grey"):setFillColor("transparent")
+      )
+    end
+  end
+
+  -- 4. Engagement envelopes: orange when the site is live, dark grey and dashed when it is not.
+  --
+  -- This went back and forth, and the reversal is worth recording. They were dropped for dark sites
+  -- because the isolated Kub's 25 km circle swept across the map as a pale arc that said nothing —
+  -- but that was measured while grey was `{0.6, 0.6, 0.6}`, i.e. invisible on a sand-coloured map.
+  -- With a readable grey the same circle becomes the single most eloquent shape of the picture: *this
+  -- battery covers the whole corridor, it could fire, and nobody has told it anything*. That is the
+  -- demonstration. David's original rule — grey for what is inactive — was right; the case for
+  -- dropping it was really a case against an unreadable colour.
+  local iads = veafSkynet.getIADS(veafSkynet.defaultIADS[tostring(coa)])
+  if iads then
+    local got, sites = pcall(iads.getSAMSites, iads)
+    if got and sites then
+      for i = 1, #sites do
+        local site = sites[i]
+        local range = veafSkynet.samEngagementRange(site)
+        -- `getElementPosition()` is Skynet's own accessor: it answers from a live launcher, falling
+        -- back to the group's first unit. Anchoring on the site rather than on each of its units is
+        -- what gives a battery one envelope instead of three overlapping ones.
+        local asked, live = pcall(site.isActive, site)
+        local active = asked and live
+        local located, centre = pcall(site.getElementPosition, site)
+        if located and centre and range > 0 then
+          paint(
+            VeafCircleOnMap:new()
+              :setCenter(centre)
+              :setRadius(range)
+              :setColor(active and "orange" or "grey")
+              :setLineType(active and "solid" or "dashed")
+              :setFillColor("transparent")
+          )
+        end
+      end
+    end
+  end
+
+  -- 5. Links, **last**, because there are more of them than of anything else and they are what a
+  -- truncated view can most afford to lose.
+  --
+  -- Drawn as lines rather than arrows, which is a departure from the spec and a measured one: DCS
+  -- sizes an `arrowToAll` head itself, and on a 60 km corridor the heads came out about 8 km across —
+  -- bigger than a grid square, and they swamped everything else on the map. Direction is carried by
+  -- nothing now; it was the least useful thing on the picture and by far the most expensive. Solid
+  -- red for a link that carried an alert, dashed grey for one that carried nothing.
+  for unitName, edges in pairs(graph.adjacency) do
+    if scope[unitName] and points[unitName] then
+      for neighbour, _ in pairs(edges) do
+        if scope[neighbour] and points[neighbour] then
+          local carried = usedLinks[unitName .. "\0" .. neighbour] or usedLinks[neighbour .. "\0" .. unitName]
+          -- Walked once per edge, by name order: adjacency is symmetric, so without this every link
+          -- would be drawn twice, on top of itself.
+          if unitName < neighbour then
+            local from = _stepTowards(points[unitName], points[neighbour], veafSkynet.SpotterViewLinkMargin)
+            local to = _stepTowards(points[neighbour], points[unitName], veafSkynet.SpotterViewLinkMargin)
+            paintLink(from, to, carried and RED or GREY, carried)
+          end
+        end
+      end
+    end
+  end
+
+  if truncated then
+    -- Said out loud: a view that quietly shows three quarters of the network is worse than one that
+    -- admits it is truncated, because the quarter it dropped is indistinguishable from empty map.
+    veaf.loggers.get(veafSkynet.Id):warn(
+      "spotter view [%s]: stopped at %s shapes, the picture is incomplete (raise veafSkynet.SpotterViewMaxShapes, or leave SpotterViewActivePocketsOnly on)",
+      veaf.lp(tostring(coa)),
+      veaf.lp(veafSkynet.SpotterViewMaxShapes)
+    )
+  end
+end
+
 --- Redraw every switched-on coalition's view.
 function veafSkynet._redrawSpotterView()
   -- First act, unconditionally, before anything that can return early. See the comment above.
@@ -3630,38 +4072,7 @@ function veafSkynet._redrawSpotterView()
     if veafSkynet.SpotterNetwork then
       local markers = {}
       veafSkynet.spotterViewMarkers[coa] = markers
-      for unitName, known in pairs(veafSkynet.spotterContacts[coa] or {}) do
-        for aircraft, contact in pairs(known) do
-          -- Only where the alert was raised: a marker per unit *holding* it would put one on every
-          -- unit of the pocket, which is a wall of markers saying the same thing.
-          if not contact.cancelled and contact.origin == unitName then
-            local dcsUnit = Unit.getByName(unitName)
-            if veafSkynet.dcsObjectStillExists(dcsUnit) then
-              local gotPoint, point = pcall(dcsUnit.getPoint, dcsUnit)
-              if gotPoint and point then
-                local markerId = veaf.getUniqueIdentifier()
-                pcall(
-                  trigger.action.markToCoalition,
-                  markerId,
-                  string.format("%s sees %s", tostring(unitName), tostring(aircraft)),
-                  point,
-                  coa,
-                  true,
-                  nil
-                )
-                table.insert(markers, markerId)
-
-                local profile = veafSkynet.spotterProfiles[unitName]
-                if profile and profile.range > 0 then
-                  local circleId = veaf.getUniqueIdentifier()
-                  pcall(trigger.action.circleToAll, coa, circleId, point, profile.range, nil, nil, 3, true)
-                  table.insert(markers, circleId)
-                end
-              end
-            end
-          end
-        end
-      end
+      veafSkynet.paintSpotterView(coa, markers)
     end
   end
 end
@@ -3696,6 +4107,15 @@ function veafSkynet.buildSpotterViewRadioMenu(coa)
   local shown = veafSkynet.spotterViewCoalitions[coa] and true or false
   local title = veaf.t(shown and "menu.skynet.spotterview.hide" or "menu.skynet.spotterview.show")
   veafRadio.addCommandToSubmenu(title, root, veafSkynet.toggleSpotterViewFromRadio, coa)
+
+  -- The scope switch, offered only while the view is up: a control for a picture nobody is looking
+  -- at is a menu entry that does nothing visible, which reads as broken.
+  if shown then
+    local scopeTitle =
+      veaf.t(veafSkynet.SpotterViewActivePocketsOnly and "menu.skynet.spotterview.scope.all" or "menu.skynet.spotterview.scope.active")
+    veafRadio.addCommandToSubmenu(scopeTitle, root, veafSkynet.toggleSpotterViewScopeFromRadio, coa)
+  end
+
   veafRadio.refreshRadioMenu()
 end
 
@@ -3705,6 +4125,43 @@ end
 function veafSkynet.toggleSpotterViewFromRadio(coa)
   veafSkynet.showSpotterView(coa, not veafSkynet.spotterViewCoalitions[coa])
   veafSkynet.buildSpotterViewRadioMenu(coa)
+end
+
+--- Flip between "only the pockets holding a contact" and "the whole network", from the radio command.
+---
+--- **Global rather than per coalition**, and deliberately: it is a drawing-cost setting, not a piece
+--- of tactical state, and the cost it guards against — a mission that stops responding — is the
+--- mission's, not one side's. Both menus are rebuilt so the other side's entry does not go on
+--- claiming the opposite of what is true.
+---
+--- @param coa number the coalition whose menu was used
+function veafSkynet.toggleSpotterViewScopeFromRadio(coa)
+  veafSkynet.SpotterViewActivePocketsOnly = not veafSkynet.SpotterViewActivePocketsOnly
+  veafSkynet.requestSpotterViewRedraw()
+  for side, _ in pairs(veafSkynet.spotterViewRootPaths) do
+    veafSkynet.buildSpotterViewRadioMenu(side)
+  end
+  if not veafSkynet.spotterViewRootPaths[coa] then
+    veafSkynet.buildSpotterViewRadioMenu(coa)
+  end
+end
+
+--- Put the periodic refresh on the clock, once.
+---
+--- Cheap when nothing is shown: `requestSpotterViewRedraw` coalesces, and `_redrawSpotterView` walks
+--- an empty `spotterViewCoalitions` and returns. So this runs whether or not anybody has switched the
+--- view on, and costs a table lookup a second time in twelve.
+function veafSkynet._armSpotterViewRefresh()
+  if veafSkynet.spotterViewRefreshArmed then
+    return
+  end
+  veafSkynet.spotterViewRefreshArmed = true
+  veaf.scheduleFunction(
+    veafSkynet.requestSpotterViewRedraw,
+    {},
+    timer.getTime() + veafSkynet.SpotterViewRefreshPeriod,
+    veafSkynet.SpotterViewRefreshPeriod
+  )
 end
 
 --- Honour `SpotterView`: draw nothing, draw from the start, or offer the switch on the radio.
@@ -3723,6 +4180,7 @@ function veafSkynet._armSpotterView()
     return
   end
   veafSkynet.spotterViewArmed = true
+  veafSkynet._armSpotterViewRefresh()
 
   for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
     if mode == veafSkynet.SpotterViewModes.On then

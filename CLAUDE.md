@@ -196,3 +196,12 @@ Single-context: `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
 `x`/`y`/`z` mean **different things** in a mission table and in the runtime scripting API, and getting
 them confused raises no error — only a wrong position. Read `docs/agents/dcs-coordinates.md` before
 writing code that places anything.
+
+### DCS runtime traps
+
+`docs/agents/dcs-runtime-traps.md` collects the DCS behaviours that **raise no error** and are wrong
+anyway — a late-activated group answering `isExist()` and `inAir()` true, `start_time` not delaying a
+spawn, a SAM with no EWR being permanently lit rather than dark, half the air-defence vehicles being
+blind as spotters. Read it before writing anything that places, delays, activates or lights something
+up, and **add to it**: when a DCS behaviour surprises you, write down the measurement — the value, the
+date, and what it broke — not the conclusion.

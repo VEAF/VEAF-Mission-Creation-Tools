@@ -1,6 +1,6 @@
 # FIX-SPOTTER-NODES-ARE-GROUPS — the spotter network reasons about groups, not units
 
-Status: ⬜ ready
+Status: 🔄 in-progress — ticket 01 done
 
 Origin: David, 2026-09-21, looking at the F10 map of `spotter-network-walkthrough` after spawning two
 transport groups to link the isolated SA-6 into the network:
@@ -77,7 +77,7 @@ every fixture has to be re-expressed in groups.
 
 | # | Ticket | State |
 |---|---|---|
-| 01 | [A group's profile, and its median point](tickets/01-a-groups-profile-and-median-point.md) | ⬜ ready |
+| 01 | [A group's profile, and its median point](tickets/01-a-groups-profile-and-median-point.md) | ✅ done |
 | 02 | [Detection and latches keyed by group](tickets/02-detection-and-latches-by-group.md) | ⬜ ready |
 | 03 | [The graph, the propagation and the hand-over keyed by group](tickets/03-graph-propagation-and-handover-by-group.md) | ⬜ ready |
 | 04 | [The view draws one shape set per group](tickets/04-the-view-draws-one-shape-set-per-group.md) | ⬜ ready |

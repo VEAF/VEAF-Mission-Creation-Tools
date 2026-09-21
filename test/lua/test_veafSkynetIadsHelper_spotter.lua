@@ -251,6 +251,143 @@ end
 -- ---------------------------------------------------------------------------
 -- The latch
 -- ---------------------------------------------------------------------------
+TestSpotterGroupNode = {}
+
+function TestSpotterGroupNode:setUp()
+  _resetSpotterState()
+  -- No jitter: this suite is about which unit's range wins, not about the draw.
+  veafSkynet.SpotterRangeJitter = 0
+end
+
+function TestSpotterGroupNode:tearDown()
+  veafSkynet.SpotterRangeJitter = 0.2
+end
+
+--- A group of units placed along the northing axis at the given x values.
+function TestSpotterGroupNode:_convoy(name, xs, attributes)
+  local units = {}
+  for i, x in ipairs(xs) do
+    table.insert(units, _unit(name .. "-" .. i, attributes or { ["Trucks"] = true }, x, 0, 0))
+  end
+  return _group(name, units), units
+end
+
+function TestSpotterGroupNode:test_the_median_of_three_in_a_line_is_the_middle_one()
+  local group = self:_convoy("Convoy", { 0, 100, 250 })
+  local point = veafSkynet.spotterGroupMedianPoint(group)
+  luaunit.assertEquals(point.x, 100)
+end
+
+function TestSpotterGroupNode:test_an_even_count_takes_the_lower_of_the_two_middles()
+  -- Arbitrary, and asserted precisely because it is arbitrary: a tie-break nobody wrote down has to
+  -- be rediscovered from the code every time somebody wonders.
+  local group = self:_convoy("Convoy", { 0, 100, 200, 300 })
+  luaunit.assertEquals(veafSkynet.spotterGroupMedianPoint(group).x, 100)
+end
+
+function TestSpotterGroupNode:test_a_straggler_does_not_drag_the_median_off_the_convoy()
+  -- The whole reason this is a median and not a mean. Ten vehicles parked together and one five
+  -- kilometres down the road: the mean lands in empty ground where nothing is standing and a
+  -- line-of-sight ray from it means nothing.
+  local xs = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 5000 }
+  local group = self:_convoy("Convoy", xs)
+  local median = veafSkynet.spotterGroupMedianPoint(group).x
+  local sum = 0
+  for _, x in ipairs(xs) do
+    sum = sum + x
+  end
+  local mean = sum / #xs
+  luaunit.assertEquals(median, 50, "the median sits on the parked vehicles")
+  luaunit.assertTrue(mean > 400, "while the mean has been dragged off them (" .. mean .. ")")
+end
+
+function TestSpotterGroupNode:test_the_median_ignores_a_dead_unit()
+  local group, units = self:_convoy("Convoy", { 0, 100, 200 })
+  -- The one that would be the median dies: the median moves to the survivors.
+  units[2].isExist = function()
+    return false
+  end
+  luaunit.assertEquals(veafSkynet.spotterGroupMedianPoint(group).x, 0, "median of {0, 200}, lower middle")
+end
+
+function TestSpotterGroupNode:test_the_median_ignores_a_late_activated_unit()
+  -- Measured in game on 2026-09-21: a group awaiting activation answers `isExist()` true and
+  -- `inAir()` true, and only `isActive()` tells the truth. Counting it would put the node where
+  -- nothing is standing.
+  local group, units = self:_convoy("Convoy", { 0, 100, 200 })
+  units[2].isActive = function()
+    return false
+  end
+  luaunit.assertEquals(veafSkynet.spotterGroupMedianPoint(group).x, 0)
+end
+
+function TestSpotterGroupNode:test_a_group_with_nothing_alive_has_no_point()
+  local group, units = self:_convoy("Convoy", { 0, 100 })
+  for _, unit in ipairs(units) do
+    unit.isExist = function()
+      return false
+    end
+  end
+  luaunit.assertNil(veafSkynet.spotterGroupMedianPoint(group), "no live unit, no node")
+end
+
+function TestSpotterGroupNode:test_a_group_sees_as_far_as_its_furthest_seeing_unit()
+  -- David's rule, 2026-09-21. A `ZSU-23-4 Shilka` matches `SAM elements` before `MANPADS` in the
+  -- table walk and is therefore **blind** (range 0), while an `SA-18 Igla-S manpad` sees 10 km. The
+  -- group sees 10 km -- not 0, and not an average.
+  local group = _group("Mixed", {
+    _unit("Shilka", { ["SAM elements"] = true, ["Air Defence vehicles"] = true }, 0, 0, 0),
+    _unit("Igla", { ["MANPADS"] = true }, 100, 0, 0),
+  })
+  luaunit.assertEquals(veafSkynet.getSpotterGroupProfile(group).range, 10000)
+end
+
+function TestSpotterGroupNode:test_a_group_sees_the_largest_range_and_not_the_smallest()
+  -- The test above pins only that a **blind** unit is ignored: with a Shilka at 0 metres, a rule that
+  -- took the *smallest* non-zero range would still answer 10 km and pass. Two units that both see,
+  -- at different ranges, is what actually pins "the furthest".
+  local group = _group("Screen", {
+    _unit("Foot", { ["Infantry"] = true }, 0, 0, 0), -- 4 000 m
+    _unit("Igla", { ["MANPADS"] = true }, 100, 0, 0), -- 10 000 m
+  })
+  luaunit.assertEquals(veafSkynet.getSpotterGroupProfile(group).range, 10000, "the furthest, not the nearest")
+end
+
+function TestSpotterGroupNode:test_a_group_of_blind_units_sees_nothing()
+  -- The other direction, so the rule above cannot pass by simply returning the largest number in the
+  -- table: a group whose every unit is blind stays blind, and is therefore not a spotter at all.
+  local group = _group("AllBlind", {
+    _unit("Shilka1", { ["SAM elements"] = true }, 0, 0, 0),
+    _unit("Shilka2", { ["SAM elements"] = true }, 100, 0, 0),
+  })
+  luaunit.assertEquals(veafSkynet.getSpotterGroupProfile(group).range, 0)
+end
+
+function TestSpotterGroupNode:test_a_group_takes_the_fastest_class_of_its_units()
+  -- The class only decides how often a node's edges are recomputed, so recomputing too often is
+  -- harmless where too rarely is not.
+  local group = _group("Mixed", {
+    _unit("Foot", { ["Infantry"] = true }, 0, 0, 0), -- slow
+    _unit("Truck", { ["Trucks"] = true }, 100, 0, 0), -- mobile
+  })
+  luaunit.assertEquals(veafSkynet.getSpotterGroupProfile(group).class, veafSkynet.SpotterSpeedClasses.Mobile)
+end
+
+function TestSpotterGroupNode:test_a_groups_profile_follows_the_death_of_its_best_pair_of_eyes()
+  -- Why the group profile is derived on every call instead of cached under the group's name: cached,
+  -- it would go on claiming eyes the group no longer has.
+  local igla = _unit("Igla", { ["MANPADS"] = true }, 100, 0, 0)
+  local group = _group("Mixed", {
+    _unit("Truck", { ["Trucks"] = true }, 0, 0, 0),
+    igla,
+  })
+  luaunit.assertEquals(veafSkynet.getSpotterGroupProfile(group).range, 10000)
+  igla.isExist = function()
+    return false
+  end
+  luaunit.assertEquals(veafSkynet.getSpotterGroupProfile(group).range, 3000, "the truck's eyes are what is left")
+end
+
 TestSpotterLatch = {}
 
 function TestSpotterLatch:setUp()

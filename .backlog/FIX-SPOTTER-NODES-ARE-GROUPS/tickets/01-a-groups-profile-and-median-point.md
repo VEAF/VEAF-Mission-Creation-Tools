@@ -1,6 +1,6 @@
 # 01 — A group's profile, and its median point
 
-Status: ⬜ ready
+Status: ✅ done
 
 The two new primitives the rest of the lot is built on, delivered **without changing a single
 caller**, so this ticket lands green on its own and the behaviour change happens in ticket 02.
@@ -47,6 +47,10 @@ moves the callers.
 
 ## Definition of done
 
-- [ ] Both primitives, with docstrings naming the coordinate convention.
-- [ ] The tests above, each able to fail.
-- [ ] No caller changed, `poetry run test-lua` green, `stylua` clean.
+- [x] Both primitives, with docstrings naming the coordinate convention.
+- [x] The tests above, each able to fail — checked by mutating the implementation six ways
+      (median→mean, tie-break→upper, alive→isExist, max→min, max→min-non-zero, fastest→slowest)
+      and confirming each is caught by the test named for that property. The first pass found a
+      weak one: the mixed Igla/Shilka group did **not** pin "the furthest", because a Shilka at 0
+      makes a min rule degenerate — a second group of two *seeing* units (4 km + 10 km) does.
+- [x] No caller changed, `poetry run test-lua` green (49 suites, 192 spotter tests), `stylua` clean.

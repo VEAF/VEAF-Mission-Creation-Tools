@@ -2389,6 +2389,119 @@ function veafSkynet.getSpotterProfile(dcsUnit, unitName)
   return profile
 end
 
+--- The live units of a group, as an array, never raising.
+---
+--- **`veaf.isUnitAlive`, not `isExist()`**: a late-activated unit answers `isExist()` true and
+--- `inAir()` true before DCS has put it in the world (measured 2026-09-21, see
+--- `docs/agents/dcs-runtime-traps.md`), so counting it would drag a median to a place where nothing is
+--- standing. `veaf.isUnitAlive` tests `isExist()` **and** `isActive()`, which is the pair that tells
+--- the truth.
+---
+--- @param dcsGroup table|nil a DCS Group handle
+--- @return table array of DCS Unit handles, possibly empty
+function veafSkynet.liveUnitsOf(dcsGroup)
+  local live = {}
+  if not veafSkynet.dcsObjectStillExists(dcsGroup) then
+    return live
+  end
+  local gotUnits, dcsUnits_ = pcall(dcsGroup.getUnits, dcsGroup)
+  if not gotUnits or not dcsUnits_ then
+    return live
+  end
+  for _, dcsUnit in pairs(dcsUnits_) do
+    local alive = false
+    pcall(function()
+      alive = veaf.isUnitAlive(dcsUnit) == true
+    end)
+    if alive then
+      table.insert(live, dcsUnit)
+    end
+  end
+  return live
+end
+
+--- Where a group *is*: the median point of its live units.
+---
+--- **Median and not mean**, and the distinction is the reason this exists. A convoy of eleven vehicles
+--- parked together with one straggler five kilometres down the road has a mean somewhere in the empty
+--- ground between them — a place no vehicle occupies and from which a line-of-sight ray means
+--- nothing. The median sits on the parked eleven, which is where a human would point and say *the
+--- convoy is there*.
+---
+--- Component-wise, with the **lower of the two middles** on an even count. Both choices are arbitrary
+--- and both are stated so the value is reproducible: a component-wise median of a group strung along a
+--- road lands on the road, which is what matters, and an arbitrary tie-break that is written down
+--- beats one that has to be rediscovered from the code.
+---
+--- **Runtime convention**: `x` is the northing, `y` the **altitude**, `z` the easting. Not the
+--- mission-table convention — see `docs/agents/dcs-coordinates.md`, the most expensive confusion in
+--- this repository.
+---
+--- @param dcsGroup table|nil a DCS Group handle
+--- @return table|nil a runtime vec3, or nil when the group has no live unit left
+function veafSkynet.spotterGroupMedianPoint(dcsGroup)
+  local xs, ys, zs = {}, {}, {}
+  for _, dcsUnit in ipairs(veafSkynet.liveUnitsOf(dcsGroup)) do
+    local got, point = pcall(dcsUnit.getPoint, dcsUnit)
+    if got and point then
+      table.insert(xs, point.x)
+      table.insert(ys, point.y or 0)
+      table.insert(zs, point.z)
+    end
+  end
+  if #xs == 0 then
+    return nil
+  end
+  table.sort(xs)
+  table.sort(ys)
+  table.sort(zs)
+  -- Lower of the two middles on an even count: `math.floor((n + 1) / 2)` is index 1 of 1, 1 of 2,
+  -- 2 of 3, 2 of 4.
+  local middle = math.floor((#xs + 1) / 2)
+  return { x = xs[middle], y = ys[middle], z = zs[middle] }
+end
+
+--- How fast a speed class lets a node move, as a number that can be compared. Higher is faster.
+local _SPOTTER_CLASS_RANK = {
+  [veafSkynet.SpotterSpeedClasses.Slow] = 1,
+  [veafSkynet.SpotterSpeedClasses.Mobile] = 2,
+  [veafSkynet.SpotterSpeedClasses.Fast] = 3,
+}
+
+--- A group's eyes and radio: **the best of its live units**.
+---
+--- David's rule, 2026-09-21: *"on peut simplement prendre comme portée visuelle du groupe celle de
+--- l'unité qui voit le plus loin"*. So a group mixing an `SA-18 Igla-S manpad` (10 km) with a
+--- `ZSU-23-4 Shilka` (0 — an air-defence vehicle that matches `SAM elements` first and is therefore
+--- blind) sees **10 km**, not 0 and not an average. It relays if any of its units relays, and it takes
+--- the **fastest** of their classes, since the class only decides how often the node's edges are
+--- recomputed and recomputing too often is harmless where too rarely is not.
+---
+--- **Derived on every call rather than cached**, and that is deliberate. The ± jitter is drawn once
+--- per *unit* name and remembered there, so this is a handful of cached lookups and a maximum — while
+--- a group profile stored under the group's name would go stale the moment its furthest-seeing unit
+--- died, and would quietly keep claiming eyes the group no longer has.
+---
+--- @param dcsGroup table|nil a DCS Group handle
+--- @return table `{ range = <metres>, relays = <boolean>, class = <speed class> }`, never nil
+function veafSkynet.getSpotterGroupProfile(dcsGroup)
+  local best = { range = 0, relays = false, class = veafSkynet.SpotterSpeedClasses.Slow }
+  for _, dcsUnit in ipairs(veafSkynet.liveUnitsOf(dcsGroup)) do
+    local name = veafSkynet.safeDcsName(dcsUnit)
+    local profile = veafSkynet.getSpotterProfile(dcsUnit, name)
+    if profile.range > best.range then
+      best.range = profile.range
+    end
+    if profile.relays then
+      best.relays = true
+    end
+    if (_SPOTTER_CLASS_RANK[profile.class] or 0) > (_SPOTTER_CLASS_RANK[best.class] or 0) then
+      best.class = profile.class
+    end
+  end
+  return best
+end
+
 --- Squared straight-line distance between two DCS points, altitude included.
 ---
 --- Slant range rather than ground range, and that is the honest measure for an aircraft: a fighter

@@ -85,5 +85,9 @@ opposite.
       assumed.
 - [x] Batteries dark at start, and the wave visibly staggered.
 - [x] The map view to specification.
-- [ ] Seen and validated by David.
+- [x] Seen and validated by David, 2026-09-21 — the contact cross confirmed by eye and the
+      detection circle visible in his own screenshot. Getting there needed a product defect
+      fixed first: `dropLatchesForVanishedContacts` walked the whole `spotterLatches` table on
+      every coalition, so the pass for a side with an empty sky cancelled the other side's
+      detections and the two shapes were **unobservable** rather than merely unverified.
 - [ ] The README this folder does not yet have.

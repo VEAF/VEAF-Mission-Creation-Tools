@@ -1,6 +1,6 @@
 # FIX-SPOTTER-WAKEUP-LOG-RECORDS-A-STATE — the wake-up history re-writes the same wake-up every 5 s
 
-Status: ⬜ ready
+Status: ✅ done
 
 Found on 2026-09-21 while reading the spotter network's own durable history in game, during the
 visual validation of `FEAT-SPOTTER-DEMO-MISSION`.
@@ -85,9 +85,32 @@ read.
 
 ## Definition of done
 
-- [ ] A held static contact produces **one** wake-up line, not one per pass.
-- [ ] A site woken, released, and woken again by the same aircraft produces **two** — the test that
+- [x] A held static contact produces **one** wake-up line, not one per pass.
+- [x] A site woken, released, and woken again by the same aircraft produces **two** — the test that
       stops the fix from being a plain de-duplication.
-- [ ] A quiet mission holding one contact no longer reaches the 200-entry cap — the number that
+- [x] A quiet mission holding one contact no longer reaches the 200-entry cap — the number that
       makes this a loss of information and not a matter of tidiness.
-- [ ] `poetry run test-lua` green, `stylua` clean.
+- [x] `poetry run test-lua` green, `stylua` clean.
+
+## What was built
+
+`veafSkynet.spotterHandedOver` holds, per coalition and per site, the aircraft that site was handed
+at the **previous** pass. `handOverSpotterAlerts` reads it before the loop and rewrites it after, and
+records a wake-up only for an aircraft that was not in it. Skynet is still told on every pass — it
+ages contacts out — and only the recording is gated; the per-pass `debug` line, which flooded the
+same way through the other channel, went with it.
+
+There are **two** ways a site is released and they take different branches, so both clear the
+memory: the aircraft leaves the envelope (nothing is reported, the rewritten set is empty), and the
+site stops holding anything at all (the early return before the envelope is ever asked). A release
+is stored as *nothing* rather than an empty table, so being woken again later is a new event.
+
+Four tests in `TestSpotterWakeUpHistory`, which now stands up the same Skynet site double as
+`TestSpotterHandover` — a transition is only observable by running real hand-over passes. Twelve
+passes on a held contact give one line while Skynet is told twelve times; an hour of passes (720)
+still gives one and never approaches the cap; the two re-wake tests were each checked against a
+naive never-forget version and **both go red on it**, which is what stops the fix from being a
+de-duplication.
+
+Not covered here: the in-game re-reading. The measurement that opened this lot came from a live
+mission, and the counterpart — a night of flying producing a history a human can read — needs DCS.

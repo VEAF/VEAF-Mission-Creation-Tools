@@ -3381,6 +3381,54 @@ veafSkynet.spotterHandoverArmed = false
 --- five seconds for a four-hour mission is a log nobody can read.
 veafSkynet.spotterHandoverDoorWarned = false
 
+--- Per coalition, per site, the aircraft that site was handed at the **previous** pass, as a set of
+--- aircraft names.
+---
+--- The hand-over re-reports a held contact on every 5 s pass, which is right — Skynet ages contacts
+--- out, so a contact that stops being re-reported is dropped. Recording that as a wake-up every time
+--- is not: measured in a live mission holding **one** static aircraft, 117 history entries for a
+--- contact that never moved, about 24 lines a minute for as long as it was held. Against the
+--- 200-entry cap that erases a whole evening in about eight minutes, so the durable history answered
+--- *what did the network wake in the last eight minutes* instead of the question it exists for.
+---
+--- So a wake-up is recorded on the **transition**: this site was not already holding this aircraft.
+--- The previous pass is the only place that transition can be read from — the site's own state
+--- cannot attribute a wake-up, which is precisely why this history exists.
+veafSkynet.spotterHandedOver = {}
+
+--- The aircraft one site was handed at the previous pass.
+---
+--- @param coa number
+--- @param siteName string
+--- @return table set keyed on aircraft name, never nil
+function veafSkynet.getSpotterHandedOver(coa, siteName)
+  local perCoalition = veafSkynet.spotterHandedOver[coa]
+  return (perCoalition and perCoalition[siteName]) or {}
+end
+
+--- Remember what one site was handed, for the next pass.
+---
+--- An empty set is stored as **nothing**, so a site that loses its contact — it left the envelope,
+--- the alert was cancelled, the aircraft left the mission — forgets it, and being woken again later
+--- is a new event. Collapsing on "site + aircraft" for the whole mission instead would hide exactly
+--- the flapping this history is the only witness to.
+---
+--- @param coa number
+--- @param siteName string
+--- @param handed table|nil set keyed on aircraft name
+function veafSkynet.setSpotterHandedOver(coa, siteName, handed)
+  local remembered = (handed and next(handed)) and handed or nil
+  local perCoalition = veafSkynet.spotterHandedOver[coa]
+  if not perCoalition then
+    if not remembered then
+      return
+    end
+    perCoalition = {}
+    veafSkynet.spotterHandedOver[coa] = perCoalition
+  end
+  perCoalition[siteName] = remembered
+end
+
 --- The aircraft a unit is currently holding, as DCS Unit handles, skipping the ones that have left.
 ---
 --- @param coa number
@@ -3457,24 +3505,36 @@ function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
     held[veafSkynet.safeDcsName(dcsAircraft) or tostring(dcsAircraft)] = dcsAircraft
   end
   if not next(held) then
+    -- Holding nothing is a release, and it has to be remembered as one: a site that keeps what it
+    -- was handed here would read a later alert about the same aircraft as the same, still-held
+    -- contact and record no second wake-up.
+    veafSkynet.setSpotterHandedOver(coa, groupName, nil)
     return
   end
 
-  for _, dcsAircraft in pairs(held) do
+  -- What was handed at the previous pass, read before this one overwrites it: that is what makes a
+  -- wake-up an event rather than the state of a contact held for the last twenty minutes.
+  local previouslyHanded = veafSkynet.getSpotterHandedOver(coa, groupName)
+  local nowHanded = {}
+
+  for aircraftName, dcsAircraft in pairs(held) do
     local inEnvelope, answer = pcall(samSite.isTargetInRange, samSite, dcsAircraft)
     if inEnvelope and answer then
       if iads.reportContact then
         local reported = pcall(iads.reportContact, iads, dcsAircraft, samSite)
         if reported then
-          veafSkynet.recordSpotterWakeUp(coa, tostring(samSite.dcsName) .. " <- " .. tostring(veafSkynet.safeDcsName(dcsAircraft)))
-          veaf.loggers.get(veafSkynet.Id):debug(
-            string.format(
-              "spotter network handed [%s] to [%s] on [%s]",
-              veaf.p(veafSkynet.safeDcsName(dcsAircraft)),
-              veaf.p(samSite.dcsName),
-              veaf.p(networkName)
+          nowHanded[aircraftName] = true
+          if not previouslyHanded[aircraftName] then
+            veafSkynet.recordSpotterWakeUp(coa, tostring(samSite.dcsName) .. " <- " .. tostring(veafSkynet.safeDcsName(dcsAircraft)))
+            veaf.loggers.get(veafSkynet.Id):debug(
+              string.format(
+                "spotter network handed [%s] to [%s] on [%s]",
+                veaf.p(veafSkynet.safeDcsName(dcsAircraft)),
+                veaf.p(samSite.dcsName),
+                veaf.p(networkName)
+              )
             )
-          )
+          end
         end
       elseif not veafSkynet.spotterHandoverDoorWarned then
         -- The door exists in VEAF/Skynet-IADS but the artifact vendored here predates it. Said once,
@@ -3486,6 +3546,8 @@ function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
       end
     end
   end
+
+  veafSkynet.setSpotterHandedOver(coa, groupName, nowHanded)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

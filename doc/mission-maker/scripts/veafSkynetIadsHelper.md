@@ -171,6 +171,11 @@ survit : les 200 derniers, par coalition, avec l'instant de mission. Il répond 
 pose le lendemain — *est-ce que le réseau a réveillé quelque chose hier soir ?* — sans qu'il ait fallu
 prévoir la mesure à l'avance.
 
+**Une ligne par réveil, pas une par vérification.** Un site qui tient le même avion pendant vingt
+minutes écrit une seule ligne ; s'il perd le contact et que le même avion le réveille à nouveau,
+c'est une deuxième ligne. Une soirée de vol tient donc dans les 200, et un site qui clignote se voit
+pour ce qu'il est.
+
 ```lua
 for _, entry in ipairs(veafSkynet.getSpotterWakeUpLog(coalition.side.RED)) do
     env.info(string.format("%d s : %s", entry.at, entry.line))

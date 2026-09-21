@@ -121,6 +121,7 @@ local function _resetSpotterState()
   veafSkynet.spotterProfiles = {}
   veafSkynet.spotterLatches = {}
   veafSkynet.spotterContacts = {}
+  veafSkynet.spotterHandedOver = {}
   veafSkynet.spotterWaves = {}
   veafSkynet.spotterPropagationArmed = false
   veafSkynet.spotterDetectionArmed = false
@@ -1624,23 +1625,30 @@ end
 -- ---------------------------------------------------------------------------
 -- Handing over to Skynet
 -- ---------------------------------------------------------------------------
-TestSpotterHandover = {}
 
-function TestSpotterHandover:setUp()
+--- One red network, one SAM site of two launchers, one aircraft named `Bandit`.
+---
+--- Shared with `TestSpotterWakeUpHistory`: a wake-up is recorded on a *transition* between two
+--- hand-over passes, so that suite can only observe it by running real passes against the same
+--- Skynet site double rather than by standing up a second one.
+---
+--- @param fixture table the test instance, which receives `reported`, `rangeAsked`, `inEnvelope`,
+---        `bandit`, `previousGetByName`, `samSite` and `iads`
+local function _standUpSpotterHandover(fixture)
   _resetSpotterState()
   veafSkynet.SpotterNetwork = true
   veafSkynet.spotterHandoverArmed = false
   veafSkynet.spotterHandoverDoorWarned = false
 
-  self.reported = {}
-  self.rangeAsked = {}
-  self.inEnvelope = true
+  fixture.reported = {}
+  fixture.rangeAsked = {}
+  fixture.inEnvelope = true
 
-  self.bandit = _unit("Bandit", { ["Air"] = true }, 0, 5000, 0)
-  self.previousGetByName = Unit.getByName
+  fixture.bandit = _unit("Bandit", { ["Air"] = true }, 0, 5000, 0)
+  fixture.previousGetByName = Unit.getByName
   Unit.getByName = function(name)
     if name == "Bandit" then
-      return self.bandit
+      return fixture.bandit
     end
     return nil
   end
@@ -1649,26 +1657,46 @@ function TestSpotterHandover:setUp()
   local siteUnits = { _unit("Sam1", { ["SAM elements"] = true }), _unit("Sam2", { ["SAM elements"] = true }) }
   local siteGroup = _group("SamSite", siteUnits)
   setmetatable(siteGroup, Group)
-  self.samSite = {
+  fixture.samSite = {
     dcsName = "SamSite",
     dcsRepresentation = siteGroup,
     isTargetInRange = function(_, target)
-      table.insert(self.rangeAsked, veafSkynet.safeDcsName(target))
-      return self.inEnvelope
+      table.insert(fixture.rangeAsked, veafSkynet.safeDcsName(target))
+      return fixture.inEnvelope
     end,
   }
 
-  self.iads = {
+  fixture.iads = {
     getSAMSites = function()
-      return { self.samSite }
+      return { fixture.samSite }
     end,
     reportContact = function(_, dcsUnit, samSite)
-      table.insert(self.reported, veafSkynet.safeDcsName(dcsUnit) .. "@" .. samSite.dcsName)
+      table.insert(fixture.reported, veafSkynet.safeDcsName(dcsUnit) .. "@" .. samSite.dcsName)
     end,
   }
   veafSkynet.structure = {
-    ["red iads"] = { coalitionID = coalition.side.RED, iads = self.iads },
+    ["red iads"] = { coalitionID = coalition.side.RED, iads = fixture.iads },
   }
+end
+
+--- Put the aircraft in the hands of the site's **node**, which is its group.
+---
+--- It used to be delivered to one of its launchers by unit name, and the hand-over then had to walk
+--- the site's units and union what each held. A Skynet SAM site *is* a group, so that walk is gone.
+---
+--- @param stamp number|nil the emission time, which must grow to be accepted after a cancellation
+local function _spotterSiteHolds(stamp)
+  veafSkynet.deliverSpotterMessage(
+    coalition.side.RED,
+    "SamSite",
+    { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = stamp or timer.getTime() }
+  )
+end
+
+TestSpotterHandover = {}
+
+function TestSpotterHandover:setUp()
+  _standUpSpotterHandover(self)
 end
 
 function TestSpotterHandover:tearDown()
@@ -1676,16 +1704,8 @@ function TestSpotterHandover:tearDown()
   veafSkynet.spotterHandoverArmed = false
 end
 
---- Put the aircraft in the hands of the site's **node**, which is its group.
----
---- It used to be delivered to one of its launchers by unit name, and the hand-over then had to walk
---- the site's units and union what each held. A Skynet SAM site *is* a group, so that walk is gone.
 function TestSpotterHandover:_siteHolds()
-  veafSkynet.deliverSpotterMessage(
-    coalition.side.RED,
-    "SamSite",
-    { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = timer.getTime() }
-  )
+  _spotterSiteHolds()
 end
 
 function TestSpotterHandover:test_a_site_holding_nothing_is_never_asked_for_its_envelope()
@@ -1951,19 +1971,22 @@ end
 TestSpotterWakeUpHistory = {}
 
 function TestSpotterWakeUpHistory:setUp()
-  _resetSpotterState()
-  veafSkynet.SpotterNetwork = true
+  -- The same Skynet site double as `TestSpotterHandover`, because what the history records is a
+  -- transition between two hand-over passes: the tests that matter here have to run real passes.
+  _standUpSpotterHandover(self)
+  veafSkynet.structure["red iads"].debugFlag = true
   veafSkynet.spotterStatusArmed = false
   veafSkynet.spotterStatusAcquisitions = {}
   veafSkynet.spotterStatusWakeUps = {}
   veafSkynet.spotterWakeUpLog = {}
   self._savedCap = veafSkynet.SpotterWakeUpLogSize
-  veafSkynet.structure = { ["red iads"] = { coalitionID = RED, debugFlag = true } }
 end
 
 function TestSpotterWakeUpHistory:tearDown()
+  Unit.getByName = self.previousGetByName
   veafSkynet.SpotterWakeUpLogSize = self._savedCap
   veafSkynet.spotterStatusArmed = false
+  veafSkynet.spotterHandoverArmed = false
 end
 
 function TestSpotterWakeUpHistory:test_the_history_survives_the_page_that_drains_the_bucket()
@@ -2039,6 +2062,65 @@ function TestSpotterWakeUpHistory:test_one_coalition_does_not_read_the_others_hi
   veafSkynet.recordSpotterWakeUp(RED, "RedSam <- BlueJet")
   luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 1)
   luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(coalition.side.BLUE), 0)
+end
+
+function TestSpotterWakeUpHistory:test_a_held_contact_is_one_line_and_not_one_per_pass()
+  -- The defect, read out of a live mission holding **one** static aircraft: 117 entries for a
+  -- contact that had not moved, two per pass, one pass every five seconds. The hand-over recorded a
+  -- *state* -- this site is holding this aircraft -- where the history answers a question about
+  -- *events*.
+  _spotterSiteHolds()
+  for _ = 1, 12 do
+    veafSkynet.spotterHandoverPass()
+  end
+
+  luaunit.assertEquals(#self.reported, 12, "Skynet is still told every pass: it ages contacts out")
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 1, "one wake-up is one line")
+end
+
+function TestSpotterWakeUpHistory:test_a_site_that_loses_the_aircraft_and_regains_it_is_two_lines()
+  -- The test that stops the fix from being a plain de-duplication on "site + aircraft": a site that
+  -- goes dark and is woken again by the same aircraft is a second event, and this history is the
+  -- only witness to that flapping.
+  _spotterSiteHolds()
+  veafSkynet.spotterHandoverPass()
+  self.inEnvelope = false
+  veafSkynet.spotterHandoverPass()
+  self.inEnvelope = true
+  veafSkynet.spotterHandoverPass()
+
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 2)
+end
+
+function TestSpotterWakeUpHistory:test_a_contact_cancelled_and_raised_again_is_two_lines()
+  -- The other way a site is released, and the other branch of the hand-over: the site holds nothing
+  -- at all, which returns before the envelope is ever asked. A fix that only forgets on "left the
+  -- envelope" reads the new alert as the same contact, still held, and says nothing.
+  _spotterSiteHolds(10)
+  veafSkynet.spotterHandoverPass()
+  veafSkynet.deliverSpotterMessage(RED, "SamSite", { kind = "cancel", aircraft = "Bandit", origin = "Scout", stamp = 20 })
+  veafSkynet.spotterHandoverPass()
+  _spotterSiteHolds(30)
+  veafSkynet.spotterHandoverPass()
+
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 2)
+end
+
+function TestSpotterWakeUpHistory:test_an_hour_of_holding_one_contact_does_not_reach_the_cap()
+  -- The number that makes this a loss of information rather than a matter of tidiness. At the two
+  -- lines per pass measured in game, the 200-entry cap erased the whole history in about eight
+  -- minutes, so the durable log answered "what did the network wake in the last eight minutes"
+  -- instead of the question it was written for.
+  _spotterSiteHolds()
+  for _ = 1, math.floor(3600 / veafSkynet.SpotterDetectionPeriod) do
+    veafSkynet.spotterHandoverPass()
+  end
+
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 1)
+  luaunit.assertTrue(
+    #veafSkynet.getSpotterWakeUpLog(RED) < veafSkynet.SpotterWakeUpLogSize,
+    "a quiet mission must not spend its history on a contact that never moved"
+  )
 end
 
 function TestSpotterStatusPage:test_the_graph_line_counts_pockets()

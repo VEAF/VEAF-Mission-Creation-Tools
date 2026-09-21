@@ -50,7 +50,18 @@ maintains, maintain it in ticket 02's code rather than recomputing it here.
 - The tests above.
 - A line in `doc/mission-maker/scripts/veafSkynetIadsHelper.md` and `.en.md` saying how to turn it
   on and how to read it — three causes for a wake-up is exactly the thing a mission maker needs told
-  in advance, and `doc/mission-maker/LOGS.md` is where they will look for it.
+  in advance.
+
+  **This line used to send the reader to `doc/mission-maker/LOGS.md` as well, and that was wrong**
+  (checked 2026-09-21, after the lot had shipped). `LOGS.md` documents the `veaf-logs` **tool** — how
+  to launch the viewer, its three states, its profiles, its search and its shortcuts — and says
+  nothing about what any VEAF module writes. The module's own page is the only right home, and it
+  carries it.
+
+  What *is* owed on the tooling side, and owed nothing here: `veaf-logs` classifies a line by its
+  source, and its rules catalogue matches Skynet on the generic `(SKYNET|skynet)` prefix
+  (`veaf_logs/rules.json`, `sources[5]`). Every line this page emits carries the `SKYNET` logger id,
+  so it is already classified and no rule had to be added. Verified rather than assumed.
 - `poetry run test-lua` green, `stylua --check src/scripts/veaf/ test/lua/` clean, `poetry run
   docs-check` after touching `doc/`, Lua coverage floor bumped.
 - `CHANGELOG.md` updated under `[Unreleased]`, appended at the end of the section.

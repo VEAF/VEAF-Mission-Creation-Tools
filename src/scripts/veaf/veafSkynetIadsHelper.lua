@@ -2793,16 +2793,19 @@ function veafSkynet.spotterGraphPass(class)
   for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
     local graph = veafSkynet.getSpotterGraph(coa)
     local seen = {}
+    local changed = false
     for _, relay in ipairs(veafSkynet.listSpotterRelays(coa, class)) do
       seen[relay.name] = true
       local node = graph.nodes[relay.name]
       if not node then
         veafSkynet.reEdgeSpotterNode(graph, relay.name, relay.x, relay.z, class)
+        changed = true
       else
         local dx = relay.x - node.x
         local dz = relay.z - node.z
         if dx * dx + dz * dz > thresholdSq then
           veafSkynet.reEdgeSpotterNode(graph, relay.name, relay.x, relay.z, class)
+          changed = true
         end
       end
     end
@@ -2817,6 +2820,19 @@ function veafSkynet.spotterGraphPass(class)
     end
     for _, name in ipairs(gone) do
       veafSkynet.removeSpotterNode(graph, name)
+    end
+
+    -- The map view draws units where they were last re-edged, so a pass that moved one has
+    -- invalidated it: without this a spotter that drives on while still watching keeps its marker,
+    -- and its range circle, where it first saw the aircraft.
+    --
+    -- Only when something actually moved, appeared or vanished. Asking on every pass would redraw
+    -- every ten seconds whether or not anything changed, and a redraw takes the markers off the map
+    -- and puts them back — which reads as a blink. Asked for rather than done, because this is
+    -- exactly the burst the coalescing guard exists for: three class passes and a combat zone
+    -- spawning all land within the same second.
+    if changed or #gone > 0 then
+      veafSkynet.requestSpotterViewRedraw()
     end
   end
 end

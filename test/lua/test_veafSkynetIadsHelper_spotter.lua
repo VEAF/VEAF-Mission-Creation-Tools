@@ -20,6 +20,11 @@ dofile(src .. "/veafEventHandler.lua")
 -- falls back to itself, and a test then cannot tell a menu that reads "Show the spotter view"
 -- from one that shows the player `menu.skynet.spotterview.show`.
 dofile(src .. "/veafI18n.lua")
+-- The real radio module, not a double. The menu tests below stub it for the fine-grained
+-- assertions, but `TestSpotterViewRealRadio` drives this one: a submenu that stacks, a coalition
+-- scope that is dropped or a usage that resolves to something other than ForAll are all things a
+-- hand-written stub would keep agreeing with for ever.
+dofile(src .. "/veafRadio.lua")
 
 -- The helper reads `SkynetIADS.database` at initialisation and `dcsUnits.DcsUnitsDatabase` right
 -- after; neither is exercised here, but the module refuses to load without them.
@@ -836,6 +841,37 @@ function TestSpotterGraph:test_the_graph_stays_symmetric_after_a_move()
       luaunit.assertTrue(adjacency[to][from], from .. " reaches " .. to .. " but not the other way")
     end
   end
+end
+
+function TestSpotterGraph:test_a_pass_that_moved_a_unit_asks_the_map_view_to_redraw()
+  -- Found in review. The view draws units where they were last re-edged, so a spotter that drives on
+  -- while still watching kept its marker, and its detection circle, where it first saw the aircraft.
+  self:_relays({ { name = "A", x = 0, z = 0 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  veafSkynet.spotterRedrawScheduled = nil
+
+  self:_relays({ { name = "A", x = 100000, z = 0 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNotNil(veafSkynet.spotterRedrawScheduled)
+end
+
+function TestSpotterGraph:test_a_pass_where_nothing_moved_asks_for_nothing()
+  -- A redraw takes the markers off the map and puts them back, which reads as a blink. Asking on
+  -- every pass would blink them every ten seconds for no reason.
+  self:_relays({ { name = "A", x = 0, z = 0 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  veafSkynet.spotterRedrawScheduled = nil
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNil(veafSkynet.spotterRedrawScheduled)
+end
+
+function TestSpotterGraph:test_a_unit_leaving_the_graph_asks_the_map_view_to_redraw()
+  self:_relays({ { name = "A", x = 0, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  veafSkynet.spotterRedrawScheduled = nil
+  self:_relays({ { name = "A", x = 0, z = 0 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNotNil(veafSkynet.spotterRedrawScheduled)
 end
 
 function TestSpotterGraph:test_nothing_is_built_when_the_feature_is_off()
@@ -1739,6 +1775,66 @@ function TestSpotterViewModes:test_a_missing_radio_module_does_not_take_the_star
   veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
   local ok = pcall(veafSkynet._armSpotterView)
   luaunit.assertTrue(ok)
+end
+
+-- ---------------------------------------------------------------------------
+-- The radio switch, against the real veafRadio
+--
+-- Found in review: everything above drives a double written in this file, so it pins what the double
+-- does rather than what the module does. These four assert the outcomes that matter against the
+-- module itself, which is what would notice `clearSubmenu` changing, the coalition scope being
+-- dropped, or a usage resolving to something a game master cannot see.
+-- ---------------------------------------------------------------------------
+TestSpotterViewRealRadio = {}
+
+function TestSpotterViewRealRadio:setUp()
+  _resetSpotterState()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet.spotterViewRootPaths = {}
+  veafSkynet.spotterViewArmed = false
+  veafSkynet.spotterViewCoalitions = {}
+  veafSkynet.structure = { ["red iads"] = { coalitionID = RED } }
+  veafSkynet._armSpotterView()
+  self.root = veafSkynet.spotterViewRootPaths[RED]
+end
+
+function TestSpotterViewRealRadio:tearDown()
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Off
+  veafSkynet.spotterViewArmed = false
+  veafSkynet.spotterViewRootPaths = {}
+  veafSkynet.spotterViewCoalitions = {}
+end
+
+function TestSpotterViewRealRadio:test_the_submenu_is_built_and_scoped_to_red()
+  luaunit.assertNotNil(self.root)
+  luaunit.assertEquals(self.root.coalition, RED)
+  luaunit.assertEquals(self.root.title, veaf.t("menu.skynet.root"))
+end
+
+function TestSpotterViewRealRadio:test_the_command_resolves_to_usage_for_all()
+  -- Not "we passed nil" -- what the module made of it. A game master has no group, so anything but
+  -- ForAll builds a menu the only intended audience cannot see (#128).
+  luaunit.assertEquals(#self.root.commands, 1)
+  luaunit.assertEquals(self.root.commands[1].usage, veafRadio.USAGE_ForAll)
+end
+
+function TestSpotterViewRealRadio:test_toggling_repeatedly_never_stacks_a_second_entry()
+  for i = 1, 5 do
+    veafSkynet.toggleSpotterViewFromRadio(RED)
+    luaunit.assertEquals(#self.root.commands, 1, "after toggle " .. i)
+  end
+  luaunit.assertEquals(#self.root.subMenus, 0)
+end
+
+function TestSpotterViewRealRadio:test_the_label_follows_the_state_through_the_real_module()
+  luaunit.assertEquals(self.root.commands[1].title, veaf.t("menu.skynet.spotterview.show"))
+  veafSkynet.toggleSpotterViewFromRadio(RED)
+  luaunit.assertTrue(veafSkynet.spotterViewCoalitions[RED])
+  luaunit.assertEquals(self.root.commands[1].title, veaf.t("menu.skynet.spotterview.hide"))
+  veafSkynet.toggleSpotterViewFromRadio(RED)
+  luaunit.assertNil(veafSkynet.spotterViewCoalitions[RED])
+  luaunit.assertEquals(self.root.commands[1].title, veaf.t("menu.skynet.spotterview.show"))
 end
 
 -- ---------------------------------------------------------------------------

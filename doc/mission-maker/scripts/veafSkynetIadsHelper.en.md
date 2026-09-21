@@ -170,6 +170,11 @@ but the module keeps a **history of spotter-network wake-ups** that survives it:
 coalition, each with its mission time. It answers the question asked the next day — *did the network
 wake anything last night?* — without the measurement having to be planned in advance.
 
+**One line per wake-up, not one per check.** A site holding the same aircraft for twenty minutes
+writes a single line; if it loses the contact and is woken again by the same aircraft, that is a
+second line. So an evening of flying fits in the 200, and a site that keeps flapping shows up as
+what it is.
+
 ```lua
 for _, entry in ipairs(veafSkynet.getSpotterWakeUpLog(coalition.side.RED)) do
     env.info(string.format("%d s: %s", entry.at, entry.line))

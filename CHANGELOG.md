@@ -144,6 +144,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   1.1 MB as JPEG** for no visible difference, while a cropped shot of flat interface colour is the
   other way round.
 
+### Fixed
+
+- **The spotter network's wake-up history re-wrote the same wake-up every five seconds.** Read in a
+  live mission holding **one** aircraft that had not moved: 117 entries, two per hand-over pass, about
+  24 lines a minute for as long as the contact was held. The hand-over recorded a *state* — this site
+  is holding this aircraft — where the history answers a question about *events*. Since the history is
+  capped at 200 entries per coalition with the oldest dropped first, one held contact erased the whole
+  thing in about eight minutes, so *did the network wake anything last night?* was answered with the
+  last eight minutes of a single contact. A wake-up is now recorded on the **transition**: the site
+  was not already holding that aircraft one check ago. A held contact costs one line; a site that
+  loses the contact and is woken again by the same aircraft still costs a second, because that
+  flapping is what this history is the only witness to — whether it lost it by the aircraft leaving
+  its envelope, by the alert being cancelled, by being destroyed and rebuilt, or by its whole network
+  being switched off and on again. Skynet is still told on every check, unchanged — it ages contacts
+  out.
+
 ## [6.23.1] — 2026-09-20
 
 ### Fixed

@@ -3381,6 +3381,70 @@ veafSkynet.spotterHandoverArmed = false
 --- five seconds for a four-hour mission is a log nobody can read.
 veafSkynet.spotterHandoverDoorWarned = false
 
+--- How many hand-over passes have run. It is what tells *handed at the previous pass* from *handed
+--- at some point and released since*, and it is a count rather than a clock because the question is
+--- about the beat, not about elapsed time: a server that skips a beat under load must not be read
+--- as a site letting its contact go.
+veafSkynet.spotterHandoverPasses = 0
+
+--- Per coalition, per site, what that site was handed and when, as `{ pass, aircraft }` where
+--- `aircraft` is a set of aircraft names.
+---
+--- The hand-over re-reports a held contact on every 5 s pass, which is right — Skynet ages contacts
+--- out, so a contact that stops being re-reported is dropped. Recording that as a wake-up every time
+--- is not: measured in a live mission holding **one** static aircraft, 117 history entries for a
+--- contact that never moved, about 24 lines a minute for as long as it was held. Against the
+--- 200-entry cap that erases a whole evening in about eight minutes, so the durable history answered
+--- *what did the network wake in the last eight minutes* instead of the question it exists for.
+---
+--- So a wake-up is recorded on the **transition**: this site was not already holding this aircraft
+--- one pass ago. The previous pass is the only place that transition can be read from — the site's
+--- own state cannot attribute a wake-up, which is precisely why this history exists.
+---
+--- **Why a stamp and not a clear.** A site is released in more ways than the hand-over can see from
+--- the inside: the aircraft leaves the envelope, the alert is cancelled, the aircraft leaves the
+--- mission, the site's group is destroyed, the sweep drops it from the network, or its whole network
+--- is switched off — and that last one is decided in the caller, which never reaches this site at
+--- all. Clearing at each known release enumerates a list that is wrong by construction. Being absent
+--- from the previous pass, whatever the reason, **is** the release.
+veafSkynet.spotterHandedOver = {}
+
+--- What one site was handed at the previous pass, and nothing if it missed that pass.
+---
+--- @param coa number
+--- @param siteName string
+--- @return table set keyed on aircraft name, never nil
+function veafSkynet.getSpotterHandedOver(coa, siteName)
+  local perCoalition = veafSkynet.spotterHandedOver[coa]
+  local entry = perCoalition and perCoalition[siteName]
+  if not entry or entry.pass ~= veafSkynet.spotterHandoverPasses - 1 then
+    return {}
+  end
+  return entry.aircraft
+end
+
+--- Remember what one site was handed on this pass.
+---
+--- An empty set is stored as **nothing**: a site handed nothing has been released, and the entry
+--- would only go stale one pass later anyway. Remembering "site + aircraft" for the whole mission
+--- instead would hide exactly the flapping this history is the only witness to.
+---
+--- @param coa number
+--- @param siteName string
+--- @param handed table|nil set keyed on aircraft name
+function veafSkynet.setSpotterHandedOver(coa, siteName, handed)
+  local remembered = (handed and next(handed)) and { pass = veafSkynet.spotterHandoverPasses, aircraft = handed } or nil
+  local perCoalition = veafSkynet.spotterHandedOver[coa]
+  if not perCoalition then
+    if not remembered then
+      return
+    end
+    perCoalition = {}
+    veafSkynet.spotterHandedOver[coa] = perCoalition
+  end
+  perCoalition[siteName] = remembered
+end
+
 --- The aircraft a unit is currently holding, as DCS Unit handles, skipping the ones that have left.
 ---
 --- @param coa number
@@ -3414,6 +3478,11 @@ function veafSkynet.spotterHandoverPass()
     return
   end
 
+  -- Counted before the networks are walked, and counted even for the ones this pass will skip: a
+  -- site its network never reaches is a site that was released, and that is the whole point of
+  -- stamping rather than clearing. See `spotterHandedOver`.
+  veafSkynet.spotterHandoverPasses = veafSkynet.spotterHandoverPasses + 1
+
   for networkName, veafSkynetNetwork in pairs(veafSkynet.structure) do
     local iads = veafSkynetNetwork.iads
     if iads and not veafSkynetNetwork.deactivated and veafSkynetNetwork.coalitionID then
@@ -3440,10 +3509,7 @@ end
 --- @param samSite table a Skynet SAM site
 function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
   local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(samSite)
-  if not dcsGroup then
-    return
-  end
-  local groupName = veafSkynet.safeDcsName(dcsGroup)
+  local groupName = dcsGroup and veafSkynet.safeDcsName(dcsGroup)
   if not groupName or groupName == "?" then
     return
   end
@@ -3460,21 +3526,29 @@ function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
     return
   end
 
-  for _, dcsAircraft in pairs(held) do
+  -- What was handed at the previous pass, read before this one overwrites it: that is what makes a
+  -- wake-up an event rather than the state of a contact held for the last twenty minutes.
+  local previouslyHanded = veafSkynet.getSpotterHandedOver(coa, groupName)
+  local nowHanded = {}
+
+  for aircraftName, dcsAircraft in pairs(held) do
     local inEnvelope, answer = pcall(samSite.isTargetInRange, samSite, dcsAircraft)
     if inEnvelope and answer then
       if iads.reportContact then
         local reported = pcall(iads.reportContact, iads, dcsAircraft, samSite)
         if reported then
-          veafSkynet.recordSpotterWakeUp(coa, tostring(samSite.dcsName) .. " <- " .. tostring(veafSkynet.safeDcsName(dcsAircraft)))
-          veaf.loggers.get(veafSkynet.Id):debug(
-            string.format(
-              "spotter network handed [%s] to [%s] on [%s]",
-              veaf.p(veafSkynet.safeDcsName(dcsAircraft)),
-              veaf.p(samSite.dcsName),
-              veaf.p(networkName)
+          nowHanded[aircraftName] = true
+          if not previouslyHanded[aircraftName] then
+            veafSkynet.recordSpotterWakeUp(coa, tostring(samSite.dcsName) .. " <- " .. tostring(veafSkynet.safeDcsName(dcsAircraft)))
+            veaf.loggers.get(veafSkynet.Id):debug(
+              string.format(
+                "spotter network handed [%s] to [%s] on [%s]",
+                veaf.p(veafSkynet.safeDcsName(dcsAircraft)),
+                veaf.p(samSite.dcsName),
+                veaf.p(networkName)
+              )
             )
-          )
+          end
         end
       elseif not veafSkynet.spotterHandoverDoorWarned then
         -- The door exists in VEAF/Skynet-IADS but the artifact vendored here predates it. Said once,
@@ -3486,6 +3560,8 @@ function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
       end
     end
   end
+
+  veafSkynet.setSpotterHandedOver(coa, groupName, nowHanded)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3521,9 +3597,9 @@ veafSkynet.spotterStatusAcquisitions = {}
 
 --- Per coalition, the sites woken since the last page, as a **set** keyed on `"<site> <- <aircraft>"`.
 ---
---- A set rather than a list, because the hand-over reports the same contact on every 5 s pass while
---- the aircraft stays inside the envelope — which is correct, Skynet ages contacts out — and a list
---- would therefore print the same line twelve times per page and bury everything else.
+--- A set rather than a list. The hand-over records a wake-up on the **transition** only, so the
+--- twelve-a-page repeats this was written against are gone; what is left is a site flapping in and
+--- out of one envelope, which a page can say once and a list would say eight times.
 veafSkynet.spotterStatusWakeUps = {}
 
 --- Whether any network of this coalition will print a status page, i.e. is in debug.
@@ -3592,9 +3668,9 @@ end
 --- for at most thirty seconds. That is a problem before it is a testing problem — asked *"did the
 --- spotter network actually wake anything on my server last night"*, nobody could answer.
 ---
---- An **array** and not a set, unlike the page bucket: the page dedupes because the same contact is
---- re-reported every 5 s while the aircraft stays in the envelope, but a history that collapses
---- twelve wake-ups two hours apart into one line is not a history. Deduping is the reader's job.
+--- An **array** and not a set, unlike the page bucket: a history that collapses two wake-ups two
+--- hours apart into one line is not a history. What keeps it readable is the hand-over recording
+--- only the transition, not this structure deduping — see `spotterHandedOver`.
 ---
 --- Capped, because a mission runs for hours and this is the one structure here with no natural end.
 --- The **oldest** entries go first: on a four-hour server the interesting question is what happened

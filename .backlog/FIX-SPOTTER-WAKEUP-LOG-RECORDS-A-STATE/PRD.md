@@ -1,6 +1,6 @@
 # FIX-SPOTTER-WAKEUP-LOG-RECORDS-A-STATE — the wake-up history re-writes the same wake-up every 5 s
 
-Status: ⬜ ready
+Status: ✅ done
 
 Found on 2026-09-21 while reading the spotter network's own durable history in game, during the
 visual validation of `FEAT-SPOTTER-DEMO-MISSION`.
@@ -85,9 +85,43 @@ read.
 
 ## Definition of done
 
-- [ ] A held static contact produces **one** wake-up line, not one per pass.
-- [ ] A site woken, released, and woken again by the same aircraft produces **two** — the test that
+- [x] A held static contact produces **one** wake-up line, not one per pass.
+- [x] A site woken, released, and woken again by the same aircraft produces **two** — the test that
       stops the fix from being a plain de-duplication.
-- [ ] A quiet mission holding one contact no longer reaches the 200-entry cap — the number that
+- [x] A quiet mission holding one contact no longer reaches the 200-entry cap — the number that
       makes this a loss of information and not a matter of tidiness.
-- [ ] `poetry run test-lua` green, `stylua` clean.
+- [x] `poetry run test-lua` green, `stylua` clean.
+
+## What was built
+
+`veafSkynet.spotterHandedOver` holds, per coalition and per site, what that site was handed and on
+which pass. `handOverSpotterAlerts` reads it before the loop and rewrites it after, and records a
+wake-up only for an aircraft that was not handed to that site **one pass ago**. Skynet is still told
+on every pass — it ages contacts out — and only the recording is gated; the per-pass `debug` line,
+which flooded the same way through the other channel, went with it.
+
+**A stamp, not a clear, and that is the correction the review made.** The first attempt cleared the
+memory at each release it could see from inside the hand-over: the aircraft leaves the envelope, the
+site stops holding anything, the site's DCS group is destroyed. Three branches, three clears — and
+the list was wrong by construction, because a site is also released by things decided *above* the
+function. A network switched off by a game master is never visited at all, so nothing inside could
+clear anything: switched back on, its sites were woken for real and the history said nothing. The
+same holds for a site the network sweep drops. So the memory carries the pass it was written on, and
+**being absent from the previous pass is the release**, whatever caused it. A count and not a clock:
+a server that skips a beat under load must not read as a site letting its contact go.
+
+Two stale comments went with it, both teaching the behaviour this lot removes — that the hand-over
+reports the same contact on every pass, and that the page's deduplication is what keeps the history
+readable.
+
+Seven tests in `TestSpotterWakeUpHistory`, which now stands up the same Skynet site double as
+`TestSpotterHandover` — a transition is only observable by running real hand-over passes. Twelve
+passes on a held contact give one line while Skynet is told twelve times; an hour of passes (720)
+still gives one and never approaches the cap; four re-wake cases give two — envelope lost, alert
+cancelled, group destroyed and rebuilt, network switched off and on — plus the rule on its own.
+Measured rather than assumed: against the first attempt the network case gives **1**, and with the
+staleness test removed **four** of them go red. That is what stops the fix from being a
+de-duplication.
+
+Not covered here: the in-game re-reading. The measurement that opened this lot came from a live
+mission, and the counterpart — a night of flying producing a history a human can read — needs DCS.

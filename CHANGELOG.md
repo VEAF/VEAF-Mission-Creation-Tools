@@ -77,6 +77,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The Skynet drift watch could no longer fire.** It watched a file in `VEAF/Skynet-IADS` that the
   repository stopped committing when its build moved to CI, so the newest commit touching that path
   was the one deleting it — permanently. It now watches the GitHub releases, like CTLD.
+- **The spotter network kept no trace of having worked.** The record naming which site a relayed
+  report woke was wiped on every status cycle — by two assignments placed *outside* the debug test, so
+  they ran whether or not anything had printed. *"Did the spotter network wake anything on the server
+  last night?"* therefore had no answer, and could not have one. There is now a durable history, the
+  last 200 wake-ups per coalition with their mission time, readable with
+  `veafSkynet.getSpotterWakeUpLog(coalition.side.RED)` and documented on
+  [the module's page](doc/mission-maker/scripts/veafSkynetIadsHelper.md#diagnosing-a-dark-site). Two
+  smaller defects went with it: the status page now drains **only the coalition it just printed** (a
+  mission running red in debug and blue not lost blue's records on red's page, so switching blue's
+  debug on later showed an empty first page reading as *nothing happened*), and the page buckets are
+  no longer filled at all for a coalition that will never print them.
+
+### Added
+
+- **A rig that proves a spotter report travels** — `test/veaf-tools/demo-spotter-network`, driven
+  through the DCS bridge with nobody flying: a MANPADS spotter 10 km from a battery with no eyes of
+  its own, a control battery 60 km away that no report can reach, and the last line of defence
+  switched off so the verdict cannot come from a radius drawn at random. Run it with
+  `veaf-tools smoke-test --suite spotter`. Its README states what it does **not** prove, too.
 
 ## [6.23.1] — 2026-09-20
 

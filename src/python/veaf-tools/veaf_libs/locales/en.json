@@ -377,6 +377,8 @@
   "cmd.smoke_test.opt.allow_running": "For --full: use a DCS that is already running instead of refusing (it loads the mission over the current session).",
   "cmd.smoke_test.opt.api_key": "dcs-serve superuser Bearer token for the VEAF (bridge) checks (default: read from dcs-serve.yaml).",
   "cmd.smoke_test.opt.config": "Path to a dcs-serve.yaml / dcs-client.yaml where the bridge API key is read.",
+  "cmd.smoke_test.opt.suite": "Which set of checks to run: 'default' (every mission) or 'spotter' (the demo-spotter-network rig only).",
+  "cmd.smoke_test.unknown_suite": "'{suite}' is not a known check suite. Known suites: {known}.",
   "cmd.smoke_test.opt.dcs_exe": "Path to DCS.exe for a --full run (default: discovered from a running DCS's install dir).",
   "cmd.smoke_test.opt.fiddle_token": "The hook's per-session Basic-auth password (default: read from ~/dcs-fiddle-token.txt, or $DCS_FIDDLE_TOKEN).",
   "cmd.smoke_test.opt.full": "Launch DCS, load --mission, assert, then quit — a full unattended run instead of assuming DCS is already up.",

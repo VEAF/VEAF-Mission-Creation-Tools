@@ -1407,6 +1407,23 @@ function TestSpotterStatusPage:test_one_network_does_not_report_the_others_sight
   luaunit.assertStrContains(_pageText(), "RedTank -> BlueJet")
 end
 
+function TestSpotterStatusPage:test_a_coalition_that_was_not_printed_keeps_its_records()
+  -- The drain used to be two assignments after the loop, wiping every coalition whether or not its
+  -- page had been printed. A mission running red in debug and blue not therefore wiped blue's
+  -- records on red's page, so switching blue's debug on later showed an empty first page — which
+  -- reads as "nothing happened" and is the one answer the page must never give by accident.
+  veafSkynet.structure["blue iads"] = { coalitionID = coalition.side.BLUE, debugFlag = false }
+  veafSkynet.recordSpotterAcquisition(RED, "RedTank -> BlueJet")
+  -- Blue's bucket is written directly: with debug off, `recordSpotterAcquisition` declines to fill
+  -- it, and what this test is about is the **drain**, not the fill.
+  veafSkynet.spotterStatusAcquisitions[coalition.side.BLUE] = { ["BlueTank -> RedJet"] = true }
+
+  veafSkynet.spotterStatusPage()
+
+  luaunit.assertNil(veafSkynet.spotterStatusAcquisitions[RED], "red was printed, so red is drained")
+  luaunit.assertNotNil(veafSkynet.spotterStatusAcquisitions[coalition.side.BLUE], "blue was never printed")
+end
+
 function TestSpotterStatusPage:test_a_site_woken_over_and_over_is_reported_once()
   -- Found in review. The hand-over reports the same contact on every 5 s pass while the aircraft
   -- stays inside the envelope -- which is right, Skynet ages contacts out -- so a list would print the
@@ -1423,6 +1440,108 @@ function TestSpotterStatusPage:test_a_site_woken_over_and_over_is_reported_once(
     end
   end
   luaunit.assertEquals(occurrences, 1)
+end
+
+-- ---------------------------------------------------------------------------
+-- The durable wake-up history
+--
+-- The page buckets are wiped on every cycle, which is right for a page and wrong for everything
+-- else: until this existed, the only trace that the feature had ever done its job lived for at most
+-- thirty seconds, so *"did the spotter network wake anything on my server last night"* had no
+-- answer. It is also what makes an off-line check of the feature possible at all — reading the page
+-- bucket from outside races the drain and reports a false negative.
+-- ---------------------------------------------------------------------------
+TestSpotterWakeUpHistory = {}
+
+function TestSpotterWakeUpHistory:setUp()
+  _resetSpotterState()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.spotterStatusArmed = false
+  veafSkynet.spotterStatusAcquisitions = {}
+  veafSkynet.spotterStatusWakeUps = {}
+  veafSkynet.spotterWakeUpLog = {}
+  self._savedCap = veafSkynet.SpotterWakeUpLogSize
+  veafSkynet.structure = { ["red iads"] = { coalitionID = RED, debugFlag = true } }
+end
+
+function TestSpotterWakeUpHistory:tearDown()
+  veafSkynet.SpotterWakeUpLogSize = self._savedCap
+  veafSkynet.spotterStatusArmed = false
+end
+
+function TestSpotterWakeUpHistory:test_the_history_survives_the_page_that_drains_the_bucket()
+  -- The defect this exists for, stated as a test: print the page, then ask again.
+  veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit")
+  veafSkynet.spotterStatusPage()
+
+  local history = veafSkynet.getSpotterWakeUpLog(RED)
+  luaunit.assertEquals(#history, 1, "the page must not take the history with it")
+  luaunit.assertEquals(history[1].line, "SamSite <- Bandit")
+  -- ...and the page bucket really was drained, so this cannot pass because nothing drains at all.
+  luaunit.assertNil(veafSkynet.spotterStatusWakeUps[RED])
+end
+
+function TestSpotterWakeUpHistory:test_it_is_recorded_even_with_debug_off()
+  -- The case that matters in the field: nobody switched debug on beforehand, and the question is
+  -- asked afterwards. The page bucket is deliberately not filled here; the history is.
+  veafSkynet.structure["red iads"].debugFlag = false
+  veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit")
+
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 1)
+  luaunit.assertNil(veafSkynet.spotterStatusWakeUps[RED], "a bucket nobody prints must not be filled")
+end
+
+function TestSpotterWakeUpHistory:test_repeats_are_kept_because_a_history_that_collapses_them_is_not_one()
+  -- The opposite rule from the page, on purpose: the page dedupes so twelve 5 s repeats do not bury
+  -- it, the history keeps them so two wake-ups hours apart are two facts.
+  timer.setTime(10)
+  veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit")
+  timer.setTime(7200)
+  veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit")
+
+  local history = veafSkynet.getSpotterWakeUpLog(RED)
+  luaunit.assertEquals(#history, 2)
+  luaunit.assertEquals(history[1].at, 10)
+  luaunit.assertEquals(history[2].at, 7200)
+end
+
+function TestSpotterWakeUpHistory:test_it_is_capped_and_drops_the_oldest()
+  -- A mission runs for hours and this is the one structure here with no natural end.
+  veafSkynet.SpotterWakeUpLogSize = 3
+  for i = 1, 5 do
+    timer.setTime(i)
+    veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit" .. tostring(i))
+  end
+
+  local history = veafSkynet.getSpotterWakeUpLog(RED)
+  luaunit.assertEquals(#history, 3)
+  luaunit.assertEquals(history[1].line, "SamSite <- Bandit3", "the oldest go first")
+  luaunit.assertEquals(history[3].line, "SamSite <- Bandit5")
+end
+
+function TestSpotterWakeUpHistory:test_a_negative_cap_does_not_hang_the_mission()
+  -- Found in review. `SpotterWakeUpLogSize` is settable from a mission, and the trim loop used to be
+  -- `while #history > cap`: measured in Lua 5.1, `table.remove` on an empty table succeeds silently
+  -- and leaves the length at 0, so a negative cap made `0 > -1` true for ever. It runs inside the
+  -- detection beat, so the mission froze with nothing in the log to explain it.
+  --
+  -- luaunit cannot time out a hang, so this test **is** the reproduction: if the guard goes, the
+  -- whole suite stops here rather than reporting a failure. That is the honest shape for a hang.
+  veafSkynet.SpotterWakeUpLogSize = -1
+  veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit")
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 0, "a negative cap keeps nothing, and terminates")
+end
+
+function TestSpotterWakeUpHistory:test_a_zero_cap_switches_the_history_off()
+  veafSkynet.SpotterWakeUpLogSize = 0
+  veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit")
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 0)
+end
+
+function TestSpotterWakeUpHistory:test_one_coalition_does_not_read_the_others_history()
+  veafSkynet.recordSpotterWakeUp(RED, "RedSam <- BlueJet")
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 1)
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(coalition.side.BLUE), 0)
 end
 
 function TestSpotterStatusPage:test_the_graph_line_counts_pockets()

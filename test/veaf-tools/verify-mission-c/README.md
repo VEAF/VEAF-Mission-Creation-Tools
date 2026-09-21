@@ -237,21 +237,36 @@ coalition-scoped menu paths reach him, while `USAGE_ForGroup` never can.
 
 ### 8 · FEAT-SPOTTER-NETWORK — does the word travel? (check 13) {#check-13}
 
-✅ **Unblocked.** The hand-over calls `SkynetIADS:reportContact`, which was missing from the artifact
-vendored here (`3.4.0RP-VEAF build 05.09.2026`) and is present in **3.5.0**, vendored by
-[the vendoring ticket](../../../.backlog/FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md).
-The first line of the table below is therefore the one that must **not** appear any more; if it does,
-the build is carrying the old artifact and nothing else in this check means anything.
+⚠️ **This mission can no longer answer "does the word travel?".** Do not read a `woke:` line here as
+proof of the spotter network — measured 2026-09-21, and it is the lot that unblocked this check that
+broke it:
 
-**Two things to read in the same session, because 3.5.0 brought them and nothing off-line can show
-them.** First, the **last line of defence** now lights a dark site inside a 10–15 km radius of its
-own, so a battery waking with no `woke:` line and no EWR contact is that radius doing its job, not a
-defect. Second, Skynet's four **setup warnings** are shown on screen again after five years of going
-to the log only — `WARNING: you have added an SAM site that Skynet IADS can not handle` is the one a
-VEAF mission can plausibly produce, since a lenient-mode group can qualify on one unit and still not
-match a Skynet database entry. Note whether any appears, and on which group.
+| | Measured |
+|---|---|
+| red units here able to spot | **two Ural-375 trucks** — the EWR and the three SA-6 are excluded from spotting by design |
+| a truck's sight range | **3 km** |
+| those trucks → nearest SA-6 | **8.9 km** |
+| last-line-of-defence radius, now shipped on | **10–15 km** |
 
-**What to look for in `dcs.log`**, with `debug_red: true` temporarily set so the status page prints:
+Being seen by a truck means flying within 3 km of it, hence 6–12 km from the battery — **inside its
+own radius**. The battery lights up by itself, and nothing distinguishes that from a relayed contact.
+
+**That question now lives in [`demo-spotter-network`](../demo-spotter-network/README.md)**, a rig
+built so the two cannot be confused, with a control battery out of radio reach and the last line of
+defence switched off. Run `veaf-tools smoke-test --suite spotter` against it.
+
+**What this check is still worth taking in a session**, and why it was not deleted: the F10 menu
+half below, which `demo-spotter-network` does not cover. Plus two readings 3.5.0 brought that nothing
+off-line can show — a battery waking with no `woke:` line and no EWR contact is the last line of
+defence doing its job rather than a defect, and Skynet's four **setup warnings** are shown on screen
+again after five years of going to the log only. `WARNING: you have added an SAM site that Skynet
+IADS can not handle` is the one a VEAF mission can plausibly produce, since a lenient-mode group can
+qualify on one unit and still not match a Skynet database entry. Note whether any appears, and on
+which group.
+
+**What to look for in `dcs.log`**, with `debug_red: true` temporarily set so the status page prints.
+The `woke:` row below is kept because it is still worth *seeing*; it is no longer worth *concluding
+from*, for the reason above:
 
 | What the log says | What it means |
 |---|---|
@@ -261,12 +276,11 @@ match a Skynet database entry. Note whether any appears, and on which group.
 | `saw: <unit> -> <aircraft>` | a ground unit acquired an aircraft |
 | `woke: <site> <- <aircraft>` | a battery went live on a report rather than on its own radar |
 
-**The reading that answers the question** is `woke:` naming a site whose own units never appear in any
-`saw:` line. That is a battery lit by somebody else's eyes, which is the whole feature; a site that
-woke on its own would have seen the aircraft itself.
-
-**What would disprove it**: `saw:` lines with no `woke:` line while the aircraft is plainly inside a
-battery's envelope. Check the pocket count first — an alert never leaves the pocket it starts in.
+~~**The reading that answers the question** is `woke:` naming a site whose own units never appear in
+any `saw:` line.~~ **That reasoning held until the last line of defence shipped on**, and is kept
+struck through rather than deleted so nobody re-derives it: on this mission's geometry a battery lit
+by its own radius produces the same reading. `demo-spotter-network` is where it holds, because the
+distances there were chosen to make it hold.
 
 **The map view rides along**, set to `"radio"`, which is the mode carrying code of its own. In the
 F10 menu there should be a **SPOTTER NETWORK** entry with *Show the spotter view* under it; using it

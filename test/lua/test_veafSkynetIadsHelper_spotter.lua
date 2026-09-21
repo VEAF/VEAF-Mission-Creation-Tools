@@ -94,6 +94,9 @@ local function _resetSpotterState()
   coalition.getGroups = _realGetGroups
   veafSkynet.spotterProfiles = {}
   veafSkynet.spotterLatches = {}
+  veafSkynet.spotterContacts = {}
+  veafSkynet.spotterWaves = {}
+  veafSkynet.spotterPropagationArmed = false
   veafSkynet.spotterDetectionArmed = false
   veafSkynet.spotterGraphArmed = false
   veafSkynet.spotterGraphs = {}
@@ -395,11 +398,11 @@ function TestSpotterDetectionBeat:setUp()
   self.lost = {}
   self._realAcquired = veafSkynet.onSpotterAcquired
   self._realLost = veafSkynet.onSpotterLost
-  veafSkynet.onSpotterAcquired = function(spotterName, contactName)
-    table.insert(self.acquired, spotterName .. "->" .. contactName)
+  veafSkynet.onSpotterAcquired = function(coa, spotterName, contactName)
+    table.insert(self.acquired, coa .. ":" .. spotterName .. "->" .. contactName)
   end
-  veafSkynet.onSpotterLost = function(spotterName, contactName)
-    table.insert(self.lost, spotterName .. "->" .. contactName)
+  veafSkynet.onSpotterLost = function(coa, spotterName, contactName)
+    table.insert(self.lost, coa .. ":" .. spotterName .. "->" .. contactName)
   end
 end
 
@@ -423,7 +426,7 @@ end
 function TestSpotterDetectionBeat:test_a_tank_reports_an_aircraft_within_range()
   self:_layout(2000)
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertEquals(self.acquired, { "RedTank->BlueJet" })
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedTank->BlueJet" })
 end
 
 function TestSpotterDetectionBeat:test_it_reports_once_and_then_stays_quiet()
@@ -547,7 +550,7 @@ function TestSpotterDetectionBeat:test_the_beat_reports_a_loss_after_the_toleran
   veafSkynet.spotterDetectionBeat()
   luaunit.assertEquals(#self.lost, 0)
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertEquals(self.lost, { "RedTank->BlueJet" })
+  luaunit.assertEquals(self.lost, { coalition.side.RED .. ":RedTank->BlueJet" })
 end
 
 function TestSpotterDetectionBeat:test_a_dead_group_does_not_take_the_beat_down()
@@ -564,13 +567,16 @@ function TestSpotterDetectionBeat:test_a_dead_group_does_not_take_the_beat_down(
     [coalition.side.BLUE .. ":" .. Group.Category.AIRPLANE] = { _group("BlueGroup", { self.bandit }) },
   })
   veafSkynet.spotterDetectionBeat()
-  luaunit.assertEquals(self.acquired, { "RedTank->BlueJet" })
+  luaunit.assertEquals(self.acquired, { coalition.side.RED .. ":RedTank->BlueJet" })
 end
 
-function TestSpotterDetectionBeat:test_the_beat_re_arms_itself()
-  -- It returns its own period, which is how DCS keeps a repeating schedule alive.
+function TestSpotterDetectionBeat:test_the_beat_returns_nothing()
+  -- `veafScheduler` re-arms a repeating task from its own `rep` and ignores what the task returned.
+  -- A period handed back here would read as if it drove the schedule while driving nothing, and a
+  -- test asserting it would look like proof of re-arming and be proof of nothing. What actually
+  -- keeps the beat alive is asserted in TestSpotterWiring.
   self:_layout(2000)
-  luaunit.assertEquals(veafSkynet.spotterDetectionBeat(), veafSkynet.SpotterDetectionPeriod)
+  luaunit.assertNil(veafSkynet.spotterDetectionBeat())
 end
 
 -- ---------------------------------------------------------------------------
@@ -751,10 +757,255 @@ function TestSpotterGraph:test_nothing_is_built_when_the_feature_is_off()
   luaunit.assertNil(self:_graph().nodes["A"])
 end
 
-function TestSpotterGraph:test_the_pass_returns_its_own_class_period()
-  luaunit.assertEquals(veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Fast), 10)
-  luaunit.assertEquals(veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile), 20)
-  luaunit.assertEquals(veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Slow), 30)
+function TestSpotterGraph:test_each_class_has_a_period_of_its_own()
+  -- What the periods *are*; that they reach the scheduler is asserted in TestSpotterWiring.
+  luaunit.assertEquals(veafSkynet.SpotterGraphPeriods[veafSkynet.SpotterSpeedClasses.Fast], 10)
+  luaunit.assertEquals(veafSkynet.SpotterGraphPeriods[veafSkynet.SpotterSpeedClasses.Mobile], 20)
+  luaunit.assertEquals(veafSkynet.SpotterGraphPeriods[veafSkynet.SpotterSpeedClasses.Slow], 30)
+end
+
+-- ---------------------------------------------------------------------------
+-- Propagation: alert, cancellation, heartbeat
+-- ---------------------------------------------------------------------------
+TestSpotterPropagation = {}
+
+local RED = coalition.side.RED
+
+function TestSpotterPropagation:setUp()
+  _resetSpotterState()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.structure = { ["red iads"] = { coalitionID = RED } }
+end
+
+function TestSpotterPropagation:tearDown()
+  coalition.getGroups = _realGetGroups
+end
+
+--- Build a graph by hand: `chain("A", "B", "C")` links A-B and B-C and nothing else.
+---
+--- Hand-built rather than grown through `spotterGraphPass`, so a propagation test fails for a
+--- propagation reason and never for a graph one.
+local function _chain(...)
+  local names = { ... }
+  local graph = veafSkynet.getSpotterGraph(RED)
+  for _, name in ipairs(names) do
+    graph.adjacency[name] = graph.adjacency[name] or {}
+    graph.nodes[name] = { x = 0, z = 0, class = veafSkynet.SpotterSpeedClasses.Mobile }
+  end
+  for i = 1, #names - 1 do
+    graph.adjacency[names[i]][names[i + 1]] = true
+    graph.adjacency[names[i + 1]][names[i]] = true
+  end
+  return graph
+end
+
+local function _holds(unitName, aircraft)
+  local contact = veafSkynet.getSpotterContacts(RED, unitName)[aircraft]
+  return contact ~= nil and not contact.cancelled
+end
+
+function TestSpotterPropagation:test_the_spotter_holds_the_contact_immediately()
+  _chain("A", "B", "C")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  luaunit.assertTrue(_holds("A", "Bandit"))
+end
+
+function TestSpotterPropagation:test_it_reaches_k_hops_away_after_k_periods()
+  _chain("A", "B", "C", "D")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  luaunit.assertFalse(_holds("B", "Bandit"))
+
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("B", "Bandit"))
+  -- ...and no sooner. The "no sooner" half is what catches an accidental flood.
+  luaunit.assertFalse(_holds("C", "Bandit"))
+
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("C", "Bandit"))
+  luaunit.assertFalse(_holds("D", "Bandit"))
+
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("D", "Bandit"))
+end
+
+function TestSpotterPropagation:test_a_wave_terminates()
+  -- Each unit relays a given message at most once, because the message carries a fixed stamp. A
+  -- cycle in the graph must not make it circulate forever.
+  local graph = _chain("A", "B", "C")
+  graph.adjacency["C"]["A"] = true
+  graph.adjacency["A"]["C"] = true
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  for _ = 1, 20 do
+    veafSkynet.spotterPropagationTick()
+  end
+  luaunit.assertEquals(#(veafSkynet.spotterWaves[RED] or {}), 0)
+end
+
+function TestSpotterPropagation:test_an_alert_does_not_leave_its_pocket()
+  -- Two islands, no edge between them. An alert never leaves the pocket it starts in, which is the
+  -- whole reason the radio range decides whether this feature does anything at all.
+  _chain("A", "B")
+  _chain("Y", "Z")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  for _ = 1, 10 do
+    veafSkynet.spotterPropagationTick()
+  end
+  luaunit.assertTrue(_holds("B", "Bandit"))
+  luaunit.assertFalse(_holds("Y", "Bandit"))
+  luaunit.assertFalse(_holds("Z", "Bandit"))
+end
+
+function TestSpotterPropagation:test_two_spotters_in_one_pocket_merge()
+  -- Both ends of a five-unit chain see the same aircraft. The middle is served by whichever wave
+  -- reached it first — the nearest witness — and the other is not relayed past it.
+  _chain("A", "B", "C", "D", "E")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  veafSkynet.emitSpotterMessage(RED, "alert", "E", "Bandit")
+  for _ = 1, 10 do
+    veafSkynet.spotterPropagationTick()
+  end
+  for _, name in ipairs({ "A", "B", "C", "D", "E" }) do
+    luaunit.assertTrue(_holds(name, "Bandit"), name .. " should hold the contact")
+  end
+  luaunit.assertEquals(#(veafSkynet.spotterWaves[RED] or {}), 0)
+end
+
+function TestSpotterPropagation:test_two_spotters_in_separate_pockets_stay_independent()
+  _chain("A", "B")
+  _chain("Y", "Z")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  veafSkynet.emitSpotterMessage(RED, "alert", "Y", "Bandit")
+  for _ = 1, 10 do
+    veafSkynet.spotterPropagationTick()
+  end
+  -- Each front served its own pocket, and neither marked the other's units on the way.
+  luaunit.assertEquals(veafSkynet.getSpotterContacts(RED, "B")["Bandit"].origin, "A")
+  luaunit.assertEquals(veafSkynet.getSpotterContacts(RED, "Z")["Bandit"].origin, "Y")
+end
+
+function TestSpotterPropagation:test_a_cancellation_extinguishes_along_the_path()
+  _chain("A", "B", "C")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  veafSkynet.spotterPropagationTick()
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("C", "Bandit"))
+
+  timer.setTime(timer.getTime() + 1)
+  veafSkynet.emitSpotterMessage(RED, "cancel", "A", "Bandit")
+  veafSkynet.spotterPropagationTick()
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertFalse(_holds("A", "Bandit"))
+  luaunit.assertFalse(_holds("B", "Bandit"))
+  luaunit.assertFalse(_holds("C", "Bandit"))
+end
+
+function TestSpotterPropagation:test_a_cancellation_arriving_before_its_alert_is_not_undone()
+  -- The ordering rule. The graph is reconfigured between the two, so a cancellation can overtake the
+  -- alert it belongs to; without the rule the site would hold that contact forever.
+  _chain("A", "B")
+  local alert = { kind = "alert", aircraft = "Bandit", origin = "A", stamp = 100, frontier = {} }
+  local cancel = { kind = "cancel", aircraft = "Bandit", origin = "A", stamp = 200, frontier = {} }
+  luaunit.assertTrue(veafSkynet.deliverSpotterMessage(RED, "B", cancel))
+  luaunit.assertFalse(veafSkynet.deliverSpotterMessage(RED, "B", alert))
+  luaunit.assertFalse(_holds("B", "Bandit"))
+end
+
+function TestSpotterPropagation:test_a_stale_message_is_refused()
+  local older = { kind = "alert", aircraft = "Bandit", origin = "A", stamp = 100, frontier = {} }
+  local newer = { kind = "alert", aircraft = "Bandit", origin = "A", stamp = 200, frontier = {} }
+  luaunit.assertTrue(veafSkynet.deliverSpotterMessage(RED, "B", newer))
+  luaunit.assertFalse(veafSkynet.deliverSpotterMessage(RED, "B", older))
+  luaunit.assertEquals(veafSkynet.getSpotterContacts(RED, "B")["Bandit"].stamp, 200)
+end
+
+function TestSpotterPropagation:test_an_older_wave_dies_where_a_fresher_one_has_been()
+  -- What refusing a stale message buys, put the only way it can actually happen: two spotters at the
+  -- ends of a chain, the second seeing the aircraft a little later. Where the two fronts meet, the
+  -- older one has nothing left to tell anyone and stops; the fresher one carries on.
+  _chain("A", "B", "C")
+  timer.setTime(0)
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  timer.setTime(50)
+  veafSkynet.emitSpotterMessage(RED, "alert", "C", "Bandit")
+  luaunit.assertEquals(#veafSkynet.spotterWaves[RED], 2)
+
+  veafSkynet.spotterPropagationTick()
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertEquals(#veafSkynet.spotterWaves[RED], 1)
+  -- A is now served by the nearer-in-time witness, which is the merge the relaying rule produces.
+  luaunit.assertEquals(veafSkynet.getSpotterContacts(RED, "A")["Bandit"].origin, "C")
+end
+
+function TestSpotterPropagation:test_a_contact_nobody_refreshes_is_forgotten()
+  _chain("A", "B")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("B", "Bandit"))
+  timer.setTime(timer.getTime() + veafSkynet.SpotterForgetDelay - 1)
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("B", "Bandit"))
+  timer.setTime(timer.getTime() + 2)
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertFalse(_holds("B", "Bandit"))
+end
+
+function TestSpotterPropagation:test_a_lost_cancellation_is_caught_by_the_heartbeat_net()
+  -- The relay that would have carried the cancellation is gone, so the cancellation never arrives.
+  -- Nothing refreshes the far unit either, and it forgets on its own. That is the net under every
+  -- failure the design does not try to tell apart.
+  _chain("A", "B", "C")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  veafSkynet.spotterPropagationTick()
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("C", "Bandit"))
+
+  veafSkynet.removeSpotterNode(veafSkynet.getSpotterGraph(RED), "B")
+  timer.setTime(timer.getTime() + 1)
+  veafSkynet.emitSpotterMessage(RED, "cancel", "A", "Bandit")
+  veafSkynet.spotterPropagationTick()
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("C", "Bandit")) -- the cancellation could not reach it
+
+  timer.setTime(timer.getTime() + veafSkynet.SpotterForgetDelay + 1)
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertFalse(_holds("C", "Bandit"))
+end
+
+function TestSpotterPropagation:test_the_heartbeat_keeps_a_held_contact_alive()
+  _chain("A", "B")
+  veafSkynet.spotterLatches["A"] = { ["Bandit"] = { triggered = true, missedBeats = 0 } }
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  veafSkynet.spotterPropagationTick()
+
+  -- Just short of the forget delay, the spotter says it again.
+  timer.setTime(timer.getTime() + veafSkynet.SpotterForgetDelay - 10)
+  veafSkynet.spotterHeartbeat()
+  veafSkynet.spotterPropagationTick()
+  timer.setTime(timer.getTime() + 20)
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertTrue(_holds("B", "Bandit"))
+end
+
+function TestSpotterPropagation:test_the_heartbeat_says_nothing_for_a_contact_no_longer_held()
+  _chain("A", "B")
+  veafSkynet.spotterLatches["A"] = { ["Bandit"] = { triggered = false, missedBeats = 2 } }
+  veafSkynet.spotterHeartbeat()
+  luaunit.assertEquals(#(veafSkynet.spotterWaves[RED] or {}), 0)
+end
+
+function TestSpotterPropagation:test_the_heartbeat_says_nothing_for_a_spotter_off_the_graph()
+  _chain("A", "B")
+  veafSkynet.spotterLatches["Ghost"] = { ["Bandit"] = { triggered = true, missedBeats = 0 } }
+  veafSkynet.spotterHeartbeat()
+  luaunit.assertEquals(#(veafSkynet.spotterWaves[RED] or {}), 0)
+end
+
+function TestSpotterPropagation:test_nothing_propagates_when_the_feature_is_off()
+  _chain("A", "B")
+  veafSkynet.emitSpotterMessage(RED, "alert", "A", "Bandit")
+  veafSkynet.SpotterNetwork = false
+  veafSkynet.spotterPropagationTick()
+  luaunit.assertFalse(_holds("B", "Bandit"))
 end
 
 -- ---------------------------------------------------------------------------
@@ -873,6 +1124,54 @@ function TestSpotterWiring:test_each_graph_pass_carries_its_own_class()
   luaunit.assertTrue(classes[veafSkynet.SpotterSpeedClasses.Fast])
   luaunit.assertTrue(classes[veafSkynet.SpotterSpeedClasses.Mobile])
   luaunit.assertTrue(classes[veafSkynet.SpotterSpeedClasses.Slow])
+end
+
+function TestSpotterWiring:test_propagation_and_the_heartbeat_are_scheduled()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet._armSpotterPropagation()
+  local byFunction = {}
+  for _, task in ipairs(self.scheduled) do
+    byFunction[task.fn] = task
+  end
+  luaunit.assertNotNil(byFunction[veafSkynet.spotterPropagationTick])
+  luaunit.assertNotNil(byFunction[veafSkynet.spotterHeartbeat])
+  luaunit.assertEquals(byFunction[veafSkynet.spotterHeartbeat].rep, veafSkynet.SpotterHeartbeatPeriod)
+end
+
+function TestSpotterWiring:test_propagation_is_armed_at_the_derived_hop_period()
+  -- Not at a stored period: the whole reason a speed is exposed rather than a period is that
+  -- widening the range must slow the hops instead of doubling how fast an alert crosses the map.
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.SpotterRadioRange = 40000
+  veafSkynet._armSpotterPropagation()
+  for _, task in ipairs(self.scheduled) do
+    if task.fn == veafSkynet.spotterPropagationTick then
+      luaunit.assertEquals(task.rep, 40)
+      return
+    end
+  end
+  luaunit.fail("propagation was never scheduled")
+end
+
+function TestSpotterWiring:test_propagation_is_not_scheduled_when_the_feature_is_off()
+  veafSkynet.SpotterNetwork = false
+  veafSkynet._armSpotterPropagation()
+  for _, task in ipairs(self.scheduled) do
+    luaunit.assertNotEquals(task.fn, veafSkynet.spotterPropagationTick)
+  end
+end
+
+function TestSpotterWiring:test_arming_propagation_twice_does_not_stack_a_second_set()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet._armSpotterPropagation()
+  veafSkynet._armSpotterPropagation()
+  local count = 0
+  for _, task in ipairs(self.scheduled) do
+    if task.fn == veafSkynet.spotterPropagationTick then
+      count = count + 1
+    end
+  end
+  luaunit.assertEquals(count, 1)
 end
 
 function TestSpotterWiring:test_a_lost_unit_forgets_what_it_was_watching()

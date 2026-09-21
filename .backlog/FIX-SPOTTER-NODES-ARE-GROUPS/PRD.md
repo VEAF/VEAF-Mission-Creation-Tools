@@ -1,6 +1,6 @@
 # FIX-SPOTTER-NODES-ARE-GROUPS — the spotter network reasons about groups, not units
 
-Status: 🔄 in-progress — tickets 01 to 04 done; ticket 05 needs DCS
+Status: ✅ done — read back in game 2026-09-21
 
 Origin: David, 2026-09-21, looking at the F10 map of `spotter-network-walkthrough` after spawning two
 transport groups to link the isolated SA-6 into the network:
@@ -81,7 +81,7 @@ every fixture has to be re-expressed in groups.
 | 02 | [Detection and latches keyed by group](tickets/02-detection-and-latches-by-group.md) | ✅ done |
 | 03 | [The graph, the propagation and the hand-over keyed by group](tickets/03-graph-propagation-and-handover-by-group.md) | ✅ done |
 | 04 | [The view draws one shape set per group](tickets/04-the-view-draws-one-shape-set-per-group.md) | ✅ done |
-| 05 | [Read it back in game](tickets/05-read-it-back-in-game.md) | 🧑 needs DCS |
+| 05 | [Read it back in game](tickets/05-read-it-back-in-game.md) | ✅ done |
 
 Ordered so each one lands green: ticket 01 adds the two primitives without changing a caller, and the
 behaviour moves in 02.
@@ -109,5 +109,6 @@ remain as the checklist of the parts.
       own. One test of mine was too weak on the first pass and was strengthened.
 - [x] `poetry run test-lua` green (49 suites, 199 spotter tests), `stylua` clean. `luacheck` is not
       installed on this machine; the CI Lua gate runs it.
-- [ ] Re-read in game on the walkthrough mission with two convoys spawned: the picture is legible and
-      the truncation warning is gone. **Needs DCS.**
+- [x] Re-read in game, on a purpose-built dense mission rather than two convoys: 26 groups, 71
+      units, 135 shapes at the busiest against a budget of 400. Legible, and David confirmed every
+      shape of the colour rule on the map.

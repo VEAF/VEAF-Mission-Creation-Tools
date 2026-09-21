@@ -1,6 +1,6 @@
 # 05 — Read it back in game
 
-Status: 🧑 waiting-human — **needs DCS**
+Status: ✅ done — read back in game 2026-09-21
 
 A refactor whose whole justification is a picture nobody could read has to be re-read in the picture.
 
@@ -28,8 +28,39 @@ A refactor whose whole justification is a picture nobody could read has to be re
    against ticket 03's table. Read it in **one** call from a global a scheduled recorder filled;
    a sequence of bridge round trips outlives nothing and cost most of an afternoon.
 
+## What was actually done, and it went further than the ticket asked
+
+Two convoys were not enough to be worth the trip, so a **whole mission** was built for it:
+`test/veaf-tools/spotter-network-dense/`, Syria, anchored on Palmyra — 26 groups and 71 units, a
+screen of six observation posts over 95 km of front, two clusters packed the way a combat zone is
+packed, three air patrols, and a real combat zone absent until activated.
+
+Measured in game on 2026-09-21:
+
+| | per group (measured) | per unit (the old model) |
+|---|---|---|
+| nodes | **21**, then **26** with the combat zone activated | 57, then 71 |
+| links | **65–67**, then **78–83** | 576, then 713 |
+| shapes drawn | **103–135** | ~690–855, against a budget of **400** |
+
+So the mission would have been truncated by construction under the old model. David read the map
+colour by colour and confirmed each shape, including the **red square and red envelope** of a battery
+going live — the one shape that never drew at all before the review fix in `14cfc288`.
+
+Three things learned doing it, each written where it belongs:
+
+- **A red combat zone's radio menu goes to BLUE.** `getRadioMenuCoalition` falls back to the zone's
+  *friendly* coalition — the side that attacks it — so a **red** game master sees the `ZONES DE
+  COMBAT` root and nothing inside it. Not a defect; it cost a round of puzzlement, and activating
+  from the bridge is the right route for a red-side test.
+- **The combat zone respawns its groups under generated names** (`[r]-Canyon Platoon#25205`), and the
+  graph picks them up as five groups rather than fourteen units.
+- **The intruder was spawning at heading 0 with a route running south**, so it flew away, turned
+  round, and arrived a minute late — long enough for a measurement window to close on "nobody sees
+  it" and for me to raise a false alarm against working code. Fixed in both missions.
+
 ## Definition of done
 
-- [ ] Node and link counts measured in game match ticket 03.
-- [ ] The picture is legible with two convoys on the map, and David says so.
-- [ ] No `SpotterViewMaxShapes` truncation warning in `dcs.log` for this mission.
+- [x] Node and link counts measured in game, and they match ticket 03.
+- [x] The picture is legible at 26 groups, and David says so.
+- [x] No truncation: 135 shapes at the busiest, against a budget of 400.

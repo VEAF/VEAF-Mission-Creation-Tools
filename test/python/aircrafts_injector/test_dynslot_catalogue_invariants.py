@@ -41,9 +41,9 @@ _SUFFIX_FOR_COALITION = {"blue": " Template", "red": " Template Red"}
 
 #: Floors, in the ratchet sense: what the catalogue guarantees, raised by each lot that adds to
 #: it — never lowered, and never an equality, so adding a template is not a test edit.
-#: 104 templates, of which 18 carry a loadout.
-_MIN_TEMPLATES = 104
-_MIN_ARMED = 18
+#: 104 templates of which 18 were armed before this lot grafted 24 and armed 15 more.
+_MIN_TEMPLATES = 128
+_MIN_ARMED = 33
 
 
 class _Template:

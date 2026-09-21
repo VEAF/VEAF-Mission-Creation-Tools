@@ -656,6 +656,176 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        C-130J-30 Template:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 521
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: C-130J-30 Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: C-130J-30 Template
+                speed: 154.16666666667
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Transport
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NetCrewControlPriority: 0
+                allow_air_load: false
+                allow_moab: true
+                cargo_1: ''
+                cargo_10: ''
+                cargo_2: ''
+                cargo_3: ''
+                cargo_4: ''
+                cargo_5: ''
+                cargo_6: ''
+                cargo_7: ''
+                cargo_8: ''
+                cargo_9: ''
+                pre_flight_complete: false
+                ramp_down: false
+                save_custom_data: true
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 1
+                2: 1
+                3: 1
+                name: Enfield11
+              heading: 5.4628805587423
+              livery_id: default
+              name: 'C-130J-30 Template #01'
+              onboard_num: '010'
+              payload:
+                chaff: 220
+                flare: 200
+                fuel: 15753.6
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 154.16666666667
+              type: C-130J-30
+              unitId: 606
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        F-100D Template:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 254
+          groupId: 523
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: F-100D Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: F-100D Template
+                speed: 190.13888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                BURNER_OPTION: 0
+                CARTRIDGE_OPTION: false
+                PROBE_OPTION: 0
+                RHAW_OPTION: false
+                SWITCH_OPTION: 0
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 5
+                2: 5
+                3: 1
+                name: Dodge51
+              heading: 5.4628805587423
+              livery_id: default
+              name: 'F-100D Template #01'
+              onboard_num: '027'
+              payload:
+                ammo_type: 2
+                chaff: 0
+                flare: 0
+                fuel: 3505.4
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 190.13888888889
+              type: F-100D
+              unitId: 608
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         F-14B Template:
           communication: true
           dynSpawnTemplate: true
@@ -760,6 +930,91 @@ airplanes:
               speed: 138.88888888889
               type: F-14B
               unitId: 554
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        F-14BU Template:
+          DTC: {}
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 525
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: F-14BU Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: F-14BU Template
+                speed: 220.97222222222
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                ALE39Loadout: 0
+                INSAlignmentStored: false
+                IlsChannel: 1
+                KY28Key: 1
+                M61BURST: 0
+                RefuelingProbeCoverRemoved: false
+                TacanBand: 0
+                TacanChannel: 0
+              DTC: {}
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 8
+                2: 4
+                3: 1
+                name: Pontiac41
+              heading: 5.4628805587423
+              livery_id: vf-103 2004 aa100 buno 162918
+              name: 'F-14BU Template #01'
+              onboard_num: '026'
+              payload:
+                ammo_type: 1
+                chaff: 140
+                flare: 60
+                fuel: 7348
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 220.97222222222
+              type: F-14BU
+              unitId: 610
               x: 0
               y: 0
           x: 0
@@ -1097,7 +1352,27 @@ airplanes:
                 flare: 60
                 fuel: 3249
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+                  2:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+                  3:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+                  4:
+                    CLSID: '{F376DBEE-4CAE-41BA-ADD9-B2910AC95DEC}'
+                  5:
+                    CLSID: ALQ_184_Long
+                  6:
+                    CLSID: '{F376DBEE-4CAE-41BA-ADD9-B2910AC95DEC}'
+                  7:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+                  8:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+                  9:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+                  11:
+                    CLSID: '{A111396E-D3E8-4b9c-8AC9-2432489304D5}'
               psi: 0.32392576013592
               skill: Client
               speed: 138.88888888889
@@ -1519,7 +1794,53 @@ airplanes:
                 flare: 30
                 fuel: 4900
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{5CE2FF2A-645A-4197-B48D-8720AC69394F}'
+                    settings:
+                      NFP_PRESID: MDRN_M_A_AIM9
+                      NFP_VIS_DrawArgNo_57: 0.1
+                  2:
+                    CLSID: LAU_117_AGM_65F
+                  3:
+                    CLSID: '{BRU33_2X_GBU-12}'
+                    settings:
+                      01_prfx_arm_delay_ctrl_FMU139CB_LD: 4
+                      01_prfx_function_delay_ctrl_FMU139CB_LD: 0
+                      NFP_PRESID: Paveway_II
+                      NFP_PRESVER: 2
+                      NFP_VIS_DrawArgNo_57: 0
+                      NFP_fuze_type_tail: FMU139CB_LD
+                      laser_code: 1688
+                  4:
+                    CLSID: '{AAQ-28_LEFT}'
+                  5:
+                    CLSID: '{BRU33_2X_CBU-99}'
+                    settings:
+                      NFP_PRESID: MDRN_CC_A_CBU199
+                      NFP_PRESVER: 2
+                      NFP_fuze_type_nose: Mk339Mod1
+                      function_delay_ctrl_00_Mk339Mod1: 1.2
+                      function_delay_ctrl_01_Mk339Mod1: 4
+                  6:
+                    CLSID: '{40EF17B7-F508-45de-8566-6FFECC0C1AB8}'
+                  7:
+                    CLSID: '{BRU33_2X_GBU-12}'
+                    settings:
+                      01_prfx_arm_delay_ctrl_FMU139CB_LD: 4
+                      01_prfx_function_delay_ctrl_FMU139CB_LD: 0
+                      NFP_PRESID: Paveway_II
+                      NFP_PRESVER: 2
+                      NFP_VIS_DrawArgNo_57: 0
+                      NFP_fuze_type_tail: FMU139CB_LD
+                      laser_code: 1688
+                  8:
+                    CLSID: LAU_117_AGM_65F
+                  9:
+                    CLSID: '{5CE2FF2A-645A-4197-B48D-8720AC69394F}'
+                    settings:
+                      NFP_PRESID: MDRN_M_A_AIM9
+                      NFP_VIS_DrawArgNo_57: 0.1
               psi: -0.4422817554333
               skill: Client
               speed: 138.88888888889
@@ -1927,6 +2248,144 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        J-11A Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 127.5
+          groupId: 527
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: J-11A Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: J-11A Template
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: EngageTargets
+                      key: CAP
+                      number: 1
+                      params:
+                        priority: 0
+                        targetTypes:
+                        - Air
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 2
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 17
+                            value: true
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 3
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 18
+                            value: 4
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 4
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 19
+                            value: true
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 5
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 21
+                            noTargetTypes:
+                            - Fighters
+                            - Multirole fighters
+                            - Bombers
+                            - Helicopters
+                            - UAVs
+                            - Infantry
+                            - Fortifications
+                            - Tanks
+                            - IFV
+                            - APC
+                            - Artillery
+                            - Unarmed vehicles
+                            - AAA
+                            - SR SAM
+                            - MR SAM
+                            - LR SAM
+                            - Aircraft Carriers
+                            - Cruisers
+                            - Destroyers
+                            - Frigates
+                            - Corvettes
+                            - Light armed ships
+                            - Unarmed ships
+                            - Submarines
+                            - Cruise missiles
+                            - Antiship Missiles
+                            - AA Missiles
+                            - AG Missiles
+                            - SA Missiles
+                            targetTypes: {}
+                            value: none;
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: CAP
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 2000
+              alt_type: BARO
+              callsign: 127
+              heading: -2.7841034368387
+              livery_id: plaaf 14th ad
+              name: 'J-11A Template #01'
+              onboard_num: '012'
+              payload:
+                chaff: 96
+                flare: 96
+                fuel: 9400
+                gun: 100
+                pylons: {}
+              psi: 2.7777975223291
+              skill: Client
+              speed: 138.88888888889
+              type: J-11A
+              unitId: 612
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         JF-17 Template:
           communication: true
           dynSpawnTemplate: true
@@ -2178,6 +2637,80 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        La-7 Template:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 121.5
+          groupId: 529
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: La-7 Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: La-7 Template
+                speed: 123.33333333333
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft: {}
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 1
+                3: 1
+                name: Chevy11
+              heading: 2.8099800957109
+              livery_id: international grey
+              name: 'La-7 Template #01'
+              onboard_num: '011'
+              payload:
+                chaff: 0
+                flare: 0
+                fuel: 333
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 123.33333333333
+              type: La-7
+              unitId: 614
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         M-2000C Template:
           communication: true
           dynSpawnTemplate: true
@@ -2259,12 +2792,99 @@ airplanes:
                 flare: 16
                 fuel: 3165
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{MMagicII}'
+                  2:
+                    CLSID: '{Matra_S530D}'
+                  5:
+                    CLSID: '{M2KC_RPL_522}'
+                  8:
+                    CLSID: '{Matra_S530D}'
+                  9:
+                    CLSID: '{MMagicII}'
               psi: -0.075295812464168
               skill: Client
               speed: 138.88888888889
               type: M-2000C
               unitId: 601
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        MB-339 Template:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 531
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: MB-339 Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: MB-339 Template
+                speed: 123.33333333333
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NetCrewControlPriority: 1
+                SoloFlight: false
+                UnlimitedSmoke: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 1
+                2: 2
+                3: 1
+                name: Enfield21
+              heading: 2.8099800957109
+              livery_id: mb339pan 'frecce tricolori'
+              name: 'MB-339 Template #01'
+              onboard_num: '012'
+              payload:
+                chaff: 0
+                flare: 0
+                fuel: 626
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 123.33333333333
+              type: MB-339APAN
+              unitId: 616
               x: 0
               y: 0
           x: 0
@@ -2414,6 +3034,90 @@ airplanes:
               speed: 138.88888888889
               type: MiG-21Bis
               unitId: 598
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        MiG-29 Fulcrum Template:
+          DTC: {}
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 533
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: MiG-29 Fulcrum Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: MiG-29 Fulcrum Template
+                speed: 220.97222222222
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                AvionicsLanguage: 0
+                AvionicsUnits: 0
+                HUDLanguage: 0
+                HelmetMountedDevice: 1
+                IMU alignment type: 1
+                NS430allow: true
+                Realistic INS: 1
+                SPOMode: 1
+              DTC: {}
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 2
+                2: 2
+                3: 1
+                name: Springfield21
+              heading: 2.8099800957109
+              name: 'MiG-29 Fulcrum Template #01'
+              onboard_num: '013'
+              payload:
+                ammo_type: 5
+                chaff: 30
+                flare: 30
+                fuel: 3376
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 220.97222222222
+              type: MiG-29 Fulcrum
+              unitId: 618
               x: 0
               y: 0
           x: 0
@@ -2722,12 +3426,108 @@ airplanes:
                 flare: 30
                 fuel: '3376'
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{682A481F-0CB5-4693-A382-D00DD4A156D7}'
+                  2:
+                    CLSID: '{682A481F-0CB5-4693-A382-D00DD4A156D7}'
+                  3:
+                    CLSID: '{9B25D316-0434-4954-868F-D51DB1A38DF0}'
+                  4:
+                    CLSID: '{2BEC576B-CDF5-4B7F-961F-B0FA4312B841}'
+                  5:
+                    CLSID: '{9B25D316-0434-4954-868F-D51DB1A38DF0}'
+                  6:
+                    CLSID: '{682A481F-0CB5-4693-A382-D00DD4A156D7}'
+                  7:
+                    CLSID: '{682A481F-0CB5-4693-A382-D00DD4A156D7}'
               psi: 0
               skill: Client
               speed: 138.88888888889
               type: MiG-29G
               unitId: 591
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Mig-29S Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 535
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Mig-29S Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: Mig-29S Template
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: EngageTargets
+                      key: CAP
+                      number: 1
+                      params:
+                        priority: 0
+                        targetTypes:
+                        - Air
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: CAP
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 2000
+              alt_type: BARO
+              callsign: 163
+              heading: -2.7801995071368
+              livery_id: Air Force Standard
+              name: 'Mig-29S Template #01'
+              onboard_num: '062'
+              payload:
+                chaff: 30
+                flare: 30
+                fuel: '3493'
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  2:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  3:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  4:
+                    CLSID: '{2BEC576B-CDF5-4B7F-961F-B0FA4312B841}'
+                  5:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  6:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  7:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+              psi: 2.7801995071368
+              skill: Client
+              speed: 138.88888888889
+              type: MiG-29S
+              unitId: 620
               x: 0
               y: 0
           x: 0
@@ -3271,6 +4071,161 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        P-47D-40 Template:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 121.5
+          groupId: 537
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: P-47D-40 Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: P-47D-40 Template
+                speed: 123.33333333333
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: EngageTargets
+                      key: CAP
+                      number: 1
+                      params:
+                        priority: 0
+                        targetTypes:
+                        - Air
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 2
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 17
+                            value: true
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 3
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 18
+                            value: 4
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 4
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 19
+                            value: true
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 5
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 21
+                            noTargetTypes:
+                            - Fighters
+                            - Multirole fighters
+                            - Bombers
+                            - Helicopters
+                            - UAVs
+                            - Infantry
+                            - Fortifications
+                            - Tanks
+                            - IFV
+                            - APC
+                            - Artillery
+                            - Unarmed vehicles
+                            - AAA
+                            - SR SAM
+                            - MR SAM
+                            - LR SAM
+                            - Aircraft Carriers
+                            - Cruisers
+                            - Destroyers
+                            - Frigates
+                            - Corvettes
+                            - Light armed ships
+                            - Unarmed ships
+                            - Submarines
+                            - Cruise missiles
+                            - Antiship Missiles
+                            - AA Missiles
+                            - AG Missiles
+                            - SA Missiles
+                            targetTypes: {}
+                            value: none;
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 6
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: CAP
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                WaterTankContents: 1
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 5
+                2: 4
+                3: 1
+                name: Dodge41
+              heading: 2.8099800957109
+              livery_id: usaf standard
+              name: 'P-47D-40 Template #01'
+              onboard_num: '021'
+              payload:
+                ammo_type: 1
+                chaff: 0
+                flare: 0
+                fuel: 676.704
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 123.33333333333
+              type: P-47D-40
+              unitId: 622
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         P-51D Template:
           communication: true
           dynSpawnTemplate: true
@@ -3344,6 +4299,82 @@ airplanes:
               speed: 138.88888888889
               type: P-51D
               unitId: 579
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        P-51D-30 Template:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 121.5
+          groupId: 539
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: P-51D-30 Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: P-51D-30 Template
+                properties:
+                  addopt: {}
+                speed: 123.33333333333
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 4
+                3: 1
+                name: Ford41
+              heading: 2.8099800957109
+              livery_id: USAF 363rd FS, 357th FG DESERT RAT
+              name: 'P-51D-30 Template #01'
+              onboard_num: '023'
+              payload:
+                ammo_type: 1
+                chaff: 0
+                flare: 0
+                fuel: 497.76
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 123.33333333333
+              type: P-51D-30-NA
+              unitId: 624
               x: 0
               y: 0
           x: 0
@@ -3641,6 +4672,174 @@ airplanes:
               speed: 138.88888888889
               type: Su-27
               unitId: 605
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Su-33 Template:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 541
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Su-33 Template
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: Su-33 Template
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: EngageTargets
+                      key: CAP
+                      number: 1
+                      params:
+                        priority: 0
+                        targetTypes:
+                        - Air
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: CAP
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 2000
+              alt_type: BARO
+              callsign: 138
+              heading: -2.4772251456233
+              livery_id: 279th kiap 1st squad navy
+              name: 'Su-33 Template #01'
+              onboard_num: '064'
+              payload:
+                chaff: 48
+                flare: 48
+                fuel: 9500
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  2:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  3:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  4:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  5:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  6:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  7:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  8:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  9:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  10:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  11:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  12:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+              psi: 2.4706664499431
+              skill: Client
+              speed: 138.88888888889
+              type: Su-33
+              unitId: 626
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        T-45 Template:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 543
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: T-45 Template
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: T-45 Template
+                speed: 154.16666666667
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NetCrewControlPriority: -2
+                SoloFlight: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 4
+                3: 1
+                name: Chevy41
+              heading: 5.4628805587423
+              livery_id: default
+              name: 'T-45 Template #01'
+              onboard_num: '025'
+              payload:
+                chaff: 0
+                flare: 0
+                fuel: 1317.2338090011
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 154.16666666667
+              type: T-45
+              unitId: 628
               x: 0
               y: 0
           x: 0
@@ -4344,6 +5543,176 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        C-130J-30 Template Red:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 522
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: C-130J-30 Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: C-130J-30 Template Red
+                speed: 154.16666666667
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Transport
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NetCrewControlPriority: 0
+                allow_air_load: false
+                allow_moab: true
+                cargo_1: ''
+                cargo_10: ''
+                cargo_2: ''
+                cargo_3: ''
+                cargo_4: ''
+                cargo_5: ''
+                cargo_6: ''
+                cargo_7: ''
+                cargo_8: ''
+                cargo_9: ''
+                pre_flight_complete: false
+                ramp_down: false
+                save_custom_data: true
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 1
+                2: 1
+                3: 1
+                name: Enfield11
+              heading: 5.4628805587423
+              livery_id: default
+              name: 'C-130J-30 Template Red #01'
+              onboard_num: '010'
+              payload:
+                chaff: 220
+                flare: 200
+                fuel: 15753.6
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 154.16666666667
+              type: C-130J-30
+              unitId: 607
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        F-100D Template Red:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 254
+          groupId: 524
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: F-100D Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: F-100D Template Red
+                speed: 190.13888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                BURNER_OPTION: 0
+                CARTRIDGE_OPTION: false
+                PROBE_OPTION: 0
+                RHAW_OPTION: false
+                SWITCH_OPTION: 0
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 5
+                2: 5
+                3: 1
+                name: Dodge51
+              heading: 5.4628805587423
+              livery_id: default
+              name: 'F-100D Template Red #01'
+              onboard_num: '027'
+              payload:
+                ammo_type: 2
+                chaff: 0
+                flare: 0
+                fuel: 3505.4
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 190.13888888889
+              type: F-100D
+              unitId: 609
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         F-14B Template Red:
           communication: true
           dynSpawnTemplate: true
@@ -4448,6 +5817,91 @@ airplanes:
               speed: 138.88888888889
               type: F-14B
               unitId: 409
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        F-14BU Template Red:
+          DTC: {}
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 526
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: F-14BU Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: F-14BU Template Red
+                speed: 220.97222222222
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                ALE39Loadout: 0
+                INSAlignmentStored: false
+                IlsChannel: 1
+                KY28Key: 1
+                M61BURST: 0
+                RefuelingProbeCoverRemoved: false
+                TacanBand: 0
+                TacanChannel: 0
+              DTC: {}
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 8
+                2: 4
+                3: 1
+                name: Pontiac41
+              heading: 5.4628805587423
+              livery_id: vf-103 2004 aa100 buno 162918
+              name: 'F-14BU Template Red #01'
+              onboard_num: '026'
+              payload:
+                ammo_type: 1
+                chaff: 140
+                flare: 60
+                fuel: 7348
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 220.97222222222
+              type: F-14BU
+              unitId: 611
               x: 0
               y: 0
           x: 0
@@ -4775,12 +6229,36 @@ airplanes:
               name: 'F-16CM Template Red #01'
               onboard_num: 081
               payload:
-                ammo_type: 1
+                ammo_type: 5
                 chaff: 60
                 flare: 60
                 fuel: 3249
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{C8E06185-7CD6-4C90-959F-044679E90751}'
+                  2:
+                    CLSID: '{C8E06185-7CD6-4C90-959F-044679E90751}'
+                  3:
+                    CLSID: '{6CEB49FC-DED8-4DED-B053-E1F033FF72D3}'
+                    settings:
+                      NFP_PRESID: MDRN_M_A_AIM9
+                      NFP_VIS_DrawArgNo_57: 0.1
+                  4:
+                    CLSID: '{F376DBEE-4CAE-41BA-ADD9-B2910AC95DEC}'
+                  5:
+                    CLSID: <CLEAN>
+                  6:
+                    CLSID: '{F376DBEE-4CAE-41BA-ADD9-B2910AC95DEC}'
+                  7:
+                    CLSID: '{6CEB49FC-DED8-4DED-B053-E1F033FF72D3}'
+                    settings:
+                      NFP_PRESID: MDRN_M_A_AIM9
+                      NFP_VIS_DrawArgNo_57: 0.1
+                  8:
+                    CLSID: '{C8E06185-7CD6-4C90-959F-044679E90751}'
+                  9:
+                    CLSID: '{C8E06185-7CD6-4C90-959F-044679E90751}'
               psi: 0.32392576013592
               skill: Client
               speed: 138.88888888889
@@ -5021,7 +6499,13 @@ airplanes:
                 flare: 15
                 fuel: 2046
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{AIM-9B}'
+                  4:
+                    CLSID: '{0395076D-2F77-4420-9D33-087A4398130B}'
+                  7:
+                    CLSID: '{AIM-9B}'
               psi: -0.92386262759862
               skill: Client
               speed: 138.88888888889
@@ -5202,7 +6686,31 @@ airplanes:
                 flare: 30
                 fuel: 4900
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{6CEB49FC-DED8-4DED-B053-E1F033FF72D3}'
+                    settings:
+                      NFP_PRESID: MDRN_M_A_AIM9
+                      NFP_VIS_DrawArgNo_57: 0.1
+                  2:
+                    CLSID: '{LAU-115 - AIM-7M}'
+                  3:
+                    CLSID: '{FPU_8A_FUEL_TANK}'
+                  4:
+                    CLSID: '{8D399DDA-FF81-4F14-904D-099B34FE7918}'
+                  5:
+                    CLSID: '{FPU_8A_FUEL_TANK}'
+                  6:
+                    CLSID: '{8D399DDA-FF81-4F14-904D-099B34FE7918}'
+                  7:
+                    CLSID: '{FPU_8A_FUEL_TANK}'
+                  8:
+                    CLSID: '{LAU-115 - AIM-7M}'
+                  9:
+                    CLSID: '{6CEB49FC-DED8-4DED-B053-E1F033FF72D3}'
+                    settings:
+                      NFP_PRESID: MDRN_M_A_AIM9
+                      NFP_VIS_DrawArgNo_57: 0.1
               psi: -0.4422817554333
               skill: Client
               speed: 138.88888888889
@@ -5610,6 +7118,144 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        J-11A Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 127.5
+          groupId: 528
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: J-11A Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: J-11A Template Red
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: EngageTargets
+                      key: CAP
+                      number: 1
+                      params:
+                        priority: 0
+                        targetTypes:
+                        - Air
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 2
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 17
+                            value: true
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 3
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 18
+                            value: 4
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 4
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 19
+                            value: true
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 5
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 21
+                            noTargetTypes:
+                            - Fighters
+                            - Multirole fighters
+                            - Bombers
+                            - Helicopters
+                            - UAVs
+                            - Infantry
+                            - Fortifications
+                            - Tanks
+                            - IFV
+                            - APC
+                            - Artillery
+                            - Unarmed vehicles
+                            - AAA
+                            - SR SAM
+                            - MR SAM
+                            - LR SAM
+                            - Aircraft Carriers
+                            - Cruisers
+                            - Destroyers
+                            - Frigates
+                            - Corvettes
+                            - Light armed ships
+                            - Unarmed ships
+                            - Submarines
+                            - Cruise missiles
+                            - Antiship Missiles
+                            - AA Missiles
+                            - AG Missiles
+                            - SA Missiles
+                            targetTypes: {}
+                            value: none;
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: CAP
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 2000
+              alt_type: BARO
+              callsign: 127
+              heading: -2.7841034368387
+              livery_id: plaaf 14th ad
+              name: 'J-11A Template Red #01'
+              onboard_num: '012'
+              payload:
+                chaff: 96
+                flare: 96
+                fuel: 9400
+                gun: 100
+                pylons: {}
+              psi: 2.7777975223291
+              skill: Client
+              speed: 138.88888888889
+              type: J-11A
+              unitId: 613
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         JF-17 Template Red:
           communication: true
           dynSpawnTemplate: true
@@ -5861,6 +7507,80 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        La-7 Template Red:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 121.5
+          groupId: 530
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: La-7 Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: La-7 Template Red
+                speed: 123.33333333333
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft: {}
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 1
+                3: 1
+                name: Chevy11
+              heading: 2.8099800957109
+              livery_id: international grey
+              name: 'La-7 Template Red #01'
+              onboard_num: '011'
+              payload:
+                chaff: 0
+                flare: 0
+                fuel: 333
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 123.33333333333
+              type: La-7
+              unitId: 615
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         M-2000C Template Red:
           communication: true
           dynSpawnTemplate: true
@@ -5942,12 +7662,99 @@ airplanes:
                 flare: 16
                 fuel: 3165
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{MMagicII}'
+                  2:
+                    CLSID: '{Matra_S530D}'
+                  5:
+                    CLSID: '{M2KC_RPL_522}'
+                  8:
+                    CLSID: '{Matra_S530D}'
+                  9:
+                    CLSID: '{MMagicII}'
               psi: -0.075295812464168
               skill: Client
               speed: 138.88888888889
               type: M-2000C
               unitId: 196
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        MB-339 Template Red:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 532
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: MB-339 Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: MB-339 Template Red
+                speed: 123.33333333333
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NetCrewControlPriority: 1
+                SoloFlight: false
+                UnlimitedSmoke: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 1
+                2: 2
+                3: 1
+                name: Enfield21
+              heading: 2.8099800957109
+              livery_id: mb339pan 'frecce tricolori'
+              name: 'MB-339 Template Red #01'
+              onboard_num: '012'
+              payload:
+                chaff: 0
+                flare: 0
+                fuel: 626
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 123.33333333333
+              type: MB-339APAN
+              unitId: 617
               x: 0
               y: 0
           x: 0
@@ -6097,6 +7904,90 @@ airplanes:
               speed: 138.88888888889
               type: MiG-21Bis
               unitId: 280
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        MiG-29 Fulcrum Template Red:
+          DTC: {}
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 534
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: MiG-29 Fulcrum Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: MiG-29 Fulcrum Template Red
+                speed: 220.97222222222
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                AvionicsLanguage: 0
+                AvionicsUnits: 0
+                HUDLanguage: 0
+                HelmetMountedDevice: 1
+                IMU alignment type: 1
+                NS430allow: true
+                Realistic INS: 1
+                SPOMode: 1
+              DTC: {}
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 2
+                2: 2
+                3: 1
+                name: Springfield21
+              heading: 2.8099800957109
+              name: 'MiG-29 Fulcrum Template Red #01'
+              onboard_num: '013'
+              payload:
+                ammo_type: 5
+                chaff: 30
+                flare: 30
+                fuel: 3376
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 220.97222222222
+              type: MiG-29 Fulcrum
+              unitId: 619
               x: 0
               y: 0
           x: 0
@@ -6411,6 +8302,88 @@ airplanes:
               speed: 138.88888888889
               type: MiG-29G
               unitId: 83
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Mig-29S Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 536
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Mig-29S Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: Mig-29S Template Red
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: EngageTargets
+                      key: CAP
+                      number: 1
+                      params:
+                        priority: 0
+                        targetTypes:
+                        - Air
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: CAP
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 2000
+              alt_type: BARO
+              callsign: 163
+              heading: -2.7801995071368
+              livery_id: Air Force Standard
+              name: 'Mig-29S Template Red #01'
+              onboard_num: '062'
+              payload:
+                chaff: 30
+                flare: 30
+                fuel: '3493'
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  2:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  3:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  4:
+                    CLSID: '{2BEC576B-CDF5-4B7F-961F-B0FA4312B841}'
+                  5:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  6:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  7:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+              psi: 2.7801995071368
+              skill: Client
+              speed: 138.88888888889
+              type: MiG-29S
+              unitId: 621
               x: 0
               y: 0
           x: 0
@@ -6954,6 +8927,161 @@ airplanes:
               y: 0
           x: 0
           y: 0
+        P-47D-40 Template Red:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 121.5
+          groupId: 538
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: P-47D-40 Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: P-47D-40 Template Red
+                speed: 123.33333333333
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: EngageTargets
+                      key: CAP
+                      number: 1
+                      params:
+                        priority: 0
+                        targetTypes:
+                        - Air
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 2
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 17
+                            value: true
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 3
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 18
+                            value: 4
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 4
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 19
+                            value: true
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 5
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 21
+                            noTargetTypes:
+                            - Fighters
+                            - Multirole fighters
+                            - Bombers
+                            - Helicopters
+                            - UAVs
+                            - Infantry
+                            - Fortifications
+                            - Tanks
+                            - IFV
+                            - APC
+                            - Artillery
+                            - Unarmed vehicles
+                            - AAA
+                            - SR SAM
+                            - MR SAM
+                            - LR SAM
+                            - Aircraft Carriers
+                            - Cruisers
+                            - Destroyers
+                            - Frigates
+                            - Corvettes
+                            - Light armed ships
+                            - Unarmed ships
+                            - Submarines
+                            - Cruise missiles
+                            - Antiship Missiles
+                            - AA Missiles
+                            - AG Missiles
+                            - SA Missiles
+                            targetTypes: {}
+                            value: none;
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 6
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: CAP
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                WaterTankContents: 1
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 5
+                2: 4
+                3: 1
+                name: Dodge41
+              heading: 2.8099800957109
+              livery_id: usaf standard
+              name: 'P-47D-40 Template Red #01'
+              onboard_num: '021'
+              payload:
+                ammo_type: 1
+                chaff: 0
+                flare: 0
+                fuel: 676.704
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 123.33333333333
+              type: P-47D-40
+              unitId: 623
+              x: 0
+              y: 0
+          x: 0
+          y: 0
         P-51D Template Red:
           communication: true
           dynSpawnTemplate: true
@@ -7027,6 +9155,82 @@ airplanes:
               speed: 138.88888888889
               type: P-51D
               unitId: 206
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        P-51D-30 Template Red:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 121.5
+          groupId: 540
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: P-51D-30 Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: P-51D-30 Template Red
+                properties:
+                  addopt: {}
+                speed: 123.33333333333
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 6
+                2: 4
+                3: 1
+                name: Ford41
+              heading: 2.8099800957109
+              livery_id: USAF 363rd FS, 357th FG DESERT RAT
+              name: 'P-51D-30 Template Red #01'
+              onboard_num: '023'
+              payload:
+                ammo_type: 1
+                chaff: 0
+                flare: 0
+                fuel: 497.76
+                gun: 100
+                pylons: {}
+              psi: -2.8099800957109
+              skill: Client
+              speed: 123.33333333333
+              type: P-51D-30-NA
+              unitId: 625
               x: 0
               y: 0
           x: 0
@@ -7318,12 +9522,200 @@ airplanes:
                 flare: 96
                 fuel: 5590.18
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{44EE8698-89F9-48EE-AF36-5FD31896A82F}'
+                  2:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  3:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  4:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  5:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  6:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  7:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  8:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  9:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  10:
+                    CLSID: '{44EE8698-89F9-48EE-AF36-5FD31896A82A}'
               psi: 0
               skill: Client
               speed: 138.88888888889
               type: Su-27
               unitId: 64
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        Su-33 Template Red:
+          communication: true
+          dynSpawnTemplate: true
+          frequency: 124
+          groupId: 542
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: Su-33 Template Red
+          radioSet: false
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 2000
+                alt_type: BARO
+                formation_template: ''
+                name: Su-33 Template Red
+                speed: 138.88888888889
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: EngageTargets
+                      key: CAP
+                      number: 1
+                      params:
+                        priority: 0
+                        targetTypes:
+                        - Air
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: CAP
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              alt: 2000
+              alt_type: BARO
+              callsign: 138
+              heading: -2.4772251456233
+              livery_id: 279th kiap 1st squad navy
+              name: 'Su-33 Template Red #01'
+              onboard_num: '064'
+              payload:
+                chaff: 48
+                flare: 48
+                fuel: 9500
+                gun: 100
+                pylons:
+                  1:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  2:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  3:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  4:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  5:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  6:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  7:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  8:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  9:
+                    CLSID: '{E8069896-8435-4B90-95C0-01A03AE6E400}'
+                  10:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  11:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  12:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+              psi: 2.4706664499431
+              skill: Client
+              speed: 138.88888888889
+              type: Su-33
+              unitId: 627
+              x: 0
+              y: 0
+          x: 0
+          y: 0
+        T-45 Template Red:
+          communication: false
+          dynSpawnTemplate: true
+          frequency: 243
+          groupId: 544
+          hidden: true
+          lateActivation: true
+          modulation: 0
+          name: T-45 Template Red
+          radioSet: true
+          route:
+            points:
+              1:
+                ETA: 0
+                ETA_locked: true
+                action: Turning Point
+                alt: 30
+                alt_type: BARO
+                formation_template: ''
+                name: T-45 Template Red
+                speed: 154.16666666667
+                speed_locked: true
+                task:
+                  id: ComboTask
+                  params:
+                    tasks:
+                    - auto: true
+                      enabled: true
+                      id: WrappedAction
+                      number: 1
+                      params:
+                        action:
+                          id: Option
+                          params:
+                            name: 35
+                            value: true
+                type: Turning Point
+                x: 0
+                y: 0
+          start_time: 0
+          task: Nothing
+          taskSelected: true
+          tasks: {}
+          uncontrollable: false
+          uncontrolled: false
+          units:
+            1:
+              AddPropAircraft:
+                NetCrewControlPriority: -2
+                SoloFlight: false
+              alt: 30
+              alt_type: BARO
+              callsign:
+                1: 7
+                2: 4
+                3: 1
+                name: Chevy41
+              heading: 5.4628805587423
+              livery_id: default
+              name: 'T-45 Template Red #01'
+              onboard_num: '025'
+              payload:
+                chaff: 0
+                flare: 0
+                fuel: 1317.2338090011
+                gun: 100
+                pylons: {}
+              psi: -5.4628805587423
+              skill: Client
+              speed: 154.16666666667
+              type: T-45
+              unitId: 629
               x: 0
               y: 0
           x: 0
@@ -7909,7 +10301,19 @@ helicopters:
                 flare: 128
                 fuel: 1160
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{A6FD14D3-6D30-4C85-88A7-8D17BEE120E2}'
+                  2:
+                    CLSID: B_8V20A_OFP2
+                  3:
+                    CLSID: B_8V20A_OFP2
+                  4:
+                    CLSID: '{A6FD14D3-6D30-4C85-88A7-8D17BEE120E2}'
+                  5:
+                    CLSID: <CLEAN>
+                  6:
+                    CLSID: <CLEAN>
               psi: -5.846852994181
               ropeLength: 15
               skill: Client
@@ -8846,9 +11250,13 @@ helicopters:
               payload:
                 chaff: 0
                 flare: 128
-                fuel: '1450'
+                fuel: 870
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{A6FD14D3-6D30-4C85-88A7-8D17BEE120E2}'
+                  4:
+                    CLSID: '{A6FD14D3-6D30-4C85-88A7-8D17BEE120E2}'
               psi: -2.2689280275926
               ropeLength: 15
               skill: Client

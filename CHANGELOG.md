@@ -172,9 +172,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   chunk text alone, so a change of model or dimensionality brings back stale vectors that the
   packer used to zero-pad into place, leaving the blob length and the passage count both exactly
   right and the passage ranking on half a vector. The rebuild job now prints what it spent, and
-  reads all four values back from the remote namespace.
+  reads all four values back from the remote namespace. Until the new index is live the Worker
+  still serves the old per-chunk entries: it is deployed by one workflow and the index rebuilt by
+  another, with no ordering between them, so the new code reaches production first and a rebuild
+  that fails on the quota leaves it there — five had already failed the day this shipped. That
+  fallback comes out once production holds the new layout.
 - `poetry run reindex-docs`, the by-hand equivalent of that rebuild, had never received the
-  `--remote` fix the workflow got in 6.23.0: it wrote the index to wrangler's local store and
+  `--remote` fix the workflow got in 6.23.1: it wrote the index to wrangler's local store and
   printed success, so every hand-run reindex since the 2026-08-08 wrangler bump uploaded nothing.
   Its test checked the flags someone had thought of — the namespace and the preview switch — which
   is what kept the omission invisible. It now uploads remotely, reads all four values back, and

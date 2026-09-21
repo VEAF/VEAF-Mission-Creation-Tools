@@ -75,6 +75,12 @@ groups land on the F10 map.
 | 05 | [Graft the 12 new airframes, blue and red](tickets/05-graft-new-airframes.md) | feat | ✅ |
 | 06 | [Graft the 11 loadouts](tickets/06-graft-loadouts.md) | feat | ✅ |
 | 07 | [The doc's bare-aircraft example stops being true](tickets/07-doc-loadout-example.md) | doc | ✅ |
+| 08 | [The validator calls the tool's own output "unusual"](tickets/08-the-validator-calls-its-own-output-unusual.md) | fix | ✅ |
+
+Ticket 08 was **not planned**: the lot's own `pr-code-review` went to check a one-line claim in
+ticket 05 — that `DTC` would join the validator's known group keys — measured what the validator
+actually reports, and found 262 noise messages on the two shipped catalogues, `dynSpawnTemplate`
+among them.
 
 Ordering matters: 04 is written before 05 and 06 so the graft is verified by a test rather than by
 reading a 9 500-line YAML, and 01–03 land first because the graft would otherwise re-introduce what
@@ -105,6 +111,7 @@ Definition of Done below.
 - What changed in the catalogue is established **structurally** — the templates loaded before and
   after, compared entry by entry — not by reading the diff, because the diff is 4 000 lines of
   re-serialization and the eye is the tool that misses in it.
+- Both shipped catalogues validate with zero messages at any level (ticket 08).
 - `poetry run pytest` green, ruff + mypy clean, `poetry run docs-check` green, `CHANGELOG.md`
   updated under `[Unreleased]`.
 - The coverage gate is **left at 86.6** rather than raised: measured 86.74 % locally with all

@@ -121,6 +121,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   can never contradict it, and the default catalogue is corrected. Two long-standing blemishes went
   with it: `CH-47F Template-1` is now `CH-47F Template`, and `F-15E S4+ Template Red` moved from
   `Russia` to `CJTF Red` where the other 51 red templates live.
+- **Validating an aircraft-group catalogue no longer reports the tool's own output as suspect.** The
+  "unusual field" check listed the group keys it knew, and five the tool itself produces were not
+  among them — including `dynSpawnTemplate`, the flag that *defines* a dynamic-slot template, and
+  `hiddenOnPlanner` / `hiddenOnMFD`, which the injector writes one step earlier. Measured on the two
+  shipped catalogues: 262 messages, all of them noise, in the stream whose job is to point out a
+  typo. A genuine one was invisible in there.
 
 ### Added
 

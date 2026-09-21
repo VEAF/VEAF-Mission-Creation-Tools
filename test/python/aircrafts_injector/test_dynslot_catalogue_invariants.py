@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from aircrafts_injector import AircraftGroupsYAMLValidator
 
 _REPO_ROOT = Path(__file__).parents[3]
 _DYNSLOT = _REPO_ROOT / "src" / "defaults" / "mission-folder" / "src" / "dynamic-slot-templates.yaml"
@@ -91,6 +92,31 @@ def _iter_templates(data: dict[str, Any]) -> Iterator[_Template]:
             for country, groups in (countries or {}).items():
                 for key, group in (groups or {}).items():
                     yield _Template(bucket, coalition, country, key, group)
+
+
+class ShippedCataloguesValidateSilentlyTest(unittest.TestCase):
+    """Neither shipped catalogue may raise a validation message, at any level.
+
+    The validator's "unusual field" check listed the group keys it knew, and the tool's own
+    output was not among them: `dynSpawnTemplate` — the flag that *defines* a dynamic-slot
+    template — plus `uncontrollable`, `DTC`, and `hiddenOnPlanner`/`hiddenOnMFD`, which the
+    injector writes itself. Measured before the list was completed: **262 info messages across
+    the two shipped catalogues, all of them noise.** A stream that is entirely noise is a stream
+    nobody reads, so a real message arriving there would go unseen — the failure this repository
+    has already measured once, on a log written 124 lines a minute.
+    """
+
+    def test_neither_shipped_catalogue_says_anything(self) -> None:
+        for name in ("dynamic-slot-templates.yaml", "spawnables.yaml"):
+            with self.subTest(catalogue=name):
+                validator = AircraftGroupsYAMLValidator(_DYNSLOT.parent / name)
+                is_valid, errors = validator.validate()
+                self.assertTrue(is_valid, f"{name} does not validate")
+                self.assertEqual(
+                    [f"{e.path}: {e.message}" for e in errors],
+                    [],
+                    f"{name} raises validation messages; a noisy stream is an unread stream",
+                )
 
 
 class DynSlotCatalogueInvariantsTest(unittest.TestCase):

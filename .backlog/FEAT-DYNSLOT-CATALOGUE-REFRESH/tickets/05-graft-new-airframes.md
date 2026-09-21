@@ -50,8 +50,9 @@ Kept as they are: `livery_id`, `callsign`, `payload`, `AddPropAircraft`, `task`,
 (`Ka-50 Template Red` wears an Italian livery), and inventing liveries is not this lot's job.
 
 `F-14BU` and `MiG-29 Fulcrum` carry a group-level `DTC` block (the module's data cartridge). It is
-real configuration, so it is kept, and `DTC` is added to the validator's list of known group keys so
-it stops being reported as an *unusual field*.
+real configuration, so it is kept. Silencing the *unusual field* message it raises turned out to be
+the smaller half of a larger defect — the validator did not know four other fields the tool itself
+produces — and moved to [ticket 08](08-the-validator-calls-its-own-output-unusual.md).
 
 ## Definition of Done
 
@@ -63,6 +64,5 @@ it stops being reported as an *unusual field*.
   `T-45 Template`, `J-11A Template`, `Mig-29S Template`, `Su-33 Template`, each with its `… Red`.
   (`Mig-29S` keeps the lower-case spelling of its siblings `Mig-29A` / `Mig-29G` rather than
   introducing a second convention in the same family.)
-- `DTC` no longer raises a validation *info*.
 - The defaults lockstep (CLAUDE.md §9.7) does not apply: this changes no generated output, only the
   shipped catalogue, which **is** the default.

@@ -428,6 +428,16 @@ class AircraftGroupsYAMLValidator:
             "modulation",
             "visible",
             "start_time",
+            # Fields the tool's own output carries, which it used to call "unusual": the
+            # dynamic-slot flag is what *defines* the family, and hiddenOnPlanner/hiddenOnMFD
+            # are written by the injector itself. Measured on the shipped catalogues before
+            # this list was completed: 262 info messages, every one of them noise, which is
+            # how a reader stops reading them. DTC is a module's data cartridge.
+            "dynSpawnTemplate",
+            "uncontrollable",
+            "hiddenOnPlanner",
+            "hiddenOnMFD",
+            "DTC",
         }
 
         for key in group.keys():

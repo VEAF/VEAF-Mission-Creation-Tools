@@ -21,6 +21,16 @@ Read out of a live mission holding **one** static contact:
 **117 entries for a single aircraft that had not moved**, two per hand-over pass, one pass every five
 seconds — about **24 lines a minute, for ever**, as long as the contact is held.
 
+### And the history is capped, which turns noise into loss
+
+`veafSkynet.SpotterWakeUpLogSize` is **200 entries per coalition**, and the oldest go first — a
+deliberate choice, since an unbounded table is how a Lua state runs a four-hour server out of memory.
+
+Put the two together: at ~24 lines a minute, **one held contact overwrites the entire history in
+about eight minutes**. So the durable log does not answer *what did the network wake last night*; it
+answers *what did it wake in the last eight minutes*, and only if nothing was being held. That is
+the question it was written for, and it cannot answer it.
+
 ## Why it matters, and it is not cosmetic
 
 This history exists because of a question `FEAT-SPOTTER-NETWORK` could not answer: *"did the spotter
@@ -48,15 +58,36 @@ Two things to be careful about while fixing it:
   the transition has to be read from what the hand-over knew at the previous pass, not from asking the
   site whether it is live.
 
+## Where the code is
+
+All in `src/scripts/veaf/veafSkynetIadsHelper.lua`:
+
+| | |
+|---|---|
+| `veafSkynet.recordSpotterWakeUp(coa, line)` | writes both the status-page bucket and the durable log |
+| `veafSkynet.spotterWakeUpLog` | the durable history, `{ at, line }` per entry, per coalition |
+| `veafSkynet.SpotterWakeUpLogSize` | the 200-entry cap, oldest dropped first |
+| `veafSkynet.handOverSpotterAlerts` | the caller — records on every pass, which is the defect |
+| `veafSkynet.getSpotterWakeUpLog(coa)` | the reader |
+
+Tests: `test/lua/test_veafSkynetIadsHelper_spotter.lua`, class **`TestSpotterWakeUpHistory`** — extend
+it rather than starting a new one. The hand-over's own suite is `TestSpotterHandover`, and its fixture
+already stands up a Skynet site double, which is what a transition test needs.
+
+Gates: `poetry run test-lua`, then `stylua --check src/scripts/veaf/ test/lua/`.
+
 ## What to do
 
-Record only the **transition**: this site did not already hold this aircraft handed over at the
-previous pass. A static contact then costs **one** line, a genuine re-wake costs a second, and the
-answer to *what did the network wake last night* is a page a human can read.
+Record only the **transition**: this site did not already hold this aircraft at the previous pass. A
+static contact then costs **one** line, a genuine re-wake costs a second, the cap stops being reached
+by a quiet mission, and the answer to *what did the network wake last night* is a page a human can
+read.
 
 ## Definition of done
 
 - [ ] A held static contact produces **one** wake-up line, not one per pass.
 - [ ] A site woken, released, and woken again by the same aircraft produces **two** — the test that
       stops the fix from being a plain de-duplication.
+- [ ] A quiet mission holding one contact no longer reaches the 200-entry cap — the number that
+      makes this a loss of information and not a matter of tidiness.
 - [ ] `poetry run test-lua` green, `stylua` clean.

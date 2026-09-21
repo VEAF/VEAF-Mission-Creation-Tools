@@ -193,6 +193,9 @@ temp/
 poc/doc-chatbot/worker/.dev.vars
 poc/doc-chatbot/worker/vec-*.bin
 poc/doc-chatbot/worker/txt-*.json
+poc/doc-chatbot/worker/remote-*.bin
+poc/doc-chatbot/worker/remote-*.json
+poc/doc-chatbot/worker/kv-write-cost.txt
 poc/doc-chatbot/worker/.embed-cache.json
 poc/doc-chatbot/worker/.wrangler/
 

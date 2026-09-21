@@ -14,6 +14,9 @@ on:
     paths:
       - "doc/**"
       - "poc/doc-chatbot/worker/scripts/build-index.mjs"
+      # The read-back check is part of this job, so a change to it has to be exercised here rather
+      # than wait for the next documentation edit to prove it still catches an empty upload.
+      - "poc/doc-chatbot/worker/scripts/verify-index-upload.mjs"
       - ".github/workflows/docs-chatbot-index.yml"
   workflow_dispatch:
 
@@ -50,6 +53,10 @@ jobs:
       # changed chunks (stays well under the free-tier 1000 embeds/day). restore-keys falls back to
       # the most recent cache when the exact (docs-hash) key misses; the updated cache is saved
       # post-job under the new key.
+      #
+      # This guards the GEMINI quota. The Cloudflare KV write quota — also 1000/day, also free tier,
+      # and account-wide — is guarded by the index layout instead: two keys per language, so the
+      # upload below is four writes whether one heading changed or the whole documentation did.
       - name: Restore embeddings cache
         uses: actions/cache@v5
         with:
@@ -70,15 +77,34 @@ jobs:
       # away with the runner, while the live assistant answered from an index frozen in early
       # August. Wrangler 3 defaulted to remote, which is why the bump changed the behaviour without
       # changing the command.
+      # The two values of a language are two separate writes, so there is a window — the seconds
+      # between them, plus KV propagation — in which an isolate can load new vectors against old
+      # texts. The Worker refuses a pair whose halves differ in length, which covers every edit
+      # that adds or removes a chunk; an edit that only rewords one is not caught, and that isolate
+      # serves mismatched passages until it is recycled. Known and accepted: closing it would mean
+      # putting a build stamp inside the binary blob, and the previous layout was strictly worse —
+      # it fetched the texts per request, so the same skew could begin at any moment, not only
+      # during an upload.
       - name: Upload the index to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
-          npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
-          npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json
-          npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
+          npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+          npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+          npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:txt:fr" --path txt-fr.json
+          npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:txt:en" --path txt-en.json
+
+      # The cost of a rebuild, in the unit that runs out, on the job's front page. The previous
+      # layout spent one KV write per chunk — 1397 of a 1000/day account-wide allowance — and
+      # nothing anywhere said so; it was found by reading a quota error three merges after the
+      # first broken run. A number in the summary is what makes the next regression visible.
+      - name: Report the KV write cost
+        run: |
+          set -euo pipefail
+          writes=$(cat kv-write-cost.txt)
+          echo "KV writes spent by this run: $writes (free tier: 1000/day, account-wide)" \
+            >> "$GITHUB_STEP_SUMMARY"
 
       # Read the index back out of the namespace and compare it with what was just built, so a green
       # run means the bytes are there. The flag above fixes today's bug; this step is what makes the
@@ -86,9 +112,8 @@ jobs:
       # job could not tell apart from success.
       #
       # `kv key get` writes the raw value to stdout with no banner (measured against the local store
-      # on 2026-09-19: 4096 bytes in, 4096 identical bytes out), so redirecting it is safe. The text
-      # entry checked is the **last** of the bulk file — the one a shorter, older index does not have
-      # at all.
+      # on 2026-09-19: 4096 bytes in, 4096 identical bytes out), so redirecting it is safe. All four
+      # values are read back whole: with two keys per language there is no sampling left to do.
       - name: Verify the index really landed
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -98,8 +123,7 @@ jobs:
           for lang in fr en; do
             npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:vec:$lang" \
               > "remote-vec-$lang.bin"
-            last_key=$(node scripts/verify-index-upload.mjs --print-last-key "txt-$lang.json")
-            npx wrangler kv key get --remote --binding CHAT_KV --preview false "$last_key" \
+            npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:txt:$lang" \
               > "remote-txt-$lang.json"
           done
           node scripts/verify-index-upload.mjs \

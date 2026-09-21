@@ -1,12 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chunkMarkdown, MAX_CHARS } from "../scripts/build-index.mjs";
 import {
-  compareBytes,
-  lastBulkEntry,
-  parseChecks,
-  KV_MISSING_SENTINEL,
-} from "../scripts/verify-index-upload.mjs";
+  chunkMarkdown,
+  MAX_CHARS,
+  buildLanguageValues,
+  KV_KEYS_PER_LANGUAGE,
+  KV_WRITE_COST_FILE,
+} from "../scripts/build-index.mjs";
+import { compareBytes, parseChecks, KV_MISSING_SENTINEL } from "../scripts/verify-index-upload.mjs";
 import { l2normalize, topScore, summarise, separation, readVectors } from "../scripts/calibrate-floor.mjs";
 import worker, {
   latestQuery,
@@ -110,6 +111,52 @@ test("chunkMarkdown never emits a chunk larger than MAX_CHARS", () => {
   for (const c of chunkMarkdown(md)) {
     assert.ok(c.length <= MAX_CHARS, `chunk length ${c.length} exceeds MAX_CHARS ${MAX_CHARS}`);
   }
+});
+
+// ── the index layout: what a rebuild costs in KV writes ──
+// The texts used to be one KV entry per chunk: 1397 writes per rebuild (measured 2026-09-21 over
+// doc/) against a free-tier cap of 1000 a day, account-wide and shared with the Worker's own
+// rate-limit counters. A single full reindex could not fit in a day. These two tests are the guard
+// against that coming back by way of a per-chunk key.
+
+/** A language's worth of fake chunks, with a unit vector each. */
+function fakeRecords(n) {
+  const cache = {};
+  const recs = [];
+  for (let i = 0; i < n; i++) {
+    const hash = `h${i}`;
+    const v = new Array(768).fill(0);
+    v[i % 768] = 1;
+    cache[hash] = v;
+    recs.push({ text: `chunk ${i}`, title: `Page ${i}`, path: `doc/p${i}.md`, hash });
+  }
+  return { recs, cache };
+}
+
+test("the cost file keeps the name the workflow reads", () => {
+  // `.github/workflows/docs-chatbot-index.yml` cats this name to build the job summary. A rename
+  // here with no test would only surface in CI, after the run has already spent its KV writes.
+  assert.equal(KV_WRITE_COST_FILE, "kv-write-cost.txt");
+});
+
+test("one language costs two KV keys, whatever the documentation's size", () => {
+  assert.equal(KV_KEYS_PER_LANGUAGE, 2, "idx:vec:{lang} and idx:txt:{lang}, and nothing per chunk");
+  for (const n of [1, 40, 2000]) {
+    const { recs, cache } = fakeRecords(n);
+    assert.equal(Object.keys(buildLanguageValues(recs, cache)).length, KV_KEYS_PER_LANGUAGE);
+  }
+});
+
+test("the two halves line up, and are the same length", () => {
+  const { recs, cache } = fakeRecords(5);
+  const { vec, txt } = buildLanguageValues(recs, cache);
+  assert.equal(vec.length, 5 * 768 * 4, "five 768-dim Float32 vectors");
+  const texts = JSON.parse(txt);
+  assert.equal(texts.length, 5, "one passage per vector — the Worker refuses any other count");
+  assert.deepEqual(texts[3], { text: "chunk 3", title: "Page 3", path: "doc/p3.md" });
+  // Position 2 of the blob must hold the unit vector of chunk 2, not of any other.
+  const slice = new Float32Array(vec.buffer, vec.byteOffset + 2 * 768 * 4, 768);
+  assert.equal(slice[2], 1, "vector i describes passage i");
 });
 
 test("latestQuery returns the most recent user message", () => {
@@ -632,11 +679,19 @@ test("with no passage, the model is forbidden to answer from its own knowledge",
 // into a polite "the documentation does not cover that" on every question, with nothing to alert
 // anyone. Each test uses its own `lang` key because the vector cache is module-level.
 
-/** Fake a Gemini embedding endpoint returning `vector`, and a KV holding the given index. */
-function retrievalEnv(lang, vector, texts = {}) {
+/**
+ * Fake a Gemini embedding endpoint returning `vector`, and a KV holding the given index.
+ *
+ * The index is two keys: the vector blob and the passage array, in the same order. `texts`
+ * defaults to one entry per vector so the halves agree — a disagreement is its own test.
+ */
+function retrievalEnv(lang, vector, texts) {
   const buf = new Float32Array(vector);
-  const values = { [`idx:vec:${lang}`]: buf.buffer, ...texts };
-  const store = new Map(Object.entries(values));
+  const count = Math.floor(buf.length / 768);
+  const passages = texts ?? Array.from({ length: count }, (_, i) => ({ title: `T${i}`, text: "body" }));
+  const store = new Map(
+    Object.entries({ [`idx:vec:${lang}`]: buf.buffer, [`idx:txt:${lang}`]: passages }),
+  );
   return {
     GEMINI_API_KEY: "test-key",
     CHAT_KV: { async get(key) { return store.get(key) ?? null; } },
@@ -654,14 +709,40 @@ function withFakeEmbedding(vector, fn) {
 
 test("vectors present but no text behind them is an error, not an empty answer", async () => {
   // One indexed vector pointing the same way as the query: it scores 1.0 and clears any floor.
-  // Its text is absent from KV — a half-finished index upload.
+  // Its entry in the passage array is empty — a build that produced a hole.
   const unit = new Array(768).fill(0);
   unit[0] = 1;
   await withFakeEmbedding(unit, async () => {
     await assert.rejects(
-      () => retrieveContext(retrievalEnv("xa", unit), "xa", "anything"),
+      () => retrieveContext(retrievalEnv("xa", unit, [null]), "xa", "anything"),
       /no passages retrieved/,
       "a broken index must surface, not read as 'not documented'",
+    );
+  });
+});
+
+test("an index with no passage array at all is refused", async () => {
+  const unit = new Array(768).fill(0);
+  unit[0] = 1;
+  const buf = new Float32Array(unit);
+  const env = {
+    GEMINI_API_KEY: "test-key",
+    CHAT_KV: { async get(key) { return key === "idx:vec:xd" ? buf.buffer : null; } },
+  };
+  await withFakeEmbedding(unit, async () => {
+    await assert.rejects(() => retrieveContext(env, "xd", "anything"), /no passages for xd/);
+  });
+});
+
+test("halves of different lengths are refused instead of answering off by one", async () => {
+  // Two vectors, one passage: the layout this replaced could reach that state by caching an old
+  // blob against a freshly uploaded text set, and it served the wrong passage without an error.
+  const two = new Array(768 * 2).fill(0);
+  two[0] = 1;
+  await withFakeEmbedding(new Array(768).fill(0), async () => {
+    await assert.rejects(
+      () => retrieveContext(retrievalEnv("xe", two, [{ title: "T", text: "body" }]), "xe", "q"),
+      /disagree for xe: 2 vectors, 1 texts/,
     );
   });
 });
@@ -674,7 +755,7 @@ test("a question unrelated to every passage yields an empty context rather than 
   query[1] = 1;
   await withFakeEmbedding(query, async () => {
     const passages = await retrieveContext(
-      retrievalEnv("xb", indexed, { "idx:txt:xb:0": { title: "T", text: "body" } }),
+      retrievalEnv("xb", indexed, [{ title: "T", text: "body" }]),
       "xb",
       "something else entirely",
     );
@@ -688,7 +769,7 @@ test("a passage above the floor is still injected", async () => {
   unit[0] = 1;
   await withFakeEmbedding(unit, async () => {
     const passages = await retrieveContext(
-      retrievalEnv("xc", unit, { "idx:txt:xc:0": { title: "Coalitions", text: "body" } }),
+      retrievalEnv("xc", unit, [{ title: "Coalitions", text: "body" }]),
       "xc",
       "a matching question",
     );
@@ -730,22 +811,6 @@ test("same length but different bytes still fails", () => {
 
 test("identical bytes are the only thing that passes", () => {
   assert.equal(compareBytes("vectors (fr)", Buffer.from([1, 2, 3]), Buffer.from([1, 2, 3])), null);
-});
-
-test("the bulk entry checked is the last one, which a shorter stale index lacks", () => {
-  const bulk = JSON.stringify([
-    { key: "idx:txt:fr:0", value: "first" },
-    { key: "idx:txt:fr:1", value: "last" },
-  ]);
-  assert.deepEqual(lastBulkEntry(bulk), { key: "idx:txt:fr:1", value: "last" });
-});
-
-test("an empty bulk file is a build that produced nothing, and says so", () => {
-  assert.throws(() => lastBulkEntry("[]"), /nothing to upload/);
-});
-
-test("a bulk entry without a string key/value pair is rejected", () => {
-  assert.throws(() => lastBulkEntry(JSON.stringify([{ key: "k" }])), /string key\/value pair/);
 });
 
 test("the checks are parsed as triples, and a truncated one is refused", () => {

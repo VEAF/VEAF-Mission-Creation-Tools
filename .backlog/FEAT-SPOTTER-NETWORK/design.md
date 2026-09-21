@@ -62,7 +62,17 @@ uses, so a spotter looks from its eyes rather than from the mud. An aircraft fol
 not seen by the spotter behind the crest, which is precisely the profile that started this whole
 investigation.
 
-The ray is only traced on transitions, never per beat per pair, which is what makes it affordable.
+**Corrected during implementation, 2026-09-21.** This section first said the ray was traced "only on
+transitions, never per beat per pair", which is what makes it affordable. That is not implementable
+alongside the requirement two lines above — masking has to lose a *held* contact, so a held contact
+has to be re-checked every beat, or an aircraft that slips behind a ridge stays seen forever.
+
+The affordable property is about **pairs, not beats**: a pair the distance test already settles
+costs no ray at all. The overwhelming majority of spotter/aircraft pairs on a mission are tens of
+kilometres apart and never reach the terrain query, and only those within the unit's own range (or
+within range × the margin, while held) pay for one — at most one per pair per beat, memoised because
+the latch asks twice on a transition. Both halves are asserted in
+`test_veafSkynetIadsHelper_spotter.lua`.
 
 ### Three kinds of message
 

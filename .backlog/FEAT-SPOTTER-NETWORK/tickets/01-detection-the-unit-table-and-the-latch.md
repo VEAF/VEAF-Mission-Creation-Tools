@@ -21,9 +21,9 @@ can be written.
 | `land.isVisible(from, to)` | the `land` table, `dcs_mocks.lua:458` | returns true by default; a test that cares overrides it, the way `getHeight` is overridden today |
 | `unit:hasAttribute(name)` | the unit doubles built in the test files | reads a per-unit attribute set; `AIEN.lua:4500` is the reference for how the real API is called |
 
-Give `land.isVisible` a **recording** double, not a silent one — the design's whole claim is that
-the ray is traced only on transitions, and a test cannot check "never per beat per pair" against a
-stub that forgets it was called.
+Give `land.isVisible` a **recording** double, not a silent one — the affordability claim is about
+how few pairs ever reach the terrain query, and that is uncheckable against a stub that forgets it
+was asked.
 
 ## The unit table
 
@@ -103,8 +103,12 @@ offset CTLD uses, so a spotter looks from its eyes rather than from the mud. An 
 valley is not seen by the spotter behind the crest, which is the profile that started this whole
 investigation.
 
-The ray is traced **only on transitions**, never per beat per pair. That is what makes it
-affordable, so it is a property to assert, not a comment to write.
+**Corrected while implementing, 2026-09-21.** The design first said the ray was traced "only on
+transitions". It cannot be: masking has to lose a *held* contact, so a held contact is re-checked
+every beat or an aircraft that slips behind a ridge stays seen forever. The affordable property is
+about **pairs, not beats** — a pair the distance test already settles costs no ray, and only a pair
+within the unit's own range (or within range × the margin, while held) pays for one, at most one per
+beat. Both halves are asserted. `design.md` was amended to match.
 
 ## The detection loop
 
@@ -117,8 +121,8 @@ immediately even though it cannot yet relay.
 - Latch: reports once on acquisition; silent while held; re-arms after **3** beats, not 2.
 - Distance margin: an aircraft orbiting between range and range × 1.1 produces **one** report.
 - Line of sight: masked at acquisition → no report; masked at loss → contact lost.
-- The ray is traced on transitions only: hold a contact over several beats and assert the recorded
-  `isVisible` call count does not grow per beat.
+- A pair the distance test settles costs **no** ray; a held pair costs **exactly one** per beat, not
+  two (the latch asks its closure twice on a transition, so the ray behind it is memoised).
 - The table resolves most-specific-first: a `SAM elements` unit relays and never detects; `AWACS`
   and `EWR` likewise; an aeroplane detects at 30 km; an unknown type neither detects nor relays.
 - The range is drawn **once per unit**: read it twice across several beats and assert the same

@@ -47,5 +47,10 @@ a 1 GB free allowance.
 - [ ] `build-index.mjs` emits `txt-{lang}.json` as the **KV value** (a JSON array), not a bulk file
 - [ ] The Worker loads vectors and texts **together**, caches them together, and refuses an index
       whose two halves disagree on length — a skew serves the wrong passage for a vector, silently
+- [ ] The indexer refuses a cached vector of the wrong width. Raised by the review pass over past
+      PRs, which found the same warning left unanswered on #422: the cache is keyed on the chunk
+      text alone, not on the model. Measured 2026-09-21 — a 384-wide entry among 768-wide ones is
+      zero-padded into its slot, so the blob length and the passage count both stay exactly right
+      and the length check above passes while that passage ranks on half a vector
 - [ ] Unit tests cover the new retrieval path and the length-skew refusal
 - [ ] A test pins the invariant that matters: **two** KV keys per language, whatever the chunk count

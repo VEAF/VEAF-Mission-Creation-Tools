@@ -167,8 +167,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   per language, aligned with the vector blob already stored that way, so a rebuild costs four
   writes whether one heading changed or the whole documentation did. The Worker loads both halves
   of an index together, and refuses one whose halves disagree on length instead of answering with a
-  passage shifted by however many chunks were inserted since. The rebuild job now prints what it
-  spent, and reads all four values back from the remote namespace.
+  passage shifted by however many chunks were inserted since. The indexer refuses a cached vector
+  of the wrong width for the same reason, one step earlier: the embedding cache is keyed on the
+  chunk text alone, so a change of model or dimensionality brings back stale vectors that the
+  packer used to zero-pad into place, leaving the blob length and the passage count both exactly
+  right and the passage ranking on half a vector. The rebuild job now prints what it spent, and
+  reads all four values back from the remote namespace.
 - `poetry run reindex-docs`, the by-hand equivalent of that rebuild, had never received the
   `--remote` fix the workflow got in 6.23.0: it wrote the index to wrangler's local store and
   printed success, so every hand-run reindex since the 2026-08-08 wrangler bump uploaded nothing.

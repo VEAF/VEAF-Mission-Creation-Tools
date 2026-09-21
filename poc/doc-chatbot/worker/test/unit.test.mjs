@@ -159,6 +159,31 @@ test("the two halves line up, and are the same length", () => {
   assert.equal(slice[2], 1, "vector i describes passage i");
 });
 
+// The embedding cache is keyed on the chunk text alone, so it survives a change of model or of
+// EMBED_DIMS and hands back vectors of the wrong width. Measured 2026-09-21 before the guard: a
+// 384-wide entry among 768-wide ones produced a blob of exactly the right length and a passage
+// array of exactly the right count, so the Worker's length check passed and that passage ranked
+// on a half-zeroed vector. The dimension has to be checked where the blob is packed; nothing
+// downstream can see it.
+
+test("a cached vector of the wrong width is refused, not zero-padded into the blob", () => {
+  const { recs, cache } = fakeRecords(3);
+  cache[recs[1].hash] = new Array(384).fill(0.5);
+  assert.throws(() => buildLanguageValues(recs, cache), /is 384 wide, expected 768/);
+});
+
+test("a wider cached vector is refused too, before it spills into the next chunk's slot", () => {
+  const { recs, cache } = fakeRecords(3);
+  cache[recs[1].hash] = new Array(1536).fill(0.5);
+  assert.throws(() => buildLanguageValues(recs, cache), /is 1536 wide, expected 768/);
+});
+
+test("a chunk with no cached vector names the page instead of 'undefined is not iterable'", () => {
+  const { recs, cache } = fakeRecords(3);
+  delete cache[recs[2].hash];
+  assert.throws(() => buildLanguageValues(recs, cache), /no embedding cached for doc\/p2\.md/);
+});
+
 test("latestQuery returns the most recent user message", () => {
   const messages = [
     { role: "user", content: "first" },

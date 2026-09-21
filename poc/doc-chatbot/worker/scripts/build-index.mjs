@@ -192,14 +192,37 @@ export const KV_WRITE_COST_FILE = "kv-write-cost.txt";
  * Worker has to refuse a pair whose halves disagree on length, which would otherwise hand out the
  * wrong passage for a vector without any error.
  *
+ * The cache is keyed on the chunk text alone — not on the model or its dimensionality — so a
+ * vector of the wrong width is reachable: change `EMBED_MODEL` or `EMBED_DIMS`, or carry a cache
+ * written by an older build, and the stale entries come back a different size. Measured
+ * 2026-09-21 with a 384-wide entry among 768-wide ones: `blob.set` writes what it is given and
+ * leaves the rest of the slot at zero, so the blob length and the passage count both stay exactly
+ * right and the Worker's length check passes. That passage then ranks on a half-zeroed vector, and
+ * nothing anywhere says so. A wider entry is no better — it spills into the next chunk's slot, or
+ * throws an opaque RangeError when the spill happens to be the last one. Hence the explicit width
+ * check: the length check in the Worker closes skew by insertion, this closes skew by dimension.
+ *
  * @param {{text: string, title: string, path: string, hash: string}[]} recs The language's chunks,
  *   in the order they are to be indexed.
  * @param {Record<string, number[]>} cache Embedding vectors by chunk hash.
  * @returns {{vec: Buffer, txt: string}} The `idx:vec:{lang}` and `idx:txt:{lang}` values.
+ * @throws {Error} When a chunk has no cached vector, or one of the wrong dimensionality.
  */
 export function buildLanguageValues(recs, cache) {
   const blob = new Float32Array(recs.length * EMBED_DIMS);
-  recs.forEach((r, i) => blob.set(l2normalize(Float32Array.from(cache[r.hash])), i * EMBED_DIMS));
+  recs.forEach((r, i) => {
+    const vector = cache[r.hash];
+    // Named rather than left to `Float32Array.from(undefined)`, which says "undefined is not
+    // iterable" after a full embedding run and points at nothing.
+    if (!vector) throw new Error(`no embedding cached for ${r.path} (chunk hash ${r.hash})`);
+    if (vector.length !== EMBED_DIMS) {
+      throw new Error(
+        `cached embedding for ${r.path} is ${vector.length} wide, expected ${EMBED_DIMS} — ` +
+          `delete .embed-cache.json and rebuild (the cache is keyed on text, not on the model)`,
+      );
+    }
+    blob.set(l2normalize(Float32Array.from(vector)), i * EMBED_DIMS);
+  });
   const texts = recs.map((r) => ({ text: r.text, title: r.title, path: r.path }));
   return { vec: Buffer.from(blob.buffer), txt: JSON.stringify(texts) };
 }

@@ -1849,8 +1849,9 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
 
   veafSkynet._armVanishedSitesSweep()
 
-  -- After the networks exist, because the beat reads their coalitions to know who is watching whom.
+  -- After the networks exist, because both read their coalitions to know who is watching whom.
   veafSkynet._armSpotterDetection()
+  veafSkynet._armSpotterGraph()
 
   veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
 end
@@ -2550,6 +2551,213 @@ function veafSkynet.spotterDetectionBeat()
   end
 
   return veafSkynet.SpotterDetectionPeriod
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — the radio graph
+--
+-- Who can talk to whom. Rebuilt in place by three loops, one per speed class, each recomputing only
+-- the edges of the units of its class that have actually moved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Metres a unit must cover before its edges are recomputed. Below it, nothing is touched.
+veafSkynet.SpotterMoveThreshold = 2000
+
+--- Seconds between two passes of each class's loop.
+---
+--- Honest record: the movement check costs 0.15 ms for 2 000 units, so staging the loops optimises
+--- almost nothing measurable. They were chosen so each class is re-read at a rate that suits how
+--- fast it can actually move, and they do no harm — but they are not a performance feature and
+--- should not be sold as one.
+veafSkynet.SpotterGraphPeriods = {
+  [veafSkynet.SpotterSpeedClasses.Fast] = 10,
+  [veafSkynet.SpotterSpeedClasses.Mobile] = 20,
+  [veafSkynet.SpotterSpeedClasses.Slow] = 30,
+}
+
+--- Per coalition: `{ adjacency = { [name] = { [other] = true } }, nodes = { [name] = { x, z, class } } }`.
+---
+--- **The adjacency is a set of names, not a list**, and that is measured rather than taste. Removing
+--- a back-edge from a list means scanning it, so patching costs O(degree²) per node; re-edging a
+--- hundred units — a combat zone spawning at once — costs 86 ms with lists against 13.7 ms with sets
+--- on the densest layout built, 2 000 units and 230 577 edges. Everywhere else the two are within
+--- noise. Reproduce with `lua test/lua/bench_spotter_network.lua`.
+veafSkynet.spotterGraphs = {}
+
+--- Whether the three graph passes are on the clock.
+veafSkynet.spotterGraphArmed = false
+
+--- The graph of a coalition, created empty on first use.
+---
+--- @param coa number a coalition id
+--- @return table `{ adjacency = <table>, nodes = <table> }`
+function veafSkynet.getSpotterGraph(coa)
+  local graph = veafSkynet.spotterGraphs[coa]
+  if not graph then
+    graph = { adjacency = {}, nodes = {} }
+    veafSkynet.spotterGraphs[coa] = graph
+  end
+  return graph
+end
+
+--- Take a unit out of the graph, back-edges included.
+---
+--- @param graph table
+--- @param name string
+function veafSkynet.removeSpotterNode(graph, name)
+  local edges = graph.adjacency[name]
+  if edges then
+    for other, _ in pairs(edges) do
+      local backEdges = graph.adjacency[other]
+      if backEdges then
+        backEdges[name] = nil
+      end
+    end
+  end
+  graph.adjacency[name] = nil
+  graph.nodes[name] = nil
+end
+
+--- Recompute one unit's edges from scratch, against every other node of the graph.
+---
+--- A **replacement**, not a surgical removal: the old edges go, the new ones are measured. That is
+--- what avoids the individual-edge-removal code this feature would otherwise need, and it is why the
+--- set representation pays — dropping a back-edge is one assignment rather than a scan.
+---
+--- Measured on the ground plane. Altitude is ignored on purpose: a radio link only gets better with
+--- height, so counting an aircraft overhead as being directly above the unit it is talking to is the
+--- physically sensible reading, not a shortcut.
+---
+--- @param graph table
+--- @param name string
+--- @param x number
+--- @param z number
+--- @param class string one of `veafSkynet.SpotterSpeedClasses`
+function veafSkynet.reEdgeSpotterNode(graph, name, x, z, class)
+  veafSkynet.removeSpotterNode(graph, name)
+
+  local edges = {}
+  graph.adjacency[name] = edges
+  graph.nodes[name] = { x = x, z = z, class = class }
+
+  local rangeSq = veafSkynet.SpotterRadioRange * veafSkynet.SpotterRadioRange
+  for other, node in pairs(graph.nodes) do
+    if other ~= name then
+      local dx = x - node.x
+      local dz = z - node.z
+      if dx * dx + dz * dz <= rangeSq then
+        edges[other] = true
+        graph.adjacency[other][name] = true
+      end
+    end
+  end
+end
+
+--- Every unit of this coalition and this speed class that can relay.
+---
+--- Classification comes from the unit **type**, not from observation: a tank parked for ten minutes
+--- is still capable of moving, so it is already in the mobile loop when it starts rolling rather than
+--- being promoted into it afterwards.
+---
+--- @param coa number a coalition id
+--- @param class string one of `veafSkynet.SpotterSpeedClasses`
+--- @return table array of `{ name = <string>, x = <number>, z = <number> }`
+function veafSkynet.listSpotterRelays(coa, class)
+  local relays = {}
+  local ok, dcsGroups = pcall(coalition.getGroups, coa)
+  if not ok or not dcsGroups then
+    return relays
+  end
+  for _, dcsGroup in pairs(dcsGroups) do
+    if veafSkynet.dcsObjectStillExists(dcsGroup) then
+      local gotUnits, groupUnits = pcall(dcsGroup.getUnits, dcsGroup)
+      if gotUnits and groupUnits then
+        for _, dcsUnit in pairs(groupUnits) do
+          if veafSkynet.dcsObjectStillExists(dcsUnit) then
+            local name = veafSkynet.safeDcsName(dcsUnit)
+            if name then
+              local profile = veafSkynet.getSpotterProfile(dcsUnit, name)
+              if profile.relays and profile.class == class then
+                local gotPoint, point = pcall(dcsUnit.getPoint, dcsUnit)
+                if gotPoint and point then
+                  table.insert(relays, { name = name, x = point.x, z = point.z })
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  return relays
+end
+
+--- One pass of one class's loop, over every coalition that has a live Skynet network.
+---
+--- The same pass picks up units that appeared and units that vanished, which is why no DCS event has
+--- to be listened to — and why a combat zone spawning a hundred units at once cannot set off a burst
+--- of rebuilds. Nothing is triggered by spawning at all: the cost is one spike at the next pass, and
+--- that spike is the 13.7 ms the bench measures.
+---
+--- The price, accepted: a freshly spawned group takes up to 30 s to enter the graph. Its *detection*
+--- works immediately, since that is the 5 s beat and it does not read the graph — so its units see,
+--- but cannot yet relay.
+---
+--- @param class string one of `veafSkynet.SpotterSpeedClasses`
+--- @return number the class's period, so DCS re-arms the schedule
+function veafSkynet.spotterGraphPass(class)
+  local period = veafSkynet.SpotterGraphPeriods[class] or veafSkynet.SpotterGraphPeriods[veafSkynet.SpotterSpeedClasses.Slow]
+  if not veafSkynet.SpotterNetwork then
+    return period
+  end
+
+  local thresholdSq = veafSkynet.SpotterMoveThreshold * veafSkynet.SpotterMoveThreshold
+  for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
+    local graph = veafSkynet.getSpotterGraph(coa)
+    local seen = {}
+    for _, relay in ipairs(veafSkynet.listSpotterRelays(coa, class)) do
+      seen[relay.name] = true
+      local node = graph.nodes[relay.name]
+      if not node then
+        veafSkynet.reEdgeSpotterNode(graph, relay.name, relay.x, relay.z, class)
+      else
+        local dx = relay.x - node.x
+        local dz = relay.z - node.z
+        if dx * dx + dz * dz > thresholdSq then
+          veafSkynet.reEdgeSpotterNode(graph, relay.name, relay.x, relay.z, class)
+        end
+      end
+    end
+
+    -- Whatever this class held last pass and no longer does has left the mission. Collected first,
+    -- because removing from a table being walked with `pairs` is not something to rely on.
+    local gone = {}
+    for name, node in pairs(graph.nodes) do
+      if node.class == class and not seen[name] then
+        table.insert(gone, name)
+      end
+    end
+    for _, name in ipairs(gone) do
+      veafSkynet.removeSpotterNode(graph, name)
+    end
+  end
+
+  return period
+end
+
+--- Put the three graph passes on the clock, one per speed class.
+function veafSkynet._armSpotterGraph()
+  if veafSkynet.spotterGraphArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  veafSkynet.spotterGraphArmed = true
+  for _, class in pairs(veafSkynet.SpotterSpeedClasses) do
+    local period = veafSkynet.SpotterGraphPeriods[class]
+    veaf.scheduleFunction(veafSkynet.spotterGraphPass, { class }, timer.getTime() + period, period)
+  end
 end
 
 --- Put the detection pass on the clock.

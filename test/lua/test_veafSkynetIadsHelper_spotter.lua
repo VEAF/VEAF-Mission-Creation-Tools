@@ -95,6 +95,8 @@ local function _resetSpotterState()
   veafSkynet.spotterProfiles = {}
   veafSkynet.spotterLatches = {}
   veafSkynet.spotterDetectionArmed = false
+  veafSkynet.spotterGraphArmed = false
+  veafSkynet.spotterGraphs = {}
   veafSkynet.SpotterNetwork = false
   veafSkynet.SpotterRadioRange = 20000
   veafSkynet.SpotterPropagationSpeed = 1000
@@ -572,6 +574,190 @@ function TestSpotterDetectionBeat:test_the_beat_re_arms_itself()
 end
 
 -- ---------------------------------------------------------------------------
+-- The radio graph
+-- ---------------------------------------------------------------------------
+TestSpotterGraph = {}
+
+function TestSpotterGraph:setUp()
+  _resetSpotterState()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.spotterGraphs = {}
+  veafSkynet.spotterGraphArmed = false
+  veafSkynet.structure = { ["red iads"] = { coalitionID = coalition.side.RED } }
+end
+
+function TestSpotterGraph:tearDown()
+  veafSkynet.spotterGraphs = {}
+  coalition.getGroups = _realGetGroups
+end
+
+--- Put these RED relays on the map. `units` is an array of `{ name, x, z, attributes }`.
+function TestSpotterGraph:_relays(units)
+  local built = {}
+  self.units = {}
+  for _, spec in ipairs(units) do
+    local unit = _unit(spec.name, spec.attributes or { ["Tanks"] = true }, spec.x, 0, spec.z)
+    self.units[spec.name] = unit
+    table.insert(built, unit)
+  end
+  _stubGetGroups({ [coalition.side.RED] = { _group("RedGroup", built) } })
+  return built
+end
+
+function TestSpotterGraph:_graph()
+  return veafSkynet.getSpotterGraph(coalition.side.RED)
+end
+
+function TestSpotterGraph:test_two_units_within_the_radio_range_are_linked()
+  self:_relays({ { name = "A", x = 0, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertTrue(self:_graph().adjacency["A"]["B"])
+  luaunit.assertTrue(self:_graph().adjacency["B"]["A"])
+end
+
+function TestSpotterGraph:test_two_units_beyond_the_radio_range_are_not_linked()
+  self:_relays({ { name = "A", x = 0, z = 0 }, { name = "B", x = 0, z = 25000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNil(self:_graph().adjacency["A"]["B"])
+  luaunit.assertNil(self:_graph().adjacency["B"]["A"])
+end
+
+function TestSpotterGraph:test_the_adjacency_is_a_set_and_not_a_list()
+  -- Measured, not taste: removing a back-edge from a list means scanning it, and re-edging a hundred
+  -- units costs 86 ms with lists against 13.7 ms with sets on the densest layout built. A test that
+  -- only checked reachability would pass on the slow representation too.
+  self:_relays({ { name = "A", x = 0, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  local edges = self:_graph().adjacency["A"]
+  luaunit.assertEquals(edges["B"], true)
+  luaunit.assertEquals(#edges, 0) -- no array part at all
+end
+
+function TestSpotterGraph:test_a_unit_that_appears_joins_at_the_next_pass()
+  self:_relays({ { name = "A", x = 0, z = 0 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNil(self:_graph().nodes["B"])
+  self:_relays({ { name = "A", x = 0, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNotNil(self:_graph().nodes["B"])
+  luaunit.assertTrue(self:_graph().adjacency["A"]["B"])
+end
+
+function TestSpotterGraph:test_a_unit_that_dies_leaves_at_the_next_pass()
+  self:_relays({ { name = "A", x = 0, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  self:_relays({ { name = "A", x = 0, z = 0 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNil(self:_graph().nodes["B"])
+  -- And its back-edge went with it, which is the half a naive removal leaves behind.
+  luaunit.assertNil(self:_graph().adjacency["A"]["B"])
+end
+
+function TestSpotterGraph:test_a_pass_only_touches_its_own_class()
+  self:_relays({
+    { name = "Tank", x = 0, z = 0, attributes = { ["Tanks"] = true } },
+    { name = "Grunt", x = 0, z = 5000, attributes = { ["Infantry"] = true } },
+  })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNotNil(self:_graph().nodes["Tank"])
+  luaunit.assertNil(self:_graph().nodes["Grunt"])
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Slow)
+  luaunit.assertNotNil(self:_graph().nodes["Grunt"])
+  luaunit.assertTrue(self:_graph().adjacency["Tank"]["Grunt"])
+end
+
+function TestSpotterGraph:test_a_vanished_unit_of_another_class_is_left_alone()
+  -- The mobile pass must not evict the infantry it cannot see: only nodes of its own class count as
+  -- gone when they are missing from its listing.
+  self:_relays({
+    { name = "Tank", x = 0, z = 0, attributes = { ["Tanks"] = true } },
+    { name = "Grunt", x = 0, z = 5000, attributes = { ["Infantry"] = true } },
+  })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Slow)
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNotNil(self:_graph().nodes["Grunt"])
+end
+
+function TestSpotterGraph:test_a_unit_that_moved_less_than_the_threshold_is_not_re_edged()
+  self:_relays({ { name = "A", x = 0, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  local before = self:_graph().nodes["A"]
+  self.units["A"]._point.x = 1500 -- under the 2 km threshold
+  self:_relays({ { name = "A", x = 1500, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  -- The stored position is still the one the edges were measured from, which is the whole point of
+  -- the threshold: it is a *reference*, not a last-known position.
+  luaunit.assertEquals(self:_graph().nodes["A"].x, before.x)
+end
+
+function TestSpotterGraph:test_a_unit_that_moved_past_the_threshold_is_re_edged()
+  self:_relays({ { name = "A", x = 0, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertTrue(self:_graph().adjacency["A"]["B"])
+  self:_relays({ { name = "A", x = 100000, z = 0 }, { name = "B", x = 0, z = 5000 } })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertEquals(self:_graph().nodes["A"].x, 100000)
+  luaunit.assertNil(self:_graph().adjacency["A"]["B"])
+  luaunit.assertNil(self:_graph().adjacency["B"]["A"])
+end
+
+function TestSpotterGraph:test_a_unit_that_cannot_relay_is_not_in_the_graph()
+  self:_relays({
+    { name = "Tank", x = 0, z = 0, attributes = { ["Tanks"] = true } },
+    { name = "Shed", x = 0, z = 1000, attributes = { ["Fortifications"] = true } },
+  })
+  for _, class in pairs(veafSkynet.SpotterSpeedClasses) do
+    veafSkynet.spotterGraphPass(class)
+  end
+  luaunit.assertNil(self:_graph().nodes["Shed"])
+end
+
+function TestSpotterGraph:test_a_sam_site_is_in_the_graph_although_it_never_spots()
+  -- What produces the domino: a battery that is warned lights up *and* passes the word, so a line of
+  -- batteries wakes in the direction of the penetration.
+  self:_relays({
+    { name = "Sam", x = 0, z = 0, attributes = { ["SAM elements"] = true } },
+    { name = "Tank", x = 0, z = 5000, attributes = { ["Tanks"] = true } },
+  })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertTrue(self:_graph().adjacency["Sam"]["Tank"])
+end
+
+function TestSpotterGraph:test_the_graph_stays_symmetric_after_a_move()
+  self:_relays({
+    { name = "A", x = 0, z = 0 },
+    { name = "B", x = 0, z = 5000 },
+    { name = "C", x = 0, z = 10000 },
+  })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  self:_relays({
+    { name = "A", x = 0, z = 0 },
+    { name = "B", x = 0, z = 40000 },
+    { name = "C", x = 0, z = 10000 },
+  })
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  local adjacency = self:_graph().adjacency
+  for from, edges in pairs(adjacency) do
+    for to, _ in pairs(edges) do
+      luaunit.assertTrue(adjacency[to][from], from .. " reaches " .. to .. " but not the other way")
+    end
+  end
+end
+
+function TestSpotterGraph:test_nothing_is_built_when_the_feature_is_off()
+  self:_relays({ { name = "A", x = 0, z = 0 } })
+  veafSkynet.SpotterNetwork = false
+  veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertNil(self:_graph().nodes["A"])
+end
+
+function TestSpotterGraph:test_the_pass_returns_its_own_class_period()
+  luaunit.assertEquals(veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Fast), 10)
+  luaunit.assertEquals(veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Mobile), 20)
+  luaunit.assertEquals(veafSkynet.spotterGraphPass(veafSkynet.SpotterSpeedClasses.Slow), 30)
+end
+
+-- ---------------------------------------------------------------------------
 -- Wiring — the loop is actually scheduled
 --
 -- The defect class that shipped green in August: tests that called the handler and never what
@@ -587,7 +773,7 @@ function TestSpotterWiring:setUp()
   self.scheduled = {}
   self.previousSchedule = veaf.scheduleFunction
   veaf.scheduleFunction = function(fn, vars, t, rep)
-    table.insert(self.scheduled, { fn = fn, time = t, rep = rep })
+    table.insert(self.scheduled, { fn = fn, vars = vars, time = t, rep = rep })
     return #self.scheduled
   end
 end
@@ -636,6 +822,57 @@ function TestSpotterWiring:test_it_is_armed_at_the_detection_period_and_repeats(
   local beat = self:_beats()[1]
   luaunit.assertEquals(beat.time, timer.getTime() + veafSkynet.SpotterDetectionPeriod)
   luaunit.assertEquals(beat.rep, veafSkynet.SpotterDetectionPeriod)
+end
+
+function TestSpotterWiring:test_the_three_graph_passes_are_scheduled()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet._armSpotterGraph()
+  local periods = {}
+  for _, task in ipairs(self.scheduled) do
+    if task.fn == veafSkynet.spotterGraphPass then
+      periods[task.rep] = true
+    end
+  end
+  luaunit.assertTrue(periods[10])
+  luaunit.assertTrue(periods[20])
+  luaunit.assertTrue(periods[30])
+end
+
+function TestSpotterWiring:test_the_graph_passes_are_not_scheduled_when_the_feature_is_off()
+  veafSkynet.SpotterNetwork = false
+  veafSkynet._armSpotterGraph()
+  for _, task in ipairs(self.scheduled) do
+    luaunit.assertNotEquals(task.fn, veafSkynet.spotterGraphPass)
+  end
+end
+
+function TestSpotterWiring:test_arming_the_graph_twice_does_not_stack_a_second_set()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet._armSpotterGraph()
+  veafSkynet._armSpotterGraph()
+  local count = 0
+  for _, task in ipairs(self.scheduled) do
+    if task.fn == veafSkynet.spotterGraphPass then
+      count = count + 1
+    end
+  end
+  luaunit.assertEquals(count, 3)
+end
+
+function TestSpotterWiring:test_each_graph_pass_carries_its_own_class()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet._armSpotterGraph()
+  -- The class is the pass's only argument, and a pass armed without one would silently fall back on
+  -- the slow period and re-edge nothing of the other two classes.
+  local classes = {}
+  for _, task in ipairs(self.scheduled) do
+    if task.fn == veafSkynet.spotterGraphPass then
+      classes[task.vars and task.vars[1]] = true
+    end
+  end
+  luaunit.assertTrue(classes[veafSkynet.SpotterSpeedClasses.Fast])
+  luaunit.assertTrue(classes[veafSkynet.SpotterSpeedClasses.Mobile])
+  luaunit.assertTrue(classes[veafSkynet.SpotterSpeedClasses.Slow])
 end
 
 function TestSpotterWiring:test_a_lost_unit_forgets_what_it_was_watching()

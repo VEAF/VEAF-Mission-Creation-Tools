@@ -4,9 +4,15 @@ Settled with David on 2026-09-20, decision by decision. This document is the pha
 demanded before any code: the mechanism, the costs **measured** rather than assumed, and what the
 measurement changed.
 
-No production code has been written. The only Lua in this lot so far is
-[`test/lua/bench_spotter_network.lua`](../../test/lua/bench_spotter_network.lua), the bench that
-produced the figures below.
+The bench behind the figures below is
+[`test/lua/bench_spotter_network.lua`](../../test/lua/bench_spotter_network.lua), which measures a
+*model* of the mechanism. Once the code existed, its own cost was measured separately with
+[`test/lua/bench_spotter_shipped.lua`](../../test/lua/bench_spotter_shipped.lua) — see *What the
+shipped code actually costs* below, because the two are not the same number.
+
+**This document has been amended twice during implementation**, both times marked in place: the
+line-of-sight cost claim contradicted its own requirement, and the graph figures were a model's
+rather than the code's.
 
 ## What it does, in five lines
 
@@ -252,6 +258,30 @@ not show at this scale.
 That last column is also the answer to *"what does a combat zone spawning a hundred units cost?"* —
 it is exactly the measurement, 100 units re-edged against 2 000, and the answer is **13.7 ms** with
 sets on the worst layout we could build.
+
+### What the shipped code actually costs, measured 2026-09-21
+
+The table above measures a **model** of the graph, written before the code existed and indexing its
+nodes by integer. The implementation keys everything by **unit name**, because that is what a DCS
+mission hands us, and string keys are not free. Re-measured against `veafSkynet.reEdgeSpotterNode`
+itself, on the same layout and the same interpreter, with `lua test/lua/bench_spotter_shipped.lua`:
+
+| operation | model bench | shipped code |
+|---|---|---|
+| full build, 2 000 units, ~234 000 edges | 113 ms | **~205 ms** |
+| re-edge 100 units | 13.7 ms | **~19 ms** |
+
+Both accepted. The build is paid once per class loop at mission start — three smaller spikes at 10,
+20 and 30 s rather than one — on a layout twice the size of any mission we ship, and Skynet's own
+enrolment already runs at that moment.
+
+A parallel array of nodes, scanned with `ipairs` instead of `pairs` over the hash, was measured at
+181 ms against 253 ms on the same run, about 28 %. **Not taken:** it needs removal bookkeeping
+(swap-remove plus an index map), which is precisely the individual-element removal the set
+representation exists to avoid. Seventy milliseconds once at mission start does not buy that back.
+
+The conclusion of the section is unchanged and now rests on the real code rather than on a model:
+spatial bucketing is not needed at any mission size we ship.
 
 ### Connectivity, which is the real finding
 

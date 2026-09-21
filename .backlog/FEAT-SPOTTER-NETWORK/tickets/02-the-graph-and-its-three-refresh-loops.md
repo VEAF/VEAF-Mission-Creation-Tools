@@ -29,6 +29,14 @@ the settled 20 km range, on the worst layout built: **2 000 units on a dense fro
 | Movement check over 2 000 units | 0.15 ms | every loop |
 | Re-edging 100 units (a combat zone spawning at once) | 13.7 ms with sets, 86 ms with lists | on the next pass |
 
+**Re-measured against the shipped code, 2026-09-21** (`lua test/lua/bench_spotter_shipped.lua`).
+Those figures come from a *model* of the graph indexing its nodes by integer; the implementation
+keys everything by unit name, and string keys are not free — **205 ms** for the build and **19 ms**
+for the patch, on the same layout and interpreter. Both accepted: the build is three smaller spikes
+at mission start rather than one, on a layout twice the size of any mission we ship. A parallel node
+array scanned with `ipairs` recovers about 28 % and was **not** taken, because it needs the
+swap-remove-plus-index-map bookkeeping that the set representation exists to avoid.
+
 **Spatial bucketing is off the table** and the PRD text saying otherwise is already struck. The cost
 that document called "the whole problem" does not exist.
 

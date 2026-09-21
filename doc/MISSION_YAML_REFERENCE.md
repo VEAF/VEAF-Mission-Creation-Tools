@@ -296,6 +296,9 @@ modules:
 | `debug_red` | booléen | `false` | Activer le debug Skynet verbeux pour la coalition ROUGE |
 | `include_blue_in_radio` | booléen | `false` | Ajouter l'état IADS BLEU au menu radio F10 |
 | `debug_blue` | booléen | `false` | Activer le debug Skynet verbeux pour la coalition BLEU |
+| `spotter_network` | booléen | `false` | Réseau de guetteurs : les unités au sol voient les avions et relaient le contact |
+| `spotter_radio_range_km` | nombre | `20` | Portée d'un relais radio, en kilomètres |
+| `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse de l'alerte sur le réseau, en km/h (période d'un bond = portée ÷ vitesse) |
 
 #### Champs de `modules.CSAR`
 

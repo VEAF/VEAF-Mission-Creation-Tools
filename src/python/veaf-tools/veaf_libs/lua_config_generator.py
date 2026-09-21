@@ -446,6 +446,17 @@ def resolve_module_dependencies(enabled_ids: set[str]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+def _whole_if_it_can_be(value: float) -> float | int:
+    """Return *value* as an ``int`` when it is a whole number, unchanged otherwise.
+
+    Purely for the generated file's readability: a converted distance is written
+    ``20000`` rather than ``20000.0``, which is what somebody reading ``veaf-config.lua``
+    to check their settings expects to see next to a number they wrote in kilometres.
+    Lua treats the two identically.
+    """
+    return int(value) if float(value).is_integer() else value
+
+
 def _to_lua_scalar(value: object) -> str:
     """Convert a Python scalar to a Lua literal string.
 
@@ -1857,6 +1868,24 @@ def generate_config_lua(
         if "dynamic_spawn" in skynet_cfg:
             ds = "true" if skynet_cfg["dynamic_spawn"] else "false"
             lines.append(f"    veafSkynet.DynamicSpawn = {ds}")
+        # The spotter network, emitted under the same rule and for the same reason: a line written
+        # from a Python default lands after the `module_settings:` hatch and silently undoes it.
+        #
+        # The two numbers are written by a mission maker in the units a mission maker thinks in —
+        # kilometres and km/h — and stored by the Lua in metres and metres per second. The conversion
+        # happens here, once, rather than at every use inside the module.
+        if "spotter_network" in skynet_cfg:
+            sn = "true" if skynet_cfg["spotter_network"] else "false"
+            lines.append(f"    veafSkynet.SpotterNetwork = {sn}")
+        if "spotter_radio_range_km" in skynet_cfg:
+            radio_range_m = float(skynet_cfg["spotter_radio_range_km"]) * 1000
+            lines.append(f"    veafSkynet.SpotterRadioRange = {_to_lua_scalar(_whole_if_it_can_be(radio_range_m))}")
+        if "spotter_propagation_speed_kmh" in skynet_cfg:
+            # km/h to m/s. A speed is exposed rather than a hop period on purpose: the period is
+            # range / speed, so exposing both would let widening the range silently double how fast
+            # an alert crosses the map.
+            speed_ms = float(skynet_cfg["spotter_propagation_speed_kmh"]) / 3.6
+            lines.append(f"    veafSkynet.SpotterPropagationSpeed = {_to_lua_scalar(_whole_if_it_can_be(speed_ms))}")
         lines.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
         lines.append("end")
         lines.append("")
@@ -2039,6 +2068,9 @@ def generate_mission_yaml_template(
                 "  #   include_blue_in_radio: false",
                 "  #   debug_blue: false",
                 "  #   dynamic_spawn: false     # integrate groups spawned during the mission into the IADS",
+                "  #   spotter_network: false          # ground units see aircraft and pass the word along the radio net",
+                "  #   spotter_radio_range_km: 20      # how far one unit can relay; below ~20 the net stays in islands",
+                "  #   spotter_propagation_speed_kmh: 3600  # how fast an alert crosses the map (hop = range / speed)",
             ]
         elif upper == "CTLD":
             # CTLD 2 takes no settings here: its configuration is the mission's

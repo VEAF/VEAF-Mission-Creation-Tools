@@ -296,6 +296,105 @@ def test_mission_yaml_template_documents_dynamic_spawn():
 
 
 # ---------------------------------------------------------------------------
+# External modules — SKYNET, the spotter network (FEAT-SPOTTER-NETWORK)
+# ---------------------------------------------------------------------------
+
+
+def test_spotter_network_reaches_the_generated_config():
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_network": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterNetwork = true" in lua
+
+
+def test_spotter_network_is_not_written_when_the_field_is_absent():
+    """Same rule as ``dynamic_spawn``, and for the same reason it was given one.
+
+    A line written from a Python default lands ~145 lines *after* the ``module_settings:`` hatch that
+    sets the same variable, and silently undoes it. That is what ran ``verify-mission-c`` with a
+    feature off for two days while its own checks reported the documented default as a measurement.
+    Silence here leaves ``veafSkynetIadsHelper.lua``'s own default in place, which is ``false``.
+    """
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterNetwork" not in lua
+    assert "veafSkynet.SpotterRadioRange" not in lua
+    assert "veafSkynet.SpotterPropagationSpeed" not in lua
+    # the block itself is still there — this is not "Skynet stopped being configured"
+    assert "veafSkynet.initialize(" in lua
+
+
+def test_spotter_network_false_is_written_when_stated():
+    """Silence means "I did not say"; a written ``false`` means "I said off", and must beat a hatch."""
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_network": False}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterNetwork = false" in lua
+
+
+def test_spotter_radio_range_is_converted_from_kilometres_to_metres():
+    """The mission maker writes kilometres, the module stores metres, and the conversion happens here
+    once rather than at every use inside the Lua.
+
+    Pinned to the exact emitted text: an integral value must not come out as ``20000.0`` either, since
+    the generated file is what somebody opens to check the settings they wrote.
+    """
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_radio_range_km": 20}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterRadioRange = 20000" in lua
+    assert "20000.0" not in lua
+
+
+def test_spotter_propagation_speed_is_converted_from_kmh_to_metres_per_second():
+    """3 600 km/h is 1 000 m/s, which with the default 20 km range gives the settled 20 s hop."""
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_propagation_speed_kmh": 3600}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterPropagationSpeed = 1000" in lua
+
+
+def test_a_non_integral_conversion_keeps_its_decimals():
+    """Rounding a speed to please the eye would change the hop period, so only *whole* values are
+    written without a decimal point."""
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_propagation_speed_kmh": 1800}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterPropagationSpeed = 500" in lua
+
+    yaml_data = {"external_modules": {"skynet": {"enabled": True, "spotter_radio_range_km": 12.5}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterRadioRange = 12500" in lua
+
+
+def test_the_spotter_settings_are_written_before_initialize():
+    """``initialize`` schedules the work that reads them, so setting them after would work by luck."""
+    yaml_data: dict = {
+        "external_modules": {
+            "skynet": {
+                "enabled": True,
+                "spotter_network": True,
+                "spotter_radio_range_km": 20,
+                "spotter_propagation_speed_kmh": 3600,
+            }
+        }
+    }
+    lua = generate_config_lua(yaml_data)
+    for setting in ("SpotterNetwork", "SpotterRadioRange", "SpotterPropagationSpeed"):
+        assert lua.index(f"veafSkynet.{setting}") < lua.index("veafSkynet.initialize(")
+
+
+def test_skynet_disabled_emits_no_spotter_settings():
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": False, "spotter_network": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterNetwork" not in lua
+
+
+def test_mission_yaml_template_documents_the_spotter_network():
+    """It ships off by default, so a key nobody can discover is the ``ewr`` option again — present,
+    undocumented and dead for four years."""
+    template = generate_mission_yaml_template()
+    assert "spotter_network" in template
+    assert "spotter_radio_range_km" in template
+    assert "spotter_propagation_speed_kmh" in template
+
+
+# ---------------------------------------------------------------------------
 # External modules — CSAR
 # ---------------------------------------------------------------------------
 

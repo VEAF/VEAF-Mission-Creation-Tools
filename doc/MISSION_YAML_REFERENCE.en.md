@@ -294,6 +294,9 @@ modules:
 | `debug_red` | boolean | `false` | Enable verbose Skynet debug for RED coalition |
 | `include_blue_in_radio` | boolean | `false` | Add BLUE IADS status to F10 radio menu |
 | `debug_blue` | boolean | `false` | Enable verbose Skynet debug for BLUE coalition |
+| `spotter_network` | boolean | `false` | Spotter network: ground units see aircraft and relay the contact |
+| `spotter_radio_range_km` | number | `20` | How far one unit can relay, in kilometres |
+| `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the network, in km/h (hop period = range / speed) |
 
 #### `modules.CSAR` fields
 

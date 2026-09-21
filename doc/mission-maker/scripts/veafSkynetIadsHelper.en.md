@@ -30,6 +30,9 @@ modules:
     include_blue_in_radio: false  # show BLUE network status in F10 menu
     debug_blue: false             # verbose Skynet logging for BLUE network
     dynamic_spawn: false          # also integrate groups that appear during the mission
+    spotter_network: false        # ground units see aircraft and pass the word along
+    spotter_radio_range_km: 20    # how far one unit can relay
+    spotter_propagation_speed_kmh: 3600  # how fast an alert crosses the network
 ```
 
 | Field | Type | Default | Description |
@@ -40,6 +43,9 @@ modules:
 | `include_blue_in_radio` | boolean | `false` | Add BLUE IADS status to F10 radio menu |
 | `debug_blue` | boolean | `false` | Enable verbose Skynet debug for BLUE coalition |
 | `dynamic_spawn` | boolean | `false` | Also integrate groups that appear **during** the mission — see [Groups appearing during the mission](#dynamic-spawn) |
+| `spotter_network` | boolean | `false` | Enable the spotter network — see [Spotter network](#spotter-network) |
+| `spotter_radio_range_km` | number | `20` | How far one unit can relay an alert, in kilometres |
+| `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the map, in km/h |
 
 ---
 
@@ -120,6 +126,61 @@ Set from `mission.yaml` (`dynamic_spawn`), or before `initialize` with `veafSkyn
 -- during the mission, network by network
 veafSkynet.setDynamicSpawn("red iads", false)
 ```
+
+### Spotter network — `spotter_network` {#spotter-network}
+
+A ground unit that sees a hostile aircraft reports it, and the report travels from unit to unit over
+the radio, one hop at a time. A SAM site that receives it does **not** light up: it holds the contact
+and waits, exactly as it would for an early-warning radar, and goes live only when the aircraft
+enters its firing envelope. It is a **distributed early-warning radar**, not a wake-up trigger.
+
+When the spotter loses sight of the aircraft it sends a cancellation along the same path, and the
+defence goes quiet again.
+
+**Off by default**, because it changes the balance of every existing mission.
+
+| Value | Description |
+|-------|-------------|
+| `false` | Nothing changes (**default**) |
+| `true` | Ground units see aircraft and pass the word along |
+
+**Who sees what.** The detection range depends on the type of unit, and each unit draws its own once
+for the mission, within ±20 % of the table value. Terrain counts: an aircraft following a valley is
+not seen by the spotter behind the crest.
+
+| Unit | Sees out to | Relays |
+|------|-------------|--------|
+| Aeroplane | 30 km | yes |
+| Helicopter | 15 km | yes |
+| Ship | 12 km | yes |
+| MANPADS | 10 km | yes |
+| AAA, air-defence vehicle | 8 km | yes |
+| Infantry | 4 km | yes |
+| Armour, artillery, trucks | 3 km | yes |
+| SAM site, EWR, AWACS | — | yes |
+| Statics, buildings, everything else | — | no |
+
+Seeing and relaying are two separate properties. **A SAM site relays but never spots**: its own
+detection is already its last line of defence's job. That is what produces the domino — a battery
+that is warned lights up **and** passes the word, so a line of batteries wakes in the direction of
+the penetration. EWRs and AWACS are excluded for the same reason: they already feed Skynet.
+
+A consequence that was accepted deliberately: **a player flying for the network's coalition becomes a
+spotter**, and a friendly patrol feeds the ground defence.
+
+**The radio range decides whether the network exists at all.** Measured over a 1 000-unit mission: at
+10 km the largest connected pocket covers 5 % of a scattered map — an alert never leaves the group
+that raised it. At 20 km it covers all of it on most layouts. That is why the default is 20 and not
+below. On a map whose contents are spread very thin the network stays a set of islands at any range,
+which is the honest limit of the idea.
+
+**A speed, not a period.** One hop covers the radio range, so exposing both would let you widen the
+range and double the speed of the alert without noticing. The hop period is derived: range ÷ speed,
+so 20 s at the shipped values. At those settings an alert crosses a 200 km front in four minutes,
+against thirteen for a fighter to fly it.
+
+> The network lives inside the Skynet module and does nothing when Skynet is off: there is no
+> fallback mode for missions without an IADS.
 
 ### Startup delay — `veafSkynet.DelayForStartup`
 

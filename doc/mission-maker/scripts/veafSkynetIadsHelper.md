@@ -30,6 +30,9 @@ modules:
     include_blue_in_radio: false  # afficher l'état du réseau bleu dans le menu F10
     debug_blue: false             # logs détaillés Skynet pour le réseau bleu
     dynamic_spawn: false          # intégrer aussi les groupes apparus en cours de mission
+    spotter_network: false        # les unités au sol voient les avions et se passent le mot
+    spotter_radio_range_km: 20    # portée d'un relais radio
+    spotter_propagation_speed_kmh: 3600  # vitesse de l'alerte sur le réseau
 ```
 
 | Champ | Type | Défaut | Description |
@@ -40,6 +43,9 @@ modules:
 | `include_blue_in_radio` | booléen | `false` | Ajouter l'état IADS bleu au menu radio F10 |
 | `debug_blue` | booléen | `false` | Debug verbeux Skynet pour la coalition bleue |
 | `dynamic_spawn` | booléen | `false` | Intégrer aussi les groupes apparus **en cours de mission** — voir [Apparitions en cours de mission](#dynamic-spawn) |
+| `spotter_network` | booléen | `false` | Activer le réseau de guetteurs — voir [Réseau de guetteurs](#spotter-network) |
+| `spotter_radio_range_km` | nombre | `20` | Distance à laquelle une unité peut relayer une alerte, en kilomètres |
+| `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse à laquelle l'alerte traverse la carte, en km/h |
 
 ---
 
@@ -120,6 +126,64 @@ Se règle depuis `mission.yaml` (`dynamic_spawn`), ou avant `initialize` avec `v
 -- en cours de mission, réseau par réseau
 veafSkynet.setDynamicSpawn("red iads", false)
 ```
+
+### Réseau de guetteurs — `spotter_network` {#spotter-network}
+
+Une unité au sol qui voit un avion ennemi le signale, et le signalement se propage d'unité en unité
+par la radio, un bond à la fois. Un site SAM qui le reçoit **ne s'allume pas** : il garde le contact
+et attend, exactement comme il le ferait pour un radar de veille lointaine, et ne passe en émission
+que lorsque l'avion entre dans son enveloppe de tir. C'est donc un **radar de veille distribué**, pas
+un déclencheur de réveil.
+
+Quand le guetteur perd l'avion de vue, il envoie une annulation par le même chemin et la défense se
+rendort.
+
+**Éteint par défaut**, parce que ça change l'équilibre de toutes les missions existantes.
+
+| Valeur | Description |
+|--------|-------------|
+| `false` | Rien ne change (**défaut**) |
+| `true` | Les unités au sol voient les avions et se passent le mot |
+
+**Qui voit quoi.** La portée de détection dépend du type d'unité, et chaque unité tire la sienne
+une fois pour la mission, à ±20 % de la valeur du tableau. Le relief compte : un avion qui suit une
+vallée n'est pas vu par le guetteur situé derrière la crête.
+
+| Unité | Voit à | Relaie |
+|-------|--------|--------|
+| Avion | 30 km | oui |
+| Hélicoptère | 15 km | oui |
+| Navire | 12 km | oui |
+| MANPADS | 10 km | oui |
+| AAA, véhicule de défense antiaérienne | 8 km | oui |
+| Infanterie | 4 km | oui |
+| Blindés, artillerie, camions | 3 km | oui |
+| Site SAM, EWR, AWACS | — | oui |
+| Statiques, bâtiments, le reste | — | non |
+
+Voir et relayer sont deux propriétés distinctes. **Un site SAM relaie mais ne guette jamais** : sa
+propre détection est déjà le travail de sa dernière ligne de défense. C'est ce qui produit l'effet
+domino — une batterie prévenue s'allume **et** passe le mot, donc une ligne de batteries se réveille
+dans le sens de la pénétration. Les EWR et les AWACS sont exclus pour la même raison : ils alimentent
+déjà Skynet.
+
+Conséquence assumée : **un joueur qui vole pour la coalition du réseau devient un guetteur**, et une
+patrouille amie alimente la défense au sol.
+
+**La portée radio décide si le réseau existe.** Mesuré sur une mission de 1 000 unités : à 10 km, la
+plus grande poche connectée couvre 5 % d'une carte dispersée — une alerte ne sort jamais du groupe
+qui l'a levée. À 20 km, elle en couvre la totalité sur la plupart des dispositions. C'est pour ça que
+le défaut est à 20 et pas en dessous. Sur une carte dont le contenu est très éparpillé, le réseau
+reste en îlots quelle que soit la portée : c'est la limite honnête de l'idée.
+
+**La vitesse, et pas une période.** Un bond couvre la portée radio, donc exposer les deux permettrait
+d'élargir la portée et de doubler la vitesse de l'alerte sans s'en rendre compte. La période d'un
+bond est calculée : portée ÷ vitesse, soit 20 s avec les valeurs par défaut. Aux réglages livrés,
+l'alerte traverse un front de 200 km en quatre minutes, contre treize pour un chasseur qui le
+survole.
+
+> Le réseau vit dans le module Skynet et ne fait rien quand Skynet est éteint : il n'y a pas de mode
+> de repli pour les missions sans IADS.
 
 ### Délai de démarrage — `veafSkynet.DelayForStartup`
 

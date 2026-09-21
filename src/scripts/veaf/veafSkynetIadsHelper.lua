@@ -1853,6 +1853,7 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
   veafSkynet._armSpotterDetection()
   veafSkynet._armSpotterGraph()
   veafSkynet._armSpotterPropagation()
+  veafSkynet._armSpotterHandover()
 
   veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
 end
@@ -2235,7 +2236,23 @@ function veafSkynet.getSpotterHopPeriod()
     -- shipped default rather than on infinity.
     speed = 1000
   end
-  return veafSkynet.SpotterRadioRange / speed
+  return veafSkynet.getSpotterRadioRange() / speed
+end
+
+--- The radio range actually used, in metres.
+---
+--- An accessor rather than the field read directly, because a zero or negative range has to be
+--- refused in **one** place. Refused in the hop period alone it would still build a graph with no
+--- edges at all: the feature would be on, cost its beats, and do nothing, with nothing in the log to
+--- say why.
+---
+--- @return number metres, always strictly positive
+function veafSkynet.getSpotterRadioRange()
+  local range = veafSkynet.SpotterRadioRange
+  if not range or range <= 0 then
+    return 20000
+  end
+  return range
 end
 
 --- The row of `SpotterUnitTable` this unit matches, or the default profile.
@@ -2644,7 +2661,8 @@ function veafSkynet.reEdgeSpotterNode(graph, name, x, z, class)
   graph.adjacency[name] = edges
   graph.nodes[name] = { x = x, z = z, class = class }
 
-  local rangeSq = veafSkynet.SpotterRadioRange * veafSkynet.SpotterRadioRange
+  local range = veafSkynet.getSpotterRadioRange()
+  local rangeSq = range * range
   for other, node in pairs(graph.nodes) do
     if other ~= name then
       local dx = x - node.x
@@ -2959,6 +2977,148 @@ function veafSkynet.spotterHeartbeat()
   end
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — handing over to Skynet
+--
+-- A site that receives an alert does **not** light up. It holds the contact and waits, exactly as it
+-- would for an early-warning radar, and goes live only when the aircraft enters its own firing
+-- envelope. The network is a distributed EWR, not a wake-up trigger, and that is what makes it fit
+-- Skynet instead of fighting it.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Whether the hand-over loop is on the clock.
+veafSkynet.spotterHandoverArmed = false
+
+--- Whether the missing-`reportContact` warning has already been written. Once is a diagnosis, every
+--- five seconds for a four-hour mission is a log nobody can read.
+veafSkynet.spotterHandoverDoorWarned = false
+
+--- The aircraft a unit is currently holding, as DCS Unit handles, skipping the ones that have left.
+---
+--- @param coa number
+--- @param unitName string
+--- @return table array of DCS Unit handles
+function veafSkynet.getHeldSpotterAircraft(coa, unitName)
+  local held = {}
+  for aircraftName, contact in pairs(veafSkynet.getSpotterContacts(coa, unitName)) do
+    if not contact.cancelled then
+      local dcsUnit = Unit.getByName(aircraftName)
+      if veafSkynet.dcsObjectStillExists(dcsUnit) then
+        table.insert(held, dcsUnit)
+      end
+    end
+  end
+  return held
+end
+
+--- One hand-over pass: every SAM site of every network, against what its own units are holding.
+---
+--- `isTargetInRange` is annotated as an expensive call in Skynet's own source, so it is reached only
+--- for a site that actually holds an alert — the loop is written so a site holding nothing costs one
+--- table lookup per unit and stops there.
+---
+--- `reportContact` deliberately bypasses the kill-zone test; that is its documented contract, written
+--- for the last line of defence. Here the bypass is harmless and in fact convenient, since the
+--- envelope has just been checked. **Every other guard still applies** — HARM silence, ammunition,
+--- power, destruction — and none of them is re-implemented here.
+function veafSkynet.spotterHandoverPass()
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+
+  for networkName, veafSkynetNetwork in pairs(veafSkynet.structure) do
+    local iads = veafSkynetNetwork.iads
+    if iads and not veafSkynetNetwork.deactivated and veafSkynetNetwork.coalitionID then
+      local coa = veafSkynetNetwork.coalitionID
+      local gotSites, samSites = pcall(iads.getSAMSites, iads)
+      if gotSites and samSites then
+        for _, samSite in pairs(samSites) do
+          veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
+        end
+      end
+    end
+  end
+end
+
+--- Hand one site whatever its own units are holding, if the aircraft is inside its envelope.
+---
+--- A site is a **group** in Skynet and the network is made of **units**, so the site holds what any
+--- of its units holds. That is the right reading rather than a convenience: a battery's radio is not
+--- attached to one particular vehicle.
+---
+--- @param networkName string
+--- @param iads table the Skynet IADS
+--- @param coa number
+--- @param samSite table a Skynet SAM site
+function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
+  local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(samSite)
+  if not dcsGroup then
+    return
+  end
+  local gotUnits, siteUnits = pcall(dcsGroup.getUnits, dcsGroup)
+  if not gotUnits or not siteUnits then
+    return
+  end
+
+  -- Collected across the site's units first, so an aircraft two of them hold is reported once.
+  local held = {}
+  for _, dcsUnit in pairs(siteUnits) do
+    local unitName = veafSkynet.safeDcsName(dcsUnit)
+    if unitName then
+      for _, dcsAircraft in ipairs(veafSkynet.getHeldSpotterAircraft(coa, unitName)) do
+        held[veafSkynet.safeDcsName(dcsAircraft) or tostring(dcsAircraft)] = dcsAircraft
+      end
+    end
+  end
+  if not next(held) then
+    return
+  end
+
+  for _, dcsAircraft in pairs(held) do
+    local inEnvelope, answer = pcall(samSite.isTargetInRange, samSite, dcsAircraft)
+    if inEnvelope and answer then
+      if iads.reportContact then
+        local reported = pcall(iads.reportContact, iads, dcsAircraft, samSite)
+        if reported then
+          veaf.loggers.get(veafSkynet.Id):debug(
+            string.format(
+              "spotter network handed [%s] to [%s] on [%s]",
+              veaf.p(veafSkynet.safeDcsName(dcsAircraft)),
+              veaf.p(samSite.dcsName),
+              veaf.p(networkName)
+            )
+          )
+        end
+      elseif not veafSkynet.spotterHandoverDoorWarned then
+        -- The door exists in VEAF/Skynet-IADS but the artifact vendored here predates it. Said once,
+        -- and said plainly: the feature is switched on and cannot do the one thing it exists for.
+        veafSkynet.spotterHandoverDoorWarned = true
+        veaf.loggers.get(veafSkynet.Id):warn(
+          "spotter network is on, but this Skynet build has no reportContact: alerts travel and no site is ever woken (vendor a Skynet release that carries it)"
+        )
+      end
+    end
+  end
+end
+
+--- Put the hand-over on the clock, on the detection beat's own cadence: a contact is worth acting on
+--- as often as it is worth looking for.
+function veafSkynet._armSpotterHandover()
+  if veafSkynet.spotterHandoverArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  veafSkynet.spotterHandoverArmed = true
+  veaf.scheduleFunction(
+    veafSkynet.spotterHandoverPass,
+    {},
+    timer.getTime() + veafSkynet.SpotterDetectionPeriod,
+    veafSkynet.SpotterDetectionPeriod
+  )
+end
+
 --- Put propagation and the heartbeat on the clock.
 ---
 --- The hop period is read **here**, from the range and the speed, rather than stored as a setting of
@@ -3012,7 +3172,7 @@ function veafSkynet._armSpotterDetection()
   veaf.loggers.get(veafSkynet.Id):info(
     string.format(
       "spotter network on: radio range %s m, hop %s s",
-      veaf.p(veafSkynet.SpotterRadioRange),
+      veaf.p(veafSkynet.getSpotterRadioRange()),
       veaf.p(veafSkynet.getSpotterHopPeriod())
     )
   )

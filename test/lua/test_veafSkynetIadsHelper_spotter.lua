@@ -382,6 +382,23 @@ function TestSpotterHopPeriod:test_a_zero_speed_does_not_stop_the_network()
   luaunit.assertEquals(veafSkynet.getSpotterHopPeriod(), 20)
 end
 
+function TestSpotterHopPeriod:test_a_zero_range_does_not_leave_the_network_inert()
+  -- Refused in one place, because a zero range refused only in the hop period would still build a
+  -- graph with no edges: the feature on, costing its beats, doing nothing, and nothing in the log.
+  veafSkynet.SpotterRadioRange = 0
+  luaunit.assertEquals(veafSkynet.getSpotterRadioRange(), 20000)
+  luaunit.assertEquals(veafSkynet.getSpotterHopPeriod(), 20)
+end
+
+function TestSpotterHopPeriod:test_the_graph_uses_the_guarded_range()
+  -- The assertion that keeps the guard in *one* place: a nonsensical range must not reach the edges.
+  veafSkynet.SpotterRadioRange = -5
+  local graph = { adjacency = {}, nodes = {} }
+  veafSkynet.reEdgeSpotterNode(graph, "A", 0, 0, veafSkynet.SpotterSpeedClasses.Mobile)
+  veafSkynet.reEdgeSpotterNode(graph, "B", 0, 5000, veafSkynet.SpotterSpeedClasses.Mobile)
+  luaunit.assertTrue(graph.adjacency["A"]["B"])
+end
+
 -- ---------------------------------------------------------------------------
 -- The beat, end to end
 -- ---------------------------------------------------------------------------
@@ -1009,6 +1026,168 @@ function TestSpotterPropagation:test_nothing_propagates_when_the_feature_is_off(
 end
 
 -- ---------------------------------------------------------------------------
+-- Handing over to Skynet
+-- ---------------------------------------------------------------------------
+TestSpotterHandover = {}
+
+function TestSpotterHandover:setUp()
+  _resetSpotterState()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.spotterHandoverArmed = false
+  veafSkynet.spotterHandoverDoorWarned = false
+
+  self.reported = {}
+  self.rangeAsked = {}
+  self.inEnvelope = true
+
+  self.bandit = _unit("Bandit", { ["Air"] = true }, 0, 5000, 0)
+  self.previousGetByName = Unit.getByName
+  Unit.getByName = function(name)
+    if name == "Bandit" then
+      return self.bandit
+    end
+    return nil
+  end
+
+  -- A SAM site: a Skynet element wrapping a DCS group of two launchers.
+  local siteUnits = { _unit("Sam1", { ["SAM elements"] = true }), _unit("Sam2", { ["SAM elements"] = true }) }
+  local siteGroup = _group("SamSite", siteUnits)
+  setmetatable(siteGroup, Group)
+  self.samSite = {
+    dcsName = "SamSite",
+    dcsRepresentation = siteGroup,
+    isTargetInRange = function(_, target)
+      table.insert(self.rangeAsked, veafSkynet.safeDcsName(target))
+      return self.inEnvelope
+    end,
+  }
+
+  self.iads = {
+    getSAMSites = function()
+      return { self.samSite }
+    end,
+    reportContact = function(_, dcsUnit, samSite)
+      table.insert(self.reported, veafSkynet.safeDcsName(dcsUnit) .. "@" .. samSite.dcsName)
+    end,
+  }
+  veafSkynet.structure = {
+    ["red iads"] = { coalitionID = coalition.side.RED, iads = self.iads },
+  }
+end
+
+function TestSpotterHandover:tearDown()
+  Unit.getByName = self.previousGetByName
+  veafSkynet.spotterHandoverArmed = false
+end
+
+--- Put the aircraft in the hands of one of the site's units.
+function TestSpotterHandover:_siteHolds()
+  veafSkynet.deliverSpotterMessage(
+    coalition.side.RED,
+    "Sam1",
+    { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = timer.getTime() }
+  )
+end
+
+function TestSpotterHandover:test_a_site_holding_nothing_is_never_asked_for_its_envelope()
+  -- `isTargetInRange` is annotated as expensive in Skynet's own source. A site with no alert must
+  -- not reach it at all.
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(#self.rangeAsked, 0)
+  luaunit.assertEquals(#self.reported, 0)
+end
+
+function TestSpotterHandover:test_nothing_is_reported_while_the_aircraft_is_outside_the_envelope()
+  self:_siteHolds()
+  self.inEnvelope = false
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(self.rangeAsked, { "Bandit" })
+  luaunit.assertEquals(#self.reported, 0)
+end
+
+function TestSpotterHandover:test_exactly_one_report_when_it_enters_the_envelope()
+  self:_siteHolds()
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(self.reported, { "Bandit@SamSite" })
+end
+
+function TestSpotterHandover:test_an_aircraft_two_of_the_sites_units_hold_is_reported_once()
+  self:_siteHolds()
+  veafSkynet.deliverSpotterMessage(
+    coalition.side.RED,
+    "Sam2",
+    { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = timer.getTime() }
+  )
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(#self.reported, 1)
+end
+
+function TestSpotterHandover:test_a_cancelled_contact_is_not_handed_over()
+  self:_siteHolds()
+  veafSkynet.deliverSpotterMessage(
+    coalition.side.RED,
+    "Sam1",
+    { kind = "cancel", aircraft = "Bandit", origin = "Scout", stamp = timer.getTime() + 1 }
+  )
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(#self.reported, 0)
+end
+
+function TestSpotterHandover:test_an_aircraft_that_left_the_mission_is_not_handed_over()
+  self:_siteHolds()
+  Unit.getByName = function()
+    return nil
+  end
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(#self.reported, 0)
+end
+
+function TestSpotterHandover:test_a_deactivated_network_hands_nothing_over()
+  self:_siteHolds()
+  veafSkynet.structure["red iads"].deactivated = true
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(#self.reported, 0)
+end
+
+function TestSpotterHandover:test_nothing_is_handed_over_when_the_feature_is_off()
+  self:_siteHolds()
+  veafSkynet.SpotterNetwork = false
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(#self.reported, 0)
+end
+
+function TestSpotterHandover:test_skynet_own_guards_are_not_second_guessed()
+  -- Skynet refusing the contact -- out of ammunition, under HARM silence, no power -- is Skynet's
+  -- business. We report and let it decide; we do not re-implement any of it, and a refusal must not
+  -- make us stop reporting either.
+  self.iads.reportContact = function()
+    error("skynet says no")
+  end
+  self:_siteHolds()
+  veafSkynet.spotterHandoverPass()
+  veafSkynet.spotterHandoverPass()
+  luaunit.assertEquals(#self.rangeAsked, 2)
+end
+
+function TestSpotterHandover:test_a_skynet_without_the_door_warns_once_and_not_every_beat()
+  -- The vendored artifact predates `reportContact`. Switching the feature on against it must say so
+  -- plainly, and say it once: every five seconds for four hours is a log nobody reads.
+  self.iads.reportContact = nil
+  self:_siteHolds()
+  local before = #dcs_mocks.logs
+  for _ = 1, 5 do
+    veafSkynet.spotterHandoverPass()
+  end
+  local warnings = 0
+  for i = before + 1, #dcs_mocks.logs do
+    if tostring(dcs_mocks.logs[i].text):find("reportContact") then
+      warnings = warnings + 1
+    end
+  end
+  luaunit.assertEquals(warnings, 1)
+end
+
+-- ---------------------------------------------------------------------------
 -- Wiring — the loop is actually scheduled
 --
 -- The defect class that shipped green in August: tests that called the handler and never what
@@ -1172,6 +1351,30 @@ function TestSpotterWiring:test_arming_propagation_twice_does_not_stack_a_second
     end
   end
   luaunit.assertEquals(count, 1)
+end
+
+function TestSpotterWiring:test_the_handover_pass_is_scheduled()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.spotterHandoverArmed = false
+  veafSkynet._armSpotterHandover()
+  local count = 0
+  for _, task in ipairs(self.scheduled) do
+    if task.fn == veafSkynet.spotterHandoverPass then
+      count = count + 1
+      luaunit.assertEquals(task.rep, veafSkynet.SpotterDetectionPeriod)
+    end
+  end
+  luaunit.assertEquals(count, 1)
+  veafSkynet.spotterHandoverArmed = false
+end
+
+function TestSpotterWiring:test_the_handover_pass_is_not_scheduled_when_the_feature_is_off()
+  veafSkynet.SpotterNetwork = false
+  veafSkynet.spotterHandoverArmed = false
+  veafSkynet._armSpotterHandover()
+  for _, task in ipairs(self.scheduled) do
+    luaunit.assertNotEquals(task.fn, veafSkynet.spotterHandoverPass)
+  end
 end
 
 function TestSpotterWiring:test_a_lost_unit_forgets_what_it_was_watching()

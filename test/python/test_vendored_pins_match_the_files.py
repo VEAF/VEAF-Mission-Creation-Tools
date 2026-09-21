@@ -36,6 +36,9 @@ MANIFEST = ROOT / "vendored.yaml"
 SELF_DECLARED = {
     "ctld": re.compile(r'^ctld\.VERSION\s*=\s*"([^"]+)"', re.M),
     "csar": re.compile(r'^csar\.Version\s*=\s*"([^"]+)"', re.M),
+    # Skynet announces itself on load, and the build time in the same string moves on every rebuild
+    # of the same version — so capture the number alone and stop at the separator.
+    "skynet": re.compile(r"^env\.info\(\"--- SKYNET VERSION: ([^|]+?) \| BUILD TIME:", re.M),
 }
 
 #: Artefacts whose release tag and `pinned:` use the same numbering, so the tag must carry the pin.
@@ -43,7 +46,7 @@ SELF_DECLARED = {
 #: Not every artefact does. CSAR pins `2024.07.11.01-VEAF`, the date-version of the adapted file, while
 #: watching ciribob's separate `1.9.x` release numbering — requiring those two to agree fails on a
 #: perfectly correct manifest, which is what the first version of this test did.
-WATCH_TAG_CARRIES_THE_PIN = ("ctld",)
+WATCH_TAG_CARRIES_THE_PIN = ("ctld", "skynet")
 
 
 def _artifacts() -> dict[str, dict]:
@@ -108,10 +111,13 @@ class TestVendoredPinsMatchTheFiles(unittest.TestCase):
         for identifier in WATCH_TAG_CARRIES_THE_PIN:
             entry = self.artifacts[identifier]
             pinned = str(entry.get("pinned", ""))
+            # `upstream-ref` watches answer a different question — "did the ancestor move?" — and
+            # carry the ancestor's own numbering. Skynet watches walder at `3.3.0` while shipping
+            # 3.5.0; comparing those two would fail on a perfectly correct manifest.
             tags = [
                 str(watch.get("pinned", ""))
                 for watch in entry.get("watch") or []
-                if watch.get("kind") == "github-release"
+                if watch.get("kind") == "github-release" and watch.get("role") != "upstream-ref"
             ]
             self.assertTrue(tags, f"{identifier}: no github-release watch left to check")
             for tag in tags:

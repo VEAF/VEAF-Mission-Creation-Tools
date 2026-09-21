@@ -1,6 +1,7 @@
 # FIX-SKYNET-HELPER-AND-VENDORING — the VMCT half of The Reaper's report
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — built 2026-09-21; **only ticket 03's in-game reading is owed**, and it
+needs DCS. Everything else is done and green.
 
 Origin: The Reaper, 2026-09-17, on a mission built with veaf-tools:
 
@@ -41,12 +42,12 @@ elsewhere and this lot carries its consequences on the VMCT side.
 
 ## Tickets
 
-| # | Ticket | Depends on |
+| # | Ticket | State |
 |---|---|---|
-| 01 | [Remove the two dead `actAsEW` reset blocks](tickets/01-remove-the-dead-actasew-blocks.md) | nothing — shippable now |
-| 02 | [Document what a network SAM does and does not see](tickets/02-document-what-a-network-sam-sees.md) | ~~the Skynet release~~ — **released** |
-| 03 | [Vendor the new Skynet version](tickets/03-vendor-the-new-skynet-version.md) | ~~the Skynet release~~ — **released** |
-| 04 | [Repair the Skynet drift watch, which can no longer fire](tickets/04-repair-the-skynet-drift-watch.md) | nothing — shippable now |
+| 01 | [Remove the two dead `actAsEW` reset blocks](tickets/01-remove-the-dead-actasew-blocks.md) | ✅ done |
+| 02 | [Document what a network SAM does and does not see](tickets/02-document-what-a-network-sam-sees.md) | ✅ done |
+| 03 | [Vendor the new Skynet version](tickets/03-vendor-the-new-skynet-version.md) | 🧑 vendored; the in-game reading is owed |
+| 04 | [Repair the Skynet drift watch, which can no longer fire](tickets/04-repair-the-skynet-drift-watch.md) | ✅ done |
 
 The lot ships as **one PR**, once the Skynet side is released. Ticket 01 is independent and could go
 first, but David chose a single PR per repository on 2026-09-19.
@@ -65,12 +66,14 @@ is what ticket 04 is about — read it before touching `vendored.yaml`.
 
 ## Definition of done
 
-- The five-NATO-name `actAsEW` resets are gone, and an explicit EW-watch request survives any group
-  joining the network.
-- `mission.yaml` carries the new SKYNET keys, and `src/defaults/mission-folder/mission.yaml` is
-  aligned in the same lot (CLAUDE.md §9.7).
-- Both documentation languages updated, `poetry run docs-check` green.
-- The vendored artifact is **executed** against the DCS mocks, not merely loaded — see
-  `tests/ci/smoke`-style checks. Parsing a file says nothing about a main chunk that raises, which is
-  exactly what let CTLD rc8 through and killed every radio menu (#957).
-- `poetry run test-lua` green.
+- [x] The five-NATO-name `actAsEW` resets are gone, and an explicit EW-watch request survives any
+      group joining the network — `TestVeafSkynetEwrWatchSurvives`, which was checked to fail on the
+      code as it stood.
+- [x] `mission.yaml` carries the new SKYNET keys, and `src/defaults/mission-folder/mission.yaml` is
+      aligned in the same lot (CLAUDE.md §9.7).
+- [x] Both documentation languages updated, `poetry run docs-check` green.
+- [x] The vendored artifact is **executed** against the DCS mocks, not merely loaded —
+      `test_community_scripts_load.lua`. Parsing a file says nothing about a main chunk that raises,
+      which is exactly what let CTLD rc8 through and killed every radio menu (#957).
+- [x] `poetry run test-lua` green (49 suites).
+- [ ] The in-game reading of ticket 03, which also closes `FEAT-SPOTTER-NETWORK`. **Needs DCS.**

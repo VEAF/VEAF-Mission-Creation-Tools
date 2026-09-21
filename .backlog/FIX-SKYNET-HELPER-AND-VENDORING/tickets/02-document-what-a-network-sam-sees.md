@@ -1,6 +1,6 @@
 # 02 — Document what a network SAM does and does not see
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Problem
 

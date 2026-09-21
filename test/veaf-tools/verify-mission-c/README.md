@@ -237,17 +237,25 @@ coalition-scoped menu paths reach him, while `USAGE_ForGroup` never can.
 
 ### 8 · FEAT-SPOTTER-NETWORK — does the word travel? (check 13) {#check-13}
 
-⏸ **Blocked, and not by this mission.** The hand-over calls `SkynetIADS:reportContact`, which exists
-in [`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS) but **not** in the artifact vendored here
-(`3.4.0RP-VEAF build 05.09.2026`). Run this check after
-[the vendoring ticket](../../../.backlog/FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md)
-lands. Until then the log says so itself, once, and that line is the first thing to look for.
+✅ **Unblocked.** The hand-over calls `SkynetIADS:reportContact`, which was missing from the artifact
+vendored here (`3.4.0RP-VEAF build 05.09.2026`) and is present in **3.5.0**, vendored by
+[the vendoring ticket](../../../.backlog/FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md).
+The first line of the table below is therefore the one that must **not** appear any more; if it does,
+the build is carrying the old artifact and nothing else in this check means anything.
+
+**Two things to read in the same session, because 3.5.0 brought them and nothing off-line can show
+them.** First, the **last line of defence** now lights a dark site inside a 10–15 km radius of its
+own, so a battery waking with no `woke:` line and no EWR contact is that radius doing its job, not a
+defect. Second, Skynet's four **setup warnings** are shown on screen again after five years of going
+to the log only — `WARNING: you have added an SAM site that Skynet IADS can not handle` is the one a
+VEAF mission can plausibly produce, since a lenient-mode group can qualify on one unit and still not
+match a Skynet database entry. Note whether any appears, and on which group.
 
 **What to look for in `dcs.log`**, with `debug_red: true` temporarily set so the status page prints:
 
 | What the log says | What it means |
 |---|---|
-| `spotter network is on, but this Skynet build has no reportContact` | the vendoring has not landed — stop here, the check cannot run |
+| `spotter network is on, but this Skynet build has no reportContact` | the build is carrying a pre-3.5.0 artifact — stop here, the check cannot run |
 | `spotter network on: radio range 20000 m, hop 20 s` | the settings reached the module |
 | `graph: N units, M links, P pockets` with `P` large and the largest pocket small | the mission's units are too spread out for the word to travel; the feature is working and has nothing to work with |
 | `saw: <unit> -> <aircraft>` | a ground unit acquired an aircraft |

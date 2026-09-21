@@ -1,6 +1,6 @@
 # 04 — Repair the Skynet drift watch, which can no longer fire
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## The watch is pointed at a file that no longer exists
 
@@ -74,10 +74,32 @@ lost its `RP` — someone reading only the old note would try to put it back.
 
 ## Acceptance
 
-- [ ] `check-vendored` reports the Skynet entry up to date against the release, not against a commit
+- [x] `check-vendored` reports the Skynet entry up to date against the release, not against a commit
       touching a deleted path.
-- [ ] A deliberate test: point the pin one release back and confirm the watcher reports `drifted`.
-      A watch that cannot fail is worth nothing, and this ticket exists because one was found.
-- [ ] A pre-release tag does not read as drift.
-- [ ] `test_vendored_pins_match_the_files.py` green.
-- [ ] `manual_steps` describes what someone would actually do, and the `vendoring:` value matches it.
+- [x] A deliberate test: the pin was moved back to `v3.4.0` and the watcher reported `drifted`
+      (`v3.4.0` → `v3.5.0`), then restored. A watch that cannot fail is worth nothing, and this
+      ticket exists because one was found.
+- [x] A pre-release tag does not read as drift.
+- [x] `test_vendored_pins_match_the_files.py` green — and **extended**: the artifact's own banner is
+      now read back and compared against `pinned:`, which the test file itself invited ("adding an
+      artefact here is cheap and worth doing whenever an upstream starts declaring its version").
+      That check needed one repair to be correct: `WATCH_TAG_CARRIES_THE_PIN` walked *every*
+      `github-release` watch, so Skynet's walder `upstream-ref` at `3.3.0` would have failed against
+      a pin of `3.5.0`. `upstream-ref` watches are now skipped — they answer a different question and
+      carry the ancestor's numbering.
+- [x] `manual_steps` describes what someone would actually do, and the `vendoring:` value matches it.
+
+## What the measurements said, where they differ from this ticket
+
+**The `stylua` pass stays, and it is not close.** Diffing the 3.5.0 release asset against the copy
+carried here: **9 085** changed lines as published, **843** after running it through the repo's
+`stylua` config. The asset is tab-indented, the repo config is two spaces. So `vendoring:` becomes
+`adapted` rather than `verbatim`, and `manual_steps` keeps a second clause — download, then format.
+
+**`tag_pattern` is the wrong mechanism, and setting it would have caused the defect it was meant to
+avoid.** In `vendored_check.py` that field is only read when `prereleases: true`; without
+`prereleases`, the watch asks `/releases/latest`, which skips pre-releases by design. Skynet's
+release workflow marks any tag that is not a plain `vX.Y.Z` as a pre-release (measured in
+`.github/workflows/release.yml`), so a plain `github-release` watch already ignores `v3.6.0-rc1`.
+Turning `prereleases: true` on — with or without a pattern — would be the one way to make an rc read
+as drift. The requirement this ticket stated is met; the remedy it named is not the one used.

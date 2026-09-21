@@ -34,6 +34,11 @@ modules:
     spotter_radio_range_km: 20    # how far one unit can relay
     spotter_propagation_speed_kmh: 3600  # how fast an alert crosses the network
     spotter_view: "off"           # "off" | "on" | "radio" — F10 map view (the quotes matter)
+    last_line_of_defence: true    # a dark site keeps a short radius of its own and lights up inside it
+    last_line_of_defence_min_radius_km: 10
+    last_line_of_defence_max_radius_km: 15
+    last_line_of_defence_persistence_s: 45
+    coverage_refresh_interval_s: 10
 ```
 
 | Field | Type | Default | Description |
@@ -48,6 +53,11 @@ modules:
 | `spotter_radio_range_km` | number | `20` | How far one unit can relay an alert, in kilometres |
 | `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the map, in km/h |
 | `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | F10 map view of the network — see [Seeing what happens, on the map](#spotter-view) |
+| `last_line_of_defence` | boolean | `true` | A dark site keeps a short radius of its own and lights up inside it — see [Last line of defence](#last-line-of-defence) |
+| `last_line_of_defence_min_radius_km` | number | `10` | Lower bound of that radius, in kilometres |
+| `last_line_of_defence_max_radius_km` | number | `15` | Upper bound of that radius, in kilometres |
+| `last_line_of_defence_persistence_s` | number | `45` | How long the site stays lit after the last pass, in seconds |
+| `coverage_refresh_interval_s` | number | `10` | Interval between two sweeps of the coverage graph, in seconds (`0` = never) |
 
 ---
 
@@ -77,6 +87,83 @@ The module scans all groups in the mission at startup and adds eligible ones to 
 The module always creates two Skynet networks: one for **blue** coalition, one for **red**.
 
 Only groups DCS still holds are enrolled. The distinction matters: DCS keeps listing a group for a short while after destroying it, and this module initialises just after every combat zone has cleaned itself out at startup. Such a group used to appear in the network as a SAM site whose radar never existed — counted as *radar destroyed* on the IADS status page for the rest of the mission.
+
+---
+
+## What a network SAM does and does not see {#what-a-network-sam-sees}
+
+This is the mechanic that surprises people most, and it has already been reported as a bug while
+working exactly as designed. **A SAM site under network control has its radar switched off.** It sees
+nothing by itself.
+
+### The two ways a site lights up
+
+| | What triggers it |
+|---|---|
+| **An EWR informs it** | An early-warning radar sees the aircraft and hands the contact over; the site goes live if the contact enters its own firing envelope |
+| **Its last line of defence** | The aircraft enters the short radius the site keeps for itself — see [Last line of defence](#last-line-of-defence) |
+
+Proximity alone is not a third way. Outside the last-line-of-defence radius, an aircraft can fly
+**directly overhead** a battery and nothing will react, if no EWR has seen it.
+
+### Losing the EWRs makes the remaining sites *more* aggressive
+
+It is counter-intuitive, and it is the expected behaviour. A site left with no EWR to inform it turns
+**autonomous**: Skynet hands it back to the DCS AI, which lights everything up, all the time.
+Destroying the early-warning radars therefore does not disarm the defence — it makes it blind and
+aggressive.
+
+### "Covered" does not mean "informed"
+
+The status page lists, under each EWR, the batteries it "covers". Coverage is a flat **2D distance**
+between the EWR's radar and the battery's, compared against the EWR's detection range. It ignores the
+horizon, the terrain and altitude.
+
+In other words it says the EWR is **near** the battery, never that it is feeding it. A single 55G6 can
+list eighteen batteries under its coverage while seeing no aircraft at all.
+
+### The four ways a group joins a network {#joining-a-network}
+
+Two identical batteries behave in opposite ways depending on their origin.
+
+| Where the group came from | Joins the network? |
+|---|---|
+| Mission Editor (late activation included) | Yes |
+| Combat zone | Yes, whatever `dynamic_spawn` says |
+| VEAF spawn command (`_spawn`) | Only if the command carries `skynet` |
+| Third-party script, or any other spawn | Only if `dynamic_spawn: true` |
+
+See [Groups appearing during the mission](#dynamic-spawn) for the detail and for `skynet false`.
+
+### Giving a site permanent watch duty — the `ewr` option {#ewr-option}
+
+A spawn command can put the `ewr` keyword on a group:
+
+```text
+_spawn group, name SA-10 skynet ewr
+```
+
+The site then becomes a **watch site**: it keeps its radar on permanently and sees for itself instead
+of waiting to be informed. It also informs the other sites of the network.
+
+What it costs: permanently lit, it is **visible and targetable** — a HARM will find it. That is the
+price of the watch, and it is why the advice is to sacrifice a short-range battery rather than the
+system being protected.
+
+> Up to Skynet 3.5.0 the option had **no effect at all** on SA-10, SA-6, SA-5, Patriot and Hawk: two
+> internal sweeps put those five types straight back to watch-off just after marking them. They have
+> been removed.
+
+### Diagnosing: why does this site not light up {#diagnosing-a-dark-site}
+
+Setting `debug_red: true` (or `debug_blue`) shows the network's status page. Three readings, three
+different conclusions:
+
+| What the page shows | What it means |
+|---|---|
+| The EWR has **no contacts** | Nobody sees the aircraft: masked by terrain, or out of range. The network is working |
+| The EWR has contacts, but the site stays `ACTIVE: false` | The aircraft is seen, but outside the site's firing envelope. The network is working |
+| The site is `AUTONOMOUS` | It has no EWR left to inform it and has been handed back to the DCS AI — the inversion described above |
 
 ---
 
@@ -222,6 +309,53 @@ veafSkynet.showSpotterView(coalition.side.RED, true)
 
 > The network lives inside the Skynet module and does nothing when Skynet is off: there is no
 > fallback mode for missions without an IADS.
+
+### Last line of defence — `last_line_of_defence` {#last-line-of-defence}
+
+A dark site still keeps a **short virtual detection radius** of its own, inside which it lights up by
+itself. That is what stops an aircraft flying under the early-warning radars' horizon from crossing an
+air defence untroubled.
+
+**Ships on**, and that is a change of behaviour: before Skynet 3.5.0, a site under network control was
+entirely blind between two EWR hand-overs.
+
+```yaml
+modules:
+  SKYNET:
+    enabled: true
+    last_line_of_defence: true                # set to false for a purist IADS
+    last_line_of_defence_min_radius_km: 10
+    last_line_of_defence_max_radius_km: 15
+    last_line_of_defence_persistence_s: 45
+    coverage_refresh_interval_s: 10
+```
+
+**Each site draws its own radius** between the two bounds, once, at the start. A front therefore does
+not present a uniform ring a pilot could learn.
+
+**The limit, stated honestly:** the radius is measured **flat** and deliberately ignores the firing
+envelope. A short-range piece can therefore light up for an aircraft it cannot reach. That is a
+choice: the radius says "something is passing over my head", not "I can shoot it down".
+
+**Persistence** is how long the site stays lit after the last pass through its radius. At `45` seconds
+it does not re-light on every round trip.
+
+**The coverage sweep** is how often Skynet rebuilds the "which EWR covers which battery" graph. It is
+there for sites that move; at `0` it never happens.
+
+**The two bounds go together.** Skynet refuses the pair whole if the upper bound is below the lower
+one — and it refuses it **in silence**. Writing `last_line_of_defence_min_radius_km: 20` on its own is
+enough to hit that, since the upper bound stays at 15: the shipped values then apply, not the one you
+asked for. If you widen the radius, **move both bounds**.
+
+The module reads back what it set and says so in the log when a setting was not taken:
+
+```text
+WARN SKYNET [red iads]: the last-line-of-defence radius (min/max, in metres) was refused —
+     asked for 20000/15000, Skynet stands at 10000/15000. Check the value in mission.yaml
+```
+
+> These four settings are **global to both coalitions**. Only `dynamic_spawn` is per network.
 
 ### Startup delay — `veafSkynet.DelayForStartup`
 

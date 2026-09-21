@@ -34,6 +34,11 @@ modules:
     spotter_radio_range_km: 20    # portée d'un relais radio
     spotter_propagation_speed_kmh: 3600  # vitesse de l'alerte sur le réseau
     spotter_view: "off"           # "off" | "on" | "radio" — vue carte F10 (guillemets obligatoires)
+    last_line_of_defence: true    # un site éteint garde un rayon court et s'y allume seul
+    last_line_of_defence_min_radius_km: 10
+    last_line_of_defence_max_radius_km: 15
+    last_line_of_defence_persistence_s: 45
+    coverage_refresh_interval_s: 10
 ```
 
 | Champ | Type | Défaut | Description |
@@ -48,6 +53,11 @@ modules:
 | `spotter_radio_range_km` | nombre | `20` | Distance à laquelle une unité peut relayer une alerte, en kilomètres |
 | `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse à laquelle l'alerte traverse la carte, en km/h |
 | `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | Vue carte F10 du réseau — voir [Voir ce qui se passe, sur la carte](#spotter-view) |
+| `last_line_of_defence` | booléen | `true` | Un site éteint garde un rayon court et s'y allume seul — voir [Dernière ligne de défense](#last-line-of-defence) |
+| `last_line_of_defence_min_radius_km` | nombre | `10` | Borne basse du rayon, en kilomètres |
+| `last_line_of_defence_max_radius_km` | nombre | `15` | Borne haute du rayon, en kilomètres |
+| `last_line_of_defence_persistence_s` | nombre | `45` | Durée pendant laquelle le site reste allumé après le dernier passage, en secondes |
+| `coverage_refresh_interval_s` | nombre | `10` | Intervalle entre deux balayages du graphe de couverture, en secondes (`0` = jamais) |
 
 ---
 
@@ -77,6 +87,83 @@ Le module parcourt la liste de tous les groupes de la mission au démarrage, et 
 Le module crée toujours deux réseaux Skynet : un pour la coalition **bleue**, un pour la coalition **rouge**.
 
 Seuls les groupes que DCS possède encore sont intégrés. La nuance a son importance : DCS continue de lister pendant un court instant les groupes qu'il vient de détruire, et l'initialisation du module arrive juste après le nettoyage que fait chaque zone de combat au démarrage. Un tel groupe apparaissait auparavant dans le réseau comme un site SAM dont le radar n'a jamais existé — compté « radar détruit » sur la page de statut IADS pour toute la mission.
+
+---
+
+## Ce qu'un site du réseau voit — et ne voit pas {#what-a-network-sam-sees}
+
+C'est la mécanique qui surprend le plus, et elle a déjà été signalée comme un bug alors qu'elle
+fonctionnait comme prévu. **Un site SAM pris en charge par un réseau a son radar éteint.** Il ne voit
+donc rien par lui-même.
+
+### Les deux façons dont un site s'allume
+
+| | Ce qui le déclenche |
+|---|---|
+| **Un EWR le renseigne** | Un radar de veille voit l'avion et transmet le contact au site, qui s'allume si le contact entre dans son enveloppe de tir |
+| **Sa dernière ligne de défense** | L'avion entre dans le rayon court que le site garde pour lui — voir [Dernière ligne de défense](#last-line-of-defence) |
+
+La proximité seule n'est pas une troisième façon. En dehors du rayon de dernière ligne de défense, un
+avion peut passer **à la verticale** d'une batterie sans que rien ne réagisse, si aucun EWR ne l'a vu.
+
+### La disparition des EWR rend les sites restants *plus* agressifs
+
+C'est contre-intuitif, et c'est le comportement attendu. Un site qui n'a plus aucun EWR pour le
+renseigner bascule en **autonome** : Skynet le rend à l'IA de DCS, qui allume tout, tout le temps.
+Détruire les radars de veille ne désarme donc pas la défense, ça la rend aveugle mais agressive.
+
+### « Couvert » ne veut pas dire « renseigné »
+
+La page de statut liste, sous chaque EWR, les batteries qu'il « couvre ». La couverture est une simple
+**distance à plat** entre le radar de l'EWR et celui de la batterie, comparée à la portée de détection
+de l'EWR. Elle ignore l'horizon, le relief et l'altitude.
+
+Autrement dit, elle dit que l'EWR est **près** de la batterie, jamais qu'il est en train de la
+renseigner. Un seul 55G6 peut lister dix-huit batteries sous sa couverture pendant qu'il ne voit
+aucun avion.
+
+### Les quatre façons de rejoindre un réseau {#joining-a-network}
+
+Deux batteries identiques se comportent à l'opposé selon leur origine.
+
+| Origine du groupe | Rejoint le réseau ? |
+|---|---|
+| Éditeur de mission (y compris activation retardée) | Oui |
+| Zone de combat | Oui, quel que soit `dynamic_spawn` |
+| Commande d'apparition VEAF (`_spawn`) | Seulement si la commande porte `skynet` |
+| Script tiers, ou toute autre apparition | Seulement si `dynamic_spawn: true` |
+
+Voir [Apparitions en cours de mission](#dynamic-spawn) pour le détail et pour `skynet false`.
+
+### Donner à un site une veille permanente — l'option `ewr` {#ewr-option}
+
+Une commande d'apparition peut poser le mot-clé `ewr` sur un groupe :
+
+```text
+_spawn group, name SA-10 skynet ewr
+```
+
+Le site est alors un **site de veille** : il garde son radar allumé en permanence et voit pour
+lui-même, au lieu d'attendre qu'on le renseigne. Il renseigne aussi les autres sites du réseau.
+
+Ce que ça coûte : allumé en permanence, il est **visible et ciblable** — un HARM le trouvera. C'est le
+prix de la veille, et c'est pourquoi le conseil est de sacrifier une batterie courte portée plutôt que
+le système qu'on protège.
+
+> Jusqu'à Skynet 3.5.0, l'option n'avait **aucun effet** sur les SA-10, SA-6, SA-5, Patriot et Hawk :
+> deux balayages internes remettaient ces cinq types en veille éteinte juste après les avoir marqués.
+> Ils ont été retirés.
+
+### Diagnostiquer : pourquoi ce site ne s'allume pas {#diagnosing-a-dark-site}
+
+Mettre `debug_red: true` (ou `debug_blue`) affiche la page de statut du réseau. Trois lectures, trois
+conclusions différentes :
+
+| Ce que montre la page | Ce que ça veut dire |
+|---|---|
+| L'EWR n'a **aucun contact** | Personne ne voit l'avion : masqué par le relief, ou hors de portée. Le réseau fonctionne |
+| L'EWR a des contacts, mais le site reste `ACTIVE: false` | L'avion est vu, mais hors de l'enveloppe de tir du site. Le réseau fonctionne |
+| Le site est `AUTONOMOUS` | Il n'a plus d'EWR pour le renseigner et il est rendu à l'IA DCS — c'est l'inversion décrite plus haut |
 
 ---
 
@@ -227,6 +314,54 @@ veafSkynet.showSpotterView(coalition.side.RED, true)
 
 > Le réseau vit dans le module Skynet et ne fait rien quand Skynet est éteint : il n'y a pas de mode
 > de repli pour les missions sans IADS.
+
+### Dernière ligne de défense — `last_line_of_defence` {#last-line-of-defence}
+
+Un site éteint garde malgré tout un **rayon de détection virtuel court**, dans lequel il s'allume de
+lui-même. C'est ce qui évite qu'un avion passant sous l'horizon des radars de veille traverse une
+défense aérienne sans être inquiété.
+
+**Livré allumé**, et c'est un changement de comportement : avant Skynet 3.5.0, un site pris en charge
+par un réseau était totalement aveugle entre deux renseignements d'EWR.
+
+```yaml
+modules:
+  SKYNET:
+    enabled: true
+    last_line_of_defence: true                # mettre à false pour un IADS puriste
+    last_line_of_defence_min_radius_km: 10
+    last_line_of_defence_max_radius_km: 15
+    last_line_of_defence_persistence_s: 45
+    coverage_refresh_interval_s: 10
+```
+
+**Chaque site tire son propre rayon** entre les deux bornes, une seule fois, au début. Un front ne
+présente donc pas un anneau uniforme qu'un pilote pourrait apprendre.
+
+**La limite, dite franchement :** le rayon est mesuré **à plat** et ignore volontairement l'enveloppe
+de tir. Une pièce courte portée peut donc s'allumer pour un avion qu'elle ne peut pas atteindre. C'est
+un choix : le rayon dit « quelque chose passe au-dessus de chez moi », pas « je peux l'abattre ».
+
+**La persistance** est le temps pendant lequel le site reste allumé après le dernier passage dans son
+rayon. À `45` secondes, il ne se rallume pas à chaque aller-retour.
+
+**Le balayage de couverture** est la fréquence à laquelle Skynet refait le graphe « quel EWR couvre
+quelle batterie ». Il sert aux sites qui bougent ; à `0`, il ne se fait jamais.
+
+**Les deux bornes vont ensemble.** Skynet refuse la paire entière si la borne haute est inférieure à
+la borne basse — et il la refuse **en silence**. Écrire `last_line_of_defence_min_radius_km: 20` tout
+seul suffit à tomber dedans, puisque la borne haute reste à 15 : les deux valeurs livrées
+s'appliquent alors, pas celle demandée. Si vous élargissez le rayon, **déplacez les deux bornes**.
+
+Le module relit ce qu'il a posé et le dit dans le journal quand un réglage n'a pas été pris :
+
+```text
+WARN SKYNET [red iads]: the last-line-of-defence radius (min/max, in metres) was refused —
+     asked for 20000/15000, Skynet stands at 10000/15000. Check the value in mission.yaml
+```
+
+> Ces quatre réglages sont **globaux aux deux coalitions**. Seul `dynamic_spawn` est propre à chaque
+> réseau.
 
 ### Délai de démarrage — `veafSkynet.DelayForStartup`
 

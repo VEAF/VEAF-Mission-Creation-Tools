@@ -117,15 +117,18 @@ spent, so the review replaced it rather than supplemented it.
 
 ## What is left
 
-**The in-game verification, and nothing else.** It is blocked, not forgotten:
-`SkynetIADS:reportContact` exists in [`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS) but
-**not** in the artifact vendored here, so a mission switching the feature on against the current
-build gets one plain warning saying alerts travel and no site is ever woken.
+**The in-game verification, and nothing else.** It was blocked on the vendored artifact:
+`SkynetIADS:reportContact` existed in [`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS) and
+not in the copy carried here, so a mission switching the feature on got one plain warning saying
+alerts travel and no site is ever woken.
+
+**Unblocked 2026-09-21.**
+[FIX-SKYNET-HELPER-AND-VENDORING ticket 03](../FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md)
+vendored Skynet 3.5.0, and `reportContact` was read back out of a freshly built `.miz` rather than
+assumed. Nothing stands between this lot and its reading now except a DCS session.
 
 `test/veaf-tools/verify-mission-c` already runs with the feature on in `"radio"` mode, and its
 [check 13](../../test/veaf-tools/verify-mission-c/README.md#check-13) says exactly what to look for
-in the log and on the F10 menu.
-
-Unblocked by
-[FIX-SKYNET-HELPER-AND-VENDORING ticket 03](../FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md),
-which carries a reminder to run it.
+in the log and on the F10 menu. It picked up two readings from 3.5.0 along the way: a site can now
+wake on its own **last line of defence** with no `saw:`/`woke:` pair, and Skynet's setup warnings are
+shown on screen again.

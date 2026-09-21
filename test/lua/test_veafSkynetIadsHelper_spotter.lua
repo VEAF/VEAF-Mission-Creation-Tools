@@ -2106,6 +2106,25 @@ function TestSpotterWakeUpHistory:test_a_contact_cancelled_and_raised_again_is_t
   luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 2)
 end
 
+function TestSpotterWakeUpHistory:test_a_site_destroyed_and_rebuilt_is_woken_again()
+  -- Found in review. A site whose DCS group is gone has no group name to key on, and the hand-over
+  -- returned before reaching the memory -- so what it had been handed outlived it. Rebuilt under the
+  -- same name, which is what a mission that respawns its batteries does, it read the still-held
+  -- contact as one it was already holding and wrote nothing.
+  _spotterSiteHolds()
+  veafSkynet.spotterHandoverPass()
+  self.samSite.dcsRepresentation.isExist = function()
+    return false
+  end
+  veafSkynet.spotterHandoverPass()
+  self.samSite.dcsRepresentation.isExist = function()
+    return true
+  end
+  veafSkynet.spotterHandoverPass()
+
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 2)
+end
+
 function TestSpotterWakeUpHistory:test_an_hour_of_holding_one_contact_does_not_reach_the_cap()
   -- The number that makes this a loss of information rather than a matter of tidiness. At the two
   -- lines per pass measured in game, the 200-entry cap erased the whole history in about eight

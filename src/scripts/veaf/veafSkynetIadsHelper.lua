@@ -3488,11 +3488,13 @@ end
 --- @param samSite table a Skynet SAM site
 function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
   local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(samSite)
-  if not dcsGroup then
-    return
-  end
-  local groupName = veafSkynet.safeDcsName(dcsGroup)
+  local groupName = dcsGroup and veafSkynet.safeDcsName(dcsGroup)
   if not groupName or groupName == "?" then
+    -- No group, or nothing to key on: the site is destroyed, or unreadable this pass. What it was
+    -- handed is forgotten under its own Skynet name -- which is the group's -- so a site rebuilt
+    -- under that name is woken again instead of being read as still holding the contact it held
+    -- when it died.
+    veafSkynet.setSpotterHandedOver(coa, tostring(samSite.dcsName), nil)
     return
   end
 
@@ -3583,9 +3585,9 @@ veafSkynet.spotterStatusAcquisitions = {}
 
 --- Per coalition, the sites woken since the last page, as a **set** keyed on `"<site> <- <aircraft>"`.
 ---
---- A set rather than a list, because the hand-over reports the same contact on every 5 s pass while
---- the aircraft stays inside the envelope — which is correct, Skynet ages contacts out — and a list
---- would therefore print the same line twelve times per page and bury everything else.
+--- A set rather than a list. The hand-over records a wake-up on the **transition** only, so the
+--- twelve-a-page repeats this was written against are gone; what is left is a site flapping in and
+--- out of one envelope, which a page can say once and a list would say eight times.
 veafSkynet.spotterStatusWakeUps = {}
 
 --- Whether any network of this coalition will print a status page, i.e. is in debug.
@@ -3654,9 +3656,9 @@ end
 --- for at most thirty seconds. That is a problem before it is a testing problem — asked *"did the
 --- spotter network actually wake anything on my server last night"*, nobody could answer.
 ---
---- An **array** and not a set, unlike the page bucket: the page dedupes because the same contact is
---- re-reported every 5 s while the aircraft stays in the envelope, but a history that collapses
---- twelve wake-ups two hours apart into one line is not a history. Deduping is the reader's job.
+--- An **array** and not a set, unlike the page bucket: a history that collapses two wake-ups two
+--- hours apart into one line is not a history. What keeps it readable is the hand-over recording
+--- only the transition, not this structure deduping — see `spotterHandedOver`.
 ---
 --- Capped, because a mission runs for hours and this is the one structure here with no natural end.
 --- The **oldest** entries go first: on a four-hour server the interesting question is what happened

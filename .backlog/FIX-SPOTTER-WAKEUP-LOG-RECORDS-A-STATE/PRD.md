@@ -100,16 +100,25 @@ records a wake-up only for an aircraft that was not in it. Skynet is still told 
 ages contacts out — and only the recording is gated; the per-pass `debug` line, which flooded the
 same way through the other channel, went with it.
 
-There are **two** ways a site is released and they take different branches, so both clear the
-memory: the aircraft leaves the envelope (nothing is reported, the rewritten set is empty), and the
-site stops holding anything at all (the early return before the envelope is ever asked). A release
-is stored as *nothing* rather than an empty table, so being woken again later is a new event.
+There are **three** ways a site is released and they take different branches, so all three clear the
+memory: the aircraft leaves the envelope (nothing is reported, the rewritten set is empty), the site
+stops holding anything at all (the early return before the envelope is ever asked), and — found in
+review — the site's **DCS group is gone**, which has no group name to key on and returned before
+reaching the memory at all. That last one is the one with teeth: a battery destroyed and respawned
+under the same name, which is what a mission with combat zones does, read the still-held contact as
+one it was already holding and wrote nothing, losing the single event the history exists for. It is
+now forgotten under the Skynet site's own name, which is the group's. A release is stored as
+*nothing* rather than an empty table, so being woken again later is a new event.
 
-Four tests in `TestSpotterWakeUpHistory`, which now stands up the same Skynet site double as
+Two stale comments went with it, both teaching the behaviour this lot removes — that the hand-over
+reports the same contact on every pass, and that the page's deduplication is what keeps the history
+readable.
+
+Five tests in `TestSpotterWakeUpHistory`, which now stands up the same Skynet site double as
 `TestSpotterHandover` — a transition is only observable by running real hand-over passes. Twelve
 passes on a held contact give one line while Skynet is told twelve times; an hour of passes (720)
-still gives one and never approaches the cap; the two re-wake tests were each checked against a
-naive never-forget version and **both go red on it**, which is what stops the fix from being a
+still gives one and never approaches the cap; the three re-wake tests were each checked against the
+code without its guard and **all three go red**, which is what stops the fix from being a
 de-duplication.
 
 Not covered here: the in-game re-reading. The measurement that opened this lot came from a live

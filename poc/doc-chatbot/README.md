@@ -28,10 +28,19 @@ MkDocs page (static, public)
 tokens-per-minute ceiling after ~2 questions/minute. RAG retrieves only the handful of relevant
 passages per question (~few k tokens), lifting that ceiling to ~50+ questions/minute.
 
-**Why in-Worker cosine (no vector DB).** The corpus is tiny (~500 chunks). Ranking ~260 vectors ×
-768 dims is < 1 ms of CPU — well under the free-tier 10 ms/request limit — so a managed vector DB
-(which would need the paid Workers plan) is unnecessary. The index lives in KV: a binary Float32
-blob per language for the vectors, and one small JSON value per chunk for its text.
+**Why in-Worker cosine (no vector DB).** The corpus is small: 157 pages give 724 French chunks and
+671 English ones (measured 2026-09-21). Ranking 724 vectors × 768 dims costs **0.35 ms** of CPU per
+request — well under the free-tier 10 ms/request limit — so a managed vector DB (which would need
+the paid Workers plan) is unnecessary.
+
+**What the index is, in KV.** Two keys per language: `idx:vec:{lang}`, a binary Float32 blob, and
+`idx:txt:{lang}`, a JSON array of the passages **in the same order**. The Worker loads both at once
+on a cold isolate (2.12 MB + 1.09 MB for French, and **1.23 ms** to parse the texts, once) and
+keeps them cached together, so a question costs no KV read at all. The texts used to be one KV
+entry per chunk, fetched six at a time per question; that cost 1397 writes per rebuild against a
+cap of 1000 a day — see the quota note below. Loading the two halves together is also what lets the
+Worker refuse an index whose vectors and texts disagree on length, instead of answering with a
+passage shifted by however many chunks were inserted since.
 
 **Index freshness.** The index is rebuilt by `scripts/build-index.mjs` whenever the docs change;
 the CI workflow (`.github/workflows/docs-chatbot-index.yml`) runs it and uploads to KV, so
@@ -63,17 +72,16 @@ npx wrangler secret put GEMINI_API_KEY
 # (reads GEMINI_API_KEY from env or .dev.vars). Paced to the free-tier 100 embeds/min, ~minutes.
 node scripts/build-index.mjs
 
-# Upload to KV:
-npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
-npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
-npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json
-npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
+# Upload to KV — four keys, and that number does not grow with the documentation:
+npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:txt:fr" --path txt-fr.json
+npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:txt:en" --path txt-en.json
 
 # Prove it landed — reads the index back out of the namespace and compares it byte for byte:
 for lang in fr en; do
   npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:vec:$lang" > "remote-vec-$lang.bin"
-  last=$(node scripts/verify-index-upload.mjs --print-last-key "txt-$lang.json")
-  npx wrangler kv key get --remote --binding CHAT_KV --preview false "$last" > "remote-txt-$lang.json"
+  npx wrangler kv key get --remote --binding CHAT_KV --preview false "idx:txt:$lang" > "remote-txt-$lang.json"
 done
 node scripts/verify-index-upload.mjs \
   --vec fr vec-fr.bin remote-vec-fr.bin --vec en vec-en.bin remote-vec-en.bin \
@@ -85,6 +93,15 @@ Re-run these whenever the documentation changes (this is what the CI workflow au
 > **`--remote` is load-bearing.** Without it wrangler 4 writes to its local Miniflare store and
 > still prints `Success!`. That is how the live index sat frozen from 2026-08-08 to 2026-09-19 while
 > every CI run was green — the verification step above exists so it cannot happen again silently.
+
+> **Two free-tier quotas of 1000 a day sit on a rebuild, not one.** Gemini embeddings are guarded
+> by the content-addressed cache inside `build-index.mjs`. Cloudflare **KV writes** are guarded by
+> the layout: one value per language rather than one per chunk. Until 2026-09-21 the texts were one
+> KV entry per chunk — 1397 writes per rebuild, so a single full reindex already exceeded the cap
+> and the first doc-touching merge of the day starved every merge after it. The cap is account-wide
+> and this namespace also spends two writes per chat request on rate-limit counters, so the budget
+> for indexing is 1000 *minus what visitors use*. `build-index.mjs` prints the cost of the upload it
+> just prepared, and the CI job puts it in the run summary.
 
 ## Deploy the Worker
 

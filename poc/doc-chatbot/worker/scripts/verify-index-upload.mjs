@@ -11,6 +11,12 @@
  * `--remote` fixes the immediate bug. This script fixes the reason nobody noticed: a green run now
  * means the bytes are in the namespace, because they were read back out of it and compared.
  *
+ * The index is four KV values — `idx:vec:{lang}` and `idx:txt:{lang}` for each language — and all
+ * four are checked. `--vec` and `--txt` differ only in the label they print: both compare the whole
+ * value byte for byte. `--txt` used to single out the last entry of a `wrangler kv bulk put` file,
+ * because the texts were one KV entry per chunk; that layout cost 1397 writes a rebuild against a
+ * cap of 1000 a day and is gone.
+ *
  * Usage (from poc/doc-chatbot/worker, after the uploads):
  *
  *     node scripts/verify-index-upload.mjs \
@@ -66,27 +72,8 @@ export function compareBytes(label, expected, actual) {
   return null;
 }
 
-/**
- * Return the last entry of a `wrangler kv bulk put` file.
- *
- * The last one is deliberate: it is the entry a shorter, older index does not have at all, so a
- * stale namespace fails on a missing key rather than on a lucky match.
- *
- * @param {string} bulkJson The contents of a txt-{lang}.json file.
- * @returns {{key: string, value: string}} The final key/value pair.
- * @throws {Error} When the file is not a non-empty array of entries.
- */
-export function lastBulkEntry(bulkJson) {
-  const entries = JSON.parse(bulkJson);
-  if (!Array.isArray(entries) || entries.length === 0) {
-    throw new Error("the bulk file is not a non-empty array — the build produced nothing to upload");
-  }
-  const last = entries[entries.length - 1];
-  if (!last || typeof last.key !== "string" || typeof last.value !== "string") {
-    throw new Error("the last bulk entry has no string key/value pair");
-  }
-  return { key: last.key, value: last.value };
-}
+/** Human-readable name of what a check kind covers, for the failure message. */
+const LABELS = { "--vec": "vectors", "--txt": "texts" };
 
 /**
  * Parse the `--vec`/`--txt` triples off the command line.
@@ -137,28 +124,14 @@ export async function runChecks(checks) {
   const problems = [];
   for (const { kind, lang, built, readBack } of checks) {
     const actual = await readOrNull(readBack);
-    if (kind === "--vec") {
-      const expected = await readFile(built);
-      const problem = compareBytes(`vectors (${lang})`, expected, actual);
-      if (problem) problems.push(problem);
-      continue;
-    }
-    const { key, value } = lastBulkEntry(await readFile(built, "utf8"));
-    const problem = compareBytes(`texts (${lang}, key ${key})`, Buffer.from(value, "utf8"), actual);
+    const expected = await readFile(built);
+    const problem = compareBytes(`${LABELS[kind]} (${lang})`, expected, actual);
     if (problem) problems.push(problem);
   }
   return problems;
 }
 
 async function main(argv) {
-  // The workflow needs the last key of a bulk file in order to fetch it back. Doing it here rather
-  // than with an inline `node -e` in the YAML keeps that parsing in tested code, and spares the
-  // workflow a snippet whose CommonJS-versus-ESM behaviour depends on the Node version.
-  if (argv[0] === "--print-last-key") {
-    if (!argv[1]) throw new Error("--print-last-key needs a bulk file");
-    process.stdout.write(lastBulkEntry(await readFile(argv[1], "utf8")).key);
-    return 0;
-  }
   const problems = await runChecks(parseChecks(argv));
   if (problems.length) {
     console.error("The index is NOT in the namespace:");

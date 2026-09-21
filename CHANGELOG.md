@@ -159,6 +159,30 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   its envelope, by the alert being cancelled, by being destroyed and rebuilt, or by its whole network
   being switched off and on again. Skynet is still told on every check, unchanged — it ages contacts
   out.
+- The documentation assistant was answering from a frozen index again, for a different reason: one
+  rebuild cost more than a day of Cloudflare's free KV write allowance, so the first documentation
+  merge of the day spent it and every merge after it failed before writing a byte. The texts were
+  stored as one KV entry per chunk — 157 pages give 1 395 chunks, against a cap of 1 000 writes a
+  day, account-wide and shared with the assistant's own rate-limit counters. They are now one value
+  per language, aligned with the vector blob already stored that way, so a rebuild costs four
+  writes whether one heading changed or the whole documentation did. The Worker loads both halves
+  of an index together, and refuses one whose halves disagree on length instead of answering with a
+  passage shifted by however many chunks were inserted since. The indexer refuses a cached vector
+  of the wrong width for the same reason, one step earlier: the embedding cache is keyed on the
+  chunk text alone, so a change of model or dimensionality brings back stale vectors that the
+  packer used to zero-pad into place, leaving the blob length and the passage count both exactly
+  right and the passage ranking on half a vector. The rebuild job now prints what it spent, and
+  reads all four values back from the remote namespace. Until the new index is live the Worker
+  still serves the old per-chunk entries: it is deployed by one workflow and the index rebuilt by
+  another, with no ordering between them, so the new code reaches production first and a rebuild
+  that fails on the quota leaves it there — five had already failed the day this shipped. That
+  fallback comes out once production holds the new layout.
+- `poetry run reindex-docs`, the by-hand equivalent of that rebuild, had never received the
+  `--remote` fix the workflow got in 6.23.1: it wrote the index to wrangler's local store and
+  printed success, so every hand-run reindex since the 2026-08-08 wrangler bump uploaded nothing.
+  Its test checked the flags someone had thought of — the namespace and the preview switch — which
+  is what kept the omission invisible. It now uploads remotely, reads all four values back, and
+  compares them, and its test asserts the flag on every command.
 
 ## [6.23.1] — 2026-09-20
 

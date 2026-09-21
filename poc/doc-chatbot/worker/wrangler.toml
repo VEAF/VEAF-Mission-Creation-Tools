@@ -18,10 +18,22 @@ compatibility_date = "2025-01-01"
 # KV namespace: per-IP rate-limit counters AND the embeddings index (binary vectors + texts).
 # The similarity search runs in the Worker, so no paid vector DB is needed. Load the index with:
 #   node scripts/build-index.mjs   # writes vec-{lang}.bin + txt-{lang}.json
-#   npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
-#   npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
-#   npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json
-#   npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-en.json
+#   npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin
+#   npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:vec:en" --path vec-en.bin
+#   npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:txt:fr" --path txt-fr.json
+#   npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:txt:en" --path txt-en.json
+#
+# FOUR keys, and that number must not grow with the documentation. The free tier allows **1000 KV
+# writes a day, account-wide**, and this namespace also takes two writes per chat request for the
+# rate-limit counters. The texts were one KV entry per chunk until 2026-09-21: 1397 writes per
+# rebuild, so the first doc-touching merge of the day spent the whole allowance and every merge
+# after it failed before writing a byte, leaving the assistant on a frozen index. Storing them as
+# one value per language costs the same four writes whether a heading changed or everything did.
+# Anything per-chunk added here puts that back.
+#
+# Residue from that change, so it is not rediscovered as a mystery: the old `idx:txt:{lang}:{i}`
+# keys are still in the namespace, unread. Deleting them counts as writes too, which would cost the
+# two days of quota this layout exists to save. They are ~2 MB of a 1 GB free allowance.
 # Retrieval similarity floor. Measured 2026-09-19 against the live index, 24 questions per language
 # (`scripts/calibrate-floor.mjs`, run by the chatbot-floor-calibration workflow):
 #

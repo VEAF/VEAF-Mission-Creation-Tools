@@ -2,18 +2,31 @@
  * Build the documentation chatbot embeddings index (KV format) for the VEAF docs.
  *
  * Reads the local Markdown docs (../../../../doc), splits them into chunks, embeds each chunk with
- * the Gemini embeddings API (gemini-embedding-001, 768 dims) and writes, per language:
+ * the Gemini embeddings API (gemini-embedding-001, 768 dims) and writes, per language, ONE KV value
+ * each:
  *   - vec-{lang}.bin   : a binary Float32 blob of L2-normalized vectors (in-Worker cosine search)
- *   - txt-{lang}.json  : a `wrangler kv bulk put` file of per-chunk texts (keys idx:txt:{lang}:{i})
+ *   - txt-{lang}.json  : a JSON array of {text, title, path}, in the same order as the blob
  *
- * Embedding is INCREMENTAL: a content-addressed cache (.embed-cache.json, keyed by the SHA-256 of
- * the chunk text) is reused across runs, so only new/changed chunks are embedded. In CI the cache
- * is persisted with actions/cache — a typical doc edit then costs a handful of embeds, well under
- * the free-tier 1000/day cap. With no cache (cold run) every chunk is embedded.
+ * TWO free-tier quotas of 1000/day sit on this pipeline, and for a long time this header named only
+ * the guarded one:
+ *
+ *   - Gemini embeddings, 1000 requests/day. GUARDED by a content-addressed cache
+ *     (.embed-cache.json, keyed by the SHA-256 of the chunk text) reused across runs, so only
+ *     new/changed chunks are embedded. In CI it is persisted with actions/cache, and a typical doc
+ *     edit costs a handful of embeds. With no cache (cold run) every chunk is embedded.
+ *   - Cloudflare KV writes, 1000/day ACCOUNT-WIDE. Guarded by the layout above: one value per
+ *     language instead of one per chunk, so a reindex costs FOUR writes whatever changed. It used
+ *     to cost one write per chunk — measured 2026-09-21 at 1397, so a single full reindex already
+ *     exceeded the daily cap and every run after the first one of the day failed before writing a
+ *     byte. Note that the Worker also spends two KV writes per chat request on its rate-limit
+ *     counters, out of the same account-wide 1000.
+ *
+ * Adding a per-chunk KV key would put the second quota back where it was. The write cost is printed
+ * at the end of a run, and the workflow puts it in the job summary, so a regression is visible.
  *
  * Usage (from poc/doc-chatbot/worker):
  *   GEMINI_API_KEY=... node scripts/build-index.mjs
- *   then upload the outputs to KV (see wrangler.toml header).
+ *   then upload the four outputs to KV (see wrangler.toml header).
  *
  * The key is read from GEMINI_API_KEY, falling back to the .dev.vars file.
  */
@@ -160,6 +173,60 @@ async function embedBatch(key, texts, attempt = 0) {
   return json.embeddings.map((e) => e.values);
 }
 
+/**
+ * How many KV keys one language's index occupies: `idx:vec:{lang}` and `idx:txt:{lang}`.
+ *
+ * This is the number the daily write quota is spent on, and it must not depend on how many chunks
+ * the documentation produces. It is exported so a test can pin it.
+ */
+export const KV_KEYS_PER_LANGUAGE = 2;
+
+/** Where the run records its upload cost in KV writes, for the workflow's job summary. */
+export const KV_WRITE_COST_FILE = "kv-write-cost.txt";
+
+/**
+ * Build the two KV values a language needs, from its chunk records and the embedding cache.
+ *
+ * The pair is POSITIONAL: entry `i` of the text array describes vector `i` of the blob. That is
+ * what keeps the index at two keys per language instead of one per chunk — and it is why the
+ * Worker has to refuse a pair whose halves disagree on length, which would otherwise hand out the
+ * wrong passage for a vector without any error.
+ *
+ * The cache is keyed on the chunk text alone — not on the model or its dimensionality — so a
+ * vector of the wrong width is reachable: change `EMBED_MODEL` or `EMBED_DIMS`, or carry a cache
+ * written by an older build, and the stale entries come back a different size. Measured
+ * 2026-09-21 with a 384-wide entry among 768-wide ones: `blob.set` writes what it is given and
+ * leaves the rest of the slot at zero, so the blob length and the passage count both stay exactly
+ * right and the Worker's length check passes. That passage then ranks on a half-zeroed vector, and
+ * nothing anywhere says so. A wider entry is no better — it spills into the next chunk's slot, or
+ * throws an opaque RangeError when the spill happens to be the last one. Hence the explicit width
+ * check: the length check in the Worker closes skew by insertion, this closes skew by dimension.
+ *
+ * @param {{text: string, title: string, path: string, hash: string}[]} recs The language's chunks,
+ *   in the order they are to be indexed.
+ * @param {Record<string, number[]>} cache Embedding vectors by chunk hash.
+ * @returns {{vec: Buffer, txt: string}} The `idx:vec:{lang}` and `idx:txt:{lang}` values.
+ * @throws {Error} When a chunk has no cached vector, or one of the wrong dimensionality.
+ */
+export function buildLanguageValues(recs, cache) {
+  const blob = new Float32Array(recs.length * EMBED_DIMS);
+  recs.forEach((r, i) => {
+    const vector = cache[r.hash];
+    // Named rather than left to `Float32Array.from(undefined)`, which says "undefined is not
+    // iterable" after a full embedding run and points at nothing.
+    if (!vector) throw new Error(`no embedding cached for ${r.path} (chunk hash ${r.hash})`);
+    if (vector.length !== EMBED_DIMS) {
+      throw new Error(
+        `cached embedding for ${r.path} is ${vector.length} wide, expected ${EMBED_DIMS} — ` +
+          `delete .embed-cache.json and rebuild (the cache is keyed on text, not on the model)`,
+      );
+    }
+    blob.set(l2normalize(Float32Array.from(vector)), i * EMBED_DIMS);
+  });
+  const texts = recs.map((r) => ({ text: r.text, title: r.title, path: r.path }));
+  return { vec: Buffer.from(blob.buffer), txt: JSON.stringify(texts) };
+}
+
 async function main() {
   const files = await collectMarkdown(DOC_DIR);
   console.log(`Found ${files.length} markdown files under ${DOC_DIR}`);
@@ -206,23 +273,30 @@ async function main() {
   for (const r of records) pruned[r.hash] = cache[r.hash];
   await writeFile(CACHE_FILE, JSON.stringify(pruned));
 
-  // Emit, per language: a binary Float32 blob of L2-normalized vectors (for in-Worker cosine) and
-  // a bulk file of per-chunk texts keyed `idx:txt:{lang}:{i}` (matching the blob order) for KV.
-  for (const lang of [...new Set(records.map((r) => r.lang))]) {
+  // Emit the two KV values per language (see buildLanguageValues).
+  const langs = [...new Set(records.map((r) => r.lang))];
+  for (const lang of langs) {
     const recs = records.filter((r) => r.lang === lang);
-    const blob = new Float32Array(recs.length * EMBED_DIMS);
-    recs.forEach((r, i) => blob.set(l2normalize(Float32Array.from(cache[r.hash])), i * EMBED_DIMS));
-    await writeFile(path.join(WORKER_DIR, `vec-${lang}.bin`), Buffer.from(blob.buffer));
-    const bulk = recs.map((r, i) => ({
-      key: `idx:txt:${lang}:${i}`,
-      value: JSON.stringify({ text: r.text, title: r.title, path: r.path }),
-    }));
-    await writeFile(path.join(WORKER_DIR, `txt-${lang}.json`), JSON.stringify(bulk));
-    console.log(`  ${lang}: ${recs.length} vectors -> vec-${lang}.bin, txt-${lang}.json`);
+    const { vec, txt } = buildLanguageValues(recs, cache);
+    await writeFile(path.join(WORKER_DIR, `vec-${lang}.bin`), vec);
+    await writeFile(path.join(WORKER_DIR, `txt-${lang}.json`), txt);
+    console.log(
+      `  ${lang}: ${recs.length} chunks -> vec-${lang}.bin (${vec.length} B), ` +
+        `txt-${lang}.json (${Buffer.byteLength(txt)} B)`,
+    );
   }
-  console.log("\nNext — upload the index to KV (see wrangler.toml header), e.g.:");
-  console.log('  npx wrangler kv key  put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin');
-  console.log("  npx wrangler kv bulk put --remote --binding CHAT_KV --preview false txt-fr.json");
+
+  // The cost of the upload, in the unit that runs out. Printed here and picked up by the workflow
+  // for the job summary: the previous layout cost one write per chunk and nothing ever said so.
+  const writes = langs.length * KV_KEYS_PER_LANGUAGE;
+  await writeFile(path.join(WORKER_DIR, KV_WRITE_COST_FILE), String(writes));
+  console.log(
+    `\nKV writes to upload this index: ${writes} ` +
+      `(${KV_KEYS_PER_LANGUAGE} keys x ${langs.length} languages), out of 1000/day account-wide.`,
+  );
+  console.log("Next — upload the index to KV (see wrangler.toml header), e.g.:");
+  console.log('  npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:vec:fr" --path vec-fr.bin');
+  console.log('  npx wrangler kv key put --remote --binding CHAT_KV --preview false "idx:txt:fr" --path txt-fr.json');
 }
 
 // Run only when executed directly (not when imported by tests).

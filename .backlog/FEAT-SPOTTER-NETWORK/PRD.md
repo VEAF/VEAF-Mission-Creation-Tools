@@ -1,8 +1,15 @@
 # FEAT-SPOTTER-NETWORK — ground units see aircraft, and pass the word along
 
-Status: 🔄 in-progress — **design done, costed and fully settled**, see [`design.md`](design.md). The
-four points it left open were answered on 2026-09-21; nothing is awaiting a decision. The six
-tickets were cut on 2026-09-21; implementation is under way.
+Status: 🧑 waiting-human — **built and merged** on 2026-09-21 in
+[#973](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/973), against the design in
+[`design.md`](design.md). All six tickets are done and the feature ships behind its setting, off.
+
+**The one thing still owed is the in-game check**, and it waits on the Skynet vendoring:
+`reportContact` exists in [`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS) but not in the
+artifact carried here, so a mission switching the feature on against the current build gets one plain
+warning saying alerts travel and no site is ever woken. `verify-mission-c` already runs with the
+feature on in `"radio"` mode, and its check 13 says what to look for. Unblocked by
+[the vendoring ticket](../FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md).
 
 Origin: David's idea, settled in principle with Flogas on 2026-09-19 alongside the last line of
 defense, then designed decision by decision with David on 2026-09-20. Deliberately **VEAF code,

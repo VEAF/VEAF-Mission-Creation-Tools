@@ -299,21 +299,31 @@ question has no answer.
 
 #### Seeing what happens, on the map {#spotter-view}
 
-The module can draw the network on the F10 map. One set of shapes per **group**, and one meaning
-per colour:
+The module can draw the network on the F10 map. **One square and one circle per group**, and each
+colour means one thing only:
 
-| Shape | Grey | Blue | Orange | Red |
-|-------|------|------|--------|-----|
-| **Square** (the node) | has not been told | was told | — | element of a live battery |
-| **Circle** (the range) | spotter seeing nothing | — | spotter holding a contact | live battery's firing envelope |
+| | Grey | Blue | Orange | Red |
+|---|---|---|---|---|
+| **The square** — what the group *knows* | nobody has told it | it has been told | — | it is a battery, and it is live |
+| **The circle** — what it *sees* | it sees nothing | — | it has an aircraft in sight | the live battery's firing range |
 
-The square says what a node **knows**, the circle what it **sees**. A dark battery draws **no**
-envelope at all: in grey, grey would mean two things at once — *this battery could fire and nobody has
-told it* and *these eyes are looking at nothing* — with no way to tell the two circles apart.
+The square is about what it has been **told**, the circle about what it **sees** for itself. The two do
+not go together, and that is the heart of the feature: a truck warned over the radio is blue with a
+grey circle, because it knows without seeing anything.
 
-On top of that: a **red cross** on each held contact, a **grey dashed** line for a radio link, and a
-**solid red** line for a link that actually carried an alert — which is what keeps the path of a
-report readable.
+A dark battery draws **no** circle at all. That is deliberate: in grey, grey would mean two things at
+once — *this battery could fire and nobody has told it* and *these eyes are looking at nothing* — and
+you would no longer know which of the two circles you were looking at.
+
+![A post that sees, and one that sees nothing](../../assets/img/mission-maker/spotter-view-shapes.png)
+
+*Everything in one view: the **orange circle** of the post that has the aircraft in sight, its **blue
+square**, the warned position to the east whose squares are blue too, the line joining them — and just
+below, another post with a **grey dashed circle**, seeing nothing.*
+
+On top of that: a **red cross** on each aircraft being tracked, a **grey dashed** line between two
+groups that can talk to each other over the radio, and a **solid red** line wherever an alert actually
+travelled — which is what makes the path of a report readable at a glance.
 
 `spotter_view` takes three values:
 
@@ -344,6 +354,132 @@ veafSkynet.showSpotterView(coalition.side.RED, true)
 
 > The network lives inside the Skynet module and does nothing when Skynet is off: there is no
 > fallback mode for missions without an IADS.
+
+#### One alert, from start to finish {#spotter-view-story}
+
+> ⚠️ **This is not what a pilot sees.** The pictures below show a mission in **diagnostic mode**, with
+> two displays switched on at once: the **spotter view** (the squares, the circles, the lines) and
+> **Skynet's own banner** at the top right, which counts the batteries and says how many are live.
+> Both are **off by default**: they are for setting a mission up, not for playing it.
+>
+> To get these views in your own mission:
+>
+> ```yaml
+> modules:
+>   SKYNET:
+>     enabled: true
+>     spotter_network: true
+>     spotter_view: "on"    # the squares and circles; "radio" for a switch in the F10 menu
+>     debug_red: true       # the status banner top right, and the trace in dcs.log
+> ```
+>
+> Then, in game: **close and reopen the F10 map after the mission has loaded.** A drawing placed by a
+> script does not appear on a map that is already open — by far the most common reason for "it draws
+> nothing".
+
+The five pictures below are **one single alert**, followed through a demonstration mission shipped
+with the tools (`test/veaf-tools/spotter-network-dense`), seen from the **red** side. The time given is
+how long the mission has been running.
+
+The setting: a hostile aircraft comes in from the north and flies along a line of **six observation
+posts 17 km apart**; behind them, two defended positions, each with its armour, trucks, infantry and
+anti-aircraft battery. Two patrols and a radar aircraft orbit overhead.
+
+##### 1 — Nothing has happened yet
+
+![The network at rest](../../assets/img/mission-maker/spotter-view-1-at-rest.jpg)
+
+*Everything is grey: nobody has seen anything, and the map says so without having to be deciphered.
+The aircraft has not arrived.*
+
+This is a good moment to say **who sees what**. Each group has its own sight range, and it depends on
+the **type** of its vehicles — the table above gives the values. A group sees as far as **whichever of
+its vehicles sees furthest**: a group mixing a shoulder-launched missile team (10 km) with a blind
+anti-aircraft gun sees 10 km, not the average of the two.
+
+Two things that surprise people the first time:
+
+- **some vehicles that look made for the job see nothing.** A piece of an anti-aircraft site, a
+  self-propelled gun: their detection is already the site's own business, so they **relay without
+  spotting**. A plain truck sees further than a self-propelled anti-aircraft gun;
+- **terrain counts.** An aircraft following a valley is not seen by the post behind the crest, even
+  when it is within range. It is not only a matter of distance: there has to be a line of sight.
+
+The squares with **no circle at all** in this picture are the radar aircraft and the early-warning
+radar: they relay and see nothing, because what they see already feeds the defence by another route.
+
+##### 2 — One post sees it, and the battery it warns lights up
+
+*(1 min 20 later)*
+
+![The first wake-up](../../assets/img/mission-maker/spotter-view-2-first-wake-up.jpg)
+
+*The northern post turns **orange**: it has the aircraft in sight. It passes the word, and the battery
+22 km further east — **which has seen nothing at all** — lights up: a red square, and its red circle
+shows how far it can shoot. The rest of the map is still grey, so there is no ambiguity about what just
+happened. The banner at the top right confirms it: `SAM: 3 | On: 1 | Off: 2`.*
+
+This is **the whole idea of the feature in one picture**, and there are two distinct mechanics in it.
+
+**How the word travels.** Two groups can talk to each other if they are less than **20 km** apart —
+that is the `spotter_radio_range_km` setting. A report does not jump from one end of the map to the
+other: it moves **from neighbour to neighbour, one hop at a time**, and a hop takes about twenty
+seconds. Two groups 25 km apart cannot hear each other: the network breaks into separate pockets, and
+an alert raised in one will never leave it. That is why this mission's posts are 17 km apart and not
+25.
+
+**What a warned battery does.** It **does not light up because somebody talked to it**. It holds the
+information and waits, exactly as it would with an early-warning radar, and it only switches its radar
+on when the aircraft enters **its own firing range**. That is what happens here: it was warned, the
+aircraft was already inside its 25 km, so it lights up. In the same picture the other batteries got
+the same report and **stay grey**: the aircraft is not inside *their* range. The spotter network is a
+**distributed early-warning radar**, not a switch that wakes everybody up.
+
+##### 3 — The word goes round the front
+
+*(1 minute later)*
+
+![The alert crosses the front](../../assets/img/mission-maker/spotter-view-3-word-travels.jpg)
+
+*The squares have turned **blue across 95 km**, all the way to the southernmost post. But their circles
+stay **grey**: they know, they see nothing. The red lines draw the exact path the report took, from
+neighbour to neighbour.*
+
+This is the difference between the square and the circle made visible: twelve groups know, one is
+looking at the aircraft. The domino effect reads here too — a warned battery **passes the word on in
+its turn**, so a line of defences wakes up in the direction of the penetration.
+
+##### 4 — The aircraft leaves, the defence goes back to sleep
+
+*(1 min 20 later)*
+
+![The defence goes quiet](../../assets/img/mission-maker/spotter-view-4-back-to-sleep.jpg)
+
+*The aircraft has left the firing range: the battery goes dark, its red circle disappears, and the
+banner drops back to `On: 0`. The north has **turned grey again** — it has forgotten — while the south
+is still blue.*
+
+When a spotter loses sight of the aircraft it does not let the information rot: it sends a
+**cancellation**, which travels the same path at the same speed as the alert. That is what is caught
+here mid-flight — the north is already cleared, the south not yet. Without it, a defence would stay on
+alert for an aircraft that left long ago.
+
+A spotter does not drop the aircraft at the first blink, though: one that disappears behind a crest for
+a few seconds is still tracked. It has to be lost properly for the cancellation to go out.
+
+##### 5 — The patrols take over
+
+*(1 min 45 later)*
+
+![The patrols take over](../../assets/img/mission-maker/spotter-view-5-air-takes-over.jpg)
+
+*It is now the helicopter and the fighter patrol tracking the aircraft. The big orange circle is the
+fighter: it sees 30 km **and it moves**.*
+
+Aircraft in flight see much further than anything on the ground — 30 km for an aeroplane, 15 for a
+helicopter — because nothing masks them and many carry a radar. A deliberate consequence: **a player
+flying for the network's coalition becomes a spotter**, and a friendly patrol feeds the ground defence
+without having to do anything in particular.
 
 ### Last line of defence — `last_line_of_defence` {#last-line-of-defence}
 

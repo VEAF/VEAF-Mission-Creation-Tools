@@ -128,6 +128,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   watching, and a group mixing a MANPADS with a blind Shilka sees 10 km. A **contact** stays a single
   aircraft — the cross on the map marks one, and a flight of four is four.
 
+- **The spotter network's map view is documented, with pictures.** The mission-maker page now walks
+  one alert from start to finish in five screenshots taken from a live mission: the network at rest,
+  a post seeing the aircraft and the battery it warns lighting up, the word crossing 95 km of front,
+  the defence going quiet again as the aircraft leaves, and the air patrols taking over. Each step
+  explains the mechanic it shows -- who sees how far and why a plain truck sees further than a
+  self-propelled anti-aircraft gun, what decides who can talk to whom, why a warned battery waits
+  until the aircraft is in its *own* firing range, and how the cancellation travels back the same way.
+  It also says plainly that these views are **diagnostic mode** (`spotter_view` plus `debug_red`),
+  off by default, and how to switch them on -- including reopening the F10 map afterwards, which is
+  the most common reason for "it draws nothing".
+
+  These are the first screenshots in the documentation, so `doc/assets/img/README.md` now says which
+  format to use for what: measured on them, a full map screenshot costs **6.0 MB as PNG against
+  1.1 MB as JPEG** for no visible difference, while a cropped shot of flat interface colour is the
+  other way round.
+
 ## [6.23.1] — 2026-09-20
 
 ### Fixed

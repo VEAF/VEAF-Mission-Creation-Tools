@@ -304,22 +304,31 @@ Sans la page, la question n'a pas de réponse.
 
 #### Voir ce qui se passe, sur la carte {#spotter-view}
 
-Le module peut dessiner le réseau sur la carte F10. Une forme par **groupe**, et une seule
-signification par couleur :
+Le module peut dessiner le réseau sur la carte F10. **Un carré et un cercle par groupe**, et chaque
+couleur ne veut dire qu'une chose :
 
-| Forme | Gris | Bleu | Orange | Rouge |
-|-------|------|------|--------|-------|
-| **Carré** (le nœud) | pas prévenu | prévenu | — | élément d'une batterie allumée |
-| **Cercle** (la portée) | guetteur qui ne voit rien | — | guetteur qui tient un contact | enveloppe de tir d'une batterie allumée |
+| | Gris | Bleu | Orange | Rouge |
+|---|---|---|---|---|
+| **Le carré** — ce que le groupe *sait* | personne ne l'a prévenu | on l'a prévenu | — | c'est une batterie, et elle est allumée |
+| **Le cercle** — ce qu'il *voit* | il ne voit rien | — | il a un avion en vue | la portée de tir de la batterie allumée |
 
-Le carré dit ce que le nœud **sait**, le cercle ce qu'il **voit**. Une batterie éteinte ne dessine
-**aucune** enveloppe : en gris, le gris voudrait dire deux choses à la fois — *cette batterie pourrait
-tirer et personne ne l'a prévenue* et *ces yeux ne regardent rien* — sans moyen de distinguer les deux
-cercles.
+Le carré parle de ce qu'on lui a **dit**, le cercle de ce qu'il **voit** lui-même. Les deux ne vont pas
+ensemble, et c'est le cœur de la fonctionnalité : un camion prévenu par radio est bleu avec un cercle
+gris, parce qu'il sait sans rien voir.
 
-S'y ajoutent une **croix rouge** sur chaque contact tenu, un trait **gris pointillé** pour un lien
-radio, et un trait **rouge continu** pour un lien qui a effectivement porté une alerte — c'est ce qui
-rend le chemin d'un signalement lisible.
+Une batterie éteinte ne dessine **aucun** cercle. C'est volontaire : en gris, le gris voudrait dire
+deux choses à la fois — *cette batterie pourrait tirer, personne ne l'a prévenue* et *ces yeux ne
+regardent rien* — et on ne saurait plus lequel des deux cercles on regarde.
+
+![Un poste qui voit, un poste qui ne voit rien](../../assets/img/mission-maker/spotter-view-shapes.png)
+
+*Tout est là sur une seule vue : le **cercle orange** du poste qui a l'avion en vue, son **carré
+bleu**, la position prévenue à l'est dont les carrés sont bleus aussi, le trait qui les relie — et
+juste en dessous un autre poste, **cercle gris en pointillé**, qui ne voit rien.*
+
+S'y ajoutent une **croix rouge** sur chaque avion suivi, un trait **gris pointillé** entre deux
+groupes qui peuvent se parler par radio, et un trait **rouge continu** là où une alerte est réellement
+passée — c'est ce qui rend le chemin d'un signalement lisible d'un coup d'œil.
 
 Trois valeurs pour `spotter_view` :
 
@@ -352,6 +361,135 @@ veafSkynet.showSpotterView(coalition.side.RED, true)
 
 > Le réseau vit dans le module Skynet et ne fait rien quand Skynet est éteint : il n'y a pas de mode
 > de repli pour les missions sans IADS.
+
+#### Une alerte, du début à la fin {#spotter-view-story}
+
+> ⚠️ **Ce n'est pas ce que voit un pilote.** Les images ci-dessous montrent une mission en **mode mise
+> au point**, avec deux affichages allumés en même temps : la **vue des guetteurs** (les carrés, les
+> cercles, les traits) et le **bandeau de Skynet** en haut à droite, qui compte les batteries et dit
+> combien sont allumées. Les deux sont **éteints par défaut** : ils servent à régler une mission, pas
+> à la jouer.
+>
+> Pour retrouver ces vues dans votre mission :
+>
+> ```yaml
+> modules:
+>   SKYNET:
+>     enabled: true
+>     spotter_network: true
+>     spotter_view: "on"    # les carrés et les cercles ; "radio" pour un interrupteur au menu F10
+>     debug_red: true       # le bandeau d'état en haut à droite, et la trace dans dcs.log
+> ```
+>
+> Puis, en jeu : **fermez et rouvrez la carte F10 après le chargement.** Un dessin posé par un script
+> n'apparaît pas sur une carte déjà ouverte — c'est de loin la première cause de « ça ne dessine
+> rien ».
+
+Les cinq images qui suivent sont **une seule et même alerte**, suivie au fil d'une mission de
+démonstration livrée avec les outils (`test/veaf-tools/spotter-network-dense`), vue du **côté rouge**.
+L'heure donnée est le temps écoulé depuis le début de la mission.
+
+Le décor : un avion ennemi arrive par le nord et longe une ligne de **six postes d'observation espacés
+de 17 km** ; derrière eux, deux positions défendues, chacune avec ses blindés, ses camions, ses
+fantassins et sa batterie anti-aérienne. Deux patrouilles et un avion radar tournent au-dessus.
+
+##### 1 — Rien ne se passe encore
+
+![Le réseau au repos](../../assets/img/mission-maker/spotter-view-1-at-rest.jpg)
+
+*Tout est gris : personne n'a rien vu, et la carte le dit sans qu'on ait besoin de la déchiffrer.
+L'avion n'est pas encore arrivé.*
+
+C'est le bon moment pour dire **qui voit quoi**. Chaque groupe a sa propre portée de vue, et elle
+dépend du **type** de ses véhicules — le tableau plus haut donne les valeurs. Un groupe voit aussi loin
+que **celui de ses véhicules qui voit le plus loin** : un groupe mêlant un tireur de missile portable
+(10 km) et un canon anti-aérien aveugle voit 10 km, pas la moyenne des deux.
+
+Deux choses qui surprennent la première fois :
+
+- **certains véhicules qui ont l'air faits pour ça ne voient rien.** Une pièce d'un site anti-aérien,
+  un canon automoteur : leur détection est déjà le travail du site lui-même, donc ils **relaient sans
+  guetter**. Un simple camion voit plus loin qu'un canon anti-aérien automoteur ;
+- **le relief compte.** Un avion qui suit une vallée n'est pas vu par le poste situé derrière la
+  crête, même s'il est à portée. Ce n'est pas qu'une question de distance : il faut une ligne de vue.
+
+Les carrés **sans aucun cercle**, sur cette image, sont l'avion radar et le radar de veille : ils
+relaient et ne voient rien, parce que ce qu'ils voient alimente déjà la défense par un autre chemin.
+
+##### 2 — Un poste le voit, et la batterie qu'il prévient s'allume
+
+*(1 min 20 plus tard)*
+
+![Le premier réveil](../../assets/img/mission-maker/spotter-view-2-first-wake-up.jpg)
+
+*Le poste du nord passe en **orange** : il a l'avion en vue. Il passe le mot, et la batterie située
+22 km plus à l'est — **qui n'a rien vu du tout** — s'allume : carré rouge, et son cercle rouge montre
+jusqu'où elle peut tirer. Le reste de la carte est encore gris, donc il n'y a pas d'ambiguïté sur ce
+qui vient de se produire. Le bandeau en haut à droite le confirme : `SAM: 3 | On: 1 | Off: 2`.*
+
+C'est **toute l'idée de la fonctionnalité en une image**, et il y a deux mécaniques distinctes dedans.
+
+**Comment le mot circule.** Deux groupes peuvent se parler s'ils sont à moins de **20 km** l'un de
+l'autre — c'est le réglage `spotter_radio_range_km`. Le signalement ne saute pas d'un bout à l'autre de
+la carte : il avance **de voisin en voisin, un bond à la fois**, et un bond prend une vingtaine de
+secondes. Si deux groupes sont à 25 km, ils ne s'entendent pas : le réseau se coupe en morceaux
+séparés, et une alerte levée dans l'un ne sortira jamais de l'autre. C'est pour ça que les postes de
+cette mission sont espacés de 17 km et pas de 25.
+
+**Ce que fait une batterie prévenue.** Elle **ne s'allume pas parce qu'on lui a parlé**. Elle garde le
+renseignement et attend, exactement comme elle le ferait avec un radar de veille lointaine, et elle
+n'allume son radar que lorsque l'avion entre **dans sa propre portée de tir**. C'est ce qui se passe
+ici : elle a été prévenue, l'avion était déjà dans ses 25 km, donc elle s'allume. Sur la même image,
+les autres batteries ont reçu le même signalement et **restent grises** : l'avion n'est pas dans
+*leur* portée à elles. Le réseau de guetteurs est un **radar de veille réparti**, pas un interrupteur
+qui réveille tout le monde.
+
+##### 3 — Le mot fait le tour du front
+
+*(1 minute de plus)*
+
+![L'alerte traverse le front](../../assets/img/mission-maker/spotter-view-3-word-travels.jpg)
+
+*Les carrés sont devenus **bleus sur 95 km**, jusqu'au poste le plus au sud. Mais leurs cercles restent
+**gris** : ils savent, ils ne voient rien. Les traits rouges dessinent le chemin exact qu'a pris le
+signalement, de proche en proche.*
+
+C'est la différence entre le carré et le cercle rendue visible : douze groupes sont au courant, un seul
+regarde l'avion. Et l'effet en cascade se lit aussi — une batterie prévenue **passe le mot à son
+tour**, donc une ligne de défenses se réveille dans le sens de la pénétration.
+
+##### 4 — L'avion s'éloigne, la défense se rendort
+
+*(1 min 20 de plus)*
+
+![La défense se rendort](../../assets/img/mission-maker/spotter-view-4-back-to-sleep.jpg)
+
+*L'avion est sorti de la portée de tir : la batterie s'éteint, son cercle rouge disparaît, et le
+bandeau repasse à `On: 0`. Le nord est **redevenu gris** — il a oublié — pendant que le sud est encore
+bleu.*
+
+Quand un guetteur perd l'avion de vue, il n'attend pas que l'information pourrisse : il envoie une
+**annulation**, qui voyage par le même chemin et à la même vitesse que l'alerte. C'est elle qu'on voit
+ici en train de se propager — le nord est déjà nettoyé, le sud pas encore. Sans ça, une défense
+resterait en alerte sur un avion parti depuis longtemps.
+
+Un guetteur ne lâche pas l'avion au premier battement de cils, cela dit : un appareil qui disparaît
+derrière une crête quelques secondes reste suivi. Il faut le perdre franchement pour que l'annulation
+parte.
+
+##### 5 — Les patrouilles prennent le relais
+
+*(1 min 45 de plus)*
+
+![Les patrouilles prennent le relais](../../assets/img/mission-maker/spotter-view-5-air-takes-over.jpg)
+
+*Ce sont maintenant l'hélicoptère et la patrouille de chasse qui suivent l'avion. Le grand cercle
+orange, c'est le chasseur : il voit à 30 km **et il se déplace**.*
+
+Les appareils en vol voient beaucoup plus loin que le sol — 30 km pour un avion, 15 pour un
+hélicoptère — parce que rien ne les masque et que beaucoup portent un radar. Conséquence assumée :
+**un joueur qui vole pour la coalition du réseau devient un guetteur**, et une patrouille amie
+alimente la défense au sol sans avoir à faire quoi que ce soit de particulier.
 
 ### Dernière ligne de défense — `last_line_of_defence` {#last-line-of-defence}
 

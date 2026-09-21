@@ -1855,6 +1855,7 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
   veafSkynet._armSpotterPropagation()
   veafSkynet._armSpotterHandover()
   veafSkynet._armSpotterStatus()
+  veafSkynet._armSpotterView()
 
   veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
 end
@@ -3364,6 +3365,29 @@ end
 -- by default and switched on per network, deliberately.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- What `modules.SKYNET.spotter_view` can ask for.
+---
+--- `Radio` does not switch the view on: it puts the switch where a game master can reach it, and
+--- leaves it off. That is the point of a toggle, and it is also the cautious reading given what the
+--- view shows to a whole coalition.
+veafSkynet.SpotterViewModes = {
+  Off = "off",
+  On = "on",
+  Radio = "radio",
+}
+
+--- How the map view is offered. Written by the build from `modules.SKYNET.spotter_view`.
+veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Off
+
+--- The i18n key of the radio menu the `radio` mode adds.
+veafSkynet.RadioMenuName = "menu.skynet.root"
+
+--- Per coalition, the radio submenu carrying that coalition's toggle.
+veafSkynet.spotterViewRootPaths = {}
+
+--- Whether the view has been set up from `SpotterView`.
+veafSkynet.spotterViewArmed = false
+
 --- Coalitions whose map view is switched on, as a set. Empty by default.
 veafSkynet.spotterViewCoalitions = {}
 
@@ -3464,6 +3488,73 @@ function veafSkynet._redrawSpotterView()
           end
         end
       end
+    end
+  end
+end
+
+--- Build (or rebuild) one coalition's spotter submenu, with the toggle's title showing the state.
+---
+--- Rebuilt rather than relabelled because a DCS radio command's title is fixed once it is created:
+--- the only way to make the entry read *Hide* after it has been used is to replace it.
+---
+--- **`USAGE_ForAll`, which is the default, and it matters here more than anywhere else.** A game
+--- master has no group, so a `USAGE_ForGroup` command never reaches one (#128) — and a game master is
+--- precisely the person this menu exists for. Passing a usage here would build a menu that the only
+--- intended audience cannot see.
+---
+--- @param coa number a coalition id
+function veafSkynet.buildSpotterViewRadioMenu(coa)
+  if not veafRadio then
+    veaf.loggers.get(veafSkynet.Id):warn("no radio module: the spotter view cannot be offered on the F10 menu")
+    return
+  end
+
+  local root = veafSkynet.spotterViewRootPaths[coa]
+  if root then
+    veafRadio.clearSubmenu(root)
+  else
+    -- Scoped to the coalition: the other side has its own network and has no business seeing a
+    -- switch for this one.
+    root = veafRadio.addSubMenu(veaf.t(veafSkynet.RadioMenuName), nil, coa)
+    veafSkynet.spotterViewRootPaths[coa] = root
+  end
+
+  local shown = veafSkynet.spotterViewCoalitions[coa] and true or false
+  local title = veaf.t(shown and "menu.skynet.spotterview.hide" or "menu.skynet.spotterview.show")
+  veafRadio.addCommandToSubmenu(title, root, veafSkynet.toggleSpotterViewFromRadio, coa)
+  veafRadio.refreshRadioMenu()
+end
+
+--- Flip one coalition's view, from the radio command.
+---
+--- @param coa number a coalition id
+function veafSkynet.toggleSpotterViewFromRadio(coa)
+  veafSkynet.showSpotterView(coa, not veafSkynet.spotterViewCoalitions[coa])
+  veafSkynet.buildSpotterViewRadioMenu(coa)
+end
+
+--- Honour `SpotterView`: draw nothing, draw from the start, or offer the switch on the radio.
+---
+--- Idempotent, like every other arming function here: a reinitialisation must not stack a second
+--- menu entry.
+function veafSkynet._armSpotterView()
+  if veafSkynet.spotterViewArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  local mode = veafSkynet.SpotterView
+  if mode ~= veafSkynet.SpotterViewModes.On and mode ~= veafSkynet.SpotterViewModes.Radio then
+    return
+  end
+  veafSkynet.spotterViewArmed = true
+
+  for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
+    if mode == veafSkynet.SpotterViewModes.On then
+      veafSkynet.showSpotterView(coa, true)
+    else
+      veafSkynet.buildSpotterViewRadioMenu(coa)
     end
   end
 end

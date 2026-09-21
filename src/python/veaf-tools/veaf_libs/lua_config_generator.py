@@ -490,6 +490,56 @@ def _spotter_number(skynet_cfg: dict, key: str, unit: str, example: float) -> fl
         return None
 
 
+#: What ``modules.SKYNET.spotter_view`` accepts, and what each spelling means to the Lua.
+#:
+#: ``True`` and ``False`` are in here because they are what a mission maker actually gets when they
+#: write the documented values.  ``mission.yaml`` is read with ``yaml.safe_load``, which is YAML 1.1,
+#: and YAML 1.1 reads a bare ``on`` as ``True`` and a bare ``off`` as ``False``.  Measured 2026-09-21.
+#: Rejecting them would refuse the very spelling the documentation teaches, so they are accepted and
+#: mapped; the documentation quotes them anyway, because ``"on"`` survives a future move to YAML 1.2
+#: and a bare ``on`` would then change meaning under the mission's feet.
+_SPOTTER_VIEW_MODES: dict[object, str] = {
+    "off": "off",
+    False: "off",
+    "on": "on",
+    True: "on",
+    "radio": "radio",
+}
+
+
+def _spotter_view_mode(skynet_cfg: dict) -> str | None:
+    """Read ``modules.SKYNET.spotter_view``, or ``None`` when it is absent or unusable.
+
+    ``None`` for an absent key follows the rule the whole SKYNET block obeys: nothing is
+    written, so ``veafSkynetIadsHelper.lua``'s own default stands and a ``module_settings:``
+    line setting the same variable is not silently undone.
+
+    An unusable value warns and is ignored rather than ending the build, for the same
+    reason the numeric settings do: the mission still builds, with the shipped default, and
+    the author is told which key to fix.
+
+    Args:
+        skynet_cfg: the ``modules.SKYNET`` mapping.
+
+    Returns:
+        ``"off"``, ``"on"``, ``"radio"``, or ``None``.
+    """
+    if "spotter_view" not in skynet_cfg:
+        return None
+    value = skynet_cfg["spotter_view"]
+    # Typed before the lookup, because in Python ``False == 0`` and ``True == 1`` hash alike, so a
+    # bare ``spotter_view: 1`` would otherwise be quietly accepted as ``on``.
+    if isinstance(value, bool):
+        mode = _SPOTTER_VIEW_MODES.get(value)
+    elif isinstance(value, str):
+        mode = _SPOTTER_VIEW_MODES.get(value.strip().lower())
+    else:
+        mode = None
+    if mode is None:
+        logger.warning(t("generator.spotter_view_unknown", value=value, allowed="off, on, radio"))
+    return mode
+
+
 def _whole_if_it_can_be(value: float) -> float | int:
     """Return *value* as an ``int`` when it is a whole number, unchanged otherwise.
 
@@ -1932,6 +1982,9 @@ def generate_config_lua(
         if speed_kmh is not None:
             speed_ms = speed_kmh / 3.6
             lines.append(f"    veafSkynet.SpotterPropagationSpeed = {_to_lua_scalar(_whole_if_it_can_be(speed_ms))}")
+        spotter_view = _spotter_view_mode(skynet_cfg)
+        if spotter_view is not None:
+            lines.append(f"    veafSkynet.SpotterView = {_lua_text(spotter_view)}")
         lines.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
         lines.append("end")
         lines.append("")
@@ -2117,6 +2170,10 @@ def generate_mission_yaml_template(
                 "  #   spotter_network: false          # ground units see aircraft and pass the word along the radio net",
                 "  #   spotter_radio_range_km: 20      # how far one unit can relay; below ~20 the net stays in islands",
                 "  #   spotter_propagation_speed_kmh: 3600  # how fast an alert crosses the map (hop = range / speed)",
+                '  #   spotter_view: "off"             # "off" | "on" | "radio" — F10 map view of who is seeing what.',
+                "  #                                   # QUOTE IT: YAML reads a bare on/off as a boolean.",
+                '  #                                   # "radio" puts an on/off in the F10 menu instead of drawing at once.',
+                "  #                                   # The view is COALITION-wide: every pilot of that side sees it.",
             ]
         elif upper == "CTLD":
             # CTLD 2 takes no settings here: its configuration is the mission's

@@ -33,6 +33,7 @@ modules:
     spotter_network: false        # ground units see aircraft and pass the word along
     spotter_radio_range_km: 20    # how far one unit can relay
     spotter_propagation_speed_kmh: 3600  # how fast an alert crosses the network
+    spotter_view: "off"           # "off" | "on" | "radio" — F10 map view (the quotes matter)
 ```
 
 | Field | Type | Default | Description |
@@ -46,6 +47,7 @@ modules:
 | `spotter_network` | boolean | `false` | Enable the spotter network — see [Spotter network](#spotter-network) |
 | `spotter_radio_range_km` | number | `20` | How far one unit can relay an alert, in kilometres |
 | `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the map, in km/h |
+| `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | F10 map view of the network — see [Seeing what happens, on the map](#spotter-view) |
 
 ---
 
@@ -188,19 +190,35 @@ That trace is not decoration: once this feature is in service a site can light u
 reasons — an early-warning radar, its last line of defence, or a spotter. Without the page the
 question has no answer.
 
-**Seeing what happens, on the map.** The module can put an F10 marker at each spotter currently
-holding a contact, with a circle at its detection range. It is off, and it is switched on per network
-from `mission-script.lua`:
+#### Seeing what happens, on the map {#spotter-view}
+
+The module can put an F10 marker at each spotter currently holding a contact, with a circle at its
+detection range. `spotter_view` takes three values:
+
+| Value | Effect |
+|-------|--------|
+| `"off"` | Nothing is drawn (**default**) |
+| `"on"` | The view is shown from the start of the mission |
+| `"radio"` | A *Show / Hide the spotter view* switch appears in the F10 menu, under **SPOTTER NETWORK**. The view starts **off**: that is the point of a switch, and it is the cautious choice given what the view shows |
+
+> ⚠️ **Quote the value.** YAML reads a bare `on` or `off` as a boolean, not as a word. Both are
+> accepted and understood (`spotter_view: on` works), but `spotter_view: "on"` is the spelling that
+> stays correct whatever happens.
+
+The menu switch belongs to one coalition: red pilots do not see the blue network's. It is also added
+without a group restriction, because a game master has **no** group — a group-only radio command
+would never reach one, and a game master is exactly who this menu is for.
+
+From `mission-script.lua`, the same thing:
 
 ```lua
 veafSkynet.showSpotterView(coalition.side.RED, true)
 ```
 
 > ⚠️ **It is a coalition view, and it cannot be anything narrower.** DCS can only draw for everyone,
-> for a coalition, or for a group — and a game master has no group (which is also why no group radio
-> command reaches one). So **every pilot of that coalition sees these markers**, which on a red
-> network hands red pilots a live tracker of blue aircraft. Keep it for testing and for missions where
-> that is what you want.
+> for a coalition, or for a group — and a game master has no group. So **every pilot of that coalition
+> sees these markers**, which on a red network hands red pilots a live tracker of blue aircraft. Keep
+> it for testing and for missions where that is what you want.
 
 > The network lives inside the Skynet module and does nothing when Skynet is off: there is no
 > fallback mode for missions without an IADS.

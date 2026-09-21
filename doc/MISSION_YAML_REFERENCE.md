@@ -299,6 +299,7 @@ modules:
 | `spotter_network` | booléen | `false` | Réseau de guetteurs : les unités au sol voient les avions et relaient le contact |
 | `spotter_radio_range_km` | nombre | `20` | Portée d'un relais radio, en kilomètres |
 | `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse de l'alerte sur le réseau, en km/h (période d'un bond = portée ÷ vitesse) |
+| `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | Vue carte F10 du réseau de guetteurs ; `"radio"` pose l'interrupteur dans le menu F10. Mettre entre guillemets : YAML lit un `on`/`off` nu comme un booléen |
 
 #### Champs de `modules.CSAR`
 

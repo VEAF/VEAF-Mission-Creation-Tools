@@ -33,6 +33,7 @@ modules:
     spotter_network: false        # les unités au sol voient les avions et se passent le mot
     spotter_radio_range_km: 20    # portée d'un relais radio
     spotter_propagation_speed_kmh: 3600  # vitesse de l'alerte sur le réseau
+    spotter_view: "off"           # "off" | "on" | "radio" — vue carte F10 (guillemets obligatoires)
 ```
 
 | Champ | Type | Défaut | Description |
@@ -46,6 +47,7 @@ modules:
 | `spotter_network` | booléen | `false` | Activer le réseau de guetteurs — voir [Réseau de guetteurs](#spotter-network) |
 | `spotter_radio_range_km` | nombre | `20` | Distance à laquelle une unité peut relayer une alerte, en kilomètres |
 | `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse à laquelle l'alerte traverse la carte, en km/h |
+| `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | Vue carte F10 du réseau — voir [Voir ce qui se passe, sur la carte](#spotter-view) |
 
 ---
 
@@ -191,19 +193,37 @@ Cette trace n'est pas décorative : une fois cette fonctionnalité en service, u
 pour **trois** raisons — un radar de veille lointaine, sa dernière ligne de défense, ou un guetteur.
 Sans la page, la question n'a pas de réponse.
 
-**Voir ce qui se passe, sur la carte.** Le module peut poser un marqueur F10 à chaque guetteur qui
-tient un contact, avec un cercle à sa portée de détection. C'est éteint, et ça s'allume réseau par
-réseau depuis `mission-script.lua` :
+#### Voir ce qui se passe, sur la carte {#spotter-view}
+
+Le module peut poser un marqueur F10 à chaque guetteur qui tient un contact, avec un cercle à sa
+portée de détection. Trois valeurs pour `spotter_view` :
+
+| Valeur | Effet |
+|--------|-------|
+| `"off"` | Rien n'est dessiné (**défaut**) |
+| `"on"` | La vue est affichée dès le début de la mission |
+| `"radio"` | Un interrupteur *Afficher / Masquer la vue des guetteurs* apparaît dans le menu F10, sous **RÉSEAU DE GUETTEURS**. La vue démarre **éteinte** : c'est l'intérêt d'un interrupteur, et c'est prudent vu ce que la vue montre |
+
+> ⚠️ **Mettez la valeur entre guillemets.** YAML lit un `on` ou un `off` nu comme un booléen, pas
+> comme un mot. Les deux sont acceptés et compris (`spotter_view: on` fonctionne), mais
+> `spotter_view: "on"` est ce qui restera juste quoi qu'il arrive.
+
+L'interrupteur du menu est propre à chaque coalition : les pilotes rouges ne voient pas celui du
+réseau bleu. Il est aussi posé sans restriction de groupe, parce qu'un game master n'a **pas** de
+groupe — une commande radio réservée aux groupes ne lui parviendrait jamais, et c'est précisément lui
+que ce menu vise.
+
+Depuis `mission-script.lua`, la même chose s'obtient par&nbsp;:
 
 ```lua
 veafSkynet.showSpotterView(coalition.side.RED, true)
 ```
 
 > ⚠️ **C'est une vue de coalition, et ça ne peut pas être plus étroit.** DCS ne sait dessiner que
-> pour tout le monde, pour une coalition, ou pour un groupe — et un game master n'a pas de groupe
-> (c'est aussi pour ça qu'aucune commande radio de groupe ne lui parvient). Donc **tous les pilotes
-> de cette coalition voient ces marqueurs**, ce qui sur un réseau rouge offre aux pilotes rouges un
-> suivi en direct des avions bleus. À réserver aux tests et aux missions où c'est voulu.
+> pour tout le monde, pour une coalition, ou pour un groupe — et un game master n'a pas de groupe.
+> Donc **tous les pilotes de cette coalition voient ces marqueurs**, ce qui sur un réseau rouge offre
+> aux pilotes rouges un suivi en direct des avions bleus. À réserver aux tests et aux missions où
+> c'est voulu.
 
 > Le réseau vit dans le module Skynet et ne fait rien quand Skynet est éteint : il n'y a pas de mode
 > de repli pour les missions sans IADS.

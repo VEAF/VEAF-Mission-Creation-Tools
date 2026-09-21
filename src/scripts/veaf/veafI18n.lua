@@ -1521,6 +1521,18 @@ veaf.i18nCatalog = {
     fr = "GUARDIAN",
     en = "GUARDIAN",
   },
+  ["menu.skynet.root"] = {
+    fr = "RÉSEAU DE GUETTEURS",
+    en = "SPOTTER NETWORK",
+  },
+  ["menu.skynet.spotterview.show"] = {
+    fr = "Afficher la vue des guetteurs",
+    en = "Show the spotter view",
+  },
+  ["menu.skynet.spotterview.hide"] = {
+    fr = "Masquer la vue des guetteurs",
+    en = "Hide the spotter view",
+  },
 
   -- Radio-menu entries (FIX-RADIO-MENU-I18N ticket 02). Resolved at menu-build time.
   ["menu.assets.dispose"] = {

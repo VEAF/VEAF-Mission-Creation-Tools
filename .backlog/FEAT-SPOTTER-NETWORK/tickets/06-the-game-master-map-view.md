@@ -49,9 +49,29 @@ to draw for a game master alone.**
 
 So the view is a **coalition** view, and every pilot of that coalition sees it too. On a red network
 that hands red pilots a live tracker of blue aircraft: a real balance change, not a debug aid.
-Shipped off, switched on per network from `mission-script.lua`, and the documentation says so in as
-many words. **Worth David's decision at review**, since a coalition-wide intel feed is not the thing
-the design asked for; dropping it is one revert.
+Shipped off, and the documentation says so in as many words.
+
+**Settled with David, 2026-09-21.** The view is kept, and it gets its own `mission.yaml` setting,
+`spotter_view`, with three values:
+
+| Value | Effect |
+|---|---|
+| `"off"` | nothing is drawn (default) |
+| `"on"` | drawn from the start of the mission |
+| `"radio"` | a *Show / Hide the spotter view* switch in the F10 menu, per coalition; the view starts **off** |
+
+Two things the `radio` mode has to get right, and both are asserted:
+
+- **The submenu is scoped to its coalition**, so red pilots never see the blue network's switch.
+- **The toggle carries no group restriction.** A game master has no group, so a `USAGE_ForGroup`
+  command never reaches one (#128) — and a game master is exactly who this menu is for. Leaving the
+  usage unset means `USAGE_ForAll`, which is the one that works.
+
+**And the YAML trap**: `mission.yaml` is read with `yaml.safe_load`, which is YAML 1.1, so a bare
+`on` arrives as `True` and a bare `off` as `False` — measured, not assumed. Both are accepted and
+mapped to the mode they plainly mean, because refusing them would refuse the spelling anyone writes
+first; the documentation quotes them anyway, since `"on"` survives a move to YAML 1.2 and a bare `on`
+would then change meaning under the mission's feet.
 
 - Toggleable. Nobody wants several hundred markers on permanently.
 - Marked **only where the alert was raised**, not at every unit holding it: every unit of the pocket

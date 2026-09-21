@@ -32,8 +32,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   so widening the range slows the hops instead of silently doubling how fast an alert travels. With
   `debug_red` / `debug_blue` on, a status page in `dcs.log` says how many pockets the network has, who
   saw what and which site was woken — which matters because a site can now light up for three
-  different reasons. A map view is available too, switched on per network from `mission-script.lua`;
-  it is a **coalition** view, since DCS cannot draw for a game master alone. See
+  different reasons. A fourth setting, `spotter_view`, offers an F10 map view of who is seeing what:
+  `"off"`, `"on"`, or `"radio"` — the last putting a *Show / Hide the spotter view* switch in the F10
+  menu, per coalition, reachable by a game master. Quote the value: YAML reads a bare `on`/`off` as a
+  boolean. The view is a **coalition** view, since DCS cannot draw for a game master alone, so every
+  pilot of that side sees it. See
   [the documentation](doc/mission-maker/scripts/veafSkynetIadsHelper.md#spotter-network).
 
 ## [6.23.1] — 2026-09-20

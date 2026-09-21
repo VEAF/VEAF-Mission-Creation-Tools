@@ -431,6 +431,71 @@ def test_a_good_spotter_number_warns_about_nothing(caplog):
     assert "spotter_propagation_speed_kmh" not in caplog.text
 
 
+def test_the_three_spotter_view_modes_reach_the_generated_config():
+    for written, expected in (("off", "off"), ("on", "on"), ("radio", "radio")):
+        yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_view": written}}}
+        lua = generate_config_lua(yaml_data)
+        assert f'veafSkynet.SpotterView = "{expected}"' in lua, written
+
+
+def test_yamls_bare_on_and_off_are_understood_as_the_modes_they_look_like():
+    """``mission.yaml`` is read with ``yaml.safe_load``, which is YAML 1.1, and YAML 1.1 turns a bare
+    ``on`` into ``True`` and a bare ``off`` into ``False``.
+
+    Measured 2026-09-21. Refusing them would refuse the very spelling anyone would write first, so the
+    booleans are mapped to the modes they plainly mean. The documentation still quotes the values,
+    because ``"on"`` keeps its meaning if the loader ever moves to YAML 1.2 and a bare ``on`` would
+    not.
+    """
+    import yaml
+
+    for source, expected in (("spotter_view: off", "off"), ("spotter_view: on", "on")):
+        value = yaml.safe_load(source)["spotter_view"]
+        assert isinstance(value, bool), source  # the premise of this test, not an implementation detail
+        lua = generate_config_lua({"external_modules": {"skynet": {"enabled": True, "spotter_view": value}}})
+        assert f'veafSkynet.SpotterView = "{expected}"' in lua, source
+
+
+def test_an_unknown_spotter_view_warns_and_leaves_the_default_standing(caplog):
+    import logging
+
+    for bad in ("sometimes", None, 3, ["on"]):
+        yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_view": bad}}}
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            lua = generate_config_lua(yaml_data)
+        assert "spotter_view" in caplog.text, bad
+        assert "veafSkynet.SpotterView" not in lua, bad
+        assert "veafSkynet.initialize(" in lua, bad
+
+
+def test_a_number_is_not_quietly_read_as_a_view_mode():
+    """``False == 0`` and ``True == 1`` hash alike in Python, so a bare ``spotter_view: 1`` would be
+    accepted as ``on`` by a plain dict lookup."""
+    lua = generate_config_lua({"external_modules": {"skynet": {"enabled": True, "spotter_view": 1}}})
+    assert "veafSkynet.SpotterView" not in lua
+
+
+def test_the_spotter_view_is_not_written_when_the_field_is_absent():
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_network": True}}}
+    lua = generate_config_lua(yaml_data)
+    assert "veafSkynet.SpotterView" not in lua
+
+
+def test_the_spotter_view_is_written_before_initialize():
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_view": "radio"}}}
+    lua = generate_config_lua(yaml_data)
+    assert lua.index("veafSkynet.SpotterView") < lua.index("veafSkynet.initialize(")
+
+
+def test_mission_yaml_template_documents_the_spotter_view():
+    """It ships off, and one of the three values only exists on the F10 menu, so the template has to
+    name all three — and has to say the quotes matter."""
+    template = generate_mission_yaml_template()
+    assert "spotter_view" in template
+    assert "radio" in template
+
+
 def test_mission_yaml_template_documents_the_spotter_network():
     """It ships off by default, so a key nobody can discover is the ``ewr`` option again — present,
     undocumented and dead for four years."""

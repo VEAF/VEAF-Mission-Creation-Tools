@@ -16,6 +16,10 @@ dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafEventHandler.lua")
+-- Loaded so the radio-menu tests compare against real words. Without the catalogue every key
+-- falls back to itself, and a test then cannot tell a menu that reads "Show the spotter view"
+-- from one that shows the player `menu.skynet.spotterview.show`.
+dofile(src .. "/veafI18n.lua")
 
 -- The helper reads `SkynetIADS.database` at initialisation and `dcsUnits.DcsUnitsDatabase` right
 -- after; neither is exercised here, but the module refuses to load without them.
@@ -1580,6 +1584,161 @@ end
 function TestSpotterMapView:test_a_loss_asks_for_a_redraw()
   veafSkynet.onSpotterLost(RED, "Scout", "Bandit")
   luaunit.assertEquals(self:_redrawRequests(), 1)
+end
+
+-- ---------------------------------------------------------------------------
+-- How the map view is offered: off, on, or a radio switch
+-- ---------------------------------------------------------------------------
+TestSpotterViewModes = {}
+
+function TestSpotterViewModes:setUp()
+  _resetSpotterState()
+  veafSkynet.SpotterNetwork = true
+  veafSkynet.spotterViewCoalitions = {}
+  veafSkynet.spotterViewMarkers = {}
+  veafSkynet.spotterViewRootPaths = {}
+  veafSkynet.spotterViewArmed = false
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Off
+  veafSkynet.structure = { ["red iads"] = { coalitionID = RED } }
+
+  -- A radio module that records what it is asked to build, rather than one that answers nothing: a
+  -- menu asserted against a silent stub is a menu nobody has checked exists.
+  self.menus = {}
+  self.commands = {}
+  self.refreshes = 0
+  self.previousRadio = veafRadio
+  veafRadio = {
+    addSubMenu = function(title, parent, coalitionSide)
+      local menu = { title = title, parent = parent, coalition = coalitionSide, commands = {} }
+      table.insert(self.menus, menu)
+      return menu
+    end,
+    addCommandToSubmenu = function(title, menu, method, parameters, usage)
+      local command = { title = title, menu = menu, method = method, parameters = parameters, usage = usage }
+      table.insert(self.commands, command)
+      table.insert(menu.commands, command)
+      return command
+    end,
+    clearSubmenu = function(menu)
+      menu.commands = {}
+    end,
+    refreshRadioMenu = function()
+      self.refreshes = self.refreshes + 1
+    end,
+  }
+end
+
+function TestSpotterViewModes:tearDown()
+  veafRadio = self.previousRadio
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Off
+  veafSkynet.spotterViewArmed = false
+  veafSkynet.spotterViewRootPaths = {}
+  veafSkynet.spotterViewCoalitions = {}
+end
+
+function TestSpotterViewModes:test_off_draws_nothing_and_offers_nothing()
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Off
+  veafSkynet._armSpotterView()
+  luaunit.assertNil(veafSkynet.spotterViewCoalitions[RED])
+  luaunit.assertEquals(#self.commands, 0)
+end
+
+function TestSpotterViewModes:test_on_switches_the_view_on_from_the_start()
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.On
+  veafSkynet._armSpotterView()
+  luaunit.assertTrue(veafSkynet.spotterViewCoalitions[RED])
+  luaunit.assertEquals(#self.commands, 0) -- no menu: it is simply on
+end
+
+function TestSpotterViewModes:test_radio_offers_the_switch_and_leaves_the_view_off()
+  -- The point of a toggle, and the cautious reading: the view shows a whole coalition where its
+  -- spotters are looking, so it starts off and somebody asks for it.
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet._armSpotterView()
+  luaunit.assertNil(veafSkynet.spotterViewCoalitions[RED])
+  luaunit.assertEquals(#self.commands, 1)
+  luaunit.assertEquals(self.commands[1].title, veaf.t("menu.skynet.spotterview.show"))
+  -- ...and that is a sentence, not the key itself: a catalogue entry missing in either language puts
+  -- `menu.skynet.spotterview.show` in front of the player.
+  luaunit.assertNotEquals(self.commands[1].title, "menu.skynet.spotterview.show")
+  luaunit.assertNotEquals(self.menus[1].title, "menu.skynet.root")
+end
+
+function TestSpotterViewModes:test_the_menu_is_scoped_to_its_own_coalition()
+  -- The other side has its own network and no business seeing a switch for this one.
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet._armSpotterView()
+  luaunit.assertEquals(#self.menus, 1)
+  luaunit.assertEquals(self.menus[1].coalition, RED)
+end
+
+function TestSpotterViewModes:test_the_command_reaches_a_game_master()
+  -- A game master has no group, so a USAGE_ForGroup command never reaches one (#128) -- and a game
+  -- master is exactly who this menu is for. Leaving the usage unset means USAGE_ForAll.
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet._armSpotterView()
+  luaunit.assertNil(self.commands[1].usage)
+end
+
+function TestSpotterViewModes:test_the_switch_flips_the_view_and_the_label()
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet._armSpotterView()
+  local toggle = self.commands[1]
+  toggle.method(toggle.parameters)
+  luaunit.assertTrue(veafSkynet.spotterViewCoalitions[RED])
+  luaunit.assertEquals(self.commands[#self.commands].title, veaf.t("menu.skynet.spotterview.hide"))
+
+  local hide = self.commands[#self.commands]
+  hide.method(hide.parameters)
+  luaunit.assertNil(veafSkynet.spotterViewCoalitions[RED])
+  luaunit.assertEquals(self.commands[#self.commands].title, veaf.t("menu.skynet.spotterview.show"))
+end
+
+function TestSpotterViewModes:test_the_switch_carries_its_own_coalition()
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet.structure["blue iads"] = { coalitionID = coalition.side.BLUE }
+  veafSkynet._armSpotterView()
+  local byCoalition = {}
+  for _, command in ipairs(self.commands) do
+    byCoalition[command.parameters] = true
+  end
+  luaunit.assertTrue(byCoalition[RED])
+  luaunit.assertTrue(byCoalition[coalition.side.BLUE])
+end
+
+function TestSpotterViewModes:test_the_menu_is_replaced_rather_than_stacked()
+  -- A DCS radio command's title is fixed once created, so the entry has to be rebuilt to read
+  -- "Hide". Rebuilding must not leave the old one beside it.
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet._armSpotterView()
+  local menu = self.menus[1]
+  local toggle = self.commands[1]
+  toggle.method(toggle.parameters)
+  luaunit.assertEquals(#menu.commands, 1)
+  luaunit.assertEquals(#self.menus, 1) -- and no second submenu was created either
+end
+
+function TestSpotterViewModes:test_arming_twice_does_not_stack_a_second_menu()
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet._armSpotterView()
+  veafSkynet._armSpotterView()
+  luaunit.assertEquals(#self.menus, 1)
+end
+
+function TestSpotterViewModes:test_nothing_is_offered_when_the_network_is_off()
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  veafSkynet.SpotterNetwork = false
+  veafSkynet._armSpotterView()
+  luaunit.assertEquals(#self.commands, 0)
+end
+
+function TestSpotterViewModes:test_a_missing_radio_module_does_not_take_the_start_up_down()
+  -- The helper loads without veafRadio today, and switching a map view on must not be the thing that
+  -- changes that.
+  veafRadio = nil
+  veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Radio
+  local ok = pcall(veafSkynet._armSpotterView)
+  luaunit.assertTrue(ok)
 end
 
 -- ---------------------------------------------------------------------------

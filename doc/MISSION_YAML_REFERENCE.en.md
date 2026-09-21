@@ -297,6 +297,7 @@ modules:
 | `spotter_network` | boolean | `false` | Spotter network: ground units see aircraft and relay the contact |
 | `spotter_radio_range_km` | number | `20` | How far one unit can relay, in kilometres |
 | `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the network, in km/h (hop period = range / speed) |
+| `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | F10 map view of the spotter network; `"radio"` puts the switch in the F10 menu. Quote it: YAML reads a bare `on`/`off` as a boolean |
 
 #### `modules.CSAR` fields
 

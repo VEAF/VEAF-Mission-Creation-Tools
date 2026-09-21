@@ -260,6 +260,17 @@ woke on its own would have seen the aircraft itself.
 **What would disprove it**: `saw:` lines with no `woke:` line while the aircraft is plainly inside a
 battery's envelope. Check the pocket count first — an alert never leaves the pocket it starts in.
 
+**The map view rides along**, set to `"radio"`, which is the mode carrying code of its own. In the
+F10 menu there should be a **SPOTTER NETWORK** entry with *Show the spotter view* under it; using it
+should draw a marker at each spotter holding a contact and change the entry to *Hide*. Two things it
+is worth checking while there, because neither is provable off-line:
+
+| Reading | What it means |
+|---|---|
+| the entry is visible while flying a **red** slot, and absent from a blue one | the coalition scoping works |
+| the entry is visible to a **game master**, who has no group | the toggle really was posted without a group restriction (#128) |
+| the entry reads `menu.skynet.spotterview.show` | a translation is missing — report it, do not ignore it |
+
 ## Recording the outcome
 
 Per `CHORE-ISSUE-VERIFY-SESSION`, each issue gets exactly one of three:

@@ -24,10 +24,19 @@ What it does bring, and what this lot takes:
   `M-2000C` 0→5, `Mig-29G` 0→7; red `F-16CM` 0→9, `F-5E-3` 0→3, `F/A-18C` 0→9, `Ka-50` 0→2,
   `M-2000C` 0→5, `Su-27` 0→10. One goes the other way — red `F-14B` 10→0 — and is left alone.
 
-**What this lot does not take**, decided by David: the extract files templates under real countries
-(France, Czech Republic, Germany…) instead of `CJTF Blue` / `CJTF Red`. All 15 names resolve to a DCS
-country id and the injector creates them on the fly, so it would work; it is the better model, and it
-means rewriting the 104 shipped templates and rebuilding the red mirror. Out of scope here.
+**What this lot does not take, and must never take:** the extract files templates under real
+countries (France, Czech Republic, Germany…) instead of `CJTF Blue` / `CJTF Red`. This PRD first
+called that "the better model". It is not — the coalition filing is a deliberate design choice, and
+David gave the reason on 2026-09-21: a template carrying a real country can demand that country join
+a side it is not on.
+
+The mechanics, measured after the fact. `_get_or_create_country` creates a country the target mission
+lacks, and since FIX-PREPARE-THEATRE-COALITIONS the injector also calls `assign_country_to_side`, so
+the id lands in `coalitions.<side>` and the mission still loads. But that function appends without
+checking the **other** side: inject a blue template filed under `France` into a mission where France
+is red, and France is listed in `coalitions.blue` *and* `coalitions.red`. `CJTF Blue` (80) and
+`CJTF Red` (81) are side-locked by construction and can never collide, which is exactly what a real
+country cannot promise. Nothing here is worth "improving".
 
 ## The two defects the extract exposed, and they are ours
 

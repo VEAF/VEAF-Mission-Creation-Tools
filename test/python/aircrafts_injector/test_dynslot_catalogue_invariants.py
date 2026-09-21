@@ -30,10 +30,12 @@ from aircrafts_injector import AircraftGroupsYAMLValidator
 _REPO_ROOT = Path(__file__).parents[3]
 _DYNSLOT = _REPO_ROOT / "src" / "defaults" / "mission-folder" / "src" / "dynamic-slot-templates.yaml"
 
-#: One country per coalition, by the catalogue's own convention. Filing templates under real
-#: countries would work — the injector resolves any DCS country name and creates it — but the
-#: catalogue is coalition-shaped and mixing the two models is how `F-15E S4+ Template Red` ended
-#: up alone under `Russia`.
+#: One country per coalition, and this is a design constraint rather than tidiness. A template
+#: filed under a real country makes the injection demand that country join a side: it creates it
+#: and lists its id in `coalitions.<side>` without checking the other side, so a blue `France`
+#: template injected into a mission where France is red lists France on both. `CJTF Blue` (80) and
+#: `CJTF Red` (81) are side-locked by construction and cannot collide. Mixing the two models is
+#: also how `F-15E S4+ Template Red` ended up alone under `Russia`.
 _COUNTRY_FOR_COALITION = {"blue": "CJTF Blue", "red": "CJTF Red"}
 
 #: Name suffix per coalition. Red names are *not* the blue name plus " Red" — `A-10C II  Template`

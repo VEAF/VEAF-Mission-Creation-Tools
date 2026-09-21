@@ -12,7 +12,7 @@ are all driven from the F10 menu and a map marker, so none of them needs its own
 | 9 | [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) | Does a respawned escort still follow its tanker? |
 | 10 | [#101](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/101) | Does a **teleported** escort still defend? |
 | 12 | [#87](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/87) | Can red run carrier ops, and can red stop blue's? |
-| 13 | [FEAT-SPOTTER-NETWORK](../../../.backlog/FEAT-SPOTTER-NETWORK/PRD.md) | Do ground units spot an aircraft, pass the word, and wake a battery that never saw it? ⏸ waits on the Skynet vendoring |
+| 13 | [FEAT-SPOTTER-NETWORK](../../../.backlog/archive/FEAT-SPOTTER-NETWORK.md) | Do ground units spot an aircraft, pass the word, and wake a battery that never saw it? ⏸ waits on the Skynet vendoring |
 
 **Check 11 (#128) IS here now, and the sentence that used to stand here was wrong.** It read *"it needs
 a real multiplayer server with a game-master client; a solo session cannot answer it"* — which came from

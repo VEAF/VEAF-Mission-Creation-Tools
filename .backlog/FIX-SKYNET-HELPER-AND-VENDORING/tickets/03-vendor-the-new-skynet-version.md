@@ -38,10 +38,25 @@ concatenated loading chunk.
 Also re-run the mission build end to end and unzip the resulting `.miz` to read what actually
 shipped, rather than trusting the yaml.
 
+## It also unblocks the spotter network
+
+[`FEAT-SPOTTER-NETWORK`](../../archive/FEAT-SPOTTER-NETWORK.md) shipped on 2026-09-21 and is
+**complete except for its in-game check**, which cannot run until this lands: its hand-over calls
+`SkynetIADS:reportContact`, which exists in `VEAF/Skynet-IADS` and not in the artifact carried here.
+Today a mission that switches the feature on gets one plain warning saying alerts travel and no site
+is ever woken.
+
+`test/veaf-tools/verify-mission-c` already runs with it on in `"radio"` mode, and its
+[check 13](../../../test/veaf-tools/verify-mission-c/README.md#check-13) says what to look for. **Run
+it in the same DCS session as this ticket's own verification** — it is the only debt that lot has
+left, and it is invisible from anywhere but here.
+
 ## Definition of done
 
 - The artifact matches the released Skynet version, and the version string in the file says so.
 - It loads **and runs** under Lua 5.1 with the DCS mocks.
 - `mission.yaml` and the shipped default carry the new keys, with the same names and defaults as the
   Skynet side.
+- **Check 13 of `verify-mission-c` run and its reading recorded**, which closes
+  `FEAT-SPOTTER-NETWORK`.
 - `poetry run test-lua` and `poetry run pytest` green, `CHANGELOG.md` updated.

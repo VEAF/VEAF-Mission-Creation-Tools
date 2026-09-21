@@ -2098,7 +2098,7 @@ end
 -- envelope, exactly as it would for a real EW radar.
 --
 -- Design record, with the measurements behind every number here:
--- .backlog/FEAT-SPOTTER-NETWORK/design.md
+-- .backlog/archive/FEAT-SPOTTER-NETWORK.md
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Off by default: switching it on changes the balance of every existing mission.

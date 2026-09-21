@@ -4,7 +4,7 @@
 --- `test_veafMove_escort.lua` and `test_veafMissionDb_scenery.lua` are split from theirs.
 ---
 --- What the design asks these tests to prove, and why each one exists, is in
---- `.backlog/FEAT-SPOTTER-NETWORK/tickets/01-detection-the-unit-table-and-the-latch.md`.
+--- `.backlog/archive/FEAT-SPOTTER-NETWORK.md`.
 local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
 luaunit = dofile(_base .. "/luaunit.lua")
 dofile(_base .. "/dcs_mocks.lua")

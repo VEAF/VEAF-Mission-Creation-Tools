@@ -570,6 +570,73 @@ function TestSpotterDetectionBeat:test_the_beat_reports_a_loss_after_the_toleran
   luaunit.assertEquals(self.lost, { coalition.side.RED .. ":RedTank->BlueJet" })
 end
 
+function TestSpotterDetectionBeat:test_an_aircraft_that_leaves_the_sky_re_arms_the_latch()
+  -- Found in review, and it was the serious one. The loop can only step the pairs it walks, and it
+  -- walks the aircraft currently in the sky; an aircraft shot down simply stops appearing. Left
+  -- alone, its latch stayed *triggered* for the rest of the mission, the heartbeat kept speaking for
+  -- it, and the contact was refreshed past the forget delay forever.
+  self:_layout(2000)
+  veafSkynet.spotterDetectionBeat()
+  luaunit.assertTrue(veafSkynet.spotterLatches["RedTank"]["BlueJet"].triggered)
+
+  _stubGetGroups({ [coalition.side.RED] = { _group("RedGroup", { self.tank }) } })
+  veafSkynet.spotterDetectionBeat()
+  luaunit.assertNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"])
+end
+
+function TestSpotterDetectionBeat:test_a_landed_aircraft_re_arms_the_latch_too()
+  -- Same path, through the `inAir()` filter rather than through destruction.
+  self:_layout(2000)
+  veafSkynet.spotterDetectionBeat()
+  self.bandit.inAir = function()
+    return false
+  end
+  veafSkynet.spotterDetectionBeat()
+  luaunit.assertNil((veafSkynet.spotterLatches["RedTank"] or {})["BlueJet"])
+end
+
+function TestSpotterDetectionBeat:test_giving_up_a_vanished_contact_cancels_it_on_the_network()
+  -- The sites holding it are elsewhere on the map and have no other way of being told.
+  self:_layout(2000)
+  veafSkynet.spotterDetectionBeat()
+  veafSkynet.spotterWaves = {}
+  _stubGetGroups({ [coalition.side.RED] = { _group("RedGroup", { self.tank }) } })
+  timer.setTime(timer.getTime() + 1)
+  veafSkynet.spotterDetectionBeat()
+  local waves = veafSkynet.spotterWaves[coalition.side.RED] or {}
+  luaunit.assertEquals(#waves, 1)
+  luaunit.assertEquals(waves[1].kind, "cancel")
+  luaunit.assertEquals(waves[1].aircraft, "BlueJet")
+end
+
+function TestSpotterDetectionBeat:test_the_heartbeat_stops_speaking_for_a_vanished_contact()
+  -- The reading that showed the defect: before the fix, a jet shot down two hours ago still produced
+  -- a wave crossing the whole network every two minutes.
+  self:_layout(2000)
+  veafSkynet.spotterDetectionBeat()
+  _stubGetGroups({ [coalition.side.RED] = { _group("RedGroup", { self.tank }) } })
+  veafSkynet.spotterDetectionBeat()
+
+  local graph = veafSkynet.getSpotterGraph(coalition.side.RED)
+  graph.nodes["RedTank"] = { x = 0, z = 0, class = veafSkynet.SpotterSpeedClasses.Mobile }
+  graph.adjacency["RedTank"] = {}
+  veafSkynet.spotterWaves = {}
+  veafSkynet.spotterHeartbeat()
+  luaunit.assertEquals(#(veafSkynet.spotterWaves[coalition.side.RED] or {}), 0)
+end
+
+function TestSpotterDetectionBeat:test_a_contact_still_in_the_sky_keeps_its_latch()
+  -- The other half: giving up on absence must not give up on anything present, or a held contact
+  -- would be re-reported every single beat.
+  self:_layout(2000)
+  veafSkynet.spotterDetectionBeat()
+  for _ = 1, 10 do
+    veafSkynet.spotterDetectionBeat()
+  end
+  luaunit.assertTrue(veafSkynet.spotterLatches["RedTank"]["BlueJet"].triggered)
+  luaunit.assertEquals(#self.acquired, 1)
+end
+
 function TestSpotterDetectionBeat:test_a_dead_group_does_not_take_the_beat_down()
   self:_layout(2000)
   local corpse = _group("DeadGroup", {})
@@ -1233,8 +1300,8 @@ function TestSpotterStatusPage:test_it_names_the_aircraft_the_spotter_and_the_si
   -- Asserted against what a human reads, not against an internal table: that is the whole point of
   -- this ticket, since three different mechanisms can now wake a site.
   veafSkynet.deliverSpotterMessage(RED, "SamLauncher", { kind = "alert", aircraft = "Bandit", origin = "Scout", stamp = 1 })
-  table.insert(veafSkynet.spotterStatusAcquisitions, "Scout -> Bandit")
-  table.insert(veafSkynet.spotterStatusWakeUps, "SamSite <- Bandit")
+  veafSkynet.recordSpotterAcquisition(RED, "Scout -> Bandit")
+  veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit")
   dcs_mocks.logs = {}
   veafSkynet.spotterStatusPage()
   local text = _pageText()
@@ -1264,13 +1331,58 @@ function TestSpotterStatusPage:test_a_cancelled_contact_is_not_listed_as_an_aler
 end
 
 function TestSpotterStatusPage:test_what_happened_is_reported_once_and_not_forever()
-  table.insert(veafSkynet.spotterStatusAcquisitions, "Scout -> Bandit")
+  veafSkynet.recordSpotterAcquisition(RED, "Scout -> Bandit")
   dcs_mocks.logs = {}
   veafSkynet.spotterStatusPage()
   luaunit.assertStrContains(_pageText(), "Scout -> Bandit")
   dcs_mocks.logs = {}
   veafSkynet.spotterStatusPage()
   luaunit.assertNotStrContains(_pageText(), "Scout -> Bandit")
+end
+
+function TestSpotterStatusPage:test_one_network_does_not_report_the_others_sightings()
+  -- Found in review. The two buckets used to be flat lists printed under every debug network's
+  -- header, so a mission running both sides in debug read red's sightings as blue's. A page that can
+  -- misattribute a wake-up is worse than no page, since the whole reason for it is that a site can
+  -- now light up for three different reasons.
+  veafSkynet.structure["blue iads"] = { coalitionID = coalition.side.BLUE, debugFlag = true }
+  veafSkynet.recordSpotterAcquisition(RED, "RedTank -> BlueJet")
+  veafSkynet.recordSpotterWakeUp(RED, "RedSam <- BlueJet")
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+
+  local underBlue, seenBlueHeader = 0, false
+  for _, entry in ipairs(dcs_mocks.logs) do
+    local text = tostring(entry.text)
+    if text:find("blue iads", 1, true) then
+      seenBlueHeader = true
+    elseif text:find("red iads", 1, true) then
+      seenBlueHeader = false
+    elseif seenBlueHeader and (text:find("RedTank", 1, true) or text:find("RedSam", 1, true)) then
+      underBlue = underBlue + 1
+    end
+  end
+  luaunit.assertEquals(underBlue, 0)
+  -- ...and red still gets its own lines, so this cannot pass by printing nothing at all.
+  luaunit.assertStrContains(_pageText(), "RedTank -> BlueJet")
+end
+
+function TestSpotterStatusPage:test_a_site_woken_over_and_over_is_reported_once()
+  -- Found in review. The hand-over reports the same contact on every 5 s pass while the aircraft
+  -- stays inside the envelope -- which is right, Skynet ages contacts out -- so a list would print the
+  -- same line twelve times per page and bury the graph and alert lines it exists to show.
+  for _ = 1, 12 do
+    veafSkynet.recordSpotterWakeUp(RED, "SamSite <- Bandit")
+  end
+  dcs_mocks.logs = {}
+  veafSkynet.spotterStatusPage()
+  local occurrences = 0
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if tostring(entry.text):find("SamSite <- Bandit", 1, true) then
+      occurrences = occurrences + 1
+    end
+  end
+  luaunit.assertEquals(occurrences, 1)
 end
 
 function TestSpotterStatusPage:test_the_graph_line_counts_pockets()

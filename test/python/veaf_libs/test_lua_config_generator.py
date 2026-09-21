@@ -385,6 +385,52 @@ def test_skynet_disabled_emits_no_spotter_settings():
     assert "veafSkynet.SpotterNetwork" not in lua
 
 
+def test_an_unreadable_spotter_number_warns_and_does_not_kill_the_build(caplog):
+    """Found in review. ``spotter_radio_range_km:`` with the number forgotten is one of the commonest
+    YAML slips, and ``float(None)`` used to end the build on a ``TypeError`` traceback naming neither
+    the file nor the key — the sort of build message ``FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON`` exists
+    to stop.
+    """
+    import logging
+
+    for bad in (None, "twenty", [20]):
+        yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_radio_range_km": bad}}}
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            lua = generate_config_lua(yaml_data)
+        assert "spotter_radio_range_km" in caplog.text, bad
+        # the line is not written, so the Lua default stands and the mission still builds
+        assert "veafSkynet.SpotterRadioRange" not in lua
+        assert "veafSkynet.initialize(" in lua
+
+
+def test_a_boolean_spotter_number_is_refused_rather_than_read_as_one(caplog):
+    """YAML reads a bare ``yes`` as a boolean, and ``float(True)`` is ``1.0`` — a 1 km radio range,
+    which is a network that does nothing and says nothing about why."""
+    import logging
+
+    yaml_data: dict = {"external_modules": {"skynet": {"enabled": True, "spotter_radio_range_km": True}}}
+    with caplog.at_level(logging.WARNING):
+        lua = generate_config_lua(yaml_data)
+    assert "spotter_radio_range_km" in caplog.text
+    assert "veafSkynet.SpotterRadioRange" not in lua
+
+
+def test_a_good_spotter_number_warns_about_nothing(caplog):
+    """A warning that fires on correct missions gets ignored, and takes the real ones with it."""
+    import logging
+
+    yaml_data: dict = {
+        "external_modules": {
+            "skynet": {"enabled": True, "spotter_radio_range_km": 20, "spotter_propagation_speed_kmh": 3600}
+        }
+    }
+    with caplog.at_level(logging.WARNING):
+        generate_config_lua(yaml_data)
+    assert "spotter_radio_range_km" not in caplog.text
+    assert "spotter_propagation_speed_kmh" not in caplog.text
+
+
 def test_mission_yaml_template_documents_the_spotter_network():
     """It ships off by default, so a key nobody can discover is the ``ewr`` option again — present,
     undocumented and dead for four years."""

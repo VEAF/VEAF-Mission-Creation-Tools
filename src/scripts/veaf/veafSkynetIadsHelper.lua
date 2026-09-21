@@ -2396,13 +2396,12 @@ end
 --- @param coa number the spotter's coalition id
 --- @param spotterName string
 --- @param contactName string
---- @param dcsContact table the aircraft's DCS Unit handle
-function veafSkynet.onSpotterAcquired(coa, spotterName, contactName, dcsContact)
+function veafSkynet.onSpotterAcquired(coa, spotterName, contactName)
   veaf.loggers.get(veafSkynet.Id):debug(string.format("spotter [%s] acquired [%s]", veaf.p(spotterName), veaf.p(contactName)))
   -- Recorded for the status page at the moment it happens: once the alert has spread there is no way
   -- back from a contact held by a dozen units to the eye that first saw it.
-  table.insert(veafSkynet.spotterStatusAcquisitions, tostring(spotterName) .. " -> " .. tostring(contactName))
-  veafSkynet.emitSpotterMessage(coa, "alert", spotterName, contactName, dcsContact)
+  veafSkynet.recordSpotterAcquisition(coa, tostring(spotterName) .. " -> " .. tostring(contactName))
+  veafSkynet.emitSpotterMessage(coa, "alert", spotterName, contactName)
   veafSkynet.requestSpotterViewRedraw()
 end
 
@@ -2414,8 +2413,50 @@ end
 --- @param contactName string
 function veafSkynet.onSpotterLost(coa, spotterName, contactName)
   veaf.loggers.get(veafSkynet.Id):debug(string.format("spotter [%s] lost [%s]", veaf.p(spotterName), veaf.p(contactName)))
-  veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, contactName, nil)
+  veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, contactName)
   veafSkynet.requestSpotterViewRedraw()
+end
+
+--- Re-arm every latch holding an aircraft that is no longer a contact, and cancel what it started.
+---
+--- The detection loop can only step the pairs it walks, and it walks the aircraft currently in the
+--- sky. An aircraft that is destroyed, that lands, or that leaves the mission simply stops appearing
+--- — so without this its latches would stay *triggered* for good. That is not a tidy-up detail: a
+--- triggered latch is what the heartbeat speaks for, so one jet shot down while it was being watched
+--- leaves a phantom contact crossing the whole network every two minutes until the mission ends, held
+--- forever because each heartbeat refreshes it past the forget delay.
+---
+--- A cancellation is sent rather than the contact merely dropped locally, for the same reason the
+--- mechanism prefers cancellations everywhere else: the sites holding it are elsewhere on the map and
+--- have no other way of being told.
+---
+--- @param contacts table the aircraft currently visible to this coalition, as `listHostileAircraft`
+---        returns them
+--- @param coa number the coalition whose latches to check
+function veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
+  local present = {}
+  for _, contact in ipairs(contacts) do
+    present[contact.name] = true
+  end
+
+  for spotterName, latches in pairs(veafSkynet.spotterLatches) do
+    local gone = {}
+    for aircraft, latch in pairs(latches) do
+      if latch.triggered and not present[aircraft] then
+        table.insert(gone, aircraft)
+      end
+    end
+    for _, aircraft in ipairs(gone) do
+      latches[aircraft] = nil
+      veaf.loggers
+        .get(veafSkynet.Id)
+        :debug(string.format("spotter [%s] gave up [%s]: no longer a contact", veaf.p(spotterName), veaf.p(aircraft)))
+      veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, aircraft)
+    end
+    if not next(latches) then
+      veafSkynet.spotterLatches[spotterName] = nil
+    end
+  end
 end
 
 --- Forget everything a spotter knew. Called when it leaves the mission, so a dead unit does not keep
@@ -2541,6 +2582,14 @@ function veafSkynet.spotterDetectionBeat()
 
   for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
     local contacts = veafSkynet.listHostileAircraft(coa)
+
+    -- Aircraft that are no longer in the sky cannot be stepped by the loop below, because the loop
+    -- only walks the ones that are. Left alone, their latches stay *triggered* for the rest of the
+    -- mission: the heartbeat keeps speaking for a jet that was shot down two hours ago, the contact
+    -- is refreshed and therefore never forgotten, and every status page lists it as live. So they are
+    -- given up here, explicitly, before anything else.
+    veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
+
     if #contacts > 0 then
       local spotters = veafSkynet.listSpotters(coa)
       for _, spotter in ipairs(spotters) do
@@ -2869,14 +2918,16 @@ end
 --- @param kind string `"alert"` or `"cancel"`
 --- @param originName string the spotter
 --- @param aircraftName string
---- @param dcsContact table|nil the aircraft's handle, kept so the hand-over has something to report
-function veafSkynet.emitSpotterMessage(coa, kind, originName, aircraftName, dcsContact)
+---
+--- No DCS handle travels with the message. It would be dead weight: the hand-over resolves the
+--- aircraft by name through `Unit.getByName`, which is also the only way to tell a live aircraft from
+--- one that has left — and a heartbeat has no handle to pass anyway.
+function veafSkynet.emitSpotterMessage(coa, kind, originName, aircraftName)
   local message = {
     kind = kind,
     aircraft = aircraftName,
     origin = originName,
     stamp = timer.getTime(),
-    dcsContact = dcsContact,
     frontier = {},
   }
   if veafSkynet.deliverSpotterMessage(coa, originName, message) then
@@ -2975,7 +3026,7 @@ function veafSkynet.spotterHeartbeat()
         -- The spotter's own coalition is wherever it is already a node; a unit belongs to one graph.
         for coa, _ in pairs(coalitions) do
           if veafSkynet.getSpotterGraph(coa).nodes[spotterName] then
-            veafSkynet.emitSpotterMessage(coa, "alert", spotterName, aircraft, nil)
+            veafSkynet.emitSpotterMessage(coa, "alert", spotterName, aircraft)
           end
         end
       end
@@ -3086,10 +3137,7 @@ function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
       if iads.reportContact then
         local reported = pcall(iads.reportContact, iads, dcsAircraft, samSite)
         if reported then
-          table.insert(
-            veafSkynet.spotterStatusWakeUps,
-            tostring(samSite.dcsName) .. " <- " .. tostring(veafSkynet.safeDcsName(dcsAircraft))
-          )
+          veafSkynet.recordSpotterWakeUp(coa, tostring(samSite.dcsName) .. " <- " .. tostring(veafSkynet.safeDcsName(dcsAircraft)))
           veaf.loggers.get(veafSkynet.Id):debug(
             string.format(
               "spotter network handed [%s] to [%s] on [%s]",
@@ -3130,13 +3178,68 @@ veafSkynet.SpotterStatusPeriod = 60
 --- Whether the status page is on the clock.
 veafSkynet.spotterStatusArmed = false
 
---- Spotters that acquired a contact since the last page, as `"<spotter> -> <aircraft>"`. Recorded at
---- the moment it happens, because by the time the page is printed the only thing left is a contact
---- held by a dozen units and no way back to the eye that saw it.
+--- Per coalition, the spotters that acquired a contact since the last page, as a **set** keyed on
+--- `"<spotter> -> <aircraft>"`.
+---
+--- Recorded at the moment it happens, because by the time the page is printed the only thing left is
+--- a contact held by a dozen units and no way back to the eye that saw it.
+---
+--- Keyed by coalition because the page prints one section per network: a flat list is printed under
+--- every debug network's header, so a mission running both sides in debug would read red's sightings
+--- as blue's. A page that can misattribute a wake-up is worse than no page, since the whole reason
+--- for it is that a site can now light up for three different reasons.
 veafSkynet.spotterStatusAcquisitions = {}
 
---- Sites woken since the last page, as `"<site> <- <aircraft>"`.
+--- Per coalition, the sites woken since the last page, as a **set** keyed on `"<site> <- <aircraft>"`.
+---
+--- A set rather than a list, because the hand-over reports the same contact on every 5 s pass while
+--- the aircraft stays inside the envelope — which is correct, Skynet ages contacts out — and a list
+--- would therefore print the same line twelve times per page and bury everything else.
 veafSkynet.spotterStatusWakeUps = {}
+
+--- Record one line for one coalition, once however many times it happens before the next page.
+---
+--- @param bucket table `spotterStatusAcquisitions` or `spotterStatusWakeUps`
+--- @param coa number
+--- @param line string
+local function _recordSpotterStatus(bucket, coa, line)
+  local perCoalition = bucket[coa]
+  if not perCoalition then
+    perCoalition = {}
+    bucket[coa] = perCoalition
+  end
+  perCoalition[line] = true
+end
+
+--- The keys of a set, in order. Nil is an empty set, so a coalition that saw nothing needs no guard
+--- at the call site.
+---
+--- @param set table|nil
+--- @return table array of strings, sorted
+local function _sortedKeys(set)
+  local keys = {}
+  for key, _ in pairs(set or {}) do
+    table.insert(keys, key)
+  end
+  table.sort(keys)
+  return keys
+end
+
+--- Note that a spotter acquired a contact, for the next status page of its coalition.
+---
+--- @param coa number
+--- @param line string `"<spotter> -> <aircraft>"`
+function veafSkynet.recordSpotterAcquisition(coa, line)
+  _recordSpotterStatus(veafSkynet.spotterStatusAcquisitions, coa, line)
+end
+
+--- Note that a site was woken, for the next status page of its coalition.
+---
+--- @param coa number
+--- @param line string `"<site> <- <aircraft>"`
+function veafSkynet.recordSpotterWakeUp(coa, line)
+  _recordSpotterStatus(veafSkynet.spotterStatusWakeUps, coa, line)
+end
 
 --- Count the graph, in one walk: nodes, edges, and connected components.
 ---
@@ -3220,10 +3323,12 @@ function veafSkynet.spotterStatusPage()
         logger:info("  alert: none")
       end
 
-      for _, acquisition in ipairs(veafSkynet.spotterStatusAcquisitions) do
+      -- Sorted, because a set has no order of its own and a page whose lines move about between two
+      -- prints is a page nobody can diff against the previous one.
+      for _, acquisition in ipairs(_sortedKeys(veafSkynet.spotterStatusAcquisitions[coa])) do
         logger:info(string.format("  saw: %s", acquisition))
       end
-      for _, wakeUp in ipairs(veafSkynet.spotterStatusWakeUps) do
+      for _, wakeUp in ipairs(_sortedKeys(veafSkynet.spotterStatusWakeUps[coa])) do
         logger:info(string.format("  woke: %s", wakeUp))
       end
     end

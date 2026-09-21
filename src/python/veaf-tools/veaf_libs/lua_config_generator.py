@@ -446,6 +446,50 @@ def resolve_module_dependencies(enabled_ids: set[str]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+def _spotter_number(skynet_cfg: dict, key: str, unit: str, example: float) -> float | None:
+    """Read one numeric spotter-network setting, or ``None`` when it is absent or unusable.
+
+    ``None`` for an absent key is deliberate and follows ``dynamic_spawn``: nothing is
+    written, so ``veafSkynetIadsHelper.lua``'s own default stands and a
+    ``module_settings:`` line setting the same variable is not silently undone.
+
+    ``None`` for an *unusable* value rather than a raised exception is the point of this
+    helper.  ``spotter_radio_range_km:`` written with the number forgotten is one of the
+    commonest YAML slips, and ``float(None)`` ends the build on a ``TypeError`` traceback
+    that names neither the file nor the key — the sort of build message
+    ``FIX-WHAT-THE-MISSION-MAKER-CAN-ACT-ON`` exists to stop.  A warning naming the key,
+    the value and the unit lets the author fix it; the mission still builds, with the
+    shipped default.
+
+    ``True`` is refused as well as text: YAML reads a bare ``yes`` as a boolean, and
+    ``float(True)`` is ``1.0``, which would quietly give a 1 km radio range.
+
+    Args:
+        skynet_cfg: the ``modules.SKYNET`` mapping.
+        key: the setting to read.
+        unit: the unit to name in the warning, e.g. ``"km"``.
+        example: a value to show the author, e.g. ``20``.
+
+    Returns:
+        The value as a float, or ``None`` when the key is absent or cannot be read as a number.
+    """
+    if key not in skynet_cfg:
+        return None
+    value = skynet_cfg[key]
+    if isinstance(value, bool) or value is None:
+        logger.warning(
+            t("generator.spotter_setting_not_a_number", setting=key, value=value, unit=unit, example=example)
+        )
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        logger.warning(
+            t("generator.spotter_setting_not_a_number", setting=key, value=value, unit=unit, example=example)
+        )
+        return None
+
+
 def _whole_if_it_can_be(value: float) -> float | int:
     """Return *value* as an ``int`` when it is a whole number, unchanged otherwise.
 
@@ -1877,14 +1921,16 @@ def generate_config_lua(
         if "spotter_network" in skynet_cfg:
             sn = "true" if skynet_cfg["spotter_network"] else "false"
             lines.append(f"    veafSkynet.SpotterNetwork = {sn}")
-        if "spotter_radio_range_km" in skynet_cfg:
-            radio_range_m = float(skynet_cfg["spotter_radio_range_km"]) * 1000
+        radio_range_km = _spotter_number(skynet_cfg, "spotter_radio_range_km", "km", 20)
+        if radio_range_km is not None:
+            radio_range_m = radio_range_km * 1000
             lines.append(f"    veafSkynet.SpotterRadioRange = {_to_lua_scalar(_whole_if_it_can_be(radio_range_m))}")
-        if "spotter_propagation_speed_kmh" in skynet_cfg:
-            # km/h to m/s. A speed is exposed rather than a hop period on purpose: the period is
-            # range / speed, so exposing both would let widening the range silently double how fast
-            # an alert crosses the map.
-            speed_ms = float(skynet_cfg["spotter_propagation_speed_kmh"]) / 3.6
+        # km/h to m/s. A speed is exposed rather than a hop period on purpose: the period is
+        # range / speed, so exposing both would let widening the range silently double how fast
+        # an alert crosses the map.
+        speed_kmh = _spotter_number(skynet_cfg, "spotter_propagation_speed_kmh", "km/h", 3600)
+        if speed_kmh is not None:
+            speed_ms = speed_kmh / 3.6
             lines.append(f"    veafSkynet.SpotterPropagationSpeed = {_to_lua_scalar(_whole_if_it_can_be(speed_ms))}")
         lines.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
         lines.append("end")

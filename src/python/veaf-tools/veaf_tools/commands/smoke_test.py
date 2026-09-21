@@ -11,7 +11,7 @@ import typer
 from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL
 from veaf_libs.dcs_fiddle_client import DEFAULT_FIDDLE_URL, probe, resolve_fiddle_token, set_session_token
 from veaf_libs.dcs_lifecycle import LifecycleConfig, find_dcs_executable, run_unattended
-from veaf_libs.dcs_smoke import format_result, run
+from veaf_libs.dcs_smoke import CHECKS, SPOTTER_CHECKS, format_result, run
 
 from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
 
@@ -25,6 +25,7 @@ def smoke_test(
         None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help=t("cmd.smoke_test.opt.api_key")
     ),
     config: str | None = typer.Option(None, "--config", help=t("cmd.smoke_test.opt.config")),
+    suite: str = typer.Option("default", "--suite", help=t("cmd.smoke_test.opt.suite")),
     probe_only: bool = typer.Option(False, "--probe-only", help=t("cmd.smoke_test.opt.probe_only")),
     full: bool = typer.Option(False, "--full", help=t("cmd.smoke_test.opt.full")),
     mission: Path | None = typer.Option(None, "--mission", help=t("cmd.smoke_test.opt.mission")),
@@ -63,10 +64,38 @@ def smoke_test(
         _run_full(url, timeout, serve_url, api_key, config, mission, dcs_exe, allow_running)
         return
 
-    result = run(url=url, timeout=timeout, serve_url=serve_url, api_key=api_key, config=config)
+    checks = _resolve_suite(suite)
+    result = run(checks, url=url, timeout=timeout, serve_url=serve_url, api_key=api_key, config=config)
     console.print(format_result(result))
     if result.exit_code:
         raise typer.Exit(code=result.exit_code)
+
+
+#: What ``--suite`` accepts. `spotter` asserts on a geometry only `demo-spotter-network` carries, so
+#: it is opt-in: run against any other mission it would be two permanent failures.
+_SUITES = {"default": CHECKS, "spotter": SPOTTER_CHECKS}
+
+
+def _resolve_suite(name: str) -> tuple:
+    """Return the checks named by ``--suite``, or end the run naming the ones that exist.
+
+    An unknown name is refused rather than silently falling back to the default: a typo that quietly
+    runs the wrong suite reports a green that answers a question nobody asked.
+
+    Args:
+        name: The value of ``--suite``.
+
+    Returns:
+        The matching tuple of checks.
+
+    Raises:
+        typer.Exit: When *name* is not a known suite.
+    """
+    checks = _SUITES.get(name)
+    if checks is None:
+        console.print(f"[red]![/]  {t('cmd.smoke_test.unknown_suite', suite=name, known=', '.join(_SUITES))}")
+        raise typer.Exit(code=2)
+    return checks
 
 
 def _run_full(

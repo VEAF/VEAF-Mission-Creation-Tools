@@ -24,7 +24,7 @@ import pytest
 from veaf_libs import dcs_fiddle_client as client
 from veaf_libs import dcs_smoke as smoke
 from veaf_libs.dcs_fiddle_client import ENV_HOOK, ENV_MISSION, Capabilities, FiddleError, exec_lua, probe
-from veaf_libs.dcs_smoke import CHECKS, Check, Outcome, Result, format_result, run
+from veaf_libs.dcs_smoke import CHECKS, SPOTTER_CHECKS, Check, Outcome, Result, format_result, run
 from veaf_libs.i18n import language
 
 from veaf_build.lua_tests import _find_lua
@@ -689,7 +689,10 @@ class TestEveryChunkCompiles:
             lua_binary = _find_lua()
         except Exception as exc:  # typer.BadParameter when no 5.1 interpreter is installed
             pytest.skip(f"no Lua 5.1 interpreter: {exc}")
-        for check in CHECKS:
+        # Both suites, not just the default one. `SPOTTER_CHECKS` lives outside `CHECKS` on purpose,
+        # and a sweep that walks only the default list is exactly how an opt-in suite goes unchecked
+        # until somebody runs it in front of a live DCS.
+        for check in (*CHECKS, *SPOTTER_CHECKS):
             with tempfile.NamedTemporaryFile("w", suffix=".lua", encoding="utf-8", delete=False) as handle:
                 # wrapped in a function so the chunk's `return` statements are legal
                 handle.write("return function() " + check.lua + " end")
@@ -912,3 +915,62 @@ class TestCsarOverWater:
         # would report `csar-absent` for a mission that has it — a false negative on the whole lot.
         for name in ("csar-avoids-water-open-sea", "csar-avoids-water-coast"):
             assert self._check(name).transport is smoke.Transport.BRIDGE
+
+
+class TestSpotterSuite:
+    """FEAT-SPOTTER-NETWORK's rig checks, and why they are a suite of their own.
+
+    They assert on a geometry only ``test/veaf-tools/demo-spotter-network`` carries — a MANPADS
+    spotter 10 km from a battery it can inform, and a control battery 60 km away that no report can
+    reach. Run against any other mission they would be two permanent failures, and a harness whose
+    default run is always red is a harness nobody reads.
+    """
+
+    def _check(self, name: str) -> Check:
+        return next(c for c in SPOTTER_CHECKS if c.name == name)
+
+    def test_they_are_not_in_the_default_suite(self):
+        assert not (set(c.name for c in CHECKS) & set(c.name for c in SPOTTER_CHECKS))
+
+    def test_they_run_where_the_mission_scripts_do(self):
+        # `veafSkynet` is a mission-environment global. Routed to the hook they would report
+        # `veaf-absent` for ever — a false negative on the one thing the rig exists to measure.
+        for check in SPOTTER_CHECKS:
+            assert check.transport is smoke.Transport.BRIDGE
+
+    def test_no_sentinel_and_no_lost_value_can_pass(self):
+        # The rule this module is built on: a boolean and a table both arrive as `''`, so an
+        # expectation that `''` satisfies cannot tell success from a value the transport destroyed.
+        for check in SPOTTER_CHECKS:
+            for reply in ("", "veaf-absent", "no-spotter-history", "no-such-site", "nil"):
+                assert not check.expect(reply), f"{check.name} accepted {reply!r}"
+
+    def test_the_two_halves_disagree_on_the_same_answer(self):
+        # The point of the control: one check passes on a wake-up, the other passes on none. A run
+        # where both are green for the same reading would mean the rig measured nothing.
+        reached = self._check("spotter-relay-reached-the-network-battery")
+        control = self._check("spotter-relay-did-not-reach-the-control-battery")
+        assert reached.expect("woken:1") and not control.expect("woken:1")
+        assert control.expect("woken:0") and not reached.expect("woken:0")
+
+    def test_the_count_must_be_a_number(self):
+        # `woken:` tags the count because `''` is what a lost value looks like; a malformed tail must
+        # not slip through as a pass.
+        reached = self._check("spotter-relay-reached-the-network-battery")
+        for malformed in ("woken:", "woken:many", "woken:-1", "woken:1.5"):
+            assert not reached.expect(malformed), malformed
+
+    def test_the_chunk_names_the_site_it_was_built_for(self):
+        assert "NetworkSa6" in self._check("spotter-relay-reached-the-network-battery").lua
+        assert "ControlSa6" in self._check("spotter-relay-did-not-reach-the-control-battery").lua
+
+    def test_the_cli_resolves_the_two_suites_and_refuses_a_typo(self):
+        # A typo must end the run rather than fall back to the default: a suite chosen by accident
+        # reports a green that answers a question nobody asked.
+        import typer
+        from veaf_tools.commands.smoke_test import _resolve_suite
+
+        assert _resolve_suite("default") is CHECKS
+        assert _resolve_suite("spotter") is SPOTTER_CHECKS
+        with pytest.raises(typer.Exit):
+            _resolve_suite("spoter")

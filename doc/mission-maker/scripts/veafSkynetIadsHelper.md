@@ -165,6 +165,18 @@ conclusions différentes :
 | L'EWR a des contacts, mais le site reste `ACTIVE: false` | L'avion est vu, mais hors de l'enveloppe de tir du site. Le réseau fonctionne |
 | Le site est `AUTONOMOUS` | Il n'a plus d'EWR pour le renseigner et il est rendu à l'IA DCS — c'est l'inversion décrite plus haut |
 
+**Après coup, quand personne n'avait pensé à allumer le debug.** La page de statut est effacée à
+chaque cycle, mais le module garde un **historique des réveils par le réseau de guetteurs** qui, lui,
+survit : les 200 derniers, par coalition, avec l'instant de mission. Il répond à la question qu'on se
+pose le lendemain — *est-ce que le réseau a réveillé quelque chose hier soir ?* — sans qu'il ait fallu
+prévoir la mesure à l'avance.
+
+```lua
+for _, entry in ipairs(veafSkynet.getSpotterWakeUpLog(coalition.side.RED)) do
+    env.info(string.format("%d s : %s", entry.at, entry.line))
+end
+```
+
 ---
 
 ## Propriétés globales (à définir avant `initialize`)

@@ -3300,12 +3300,35 @@ veafSkynet.spotterStatusAcquisitions = {}
 --- would therefore print the same line twelve times per page and bury everything else.
 veafSkynet.spotterStatusWakeUps = {}
 
+--- Whether any network of this coalition will print a status page, i.e. is in debug.
+---
+--- The page buckets are filled only for a coalition that will read them. Without this test they grow
+--- for the whole mission on a mission with debug off — the normal case — since the page is the only
+--- thing that empties them, and the set is keyed on `"<spotter> -> <aircraft>"`, a pair whose count
+--- climbs every time an aircraft respawns under a new name. The durable history in
+--- `spotterWakeUpLog` is deliberately **not** behind this test: it is capped, and it is what answers
+--- the question after the fact, when nobody thought to switch debug on beforehand.
+---
+--- @param coa number
+--- @return boolean
+local function _coalitionPrintsStatusPage(coa)
+  for _, veafSkynetNetwork in pairs(veafSkynet.structure) do
+    if veafSkynetNetwork and veafSkynetNetwork.debugFlag and veafSkynetNetwork.coalitionID == coa then
+      return true
+    end
+  end
+  return false
+end
+
 --- Record one line for one coalition, once however many times it happens before the next page.
 ---
 --- @param bucket table `spotterStatusAcquisitions` or `spotterStatusWakeUps`
 --- @param coa number
 --- @param line string
 local function _recordSpotterStatus(bucket, coa, line)
+  if not _coalitionPrintsStatusPage(coa) then
+    return
+  end
   local perCoalition = bucket[coa]
   if not perCoalition then
     perCoalition = {}
@@ -3336,12 +3359,55 @@ function veafSkynet.recordSpotterAcquisition(coa, line)
   _recordSpotterStatus(veafSkynet.spotterStatusAcquisitions, coa, line)
 end
 
---- Note that a site was woken, for the next status page of its coalition.
+--- Every site the network has ever woken, per coalition, oldest first — **never drained**.
+---
+--- The page buckets above are wiped on every status cycle, which is right for a page and wrong for
+--- everything else: until this existed, the only trace that the feature had ever done its job lived
+--- for at most thirty seconds. That is a problem before it is a testing problem — asked *"did the
+--- spotter network actually wake anything on my server last night"*, nobody could answer.
+---
+--- An **array** and not a set, unlike the page bucket: the page dedupes because the same contact is
+--- re-reported every 5 s while the aircraft stays in the envelope, but a history that collapses
+--- twelve wake-ups two hours apart into one line is not a history. Deduping is the reader's job.
+---
+--- Capped, because a mission runs for hours and this is the one structure here with no natural end.
+--- The **oldest** entries go first: on a four-hour server the interesting question is what happened
+--- recently, and an unbounded table is how a Lua state runs a mission out of memory.
+veafSkynet.spotterWakeUpLog = {}
+
+--- How many wake-ups `spotterWakeUpLog` keeps per coalition before dropping the oldest.
+veafSkynet.SpotterWakeUpLogSize = 200
+
+--- Note that a site was woken, for the next status page of its coalition and for the durable log.
 ---
 --- @param coa number
 --- @param line string `"<site> <- <aircraft>"`
 function veafSkynet.recordSpotterWakeUp(coa, line)
   _recordSpotterStatus(veafSkynet.spotterStatusWakeUps, coa, line)
+
+  local history = veafSkynet.spotterWakeUpLog[coa]
+  if not history then
+    history = {}
+    veafSkynet.spotterWakeUpLog[coa] = history
+  end
+  table.insert(history, { at = timer.getTime(), line = line })
+  -- `#history > 0` first, and it is not belt-and-braces. `SpotterWakeUpLogSize` is a module field a
+  -- mission can set through the `module_settings:` hatch, and a negative one -- a typo, or somebody
+  -- switching the history off the way `0` switches the coverage sweep off -- makes this loop
+  -- non-terminating: measured in Lua 5.1, `table.remove` on an empty table succeeds silently and
+  -- leaves the length at 0, so `0 > -1` stays true for ever. It runs inside the detection beat, so
+  -- the mission would freeze with nothing in the log to explain it.
+  while #history > 0 and #history > veafSkynet.SpotterWakeUpLogSize do
+    table.remove(history, 1)
+  end
+end
+
+--- The durable wake-up history of one coalition, oldest first.
+---
+--- @param coa number
+--- @return table array of `{ at = <mission time, seconds>, line = "<site> <- <aircraft>" }`
+function veafSkynet.getSpotterWakeUpLog(coa)
+  return veafSkynet.spotterWakeUpLog[coa] or {}
 end
 
 --- Count the graph, in one walk: nodes, edges, and connected components.
@@ -3434,11 +3500,17 @@ function veafSkynet.spotterStatusPage()
       for _, wakeUp in ipairs(_sortedKeys(veafSkynet.spotterStatusWakeUps[coa])) do
         logger:info(string.format("  woke: %s", wakeUp))
       end
+
+      -- Cleared **per coalition, and only the one that was just printed**. This used to be a pair of
+      -- assignments after the loop, which wiped every coalition's records whether or not anything had
+      -- read them: on a mission with debug off — the normal case — the module spent the whole game
+      -- filling two tables and throwing them away every cycle, unread. Worse, a mission running red
+      -- in debug and blue not wiped blue's records on red's page, so switching blue's debug on later
+      -- showed an empty first page that read as "nothing happened".
+      veafSkynet.spotterStatusAcquisitions[coa] = nil
+      veafSkynet.spotterStatusWakeUps[coa] = nil
     end
   end
-
-  veafSkynet.spotterStatusAcquisitions = {}
-  veafSkynet.spotterStatusWakeUps = {}
 end
 
 --- Put the status page on the clock.

@@ -17,6 +17,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Spotter network (`modules.SKYNET.spotter_network`, off by default).** A ground unit that sees a
+  hostile aircraft reports it, and the report travels from unit to unit over the radio, one hop at a
+  time. A SAM site that receives it does **not** light up: it holds the contact and waits, exactly as
+  it would for an early-warning radar, and goes live only when the aircraft enters its own firing
+  envelope. Every other Skynet guard still applies. Seeing and relaying are separate: a SAM site
+  relays but never spots, which is what makes a line of batteries wake in the direction of the
+  penetration, and a player flying for that coalition becomes a spotter. Terrain counts — an aircraft
+  following a valley is not seen by the spotter behind the crest. Two further settings,
+  `spotter_radio_range_km` (20) and `spotter_propagation_speed_kmh` (3 600): the radio range decides
+  whether the network is connected on *your* map at all, and the hop period is derived from the two
+  so widening the range slows the hops instead of silently doubling how fast an alert travels. With
+  `debug_red` / `debug_blue` on, a status page in `dcs.log` says how many pockets the network has, who
+  saw what and which site was woken — which matters because a site can now light up for three
+  different reasons. A fourth setting, `spotter_view`, offers an F10 map view of who is seeing what:
+  `"off"`, `"on"`, or `"radio"` — the last putting a *Show / Hide the spotter view* switch in the F10
+  menu, per coalition, reachable by a game master. Quote the value: YAML reads a bare `on`/`off` as a
+  boolean. The view is a **coalition** view, since DCS cannot draw for a game master alone, so every
+  pilot of that side sees it. See
+  [the documentation](doc/mission-maker/scripts/veafSkynetIadsHelper.md#spotter-network).
+
 ## [6.23.1] — 2026-09-20
 
 ### Fixed

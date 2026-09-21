@@ -12,6 +12,7 @@ are all driven from the F10 menu and a map marker, so none of them needs its own
 | 9 | [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) | Does a respawned escort still follow its tanker? |
 | 10 | [#101](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/101) | Does a **teleported** escort still defend? |
 | 12 | [#87](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/87) | Can red run carrier ops, and can red stop blue's? |
+| 13 | [FEAT-SPOTTER-NETWORK](../../../.backlog/FEAT-SPOTTER-NETWORK/PRD.md) | Do ground units spot an aircraft, pass the word, and wake a battery that never saw it? ⏸ waits on the Skynet vendoring |
 
 **Check 11 (#128) IS here now, and the sentence that used to stand here was wrong.** It read *"it needs
 a real multiplayer server with a game-master client; a solo session cannot answer it"* — which came from
@@ -233,6 +234,42 @@ coalition-scoped menu paths reach him, while `USAGE_ForGroup` never can.
   the global path could — a hypothesis, not a result.
 - **A contrasting `humanGroups` reading with a slot taken**, so the zeros measured for the game master sit
   against a known-good value rather than standing alone.
+
+### 8 · FEAT-SPOTTER-NETWORK — does the word travel? (check 13) {#check-13}
+
+⏸ **Blocked, and not by this mission.** The hand-over calls `SkynetIADS:reportContact`, which exists
+in [`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS) but **not** in the artifact vendored here
+(`3.4.0RP-VEAF build 05.09.2026`). Run this check after
+[the vendoring ticket](../../../.backlog/FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md)
+lands. Until then the log says so itself, once, and that line is the first thing to look for.
+
+**What to look for in `dcs.log`**, with `debug_red: true` temporarily set so the status page prints:
+
+| What the log says | What it means |
+|---|---|
+| `spotter network is on, but this Skynet build has no reportContact` | the vendoring has not landed — stop here, the check cannot run |
+| `spotter network on: radio range 20000 m, hop 20 s` | the settings reached the module |
+| `graph: N units, M links, P pockets` with `P` large and the largest pocket small | the mission's units are too spread out for the word to travel; the feature is working and has nothing to work with |
+| `saw: <unit> -> <aircraft>` | a ground unit acquired an aircraft |
+| `woke: <site> <- <aircraft>` | a battery went live on a report rather than on its own radar |
+
+**The reading that answers the question** is `woke:` naming a site whose own units never appear in any
+`saw:` line. That is a battery lit by somebody else's eyes, which is the whole feature; a site that
+woke on its own would have seen the aircraft itself.
+
+**What would disprove it**: `saw:` lines with no `woke:` line while the aircraft is plainly inside a
+battery's envelope. Check the pocket count first — an alert never leaves the pocket it starts in.
+
+**The map view rides along**, set to `"radio"`, which is the mode carrying code of its own. In the
+F10 menu there should be a **SPOTTER NETWORK** entry with *Show the spotter view* under it; using it
+should draw a marker at each spotter holding a contact and change the entry to *Hide*. Two things it
+is worth checking while there, because neither is provable off-line:
+
+| Reading | What it means |
+|---|---|
+| the entry is visible while flying a **red** slot, and absent from a blue one | the coalition scoping works |
+| the entry is visible to a **game master**, who has no group | the toggle really was posted without a group restriction (#128) |
+| the entry reads `menu.skynet.spotterview.show` | a translation is missing — report it, do not ignore it |
 
 ## Recording the outcome
 

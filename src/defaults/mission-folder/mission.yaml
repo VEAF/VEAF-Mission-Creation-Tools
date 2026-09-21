@@ -214,6 +214,14 @@ modules:
   AIEN: false
   CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }
   SKYNET: false             # extended: SKYNET -> { enabled: true, include_red_in_radio: false, dynamic_spawn: false, ... }
+                            # the spotter network lives here too, and ships off:
+                            #   spotter_network: false          ground units see aircraft and relay the contact
+                            #   spotter_radio_range_km: 20      below ~20 the net stays a set of islands
+                            #   spotter_propagation_speed_kmh: 3600   hop period = range / speed
+                            #   spotter_view: "off"             "off" | "on" | "radio", F10 map view
+                            #     quote it: YAML reads a bare on/off as a boolean
+                            #     "radio" puts an on/off in the F10 menu instead of drawing at once
+                            #     the view is COALITION-wide: every pilot of that side sees it
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 
 # Note: SKYNET, CSAR and QRA are configured entirely inside the `modules:` block

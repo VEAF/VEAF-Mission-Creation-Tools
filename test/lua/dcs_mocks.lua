@@ -455,12 +455,30 @@ Airbase = {
 -- ---------------------------------------------------------------------------
 -- land / coord / atmosphere
 -- ---------------------------------------------------------------------------
+--- Line-of-sight queries, recorded rather than merely answered.
+---
+--- `dcs_mocks.visibilityCalls` grows by one `{ from = <vec3>, to = <vec3> }` per call, and
+--- `dcs_mocks.visibilityAnswer` decides what comes back — a boolean, or a function of (from, to) for
+--- a test that needs a ridge in a particular place. Recording matters: the spotter network's claim
+--- is that it traces a ray only when a contact is gained or lost, never once per beat per pair, and
+--- that claim is uncheckable against a stub that forgets it was asked.
+dcs_mocks.visibilityCalls = {}
+dcs_mocks.visibilityAnswer = true
+
 land = {
   getHeight = function(vec2)
     return 0
   end,
   getSurfaceType = function(vec2)
     return 1
+  end,
+  --- True when nothing blocks the straight line between the two points.
+  isVisible = function(from, to)
+    table.insert(dcs_mocks.visibilityCalls, { from = from, to = to })
+    if type(dcs_mocks.visibilityAnswer) == "function" then
+      return dcs_mocks.visibilityAnswer(from, to) and true or false
+    end
+    return dcs_mocks.visibilityAnswer and true or false
   end,
   -- DCS returns the closest road point as two numbers (x, z); echo the query point.
   getClosestPointOnRoads = function(roadType, x, z)
@@ -698,6 +716,8 @@ function dcs_mocks.reset()
   dcs_mocks.cockpitCalls = {}
   dcs_mocks.cockpitArguments = {}
   dcs_mocks.exportAvailable = true
+  dcs_mocks.visibilityCalls = {}
+  dcs_mocks.visibilityAnswer = true
   dcs_mocks.setRandomSequence(nil)
   math.random = _deterministicRandom
   dcs_mocks.clearUnitsAndGroups()
@@ -815,6 +835,12 @@ function dcs_mocks.addUnit(name, data)
   end
   u.getCategoryEx = u.getCategoryEx or function(self)
     return self._categoryEx or Unit.Category.AIRPLANE
+  end
+  -- DCS attributes, the way `AIEN.lua:4500` reads them. A test declares them as a set --
+  -- `{ _attributes = { ["Tanks"] = true, ["Ground Units"] = true } }` -- and a unit that declares
+  -- none has none, which is what an unknown type looks like in game.
+  u.hasAttribute = u.hasAttribute or function(self, attribute)
+    return ((self or u)._attributes or {})[attribute] == true
   end
   u.getID = u.getID or function(self)
     return self._id or 1

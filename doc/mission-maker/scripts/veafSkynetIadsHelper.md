@@ -30,6 +30,10 @@ modules:
     include_blue_in_radio: false  # afficher l'état du réseau bleu dans le menu F10
     debug_blue: false             # logs détaillés Skynet pour le réseau bleu
     dynamic_spawn: false          # intégrer aussi les groupes apparus en cours de mission
+    spotter_network: false        # les unités au sol voient les avions et se passent le mot
+    spotter_radio_range_km: 20    # portée d'un relais radio
+    spotter_propagation_speed_kmh: 3600  # vitesse de l'alerte sur le réseau
+    spotter_view: "off"           # "off" | "on" | "radio" — vue carte F10 (guillemets obligatoires)
 ```
 
 | Champ | Type | Défaut | Description |
@@ -40,6 +44,10 @@ modules:
 | `include_blue_in_radio` | booléen | `false` | Ajouter l'état IADS bleu au menu radio F10 |
 | `debug_blue` | booléen | `false` | Debug verbeux Skynet pour la coalition bleue |
 | `dynamic_spawn` | booléen | `false` | Intégrer aussi les groupes apparus **en cours de mission** — voir [Apparitions en cours de mission](#dynamic-spawn) |
+| `spotter_network` | booléen | `false` | Activer le réseau de guetteurs — voir [Réseau de guetteurs](#spotter-network) |
+| `spotter_radio_range_km` | nombre | `20` | Distance à laquelle une unité peut relayer une alerte, en kilomètres |
+| `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse à laquelle l'alerte traverse la carte, en km/h |
+| `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | Vue carte F10 du réseau — voir [Voir ce qui se passe, sur la carte](#spotter-view) |
 
 ---
 
@@ -120,6 +128,105 @@ Se règle depuis `mission.yaml` (`dynamic_spawn`), ou avant `initialize` avec `v
 -- en cours de mission, réseau par réseau
 veafSkynet.setDynamicSpawn("red iads", false)
 ```
+
+### Réseau de guetteurs — `spotter_network` {#spotter-network}
+
+Une unité au sol qui voit un avion ennemi le signale, et le signalement se propage d'unité en unité
+par la radio, un bond à la fois. Un site SAM qui le reçoit **ne s'allume pas** : il garde le contact
+et attend, exactement comme il le ferait pour un radar de veille lointaine, et ne passe en émission
+que lorsque l'avion entre dans son enveloppe de tir. C'est donc un **radar de veille distribué**, pas
+un déclencheur de réveil.
+
+Quand le guetteur perd l'avion de vue, il envoie une annulation par le même chemin et la défense se
+rendort.
+
+**Éteint par défaut**, parce que ça change l'équilibre de toutes les missions existantes.
+
+| Valeur | Description |
+|--------|-------------|
+| `false` | Rien ne change (**défaut**) |
+| `true` | Les unités au sol voient les avions et se passent le mot |
+
+**Qui voit quoi.** La portée de détection dépend du type d'unité, et chaque unité tire la sienne
+une fois pour la mission, à ±20 % de la valeur du tableau. Le relief compte : un avion qui suit une
+vallée n'est pas vu par le guetteur situé derrière la crête.
+
+| Unité | Voit à | Relaie |
+|-------|--------|--------|
+| Avion | 30 km | oui |
+| Hélicoptère | 15 km | oui |
+| Navire | 12 km | oui |
+| MANPADS | 10 km | oui |
+| AAA, véhicule de défense antiaérienne | 8 km | oui |
+| Infanterie | 4 km | oui |
+| Blindés, artillerie, camions | 3 km | oui |
+| Site SAM, EWR, AWACS | — | oui |
+| Statiques, bâtiments, le reste | — | non |
+
+Voir et relayer sont deux propriétés distinctes. **Un site SAM relaie mais ne guette jamais** : sa
+propre détection est déjà le travail de sa dernière ligne de défense. C'est ce qui produit l'effet
+domino — une batterie prévenue s'allume **et** passe le mot, donc une ligne de batteries se réveille
+dans le sens de la pénétration. Les EWR et les AWACS sont exclus pour la même raison : ils alimentent
+déjà Skynet.
+
+Conséquence assumée : **un joueur qui vole pour la coalition du réseau devient un guetteur**, et une
+patrouille amie alimente la défense au sol.
+
+**La portée radio décide si le réseau existe.** Mesuré sur une mission de 1 000 unités : à 10 km, la
+plus grande poche connectée couvre 5 % d'une carte dispersée — une alerte ne sort jamais du groupe
+qui l'a levée. À 20 km, elle en couvre la totalité sur la plupart des dispositions. C'est pour ça que
+le défaut est à 20 et pas en dessous. Sur une carte dont le contenu est très éparpillé, le réseau
+reste en îlots quelle que soit la portée : c'est la limite honnête de l'idée.
+
+**La vitesse, et pas une période.** Un bond couvre la portée radio, donc exposer les deux permettrait
+d'élargir la portée et de doubler la vitesse de l'alerte sans s'en rendre compte. La période d'un
+bond est calculée : portée ÷ vitesse, soit 20 s avec les valeurs par défaut. Aux réglages livrés,
+l'alerte traverse un front de 200 km en quatre minutes, contre treize pour un chasseur qui le
+survole.
+
+**Lire ce qui se passe.** Avec `debug_red` ou `debug_blue` à `true`, le module écrit une page d'état
+dans `dcs.log` toutes les minutes : nombre d'unités et de liens, **nombre de poches** — la réponse à
+« pourquoi mon alerte n'est pas allée plus loin » —, les alertes en cours avec leur âge, qui a vu
+quoi depuis la page précédente et quel site a été réveillé par quelle alerte.
+
+Cette trace n'est pas décorative : une fois cette fonctionnalité en service, un site peut s'allumer
+pour **trois** raisons — un radar de veille lointaine, sa dernière ligne de défense, ou un guetteur.
+Sans la page, la question n'a pas de réponse.
+
+#### Voir ce qui se passe, sur la carte {#spotter-view}
+
+Le module peut poser un marqueur F10 à chaque guetteur qui tient un contact, avec un cercle à sa
+portée de détection. Trois valeurs pour `spotter_view` :
+
+| Valeur | Effet |
+|--------|-------|
+| `"off"` | Rien n'est dessiné (**défaut**) |
+| `"on"` | La vue est affichée dès le début de la mission |
+| `"radio"` | Un interrupteur *Afficher / Masquer la vue des guetteurs* apparaît dans le menu F10, sous **RÉSEAU DE GUETTEURS**. La vue démarre **éteinte** : c'est l'intérêt d'un interrupteur, et c'est prudent vu ce que la vue montre |
+
+> ⚠️ **Mettez la valeur entre guillemets.** YAML lit un `on` ou un `off` nu comme un booléen, pas
+> comme un mot. Les deux sont acceptés et compris (`spotter_view: on` fonctionne), mais
+> `spotter_view: "on"` est ce qui restera juste quoi qu'il arrive.
+
+L'interrupteur du menu est propre à chaque coalition : les pilotes rouges ne voient pas celui du
+réseau bleu. Il est aussi posé sans restriction de groupe, parce qu'un game master n'a **pas** de
+groupe — une commande radio réservée aux groupes ne lui parviendrait jamais, et c'est précisément lui
+que ce menu vise.
+
+Depuis `mission-script.lua`, la même chose s'obtient par&nbsp;:
+
+```lua
+veafSkynet.showSpotterView(coalition.side.RED, true)
+```
+
+> ⚠️ **C'est une vue de coalition, et ça ne peut pas être plus étroit.** DCS ne sait dessiner que
+> pour tout le monde, pour une coalition, ou pour un groupe — et un game master n'a pas de groupe.
+> Donc **tous les pilotes de cette coalition voient ces marqueurs**, ce qui sur un réseau rouge offre
+> aux pilotes rouges un suivi en direct des avions bleus. À réserver aux tests et aux missions où
+> c'est voulu.
+
+> Le réseau vit dans le module Skynet et ne fait rien quand Skynet est éteint : il n'y a pas de mode
+> de repli pour les missions sans IADS.
 
 ### Délai de démarrage — `veafSkynet.DelayForStartup`
 

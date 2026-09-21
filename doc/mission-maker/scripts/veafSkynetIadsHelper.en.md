@@ -30,6 +30,10 @@ modules:
     include_blue_in_radio: false  # show BLUE network status in F10 menu
     debug_blue: false             # verbose Skynet logging for BLUE network
     dynamic_spawn: false          # also integrate groups that appear during the mission
+    spotter_network: false        # ground units see aircraft and pass the word along
+    spotter_radio_range_km: 20    # how far one unit can relay
+    spotter_propagation_speed_kmh: 3600  # how fast an alert crosses the network
+    spotter_view: "off"           # "off" | "on" | "radio" — F10 map view (the quotes matter)
 ```
 
 | Field | Type | Default | Description |
@@ -40,6 +44,10 @@ modules:
 | `include_blue_in_radio` | boolean | `false` | Add BLUE IADS status to F10 radio menu |
 | `debug_blue` | boolean | `false` | Enable verbose Skynet debug for BLUE coalition |
 | `dynamic_spawn` | boolean | `false` | Also integrate groups that appear **during** the mission — see [Groups appearing during the mission](#dynamic-spawn) |
+| `spotter_network` | boolean | `false` | Enable the spotter network — see [Spotter network](#spotter-network) |
+| `spotter_radio_range_km` | number | `20` | How far one unit can relay an alert, in kilometres |
+| `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the map, in km/h |
+| `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | F10 map view of the network — see [Seeing what happens, on the map](#spotter-view) |
 
 ---
 
@@ -120,6 +128,100 @@ Set from `mission.yaml` (`dynamic_spawn`), or before `initialize` with `veafSkyn
 -- during the mission, network by network
 veafSkynet.setDynamicSpawn("red iads", false)
 ```
+
+### Spotter network — `spotter_network` {#spotter-network}
+
+A ground unit that sees a hostile aircraft reports it, and the report travels from unit to unit over
+the radio, one hop at a time. A SAM site that receives it does **not** light up: it holds the contact
+and waits, exactly as it would for an early-warning radar, and goes live only when the aircraft
+enters its firing envelope. It is a **distributed early-warning radar**, not a wake-up trigger.
+
+When the spotter loses sight of the aircraft it sends a cancellation along the same path, and the
+defence goes quiet again.
+
+**Off by default**, because it changes the balance of every existing mission.
+
+| Value | Description |
+|-------|-------------|
+| `false` | Nothing changes (**default**) |
+| `true` | Ground units see aircraft and pass the word along |
+
+**Who sees what.** The detection range depends on the type of unit, and each unit draws its own once
+for the mission, within ±20 % of the table value. Terrain counts: an aircraft following a valley is
+not seen by the spotter behind the crest.
+
+| Unit | Sees out to | Relays |
+|------|-------------|--------|
+| Aeroplane | 30 km | yes |
+| Helicopter | 15 km | yes |
+| Ship | 12 km | yes |
+| MANPADS | 10 km | yes |
+| AAA, air-defence vehicle | 8 km | yes |
+| Infantry | 4 km | yes |
+| Armour, artillery, trucks | 3 km | yes |
+| SAM site, EWR, AWACS | — | yes |
+| Statics, buildings, everything else | — | no |
+
+Seeing and relaying are two separate properties. **A SAM site relays but never spots**: its own
+detection is already its last line of defence's job. That is what produces the domino — a battery
+that is warned lights up **and** passes the word, so a line of batteries wakes in the direction of
+the penetration. EWRs and AWACS are excluded for the same reason: they already feed Skynet.
+
+A consequence that was accepted deliberately: **a player flying for the network's coalition becomes a
+spotter**, and a friendly patrol feeds the ground defence.
+
+**The radio range decides whether the network exists at all.** Measured over a 1 000-unit mission: at
+10 km the largest connected pocket covers 5 % of a scattered map — an alert never leaves the group
+that raised it. At 20 km it covers all of it on most layouts. That is why the default is 20 and not
+below. On a map whose contents are spread very thin the network stays a set of islands at any range,
+which is the honest limit of the idea.
+
+**A speed, not a period.** One hop covers the radio range, so exposing both would let you widen the
+range and double the speed of the alert without noticing. The hop period is derived: range ÷ speed,
+so 20 s at the shipped values. At those settings an alert crosses a 200 km front in four minutes,
+against thirteen for a fighter to fly it.
+
+**Reading what happens.** With `debug_red` or `debug_blue` set to `true`, the module writes a status
+page into `dcs.log` every minute: how many units and links, **how many pockets** — the answer to
+"why did my alert not travel" — the live alerts with their age, who saw what since the previous page,
+and which site was woken by which alert.
+
+That trace is not decoration: once this feature is in service a site can light up for **three**
+reasons — an early-warning radar, its last line of defence, or a spotter. Without the page the
+question has no answer.
+
+#### Seeing what happens, on the map {#spotter-view}
+
+The module can put an F10 marker at each spotter currently holding a contact, with a circle at its
+detection range. `spotter_view` takes three values:
+
+| Value | Effect |
+|-------|--------|
+| `"off"` | Nothing is drawn (**default**) |
+| `"on"` | The view is shown from the start of the mission |
+| `"radio"` | A *Show / Hide the spotter view* switch appears in the F10 menu, under **SPOTTER NETWORK**. The view starts **off**: that is the point of a switch, and it is the cautious choice given what the view shows |
+
+> ⚠️ **Quote the value.** YAML reads a bare `on` or `off` as a boolean, not as a word. Both are
+> accepted and understood (`spotter_view: on` works), but `spotter_view: "on"` is the spelling that
+> stays correct whatever happens.
+
+The menu switch belongs to one coalition: red pilots do not see the blue network's. It is also added
+without a group restriction, because a game master has **no** group — a group-only radio command
+would never reach one, and a game master is exactly who this menu is for.
+
+From `mission-script.lua`, the same thing:
+
+```lua
+veafSkynet.showSpotterView(coalition.side.RED, true)
+```
+
+> ⚠️ **It is a coalition view, and it cannot be anything narrower.** DCS can only draw for everyone,
+> for a coalition, or for a group — and a game master has no group. So **every pilot of that coalition
+> sees these markers**, which on a red network hands red pilots a live tracker of blue aircraft. Keep
+> it for testing and for missions where that is what you want.
+
+> The network lives inside the Skynet module and does nothing when Skynet is off: there is no
+> fallback mode for missions without an IADS.
 
 ### Startup delay — `veafSkynet.DelayForStartup`
 

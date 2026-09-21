@@ -187,6 +187,11 @@ function veafSkynet.onUnitLost(event)
   if unitName then
     veaf.loggers.get(veafSkynet.Id):trace("unit lost: %s", veaf.lp(unitName))
     veafSkynet.lostUnits[unitName] = true
+    -- A dead spotter keeps no contacts. Left behind, its latch would hold an aircraft as *triggered*
+    -- for the rest of the mission and never re-report it should the unit come back under the same
+    -- name — and, once propagation is in, a contact nobody is still looking at would be refreshed by
+    -- the heartbeat forever.
+    veafSkynet.forgetSpotter(unitName)
   end
 end
 
@@ -1844,6 +1849,14 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
 
   veafSkynet._armVanishedSitesSweep()
 
+  -- After the networks exist, because both read their coalitions to know who is watching whom.
+  veafSkynet._armSpotterDetection()
+  veafSkynet._armSpotterGraph()
+  veafSkynet._armSpotterPropagation()
+  veafSkynet._armSpotterHandover()
+  veafSkynet._armSpotterStatus()
+  veafSkynet._armSpotterView()
+
   veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
 end
 
@@ -2071,6 +2084,1578 @@ end
 function veafSkynet.activateNetworkOfCoalition(iCoalitionId)
   local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(iCoalitionId)])
   return veafSkynet.activateNetwork(veafSkynetNetwork)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — detection
+--
+-- A ground unit that sees a hostile aircraft reports it, and the report travels from unit to unit
+-- along radio links. This section is the *seeing* half: who can see, how far, and when a sighting
+-- counts as gained or lost. Where the report goes is the propagation section.
+--
+-- The whole feature is a **distributed early-warning radar**, not a wake-up trigger: a SAM site that
+-- receives an alert holds the contact and goes live only when the aircraft enters its own firing
+-- envelope, exactly as it would for a real EW radar.
+--
+-- Design record, with the measurements behind every number here:
+-- .backlog/FEAT-SPOTTER-NETWORK/design.md
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Off by default: switching it on changes the balance of every existing mission.
+--- Written by the build from `modules.SKYNET.spotter_network`.
+veafSkynet.SpotterNetwork = false
+
+--- How far one unit can pass the word, in metres. Written from `spotter_radio_range_km`.
+---
+--- 20 km rather than the 10 km first assumed, and the reason is reach rather than taste: measured
+--- over 8 draws of a 1 000-unit mission, the largest connected pocket at 10 km covers 5.1 % of a
+--- scattered map and 61 % of a dense front, against 100 % at 20 km on both. The network percolates
+--- sharply between the two, so at 10 km the feature exists without doing anything, and nobody can
+--- tell why.
+veafSkynet.SpotterRadioRange = 20000
+
+--- How fast an alert crosses the map, in metres per second. Written from
+--- `spotter_propagation_speed_kmh`; 1000 m/s is 3 600 km/h.
+---
+--- A **speed**, deliberately, and not a period. One hop covers the radio range, so exposing a period
+--- as well would mean a mission maker who widens the range silently doubles how fast alerts travel.
+--- The period is derived — see `veafSkynet.getSpotterHopPeriod`.
+veafSkynet.SpotterPropagationSpeed = 1000
+
+--- Seconds between two detection passes. Aligned on Skynet's own contact cycle; an aircraft at
+--- 900 km/h covers 1.2 km between passes.
+veafSkynet.SpotterDetectionPeriod = 5
+
+--- A contact is acquired at the unit's range and only lost beyond range × this. An aircraft orbiting
+--- exactly on the limit would otherwise flicker between seen and unseen every beat, and each flicker
+--- is a message crossing the whole network.
+veafSkynet.SpotterLossMargin = 1.1
+
+--- Consecutive beats without contact before a triggered spotter re-arms. Covers terrain masking: an
+--- aircraft dropping behind a ridge for a few seconds is not lost.
+---
+--- The margin above and this tolerance are both needed and cover different causes. The tolerance
+--- alone lets an aircraft orbiting on the limit re-trigger every time it stays out for four beats;
+--- the margin alone does nothing about ridges.
+veafSkynet.SpotterLossBeats = 3
+
+--- Each unit draws its own detection range once for the mission, ± this fraction of the table value.
+--- Drawing per attempt would make the limit flicker — the same reason Skynet draws a site's last-line
+--- radius once rather than per shot.
+veafSkynet.SpotterRangeJitter = 0.2
+
+--- Metres above the spotter the line-of-sight ray starts from, so a spotter looks from its eyes
+--- rather than from the mud. The offset CTLD uses.
+veafSkynet.SpotterEyeHeight = 2
+
+--- How often each class of unit has its radio links recomputed, in seconds. A unit is classified by
+--- its **type** and not by whether it has been seen moving: a tank parked for ten minutes is still
+--- capable of moving, so it is already in the right loop when it starts.
+veafSkynet.SpotterSpeedClasses = {
+  Fast = "fast",
+  Mobile = "mobile",
+  Slow = "slow",
+}
+
+--- Detection and relaying are two independent properties, because they genuinely are: a command
+--- vehicle sees little and relays perfectly, an ammunition dump does neither. A `range` of 0 means
+--- the unit never sees anything, not that it sees a little.
+---
+--- **Ordered, and tested most specific first**, the way AIEN does it — a helicopter carries `Air` as
+--- well as `Helicopters`, so the order is what makes it a 15 km spotter rather than a 30 km one.
+--- Attribute names verified against `src/scripts/community/AIEN.lua`, which runs in game.
+---
+--- Three kinds of unit detect nothing here, and only these three: `AWACS` and `EWR`, already enrolled
+--- as EW radars by `addGroupToNetwork`, and `SAM elements`, covered by the last line of defence with
+--- a radius drawn once between 10 and 15 km. Giving a SAM site a second competing radius would mean
+--- the larger one always wins and the other setting is dead weight — the exact failure mode of the
+--- `ewr` spawn option, inert for four years because nothing ever applied it. They all still relay,
+--- which is what produces the domino: a battery that is warned lights up *and passes the word*, so a
+--- line of batteries wakes in the direction of the penetration.
+---
+--- The exclusion stops there. An earlier draft excluded the whole `Air` attribute on the grounds that
+--- Skynet already senses through it; that only holds for `AWACS` and `EWR`, since a fighter or a
+--- transport belongs to no Skynet network. A consequence, decided on 2026-09-21 and judged
+--- desirable: a player flying for the network's coalition becomes a spotter.
+---
+--- The ranges are reasoned, not sourced. Their shape is the argument: aircraft see furthest and by a
+--- wide margin, since no terrain masks them and many carry a radar; air-defence units see furthest on
+--- the ground because watching the sky is their job; armour sees least, a closed-down tank having a
+--- poor view of anything above the horizon. Ground ranges stay well under the radio range on purpose,
+--- so what limits the network is the sensing and not the plumbing — aeroplanes are the deliberate
+--- exception, seeing 30 km against a 20 km radio, so an aircraft has to close on the ground network
+--- to pass the word.
+veafSkynet.SpotterUnitTable = {
+  { attribute = "AWACS", range = 0, relays = true, class = veafSkynet.SpotterSpeedClasses.Fast },
+  { attribute = "EWR", range = 0, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "SAM elements", range = 0, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "Helicopters", range = 15000, relays = true, class = veafSkynet.SpotterSpeedClasses.Fast },
+  { attribute = "Air", range = 30000, relays = true, class = veafSkynet.SpotterSpeedClasses.Fast },
+  { attribute = "Ships", range = 12000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "MANPADS", range = 10000, relays = true, class = veafSkynet.SpotterSpeedClasses.Slow },
+  { attribute = "AAA", range = 8000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "Air Defence vehicles", range = 8000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "Infantry", range = 4000, relays = true, class = veafSkynet.SpotterSpeedClasses.Slow },
+  { attribute = "MLRS", range = 3000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "Artillery", range = 3000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "Tanks", range = 3000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "IFV", range = 3000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "APC", range = 3000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "Armored vehicles", range = 3000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "Unarmed vehicles", range = 3000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+  { attribute = "Trucks", range = 3000, relays = true, class = veafSkynet.SpotterSpeedClasses.Mobile },
+}
+
+--- What a unit matching nothing in the table gets: statics, buildings, and anything DCS adds after
+--- this was written. No eyes and no radio, which is the safe answer for an unknown.
+veafSkynet.SpotterDefaultProfile = { range = 0, relays = false, class = veafSkynet.SpotterSpeedClasses.Slow }
+
+--- Per unit name: the profile drawn for it, `{ range, relays, class }`. Keyed on the name so a unit
+--- respawned under the same name keeps the eyes it had, rather than drawing a new pair.
+veafSkynet.spotterProfiles = {}
+
+--- Per spotter name, per contact name: `{ triggered = <boolean>, missedBeats = <number> }`.
+--- A spotter is *armed* until it reports, *triggered* while it keeps seeing the same aircraft.
+veafSkynet.spotterLatches = {}
+
+--- Whether the detection pass is scheduled. Idempotent for the same reason
+--- `_armVanishedSitesSweep` is: a reinitialisation must not stack a second beat.
+veafSkynet.spotterDetectionArmed = false
+
+--- Seconds an alert takes to cross one radio hop: the range it covers, divided by how fast alerts
+--- are meant to travel.
+---
+--- Derived rather than configured, so widening the radio range slows the hops instead of silently
+--- doubling the speed at which the alert outruns the aircraft. At the defaults — 20 km and
+--- 3 600 km/h — this is 20 s, and an alert crosses a fully connected 200 km front in about four
+--- minutes against thirteen for a fighter to fly it.
+---
+--- @return number seconds per hop, always strictly positive
+function veafSkynet.getSpotterHopPeriod()
+  local speed = veafSkynet.SpotterPropagationSpeed
+  if not speed or speed <= 0 then
+    -- A speed of zero would divide by nothing and stop the network dead, silently. Fall back on the
+    -- shipped default rather than on infinity.
+    speed = 1000
+  end
+  return veafSkynet.getSpotterRadioRange() / speed
+end
+
+--- The radio range actually used, in metres.
+---
+--- An accessor rather than the field read directly, because a zero or negative range has to be
+--- refused in **one** place. Refused in the hop period alone it would still build a graph with no
+--- edges at all: the feature would be on, cost its beats, and do nothing, with nothing in the log to
+--- say why.
+---
+--- @return number metres, always strictly positive
+function veafSkynet.getSpotterRadioRange()
+  local range = veafSkynet.SpotterRadioRange
+  if not range or range <= 0 then
+    return 20000
+  end
+  return range
+end
+
+--- The row of `SpotterUnitTable` this unit matches, or the default profile.
+---
+--- @param dcsUnit table a DCS Unit handle
+--- @return table `{ range = <metres>, relays = <boolean>, class = <speed class> }`, never nil
+function veafSkynet.matchSpotterUnitRow(dcsUnit)
+  if not dcsUnit or not dcsUnit.hasAttribute then
+    return veafSkynet.SpotterDefaultProfile
+  end
+  for _, row in ipairs(veafSkynet.SpotterUnitTable) do
+    local ok, matches = pcall(dcsUnit.hasAttribute, dcsUnit, row.attribute)
+    if ok and matches then
+      return row
+    end
+  end
+  return veafSkynet.SpotterDefaultProfile
+end
+
+--- This unit's own eyes and radio, drawn once and remembered.
+---
+--- The ± jitter is applied at the draw and never again: asking for a fresh number every beat would
+--- make the limit wander by four kilometres between two passes, and a spotter would report the same
+--- aircraft over and over as the limit crossed it.
+---
+--- @param dcsUnit table a DCS Unit handle
+--- @param unitName string|nil its name, when the caller already has it
+--- @return table `{ range = <metres>, relays = <boolean>, class = <speed class> }`, never nil
+function veafSkynet.getSpotterProfile(dcsUnit, unitName)
+  local name = unitName or veafSkynet.safeDcsName(dcsUnit)
+  if not name then
+    return veafSkynet.SpotterDefaultProfile
+  end
+  local known = veafSkynet.spotterProfiles[name]
+  if known then
+    return known
+  end
+
+  local row = veafSkynet.matchSpotterUnitRow(dcsUnit)
+  local range = row.range
+  if range > 0 then
+    range = range * (1 + (math.random() * 2 - 1) * veafSkynet.SpotterRangeJitter)
+  end
+  local profile = { range = range, relays = row.relays, class = row.class }
+  veafSkynet.spotterProfiles[name] = profile
+  return profile
+end
+
+--- Squared straight-line distance between two DCS points, altitude included.
+---
+--- Slant range rather than ground range, and that is the honest measure for an aircraft: a fighter
+--- eight kilometres overhead is eight kilometres away, not on top of the spotter. The radio graph
+--- measures on the ground instead, where the two units are both at surface level.
+---
+--- Squared, and compared against squared limits, because the beat runs this once per spotter per
+--- aircraft every five seconds — thousands of times on a busy mission — and a square root buys
+--- nothing when both sides of the comparison can be squared instead.
+---
+--- @param a table vec3
+--- @param b table vec3
+--- @return number metres squared
+local function _slantRangeSq(a, b)
+  local dx = a.x - b.x
+  local dy = (a.y or 0) - (b.y or 0)
+  local dz = a.z - b.z
+  return dx * dx + dy * dy + dz * dz
+end
+
+--- Can this spotter see that aircraft right now, terrain included?
+---
+--- Called **only on a transition** — when a contact is gained or lost — never once per beat per pair.
+--- That is what makes the ray affordable at mission scale, so it is a property the tests assert
+--- rather than a comment.
+---
+--- @param spotterPoint table vec3 of the spotter
+--- @param contactPoint table vec3 of the aircraft
+--- @return boolean
+function veafSkynet.spotterHasLineOfSight(spotterPoint, contactPoint)
+  if not land or not land.isVisible then
+    -- No terrain service: report seen rather than blind, so a missing API degrades into the
+    -- behaviour the feature had before line of sight was added instead of switching it off.
+    return true
+  end
+  local eye = { x = spotterPoint.x, y = (spotterPoint.y or 0) + veafSkynet.SpotterEyeHeight, z = spotterPoint.z }
+  local ok, visible = pcall(land.isVisible, eye, contactPoint)
+  if not ok then
+    return true
+  end
+  return visible and true or false
+end
+
+--- Advance one spotter's latch for one aircraft, for one beat.
+---
+--- Armed and the aircraft comes into range with line of sight → reports once and becomes triggered,
+--- then says nothing more while it keeps seeing it. Triggered and it loses the aircraft → after
+--- `SpotterLossBeats` consecutive beats without contact it re-arms, and will report that aircraft
+--- again on reacquisition.
+---
+--- @param spotterName string
+--- @param contactName string
+--- @param inRange boolean is the aircraft within the spotter's own drawn range
+--- @param stillInRange boolean is it within range × the loss margin
+--- @param seesIt function () -> boolean, the line-of-sight ray, called at most once and only on a
+---        transition
+--- @return string|nil `"acquired"`, `"lost"`, or nil when nothing changed
+function veafSkynet.stepSpotterLatch(spotterName, contactName, inRange, stillInRange, seesIt)
+  local latches = veafSkynet.spotterLatches[spotterName]
+  if not latches then
+    latches = {}
+    veafSkynet.spotterLatches[spotterName] = latches
+  end
+  local latch = latches[contactName]
+
+  if not latch or not latch.triggered then
+    if inRange and seesIt() then
+      latches[contactName] = { triggered = true, missedBeats = 0 }
+      return "acquired"
+    end
+    return nil
+  end
+
+  -- Triggered. The margin is applied here and only here: a contact is gained at the range and given
+  -- up beyond range × margin, so an aircraft holding station on the limit stays held.
+  local held = stillInRange and seesIt()
+  if held then
+    latch.missedBeats = 0
+    return nil
+  end
+
+  latch.missedBeats = latch.missedBeats + 1
+  if latch.missedBeats >= veafSkynet.SpotterLossBeats then
+    latches[contactName] = nil
+    return "lost"
+  end
+  return nil
+end
+
+--- Called when a spotter gains a contact: it puts an alert on the network.
+---
+--- @param coa number the spotter's coalition id
+--- @param spotterName string
+--- @param contactName string
+function veafSkynet.onSpotterAcquired(coa, spotterName, contactName)
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("spotter [%s] acquired [%s]", veaf.p(spotterName), veaf.p(contactName)))
+  -- Recorded for the status page at the moment it happens: once the alert has spread there is no way
+  -- back from a contact held by a dozen units to the eye that first saw it.
+  veafSkynet.recordSpotterAcquisition(coa, tostring(spotterName) .. " -> " .. tostring(contactName))
+  veafSkynet.emitSpotterMessage(coa, "alert", spotterName, contactName)
+  veafSkynet.requestSpotterViewRedraw()
+end
+
+--- Called when a spotter gives up a contact, after the beat tolerance has run out: it puts a
+--- cancellation on the network, travelling the same way the alert did.
+---
+--- @param coa number the spotter's coalition id
+--- @param spotterName string
+--- @param contactName string
+function veafSkynet.onSpotterLost(coa, spotterName, contactName)
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("spotter [%s] lost [%s]", veaf.p(spotterName), veaf.p(contactName)))
+  veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, contactName)
+  veafSkynet.requestSpotterViewRedraw()
+end
+
+--- Re-arm every latch holding an aircraft that is no longer a contact, and cancel what it started.
+---
+--- The detection loop can only step the pairs it walks, and it walks the aircraft currently in the
+--- sky. An aircraft that is destroyed, that lands, or that leaves the mission simply stops appearing
+--- — so without this its latches would stay *triggered* for good. That is not a tidy-up detail: a
+--- triggered latch is what the heartbeat speaks for, so one jet shot down while it was being watched
+--- leaves a phantom contact crossing the whole network every two minutes until the mission ends, held
+--- forever because each heartbeat refreshes it past the forget delay.
+---
+--- A cancellation is sent rather than the contact merely dropped locally, for the same reason the
+--- mechanism prefers cancellations everywhere else: the sites holding it are elsewhere on the map and
+--- have no other way of being told.
+---
+--- @param contacts table the aircraft currently visible to this coalition, as `listHostileAircraft`
+---        returns them
+--- @param coa number the coalition whose latches to check
+function veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
+  local present = {}
+  for _, contact in ipairs(contacts) do
+    present[contact.name] = true
+  end
+
+  for spotterName, latches in pairs(veafSkynet.spotterLatches) do
+    local gone = {}
+    for aircraft, latch in pairs(latches) do
+      if latch.triggered and not present[aircraft] then
+        table.insert(gone, aircraft)
+      end
+    end
+    for _, aircraft in ipairs(gone) do
+      latches[aircraft] = nil
+      veaf.loggers
+        .get(veafSkynet.Id)
+        :debug(string.format("spotter [%s] gave up [%s]: no longer a contact", veaf.p(spotterName), veaf.p(aircraft)))
+      veafSkynet.emitSpotterMessage(coa, "cancel", spotterName, aircraft)
+    end
+    if not next(latches) then
+      veafSkynet.spotterLatches[spotterName] = nil
+    end
+  end
+end
+
+--- Forget everything a spotter knew. Called when it leaves the mission, so a dead unit does not keep
+--- a contact alive through the heartbeat.
+---
+--- @param spotterName string
+function veafSkynet.forgetSpotter(spotterName)
+  veafSkynet.spotterLatches[spotterName] = nil
+end
+
+--- The coalitions that have a live Skynet network, as a set.
+---
+--- The feature lives inside the Skynet helper and does nothing when Skynet is off: there is no
+--- alarm-state fallback for missions not using it (dropped on 2026-09-20). A network switched off on
+--- purpose stays off — nothing may bring it back up implicitly, spotters included.
+---
+--- @return table set of coalition ids
+function veafSkynet.getSpotterCoalitions()
+  local coalitions = {}
+  for _, veafSkynetNetwork in pairs(veafSkynet.structure) do
+    if veafSkynetNetwork and not veafSkynetNetwork.deactivated and veafSkynetNetwork.coalitionID then
+      coalitions[veafSkynetNetwork.coalitionID] = true
+    end
+  end
+  return coalitions
+end
+
+--- The coalition this one is looking for. RED watches BLUE and the other way round; neutral units
+--- are nobody's contact and nobody's spotter.
+---
+--- @param coa number a coalition id
+--- @return number|nil the opposing coalition id, or nil for neutral
+function veafSkynet.getOpposingCoalition(coa)
+  if coa == coalition.side.RED then
+    return coalition.side.BLUE
+  elseif coa == coalition.side.BLUE then
+    return coalition.side.RED
+  end
+  return nil
+end
+
+--- Every unit of this coalition that can see something, with the profile it drew.
+---
+--- @param coa number a coalition id
+--- @return table array of `{ name = <string>, unit = <DCS Unit>, profile = <table> }`
+function veafSkynet.listSpotters(coa)
+  local spotters = {}
+  local ok, dcsGroups = pcall(coalition.getGroups, coa)
+  if not ok or not dcsGroups then
+    return spotters
+  end
+  for _, dcsGroup in pairs(dcsGroups) do
+    if veafSkynet.dcsObjectStillExists(dcsGroup) then
+      local gotUnits, dcsUnits_ = pcall(dcsGroup.getUnits, dcsGroup)
+      if gotUnits and dcsUnits_ then
+        for _, dcsUnit in pairs(dcsUnits_) do
+          if veafSkynet.dcsObjectStillExists(dcsUnit) then
+            local name = veafSkynet.safeDcsName(dcsUnit)
+            if name then
+              local profile = veafSkynet.getSpotterProfile(dcsUnit, name)
+              if profile.range > 0 then
+                table.insert(spotters, { name = name, unit = dcsUnit, profile = profile })
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  return spotters
+end
+
+--- Every airborne aircraft of the opposing coalition — what a spotter is looking for.
+---
+--- Airborne is the filter that matters: an aeroplane parked on its ramp is not the penetration this
+--- network exists to see coming, and reporting it would wake every battery in radio reach of an
+--- airfield for the whole mission.
+---
+--- @param coa number the *spotting* coalition's id
+--- @return table array of `{ name = <string>, unit = <DCS Unit> }`
+function veafSkynet.listHostileAircraft(coa)
+  local contacts = {}
+  local hostile = veafSkynet.getOpposingCoalition(coa)
+  if not hostile then
+    return contacts
+  end
+  for _, category in ipairs({ Group.Category.AIRPLANE, Group.Category.HELICOPTER }) do
+    local ok, dcsGroups = pcall(coalition.getGroups, hostile, category)
+    if ok and dcsGroups then
+      for _, dcsGroup in pairs(dcsGroups) do
+        if veafSkynet.dcsObjectStillExists(dcsGroup) then
+          local gotUnits, dcsUnits_ = pcall(dcsGroup.getUnits, dcsGroup)
+          if gotUnits and dcsUnits_ then
+            for _, dcsUnit in pairs(dcsUnits_) do
+              if veafSkynet.dcsObjectStillExists(dcsUnit) then
+                local airborne, inAir = pcall(dcsUnit.inAir, dcsUnit)
+                local name = veafSkynet.safeDcsName(dcsUnit)
+                if name and airborne and inAir then
+                  table.insert(contacts, { name = name, unit = dcsUnit })
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  return contacts
+end
+
+--- One detection pass, over every coalition that has a live Skynet network.
+---
+--- The line-of-sight ray is traced only for a pair the distance test has not already settled — the
+--- latch asks for it through a closure, memoised for the pair within the beat. Everything else is
+--- squared-distance arithmetic.
+---
+--- Returns nothing: `veafScheduler` re-arms a repeating task from its own `rep`, and ignores what the
+--- task returned. Handing back a period here would read as if it drove the schedule and would not.
+function veafSkynet.spotterDetectionBeat()
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+
+  for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
+    local contacts = veafSkynet.listHostileAircraft(coa)
+
+    -- Aircraft that are no longer in the sky cannot be stepped by the loop below, because the loop
+    -- only walks the ones that are. Left alone, their latches stay *triggered* for the rest of the
+    -- mission: the heartbeat keeps speaking for a jet that was shot down two hours ago, the contact
+    -- is refreshed and therefore never forgotten, and every status page lists it as live. So they are
+    -- given up here, explicitly, before anything else.
+    veafSkynet.dropLatchesForVanishedContacts(contacts, coa)
+
+    if #contacts > 0 then
+      local spotters = veafSkynet.listSpotters(coa)
+      for _, spotter in ipairs(spotters) do
+        local gotPoint, spotterPoint = pcall(spotter.unit.getPoint, spotter.unit)
+        if gotPoint and spotterPoint then
+          local rangeSq = spotter.profile.range * spotter.profile.range
+          local marginSq = rangeSq * veafSkynet.SpotterLossMargin * veafSkynet.SpotterLossMargin
+          for _, contact in ipairs(contacts) do
+            local gotContact, contactPoint = pcall(contact.unit.getPoint, contact.unit)
+            if gotContact and contactPoint then
+              local distanceSq = _slantRangeSq(spotterPoint, contactPoint)
+              local seen = nil
+              local event = veafSkynet.stepSpotterLatch(
+                spotter.name,
+                contact.name,
+                distanceSq <= rangeSq,
+                distanceSq <= marginSq,
+                function()
+                  -- Memoised for this pair on this beat: the latch may ask twice on a transition, and
+                  -- the ray is the expensive part.
+                  if seen == nil then
+                    seen = veafSkynet.spotterHasLineOfSight(spotterPoint, contactPoint)
+                  end
+                  return seen
+                end
+              )
+              if event == "acquired" then
+                veafSkynet.onSpotterAcquired(coa, spotter.name, contact.name, contact.unit)
+              elseif event == "lost" then
+                veafSkynet.onSpotterLost(coa, spotter.name, contact.name)
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — the radio graph
+--
+-- Who can talk to whom. Rebuilt in place by three loops, one per speed class, each recomputing only
+-- the edges of the units of its class that have actually moved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Metres a unit must cover before its edges are recomputed. Below it, nothing is touched.
+veafSkynet.SpotterMoveThreshold = 2000
+
+--- Seconds between two passes of each class's loop.
+---
+--- Honest record: the movement check costs 0.15 ms for 2 000 units, so staging the loops optimises
+--- almost nothing measurable. They were chosen so each class is re-read at a rate that suits how
+--- fast it can actually move, and they do no harm — but they are not a performance feature and
+--- should not be sold as one.
+veafSkynet.SpotterGraphPeriods = {
+  [veafSkynet.SpotterSpeedClasses.Fast] = 10,
+  [veafSkynet.SpotterSpeedClasses.Mobile] = 20,
+  [veafSkynet.SpotterSpeedClasses.Slow] = 30,
+}
+
+--- Per coalition: `{ adjacency = { [name] = { [other] = true } }, nodes = { [name] = { x, z, class } } }`.
+---
+--- **The adjacency is a set of names, not a list**, and that is measured rather than taste. Removing
+--- a back-edge from a list means scanning it, so patching costs O(degree²) per node; re-edging a
+--- hundred units — a combat zone spawning at once — costs 86 ms with lists against 13.7 ms with sets
+--- on the densest layout built, 2 000 units and 230 577 edges. Everywhere else the two are within
+--- noise. Reproduce with `lua test/lua/bench_spotter_network.lua`.
+veafSkynet.spotterGraphs = {}
+
+--- Whether the three graph passes are on the clock.
+veafSkynet.spotterGraphArmed = false
+
+--- The graph of a coalition, created empty on first use.
+---
+--- @param coa number a coalition id
+--- @return table `{ adjacency = <table>, nodes = <table> }`
+function veafSkynet.getSpotterGraph(coa)
+  local graph = veafSkynet.spotterGraphs[coa]
+  if not graph then
+    graph = { adjacency = {}, nodes = {} }
+    veafSkynet.spotterGraphs[coa] = graph
+  end
+  return graph
+end
+
+--- Take a unit out of the graph, back-edges included.
+---
+--- @param graph table
+--- @param name string
+function veafSkynet.removeSpotterNode(graph, name)
+  local edges = graph.adjacency[name]
+  if edges then
+    for other, _ in pairs(edges) do
+      local backEdges = graph.adjacency[other]
+      if backEdges then
+        backEdges[name] = nil
+      end
+    end
+  end
+  graph.adjacency[name] = nil
+  graph.nodes[name] = nil
+end
+
+--- Recompute one unit's edges from scratch, against every other node of the graph.
+---
+--- A **replacement**, not a surgical removal: the old edges go, the new ones are measured. That is
+--- what avoids the individual-edge-removal code this feature would otherwise need, and it is why the
+--- set representation pays — dropping a back-edge is one assignment rather than a scan.
+---
+--- Measured on the ground plane. Altitude is ignored on purpose: a radio link only gets better with
+--- height, so counting an aircraft overhead as being directly above the unit it is talking to is the
+--- physically sensible reading, not a shortcut.
+---
+--- @param graph table
+--- @param name string
+--- @param x number
+--- @param z number
+--- @param class string one of `veafSkynet.SpotterSpeedClasses`
+function veafSkynet.reEdgeSpotterNode(graph, name, x, z, class)
+  veafSkynet.removeSpotterNode(graph, name)
+
+  local edges = {}
+  graph.adjacency[name] = edges
+  graph.nodes[name] = { x = x, z = z, class = class }
+
+  local range = veafSkynet.getSpotterRadioRange()
+  local rangeSq = range * range
+  for other, node in pairs(graph.nodes) do
+    if other ~= name then
+      local dx = x - node.x
+      local dz = z - node.z
+      if dx * dx + dz * dz <= rangeSq then
+        edges[other] = true
+        graph.adjacency[other][name] = true
+      end
+    end
+  end
+end
+
+--- Every unit of this coalition and this speed class that can relay.
+---
+--- Classification comes from the unit **type**, not from observation: a tank parked for ten minutes
+--- is still capable of moving, so it is already in the mobile loop when it starts rolling rather than
+--- being promoted into it afterwards.
+---
+--- @param coa number a coalition id
+--- @param class string one of `veafSkynet.SpotterSpeedClasses`
+--- @return table array of `{ name = <string>, x = <number>, z = <number> }`
+function veafSkynet.listSpotterRelays(coa, class)
+  local relays = {}
+  local ok, dcsGroups = pcall(coalition.getGroups, coa)
+  if not ok or not dcsGroups then
+    return relays
+  end
+  for _, dcsGroup in pairs(dcsGroups) do
+    if veafSkynet.dcsObjectStillExists(dcsGroup) then
+      local gotUnits, groupUnits = pcall(dcsGroup.getUnits, dcsGroup)
+      if gotUnits and groupUnits then
+        for _, dcsUnit in pairs(groupUnits) do
+          if veafSkynet.dcsObjectStillExists(dcsUnit) then
+            local name = veafSkynet.safeDcsName(dcsUnit)
+            if name then
+              local profile = veafSkynet.getSpotterProfile(dcsUnit, name)
+              if profile.relays and profile.class == class then
+                local gotPoint, point = pcall(dcsUnit.getPoint, dcsUnit)
+                if gotPoint and point then
+                  table.insert(relays, { name = name, x = point.x, z = point.z })
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  return relays
+end
+
+--- One pass of one class's loop, over every coalition that has a live Skynet network.
+---
+--- The same pass picks up units that appeared and units that vanished, which is why no DCS event has
+--- to be listened to — and why a combat zone spawning a hundred units at once cannot set off a burst
+--- of rebuilds. Nothing is triggered by spawning at all: the cost is one spike at the next pass, and
+--- that spike is the 13.7 ms the bench measures.
+---
+--- The price, accepted: a freshly spawned group takes up to 30 s to enter the graph. Its *detection*
+--- works immediately, since that is the 5 s beat and it does not read the graph — so its units see,
+--- but cannot yet relay.
+---
+--- Returns nothing, for the same reason `spotterDetectionBeat` does.
+---
+--- @param class string one of `veafSkynet.SpotterSpeedClasses`
+function veafSkynet.spotterGraphPass(class)
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+
+  local thresholdSq = veafSkynet.SpotterMoveThreshold * veafSkynet.SpotterMoveThreshold
+  for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
+    local graph = veafSkynet.getSpotterGraph(coa)
+    local seen = {}
+    local changed = false
+    for _, relay in ipairs(veafSkynet.listSpotterRelays(coa, class)) do
+      seen[relay.name] = true
+      local node = graph.nodes[relay.name]
+      if not node then
+        veafSkynet.reEdgeSpotterNode(graph, relay.name, relay.x, relay.z, class)
+        changed = true
+      else
+        local dx = relay.x - node.x
+        local dz = relay.z - node.z
+        if dx * dx + dz * dz > thresholdSq then
+          veafSkynet.reEdgeSpotterNode(graph, relay.name, relay.x, relay.z, class)
+          changed = true
+        end
+      end
+    end
+
+    -- Whatever this class held last pass and no longer does has left the mission. Collected first,
+    -- because removing from a table being walked with `pairs` is not something to rely on.
+    local gone = {}
+    for name, node in pairs(graph.nodes) do
+      if node.class == class and not seen[name] then
+        table.insert(gone, name)
+      end
+    end
+    for _, name in ipairs(gone) do
+      veafSkynet.removeSpotterNode(graph, name)
+    end
+
+    -- The map view draws units where they were last re-edged, so a pass that moved one has
+    -- invalidated it: without this a spotter that drives on while still watching keeps its marker,
+    -- and its range circle, where it first saw the aircraft.
+    --
+    -- Only when something actually moved, appeared or vanished. Asking on every pass would redraw
+    -- every ten seconds whether or not anything changed, and a redraw takes the markers off the map
+    -- and puts them back — which reads as a blink. Asked for rather than done, because this is
+    -- exactly the burst the coalescing guard exists for: three class passes and a combat zone
+    -- spawning all land within the same second.
+    if changed or #gone > 0 then
+      veafSkynet.requestSpotterViewRedraw()
+    end
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — propagation
+--
+-- Three kinds of message travel the graph, one hop per period:
+--
+--   * an **alert**, when a spotter acquires an aircraft: recipients hold the contact;
+--   * a **cancellation**, when it loses it: recipients drop the contact;
+--   * a **heartbeat**, re-sent while a contact is still held, proving the link is alive.
+--
+-- The heartbeat is the safety net, and it covers every way things go wrong without having to tell
+-- them apart: a cancellation lost because a relay died, a path broken by a graph that has been
+-- reconfigured since, a spotter killed before it could cancel. A unit that has heard nothing for
+-- long enough simply forgets.
+--
+-- The information therefore has a life of its own, which is the point. A recomputed-state model
+-- would have been simpler and cheaper, and in it killing the spotter instantly extinguishes the
+-- defence it had just alerted — rewarding the hunt for the rifleman over the hunt for the battery.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Seconds between two heartbeats from a spotter still holding a contact.
+veafSkynet.SpotterHeartbeatPeriod = 120
+
+--- Seconds a held contact survives without being heard from again. Three heartbeats: one lost
+--- heartbeat must not extinguish a defence, three in a row means the path is genuinely gone.
+veafSkynet.SpotterForgetDelay = 360
+
+--- Per coalition, per unit, per aircraft: `{ stamp = <number>, heardAt = <number>, origin = <string> }`.
+---
+--- `stamp` is the emission time of the freshest message this unit has processed for that aircraft.
+--- It serves both rules at once:
+---
+---   * **ordering** — a message older than the last one processed is ignored, or a cancellation
+---     overtaking its own alert (possible, since the graph is reconfigured between the two) would
+---     leave a site holding a contact forever;
+---   * **relaying** — a unit passes on only what is fresher than what it already passed on, which
+---     terminates the flood by itself, since a message carries a fixed stamp and each unit therefore
+---     relays it at most once.
+veafSkynet.spotterContacts = {}
+
+--- Per coalition: the messages still travelling, each `{ kind, aircraft, origin, stamp, frontier }`
+--- where `frontier` is the set of units reached by the last hop and about to relay.
+veafSkynet.spotterWaves = {}
+
+--- Whether the propagation and heartbeat loops are on the clock.
+veafSkynet.spotterPropagationArmed = false
+
+--- What this unit currently knows, as `{ [aircraftName] = { stamp, heardAt, origin } }`.
+---
+--- @param coa number a coalition id
+--- @param unitName string
+--- @return table never nil, possibly empty
+function veafSkynet.getSpotterContacts(coa, unitName)
+  local perCoalition = veafSkynet.spotterContacts[coa]
+  if not perCoalition then
+    return {}
+  end
+  return perCoalition[unitName] or {}
+end
+
+--- Record a message at one unit, if it is fresher than what that unit already knows.
+---
+--- @param coa number
+--- @param unitName string
+--- @param message table
+--- @return boolean true when it was accepted, and therefore worth relaying
+function veafSkynet.deliverSpotterMessage(coa, unitName, message)
+  local perCoalition = veafSkynet.spotterContacts[coa]
+  if not perCoalition then
+    perCoalition = {}
+    veafSkynet.spotterContacts[coa] = perCoalition
+  end
+  local known = perCoalition[unitName]
+  if not known then
+    known = {}
+    perCoalition[unitName] = known
+  end
+
+  local current = known[message.aircraft]
+  if current and current.stamp >= message.stamp then
+    return false
+  end
+
+  if message.kind == "cancel" then
+    -- Remembered as a *stamped* cancellation rather than erased, so an alert still in flight behind
+    -- it cannot re-light the site it has just extinguished.
+    known[message.aircraft] = { stamp = message.stamp, heardAt = timer.getTime(), origin = message.origin, cancelled = true }
+  else
+    known[message.aircraft] = { stamp = message.stamp, heardAt = timer.getTime(), origin = message.origin }
+  end
+  return true
+end
+
+--- Put a message on the network, starting at the unit that raised it.
+---
+--- @param coa number
+--- @param kind string `"alert"` or `"cancel"`
+--- @param originName string the spotter
+--- @param aircraftName string
+---
+--- No DCS handle travels with the message. It would be dead weight: the hand-over resolves the
+--- aircraft by name through `Unit.getByName`, which is also the only way to tell a live aircraft from
+--- one that has left — and a heartbeat has no handle to pass anyway.
+function veafSkynet.emitSpotterMessage(coa, kind, originName, aircraftName)
+  local message = {
+    kind = kind,
+    aircraft = aircraftName,
+    origin = originName,
+    stamp = timer.getTime(),
+    frontier = {},
+  }
+  if veafSkynet.deliverSpotterMessage(coa, originName, message) then
+    message.frontier[originName] = true
+  end
+
+  local waves = veafSkynet.spotterWaves[coa]
+  if not waves then
+    waves = {}
+    veafSkynet.spotterWaves[coa] = waves
+  end
+  table.insert(waves, message)
+end
+
+--- Advance every wave by one hop, and forget contacts nobody has heard from.
+---
+--- Two spotters in the same pocket send two waves that meet in the middle, and every unit is served
+--- by whichever reached it first — that is, by the nearest witness — because the second arrival is
+--- no fresher than the first and so is not relayed. Two spotters in **separate** pockets produce two
+--- independent fronts, which falls out of the marking being per unit; nothing is written for it, so
+--- it is tested rather than assumed.
+function veafSkynet.spotterPropagationTick()
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+
+  for coa, waves in pairs(veafSkynet.spotterWaves) do
+    local graph = veafSkynet.getSpotterGraph(coa)
+    local stillTravelling = {}
+    for _, message in ipairs(waves) do
+      local nextFrontier = {}
+      for unitName, _ in pairs(message.frontier) do
+        local edges = graph.adjacency[unitName]
+        if edges then
+          for neighbour, _ in pairs(edges) do
+            if veafSkynet.deliverSpotterMessage(coa, neighbour, message) then
+              nextFrontier[neighbour] = true
+            end
+          end
+        end
+      end
+      if next(nextFrontier) then
+        message.frontier = nextFrontier
+        table.insert(stillTravelling, message)
+      end
+    end
+    veafSkynet.spotterWaves[coa] = stillTravelling
+  end
+
+  veafSkynet.forgetStaleSpotterContacts()
+end
+
+--- Drop what has not been heard from within `SpotterForgetDelay`.
+---
+--- This is the net under every failure the design does not try to tell apart. A cancellation is the
+--- clean way for a contact to end; this is the one that always works.
+function veafSkynet.forgetStaleSpotterContacts()
+  local now = timer.getTime()
+  for _, perCoalition in pairs(veafSkynet.spotterContacts) do
+    for unitName, known in pairs(perCoalition) do
+      local stale = {}
+      for aircraft, contact in pairs(known) do
+        if now - contact.heardAt >= veafSkynet.SpotterForgetDelay then
+          table.insert(stale, aircraft)
+        end
+      end
+      for _, aircraft in ipairs(stale) do
+        known[aircraft] = nil
+      end
+      if not next(known) then
+        perCoalition[unitName] = nil
+      end
+    end
+  end
+end
+
+--- Re-send an alert for every contact a spotter is still holding.
+---
+--- Read from the latches rather than from the contact table: the latch is what a pair of eyes is
+--- actually looking at right now, and it is the only thing entitled to keep a contact alive.
+---
+--- A heartbeat puts a **second wave in flight alongside the first**, since the earlier one may still
+--- be crossing the map. That is bounded and cheap: at most crossing time ÷ heartbeat period waves
+--- per spotter per aircraft — four at the worst crossing measured, 457 s over a 120 s heartbeat —
+--- and each wave only ever touches the edges of its own frontier, not the whole graph. An older wave
+--- also dies of its own accord wherever a fresher one has already passed, because the unit refuses
+--- it and it therefore has nowhere left to go.
+function veafSkynet.spotterHeartbeat()
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  local coalitions = veafSkynet.getSpotterCoalitions()
+  for spotterName, latches in pairs(veafSkynet.spotterLatches) do
+    for aircraft, latch in pairs(latches) do
+      if latch.triggered then
+        -- The spotter's own coalition is wherever it is already a node; a unit belongs to one graph.
+        for coa, _ in pairs(coalitions) do
+          if veafSkynet.getSpotterGraph(coa).nodes[spotterName] then
+            veafSkynet.emitSpotterMessage(coa, "alert", spotterName, aircraft)
+          end
+        end
+      end
+    end
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — handing over to Skynet
+--
+-- A site that receives an alert does **not** light up. It holds the contact and waits, exactly as it
+-- would for an early-warning radar, and goes live only when the aircraft enters its own firing
+-- envelope. The network is a distributed EWR, not a wake-up trigger, and that is what makes it fit
+-- Skynet instead of fighting it.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Whether the hand-over loop is on the clock.
+veafSkynet.spotterHandoverArmed = false
+
+--- Whether the missing-`reportContact` warning has already been written. Once is a diagnosis, every
+--- five seconds for a four-hour mission is a log nobody can read.
+veafSkynet.spotterHandoverDoorWarned = false
+
+--- The aircraft a unit is currently holding, as DCS Unit handles, skipping the ones that have left.
+---
+--- @param coa number
+--- @param unitName string
+--- @return table array of DCS Unit handles
+function veafSkynet.getHeldSpotterAircraft(coa, unitName)
+  local held = {}
+  for aircraftName, contact in pairs(veafSkynet.getSpotterContacts(coa, unitName)) do
+    if not contact.cancelled then
+      local dcsUnit = Unit.getByName(aircraftName)
+      if veafSkynet.dcsObjectStillExists(dcsUnit) then
+        table.insert(held, dcsUnit)
+      end
+    end
+  end
+  return held
+end
+
+--- One hand-over pass: every SAM site of every network, against what its own units are holding.
+---
+--- `isTargetInRange` is annotated as an expensive call in Skynet's own source, so it is reached only
+--- for a site that actually holds an alert — the loop is written so a site holding nothing costs one
+--- table lookup per unit and stops there.
+---
+--- `reportContact` deliberately bypasses the kill-zone test; that is its documented contract, written
+--- for the last line of defence. Here the bypass is harmless and in fact convenient, since the
+--- envelope has just been checked. **Every other guard still applies** — HARM silence, ammunition,
+--- power, destruction — and none of them is re-implemented here.
+function veafSkynet.spotterHandoverPass()
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+
+  for networkName, veafSkynetNetwork in pairs(veafSkynet.structure) do
+    local iads = veafSkynetNetwork.iads
+    if iads and not veafSkynetNetwork.deactivated and veafSkynetNetwork.coalitionID then
+      local coa = veafSkynetNetwork.coalitionID
+      local gotSites, samSites = pcall(iads.getSAMSites, iads)
+      if gotSites and samSites then
+        for _, samSite in pairs(samSites) do
+          veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
+        end
+      end
+    end
+  end
+end
+
+--- Hand one site whatever its own units are holding, if the aircraft is inside its envelope.
+---
+--- A site is a **group** in Skynet and the network is made of **units**, so the site holds what any
+--- of its units holds. That is the right reading rather than a convenience: a battery's radio is not
+--- attached to one particular vehicle.
+---
+--- @param networkName string
+--- @param iads table the Skynet IADS
+--- @param coa number
+--- @param samSite table a Skynet SAM site
+function veafSkynet.handOverSpotterAlerts(networkName, iads, coa, samSite)
+  local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(samSite)
+  if not dcsGroup then
+    return
+  end
+  local gotUnits, siteUnits = pcall(dcsGroup.getUnits, dcsGroup)
+  if not gotUnits or not siteUnits then
+    return
+  end
+
+  -- Collected across the site's units first, so an aircraft two of them hold is reported once.
+  local held = {}
+  for _, dcsUnit in pairs(siteUnits) do
+    local unitName = veafSkynet.safeDcsName(dcsUnit)
+    if unitName then
+      for _, dcsAircraft in ipairs(veafSkynet.getHeldSpotterAircraft(coa, unitName)) do
+        held[veafSkynet.safeDcsName(dcsAircraft) or tostring(dcsAircraft)] = dcsAircraft
+      end
+    end
+  end
+  if not next(held) then
+    return
+  end
+
+  for _, dcsAircraft in pairs(held) do
+    local inEnvelope, answer = pcall(samSite.isTargetInRange, samSite, dcsAircraft)
+    if inEnvelope and answer then
+      if iads.reportContact then
+        local reported = pcall(iads.reportContact, iads, dcsAircraft, samSite)
+        if reported then
+          veafSkynet.recordSpotterWakeUp(coa, tostring(samSite.dcsName) .. " <- " .. tostring(veafSkynet.safeDcsName(dcsAircraft)))
+          veaf.loggers.get(veafSkynet.Id):debug(
+            string.format(
+              "spotter network handed [%s] to [%s] on [%s]",
+              veaf.p(veafSkynet.safeDcsName(dcsAircraft)),
+              veaf.p(samSite.dcsName),
+              veaf.p(networkName)
+            )
+          )
+        end
+      elseif not veafSkynet.spotterHandoverDoorWarned then
+        -- The door exists in VEAF/Skynet-IADS but the artifact vendored here predates it. Said once,
+        -- and said plainly: the feature is switched on and cannot do the one thing it exists for.
+        veafSkynet.spotterHandoverDoorWarned = true
+        veaf.loggers.get(veafSkynet.Id):warn(
+          "spotter network is on, but this Skynet build has no reportContact: alerts travel and no site is ever woken (vendor a Skynet release that carries it)"
+        )
+      end
+    end
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — the status page
+--
+-- On the model of Skynet's own, and behind the same switch: the per-network `debugFlag`, which comes
+-- from `debug_red` / `debug_blue`. No new setting.
+--
+-- This matters more here than a status page usually does. Once this ships there are **three** reasons
+-- a site can light up — an early-warning radar, the last line of defence, or a spotter — and an
+-- unexplained wake-up is already the most common report on this subject. With three causes and no
+-- trace the question is undecidable, for us and for the mission maker.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Seconds between two status pages. Slower than the beats it reports on: a page is read by a human
+--- afterwards, in a log, and one every five seconds would bury everything else in it.
+veafSkynet.SpotterStatusPeriod = 60
+
+--- Whether the status page is on the clock.
+veafSkynet.spotterStatusArmed = false
+
+--- Per coalition, the spotters that acquired a contact since the last page, as a **set** keyed on
+--- `"<spotter> -> <aircraft>"`.
+---
+--- Recorded at the moment it happens, because by the time the page is printed the only thing left is
+--- a contact held by a dozen units and no way back to the eye that saw it.
+---
+--- Keyed by coalition because the page prints one section per network: a flat list is printed under
+--- every debug network's header, so a mission running both sides in debug would read red's sightings
+--- as blue's. A page that can misattribute a wake-up is worse than no page, since the whole reason
+--- for it is that a site can now light up for three different reasons.
+veafSkynet.spotterStatusAcquisitions = {}
+
+--- Per coalition, the sites woken since the last page, as a **set** keyed on `"<site> <- <aircraft>"`.
+---
+--- A set rather than a list, because the hand-over reports the same contact on every 5 s pass while
+--- the aircraft stays inside the envelope — which is correct, Skynet ages contacts out — and a list
+--- would therefore print the same line twelve times per page and bury everything else.
+veafSkynet.spotterStatusWakeUps = {}
+
+--- Record one line for one coalition, once however many times it happens before the next page.
+---
+--- @param bucket table `spotterStatusAcquisitions` or `spotterStatusWakeUps`
+--- @param coa number
+--- @param line string
+local function _recordSpotterStatus(bucket, coa, line)
+  local perCoalition = bucket[coa]
+  if not perCoalition then
+    perCoalition = {}
+    bucket[coa] = perCoalition
+  end
+  perCoalition[line] = true
+end
+
+--- The keys of a set, in order. Nil is an empty set, so a coalition that saw nothing needs no guard
+--- at the call site.
+---
+--- @param set table|nil
+--- @return table array of strings, sorted
+local function _sortedKeys(set)
+  local keys = {}
+  for key, _ in pairs(set or {}) do
+    table.insert(keys, key)
+  end
+  table.sort(keys)
+  return keys
+end
+
+--- Note that a spotter acquired a contact, for the next status page of its coalition.
+---
+--- @param coa number
+--- @param line string `"<spotter> -> <aircraft>"`
+function veafSkynet.recordSpotterAcquisition(coa, line)
+  _recordSpotterStatus(veafSkynet.spotterStatusAcquisitions, coa, line)
+end
+
+--- Note that a site was woken, for the next status page of its coalition.
+---
+--- @param coa number
+--- @param line string `"<site> <- <aircraft>"`
+function veafSkynet.recordSpotterWakeUp(coa, line)
+  _recordSpotterStatus(veafSkynet.spotterStatusWakeUps, coa, line)
+end
+
+--- Count the graph, in one walk: nodes, edges, and connected components.
+---
+--- The component count is the figure that answers *"why did my alert not travel"*, which the
+--- connectivity measurements say will be the common question: at the shipped range, a mission whose
+--- contents are spread thin still only gathers a small share of its units into the largest pocket,
+--- and an alert never leaves the pocket it starts in.
+---
+--- @param graph table
+--- @return number nodes
+--- @return number edges
+--- @return number components
+--- @return number the size of the largest component
+function veafSkynet.describeSpotterGraph(graph)
+  local nodes, degrees = 0, 0
+  for name, _ in pairs(graph.nodes) do
+    nodes = nodes + 1
+    for _ in pairs(graph.adjacency[name] or {}) do
+      degrees = degrees + 1
+    end
+  end
+
+  local visited, components, largest = {}, 0, 0
+  for name, _ in pairs(graph.nodes) do
+    if not visited[name] then
+      components = components + 1
+      local size, stack = 0, { name }
+      visited[name] = true
+      while #stack > 0 do
+        local current = table.remove(stack)
+        size = size + 1
+        for neighbour, _ in pairs(graph.adjacency[current] or {}) do
+          if not visited[neighbour] then
+            visited[neighbour] = true
+            table.insert(stack, neighbour)
+          end
+        end
+      end
+      if size > largest then
+        largest = size
+      end
+    end
+  end
+
+  return nodes, degrees / 2, components, largest
+end
+
+--- Print one status page per network in debug mode, then forget what happened since the last one.
+function veafSkynet.spotterStatusPage()
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+
+  for networkName, veafSkynetNetwork in pairs(veafSkynet.structure) do
+    if veafSkynetNetwork and veafSkynetNetwork.debugFlag and veafSkynetNetwork.coalitionID then
+      local coa = veafSkynetNetwork.coalitionID
+      local logger = veaf.loggers.get(veafSkynet.Id)
+      local nodes, edges, components, largest = veafSkynet.describeSpotterGraph(veafSkynet.getSpotterGraph(coa))
+      logger:info(string.format("=== spotter network [%s] ===", tostring(networkName)))
+      logger:info(string.format("  graph: %d units, %d links, %d pockets, largest %d", nodes, edges, components, largest))
+
+      local now = timer.getTime()
+      local alerts = 0
+      for unitName, known in pairs(veafSkynet.spotterContacts[coa] or {}) do
+        for aircraft, contact in pairs(known) do
+          if not contact.cancelled then
+            alerts = alerts + 1
+            logger:info(
+              string.format(
+                "  alert: [%s] holds [%s] from [%s], %d s old",
+                tostring(unitName),
+                tostring(aircraft),
+                tostring(contact.origin),
+                math.floor(now - contact.heardAt)
+              )
+            )
+          end
+        end
+      end
+      if alerts == 0 then
+        logger:info("  alert: none")
+      end
+
+      -- Sorted, because a set has no order of its own and a page whose lines move about between two
+      -- prints is a page nobody can diff against the previous one.
+      for _, acquisition in ipairs(_sortedKeys(veafSkynet.spotterStatusAcquisitions[coa])) do
+        logger:info(string.format("  saw: %s", acquisition))
+      end
+      for _, wakeUp in ipairs(_sortedKeys(veafSkynet.spotterStatusWakeUps[coa])) do
+        logger:info(string.format("  woke: %s", wakeUp))
+      end
+    end
+  end
+
+  veafSkynet.spotterStatusAcquisitions = {}
+  veafSkynet.spotterStatusWakeUps = {}
+end
+
+--- Put the status page on the clock.
+function veafSkynet._armSpotterStatus()
+  if veafSkynet.spotterStatusArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  veafSkynet.spotterStatusArmed = true
+  veaf.scheduleFunction(veafSkynet.spotterStatusPage, {}, timer.getTime() + veafSkynet.SpotterStatusPeriod, veafSkynet.SpotterStatusPeriod)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spotter network — the map view
+--
+-- Where the status page answers *"why did that happen"* in the log afterwards, this answers
+-- *"what is happening"* while it happens: a marker on the F10 map at each spotter currently holding a
+-- contact, with a circle at the range it is seeing from.
+--
+-- **It is a coalition view, and it cannot be anything narrower.** DCS offers `markToAll`,
+-- `markToCoalition` and `markToGroup`, and a game master has no group (which is also why no
+-- `USAGE_ForGroup` radio command reaches one). So everybody flying for that coalition sees these
+-- markers too, and on a red network that hands red pilots a live tracker of blue aircraft. It is off
+-- by default and switched on per network, deliberately.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- What `modules.SKYNET.spotter_view` can ask for.
+---
+--- `Radio` does not switch the view on: it puts the switch where a game master can reach it, and
+--- leaves it off. That is the point of a toggle, and it is also the cautious reading given what the
+--- view shows to a whole coalition.
+veafSkynet.SpotterViewModes = {
+  Off = "off",
+  On = "on",
+  Radio = "radio",
+}
+
+--- How the map view is offered. Written by the build from `modules.SKYNET.spotter_view`.
+veafSkynet.SpotterView = veafSkynet.SpotterViewModes.Off
+
+--- The i18n key of the radio menu the `radio` mode adds.
+veafSkynet.RadioMenuName = "menu.skynet.root"
+
+--- Per coalition, the radio submenu carrying that coalition's toggle.
+veafSkynet.spotterViewRootPaths = {}
+
+--- Whether the view has been set up from `SpotterView`.
+veafSkynet.spotterViewArmed = false
+
+--- Coalitions whose map view is switched on, as a set. Empty by default.
+veafSkynet.spotterViewCoalitions = {}
+
+--- The marker ids currently drawn, per coalition, so a redraw replaces rather than stacks.
+veafSkynet.spotterViewMarkers = {}
+
+--- Set when a redraw has been asked for and not yet run. See `veafSkynet.requestSpotterViewRedraw`.
+veafSkynet.spotterRedrawScheduled = nil
+
+--- Seconds a redraw request waits, so a burst of them becomes one redraw.
+veafSkynet.SpotterRedrawDelay = 1
+
+--- Show or hide the map view for one coalition.
+---
+--- @param coa number a coalition id
+--- @param bEnabled boolean
+function veafSkynet.showSpotterView(coa, bEnabled)
+  if bEnabled then
+    veafSkynet.spotterViewCoalitions[coa] = true
+    veafSkynet.requestSpotterViewRedraw()
+  else
+    veafSkynet.spotterViewCoalitions[coa] = nil
+    veafSkynet.eraseSpotterView(coa)
+  end
+end
+
+--- Remove everything drawn for one coalition.
+---
+--- @param coa number
+function veafSkynet.eraseSpotterView(coa)
+  for _, markerId in ipairs(veafSkynet.spotterViewMarkers[coa] or {}) do
+    pcall(trigger.action.removeMark, markerId)
+  end
+  veafSkynet.spotterViewMarkers[coa] = nil
+end
+
+--- Ask for a redraw, at most one per `SpotterRedrawDelay` however many times it is called.
+---
+--- This is the one place in the feature where work genuinely arrives in bursts: every alert, every
+--- cancellation and every graph pass is a reason to redraw, and a combat zone spawning changes the
+--- picture hundreds of times at once. Without the guard, ticket 02's "a spawn triggers nothing"
+--- property is undone here.
+---
+--- The pattern is `veafRadio.refreshRadioMenu`'s, **with one difference that matters**: that one
+--- clears its flag *inside* `if not veafRadio.dontCreateMenus then` (`veafRadio.lua:630`), so with
+--- menus off the flag stays set forever and the guard never re-arms. It is harmless there, because
+--- with menus off there is nothing the guard was protecting. It would not be harmless here: any early
+--- return in the redraw — nothing to draw, the view switched off, the feature off — would latch the
+--- flag and kill every later redraw for the rest of the mission. A coalescing guard that never
+--- re-arms is worse than none, because the first redraw makes it look as though it works.
+function veafSkynet.requestSpotterViewRedraw()
+  if veafSkynet.spotterRedrawScheduled then
+    return
+  end
+  veafSkynet.spotterRedrawScheduled =
+    veaf.scheduleFunction(veafSkynet._redrawSpotterView, {}, timer.getTime() + veafSkynet.SpotterRedrawDelay)
+end
+
+--- Redraw every switched-on coalition's view.
+function veafSkynet._redrawSpotterView()
+  -- First act, unconditionally, before anything that can return early. See the comment above.
+  veafSkynet.spotterRedrawScheduled = nil
+
+  for coa, _ in pairs(veafSkynet.spotterViewCoalitions) do
+    veafSkynet.eraseSpotterView(coa)
+    if veafSkynet.SpotterNetwork then
+      local markers = {}
+      veafSkynet.spotterViewMarkers[coa] = markers
+      for unitName, known in pairs(veafSkynet.spotterContacts[coa] or {}) do
+        for aircraft, contact in pairs(known) do
+          -- Only where the alert was raised: a marker per unit *holding* it would put one on every
+          -- unit of the pocket, which is a wall of markers saying the same thing.
+          if not contact.cancelled and contact.origin == unitName then
+            local dcsUnit = Unit.getByName(unitName)
+            if veafSkynet.dcsObjectStillExists(dcsUnit) then
+              local gotPoint, point = pcall(dcsUnit.getPoint, dcsUnit)
+              if gotPoint and point then
+                local markerId = veaf.getUniqueIdentifier()
+                pcall(
+                  trigger.action.markToCoalition,
+                  markerId,
+                  string.format("%s sees %s", tostring(unitName), tostring(aircraft)),
+                  point,
+                  coa,
+                  true,
+                  nil
+                )
+                table.insert(markers, markerId)
+
+                local profile = veafSkynet.spotterProfiles[unitName]
+                if profile and profile.range > 0 then
+                  local circleId = veaf.getUniqueIdentifier()
+                  pcall(trigger.action.circleToAll, coa, circleId, point, profile.range, nil, nil, 3, true)
+                  table.insert(markers, circleId)
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+--- Build (or rebuild) one coalition's spotter submenu, with the toggle's title showing the state.
+---
+--- Rebuilt rather than relabelled because a DCS radio command's title is fixed once it is created:
+--- the only way to make the entry read *Hide* after it has been used is to replace it.
+---
+--- **`USAGE_ForAll`, which is the default, and it matters here more than anywhere else.** A game
+--- master has no group, so a `USAGE_ForGroup` command never reaches one (#128) — and a game master is
+--- precisely the person this menu exists for. Passing a usage here would build a menu that the only
+--- intended audience cannot see.
+---
+--- @param coa number a coalition id
+function veafSkynet.buildSpotterViewRadioMenu(coa)
+  if not veafRadio then
+    veaf.loggers.get(veafSkynet.Id):warn("no radio module: the spotter view cannot be offered on the F10 menu")
+    return
+  end
+
+  local root = veafSkynet.spotterViewRootPaths[coa]
+  if root then
+    veafRadio.clearSubmenu(root)
+  else
+    -- Scoped to the coalition: the other side has its own network and has no business seeing a
+    -- switch for this one.
+    root = veafRadio.addSubMenu(veaf.t(veafSkynet.RadioMenuName), nil, coa)
+    veafSkynet.spotterViewRootPaths[coa] = root
+  end
+
+  local shown = veafSkynet.spotterViewCoalitions[coa] and true or false
+  local title = veaf.t(shown and "menu.skynet.spotterview.hide" or "menu.skynet.spotterview.show")
+  veafRadio.addCommandToSubmenu(title, root, veafSkynet.toggleSpotterViewFromRadio, coa)
+  veafRadio.refreshRadioMenu()
+end
+
+--- Flip one coalition's view, from the radio command.
+---
+--- @param coa number a coalition id
+function veafSkynet.toggleSpotterViewFromRadio(coa)
+  veafSkynet.showSpotterView(coa, not veafSkynet.spotterViewCoalitions[coa])
+  veafSkynet.buildSpotterViewRadioMenu(coa)
+end
+
+--- Honour `SpotterView`: draw nothing, draw from the start, or offer the switch on the radio.
+---
+--- Idempotent, like every other arming function here: a reinitialisation must not stack a second
+--- menu entry.
+function veafSkynet._armSpotterView()
+  if veafSkynet.spotterViewArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  local mode = veafSkynet.SpotterView
+  if mode ~= veafSkynet.SpotterViewModes.On and mode ~= veafSkynet.SpotterViewModes.Radio then
+    return
+  end
+  veafSkynet.spotterViewArmed = true
+
+  for coa, _ in pairs(veafSkynet.getSpotterCoalitions()) do
+    if mode == veafSkynet.SpotterViewModes.On then
+      veafSkynet.showSpotterView(coa, true)
+    else
+      veafSkynet.buildSpotterViewRadioMenu(coa)
+    end
+  end
+end
+
+--- Put the hand-over on the clock, on the detection beat's own cadence: a contact is worth acting on
+--- as often as it is worth looking for.
+function veafSkynet._armSpotterHandover()
+  if veafSkynet.spotterHandoverArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  veafSkynet.spotterHandoverArmed = true
+  veaf.scheduleFunction(
+    veafSkynet.spotterHandoverPass,
+    {},
+    timer.getTime() + veafSkynet.SpotterDetectionPeriod,
+    veafSkynet.SpotterDetectionPeriod
+  )
+end
+
+--- Put propagation and the heartbeat on the clock.
+---
+--- The hop period is read **here**, from the range and the speed, rather than stored as a setting of
+--- its own: widening the radio range must slow the hops, not silently double how fast an alert
+--- crosses the map.
+function veafSkynet._armSpotterPropagation()
+  if veafSkynet.spotterPropagationArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  veafSkynet.spotterPropagationArmed = true
+  local hop = veafSkynet.getSpotterHopPeriod()
+  veaf.scheduleFunction(veafSkynet.spotterPropagationTick, {}, timer.getTime() + hop, hop)
+  veaf.scheduleFunction(
+    veafSkynet.spotterHeartbeat,
+    {},
+    timer.getTime() + veafSkynet.SpotterHeartbeatPeriod,
+    veafSkynet.SpotterHeartbeatPeriod
+  )
+end
+
+--- Put the three graph passes on the clock, one per speed class.
+function veafSkynet._armSpotterGraph()
+  if veafSkynet.spotterGraphArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  veafSkynet.spotterGraphArmed = true
+  for _, class in pairs(veafSkynet.SpotterSpeedClasses) do
+    local period = veafSkynet.SpotterGraphPeriods[class]
+    veaf.scheduleFunction(veafSkynet.spotterGraphPass, { class }, timer.getTime() + period, period)
+  end
+end
+
+--- Put the detection pass on the clock.
+---
+--- Idempotent, like `_armVanishedSitesSweep` and for the same reason: reinitialising the IADS must
+--- not stack a second beat, or every sighting is reported twice.
+function veafSkynet._armSpotterDetection()
+  if veafSkynet.spotterDetectionArmed then
+    return
+  end
+  if not veafSkynet.SpotterNetwork then
+    return
+  end
+  veafSkynet.spotterDetectionArmed = true
+  veaf.loggers.get(veafSkynet.Id):info(
+    string.format(
+      "spotter network on: radio range %s m, hop %s s",
+      veaf.p(veafSkynet.getSpotterRadioRange()),
+      veaf.p(veafSkynet.getSpotterHopPeriod())
+    )
+  )
+  veaf.scheduleFunction(
+    veafSkynet.spotterDetectionBeat,
+    {},
+    timer.getTime() + veafSkynet.SpotterDetectionPeriod,
+    veafSkynet.SpotterDetectionPeriod
+  )
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -10,28 +10,19 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import yaml
+from aircrafts_injector import aircrafts_injector_worker
 from aircrafts_injector.aircrafts_injector_worker import (
     AircraftGroupsExtractorWorker,
+    aircraft_bucket_for_type,
     aircraft_category_for_group,
 )
 from mission_tools.miz_tools import DcsMission
-from veaf_libs.dcs_units_parser import parse_dcs_units
 
 _REPO_ROOT = Path(__file__).parents[3]
 _DYNSLOT = _REPO_ROOT / "src" / "defaults" / "mission-folder" / "src" / "dynamic-slot-templates.yaml"
-_DCS_UNITS = _REPO_ROOT / "src" / "python" / "veaf-tools" / "veaf_libs" / "data" / "dcsUnits.yaml"
-
-_CATEGORY_TO_BUCKET = {"Plane": "airplanes", "Helicopter": "helicopters"}
-
-
-def _type_to_bucket() -> dict[str, str]:
-    return {
-        u.type_id: _CATEGORY_TO_BUCKET[u.category]
-        for u in parse_dcs_units(_DCS_UNITS)
-        if u.category in _CATEGORY_TO_BUCKET
-    }
 
 
 def _iter_groups(data: dict):
@@ -62,13 +53,49 @@ class AircraftCategoryForGroupTest(unittest.TestCase):
         self.assertEqual(aircraft_category_for_group({"units": []}, fallback="airplanes"), "airplanes")
 
 
+class ModAircraftBucketTest(unittest.TestCase):
+    """FEAT-DYNSLOT-CATALOGUE-REFRESH ticket 03 — a mod type ``dcsUnits.yaml`` cannot carry.
+
+    ``dcsUnits.yaml`` is generated from the datamine pin and holds stock content only, and the
+    file forbids hand edits. So an A-4E-C or a Bronco used to fall through to the fallback — the
+    DCS table the group was found in — and DCS files dynamic-slot templates under ``helicopter``
+    whatever the aircraft. That is how a Skyhawk came to ship as a helicopter in both coalitions.
+    """
+
+    def test_a_mod_airplane_is_an_airplane_despite_the_helicopter_table(self) -> None:
+        for mod_type in ("A-4E-C", "Bronco-OV-10A", "T-45"):
+            with self.subTest(type=mod_type):
+                group = {"units": [{"type": mod_type}]}
+                self.assertEqual(aircraft_category_for_group(group, fallback="helicopters"), "airplanes")
+
+    def test_the_units_db_still_answers_for_stock_types(self) -> None:
+        self.assertEqual(aircraft_bucket_for_type("AH-64D_BLK_II"), "helicopters")
+        self.assertEqual(aircraft_bucket_for_type("A-10C_2"), "airplanes")
+
+    def test_the_units_db_wins_over_the_mod_table(self) -> None:
+        """The override can never contradict the generated truth — it only fills its gaps.
+
+        No type is in both tables today, so asserting on the real ones would prove nothing about
+        precedence: the mod table is made to claim a stock helicopter is an airplane, and the
+        generated database has to win anyway. This is what keeps a stale entry harmless the day
+        its airframe enters the datamine.
+        """
+        with mock.patch.dict(
+            aircrafts_injector_worker._MOD_AIRCRAFT_BUCKET,
+            {"ah-64d_blk_ii": "airplanes"},
+        ):
+            self.assertEqual(aircraft_bucket_for_type("AH-64D_BLK_II"), "helicopters")
+
+    def test_a_genuinely_unknown_type_stays_unknown(self) -> None:
+        self.assertIsNone(aircraft_bucket_for_type("NotARealUnit_XYZ"))
+
+
 class ShippedDynSlotCategoryTest(unittest.TestCase):
     """The committed default dynamic-slot-templates.yaml must be category-correct."""
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.data = yaml.safe_load(_DYNSLOT.read_text(encoding="utf-8")) or {}
-        cls.type_bucket = _type_to_bucket()
 
     def test_every_template_sits_in_its_dcs_category_bucket(self) -> None:
         groups = list(_iter_groups(self.data))
@@ -79,14 +106,19 @@ class ShippedDynSlotCategoryTest(unittest.TestCase):
                 units = list(units.values())
             self.assertTrue(units, f"{group_name} ({coalition}/{country}) has no units")
             utype = units[0].get("type")
-            expected = self.type_bucket.get(utype)
-            if expected is None:
-                continue  # type unknown to dcsUnits.yaml → not enforced (fallback path)
+            # Resolved through the production path (units DB, then the mod table), so a mod
+            # airframe is enforced here instead of being skipped as it used to be.
+            expected = aircraft_bucket_for_type(str(utype))
+            self.assertIsNotNone(
+                expected,
+                f"unit type '{utype}' in {group_name} is unknown to dcsUnits.yaml and absent from "
+                f"the mod table — add it to _MOD_AIRCRAFT_BUCKET rather than trusting the fallback",
+            )
             self.assertEqual(
                 bucket,
                 expected,
                 f"{group_name} ({coalition}/{country}) is under '{bucket}:' but '{utype}' is a DCS "
-                f"{expected[:-1]} → must be under '{expected}:'",
+                f"{str(expected)[:-1]} → must be under '{expected}:'",
             )
 
 

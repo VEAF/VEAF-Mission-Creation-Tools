@@ -94,31 +94,33 @@ read.
 
 ## What was built
 
-`veafSkynet.spotterHandedOver` holds, per coalition and per site, the aircraft that site was handed
-at the **previous** pass. `handOverSpotterAlerts` reads it before the loop and rewrites it after, and
-records a wake-up only for an aircraft that was not in it. Skynet is still told on every pass — it
-ages contacts out — and only the recording is gated; the per-pass `debug` line, which flooded the
-same way through the other channel, went with it.
+`veafSkynet.spotterHandedOver` holds, per coalition and per site, what that site was handed and on
+which pass. `handOverSpotterAlerts` reads it before the loop and rewrites it after, and records a
+wake-up only for an aircraft that was not handed to that site **one pass ago**. Skynet is still told
+on every pass — it ages contacts out — and only the recording is gated; the per-pass `debug` line,
+which flooded the same way through the other channel, went with it.
 
-There are **three** ways a site is released and they take different branches, so all three clear the
-memory: the aircraft leaves the envelope (nothing is reported, the rewritten set is empty), the site
-stops holding anything at all (the early return before the envelope is ever asked), and — found in
-review — the site's **DCS group is gone**, which has no group name to key on and returned before
-reaching the memory at all. That last one is the one with teeth: a battery destroyed and respawned
-under the same name, which is what a mission with combat zones does, read the still-held contact as
-one it was already holding and wrote nothing, losing the single event the history exists for. It is
-now forgotten under the Skynet site's own name, which is the group's. A release is stored as
-*nothing* rather than an empty table, so being woken again later is a new event.
+**A stamp, not a clear, and that is the correction the review made.** The first attempt cleared the
+memory at each release it could see from inside the hand-over: the aircraft leaves the envelope, the
+site stops holding anything, the site's DCS group is destroyed. Three branches, three clears — and
+the list was wrong by construction, because a site is also released by things decided *above* the
+function. A network switched off by a game master is never visited at all, so nothing inside could
+clear anything: switched back on, its sites were woken for real and the history said nothing. The
+same holds for a site the network sweep drops. So the memory carries the pass it was written on, and
+**being absent from the previous pass is the release**, whatever caused it. A count and not a clock:
+a server that skips a beat under load must not read as a site letting its contact go.
 
 Two stale comments went with it, both teaching the behaviour this lot removes — that the hand-over
 reports the same contact on every pass, and that the page's deduplication is what keeps the history
 readable.
 
-Five tests in `TestSpotterWakeUpHistory`, which now stands up the same Skynet site double as
+Seven tests in `TestSpotterWakeUpHistory`, which now stands up the same Skynet site double as
 `TestSpotterHandover` — a transition is only observable by running real hand-over passes. Twelve
 passes on a held contact give one line while Skynet is told twelve times; an hour of passes (720)
-still gives one and never approaches the cap; the three re-wake tests were each checked against the
-code without its guard and **all three go red**, which is what stops the fix from being a
+still gives one and never approaches the cap; four re-wake cases give two — envelope lost, alert
+cancelled, group destroyed and rebuilt, network switched off and on — plus the rule on its own.
+Measured rather than assumed: against the first attempt the network case gives **1**, and with the
+staleness test removed **four** of them go red. That is what stops the fix from being a
 de-duplication.
 
 Not covered here: the in-game re-reading. The measurement that opened this lot came from a live

@@ -122,6 +122,7 @@ local function _resetSpotterState()
   veafSkynet.spotterLatches = {}
   veafSkynet.spotterContacts = {}
   veafSkynet.spotterHandedOver = {}
+  veafSkynet.spotterHandoverPasses = 0
   veafSkynet.spotterWaves = {}
   veafSkynet.spotterPropagationArmed = false
   veafSkynet.spotterDetectionArmed = false
@@ -2104,6 +2105,36 @@ function TestSpotterWakeUpHistory:test_a_contact_cancelled_and_raised_again_is_t
   veafSkynet.spotterHandoverPass()
 
   luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 2)
+end
+
+function TestSpotterWakeUpHistory:test_a_network_switched_off_and_on_again_wakes_its_sites_again()
+  -- Found in review, and the reason the memory carries a pass number rather than being cleared at
+  -- each known release: this release is decided in `spotterHandoverPass`, which never reaches the
+  -- site at all, so nothing inside the hand-over could have cleared it. A game master switching a
+  -- network off and back on -- which hands its sites to the DCS AI and takes them back -- wakes
+  -- them for real, and the history said nothing.
+  _spotterSiteHolds()
+  veafSkynet.spotterHandoverPass()
+  veafSkynet.structure["red iads"].deactivated = true
+  for _ = 1, 3 do
+    veafSkynet.spotterHandoverPass()
+  end
+  veafSkynet.structure["red iads"].deactivated = false
+  veafSkynet.spotterHandoverPass()
+
+  luaunit.assertEquals(#veafSkynet.getSpotterWakeUpLog(RED), 2)
+end
+
+function TestSpotterWakeUpHistory:test_a_missed_pass_is_the_release_whatever_caused_it()
+  -- The rule stated on its own, since the cases above each dress it in a scenario: a site that took
+  -- no part in the previous pass has been released. Read one pass later than it was written, the
+  -- memory is empty.
+  veafSkynet.setSpotterHandedOver(RED, "SamSite", { ["Bandit"] = true })
+  luaunit.assertEquals(veafSkynet.getSpotterHandedOver(RED, "SamSite"), {}, "written this pass, not the previous one")
+  veafSkynet.spotterHandoverPasses = veafSkynet.spotterHandoverPasses + 1
+  luaunit.assertEquals(veafSkynet.getSpotterHandedOver(RED, "SamSite"), { ["Bandit"] = true })
+  veafSkynet.spotterHandoverPasses = veafSkynet.spotterHandoverPasses + 1
+  luaunit.assertEquals(veafSkynet.getSpotterHandedOver(RED, "SamSite"), {}, "one pass missed is a release")
 end
 
 function TestSpotterWakeUpHistory:test_a_site_destroyed_and_rebuilt_is_woken_again()

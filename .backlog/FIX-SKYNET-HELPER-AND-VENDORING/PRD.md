@@ -44,11 +44,24 @@ elsewhere and this lot carries its consequences on the VMCT side.
 | # | Ticket | Depends on |
 |---|---|---|
 | 01 | [Remove the two dead `actAsEW` reset blocks](tickets/01-remove-the-dead-actasew-blocks.md) | nothing — shippable now |
-| 02 | [Document what a network SAM does and does not see](tickets/02-document-what-a-network-sam-sees.md) | the Skynet release, since it describes the last line of defense |
-| 03 | [Vendor the new Skynet version](tickets/03-vendor-the-new-skynet-version.md) | the Skynet release |
+| 02 | [Document what a network SAM does and does not see](tickets/02-document-what-a-network-sam-sees.md) | ~~the Skynet release~~ — **released** |
+| 03 | [Vendor the new Skynet version](tickets/03-vendor-the-new-skynet-version.md) | ~~the Skynet release~~ — **released** |
+| 04 | [Repair the Skynet drift watch, which can no longer fire](tickets/04-repair-the-skynet-drift-watch.md) | nothing — shippable now |
 
 The lot ships as **one PR**, once the Skynet side is released. Ticket 01 is independent and could go
 first, but David chose a single PR per repository on 2026-09-19.
+
+## The blocker is lifted — 2026-09-21
+
+[**Skynet 3.5.0**](https://github.com/VEAF/Skynet-IADS/releases/tag/v3.5.0) is published, the first
+release under joint VEAF / Regroupement de Patrouilles (BFR, NAWACS) maintenance. It carries the last
+line of defense and the coverage refresh this lot was waiting for, plus three coverage fixes that are
+not in the artifact carried here, and `SkynetIADS:reportContact` — which is what
+[`FEAT-SPOTTER-NETWORK`](../archive/FEAT-SPOTTER-NETWORK.md) needs to close its in-game check.
+
+The release itself is a **downloadable asset**, so vendoring no longer means recompiling from
+sources. That, and the fact that the drift watch pointed at a file this repository no longer commits,
+is what ticket 04 is about — read it before touching `vendored.yaml`.
 
 ## Definition of done
 

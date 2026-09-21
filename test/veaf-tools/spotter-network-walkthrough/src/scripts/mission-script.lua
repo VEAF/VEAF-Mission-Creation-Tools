@@ -183,7 +183,11 @@ timer.scheduleFunction(function()
         alt = INTRUDER_ALT,
         alt_type = "BARO",
         speed = INTRUDER_SPEED,
-        heading = 0,
+        -- **Pointing the way it is going**, in radians, 0 being north. Spawned at heading 0 with a
+        -- route running south, it flies away from the corridor, turns round and arrives about a
+        -- minute late — long enough for a measurement window to close on "nobody sees it" while the
+        -- feature is working. Found on the dense mission, 2026-09-21, and the same here.
+        heading = math.pi,
         payload = { chaff = 0, flare = 0, fuel = 6103, gun = 100, pylons = {} },
         callsign = { [1] = 1, [2] = 1, [3] = 1, name = "Enfield11" },
       },

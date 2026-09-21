@@ -233,7 +233,29 @@ a **machine account** (which is why lot 4 owes the GitHub → Discord relay), th
 draft** before anything is published, and the issue is written **in the user's language** — a departure
 from the English-only rule for technical content, matching what the tracker already contains.
 
-Lot 1 landed on 2026-09-05; lots 2 to 5 are not started. None of it needs DCS.
+All five lots landed, lot 1 on 2026-09-05 and lots 2 to 5 on 2026-09-05/06. None of it needs DCS.
+
+### New since that order — the spotter network (2026-09-21) — **delivered in 6.24.0**
+
+A design session, then four lots in one day. A ground unit that sees a hostile aircraft reports it, and
+the report travels from unit to unit over the radio — so a line of batteries wakes in the direction of
+the penetration instead of waking all at once or not at all. Seeing and relaying are deliberately
+separate: a SAM site relays but never spots.
+
+Two things came out of building it that outlive the feature itself:
+
+- **`docs/agents/dcs-runtime-traps.md`** was filled by this lot. `start_time` does not delay an
+  aircraft group at all, and `lateActivation` hides a group from the map but **not** from the
+  scripting API — both raise no error and both were found the hard way, building the rig.
+- **The `ewr` spawn option had never worked** on SA-10, SA-6, SA-5, Patriot and Hawk, and nothing in
+  the backlog pointed at it: it surfaced only because the spotter network needed a site that was
+  genuinely dark. Two internal sweeps silenced those five types immediately, and had done since the
+  option existed.
+
+`FEAT-SPOTTER-DEMO-MISSION` ticket 05 is the one piece still open: the demonstration mission is built
+and running, but the contact cross and the detection circle have not been confirmed by eye — every
+attempt to hold a target still enough to look at it ended with the target destroyed, because the
+spotters are MANPADS and they shoot. Nothing in the shipped code waits on it.
 
 ### Blocked on a person, or on a DCS session
 

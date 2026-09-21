@@ -1,6 +1,6 @@
 # FIX-WHAT-THE-READER-SEES — three places the output buries what matters
 
-Status: 🔄 in-progress — the four tickets are done; the PR is open
+Status: ✅ done — the five tickets are done; PR #939 merged 2026-09-07
 
 Origin: David, 2026-09-07, testing the whole thing on the live Discord within the hour it shipped.
 Nothing here is broken; three things are simply unreadable, and two of them are mine from that same

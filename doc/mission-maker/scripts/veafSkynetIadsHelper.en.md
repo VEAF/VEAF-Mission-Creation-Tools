@@ -50,7 +50,7 @@ modules:
 | `debug_blue` | boolean | `false` | Enable verbose Skynet debug for BLUE coalition |
 | `dynamic_spawn` | boolean | `false` | Also integrate groups that appear **during** the mission — see [Groups appearing during the mission](#dynamic-spawn) |
 | `spotter_network` | boolean | `false` | Enable the spotter network — see [Spotter network](#spotter-network) |
-| `spotter_radio_range_km` | number | `20` | How far one unit can relay an alert, in kilometres |
+| `spotter_radio_range_km` | number | `20` | How far one group can relay an alert, in kilometres |
 | `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the map, in km/h |
 | `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | F10 map view of the network — see [Seeing what happens, on the map](#spotter-view) |
 | `last_line_of_defence` | boolean | `true` | A dark site keeps a short radius of its own and lights up inside it — see [Last line of defence](#last-line-of-defence) |
@@ -229,8 +229,8 @@ veafSkynet.setDynamicSpawn("red iads", false)
 
 ### Spotter network — `spotter_network` {#spotter-network}
 
-A ground unit that sees a hostile aircraft reports it, and the report travels from unit to unit over
-the radio, one hop at a time. A SAM site that receives it does **not** light up: it holds the contact
+A ground **group** that sees a hostile aircraft reports it, and the report travels from group to
+group over the radio, one hop at a time. A SAM site that receives it does **not** light up: it holds the contact
 and waits, exactly as it would for an early-warning radar, and goes live only when the aircraft
 enters its firing envelope. It is a **distributed early-warning radar**, not a wake-up trigger.
 
@@ -242,11 +242,20 @@ defence goes quiet again.
 | Value | Description |
 |-------|-------------|
 | `false` | Nothing changes (**default**) |
-| `true` | Ground units see aircraft and pass the word along |
+| `true` | Ground groups see aircraft and pass the word along |
+
+**The group is the unit of reasoning.** One DCS group is **one** spotter however many vehicles it
+holds: eleven trucks parked in the same place are not eleven independent radio stations. A group sits
+at the **median point** of its live vehicles, and it **sees as far as whichever of them sees
+furthest** — so a group mixing a MANPADS with a Shilka sees 10 km, the Shilka being blind.
+
+> The median point is a deliberate approximation: a group **strung out** over several kilometres — a
+> convoy on the move — still has one point, so its range and its radio position are wrong by up to
+> half its length. Nil for a stationary group, and small against ranges of 3 to 20 km.
 
 **Who sees what.** The detection range depends on the type of unit, and each unit draws its own once
-for the mission, within ±20 % of the table value. Terrain counts: an aircraft following a valley is
-not seen by the spotter behind the crest.
+for the mission, within ±20 % of the table value; the group keeps the best of them. Terrain counts:
+an aircraft following a valley is not seen by the spotter behind the crest.
 
 | Unit | Sees out to | Relays |
 |------|-------------|--------|
@@ -290,8 +299,23 @@ question has no answer.
 
 #### Seeing what happens, on the map {#spotter-view}
 
-The module can put an F10 marker at each spotter currently holding a contact, with a circle at its
-detection range. `spotter_view` takes three values:
+The module can draw the network on the F10 map. One set of shapes per **group**, and one meaning
+per colour:
+
+| Shape | Grey | Blue | Orange | Red |
+|-------|------|------|--------|-----|
+| **Square** (the node) | has not been told | was told | — | element of a live battery |
+| **Circle** (the range) | spotter seeing nothing | — | spotter holding a contact | live battery's firing envelope |
+
+The square says what a node **knows**, the circle what it **sees**. A dark battery draws **no**
+envelope at all: in grey, grey would mean two things at once — *this battery could fire and nobody has
+told it* and *these eyes are looking at nothing* — with no way to tell the two circles apart.
+
+On top of that: a **red cross** on each held contact, a **grey dashed** line for a radio link, and a
+**solid red** line for a link that actually carried an alert — which is what keeps the path of a
+report readable.
+
+`spotter_view` takes three values:
 
 | Value | Effect |
 |-------|--------|

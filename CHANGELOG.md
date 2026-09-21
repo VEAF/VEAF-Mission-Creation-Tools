@@ -97,6 +97,37 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   switched off so the verdict cannot come from a radius drawn at random. Run it with
   `veaf-tools smoke-test --suite spotter`. Its README states what it does **not** prove, too.
 
+- **The spotter network's map view, to a colour rule that means one thing per colour.** A node's
+  **square** says what it knows — grey not told, blue told, red an element of a battery that is
+  actually live — and its **circle** says what it can see: grey for a spotter holding nothing, orange
+  for one with a contact in sight, red for a live battery's engagement envelope. A dark battery draws
+  no envelope at all, because a grey one made grey mean two different things at once with no way to
+  tell the circles apart. Plus a red cross on each held contact, and a solid red link where an alert
+  actually travelled.
+
+### Fixed
+
+- **The spotter network gave up every contact it acquired, within one detection beat.**
+  `spotterLatches` is keyed by spotter name and has no coalition dimension, while the pass that
+  gives up latches for aircraft that have left the sky is called **once per coalition** with only
+  that coalition's contact list. So the pass for a side whose sky held no enemy aircraft walked the
+  whole table and cancelled every other side's detections — and a mission with spotters on both
+  sides is the normal case. In practice the alert was raised and cancelled within one period: the
+  map view's contact cross and detection circle never drew at all, and the heartbeat had nothing to
+  speak for. Measured in game on 2026-09-21; the new control fails in both directions.
+
+- **The spotter network reasons about groups, not vehicles.** One DCS group is one node of the radio
+  network however many vehicles it holds: it sits at the **median point** of its live ones and sees as
+  far as whichever of them sees furthest. Found by David on the F10 map after spawning two transport
+  groups to link a distant SA-6 into the network — the graph held **37 nodes for 10 groups** and drew
+  **538 links** against a draw budget of 400 shapes, so the view was truncated by construction and the
+  picture was a mat of grey strokes. Each 11-vehicle convoy was contributing eleven overlapping range
+  circles, eleven stacked squares and 55 links to itself. Per group the same layout is 10 nodes and at
+  most 45 links, and it is not only drawing: the graph, the propagation and the three graph passes were
+  all O(vehicles²). Losing one vehicle no longer releases a contact the rest of the convoy is still
+  watching, and a group mixing a MANPADS with a blind Shilka sees 10 km. A **contact** stays a single
+  aircraft — the cross on the map marks one, and a flight of four is four.
+
 ## [6.23.1] — 2026-09-20
 
 ### Fixed

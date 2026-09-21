@@ -1533,6 +1533,16 @@ veaf.i18nCatalog = {
     fr = "Masquer la vue des guetteurs",
     en = "Hide the spotter view",
   },
+  -- The scope switch. Named by what the next use *does*, like the show/hide pair above, because a
+  -- DCS radio command's title is fixed once created and the menu is rebuilt to change it.
+  ["menu.skynet.spotterview.scope.all"] = {
+    fr = "Afficher tout le réseau",
+    en = "Show the whole network",
+  },
+  ["menu.skynet.spotterview.scope.active"] = {
+    fr = "N'afficher que les poches actives",
+    en = "Show only the active pockets",
+  },
 
   -- Radio-menu entries (FIX-RADIO-MENU-I18N ticket 02). Resolved at menu-build time.
   ["menu.assets.dispose"] = {

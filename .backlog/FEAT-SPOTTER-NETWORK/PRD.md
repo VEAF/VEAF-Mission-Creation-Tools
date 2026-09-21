@@ -1,73 +1,95 @@
 # FEAT-SPOTTER-NETWORK — ground units see aircraft, and pass the word along
 
-Status: ⏸ paused
-
-> **Paused, not blocked on anyone here.** Its entry point into Skynet — the public wake-up added by
-> `FEAT-LAST-LINE-OF-DEFENSE` in [`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS) — is not
-> released yet, and there is nothing useful to start before it is. Nobody should pick this up.
+Status: ⬜ ready — **design done, costed and fully settled**, see [`design.md`](design.md). The four
+points it left open were answered on 2026-09-21; nothing is awaiting a decision. Implementation not
+started.
 
 Origin: David's idea, settled in principle with Flogas on 2026-09-19 alongside the last line of
-defense. Deliberately **VEAF code, outside Skynet** — in `veafSkynetIadsHelper.lua` or in a module
-of its own.
+defense, then designed decision by decision with David on 2026-09-20. Deliberately **VEAF code,
+outside Skynet** — in `veafSkynetIadsHelper.lua`, where David placed it.
 
 ## The idea
 
 Every DCS ground unit can notice a hostile aircraft nearby, at a distance that depends on what the
-unit is — a JTAC sees further than a rifleman, who sees further than a tank — and slightly
-randomised. Having seen it, the unit **passes the word** to whoever is within about 10 km, the range
-of a field radio. Those in turn pass it on. Step by step, the alert spreads across the units that
-are close enough to relay it.
+unit is and slightly randomised. Having seen it, the unit **passes the word** to whoever is within
+radio range. Those in turn pass it on, and the alert spreads across the units close enough to relay
+it.
 
-Where it lands:
-
-- **a unit that is a SAM site in a Skynet network** → Skynet wakes it as if an EWR had seen the
-  aircraft, through the public entry point built by `FEAT-LAST-LINE-OF-DEFENSE` in the
-  [Skynet repository](https://github.com/VEAF/Skynet-IADS). That entry point exists **for this
-  feature**: without it, the helper would have to write into Skynet's internal state on every cycle;
-- **any other unit, or a mission not using Skynet** → the unit is put on alert. Note the vocabulary:
-  what wakes a DCS ground unit is the **alarm state** (`ALARM_STATE = RED`), not the rules of
-  engagement; Skynet's `goLive` sets both. Confirm which is wanted when writing it.
+Where it lands: a SAM site in a Skynet network **holds the contact and waits**, going live only
+when the aircraft enters its firing envelope — exactly as it would for an early-warning radar. The
+network is a **distributed EWR**, not a wake-up trigger.
 
 It is a different animal from the last line of defense: that one is a single site hearing an
 aircraft go over its own head, this one is a network of eyes and radios that carries information
 across the map.
 
-## What has to be designed before anything is written
+**The fallback for missions not using Skynet was dropped** on 2026-09-20. The feature lives inside
+the Skynet helper and does nothing when Skynet is off; there is no alarm-state path.
 
-**The cost is the whole problem.** Neighbour-to-neighbour propagation is quadratic: on a mission
-carrying 500 ground units, one full pass is 250 000 distance measurements. Three guard-rails, to be
-sized with numbers rather than assumed:
+## What the design settled
 
-1. **Slow propagation.** One hop every N seconds rather than a pass per tick. It is cheaper *and*
-   better in play: an alert that crawls across the map is worth more than one that teleports.
-2. **Expiry.** An alert has a lifetime, or the whole map stays permanently awake after the first
-   overflight of the mission.
-3. **Spatial bucketing.** Units binned into cells so that nobody is ever compared against everybody.
-   Positions change, so the bins have to be refreshed on a budget of their own.
+The full record, with the reasoning and the trade-offs accepted, is in [`design.md`](design.md).
+In brief: detection from a table keyed on DCS attributes with two separate roles per unit, seeing
+and relaying; a SAM site relays but never spots, which is what produces the domino; a spotter is a
+latch that reports once per acquisition; line of sight gates both acquisition and loss; three kinds
+of message — alert, cancellation, and a heartbeat as the safety net; the hand-over checks the firing
+envelope itself and then calls `reportContact`.
 
-Also to settle in design:
+## What the measurement changed
 
-- the detection table per unit type, and how much randomness — drawn once per unit, as the last
-  line of defense draws its radius once per site, or per attempt;
-- whether a unit that is itself under Skynet control may act as a spotter, and whether a dark SAM
-  site can see with its own eyes (it should — that is the point);
-- how this interacts with the last line of defense, which already wakes a site on close proximity:
-  the spotter network is the long-range half of the same idea, and the two must not fight over the
-  same site;
-- whether the alert carries the aircraft's position, or only "something is out there";
-- what a player-visible effect would be, if any, so the feature is not invisible.
+The bench is [`test/lua/bench_spotter_network.lua`](../../test/lua/bench_spotter_network.lua) and
+it overturned this PRD's own premise.
+
+**The quadratic cost this document called "the whole problem" is not one.** Measured on Lua 5.1.5,
+the interpreter DCS runs, at the settled 20 km range and on the worst layout built — 2 000 units on
+a dense front, 230 577 edges: a full graph rebuild is 113 ms, run once per 30 s loop; one alert
+crossing that whole network is 10.6 ms; a movement check over 2 000 units is 0.15 ms.
+**Spatial bucketing is not needed** and is struck from this lot.
+
+One implementation choice does come out of the bench rather than out of taste: **the adjacency is
+held as sets, not lists**. Re-edging a hundred units — a combat zone spawning at once — costs 86 ms
+with lists and **13.7 ms** with sets, because removing a back-edge from a list means scanning it.
+
+**The real problem is connectivity.** At the 10 km radio range this document assumed, the largest
+connected pocket covers 5.1 % of a scattered mission — an alert would never leave the group that
+raised it — and it only does real work on a dense front, at 61 %. The network percolates between
+10 and 20 km. Hence the first open point: the default should be 20 km.
+
+## Dependency — no longer blocking
+
+`FEAT-LAST-LINE-OF-DEFENSE` is **done and merged** in
+[`VEAF/Skynet-IADS`](https://github.com/VEAF/Skynet-IADS), and `reportContact` is written, tested
+and documented there. No Skynet release has been cut and the artifact carried here is still
+`3.4.0RP-VEAF build 05.09.2026`, so the door is not yet in this repository's shipped script.
+
+**That no longer blocks this lot.** The design routes the hand-over through code that already
+exists, so the work can be written and unit-tested against a stubbed `SkynetIADS` — which is what
+the helper's own tests already do. Only the in-game verification waits on
+[the vendoring ticket](../FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md).
+
+A cleaner door in Skynet — a contact entering the network's own list so it ages, refreshes and logs
+with the others — is worth proposing **after** this has run, designed on a measured need.
+
+## Proposed breakdown
+
+Not written as tickets yet: the design is settled, so they can be cut whenever implementation
+starts. Ticket 6 is separate on purpose, so it can slip without holding the mechanism.
+
+1. The unit table, detection, the latch and line of sight
+2. The graph and its three refresh loops
+3. Propagation: alert, cancellation, heartbeat
+4. Hand-over to Skynet, and the three `mission.yaml` settings
+5. The status page
+6. The game-master map view — separate, so it can slip
 
 ## Definition of done
 
-- A design document with measured costs on a mission of realistic size, before implementation.
-- Then: the feature, behind a setting, off or on by explicit decision at that point.
-- Tests covering propagation, expiry, and the Skynet hand-off.
-- Documentation in `doc/mission-maker/`, both languages.
-
-## Dependency
-
-Starts once `FEAT-LAST-LINE-OF-DEFENSE` has shipped in `VEAF/Skynet-IADS` **and** the new version is
-vendored here by
-[FIX-SKYNET-HELPER-AND-VENDORING](../FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md).
-Both, in that order: the entry point has to exist in the artifact this repository ships before any
-VEAF code can call it.
+- The feature behind its setting, **off by default**.
+- Tests covering the latch, propagation, cancellation, the heartbeat net, message ordering, and the
+  hand-over — asserting the **wiring** (loops actually scheduled, helper actually subscribed), not
+  only the handlers.
+- Documentation in `doc/mission-maker/`, both languages, per the repo's docs rules.
+- Because it ships off by default: a release-note entry that says it exists, and a demonstration
+  mission with it switched on. Without that it is the `ewr` option again — present, undocumented,
+  and dead for four years.
+- In-game verification, which is the only part that waits on the Skynet vendoring.

@@ -212,9 +212,11 @@ modules:
     spotter_network: true
     spotter_radio_range_km: 20
     spotter_propagation_speed_kmh: 3600
-    # "radio" rather than "on": it is the mode with code of its own, and it lets the same load answer
-    # the map-view half of the question without redrawing at once.
-    spotter_view: "radio"
+    # **"on", so the picture is there without anybody finding a menu.** This mission is meant to be
+    # loaded and looked at, and "radio" made that depend on a radio command reaching the viewer — which
+    # is not a given: a game master has no group, and the walkthrough's own combat-zone submenu turned
+    # out to be invisible to a red one. Quoted, because YAML reads a bare `on` as a boolean.
+    spotter_view: "on"
     # ── OFF, and this is the whole reason the rig discriminates ──────────────────────────────
     # With it on, a dark site keeps a detection radius of its own, drawn **at random between 10 and
     # 15 km**. `NetworkSa6` sits 18 km from the target point, so whether the site lit up on its own
@@ -278,6 +280,7 @@ modules:
     combat_zones:
       - type: zone
         zone_name: Sukhna
+        radio_menu_coalition: ALL
 dcs_bridge:
   enabled: true
   lua_path:           # optional — auto-download when absent

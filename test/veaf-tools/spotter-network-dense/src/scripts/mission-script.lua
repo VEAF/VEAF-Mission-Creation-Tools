@@ -100,17 +100,47 @@ end, nil, timer.getTime() + RESET_POLL_SECONDS)
 -------------------------------------------------------------------------------------------------
 
 local CORRIDOR_Y = 190000 -- easting: just west of the observation-post screen at 196000
-local INTRUDER_START_X, INTRUDER_END_X = -10000, -125000
-local INTRUDER_ALT, INTRUDER_MID_ALT, INTRUDER_SPEED = 3000, 2000, 150
+local INTRUDER_SPEED = 150
 local INTRUDER_AT = 120
 
-local function waypoint(x, alt)
+--- The run, as `{ x = northing, y = easting, alt = metres }`.
+---
+--- **The hook at waypoint 3 is the point of this route**, and it is measured rather than drawn by
+--- eye. Down the screen the aircraft is seen and relayed, but no battery ever lights up: the corridor
+--- is 21 km from Tadmor and an Osa reaches 10.3 km, so the demonstration stopped one shape short of
+--- its most interesting one — the red square and red envelope of a battery going live. The hook turns
+--- the aircraft in to **easting 204000**. Distances from that waypoint, computed rather than drawn by
+--- eye:
+---
+---   * `Tadmor-Osa` **7 800 m** — inside its 10 300 m envelope, so it goes live;
+---   * `Tadmor-Manpads` **6 627 m** — inside its 10 km sight, so the report comes from a neighbour in
+---     the Osa's own cluster. The Osa is blind (`SAM elements`, range 0) and is *told*, which is the
+---     mechanism; it is not told from the far end of the screen, and saying so would overstate it;
+---   * `OP-Charlie` **8 062 m** — also holds it, so the screen is lit at the same moment.
+---
+--- Then it turns back out west and carries on south, so the battery goes dark again and the whole
+--- cycle is visible without anybody touching the bridge.
+---
+--- A second wake-up comes free on the straight legs: `Arak-Kub` sits 22 km from the corridor and a Kub
+--- reaches 25 km, so the northern battery gets its own turn on the way in.
+---
+--- The altitude profile also stays clear of Skynet's HARM test, which needs more than two changes of
+--- flight path on top of a ground speed over 800 kt.
+local INTRUDER_ROUTE = {
+  { x = -10000, y = CORRIDOR_Y, alt = 3000 }, -- entry, from the north
+  { x = -40000, y = CORRIDOR_Y, alt = 2000 }, -- down the screen, dipping
+  { x = -55000, y = 204000, alt = 2000 }, -- the hook: inside Tadmor-Osa's envelope
+  { x = -70000, y = CORRIDOR_Y, alt = 3000 }, -- back out west
+  { x = -125000, y = CORRIDOR_Y, alt = 3000 }, -- and away south
+}
+
+local function waypoint(spec)
   return {
     type = "Turning Point",
     action = "Turning Point",
-    x = x,
-    y = CORRIDOR_Y,
-    alt = alt or INTRUDER_ALT,
+    x = spec.x,
+    y = spec.y,
+    alt = spec.alt,
     alt_type = "BARO",
     speed = INTRUDER_SPEED,
     ETA = 0,
@@ -121,28 +151,25 @@ local function waypoint(x, alt)
 end
 
 timer.scheduleFunction(function()
+  local entry = INTRUDER_ROUTE[1]
+  local points = {}
+  for i, spec in ipairs(INTRUDER_ROUTE) do
+    points[i] = waypoint(spec)
+  end
   local groupData = {
     name = "Intruder",
     task = "Nothing",
-    x = INTRUDER_START_X,
-    y = CORRIDOR_Y,
-    -- Three legs rather than two: the middle one dips, which gives the altitude profile more than the
-    -- two samples Skynet's HARM test allows.
-    route = {
-      points = {
-        [1] = waypoint(INTRUDER_START_X, INTRUDER_ALT),
-        [2] = waypoint((INTRUDER_START_X + INTRUDER_END_X) / 2, INTRUDER_MID_ALT),
-        [3] = waypoint(INTRUDER_END_X, INTRUDER_ALT),
-      },
-    },
+    x = entry.x,
+    y = entry.y,
+    route = { points = points },
     units = {
       [1] = {
         name = "Intruder-1",
         type = "F-15C",
         skill = "Excellent",
-        x = INTRUDER_START_X,
-        y = CORRIDOR_Y,
-        alt = INTRUDER_ALT,
+        x = entry.x,
+        y = entry.y,
+        alt = entry.alt,
         alt_type = "BARO",
         speed = INTRUDER_SPEED,
         -- **Pointing the way it is going**, in radians, 0 being north. It spawned at heading 0 while

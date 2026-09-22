@@ -583,7 +583,11 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
         set_language("en")
         try:
             result = generate_mission_yaml_template()
-            self.assertIn("doc/mission-maker/GUIDE.en.md", result)
+            # The published site, not the GitHub blob view: GitHub renders `{#anchor}` as part of
+            # the heading text, so no anchor written there resolves. Trailing slash before any
+            # fragment, English under /en/ — same shape as convert-v5 (DOC-GUIDE-ANCHORS).
+            self.assertIn("veaf.github.io/documentation/dev/en/mission-maker/GUIDE/", result)
+            self.assertNotIn("blob/master/doc", result)
             self.assertNotIn("doc/MISSION_MAKER_GUIDE", result)
             self.assertNotIn("doc/fr/MISSION_MAKER_GUIDE", result)
         finally:
@@ -613,9 +617,14 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
         set_language("fr")
         try:
             result = generate_mission_yaml_template()
-            self.assertIn("doc/mission-maker/GUIDE.md", result)
-            self.assertIn("#configurer-les-modules", result)
-            self.assertIn("#profils-de-build", result)
+            self.assertIn("veaf.github.io/documentation/dev/mission-maker/GUIDE/", result)
+            self.assertNotIn("/dev/en/mission-maker/", result)
+            # The anchors are the page's explicit `{#…}` ids, identical in both languages — a slug
+            # derived from the French heading names nothing the site serves.
+            self.assertIn("#configuring-modules", result)
+            self.assertIn("#build-profiles", result)
+            self.assertNotIn("#configurer-les-modules", result)
+            self.assertNotIn("#profils-de-build", result)
         finally:
             set_language(prev)
 

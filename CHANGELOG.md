@@ -36,6 +36,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `pairs`. Measured on Lua 5.1.5: `pairs("MEDEVAC")` raises. Copying the documented block was enough
   to break rescue at mission time. The example now uses a list, and a test compares every documented
   example against the defaults in `CSAR.lua` by Lua type.
+- **The `# Doc:` links in a generated `mission.yaml` resolve again.** All nine of them pointed at the
+  GitHub blob view, which renders markdown without mkdocs' `attr_list` — so a heading written
+  `## Intégration CTLD et CSAR {#ctld-and-csar-integration}` keeps the `{#…}` as part of its text and
+  serves neither the explicit id nor the plain slug. They now point at the published documentation
+  site, language-aware and with the trailing slash the fragment needs to survive the redirect. Seven
+  also used a heading-derived anchor: `#journalisation-de-débogage` was already stale, the French
+  heading having since become *Changer le niveau de log*, and `en.json` was no cleaner —
+  `#security-levels` is the English heading's slug, not the `{#security-tiers}` that heading
+  declares. Same defect, second code path: it was fixed for `convert-v5` and missed here, because
+  this generator writes its links from message keys.
 
 ### Added
 
@@ -45,6 +55,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   by what a mission maker is trying to do, with each default read from the script. It also says
   plainly that `aircraftType` is the **one** setting YAML cannot reach, being the only keyed table:
   `csarFixedUnits`, `bluemash` and `redmash` are plain lists and were never "complex settings".
+- **A gate over the documentation links a message key embeds.** `docs-check` walks `doc/` and never
+  opens a locale catalog, so a `# Doc:` URL written into a message key was unguarded — which is how
+  the nine below stayed dead. The new test resolves every documentation URL in `locales/*.json` back
+  to its markdown page, rejects a fragment the page does not declare with `{#anchor}`, and refuses a
+  link through the GitHub blob view outright. Proven against all three defects before it shipped.
 
 ## [6.24.0] — 2026-09-21
 

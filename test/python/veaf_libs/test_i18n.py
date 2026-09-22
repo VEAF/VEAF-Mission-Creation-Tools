@@ -548,5 +548,135 @@ class TestI18nNoHardcodedStrings(unittest.TestCase):
             )
 
 
+class TestI18nDocumentationLinks(unittest.TestCase):
+    """DOC-004: every documentation URL a message key embeds resolves, anchor included.
+
+    `docs-check` walks `doc/` and never opens a locale catalog, so a `# Doc:` link written into a
+    message key is unguarded. That is how the links `generate-config` writes into every generated
+    `mission.yaml` kept a dead anchor through the whole DOC-GUIDE-ANCHORS lot, which fixed the same
+    links in the *other* generator (`convert-v5`) and stopped there.
+    """
+
+    #: Where the documentation is published. `mkdocs.yml` sets this `site_url`, and `mike` serves
+    #: each version (or alias — `dev`, `latest`) under its own first path segment.
+    _SITE = "https://veaf.github.io/documentation/"
+    #: The GitHub blob view of this repository's `doc/` tree. No anchor can work there: GitHub
+    #: renders markdown without mkdocs' `attr_list`, so `## Title {#id}` keeps the `{#id}` as part
+    #: of the heading text — neither the explicit id nor the plain heading slug is served.
+    _BLOB = "https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/"
+    #: mkdocs-static-i18n `docs_structure: suffix`: the default locale (FR) is served at the root,
+    #: every other locale under its own segment, and its source file carries the matching suffix.
+    _LOCALE_SEGMENT = {"fr": "", "en": "en/"}
+
+    _URL = re.compile(r"https?://[^\s\"'`)\]]+")
+
+    def _locale_files(self) -> list[Path]:
+        """Return every locale catalog, sorted by name."""
+        locales = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_libs" / "locales"
+        return sorted(locales.glob("*.json"))
+
+    def _urls_of(self, path: Path) -> list[tuple[str, str]]:
+        """Return the ``(key, url)`` pairs found in a locale catalog.
+
+        Args:
+            path: The catalog to read.
+
+        Returns:
+            One pair per URL, in catalog order; a key carrying several URLs yields several pairs.
+        """
+        import json
+
+        found: list[tuple[str, str]] = []
+        for key, value in json.loads(path.read_text(encoding="utf-8")).items():
+            if not isinstance(value, str):
+                continue
+            # A URL at the end of a sentence keeps the sentence's punctuation; the site never
+            # serves a path ending in one, so stripping it avoids a phantom failure.
+            found.extend((key, url.rstrip(".,;:")) for url in self._URL.findall(value))
+        return found
+
+    def _page_of(self, url: str, lang: str) -> tuple[Path | None, str, str]:
+        """Resolve a documentation-site URL to its markdown source.
+
+        Args:
+            url: The full URL, fragment included.
+            lang: The locale catalog the URL was found in.
+
+        Returns:
+            ``(page, fragment, problem)`` — ``page`` is ``None`` when the URL cannot name a page,
+            in which case ``problem`` says why; ``problem`` is empty otherwise.
+        """
+        rest, _, fragment = url[len(self._SITE) :].partition("#")
+        segments = [s for s in rest.split("/") if s]
+        if not segments:
+            return None, fragment, "no version segment"
+        expected = self._LOCALE_SEGMENT.get(lang)
+        if expected is None:
+            return None, fragment, f"no site segment is declared for locale '{lang}'"
+        # Drop the mike version/alias (`dev`, `latest`, `6.24.0`), then the locale segment.
+        segments = segments[1:]
+        known = set(self._LOCALE_SEGMENT.values())
+        served_under = f"{segments[0]}/" if segments and f"{segments[0]}/" in known else ""
+        if served_under != expected:
+            under = served_under or "/"
+            return None, fragment, f"served under '{under}' but the {lang} catalog needs '{expected or '/'}'"
+        if served_under:
+            segments = segments[1:]
+        suffix = ".en.md" if lang == "en" else ".md"
+        # mkdocs' default directory URLs: `doc/a/B.md` is served as `a/B/`, and a directory's
+        # index at `a/`.
+        stem = "/".join(segments) if segments else "index"
+        return Path(__file__).parents[3] / "doc" / f"{stem}{suffix}", fragment, ""
+
+    def test_no_documentation_link_goes_through_the_github_blob_view(self) -> None:
+        offenders: list[str] = []
+        for path in self._locale_files():
+            for key, url in self._urls_of(path):
+                if url.startswith(self._BLOB) and "/doc/" in url:
+                    offenders.append(f"{path.name}:{key} -> {url}")
+        self.assertEqual(
+            offenders,
+            [],
+            "The blob view renders `{#anchor}` as heading text, so no anchor written there resolves"
+            " — link the published site instead:\n  " + "\n  ".join(offenders),
+        )
+
+    def test_every_documentation_link_names_a_page_that_exists(self) -> None:
+        problems: list[str] = []
+        for path in self._locale_files():
+            for key, url in self._urls_of(path):
+                if not url.startswith(self._SITE):
+                    continue
+                page, _, problem = self._page_of(url, path.stem)
+                if page is None:
+                    problems.append(f"{path.name}:{key} -> {url} ({problem})")
+                elif not page.exists():
+                    problems.append(f"{path.name}:{key} -> {url} (no such page: {page.name})")
+        self.assertEqual(problems, [], "Unresolvable documentation links:\n  " + "\n  ".join(problems))
+
+    def test_every_documentation_anchor_is_an_explicit_one(self) -> None:
+        from veaf_build.docs_check import anchors_of
+
+        problems: list[str] = []
+        for path in self._locale_files():
+            for key, url in self._urls_of(path):
+                if not url.startswith(self._SITE):
+                    continue
+                page, fragment, _ = self._page_of(url, path.stem)
+                if not fragment or page is None or not page.exists():
+                    continue  # already reported by the two tests above
+                every, explicit = anchors_of(page)
+                if fragment in explicit:
+                    continue
+                why = "derived from a heading" if fragment in every else "not an anchor of that page"
+                problems.append(f"{path.name}:{key} -> #{fragment} in {page.name} ({why})")
+        self.assertEqual(
+            problems,
+            [],
+            "An anchor a heading merely derives breaks on the next reword and differs between FR and"
+            " EN — declare it with `{#anchor}`:\n  " + "\n  ".join(problems),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

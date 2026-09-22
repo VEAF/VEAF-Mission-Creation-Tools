@@ -2,41 +2,38 @@ import shutil
 from pathlib import Path
 
 import typer
+from aircrafts_injector.catalogue import DYNAMIC_TEMPLATES_FILENAME, SPAWNABLES_FILENAME, empty_catalogue_yaml
 from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME
 from veaf_libs.paths import resolve_path
+from veaf_libs.shipped_defaults import defaults_source_candidates as _defaults_source_candidates
+from veaf_libs.shipped_defaults import resolve_defaults_source as _resolve_defaults_source
 
 from veaf_tools.app import README_HELP, VERBOSE_HELP, VERSION, app, console, logger, t, tn
 from veaf_tools.helpers import _ask_replace
 
+#: The two aircraft catalogues, laid down empty rather than copied in full.
+#:
+#: Copying them is what froze a mission folder: 637 KB of duplicate on the day the folder was
+#: created, read by every later build and refreshed by nothing (FEAT-DEFAULTS-CATALOGUE-FLOW).
+#: Since the build falls back to the shipped catalogue whenever the mission's file holds no group,
+#: the copy buys nothing at all — and the skeleton's header comment says so, so nobody reads the
+#: empty file as a way to switch the step off.
+SKELETON_CATALOGUES: frozenset[str] = frozenset({SPAWNABLES_FILENAME, DYNAMIC_TEMPLATES_FILENAME})
 
-def _defaults_source_candidates(mission_folder: Path) -> list[Path]:
-    """Ordered locations to look for the default mission-folder scaffold.
 
-    The defaults ship in ``published.zip`` and are installed by the updater into
-    ``<mission>/published/`` — so that is the primary location and the only one
-    that works from the packaged exe (where ``__file__`` lives in a PyInstaller
-    temp dir). The dev-checkout path is the fallback.
+def _install_default_file(source_file: Path, dest_file: Path, relative_path: Path) -> None:
+    """Install one file of the scaffold, as a skeleton when it is an aircraft catalogue.
 
     Args:
-        mission_folder: The folder being prepared.
-
-    Returns:
-        Candidate ``defaults/mission-folder`` directories, most-preferred first.
+        source_file: The file inside the shipped scaffold.
+        dest_file: Where it goes in the mission folder.
+        relative_path: *source_file* relative to the scaffold root, which is what identifies a
+            catalogue — the file name alone would also match one sitting anywhere else.
     """
-    return [
-        # Installed by the updater from published.zip
-        mission_folder / "published" / "src" / "defaults" / "mission-folder",
-        # Dev checkout: <repo>/src/defaults/mission-folder
-        Path(__file__).resolve().parents[4] / "defaults" / "mission-folder",
-    ]
-
-
-def _resolve_defaults_source(mission_folder: Path) -> Path | None:
-    """Return the first existing default-scaffold directory, or ``None``."""
-    for candidate in _defaults_source_candidates(mission_folder):
-        if candidate.is_dir():
-            return candidate
-    return None
+    if relative_path.parent == Path("src") and relative_path.name in SKELETON_CATALOGUES:
+        dest_file.write_text(empty_catalogue_yaml(relative_path.name), encoding="utf-8")
+        return
+    shutil.copy2(source_file, dest_file)
 
 
 def _scaffold_ctld_config(mission_folder: Path, defaults_source_path: Path) -> None:
@@ -272,7 +269,7 @@ def prepare(
                         should_replace = auto_replace
 
                     if should_replace:
-                        shutil.copy2(source_file, dest_file)
+                        _install_default_file(source_file, dest_file, relative_path)
                         logger.debug(f"Replaced: {relative_path}")
                         files_installed += 1
                     else:
@@ -281,7 +278,7 @@ def prepare(
                         if relative_path == Path("mission.yaml"):
                             mission_yaml_kept = True
                 else:
-                    shutil.copy2(source_file, dest_file)
+                    _install_default_file(source_file, dest_file, relative_path)
                     logger.debug(f"Installed: {relative_path}")
                     files_installed += 1
 

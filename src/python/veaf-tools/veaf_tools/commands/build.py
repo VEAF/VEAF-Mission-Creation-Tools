@@ -5,12 +5,14 @@ from pathlib import Path
 import typer
 import yaml
 from aircrafts_injector import AircraftGroupsInjectorWorker, AircraftGroupsYAMLValidator
+from aircrafts_injector.catalogue import catalogue_file_has_groups
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
 from spawn_data_injector import SpawnDataInjectorWorker
 from veaf_libs.build_profiles import canonical_profile_name, pipeline_step_subflag
 from veaf_libs.paths import resolve_path
+from veaf_libs.shipped_defaults import shipped_default_file
 from veaf_libs.yaml_validator import validate_yaml_file
 from warehouses_injector import WarehousesInjectorWorker
 from waypoints_injector import WaypointsInjectorWorker
@@ -189,6 +191,44 @@ def resolve_pipeline_step_file(pipeline_cfg: dict, mission_folder: Path, key: st
     return None
 
 
+def resolve_aircraft_catalogue(
+    pipeline_cfg: dict, mission_folder: Path, key: str, candidate: str
+) -> tuple[Path | None, bool]:
+    """Resolve an aircraft-group catalogue, falling back to the one shipped with the tool.
+
+    The two aircraft-group steps differ from every other pipeline step in one way: their input is
+    a **catalogue**, most of which nobody edits. `prepare` used to copy it into the mission folder,
+    where it froze — a folder prepared in June never sees a template added since, however often
+    its owner updates the tool (FEAT-DEFAULTS-CATALOGUE-FLOW).
+
+    So an absent or **empty** mission file now means "use the shipped catalogue", not "inject
+    nothing". Switching the step off is said in `mission.yaml` (``<key>: false``), and an explicit
+    ``{file: …}`` is taken at its word — a typo there skips the step rather than quietly injecting
+    a catalogue the maker did not name.
+
+    Args:
+        pipeline_cfg: The ``pipeline:`` mapping from mission.yaml.
+        mission_folder: The mission folder being built.
+        key: The pipeline step key (``spawnable_aircrafts`` or ``dynamic_slot_templates``).
+        candidate: The default file path relative to *mission_folder*, e.g. ``src/spawnables.yaml``.
+
+    Returns:
+        The catalogue to inject and whether it is the shipped one, or ``(None, False)`` when the
+        step is disabled or no catalogue can be found.
+    """
+    step_cfg = pipeline_cfg.get(key)
+    if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
+        return None, False
+    if isinstance(step_cfg, dict) and "file" in step_cfg:
+        return resolve_pipeline_step_file(pipeline_cfg, mission_folder, key, candidate), False
+
+    local = mission_folder / candidate
+    if local.is_file() and catalogue_file_has_groups(local):
+        return local, False
+    shipped = shipped_default_file(mission_folder, candidate)
+    return shipped, shipped is not None
+
+
 @app.command(help=t("cmd.build.help"))
 def build(
     readme: bool = typer.Option(False, help=README_HELP),
@@ -311,7 +351,7 @@ def build(
 
         def _inject_aircraft_step(step_key: str, candidate: str) -> None:
             """Inject one aircraft-group family file (spawnables or dynamic-slot templates)."""
-            path = _step_file(step_key, candidate)
+            path, is_shipped = resolve_aircraft_catalogue(worker.pipeline_cfg, p_mission_folder, step_key, candidate)
             if not path:
                 return
             mode = "add"
@@ -322,7 +362,13 @@ def build(
             is_valid, _ = validator.validate()
             if is_valid:
                 logger.info(t("pipeline.injecting_aircraft_mode", path=path, mode=mode))
-                logger.step(t("pipeline.console.aircraft", file=path.name, mode=mode))
+                # Which catalogue, and where it came from: "spawnables.yaml" alone reads the same
+                # whether it is the maker's file or the one shipped with the tool, and the whole
+                # point of the fallback is that those are now two different files.
+                if is_shipped:
+                    logger.step(t("pipeline.console.aircraft_shipped", file=path.name, mode=mode))
+                else:
+                    logger.step(t("pipeline.console.aircraft", file=path.name, mode=mode))
                 result = AircraftGroupsInjectorWorker(
                     input_yaml=path,
                     target_mission=variant_output,

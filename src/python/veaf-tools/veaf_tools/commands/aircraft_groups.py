@@ -1,14 +1,18 @@
 from pathlib import Path
+from typing import Any
 
 import typer
+import yaml
 from aircrafts_injector import (
     AircraftGroupsExtractorREADME,
     AircraftGroupsExtractorWorker,
     AircraftGroupsInjectorWorker,
     AircraftGroupsYAMLValidator,
 )
+from aircrafts_injector.catalogue import GroupRef, iter_groups, load_catalogue, merge_missing
 from rich.markdown import Markdown
 from veaf_libs.paths import resolve_path
+from veaf_libs.shipped_defaults import shipped_default_file
 
 from veaf_tools.app import (
     DEFAULT_MISSION_FILE,
@@ -205,6 +209,153 @@ def inject_aircraft_groups(
         console.print(tn("cmd.inject_aircraft.injected", result.groups_injected))
     else:
         console.print(t("cmd.inject_aircraft.partial", message=result.message))
+
+    console.print(t("msg.work_done"))
+    if pause:
+        input(t("help.pause_msg"))
+
+
+#: The two aircraft-group catalogues a mission folder can own, by ``--kind`` value.
+_CATALOGUE_FILES: dict[str, str] = {
+    "spawnable": "src/spawnables.yaml",
+    "dynamic-template": "src/dynamic-slot-templates.yaml",
+}
+
+
+def _pull_delta(mine: dict[str, Any], shipped: dict[str, Any]) -> tuple[list[GroupRef], list[GroupRef]]:
+    """Split the shipped catalogue into what the mission is missing and what it already owns.
+
+    Args:
+        mine: The mission folder's catalogue.
+        shipped: The catalogue shipped with the tool.
+
+    Returns:
+        The missing refs and the shared ones, both in shipped-file order.
+    """
+    owned = {ref.name for ref, _ in iter_groups(mine)}
+    missing = [ref for ref, _ in iter_groups(shipped) if ref.name not in owned]
+    kept = [ref for ref, _ in iter_groups(shipped) if ref.name in owned]
+    return missing, kept
+
+
+def _report_delta(local: Path, mine: dict[str, Any], missing: list[GroupRef], kept: list[GroupRef], verbose: bool) -> None:
+    """Print what the shipped catalogue has that *local* does not, grouped by coalition.
+
+    Args:
+        local: The mission folder's catalogue file, named as the report's heading.
+        mine: Its parsed content, for the "yours" count.
+        missing: The refs the mission does not have.
+        kept: The refs present on both sides — listed as kept rather than hidden, so nobody
+            wonders what the command did with them.
+        verbose: Whether to name the kept entries as well as count them.
+    """
+    console.print(
+        t(
+            "cmd.pull_aircraft.file_header",
+            file=local.name,
+            mine=sum(1 for _ in iter_groups(mine)),
+            missing=len(missing),
+            kept=len(kept),
+        )
+    )
+    current = ""
+    for ref in missing:
+        heading = f"{ref.category} / {ref.coalition} / {ref.country}"
+        if heading != current:
+            console.print(t("cmd.pull_aircraft.missing_header", location=heading))
+            current = heading
+        console.print(t("cmd.pull_aircraft.group_line", group=ref.name))
+    if not missing:
+        console.print(t("cmd.pull_aircraft.up_to_date"))
+    if kept:
+        console.print(tn("cmd.pull_aircraft.kept_note", len(kept)))
+        if verbose:
+            for ref in kept:
+                console.print(t("cmd.pull_aircraft.group_line", group=ref.name))
+
+
+def _write_catalogue(path: Path, catalogue: dict[str, Any]) -> None:
+    """Write a catalogue back, in the encoding and layout the extractor uses.
+
+    UTF-8 explicitly and ``allow_unicode=True``: a catalogue holds accented liveries and
+    callsigns, and the process locale would write cp1252 on a French Windows while every reader
+    opens it as UTF-8.
+
+    Args:
+        path: The file to write.
+        catalogue: The merged catalogue.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as yaml_file:
+        yaml.dump(catalogue, yaml_file, default_flow_style=False, sort_keys=True, allow_unicode=True)
+
+
+@app.command(help=t("cmd.pull_aircraft.help"))
+def pull_aircraft_groups(
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    kind: str = typer.Option("both", help=t("cmd.pull_aircraft.opt.kind")),
+    add: list[str] = typer.Option([], "--add", help=t("cmd.pull_aircraft.opt.add")),
+    add_new: bool = typer.Option(False, "--add-new", help=t("cmd.pull_aircraft.opt.add_new")),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.pull_aircraft.opt.mission_folder")),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+
+    logger.set_verbose(verbose)
+    console.print(t("cmd.pull_aircraft.title", version=VERSION))
+
+    if kind not in ("both", "spawnable", "dynamic-template"):
+        logger.error(t("cmd.aircraft.invalid_kind", kind=kind), exception_type=ValueError)
+
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    if not p_mission_folder.exists():
+        logger.error(t("cmd.aircraft.folder_not_found", path=p_mission_folder), exception_type=FileNotFoundError)
+
+    kinds = list(_CATALOGUE_FILES) if kind == "both" else [kind]
+
+    # Read everything before writing anything: an unknown --add name must leave both files alone,
+    # and with --kind both a name living in the other family is not unknown at all.
+    families: list[tuple[Path, dict[str, Any], dict[str, Any]]] = []
+    for family in kinds:
+        relative = _CATALOGUE_FILES[family]
+        shipped_path = shipped_default_file(p_mission_folder, relative)
+        if shipped_path is None:
+            console.print(t("cmd.pull_aircraft.no_shipped", file=Path(relative).name))
+            continue
+        families.append((p_mission_folder / relative, load_catalogue(p_mission_folder / relative), load_catalogue(shipped_path)))
+
+    if not families:
+        raise typer.Exit(1)
+
+    if add:
+        available = {ref.name for _, _, shipped in families for ref, _ in iter_groups(shipped)}
+        if unknown := sorted(set(add) - available):
+            console.print(t("cmd.pull_aircraft.unknown_names", names=", ".join(unknown)))
+            raise typer.Exit(1)
+
+    selection: set[str] | None
+    if add_new:
+        selection = None
+    elif add:
+        selection = set(add)
+    else:
+        selection = set()  # report-only: nothing is taken
+
+    total_added = 0
+    for local, mine, shipped in families:
+        missing, kept = _pull_delta(mine, shipped)
+        _report_delta(local, mine, missing, kept, verbose)
+        if not add_new and not add:
+            continue
+        merged, added = merge_missing(mine, shipped, names=selection)
+        if not added:
+            console.print(t("cmd.pull_aircraft.nothing_added", file=local.name))
+            continue
+        _write_catalogue(local, merged)
+        total_added += len(added)
+        console.print(tn("cmd.pull_aircraft.added", len(added), file=local.name))
+
+    if not add_new and not add:
+        console.print(t("cmd.pull_aircraft.hint"))
 
     console.print(t("msg.work_done"))
     if pause:

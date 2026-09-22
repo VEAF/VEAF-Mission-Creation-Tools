@@ -1,6 +1,6 @@
 # 01 — Documentation links that resolve, and a gate that keeps them resolving
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: fix
 

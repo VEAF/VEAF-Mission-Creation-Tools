@@ -1,6 +1,6 @@
 # FIX-MISSION-YAML-DOC-LINKS — the `# Doc:` links in a generated `mission.yaml` do not resolve
 
-Status: 🔄 in-progress
+Status: ✅ done — PR #987 merged 2026-09-22
 
 Origin: David, 2026-09-22, while reviewing PR #986 (FIX-CSAR-YAML-SETTINGS). Pre-existing and
 deliberately left out of that PR's scope.
@@ -93,7 +93,7 @@ also rejects a GitHub blob link into `doc/`, since no anchor can work there.
 
 ## 01 — Documentation links that resolve, and a gate that keeps them resolving
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ### Tasks
 

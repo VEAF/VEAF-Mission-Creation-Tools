@@ -148,11 +148,10 @@ export async function askLive(endpoint, spec, fetchImpl = fetch) {
       "X-VEAF-Client": "cli",
       "User-Agent": USER_AGENT,
     },
-    body: JSON.stringify({
-      lang: spec.lang,
-      messages: conversation(spec.question),
-      subject: "replay-answers",
-    }),
+    // No `subject`: the Worker only honours one for a client mode holding a secret, and `cli` holds
+    // none, so its rate limit is keyed on the caller's IP whatever is sent. Sending one anyway
+    // would read as a quota this script controls, which it does not.
+    body: JSON.stringify({ lang: spec.lang, messages: conversation(spec.question) }),
   });
   const body = await response.text();
   if (!response.ok) {
@@ -202,11 +201,15 @@ async function main(argv) {
   for (const [index, spec] of selected.entries()) {
     if (index) await sleep(PACING_SECONDS * 1000);
     const { text, error } = await askLive(endpoint, spec);
-    if (error) {
+    // An empty stream carrying no error is the same thing as an error for this purpose: the
+    // assistant did not answer. Sent to `verdict` it would miss every marker and be printed as a
+    // wrong answer, which is the one reading that is certainly false. The support bot draws the
+    // same line, and calls it `FailureKind.EMPTY`.
+    if (error || !text.trim()) {
       // Not a red case: the assistant never got to answer. Counted apart so a quota day cannot be
       // read as the fix having regressed.
       unavailable += 1;
-      console.log(`⚠ ${spec.id}: no answer — ${error}`);
+      console.log(`⚠ ${spec.id}: no answer — ${error ?? "the stream carried no text"}`);
       continue;
     }
     const outcome = verdict(text, spec);

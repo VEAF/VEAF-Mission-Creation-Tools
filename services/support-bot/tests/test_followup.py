@@ -22,6 +22,7 @@ from veaf_support_bot.followup import (
     followup_turns,
     retrieval_query,
     strip_mentions,
+    widening_subject,
 )
 from veaf_support_bot.quota import QuotaKeeper, QuotaLimits, QuotaStore
 from veaf_support_bot.texts import text
@@ -69,6 +70,55 @@ class RetrievalQueryTests(unittest.TestCase):
         self.assertEqual(len(query), MAX_QUESTION_CHARS)
 
 
+class WideningSubjectTests(unittest.TestCase):
+    """Which question a follow-up is widened with, once a thread has run for a while."""
+
+    def test_uses_the_opening_question_of_a_thread_that_has_said_nothing_else(self) -> None:
+        """On the first follow-up the latest question *is* the opening one."""
+        conversation = ThreadConversation(
+            thread_id="t1",
+            question="comment ajouter un préréglage radio ?",
+            turns=[
+                {"role": "user", "content": "comment ajouter un préréglage radio ?"},
+                {"role": "assistant", "content": "dans mission.yaml, sous radioPresets."},
+            ],
+        )
+        self.assertEqual(widening_subject(conversation), "comment ajouter un préréglage radio ?")
+
+    def test_follows_a_thread_that_changed_subject(self) -> None:
+        """A thread that drifted must retrieve on where it is now, not on where it started."""
+        conversation = ThreadConversation(
+            thread_id="t1",
+            question="comment ajouter un centre de commandement au réseau Skynet ?",
+            turns=[
+                {"role": "user", "content": "comment ajouter un centre de commandement au réseau Skynet ?"},
+                {"role": "assistant", "content": "avec addCommandCenterOfCoalition."},
+                {"role": "user", "content": "et comment paramétrer le module CSAR ?"},
+                {"role": "assistant", "content": "par un callback de configuration."},
+            ],
+        )
+        self.assertEqual(widening_subject(conversation), "et comment paramétrer le module CSAR ?")
+
+    def test_falls_back_to_the_opening_question_when_no_turn_was_kept(self) -> None:
+        """Turns are trimmed and a record can be read back short; the subject must survive that."""
+        conversation = ThreadConversation(thread_id="t1", question="comment créer une mission ?")
+        self.assertEqual(widening_subject(conversation), "comment créer une mission ?")
+
+    def test_ignores_an_empty_turn(self) -> None:
+        """A blank turn carries no subject, and widening with it would retrieve on nothing."""
+        conversation = ThreadConversation(
+            thread_id="t1",
+            question="comment créer une mission ?",
+            turns=[
+                {"role": "user", "content": "comment créer une mission ?"},
+                {"role": "assistant", "content": "avec veaf-tools."},
+                {"role": "user", "content": "   "},
+                {"role": "assistant", "content": "?"},
+            ],
+        )
+        self.assertEqual(widening_subject(conversation), "comment créer une mission ?")
+
+
 class FollowupTurnsTests(unittest.TestCase):
     """The conversation handed to the Worker for a follow-up."""
 
@@ -97,6 +147,20 @@ class FollowupTurnsTests(unittest.TestCase):
         """Without the previous turns the model answers an ellipsis with no antecedent."""
         turns = followup_turns(self.conversation, "et les modèles ?")
         self.assertIn({"role": "assistant", "content": "dans mission.yaml, sous radioPresets."}, turns)
+
+    def test_widens_the_follow_up_with_the_subject_the_thread_reached(self) -> None:
+        """The whole point: the passages are picked on what the thread is about *now*."""
+        self.conversation.turns.extend(
+            [
+                {"role": "user", "content": "et comment paramétrer le module CSAR ?"},
+                {"role": "assistant", "content": "par un callback de configuration."},
+            ]
+        )
+        turns = followup_turns(self.conversation, "et pour le reste ?")
+        last = turns[-1]["content"]
+        self.assertIn("CSAR", last)
+        self.assertNotIn("préréglage radio", last)
+        self.assertTrue(last.endswith("et pour le reste ?"))
 
     def test_alternates_roles_so_the_model_reads_a_conversation(self) -> None:
         """Two user turns in a row is not a conversation, and Gemini rejects some shapes of it."""

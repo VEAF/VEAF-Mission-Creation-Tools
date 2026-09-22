@@ -1,6 +1,6 @@
 # 03 — Retrieve on the question, not on the ellipsis
 
-Status: ✅ done — merged in #931
+Status: ✅ done — merged in #931. Amended 2026-09-22: the widening uses the **latest** question asked in the thread, not the opening one — a thread that drifted kept retrieving on the subject it started from.
 
 Type: feat
 

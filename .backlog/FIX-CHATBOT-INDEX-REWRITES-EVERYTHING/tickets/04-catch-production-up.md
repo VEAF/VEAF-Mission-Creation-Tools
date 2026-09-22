@@ -1,6 +1,6 @@
 # 04 — Catch production up
 
-Status: 🧑 waiting-human
+Status: ✅ done — 2026-09-22, run 35702564003
 
 Type: chore
 
@@ -41,7 +41,26 @@ the right ones.
 
 ## Definition of done
 
-- [ ] The workflow run by hand after the quota resets, green, with `Index verified`
-- [ ] The printed write cost is 4
-- [ ] The live assistant answers a question that only #975/#977/#978 documents
+- [x] The workflow run by hand after the quota resets, green, with `Index verified`
+- [x] The printed write cost is 4
+- [x] The live assistant answers a question that only #975/#977/#978 documents
 - [ ] Then ticket 06: the transition fallback comes out
+
+## Done — 2026-09-22 08:01 UTC, run 35702564003
+
+The quota had reset at 00:00 UTC and nothing had rebuilt since the 21:12 failure, so the index was
+still the 09:56 snapshot. Run by hand on `develop`, green in 1 min 20.
+
+- `Prepared 1396 chunks; 1353 cached, 43 to embed` — the 43 are the newly merged pages.
+- `KV writes to upload this index: 4 (2 keys x 2 languages)`, all four with `--remote`.
+- `Index verified: the namespace holds exactly what this build produced.`
+
+Confirmed on the live assistant rather than on the run's own green, in both languages, with the
+spotter view's colour table — which only #978 documents:
+
+| | |
+|---|---|
+| fr | *"que signifie un cercle orange autour d'un nœud ?"* → **"ce nœud a un avion en vue"** |
+| en | *"orange circle / red square?"* → **"has an aircraft in sight" / "is a battery, and it is live"** |
+
+Both HTTP 200. Ticket 06 is unblocked.

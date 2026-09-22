@@ -9,6 +9,8 @@ import {
 } from "../scripts/build-index.mjs";
 import { compareBytes, parseChecks, KV_MISSING_SENTINEL } from "../scripts/verify-index-upload.mjs";
 import { l2normalize, topScore, summarise, separation, readVectors } from "../scripts/calibrate-floor.mjs";
+import { verdict, parseStream, conversation, askLive, exitCode } from "../scripts/replay-answers.mjs";
+import { readFile } from "node:fs/promises";
 import worker, {
   latestQuery,
   toGeminiContents,
@@ -963,4 +965,172 @@ test("readVectors copes with a Buffer that is not 4-aligned", () => {
   const misaligned = pool.subarray(2, 10);
   assert.equal(misaligned.byteOffset % 4, 2, "the fixture must actually be misaligned");
   assert.equal(readVectors(misaligned).length, 2);
+});
+
+// --- Answering the need ----------------------------------------------------
+// A question arrives wrapped in the approach its asker already took, and the assistant used to stay
+// inside that wrapping: asked how to simplify a Lua block setting three booleans, it answered
+// correctly about the Lua callback and never said four lines of `mission.yaml` replaced the whole
+// block — with the excerpt saying exactly that in its own context and cited in its own sources.
+//
+// What a unit test can reach here is the instruction, not the answer. The answer is a model's, and
+// it is replayed against the live assistant by `scripts/replay-answers.mjs`; these pin the rule's
+// two halves, since the fix is worth nothing if it becomes "always suggest YAML".
+
+test("with passages, the model is told to answer the need and not only the phrasing", () => {
+  const instruction = systemInstruction("fr", "# Une page\n\ndu texte");
+  assert.match(instruction, /Answer the need, not only the question as it is phrased/);
+  assert.match(instruction, /simpler supported way/, "the simple path is what it must surface");
+  assert.match(instruction, /still answer what was asked/, "the question asked is still answered");
+});
+
+test("the simpler path is offered only when an excerpt states it", () => {
+  const instruction = systemInstruction("en", "# A page\n\nsome text");
+  assert.match(instruction, /only when an excerpt states that simpler way/);
+  assert.match(instruction, /never from your own knowledge/);
+  // The guardrail half: a setting documented as reachable only by the long route keeps it. Without
+  // this the fix trades one wrong default for a worse one — `aircraftType` is a keyed value the
+  // build refuses in YAML, so that answer would not merely read badly, it would not work.
+  assert.match(instruction, /never when the excerpts say it does not cover their case/);
+  assert.match(instruction, /reachable only by the longer route/);
+});
+
+test("with no passage, nothing invites the model to volunteer a simpler path", () => {
+  // Nothing was retrieved, so there is no excerpt to ground a "there is a simpler way" in, and the
+  // empty-handed instruction must stay what it is: a refusal, not an invitation to be helpful.
+  const instruction = systemInstruction("fr", "");
+  assert.doesNotMatch(instruction, /simpler supported way/);
+  assert.match(instruction, /Do NOT answer from your own knowledge/);
+});
+
+// --- Replaying the answers against the live assistant ----------------------
+// The script itself needs a deployed Worker and a model, so what is tested here is its judgement:
+// the verdict, the stream parsing, and the shape of the declared cases.
+
+test("a verdict names what was missing, not merely that something was", () => {
+  const spec = { expectAll: ["mission.yaml", "settings"], forbid: ["aircraftType:"] };
+  assert.deepEqual(verdict("Mettez ça dans mission.yaml sous settings:", spec).missing, []);
+  assert.equal(verdict("Mettez ça dans mission.yaml sous settings:", spec).ok, true);
+  const short = verdict("Utilisez le callback Lua.", spec);
+  assert.equal(short.ok, false);
+  assert.deepEqual(short.missing, ["mission.yaml", "settings"]);
+});
+
+test("a forbidden marker fails a case that is otherwise complete", () => {
+  // The guardrail, as the script sees it: a YAML block for `aircraftType` does not work at all.
+  const spec = { expectAny: ["callback"], forbid: ["aircraftType:"] };
+  const answer = "Utilisez le callback Lua, ou bien :\n```yaml\naircraftType:\n  UH-1H: 8\n```";
+  const outcome = verdict(answer, spec);
+  assert.equal(outcome.ok, false);
+  assert.deepEqual(outcome.forbidden, ["aircraftType:"]);
+});
+
+test("an empty expectAny requires nothing instead of satisfying nothing", () => {
+  // `[].some()` is false, so the naive reading fails every case that only declares `expectAll`.
+  assert.equal(verdict("n'importe quoi", { expectAll: [] }).ok, true);
+  assert.equal(verdict("n'importe quoi", { expectAny: [] }).ok, true);
+});
+
+test("markers are matched whatever the case of the answer", () => {
+  assert.equal(verdict("Mission.YAML", { expectAll: ["mission.yaml"] }).ok, true);
+});
+
+test("the Worker's own error inside a 200 stream is not read as an empty answer", () => {
+  // A spent daily allowance arrives this way. Reported as "could not ask", never as a failed case.
+  const body = 'data: {"text":"Pour"}\n\ndata: {"error":"allocation épuisée"}\n\ndata: [DONE]\n\n';
+  const parsed = parseStream(body);
+  assert.equal(parsed.text, "Pour");
+  assert.equal(parsed.error, "allocation épuisée");
+});
+
+test("a malformed frame does not end an otherwise good stream", () => {
+  const body = 'data: {"text":"a"}\n\ndata: not json\n\n: comment\n\ndata: {"text":"b"}\n\ndata: [DONE]\n\n';
+  assert.equal(parseStream(body).text, "ab");
+  assert.equal(parseStream(body).error, null);
+});
+
+test("the question is the last user turn and carries nothing else", () => {
+  // The Worker embeds that turn verbatim; an instruction joined to it would be embedded with it.
+  const turns = conversation("comment simplifier ce bloc ?");
+  assert.equal(turns.length, 1);
+  assert.deepEqual(turns.at(-1), { role: "user", content: "comment simplifier ce bloc ?" });
+});
+
+test("the declared cases cover both directions of the defect", async () => {
+  const file = new URL("../scripts/answer-cases.json", import.meta.url);
+  const { cases } = JSON.parse(await readFile(file, "utf8"));
+  const byId = new Map(cases.map((c) => [c.id, c]));
+  for (const spec of cases) {
+    assert.ok(spec.question.trim(), `${spec.id} asks something`);
+    assert.ok(["fr", "en"].includes(spec.lang), `${spec.id} declares a language`);
+    assert.ok(spec.why.trim(), `${spec.id} says what it is for`);
+    assert.ok(
+      (spec.expectAll ?? []).length || (spec.expectAny ?? []).length,
+      `${spec.id} asserts something about the answer`,
+    );
+  }
+  // Named rather than counted: a case set that lost the guardrail would still have three cases.
+  const simple = byId.get("csar-booleans-fr");
+  assert.ok(simple.expectAll.includes("mission.yaml"), "the simple path must be named");
+  const keyed = byId.get("csar-aircrafttype-fr");
+  assert.ok(keyed.forbid.includes("aircraftType:"), "the keyed setting must not be offered in YAML");
+  assert.ok(keyed.expectAny.includes("csar.initialize"), "the callback stays the answer there");
+});
+
+test("askLive declares a User-Agent, which Cloudflare refuses the request without", () => {
+  // Measured 2026-09-22: Node's default client sends none and every call came back 403 with body
+  // `error code: 1010` — a managed rule, before the Worker runs, so nothing in its log says so. It
+  // reads exactly like the Worker's own client-admission 403, which is why this is pinned.
+  let seen = null;
+  const fake = async (url, init) => {
+    seen = init;
+    return { ok: true, status: 200, async text() { return 'data: [DONE]\n\n'; } };
+  };
+  return askLive("https://example.invalid/chat", { lang: "fr", question: "q" }, fake).then(() => {
+    assert.ok(seen.headers["User-Agent"], "a User-Agent is sent");
+    assert.equal(seen.headers["X-VEAF-Client"], "cli", "the secret-free client mode is declared");
+    assert.ok(!("X-VEAF-Auth" in seen.headers), "no secret is needed, and none is invented");
+  });
+});
+
+test("a non-200 is reported as an unaskable case, not as a wrong answer", async () => {
+  const fake = async () => ({ ok: false, status: 429, async text() { return "Too Many Requests"; } });
+  const result = await askLive("https://example.invalid/chat", { lang: "fr", question: "q" }, fake);
+  assert.equal(result.status, 429);
+  assert.match(result.error, /HTTP 429/);
+  assert.equal(result.text, "");
+});
+
+test("a run that measured nothing does not exit like a green one", () => {
+  // The failure this repository has already paid for twice: a check that goes green having observed
+  // nothing. On a spent-allowance day every case is unavailable, and 0 would certify the fix.
+  assert.equal(exitCode({ failed: 0, unavailable: 3, total: 3 }), 2);
+  assert.equal(exitCode({ failed: 0, unavailable: 2, total: 3 }), 0, "one real answer is a measurement");
+  assert.equal(exitCode({ failed: 1, unavailable: 2, total: 3 }), 1, "a failure outranks an outage");
+  assert.equal(exitCode({ failed: 0, unavailable: 0, total: 3 }), 0);
+  assert.equal(exitCode({ failed: 0, unavailable: 0, total: 0 }), 0, "no case selected is not an outage");
+});
+
+test("the declared markers separate the two answers, not merely mention the subject", async () => {
+  // The trap this nearly shipped with: an English answer recommending the Lua callback can say
+  // "in mission.yaml" and "these settings" in prose, so those words alone pass on the very answer
+  // the case exists to catch. The YAML keys, colon included, are what only the simple path writes.
+  const wrong =
+    "Since the CSAR module is enabled in mission.yaml, keep the callback to apply these settings: " +
+    "csar.csarOncrash = false, csar.enableForAI = false.";
+  const right = [
+    "Drop the Lua block and put this in your mission.yaml:",
+    "```yaml",
+    "modules:",
+    "  CSAR:",
+    "    settings:",
+    "      csarOncrash: false",
+    "```",
+  ].join("\n");
+  const { cases } = JSON.parse(await readFile(new URL("../scripts/answer-cases.json", import.meta.url), "utf8"));
+  for (const id of ["csar-booleans-fr", "csar-booleans-en"]) {
+    const spec = cases.find((c) => c.id === id);
+    assert.equal(verdict(wrong, spec).ok, false, `${id} must reject the callback answer`);
+    assert.equal(verdict(right, spec).ok, true, `${id} must accept the YAML answer`);
+  }
 });

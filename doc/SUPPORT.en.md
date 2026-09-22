@@ -27,6 +27,13 @@ Nothing is broken, and nothing is lost in the meantime: the documentation is sti
 are Discord and the issues. The [`veaf-tools ask`](CLI_REFERENCE.en.md#ask) command talks to the
 same assistant, hence to the same allowance.
 
+**It also answers what you did not ask.** A question almost always arrives wrapped in the approach
+you already chose — "how do I write this bit of Lua better?" — and there is sometimes a simpler
+route, written down in the documentation, that makes that bit of Lua unnecessary. When there is,
+the assistant says so first and shows it, then still answers the question as you asked it. It only
+does this when the documentation says so: a setting it describes as reachable only by the long
+route keeps that route.
+
 ## Asking the bot: `/ask` {#ask}
 
 On the VEAF Discord, `/ask` answers questions **about the documentation**.

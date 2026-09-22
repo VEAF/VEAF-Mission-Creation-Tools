@@ -1,6 +1,6 @@
 # FIX-SUPPORT-ASK-ANSWERS-THE-NEED — answer the need, not only the question
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: David, 2026-09-22, after reading the `/ask` thread on CSAR configuration
 ([1551871856972271616](https://discord.com/channels/471061487662792715/1551871856972271616)) end to
@@ -57,4 +57,30 @@ something.
 
 | # | Title | Status |
 |---|---|---|
-| 01 | [Measure, then fix, on this thread as the case](tickets/01-measure-then-fix.md) | ⬜ |
+| 01 | [Measure, then fix, on this thread as the case](tickets/01-measure-then-fix.md) | ✅ |
+
+## What the measurement found
+
+Both, but not in the proportions the section above guessed — and the answer moved under the lot's
+feet while it was being written.
+
+**Retrieval was never the problem.** Replaying Tripack's question against the live Worker returns
+`{#csar-yaml}`, `{#csar-settings}` — the table naming his three settings — and `modules.CSAR`,
+twice out of two. The model had the simple path in front of it and cited it in its own sources.
+
+**The documentation gap was doing most of the work.** `FIX-CSAR-YAML-SETTINGS` (#986) merged hours
+after the thread and rebuilt the index the same evening. Against that corpus the neutral question
+— *"comment simplifier ce paragraphe ?"* — already gets the right answer, three times out of three:
+the YAML block, and the Lua block declared unnecessary.
+
+**What survives it is the leading question.** Tripack's third message asked to simplify *"en
+intégrant `csar.initialize(configurationCallback)` comme conseillé par la documentation"*, and there
+the assistant stays inside the framing, twice out of two, never mentioning `mission.yaml`. He did
+not invent that phrasing: the bot's own earlier answer taught it to him. **A wrong answer that
+teaches the wording of the next question is how a thread converges on the wrong thing while every
+answer in it stays defensible** — which is the mechanism this lot exists to break, and it is worse
+than the plain phrasing problem the PRD expected.
+
+The fix is one paragraph in the Worker's system instruction, conditional on an excerpt *stating* the
+simpler way and explicitly keeping the long route for settings the documentation says need it. The
+numbers are in the ticket.

@@ -1,0 +1,42 @@
+{
+  "cases": [
+    {
+      "id": "csar-booleans-fr",
+      "lang": "fr",
+      "why": "Three plain booleans. The Lua block does not need simplifying, it needs deleting.",
+      "question": "Dans le contexte de simplifier également un paramétrage pour le module CSAR.\n\nComment simplifier le paragraphe suivant en intégrant \"csar.initialize(configurationCallback)\" comme conseillé par la documentation ?\n\nif csar then\n    local initializeCSAR = true\n    if initializeCSAR then\n        veaf.loggers.get(veaf.Id):info(\"initialize CSAR\")\n        local function configurationCallback()\n            -- Configurer les paramètres CSAR avant son initialisation\n            csar.csarOncrash = false -- If set to true, will generate a csar when crash as well.\n            csar.enableForAI = false -- set to false to disable AI units from being rescued.\n            csar.enableForRED = false  -- enable for red side\n        end\n        csar.initialize(configurationCallback)\n    else\n        csar.alreadyInitialized = true\n    end\nend",
+      "expectAll": [
+        "mission.yaml",
+        "modules:",
+        "settings:",
+        "csarOncrash"
+      ]
+    },
+    {
+      "id": "csar-booleans-en",
+      "lang": "en",
+      "why": "The same case, asked in English: the rule lives in the system instruction, which does not depend on the language. This is where the markers have to discriminate hardest — an English answer recommending the callback can perfectly well write \"mission.yaml\" and \"settings\" in prose, so only the YAML keys, colon included, separate the two answers.",
+      "question": "How can I simplify this block by keeping \"csar.initialize(configurationCallback)\" as the documentation advises?\n\nif csar then\n    local initializeCSAR = true\n    if initializeCSAR then\n        local function configurationCallback()\n            csar.csarOncrash = false\n            csar.enableForAI = false\n            csar.enableForRED = false\n        end\n        csar.initialize(configurationCallback)\n    else\n        csar.alreadyInitialized = true\n    end\nend",
+      "expectAll": [
+        "mission.yaml",
+        "modules:",
+        "settings:",
+        "csarOncrash"
+      ]
+    },
+    {
+      "id": "csar-aircrafttype-fr",
+      "lang": "fr",
+      "why": "The guardrail. aircraftType is a keyed value the build refuses in YAML, so the answer must stay the Lua callback. The forbidden marker is the key written as YAML; a French answer naming the setting in prose writes `aircraftType` or \"aircraftType :\", with the space French typography puts before a colon.",
+      "question": "Comment configurer le nombre de places par type d'appareil dans CSAR ? Je veux 8 places pour le UH-1H et 16 pour le Mi-8MT.",
+      "expectAny": [
+        "callback",
+        "csar.initialize",
+        "mission-script.lua"
+      ],
+      "forbid": [
+        "aircraftType:"
+      ]
+    }
+  ]
+}

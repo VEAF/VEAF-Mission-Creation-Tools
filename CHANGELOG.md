@@ -17,6 +17,35 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A list written in `settings:` reaches Lua as a table, instead of as a Python `repr`.** A value
+  the generator did not recognise as a scalar was stringified: `csarPrefix: ["helicargo", "MEDEVAC"]`
+  arrived in `veaf-config.lua` as `csar.csarPrefix = "['helicargo', 'MEDEVAC']"` — valid Lua, a
+  string where `CSAR.lua` iterates a table, and written without a warning. Lists now generate a Lua
+  table constructor, nested ones included; a YAML **mapping** is refused with a message naming the
+  setting and pointing at the Lua callback, since nothing consumes a keyed table from `settings:`.
+  The helper is shared, so this covers `settings:`, `module_settings:`, a module's `setConfig` keys
+  and CSAR alike. Found alongside it: `RADIO.user_menus` was missing from the skip list, so every
+  mission with YAML radio menus carried a full Python repr of its menu tree in `veaf-config.lua`,
+  written by a `setConfig` call nothing reads. **Note for existing missions**: a mapping written into
+  a settings block used to generate an inert string and now stops the build. That is the point — it
+  never did anything — but a `mission.yaml` carrying one will need it moved to `mission-script.lua`.
+- **The documented CSAR example no longer breaks CSAR.** The guide's YAML-first block set
+  `csarPrefix: "MEDEVAC"` while turning `useprefix` on — the branch that walks that value with
+  `pairs`. Measured on Lua 5.1.5: `pairs("MEDEVAC")` raises. Copying the documented block was enough
+  to break rescue at mission time. The example now uses a list, and a test compares every documented
+  example against the defaults in `CSAR.lua` by Lua type.
+
+### Added
+
+- **The CSAR settings, listed.** `CSAR.lua` accepts 38 settings from `modules.CSAR.settings` and the
+  guide named 3, as examples — which is why a mission maker concluded that `csarOncrash`,
+  `enableForAI` and `enableForRED` needed a Lua block. Both guides now carry the full table, grouped
+  by what a mission maker is trying to do, with each default read from the script. It also says
+  plainly that `aircraftType` is the **one** setting YAML cannot reach, being the only keyed table:
+  `csarFixedUnits`, `bluemash` and `redmash` are plain lists and were never "complex settings".
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

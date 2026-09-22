@@ -1,6 +1,6 @@
 # FIX-CSAR-YAML-SETTINGS — the CSAR settings a mission maker can actually reach
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: Tripack, 2026-09-22, in the `/ask` thread of 2026-09-12
 ([1548450049820729385](https://discord.com/channels/471061487662792715/1548450049820729385)), after
@@ -66,8 +66,29 @@ the CSAR reader has no file at all. Nothing to do here.
 
 | # | Title | Status |
 |---|---|---|
-| 01 | [A list in settings reaches Lua as a table](tickets/01-lists-reach-lua-as-tables.md) | ⬜ |
-| 02 | [The documented example must not crash](tickets/02-the-documented-example-crashes.md) | ⬜ |
-| 03 | [List the CSAR settings, FR and EN](tickets/03-list-the-settings.md) | ⬜ |
+| 01 | [A list in settings reaches Lua as a table](tickets/01-lists-reach-lua-as-tables.md) | ✅ |
+| 02 | [The documented example must not crash](tickets/02-the-documented-example-crashes.md) | ✅ |
+| 03 | [List the CSAR settings, FR and EN](tickets/03-list-the-settings.md) | ✅ |
 
 Sequencing: 01 before 03 — whether `csarPrefix` can be documented as a YAML list depends on it.
+
+## What shipped, and the two things measuring it corrected
+
+A YAML list now generates a Lua table constructor, recursively, so a nested list needs no second
+code path; a mapping is **refused** naming the setting, because nothing consumes a keyed table from
+`settings:` and silence is what caused this lot. The refusal immediately found a second defect:
+`RADIO.user_menus` was the one structured module key missing from `_SKIP_SETCONFIG_KEYS`, so every
+mission with YAML radio menus carried a whole Python repr of its menu tree in `veaf-config.lua`,
+written by a `setConfig` call nothing reads. Enumerated rather than sampled — `_emit_module_body`
+reads nine such keys, eight were listed — and the enumeration is now the test.
+
+**The count above was wrong, and it mattered for what the documentation says.** This PRD and ticket
+03 both said `csarFixedUnits`, `bluemash` and `redmash` were tables of tables needing the Lua
+callback. Read in the script rather than recalled: they are flat lists of strings (lines 36, 129,
+142), exactly like `csarPrefix`. Only `aircraftType` is keyed. So `mission.yaml` reaches **38** of
+CSAR's settings, not 34, and the page says there is exactly **one** it cannot reach — which is a
+sharper sentence than "complex settings", the vagueness that started the thread.
+
+The guard ended up wider than ticket 02 asked for: instead of running the one documented block, it
+compares every documented example against every `CSAR.lua` default **by Lua type**, and sweeps the
+other direction so a setting gained upstream cannot stay undocumented.

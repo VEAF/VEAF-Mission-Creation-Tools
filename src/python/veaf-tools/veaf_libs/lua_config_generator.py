@@ -34,7 +34,14 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
     from veaf_libs.checklists import Checklist, ChecklistStep
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
-from veaf_libs.lua_literals import lua_comment_line, lua_long_string, lua_quoted_string, lua_scalar, lua_string
+from veaf_libs.lua_literals import (
+    lua_comment_line,
+    lua_long_string,
+    lua_quoted_string,
+    lua_scalar,
+    lua_sequence,
+    lua_string,
+)
 from veaf_libs.lua_module_scanner import MANDATORY_MODULES, get_modules, yaml_module_entry
 from veaf_libs.lua_syntax import check_lua_syntax
 
@@ -117,6 +124,7 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
         "combat_zone_settings",
         "combat_zones",
         "airwave_zones",
+        "user_menus",
         "password_mm_hashes",
         # ASSIST: build-time choices, not runtime settings — the engine only ever sees
         # the checklists the build chose to emit, and infers the display mode from
@@ -547,15 +555,40 @@ def _whole_if_it_can_be(value: float) -> float | int:
     return int(value) if float(value).is_integer() else value
 
 
-def _to_lua_scalar(value: object) -> str:
-    """Convert a Python scalar to a Lua literal string.
+def _to_lua_scalar(value: object, where: str | None = None) -> str:
+    """Convert a Python value from ``mission.yaml`` to a Lua literal.
 
     Strings go through the shared quoting helper.  They used to be interpolated into
     ``"{value}"`` with no escaping at all, two dozen lines above a correct
     implementation in this same module — the sixteen call sites below meant any
     ``mission.yaml`` value carrying a quote or a newline generated broken Lua
     (SECREV-2, VMR-012).
+
+    A list becomes a Lua table.  It used to fall through to ``str(value)`` and reach the
+    generated file as a quoted Python repr, which is why ``csarPrefix`` — a table in
+    ``CSAR.lua`` — could not be set from YAML at all (FIX-CSAR-YAML-SETTINGS).
+
+    Args:
+        value: Anything the YAML parser produced for a settings value.
+        where: The Lua target being written, e.g. ``csar.csarPrefix``.  Only used to name
+            it in a refusal; a caller with no useful name may leave it out.
+
+    Returns:
+        The Lua source for that value.
+
+    Raises:
+        ValueError: If *value* is a mapping, or nests one.  See :func:`lua_sequence`.
     """
+    if isinstance(value, (list, tuple, dict)):
+        try:
+            return lua_sequence(value)
+        except TypeError as exc:
+            target = where or "this setting"
+            raise ValueError(
+                f"{target}: a YAML mapping cannot be written as a setting. "
+                "Use a list for a plain table, or configure it from mission-script.lua "
+                "with the Lua callback, which is what complex settings are for."
+            ) from exc
     return lua_scalar(value)
 
 
@@ -1780,7 +1813,7 @@ def generate_config_lua(
     if settings:
         lines.append("-- ── Settings ─────────────────────────────────────────────────────────────────")
         for key, value in settings.items():
-            lines.append(f"veaf.config.{key} = {_to_lua_scalar(value)}")
+            lines.append(f"veaf.config.{key} = {_to_lua_scalar(value, f'veaf.config.{key}')}")
         lines.append("")
 
     # ── Module settings (FIX-CONVERT-V5-SILENT-LOSSES ticket 04) ──────────
@@ -1802,7 +1835,7 @@ def generate_config_lua(
                     f"module_settings: {key!r} is not a VEAF module setting "
                     "(expected something like 'veafSkynet.DelayForStartup')"
                 )
-            lines.append(f"{key} = {_to_lua_scalar(value)}")
+            lines.append(f"{key} = {_to_lua_scalar(value, str(key))}")
         lines.append("")
 
     # ── Guided checklists ─────────────────────────────────────────────────
@@ -1900,7 +1933,9 @@ def generate_config_lua(
             for key, value in mod_cfg.items():
                 if key in _SKIP_SETCONFIG_KEYS:
                     continue
-                lines.append(f'veaf.setConfig("{mod_id}", {_lua_text(key)}, {_to_lua_scalar(value)})')
+                lines.append(
+                    f'veaf.setConfig("{mod_id}", {_lua_text(key)}, {_to_lua_scalar(value, f"{mod_id}.{key}")})'
+                )
 
             var_name = id_to_var.get(mod_id)
             if not var_name:
@@ -2020,7 +2055,7 @@ def generate_config_lua(
         lines.append("if csar then")
         csar_props = {k: v for k, v in csar_cfg.items() if k != "enabled"}
         for key, value in csar_props.items():
-            lines.append(f"    csar.{key} = {_to_lua_scalar(value)}")
+            lines.append(f"    csar.{key} = {_to_lua_scalar(value, f'csar.{key}')}")
         lines.append("    csar.initialize()")
         lines.append("end")
         lines.append("")

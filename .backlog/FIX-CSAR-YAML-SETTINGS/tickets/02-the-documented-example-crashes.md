@@ -1,6 +1,6 @@
 # 02 — The documented example must not crash
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What is wrong
 
@@ -42,3 +42,21 @@ Copying the documented block is enough to break CSAR at runtime.
 Check the same pattern for the other two documented examples, `enableAllslots` and `useprefix`:
 both are plain booleans in `CSAR.lua`, so they are fine — but check rather than assume, because
 this ticket exists precisely because an example was never run.
+
+## What was done, and what it changed about the guard
+
+The example uses a list, as ticket 01 delivered.  The guard is **wider than this ticket asked for**,
+and deliberately: rather than running the one documented block, `test_documented_csar_settings.py`
+enumerates every `csar.<name> =` default in `CSAR.lua`, enumerates every `modules.CSAR.settings`
+mapping in both guides' YAML blocks, and compares the **Lua type** the generator produces against
+the type the script defaults to.  That covers all 38 settings instead of the three in the example,
+and it is the property that actually failed — a string where the script walks a table.
+
+Proved able to fail rather than assumed: putting `csarPrefix: "MEDEVAC"` back produces
+*"generates `"MEDEVAC"` (string), but CSAR.lua defaults it to a table"*.
+
+`enableAllslots` and `useprefix` were checked, not assumed: both are booleans, both fine.
+
+A fourth test runs the other direction — every setting `CSAR.lua` offers must appear in each guide.
+That is the ratchet under ticket 03's table; a setting gained upstream and left undocumented is how
+the guide got down to naming 3 of 34.

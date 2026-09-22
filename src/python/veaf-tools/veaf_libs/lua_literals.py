@@ -149,3 +149,35 @@ def lua_scalar(value: object) -> str:
     if value is None:
         return "nil"
     return lua_string(str(value))
+
+
+def lua_sequence(values: object) -> str:
+    """Return a Lua table constructor for a Python list or tuple.
+
+    The sibling above renders a scalar; a YAML list reaching it came out as a quoted
+    Python repr — ``"['helicargo', 'MEDEVAC']"`` — which is valid Lua and nonsense to the
+    script that iterates the table it expected.
+
+    Elements are rendered recursively, so a nested list becomes a nested table: the
+    recursion is what the renderer is, not a feature added on top of it.
+
+    Args:
+        values: A list or tuple.  Elements may be scalars or further lists.
+
+    Returns:
+        The Lua source for that table, e.g. ``{ "helicargo", "MEDEVAC" }``.
+
+    Raises:
+        TypeError: If *values* — or anything nested inside it — is a mapping.  Lua has
+            one table type for both, but nothing in this toolchain consumes a keyed one
+            from a mission's settings, and rendering it silently is the defect this
+            function exists for.  The caller re-raises with the key it was writing.
+    """
+    if isinstance(values, dict):
+        raise TypeError("a mapping has no place in generated settings")
+    if not isinstance(values, (list, tuple)):
+        raise TypeError(f"not a sequence: {type(values).__name__}")
+    if not values:
+        return "{}"
+    rendered = [lua_sequence(item) if isinstance(item, (list, tuple, dict)) else lua_scalar(item) for item in values]
+    return "{ " + ", ".join(rendered) + " }"

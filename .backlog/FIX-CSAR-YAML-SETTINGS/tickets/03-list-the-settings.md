@@ -1,6 +1,6 @@
 # 03 — List the CSAR settings, FR and EN
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What is missing
 
@@ -27,10 +27,14 @@ script:
 
 - A table in the CSAR section of the guide: setting, default, one line of effect. The default comes
   from `CSAR.lua`, read at the time of writing, not from memory.
-- The table says plainly which settings are **not** reachable this way and why: `aircraftType`,
-  `csarFixedUnits`, `bluemash`, `redmash` are tables of tables and need the Lua callback. Today the
-  guide says "complex settings" without saying which, which is how a plain boolean got mistaken for
-  one.
+- The table says plainly which settings are **not** reachable this way and why. Today the guide
+  says "complex settings" without saying which, which is how a plain boolean got mistaken for one.
+
+  **Corrected while writing it — this ticket had it wrong.** Only `aircraftType` is a table of
+  tables: `CSAR.lua:21` opens it empty and fills it by key (`csar.aircraftType["UH-1H"] = 8`).
+  `csarFixedUnits` (line 36), `bluemash` (129) and `redmash` (142) are **flat lists of strings**,
+  exactly like `csarPrefix`, so after ticket 01 they are written in YAML like any other list. So the
+  count is 34 scalars **plus 4 lists reachable from YAML**, and **one** setting that is not.
 - `csarPrefix` is documented according to what ticket 01 delivered, not according to what the
   current example claims.
 - FR and EN ship together, the page keeps its explicit English anchors, and

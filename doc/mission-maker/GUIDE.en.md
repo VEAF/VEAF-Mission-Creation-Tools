@@ -842,7 +842,7 @@ The underlying setting is `enableHoverSlingload`, which lives in your `ctld-conf
 one; the menu only flips it at runtime. To start a mission with sling loading already off, set it to
 `false` there.
 
-### Configuring CSAR via mission.yaml (YAML-first)
+### Configuring CSAR via mission.yaml (YAML-first) {#csar-yaml}
 
 CSAR can be configured the same way:
 
@@ -853,10 +853,94 @@ modules:
     settings:                # csar.xxx = value pairs
       enableAllslots: true
       useprefix: true
-      csarPrefix: "MEDEVAC"
+      csarPrefix: ["helicargo", "MEDEVAC"]
 ```
 
-VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`.
+VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`.
+
+A value may be a boolean, a number, text, or a **list** — a YAML list becomes a Lua table. A keyed
+value (`UH-1H: 8`) has no place here: the build refuses it, naming the setting, and points you at the
+[Lua callback](#csar-lua-fallback).
+
+#### The available settings {#csar-settings}
+
+The defaults below are the ones in `CSAR.lua`. You only write down the ones you want to change.
+
+**Who gets rescued**
+
+| Setting | Default | Effect |
+|---|---|---|
+| `csarOncrash` | `true` | also create a CSAR on a crash, not only on an ejection |
+| `enableForAI` | `true` | downed AI crews can be rescued |
+| `enableForRED` | `true` | CSAR active on the red side |
+| `enableForBLUE` | `true` | CSAR active on the blue side |
+| `countCSARCrash` | `false` | crashing a CSAR aircraft also costs a life |
+| `allowDownedPilotCAcontrol` | `true` | the downed pilot can be driven in Combined Arms |
+
+**Who can fly the rescue**
+
+| Setting | Default | Effect |
+|---|---|---|
+| `enableAllslots` | `false` | every helicopter can rescue, with no naming condition |
+| `useprefix` | `true` | only aircraft whose name contains a `csarPrefix` prefix can rescue |
+| `csarPrefix` | `["helicargo", "MEDEVAC"]` | the list of those prefixes |
+| `csarFixedUnits` | `["helicargo1", …]` | unit names allowed on top of the prefixes |
+| `enableSlotBlocking` | `true` | requires `csarSlotBlockGameGUI.lua` on the server |
+| `max_units` | `6` | how many pilots can be carried at once |
+
+**Lives and sanctions**
+
+| Setting | Default | Effect |
+|---|---|---|
+| `csarMode` | `0` | what an ejection costs — see [`csarMode`](#csar-mode) |
+| `maxLives` | `8` | lives per pilot in mode `3` |
+| `disableTimeoutTime` | `20` | how long the aircraft stays unavailable, in minutes, for modes `1` and `2` |
+| `disableAircraftTimeout` | `true` | the aircraft becomes usable again once that delay passes |
+| `reenableIfCSARCrashes` | `true` | a CSAR that crashes still counts as a successful rescue |
+| `destructionHeight` | `150` | height, in metres, at which a disabled aircraft is destroyed |
+
+**Finding the survivor**
+
+| Setting | Default | Effect |
+|---|---|---|
+| `coordtype` | `3` | coordinate format announced: `0` DDM, `1` DMS, `2` MGRS, `3` imperial bullseye, `4` metric bullseye |
+| `coordaccuracy` | `1` | precision of those coordinates |
+| `autosmoke` | `false` | pop smoke automatically when the helicopter is 5 km out |
+| `bluesmokecolor` | `4` | blue-side smoke colour: `0` green, `1` red, `2` white, `3` orange, `4` blue |
+| `redsmokecolor` | `1` | same for the red side |
+| `radioSound` | `"beacon.ogg"` | sound file for the pilot's beacon — it has to be in the mission |
+| `requestdelay` | `2` | delay, in seconds, before the survivor calls for medevac |
+| `messageTime` | `30` | how long the initial message stays up, in seconds |
+
+**Picking them up**
+
+| Setting | Default | Effect |
+|---|---|---|
+| `loadDistance` | `60` | distance, in metres, at which the pilot can board |
+| `extractDistance` | `500` | distance, in metres, the pilot runs towards the helicopter |
+| `pilotRuntoExtractPoint` | `true` | the pilot runs to the helicopter instead of waiting |
+| `loadtimemax` | `135` | maximum boarding time, in seconds |
+| `weight` | `100` | weight added per boarded pilot |
+| `allowFARPRescue` | `true` | dropping the pilot at a FARP or airbase counts as a rescue |
+| `bluemash` | `["BlueMASH #1", …]` | units acting as the blue-side MASH |
+| `redmash` | `["RedMASH #1", …]` | same for the red side |
+
+**The survivor's own state**
+
+| Setting | Default | Effect |
+|---|---|---|
+| `immortalcrew` | `true` | the survivor cannot be killed |
+| `invisiblecrew` | `true` | the survivor is invisible to the AI |
+| `downedPilotCounterRed` | `0` | starting count of downed pilots, red side |
+| `downedPilotCounterBlue` | `0` | same for the blue side |
+
+!!! warning "The one setting `mission.yaml` cannot reach"
+    `aircraftType` maps a seat count to each aircraft type (`csar.aircraftType["UH-1H"] = 8`). It is
+    a **keyed** value, the only one in CSAR, and it goes through the
+    [Lua callback](#csar-lua-fallback).
+
+    The four other tables — `csarPrefix`, `csarFixedUnits`, `bluemash` and `redmash` — are plain
+    lists and are written directly in YAML.
 
 ### A pilot ejecting over water {#csar-over-water}
 
@@ -923,7 +1007,7 @@ The order of the first two lines matters: CTLD reads its configuration as it loa
 
 CSAR keeps the older mechanism: `veaf-scripts.lua` detects the `csar` global table and wraps its `initialize()` function.
 
-### Lua fallback — CSAR in mission-script.lua
+### Lua fallback — CSAR in mission-script.lua {#csar-lua-fallback}
 
 For per-aircraft type overrides or other complex settings not supported by YAML:
 

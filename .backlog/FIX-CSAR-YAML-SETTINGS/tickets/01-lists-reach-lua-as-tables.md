@@ -1,6 +1,6 @@
 # 01 — A list in settings reaches Lua as a table
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What is wrong
 
@@ -28,7 +28,8 @@ mission maker can write a value that is not a scalar.
 
 - A YAML list generates a Lua table literal: `{ "helicargo", "MEDEVAC" }`, each element quoted
   through the existing string helper so a value carrying a quote or a newline stays safe.
-- A nested list is handled too, or refused loudly — decide and state which, do not stringify.
+- A nested list is **handled**, not refused: the renderer is recursive, so nesting costs no extra
+  code path, and refusing it would.  Decided here rather than left open.
 - A mapping is **refused** with a message naming the module and the key, rather than written as a
   string. There is no evidence any consumer wants one, and silence is what caused this ticket.
 - Tests assert the generated Lua text for each type: bool, int, float, string, list of strings,

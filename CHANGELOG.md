@@ -46,6 +46,42 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `#security-levels` is the English heading's slug, not the `{#security-tiers}` that heading
   declares. Same defect, second code path: it was fixed for `convert-v5` and missed here, because
   this generator writes its links from message keys.
+- **An injected aircraft group no longer steals an id the mission already uses.** The injector wrote
+  the catalogue's `groupId` and `unitId` verbatim, and the shipped catalogues live in a low band
+  (`groupId` 145–544 for the dynamic-slot templates, 47–152 for the spawnables) while a real mission
+  runs past 3800 — so the two overlap by construction. Measured: 6 duplicate `groupId` and 11
+  duplicate `unitId` after injecting into `test-import.miz`, 4 and 9 on the Open Training Caucasus
+  mission, and 4 `unitId` shared between the two shipped catalogues on any mission injecting both.
+  The cost is not an error: a duplicate makes the warehouse's `linkDynTempl` designate two groups,
+  only one of which is a template, and **that one aircraft type** silently stops being offered as a
+  dynamic slot. DCS numbers every category in one space, so the scan covers vehicles, ships and
+  statics too — restricted to the aircraft it still left 8 `groupId` and 5 `unitId` colliding, the
+  same figures on both measured missions. Ids are now re-checked against the target mission and
+  reallocated **on collision only**, so a free id keeps its value and a rebuild does not move what it already allocated. A
+  blank mission reproduces none of this — 0 duplicates, measured — which is why it went unnoticed.
+- **Dynamic slots now work on ships and FARPs, which the build had never touched.** DCS keeps two
+  warehouse tables — `airports`, keyed by airdrome id, and `warehouses`, keyed by the unit id of a
+  ship or a static that carries one — and offers dynamic slots in both. The step only ever walked
+  the first. Measured on a fully built `test-import.miz`: the airfields ended with 832 links and
+  none dangling, while the 41 ships and FARPs kept their 69 links, **every one of them** pointing
+  at a group the mission no longer holds, which DCS renders as *Group template: None*. For a
+  carrier-based airframe that was the whole story on its own. Each object is now stocked with what
+  it can actually host, read from the units database rather than guessed: `AircraftCarrier` takes
+  planes and helicopters, `HelicopterCarrier` or a `Heliport` takes helicopters, and a ship with no
+  flight deck is left alone. Two optional config keys, `ships:` and `farps:`, target them by unit
+  name or id; absent, they cover every object of the coalition, exactly as `airports:` already
+  does, and the three keys default independently. Same run on the same mission after the fix: 40
+  objects configured, 705 valid links, **0 dangling**.
+- **A `linkDynTempl` that resolves to nothing is removed rather than left to render as
+  *None*.** Both on the types the config names and on the rest of the stock.
+- **The extraction no longer copies the source mission's coordinates into the catalogue**
+  ([#984](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/984)). `PROPERTIES_TO_EXCLUDE`
+  held `radio` and `Radio` and nothing else, so `x`/`y` came out as they were — at group level, at
+  unit level and on every route point — and meant nothing in another mission, less than nothing on
+  another theatre. The proof was in our own shipped file: `veafSpawn-MQ9 - AFAC - JTAC - DRONE` sat
+  at x = −250 000, y = −360 000, and the 128 dynamic-slot templates were at (0,0) only because a
+  graft normalized them by hand. Positions are now zeroed on extraction; altitude, heading, speeds
+  and the route itself are untouched, being meaningful wherever the group lands.
 
 ### Added
 
@@ -70,6 +106,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Only when an excerpt states that route, never from its own knowledge, and never for a setting the
   documentation describes as reachable only by the long way — `aircraftType` keeps its Lua callback.
   Applies to the site widget, `veaf-tools ask` and Discord alike.
+
+- **The build says what the dynamic-slot wiring achieved, not only what it wrote.** Two situations
+  that break nothing and leave the slots unusable are now reported. A **template link pointing at
+  nothing**, counted across both warehouse tables including the sides the config does not declare —
+  65 distinct such targets on `test-import.miz`, none of them a group the mission still holds. And
+  **templates with nowhere to be offered from**: a mission built straight from
+  `prepare --theatre Caucasus --template standard` injects 128 templates and configures 0 airfields,
+  because every airfield of a blank mission is NEUTRAL, so no dynamic slot is playable — which the
+  build used to pass over in silence. The step's report also counts the ships and FARPs it wired.
 
 ## [6.24.0] — 2026-09-21
 

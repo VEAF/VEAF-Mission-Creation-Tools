@@ -20,7 +20,7 @@ from mission_tools import (
     read_miz,
     write_miz,
 )
-from mission_tools.group_insertion import assign_country_to_side
+from mission_tools.group_insertion import GROUP_CATEGORIES, assign_country_to_side
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -529,6 +529,130 @@ class AircraftGroupsYAMLValidator:
 _TEMPLATE_SLOT_PASSWORD = "PmJhVFN21Er:LOlEElfvfTfCCEQAkDRvYhpPnZZAzp88mgo_m5Twv0I"
 
 
+def _entries(container: object) -> list[dict]:
+    """Return the dicts of a DCS sequence table, whether it is a list or a ``1..N`` dict.
+
+    Both shapes are real here. A catalogue keys ``units`` by position, which YAML loads as a dict;
+    a mission read by :func:`read_miz` carries lists; and a hand-edited ``.miz`` can hand back a
+    dict for its group container too. The injector is precisely the place where one shape is
+    written into a structure holding the other, so nothing downstream of it may assume either.
+
+    Args:
+        container: A sequence table, a list, or anything else.
+
+    Returns:
+        Its dict entries, in order; empty for any other shape.
+    """
+    if isinstance(container, dict):
+        values: list[Any] = list(container.values())
+    elif isinstance(container, list):
+        values = container
+    else:
+        return []
+    return [entry for entry in values if isinstance(entry, dict)]
+
+
+def _group_units(group: dict) -> list[dict]:
+    """Return a group's unit dicts, whatever shape ``units`` has."""
+    return _entries(group.get("units"))
+
+
+class _IdAllocator:
+    """Hand out ``groupId``/``unitId`` that do not collide with what the mission already holds.
+
+    Reallocation happens **on collision only** (FIX-DYNSLOT-WIRING ticket 01). Renumbering every
+    injected group would be simpler to reason about, but it would move all 128 template ids on
+    every build — so the ``.miz`` would differ wholesale from one build to the next, and in
+    ``mode: replace`` the ids would creep upward indefinitely.
+    """
+
+    def __init__(self, group_ids: set[int], unit_ids: set[int]) -> None:
+        """Seed the allocator with the ids the target mission already uses."""
+        self._taken = {"group": group_ids, "unit": unit_ids}
+        self._next = {"group": max(group_ids, default=0) + 1, "unit": max(unit_ids, default=0) + 1}
+        self.reallocated = 0
+
+    def release(self, group: dict) -> None:
+        """Give back the ids of a group about to be replaced.
+
+        Without this, ``mode: replace`` makes a group collide with the copy of itself it is
+        overwriting, so its id moves on every single build.
+        """
+        self._discard("group", group.get("groupId"))
+        for unit in _group_units(group):
+            self._discard("unit", unit.get("unitId"))
+
+    def claim(self, kind: str, wanted: object) -> object:
+        """Take an id, reallocating only if the mission already uses it.
+
+        Args:
+            kind: ``"group"`` or ``"unit"``, the two id spaces tracked here.
+            wanted: The id the catalogue asks for; anything that is not an int is handed back
+                untouched, so a group with no id keeps having none.
+
+        Returns:
+            *wanted* when it is free, otherwise the lowest id no one holds.
+        """
+        if not isinstance(wanted, int) or isinstance(wanted, bool):
+            return wanted
+        taken = self._taken[kind]
+        if wanted not in taken:
+            taken.add(wanted)
+            return wanted
+        while self._next[kind] in taken:
+            self._next[kind] += 1
+        allocated = self._next[kind]
+        taken.add(allocated)
+        self.reallocated += 1
+        return allocated
+
+    def _discard(self, kind: str, value: object) -> None:
+        """Drop one id from the taken set, ignoring anything that is not one."""
+        if isinstance(value, int) and not isinstance(value, bool):
+            self._taken[kind].discard(value)
+
+
+def _mission_ids(mission: DcsMission) -> tuple[set[int], set[int]]:
+    """Collect every ``groupId`` and ``unitId`` the mission uses, across all coalitions.
+
+    **Every category, not only the two this module writes into.** DCS numbers groups and units in
+    one space shared by planes, helicopters, vehicles, ships and statics, so an injected template
+    can just as easily steal a tank's id as another aircraft's — and the consequence is the same
+    ambiguous ``linkDynTempl``. Measured on 2026-09-22 with the scan restricted to aircraft: the
+    dynamic-slot catalogue still collided with **8 groupId and 5 unitId** belonging to vehicles and
+    statics, on `test-import.miz` and on the Open Training Caucasus mission alike. The categories
+    are enumerated from :data:`GROUP_CATEGORIES` rather than listed here, so a category DCS adds
+    later cannot be forgotten.
+
+    Walks ``mission_content`` directly rather than :meth:`DcsMission.iter_groups`, which yields
+    aircraft only and assumes the list shape :func:`read_miz` guarantees — an assumption this
+    module is able to break, since the groups it appends carry the catalogue's dict-keyed
+    ``units``.
+
+    Args:
+        mission: The target mission, read only.
+
+    Returns:
+        The ``groupId`` set and the ``unitId`` set already in use.
+    """
+    group_ids: set[int] = set()
+    unit_ids: set[int] = set()
+
+    def keep(target: set[int], value: object) -> None:
+        if isinstance(value, int) and not isinstance(value, bool):
+            target.add(value)
+
+    coalitions = (mission.mission_content or {}).get("coalition") or {}
+    for coalition in coalitions.values() if isinstance(coalitions, dict) else []:
+        for country in _entries(coalition.get("country")):
+            for category in GROUP_CATEGORIES:
+                for group in _entries((country.get(category) or {}).get("group")):
+                    keep(group_ids, group.get("groupId"))
+                    for unit in _group_units(group):
+                        keep(unit_ids, unit.get("unitId"))
+    return group_ids, unit_ids
+
+
 class AircraftGroupsInjectorWorker(BaseWorker):
     """
     Worker class that injects aircraft groups from YAML into a DCS mission.
@@ -751,7 +875,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         """Implement BaseWorker: delegates to inject() with default parameters."""
         return self.inject()
 
-    def _prepare_injected_group(self, group: dict) -> dict:
+    def _prepare_injected_group(self, group: dict, allocator: _IdAllocator) -> dict:
         """Return a deep copy of *group* hardened for injection as a reusable template.
 
         Injected templates carry ``skill: Client`` units, so without this they
@@ -769,8 +893,15 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         template group on the map. A template is only ever referenced by name; it is
         never meant to be seen or to be active.
 
+        The ids are re-checked against the target mission here rather than taken from the
+        catalogue: the shipped catalogues live in a low id band while a real mission runs far past
+        it, so a `groupId` collision is the normal case, not the exception. A duplicate raises no
+        error — it makes the warehouse's `linkDynTempl` designate two groups, and that one aircraft
+        type stops being offered as a dynamic slot (FIX-DYNSLOT-WIRING ticket 01).
+
         Args:
             group: The group dict to inject.
+            allocator: Hands out ids that do not collide with the target mission's.
 
         Returns:
             A hardened deep copy (the source dict is not mutated).
@@ -781,6 +912,11 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         prepared["hidden"] = True
         prepared["lateActivation"] = True
         prepared["password"] = _TEMPLATE_SLOT_PASSWORD
+        if "groupId" in prepared:
+            prepared["groupId"] = allocator.claim("group", prepared["groupId"])
+        for unit in _group_units(prepared):
+            if "unitId" in unit:
+                unit["unitId"] = allocator.claim("unit", unit["unitId"])
         return prepared
 
     def inject_groups(self, mode: str = "add", silent: bool = False) -> InjectionResult:
@@ -807,6 +943,9 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         total_injected = 0
         total_skipped = 0
         injection_errors = []
+        # Scanned once, then kept up to date as groups are appended: re-scanning inside the loop
+        # would also mean re-walking the groups this very loop has just added.
+        allocator = _IdAllocator(*_mission_ids(self.dcs_mission))
 
         # Flatten the category → coalition → country → group hierarchy into a
         # single work list so the injection can be displayed as one progress bar.
@@ -859,8 +998,11 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                         break
 
                 if existing_idx is not None and mode == "replace":
-                    # Replace existing group
-                    groups_list[existing_idx] = self._prepare_injected_group(group_data)
+                    # Replace existing group. Its ids go back to the pool first: otherwise the
+                    # incoming copy collides with the outgoing one and gets renumbered on every
+                    # single build.
+                    allocator.release(groups_list[existing_idx])
+                    groups_list[existing_idx] = self._prepare_injected_group(group_data, allocator)
                     log_msg = f"Replaced group {group_name} in {coalition_name}/{country_name}/{category}"
                 elif existing_idx is not None:
                     # Skip: group already exists and mode is not replace
@@ -873,7 +1015,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                     continue
                 else:
                     # Add new group
-                    groups_list.append(self._prepare_injected_group(group_data))
+                    groups_list.append(self._prepare_injected_group(group_data, allocator))
                     log_msg = f"Injected group {group_name} into {coalition_name}/{country_name}/{category}"
 
                 self.injection_log.append(log_msg)
@@ -887,6 +1029,9 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                 injection_errors.append(error_msg)
                 self.injection_log.append(error_msg)
                 logger.warning(error_msg)
+
+        if allocator.reallocated and not silent:
+            logger.info(t("aircraft_injector.ids_reallocated", count=allocator.reallocated))
 
         # Prepare result
         if total_injected > 0:
@@ -1425,7 +1570,34 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         """
         cleaned_group = copy.deepcopy(group)
         self._remove_excluded_properties(cleaned_group)
+        self._zero_positions(cleaned_group)
         return cleaned_group
+
+    def _zero_positions(self, obj: Any) -> None:
+        """Set every ``x``/``y`` in the structure to 0, recursively and in place (#984).
+
+        A catalogue is reusable across missions and across theatres; a coordinate is not. Left
+        alone, an extracted group carries the position it had where it was found, at group level,
+        at unit level **and** on every route point — so injecting it elsewhere puts it wherever
+        those numbers happen to land. The shipped `spawnables.yaml` still shows the symptom:
+        `veafSpawn-MQ9 - AFAC - JTAC - DRONE` sits at x = −250 000, y = −360 000.
+
+        Only the position is zeroed. Altitude, heading, speeds and the route's own structure are
+        meaningful wherever the group is injected, and stay. The sweep is by key rather than by a
+        list of known places, so a nesting level nobody thought of is covered too.
+
+        Args:
+            obj: The extracted copy, mutated in place.
+        """
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key in ("x", "y") and isinstance(value, (int, float)) and not isinstance(value, bool):
+                    obj[key] = 0
+                else:
+                    self._zero_positions(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                self._zero_positions(item)
 
     def _remove_excluded_properties(self, obj: Any) -> None:
         """

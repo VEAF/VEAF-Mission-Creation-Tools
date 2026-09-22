@@ -36,6 +36,12 @@ the file is so short.
 On each selected airfield the build then writes `dynamicSpawn = true`, hot start, the stock, and the
 link to each type's template.
 
+**Ships and FARPs are handled the same way**, with nothing more to write: an aircraft carrier, a
+helicopter-capable ship or a FARP belonging to the coalition opens its dynamic slots just like an
+airfield. Each gets what it can actually host — a carrier takes planes and helicopters, a FARP or a
+frigate takes helicopters only — and a ship with no flight deck, a tanker for instance, is left
+untouched.
+
 ## What you must do in the DCS editor {#in-the-editor}
 
 **One thing only: give the airfield to a coalition.** With no `airports:` list the build only keeps
@@ -62,7 +68,27 @@ Once `airports:` is there, only the listed airfields are configured — and thei
 longer consulted, your list decides. Once an airfield has an `aircrafts:` list, it replaces the
 automatic choice for that airfield.
 
-The build then reports the result: "Warehouses: 2 airports configured, 53 template links".
+Ships and FARPs restrict the same way, with `ships:` and `farps:`. Name them by the **unit name** as
+it appears in the editor, or by its id:
+
+```yaml
+blue:
+  defaults:
+    fuel: unlimited
+  ships:
+    CSG-74 Stennis: {}
+  farps:
+    FARP Kaspi MM54:
+      aircrafts:
+        UH-1H: { amount: 20 }
+```
+
+**The three lists are independent**: naming a ship says nothing about the FARPs, which keep the "all
+of this coalition" behaviour. To restrict one without opening the other, write the empty list:
+`farps: {}`.
+
+The build then reports the result: "Warehouses: 2 airports configured, 3 ships/FARPs, 53 template
+links".
 
 ## The gotcha {#gotcha}
 
@@ -77,6 +103,15 @@ the file from that mission.
 ```powershell
 .\veaf-tools.exe extract-aircraft-groups my-mission.miz --kind dynamic-template
 ```
+
+!!! warning "Two warnings worth reading"
+    The build now reports two situations that break nothing and still leave the slots unusable. **A
+    template link that leads nowhere**: DCS renders it as *Group template: None* in the Resource
+    Manager, which reads like a deliberate choice. Those are leftovers from an earlier build, on a
+    warehouse your configuration does not target — declare the coalition concerned, or clear them in
+    the editor. **Templates with nowhere to be offered from**: if the mission carries templates and
+    no airfield, ship or FARP belongs to a coalition, no dynamic slot will appear. That is the state
+    of a brand-new mission, whose airfields are all neutral.
 
 !!! note "The stock is filtered by what the field can park"
     **DCS only offers what the airfield can park**, and the build takes that into account: the stock

@@ -35,6 +35,12 @@ coalition. C'est pour ça que le fichier est si court.
 Le build met alors, sur chaque terrain retenu, `dynamicSpawn = true`, le démarrage moteur chaud, le
 stock, et le lien vers le modèle de chaque type.
 
+**Les navires et les FARP sont traités de la même façon**, sans rien écrire de plus : un
+porte-avions, un bâtiment porte-hélicoptères ou un FARP de la coalition ouvre ses slots dynamiques
+comme un terrain. Chacun reçoit ce qu'il peut réellement accueillir — un porte-avions les avions et
+les hélicoptères, un FARP ou une frégate les hélicoptères seuls — et un navire sans pont d'envol,
+un pétrolier par exemple, n'est pas touché.
+
 ## Ce que vous devez faire dans l'éditeur DCS {#in-the-editor}
 
 **Une seule chose : donner le terrain à une coalition.** Sans liste `airports:`, le build ne retient
@@ -61,7 +67,27 @@ Dès que `airports:` est là, seuls les terrains listés sont configurés — et
 consultée, c'est votre liste qui décide. Dès qu'un terrain a une liste `aircrafts:`, elle remplace le
 choix automatique pour ce terrain.
 
-Le build annonce alors le résultat : « Warehouses : 2 aéroports configurés, 53 liens de modèle ».
+Les navires et les FARP se restreignent pareil, avec `ships:` et `farps:`. On les désigne par le
+**nom de l'unité** tel qu'il apparaît dans l'éditeur, ou par son identifiant :
+
+```yaml
+blue:
+  defaults:
+    fuel: unlimited
+  ships:
+    CSG-74 Stennis: {}
+  farps:
+    FARP Kaspi MM54:
+      aircrafts:
+        UH-1H: { amount: 20 }
+```
+
+**Les trois listes sont indépendantes** : nommer un navire ne dit rien des FARP, qui gardent le
+comportement « tous ceux de la coalition ». Si vous voulez restreindre les uns sans ouvrir les
+autres, écrivez la liste vide : `farps: {}`.
+
+Le build annonce alors le résultat : « Warehouses : 2 aéroports configurés, 3 navires/FARP, 53 liens
+de modèle ».
 
 ## Le piège {#gotcha}
 
@@ -76,6 +102,16 @@ puis régénérez le fichier depuis cette mission.
 ```powershell
 .\veaf-tools.exe extract-aircraft-groups ma-mission.miz --kind dynamic-template
 ```
+
+!!! warning "Deux avertissements à lire"
+    Le build signale désormais deux situations qui ne cassent rien et rendent pourtant les slots
+    inutilisables. **Un lien de modèle qui ne mène nulle part** : DCS l'affiche en *Group template:
+    None* dans le Resource Manager, ce qui ressemble à un choix délibéré. Ils sont le reste d'une
+    construction plus ancienne, sur un entrepôt que votre configuration ne cible pas — déclarez la
+    coalition concernée, ou nettoyez-les dans l'éditeur. **Des modèles sans nulle part où les
+    proposer** : si la mission contient des modèles et qu'aucun terrain, navire ou FARP n'appartient
+    à une coalition, aucun slot dynamique ne sortira. C'est le cas d'une mission toute neuve, dont
+    tous les aérodromes sont neutres.
 
 !!! note "Le stock est filtré par ce que le terrain peut garer"
     **DCS ne propose que ce que le terrain peut garer**, et le build en tient compte : le stock

@@ -121,6 +121,28 @@ npx wrangler deploy
 > so — which is exactly what happened to #966, while the assistant kept giving the answer that fix
 > had removed.
 
+### Replay the answers a defect once shipped on
+
+The deploy workflow's smoke probe proves the Worker answers and routes, and deliberately nothing
+more — it never reaches Gemini, so it costs no quota. What it cannot see is the assistant being
+*correct and unhelpful*: `scripts/replay-answers.mjs` replays the questions from
+`scripts/answer-cases.json` through the live Worker and checks the answers against markers.
+
+```bash
+cd poc/doc-chatbot/worker
+node scripts/replay-answers.mjs                     # every case
+node scripts/replay-answers.mjs --case csar-aircrafttype-fr
+```
+
+No secret: it declares the `cli` client mode, which needs none. Three exit codes, because "no case
+failed" and "no case was asked" must not look alike: **0** at least one case answered and none
+failed, **1** a case failed, **2** nothing could be asked — a spent daily allowance, typically.
+
+It is **not** wired into the deploy workflow on purpose: each case spends one question out of the
+free Gemini allowance the whole documentation site and the Discord bot share, and a model's answer
+is not deterministic, so a red case means "go and look", never "revert on sight". Run it by hand
+after a change to the system instruction, once the deploy has gone through.
+
 Note the deployed URL (e.g. `https://veaf-docs-chatbot.<your-subdomain>.workers.dev`) and set
 `PROD_ENDPOINT` in `doc/assets/chatbot/veaf-chatbot-config.js`. That config is environment-aware
 (local Worker on `localhost`, production Worker elsewhere) and is already loaded before the widget

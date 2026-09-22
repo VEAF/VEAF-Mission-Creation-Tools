@@ -220,6 +220,25 @@ function systemInstruction(lang, passages) {
     `check that they really cover what was asked. If they do not, say so plainly in one sentence, ` +
     `do not guess, and point to the closest documented subject and to the VEAF Discord. ` +
     `Never invent a file, a setting, a command or a procedure that is not in the excerpts. ` +
+    // A question arrives wrapped in the approach its asker already took, and answering it well is
+    // not the same as answering the need. Measured 2026-09-22 on the CSAR thread: asked how to
+    // simplify a Lua block setting three booleans, the assistant answered correctly about the Lua
+    // callback and never said the whole block was replaceable by four lines of `mission.yaml` —
+    // with the excerpt describing exactly that in its own context, and cited in its own sources.
+    // Phrased neutrally the same question got the YAML answer three times out of three; phrased as
+    // "integrate csar.initialize(configurationCallback) as the documentation advises" it got the
+    // Lua answer twice out of two. The framing, not the retrieval, is what decides.
+    //
+    // Conditional on purpose, and grounded twice over: only when an excerpt *states* the simpler
+    // way, and never when the excerpts rule it out for this case. The opposite default would be a
+    // worse failure, not a symmetric one — `aircraftType` is a keyed value the build refuses in
+    // YAML, so an answer pushing YAML there does not merely read badly, it does not work.
+    `Answer the need, not only the question as it is phrased. A question usually arrives wrapped ` +
+    `in the approach its asker already chose: if the excerpts describe a simpler supported way to ` +
+    `obtain what they are after, say so first, show it, and say plainly what it replaces — then ` +
+    `still answer what was asked. Do this only when an excerpt states that simpler way, never ` +
+    `from your own knowledge, and never when the excerpts say it does not cover their case: some ` +
+    `settings are documented as reachable only by the longer route, and those keep it. ` +
     `Be concise, use Markdown, and reference doc page titles when helpful.`;
   return `${guide}\n\n---\n\n${passages}`;
 }

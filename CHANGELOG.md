@@ -46,6 +46,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   plainly that `aircraftType` is the **one** setting YAML cannot reach, being the only keyed table:
   `csarFixedUnits`, `bluemash` and `redmash` are plain lists and were never "complex settings".
 
+- **The documentation assistant answers the need, not only the phrasing.** A question arrives
+  wrapped in the approach its asker already chose, and the assistant used to stay inside that
+  wrapping: asked how to simplify a Lua block setting three booleans, it answered correctly about
+  the Lua callback and never said four lines of `mission.yaml` replaced the whole block — with the
+  excerpt saying exactly that in its own context and cited in its own sources. It now surfaces the
+  simpler route first, shows it, says what it replaces, and still answers the question as asked.
+  Only when an excerpt states that route, never from its own knowledge, and never for a setting the
+  documentation describes as reachable only by the long way — `aircraftType` keeps its Lua callback.
+  Applies to the site widget, `veaf-tools ask` and Discord alike.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

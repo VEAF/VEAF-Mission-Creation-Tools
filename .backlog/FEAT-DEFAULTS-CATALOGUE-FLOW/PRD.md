@@ -1,6 +1,6 @@
 # FEAT-DEFAULTS-CATALOGUE-FLOW — a shipped catalogue that never reaches an existing mission
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Opened 2026-09-22, alongside [`FIX-DYNSLOT-WIRING`](../FIX-DYNSLOT-WIRING/PRD.md) and sequenced
 after it. Where that lot fixes the wiring, this one fixes how a catalogue is **produced** and how it

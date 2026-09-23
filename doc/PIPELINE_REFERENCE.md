@@ -350,6 +350,20 @@ Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux ét
 
 > **Rupture v6** : les anciens noms `src/aircraft-templates.yaml` / `src/templates.yaml` et l'étape `aircraft_groups` ne sont plus utilisés. `convert-v5` produit directement les deux nouveaux fichiers.
 
+#### Repli sur le catalogue livré {#shipped-catalogue-fallback}
+
+Ces deux étapes sont les seules du pipeline à avoir un **repli** : leur entrée est un catalogue, dont l'essentiel n'est édité par personne. `prepare` ne dépose donc plus de copie — il écrit un fichier vide — et la résolution se fait dans cet ordre :
+
+1. le fichier du dossier de mission, **s'il contient au moins un groupe** ;
+2. sinon le catalogue livré, sous `published/src/defaults/mission-folder/src/`.
+
+Un fichier absent ou vide veut dire « je n'ajoute rien au catalogue livré », pas « je ne veux rien injecter ». Deux conséquences à connaître :
+
+- `spawnable_aircrafts: false` / `dynamic_slot_templates: false` reste le seul moyen de désactiver l'étape, et le repli ne la ressuscite pas ;
+- un `file:` explicite est pris au mot : si le chemin nommé n'existe pas, l'étape est **ignorée** plutôt que repliée sur le catalogue livré — une faute de frappe ne doit pas injecter un catalogue que personne n'a demandé.
+
+Quand le repli joue, le compte rendu de build le dit. Pour récupérer sélectivement les entrées du catalogue livré dans un fichier qui en a déjà, voir [`pull-aircraft-groups`](CLI_REFERENCE.md#pull-aircraft-groups).
+
 ### Modes d'injection
 
 | Mode | Comportement |

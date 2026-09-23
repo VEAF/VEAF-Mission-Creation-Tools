@@ -44,6 +44,26 @@ construit dans l'éditeur DCS, on le nomme avec le préfixe `veafSpawn-`, puis o
 
 Le fichier `src/spawnables.yaml` est réécrit avec vos groupes. Le prochain build les réinjecte.
 
+### Tant que vous n'avez rien extrait {#shipped-catalogue}
+
+Un dossier fraîchement préparé reçoit un `src/spawnables.yaml` **vide**, et le build injecte alors
+le catalogue de groupes spawnables livré avec veaf-tools. Vide veut donc dire « je n'ajoute rien au
+catalogue livré », pas « je ne veux rien » — pour ne rien injecter, c'est `spawnable_aircrafts:
+false` sous `pipeline:` dans `mission.yaml`.
+
+Dès que le fichier contient un groupe — dès la première extraction, donc — il fait foi seul, et le
+catalogue livré n'est plus consulté. Pour récupérer ensuite les entrées ajoutées par une nouvelle
+version de l'outil, sans perdre les vôtres :
+
+```powershell
+.\veaf-tools.exe content pull-aircraft-groups --kind spawnable
+.\veaf-tools.exe content pull-aircraft-groups --kind spawnable --add-new
+```
+
+La règle complète, avec le tableau des trois cas, est sur la page
+[Slots dynamiques](dynamic-slots.md#shipped-catalogue) : les deux catalogues se comportent
+exactement pareil.
+
 ## Le piège {#gotcha}
 
 **C'est le préfixe du nom qui décide de la famille**, pas le fichier. Un groupe d'aéronefs nommé

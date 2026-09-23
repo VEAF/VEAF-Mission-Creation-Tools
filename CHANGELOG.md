@@ -116,6 +116,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   because every airfield of a blank mission is NEUTRAL, so no dynamic slot is playable — which the
   build used to pass over in silence. The step's report also counts the ships and FARPs it wired.
 
+- **A template added to the shipped catalogue now reaches an existing mission folder.** `prepare`
+  copied the 351 KB dynamic-slot catalogue and the 286 KB spawnables into every mission folder, and
+  the build read that copy and nothing else — so the copy froze on the day the folder was created.
+  A folder prepared in June keeps its 104 templates forever, and the `F-14BU Template` added on
+  2026-09-21 never reaches it however often its owner updates the tool. `prepare` now writes an
+  empty catalogue instead of a copy, and the build resolves the mission's file when it holds at
+  least one group and the shipped catalogue otherwise, saying which one it used. **An empty file
+  means "I add nothing to the shipped catalogue", not "inject nothing"** — the skeleton's header
+  says so, and `spawnable_aircrafts: false` / `dynamic_slot_templates: false` remains the only way
+  to switch a step off. A folder that already owns a catalogue is untouched and keeps standing
+  alone: nothing is ever merged into it behind the mission maker's back. The new
+  `veaf-tools content pull-aircraft-groups` is the explicit way to close that loop — it reports
+  what the shipped catalogue has that yours does not, and `--add "<name>"` or `--add-new` copies in
+  what you choose, **never replacing an entry you already have**, even when the shipped version
+  differs.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

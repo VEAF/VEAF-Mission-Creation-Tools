@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 import yaml
 from aircrafts_injector import AircraftGroupsInjectorWorker, AircraftGroupsYAMLValidator
-from aircrafts_injector.catalogue import catalogue_file_has_groups
+from aircrafts_injector.catalogue import CatalogueUnreadable, catalogue_file_has_groups
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
@@ -223,8 +223,15 @@ def resolve_aircraft_catalogue(
         return resolve_pipeline_step_file(pipeline_cfg, mission_folder, key, candidate), False
 
     local = mission_folder / candidate
-    if local.is_file() and catalogue_file_has_groups(local):
-        return local, False
+    if local.is_file():
+        try:
+            if catalogue_file_has_groups(local):
+                return local, False
+        except CatalogueUnreadable:
+            # A file broken by a hand edit is not an empty file. Falling back here would pass over
+            # it in silence and build a different mission than the maker wrote; handing it on
+            # instead lets the validator report it, exactly as it did before the fallback existed.
+            return local, False
     shipped = shipped_default_file(mission_folder, candidate)
     return shipped, shipped is not None
 

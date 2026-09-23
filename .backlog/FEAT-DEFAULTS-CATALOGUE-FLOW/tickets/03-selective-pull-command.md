@@ -1,6 +1,6 @@
 # 03 — A selective pull command
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 ## Problem
 

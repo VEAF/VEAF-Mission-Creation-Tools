@@ -20,6 +20,7 @@ import yaml
 from aircrafts_injector.catalogue import (
     DYNAMIC_TEMPLATES_FILENAME,
     SPAWNABLES_FILENAME,
+    CatalogueUnreadable,
     GroupRef,
     catalogue_file_has_groups,
     catalogue_has_groups,
@@ -58,13 +59,32 @@ class TestEmptyMeansEmpty(unittest.TestCase):
             path.write_text("", encoding="utf-8")
             self.assertFalse(catalogue_file_has_groups(path))
 
-    def test_an_unparseable_file_carries_no_group(self) -> None:
-        """A file the YAML parser refuses must not crash the build; it reads as empty."""
+    def test_a_comments_only_file_carries_no_group(self) -> None:
+        """The skeleton minus its two keys still parses, to `None`, and that is genuinely empty."""
         with TemporaryDirectory() as tmp:
-            path = Path(tmp) / "broken.yaml"
-            path.write_text("airplanes: [unclosed\n", encoding="utf-8")
+            path = Path(tmp) / "comments.yaml"
+            path.write_text("# nothing but a header\n", encoding="utf-8")
             self.assertFalse(catalogue_file_has_groups(path))
             self.assertEqual(load_catalogue(path), {})
+
+    def test_an_unparseable_file_is_unreadable_rather_than_empty(self) -> None:
+        """Measured before this guard existed: read as empty, `--add-new` replaced a 118-byte
+        hand-tuned catalogue with 371 420 bytes of shipped entries and the maker's group was gone.
+        Unreadable has to be a third answer, distinct from empty."""
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "broken.yaml"
+            path.write_text('airplanes:\n  coalitions:\n    blue:\n      "unterminated\n', encoding="utf-8")
+            with self.assertRaises(CatalogueUnreadable):
+                load_catalogue(path)
+            with self.assertRaises(CatalogueUnreadable):
+                catalogue_file_has_groups(path)
+
+    def test_a_document_that_is_not_a_mapping_is_unreadable_too(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "list.yaml"
+            path.write_text("- one\n- two\n", encoding="utf-8")
+            with self.assertRaises(CatalogueUnreadable):
+                load_catalogue(path)
 
     def test_a_populated_file_carries_groups(self) -> None:
         with TemporaryDirectory() as tmp:

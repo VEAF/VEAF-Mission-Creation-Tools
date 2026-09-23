@@ -9,8 +9,58 @@ terrain et un type d'appareil, et DCS le fait apparaître au parking. Deux fichi
   `dynSpawnTemplate: true`, qui décrit l'appareil servi (emport, livrée, fréquences) ;
 - `src/warehouses.yaml` — **quels terrains** ouvrent des slots dynamiques, et avec quel stock.
 
-Les deux sont livrés dans un dossier fraîchement créé : une centaine de modèles, et un
-`warehouses.yaml` qui tient en une poignée de lignes utiles.
+Le `warehouses.yaml` tient en une poignée de lignes utiles, et il est livré dans un dossier
+fraîchement créé. Le catalogue de modèles, lui, n'a pas besoin d'être dans votre dossier : voir
+juste en dessous.
+
+## D'où vient le catalogue de modèles {#shipped-catalogue}
+
+Un catalogue de modèles est livré avec veaf-tools, et il grossit à chaque version. Votre dossier
+de mission n'en reçoit **pas de copie** : il reçoit un `src/dynamic-slot-templates.yaml` vide, et
+le build va lire le catalogue livré. Vous profitez donc automatiquement des modèles ajoutés
+depuis, simplement en mettant l'outil à jour.
+
+Trois situations, et une seule règle :
+
+| Votre `src/dynamic-slot-templates.yaml` | Ce que le build injecte |
+|---|---|
+| absent, ou vide | le catalogue livré, en entier — et le build le dit dans son compte rendu |
+| contenant au moins un groupe | **le vôtre, seul** : le catalogue livré n'est plus consulté |
+| n'importe lequel des deux, avec `dynamic_slot_templates: false` dans `mission.yaml` | rien |
+
+Autrement dit, un fichier vide veut dire « je n'ajoute rien au catalogue livré », et **pas** « je
+ne veux pas de slots dynamiques ». Pour ne rien injecter du tout, c'est `dynamic_slot_templates:
+false` sous la clé `pipeline:` de `mission.yaml`, et rien d'autre.
+
+Dès que vous écrivez un seul groupe dans votre fichier, il fait foi tout seul. Rien n'est fusionné
+dans votre dos : vos réglages restent exactement ceux que vous avez écrits, même quand une nouvelle
+version de l'outil livre un modèle du même nom.
+
+### Récupérer les nouveaux modèles, à la carte {#pull-new-templates}
+
+C'est la contrepartie : votre fichier ne bougera plus jamais tout seul, donc il faut un geste pour
+aller chercher les nouveautés. Il est sélectif — vous prenez ce que vous voulez, pas tout.
+
+D'abord voir ce qui manque, ce qui n'écrit rien :
+
+```powershell
+.\veaf-tools.exe content pull-aircraft-groups
+```
+
+Puis prendre un modèle nommément, ou tous ceux qui manquent :
+
+```powershell
+.\veaf-tools.exe content pull-aircraft-groups --add "F-14BU Template"
+.\veaf-tools.exe content pull-aircraft-groups --add-new
+```
+
+**Un modèle que vous avez déjà n'est jamais remplacé**, même si le catalogue livré en a une version
+différente — c'est bien pour ça que la commande existe plutôt qu'une fusion automatique. Le compte
+rendu les liste comme conservés, pour que vous sachiez ce qui a été laissé de côté et pourquoi.
+Et un modèle que vous avez supprimé exprès reste supprimé tant que vous ne le redemandez pas.
+
+Le même mécanisme vaut pour [les groupes spawnables](spawnables.md) : c'est le même catalogue livré
+et la même commande, avec `--kind spawnable`.
 
 ## Le plus petit exemple qui marche {#minimal-example}
 
@@ -103,6 +153,10 @@ puis régénérez le fichier depuis cette mission.
 .\veaf-tools.exe extract-aircraft-groups ma-mission.miz --kind dynamic-template
 ```
 
+À partir de là, votre fichier n'est plus vide : il fait foi seul, et le catalogue livré n'est plus
+consulté pour cette mission. C'est voulu — vos emports sont vos emports — et
+[`pull-aircraft-groups`](#pull-new-templates) est là pour aller rechercher ce qui vous manque.
+
 !!! warning "Deux avertissements à lire"
     Le build signale désormais deux situations qui ne cassent rien et rendent pourtant les slots
     inutilisables. **Un lien de modèle qui ne mène nulle part** : DCS l'affiche en *Group template:
@@ -126,4 +180,5 @@ puis régénérez le fichier depuis cette mission.
 - [Référence Pipeline — étape 4, warehouses](../../PIPELINE_REFERENCE.md#pipeline-step-4-warehouses)
 - [Référence Pipeline — étape 3, groupes d'aéronefs](../../PIPELINE_REFERENCE.md#pipeline-step-3-aircraft-groups)
 - [Référence CLI — `extract-aircraft-groups`](../../CLI_REFERENCE.md#extract-aircraft-groups)
+- [Référence CLI — `pull-aircraft-groups`](../../CLI_REFERENCE.md#pull-aircraft-groups)
 - [Groupes spawnables](spawnables.md) — l'autre famille de groupes d'aéronefs

@@ -61,7 +61,9 @@ class _Folder:
 class TestTheReportIsReadOnly(unittest.TestCase):
     def test_it_names_what_the_shipped_catalogue_has_and_the_mission_does_not(self) -> None:
         with TemporaryDirectory() as tmp:
-            folder = _Folder(tmp, _catalogue("A-10C II Template", payload="mine"), _catalogue("A-10C II Template", "F-14BU Template"))
+            folder = _Folder(
+                tmp, _catalogue("A-10C II Template", payload="mine"), _catalogue("A-10C II Template", "F-14BU Template")
+            )
             result = folder.run()
             self.assertEqual(result.exit_code, 0, result.output)
             self.assertIn("F-14BU Template", result.output)
@@ -70,7 +72,9 @@ class TestTheReportIsReadOnly(unittest.TestCase):
     def test_it_says_the_shared_entries_are_kept(self) -> None:
         """An entry present on both sides is reported as kept, not hidden."""
         with TemporaryDirectory() as tmp:
-            folder = _Folder(tmp, _catalogue("A-10C II Template", payload="mine"), _catalogue("A-10C II Template", "F-14BU Template"))
+            folder = _Folder(
+                tmp, _catalogue("A-10C II Template", payload="mine"), _catalogue("A-10C II Template", "F-14BU Template")
+            )
             result = folder.run("--verbose")
         self.assertIn("A-10C II Template", result.output)
 
@@ -85,7 +89,9 @@ class TestTheReportIsReadOnly(unittest.TestCase):
 class TestAddTakesOnlyWhatIsNamed(unittest.TestCase):
     def test_one_name_brings_in_one_entry(self) -> None:
         with TemporaryDirectory() as tmp:
-            folder = _Folder(tmp, _catalogue("A-10C II Template", payload="mine"), _catalogue("F-14BU Template", "F-16C Template"))
+            folder = _Folder(
+                tmp, _catalogue("A-10C II Template", payload="mine"), _catalogue("F-14BU Template", "F-16C Template")
+            )
             result = folder.run("--add", "F-16C Template")
             self.assertEqual(result.exit_code, 0, result.output)
             self.assertEqual(sorted(folder.groups()), ["A-10C II Template", "F-16C Template"])
@@ -118,7 +124,9 @@ class TestAddNewTakesEverythingMissing(unittest.TestCase):
     def test_an_entry_the_maker_edited_is_untouched(self) -> None:
         """The whole decision in one assertion: same name, different content, his wins."""
         with TemporaryDirectory() as tmp:
-            folder = _Folder(tmp, _catalogue("A-10C II Template", payload="mine"), _catalogue("A-10C II Template", "New"))
+            folder = _Folder(
+                tmp, _catalogue("A-10C II Template", payload="mine"), _catalogue("A-10C II Template", "New")
+            )
             folder.run("--add-new")
             self.assertEqual(folder.groups()["A-10C II Template"]["origin"], "mine")
             self.assertEqual(folder.groups()["New"]["origin"], "shipped")
@@ -151,9 +159,7 @@ class TestBothFamilies(unittest.TestCase):
         """`--kind both` looks a name up across both catalogues before calling it unknown."""
         with TemporaryDirectory() as tmp:
             folder = _Folder(tmp, _catalogue("Mine", payload="mine"), _catalogue("Dyn Only"))
-            result = _runner.invoke(
-                app, ["pull-aircraft-groups", str(folder.path), "--add", "veafSpawn-Shipped"]
-            )
+            result = _runner.invoke(app, ["pull-aircraft-groups", str(folder.path), "--add", "veafSpawn-Shipped"])
             self.assertEqual(result.exit_code, 0, result.output)
             spawnables = yaml.safe_load((folder.path / _SPAWNABLES).read_text(encoding="utf-8"))
             self.assertIn("veafSpawn-Shipped", spawnables["airplanes"]["coalitions"]["blue"]["CJTF Blue"])
@@ -166,6 +172,29 @@ class TestBothFamilies(unittest.TestCase):
         self.assertNotEqual(result.exit_code, 0)
 
 
+class TestABrokenLocalCatalogue(unittest.TestCase):
+    """Measured before the guard: 118 bytes of hand-tuned catalogue, one unterminated quote, and
+    `--add-new` wrote 371 420 bytes of shipped entries over it. Empty and unreadable are not the
+    same answer."""
+
+    #: The shape the measurement used: a hand edit that left a quote unterminated.
+    BROKEN = 'airplanes:\n  coalitions:\n    blue:\n      CJTF Blue:\n        "My Hand Tuned F-14: {\n'
+
+    def test_add_new_refuses_and_writes_nothing(self) -> None:
+        with TemporaryDirectory() as tmp:
+            folder = _Folder(tmp, self.BROKEN, _catalogue("One", "Two"))
+            result = folder.run("--add-new")
+            self.assertEqual(result.exit_code, 1)
+            self.assertEqual(folder.local.read_text(encoding="utf-8"), self.BROKEN)
+
+    def test_even_the_read_only_report_says_so_rather_than_counting_zero(self) -> None:
+        with TemporaryDirectory() as tmp:
+            folder = _Folder(tmp, self.BROKEN, _catalogue("One"))
+            result = folder.run()
+            self.assertEqual(result.exit_code, 1)
+            self.assertIn("dynamic-slot-templates.yaml", result.output)
+
+
 class TestWithoutAShippedCatalogue(unittest.TestCase):
     def test_it_says_so_rather_than_failing_silently(self) -> None:
         with TemporaryDirectory() as tmp:
@@ -174,9 +203,7 @@ class TestWithoutAShippedCatalogue(unittest.TestCase):
             (folder / _DYNAMIC).write_text(_catalogue("Mine"), encoding="utf-8")
             # No `published/`, and the dev checkout answers instead — so the shipped catalogue is
             # the real 128-template one. That is the honest end-to-end shape of this command.
-            result = _runner.invoke(
-                app, ["pull-aircraft-groups", str(folder), "--kind", "dynamic-template"]
-            )
+            result = _runner.invoke(app, ["pull-aircraft-groups", str(folder), "--kind", "dynamic-template"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("Template", result.output)
 

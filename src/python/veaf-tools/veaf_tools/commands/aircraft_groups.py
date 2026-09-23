@@ -9,7 +9,13 @@ from aircrafts_injector import (
     AircraftGroupsInjectorWorker,
     AircraftGroupsYAMLValidator,
 )
-from aircrafts_injector.catalogue import GroupRef, iter_groups, load_catalogue, merge_missing
+from aircrafts_injector.catalogue import (
+    CatalogueUnreadable,
+    GroupRef,
+    iter_groups,
+    load_catalogue,
+    merge_missing,
+)
 from rich.markdown import Markdown
 from veaf_libs.paths import resolve_path
 from veaf_libs.shipped_defaults import shipped_default_file
@@ -238,7 +244,9 @@ def _pull_delta(mine: dict[str, Any], shipped: dict[str, Any]) -> tuple[list[Gro
     return missing, kept
 
 
-def _report_delta(local: Path, mine: dict[str, Any], missing: list[GroupRef], kept: list[GroupRef], verbose: bool) -> None:
+def _report_delta(
+    local: Path, mine: dict[str, Any], missing: list[GroupRef], kept: list[GroupRef], verbose: bool
+) -> None:
     """Print what the shipped catalogue has that *local* does not, grouped by coalition.
 
     Args:
@@ -321,7 +329,16 @@ def pull_aircraft_groups(
         if shipped_path is None:
             console.print(t("cmd.pull_aircraft.no_shipped", file=Path(relative).name))
             continue
-        families.append((p_mission_folder / relative, load_catalogue(p_mission_folder / relative), load_catalogue(shipped_path)))
+        local_path = p_mission_folder / relative
+        try:
+            mine, shipped = load_catalogue(local_path), load_catalogue(shipped_path)
+        except CatalogueUnreadable as exc:
+            # Never treat a broken file as an empty one: --add-new would then overwrite it with the
+            # whole shipped catalogue. Measured on a 118-byte hand-tuned catalogue with a single
+            # unterminated quote — 371 420 bytes written, the maker's own group gone.
+            console.print(t("cmd.pull_aircraft.unreadable", path=local_path, error=exc))
+            raise typer.Exit(1) from exc
+        families.append((local_path, mine, shipped))
 
     if not families:
         raise typer.Exit(1)
@@ -340,7 +357,6 @@ def pull_aircraft_groups(
     else:
         selection = set()  # report-only: nothing is taken
 
-    total_added = 0
     for local, mine, shipped in families:
         missing, kept = _pull_delta(mine, shipped)
         _report_delta(local, mine, missing, kept, verbose)
@@ -351,7 +367,6 @@ def pull_aircraft_groups(
             console.print(t("cmd.pull_aircraft.nothing_added", file=local.name))
             continue
         _write_catalogue(local, merged)
-        total_added += len(added)
         console.print(tn("cmd.pull_aircraft.added", len(added), file=local.name))
 
     if not add_new and not add:

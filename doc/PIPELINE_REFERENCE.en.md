@@ -349,6 +349,20 @@ At extraction (`extract-aircraft-groups`), each group is routed to one of the tw
 
 > **v6 hard break**: the old `src/aircraft-templates.yaml` / `src/templates.yaml` names and the `aircraft_groups` step are gone. `convert-v5` produces the two new files directly.
 
+#### Falling back to the shipped catalogue {#shipped-catalogue-fallback}
+
+These two steps are the only ones in the pipeline with a **fallback**: their input is a catalogue, most of which nobody edits. `prepare` therefore no longer lays down a copy — it writes an empty file — and resolution goes in this order:
+
+1. the mission folder's file, **when it holds at least one group**;
+2. otherwise the shipped catalogue, under `published/src/defaults/mission-folder/src/`.
+
+An absent or empty file means "I add nothing to the shipped catalogue", not "inject nothing". Two consequences worth knowing:
+
+- `spawnable_aircrafts: false` / `dynamic_slot_templates: false` remains the only way to disable the step, and the fallback does not resurrect it;
+- an explicit `file:` is taken at its word: when the named path does not exist the step is **skipped** rather than falling back to the shipped catalogue — a typo must not inject a catalogue nobody asked for.
+
+When the fallback applies, the build report says so. To pull entries from the shipped catalogue selectively into a file that already has some, see [`pull-aircraft-groups`](CLI_REFERENCE.en.md#pull-aircraft-groups).
+
 ### Injection modes
 
 | Mode | Behaviour |

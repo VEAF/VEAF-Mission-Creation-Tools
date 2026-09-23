@@ -327,6 +327,32 @@ veaf-tools content inject-aircraft-groups MaMission.miz aircraft-templates.yaml 
 
 **Voir aussi** : [PIPELINE_REFERENCE.md](PIPELINE_REFERENCE.md)
 
+### `veaf-tools content pull-aircraft-groups` {#pull-aircraft-groups}
+
+Liste ce que le catalogue de groupes d'aéronefs livré avec veaf-tools contient et que votre dossier de mission n'a pas, et recopie les entrées que vous choisissez. Sans `--add` ni `--add-new`, la commande n'écrit rien : elle affiche seulement le compte rendu. **Une entrée que vous avez déjà n'est jamais remplacée**, même si la version livrée diffère ; elle est signalée comme conservée.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `MISSION_FOLDER` | `str` | non | Dossier contenant les fichiers de mission. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées ; nomme aussi les entrées conservées au lieu de seulement les compter. |
+| `--kind` | `str` | `both` | Catalogue à traiter : 'both' (défaut), 'spawnable' ou 'dynamic-template'. |
+| `--add` | `str` | *(aucun)* | Nom d'un groupe à recopier depuis le catalogue livré. Répétable. Un nom absent du catalogue livré arrête la commande sans rien écrire. |
+| `--add-new` | `boolean` | `false` | Recopie toutes les entrées que le catalogue livré a et que le vôtre n'a pas. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+```bash
+veaf-tools content pull-aircraft-groups
+veaf-tools content pull-aircraft-groups --kind dynamic-template --add "F-14BU Template"
+veaf-tools content pull-aircraft-groups --add-new
+```
+
+*Alias plat : `veaf-tools pull-aircraft-groups`*
+
+**Voir aussi** : [Slots dynamiques](mission-maker/concepts/dynamic-slots.md#shipped-catalogue)
+
 ### `veaf-tools content inject-presets` {#inject-presets}
 
 Injecte des préréglages radio depuis un fichier YAML dans une mission .miz.

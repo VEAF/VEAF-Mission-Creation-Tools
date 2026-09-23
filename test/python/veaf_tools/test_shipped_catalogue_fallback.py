@@ -29,6 +29,9 @@ _KEY = "dynamic_slot_templates"
 
 _EMPTY = "airplanes:\n  coalitions: {}\nhelicopters:\n  coalitions: {}\n"
 
+#: A catalogue broken by a hand edit: one unterminated quote, which no YAML parser will accept.
+_BROKEN = 'airplanes:\n  coalitions:\n    blue:\n      "unterminated\n'
+
 
 def _populated(name: str) -> str:
     return yaml.safe_dump({"airplanes": {"coalitions": {"blue": {"CJTF Blue": {name: {"name": name}}}}}})
@@ -105,6 +108,20 @@ class TestTheShippedCatalogueIsTheFallback(unittest.TestCase):
             missing, shipped_for_missing = folder.resolve({_KEY: {"file": "custom/typo.yaml"}})
             self.assertIsNone(missing)
             self.assertFalse(shipped_for_missing)
+
+    def test_a_broken_local_file_is_not_treated_as_empty(self) -> None:
+        """A hand edit gone wrong must not be passed over in silence.
+
+        Falling back here would build a mission the maker did not write, quietly. Handing the
+        broken file on instead lets the injector's validator report it — which is exactly what
+        happened before the fallback existed, and the signal the fallback must not swallow.
+        """
+        with TemporaryDirectory() as tmp:
+            folder = _Folder(tmp)
+            folder.local.write_text(_BROKEN, encoding="utf-8")
+            path, shipped = folder.resolve()
+        self.assertEqual(path, folder.local)
+        self.assertFalse(shipped)
 
     def test_no_local_file_and_no_shipped_one_skips_the_step(self) -> None:
         with TemporaryDirectory() as tmp:

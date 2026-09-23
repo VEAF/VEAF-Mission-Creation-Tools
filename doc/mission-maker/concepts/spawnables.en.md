@@ -43,6 +43,25 @@ DCS editor, name it with the `veafSpawn-` prefix, then extract it:
 
 `src/spawnables.yaml` is rewritten with your groups. The next build injects them back.
 
+### Until you have extracted anything {#shipped-catalogue}
+
+A freshly prepared folder gets an **empty** `src/spawnables.yaml`, and the build then injects the
+spawnable-group catalogue shipped with veaf-tools. Empty therefore means "I add nothing to the
+shipped catalogue", not "I want nothing" — to inject nothing, it is `spawnable_aircrafts: false`
+under `pipeline:` in `mission.yaml`.
+
+As soon as the file holds a group — from the first extraction onwards — it stands alone, and the
+shipped catalogue is no longer read. To pick up the entries a later release adds, without losing
+yours:
+
+```powershell
+.\veaf-tools.exe content pull-aircraft-groups --kind spawnable
+.\veaf-tools.exe content pull-aircraft-groups --kind spawnable --add-new
+```
+
+The full rule, with the table of all three cases, is on the
+[Dynamic slots](dynamic-slots.en.md#shipped-catalogue) page: both catalogues behave exactly alike.
+
 ## The gotcha {#gotcha}
 
 **The name prefix decides the family**, not the file. An aircraft group named `veafSpawn-…` belongs

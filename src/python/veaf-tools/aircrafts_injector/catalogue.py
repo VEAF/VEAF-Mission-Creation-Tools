@@ -20,9 +20,10 @@ needed and neither may be expressed as the other — see ticket 03 of the lot.
 from __future__ import annotations
 
 import copy
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 import yaml
 
@@ -52,6 +53,18 @@ class GroupRef:
         return f"{self.category} / {self.coalition} / {self.country} / {self.name}"
 
 
+class CatalogueUnreadable(Exception):
+    """A catalogue file exists but does not parse — it must never be taken for an empty one.
+
+    This distinction is the whole reason the exception exists. *Empty* means "I add nothing to
+    the shipped catalogue", and that answer makes the build fall back and makes a pull write the
+    whole shipped catalogue into the file. Giving that answer about a file broken by a hand edit
+    **destroys it**: measured on a 118-byte hand-tuned catalogue with one unterminated quote,
+    ``--add-new`` replaced it with 371 420 bytes of shipped entries and the maker's own group was
+    gone. Unreadable is a third state, and every caller has to decide what to do with it.
+    """
+
+
 def load_catalogue(path: Path) -> dict[str, Any]:
     """Read a catalogue file, treating an absent or blank file as an empty catalogue.
 
@@ -59,16 +72,24 @@ def load_catalogue(path: Path) -> dict[str, Any]:
         path: The YAML file to read.
 
     Returns:
-        The parsed catalogue, or ``{}`` when the file does not exist, is blank, or does not
-        parse to a mapping.
+        The parsed catalogue, or ``{}`` when the file does not exist or holds nothing but
+        comments.
+
+    Raises:
+        CatalogueUnreadable: The file exists and is not a YAML mapping — a syntax error, or a
+            document that is not a catalogue at all.
     """
     if not path.is_file():
         return {}
     try:
         parsed = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except yaml.YAMLError:
+    except yaml.YAMLError as exc:
+        raise CatalogueUnreadable(str(exc)) from exc
+    if parsed is None:
         return {}
-    return parsed if isinstance(parsed, dict) else {}
+    if not isinstance(parsed, dict):
+        raise CatalogueUnreadable(f"{path}: the document is a {type(parsed).__name__}, not a mapping")
+    return parsed
 
 
 def iter_groups(catalogue: dict[str, Any]) -> Iterator[tuple[GroupRef, Any]]:
@@ -115,13 +136,17 @@ def catalogue_file_has_groups(path: Path) -> bool:
     """Whether a catalogue file carries at least one group.
 
     The 62-byte ``airplanes: {coalitions: {}}`` skeleton some mission folders carry answers
-    ``False``, and so does an absent or unreadable file.
+    ``False``, and so does an absent file. A file that exists and does not parse answers
+    neither — see :class:`CatalogueUnreadable`.
 
     Args:
         path: The YAML file to read.
 
     Returns:
         ``True`` when the file holds at least one group.
+
+    Raises:
+        CatalogueUnreadable: The file exists and is not a YAML mapping.
     """
     return catalogue_has_groups(load_catalogue(path))
 
@@ -145,6 +170,10 @@ def merge_missing(
         The merged catalogue, and the refs of the groups that were added, in file order.
     """
     merged = copy.deepcopy(mine)
+    # Keyed by **name alone**, unlike ``_merge_over`` which keys by the full path. A DCS group
+    # name is unique across a mission, so a maker who moved an entry to another country still owns
+    # it, and adding the shipped copy beside it would inject two groups of the same name. Measured
+    # on the shipped catalogues: 128 and 51 entries, zero name collisions, so nothing is lost here.
     owned = {ref.name for ref, _ in iter_groups(mine)}
     added: list[GroupRef] = []
 

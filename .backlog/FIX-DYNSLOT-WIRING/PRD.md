@@ -1,6 +1,6 @@
 # FIX-DYNSLOT-WIRING — the injection→warehouse chain wires templates to nothing
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Opened 2026-09-22, from a mission maker (Tripack) reporting that the F-14B(U) is not offered in
 dynamic slots on a build with `dynamic_slot_templates: true`. His own case is not settled — it needs

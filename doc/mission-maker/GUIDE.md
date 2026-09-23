@@ -526,6 +526,7 @@ Le build vous dit combien il en a ajouté.
 | `inject-weather` | Crée des variantes météo/heure depuis une config YAML |
 | `inject-aircraft-groups` | Injecte des templates de groupes d'aéronefs |
 | `extract-aircraft-groups` | Extrait les groupes d'aéronefs d'une mission |
+| `pull-aircraft-groups` | Liste ce que le catalogue livré a et que votre dossier n'a pas, et recopie les entrées choisies (vos entrées ne sont jamais remplacées) |
 | `inject-waypoints` | Injecte des waypoints (bullseye, points de navigation) pour les groupes humains |
 | `extract-waypoints` | Extrait les waypoints d'une mission |
 | `convert-v5` | Migre un dossier mission v5 vers le format v6 |

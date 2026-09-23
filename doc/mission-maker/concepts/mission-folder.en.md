@@ -28,8 +28,8 @@ my-mission/
 │   │   └── veafDynamicConfig.lua    # dynamic loading (dev/test)
 │   ├── presets.yaml                 # radio presets
 │   ├── waypoints.yaml               # named flight plans
-│   ├── spawnables.yaml              # spawnable aircraft groups
-│   ├── dynamic-slot-templates.yaml  # dynamic-slot templates
+│   ├── spawnables.yaml              # spawnable aircraft groups (empty = shipped catalogue)
+│   ├── dynamic-slot-templates.yaml  # dynamic-slot templates (empty = shipped catalogue)
 │   ├── warehouses.yaml              # stock and dynamic slots per airfield
 │   ├── spawn-groups.yaml            # ground/sea groups for `_spawn`
 │   └── versions.yaml                # weather/time variants

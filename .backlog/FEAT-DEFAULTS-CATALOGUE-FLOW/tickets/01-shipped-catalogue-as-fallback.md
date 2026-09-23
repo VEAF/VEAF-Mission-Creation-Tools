@@ -1,6 +1,6 @@
 # 01 — Use the shipped catalogue when the mission file is absent or empty
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 ## Problem
 

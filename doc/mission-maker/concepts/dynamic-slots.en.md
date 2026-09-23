@@ -10,8 +10,56 @@ aircraft type, and DCS puts them on a parking spot. Two files feed it:
   frequencies);
 - `src/warehouses.yaml` — **which airfields** open dynamic slots, and with what stock.
 
-Both ship filled in a freshly created folder: a hundred-odd templates, and a `warehouses.yaml` that
-fits in a handful of useful lines.
+`warehouses.yaml` fits in a handful of useful lines, and it ships in a freshly created folder. The
+template catalogue does not need to be in your folder at all: see just below.
+
+## Where the template catalogue comes from {#shipped-catalogue}
+
+A template catalogue ships with veaf-tools, and it grows with every release. Your mission folder
+gets **no copy** of it: it gets an empty `src/dynamic-slot-templates.yaml`, and the build reads the
+shipped catalogue. So you get the templates added since, automatically, just by updating the tool.
+
+Three situations, one rule:
+
+| Your `src/dynamic-slot-templates.yaml` | What the build injects |
+|---|---|
+| absent, or empty | the shipped catalogue, in full — and the build says so in its report |
+| holding at least one group | **yours, alone**: the shipped catalogue is no longer read |
+| either of those, with `dynamic_slot_templates: false` in `mission.yaml` | nothing |
+
+In other words, an empty file means "I add nothing to the shipped catalogue", and **not** "I want no
+dynamic slots". To inject nothing at all, it is `dynamic_slot_templates: false` under the
+`pipeline:` key of `mission.yaml`, and nothing else.
+
+As soon as you write a single group into your file, it stands alone. Nothing is merged behind your
+back: your settings stay exactly what you wrote, even when a new release of the tool ships a
+template of the same name.
+
+### Taking in the new templates, à la carte {#pull-new-templates}
+
+That is the trade-off: your file will never move on its own again, so picking up what is new takes
+a gesture. It is selective — you take what you want, not everything.
+
+First see what is missing, which writes nothing:
+
+```powershell
+.\veaf-tools.exe content pull-aircraft-groups
+```
+
+Then take one template by name, or every missing one:
+
+```powershell
+.\veaf-tools.exe content pull-aircraft-groups --add "F-14BU Template"
+.\veaf-tools.exe content pull-aircraft-groups --add-new
+```
+
+**A template you already have is never replaced**, even when the shipped catalogue holds a different
+version of it — which is exactly why this command exists instead of an automatic merge. The report
+lists them as kept, so you know what was left aside and why. And a template you deleted on purpose
+stays deleted until you ask for it back.
+
+The same mechanism covers [spawnable groups](spawnables.en.md): same shipped catalogue, same
+command, with `--kind spawnable`.
 
 ## The smallest example that works {#minimal-example}
 
@@ -104,6 +152,10 @@ the file from that mission.
 .\veaf-tools.exe extract-aircraft-groups my-mission.miz --kind dynamic-template
 ```
 
+From then on your file is no longer empty: it stands alone, and the shipped catalogue is no longer
+read for this mission. That is the intent — your payloads are your payloads — and
+[`pull-aircraft-groups`](#pull-new-templates) is there to fetch what you are missing.
+
 !!! warning "Two warnings worth reading"
     The build now reports two situations that break nothing and still leave the slots unusable. **A
     template link that leads nowhere**: DCS renders it as *Group template: None* in the Resource
@@ -126,4 +178,5 @@ the file from that mission.
 - [Pipeline reference — step 4, warehouses](../../PIPELINE_REFERENCE.en.md#pipeline-step-4-warehouses)
 - [Pipeline reference — step 3, aircraft groups](../../PIPELINE_REFERENCE.en.md#pipeline-step-3-aircraft-groups)
 - [CLI reference — `extract-aircraft-groups`](../../CLI_REFERENCE.en.md#extract-aircraft-groups)
+- [CLI reference — `pull-aircraft-groups`](../../CLI_REFERENCE.en.md#pull-aircraft-groups)
 - [Spawnable groups](spawnables.en.md) — the other family of aircraft groups

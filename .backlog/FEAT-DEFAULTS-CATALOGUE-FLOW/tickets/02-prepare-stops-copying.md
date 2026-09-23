@@ -1,6 +1,6 @@
 # 02 — `prepare` stops laying down a full copy
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 ## Problem
 

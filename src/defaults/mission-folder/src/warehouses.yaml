@@ -13,6 +13,12 @@
 # auto-filled with every dynamic-spawn template of that coalition. With no
 # assigned airbase, this changes nothing.
 #
+# The same applies to that coalition's SHIPS and FARPs, which DCS keeps in a
+# separate warehouse table and which offer dynamic slots too. Each object is
+# stocked with what it can actually take: an aircraft carrier gets planes and
+# helicopters, a helicopter-capable ship or a FARP gets helicopters, and a ship
+# with no flight deck (a tanker, a cargo ship) is left alone.
+#
 # Customize:
 # - Add `aircrafts:` under a coalition's `defaults:` to offer a specific list
 #   instead of auto-filling. Each entry: `{ amount: unlimited | <n>, template?: "<name>" }`;
@@ -22,6 +28,14 @@
 #     airports:
 #       Senaki-Kolkhi: {}
 #       24: { aircrafts: { Yak-52: { amount: 10 } } }
+# - Add `ships:` and/or `farps:` the same way, keyed by the object's unit name
+#   (as written in the Mission Editor) or by its unit id:
+#     ships:
+#       CSG-74 Stennis: {}
+#     farps:
+#       FARP Kaspi MM54: { aircrafts: { UH-1H: { amount: 20 } } }
+#   The three keys are independent: naming a ship says nothing about the FARPs,
+#   which keep the "all of this coalition" default.
 # - Add `hot_start: false` under a coalition's `defaults:` to offer cold starts
 #   only (DCS's own default; the build offers a hot start unless told otherwise).
 # - Remove a coalition block to leave that side's warehouses untouched.

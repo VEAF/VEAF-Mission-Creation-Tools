@@ -383,6 +383,7 @@ def build(
                 t(
                     "pipeline.console.warehouses_done",
                     airports=tn("pipeline.console.warehouses_airports", wh_result.airports_configured),
+                    objects=tn("pipeline.console.warehouses_objects", wh_result.objects_configured),
                     templates=tn("pipeline.console.warehouses_templates", wh_result.templates_linked),
                 )
             )

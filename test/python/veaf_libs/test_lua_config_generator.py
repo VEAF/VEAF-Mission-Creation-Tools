@@ -1684,3 +1684,76 @@ def test_hide_names_appears_in_the_yaml_template():
     reference, which is not where a mission maker looks."""
     template = generate_mission_yaml_template()
     assert "hide_names_from_spawned_groups" in template
+
+
+# ---------------------------------------------------------------------------
+# COMBATZONE — `includes:`, difficulty levels on the same targets (FIX-SCRATCH-MISSION-FINDINGS 10)
+# ---------------------------------------------------------------------------
+
+
+def _combatzones_yaml(*zones: dict) -> dict:
+    """Build a minimal mission carrying the given combat zones, in that order."""
+    return {"mission": {"name": "Test"}, "lua_modules": {"COMBATZONE": {"combat_zones": list(zones)}}}
+
+
+def test_combatzone_includes_emits_the_transitive_closure_after_every_zone_exists():
+    """HARD includes MEDIUM which includes EASY: HARD borrows both, whatever the definition order."""
+    lua = generate_config_lua(
+        _combatzones_yaml(
+            {"zone_name": "HARD", "includes": ["MEDIUM"]},
+            {"zone_name": "MEDIUM", "includes": ["EASY"]},
+            {"zone_name": "EASY"},
+        )
+    )
+    hard_medium = 'veafCombatZone.GetZone("HARD"):addZoneElementsFromZoneNamed("MEDIUM")'
+    hard_easy = 'veafCombatZone.GetZone("HARD"):addZoneElementsFromZoneNamed("EASY")'
+    medium_easy = 'veafCombatZone.GetZone("MEDIUM"):addZoneElementsFromZoneNamed("EASY")'
+    for call in (hard_medium, hard_easy, medium_easy):
+        assert call in lua
+    assert 'GetZone("EASY"):addZoneElementsFromZoneNamed' not in lua
+    # after the last zone is built, before the module initializes
+    last_zone = lua.index('setMissionEditorZoneName("EASY")')
+    for call in (hard_medium, hard_easy, medium_easy):
+        assert last_zone < lua.index(call) < lua.index("veafCombatZone.initialize()")
+
+
+def test_combatzone_includes_matches_names_like_the_runtime_does():
+    """The runtime looks zones up case-insensitively; so does the check."""
+    lua = generate_config_lua(_combatzones_yaml({"zone_name": "Hard", "includes": ["easy"]}, {"zone_name": "EASY"}))
+    assert 'veafCombatZone.GetZone("Hard"):addZoneElementsFromZoneNamed("easy")' in lua
+
+
+def test_combatzone_without_includes_emits_no_borrowing():
+    lua = generate_config_lua(_combatzones_yaml({"zone_name": "A"}, {"zone_name": "B"}))
+    assert "addZoneElementsFromZoneNamed" not in lua
+
+
+def test_combatzone_includes_rejects_an_unknown_zone():
+    """At runtime an unknown name is a line in dcs.log and a level missing its lower levels."""
+    with pytest.raises(ValueError, match="includes.*NOPE"):
+        generate_config_lua(_combatzones_yaml({"zone_name": "HARD", "includes": ["NOPE"]}))
+
+
+def test_combatzone_includes_rejects_an_operation():
+    with pytest.raises(ValueError, match="includes.*OP"):
+        generate_config_lua(
+            _combatzones_yaml({"zone_name": "HARD", "includes": ["OP"]}, {"type": "operation", "zone_name": "OP"})
+        )
+
+
+def test_combatzone_includes_rejects_a_cycle():
+    with pytest.raises(ValueError, match="cycle"):
+        generate_config_lua(
+            _combatzones_yaml({"zone_name": "A", "includes": ["B"]}, {"zone_name": "B", "includes": ["A"]})
+        )
+
+
+def test_combatzone_includes_rejects_itself():
+    with pytest.raises(ValueError, match="cycle"):
+        generate_config_lua(_combatzones_yaml({"zone_name": "A", "includes": ["A"]}))
+
+
+def test_combatzone_includes_must_be_a_list():
+    """A bare string would otherwise be read one letter at a time."""
+    with pytest.raises(ValueError, match="includes.*list"):
+        generate_config_lua(_combatzones_yaml({"zone_name": "A", "includes": "B"}, {"zone_name": "B"}))

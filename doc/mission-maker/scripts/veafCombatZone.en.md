@@ -54,6 +54,8 @@ modules:
         chained_zones:                      # zones to trigger when this one completes
           - "CZ-Bravo"
         chained_delay: 60                   # seconds before chaining fires
+        includes:                           # borrow other zones' elements (difficulty levels)
+          - "CZ-Alpha-Easy"
       - type: operation
         zone_name: "Op-Thunder"
         friendly_name: "Operation Thunder"
@@ -96,6 +98,7 @@ modules:
 | `active_at_start` | boolean | `false` | No | Automatically activate the zone at mission start (`veafCombatZone.ActivateZone` after `initialize()`) |
 | `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
 | `chained_delay` | integer | `0` | No | Seconds before chained zones fire |
+| `includes` | string[] | `[]` | No | Zones whose elements this one borrows: activated with it, transitively. See [below](#includes) |
 
 ### `rename_units_sequentially` — keeping the original unit names {#rename-units}
 
@@ -111,6 +114,50 @@ The setting is **per zone**, not a global debug switch: that is what the
 [original request](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289) asked for, and a global one would be one more thing to remember to put back before shipping.
 
 The default stays `true`, so no existing mission changes.
+
+### Difficulty levels on the same targets — `includes` {#includes}
+
+A training range in progressive levels: **easy** (inert targets), **medium** (light AAA), **hard**
+(realistic SHORAD). Activating a level must also spawn everything the levels below it hold. Each
+level is a zone of its own — its own trigger zone, its own name, its own groups — and `includes`
+makes it borrow the others' elements:
+
+```yaml
+combat_zones:
+  - zone_name: "RANGE-EASY"          # inert targets (statics)
+    friendly_name: "Range — easy"
+  - zone_name: "RANGE-MEDIUM"        # light AAA
+    friendly_name: "Range — medium"
+    includes: ["RANGE-EASY"]
+  - zone_name: "RANGE-HARD"          # SHORAD
+    friendly_name: "Range — hard"
+    includes: ["RANGE-MEDIUM"]       # so RANGE-EASY as well: inclusion is transitive
+```
+
+What the build does:
+
+- **Inclusion is transitive**: `RANGE-HARD` includes `RANGE-MEDIUM`, which includes `RANGE-EASY`, so
+  activating `RANGE-HARD` spawns all three levels. The order of the zones in the list does not
+  matter.
+- **The borrowing level owns what it spawns**: deactivating it removes the borrowed elements too,
+  and its completion counts their units. A borrowed [`#command`](#command) element works as well,
+  and the group it creates is named after the active level.
+- **Mistakes stop the build**: a name that is not a combat zone of the mission (or is an
+  `operation`), a zone including itself, or a cycle (`A` includes `B` which includes `A`). In game,
+  each of these would only be a line in `dcs.log` and a level missing its lower levels.
+
+**One level at a time.** Two levels active together each spawn **their own copy** of the elements
+they share — the same targets twice, in the same place. To change level, deactivate the previous one.
+
+!!! warning "Why nesting by name prefix does not work"
+    The [prefix rule](#zone-membership) suggests zones could be nested by name: `RANGE-HARD`,
+    `RANGE-HARD-MEDIUM`, `RANGE-HARD-MEDIUM-EASY`, and a group named after the deepest one would be
+    picked up by all three. It is not: at start a zone **destroys** the groups it picks up, and the
+    next zone looks for **live** units — so it finds nothing left. A group belongs to one zone in
+    practice; `includes` is what shares it.
+
+In Lua, this is `VeafCombatZone:addZoneElementsFromZoneNamed(zoneName)`, called once every zone
+exists; `includes` generates exactly those calls, transitive closure included.
 
 ### `combat_zones[]` fields — type `operation`
 
@@ -435,7 +482,7 @@ CZ-Alpha-MANPAD-4 #spawnchance=50
 
 Each position has a 50% chance of spawning, independently of the others — statistically, around two will be active each time the zone is triggered. "Around" is the right word: sometimes none will spawn, and sometimes all four. If you want **exactly two** every time, `#spawncount` is the tag, as above.
 
-### `#command` — spawning via VEAF marker syntax
+### `#command` — spawning via VEAF marker syntax {#command}
 
 The `#command` tag turns a unit into a one-shot trigger. When the zone activates, VEAF executes the command at the unit's position and destroys the unit. This is equivalent to dropping a map marker at that location.
 

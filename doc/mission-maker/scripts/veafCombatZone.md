@@ -53,6 +53,8 @@ modules:
         chained_zones:                      # zones à déclencher quand celle-ci se termine
           - "CZ-Bravo"
         chained_delay: 60                   # secondes avant le déclenchement des zones chaînées
+        includes:                           # emprunte les éléments d'autres zones (niveaux de difficulté)
+          - "CZ-Alpha-Facile"
       - type: operation
         zone_name: "Op-Tonnerre"
         friendly_name: "Opération Tonnerre"
@@ -95,6 +97,7 @@ modules:
 | `active_at_start` | booléen | `false` | Non | Active automatiquement la zone au démarrage de la mission (`veafCombatZone.ActivateZone` après `initialize()`) |
 | `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
 | `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |
+| `includes` | string[] | `[]` | Non | Zones dont celle-ci emprunte les éléments : les activer avec elle, transitivement. Voir [ci-dessous](#includes) |
 
 ### `rename_units_sequentially` — garder les noms d'unités d'origine {#rename-units}
 
@@ -110,6 +113,53 @@ Le réglage est **par zone**, et non un interrupteur global de débogage : c'est
 [demande d'origine](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/289), et un interrupteur global serait une chose de plus à penser à remettre avant de livrer.
 
 Le défaut reste `true`, donc aucune mission existante ne change.
+
+### Niveaux de difficulté sur les mêmes cibles — `includes` {#includes}
+
+Un champ de tir en niveaux progressifs : **facile** (cibles inertes), **moyen** (AAA légère),
+**difficile** (SHORAD réaliste). Activer un niveau doit aussi faire apparaître tout ce que
+contiennent les niveaux en dessous. Chaque niveau est une zone à part — sa propre trigger zone,
+son propre nom, ses propres groupes — et `includes` lui fait emprunter les éléments des autres :
+
+```yaml
+combat_zones:
+  - zone_name: "RANGE-EASY"          # cibles inertes (statiques)
+    friendly_name: "Champ de tir — facile"
+  - zone_name: "RANGE-MEDIUM"        # AAA légère
+    friendly_name: "Champ de tir — moyen"
+    includes: ["RANGE-EASY"]
+  - zone_name: "RANGE-HARD"          # SHORAD
+    friendly_name: "Champ de tir — difficile"
+    includes: ["RANGE-MEDIUM"]       # donc aussi RANGE-EASY : l'inclusion est transitive
+```
+
+Ce que fait la construction :
+
+- **L'inclusion est transitive** : `RANGE-HARD` inclut `RANGE-MEDIUM`, qui inclut `RANGE-EASY`, donc
+  activer `RANGE-HARD` fait apparaître les trois niveaux. L'ordre des zones dans la liste n'a pas
+  d'importance.
+- **Le niveau qui emprunte possède ce qu'il fait apparaître** : le désactiver retire aussi les
+  éléments empruntés, et sa réussite compte leurs unités. Un élément [`#command`](#command) emprunté
+  fonctionne aussi, et le groupe qu'il crée porte le nom du niveau actif.
+- **Les erreurs arrêtent la construction** : un nom qui n'est pas une zone de combat de la mission
+  (ou qui est une `operation`), une zone qui s'inclut elle-même, ou un cycle (`A` inclut `B` qui
+  inclut `A`). En jeu, chacune de ces erreurs ne serait qu'une ligne dans `dcs.log` et un niveau
+  auquel il manquerait les niveaux inférieurs.
+
+**Un niveau à la fois.** Deux niveaux actifs en même temps font chacun apparaître **leur propre
+copie** des éléments qu'ils partagent — deux fois les mêmes cibles, au même endroit. Pour changer de
+niveau, désactivez le précédent.
+
+!!! warning "Pourquoi l'imbrication par préfixe de nom ne marche pas"
+    La [règle du préfixe](#zone-membership) laisse croire qu'on peut imbriquer des zones par leur
+    nom : `RANGE-HARD`, `RANGE-HARD-MEDIUM`, `RANGE-HARD-MEDIUM-EASY`, et un groupe nommé d'après la
+    plus profonde serait ramassé par les trois. Ce n'est pas le cas : au démarrage, une zone
+    **détruit** les groupes qu'elle ramasse, et la zone suivante cherche des unités **vivantes** —
+    elle ne trouve donc plus rien. Un groupe appartient en pratique à une seule zone ; c'est
+    `includes` qui le partage.
+
+En Lua, c'est `VeafCombatZone:addZoneElementsFromZoneNamed(nomDeZone)`, appelé une fois toutes les
+zones créées ; `includes` génère exactement ces appels, clôture transitive comprise.
 
 ### Champs de `combat_zones[]` — type `operation`
 
@@ -437,7 +487,7 @@ CZ-Alpha-MANPAD-4 #spawnchance=50
 
 Chaque position a 50 % de chances d'apparaître, indépendamment des autres — statistiquement, environ deux seront actives à chaque déclenchement de la zone. « Environ » est le mot juste : il arrivera qu'aucune n'apparaisse, et qu'elles apparaissent toutes les quatre. Si vous voulez **exactement deux** à chaque fois, c'est `#spawncount` qu'il faut, comme ci-dessus.
 
-### `#command` — apparition via la syntaxe de marqueur VEAF
+### `#command` — apparition via la syntaxe de marqueur VEAF {#command}
 
 Le tag `#command` transforme une unité en déclencheur à usage unique. À l'activation de la zone, VEAF exécute la commande à la position de l'unité et détruit l'unité. C'est l'équivalent du dépôt d'un marqueur de carte à cet endroit.
 

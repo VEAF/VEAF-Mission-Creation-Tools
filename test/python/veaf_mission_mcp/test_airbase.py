@@ -193,6 +193,11 @@ class TestExclusionList:
         assert "red" not in _yaml(folder)
         assert result["excluded_in_warehouses_yaml"] is False
 
+    def test_a_malformed_exclusion_list_is_refused_not_crashed(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path, warehouses_yaml="red:\n  defaults: {}\n  exclude_airports: {Batumi: {}}\n")
+        with pytest.raises(ValueError, match="exclude_airports must be a list"):
+            set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+
     def test_the_build_keeps_the_recorded_base_closed(self, tmp_path: Path) -> None:
         """End to end: the action's record is what the build reads."""
         from warehouses_injector import apply_warehouses

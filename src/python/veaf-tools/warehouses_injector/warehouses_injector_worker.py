@@ -548,6 +548,9 @@ def apply_warehouses(mission: DcsMission, config: dict) -> WarehousesResult:
             if airport_id in targets and airports_cfg:
                 logger.warning(t("warehouses.airport_listed_and_excluded", airport=written))
             targets.pop(airport_id, None)
+            # Closed, not merely left alone: the table may say `true` from the editor, or from a
+            # set_airbase_coalition call made before the base was closed.
+            airports[airport_id]["dynamicSpawn"] = False
 
         for airport_id, settings in targets.items():
             templates_linked += _apply_to_warehouse(

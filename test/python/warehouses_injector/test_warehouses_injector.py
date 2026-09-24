@@ -71,6 +71,13 @@ class TestCoalitionSelection:
         assert ap[24]["dynamicSpawn"] is False
         assert result.airports_configured == 1
 
+    def test_an_excluded_airport_already_open_in_the_table_is_closed(self) -> None:
+        """The editor, or an earlier call, may have written `true`; excluded means no slot."""
+        m = _mission()
+        m.warehouses_content["airports"][24]["dynamicSpawn"] = True
+        apply_warehouses(m, {"blue": {"defaults": {}, "exclude_airports": ["Kobuleti"]}})
+        assert m.warehouses_content["airports"][24]["dynamicSpawn"] is False
+
     def test_an_airport_can_be_excluded_by_id(self) -> None:
         m = _mission()
         apply_warehouses(m, {"blue": {"defaults": {}, "exclude_airports": [24]}})

@@ -84,10 +84,13 @@ def set_airbase_coalition(
             (FIX-SCRATCH-MISSION-FINDINGS ticket 08).
 
     Returns:
-        ``{airbase, airdrome_id, coalition, dynamic_spawn, durable}``.
+        ``{airbase, airdrome_id, coalition, dynamic_spawn, excluded_in_warehouses_yaml, durable}`` —
+        the last but one says whether `src/warehouses.yaml` now lists the base under
+        ``exclude_airports`` (see :func:`_record_exclusion`).
 
     Raises:
-        ValueError: when `coalition` is not one of blue/red/neutral, or the airfield is unknown.
+        ValueError: when `coalition` is not one of blue/red/neutral, the airfield is unknown, or
+            `warehouses.yaml` holds an ``exclude_airports`` that is not a list.
         FileNotFoundError: when the folder has no mission.
     """
     key = coalition.strip().lower()
@@ -150,7 +153,13 @@ def _record_exclusion(yaml_path: Path, name: str, coalition: str, *, closed: boo
             changed = True
     recorded = False
     if closed and hasattr(data.get(coalition), "get"):
-        data[coalition].setdefault("exclude_airports", []).append(name)
+        excluded = data[coalition].setdefault("exclude_airports", [])
+        if not isinstance(excluded, list):
+            raise ValueError(
+                f"{yaml_path}: {coalition}.exclude_airports must be a list of airfield names or ids, "
+                f"got {type(excluded).__name__}"
+            )
+        excluded.append(name)
         changed = recorded = True
     if changed:
         save_yaml(yaml_path, data)

@@ -223,6 +223,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   it opens with `describe_known_limitations` instead of listing traps, uses the support-flight,
   date, bullseye and briefing actions, nests difficulty levels with `includes:`, and asks for
   `-samVLR` when it means long range.
+- **A prompt to build a complete Open Training mission on any map.** Paste
+  `.prompts/new-open-training-mission.fr.md` (or `.en.md`) at the start of a Claude Code session in
+  an empty folder: it gives the assistant the design rules — which bases, how much support and air
+  defense for the size of the front, three families of nested training levels, real combat zones,
+  QRA and CAP, security on with a `LOCAL_TEST` profile — and has it report every tool gap it meets.
+  The mission-maker guide to the AI assistant points to it.
 
 ## [6.24.0] — 2026-09-21
 

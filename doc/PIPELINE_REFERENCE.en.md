@@ -441,7 +441,14 @@ template group via `linkDynTempl`.
   airports:                  # optional. Absent -> ALL airports of this coalition get `defaults`.
     <name or id>: { }                       # defaults only
     <name or id>: { aircrafts: { ... } }    # defaults + per-airport override
+  exclude_airports:          # optional. These airports NEVER get a slot, listed or not.
+    - <name or id>
 ```
+
+- `exclude_airports` is what the MCP action `set_airbase_coalition(…, dynamic_spawn: false)` writes:
+  without it, a `dynamicSpawn = false` in the mission's `warehouses` was **turned back on at build**
+  for every base of a declared coalition with no `airports:` list (measured on GermanyCW-v6: 61
+  airports opened instead of 12). A base both listed and excluded stays closed, with a warning.
 
 - `template` references a template group by **name**; omit it to auto-match a
   template group of the same **aircraft type** (same coalition).

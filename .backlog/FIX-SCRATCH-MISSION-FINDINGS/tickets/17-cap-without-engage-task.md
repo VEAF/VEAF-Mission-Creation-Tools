@@ -1,6 +1,6 @@
 # 17 — `create_cap_mission` makes a CAP with no engage task
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/add_air_group.py`, `composites.py`, `edit_route.py`,
 tests, `doc/mission-maker/AI_ASSISTANT_CATALOG*.md`
@@ -40,3 +40,15 @@ through `known-limitations.yaml`).
 - `edit_route add_task` can insert at a position (or document that it appends, and how to order tasks)
 - Test: the built template's first point has the engage task numbered before the orbit
 - Checked in DCS: the template engages an intruder in its zone
+
+## Outcome
+
+1. `create_cap_mission` writes the editor's own `EngageTargets` task (`key = "CAP"`, `targetTypes =
+   {"Air"}`, `auto = true`) on the first point, numbered **before** the orbit. Shape measured on the
+   3 691 CAP groups of the missions under `D:\dev\_VEAF`: 1 139 of their 1 147 `EngageTargets` are
+   exactly this, always numbered 1. `create_qra` (task `Intercept`) is untouched.
+2. `edit_route add_task` takes `task_position` (1-based) and renumbers the others; appends when
+   omitted, as before.
+
+**Waiting on David**: check in DCS that a CAP template built by `create_cap_mission` engages an
+intruder in its zone. The editor's task order says it should; nothing has measured it.

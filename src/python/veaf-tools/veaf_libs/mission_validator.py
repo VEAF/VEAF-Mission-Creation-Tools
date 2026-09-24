@@ -106,8 +106,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
 
     issues += _check_sequence_holes(mission)
     issues += validate_mission_content(yaml_data, mission)
-    issues += _check_has_player_slot(mission)
-    issues += _check_presets_waypoints(folder, yaml_data, mission)
+    dynamic_slots = _offers_dynamic_slots(folder, yaml_data, mission)
+    issues += _check_has_player_slot(mission, dynamic_slots=dynamic_slots)
+    issues += _check_presets_waypoints(folder, yaml_data, mission, dynamic_slots=dynamic_slots)
     issues += _check_tum_zones(yaml_data, mission)
     return issues
 
@@ -265,7 +266,7 @@ def _check_mission_is_playable(mission: dict) -> list[ValidationIssue]:
     return issues
 
 
-def _check_has_player_slot(mission: dict) -> list[ValidationIssue]:
+def _check_has_player_slot(mission: dict, *, dynamic_slots: bool = False) -> list[ValidationIssue]:
     """Warn when no pilot can enter the mission.
 
     Kept out of :func:`validate_mission_content` on purpose: the **build** runs that function too, and
@@ -274,11 +275,13 @@ def _check_has_player_slot(mission: dict) -> list[ValidationIssue]:
 
     Args:
         mission: The parsed DCS mission table.
+        dynamic_slots: Whether the build will open dynamic slots (:func:`_offers_dynamic_slots`) — a
+            pilot enters those as surely as a `Client` unit.
 
     Returns:
         One warning, or nothing.
     """
-    if not isinstance(mission, dict) or _aircraft_counts(mission)[1] > 0:
+    if not isinstance(mission, dict) or dynamic_slots or _aircraft_counts(mission)[1] > 0:
         return []
     return [ValidationIssue(WARNING, t("validate.no_player_slot"))]
 
@@ -478,6 +481,95 @@ def _aircraft_counts(mission: dict) -> tuple[int, int]:
     return (groups, players)
 
 
+def _offers_dynamic_slots(folder: Path, yaml_data: dict, mission: dict) -> bool:
+    """Whether the build will open at least one dynamic slot (FIX-SCRATCH-MISSION-FINDINGS ticket 20).
+
+    Two things make one: a template to spawn from, and a base of a side that offers it. The templates
+    are the mission's own ``dynSpawnTemplate`` groups, or the catalogue the build injects — on unless
+    ``pipeline.dynamic_slot_templates`` is off, since an absent file means the shipped one. A base
+    offers them when its warehouse already says ``dynamicSpawn = true``, or when ``warehouses.yaml``
+    declares its side: the warehouses step then turns it on whatever the editor wrote.
+
+    Args:
+        folder: The mission folder.
+        yaml_data: The parsed ``mission.yaml``.
+        mission: The parsed source mission table.
+
+    Returns:
+        True when a pilot will find a dynamic slot to take.
+    """
+    has_templates = _pipeline_enabled(yaml_data, "dynamic_slot_templates") or any(
+        group.get("dynSpawnTemplate") is True for group in _iter_groups(mission)
+    )
+    if not has_templates:
+        return False
+    sides_opened = _sides_the_warehouses_config_opens(folder, yaml_data)
+    for entry in _source_warehouse_entries(folder):
+        side = str(entry.get("coalition", "")).lower()
+        if side in ("blue", "red") and (entry.get("dynamicSpawn") is True or side in sides_opened):
+            return True
+    return False
+
+
+def _iter_groups(mission: dict) -> Iterable[dict]:
+    """Yield every group dict of the mission table, whatever the table's shape."""
+    coalitions = mission.get("coalition") or {}
+    for coalition in coalitions.values() if isinstance(coalitions, dict) else []:
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            if not isinstance(country, dict):
+                continue
+            for category in _GROUP_CATEGORIES:
+                container = country.get(category)
+                if isinstance(container, dict):
+                    yield from (g for g in indexed(container.get("group")) if isinstance(g, dict))
+
+
+def _sides_the_warehouses_config_opens(folder: Path, yaml_data: dict) -> set[str]:
+    """The sides ``warehouses.yaml`` declares, i.e. whose bases the warehouses step opens.
+
+    Args:
+        folder: The mission folder.
+        yaml_data: The parsed ``mission.yaml``.
+
+    Returns:
+        ``{"blue", "red"}`` or a subset; empty when the step is off or the file absent or unreadable.
+    """
+    if not _pipeline_enabled(yaml_data, "warehouses"):
+        return set()
+    path = folder / "src" / "warehouses.yaml"
+    if not path.is_file():
+        return set()
+    try:
+        config = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return set()
+    if not isinstance(config, dict):
+        return set()
+    return {side for side in ("blue", "red") if isinstance(config.get(side), dict)}
+
+
+def _source_warehouse_entries(folder: Path) -> list[dict]:
+    """The airfield and ship/FARP entries of the source ``warehouses`` table; empty if unreadable."""
+    path = folder / "src" / "mission" / "warehouses"
+    if not path.is_file():
+        return []
+    try:
+        import luadata  # type: ignore[import-untyped]
+
+        text = path.read_text(encoding="utf-8")
+        table = luadata.unserialize(text[text.index("{") :], encoding="utf-8")
+    except Exception:  # noqa: BLE001 - a check that cannot read the file just does not count its slots
+        return []
+    if not isinstance(table, dict):
+        return []
+    entries: list[dict] = []
+    for key in ("airports", "warehouses"):
+        entries += [e for e in indexed(table.get(key)) if isinstance(e, dict)]
+    return entries
+
+
 def _pipeline_enabled(yaml_data: dict, step: str) -> bool:
     """Whether a pipeline step runs (enabled unless explicitly disabled — build's default)."""
     cfg = (yaml_data.get("pipeline") or {}).get(step)
@@ -488,16 +580,24 @@ def _pipeline_enabled(yaml_data: dict, step: str) -> bool:
     return True
 
 
-def _check_presets_waypoints(folder: Path, yaml_data: dict, mission: dict) -> list[ValidationIssue]:
+def _check_presets_waypoints(
+    folder: Path, yaml_data: dict, mission: dict, *, dynamic_slots: bool = False
+) -> list[ValidationIssue]:
     """Warn when presets/waypoints are configured but the mission has no aircraft to apply them to.
 
     Coarse on purpose: the exact per-type/typePattern matching lives in the injectors. This
     catches the common failure (a config file present with no relevant aircraft); a fine-grained
-    per-aircraft match would be a follow-up.
+    per-aircraft match would be a follow-up. The dynamic-slot templates are player aircraft too: the
+    presets step fills them.
     """
     issues: list[ValidationIssue] = []
     groups, players = _aircraft_counts(mission)
-    if _pipeline_enabled(yaml_data, "presets") and (folder / "src" / "presets.yaml").is_file() and players == 0:
+    if (
+        _pipeline_enabled(yaml_data, "presets")
+        and (folder / "src" / "presets.yaml").is_file()
+        and players == 0
+        and not dynamic_slots
+    ):
         issues.append(ValidationIssue(WARNING, t("validate.presets_no_aircraft")))
     if _pipeline_enabled(yaml_data, "waypoints") and (folder / "src" / "waypoints.yaml").is_file() and groups == 0:
         issues.append(ValidationIssue(WARNING, t("validate.waypoints_no_aircraft")))

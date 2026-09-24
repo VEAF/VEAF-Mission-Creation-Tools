@@ -1091,6 +1091,20 @@ function veafRadio.createUserMenu(configuration, groupId)
         local parameters = item[4]
         veaf.loggers.get(veafRadio.Id):trace("parameters = [%s]", veaf.lp(parameters))
 
+        if itemType == "securedcommand" then
+          -- Same mechanism as the builder's secured commands (REVIEW-SECURITY-LAYER ticket 01): the
+          -- group id is captured at registration, and _proxyMethod compares that group's level to
+          -- what the command requires. Without a group there is no identity, and _proxyMethod
+          -- refuses every click — posted anyway, and said here, rather than turned into an open
+          -- command in silence (FIX-SCRATCH-MISSION-FINDINGS ticket 22).
+          if groupId == nil then
+            veaf.loggers.get(veafRadio.Id):warn("secured command %s posted without a group: it will refuse every click", veaf.p(name))
+          end
+          parameters = { method = aFunction, parameters = parameters, groupId = groupId }
+          aFunction = veafRadio._proxyMethod
+          name = "+" .. name
+        end
+
         veaf.loggers.get(veafRadio.Id):trace("creating command name=%s", veaf.lp(name))
         if groupId ~= nil then
           missionCommands.addCommandForGroup(groupId, name, parentMenu, aFunction, parameters)
@@ -1116,6 +1130,16 @@ end
 function veafRadio.command(name, aFunction, parameters)
   return {
     "command",
+    name,
+    aFunction,
+    parameters,
+  }
+end
+
+--- A command only a pilot with the required security level can run — needs a per-group menu.
+function veafRadio.securedCommand(name, aFunction, parameters)
+  return {
+    "securedcommand",
     name,
     aFunction,
     parameters,

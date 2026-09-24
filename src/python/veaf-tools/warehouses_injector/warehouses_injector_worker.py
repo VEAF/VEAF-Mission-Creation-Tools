@@ -13,6 +13,8 @@ Config shape (per coalition; an undeclared coalition is left untouched)::
       airports:                 # optional; absent -> ALL airports of this coalition
         Senaki-Kolkhi: {}                    # name (resolved via the theatre) -> defaults
         24: { aircrafts: { Yak-52: { amount: 10 } } }   # id -> defaults + override
+      exclude_airports:         # optional; these never get slots, listed or not
+        - Kobuleti                           # what set_airbase_coalition(dynamic_spawn=false) writes
       ships:                    # optional; absent -> ALL ships of this coalition
         CSG-74 Stennis: {}                   # unit name, or the unit id
       farps:                    # optional; absent -> ALL FARPs of this coalition
@@ -294,6 +296,29 @@ def _resolve_airport_id(key: object, airports: dict, theatre: str) -> int | None
     return None
 
 
+def _excluded_airports(excluded: object, airports: dict, theatre: str) -> dict[int, str]:
+    """Resolve an ``exclude_airports:`` list to airport ids, warning about the ones nothing matches.
+
+    Args:
+        excluded: The raw ``exclude_airports`` value (a list of names or ids), or anything else.
+        airports: The mission's ``warehouses.airports`` table.
+        theatre: The mission's theatre, for name resolution.
+
+    Returns:
+        The ids to keep closed, each with the entry as the maker wrote it, for the messages.
+    """
+    if not isinstance(excluded, list):
+        return {}
+    ids: dict[int, str] = {}
+    for key in excluded:
+        airport_id = _resolve_airport_id(key, airports, theatre)
+        if airport_id is None:
+            logger.warning(t("warehouses.airport_not_found", airport=key, theatre=theatre or "?"))
+        else:
+            ids[airport_id] = str(key)
+    return ids
+
+
 def _merge_settings(defaults: dict, override: dict | None) -> dict:
     """Deep-merge a per-airport override over the coalition defaults (aircrafts merged by type)."""
     merged = copy.deepcopy(defaults) if defaults else {}
@@ -515,6 +540,17 @@ def apply_warehouses(mission: DcsMission, config: dict) -> WarehousesResult:
             targets = {
                 aid: defaults for aid, a in airports.items() if str(a.get("coalition", "")).upper() == field_value
             }
+
+        # FIX-SCRATCH-MISSION-FINDINGS ticket 15: `set_airbase_coalition(dynamic_spawn=false)` wrote
+        # `dynamicSpawn = false`, and this loop turned it back on for every base of the side. The
+        # action now records the base here, and the record wins over the default and the list alike.
+        for airport_id, written in _excluded_airports(coalition_cfg.get("exclude_airports"), airports, theatre).items():
+            if airport_id in targets and airports_cfg:
+                logger.warning(t("warehouses.airport_listed_and_excluded", airport=written))
+            targets.pop(airport_id, None)
+            # Closed, not merely left alone: the table may say `true` from the editor, or from a
+            # set_airbase_coalition call made before the base was closed.
+            airports[airport_id]["dynamicSpawn"] = False
 
         for airport_id, settings in targets.items():
             templates_linked += _apply_to_warehouse(

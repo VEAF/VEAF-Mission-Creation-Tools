@@ -47,7 +47,9 @@ def create_combat_zone(
         zone_name: The combat zone's trigger-zone name.
         position: The zone centre, `{"x": ..., "y": ...}`.
         radius: The zone radius, in metres.
-        groups: `[{"name", "units": [{"type","count"}], "position"?}, ...]` placed inside the zone.
+        groups: `[{"name", "units": [{"type","count"}], "position"?, "route"?, "patrol"?}, ...]` placed
+            inside the zone. `route` and `patrol` have `add_group`'s shape: a convoy moving through
+            the zone is one of its groups, not a separate `add_group` call.
         coalition: `"blue"`, `"red"` or `"neutral"` the groups are placed under (runtime-agnostic;
             VEAF respawns them regardless).
         country_id: DCS numeric country id for the groups.
@@ -83,6 +85,8 @@ def create_combat_zone(
             name=group_name,
             position=spec.get("position", position),
             units=spec["units"],
+            route=spec.get("route"),
+            patrol=spec.get("patrol", False),
             warnings=build_warnings,
         )
         created.append(group_name)

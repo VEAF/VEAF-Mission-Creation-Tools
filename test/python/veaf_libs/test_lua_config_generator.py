@@ -1162,6 +1162,83 @@ def test_module_radio_menu_shortcut_qra():
     assert "o:stop()" in lua
 
 
+# FIX-SCRATCH-MISSION-FINDINGS ticket 22: the generated Start / Stop commands were plain
+# `veafRadio.command`, open to every player. `radio_menu_secured: true` emits them secured, which the
+# runtime can only enforce per group (`veafRadio._proxyMethod` refuses a command posted without one),
+# so it requires `radio_menu_restrict_to_group` — checked at build rather than discovered in flight.
+
+
+def test_module_radio_menu_secured_emits_secured_commands():
+    lua = "\n".join(_emit_module_radio_menu("QRA-Nord", "qra", ["start", "stop"], "MM Ctrl", secured=True))
+    assert lua.count("veafRadio.securedCommand(") == 2
+    assert "veafRadio.command(" not in lua
+    assert '"MM Ctrl"' in lua
+
+
+def test_module_radio_menu_is_open_unless_asked():
+    lua = "\n".join(_emit_module_radio_menu("QRA-Nord", "qra", ["start", "stop"], "MM Ctrl"))
+    assert "securedCommand" not in lua
+
+
+def test_module_radio_menu_secured_without_a_group_is_a_build_error():
+    with pytest.raises(ValueError, match="QRA-Nord.*radio_menu_restrict_to_group"):
+        _emit_module_radio_menu("QRA-Nord", "qra", ["start", "stop"], None, secured=True)
+
+
+def test_generate_qra_radio_menu_secured():
+    yaml_data: dict = {
+        "lua_modules": {"QRA": {}},
+        "qra": {
+            "definitions": [
+                {
+                    "name": "QRA-Nord",
+                    "coalition": "RED",
+                    "radio_menu": True,
+                    "radio_menu_secured": True,
+                    "radio_menu_restrict_to_group": "MM Ctrl",
+                }
+            ]
+        },
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "veafRadio.securedCommand(" in lua
+
+
+def test_generate_airwave_radio_menu_secured():
+    yaml_data: dict = {
+        "lua_modules": {
+            "AIRWAVES": {
+                "airwave_zones": [
+                    {
+                        "name": "Zone BVR",
+                        "radio_menu": True,
+                        "radio_menu_secured": True,
+                        "radio_menu_restrict_to_group": "MM Ctrl",
+                    }
+                ]
+            }
+        },
+    }
+    assert "veafRadio.securedCommand(" in generate_config_lua(yaml_data)
+
+
+def test_user_menus_secured_command():
+    user_menus = {
+        "restrict_to_group": "MM Ctrl",
+        "tree": [{"command": "Arrêter", "action": "qra.stop", "qra": "QRA-Nord", "secured": True}],
+    }
+    lua = "\n".join(_emit_user_menus(user_menus))
+    assert 'veafRadio.securedCommand("Arrêter",' in lua
+
+
+def test_user_menus_secured_command_without_a_group_is_a_build_error():
+    user_menus = {
+        "tree": [{"menu": "M", "items": [{"command": "X", "action": "message", "text": "t", "secured": True}]}]
+    }
+    with pytest.raises(ValueError, match="restrict_to_group"):
+        _emit_user_menus(user_menus)
+
+
 def test_generate_qra_radio_menu_shortcut():
     yaml_data: dict = {
         "lua_modules": {"QRA": {}},

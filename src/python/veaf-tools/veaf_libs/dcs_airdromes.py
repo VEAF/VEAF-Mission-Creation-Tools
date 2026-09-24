@@ -15,6 +15,7 @@ not yet dumped simply has no entries, and the lookup returns ``None``.
 from __future__ import annotations
 
 import functools
+from typing import Any
 
 import yaml
 
@@ -60,3 +61,30 @@ def airdromes_for_theatre(theatre: str) -> dict[str, int]:
     if not theatre:
         return {}
     return dict(_table().get(theatre.strip().lower(), {}))
+
+
+@functools.lru_cache(maxsize=1)
+def _positions() -> dict[str, list[dict[str, Any]]]:
+    """Load (and cache) the ``{theatre_lower: [{name, id, lat, lon}]}`` table."""
+    raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "airdrome-positions.yaml")) or {}
+    return {
+        str(theatre).strip().lower(): list(airfields or [])
+        for theatre, airfields in (raw.get("theatres") or {}).items()
+    }
+
+
+def airfields_for_theatre(theatre: str) -> list[dict[str, Any]]:
+    """Return a theatre's airbases with their positions (empty if the theatre was never dumped).
+
+    Backed by ``data/airdrome-positions.yaml``, generated with ``airdromes.yaml`` from the same
+    runtime dumps — which are not shipped with the tools, hence the copy.
+
+    Args:
+        theatre: The DCS theatre/map name (case-insensitive).
+
+    Returns:
+        ``[{name, id, lat, lon}, ...]``, sorted by name — copies, safe to modify.
+    """
+    if not theatre:
+        return []
+    return [dict(airfield) for airfield in _positions().get(theatre.strip().lower(), [])]

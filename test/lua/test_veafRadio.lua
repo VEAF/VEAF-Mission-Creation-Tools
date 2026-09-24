@@ -934,6 +934,44 @@ function TestVeafRadioCreateUserMenu:test_with_unknown_group_name_falls_back_glo
   luaunit.assertTrue(usedGlobal)
 end
 
+-- FIX-SCRATCH-MISSION-FINDINGS ticket 22: a `securedCommand` node goes through `_proxyMethod`,
+-- which checks the clicking group's level; without a group it refuses every click, so the node is
+-- posted anyway and says so, rather than silently turning into an open command.
+function TestVeafRadioCreateUserMenu:test_secured_command_goes_through_the_proxy_for_the_group()
+  dcs_mocks.clearUnitsAndGroups()
+  dcs_mocks.addGroup("MM Ctrl", { _id = 42 })
+  local captured = nil
+  local original = missionCommands.addCommandForGroup
+  missionCommands.addCommandForGroup = function(groupId, name, parent, method, params)
+    captured = { groupId = groupId, name = name, method = method, params = params }
+    return {}
+  end
+  local real = function() end
+  veafRadio.createUserMenu({ veafRadio.securedCommand("Stop", real, "p") }, "MM Ctrl")
+  missionCommands.addCommandForGroup = original
+  luaunit.assertEquals(captured.groupId, 42)
+  luaunit.assertEquals(captured.name, "+Stop")
+  luaunit.assertIs(captured.method, veafRadio._proxyMethod)
+  luaunit.assertIs(captured.params.method, real)
+  luaunit.assertEquals(captured.params.parameters, "p")
+  luaunit.assertEquals(captured.params.groupId, 42)
+end
+
+function TestVeafRadioCreateUserMenu:test_secured_command_without_a_group_still_refuses()
+  dcs_mocks.clearUnitsAndGroups()
+  local captured = nil
+  local original = missionCommands.addCommand
+  missionCommands.addCommand = function(name, parent, method, params)
+    captured = { name = name, method = method, params = params }
+    return {}
+  end
+  veafRadio.createUserMenu({ veafRadio.securedCommand("Stop", function() end, nil) })
+  missionCommands.addCommand = original
+  luaunit.assertEquals(captured.name, "+Stop")
+  luaunit.assertIs(captured.method, veafRadio._proxyMethod)
+  luaunit.assertNil(captured.params.groupId)
+end
+
 -- ---------------------------------------------------------------------------
 -- TestVeafRadioCoalitionMenus — coalition-scoped menu nodes
 -- (FEAT-COMBATZONE-MENU-COALITION)

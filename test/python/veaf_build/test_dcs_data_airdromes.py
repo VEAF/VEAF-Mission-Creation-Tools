@@ -113,3 +113,39 @@ def test_committed_airdromes_syria_uses_exact_runtime_names() -> None:
     assert syria["Abu al-Duhur"] == 1
     assert syria["Al-Dumayr"] == 9
     assert syria["Tiyas"] == 39
+
+
+# FIX-SCRATCH-MISSION-FINDINGS ticket 19: no action listed a theatre's airfields with their positions,
+# and the dumps that carry them are not shipped — so the generator writes them next to the name table.
+
+
+def test_generate_writes_the_positions_next_to_the_table(tmp_path: Path) -> None:
+    out = tmp_path / "airdromes.yaml"
+    dumps = tmp_path / "dumps"
+    dumps.mkdir()
+    (dumps / "Syria.json").write_text(json.dumps(_DUMP), encoding="utf-8")
+
+    A.generate(dumps, out)
+
+    data = yaml.safe_load((tmp_path / "airdrome-positions.yaml").read_text(encoding="utf-8"))
+    assert data["theatres"]["Syria"] == [
+        {"name": "Abu al-Duhur", "id": 1, "lat": 35.7, "lon": 37.1},
+        {"name": "Marj Ruhayyil", "id": 23, "lat": 33.2, "lon": 36.4},
+        {"name": "Tiyas", "id": 39, "lat": 34.5, "lon": 37.6},
+    ]
+
+
+def test_a_record_without_a_position_is_left_out(tmp_path: Path) -> None:
+    assert A.positions([{"id": 22, "name": "Batumi"}, {"id": 1, "name": "X", "lat": 1.0, "lon": 2.0}]) == [
+        {"name": "X", "id": 1, "lat": 1.0, "lon": 2.0}
+    ]
+
+
+def test_committed_positions_cover_every_dumped_theatre() -> None:
+    path = (
+        Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_libs" / "data" / "airdrome-positions.yaml"
+    )
+    theatres = yaml.safe_load(path.read_text(encoding="utf-8"))["theatres"]
+    assert set(theatres) == set(A.load_dumps())
+    ramstein = next(a for a in theatres["GermanyCW"] if a["name"] == "Ramstein")
+    assert isinstance(ramstein["id"], int)

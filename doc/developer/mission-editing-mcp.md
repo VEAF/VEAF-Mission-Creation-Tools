@@ -116,6 +116,11 @@ qui lit `null` ne peut pas distinguer « désactivé » de « le lecteur n'a pas
 
 ### `set_unit_properties` (lot FEAT-MCP-MUTATION-ACTIONS)
 
+> Depuis `FIX-SCRATCH-MISSION-FINDINGS` ticket 19, elle **renomme** (`new_name`, refusé si une autre
+> unité porte déjà ce nom : DCS les veut uniques dans toute la mission) et **déplace** (`position`)
+> une unité seule ; l'ancre et la route du groupe ne bougent pas. Pour un avion, dont la place tient
+> à la route, un avertissement le signale.
+
 Écriture. La **première** action qui modifie un objet déjà présent dans la mission : toutes les
 `set_*` livrées avant elle agissent sur la *configuration* (modules, sécurité, logs, coalition d'une
 base). Sauvegarde horodatée avant écriture, comme ses sœurs.
@@ -268,6 +273,11 @@ AttackGroup, surchargeable via `weapon_type`), les paires `altitude`/`altitudeEn
 `direction`/`directionEnabled` **présentes mais désactivées** par défaut (activées si l'appelant passe
 `altitude_ft`/`direction_deg`), et l'ensemble `expend`/`attackQty`/`groupAttack`. `EngageTargetsInZone`
 porte aussi `noTargetTypes` (liste d'exclusion, vide par défaut).
+
+**L'ordre des tâches compte.** DCS les exécute par `number`, et une tâche placée après une orbite sans
+fin n'est jamais atteinte. `add_task` ajoute à la fin par défaut ; `task_position` (1-based) l'insère à
+une place donnée et renumérote les autres — pour mettre un engagement **avant** l'orbite
+(`FIX-SCRATCH-MISSION-FINDINGS` ticket 17).
 
 ```json
 {
@@ -651,6 +661,21 @@ modules) :
 > la mission, pose la coalition, et **active les slots Dynamic Spawn** de la base (le build les
 > approvisionne ensuite), sauf si `dynamic_spawn` est faux. Sauvegarde préalable, comme les autres
 > actions d'édition.
+>
+> `dynamic_spawn: false` inscrit aussi la base sous `<camp>.exclude_airports` dans
+> `src/warehouses.yaml`, et `true` l'en retire : le build ouvrait toute base d'un camp déclaré sans
+> liste `airports:`, `dynamicSpawn = false` ou pas (`FIX-SCRATCH-MISSION-FINDINGS` ticket 15). Rien
+> n'est écrit si le fichier manque (l'étape ne tourne pas) ou si le camp n'y est pas déclaré (le
+> déclarer ouvrirait toutes ses bases).
+
+### FARP
+
+- `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
+  frequency_mhz=127.5, modulation="AM", callsign_id=1)` — un FARP **complet** : le statique
+  d'héliport (`category = "Heliports"`, `shape_name` du type), sa radio et son indicatif, et l'entrée
+  d'entrepôt `warehouses.warehouses[<unitId>]` qui permet de s'y ravitailler. `add_group` en `static`
+  ne posait que l'objet (ticket 19). Forme mesurée sur les 372 héliports des missions de
+  `D:\dev\_VEAF`. Le `farps:` de `warehouses.yaml` l'approvisionne ensuite au build, comme une base.
 
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
@@ -666,6 +691,11 @@ Chaque action vise un dossier de mission (durable) ou un `.miz`, sauvegardé ava
   briefing. Quand la table de mission porte une référence `DictKey_…`, le texte va dans
   `l10n/DEFAULT/dictionary` derrière elle, et la référence reste valide ; `write_mission_folder`
   réécrit désormais ce dictionnaire, seulement s'il change.
+- `set_weather(target, metar?, temperature?, wind_speed?, wind_direction?, visibility?, cloud_type?,
+  cloud_height?, precipitation?, fog_enabled?, clearsky?)` — la météo de la mission **de base**, dans
+  les champs que DCS lit (ticket 19 : la mission vierge a ses nuages au sol, `Preset1` à 0 m). Même
+  vocabulaire et même convertisseur que `versions[].weather`, donc un METAR marche aussi ; les
+  variantes gardent la main au build.
 
 > Les **hashes de mot de passe** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — un cas
 > multi-lignes — ne sont pas couverts pour l'instant : seul le drapeau `SecurityDisabled` l'est.
@@ -797,6 +827,9 @@ produit le `.miz`). Elles orchestrent les primitives des vagues 1-7 (`insert_tri
 
 Zone de déclenchement + groupes placés dedans (noms auto-préfixés par la zone → capturés au
 runtime, coalition indifférente) + bloc `modules.COMBATZONE.combat_zones[]` **ajouté** au yaml.
+Chaque groupe accepte `route` et `patrol`, de la même forme qu'`add_group` : un convoi qui traverse la
+zone est un groupe de la zone, pas un appel séparé. En catégorie `ship`, les navires sont espacés de
+600 m (ceux d'un véhicule, 20 m, les faisaient se percuter à l'apparition).
 
 ### `create_qra`
 
@@ -807,7 +840,9 @@ coalition est passée en minuscule pour le placement, majuscule dans la définit
 ### `create_cap_mission`
 
 Groupe template **Late Activation** nommé `OnDemand-<nom>` + entrée `cap_missions[]`
-(`group_name: <nom>`, sans préfixe — le build résout vers le groupe `OnDemand-`).
+(`group_name: <nom>`, sans préfixe — le build résout vers le groupe `OnDemand-`). Le premier point
+porte la tâche `EngageTargets` (cibles `Air`) que l'éditeur ajoute de lui-même à une tâche CAP, numérotée
+**avant** l'orbite : sans elle, le vol patrouille et n'engage jamais.
 
 ## Scaffolding d'un dossier de mission (vague 9)
 
@@ -870,6 +905,18 @@ LLM s'oriente sans DCS.
 {"mission_path": "chemin/vers/mission.miz-ou-dossier"}
 ```
 
+### `list_airfields`
+
+Lecture seule. Liste les bases d'un théâtre — nom, id d'aérodrome DCS, lat/lon, et `x`/`y` DCS quand
+la projection du théâtre est connue — depuis la donnée livrée avec les outils
+(`veaf_libs/data/airdrome-positions.yaml`, générée avec `airdromes.yaml` depuis les dumps runtime par
+`veaf-build update-dcs-data --airdromes`). Avec `mission_path`, le théâtre de la mission ; sans
+mission, `theatre`.
+
+```json
+{"theatre": "GermanyCW"}
+```
+
 ### `resolve_coordinates`
 
 Utilitaire. Convertit une position entre `{x, y}` (local DCS) et `{lat, lon}` (degrés décimaux) pour
@@ -879,6 +926,10 @@ projection).
 ```json
 {"mission_path": "…", "position": {"lat": 42.18, "lon": 41.68}}
 ```
+
+Pour convertir plusieurs points en un appel, `positions` (une liste) à la place de `position` : la
+réponse est `{theatre, points}`, dans l'ordre donné, et une position incomplète est nommée par son
+index.
 
 ### `geocode`
 
@@ -915,9 +966,10 @@ process. Renvoie `{ok, errors[], warnings[]}` (`ok = false` dès qu'une erreur).
 Écriture. Construit le dossier en `.miz` jouable en pilotant **`veaf-tools mission build`** dans le dossier
 (le binaire installé par `scaffold_mission`, ou `veaf-tools` du PATH). L'orchestration du build vit
 dans la commande CLI, on la réexécute telle quelle. Un échec de build est remonté (`RuntimeError`).
+`profile` (optionnel) est passé en `--profile` — `LOCAL_TEST` pour un build de test local.
 
 ```json
-{"folder_path": "chemin/vers/dossier-mission"}
+{"folder_path": "chemin/vers/dossier-mission", "profile": "LOCAL_TEST"}
 ```
 
 ## Prochaines vagues (hors périmètre)

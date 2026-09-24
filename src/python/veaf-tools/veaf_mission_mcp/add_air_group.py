@@ -202,6 +202,25 @@ def add_air_group(
     return result
 
 
+def _cap_engage_task() -> dict[str, Any]:
+    """The `EngageTargets` task the Mission Editor adds to a CAP group, in its own shape.
+
+    Measured on 3 691 CAP groups of the missions under D:\\dev\\_VEAF (2026-09-24): 1 139 of the
+    1 147 `EngageTargets` they carry are exactly this, always numbered 1. `auto = true` is what marks
+    it as the editor's own, which it is.
+
+    Returns:
+        The task entry, without its `number`.
+    """
+    return {
+        "id": "EngageTargets",
+        "key": "CAP",
+        "enabled": True,
+        "auto": True,
+        "params": {"targetTypes": {1: "Air"}, "priority": 0},
+    }
+
+
 def insert_air_group_into_content(
     content: dict[str, Any],
     *,
@@ -268,8 +287,13 @@ def insert_air_group_into_content(
         payload=payload,
         late_activation=late_activation,
     )
+    points = group["route"]["points"]
+    first_tasks: list[dict[str, Any]] = []
+    if task == "CAP":
+        # The editor's CAP task adds this one on its own; without it the template patrols and never
+        # engages (ticket 17). First, because a task numbered after an endless orbit is never reached.
+        first_tasks.append(_cap_engage_task())
     if route:
-        points = group["route"]["points"]
         alt_m = float(altitude_ft) * _M_PER_FT
         speed_mps = float(speed_kt) * _MPS_PER_KT
         for point in route:
@@ -279,9 +303,16 @@ def insert_air_group_into_content(
             leg["ETA_locked"] = False
             points.append(leg)
         orbit = _build_orbit({"pattern": "Race-Track", "altitude_ft": altitude_ft, "speed_kt": speed_kt})
-        orbit.update({"number": 1, "enabled": True, "auto": False})
-        # An integer key: `luadata` renders a string key as ["1"], a different Lua entry DCS ignores.
-        points[0]["task"] = {"id": "ComboTask", "params": {"tasks": {1: orbit}}}
+        orbit.update({"enabled": True, "auto": False})
+        first_tasks.append(orbit)
+    if first_tasks:
+        for number, entry in enumerate(first_tasks, start=1):
+            entry["number"] = number
+        # Integer keys: `luadata` renders a string key as ["1"], a different Lua entry DCS ignores.
+        points[0]["task"] = {
+            "id": "ComboTask",
+            "params": {"tasks": {number: entry for number, entry in enumerate(first_tasks, start=1)}},
+        }
     category, category_warning = air_category_for_type_verbose(unit_type)
     group_id = insert_group(
         content,

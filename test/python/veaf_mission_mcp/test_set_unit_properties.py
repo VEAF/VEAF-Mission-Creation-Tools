@@ -468,3 +468,34 @@ class TestResultAndBackup:
         set_unit_properties(miz, group_name="Colt 1-1", unit_name="Colt 1-1-1", skill="Good")
         content = read_miz(miz).mission_content
         assert content is not None
+
+
+class TestRenameAndMove:
+    """FIX-SCRATCH-MISSION-FINDINGS ticket 19: renaming or moving one unit needed a script on the table."""
+
+    def test_a_unit_is_renamed(self, miz: Path) -> None:
+        result = set_unit_properties(miz, group_name="Ground Convoy", unit_name="Convoy-1", new_name="Convoy-Lead")
+        assert _unit(miz, "Ground Convoy", "Convoy-Lead")
+        assert result["changed"]["name"] == {"from": "Convoy-1", "to": "Convoy-Lead"}
+        assert result["unit"] == "Convoy-Lead"
+
+    def test_a_rename_onto_another_unit_is_refused(self, miz: Path) -> None:
+        """DCS unit names are unique across the mission; a duplicate makes every later edit ambiguous."""
+        with pytest.raises(ValueError, match="already exists"):
+            set_unit_properties(miz, group_name="Ground Convoy", unit_name="Convoy-1", new_name="Colt 1-1-2")
+
+    def test_a_unit_is_moved(self, miz: Path) -> None:
+        result = set_unit_properties(
+            miz, group_name="Ground Convoy", unit_name="Convoy-1", position={"x": -1000.0, "y": 2000.0}
+        )
+        unit = _unit(miz, "Ground Convoy", "Convoy-1")
+        assert (unit["x"], unit["y"]) == (-1000.0, 2000.0)
+        assert result["changed"]["position"]["to"] == {"x": -1000.0, "y": 2000.0}
+
+    def test_moving_an_aircraft_warns_that_its_route_places_it(self, miz: Path) -> None:
+        result = set_unit_properties(miz, group_name="Colt 1-1", unit_name="Colt 1-1-2", position={"x": 1.0, "y": 2.0})
+        assert any("route" in warning for warning in result["warnings"])
+
+    def test_an_incomplete_position_is_refused(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="position"):
+            set_unit_properties(miz, group_name="Ground Convoy", unit_name="Convoy-1", position={"x": 1.0})

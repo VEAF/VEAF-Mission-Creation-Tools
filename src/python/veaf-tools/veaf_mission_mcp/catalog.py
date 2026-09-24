@@ -70,9 +70,46 @@ class ActionCatalog:
 
         Raises:
             ActionNotFoundError: If no action is registered under ``name``.
+            ValueError: If a required parameter is missing, or one the schema does not declare is
+                passed — named, with the expected ones, rather than surfacing later as a bare
+                ``KeyError`` from inside the handler.
         """
         try:
             handler = self._handlers[name]
         except KeyError:
             raise ActionNotFoundError(name) from None
+        _check_parameters(name, self._specs[name].parameters_schema or {}, params)
         return handler(params)
+
+
+def _check_parameters(name: str, schema: dict[str, Any], params: dict[str, Any]) -> None:
+    """Refuse missing required parameters and undeclared ones, naming them.
+
+    Only the top level: each handler still validates the values, as it always has. An undeclared
+    parameter is refused because it is nearly always a misspelt one — ``miz_path`` where the action
+    takes ``mission_path`` — and the handler would otherwise fail on the key it did not find.
+
+    Args:
+        name: The action's name, for the message.
+        schema: The action's parameter JSON Schema.
+        params: The parameters received.
+
+    Raises:
+        ValueError: On a missing required parameter or an undeclared one.
+    """
+    properties = schema.get("properties")
+    if not isinstance(properties, dict):
+        return
+    problems: list[str] = []
+    missing = [key for key in schema.get("required", []) if key not in params]
+    if missing:
+        problems.append(f"missing required parameter(s) {', '.join(missing)}")
+    # A schema declaring no property says nothing about which ones are allowed.
+    if properties and schema.get("additionalProperties") is not True:
+        unknown = sorted(key for key in params if key not in properties)
+        if unknown:
+            problems.append(f"unknown parameter(s) {', '.join(unknown)}")
+    if problems:
+        # Both in one message: a misspelt key is at once unknown and the required one missing, and
+        # the agent needs to see the two side by side to fix it.
+        raise ValueError(f"{name}: {'; '.join(problems)}; expected {', '.join(sorted(properties))}")

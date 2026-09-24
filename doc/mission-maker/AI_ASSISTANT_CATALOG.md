@@ -79,6 +79,9 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 34 | [Placer le bullseye d'une coalition](#set-bullseye) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 | 35 | [Écrire le briefing](#set-briefing) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 | 36 | [Connaître les limites connues](#known-limitations) | Connaissance métier | — | ⭐ |
+| 37 | [Lister les aérodromes d'un théâtre](#list-airfields) | 🛫 Bases & aérodromes | — | ⭐ |
+| 38 | [Poser un FARP complet](#add-farp) | 🛫 Bases & aérodromes | Recette + construite | ⭐ |
+| 39 | [Régler la météo de la mission](#set-weather) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 
 ---
 
@@ -207,7 +210,7 @@ avertissements. À faire avant de construire.
 *Dossier · 🔥* — Construit le dossier en fichier `.miz` prêt à jouer dans DCS (lance `veaf-tools
 build`). C'est l'aboutissement : dossier vide → contenu → **mission jouable**.
 
-> 💬 *« Construis-moi la mission. »*
+> 💬 *« Construis-moi la mission. »* · *« Construis la version de test locale. »*
 
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 
@@ -256,6 +259,22 @@ restent fermés.
 
 > 💬 *« Mets la base de Mezzeh en bleu. »* · *« Passe Stendal en rouge, sans slots dynamiques. »*
 
+### Lister les aérodromes d'un théâtre {#list-airfields}
+
+*Lecture · ⭐* — Les bases d'une carte, avec leur nom exact, leur numéro DCS et leur position : de quoi
+choisir les bases à colorer, ou placer quelque chose près de l'une d'elles, sans deviner un nom.
+Marche aussi avant qu'une mission existe, en nommant la carte.
+
+> 💬 *« Quelles bases y a-t-il en Allemagne de l'Est sur GermanyCW ? »*
+
+### Poser un FARP complet {#add-farp}
+
+*Recette + construite · ⭐* — Un FARP qui sert vraiment : l'héliport, sa fréquence radio, son
+indicatif, et l'entrepôt qui permet aux hélicoptères de s'y ravitailler et de s'y réarmer. Poser le
+seul objet « FARP » ne suffit pas : personne ne peut s'en servir.
+
+> 💬 *« Pose un FARP bleu à Fulda, sur 127,5 MHz. »*
+
 ## 🕰️ Réglages de la mission
 
 ### Dater la mission et régler son heure de départ {#mission-date}
@@ -283,6 +302,14 @@ dictionnaire : l'IA les écrit là où la mission les range déjà. `${METAR}` e
 briefing sont remplacées au build, variante par variante.
 
 > 💬 *« Écris la situation : Europe centrale, juin 1980. Tâche bleue : tenir la trouée de Fulda. »*
+
+### Régler la météo de la mission {#set-weather}
+
+*Recette + construite · ⭐* — Nuages, vent, température, visibilité, pluie, brouillard, ou un METAR
+entier. Une mission créée depuis zéro a ses nuages posés au sol : c'est à régler. Les variantes météo
+de `versions.yaml` gardent la main, variante par variante.
+
+> 💬 *« Mets un ciel fragmenté à 1 500 m, 12 °C, vent d'ouest 10 nœuds. »*
 
 ---
 
@@ -379,7 +406,7 @@ préalable (donnée de parking) ; sinon l'IA te le dit au lieu de deviner.
 
 *Mission construite · ⭐* — Changer ce qui est **déjà** dans la mission, unité par unité : son
 **emport** (pylône par pylône), son **niveau d'IA**, sa **livrée**, son **cap**, son **indicatif** et
-son **numéro de flanc**. Tu donnes le cap en degrés, l'IA fait la conversion. Seuls les réglages que
+son **numéro de flanc**, son **nom**, sa **position**. Tu donnes le cap en degrés, l'IA fait la conversion. Seuls les réglages que
 tu demandes changent, et l'IA te dit ce qu'il y avait avant.
 
 > 💬 *« Donne au vol Colt un emport air-sol. »*

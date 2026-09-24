@@ -113,6 +113,11 @@ tell "off" from "the reader did not look".
 
 ### `set_unit_properties` (FEAT-MCP-MUTATION-ACTIONS lot)
 
+> Since `FIX-SCRATCH-MISSION-FINDINGS` ticket 19 it also **renames** (`new_name`, refused when another
+> unit already has the name: DCS wants them unique across the mission) and **moves** (`position`) a
+> single unit; the group's anchor and route stay put. For an aircraft, whose place is tied to the
+> route, a warning says so.
+
 Write. The **first** action that changes an object the mission already contains: every `set_*`
 shipped before it acts on *configuration* (modules, security, logging, an airbase's coalition).
 Timestamped backup before the write, like its siblings.
@@ -260,6 +265,11 @@ the `altitude`/`altitudeEnabled` and `direction`/`directionEnabled` pairs **pres
 default (enabled when the caller passes `altitude_ft`/`direction_deg`), and the
 `expend`/`attackQty`/`groupAttack` set. `EngageTargetsInZone` also carries `noTargetTypes` (its
 exclusion list, empty by default).
+
+**Task order matters.** DCS runs tasks by `number`, and a task placed after an orbit that never ends
+is never reached. `add_task` appends by default; `task_position` (1-based) inserts it at a given place
+and renumbers the others — to put an engagement **before** the orbit (`FIX-SCRATCH-MISSION-FINDINGS`
+ticket 17).
 
 ```json
 {
@@ -630,6 +640,21 @@ initialise):
 > is what does. It resolves the airfield name to an id through the mission's theatre, sets the
 > coalition, and **turns on the base's Dynamic Spawn slots** (the build then stocks them) unless
 > `dynamic_spawn` is false. Backed up first, like the other editing actions.
+>
+> `dynamic_spawn: false` also records the base under `<side>.exclude_airports` in
+> `src/warehouses.yaml`, and `true` removes it: the build opened every base of a declared side with no
+> `airports:` list, `dynamicSpawn = false` or not (`FIX-SCRATCH-MISSION-FINDINGS` ticket 15). Nothing
+> is written when the file is absent (the step does not run) or the side is not declared in it
+> (declaring it would open every one of its bases).
+
+### FARP
+
+- `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
+  frequency_mhz=127.5, modulation="AM", callsign_id=1)` — a **complete** FARP: the heliport static
+  (`category = "Heliports"`, the type's `shape_name`), its radio and callsign, and the
+  `warehouses.warehouses[<unitId>]` entry that lets helicopters refuel there. `add_group` in `static`
+  placed the object alone (ticket 19). Shape measured on the 372 heliports of the missions under
+  `D:\dev\_VEAF`. `warehouses.yaml`'s `farps:` then stocks it at build, like a base.
 
 ### Mission settings (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
@@ -644,6 +669,11 @@ targets a mission folder (durable) or a `.miz`, backed up first.
   texts. Where the mission table holds a `DictKey_…` reference, the text goes into
   `l10n/DEFAULT/dictionary` behind it, so the reference stays valid; `write_mission_folder` now
   writes that dictionary back, only when it changes.
+- `set_weather(target, metar?, temperature?, wind_speed?, wind_direction?, visibility?, cloud_type?,
+  cloud_height?, precipitation?, fog_enabled?, clearsky?)` — the **base** mission's weather, in the
+  fields DCS reads (ticket 19: the blank mission has its clouds on the ground, `Preset1` at 0 m). Same
+  vocabulary and converter as `versions[].weather`, so a METAR works too; the variants still override
+  it at build.
 
 > Password **hashes** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — a multi-line
 > case — are not covered yet: only the `SecurityDisabled` flag is.
@@ -771,7 +801,10 @@ edit the **durable source** (the exploded `src/mission/` — zones/groups — vi
 ### `create_combat_zone`
 
 Trigger zone + groups placed inside (names auto-prefixed with the zone → captured at runtime,
-coalition-agnostic) + an appended `modules.COMBATZONE.combat_zones[]` yaml block.
+coalition-agnostic) + an appended `modules.COMBATZONE.combat_zones[]` yaml block. Each group takes
+`route` and `patrol`, shaped like `add_group`'s: a convoy moving through the zone is one of its groups,
+not a separate call. In category `ship`, ships are placed 600 m apart (a vehicle's 20 m made them
+collide as they spawned).
 
 ### `create_qra`
 
@@ -782,7 +815,9 @@ Coalition is lower-cased for placement, upper-cased in the YAML definition.
 ### `create_cap_mission`
 
 A **Late-Activation** template group named `OnDemand-<name>` + a `cap_missions[]` entry
-(`group_name: <name>`, un-prefixed — the build resolves it to the `OnDemand-` group).
+(`group_name: <name>`, un-prefixed — the build resolves it to the `OnDemand-` group). The first point
+carries the `EngageTargets` task (`Air` targets) the editor adds on its own to a CAP task, numbered
+**before** the orbit: without it the flight patrols and never engages.
 
 ## Scaffolding a mission folder (wave 9)
 
@@ -844,6 +879,18 @@ Read-only. From a `.miz` **or** a mission folder: returns the **theatre**, per-c
 {"mission_path": "path/to/mission.miz-or-folder"}
 ```
 
+### `list_airfields`
+
+Read-only. Lists a theatre's airbases — name, DCS airdrome id, lat/lon, and DCS `x`/`y` when the
+theatre's projection is known — from the data shipped with the tools
+(`veaf_libs/data/airdrome-positions.yaml`, generated with `airdromes.yaml` from the runtime dumps by
+`veaf-build update-dcs-data --airdromes`). With `mission_path`, the mission's theatre; without a
+mission, `theatre`.
+
+```json
+{"theatre": "GermanyCW"}
+```
+
 ### `resolve_coordinates`
 
 Utility. Converts a position between `{x, y}` (DCS local) and `{lat, lon}` (decimal degrees) for the
@@ -852,6 +899,9 @@ mission's theatre (read from the mission — the caller never supplies projectio
 ```json
 {"mission_path": "…", "position": {"lat": 42.18, "lon": 41.68}}
 ```
+
+To convert several points in one call, pass `positions` (a list) instead of `position`: the answer
+is `{theatre, points}`, in the order given, and an incomplete position is named by its index.
 
 ### `geocode`
 
@@ -886,10 +936,11 @@ Read-only. Lints a **folder** before build: reuses `veaf_libs.mission_validator`
 
 Write. Builds the folder into a playable `.miz` by driving **`veaf-tools mission build`** in the folder (the
 binary `scaffold_mission` installed, or `veaf-tools` on PATH). The build pipeline lives in the CLI
-command and is re-run as-is. A build failure is surfaced (`RuntimeError`).
+command and is re-run as-is. A build failure is surfaced (`RuntimeError`). `profile` (optional) is
+passed as `--profile` — `LOCAL_TEST` for a local test build.
 
 ```json
-{"folder_path": "path/to/mission-folder"}
+{"folder_path": "path/to/mission-folder", "profile": "LOCAL_TEST"}
 ```
 
 ## Next waves (out of scope)

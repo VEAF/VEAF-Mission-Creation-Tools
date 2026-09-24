@@ -20,6 +20,10 @@ from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_nam
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 _UNIT_SPACING_METERS = 20
+# Ships at vehicle spacing collide as they spawn (ticket 16). Over 89 ship groups of the missions under
+# D:\dev\_VEAF the nearest-neighbour distance has a median of 1 283 m and a 10th percentile of 277 m;
+# 600 m clears a hull of 300 m, and is the spacing that fixed GermanyCW-v6's Rostock convoy.
+_SHIP_SPACING_METERS = 600
 _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cruise speed
 
 #: A static unit's `category`, from the unit database's category. Measured over the static groups of
@@ -329,7 +333,7 @@ def _build_ship_group(
     built = [
         {k: v for k, v in unit.items() if k not in ("playerCanDrive", "coldAtStart")}
         | {"frequency": 127500000, "modulation": 0}
-        for unit in _build_units(units, position=position, group_name=name)
+        for unit in _build_units(units, position=position, group_name=name, spacing=_SHIP_SPACING_METERS)
     ]
     if not built:
         raise ValueError("add_group requires at least one unit")
@@ -351,7 +355,13 @@ def _build_ship_group(
     }
 
 
-def _build_units(units: list[dict[str, Any]], *, position: dict[str, float], group_name: str) -> list[dict[str, Any]]:
+def _build_units(
+    units: list[dict[str, Any]],
+    *,
+    position: dict[str, float],
+    group_name: str,
+    spacing: float = _UNIT_SPACING_METERS,
+) -> list[dict[str, Any]]:
     """Expand `[{"type", "count", "name"?}, ...]` into individual, spaced-out unit dicts.
 
     An explicit ``name`` is honoured verbatim (for ``count == 1``) or suffixed ``"<name> #NN"``
@@ -371,7 +381,7 @@ def _build_units(units: list[dict[str, Any]], *, position: dict[str, float], gro
                 {
                     "name": unit_name,
                     "type": spec["type"],
-                    "x": position["x"] + len(built) * _UNIT_SPACING_METERS,
+                    "x": position["x"] + len(built) * spacing,
                     "y": position["y"],
                     "skill": "Average",
                     "heading": 0,

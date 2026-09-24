@@ -19,7 +19,7 @@ from typing import Any
 # Re-exported here so every existing import keeps working.
 from veaf_libs.mission_table import CATEGORIES, indexed, numeric_first  # noqa: E402
 
-__all__ = ["CATEGORIES", "find_group", "group_names", "indexed", "listed", "numeric_first"]
+__all__ = ["CATEGORIES", "find_group", "group_names", "indexed", "listed", "numeric_first", "unit_names"]
 
 
 def listed(names: list[str], limit: int = 20) -> str:
@@ -58,6 +58,29 @@ def group_names(mission_content: dict[str, Any]) -> list[str]:
                 for group in indexed((country.get(category) or {}).get("group")):
                     if isinstance(group, dict):
                         names.append(str(group.get("name", "")))
+    return names
+
+
+def unit_names(mission_content: dict[str, Any]) -> list[str]:
+    """Return every unit name in the mission, in table order.
+
+    Args:
+        mission_content: The parsed ``mission`` table.
+
+    Returns:
+        The names, including duplicates if the mission holds any.
+    """
+    names: list[str] = []
+    for coalition in (mission_content.get("coalition") or {}).values():
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            if not isinstance(country, dict):
+                continue
+            for category in CATEGORIES:
+                for group in indexed((country.get(category) or {}).get("group")):
+                    if isinstance(group, dict):
+                        names += [str(u.get("name", "")) for u in indexed(group.get("units")) if isinstance(u, dict)]
     return names
 
 

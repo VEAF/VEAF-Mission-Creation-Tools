@@ -44,7 +44,7 @@ def _veaf_tools_binary(folder: Path) -> str:
     return str(installed) if installed.exists() else platform_assets.veaf_tools_binary_name()
 
 
-def build_mission(folder_path: Path) -> dict[str, Any]:
+def build_mission(folder_path: Path, profile: str | None = None) -> dict[str, Any]:
     """Build a mission folder into a playable `.miz` by driving ``veaf-tools build``.
 
     Runs the real build (its pipeline lives in the CLI command) in the folder — the binary
@@ -52,6 +52,8 @@ def build_mission(folder_path: Path) -> dict[str, Any]:
 
     Args:
         folder_path: The mission folder to build.
+        profile: A build profile (``LOCAL_TEST``, ``MODERN``…), passed as ``--profile``; the
+            mission's own profiles when omitted.
 
     Returns:
         ``{folder, ok, message, log}`` on success — ``log`` is the build's whole output, where its
@@ -64,6 +66,8 @@ def build_mission(folder_path: Path) -> dict[str, Any]:
     """
     folder = Path(folder_path)
     cmd = [_veaf_tools_binary(folder), "build"]
+    if profile:
+        cmd += ["--profile", profile]
     # stdin is closed (DEVNULL) so the build never blocks forever on an interactive input()
     # inherited from the MCP server's stdio pipe — the JSON-RPC stdin never reaches EOF, so a
     # read there would hang indefinitely (the observed deadlock). The env flag suppresses any

@@ -482,6 +482,9 @@ serait envoyé à l'origine de la carte.
 
 Le waypoint est **ajouté à la fin** du plan, donc la numérotation de vos points existants ne bouge pas.
 
+Un plan qui ne déclare **aucun** waypoint (`waypoints: {}`) le reçoit aussi : c'est la façon d'écrire
+« juste le bullseye » pour un type d'avion. Seul un groupe **sans** plan de vol n'en reçoit pas.
+
 !!! note "Votre déclaration gagne toujours"
     Si votre plan de vol déclare déjà un waypoint nommé `BULLSEYE`, c'est **le vôtre** qui est utilisé,
     avec vos coordonnées. Rien n'est ajouté et rien n'est remplacé.

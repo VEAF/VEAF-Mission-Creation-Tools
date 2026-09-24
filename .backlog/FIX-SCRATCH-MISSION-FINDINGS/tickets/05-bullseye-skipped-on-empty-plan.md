@@ -1,6 +1,6 @@
 # 05 — No automatic BULLSEYE on a flight plan without waypoints
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix (or doc — decide in the plan)
 Files: `src/python/veaf-tools/waypoints_injector/waypoints_injector_worker.py`, GUIDE, tests
 
@@ -24,6 +24,14 @@ With a declared BULLSEYE waypoint: 64 injected, 64 without a plan (the red templ
 a. inject the bullseye on an empty plan — reco: it is what the file and the GUIDE say
 b. keep the rule, fix the log (« plan sans waypoint ») and the GUIDE
 
+**Decided 2026-09-24 (David): option a.** A plan found with no waypoint still gets the BULLSEYE; the
+log tells "no flight plan" apart from "plan without waypoints". Tests cover the three cases: no
+plan, empty plan, plan with waypoints.
+
 ## Done when
 
 - The chosen behaviour is tested, and the log count names the real reason
+
+## Outcome (PR 1)
+
+- Option a. Bench with `waypoints: {}` plans (the workaround removed): 64 BULLSEYE waypoints added.

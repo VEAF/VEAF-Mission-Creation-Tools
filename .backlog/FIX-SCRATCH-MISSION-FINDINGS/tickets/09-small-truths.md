@@ -1,6 +1,6 @@
 # 09 — Three small places where the tool says something false, or nothing
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix + doc
 Files: `doc/PIPELINE_REFERENCE*.md`, the build's module summary, the build's sound check
 
@@ -18,3 +18,11 @@ Files: `doc/PIPELINE_REFERENCE*.md`, the build's module summary, the build's sou
 ## Done when
 
 - Doc row added, summary count right, a test for the sound warning
+
+## Outcome (PR 1)
+
+1. `clearsky` row added to the `versions[]` table (FR/EN).
+2. « QRA (0) »: the build normalises `mission.yaml` first, which moves `modules.QRA.definitions` into a
+   separate `qra` section; the summary read the moved-from place. Its test fed the raw file. Fixed and
+   tested on the normalised dict; bench now reads QRA (1).
+3. Sounds named in the CTLD/CSAR settings join the required-sound check.

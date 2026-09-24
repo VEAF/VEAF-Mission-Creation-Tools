@@ -11,16 +11,9 @@ network.
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 import weather_injector.weather.dcs_weather_converter as converter_module
 from weather_injector.weather import dcs_weather_converter as conv
-
-
-class _Value:
-    def __init__(self, value: Any) -> None:
-        self.value = value
 
 
 class _FakeMetar:
@@ -32,12 +25,10 @@ class _FakeMetar:
         self.icao = icao
         self.updated = False
         self._update_returns = update_returns
-        # Values only become readable after a successful update, exactly like avwx.
-        self.temperature: _Value | None = None
-        self.wind_speed: _Value | None = None
-        self.wind_direction: _Value | None = None
-        self.visibility: list[_Value] | None = None
-        self.clouds: list[Any] | None = None
+        # Only the published text, exactly like avwx: the parsed values live under `.data`, which the
+        # converter does not read. This fake used to carry `.temperature`, `.clouds` and friends, an
+        # API avwx does not have — so the tests passed while every real fetch died on AttributeError and
+        # fell back to the defaults (FIX-SCRATCH-MISSION-FINDINGS ticket 01).
         # avwx exposes the published text as `.raw`; the briefing's ${METAR} shows it verbatim, so the
         # fake has to have one for the single-fetch tests below to mean anything.
         self.raw = ""
@@ -47,11 +38,6 @@ class _FakeMetar:
         self.updated = True
         if not self._update_returns:
             return False
-        self.temperature = _Value(21.0)
-        self.wind_speed = _Value(19.44)  # knots -> 10 m/s
-        self.wind_direction = _Value(270)
-        self.visibility = [_Value(8000.0)]
-        self.clouds = [("BKN", _Value(1200.0))]
         self.raw = f"{self.icao} 121030Z 27010KT 8000 BKN040 21/12 Q1015"
         return True
 
@@ -84,8 +70,9 @@ class TestTheFetchActuallyHappens:
         assert result["wind_direction"] == 270.0
         assert result["visibility"] == 8000.0
         assert result["cloud_type"] == 3  # BKN
-        assert result["cloud_height"] == 1200.0
-        assert round(result["wind_speed"], 2) == 10.0  # knots converted to m/s
+        assert round(result["cloud_height"]) == 1219  # 4000 ft
+        assert round(result["wind_speed"], 2) == 5.14  # 10 kt converted to m/s
+        assert result["qnh_hpa"] == 1015.0
 
     def test_result_differs_from_the_defaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Guards the shape of the bug rather than its symptom: defaults returned as if live."""
@@ -171,3 +158,14 @@ class TestOneFetchServesBoth:
         conv.clear_metar_cache()
         conv.fetch_metar_string("LFRS")
         assert len(_FakeMetar.instances) == 2
+
+
+class TestTheRealAvwxApi:
+    """What the converter reads from avwx must exist on the real package, not only on the fake above."""
+
+    def test_a_parsed_report_exposes_its_raw_text(self) -> None:
+        metar_module = pytest.importorskip("avwx.current.metar")
+        report = "ETAR 011150Z 26002KT 6000 -RA OVC028 16/14 Q1012"
+        metar = metar_module.Metar.from_report(report)
+        assert metar.raw == report
+        assert callable(metar_module.Metar.update)

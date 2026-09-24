@@ -339,23 +339,6 @@ def build(
             """Return the resolved file for a pipeline step, or None to skip."""
             return resolve_pipeline_step_file(worker.pipeline_cfg, p_mission_folder, key, *candidates)
 
-        presets_path = _step_file("presets", "src/presets.yaml")
-        if presets_path:
-            logger.info(t("pipeline.injecting_presets", path=presets_path))
-            logger.step(t("pipeline.console.presets", file=presets_path.name))
-            generate_kneeboards = pipeline_step_subflag(worker.pipeline_cfg, "presets", "kneeboards", True)
-            presets_worker = PresetsInjectorWorker(
-                presets_file=presets_path,
-                input_mission=variant_output,
-                output_mission=variant_output,
-                generate_kneeboards=generate_kneeboards,
-            )
-            presets_worker.work()
-            report_path = p_mission_folder / "presets-validation-report.md"
-            issue_count = presets_worker.generate_validation_report(report_path)
-            if issue_count == 0 and report_path.exists():
-                report_path.unlink()
-
         def _inject_aircraft_step(step_key: str, candidate: str) -> None:
             """Inject one aircraft-group family file (spawnables or dynamic-slot templates)."""
             path, is_shipped = resolve_aircraft_catalogue(worker.pipeline_cfg, p_mission_folder, step_key, candidate)
@@ -391,6 +374,26 @@ def build(
         # Two independent steps (ADR 0002): spawnable aircraft groups and dynamic-slot templates.
         _inject_aircraft_step("spawnable_aircrafts", "src/spawnables.yaml")
         _inject_aircraft_step("dynamic_slot_templates", "src/dynamic-slot-templates.yaml")
+
+        # AFTER the aircraft steps too, for the reason given for waypoints below: the slots injected from
+        # YAML must exist to receive their radio presets. Before them, 0 of 64 dynamic-slot templates
+        # got a Radio table on a mission started with `prepare` (FIX-SCRATCH-MISSION-FINDINGS ticket 04).
+        presets_path = _step_file("presets", "src/presets.yaml")
+        if presets_path:
+            logger.info(t("pipeline.injecting_presets", path=presets_path))
+            logger.step(t("pipeline.console.presets", file=presets_path.name))
+            generate_kneeboards = pipeline_step_subflag(worker.pipeline_cfg, "presets", "kneeboards", True)
+            presets_worker = PresetsInjectorWorker(
+                presets_file=presets_path,
+                input_mission=variant_output,
+                output_mission=variant_output,
+                generate_kneeboards=generate_kneeboards,
+            )
+            presets_worker.work()
+            report_path = p_mission_folder / "presets-validation-report.md"
+            issue_count = presets_worker.generate_validation_report(report_path)
+            if issue_count == 0 and report_path.exists():
+                report_path.unlink()
 
         # AFTER the two steps above, and that is the whole point of FIX-WAYPOINTS-STEP-TOO-EARLY: they
         # create the human-piloted slots a flight plan exists for. Running before them reached 1 slot in

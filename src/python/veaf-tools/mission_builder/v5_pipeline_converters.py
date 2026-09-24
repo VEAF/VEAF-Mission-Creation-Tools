@@ -491,6 +491,10 @@ _CLOUD_PRESET_MAP: dict[str, str] = {
     "Preset16": "overcast",
     "Preset17": "overcast",
     "Preset18": "overcast",
+    # 19 to 27 and the rainy ones are all overcast: their METAR in DCS's Config/Effects/clouds.lua.
+    # Unmapped, they fell back to "scattered" (FIX-SCRATCH-MISSION-FINDINGS ticket 01).
+    **{f"Preset{n}": "overcast" for n in range(19, 28)},
+    **{f"RainyPreset{n}": "overcast" for n in range(1, 4)},
 }
 
 
@@ -586,7 +590,10 @@ def _parse_dcs_weather_lua(lua_path: Path) -> tuple[dict[str, Any], list[str]]:
         params["wind_speed"] = round(float(speed), 1)
     direction = at_ground.get("dir")
     if direction is not None:
-        params["wind_direction"] = round(float(direction), 1)
+        # DCS stores where the wind blows TO; `weather.wind_direction` is where it comes FROM, as in a
+        # METAR, and the weather injector turns it back. Irrelevant while the injector wrote nothing DCS
+        # read; a converted mission would now fly the wind reversed (FIX-SCRATCH-MISSION-FINDINGS 01).
+        params["wind_direction"] = round((float(direction) + 180) % 360, 1)
 
     # Visibility
     vis = wd.get("visibility") or {}
@@ -598,6 +605,8 @@ def _parse_dcs_weather_lua(lua_path: Path) -> tuple[dict[str, Any], list[str]]:
     clouds = wd.get("clouds") or {}
     if preset := clouds.get("preset"):
         params["cloud_type"] = _CLOUD_PRESET_MAP.get(str(preset), "scattered")
+        if str(preset).startswith("RainyPreset"):
+            params["precipitation"] = True
     base = clouds.get("base")
     if base is not None:
         params["cloud_height"] = int(base)

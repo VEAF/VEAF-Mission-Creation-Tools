@@ -137,6 +137,7 @@ veaf.theatreName = {
   Sinai = "SinaiMap",
   Kola = "Kola",
   Afghanistan = "Afghanistan",
+  GermanyCW = "GermanyCW",
 }
 
 veaf.ERA = {

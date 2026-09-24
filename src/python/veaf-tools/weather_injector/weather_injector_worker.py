@@ -1,6 +1,7 @@
 """Main worker for creating mission versions with weather and time modifications."""
 
 import re
+import zipfile
 from datetime import date as dt_date
 from datetime import timedelta
 from pathlib import Path
@@ -16,6 +17,7 @@ from veaf_libs.progress import progress_context
 
 from .models import MissionConfig, VersionConfig
 from .utils import SolarCalculator, TimeExpressionParser
+from .utils.theatre_offsets import theatre_utc_offset
 from .weather import DCSWeatherConverter
 from .weather.dcs_weather_converter import fetch_metar_string
 
@@ -64,6 +66,8 @@ class WeatherInjectorWorker(BaseWorker):
         self.config: MissionConfig | None = None
         self.mission_data: DcsMission | None = None
         self.solar_times: dict[str, int] = {}
+        #: Variants asking for live weather that flew the default weather instead.
+        self.weather_fallbacks = 0
 
     def work(self) -> list[Path]:
         """
@@ -102,6 +106,8 @@ class WeatherInjectorWorker(BaseWorker):
                     continue
 
         logger.info(tn("weather.done", len(created_files)))
+        if self.weather_fallbacks:
+            logger.warning(tn("weather.variants_fell_back", self.weather_fallbacks))
         return created_files
 
     def _load_configuration(self) -> MissionConfig | None:
@@ -134,11 +140,29 @@ class WeatherInjectorWorker(BaseWorker):
             else:
                 target_date = dt_date.today()
 
-            self.solar_times = SolarCalculator.get_sun_times(self.config.position, target_date)
+            # DCS reads start_time on the theatre's clock, not UTC (Caucasus "dawn" used to start at 01:28)
+            offset = theatre_utc_offset(self._read_theatre(), self.config.position.timezone, target_date)
+            self.solar_times = SolarCalculator.get_sun_times(self.config.position, target_date, offset)
             logger.debug(f"Solar times calculated: {self.solar_times}")
         except Exception as e:
             logger.error(t("weather.injector.solar_times_failed", error=str(e)))
             self.solar_times = {}
+
+    def _base_mission_path(self) -> Path:
+        """Return the base mission path, relative paths being resolved against the config folder."""
+        return self.mission_file if self.mission_file.is_absolute() else self.config_file.parent / self.mission_file
+
+    def _read_theatre(self) -> str | None:
+        """Read the base mission's theatre name from its ``theatre`` member, without loading the mission.
+
+        Returns:
+            The theatre name, or None when the archive or the member cannot be read.
+        """
+        try:
+            with zipfile.ZipFile(self._base_mission_path()) as miz:
+                return miz.read("theatre").decode("utf-8").strip() or None
+        except (OSError, KeyError, zipfile.BadZipFile, UnicodeDecodeError):
+            return None
 
     def _create_mission_version(self, version: VersionConfig) -> Path:
         """
@@ -151,9 +175,7 @@ class WeatherInjectorWorker(BaseWorker):
             Path to created mission file
         """
         # Load base mission
-        base_mission_path = (
-            self.mission_file if self.mission_file.is_absolute() else self.config_file.parent / self.mission_file
-        )
+        base_mission_path = self._base_mission_path()
         if not base_mission_path.exists():
             raise FileNotFoundError(f"Base mission not found: {base_mission_path}")
 
@@ -256,41 +278,30 @@ class WeatherInjectorWorker(BaseWorker):
 
             if version.metar:
                 # User provided METAR string
-                weather = converter.to_dcs_lua_table(metar_string=version.metar)
+                weather = converter.to_dcs_lua_table(metar_string=version.metar, clearsky=version.clearsky)
             elif version.airport_icao:
                 # Fetch live weather from avwx using airport ICAO code
-                weather = converter.to_dcs_lua_table(airport_icao=version.airport_icao)
+                weather = converter.to_dcs_lua_table(airport_icao=version.airport_icao, clearsky=version.clearsky)
+                # Said per variant: the fetch is memoised, so its own warning appears once per station
+                # however many variants share it (FIX-SCRATCH-MISSION-FINDINGS ticket 03).
+                if not fetch_metar_string(version.airport_icao):
+                    self.weather_fallbacks += 1
+                    logger.warning(t("weather.variant_fell_back", name=version.name, icao=version.airport_icao))
             else:
                 # Use individual weather parameters
+                manual = version.weather or {}
                 weather = converter.to_dcs_lua_table(
                     metar_string="",
-                    temperature_celsius=version.weather.get("temperature") if version.weather else None,
-                    wind_speed_mps=version.weather.get("wind_speed") if version.weather else None,
-                    wind_direction_degrees=version.weather.get("wind_direction") if version.weather else None,
-                    visibility_meters=version.weather.get("visibility") if version.weather else None,
-                    cloud_coverage=version.weather.get("cloud_type") if version.weather else None,
-                    cloud_height_meters=version.weather.get("cloud_height") if version.weather else None,
-                    fog_enabled=version.weather.get("fog_enabled", False) if version.weather else False,
+                    temperature_celsius=manual.get("temperature"),
+                    wind_speed_mps=manual.get("wind_speed"),
+                    wind_direction_degrees=manual.get("wind_direction"),
+                    visibility_meters=manual.get("visibility"),
+                    cloud_coverage=manual.get("cloud_type"),
+                    cloud_height_meters=manual.get("cloud_height"),
+                    precipitation=manual.get("precipitation"),
+                    fog_enabled=manual.get("fog_enabled", False),
+                    clearsky=version.clearsky,
                 )
-
-            # Clear sky override: cap to VFR-friendly conditions
-            #   - clouds: max 2 oktas (FEW, type 1) — keep real-weather coverage if lower
-            #   - wind: < 15 kn (7.72 m/s)
-            #   - visibility: CAVOK (>= 9999 m)
-            _CLEARSKY_MAX_WIND_MPS = 7.72  # 15 kn
-            if version.clearsky and "atmosphere" in weather:
-                atm = weather["atmosphere"]
-                clouds = atm.get("clouds")
-                if isinstance(clouds, dict) and "type" in clouds:
-                    if clouds["type"] > DCSWeatherConverter.CLOUD_TYPES["few"]:
-                        clouds["type"] = DCSWeatherConverter.CLOUD_TYPES["few"]
-                wind = atm.get("wind")
-                if isinstance(wind, dict) and "speed_mps" in wind:
-                    if wind["speed_mps"] > _CLEARSKY_MAX_WIND_MPS:
-                        wind["speed_mps"] = _CLEARSKY_MAX_WIND_MPS
-                if atm.get("visibility_meters", 9999.0) < 9999.0:
-                    atm["visibility_meters"] = 9999.0
-                logger.debug(t("weather.clearsky_applied"))
 
             self._set_mission_weather(weather)
             logger.debug("Weather injected")
@@ -350,8 +361,10 @@ class WeatherInjectorWorker(BaseWorker):
         if self.mission_data.get_weather() is None:
             self.mission_data.set_weather({})
 
-        # Merge weather data into mission
+        # Merge weather data into mission. `atmosphere` is the table this injector used to write, which
+        # DCS never read (FIX-SCRATCH-MISSION-FINDINGS ticket 01): dropped if a base mission still has it.
         current = self.mission_data.get_weather() or {}
+        current.pop("atmosphere", None)
         current.update(weather)
         self.mission_data.set_weather(current)
         logger.debug("Weather set in mission")

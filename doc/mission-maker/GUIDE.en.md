@@ -478,6 +478,9 @@ the map origin.
 
 The waypoint is **appended** to the plan, so your existing points keep their numbers.
 
+A plan declaring **no** waypoint (`waypoints: {}`) gets it too: that is how you write "just the bullseye"
+for an aircraft type. Only a group with **no** flight plan at all gets none.
+
 !!! note "Your own declaration always wins"
     If your flight plan already declares a waypoint named `BULLSEYE`, **yours** is used, with your
     coordinates. Nothing is added and nothing is replaced.

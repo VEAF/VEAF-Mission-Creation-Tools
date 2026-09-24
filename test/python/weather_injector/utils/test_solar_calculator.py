@@ -91,6 +91,33 @@ class TestGetSunTimesDifferentLocations(unittest.TestCase):
         self.assertGreater(summer_day, winter_day)
 
 
+class TestGetSunTimesTheatreClock(unittest.TestCase):
+    """Solar times land on the theatre's clock, which is what DCS reads ``start_time`` in.
+
+    FIX-SCRATCH-MISSION-FINDINGS ticket 02: they were UTC, so Caucasus v6 "dawn" started at 01:28.
+    """
+
+    RAMSTEIN = Position(latitude=49.437, longitude=7.600, timezone="Europe/Berlin")
+    DATE = dt_date(1980, 6, 1)
+
+    def test_default_offset_is_utc(self) -> None:
+        # Sunrise at Ramstein that day: 03:28 UTC (NOAA formula)
+        result = SolarCalculator.get_sun_times(self.RAMSTEIN, self.DATE)
+        self.assertAlmostEqual(result["sunrise"], 3 * 3600 + 28 * 60, delta=120)
+
+    def test_offset_shifts_to_theatre_clock(self) -> None:
+        result = SolarCalculator.get_sun_times(self.RAMSTEIN, self.DATE, utc_offset_hours=2)
+        self.assertAlmostEqual(result["sunrise"], 5 * 3600 + 28 * 60, delta=120)
+        self.assertAlmostEqual(result["sunset"], 21 * 3600 + 28 * 60, delta=120)
+
+    def test_negative_offset_keeps_sunset_on_the_same_local_evening(self) -> None:
+        # Nevada sunset is after midnight UTC; on the theatre clock it must stay an evening time
+        nellis = Position(latitude=36.236, longitude=-115.034, timezone="America/Los_Angeles")
+        result = SolarCalculator.get_sun_times(nellis, dt_date(2024, 6, 21), utc_offset_hours=-8)
+        self.assertLess(result["sunrise"], result["sunset"])
+        self.assertAlmostEqual(result["sunset"], 18 * 3600 + 57 * 60, delta=15 * 60)
+
+
 class TestGetSunTimesInvalidTimezone(unittest.TestCase):
     """astral silently falls back for unrecognised timezones; verify no crash."""
 

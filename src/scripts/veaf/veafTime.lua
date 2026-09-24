@@ -296,6 +296,8 @@ function veafTime.getTimezone(vec3)
     nTimezoneOffset = 3
   elseif sTheatre == veaf.theatreName.Afghanistan then
     nTimezoneOffset = 4.5
+  elseif sTheatre == veaf.theatreName.GermanyCW then
+    nTimezoneOffset = 2 -- measured in DCS (1980-06-01, Ramstein); June only, winter not checked
   end
   --veaf.loggers.get(veafTime.Id):trace(string.format("%s - timezone=%f", env.mission.theatre, nTimezoneOffset))
   return nTimezoneOffset

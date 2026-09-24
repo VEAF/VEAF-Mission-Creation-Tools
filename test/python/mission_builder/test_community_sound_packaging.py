@@ -81,6 +81,27 @@ class TestCommunitySoundPackaging(unittest.TestCase):
         self.assertIn("radiobeep.ogg", warned)
         self.assertIn("CSAR.ogg", warned)
 
+    def test_a_sound_named_in_the_csar_settings_is_checked_too(self) -> None:
+        """FIX-SCRATCH-MISSION-FINDINGS ticket 09: `radioSound: csar-beacon.ogg`, carried over from a v5
+        mission that shipped the file, built without a word while the beacon was mute."""
+        self._write_sounds("beacon.ogg", "beaconsilent.ogg", "CSAR.ogg", "radiobeep.ogg")
+        worker = self._worker("modules:\n  CSAR:\n    settings:\n      radioSound: csar-beacon.ogg\n")
+        with mock.patch.object(
+            __import__("mission_builder.mission_builder_worker", fromlist=["logger"]).logger, "warning"
+        ) as warn:
+            worker.get_collected_community_sound_files()
+        warned = " ".join(str(c.args) + str(c.kwargs) for c in warn.call_args_list)
+        self.assertIn("csar-beacon.ogg", warned)
+
+    def test_a_named_sound_the_mission_provides_is_not_warned(self) -> None:
+        self._write_sounds("beacon.ogg", "beaconsilent.ogg", "CSAR.ogg", "radiobeep.ogg", "csar-beacon.ogg")
+        worker = self._worker("modules:\n  CSAR:\n    settings:\n      radioSound: csar-beacon.ogg\n")
+        with mock.patch.object(
+            __import__("mission_builder.mission_builder_worker", fromlist=["logger"]).logger, "warning"
+        ) as warn:
+            worker.get_collected_community_sound_files()
+        self.assertEqual(warn.call_args_list, [])
+
     def test_result_is_cached(self) -> None:
         """The collection is computed once and cached."""
         self._write_sounds("beacon.ogg", "beaconsilent.ogg", "CSAR.ogg")

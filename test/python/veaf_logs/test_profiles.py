@@ -169,3 +169,20 @@ class TestSession:
         Session(active=1).save(path)
         assert not path.with_suffix(".tmp").exists()
         assert Session.load(path).active == 1
+
+
+class TestSessionDistante:
+    def test_entree_distante_survit_a_la_session(self, tmp_path):
+        chemin = tmp_path / "session.json"
+        distant = OpenFile("C:/Users/veaf/Saved Games/private1_server/Logs/dcs.log", remote="veaf/private1")
+        Session(files=[distant]).save(chemin)
+        rechargee = Session.load(chemin)
+        assert rechargee.files == [distant]
+        # Le chemin n'existe pas ici : c'est le serveur qui le sait.
+        assert rechargee.existing_files() == [distant]
+
+    def test_session_sans_champ_remote_reste_lisible(self, tmp_path):
+        """Une session ecrite avant ce champ se recharge sans lui."""
+        chemin = tmp_path / "session.json"
+        chemin.write_text('{"version": 2, "files": [{"path": "C:/dcs.log", "archive_member": null}]}', encoding="utf-8")
+        assert Session.load(chemin).files == [OpenFile("C:/dcs.log")]

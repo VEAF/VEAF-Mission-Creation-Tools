@@ -243,6 +243,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `cap_missions[]` keys `default` / `activated` are documented as what they are (`secured` /
   `radioMenuEnabled`), and a QRA or AirWaves `radio_menu` can be secured with `radio_menu_secured`.
 
+- **`veaf-logs` opens and follows a DCS server log over SSH.** `File › Open a remote log…` lists the
+  `server › instance` pairs declared under a new `servers:` block of `~/veafmct.yaml` (one machine,
+  several DCS instances, one `dcs.log` each). The log is mirrored locally through SFTP — one `stat`
+  per second, only the new bytes travel — so filters, rules, profiles and session restore work as
+  for a local file, and a DCS restart on the server (fresh log) restarts the tab with it. Key
+  authentication only: the tool never asks for or stores a password; an unknown host key is shown
+  and remembered on request, as `ssh` does. `paramiko` joins the `logs` extra; `veaf-tools.exe` is
+  unchanged.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

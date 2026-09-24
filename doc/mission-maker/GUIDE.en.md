@@ -129,7 +129,7 @@ check_updates: true      # Check for new veaf-tools releases at startup
 scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Local repo path (for --dev-mode)
 ```
 
-All keys are optional. To initialise the file from the CLI:
+All keys are optional. The `servers:` key (DCS server logs followed over SSH in `veaf-logs`) is described in [Reading DCS logs](LOGS.en.md#remote). To initialise the file from the CLI:
 
 ```powershell
 .\veaf-tools.exe user-config --init

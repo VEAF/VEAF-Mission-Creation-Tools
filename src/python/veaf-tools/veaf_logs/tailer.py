@@ -74,6 +74,10 @@ def archive_members(path: Path) -> list[str]:
 class LogSource:
     """Un journal ouvert : son tampon d'octets et l'etat de sa rotation."""
 
+    # Delai minimal entre deux sondages, en secondes. Un fichier local se sonde
+    # a chaque battement de l'interface ; une source distante en demande moins.
+    poll_interval = 0.0
+
     def __init__(self, path: Path | str, *, archive_member: str | None = None) -> None:
         self.path = Path(path)
         self.archive_member = archive_member

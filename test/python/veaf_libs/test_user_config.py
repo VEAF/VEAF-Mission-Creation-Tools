@@ -261,3 +261,69 @@ class TestUnsetValue:
         monkeypatch.setattr("veaf_libs.user_config.config_file_path", lambda: cfg)
         unset_value("lang")
         assert get_check_updates() is False
+
+
+# ---------------------------------------------------------------------------
+# get_servers
+# ---------------------------------------------------------------------------
+
+_SERVERS_YAML = """\
+servers:
+  veaf:
+    host: dcs.veaf.org
+    user: veaf
+    key: ~/.ssh/id_ed25519
+    logs:
+      private1: C:/Users/veaf/Saved Games/private1_server/Logs/dcs.log
+      public1: C:/Users/veaf/Saved Games/public1_server/Logs/dcs.log
+  lan:
+    host: 192.168.1.10
+    user: dcs
+    port: 2222
+    logs:
+      main: C:/Users/dcs/Saved Games/DCS.server/Logs/dcs.log
+"""
+
+
+def _config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    cfg = tmp_path / "veafmct.yaml"
+    cfg.write_text(text, encoding="utf-8")
+    monkeypatch.setattr("veaf_libs.user_config.config_file_path", lambda: cfg)
+
+
+class TestGetServers:
+    def test_no_block_means_no_server(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr("veaf_libs.user_config._find_config_file", lambda: None)
+        assert user_config.get_servers() == []
+
+    def test_parses_servers_in_declaration_order(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        _config(tmp_path, monkeypatch, _SERVERS_YAML)
+        servers = user_config.get_servers()
+        assert [server.name for server in servers] == ["veaf", "lan"]
+        veaf, lan = servers
+        assert (veaf.host, veaf.user, veaf.port) == ("dcs.veaf.org", "veaf", 22)
+        assert veaf.key == Path("~/.ssh/id_ed25519").expanduser()
+        assert list(veaf.logs) == ["private1", "public1"]
+        assert veaf.logs["private1"] == "C:/Users/veaf/Saved Games/private1_server/Logs/dcs.log"
+        assert (lan.port, lan.key) == (2222, None)
+
+    @pytest.mark.parametrize(
+        ("text", "key"),
+        [
+            ("servers: [veaf]\n", "servers:"),
+            ("servers:\n  veaf: dcs.veaf.org\n", "servers.veaf:"),
+            ("servers:\n  veaf:\n    user: veaf\n    logs: {a: b}\n", "servers.veaf.host"),
+            ("servers:\n  veaf:\n    host: h\n    logs: {a: b}\n", "servers.veaf.user"),
+            ("servers:\n  veaf:\n    host: h\n    user: u\n    port: 70000\n    logs: {a: b}\n", "servers.veaf.port"),
+            ("servers:\n  veaf:\n    host: h\n    user: u\n    key: 3\n    logs: {a: b}\n", "servers.veaf.key"),
+            ("servers:\n  veaf:\n    host: h\n    user: u\n", "servers.veaf.logs"),
+            ("servers:\n  veaf:\n    host: h\n    user: u\n    logs: {}\n", "servers.veaf.logs"),
+            ("servers:\n  veaf:\n    host: h\n    user: u\n    logs: {a: 1}\n", "servers.veaf.logs.a"),
+        ],
+    )
+    def test_malformed_block_names_the_key(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, text: str, key: str
+    ) -> None:
+        _config(tmp_path, monkeypatch, text)
+        with pytest.raises(ValueError, match=key.replace(".", r"\.")):
+            user_config.get_servers()

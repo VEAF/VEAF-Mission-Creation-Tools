@@ -395,7 +395,7 @@ def build(
             if issue_count == 0 and report_path.exists():
                 report_path.unlink()
 
-        # AFTER the two steps above, and that is the whole point of FIX-WAYPOINTS-STEP-TOO-EARLY: they
+        # AFTER the two aircraft steps above, and that is the whole point of FIX-WAYPOINTS-STEP-TOO-EARLY: they
         # create the human-piloted slots a flight plan exists for. Running before them reached 1 slot in
         # 105 on the smoke-test mission — for declared waypoints, not only for anything automatic.
         #

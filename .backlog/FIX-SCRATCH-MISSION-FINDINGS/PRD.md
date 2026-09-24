@@ -1,6 +1,6 @@
 # FIX-SCRATCH-MISSION-FINDINGS — what building one mission from scratch with 6.24.0 found
 
-Status: 🧑 waiting-human — all 13 tickets merged: #992 (01–05, 09), #993 (06, 08), #994 (07), #995 (10), #996 (11–13). Left from the Definition of Done: rebuild GermanyCW-v6 with a release carrying them (the mission's own session: drop its workarounds, replace the `mission-script.lua` nesting with `includes:`), then mark ✅.
+Status: 🔄 in-progress — reopened on 2026-09-24. Tickets 01–14 merged: #992 (01–05, 09), #993 (06, 08), #994 (07), #995 (10), #996 (11–13), #998 (14). Tickets 15–22 added from the second GermanyCW-v6 rebuild (2026-09-24, MODERN, MCP on develop), still to do. The rebuild with the fixed tools is still owed — see the Definition of Done.
 
 ## Origin
 
@@ -35,6 +35,14 @@ pipeline's gaps are all that is left — which is exactly the path the MCP recom
 | [12](tickets/12-defense-levels-and-sam-aliases.md) | The `defense` levels and the SAM aliases do not say what they do | `list_shortcuts` hides `defense` ranges; `-samLR` places Roland/Hawk, no long range; levels ignore the era (M6 Linebacker in 1980) |
 | [13](tickets/13-mcp-known-limitations.md) | The MCP exposes the known limitations, always up to date | new read-only `describe_known_limitations`, one versioned data file, lot rule |
 | [14](tickets/14-open-training-prompt.md) | A reusable prompt to build an Open Training mission on any map | `.prompts/new-open-training-mission.fr.md` + `.en.md`, pointed to from the mission-maker doc |
+| [15](tickets/15-build-forces-dynamic-spawn-on.md) | The build turns dynamic slots on at every airfield of a side, over `dynamic_spawn: false` | default `warehouses.yaml`: 61 airfields / 3 111 links, against 12 / 612 with an `airports:` list; `dynamicSpawn = True` unconditional |
+| [16](tickets/16-ships-spaced-20-metres.md) | Ships placed 20 m apart | 4 ships over 100 m long at x = -16437 … -16377 |
+| [17](tickets/17-cap-without-engage-task.md) | `create_cap_mission` makes a CAP with no engage task | `Orbit` alone on point 1; `add_task` appends after an endless orbit |
+| [18](tickets/18-combat-zone-groups-have-no-route.md) | `create_combat_zone` takes no route for its groups | a convoy needs an empty zone + `add_group … for_combat_zone` |
+| [19](tickets/19-more-missing-authoring-actions.md) | More actions replaced with scripts on the Lua table | FARP, base weather, unit rename/move, build profile, airfield list, batch coordinates; a misnamed parameter fails with no message |
+| [20](tickets/20-validate-ignores-dynamic-slots.md) | `validate_mission` sees no player slot in a mission made of dynamic slots | two warnings on 12 bases / 102 injected types |
+| [21](tickets/21-docs-that-do-not-describe-the-code.md) | Two docs that do not describe the code | `cap_missions[].default` is `secured`, `activated` is `radioMenuEnabled`; `standard` writes COMBATZONE / QRA commented |
+| [22](tickets/22-qra-radio-menu-not-secured.md) | `radio_menu: true` on a QRA hands Start / Stop to every player, unsecured | `veafRadio.command("Arrêter QRA Berlin", ...)` with no level |
 
 Tickets 01 and 02 are the ones that change what players fly. Ticket 04 is narrower than it first
 looked — see its "What it is not" section — and ticket 06 is the one that makes aircraft fall out of
@@ -60,6 +68,12 @@ along that line — pipeline first, it is what players feel.
 - Each ticket's "Done when" met, each fix with a test that failed before it.
 - The GermanyCW-v6 folder rebuilt with the fixed tools: the 17 variants differ in the fields DCS
   reads, dawn is at dawn, the dynamic slots carry presets and a BULLSEYE.
+- **The 2026-09-24 rebuild does not count.** It was built with 6.24.0, and the mission carries
+  workarounds that would hide the fixes: dawn and evening at fixed hours in `src/versions.yaml`,
+  group ids renumbered from 1001 and unit ids from 2001, `pipeline.spawnable_aircrafts: false`,
+  `airports:` lists in `src/warehouses.yaml`, the training zones nested through
+  `addZoneElementsFromZoneNamed` in `src/scripts/mission-script.lua`. The validation rebuilds with the
+  tools of develop and removes these workarounds **one at a time**, measuring the `.miz` after each.
 - CLAUDE.md quality-gate obligations (mypy exclusions of touched workers, coverage floor).
 - `.backlog/README.md` row updated, docs touched in the same lot (PIPELINE_REFERENCE, GUIDE,
   AI_ASSISTANT_CATALOG for new actions).

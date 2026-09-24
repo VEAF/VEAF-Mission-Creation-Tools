@@ -525,15 +525,14 @@ local function applyCollectedTags(element, tags)
 end
 
 --- Build the zone element of a `#command` object: a one-shot trigger running a VEAF command at the
---- object's position. The zone name is appended to the command so the interpreter can attribute what
---- it spawns back to the zone.
+--- object's position. The command is stored raw; the zone running it appends its own name when it
+--- spawns (VeafCombatZone:spawnElement), so the interpreter attributes the group to that zone.
 --- @param unit the object carrying the command
 --- @param group the group it belongs to, as built by VeafCombatZone:initialize
 --- @param tags the group's collected tags
 --- @param command the raw command read out of the name
---- @param combatZoneName name of the combat zone, appended to the command
 --- @return VeafCombatZoneElement
-function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZoneName)
+function veafCombatZone.buildCommandElement(unit, group, tags, command)
   local element = VeafCombatZoneElement:new()
   element:setCoalition(unit:getCoalition())
   element:setPosition(unit:getPosition().p)
@@ -541,7 +540,10 @@ function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZo
   applyCollectedTags(element, tags)
   -- no dispersion default here, deliberately: the command runs *at this position*, so scattering it
   -- would move whatever the command spawns. `#spawnradius=` still applies if the mission maker wrote one.
-  element:setVeafCommand(command .. ", czName " .. combatZoneName)
+  -- The raw command only: `czName` names the zone the spawned group belongs to, and that is the zone
+  -- *running* the element, which spawnElement appends. Baked in here, a level borrowing this element
+  -- through `includes:` spawned a group named after the level it was borrowed from.
+  element:setVeafCommand(command)
   element:setRoute(veaf.getGroupRoute(group.name))
   if not element:getSpawnGroup() then
     element:setSpawnGroup(group.name) -- default the spawn group to the group name
@@ -1204,8 +1206,16 @@ function VeafCombatZone:addZoneElementsFromZoneNamed(zoneName)
   if not elements then
     return self
   end
+  -- An element already here is skipped: the generator emits each level's whole `includes:` closure in
+  -- no particular order, so this zone may borrow a level that has itself already borrowed the next one.
+  local present = {}
+  for _, element in pairs(self.elements or {}) do
+    present[element] = true
+  end
   for _, element in pairs(elements) do
-    self:addZoneElement(element)
+    if not present[element] then
+      self:addZoneElement(element)
+    end
   end
   return self
 end
@@ -1382,14 +1392,14 @@ function VeafCombatZone:initialize()
     local groupCommand = commandsBySource[groupName]
     if groupCommand then
       -- the command is on the group's own name, so the group is one trigger and not one per unit
-      self:addZoneElement(veafCombatZone.buildCommandElement(group.units[1], group, tags, groupCommand, self:getMissionEditorZoneName()))
+      self:addZoneElement(veafCombatZone.buildCommandElement(group.units[1], group, tags, groupCommand))
     else
       local plainUnits = {}
       for _, unit in ipairs(group.units) do
         local unitCommand = commandsBySource[unit:getName()]
         if unitCommand then
           -- it's a fake unit transporting a VEAF command
-          self:addZoneElement(veafCombatZone.buildCommandElement(unit, group, tags, unitCommand, self:getMissionEditorZoneName()))
+          self:addZoneElement(veafCombatZone.buildCommandElement(unit, group, tags, unitCommand))
         else
           table.insert(plainUnits, unit)
         end
@@ -1784,7 +1794,8 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         veaf.goRoute(newGroup, route)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
       end)
-      veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
+      local command = zoneElement:getVeafCommand() .. ", czName " .. self:getMissionEditorZoneName()
+      veafInterpreter.execute(command, position, zoneElement:getCoalition(), nil, spawnedGroups)
     end
   end
 end

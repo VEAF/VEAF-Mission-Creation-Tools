@@ -181,6 +181,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `describe_units` reads a mission folder, as every write action already accepted one — it used to
   answer `[Errno 13] Permission denied`, so an agent could not read back what it had just written.
 
+- **Difficulty levels on the same targets are one key in `mission.yaml`.** A combat zone's
+  `includes: [<zone>, ...]` makes it borrow the elements of other zones, transitively and whatever
+  the order they are listed in: activating the "hard" level of a training range spawns the medium
+  and easy ones too, deactivating it removes them, and its completion counts them. An unknown zone,
+  an operation or a cycle stops the build instead of leaving a level quietly incomplete. It used to
+  take Lua in `mission-script.lua`, and nesting zones by name prefix — which the prefix rule suggests
+  — cannot work, since a zone destroys at start the groups it picks up. A borrowed `#command`
+  element now names its group after the zone running it rather than the zone it was read from, and
+  borrowing a zone that has already borrowed the next one no longer adds its elements twice.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

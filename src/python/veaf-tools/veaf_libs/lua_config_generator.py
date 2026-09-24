@@ -850,6 +850,12 @@ def _emit_module_body(
             else:
                 lines.extend(_emit_combat_zone_def(zone_def, var_name, indent="    "))
 
+        # `includes:` borrows elements from zones built above, so it comes after the last of them.
+        for zone_name, included in _combat_zone_includes(cz_zones):
+            lines.append(
+                f"    {var_name}.GetZone({_lua_text(zone_name)}):addZoneElementsFromZoneNamed({_lua_text(included)})"
+            )
+
         lines.append(f"    {var_name}.initialize()")
 
         # Activate zones flagged active_at_start, after initialize() so they are
@@ -883,6 +889,59 @@ def _emit_module_body(
         user_menus = mod_cfg.get("user_menus")
         if user_menus:
             lines.extend(_emit_user_menus(user_menus))
+
+
+def _combat_zone_includes(cz_zones: list) -> list[tuple[str, str]]:
+    """Resolve every zone's ``includes:`` into the full list of zones it borrows from.
+
+    Difficulty levels on the same targets: ``hard`` includes ``medium``, which includes ``easy``, and
+    activating ``hard`` must spawn all three. The runtime copies another zone's elements with
+    ``addZoneElementsFromZoneNamed`` and skips those it already holds, so emitting each zone's whole
+    transitive closure makes the result independent of the order the calls run in. Names are
+    compared case-insensitively, as ``veafCombatZone.GetZone`` does.
+
+    Args:
+        cz_zones: The ``combat_zones`` entries of ``mission.yaml``.
+
+    Returns:
+        ``(zone_name, included_zone_name)`` pairs, each zone's closure in depth-first order, with the
+        names written as the mission maker wrote them.
+
+    Raises:
+        ValueError: ``includes`` is not a list, names a zone that is not a combat zone of this
+            mission (an operation included), or the includes form a cycle. At runtime each of these
+            is a line in ``dcs.log`` and a level quietly missing its lower levels.
+    """
+    zones = {str(z.get("zone_name", "")).lower(): z for z in cz_zones if z.get("type", "zone") != "operation"}
+    direct: dict[str, list[str]] = {}
+    for key, zone_def in zones.items():
+        includes = zone_def.get("includes")
+        if includes is None:
+            continue
+        if not isinstance(includes, list):
+            raise ValueError(f"combat zone {zone_def.get('zone_name')!r}: includes must be a list of zone names")
+        for name in includes:
+            if str(name).lower() not in zones:
+                raise ValueError(
+                    f"combat zone {zone_def.get('zone_name')!r}: includes {name!r}, which is not a combat zone"
+                )
+        direct[key] = [str(name) for name in includes]
+
+    def closure(key: str, path: list[str]) -> list[str]:
+        found: list[str] = []
+        for name in direct.get(key, []):
+            if name.lower() in path:
+                raise ValueError(f"combat zone includes form a cycle: {' -> '.join([*path, name.lower()])}")
+            for borrowed in [name, *closure(name.lower(), [*path, name.lower()])]:
+                if borrowed.lower() not in {f.lower() for f in found}:
+                    found.append(borrowed)
+        return found
+
+    pairs: list[tuple[str, str]] = []
+    for key in direct:
+        zone_name = str(zones[key].get("zone_name", ""))
+        pairs.extend((zone_name, included) for included in closure(key, [key]))
+    return pairs
 
 
 def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -> list[str]:

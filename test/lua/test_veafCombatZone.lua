@@ -1456,6 +1456,120 @@ function TestVeafCombatZoneDelayedCommand:test_a_group_appearing_after_deactivat
   luaunit.assertEquals(#self.z:getSpawnedGroups(), 0, "an inactive zone must not register a group")
 end
 
+-- ============================================================================
+-- TestVeafCombatZoneIncludes — difficulty levels as zones borrowing each other's elements
+-- (FIX-SCRATCH-MISSION-FINDINGS ticket 10)
+-- ============================================================================
+TestVeafCombatZoneIncludes = {}
+
+local function levelZone(name, ...)
+  local zone = VeafCombatZone:new():setMissionEditorZoneName(name):setFriendlyName(name)
+  for _, element in ipairs({ ... }) do
+    zone:addZoneElement(element)
+  end
+  veafCombatZone.zonesDict[name:lower()] = zone
+  return zone
+end
+
+local function levelElement(name)
+  return VeafCombatZoneElement:new():setName(name):setSpawnGroup(name)
+end
+
+local function namesOf(zone)
+  local names = {}
+  for _, element in ipairs(zone:getZoneElements() or {}) do
+    table.insert(names, element:getName())
+  end
+  table.sort(names)
+  return names
+end
+
+function TestVeafCombatZoneIncludes:setUp()
+  veafCombatZone.zonesDict = {}
+  self.executed = {}
+  local this = self
+  veafInterpreter = {
+    execute = function(command, position, coa, route, spawnedGroups)
+      table.insert(this.executed, command)
+      veaf.collectSpawnedGroup(spawnedGroups, "SAM-" .. #this.executed)
+      return true
+    end,
+  }
+  self._goRoute = veaf.goRoute
+  veaf.goRoute = function() end
+end
+
+function TestVeafCombatZoneIncludes:tearDown()
+  veaf.goRoute = self._goRoute
+  veafInterpreter = nil
+  veafCombatZone.zonesDict = {}
+end
+
+-- The transitive closure is emitted by the generator in no particular order, so a zone may borrow a
+-- level that has already borrowed the one below it. Each element must still be there once.
+function TestVeafCombatZoneIncludes:test_an_element_borrowed_twice_is_added_once()
+  levelZone("EASY", levelElement("targets"))
+  local medium = levelZone("MEDIUM", levelElement("aaa"))
+  local hard = levelZone("HARD", levelElement("shorad"))
+  medium:addZoneElementsFromZoneNamed("EASY")
+  hard:addZoneElementsFromZoneNamed("MEDIUM")
+  hard:addZoneElementsFromZoneNamed("EASY")
+  luaunit.assertEquals(namesOf(hard), { "aaa", "shorad", "targets" })
+  luaunit.assertEquals(#hard:getZoneElementsGroups()["targets"].elements, 1)
+end
+
+function TestVeafCombatZoneIncludes:test_the_closure_gives_the_same_set_in_the_other_order()
+  levelZone("EASY", levelElement("targets"))
+  local medium = levelZone("MEDIUM", levelElement("aaa"))
+  local hard = levelZone("HARD", levelElement("shorad"))
+  hard:addZoneElementsFromZoneNamed("MEDIUM")
+  hard:addZoneElementsFromZoneNamed("EASY")
+  medium:addZoneElementsFromZoneNamed("EASY")
+  luaunit.assertEquals(namesOf(hard), { "aaa", "shorad", "targets" })
+  luaunit.assertEquals(namesOf(medium), { "aaa", "targets" })
+end
+
+-- The command used to carry `czName <zone of origin>` from the moment the element was built, so a
+-- level borrowing it spawned a group named after the level it was borrowed from.
+function TestVeafCombatZoneIncludes:test_a_borrowed_command_spawns_under_the_borrowing_zone_name()
+  local command = levelElement("trigger"):setVeafCommand("-sam"):setPosition({ x = 0, y = 0, z = 0 })
+  levelZone("EASY", command)
+  local hard = levelZone("HARD")
+  hard:addZoneElementsFromZoneNamed("EASY")
+  hard:setActive(true)
+  hard:spawnElement(command, true)
+  luaunit.assertEquals(self.executed, { "-sam, czName HARD" })
+end
+
+-- What deactivation destroys and what completion counts are both the zone's spawned groups: a group
+-- registered with the borrowing zone is removed and counted with that zone, not with its origin.
+function TestVeafCombatZoneIncludes:test_a_borrowed_command_group_belongs_to_the_borrowing_zone()
+  local command = levelElement("trigger"):setVeafCommand("-sam"):setPosition({ x = 0, y = 0, z = 0 })
+  local easy = levelZone("EASY", command)
+  local hard = levelZone("HARD")
+  hard:addZoneElementsFromZoneNamed("EASY")
+  hard:setActive(true)
+  hard:spawnElement(command, true)
+  luaunit.assertEquals(hard:getSpawnedGroups(), { "SAM-1" })
+  luaunit.assertEquals(#easy:getSpawnedGroups(), 0)
+end
+
+-- Decided behaviour: two active levels sharing an element each spawn their own copy, each owned by
+-- its zone. Levels are meant to be played one at a time, and the documentation says so.
+function TestVeafCombatZoneIncludes:test_two_active_levels_sharing_an_element_each_spawn_their_own()
+  local command = levelElement("trigger"):setVeafCommand("-sam"):setPosition({ x = 0, y = 0, z = 0 })
+  local easy = levelZone("EASY", command)
+  local hard = levelZone("HARD")
+  hard:addZoneElementsFromZoneNamed("EASY")
+  easy:setActive(true)
+  hard:setActive(true)
+  easy:spawnElement(command, true)
+  hard:spawnElement(command, true)
+  luaunit.assertEquals(self.executed, { "-sam, czName EASY", "-sam, czName HARD" })
+  luaunit.assertEquals(easy:getSpawnedGroups(), { "SAM-1" })
+  luaunit.assertEquals(hard:getSpawnedGroups(), { "SAM-2" })
+end
+
 TestVeafCombatZoneDestroySpawnedGroup = {}
 
 function TestVeafCombatZoneDestroySpawnedGroup:test_an_unknown_group_does_not_raise()
@@ -1914,7 +2028,7 @@ end
 function TestVeafCombatZoneInitializeTags:test_a_command_unit_still_gets_its_own_element()
   local z = initializedZone({ fakeUnit('TAGZONE-TRIGGER #command="-spawn sa-11"', "TAGZONE-TRIGGER") })
   luaunit.assertEquals(#z:getZoneElements(), 1)
-  luaunit.assertEquals(z:getZoneElements()[1]:getVeafCommand(), "-spawn sa-11, czName TAGZONE")
+  luaunit.assertEquals(z:getZoneElements()[1]:getVeafCommand(), "-spawn sa-11")
 end
 
 function TestVeafCombatZoneInitializeTags:test_a_command_unit_and_a_plain_group_coexist()
@@ -1924,7 +2038,7 @@ function TestVeafCombatZoneInitializeTags:test_a_command_unit_and_a_plain_group_
     fakeUnit("TAGZONE-MIXED-2", "TAGZONE-MIXED"),
   })
   luaunit.assertEquals(#z:getZoneElements(), 2)
-  luaunit.assertEquals(commandsOf(z), { ["-spawn sa-11, czName TAGZONE"] = true })
+  luaunit.assertEquals(commandsOf(z), { ["-spawn sa-11"] = true })
 end
 
 function TestVeafCombatZoneInitializeTags:test_two_command_units_in_one_group_keep_both_commands()
@@ -1934,8 +2048,8 @@ function TestVeafCombatZoneInitializeTags:test_two_command_units_in_one_group_ke
     fakeUnit('TAGZONE-PAIR-2 #command="-spawn sa-6"', "TAGZONE-PAIR"),
   })
   luaunit.assertEquals(commandsOf(z), {
-    ["-spawn sa-11, czName TAGZONE"] = true,
-    ["-spawn sa-6, czName TAGZONE"] = true,
+    ["-spawn sa-11"] = true,
+    ["-spawn sa-6"] = true,
   })
 end
 
@@ -1944,7 +2058,7 @@ function TestVeafCombatZoneInitializeTags:test_a_command_on_the_group_name_makes
   local groupName = 'TAGZONE-GRPCMD #command="-spawn sa-11"'
   local z = initializedZone({ fakeUnit("TAGZONE-GRPCMD-1", groupName), fakeUnit("TAGZONE-GRPCMD-2", groupName) })
   luaunit.assertEquals(#z:getZoneElements(), 1)
-  luaunit.assertEquals(z:getZoneElements()[1]:getVeafCommand(), "-spawn sa-11, czName TAGZONE")
+  luaunit.assertEquals(z:getZoneElements()[1]:getVeafCommand(), "-spawn sa-11")
 end
 
 function TestVeafCombatZoneInitializeTags:test_a_settings_tag_on_the_group_reaches_a_command_element()

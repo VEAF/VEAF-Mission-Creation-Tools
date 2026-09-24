@@ -1,6 +1,6 @@
 # 10 — Nested combat zones (difficulty levels) cannot be expressed cleanly
 
-Status: ⬜ ready
+Status: ✅ done (PR 4)
 Type: fix + feat
 Files: `src/scripts/veaf/veafCombatZone.lua`, `veaf_libs/lua_config_generator.py`, `doc/mission-maker/scripts/veafCombatZone.md`, tests
 
@@ -39,3 +39,28 @@ David asked for exactly that on GermanyCW-v6 (Baumholder, next to Ramstein, like
   counts both; a `#command` element in a lower level works
 - GermanyCW-v6's `mission-script.lua` nesting replaced by `includes:`, the lower levels free to use
   `#command` again
+
+## Outcome (PR 4)
+
+1. **Point 3 was narrower than written.** What deactivation destroys and what completion counts are
+   the zone's spawned groups, and since #66 a `#command` group is registered with the zone *running*
+   the element (the spawn hook closes over `self`), so a borrowed command already belonged to the
+   borrowing zone. The baked `czName` only named the group after its zone of origin — and only when
+   `hide_names_from_spawned_groups: false`, since the default hides the zone name anyway. Kept as a
+   test (`test_a_borrowed_command_group_belongs_to_the_borrowing_zone`, green before the fix);
+   `czName` is now appended at spawn time with the running zone's name.
+2. `addZoneElementsFromZoneNamed` skips elements the zone already holds, so borrowing a level that
+   has itself borrowed the next one no longer adds them twice. That is what makes the generated
+   closure order-independent.
+3. `combat_zones[].includes` generated as one `GetZone(z):addZoneElementsFromZoneNamed(i)` per zone
+   of the transitive closure, after the last zone is built. Unknown zone, operation, non-list,
+   self-inclusion and cycles are build errors.
+4. **Two active levels sharing an element: decided, each spawns its own copy**, owned by its zone
+   (test `test_two_active_levels_sharing_an_element_each_spawn_their_own`). Levels are played one at
+   a time; the doc says so. No exclusion and no reference counting — both would surprise more than
+   they help.
+5. Doc FR/EN: the `includes` key, the pattern, why prefix nesting is not it.
+
+Left to the GermanyCW-v6 session (the mission is not ours to modify): replace the
+`mission-script.lua` block with `includes:` on the medium and hard levels once a build with this
+change is available.

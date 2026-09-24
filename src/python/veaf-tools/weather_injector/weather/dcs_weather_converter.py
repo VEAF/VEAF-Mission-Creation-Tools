@@ -271,7 +271,7 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
         metar = Metar(airport_icao)
 
         # VMR-006: `Metar(icao)` only *constructs* — `.update()` is what fetches. Without it
-        # every attribute below is None, so the function returned its canned defaults while
+        # the published text is empty, so the function returned its canned defaults while
         # logging "Successfully fetched", and a mission asking for live weather quietly got
         # invented weather. The return value matters too: avwx reports a failed fetch by
         # returning False rather than raising, so ignoring it reinstates the same silence.

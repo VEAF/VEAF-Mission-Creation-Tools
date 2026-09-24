@@ -1,6 +1,6 @@
 # 10 — Nested combat zones (difficulty levels) cannot be expressed cleanly
 
-Status: ✅ done (PR 4)
+Status: ✅ done (#995)
 Type: fix + feat
 Files: `src/scripts/veaf/veafCombatZone.lua`, `veaf_libs/lua_config_generator.py`, `doc/mission-maker/scripts/veafCombatZone.md`, tests
 

@@ -1,6 +1,6 @@
 # FIX-SCRATCH-MISSION-FINDINGS — what building one mission from scratch with 6.24.0 found
 
-Status: 🔄 in-progress — plan agreed 2026-09-24 (ticket 02: DCS reads theatre local time, measured; ticket 05: option a). PR 1 (01–05, 09) merged (#992); PR 2 (06, 08) merged (#993); PR 3 (07) merged (#994); PR 4 (10) merged (#995); PR 5 (11–13) implemented.
+Status: 🧑 waiting-human — all 13 tickets merged: #992 (01–05, 09), #993 (06, 08), #994 (07), #995 (10), #996 (11–13). Left from the Definition of Done: rebuild GermanyCW-v6 with a release carrying them (the mission's own session: drop its workarounds, replace the `mission-script.lua` nesting with `includes:`), then mark ✅.
 
 ## Origin
 

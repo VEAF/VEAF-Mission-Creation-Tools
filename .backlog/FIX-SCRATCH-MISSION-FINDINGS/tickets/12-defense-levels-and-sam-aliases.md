@@ -1,6 +1,6 @@
 # 12 — The `defense` levels and the SAM aliases do not say what they do
 
-Status: ✅ done (PR 5)
+Status: ✅ done (#996)
 Type: fix + doc (one design decision, see point 2)
 Files: `src/scripts/veaf/veafShortcuts.lua`, `src/scripts/veaf/veafCasMission.lua`,
 `src/python/veaf-tools/veaf_libs/data/veaf-units.yaml`, `veaf_mission_mcp` (`list_shortcuts`),

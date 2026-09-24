@@ -1,6 +1,6 @@
 # 11 — Teach the authoring skill what building one mission taught
 
-Status: ✅ done (PR 5)
+Status: ✅ done (#996)
 Type: doc
 Files: `plugin/skills/veaf-mission-authoring/SKILL.md`
 

@@ -1,6 +1,6 @@
 # 13 — The MCP exposes the known limitations, always up to date
 
-Status: ✅ done (PR 5)
+Status: ✅ done (#996)
 Type: feat
 Files: `src/python/veaf-tools/veaf_libs/data/known-limitations.yaml` (new), `veaf_mission_mcp`
 (new action + `actions.py` catalogue), `doc/mission-maker/AI_ASSISTANT_CATALOG*.md`,

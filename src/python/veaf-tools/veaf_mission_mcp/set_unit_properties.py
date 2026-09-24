@@ -32,7 +32,7 @@ from typing import Any
 from veaf_libs.mission_table import CATEGORIES
 
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
-from veaf_mission_mcp.mission_table import find_group, indexed, listed
+from veaf_mission_mcp.mission_table import find_group, indexed, listed, unit_names
 
 #: The AI competence levels. `Random` is one of them: DCS picks a level at mission start.
 _AI_SKILLS: tuple[str, ...] = ("Average", "Good", "High", "Excellent", "Random")
@@ -65,6 +65,8 @@ def set_unit_properties(
     onboard_num: str | None = None,
     pylons: dict[int | str, str] | None = None,
     pylons_mode: str = "replace",
+    new_name: str | None = None,
+    position: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Change one named unit inside one named group, in place, backed up first.
 
@@ -86,6 +88,11 @@ def set_unit_properties(
             the loadout alone"; ``{}`` in replace mode means "carry nothing".
         pylons_mode: ``replace`` (the default) writes exactly the stations given; ``merge`` updates
             only those, and an empty CLSID empties that station.
+        new_name: A new unit name — refused when another unit already carries it, since DCS unit
+            names are unique across the mission. Written as given: a VEAF marker in it
+            (``#command=``…) is the caller's to mean.
+        position: ``{"x", "y"}`` in DCS local metres. The group's anchor and route are left alone:
+            this moves one unit within its group (FIX-SCRATCH-MISSION-FINDINGS ticket 19).
 
     Returns:
         ``{group, unit, changed, warnings}`` — ``changed`` maps each touched field to
@@ -98,10 +105,13 @@ def set_unit_properties(
     """
     if pylons_mode not in ("replace", "merge"):
         raise ValueError(f"pylons_mode must be 'replace' or 'merge', got {pylons_mode!r}")
-    if all(value is None for value in (skill, livery, heading_deg, callsign, onboard_num, pylons)):
+    if all(value is None for value in (skill, livery, heading_deg, callsign, onboard_num, pylons, new_name, position)):
         raise ValueError(
-            "no property given — pass at least one of skill, livery, heading_deg, callsign, onboard_num, pylons"
+            "no property given — pass at least one of skill, livery, heading_deg, callsign, onboard_num, pylons, "
+            "new_name, position"
         )
+    if position is not None and (position.get("x") is None or position.get("y") is None):
+        raise ValueError(f"position must be a complete {{x, y}}; got keys: {', '.join(sorted(position)) or 'none'}")
 
     mission, content = open_mission(miz_path)
 
@@ -139,12 +149,30 @@ def set_unit_properties(
             "a weapon's CLSID is not checked against the airframe: no per-type weapon table ships "
             "with veaf-tools, and DCS drops a weapon the aircraft cannot carry without an error"
         )
+    if new_name is not None and new_name != unit_name:
+        if new_name in unit_names(content):
+            raise ValueError(
+                f"a unit named {new_name!r} already exists — DCS unit names are unique across the "
+                "mission, and a duplicate makes every later edit ambiguous"
+            )
+        changed["name"] = {"from": unit_name, "to": new_name}
+        unit["name"] = new_name
+    if position is not None:
+        target = {"x": float(position["x"]), "y": float(position["y"])}
+        changed["position"] = {"from": {"x": unit.get("x"), "y": unit.get("y")}, "to": target}
+        unit.update(target)
+        if _group_category(content, group_name) in ("plane", "helicopter"):
+            warnings.append(
+                "an aircraft's place is tied to its group's route — its first waypoint, and on the "
+                "ground its parking spot; this moved the unit's x/y only, and what DCS makes of that "
+                "has not been measured. To move the flight, edit the route or use set_group_properties"
+            )
 
     durable = commit_mission(mission, miz_path)["durable"]
 
     return {
         "group": group_name,
-        "unit": unit_name,
+        "unit": new_name or unit_name,
         "changed": changed,
         "warnings": warnings,
         "durable": durable,

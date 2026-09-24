@@ -93,6 +93,83 @@ def _seconds_of_day(value: str) -> int:
     return hours * 3600 + minutes * 60 + seconds
 
 
+#: The cloud covers `versions[].weather.cloud_type` accepts, in the build's weather variants.
+_CLOUD_TYPES = ("clear", "few", "scattered", "broken", "overcast")
+
+
+def set_weather(
+    target: Path,
+    *,
+    metar: str | None = None,
+    temperature: float | None = None,
+    wind_speed: float | None = None,
+    wind_direction: float | None = None,
+    visibility: float | None = None,
+    cloud_type: str | None = None,
+    cloud_height: float | None = None,
+    precipitation: bool | None = None,
+    fog_enabled: bool | None = None,
+    clearsky: bool = False,
+) -> dict[str, Any]:
+    """Set the base mission's weather, in the fields DCS reads, backed up first.
+
+    The blank mission ``prepare --theatre`` writes carries ``clouds.preset = "Preset1"`` at
+    ``base = 0``, and nothing wrote ``weather`` (FIX-SCRATCH-MISSION-FINDINGS ticket 19). This goes
+    through the converter the build's weather variants use, with the same vocabulary as
+    ``versions[].weather``, so a base mission and a variant can never disagree on what a field means.
+    The keys it does not set (``cyclones``, ``groundTurbulence``, dust…) keep their value.
+
+    Args:
+        target: The mission folder (durable) or a ``.miz``.
+        metar: A METAR string, parsed as a variant's ``metar``; the other arguments override it.
+        temperature: Ground temperature, °C.
+        wind_speed: Ground wind speed, m/s.
+        wind_direction: Where the wind comes FROM, degrees, as in a METAR.
+        visibility: Visibility, metres.
+        cloud_type: One of ``clear``, ``few``, ``scattered``, ``broken``, ``overcast``.
+        cloud_height: Cloud base, metres.
+        precipitation: Rain.
+        fog_enabled: Fog.
+        clearsky: Cap to VFR-friendly conditions, as a variant's ``clearsky``.
+
+    Returns:
+        ``{weather, durable}`` — ``weather`` is the fields written.
+
+    Raises:
+        ValueError: If nothing is given, or ``cloud_type`` is not one of the five covers.
+    """
+    from weather_injector.weather.dcs_weather_converter import DCSWeatherConverter
+
+    manual = (temperature, wind_speed, wind_direction, visibility, cloud_type, cloud_height, precipitation, fog_enabled)
+    if not metar and not clearsky and all(value is None for value in manual):
+        raise ValueError("no weather given — pass a metar, clearsky, or at least one weather field")
+    if cloud_type is not None and cloud_type.lower() not in _CLOUD_TYPES:
+        raise ValueError(f"cloud_type must be one of {', '.join(_CLOUD_TYPES)}, got {cloud_type!r}")
+
+    weather = DCSWeatherConverter.to_dcs_lua_table(
+        metar_string=metar or "",
+        temperature_celsius=temperature,
+        wind_speed_mps=wind_speed,
+        wind_direction_degrees=wind_direction,
+        visibility_meters=visibility,
+        cloud_coverage=cloud_type,
+        cloud_height_meters=cloud_height,
+        precipitation=precipitation,
+        fog_enabled=bool(fog_enabled),
+        clearsky=clearsky,
+    )
+    mission, content = open_mission(target)
+    current = content.get("weather")
+    if not isinstance(current, dict):
+        current = {}
+        content["weather"] = current
+    # `atmosphere` is the table the weather variants used to write, which DCS never read (ticket 01).
+    current.pop("atmosphere", None)
+    current.update(weather)
+    durable = commit_mission(mission, target)["durable"]
+    return {"weather": weather, "durable": durable}
+
+
 def set_bullseye(target: Path, *, coalition: str, position: dict[str, float]) -> dict[str, Any]:
     """Set one coalition's bullseye, in place, backed up first.
 

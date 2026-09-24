@@ -79,6 +79,8 @@ The AI can act in two places, and it changes what "survives":
 | 35 | [Write the briefing](#set-briefing) | 🕰️ Mission settings | Recipe + built | ⭐ |
 | 36 | [Know the known limitations](#known-limitations) | Domain knowledge | — | ⭐ |
 | 37 | [List a theatre's airfields](#list-airfields) | 🛫 Bases & airfields | — | ⭐ |
+| 38 | [Place a complete FARP](#add-farp) | 🛫 Bases & airfields | Recipe + built | ⭐ |
+| 39 | [Set the mission's weather](#set-weather) | 🕰️ Mission settings | Recipe + built | ⭐ |
 
 ---
 
@@ -261,6 +263,14 @@ Works before a mission exists too, by naming the map.
 
 > 💬 *"Which bases are there in East Germany on GermanyCW?"*
 
+### Place a complete FARP {#add-farp}
+
+*Recipe + built · ⭐* — A FARP that actually serves: the heliport, its radio frequency, its callsign,
+and the warehouse that lets helicopters refuel and rearm there. Placing the "FARP" object alone is
+not enough: nobody can use it.
+
+> 💬 *"Place a blue FARP at Fulda, on 127.5 MHz."*
+
 ## 🕰️ Mission settings
 
 ### Date the mission and set its start time {#mission-date}
@@ -286,6 +296,14 @@ them where the mission already keeps them. `${METAR}` and the other briefing var
 at build, variant by variant.
 
 > 💬 *"Write the situation: Central Europe, June 1980. Blue task: hold the Fulda Gap."*
+
+### Set the mission's weather {#set-weather}
+
+*Recipe + built · ⭐* — Clouds, wind, temperature, visibility, rain, fog, or a whole METAR. A mission
+created from scratch has its clouds on the ground: this is where to fix it. The weather variants of
+`versions.yaml` still override it, variant by variant.
+
+> 💬 *"Broken clouds at 1,500 m, 12 °C, westerly wind at 10 knots."*
 
 ---
 
@@ -380,7 +398,7 @@ tells you rather than guessing.
 
 *Built mission · ⭐* — Change what is **already** in the mission, unit by unit: its **loadout**
 (pylon by pylon), its **AI level**, its **livery**, its **heading**, its **callsign** and its
-**onboard number**. You give the heading in degrees, the AI converts it. Only the settings you ask
+**onboard number**, its **name**, its **position**. You give the heading in degrees, the AI converts it. Only the settings you ask
 for change, and the AI tells you what was there before.
 
 > 💬 *"Give Colt flight an air-to-ground loadout."*

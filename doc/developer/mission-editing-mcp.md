@@ -116,6 +116,11 @@ qui lit `null` ne peut pas distinguer « désactivé » de « le lecteur n'a pas
 
 ### `set_unit_properties` (lot FEAT-MCP-MUTATION-ACTIONS)
 
+> Depuis `FIX-SCRATCH-MISSION-FINDINGS` ticket 19, elle **renomme** (`new_name`, refusé si une autre
+> unité porte déjà ce nom : DCS les veut uniques dans toute la mission) et **déplace** (`position`)
+> une unité seule ; l'ancre et la route du groupe ne bougent pas. Pour un avion, dont la place tient
+> à la route, un avertissement le signale.
+
 Écriture. La **première** action qui modifie un objet déjà présent dans la mission : toutes les
 `set_*` livrées avant elle agissent sur la *configuration* (modules, sécurité, logs, coalition d'une
 base). Sauvegarde horodatée avant écriture, comme ses sœurs.
@@ -657,6 +662,15 @@ modules) :
 > approvisionne ensuite), sauf si `dynamic_spawn` est faux. Sauvegarde préalable, comme les autres
 > actions d'édition.
 
+### FARP
+
+- `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
+  frequency_mhz=127.5, modulation="AM", callsign_id=1)` — un FARP **complet** : le statique
+  d'héliport (`category = "Heliports"`, `shape_name` du type), sa radio et son indicatif, et l'entrée
+  d'entrepôt `warehouses.warehouses[<unitId>]` qui permet de s'y ravitailler. `add_group` en `static`
+  ne posait que l'objet (ticket 19). Forme mesurée sur les 372 héliports des missions de
+  `D:\dev\_VEAF`. Le `farps:` de `warehouses.yaml` l'approvisionne ensuite au build, comme une base.
+
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
 Ce que l'éditeur règle hors de tout groupe, et que GermanyCW-v6 a dû patcher par un sérialiseur Lua.
@@ -671,6 +685,11 @@ Chaque action vise un dossier de mission (durable) ou un `.miz`, sauvegardé ava
   briefing. Quand la table de mission porte une référence `DictKey_…`, le texte va dans
   `l10n/DEFAULT/dictionary` derrière elle, et la référence reste valide ; `write_mission_folder`
   réécrit désormais ce dictionnaire, seulement s'il change.
+- `set_weather(target, metar?, temperature?, wind_speed?, wind_direction?, visibility?, cloud_type?,
+  cloud_height?, precipitation?, fog_enabled?, clearsky?)` — la météo de la mission **de base**, dans
+  les champs que DCS lit (ticket 19 : la mission vierge a ses nuages au sol, `Preset1` à 0 m). Même
+  vocabulaire et même convertisseur que `versions[].weather`, donc un METAR marche aussi ; les
+  variantes gardent la main au build.
 
 > Les **hashes de mot de passe** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — un cas
 > multi-lignes — ne sont pas couverts pour l'instant : seul le drapeau `SecurityDisabled` l'est.

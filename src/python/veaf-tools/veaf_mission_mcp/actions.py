@@ -6,6 +6,7 @@ from typing import Any
 from veaf_libs.blank_mission import supported_theatres
 
 from veaf_mission_mcp.add_air_group import add_air_group
+from veaf_mission_mcp.add_farp import add_farp
 from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
@@ -34,7 +35,7 @@ from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import describe_map, list_airfields, resolve_coordinates, resolve_coordinates_batch
-from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date
+from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
     describe_known_limitations,
@@ -150,6 +151,49 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="set_weather",
+            description=(
+                "Set the BASE mission's weather, in the fields DCS reads: clouds, wind, temperature, "
+                "visibility, rain, fog, QNH. The blank mission of a scaffold has its cloud base on the "
+                "ground (Preset1 at 0 m). Same vocabulary as versions.yaml weather, and the same converter, "
+                "so a METAR works too; the weather variants still override it per variant at build. "
+                "Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "metar": {"type": "string", "description": "A METAR string; the fields below override it."},
+                    "temperature": {"type": "number", "description": "Ground temperature, degrees C."},
+                    "wind_speed": {"type": "number", "description": "Ground wind speed, m/s."},
+                    "wind_direction": {
+                        "type": "number",
+                        "description": "Where the wind comes FROM, degrees (as in a METAR).",
+                    },
+                    "visibility": {"type": "number", "description": "Visibility, metres."},
+                    "cloud_type": {
+                        "type": "string",
+                        "enum": ["clear", "few", "scattered", "broken", "overcast"],
+                    },
+                    "cloud_height": {"type": "number", "description": "Cloud base, metres."},
+                    "precipitation": {"type": "boolean"},
+                    "fog_enabled": {"type": "boolean"},
+                    "clearsky": {
+                        "type": "boolean",
+                        "description": "Cap to VFR-friendly conditions (clouds at most FEW, wind < 15 kt, "
+                        "10 km visibility, no rain, no fog).",
+                    },
+                },
+                "required": ["target"],
+            },
+        ),
+        handler=lambda p: set_weather(
+            Path(p["target"]),
+            **{key: value for key, value in p.items() if key != "target"},
+        ),
+    )
+    catalog.register(
+        ActionSpec(
             name="set_bullseye",
             description=(
                 "Set one coalition's BULLSEYE. describe_map reads the bullseyes; this writes one. The build "
@@ -210,8 +254,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="set_unit_properties",
             description=(
-                "CHANGE a unit that already exists: its loadout, skill, livery, heading, callsign or "
-                "onboard number. Call describe_units FIRST -- this addresses the unit by its EXACT "
+                "CHANGE a unit that already exists: its loadout, skill, livery, heading, callsign, "
+                "onboard number, name or position. Call describe_units FIRST -- this addresses the unit by its EXACT "
                 "group name and unit name (a fragment is refused, so an edit cannot land on the wrong "
                 "group), and pylons are keyed BY STATION NUMBER, which is not the position in a list. "
                 "Only the fields you pass change; the result reports each previous value so you can "
@@ -272,6 +316,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "default": "replace",
                         "description": "'replace' writes exactly the stations given; 'merge' updates "
                         "only those, and an empty CLSID empties that station.",
+                    },
+                    "new_name": {
+                        "type": "string",
+                        "description": "Rename this one unit. Refused when another unit already has the "
+                        "name (DCS unit names are unique across the mission). Written as given, markers included.",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Move this one unit to {x, y} (DCS local metres); the group's "
+                        "anchor and route stay where they are.",
                     },
                 },
                 "required": ["miz_path", "group_name", "unit_name"],
@@ -1362,6 +1418,43 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="add_farp",
+            description=(
+                "Place a COMPLETE FARP: the heliport static (FARP, Invisible FARP, SINGLE_HELIPAD...), its "
+                "radio frequency and callsign, and the warehouse entry that lets helicopters refuel and "
+                "rearm there. add_group with category 'static' places the object ALONE, which serves "
+                "nobody. The build's warehouses.yaml ('farps:') then stocks it like any base. Target a "
+                "FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "name": {"type": "string", "description": "The FARP's name."},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer"},
+                    "country_name": {"type": "string"},
+                    "farp_type": {
+                        "type": "string",
+                        "enum": ["FARP", "Invisible FARP", "SINGLE_HELIPAD", "FARP_SINGLE_01", "FARP_T"],
+                        "default": "FARP",
+                    },
+                    "frequency_mhz": {"type": "number", "default": 127.5},
+                    "modulation": {"type": "string", "enum": ["AM", "FM"], "default": "AM"},
+                    "callsign_id": {"type": "integer", "default": 1, "description": "1-based heliport callsign."},
+                },
+                "required": ["target", "name", "position", "coalition", "country_id", "country_name"],
+            },
+        ),
+        handler=lambda p: add_farp(Path(p["target"]), **{key: value for key, value in p.items() if key != "target"}),
+    )
+    catalog.register(
+        ActionSpec(
             name="set_airbase_coalition",
             description=(
                 "Assign a DCS airfield to a coalition in a mission FOLDER, durably. An airfield's "
@@ -1864,6 +1957,8 @@ def _handle_set_unit_properties(params: dict[str, Any]) -> dict[str, Any]:
         onboard_num=params.get("onboard_num"),
         pylons=params.get("pylons"),
         pylons_mode=params.get("pylons_mode", "replace"),
+        new_name=params.get("new_name"),
+        position=params.get("position"),
     )
 
 

@@ -487,7 +487,20 @@ function veafSpawn.spawnArmoredPlatoon(
 end
 
 --- Spawns a dynamic air defense battery
-function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, side, heading, spacing, defense, silent, hasDest, hiddenOnMFD)
+function veafSpawn.spawnAirDefenseBattery(
+  spawnSpot,
+  radius,
+  czName,
+  country,
+  side,
+  heading,
+  spacing,
+  defense,
+  silent,
+  hasDest,
+  hiddenOnMFD,
+  longRange
+)
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnAirDefenseBattery(czName=%s, country=%s, side=%s, heading=%s, spacing=%s, defense=%s, silent=%s, hiddenOnMFD=%s)",
     czName,
@@ -506,7 +519,12 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, si
   end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Air Defense Battery", czName)
-  local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
+  local group
+  if longRange then
+    group = veafCasMission.generateLongRangeAirDefenseGroup(groupName, side)
+  else
+    group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
+  end
   local group = veafUnits.processGroup(group)
   local groupPosition = veaf.placePointOnLand(spawnSpot)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("groupPosition = %s", veaf.vecToString(groupPosition)))
@@ -1269,7 +1287,8 @@ veafSpawn.registerCommandHandler("airDefenseBattery", "KNOWN_PILOT", function(ev
     options.defense,
     options.silent,
     hasDest,
-    not options.showMFD
+    not options.showMFD,
+    options.longRange
   )
   return g, nil, false
 end)

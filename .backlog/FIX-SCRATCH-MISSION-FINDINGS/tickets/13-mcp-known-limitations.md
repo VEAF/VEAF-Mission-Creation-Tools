@@ -1,6 +1,6 @@
 # 13 — The MCP exposes the known limitations, always up to date
 
-Status: ⬜ ready
+Status: ✅ done (PR 5)
 Type: feat
 Files: `src/python/veaf-tools/veaf_libs/data/known-limitations.yaml` (new), `veaf_mission_mcp`
 (new action + `actions.py` catalogue), `doc/mission-maker/AI_ASSISTANT_CATALOG*.md`,
@@ -57,3 +57,19 @@ carries a copy of what the file says.
 - A test loads the file and checks every entry has its fields, and one that a fixed entry is not
   returned
 - The skill cites the action
+
+## Outcome (PR 5)
+
+- Decision (David, 2026-09-24): the YAML is the only source; the MCP reads it from the exe, the
+  `.md` is a generated view for readers of the repository, never shipped.
+- `veaf_libs/data/known-limitations.yaml`: 9 `dcs` entries moved from the page (the ones that
+  concern building a mission), 1 `tool` entry (no parking data outside Caucasus / Persian Gulf /
+  Syria). The four script-development traps (Skynet activation, `net.load_mission`, scenery deaths,
+  deferred `Group:destroy`) stay hand-written at the end of the page.
+- `veaf_libs/known_limitations.py`: load, validate (fields, kind, dcs needs `measured` and cannot be
+  `fixed_in`, unique ids), filter by version (an unreadable version hides nothing), render the page
+  block; `python -m veaf_libs.known_limitations` regenerates it. A test fails when the page drifts or
+  repeats an entry outside the generated block.
+- MCP action `describe_known_limitations(kind?)`, bundled in the exe (`_veaf_tools_extra_data`),
+  documented in AI_ASSISTANT_CATALOG and mission-editing-mcp (FR/EN).
+- Lot rule: CLAUDE.md §9 item 8.

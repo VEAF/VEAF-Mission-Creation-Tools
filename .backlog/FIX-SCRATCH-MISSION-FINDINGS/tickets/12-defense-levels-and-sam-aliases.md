@@ -1,6 +1,6 @@
 # 12 — The `defense` levels and the SAM aliases do not say what they do
 
-Status: ⬜ ready
+Status: ✅ done (PR 5)
 Type: fix + doc (one design decision, see point 2)
 Files: `src/scripts/veaf/veafShortcuts.lua`, `src/scripts/veaf/veafCasMission.lua`,
 `src/python/veaf-tools/veaf_libs/data/veaf-units.yaml`, `veaf_mission_mcp` (`list_shortcuts`),
@@ -49,3 +49,35 @@ batteries. Point 3: air-defense levels per era, like the transports.
 - Each SAM alias's description matches what it places, or places what it says
 - An air-defense level picks era-appropriate units, tested per era
 - The ±1 roll is documented, and the l. 725 comment matches the code
+
+## Decisions (David, 2026-09-24)
+
+- Point 2: `-samLR` was never long range — since its first commit (bb8a3545, 2020-03-11) it ran
+  `defense 5`, and the defense scale is the CAS escort scale (level 5 = Hawk / Tor). David: keep
+  `-samLR` as it is (description corrected to "medium range"), add a `-samVLR` for real long-range
+  batteries — agreed with its per-era table and the existing Patriot template (2026-09-24).
+- Point 3: era per level, COLD_WAR = types in service around 1980 (the armor tables' reference);
+  SA-10 excluded from COLD_WAR.
+
+## Outcome (PR 5)
+
+1. `list_shortcuts` returns `randomParameters` (`{name: {min, max}}`) for each `#command` alias,
+   parsed from `:addRandomParameter` by `veaf_shortcuts_scanner`.
+2. Air-defense groups: `generateAirDefenseGroup` looks up `generateAirDefenseGroup-<SIDE>-<ERA>-<N>`
+   first, then the generic level. 16 variants in `veaf-units.yaml`: COLD_WAR blue 1–3 and red 5,
+   WW2 flak for every level of both sides. Swept per (side, era, level) in
+   `test_air_defense_eras.py`.
+3. Escorts (`_addDefenseForGroups`): `ESCORT_TYPES_REPLACED_BY_ERA[COLD_WAR]` swaps the post-1980
+   types; swept over every level, both sides, vehicles and manpads. **Found on the way:** the escorts
+   were skipped on `veaf.config.ww2`, which a v6 mission never sets (only v5 `missionConfig.lua`
+   did), so WW2 sections got modern escorts; now also skipped on `era: WW2`.
+4. The ±1 roll documented (veafCasMission doc, FR/EN), the "30 %" comment fixed in both places it
+   appeared, and the false "Difficulty reference" table (level 5 = SA-6/SA-11, never placed)
+   replaced by what the escort really places.
+5. `-samVLR` → `_spawn longrangesam` → `veafCasMission.generateLongRangeAirDefenseGroup`, drawing
+   from `LONG_RANGE_AIR_DEFENSE_GROUPS[side][era]`: MODERN SA-10 / SA-5 (red), Patriot (blue);
+   COLD_WAR SA-2 / SA-5 (red), Hawk (blue); WW2 the heaviest flak level. The Patriot template has
+   been in `veaf-units.yaml` since 2019 (faa1d19e) — a first grep missed it and a duplicate was
+   briefly written, then removed; the 159 Patriot groups measured in the `.miz` under
+   `D:\dev\_VEAF` confirm its core (STR, ECS, EPP, CP, AMG, 4+ launchers). The era swap also
+   applies to the point defense these templates carry (the Hawk's Avenger).

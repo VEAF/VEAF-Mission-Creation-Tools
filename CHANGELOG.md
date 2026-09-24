@@ -191,6 +191,33 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   element now names its group after the zone running it rather than the zone it was read from, and
   borrowing a zone that has already borrowed the next one no longer adds its elements twice.
 
+- **Air-defense levels follow the mission's era, and say what they do.** A `COLD_WAR` mission no
+  longer gets the types that entered service after 1980 — the reference its armor lists already
+  follow: the air-defense groups of `-sam`, `-samSR`, `-samLR` and `-aaa` have era variants in
+  `veaf-units.yaml`, and the escorts of `_cas`, `-armor`, `-convoy`… swap Avenger, Linebacker, Tor,
+  Tunguska, HQ-7 and Igla-S for their predecessors. A `WW2` mission gets flak only, and no escort at
+  all: the escorts tested `veaf.config.ww2`, which a v6 mission never sets, so WW2 sections came with
+  modern SAMs. `list_shortcuts` now returns each alias's random parameters and their range —
+  `-samLR` and `-samSR` run the same command and differ only by their `defense` range, which the
+  oracle used to hide. The ±1 roll of a defense level is documented (60 % as asked, 20 % either
+  way), and a code comment claiming 30 % corrected.
+- **`-samVLR` places a real long-range SAM battery, and `-samLR` says what it places.** `-samLR`,
+  described as "long range" since 2020, has always drawn defense level 4–5 — Roland or Hawk, Osa or
+  Tor — and keeps doing so, now described as medium range. The new `-samVLR` draws, for the
+  mission's era, an SA-10 or SA-5 (modern red), a Patriot (modern blue), an SA-2 or SA-5 (Cold War
+  red), a Hawk (Cold War blue, nothing longer existed before 1984), or the heaviest flak in WW2.
+- **The MCP serves the known limitations, matching the installed version.** New read-only action
+  `describe_known_limitations`: the limitations of the tools not yet fixed, and the DCS behaviours
+  that raise no error and are wrong anyway (a late-activated group visible to scripts, `start_time`
+  not delaying an air spawn, a SAM without EWR permanently lit…), each with its symptom, what to do
+  and what it cost. One file, `veaf_libs/data/known-limitations.yaml`, shipped in the executable;
+  `docs/agents/dcs-runtime-traps.md` is generated from it, and a test fails when they disagree. A
+  tool limitation carries the release that fixes it and stops being returned from that version on.
+- **The mission-authoring skill says what building a mission taught**, and names only what exists:
+  it opens with `describe_known_limitations` instead of listing traps, uses the support-flight,
+  date, bullseye and briefing actions, nests difficulty levels with `includes:`, and asks for
+  `-samVLR` when it means long range.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

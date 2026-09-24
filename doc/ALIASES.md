@@ -11,9 +11,12 @@ Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire appara�
 | Alias | Description | Notes |
 |-------|-------------|-------|
 | `-sam` | Batterie SAM aléatoire | Niveau de défense 1–5 (aléatoire) |
-| `-samLR` | Batterie SAM longue portée aléatoire | Niveau de défense 4–5 (aléatoire) |
+| `-samLR` | Groupe de défense aérienne moyenne portée aléatoire | Niveau de défense 4–5 (aléatoire) — Roland/Hawk côté bleu, Osa/Tor côté rouge, **pas** de longue portée |
+| `-samVLR` | Batterie SAM longue portée aléatoire, selon l'époque | `MODERN` : SA-10 ou SA-5 (rouge), Patriot (bleu) ; `COLD_WAR` : SA-2 ou SA-5 (rouge), Hawk (bleu) ; `WW2` : la flak la plus lourde |
 | `-samSR` | Batterie SAM courte portée aléatoire | Niveau de défense 2–3 (aléatoire) |
 | `-aaa` | Batterie AAA aléatoire | Niveau de défense 1–2 (aléatoire) |
+
+Le niveau tiré est lui-même décalé de ±1 une fois sur cinq dans chaque sens, et les unités posées suivent l'époque de la mission : voir [ce que place un niveau de défense](mission-maker/scripts/veafCasMission.md#defense-levels).
 
 ## Défenses aériennes rouges (systèmes spécifiques)
 

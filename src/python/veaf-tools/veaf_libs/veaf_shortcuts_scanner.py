@@ -33,12 +33,21 @@ _NAME_RE = re.compile(r':setName\(\s*"([^"]+)"')
 _DESC_RE = re.compile(r':setDescription\(\s*"([^"]*)"')
 _CMD_RE = re.compile(r':setVeafCommand\(\s*"([^"]*)"')
 _HIDDEN_RE = re.compile(r":setHidden\(\s*true\s*\)")
+_RANDOM_RE = re.compile(r':addRandomParameter\(\s*"([^"]+)"\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)')
+
+
+class RandomRange(TypedDict):
+    min: int
+    max: int
 
 
 class ShortcutAlias(TypedDict):
     aliases: list[str]  # the marker name(s), leading '-' kept (e.g. "-samLR")
     description: str
     veafCommand: str  # the `_spawn …` command it runs; "" for batch aliases
+    # the parameters drawn at random on each use (`:addRandomParameter`), e.g. {"defense": {4, 5}}:
+    # `-sam`, `-samSR`, `-samLR` and `-aaa` run the same command and differ only here
+    randomParameters: dict[str, RandomRange]
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +116,9 @@ def _parse_aliases(content: str) -> list[ShortcutAlias]:
                 aliases=[name_match.group(1)],
                 description=desc_match.group(1) if desc_match else "",
                 veafCommand=cmd_match.group(1) if cmd_match else "",
+                randomParameters={
+                    name: RandomRange(min=int(low), max=int(high)) for name, low, high in _RANDOM_RE.findall(segment)
+                },
             )
         )
     return aliases

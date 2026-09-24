@@ -560,6 +560,8 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "theatre-defaults.yaml", "veaf_libs/data"),
             # Per-theatre projection tables, read by the MCP coordinates/map/geo actions.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-maps.yaml", "veaf_libs/data"),
+            # Known limitations and DCS traps, read by the MCP describe_known_limitations action.
+            (veaf_tools_dir / "veaf_libs" / "data" / "known-limitations.yaml", "veaf_libs/data"),
             # Per-theatre bounding boxes, read by the MCP geocode action.
             (veaf_tools_dir / "veaf_libs" / "data" / "theatre-bounds.yaml", "veaf_libs/data"),
             # Hidden placeholder ground groups, injected into empty coalitions at build.

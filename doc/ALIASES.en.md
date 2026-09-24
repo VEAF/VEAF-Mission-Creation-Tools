@@ -11,9 +11,12 @@ Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the correspon
 | Alias | Description | Notes |
 |-------|-------------|-------|
 | `-sam` | Random SAM battery | Defense level 1–5 (random) |
-| `-samLR` | Random long-range SAM battery | Defense level 4–5 (random) |
+| `-samLR` | Random medium-range air defense group | Defense level 4–5 (random) — Roland/Hawk on the blue side, Osa/Tor on the red one, **no** long range |
+| `-samVLR` | Random long-range SAM battery, by era | `MODERN`: SA-10 or SA-5 (red), Patriot (blue); `COLD_WAR`: SA-2 or SA-5 (red), Hawk (blue); `WW2`: the heaviest flak |
 | `-samSR` | Random short-range SAM battery | Defense level 2–3 (random) |
 | `-aaa` | Random AAA battery | Defense level 1–2 (random) |
+
+The level drawn is itself shifted by ±1 one time in five each way, and the units placed follow the mission's era: see [what a defense level places](mission-maker/scripts/veafCasMission.en.md#defense-levels).
 
 ## Red Air Defenses (specific systems)
 

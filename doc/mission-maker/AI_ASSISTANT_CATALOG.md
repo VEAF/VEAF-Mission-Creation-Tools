@@ -78,6 +78,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 33 | [Dater la mission et régler son heure de départ](#mission-date) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 | 34 | [Placer le bullseye d'une coalition](#set-bullseye) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 | 35 | [Écrire le briefing](#set-briefing) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
+| 36 | [Connaître les limites connues](#known-limitations) | Connaissance métier | — | ⭐ |
 
 ---
 
@@ -98,7 +99,8 @@ générée par `update-dcs-data`.
 ### Lister les alias / raccourcis VEAF {#list-veaf-aliases}
 
 *Connaissance · ⭐* — Le vocabulaire d'alias VEAF (`shilka`, `sa8`, …) pour le spawn d'unités et
-de groupes composites (SAM sites, convois).
+de groupes composites (SAM sites, convois), et les raccourcis `-samLR`, `-armor`… avec la plage de
+chaque paramètre qu'ils tirent au hasard (`defense`, `armor`, `size`).
 
 > 💬 *« C'est quoi l'alias pour une Shilka ? »* · *« Liste les groupes SAM tout faits. »*
 
@@ -124,6 +126,16 @@ mission donnée, prévient du **piège de capture combat-zone**. L'IA s'en sert 
 groupe et te relaie tout avertissement.
 
 > 💬 *« Est-ce que ce nom de groupe risque de poser problème ? »*
+
+### Connaître les limites connues {#known-limitations}
+
+*Connaissance · ⭐* — À lire avant de construire une mission. Pour la version de veaf-tools
+installée : ce que les outils ne savent pas encore faire (et comment s'en passer), et les
+comportements de DCS qui ne lèvent aucune erreur et sont faux quand même — un groupe en activation
+différée visible des scripts, un `start_time` qui ne retarde pas un avion, un SAM sans radar d'alerte
+allumé en permanence… Une limite corrigée n'est plus renvoyée à partir de la version qui la corrige.
+
+> 💬 *« Lis les limites connues avant de commencer. »*
 
 ---
 

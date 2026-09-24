@@ -377,6 +377,19 @@ veafSpawn.CommandDescriptors = {
     end,
   },
   {
+    -- a long-range battery for the mission's era (`-samVLR`), not a defense level
+    match = veafSpawn.SpawnKeyphrase .. " longrangesam",
+    init = function(options)
+      options.airDefenseBattery = true
+      options.longRange = true
+      options.spacing = 5
+      options.skynet = false
+      options.forceEwr = false
+      options.pointDefense = false
+      options.immortal = false
+    end,
+  },
+  {
     match = veafSpawn.SpawnKeyphrase .. " transportgroup",
     init = function(options)
       options.transportCompany = true

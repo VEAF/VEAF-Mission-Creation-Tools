@@ -128,7 +128,7 @@ class TestWorkerEndToEnd:
         miz = _make_miz(tmp_path)
         result = SpawnDataInjectorWorker(input_mission=miz, output_mission=miz).work()
         assert result.units == 13
-        assert result.groups == 78
+        assert result.groups == 94
 
         with zipfile.ZipFile(miz) as zf:
             assert _RESOURCE_ARCNAME in zf.namelist()

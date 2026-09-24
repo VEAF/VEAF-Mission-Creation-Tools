@@ -749,8 +749,24 @@ Lecture seule. Types d'unités DCS depuis la base générée, filtrables par `ca
 ### `list_shortcuts`
 
 Lecture seule. Le vocabulaire d'alias VEAF (`shilka`, `sa8`…) — alias d'unités
-(`_spawn unit <alias>`) et de groupes composites (`_spawn group <alias>` : sites SAM, convois).
-Filtrable par `name_contains`.
+(`_spawn unit <alias>`) et de groupes composites (`_spawn group <alias>` : sites SAM, convois),
+plus les raccourcis `#command` (`-samLR`, `-armor`…) avec `randomParameters` : la plage
+`{min, max}` de chaque paramètre tiré à chaque usage — `-samLR` et `-samSR` lancent la même
+commande et ne diffèrent que par leur plage `defense`. Filtrable par `name_contains`.
+
+### `describe_known_limitations`
+
+Lecture seule. Pour la version de veaf-tools en cours, les entrées de
+`veaf_libs/data/known-limitations.yaml` : les limites des outils pas encore corrigées
+(`kind: tool`, retirées à partir de la version de leur `fixed_in`) et les comportements de DCS qui
+ne lèvent aucune erreur (`kind: dcs`, toujours renvoyés, avec la date de leur mesure). Chaque
+entrée : `id`, `kind`, `area`, `title`, `symptom`, `workaround`, éventuellement `cost`. Filtre
+`kind` optionnel. Le fichier est la seule source : `docs/agents/dcs-runtime-traps.md` en est
+généré.
+
+```json
+{"kind": "dcs"}
+```
 
 ### `describe_naming_conventions`
 

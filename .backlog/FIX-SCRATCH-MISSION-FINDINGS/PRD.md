@@ -34,6 +34,7 @@ pipeline's gaps are all that is left — which is exactly the path the MCP recom
 | [11](tickets/11-teach-the-authoring-skill.md) | The authoring skill does not say what building a mission taught | drafted in `plugin/skills/veaf-mission-authoring/SKILL.md`, to review |
 | [12](tickets/12-defense-levels-and-sam-aliases.md) | The `defense` levels and the SAM aliases do not say what they do | `list_shortcuts` hides `defense` ranges; `-samLR` places Roland/Hawk, no long range; levels ignore the era (M6 Linebacker in 1980) |
 | [13](tickets/13-mcp-known-limitations.md) | The MCP exposes the known limitations, always up to date | new read-only `describe_known_limitations`, one versioned data file, lot rule |
+| [14](tickets/14-open-training-prompt.md) | A reusable prompt to build an Open Training mission on any map | `.prompts/new-open-training-mission.fr.md` + `.en.md`, pointed to from the mission-maker doc |
 
 Tickets 01 and 02 are the ones that change what players fly. Ticket 04 is narrower than it first
 looked — see its "What it is not" section — and ticket 06 is the one that makes aircraft fall out of

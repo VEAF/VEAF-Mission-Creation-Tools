@@ -16,6 +16,50 @@ try:
 except ImportError:
     AVWX_AVAILABLE = False
 
+#: DCS cloud presets per coverage, in order of preference, with the cloud-base range in metres DCS
+#: accepts for each: ``presetAltMin`` / ``presetAltMax`` in ``Config/Effects/clouds.lua`` of the DCS
+#: install. The coverage lists follow the METAR each preset declares in its ``readableName`` there.
+#: v5 picked one at random from similar lists; a build must be reproducible, so the first preset whose
+#: range holds the base wins.
+_PRESETS_BY_COVERAGE: dict[int, list[tuple[str, float, float]]] = {
+    1: [("Preset1", 840, 4200), ("Preset2", 1260, 2520)],  # FEW
+    2: [("Preset3", 840, 2520), ("Preset4", 1260, 2520), ("Preset5", 1260, 4620), ("Preset8", 3780, 5460)],  # SCT
+    3: [("Preset13", 1680, 3360), ("Preset15", 840, 5040), ("Preset16", 1260, 4200), ("Preset17", 0, 2520)],  # BKN
+    4: [("Preset21", 1260, 4200), ("Preset22", 420, 4200), ("Preset19", 0, 2940)],  # OVC
+}
+_RAINY_PRESETS: list[tuple[str, float, float]] = [("RainyPreset1", 420, 2940), ("RainyPreset2", 840, 2520)]
+
+#: 15 kt: the wind cap of ``clearsky: true``.
+_CLEARSKY_MAX_WIND_MPS = 7.72
+
+#: METAR present-weather groups that make DCS rain: rain, drizzle, hail, unknown precipitation, and
+#: a thunderstorm. Snow is left out on purpose: no DCS preset is a snow preset, and what DCS does
+#: with a rainy preset below zero has not been checked.
+_PRECIPITATION = re.compile(r"[-+]?(?:VC)?(?:TS|SH|FZ)?(?:RA|DZ|GR|GS|UP)+|[-+]?(?:VC)?TS")
+#: Fog groups (``FG``, ``MIFG``, ``BCFG``, ``PRFG``, ``FZFG``).
+_FOG = re.compile(r"(?:MI|BC|PR|FZ)?FG")
+
+
+def _select_cloud_preset(cloud_type: int, base: float, precipitation: bool) -> tuple[str | None, float]:
+    """Pick the DCS cloud preset for a coverage and base, and the base DCS will accept with it.
+
+    Args:
+        cloud_type: Coverage, 0 (clear) to 4 (overcast) as in ``DCSWeatherConverter.CLOUD_TYPES``.
+        base: Wanted cloud base in metres.
+        precipitation: Whether it rains, which only the rainy presets render.
+
+    Returns:
+        The preset name (None for a clear sky) and the base, moved into the preset's range if needed.
+    """
+    candidates = _RAINY_PRESETS if precipitation else _PRESETS_BY_COVERAGE.get(cloud_type)
+    if not candidates:
+        return None, base
+    for name, low, high in candidates:
+        if low <= base <= high:
+            return name, base
+    name, low, high = min(candidates, key=lambda c: max(c[1] - base, base - c[2]))
+    return name, min(max(base, low), high)
+
 
 class DCSWeatherConverter:
     """Convert METAR strings to DCS weather table format."""
@@ -39,12 +83,13 @@ class DCSWeatherConverter:
         visibility_meters: float | None = None,
         cloud_coverage: str | None = None,
         cloud_height_meters: float | None = None,
+        precipitation: bool | None = None,
         fog_enabled: bool = False,
-        fog_density: float = 0.0,
         fog_thickness_meters: float = 200.0,
+        clearsky: bool = False,
     ) -> dict[str, Any]:
         """
-        Convert weather parameters to DCS mission weather table.
+        Convert weather parameters to the fields of the DCS mission ``weather`` table.
 
         Supports three weather input methods:
         1. metar_string: User-provided METAR string (parsed with regex)
@@ -53,31 +98,40 @@ class DCSWeatherConverter:
 
         Priority: metar_string > airport_icao > individual parameters > defaults
 
+        The result holds the keys DCS reads (``season``, ``wind``, ``visibility``, ``clouds``, ``qnh``,
+        ``enable_fog``, ``fog``, ``atmosphere_type``) and is merged into the mission's table, so the
+        keys it does not set (``cyclones``, ``groundTurbulence``, dust...) keep the base mission's values.
+        It used to return an ``atmosphere`` table DCS does not know, so every variant flew the base
+        mission's sky (FIX-SCRATCH-MISSION-FINDINGS ticket 01).
+
         Args:
             metar_string: METAR weather string (provided manually)
             airport_icao: Airport ICAO code to fetch live METAR from avwx
             temperature_celsius: Temperature override
             wind_speed_mps: Wind speed in m/s override
-            wind_direction_degrees: Wind direction override
+            wind_direction_degrees: Wind direction override, where the wind comes FROM as in a METAR
             visibility_meters: Visibility in meters override
             cloud_coverage: Cloud type ("clear", "few", "scattered", "broken", "overcast")
             cloud_height_meters: Cloud base altitude in meters
-            fog_enabled: Enable fog effect
-            fog_density: Fog density (0.0-1.0)
+            precipitation: Rain override; a METAR's rain groups set it otherwise
+            fog_enabled: Enable fog effect (a METAR's fog group enables it too)
             fog_thickness_meters: Fog vertical thickness
+            clearsky: Cap to VFR-friendly conditions: clouds at most FEW, wind under 15 kt,
+                visibility 10 km or more, no rain, no fog
 
         Returns:
-            Dictionary representing DCS weather table structure
+            Dictionary of DCS ``weather`` table fields
         """
         try:
-            weather = {}
+            weather: dict[str, Any] = {}
 
             # Priority 1: Use provided METAR string
             if metar_string:
                 weather = _extract_metar_values(metar_string)
             # Priority 2: Fetch live weather from avwx if airport code provided
             elif airport_icao:
-                weather = _fetch_live_metar(airport_icao)
+                # A copy: the fetch is memoised and returns its dict by reference.
+                weather = dict(_fetch_live_metar(airport_icao))
 
             # Apply parameter overrides
             if temperature_celsius is not None:
@@ -92,28 +146,50 @@ class DCSWeatherConverter:
                 weather["cloud_type"] = DCSWeatherConverter.CLOUD_TYPES.get(cloud_coverage.lower(), 0)
             if cloud_height_meters is not None:
                 weather["cloud_height"] = cloud_height_meters
+            if precipitation is not None:
+                weather["precipitation"] = precipitation
+            fog = fog_enabled or bool(weather.get("fog"))
 
-            # Build DCS weather table
-            dcs_weather = {
-                "atmosphere": {
-                    "temperature_celsius": weather.get("temperature", 15.0),
-                    "wind": {
-                        "speed_mps": weather.get("wind_speed", 5.0),
-                        "direction_degrees": weather.get("wind_direction", 0.0),
-                    },
-                    "visibility_meters": weather.get("visibility", 10000.0),
-                    "clouds": {
-                        "type": weather.get("cloud_type", 0),
-                        "base_altitude_meters": weather.get("cloud_height", 2000.0),
-                        "density": 0.0,
-                    },
+            if clearsky:
+                weather["cloud_type"] = min(weather.get("cloud_type", 0), DCSWeatherConverter.CLOUD_TYPES["few"])
+                weather["wind_speed"] = min(weather.get("wind_speed", 5.0), _CLEARSKY_MAX_WIND_MPS)
+                weather["visibility"] = max(weather.get("visibility", 10000.0), 9999.0)
+                weather["precipitation"] = False
+                fog = False
+                logger.debug(t("weather.clearsky_applied"))
+
+            preset, base = _select_cloud_preset(
+                weather.get("cloud_type", 0), weather.get("cloud_height", 2000.0), bool(weather.get("precipitation"))
+            )
+            clouds: dict[str, Any] = {"thickness": 200, "density": 0, "base": round(base), "iprecptns": 0}
+            if preset:
+                clouds["preset"] = preset
+
+            # A METAR gives where the wind comes FROM, the mission file where it blows TO (v5 did the
+            # same, `convertFromTo`). Aloft, v5 added a random 1-3 m/s at 2000 m and 2-8 m/s at 8000 m;
+            # the middle of each range is used so a build is reproducible.
+            speed = weather.get("wind_speed", 5.0)
+            direction = round((weather.get("wind_direction", 0.0) + 180) % 360)
+            visibility = weather.get("visibility", 10000.0)
+
+            dcs_weather: dict[str, Any] = {
+                "atmosphere_type": 0,  # static weather: with dynamic weather DCS ignores the fields below
+                "season": {"temperature": weather.get("temperature", 15.0)},
+                "wind": {
+                    "atGround": {"speed": speed, "dir": direction},
+                    "at2000": {"speed": speed + 2.0, "dir": direction},
+                    "at8000": {"speed": speed + 5.0, "dir": direction},
                 },
-                "fog": {
-                    "enabled": fog_enabled,
-                    "density": fog_density,
-                    "thickness_meters": fog_thickness_meters,
-                },
+                # A METAR's 9999 means "10 km or more"; v5 flew it as DCS's 80 km.
+                "visibility": {"distance": 80000 if visibility >= 9000 else round(visibility)},
+                "clouds": clouds,
+                "enable_fog": fog,
+                # v5's fog: 800-1000 m visibility, 100-300 m thick; the middle, for reproducibility.
+                "fog": {"visibility": 900 if fog else 0, "thickness": round(fog_thickness_meters) if fog else 0},
             }
+            # Only a pressure actually reported: otherwise the base mission's QNH stays.
+            if weather.get("qnh_hpa"):
+                dcs_weather["qnh"] = round(weather["qnh_hpa"] * 0.750062, 1)  # DCS stores mmHg
 
             logger.debug(f"Converted weather: {json.dumps(dcs_weather, indent=2)}")
             return dcs_weather
@@ -161,7 +237,7 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
 
     Returns:
         Dictionary with keys: temperature, wind_speed, wind_direction,
-        visibility, cloud_type, cloud_height, and ``raw`` — the published text.
+        visibility, cloud_type, cloud_height, qnh_hpa, precipitation, fog, and ``raw`` — the published text.
 
     **Memoised per ICAO**, so a station is asked once per process however many places want it. Two
     consumers exist — the weather table and the briefing's ``${METAR}`` — and they must agree: a station
@@ -179,6 +255,9 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
         "visibility": 10000.0,  # meters
         "cloud_type": 0,  # Clear
         "cloud_height": 2000.0,  # meters
+        "qnh_hpa": None,  # hPa, only when reported
+        "precipitation": False,
+        "fog": False,
         "raw": "",  # the published text, for a briefing to show
     }
 
@@ -192,7 +271,7 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
         metar = Metar(airport_icao)
 
         # VMR-006: `Metar(icao)` only *constructs* — `.update()` is what fetches. Without it
-        # every attribute below is None, so the function returned its canned defaults while
+        # the published text is empty, so the function returned its canned defaults while
         # logging "Successfully fetched", and a mission asking for live weather quietly got
         # invented weather. The return value matters too: avwx reports a failed fetch by
         # returning False rather than raising, so ignoring it reinstates the same silence.
@@ -202,38 +281,13 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
 
         result["raw"] = str(getattr(metar, "raw", "") or "")
 
-        if metar.temperature and metar.temperature.value is not None:  # type: ignore[attr-defined]
-            result["temperature"] = metar.temperature.value  # type: ignore[attr-defined]
-
-        if metar.wind_speed and metar.wind_speed.value is not None:  # type: ignore[attr-defined]
-            # avwx returns knots, convert to m/s
-            result["wind_speed"] = metar.wind_speed.value / 1.944  # type: ignore[attr-defined]
-
-        if metar.wind_direction and metar.wind_direction.value is not None:  # type: ignore[attr-defined]
-            result["wind_direction"] = float(metar.wind_direction.value)  # type: ignore[attr-defined]
-
-        if metar.visibility and metar.visibility[0].value is not None:  # type: ignore[attr-defined]
-            result["visibility"] = metar.visibility[0].value  # type: ignore[attr-defined]
-
-        # Process clouds
-        if metar.clouds:  # type: ignore[attr-defined]
-            for cloud in metar.clouds:  # type: ignore[attr-defined]
-                if cloud[0]:
-                    cloud_coverage = cloud[0].lower()
-                    if cloud_coverage in ["skc", "clr"]:
-                        result["cloud_type"] = 0  # Clear
-                    elif cloud_coverage == "few":
-                        result["cloud_type"] = 1
-                    elif cloud_coverage == "sct":
-                        result["cloud_type"] = 2  # Scattered
-                    elif cloud_coverage == "bkn":
-                        result["cloud_type"] = 3  # Broken
-                    elif cloud_coverage == "ovc":
-                        result["cloud_type"] = 4  # Overcast
-
-                if cloud[1]:
-                    result["cloud_height"] = float(cloud[1].value)
-                    break  # Use first cloud layer
+        # The published text goes through the same parser as a METAR written in versions.yaml. This
+        # used to read `metar.temperature`, `metar.clouds[i][0]`... — attributes the avwx `Metar` does
+        # not have (its values live under `.data`), so every live fetch died on AttributeError and flew
+        # the defaults; the tests passed on a fake shaped like that invented API
+        # (FIX-SCRATCH-MISSION-FINDINGS ticket 01). One parser also gives both paths the pressure, the
+        # rain and the fog.
+        result = _fallback_metar_parsing(result["raw"], result)
 
         logger.debug(f"Successfully fetched METAR for {airport_icao}: {result}")
     except Exception as e:
@@ -257,15 +311,18 @@ def _extract_metar_values(metar_string: str) -> dict[str, Any]:
 
     Returns:
         Dictionary with keys: temperature, wind_speed, wind_direction,
-        visibility, cloud_type, cloud_height
+        visibility, cloud_type, cloud_height, qnh_hpa, precipitation, fog
     """
-    result = {
+    result: dict[str, Any] = {
         "temperature": 15.0,  # Default
         "wind_speed": 5.0,  # m/s
         "wind_direction": 0.0,  # degrees
         "visibility": 10000.0,  # meters
         "cloud_type": 0,  # Clear
         "cloud_height": 2000.0,  # meters
+        "qnh_hpa": None,  # hPa, only when reported
+        "precipitation": False,
+        "fog": False,
     }
 
     if not metar_string:
@@ -331,13 +388,17 @@ def _fallback_metar_parsing(metar_string: str, defaults: dict[str, Any]) -> dict
 
         # Wind: "27015G25KT" or "27015KT" format (direction speed[gust]KT/MPS)
         if "KT" in part or "MPS" in part:
-            match = re.match(r"(\d{3})(\d{2})(?:G(\d{2}))?", part)
+            # A variable wind (`VRB02KT`) has no direction: it keeps the default. Both used to be
+            # read as knots, and a VRB group not at all — harmless while the weather never reached
+            # DCS, wrong since it does (URSS, feeding Caucasus v6, reports in MPS).
+            match = re.match(r"(\d{3}|VRB)(\d{2})(?:G(\d{2}))?(KT|MPS)", part)
             if match:
                 try:
-                    result["wind_direction"] = float(match.group(1))
+                    if match.group(1) != "VRB":
+                        result["wind_direction"] = float(match.group(1))
                     speed = float(match.group(2))
                     # Convert knots to m/s (1 knot = 0.51444 m/s)
-                    result["wind_speed"] = speed * 0.51444
+                    result["wind_speed"] = speed if match.group(4) == "MPS" else speed * 0.51444
                 except ValueError:
                     pass
 
@@ -347,6 +408,19 @@ def _fallback_metar_parsing(metar_string: str, defaults: dict[str, Any]) -> dict
         if part.isdigit() and len(part) == 4 and "visibility" not in seen:
             result["visibility"] = float(part)
             seen.add("visibility")
+
+        # Pressure: "Q1018" (hPa) or "A2992" (inches of mercury, hundredths)
+        pressure = re.fullmatch(r"([QA])(\d{4})", part)
+        if pressure and "qnh" not in seen:
+            value = float(pressure.group(2))
+            result["qnh_hpa"] = value if pressure.group(1) == "Q" else value / 100 * 33.8639
+            seen.add("qnh")
+
+        # Present weather: rain, drizzle, thunderstorm... and fog
+        if _PRECIPITATION.fullmatch(part):
+            result["precipitation"] = True
+        if _FOG.fullmatch(part):
+            result["fog"] = True
 
         # Cloud coverage groups: "FEW010", "SCT025", "BKN040", "OVC100"
         cloud_match = re.match(r"(SKC|CLR|FEW|SCT|BKN|OVC)(\d{3})?", part)

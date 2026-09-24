@@ -390,6 +390,11 @@ def summarize_active_modules(mission_yaml: dict) -> list[tuple[str, int | None]]
             summary.append((mod_id, None))
         else:
             entries = cfg.get(list_key) or []
+            # The build normalises mission.yaml before this runs, and that moves the QRA definitions
+            # into their own `qra` section: read there, or a mission with one definition reports
+            # « QRA (0) » (FIX-SCRATCH-MISSION-FINDINGS ticket 09).
+            if mod_id == "QRA" and not entries:
+                entries = (mission_yaml.get("qra") or {}).get("definitions") or []
             summary.append((mod_id, len(entries) if isinstance(entries, list) else 0))
     return sorted(summary)
 

@@ -60,6 +60,25 @@ aircraft does not exist in any sense.
 *What it cost:* two failed attempts in a row at the same requirement, in front of the person who had
 asked for it.
 
+### The mission's `start_time` is on the theatre's clock, with a fixed offset
+
+Measured **2026-09-24**, by David, in DCS:
+
+| Mission | `start_time` | Seen | Means |
+|---|---|---|---|
+| Caucasus, 2022-06-29 | 01:28 | pitch dark | not UTC: sunrise is 01:43 UTC there |
+| GermanyCW, Ramstein, 1980-06-01 | 04:58 | dawn, sun not up | UTC+2: sunrise is 03:28 UTC, so it is 02:58 UTC; +1 would have put the sun 30 min up |
+
+So the mission clock is **local to the theatre**, one fixed offset per map — the table the in-game
+scripts already carry in `veafTime.getTimezone()`, which the build mirrors in
+`weather_injector/utils/theatre_offsets.py`. It is not the IANA zone: DCS models no daylight saving
+time (the Nevada entry says so). GermanyCW was measured in June only; whether DCS keeps +2 in winter
+is not known.
+
+*What it cost:* every `sunrise…` / `sunset…` weather variant of every v6 mission started 2 to 4 hours
+early, since the feature shipped — the build computed solar times in UTC. And GermanyCW was missing
+from the Lua table, so in-game sun times on that map used offset 0 (FIX-SCRATCH-MISSION-FINDINGS 02).
+
 ### Activating a Skynet IADS undoes anything you forced beforehand
 
 Measured **2026-09-21**. `veafSkynet.delayedActivate` → `SkynetIADS:activate()` **rebuilds the radar

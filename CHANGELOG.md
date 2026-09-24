@@ -132,6 +132,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   what you choose, **never replacing an entry you already have**, even when the shipped version
   differs.
 
+- **Weather and time variants now change what DCS flies, at the right hour.** Found by building
+  Open Training Germany Cold War from an empty folder. The variants wrote their weather into an
+  `atmosphere` table DCS does not know, so every variant flew the base mission's sky — Caucasus v6
+  `dawn-broken` and `dawn-overcast-rain` were both Preset2, 20 °C, calm. They now write the fields
+  DCS reads: a cloud preset chosen from the coverage and base (within the altitude range DCS accepts
+  for it), rain as a rainy preset, temperature, ground and upper wind, visibility, fog, and the QNH a
+  METAR reports; `weather:` gains `precipitation`. **Solar times were computed in UTC** while DCS
+  reads the start time on the theatre's clock, so every `sunrise…` variant started 2 to 4 hours early
+  (01:28 for a Caucasus dawn); they now use each theatre's fixed offset, the same table the in-game
+  scripts use, which gains GermanyCW at UTC+2 (measured in DCS). **Live weather never worked**: the
+  fetch read attributes the weather library does not have and fell back to defaults every time, and
+  the executable did not even carry the library's station table; each variant that falls back is now
+  named, and the build says how many did. On a mission started with `prepare`, the dynamic-slot
+  templates now get their radio presets (0 of 64 before, 44 now — the others are types the presets
+  plan does not cover) and a flight plan with no waypoint gets its BULLSEYE, as the guide says. The
+  build's module summary counts QRA definitions again, and a CSAR or CTLD sound named in the
+  settings but missing from the mission is reported. `convert-v5` turns a DCS wind back into where it
+  comes from, and maps the rainy and the overcast presets it used to read as scattered. **If your
+  `versions.yaml` was converted by an earlier release**, its manual `weather.wind_direction` values
+  are where the wind blows to: re-run the conversion, or add 180° to each, or those variants fly the
+  wind reversed now that the weather reaches DCS. Variants reading an `airport_icao` are not affected.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

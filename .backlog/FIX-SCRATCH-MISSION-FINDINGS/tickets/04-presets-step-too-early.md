@@ -1,6 +1,6 @@
 # 04 — The presets step runs before the aircraft it should fill exist
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/python/veaf-tools/veaf_tools/commands/build.py`, tests
 
@@ -29,3 +29,12 @@ defect is on the `prepare` path, where the templates come from YAML — the defa
   sides like the waypoints one
 - GermanyCW-v6 rebuilt: 64 of 64 blue templates carry the plan's channels
 - Kneeboards generated for the injected types too
+
+## Outcome (PR 1)
+
+- Presets run after both aircraft-injection steps, source-order test bounded on both sides.
+- Bench: blue templates with a `Radio` table **0/64 → 44/64**. The 20 others are types no preset of
+  GermanyCW's `presets.yaml` covers: the FC3 aircraft (no programmable presets, same on Caucasus),
+  `Mi-8MT` (`none` by choice), and Ka-50, SA342, Yak-52, MiG-15, A-4E-C, Bronco, T-45 — on Caucasus
+  these carry the editor's own tables, not injected ones. A presets-plan coverage question, not this
+  ticket's order defect.

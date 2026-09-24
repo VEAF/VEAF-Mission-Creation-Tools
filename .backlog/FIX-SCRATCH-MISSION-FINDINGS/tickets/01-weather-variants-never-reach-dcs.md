@@ -1,6 +1,6 @@
 # 01 — Weather variants never change the weather DCS reads
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/python/veaf-tools/weather_injector/weather/dcs_weather_converter.py`,
 `weather_injector/weather_injector_worker.py` (`_set_mission_weather`, clearsky block), tests
@@ -55,3 +55,21 @@ the **time** does change per variant (`start_time` is written directly), which m
 - GermanyCW-v6 rebuilt: `day-scattered`, `day-overcast-rain`, `day-real` differ in `clouds.preset`,
   `season.temperature`, `wind.atGround`
 - One variant opened in DCS shows the expected sky (David, a glance)
+
+## Outcome (PR 1)
+
+- The converter writes the DCS fields (`season`, `wind.atGround/at2000/at8000`, `visibility`,
+  `clouds.preset/base`, `qnh`, `enable_fog`/`fog`, `atmosphere_type = 0`); `atmosphere` is dropped.
+  Presets are chosen deterministically from the coverage, inside the base range DCS accepts
+  (`presetAltMin`/`presetAltMax` of `Config/Effects/clouds.lua`); v5 picked them at random.
+- Precipitation: METAR `RA`/`DZ`/`TS`... → `RainyPreset1`; `weather.precipitation` added. Snow left
+  out: no DCS preset renders it, unchecked below zero.
+- Found on the way: **the live fetch had never worked**. It read `metar.temperature`,
+  `metar.clouds[i][0]`... — the avwx `Metar` has none of these (values live under `.data`), so every
+  fetch died on AttributeError and fell back; the test's fake carried the invented API. The fetch now
+  parses the published text with the same parser as a written METAR.
+- `convert-v5`: DCS wind is stored "to", `weather.wind_direction` is "from" → converted; Preset19–27
+  and RainyPreset* were unmapped and read as scattered.
+- Bench (GermanyCW-v6 copy, fixed exe): day-real Preset13 / 9 °C / calm / 766.8 mmHg, day-scattered
+  Preset5 / 23.2 °C / 4.5 m/s, day-overcast-rain RainyPreset1 / 16 °C / 763.6 mmHg / 6 km.
+- Checked in DCS by David on 2026-09-24 (`day-overcast-rain`): ok.

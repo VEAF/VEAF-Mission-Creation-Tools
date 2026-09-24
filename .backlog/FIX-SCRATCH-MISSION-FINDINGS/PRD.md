@@ -1,6 +1,6 @@
 # FIX-SCRATCH-MISSION-FINDINGS — what building one mission from scratch with 6.24.0 found
 
-Status: ⬜ ready — opened 2026-09-23, not started. David wants to review the plan before any code.
+Status: 🔄 in-progress — plan agreed 2026-09-24 (ticket 02: DCS reads theatre local time, measured; ticket 05: option a). PR 1 (01–05, 09) implemented; PR 2 (06–08) and PR 3 (10–11) to follow.
 
 ## Origin
 
@@ -32,6 +32,8 @@ pipeline's gaps are all that is left — which is exactly the path the MCP recom
 | [09](tickets/09-small-truths.md) | Three small places where the tool says something false or nothing | `clearsky` undocumented, « QRA (0) », silent missing CSAR sound |
 | [10](tickets/10-nested-combat-zones.md) | Nested combat zones (difficulty levels) cannot be expressed cleanly | only via Lua in `mission-script.lua`; prefix nesting defeated by destroy-at-init; borrowed `#command` keeps its origin `czName` |
 | [11](tickets/11-teach-the-authoring-skill.md) | The authoring skill does not say what building a mission taught | drafted in `plugin/skills/veaf-mission-authoring/SKILL.md`, to review |
+| [12](tickets/12-defense-levels-and-sam-aliases.md) | The `defense` levels and the SAM aliases do not say what they do | `list_shortcuts` hides `defense` ranges; `-samLR` places Roland/Hawk, no long range; levels ignore the era (M6 Linebacker in 1980) |
+| [13](tickets/13-mcp-known-limitations.md) | The MCP exposes the known limitations, always up to date | new read-only `describe_known_limitations`, one versioned data file, lot rule |
 
 Tickets 01 and 02 are the ones that change what players fly. Ticket 04 is narrower than it first
 looked — see its "What it is not" section — and ticket 06 is the one that makes aircraft fall out of
@@ -41,7 +43,8 @@ that cannot fly), one call away from where that lot fixed it.
 ## One lot, possibly two PRs
 
 One lot, as David prefers. Tickets 01–05 and 09 live in the build pipeline, 06–08 in
-`veaf_mission_mcp`, 10 in the combat-zone runtime and its generator, 11 in the plugin. If the diff heads past ~150 000 characters (Sourcery's limit, CLAUDE.md), split
+`veaf_mission_mcp`, 10 in the combat-zone runtime and its generator, 11 in the plugin, 12 in the
+shortcut/air-defense runtime and `list_shortcuts`, 13 in `veaf_mission_mcp` and its data. If the diff heads past ~150 000 characters (Sourcery's limit, CLAUDE.md), split
 along that line — pipeline first, it is what players feel.
 
 ## Out of scope

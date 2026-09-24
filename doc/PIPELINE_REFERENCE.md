@@ -578,7 +578,7 @@ Aussi accepté : versions.yaml  (racine du dossier mission)
 position:
   latitude: 33.5                        # degrés décimaux, -90 à 90
   longitude: 35.5                       # degrés décimaux, -180 à 180
-  timezone: "Asia/Damascus"             # fuseau horaire IANA
+  timezone: "Asia/Damascus"             # fuseau IANA, repli pour un théâtre inconnu (sinon : horloge DCS du théâtre)
 
 # ── Date de base pour toutes les versions ─────────────────────────────────
 base_date: "2024-03-15"                 # ISO 8601 (AAAA-MM-JJ)
@@ -612,6 +612,7 @@ versions:
 | `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo, et affichable dans le briefing via [`${METAR}`](#briefing-variables) |
 | `airport_icao` | string | Non | Code OACI dont la météo réelle est récupérée en ligne (utilisé sans `metar`) |
 | `weather` | objet | Non | Surcharge météo manuelle (utilisée sans `metar` ni `airport_icao`) |
+| `clearsky` | booléen | Non | Plafonne la météo à des conditions de vol à vue : nuages au plus FEW, vent sous 15 kt, visibilité de 10 km ou plus, ni pluie ni brouillard. Garde la vraie météo d'un `airport_icao` tout en restant pilotable à vue. Défaut `false` |
 
 ### Afficher la météo dans le briefing : `${METAR}` {#briefing-variables}
 
@@ -671,11 +672,17 @@ Ce que `${METAR}` vaut selon la variante :
 |-------|------|-------------|
 | `temperature` | nombre | Température de l'air en °C |
 | `wind_speed` | nombre | Vitesse du vent en m/s |
-| `wind_direction` | nombre | Direction du vent en degrés (0 = Nord) |
+| `wind_direction` | nombre | Direction **d'où vient** le vent, en degrés (0 = Nord), comme dans un METAR |
 | `visibility` | nombre | Visibilité en mètres |
 | `cloud_type` | string | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | nombre | Altitude de la base des nuages en mètres |
 | `fog_enabled` | booléen | Activer l'effet de brouillard |
+| `precipitation` | booléen | Pluie : choisit un preset de nuages pluvieux de DCS (`RainyPreset…`) |
+
+La couverture et la base choisissent un **preset de nuages** DCS, le seul rendu depuis DCS 2.7 : le
+premier preset de cette couverture dont la plage d'altitude contient la base, sinon la base est
+ramenée dans la plage du plus proche (plages lues dans `Config/Effects/clouds.lua` de DCS). Un METAR
+fournit en plus la pression (`Q1018`, `A2992`), la pluie (`RA`, `DZ`, `TS`…) et le brouillard (`FG`).
 
 ### Exemple minimal
 

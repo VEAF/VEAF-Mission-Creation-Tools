@@ -32,7 +32,8 @@ def test_zero_weather_values_are_kept(tmp_path: Path) -> None:
     params, warnings = _parse_dcs_weather_lua(_write(tmp_path, _WEATHER_LUA_ZEROS))
     assert params["temperature"] == 0
     assert params["wind_speed"] == 0
-    assert params["wind_direction"] == 0
+    # DCS stores where the wind blows TO; versions.yaml, like a METAR, where it comes FROM
+    assert params["wind_direction"] == 180
     assert params["visibility"] == 0
     assert params["cloud_height"] == 0
 
@@ -48,7 +49,7 @@ def test_nonzero_weather_values_still_work(tmp_path: Path) -> None:
     params, _ = _parse_dcs_weather_lua(_write(tmp_path, body))
     assert params["temperature"] == 23.2
     assert params["wind_speed"] == 4.5
-    assert params["wind_direction"] == 150
+    assert params["wind_direction"] == 330
     assert params["visibility"] == 1593
 
 
@@ -57,3 +58,19 @@ def test_absent_weather_values_are_omitted(tmp_path: Path) -> None:
     params, _ = _parse_dcs_weather_lua(_write(tmp_path, body))
     assert "temperature" not in params
     assert "wind_speed" not in params
+
+
+def test_a_rainy_preset_keeps_its_rain(tmp_path: Path) -> None:
+    """FIX-SCRATCH-MISSION-FINDINGS ticket 01: an unmapped preset fell back to "scattered", dry."""
+    body = '["weather"] = {\n    ["clouds"] = { ["preset"] = "RainyPreset1", ["base"] = 2900 },\n}\n'
+    params, _ = _parse_dcs_weather_lua(_write(tmp_path, body))
+    assert params["cloud_type"] == "overcast"
+    assert params["precipitation"] is True
+
+
+def test_every_overcast_preset_is_mapped(tmp_path: Path) -> None:
+    """Preset19 to Preset27 are all overcast (their METAR in DCS's Config/Effects/clouds.lua)."""
+    for number in range(19, 28):
+        body = f'["weather"] = {{\n    ["clouds"] = {{ ["preset"] = "Preset{number}" }},\n}}\n'
+        params, _ = _parse_dcs_weather_lua(_write(tmp_path, body))
+        assert params["cloud_type"] == "overcast", number

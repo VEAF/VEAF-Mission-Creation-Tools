@@ -47,6 +47,10 @@ versions:
 ```
 
 - **Times**: `"HH:MM"`, a solar expression (`sunrise`, `sunset-30*60`), or seconds.
+  All of them are on the **theatre's local clock**, the one DCS shows: each theatre has a fixed
+  offset from UTC, with no daylight saving time (Caucasus UTC+4, Syria UTC+3, GermanyCW UTC+2…).
+  The `timezone:` of `position` is only used for a theatre the tool does not know, and the build
+  says so.
 - **Dates**: `"YYYY-MM-DD"`, `today`, `tomorrow`, `+N` / `-N` days.
 - **`metar:`** replaces the `weather:` block with a real observation.
 

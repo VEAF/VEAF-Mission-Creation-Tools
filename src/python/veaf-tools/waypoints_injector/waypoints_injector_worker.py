@@ -98,6 +98,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
 
         nb_groups_processed = 0
         nb_groups_without_plan = 0
+        nb_empty_plans = 0
         nb_bullseyes = 0
         if not self.waypoints_manager:
             logger.warning(t("waypoints_injector.no_manager"))
@@ -111,18 +112,24 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
                 country=group.country,
             )
 
-            if flight_plan and flight_plan.waypoints:
-                waypoints = list(flight_plan.waypoints)
+            if flight_plan:
+                waypoints = list(flight_plan.waypoints or [])
 
                 # The mission's own bullseye, appended unless the flight plan already names one. The
                 # mission maker's declaration wins: `_inject_waypoints_into_group` REPLACES a same-named
                 # waypoint in place, so adding ours unconditionally would silently overwrite his — which
                 # satisfies "not given a second one" while doing the opposite of what it means.
+                # A plan declaring no waypoint gets it too: `waypoints: {}` is how a mission maker asks for
+                # "just the bullseye", and it used to get nothing (FIX-SCRATCH-MISSION-FINDINGS ticket 05).
                 if self.inject_bullseye and not any(wp.name == self.BULLSEYE_NAME for wp in waypoints):
                     bullseye = self._bullseye_waypoint(group.coalition)
                     if bullseye:
                         waypoints.append(bullseye)
                         nb_bullseyes += 1
+
+                if not waypoints:
+                    nb_empty_plans += 1
+                    continue
 
                 logger.debug(f"Injecting {len(waypoints)} waypoint(s) into group '{group.name}'")
                 self._inject_waypoints_into_group(group, waypoints)
@@ -139,6 +146,9 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             # flight plan assigned in waypoints.yaml so the outcome is unambiguous.
             if nb_groups_without_plan:
                 logger.detail(tn("waypoints_injector.no_flight_plan", nb_groups_without_plan))
+            # A plan was found but left nothing to inject — not the same thing as having no plan.
+            if nb_empty_plans:
+                logger.detail(tn("waypoints_injector.empty_flight_plan", nb_empty_plans))
             # Said out loud: an extra steerpoint appears in every flight plan, and a mission maker who
             # did not ask for it should be able to find out why from the build rather than the cockpit.
             if nb_bullseyes:

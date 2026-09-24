@@ -404,6 +404,13 @@ function TestVeafTime:test_getTimezone_sinai()
   luaunit.assertEquals(veafTime.getTimezone(nil), 2)
 end
 
+function TestVeafTime:test_getTimezone_germany_cold_war()
+  -- Measured in DCS on 2026-09-24: 04:58 on 1980-06-01 at Ramstein is dawn with the sun not up yet
+  -- (sunrise 03:28 UTC), so the theatre clock is UTC+2. The theatre was missing, so it fell to 0.
+  env.mission.theatre = "GermanyCW"
+  luaunit.assertEquals(veafTime.getTimezone(nil), 2)
+end
+
 -- -----------------------------------------------------------------------
 -- absTimeToStringDate / absTimeToStringTime wrappers
 -- -----------------------------------------------------------------------

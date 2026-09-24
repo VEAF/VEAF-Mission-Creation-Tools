@@ -576,7 +576,7 @@ Also accepted: versions.yaml  (mission root)
 position:
   latitude: 33.5                        # Decimal degrees, -90 to 90
   longitude: 35.5                       # Decimal degrees, -180 to 180
-  timezone: "Asia/Damascus"             # IANA timezone string
+  timezone: "Asia/Damascus"             # IANA zone, fallback for an unknown theatre (else: the theatre's DCS clock)
 
 # ── Base date for all versions ─────────────────────────────────────────────
 base_date: "2024-03-15"                 # ISO 8601 (YYYY-MM-DD)
@@ -610,6 +610,7 @@ versions:
 | `metar` | string | No | Full METAR string — parsed for the weather data, and showable in the briefing through [`${METAR}`](#briefing-variables) |
 | `airport_icao` | string | No | ICAO code whose live weather is fetched (used without `metar`) |
 | `weather` | object | No | Manual weather override (used without `metar` or `airport_icao`) |
+| `clearsky` | boolean | No | Caps the weather to visual-flight conditions: clouds at most FEW, wind under 15 kt, visibility 10 km or more, no rain, no fog. Keeps an `airport_icao`'s real weather flyable without instruments. Default `false` |
 
 ### Showing the weather in the briefing: `${METAR}` {#briefing-variables}
 
@@ -669,11 +670,17 @@ What `${METAR}` resolves to, per variant:
 |-------|------|---------|-------------|
 | `temperature` | number | — | Air temperature in °C |
 | `wind_speed` | number | — | Wind speed in m/s |
-| `wind_direction` | number | — | Wind direction in degrees (0 = North) |
+| `wind_direction` | number | — | Direction the wind **comes from**, in degrees (0 = North), as in a METAR |
 | `visibility` | number | — | Visibility in metres |
 | `cloud_type` | string | — | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | number | — | Cloud base altitude in metres |
 | `fog_enabled` | boolean | `false` | Enable fog effect |
+| `precipitation` | boolean | `false` | Rain: picks one of DCS's rainy cloud presets (`RainyPreset…`) |
+
+Coverage and base pick a DCS **cloud preset**, the only thing DCS renders since 2.7: the first preset
+of that coverage whose altitude range holds the base, otherwise the base is moved into the nearest
+one's range (ranges read from DCS's `Config/Effects/clouds.lua`). A METAR also brings the pressure
+(`Q1018`, `A2992`), rain (`RA`, `DZ`, `TS`...) and fog (`FG`).
 
 ### Minimal example
 

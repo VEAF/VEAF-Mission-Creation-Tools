@@ -119,8 +119,18 @@ class TestShip:
         task = next(iter(tasks.values())) if isinstance(tasks, dict) else tasks[0]
         assert task["id"] == "GoToWaypoint"
 
+    def test_ships_are_not_placed_on_top_of_each_other(self) -> None:
+        """Ticket 16: four hulls of 100+ m came out 20 m apart and collided as they spawned."""
+        units = _units(_insert(_content(), "ship", [{"type": "Dry-cargo ship-1", "count": 4}]))
+        xs = sorted(unit["x"] for unit in units)
+        assert min(b - a for a, b in zip(xs, xs[1:], strict=False)) >= 600
+
 
 class TestVehicleUnchanged:
+    def test_vehicles_keep_their_20_metre_spacing(self) -> None:
+        units = _units(_insert(_content(), "vehicle", [{"type": "T-55", "count": 3}]))
+        assert [unit["x"] for unit in units] == [100.0, 120.0, 140.0]
+
     def test_a_vehicle_keeps_the_ground_shape(self) -> None:
         group = _insert(_content(), "vehicle", [{"type": "T-55"}])
         assert group["task"] == "Ground Nothing"

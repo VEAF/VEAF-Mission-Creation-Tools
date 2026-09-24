@@ -91,6 +91,7 @@ def edit_route(
     eta_locked: bool | None = None,
     task: str | None = None,
     task_params: dict[str, Any] | None = None,
+    task_position: int | None = None,
 ) -> dict[str, Any]:
     """Edit one group's route in place, backed up first.
 
@@ -111,6 +112,9 @@ def edit_route(
             ``engage_targets_in_zone``, ``set_frequency``, ``switch_waypoint``, ``tanker``, ``awacs``,
             ``set_unlimited_fuel``, ``eplrs``, ``activate_beacon``, ``escort``.
         task_params: That task's parameters; each task validates its own and names what is missing.
+        task_position: For ``add_task``, the 1-based place the task takes among the waypoint's tasks,
+            the others renumbered after it; appended when omitted. DCS runs them by ``number``, so a
+            task placed after one that never ends — an orbit — is never reached.
 
     Returns:
         ``{group, operation, changed, route, warnings}`` — ``route`` is the resulting route, so a
@@ -159,7 +163,15 @@ def edit_route(
             changed=changed,
         )
     elif operation == "add_task":
-        _add_task(points[_checked_index(index, points) - 1], task, task_params or {}, changed, group, content)
+        _add_task(
+            points[_checked_index(index, points) - 1],
+            task,
+            task_params or {},
+            changed,
+            group,
+            content,
+            position=task_position,
+        )
     else:  # clear_tasks
         _clear_tasks(points[_checked_index(index, points) - 1], changed)
 
@@ -394,8 +406,10 @@ def _add_task(
     changed: dict[str, Any],
     group: dict[str, Any] | None = None,
     content: dict[str, Any] | None = None,
+    *,
+    position: int | None = None,
 ) -> None:
-    """Append one task from the named set to a waypoint.
+    """Add one task from the named set to a waypoint, at the end or at a given place.
 
     Args:
         point: The waypoint to mutate.
@@ -404,9 +418,11 @@ def _add_task(
         changed: The report to record the change in.
         group: The group the waypoint belongs to, for the tasks that name it or its unit.
         content: The mission table, for the tasks that name another group.
+        position: The 1-based place among the waypoint's tasks; appended when ``None``.
 
     Raises:
-        ValueError: If the task is unknown or a required parameter is missing.
+        ValueError: If the task is unknown, a required parameter is missing, or ``position`` is not
+            between 1 and one past the last task.
     """
     known = sorted({*_TASK_BUILDERS, *_CONTEXT_TASK_BUILDERS})
     if task is None:
@@ -419,12 +435,18 @@ def _add_task(
         raise ValueError(f"unknown task {task!r}; expected one of {', '.join(known)}")
 
     tasks = _tasks_list(point)
+    if position is None:
+        position = len(tasks) + 1
+    elif not 1 <= position <= len(tasks) + 1:
+        raise ValueError(f"task_position must be between 1 and {len(tasks) + 1}, got {position}")
     # `number` is what DCS reads to order them, and `auto` is what marks the *editor's* own options:
     # an authored task claiming `auto = true` would be treated as one and hidden from the maker.
-    entry["number"] = len(tasks) + 1
     entry["enabled"] = True
     entry["auto"] = False
-    tasks.append(entry)
+    tasks.sort(key=lambda existing: existing.get("number", 0))
+    tasks.insert(position - 1, entry)
+    for number, existing in enumerate(tasks, start=1):
+        existing["number"] = number
     changed["task_added"] = {"task": task, "number": entry["number"]}
 
 

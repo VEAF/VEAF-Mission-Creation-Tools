@@ -122,3 +122,60 @@ def test_create_combat_zone_appends_to_existing(tmp_path: Path) -> None:
     zones = load_yaml(folder / "mission.yaml")["modules"]["COMBATZONE"]["combat_zones"]
     names = {z["zone_name"] for z in zones}
     assert {"CZ-A", "CZ-B"} <= names  # second call appended, didn't clobber the first
+
+
+def _group(content: dict[str, Any], name: str) -> dict[str, Any]:
+    for coalition in content.get("coalition", {}).values():
+        countries = coalition.get("country", {})
+        for country in countries.values() if isinstance(countries, dict) else countries:
+            for cat in (v for v in country.values() if isinstance(v, dict) and "group" in v):
+                groups = cat["group"]
+                for group in groups.values() if isinstance(groups, dict) else groups:
+                    if isinstance(group, dict) and group.get("name") == name:
+                        return group
+    raise AssertionError(f"group {name!r} not found")
+
+
+def _points(group: dict[str, Any]) -> list[dict[str, Any]]:
+    points = group["route"]["points"]
+    return list(points.values()) if isinstance(points, dict) else list(points)
+
+
+def test_a_combat_zone_group_can_follow_a_route(tmp_path: Path) -> None:
+    """Ticket 18: a moving convoy needed an empty zone plus `add_group ... for_combat_zone`."""
+    folder = _folder(tmp_path)
+    route = [{"x": 1000.0, "y": 2000.0}, {"x": 4000.0, "y": 2000.0}, {"x": 4000.0, "y": 6000.0}]
+    create_combat_zone(
+        folder,
+        zone_name="CZ-North",
+        position={"x": 1000.0, "y": 2000.0},
+        radius=3000,
+        groups=[{"name": "convoy", "units": [{"type": "Ural-375", "count": 3}], "route": route, "patrol": True}],
+        coalition="red",
+        country_id=0,
+        country_name="Russia",
+    )
+
+    points = _points(_group(read_mission_folder(folder).mission_content or {}, "CZ-North-convoy"))
+    assert [(p["x"], p["y"]) for p in points] == [(p["x"], p["y"]) for p in route]
+    assert [p["action"] for p in points] == ["Off Road", "On Road", "On Road"]
+    last_tasks = points[-1]["task"]["params"]["tasks"]
+    last_task = next(iter(last_tasks.values())) if isinstance(last_tasks, dict) else last_tasks[0]
+    assert last_task["id"] == "GoToWaypoint"
+
+
+def test_a_combat_zone_group_without_a_route_stays_put(tmp_path: Path) -> None:
+    folder = _folder(tmp_path)
+    create_combat_zone(
+        folder,
+        zone_name="CZ-North",
+        position={"x": 1000.0, "y": 2000.0},
+        radius=3000,
+        groups=[{"name": "armor", "units": [{"type": "T-72B"}], "position": {"x": 1500.0, "y": 2500.0}}],
+        coalition="red",
+        country_id=0,
+        country_name="Russia",
+    )
+
+    points = _points(_group(read_mission_folder(folder).mission_content or {}, "CZ-North-armor"))
+    assert [(p["x"], p["y"]) for p in points] == [(1500.0, 2500.0)]

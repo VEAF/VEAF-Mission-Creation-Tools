@@ -208,3 +208,27 @@ def test_a_cap_template_flies_a_race_track_between_its_two_points(tmp_path: Path
     tasks = _items(points[0]["task"]["params"]["tasks"])
     orbit = next(t for t in tasks if t["id"] == "Orbit")
     assert orbit["params"]["pattern"] == "Race-Track"
+
+
+def _first_point_tasks(folder: Path) -> list[dict[str, Any]]:
+    points = _items(_plane_group(folder, "OnDemand-MiG23-Border-South")["route"]["points"])
+    return sorted(_items(points[0]["task"]["params"]["tasks"]), key=lambda t: t["number"])
+
+
+def test_a_cap_template_engages_air_targets_like_the_editor_cap_task(tmp_path: Path) -> None:
+    r"""Ticket 17: the template carried an Orbit alone. The shape is the editor's, measured on
+    1 139 of 1 147 `EngageTargets` of 3 691 CAP groups under D:\dev\_VEAF (2026-09-24)."""
+    folder = _folder(tmp_path)
+    _cap(folder)
+    engage = _first_point_tasks(folder)[0]
+    assert engage["id"] == "EngageTargets"
+    assert engage["key"] == "CAP"
+    assert (engage["number"], engage["enabled"], engage["auto"]) == (1, True, True)
+    assert _items(engage["params"]["targetTypes"]) == ["Air"]
+
+
+def test_a_cap_template_engages_before_it_orbits(tmp_path: Path) -> None:
+    """An engagement numbered after an orbit that never ends is never reached."""
+    folder = _folder(tmp_path)
+    _cap(folder, route=[{"x": 51000.0, "y": 2000.0}])
+    assert [(t["number"], t["id"]) for t in _first_point_tasks(folder)] == [(1, "EngageTargets"), (2, "Orbit")]

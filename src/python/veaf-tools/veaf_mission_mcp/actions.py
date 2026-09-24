@@ -432,6 +432,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         ],
                         "description": "For 'add_task'. Unknown names are refused rather than guessed.",
                     },
+                    "task_position": {
+                        "type": "integer",
+                        "description": "For 'add_task': the 1-based place among the waypoint's tasks, the "
+                        "others renumbered after it; appended when omitted. DCS runs tasks in order, so an "
+                        "engagement placed after an orbit that never ends is never reached -- put it first.",
+                    },
                     "task_params": {
                         "type": "object",
                         "description": "That task's parameters. orbit: pattern (Race-Track|Circle), "
@@ -1420,6 +1426,20 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "type": "object",
                                     "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                                 },
+                                "route": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                                        "required": ["x", "y"],
+                                    },
+                                    "description": "Optional waypoints, as add_group's; the first is the start.",
+                                },
+                                "patrol": {
+                                    "type": "boolean",
+                                    "default": False,
+                                    "description": "Loop the route's last waypoint back to the first.",
+                                },
                             },
                             "required": ["name", "units"],
                         },
@@ -1877,6 +1897,7 @@ def _handle_edit_route(params: dict[str, Any]) -> dict[str, Any]:
         eta_locked=params.get("eta_locked"),
         task=params.get("task"),
         task_params=params.get("task_params"),
+        task_position=params.get("task_position"),
     )
 
 

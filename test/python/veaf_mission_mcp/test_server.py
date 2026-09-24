@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 
 import pytest
+from mcp.server.mcpserver.exceptions import ToolError
 from veaf_mission_mcp import server
 from veaf_mission_mcp.catalog import ActionNotFoundError
 
@@ -38,9 +39,38 @@ def test_describe_action_raises_a_clear_error_for_an_unknown_name() -> None:
         server.describe_action("does_not_exist")
 
 
+def _call_error(name: str, params: dict[str, object]) -> str:
+    """Run an action through the MCP server and return the error text the client reads.
+
+    In process, `call_tool` raises the `ToolError` whose message the client would receive.
+    """
+    with pytest.raises(ToolError) as caught:
+        asyncio.run(server.mcp.call_tool("run_action", {"name": name, "params": params}))
+    return str(caught.value)
+
+
 def test_run_action_raises_a_clear_error_for_an_unknown_name() -> None:
-    with pytest.raises(ActionNotFoundError):
-        server.run_action("does_not_exist", {})
+    assert "does_not_exist" in _call_error("does_not_exist", {})
+
+
+# FIX-SCRATCH-MISSION-FINDINGS ticket 19, point 7. `mcp` 2.x hands the client nothing but
+# "Error executing tool run_action" for any exception other than its own `ToolError` — so a misnamed
+# parameter, and every refusal an action words with care, reached the agent as that one line.
+
+
+def test_a_misnamed_parameter_is_named_to_the_client(tmp_path: Path) -> None:
+    message = _call_error("describe_map", {"miz_path": str(tmp_path)})
+    assert "mission_path" in message
+    assert "miz_path" in message
+
+
+def test_a_missing_parameter_is_named_to_the_client() -> None:
+    assert "mission_path" in _call_error("describe_map", {})
+
+
+def test_an_action_refusal_reaches_the_client_with_its_message(tmp_path: Path) -> None:
+    missing = tmp_path / "nowhere.miz"
+    assert "nowhere.miz" in _call_error("describe_map", {"mission_path": str(missing)})
 
 
 def test_run_action_dispatches_describe_mission_end_to_end(sample_miz: Path) -> None:

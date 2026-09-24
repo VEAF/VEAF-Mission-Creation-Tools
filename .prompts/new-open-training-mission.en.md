@@ -37,9 +37,10 @@ One at a time:
 3. **The starting template** of `scaffold_mission`. Present it like this:
    - `minimal` — the infrastructure and the core (radio menu, spawn, shortcuts, interpreter,
      security). For a very simple mission or a test bench.
-   - `standard` — the core, plus combat zones, QRA, CTLD and CSAR, tanker moves, weather, named
-     points, CAS and transport missions. **Recommended**: it is the base of an Open Training; add
-     what is missing (assets, CAP missions, Skynet, AIEN).
+   - `standard` — the core, plus CTLD and CSAR, tanker moves, weather, named points, CAS and
+     transport missions; combat zones and QRA are there as **commented examples**, which
+     `create_combat_zone` and `create_qra` turn on at their first call. **Recommended**: it is the
+     base of an Open Training; add what is missing (assets, CAP missions, Skynet, AIEN).
    - `full` — everything, including Skynet, AIEN, assets, CAP missions, sanctuaries, air waves, TUM,
      with the advanced configuration as commented examples. Heavier to read.
    (Check these contents in the generated `mission.yaml`: they may have changed.)

@@ -37,9 +37,10 @@ Une par une :
 3. **Le gabarit de départ** de `scaffold_mission`. Présente-le ainsi :
    - `minimal` — l'infrastructure et le cœur (menu radio, spawn, raccourcis, interpréteur,
      sécurité). Pour une mission très simple ou un banc d'essai.
-   - `standard` — le cœur, plus zones de combat, QRA, CTLD et CSAR, déplacement des ravitailleurs,
-     météo, points nommés, missions CAS et transport. **Reco** : c'est la base d'une Open Training ;
-     on y ajoute ce qu'il manque (assets, missions CAP, Skynet, AIEN).
+   - `standard` — le cœur, plus CTLD et CSAR, déplacement des ravitailleurs, météo, points nommés,
+     missions CAS et transport ; les zones de combat et les QRA y sont en **exemples commentés**, que
+     `create_combat_zone` et `create_qra` activent à leur premier appel. **Reco** : c'est la base
+     d'une Open Training ; on y ajoute ce qu'il manque (assets, missions CAP, Skynet, AIEN).
    - `full` — tout, dont Skynet, AIEN, assets, missions CAP, sanctuaires, vagues aériennes, TUM,
      avec la configuration avancée en exemples commentés. Plus lourd à relire.
    (Vérifie ces contenus dans le `mission.yaml` généré : ils peuvent avoir évolué.)

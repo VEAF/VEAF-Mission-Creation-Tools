@@ -158,6 +158,13 @@ modules:
         radio_menu_restrict_to_group: "MM Ctrl"  # optional: restrict the submenu to this DCS group
 ```
 
+!!! warning "This menu is not secured"
+    Without `radio_menu_restrict_to_group`, the submenu is posted for **every player**, on both sides,
+    and its commands run without asking for any security level. On a public server, any pilot can stop
+    or reset a zone while others are fighting in it. Keep it for a Mission Master group with
+    `radio_menu_restrict_to_group` — knowing that any player who takes that group's slot sees the menu
+    in turn.
+
 This is **mechanism 1** (per-module shortcut). For a custom MM menu that is structured or combines several actions (AirWaves, QRA, flags, messages, Lua), use **mechanism 2** described in [veafRadio → Radio menus in YAML](veafRadio.en.md#radio-menus-in-yaml).
 
 ### Minimal example

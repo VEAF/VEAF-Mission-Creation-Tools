@@ -32,7 +32,7 @@ from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.dcs_parking import ParkingStand, aircraft_stands_for_airbase, has_theatre, stands_for_airbase
 from veaf_libs.mission_table import indexed
 
-from veaf_mission_mcp.aircraft_payload import build_aircraft_payload
+from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons
 from veaf_mission_mcp.edit_route import _build_orbit
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
@@ -149,7 +149,7 @@ def add_air_group(
     # committed, so a bad explicit value fails without having half-written the mission.
     payload, fuel_warning = build_aircraft_payload(unit_type, fuel=fuel, fuel_fraction=fuel_fraction)
     if pylons:
-        payload["pylons"] = pylons
+        payload["pylons"] = normalize_pylons(pylons)
 
     group = _build_air_group(
         name=name,
@@ -250,7 +250,7 @@ def insert_air_group_into_content(
     """
     payload, fuel_warning = build_aircraft_payload(unit_type)
     if pylons:
-        payload["pylons"] = pylons
+        payload["pylons"] = normalize_pylons(pylons)
     group = _build_air_group(
         name=name,
         unit_type=unit_type,

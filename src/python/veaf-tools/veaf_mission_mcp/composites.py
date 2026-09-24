@@ -391,6 +391,15 @@ def _loadout(folder_path: Path, content: dict[str, Any], spec: dict[str, Any]) -
 
 
 def _find_air_group_in_content(content: dict[str, Any], name: str) -> dict[str, Any] | None:
+    """Return the plane or helicopter group of the mission table named `name`.
+
+    Args:
+        content: The parsed mission table.
+        name: The exact group name.
+
+    Returns:
+        The group, or None when the mission has none by that name.
+    """
     for coalition in (content.get("coalition") or {}).values():
         for country in indexed((coalition or {}).get("country")):
             for category in ("plane", "helicopter"):
@@ -401,6 +410,18 @@ def _find_air_group_in_content(content: dict[str, Any], name: str) -> dict[str, 
 
 
 def _find_air_group_in_catalogues(folder_path: Path, name: str) -> dict[str, Any] | None:
+    """Return the aircraft group named `name` from the aircraft catalogues, the folder's first.
+
+    Looks in `src/spawnables.yaml` then `src/dynamic-slot-templates.yaml`, each in the folder and
+    then in the shipped defaults — the order the build resolves them in.
+
+    Args:
+        folder_path: The mission folder.
+        name: The exact group name.
+
+    Returns:
+        The group, or None when no catalogue has one by that name.
+    """
     for relative in ("src/spawnables.yaml", "src/dynamic-slot-templates.yaml"):
         for path in (folder_path / relative, shipped_default_file(folder_path, relative)):
             if path is None or not path.is_file():

@@ -143,6 +143,23 @@ def test_a_qra_interceptor_carries_the_loadout_it_is_given(tmp_path: Path) -> No
     assert _items(unit["payload"]["pylons"])[0] == pylons[1]  # luadata reads [1] back as a list
 
 
+def test_a_loadout_passed_as_json_is_keyed_by_station_number(tmp_path: Path) -> None:
+    """A JSON object's keys are strings: `{"4": ...}` written as-is is `["4"]` in Lua, an entry DCS
+    ignores — the aircraft flies unarmed. Caught in review of #993; `set_unit_properties` had the same
+    trap handled since #726."""
+    folder = _folder(tmp_path)
+    _qra(folder, pylons={"4": {"CLSID": "{R-60M}"}})
+    text = (folder / "src" / "mission" / "mission").read_text(encoding="utf-8")
+    assert '["4"]' not in text
+    assert "[4] =" in text
+
+
+def test_a_bad_station_is_refused(tmp_path: Path) -> None:
+    folder = _folder(tmp_path)
+    with pytest.raises(ValueError):
+        _qra(folder, pylons={"left wing": {"CLSID": "{R-60M}"}})
+
+
 def test_a_qra_interceptor_can_copy_the_loadout_of_a_template(tmp_path: Path) -> None:
     folder = _folder(tmp_path)
     _qra(folder, loadout_from="veafSpawn-MiG-23 CAP")

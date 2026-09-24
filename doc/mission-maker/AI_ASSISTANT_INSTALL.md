@@ -81,6 +81,16 @@ demandez en langage naturel, par exemple :
 L'assistant crée le dossier, pose une carte blanche du théâtre, place les éléments, puis valide et
 construit le `.miz` — sans que vous quittiez la conversation.
 
+### Une mission Open Training complète
+
+Pour une mission d'entraînement VEAF entière — bases, soutien, défense aérienne, zones
+d'entraînement graduées, zones de combat, QRA, CAP, météo — collez au début de la session le prompt
+[`.prompts/new-open-training-mission.fr.md`](../../.prompts/new-open-training-mission.fr.md), dans
+un dossier vide (version anglaise :
+[`new-open-training-mission.en.md`](../../.prompts/new-open-training-mission.en.md)). Il fixe les règles de conception (quelles bases, combien de zones, quelle défense
+selon la taille du front) et ne pose que quatre ou cinq questions : la carte, l'époque, le gabarit,
+une éventuelle mission dont s'inspirer, les escortes.
+
 ## Mettre à jour le plugin
 
 Quand une nouvelle version du plugin sort, avec Claude Code :

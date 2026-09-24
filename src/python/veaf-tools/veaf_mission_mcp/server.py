@@ -11,6 +11,7 @@ from typing import Any
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.shared.exceptions import MCPError
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_tools.app import VERSION
 
@@ -80,7 +81,7 @@ def run_action(name: str, params: dict[str, Any] | None = None) -> Any:
     except (ToolError, MCPError):
         raise
     except Exception as exc:
-        logger.warning(f"run_action {name!r} failed: {type(exc).__name__}: {exc}")
+        logger.warning(t("mcp.run_action_failed", name=name, error=f"{type(exc).__name__}: {exc}"))
         raise ToolError(f"{type(exc).__name__}: {exc}") from exc
 
 

@@ -78,6 +78,7 @@ The AI can act in two places, and it changes what "survives":
 | 34 | [Place a coalition's bullseye](#set-bullseye) | 🕰️ Mission settings | Recipe + built | ⭐ |
 | 35 | [Write the briefing](#set-briefing) | 🕰️ Mission settings | Recipe + built | ⭐ |
 | 36 | [Know the known limitations](#known-limitations) | Domain knowledge | — | ⭐ |
+| 37 | [List a theatre's airfields](#list-airfields) | 🛫 Bases & airfields | — | ⭐ |
 
 ---
 
@@ -205,7 +206,7 @@ warnings. Do this before building.
 *Folder · 🔥* — Builds the folder into a `.miz` ready to play in DCS (runs `veaf-tools mission build`). The
 payoff: empty folder → content → **playable mission**.
 
-> 💬 *"Build the mission."*
+> 💬 *"Build the mission."* · *"Build the local test version."*
 
 ## 🏗️ Composites — create a full feature (one pass)
 
@@ -251,6 +252,14 @@ coalition's dynamic aircraft at build time. For a base that must offer **no** sl
 base, say), say so: the colour changes and the slots stay closed.
 
 > 💬 *"Make Mezzeh blue."* · *"Turn Stendal red, with no dynamic slots."*
+
+### List a theatre's airfields {#list-airfields}
+
+*Read · ⭐* — A map's bases, with their exact name, their DCS number and their position: enough to
+choose which bases to colour, or to place something near one of them, without guessing a name.
+Works before a mission exists too, by naming the map.
+
+> 💬 *"Which bases are there in East Germany on GermanyCW?"*
 
 ## 🕰️ Mission settings
 

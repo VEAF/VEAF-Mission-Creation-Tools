@@ -33,7 +33,7 @@ from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
-from veaf_mission_mcp.map_tools import describe_map, resolve_coordinates
+from veaf_mission_mcp.map_tools import describe_map, list_airfields, resolve_coordinates, resolve_coordinates_batch
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
@@ -1349,11 +1349,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "type": "object",
                 "properties": {
                     "folder_path": {"type": "string", "description": "Path to the mission folder to build."},
+                    "profile": {
+                        "type": "string",
+                        "description": "Optional build profile, passed as 'veaf-tools build --profile' "
+                        "(e.g. LOCAL_TEST for a local test build). Omitted: the mission's own profiles.",
+                    },
                 },
                 "required": ["folder_path"],
             },
         ),
-        handler=lambda p: build_mission(Path(p["folder_path"])),
+        handler=lambda p: build_mission(Path(p["folder_path"]), profile=p.get("profile")),
     )
     catalog.register(
         ActionSpec(
@@ -1639,11 +1644,38 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="list_airfields",
+            description=(
+                "List a theatre's airbases -- name, DCS airdrome id, lat/lon, and DCS x/y when the "
+                "theatre's projection is known -- from the data shipped with the tools. Read-only. "
+                "Use it to choose bases for set_airbase_coalition and to place things near a base, "
+                "instead of guessing names or reading data files. Pass the mission, or a theatre name "
+                "before there is one."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "A .miz or mission folder whose theatre to list (wins over theatre).",
+                    },
+                    "theatre": {"type": "string", "description": "A DCS theatre name, e.g. 'GermanyCW'."},
+                },
+            },
+        ),
+        handler=lambda p: list_airfields(
+            mission_path=Path(p["mission_path"]) if p.get("mission_path") else None,
+            theatre=p.get("theatre"),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
             name="resolve_coordinates",
             description=(
                 "Convert a position between DCS local x/y and geographic lat/lon for the mission's "
                 "theatre (read from the mission, so no projection parameters needed). Pass a "
-                "position as {x, y} or {lat, lon}; returns both representations."
+                "position as {x, y} or {lat, lon}; returns both representations. To convert several "
+                "points in one call, pass 'positions' (a list) instead: returns {theatre, points}."
             ),
             parameters_schema={
                 "type": "object",
@@ -1663,11 +1695,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "lon": {"type": "number"},
                         },
                     },
+                    "positions": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": "Several positions, each shaped like 'position'; converted in order. "
+                        "Pass this OR 'position'.",
+                    },
                 },
-                "required": ["mission_path", "position"],
+                "required": ["mission_path"],
             },
         ),
-        handler=lambda p: resolve_coordinates(Path(p["mission_path"]), p["position"]),
+        handler=_handle_resolve_coordinates,
     )
     catalog.register(
         ActionSpec(
@@ -1993,6 +2031,25 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         late_activation=params.get("late_activation", False),
         pylons=params.get("pylons"),
     )
+
+
+def _handle_resolve_coordinates(p: dict[str, Any]) -> dict[str, Any]:
+    """Dispatch `resolve_coordinates` to one position or to a list of them.
+
+    Args:
+        p: The action's parameters.
+
+    Returns:
+        The single conversion, or ``{theatre, points}`` for ``positions``.
+
+    Raises:
+        ValueError: When neither or both of ``position`` and ``positions`` are given.
+    """
+    if ("position" in p) == ("positions" in p):
+        raise ValueError("resolve_coordinates takes 'position' or 'positions', exactly one of them")
+    if "positions" in p:
+        return resolve_coordinates_batch(Path(p["mission_path"]), p["positions"])
+    return resolve_coordinates(Path(p["mission_path"]), p["position"])
 
 
 def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:

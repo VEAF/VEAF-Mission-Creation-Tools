@@ -550,6 +550,8 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),
             # DCS airdrome name->id table (per theatre), read by the warehouse wiring.
             (veaf_tools_dir / "veaf_libs" / "data" / "airdromes.yaml", "veaf_libs/data"),
+            # DCS airbase positions (per theatre), read by the MCP list_airfields action.
+            (veaf_tools_dir / "veaf_libs" / "data" / "airdrome-positions.yaml", "veaf_libs/data"),
             # DCS airfield ATC frequencies (per theatre), read by convert-v5 freq aliasing.
             (veaf_tools_dir / "veaf_libs" / "data" / "airfield-frequencies.yaml", "veaf_libs/data"),
             # VEAF framework spawn data, rendered to Lua and injected at mission build.

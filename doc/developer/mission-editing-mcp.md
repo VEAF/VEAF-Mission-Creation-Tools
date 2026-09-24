@@ -269,6 +269,11 @@ AttackGroup, surchargeable via `weapon_type`), les paires `altitude`/`altitudeEn
 `altitude_ft`/`direction_deg`), et l'ensemble `expend`/`attackQty`/`groupAttack`. `EngageTargetsInZone`
 porte aussi `noTargetTypes` (liste d'exclusion, vide par défaut).
 
+**L'ordre des tâches compte.** DCS les exécute par `number`, et une tâche placée après une orbite sans
+fin n'est jamais atteinte. `add_task` ajoute à la fin par défaut ; `task_position` (1-based) l'insère à
+une place donnée et renumérote les autres — pour mettre un engagement **avant** l'orbite
+(`FIX-SCRATCH-MISSION-FINDINGS` ticket 17).
+
 ```json
 {
   "miz_path": "chemin/vers/mission.miz",
@@ -797,6 +802,9 @@ produit le `.miz`). Elles orchestrent les primitives des vagues 1-7 (`insert_tri
 
 Zone de déclenchement + groupes placés dedans (noms auto-préfixés par la zone → capturés au
 runtime, coalition indifférente) + bloc `modules.COMBATZONE.combat_zones[]` **ajouté** au yaml.
+Chaque groupe accepte `route` et `patrol`, de la même forme qu'`add_group` : un convoi qui traverse la
+zone est un groupe de la zone, pas un appel séparé. En catégorie `ship`, les navires sont espacés de
+600 m (ceux d'un véhicule, 20 m, les faisaient se percuter à l'apparition).
 
 ### `create_qra`
 
@@ -807,7 +815,9 @@ coalition est passée en minuscule pour le placement, majuscule dans la définit
 ### `create_cap_mission`
 
 Groupe template **Late Activation** nommé `OnDemand-<nom>` + entrée `cap_missions[]`
-(`group_name: <nom>`, sans préfixe — le build résout vers le groupe `OnDemand-`).
+(`group_name: <nom>`, sans préfixe — le build résout vers le groupe `OnDemand-`). Le premier point
+porte la tâche `EngageTargets` (cibles `Air`) que l'éditeur ajoute de lui-même à une tâche CAP, numérotée
+**avant** l'orbite : sans elle, le vol patrouille et n'engage jamais.
 
 ## Scaffolding d'un dossier de mission (vague 9)
 
@@ -870,6 +880,18 @@ LLM s'oriente sans DCS.
 {"mission_path": "chemin/vers/mission.miz-ou-dossier"}
 ```
 
+### `list_airfields`
+
+Lecture seule. Liste les bases d'un théâtre — nom, id d'aérodrome DCS, lat/lon, et `x`/`y` DCS quand
+la projection du théâtre est connue — depuis la donnée livrée avec les outils
+(`veaf_libs/data/airdrome-positions.yaml`, générée avec `airdromes.yaml` depuis les dumps runtime par
+`veaf-build update-dcs-data --airdromes`). Avec `mission_path`, le théâtre de la mission ; sans
+mission, `theatre`.
+
+```json
+{"theatre": "GermanyCW"}
+```
+
 ### `resolve_coordinates`
 
 Utilitaire. Convertit une position entre `{x, y}` (local DCS) et `{lat, lon}` (degrés décimaux) pour
@@ -879,6 +901,10 @@ projection).
 ```json
 {"mission_path": "…", "position": {"lat": 42.18, "lon": 41.68}}
 ```
+
+Pour convertir plusieurs points en un appel, `positions` (une liste) à la place de `position` : la
+réponse est `{theatre, points}`, dans l'ordre donné, et une position incomplète est nommée par son
+index.
 
 ### `geocode`
 
@@ -915,9 +941,10 @@ process. Renvoie `{ok, errors[], warnings[]}` (`ok = false` dès qu'une erreur).
 Écriture. Construit le dossier en `.miz` jouable en pilotant **`veaf-tools mission build`** dans le dossier
 (le binaire installé par `scaffold_mission`, ou `veaf-tools` du PATH). L'orchestration du build vit
 dans la commande CLI, on la réexécute telle quelle. Un échec de build est remonté (`RuntimeError`).
+`profile` (optionnel) est passé en `--profile` — `LOCAL_TEST` pour un build de test local.
 
 ```json
-{"folder_path": "chemin/vers/dossier-mission"}
+{"folder_path": "chemin/vers/dossier-mission", "profile": "LOCAL_TEST"}
 ```
 
 ## Prochaines vagues (hors périmètre)

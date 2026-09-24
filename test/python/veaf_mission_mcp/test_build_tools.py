@@ -36,6 +36,27 @@ class TestBuildMission:
         assert result["ok"] is True
         assert "built ok" in result["message"]
 
+    def test_passes_a_build_profile(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Ticket 19: LOCAL_TEST could not be built through the MCP."""
+        seen: dict[str, Any] = {}
+        monkeypatch.setattr(
+            build_tools.subprocess,
+            "run",
+            lambda cmd, **k: seen.update(cmd=cmd) or SimpleNamespace(returncode=0, stdout="", stderr=""),
+        )
+        build_tools.build_mission(tmp_path, profile="LOCAL_TEST")
+        assert seen["cmd"][1:] == ["build", "--profile", "LOCAL_TEST"]
+
+    def test_no_profile_builds_as_before(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        seen: dict[str, Any] = {}
+        monkeypatch.setattr(
+            build_tools.subprocess,
+            "run",
+            lambda cmd, **k: seen.update(cmd=cmd) or SimpleNamespace(returncode=0, stdout="", stderr=""),
+        )
+        build_tools.build_mission(tmp_path)
+        assert seen["cmd"][1:] == ["build"]
+
     def test_uses_the_folders_installed_binary_when_present(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

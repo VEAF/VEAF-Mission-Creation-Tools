@@ -80,40 +80,45 @@ def _warnings(folder: Path) -> list[str]:
     return [i.message for i in validate_mission_folder(folder)]
 
 
-_NO_SLOT = t("validate.no_player_slot")
-_NO_PRESET_TARGET = t("validate.presets_no_aircraft")
+def _no_slot() -> str:
+    # Resolved at assertion time: another test may switch the language after this module is imported.
+    return t("validate.no_player_slot")
+
+
+def _no_preset_target() -> str:
+    return t("validate.presets_no_aircraft")
 
 
 class TestDynamicSlotsCount:
     def test_a_base_open_to_dynamic_slots_is_a_player_slot(self, tmp_path: Path) -> None:
         messages = _warnings(_folder(tmp_path, warehouses=_warehouses(True)))
-        assert _NO_SLOT not in messages
-        assert _NO_PRESET_TARGET not in messages
+        assert _no_slot() not in messages
+        assert _no_preset_target() not in messages
 
     def test_a_base_the_warehouses_config_will_open_is_a_player_slot(self, tmp_path: Path) -> None:
         """The editor writes `dynamicSpawn = false`; the build's warehouses step turns it on."""
         folder = _folder(tmp_path, warehouses=_warehouses(False), warehouses_yaml="blue:\n  defaults: {}\n")
         messages = _warnings(folder)
-        assert _NO_SLOT not in messages
-        assert _NO_PRESET_TARGET not in messages
+        assert _no_slot() not in messages
+        assert _no_preset_target() not in messages
 
     def test_static_slots_alone_still_count(self, tmp_path: Path) -> None:
-        assert _NO_SLOT not in _warnings(_folder(tmp_path, mission=_WITH_CLIENT))
+        assert _no_slot() not in _warnings(_folder(tmp_path, mission=_WITH_CLIENT))
 
 
 class TestStillWarned:
     def test_neither_static_nor_dynamic_slots(self, tmp_path: Path) -> None:
         messages = _warnings(_folder(tmp_path, warehouses=_warehouses(False)))
-        assert _NO_SLOT in messages
-        assert _NO_PRESET_TARGET in messages
+        assert _no_slot() in messages
+        assert _no_preset_target() in messages
 
     def test_a_neutral_base_offers_no_slot(self, tmp_path: Path) -> None:
         folder = _folder(tmp_path, warehouses=_warehouses(True, coalition="NEUTRAL"))
-        assert _NO_SLOT in _warnings(folder)
+        assert _no_slot() in _warnings(folder)
 
     def test_the_warehouses_config_does_not_open_a_side_it_does_not_declare(self, tmp_path: Path) -> None:
         folder = _folder(tmp_path, warehouses=_warehouses(False), warehouses_yaml="red:\n  defaults: {}\n")
-        assert _NO_SLOT in _warnings(folder)
+        assert _no_slot() in _warnings(folder)
 
     @pytest.mark.parametrize(
         "mission_yaml",
@@ -126,4 +131,4 @@ class TestStillWarned:
             warehouses_yaml="blue:\n  defaults: {}\n",
             mission_yaml=mission_yaml,
         )
-        assert _NO_SLOT in _warnings(folder)
+        assert _no_slot() in _warnings(folder)

@@ -79,6 +79,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 34 | [Placer le bullseye d'une coalition](#set-bullseye) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 | 35 | [Écrire le briefing](#set-briefing) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 | 36 | [Connaître les limites connues](#known-limitations) | Connaissance métier | — | ⭐ |
+| 37 | [Lister les aérodromes d'un théâtre](#list-airfields) | 🛫 Bases & aérodromes | — | ⭐ |
 
 ---
 
@@ -207,7 +208,7 @@ avertissements. À faire avant de construire.
 *Dossier · 🔥* — Construit le dossier en fichier `.miz` prêt à jouer dans DCS (lance `veaf-tools
 build`). C'est l'aboutissement : dossier vide → contenu → **mission jouable**.
 
-> 💬 *« Construis-moi la mission. »*
+> 💬 *« Construis-moi la mission. »* · *« Construis la version de test locale. »*
 
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 
@@ -255,6 +256,14 @@ ne doit offrir **aucun** slot (une base ennemie, par exemple), dis-le : la coule
 restent fermés.
 
 > 💬 *« Mets la base de Mezzeh en bleu. »* · *« Passe Stendal en rouge, sans slots dynamiques. »*
+
+### Lister les aérodromes d'un théâtre {#list-airfields}
+
+*Lecture · ⭐* — Les bases d'une carte, avec leur nom exact, leur numéro DCS et leur position : de quoi
+choisir les bases à colorer, ou placer quelque chose près de l'une d'elles, sans deviner un nom.
+Marche aussi avant qu'une mission existe, en nommant la carte.
+
+> 💬 *« Quelles bases y a-t-il en Allemagne de l'Est sur GermanyCW ? »*
 
 ## 🕰️ Réglages de la mission
 

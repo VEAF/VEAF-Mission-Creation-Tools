@@ -1,6 +1,6 @@
 # 15 — The build turns dynamic slots on at every airfield of a side, over `dynamic_spawn: false`
 
-Status: ✅ done
+Status: ✅ done (#1000)
 Type: fix
 Files: `src/python/veaf-tools/warehouses_injector/warehouses_injector_worker.py`, tests,
 `doc/PIPELINE_REFERENCE*.md` (the `warehouses.yaml` section)

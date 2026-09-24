@@ -1,6 +1,6 @@
 # 18 — `create_combat_zone` takes no route for its groups
 
-Status: ✅ done
+Status: ✅ done (#1000)
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/composites.py`, `actions.py`, tests,
 `doc/mission-maker/AI_ASSISTANT_CATALOG*.md`

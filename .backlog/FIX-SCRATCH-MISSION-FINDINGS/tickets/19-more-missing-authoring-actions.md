@@ -1,6 +1,6 @@
 # 19 — More actions the agent had to replace with scripts on the Lua table
 
-Status: ✅ done
+Status: ✅ done (#1000)
 Type: feat + fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/` (actions, `catalog.py`, `server.py`), tests,
 `doc/mission-maker/AI_ASSISTANT_CATALOG*.md`

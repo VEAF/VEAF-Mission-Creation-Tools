@@ -1,6 +1,6 @@
 # 21 — Two docs that do not describe the code
 
-Status: ✅ done
+Status: ✅ done (#1000)
 Type: doc (+ a naming decision, point 1)
 Files: `doc/mission-maker/scripts/veafCombatMission*.md`, `.prompts/new-open-training-mission*.md`,
 possibly `veaf_libs/mission_template.py`

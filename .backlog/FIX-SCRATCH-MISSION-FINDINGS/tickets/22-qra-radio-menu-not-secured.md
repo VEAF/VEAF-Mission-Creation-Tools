@@ -1,6 +1,6 @@
 # 22 — `radio_menu: true` on a QRA hands Start / Stop to every player, unsecured
 
-Status: ✅ done
+Status: ✅ done (#1000)
 Type: fix + doc
 Files: `src/python/veaf-tools/veaf_libs/lua_config_generator.py`,
 `doc/mission-maker/scripts/veafQraManager*.md`, the AirWaves doc, tests

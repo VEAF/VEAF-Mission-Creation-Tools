@@ -1,6 +1,6 @@
 # 16 — Ships placed 20 m apart
 
-Status: ✅ done
+Status: ✅ done (#1000)
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/add_group.py`, tests
 

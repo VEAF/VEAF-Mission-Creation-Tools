@@ -1,6 +1,6 @@
 # FIX-SCRATCH-MISSION-FINDINGS — what building one mission from scratch with 6.24.0 found
 
-Status: 🔄 in-progress — reopened on 2026-09-24 (#999). Tickets 01–14 merged: #992 (01–05, 09), #993 (06, 08), #994 (07), #995 (10), #996 (11–13), #998 (14). Tickets 15–22 (second GermanyCW-v6 rebuild, 2026-09-24) done in PR 6, open; 17 waits for a check in DCS. The rebuild with the fixed tools is still owed — see the Definition of Done.
+Status: 🧑 waiting-human — reopened on 2026-09-24 (#999). Tickets 01–14 merged: #992 (01–05, 09), #993 (06, 08), #994 (07), #995 (10), #996 (11–13), #998 (14). Tickets 15–22 (second GermanyCW-v6 rebuild, 2026-09-24) merged in #1000; 17 waits for a check in DCS. Status 🧑: the rebuild with the fixed tools is still owed — see the Definition of Done — David plays the Germany map with the fixed tools on the evening of 2026-09-24.
 
 ## Origin
 

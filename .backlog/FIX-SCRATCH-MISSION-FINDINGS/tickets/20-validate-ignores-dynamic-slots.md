@@ -1,6 +1,6 @@
 # 20 — `validate_mission` says there is no player slot in a mission made of dynamic slots
 
-Status: ✅ done
+Status: ✅ done (#1000)
 Type: fix
 Files: `src/python/veaf-tools/veaf_libs/mission_validator.py`, tests
 

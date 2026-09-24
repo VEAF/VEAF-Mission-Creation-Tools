@@ -1,6 +1,6 @@
 # 14 — A reusable prompt to build an Open Training mission on any map
 
-Status: 🔄 in review
+Status: ✅ done (#998)
 Type: doc
 Files: `.prompts/new-open-training-mission.fr.md` and `.en.md` (new), `doc/mission-maker/AI_ASSISTANT_INSTALL*.md`
 

@@ -12,15 +12,23 @@ ask the user for mechanical details you can decide correctly yourself.
 
 ## Always ground yourself in the oracle — never from memory
 
+**Before anything else, call `describe_known_limitations`.** It returns, for the installed
+veaf-tools version, what the tools cannot do yet (with how to do without) and the DCS behaviours
+that raise no error and are wrong anyway — a late-activated group visible to scripts, `start_time`
+not delaying an air spawn, a SAM without early-warning radar permanently lit… Take them into account
+throughout; this skill deliberately does not repeat them, since a trap copied here would go stale.
+
 Before naming a group, picking a unit type, or configuring a module, call the read-only oracle
 actions. They read VEAF's canonical, always-current data — your training memory of DCS types or
 VEAF conventions may be stale or wrong.
 
 - `list_unit_types` — real DCS unit type ids (filter by category / name).
 - `list_shortcuts` — VEAF spawn aliases. Three families: `units` (`shilka`, `sa8`), `groups`
-  (composite SAM/convoy groups), and `commands` — the `#command` shortcuts (`-samLR`, `-samSR`,
-  `-armor`, random convoys, …). **This is the authoritative source for the `-<alias>` you put in a
-  combat-zone `#command`** — never guess an alias from memory (there is no `-lrsam`; it is `-samLR`).
+  (composite SAM/convoy groups), and `commands` — the `#command` shortcuts (`-samVLR`, `-samLR`,
+  `-armor`, random convoys, …), each with its `randomParameters`: the range of every parameter it
+  draws on each use (`-samLR` and `-samSR` run the same command and differ only by their `defense`
+  range). **This is the authoritative source for the `-<alias>` you put in a combat-zone
+  `#command`** — never guess an alias from memory (there is no `-lrsam`).
 - `describe_naming_conventions` — the reserved naming patterns (below).
 - `describe_module` — is a module real? its doc page? enabled in this mission?
 
@@ -56,7 +64,7 @@ The dangerous ones:
 - `OnDemand-<name>` → CAP-mission template (late activation).
 - `#veafInterpreter["<cmd>"]` in a name → the unit is destroyed and the command runs at start.
 - Unit-name markers `#command=`, `#spawngroup=`, `#spawnradius=`, `#spawncount=`, `#spawnchance=`,
-  `#spawndelay=` → tune combat-zone spawn behaviour.
+  `#spawndelay=`, `#alarm=` → tune combat-zone spawn behaviour.
 - QRA deploy entries starting with `[` or `-` are read as commands, not group names.
 
 ## Prefer VEAF aliases over literal units
@@ -67,7 +75,10 @@ convoy…), **use the alias, not hand-placed literal DCS units** — whether as 
 command a `category` (SAM / AAA / infantry / armor / artillery / naval / transport / …), so look
 there first to find the right alias. Fall back to literal units only when **no alias fits** — a
 specific airframe/type or an exact placement the alias can't express. Example: asked for a
-long-range SAM, place a `#veafInterpreter["-samLR"]` carrier, **not** a literal Patriot battery.
+long-range SAM, place a `#veafInterpreter["-samVLR"]` carrier, **not** a literal Patriot battery.
+`-samVLR` draws a real long-range battery for the mission's era; `-samLR`, despite its name, is a
+**medium**-range group (defense level 4–5: Roland/Hawk, Osa/Tor). The `defense` level of `-sam`,
+`-samSR`, `-samLR`, `-aaa` and of the section escorts is rolled ±1 and follows `mission.era`.
 
 ## Combat zone vs QRA — two different group models
 
@@ -87,8 +98,9 @@ finds nothing. Do not try to share groups between zones through overlapping name
 **Difficulty levels on the same targets** (easy ⊂ medium ⊂ hard — the usual shape of a training
 range): three zones on the **same circle** with **non-overlapping names** (`…_Easy`, `…_Medium`,
 `…_Hard`), each holding only its own additions, then have each level include the one below with the
-`includes:` key of `combat_zones[]` (see `describe_module COMBATZONE`; missions built before it used
-`veafCombatZone.GetZone(b):addZoneElementsFromZoneNamed(a)` in `mission-script.lua`).
+`includes: [<lower level>]` key of `combat_zones[]` — transitive, so `hard` includes `medium` only
+and gets `easy` too; the build refuses an unknown zone or a cycle (see `describe_module COMBATZONE`).
+Play **one level at a time**: two active levels each spawn their own copy of the shared targets.
 
 **Inert targets** (a level that must not shoot back): use **statics** (`category: static`). A live
 armoured vehicle has an AA machine gun and fires at helicopters, and no zone tag sets weapons hold
@@ -101,7 +113,7 @@ route when it respawns it. Put the convoy's air defense (Shilka, SA-13…) **in 
 follows the column.
 
 **Coalition rule:** a `#command` fake-unit spawns in **its own coalition** — a blue fake-unit →
-a blue SAM (`-samLR` is not inherently red; its "random" is the battery *type*). So for a blue SAM
+a blue SAM (`-sam` is not inherently red; what it draws at random is the level, never the side). So for a blue SAM
 site, make the fake-unit **blue** — don't fall back to literal units just for a colour. (The
 "coalition is ignored" above only governs which real groups the zone *captures* by geometry.)
 
@@ -120,7 +132,7 @@ is not the one playing the zone.
 **Permanent asset vs combat-zone asset — two spawn markers, don't confuse them:**
 - `#veafInterpreter["<alias …>"]` on a unit's **`name`** → spawned **at mission start** and
   **permanent** (the carrier unit is destroyed). Use it — **in preference to a literal unit** — for
-  always-there assets, e.g. a fixed SAM site: a **blue** unit named `#veafInterpreter["-samLR"]` →
+  always-there assets, e.g. a fixed SAM site: a **blue** unit named `#veafInterpreter["-samVLR"]` →
   a blue long-range SAM at that spot on start. Same alias vocabulary as `list_shortcuts`; same
   coalition rule (follows the carrier).
 - `#command="-<alias> …"` on a fake-unit **inside a combat-zone** → spawned when the **zone is
@@ -215,31 +227,34 @@ the coalitions that actually get dynamic slots.
 - `mission.name` ending in `_ICAO_<code>`: an airfield **of the theatre** whose METAR station is
   alive — check it (`https://tgftp.nws.noaa.gov/data/observations/metar/stations/<ICAO>.TXT`, the
   day in `DDHHMMZ` must be today). It is how the server's RealWeather finds the weather.
-- `mission.era`, the mission **date**, and `versions.yaml` `base_date` consistent with each other (a
-  Cold War mission is not dated 2016, the blank mission's default).
-- A **bullseye on a landmark** pilots can name, the same for both sides unless the scenario says
-  otherwise. The blank mission's bullseyes are arbitrary.
-- A briefing (`sortie`, situation, blue task) that lists bases, support frequencies, zones and rules.
+- `mission.era`, the mission **date** (`set_mission_date`, start time on the theatre's clock), and
+  `versions.yaml` `base_date` consistent with each other (a Cold War mission is not dated 2016, the
+  blank mission's default).
+- A **bullseye on a landmark** pilots can name (`set_bullseye`), the same for both sides unless the
+  scenario says otherwise. The blank mission's bullseyes are arbitrary.
+- A briefing (`set_briefing`: `sortie`, situation, blue task) that lists bases, support frequencies,
+  zones and rules.
 
 **Airbases.** Colour every airfield of each side (`set_airbase_coalition`), not a sample: the
 front line must read on the map. Decide which bases offer slots; a neutral base with dynamic slots,
 or a red base with slots nobody asked for, is an inconsistency.
 
 **Support aircraft.**
-- A tanker needs the `Tanker` enroute task, a TACAN (`ActivateBeacon`, bound to the unit id) and
-  unlimited fuel; an AWACS the `AWACS` task and EPLRS. A plain `add_air_group` gives neither.
+- A tanker needs its tasks, which a plain `add_air_group` does not give: `edit_route` `add_task`
+  with `tanker`, `activate_beacon` (its TACAN) and `set_unlimited_fuel`; an AWACS `awacs` and
+  `eplrs`; an escort `escort`, naming the escorted group.
 - **Tracks must not overlap** at the same altitude (two tankers on one race-track in opposite
   directions is a mid-air collision); orbit altitude = waypoint altitude.
 - One name per asset **everywhere**: group name, callsign family (Texaco = 1, Arco = 2, Shell = 3;
   AWACS Overlord = 1, Magic = 2…), radio frequency, preset label and `ASSETS` information text must
   agree. Cross-check them once written.
 - Interceptors and CAP templates: **a loadout** (the `veafSpawn-*` groups of `src/spawnables.yaml`
-  are a sourced place to copy CLSIDs from), late activation, and an **air start** on a theatre
-  without parking data (`add_air_group` refuses a runway / ramp start there).
+  are a sourced place to copy CLSIDs from), late activation, and the start the theatre allows
+  (`describe_known_limitations` says where a runway or ramp start is not available).
 
 **Combat content.**
 - A **training range close to a blue base** (Kobuleti next to Batumi on Caucasus): three nested
-  levels — inert statics, light AAA, realistic short-range defense.
+  levels through `includes:` — inert statics, light AAA, realistic short-range defense.
 - **Real zones** beyond it — at least six more than the training ones, of different kinds: front-line
   armor, SEAD site, moving convoys, deep strike (HQ, SCUD, airbase OCA), antiship when there is sea.
   Pick real places of the era (`geocode`), and air defense of the era (`list_shortcuts` categories).

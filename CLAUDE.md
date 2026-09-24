@@ -136,6 +136,7 @@ For every action requested by the user, execute these steps in order:
    *Why a PR must not bump it:* the rule used to require a PATCH bump on every change, which made any two concurrent PRs conflict by construction — on `pyproject.toml`, both manifests and the `CHANGELOG.md` heading, none of which carries engineering content. Measured over the 10 merges following 6.16.0: 9 touched the changelog, 8 touched the version files. One documentation-only PR needed **three rebases in one hour**, renumbering 6.16.5 → .8 as `develop` took each number first. The numbers bought little — 6.16.0 consolidated **47 patch versions, none of them ever published**.
 6. Run `poetry install` to update the development environment.
 7. **Defaults lockstep**: if the change touches how `convert-v5` or `lua_config_generator` produce `mission.yaml` (comments, config blocks, module keys, structure), update `src/defaults/mission-folder/mission.yaml` in the **same lot** so the shipped default stays aligned with the generated output.
+8. **Known limitations**: a lot that finds a limitation of the tools without fixing it adds an entry to `src/python/veaf-tools/veaf_libs/data/known-limitations.yaml` (`kind: tool`); a lot that fixes one sets that entry's `fixed_in` to the coming release; a surprising DCS behaviour, measured, goes there too (`kind: dcs`, with its date). Then run `poetry run python -m veaf_libs.known_limitations` to regenerate `docs/agents/dcs-runtime-traps.md`. *Why:* the MCP action `describe_known_limitations` serves that file from the executable, so an agent building a mission without this repository reads the traps that match its version — a trap left in a prompt or a skill goes stale.
 
 ---
 
@@ -214,5 +215,6 @@ writing code that places anything.
 anyway — a late-activated group answering `isExist()` and `inAir()` true, `start_time` not delaying a
 spawn, a SAM with no EWR being permanently lit rather than dark, half the air-defence vehicles being
 blind as spotters. Read it before writing anything that places, delays, activates or lights something
-up, and **add to it**: when a DCS behaviour surprises you, write down the measurement — the value, the
-date, and what it broke — not the conclusion.
+up, and **add to it** — through `veaf_libs/data/known-limitations.yaml`, from which the page is
+generated (§9, item 8): when a DCS behaviour surprises you, write down the measurement — the value,
+the date, and what it broke — not the conclusion.

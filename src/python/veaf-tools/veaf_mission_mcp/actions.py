@@ -37,6 +37,7 @@ from veaf_mission_mcp.map_tools import describe_map, resolve_coordinates
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
+    describe_known_limitations,
     describe_module,
     describe_naming_conventions,
     list_shortcuts,
@@ -1707,7 +1708,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="list_shortcuts",
             description=(
                 "List the VEAF spawn aliases (the '-shilka'/'-sa8'… vocabulary) from the "
-                "canonical veaf-units.yaml: unit aliases and composite group aliases. Read-only."
+                "canonical veaf-units.yaml: unit aliases and composite group aliases, plus the "
+                "'#command' shortcuts ('-samLR', '-armor'…) with the range of each parameter they "
+                "draw at random ('defense', 'armor', 'size'). Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -1729,6 +1732,25 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={"type": "object", "properties": {}},
         ),
         handler=lambda _p: describe_naming_conventions(),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_known_limitations",
+            description=(
+                "Read this before building a mission. Returns, for the running veaf-tools version, "
+                "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
+                "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
+                "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
+                "and what it cost. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string", "enum": ["tool", "dcs"], "description": "Return one kind only."},
+                },
+            },
+        ),
+        handler=lambda p: describe_known_limitations(kind=p.get("kind")),
     )
     catalog.register(
         ActionSpec(

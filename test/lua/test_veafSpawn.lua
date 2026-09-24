@@ -187,6 +187,22 @@ function TestVeafSpawnMarkTextAnalysis:test_spawn_group_sets_flag()
   luaunit.assertTrue(r.group)
 end
 
+-- FIX-SCRATCH-MISSION-FINDINGS 12: `-samVLR` spawns a real long-range battery, `-samLR` keeps its
+-- defense-level group
+function TestVeafSpawnMarkTextAnalysis:test_spawn_longrangesam_sets_both_flags()
+  local r = veafSpawn.markTextAnalysis("_spawn longrangesam, skynet true")
+  luaunit.assertNotNil(r)
+  luaunit.assertTrue(r.airDefenseBattery)
+  luaunit.assertTrue(r.longRange)
+  luaunit.assertTrue(r.skynet)
+end
+
+function TestVeafSpawnMarkTextAnalysis:test_spawn_samgroup_is_not_long_range()
+  local r = veafSpawn.markTextAnalysis("_spawn samgroup")
+  luaunit.assertTrue(r.airDefenseBattery)
+  luaunit.assertFalse(r.longRange == true)
+end
+
 function TestVeafSpawnMarkTextAnalysis:test_spawn_smoke_sets_flag()
   local r = veafSpawn.markTextAnalysis("_spawn smoke")
   luaunit.assertNotNil(r)

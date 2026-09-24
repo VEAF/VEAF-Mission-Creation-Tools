@@ -655,4 +655,179 @@ function TestVeafCasMissionReportWithoutBullseye:test_the_pilot_still_gets_the_r
   luaunit.assertNil(self.messages[1]:find("bullseye_value", 1, true), "the bullseye line has nothing to say and is dropped")
 end
 
+-- ============================================================================
+-- FIX-SCRATCH-MISSION-FINDINGS 12 — the air-defense levels and the section escorts follow the era
+-- ============================================================================
+TestVeafCasMissionAirDefenseEra = {}
+
+-- the 1980 reference of the COLD_WAR armor tables; service dates are estimates, not sourced
+local AFTER_1980 = {
+  ["M1097 Avenger"] = true,
+  ["M6 Linebacker"] = true,
+  ["Tor 9A331"] = true,
+  ["2S6 Tunguska"] = true,
+  ["HQ-7_LN_EO"] = true,
+  ["HQ-7_LN_SP"] = true,
+  ["SA-18 Igla-S comm"] = true,
+  ["SA-18 Igla-S manpad"] = true,
+}
+
+function TestVeafCasMissionAirDefenseEra:setUp()
+  self.era, self.ww2, self.random, self.findGroup = veaf.config.era, veaf.config.ww2, math.random, veafUnits.findGroup
+  self.asked = {}
+  local this = self
+  veafUnits.findGroup = function(name)
+    table.insert(this.asked, name)
+    if name == "generateAirDefenseGroup-BLUE-3" or name == "generateAirDefenseGroup-BLUE-COLD_WAR-3" then
+      return { units = {}, name = name }
+    end
+    return nil
+  end
+end
+
+function TestVeafCasMissionAirDefenseEra:tearDown()
+  veaf.config.era, veaf.config.ww2, math.random, veafUnits.findGroup = self.era, self.ww2, self.random, self.findGroup
+end
+
+-- the ±1 roll lands on the level asked for with a dice between 21 and 80
+local function noRoll(a, b)
+  if a == 100 and b == nil then
+    return 50
+  end
+  return b or a
+end
+
+function TestVeafCasMissionAirDefenseEra:test_the_era_variant_is_used_when_there_is_one()
+  veaf.config.era = veaf.ERA.COLD_WAR
+  math.random = noRoll
+  local group = veafCasMission.generateAirDefenseGroup("AD", 3, veafCasMission.SIDE_BLUE)
+  luaunit.assertEquals(group.name, "generateAirDefenseGroup-BLUE-COLD_WAR-3")
+end
+
+function TestVeafCasMissionAirDefenseEra:test_the_generic_level_is_used_when_the_era_has_no_variant()
+  veaf.config.era = veaf.ERA.MODERN
+  math.random = noRoll
+  local group = veafCasMission.generateAirDefenseGroup("AD", 3, veafCasMission.SIDE_BLUE)
+  luaunit.assertEquals(group.name, "generateAirDefenseGroup-BLUE-3")
+  luaunit.assertEquals(self.asked, { "generateAirDefenseGroup-BLUE-MODERN-3", "generateAirDefenseGroup-BLUE-3" })
+end
+
+-- The escorts are written in Lua, not in veaf-units.yaml, so their sweep lives here: every level the
+-- roll can reach (0-6), both sides, vehicles and manpads.
+function TestVeafCasMissionAirDefenseEra:test_a_cold_war_escort_places_nothing_from_after_1980()
+  veaf.config.era = veaf.ERA.COLD_WAR
+  local found = {}
+  for _, side in ipairs({ veafCasMission.SIDE_BLUE, veafCasMission.SIDE_RED }) do
+    for _, dice in ipairs({ 10, 50, 90 }) do
+      math.random = function(a, b)
+        if a == 100 and b == nil then
+          return dice
+        end
+        return b or a
+      end
+      for defense = 0, 5 do
+        local groups = {
+          veafCasMission.generateArmorPlatoon("A", defense, 3, side, 4),
+          veafCasMission.generateInfantryGroup("I", defense, 3, side, 4),
+        }
+        for _, group in ipairs(groups) do
+          for _, unit in ipairs(group.units) do
+            if AFTER_1980[unit[1]] then
+              found[unit[1]] = true
+            end
+          end
+        end
+      end
+    end
+  end
+  luaunit.assertEquals(found, {})
+end
+
+-- `veaf.config.ww2` is what the escorts tested, and v6 never sets it: a WW2 mission got modern escorts.
+function TestVeafCasMissionAirDefenseEra:test_a_ww2_mission_gets_no_modern_escort()
+  veaf.config.era = veaf.ERA.WW2
+  veaf.config.ww2 = nil
+  math.random = noRoll
+  local group = veafCasMission.generateArmorPlatoon("A", 5, 3, veafCasMission.SIDE_RED, 4)
+  for _, unit in ipairs(group.units) do
+    luaunit.assertNil(AFTER_1980[unit[1]], unit[1])
+    luaunit.assertNotEquals(unit[1], "Osa 9A33 ln")
+  end
+end
+
+TestVeafCasMissionLongRange = {}
+
+function TestVeafCasMissionLongRange:setUp()
+  self.era, self.random, self.findGroup = veaf.config.era, math.random, veafUnits.findGroup
+  self.asked = {}
+  local this = self
+  veafUnits.findGroup = function(name)
+    table.insert(this.asked, name)
+    return { units = {}, name = name }
+  end
+end
+
+function TestVeafCasMissionLongRange:tearDown()
+  veaf.config.era, math.random, veafUnits.findGroup = self.era, self.random, self.findGroup
+end
+
+local function drawnFor(self, era, side)
+  veaf.config.era = era
+  local drawn = {}
+  for pick = 1, 2 do
+    math.random = function(a, b)
+      return math.min(pick, b or a)
+    end
+    local group = veafCasMission.generateLongRangeAirDefenseGroup("LR", side)
+    drawn[group.name] = true
+    luaunit.assertEquals(group.groupName, "LR")
+  end
+  return drawn
+end
+
+function TestVeafCasMissionLongRange:test_red_cold_war_draws_sa2_or_sa5_never_sa10()
+  luaunit.assertEquals(drawnFor(self, veaf.ERA.COLD_WAR, veafCasMission.SIDE_RED), { sa2 = true, sa5 = true })
+end
+
+function TestVeafCasMissionLongRange:test_red_modern_draws_sa10_or_sa5()
+  luaunit.assertEquals(drawnFor(self, veaf.ERA.MODERN, veafCasMission.SIDE_RED), { sa10 = true, sa5 = true })
+end
+
+-- nothing longer than the Hawk before the Patriot (1984), and DCS has no Nike Hercules
+function TestVeafCasMissionLongRange:test_blue_cold_war_draws_the_hawk()
+  luaunit.assertEquals(drawnFor(self, veaf.ERA.COLD_WAR, veafCasMission.SIDE_BLUE), { hawk = true })
+end
+
+function TestVeafCasMissionLongRange:test_blue_modern_draws_the_patriot()
+  luaunit.assertEquals(drawnFor(self, veaf.ERA.MODERN, veafCasMission.SIDE_BLUE), { patriot = true })
+end
+
+function TestVeafCasMissionLongRange:test_ww2_places_the_heaviest_flak_unrolled()
+  luaunit.assertEquals(drawnFor(self, veaf.ERA.WW2, veafCasMission.SIDE_RED), { ["generateAirDefenseGroup-RED-WW2-5"] = true })
+end
+
+-- the Hawk template carries an Avenger (1989): a COLD_WAR battery gets a Vulcan instead
+function TestVeafCasMissionLongRange:test_a_cold_war_battery_swaps_its_point_defense()
+  veaf.config.era = veaf.ERA.COLD_WAR
+  veafUnits.findGroup = function(name)
+    return { name = name, units = { { typeName = "Hawk ln" }, { typeName = "M1097 Avenger" } } }
+  end
+  local group = veafCasMission.generateLongRangeAirDefenseGroup("LR", veafCasMission.SIDE_BLUE)
+  luaunit.assertEquals(group.units[1].typeName, "Hawk ln")
+  luaunit.assertEquals(group.units[2].typeName, "Vulcan")
+end
+
+-- like generateAirDefenseGroup: any side that is not red is blue, and an unknown era is MODERN
+function TestVeafCasMissionLongRange:test_a_neutral_side_or_an_unknown_era_still_draws_a_battery()
+  luaunit.assertEquals(drawnFor(self, veaf.ERA.MODERN, coalition.side.NEUTRAL), { patriot = true })
+  luaunit.assertEquals(drawnFor(self, nil, veafCasMission.SIDE_RED), { sa10 = true, sa5 = true })
+end
+
+function TestVeafCasMissionLongRange:test_a_missing_template_returns_nil()
+  veafUnits.findGroup = function()
+    return nil
+  end
+  luaunit.assertNil(veafCasMission.generateLongRangeAirDefenseGroup("LR", veafCasMission.SIDE_RED))
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -1,6 +1,6 @@
 # 11 — Teach the authoring skill what building one mission taught
 
-Status: 🔄 drafted 2026-09-23 (in this worktree, uncommitted), to review
+Status: ✅ done (PR 5)
 Type: doc
 Files: `plugin/skills/veaf-mission-authoring/SKILL.md`
 
@@ -42,3 +42,18 @@ fixed bugs would outlive them.
 ## Done when
 
 - David has reviewed the text; the skill names only actions and keys that exist in the release
+
+## Outcome (PR 5)
+
+Checked against the action catalogue (every action the skill names is registered) and against
+`describe_naming_conventions` (`#alarm=` added to the markers list). Changes:
+
+- Opens with `describe_known_limitations` and no longer lists tool traps (the air-start-on-an-
+  uncaptured-theatre line points to the action instead).
+- Names the #994 actions where the checklist used to describe hand-written Lua: `set_mission_date`,
+  `set_bullseye`, `set_briefing`, `edit_route` `add_task` with `tanker` / `activate_beacon` /
+  `set_unlimited_fuel` / `awacs` / `eplrs` / `escort`.
+- `includes:` described as shipped (transitive, build-checked, one level at a time).
+- Long range is `-samVLR`; `-samLR` is said to be medium range; `randomParameters` and the ±1 roll
+  mentioned.
+- Plugin version not bumped (CLAUDE.md §9.5: release only).

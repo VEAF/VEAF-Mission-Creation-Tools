@@ -753,9 +753,16 @@ function veafShortcuts.buildDefaultList()
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-samLR")
-      :setDescription("Random long range SAM battery")
+      :setDescription("Random medium range air defense group (defense level 4-5)")
       :setVeafCommand("_spawn samgroup, skynet true, spacing 1, radius 0")
       :addRandomParameter("defense", 4, 5)
+      :setBypassSecurity(false)
+  )
+  veafShortcuts.AddAlias(
+    VeafAlias:new()
+      :setName("-samVLR")
+      :setDescription("Random long range SAM battery for the mission's era")
+      :setVeafCommand("_spawn longrangesam, skynet true, spacing 1, radius 0")
       :setBypassSecurity(false)
   )
   veafShortcuts.AddAlias(

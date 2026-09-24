@@ -845,6 +845,169 @@ groups:
   - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
   description: generateAirDefenseGroup-RED-0
   groupName: generateAirDefenseGroup-RED-0
+# Era variants of the air-defense levels above (FIX-SCRATCH-MISSION-FINDINGS ticket 12), looked up
+# first by veafCasMission.generateAirDefenseGroup as generateAirDefenseGroup-<SIDE>-<ERA>-<N>; a level
+# without its own variant uses the generic one. COLD_WAR follows the armor tables' reference, types in
+# service around 1980; only the levels holding later types have a variant. WW2 is flak only. The
+# service dates behind these choices are estimates, not sourced.
+- aliases: [generateAirDefenseGroup-BLUE-COLD_WAR-3]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Gepard, number: {max: 4, min: 2}, random: true}
+  - {type: M48 Chaparral, hdg: 0, random: true}
+  - {type: M48 Chaparral, hdg: 90, random: true}
+  - {type: M48 Chaparral, hdg: 180, random: true}
+  - {type: M48 Chaparral, hdg: 270, random: true}
+  - {type: Vulcan, number: {max: 4, min: 2}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-COLD_WAR-3
+  groupName: generateAirDefenseGroup-BLUE-COLD_WAR-3
+- aliases: [generateAirDefenseGroup-BLUE-COLD_WAR-2]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Vulcan, number: {max: 4, min: 2}, random: true}
+  - {type: M48 Chaparral, number: {max: 4, min: 2}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-COLD_WAR-2
+  groupName: generateAirDefenseGroup-BLUE-COLD_WAR-2
+- aliases: [generateAirDefenseGroup-BLUE-COLD_WAR-1]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Vulcan, number: {max: 3, min: 1}, random: true}
+  - {type: M 818, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-COLD_WAR-1
+  groupName: generateAirDefenseGroup-BLUE-COLD_WAR-1
+- aliases: [generateAirDefenseGroup-RED-COLD_WAR-5]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: Dog Ear radar, random: true}
+  - {type: Osa 9A33 ln, number: {max: 3, min: 2}, random: true}
+  - {type: Strela-10M3, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU-23-4 Shilka, number: {max: 2, min: 1}, random: true}
+  - {type: ZSU_57_2, number: 1, random: true}
+  - {type: S-60_Type59_Artillery, number: 1, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-COLD_WAR-5
+  groupName: generateAirDefenseGroup-RED-COLD_WAR-5
+- aliases: [generateAirDefenseGroup-BLUE-WW2-5]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: QF_37_AA, number: {max: 3, min: 2}, random: true}
+  - {type: bofors40, number: 2, random: true}
+  - {type: M45_Quadmount, number: 2, random: true}
+  - {type: CCKW_353, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-WW2-5
+  groupName: generateAirDefenseGroup-BLUE-WW2-5
+- aliases: [generateAirDefenseGroup-BLUE-WW2-4]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: bofors40, number: {max: 3, min: 2}, random: true}
+  - {type: QF_37_AA, number: 1, random: true}
+  - {type: M45_Quadmount, number: {max: 2, min: 1}, random: true}
+  - {type: CCKW_353, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-WW2-4
+  groupName: generateAirDefenseGroup-BLUE-WW2-4
+- aliases: [generateAirDefenseGroup-BLUE-WW2-3]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: M1_37mm, number: 2, random: true}
+  - {type: bofors40, number: {max: 2, min: 1}, random: true}
+  - {type: M45_Quadmount, number: 1, random: true}
+  - {type: CCKW_353, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-WW2-3
+  groupName: generateAirDefenseGroup-BLUE-WW2-3
+- aliases: [generateAirDefenseGroup-BLUE-WW2-2]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: M45_Quadmount, number: {max: 2, min: 1}, random: true}
+  - {type: M1_37mm, number: {max: 2, min: 1}, random: true}
+  - {type: CCKW_353, number: {max: 2, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-WW2-2
+  groupName: generateAirDefenseGroup-BLUE-WW2-2
+- aliases: [generateAirDefenseGroup-BLUE-WW2-1]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: M45_Quadmount, number: {max: 2, min: 1}, random: true}
+  - {type: CCKW_353, number: {max: 2, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-WW2-1
+  groupName: generateAirDefenseGroup-BLUE-WW2-1
+- aliases: [generateAirDefenseGroup-BLUE-WW2-0]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: M45_Quadmount, number: {max: 1, min: 0}, random: true}
+  - {type: CCKW_353, number: {max: 2, min: 1}, random: true}
+  description: generateAirDefenseGroup-BLUE-WW2-0
+  groupName: generateAirDefenseGroup-BLUE-WW2-0
+- aliases: [generateAirDefenseGroup-RED-WW2-5]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: flak36, number: {max: 3, min: 2}, random: true}
+  - {type: flak41, number: 1, random: true}
+  - {type: flak37, number: {max: 2, min: 1}, random: true}
+  - {type: flak38, number: 1, random: true}
+  - {type: KDO_Mod40, number: 1, random: true}
+  - {type: Flakscheinwerfer_37, number: 1, random: true}
+  - {type: Maschinensatz_33, number: 1, random: true}
+  - {type: Sd_Kfz_7, number: {max: 3, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-WW2-5
+  groupName: generateAirDefenseGroup-RED-WW2-5
+- aliases: [generateAirDefenseGroup-RED-WW2-4]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: flak36, number: 2, random: true}
+  - {type: flak37, number: 1, random: true}
+  - {type: flak38, number: 1, random: true}
+  - {type: KDO_Mod40, number: 1, random: true}
+  - {type: Sd_Kfz_7, number: {max: 2, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-WW2-4
+  groupName: generateAirDefenseGroup-RED-WW2-4
+- aliases: [generateAirDefenseGroup-RED-WW2-3]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: flak37, number: {max: 2, min: 1}, random: true}
+  - {type: flak38, number: 1, random: true}
+  - {type: flak18, number: 1, random: true}
+  - {type: Blitz_36-6700A, number: {max: 2, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-WW2-3
+  groupName: generateAirDefenseGroup-RED-WW2-3
+- aliases: [generateAirDefenseGroup-RED-WW2-2]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: flak38, number: {max: 2, min: 1}, random: true}
+  - {type: flak37, number: 1, random: true}
+  - {type: Blitz_36-6700A, number: {max: 2, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-WW2-2
+  groupName: generateAirDefenseGroup-RED-WW2-2
+- aliases: [generateAirDefenseGroup-RED-WW2-1]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: flak38, number: {max: 2, min: 1}, random: true}
+  - {type: Blitz_36-6700A, number: {max: 2, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-WW2-1
+  groupName: generateAirDefenseGroup-RED-WW2-1
+- aliases: [generateAirDefenseGroup-RED-WW2-0]
+  hidden: true
+  disposition: {h: 7, w: 7}
+  units:
+  - {type: flak30, number: {max: 1, min: 0}, random: true}
+  - {type: Blitz_36-6700A, number: {max: 2, min: 1}, random: true}
+  description: generateAirDefenseGroup-RED-WW2-0
+  groupName: generateAirDefenseGroup-RED-WW2-0
 - aliases: [RU-SAM-Shilka-Battery, shilka-battery]
   disposition: {h: 5, w: 5}
   units:

@@ -77,6 +77,7 @@ The AI can act in two places, and it changes what "survives":
 | 33 | [Date the mission and set its start time](#mission-date) | 🕰️ Mission settings | Recipe + built | ⭐ |
 | 34 | [Place a coalition's bullseye](#set-bullseye) | 🕰️ Mission settings | Recipe + built | ⭐ |
 | 35 | [Write the briefing](#set-briefing) | 🕰️ Mission settings | Recipe + built | ⭐ |
+| 36 | [Know the known limitations](#known-limitations) | Domain knowledge | — | ⭐ |
 
 ---
 
@@ -96,7 +97,8 @@ generated database.
 ### List VEAF aliases / shortcuts {#list-veaf-aliases}
 
 *Knowledge · ⭐* — The VEAF alias vocabulary (`shilka`, `sa8`, …) for spawning units and composite
-groups (SAM sites, convoys).
+groups (SAM sites, convoys), and the `-samLR`, `-armor`… shortcuts with the range of each
+parameter they draw at random (`defense`, `armor`, `size`).
 
 > 💬 *"What's the alias for a Shilka?"* · *"List the ready-made SAM groups."*
 
@@ -122,6 +124,16 @@ given mission, warns about the **combat-zone capture trap**. The AI uses it befo
 and relays any warning to you.
 
 > 💬 *"Could this group name cause a problem?"*
+
+### Know the known limitations {#known-limitations}
+
+*Knowledge · ⭐* — Read before building a mission. For the installed veaf-tools version: what the
+tools cannot do yet (and how to do without), and the DCS behaviours that raise no error and are
+wrong anyway — a late-activated group visible to scripts, a `start_time` that does not delay an
+aircraft, a SAM without early-warning radar permanently lit… A fixed limitation is no longer
+returned from the version that fixes it.
+
+> 💬 *"Read the known limitations before you start."*
 
 ---
 

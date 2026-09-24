@@ -810,6 +810,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "number",
                         "description": "Fraction of internal capacity, in ]0, 1]. Alternative to 'fuel'.",
                     },
+                    "late_activation": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Late activation (a QRA interceptor, an on-demand template).",
+                    },
+                    "pylons": {
+                        "type": "object",
+                        "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                    },
                 },
                 "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
             },
@@ -1257,7 +1266,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "coalition lives in warehouses.airports[<id>].coalition, NOT in mission.coalition — "
                 "so placing a unit near a base never turns the base itself; use this action. Resolves "
                 "the airfield name to an id via the mission's theatre, sets the coalition, and turns "
-                "on the base's Dynamic Spawn slots (the build then stocks them). Backed up first."
+                "on the base's Dynamic Spawn slots (the build then stocks them) unless dynamic_spawn "
+                "is false -- e.g. an enemy base that should offer no slot. Backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -1268,11 +1278,21 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "name": {"type": "string", "description": "The airfield display name (e.g. 'Mezzeh')."},
                     "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "dynamic_spawn": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Whether the base offers Dynamic Spawn slots.",
+                    },
                 },
                 "required": ["folder_path", "name", "coalition"],
             },
         ),
-        handler=lambda p: set_airbase_coalition(Path(p["folder_path"]), name=p["name"], coalition=p["coalition"]),
+        handler=lambda p: set_airbase_coalition(
+            Path(p["folder_path"]),
+            name=p["name"],
+            coalition=p["coalition"],
+            dynamic_spawn=p.get("dynamic_spawn", True),
+        ),
     )
     catalog.register(
         ActionSpec(
@@ -1341,7 +1361,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Lay down a complete VEAF QRA in a mission FOLDER, one pass, both worlds (no build): "
                 "a trigger zone + Late-Activation interceptor group(s) on the given coalition in "
                 "src/mission, and an appended modules.QRA.definitions[] entry in mission.yaml "
-                "referencing the group names verbatim."
+                "referencing the group names verbatim. Interceptors are built AIRBORNE and fuelled "
+                "(one aircraft type per group); give them a loadout with 'pylons' or copy one with "
+                "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
+                "unarmed interceptor intercepts nothing."
             ),
             parameters_schema={
                 "type": "object",
@@ -1366,6 +1389,21 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "properties": {
                                 "name": {"type": "string"},
                                 "units": {"type": "array", "items": {"type": "object"}},
+                                "position": {
+                                    "type": "object",
+                                    "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                                },
+                                "altitude_ft": {"type": "number", "default": 15000},
+                                "speed_kt": {"type": "number", "default": 350},
+                                "task": {"type": "string", "default": "Intercept"},
+                                "pylons": {
+                                    "type": "object",
+                                    "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                                },
+                                "loadout_from": {
+                                    "type": "string",
+                                    "description": "Group to copy the loadout from (mission or aircraft catalogues).",
+                                },
                             },
                             "required": ["name", "units"],
                         },
@@ -1373,7 +1411,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "country_id": {"type": "integer"},
                     "country_name": {"type": "string"},
-                    "category": {"type": "string", "default": "plane"},
+                    "category": {
+                        "type": "string",
+                        "default": "plane",
+                        "description": "Ignored: the category comes from the aircraft type.",
+                    },
                     "enemy_coalitions": {"type": "array", "items": {"type": "string"}},
                     "qra": {"type": "object", "description": "Optional extra definitions[] keys."},
                 },
@@ -1398,7 +1440,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "Create an on-demand CAP mission in a mission FOLDER, one pass, both worlds (no build): "
                 "a Late-Activation template group named OnDemand-<mission_name> in src/mission, and an "
-                "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml."
+                "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml. The "
+                "template is built AIRBORNE at 'position' and fuelled; give a 'route' point and it "
+                "flies a race-track between the two (without one it orbits nowhere), and a loadout "
+                "with 'pylons' or 'loadout_from'."
             ),
             parameters_schema={
                 "type": "object",
@@ -1417,8 +1462,35 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                         "required": ["x", "y"],
                     },
-                    "category": {"type": "string", "default": "plane"},
+                    "category": {
+                        "type": "string",
+                        "default": "plane",
+                        "description": "Ignored: the category comes from the aircraft type.",
+                    },
                     "cap": {"type": "object", "description": "Optional extra cap_missions[] keys."},
+                    "route": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "altitude_ft": {"type": "number"},
+                            },
+                            "required": ["x", "y"],
+                        },
+                        "description": "Further points; with one, a race-track between position and it.",
+                    },
+                    "altitude_ft": {"type": "number", "default": 20000},
+                    "speed_kt": {"type": "number", "default": 350},
+                    "pylons": {
+                        "type": "object",
+                        "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                    },
+                    "loadout_from": {
+                        "type": "string",
+                        "description": "Group to copy the loadout from (mission or aircraft catalogues).",
+                    },
                 },
                 "required": [
                     "folder_path",
@@ -1785,6 +1857,8 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         parking=params.get("parking"),
         fuel=params.get("fuel"),
         fuel_fraction=params.get("fuel_fraction"),
+        late_activation=params.get("late_activation", False),
+        pylons=params.get("pylons"),
     )
 
 
@@ -1831,6 +1905,11 @@ def _handle_create_cap_mission(params: dict[str, Any]) -> dict[str, Any]:
         position=params["position"],
         category=params.get("category", "plane"),
         cap=params.get("cap"),
+        route=params.get("route"),
+        altitude_ft=params.get("altitude_ft", 20000.0),
+        speed_kt=params.get("speed_kt", 350.0),
+        pylons=params.get("pylons"),
+        loadout_from=params.get("loadout_from"),
     )
 
 

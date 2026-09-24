@@ -30,6 +30,27 @@ open with: "Read the known limitations (`describe_known_limitations`) and take t
   start through the MCP there.
 - The `veaf-mission-authoring` skill (ticket 11) points to the action instead of listing traps.
 
+## Widened 2026-09-24: DCS behaviours too
+
+`docs/agents/dcs-runtime-traps.md` holds the DCS behaviours that raise no error and are wrong anyway
+(the mission clock on the theatre's fixed offset, a late-activated group answering `isExist()`,
+`start_time` not delaying an air spawn, a SAM with no EWR permanently lit…). It lives in the
+repository only: neither the exe nor the plugin ships it, so an agent working without a checkout
+never sees it (checked 2026-09-24: the MCP code only cites it in two docstrings).
+
+David agreed to put them in the same place:
+
+- The data file carries **two kinds** of entry, told apart by a field: a limitation of the tools
+  (fixed one day, then no longer returned) and a behaviour of DCS (never "fixed", always returned).
+  DCS entries keep what the page records: the measured value, the date, what it broke.
+- `describe_known_limitations` returns both.
+- The entries of `dcs-runtime-traps.md` that matter to someone authoring a mission move into the
+  file; the page becomes a pointer to it, or is generated from it — one source, not two.
+- The lot rule covers both: a surprising DCS behaviour, measured, goes into the file.
+
+Done when also: a test checks a DCS entry is returned whatever the version, and the page no longer
+carries a copy of what the file says.
+
 ## Done when
 
 - The action is in the catalogue and in AI_ASSISTANT_CATALOG (FR/EN)

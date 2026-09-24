@@ -26,7 +26,9 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
   reconstruction depuis la recette **écrasera** ces retouches.
 
 > 🛟 **Filet de sécurité** : avant *chaque* modification, l'IA fait une **sauvegarde horodatée**
-> du fichier concerné. Rien n'est écrasé sans copie.
+> du fichier concerné. Rien n'est écrasé sans copie. Dans un dossier de mission, les copies vont dans
+> `.veaf-backups/` à la racine du dossier — ni dans `src/`, que le build empaquette, ni dans vos
+> commits (le répertoire s'ignore lui-même) — et seules les 20 dernières de chaque fichier sont gardées.
 
 ## Légende des fréquences
 
@@ -211,14 +213,18 @@ prédéfinis** à l'activation de la zone (SAM, convois…) plutôt que de figer
 
 *Recette (dossier) · 🔥* — En un appel : la zone protégée, les intercepteurs en **Late
 Activation** (sur la bonne coalition) **et** la définition `QRA` dans `mission.yaml` (référençant
-les groupes par nom exact). Tu dis l'avion, l'IA choisit le type et assemble.
+les groupes par nom exact). Tu dis l'avion, l'IA choisit le type et assemble. Les intercepteurs
+sont créés **en vol**, avec le plein et un emport : donne-le, ou demande de le recopier d'un modèle
+`veafSpawn-*` — un intercepteur désarmé n'intercepte rien.
 
-> 💬 *« Crée une QRA rouge en Mirage 2000 sur la zone Nord. »*
+> 💬 *« Crée une QRA rouge en Mirage 2000 sur la zone Nord, armée comme le modèle veafSpawn du Mirage. »*
 
 ### Créer une mission CAP à la demande {#create-cap}
 
 *Recette (dossier) · ⭐* — En un appel : le groupe template `OnDemand-<nom>` en **Late
-Activation** **et** l'entrée `cap_missions` dans `mission.yaml`.
+Activation** **et** l'entrée `cap_missions` dans `mission.yaml`. Le template est créé **en vol** avec
+le plein ; donne-lui un second point et il tient un hippodrome entre les deux — sans, il ne patrouille
+nulle part.
 
 > 💬 *« Crée une CAP à la demande “Escort” avec deux F-15. »*
 
@@ -229,9 +235,11 @@ Activation** **et** l'entrée `cap_missions` dans `mission.yaml`.
 *Recette (dossier) · 🔥* — Assigne un aérodrome à une coalition (bleu / rouge / neutre). La couleur
 d'une base ne se change **pas** en posant une unité à côté : dis simplement « Mezzeh est bleu » et
 l'IA colore l'aérodrome **durablement** puis **active ses slots dynamiques** (Dynamic Spawn), en
-remplissant son entrepôt avec les avions dynamiques de la coalition au build.
+remplissant son entrepôt avec les avions dynamiques de la coalition au build. Pour une base qui
+ne doit offrir **aucun** slot (une base ennemie, par exemple), dis-le : la couleur change, les slots
+restent fermés.
 
-> 💬 *« Mets la base de Mezzeh en bleu. »*
+> 💬 *« Mets la base de Mezzeh en bleu. »* · *« Passe Stendal en rouge, sans slots dynamiques. »*
 
 ---
 

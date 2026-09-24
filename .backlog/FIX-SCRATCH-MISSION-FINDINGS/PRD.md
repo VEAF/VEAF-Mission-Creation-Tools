@@ -1,6 +1,6 @@
 # FIX-SCRATCH-MISSION-FINDINGS — what building one mission from scratch with 6.24.0 found
 
-Status: 🔄 in-progress — plan agreed 2026-09-24 (ticket 02: DCS reads theatre local time, measured; ticket 05: option a). PR 1 (01–05, 09) implemented; PR 2 (06–08) and PR 3 (10–11) to follow.
+Status: 🔄 in-progress — plan agreed 2026-09-24 (ticket 02: DCS reads theatre local time, measured; ticket 05: option a). PR 1 (01–05, 09) merged (#992); PR 2 (06, 08) implemented; ticket 07 split into its own PR (the diff would pass Sourcery's 150 000 characters); 10–13 to follow.
 
 ## Origin
 

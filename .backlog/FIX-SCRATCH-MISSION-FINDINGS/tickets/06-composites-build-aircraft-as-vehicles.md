@@ -1,6 +1,6 @@
 # 06 — `create_qra` and `create_cap_mission` build aircraft with the ground-vehicle builder
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/composites.py`, `add_air_group.py`, tests
 
@@ -49,3 +49,16 @@ T-55 fires its AA machine gun at helicopters, and no zone tag sets ROE to weapon
 ## Done when
 
 - A test per composite asserts a plane group with alt > 0, a Turning Point, fuel, and no ground keys
+
+## Outcome (PR 2)
+
+- `insert_air_group_into_content` (in `add_air_group.py`) is the composites' builder: air start,
+  fuel from the units database, one aircraft type per group (a mixed flight is refused),
+  `late_activation`, `pylons`, and a race-track orbit towards a second CAP point.
+- Loadout: `pylons`, or `loadout_from` a group found in the mission, then the folder's
+  `spawnables.yaml` / `dynamic-slot-templates.yaml`, then the shipped ones.
+- Statics: the editor's shape, measured over 583 static groups of the missions under `test/`; the
+  unit `category` from `dcsUnits.yaml`, mapped with the table measured over 401 missions under
+  `D:\dev\_VEAF` (`Plane`→`Planes`, `Fortification`→`Fortifications`…). One object per static; an
+  unknown type is written without a category and reported. Ships: the shape of 53 ship groups, no
+  task, Turning Points, 127.5 MHz AM (102 of 117 ship units).

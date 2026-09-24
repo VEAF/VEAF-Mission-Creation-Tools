@@ -25,7 +25,9 @@ The AI can act in two places, and it changes what "survives":
   those edits.
 
 > 🛟 **Safety net**: before *every* change, the AI takes a **timestamped backup** of the file
-> concerned. Nothing is overwritten without a copy.
+> concerned. Nothing is overwritten without a copy. In a mission folder the copies go to
+> `.veaf-backups/` at the folder's root — not into `src/`, which the build packs, nor into your
+> commits (the directory ignores itself) — and only the last 20 of each file are kept.
 
 ## Frequency legend
 
@@ -209,14 +211,17 @@ convoys…) instead of hard-placing units.
 
 *Recipe (folder) · 🔥* — In one call: the protected zone, the **Late-Activation** interceptors (on
 the right coalition) **and** the `QRA` definition in `mission.yaml` (referencing the groups by
-exact name). You name the aircraft, the AI picks the type and assembles.
+exact name). You name the aircraft, the AI picks the type and assembles. The interceptors are
+created **airborne**, fuelled and with a loadout: give it, or ask for it to be copied from a
+`veafSpawn-*` template — an unarmed interceptor intercepts nothing.
 
-> 💬 *"Create a red QRA in Mirage 2000s over the North zone."*
+> 💬 *"Create a red QRA in Mirage 2000s over the North zone, armed like the Mirage veafSpawn template."*
 
 ### Create an on-demand CAP mission {#create-cap}
 
 *Recipe (folder) · ⭐* — In one call: the `OnDemand-<name>` **Late-Activation** template group
-**and** the `cap_missions` entry in `mission.yaml`.
+**and** the `cap_missions` entry in `mission.yaml`. The template is created **airborne** and fuelled;
+give it a second point and it flies a race-track between the two — without one it patrols nowhere.
 
 > 💬 *"Create an on-demand CAP “Escort” with two F-15s."*
 
@@ -227,9 +232,10 @@ exact name). You name the aircraft, the AI picks the type and assembles.
 *Recipe (folder) · 🔥* — Assign an airfield to a coalition (blue / red / neutral). A base's colour
 is **not** changed by placing a unit nearby: just say "Mezzeh is blue" and the assistant colours the
 airfield **durably**, then **enables its Dynamic Spawn slots**, filling its warehouse with the
-coalition's dynamic aircraft at build time.
+coalition's dynamic aircraft at build time. For a base that must offer **no** slot (an enemy
+base, say), say so: the colour changes and the slots stay closed.
 
-> 💬 *"Make Mezzeh blue."*
+> 💬 *"Make Mezzeh blue."* · *"Turn Stendal red, with no dynamic slots."*
 
 ---
 

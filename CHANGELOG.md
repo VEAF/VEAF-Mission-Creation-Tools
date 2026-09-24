@@ -154,6 +154,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   are where the wind blows to: re-run the conversion, or add 180° to each, or those variants fly the
   wind reversed now that the weather reaches DCS. Variants reading an `airport_icao` are not affected.
 
+- **The MCP builds aircraft, statics and ships that DCS can use, and cleans up after itself.** Found
+  building Open Training Germany Cold War from an empty folder. `create_qra` and `create_cap_mission`
+  built their aircraft with the ground-vehicle builder — at ground level, 20 km/h, no fuel, no
+  weapons, on an "Off Road" point — so a scrambled QRA appeared in the grass; they now build an
+  airborne, fuelled flight of one type, take a loadout (`pylons`, or `loadout_from` a group of the
+  mission or a `veafSpawn-*` catalogue template), and a CAP given a second point flies a race-track
+  instead of orbiting nowhere. `add_air_group` takes `late_activation` and `pylons` in the same call.
+  A **static** placed by `add_group` or `create_combat_zone` now carries the `category` DCS reads to
+  know what the object is (it had none) and the editor's shape, and a **ship** no longer gets a
+  vehicle's task and route. The backups every action takes go to the folder's `.veaf-backups/` —
+  self-ignored by git, 20 per file — instead of piling up beside `src/mission/mission` (45 to 51
+  copies in one session); a file whose content does not change is no longer rewritten, and folder
+  files stay LF. `set_airbase_coalition` takes `dynamic_spawn` (an enemy base with no slot),
+  `remove_group` no longer calls a QRA zone a combat zone, and `build_mission` returns the build's
+  whole log, decoded as UTF-8, where its warnings are.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

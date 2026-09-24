@@ -65,7 +65,9 @@ def _airbase_entry(mission: DcsMission, name: str) -> tuple[int, dict[str, Any]]
     return airdrome_id, entry
 
 
-def set_airbase_coalition(folder_path: Path, *, name: str, coalition: str) -> dict[str, Any]:
+def set_airbase_coalition(
+    folder_path: Path, *, name: str, coalition: str, dynamic_spawn: bool = True
+) -> dict[str, Any]:
     """Assign an airfield to a coalition in a mission folder, durably, and enable its dyn slots.
 
     Writes `warehouses.airports[<id>].coalition` and turns on `dynamicSpawn` for the base (the
@@ -76,6 +78,9 @@ def set_airbase_coalition(folder_path: Path, *, name: str, coalition: str) -> di
         folder_path: The mission folder (holds `mission.yaml` + `src/mission/`).
         name: The airfield display name (e.g. ``"Mezzeh"``).
         coalition: ``"blue"``, ``"red"`` or ``"neutral"``.
+        dynamic_spawn: Whether the base offers dynamic slots. It used to be forced on, including
+            on red bases the maker wants no slot on — GermanyCW-v6 reset 40 by script
+            (FIX-SCRATCH-MISSION-FINDINGS ticket 08).
 
     Returns:
         ``{airbase, airdrome_id, coalition, dynamic_spawn, durable}``.
@@ -91,13 +96,13 @@ def set_airbase_coalition(folder_path: Path, *, name: str, coalition: str) -> di
     mission = load_folder_mission(folder_path)
     airdrome_id, entry = _airbase_entry(mission, name)
     entry["coalition"] = _COALITIONS[key]
-    entry["dynamicSpawn"] = True
+    entry["dynamicSpawn"] = dynamic_spawn
     save_folder_mission(mission, folder_path)
 
     return {
         "airbase": name,
         "airdrome_id": airdrome_id,
         "coalition": _COALITIONS[key],
-        "dynamic_spawn": True,
+        "dynamic_spawn": dynamic_spawn,
         "durable": True,
     }

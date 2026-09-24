@@ -13,14 +13,16 @@ awareness before a write, and a Foothold mission has thousands of units — retu
 make the pair unusable for exactly the missions that need them most. Hence the filters, and a cap
 the caller is told about.
 
-Everything here reads the mission table in pure Python (:func:`mission_tools.miz_tools.read_miz`);
-no DCS, no Lua.
+Everything here reads the mission table in pure Python — from a ``.miz`` or a mission folder, like
+the write actions (:func:`veaf_mission_mcp.mission_folder.open_mission`); no DCS, no Lua. A folder
+used to be refused with ``[Errno 13] Permission denied``, so an agent could not read back what it
+had just written (FIX-SCRATCH-MISSION-FINDINGS ticket 07).
 """
 
 from pathlib import Path
 from typing import Any
 
-from mission_tools.miz_tools import read_miz
+from veaf_mission_mcp.mission_folder import open_mission
 
 #: Group categories a mission table may hold, in the order DCS writes them.
 _CATEGORIES: tuple[str, ...] = ("plane", "helicopter", "vehicle", "ship", "static")
@@ -262,7 +264,7 @@ def describe_units(
     """Describe a mission's groups down to their units, loadouts and routes.
 
     Args:
-        miz_path: Path to the mission's source `.miz`.
+        miz_path: The mission's source `.miz`, or a mission folder.
         group_name: Keep only groups whose name contains this, case-insensitively — a mission maker
             says "Colt", not the full generated name.
         coalition: Keep only this coalition (``blue``, ``red``, ``neutrals``).
@@ -278,15 +280,13 @@ def describe_units(
         truncated answer still says how much was left out.
 
     Raises:
-        ValueError: If the archive has no ``mission`` file (not a valid mission archive).
+        ValueError: If the target does not exist, or is neither a mission archive nor a mission folder.
     """
-    mission = read_miz(miz_path)
-    if mission.mission_content is None:
-        raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
+    _, content = open_mission(miz_path)
 
     wanted_name = (group_name or "").strip().lower()
     matched: list[dict[str, Any]] = []
-    for side, coalition_table in (mission.mission_content.get("coalition") or {}).items():
+    for side, coalition_table in (content.get("coalition") or {}).items():
         if not isinstance(coalition_table, dict):
             continue
         if coalition is not None and side != coalition:

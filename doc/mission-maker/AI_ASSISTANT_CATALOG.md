@@ -75,6 +75,9 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 30 | [Valider une mission avant build](#validate-mission) | 🏁 Valider & construire | Dossier | ⭐ |
 | 31 | [Construire le .miz jouable](#build-mission) | 🏁 Valider & construire | Dossier | 🔥 |
 | 32 | [Colorer une base et activer ses slots dynamiques](#colour-base) | 🛫 Bases & aérodromes | Recette (dossier) | 🔥 |
+| 33 | [Dater la mission et régler son heure de départ](#mission-date) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
+| 34 | [Placer le bullseye d'une coalition](#set-bullseye) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
+| 35 | [Écrire le briefing](#set-briefing) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 
 ---
 
@@ -241,6 +244,34 @@ restent fermés.
 
 > 💬 *« Mets la base de Mezzeh en bleu. »* · *« Passe Stendal en rouge, sans slots dynamiques. »*
 
+## 🕰️ Réglages de la mission
+
+### Dater la mission et régler son heure de départ {#mission-date}
+
+*Recette + construite · ⭐* — La date et l'heure de départ, comme le panneau du temps de l'éditeur.
+Une mission créée depuis zéro est datée de 2016 ; une mission guerre froide veut 1980. L'heure est
+celle du théâtre, celle que DCS affiche. Les variantes météo de `versions.yaml` peuvent toujours
+imposer la leur, variante par variante.
+
+> 💬 *« Date la mission du 1er juin 1980, départ à 9 h 30. »*
+
+### Placer le bullseye d'une coalition {#set-bullseye}
+
+*Recette + construite · ⭐* — Le bullseye d'une coalition. Le build en tire le waypoint BULLSEYE de
+chaque plan de vol, et les scripts VEAF annoncent les positions par rapport à lui : à placer tôt, sur
+un repère connu.
+
+> 💬 *« Mets le bullseye bleu sur Point Alpha, dans la trouée de Fulda. »*
+
+### Écrire le briefing {#set-briefing}
+
+*Recette + construite · ⭐* — Le nom de la mission, la situation et la tâche de chaque coalition ;
+seuls les textes donnés changent. Une mission enregistrée par l'éditeur garde ces textes dans son
+dictionnaire : l'IA les écrit là où la mission les range déjà. `${METAR}` et les autres variables du
+briefing sont remplacées au build, variante par variante.
+
+> 💬 *« Écris la situation : Europe centrale, juin 1980. Tâche bleue : tenir la trouée de Fulda. »*
+
 ---
 
 ## 🔥 État de la mission
@@ -391,12 +422,16 @@ l'éditeur DCS refuserait d'enregistrer la mission.
 *Mission construite · ⭐* — Ajouter, insérer, supprimer ou réordonner un **point de passage**, changer
 son altitude, sa vitesse, son nom ou son type — et surtout lui donner une **tâche** : orbiter,
 attaquer un groupe, bombarder un point, engager les cibles d'une zone, se poser, régler une fréquence,
-ou boucler la route sur elle-même.
+ou boucler la route sur elle-même. Pour un **vol de soutien** : ravitailler (`tanker`), faire l'AWACS,
+allumer un **TACAN** (canal, mode X/Y, indicatif), activer la liaison de données (EPLRS), avoir du
+carburant illimité, ou **escorter** un autre groupe désigné par son nom.
 
 > 💬 *« Ajoute un point de passage après le troisième, à 20 000 pieds. »*
 > 💬 *« Fais orbiter ce ravitailleur en hippodrome à 20 000 pieds, 300 nœuds. »*
 > 💬 *« Mets une tâche d'attaque sur ce groupe au point 3. »*
 > 💬 *« Boucle la patrouille du dernier point vers le deuxième. »*
+> 💬 *« Fais de Texaco un ravitailleur, TACAN 30Y indicatif TXO, carburant illimité. »*
+> 💬 *« Que les deux F-15 escortent Texaco. »*
 
 Trois choses utiles à savoir :
 

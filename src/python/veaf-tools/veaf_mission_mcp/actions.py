@@ -34,6 +34,7 @@ from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import describe_map, resolve_coordinates
+from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
     describe_module,
@@ -89,7 +90,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {"type": "string", "description": "The mission's source .miz, or a mission FOLDER."},
                     "group_name": {
                         "type": "string",
                         "description": "Keep only groups whose name contains this (case-insensitive).",
@@ -123,6 +124,85 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             category=params.get("category"),
             limit=params.get("limit"),
             include_route=params.get("include_route", True),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_mission_date",
+            description=(
+                "Set the mission's DATE and/or START TIME -- what the Mission Editor sets in its time "
+                "panel. The blank mission of a scaffold is dated 2016; a Cold War mission wants 1980. The "
+                "time is on the theatre's clock, the one DCS shows. The weather variants of versions.yaml "
+                "still override both per variant at build. Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "date": {"type": "string", "description": "YYYY-MM-DD."},
+                    "start_time": {"type": "string", "description": "HH:MM or HH:MM:SS, theatre clock."},
+                },
+                "required": ["target"],
+            },
+        ),
+        handler=lambda p: set_mission_date(Path(p["target"]), date=p.get("date"), start_time=p.get("start_time")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_bullseye",
+            description=(
+                "Set one coalition's BULLSEYE. describe_map reads the bullseyes; this writes one. The build "
+                "injects each flight plan's BULLSEYE waypoint from it and the in-game scripts announce "
+                "positions relative to it, so set it early -- on a landmark. Target a FOLDER (durable) or "
+                "a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutrals"]},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Mission-table coordinates, as describe_map / geocode report them.",
+                    },
+                },
+                "required": ["target", "coalition", "position"],
+            },
+        ),
+        handler=lambda p: set_bullseye(Path(p["target"]), coalition=p["coalition"], position=p["position"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_briefing",
+            description=(
+                "Set the BRIEFING texts: the sortie name, the situation, and each coalition's task. Only "
+                "the fields given change. A mission saved by the editor keeps this prose in its l10n "
+                "dictionary behind DictKey_ references; the text is written where the mission already "
+                "keeps it, so the reference stays valid. ${METAR} and the other briefing variables are "
+                "substituted at build, per weather variant. Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "sortie": {"type": "string", "description": "The mission's name in the briefing."},
+                    "situation": {"type": "string", "description": "The situation text (descriptionText)."},
+                    "blue_task": {"type": "string"},
+                    "red_task": {"type": "string"},
+                    "neutrals_task": {"type": "string"},
+                },
+                "required": ["target"],
+            },
+        ),
+        handler=lambda p: set_briefing(
+            Path(p["target"]),
+            sortie=p.get("sortie"),
+            situation=p.get("situation"),
+            blue_task=p.get("blue_task"),
+            red_task=p.get("red_task"),
+            neutrals_task=p.get("neutrals_task"),
         ),
     )
     catalog.register(
@@ -279,7 +359,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
                 "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
                 "Tasks are a CLOSED named set -- orbit, land, attack_group, bombing, "
-                "engage_targets_in_zone, set_frequency, switch_waypoint -- each validating its own "
+                "engage_targets_in_zone, set_frequency, switch_waypoint, and for support flights tanker, "
+                "awacs, set_unlimited_fuel, eplrs, activate_beacon (a TACAN), escort -- each validating its own "
                 "parameters, because a made-up task table is one DCS ignores in silence while the flight "
                 "does nothing. Note set_frequency takes MHz here even though DCS stores hertz. Every "
                 "operation guarantees at least one waypoint keeps a locked time, since DCS refuses to save "
@@ -341,6 +422,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "engage_targets_in_zone",
                             "set_frequency",
                             "switch_waypoint",
+                            "tanker",
+                            "awacs",
+                            "set_unlimited_fuel",
+                            "eplrs",
+                            "activate_beacon",
+                            "escort",
                         ],
                         "description": "For 'add_task'. Unknown names are refused rather than guessed.",
                     },
@@ -350,7 +437,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "altitude_ft, speed_kt. land: position, duration_s. attack_group: group_id. "
                         "bombing: position, expend, attack_qty. engage_targets_in_zone: position, "
                         "radius_m, target_types. set_frequency: frequency_mhz, modulation (AM|FM). "
-                        "switch_waypoint: to_index, from_index.",
+                        "switch_waypoint: to_index, from_index. tanker, awacs: none. set_unlimited_fuel: "
+                        "value (default true). eplrs: value (default true). activate_beacon: channel (1-126), "
+                        "mode (X|Y), callsign (1-3 letters/digits), bearing, aa. escort: group_name (the "
+                        "escorted group, exact), engagement_distance_nm.",
                     },
                 },
                 "required": ["miz_path", "group_name", "operation"],

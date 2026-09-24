@@ -170,6 +170,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `remove_group` no longer calls a QRA zone a combat zone, and `build_mission` returns the build's
   whole log, decoded as UTF-8, where its warnings are.
 
+- **The MCP can set up support flights, the date, the bullseye and the briefing without hand-written
+  Lua.** Building Open Training Germany Cold War, the agent had to patch the mission file through a
+  Lua serializer for all of them. `edit_route` gains the support-flight tasks — `tanker`, `awacs`,
+  `set_unlimited_fuel`, `eplrs`, `activate_beacon` (a TACAN: channel 1–126, X/Y, callsign, its
+  frequency computed the way the missions store it) and `escort` (the escorted group named by its
+  name) — each in the shape read out of 401 real missions, so a tanker made by `add_air_group` now
+  refuels someone. New actions `set_mission_date`, `set_bullseye` and `set_briefing`; a briefing
+  kept in the l10n dictionary by the editor is written there, behind its existing reference.
+  `describe_units` reads a mission folder, as every write action already accepted one — it used to
+  answer `[Errno 13] Permission denied`, so an agent could not read back what it had just written.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

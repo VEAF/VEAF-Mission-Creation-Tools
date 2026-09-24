@@ -621,14 +621,29 @@ initialise):
 
 ### Airfield coalition
 
-- `set_airbase_coalition(folder_path, name, coalition)` — durably assign a DCS airfield to a
-  coalition, in a **mission folder**.
+- `set_airbase_coalition(folder_path, name, coalition, dynamic_spawn=True)` — durably assign a DCS
+  airfield to a coalition, in a **mission folder**; `dynamic_spawn=False` keeps its dynamic slots
+  closed (an enemy base).
 
 > ⚠️ An airfield's coalition lives in `warehouses.airports[<id>].coalition`, **not** in
 > `mission.coalition`. Placing a unit near a base therefore never turns the base itself — this action
 > is what does. It resolves the airfield name to an id through the mission's theatre, sets the
-> coalition, and **turns on the base's Dynamic Spawn slots** (the build then stocks them). Backed up
-> first, like the other editing actions.
+> coalition, and **turns on the base's Dynamic Spawn slots** (the build then stocks them) unless
+> `dynamic_spawn` is false. Backed up first, like the other editing actions.
+
+### Mission settings (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
+
+What the editor sets outside any group, and GermanyCW-v6 had to patch through a Lua serializer. Each
+targets a mission folder (durable) or a `.miz`, backed up first.
+
+- `set_mission_date(target, date?, start_time?)` — `mission.date` (`YYYY-MM-DD`) and
+  `mission.start_time` (`HH:MM[:SS]`, the theatre's clock). The weather variants still override both.
+- `set_bullseye(target, coalition, position)` — `mission.coalition.<side>.bullseye`, the source of
+  every flight plan's BULLSEYE waypoint.
+- `set_briefing(target, sortie?, situation?, blue_task?, red_task?, neutrals_task?)` — the briefing
+  texts. Where the mission table holds a `DictKey_…` reference, the text goes into
+  `l10n/DEFAULT/dictionary` behind it, so the reference stays valid; `write_mission_folder` now
+  writes that dictionary back, only when it changes.
 
 > Password **hashes** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — a multi-line
 > case — are not covered yet: only the `SecurityDisabled` flag is.

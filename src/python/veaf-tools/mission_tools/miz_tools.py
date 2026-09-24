@@ -284,8 +284,8 @@ def write_mission_folder(
     """Serialize ``mission_content`` back to a folder's loose ``mission`` file.
 
     The write-side counterpart of :func:`read_mission_folder`. Rewrites the ``mission`` table and,
-    when the folder has one, the ``warehouses`` table — the two a caller can mutate through
-    :class:`DcsMission`. Everything else in ``src/mission/`` is left untouched. Uses the same
+    when the folder has them, the ``warehouses`` table and the ``l10n/DEFAULT/dictionary`` — the ones a
+    caller can mutate through :class:`DcsMission`. Everything else in ``src/mission/`` is left untouched. Uses the same
     ``luadata`` serializer as :func:`write_miz`, so no Lua is executed.
 
     ``warehouses`` used to be skipped, which made `set_airbase_coalition` a fail-silent: it mutated
@@ -329,6 +329,23 @@ def write_mission_folder(
             mission.warehouses_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
         )
         _write_if_changed(warehouses_file, f"warehouses = \n{warehouses_lua}", before_overwrite)
+
+    # The briefing prose of an editor-saved mission lives here, behind `DictKey_…` references in the
+    # mission table: without writing it back, a folder edit of that text was lost on save
+    # (FIX-SCRATCH-MISSION-FINDINGS ticket 07). Same rule as warehouses: only a file already there.
+    # Compared by *content*, not by text: an editor-saved dictionary is not in luadata's layout, so a
+    # text comparison would re-format it on the first folder action of any kind — prose round-tripped
+    # and a whole-file diff, for an edit that never touched it.
+    dictionary_file = root / DEFAULT_SCRIPTS_LOCATION / "dictionary"
+    if (
+        mission.dictionary_content is not None
+        and dictionary_file.is_file()
+        and luadata.unserialize(dictionary_file.read_text(encoding="utf-8")) != mission.dictionary_content
+    ):
+        dictionary_lua = luadata.serialize(
+            mission.dictionary_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
+        )
+        _write_if_changed(dictionary_file, f"dictionary = \n{dictionary_lua}", before_overwrite)
 
     return mission_file
 

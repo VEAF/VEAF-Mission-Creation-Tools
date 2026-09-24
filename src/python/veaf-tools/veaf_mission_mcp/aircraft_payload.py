@@ -53,6 +53,31 @@ def build_aircraft_payload(
     return payload, warning
 
 
+def normalize_pylons(pylons: dict[Any, Any]) -> dict[int, dict[str, Any]]:
+    """Key a loadout by integer station number, the only form DCS reads.
+
+    A JSON object's keys are always strings, so a loadout arriving through the MCP is
+    ``{"4": {...}}``; written as-is, `luadata` renders ``["4"]``, a Lua entry DCS ignores, and the
+    aircraft flies unarmed with no sign of why (caught in review of #993; `set_unit_properties`
+    has handled the same trap since #726). A bare CLSID string is accepted as ``{"CLSID": ...}``.
+
+    Args:
+        pylons: ``{station: {"CLSID": ...}}`` or ``{station: "<CLSID>"}``, keys int or numeric text.
+
+    Returns:
+        The same loadout keyed by ``int``.
+
+    Raises:
+        ValueError: If a station is not an integer of 1 or more.
+    """
+    from veaf_mission_mcp.set_unit_properties import _station_number
+
+    return {
+        _station_number(station): {"CLSID": value} if isinstance(value, str) else value
+        for station, value in pylons.items()
+    }
+
+
 def _resolve_fuel(
     unit_type: str, fuel: float | None, fuel_fraction: float | None
 ) -> tuple[float | int | None, str | None]:

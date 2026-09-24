@@ -1,6 +1,6 @@
 # 08 — MCP side effects: backups in the source, needless rewrites, a false alarm, garbled output
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `mission_tools/miz_backup.py`, `veaf_mission_mcp/mission_folder.py`, `airbase.py`,
 `remove_group.py`, `build_tools.py`, tests
@@ -22,3 +22,14 @@ Files: `mission_tools/miz_backup.py`, `veaf_mission_mcp/mission_folder.py`, `air
 ## Done when
 
 - Each point tested; a session of 50 actions leaves `src/` with only what the maker wrote
+
+## Outcome (PR 2)
+
+1. Backups of a file inside a mission folder go to `<folder>/.veaf-backups/` (a `.gitignore` of `*`
+   inside), 20 kept per file; a `.miz` outside any folder keeps its sibling backup.
+2. `write_mission_folder` rewrites a file only when its content changes, in LF, and backs up only
+   what it rewrites — `set_airbase_coalition` no longer touches `mission`. `dynamic_spawn` parameter.
+3. `remove_group` reports a capturing zone only when `modules.COMBATZONE.combat_zones` declares it
+   (a `.miz`, with no `mission.yaml`, keeps the old rule).
+4. `build_mission` returns `log`, the whole output, decoded as UTF-8. Measured: the exe writes UTF-8
+   whatever the environment; the cp1252 decoding on the MCP side made the mojibake.

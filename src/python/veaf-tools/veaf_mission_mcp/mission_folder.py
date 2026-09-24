@@ -63,22 +63,28 @@ def load_folder_mission(folder_path: Path) -> DcsMission:
 
 
 def save_folder_mission(mission: DcsMission, folder_path: Path) -> dict[str, Any]:
-    """Back up the folder's ``mission`` file, then write `mission`'s tables back to it.
+    """Write `mission`'s tables back to the folder, backing up each file it actually changes.
+
+    Only a file whose content changes is rewritten, and so backed up: `set_airbase_coalition` used to
+    rewrite and back up ``mission`` to change ``warehouses`` (FIX-SCRATCH-MISSION-FINDINGS ticket 08).
 
     Args:
         mission: The (mutated) mission to persist.
         folder_path: The mission folder to write into.
 
     Returns:
-        `{"mission_file": <path str>, "backup": <path str>}`.
+        `{"mission_file": <path str>, "backup": <first backup path str, or None>, "backups": [...]}`.
 
     Raises:
         FileNotFoundError: when no ``mission`` file can be located.
         ValueError: when `mission.mission_content` is ``None``.
     """
-    backup = backup_before_write(_mission_file(folder_path))
-    written = write_mission_folder(mission, folder_path)
-    return {"mission_file": str(written), "backup": str(backup)}
+    _mission_file(folder_path)  # raises FileNotFoundError before anything is written
+    backups: list[str] = []
+    written = write_mission_folder(
+        mission, folder_path, before_overwrite=lambda path: backups.append(str(backup_before_write(path)))
+    )
+    return {"mission_file": str(written), "backup": backups[0] if backups else None, "backups": backups}
 
 
 def open_mission(target: Path) -> tuple[DcsMission, dict[str, Any]]:

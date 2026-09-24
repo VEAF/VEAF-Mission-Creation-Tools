@@ -14,12 +14,31 @@ from typing import Any
 from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
+from veaf_libs.dcs_units_data import get_unit_category
 
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 _UNIT_SPACING_METERS = 20
 _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cruise speed
+
+#: A static unit's `category`, from the unit database's category. Measured over the static groups of
+#: 401 missions under D:\dev\_VEAF on 2026-09-24: the plural forms below, the same name for the rest
+#: (Armor, Unarmed, Air Defence, Artillery, Infantry, MissilesSS, ADEquipment, Personnel, Animal).
+#: Carriages and locomotives carry no category in those missions, hence ``None``.
+_STATIC_CATEGORY: dict[str, str | None] = {
+    "Plane": "Planes",
+    "Helicopter": "Helicopters",
+    "Ship": "Ships",
+    "Cargo": "Cargos",
+    "Effect": "Effects",
+    "Fortification": "Fortifications",
+    "Heliport": "Heliports",
+    "Warehouse": "Warehouses",
+    "LTAvehicle": "LTAvehicles",
+    "Carriage": None,
+    "Locomotive": None,
+}
 
 
 def add_group(
@@ -88,6 +107,7 @@ def add_group(
         raise ValueError(f"Not a valid DCS mission (missing 'mission' content): {target}")
 
     name = resolve_group_name(name, for_combat_zone=for_combat_zone, as_spawn_template=as_spawn_template)
+    build_warnings: list[str] = []
     group_id = insert_group_into_content(
         mission.mission_content,
         coalition=coalition,
@@ -100,12 +120,14 @@ def add_group(
         route=route,
         patrol=patrol,
         late_activation=late_activation,
+        warnings=build_warnings,
     )
 
     # A folder has no single `.miz` to scan for the combat-zone capture trap, so validate names-only
     # there (like the composites do); on a `.miz` also check the geometric trap against the archive.
     validate_kwargs = {} if is_folder else {"miz_path": target}
     warnings = validate_group_name(name, expected_combat_zone=for_combat_zone, **validate_kwargs)["warnings"]
+    warnings += [{"group": name, "warning": w} for w in build_warnings]
 
     if is_folder:
         save_folder_mission(mission, target)  # writes src/mission/, backed up
@@ -129,6 +151,7 @@ def insert_group_into_content(
     route: list[dict[str, float]] | None = None,
     patrol: bool = False,
     late_activation: bool = False,
+    warnings: list[str] | None = None,
 ) -> int:
     """Build a group and insert it into `mission_content` in place; return its fresh `groupId`.
 
@@ -148,16 +171,26 @@ def insert_group_into_content(
         route: Optional waypoints; defaults to a stationary point at `position`.
         patrol: Loop the route back to its start.
         late_activation: Mark the group late-activation.
+        warnings: A list the builder appends its warnings to (an unclassified static type).
 
     Returns:
         The fresh ``groupId`` assigned to the inserted group.
 
     Raises:
-        ValueError: If `units` yields no units.
+        ValueError: If `units` yields no units, or a static is given more than one.
     """
-    group = _build_group(
-        name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
-    )
+    # Statics and ships used to go through the vehicle builder too (FIX-SCRATCH-MISSION-FINDINGS
+    # ticket 06): a static unit without its `category`, a ship on an "Off Road" point.
+    if category == "static":
+        group = _build_static_group(name=name, position=position, units=units, warnings=warnings)
+    elif category == "ship":
+        group = _build_ship_group(
+            name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
+        )
+    else:
+        group = _build_group(
+            name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
+        )
     return insert_group(
         mission_content,
         coalition=coalition,
@@ -192,6 +225,127 @@ def _build_group(
         "hidden": False,
         "lateActivation": late_activation,
         "taskSelected": True,
+        "uncontrollable": False,
+        "start_time": 0,
+    }
+
+
+def _build_static_group(
+    *, name: str, position: dict[str, float], units: list[dict[str, Any]], warnings: list[str] | None
+) -> dict[str, Any]:
+    """Build a static-object group in the shape the Mission Editor writes.
+
+    Measured over the 583 static groups of the missions under `test/`: one unit, a single route
+    point with an empty type and action, `dead = false`, no task; the unit carries a `category`.
+
+    Args:
+        name: The group's name, which the unit takes too unless it names itself.
+        position: The object's position.
+        units: Exactly one `{"type", "name"?}`.
+        warnings: Where to report a type the unit database cannot classify.
+
+    Returns:
+        The group dict.
+
+    Raises:
+        ValueError: If more or fewer than one object is given.
+    """
+    if sum(int(spec.get("count", 1)) for spec in units) != 1:
+        raise ValueError("a static is one object: give one unit with count 1, and one call per object")
+    spec = units[0]
+    unit: dict[str, Any] = {
+        "type": spec["type"],
+        # The combat-zone prefix rule reads a static's own name, so it is the group's by default.
+        "name": spec.get("name") or name,
+        "x": position["x"],
+        "y": position["y"],
+        "heading": 0,
+    }
+    known = get_unit_category(spec["type"])
+    if known is None:
+        if warnings is not None:
+            warnings.append(
+                f"static type '{spec['type']}' is not in the DCS unit database, so it was written "
+                "without a category — check it in the Mission Editor"
+            )
+    else:
+        category = _STATIC_CATEGORY.get(known, known)
+        if category is not None:
+            unit["category"] = category
+    return {
+        "name": name,
+        "x": position["x"],
+        "y": position["y"],
+        "heading": 0,
+        "dead": False,
+        "hidden": False,
+        "route": {
+            "points": [
+                {
+                    "x": position["x"],
+                    "y": position["y"],
+                    "alt": 0,
+                    "type": "",
+                    "action": "",
+                    "speed": 0,
+                    "name": "",
+                    "formation_template": "",
+                }
+            ]
+        },
+        "units": [unit],
+    }
+
+
+def _build_ship_group(
+    *,
+    name: str,
+    position: dict[str, float],
+    units: list[dict[str, Any]],
+    route: list[dict[str, float]] | None,
+    patrol: bool = False,
+    late_activation: bool = False,
+) -> dict[str, Any]:
+    """Build a ship group in the shape the Mission Editor writes.
+
+    Measured over the 53 ship groups of the missions under `test/`: no `task`, an empty `tasks`,
+    Turning Point waypoints, units with a radio `frequency`/`modulation` and no vehicle keys. The
+    frequency is 127.5 MHz AM, the value 102 of those 117 ship units carry.
+
+    Args:
+        name: The group's name.
+        position: The group's anchor.
+        units: `[{"type", "count"?, "name"?}, ...]`.
+        route: Optional further waypoints.
+        patrol: Loop the last waypoint back to the first.
+        late_activation: Mark the group late-activation.
+
+    Returns:
+        The group dict.
+
+    Raises:
+        ValueError: If `units` yields no units.
+    """
+    built = [
+        {k: v for k, v in unit.items() if k not in ("playerCanDrive", "coldAtStart")}
+        | {"frequency": 127500000, "modulation": 0}
+        for unit in _build_units(units, position=position, group_name=name)
+    ]
+    if not built:
+        raise ValueError("add_group requires at least one unit")
+    points = _build_route(route or [position], patrol=patrol)["points"]
+    for point in points:
+        point["action"] = "Turning Point"
+    return {
+        "name": name,
+        "x": position["x"],
+        "y": position["y"],
+        "tasks": {},
+        "route": {"points": points},
+        "units": built,
+        "visible": False,
+        "hidden": False,
+        "lateActivation": late_activation,
         "uncontrollable": False,
         "start_time": 0,
     }

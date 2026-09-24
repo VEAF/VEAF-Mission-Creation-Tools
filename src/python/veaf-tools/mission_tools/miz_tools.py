@@ -8,7 +8,7 @@ import io
 import os
 import tempfile
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO, Any
@@ -278,7 +278,9 @@ def read_mission_folder(folder_path: Path) -> DcsMission:
     return result
 
 
-def write_mission_folder(mission: DcsMission, folder_path: Path) -> Path:
+def write_mission_folder(
+    mission: DcsMission, folder_path: Path, *, before_overwrite: Callable[[Path], object] | None = None
+) -> Path:
     """Serialize ``mission_content`` back to a folder's loose ``mission`` file.
 
     The write-side counterpart of :func:`read_mission_folder`. Rewrites the ``mission`` table and,
@@ -292,12 +294,19 @@ def write_mission_folder(mission: DcsMission, folder_path: Path) -> Path:
     file is only rewritten when the folder already has one, so this never invents a member the
     mission did not carry.
 
+    A file is rewritten only when its content changes, and always with LF line endings. It used
+    to be rewritten on every call, with the platform's endings: `set_airbase_coalition`, which only
+    changes ``warehouses``, turned ``mission`` from LF to CRLF and nothing else, so a one-line edit
+    showed as the whole file changed (FIX-SCRATCH-MISSION-FINDINGS ticket 08).
+
     Args:
         mission: The mission whose tables to write.
         folder_path: A folder holding the loose mission files (root or ``src/mission/``).
+        before_overwrite: Called with a file's path just before it is overwritten — only for a file
+            whose content changes. Where a caller takes its backup.
 
     Returns:
-        The path of the ``mission`` file written.
+        The path of the ``mission`` file.
 
     Raises:
         FileNotFoundError: when no ``mission`` file can be located under *folder_path*.
@@ -312,16 +321,37 @@ def write_mission_folder(mission: DcsMission, folder_path: Path) -> Path:
         mission.mission_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
     )
     mission_file = root / "mission"
-    mission_file.write_text(f"mission = \n{lua_content}", encoding="utf-8")
+    _write_if_changed(mission_file, f"mission = \n{lua_content}", before_overwrite)
 
     warehouses_file = root / "warehouses"
     if mission.warehouses_content is not None and warehouses_file.is_file():
         warehouses_lua = luadata.serialize(
             mission.warehouses_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
         )
-        warehouses_file.write_text(f"warehouses = \n{warehouses_lua}", encoding="utf-8")
+        _write_if_changed(warehouses_file, f"warehouses = \n{warehouses_lua}", before_overwrite)
 
     return mission_file
+
+
+def _write_if_changed(path: Path, text: str, before_overwrite: Callable[[Path], object] | None) -> bool:
+    """Write `text` to `path` with LF endings, unless the file already holds exactly that.
+
+    Args:
+        path: The file to write.
+        text: Its new content.
+        before_overwrite: Called with `path` just before an existing file is overwritten.
+
+    Returns:
+        True when the file was written.
+    """
+    data = text.encode("utf-8")
+    if path.is_file():
+        if path.read_bytes() == data:
+            return False
+        if before_overwrite is not None:
+            before_overwrite(path)
+    path.write_bytes(data)
+    return True
 
 
 def create_miz(miz_file_path: Path, files: dict[str, bytes]) -> Path:

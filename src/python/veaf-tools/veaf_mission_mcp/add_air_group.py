@@ -32,7 +32,8 @@ from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.dcs_parking import ParkingStand, aircraft_stands_for_airbase, has_theatre, stands_for_airbase
 from veaf_libs.mission_table import indexed
 
-from veaf_mission_mcp.aircraft_payload import build_aircraft_payload
+from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons
+from veaf_mission_mcp.edit_route import _build_orbit
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 #: Unit conversions (mission file stores metres and m/s; the caller speaks feet and knots).
@@ -72,6 +73,8 @@ def add_air_group(
     parking: list[str] | None = None,
     fuel: float | None = None,
     fuel_fraction: float | None = None,
+    late_activation: bool = False,
+    pylons: dict[Any, Any] | None = None,
 ) -> dict[str, Any]:
     """Insert an aircraft flight into a mission, resolving its parking, in place, backed up first.
 
@@ -100,6 +103,9 @@ def add_air_group(
         fuel: Explicit fuel load in KILOGRAMS. Defaults to the type's full internal fuel, read from
             the shipped units database.
         fuel_fraction: Fraction of internal capacity, in ]0, 1] — an alternative to ``fuel``.
+        late_activation: Mark the group late-activation (a QRA interceptor, an on-demand template);
+            it used to take a second call to ``set_group_properties``.
+        pylons: The loadout, ``{station: {"CLSID": ...}}`` as the mission file stores it.
 
     Returns:
         ``{"group_id", "name", "durable", "start", "stands": [...], "airdrome_id"}``.
@@ -142,6 +148,8 @@ def add_air_group(
     # Resolved once for the flight -- every aircraft is the same type -- and before the stands are
     # committed, so a bad explicit value fails without having half-written the mission.
     payload, fuel_warning = build_aircraft_payload(unit_type, fuel=fuel, fuel_fraction=fuel_fraction)
+    if pylons:
+        payload["pylons"] = normalize_pylons(pylons)
 
     group = _build_air_group(
         name=name,
@@ -158,6 +166,7 @@ def add_air_group(
         frequency_mhz=frequency_mhz,
         task=task,
         payload=payload,
+        late_activation=late_activation,
     )
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
@@ -191,6 +200,98 @@ def add_air_group(
     if warnings:
         result["warnings"] = warnings
     return result
+
+
+def insert_air_group_into_content(
+    content: dict[str, Any],
+    *,
+    coalition: str,
+    country_id: int,
+    country_name: str,
+    name: str,
+    unit_type: str,
+    count: int,
+    position: dict[str, float],
+    altitude_ft: float = 15000.0,
+    speed_kt: float = 350.0,
+    skill: str = "High",
+    task: str = "CAP",
+    late_activation: bool = False,
+    pylons: dict[Any, Any] | None = None,
+    route: list[dict[str, float]] | None = None,
+) -> tuple[int, list[str]]:
+    """Insert an airborne flight into a parsed mission table; the composites' aircraft builder.
+
+    `create_qra` and `create_cap_mission` used to build their aircraft with `add_group`'s
+    ground-vehicle builder — ``Ground Nothing``, an ``Off Road`` point at altitude 0, 20 km/h, no
+    payload, no fuel (FIX-SCRATCH-MISSION-FINDINGS ticket 06). This is the air-start path of
+    :func:`add_air_group`, without the I/O.
+
+    Args:
+        content: The parsed ``mission`` table to mutate.
+        coalition: ``"blue"``, ``"red"`` or ``"neutral"``.
+        country_id: The DCS numeric country id.
+        country_name: The DCS country name (used only if the country is absent in this coalition).
+        name: The group's name.
+        unit_type: The DCS aircraft type.
+        count: How many aircraft in the flight.
+        position: ``{"x", "y"}`` of the air start.
+        altitude_ft: Altitude in feet.
+        speed_kt: Speed in knots.
+        skill: AI level.
+        task: The aircraft-group task.
+        late_activation: Mark the group late-activation.
+        pylons: The loadout, ``{station: {"CLSID": ...}}``.
+        route: Further points ``{"x", "y", "altitude_ft"?}``. With one or more, the first point
+            carries a race-track orbit towards the second, so a CAP template patrols a line.
+
+    Returns:
+        ``(group_id, warnings)``.
+    """
+    payload, fuel_warning = build_aircraft_payload(unit_type)
+    if pylons:
+        payload["pylons"] = normalize_pylons(pylons)
+    group = _build_air_group(
+        name=name,
+        unit_type=unit_type,
+        count=count,
+        start="air",
+        stands=[],
+        airdrome_id=None,
+        position=position,
+        altitude_ft=altitude_ft,
+        speed_kt=speed_kt,
+        heading_deg=0.0,
+        skill=skill,
+        frequency_mhz=251.0,
+        task=task,
+        payload=payload,
+        late_activation=late_activation,
+    )
+    if route:
+        points = group["route"]["points"]
+        alt_m = float(altitude_ft) * _M_PER_FT
+        speed_mps = float(speed_kt) * _MPS_PER_KT
+        for point in route:
+            leg = _build_first_waypoint({"x": float(point["x"]), "y": float(point["y"])}, "air", alt_m, speed_mps, None)
+            if "altitude_ft" in point:
+                leg["alt"] = float(point["altitude_ft"]) * _M_PER_FT
+            leg["ETA_locked"] = False
+            points.append(leg)
+        orbit = _build_orbit({"pattern": "Race-Track", "altitude_ft": altitude_ft, "speed_kt": speed_kt})
+        orbit.update({"number": 1, "enabled": True, "auto": False})
+        # An integer key: `luadata` renders a string key as ["1"], a different Lua entry DCS ignores.
+        points[0]["task"] = {"id": "ComboTask", "params": {"tasks": {1: orbit}}}
+    category, category_warning = air_category_for_type_verbose(unit_type)
+    group_id = insert_group(
+        content,
+        coalition=coalition,
+        country_id=country_id,
+        country_name=country_name,
+        category=category,
+        group=group,
+    )
+    return group_id, [w for w in (category_warning, fuel_warning) if w]
 
 
 def _resolve_airfield(content: dict[str, Any], airfield: str | None) -> int:
@@ -313,6 +414,7 @@ def _build_air_group(
     frequency_mhz: float,
     task: str,
     payload: dict[str, Any],
+    late_activation: bool = False,
 ) -> dict[str, Any]:
     """Build the aircraft group dict (ids are assigned by the shared writer)."""
     speed_mps = float(speed_kt) * _MPS_PER_KT
@@ -368,6 +470,7 @@ def _build_air_group(
         "radioSet": True,
         "dynSpawnTemplate": False,
         "hidden": False,
+        "lateActivation": late_activation,
         "uncontrolled": False,
         "uncontrollable": False,
         "start_time": 0,

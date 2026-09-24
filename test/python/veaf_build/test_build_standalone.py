@@ -30,6 +30,7 @@ def _recording_worker(
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     monkeypatch.setattr(worker, "_prepare_dist", lambda: None)
     monkeypatch.setattr(worker, "_scan_lua_modules", lambda: None)
+    monkeypatch.setattr(worker, "_scan_lua_shortcuts", lambda: None)
     monkeypatch.setattr(worker, "_write_version_py", lambda path: None)
     monkeypatch.setattr(worker, "_restore_version_py", lambda path: None)
 
@@ -68,6 +69,28 @@ def test_full_build_builds_both_executables(tmp_path: Path, monkeypatch: pytest.
     worker, calls = _recording_worker(tmp_path, monkeypatch)
     worker.build_python_executables()
     assert [call["name"] for call in calls] == ["veaf-tools", "veaf-tools-updater"]
+
+
+def test_orchestration_tests_leave_the_source_tree_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The stubbed builds must not write the generated JSON artefacts next to the modules.
+
+    Both are gitignored and win over the live Lua scan when present. `_scan_lua_shortcuts` was
+    added after this helper and left unstubbed, so every local `pytest` dropped a
+    `veaf-shortcuts.json` into `veaf_libs/`: after the next edit to `veafShortcuts.lua`,
+    `TestLocalArtefactIsFresh` failed locally and the MCP `list_shortcuts` served stale data,
+    while CI, starting from a clean checkout, stayed green.
+    """
+    worker, _calls = _recording_worker(tmp_path, monkeypatch)
+    veaf_libs = worker.src_dir / "python" / "veaf-tools" / "veaf_libs"
+    artefacts = [veaf_libs / "veaf-shortcuts.json", veaf_libs / "veaf_modules_list.json"]
+
+    def _snapshot() -> list[int | None]:
+        return [path.stat().st_mtime_ns if path.exists() else None for path in artefacts]
+
+    before = _snapshot()
+    worker.build_veaf_tools_standalone()
+    worker.build_python_executables()
+    assert _snapshot() == before
 
 
 def test_veaf_tools_extra_data_bundles_locales(tmp_path: Path) -> None:

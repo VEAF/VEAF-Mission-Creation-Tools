@@ -82,6 +82,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   at x = −250 000, y = −360 000, and the 128 dynamic-slot templates were at (0,0) only because a
   graft normalized them by hand. Positions are now zeroed on extraction; altitude, heading, speeds
   and the route itself are untouched, being meaningful wherever the group lands.
+- **A local `pytest` run no longer leaves `veaf-shortcuts.json` in the source tree.** The build
+  orchestration tests stubbed every build step except the spawn-shortcut scan, so each run wrote
+  the gitignored artefact next to `veaf_libs/veaf_shortcuts_scanner.py`, where it wins over the live
+  Lua scan: after the next edit to `veafShortcuts.lua`, `TestLocalArtefactIsFresh` failed locally
+  and the MCP `list_shortcuts` served stale aliases, while CI stayed green. Developer-side only —
+  the build and the shipped executable are unchanged.
 
 ### Added
 

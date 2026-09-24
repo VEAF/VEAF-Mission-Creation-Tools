@@ -74,6 +74,9 @@ The AI can act in two places, and it changes what "survives":
 | 30 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
 | 31 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
 | 32 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
+| 33 | [Date the mission and set its start time](#mission-date) | 🕰️ Mission settings | Recipe + built | ⭐ |
+| 34 | [Place a coalition's bullseye](#set-bullseye) | 🕰️ Mission settings | Recipe + built | ⭐ |
+| 35 | [Write the briefing](#set-briefing) | 🕰️ Mission settings | Recipe + built | ⭐ |
 
 ---
 
@@ -237,6 +240,32 @@ base, say), say so: the colour changes and the slots stay closed.
 
 > 💬 *"Make Mezzeh blue."* · *"Turn Stendal red, with no dynamic slots."*
 
+## 🕰️ Mission settings
+
+### Date the mission and set its start time {#mission-date}
+
+*Recipe + built · ⭐* — The date and the start time, like the editor's time panel. A mission created
+from scratch is dated 2016; a Cold War mission wants 1980. The time is the theatre's, the one DCS
+shows. The weather variants of `versions.yaml` can still set their own, variant by variant.
+
+> 💬 *"Date the mission 1 June 1980, starting at 09:30."*
+
+### Place a coalition's bullseye {#set-bullseye}
+
+*Recipe + built · ⭐* — A coalition's bullseye. The build takes each flight plan's BULLSEYE waypoint
+from it, and the VEAF scripts announce positions relative to it: place it early, on a known landmark.
+
+> 💬 *"Put the blue bullseye on Point Alpha, in the Fulda Gap."*
+
+### Write the briefing {#set-briefing}
+
+*Recipe + built · ⭐* — The mission's name, the situation and each coalition's task; only the texts
+given change. A mission saved by the editor keeps these texts in its dictionary: the assistant writes
+them where the mission already keeps them. `${METAR}` and the other briefing variables are replaced
+at build, variant by variant.
+
+> 💬 *"Write the situation: Central Europe, June 1980. Blue task: hold the Fulda Gap."*
+
 ---
 
 ## 🔥 Mission state
@@ -381,12 +410,16 @@ save the mission.
 
 *Built mission · ⭐* — Add, insert, remove or reorder a **waypoint**, change its altitude, speed, name
 or type — and above all give it a **task**: orbit, attack a group, bomb a point, engage the targets in
-a zone, land, set a frequency, or loop the route back on itself.
+a zone, land, set a frequency, or loop the route back on itself. For a **support flight**: refuel others
+(`tanker`), act as AWACS, turn on a **TACAN** (channel, X/Y mode, callsign), enable the datalink (EPLRS),
+carry unlimited fuel, or **escort** another group named by its name.
 
 > 💬 *"Add a waypoint after the third, at 20,000 feet."*
 > 💬 *"Have this tanker orbit a race-track at 20,000 feet, 300 knots."*
 > 💬 *"Put an attack task on that group at waypoint 3."*
 > 💬 *"Loop the patrol from the last waypoint back to the second."*
+> 💬 *"Make Texaco a tanker, TACAN 30Y callsign TXO, unlimited fuel."*
+> 💬 *"Have the two F-15s escort Texaco."*
 
 Three things worth knowing:
 

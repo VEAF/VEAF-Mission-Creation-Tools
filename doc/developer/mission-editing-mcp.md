@@ -641,14 +641,31 @@ modules) :
 
 ### Coalition d'un aérodrome
 
-- `set_airbase_coalition(folder_path, name, coalition)` — assigne durablement un aérodrome DCS à une
-  coalition, dans un **dossier de mission**.
+- `set_airbase_coalition(folder_path, name, coalition, dynamic_spawn=True)` — assigne durablement un
+  aérodrome DCS à une coalition, dans un **dossier de mission** ; `dynamic_spawn=False` laisse ses
+  slots dynamiques fermés (une base ennemie).
 
 > ⚠️ La coalition d'un aérodrome vit dans `warehouses.airports[<id>].coalition`, **pas** dans
 > `mission.coalition`. Poser une unité à côté d'une base ne la fait donc jamais changer de camp :
 > c'est cette action qu'il faut. Elle résout le nom de l'aérodrome en identifiant via le théâtre de
 > la mission, pose la coalition, et **active les slots Dynamic Spawn** de la base (le build les
-> approvisionne ensuite). Sauvegarde préalable, comme les autres actions d'édition.
+> approvisionne ensuite), sauf si `dynamic_spawn` est faux. Sauvegarde préalable, comme les autres
+> actions d'édition.
+
+### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
+
+Ce que l'éditeur règle hors de tout groupe, et que GermanyCW-v6 a dû patcher par un sérialiseur Lua.
+Chaque action vise un dossier de mission (durable) ou un `.miz`, sauvegardé avant écriture.
+
+- `set_mission_date(target, date?, start_time?)` — `mission.date` (`AAAA-MM-JJ`) et
+  `mission.start_time` (`HH:MM[:SS]`, l'horloge du théâtre). Les variantes météo gardent la main sur
+  les deux.
+- `set_bullseye(target, coalition, position)` — `mission.coalition.<camp>.bullseye`, d'où vient le
+  waypoint BULLSEYE de chaque plan de vol.
+- `set_briefing(target, sortie?, situation?, blue_task?, red_task?, neutrals_task?)` — les textes du
+  briefing. Quand la table de mission porte une référence `DictKey_…`, le texte va dans
+  `l10n/DEFAULT/dictionary` derrière elle, et la référence reste valide ; `write_mission_folder`
+  réécrit désormais ce dictionnaire, seulement s'il change.
 
 > Les **hashes de mot de passe** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — un cas
 > multi-lignes — ne sont pas couverts pour l'instant : seul le drapeau `SecurityDisabled` l'est.

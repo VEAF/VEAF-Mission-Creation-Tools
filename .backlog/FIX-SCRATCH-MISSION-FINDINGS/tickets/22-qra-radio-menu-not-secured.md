@@ -1,6 +1,6 @@
 # 22 — `radio_menu: true` on a QRA hands Start / Stop to every player, unsecured
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix + doc
 Files: `src/python/veaf-tools/veaf_libs/lua_config_generator.py`,
 `doc/mission-maker/scripts/veafQraManager*.md`, the AirWaves doc, tests
@@ -30,3 +30,16 @@ does not say that without `radio_menu_restrict_to_group` every player gets it.
   restricted to a group
 - Better: a secured option for the generated commands (decide whether it becomes the default), tested
   on the generated Lua
+
+## Outcome
+
+Decided with David (2026-09-24, option a): opt-in, nothing changes for existing missions.
+
+1. Doc (QRA, AirWaves, FR/EN): the generated menu is open to every player unless restricted to a
+   group, and any player taking that group's slot sees it.
+2. `radio_menu_secured: true` on a QRA definition or an AirWaves zone emits the Start / Stop / Reset
+   commands as `veafRadio.securedCommand`, a new node type of `createUserMenu` that goes through
+   `veafRadio._proxyMethod` — the same check as the builder's `+` commands. A secured command needs
+   the identity of a group (`_proxyMethod` refuses a click without one, REVIEW-SECURITY-LAYER), so it
+   requires `radio_menu_restrict_to_group` and the build refuses otherwise. Mechanism 2 gets the same
+   `secured: true` per command (`veafRadio` doc).

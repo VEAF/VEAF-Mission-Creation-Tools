@@ -747,6 +747,7 @@ def _emit_module_body(
                             "qra",
                             ["start", "stop"],
                             qra_def.get("radio_menu_restrict_to_group"),
+                            secured=bool(qra_def.get("radio_menu_secured", False)),
                         )
                     )
 
@@ -875,6 +876,7 @@ def _emit_module_body(
                         "airwave",
                         ["start", "stop", "reset"],
                         zone.get("radio_menu_restrict_to_group"),
+                        secured=bool(zone.get("radio_menu_secured", False)),
                     )
                 )
         # No global initialize() — AirWaves is "use by construction"
@@ -1365,7 +1367,18 @@ def _emit_menu_node(node: dict, indent: str) -> list[str]:
         return lines
     call = _emit_action_call(node)
     label = _emit_lua_string(str(node.get("command", "")))
-    return [f"{indent}veafRadio.command({label}, {call})"]
+    constructor = "veafRadio.securedCommand" if node.get("secured") else "veafRadio.command"
+    return [f"{indent}{constructor}({label}, {call})"]
+
+
+def _tree_has_secured_command(nodes: object) -> bool:
+    """Whether any command of a menu tree is marked ``secured``."""
+    if not isinstance(nodes, list):
+        return False
+    return any(
+        isinstance(node, dict) and (_tree_has_secured_command(node.get("items")) or bool(node.get("secured")))
+        for node in nodes
+    )
 
 
 def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:
@@ -1381,6 +1394,13 @@ def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:
     """
     tree = user_menus.get("tree") or []
     group = user_menus.get("restrict_to_group")
+    if not group and _tree_has_secured_command(tree):
+        # The runtime checks a secured command against the level of the group it was posted for; a
+        # global menu has no group, and `veafRadio._proxyMethod` refuses every click on it.
+        raise ValueError(
+            "a radio menu with a secured command needs restrict_to_group: the security level is "
+            "that of the group the menu is posted for, and a global menu has none"
+        )
     lines = [f"{indent}veafRadio.createUserMenu(", f"{indent}    veafRadio.mainmenu("]
     for i, node in enumerate(tree):
         node_lines = _emit_menu_node(node, indent + "        ")
@@ -1396,7 +1416,9 @@ def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:
     return lines
 
 
-def _emit_module_radio_menu(name: str, target_key: str, verbs: list[str], group: str | None) -> list[str]:
+def _emit_module_radio_menu(
+    name: str, target_key: str, verbs: list[str], group: str | None, secured: bool = False
+) -> list[str]:
     """Emit the per-module ``radio_menu`` shortcut (mechanism 1) for QRA / AirWaves.
 
     Builds a single submenu named after the object, holding one command per verb
@@ -1407,15 +1429,28 @@ def _emit_module_radio_menu(name: str, target_key: str, verbs: list[str], group:
         target_key: The action target key — ``"qra"`` or ``"airwave"``.
         verbs: The verbs to expose, e.g. ``["start", "stop"]``.
         group: Optional DCS group name the menu is restricted to.
+        secured: Emit the commands secured (``radio_menu_secured``): only a pilot of ``group`` with
+            the required security level can run them. Open to every player otherwise
+            (FIX-SCRATCH-MISSION-FINDINGS ticket 22).
 
     Returns:
         The generated Lua lines.
+
+    Raises:
+        ValueError: If ``secured`` is asked without a ``group`` — the runtime can only check the
+            level of the group a command was posted for.
     """
+    if secured and not group:
+        raise ValueError(
+            f"{name!r}: radio_menu_secured needs radio_menu_restrict_to_group — the security level "
+            "is that of the group the menu is posted for, and a global menu has none"
+        )
     items = [
         {
             "command": t(f"generated.radio_menu.{verb}", name=name),
             "action": f"{target_key}.{verb}",
             target_key: name,
+            "secured": secured,
         }
         for verb in verbs
     ]

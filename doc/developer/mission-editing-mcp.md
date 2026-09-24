@@ -661,6 +661,12 @@ modules) :
 > la mission, pose la coalition, et **active les slots Dynamic Spawn** de la base (le build les
 > approvisionne ensuite), sauf si `dynamic_spawn` est faux. Sauvegarde préalable, comme les autres
 > actions d'édition.
+>
+> `dynamic_spawn: false` inscrit aussi la base sous `<camp>.exclude_airports` dans
+> `src/warehouses.yaml`, et `true` l'en retire : le build ouvrait toute base d'un camp déclaré sans
+> liste `airports:`, `dynamicSpawn = false` ou pas (`FIX-SCRATCH-MISSION-FINDINGS` ticket 15). Rien
+> n'est écrit si le fichier manque (l'étape ne tourne pas) ou si le camp n'y est pas déclaré (le
+> déclarer ouvrirait toutes ses bases).
 
 ### FARP
 

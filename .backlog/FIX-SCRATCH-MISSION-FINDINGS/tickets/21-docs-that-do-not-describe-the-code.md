@@ -1,6 +1,6 @@
 # 21 — Two docs that do not describe the code
 
-Status: ⬜ ready
+Status: ✅ done
 Type: doc (+ a naming decision, point 1)
 Files: `doc/mission-maker/scripts/veafCombatMission*.md`, `.prompts/new-open-training-mission*.md`,
 possibly `veaf_libs/mission_template.py`
@@ -41,3 +41,13 @@ old names read as aliases — the names are what misleads.
 - `cap_missions[]` keys documented (FR/EN) as what they do, or renamed per the decision, with a test
   of the generated `addCapMission` arguments
 - The prompt (FR/EN) says what `standard` really writes — or the template writes what the prompt says
+
+## Outcome
+
+Decided: the keys keep their names (a rename would break every `mission.yaml` that has them); the doc
+says what they do. `default` = `secured` (Activate / Deactivate reserved to authorised pilots),
+`activated` = `radioMenuEnabled` (the CAP shows in the F10 menu); neither starts the CAP, which is
+created inactive (`veafCombatMission.lua:509`). `test_cap_missions_arguments.py` pins the generated
+`addCapMission` arguments so the doc and the code cannot drift apart again. The Open Training prompt
+(FR/EN) says `standard` writes COMBATZONE and QRA as commented examples that `create_combat_zone` /
+`create_qra` turn on.

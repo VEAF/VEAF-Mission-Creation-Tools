@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_builder.warehouses_bootstrap import DEFAULT_AIRPORT
+from mission_tools.mission_yaml_editor import load_yaml, save_yaml
 from mission_tools.miz_tools import DcsMission, normalize_warehouses_airports
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 
@@ -98,11 +99,59 @@ def set_airbase_coalition(
     entry["coalition"] = _COALITIONS[key]
     entry["dynamicSpawn"] = dynamic_spawn
     save_folder_mission(mission, folder_path)
+    excluded = _record_exclusion(folder_path / "src" / "warehouses.yaml", name, key, closed=not dynamic_spawn)
 
     return {
         "airbase": name,
         "airdrome_id": airdrome_id,
         "coalition": _COALITIONS[key],
         "dynamic_spawn": dynamic_spawn,
+        "excluded_in_warehouses_yaml": excluded,
         "durable": True,
     }
+
+
+def _record_exclusion(yaml_path: Path, name: str, coalition: str, *, closed: bool) -> bool:
+    """Keep ``<side>.exclude_airports`` in `warehouses.yaml` in step with the base's ``dynamicSpawn``.
+
+    The build's warehouses step opens every base of a declared side unless it is listed here
+    (FIX-SCRATCH-MISSION-FINDINGS ticket 15): a ``dynamicSpawn = false`` in the warehouses table alone
+    was turned back on at build. The name is removed from every side first, so a base changing side
+    carries its exclusion along rather than leaving a stale one behind.
+
+    Nothing is written when the file is absent (the step does not run, no slot is opened) or when the
+    side is not declared in it (an undeclared side is left untouched by the build — declaring it here
+    would open every one of its bases).
+
+    Args:
+        yaml_path: ``src/warehouses.yaml``.
+        name: The airfield display name, as `exclude_airports` takes it.
+        coalition: The side, lower case.
+        closed: Whether the base must stay without slots.
+
+    Returns:
+        Whether the file now excludes the base.
+    """
+    if not yaml_path.is_file():
+        return False
+    data = load_yaml(yaml_path)
+    if not hasattr(data, "get"):
+        return False
+    changed = False
+    for side in ("blue", "red", "neutral"):
+        block = data.get(side)
+        if not hasattr(block, "get"):
+            continue
+        excluded = block.get("exclude_airports")
+        if isinstance(excluded, list) and name in excluded:
+            excluded.remove(name)
+            if not excluded:
+                del block["exclude_airports"]
+            changed = True
+    recorded = False
+    if closed and hasattr(data.get(coalition), "get"):
+        data[coalition].setdefault("exclude_airports", []).append(name)
+        changed = recorded = True
+    if changed:
+        save_yaml(yaml_path, data)
+    return recorded

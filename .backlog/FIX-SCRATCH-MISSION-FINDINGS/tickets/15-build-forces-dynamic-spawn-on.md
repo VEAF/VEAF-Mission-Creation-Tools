@@ -1,6 +1,6 @@
 # 15 — The build turns dynamic slots on at every airfield of a side, over `dynamic_spawn: false`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/python/veaf-tools/warehouses_injector/warehouses_injector_worker.py`, tests,
 `doc/PIPELINE_REFERENCE*.md` (the `warehouses.yaml` section)
@@ -43,3 +43,20 @@ default path, the one `prepare` lays down.
   second gets links
 - GermanyCW-v6 rebuilt without its `airports:` lists: the red bases set `dynamic_spawn=false` carry no
   link
+
+## Outcome
+
+Decided with David (2026-09-24, option a): the record lives in `warehouses.yaml`, not in the
+warehouses table, because `dynamicSpawn = false` is the editor's default there, not a choice — 12
+local missions carry blue or red bases at `false` that were never meant to stay closed.
+
+1. `set_airbase_coalition(dynamic_spawn=false)` writes the base under `<side>.exclude_airports` in
+   `src/warehouses.yaml` (comments preserved), `true` removes it from every side; nothing is written
+   when the file is absent (the step does not run) or the side is not declared in it (declaring it
+   would open every one of its bases). The result says whether it was recorded.
+2. The build reads `exclude_airports` (names or ids): an excluded base never gets slots, listed or
+   not, with a warning when it is both listed and excluded; an unknown entry is reported.
+3. Doc: `PIPELINE_REFERENCE` schema (FR/EN), the default `warehouses.yaml`, the MCP doc.
+
+Left to the GermanyCW-v6 rebuild (PRD Definition of Done): drop the `airports:` lists and measure
+the red bases stay at their 0 links.

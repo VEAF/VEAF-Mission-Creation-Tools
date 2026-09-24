@@ -104,6 +104,7 @@ modules:
 | `airport_link` | string | — | No | Linked DCS airbase name — QRA offline when destroyed |
 | `radio_menu` | boolean | `false` | No | Automatically generate an F10 radio submenu to control this QRA (see below) |
 | `radio_menu_restrict_to_group` | string | — | No | Name of a DCS group; the generated submenu only appears for that group |
+| `radio_menu_secured` | boolean | `false` | No | **Secured** commands: only a pilot of that group with the required security level can run them. Requires `radio_menu_restrict_to_group` (the level checked is that of the group the menu is posted for); the build refuses otherwise |
 
 ### Control radio menu (shortcut)
 
@@ -120,6 +121,7 @@ modules:
           - "MiG-29 QRA North"
         radio_menu: true                         # generates the control submenu
         radio_menu_restrict_to_group: "MM Ctrl"  # optional: restrict the submenu to this DCS group
+        radio_menu_secured: true                 # optional: and require the security level ("+…" commands)
 ```
 
 !!! warning "This menu is not secured"
@@ -127,7 +129,7 @@ modules:
     and its commands run without asking for any security level. On a public server, a blue pilot can
     stop the red QRA they are about to fly over. Keep it for a Mission Master group with
     `radio_menu_restrict_to_group` — knowing that any player who takes that group's slot sees the menu
-    in turn.
+    in turn — and add `radio_menu_secured: true` so that pilot must also hold the required security level.
 
 This is **mechanism 1** (per-module shortcut). For a custom MM menu that is structured or combines several actions (QRA, AirWaves, flags, messages, Lua), use **mechanism 2** described in [veafRadio → Radio menus in YAML](veafRadio.en.md#radio-menus-in-yaml).
 

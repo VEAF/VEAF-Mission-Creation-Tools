@@ -442,7 +442,15 @@ carburant / munitions et le stock d'aéronefs, et lie chaque type d'aéronef pro
   airports:                  # optionnel. Absent -> TOUS les aérodromes de la coalition reçoivent `defaults`.
     <nom ou id>: { }                        # defaults seuls
     <nom ou id>: { aircrafts: { ... } }     # defaults + override par aérodrome
+  exclude_airports:          # optionnel. Ces aérodromes ne reçoivent JAMAIS de slot, listés ou non.
+    - <nom ou id>
 ```
+
+- `exclude_airports` est ce que l'action MCP `set_airbase_coalition(…, dynamic_spawn: false)` écrit :
+  sans lui, un `dynamicSpawn = false` dans les `warehouses` de la mission était **réactivé au build**
+  pour toute base d'une coalition déclarée sans liste `airports:` (mesuré sur GermanyCW-v6 : 61
+  aérodromes ouverts au lieu de 12). Une base à la fois listée et exclue reste fermée, avec un
+  avertissement.
 
 - `template` référence un groupe-modèle par **nom** ; omettez-le pour l'auto-matcher
   à un groupe-modèle du même **type d'aéronef** (même coalition).

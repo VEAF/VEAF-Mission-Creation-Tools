@@ -1462,7 +1462,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "so placing a unit near a base never turns the base itself; use this action. Resolves "
                 "the airfield name to an id via the mission's theatre, sets the coalition, and turns "
                 "on the base's Dynamic Spawn slots (the build then stocks them) unless dynamic_spawn "
-                "is false -- e.g. an enemy base that should offer no slot. Backed up first."
+                "is false -- e.g. an enemy base that should offer no slot, which is then recorded under "
+                "exclude_airports in src/warehouses.yaml so the build keeps it closed. Backed up first."
             ),
             parameters_schema={
                 "type": "object",

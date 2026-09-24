@@ -1,6 +1,6 @@
 # 18 — `create_combat_zone` takes no route for its groups
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/composites.py`, `actions.py`, tests,
 `doc/mission-maker/AI_ASSISTANT_CATALOG*.md`
@@ -27,3 +27,8 @@ composite call was meant to do it.
 
 - A group of `create_combat_zone` accepts `route` (and `patrol`) with the same shape as `add_group`
 - Test: a zone with a routed group gets its waypoints; a group without keeps today's behaviour
+
+## Outcome
+
+`create_combat_zone` groups take `route` and `patrol`, with `add_group`'s shape, passed straight to
+`insert_group_into_content`; a group without a route keeps today's single point.

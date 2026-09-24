@@ -229,6 +229,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   defense for the size of the front, three families of nested training levels, real combat zones,
   QRA and CAP, security on with a `LOCAL_TEST` profile — and has it report every tool gap it meets.
   The mission-maker guide to the AI assistant points to it.
+- **What a second from-scratch mission found (FIX-SCRATCH-MISSION-FINDINGS 15–22).** The build no
+  longer turns dynamic slots on at every airfield of a side over `set_airbase_coalition(dynamic_spawn:
+  false)`: the action records the base under `exclude_airports` in `warehouses.yaml`, which the build
+  honours. Ships are placed 600 m apart instead of 20. A CAP from `create_cap_mission` carries the
+  editor's engage task before its orbit, and `edit_route add_task` takes a `task_position`.
+  `create_combat_zone` groups take a `route`. New MCP actions `add_farp` (heliport, radio, warehouse),
+  `set_weather` (the blank mission had its clouds on the ground) and `list_airfields` (with the
+  positions now shipped); `set_unit_properties` renames and moves a unit, `build_mission` takes a
+  `profile`, `resolve_coordinates` a list. `validate` counts dynamic slots as player slots. Since the
+  move to mcp 2.x every action failure reached the agent as a bare `Error executing tool run_action`;
+  it now carries the message, and a misnamed parameter is named with the expected ones. The
+  `cap_missions[]` keys `default` / `activated` are documented as what they are (`secured` /
+  `radioMenuEnabled`), and a QRA or AirWaves `radio_menu` can be secured with `radio_menu_secured`.
 
 ## [6.24.0] — 2026-09-21
 

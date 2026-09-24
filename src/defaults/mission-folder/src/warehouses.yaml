@@ -36,6 +36,11 @@
 #       FARP Kaspi MM54: { aircrafts: { UH-1H: { amount: 20 } } }
 #   The three keys are independent: naming a ship says nothing about the FARPs,
 #   which keep the "all of this coalition" default.
+# - Add `exclude_airports:` (a list of names or ids) to keep some bases of the
+#   coalition WITHOUT dynamic slots whatever the default or the list says. This
+#   is what the MCP `set_airbase_coalition(..., dynamic_spawn: false)` writes:
+#     exclude_airports:
+#       - Kobuleti
 # - Add `hot_start: false` under a coalition's `defaults:` to offer cold starts
 #   only (DCS's own default; the build offers a hot start unless told otherwise).
 # - Remove a coalition block to leave that side's warehouses untouched.

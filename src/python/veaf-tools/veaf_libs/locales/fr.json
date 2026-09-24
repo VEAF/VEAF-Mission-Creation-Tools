@@ -1039,6 +1039,7 @@
   "verifier.in_game.nothing": "Rien lu - etape passee",
   "verifier.in_game.ok": "OK ({value}) - etape suivante",
   "warehouses.airport_not_found": "Aéroport « {airport} » introuvable dans les warehouses (théâtre « {theatre} ») ; ignoré.",
+  "warehouses.airport_listed_and_excluded": "L'aérodrome {airport} figure à la fois sous airports: et sous exclude_airports: — laissé sans slot dynamique.",
   "warehouses.dead_links": "{count} lien(s) de slot dynamique de cette mission pointent vers un groupe qui n'existe plus ; DCS les affiche en 'Group template: None'. Ils sont sur des entrepôts que cette configuration ne cible pas — déclarez la coalition, ou nettoyez-les dans l'éditeur de mission.",
   "warehouses.done": "Warehouses : {airports}, {objects}, {templates}.",
   "warehouses.invalid_amount": "Quantité de stock « {amount} » invalide pour le type d'aéronef « {type} » ; un entier ou « unlimited » est attendu. Ignorée.",

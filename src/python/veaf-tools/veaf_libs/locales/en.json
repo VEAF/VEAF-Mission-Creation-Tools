@@ -1039,6 +1039,7 @@
   "verifier.in_game.nothing": "Nothing read - step skipped",
   "verifier.in_game.ok": "OK ({value}) - next step",
   "warehouses.airport_not_found": "Airport '{airport}' not found in the warehouses (theatre '{theatre}'); skipped.",
+  "warehouses.airport_listed_and_excluded": "Airport {airport} is both listed under airports: and under exclude_airports: — kept without dynamic slots.",
   "warehouses.dead_links": "{count} dynamic-slot link(s) in this mission point at a group that no longer exists; DCS shows them as 'Group template: None'. They sit on warehouses this config does not target — declare the coalition, or clear them in the Mission Editor.",
   "warehouses.done": "Warehouses: {airports}, {objects}, {templates}.",
   "warehouses.invalid_amount": "Invalid stock amount '{amount}' for aircraft type '{type}'; expected an integer or 'unlimited'. Ignored.",

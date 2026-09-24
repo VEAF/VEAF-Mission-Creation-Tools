@@ -144,6 +144,7 @@ Les commandes de démarrage/arrêt/réinitialisation d'une zone AirWave **n'exis
 |-------|------|--------|--------|-------------|
 | `radio_menu` | booléen | `false` | Non | Générer automatiquement un sous-menu radio F10 de contrôle de cette zone |
 | `radio_menu_restrict_to_group` | string | — | Non | Nom d'un groupe DCS ; le sous-menu généré n'apparaît que pour ce groupe |
+| `radio_menu_secured` | booléen | `false` | Non | Commandes **sécurisées** : seul un pilote de ce groupe ayant le niveau de sécurité requis peut les exécuter. Exige `radio_menu_restrict_to_group` ; le build refuse sinon |
 
 ```yaml
 modules:
@@ -157,6 +158,7 @@ modules:
           - groups: "su27-flight"
         radio_menu: true                         # génère le sous-menu de contrôle
         radio_menu_restrict_to_group: "MM Ctrl"  # optionnel : réserver le sous-menu à ce groupe DCS
+        radio_menu_secured: true                 # optionnel : et exiger le niveau de sécurité (commandes « +… »)
 ```
 
 !!! warning "Ce menu n'est pas sécurisé"
@@ -164,7 +166,8 @@ modules:
     camps, et ses commandes s'exécutent sans demander de niveau de sécurité. Sur un serveur public,
     n'importe quel pilote peut arrêter ou réinitialiser une zone pendant que d'autres y combattent.
     Réservez-le à un groupe de Mission Master avec `radio_menu_restrict_to_group` — en sachant que tout
-    joueur qui prend le slot de ce groupe voit le menu à son tour.
+    joueur qui prend le slot de ce groupe voit le menu à son tour — et ajoutez `radio_menu_secured: true`
+    pour que ce pilote doive en plus avoir le niveau de sécurité requis.
 
 C'est le **mécanisme 1** (raccourci par module). Pour un menu MM personnalisé, structuré ou combinant plusieurs actions (AirWaves, QRA, flags, messages, Lua), utilisez le **mécanisme 2** décrit dans [veafRadio → Menus radio en YAML](veafRadio.md#radio-menus-in-yaml).
 

@@ -103,6 +103,7 @@ modules:
 | `active_at_start` | booléen | `true` | Non | `false` : la QRA est déclarée mais **pas armée** au démarrage — elle attend un `qra.start` (menu radio) ou un appel script |
 | `radio_menu` | booléen | `false` | Non | Générer automatiquement un sous-menu radio F10 de contrôle de cette QRA (voir ci-dessous) |
 | `radio_menu_restrict_to_group` | string | — | Non | Nom d'un groupe DCS ; le sous-menu généré n'apparaît que pour ce groupe |
+| `radio_menu_secured` | booléen | `false` | Non | Commandes **sécurisées** : seul un pilote de ce groupe ayant le niveau de sécurité requis peut les exécuter. Exige `radio_menu_restrict_to_group` (le niveau vérifié est celui du groupe pour lequel le menu est posé) ; le build refuse sinon |
 
 ### Menu radio de contrôle (raccourci)
 
@@ -119,6 +120,7 @@ modules:
           - "MiG-29 QRA Nord"
         radio_menu: true                         # génère le sous-menu de contrôle
         radio_menu_restrict_to_group: "MM Ctrl"  # optionnel : réserver le sous-menu à ce groupe DCS
+        radio_menu_secured: true                 # optionnel : et exiger le niveau de sécurité (commandes « +… »)
 ```
 
 !!! warning "Ce menu n'est pas sécurisé"
@@ -126,7 +128,8 @@ modules:
     camps, et ses commandes s'exécutent sans demander de niveau de sécurité. Sur un serveur public, un
     pilote bleu peut arrêter la QRA rouge qu'il s'apprête à survoler. Réservez-le à un groupe de
     Mission Master avec `radio_menu_restrict_to_group` — en sachant que tout joueur qui prend le slot
-    de ce groupe voit le menu à son tour.
+    de ce groupe voit le menu à son tour — et ajoutez `radio_menu_secured: true` pour que ce pilote
+    doive en plus avoir le niveau de sécurité requis.
 
 C'est le **mécanisme 1** (raccourci par module). Pour un menu MM personnalisé, structuré ou combinant plusieurs actions (QRA, AirWaves, flags, messages, Lua), utilisez le **mécanisme 2** décrit dans [veafRadio → Menus radio en YAML](veafRadio.md#radio-menus-in-yaml).
 

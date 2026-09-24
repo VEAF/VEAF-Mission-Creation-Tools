@@ -640,6 +640,12 @@ initialise):
 > is what does. It resolves the airfield name to an id through the mission's theatre, sets the
 > coalition, and **turns on the base's Dynamic Spawn slots** (the build then stocks them) unless
 > `dynamic_spawn` is false. Backed up first, like the other editing actions.
+>
+> `dynamic_spawn: false` also records the base under `<side>.exclude_airports` in
+> `src/warehouses.yaml`, and `true` removes it: the build opened every base of a declared side with no
+> `airports:` list, `dynamicSpawn = false` or not (`FIX-SCRATCH-MISSION-FINDINGS` ticket 15). Nothing
+> is written when the file is absent (the step does not run) or the side is not declared in it
+> (declaring it would open every one of its bases).
 
 ### FARP
 

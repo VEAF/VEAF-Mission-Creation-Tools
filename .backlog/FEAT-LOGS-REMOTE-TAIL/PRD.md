@@ -48,7 +48,7 @@ servers:
       public1: C:/Users/veaf/Saved Games/public1_server/Logs/dcs.log
 ```
 
-One machine, several instances: one SSH connection per machine, one tab per instance.
+One machine, several instances: the machine is declared once, each open instance is a tab with its own SSH connection (0.4 s to open, measured; an outage on one tab never disturbs the others).
 
 ## Tickets
 

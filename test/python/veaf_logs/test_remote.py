@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from veaf_libs.user_config import RemoteServer
@@ -391,3 +392,74 @@ class TestSourceDistanteChemins:
         source = RemoteLogSource(_server(remote), "private1", connect=lambda s, p: (Grumpy(), FakeSftp(remote)))
         source.open()
         source.close()  # ne leve pas
+
+
+class TestConnexionParamiko:
+    """`_connect` contre un faux `paramiko.SSHClient` : ce qu'on ferme, ce qu'on refuse."""
+
+    @pytest.fixture
+    def fake_paramiko(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        paramiko = pytest.importorskip("paramiko")
+        events: list[str] = []
+
+        class FakeClient:
+            def __init__(self) -> None:
+                self.policy = None
+
+            def load_host_keys(self, path: str) -> None:
+                events.append("load_host_keys")
+
+            def set_missing_host_key_policy(self, policy) -> None:
+                self.policy = policy
+
+            def connect(self, host, **kwargs) -> None:
+                events.append(f"connect {host}:{kwargs['port']} as {kwargs['username']}")
+                if kwargs.get("password") is not None:
+                    raise AssertionError("un mot de passe ne doit jamais etre envoye")
+                # L'hote est inconnu : la politique decide.
+                self.policy.missing_host_key(self, host, FakeKey())
+
+            def open_sftp(self):
+                events.append("open_sftp")
+                if fail_sftp:
+                    raise paramiko.SSHException("pas de sous-systeme sftp")
+                return "sftp"
+
+            def close(self) -> None:
+                events.append("close")
+
+        fail_sftp = False
+        monkeypatch.setattr(paramiko, "SSHClient", FakeClient)
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        (tmp_path / ".ssh").mkdir()
+        (tmp_path / ".ssh" / "known_hosts").write_text("", encoding="utf-8")
+
+        def make_sftp_fail() -> None:
+            nonlocal fail_sftp
+            fail_sftp = True
+
+        return SimpleNamespace(events=events, fail_sftp=make_sftp_fail)
+
+    def test_cle_acceptee_puis_sftp(self, fake_paramiko, remote: Path):
+        from veaf_logs.remote import _connect
+
+        client, sftp = _connect(_server(remote), lambda hostname, fingerprint: True)
+        assert sftp == "sftp"
+        assert fake_paramiko.events == ["load_host_keys", "connect dcs.veaf.org:22 as veaf", "open_sftp"]
+
+    def test_cle_refusee_coupe_la_connexion(self, fake_paramiko, remote: Path):
+        import paramiko
+        from veaf_logs.remote import _connect
+
+        with pytest.raises(paramiko.SSHException, match="refusee"):
+            _connect(_server(remote), lambda hostname, fingerprint: False)
+        assert "open_sftp" not in fake_paramiko.events
+
+    def test_sftp_refuse_ferme_le_client(self, fake_paramiko, remote: Path):
+        import paramiko
+        from veaf_logs.remote import _connect
+
+        fake_paramiko.fail_sftp()
+        with pytest.raises(paramiko.SSHException, match="sftp"):
+            _connect(_server(remote), lambda hostname, fingerprint: True)
+        assert fake_paramiko.events[-2:] == ["open_sftp", "close"]

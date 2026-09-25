@@ -40,9 +40,10 @@ _READ_CHUNK = 1 << 20
 # qui echoue peut prendre plusieurs secondes a le dire.
 _RETRY_DELAY_S = 5.0
 
-# Delai de connexion. Un serveur injoignable ne doit pas figer l'interface
-# plus longtemps que ca.
-_CONNECT_TIMEOUT_S = 10.0
+# Delai de chaque etape de la connexion. Elle se fait sur le fil de
+# l'interface : un serveur injoignable ne doit pas la figer plus longtemps que
+# ca. Mesure sur dcs.veaf.org le 2026-09-24 : 0,44 s de bout en bout.
+_CONNECT_TIMEOUT_S = 5.0
 
 # Un journal local est sonde toutes les 400 ms ; a distance, chaque sondage est
 # un echange reseau, une fois par seconde suffit.
@@ -240,9 +241,19 @@ def _connect(server: RemoteServer, prompt: HostKeyPrompt | None) -> tuple[Any, S
         key_filename=str(server.key) if server.key else None,
         allow_agent=True,
         look_for_keys=True,
+        # Les trois delais bornent chaque etape : TCP, banniere SSH, puis
+        # authentification. Sans les deux derniers, un hote qui accepte la
+        # connexion et se tait figerait l'interface bien plus longtemps.
         timeout=_CONNECT_TIMEOUT_S,
+        banner_timeout=_CONNECT_TIMEOUT_S,
+        auth_timeout=_CONNECT_TIMEOUT_S,
     )
-    return client, client.open_sftp()
+    try:
+        return client, client.open_sftp()
+    except Exception:
+        # Le sous-systeme SFTP a refuse : ne pas laisser la session SSH ouverte.
+        client.close()
+        raise
 
 
 class RemoteLogSource:

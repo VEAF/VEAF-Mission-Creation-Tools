@@ -686,6 +686,9 @@ class MainWindow(QMainWindow):
         try:
             source.open()
         except (LogUnavailable, OSError) as exc:
+            # Une source distante a pu se connecter et creer son miroir avant
+            # de constater que le journal manque : rendre ce qu'elle tient.
+            source.close()
             if on_error is not None:
                 on_error(exc)
             else:

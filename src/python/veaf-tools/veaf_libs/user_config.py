@@ -150,8 +150,10 @@ class RemoteServer:
     """A DCS server reachable over SSH, with the logs it hosts.
 
     ``logs`` maps an instance name (``private1``) to the remote path of that
-    instance's ``dcs.log``. One machine runs several DCS instances, so there is
-    one SSH connection per server and one log per instance.
+    instance's ``dcs.log``. One machine runs several DCS instances, so the
+    machine is declared once and each instance names its own log. Each open
+    log holds its own SSH connection: they are cheap (0.4 s measured) and an
+    outage on one tab then never disturbs the others.
     """
 
     name: str

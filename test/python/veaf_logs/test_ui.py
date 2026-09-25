@@ -691,3 +691,28 @@ class TestDialoguesDistants:
             lambda parent, title, text, buttons, default: chosen,
         )
         assert window._ask_host_key("dcs.veaf.org", "ssh-ed25519 SHA256:abc") is answer
+
+
+class TestOuvertureDistanteEnEchec:
+    def test_instance_arretee_rend_ses_ressources(self, window, tmp_path, monkeypatch):
+        """Connecte, miroir cree, puis journal absent : rien ne doit rester."""
+        from types import SimpleNamespace
+
+        from veaf_logs.remote import RemoteLogSource
+
+        closed: list[str] = []
+        missing = tmp_path / "absent.log"
+        sftp = SimpleNamespace(stat=lambda path: missing.stat(), open=lambda path, mode="r": open(missing, "rb"))
+        ssh = SimpleNamespace(close=lambda: closed.append("ssh"))
+        server = TestJournalDistant._server()
+        source = RemoteLogSource(server, "private1", connect=lambda srv, prompt: (ssh, sftp))
+        shown: list[str] = []
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.QMessageBox.warning", lambda parent, title, text: shown.append(text)
+        )
+        before = window.tabs.count()
+        assert window._open_source(source, source.location) is None
+        assert window.tabs.count() == before
+        assert "absent sur le serveur" in shown[0]
+        assert closed == ["ssh"]
+        assert source._buffer is None, "le miroir a ete supprime avec la source"

@@ -1284,11 +1284,16 @@ function TestVeafGroupSpawnChain:test_a_spawn_that_never_happened_reserves_nothi
   -- The name is registered where the group reaches DCS, not where the name is chosen: everything in
   -- between can still refuse it. Reserving earlier left a name held forever by a group that was
   -- never created, and the next clone stepped over it. Found by review on #848.
+  --
+  -- The refusal this leans on needs a radius to search: a zero radius is "exactly here" and is
+  -- honoured whatever the surface (see `test_a_zero_radius_keeps_the_declared_position_on_refused_terrain`),
+  -- so the group would be created and the name legitimately taken. What is under test here is
+  -- *when* the registry is written, not which spots are refused, so the radius is free to change.
   land.getSurfaceType = function()
     return land.SurfaceType.WATER
   end
 
-  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):clone()
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRadius(500):clone()
 
   luaunit.assertFalse(result, "a ground group cannot spawn on water")
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
@@ -1410,6 +1415,44 @@ function TestVeafGroupSpawnChain:test_terrain_the_group_cannot_use_is_refused()
 
   luaunit.assertFalse(result)
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+--- FIX-ZERO-RADIUS-REFUSES-DECLARED-POSITION — measured in DCS on GermanyCW-v6, 2026-09-25:
+--- `combatZone_ConvoiA24` stopped spawning entirely. Its convoy sits on a bridge, and DCS answers
+--- `WATER` for the surface under a bridge; the zone handed the declared position to a radius-0
+--- spawn, and this draw refused it, so the whole group was lost.
+---
+--- A zero radius is not a circle to search: `veaf.getRandomPointInCircle(point, 0)` returns the
+--- point unchanged, so the hundred attempts all test the same spot and the check can only ever
+--- say yes or kill the spawn. Rule 1 of David's arbitration (2026-08-27,
+--- `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md`) reads "placed exactly where the user asked —
+--- no intelligent relocation", and rule 3 reserves refusing for what a command spawns, never for
+--- what the Mission Editor placed. `veaf.getRandomPointInCircle` and `veaf.findSpawnPoint` both
+--- already say so in as many words; this draw was the one place that did not.
+function TestVeafGroupSpawnChain:test_a_zero_radius_keeps_the_declared_position_on_refused_terrain()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):respawn()
+
+  luaunit.assertIsTable(result, "a zero radius means 'exactly here', so the spawn must go through")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+  luaunit.assertEquals(spawned().units[1].x, 5000, "the declared northing, untouched")
+  luaunit.assertEquals(spawned().units[1].y, 6000, "the declared easting, untouched")
+end
+
+--- The same rule stated the other way round: a radius the caller actually asked for still means
+--- "move me if you must", so the scenery awareness PR #1002 added is not weakened by the fix above.
+function TestVeafGroupSpawnChain:test_an_explicit_zero_radius_is_the_same_as_none()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):withRadius(0):respawn()
+
+  luaunit.assertIsTable(result)
+  luaunit.assertEquals(spawned().units[1].x, 5000)
 end
 
 --- FIX-TRIPACK-FIELD-REPORTS ticket 03 — the refusal used to name only the radius and the group,

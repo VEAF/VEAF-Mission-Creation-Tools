@@ -942,6 +942,26 @@ function VeafGroupSpawn:_drawOrigin(data)
     return { x = 0, y = 0 }, nil
   end
 
+  -- A zero radius means "exactly here, the mission maker means it", and there is nothing to draw:
+  -- `veaf.getRandomPointInCircle(point, 0)` returns the centre unchanged, so the hundred attempts
+  -- below would all weigh the same spot and the terrain check could only ever agree or kill the
+  -- spawn outright. Killing it is exactly what rule 1 of David's arbitration (2026-08-27,
+  -- `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md`) forbids — "placed exactly where the user
+  -- asked, no intelligent relocation" — and rule 3 reserves refusing for what a *command* spawns,
+  -- never for what the Mission Editor placed, because editor content has nobody in the room to
+  -- read the message.
+  --
+  -- The doctrine was already written twice, in `veaf.getRandomPointInCircle` and in
+  -- `veaf.findSpawnPoint`'s tier 1; this draw was the one place that still tested a point it had
+  -- no licence to move. Measured cost of the omission: on GermanyCW-v6, 2026-09-25,
+  -- `combatZone_ConvoiA24` vanished from the mission. Its convoy stands on a bridge, and DCS
+  -- reports the surface *under* a bridge, which is water — so the declared position the zone
+  -- rightly insisted on was refused here and the group was never created.
+  if self.radius == 0 then
+    local exact = veaf.getRandomPointInCircle(self.point, 0)
+    return { x = exact.x - first.x, y = exact.y - first.y }, exact
+  end
+
   local surfaces = self.terrain or veafDcsSpawner.terrainForCategory(data.category)
   local lastCandidate
   for _ = 1, VeafGroupSpawn.TERRAIN_ATTEMPTS do

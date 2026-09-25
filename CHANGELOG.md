@@ -302,10 +302,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   worst (the S-300s of Wittstock and Borkenberge, three other S-300s and an SA-11) go from 8-13
   vehicles under trees to zero. The move is bounded by a translation distance
   (`veafUnits.SETTLE_MAX_TRANSLATION`, 1000 m, against measured needs of 100 to 800 m) rather than by
-  the radius asked of DCS, which means nothing. Editor content is untouched: zone elements keep going
-  through `VeafGroupSpawn:honouringDeclaredPosition`; a spawn that granted **no radius** means
-  “exactly here” and is never moved, the same rule `veaf.findSpawnPoint` already applies; and convoys
-  are exempt so they do not leave their first waypoint.
+  the radius asked of DCS, which means nothing. Editor content is untouched, through the explicit
+  flag `VeafGroupSpawn:honouringDeclaredPosition` and never through the radius: zero is this
+  codebase's **default** radius, not a statement, and 100 of the 118 spawn commands of one
+  GermanyCW-v6 launch pass `radius 0` — every air-defence battery this lot exists for, starting with
+  `combatZone_Wittstock`'s S-300. Convoys are exempt too, so they do not leave their first waypoint.
 
 ## [6.24.0] — 2026-09-21
 

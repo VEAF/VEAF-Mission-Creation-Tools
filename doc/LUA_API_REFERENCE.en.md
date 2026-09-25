@@ -462,14 +462,18 @@ the closest free point DCS can propose is 52 m away.
 **Parameters:**
 
 - `units` - the unit list, as `veafUnits.placeGroup` filled it in
-- `spawnRadius` - the radius the caller was allowed to draw the group's centre in; it is the licence
-  to move. At `0` or absent, nothing moves ("exactly here").
+- `honourDeclaredPosition` - when `true`, the caller states that it **owns the placement** and nothing
+  moves. Same contract as `VeafGroupSpawn:honouringDeclaredPosition()`, and explicit for the same
+  reason: a zero radius is this codebase's **default**, not a statement. Measured 2026-09-25 on
+  GermanyCW-v6, 100 of the 118 spawn commands of one launch pass `radius 0` - that is to say every
+  battery this lot has to move.
 
 **Returns:** the distance the group was moved by, `0` when it stayed put.
 
-**Never moves:** a group holding an air unit, a naval unit or a naval static; a convoy; a group whose
-caller granted no radius; a mission that set `veaf.doNotAvoidScenery` to `true`; and of course
-Mission Editor content, which goes through `VeafGroupSpawn:honouringDeclaredPosition()`.
+**Never moves:** a group holding an air unit, a naval unit or a naval static; a convoy; a caller that
+set `honourDeclaredPosition`; a mission that set `veaf.doNotAvoidScenery` to `true`; and Mission
+Editor content, which goes through `VeafGroupSpawn:honouringDeclaredPosition()` and never reaches
+here.
 
 **Settings:**
 

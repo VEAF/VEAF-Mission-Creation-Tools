@@ -71,7 +71,13 @@ half of it would break the very invariant this function exists to protect.
 - [ ] `veafUnits.settleGroup` defined and documented; `settlePosition` removed along with its tests
 - [ ] Called in `_createDcsUnits`, `doSpawnGroup` and `veafCasMission.generateCasMission`, before the
       terrain check
-- [ ] Editor content and zero-radius declared positions still never moved nor refused (ruling 3,
-      `VeafGroupSpawn:honouringDeclaredPosition` from ticket 07 untouched)
+- [ ] The exemption rests on the **explicit flag** `honourDeclaredPosition`, never on a zero radius:
+      zero is this codebase's default, and measured on GermanyCW-v6 on 2026-09-25, **100 of the 118
+      spawn commands of one launch pass `radius 0`** — `sa10`, `sa11`, `sa15_squad`, `ewr`,
+      `patriot`, `msta`, i.e. every battery this lot exists for. A gate keyed on the radius makes the
+      lot a no-op on the real mission while every unit test stays green. Same distinction ticket 07
+      drew for `VeafGroupSpawn:honouringDeclaredPosition`, reused rather than duplicated.
+- [ ] Two tests pin that gate: a zone spawn at the default radius **is** moved, and a caller that
+      honours its declared position is **not**
 - [ ] `poetry run test-lua` green, `stylua --check` and `luacheck` clean
 - [ ] `CHANGELOG.md` entry under `[Unreleased]`

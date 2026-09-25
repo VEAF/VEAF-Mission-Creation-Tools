@@ -503,19 +503,25 @@ end
 -- `honouringDeclaredPosition` keeps the position the mission maker drew (ruling 3 of David's
 -- arbitration, 2026-08-27). This path is the dynamic spawners only.
 --
--- A **zero or absent radius means "exactly here, the caller means it"**, and nothing is moved. Same
--- rule as `veaf.findSpawnPoint`, and rule 1 of David's arbitration (2026-08-27): a radius is a
--- licence to move, and a caller that granted none has already settled where its group goes.
+-- **The exemption is the explicit flag, never a zero radius.** `VeafGroupSpawn:honouringDeclaredPosition()`
+-- (#1004) made exactly that distinction and it holds here for the same reason: zero is the *default*
+-- radius, not a statement. Measured in DCS on GermanyCW-v6, 2026-09-25: of the 118 spawn commands of
+-- one launch, **100 pass `radius 0`** — `sa10`, `sa11`, `sa15_squad`, `ewr`, `patriot`, `msta` and the
+-- rest, that is to say every single group this lot exists for. Keying the exemption on the radius
+-- would leave the S-300 of `combatZone_Wittstock`, 13 of its 14 units under trees, exactly where it
+-- is, and make this lot the no-op it was written to replace. Only a caller that *owns* the placement
+-- decision, and says so, is obeyed.
 --
 -- @param units table list of unit definitions, each carrying the `spawnPoint` vec3 `placeGroup` set
--- @param spawnRadius number|nil the radius the caller was allowed to draw the group's centre in
+-- @param honourDeclaredPosition boolean|nil when true, the caller has already settled where these
+--        units go — editor content, or a caller that settled its groups one by one — and nothing moves
 -- @return number the distance the group was translated by, 0 when it was left alone
-function veafUnits.settleGroup(units, spawnRadius)
+function veafUnits.settleGroup(units, honourDeclaredPosition)
   if type(units) ~= "table" or #units == 0 then
     return 0
   end
-  if type(spawnRadius) ~= "number" or spawnRadius <= 0 then
-    veaf.loggers.get(veafUnits.Id):trace("settleGroup: no radius was granted, the group stays exactly where it is")
+  if honourDeclaredPosition then
+    veaf.loggers.get(veafUnits.Id):trace("settleGroup: the caller owns this placement, the group stays exactly where it is")
     return 0
   end
   for _, unit in ipairs(units) do

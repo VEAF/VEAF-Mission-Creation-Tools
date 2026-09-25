@@ -463,15 +463,18 @@ proposer est à 52 m.
 **Paramètres :**
 
 - `units` — la liste des unités, telle que `veafUnits.placeGroup` l'a renseignée
-- `spawnRadius` — le rayon dans lequel l'appelant avait le droit de tirer le centre du groupe ; c'est
-  l'autorisation de déplacer. À `0` ou absent, rien ne bouge (« exactement ici »).
+- `honourDeclaredPosition` — à `true`, l'appelant déclare **maîtriser lui-même le placement** et rien
+  ne bouge. Même contrat que `VeafGroupSpawn:honouringDeclaredPosition()`, et explicite pour la même
+  raison : un rayon nul est la valeur par **défaut** du code, pas une intention. Mesuré le 2026-09-25
+  sur GermanyCW-v6, 100 des 118 commandes de spawn d'un lancement passent `radius 0` — c'est-à-dire
+  toutes les batteries que ce lot doit décaler.
 
 **Retourne :** la distance dont le groupe a été déplacé, `0` s'il n'a pas bougé.
 
 **Ne déplace jamais :** un groupe contenant une unité aérienne, navale ou un statique naval ; un
-convoi ; un groupe dont l'appelant n'a accordé aucun rayon ; une mission ayant mis
-`veaf.doNotAvoidScenery` à `true` ; et bien sûr le contenu de l'éditeur de mission, qui passe par
-`VeafGroupSpawn:honouringDeclaredPosition()`.
+convoi ; un appelant qui a posé `honourDeclaredPosition` ; une mission ayant mis
+`veaf.doNotAvoidScenery` à `true` ; et le contenu de l'éditeur de mission, qui passe par
+`VeafGroupSpawn:honouringDeclaredPosition()` et ne vient jamais ici.
 
 **Réglages :**
 

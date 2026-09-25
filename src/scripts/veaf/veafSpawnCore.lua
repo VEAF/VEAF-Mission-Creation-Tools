@@ -741,7 +741,7 @@ function veafSpawn.doSpawnGroup(
   -- Not for a convoy (`hasDest`): its units are lined up along a route, and translating them off
   -- their first waypoint would have them drive back to it before starting their leg.
   if not hasDest then
-    veafUnits.settleGroup(group.units, radius)
+    veafUnits.settleGroup(group.units)
   end
 
   for i = 1, #group.units do

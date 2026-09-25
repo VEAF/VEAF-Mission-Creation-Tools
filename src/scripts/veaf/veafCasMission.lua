@@ -983,9 +983,7 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
 end
 
 --- Places one group around a spawn position and appends its units to `resultTable`.
--- @param spawnRadius number|nil the radius the caller drew `spawnPosition` in; it is the licence to
---        translate the group clear of the scenery (see `veafUnits.settleGroup`)
-function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resultTable, hasDest, spawnRadius)
+function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resultTable, hasDest)
   if spawnPosition ~= nil and groupDefinition ~= nil then
     veaf.loggers.get(veafCasMission.Id):trace(string.format("veafCasMission.placeGroup(#groupDefinition.units=%d)", #groupDefinition.units))
 
@@ -1005,7 +1003,7 @@ function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resu
     -- in `generateCasMission`, which only ever sees the flat list of every group's units and would
     -- translate a whole battalion as if it were one formation. Skipped for a convoy (`hasDest`).
     if not hasDest then
-      veafUnits.settleGroup(group.units, spawnRadius)
+      veafUnits.settleGroup(group.units)
     end
 
     -- add the units to the result units list
@@ -1038,7 +1036,7 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
       .get(veafCasMission.Id)
       :trace(string.format("infantry group #%s position : %s", veaf.p(infantryGroupNumber), veaf.p(groupPosition)))
     local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side)
-    veafCasMission.placeGroup(group, groupPosition, spacing, units, nil, zoneRadius)
+    veafCasMission.placeGroup(group, groupPosition, spacing, units)
   end
 
   if armor > 0 then
@@ -1052,7 +1050,7 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
         .get(veafCasMission.Id)
         :trace(string.format("armor group #%s position : %s", veaf.p(armorGroupNumber), veaf.p(groupPosition)))
       local group = veafCasMission.generateArmorPlatoon(groupName, defense, armor, side)
-      veafCasMission.placeGroup(group, groupPosition, spacing, units, nil, zoneRadius)
+      veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
   end
 
@@ -1070,7 +1068,7 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
         .get(veafCasMission.Id)
         :trace(string.format("air defense group #%s position : %s", veaf.p(airDefenseGroupNumber), veaf.p(groupPosition)))
       local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
-      veafCasMission.placeGroup(group, groupPosition, spacing, units, nil, zoneRadius)
+      veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
   end
 
@@ -1084,7 +1082,7 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
       .get(veafCasMission.Id)
       :trace(string.format("transport group #%s position : %s", veaf.p(transportCompanyGroupNumber), veaf.p(groupPosition)))
     local group = veafCasMission.generateTransportCompany(groupName, defense, side)
-    veafCasMission.placeGroup(group, groupPosition, spacing, units, nil, zoneRadius)
+    veafCasMission.placeGroup(group, groupPosition, spacing, units)
   end
 
   return units

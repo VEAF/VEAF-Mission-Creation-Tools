@@ -1,6 +1,6 @@
 # 07 — Zone elements fall back to their declared position, not a random draw
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 
 ## David's ruling (2026-08-27, rule 3)

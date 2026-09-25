@@ -1,6 +1,6 @@
 # 09 — Propagate `silent` and displace refused units rather than dropping them
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 
 ## Two defects, one ticket

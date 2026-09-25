@@ -1,6 +1,6 @@
 # 06 — `findSpawnPoint`: descending clearance steps and closest candidate
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 
 ## Problem

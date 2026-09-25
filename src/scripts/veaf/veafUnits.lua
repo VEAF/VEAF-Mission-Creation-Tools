@@ -451,8 +451,11 @@ end
 function veafUnits.settlePosition(spawnPosition, unit)
   veaf.loggers.get(veafUnits.Id):trace("settlePosition(%s)", spawnPosition)
   -- Air and naval units keep their position: scenery clearance is meaningless in the air,
-  -- and naval units are already placed on water by checkPositionForUnit.
-  if unit.air or unit.naval then
+  -- and naval units (including naval statics) are placed on water by checkPositionForUnit —
+  -- nudging them toward DRIVABLE_TERRAIN would move them to land and make checkPositionForUnit
+  -- refuse them. Naval statics are identified the same way as in checkPositionForUnit.
+  local isNavalStatic = unit.static and veaf.findInTable(dcsUnits.NavalStatics, unit.typeName)
+  if unit.air or unit.naval or isNavalStatic then
     return spawnPosition
   end
   if not Disposition or not Disposition.getSimpleZones then

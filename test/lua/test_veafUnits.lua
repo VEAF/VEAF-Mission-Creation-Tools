@@ -1117,4 +1117,22 @@ function TestVeafUnitsSettlePosition:test_no_candidate_returns_original()
   luaunit.assertEquals(result.z, 7)
 end
 
+function TestVeafUnitsSettlePosition:test_naval_static_is_not_settled()
+  -- A naval static (unit.static=true and type in NavalStatics) must not be nudged toward
+  -- land: checkPositionForUnit would then refuse it at its settled position.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 99, y = 99, course = 0 } }
+    end,
+  }
+  local savedNavalStatics = dcsUnits.NavalStatics
+  dcsUnits.NavalStatics = { ["LHA_Tarawa"] = true }
+  local unit = { air = false, naval = false, static = true, typeName = "LHA_Tarawa" }
+  local pos = { x = 0, y = 0, z = 0 }
+  local result = veafUnits.settlePosition(pos, unit)
+  dcsUnits.NavalStatics = savedNavalStatics
+  luaunit.assertEquals(result.x, 0, "naval static must not be nudged to land")
+  luaunit.assertEquals(result.z, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

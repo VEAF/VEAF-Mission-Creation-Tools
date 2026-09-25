@@ -1,6 +1,6 @@
 # 08 — Settle each ground unit to the nearest scenery-free point
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 
 ## Problem

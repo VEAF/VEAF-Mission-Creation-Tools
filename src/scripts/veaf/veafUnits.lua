@@ -484,8 +484,11 @@ function veafUnits.settlePosition(spawnPosition, unit)
       end
       if best then
         veaf.loggers.get(veafUnits.Id):trace("settlePosition: nudged %.0fm to scenery-free point", bestDist)
-        -- Keep the terrain height from the settled position; preserve x/z from the candidate.
-        return { x = best.x, y = spawnPosition.y, z = best.z }
+        -- Copy spawnPosition to preserve all caller-set fields (hdg, …); only update x/z.
+        local settled = veaf.deepCopy(spawnPosition)
+        settled.x = best.x
+        settled.z = best.z
+        return settled
       end
     end
   end

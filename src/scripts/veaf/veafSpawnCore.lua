@@ -773,7 +773,7 @@ function veafSpawn.doSpawnGroup(
           veaf.p(toInsert.type),
           veaf.p(toInsert.name),
           veaf.p(toInsert.speed),
-          veaf.p(math.deg(toInsert.heading)),
+          veaf.p(math.deg(toInsert.heading or 0)),
           veaf.p(toInsert.skill),
           veaf.p(country)
         )

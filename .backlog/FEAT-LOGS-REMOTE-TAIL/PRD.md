@@ -1,6 +1,6 @@
 # FEAT-LOGS-REMOTE-TAIL — follow a DCS server log over SSH in `veaf-logs`
 
-Status: 🧑 waiting-human — implemented 2026-09-24, waits for David's manual test in `veaf-logs` against `dcs.veaf.org`
+Status: ✅ done — merged in #1001 on 2026-09-25 (tested by David in the GUI and with the built `veaf-logs.exe`)
 
 ## Need
 

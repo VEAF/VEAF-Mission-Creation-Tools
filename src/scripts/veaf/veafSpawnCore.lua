@@ -734,14 +734,22 @@ function veafSpawn.doSpawnGroup(
     veaf.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
   end
 
+  -- Settle the whole group, as one rigid body, into a clearing that fits all of it. `placeGroup`
+  -- spreads the units around the centre without consulting the scenery, and this is the only moment
+  -- the real disposition is known — it is drawn at random on every spawn.
+  --
+  -- Not for a convoy (`hasDest`): its units are lined up along a route, and translating them off
+  -- their first waypoint would have them drive back to it before starting their leg.
+  if not hasDest then
+    veafUnits.settleGroup(group.units)
+  end
+
   for i = 1, #group.units do
     local unit = group.units[i]
     local unitType = unit.typeName
     local unitName = groupName .. " / " .. unit.displayName .. " #" .. i
 
-    -- Settle the unit to the nearest scenery-free point before the terrain check.
-    local spawnPoint = veafUnits.settlePosition(unit.spawnPoint, unit)
-    unit.spawnPoint = spawnPoint
+    local spawnPoint = unit.spawnPoint
     if alt > 0 then
       spawnPoint.y = alt
     end

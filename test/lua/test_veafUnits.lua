@@ -1141,7 +1141,8 @@ function TestVeafUnitsSettleGroup:test_the_group_is_translated_rigidly_until_eve
   -- And it is the *same* offset for everyone, not a per-unit nudge.
   luaunit.assertAlmostEquals(units[1].spawnPoint.x, 290, 0.001)
   luaunit.assertAlmostEquals(units[2].spawnPoint.x, 310, 0.001)
-  luaunit.assertAlmostEquals(units[1].spawnPoint.z, 0, 0.001)
+  -- The candidate is the new *barycentre*, so the offset is (300, 0) minus the old centre (10, 10).
+  luaunit.assertAlmostEquals(units[1].spawnPoint.z, -10, 0.001)
 end
 
 function TestVeafUnitsSettleGroup:test_the_clearance_asked_covers_the_whole_footprint()

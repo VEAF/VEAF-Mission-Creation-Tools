@@ -338,6 +338,14 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
     veaf.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
   end
 
+  -- Settle the whole group, as one rigid body, into a clearing that fits all of it: `placeGroup`
+  -- spreads units around the group centre without consulting the scenery, so a vehicle at the edge
+  -- of a clearing lands inside the treeline. Translating the group is what keeps the formation —
+  -- see `veafUnits.settleGroup`. Skipped for a convoy, whose units are lined up along a route.
+  if not hasDest then
+    veafUnits.settleGroup(units)
+  end
+
   local dcsUnits = {}
   for i = 1, #units do
     local unit = units[i]
@@ -347,11 +355,7 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
       unitNameTemplate = "%s"
     end
     local unitName = string.format(unitNameTemplate, groupName, unit.displayName)
-    -- Settle the unit to the nearest scenery-free point before the terrain check: `placeGroup`
-    -- spreads units around the group centre without consulting scenery, so a vehicle at the edge
-    -- of a clearing can land inside the treeline. `settlePosition` nudges it back out.
-    local spawnPosition = veafUnits.settlePosition(unit.spawnPoint, unit)
-    unit.spawnPoint = spawnPosition
+    local spawnPosition = unit.spawnPoint
     local hdg = spawnPosition.hdg or math.random(0, 359)
 
     if validateSpawnPosition(spawnPosition, unit, silent) then

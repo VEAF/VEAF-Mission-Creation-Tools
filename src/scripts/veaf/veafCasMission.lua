@@ -998,6 +998,13 @@ function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resu
       veafUnits.traceGroup(group, cells)
     end
 
+    -- Settle this group, as one rigid body, into a clearing that fits all of it — here rather than
+    -- in `generateCasMission`, which only ever sees the flat list of every group's units and would
+    -- translate a whole battalion as if it were one formation. Skipped for a convoy (`hasDest`).
+    if not hasDest then
+      veafUnits.settleGroup(group.units)
+    end
+
     -- add the units to the result units list
     if not resultTable then
       resultTable = {}
@@ -1100,9 +1107,8 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     local unitName = veafCasMission.casGroupName .. " / " .. unit.displayName .. " #" .. i
     local unitHdg = unit.hdg
 
-    -- Settle the unit to the nearest scenery-free point before the terrain check.
-    local spawnPosition = veafUnits.settlePosition(unit.spawnPoint, unit)
-    unit.spawnPoint = spawnPosition
+    -- The group was settled into a clearing by `veafCasMission.placeGroup`, group by group.
+    local spawnPosition = unit.spawnPoint
 
     -- check if position is correct for the unit type
     if veafUnits.checkPositionForUnit(spawnPosition, unit) then

@@ -125,7 +125,7 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 05 | Lock in the exact placement of the FARP, FOB and beacon | low, tests and docs | ✅ |
 | 06 | `findSpawnPoint` descending clearance steps + `noRandomFallback` | medium | ✅ |
 | 07 | Editor content keeps declared position when tier 1 finds nothing | medium | ✅ |
-| 08 | `settlePosition` recalculates each unit in a battery to avoid scenery | medium | 🚫 superseded by 10 |
+| 08 | `settlePosition` recalculates each unit in a battery to avoid scenery — superseded by 10 | medium | 🚫 |
 | 09 | `silent` propagated to `_createDcsUnits`, refused units no longer dropped silently | low | ✅ |
 | 10 | Settle the group by rigid translation, not unit by unit | medium | 🔄 |
 

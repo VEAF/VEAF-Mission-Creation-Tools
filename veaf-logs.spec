@@ -48,7 +48,9 @@ analysis = Analysis(
     binaries=[],
     # Le catalogue de regles est lu au demarrage, a cote du module.
     datas=[(str(SOURCE / "veaf_logs" / "rules.json"), "veaf_logs")],
-    hiddenimports=[],
+    # paramiko n'est importe qu'a la premiere connexion SSH (journal distant) :
+    # on le nomme pour que l'analyse ne le rate pas.
+    hiddenimports=["paramiko"],
     hookspath=[],
     runtime_hooks=[],
     excludes=UNUSED_QT + ["tkinter", "unittest", "pytest"],

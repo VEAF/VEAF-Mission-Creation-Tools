@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import QByteArray, QEvent, QObject, Qt, QTimer, QUrl, Signal
@@ -37,12 +39,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from veaf_libs.user_config import RemoteServer, config_file_path, default_config_path, get_servers
 
 from ..analysis import analyse
 from ..appearance import DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, clamp_font_size
 from ..filters import FilterSet, highlight_patterns
 from ..parser import Entry
 from ..profiles import DEFAULT_PROFILE, ProfileStore
+from ..remote import RemoteFileMissing, RemoteLogSource
 from ..rules import Rules
 from ..session import OpenFile, Session
 from ..store import LogStore
@@ -84,7 +88,7 @@ class LogTab(QWidget):
     # +1 / -1, emis par Ctrl+molette sur la table.
     zoom_requested = Signal(int)
 
-    def __init__(self, source: LogSource, rules: Rules, parent=None) -> None:
+    def __init__(self, source: LogSource | RemoteLogSource, rules: Rules, parent=None) -> None:
         super().__init__(parent)
         self.source = source
         self.rules = rules
@@ -92,6 +96,7 @@ class LogTab(QWidget):
         self.model = LogModel(self.store, rules, self)
         self.follow = source.followable
         self._last_panel_refresh = 0.0
+        self._last_poll = 0.0
         self.detail_enabled = True
         # Vrai pendant qu'on pose nous-memes la largeur de la colonne Message :
         # `sectionResized` ne dit pas qui l'a redimensionnee.
@@ -270,6 +275,10 @@ class LogTab(QWidget):
             # L'indexation initiale avance deja : la laisser finir plutot que
             # de lui disputer le curseur.
             return 0
+        now = time.monotonic()
+        if now - self._last_poll < self.source.poll_interval:
+            return 0
+        self._last_poll = now
         try:
             rotated = self.source.check_rotation(self.store.indexed_bytes)
         except LogUnavailable:
@@ -550,6 +559,7 @@ class MainWindow(QMainWindow):
         files = self.menuBar().addMenu("&Fichier")
         self._action(files, "Ouvrir le journal DCS courant", "Ctrl+D", self.open_current_dcs_log)
         self._action(files, "Ouvrir un fichier…", QKeySequence.StandardKey.Open, self.open_dialog)
+        self._action(files, "Ouvrir un journal distant…", "Ctrl+Shift+O", self.open_remote_dialog)
         files.addSeparator()
         self._action(files, "Fermer l'onglet", "Ctrl+W", lambda: self.close_tab(self.tabs.currentIndex()))
         self._action(files, "Quitter", "Ctrl+Q", self.close)
@@ -624,11 +634,65 @@ class MainWindow(QMainWindow):
             if member is None:
                 return None
 
-        source = LogSource(path, archive_member=member)
+        return self._open_source(LogSource(path, archive_member=member), str(path))
+
+    def open_remote_dialog(self) -> None:
+        """Propose les `serveur › instance` de la configuration utilisateur."""
+        try:
+            servers = get_servers()
+        except ValueError as exc:
+            QMessageBox.warning(self, "Configuration invalide", f"{config_file_path()}\n{exc}")
+            return
+        choices = [(server, instance) for server in servers for instance in server.logs]
+        if not choices:
+            QMessageBox.information(
+                self,
+                "Aucun serveur configure",
+                f"Declare un bloc `servers:` dans {default_config_path()}.\n"
+                "Voir la page « Journaux » de la documentation.",
+            )
+            return
+        labels = [f"{server.name} › {instance}" for server, instance in choices]
+        choice, ok = QInputDialog.getItem(self, "Journal distant", "Serveur et instance :", labels, 0, False)
+        if not ok:
+            return
+        server, instance = choices[labels.index(choice)]
+        self.open_remote(server, instance)
+
+    def open_remote(
+        self, server: RemoteServer, instance: str, on_error: Callable[[Exception], None] | None = None
+    ) -> LogTab | None:
+        source = RemoteLogSource(server, instance, host_key_prompt=self._ask_host_key)
+        return self._open_source(source, source.location, on_error)
+
+    def _ask_host_key(self, hostname: str, fingerprint: str) -> bool:
+        """Premiere connexion a un hote : la cle n'est pas dans `known_hosts`."""
+        answer = QMessageBox.question(
+            self,
+            "Hote inconnu",
+            f"La cle de {hostname} n'est pas dans known_hosts.\n\n{fingerprint}\n\nL'accepter et la memoriser ?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def _open_source(
+        self,
+        source: LogSource | RemoteLogSource,
+        tooltip: str,
+        on_error: Callable[[Exception], None] | None = None,
+    ) -> LogTab | None:
+        """Ouvre un onglet sur `source`. `on_error` remplace la boite de dialogue."""
         try:
             source.open()
         except (LogUnavailable, OSError) as exc:
-            QMessageBox.warning(self, "Ouverture impossible", str(exc))
+            # Une source distante a pu se connecter et creer son miroir avant
+            # de constater que le journal manque : rendre ce qu'elle tient.
+            source.close()
+            if on_error is not None:
+                on_error(exc)
+            else:
+                QMessageBox.warning(self, "Ouverture impossible", str(exc))
             return None
 
         tab = LogTab(source, self.rules, self)
@@ -636,7 +700,7 @@ class MainWindow(QMainWindow):
         tab.zoom_requested.connect(self.zoom)
         self.apply_appearance(tab)
         index = self.tabs.addTab(tab, source.display_name)
-        self.tabs.setTabToolTip(index, str(path))
+        self.tabs.setTabToolTip(index, tooltip)
         self.tabs.setCurrentIndex(index)
 
         tab.indexing_finished.connect(self._refresh_side)
@@ -987,15 +1051,51 @@ class MainWindow(QMainWindow):
     def _restore(self, session: Session) -> None:
         if session.geometry:
             self.restoreGeometry(QByteArray.fromBase64(session.geometry.encode()))
+        unreachable: set[str] = set()
         for item in session.existing_files():
-            self.open_path(Path(item.path), item.archive_member)
+            if item.remote:
+                self._reopen_remote(item.remote, unreachable)
+            else:
+                self.open_path(Path(item.path), item.archive_member)
         if session.files and 0 <= session.active < self.tabs.count():
             self.tabs.setCurrentIndex(session.active)
         self._refresh_chips()
         self.apply_filters()
 
+    def _reopen_remote(self, remote: str, unreachable: set[str]) -> None:
+        """Rouvre un `serveur/instance` de la session, s'il est toujours configure.
+
+        Au lancement, un echec se signale dans la barre d'etat, pas dans une
+        boite de dialogue : hors ligne, six onglets distants feraient six
+        boites. Et un serveur qui vient de ne pas repondre n'est pas retente
+        pour ses autres instances — chaque tentative coute le delai de
+        connexion, fenetre figee.
+        """
+        server_name, _, instance = remote.partition("/")
+        if server_name in unreachable:
+            self.status.showMessage(f"{remote} : serveur injoignable, onglet non rouvert", 10000)
+            return
+        try:
+            servers = get_servers()
+        except ValueError:
+            return
+
+        def report(exc: Exception) -> None:
+            self.status.showMessage(f"{remote} non rouvert : {exc}", 10000)
+            if not isinstance(exc, RemoteFileMissing):
+                unreachable.add(server_name)
+
+        for server in servers:
+            if server.name == server_name and instance in server.logs:
+                self.open_remote(server, instance, report)
+                return
+        self.status.showMessage(f"{remote} n'est plus dans la configuration, onglet non rouvert", 8000)
+
     def _capture(self) -> Session:
-        files = [OpenFile(str(tab.source.path), tab.source.archive_member) for tab in self._tabs()]
+        files = [
+            OpenFile(str(tab.source.path), tab.source.archive_member, getattr(tab.source, "remote", None))
+            for tab in self._tabs()
+        ]
         self.side.collect(self.filters)
         session = Session(
             files=files,

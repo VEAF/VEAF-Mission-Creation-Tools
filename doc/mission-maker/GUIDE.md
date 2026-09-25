@@ -128,7 +128,7 @@ check_updates: true      # Vérifier les nouvelles versions de veaf-tools au dé
 scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Chemin local du dépôt (pour --dev-mode)
 ```
 
-Toutes les clés sont optionnelles. Pour initialiser le fichier depuis la CLI :
+Toutes les clés sont optionnelles. La clé `servers:` (journaux d'un serveur DCS suivis par SSH dans `veaf-logs`) est décrite dans [Lire les journaux de DCS](LOGS.md#remote). Pour initialiser le fichier depuis la CLI :
 
 ```powershell
 .\veaf-tools.exe user-config --init

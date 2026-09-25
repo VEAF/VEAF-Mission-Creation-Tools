@@ -252,6 +252,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and remembered on request, as `ssh` does. `paramiko` joins the `logs` extra; `veaf-tools.exe` is
   unchanged.
 
+- **Ground unit placement avoids scenery more thoroughly** (FIX-PLACEMENT-IGNORES-SCENERY tickets 06-09,
+  measured 2026-09-25 in DCS). `veaf.findSpawnPoint` now tries descending clearance steps (100 → 50 → 25 → 10 m)
+  before giving up tier 1, and always picks the closest valid candidate. A new `noRandomFallback` parameter
+  lets callers suppress the random jitter fallback: editor content (combat zones, static FARPs) now keeps its
+  declared position when the scenery cloud is empty and the terrain is admissible, falling back to a random
+  draw only when the declared position itself is invalid (e.g. water). Each unit inside a battery or platoon
+  is individually nudged to the nearest scenery-free point by `veafUnits.settlePosition`, called in all three
+  per-unit placement loops (`_createDcsUnits`, `doSpawnGroup`, `veafCasMission.placeGroup`). The `silent`
+  parameter is now propagated all the way down to `_createDcsUnits` so refused units are no longer silently
+  dropped — six callers updated.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

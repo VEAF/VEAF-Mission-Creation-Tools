@@ -330,7 +330,8 @@ local function validateSpawnPosition(spawnPosition, unit, silent)
   return true
 end
 
-function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
+-- @param silent boolean|nil when true, unit-refusal messages are not broadcast to players
+function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn._createDcsUnits([%s])", country or ""))
 
   if hasDest then
@@ -346,10 +347,14 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
       unitNameTemplate = "%s"
     end
     local unitName = string.format(unitNameTemplate, groupName, unit.displayName)
-    local spawnPosition = unit.spawnPoint
+    -- Settle the unit to the nearest scenery-free point before the terrain check: `placeGroup`
+    -- spreads units around the group centre without consulting scenery, so a vehicle at the edge
+    -- of a clearing can land inside the treeline. `settlePosition` nudges it back out.
+    local spawnPosition = veafUnits.settlePosition(unit.spawnPoint, unit)
+    unit.spawnPoint = spawnPosition
     local hdg = spawnPosition.hdg or math.random(0, 359)
 
-    if validateSpawnPosition(spawnPosition, unit, false) then
+    if validateSpawnPosition(spawnPosition, unit, silent) then
       local toInsert = {
         ["x"] = spawnPosition.x,
         ["y"] = spawnPosition.z,
@@ -419,7 +424,7 @@ function veafSpawn.spawnInfantryGroup(spawnSpot, radius, czName, country, side, 
   -- shuffle the units in the group
   local units = veaf.shuffle(group.units)
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_infantry", groupName), 5)
@@ -477,7 +482,7 @@ function veafSpawn.spawnArmoredPlatoon(
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_armored", groupName), 5)
@@ -536,7 +541,7 @@ function veafSpawn.spawnAirDefenseBattery(
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD, hasDest)
+  veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD, hasDest, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_airdef", groupName), 5)
@@ -591,7 +596,7 @@ function veafSpawn.spawnTransportCompany(
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_transport", groupName), 5)
@@ -638,7 +643,7 @@ function veafSpawn.spawnFullCombatGroup(
   local groupPosition = veaf.placePointOnLand(spawnSpot)
   local units = veafCasMission.generateCasGroup(groupName, groupPosition, size, defense, armor, spacing, side)
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_combat", groupName), 5)
@@ -764,7 +769,7 @@ function veafSpawn.spawnConvoy(
     --disabled the shuffle to not have interractions with the line spawn put in place for faster departure times, which shuffles units anyways
     --units = veaf.shuffle(units)
 
-    veafSpawn._createDcsUnits(country, groupUnits.units, groupName, hiddenOnMFD, true)
+    veafSpawn._createDcsUnits(country, groupUnits.units, groupName, hiddenOnMFD, true, silent)
 
     -- One point or several, the convoy is stored the same way: an itinerary and the leg it is on.
     -- A single `dest` is a one-point itinerary, so nothing downstream needs to know the difference.

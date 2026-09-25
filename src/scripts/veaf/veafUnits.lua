@@ -433,6 +433,63 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
   return true
 end
 
+--- Nudges a ground unit to the nearest scenery-free point within a small search radius.
+-- `veaf.findSpawnPoint` places the **group centre** clear of scenery; `placeGroup` then spreads
+-- individual units around that centre without consulting the scenery. This function recalculates
+-- each unit's position after `placeGroup`, so a vehicle that landed inside a tree edge is moved
+-- to the nearest clear spot rather than being placed there or silently dropped.
+--
+-- Measured 2026-09-25 on GermanyCW-v6: 53/184 zone groups had at least one unit in trees or water
+-- despite the group centre being on clear ground.
+--
+-- No-op for air and naval units, and when `Disposition` is unavailable (older DCS version). When
+-- nothing is found within the widest anneau (50 m), the original position is returned unchanged —
+-- the unit may still land in scenery, but `checkPositionForUnit` downstream handles the water case.
+-- @param spawnPosition vec3 the unit's position after `placeGroup`
+-- @param unit table unit definition (used to decide air/naval and therefore which terrain applies)
+-- @return vec3 the settled position (original if nothing better found or unit is air/naval)
+function veafUnits.settlePosition(spawnPosition, unit)
+  veaf.loggers.get(veafUnits.Id):trace("settlePosition(%s)", spawnPosition)
+  -- Air and naval units keep their position: scenery clearance is meaningless in the air,
+  -- and naval units are already placed on water by checkPositionForUnit.
+  if unit.air or unit.naval then
+    return spawnPosition
+  end
+  if not Disposition or not Disposition.getSimpleZones then
+    return spawnPosition
+  end
+  -- Ground unit: try progressively wider anneaux until a clear point is found nearby.
+  -- A clearance of 5 m is intentionally small — we want the nearest edge of the clear zone,
+  -- not a second group-sized gap. The anneau radii must stay below the group spacing so we
+  -- do not accidentally merge two vehicles into the same clearing.
+  local SETTLE_CLEARANCE = 5
+  for _, r in ipairs({ 10, 25, 50 }) do
+    local ok, candidates = pcall(Disposition.getSimpleZones, spawnPosition, r, SETTLE_CLEARANCE, 10)
+    if ok and type(candidates) == "table" then
+      local best, bestDist = nil, math.huge
+      for _, candidate in ipairs(candidates) do
+        local placed = veaf.placePointOnLand(candidate)
+        if placed and veaf.isTerrainValid(placed, veaf.DRIVABLE_TERRAIN) then
+          local dx = placed.x - spawnPosition.x
+          local dz = (placed.z or 0) - (spawnPosition.z or 0)
+          local dist = math.sqrt(dx * dx + dz * dz)
+          if dist <= r and dist < bestDist then
+            best = placed
+            bestDist = dist
+          end
+        end
+      end
+      if best then
+        veaf.loggers.get(veafUnits.Id):trace("settlePosition: nudged %.0fm to scenery-free point", bestDist)
+        -- Keep the terrain height from the settled position; preserve x/z from the candidate.
+        return { x = best.x, y = spawnPosition.y, z = best.z }
+      end
+    end
+  end
+  veaf.loggers.get(veafUnits.Id):trace("settlePosition: no free point found, keeping original position")
+  return spawnPosition
+end
+
 --- Adds a placement point to every unit of the group, centering the whole group around the spawnPoint, and adding an optional spacing
 function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
   veaf.loggers.get(veafUnits.Id):trace("group = %s", group)

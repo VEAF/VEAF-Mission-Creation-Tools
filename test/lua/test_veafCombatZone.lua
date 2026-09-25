@@ -2765,7 +2765,11 @@ function TestVeafCombatZoneSceneryAwareSpawn:_jitter(xs, waterXs)
 end
 
 function TestVeafCombatZoneSceneryAwareSpawn:test_a_water_candidate_is_skipped()
+  -- The element is declared on water (x=100); the declared-position check fails, so
+  -- the random fallback tier is used. It must skip the water hit (x=100) and return
+  -- the first land candidate (x=700).
   self.el:setSpawnRadius(1000)
+  self.el:setPosition({ x = 100, y = 12, z = 0 })
   self:_jitter({ 100, 700 }, { 100 })
   self.z:spawnElement(self.el, true)
   luaunit.assertNotNil(self.spawn)

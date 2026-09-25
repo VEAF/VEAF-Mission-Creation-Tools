@@ -799,6 +799,7 @@ function VeafGroupSpawn:new()
   instance.renameUnits = false
   instance.terrain = nil
   instance.anyTerrain = false
+  instance.honourDeclaredPosition = false
   instance.offsetFirstWaypoint = false
   return instance
 end
@@ -861,6 +862,21 @@ end
 --- Accept only these surfaces, instead of the ones the group's category implies.
 function VeafGroupSpawn:onTerrain(surfaces)
   self.terrain = surfaces
+  return self
+end
+
+--- Take the point as final: place the group there and refuse nothing on account of the terrain.
+---
+--- Different from `onAnyTerrain()`, which says the *group* can live anywhere — a JTAC, an aircraft.
+--- This says the *caller* has already chosen, and that being told no here would destroy the group
+--- rather than move it. It is for editor content, which rule 3 of David's arbitration (2026-08-27)
+--- says is never refused: `VeafCombatZone:spawnElement` runs the whole scenery search itself and
+--- only reaches here once it has decided, so a second opinion at this depth can do nothing but veto.
+---
+--- It has no effect when a radius is also asked for: a radius is a licence to move, and a caller
+--- granting one has not settled anything.
+function VeafGroupSpawn:honouringDeclaredPosition(enabled)
+  self.honourDeclaredPosition = enabled ~= false
   return self
 end
 
@@ -942,23 +958,24 @@ function VeafGroupSpawn:_drawOrigin(data)
     return { x = 0, y = 0 }, nil
   end
 
-  -- A zero radius means "exactly here, the mission maker means it", and there is nothing to draw:
-  -- `veaf.getRandomPointInCircle(point, 0)` returns the centre unchanged, so the hundred attempts
-  -- below would all weigh the same spot and the terrain check could only ever agree or kill the
-  -- spawn outright. Killing it is exactly what rule 1 of David's arbitration (2026-08-27,
-  -- `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md`) forbids — "placed exactly where the user
-  -- asked, no intelligent relocation" — and rule 3 reserves refusing for what a *command* spawns,
-  -- never for what the Mission Editor placed, because editor content has nobody in the room to
-  -- read the message.
+  -- A caller that has already settled where this group goes, and says so, is obeyed: there is no
+  -- circle to search at radius 0, so the hundred attempts below would all weigh the same spot and
+  -- the terrain check could only agree or kill the spawn outright.
   --
-  -- The doctrine was already written twice, in `veaf.getRandomPointInCircle` and in
-  -- `veaf.findSpawnPoint`'s tier 1; this draw was the one place that still tested a point it had
-  -- no licence to move. Measured cost of the omission: on GermanyCW-v6, 2026-09-25,
-  -- `combatZone_ConvoiA24` vanished from the mission. Its convoy stands on a bridge, and DCS
-  -- reports the surface *under* a bridge, which is water — so the declared position the zone
-  -- rightly insisted on was refused here and the group was never created.
-  if self.radius == 0 then
-    local exact = veaf.getRandomPointInCircle(self.point, 0)
+  -- Killing it is what rule 3 of David's arbitration (2026-08-27,
+  -- `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md`) forbids for this caller: refusing "applies to
+  -- what a command spawns, never to what the Mission Editor placed", because a marker command has a
+  -- user standing there to read the message and editor content has nobody. Measured cost of the
+  -- omission: on GermanyCW-v6, 2026-09-25, `combatZone_ConvoiA24` vanished from the mission. Its
+  -- convoy stands on a bridge, DCS reports the surface *under* a bridge, which is water — so the
+  -- declared position the zone had rightly insisted on was refused here and the group was lost.
+  --
+  -- Opt-in, and **not** simply `self.radius == 0`: zero is this builder's default, so keying on it
+  -- would have disarmed the check for the eight callers that never state a radius — `veafSpawn.teleport`
+  -- among them, which is a marker command and is precisely what the same rule says must still refuse.
+  -- Only a caller that owns the placement decision asks for this.
+  if self.honourDeclaredPosition and self.radius == 0 then
+    local exact = veaf.makeVec2(self.point)
     return { x = exact.x - first.x, y = exact.y - first.y }, exact
   end
 

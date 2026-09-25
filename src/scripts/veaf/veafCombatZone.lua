@@ -1741,10 +1741,18 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- on the first unit it met, or on the first live one, while the spawn subtracts the mission
       -- record's first. FIX-TRIPACK-FIELD-REPORTS ticket 04 made both ends the same unit, and this
       -- lot's ticket 01 made them the same instant, so waypoint 1 moves by the dispersion alone.
+      -- `honouringDeclaredPosition`, because `position` above is the end of this function's own
+      -- search, not a wish: every tier of `findSpawnPoint` has run, and what survives is either a
+      -- scenery-aware point or the position the mission maker drew. Re-testing its terrain in the
+      -- spawner can only veto, and a veto on editor content is what rule 3 of David's arbitration
+      -- (2026-08-27) forbids — nobody is in the room to read it. Measured, 2026-09-25 on
+      -- GermanyCW-v6: without this, `combatZone_ConvoiA24` spawned nothing at all, its convoy being
+      -- on a bridge, under which DCS reports water.
       local newGroup = VeafGroupSpawn:new()
         :forGroup(zoneElement:getName())
         :named(newGroupName)
         :at(position)
+        :honouringDeclaredPosition()
         :withRoute(zoneElement:getRoute())
         :renamingUnitsSequentially(self:isRenameUnitsSequentially())
         :offsettingFirstWaypoint()

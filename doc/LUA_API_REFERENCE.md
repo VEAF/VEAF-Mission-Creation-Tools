@@ -448,6 +448,39 @@ La recherche dégrade en trois paliers bornés :
 > `dcs-world-schema`. L'appel est gardé et protégé par `pcall` : si le singleton est absent de
 > cette version de DCS ou de cette carte, la recherche passe au palier 2 au lieu d'échouer.
 
+##### `veafUnits.settleGroup(units, spawnRadius)`
+
+Décale **le groupe entier**, d'un seul bloc, jusqu'à une clairière assez grande pour le contenir.
+`veaf.findSpawnPoint` ne place que le **centre** du groupe ; `veafUnits.placeGroup` répartit ensuite
+les véhicules autour de ce centre sans regarder le décor, si bien qu'une batterie posée en terrain
+dégagé peut avoir la moitié de ses pièces dans les arbres.
+
+Tous les véhicules subissent **le même déplacement**, donc les distances entre eux ne changent pas :
+la formation est conservée. Un décalage véhicule par véhicule ne peut pas marcher — l'espacement
+naturel d'une batterie est de 20 à 27 m alors que le point libre le plus proche que DCS sache
+proposer est à 52 m.
+
+**Paramètres :**
+
+- `units` — la liste des unités, telle que `veafUnits.placeGroup` l'a renseignée
+- `spawnRadius` — le rayon dans lequel l'appelant avait le droit de tirer le centre du groupe ; c'est
+  l'autorisation de déplacer. À `0` ou absent, rien ne bouge (« exactement ici »).
+
+**Retourne :** la distance dont le groupe a été déplacé, `0` s'il n'a pas bougé.
+
+**Ne déplace jamais :** un groupe contenant une unité aérienne, navale ou un statique naval ; un
+convoi ; un groupe dont l'appelant n'a accordé aucun rayon ; une mission ayant mis
+`veaf.doNotAvoidScenery` à `true` ; et bien sûr le contenu de l'éditeur de mission, qui passe par
+`VeafGroupSpawn:honouringDeclaredPosition()`.
+
+**Réglages :**
+
+- `veafUnits.SETTLE_MAX_TRANSLATION` (défaut 1000) — distance de déplacement acceptable, en mètres.
+  Au-delà, le groupe reste où il est. Ce n'est **pas** le rayon demandé à DCS : celui-là n'est pas
+  respecté (50 m demandés, 52 à 171 m obtenus, mesuré le 2026-09-25).
+- `veafUnits.SETTLE_MARGIN` (défaut 50) — marge demandée autour de l'emprise du groupe, et distance
+  en deçà de laquelle on considère que le groupe est déjà dans la clairière trouvée.
+
 ##### `veaf.getLandHeight(vec3)`
 
 Obtient la hauteur du terrain aux coordonnées.

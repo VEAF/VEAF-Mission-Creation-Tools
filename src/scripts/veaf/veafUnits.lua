@@ -524,7 +524,9 @@ function veafUnits.settleGroup(units, spawnRadius)
       return 0
     end
   end
-  if not Disposition or not Disposition.getSimpleZones then
+  -- Same opt-out as `veaf.findSpawnPoint` tier 1 and `veafGrass.findClearBearing`: a mission that
+  -- has turned the scenery criterion off gets nothing moved on its behalf here either.
+  if veaf.doNotAvoidScenery or not Disposition or not Disposition.getSimpleZones then
     return 0
   end
 

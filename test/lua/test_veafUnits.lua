@@ -1257,6 +1257,19 @@ function TestVeafUnitsSettleGroup:test_a_zero_radius_means_exactly_here()
   luaunit.assertEquals(units[2].spawnPoint.x, 20)
 end
 
+function TestVeafUnitsSettleGroup:test_the_scenery_opt_out_is_honoured()
+  -- `veaf.doNotAvoidScenery` turns the scenery criterion off for the whole mission; it must turn
+  -- this off too, or a mission that opted out would still see its groups translated.
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  local saved = veaf.doNotAvoidScenery
+  veaf.doNotAvoidScenery = true
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated = veafUnits.settleGroup(units, SPAWN_RADIUS)
+  veaf.doNotAvoidScenery = saved
+  luaunit.assertEquals(translated, 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+end
+
 function TestVeafUnitsSettleGroup:test_an_empty_group_is_handled()
   Disposition = dispositionAnswering({ { 300, 0 } })
   luaunit.assertEquals(veafUnits.settleGroup({}, SPAWN_RADIUS), 0)

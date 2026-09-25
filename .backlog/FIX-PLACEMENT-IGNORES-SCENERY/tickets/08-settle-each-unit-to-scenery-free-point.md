@@ -1,6 +1,11 @@
 # 08 — Settle each ground unit to the nearest scenery-free point
 
-Status: ✅ done
+Status: 🚫 superseded by [ticket 10](10-settle-the-group-by-rigid-translation.md)
+
+> **Measured inert in DCS, 2026-09-25.** The function this ticket delivered never displaced a
+> single unit: it kept a candidate only when `dist <= r`, and DCS answers a 50 m request at
+> 52-171 m. Ticket 10 replaces it with a rigid translation of the whole group. Kept as written so
+> the reasoning that led here is not lost.
 Type: fix
 
 ## Problem

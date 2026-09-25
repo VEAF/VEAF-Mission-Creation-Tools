@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-IGNORES-SCENERY — ground units are placed without looking at the scenery, and a crowded FARP gives up silently
 
-Status: 🔄 in-progress — tickets 01, 02, 03 and 05 delivered 2026-08-27; **04 is blocked on a number only DCS can give**; tickets 06-09 delivered 2026-09-25 (measurements from DCS)
+Status: 🔄 in-progress — tickets 01, 02, 03 and 05 delivered 2026-08-27; **04 is blocked on a number only DCS can give**; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**
 
 Origin: found on 2026-08-27 while studying the 20 `mist.getRandPointInCircle` call sites for
 [`DROP-MIST`](../DROP-MIST/tickets/06-geometry-and-zone-queries.md) ticket 06. Kept out of that campaign
@@ -125,8 +125,9 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 05 | Lock in the exact placement of the FARP, FOB and beacon | low, tests and docs | ✅ |
 | 06 | `findSpawnPoint` descending clearance steps + `noRandomFallback` | medium | ✅ |
 | 07 | Editor content keeps declared position when tier 1 finds nothing | medium | ✅ |
-| 08 | `settlePosition` recalculates each unit in a battery to avoid scenery | medium | ✅ |
+| 08 | `settlePosition` recalculates each unit in a battery to avoid scenery | medium | 🚫 superseded by 10 |
 | 09 | `silent` propagated to `_createDcsUnits`, refused units no longer dropped silently | low | ✅ |
+| 10 | Settle the group by rigid translation, not unit by unit | medium | 🔄 |
 
 ### What 01, 02 and 05 delivered (2026-08-27)
 

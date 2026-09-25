@@ -267,8 +267,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   when a unit was actually displaced, the returned table was rebuilt from scratch and lost `hdg`. This made
   `veafSpawnCore.lua` feed `nil` to `math.deg(toInsert.heading)`, which crashed the scheduled function
   silently and caused entire combat-zone groups to vanish (11 errors, 6 zones empty on one run). Fixed by
-  copying the original `spawnPosition` table and updating only `x`/`z`. A guard `toInsert.heading or 0`
-  was added to the trace log so a future nil cannot crash the spawn.
+  copying the original `spawnPosition` table and updating `x`/`y`/`z` from the placed point: `y` is now the
+  actual terrain height at the displaced location (from `placePointOnLand`), not the altitude of the origin.
+  A guard `toInsert.heading or 0` was added to the trace log so a future nil cannot crash the spawn.
 
 ## [6.24.0] — 2026-09-21
 

@@ -1064,7 +1064,8 @@ function TestVeafUnitsSettlePosition:test_ground_unit_is_nudged_to_scenery_free_
   local result = veafUnits.settlePosition({ x = 0, y = 5, z = 0 }, unit)
   luaunit.assertEquals(result.x, 10, "x must come from the candidate")
   luaunit.assertEquals(result.z, 20, "z must come from the candidate's y (map easting)")
-  luaunit.assertEquals(result.y, 5, "terrain y must be preserved from the spawn position")
+  -- placePointOnLand sets y = land.getHeight() + 1 m safety margin; the mock returns 0, so y = 1.
+  luaunit.assertEquals(result.y, 1, "terrain y must come from the placed candidate, not the origin")
 end
 
 function TestVeafUnitsSettlePosition:test_hdg_is_preserved_after_nudge()

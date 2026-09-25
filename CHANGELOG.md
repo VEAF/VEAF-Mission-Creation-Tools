@@ -271,6 +271,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   actual terrain height at the displaced location (from `placePointOnLand`), not the altitude of the origin.
   A guard `toInsert.heading or 0` was added to the trace log so a future nil cannot crash the spawn.
 
+- **A group asked for at an exact spot is no longer refused because of the terrain there** (measured
+  2026-09-25 in DCS on GermanyCW-v6). Of 25 combat zones, `combatZone_ConvoiA24` alone spawned
+  nothing: its convoy stands on a bridge, and DCS reports the surface *under* a bridge, which is
+  water. The zone behaved correctly — no acceptable point exists within the 50 m search radius, so it
+  kept the position the mission maker declared — but `VeafGroupSpawn:_drawOrigin` then tested that
+  position again with a radius of 0 and refused the whole group. A zero radius is not a circle to
+  search: `veaf.getRandomPointInCircle(point, 0)` returns the centre unchanged, so the hundred
+  attempts all weighed the same spot and the check could only agree or kill the spawn. It now returns
+  the declared point untouched, which is what "placed exactly where the user asked" has meant since
+  2026-08-27 and what `veaf.getRandomPointInCircle` and `veaf.findSpawnPoint` already did. A radius
+  the caller actually asked for is unchanged, so the scenery awareness above still applies wherever
+  there is room to move.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

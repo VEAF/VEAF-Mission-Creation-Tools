@@ -503,10 +503,19 @@ end
 -- `honouringDeclaredPosition` keeps the position the mission maker drew (ruling 3 of David's
 -- arbitration, 2026-08-27). This path is the dynamic spawners only.
 --
+-- A **zero or absent radius means "exactly here, the caller means it"**, and nothing is moved. Same
+-- rule as `veaf.findSpawnPoint`, and rule 1 of David's arbitration (2026-08-27): a radius is a
+-- licence to move, and a caller that granted none has already settled where its group goes.
+--
 -- @param units table list of unit definitions, each carrying the `spawnPoint` vec3 `placeGroup` set
+-- @param spawnRadius number|nil the radius the caller was allowed to draw the group's centre in
 -- @return number the distance the group was translated by, 0 when it was left alone
-function veafUnits.settleGroup(units)
+function veafUnits.settleGroup(units, spawnRadius)
   if type(units) ~= "table" or #units == 0 then
+    return 0
+  end
+  if type(spawnRadius) ~= "number" or spawnRadius <= 0 then
+    veaf.loggers.get(veafUnits.Id):trace("settleGroup: no radius was granted, the group stays exactly where it is")
     return 0
   end
   for _, unit in ipairs(units) do

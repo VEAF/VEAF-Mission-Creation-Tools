@@ -303,8 +303,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   vehicles under trees to zero. The move is bounded by a translation distance
   (`veafUnits.SETTLE_MAX_TRANSLATION`, 1000 m, against measured needs of 100 to 800 m) rather than by
   the radius asked of DCS, which means nothing. Editor content is untouched: zone elements keep going
-  through `VeafGroupSpawn:honouringDeclaredPosition`, and convoys are exempt so they do not leave
-  their first waypoint.
+  through `VeafGroupSpawn:honouringDeclaredPosition`; a spawn that granted **no radius** means
+  “exactly here” and is never moved, the same rule `veaf.findSpawnPoint` already applies; and convoys
+  are exempt so they do not leave their first waypoint.
 
 ## [6.24.0] — 2026-09-21
 

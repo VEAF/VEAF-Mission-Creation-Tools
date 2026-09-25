@@ -1104,7 +1104,7 @@ veafUnits = {
   -- that load this stub test *which point a spawner chose for the group centre*, and settling is a
   -- second, independent step whose own tests live in test_veafUnits.lua. Answering 0 says "the group
   -- was left where it was", which is what those assertions expect.
-  settleGroup = function(units)
+  settleGroup = function(units, spawnRadius)
     return 0
   end,
   removePathfindingFixUnit = function(...) end,

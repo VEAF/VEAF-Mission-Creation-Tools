@@ -331,7 +331,10 @@ local function validateSpawnPosition(spawnPosition, unit, silent)
 end
 
 -- @param silent boolean|nil when true, unit-refusal messages are not broadcast to players
-function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
+-- @param spawnRadius number|nil the radius the caller was allowed to draw the group's centre in; it
+--        is the licence to translate the group clear of the scenery, and a caller that granted none
+--        -- or that has already settled its groups one by one -- leaves it out
+function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent, spawnRadius)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn._createDcsUnits([%s])", country or ""))
 
   if hasDest then
@@ -343,7 +346,7 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
   -- of a clearing lands inside the treeline. Translating the group is what keeps the formation —
   -- see `veafUnits.settleGroup`. Skipped for a convoy, whose units are lined up along a route.
   if not hasDest then
-    veafUnits.settleGroup(units)
+    veafUnits.settleGroup(units, spawnRadius)
   end
 
   local dcsUnits = {}
@@ -428,7 +431,7 @@ function veafSpawn.spawnInfantryGroup(spawnSpot, radius, czName, country, side, 
   -- shuffle the units in the group
   local units = veaf.shuffle(group.units)
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent, radius)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_infantry", groupName), 5)
@@ -486,7 +489,7 @@ function veafSpawn.spawnArmoredPlatoon(
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent, radius)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_armored", groupName), 5)
@@ -545,7 +548,7 @@ function veafSpawn.spawnAirDefenseBattery(
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD, hasDest, silent)
+  veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD, hasDest, silent, radius)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_airdef", groupName), 5)
@@ -600,7 +603,7 @@ function veafSpawn.spawnTransportCompany(
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent, radius)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_transport", groupName), 5)
@@ -647,6 +650,9 @@ function veafSpawn.spawnFullCombatGroup(
   local groupPosition = veaf.placePointOnLand(spawnSpot)
   local units = veafCasMission.generateCasGroup(groupName, groupPosition, size, defense, armor, spacing, side)
 
+  -- No radius handed on, on purpose: `units` here is the flat list of **several** groups, and
+  -- `veafCasMission.placeGroup` has already settled each of them into its own clearing. Settling
+  -- again at this level would translate the whole combat group as if it were one formation.
   veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent)
 
   if not silent then

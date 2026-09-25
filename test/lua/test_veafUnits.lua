@@ -1032,7 +1032,7 @@ end
 -- ---------------------------------------------------------------------------
 -- TestVeafUnitsSettleGroup (FIX-PLACEMENT-IGNORES-SCENERY ticket 10)
 --
--- veafUnits.settleGroup(units) must translate the **whole group rigidly** until
+-- veafUnits.settleGroup(units, SPAWN_RADIUS) must translate the **whole group rigidly** until
 -- every one of its units stands on acceptable ground, and leave it exactly where
 -- it is when it cannot. The invariant the lot exists for is that the formation
 -- survives: every inter-unit distance is unchanged by construction, because a
@@ -1043,6 +1043,10 @@ end
 -- a 50 m request at 52-171 m, so the test could not structurally ever pass.
 -- ---------------------------------------------------------------------------
 TestVeafUnitsSettleGroup = {}
+
+--- The radius the caller was allowed to draw the group's centre in. Any positive value will do:
+--- it is a licence to move, not a bound on the move — the bound is `SETTLE_MAX_TRANSLATION`.
+local SPAWN_RADIUS = 50
 
 --- A ground group, built from a list of `{ x, z }` pairs.
 local function groundGroup(positions)
@@ -1123,7 +1127,7 @@ function TestVeafUnitsSettleGroup:test_the_group_is_translated_rigidly_until_eve
   local units = groundGroup({ { 0, 0 }, { 20, 0 }, { 0, 20 }, { 20, 20 } })
   local before = pairwiseDistances(units)
 
-  local translated = veafUnits.settleGroup(units)
+  local translated = veafUnits.settleGroup(units, SPAWN_RADIUS)
 
   luaunit.assertAlmostEquals(translated, 290, 1, "the group moves to the candidate that clears all of it")
   for _, unit in ipairs(units) do
@@ -1151,7 +1155,7 @@ function TestVeafUnitsSettleGroup:test_the_clearance_asked_covers_the_whole_foot
   local record = {}
   Disposition = dispositionAnswering({ { 300, 0 } }, record)
   local units = groundGroup({ { -30, 0 }, { 30, 0 } })
-  veafUnits.settleGroup(units)
+  veafUnits.settleGroup(units, SPAWN_RADIUS)
   luaunit.assertAlmostEquals(record.clearance, 30 + veafUnits.SETTLE_MARGIN, 0.001, "clearance = footprint radius + margin")
   luaunit.assertEquals(record.radius, veafUnits.SETTLE_MAX_TRANSLATION, "the search radius is the acceptance bound")
 end
@@ -1159,7 +1163,7 @@ end
 function TestVeafUnitsSettleGroup:test_a_candidate_beyond_the_maximum_translation_is_refused()
   Disposition = dispositionAnswering({ { veafUnits.SETTLE_MAX_TRANSLATION + 500, 0 } })
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
-  local translated = veafUnits.settleGroup(units)
+  local translated = veafUnits.settleGroup(units, SPAWN_RADIUS)
   luaunit.assertEquals(translated, 0, "too far to be the same place any more")
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
   luaunit.assertEquals(units[2].spawnPoint.x, 20)
@@ -1170,7 +1174,7 @@ function TestVeafUnitsSettleGroup:test_a_candidate_within_the_margin_leaves_the_
   -- footprint + margin clear around it, and every unit is within footprint + that distance of it.
   Disposition = dispositionAnswering({ { veafUnits.SETTLE_MARGIN - 10, 0 } })
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
-  local translated = veafUnits.settleGroup(units)
+  local translated = veafUnits.settleGroup(units, SPAWN_RADIUS)
   luaunit.assertEquals(translated, 0, "nothing to gain, so nothing moves")
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
@@ -1178,14 +1182,14 @@ end
 function TestVeafUnitsSettleGroup:test_no_candidate_leaves_the_group_alone()
   Disposition = dispositionAnswering({})
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
-  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(veafUnits.settleGroup(units, SPAWN_RADIUS), 0)
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
 
 function TestVeafUnitsSettleGroup:test_disposition_absent_leaves_the_group_alone()
   Disposition = nil
   local units = groundGroup({ { 42, 77 } })
-  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(veafUnits.settleGroup(units, SPAWN_RADIUS), 0)
   luaunit.assertEquals(units[1].spawnPoint.x, 42)
   luaunit.assertEquals(units[1].spawnPoint.z, 77)
 end
@@ -1194,7 +1198,7 @@ function TestVeafUnitsSettleGroup:test_an_air_unit_exempts_the_whole_group()
   Disposition = dispositionAnswering({ { 300, 0 } })
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
   units[2].air = true
-  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(veafUnits.settleGroup(units, SPAWN_RADIUS), 0)
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
 
@@ -1202,7 +1206,7 @@ function TestVeafUnitsSettleGroup:test_a_naval_unit_exempts_the_whole_group()
   Disposition = dispositionAnswering({ { 300, 0 } })
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
   units[1].naval = true
-  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(veafUnits.settleGroup(units, SPAWN_RADIUS), 0)
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
 
@@ -1214,7 +1218,7 @@ function TestVeafUnitsSettleGroup:test_a_naval_static_exempts_the_whole_group()
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
   units[2].static = true
   units[2].typeName = "LHA_Tarawa"
-  local translated = veafUnits.settleGroup(units)
+  local translated = veafUnits.settleGroup(units, SPAWN_RADIUS)
   dcsUnits.NavalStatics = savedNavalStatics
   luaunit.assertEquals(translated, 0)
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
@@ -1225,7 +1229,7 @@ function TestVeafUnitsSettleGroup:test_hdg_and_the_terrain_height_are_carried_ov
   -- ground height at the *new* place, not the old one.
   Disposition = dispositionAnswering({ { 300, 0 } })
   local units = groundGroup({ { 0, 0 } })
-  veafUnits.settleGroup(units)
+  veafUnits.settleGroup(units, SPAWN_RADIUS)
   luaunit.assertAlmostEquals(units[1].spawnPoint.hdg, 1.57, 0.001, "hdg must survive the translation")
   luaunit.assertIsNumber(units[1].spawnPoint.y, "the settled position carries a terrain height")
 end
@@ -1236,16 +1240,27 @@ function TestVeafUnitsSettleGroup:test_a_single_unit_group_is_translated_too()
   local record = {}
   Disposition = dispositionAnswering({ { 0, 300 } }, record)
   local units = groundGroup({ { 0, 0 } })
-  local translated = veafUnits.settleGroup(units)
+  local translated = veafUnits.settleGroup(units, SPAWN_RADIUS)
   luaunit.assertAlmostEquals(record.clearance, veafUnits.SETTLE_MARGIN, 0.001)
   luaunit.assertAlmostEquals(translated, 300, 0.001)
   luaunit.assertAlmostEquals(units[1].spawnPoint.z, 300, 0.001)
 end
 
+function TestVeafUnitsSettleGroup:test_a_zero_radius_means_exactly_here()
+  -- Rule 1 of David's arbitration (2026-08-27): a caller that granted no radius has already settled
+  -- where its group goes, and nothing may move it. Same rule as veaf.findSpawnPoint.
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  luaunit.assertEquals(veafUnits.settleGroup(units, 0), 0, "a zero radius is not a licence to move")
+  luaunit.assertEquals(veafUnits.settleGroup(units, nil), 0, "and neither is an absent one")
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+  luaunit.assertEquals(units[2].spawnPoint.x, 20)
+end
+
 function TestVeafUnitsSettleGroup:test_an_empty_group_is_handled()
   Disposition = dispositionAnswering({ { 300, 0 } })
-  luaunit.assertEquals(veafUnits.settleGroup({}), 0)
-  luaunit.assertEquals(veafUnits.settleGroup(nil), 0)
+  luaunit.assertEquals(veafUnits.settleGroup({}, SPAWN_RADIUS), 0)
+  luaunit.assertEquals(veafUnits.settleGroup(nil, SPAWN_RADIUS), 0)
 end
 
 function TestVeafUnitsSettleGroup:test_a_disposition_that_raises_leaves_the_group_alone()
@@ -1256,7 +1271,7 @@ function TestVeafUnitsSettleGroup:test_a_disposition_that_raises_leaves_the_grou
     end,
   }
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
-  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(veafUnits.settleGroup(units, SPAWN_RADIUS), 0)
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
 

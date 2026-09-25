@@ -1029,4 +1029,110 @@ function TestVeafUnitsLookupWhitespace:test_a_name_the_database_does_not_have_st
   luaunit.assertNil(veafUnits.findDcsUnit("A Unit Nobody Shipped"))
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafUnitsSettlePosition (FIX-PLACEMENT-IGNORES-SCENERY ticket 08)
+--
+-- veafUnits.settlePosition(spawnPosition, unit) must nudge a ground unit to the
+-- nearest scenery-free point returned by Disposition, or return the original when
+-- Disposition is absent or yields no candidate.
+-- ---------------------------------------------------------------------------
+TestVeafUnitsSettlePosition = {}
+
+function TestVeafUnitsSettlePosition:setUp()
+  self._savedDisposition = Disposition
+  self._savedGetSurfaceType = land.getSurfaceType
+  Disposition = nil
+  -- Land everywhere unless a test says otherwise.
+  land.getSurfaceType = function()
+    return land.SurfaceType.LAND
+  end
+end
+
+function TestVeafUnitsSettlePosition:tearDown()
+  Disposition = self._savedDisposition
+  land.getSurfaceType = self._savedGetSurfaceType
+end
+
+function TestVeafUnitsSettlePosition:test_ground_unit_is_nudged_to_scenery_free_point()
+  -- Disposition returns a nearby clear point; settlePosition must return it.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 10, y = 20, course = 0 } }
+    end,
+  }
+  local unit = { air = false, naval = false }
+  local result = veafUnits.settlePosition({ x = 0, y = 5, z = 0 }, unit)
+  luaunit.assertEquals(result.x, 10, "x must come from the candidate")
+  luaunit.assertEquals(result.z, 20, "z must come from the candidate's y (map easting)")
+  luaunit.assertEquals(result.y, 5, "terrain y must be preserved from the spawn position")
+end
+
+function TestVeafUnitsSettlePosition:test_air_unit_is_not_settled()
+  -- Air units must be returned unchanged even when Disposition has candidates.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 99, y = 99, course = 0 } }
+    end,
+  }
+  local unit = { air = true, naval = false }
+  local result = veafUnits.settlePosition({ x = 0, y = 1000, z = 0 }, unit)
+  luaunit.assertEquals(result.x, 0)
+  luaunit.assertEquals(result.z, 0)
+end
+
+function TestVeafUnitsSettlePosition:test_naval_unit_is_not_settled()
+  -- Naval units must be returned unchanged.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 99, y = 99, course = 0 } }
+    end,
+  }
+  local unit = { air = false, naval = true }
+  local result = veafUnits.settlePosition({ x = 0, y = 0, z = 0 }, unit)
+  luaunit.assertEquals(result.x, 0)
+  luaunit.assertEquals(result.z, 0)
+end
+
+function TestVeafUnitsSettlePosition:test_disposition_absent_returns_original()
+  -- When Disposition is nil (the common ship case), the original position must come back.
+  Disposition = nil
+  local unit = { air = false, naval = false }
+  local pos = { x = 42, y = 5, z = 77 }
+  local result = veafUnits.settlePosition(pos, unit)
+  luaunit.assertEquals(result.x, 42)
+  luaunit.assertEquals(result.z, 77)
+end
+
+function TestVeafUnitsSettlePosition:test_no_candidate_returns_original()
+  -- Disposition is present but returns no usable candidate — original must be kept.
+  Disposition = {
+    getSimpleZones = function()
+      return {}
+    end,
+  }
+  local unit = { air = false, naval = false }
+  local pos = { x = 5, y = 3, z = 7 }
+  local result = veafUnits.settlePosition(pos, unit)
+  luaunit.assertEquals(result.x, 5)
+  luaunit.assertEquals(result.z, 7)
+end
+
+function TestVeafUnitsSettlePosition:test_naval_static_is_not_settled()
+  -- A naval static (unit.static=true and type in NavalStatics) must not be nudged toward
+  -- land: checkPositionForUnit would then refuse it at its settled position.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 99, y = 99, course = 0 } }
+    end,
+  }
+  local savedNavalStatics = dcsUnits.NavalStatics
+  dcsUnits.NavalStatics = { ["LHA_Tarawa"] = true }
+  local unit = { air = false, naval = false, static = true, typeName = "LHA_Tarawa" }
+  local pos = { x = 0, y = 0, z = 0 }
+  local result = veafUnits.settlePosition(pos, unit)
+  dcsUnits.NavalStatics = savedNavalStatics
+  luaunit.assertEquals(result.x, 0, "naval static must not be nudged to land")
+  luaunit.assertEquals(result.z, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

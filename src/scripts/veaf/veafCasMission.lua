@@ -1100,7 +1100,9 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     local unitName = veafCasMission.casGroupName .. " / " .. unit.displayName .. " #" .. i
     local unitHdg = unit.hdg
 
-    local spawnPosition = unit.spawnPoint
+    -- Settle the unit to the nearest scenery-free point before the terrain check.
+    local spawnPosition = veafUnits.settlePosition(unit.spawnPoint, unit)
+    unit.spawnPoint = spawnPosition
 
     -- check if position is correct for the unit type
     if veafUnits.checkPositionForUnit(spawnPosition, unit) then

@@ -739,7 +739,9 @@ function veafSpawn.doSpawnGroup(
     local unitType = unit.typeName
     local unitName = groupName .. " / " .. unit.displayName .. " #" .. i
 
-    local spawnPoint = unit.spawnPoint
+    -- Settle the unit to the nearest scenery-free point before the terrain check.
+    local spawnPoint = veafUnits.settlePosition(unit.spawnPoint, unit)
+    unit.spawnPoint = spawnPoint
     if alt > 0 then
       spawnPoint.y = alt
     end

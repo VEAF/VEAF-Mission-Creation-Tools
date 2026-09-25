@@ -271,6 +271,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   actual terrain height at the displaced location (from `placePointOnLand`), not the altitude of the origin.
   A guard `toInsert.heading or 0` was added to the trace log so a future nil cannot crash the spawn.
 
+- **A combat zone element is no longer refused because of the terrain it was drawn on** (measured
+  2026-09-25 in DCS on GermanyCW-v6). Of 25 combat zones, `combatZone_ConvoiA24` alone spawned
+  nothing: its convoy stands on a bridge, and DCS reports the surface *under* a bridge, which is
+  water. The zone behaved correctly — no acceptable point exists within the 50 m search radius, so it
+  kept the position the mission maker declared, as it must — but `VeafGroupSpawn:_drawOrigin` then
+  tested that same position again and vetoed the whole group. With no radius there is nothing left to
+  draw, so that second opinion could only agree or destroy the group, and destroying editor content
+  is what David's ruling of 2026-08-27 forbids: refusing is for what a *command* spawns, where a user
+  is standing there to read the message. A caller that has settled where its group goes now says so —
+  `VeafGroupSpawn:honouringDeclaredPosition()`, used by `VeafCombatZone:spawnElement` — and is obeyed.
+  Deliberately opt-in rather than "any spawn without a radius": a `-teleport` onto a lake is a command
+  and still refuses, and a caller that does ask for a radius has granted a licence to move, so the
+  scenery awareness above still applies wherever there is room to move.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

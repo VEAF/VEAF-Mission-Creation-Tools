@@ -17,6 +17,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`veafUnits.settleGroup` no longer takes `Disposition`'s word for a clearing.**
+  `veafUnits.settleGroup`, released in 6.25.0, translated groups correctly and to the metre — and
+  the number of vehicles standing in trees did not move (measured in game on GermanyCW-v6,
+  2026-09-26: 19 group alerts and 66 blocked units, against 16-18 and ~81 before it). The
+  translation was never the problem; what it aimed at was. `Disposition.getSimpleZones` returns
+  points it has not vouched for — one group was moved 217 m onto a spot blocked in 12 directions
+  out of 12 at 10 m — and it is **not deterministic**: five identical calls returned nearest
+  candidates at 1335, 1476, 1404, 1355 and 1293 m, while another found one at 153 m. So the
+  singleton now only proposes: each candidate is verified, unit by unit, against the same scenery
+  criterion the acceptance probe uses, and several draws are merged so one unlucky draw no longer
+  decides that a group stays under trees. Whether a group is already in the open is measured too,
+  replacing a geometric shortcut whose premise was that a candidate has the clearance it was asked
+  for. Formations are untouched: the translation stays rigid, to the metre.
+
+  **This is a step, not the fix.** Measured in game, it moves the numbers by nothing, because
+  `Disposition` is blind inside the spawn's own call stack: witness points whose truth is 9 blocked
+  out of 15 answer 0 out of 15 when probed from there, and 9 a second later. Getting the clearings
+  computed outside the spawn flow is what ticket 11 of `FIX-PLACEMENT-IGNORES-SCENERY` has left to
+  do; the verification landing here is what that phase will use.
+
 ## [6.25.0] — 2026-09-26
 
 ### Fixed

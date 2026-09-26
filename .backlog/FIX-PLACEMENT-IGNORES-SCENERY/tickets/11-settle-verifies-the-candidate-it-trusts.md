@@ -149,7 +149,7 @@ solved from a quiet frame — was a difference of parameters, not of timing.
 Delaying the whole spawn by one second does make the probe truthful, and it breaks the mission: the
 group name a spawn returns feeds `Group.getByName`, and with it `veaf.readyForCombat`, convoy
 routing and **`veafSkynet.declareSpawn`**
-([`veafSpawnCore.lua:417-460`](../../src/scripts/veaf/veafSpawnCore.lua)). Defer the creation and
+([`veafSpawnCore.lua:417-460`](../../../src/scripts/veaf/veafSpawnCore.lua)). Defer the creation and
 that whole block runs on nothing — which is precisely the regression that removed all nine SAM
 batteries on the morning of the same day. Four tests in `test_veafSpawn.lua` catch it, since they
 assert on the returned group name. This stays closed whatever the reason for wanting it.

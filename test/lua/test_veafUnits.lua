@@ -1030,15 +1030,66 @@ function TestVeafUnitsLookupWhitespace:test_a_name_the_database_does_not_have_st
 end
 
 -- ---------------------------------------------------------------------------
--- TestVeafUnitsSettlePosition (FIX-PLACEMENT-IGNORES-SCENERY ticket 08)
+-- TestVeafUnitsSettleGroup (FIX-PLACEMENT-IGNORES-SCENERY ticket 10)
 --
--- veafUnits.settlePosition(spawnPosition, unit) must nudge a ground unit to the
--- nearest scenery-free point returned by Disposition, or return the original when
--- Disposition is absent or yields no candidate.
+-- veafUnits.settleGroup(units) must translate the **whole group rigidly** until
+-- every one of its units stands on acceptable ground, and leave it exactly where
+-- it is when it cannot. The invariant the lot exists for is that the formation
+-- survives: every inter-unit distance is unchanged by construction, because a
+-- single offset is applied to every unit.
+--
+-- Ticket 08's per-unit nudge is gone. Measured in DCS on 2026-09-25, it never
+-- displaced anything: it kept a candidate only when `dist <= r`, and DCS answers
+-- a 50 m request at 52-171 m, so the test could not structurally ever pass.
 -- ---------------------------------------------------------------------------
-TestVeafUnitsSettlePosition = {}
+TestVeafUnitsSettleGroup = {}
 
-function TestVeafUnitsSettlePosition:setUp()
+--- A ground group, built from a list of `{ x, z }` pairs.
+local function groundGroup(positions)
+  local units = {}
+  for _, position in ipairs(positions) do
+    table.insert(units, {
+      air = false,
+      naval = false,
+      typeName = "Vulcan",
+      displayName = "AAA Vulcan M163",
+      spawnPoint = { x = position[1], y = 0, z = position[2], hdg = 1.57 },
+    })
+  end
+  return units
+end
+
+--- Every inter-unit distance, in a stable order, so two snapshots can be compared.
+local function pairwiseDistances(units)
+  local distances = {}
+  for i = 1, #units do
+    for j = i + 1, #units do
+      local a, b = units[i].spawnPoint, units[j].spawnPoint
+      local dx, dz = a.x - b.x, a.z - b.z
+      table.insert(distances, math.sqrt(dx * dx + dz * dz))
+    end
+  end
+  return distances
+end
+
+--- A Disposition stub answering with these `{ x, z }` candidates, whatever it is asked.
+local function dispositionAnswering(candidates, record)
+  return {
+    getSimpleZones = function(point, radius, clearance, attempts)
+      if record then
+        record.point, record.radius, record.clearance, record.attempts = point, radius, clearance, attempts
+      end
+      local zones = {}
+      for _, candidate in ipairs(candidates) do
+        -- Disposition answers vec2s, whose `y` is the map easting.
+        table.insert(zones, { x = candidate[1], y = candidate[2], course = 0 })
+      end
+      return zones
+    end,
+  }
+end
+
+function TestVeafUnitsSettleGroup:setUp()
   self._savedDisposition = Disposition
   self._savedGetSurfaceType = land.getSurfaceType
   Disposition = nil
@@ -1048,106 +1099,203 @@ function TestVeafUnitsSettlePosition:setUp()
   end
 end
 
-function TestVeafUnitsSettlePosition:tearDown()
+function TestVeafUnitsSettleGroup:tearDown()
   Disposition = self._savedDisposition
   land.getSurfaceType = self._savedGetSurfaceType
 end
 
-function TestVeafUnitsSettlePosition:test_ground_unit_is_nudged_to_scenery_free_point()
-  -- Disposition returns a nearby clear point; settlePosition must return it.
-  Disposition = {
-    getSimpleZones = function()
-      return { { x = 10, y = 20, course = 0 } }
-    end,
-  }
-  local unit = { air = false, naval = false }
-  local result = veafUnits.settlePosition({ x = 0, y = 5, z = 0 }, unit)
-  luaunit.assertEquals(result.x, 10, "x must come from the candidate")
-  luaunit.assertEquals(result.z, 20, "z must come from the candidate's y (map easting)")
-  -- placePointOnLand sets y = land.getHeight() + 1 m safety margin; the mock returns 0, so y = 1.
-  luaunit.assertEquals(result.y, 1, "terrain y must come from the placed candidate, not the origin")
+--- The heart of the lot: the group ends up clear, and its formation is untouched.
+function TestVeafUnitsSettleGroup:test_the_group_is_translated_rigidly_until_every_unit_is_clear()
+  -- A 20 m square battery sitting west of x = 150, where the ground is water — the stand-in the
+  -- mocks allow for "refused scenery", since only Disposition knows about forests and it can
+  -- propose points but never test one.
+  land.getSurfaceType = function(vec2)
+    if vec2.x < 150 then
+      return land.SurfaceType.WATER
+    end
+    return land.SurfaceType.LAND
+  end
+  -- Two candidates: the closest one still leaves the westernmost units on water, the farther one
+  -- clears the whole battery. Neither is inside the radius that was asked for, which is exactly
+  -- what DCS does and what ticket 08 refused.
+  Disposition = dispositionAnswering({ { 100, 0 }, { 300, 0 } })
+
+  local units = groundGroup({ { 0, 0 }, { 20, 0 }, { 0, 20 }, { 20, 20 } })
+  local before = pairwiseDistances(units)
+
+  local translated = veafUnits.settleGroup(units)
+
+  luaunit.assertAlmostEquals(translated, 290, 1, "the group moves to the candidate that clears all of it")
+  for _, unit in ipairs(units) do
+    luaunit.assertIsTrue(
+      veaf.isTerrainValid(unit.spawnPoint, veaf.DRIVABLE_TERRAIN),
+      string.format("unit at x=%s z=%s must stand on drivable terrain", tostring(unit.spawnPoint.x), tostring(unit.spawnPoint.z))
+    )
+  end
+  -- The formation, to the metre.
+  local after = pairwiseDistances(units)
+  luaunit.assertEquals(#after, #before)
+  for i = 1, #before do
+    luaunit.assertAlmostEquals(after[i], before[i], 0.001, "every inter-unit distance must be unchanged")
+  end
+  -- And it is the *same* offset for everyone, not a per-unit nudge.
+  luaunit.assertAlmostEquals(units[1].spawnPoint.x, 290, 0.001)
+  luaunit.assertAlmostEquals(units[2].spawnPoint.x, 310, 0.001)
+  -- The candidate is the new *barycentre*, so the offset is (300, 0) minus the old centre (10, 10).
+  luaunit.assertAlmostEquals(units[1].spawnPoint.z, -10, 0.001)
 end
 
-function TestVeafUnitsSettlePosition:test_hdg_is_preserved_after_nudge()
-  -- When a unit is actually displaced, the heading field on the original spawnPosition
-  -- must survive: it feeds veafSpawnCore's toInsert.heading and math.deg would crash on nil.
-  Disposition = {
-    getSimpleZones = function()
-      return { { x = 10, y = 20, course = 0 } }
-    end,
-  }
-  local unit = { air = false, naval = false }
-  local result = veafUnits.settlePosition({ x = 0, y = 5, z = 0, hdg = 1.57 }, unit)
-  luaunit.assertEquals(result.x, 10, "x must be updated")
-  luaunit.assertAlmostEquals(result.hdg, 1.57, 0.001, "hdg must be preserved from the original position")
+function TestVeafUnitsSettleGroup:test_the_clearance_asked_covers_the_whole_footprint()
+  -- A candidate is only worth anything if the clearing it names fits the whole group, so the
+  -- clearance asked of Disposition is the footprint radius plus the margin.
+  local record = {}
+  Disposition = dispositionAnswering({ { 300, 0 } }, record)
+  local units = groundGroup({ { -30, 0 }, { 30, 0 } })
+  veafUnits.settleGroup(units)
+  luaunit.assertAlmostEquals(record.clearance, 30 + veafUnits.SETTLE_MARGIN, 0.001, "clearance = footprint radius + margin")
+  luaunit.assertEquals(record.radius, veafUnits.SETTLE_MAX_TRANSLATION, "the search radius is the acceptance bound")
 end
 
-function TestVeafUnitsSettlePosition:test_air_unit_is_not_settled()
-  -- Air units must be returned unchanged even when Disposition has candidates.
-  Disposition = {
-    getSimpleZones = function()
-      return { { x = 99, y = 99, course = 0 } }
-    end,
-  }
-  local unit = { air = true, naval = false }
-  local result = veafUnits.settlePosition({ x = 0, y = 1000, z = 0 }, unit)
-  luaunit.assertEquals(result.x, 0)
-  luaunit.assertEquals(result.z, 0)
+function TestVeafUnitsSettleGroup:test_a_candidate_beyond_the_maximum_translation_is_refused()
+  Disposition = dispositionAnswering({ { veafUnits.SETTLE_MAX_TRANSLATION + 500, 0 } })
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated = veafUnits.settleGroup(units)
+  luaunit.assertEquals(translated, 0, "too far to be the same place any more")
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+  luaunit.assertEquals(units[2].spawnPoint.x, 20)
 end
 
-function TestVeafUnitsSettlePosition:test_naval_unit_is_not_settled()
-  -- Naval units must be returned unchanged.
-  Disposition = {
-    getSimpleZones = function()
-      return { { x = 99, y = 99, course = 0 } }
-    end,
-  }
-  local unit = { air = false, naval = true }
-  local result = veafUnits.settlePosition({ x = 0, y = 0, z = 0 }, unit)
-  luaunit.assertEquals(result.x, 0)
-  luaunit.assertEquals(result.z, 0)
+function TestVeafUnitsSettleGroup:test_a_candidate_within_the_margin_leaves_the_group_alone()
+  -- A candidate that close proves the group already stands in that clearing: it has
+  -- footprint + margin clear around it, and every unit is within footprint + that distance of it.
+  Disposition = dispositionAnswering({ { veafUnits.SETTLE_MARGIN - 10, 0 } })
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated = veafUnits.settleGroup(units)
+  luaunit.assertEquals(translated, 0, "nothing to gain, so nothing moves")
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
 
-function TestVeafUnitsSettlePosition:test_disposition_absent_returns_original()
-  -- When Disposition is nil (the common ship case), the original position must come back.
+function TestVeafUnitsSettleGroup:test_no_candidate_leaves_the_group_alone()
+  Disposition = dispositionAnswering({})
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+end
+
+function TestVeafUnitsSettleGroup:test_disposition_absent_leaves_the_group_alone()
   Disposition = nil
-  local unit = { air = false, naval = false }
-  local pos = { x = 42, y = 5, z = 77 }
-  local result = veafUnits.settlePosition(pos, unit)
-  luaunit.assertEquals(result.x, 42)
-  luaunit.assertEquals(result.z, 77)
+  local units = groundGroup({ { 42, 77 } })
+  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 42)
+  luaunit.assertEquals(units[1].spawnPoint.z, 77)
 end
 
-function TestVeafUnitsSettlePosition:test_no_candidate_returns_original()
-  -- Disposition is present but returns no usable candidate — original must be kept.
-  Disposition = {
-    getSimpleZones = function()
-      return {}
-    end,
-  }
-  local unit = { air = false, naval = false }
-  local pos = { x = 5, y = 3, z = 7 }
-  local result = veafUnits.settlePosition(pos, unit)
-  luaunit.assertEquals(result.x, 5)
-  luaunit.assertEquals(result.z, 7)
+function TestVeafUnitsSettleGroup:test_an_air_unit_exempts_the_whole_group()
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  units[2].air = true
+  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
 
-function TestVeafUnitsSettlePosition:test_naval_static_is_not_settled()
-  -- A naval static (unit.static=true and type in NavalStatics) must not be nudged toward
-  -- land: checkPositionForUnit would then refuse it at its settled position.
-  Disposition = {
-    getSimpleZones = function()
-      return { { x = 99, y = 99, course = 0 } }
-    end,
-  }
+function TestVeafUnitsSettleGroup:test_a_naval_unit_exempts_the_whole_group()
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  units[1].naval = true
+  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+end
+
+function TestVeafUnitsSettleGroup:test_a_naval_static_exempts_the_whole_group()
+  -- A naval static must not be nudged toward land: checkPositionForUnit would then refuse it.
+  Disposition = dispositionAnswering({ { 300, 0 } })
   local savedNavalStatics = dcsUnits.NavalStatics
   dcsUnits.NavalStatics = { ["LHA_Tarawa"] = true }
-  local unit = { air = false, naval = false, static = true, typeName = "LHA_Tarawa" }
-  local pos = { x = 0, y = 0, z = 0 }
-  local result = veafUnits.settlePosition(pos, unit)
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  units[2].static = true
+  units[2].typeName = "LHA_Tarawa"
+  local translated = veafUnits.settleGroup(units)
   dcsUnits.NavalStatics = savedNavalStatics
-  luaunit.assertEquals(result.x, 0, "naval static must not be nudged to land")
-  luaunit.assertEquals(result.z, 0)
+  luaunit.assertEquals(translated, 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+end
+
+function TestVeafUnitsSettleGroup:test_hdg_and_the_terrain_height_are_carried_over()
+  -- `hdg` feeds toInsert.heading downstream, where math.deg would crash on nil; `y` must be the
+  -- ground height at the *new* place, not the old one.
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  local units = groundGroup({ { 0, 0 } })
+  veafUnits.settleGroup(units)
+  luaunit.assertAlmostEquals(units[1].spawnPoint.hdg, 1.57, 0.001, "hdg must survive the translation")
+  luaunit.assertIsNumber(units[1].spawnPoint.y, "the settled position carries a terrain height")
+end
+
+function TestVeafUnitsSettleGroup:test_a_single_unit_group_is_translated_too()
+  -- Footprint 0, so the clearance asked is the bare margin — a lone vehicle still gets moved out
+  -- of the trees, which is what ticket 08 was supposed to do and never did.
+  local record = {}
+  Disposition = dispositionAnswering({ { 0, 300 } }, record)
+  local units = groundGroup({ { 0, 0 } })
+  local translated = veafUnits.settleGroup(units)
+  luaunit.assertAlmostEquals(record.clearance, veafUnits.SETTLE_MARGIN, 0.001)
+  luaunit.assertAlmostEquals(translated, 300, 0.001)
+  luaunit.assertAlmostEquals(units[1].spawnPoint.z, 300, 0.001)
+end
+
+function TestVeafUnitsSettleGroup:test_a_zone_spawn_with_the_default_radius_is_still_moved()
+  -- The regression that made the first cut of this lot inert. Measured in DCS on GermanyCW-v6,
+  -- 2026-09-25: 100 of the 118 spawn commands of one launch pass `radius 0` — `sa10`, `sa11`,
+  -- `sa15_squad`, `ewr`, `patriot`, `msta` and the rest, i.e. every group this lot exists for,
+  -- `combatZone_Wittstock`'s S-300 (13 units of 14 under trees) included. Zero is the *default*
+  -- radius, not a statement, so it must exempt nothing: only the explicit flag below does.
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated = veafUnits.settleGroup(units)
+  luaunit.assertAlmostEquals(translated, 290, 1, "a command that stated no radius is still settled")
+  luaunit.assertAlmostEquals(units[1].spawnPoint.x, 290, 0.001)
+  luaunit.assertAlmostEquals(units[2].spawnPoint.x, 310, 0.001)
+end
+
+function TestVeafUnitsSettleGroup:test_a_caller_honouring_its_declared_position_is_not_moved()
+  -- The other half of the distinction #1004 drew: a caller that *owns* the placement — editor
+  -- content, or one that has already settled its groups one by one — says so explicitly, and is
+  -- obeyed. Rule 3 of David's arbitration (2026-08-27): editor content is never moved nor refused.
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  luaunit.assertEquals(veafUnits.settleGroup(units, true), 0, "the declared position is honoured")
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+  luaunit.assertEquals(units[2].spawnPoint.x, 20)
+end
+
+function TestVeafUnitsSettleGroup:test_the_scenery_opt_out_is_honoured()
+  -- `veaf.doNotAvoidScenery` turns the scenery criterion off for the whole mission; it must turn
+  -- this off too, or a mission that opted out would still see its groups translated.
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  local saved = veaf.doNotAvoidScenery
+  veaf.doNotAvoidScenery = true
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated = veafUnits.settleGroup(units)
+  veaf.doNotAvoidScenery = saved
+  luaunit.assertEquals(translated, 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+end
+
+function TestVeafUnitsSettleGroup:test_an_empty_group_is_handled()
+  Disposition = dispositionAnswering({ { 300, 0 } })
+  luaunit.assertEquals(veafUnits.settleGroup({}), 0)
+  luaunit.assertEquals(veafUnits.settleGroup(nil), 0)
+end
+
+function TestVeafUnitsSettleGroup:test_a_disposition_that_raises_leaves_the_group_alone()
+  -- ADR 0018: this undocumented singleton may only ever improve quality, never decide correctness.
+  Disposition = {
+    getSimpleZones = function()
+      error("boom")
+    end,
+  }
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
 
 os.exit(luaunit.LuaUnit.run())

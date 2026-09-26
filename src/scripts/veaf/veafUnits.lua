@@ -433,69 +433,188 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
   return true
 end
 
---- Nudges a ground unit to the nearest scenery-free point within a small search radius.
--- `veaf.findSpawnPoint` places the **group centre** clear of scenery; `placeGroup` then spreads
--- individual units around that centre without consulting the scenery. This function recalculates
--- each unit's position after `placeGroup`, so a vehicle that landed inside a tree edge is moved
--- to the nearest clear spot rather than being placed there or silently dropped.
---
--- Measured 2026-09-25 on GermanyCW-v6: 53/184 zone groups had at least one unit in trees or water
--- despite the group centre being on clear ground.
---
--- No-op for air and naval units, and when `Disposition` is unavailable (older DCS version). When
--- nothing is found within the widest anneau (50 m), the original position is returned unchanged —
--- the unit may still land in scenery, but `checkPositionForUnit` downstream handles the water case.
--- @param spawnPosition vec3 the unit's position after `placeGroup`
--- @param unit table unit definition (used to decide air/naval and therefore which terrain applies)
--- @return vec3 the settled position (original if nothing better found or unit is air/naval)
-function veafUnits.settlePosition(spawnPosition, unit)
-  veaf.loggers.get(veafUnits.Id):trace("settlePosition(%s)", spawnPosition)
-  -- Air and naval units keep their position: scenery clearance is meaningless in the air,
-  -- and naval units (including naval statics) are placed on water by checkPositionForUnit —
-  -- nudging them toward DRIVABLE_TERRAIN would move them to land and make checkPositionForUnit
-  -- refuse them. Naval statics are identified the same way as in checkPositionForUnit.
-  local isNavalStatic = unit.static and veaf.findInTable(dcsUnits.NavalStatics, unit.typeName)
-  if unit.air or unit.naval or isNavalStatic then
-    return spawnPosition
+--- Distance, in metres, beyond which `settleGroup` leaves a group where it is rather than moving it.
+---
+--- This is the acceptance bound, and it deliberately has **nothing to do with the radius asked of
+--- `Disposition`**: that radius means nothing. Measured in DCS on 2026-09-25 (GermanyCW-v6), asked
+--- 50 m it answered between 52 and 171 m, median 130 m. The previous per-unit version of this code
+--- kept a candidate only when `dist <= r` and therefore displaced **nothing at all**, on any unit,
+--- ever — 25 candidates offered over 20 stuck vehicles, 25 valid on terrain, 0 accepted.
+---
+--- 1000 m, because the translations actually needed on that mission ran from 100 to 800 m, and
+--- because a kilometre still keeps a group inside the scale of the combat zone it belongs to.
+veafUnits.SETTLE_MAX_TRANSLATION = 1000
+
+--- Breathing room, in metres, asked around the group's own footprint — and the radius within which
+--- a candidate proves the group is **already** standing in that clearing, so nothing needs moving.
+---
+--- The proof is geometric: a candidate at distance `d` from the group's centre has
+--- `footprint + SETTLE_MARGIN` metres clear around it, and every unit is within `footprint` of the
+--- centre, hence within `footprint + d` of the candidate. So `d <= SETTLE_MARGIN` means the whole
+--- group is inside the clearing already.
+---
+--- 50 m, because the closest candidate DCS was ever measured to return is 52 m: a tighter margin
+--- could never fire that proof, and a group standing in a perfectly good clearing would be
+--- translated for nothing.
+veafUnits.SETTLE_MARGIN = 50
+
+--- May this unit be moved to get clear of the scenery?
+-- Air units live in the air, and naval units (naval statics included, identified exactly as in
+-- `checkPositionForUnit`) are placed on water — moving them toward drivable terrain would make
+-- `checkPositionForUnit` refuse them downstream.
+local function isSettleableUnit(unit)
+  if type(unit) ~= "table" or unit.air or unit.naval then
+    return false
   end
-  if not Disposition or not Disposition.getSimpleZones then
-    return spawnPosition
+  if unit.static and veaf.findInTable(dcsUnits.NavalStatics, unit.typeName) then
+    return false
   end
-  -- Ground unit: try progressively wider anneaux until a clear point is found nearby.
-  -- A clearance of 5 m is intentionally small — we want the nearest edge of the clear zone,
-  -- not a second group-sized gap. The anneau radii must stay below the group spacing so we
-  -- do not accidentally merge two vehicles into the same clearing.
-  local SETTLE_CLEARANCE = 5
-  for _, r in ipairs({ 10, 25, 50 }) do
-    local ok, candidates = pcall(Disposition.getSimpleZones, spawnPosition, r, SETTLE_CLEARANCE, 10)
-    if ok and type(candidates) == "table" then
-      local best, bestDist = nil, math.huge
-      for _, candidate in ipairs(candidates) do
-        local placed = veaf.placePointOnLand(candidate)
-        if placed and veaf.isTerrainValid(placed, veaf.DRIVABLE_TERRAIN) then
-          local dx = placed.x - spawnPosition.x
-          local dz = (placed.z or 0) - (spawnPosition.z or 0)
-          local dist = math.sqrt(dx * dx + dz * dz)
-          if dist <= r and dist < bestDist then
-            best = placed
-            bestDist = dist
-          end
+  return true
+end
+
+--- Moves a whole ground group, as one rigid body, into a clearing that fits all of it.
+--
+-- `veaf.findSpawnPoint` places the **group centre** clear of scenery; `placeGroup` then spreads the
+-- units around that centre without consulting the scenery, so a battery whose centre stands in the
+-- open can still have half its vehicles inside a treeline. This function runs after `placeGroup`,
+-- which is the only moment the real disposition is known: `veafUnits` draws it at random on every
+-- spawn, so no amount of editing the positions declared in a mission can pre-empt it.
+--
+-- **Rigidly, and that is the whole point.** Measured on GermanyCW-v6 (2026-09-25): a group's natural
+-- spacing is 20 to 27 m for a SAM battery, while the closest point DCS can propose is 52 m, so any
+-- per-unit displacement breaks the formation by a factor of 2 to 5 — there is no threshold that is
+-- both effective and safe. Translating the group instead resolved 30 of 31 offending groups and took
+-- units standing in trees from 132 down to 2, with the formation preserved to the metre.
+--
+-- The criterion is inverted compared to a probe, because `Disposition` can only ever *propose*
+-- points and never test one (the same inversion `veafGrass.findClearBearing` makes): ask once for a
+-- cloud of clearing centres wide enough to hold the entire footprint, then keep the closest one
+-- whose translation also puts every unit on drivable terrain. A candidate is scenery-free by
+-- construction, so nothing here has to test a forest.
+--
+-- No-op, and the group is left strictly untouched, when: `Disposition` is unavailable or raises
+-- (ADR 0018 — this undocumented singleton may improve quality, never decide correctness), any unit
+-- of the group is exempt (a rigid translation is a property of the whole group; moving half of it
+-- would break the very invariant this exists to protect), no candidate clears every unit, the best
+-- candidate is farther than `SETTLE_MAX_TRANSLATION`, or the best candidate is within
+-- `SETTLE_MARGIN` and therefore proves the group is already in the clear.
+--
+-- Editor content is **not** concerned: zone elements are respawned through `VeafGroupSpawn`, whose
+-- `honouringDeclaredPosition` keeps the position the mission maker drew (ruling 3 of David's
+-- arbitration, 2026-08-27). This path is the dynamic spawners only.
+--
+-- **The exemption is the explicit flag, never a zero radius.** `VeafGroupSpawn:honouringDeclaredPosition()`
+-- (#1004) made exactly that distinction and it holds here for the same reason: zero is the *default*
+-- radius, not a statement. Measured in DCS on GermanyCW-v6, 2026-09-25: of the 118 spawn commands of
+-- one launch, **100 pass `radius 0`** — `sa10`, `sa11`, `sa15_squad`, `ewr`, `patriot`, `msta` and the
+-- rest, that is to say every single group this lot exists for. Keying the exemption on the radius
+-- would leave the S-300 of `combatZone_Wittstock`, 13 of its 14 units under trees, exactly where it
+-- is, and make this lot the no-op it was written to replace. Only a caller that *owns* the placement
+-- decision, and says so, is obeyed.
+--
+-- @param units table list of unit definitions, each carrying the `spawnPoint` vec3 `placeGroup` set
+-- @param honourDeclaredPosition boolean|nil when true, the caller has already settled where these
+--        units go — editor content, or a caller that settled its groups one by one — and nothing moves
+-- @return number the distance the group was translated by, 0 when it was left alone
+function veafUnits.settleGroup(units, honourDeclaredPosition)
+  if type(units) ~= "table" or #units == 0 then
+    return 0
+  end
+  if honourDeclaredPosition then
+    veaf.loggers.get(veafUnits.Id):trace("settleGroup: the caller owns this placement, the group stays exactly where it is")
+    return 0
+  end
+  for _, unit in ipairs(units) do
+    if not isSettleableUnit(unit) or type(unit.spawnPoint) ~= "table" or type(unit.spawnPoint.x) ~= "number" then
+      veaf.loggers.get(veafUnits.Id):trace("settleGroup: the group holds an exempt or unplaced unit, leaving it alone")
+      return 0
+    end
+  end
+  -- Same opt-out as `veaf.findSpawnPoint` tier 1 and `veafGrass.findClearBearing`: a mission that
+  -- has turned the scenery criterion off gets nothing moved on its behalf here either.
+  if veaf.doNotAvoidScenery or not Disposition or not Disposition.getSimpleZones then
+    return 0
+  end
+
+  -- The group's barycentre, and the radius of the disc that holds it.
+  local centreX, centreZ = 0, 0
+  for _, unit in ipairs(units) do
+    centreX = centreX + unit.spawnPoint.x
+    centreZ = centreZ + (unit.spawnPoint.z or 0)
+  end
+  centreX, centreZ = centreX / #units, centreZ / #units
+  local footprint = 0
+  for _, unit in ipairs(units) do
+    local dx, dz = unit.spawnPoint.x - centreX, (unit.spawnPoint.z or 0) - centreZ
+    footprint = math.max(footprint, math.sqrt(dx * dx + dz * dz))
+  end
+
+  local ok, candidates = pcall(
+    Disposition.getSimpleZones,
+    { x = centreX, y = 0, z = centreZ },
+    veafUnits.SETTLE_MAX_TRANSLATION,
+    footprint + veafUnits.SETTLE_MARGIN,
+    veaf.SPAWN_SEARCH_ATTEMPTS
+  )
+  if not ok or type(candidates) ~= "table" then
+    veaf.loggers.get(veafUnits.Id):debug("settleGroup: Disposition.getSimpleZones unusable, leaving the group alone")
+    return 0
+  end
+
+  -- Closest first, and only those near enough to still be the same place. `Disposition` answers
+  -- vec2s, whose `y` is the map easting (docs/agents/dcs-coordinates.md).
+  local reachable = {}
+  for _, candidate in ipairs(candidates) do
+    if type(candidate) == "table" and type(candidate.x) == "number" then
+      local x = candidate.x
+      local z = candidate.z or candidate.y
+      if type(z) == "number" then
+        local dx, dz = x - centreX, z - centreZ
+        local distance = math.sqrt(dx * dx + dz * dz)
+        if distance <= veafUnits.SETTLE_MAX_TRANSLATION then
+          table.insert(reachable, { x = x, z = z, distance = distance })
         end
-      end
-      if best then
-        veaf.loggers.get(veafUnits.Id):trace("settlePosition: nudged %.0fm to scenery-free point", bestDist)
-        -- Copy spawnPosition to preserve all caller-set fields (hdg, …); update x/y/z from the
-        -- placed point so the settled position carries the actual terrain height at the new location.
-        local settled = veaf.deepCopy(spawnPosition)
-        settled.x = best.x
-        settled.y = best.y
-        settled.z = best.z
-        return settled
       end
     end
   end
-  veaf.loggers.get(veafUnits.Id):trace("settlePosition: no free point found, keeping original position")
-  return spawnPosition
+  if #reachable == 0 then
+    veaf.loggers.get(veafUnits.Id):debug("settleGroup: no clearing wide enough within %dm", veafUnits.SETTLE_MAX_TRANSLATION)
+    return 0
+  end
+  table.sort(reachable, function(a, b)
+    return a.distance < b.distance
+  end)
+  if reachable[1].distance <= veafUnits.SETTLE_MARGIN then
+    veaf.loggers.get(veafUnits.Id):trace("settleGroup: the group already stands in that clearing, keeping it")
+    return 0
+  end
+
+  for _, candidate in ipairs(reachable) do
+    local offsetX, offsetZ = candidate.x - centreX, candidate.z - centreZ
+    local placed, everyUnitClear = {}, true
+    for i, unit in ipairs(units) do
+      local point = veaf.placePointOnLand({ x = unit.spawnPoint.x + offsetX, y = 0, z = (unit.spawnPoint.z or 0) + offsetZ })
+      if not veaf.isTerrainValid(point, veaf.DRIVABLE_TERRAIN) then
+        everyUnitClear = false
+        break
+      end
+      placed[i] = point
+    end
+    if everyUnitClear then
+      for i, unit in ipairs(units) do
+        -- Copy the original to keep every caller-set field (hdg, cell, …); only the coordinates
+        -- move, and `y` is the ground height where the unit now stands.
+        local settled = veaf.deepCopy(unit.spawnPoint)
+        settled.x, settled.y, settled.z = placed[i].x, placed[i].y, placed[i].z
+        unit.spawnPoint = settled
+      end
+      veaf.loggers.get(veafUnits.Id):debug("settleGroup: translated the group by %.0fm to a clearing that fits it", candidate.distance)
+      return candidate.distance
+    end
+  end
+
+  veaf.loggers.get(veafUnits.Id):debug("settleGroup: no candidate clears every unit, keeping the group where it is")
+  return 0
 end
 
 --- Adds a placement point to every unit of the group, centering the whole group around the spawnPoint, and adding an optional spacing

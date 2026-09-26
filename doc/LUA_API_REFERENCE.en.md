@@ -448,6 +448,41 @@ The search degrades in three bounded tiers:
 > `dcs-world-schema`. The call is guarded and `pcall`-wrapped: if the singleton is missing on
 > this DCS version or map, the search falls through to tier 2 instead of failing.
 
+##### `veafUnits.settleGroup(units, spawnRadius)`
+
+Moves **the whole group**, as one rigid body, into a clearing wide enough to hold it.
+`veaf.findSpawnPoint` only places the group's **centre**; `veafUnits.placeGroup` then spreads the
+vehicles around that centre without looking at the scenery, so a battery standing in the open can
+still have half its pieces in the trees.
+
+Every vehicle gets **the same offset**, so the distances between them do not change: the formation is
+preserved. A vehicle-by-vehicle nudge cannot work — a battery's natural spacing is 20 to 27 m, while
+the closest free point DCS can propose is 52 m away.
+
+**Parameters:**
+
+- `units` - the unit list, as `veafUnits.placeGroup` filled it in
+- `honourDeclaredPosition` - when `true`, the caller states that it **owns the placement** and nothing
+  moves. Same contract as `VeafGroupSpawn:honouringDeclaredPosition()`, and explicit for the same
+  reason: a zero radius is this codebase's **default**, not a statement. Measured 2026-09-25 on
+  GermanyCW-v6, 100 of the 118 spawn commands of one launch pass `radius 0` - that is to say every
+  battery this lot has to move.
+
+**Returns:** the distance the group was moved by, `0` when it stayed put.
+
+**Never moves:** a group holding an air unit, a naval unit or a naval static; a convoy; a caller that
+set `honourDeclaredPosition`; a mission that set `veaf.doNotAvoidScenery` to `true`; and Mission
+Editor content, which goes through `VeafGroupSpawn:honouringDeclaredPosition()` and never reaches
+here.
+
+**Settings:**
+
+- `veafUnits.SETTLE_MAX_TRANSLATION` (default 1000) - acceptable translation distance, in metres.
+  Beyond it the group stays where it is. This is **not** the radius asked of DCS: that one is not
+  honoured (50 m asked, 52 to 171 m answered, measured 2026-09-25).
+- `veafUnits.SETTLE_MARGIN` (default 50) - breathing room asked around the group's footprint, and the
+  distance under which the group is taken to be standing in the clearing already.
+
 ##### `veaf.getLandHeight(vec3)`
 
 Get terrain height at coordinates.

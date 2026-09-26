@@ -331,11 +331,23 @@ local function validateSpawnPosition(spawnPosition, unit, silent)
 end
 
 -- @param silent boolean|nil when true, unit-refusal messages are not broadcast to players
-function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
+-- @param honourDeclaredPosition boolean|nil when true, the caller has already settled where these
+--        units go and the group is not translated clear of the scenery. Same contract as
+--        `VeafGroupSpawn:honouringDeclaredPosition()`, and opt-in for the same reason: a zero radius
+--        is this codebase's *default*, not a statement, so it exempts nothing on its own
+function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent, honourDeclaredPosition)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn._createDcsUnits([%s])", country or ""))
 
   if hasDest then
     veaf.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
+  end
+
+  -- Settle the whole group, as one rigid body, into a clearing that fits all of it: `placeGroup`
+  -- spreads units around the group centre without consulting the scenery, so a vehicle at the edge
+  -- of a clearing lands inside the treeline. Translating the group is what keeps the formation —
+  -- see `veafUnits.settleGroup`. Skipped for a convoy, whose units are lined up along a route.
+  if not hasDest then
+    veafUnits.settleGroup(units, honourDeclaredPosition)
   end
 
   local dcsUnits = {}
@@ -347,11 +359,7 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
       unitNameTemplate = "%s"
     end
     local unitName = string.format(unitNameTemplate, groupName, unit.displayName)
-    -- Settle the unit to the nearest scenery-free point before the terrain check: `placeGroup`
-    -- spreads units around the group centre without consulting scenery, so a vehicle at the edge
-    -- of a clearing can land inside the treeline. `settlePosition` nudges it back out.
-    local spawnPosition = veafUnits.settlePosition(unit.spawnPoint, unit)
-    unit.spawnPoint = spawnPosition
+    local spawnPosition = unit.spawnPoint
     local hdg = spawnPosition.hdg or math.random(0, 359)
 
     if validateSpawnPosition(spawnPosition, unit, silent) then
@@ -643,7 +651,10 @@ function veafSpawn.spawnFullCombatGroup(
   local groupPosition = veaf.placePointOnLand(spawnSpot)
   local units = veafCasMission.generateCasGroup(groupName, groupPosition, size, defense, armor, spacing, side)
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent)
+  -- The placement is owned here, on purpose: `units` is the flat list of **several** groups, and
+  -- `veafCasMission.placeGroup` has already settled each of them into its own clearing. Settling
+  -- again at this level would translate the whole combat group as if it were one formation.
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent, true)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_combat", groupName), 5)

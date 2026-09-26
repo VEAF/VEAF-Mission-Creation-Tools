@@ -1100,6 +1100,13 @@ veafUnits = {
   placeGroup = function(group, ...)
     return group, {}
   end,
+  -- The rigid group translation (FIX-PLACEMENT-IGNORES-SCENERY ticket 10). A no-op here: the suites
+  -- that load this stub test *which point a spawner chose for the group centre*, and settling is a
+  -- second, independent step whose own tests live in test_veafUnits.lua. Answering 0 says "the group
+  -- was left where it was", which is what those assertions expect.
+  settleGroup = function(units, spawnRadius)
+    return 0
+  end,
   removePathfindingFixUnit = function(...) end,
   delayBeforePathfindingFix = 1,
   countInfantryAndVehicles = function(groupData)

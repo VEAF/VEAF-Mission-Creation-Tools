@@ -285,6 +285,29 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and still refuses, and a caller that does ask for a radius has granted a licence to move, so the
   scenery awareness above still applies wherever there is room to move.
 
+- **A ground group is settled into a clearing as a whole, instead of one vehicle at a time**
+  (measured 2026-09-25 in DCS on GermanyCW-v6). `veafUnits.settlePosition` had never displaced a
+  single unit: it kept a `Disposition` candidate only when `dist <= r` for rings of 10, 25 and 50 m,
+  and DCS does not honour the radius it is asked for — asked 50 m it answered between 52 and 171 m,
+  median 130. Over 20 vehicles genuinely stuck under trees: 25 candidates offered, 25 valid on
+  terrain, **0 accepted, 0.0 m moved**, and the mission's scenery probe still reported 51 alerts over
+  183 objects, the same as before the fix existed (53/184).
+
+  Per-unit displacement could not have worked at any threshold either: a SAM battery's natural
+  spacing is 20 to 27 m and the closest point DCS can propose is 52 m, so every nudge breaks the
+  formation by a factor of 2 to 5. `veafUnits.settleGroup` replaces it and moves the **whole group
+  rigidly**: it asks once for a clearing wide enough to hold the entire footprint, then applies the
+  same offset to every unit, so all inter-unit distances are unchanged by construction. Over 31
+  offending groups, 30 are fully resolved and units standing in trees drop from 132 to 2; the six
+  worst (the S-300s of Wittstock and Borkenberge, three other S-300s and an SA-11) go from 8-13
+  vehicles under trees to zero. The move is bounded by a translation distance
+  (`veafUnits.SETTLE_MAX_TRANSLATION`, 1000 m, against measured needs of 100 to 800 m) rather than by
+  the radius asked of DCS, which means nothing. Editor content is untouched, through the explicit
+  flag `VeafGroupSpawn:honouringDeclaredPosition` and never through the radius: zero is this
+  codebase's **default** radius, not a statement, and 100 of the 118 spawn commands of one
+  GermanyCW-v6 launch pass `radius 0` — every air-defence battery this lot exists for, starting with
+  `combatZone_Wittstock`'s S-300. Convoys are exempt too, so they do not leave their first waypoint.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

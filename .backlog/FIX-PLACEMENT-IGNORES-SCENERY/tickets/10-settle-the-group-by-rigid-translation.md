@@ -1,6 +1,6 @@
 # 10 — Settle the group by rigid translation, not unit by unit
 
-Status: 🔄 in-progress
+Status: ✅ done — merged 2026-09-26 (PR #1005)
 Type: fix
 
 ## Problem — ticket 08 never moved anything

@@ -1,6 +1,7 @@
 # FEAT-SPOTTER-DEMO-MISSION — a mission that proves the word travels
 
-Status: 🔄 in-progress — tickets 01 to 04 done; ticket 05, the demonstration layer, is not started.
+Status: ⬜ ready — tickets 01 to 04 done; ticket 05, the demonstration layer, is not started and
+nothing blocks it.
 
 Origin: David, 2026-09-21, reading what `verify-mission-c` check 13 would have measured:
 

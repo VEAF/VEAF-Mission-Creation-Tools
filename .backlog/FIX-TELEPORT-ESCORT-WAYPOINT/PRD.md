@@ -21,7 +21,7 @@ Right after the call that is supposed to make the escort escort:
   --this method appears to not work very well, the escort just doesn't defend the group
 ```
 
-[`FIX-ESCORT-RESPAWN-TASK`](../FIX-ESCORT-RESPAWN-TASK/PRD.md) states the opposite — the teleport
+[`FIX-ESCORT-RESPAWN-TASK`](../archive/FIX-ESCORT-RESPAWN-TASK.md) states the opposite — the teleport
 path *"works (escort held for 30 min)"* — and used it as the reference the respawn path was ported
 from. One of the two is wrong, and until it is settled the repository has a working reference it may
 not have.

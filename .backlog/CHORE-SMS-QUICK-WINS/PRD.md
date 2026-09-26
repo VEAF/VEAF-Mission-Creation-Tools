@@ -1,6 +1,7 @@
 # CHORE-SMS-QUICK-WINS — three small things the dcs-sms study found
 
-Status: 🔄 in-progress — 01 and 03 done; 02 delivered but waiting on a Gemini CLI round trip
+Status: 🧑 waiting-human — 01 and 03 done; 02 delivered but waiting on a Gemini CLI round trip,
+which needs Gemini CLI installed on a machine we can run it from
 
 Origin: [`docs/exploration/DCS-SMS-EXPLOIT.md`](../../docs/exploration/DCS-SMS-EXPLOIT.md) §5.
 All three verified still absent on 2026-08-05.

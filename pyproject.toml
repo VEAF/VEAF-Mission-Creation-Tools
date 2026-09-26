@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.24.0"
+version = "6.25.0"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -37,9 +37,12 @@ mcp = "^2.0.0"
 # python = "<3.15" : la borne haute que le paquet declare lui-meme. Sans elle,
 # la resolution echoue, `^3.11` allant jusqu'a 4.0. Meme raison que pyinstaller.
 PySide6-Essentials = { version = ">=6.6", optional = true, python = "<3.15" }
+# Client SSH/SFTP de veaf-logs (journaux distants). Meme extra que Qt : rien
+# d'autre dans veaf-tools ne s'en sert.
+paramiko = { version = ">=3.4,<5", optional = true }
 
 [tool.poetry.extras]
-logs = ["PySide6-Essentials"]
+logs = ["PySide6-Essentials", "paramiko"]
 
 [tool.poetry.scripts]
 veaf-build = "veaf_build:main"
@@ -146,7 +149,7 @@ addopts = [
     "--cov=src/python/veaf-tools",
     "--cov-report=xml",
     "--cov-report=term-missing:skip-covered",
-    "--cov-fail-under=86.6",
+    "--cov-fail-under=87.0",
 ]
 
 # ---------------------------------------------------------------------------

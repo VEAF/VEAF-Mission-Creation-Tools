@@ -58,6 +58,47 @@ class TestCoalitionSelection:
         assert ap[99]["dynamicSpawn"] is False  # red untouched (not declared)
         assert result.airports_configured == 2
 
+    # FIX-SCRATCH-MISSION-FINDINGS ticket 15: with no `airports:` list every base of the side got slots,
+    # including the ones `set_airbase_coalition(dynamic_spawn=false)` had closed — 49 red bases on
+    # GermanyCW-v6. The action now records them under `exclude_airports`, which the build honours.
+
+    def test_an_excluded_airport_keeps_its_slots_closed(self) -> None:
+        m = _mission()
+        cfg = {"blue": {"defaults": {}, "exclude_airports": ["Kobuleti"]}}  # Caucasus id 24
+        result = apply_warehouses(m, cfg)
+        ap = m.warehouses_content["airports"]
+        assert ap[23]["dynamicSpawn"] is True
+        assert ap[24]["dynamicSpawn"] is False
+        assert result.airports_configured == 1
+
+    def test_an_excluded_airport_already_open_in_the_table_is_closed(self) -> None:
+        """The editor, or an earlier call, may have written `true`; excluded means no slot."""
+        m = _mission()
+        m.warehouses_content["airports"][24]["dynamicSpawn"] = True
+        apply_warehouses(m, {"blue": {"defaults": {}, "exclude_airports": ["Kobuleti"]}})
+        assert m.warehouses_content["airports"][24]["dynamicSpawn"] is False
+
+    def test_an_airport_can_be_excluded_by_id(self) -> None:
+        m = _mission()
+        apply_warehouses(m, {"blue": {"defaults": {}, "exclude_airports": [24]}})
+        assert m.warehouses_content["airports"][24]["dynamicSpawn"] is False
+
+    def test_an_exclusion_wins_over_an_explicit_listing_and_says_so(self, caplog: pytest.LogCaptureFixture) -> None:
+        m = _mission()
+        cfg = {"blue": {"defaults": {}, "airports": {24: {}}, "exclude_airports": ["Kobuleti"]}}
+        with caplog.at_level(logging.WARNING):
+            result = apply_warehouses(m, cfg)
+        assert m.warehouses_content["airports"][24]["dynamicSpawn"] is False
+        assert result.airports_configured == 0
+        assert any("Kobuleti" in record.getMessage() for record in caplog.records)
+
+    def test_an_unknown_excluded_airport_is_reported(self, caplog: pytest.LogCaptureFixture) -> None:
+        m = _mission()
+        with caplog.at_level(logging.WARNING):
+            apply_warehouses(m, {"blue": {"defaults": {}, "exclude_airports": ["Nowheresville"]}})
+        assert any("Nowheresville" in record.getMessage() for record in caplog.records)
+        assert m.warehouses_content["airports"][23]["dynamicSpawn"] is True
+
     def test_undeclared_coalition_untouched(self) -> None:
         m = _mission()
         apply_warehouses(m, {"blue": {"defaults": {}}})

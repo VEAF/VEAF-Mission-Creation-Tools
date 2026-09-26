@@ -1045,6 +1045,41 @@ warning on **every** heartbeat, `"dry_run": true` in `/status`, and — since it
 
 ---
 
+## Reading back what people answered
+
+The service talks; `scripts/discord_read.py` is how a maintainer reads the rest of the thread. It is
+**not** part of the service — stdlib only, no dependency on the package, nothing it does reaches the
+running bot. It borrows the bot's token out of `.env` because there is no Discord connector for
+Claude and the REST API is the only way in.
+
+```powershell
+cd services/support-bot
+python scripts/discord_read.py threads              # every thread the bot opened, and who spoke last
+python scripts/discord_read.py threads --archived   # including closed threads (~35 s: one call per channel)
+python scripts/discord_read.py thread <id>          # one thread, oldest message first
+python scripts/discord_read.py message <link>       # one message — a link, not an id
+```
+
+A thread id is enough for `thread`, since a thread is a channel. A single message needs the full
+Discord **link**: the API has no endpoint that resolves a message id on its own, and the link carries
+the channel.
+
+Read-only by construction — no subcommand writes to Discord. Posting belongs to the service, or to a
+deliberate act with its own confirmation.
+
+Two skills drive it, for whoever works on this repository with an agent:
+[`.claude/skills/discord-triage/`](../../.claude/skills/discord-triage/SKILL.md) sweeps the threads
+and sorts out which ones still owe somebody an answer, and
+[`.claude/skills/discord-thread/`](../../.claude/skills/discord-thread/SKILL.md) reads one thread or
+message on demand.
+
+> **Message content.** Discord only fills `content` for messages that mention the app, unless the
+> privileged **Message Content** intent is enabled — it was, on 2026-09-22, and left on. The gateway
+> connection still asks for `Intents.none() + guild_messages`, so the running service's behaviour is
+> unchanged; what changed is that the token can now read a whole thread over REST.
+
+---
+
 ## Working on it
 
 ```powershell

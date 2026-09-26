@@ -1412,6 +1412,57 @@ function TestVeafGroupSpawnChain:test_terrain_the_group_cannot_use_is_refused()
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
 end
 
+--- FIX-ZERO-RADIUS-REFUSES-DECLARED-POSITION — measured in DCS on GermanyCW-v6, 2026-09-25:
+--- `combatZone_ConvoiA24` stopped spawning entirely. Its convoy sits on a bridge, and DCS answers
+--- `WATER` for the surface under a bridge; the zone had run the whole scenery search itself, kept
+--- the declared position as rule 3 requires, and this draw then vetoed it. The group was lost.
+---
+--- `honouringDeclaredPosition` is the caller saying it owns the placement. There is nothing left to
+--- draw at radius 0 — the hundred attempts all weigh the same spot — so the check can only agree or
+--- kill the spawn, and killing editor content is what rule 3 of David's arbitration (2026-08-27,
+--- `.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md`) forbids: nobody is in the room to read a refusal.
+function TestVeafGroupSpawnChain:test_a_declared_position_is_kept_on_terrain_the_group_cannot_use()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):honouringDeclaredPosition():respawn()
+
+  luaunit.assertIsTable(result, "the caller settled the position, so the spawn must go through")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+  luaunit.assertEquals(spawned().units[1].x, 5000, "the declared northing, untouched")
+  luaunit.assertEquals(spawned().units[1].y, 6000, "the declared easting, untouched")
+end
+
+--- The other half of rule 3, and the reason the exemption above is opt-in rather than "radius is 0":
+--- zero is this builder's default, so every caller that never states a radius would have been
+--- exempted with it — `veafSpawn.teleport` among them, which is a marker command with a user
+--- standing there to read `spawn.cannot_teleport`. A command still refuses.
+function TestVeafGroupSpawnChain:test_a_caller_that_did_not_ask_still_refuses_at_radius_zero()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result = VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):respawn()
+
+  luaunit.assertFalse(result, "a teleport onto a lake is still refused")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+--- And a caller that grants a radius has not settled anything: a radius is a licence to move, so the
+--- scenery awareness PR #1002 added still applies and an impossible circle is still refused.
+function TestVeafGroupSpawnChain:test_a_radius_beats_the_declared_position_exemption()
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+
+  local result =
+    VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):honouringDeclaredPosition():withRadius(500):respawn()
+
+  luaunit.assertFalse(result)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
 --- FIX-TRIPACK-FIELD-REPORTS ticket 03 — the refusal used to name only the radius and the group,
 --- which is what made this defect take Tripack's mission file to diagnose instead of the log alone.
 function TestVeafGroupSpawnChain:test_the_refusal_names_category_surfaces_point_and_actual_surface()

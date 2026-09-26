@@ -330,11 +330,24 @@ local function validateSpawnPosition(spawnPosition, unit, silent)
   return true
 end
 
-function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
+-- @param silent boolean|nil when true, unit-refusal messages are not broadcast to players
+-- @param honourDeclaredPosition boolean|nil when true, the caller has already settled where these
+--        units go and the group is not translated clear of the scenery. Same contract as
+--        `VeafGroupSpawn:honouringDeclaredPosition()`, and opt-in for the same reason: a zero radius
+--        is this codebase's *default*, not a statement, so it exempts nothing on its own
+function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent, honourDeclaredPosition)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn._createDcsUnits([%s])", country or ""))
 
   if hasDest then
     veaf.scheduleFunction(veafUnits.removePathfindingFixUnit, { groupName }, timer.getTime() + veafUnits.delayBeforePathfindingFix)
+  end
+
+  -- Settle the whole group, as one rigid body, into a clearing that fits all of it: `placeGroup`
+  -- spreads units around the group centre without consulting the scenery, so a vehicle at the edge
+  -- of a clearing lands inside the treeline. Translating the group is what keeps the formation —
+  -- see `veafUnits.settleGroup`. Skipped for a convoy, whose units are lined up along a route.
+  if not hasDest then
+    veafUnits.settleGroup(units, honourDeclaredPosition)
   end
 
   local dcsUnits = {}
@@ -349,7 +362,7 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
     local spawnPosition = unit.spawnPoint
     local hdg = spawnPosition.hdg or math.random(0, 359)
 
-    if validateSpawnPosition(spawnPosition, unit, false) then
+    if validateSpawnPosition(spawnPosition, unit, silent) then
       local toInsert = {
         ["x"] = spawnPosition.x,
         ["y"] = spawnPosition.z,
@@ -419,7 +432,7 @@ function veafSpawn.spawnInfantryGroup(spawnSpot, radius, czName, country, side, 
   -- shuffle the units in the group
   local units = veaf.shuffle(group.units)
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_infantry", groupName), 5)
@@ -477,7 +490,7 @@ function veafSpawn.spawnArmoredPlatoon(
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_armored", groupName), 5)
@@ -487,7 +500,20 @@ function veafSpawn.spawnArmoredPlatoon(
 end
 
 --- Spawns a dynamic air defense battery
-function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, side, heading, spacing, defense, silent, hasDest, hiddenOnMFD)
+function veafSpawn.spawnAirDefenseBattery(
+  spawnSpot,
+  radius,
+  czName,
+  country,
+  side,
+  heading,
+  spacing,
+  defense,
+  silent,
+  hasDest,
+  hiddenOnMFD,
+  longRange
+)
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnAirDefenseBattery(czName=%s, country=%s, side=%s, heading=%s, spacing=%s, defense=%s, silent=%s, hiddenOnMFD=%s)",
     czName,
@@ -506,7 +532,12 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, si
   end
   veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
   local groupName = veaf.getNameForSpawnedGroup(veaf.getCoalitionForCountry(country, true), "Air Defense Battery", czName)
-  local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
+  local group
+  if longRange then
+    group = veafCasMission.generateLongRangeAirDefenseGroup(groupName, side)
+  else
+    group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
+  end
   local group = veafUnits.processGroup(group)
   local groupPosition = veaf.placePointOnLand(spawnSpot)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("groupPosition = %s", veaf.vecToString(groupPosition)))
@@ -518,7 +549,7 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, si
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD, hasDest)
+  veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD, hasDest, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_airdef", groupName), 5)
@@ -573,7 +604,7 @@ function veafSpawn.spawnTransportCompany(
     units = veaf.shuffle(group.units)
   end
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest, silent)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_transport", groupName), 5)
@@ -620,7 +651,10 @@ function veafSpawn.spawnFullCombatGroup(
   local groupPosition = veaf.placePointOnLand(spawnSpot)
   local units = veafCasMission.generateCasGroup(groupName, groupPosition, size, defense, armor, spacing, side)
 
-  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
+  -- The placement is owned here, on purpose: `units` is the flat list of **several** groups, and
+  -- `veafCasMission.placeGroup` has already settled each of them into its own clearing. Settling
+  -- again at this level would translate the whole combat group as if it were one formation.
+  veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, nil, silent, true)
 
   if not silent then
     trigger.action.outText(veaf.t("spawn.spawned_combat", groupName), 5)
@@ -746,7 +780,7 @@ function veafSpawn.spawnConvoy(
     --disabled the shuffle to not have interractions with the line spawn put in place for faster departure times, which shuffles units anyways
     --units = veaf.shuffle(units)
 
-    veafSpawn._createDcsUnits(country, groupUnits.units, groupName, hiddenOnMFD, true)
+    veafSpawn._createDcsUnits(country, groupUnits.units, groupName, hiddenOnMFD, true, silent)
 
     -- One point or several, the convoy is stored the same way: an itinerary and the leg it is on.
     -- A single `dest` is a one-point itinerary, so nothing downstream needs to know the difference.
@@ -1269,7 +1303,8 @@ veafSpawn.registerCommandHandler("airDefenseBattery", "KNOWN_PILOT", function(ev
     options.defense,
     options.silent,
     hasDest,
-    not options.showMFD
+    not options.showMFD,
+    options.longRange
   )
   return g, nil, false
 end)

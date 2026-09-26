@@ -77,5 +77,44 @@ class TestPipelineStepOrder(unittest.TestCase):
         )
 
 
+#: The call that runs the presets step.
+PRESETS = re.compile(r'^\s*presets_path\s*=\s*_step_file\(\s*"presets"', re.M)
+
+
+class TestPresetsStepOrder(unittest.TestCase):
+    """The presets step had the same defect, and FIX-WAYPOINTS-STEP-TOO-EARLY left it in place.
+
+    FIX-SCRATCH-MISSION-FINDINGS ticket 04: on GermanyCW-v6, built from `prepare`, the log read
+    "presets injected into 0 aircraft", then 64 dynamic-slot templates were injected from YAML — and
+    0 of those 64 carried a `Radio` table. Missions whose templates sit in the source mission were fine
+    (Caucasus v6: 62 of 76), which is why nobody saw it: the defect is on the path a new folder takes.
+    """
+
+    def setUp(self) -> None:
+        self.source = BUILD.read_text(encoding="utf-8")
+
+    def test_the_presets_step_is_still_there(self) -> None:
+        self.assertRegex(self.source, PRESETS, "the presets step call was renamed or removed")
+
+    def test_presets_runs_after_the_aircraft_steps(self) -> None:
+        presets_at = PRESETS.search(self.source).start()
+        for pattern in AIRCRAFT_STEPS:
+            self.assertLess(
+                pattern.search(self.source).start(),
+                presets_at,
+                "the presets step runs before an aircraft-injection step, so the slots injected from YAML "
+                "get no radio presets — 0 of 64 on GermanyCW-v6",
+            )
+
+    def test_presets_still_runs_before_the_weather_variants(self) -> None:
+        weather = re.search(r'^\s*weather_path\s*=\s*_step_file\(\s*"weather"', self.source, re.M)
+        self.assertIsNotNone(weather, "the weather step call was renamed or removed")
+        self.assertLess(
+            PRESETS.search(self.source).start(),
+            weather.start(),
+            "the presets step now runs after the weather variants are written, so its injection would not reach them",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

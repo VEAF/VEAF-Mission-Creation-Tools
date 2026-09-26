@@ -242,6 +242,29 @@ class TestAirAndRunway:
         assert len(units) == 2
         assert units[0]["alt"] == pytest.approx(6096.0)  # 20000 ft
         assert "parking" not in units[0]
+        assert group["lateActivation"] is False
+
+    def test_late_activation_and_loadout_in_one_call(self, tmp_path: Path) -> None:
+        """FIX-SCRATCH-MISSION-FINDINGS ticket 06: it used to take a second call to
+        `set_group_properties`, and the pylons a third."""
+        miz = _caucasus_miz(tmp_path)
+        add_air_group(
+            miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            name="CAP",
+            unit_type="F-16C_50",
+            start="air",
+            position={"x": -300000.0, "y": 600000.0},
+            late_activation=True,
+            pylons={1: {"CLSID": "{AIM-9M}"}},
+        )
+        group = _slot_group(read_miz(miz).mission_content, "CAP")
+        assert group["lateActivation"] is True
+        pylons = _units(group)[0]["payload"]["pylons"]
+        first = next(iter(pylons.values())) if isinstance(pylons, dict) else pylons[0]
+        assert first["CLSID"] == "{AIM-9M}"
 
     def test_an_air_start_without_a_position_is_refused(self, tmp_path: Path) -> None:
         miz = _caucasus_miz(tmp_path)

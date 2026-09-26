@@ -15,16 +15,26 @@ Companion pages, each deeper on one subject:
 - [`../exploration/DCS-HOOK-ENVIRONMENT-BOUNDARIES.md`](../exploration/DCS-HOOK-ENVIRONMENT-BOUNDARIES.md)
   — what the hook environment can and cannot reach.
 
-**Adding to this page is the point.** When a DCS behaviour surprises you, write the measurement here
-rather than the conclusion: the value, the date, and what it broke.
+**Adding a trap is the point — but not on this page.** The traps that matter to someone building a
+mission live in [`known-limitations.yaml`](../../src/python/veaf-tools/veaf_libs/data/known-limitations.yaml),
+`kind: dcs`: that file ships in the executable and the MCP action `describe_known_limitations`
+serves it, so an agent working without this repository sees them too. The sections below are
+**generated** from it — edit the file, then run `poetry run python -m veaf_libs.known_limitations`;
+a test fails when this page and the file disagree. When a DCS behaviour surprises you, write the
+measurement rather than the conclusion: the value, the date, and what it broke.
+
+Only the traps that concern **writing scripts** rather than building a mission are written by hand,
+at the end of this page.
+
+<!-- BEGIN GENERATED from src/python/veaf-tools/veaf_libs/data/known-limitations.yaml -->
 
 ## Spawning and timing {#spawning}
 
-### A late-activated group is fully visible to the scripting API before it is activated
+### A late-activated group is fully visible to the scripting API before it is activated {#late-activated-group-is-visible}
 
-**The most expensive one on this page, and the only one here that was a shipped product bug.**
+Measured **2026-09-21**.
 
-Measured **2026-09-21**, on a group whose activation was still thirty seconds away:
+On a group whose activation was still thirty seconds away:
 
 | Asked | Answer |
 |---|---|
@@ -34,31 +44,126 @@ Measured **2026-09-21**, on a group whose activation was still thirty seconds aw
 | `Unit:inAir()` | **true** |
 | `Unit:isActive()` | **false** — the only one that tells the truth |
 
-So `lateActivation = true` hides a group from the map and from nothing else. Anything sweeping
-`coalition.getGroups` and filtering on `isExist()` or `inAir()` will treat an aircraft DCS has not put
-in the world as a live, airborne contact.
+`lateActivation = true` hides a group from the map and from nothing else.
 
-**Always test `Unit:isActive()`** when sweeping for real units. `veaf.isUnitAlive(unit)` already does
-it (`unit:isExist() and unit:isActive()`) and is the right thing to call.
+**What to do:** When sweeping for real units, test `Unit:isActive()`. `veaf.isUnitAlive(unit)` already does it
+(`unit:isExist() and unit:isActive()`) and is the right thing to call.
 
-*What it cost:* `veafSkynet.listHostileAircraft` reported a parked, unactivated intruder as an
-airborne contact, so the spotter network relayed it across the map and woke real SAM sites for an
-aircraft that did not exist. Late activation is ordinary in real missions, so this was not a rig
-artefact — it was reaching every mission using the feature. Found by David watching the F10 map and
-saying *"on me dit qu'il voit l'intruder mais il n'est même pas encore spawné"*.
+*What it cost:* The one shipped product bug on this list: `veafSkynet.listHostileAircraft` reported a parked,
+unactivated intruder as an airborne contact, so the spotter network woke real SAM sites for an
+aircraft that did not exist — in every mission using late activation.
 
-### `start_time` on an aircraft group does not delay its spawn
+### `start_time` on an aircraft group does not delay its spawn {#start-time-does-not-delay-an-air-spawn}
 
-Measured **2026-09-21**. A group with `start_time = 90` in the mission table was **airborne at
-t = 9 s**. The field does not hold an air group back.
+Measured **2026-09-21**.
 
-`lateActivation` is not the answer either, for the reason above: the group stops being *drawn* but
-never stops being *seen*. **The only delay that is real is not putting the group in the mission at
-all** and building it with `coalition.addGroup` from a scheduled function — before that call the
-aircraft does not exist in any sense.
+A group with `start_time = 90` in the mission table was **airborne at t = 9 s**. Late activation
+is no substitute: the group stops being drawn, never stops being seen (entry above).
 
-*What it cost:* two failed attempts in a row at the same requirement, in front of the person who had
-asked for it.
+**What to do:** The only real delay is not putting the group in the mission at all, and building it with
+`coalition.addGroup` from a scheduled function.
+
+*What it cost:* Two failed attempts in a row at the same requirement.
+
+### The mission's `start_time` is on the theatre's clock, with a fixed offset {#mission-clock-is-theatre-local}
+
+Measured **2026-09-24**.
+
+Caucasus 2022-06-29 at 01:28 is pitch dark (sunrise 01:43 UTC there), so not UTC. GermanyCW,
+Ramstein 1980-06-01 at 04:58 is dawn with the sun not up: UTC+2 (sunrise 03:28 UTC; +1 would
+have put the sun 30 min up). One fixed offset per map — `veafTime.getTimezone()` in game,
+`weather_injector/utils/theatre_offsets.py` at build. Not the IANA zone: DCS models no daylight
+saving time. GermanyCW was measured in June only; whether DCS keeps +2 in winter is not known.
+
+**What to do:** Write a mission start time in the theatre's local time; the `sunrise…` / `sunset…` weather
+variants already do (since FIX-SCRATCH-MISSION-FINDINGS 02).
+
+*What it cost:* Every solar-time weather variant of every v6 mission started 2 to 4 hours early until 02 fixed it.
+
+## Air defence {#air-defence}
+
+### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}
+
+Measured **2026-09-21**.
+
+A Skynet SAM site is autonomous exactly when no valid parent radar covers it, and autonomous
+means `AUTONOMOUS_STATE_DCS_AI`: removing every EWR hands **all** sites to the DCS AI, which
+lights everything up, all the time.
+
+**What to do:** Give a network that must stay dark an EWR covering its sites.
+
+*What it cost:* A test rig built around "no EWR, so only the relay wakes them" delivered every battery lit.
+
+### Only two unit types carry the `EWR` attribute {#only-two-ewr-types}
+
+Measured **2026-09-21**.
+
+`55G6 EWR` and `1L13 EWR`, nothing else. There is no short-range early-warning radar, so an EWR
+parenting a battery also sees everything the battery would.
+
+**What to do:** Plan the network around those two types.
+
+### A battery lights up only when the contact is in *its own* envelope {#battery-wakes-in-its-own-envelope}
+
+Measured **2026-09-21**.
+
+Three Kub sites 15 km apart woke in the *same second*: a Kub engages out to ~24 km and the
+intruder entered all three envelopes at once.
+
+**What to do:** To stagger wake-ups along a line, space batteries further apart than they can shoot. With the
+spotter radio range at 20 km, that only fits a short-range SAM — Osas (~10 km) 15 km apart wake
+one at a time.
+
+### A fast, level aircraft is classified as a HARM — and that is deliberate {#fast-level-aircraft-is-a-harm}
+
+Measured **2026-09-21**.
+
+An F-15C on a straight, level run at **804.88 kt** was identified by Skynet as an anti-radiation
+missile, and the SAM sites went into evasion and shut down. Skynet's test is `groundSpeed > 800
+kt` **and** at most two flight-path changes (`documentation/tactics.md`), identification being
+probabilistic on top.
+
+**What to do:** An aircraft meant to be seen and engaged must stay **below 800 kt** and have a **change of
+altitude** on its route — one dip is enough. DCS lets an aircraft fly well past its waypoint
+speed (the run above was set to ≈390 kt), so the altitude profile is the reliable half.
+
+*What it cost:* The demonstration the SAM sites were there to give was silently defeated.
+
+### Half the obvious "forward observers" are blind {#air-defence-spotters-are-blind}
+
+Measured **2026-09-21**.
+
+`veafSkynet.SpotterUnitTable` is walked in order and the first matching row wins; `SAM elements`
+(range 0) comes before `MANPADS` (10 km):
+
+| Unit | First row it matches | Sight |
+|---|---|---|
+| `SA-18 Igla-S manpad` | `MANPADS` | 10 000 m |
+| `ZSU-23-4 Shilka`, `Roland ADS` | `SAM elements` | **0 — blind** |
+| `Kub 1S91 str`, `Osa 9A33 ln` | `SAM elements` | **0 — blind** |
+| `Ural-375` | `Unarmed vehicles` | 3 000 m |
+
+**What to do:** Use manpads or ordinary vehicles as spotters, not air-defence vehicles.
+
+## Players, roles and the map {#players}
+
+### A game master **is** coalition-scoped for map marks {#game-master-marks-are-coalition-scoped}
+
+Measured **2026-09-21**.
+
+With one `markToAll` and one `markToCoalition(RED)` marker side by side, a **blue** game master
+sees the `markToAll` marker only, a **red** one sees both. A game master has no group (so no
+`USAGE_ForGroup` radio command reaches him) but he does have a coalition.
+
+**What to do:** Watch a red network from a red game-master slot.
+
+*What it cost:* A false bug report against working code, and very nearly a "fix" to a correct drawing path.
+
+<!-- END GENERATED -->
+
+## For script developers {#script-developers}
+
+Written by hand: these concern code running in DCS, not a mission someone is building.
 
 ### Activating a Skynet IADS undoes anything you forced beforehand
 
@@ -72,102 +177,12 @@ again by t = 64 s. The same call at t = 40 s held for the whole mission.
 **Schedule anything that fixes IADS state after the activation, not after the enrolment.** The two
 are not the same moment.
 
-## Air defence {#air-defence}
-
-### A SAM site with no early-warning radar is not dark — it is permanently lit
-
-Measured **2026-09-21**, and it is the opposite of the intuition. A Skynet SAM site is built with
-`isAutonomous = true` and an autonomous behaviour of `AUTONOMOUS_STATE_DCS_AI`
-(`skynet-iads-compiled.lua:3014`). A site is autonomous exactly when no valid parent radar covers it —
-so removing every EWR hands **all** of them to the DCS AI, which lights everything up, all the time.
-
-*What it cost:* a test rig designed around *"no EWR, so the only way to wake is the relay"*, which
-delivered every battery lit from the first second, control battery included. The design had to be
-thrown away.
-
-### Only two unit types carry the `EWR` attribute
-
-Measured **2026-09-21** against `src/scripts/veaf/dcsUnits.lua`: `55G6 EWR` and `1L13 EWR`. Nothing
-else. There is **no short-range early-warning radar** — so you cannot build a network whose EWR
-parents a battery without also seeing everything the battery would.
-
-### A battery lights up only when the contact is in *its own* envelope
-
-So staggering wake-ups along a line means spacing the batteries **further apart than they can shoot**.
-Measured **2026-09-21**: three Kub sites 15 km apart woke in the *same second*, because a Kub engages
-out to ~24 km and the intruder entered all three envelopes at once.
-
-The constraint bites because the spotter network's radio range is 20 km: spacing Kubs 25 km apart to
-separate them would push them past the radio range and split the network into isolated pockets. The
-two only fit with a short-range SAM — an Osa (~10 km) at 15 km spacing wakes each on its own.
-
-### A fast, level aircraft is classified as a HARM — and that is deliberate
-
-Measured **2026-09-21**: an F-15C flying a straight, level demonstration run at **804.88 kt** was
-identified by Skynet as an anti-radiation missile, and the SAM sites went into evasion and shut down —
-which silently defeated the demonstration they were there to give.
-
-Not a bug, in Skynet or here. Its test is `groundSpeed > 800 kt` **and** at most two changes of
-flight path, and `documentation/tactics.md` states the reasoning: a radar operator cannot read a
-contact's type, so real systems classify from the track. Identification is probabilistic on top of
-that — `harm_detection_chance` per radar type, combined when several radars see the same track.
-
-**What this costs you when building a mission:** an aircraft meant to be seen and engaged must not
-look like a HARM. Keep it **below 800 kt** and give its route a **change of altitude** — one dip in
-the middle is enough, since a dead-level run has zero path changes and therefore passes the
-flight-path half of the test. Note that DCS lets an aircraft accelerate well past the speed set on
-its waypoints, so the altitude profile is the reliable half: the run above was given 200 m/s
-(≈390 kt) and flew at 804.
-
-The documentation says the two conditions exist to avoid false positives *"for example a fighter
-flying very fast"* — which is exactly the case that still trips, because the guard only catches a
-fast fighter that **manoeuvres**. David's call on 2026-09-21 was to leave Skynet alone and adapt the
-mission, so this is written down rather than filed.
-
-### Half the obvious "forward observers" are blind
-
-`veafSkynet.SpotterUnitTable` is walked in order and the **first** matching row wins, and
-`SAM elements` (range 0) comes before `MANPADS` (10 km). Resolved against `dcsUnits.lua` on
-**2026-09-21**:
-
-| Unit | First row it matches | Sight |
-|---|---|---|
-| `SA-18 Igla-S manpad` | `MANPADS` | 10 000 m |
-| `ZSU-23-4 Shilka`, `Roland ADS` | `SAM elements` | **0 — blind** |
-| `Kub 1S91 str`, `Osa 9A33 ln` | `SAM elements` | **0 — blind** |
-| `Ural-375` | `Unarmed vehicles` | 3 000 m |
-
-An air-defence vehicle looks like the obvious spotter and sees nothing. A truck sees further than a
-Shilka.
-
-## Players, roles and the map {#players}
-
-### A game master **is** coalition-scoped for map marks
-
-Measured **2026-09-21** by David, with one `markToAll` and one `markToCoalition(RED)` marker placed
-side by side:
-
-| Role taken | Sees |
-|---|---|
-| Game master **blue** | the `markToAll` marker only |
-| Game master **red** | both |
-
-So `trigger.action.markToCoalition(..., coalition.side.RED, ...)` reaches a **red** game master and is
-invisible to a blue one. Do not infer from *"a game master has no group"* (true, and why
-`USAGE_ForGroup` radio commands never reach him — see the roles page) that he has no coalition either.
-
-*What it cost:* a false bug report against working code, and very nearly a "fix" to a drawing path
-that was correct all along. The only defect was sending someone to watch a red network from the blue
-side.
-
 ### `net.load_mission` is a no-op in single player
 
 Present, `isServer()` is true, and calling it from the menu returns nil and loads nothing (ED: server
 only). So an unattended harness cannot load a mission in SP — a human loads it, or you drive a server.
 
-## Events and objects {#events}
-
-### Scenery deaths do not look like unit deaths
+### Scenery deaths do not look like unit deaths {#events}
 
 `event.pos` is nil, `isExist()` is false while `getPosition()` still answers, and `getName()` returns
 the numeric `id_`. Anything walking death events has to special-case scenery or it drops the

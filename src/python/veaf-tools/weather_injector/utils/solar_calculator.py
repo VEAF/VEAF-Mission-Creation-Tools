@@ -1,6 +1,7 @@
 """Solar calculation utilities for sunrise/sunset times."""
 
 from datetime import date as dt_date
+from datetime import timedelta, timezone
 
 from astral import LocationInfo
 from astral.sun import sun
@@ -14,13 +15,18 @@ class SolarCalculator:
     """Calculate sunrise/sunset times for a given location."""
 
     @staticmethod
-    def get_sun_times(position: Position, target_date: dt_date | None = None) -> dict[str, int]:
+    def get_sun_times(
+        position: Position, target_date: dt_date | None = None, utc_offset_hours: float = 0.0
+    ) -> dict[str, int]:
         """
         Calculate sunrise/sunset in DCS seconds format.
 
         Args:
             position: Geographic position with latitude, longitude, timezone
             target_date: Date to calculate for (defaults to today)
+            utc_offset_hours: Offset of the clock the result is expressed in. DCS reads
+                ``start_time`` on the theatre's clock, so the build passes the theatre's offset
+                (``theatre_offsets.theatre_utc_offset``); the default gives UTC.
 
         Returns:
             Dictionary with "sunrise" and "sunset" keys containing seconds since midnight
@@ -31,7 +37,7 @@ class SolarCalculator:
         try:
             loc = LocationInfo(latitude=position.latitude, longitude=position.longitude, timezone=position.timezone)
 
-            times = sun(loc.observer, date=target_date)
+            times = sun(loc.observer, date=target_date, tzinfo=timezone(timedelta(hours=utc_offset_hours)))
 
             sunrise = times["sunrise"]
             sunset = times["sunset"]

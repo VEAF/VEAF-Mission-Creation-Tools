@@ -109,3 +109,104 @@ class TestTheEntryIsUsableByDcs:
         assert entry is mine
         assert entry["coalition"] == "RED"
         assert entry["size"] == 42
+
+
+# FIX-SCRATCH-MISSION-FINDINGS ticket 15: `dynamic_spawn=false` wrote `dynamicSpawn = false` in the
+# warehouses table, and the build turned it back on for every base of the side with no `airports:` list
+# (61 airfields / 3 111 links on GermanyCW-v6 against 12 / 612). The action now records the base under
+# `<side>.exclude_airports` in `src/warehouses.yaml`, which the build honours (worker tests).
+
+_WAREHOUSES_YAML = """\
+# Dynamic slots per coalition
+blue:
+  defaults:
+    fuel: unlimited   # keep
+red:
+  defaults:
+    fuel: unlimited
+"""
+
+
+def _folder(tmp_path: Path, warehouses_yaml: str | None = _WAREHOUSES_YAML) -> Path:
+    (tmp_path / "src").mkdir()
+    if warehouses_yaml is not None:
+        (tmp_path / "src" / "warehouses.yaml").write_text(warehouses_yaml, encoding="utf-8")
+    return tmp_path
+
+
+def _yaml(folder: Path) -> Any:
+    import yaml
+
+    return yaml.safe_load((folder / "src" / "warehouses.yaml").read_text(encoding="utf-8"))
+
+
+class TestExclusionList:
+    @pytest.fixture(autouse=True)
+    def _in_memory_mission(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self.mission = _mission()
+        monkeypatch.setattr(airbase, "load_folder_mission", lambda _p: self.mission)
+        monkeypatch.setattr(airbase, "save_folder_mission", lambda _m, _p: {})
+
+    def test_a_closed_base_is_recorded_for_the_build(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        result = set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        assert _yaml(folder)["red"]["exclude_airports"] == [_AIRFIELD]
+        assert result["excluded_in_warehouses_yaml"] is True
+
+    def test_the_file_keeps_its_comments(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        text = (folder / "src" / "warehouses.yaml").read_text(encoding="utf-8")
+        assert "# Dynamic slots per coalition" in text and "# keep" in text
+
+    def test_reopening_the_base_removes_it(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=True)
+        assert "exclude_airports" not in _yaml(folder)["red"]
+
+    def test_changing_side_moves_the_exclusion(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        set_airbase_coalition(folder, name=_AIRFIELD, coalition="blue", dynamic_spawn=False)
+        data = _yaml(folder)
+        assert "exclude_airports" not in data["red"]
+        assert data["blue"]["exclude_airports"] == [_AIRFIELD]
+
+    def test_closing_twice_records_it_once(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        assert _yaml(folder)["red"]["exclude_airports"] == [_AIRFIELD]
+
+    def test_no_warehouses_yaml_means_nothing_to_record(self, tmp_path: Path) -> None:
+        """Without the file the build never opens a slot, so there is nothing to exclude from."""
+        folder = _folder(tmp_path, warehouses_yaml=None)
+        result = set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        assert not (folder / "src" / "warehouses.yaml").exists()
+        assert result["excluded_in_warehouses_yaml"] is False
+
+    def test_an_undeclared_side_is_not_created(self, tmp_path: Path) -> None:
+        """Writing `red:` into a file that only declares blue would open every red base at build."""
+        folder = _folder(tmp_path, warehouses_yaml="blue:\n  defaults: {}\n")
+        result = set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        assert "red" not in _yaml(folder)
+        assert result["excluded_in_warehouses_yaml"] is False
+
+    def test_a_malformed_exclusion_list_is_refused_not_crashed(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path, warehouses_yaml="red:\n  defaults: {}\n  exclude_airports: {Batumi: {}}\n")
+        with pytest.raises(ValueError, match="exclude_airports must be a list"):
+            set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+
+    def test_the_build_keeps_the_recorded_base_closed(self, tmp_path: Path) -> None:
+        """End to end: the action's record is what the build reads."""
+        from warehouses_injector import apply_warehouses
+
+        folder = _folder(tmp_path)
+        expected_id = airdrome_id_for_name(_THEATRE, _AIRFIELD)
+        set_airbase_coalition(folder, name=_AIRFIELD, coalition="red", dynamic_spawn=False)
+        set_airbase_coalition(folder, name="Kobuleti", coalition="red")
+        apply_warehouses(self.mission, _yaml(folder))
+        airports = self.mission.warehouses_content["airports"]
+        assert airports[expected_id]["dynamicSpawn"] is False
+        assert airports[airdrome_id_for_name(_THEATRE, "Kobuleti")]["dynamicSpawn"] is True

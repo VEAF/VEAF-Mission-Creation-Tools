@@ -271,9 +271,22 @@ class TestSetMissionWeather(unittest.TestCase):
     def test_set_weather_merges_data(self) -> None:
         content: dict[str, Any] = {"missions": {}}  # non-empty so not falsy
         worker = self._make_worker_with_content(content)
-        weather = {"atmosphere": {"temperature_celsius": 20.0}}
+        weather = {"season": {"temperature": 20.0}}
         worker._set_mission_weather(weather)
-        self.assertEqual(content["weather"]["atmosphere"]["temperature_celsius"], 20.0)
+        self.assertEqual(content["weather"]["season"]["temperature"], 20.0)
+
+    def test_set_weather_keeps_the_keys_it_does_not_set(self) -> None:
+        content: dict[str, Any] = {"weather": {"cyclones": [], "groundTurbulence": 3}}
+        worker = self._make_worker_with_content(content)
+        worker._set_mission_weather({"season": {"temperature": 20.0}})
+        self.assertEqual(content["weather"]["groundTurbulence"], 3)
+
+    def test_set_weather_drops_the_old_invented_table(self) -> None:
+        """FIX-SCRATCH-MISSION-FINDINGS ticket 01: `atmosphere` was never a DCS key."""
+        content: dict[str, Any] = {"weather": {"atmosphere": {"temperature_celsius": 23.2}}}
+        worker = self._make_worker_with_content(content)
+        worker._set_mission_weather({"season": {"temperature": 20.0}})
+        self.assertNotIn("atmosphere", content["weather"])
 
     def test_set_weather_no_mission_data_noop(self) -> None:
         import tempfile
@@ -473,6 +486,27 @@ class TestCalculateSolarTimes(unittest.TestCase):
             worker._calculate_solar_times()
             self.assertEqual(worker.solar_times, {})
 
+    def test_solar_times_are_on_the_theatre_clock(self) -> None:
+        """FIX-SCRATCH-MISSION-FINDINGS ticket 02: DCS reads start_time as the theatre's local time.
+
+        GermanyCW is UTC+2 (measured in DCS); sunrise at Ramstein on 1980-06-01 is 03:28 UTC, so the
+        solar "sunrise" handed to time expressions must be 05:28, not 03:28.
+        """
+        import zipfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            worker = _make_worker(tmp_path)
+            with zipfile.ZipFile(worker.mission_file, "w") as miz:
+                miz.writestr("theatre", "GermanyCW")
+            worker.config = MissionConfig(
+                versions=[VersionConfig(name="test")],
+                position=Position(latitude=49.437, longitude=7.600, timezone="Europe/Berlin"),
+                base_date="1980-06-01",
+            )
+            worker._calculate_solar_times()
+            self.assertAlmostEqual(worker.solar_times["sunrise"], 5 * 3600 + 28 * 60, delta=120)
+
 
 # ---------------------------------------------------------------------------
 # _update_mission_time_and_date
@@ -614,6 +648,42 @@ class TestInjectWeather(unittest.TestCase):
             clearsky=True,
         )
         worker._inject_weather(version)
+        # This test asserted nothing before, so it could not fail
+        weather = worker.mission_data.mission_content["weather"]
+        self.assertLessEqual(weather["wind"]["atGround"]["speed"], 7.72)
+
+    def test_inject_weather_writes_the_dcs_fields(self) -> None:
+        """FIX-SCRATCH-MISSION-FINDINGS ticket 01, end to end through the worker."""
+        import tempfile
+
+        from mission_tools import DcsMission
+
+        tmp_path = Path(tempfile.mkdtemp())
+        worker = _make_worker(tmp_path)
+        base = {"clouds": {"preset": "Preset2", "base": 2500}, "season": {"temperature": 20}, "cyclones": []}
+        worker.mission_data = DcsMission(file_path=tmp_path / "test.miz", mission_content={"weather": base})
+        worker._inject_weather(VersionConfig(name="rain", metar="UGKO 290400Z 27012KT 5000 RA OVC095 16/14 Q1008"))
+        weather = worker.mission_data.mission_content["weather"]
+        self.assertEqual(weather["clouds"]["preset"], "RainyPreset1")
+        self.assertEqual(weather["season"]["temperature"], 16.0)
+        self.assertNotIn("atmosphere", weather)
+        self.assertEqual(weather["cyclones"], [])
+
+    def test_manual_precipitation_reaches_dcs(self) -> None:
+        import tempfile
+
+        from mission_tools import DcsMission
+
+        tmp_path = Path(tempfile.mkdtemp())
+        worker = _make_worker(tmp_path)
+        worker.mission_data = DcsMission(file_path=tmp_path / "test.miz", mission_content={"weather": {}})
+        worker._inject_weather(
+            VersionConfig(
+                name="rain",
+                weather={"cloud_type": "overcast", "cloud_height": 1000, "precipitation": True},
+            )
+        )
+        self.assertEqual(worker.mission_data.mission_content["weather"]["clouds"]["preset"], "RainyPreset1")
 
     def test_inject_weather_no_mission_data_noop(self) -> None:
         import tempfile
@@ -885,3 +955,35 @@ class TestIcaoOnlyVariantGetsItsWeather(unittest.TestCase):
                             with unittest.mock.patch.object(Path, "exists", return_value=True):
                                 worker._create_mission_version(VersionConfig(name="noon", time="12:00"))
             self.assertEqual(injected, [])
+
+
+class TestLiveWeatherFallbackIsCounted(unittest.TestCase):
+    """FIX-SCRATCH-MISSION-FINDINGS ticket 03: the fetch failure was printed once per station, so 11
+    variants sharing ETAR flew the default weather under a single line, and the build exited 0."""
+
+    def _worker(self) -> WeatherInjectorWorker:
+        worker = _make_worker(Path(tempfile.mkdtemp()))
+        worker.mission_data = DcsMission(file_path=Path("fake.miz"), mission_content={"weather": {}})
+        return worker
+
+    def test_each_variant_that_fell_back_is_named(self) -> None:
+        worker = self._worker()
+        with (
+            unittest.mock.patch("weather_injector.weather_injector_worker.fetch_metar_string", return_value=""),
+            unittest.mock.patch("weather_injector.weather_injector_worker.logger") as mock_logger,
+        ):
+            worker._inject_weather(VersionConfig(name="day-real", airport_icao="ETAR"))
+            worker._inject_weather(VersionConfig(name="dawn-real", airport_icao="ETAR"))
+        warnings = [c.args[0] for c in mock_logger.warning.call_args_list]
+        self.assertEqual(worker.weather_fallbacks, 2)
+        self.assertTrue(any("day-real" in w for w in warnings))
+        self.assertTrue(any("dawn-real" in w for w in warnings))
+
+    def test_a_fetched_report_is_not_counted(self) -> None:
+        worker = self._worker()
+        with unittest.mock.patch(
+            "weather_injector.weather_injector_worker.fetch_metar_string",
+            return_value="ETAR 011150Z 26002KT 9999 16/14 Q1012",
+        ):
+            worker._inject_weather(VersionConfig(name="day-real", airport_icao="ETAR"))
+        self.assertEqual(worker.weather_fallbacks, 0)

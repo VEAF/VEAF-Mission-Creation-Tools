@@ -24,6 +24,8 @@ function veafShortcuts.buildDefaultList()
       :setName("-samLR")
       :setDescription("Random long range SAM battery")
       :setVeafCommand("_spawn samgroup, skynet true")
+      :addRandomParameter("defense", 4, 5)
+      :addRandomParameter( "size" ,10,25 )
       :setBypassSecurity(false)
   )
   veafShortcuts.AddAlias(
@@ -62,6 +64,19 @@ class TestParseAliases(unittest.TestCase):
         by_name = {a["aliases"][0]: a for a in _parse_aliases(_FAKE_LUA)}
         self.assertIn("-jtac", by_name)
         self.assertEqual(by_name["-jtac"]["veafCommand"], "_spawn jtac")
+
+    def test_random_parameters_are_extracted_with_their_range(self) -> None:
+        """FIX-SCRATCH-MISSION-FINDINGS 12: `-sam`, `-samSR`, `-samLR` and `-aaa` share one command and
+        differ only by their random `defense` range, so without it an agent cannot tell them apart."""
+        by_name = {a["aliases"][0]: a for a in _parse_aliases(_FAKE_LUA)}
+        self.assertEqual(
+            by_name["-samLR"]["randomParameters"],
+            {"defense": {"min": 4, "max": 5}, "size": {"min": 10, "max": 25}},
+        )
+
+    def test_an_alias_without_random_parameter_has_an_empty_mapping(self) -> None:
+        by_name = {a["aliases"][0]: a for a in _parse_aliases(_FAKE_LUA)}
+        self.assertEqual(by_name["-jtac"]["randomParameters"], {})
 
     def test_hidden_alias_excluded(self) -> None:
         names = [a["aliases"][0] for a in _parse_aliases(_FAKE_LUA)]
@@ -125,6 +140,12 @@ class TestGetShortcutsAgainstRealFile(unittest.TestCase):
         self.assertIn("aliases", entry)
         self.assertIn("description", entry)
         self.assertIn("veafCommand", entry)
+        self.assertIn("randomParameters", entry)
+
+    def test_the_sam_aliases_are_told_apart_by_their_defense_range(self) -> None:
+        by_name = {a["aliases"][0]: a for a in get_shortcuts()}
+        ranges = {name: by_name[name]["randomParameters"]["defense"] for name in ("-sam", "-samSR", "-samLR", "-aaa")}
+        self.assertEqual(len({(r["min"], r["max"]) for r in ranges.values()}), 4)
 
 
 if __name__ == "__main__":

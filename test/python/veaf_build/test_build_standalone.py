@@ -30,6 +30,7 @@ def _recording_worker(
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     monkeypatch.setattr(worker, "_prepare_dist", lambda: None)
     monkeypatch.setattr(worker, "_scan_lua_modules", lambda: None)
+    monkeypatch.setattr(worker, "_scan_lua_shortcuts", lambda: None)
     monkeypatch.setattr(worker, "_write_version_py", lambda path: None)
     monkeypatch.setattr(worker, "_restore_version_py", lambda path: None)
 
@@ -41,6 +42,7 @@ def _recording_worker(
         extra_data: list[tuple[Path, str]] | None = None,
         hidden_imports: list[str] | None = None,
         collect_submodules: list[str] | None = None,
+        collect_data: list[str] | None = None,
     ) -> None:
         calls.append(
             {
@@ -49,6 +51,7 @@ def _recording_worker(
                 "extra_data": extra_data,
                 "hidden_imports": hidden_imports or [],
                 "collect_submodules": collect_submodules or [],
+                "collect_data": collect_data or [],
             }
         )
 
@@ -68,6 +71,28 @@ def test_full_build_builds_both_executables(tmp_path: Path, monkeypatch: pytest.
     assert [call["name"] for call in calls] == ["veaf-tools", "veaf-tools-updater"]
 
 
+def test_orchestration_tests_leave_the_source_tree_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The stubbed builds must not write the generated JSON artefacts next to the modules.
+
+    Both are gitignored and win over the live Lua scan when present. `_scan_lua_shortcuts` was
+    added after this helper and left unstubbed, so every local `pytest` dropped a
+    `veaf-shortcuts.json` into `veaf_libs/`: after the next edit to `veafShortcuts.lua`,
+    `TestLocalArtefactIsFresh` failed locally and the MCP `list_shortcuts` served stale data,
+    while CI, starting from a clean checkout, stayed green.
+    """
+    worker, _calls = _recording_worker(tmp_path, monkeypatch)
+    veaf_libs = worker.src_dir / "python" / "veaf-tools" / "veaf_libs"
+    artefacts = [veaf_libs / "veaf-shortcuts.json", veaf_libs / "veaf_modules_list.json"]
+
+    def _snapshot() -> list[int | None]:
+        return [path.stat().st_mtime_ns if path.exists() else None for path in artefacts]
+
+    before = _snapshot()
+    worker.build_veaf_tools_standalone()
+    worker.build_python_executables()
+    assert _snapshot() == before
+
+
 def test_veaf_tools_extra_data_bundles_locales(tmp_path: Path) -> None:
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
     dests = [dest for _src, dest in worker._veaf_tools_extra_data(None)]
@@ -81,6 +106,13 @@ def test_veaf_tools_extra_data_bundles_both_radio_yaml_files(tmp_path: Path) -> 
     sources = [src.name for src, _dest in worker._veaf_tools_extra_data(None)]
     assert "dcs-radio-specs.yaml" in sources
     assert "dcs-radio-layouts.yaml" in sources
+
+
+def test_veaf_tools_extra_data_bundles_known_limitations(tmp_path: Path) -> None:
+    """The MCP describe_known_limitations action reads it: without it the exe answers nothing."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    sources = [src.name for src, _dest in worker._veaf_tools_extra_data(None)]
+    assert "known-limitations.yaml" in sources
 
 
 def test_veaf_tools_extra_data_bundles_airfield_frequencies(tmp_path: Path) -> None:
@@ -222,3 +254,35 @@ def test_pyinstaller_command_passes_collect_submodules(tmp_path: Path, monkeypat
     cmd = recorded[0]
     assert "--collect-submodules" in cmd
     assert cmd[cmd.index("--collect-submodules") + 1] == "mission_builder"
+
+
+def test_veaf_tools_build_collects_avwx_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """avwx reads its station table from its own package data, which PyInstaller does not follow.
+
+    FIX-SCRATCH-MISSION-FINDINGS ticket 03: in the 6.24.0 exe every `airport_icao` variant failed on
+    `FileNotFoundError ... _MEI.../avwx/data/files/stations.json` and flew the default weather, while
+    the build exited 0 — 11 of GermanyCW-v6's 17 variants.
+    """
+    worker, calls = _recording_worker(tmp_path, monkeypatch)
+    worker.build_veaf_tools_standalone()
+    veaf_tools_call = next(call for call in calls if call["name"] == "veaf-tools")
+    assert "avwx" in veaf_tools_call["collect_data"]  # type: ignore[operator]
+
+
+def test_pyinstaller_command_passes_collect_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Guards the wiring: a package listed but never turned into `--collect-data` ships nothing."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    monkeypatch.setattr(worker, "_write_exe_version_file", lambda name: None)
+    recorded: list[list[str]] = []
+
+    def _fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        recorded.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(worker_module.subprocess, "run", _fake_run)
+    entry_point = tmp_path / "entry.py"
+    entry_point.write_text("", encoding="utf-8")
+    worker._build_pyinstaller_executable("veaf-tools", entry_point, collect_data=["avwx"])
+
+    cmd = recorded[0]
+    assert cmd[cmd.index("--collect-data") + 1] == "avwx"

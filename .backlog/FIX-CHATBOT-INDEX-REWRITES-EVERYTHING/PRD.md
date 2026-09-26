@@ -1,7 +1,8 @@
 # FIX-CHATBOT-INDEX-REWRITES-EVERYTHING — one reindex costs more than a day's free quota
 
-Status: 🧑 waiting-human — PR #980 merged 2026-09-21; tickets 04 and 06 wait on
-production carrying the new index
+Status: ⬜ ready — PR #980 merged 2026-09-21; tickets 01 to 05 done, ticket 04 closed 2026-09-22
+(production holds the new index, fr and en). Only ticket 06 — remove the transition fallback —
+is left, and it was unblocked by 04.
 
 Found on 2026-09-21 while watching CI after a merge: `Rebuild docs chatbot index` had been **red for
 three consecutive merges** and nobody had noticed.

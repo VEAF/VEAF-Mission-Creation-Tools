@@ -144,7 +144,7 @@ def _reference_warnings(content: dict[str, Any], target: Path, group_name: str, 
     """
     warnings: list[str] = []
 
-    for zone_name in _capturing_zone_names(content, group_name):
+    for zone_name in _capturing_zone_names(content, group_name, _declared_combat_zones(target)):
         warnings.append(
             f"Combat zone {zone_name!r} captures groups by name prefix, so it loses {group_name!r} — "
             "check the zone still has the members it needs."
@@ -160,14 +160,49 @@ def _reference_warnings(content: dict[str, Any], target: Path, group_name: str, 
     return warnings
 
 
-def _capturing_zone_names(content: dict[str, Any], group_name: str) -> list[str]:
-    """Trigger zones whose name prefixes the group's, i.e. that capture it by convention."""
+def _capturing_zone_names(content: dict[str, Any], group_name: str, declared: set[str] | None) -> list[str]:
+    """Trigger zones whose name prefixes the group's, i.e. that capture it by convention.
+
+    Only a zone declared in ``modules.COMBATZONE.combat_zones`` captures anything: a QRA zone named
+    ``QRA_Stendal`` prefixes ``QRA_Stendal-MiG21`` and captures nothing, and used to be reported as
+    a combat zone (FIX-SCRATCH-MISSION-FINDINGS ticket 08). With no ``mission.yaml`` to read (a
+    ``.miz``), every prefixing trigger zone is reported, as before.
+
+    Args:
+        content: The parsed ``mission`` table.
+        group_name: The group being removed.
+        declared: The combat-zone names ``mission.yaml`` declares, or None when it cannot be read.
+
+    Returns:
+        The capturing zone names.
+    """
     zones = (content.get("triggers") or {}).get("zones")
     return [
         str(zone["name"])
         for zone in indexed(zones)
-        if isinstance(zone, dict) and zone.get("name") and group_name.startswith(str(zone["name"]))
+        if isinstance(zone, dict)
+        and zone.get("name")
+        and group_name.startswith(str(zone["name"]))
+        and (declared is None or str(zone["name"]) in declared)
     ]
+
+
+def _declared_combat_zones(target: Path) -> set[str] | None:
+    """The trigger-zone names `modules.COMBATZONE.combat_zones` declares, or None without a mission.yaml."""
+    yaml_path = target / "mission.yaml"
+    if not target.is_dir() or not yaml_path.is_file():
+        return None
+    try:
+        config = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return None
+    zones = (config.get("modules") or {}).get("COMBATZONE") or {}
+    entries = zones.get("combat_zones") if isinstance(zones, dict) else None
+    return {
+        str(entry.get("zone_name") or entry.get("zone"))
+        for entry in entries or []
+        if isinstance(entry, dict) and (entry.get("zone_name") or entry.get("zone"))
+    }
 
 
 def _tasks_pointing_at(content: dict[str, Any], group_id: Any) -> list[tuple[str, str]]:

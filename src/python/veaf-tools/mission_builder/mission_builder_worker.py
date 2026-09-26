@@ -1105,6 +1105,7 @@ class MissionBuilderWorker(BaseWorker):
         for script_id, names in get_community_sound_files().items():
             if self._community_enabled(script_id):
                 required.update(names)
+        required.update(self._sounds_named_in_settings())
 
         if not required:
             self.collected_community_sound_files = {}
@@ -1119,6 +1120,25 @@ class MissionBuilderWorker(BaseWorker):
         self._warn_missing_community_sounds(required, collected)
         self.collected_community_sound_files = collected
         return self.collected_community_sound_files
+
+    def _sounds_named_in_settings(self) -> set[str]:
+        """The ``.ogg`` files a mission's own CTLD/CSAR settings name, for the enabled modules.
+
+        A sound set in ``modules.CSAR.settings`` (``radioSound: csar-beacon.ogg``) is played by name
+        like the default ones, so a missing file makes the beacon mute just the same; it used to
+        build without a word (FIX-SCRATCH-MISSION-FINDINGS ticket 09).
+
+        Returns:
+            The sound file names found among the settings' string values.
+        """
+        external = self.mission_yaml.get("external_modules") or {}
+        names: set[str] = set()
+        for script_id in ("ctld", "csar"):
+            settings = external.get(script_id)
+            if not isinstance(settings, dict) or not self._community_enabled(script_id):
+                continue
+            names.update(v for v in settings.values() if isinstance(v, str) and v.lower().endswith(".ogg"))
+        return names
 
     def _warn_missing_community_sounds(self, required: set[str], collected: dict[str, bytes]) -> None:
         """Warn about required community sounds shipped by neither the tool nor the mission.

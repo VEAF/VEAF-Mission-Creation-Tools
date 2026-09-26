@@ -4,6 +4,7 @@ from pathlib import Path
 
 from veaf_mission_mcp.oracle import (
     _command_category,
+    describe_known_limitations,
     describe_module,
     describe_naming_conventions,
     list_shortcuts,
@@ -71,6 +72,36 @@ def test_list_shortcuts_command_entries_have_shape() -> None:
     assert commands
     entry = commands[0]
     assert "aliases" in entry and "description" in entry and "veafCommand" in entry
+
+
+def test_list_shortcuts_commands_carry_their_random_parameters() -> None:
+    """`-samLR` and `-samSR` share one command: only the `defense` range drawn on each use differs."""
+    by_name = {entry["aliases"][0]: entry for entry in list_shortcuts()["commands"]}
+    assert by_name["-samLR"]["randomParameters"]["defense"] == {"min": 4, "max": 5}
+    assert by_name["-samSR"]["randomParameters"]["defense"] == {"min": 2, "max": 3}
+
+
+def test_describe_known_limitations_returns_both_kinds_for_the_running_version() -> None:
+    result = describe_known_limitations()
+    assert result["veaf_tools_version"]
+    kinds = {entry["kind"] for entry in result["limitations"]}
+    assert kinds == {"dcs", "tool"}
+    entry = result["limitations"][0]
+    assert {"id", "kind", "area", "title", "symptom", "workaround"} <= set(entry)
+
+
+def test_describe_known_limitations_filters_by_kind() -> None:
+    assert {e["kind"] for e in describe_known_limitations(kind="dcs")["limitations"]} == {"dcs"}
+
+
+def test_describe_known_limitations_is_in_the_catalogue() -> None:
+    from veaf_mission_mcp.actions import register_default_actions
+    from veaf_mission_mcp.catalog import ActionCatalog
+
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    assert "describe_known_limitations" in {spec.name for spec in catalog.list_catalog()}
+    assert catalog.run_action("describe_known_limitations", {"kind": "tool"})["limitations"]
 
 
 def test_describe_naming_conventions_lists_the_reserved_patterns() -> None:

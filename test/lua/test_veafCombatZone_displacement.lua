@@ -508,4 +508,55 @@ function TestAbuMusaDriftedAnchor:test_a_drifted_first_unit_still_lands_on_the_e
   end
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-ZERO-RADIUS-REFUSES-DECLARED-POSITION — the convoy on the bridge
+-- ---------------------------------------------------------------------------
+
+--- Measured in DCS on VEAF-Open-Training-Mission-GermanyCW-v6, 2026-09-25: of 25 combat zones,
+--- `combatZone_ConvoiA24` alone spawned nothing at all. Its convoy stands on a bridge, and DCS
+--- answers with the surface *under* the bridge — water — which is a trap this repository has met
+--- before.
+---
+--- The whole 50 m circle around the declared point is river, so the element's own search comes back
+--- empty at every tier, exactly as it should. The zone then does the right thing and keeps the
+--- declared position, per rule 3 of David's arbitration (2026-08-27): editor content is never
+--- refused, because nobody is in the room to read the refusal. The group was lost one step further
+--- down, where `VeafGroupSpawn:_drawOrigin` tested that declared position again — at radius 0, where
+--- it had no licence to move anything and so no business refusing anything.
+---
+--- This is the end-to-end reading of the defect: it starts at `zone:activate()` and ends at what
+--- `coalition.addGroup` was handed, so it fails if any link in that chain refuses again.
+TestAbuMusaOnABridge = {}
+
+function TestAbuMusaOnABridge:setUp()
+  setUpFixture(editorOrder())
+  -- The bridge. Every surface reads WATER, so no tier of `findSpawnPoint` can return a candidate
+  -- and the declared position is all the zone has left — which is the case under test.
+  land.getSurfaceType = function()
+    return land.SurfaceType.WATER
+  end
+end
+
+function TestAbuMusaOnABridge:tearDown()
+  tearDownFixture()
+end
+
+function TestAbuMusaOnABridge:test_the_group_still_reaches_dcs()
+  activateZone()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "the zone must spawn its group, not vanish from the mission")
+end
+
+--- And it arrives where the mission maker drew it. Nothing acceptable was found to move it to, so
+--- "exactly here" is the only honest answer — a consolation point would be the relocation rule 1
+--- forbids.
+function TestAbuMusaOnABridge:test_it_lands_on_the_declared_positions()
+  activateZone()
+  local moved = spawnedPositions()
+  luaunit.assertNotNil(moved, "no group was submitted at all")
+  for _, unit in ipairs(EDITOR_UNITS) do
+    luaunit.assertAlmostEquals(moved[unit.name].x, unit.x, 0.001, unit.name .. " northing")
+    luaunit.assertAlmostEquals(moved[unit.name].y, unit.y, 0.001, unit.name .. " easting")
+  end
+end
+
 os.exit(luaunit.LuaUnit.run())

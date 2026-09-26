@@ -27,6 +27,13 @@ Ce n'est pas une panne, et rien n'est perdu entre-temps : la documentation reste
 Discord et les issues aussi. La commande [`veaf-tools ask`](CLI_REFERENCE.md#ask) interroge le même
 assistant, donc la même allocation.
 
+**Il répond aussi à ce que vous n'avez pas demandé.** Une question arrive presque toujours emballée
+dans la méthode que vous avez déjà choisie — « comment améliorer ce bout de Lua ? » — et il existe
+parfois un chemin plus simple, écrit dans la documentation, qui rend ce bout de Lua inutile. Quand
+c'est le cas, l'assistant commence par vous le dire et vous le montre, puis répond quand même à la
+question telle que vous l'avez posée. Il ne le fait que si la documentation le dit : un réglage
+qu'elle décrit comme accessible seulement par la voie longue garde cette voie.
+
 ## Demander au bot : `/ask` {#ask}
 
 Sur le Discord VEAF, la commande `/ask` répond aux questions **sur la documentation**.

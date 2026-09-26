@@ -361,7 +361,8 @@ class TestErrors:
             describe_units(miz_path)
 
     def test_a_missing_file_raises(self, tmp_path: Path) -> None:
-        with pytest.raises(FileNotFoundError):
+        # Said like every write action says it, since describe_units reads through open_mission too
+        with pytest.raises(ValueError, match="No such mission"):
             describe_units(tmp_path / "nope.miz")
 
 
@@ -417,3 +418,22 @@ class TestCallsignShapes:
         from veaf_mission_mcp.describe_units import _callsign
 
         assert _callsign({1: 1, 2: 1}) is None
+
+
+def test_a_mission_folder_is_read_like_a_miz(tmp_path: Path) -> None:
+    """FIX-SCRATCH-MISSION-FINDINGS ticket 07: a folder was refused with `[Errno 13] Permission denied`
+    while every write action accepts one, so an agent could not read back what it had just written."""
+    exploded = tmp_path / "src" / "mission"
+    exploded.mkdir(parents=True)
+    (exploded / "mission").write_text(
+        'mission = {\n  ["coalition"] = {\n    ["red"] = {\n      ["country"] = {\n        [1] = {\n'
+        '          ["id"] = 0,\n          ["name"] = "Russia",\n          ["vehicle"] = {\n'
+        '            ["group"] = {\n              [1] = {\n                ["name"] = "Armor",\n'
+        '                ["units"] = {\n                  [1] = {["name"] = "Armor-1", ["type"] = "T-55"},\n'
+        "                },\n              },\n            },\n          },\n        },\n      },\n    },\n"
+        "  },\n}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "mission.yaml").write_text("modules: {}\n", encoding="utf-8")
+    result = describe_units(tmp_path)
+    assert [group["name"] for group in result["groups"]] == ["Armor"]

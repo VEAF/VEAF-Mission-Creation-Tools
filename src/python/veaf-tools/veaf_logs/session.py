@@ -37,6 +37,9 @@ def default_session_path() -> Path:
 class OpenFile:
     path: str
     archive_member: str | None = None
+    # `serveur/instance` pour un journal suivi par SSH ; `path` est alors le
+    # chemin sur le serveur.
+    remote: str | None = None
 
 
 @dataclass
@@ -96,5 +99,9 @@ class Session:
             return FilterSet()
 
     def existing_files(self) -> list[OpenFile]:
-        """Ecarte les fichiers disparus depuis la derniere session."""
-        return [item for item in self.files if Path(item.path).exists()]
+        """Ecarte les fichiers disparus depuis la derniere session.
+
+        Un journal distant est garde tel quel : c'est la connexion qui dira
+        s'il existe encore.
+        """
+        return [item for item in self.files if item.remote or Path(item.path).exists()]

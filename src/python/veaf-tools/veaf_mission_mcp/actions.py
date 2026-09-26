@@ -6,6 +6,7 @@ from typing import Any
 from veaf_libs.blank_mission import supported_theatres
 
 from veaf_mission_mcp.add_air_group import add_air_group
+from veaf_mission_mcp.add_farp import add_farp
 from veaf_mission_mcp.add_group import add_group
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
@@ -33,9 +34,11 @@ from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
-from veaf_mission_mcp.map_tools import describe_map, resolve_coordinates
+from veaf_mission_mcp.map_tools import describe_map, list_airfields, resolve_coordinates, resolve_coordinates_batch
+from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
+    describe_known_limitations,
     describe_module,
     describe_naming_conventions,
     list_shortcuts,
@@ -89,7 +92,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {"type": "string", "description": "The mission's source .miz, or a mission FOLDER."},
                     "group_name": {
                         "type": "string",
                         "description": "Keep only groups whose name contains this (case-insensitive).",
@@ -127,10 +130,132 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="set_mission_date",
+            description=(
+                "Set the mission's DATE and/or START TIME -- what the Mission Editor sets in its time "
+                "panel. The blank mission of a scaffold is dated 2016; a Cold War mission wants 1980. The "
+                "time is on the theatre's clock, the one DCS shows. The weather variants of versions.yaml "
+                "still override both per variant at build. Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "date": {"type": "string", "description": "YYYY-MM-DD."},
+                    "start_time": {"type": "string", "description": "HH:MM or HH:MM:SS, theatre clock."},
+                },
+                "required": ["target"],
+            },
+        ),
+        handler=lambda p: set_mission_date(Path(p["target"]), date=p.get("date"), start_time=p.get("start_time")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_weather",
+            description=(
+                "Set the BASE mission's weather, in the fields DCS reads: clouds, wind, temperature, "
+                "visibility, rain, fog, QNH. The blank mission of a scaffold has its cloud base on the "
+                "ground (Preset1 at 0 m). Same vocabulary as versions.yaml weather, and the same converter, "
+                "so a METAR works too; the weather variants still override it per variant at build. "
+                "Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "metar": {"type": "string", "description": "A METAR string; the fields below override it."},
+                    "temperature": {"type": "number", "description": "Ground temperature, degrees C."},
+                    "wind_speed": {"type": "number", "description": "Ground wind speed, m/s."},
+                    "wind_direction": {
+                        "type": "number",
+                        "description": "Where the wind comes FROM, degrees (as in a METAR).",
+                    },
+                    "visibility": {"type": "number", "description": "Visibility, metres."},
+                    "cloud_type": {
+                        "type": "string",
+                        "enum": ["clear", "few", "scattered", "broken", "overcast"],
+                    },
+                    "cloud_height": {"type": "number", "description": "Cloud base, metres."},
+                    "precipitation": {"type": "boolean"},
+                    "fog_enabled": {"type": "boolean"},
+                    "clearsky": {
+                        "type": "boolean",
+                        "description": "Cap to VFR-friendly conditions (clouds at most FEW, wind < 15 kt, "
+                        "10 km visibility, no rain, no fog).",
+                    },
+                },
+                "required": ["target"],
+            },
+        ),
+        handler=lambda p: set_weather(
+            Path(p["target"]),
+            **{key: value for key, value in p.items() if key != "target"},
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_bullseye",
+            description=(
+                "Set one coalition's BULLSEYE. describe_map reads the bullseyes; this writes one. The build "
+                "injects each flight plan's BULLSEYE waypoint from it and the in-game scripts announce "
+                "positions relative to it, so set it early -- on a landmark. Target a FOLDER (durable) or "
+                "a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutrals"]},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Mission-table coordinates, as describe_map / geocode report them.",
+                    },
+                },
+                "required": ["target", "coalition", "position"],
+            },
+        ),
+        handler=lambda p: set_bullseye(Path(p["target"]), coalition=p["coalition"], position=p["position"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_briefing",
+            description=(
+                "Set the BRIEFING texts: the sortie name, the situation, and each coalition's task. Only "
+                "the fields given change. A mission saved by the editor keeps this prose in its l10n "
+                "dictionary behind DictKey_ references; the text is written where the mission already "
+                "keeps it, so the reference stays valid. ${METAR} and the other briefing variables are "
+                "substituted at build, per weather variant. Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "sortie": {"type": "string", "description": "The mission's name in the briefing."},
+                    "situation": {"type": "string", "description": "The situation text (descriptionText)."},
+                    "blue_task": {"type": "string"},
+                    "red_task": {"type": "string"},
+                    "neutrals_task": {"type": "string"},
+                },
+                "required": ["target"],
+            },
+        ),
+        handler=lambda p: set_briefing(
+            Path(p["target"]),
+            sortie=p.get("sortie"),
+            situation=p.get("situation"),
+            blue_task=p.get("blue_task"),
+            red_task=p.get("red_task"),
+            neutrals_task=p.get("neutrals_task"),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
             name="set_unit_properties",
             description=(
-                "CHANGE a unit that already exists: its loadout, skill, livery, heading, callsign or "
-                "onboard number. Call describe_units FIRST -- this addresses the unit by its EXACT "
+                "CHANGE a unit that already exists: its loadout, skill, livery, heading, callsign, "
+                "onboard number, name or position. Call describe_units FIRST -- this addresses the unit by its EXACT "
                 "group name and unit name (a fragment is refused, so an edit cannot land on the wrong "
                 "group), and pylons are keyed BY STATION NUMBER, which is not the position in a list. "
                 "Only the fields you pass change; the result reports each previous value so you can "
@@ -191,6 +316,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "default": "replace",
                         "description": "'replace' writes exactly the stations given; 'merge' updates "
                         "only those, and an empty CLSID empties that station.",
+                    },
+                    "new_name": {
+                        "type": "string",
+                        "description": "Rename this one unit. Refused when another unit already has the "
+                        "name (DCS unit names are unique across the mission). Written as given, markers included.",
+                    },
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "Move this one unit to {x, y} (DCS local metres); the group's "
+                        "anchor and route stay where they are.",
                     },
                 },
                 "required": ["miz_path", "group_name", "unit_name"],
@@ -279,7 +416,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
                 "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
                 "Tasks are a CLOSED named set -- orbit, land, attack_group, bombing, "
-                "engage_targets_in_zone, set_frequency, switch_waypoint -- each validating its own "
+                "engage_targets_in_zone, set_frequency, switch_waypoint, and for support flights tanker, "
+                "awacs, set_unlimited_fuel, eplrs, activate_beacon (a TACAN), escort -- each validating its own "
                 "parameters, because a made-up task table is one DCS ignores in silence while the flight "
                 "does nothing. Note set_frequency takes MHz here even though DCS stores hertz. Every "
                 "operation guarantees at least one waypoint keeps a locked time, since DCS refuses to save "
@@ -341,8 +479,20 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "engage_targets_in_zone",
                             "set_frequency",
                             "switch_waypoint",
+                            "tanker",
+                            "awacs",
+                            "set_unlimited_fuel",
+                            "eplrs",
+                            "activate_beacon",
+                            "escort",
                         ],
                         "description": "For 'add_task'. Unknown names are refused rather than guessed.",
+                    },
+                    "task_position": {
+                        "type": "integer",
+                        "description": "For 'add_task': the 1-based place among the waypoint's tasks, the "
+                        "others renumbered after it; appended when omitted. DCS runs tasks in order, so an "
+                        "engagement placed after an orbit that never ends is never reached -- put it first.",
                     },
                     "task_params": {
                         "type": "object",
@@ -350,7 +500,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "altitude_ft, speed_kt. land: position, duration_s. attack_group: group_id. "
                         "bombing: position, expend, attack_qty. engage_targets_in_zone: position, "
                         "radius_m, target_types. set_frequency: frequency_mhz, modulation (AM|FM). "
-                        "switch_waypoint: to_index, from_index.",
+                        "switch_waypoint: to_index, from_index. tanker, awacs: none. set_unlimited_fuel: "
+                        "value (default true). eplrs: value (default true). activate_beacon: channel (1-126), "
+                        "mode (X|Y), callsign (1-3 letters/digits), bearing, aa. escort: group_name (the "
+                        "escorted group, exact), engagement_distance_nm.",
                     },
                 },
                 "required": ["miz_path", "group_name", "operation"],
@@ -810,6 +963,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "number",
                         "description": "Fraction of internal capacity, in ]0, 1]. Alternative to 'fuel'.",
                     },
+                    "late_activation": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Late activation (a QRA interceptor, an on-demand template).",
+                    },
+                    "pylons": {
+                        "type": "object",
+                        "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                    },
                 },
                 "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
             },
@@ -1243,11 +1405,53 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "type": "object",
                 "properties": {
                     "folder_path": {"type": "string", "description": "Path to the mission folder to build."},
+                    "profile": {
+                        "type": "string",
+                        "description": "Optional build profile, passed as 'veaf-tools build --profile' "
+                        "(e.g. LOCAL_TEST for a local test build). Omitted: the mission's own profiles.",
+                    },
                 },
                 "required": ["folder_path"],
             },
         ),
-        handler=lambda p: build_mission(Path(p["folder_path"])),
+        handler=lambda p: build_mission(Path(p["folder_path"]), profile=p.get("profile")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_farp",
+            description=(
+                "Place a COMPLETE FARP: the heliport static (FARP, Invisible FARP, SINGLE_HELIPAD...), its "
+                "radio frequency and callsign, and the warehouse entry that lets helicopters refuel and "
+                "rearm there. add_group with category 'static' places the object ALONE, which serves "
+                "nobody. The build's warehouses.yaml ('farps:') then stocks it like any base. Target a "
+                "FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "name": {"type": "string", "description": "The FARP's name."},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer"},
+                    "country_name": {"type": "string"},
+                    "farp_type": {
+                        "type": "string",
+                        "enum": ["FARP", "Invisible FARP", "SINGLE_HELIPAD", "FARP_SINGLE_01", "FARP_T"],
+                        "default": "FARP",
+                    },
+                    "frequency_mhz": {"type": "number", "default": 127.5},
+                    "modulation": {"type": "string", "enum": ["AM", "FM"], "default": "AM"},
+                    "callsign_id": {"type": "integer", "default": 1, "description": "1-based heliport callsign."},
+                },
+                "required": ["target", "name", "position", "coalition", "country_id", "country_name"],
+            },
+        ),
+        handler=lambda p: add_farp(Path(p["target"]), **{key: value for key, value in p.items() if key != "target"}),
     )
     catalog.register(
         ActionSpec(
@@ -1257,7 +1461,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "coalition lives in warehouses.airports[<id>].coalition, NOT in mission.coalition — "
                 "so placing a unit near a base never turns the base itself; use this action. Resolves "
                 "the airfield name to an id via the mission's theatre, sets the coalition, and turns "
-                "on the base's Dynamic Spawn slots (the build then stocks them). Backed up first."
+                "on the base's Dynamic Spawn slots (the build then stocks them) unless dynamic_spawn "
+                "is false -- e.g. an enemy base that should offer no slot, which is then recorded under "
+                "exclude_airports in src/warehouses.yaml so the build keeps it closed. Backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -1268,11 +1474,21 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "name": {"type": "string", "description": "The airfield display name (e.g. 'Mezzeh')."},
                     "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "dynamic_spawn": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Whether the base offers Dynamic Spawn slots.",
+                    },
                 },
                 "required": ["folder_path", "name", "coalition"],
             },
         ),
-        handler=lambda p: set_airbase_coalition(Path(p["folder_path"]), name=p["name"], coalition=p["coalition"]),
+        handler=lambda p: set_airbase_coalition(
+            Path(p["folder_path"]),
+            name=p["name"],
+            coalition=p["coalition"],
+            dynamic_spawn=p.get("dynamic_spawn", True),
+        ),
     )
     catalog.register(
         ActionSpec(
@@ -1309,6 +1525,20 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "type": "object",
                                     "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                                 },
+                                "route": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                                        "required": ["x", "y"],
+                                    },
+                                    "description": "Optional waypoints, as add_group's; the first is the start.",
+                                },
+                                "patrol": {
+                                    "type": "boolean",
+                                    "default": False,
+                                    "description": "Loop the route's last waypoint back to the first.",
+                                },
                             },
                             "required": ["name", "units"],
                         },
@@ -1341,7 +1571,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Lay down a complete VEAF QRA in a mission FOLDER, one pass, both worlds (no build): "
                 "a trigger zone + Late-Activation interceptor group(s) on the given coalition in "
                 "src/mission, and an appended modules.QRA.definitions[] entry in mission.yaml "
-                "referencing the group names verbatim."
+                "referencing the group names verbatim. Interceptors are built AIRBORNE and fuelled "
+                "(one aircraft type per group); give them a loadout with 'pylons' or copy one with "
+                "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
+                "unarmed interceptor intercepts nothing."
             ),
             parameters_schema={
                 "type": "object",
@@ -1366,6 +1599,21 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "properties": {
                                 "name": {"type": "string"},
                                 "units": {"type": "array", "items": {"type": "object"}},
+                                "position": {
+                                    "type": "object",
+                                    "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                                },
+                                "altitude_ft": {"type": "number", "default": 15000},
+                                "speed_kt": {"type": "number", "default": 350},
+                                "task": {"type": "string", "default": "Intercept"},
+                                "pylons": {
+                                    "type": "object",
+                                    "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                                },
+                                "loadout_from": {
+                                    "type": "string",
+                                    "description": "Group to copy the loadout from (mission or aircraft catalogues).",
+                                },
                             },
                             "required": ["name", "units"],
                         },
@@ -1373,7 +1621,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "country_id": {"type": "integer"},
                     "country_name": {"type": "string"},
-                    "category": {"type": "string", "default": "plane"},
+                    "category": {
+                        "type": "string",
+                        "default": "plane",
+                        "description": "Ignored: the category comes from the aircraft type.",
+                    },
                     "enemy_coalitions": {"type": "array", "items": {"type": "string"}},
                     "qra": {"type": "object", "description": "Optional extra definitions[] keys."},
                 },
@@ -1398,7 +1650,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "Create an on-demand CAP mission in a mission FOLDER, one pass, both worlds (no build): "
                 "a Late-Activation template group named OnDemand-<mission_name> in src/mission, and an "
-                "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml."
+                "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml. The "
+                "template is built AIRBORNE at 'position' and fuelled; give a 'route' point and it "
+                "flies a race-track between the two (without one it orbits nowhere), and a loadout "
+                "with 'pylons' or 'loadout_from'."
             ),
             parameters_schema={
                 "type": "object",
@@ -1417,8 +1672,35 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                         "required": ["x", "y"],
                     },
-                    "category": {"type": "string", "default": "plane"},
+                    "category": {
+                        "type": "string",
+                        "default": "plane",
+                        "description": "Ignored: the category comes from the aircraft type.",
+                    },
                     "cap": {"type": "object", "description": "Optional extra cap_missions[] keys."},
+                    "route": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "altitude_ft": {"type": "number"},
+                            },
+                            "required": ["x", "y"],
+                        },
+                        "description": "Further points; with one, a race-track between position and it.",
+                    },
+                    "altitude_ft": {"type": "number", "default": 20000},
+                    "speed_kt": {"type": "number", "default": 350},
+                    "pylons": {
+                        "type": "object",
+                        "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                    },
+                    "loadout_from": {
+                        "type": "string",
+                        "description": "Group to copy the loadout from (mission or aircraft catalogues).",
+                    },
                 },
                 "required": [
                     "folder_path",
@@ -1456,11 +1738,38 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="list_airfields",
+            description=(
+                "List a theatre's airbases -- name, DCS airdrome id, lat/lon, and DCS x/y when the "
+                "theatre's projection is known -- from the data shipped with the tools. Read-only. "
+                "Use it to choose bases for set_airbase_coalition and to place things near a base, "
+                "instead of guessing names or reading data files. Pass the mission, or a theatre name "
+                "before there is one."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "A .miz or mission folder whose theatre to list (wins over theatre).",
+                    },
+                    "theatre": {"type": "string", "description": "A DCS theatre name, e.g. 'GermanyCW'."},
+                },
+            },
+        ),
+        handler=lambda p: list_airfields(
+            mission_path=Path(p["mission_path"]) if p.get("mission_path") else None,
+            theatre=p.get("theatre"),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
             name="resolve_coordinates",
             description=(
                 "Convert a position between DCS local x/y and geographic lat/lon for the mission's "
                 "theatre (read from the mission, so no projection parameters needed). Pass a "
-                "position as {x, y} or {lat, lon}; returns both representations."
+                "position as {x, y} or {lat, lon}; returns both representations. To convert several "
+                "points in one call, pass 'positions' (a list) instead: returns {theatre, points}."
             ),
             parameters_schema={
                 "type": "object",
@@ -1480,11 +1789,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "lon": {"type": "number"},
                         },
                     },
+                    "positions": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": "Several positions, each shaped like 'position'; converted in order. "
+                        "Pass this OR 'position'.",
+                    },
                 },
-                "required": ["mission_path", "position"],
+                "required": ["mission_path"],
             },
         ),
-        handler=lambda p: resolve_coordinates(Path(p["mission_path"]), p["position"]),
+        handler=_handle_resolve_coordinates,
     )
     catalog.register(
         ActionSpec(
@@ -1545,7 +1860,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="list_shortcuts",
             description=(
                 "List the VEAF spawn aliases (the '-shilka'/'-sa8'… vocabulary) from the "
-                "canonical veaf-units.yaml: unit aliases and composite group aliases. Read-only."
+                "canonical veaf-units.yaml: unit aliases and composite group aliases, plus the "
+                "'#command' shortcuts ('-samLR', '-armor'…) with the range of each parameter they "
+                "draw at random ('defense', 'armor', 'size'). Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -1567,6 +1884,25 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={"type": "object", "properties": {}},
         ),
         handler=lambda _p: describe_naming_conventions(),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_known_limitations",
+            description=(
+                "Read this before building a mission. Returns, for the running veaf-tools version, "
+                "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
+                "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
+                "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
+                "and what it cost. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string", "enum": ["tool", "dcs"], "description": "Return one kind only."},
+                },
+            },
+        ),
+        handler=lambda p: describe_known_limitations(kind=p.get("kind")),
     )
     catalog.register(
         ActionSpec(
@@ -1622,6 +1958,8 @@ def _handle_set_unit_properties(params: dict[str, Any]) -> dict[str, Any]:
         onboard_num=params.get("onboard_num"),
         pylons=params.get("pylons"),
         pylons_mode=params.get("pylons_mode", "replace"),
+        new_name=params.get("new_name"),
+        position=params.get("position"),
     )
 
 
@@ -1693,6 +2031,7 @@ def _handle_edit_route(params: dict[str, Any]) -> dict[str, Any]:
         eta_locked=params.get("eta_locked"),
         task=params.get("task"),
         task_params=params.get("task_params"),
+        task_position=params.get("task_position"),
     )
 
 
@@ -1785,7 +2124,28 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         parking=params.get("parking"),
         fuel=params.get("fuel"),
         fuel_fraction=params.get("fuel_fraction"),
+        late_activation=params.get("late_activation", False),
+        pylons=params.get("pylons"),
     )
+
+
+def _handle_resolve_coordinates(p: dict[str, Any]) -> dict[str, Any]:
+    """Dispatch `resolve_coordinates` to one position or to a list of them.
+
+    Args:
+        p: The action's parameters.
+
+    Returns:
+        The single conversion, or ``{theatre, points}`` for ``positions``.
+
+    Raises:
+        ValueError: When neither or both of ``position`` and ``positions`` are given.
+    """
+    if ("position" in p) == ("positions" in p):
+        raise ValueError("resolve_coordinates takes 'position' or 'positions', exactly one of them")
+    if "positions" in p:
+        return resolve_coordinates_batch(Path(p["mission_path"]), p["positions"])
+    return resolve_coordinates(Path(p["mission_path"]), p["position"])
 
 
 def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:
@@ -1831,6 +2191,11 @@ def _handle_create_cap_mission(params: dict[str, Any]) -> dict[str, Any]:
         position=params["position"],
         category=params.get("category", "plane"),
         cap=params.get("cap"),
+        route=params.get("route"),
+        altitude_ft=params.get("altitude_ft", 20000.0),
+        speed_kt=params.get("speed_kt", 350.0),
+        pylons=params.get("pylons"),
+        loadout_from=params.get("loadout_from"),
     )
 
 

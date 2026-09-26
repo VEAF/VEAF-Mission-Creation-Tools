@@ -36,6 +36,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+from veaf_libs.dcs_units_data import get_unit_category
+
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.mission_table import find_group, indexed
 
@@ -89,6 +91,7 @@ def edit_route(
     eta_locked: bool | None = None,
     task: str | None = None,
     task_params: dict[str, Any] | None = None,
+    task_position: int | None = None,
 ) -> dict[str, Any]:
     """Edit one group's route in place, backed up first.
 
@@ -106,8 +109,12 @@ def edit_route(
         waypoint_type: One of the DCS waypoint types; its matching ``action`` is written with it.
         eta_locked: Whether this waypoint's time is locked.
         task: For ``add_task``, one of ``orbit``, ``land``, ``attack_group``, ``bombing``,
-            ``engage_targets_in_zone``, ``set_frequency``, ``switch_waypoint``.
+            ``engage_targets_in_zone``, ``set_frequency``, ``switch_waypoint``, ``tanker``, ``awacs``,
+            ``set_unlimited_fuel``, ``eplrs``, ``activate_beacon``, ``escort``.
         task_params: That task's parameters; each task validates its own and names what is missing.
+        task_position: For ``add_task``, the 1-based place the task takes among the waypoint's tasks,
+            the others renumbered after it; appended when omitted. DCS runs them by ``number``, so a
+            task placed after one that never ends — an orbit — is never reached.
 
     Returns:
         ``{group, operation, changed, route, warnings}`` — ``route`` is the resulting route, so a
@@ -156,7 +163,15 @@ def edit_route(
             changed=changed,
         )
     elif operation == "add_task":
-        _add_task(points[_checked_index(index, points) - 1], task, task_params or {}, changed)
+        _add_task(
+            points[_checked_index(index, points) - 1],
+            task,
+            task_params or {},
+            changed,
+            group,
+            content,
+            position=task_position,
+        )
     else:  # clear_tasks
         _clear_tasks(points[_checked_index(index, points) - 1], changed)
 
@@ -384,32 +399,54 @@ def _tasks_list(point: dict[str, Any]) -> list[dict[str, Any]]:
     return tasks
 
 
-def _add_task(point: dict[str, Any], task: str | None, params: dict[str, Any], changed: dict[str, Any]) -> None:
-    """Append one task from the named set to a waypoint.
+def _add_task(
+    point: dict[str, Any],
+    task: str | None,
+    params: dict[str, Any],
+    changed: dict[str, Any],
+    group: dict[str, Any] | None = None,
+    content: dict[str, Any] | None = None,
+    *,
+    position: int | None = None,
+) -> None:
+    """Add one task from the named set to a waypoint, at the end or at a given place.
 
     Args:
         point: The waypoint to mutate.
         task: The task's name in this action's vocabulary.
         params: Its parameters.
         changed: The report to record the change in.
+        group: The group the waypoint belongs to, for the tasks that name it or its unit.
+        content: The mission table, for the tasks that name another group.
+        position: The 1-based place among the waypoint's tasks; appended when ``None``.
 
     Raises:
-        ValueError: If the task is unknown or a required parameter is missing.
+        ValueError: If the task is unknown, a required parameter is missing, or ``position`` is not
+            between 1 and one past the last task.
     """
+    known = sorted({*_TASK_BUILDERS, *_CONTEXT_TASK_BUILDERS})
     if task is None:
-        raise ValueError(f"task is required for add_task; expected one of {', '.join(sorted(_TASK_BUILDERS))}")
-    builder = _TASK_BUILDERS.get(task)
-    if builder is None:
-        raise ValueError(f"unknown task {task!r}; expected one of {', '.join(sorted(_TASK_BUILDERS))}")
+        raise ValueError(f"task is required for add_task; expected one of {', '.join(known)}")
+    if task in _CONTEXT_TASK_BUILDERS:
+        entry = _CONTEXT_TASK_BUILDERS[task](params, group or {}, content or {})
+    elif task in _TASK_BUILDERS:
+        entry = _TASK_BUILDERS[task](params)
+    else:
+        raise ValueError(f"unknown task {task!r}; expected one of {', '.join(known)}")
 
     tasks = _tasks_list(point)
-    entry = builder(params)
+    if position is None:
+        position = len(tasks) + 1
+    elif not 1 <= position <= len(tasks) + 1:
+        raise ValueError(f"task_position must be between 1 and {len(tasks) + 1}, got {position}")
     # `number` is what DCS reads to order them, and `auto` is what marks the *editor's* own options:
     # an authored task claiming `auto = true` would be treated as one and hidden from the maker.
-    entry["number"] = len(tasks) + 1
     entry["enabled"] = True
     entry["auto"] = False
-    tasks.append(entry)
+    tasks.sort(key=lambda existing: existing.get("number", 0))
+    tasks.insert(position - 1, entry)
+    for number, existing in enumerate(tasks, start=1):
+        existing["number"] = number
     changed["task_added"] = {"task": task, "number": entry["number"]}
 
 
@@ -600,6 +637,127 @@ def _wrapped(action: dict[str, Any]) -> dict[str, Any]:
     return {"id": "WrappedAction", "params": {"action": action}}
 
 
+def _build_tanker(params: dict[str, Any]) -> dict[str, Any]:
+    """Build the ``Tanker`` enroute task: it takes no parameter (855 of them in 401 missions)."""
+    return {"id": "Tanker", "params": {}}
+
+
+def _build_awacs(params: dict[str, Any]) -> dict[str, Any]:
+    """Build the ``AWACS`` enroute task: it takes no parameter (560 of them in 401 missions)."""
+    return {"id": "AWACS", "params": {}}
+
+
+def _build_set_unlimited_fuel(params: dict[str, Any]) -> dict[str, Any]:
+    """Build the ``SetUnlimitedFuel`` action, wrapped — a tanker that never goes home dry."""
+    return _wrapped({"id": "SetUnlimitedFuel", "params": {"value": bool(params.get("value", True))}})
+
+
+def _build_eplrs(params: dict[str, Any], group: dict[str, Any], content: dict[str, Any]) -> dict[str, Any]:
+    """Build the ``EPLRS`` action, wrapped: the datalink, naming the group's own id."""
+    return _wrapped(
+        {"id": "EPLRS", "params": {"value": bool(params.get("value", True)), "groupId": group.get("groupId")}}
+    )
+
+
+#: TACAN beacon systems, as the beacons of 401 missions store them: 3 on a ship, 4 for an airborne
+#: beacon in X mode and 5 in Y mode (a handful of Y beacons carry 4, which the rule does not follow).
+_TACAN_SYSTEM_SHIP = 3
+_TACAN_SYSTEM_AIR = {"X": 4, "Y": 5}
+
+
+def _tacan_frequency_hz(channel: int, mode: str) -> int:
+    """The frequency DCS stores for a TACAN channel, in hertz.
+
+    Derived from every beacon of 401 missions: 961 + channel MHz for X 1-63 and Y 64-126, 1087 +
+    channel MHz for X 64-126 and Y 1-63 (30Y → 1117 MHz, 71X → 1158 MHz).
+    """
+    low = channel <= 63
+    offset = 961 if (mode == "X") == low else 1087
+    return (offset + channel) * 1_000_000
+
+
+def _build_activate_beacon(params: dict[str, Any], group: dict[str, Any], content: dict[str, Any]) -> dict[str, Any]:
+    """Build the ``ActivateBeacon`` action, wrapped: a TACAN on the group's first unit.
+
+    Args:
+        params: ``channel`` (1-126), ``mode`` (``X``/``Y``), ``callsign`` (1-3 letters or digits),
+            and optionally ``bearing`` (default true) and ``aa`` (air-to-air, default false).
+        group: The group the waypoint belongs to; its first unit carries the beacon.
+        content: Unused.
+
+    Returns:
+        The task entry.
+
+    Raises:
+        ValueError: On a channel, mode or callsign DCS would not accept, or a unit without an id.
+    """
+    channel = _required(params, "channel", "activate_beacon")
+    if not isinstance(channel, int) or not 1 <= channel <= 126:
+        raise ValueError(f"TACAN channel must be an integer in 1-126, got {channel!r}")
+    mode = str(_required(params, "mode", "activate_beacon")).upper()
+    if mode not in _TACAN_SYSTEM_AIR:
+        raise ValueError(f"TACAN mode must be X or Y, got {params['mode']!r}")
+    callsign = str(_required(params, "callsign", "activate_beacon")).upper()
+    if not 1 <= len(callsign) <= 3 or not callsign.isalnum():
+        raise ValueError(f"TACAN callsign must be 1 to 3 letters or digits, got {params['callsign']!r}")
+    units = indexed(group.get("units"))
+    unit_id = units[0].get("unitId") if units and isinstance(units[0], dict) else None
+    if unit_id is None:
+        raise ValueError("activate_beacon needs the group's first unit to carry a unitId")
+    is_ship = get_unit_category(str(units[0].get("type", ""))) == "Ship"
+    return _wrapped(
+        {
+            "id": "ActivateBeacon",
+            "params": {
+                "type": 4,
+                "system": _TACAN_SYSTEM_SHIP if is_ship else _TACAN_SYSTEM_AIR[mode],
+                "AA": bool(params.get("aa", False)),
+                "unitId": unit_id,
+                "modeChannel": mode,
+                "channel": channel,
+                "callsign": callsign,
+                "bearing": bool(params.get("bearing", True)),
+                "frequency": _tacan_frequency_hz(channel, mode),
+            },
+        }
+    )
+
+
+def _build_escort(params: dict[str, Any], group: dict[str, Any], content: dict[str, Any]) -> dict[str, Any]:
+    """Build an ``Escort`` task naming the escorted group by name.
+
+    The shape and defaults are those of the 599 escorts of 401 missions: planes as targets, helicopters
+    and UAVs excluded, 148 km engagement distance, a position slightly behind and below.
+
+    Args:
+        params: ``group_name`` (the escorted group, exact), optionally ``engagement_distance_nm``.
+        group: Unused.
+        content: The mission table, to resolve the escorted group's id.
+
+    Returns:
+        The task entry.
+
+    Raises:
+        ValueError: If the escorted group is not in the mission.
+    """
+    name = str(_required(params, "group_name", "escort"))
+    escorted = find_group(content, name)
+    distance_m = float(params["engagement_distance_nm"]) * 1852 if "engagement_distance_nm" in params else 148000
+    return {
+        "id": "Escort",
+        "params": {
+            "groupId": escorted.get("groupId"),
+            "pos": {"x": -182.88, "y": -182.88, "z": -45.72},
+            "targetTypes": ["Planes"],
+            "noTargetTypes": ["Helicopters", "UAVs"],
+            "value": "Planes;",
+            "engagementDistMax": distance_m,
+            "lastWptIndexFlag": False,
+            "lastWptIndexFlagChangedManually": False,
+        },
+    }
+
+
 #: The named set. Closed on purpose: a generic "write this task table" action lets an agent produce
 #: a plausible table DCS ignores, and the mission maker discovers it an hour into testing.
 _TASK_BUILDERS: dict[str, Any] = {
@@ -610,6 +768,17 @@ _TASK_BUILDERS: dict[str, Any] = {
     "engage_targets_in_zone": _build_engage_targets_in_zone,
     "set_frequency": _build_set_frequency,
     "switch_waypoint": _build_switch_waypoint,
+    "tanker": _build_tanker,
+    "awacs": _build_awacs,
+    "set_unlimited_fuel": _build_set_unlimited_fuel,
+}
+
+#: Tasks that name their own group, its unit, or another group, so they are built with that context
+#: (FIX-SCRATCH-MISSION-FINDINGS ticket 07: a tanker could not be told to refuel nor to show a TACAN).
+_CONTEXT_TASK_BUILDERS: dict[str, Any] = {
+    "eplrs": _build_eplrs,
+    "activate_beacon": _build_activate_beacon,
+    "escort": _build_escort,
 }
 
 

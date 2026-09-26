@@ -9,6 +9,9 @@ registered by :func:`veaf_mission_mcp.actions.register_default_actions`.
 from typing import Any
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
+from mcp.shared.exceptions import MCPError
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_tools.app import VERSION
 
@@ -66,8 +69,20 @@ def run_action(name: str, params: dict[str, Any] | None = None) -> Any:
 
     Returns:
         Whatever the action's handler returns.
+
+    Raises:
+        ToolError: For any failure of the action, carrying its type and message. `mcp` 2.x shows the
+            client only "Error executing tool run_action" for any other exception, which is how a
+            misnamed parameter, and every refusal an action words for the agent, reached it as that
+            one line (FIX-SCRATCH-MISSION-FINDINGS ticket 19).
     """
-    return CATALOG.run_action(name, params or {})
+    try:
+        return CATALOG.run_action(name, params or {})
+    except (ToolError, MCPError):
+        raise
+    except Exception as exc:
+        logger.warning(t("mcp.run_action_failed", name=name, error=f"{type(exc).__name__}: {exc}"))
+        raise ToolError(f"{type(exc).__name__}: {exc}") from exc
 
 
 def main() -> None:

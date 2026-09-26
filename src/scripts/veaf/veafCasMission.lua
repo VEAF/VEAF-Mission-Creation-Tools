@@ -565,6 +565,30 @@ end
 -- CAS target group generation and management
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- What replaces, in a COLD_WAR mission, an escort type that entered service after 1980 — the
+--- reference the COLD_WAR armor tables already follow. The escorts below are written for MODERN;
+--- rather than a second copy of each branch, the era swaps the few types it cannot have. Service
+--- dates are estimates, not sourced (FIX-SCRATCH-MISSION-FINDINGS 12). The air-defense groups do the
+--- same through their own era variants in veaf-units.yaml.
+veafCasMission.ESCORT_TYPES_REPLACED_BY_ERA = {
+  [veaf.ERA.COLD_WAR] = {
+    ["M1097 Avenger"] = "Vulcan",
+    ["M6 Linebacker"] = "M48 Chaparral",
+    ["Tor 9A331"] = "Osa 9A33 ln",
+    ["2S6 Tunguska"] = "ZSU-23-4 Shilka",
+    ["HQ-7_LN_EO"] = "Strela-10M3",
+    ["HQ-7_LN_SP"] = "Strela-10M3",
+    ["SA-18 Igla-S comm"] = "SA-18 Igla comm",
+    ["SA-18 Igla-S manpad"] = "SA-18 Igla manpad",
+  },
+}
+
+--- No mobile air defense existed in WW2. `veaf.config.ww2` is what v5 missions set; a v6 mission says
+--- `era: WW2`, and testing the flag alone gave WW2 sections a modern escort.
+local function _isWW2()
+  return veaf.config.ww2 or veaf.config.era == veaf.ERA.WW2
+end
+
 local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
   veaf.loggers.get(veafCasMission.Id):trace(
     string.format(
@@ -577,7 +601,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
   )
   local _actualDefense = defense
   if defense > 0 then
-    -- roll a dice : 20% chance to get a -1 (lower) difficulty, 30% chance to get a +1 (higher) difficulty, and 50% to get what was asked for
+    -- roll a dice : 20% chance to get a -1 (lower) difficulty, 20% chance to get a +1 (higher) difficulty, and 60% to get what was asked for
     local _dice = math.random(100)
     veaf.loggers.get(veafCasMission.Id):trace("_dice = " .. _dice)
     if _dice <= 20 then
@@ -712,17 +736,24 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
       end
     end
   end
+  local replaced = veafCasMission.ESCORT_TYPES_REPLACED_BY_ERA[veaf.config.era]
+  if replaced then
+    for _, unit in ipairs(group.units) do
+      unit[1] = replaced[unit[1]] or unit[1]
+    end
+  end
   --veaf.loggers.get(veafCasMission.Id):trace(string.format("group.units=%s", veaf.p(group.units)))
 end
 
---- TODO/feat-era/ Generates an air defense group
+--- Generates an air defense group, from `generateAirDefenseGroup-<SIDE>-<ERA>-<N>` when the mission's era
+--- has its own variant of that level in veaf-units.yaml, `generateAirDefenseGroup-<SIDE>-<N>` otherwise
 function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
   side = side or veafCasMission.SIDE_RED
 
   -- generate a primary air defense platoon
   local _actualDefense = defense
   if defense > 0 then
-    -- roll a dice : 20% chance to get a -1 (lower) difficulty, 30% chance to get a +1 (higher) difficulty, and 50% to get what was asked for
+    -- roll a dice : 20% chance to get a -1 (lower) difficulty, 20% chance to get a +1 (higher) difficulty, and 60% to get what was asked for
     local _dice = math.random(100)
     veaf.loggers.get(veafCasMission.Id):trace("_dice = " .. _dice)
     if _dice <= 20 then
@@ -738,14 +769,17 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     _actualDefense = 0
   end
   veaf.loggers.get(veafCasMission.Id):trace("_actualDefense = " .. _actualDefense)
-  local _groupDefinition = "generateAirDefenseGroup-BLUE-"
+  local _side = "BLUE"
   if side == veafCasMission.SIDE_RED then
-    _groupDefinition = "generateAirDefenseGroup-RED-"
+    _side = "RED"
   end
-  _groupDefinition = _groupDefinition .. tostring(_actualDefense)
-  veaf.loggers.get(veafCasMission.Id):trace("_groupDefinition = " .. _groupDefinition)
-
+  local _groupDefinition = string.format("generateAirDefenseGroup-%s-%s-%d", _side, tostring(veaf.config.era), _actualDefense)
   local group = veafUnits.findGroup(_groupDefinition)
+  if not group then
+    _groupDefinition = string.format("generateAirDefenseGroup-%s-%d", _side, _actualDefense)
+    group = veafUnits.findGroup(_groupDefinition)
+  end
+  veaf.loggers.get(veafCasMission.Id):trace("_groupDefinition = " .. _groupDefinition)
   if not group then
     veaf.loggers
       .get(veafCasMission.Id)
@@ -756,6 +790,55 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
   group.groupName = groupName
 
   veaf.loggers.get(veafCasMission.Id):trace("#group.units = " .. #group.units)
+  return group
+end
+
+--- The long-range batteries `-samVLR` draws from, by side and era: group aliases of veaf-units.yaml.
+--- COLD_WAR follows the 1980 reference of the armor tables, so no SA-10 (S-300PS, around 1982) and, on
+--- the blue side, nothing longer than the Hawk — the Patriot entered service in 1984 and DCS has no Nike
+--- Hercules. WW2 had no missile at all: the heaviest flak level, taken as is rather than rolled. The
+--- point defenses these templates carry (an Avenger with the Hawk) go through the same era swap as the
+--- escorts. Service dates are estimates, not sourced (FIX-SCRATCH-MISSION-FINDINGS 12).
+veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS = {
+  [veafCasMission.SIDE_BLUE] = {
+    [veaf.ERA.MODERN] = { "patriot" },
+    [veaf.ERA.COLD_WAR] = { "hawk" },
+    [veaf.ERA.WW2] = { "generateAirDefenseGroup-BLUE-WW2-5" },
+  },
+  [veafCasMission.SIDE_RED] = {
+    [veaf.ERA.MODERN] = { "sa10", "sa5" },
+    [veaf.ERA.COLD_WAR] = { "sa2", "sa5" },
+    [veaf.ERA.WW2] = { "generateAirDefenseGroup-RED-WW2-5" },
+  },
+}
+
+--- Generates a long-range air defense battery for the mission's era (the `-samVLR` alias)
+function veafCasMission.generateLongRangeAirDefenseGroup(groupName, side)
+  -- as generateAirDefenseGroup does: a side that is not red is blue (a neutral marker or country), and
+  -- an era with no entry is the default one
+  local bySide = veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS[veafCasMission.SIDE_BLUE]
+  if side == nil or side == veafCasMission.SIDE_RED then
+    bySide = veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS[veafCasMission.SIDE_RED]
+  end
+  local chooseFrom = bySide[veaf.config.era] or bySide[veaf.ERA.MODERN]
+  local alias = chooseFrom[math.random(#chooseFrom)]
+  local group = veafUnits.findGroup(alias)
+  if not group then
+    veaf.loggers
+      .get(veafCasMission.Id)
+      :error(string.format("veafCasMission.generateLongRangeAirDefenseGroup cannot find group [%s]", alias))
+    return nil
+  end
+  -- Changing the type name is enough: spawnAirDefenseBattery runs the group through
+  -- veafUnits.processGroup again, which rebuilds each unit from its type name.
+  local replaced = veafCasMission.ESCORT_TYPES_REPLACED_BY_ERA[veaf.config.era]
+  if replaced then
+    for _, unit in ipairs(group.units) do
+      unit.typeName = replaced[unit.typeName] or unit.typeName
+    end
+  end
+  group.description = groupName
+  group.groupName = groupName
   return group
 end
 
@@ -787,13 +870,13 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
     table.insert(group.units, { transportType, random = true })
   end
 
-  -- TODO/feat-era/ add an air defense vehicle every 10 vehicles
+  -- add an air defense vehicle every 10 vehicles
   local nbDefense = groupCount / 10 + 1
   if nbDefense == 0 then
     nbDefense = 1
   end
   veaf.loggers.get(veafCasMission.Id):debug("nbDefense = " .. nbDefense)
-  if not veaf.config.ww2 then
+  if not _isWW2() then
     _addDefenseForGroups(group, side, defense, nbDefense)
   else
     -- nothing, there are no mobile defense units in WW2
@@ -847,8 +930,8 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
     end
   end
 
-  -- TODO/feat-era/ add air defense vehicles
-  if not veaf.config.ww2 then
+  -- add air defense vehicles
+  if not _isWW2() then
     _addDefenseForGroups(group, side, defense, 1)
   else
     -- nothing, there are no mobile defense units in WW2
@@ -889,8 +972,8 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
   local unitType = veaf.randomlyChooseFrom(chooseFrom)
   table.insert(group.units, { unitType, cell = 11, random = true })
 
-  -- TODO/feat-era/ add air defense
-  if not veaf.config.ww2 then
+  -- add air defense
+  if not _isWW2() then
     _addDefenseForGroups(group, side, defense, 1, true)
   else
     -- nothing, there are no mobile defense units in WW2
@@ -899,6 +982,7 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
   return group
 end
 
+--- Places one group around a spawn position and appends its units to `resultTable`.
 function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resultTable, hasDest)
   if spawnPosition ~= nil and groupDefinition ~= nil then
     veaf.loggers.get(veafCasMission.Id):trace(string.format("veafCasMission.placeGroup(#groupDefinition.units=%d)", #groupDefinition.units))
@@ -913,6 +997,13 @@ function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resu
     local group, cells = veafUnits.placeGroup(group, veaf.placePointOnLand(groupPosition), spacing + 3, hdg, hasDest)
     if veaf.Trace then
       veafUnits.traceGroup(group, cells)
+    end
+
+    -- Settle this group, as one rigid body, into a clearing that fits all of it — here rather than
+    -- in `generateCasMission`, which only ever sees the flat list of every group's units and would
+    -- translate a whole battalion as if it were one formation. Skipped for a convoy (`hasDest`).
+    if not hasDest then
+      veafUnits.settleGroup(group.units)
     end
 
     -- add the units to the result units list
@@ -1017,6 +1108,7 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     local unitName = veafCasMission.casGroupName .. " / " .. unit.displayName .. " #" .. i
     local unitHdg = unit.hdg
 
+    -- The group was settled into a clearing by `veafCasMission.placeGroup`, group by group.
     local spawnPosition = unit.spawnPoint
 
     -- check if position is correct for the unit type

@@ -1,8 +1,8 @@
 # FEAT-ASSIST-FOLLOWUP — the three things the first checklist flight could not close
 
-Status: 🔄 in-progress — ticket 01 delivered; **kept for after the release** (David, 2026-08-11: "if it
+Status: 🧑 waiting-human — ticket 01 delivered; **kept for after the release** (David, 2026-08-11: "if it
 is not finished for the release it does not matter"). 02 and 03 need cockpit time, 04 is deferred on
-purpose.
+purpose. Nothing here is waiting on an agent: 02 needs a flight with a second pilot, 03 an F-16C pilot.
 
 ## Why this lot exists
 

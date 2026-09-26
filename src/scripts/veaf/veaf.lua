@@ -137,6 +137,7 @@ veaf.theatreName = {
   Sinai = "SinaiMap",
   Kola = "Kola",
   Afghanistan = "Afghanistan",
+  GermanyCW = "GermanyCW",
 }
 
 veaf.ERA = {
@@ -1257,6 +1258,13 @@ veaf.SPAWN_SEARCH_ATTEMPTS = 10
 --- Default clearance from scenery, in metres, requested for a spawned group
 veaf.DEFAULT_SPAWN_CLEARANCE = 100
 
+--- Descending fallback clearances tried by `veaf.findSpawnPoint` tier 1 when the requested
+--- `safeRadius` yields no usable candidate. Each step that is strictly smaller than `safeRadius`
+--- is tried in order; the first that produces a candidate wins. Only then does tier 1 give up
+--- and fall through to the random tier. Measured 2026-09-25 on GermanyCW-v6: 100 m bubbles are
+--- rare in wooded terrain, so the search needs to narrow down before abandoning the criterion.
+veaf.SPAWN_CLEARANCE_STEPS = { 50, 25, 10 }
+
 --- Set to true to skip the scenery-aware tier of veaf.findSpawnPoint
 veaf.doNotAvoidScenery = false
 
@@ -1296,16 +1304,19 @@ end
 
 --- Searches for an acceptable ground spawn point near a centre
 -- Three bounded tiers, degrading in order: every criterion including clearance from
--- scenery, then every criterion except that clearance, then failure. Callers used to
--- jitter once and use the result unvalidated, so a centre could land in the sea and the
--- units were dropped one by one downstream.
+-- scenery (with descending clearance fallbacks), then every criterion except that clearance,
+-- then failure. Callers used to jitter once and use the result unvalidated, so a centre
+-- could land in the sea and the units were dropped one by one downstream.
 -- @param vec3 centre point
 -- @param radius search radius in metres — honoured by **every** tier, see below
 -- @param safeRadius required clearance from scenery (default veaf.DEFAULT_SPAWN_CLEARANCE)
 -- @param surfaces table surfaces the point may stand on (default veaf.DEFAULT_SPAWN_TERRAIN,
 --        today's land-only criterion — an omitted argument changes nothing for an existing caller)
+-- @param noRandomFallback boolean|nil when true, tier 2 (random jitter) is skipped and nil is
+--        returned when tier 1 finds nothing. Used for editor-placed elements that must keep
+--        their declared position rather than receive a random consolation prize.
 -- @return vec3 placed on the terrain, or nil when no acceptable point was found
-function veaf.findSpawnPoint(vec3, radius, safeRadius, surfaces)
+function veaf.findSpawnPoint(vec3, radius, safeRadius, surfaces, noRandomFallback)
   safeRadius = safeRadius or veaf.DEFAULT_SPAWN_CLEARANCE
   surfaces = surfaces or veaf.DEFAULT_SPAWN_TERRAIN
 
@@ -1320,28 +1331,54 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius, surfaces)
   -- farp, cargo, teleport, bomb, smoke and friends. Tier 1 exists to *move* a point, so it must
   -- not even be consulted.
   if not veaf.doNotAvoidScenery and radius and radius > 0 and Disposition and Disposition.getSimpleZones then
-    -- One call yields several candidates, which is cheaper than one call each and matters
-    -- because the per-call cost is still unmeasured.
-    local ok, candidates = pcall(Disposition.getSimpleZones, vec3, radius, safeRadius, veaf.SPAWN_SEARCH_ATTEMPTS)
-    if ok and type(candidates) == "table" then
-      for _, candidate in ipairs(candidates) do
-        local placed = acceptableGroundPoint(candidate, surfaces)
-        -- The distance test is not belt-and-braces: **Disposition's radius argument does not
-        -- bound its answers.** Measured around one centre in wooded terrain — asked for 800 m
-        -- it returned points 2035-2258 m out, and asked for 1600 m with a count of *one* it
-        -- still returned a point 2628 m out, so the overshoot is not the count forcing a wider
-        -- search. Without this test tier 1 took the first candidate that was merely on land, so
-        -- `_spawn group, radius 50` in a forest could place the group kilometres away in
-        -- silence. ADR 0018 requires this dependency to be quality-only and never correctness.
-        if placed and horizontalDistance(placed, vec3) <= radius then
-          veaf.loggers.get(veaf.Id):trace("findSpawnPoint: scenery-aware point found")
-          return placed
+    -- Descending clearance list: the requested safeRadius first, then each fallback step that
+    -- is strictly smaller. On dense terrain a 100 m bubble is often unattainable, so the search
+    -- retries with less breathing room before abandoning the criterion entirely. Measured
+    -- 2026-09-25 on GermanyCW-v6: 38/106 commands hit the "no usable point" log; with fallback
+    -- steps, most of those are rescued at 50 m or 25 m.
+    local clearances = { safeRadius }
+    for _, step in ipairs(veaf.SPAWN_CLEARANCE_STEPS) do
+      if step < safeRadius then
+        clearances[#clearances + 1] = step
+      end
+    end
+
+    for i, clearance in ipairs(clearances) do
+      local ok, candidates = pcall(Disposition.getSimpleZones, vec3, radius, clearance, veaf.SPAWN_SEARCH_ATTEMPTS)
+      if not ok then
+        veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition.getSimpleZones unusable, dropping the scenery criterion")
+        break
+      end
+      if type(candidates) == "table" then
+        -- Pick the **closest** acceptable candidate within the requested radius. The first-wins
+        -- strategy used to let Disposition's unmeasured overshoot place groups kilometres away;
+        -- the closest-wins strategy keeps the group as near the intended spot as the scenery
+        -- allows. ADR 0018 requires this dependency to be quality-only and never correctness.
+        local best, bestDist = nil, math.huge
+        for _, candidate in ipairs(candidates) do
+          local placed = acceptableGroundPoint(candidate, surfaces)
+          if placed then
+            local dist = horizontalDistance(placed, vec3)
+            if dist <= radius and dist < bestDist then
+              best = placed
+              bestDist = dist
+            end
+          end
+        end
+        if best then
+          veaf.loggers.get(veaf.Id):trace("findSpawnPoint: scenery-aware point found at %dm clearance", clearance)
+          return best
+        end
+        if i < #clearances then
+          veaf.loggers.get(veaf.Id):debug("findSpawnPoint: no usable point at %dm clearance, retrying at %dm", clearance, clearances[i + 1])
         end
       end
-      veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition proposed no usable point in range, dropping the scenery criterion")
-    else
-      veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition.getSimpleZones unusable, dropping the scenery criterion")
     end
+    veaf.loggers.get(veaf.Id):debug("findSpawnPoint: Disposition proposed no usable point in range, dropping the scenery criterion")
+  end
+
+  if noRandomFallback then
+    return nil
   end
 
   -- Tier 2 — every criterion except clearance from scenery.

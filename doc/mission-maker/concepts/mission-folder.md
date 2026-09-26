@@ -29,8 +29,8 @@ ma-mission/
 │   │   └── veafDynamicConfig.lua    # chargement dynamique (dev/test)
 │   ├── presets.yaml                 # préréglages radio
 │   ├── waypoints.yaml               # plans de vol nommés
-│   ├── spawnables.yaml              # groupes d'aéronefs spawnables
-│   ├── dynamic-slot-templates.yaml  # modèles de slots dynamiques
+│   ├── spawnables.yaml              # groupes d'aéronefs spawnables (vide = catalogue livré)
+│   ├── dynamic-slot-templates.yaml  # modèles de slots dynamiques (vide = catalogue livré)
 │   ├── warehouses.yaml              # stock et slots dynamiques par terrain
 │   ├── spawn-groups.yaml            # groupes sol/mer pour `_spawn`
 │   └── versions.yaml                # variantes météo/horaire

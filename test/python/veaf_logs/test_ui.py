@@ -27,10 +27,10 @@ from veaf_logs.appearance import (  # noqa: E402
 from veaf_logs.filters import State  # noqa: E402
 from veaf_logs.profiles import DEFAULT_PROFILE, ProfileStore  # noqa: E402
 from veaf_logs.rules import Rules  # noqa: E402
-from veaf_logs.session import Session  # noqa: E402
+from veaf_logs.session import OpenFile, Session  # noqa: E402
 from veaf_logs.ui.main_window import MainWindow  # noqa: E402
 from veaf_logs.ui.model import COL_MESSAGE  # noqa: E402
-from veaf_logs_journal import ENTRIES  # noqa: E402
+from veaf_logs_journal import ENTRIES, journal_bytes  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -539,3 +539,180 @@ class TestSession:
         finally:
             rouverte.timer.stop()
             rouverte.close()
+
+
+class TestJournalDistant:
+    """Un onglet distant se comporte comme un onglet local, et survit a la session."""
+
+    @staticmethod
+    def _source(tmp_path, server):
+        """Une source distante servie par un faux client SFTP (voir test_remote.py)."""
+        from types import SimpleNamespace
+
+        from veaf_logs.remote import RemoteLogSource
+
+        remote_file = tmp_path / "remote.log"
+        remote_file.write_bytes(journal_bytes())
+        sftp = SimpleNamespace(
+            stat=lambda path: remote_file.stat(), open=lambda path, mode="r": open(remote_file, "rb")
+        )
+        ssh = SimpleNamespace(close=lambda: None)
+        return RemoteLogSource(server, "private1", connect=lambda srv, prompt: (ssh, sftp))
+
+    @staticmethod
+    def _server():
+        from veaf_libs.user_config import RemoteServer
+
+        return RemoteServer(name="veaf", host="h", user="u", logs={"private1": "C:/x/Logs/dcs.log"})
+
+    def test_onglet_distant_indexe_et_capture(self, window, tmp_path):
+        server = self._server()
+        source = self._source(tmp_path, server)
+        tab = window._open_source(source, source.location)
+        assert window.tabs.tabText(window.tabs.currentIndex()) == "veaf:private1"
+        assert window.tabs.tabToolTip(window.tabs.currentIndex()) == "u@h:C:/x/Logs/dcs.log"
+        assert tab.model.total == ENTRIES
+        captured = window._capture().files[-1]
+        assert (captured.path, captured.remote) == ("C:/x/Logs/dcs.log", "veaf/private1")
+
+    def test_session_rouvre_le_distant_configure(self, app, rules, tmp_path, monkeypatch):
+        server = self._server()
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.RemoteLogSource",
+            lambda srv, instance, host_key_prompt: self._source(tmp_path, srv),
+        )
+        session = Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")])
+        window = MainWindow(rules, session)
+        try:
+            assert [window.tabs.tabText(i) for i in range(window.tabs.count())] == ["veaf:private1"]
+        finally:
+            window.timer.stop()
+            window.close()
+
+    def test_session_ignore_un_distant_disparu(self, app, rules, monkeypatch):
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [])
+        session = Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")])
+        window = MainWindow(rules, session)
+        try:
+            assert window.tabs.count() == 0
+        finally:
+            window.timer.stop()
+            window.close()
+
+    def test_session_serveur_injoignable_sans_dialogue(self, app, rules, monkeypatch):
+        """Hors ligne : pas de boite modale, et une seule tentative par serveur."""
+        from veaf_libs.user_config import RemoteServer
+        from veaf_logs.remote import RemoteLogSource
+
+        server = RemoteServer(name="veaf", host="h", user="u", logs={"a": "C:/a/dcs.log", "b": "C:/b/dcs.log"})
+        attempts: list[str] = []
+
+        def connect(srv, prompt):
+            attempts.append(srv.name)
+            raise ConnectionError("injoignable")
+
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.RemoteLogSource",
+            lambda srv, instance, host_key_prompt: RemoteLogSource(srv, instance, connect=connect),
+        )
+        session = Session(files=[OpenFile("C:/a/dcs.log", remote="veaf/a"), OpenFile("C:/b/dcs.log", remote="veaf/b")])
+        # Une boite modale bloquerait ici : le test ne rendrait jamais la main.
+        window = MainWindow(rules, session)
+        try:
+            assert window.tabs.count() == 0
+            assert attempts == ["veaf"], "la seconde instance du meme serveur n'est pas retentee"
+            assert "injoignable" in window.status.currentMessage()
+        finally:
+            window.timer.stop()
+            window.close()
+
+
+class TestDialoguesDistants:
+    """Les deux boites de dialogue du journal distant, sans les afficher."""
+
+    def test_menu_sans_serveur_configure(self, window, monkeypatch):
+        shown: list[str] = []
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [])
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.QMessageBox.information",
+            lambda parent, title, text: shown.append(title),
+        )
+        window.open_remote_dialog()
+        assert shown == ["Aucun serveur configure"]
+
+    def test_menu_config_invalide(self, window, monkeypatch):
+        shown: list[str] = []
+
+        def broken():
+            raise ValueError("servers.veaf.host: required")
+
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", broken)
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.QMessageBox.warning",
+            lambda parent, title, text: shown.append(text),
+        )
+        window.open_remote_dialog()
+        assert "servers.veaf.host" in shown[0]
+
+    def test_menu_ouvre_l_instance_choisie(self, window, tmp_path, monkeypatch):
+        server = TestJournalDistant._server()
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.RemoteLogSource",
+            lambda srv, instance, host_key_prompt: TestJournalDistant._source(tmp_path, srv),
+        )
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.QInputDialog.getItem",
+            lambda parent, title, label, items, current, editable: (items[0], True),
+        )
+        window.open_remote_dialog()
+        assert window.tabs.tabText(window.tabs.currentIndex()) == "veaf:private1"
+
+    def test_menu_annule(self, window, monkeypatch):
+        server = TestJournalDistant._server()
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.QInputDialog.getItem",
+            lambda parent, title, label, items, current, editable: ("", False),
+        )
+        before = window.tabs.count()
+        window.open_remote_dialog()
+        assert window.tabs.count() == before
+
+    @pytest.mark.parametrize("answer", [True, False])
+    def test_cle_d_hote_inconnue(self, window, monkeypatch, answer):
+        from PySide6.QtWidgets import QMessageBox
+
+        chosen = QMessageBox.StandardButton.Yes if answer else QMessageBox.StandardButton.No
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.QMessageBox.question",
+            lambda parent, title, text, buttons, default: chosen,
+        )
+        assert window._ask_host_key("dcs.veaf.org", "ssh-ed25519 SHA256:abc") is answer
+
+
+class TestOuvertureDistanteEnEchec:
+    def test_instance_arretee_rend_ses_ressources(self, window, tmp_path, monkeypatch):
+        """Connecte, miroir cree, puis journal absent : rien ne doit rester."""
+        from types import SimpleNamespace
+
+        from veaf_logs.remote import RemoteLogSource
+
+        closed: list[str] = []
+        missing = tmp_path / "absent.log"
+        sftp = SimpleNamespace(stat=lambda path: missing.stat(), open=lambda path, mode="r": open(missing, "rb"))
+        ssh = SimpleNamespace(close=lambda: closed.append("ssh"))
+        server = TestJournalDistant._server()
+        source = RemoteLogSource(server, "private1", connect=lambda srv, prompt: (ssh, sftp))
+        shown: list[str] = []
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.QMessageBox.warning", lambda parent, title, text: shown.append(text)
+        )
+        before = window.tabs.count()
+        assert window._open_source(source, source.location) is None
+        assert window.tabs.count() == before
+        assert "absent sur le serveur" in shown[0]
+        assert closed == ["ssh"]
+        assert source._buffer is None, "le miroir a ete supprime avec la source"

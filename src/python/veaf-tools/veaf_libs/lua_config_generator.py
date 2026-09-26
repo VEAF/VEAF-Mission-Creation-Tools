@@ -34,7 +34,14 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
     from veaf_libs.checklists import Checklist, ChecklistStep
 from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
-from veaf_libs.lua_literals import lua_comment_line, lua_long_string, lua_quoted_string, lua_scalar, lua_string
+from veaf_libs.lua_literals import (
+    lua_comment_line,
+    lua_long_string,
+    lua_quoted_string,
+    lua_scalar,
+    lua_sequence,
+    lua_string,
+)
 from veaf_libs.lua_module_scanner import MANDATORY_MODULES, get_modules, yaml_module_entry
 from veaf_libs.lua_syntax import check_lua_syntax
 
@@ -117,6 +124,7 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
         "combat_zone_settings",
         "combat_zones",
         "airwave_zones",
+        "user_menus",
         "password_mm_hashes",
         # ASSIST: build-time choices, not runtime settings — the engine only ever sees
         # the checklists the build chose to emit, and infers the display mode from
@@ -382,6 +390,11 @@ def summarize_active_modules(mission_yaml: dict) -> list[tuple[str, int | None]]
             summary.append((mod_id, None))
         else:
             entries = cfg.get(list_key) or []
+            # The build normalises mission.yaml before this runs, and that moves the QRA definitions
+            # into their own `qra` section: read there, or a mission with one definition reports
+            # « QRA (0) » (FIX-SCRATCH-MISSION-FINDINGS ticket 09).
+            if mod_id == "QRA" and not entries:
+                entries = (mission_yaml.get("qra") or {}).get("definitions") or []
             summary.append((mod_id, len(entries) if isinstance(entries, list) else 0))
     return sorted(summary)
 
@@ -547,15 +560,40 @@ def _whole_if_it_can_be(value: float) -> float | int:
     return int(value) if float(value).is_integer() else value
 
 
-def _to_lua_scalar(value: object) -> str:
-    """Convert a Python scalar to a Lua literal string.
+def _to_lua_scalar(value: object, where: str | None = None) -> str:
+    """Convert a Python value from ``mission.yaml`` to a Lua literal.
 
     Strings go through the shared quoting helper.  They used to be interpolated into
     ``"{value}"`` with no escaping at all, two dozen lines above a correct
     implementation in this same module — the sixteen call sites below meant any
     ``mission.yaml`` value carrying a quote or a newline generated broken Lua
     (SECREV-2, VMR-012).
+
+    A list becomes a Lua table.  It used to fall through to ``str(value)`` and reach the
+    generated file as a quoted Python repr, which is why ``csarPrefix`` — a table in
+    ``CSAR.lua`` — could not be set from YAML at all (FIX-CSAR-YAML-SETTINGS).
+
+    Args:
+        value: Anything the YAML parser produced for a settings value.
+        where: The Lua target being written, e.g. ``csar.csarPrefix``.  Only used to name
+            it in a refusal; a caller with no useful name may leave it out.
+
+    Returns:
+        The Lua source for that value.
+
+    Raises:
+        ValueError: If *value* is a mapping, or nests one.  See :func:`lua_sequence`.
     """
+    if isinstance(value, (list, tuple, dict)):
+        try:
+            return lua_sequence(value)
+        except TypeError as exc:
+            target = where or "this setting"
+            raise ValueError(
+                f"{target}: a YAML mapping cannot be written as a setting. "
+                "Use a list for a plain table, or configure it from mission-script.lua "
+                "with the Lua callback, which is what complex settings are for."
+            ) from exc
     return lua_scalar(value)
 
 
@@ -709,6 +747,7 @@ def _emit_module_body(
                             "qra",
                             ["start", "stop"],
                             qra_def.get("radio_menu_restrict_to_group"),
+                            secured=bool(qra_def.get("radio_menu_secured", False)),
                         )
                     )
 
@@ -812,6 +851,12 @@ def _emit_module_body(
             else:
                 lines.extend(_emit_combat_zone_def(zone_def, var_name, indent="    "))
 
+        # `includes:` borrows elements from zones built above, so it comes after the last of them.
+        for zone_name, included in _combat_zone_includes(cz_zones):
+            lines.append(
+                f"    {var_name}.GetZone({_lua_text(zone_name)}):addZoneElementsFromZoneNamed({_lua_text(included)})"
+            )
+
         lines.append(f"    {var_name}.initialize()")
 
         # Activate zones flagged active_at_start, after initialize() so they are
@@ -831,6 +876,7 @@ def _emit_module_body(
                         "airwave",
                         ["start", "stop", "reset"],
                         zone.get("radio_menu_restrict_to_group"),
+                        secured=bool(zone.get("radio_menu_secured", False)),
                     )
                 )
         # No global initialize() — AirWaves is "use by construction"
@@ -845,6 +891,59 @@ def _emit_module_body(
         user_menus = mod_cfg.get("user_menus")
         if user_menus:
             lines.extend(_emit_user_menus(user_menus))
+
+
+def _combat_zone_includes(cz_zones: list) -> list[tuple[str, str]]:
+    """Resolve every zone's ``includes:`` into the full list of zones it borrows from.
+
+    Difficulty levels on the same targets: ``hard`` includes ``medium``, which includes ``easy``, and
+    activating ``hard`` must spawn all three. The runtime copies another zone's elements with
+    ``addZoneElementsFromZoneNamed`` and skips those it already holds, so emitting each zone's whole
+    transitive closure makes the result independent of the order the calls run in. Names are
+    compared case-insensitively, as ``veafCombatZone.GetZone`` does.
+
+    Args:
+        cz_zones: The ``combat_zones`` entries of ``mission.yaml``.
+
+    Returns:
+        ``(zone_name, included_zone_name)`` pairs, each zone's closure in depth-first order, with the
+        names written as the mission maker wrote them.
+
+    Raises:
+        ValueError: ``includes`` is not a list, names a zone that is not a combat zone of this
+            mission (an operation included), or the includes form a cycle. At runtime each of these
+            is a line in ``dcs.log`` and a level quietly missing its lower levels.
+    """
+    zones = {str(z.get("zone_name", "")).lower(): z for z in cz_zones if z.get("type", "zone") != "operation"}
+    direct: dict[str, list[str]] = {}
+    for key, zone_def in zones.items():
+        includes = zone_def.get("includes")
+        if includes is None:
+            continue
+        if not isinstance(includes, list):
+            raise ValueError(f"combat zone {zone_def.get('zone_name')!r}: includes must be a list of zone names")
+        for name in includes:
+            if str(name).lower() not in zones:
+                raise ValueError(
+                    f"combat zone {zone_def.get('zone_name')!r}: includes {name!r}, which is not a combat zone"
+                )
+        direct[key] = [str(name) for name in includes]
+
+    def closure(key: str, path: list[str]) -> list[str]:
+        found: list[str] = []
+        for name in direct.get(key, []):
+            if name.lower() in path:
+                raise ValueError(f"combat zone includes form a cycle: {' -> '.join([*path, name.lower()])}")
+            for borrowed in [name, *closure(name.lower(), [*path, name.lower()])]:
+                if borrowed.lower() not in {f.lower() for f in found}:
+                    found.append(borrowed)
+        return found
+
+    pairs: list[tuple[str, str]] = []
+    for key in direct:
+        zone_name = str(zones[key].get("zone_name", ""))
+        pairs.extend((zone_name, included) for included in closure(key, [key]))
+    return pairs
 
 
 def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -> list[str]:
@@ -1268,7 +1367,18 @@ def _emit_menu_node(node: dict, indent: str) -> list[str]:
         return lines
     call = _emit_action_call(node)
     label = _emit_lua_string(str(node.get("command", "")))
-    return [f"{indent}veafRadio.command({label}, {call})"]
+    constructor = "veafRadio.securedCommand" if node.get("secured") else "veafRadio.command"
+    return [f"{indent}{constructor}({label}, {call})"]
+
+
+def _tree_has_secured_command(nodes: object) -> bool:
+    """Whether any command of a menu tree is marked ``secured``."""
+    if not isinstance(nodes, list):
+        return False
+    return any(
+        isinstance(node, dict) and (_tree_has_secured_command(node.get("items")) or bool(node.get("secured")))
+        for node in nodes
+    )
 
 
 def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:
@@ -1284,6 +1394,13 @@ def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:
     """
     tree = user_menus.get("tree") or []
     group = user_menus.get("restrict_to_group")
+    if not group and _tree_has_secured_command(tree):
+        # The runtime checks a secured command against the level of the group it was posted for; a
+        # global menu has no group, and `veafRadio._proxyMethod` refuses every click on it.
+        raise ValueError(
+            "a radio menu with a secured command needs restrict_to_group: the security level is "
+            "that of the group the menu is posted for, and a global menu has none"
+        )
     lines = [f"{indent}veafRadio.createUserMenu(", f"{indent}    veafRadio.mainmenu("]
     for i, node in enumerate(tree):
         node_lines = _emit_menu_node(node, indent + "        ")
@@ -1299,7 +1416,9 @@ def _emit_user_menus(user_menus: dict, indent: str = "    ") -> list[str]:
     return lines
 
 
-def _emit_module_radio_menu(name: str, target_key: str, verbs: list[str], group: str | None) -> list[str]:
+def _emit_module_radio_menu(
+    name: str, target_key: str, verbs: list[str], group: str | None, secured: bool = False
+) -> list[str]:
     """Emit the per-module ``radio_menu`` shortcut (mechanism 1) for QRA / AirWaves.
 
     Builds a single submenu named after the object, holding one command per verb
@@ -1310,15 +1429,28 @@ def _emit_module_radio_menu(name: str, target_key: str, verbs: list[str], group:
         target_key: The action target key — ``"qra"`` or ``"airwave"``.
         verbs: The verbs to expose, e.g. ``["start", "stop"]``.
         group: Optional DCS group name the menu is restricted to.
+        secured: Emit the commands secured (``radio_menu_secured``): only a pilot of ``group`` with
+            the required security level can run them. Open to every player otherwise
+            (FIX-SCRATCH-MISSION-FINDINGS ticket 22).
 
     Returns:
         The generated Lua lines.
+
+    Raises:
+        ValueError: If ``secured`` is asked without a ``group`` — the runtime can only check the
+            level of the group a command was posted for.
     """
+    if secured and not group:
+        raise ValueError(
+            f"{name!r}: radio_menu_secured needs radio_menu_restrict_to_group — the security level "
+            "is that of the group the menu is posted for, and a global menu has none"
+        )
     items = [
         {
             "command": t(f"generated.radio_menu.{verb}", name=name),
             "action": f"{target_key}.{verb}",
             target_key: name,
+            "secured": secured,
         }
         for verb in verbs
     ]
@@ -1780,7 +1912,7 @@ def generate_config_lua(
     if settings:
         lines.append("-- ── Settings ─────────────────────────────────────────────────────────────────")
         for key, value in settings.items():
-            lines.append(f"veaf.config.{key} = {_to_lua_scalar(value)}")
+            lines.append(f"veaf.config.{key} = {_to_lua_scalar(value, f'veaf.config.{key}')}")
         lines.append("")
 
     # ── Module settings (FIX-CONVERT-V5-SILENT-LOSSES ticket 04) ──────────
@@ -1802,7 +1934,7 @@ def generate_config_lua(
                     f"module_settings: {key!r} is not a VEAF module setting "
                     "(expected something like 'veafSkynet.DelayForStartup')"
                 )
-            lines.append(f"{key} = {_to_lua_scalar(value)}")
+            lines.append(f"{key} = {_to_lua_scalar(value, str(key))}")
         lines.append("")
 
     # ── Guided checklists ─────────────────────────────────────────────────
@@ -1900,7 +2032,9 @@ def generate_config_lua(
             for key, value in mod_cfg.items():
                 if key in _SKIP_SETCONFIG_KEYS:
                     continue
-                lines.append(f'veaf.setConfig("{mod_id}", {_lua_text(key)}, {_to_lua_scalar(value)})')
+                lines.append(
+                    f'veaf.setConfig("{mod_id}", {_lua_text(key)}, {_to_lua_scalar(value, f"{mod_id}.{key}")})'
+                )
 
             var_name = id_to_var.get(mod_id)
             if not var_name:
@@ -2020,7 +2154,7 @@ def generate_config_lua(
         lines.append("if csar then")
         csar_props = {k: v for k, v in csar_cfg.items() if k != "enabled"}
         for key, value in csar_props.items():
-            lines.append(f"    csar.{key} = {_to_lua_scalar(value)}")
+            lines.append(f"    csar.{key} = {_to_lua_scalar(value, f'csar.{key}')}")
         lines.append("    csar.initialize()")
         lines.append("end")
         lines.append("")

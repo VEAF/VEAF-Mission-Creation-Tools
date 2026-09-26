@@ -13,7 +13,11 @@ from weather_injector.weather.dcs_weather_converter import (
 
 
 class TestDCSWeatherConverterDefaults(unittest.TestCase):
-    """to_dcs_lua_table() with no parameters → all defaults."""
+    """to_dcs_lua_table() with no parameters → the defaults, written in the fields DCS reads.
+
+    FIX-SCRATCH-MISSION-FINDINGS ticket 01: the converter used to return an ``atmosphere`` table and a
+    ``fog`` table of its own invention; DCS ignored both, so every variant flew the base mission's sky.
+    """
 
     def setUp(self) -> None:
         self.result = DCSWeatherConverter.to_dcs_lua_table()
@@ -21,95 +25,104 @@ class TestDCSWeatherConverterDefaults(unittest.TestCase):
     def test_returns_dict(self) -> None:
         self.assertIsInstance(self.result, dict)
 
-    def test_has_atmosphere_key(self) -> None:
-        self.assertIn("atmosphere", self.result)
+    def test_writes_no_invented_key(self) -> None:
+        self.assertNotIn("atmosphere", self.result)
+        self.assertNotIn("enabled", self.result["fog"])
 
-    def test_has_fog_key(self) -> None:
-        self.assertIn("fog", self.result)
+    def test_static_weather(self) -> None:
+        # Dynamic weather (atmosphere_type 1) would make DCS ignore every static field below
+        self.assertEqual(self.result["atmosphere_type"], 0)
 
     def test_default_temperature(self) -> None:
-        self.assertEqual(self.result["atmosphere"]["temperature_celsius"], 15.0)
+        self.assertEqual(self.result["season"]["temperature"], 15.0)
 
-    def test_default_wind_speed(self) -> None:
-        self.assertEqual(self.result["atmosphere"]["wind"]["speed_mps"], 5.0)
+    def test_default_ground_wind(self) -> None:
+        self.assertEqual(self.result["wind"]["atGround"]["speed"], 5.0)
 
-    def test_default_wind_direction(self) -> None:
-        self.assertEqual(self.result["atmosphere"]["wind"]["direction_degrees"], 0.0)
+    def test_default_visibility_is_unlimited(self) -> None:
+        # >= 9000 m reads as "10 km or more" in a METAR; v5 flew it as DCS's 80 km
+        self.assertEqual(self.result["visibility"]["distance"], 80000)
 
-    def test_default_visibility(self) -> None:
-        self.assertEqual(self.result["atmosphere"]["visibility_meters"], 10000.0)
+    def test_clear_sky_has_no_preset(self) -> None:
+        self.assertNotIn("preset", self.result["clouds"])
 
-    def test_default_cloud_type(self) -> None:
-        self.assertEqual(self.result["atmosphere"]["clouds"]["type"], 0)
+    def test_fog_off(self) -> None:
+        self.assertFalse(self.result["enable_fog"])
+        self.assertEqual(self.result["fog"], {"visibility": 0, "thickness": 0})
 
-    def test_default_cloud_base(self) -> None:
-        self.assertEqual(self.result["atmosphere"]["clouds"]["base_altitude_meters"], 2000.0)
-
-    def test_fog_disabled_by_default(self) -> None:
-        self.assertFalse(self.result["fog"]["enabled"])
-
-    def test_fog_density_zero_by_default(self) -> None:
-        self.assertEqual(self.result["fog"]["density"], 0.0)
-
-    def test_fog_thickness_default(self) -> None:
-        self.assertEqual(self.result["fog"]["thickness_meters"], 200.0)
+    def test_qnh_not_invented(self) -> None:
+        """No pressure was given, so the base mission's stays."""
+        self.assertNotIn("qnh", self.result)
 
 
 class TestDCSWeatherConverterParameterOverrides(unittest.TestCase):
-    """Individual parameter overrides are applied correctly."""
+    """Individual parameter overrides reach the DCS fields."""
 
     def test_temperature_override(self) -> None:
         result = DCSWeatherConverter.to_dcs_lua_table(temperature_celsius=25.0)
-        self.assertEqual(result["atmosphere"]["temperature_celsius"], 25.0)
+        self.assertEqual(result["season"]["temperature"], 25.0)
 
     def test_wind_speed_override(self) -> None:
         result = DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=10.0)
-        self.assertEqual(result["atmosphere"]["wind"]["speed_mps"], 10.0)
+        self.assertEqual(result["wind"]["atGround"]["speed"], 10.0)
 
-    def test_wind_direction_override(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(wind_direction_degrees=180.0)
-        self.assertEqual(result["atmosphere"]["wind"]["direction_degrees"], 180.0)
+    def test_wind_is_stronger_aloft(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=10.0)
+        self.assertGreater(result["wind"]["at2000"]["speed"], 10.0)
+        self.assertGreater(result["wind"]["at8000"]["speed"], result["wind"]["at2000"]["speed"])
+
+    def test_wind_direction_is_turned_to_where_it_blows(self) -> None:
+        """A METAR gives where the wind comes FROM; the mission file stores where it goes TO (v5 did
+        the same conversion, ``convertFromTo``)."""
+        result = DCSWeatherConverter.to_dcs_lua_table(wind_direction_degrees=270.0)
+        self.assertEqual(result["wind"]["atGround"]["dir"], 90)
 
     def test_visibility_override(self) -> None:
         result = DCSWeatherConverter.to_dcs_lua_table(visibility_meters=5000.0)
-        self.assertEqual(result["atmosphere"]["visibility_meters"], 5000.0)
+        self.assertEqual(result["visibility"]["distance"], 5000)
 
-    def test_cloud_coverage_few(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="few")
-        self.assertEqual(result["atmosphere"]["clouds"]["type"], 1)
-
-    def test_cloud_coverage_scattered(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="scattered")
-        self.assertEqual(result["atmosphere"]["clouds"]["type"], 2)
-
-    def test_cloud_coverage_broken(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="broken")
-        self.assertEqual(result["atmosphere"]["clouds"]["type"], 3)
-
-    def test_cloud_coverage_overcast(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="overcast")
-        self.assertEqual(result["atmosphere"]["clouds"]["type"], 4)
-
-    def test_cloud_coverage_unknown_defaults_to_zero(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="unknown_value")
-        self.assertEqual(result["atmosphere"]["clouds"]["type"], 0)
+    def test_cloud_coverage_picks_a_preset_of_that_coverage(self) -> None:
+        expected = {"few": "Preset1", "scattered": "Preset3", "broken": "Preset13", "overcast": "Preset21"}
+        for coverage, preset in expected.items():
+            with self.subTest(coverage=coverage):
+                result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage=coverage, cloud_height_meters=2000.0)
+                self.assertEqual(result["clouds"]["preset"], preset)
 
     def test_cloud_coverage_case_insensitive(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="FEW")
-        self.assertEqual(result["atmosphere"]["clouds"]["type"], 1)
+        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="FEW", cloud_height_meters=2000.0)
+        self.assertEqual(result["clouds"]["preset"], "Preset1")
 
-    def test_cloud_height_override(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(cloud_height_meters=1500.0)
-        self.assertEqual(result["atmosphere"]["clouds"]["base_altitude_meters"], 1500.0)
+    def test_unknown_coverage_is_clear(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="unknown_value")
+        self.assertNotIn("preset", result["clouds"])
+
+    def test_cloud_base_inside_the_preset_range_is_kept(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="few", cloud_height_meters=1500.0)
+        self.assertEqual(result["clouds"]["base"], 1500)
+
+    def test_low_base_picks_a_preset_that_allows_it(self) -> None:
+        """Preset21 starts at 1260 m; an overcast at 300 m needs a low-level preset instead."""
+        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="overcast", cloud_height_meters=300.0)
+        self.assertEqual(result["clouds"]["preset"], "Preset19")
+        self.assertEqual(result["clouds"]["base"], 300)
+
+    def test_base_outside_every_range_is_clamped(self) -> None:
+        """DCS accepts a preset's base only inside presetAltMin/presetAltMax (Config/Effects/clouds.lua)."""
+        result = DCSWeatherConverter.to_dcs_lua_table(cloud_coverage="few", cloud_height_meters=100.0)
+        self.assertEqual(result["clouds"]["preset"], "Preset1")
+        self.assertEqual(result["clouds"]["base"], 840)
+
+    def test_precipitation_picks_a_rainy_preset(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(
+            cloud_coverage="overcast", cloud_height_meters=1000.0, precipitation=True
+        )
+        self.assertEqual(result["clouds"]["preset"], "RainyPreset1")
 
     def test_fog_enabled(self) -> None:
-        result = DCSWeatherConverter.to_dcs_lua_table(fog_enabled=True, fog_density=0.5)
-        self.assertTrue(result["fog"]["enabled"])
-        self.assertEqual(result["fog"]["density"], 0.5)
-
-    def test_fog_thickness_override(self) -> None:
         result = DCSWeatherConverter.to_dcs_lua_table(fog_enabled=True, fog_thickness_meters=400.0)
-        self.assertEqual(result["fog"]["thickness_meters"], 400.0)
+        self.assertTrue(result["enable_fog"])
+        self.assertEqual(result["fog"]["thickness"], 400)
+        self.assertGreater(result["fog"]["visibility"], 0)
 
 
 class TestDCSWeatherConverterMetarString(unittest.TestCase):
@@ -121,25 +134,81 @@ class TestDCSWeatherConverterMetarString(unittest.TestCase):
         self.result = DCSWeatherConverter.to_dcs_lua_table(metar_string=self.METAR)
 
     def test_wind_direction_from_metar(self) -> None:
-        self.assertAlmostEqual(self.result["atmosphere"]["wind"]["direction_degrees"], 270.0)
+        self.assertEqual(self.result["wind"]["atGround"]["dir"], 90)
 
     def test_wind_speed_from_metar(self) -> None:
         # 15 kt * 0.51444 = 7.7166 m/s
-        self.assertAlmostEqual(self.result["atmosphere"]["wind"]["speed_mps"], 15 * 0.51444, places=3)
+        self.assertAlmostEqual(self.result["wind"]["atGround"]["speed"], 15 * 0.51444, places=3)
 
     def test_visibility_from_metar(self) -> None:
-        self.assertAlmostEqual(self.result["atmosphere"]["visibility_meters"], 9999.0)
+        self.assertEqual(self.result["visibility"]["distance"], 80000)
 
-    def test_cloud_type_skc(self) -> None:
-        self.assertEqual(self.result["atmosphere"]["clouds"]["type"], 0)
+    def test_cloud_skc(self) -> None:
+        self.assertNotIn("preset", self.result["clouds"])
 
     def test_temperature_from_metar(self) -> None:
-        self.assertAlmostEqual(self.result["atmosphere"]["temperature_celsius"], 15.0)
+        self.assertAlmostEqual(self.result["season"]["temperature"], 15.0)
+
+    def test_qnh_from_metar_in_mmhg(self) -> None:
+        # 1018 hPa = 763.6 mmHg
+        self.assertAlmostEqual(self.result["qnh"], 1018 * 0.750062, places=1)
+
+    def test_qnh_in_inches(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(metar_string="KLSV 151420Z 27015KT 10SM CLR 30/05 A2992")
+        self.assertAlmostEqual(result["qnh"], 29.92 * 25.4, places=1)
 
     def test_metar_override_still_works(self) -> None:
         """Parameter overrides apply on top of METAR values."""
         result = DCSWeatherConverter.to_dcs_lua_table(metar_string=self.METAR, temperature_celsius=30.0)
-        self.assertEqual(result["atmosphere"]["temperature_celsius"], 30.0)
+        self.assertEqual(result["season"]["temperature"], 30.0)
+
+    def test_rain_in_the_metar_reaches_dcs(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(metar_string="ETAR 011150Z 26002KT 6000 -RA OVC028 16/14 Q1012")
+        self.assertEqual(result["clouds"]["preset"], "RainyPreset1")
+
+    def test_fog_in_the_metar_reaches_dcs(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(metar_string="ETAR 010550Z 00000KT 0400 FG VV001 08/08 Q1020")
+        self.assertTrue(result["enable_fog"])
+
+
+class TestTwoVariantsDifferWhereDcsReads(unittest.TestCase):
+    """The ticket's own "Done when": two METARs, different values in the DCS fields.
+
+    Caucasus v6 ``dawn-broken`` and ``dawn-overcast-rain`` both flew Preset2 / 2500 m / 20 °C / calm,
+    because only the ignored ``atmosphere`` table differed.
+    """
+
+    def test_broken_and_overcast_rain_differ(self) -> None:
+        broken = DCSWeatherConverter.to_dcs_lua_table(metar_string="UGKO 290400Z 09004KT 9999 BKN110 23/12 Q1014")
+        rain = DCSWeatherConverter.to_dcs_lua_table(metar_string="UGKO 290400Z 27012KT 5000 RA OVC095 16/14 Q1008")
+        self.assertNotEqual(broken["clouds"]["preset"], rain["clouds"]["preset"])
+        self.assertNotEqual(broken["season"]["temperature"], rain["season"]["temperature"])
+        self.assertNotEqual(broken["wind"]["atGround"], rain["wind"]["atGround"])
+        self.assertNotEqual(broken["qnh"], rain["qnh"])
+
+
+class TestClearsky(unittest.TestCase):
+    """``clearsky: true`` caps a real weather to VFR-friendly conditions, in the DCS fields."""
+
+    def test_caps_clouds_to_few(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(
+            metar_string="ETAR 011150Z 26002KT 6000 -RA OVC028 16/14 Q1012", clearsky=True
+        )
+        self.assertEqual(result["clouds"]["preset"], "Preset1")
+
+    def test_caps_wind(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(
+            metar_string="EGLL 010850Z 09035KT CAVOK 15/08 Q1018", clearsky=True
+        )
+        self.assertLessEqual(result["wind"]["atGround"]["speed"], 7.72)
+
+    def test_raises_visibility(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(visibility_meters=3000.0, clearsky=True)
+        self.assertEqual(result["visibility"]["distance"], 80000)
+
+    def test_removes_fog(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(fog_enabled=True, clearsky=True)
+        self.assertFalse(result["enable_fog"])
 
 
 class TestFetchLiveMetar(unittest.TestCase):
@@ -202,6 +271,21 @@ class TestFallbackMetarParsing(unittest.TestCase):
         self.assertAlmostEqual(r["wind_direction"], 270.0)
         # Speed is 15 kt, gust is ignored
         self.assertAlmostEqual(r["wind_speed"], 15 * 0.51444, places=3)
+
+    def test_wind_in_metres_per_second_is_not_converted(self) -> None:
+        """Russian stations report MPS — URSS feeds Caucasus v6's live variants. It was read as knots."""
+        r = self._parse("URSS 290400Z 27008MPS 9999 SCT040 23/12 Q1014")
+        self.assertAlmostEqual(r["wind_direction"], 270.0)
+        self.assertAlmostEqual(r["wind_speed"], 8.0)
+
+    def test_variable_wind_is_read(self) -> None:
+        """`VRB02KT` kept the 5 m/s default, and a near calm flew with 5 m/s."""
+        r = self._parse("ETAR 240555Z VRB02KT 9999 BKN065 09/07 A3019")
+        self.assertAlmostEqual(r["wind_speed"], 2 * 0.51444, places=3)
+
+    def test_calm_wind_is_zero(self) -> None:
+        r = self._parse("ETAR 240555Z 00000KT 9999 BKN065 09/07 A3019")
+        self.assertAlmostEqual(r["wind_speed"], 0.0)
 
     def test_wind_direction_000(self) -> None:
         r = self._parse("00010KT")

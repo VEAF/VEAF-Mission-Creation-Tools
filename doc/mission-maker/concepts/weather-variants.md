@@ -47,6 +47,10 @@ versions:
 ```
 
 - **Heures** : `"HH:MM"`, une expression solaire (`sunrise`, `sunset-30*60`), ou des secondes.
+  Toutes sont à l'**heure locale du théâtre**, celle que DCS affiche : chaque théâtre a un décalage
+  fixe par rapport à UTC, sans heure d'été (Caucasus UTC+4, Syria UTC+3, GermanyCW UTC+2…). Le
+  `timezone:` de `position` ne sert que pour un théâtre que l'outil ne connaît pas, et le build le
+  signale.
 - **Dates** : `"AAAA-MM-JJ"`, `today`, `tomorrow`, `+N` / `-N` jours.
 - **`metar:`** remplace le bloc `weather:` par une observation réelle.
 

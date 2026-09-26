@@ -141,6 +141,16 @@ Chaque nœud de `tree` est **soit un sous-menu, soit une commande** :
 
 `restrict_to_group` est **optionnel**. S'il est présent, le menu n'apparaît que pour le groupe DCS nommé (par exemple un groupe de contrôle « MM Ctrl »). Absent, le menu est global et visible par tous les joueurs.
 
+### `secured` sur une commande
+
+Une commande peut porter `secured: true` : elle n'est alors exécutée que si le pilote du groupe a le **niveau de sécurité** requis (voir [veafSecurity](veafSecurity.md)) ; son libellé est préfixé d'un `+`, comme les commandes sécurisées du menu VEAF. Le niveau vérifié est celui du groupe pour lequel le menu est posé : `secured` exige donc `restrict_to_group`, et le build refuse un menu global qui en porterait une. Sans `secured`, une commande est ouverte à tout joueur qui voit le menu — sur un serveur public, réfléchissez à ce qu'un menu « Arrêter la QRA » posé pour tous permet.
+
+```yaml
+      restrict_to_group: "MM Ctrl"
+      tree:
+        - { command: "Arrêter QRA Nord", action: qra.stop, qra: "QRA-Nord", secured: true }
+```
+
 ### Vocabulaire d'actions
 
 Le vocabulaire d'actions est **fermé** (v1). Chaque `action` requiert les clés indiquées :

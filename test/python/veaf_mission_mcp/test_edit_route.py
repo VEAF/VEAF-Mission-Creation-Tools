@@ -28,6 +28,7 @@ mission, and two of them are traps a generic writer would fall into:
 
 import zipfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 from mission_tools.miz_tools import read_miz
@@ -319,6 +320,41 @@ class TestWaypointFields:
             _points(miz)[-2]["alt"],
             _points(miz)[-2]["speed"],
         )
+
+
+class TestTaskPosition:
+    """Ticket 17: `add_task` appended, so an engagement landed after an orbit that never ends."""
+
+    def _orbit_then_engage(self, miz: Path, **extra: Any) -> list[dict]:
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=2,
+            task="orbit",
+            task_params={"pattern": "Circle", "altitude_ft": 20000, "speed_kt": 300},
+        )
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=2,
+            task="engage_targets_in_zone",
+            task_params={"position": {"x": -280000.0, "y": 620000.0}, "radius_m": 60000, "target_types": ["Air"]},
+            **extra,
+        )
+        return sorted(_tasks(_points(miz)[1]), key=lambda t: t["number"])
+
+    def test_a_task_is_appended_by_default(self, miz: Path) -> None:
+        assert [t["id"] for t in self._orbit_then_engage(miz)] == ["Orbit", "EngageTargetsInZone"]
+
+    def test_a_task_can_be_inserted_before_the_others(self, miz: Path) -> None:
+        tasks = self._orbit_then_engage(miz, task_position=1)
+        assert [(t["number"], t["id"]) for t in tasks] == [(1, "EngageTargetsInZone"), (2, "Orbit")]
+
+    def test_a_position_past_the_end_is_refused(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="task_position"):
+            self._orbit_then_engage(miz, task_position=3)
 
 
 class TestWaypointTasks:

@@ -696,6 +696,33 @@ class TestBullseyeInjection(unittest.TestCase):
         worker.process_groups(silent=True)
         self.assertNotIn("BULLSEYE", [p["name"] for p in group.group_dcs["route"]["points"]])
 
+    # ── a plan declaring no waypoint (FIX-SCRATCH-MISSION-FINDINGS ticket 05) ──
+
+    def test_an_empty_plan_still_gets_the_bullseye(self) -> None:
+        """`waypoints: {}` is how a mission maker asks for "just the bullseye" — the shipped Caucasus v6
+        does exactly that, and the GUIDE promises every flight plan gets one. It used to get nothing:
+        0 of 64 blue templates on GermanyCW-v6."""
+        points = self._inject(self._worker(), self._group("blue"), [])
+        bullseye = next(p for p in points if p["name"] == "BULLSEYE")
+        self.assertEqual((bullseye["x"], bullseye["y"]), (self.BLUE["x"], self.BLUE["y"]))
+        self.assertEqual(points[0]["name"], "DEP", "the departure point stays first")
+
+    def test_an_empty_plan_is_not_reported_as_no_plan(self) -> None:
+        """The old log said « sans plan de vol » for a plan that was found — false, and it hid the cause."""
+        from unittest.mock import patch
+
+        from veaf_libs.i18n import tn
+
+        worker = self._worker(inject_bullseye=False)
+        worker.add_group(self._group("blue"))
+        worker.waypoints_manager = MagicMock()
+        worker.waypoints_manager.get_flight_plan_for.return_value = FlightPlanDefinition(name="plan", waypoints=[])
+        with patch("waypoints_injector.waypoints_injector_worker.logger") as mock_logger:
+            worker.process_groups(silent=False)
+        details = [c.args[0] for c in mock_logger.detail.call_args_list]
+        self.assertIn(tn("waypoints_injector.empty_flight_plan", 1), details)
+        self.assertNotIn(tn("waypoints_injector.no_flight_plan", 1), details)
+
     # ── the waypoint itself ─────────────────────────────────────────────────
 
     def test_the_waypoint_is_a_turning_point_at_altitude(self) -> None:

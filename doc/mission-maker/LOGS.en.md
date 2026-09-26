@@ -26,6 +26,49 @@ poetry run veaf-logs
 The window needs PySide6, declared as an optional dependency (`--all-extras`, or
 `--extras logs`). Nothing else in `veaf-tools` requires it.
 
+## A remote server's log {#remote}
+
+`File › Open a remote log…` (Ctrl+Shift+O) follows the `dcs.log` of a DCS server over
+SSH, with the same filters, rules and profiles as a local file. One machine often
+hosts several DCS instances: declare the machine once, then one log per instance,
+in `~/veafmct.yaml` (see [the global user configuration](GUIDE.en.md#global-user-configuration)):
+
+```yaml
+servers:
+  veaf:
+    host: dcs.veaf.org
+    user: veaf
+    port: 22                  # optional
+    key: ~/.ssh/id_ed25519    # optional: the SSH agent and default keys otherwise
+    logs:
+      private1: C:/Users/veaf/Saved Games/private1_server/Logs/dcs.log
+      public1: C:/Users/veaf/Saved Games/public1_server/Logs/dcs.log
+```
+
+The menu then offers `veaf › private1`, `veaf › public1`… Each instance opens a
+`veaf:private1` tab, reopened at the next launch like a local file.
+
+**Key authentication only.** The tool never asks for, reads or stores a password.
+When the machine's key is not yet in `~/.ssh/known_hosts`, a dialog shows its
+fingerprint and offers to remember it, as `ssh` does the first time.
+
+The log is mirrored locally as it grows: one `stat` per second, and only the new
+bytes travel. When DCS restarts on the server and starts a fresh file, the tab
+starts over with it. A network outage puts the tab on hold; it resumes where it
+was as soon as the server answers, retrying every five seconds. Opening a stopped
+instance (no `dcs.log` on the server) shows a message; a tab already open stays on
+hold until the instance starts again. At launch, an unreachable server is reported
+in the status bar and its tabs are not reopened: nothing blocks.
+
+On the Windows server side you need the **OpenSSH Server** service (a Windows
+optional feature, `Settings › Apps › Optional features`): SFTP is included and
+enabled by default. Classic trap: for an **administrator** account the public key
+goes to `C:\ProgramData\ssh\administrators_authorized_keys`, not to
+`~\.ssh\authorized_keys`, and that file must be readable only by `SYSTEM` and
+`Administrators`.
+
+`veaf-tools.exe` does not carry this feature: it lives in `veaf-logs`.
+
 ## The three states
 
 Every level, source and noise family cycles through three states on click:
@@ -284,3 +327,5 @@ ASCII. The number of noise families is capped at 64.
 |---|---|
 | Session (open files, filters, geometry, font) | `%APPDATA%\veaf-logs\session.json` |
 | Profiles | `%APPDATA%\veaf-logs\profiles.json` |
+| Remote servers (`servers:`) | `~\veafmct.yaml` |
+| Local mirror of a remote log | `%TEMP%\veaf-logs-*.log`, removed when the tab closes |

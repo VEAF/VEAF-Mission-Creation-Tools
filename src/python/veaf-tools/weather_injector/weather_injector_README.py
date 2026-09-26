@@ -88,7 +88,7 @@ This will:
 |-------|------|----------|-------------|
 | `latitude` | number | Yes | Geographic latitude (-90 to 90) |
 | `longitude` | number | Yes | Geographic longitude (-180 to 180) |
-| `timezone` | string | Yes | IANA timezone (e.g., "Europe/Paris", "UTC", "Asia/Damascus") |
+| `timezone` | string | Yes | IANA timezone (e.g., "Europe/Paris", "UTC", "Asia/Damascus"), used only for a theatre the tool does not know: solar times are on the theatre's DCS clock (fixed offset, no DST) |
 
 ### Version Configuration
 
@@ -106,11 +106,12 @@ This will:
 |-------|------|-------|-------------|
 | `temperature` | number | -50 to 50 | Air temperature in Celsius |
 | `wind_speed` | number | 0+ | Wind speed in m/s |
-| `wind_direction` | number | 0-359 | Wind direction in degrees (0=North) |
+| `wind_direction` | number | 0-359 | Direction the wind comes FROM, in degrees (0=North), as in a METAR |
 | `visibility` | number | 0+ | Visibility in meters |
 | `cloud_type` | string | clear, few, scattered, broken, overcast | Cloud coverage type |
 | `cloud_height` | number | 0+ | Cloud base altitude in meters |
 | `fog_enabled` | boolean | true/false | Enable fog effect |
+| `precipitation` | boolean | true/false | Rain: picks a DCS rainy cloud preset |
 
 ## Time Expressions
 

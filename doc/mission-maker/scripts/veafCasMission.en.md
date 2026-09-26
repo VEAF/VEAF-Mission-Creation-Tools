@@ -74,7 +74,7 @@ Options:
 | Option | Range | Default | Description |
 |--------|-------|---------|-------------|
 | `size` | 1–5 | 1 | Number of target units |
-| `defense` | 0–5 | 1 | AA defence level (0=none, 5=heavy SAM) |
+| `defense` | 0–5 | 1 | Air-defense level of the escort, rolled ±1 — see [what a level places](#defense-levels) |
 | `armor` | 0–5 | 1 | Armour level (0=infantry, 5=heavy MBT) — see [what a tier holds](#armour-tiers) |
 | `spacing` | 1–5 | 1 | Spacing between the group's units |
 | `side` | blue/red | *(marker coalition)* | Coalition of targets |
@@ -87,6 +87,39 @@ Options:
 Each tier draws at random from a list of vehicle types, picked by coalition and by the mission's era. Those lists are maintained by hand: a tier expresses *relative* power, which the DCS database does not carry — it states neither a vehicle's period nor its place on any scale.
 
 Since 6.15.25 the modern armour DCS has added is in them: the T-84 Oplot-M and Stryker CV on the blue side, the T-90M and BMPT Terminator on the red one, among others. An automated check now verifies that **every** type named in those lists actually exists in the database — before it, an entry gone stale simply spawned nothing, and never said so.
+
+### What a defense level places {#defense-levels}
+
+The `defense` level drives two things: the **escort** of a section (one or two air-defense vehicles
+added to the armour, infantry or trucks of `_cas`, `-armor`, `-convoy`…) and the complete
+**air-defense group** that `-sam`, `-samSR`, `-samLR` and `-aaa` place (`_spawn samgroup`). For a real long-range battery, use `-samVLR` (`_spawn longrangesam`),
+which depends on no level: see [the alias list](../../ALIASES.en.md).
+
+**The level is rolled, not guaranteed.** For a requested level above 0: 60 % chance of getting it,
+20 % of getting the level below, 20 % the level above. The air-defense group is then clamped to 0–5;
+the escort has a tier 6, reached only by a 5 rolled upwards. The aliases also draw the requested
+level from a range: `-sam` 1–5, `-samLR` 4–5, `-samSR` 2–3, `-aaa` 1–2. `list_shortcuts` (MCP)
+returns those ranges for each alias.
+
+**The level follows the mission's era** (`mission.era`):
+
+- `MODERN` (default): the groups below.
+- `COLD_WAR`: the types that entered service after 1980 — the armour lists' reference — are
+  replaced: Avenger → Vulcan, Linebacker → Chaparral, Tor → Osa, Tunguska → Shilka, HQ-7 →
+  Strela-10, Igla-S → Igla. Service dates are estimates, not sourced.
+- `WW2`: flak only for the air-defense groups (Bofors, M45, 3.7-inch on the blue side; Flak
+  30/36/37/38/41 on the red one), and **no escort**.
+
+Air-defense groups in `MODERN`:
+
+| Level | Blue | Red |
+|-------|------|-----|
+| 0 | AAV7, trucks (no air defense) | ZU-23, S-60 (0–1 each) |
+| 1 | Vulcan, Avenger (0–1) | Shilka, ZSU-57-2 |
+| 2 | Vulcan, Avenger | SA-9, Shilka, ZSU-57-2, S-60 |
+| 3 | Gepard, Linebacker, Avenger | SA-13, SA-9, Shilka, ZSU-57-2 |
+| 4 | Roland, Chaparral, Gepard | SA-8, SA-13, Shilka, ZSU-57-2 |
+| 5 | Hawk, Chaparral, Gepard | SA-15, SA-8, SA-13, SA-19, ZSU-57-2, S-60 |
 
 ---
 
@@ -103,14 +136,16 @@ The **CAS MISSION** submenu is created as soon as the module initialises, with a
 
 ## Difficulty Reference
 
-| Level | Typical units | AA defence |
+| Level | Typical units | Air-defense escort (red, `MODERN`) |
 |-------|--------------|------------|
 | 0 | Infantry, jeeps | None |
-| 1 | APCs, trucks | MANPADS |
-| 2 | BMPs, BTRs | ZU-23 |
-| 3 | IFVs, light tanks | ZSU-23-4 + SA-9 |
-| 4 | MBTs | SA-13 + SA-15 |
-| 5 | Heavy MBT mix | SA-6 / SA-11 |
+| 1 | APCs, trucks | ZU-23 or ZSU-57-2 |
+| 2 | BMPs, BTRs | Shilka or ZSU-57-2, ×2 |
+| 3 | IFVs, light tanks | SA-9 or SA-13, Shilka or ZSU-57-2 |
+| 4 | MBTs | Shilka or ZSU-57-2, HQ-7 |
+| 5 | Heavy MBT mix | SA-8 or SA-19, Shilka or SA-13 |
+
+The level is rolled ±1 and follows the era: see [what a defense level places](#defense-levels).
 
 ---
 

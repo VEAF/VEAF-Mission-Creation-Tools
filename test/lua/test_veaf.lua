@@ -2277,6 +2277,68 @@ function TestVeafFindSpawnPoint:test_omitting_surfaces_keeps_the_land_only_defau
 end
 
 -- ---------------------------------------------------------------------------
+-- FIX-PLACEMENT-IGNORES-SCENERY tickets 06-07 — descending clearance steps and
+-- noRandomFallback
+-- ---------------------------------------------------------------------------
+
+function TestVeafFindSpawnPoint:test_clearance_fallback_50m_succeeds_when_100m_fails()
+  -- Tier 1 at 100 m clearance returns nothing; the 50 m step must produce a candidate
+  -- that is returned instead of falling through to random jitter.
+  Disposition = {
+    getSimpleZones = function(_centre, _radius, clearance)
+      if clearance == 100 then
+        return {}
+      end
+      return { { x = 30, y = 0, course = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 30, "the 50 m clearance candidate must be returned")
+  luaunit.assertEquals(self._jitterCalls, 0, "must not fall through to random jitter")
+end
+
+function TestVeafFindSpawnPoint:test_closest_candidate_wins_over_first_candidate()
+  -- When several valid candidates exist, the closest one must be returned, not the first.
+  Disposition = {
+    getSimpleZones = function()
+      return { { x = 500, y = 0, course = 0 }, { x = 50, y = 0, course = 0 } }
+    end,
+  }
+  self:_jitterSequence({ 600 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000)
+  luaunit.assertEquals(point.x, 50, "the closest candidate must win")
+  luaunit.assertEquals(self._jitterCalls, 0)
+end
+
+function TestVeafFindSpawnPoint:test_no_random_fallback_returns_nil_when_disposition_empty()
+  -- With noRandomFallback=true, if all clearance steps return nothing, nil must be
+  -- returned without trying random jitter.
+  Disposition = {
+    getSimpleZones = function()
+      return {}
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000, nil, nil, true)
+  luaunit.assertNil(point, "noRandomFallback=true must return nil, not a jitter consolation")
+  luaunit.assertEquals(self._jitterCalls, 0, "no jitter call must happen")
+end
+
+function TestVeafFindSpawnPoint:test_no_random_fallback_false_still_falls_through_to_jitter()
+  -- noRandomFallback=false (explicit) must still fall through to jitter when Disposition finds nothing.
+  Disposition = {
+    getSimpleZones = function()
+      return {}
+    end,
+  }
+  self:_jitterSequence({ 500 })
+  local point = veaf.findSpawnPoint({ x = 0, y = 0, z = 0 }, 1000, nil, nil, false)
+  luaunit.assertNotNil(point, "noRandomFallback=false must still allow jitter")
+  luaunit.assertEquals(point.x, 500)
+end
+
+-- ---------------------------------------------------------------------------
 -- Trigger-zone properties (FEAT-SCENERY-AWARE-SPAWN ticket 04)
 --
 -- DCS hands properties over as an array of string pairs, so a caller would otherwise

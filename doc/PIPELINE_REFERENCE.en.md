@@ -349,6 +349,20 @@ At extraction (`extract-aircraft-groups`), each group is routed to one of the tw
 
 > **v6 hard break**: the old `src/aircraft-templates.yaml` / `src/templates.yaml` names and the `aircraft_groups` step are gone. `convert-v5` produces the two new files directly.
 
+#### Falling back to the shipped catalogue {#shipped-catalogue-fallback}
+
+These two steps are the only ones in the pipeline with a **fallback**: their input is a catalogue, most of which nobody edits. `prepare` therefore no longer lays down a copy — it writes an empty file — and resolution goes in this order:
+
+1. the mission folder's file, **when it holds at least one group**;
+2. otherwise the shipped catalogue, under `published/src/defaults/mission-folder/src/`.
+
+An absent or empty file means "I add nothing to the shipped catalogue", not "inject nothing". Two consequences worth knowing:
+
+- `spawnable_aircrafts: false` / `dynamic_slot_templates: false` remains the only way to disable the step, and the fallback does not resurrect it;
+- an explicit `file:` is taken at its word: when the named path does not exist the step is **skipped** rather than falling back to the shipped catalogue — a typo must not inject a catalogue nobody asked for.
+
+When the fallback applies, the build report says so. To pull entries from the shipped catalogue selectively into a file that already has some, see [`pull-aircraft-groups`](CLI_REFERENCE.en.md#pull-aircraft-groups).
+
 ### Injection modes
 
 | Mode | Behaviour |
@@ -427,7 +441,14 @@ template group via `linkDynTempl`.
   airports:                  # optional. Absent -> ALL airports of this coalition get `defaults`.
     <name or id>: { }                       # defaults only
     <name or id>: { aircrafts: { ... } }    # defaults + per-airport override
+  exclude_airports:          # optional. These airports NEVER get a slot, listed or not.
+    - <name or id>
 ```
+
+- `exclude_airports` is what the MCP action `set_airbase_coalition(…, dynamic_spawn: false)` writes:
+  without it, a `dynamicSpawn = false` in the mission's `warehouses` was **turned back on at build**
+  for every base of a declared coalition with no `airports:` list (measured on GermanyCW-v6: 61
+  airports opened instead of 12). A base both listed and excluded stays closed, with a warning.
 
 - `template` references a template group by **name**; omit it to auto-match a
   template group of the same **aircraft type** (same coalition).
@@ -562,7 +583,7 @@ Also accepted: versions.yaml  (mission root)
 position:
   latitude: 33.5                        # Decimal degrees, -90 to 90
   longitude: 35.5                       # Decimal degrees, -180 to 180
-  timezone: "Asia/Damascus"             # IANA timezone string
+  timezone: "Asia/Damascus"             # IANA zone, fallback for an unknown theatre (else: the theatre's DCS clock)
 
 # ── Base date for all versions ─────────────────────────────────────────────
 base_date: "2024-03-15"                 # ISO 8601 (YYYY-MM-DD)
@@ -596,6 +617,7 @@ versions:
 | `metar` | string | No | Full METAR string — parsed for the weather data, and showable in the briefing through [`${METAR}`](#briefing-variables) |
 | `airport_icao` | string | No | ICAO code whose live weather is fetched (used without `metar`) |
 | `weather` | object | No | Manual weather override (used without `metar` or `airport_icao`) |
+| `clearsky` | boolean | No | Caps the weather to visual-flight conditions: clouds at most FEW, wind under 15 kt, visibility 10 km or more, no rain, no fog. Keeps an `airport_icao`'s real weather flyable without instruments. Default `false` |
 
 ### Showing the weather in the briefing: `${METAR}` {#briefing-variables}
 
@@ -655,11 +677,17 @@ What `${METAR}` resolves to, per variant:
 |-------|------|---------|-------------|
 | `temperature` | number | — | Air temperature in °C |
 | `wind_speed` | number | — | Wind speed in m/s |
-| `wind_direction` | number | — | Wind direction in degrees (0 = North) |
+| `wind_direction` | number | — | Direction the wind **comes from**, in degrees (0 = North), as in a METAR |
 | `visibility` | number | — | Visibility in metres |
 | `cloud_type` | string | — | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | number | — | Cloud base altitude in metres |
 | `fog_enabled` | boolean | `false` | Enable fog effect |
+| `precipitation` | boolean | `false` | Rain: picks one of DCS's rainy cloud presets (`RainyPreset…`) |
+
+Coverage and base pick a DCS **cloud preset**, the only thing DCS renders since 2.7: the first preset
+of that coverage whose altitude range holds the base, otherwise the base is moved into the nearest
+one's range (ranges read from DCS's `Config/Effects/clouds.lua`). A METAR also brings the pressure
+(`Q1018`, `A2992`), rain (`RA`, `DZ`, `TS`...) and fog (`FG`).
 
 ### Minimal example
 

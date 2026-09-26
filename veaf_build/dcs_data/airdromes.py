@@ -11,7 +11,8 @@ Each dump is a committed ``airbase_dumps/<Theatre>.json`` file — the richer ar
 captured with ``veaf-tools capture-map`` (``{id, name, lat, lon, coalition}`` per
 airbase, real airfields and terrain helipads alike). This generator only consumes the
 ``name -> id`` projection to (re)build the flat ``airdromes.yaml`` the build/validation
-read; the JSON keeps the geo data for other uses.
+read, and writes the positions beside it in ``airdrome-positions.yaml`` for the MCP
+``list_airfields`` action — the dumps themselves are not shipped with the tools.
 
 ``generate`` **merges** the available dumps into ``airdromes.yaml``: a theatre with a
 dump is fully replaced from it, a theatre without one is left untouched (theatres are
@@ -56,6 +57,58 @@ def names_to_ids(airbases: list[dict[str, Any]]) -> dict[str, int]:
         if name and "id" in ab:
             by_name.setdefault(name, int(ab["id"]))
     return dict(sorted(by_name.items()))
+
+
+def positions(airbases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Project a dump's airbase records to ``[{name, id, lat, lon}]``, sorted by name.
+
+    Args:
+        airbases: Records with ``name``, ``id``, ``lat`` and ``lon`` keys; one missing any is left out.
+
+    Returns:
+        The airbases that carry a position (first record wins on a duplicate name).
+    """
+    by_name: dict[str, dict[str, Any]] = {}
+    for ab in airbases:
+        name = str(ab.get("name", "")).strip()
+        if name and "id" in ab and ab.get("lat") is not None and ab.get("lon") is not None:
+            by_name.setdefault(name, {"name": name, "id": int(ab["id"]), "lat": ab["lat"], "lon": ab["lon"]})
+    return [by_name[name] for name in sorted(by_name)]
+
+
+def load_position_dumps(dumps_dir: Path = DUMPS_DIR) -> dict[str, list[dict[str, Any]]]:
+    """Parse every committed dump into ``{theatre: [{name, id, lat, lon}]}``.
+
+    Args:
+        dumps_dir: Directory holding the per-theatre ``.json`` dumps.
+
+    Returns:
+        Theatre name -> its positioned airbases.
+    """
+    result: dict[str, list[dict[str, Any]]] = {}
+    if not dumps_dir.is_dir():
+        return result
+    for dump in sorted(dumps_dir.glob("*.json")):
+        doc = json.loads(dump.read_text(encoding="utf-8"))
+        result[str(doc.get("theatre") or dump.stem)] = positions(doc.get("airbases") or [])
+    return result
+
+
+def write_positions_yaml(theatres: dict[str, list[dict[str, Any]]], output: Path) -> None:
+    """Write the airbase positions as a committed YAML artifact.
+
+    Args:
+        theatres: Theatre -> positioned airbases.
+        output: Destination YAML path (parent directories are created).
+    """
+    output.parent.mkdir(parents=True, exist_ok=True)
+    data = {"theatres": dict(sorted(theatres.items()))}
+    with open(output, "w", encoding="utf-8", newline="\n") as f:
+        f.write("# DCS airbase positions (lat/lon), per theatre — every airbase a runtime dump carries.\n")
+        f.write("# Generated from veaf_build/dcs_data/airbase_dumps/<Theatre>.json with airdromes.yaml.\n")
+        f.write("# Runtime-dependent, so NOT CI-guarded. Re-run `veaf-build update-dcs-data --airdromes`.\n")
+        f.write("# Read by the MCP list_airfields action.\n\n")
+        yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
 
 def load_dumps(dumps_dir: Path = DUMPS_DIR) -> dict[str, dict[str, int]]:
@@ -112,7 +165,8 @@ def generate(dumps_dir: Path = DUMPS_DIR, output: Path | None = None) -> int:
     A theatre that has a dump is fully (re)generated from it; a theatre without a
     dump is preserved as already committed in *output* (progressive migration).
     A legacy folder-named duplicate (see :data:`LEGACY_THEATRE_ALIASES`) is dropped
-    once its canonical theatre has been captured.
+    once its canonical theatre has been captured. The positions are written beside *output*, as
+    ``airdrome-positions.yaml``, from the dumps alone: a theatre never dumped has no position.
 
     Args:
         dumps_dir: Directory holding the per-theatre ``.json`` dumps.
@@ -130,4 +184,5 @@ def generate(dumps_dir: Path = DUMPS_DIR, output: Path | None = None) -> int:
         if canonical in dumped:
             merged.pop(legacy, None)
     write_airdromes_yaml(merged, output)
+    write_positions_yaml(load_position_dumps(dumps_dir), output.with_name("airdrome-positions.yaml"))
     return sum(len(a) for a in merged.values())

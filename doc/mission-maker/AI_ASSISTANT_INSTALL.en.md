@@ -78,6 +78,18 @@ language, e.g.:
 The assistant creates the folder, lays down a blank map for the theatre, places the elements, then
 validates and builds the `.miz` — without you leaving the conversation.
 
+### A complete Open Training mission
+
+For a whole VEAF training mission — airbases, support, air defense, graded training ranges, combat
+zones, QRA, CAP, weather — paste the prompt
+[`.prompts/new-open-training-mission.en.md`](../../.prompts/new-open-training-mission.en.md) at the
+start of the session, in an empty folder (French version:
+[`new-open-training-mission.fr.md`](../../.prompts/new-open-training-mission.fr.md)). It sets the
+design rules (which bases, how many zones, what air defense for the size of the front) and asks only
+four or five questions: the map, the era, the template, a mission to draw on if any, the escorts. The
+assistant answers in English, but writes the mission in French, the VEAF servers' language, unless you
+ask otherwise.
+
 ## Update the plugin
 
 When a new plugin version ships, with Claude Code:

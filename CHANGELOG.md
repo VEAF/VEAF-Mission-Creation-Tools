@@ -17,6 +17,299 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.25.0] — 2026-09-26
+
+### Fixed
+
+- **A list written in `settings:` reaches Lua as a table, instead of as a Python `repr`.** A value
+  the generator did not recognise as a scalar was stringified: `csarPrefix: ["helicargo", "MEDEVAC"]`
+  arrived in `veaf-config.lua` as `csar.csarPrefix = "['helicargo', 'MEDEVAC']"` — valid Lua, a
+  string where `CSAR.lua` iterates a table, and written without a warning. Lists now generate a Lua
+  table constructor, nested ones included; a YAML **mapping** is refused with a message naming the
+  setting and pointing at the Lua callback, since nothing consumes a keyed table from `settings:`.
+  The helper is shared, so this covers `settings:`, `module_settings:`, a module's `setConfig` keys
+  and CSAR alike. Found alongside it: `RADIO.user_menus` was missing from the skip list, so every
+  mission with YAML radio menus carried a full Python repr of its menu tree in `veaf-config.lua`,
+  written by a `setConfig` call nothing reads. **Note for existing missions**: a mapping written into
+  a settings block used to generate an inert string and now stops the build. That is the point — it
+  never did anything — but a `mission.yaml` carrying one will need it moved to `mission-script.lua`.
+- **The documented CSAR example no longer breaks CSAR.** The guide's YAML-first block set
+  `csarPrefix: "MEDEVAC"` while turning `useprefix` on — the branch that walks that value with
+  `pairs`. Measured on Lua 5.1.5: `pairs("MEDEVAC")` raises. Copying the documented block was enough
+  to break rescue at mission time. The example now uses a list, and a test compares every documented
+  example against the defaults in `CSAR.lua` by Lua type.
+- **The `# Doc:` links in a generated `mission.yaml` resolve again.** All nine of them pointed at the
+  GitHub blob view, which renders markdown without mkdocs' `attr_list` — so a heading written
+  `## Intégration CTLD et CSAR {#ctld-and-csar-integration}` keeps the `{#…}` as part of its text and
+  serves neither the explicit id nor the plain slug. They now point at the published documentation
+  site, language-aware and with the trailing slash the fragment needs to survive the redirect. Seven
+  also used a heading-derived anchor: `#journalisation-de-débogage` was already stale, the French
+  heading having since become *Changer le niveau de log*, and `en.json` was no cleaner —
+  `#security-levels` is the English heading's slug, not the `{#security-tiers}` that heading
+  declares. Same defect, second code path: it was fixed for `convert-v5` and missed here, because
+  this generator writes its links from message keys.
+- **An injected aircraft group no longer steals an id the mission already uses.** The injector wrote
+  the catalogue's `groupId` and `unitId` verbatim, and the shipped catalogues live in a low band
+  (`groupId` 145–544 for the dynamic-slot templates, 47–152 for the spawnables) while a real mission
+  runs past 3800 — so the two overlap by construction. Measured: 6 duplicate `groupId` and 11
+  duplicate `unitId` after injecting into `test-import.miz`, 4 and 9 on the Open Training Caucasus
+  mission, and 4 `unitId` shared between the two shipped catalogues on any mission injecting both.
+  The cost is not an error: a duplicate makes the warehouse's `linkDynTempl` designate two groups,
+  only one of which is a template, and **that one aircraft type** silently stops being offered as a
+  dynamic slot. DCS numbers every category in one space, so the scan covers vehicles, ships and
+  statics too — restricted to the aircraft it still left 8 `groupId` and 5 `unitId` colliding, the
+  same figures on both measured missions. Ids are now re-checked against the target mission and
+  reallocated **on collision only**, so a free id keeps its value and a rebuild does not move what it already allocated. A
+  blank mission reproduces none of this — 0 duplicates, measured — which is why it went unnoticed.
+- **Dynamic slots now work on ships and FARPs, which the build had never touched.** DCS keeps two
+  warehouse tables — `airports`, keyed by airdrome id, and `warehouses`, keyed by the unit id of a
+  ship or a static that carries one — and offers dynamic slots in both. The step only ever walked
+  the first. Measured on a fully built `test-import.miz`: the airfields ended with 832 links and
+  none dangling, while the 41 ships and FARPs kept their 69 links, **every one of them** pointing
+  at a group the mission no longer holds, which DCS renders as *Group template: None*. For a
+  carrier-based airframe that was the whole story on its own. Each object is now stocked with what
+  it can actually host, read from the units database rather than guessed: `AircraftCarrier` takes
+  planes and helicopters, `HelicopterCarrier` or a `Heliport` takes helicopters, and a ship with no
+  flight deck is left alone. Two optional config keys, `ships:` and `farps:`, target them by unit
+  name or id; absent, they cover every object of the coalition, exactly as `airports:` already
+  does, and the three keys default independently. Same run on the same mission after the fix: 40
+  objects configured, 705 valid links, **0 dangling**.
+- **A `linkDynTempl` that resolves to nothing is removed rather than left to render as
+  *None*.** Both on the types the config names and on the rest of the stock.
+- **The extraction no longer copies the source mission's coordinates into the catalogue**
+  ([#984](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/984)). `PROPERTIES_TO_EXCLUDE`
+  held `radio` and `Radio` and nothing else, so `x`/`y` came out as they were — at group level, at
+  unit level and on every route point — and meant nothing in another mission, less than nothing on
+  another theatre. The proof was in our own shipped file: `veafSpawn-MQ9 - AFAC - JTAC - DRONE` sat
+  at x = −250 000, y = −360 000, and the 128 dynamic-slot templates were at (0,0) only because a
+  graft normalized them by hand. Positions are now zeroed on extraction; altitude, heading, speeds
+  and the route itself are untouched, being meaningful wherever the group lands.
+- **A local `pytest` run no longer leaves `veaf-shortcuts.json` in the source tree.** The build
+  orchestration tests stubbed every build step except the spawn-shortcut scan, so each run wrote
+  the gitignored artefact next to `veaf_libs/veaf_shortcuts_scanner.py`, where it wins over the live
+  Lua scan: after the next edit to `veafShortcuts.lua`, `TestLocalArtefactIsFresh` failed locally
+  and the MCP `list_shortcuts` served stale aliases, while CI stayed green. Developer-side only —
+  the build and the shipped executable are unchanged.
+
+### Added
+
+- **The CSAR settings, listed.** `CSAR.lua` accepts 38 settings from `modules.CSAR.settings` and the
+  guide named 3, as examples — which is why a mission maker concluded that `csarOncrash`,
+  `enableForAI` and `enableForRED` needed a Lua block. Both guides now carry the full table, grouped
+  by what a mission maker is trying to do, with each default read from the script. It also says
+  plainly that `aircraftType` is the **one** setting YAML cannot reach, being the only keyed table:
+  `csarFixedUnits`, `bluemash` and `redmash` are plain lists and were never "complex settings".
+- **A gate over the documentation links a message key embeds.** `docs-check` walks `doc/` and never
+  opens a locale catalog, so a `# Doc:` URL written into a message key was unguarded — which is how
+  the nine below stayed dead. The new test resolves every documentation URL in `locales/*.json` back
+  to its markdown page, rejects a fragment the page does not declare with `{#anchor}`, and refuses a
+  link through the GitHub blob view outright. Proven against all three defects before it shipped.
+
+- **The documentation assistant answers the need, not only the phrasing.** A question arrives
+  wrapped in the approach its asker already chose, and the assistant used to stay inside that
+  wrapping: asked how to simplify a Lua block setting three booleans, it answered correctly about
+  the Lua callback and never said four lines of `mission.yaml` replaced the whole block — with the
+  excerpt saying exactly that in its own context and cited in its own sources. It now surfaces the
+  simpler route first, shows it, says what it replaces, and still answers the question as asked.
+  Only when an excerpt states that route, never from its own knowledge, and never for a setting the
+  documentation describes as reachable only by the long way — `aircraftType` keeps its Lua callback.
+  Applies to the site widget, `veaf-tools ask` and Discord alike.
+
+- **The build says what the dynamic-slot wiring achieved, not only what it wrote.** Two situations
+  that break nothing and leave the slots unusable are now reported. A **template link pointing at
+  nothing**, counted across both warehouse tables including the sides the config does not declare —
+  65 distinct such targets on `test-import.miz`, none of them a group the mission still holds. And
+  **templates with nowhere to be offered from**: a mission built straight from
+  `prepare --theatre Caucasus --template standard` injects 128 templates and configures 0 airfields,
+  because every airfield of a blank mission is NEUTRAL, so no dynamic slot is playable — which the
+  build used to pass over in silence. The step's report also counts the ships and FARPs it wired.
+
+- **A template added to the shipped catalogue now reaches an existing mission folder.** `prepare`
+  copied the 351 KB dynamic-slot catalogue and the 286 KB spawnables into every mission folder, and
+  the build read that copy and nothing else — so the copy froze on the day the folder was created.
+  A folder prepared in June keeps its 104 templates forever, and the `F-14BU Template` added on
+  2026-09-21 never reaches it however often its owner updates the tool. `prepare` now writes an
+  empty catalogue instead of a copy, and the build resolves the mission's file when it holds at
+  least one group and the shipped catalogue otherwise, saying which one it used. **An empty file
+  means "I add nothing to the shipped catalogue", not "inject nothing"** — the skeleton's header
+  says so, and `spawnable_aircrafts: false` / `dynamic_slot_templates: false` remains the only way
+  to switch a step off. A folder that already owns a catalogue is untouched and keeps standing
+  alone: nothing is ever merged into it behind the mission maker's back. The new
+  `veaf-tools content pull-aircraft-groups` is the explicit way to close that loop — it reports
+  what the shipped catalogue has that yours does not, and `--add "<name>"` or `--add-new` copies in
+  what you choose, **never replacing an entry you already have**, even when the shipped version
+  differs.
+
+- **Weather and time variants now change what DCS flies, at the right hour.** Found by building
+  Open Training Germany Cold War from an empty folder. The variants wrote their weather into an
+  `atmosphere` table DCS does not know, so every variant flew the base mission's sky — Caucasus v6
+  `dawn-broken` and `dawn-overcast-rain` were both Preset2, 20 °C, calm. They now write the fields
+  DCS reads: a cloud preset chosen from the coverage and base (within the altitude range DCS accepts
+  for it), rain as a rainy preset, temperature, ground and upper wind, visibility, fog, and the QNH a
+  METAR reports; `weather:` gains `precipitation`. **Solar times were computed in UTC** while DCS
+  reads the start time on the theatre's clock, so every `sunrise…` variant started 2 to 4 hours early
+  (01:28 for a Caucasus dawn); they now use each theatre's fixed offset, the same table the in-game
+  scripts use, which gains GermanyCW at UTC+2 (measured in DCS). **Live weather never worked**: the
+  fetch read attributes the weather library does not have and fell back to defaults every time, and
+  the executable did not even carry the library's station table; each variant that falls back is now
+  named, and the build says how many did. On a mission started with `prepare`, the dynamic-slot
+  templates now get their radio presets (0 of 64 before, 44 now — the others are types the presets
+  plan does not cover) and a flight plan with no waypoint gets its BULLSEYE, as the guide says. The
+  build's module summary counts QRA definitions again, and a CSAR or CTLD sound named in the
+  settings but missing from the mission is reported. `convert-v5` turns a DCS wind back into where it
+  comes from, and maps the rainy and the overcast presets it used to read as scattered. **If your
+  `versions.yaml` was converted by an earlier release**, its manual `weather.wind_direction` values
+  are where the wind blows to: re-run the conversion, or add 180° to each, or those variants fly the
+  wind reversed now that the weather reaches DCS. Variants reading an `airport_icao` are not affected.
+
+- **The MCP builds aircraft, statics and ships that DCS can use, and cleans up after itself.** Found
+  building Open Training Germany Cold War from an empty folder. `create_qra` and `create_cap_mission`
+  built their aircraft with the ground-vehicle builder — at ground level, 20 km/h, no fuel, no
+  weapons, on an "Off Road" point — so a scrambled QRA appeared in the grass; they now build an
+  airborne, fuelled flight of one type, take a loadout (`pylons`, or `loadout_from` a group of the
+  mission or a `veafSpawn-*` catalogue template), and a CAP given a second point flies a race-track
+  instead of orbiting nowhere. `add_air_group` takes `late_activation` and `pylons` in the same call.
+  A **static** placed by `add_group` or `create_combat_zone` now carries the `category` DCS reads to
+  know what the object is (it had none) and the editor's shape, and a **ship** no longer gets a
+  vehicle's task and route. The backups every action takes go to the folder's `.veaf-backups/` —
+  self-ignored by git, 20 per file — instead of piling up beside `src/mission/mission` (45 to 51
+  copies in one session); a file whose content does not change is no longer rewritten, and folder
+  files stay LF. `set_airbase_coalition` takes `dynamic_spawn` (an enemy base with no slot),
+  `remove_group` no longer calls a QRA zone a combat zone, and `build_mission` returns the build's
+  whole log, decoded as UTF-8, where its warnings are.
+
+- **The MCP can set up support flights, the date, the bullseye and the briefing without hand-written
+  Lua.** Building Open Training Germany Cold War, the agent had to patch the mission file through a
+  Lua serializer for all of them. `edit_route` gains the support-flight tasks — `tanker`, `awacs`,
+  `set_unlimited_fuel`, `eplrs`, `activate_beacon` (a TACAN: channel 1–126, X/Y, callsign, its
+  frequency computed the way the missions store it) and `escort` (the escorted group named by its
+  name) — each in the shape read out of 401 real missions, so a tanker made by `add_air_group` now
+  refuels someone. New actions `set_mission_date`, `set_bullseye` and `set_briefing`; a briefing
+  kept in the l10n dictionary by the editor is written there, behind its existing reference.
+  `describe_units` reads a mission folder, as every write action already accepted one — it used to
+  answer `[Errno 13] Permission denied`, so an agent could not read back what it had just written.
+
+- **Difficulty levels on the same targets are one key in `mission.yaml`.** A combat zone's
+  `includes: [<zone>, ...]` makes it borrow the elements of other zones, transitively and whatever
+  the order they are listed in: activating the "hard" level of a training range spawns the medium
+  and easy ones too, deactivating it removes them, and its completion counts them. An unknown zone,
+  an operation or a cycle stops the build instead of leaving a level quietly incomplete. It used to
+  take Lua in `mission-script.lua`, and nesting zones by name prefix — which the prefix rule suggests
+  — cannot work, since a zone destroys at start the groups it picks up. A borrowed `#command`
+  element now names its group after the zone running it rather than the zone it was read from, and
+  borrowing a zone that has already borrowed the next one no longer adds its elements twice.
+
+- **Air-defense levels follow the mission's era, and say what they do.** A `COLD_WAR` mission no
+  longer gets the types that entered service after 1980 — the reference its armor lists already
+  follow: the air-defense groups of `-sam`, `-samSR`, `-samLR` and `-aaa` have era variants in
+  `veaf-units.yaml`, and the escorts of `_cas`, `-armor`, `-convoy`… swap Avenger, Linebacker, Tor,
+  Tunguska, HQ-7 and Igla-S for their predecessors. A `WW2` mission gets flak only, and no escort at
+  all: the escorts tested `veaf.config.ww2`, which a v6 mission never sets, so WW2 sections came with
+  modern SAMs. `list_shortcuts` now returns each alias's random parameters and their range —
+  `-samLR` and `-samSR` run the same command and differ only by their `defense` range, which the
+  oracle used to hide. The ±1 roll of a defense level is documented (60 % as asked, 20 % either
+  way), and a code comment claiming 30 % corrected.
+- **`-samVLR` places a real long-range SAM battery, and `-samLR` says what it places.** `-samLR`,
+  described as "long range" since 2020, has always drawn defense level 4–5 — Roland or Hawk, Osa or
+  Tor — and keeps doing so, now described as medium range. The new `-samVLR` draws, for the
+  mission's era, an SA-10 or SA-5 (modern red), a Patriot (modern blue), an SA-2 or SA-5 (Cold War
+  red), a Hawk (Cold War blue, nothing longer existed before 1984), or the heaviest flak in WW2.
+- **The MCP serves the known limitations, matching the installed version.** New read-only action
+  `describe_known_limitations`: the limitations of the tools not yet fixed, and the DCS behaviours
+  that raise no error and are wrong anyway (a late-activated group visible to scripts, `start_time`
+  not delaying an air spawn, a SAM without EWR permanently lit…), each with its symptom, what to do
+  and what it cost. One file, `veaf_libs/data/known-limitations.yaml`, shipped in the executable;
+  `docs/agents/dcs-runtime-traps.md` is generated from it, and a test fails when they disagree. A
+  tool limitation carries the release that fixes it and stops being returned from that version on.
+- **The mission-authoring skill says what building a mission taught**, and names only what exists:
+  it opens with `describe_known_limitations` instead of listing traps, uses the support-flight,
+  date, bullseye and briefing actions, nests difficulty levels with `includes:`, and asks for
+  `-samVLR` when it means long range.
+- **A prompt to build a complete Open Training mission on any map.** Paste
+  `.prompts/new-open-training-mission.fr.md` (or `.en.md`) at the start of a Claude Code session in
+  an empty folder: it gives the assistant the design rules — which bases, how much support and air
+  defense for the size of the front, three families of nested training levels, real combat zones,
+  QRA and CAP, security on with a `LOCAL_TEST` profile — and has it report every tool gap it meets.
+  The mission-maker guide to the AI assistant points to it.
+- **What a second from-scratch mission found (FIX-SCRATCH-MISSION-FINDINGS 15–22).** The build no
+  longer turns dynamic slots on at every airfield of a side over `set_airbase_coalition(dynamic_spawn:
+  false)`: the action records the base under `exclude_airports` in `warehouses.yaml`, which the build
+  honours. Ships are placed 600 m apart instead of 20. A CAP from `create_cap_mission` carries the
+  editor's engage task before its orbit, and `edit_route add_task` takes a `task_position`.
+  `create_combat_zone` groups take a `route`. New MCP actions `add_farp` (heliport, radio, warehouse),
+  `set_weather` (the blank mission had its clouds on the ground) and `list_airfields` (with the
+  positions now shipped); `set_unit_properties` renames and moves a unit, `build_mission` takes a
+  `profile`, `resolve_coordinates` a list. `validate` counts dynamic slots as player slots. Since the
+  move to mcp 2.x every action failure reached the agent as a bare `Error executing tool run_action`;
+  it now carries the message, and a misnamed parameter is named with the expected ones. The
+  `cap_missions[]` keys `default` / `activated` are documented as what they are (`secured` /
+  `radioMenuEnabled`), and a QRA or AirWaves `radio_menu` can be secured with `radio_menu_secured`.
+
+- **`veaf-logs` opens and follows a DCS server log over SSH.** `File › Open a remote log…` lists the
+  `server › instance` pairs declared under a new `servers:` block of `~/veafmct.yaml` (one machine,
+  several DCS instances, one `dcs.log` each). The log is mirrored locally through SFTP — one `stat`
+  per second, only the new bytes travel — so filters, rules, profiles and session restore work as
+  for a local file, and a DCS restart on the server (fresh log) restarts the tab with it. Key
+  authentication only: the tool never asks for or stores a password; an unknown host key is shown
+  and remembered on request, as `ssh` does. `paramiko` joins the `logs` extra; `veaf-tools.exe` is
+  unchanged.
+
+- **Ground unit placement avoids scenery more thoroughly** (FIX-PLACEMENT-IGNORES-SCENERY tickets 06-09,
+  measured 2026-09-25 in DCS). `veaf.findSpawnPoint` now tries descending clearance steps (100 → 50 → 25 → 10 m)
+  before giving up tier 1, and always picks the closest valid candidate. A new `noRandomFallback` parameter
+  lets callers suppress the random jitter fallback: editor content (combat zones, static FARPs) now keeps its
+  declared position when the scenery cloud is empty and the terrain is admissible, falling back to a random
+  draw only when the declared position itself is invalid (e.g. water). Each unit inside a battery or platoon
+  is individually nudged to the nearest scenery-free point by `veafUnits.settlePosition`, called in all three
+  per-unit placement loops (`_createDcsUnits`, `doSpawnGroup`, `veafCasMission.placeGroup`). The `silent`
+  parameter is now propagated all the way down to `_createDcsUnits` so refused units are no longer silently
+  dropped — six callers updated.
+
+- **`veafUnits.settlePosition` regression fix** (measured 2026-09-25 in DCS on GermanyCW-v6):
+  when a unit was actually displaced, the returned table was rebuilt from scratch and lost `hdg`. This made
+  `veafSpawnCore.lua` feed `nil` to `math.deg(toInsert.heading)`, which crashed the scheduled function
+  silently and caused entire combat-zone groups to vanish (11 errors, 6 zones empty on one run). Fixed by
+  copying the original `spawnPosition` table and updating `x`/`y`/`z` from the placed point: `y` is now the
+  actual terrain height at the displaced location (from `placePointOnLand`), not the altitude of the origin.
+  A guard `toInsert.heading or 0` was added to the trace log so a future nil cannot crash the spawn.
+
+- **A combat zone element is no longer refused because of the terrain it was drawn on** (measured
+  2026-09-25 in DCS on GermanyCW-v6). Of 25 combat zones, `combatZone_ConvoiA24` alone spawned
+  nothing: its convoy stands on a bridge, and DCS reports the surface *under* a bridge, which is
+  water. The zone behaved correctly — no acceptable point exists within the 50 m search radius, so it
+  kept the position the mission maker declared, as it must — but `VeafGroupSpawn:_drawOrigin` then
+  tested that same position again and vetoed the whole group. With no radius there is nothing left to
+  draw, so that second opinion could only agree or destroy the group, and destroying editor content
+  is what David's ruling of 2026-08-27 forbids: refusing is for what a *command* spawns, where a user
+  is standing there to read the message. A caller that has settled where its group goes now says so —
+  `VeafGroupSpawn:honouringDeclaredPosition()`, used by `VeafCombatZone:spawnElement` — and is obeyed.
+  Deliberately opt-in rather than "any spawn without a radius": a `-teleport` onto a lake is a command
+  and still refuses, and a caller that does ask for a radius has granted a licence to move, so the
+  scenery awareness above still applies wherever there is room to move.
+
+- **A ground group is settled into a clearing as a whole, instead of one vehicle at a time**
+  (measured 2026-09-25 in DCS on GermanyCW-v6). `veafUnits.settlePosition` had never displaced a
+  single unit: it kept a `Disposition` candidate only when `dist <= r` for rings of 10, 25 and 50 m,
+  and DCS does not honour the radius it is asked for — asked 50 m it answered between 52 and 171 m,
+  median 130. Over 20 vehicles genuinely stuck under trees: 25 candidates offered, 25 valid on
+  terrain, **0 accepted, 0.0 m moved**, and the mission's scenery probe still reported 51 alerts over
+  183 objects, the same as before the fix existed (53/184).
+
+  Per-unit displacement could not have worked at any threshold either: a SAM battery's natural
+  spacing is 20 to 27 m and the closest point DCS can propose is 52 m, so every nudge breaks the
+  formation by a factor of 2 to 5. `veafUnits.settleGroup` replaces it and moves the **whole group
+  rigidly**: it asks once for a clearing wide enough to hold the entire footprint, then applies the
+  same offset to every unit, so all inter-unit distances are unchanged by construction. Over 31
+  offending groups, 30 are fully resolved and units standing in trees drop from 132 to 2; the six
+  worst (the S-300s of Wittstock and Borkenberge, three other S-300s and an SA-11) go from 8-13
+  vehicles under trees to zero. The move is bounded by a translation distance
+  (`veafUnits.SETTLE_MAX_TRANSLATION`, 1000 m, against measured needs of 100 to 800 m) rather than by
+  the radius asked of DCS, which means nothing. Editor content is untouched, through the explicit
+  flag `VeafGroupSpawn:honouringDeclaredPosition` and never through the radius: zero is this
+  codebase's **default** radius, not a statement, and 100 of the 118 spawn commands of one
+  GermanyCW-v6 launch pass `radius 0` — every air-defence battery this lot exists for, starting with
+  `combatZone_Wittstock`'s S-300. Convoys are exempt too, so they do not leave their first waypoint.
+
 ## [6.24.0] — 2026-09-21
 
 ### Added

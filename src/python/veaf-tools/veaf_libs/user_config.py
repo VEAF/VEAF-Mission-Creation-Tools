@@ -24,15 +24,31 @@ Supported keys
     when neither the CLI ``--scripts-path`` flag nor ``mission.yaml`` provides a value.
     Default: ``null`` (auto-detect).
 
+``servers``
+    DCS servers whose logs ``veaf-logs`` can open over SSH. A mapping of server
+    name to ``host`` (required), ``user`` (required), ``port`` (default 22),
+    ``key`` (optional private key path; the SSH agent and the default keys are
+    tried otherwise) and ``logs`` — a mapping of instance name to the remote
+    path of its ``dcs.log``. Readable via ``get_servers()``. Never a password:
+    authentication is by key only.
+
 Example ``~/veafmct.yaml``::
 
     lang: fr
     check_updates: true
     scripts_path: ~/dev/VEAF/VEAF-Mission-Creation-Tools
+    servers:
+      veaf:
+        host: dcs.veaf.org
+        user: veaf
+        key: ~/.ssh/id_ed25519
+        logs:
+          private1: C:/Users/veaf/Saved Games/private1_server/Logs/dcs.log
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -127,6 +143,76 @@ def get_scripts_path() -> Path | None:
     if isinstance(val, str) and val.strip():
         return Path(val.strip()).expanduser()
     return None
+
+
+@dataclass(frozen=True)
+class RemoteServer:
+    """A DCS server reachable over SSH, with the logs it hosts.
+
+    ``logs`` maps an instance name (``private1``) to the remote path of that
+    instance's ``dcs.log``. One machine runs several DCS instances, so the
+    machine is declared once and each instance names its own log. Each open
+    log holds its own SSH connection: they are cheap (0.4 s measured) and an
+    outage on one tab then never disturbs the others.
+    """
+
+    name: str
+    host: str
+    user: str
+    port: int = 22
+    key: Path | None = None
+    logs: dict[str, str] = field(default_factory=dict)
+
+
+def _parse_server(name: str, raw: Any) -> RemoteServer:
+    """Build a ``RemoteServer`` from one ``servers`` entry, or raise ``ValueError``."""
+    if not isinstance(raw, dict):
+        raise ValueError(f"servers.{name}: expected a mapping (host, user, logs…)")
+    for required in ("host", "user"):
+        value = raw.get(required)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"servers.{name}.{required}: required, non-empty string")
+    port = raw.get("port", 22)
+    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
+        raise ValueError(f"servers.{name}.port: expected an integer between 1 and 65535")
+    key_raw = raw.get("key")
+    key: Path | None = None
+    if key_raw is not None:
+        if not isinstance(key_raw, str) or not key_raw.strip():
+            raise ValueError(f"servers.{name}.key: expected a path")
+        key = Path(key_raw.strip()).expanduser()
+    logs = raw.get("logs")
+    if not isinstance(logs, dict) or not logs:
+        raise ValueError(f"servers.{name}.logs: expected a non-empty mapping of instance name to log path")
+    for instance, path in logs.items():
+        if not isinstance(path, str) or not path.strip():
+            raise ValueError(f"servers.{name}.logs.{instance}: expected a remote path")
+    return RemoteServer(
+        name=str(name),
+        host=raw["host"].strip(),
+        user=raw["user"].strip(),
+        port=port,
+        key=key,
+        logs={str(instance): path.strip() for instance, path in logs.items()},
+    )
+
+
+def get_servers() -> list[RemoteServer]:
+    """Return the configured DCS servers, in declaration order.
+
+    Returns:
+        The parsed ``servers`` entries; an empty list when the block is absent.
+
+    Raises:
+        ValueError: when the block or one of its entries is malformed. The
+            message names the offending key so the user can fix the file.
+    """
+    raw = get("servers")
+    if raw is None:
+        return []
+    if not isinstance(raw, dict):
+        raise ValueError("servers: expected a mapping of server name to settings")
+    return [_parse_server(str(name), value) for name, value in raw.items()]
 
 
 def config_file_path() -> Path | None:

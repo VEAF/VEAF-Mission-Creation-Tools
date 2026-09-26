@@ -26,7 +26,9 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
   reconstruction depuis la recette **écrasera** ces retouches.
 
 > 🛟 **Filet de sécurité** : avant *chaque* modification, l'IA fait une **sauvegarde horodatée**
-> du fichier concerné. Rien n'est écrasé sans copie.
+> du fichier concerné. Rien n'est écrasé sans copie. Dans un dossier de mission, les copies vont dans
+> `.veaf-backups/` à la racine du dossier — ni dans `src/`, que le build empaquette, ni dans vos
+> commits (le répertoire s'ignore lui-même) — et seules les 20 dernières de chaque fichier sont gardées.
 
 ## Légende des fréquences
 
@@ -73,6 +75,13 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 30 | [Valider une mission avant build](#validate-mission) | 🏁 Valider & construire | Dossier | ⭐ |
 | 31 | [Construire le .miz jouable](#build-mission) | 🏁 Valider & construire | Dossier | 🔥 |
 | 32 | [Colorer une base et activer ses slots dynamiques](#colour-base) | 🛫 Bases & aérodromes | Recette (dossier) | 🔥 |
+| 33 | [Dater la mission et régler son heure de départ](#mission-date) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
+| 34 | [Placer le bullseye d'une coalition](#set-bullseye) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
+| 35 | [Écrire le briefing](#set-briefing) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
+| 36 | [Connaître les limites connues](#known-limitations) | Connaissance métier | — | ⭐ |
+| 37 | [Lister les aérodromes d'un théâtre](#list-airfields) | 🛫 Bases & aérodromes | — | ⭐ |
+| 38 | [Poser un FARP complet](#add-farp) | 🛫 Bases & aérodromes | Recette + construite | ⭐ |
+| 39 | [Régler la météo de la mission](#set-weather) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 
 ---
 
@@ -93,7 +102,8 @@ générée par `update-dcs-data`.
 ### Lister les alias / raccourcis VEAF {#list-veaf-aliases}
 
 *Connaissance · ⭐* — Le vocabulaire d'alias VEAF (`shilka`, `sa8`, …) pour le spawn d'unités et
-de groupes composites (SAM sites, convois).
+de groupes composites (SAM sites, convois), et les raccourcis `-samLR`, `-armor`… avec la plage de
+chaque paramètre qu'ils tirent au hasard (`defense`, `armor`, `size`).
 
 > 💬 *« C'est quoi l'alias pour une Shilka ? »* · *« Liste les groupes SAM tout faits. »*
 
@@ -119,6 +129,16 @@ mission donnée, prévient du **piège de capture combat-zone**. L'IA s'en sert 
 groupe et te relaie tout avertissement.
 
 > 💬 *« Est-ce que ce nom de groupe risque de poser problème ? »*
+
+### Connaître les limites connues {#known-limitations}
+
+*Connaissance · ⭐* — À lire avant de construire une mission. Pour la version de veaf-tools
+installée : ce que les outils ne savent pas encore faire (et comment s'en passer), et les
+comportements de DCS qui ne lèvent aucune erreur et sont faux quand même — un groupe en activation
+différée visible des scripts, un `start_time` qui ne retarde pas un avion, un SAM sans radar d'alerte
+allumé en permanence… Une limite corrigée n'est plus renvoyée à partir de la version qui la corrige.
+
+> 💬 *« Lis les limites connues avant de commencer. »*
 
 ---
 
@@ -190,7 +210,7 @@ avertissements. À faire avant de construire.
 *Dossier · 🔥* — Construit le dossier en fichier `.miz` prêt à jouer dans DCS (lance `veaf-tools
 build`). C'est l'aboutissement : dossier vide → contenu → **mission jouable**.
 
-> 💬 *« Construis-moi la mission. »*
+> 💬 *« Construis-moi la mission. »* · *« Construis la version de test locale. »*
 
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 
@@ -211,14 +231,18 @@ prédéfinis** à l'activation de la zone (SAM, convois…) plutôt que de figer
 
 *Recette (dossier) · 🔥* — En un appel : la zone protégée, les intercepteurs en **Late
 Activation** (sur la bonne coalition) **et** la définition `QRA` dans `mission.yaml` (référençant
-les groupes par nom exact). Tu dis l'avion, l'IA choisit le type et assemble.
+les groupes par nom exact). Tu dis l'avion, l'IA choisit le type et assemble. Les intercepteurs
+sont créés **en vol**, avec le plein et un emport : donne-le, ou demande de le recopier d'un modèle
+`veafSpawn-*` — un intercepteur désarmé n'intercepte rien.
 
-> 💬 *« Crée une QRA rouge en Mirage 2000 sur la zone Nord. »*
+> 💬 *« Crée une QRA rouge en Mirage 2000 sur la zone Nord, armée comme le modèle veafSpawn du Mirage. »*
 
 ### Créer une mission CAP à la demande {#create-cap}
 
 *Recette (dossier) · ⭐* — En un appel : le groupe template `OnDemand-<nom>` en **Late
-Activation** **et** l'entrée `cap_missions` dans `mission.yaml`.
+Activation** **et** l'entrée `cap_missions` dans `mission.yaml`. Le template est créé **en vol** avec
+le plein ; donne-lui un second point et il tient un hippodrome entre les deux — sans, il ne patrouille
+nulle part.
 
 > 💬 *« Crée une CAP à la demande “Escort” avec deux F-15. »*
 
@@ -229,9 +253,63 @@ Activation** **et** l'entrée `cap_missions` dans `mission.yaml`.
 *Recette (dossier) · 🔥* — Assigne un aérodrome à une coalition (bleu / rouge / neutre). La couleur
 d'une base ne se change **pas** en posant une unité à côté : dis simplement « Mezzeh est bleu » et
 l'IA colore l'aérodrome **durablement** puis **active ses slots dynamiques** (Dynamic Spawn), en
-remplissant son entrepôt avec les avions dynamiques de la coalition au build.
+remplissant son entrepôt avec les avions dynamiques de la coalition au build. Pour une base qui
+ne doit offrir **aucun** slot (une base ennemie, par exemple), dis-le : la couleur change, les slots
+restent fermés.
 
-> 💬 *« Mets la base de Mezzeh en bleu. »*
+> 💬 *« Mets la base de Mezzeh en bleu. »* · *« Passe Stendal en rouge, sans slots dynamiques. »*
+
+### Lister les aérodromes d'un théâtre {#list-airfields}
+
+*Lecture · ⭐* — Les bases d'une carte, avec leur nom exact, leur numéro DCS et leur position : de quoi
+choisir les bases à colorer, ou placer quelque chose près de l'une d'elles, sans deviner un nom.
+Marche aussi avant qu'une mission existe, en nommant la carte.
+
+> 💬 *« Quelles bases y a-t-il en Allemagne de l'Est sur GermanyCW ? »*
+
+### Poser un FARP complet {#add-farp}
+
+*Recette + construite · ⭐* — Un FARP qui sert vraiment : l'héliport, sa fréquence radio, son
+indicatif, et l'entrepôt qui permet aux hélicoptères de s'y ravitailler et de s'y réarmer. Poser le
+seul objet « FARP » ne suffit pas : personne ne peut s'en servir.
+
+> 💬 *« Pose un FARP bleu à Fulda, sur 127,5 MHz. »*
+
+## 🕰️ Réglages de la mission
+
+### Dater la mission et régler son heure de départ {#mission-date}
+
+*Recette + construite · ⭐* — La date et l'heure de départ, comme le panneau du temps de l'éditeur.
+Une mission créée depuis zéro est datée de 2016 ; une mission guerre froide veut 1980. L'heure est
+celle du théâtre, celle que DCS affiche. Les variantes météo de `versions.yaml` peuvent toujours
+imposer la leur, variante par variante.
+
+> 💬 *« Date la mission du 1er juin 1980, départ à 9 h 30. »*
+
+### Placer le bullseye d'une coalition {#set-bullseye}
+
+*Recette + construite · ⭐* — Le bullseye d'une coalition. Le build en tire le waypoint BULLSEYE de
+chaque plan de vol, et les scripts VEAF annoncent les positions par rapport à lui : à placer tôt, sur
+un repère connu.
+
+> 💬 *« Mets le bullseye bleu sur Point Alpha, dans la trouée de Fulda. »*
+
+### Écrire le briefing {#set-briefing}
+
+*Recette + construite · ⭐* — Le nom de la mission, la situation et la tâche de chaque coalition ;
+seuls les textes donnés changent. Une mission enregistrée par l'éditeur garde ces textes dans son
+dictionnaire : l'IA les écrit là où la mission les range déjà. `${METAR}` et les autres variables du
+briefing sont remplacées au build, variante par variante.
+
+> 💬 *« Écris la situation : Europe centrale, juin 1980. Tâche bleue : tenir la trouée de Fulda. »*
+
+### Régler la météo de la mission {#set-weather}
+
+*Recette + construite · ⭐* — Nuages, vent, température, visibilité, pluie, brouillard, ou un METAR
+entier. Une mission créée depuis zéro a ses nuages posés au sol : c'est à régler. Les variantes météo
+de `versions.yaml` gardent la main, variante par variante.
+
+> 💬 *« Mets un ciel fragmenté à 1 500 m, 12 °C, vent d'ouest 10 nœuds. »*
 
 ---
 
@@ -328,7 +406,7 @@ préalable (donnée de parking) ; sinon l'IA te le dit au lieu de deviner.
 
 *Mission construite · ⭐* — Changer ce qui est **déjà** dans la mission, unité par unité : son
 **emport** (pylône par pylône), son **niveau d'IA**, sa **livrée**, son **cap**, son **indicatif** et
-son **numéro de flanc**. Tu donnes le cap en degrés, l'IA fait la conversion. Seuls les réglages que
+son **numéro de flanc**, son **nom**, sa **position**. Tu donnes le cap en degrés, l'IA fait la conversion. Seuls les réglages que
 tu demandes changent, et l'IA te dit ce qu'il y avait avant.
 
 > 💬 *« Donne au vol Colt un emport air-sol. »*
@@ -383,12 +461,16 @@ l'éditeur DCS refuserait d'enregistrer la mission.
 *Mission construite · ⭐* — Ajouter, insérer, supprimer ou réordonner un **point de passage**, changer
 son altitude, sa vitesse, son nom ou son type — et surtout lui donner une **tâche** : orbiter,
 attaquer un groupe, bombarder un point, engager les cibles d'une zone, se poser, régler une fréquence,
-ou boucler la route sur elle-même.
+ou boucler la route sur elle-même. Pour un **vol de soutien** : ravitailler (`tanker`), faire l'AWACS,
+allumer un **TACAN** (canal, mode X/Y, indicatif), activer la liaison de données (EPLRS), avoir du
+carburant illimité, ou **escorter** un autre groupe désigné par son nom.
 
 > 💬 *« Ajoute un point de passage après le troisième, à 20 000 pieds. »*
 > 💬 *« Fais orbiter ce ravitailleur en hippodrome à 20 000 pieds, 300 nœuds. »*
 > 💬 *« Mets une tâche d'attaque sur ce groupe au point 3. »*
 > 💬 *« Boucle la patrouille du dernier point vers le deuxième. »*
+> 💬 *« Fais de Texaco un ravitailleur, TACAN 30Y indicatif TXO, carburant illimité. »*
+> 💬 *« Que les deux F-15 escortent Texaco. »*
 
 Trois choses utiles à savoir :
 

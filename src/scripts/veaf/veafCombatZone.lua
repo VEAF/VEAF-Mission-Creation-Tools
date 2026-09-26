@@ -525,15 +525,14 @@ local function applyCollectedTags(element, tags)
 end
 
 --- Build the zone element of a `#command` object: a one-shot trigger running a VEAF command at the
---- object's position. The zone name is appended to the command so the interpreter can attribute what
---- it spawns back to the zone.
+--- object's position. The command is stored raw; the zone running it appends its own name when it
+--- spawns (VeafCombatZone:spawnElement), so the interpreter attributes the group to that zone.
 --- @param unit the object carrying the command
 --- @param group the group it belongs to, as built by VeafCombatZone:initialize
 --- @param tags the group's collected tags
 --- @param command the raw command read out of the name
---- @param combatZoneName name of the combat zone, appended to the command
 --- @return VeafCombatZoneElement
-function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZoneName)
+function veafCombatZone.buildCommandElement(unit, group, tags, command)
   local element = VeafCombatZoneElement:new()
   element:setCoalition(unit:getCoalition())
   element:setPosition(unit:getPosition().p)
@@ -541,7 +540,10 @@ function veafCombatZone.buildCommandElement(unit, group, tags, command, combatZo
   applyCollectedTags(element, tags)
   -- no dispersion default here, deliberately: the command runs *at this position*, so scattering it
   -- would move whatever the command spawns. `#spawnradius=` still applies if the mission maker wrote one.
-  element:setVeafCommand(command .. ", czName " .. combatZoneName)
+  -- The raw command only: `czName` names the zone the spawned group belongs to, and that is the zone
+  -- *running* the element, which spawnElement appends. Baked in here, a level borrowing this element
+  -- through `includes:` spawned a group named after the level it was borrowed from.
+  element:setVeafCommand(command)
   element:setRoute(veaf.getGroupRoute(group.name))
   if not element:getSpawnGroup() then
     element:setSpawnGroup(group.name) -- default the spawn group to the group name
@@ -1204,8 +1206,16 @@ function VeafCombatZone:addZoneElementsFromZoneNamed(zoneName)
   if not elements then
     return self
   end
+  -- An element already here is skipped: the generator emits each level's whole `includes:` closure in
+  -- no particular order, so this zone may borrow a level that has itself already borrowed the next one.
+  local present = {}
+  for _, element in pairs(self.elements or {}) do
+    present[element] = true
+  end
   for _, element in pairs(elements) do
-    self:addZoneElement(element)
+    if not present[element] then
+      self:addZoneElement(element)
+    end
   end
   return self
 end
@@ -1382,14 +1392,14 @@ function VeafCombatZone:initialize()
     local groupCommand = commandsBySource[groupName]
     if groupCommand then
       -- the command is on the group's own name, so the group is one trigger and not one per unit
-      self:addZoneElement(veafCombatZone.buildCommandElement(group.units[1], group, tags, groupCommand, self:getMissionEditorZoneName()))
+      self:addZoneElement(veafCombatZone.buildCommandElement(group.units[1], group, tags, groupCommand))
     else
       local plainUnits = {}
       for _, unit in ipairs(group.units) do
         local unitCommand = commandsBySource[unit:getName()]
         if unitCommand then
           -- it's a fake unit transporting a VEAF command
-          self:addZoneElement(veafCombatZone.buildCommandElement(unit, group, tags, unitCommand, self:getMissionEditorZoneName()))
+          self:addZoneElement(veafCombatZone.buildCommandElement(unit, group, tags, unitCommand))
         else
           table.insert(plainUnits, unit)
         end
@@ -1678,23 +1688,38 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- scenery. It returns a **vec3**, so the easting reads as `z`; this call site used to read
       -- MiST's vec2 `y` for it, which is the confusion docs/agents/dcs-coordinates.md warns about.
       --
-      -- On failure the element keeps its **declared** position instead of being skipped: a zone
-      -- element is editor content, and the mission maker who declared it is not in the room when
-      -- the mission loads, so a partially built zone would be worse than an imperfect one.
-      -- Refusing is for what a command spawns (David, 2026-08-27), and per ADR 0018 the scenery
-      -- criterion is quality-only, never correctness.
-      local found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius(), nil, surfacesForZoneElement(zoneElement))
+      -- noRandomFallback = true: when tier 1 finds nothing, we choose what to do here rather than
+      -- letting the random tier pick a consolation point that may be worse than the declared one.
+      -- David's ruling (2026-08-27, 2026-09-25): editor content keeps its declared position when
+      -- tier 1 fails AND the declared terrain is admissible; only if the declared position itself
+      -- is invalid (e.g. in water) do we warn and fall through to the random tier as a last resort.
+      local surfaces = surfacesForZoneElement(zoneElement)
+      local found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius(), nil, surfaces, true)
       if found then
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("found=[%s]", veaf.vecToString(found)))
         position = { x = found.x, y = position.y, z = found.z }
       else
-        veaf.loggers.get(veafCombatZone.Id):info(
-          string.format(
-            "spawnElement: no acceptable spawn point within %sm of [%s], keeping its declared position",
-            tostring(zoneElement:getSpawnRadius()),
-            tostring(zoneElement:getName())
+        -- Tier 1 found nothing. Honour the declared position if its terrain is admissible.
+        local admissible = surfaces or veaf.DEFAULT_SPAWN_TERRAIN
+        local declared = veaf.placePointOnLand(position)
+        if veaf.isTerrainValid(declared, admissible) then
+          veaf.loggers
+            .get(veafCombatZone.Id)
+            :trace(string.format("spawnElement: scenery cloud empty for [%s], keeping declared position", tostring(zoneElement:getName())))
+          -- position unchanged — placed exactly where the mission maker put it
+        else
+          -- Declared position is on invalid terrain (e.g. water). Warn and try the random tier.
+          veaf.loggers.get(veafCombatZone.Id):warn(
+            string.format(
+              "spawnElement: declared position for [%s] is on invalid terrain, falling back to random placement",
+              tostring(zoneElement:getName())
+            )
           )
-        )
+          found = veaf.findSpawnPoint(position, zoneElement:getSpawnRadius(), nil, surfaces, false)
+          if found then
+            position = { x = found.x, y = position.y, z = found.z }
+          end
+        end
       end
     end
     if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
@@ -1716,10 +1741,18 @@ function VeafCombatZone:spawnElement(zoneElement, now)
       -- on the first unit it met, or on the first live one, while the spawn subtracts the mission
       -- record's first. FIX-TRIPACK-FIELD-REPORTS ticket 04 made both ends the same unit, and this
       -- lot's ticket 01 made them the same instant, so waypoint 1 moves by the dispersion alone.
+      -- `honouringDeclaredPosition`, because `position` above is the end of this function's own
+      -- search, not a wish: every tier of `findSpawnPoint` has run, and what survives is either a
+      -- scenery-aware point or the position the mission maker drew. Re-testing its terrain in the
+      -- spawner can only veto, and a veto on editor content is what rule 3 of David's arbitration
+      -- (2026-08-27) forbids — nobody is in the room to read it. Measured, 2026-09-25 on
+      -- GermanyCW-v6: without this, `combatZone_ConvoiA24` spawned nothing at all, its convoy being
+      -- on a bridge, under which DCS reports water.
       local newGroup = VeafGroupSpawn:new()
         :forGroup(zoneElement:getName())
         :named(newGroupName)
         :at(position)
+        :honouringDeclaredPosition()
         :withRoute(zoneElement:getRoute())
         :renamingUnitsSequentially(self:isRenameUnitsSequentially())
         :offsettingFirstWaypoint()
@@ -1784,7 +1817,8 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         veaf.goRoute(newGroup, route)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
       end)
-      veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
+      local command = zoneElement:getVeafCommand() .. ", czName " .. self:getMissionEditorZoneName()
+      veafInterpreter.execute(command, position, zoneElement:getCoalition(), nil, spawnedGroups)
     end
   end
 end

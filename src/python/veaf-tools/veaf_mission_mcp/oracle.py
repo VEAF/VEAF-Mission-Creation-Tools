@@ -12,7 +12,9 @@ from typing import Any
 
 import yaml
 from mission_tools.mission_yaml_editor import load_yaml
+from veaf_libs.build_stamp import _package_version
 from veaf_libs.bundled_data import read_bundled_text
+from veaf_libs.known_limitations import active_limitations, load_known_limitations
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.veaf_shortcuts_scanner import get_shortcuts
 
@@ -124,9 +126,12 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
 
     Returns:
         `{"units": [{"aliases", "unitType"}, ...], "groups": [{"aliases", "groupName",
-        "description"}, ...], "commands": [{"aliases", "description", "veafCommand", "category"},
-        ...]}`. ``category`` is a coarse family (SAM/AAA/infantry/armor/artillery/naval/transport/
-        air/ewr/other) so aliases can be enumerated by kind.
+        "description"}, ...], "commands": [{"aliases", "description", "veafCommand",
+        "randomParameters", "category"}, ...]}`. ``randomParameters`` maps each parameter drawn at
+        random on every use to its ``{"min", "max"}`` range — `-samLR` and `-samSR` run the same
+        command and differ only by their ``defense`` range. ``category`` is a coarse family
+        (SAM/AAA/infantry/armor/artillery/naval/transport/air/ewr/other) so aliases can be
+        enumerated by kind.
     """
     data = _load_bundled_data_yaml("veaf-units.yaml")
     needle = name_contains.lower() if name_contains else None
@@ -155,6 +160,7 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
             "aliases": list(e.get("aliases") or []),
             "description": e.get("description", ""),
             "veafCommand": e.get("veafCommand", ""),
+            "randomParameters": dict(e.get("randomParameters") or {}),
             "category": _command_category(list(e.get("aliases") or []), e.get("description", "")),
         }
         for e in get_shortcuts()
@@ -229,6 +235,25 @@ def describe_naming_conventions() -> dict[str, Any]:
         `{"conventions": [{"id", "rule", "module", "reserved"}, ...]}`.
     """
     return {"conventions": [dict(convention) for convention in _NAMING_CONVENTIONS]}
+
+
+def describe_known_limitations(kind: str | None = None) -> dict[str, Any]:
+    """Return what an author must know before building a mission, for the running version.
+
+    Read from the one shipped file ``veaf_libs/data/known-limitations.yaml``: the limitations of
+    veaf-tools not yet fixed in this version, and the DCS behaviours that raise no error and are
+    wrong anyway (always returned — DCS is not ours to fix).
+
+    Args:
+        kind: Optional ``"tool"`` or ``"dcs"`` to return one kind only.
+
+    Returns:
+        `{"veaf_tools_version", "limitations": [{"id", "kind", "area", "title", "symptom",
+        "workaround", "cost"?, "measured"?, "fixed_in"?}, ...]}`.
+    """
+    version = _package_version()
+    entries = active_limitations(load_known_limitations(), version, kind=kind)
+    return {"veaf_tools_version": version, "limitations": [dict(entry) for entry in entries]}
 
 
 def _module_enabled(mission_yaml_path: Path, module_id: str) -> bool | None:

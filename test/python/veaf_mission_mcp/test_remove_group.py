@@ -52,6 +52,12 @@ _YAML_WITH_ASSET = """modules:
         description: Tanker
         information: KC-135
         linked: true
+  COMBATZONE:
+    enabled: true
+    combat_zones:
+      # Only a declared zone captures (FIX-SCRATCH-MISSION-FINDINGS ticket 08)
+      - type: zone
+        zone_name: CZ-North
 """
 
 

@@ -2,7 +2,7 @@
 
 Status: 🧑 waiting-human — option (a) **shipped 2026-09-01 (PR #882)** and unit-tested; the one thing left is item R5 of `DCS-SESSION-TODO.md`, which no unit test can answer (the mocked `coalition.addGroup` does not register the group it is handed)
 
-Origin: the in-game verification of [`FIX-ESCORT-RESPAWN-TASK`](../FIX-ESCORT-RESPAWN-TASK/PRD.md),
+Origin: the in-game verification of [`FIX-ESCORT-RESPAWN-TASK`](../archive/FIX-ESCORT-RESPAWN-TASK.md),
 run 2026-08-28 on `VEAF-session-2026-08-27`. That lot's repair is now proven to work; the escort
 still goes home, and this is why.
 
@@ -32,7 +32,7 @@ escort is out of range of its charge before the repair has even run.
 > an `at`. Nothing else in this PRD is affected — but do not go looking for MiST here.
 
 The repair itself is not at fault, and that is established rather than assumed — the instrumented
-trace in [ticket 03](../FIX-ESCORT-RESPAWN-TASK/tickets/03-find-the-escort-task-on-any-waypoint.md)
+trace in [ticket 03](../archive/FIX-ESCORT-RESPAWN-TASK.md#03--find-the-escort-task-on-any-waypoint-not-only-the-last)
 shows `reestablishEscortTask` → `actualReestablishEscortTask` → `replaceMission` running to
 completion and writing the runtime group id (`1000031` → `18`) into the task.
 
@@ -112,6 +112,10 @@ naming convention — end up doing the same thing at respawn time. The page has 
       and what both outcomes mean, so the wait has somewhere to end
 - [x] The ASSETS page says what a respawn does to an escort — new section *What a respawn does to an
       escort* in both languages, including the cost: the escort that comes back is a fresh one
+- [ ] [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) closed, citing the
+      in-game measurement. Inherited from `FIX-ESCORT-RESPAWN-TASK` when that lot was archived on
+      2026-09-26: it shipped the task repair, but #107's symptom — *the respawned escort does not
+      follow* — is the distance this lot fixes, so the issue closes on **R5**, not on that lot
 
 ### What the unit tests cannot settle, and what to look for in game
 
@@ -146,7 +150,7 @@ right after the call that is supposed to make the escort escort:
   --this method appears to not work very well, the escort just doesn't defend the group
 ```
 
-That contradicts [`FIX-ESCORT-RESPAWN-TASK`](../FIX-ESCORT-RESPAWN-TASK/PRD.md), which states the
+That contradicts [`FIX-ESCORT-RESPAWN-TASK`](../archive/FIX-ESCORT-RESPAWN-TASK.md), which states the
 teleport path *"works (escort held for 30 min)"* and used it as the reference the respawn path was
 ported from. One of the two is wrong, and it matters: option (b) is only cheap if the thing it reuses
 does what it claims. **Settle this before choosing (b)** — and note that "held for 30 min" and "does

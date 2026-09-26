@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_tools.miz_tools import DcsMission, read_miz
-from veaf_libs import coordinates
+from veaf_libs import coordinates, dcs_airdromes
 
 from veaf_mission_mcp.describe_mission import _list_groups, _list_zones
 from veaf_mission_mcp.mission_folder import load_folder_mission
@@ -72,11 +72,44 @@ def resolve_coordinates(mission_path: Path, position: dict[str, float]) -> dict[
         ValueError: when the mission has no theatre, the theatre is unsupported, or ``position`` is
             neither a complete ``{x, y}`` nor a complete ``{lat, lon}``.
     """
-    mission = _load_mission(mission_path)
-    theatre = mission.theatre_content
+    theatre = _theatre(mission_path)
+    return {"theatre": theatre, **_convert(theatre, position)}
+
+
+def resolve_coordinates_batch(mission_path: Path, positions: list[dict[str, float]]) -> dict[str, Any]:
+    """Convert several positions at once, in the order given; the mission is read once.
+
+    Args:
+        mission_path: A `.miz` file or mission folder (its theatre drives the projection).
+        positions: Each one as :func:`resolve_coordinates` takes it.
+
+    Returns:
+        ``{theatre, points: [{xy, latlon}, ...]}``, one point per position.
+
+    Raises:
+        ValueError: when the mission has no usable theatre, or a position is incomplete — named
+            by its 0-based index.
+    """
+    theatre = _theatre(mission_path)
+    points: list[dict[str, Any]] = []
+    for index, position in enumerate(positions):
+        try:
+            points.append(_convert(theatre, position))
+        except ValueError as exc:
+            raise ValueError(f"positions[{index}]: {exc}") from exc
+    return {"theatre": theatre, "points": points}
+
+
+def _theatre(mission_path: Path) -> str:
+    """Return the mission's theatre, or refuse when it has none."""
+    theatre = _load_mission(mission_path).theatre_content
     if not theatre:
         raise ValueError(f"Mission has no theatre, cannot convert coordinates: {mission_path}")
+    return str(theatre)
 
+
+def _convert(theatre: str, position: dict[str, float]) -> dict[str, Any]:
+    """Return ``{xy, latlon}`` for one position; ``{x, y}`` wins when both forms are given."""
     # {x, y} takes precedence when both forms are present (mirrored in the action schema doc).
     if position.get("x") is not None and position.get("y") is not None:
         x, y = float(position["x"]), float(position["y"])
@@ -88,4 +121,32 @@ def resolve_coordinates(mission_path: Path, position: dict[str, float]) -> dict[
         got = ", ".join(sorted(position)) or "none"
         raise ValueError(f"position must be a complete {{x, y}} or {{lat, lon}}; got keys: {got}.")
 
-    return {"theatre": theatre, "xy": {"x": x, "y": y}, "latlon": {"lat": lat, "lon": lon}}
+    return {"xy": {"x": x, "y": y}, "latlon": {"lat": lat, "lon": lon}}
+
+
+def list_airfields(*, mission_path: Path | None = None, theatre: str | None = None) -> dict[str, Any]:
+    """List a theatre's airbases — name, id and position — from the data shipped with the tools.
+
+    Args:
+        mission_path: A `.miz` or mission folder whose theatre to list; wins over ``theatre``.
+        theatre: A DCS theatre name, when there is no mission yet.
+
+    Returns:
+        ``{theatre, airfields: [{name, id, lat, lon, x?, y?}]}`` — ``x``/``y`` (DCS local metres) when
+        the theatre's projection is known, so a result can be placed on directly.
+
+    Raises:
+        ValueError: when neither is given, or the theatre has no airbase data.
+    """
+    if mission_path is not None:
+        theatre = _theatre(mission_path)
+    if not theatre:
+        raise ValueError("list_airfields needs mission_path or theatre")
+    airfields = dcs_airdromes.airfields_for_theatre(theatre)
+    if not airfields:
+        raise ValueError(f"No airbase data for theatre {theatre!r}")
+    projected = theatre.lower() in {name.lower() for name in coordinates.supported_theatres()}
+    for airfield in airfields:
+        if projected:
+            airfield["x"], airfield["y"] = coordinates.latlon_to_xy(theatre, airfield["lat"], airfield["lon"])
+    return {"theatre": theatre, "airfields": airfields}

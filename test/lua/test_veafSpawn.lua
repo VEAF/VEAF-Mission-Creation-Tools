@@ -187,6 +187,22 @@ function TestVeafSpawnMarkTextAnalysis:test_spawn_group_sets_flag()
   luaunit.assertTrue(r.group)
 end
 
+-- FIX-SCRATCH-MISSION-FINDINGS 12: `-samVLR` spawns a real long-range battery, `-samLR` keeps its
+-- defense-level group
+function TestVeafSpawnMarkTextAnalysis:test_spawn_longrangesam_sets_both_flags()
+  local r = veafSpawn.markTextAnalysis("_spawn longrangesam, skynet true")
+  luaunit.assertNotNil(r)
+  luaunit.assertTrue(r.airDefenseBattery)
+  luaunit.assertTrue(r.longRange)
+  luaunit.assertTrue(r.skynet)
+end
+
+function TestVeafSpawnMarkTextAnalysis:test_spawn_samgroup_is_not_long_range()
+  local r = veafSpawn.markTextAnalysis("_spawn samgroup")
+  luaunit.assertTrue(r.airDefenseBattery)
+  luaunit.assertFalse(r.longRange == true)
+end
+
 function TestVeafSpawnMarkTextAnalysis:test_spawn_smoke_sets_flag()
   local r = veafSpawn.markTextAnalysis("_spawn smoke")
   luaunit.assertNotNil(r)
@@ -939,6 +955,15 @@ function TestVeafSpawnGroundSceneryAware:setUp()
     table.insert(self.casCentres, { x = spawnPoint.x, y = spawnPoint.y, z = spawnPoint.z })
     return self._savedGenerateCasGroup(groupName, spawnPoint, size, defense, armor, spacing, side)
   end
+  -- Whether the group was offered to the rigid translation, and whether the caller claimed to own
+  -- the placement. The centre hooks above say nothing about this, and the entry gate is exactly
+  -- where the first cut of the lot went inert.
+  self._savedSettleGroup = veafUnits.settleGroup
+  self.settleCalls = {}
+  veafUnits.settleGroup = function(units, honourDeclaredPosition)
+    table.insert(self.settleCalls, { count = #units, honoured = honourDeclaredPosition })
+    return 0
+  end
 end
 
 function TestVeafSpawnGroundSceneryAware:tearDown()
@@ -947,6 +972,7 @@ function TestVeafSpawnGroundSceneryAware:tearDown()
   veaf.getRandomPointInCircle = self._savedGetRandPoint
   veafUnits.placeGroup = self._savedPlaceGroup
   veafCasMission.generateCasGroup = self._savedGenerateCasGroup
+  veafUnits.settleGroup = self._savedSettleGroup
   veaf.doNotAvoidScenery = self._savedOptOut
 end
 
@@ -984,6 +1010,33 @@ function TestVeafSpawnGroundSceneryAware:test_a_water_candidate_is_skipped_and_t
   luaunit.assertIsString(result)
   luaunit.assertEquals(#self.centres, 1)
   luaunit.assertEquals(self.centres[1].x, 700, "the water candidate must not become the group centre")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_a_spawn_with_the_default_radius_still_settles_its_group()
+  -- Measured in DCS on GermanyCW-v6, 2026-09-25: 100 of the 118 spawn commands of one launch pass
+  -- `radius 0` -- `sa10`, `sa11`, `sa15_squad`, `ewr`, `patriot`, `msta`, i.e. every air-defence
+  -- group this lot exists for, `combatZone_Wittstock`'s S-300 (13 units of 14 under trees) included.
+  -- An entry gate keyed on the radius would make the whole lot a no-op on the real mission while
+  -- every unit test stayed green, because they all state a radius. This one states none, on purpose.
+  --
+  -- What is pinned is that the spawner hands `settleGroup` **no exemption at all**: passing the
+  -- radius down, whatever its value, is precisely the defect. Whether the group then moves is
+  -- `settleGroup`'s own business and is tested against the real function in test_veafUnits.lua.
+  self:_jitter({ 0 })
+  local result = veafSpawn.spawnInfantryGroup({ x = 0, y = 0, z = 0 }, 0, nil, "usa", 2, 0, 10, 1, 0, 3, true, false)
+  luaunit.assertIsString(result)
+  luaunit.assertEquals(#self.settleCalls, 1, "the group must be offered to the rigid translation")
+  luaunit.assertNil(self.settleCalls[1].honoured, "a command that stated no radius exempts nothing")
+end
+
+function TestVeafSpawnGroundSceneryAware:test_the_full_combat_group_owns_its_placement()
+  -- Its units are several groups already settled one by one by veafCasMission.placeGroup, so
+  -- settling the flat list again would translate the whole combat group as one formation.
+  self:_jitter({ 0 })
+  veafSpawn.spawnFullCombatGroup({ x = 0, y = 0, z = 0 }, 1000, nil, "usa", 2, 0, 10, 1, 0, 1, true, false)
+  for _, call in ipairs(self.settleCalls) do
+    luaunit.assertEquals(call.honoured, true, "the full combat group declares it owns its placement")
+  end
 end
 
 function TestVeafSpawnGroundSceneryAware:test_no_position_anywhere_aborts_before_placing_anything()

@@ -27,6 +27,54 @@ poetry run veaf-logs
 L'interface graphique demande PySide6, déclaré en dépendance optionnelle
 (`--all-extras`, ou `--extras logs`). Le reste de `veaf-tools` n'en a pas besoin.
 
+## Journal d'un serveur distant {#remote}
+
+`Fichier › Ouvrir un journal distant…` (Ctrl+Maj+O) suit le `dcs.log` d'un serveur
+DCS par SSH, avec les mêmes filtres, règles et profils qu'un fichier local. Une
+machine héberge souvent plusieurs instances DCS : on déclare la machine une fois,
+puis un journal par instance, dans `~/veafmct.yaml` (voir
+[la configuration globale utilisateur](GUIDE.md#global-user-configuration)) :
+
+```yaml
+servers:
+  veaf:
+    host: dcs.veaf.org
+    user: veaf
+    port: 22                  # facultatif
+    key: ~/.ssh/id_ed25519    # facultatif : sinon l'agent SSH et les clés par défaut
+    logs:
+      private1: C:/Users/veaf/Saved Games/private1_server/Logs/dcs.log
+      public1: C:/Users/veaf/Saved Games/public1_server/Logs/dcs.log
+```
+
+Le menu propose alors `veaf › private1`, `veaf › public1`… Chaque instance ouvre
+un onglet `veaf:private1`, rouvert au prochain lancement comme un fichier local.
+
+**Authentification par clé uniquement.** L'outil ne demande, ne lit ni ne stocke
+aucun mot de passe. Si la clé de la machine n'est pas encore dans
+`~/.ssh/known_hosts`, une boîte de dialogue montre son empreinte et propose de
+la mémoriser, comme le ferait `ssh` la première fois.
+
+Le journal est recopié en local au fil de l'eau : un `stat` par seconde, et
+seuls les octets nouveaux transitent. Quand DCS redémarre sur le serveur et
+repart d'un fichier neuf, l'onglet repart avec lui. Une coupure réseau met
+l'onglet en attente ; il reprend là où il en était dès que le serveur répond,
+une nouvelle tentative toutes les cinq secondes. Ouvrir une instance arrêtée
+(pas de `dcs.log` sur le serveur) affiche un message ; un onglet déjà ouvert,
+lui, reste en attente jusqu'au redémarrage de l'instance. Au lancement, un
+serveur injoignable est signalé dans la barre d'état et ses onglets ne sont pas
+rouverts : rien ne bloque.
+
+Côté serveur Windows, il faut le service **OpenSSH Server** (fonctionnalité
+facultative de Windows, `Paramètres › Applications › Fonctionnalités
+facultatives`) : SFTP est inclus et actif par défaut. Piège classique : pour un
+compte **administrateur**, la clé publique va dans
+`C:\ProgramData\ssh\administrators_authorized_keys`, pas dans
+`~\.ssh\authorized_keys`, et le fichier doit n'être lisible que par
+`SYSTEM` et `Administrators`.
+
+`veaf-tools.exe` n'embarque pas cette fonction : elle vit dans `veaf-logs`.
+
 ## Les trois états
 
 Chaque niveau, chaque source et chaque famille de bruit se règle d'un clic, en
@@ -297,3 +345,5 @@ doivent rester en ASCII. Le nombre de familles de bruit est plafonné à 64.
 |---|---|
 | Session (fichiers ouverts, filtres, géométrie, police) | `%APPDATA%\veaf-logs\session.json` |
 | Profils | `%APPDATA%\veaf-logs\profiles.json` |
+| Serveurs distants (`servers:`) | `~\veafmct.yaml` |
+| Miroir local d'un journal distant | `%TEMP%\veaf-logs-*.log`, supprimé à la fermeture de l'onglet |

@@ -350,6 +350,20 @@ Deux **usages distincts** de groupes d'aéronefs injectés, gérés par deux ét
 
 > **Rupture v6** : les anciens noms `src/aircraft-templates.yaml` / `src/templates.yaml` et l'étape `aircraft_groups` ne sont plus utilisés. `convert-v5` produit directement les deux nouveaux fichiers.
 
+#### Repli sur le catalogue livré {#shipped-catalogue-fallback}
+
+Ces deux étapes sont les seules du pipeline à avoir un **repli** : leur entrée est un catalogue, dont l'essentiel n'est édité par personne. `prepare` ne dépose donc plus de copie — il écrit un fichier vide — et la résolution se fait dans cet ordre :
+
+1. le fichier du dossier de mission, **s'il contient au moins un groupe** ;
+2. sinon le catalogue livré, sous `published/src/defaults/mission-folder/src/`.
+
+Un fichier absent ou vide veut dire « je n'ajoute rien au catalogue livré », pas « je ne veux rien injecter ». Deux conséquences à connaître :
+
+- `spawnable_aircrafts: false` / `dynamic_slot_templates: false` reste le seul moyen de désactiver l'étape, et le repli ne la ressuscite pas ;
+- un `file:` explicite est pris au mot : si le chemin nommé n'existe pas, l'étape est **ignorée** plutôt que repliée sur le catalogue livré — une faute de frappe ne doit pas injecter un catalogue que personne n'a demandé.
+
+Quand le repli joue, le compte rendu de build le dit. Pour récupérer sélectivement les entrées du catalogue livré dans un fichier qui en a déjà, voir [`pull-aircraft-groups`](CLI_REFERENCE.md#pull-aircraft-groups).
+
 ### Modes d'injection
 
 | Mode | Comportement |
@@ -428,7 +442,15 @@ carburant / munitions et le stock d'aéronefs, et lie chaque type d'aéronef pro
   airports:                  # optionnel. Absent -> TOUS les aérodromes de la coalition reçoivent `defaults`.
     <nom ou id>: { }                        # defaults seuls
     <nom ou id>: { aircrafts: { ... } }     # defaults + override par aérodrome
+  exclude_airports:          # optionnel. Ces aérodromes ne reçoivent JAMAIS de slot, listés ou non.
+    - <nom ou id>
 ```
+
+- `exclude_airports` est ce que l'action MCP `set_airbase_coalition(…, dynamic_spawn: false)` écrit :
+  sans lui, un `dynamicSpawn = false` dans les `warehouses` de la mission était **réactivé au build**
+  pour toute base d'une coalition déclarée sans liste `airports:` (mesuré sur GermanyCW-v6 : 61
+  aérodromes ouverts au lieu de 12). Une base à la fois listée et exclue reste fermée, avec un
+  avertissement.
 
 - `template` référence un groupe-modèle par **nom** ; omettez-le pour l'auto-matcher
   à un groupe-modèle du même **type d'aéronef** (même coalition).
@@ -564,7 +586,7 @@ Aussi accepté : versions.yaml  (racine du dossier mission)
 position:
   latitude: 33.5                        # degrés décimaux, -90 à 90
   longitude: 35.5                       # degrés décimaux, -180 à 180
-  timezone: "Asia/Damascus"             # fuseau horaire IANA
+  timezone: "Asia/Damascus"             # fuseau IANA, repli pour un théâtre inconnu (sinon : horloge DCS du théâtre)
 
 # ── Date de base pour toutes les versions ─────────────────────────────────
 base_date: "2024-03-15"                 # ISO 8601 (AAAA-MM-JJ)
@@ -598,6 +620,7 @@ versions:
 | `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo, et affichable dans le briefing via [`${METAR}`](#briefing-variables) |
 | `airport_icao` | string | Non | Code OACI dont la météo réelle est récupérée en ligne (utilisé sans `metar`) |
 | `weather` | objet | Non | Surcharge météo manuelle (utilisée sans `metar` ni `airport_icao`) |
+| `clearsky` | booléen | Non | Plafonne la météo à des conditions de vol à vue : nuages au plus FEW, vent sous 15 kt, visibilité de 10 km ou plus, ni pluie ni brouillard. Garde la vraie météo d'un `airport_icao` tout en restant pilotable à vue. Défaut `false` |
 
 ### Afficher la météo dans le briefing : `${METAR}` {#briefing-variables}
 
@@ -657,11 +680,17 @@ Ce que `${METAR}` vaut selon la variante :
 |-------|------|-------------|
 | `temperature` | nombre | Température de l'air en °C |
 | `wind_speed` | nombre | Vitesse du vent en m/s |
-| `wind_direction` | nombre | Direction du vent en degrés (0 = Nord) |
+| `wind_direction` | nombre | Direction **d'où vient** le vent, en degrés (0 = Nord), comme dans un METAR |
 | `visibility` | nombre | Visibilité en mètres |
 | `cloud_type` | string | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | nombre | Altitude de la base des nuages en mètres |
 | `fog_enabled` | booléen | Activer l'effet de brouillard |
+| `precipitation` | booléen | Pluie : choisit un preset de nuages pluvieux de DCS (`RainyPreset…`) |
+
+La couverture et la base choisissent un **preset de nuages** DCS, le seul rendu depuis DCS 2.7 : le
+premier preset de cette couverture dont la plage d'altitude contient la base, sinon la base est
+ramenée dans la plage du plus proche (plages lues dans `Config/Effects/clouds.lua` de DCS). Un METAR
+fournit en plus la pression (`Q1018`, `A2992`), la pluie (`RA`, `DZ`, `TS`…) et le brouillard (`FG`).
 
 ### Exemple minimal
 

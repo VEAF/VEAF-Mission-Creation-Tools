@@ -31,11 +31,24 @@ tools nor the subject of the thread. Retrieval against that phrase alone lands o
 and the model — which does hold the context — then answers confidently over them, which reads as
 *the bot got worse* rather than as *retrieval missed*.
 
-:func:`retrieval_query` therefore builds that turn as the opening question joined to the follow-up,
-the follow-up last and verbatim. The same turn is what the model reads, since the Worker uses one
-list for both; separating them would mean a new field on ``/chat`` and a Worker deployment, and
-asking a model to rewrite the query would spend a request of a free tier shared with the site and the
-command line.
+:func:`retrieval_query` therefore builds that turn as a subject joined to the follow-up, the
+follow-up last and verbatim. The same turn is what the model reads, since the Worker uses one list
+for both; separating them would mean a new field on ``/chat`` and a Worker deployment, and asking a
+model to rewrite the query would spend a request of a free tier shared with the site and the command
+line.
+
+## Which subject, and why not the opening question
+
+:func:`widening_subject` takes the **latest** question asked in the thread, not the one it was
+opened on. A thread drifts: one opened on Skynet reached the CSAR module three follow-ups later, and
+a fourth follow-up too elliptical to retrieve on — *"generate the paragraph taking the final claim
+into account"* — was widened with the Skynet opening, which dominated the embedding. Retrieval came
+back with Skynet passages, the instruction forbids answering from anything else, and the bot re-served
+its first answer almost word for word. What looks like *the bot forgot the conversation* was the
+opposite: it remembered the wrong end of it.
+
+The latest question is the subject the thread is on now, and on a thread that has not drifted it
+**is** the opening question — so the elliptical follow-up this widening was built for loses nothing.
 """
 
 from __future__ import annotations
@@ -92,11 +105,11 @@ def strip_mentions(content: str, bot_id: str) -> str:
     return " ".join(without.split())
 
 
-def retrieval_query(opening: str, followup: str) -> str:
+def retrieval_query(subject: str, followup: str) -> str:
     """Build the last user turn: the thread's subject, then the question actually being asked.
 
     Args:
-        opening: The question the thread was opened on.
+        subject: What the thread is about, from :func:`widening_subject`.
         followup: The follow-up, verbatim.
 
     Returns:
@@ -105,11 +118,11 @@ def retrieval_query(opening: str, followup: str) -> str:
         whole, and it is also what the reader will compare the answer against.
     """
     asked = " ".join(followup.split())[:MAX_QUESTION_CHARS]
-    subject = " ".join(opening.split())
+    about = " ".join(subject.split())
     room = MAX_QUESTION_CHARS - len(asked) - len(_JOIN)
     if room <= 0:
         return asked
-    return f"{subject[:room]}{_JOIN}{asked}"
+    return f"{about[:room]}{_JOIN}{asked}"
 
 
 @dataclass
@@ -118,8 +131,8 @@ class ThreadConversation:
 
     Attributes:
         thread_id: The Discord thread id.
-        question: The question the thread was opened on, kept apart from the turns because it is
-            what :func:`retrieval_query` widens a follow-up with, however long the thread grows.
+        question: The question the thread was opened on, kept apart from the turns because those are
+            trimmed and it is what :func:`widening_subject` falls back on when none is left.
         turns: The exchange so far, alternating ``user`` and ``assistant``, oldest first.
         lang: The language the thread was answered in. A follow-up arrives as a plain message and
             carries no locale of its own — Discord sends one with an *interaction*, not with a
@@ -133,6 +146,23 @@ class ThreadConversation:
     turns: list[dict[str, str]] = field(default_factory=list)
     lang: str = DEFAULT_LANGUAGE
     updated_at: float = 0.0
+
+
+def widening_subject(conversation: ThreadConversation) -> str:
+    """Return what a follow-up is widened with: the latest question asked in the thread.
+
+    Args:
+        conversation: What the thread has said so far.
+
+    Returns:
+        The last non-empty user turn, or the opening question when no turn was kept — a record
+        trimmed at :data:`MAX_REMEMBERED_TURNS`, or read back from a file written by an older
+        version, can carry fewer turns than it was written with.
+    """
+    for turn in reversed(conversation.turns):
+        if turn.get("role") == "user" and turn.get("content", "").strip():
+            return turn["content"]
+    return conversation.question
 
 
 def followup_turns(conversation: ThreadConversation, followup: str) -> list[dict[str, str]]:
@@ -149,7 +179,7 @@ def followup_turns(conversation: ThreadConversation, followup: str) -> list[dict
     """
     protocol = answer_module.protocol_turns(conversation.question)[:2]
     turns = [*protocol, *conversation.turns]
-    turns.append({"role": "user", "content": retrieval_query(conversation.question, followup)})
+    turns.append({"role": "user", "content": retrieval_query(widening_subject(conversation), followup)})
     return turns
 
 

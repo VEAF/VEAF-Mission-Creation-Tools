@@ -160,6 +160,16 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="pull-aircraft-groups",
+        description=t("tui.cmd.pull_aircraft.description"),
+        prompts=[
+            # No `--add` prompt: it is repeatable and takes an exact group name, which is what the
+            # read-only report is for. The wizard runs the report; naming entries is a CLI gesture.
+            ArgPrompt("kind", t("tui.arg.extract_aircraft_kind"), default="both"),
+            ArgPrompt("add_new", t("tui.arg.pull_aircraft_add_new"), is_flag=True),
+        ],
+    ),
+    CommandSpec(
         cli_name="extract-waypoints",
         description=t("tui.cmd.extract_waypoints.description"),
         prompts=[

@@ -100,8 +100,8 @@ cap_missions:
   - group_name: "Groupe CAP"      # REQUIS — nom logique ; le groupe DCS doit s'appeler "OnDemand-Groupe CAP"
     menu_name: "CAP Nord"          # libellé dans le menu F10
     briefing: "Patrouiller le secteur nord et engager les menaces."
-    default: false                # true = actif par défaut
-    activated: true               # true = activé immédiatement au démarrage
+    default: false                # true = Activer / Désactiver réservés aux pilotes autorisés
+    activated: true               # true = la CAP apparaît dans le menu F10
 
 # ── Missions de combat ───────────────────────────────────────────────────
 combat_missions:
@@ -127,8 +127,8 @@ combat_missions:
 | `group_name` | string | — | Oui | Nom logique du vol CAP. **Le groupe DCS placé dans l'éditeur doit être nommé `OnDemand-<group_name>`** : le runtime préfixe `OnDemand-` (depuis la v5). Ex. `group_name: CAP-Alpha` → groupe DCS `OnDemand-CAP-Alpha` |
 | `menu_name` | string | — | Non | Libellé du menu F10 |
 | `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
-| `default` | booléen | `false` | Non | Démarrer comme mission active par défaut |
-| `activated` | booléen | `true` | Non | Activer immédiatement au démarrage de la mission |
+| `default` | booléen | `false` | Non | **Sécurise** les commandes Activer / Désactiver de la CAP : `true` les réserve aux pilotes qui ont le niveau de sécurité requis. Avec `false`, la valeur par défaut, **tout joueur** peut lancer ou arrêter la CAP. C'est le paramètre `secured` de `veafCombatMission.addCapMission` ; le nom de la clé ne le dit pas |
+| `activated` | booléen | `true` | Non | **Affiche** la CAP dans le menu F10, déclinée en niveaux (Good, Excellent) et en tailles (1, 2 groupes). Avec `false`, elle n'a aucune entrée de menu. C'est le paramètre `radioMenuEnabled` de `veafCombatMission.addCapMission`. Aucune des deux clés ne démarre la CAP : une CAP ne part que quand on l'active |
 
 ### Champs de `combat_missions[]` {#combat-missions}
 

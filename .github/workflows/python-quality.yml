@@ -151,6 +151,14 @@ jobs:
           ./dist/veaf-tools extract-aircraft-groups --help
           ./dist/veaf-tools convert v5 --help
 
+      # avwx reads its station table from its own package data on the first `Metar(icao)`, which
+      # PyInstaller does not bundle unless told to: in 6.24.0 every `airport_icao` variant flew the
+      # default weather while the build exited 0 (FIX-SCRATCH-MISSION-FINDINGS ticket 03). Checked in
+      # the archive rather than by fetching a METAR, so the job does not depend on a weather service.
+      - name: The executable carries the data live weather needs
+        run: |
+          poetry run pyi-archive_viewer -r -b dist/veaf-tools | grep -E 'avwx[/\\]data[/\\]files[/\\]stations\.json'
+
   # ---------------------------------------------------------------------------
   # Does the veaf-logs executable start?
   #

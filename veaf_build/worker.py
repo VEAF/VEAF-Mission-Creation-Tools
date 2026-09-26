@@ -53,6 +53,12 @@ _ROOT_EXECUTABLES: tuple[str, ...] = ("veaf-tools.exe", "veaf-tools-updater.exe"
 #: kept a second copy of "what ships in the exe" (the ``.spec`` files) the two diverged in silence.
 _LAZY_PACKAGES: tuple[str, ...] = ("mission_builder",)
 
+#: Third-party packages that read files from their own package directory at runtime, which
+#: PyInstaller does not bundle unless told to. avwx loads its station table on the first
+#: ``Metar(icao)``: without it every live-weather variant of the 6.24.0 exe fell back to the
+#: default weather while the build exited 0 (FIX-SCRATCH-MISSION-FINDINGS ticket 03).
+_DATA_PACKAGES: tuple[str, ...] = ("avwx",)
+
 
 def deploy_published_locally(published_zip: Path, target: Path) -> list[str]:
     """Deploy a built ``published.zip`` into a local mission folder, as the updater would.
@@ -544,6 +550,8 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),
             # DCS airdrome name->id table (per theatre), read by the warehouse wiring.
             (veaf_tools_dir / "veaf_libs" / "data" / "airdromes.yaml", "veaf_libs/data"),
+            # DCS airbase positions (per theatre), read by the MCP list_airfields action.
+            (veaf_tools_dir / "veaf_libs" / "data" / "airdrome-positions.yaml", "veaf_libs/data"),
             # DCS airfield ATC frequencies (per theatre), read by convert-v5 freq aliasing.
             (veaf_tools_dir / "veaf_libs" / "data" / "airfield-frequencies.yaml", "veaf_libs/data"),
             # VEAF framework spawn data, rendered to Lua and injected at mission build.
@@ -554,6 +562,8 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "theatre-defaults.yaml", "veaf_libs/data"),
             # Per-theatre projection tables, read by the MCP coordinates/map/geo actions.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-maps.yaml", "veaf_libs/data"),
+            # Known limitations and DCS traps, read by the MCP describe_known_limitations action.
+            (veaf_tools_dir / "veaf_libs" / "data" / "known-limitations.yaml", "veaf_libs/data"),
             # Per-theatre bounding boxes, read by the MCP geocode action.
             (veaf_tools_dir / "veaf_libs" / "data" / "theatre-bounds.yaml", "veaf_libs/data"),
             # Hidden placeholder ground groups, injected into empty coalitions at build.
@@ -572,6 +582,7 @@ class BuildAndReleaseWorker:
                 self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
                 extra_data=self._veaf_tools_extra_data(modules_json_path, shortcuts_json_path),
                 collect_submodules=list(_LAZY_PACKAGES),
+                collect_data=list(_DATA_PACKAGES),
             )
 
     def _build_updater_exe(self) -> None:
@@ -621,6 +632,7 @@ class BuildAndReleaseWorker:
         extra_data: list[tuple[Path, str]] | None = None,
         hidden_imports: list[str] | None = None,
         collect_submodules: list[str] | None = None,
+        collect_data: list[str] | None = None,
     ) -> None:
         """Build a single PyInstaller executable.
 
@@ -631,6 +643,7 @@ class BuildAndReleaseWorker:
             hidden_imports: Modules to bundle that no ``import`` statement names.
             collect_submodules: Packages whose **whole** submodule tree is bundled — see
                 :data:`_LAZY_PACKAGES` for why a lazy package needs this.
+            collect_data: Packages whose data files are bundled — see :data:`_DATA_PACKAGES`.
         """
         if not entry_point.exists():
             logger.error(f"Entry point not found: {entry_point}")
@@ -655,6 +668,8 @@ class BuildAndReleaseWorker:
                 cmd += ["--hidden-import", hi]
             for package in collect_submodules or []:
                 cmd += ["--collect-submodules", package]
+            for package in collect_data or []:
+                cmd += ["--collect-data", package]
             if exe_version_file and exe_version_file.exists():
                 cmd += ["--version-file", str(exe_version_file)]
             cmd.append(str(entry_point))

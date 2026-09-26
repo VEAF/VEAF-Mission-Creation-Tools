@@ -25,7 +25,9 @@ The AI can act in two places, and it changes what "survives":
   those edits.
 
 > 🛟 **Safety net**: before *every* change, the AI takes a **timestamped backup** of the file
-> concerned. Nothing is overwritten without a copy.
+> concerned. Nothing is overwritten without a copy. In a mission folder the copies go to
+> `.veaf-backups/` at the folder's root — not into `src/`, which the build packs, nor into your
+> commits (the directory ignores itself) — and only the last 20 of each file are kept.
 
 ## Frequency legend
 
@@ -72,6 +74,13 @@ The AI can act in two places, and it changes what "survives":
 | 30 | [Validate a mission before build](#validate-mission) | 🏁 Validate & build | Folder | ⭐ |
 | 31 | [Build the playable .miz](#build-mission) | 🏁 Validate & build | Folder | 🔥 |
 | 32 | [Colour a base and enable its dynamic slots](#colour-base) | 🛫 Bases & airfields | Recipe (folder) | 🔥 |
+| 33 | [Date the mission and set its start time](#mission-date) | 🕰️ Mission settings | Recipe + built | ⭐ |
+| 34 | [Place a coalition's bullseye](#set-bullseye) | 🕰️ Mission settings | Recipe + built | ⭐ |
+| 35 | [Write the briefing](#set-briefing) | 🕰️ Mission settings | Recipe + built | ⭐ |
+| 36 | [Know the known limitations](#known-limitations) | Domain knowledge | — | ⭐ |
+| 37 | [List a theatre's airfields](#list-airfields) | 🛫 Bases & airfields | — | ⭐ |
+| 38 | [Place a complete FARP](#add-farp) | 🛫 Bases & airfields | Recipe + built | ⭐ |
+| 39 | [Set the mission's weather](#set-weather) | 🕰️ Mission settings | Recipe + built | ⭐ |
 
 ---
 
@@ -91,7 +100,8 @@ generated database.
 ### List VEAF aliases / shortcuts {#list-veaf-aliases}
 
 *Knowledge · ⭐* — The VEAF alias vocabulary (`shilka`, `sa8`, …) for spawning units and composite
-groups (SAM sites, convoys).
+groups (SAM sites, convoys), and the `-samLR`, `-armor`… shortcuts with the range of each
+parameter they draw at random (`defense`, `armor`, `size`).
 
 > 💬 *"What's the alias for a Shilka?"* · *"List the ready-made SAM groups."*
 
@@ -117,6 +127,16 @@ given mission, warns about the **combat-zone capture trap**. The AI uses it befo
 and relays any warning to you.
 
 > 💬 *"Could this group name cause a problem?"*
+
+### Know the known limitations {#known-limitations}
+
+*Knowledge · ⭐* — Read before building a mission. For the installed veaf-tools version: what the
+tools cannot do yet (and how to do without), and the DCS behaviours that raise no error and are
+wrong anyway — a late-activated group visible to scripts, a `start_time` that does not delay an
+aircraft, a SAM without early-warning radar permanently lit… A fixed limitation is no longer
+returned from the version that fixes it.
+
+> 💬 *"Read the known limitations before you start."*
 
 ---
 
@@ -188,7 +208,7 @@ warnings. Do this before building.
 *Folder · 🔥* — Builds the folder into a `.miz` ready to play in DCS (runs `veaf-tools mission build`). The
 payoff: empty folder → content → **playable mission**.
 
-> 💬 *"Build the mission."*
+> 💬 *"Build the mission."* · *"Build the local test version."*
 
 ## 🏗️ Composites — create a full feature (one pass)
 
@@ -209,14 +229,17 @@ convoys…) instead of hard-placing units.
 
 *Recipe (folder) · 🔥* — In one call: the protected zone, the **Late-Activation** interceptors (on
 the right coalition) **and** the `QRA` definition in `mission.yaml` (referencing the groups by
-exact name). You name the aircraft, the AI picks the type and assembles.
+exact name). You name the aircraft, the AI picks the type and assembles. The interceptors are
+created **airborne**, fuelled and with a loadout: give it, or ask for it to be copied from a
+`veafSpawn-*` template — an unarmed interceptor intercepts nothing.
 
-> 💬 *"Create a red QRA in Mirage 2000s over the North zone."*
+> 💬 *"Create a red QRA in Mirage 2000s over the North zone, armed like the Mirage veafSpawn template."*
 
 ### Create an on-demand CAP mission {#create-cap}
 
 *Recipe (folder) · ⭐* — In one call: the `OnDemand-<name>` **Late-Activation** template group
-**and** the `cap_missions` entry in `mission.yaml`.
+**and** the `cap_missions` entry in `mission.yaml`. The template is created **airborne** and fuelled;
+give it a second point and it flies a race-track between the two — without one it patrols nowhere.
 
 > 💬 *"Create an on-demand CAP “Escort” with two F-15s."*
 
@@ -227,9 +250,60 @@ exact name). You name the aircraft, the AI picks the type and assembles.
 *Recipe (folder) · 🔥* — Assign an airfield to a coalition (blue / red / neutral). A base's colour
 is **not** changed by placing a unit nearby: just say "Mezzeh is blue" and the assistant colours the
 airfield **durably**, then **enables its Dynamic Spawn slots**, filling its warehouse with the
-coalition's dynamic aircraft at build time.
+coalition's dynamic aircraft at build time. For a base that must offer **no** slot (an enemy
+base, say), say so: the colour changes and the slots stay closed.
 
-> 💬 *"Make Mezzeh blue."*
+> 💬 *"Make Mezzeh blue."* · *"Turn Stendal red, with no dynamic slots."*
+
+### List a theatre's airfields {#list-airfields}
+
+*Read · ⭐* — A map's bases, with their exact name, their DCS number and their position: enough to
+choose which bases to colour, or to place something near one of them, without guessing a name.
+Works before a mission exists too, by naming the map.
+
+> 💬 *"Which bases are there in East Germany on GermanyCW?"*
+
+### Place a complete FARP {#add-farp}
+
+*Recipe + built · ⭐* — A FARP that actually serves: the heliport, its radio frequency, its callsign,
+and the warehouse that lets helicopters refuel and rearm there. Placing the "FARP" object alone is
+not enough: nobody can use it.
+
+> 💬 *"Place a blue FARP at Fulda, on 127.5 MHz."*
+
+## 🕰️ Mission settings
+
+### Date the mission and set its start time {#mission-date}
+
+*Recipe + built · ⭐* — The date and the start time, like the editor's time panel. A mission created
+from scratch is dated 2016; a Cold War mission wants 1980. The time is the theatre's, the one DCS
+shows. The weather variants of `versions.yaml` can still set their own, variant by variant.
+
+> 💬 *"Date the mission 1 June 1980, starting at 09:30."*
+
+### Place a coalition's bullseye {#set-bullseye}
+
+*Recipe + built · ⭐* — A coalition's bullseye. The build takes each flight plan's BULLSEYE waypoint
+from it, and the VEAF scripts announce positions relative to it: place it early, on a known landmark.
+
+> 💬 *"Put the blue bullseye on Point Alpha, in the Fulda Gap."*
+
+### Write the briefing {#set-briefing}
+
+*Recipe + built · ⭐* — The mission's name, the situation and each coalition's task; only the texts
+given change. A mission saved by the editor keeps these texts in its dictionary: the assistant writes
+them where the mission already keeps them. `${METAR}` and the other briefing variables are replaced
+at build, variant by variant.
+
+> 💬 *"Write the situation: Central Europe, June 1980. Blue task: hold the Fulda Gap."*
+
+### Set the mission's weather {#set-weather}
+
+*Recipe + built · ⭐* — Clouds, wind, temperature, visibility, rain, fog, or a whole METAR. A mission
+created from scratch has its clouds on the ground: this is where to fix it. The weather variants of
+`versions.yaml` still override it, variant by variant.
+
+> 💬 *"Broken clouds at 1,500 m, 12 °C, westerly wind at 10 knots."*
 
 ---
 
@@ -324,7 +398,7 @@ tells you rather than guessing.
 
 *Built mission · ⭐* — Change what is **already** in the mission, unit by unit: its **loadout**
 (pylon by pylon), its **AI level**, its **livery**, its **heading**, its **callsign** and its
-**onboard number**. You give the heading in degrees, the AI converts it. Only the settings you ask
+**onboard number**, its **name**, its **position**. You give the heading in degrees, the AI converts it. Only the settings you ask
 for change, and the AI tells you what was there before.
 
 > 💬 *"Give Colt flight an air-to-ground loadout."*
@@ -375,12 +449,16 @@ save the mission.
 
 *Built mission · ⭐* — Add, insert, remove or reorder a **waypoint**, change its altitude, speed, name
 or type — and above all give it a **task**: orbit, attack a group, bomb a point, engage the targets in
-a zone, land, set a frequency, or loop the route back on itself.
+a zone, land, set a frequency, or loop the route back on itself. For a **support flight**: refuel others
+(`tanker`), act as AWACS, turn on a **TACAN** (channel, X/Y mode, callsign), enable the datalink (EPLRS),
+carry unlimited fuel, or **escort** another group named by its name.
 
 > 💬 *"Add a waypoint after the third, at 20,000 feet."*
 > 💬 *"Have this tanker orbit a race-track at 20,000 feet, 300 knots."*
 > 💬 *"Put an attack task on that group at waypoint 3."*
 > 💬 *"Loop the patrol from the last waypoint back to the second."*
+> 💬 *"Make Texaco a tanker, TACAN 30Y callsign TXO, unlimited fuel."*
+> 💬 *"Have the two F-15s escort Texaco."*
 
 Three things worth knowing:
 

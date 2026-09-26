@@ -583,7 +583,11 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
         set_language("en")
         try:
             result = generate_mission_yaml_template()
-            self.assertIn("doc/mission-maker/GUIDE.en.md", result)
+            # The published site, not the GitHub blob view: GitHub renders `{#anchor}` as part of
+            # the heading text, so no anchor written there resolves. Trailing slash before any
+            # fragment, English under /en/ — same shape as convert-v5 (DOC-GUIDE-ANCHORS).
+            self.assertIn("veaf.github.io/documentation/dev/en/mission-maker/GUIDE/", result)
+            self.assertNotIn("blob/master/doc", result)
             self.assertNotIn("doc/MISSION_MAKER_GUIDE", result)
             self.assertNotIn("doc/fr/MISSION_MAKER_GUIDE", result)
         finally:
@@ -613,9 +617,14 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
         set_language("fr")
         try:
             result = generate_mission_yaml_template()
-            self.assertIn("doc/mission-maker/GUIDE.md", result)
-            self.assertIn("#configurer-les-modules", result)
-            self.assertIn("#profils-de-build", result)
+            self.assertIn("veaf.github.io/documentation/dev/mission-maker/GUIDE/", result)
+            self.assertNotIn("/dev/en/mission-maker/", result)
+            # The anchors are the page's explicit `{#…}` ids, identical in both languages — a slug
+            # derived from the French heading names nothing the site serves.
+            self.assertIn("#configuring-modules", result)
+            self.assertIn("#build-profiles", result)
+            self.assertNotIn("#configurer-les-modules", result)
+            self.assertNotIn("#profils-de-build", result)
         finally:
             set_language(prev)
 
@@ -732,6 +741,19 @@ class TestSummarizeActiveModules(unittest.TestCase):
         `standard` template, which reported `NAMEDPOINTS (0), SHORTCUTS (0)` in a line of 24."""
         summary = self.summary({"modules": {"SHORTCUTS": True, "NAMEDPOINTS": True}})
         self.assertEqual(summary, {"SHORTCUTS": None, "NAMEDPOINTS": None})
+
+    def test_qra_is_counted_on_the_dict_the_build_actually_passes(self) -> None:
+        """FIX-SCRATCH-MISSION-FINDINGS ticket 09: the build said « QRA (0) » for one definition.
+
+        The build normalises `mission.yaml` first, and that moves `modules.QRA.definitions` into a
+        separate `qra` section — the test above feeds the raw file, which is why it stayed green.
+        """
+        from mission_builder.mission_builder_worker import _normalize_mission_yaml
+
+        normalized = _normalize_mission_yaml(
+            {"modules": {"QRA": {"enabled": True, "definitions": [{"name": "QRA_Stendal"}]}}}
+        )
+        self.assertEqual(self.summary(normalized)["QRA"], 1)
 
     def test_the_legacy_lua_modules_key_is_read_too(self) -> None:
         self.assertEqual(self.summary({"lua_modules": {"SPAWN": True}}), {"SPAWN": None})

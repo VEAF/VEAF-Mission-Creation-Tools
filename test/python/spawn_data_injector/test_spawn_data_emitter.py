@@ -72,10 +72,10 @@ def _expected_groups_db(groups: list[dict]) -> list:
 def test_load_framework_spawn_data_shape() -> None:
     data = load_framework_spawn_data()
     assert len(data["units"]) == 13
-    assert len(data["groups"]) == 78
+    assert len(data["groups"]) == 94  # 78 + 16 air-defense era variants (FIX-SCRATCH-MISSION-FINDINGS 12)
     # hidden groups preserved (the generateAirDefenseGroup-* entries)
     hidden = [g for g in data["groups"] if g.get("hidden")]
-    assert len(hidden) == 12
+    assert len(hidden) == 28
 
 
 def test_units_database_roundtrip() -> None:

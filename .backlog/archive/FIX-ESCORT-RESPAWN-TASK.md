@@ -207,7 +207,7 @@ Both languages, and the anchor convention applies if the section is linked from 
 Status: ✅ done — 2026-08-28
 Type: fix
 
-Found by running the lot's own in-game check ([DCS-SESSION-TODO](../../../DCS-SESSION-TODO.md)
+Found by running the lot's own in-game check ([DCS-SESSION-TODO](../../DCS-SESSION-TODO.md)
 item 10) on 2026-08-28. The repair ticket 01 shipped could not fire on the mission it was tested
 against — nor on the repository's own demo mission.
 
@@ -266,7 +266,7 @@ The chain runs end to end. Instrumented on the live session, after a respawn of 
 The stale id `1000031` is replaced by the runtime id `18`, which is what ticket 01 set out to do.
 
 **The escort still went home**, for a reason that is not this lot's — see
-[`FIX-ESCORT-RESPAWN-DISTANCE`](../../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md).
+[`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md).
 
 ### Definition of done
 

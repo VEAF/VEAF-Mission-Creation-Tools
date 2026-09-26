@@ -44,23 +44,39 @@ limitations:
     The *small* query — "is there a patch of 5 m free within 20 m of this point?" — **is** reliable:
     12 repetitions on the same points gave 0/12 against 12/12, with identical candidate counts. So
     the singleton is dependable as a probe and unreliable as an oracle.
-    **And it goes blind inside a spawn's call stack.** Probed from within `veafUnits.settleGroup`,
-    fixed witness points whose truth is 9 blocked out of 15 answer **0 out of 15** — and answer 9 one
-    second later. It is global, not tied to the group being placed, and the units land exactly on the
-    coordinates examined (0.0 m of error over 15). Measured and ruled out: a burst of calls, warm-up,
-    creating or destroying units, the units blocking their own test, the shape of the table passed, a
-    prior large-radius call, and an exception swallowed as success — all 15 calls succeed and return
-    candidates. **The cause is unknown.**
+    **The clearance you ask for decides whether it answers at all.** Same point, varying nothing but
+    `posRadius`:
+
+    | asked | 5 | 10 | 20 | 40 | 80 | 120 | 200 | 300 |
+    |---|---|---|---|---|---|---|---|---|
+    | candidates over 3 draws | 30 | 30 | 30 | 30 | 30 | 30 | 21 | **0** |
+
+    Ask for a group's own footprint — 58 to 486 m on real groups — and it returns nothing, every
+    time. This is what made `veafUnits.settleGroup` inert: 31 calls in one activation of 25 combat
+    zones, **one** group translated, 30 giving up with no candidate to examine.
+
+    Some places are out of reach entirely: for them it returns **zero at every clearance, down to
+    5 m**, and no parameter will help.
+
+    A blindness inside the spawn's own call stack was reported on 2026-09-26 and **did not survive
+    remeasurement** the same evening: the same witness points answer the truth from inside
+    `settleGroup`, before and after its large draws, with 25 zones firing at once. Over 20 groups,
+    17 get candidates in flight, and replaying the identical queries from a quiet frame recovers
+    none.
   workaround: |
     Treat it as a source of *suggestions* and verify every point before acting on it, with the small
     query above. Draw several times and merge, because one draw misses clearings a second one finds.
     Never let the radius or the clearance you asked for stand in for a measurement — bound the result
     yourself, on your own criterion.
 
-    Above all, **do not query it from inside a spawn flow**: ask in a phase of its own, while nothing
-    is spawning, and let the spawn consume an answer already settled. Deferring the spawn itself is
-    not the way out — the group name a spawn returns feeds `veafSkynet.declareSpawn`, convoy routing
-    and `veaf.readyForCombat`, so delaying creation silently empties all three.
+    Above all, **ask for little clearance**. It is a coarse filter and nothing more, so ask where
+    candidates are still plentiful — 80 m on this mission — and establish the fit yourself, unit by
+    unit, afterwards. Asking for what you actually need is what makes it go silent.
+
+    Moving the query out of the spawn flow is **not** required, and was measured to buy nothing.
+    Deferring the spawn itself is a trap in its own right — the group name a spawn returns feeds
+    `veafSkynet.declareSpawn`, convoy routing and `veaf.readyForCombat`, so delaying creation
+    silently empties all three.
   cost: |
     Three rounds on the same defect, two of them shipped green and inert. Ticket 08 of
     FIX-PLACEMENT-IGNORES-SCENERY assumed the **radius** was honoured, so its acceptance test could

@@ -445,17 +445,32 @@ end
 --- because a kilometre still keeps a group inside the scale of the combat zone it belongs to.
 veafUnits.SETTLE_MAX_TRANSLATION = 1000
 
---- Breathing room, in metres, asked around the group's own footprint.
+--- The clearance `settleGroup` asks `Disposition` for, in metres. A **constant**, deliberately
+--- much smaller than the groups it moves.
 ---
---- 50 m, because the closest candidate DCS was ever measured to return is 52 m: asking for less
---- buys nothing, since nothing closer is ever offered.
+--- This used to be the group's own footprint plus 50 m of breathing room, which reads as the
+--- obvious thing to ask for and is what made the whole fix inert. `Disposition.getSimpleZones`
+--- stops answering once the clearance asked for grows. Measured in game on 2026-09-26
+--- (GermanyCW-v6, 6.25.0.2), same point, varying nothing but that one argument:
 ---
---- This used to double as a *proof* that the group already stood in a clearing — a candidate within
---- 50 m of the centre was taken to mean every unit was clear, by the geometry of the footprint. The
---- proof was sound and its premise was false: it assumed a candidate really has the clearance it
---- was asked for. It does not (see `isPointClearOfScenery`), so the premise is gone and with it the
---- shortcut. Whether a group is already clear is now **measured**, unit by unit.
-veafUnits.SETTLE_MARGIN = 50
+--- | asked | 5 | 10 | 20 | 40 | 80 | 120 | 200 | 300 |
+--- |---|---|---|---|---|---|---|---|---|
+--- | candidates over 3 draws | 30 | 30 | 30 | 30 | 30 | 30 | 21 | **0** |
+---
+--- Real groups have footprints of 8 to 436 m, so `footprint + 50` asked for 58 to 486 m and landed
+--- in the zero column almost every time: over 31 calls in one activation of the 25 combat zones,
+--- **one** group was translated and 30 gave up with no candidate to examine — including the
+--- Wittstock S-300 with 14 of its 14 vehicles under trees. Nothing was being rejected; there was
+--- nothing to reject.
+---
+--- 80 m, and the number is doing less work than it looks. What is asked for here is **not** a
+--- guarantee of anything — that premise is exactly what ticket 10 got wrong, and
+--- `isPointClearOfScenery` exists because a candidate does not have the clearance it was asked
+--- for. It is a coarse filter, chosen where candidates are still plentiful, and the real guarantee
+--- comes from verifying every unit afterwards. 80 rather than 40 because at 80 the candidate that
+--- clears the whole group came back **first** in all three solved cases, against ranks 1, 15 and 22
+--- at 40 — same outcome, a fraction of the probing.
+veafUnits.SETTLE_CLEARANCE_ASKED = 80
 
 --- How many times `settleGroup` asks `Disposition` for clearings before working with what it has.
 ---
@@ -495,9 +510,18 @@ veafUnits.SETTLE_UNIT_CLEARANCE = 5
 --- one (2 units, no way out within 800 m), which would otherwise probe every candidate of every
 --- draw on every spawn.
 ---
---- 10 is prudence, not a measurement: the cost of one `getSimpleZones` call has not been timed, so
---- an unbounded worst case of ~480 calls per spawn is a risk this does not need to take.
-veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED = 10
+--- 10 was prudence rather than a measurement, and it was also a second reason the fix moved
+--- nothing. Measured in game on 2026-09-26 on the five groups that actually held blocked units,
+--- asking for a constant 40 m of clearance: verifying the 10 nearest candidates solved **1 of 5**,
+--- verifying all of them solved **3 of 5** — the candidates that worked came back at ranks 15 and
+--- 22. A bound that cuts the list before the answer is a bound that guarantees failure.
+---
+--- 30, which covers the ranks measured with room to spare while still bounding the group that has
+--- no solution at all — `combatZone_Wittstock [r] SA15` being the known one (2 units, and
+--- `Disposition` returns nothing for it at **any** clearance, down to 5 m). The bound bites much
+--- less than the number suggests: with `SETTLE_CLEARANCE_ASKED` the working candidate came back
+--- first in every solved case, and verification stops at the first blocked unit of a bad one.
+veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED = 30
 
 --- Does a unit standing here have a patch of open ground around it?
 --
@@ -557,7 +581,8 @@ end
 --
 -- The criterion is inverted compared to a probe, because `Disposition` can only ever *propose*
 -- points and never test one (the same inversion `veafGrass.findClearBearing` makes): ask for a cloud
--- of clearing centres wide enough to hold the entire footprint, then keep the closest one whose
+-- of clearing centres — asking for *little* clearance, because asking for the group's own footprint
+-- is what made it answer nothing at all (`SETTLE_CLEARANCE_ASKED`) — then keep the closest one whose
 -- translation puts every unit on drivable terrain **and** clear of scenery.
 --
 -- **Both halves of that last sentence are measurements, not assumptions**, and saying so is the
@@ -571,8 +596,8 @@ end
 -- (ADR 0018 — this undocumented singleton may improve quality, never decide correctness), any unit
 -- of the group is exempt (a rigid translation is a property of the whole group; moving half of it
 -- would break the very invariant this exists to protect), no candidate clears every unit, the best
--- candidate is farther than `SETTLE_MAX_TRANSLATION`, or the best candidate is within
--- `SETTLE_MARGIN` and therefore proves the group is already in the clear.
+-- candidate is farther than `SETTLE_MAX_TRANSLATION`, or every unit already stands clear — which
+-- is measured unit by unit, never inferred from how close a candidate came back.
 --
 -- Editor content is **not** concerned: zone elements are respawned through `VeafGroupSpawn`, whose
 -- `honouringDeclaredPosition` keeps the position the mission maker drew (ruling 3 of David's
@@ -611,18 +636,14 @@ function veafUnits.settleGroup(units, honourDeclaredPosition)
     return 0
   end
 
-  -- The group's barycentre, and the radius of the disc that holds it.
+  -- The group's barycentre. Its footprint used to be computed here and asked for as clearance,
+  -- which is what silenced `Disposition` — see `SETTLE_CLEARANCE_ASKED`.
   local centreX, centreZ = 0, 0
   for _, unit in ipairs(units) do
     centreX = centreX + unit.spawnPoint.x
     centreZ = centreZ + (unit.spawnPoint.z or 0)
   end
   centreX, centreZ = centreX / #units, centreZ / #units
-  local footprint = 0
-  for _, unit in ipairs(units) do
-    local dx, dz = unit.spawnPoint.x - centreX, (unit.spawnPoint.z or 0) - centreZ
-    footprint = math.max(footprint, math.sqrt(dx * dx + dz * dz))
-  end
 
   -- The group already stands in the open: measured unit by unit, because the geometric shortcut
   -- this replaces rested on a candidate really having the clearance it was asked for, and it does
@@ -647,7 +668,7 @@ function veafUnits.settleGroup(units, honourDeclaredPosition)
       Disposition.getSimpleZones,
       { x = centreX, y = 0, z = centreZ },
       veafUnits.SETTLE_MAX_TRANSLATION,
-      footprint + veafUnits.SETTLE_MARGIN,
+      veafUnits.SETTLE_CLEARANCE_ASKED,
       veaf.SPAWN_SEARCH_ATTEMPTS
     )
     if ok and type(drawn) == "table" then

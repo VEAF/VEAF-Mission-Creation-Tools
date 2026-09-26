@@ -1,9 +1,15 @@
 # 11 — `settleGroup` verifies the candidate it trusts, and draws more than once
 
-Status: 🔄 in-progress — the verification below is written and green, **and it is not enough**: measured
-in game on 2026-09-26 it changed nothing (20 group alerts, 75 blocked units). The reason is under it
-and is now the heart of this ticket — see *The verification is blind where it runs*. What remains to
-build is the pre-computation described at the end.
+Status: ✅ ready for review, **with its limit stated rather than smoothed over**. The per-unit
+verification was built first and measured inert twice; the cause was a **parameter**, not an
+architecture — the clearance `settleGroup` asked for was large enough to silence `Disposition`
+entirely, so the verification never had a candidate to judge. Two constants carry the fix, and it
+works: 19 alerts / 76 units → **15 / 69**, 4 of 31 groups translated against 1, and 4 of the 7
+groups it saw in trouble fully repaired, formations preserved to 0.0000 m. It is **not** near zero,
+and the reason is measured: **62 % of the blocked vehicles belong to groups `settleGroup` is never
+given** — editor content, not dynamic spawns. That is a separate question and a ruling rather than
+a bug. The pre-computation phase this ticket planned is **dropped**: the spawn flow was measured not
+to affect `Disposition` at all.
 Type: fix
 
 ## Problem — ticket 10 translates groups, and the metric does not move
@@ -21,10 +27,12 @@ Ticket 10 shipped and merged (PR #1005, released in 6.25.0). Measured in game on
 The one promise ticket 10 kept is the formation: spacing stays at its natural 20 m and no group is
 pulled apart. Everything else is unchanged.
 
-**The caveat on the comparison, stated rather than smoothed over:** the reference figures come from
-the 2026-09-25 session and the parks were not pinned side by side, so 19-versus-16 is not a
-regression measurement. What the run does establish without reservation is that the number is **not
-near zero**, and that its order of magnitude did not move.
+**The caveat on the comparison, and how it was removed.** The 2026-09-25 reference figures were
+taken without pinning the park, so 19-versus-16 was not a regression measurement. It is now: the
+2026-09-26 evening run, on 6.25.0.2 with the deferral removed, probed **102 ground groups and 593
+units** — the same park as the reference, unit for unit — and found **19 groups in alert, 76 units
+blocked**. Ticket 10 and the per-unit verification both leave the number where it was. What the runs
+establish without reservation is that it is **not near zero**.
 
 ## The function works. What it stands on does not.
 
@@ -62,7 +70,7 @@ honours the **clearance** it is asked for, and says so in a comment that is simp
 
 It was never verified. The arrival point measured above is the counter-example.
 
-## What this ticket does
+## What this ticket built first — the verification
 
 **The function proposes, we test.** Two changes, both of them on the selection, none on the rigid
 translation — that part works and is not touched.
@@ -85,84 +93,184 @@ candidate.
 Also delete the "scenery-free by construction" claim from the docstring and put the measurement in
 its place. A comment asserting something nobody measured is what made this lot cost three rounds.
 
-## The verification is blind where it runs
+## Why it stayed inert: the clearance it asks for silences `Disposition`
 
-Everything above is built and green, and it moved nothing: 20 group alerts and 75 blocked units,
-against 19 and 66 before it. The verification always answers "clear", because **`Disposition` is
-blind inside `settleGroup`'s call stack**.
+Everything above is built and green, and it moved nothing: 19 group alerts and 76 blocked units on
+a **pinned park** (102 ground groups, 593 units), against 19 and 66 before it. The cause was found
+on the evening of 2026-09-26, and it is not the one this ticket carried all day.
 
-The measurement that shows it uses **witness points**: fixed coordinates, unrelated to the group
-being placed, whose truth is 9 blocked out of 15.
+**It is the clearance argument.** `settleGroup` asked `Disposition.getSimpleZones` for the group's
+own footprint plus 50 m, which is the obvious thing to ask for and is exactly what makes the
+singleton answer nothing. Same point, same everything, varying only that one argument:
 
-| the same witness points, probed from | answer |
+| clearance asked | 5 | 10 | 20 | 40 | 80 | 120 | 200 | 300 |
+|---|---|---|---|---|---|---|---|---|
+| candidates over 3 draws | 30 | 30 | 30 | 30 | 30 | 30 | 21 | **0** |
+
+Real groups carry footprints of 8 to 436 m, so the call asked for 58 to 486 m and landed in the
+zero column. Instrumented over one activation of the 25 combat zones: **31 calls, one group
+translated, 30 giving up** — and the one that moved was repaired correctly (1 of 8 vehicles
+blocked, 0 after, 266 m). The verification this ticket built was never wrong; it was never given
+anything to verify.
+
+**Second bound, measured the same evening.** `SETTLE_MAX_CANDIDATES_VERIFIED = 10` cuts the list
+before the answer. On the five groups that actually held blocked units, asking for a constant 40 m:
+verifying the 10 nearest solved **1 of 5**, verifying all of them solved **3 of 5**, the working
+candidates coming back at ranks 15 and 22. At 80 m they came back **first** in all three cases —
+same outcome, a fraction of the probing — which is why the constant is 80 and the bound is 30.
+
+The two remaining groups are out of reach and no setting will save them: `Disposition` returns
+**zero candidates at every clearance, down to 5 m**, for those locations.
+
+## The blindness of the call stack is not reproducible
+
+This ticket spent a day on a different explanation — that `Disposition` goes blind inside
+`settleGroup`'s call stack — and it does not survive remeasurement. Witness points at fixed
+coordinates, truth 10 blocked out of 15, probed across one reactivation of all 25 zones:
+
+| probed from | answer |
 |---|---|
-| inside `settleGroup` | **0 / 15** |
-| one second later | 9 / 15 |
+| a quiet frame (reference) | 10 / 15 |
+| `ActivateZone`, one second before the spawn | 10 / 15 |
+| the top of `activate()`, 25 zones in the same frame | 10 / 15 |
+| **inside `settleGroup`**, before and after its own large draws | **10 / 15** |
 
-Units land exactly on the coordinates examined — largest displacement **0.0 m** over 15 units — so
-this is not a coordinate mix-up, and it is not local to the group: it is global and it is brief.
+And the control that settles it: over 20 groups, `getSimpleZones` returned candidates **in flight**
+in 17 cases, and replaying the identical queries from a quiet frame recovered **none** — two cases
+returned *fewer* when quiet. For the five genuinely faulty groups, in flight and quiet both return
+zero.
 
-**Ruled out, each one measured. Do not revisit these:**
-
-| hypothesis | measurement |
-|---|---|
-| a burst of calls exhausts it | 12 consecutive passes when quiet: 9, 9, 9… identical |
-| it needs warming up | 5 consecutive passes *inside* `settleGroup`: all 0 |
-| creating a group blinds it | creating one in the same frame: no effect |
-| destroying units blinds it | no effect |
-| the units block their own test | destroying the group leaves the count at 9 — the alerts really are trees |
-| the shape of the table passed | `{x,y,z}`, extra fields, no `y`, `y=0`: identical |
-| a large-radius call poisons it | one, then ten, then a real `veaf.findSpawnPoint`: no effect |
-| an exception swallowed as "clear" | no — all 15 calls **succeed** and return candidates |
-
-**The cause is unknown**, and that is a conclusion rather than a pause. What matters is that
-`Disposition` is dependable everywhere except in that call stack.
+**So computing the clearings outside the spawn flow buys nothing**, and the pre-computation phase
+this ticket planned is dropped. What was measured on 2026-09-26 in the afternoon — 9 of 16 groups
+solved from a quiet frame — was a difference of parameters, not of timing.
 
 ### Deferring the spawn was tried, and must not be retried as such
 
-Delaying the whole spawn by one second does make the probe truthful — 16 groups out of 16, with all
-25 combat zones firing at once. It also breaks the mission: the group name a spawn returns feeds
-`Group.getByName`, and with it `veaf.readyForCombat`, convoy routing and **`veafSkynet.declareSpawn`**
-([`veafSpawnCore.lua:417-460`](../../src/scripts/veaf/veafSpawnCore.lua)). Defer the creation and that
-whole block runs on nothing — which is precisely the regression that removed all nine SAM batteries
-on the morning of the same day. Four tests in `test_veafSpawn.lua` catch it, since they assert on the
-returned group name.
+Delaying the whole spawn by one second does make the probe truthful, and it breaks the mission: the
+group name a spawn returns feeds `Group.getByName`, and with it `veaf.readyForCombat`, convoy
+routing and **`veafSkynet.declareSpawn`**
+([`veafSpawnCore.lua:417-460`](../../src/scripts/veaf/veafSpawnCore.lua)). Defer the creation and
+that whole block runs on nothing — which is precisely the regression that removed all nine SAM
+batteries on the morning of the same day. Four tests in `test_veafSpawn.lua` catch it, since they
+assert on the returned group name. This stays closed whatever the reason for wanting it.
 
-## What is left to build: compute the clearings outside the spawn
+## What this ticket now does
 
-David's call, and the measurement backs it: **ask `Disposition` first, in a phase of its own, and let
-the spawn use an answer that is already settled** — never querying it from inside the spawn flow.
+Two constants, and the query that uses them.
 
-Replayed from a quiet frame on the 16 offending groups, the selection built above (per-unit
-verification, three merged draws) gives:
+1. **`SETTLE_CLEARANCE_ASKED = 80`** replaces `footprint + SETTLE_MARGIN`. What is asked for is a
+   **coarse filter**, not a guarantee — a candidate does not have the clearance it was asked for,
+   which is the whole reason `isPointClearOfScenery` exists. The guarantee comes afterwards, unit
+   by unit. `SETTLE_MARGIN` and the footprint computation are gone with it.
+2. **`SETTLE_MAX_CANDIDATES_VERIFIED` goes from 10 to 30**, covering the ranks measured while still
+   bounding the group that has no solution at all.
 
-- **9 groups solved**, translations of 131 to 470 m, **every large S-300 among them** (11/14, 12/15
-  and 9/14 vehicles blocked);
-- **7 not solved**, and never because verification refused: **zero candidates offered** every time.
-  Three are convoys (footprint around 400 m) and exempt anyway; the remaining four are genuinely
-  hemmed in, `combatZone_Wittstock [r] SA15` being the known one.
 
-So the approach works; what is left is where to put the phase. Simplest shape: when a combat zone
-activates, one pass asks for the clearings around the zone, then the spawns draw from that list.
+### The footprint varies between draws, and by how much — measured 2026-09-26
 
-**Open question to settle before writing code:** a group's internal layout is drawn at random *at
-spawn time*, so the exact footprint is not known in advance. The measurement above starts from the
-real footprint of already-spawned groups, so it suggests strongly — but does not prove — that a
-clearing sized generously enough still fits whatever layout comes out. Measure that first.
+Kept because it closes the question this ticket carried, and because it argues *against* the idea it
+was measured to support. The open question was whether a clearing could be sized from the group's
+footprint before the spawn draws its layout. It could — the margin is bounded — but the fix no longer
+needs it: what is asked for is a constant, and the footprint is not asked for at all. What the table
+adds now is a second reason never to ask for it, since it moves by up to 38.8 m from one draw to the
+next.
+
+Thirty draws per group from a quiet frame, through the real chain `findGroup` → `processGroup` →
+`placeGroup`, with **the alias and spacing the combat zones actually pass** (`veafShortcuts`, not a
+guess: `-sa15` means `name sa15_squad, spacing 1, radius 0`). `Disposition` is not consulted at all
+here, so nothing in this table is exposed to the blindness above. The radius is half the diagonal of
+the units' bounding box.
+
+| alias | spacing | radius, min – max | spread | units |
+|---|---|---|---|---|
+| `sa10` | 1 | 114.0 – 146.7 m | **32.6 m** (+29 %) | 14 – 15 |
+| `sa11` | 1 | 69.4 – 108.1 m | **38.8 m** (+56 %) | 11 – 13 |
+| `ewr` | 1 | 15.3 – 32.6 m | 17.3 m (+113 %) | 3 |
+| `sa22_squad` | 1 | 5.3 – 22.3 m | 17.0 m (+320 %) | 2 |
+| `sa15_squad` | 1 | 4.9 – 18.9 m | 13.9 m (+283 %) | 2 |
+| `sa18_squad` | default | 11.0 – 18.7 m | 7.7 m (+70 %) | 4 – 7 |
+| `smerchhe` | default | 14.1 – 20.2 m | 6.0 m (+43 %) | 7 |
+| `msta` | default | 9.3 – 15.4 m | 6.1 m (+66 %) | 5 |
+| `sa19_squad` | default | 2.5 – 11.3 m | 8.8 m (+353 %) | 2 |
+
+Two readings, and the second is the one that matters:
+
+- **In absolute terms the spread is bounded and small**: 38.8 m at worst, against translations of
+  131 to 470 m. A clearing sized with a fixed margin of ~40 m absorbs every case measured.
+- **In relative terms it is brutal for small groups** — `sa15_squad` holds two vehicles in every
+  draw and its radius still varies by a factor of 3.9. So the variation is **not** driven by the
+  unit count: it is the per-cell jitter (`veafUnits.placeGroup` picks each unit's offset inside its
+  cell at random). Sizing a clearing on one observed draw would therefore be wrong even for a group
+  whose composition never changes.
+
+**The design rule this fixes:** size the clearing on the group's **worst-case** footprint, never on
+a drawn one. The worst case is computable without any randomness — the maximum unit count times the
+cell geometry — and a forfait margin of 40 m covers the measured residue.
+
+## Measured in game, 6.25.0.3, 2026-09-26 evening
+
+Mission loaded fresh, the 25 combat zones activated in one go, park pinned at 102 ground groups and
+594 units — the same park as every figure above.
+
+| measure | before ticket 10 | ticket 11, verification only | **ticket 11 + the parameters** |
+|---|---|---|---|
+| groups in alert | 16-18 | 19 | **15** |
+| units standing in scenery | ~81 | 76 | **69** |
+| groups `settleGroup` translates | — | 1 of 31 | **4 of 31** |
+
+Of the seven groups `settleGroup` saw holding blocked vehicles, **four were fully repaired** —
+1/2 → 0/2 at 113 m, 1/9 → 0/9 at 68 m, 2/10 → 0/10 at 102 m, 1/18 → 0/18 at 229 m. The parameters
+work. A second activation translated six groups rather than four, which is `Disposition`'s
+non-determinism showing through and is expected.
+
+**The formation is untouched, measured rather than asserted:** 209 pairwise distances across the
+translated groups, largest change **0.0000 m**.
+
+### The remaining ceiling is coverage, not the fix
+
+This is the finding that decides what comes next, and it is new. Matching the alerting groups
+against the ones `settleGroup` actually received:
+
+| the 15 groups still in alert | groups | blocked units |
+|---|---|---|
+| seen by `settleGroup` and not solved | 6 | 30 |
+| **never presented to `settleGroup`** | **9** | **43 (62 %)** |
+
+`settleGroup` is called 31 times for 102 ground groups, and **not one call is turned away** — no
+declared position honoured, no exempt unit. The other 71 groups simply never reach it: they are
+editor content respawned as-is, and `veafCommand` is nil for 170 of the 234 zone elements. Among
+the nine never seen are the three loose `S300` groups (8/15, 10/14, 10/14) and three `Red EWR`
+(3/3, 3/3, 2/3) — 36 blocked vehicles on their own.
+
+The six that were seen and not solved are the known dead ends: `Disposition` returns **zero
+candidates at every clearance, down to 5 m**, for those locations — `combatZone_Wittstock`'s S-300
+(14/14) and SA-15 (2/2) among them.
+
+So the ceiling for this ticket is reached. Raising it further is a separate question: whether
+editor content should be settled at all, which is a ruling rather than a bug — David's arbitration
+of 2026-08-27 says a mission maker's declared position is kept.
 
 ## Definition of done
 
 - [x] A failing test first: a candidate that is clear on terrain but stands in scenery is **rejected**,
       and a further candidate that is genuinely clear is retained instead
 - [x] A test pinning that several draws are merged: a clearing only the second draw returns is found
-- [ ] The clearings are obtained outside the spawn flow, and `settleGroup` never calls `Disposition`
-      from inside it
-- [ ] Measured first, before the code: a clearing sized from an estimated footprint still fits the
-      layout the spawn actually draws
-- [ ] The rigid translation is unchanged — inter-unit distances still preserved to the metre
-- [ ] The docstring no longer claims a candidate is scenery-free by construction, and records the
+- [x] The clearance asked of `Disposition` no longer grows with the group, and a failing test pins it:
+      a 200 m group and a 5 m group ask for the same constant. Verified red against the old code —
+      it asked 250 m and 50 m
+- [x] `SETTLE_MAX_CANDIDATES_VERIFIED` covers the ranks the working candidates actually come back at
+- [x] Measured, and it removes the planned phase: the spawn flow does not affect `Disposition`
+      (17 of 20 groups get candidates in flight, and a quiet replay recovers none)
+- [x] Measured: the footprint moves by up to 38.8 m between draws, so it could not be asked for
+      safely even if the singleton answered — see *The footprint varies between draws*
+- [x] The rigid translation is unchanged — measured in game: 209 pairwise distances, largest
+      change 0.0000 m
+- [x] The docstring no longer claims a candidate is scenery-free by construction, and records the
       2026-09-26 measurements instead
-- [ ] Verified **in game** on GermanyCW-v6, not only in tests: group alerts near zero, and spacings
-      unchanged. Ticket 10 was green in CI and inert in game; this one does not ship on tests alone
-- [ ] `poetry run test-lua` green, `stylua --check` and `luacheck` clean
-- [ ] `CHANGELOG.md` entry under `[Unreleased]`
+- [x] Verified **in game** on GermanyCW-v6, not only in tests: 19 alerts / 76 units → **15 / 69**,
+      and 4 of the 7 groups it saw in trouble fully repaired. **Not** near zero, and the reason is
+      measured rather than guessed: 62 % of the blocked vehicles belong to groups `settleGroup` is
+      never given — see *The remaining ceiling is coverage*
+- [x] `poetry run test-lua` green (49 suites), `stylua --check` clean. `luacheck` is not installed on
+      this workstation and runs in CI
+- [x] `CHANGELOG.md` entry under `[Unreleased]` updated to describe the parameter fix

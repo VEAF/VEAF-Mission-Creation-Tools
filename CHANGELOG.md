@@ -33,11 +33,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   replacing a geometric shortcut whose premise was that a candidate has the clearance it was asked
   for. Formations are untouched: the translation stays rigid, to the metre.
 
-  **This is a step, not the fix.** Measured in game, it moves the numbers by nothing, because
-  `Disposition` is blind inside the spawn's own call stack: witness points whose truth is 9 blocked
-  out of 15 answer 0 out of 15 when probed from there, and 9 a second later. Getting the clearings
-  computed outside the spawn flow is what ticket 11 of `FIX-PLACEMENT-IGNORES-SCENERY` has left to
-  do; the verification landing here is what that phase will use.
+  **And it now asks `Disposition` for something `Disposition` will answer.** The verification alone
+  moved nothing, measured twice in game, because the function asked for a clearing as wide as the
+  group itself — 58 to 486 m on real groups — and the singleton returns **nothing at all** past
+  roughly 150 m, where it returns thirty candidates at 80 m. Over one activation of 25 combat zones
+  that meant 31 calls, one group translated and 30 giving up with no candidate to examine: nothing
+  was being rejected, there was nothing to reject. So the clearance asked for is now a small
+  constant — a coarse filter, never a guarantee, since the guarantee is the per-unit check above —
+  and the number of candidates examined before giving up rises from 10 to 30, because the ones that
+  work were measured coming back at ranks 15 and 22.
+
+  Measured in game on GermanyCW-v6 with the park pinned at 102 ground groups and 594 units: group
+  alerts go from 19 to **15** and vehicles standing in scenery from 76 to **69**, with 4 groups
+  translated against 1 and four of the seven troubled groups it sees fully repaired. Formations are
+  preserved to **0.0000 m** over 209 pairwise distances. It is deliberately not claimed as "near
+  zero": **62 % of the vehicles still in trees belong to groups this code is never given** — editor
+  content kept at its declared position — and the handful it does see and cannot solve are places
+  where `Disposition` returns nothing at any clearance at all.
+
+  A blindness of `Disposition` inside the spawn's own call stack was reported while this was being
+  diagnosed; it did not survive remeasurement, and the pre-computation phase it called for has been
+  dropped. The spawn flow was measured not to affect the singleton at all.
 
 ## [6.25.0] — 2026-09-26
 

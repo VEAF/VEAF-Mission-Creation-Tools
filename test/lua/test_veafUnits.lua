@@ -1169,15 +1169,20 @@ function TestVeafUnitsSettleGroup:test_the_group_is_translated_rigidly_until_eve
   luaunit.assertAlmostEquals(units[1].spawnPoint.z, -10, 0.001)
 end
 
-function TestVeafUnitsSettleGroup:test_the_clearance_asked_covers_the_whole_footprint()
-  -- A candidate is only worth anything if the clearing it names fits the whole group, so the
-  -- clearance asked of Disposition is the footprint radius plus the margin.
-  local record = {}
-  Disposition = dispositionAnswering({ { 300, 0 } }, record)
-  local units = groundGroup({ { -30, 0 }, { 30, 0 } })
-  veafUnits.settleGroup(units)
-  luaunit.assertAlmostEquals(record.clearance, 30 + veafUnits.SETTLE_MARGIN, 0.001, "clearance = footprint radius + margin")
-  luaunit.assertEquals(record.radius, veafUnits.SETTLE_MAX_TRANSLATION, "the search radius is the acceptance bound")
+function TestVeafUnitsSettleGroup:test_the_clearance_asked_does_not_grow_with_the_group()
+  -- The regression that made this whole lot inert, pinned. Asking Disposition for the group's own
+  -- footprint reads as the obvious thing to do and silences it: measured in game on 2026-09-26, a
+  -- clearance of 300 m returns zero candidates where 80 m returns thirty. So a big group and a
+  -- small one must ask for exactly the same thing, and the fit is established afterwards, unit by
+  -- unit, by isPointClearOfScenery.
+  local wide, narrow = {}, {}
+  Disposition = dispositionAnswering({ { 300, 0 } }, wide)
+  veafUnits.settleGroup(groundGroup({ { -200, 0 }, { 200, 0 } }))
+  Disposition = dispositionAnswering({ { 300, 0 } }, narrow)
+  veafUnits.settleGroup(groundGroup({ { -5, 0 }, { 5, 0 } }))
+  luaunit.assertAlmostEquals(wide.clearance, veafUnits.SETTLE_CLEARANCE_ASKED, 0.001, "a 200 m group asks for the constant")
+  luaunit.assertAlmostEquals(narrow.clearance, veafUnits.SETTLE_CLEARANCE_ASKED, 0.001, "so does a 5 m group")
+  luaunit.assertEquals(wide.radius, veafUnits.SETTLE_MAX_TRANSLATION, "the search radius is the acceptance bound")
 end
 
 function TestVeafUnitsSettleGroup:test_a_candidate_beyond_the_maximum_translation_is_refused()
@@ -1190,9 +1195,9 @@ function TestVeafUnitsSettleGroup:test_a_candidate_beyond_the_maximum_translatio
 end
 
 function TestVeafUnitsSettleGroup:test_a_group_already_standing_clear_is_left_alone()
-  -- This used to be proven geometrically — a candidate within SETTLE_MARGIN of the centre was
-  -- taken to mean the whole group was already in that clearing. The proof was valid and rested on
-  -- a false premise (that a candidate has the clearance it was asked for), so it is now measured:
+  -- This used to be proven geometrically — a candidate close enough to the centre was taken to
+  -- mean the whole group was already in that clearing. The proof was valid and rested on a false
+  -- premise (that a candidate has the clearance it was asked for), so it is now measured:
   -- every unit is probed where it stands, and nothing moves when they are all clear.
   Disposition = dispositionAnswering({ { 0, 0 }, { 500, 0 } })
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
@@ -1321,13 +1326,13 @@ function TestVeafUnitsSettleGroup:test_hdg_and_the_terrain_height_are_carried_ov
 end
 
 function TestVeafUnitsSettleGroup:test_a_single_unit_group_is_translated_too()
-  -- Footprint 0, so the clearance asked is the bare margin — a lone vehicle still gets moved out
-  -- of the trees, which is what ticket 08 was supposed to do and never did.
+  -- A lone vehicle still gets moved out of the trees, which is what ticket 08 was supposed to do
+  -- and never did.
   local record = {}
   Disposition = dispositionAnswering({ { 0, 300 } }, record)
   local units = groundGroup({ { 0, 0 } })
   local translated = veafUnits.settleGroup(units)
-  luaunit.assertAlmostEquals(record.clearance, veafUnits.SETTLE_MARGIN, 0.001)
+  luaunit.assertAlmostEquals(record.clearance, veafUnits.SETTLE_CLEARANCE_ASKED, 0.001)
   luaunit.assertAlmostEquals(translated, 300, 0.001)
   luaunit.assertAlmostEquals(units[1].spawnPoint.z, 300, 0.001)
 end

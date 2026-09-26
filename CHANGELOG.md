@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.25.0] — 2026-09-26
+
 ### Fixed
 
 - **A list written in `settings:` reaches Lua as a table, instead of as a Python `repr`.** A value

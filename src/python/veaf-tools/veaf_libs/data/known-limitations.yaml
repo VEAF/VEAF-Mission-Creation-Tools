@@ -20,6 +20,70 @@
 # symptom / workaround / cost are Markdown.
 
 limitations:
+- id: disposition-getsimplezones-is-a-lottery
+  kind: dcs
+  area: spawning
+  title: "`Disposition.getSimpleZones` honours neither its radius nor its clearance, and is not deterministic"
+  measured: "2026-09-26"
+  symptom: |
+    The undocumented `Disposition` singleton is the only DCS API that knows where the forests are,
+    so it is what every scenery-aware placement in this codebase rests on. **It proposes points; it
+    does not answer questions**, and three of its four parameters mean less than they look.
+
+    Measured on GermanyCW-v6, `getSimpleZones(point, searchRadius, posRadius, attempts)`:
+
+    | Asked | What comes back |
+    |---|---|
+    | `searchRadius = 1000` | candidates at up to **2769 m** |
+    | `posRadius = 183` (clearance) | a candidate **blocked in 12 directions out of 12 at 10 m** |
+    | the same call, five times in a row | nearest candidate at **1335, 1476, 1404, 1355, 1293 m** — and a sixth found one at **153 m** |
+
+    The last line is the one that hurts: the scatter is not noise around a value, it is the
+    difference between "there is a clearing 150 m away" and "there is nothing within a kilometre".
+
+    The *small* query — "is there a patch of 5 m free within 20 m of this point?" — **is** reliable:
+    12 repetitions on the same points gave 0/12 against 12/12, with identical candidate counts. So
+    the singleton is dependable as a probe and unreliable as an oracle.
+    **The clearance you ask for decides whether it answers at all.** Same point, varying nothing but
+    `posRadius`:
+
+    | asked | 5 | 10 | 20 | 40 | 80 | 120 | 200 | 300 |
+    |---|---|---|---|---|---|---|---|---|
+    | candidates over 3 draws | 30 | 30 | 30 | 30 | 30 | 30 | 21 | **0** |
+
+    Ask for a group's own footprint — 58 to 486 m on real groups — and it returns nothing, every
+    time. This is what made `veafUnits.settleGroup` inert: 31 calls in one activation of 25 combat
+    zones, **one** group translated, 30 giving up with no candidate to examine.
+
+    Some places are out of reach entirely: for them it returns **zero at every clearance, down to
+    5 m**, and no parameter will help.
+
+    A blindness inside the spawn's own call stack was reported on 2026-09-26 and **did not survive
+    remeasurement** the same evening: the same witness points answer the truth from inside
+    `settleGroup`, before and after its large draws, with 25 zones firing at once. Over 20 groups,
+    17 get candidates in flight, and replaying the identical queries from a quiet frame recovers
+    none.
+  workaround: |
+    Treat it as a source of *suggestions* and verify every point before acting on it, with the small
+    query above. Draw several times and merge, because one draw misses clearings a second one finds.
+    Never let the radius or the clearance you asked for stand in for a measurement — bound the result
+    yourself, on your own criterion.
+
+    Above all, **ask for little clearance**. It is a coarse filter and nothing more, so ask where
+    candidates are still plentiful — 80 m on this mission — and establish the fit yourself, unit by
+    unit, afterwards. Asking for what you actually need is what makes it go silent.
+
+    Moving the query out of the spawn flow is **not** required, and was measured to buy nothing.
+    Deferring the spawn itself is a trap in its own right — the group name a spawn returns feeds
+    `veafSkynet.declareSpawn`, convoy routing and `veaf.readyForCombat`, so delaying creation
+    silently empties all three.
+  cost: |
+    Three rounds on the same defect, two of them shipped green and inert. Ticket 08 of
+    FIX-PLACEMENT-IGNORES-SCENERY assumed the **radius** was honoured, so its acceptance test could
+    never pass and it displaced nothing, ever. Ticket 10 assumed the **clearance** was honoured and
+    wrote it into a comment — "a candidate is scenery-free by construction" — and translated groups
+    into the middle of woods; released in 6.25.0, measured inert the same day.
+
 - id: late-activated-group-is-visible
   kind: dcs
   area: spawning

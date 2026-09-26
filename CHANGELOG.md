@@ -17,6 +17,44 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`veafUnits.settleGroup` no longer takes `Disposition`'s word for a clearing.**
+  `veafUnits.settleGroup`, released in 6.25.0, translated groups correctly and to the metre — and
+  the number of vehicles standing in trees did not move (measured in game on GermanyCW-v6,
+  2026-09-26: 19 group alerts and 66 blocked units, against 16-18 and ~81 before it). The
+  translation was never the problem; what it aimed at was. `Disposition.getSimpleZones` returns
+  points it has not vouched for — one group was moved 217 m onto a spot blocked in 12 directions
+  out of 12 at 10 m — and it is **not deterministic**: five identical calls returned nearest
+  candidates at 1335, 1476, 1404, 1355 and 1293 m, while another found one at 153 m. So the
+  singleton now only proposes: each candidate is verified, unit by unit, against the same scenery
+  criterion the acceptance probe uses, and several draws are merged so one unlucky draw no longer
+  decides that a group stays under trees. Whether a group is already in the open is measured too,
+  replacing a geometric shortcut whose premise was that a candidate has the clearance it was asked
+  for. Formations are untouched: the translation stays rigid, to the metre.
+
+  **And it now asks `Disposition` for something `Disposition` will answer.** The verification alone
+  moved nothing, measured twice in game, because the function asked for a clearing as wide as the
+  group itself — 58 to 486 m on real groups — and the singleton returns **nothing at all** past
+  roughly 150 m, where it returns thirty candidates at 80 m. Over one activation of 25 combat zones
+  that meant 31 calls, one group translated and 30 giving up with no candidate to examine: nothing
+  was being rejected, there was nothing to reject. So the clearance asked for is now a small
+  constant — a coarse filter, never a guarantee, since the guarantee is the per-unit check above —
+  and the number of candidates examined before giving up rises from 10 to 30, because the ones that
+  work were measured coming back at ranks 15 and 22.
+
+  Measured in game on GermanyCW-v6 with the park pinned at 102 ground groups and 594 units: group
+  alerts go from 19 to **15** and vehicles standing in scenery from 76 to **69**, with 4 groups
+  translated against 1 and four of the seven troubled groups it sees fully repaired. Formations are
+  preserved to **0.0000 m** over 209 pairwise distances. It is deliberately not claimed as "near
+  zero": **62 % of the vehicles still in trees belong to groups this code is never given** — editor
+  content kept at its declared position — and the handful it does see and cannot solve are places
+  where `Disposition` returns nothing at any clearance at all.
+
+  A blindness of `Disposition` inside the spawn's own call stack was reported while this was being
+  diagnosed; it did not survive remeasurement, and the pre-computation phase it called for has been
+  dropped. The spawn flow was measured not to affect the singleton at all.
+
 ## [6.25.0] — 2026-09-26
 
 ### Fixed

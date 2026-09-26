@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-IGNORES-SCENERY — ground units are placed without looking at the scenery, and a crowded FARP gives up silently
 
-Status: ⬜ ready — tickets 01, 02, 03 and 05 delivered 2026-08-27; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**, which merged 2026-09-26 (PR #1005). **Only ticket 04 is left, and it is no longer blocked**: the number DCS alone could give is in — 0 exhaustions out of 4 cases
+Status: 🔄 in-progress — tickets 01, 02, 03 and 05 delivered 2026-08-27; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**, which merged 2026-09-26 (PR #1005) and shipped in 6.25.0. **10 was then measured in game the same day and is inert too** — the groups are translated, the formations hold, and the metric does not move; the cause is under the lot, in `Disposition.getSimpleZones`, and is the subject of **ticket 11**. Ticket 04 is still open and no longer blocked: the number DCS alone could give is in — 0 exhaustions out of 4 cases
 
 Origin: found on 2026-08-27 while studying the 20 `mist.getRandPointInCircle` call sites for
 [`DROP-MIST`](../DROP-MIST/tickets/06-geometry-and-zone-queries.md) ticket 06. Kept out of that campaign
@@ -127,7 +127,27 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 07 | Editor content keeps declared position when tier 1 finds nothing | medium | ✅ |
 | 08 | `settlePosition` recalculates each unit in a battery to avoid scenery — superseded by 10 | medium | 🚫 |
 | 09 | `silent` propagated to `_createDcsUnits`, refused units no longer dropped silently | low | ✅ |
-| 10 | Settle the group by rigid translation, not unit by unit | medium | ✅ |
+| 10 | Settle the group by rigid translation, not unit by unit — shipped, and measured inert in game on 2026-09-26; the translation works, the selection does not | medium | ✅ |
+| 11 | `settleGroup` verifies the candidate it trusts, and draws more than once | medium | ⬜ |
+
+### Why this lot needed three rounds on the same defect
+
+Tickets 08, 10 and 11 all fix *"the units end up in the trees"*, and the first two were each shipped
+green and found inert in game. The pattern is the same every time: **a parameter was handed to
+`Disposition` and its meaning was assumed rather than measured.**
+
+- Ticket 08 assumed the **search radius** was honoured. Asked 50 m, DCS answers between 52 and 171 m,
+  so the `dist <= r` test could never pass and nothing ever moved.
+- Ticket 10 assumed the **clearance** (`posRadius`) was honoured, and wrote it into a comment — *"a
+  candidate is scenery-free by construction"*. Measured on 2026-09-26, the point a group was
+  translated to is blocked in 12 directions out of 12 at 10 m.
+- Ticket 10 also assumed the call was **deterministic**. Five identical calls return nearest
+  candidates at 1335, 1476, 1404, 1355 and 1293 m, and a sixth found one at 153 m.
+
+`Disposition` is undocumented ([ADR 0018](../../docs/adr/0018-undocumented-dcs-api-dependency.md)) and
+the ADR's rule — it *"may improve quality, never decide correctness"* — was respected on the failure
+path and quietly broken on the success path: the candidate it returns **was** deciding correctness.
+Hence ticket 11's shape: the singleton proposes, this codebase tests.
 
 ### What 01, 02 and 05 delivered (2026-08-27)
 

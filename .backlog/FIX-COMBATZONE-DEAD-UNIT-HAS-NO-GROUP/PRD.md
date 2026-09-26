@@ -32,6 +32,20 @@ Symptom 4 is a different question: whether groups spawned into a combat zone sho
 engines running, and it is arguably a design choice rather than a defect. Worth asking David what he
 expects rather than deciding here — a cold vehicle is realistic and a fair challenge, up to a point.
 
+## Also from the same sortie, and it belongs elsewhere
+
+**The tankers fly unescorted.** Reported by David in the same breath, kept here so it is not lost,
+but it is a different subject and should be reclassified rather than fixed under this lot.
+
+One thing was checked before writing it down: **nothing in the mission's `mission.yaml` configures
+an escort for the tankers** — the only occurrences of "escorte" in that file are red convoy
+briefings. So this reads as configuration that was never written, not as an escort mechanism that
+fails. VMCT already carries [`FEAT-AWACS-ESCORT-COMMANDS`](../FEAT-AWACS-ESCORT-COMMANDS/PRD.md),
+so the capability side is a lot of its own.
+
+What is *not* established: whether tankers on this mission are meant to be escorted at all. Texaco
+and Arco orbit well behind the line. Ask David what he expects before building anything.
+
 ## Where to start
 
 - `veafCombatZone.CompletionCheck` for symptom 3, and whatever feeds the zone's info panel for 2.

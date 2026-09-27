@@ -114,7 +114,12 @@ _CTLD_BLOCK = """\
   CTLD:                      # settings live in ctld-config.yaml (edit it with ctld-tools)
     enabled: true
     manage_logistics: true   # every carrier and FARP ammo dump becomes a CTLD loading point;
-                             # set to false to own logisticUnitTypes/troopZoneShipTypes yourself"""
+                             # set to false to own logisticUnitTypes/troopZoneShipTypes yourself
+    manage_airbase_logistics: true   # every airdrome becomes a CTLD logistic zone, held over time;
+                                     # false opts out entirely: no zone, no tick, no map circle
+    airbase_logistics_radius: 250    # metres of logistic zone around each airfield's stand
+    airbase_occupation_radius: 2000  # metres a captured or neutral field probes for ground units
+    airbase_logistics_tick: 30       # seconds between two evaluations of every airfield"""
 
 # ── Opt-out community scripts, written out even when off ──────────────────────
 # Wording follows the shipped `src/defaults/mission-folder/mission.yaml`, the other scaffold,
@@ -124,7 +129,9 @@ _CTLD_BLOCK = """\
 _STTS_OFF = "  STTS: false"
 _CTLD_OFF = """\
   CTLD: false                # settings live in ctld-config.yaml, beside this file (edit it with ctld-tools)
-                             # extended: CTLD -> { enabled: true, manage_logistics: true }"""
+                             # extended: CTLD -> { enabled: true, manage_logistics: true,
+                             #   manage_airbase_logistics: true, airbase_logistics_radius: 250,
+                             #   airbase_occupation_radius: 2000, airbase_logistics_tick: 30 }"""
 _CSAR_OFF = "  CSAR: false                # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }"
 _AIEN_OFF = "  AIEN: false"
 _SKYNET_OFF = (

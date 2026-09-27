@@ -160,6 +160,41 @@ class TestValidateModulesSemantics(unittest.TestCase):
         with self.assertRaises(typer.Abort):
             fn({"modules": {"CTLD": {"enabled": True, "manage_logistics": "yes"}}})
 
+    def test_airbase_logistics_keys_are_accepted(self) -> None:
+        """The opt-out and its three numbers, beside manage_logistics (FEAT-CTLD-AIRBASE-LOGISTICS)."""
+        mock_log, fn = self._patched()
+        fn(
+            {
+                "modules": {
+                    "CTLD": {
+                        "enabled": True,
+                        "manage_airbase_logistics": False,
+                        "airbase_logistics_radius": 300,
+                        "airbase_occupation_radius": 2500,
+                        "airbase_logistics_tick": 60,
+                    }
+                }
+            }
+        )
+        mock_log.error.assert_not_called()
+
+    def test_manage_airbase_logistics_must_be_a_boolean(self) -> None:
+        """A string "false" is truthy in Lua and would silently enable the feature — reject it."""
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "manage_airbase_logistics": "false"}}})
+
+    def test_airbase_logistics_number_must_be_a_number(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "airbase_logistics_radius": "250"}}})
+
+    def test_airbase_logistics_number_rejects_a_boolean(self) -> None:
+        """A bool is an int in Python, so `true` must not slip through an isinstance(int) check."""
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "airbase_logistics_tick": True}}})
+
     def test_unknown_init_param_is_warning_not_error(self) -> None:
         mock_log, fn = self._patched()
         fn({"modules": {"RADIO": {"init": {"bogus": True}}}})

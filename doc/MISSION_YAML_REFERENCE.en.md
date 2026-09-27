@@ -308,18 +308,28 @@ modules:
 
 VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. On `convert-v5`, these settings are extracted automatically from `missionConfig.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`.
 
-#### `modules.CTLD`: a boolean, nothing else
+#### `modules.CTLD`: a switch, a few VEAF keys, no `settings:`
 
-CTLD 2 is configured **outside `mission.yaml`**, in a `ctld-config.yaml` file sitting next to it and edited with `ctld-tools.exe`. A `settings:` block under `CTLD` is **rejected by `validate`**: it was no longer read, and letting it pass in silence is exactly the defect this change removes. Exactly one key is read here besides the switch: `manage_logistics` (boolean, default `true`). With it on, the build **adds** the carriers and FARP ammo dumps VEAF has always recognised to the `logisticUnitTypes` / `troopZoneShipTypes` lists in your `ctld-config.yaml` — it adds, it does not replace.
+CTLD 2 is configured **outside `mission.yaml`**, in a `ctld-config.yaml` file sitting next to it and edited with `ctld-tools.exe`. A `settings:` block under `CTLD` is **rejected by `validate`**: it was no longer read, and letting it pass in silence is exactly the defect this change removes. Besides the switch, `mission.yaml` only carries keys read by **VEAF at runtime**, never by the CTLD engine:
+
+- `manage_logistics` (boolean, default `true`) — with it on, the build **adds** the carriers and FARP ammo dumps VEAF has always recognised to the `logisticUnitTypes` / `troopZoneShipTypes` lists in your `ctld-config.yaml`; it adds, it does not replace.
+- `manage_airbase_logistics` (boolean, default `true`) — VEAF registers **every airfield on the map** as a CTLD logistic zone and keeps it up to date (two classes, two minutes of ground occupation for a neutral or captured field). At `false`, nothing is registered and the log says the feature was explicitly switched off.
+- `airbase_logistics_radius` (number, default `250`) — radius, in metres, of the logistic zone and of the green circle drawn around each airfield.
+- `airbase_occupation_radius` (number, default `2000`) — radius, in metres, probed around the airfield for ground occupation.
+- `airbase_logistics_tick` (number, default `30`) — re-evaluation period, in seconds.
 
 ```yaml
 modules:
   CTLD:
     enabled: true
     manage_logistics: true
+    manage_airbase_logistics: true   # default
+    # airbase_logistics_radius: 250
+    # airbase_occupation_radius: 2000
+    # airbase_logistics_tick: 30
 ```
 
-See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration) — including [where to get `ctld-tools`](mission-maker/GUIDE.en.md#getting-ctld-tools), which does not ship with VEAF MCT, and [FARPs placed in the editor](mission-maker/GUIDE.en.md#ctld-manage-logistics).
+See [CTLD and CSAR Integration](mission-maker/GUIDE.en.md#ctld-and-csar-integration) — including [where to get `ctld-tools`](mission-maker/GUIDE.en.md#getting-ctld-tools), which does not ship with VEAF MCT, [FARPs placed in the editor](mission-maker/GUIDE.en.md#ctld-manage-logistics), and [airfields become logistic zones](mission-maker/GUIDE.en.md#ctld-airbase-logistics).
 
 > **Sounds.** CTLD and CSAR play sounds by filename at runtime (`beacon.ogg`, `beaconsilent.ogg`, `CSAR.ogg`). When CTLD or CSAR is enabled, the build automatically injects the required sounds it ships (`src/scripts/community/sounds/`) into the mission's `l10n/DEFAULT/`, without overwriting any sound your mission already provides. A required sound shipped by neither the tools nor your mission is reported with a build warning — add it to `src/mission/l10n/DEFAULT/` (e.g. `radiobeep.ogg`, the JTAC fallback beep, is not redistributed).
 >

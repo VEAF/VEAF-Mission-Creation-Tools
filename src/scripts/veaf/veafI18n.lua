@@ -1157,6 +1157,14 @@ veaf.i18nCatalog = {
     fr = "Le point nommé %s est introuvable !",
     en = "A point named %s cannot be found !",
   },
+  ["transport.airbase_logistics_gained"] = {
+    fr = "Logistique disponible à %s : vous pouvez désormais vous y réapprovisionner.",
+    en = "Logistics available at %s: you can now resupply there.",
+  },
+  ["transport.airbase_logistics_lost"] = {
+    fr = "Logistique perdue à %s : vous ne pouvez plus vous y réapprovisionner.",
+    en = "Logistics lost at %s: you can no longer resupply there.",
+  },
   ["transport.failure"] = {
     fr = "Le groupe ami a été détruit ! La mission est un échec !",
     en = "Friendly group has been destroyed! The mission is a failure!",

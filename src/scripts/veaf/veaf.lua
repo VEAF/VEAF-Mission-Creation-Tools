@@ -5053,6 +5053,11 @@ VeafDrawingOnMap.COLORS = {
   -- is invisible on the sand-coloured DCS map; {0.15, 0.15, 0.15} reads as a black line and {0.7} as
   -- white. Grey here means "inactive", not "faint" -- it still has to be read.
   ["grey"] = { 0.42, 0.42, 0.42, 1 },
+  -- Translucent green, for the CTLD airbase-logistics circles: a logistic airfield is drawn as a green
+  -- disc the pilot can still read the map through. `green` above is fully opaque and would hide what is
+  -- underneath; `pink` is already this family's translucent red, so the matching green sits at the same
+  -- kind of alpha. 0.15 is `veafGeo.drawTriggerZone`'s fill alpha, chosen there for the same reason.
+  ["green_transparent"] = { 0, 1, 0, 0.15 },
 }
 
 function VeafDrawingOnMap:new(objectToCopy)

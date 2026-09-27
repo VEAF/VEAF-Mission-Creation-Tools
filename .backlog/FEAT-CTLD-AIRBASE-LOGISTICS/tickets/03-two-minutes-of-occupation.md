@@ -1,5 +1,5 @@
 ---
-Status: ⬜ ready
+Status: 🔄 in-progress
 ---
 
 # 03 — Class B: two continuous minutes of ground occupation

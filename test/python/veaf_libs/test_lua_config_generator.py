@@ -234,9 +234,7 @@ def test_ctld_airbase_logistics_settings_absent_emit_nothing():
 
 def test_ctld_disabled_emits_no_airbase_logistics_settings():
     """With CTLD off there is no logistic zone to manage, so the settings must not be emitted."""
-    lua = generate_config_lua(
-        {"community_scripts": {"ctld": {"enabled": False, "manage_airbase_logistics": True}}}
-    )
+    lua = generate_config_lua({"community_scripts": {"ctld": {"enabled": False, "manage_airbase_logistics": True}}})
     assert "veaf.config.manage_airbase_logistics" not in lua
 
 

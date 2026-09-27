@@ -1977,7 +1977,9 @@ def generate_config_lua(
                 "airbase_logistics_tick",
             ):
                 if setting_key in ctld_cfg:
-                    lines.append(f"veaf.config.{setting_key} = {_to_lua_scalar(ctld_cfg[setting_key], f'veaf.config.{setting_key}')}")
+                    lines.append(
+                        f"veaf.config.{setting_key} = {_to_lua_scalar(ctld_cfg[setting_key], f'veaf.config.{setting_key}')}"
+                    )
         lines.append("if ctld then")
         lines.append("    veaf.ctld_initialize()")
         lines.append("end")

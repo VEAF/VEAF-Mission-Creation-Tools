@@ -712,27 +712,25 @@ local AIRBASE_LOGISTICS_TICK_SECONDS = AIRBASE_LOGISTICS_TICK_SECONDS_DEFAULT
 
 -- Continuous seconds ground troops must hold a class-B airfield before it becomes a logistic point,
 -- and the hysteresis that keeps a contested field from flapping. This one is NOT a setting: two
--- minutes is the rule, not a tunable. The number of consecutive positive ticks it means is DERIVED
--- from the tick interval, never spelled out separately, so the two cannot drift apart — at the
--- default 30 s tick, 120 s is exactly four ticks. A tick that finds nobody clears the count rather
--- than pausing it, because the two minutes must be continuous.
+-- minutes is the rule, not a tunable. It is measured on the mission clock (`timer.getTime()`), from
+-- the first tick that saw the occupier to the tick that opens the zone — never as a count of ticks,
+-- which would only equal two minutes when the interval divides 120 exactly (a 45 s tick floored to
+-- two ticks opened after 45 s, and any tick above 120 s opened on the first sighting). A tick that
+-- finds nobody clears the clock rather than pausing it, because the two minutes must be continuous.
 local AIRBASE_OCCUPATION_SECONDS = 120
-local AIRBASE_OCCUPATION_TICKS = math.floor(AIRBASE_OCCUPATION_SECONDS / AIRBASE_LOGISTICS_TICK_SECONDS)
 
---- Pull the three CTLD airbase-logistics numbers out of veaf.config, falling back to the defaults,
---- and re-derive the occupation tick count from the resolved interval. Called at the top of
---- initializeAllLogisticInCTLD so the values are in place before any zone is registered, probed or
---- scheduled. `or` is a safe fallback for all three: none is meaningful at 0 or false, so an unset
---- key can only mean "use the default".
+--- Pull the three CTLD airbase-logistics numbers out of veaf.config, falling back to the defaults.
+--- Called at the top of initializeAllLogisticInCTLD so the values are in place before any zone is
+--- registered, probed or scheduled. `or` is a safe fallback for all three: none is meaningful at 0
+--- or false, so an unset key can only mean "use the default".
 local function resolveAirbaseLogisticsSettings()
   AIRBASE_LOGISTICS_RADIUS = veaf.config.airbase_logistics_radius or AIRBASE_LOGISTICS_RADIUS_DEFAULT
   AIRBASE_OCCUPATION_RADIUS = veaf.config.airbase_occupation_radius or AIRBASE_OCCUPATION_RADIUS_DEFAULT
   AIRBASE_LOGISTICS_TICK_SECONDS = veaf.config.airbase_logistics_tick or AIRBASE_LOGISTICS_TICK_SECONDS_DEFAULT
-  AIRBASE_OCCUPATION_TICKS = math.floor(AIRBASE_OCCUPATION_SECONDS / AIRBASE_LOGISTICS_TICK_SECONDS)
 end
 
 --- Per-airfield state this lot keeps, keyed by airbase name:
---- `{ zoneName, coalition, class, point, registered, registeredCoalition, active, holder, displayName, dcsAirbase, homeCoalition, leftClassA, occupationCoalition, occupationTicks, circle }`.
+--- `{ zoneName, coalition, class, point, registered, registeredCoalition, active, holder, displayName, dcsAirbase, homeCoalition, leftClassA, occupationCoalition, occupationSince, circle }`.
 ---
 --- `coalition` is the LAST KNOWN holder, the value the class-A tick compares each read against;
 --- `homeCoalition` is the one the zone was first registered under and never changes — the tick
@@ -745,18 +743,20 @@ end
 --- holds the field. `leftClassA` records the A→B reclassification so the class-B path knows the
 --- field already has a (deactivated) zone of its own rather than a fresh neutral one.
 ---
---- Class B only: `occupationCoalition` and `occupationTicks` are the continuous-hold clock —
---- which side's ground units are inside the probe radius and for how many consecutive ticks, so a
---- tick that finds nobody (or a contest) clears the count rather than pausing it. `circle` holds
+--- Class B only: `occupationCoalition` and `occupationSince` are the continuous-hold clock —
+--- which side's ground units are inside the probe radius, and the mission time (`timer.getTime()`)
+--- of the first tick that saw them there uninterrupted, so a tick that finds nobody (or a contest)
+--- clears the clock rather than pausing it. `circle` holds
 --- the one VeafCircleOnMap per airfield ticket 04 draws, created once and reused.
 ---
 --- `class` is snapshotted on the FIRST evaluation and only the tick moves it, A→B: "A" for a
 --- field held by a coalition (blue or red) at mission start, "B" for the rest. Tickets 02 and
 --- 03 read that snapshot to follow the field through the mission, and at first evaluation
 --- nothing can have been captured yet — on GermanyCW v6, CTLD is ready eleven seconds before
---- the first FOB registers. A mission script capturing an airfield in its opening seconds,
---- before this runs, would record it B and make it owe the two minutes of ticket 03; known
---- watch-out, not designed around.
+--- the first FOB registers. The snapshot is whatever `getCoalition()` answers at that moment, so a
+--- field a mission script hands to a side AFTER it is class B and owes the two minutes of ticket
+--- 03; known watch-out, not designed around, and listed in known-limitations.yaml
+--- (`airfield-logistics-class-is-decided-when-ctld-starts`).
 veafTransportMission.airbaseLogisticState = {}
 
 --- Id of the recurring tick task, nil until `initializeAllLogisticInCTLD` has scheduled it.
@@ -1053,18 +1053,17 @@ local function updateClassBLogistics(state, logger)
 
   if not occupier then
     state.occupationCoalition = nil
-    state.occupationTicks = 0
+    state.occupationSince = nil
     return
   end
 
-  if state.occupationCoalition == occupier then
-    state.occupationTicks = state.occupationTicks + 1
-  else
+  local now = timer.getTime()
+  if state.occupationCoalition ~= occupier then
     state.occupationCoalition = occupier
-    state.occupationTicks = 1
+    state.occupationSince = now
   end
 
-  if state.occupationTicks >= AIRBASE_OCCUPATION_TICKS and state.holder ~= occupier then
+  if now - state.occupationSince >= AIRBASE_OCCUPATION_SECONDS and state.holder ~= occupier then
     local previous = state.holder
     if serveLogisticZone(state, occupier) then
       if previous and previous ~= occupier then
@@ -1100,6 +1099,9 @@ function veafTransportMission.updateAirbaseLogisticsZones()
 end
 
 --- Register every airdrome of the theatre as a CTLD logistic zone.
+---
+--- Called by `veaf.ctld_initialize()` once CTLD has read its configuration; a mission script that
+--- still calls it as well finds the state already built and the tick already scheduled.
 ---
 --- Ships are out — carriers already have their route since FEAT-CTLD-AUTO-LOGISTICS — and so are
 --- helipads, FARPs going through veafSpawn.spawnLogistic → registerFOBAsLogistic already. Each
@@ -1171,7 +1173,7 @@ function veafTransportMission.initializeAllLogisticInCTLD()
           dcsAirbase = airbase.DcsAirbase,
           leftClassA = false,
           occupationCoalition = nil,
-          occupationTicks = 0,
+          occupationSince = nil,
           circle = nil,
         }
         veafTransportMission.airbaseLogisticState[airbase.Name] = state

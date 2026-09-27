@@ -5722,6 +5722,16 @@ function veaf.ctld_initialize()
   -- read its configuration there is no state to show. veafRadio initialises at order 30 and this module
   -- at 50, so the menu tree is already there.
   veaf.buildCtldRadioMenu()
+
+  -- Airfields are in none of CTLD's own logistic discovery routes, so VEAF registers them itself
+  -- (FEAT-CTLD-AIRBASE-LOGISTICS). Here, because this is the one call every CTLD mission makes once
+  -- the engine has read its configuration: the generated veaf-config.lua emits it, after the
+  -- `veaf.config.airbase_*` settings it resolves. Not from veafTransportMission.initialize(), which
+  -- a mission disabling the `_transport` marker module would skip along with the airfields. Guarded
+  -- because veaf.lua does not load that module itself: a suite loading veaf.lua alone has no such table.
+  if veafTransportMission and veafTransportMission.initializeAllLogisticInCTLD then
+    veafTransportMission.initializeAllLogisticInCTLD()
+  end
 end
 
 --- Make CTLD speak the mission's language.

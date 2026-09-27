@@ -631,6 +631,21 @@ function TestVeafTransportAirbaseLogistics:test_airdrome_registers_at_250m_with_
   luaunit.assertEquals(calls[1].args[4], coalition.side.BLUE) -- its OWN coalition, never 0
 end
 
+function TestVeafTransportAirbaseLogistics:test_starting_ctld_registers_the_airfields()
+  -- The wiring, not the handler: no mission calls initializeAllLogisticInCTLD itself. What its
+  -- generated veaf-config.lua calls is veaf.ctld_initialize(), so that is the door this goes through.
+  veafAirbases.Airbases = { makeAirbaseRecord("Ramstein", Airbase.Category.AIRDROME, makeDcsAirbase(coalition.side.BLUE, threeStands())) }
+  local savedLog = ctld.utils.log
+
+  veaf.ctld_initialize()
+  ctld.utils.log = savedLog
+
+  local calls = zoneManagerCalls("registerFOBAsLogistic")
+  luaunit.assertEquals(#calls, 1, "starting CTLD must register the map's airfields")
+  luaunit.assertEquals(calls[1].args[1], "AB_Ramstein")
+  luaunit.assertNotNil(veafTransportMission.airbaseLogisticsTaskId, "and schedule the tick that holds them")
+end
+
 function TestVeafTransportAirbaseLogistics:test_red_airdrome_registers_under_red()
   veafAirbases.Airbases = { makeAirbaseRecord("Krasnodar", Airbase.Category.AIRDROME, makeDcsAirbase(coalition.side.RED, threeStands())) }
 
@@ -960,10 +975,24 @@ end
 -- TestVeafTransportAirbaseLogisticsClassB — FEAT-CTLD-AIRBASE-LOGISTICS ticket 03
 --
 -- Class B is the only class that costs a spatial query: ground troops of one coalition, unopposed
--- inside 2000 m for two continuous minutes (four 30 s ticks) make a neutral or captured airfield a
+-- inside 2000 m for two continuous minutes of mission clock make a neutral or captured airfield a
 -- logistic point for them, and the last of them leaving closes it at once. The probe is driven
--- through the injectable world.searchObjects mock — an object list, never a sleep.
+-- through the injectable world.searchObjects mock — an object list, never a sleep — and the clock
+-- through timer.setTime.
 -- ---------------------------------------------------------------------------
+
+--- Move the mission clock forward by `seconds` and run one evaluation there, which is what the
+--- scheduler does in DCS. `count` repeats it, `seconds` apart.
+local function tickAfter(seconds, count)
+  for _ = 1, count or 1 do
+    timer.setTime(timer.getTime() + seconds)
+    veafTransportMission.updateAirbaseLogisticsZones()
+  end
+end
+
+--- Enough 30 s ticks to open a field: the first sighting starts the clock, and the fifth tick is
+--- the first one two minutes later.
+local TICKS_TO_OPEN = 5
 
 local function groundUnit(side)
   return {
@@ -1035,19 +1064,18 @@ function TestVeafTransportAirbaseLogisticsClassB:_neutral(name)
   return veafTransportMission.airbaseLogisticState[name]
 end
 
-function TestVeafTransportAirbaseLogisticsClassB:test_activates_after_four_consecutive_ticks_not_three()
+function TestVeafTransportAirbaseLogisticsClassB:test_activates_two_minutes_of_clock_after_the_first_sighting()
   local state = self:_neutral("NeutralField")
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) }
 
-  for _ = 1, 3 do
-    veafTransportMission.updateAirbaseLogisticsZones()
-  end
-  luaunit.assertFalse(state.active, "three consecutive ticks are not yet two minutes")
-  luaunit.assertEquals(state.occupationTicks, 3)
+  tickAfter(30) -- first sighting, at t=30: the clock starts here
+  luaunit.assertEquals(state.occupationSince, 30)
+  tickAfter(30, 3) -- t=120: 90 s of hold
+  luaunit.assertFalse(state.active, "90 s is not yet two minutes")
   luaunit.assertEquals(#messagesTo(coalition.side.BLUE), 0, "nothing is announced before it opens")
 
-  veafTransportMission.updateAirbaseLogisticsZones() -- the fourth
-  luaunit.assertTrue(state.active, "active after four consecutive ticks")
+  tickAfter(30) -- t=150: 120 s since the first sighting
+  luaunit.assertTrue(state.active, "active once 120 s of clock have passed since the first sighting")
   luaunit.assertEquals(state.holder, coalition.side.BLUE)
   luaunit.assertEquals(state.registeredCoalition, coalition.side.BLUE)
   local registered = zoneManagerCalls("registerFOBAsLogistic")
@@ -1060,31 +1088,28 @@ end
 function TestVeafTransportAirbaseLogisticsClassB:test_an_empty_tick_clears_the_clock_not_pauses_it()
   local state = self:_neutral("NeutralField")
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) }
-  veafTransportMission.updateAirbaseLogisticsZones()
-  veafTransportMission.updateAirbaseLogisticsZones()
-  luaunit.assertEquals(state.occupationTicks, 2)
+  tickAfter(30, 4) -- t=30..120: 90 s of hold
+  luaunit.assertEquals(state.occupationSince, 30)
 
   dcs_mocks.searchObjectsObjects = {} -- everybody left
-  veafTransportMission.updateAirbaseLogisticsZones()
-  luaunit.assertEquals(state.occupationTicks, 0, "an empty tick clears the clock")
+  tickAfter(30) -- t=150
+  luaunit.assertNil(state.occupationSince, "an empty tick clears the clock")
   luaunit.assertNil(state.occupationCoalition)
 
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) } -- they come back
-  veafTransportMission.updateAirbaseLogisticsZones()
-  luaunit.assertEquals(state.occupationTicks, 1, "the count restarts, it does not resume")
-  luaunit.assertFalse(state.active)
+  tickAfter(30) -- t=180
+  luaunit.assertEquals(state.occupationSince, 180, "the clock restarts, it does not resume")
+  luaunit.assertFalse(state.active, "the 90 s held before the gap do not count")
 end
 
 function TestVeafTransportAirbaseLogisticsClassB:test_an_aircraft_never_starts_the_clock()
   local state = self:_neutral("NeutralField")
   dcs_mocks.searchObjectsObjects = { aircraft(coalition.side.BLUE) }
 
-  for _ = 1, 5 do
-    veafTransportMission.updateAirbaseLogisticsZones()
-  end
+  tickAfter(30, 10)
 
   luaunit.assertFalse(state.active, "a transport that lands to use the field does not open it")
-  luaunit.assertEquals(state.occupationTicks, 0)
+  luaunit.assertNil(state.occupationSince)
 end
 
 function TestVeafTransportAirbaseLogisticsClassB:test_only_units_are_queried_and_a_static_is_ignored()
@@ -1094,7 +1119,7 @@ function TestVeafTransportAirbaseLogisticsClassB:test_only_units_are_queried_and
   veafTransportMission.updateAirbaseLogisticsZones()
 
   luaunit.assertFalse(state.active)
-  luaunit.assertEquals(state.occupationTicks, 0, "a static is not a ground unit")
+  luaunit.assertNil(state.occupationSince, "a static is not a ground unit")
   local sawUnit, sawStatic, sawScenery = false, false, false
   for _, call in ipairs(dcs_mocks.searchObjectsCalls) do
     if call.category == Object.Category.UNIT then
@@ -1132,9 +1157,7 @@ end
 function TestVeafTransportAirbaseLogisticsClassB:test_withdrawal_removes_it_at_once()
   local state = self:_neutral("NeutralField")
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) }
-  for _ = 1, 4 do
-    veafTransportMission.updateAirbaseLogisticsZones()
-  end
+  tickAfter(30, TICKS_TO_OPEN)
   luaunit.assertTrue(state.active)
   CTLDZoneManager._instance.calls = {}
   dcs_mocks.messages = {}
@@ -1150,9 +1173,7 @@ end
 function TestVeafTransportAirbaseLogisticsClassB:test_a_raising_probe_leaves_the_zone_as_it_was()
   local state = self:_neutral("NeutralField")
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) }
-  for _ = 1, 4 do
-    veafTransportMission.updateAirbaseLogisticsZones()
-  end
+  tickAfter(30, TICKS_TO_OPEN)
   luaunit.assertTrue(state.active)
   CTLDZoneManager._instance.calls = {}
   dcs_mocks.messages = {}
@@ -1182,9 +1203,7 @@ function TestVeafTransportAirbaseLogisticsClassB:test_red_troops_on_a_captured_b
   CTLDZoneManager._instance.calls = {}
   dcs_mocks.messages = {}
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.RED) }
-  for _ = 1, 4 do
-    veafTransportMission.updateAirbaseLogisticsZones()
-  end
+  tickAfter(30, TICKS_TO_OPEN)
 
   luaunit.assertTrue(state.active)
   luaunit.assertEquals(state.holder, coalition.side.RED)
@@ -1297,9 +1316,7 @@ function TestVeafTransportAirbaseLogisticsCircle:test_a_change_of_hands_leaves_e
   luaunit.assertEquals(#dcs_mocks.circlesDrawn, 0, "dark while it owes the two minutes")
 
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.RED) }
-  for _ = 1, 4 do
-    veafTransportMission.updateAirbaseLogisticsZones()
-  end
+  tickAfter(30, TICKS_TO_OPEN)
 
   luaunit.assertEquals(#dcs_mocks.circlesDrawn, 1, "one circle per airfield, not one per coalition")
   luaunit.assertEquals(dcs_mocks.circlesDrawn[1].coalition, coalition.side.RED, "the single circle now belongs to red")
@@ -1312,9 +1329,7 @@ function TestVeafTransportAirbaseLogisticsCircle:test_a_neutral_field_has_no_cir
   luaunit.assertEquals(#dcs_mocks.circlesDrawn, 0, "a field that is not a logistic point yet is not drawn")
 
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) }
-  for _ = 1, 4 do
-    veafTransportMission.updateAirbaseLogisticsZones()
-  end
+  tickAfter(30, TICKS_TO_OPEN)
 
   luaunit.assertEquals(#dcs_mocks.circlesDrawn, 1, "it appears when the field actually opens")
   luaunit.assertEquals(dcs_mocks.circlesDrawn[1].coalition, coalition.side.BLUE)
@@ -1437,7 +1452,7 @@ function TestVeafTransportAirbaseLogisticsSettings:test_a_custom_occupation_radi
   luaunit.assertEquals(dcs_mocks.searchObjectsCalls[1].volume.params.radius, 3000, "the probe sphere uses the configured occupation radius")
 end
 
-function TestVeafTransportAirbaseLogisticsSettings:test_a_custom_tick_reaches_the_schedule_and_the_occupation_count()
+function TestVeafTransportAirbaseLogisticsSettings:test_a_custom_tick_reaches_the_schedule_and_the_hold_stays_two_minutes()
   veaf.config.airbase_logistics_tick = 60
   timer.setTime(0)
   local dcsAirbase = mutableDcsAirbase(coalition.side.NEUTRAL, threeStands())
@@ -1451,13 +1466,44 @@ function TestVeafTransportAirbaseLogisticsSettings:test_a_custom_tick_reaches_th
   luaunit.assertNotNil(task, "the tick is scheduled")
   luaunit.assertEquals(task.time, 60, "with the clock at 0, the first fire is one configured interval away")
 
-  -- The two-minute hold follows the interval: 120 s at a 60 s tick is two consecutive ticks, not four.
+  -- The hold is two minutes of clock whatever the interval: at 60 s, the first sighting (t=60) starts
+  -- it and the tick at t=180 is the first one 120 s later.
   local state = veafTransportMission.airbaseLogisticState["NeutralField"]
   dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) }
-  veafTransportMission.updateAirbaseLogisticsZones()
-  luaunit.assertFalse(state.active, "one tick is not yet two minutes at a 60 s interval")
-  veafTransportMission.updateAirbaseLogisticsZones()
-  luaunit.assertTrue(state.active, "two consecutive ticks are two minutes at a 60 s interval")
+  tickAfter(60, 2)
+  luaunit.assertFalse(state.active, "60 s of hold is not yet two minutes")
+  tickAfter(60)
+  luaunit.assertTrue(state.active, "120 s of hold opens it at a 60 s interval")
+end
+
+function TestVeafTransportAirbaseLogisticsSettings:test_a_tick_that_does_not_divide_two_minutes_still_holds_two_minutes()
+  -- A tick count floored from 120/45 gave two ticks, i.e. a zone opened after 45 s of hold.
+  veaf.config.airbase_logistics_tick = 45
+  local dcsAirbase = mutableDcsAirbase(coalition.side.NEUTRAL, threeStands())
+  veafAirbases.Airbases = { makeAirbaseRecord("NeutralField", Airbase.Category.AIRDROME, dcsAirbase) }
+  veafTransportMission.initializeAllLogisticInCTLD()
+  local state = veafTransportMission.airbaseLogisticState["NeutralField"]
+  dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) }
+
+  tickAfter(45, 3) -- t=45, 90, 135: 90 s of hold
+  luaunit.assertFalse(state.active, "90 s of hold is not two minutes, even at a 45 s interval")
+  tickAfter(45) -- t=180: 135 s of hold
+  luaunit.assertTrue(state.active)
+end
+
+function TestVeafTransportAirbaseLogisticsSettings:test_a_tick_longer_than_two_minutes_never_opens_on_the_first_sighting()
+  -- floor(120/180) was 0 ticks: the zone opened the instant troops were first seen.
+  veaf.config.airbase_logistics_tick = 180
+  local dcsAirbase = mutableDcsAirbase(coalition.side.NEUTRAL, threeStands())
+  veafAirbases.Airbases = { makeAirbaseRecord("NeutralField", Airbase.Category.AIRDROME, dcsAirbase) }
+  veafTransportMission.initializeAllLogisticInCTLD()
+  local state = veafTransportMission.airbaseLogisticState["NeutralField"]
+  dcs_mocks.searchObjectsObjects = { groundUnit(coalition.side.BLUE) }
+
+  tickAfter(180)
+  luaunit.assertFalse(state.active, "a first sighting is zero seconds of hold")
+  tickAfter(180)
+  luaunit.assertTrue(state.active)
 end
 
 os.exit(luaunit.LuaUnit.run())

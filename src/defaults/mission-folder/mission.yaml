@@ -251,12 +251,12 @@ modules:
 # at mission start keeps its zone while it holds it, and a neutral or captured one opens two
 # continuous minutes after unopposed ground troops arrive, closing the moment the last of them
 # leaves. Set it to false to opt out entirely — no zone, no 30 s tick, no green F10 circle.
-# The three numbers are his to change without editing Lua: `airbase_logistics_radius` (250 m of
+# The three numbers are the maker's to change without editing Lua: `airbase_logistics_radius` (250 m of
 # zone around the stand nearest the field's centroid — raise it on a spread apron, where an
 # aircraft parked beyond the radius reads "Aucune logistique à portée" at an active field),
 # `airbase_occupation_radius` (2000 m probed for ground units; only UNIT category, never a
 # static or scenery, so a transport landing on a captured field does not open it) and
-# `airbase_logistics_tick` (30 s between evaluations; the two-minute hold is four of them).
+# `airbase_logistics_tick` (30 s between evaluations; the two-minute hold is measured on the mission clock, whatever the interval).
 
 # ── CAP missions ──────────────────────────────────────────────────────────────
 # Requires COMBATMISSION module enabled in modules above.

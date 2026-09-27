@@ -1,5 +1,5 @@
 ---
-Status: 🔄 in-progress
+Status: ✅ done
 ---
 
 # 05 — The opt-out, the three settings, and the documentation

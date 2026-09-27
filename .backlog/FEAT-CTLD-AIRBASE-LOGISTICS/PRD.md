@@ -1,5 +1,5 @@
 ---
-Status: 🔄 in-progress — tickets 01 to 05 are all implemented with their tests, awaiting review and commit
+Status: 🧑 waiting-human — tickets 01 to 05 merged in #1009; the in-flight check on GermanyCW v6 is David's (a C-130 loads at Ramstein, a captured field opens 2 min after blue ground troops arrive, the green circle follows the holder)
 ---
 
 # FEAT-CTLD-AIRBASE-LOGISTICS — airfields are outside CTLD's logistic system, and VEAF can put them in without touching CTLD
@@ -304,11 +304,11 @@ designed around.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Register every airdrome as a CTLD logistic zone](tickets/01-register-every-airdrome.md) | 🔄 |
-| 02 | [The 30-second tick, and a class-A airfield that changes side](tickets/02-the-thirty-second-tick.md) | 🔄 |
-| 03 | [Class B: two continuous minutes of ground occupation](tickets/03-two-minutes-of-occupation.md) | 🔄 |
-| 04 | [One green transparent circle per active airfield, on the F10 map](tickets/04-the-green-circle.md) | 🔄 |
-| 05 | [The opt-out, the three settings, and the documentation](tickets/05-opt-out-settings-and-docs.md) | 🔄 |
+| 01 | [Register every airdrome as a CTLD logistic zone](tickets/01-register-every-airdrome.md) | ✅ |
+| 02 | [The 30-second tick, and a class-A airfield that changes side](tickets/02-the-thirty-second-tick.md) | ✅ |
+| 03 | [Class B: two continuous minutes of ground occupation](tickets/03-two-minutes-of-occupation.md) | ✅ |
+| 04 | [One green transparent circle per active airfield, on the F10 map](tickets/04-the-green-circle.md) | ✅ |
+| 05 | [The opt-out, the three settings, and the documentation](tickets/05-opt-out-settings-and-docs.md) | ✅ |
 
 Each ticket names what blocks it: 01 blocks 02 and 05, 02 blocks 03 and 04. Work the frontier — 01
 alone at the start, then 02 and 05 together, then 03 and 04. 05 ships last in practice, so the

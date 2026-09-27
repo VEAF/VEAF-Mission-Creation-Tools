@@ -39,9 +39,10 @@ Two symptoms follow from that one cause, and both were reported:
 name afterwards. The name prefix stays as it is for editor content — it works, and changing it would
 break every mission — but a group a zone spawned must not have to prove its parentage by its name.
 
-Worth deciding alongside: whether a spawned group should also *be named* after its zone. That would
-fix ownership as a side effect, and it would also change every generated name a player sees in the
-F10 map and in kill messages — a mission-maker-visible change rather than a bug fix.
+**Renaming the spawned groups is ruled out.** It would fix ownership as a side effect, and David
+settled it on 2026-09-27: the generated names are deliberate — `[r]-73rd Steel Platoon`,
+`[r]-India Division` — and they are what a player reads in the F10 map and in kill messages. They
+stay. So ownership has to be recorded, not spelled out in a name.
 
 ## Not established
 

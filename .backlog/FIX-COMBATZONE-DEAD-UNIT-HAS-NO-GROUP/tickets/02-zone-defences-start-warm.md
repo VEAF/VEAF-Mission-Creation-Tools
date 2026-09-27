@@ -1,4 +1,4 @@
-# 02 — a combat zone's vehicles start with their engines running
+# 02 — spawned ground vehicles start with their engines running
 
 Status: ⬜ ready — David's ruling, 2026-09-27. Not investigated yet.
 Type: fix
@@ -21,12 +21,14 @@ Nothing here is established. In order:
    otherwise.
 2. **What the lever is.** A per-unit property written at spawn, a group-level setting, or an AI
    task — and whether it survives a respawn, since combat zones recycle their content.
-3. **Whether it applies to every spawn or only to combat zones.** A zone's defences want to be
-   found; a convoy hiding in a wood may not. Default one way, and let the other be asked for.
+Point 3 is already settled: **it applies to every spawn**, not only to combat zones. David,
+2026-09-27. So this is a change to the spawn path itself rather than something a zone asks for, and
+it will reach convoys and lone vehicles too.
 
 ## Definition of done
 
-- [ ] A failing test first: a group spawned into a combat zone comes out with its engines running
+- [ ] A failing test first: **any** spawned ground group comes out with its engines running, not
+      only one spawned into a combat zone
 - [ ] Verified in game: the vehicles of a freshly activated zone are acquirable on a TGP
 - [ ] The choice is documented where a mission maker will meet it, and says what to write to get the
       other behaviour

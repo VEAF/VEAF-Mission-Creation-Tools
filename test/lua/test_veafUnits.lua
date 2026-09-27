@@ -1072,12 +1072,36 @@ local function pairwiseDistances(units)
   return distances
 end
 
---- A Disposition stub answering with these `{ x, z }` candidates, whatever it is asked.
+--- How wide a declared clearing is, in the stub's world. Anything further from every declared
+--- candidate than this is scenery.
+local CLEARING_RADIUS = 30
+
+--- A Disposition stub that models a wooded map with clearings at the declared `{ x, z }` candidates.
+--
+-- It answers the two questions `settleGroup` asks, and answers them **differently**, which the
+-- previous stub did not: a stub that returns the same thing whatever it is asked cannot tell a
+-- verified candidate from an unverified one, and that is the defect ticket 11 exists to catch.
+--
+-- * the per-unit scenery probe (`radius == SETTLE_UNIT_PROBE`) — is *this spot* clear? Yes only
+--   within `CLEARING_RADIUS` of a declared clearing;
+-- * the clearing draw — where are the clearings? The declared candidates.
+--
+-- `record.draws` counts the clearing draws only, so a test can pin that several are made.
 local function dispositionAnswering(candidates, record)
   return {
     getSimpleZones = function(point, radius, clearance, attempts)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        for _, candidate in ipairs(candidates) do
+          local dx, dz = point.x - candidate[1], (point.z or 0) - candidate[2]
+          if math.sqrt(dx * dx + dz * dz) <= CLEARING_RADIUS then
+            return { { x = point.x, y = point.z or 0, course = 0 } }
+          end
+        end
+        return {}
+      end
       if record then
         record.point, record.radius, record.clearance, record.attempts = point, radius, clearance, attempts
+        record.draws = (record.draws or 0) + 1
       end
       local zones = {}
       for _, candidate in ipairs(candidates) do
@@ -1145,15 +1169,20 @@ function TestVeafUnitsSettleGroup:test_the_group_is_translated_rigidly_until_eve
   luaunit.assertAlmostEquals(units[1].spawnPoint.z, -10, 0.001)
 end
 
-function TestVeafUnitsSettleGroup:test_the_clearance_asked_covers_the_whole_footprint()
-  -- A candidate is only worth anything if the clearing it names fits the whole group, so the
-  -- clearance asked of Disposition is the footprint radius plus the margin.
-  local record = {}
-  Disposition = dispositionAnswering({ { 300, 0 } }, record)
-  local units = groundGroup({ { -30, 0 }, { 30, 0 } })
-  veafUnits.settleGroup(units)
-  luaunit.assertAlmostEquals(record.clearance, 30 + veafUnits.SETTLE_MARGIN, 0.001, "clearance = footprint radius + margin")
-  luaunit.assertEquals(record.radius, veafUnits.SETTLE_MAX_TRANSLATION, "the search radius is the acceptance bound")
+function TestVeafUnitsSettleGroup:test_the_clearance_asked_does_not_grow_with_the_group()
+  -- The regression that made this whole lot inert, pinned. Asking Disposition for the group's own
+  -- footprint reads as the obvious thing to do and silences it: measured in game on 2026-09-26, a
+  -- clearance of 300 m returns zero candidates where 80 m returns thirty. So a big group and a
+  -- small one must ask for exactly the same thing, and the fit is established afterwards, unit by
+  -- unit, by isPointClearOfScenery.
+  local wide, narrow = {}, {}
+  Disposition = dispositionAnswering({ { 300, 0 } }, wide)
+  veafUnits.settleGroup(groundGroup({ { -200, 0 }, { 200, 0 } }))
+  Disposition = dispositionAnswering({ { 300, 0 } }, narrow)
+  veafUnits.settleGroup(groundGroup({ { -5, 0 }, { 5, 0 } }))
+  luaunit.assertAlmostEquals(wide.clearance, veafUnits.SETTLE_CLEARANCE_ASKED, 0.001, "a 200 m group asks for the constant")
+  luaunit.assertAlmostEquals(narrow.clearance, veafUnits.SETTLE_CLEARANCE_ASKED, 0.001, "so does a 5 m group")
+  luaunit.assertEquals(wide.radius, veafUnits.SETTLE_MAX_TRANSLATION, "the search radius is the acceptance bound")
 end
 
 function TestVeafUnitsSettleGroup:test_a_candidate_beyond_the_maximum_translation_is_refused()
@@ -1165,14 +1194,80 @@ function TestVeafUnitsSettleGroup:test_a_candidate_beyond_the_maximum_translatio
   luaunit.assertEquals(units[2].spawnPoint.x, 20)
 end
 
-function TestVeafUnitsSettleGroup:test_a_candidate_within_the_margin_leaves_the_group_alone()
-  -- A candidate that close proves the group already stands in that clearing: it has
-  -- footprint + margin clear around it, and every unit is within footprint + that distance of it.
-  Disposition = dispositionAnswering({ { veafUnits.SETTLE_MARGIN - 10, 0 } })
+function TestVeafUnitsSettleGroup:test_a_group_already_standing_clear_is_left_alone()
+  -- This used to be proven geometrically — a candidate close enough to the centre was taken to
+  -- mean the whole group was already in that clearing. The proof was valid and rested on a false
+  -- premise (that a candidate has the clearance it was asked for), so it is now measured:
+  -- every unit is probed where it stands, and nothing moves when they are all clear.
+  Disposition = dispositionAnswering({ { 0, 0 }, { 500, 0 } })
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
   local translated = veafUnits.settleGroup(units)
   luaunit.assertEquals(translated, 0, "nothing to gain, so nothing moves")
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
+  luaunit.assertEquals(units[2].spawnPoint.x, 20)
+end
+
+--- Ticket 11's heart: the candidate is not taken on trust.
+function TestVeafUnitsSettleGroup:test_a_candidate_standing_in_scenery_is_refused()
+  -- Measured in DCS on 2026-09-26 (GermanyCW-v6): the Wittstock S-300 was translated 217 m onto a
+  -- candidate asked for 183 m of clearance, and that arrival point is blocked in 12 directions out
+  -- of 12 at 10 m. `Disposition` returns points it has not vouched for, so the closest candidate
+  -- here is scenery — only the farther one is a real clearing, and that is the one to take.
+  local record = {}
+  Disposition = {
+    getSimpleZones = function(point, radius, clearance, attempts)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        -- Clear only around x = 600: the candidate at x = 200 is a point in the middle of a wood.
+        if math.abs(point.x - 600) <= 60 then
+          return { { x = point.x, y = point.z or 0, course = 0 } }
+        end
+        return {}
+      end
+      record.draws = (record.draws or 0) + 1
+      return { { x = 200, y = 0, course = 0 }, { x = 600, y = 0, course = 0 } }
+    end,
+  }
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local before = pairwiseDistances(units)
+
+  local translated = veafUnits.settleGroup(units)
+
+  luaunit.assertAlmostEquals(translated, 590, 1, "the unverified nearer candidate is refused")
+  luaunit.assertAlmostEquals(units[1].spawnPoint.x, 590, 0.001)
+  luaunit.assertAlmostEquals(units[2].spawnPoint.x, 610, 0.001)
+  -- Verifying candidates must not cost the formation.
+  local after = pairwiseDistances(units)
+  for i = 1, #before do
+    luaunit.assertAlmostEquals(after[i], before[i], 0.001, "every inter-unit distance must be unchanged")
+  end
+end
+
+function TestVeafUnitsSettleGroup:test_a_clearing_only_a_later_draw_returns_is_found()
+  -- `Disposition.getSimpleZones` is not deterministic: five identical calls measured on 2026-09-26
+  -- returned nearest candidates at 1335, 1476, 1404, 1355 and 1293 m, and another found one at
+  -- 153 m. A single draw used to be what decided a group stays under trees; here the clearing only
+  -- exists in the second draw, and it must still be found.
+  local draws = 0
+  Disposition = {
+    getSimpleZones = function(point, radius)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        if math.abs(point.x - 400) <= 60 then
+          return { { x = point.x, y = point.z or 0, course = 0 } }
+        end
+        return {}
+      end
+      draws = draws + 1
+      if draws == 2 then
+        return { { x = 400, y = 0, course = 0 } }
+      end
+      return {}
+    end,
+  }
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated = veafUnits.settleGroup(units)
+  luaunit.assertTrue(draws > 1, "one draw is a lottery, so more than one is made")
+  luaunit.assertAlmostEquals(translated, 390, 1, "the clearing the second draw returned is used")
+  luaunit.assertAlmostEquals(units[1].spawnPoint.x, 390, 0.001)
 end
 
 function TestVeafUnitsSettleGroup:test_no_candidate_leaves_the_group_alone()
@@ -1180,6 +1275,106 @@ function TestVeafUnitsSettleGroup:test_no_candidate_leaves_the_group_alone()
   local units = groundGroup({ { 0, 0 }, { 20, 0 } })
   luaunit.assertEquals(veafUnits.settleGroup(units), 0)
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
+end
+
+--- A Disposition that offers, on its first draw only, 31 candidates 30 m apart along x
+--- (distances 30, 60, … 930 from the group's centre at x = 10), and whose scenery probe answers
+--- clear only around the candidate of rank `clearRank`. One draw only, so the ranks are not
+--- inflated by the same candidates coming back from the next draws.
+local function dispositionWithOneClearRank(clearRank)
+  local clearX = 10 + 30 * clearRank
+  local draws = 0
+  return {
+    getSimpleZones = function(point, radius)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        if math.abs(point.x - clearX) <= 15 then
+          return { { x = point.x, y = point.z or 0, course = 0 } }
+        end
+        return {}
+      end
+      draws = draws + 1
+      if draws > 1 then
+        return {}
+      end
+      local zones = {}
+      for rank = 1, 31 do
+        zones[#zones + 1] = { x = 10 + 30 * rank, y = 0, course = 0 }
+      end
+      return zones
+    end,
+  }
+end
+
+--- Capture what settleGroup logs at debug, formatted, for the duration of `fn`.
+local function debugLinesDuring(fn)
+  local logger = veaf.loggers.get(veafUnits.Id)
+  local saved = logger.debug
+  local lines = {}
+  logger.debug = function(_, fmt, ...)
+    lines[#lines + 1] = string.format(fmt, ...)
+  end
+  local ok, err = pcall(fn)
+  logger.debug = saved
+  if not ok then
+    error(err)
+  end
+  return lines
+end
+
+function TestVeafUnitsSettleGroup:test_the_last_candidate_inside_the_bound_is_still_verified()
+  Disposition = dispositionWithOneClearRank(veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED)
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated = veafUnits.settleGroup(units)
+  luaunit.assertAlmostEquals(translated, 30 * veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED, 0.001, "rank 30 is inside the bound")
+end
+
+function TestVeafUnitsSettleGroup:test_a_candidate_past_the_bound_is_never_verified_and_the_log_says_so()
+  -- The one clear candidate is rank 31: the search must stop before it, and say it stopped
+  -- rather than claim that no candidate works — the two call for different answers in a log.
+  Disposition = dispositionWithOneClearRank(veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED + 1)
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated
+  local lines = debugLinesDuring(function()
+    translated = veafUnits.settleGroup(units)
+  end)
+  luaunit.assertEquals(translated, 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0, "the group stays where it is")
+  local said = table.concat(lines, "\n")
+  luaunit.assertStrContains(said, "none of the 30 closest candidates clears every unit (31 were offered)")
+  luaunit.assertNotStrContains(said, "no candidate clears every unit")
+end
+
+function TestVeafUnitsSettleGroup:test_an_exhausted_search_says_no_candidate_works()
+  -- Fewer candidates than the bound, none clear: the other message, the one that means "exhausted".
+  Disposition = {
+    getSimpleZones = function(_, radius)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        return {}
+      end
+      return { { x = 300, y = 0, course = 0 } }
+    end,
+  }
+  local lines = debugLinesDuring(function()
+    veafUnits.settleGroup(groundGroup({ { 0, 0 }, { 20, 0 } }))
+  end)
+  luaunit.assertStrContains(table.concat(lines, "\n"), "no candidate clears every unit, keeping the group where it is")
+end
+
+function TestVeafUnitsSettleGroup:test_a_raising_scenery_probe_never_moves_the_group()
+  -- ADR 0018: an unusable probe answers "clear", so the group is taken to be in the open already
+  -- and left where it stands — never translated onto a candidate nothing has verified.
+  Disposition = {
+    getSimpleZones = function(_, radius)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        error("Disposition raised")
+      end
+      return { { x = 300, y = 0, course = 0 } }
+    end,
+  }
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+  luaunit.assertEquals(units[2].spawnPoint.x, 20)
 end
 
 function TestVeafUnitsSettleGroup:test_disposition_absent_leaves_the_group_alone()
@@ -1231,13 +1426,13 @@ function TestVeafUnitsSettleGroup:test_hdg_and_the_terrain_height_are_carried_ov
 end
 
 function TestVeafUnitsSettleGroup:test_a_single_unit_group_is_translated_too()
-  -- Footprint 0, so the clearance asked is the bare margin — a lone vehicle still gets moved out
-  -- of the trees, which is what ticket 08 was supposed to do and never did.
+  -- A lone vehicle still gets moved out of the trees, which is what ticket 08 was supposed to do
+  -- and never did.
   local record = {}
   Disposition = dispositionAnswering({ { 0, 300 } }, record)
   local units = groundGroup({ { 0, 0 } })
   local translated = veafUnits.settleGroup(units)
-  luaunit.assertAlmostEquals(record.clearance, veafUnits.SETTLE_MARGIN, 0.001)
+  luaunit.assertAlmostEquals(record.clearance, veafUnits.SETTLE_CLEARANCE_ASKED, 0.001)
   luaunit.assertAlmostEquals(translated, 300, 0.001)
   luaunit.assertAlmostEquals(units[1].spawnPoint.z, 300, 0.001)
 end

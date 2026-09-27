@@ -26,6 +26,17 @@ dcs_mocks.optionsSet = {}
 dcs_mocks.eventHandlers = {} -- handlers passed to world.addEventHandler, in order
 dcs_mocks.staticsAdded = {} -- captured coalition.addStaticObject calls, as { countryId, object }
 dcs_mocks.groupsAdded = {} -- captured coalition.addGroup calls, as { countryId, categoryId, group }
+--- Live map state for ticket 04's green circle: `circlesDrawn` holds one entry per circle currently
+--- on the F10 map (added by circleToAll, removed by id on removeMark), and `marksRemoved` records
+--- every removeMark id. Declared here so the trigger table below can rely on them existing.
+dcs_mocks.circlesDrawn = {}
+dcs_mocks.marksRemoved = {}
+--- Injectable world.searchObjects behaviour (ticket 03): the objects the callback is walked over,
+--- the { category, volume } of each call, and a switch to make the call raise. Declared here so the
+--- world table below can rely on them existing.
+dcs_mocks.searchObjectsObjects = {}
+dcs_mocks.searchObjectsCalls = {}
+dcs_mocks.searchObjectsRaise = false
 
 --- Captured `trigger.action` world effects, in call order, as
 --- `{ kind = "smoke"|"signalFlare"|"illuminationBomb"|"explosion", position = <vec3>, ... }`.
@@ -190,10 +201,33 @@ trigger = {
     end,
     markToAll = function(...) end,
     markToCoalition = function(...) end,
-    removeMark = function(id) end,
+    -- Recorded, not discarded: a drawing's arguments are the behaviour under test (ticket 04 —
+    -- "asserting against a no-op stub asserts nothing"). `circlesDrawn` is the live map state: a
+    -- circle is added on circleToAll and removed by id on removeMark, so a test can assert one
+    -- exists after activation and none is left after deactivation, without counting erase() calls
+    -- (VeafDrawingOnMap:erase re-issues removeMark for ids already gone). Cleared by reset().
+    removeMark = function(id)
+      table.insert(dcs_mocks.marksRemoved, id)
+      for index, circle in ipairs(dcs_mocks.circlesDrawn) do
+        if circle.id == id then
+          table.remove(dcs_mocks.circlesDrawn, index)
+          break
+        end
+      end
+    end,
     arrowToAll = function(...) end,
     lineToAll = function(...) end,
-    circleToAll = function(...) end,
+    circleToAll = function(coalitionSide, id, point, radius, color, fillColor, lineType, readOnly)
+      table.insert(dcs_mocks.circlesDrawn, {
+        coalition = coalitionSide,
+        id = id,
+        point = point,
+        radius = radius,
+        color = color,
+        fillColor = fillColor,
+        lineType = lineType,
+      })
+    end,
     rectToAll = function(...) end,
     quadToAll = function(...) end,
     textToAll = function(...) end,
@@ -295,7 +329,21 @@ world = {
     SPHERE = 2,
     PYRAMID = 3,
   },
-  searchObjects = function(category, volume, fn) end,
+  -- Recorded and walked, not a no-op: what a probe hands DCS *is* the behaviour under test, and a
+  -- callback that is never called lets a test assert nothing about occupation. `searchObjectsObjects`
+  -- is the injectable list walked for every call (an empty default keeps every pre-existing caller
+  -- seeing "nothing found", exactly as the no-op did); `searchObjectsCalls` records each
+  -- `{ category, volume }` so a test can assert WHICH categories were queried; `searchObjectsRaise`
+  -- makes the call raise, to reach a module's fail-closed path. All three cleared by reset().
+  searchObjects = function(category, volume, fn)
+    table.insert(dcs_mocks.searchObjectsCalls, { category = category, volume = volume })
+    if dcs_mocks.searchObjectsRaise then
+      error("world.searchObjects unusable")
+    end
+    for _, object in ipairs(dcs_mocks.searchObjectsObjects) do
+      fn(object)
+    end
+  end,
   getMarkPanels = function()
     return {}
   end,
@@ -718,6 +766,13 @@ function dcs_mocks.reset()
   dcs_mocks.exportAvailable = true
   dcs_mocks.visibilityCalls = {}
   dcs_mocks.visibilityAnswer = true
+  dcs_mocks.logisticZonesAtPoint = nil
+  dcs_mocks.registerFOBAsLogisticResult = nil
+  dcs_mocks.circlesDrawn = {}
+  dcs_mocks.marksRemoved = {}
+  dcs_mocks.searchObjectsObjects = {}
+  dcs_mocks.searchObjectsCalls = {}
+  dcs_mocks.searchObjectsRaise = false
   dcs_mocks.setRandomSequence(nil)
   math.random = _deterministicRandom
   dcs_mocks.clearUnitsAndGroups()
@@ -1024,9 +1079,27 @@ local function _manager(methods)
   }
 end
 
+-- What CTLDZoneManager:getLogisticZonesAtPoint answers. nil (the default) means an empty list —
+-- nothing covers the point — and a test sets it to a zone array to reach the "already covered" path.
+dcs_mocks.logisticZonesAtPoint = nil
+-- What CTLDZoneManager:registerFOBAsLogistic returns. nil (the default) means true, the answer a
+-- fresh name gets from the real manager; a test sets it to false to reach the collision path,
+-- which the real manager both WARNs about and reports (CTLD_zone.lua:1191-1194).
+dcs_mocks.registerFOBAsLogisticResult = nil
+
 CTLDZoneManager = _manager({
-  registerFOBAsLogistic = function() end,
+  registerFOBAsLogistic = function()
+    if dcs_mocks.registerFOBAsLogisticResult ~= nil then
+      return dcs_mocks.registerFOBAsLogisticResult
+    end
+    return true
+  end,
   unregisterLogistic = function() end,
+  deactivateLogisticZone = function() end,
+  activateLogisticZone = function() end,
+  getLogisticZonesAtPoint = function()
+    return dcs_mocks.logisticZonesAtPoint or {}
+  end,
 })
 
 CTLDBeaconManager = _manager({

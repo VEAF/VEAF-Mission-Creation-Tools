@@ -790,6 +790,34 @@ no loading point from the editor at all.
 
 When you upgrade CTLD and your file was written against an earlier version, `ctld-tools` lists what appeared, what disappeared and what differs from the default before you save it again.
 
+#### Airfields become logistic zones {#ctld-airbase-logistics}
+
+Until now a transport aircraft landed on a captured airfield read *"No logistics in range"*: CTLD 2 only recognises loading points whose unit type is declared in `logisticUnitTypes` (the FARPs and carriers of the previous section) and the `LGZ_` zones placed in the editor. An airfield — a map `Airbase`, not a unit — is neither. VEAF closes the gap: at start-up it registers **every airfield on the map** as a CTLD logistic zone, then keeps it up to date as the game unfolds.
+
+It is a setting, not a given:
+
+```yaml
+modules:
+  CTLD:
+    enabled: true
+    manage_airbase_logistics: true   # default
+    # airbase_logistics_radius: 250    # zone radius, in metres
+    # airbase_occupation_radius: 2000  # radius probed for ground occupation, in metres
+    # airbase_logistics_tick: 30       # re-evaluation period, in seconds
+```
+
+Set `manage_airbase_logistics` to `false` and no airfield is registered: nothing is declared, no tick is scheduled, no circle is drawn, and the log says the feature was **explicitly switched off** — not that no airfields were found. The three numbers are yours to change without touching Lua; their defaults are commented above.
+
+**Two classes of airfield.** An airfield held by a coalition at the first evaluation (**class A**) opens its zone straight away and keeps it as long as the coalition does not change. An airfield that is **neutral** at start, or that switches from one coalition to the other during the game (**class B**), opens its logistics only after **two minutes** of continuous, unopposed ground occupation. Re-evaluation runs every **30 seconds** (the tick). The two minutes are measured on the mission clock, from the first tick that sees your troops there, whatever interval you choose. A tick that finds nobody, or finds both sides, resets the clock to zero.
+
+!!! warning "Occupation counts **ground** units"
+    The occupation probe only looks at ground units within `airbase_occupation_radius` (2,000 m by default) of the airfield. A transport that lands on a captured field **does not open it**: an aircraft on the ground is not a ground unit. You need troops or vehicles on the ground, yours, with no enemy opposite, for two minutes.
+
+Transitions are announced in game in the mission's language (`transport.airbase_logistics_gained` / `transport.airbase_logistics_lost`), but not symmetrically. When a held field is captured, **the side losing it is told at once**; the taker hears nothing at that moment — the zone stays **dark** for them until the two minutes of ground occupation actually open it, and only then do they receive the "gained" message. Announcing "you can load now" at capture would be a lie the very next activation contradicts. A **translucent green** circle is drawn on the F10 map around every airfield whose logistics is active, visible to the coalition holding it.
+
+!!! note "The accepted 250 m gap"
+    There is only **one** zone of `airbase_logistics_radius` (250 m by default) per airfield, centred on the parking stand nearest the terrain's centroid. On a widely spread airfield, an aircraft parked more than 250 m from that point reads *"No logistics in range"* even though the field is active. This is an accepted compromise (2026-09-27): the radius is the setting to raise if your theatre has large dispersed aprons.
+
 #### CTLD's language
 
 CTLD speaks your mission's language: VEAF aligns it on `mission.language` at start-up, so a French mission gets a French CTLD menu with nothing to configure.

@@ -1,5 +1,5 @@
 ---
-Status: ⬜ ready
+Status: 🔄 in-progress
 ---
 
 # 03 — Class B: two continuous minutes of ground occupation
@@ -40,8 +40,10 @@ that was blue do the same for their side. Both transitions are announced.
   beside it — and would let a maker's own crate hold a zone open. Never `SCENERY` either: scenery has no
   coalition, so a "no enemy here" test over it is meaningless.
 - Two **continuous** minutes: a tick that finds nobody returns the field to "not yet" and clears the
-  clock, rather than pausing it. At 30 s that is four consecutive ticks — assert it that way, with an
-  injected clock, never by sleeping.
+  clock, rather than pausing it. The two minutes are measured on the mission clock (`timer.getTime()`)
+  from the first tick that sees the occupier, never as a count of ticks — a count only equals two
+  minutes when the interval divides 120 (decided in review, 2026-09-27). Assert it with an injected
+  clock, never by sleeping.
 - The losing side keeps its zone only while it holds the field: an airfield is a logistic point for one
   coalition at a time, so the transition activates for the new holder and deactivates for the old one.
   Announce both, as 02 does.

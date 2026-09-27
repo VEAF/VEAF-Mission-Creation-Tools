@@ -1,5 +1,5 @@
 ---
-Status: ⬜ ready
+Status: 🔄 in-progress
 ---
 
 # 04 — One green transparent circle per active airfield, on the F10 map

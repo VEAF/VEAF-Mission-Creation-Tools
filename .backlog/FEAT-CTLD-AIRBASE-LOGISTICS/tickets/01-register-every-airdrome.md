@@ -1,5 +1,5 @@
 ---
-Status: ⬜ ready
+Status: 🔄 in-progress
 ---
 
 # 01 — Register every airdrome as a CTLD logistic zone

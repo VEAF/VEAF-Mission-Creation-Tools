@@ -195,6 +195,20 @@ class TestValidateModulesSemantics(unittest.TestCase):
         with self.assertRaises(typer.Abort):
             fn({"modules": {"CTLD": {"enabled": True, "airbase_logistics_tick": True}}})
 
+    def test_airbase_logistics_number_must_be_positive(self) -> None:
+        """A 0 is truthy in Lua, so it would not fall back to the default; negatives mean nothing."""
+        for number_key in ("airbase_logistics_radius", "airbase_occupation_radius", "airbase_logistics_tick"):
+            for bad in (0, -30, -0.5):
+                with self.subTest(key=number_key, value=bad):
+                    mock_log, fn = self._patched()
+                    with self.assertRaises(typer.Abort):
+                        fn({"modules": {"CTLD": {"enabled": True, number_key: bad}}})
+
+    def test_airbase_logistics_number_accepts_a_positive_float(self) -> None:
+        mock_log, fn = self._patched()
+        fn({"modules": {"CTLD": {"enabled": True, "airbase_logistics_tick": 0.5}}})
+        mock_log.error.assert_not_called()
+
     def test_unknown_init_param_is_warning_not_error(self) -> None:
         mock_log, fn = self._patched()
         fn({"modules": {"RADIO": {"init": {"bogus": True}}}})

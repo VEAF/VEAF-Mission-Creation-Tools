@@ -316,9 +316,9 @@ CTLD 2 se configure **hors de `mission.yaml`**, dans un fichier `ctld-config.yam
 
 - `manage_logistics` (booléen, défaut `true`) — avec elle active, le build **ajoute** les porte-avions et dépôts de munitions FARP que VEAF a toujours reconnus aux listes `logisticUnitTypes` / `troopZoneShipTypes` de votre `ctld-config.yaml` ; il ajoute, il ne remplace pas.
 - `manage_airbase_logistics` (booléen, défaut `true`) — VEAF enregistre **chaque aérodrome de la carte** comme zone logistique CTLD et la tient à jour (deux classes, deux minutes d'occupation au sol pour un champ neutre ou capturé). À `false`, rien n'est enregistré et le journal dit que la fonctionnalité a été explicitement désactivée.
-- `airbase_logistics_radius` (nombre, défaut `250`) — rayon, en mètres, de la zone logistique et du cercle vert dessinés autour de chaque aérodrome.
-- `airbase_occupation_radius` (nombre, défaut `2000`) — rayon, en mètres, sondé autour de l'aérodrome pour l'occupation au sol.
-- `airbase_logistics_tick` (nombre, défaut `30`) — période de réévaluation, en secondes.
+- `airbase_logistics_radius` (nombre supérieur à 0, défaut `250`) — rayon, en mètres, de la zone logistique et du cercle vert dessinés autour de chaque aérodrome.
+- `airbase_occupation_radius` (nombre supérieur à 0, défaut `2000`) — rayon, en mètres, sondé autour de l'aérodrome pour l'occupation au sol.
+- `airbase_logistics_tick` (nombre supérieur à 0, défaut `30`) — période de réévaluation, en secondes.
 
 ```yaml
 modules:

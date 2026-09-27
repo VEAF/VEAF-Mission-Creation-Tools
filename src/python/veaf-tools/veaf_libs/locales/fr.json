@@ -1130,6 +1130,7 @@
   "yaml.semantic.bad_manage_logistics": "modules.{module} : `manage_logistics` doit être un booléen (true/false), pas un {type}.",
   "yaml.semantic.bad_manage_airbase_logistics": "modules.{module} : `manage_airbase_logistics` doit être un booléen (true/false), pas un {type}.",
   "yaml.semantic.bad_ctld_number": "modules.{module} : `{setting}` doit être un nombre, pas un {type}.",
+  "yaml.semantic.ctld_number_not_positive": "modules.{module} : `{setting}` doit être supérieur à 0 (reçu {value}).",
   "yaml.semantic.ctld_settings_removed": "modules.{module} : `settings:` n'est plus lu — CTLD 2 se configure dans ctld-config.yaml, à côté de mission.yaml (éditez-le avec ctld-tools). Supprimez le bloc settings:.",
   "yaml.semantic.removed_section": "mission.yaml : la section '{section}:' n'existe plus — déplacez son contenu sous le module correspondant dans le bloc 'modules:' (SKYNET / CTLD / CSAR / QRA).",
   "yaml.semantic.unknown_init_param": "mission.yaml : module '{module}' : paramètre init non reconnu '{param}' — il sera ignoré.",

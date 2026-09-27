@@ -195,6 +195,18 @@ def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
                                 type=type(number_value).__name__,
                             )
                         )
+                    elif number_value <= 0:
+                        # A 0 is truthy in Lua, so it would not fall back to the default: a zero radius
+                        # registers zones nobody can stand in, and a zero tick re-arms the scheduler on
+                        # itself. Negative values are meaningless for metres and seconds alike.
+                        errors.append(
+                            t(
+                                "yaml.semantic.ctld_number_not_positive",
+                                module=key,
+                                setting=number_key,
+                                value=number_value,
+                            )
+                        )
             if "settings" in cfg and key.upper() == "CTLD":
                 # CTLD 2 reads a complete YAML snapshot from the mission's
                 # ctld-config.yaml (ADR 0016); nothing here reaches the engine. An

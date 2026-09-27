@@ -1277,6 +1277,106 @@ function TestVeafUnitsSettleGroup:test_no_candidate_leaves_the_group_alone()
   luaunit.assertEquals(units[1].spawnPoint.x, 0)
 end
 
+--- A Disposition that offers, on its first draw only, 31 candidates 30 m apart along x
+--- (distances 30, 60, … 930 from the group's centre at x = 10), and whose scenery probe answers
+--- clear only around the candidate of rank `clearRank`. One draw only, so the ranks are not
+--- inflated by the same candidates coming back from the next draws.
+local function dispositionWithOneClearRank(clearRank)
+  local clearX = 10 + 30 * clearRank
+  local draws = 0
+  return {
+    getSimpleZones = function(point, radius)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        if math.abs(point.x - clearX) <= 15 then
+          return { { x = point.x, y = point.z or 0, course = 0 } }
+        end
+        return {}
+      end
+      draws = draws + 1
+      if draws > 1 then
+        return {}
+      end
+      local zones = {}
+      for rank = 1, 31 do
+        zones[#zones + 1] = { x = 10 + 30 * rank, y = 0, course = 0 }
+      end
+      return zones
+    end,
+  }
+end
+
+--- Capture what settleGroup logs at debug, formatted, for the duration of `fn`.
+local function debugLinesDuring(fn)
+  local logger = veaf.loggers.get(veafUnits.Id)
+  local saved = logger.debug
+  local lines = {}
+  logger.debug = function(_, fmt, ...)
+    lines[#lines + 1] = string.format(fmt, ...)
+  end
+  local ok, err = pcall(fn)
+  logger.debug = saved
+  if not ok then
+    error(err)
+  end
+  return lines
+end
+
+function TestVeafUnitsSettleGroup:test_the_last_candidate_inside_the_bound_is_still_verified()
+  Disposition = dispositionWithOneClearRank(veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED)
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated = veafUnits.settleGroup(units)
+  luaunit.assertAlmostEquals(translated, 30 * veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED, 0.001, "rank 30 is inside the bound")
+end
+
+function TestVeafUnitsSettleGroup:test_a_candidate_past_the_bound_is_never_verified_and_the_log_says_so()
+  -- The one clear candidate is rank 31: the search must stop before it, and say it stopped
+  -- rather than claim that no candidate works — the two call for different answers in a log.
+  Disposition = dispositionWithOneClearRank(veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED + 1)
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  local translated
+  local lines = debugLinesDuring(function()
+    translated = veafUnits.settleGroup(units)
+  end)
+  luaunit.assertEquals(translated, 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0, "the group stays where it is")
+  local said = table.concat(lines, "\n")
+  luaunit.assertStrContains(said, "none of the 30 closest candidates clears every unit (31 were offered)")
+  luaunit.assertNotStrContains(said, "no candidate clears every unit")
+end
+
+function TestVeafUnitsSettleGroup:test_an_exhausted_search_says_no_candidate_works()
+  -- Fewer candidates than the bound, none clear: the other message, the one that means "exhausted".
+  Disposition = {
+    getSimpleZones = function(_, radius)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        return {}
+      end
+      return { { x = 300, y = 0, course = 0 } }
+    end,
+  }
+  local lines = debugLinesDuring(function()
+    veafUnits.settleGroup(groundGroup({ { 0, 0 }, { 20, 0 } }))
+  end)
+  luaunit.assertStrContains(table.concat(lines, "\n"), "no candidate clears every unit, keeping the group where it is")
+end
+
+function TestVeafUnitsSettleGroup:test_a_raising_scenery_probe_never_moves_the_group()
+  -- ADR 0018: an unusable probe answers "clear", so the group is taken to be in the open already
+  -- and left where it stands — never translated onto a candidate nothing has verified.
+  Disposition = {
+    getSimpleZones = function(_, radius)
+      if radius == veafUnits.SETTLE_UNIT_PROBE then
+        error("Disposition raised")
+      end
+      return { { x = 300, y = 0, course = 0 } }
+    end,
+  }
+  local units = groundGroup({ { 0, 0 }, { 20, 0 } })
+  luaunit.assertEquals(veafUnits.settleGroup(units), 0)
+  luaunit.assertEquals(units[1].spawnPoint.x, 0)
+  luaunit.assertEquals(units[2].spawnPoint.x, 20)
+end
+
 function TestVeafUnitsSettleGroup:test_disposition_absent_leaves_the_group_alone()
   Disposition = nil
   local units = groundGroup({ { 42, 77 } })

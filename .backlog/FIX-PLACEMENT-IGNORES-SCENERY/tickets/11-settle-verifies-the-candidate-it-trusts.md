@@ -1,6 +1,6 @@
 # 11 — `settleGroup` verifies the candidate it trusts, and draws more than once
 
-Status: ✅ ready for review, **with its limit stated rather than smoothed over**. The per-unit
+Status: ✅ done (PR #1008), **with its limit stated rather than smoothed over**. The per-unit
 verification was built first and measured inert twice; the cause was a **parameter**, not an
 architecture — the clearance `settleGroup` asked for was large enough to silence `Disposition`
 entirely, so the verification never had a candidate to judge. Two constants carry the fix, and it

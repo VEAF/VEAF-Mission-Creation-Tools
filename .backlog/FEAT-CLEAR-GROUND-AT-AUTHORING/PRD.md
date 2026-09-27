@@ -1,6 +1,6 @@
 # FEAT-CLEAR-GROUND-AT-AUTHORING — when the tools place a group, they place it somewhere measured clear
 
-Status: 📋 open — **two design decisions have to be made before any ticket can be written**, see
+Status: 🧑 waiting-human — **two design decisions have to be made before any ticket can be written**, see
 *Decisions to make first*. David asked for the lot on 2026-09-26 evening, after
 [`FIX-PLACEMENT-IGNORES-SCENERY`](../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 11 reached its
 ceiling.

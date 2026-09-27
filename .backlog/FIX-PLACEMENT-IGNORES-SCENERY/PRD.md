@@ -128,7 +128,8 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 08 | `settlePosition` recalculates each unit in a battery to avoid scenery — superseded by 10 | medium | 🚫 |
 | 09 | `silent` propagated to `_createDcsUnits`, refused units no longer dropped silently | low | ✅ |
 | 10 | Settle the group by rigid translation, not unit by unit — shipped, and measured inert in game on 2026-09-26; the translation works, the selection does not | medium | ✅ |
-| 11 | `settleGroup` verifies the candidate it trusts, and draws more than once | medium | ⬜ |
+| 11 | `settleGroup` verifies the candidate it trusts, and draws more than once | medium | ✅ |
+| 12 | `settleGroup` sweeps with the probe instead of asking for a clearing | medium | ⬜ |
 
 ### Why this lot needed three rounds on the same defect
 

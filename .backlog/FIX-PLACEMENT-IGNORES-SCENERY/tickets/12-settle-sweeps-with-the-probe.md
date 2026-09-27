@@ -1,6 +1,6 @@
 # 12 — `settleGroup` sweeps with the probe instead of asking for a clearing
 
-Status: 📋 open — designed and **measured on the live mission**, not yet implemented. David's call,
+Status: ⬜ ready — designed and **measured on the live mission**, not yet implemented. David's call,
 2026-09-26 evening: *"si la sonde marche mais pas getSimpleZone, pourquoi on n'utilise pas le même
 concept que la sonde en jeu avant de spawner des trucs ?"*
 Type: fix

@@ -1,6 +1,6 @@
 # FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP — a combat zone loses track of what it has lost
 
-Status: 📋 open — **field report, not yet investigated.** Observed by David on 2026-09-26 evening,
+Status: ⬜ ready — **field report, not yet investigated.** Observed by David on 2026-09-26 evening,
 flying `combatZone_WahnerHeide` as a two-ship of A-10s on GermanyCW-v6. Written down while it was
 fresh; nothing below has been reproduced or measured yet.
 

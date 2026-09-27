@@ -535,6 +535,14 @@ veafUnits.SETTLE_MAX_CANDIDATES_VERIFIED = 30
 -- So `Disposition` proposes and this function disposes. Same shape as `veafGrass.findClearBearing`'s
 -- inversion, and the reason is the same: the singleton can offer points, never grade one.
 --
+-- **It answers "is there room here", and a vehicle occupies room.** Measured on 2026-09-26: the
+-- same points, probed with a group standing on them and again once it was destroyed, went from
+-- 12 blocked out of 14 to 0 out of 14. That is harmless *here* — this runs before the group's
+-- units exist, so it sees vegetation and nothing else — and it is ruinous anywhere a spawned
+-- mission is measured, where a tight SAM battery fails the test wherever you put it. Three
+-- published counts of "units in scenery" were mostly groups blocking themselves
+-- (`known-limitations.yaml`, `disposition-getsimplezones-is-a-lottery`).
+--
 -- ADR 0018 — when the singleton is missing or raises, this answers **true** and lets the caller
 -- proceed. An undocumented dependency may improve quality; it must never be what refuses a spawn.
 -- @param point table vec3 where the unit would stand

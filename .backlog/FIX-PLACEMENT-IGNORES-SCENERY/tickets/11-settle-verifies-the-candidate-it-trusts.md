@@ -4,11 +4,13 @@ Status: ✅ done (PR #1008), **with its limit stated rather than smoothed over**
 verification was built first and measured inert twice; the cause was a **parameter**, not an
 architecture — the clearance `settleGroup` asked for was large enough to silence `Disposition`
 entirely, so the verification never had a candidate to judge. Two constants carry the fix, and it
-works: 19 alerts / 76 units → **15 / 69**, 4 of 31 groups translated against 1, and 4 of the 7
-groups it saw in trouble fully repaired, formations preserved to 0.0000 m. It is **not** near zero,
-and the reason is measured: **62 % of the blocked vehicles belong to groups `settleGroup` is never
-given** — editor content, not dynamic spawns. That is a separate question and a ruling rather than
-a bug. The pre-computation phase this ticket planned is **dropped**: the spawn flow was measured not
+works: probed before the spawn, where no vehicle of the group exists, vehicles genuinely under
+trees go from **17 to 4** after `settleGroup`, with 4 of 31 groups translated against 1 and
+formations preserved to 0.0000 m. **The figures first published here — 19 alerts / 76 units → 15 /
+69 — were counted after the spawn and are wrong**: `getSimpleZones` counts vehicles as obstacles,
+so a tight battery fails its own test wherever it stands. See *Measured in game*. What remains is
+real but small, and part of it belongs to groups `settleGroup` is never given — editor content, not
+dynamic spawns. The pre-computation phase this ticket planned is **dropped**: the spawn flow was measured not
 to affect `Disposition` at all.
 Type: fix
 
@@ -95,9 +97,11 @@ its place. A comment asserting something nobody measured is what made this lot c
 
 ## Why it stayed inert: the clearance it asks for silences `Disposition`
 
-Everything above is built and green, and it moved nothing: 19 group alerts and 76 blocked units on
-a **pinned park** (102 ground groups, 593 units), against 19 and 66 before it. The cause was found
-on the evening of 2026-09-26, and it is not the one this ticket carried all day.
+Everything above is built and green, and it moved nothing. (The counts that said so — 19 group
+alerts and 76 blocked units against 19 and 66 — were taken after the spawn and overstate the
+problem badly; the correct measurement is under *Measured in game*. The conclusion holds either
+way: on the right criterion it moved 22 to 22.) The cause was found on the evening of 2026-09-26,
+and it is not the one this ticket carried all day.
 
 **It is the clearance argument.** `settleGroup` asked `Disposition.getSimpleZones` for the group's
 own footprint plus 50 m, which is the obvious thing to ask for and is exactly what makes the
@@ -209,46 +213,47 @@ cell geometry — and a forfait margin of 40 m covers the measured residue.
 
 ## Measured in game, 6.25.0.3, 2026-09-26 evening
 
-Mission loaded fresh, the 25 combat zones activated in one go, park pinned at 102 ground groups and
-594 units — the same park as every figure above.
+> **The figures this section first carried were counted with a broken criterion**, and they are
+> corrected below rather than deleted, because the correction is the more useful finding.
+> `Disposition.getSimpleZones` answers "is there room here", so it counts **vehicles** as well as
+> trees. The same points read **12 of 14** blocked with the group standing on them and **0 of 14**
+> once it was destroyed; `combatZone_Brocken`'s EWR read 3 of 3 and then 0 of 3. Every count of
+> "units in scenery" taken after a spawn — 81, then 76, then 69 — was largely a tally of tight
+> batteries failing their own test, which a SAM battery does wherever it stands.
 
-| measure | before ticket 10 | ticket 11, verification only | **ticket 11 + the parameters** |
-|---|---|---|---|
-| groups in alert | 16-18 | 19 | **15** |
-| units standing in scenery | ~81 | 76 | **69** |
-| groups `settleGroup` translates | — | 1 of 31 | **4 of 31** |
+Measured where no vehicle of the group exists yet, which is where `settleGroup` probes anyway, over
+one activation of the 25 combat zones:
 
-Of the seven groups `settleGroup` saw holding blocked vehicles, **four were fully repaired** —
-1/2 → 0/2 at 113 m, 1/9 → 0/9 at 68 m, 2/10 → 0/10 at 102 m, 1/18 → 0/18 at 229 m. The parameters
-work. A second activation translated six groups rather than four, which is `Disposition`'s
-non-determinism showing through and is expected.
+| measure, probed before the spawn | before this ticket | **after** |
+|---|---|---|
+| vehicles genuinely under trees on arrival | 22 | **10** |
+| still under trees after `settleGroup` | 17 | **4** |
+| groups holding them, after `settleGroup` | — | 3 of 31 |
+| groups `settleGroup` translates | 1 of 31 | **4 of 31** |
+
+Part of the improvement from 22 to 10 on arrival is not this ticket's: eleven ground groups of the
+GermanyCW mission were moved onto clear ground the same evening. What belongs to this code is the
+second row, 17 to 4.
 
 **The formation is untouched, measured rather than asserted:** 209 pairwise distances across the
 translated groups, largest change **0.0000 m**.
 
-### The remaining ceiling is coverage, not the fix
+### What the broken criterion also explains
 
-This is the finding that decides what comes next, and it is new. Matching the alerting groups
-against the ones `settleGroup` actually received:
+The "blindness" this ticket spent a day on. Witness points probed from inside `settleGroup`
+answered "clear", and answered "blocked" one second later — because `settleGroup` runs **before the
+group's units exist** and the control ran after they had spawned. Two different questions, not a
+singleton that lies. The pre-computation phase it called for stays dropped, for the separate reason
+that the spawn flow was measured not to affect `Disposition` at all.
 
-| the 15 groups still in alert | groups | blocked units |
-|---|---|---|
-| seen by `settleGroup` and not solved | 6 | 30 |
-| **never presented to `settleGroup`** | **9** | **43 (62 %)** |
+### The remaining ceiling
 
 `settleGroup` is called 31 times for 102 ground groups, and **not one call is turned away** — no
-declared position honoured, no exempt unit. The other 71 groups simply never reach it: they are
-editor content respawned as-is, and `veafCommand` is nil for 170 of the 234 zone elements. Among
-the nine never seen are the three loose `S300` groups (8/15, 10/14, 10/14) and three `Red EWR`
-(3/3, 3/3, 2/3) — 36 blocked vehicles on their own.
+declared position honoured, no exempt unit. The other 71 never reach it: they are editor content
+respawned as-is, and `veafCommand` is nil for 170 of the 234 zone elements. Whether the tools should
+place that content on clear ground is [`FEAT-CLEAR-GROUND-AT-AUTHORING`](../../FEAT-CLEAR-GROUND-AT-AUTHORING/PRD.md);
+whether `settleGroup` should stop asking `getSimpleZones` for candidates at all is ticket 12.
 
-The six that were seen and not solved are the known dead ends: `Disposition` returns **zero
-candidates at every clearance, down to 5 m**, for those locations — `combatZone_Wittstock`'s S-300
-(14/14) and SA-15 (2/2) among them.
-
-So the ceiling for this ticket is reached. Raising it further is a separate question: whether
-editor content should be settled at all, which is a ruling rather than a bug — David's arbitration
-of 2026-08-27 says a mission maker's declared position is kept.
 
 ## Definition of done
 
@@ -267,10 +272,9 @@ of 2026-08-27 says a mission maker's declared position is kept.
       change 0.0000 m
 - [x] The docstring no longer claims a candidate is scenery-free by construction, and records the
       2026-09-26 measurements instead
-- [x] Verified **in game** on GermanyCW-v6, not only in tests: 19 alerts / 76 units → **15 / 69**,
-      and 4 of the 7 groups it saw in trouble fully repaired. **Not** near zero, and the reason is
-      measured rather than guessed: 62 % of the blocked vehicles belong to groups `settleGroup` is
-      never given — see *The remaining ceiling is coverage*
+- [x] Verified **in game** on GermanyCW-v6, not only in tests: probed before the spawn, vehicles
+      under trees go from **17 to 4** after `settleGroup`. **Not** near zero — 71 of the 102 ground
+      groups never reach this code at all, see *The remaining ceiling*
 - [x] `poetry run test-lua` green (49 suites), `stylua --check` clean. `luacheck` is not installed on
       this workstation and runs in CI
 - [x] `CHANGELOG.md` entry under `[Unreleased]` updated to describe the parameter fix

@@ -53,6 +53,11 @@ zones overlap, and the log shows them excluding each other's groups by name. It 
 should have counted the kills; it does not change the defect, since neither zone can recognise a
 generated name. Pin it before writing the fix.
 
+**Do not go looking for it in the 2026-09-26 log — it is not there.** Zone activation logs below
+`info` and the server ran at `info`, so that run recorded nothing about which zones were switched
+on. The log has since been deleted, having given everything it had. Ask David, or reproduce with
+`veaf.ForcedLogLevel = "debug"`.
+
 ## Definition of done
 
 - [ ] A failing test first: a zone whose element spawns a group **counts that group** and waits for

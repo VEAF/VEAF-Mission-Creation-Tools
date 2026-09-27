@@ -1,8 +1,16 @@
 # FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP — a combat zone loses track of what it has lost
 
-Status: ⬜ ready — **field report, not yet investigated.** Observed by David on 2026-09-26 evening,
-flying `combatZone_WahnerHeide` as a two-ship of A-10s on GermanyCW-v6. Written down while it was
-fresh; nothing below has been reproduced or measured yet.
+Status: 🔄 in-progress — analysed 2026-09-27 from the run's `dcs.log`, two tickets opened.
+
+> **The lot's name is now misleading, and is kept only so links do not break.** "A dead unit has no
+> group" was the symptom that started it, and it turned out to be CTLD announcing a perfectly normal
+> outcome at the wrong log level — reported upstream as
+> [VEAF/CTLD#212](https://github.com/VEAF/CTLD/issues/212), nothing to fix here. The real defect is
+> **ticket 01: a combat zone disowns the groups its own elements spawn.** Ticket 02 carries David's
+> ruling that a zone's vehicles should start warm.
+
+Observed by David on 2026-09-26 evening, flying `combatZone_WahnerHeide_Medium` as a two-ship of
+A-10s on GermanyCW-v6.
 
 ## What was observed
 

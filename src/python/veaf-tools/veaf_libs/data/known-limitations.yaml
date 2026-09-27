@@ -23,7 +23,7 @@ limitations:
 - id: disposition-getsimplezones-is-a-lottery
   kind: dcs
   area: spawning
-  title: "`Disposition.getSimpleZones` honours neither its radius nor its clearance, and is not deterministic"
+  title: "`Disposition.getSimpleZones` counts vehicles as obstacles, honours neither its radius nor its clearance, and is not deterministic"
   measured: "2026-09-26"
   symptom: |
     The undocumented `Disposition` singleton is the only DCS API that knows where the forests are,
@@ -41,9 +41,33 @@ limitations:
     The last line is the one that hurts: the scatter is not noise around a value, it is the
     difference between "there is a clearing 150 m away" and "there is nothing within a kilometre".
 
-    The *small* query — "is there a patch of 5 m free within 20 m of this point?" — **is** reliable:
-    12 repetitions on the same points gave 0/12 against 12/12, with identical candidate counts. So
-    the singleton is dependable as a probe and unreliable as an oracle.
+    The *small* query — "is there a patch of 5 m free within 20 m of this point?" — **is** reliable
+    and repeatable: 12 repetitions on the same points gave 0/12 against 12/12, with identical
+    candidate counts. So the singleton is dependable as a probe and unreliable as an oracle.
+
+    **But it counts VEHICLES, not just scenery — and that has invalidated more measurements here
+    than anything else on this page.** It answers "is there room free here", and a tank occupies
+    room. Measured in game on 2026-09-26 (GermanyCW-v6), the same points probed twice, seconds
+    apart, the only difference being whether the group was standing on them:
+
+    | group | with its vehicles | group destroyed |
+    |---|---|---|
+    | `combatZone_Brocken` EWR, 3 vehicles | **3 / 3 blocked** | **0 / 3** |
+    | `combatZone_Borkenberge_Hard` S-300, 14 vehicles | **12 / 14 blocked** | **0 / 14** |
+
+    Fifteen of seventeen vehicles reported as "standing in trees" were standing in nothing but each
+    other. A tight SAM battery cannot pass this test wherever you put it, so **any count of "units
+    in scenery" taken after a spawn is largely a count of groups blocking themselves**. Three such
+    figures — 81, then 76, then 69 — were published before this was found.
+
+    It also explains, and disposes of, a "blindness" reported earlier the same day: probed from
+    inside `veafUnits.settleGroup` witness points answered "clear" and answered "blocked" one second
+    later. `settleGroup` runs **before the units exist**; the control ran after they had spawned.
+    Two different questions, not a singleton that lies.
+
+    **So probe where no vehicle of the group exists yet** — which is where `settleGroup` probes
+    anyway. Measured there, vehicles genuinely under trees on arrival were **22**, not 76, and
+    **4** after `settleGroup` had done its work.
     **The clearance you ask for decides whether it answers at all.** Same point, varying nothing but
     `posRadius`:
 

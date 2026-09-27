@@ -7,8 +7,9 @@ Type: fix
 
 ## The question, and why it is the right one
 
-Ticket 11 fixed the clearance `settleGroup` asks for, and the numbers moved — 19 group alerts and
-76 blocked vehicles to 15 and 69. But it kept `Disposition.getSimpleZones` as the thing that
+Ticket 11 fixed the clearance `settleGroup` asks for, and the numbers moved — probed before the
+spawn, vehicles under trees fall from 17 to 4 after `settleGroup`. But it kept
+`Disposition.getSimpleZones` as the thing that
 *proposes* candidates, and that is still a lottery: it returns **zero candidates at every clearance,
 down to 5 m**, for the places a group most needs moved out of.
 
@@ -43,7 +44,14 @@ Two things make the cost acceptable, both measured:
 layout at every spawn and the footprint moves by **up to 38.8 m** between draws (ticket 11, *The
 footprint varies between draws*). Without the halo, a solution validated once is not a solution.
 
-## The measurement that settles it
+## The measurement that pointed here — and why it has to be redone
+
+> **Measured with the criterion that was later found broken.** The sweep looked for points where
+> `getSimpleZones` reported room, and it counts **vehicles** as well as trees, so the sweep was
+> fleeing neighbouring vehicles as much as vegetation. The numbers below are what convinced us the
+> approach works; **none of them should be quoted until the sweep is rerun probing where no vehicle
+> of the group exists yet.** The design is unaffected — a sweep with the small probe is still 32×
+> cheaper per call and still deterministic — but its yield is unknown.
 
 Run on the live mission, 6.25.0.3, on the 14 groups holding blocked vehicles:
 
@@ -67,8 +75,10 @@ Run on the live mission, 6.25.0.3, on the 14 groups holding blocked vehicles:
       rather than a hunch. A 600-probe budget is 0.23 s, against the 36 ms currently spent for
       nothing; decide whether that is spent in one frame or spread over several
 - [ ] The rigid translation is unchanged — inter-unit distances preserved to the metre
-- [ ] Verified **in game** on GermanyCW-v6: group alerts, blocked vehicles, and the cost of one
-      activation of the 25 zones measured, not estimated
+- [ ] The sweep's yield is **remeasured** with the corrected criterion — probing before the
+      group's units exist — since the figures above were taken with the broken one
+- [ ] Verified **in game** on GermanyCW-v6: blocked vehicles and the cost of one activation of the
+      25 zones measured, not estimated
 - [ ] `poetry run test-lua` green, `stylua --check` and `luacheck` clean
 - [ ] `CHANGELOG.md` entry under `[Unreleased]`
 - [ ] `known-limitations.yaml` records that the probe is the usable half of the singleton and the

@@ -35,8 +35,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **`veafUnits.settleGroup` no longer takes `Disposition`'s word for a clearing.**
   `veafUnits.settleGroup`, released in 6.25.0, translated groups correctly and to the metre — and
-  the number of vehicles standing in trees did not move (measured in game on GermanyCW-v6,
-  2026-09-26: 19 group alerts and 66 blocked units, against 16-18 and ~81 before it). The
+  the number of vehicles standing in trees did not move. (The figures first published here — 19
+  group alerts and 66 blocked units against 16-18 and ~81 — were counted **after** the spawn, and
+  a later measurement showed that mostly counts groups blocking their own probe; see below.) The
   translation was never the problem; what it aimed at was. `Disposition.getSimpleZones` returns
   points it has not vouched for — one group was moved 217 m onto a spot blocked in 12 directions
   out of 12 at 10 m — and it is **not deterministic**: five identical calls returned nearest
@@ -57,17 +58,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and the number of candidates examined before giving up rises from 10 to 30, because the ones that
   work were measured coming back at ranks 15 and 22.
 
-  Measured in game on GermanyCW-v6 with the park pinned at 102 ground groups and 594 units: group
-  alerts go from 19 to **15** and vehicles standing in scenery from 76 to **69**, with 4 groups
-  translated against 1 and four of the seven troubled groups it sees fully repaired. Formations are
-  preserved to **0.0000 m** over 209 pairwise distances. It is deliberately not claimed as "near
-  zero": **62 % of the vehicles still in trees belong to groups this code is never given** — editor
-  content kept at its declared position — and the handful it does see and cannot solve are places
-  where `Disposition` returns nothing at any clearance at all.
+  **The figures this entry first carried were wrong, and the reason is worth more than they were.**
+  `Disposition.getSimpleZones` answers "is there room here", so it counts **vehicles** as well as
+  trees: the same points read 12 of 14 blocked with a group standing on them and **0 of 14** once
+  it was destroyed. Every count of "units in scenery" taken after a spawn — 81, then 76, then 69 —
+  was largely a tally of tight batteries failing their own test, which a SAM battery does wherever
+  you put it.
+
+  Measured where no vehicle of the group exists yet, which is where this code probes anyway:
+  vehicles genuinely under trees on arrival fall from **22 to 10**, and after `settleGroup` from
+  **17 to 4**. Formations are preserved to **0.0000 m** over 209 pairwise distances. What remains
+  is real but small, and part of it belongs to groups this code is never given — editor content
+  kept at its declared position.
 
   A blindness of `Disposition` inside the spawn's own call stack was reported while this was being
-  diagnosed; it did not survive remeasurement, and the pre-computation phase it called for has been
-  dropped. The spawn flow was measured not to affect the singleton at all.
+  diagnosed. It has an explanation rather than a fix: `settleGroup` probes **before** the units
+  exist and the control probed after they had spawned, so the two were asking different questions.
+  The pre-computation phase it called for is dropped — the spawn flow was measured not to affect
+  the singleton at all.
 
 ## [6.25.0] — 2026-09-26
 

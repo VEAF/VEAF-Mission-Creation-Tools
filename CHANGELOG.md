@@ -17,6 +17,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Airfields are CTLD logistic points.** A C-130 landed at Ramstein read *"No logistics in range"*
+  (VEAF-Open-Training-Mission-GermanyCW-v6#1007): a map airfield is in none of CTLD 2's logistic
+  discovery routes. VEAF now registers every airdrome itself when CTLD starts, one zone of 250 m on
+  the parking stand nearest the field's centroid, under the airfield's own coalition. A field held
+  at mission start keeps its zone while it holds it; a neutral or captured one opens only after two
+  continuous minutes of unopposed **ground** occupation, measured on the mission clock, and closes
+  as soon as the last of those troops leaves — so a transport landing on a captured field does not
+  open it. Each active field is drawn as a translucent green circle on the F10 map for the side
+  holding it, and every change is announced to the side that gains or loses it. Opt out with
+  `modules.CTLD.manage_airbase_logistics: false`; `airbase_logistics_radius`,
+  `airbase_occupation_radius` and `airbase_logistics_tick` tune it. CTLD itself is unchanged.
+
 ### Fixed
 
 - **`veafUnits.settleGroup` no longer takes `Disposition`'s word for a clearing.**

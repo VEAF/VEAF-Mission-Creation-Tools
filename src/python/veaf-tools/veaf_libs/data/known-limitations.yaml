@@ -230,3 +230,31 @@ limitations:
   workaround: |
     Use an air start there, or place the flight in the DCS Mission Editor. The capture itself is a
     session in DCS: `veaf-tools dcs capture-map --parking`.
+
+- id: airfield-logistics-is-one-250m-zone
+  kind: tool
+  area: runtime
+  title: An airfield's CTLD logistics covers 250 m around one parking stand, not the whole field
+  symptom: |
+    With `modules.CTLD.manage_airbase_logistics` on, each airfield gets **one** logistic zone of
+    `airbase_logistics_radius` (250 m by default), centred on the parking stand nearest the centroid
+    of all its stands. On a widely spread airfield, an aircraft parked farther than that from the
+    chosen stand reads *"No logistics in range"* although the field is active and its green circle is
+    on the F10 map. An airfield whose `Airbase:getParking()` returns nothing gets no zone at all.
+  workaround: |
+    Raise `modules.CTLD.airbase_logistics_radius` in `mission.yaml`, or taxi into the green circle.
+    For a field with no parking data, place an `LGZ_` trigger zone in the Mission Editor.
+
+- id: airfield-logistics-class-is-decided-when-ctld-starts
+  kind: tool
+  area: runtime
+  title: Whether an airfield needs two minutes of ground occupation is decided when CTLD starts
+  symptom: |
+    The airfield's coalition at the moment `veaf.ctld_initialize()` runs decides its class, once. A
+    field held then opens its CTLD logistics straight away and keeps it while that coalition holds
+    it. A field that is neutral then — or that a mission script hands to a coalition later — opens
+    only after two continuous minutes of unopposed **ground** units within `airbase_occupation_radius`,
+    and closes when they leave. Giving a field to a side by script does not, on its own, open it.
+  workaround: |
+    Set the airfield's coalition in the Mission Editor rather than by script at start, or put ground
+    units of that side on the field for two minutes.

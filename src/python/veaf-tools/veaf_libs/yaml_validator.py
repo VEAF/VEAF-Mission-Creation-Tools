@@ -170,6 +170,43 @@ def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
                 errors.append(
                     t("yaml.semantic.bad_manage_logistics", module=key, type=type(cfg["manage_logistics"]).__name__)
                 )
+            # FEAT-CTLD-AIRBASE-LOGISTICS ticket 05: the airbase-logistics opt-out and its three
+            # numbers live beside manage_logistics in the CTLD block. The opt-out is a boolean for the
+            # same reason manage_logistics is — a string "false" is truthy in Lua and would silently
+            # enable the feature — and the three numbers are metres and seconds, so a bool (which is an
+            # int in Python) must be rejected explicitly rather than passing an isinstance(int) check.
+            if "manage_airbase_logistics" in cfg and not isinstance(cfg["manage_airbase_logistics"], bool):
+                errors.append(
+                    t(
+                        "yaml.semantic.bad_manage_airbase_logistics",
+                        module=key,
+                        type=type(cfg["manage_airbase_logistics"]).__name__,
+                    )
+                )
+            for number_key in ("airbase_logistics_radius", "airbase_occupation_radius", "airbase_logistics_tick"):
+                if number_key in cfg:
+                    number_value = cfg[number_key]
+                    if isinstance(number_value, bool) or not isinstance(number_value, (int, float)):
+                        errors.append(
+                            t(
+                                "yaml.semantic.bad_ctld_number",
+                                module=key,
+                                setting=number_key,
+                                type=type(number_value).__name__,
+                            )
+                        )
+                    elif number_value <= 0:
+                        # A 0 is truthy in Lua, so it would not fall back to the default: a zero radius
+                        # registers zones nobody can stand in, and a zero tick re-arms the scheduler on
+                        # itself. Negative values are meaningless for metres and seconds alike.
+                        errors.append(
+                            t(
+                                "yaml.semantic.ctld_number_not_positive",
+                                module=key,
+                                setting=number_key,
+                                value=number_value,
+                            )
+                        )
             if "settings" in cfg and key.upper() == "CTLD":
                 # CTLD 2 reads a complete YAML snapshot from the mission's
                 # ctld-config.yaml (ADR 0016); nothing here reaches the engine. An

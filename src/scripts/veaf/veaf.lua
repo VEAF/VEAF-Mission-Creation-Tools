@@ -5053,6 +5053,11 @@ VeafDrawingOnMap.COLORS = {
   -- is invisible on the sand-coloured DCS map; {0.15, 0.15, 0.15} reads as a black line and {0.7} as
   -- white. Grey here means "inactive", not "faint" -- it still has to be read.
   ["grey"] = { 0.42, 0.42, 0.42, 1 },
+  -- Translucent green, for the CTLD airbase-logistics circles: a logistic airfield is drawn as a green
+  -- disc the pilot can still read the map through. `green` above is fully opaque and would hide what is
+  -- underneath; `pink` is already this family's translucent red, so the matching green sits at the same
+  -- kind of alpha. 0.15 is `veafGeo.drawTriggerZone`'s fill alpha, chosen there for the same reason.
+  ["green_transparent"] = { 0, 1, 0, 0.15 },
 }
 
 function VeafDrawingOnMap:new(objectToCopy)
@@ -5717,6 +5722,16 @@ function veaf.ctld_initialize()
   -- read its configuration there is no state to show. veafRadio initialises at order 30 and this module
   -- at 50, so the menu tree is already there.
   veaf.buildCtldRadioMenu()
+
+  -- Airfields are in none of CTLD's own logistic discovery routes, so VEAF registers them itself
+  -- (FEAT-CTLD-AIRBASE-LOGISTICS). Here, because this is the one call every CTLD mission makes once
+  -- the engine has read its configuration: the generated veaf-config.lua emits it, after the
+  -- `veaf.config.airbase_*` settings it resolves. Not from veafTransportMission.initialize(), which
+  -- a mission disabling the `_transport` marker module would skip along with the airfields. Guarded
+  -- because veaf.lua does not load that module itself: a suite loading veaf.lua alone has no such table.
+  if veafTransportMission and veafTransportMission.initializeAllLogisticInCTLD then
+    veafTransportMission.initializeAllLogisticInCTLD()
+  end
 end
 
 --- Make CTLD speak the mission's language.

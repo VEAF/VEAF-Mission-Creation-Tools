@@ -210,7 +210,9 @@ modules:
                             # a script loaded by another script), which the build cannot see.
   STTS: false
   CTLD: false               # configured in ctld-config.yaml, beside this file (edit it with ctld-tools)
-                            # extended: CTLD -> { enabled: true, manage_logistics: true }
+                            # extended: CTLD -> { enabled: true, manage_logistics: true,
+                            #   manage_airbase_logistics: true, airbase_logistics_radius: 250,
+                            #   airbase_occupation_radius: 2000, airbase_logistics_tick: 30 }
   AIEN: false
   CSAR: false               # extended: CSAR -> { enabled: true, settings: { enableAllslots: true } }
   SKYNET: false             # extended: SKYNET -> { enabled: true, include_red_in_radio: false, dynamic_spawn: false, ... }
@@ -243,6 +245,18 @@ modules:
 # always registered to whatever `logisticUnitTypes` / `troopZoneShipTypes` your file
 # declares — it adds, it never replaces, so a type you added yourself survives. Set it
 # to false to own those two lists entirely.
+# CTLD also reads four airbase-logistics keys here, emitted into veaf-config.lua for VEAF
+# Lua rather than into ctld-config.yaml (FEAT-CTLD-AIRBASE-LOGISTICS). `manage_airbase_logistics`
+# (default true) registers every airdrome as a CTLD logistic zone: a field held by a coalition
+# at mission start keeps its zone while it holds it, and a neutral or captured one opens two
+# continuous minutes after unopposed ground troops arrive, closing the moment the last of them
+# leaves. Set it to false to opt out entirely — no zone, no 30 s tick, no green F10 circle.
+# The three numbers are the maker's to change without editing Lua: `airbase_logistics_radius` (250 m of
+# zone around the stand nearest the field's centroid — raise it on a spread apron, where an
+# aircraft parked beyond the radius reads "Aucune logistique à portée" at an active field),
+# `airbase_occupation_radius` (2000 m probed for ground units; only UNIT category, never a
+# static or scenery, so a transport landing on a captured field does not open it) and
+# `airbase_logistics_tick` (30 s between evaluations; the two-minute hold is measured on the mission clock, whatever the interval).
 
 # ── CAP missions ──────────────────────────────────────────────────────────────
 # Requires COMBATMISSION module enabled in modules above.

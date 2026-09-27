@@ -75,6 +75,51 @@ Symptom 4 is a different question: whether groups spawned into a combat zone sho
 engines running, and it is arguably a design choice rather than a defect. Worth asking David what he
 expects rather than deciding here — a cold vehicle is realistic and a fair challenge, up to a point.
 
+## Symptoms 2 and 3 explained: a spawned group does not carry its zone's name
+
+David flew **Medium**. That one answer settles it, and the log confirms it without DCS.
+
+**What `combatZone_WahnerHeide_Medium` actually owns:** two editor groups, `-aaa` (3 vehicles) and
+`-blindes` (5), eight vehicles in all.
+
+**What died:** fifteen named units, and **not one of them is a `combatZone_WahnerHeide_*` unit**.
+Every named death in the run belongs to a generated name — `[r]-73rd Steel Platoon#25675`,
+`[r]-India Division#25673`, `[r]-Bravo Fighters#25678` and a dozen more. Fifteen, which is exactly
+the "une quinzaine" reported.
+
+Those groups are the ones the zone's own elements create: the zone elements carry
+`#command="_spawn armorgroup, defense 3"` and `#command="_spawn samgroup, defense 3"`, and the spawn
+gives each new group a **generated name** (Skynet logs `[r]-73rd Steel Platoon#25675` with its
+ZSU-23-4). That name does not begin with the zone's name.
+
+**And the prefix convention is what decides membership.** So the zone does not recognise the groups
+its own elements spawned:
+
+- it does not count them → the tally stays far below what the flight destroyed (symptom 2);
+- it does not wait for them → but it *does* still wait for `-aaa` and `-blindes`, which nobody
+  touched, so it never completes (symptom 3).
+
+Both symptoms, one cause, and it is a real defect rather than a presentation problem: **a group
+created by a zone's own element belongs to that zone, whatever name the spawn gives it.** The
+convention exists to keep *foreign* groups out, not to disown the zone's own children.
+
+### What is not established
+
+Which zones were active besides Medium. The two spawn commands found in the log are tagged
+`#wahnerheide_hard-1` and `#wahnerheide_hard-2`, so the groups that died may belong to **Hard**
+rather than Medium — which would mean the flight was shooting a neighbouring zone's targets as well.
+That changes who should have counted them; it does not change the defect, since neither zone can
+recognise a generated name. Worth pinning before writing the fix.
+
+### Where to look
+
+The membership test — whichever function compares a group's name to the zone's — and the spawn path
+that names a group created from a zone element. The fix is presumably to register the spawned group
+with its originating zone at creation, rather than to rely on its name afterwards. See
+[`DOC-COMBATZONE-PREFIX-RULE`](../DOC-COMBATZONE-PREFIX-RULE/PRD.md) for what the convention is meant
+to do, and [`FIX-COMBATZONE-SILENT-EXCLUSION`](../FIX-COMBATZONE-SILENT-EXCLUSION/PRD.md) for the
+last time exclusion bit silently.
+
 ## Also from the same sortie, and it belongs elsewhere
 
 **The tankers fly unescorted.** Reported by David in the same breath, kept here so it is not lost,

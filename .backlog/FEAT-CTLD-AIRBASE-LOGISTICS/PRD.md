@@ -1,5 +1,5 @@
 ---
-Status: ⬜ ready — every decision is taken and nothing waits on a measurement; ready for tickets
+Status: ⬜ ready — every decision taken, nothing to measure, five tickets cut and 01 is the frontier
 ---
 
 # FEAT-CTLD-AIRBASE-LOGISTICS — airfields are outside CTLD's logistic system, and VEAF can put them in without touching CTLD
@@ -219,6 +219,26 @@ the direction has to be chosen deliberately rather than inherited: an unusable p
 zone **as it was**, not deactivate it, or a DCS quirk would make a logistic point flicker out for a
 reason nobody can see in the mission.
 
+### Every 30 seconds, and announced when it changes
+
+**The tick is 30 s**, decided 2026-09-27. A front does not move in seconds, so there is nothing to gain
+from evaluating it faster: the class-A checks are cheap but the class-B sphere probes are not free, and
+30 s keeps them at two per minute per captured airfield instead of one per frame. It stays a **setting**
+next to the 250 m and the 2000 m rather than a constant, so a mission with a fast-moving front can ask
+for less. The loop belongs on `veafScheduler` like every other periodic VEAF behaviour — nothing in
+`veafTransportMission` polls today.
+
+**Every status change is announced to the coalitions**, decided 2026-09-27. A logistic point appearing
+or disappearing is exactly the kind of thing a pilot cannot see: the *Request Equipment* menu changes
+under him, mid-flight, for a reason that is nowhere on his map except a circle he may not be looking at.
+So each transition — a class-A field turning red or neutral, a captured field crossing its two minutes,
+a captured field losing its last blue unit — sends `trigger.action.outTextForCoalition`, with the text
+from `veaf.t()` and its entry in the `veafI18n` catalogue in **both** languages, the way
+`veafSpawnGround.lua:223` already announces `spawn.fob_built`. The side that **gains** the point is told
+it can now load there; the side that **loses** it is told it can no longer. The message is a
+consequence of the state machine, not a parallel narration of it: it fires on the transition, never on
+the tick, so a quiet front stays quiet.
+
 ### What this design does not need
 
 No mission-file surgery — the builder reads trigger zones for validation
@@ -228,21 +248,18 @@ airfield. No dependency on a data dump. No upstream release.
 
 ## What remains to settle
 
-Three implementation details, none of them a design question.
+Nothing that gates the work. Two details were open when the tickets were written, and each is now
+carried by one:
 
-**1. The tick interval.** A front does not move in seconds, so the interval can be generous; the
-class-A checks are cheap but the class-B probes are not free. Whatever it is, it belongs in the module's
-settings next to the 250 m and the 2000 m, not hard-coded.
+**The stub's contract.** The comment above `initializeAllLogisticInCTLD()` (`:676-680`) states that a
+logistic point *is* an `LGZ_` zone, declared in `ctld-config.yaml`, with *"nothing to run"*. Giving the
+function a body contradicts it, so ticket 01 rewrites the comment in the same change, and ticket 05
+amends ADR 0016, which already stopped being strictly "verbatim" with `manage_logistics`.
 
-**2. The stub's contract.** The comment above the function (`:676-680`) states that a logistic point
-*is* an `LGZ_` zone, declared in `ctld-config.yaml`, with *"nothing to run"*. Giving the function a body
-contradicts it, so the comment is rewritten in the same change, and ADR 0016 likely needs a line: it
-already stopped being strictly "verbatim" with `manage_logistics`.
-
-**3. Where the snapshot can be wrong.** Class A is decided on the first evaluation, so a mission script
+**Where the snapshot can be wrong.** Class A is decided on the first evaluation, so a mission script
 that captures an airfield in its opening seconds — a T+0 trigger — could have the field classified B and
-owing two minutes it should not owe. Unlikely, cheap to note, and cheaper to note than to discover in
-flight.
+owing two minutes it should not owe. Unlikely, and recorded as a watch-out in ticket 01 rather than
+designed around.
 
 ## Risks to name
 
@@ -283,10 +300,24 @@ flight.
   should say the two things the report got wrong: that it is not a regression, and that the field was
   never a logistic point — before saying when it will become one.
 
+## Tickets
+
+| # | Ticket | Status |
+|---|--------|--------|
+| 01 | [Register every airdrome as a CTLD logistic zone](tickets/01-register-every-airdrome.md) | ⬜ |
+| 02 | [The 30-second tick, and a class-A airfield that changes side](tickets/02-the-thirty-second-tick.md) | ⬜ |
+| 03 | [Class B: two continuous minutes of ground occupation](tickets/03-two-minutes-of-occupation.md) | ⬜ |
+| 04 | [One green transparent circle per active airfield, on the F10 map](tickets/04-the-green-circle.md) | ⬜ |
+| 05 | [The opt-out, the three settings, and the documentation](tickets/05-opt-out-settings-and-docs.md) | ⬜ |
+
+Each ticket names what blocks it: 01 blocks 02 and 05, 02 blocks 03 and 04. Work the frontier — 01
+alone at the start, then 02 and 05 together, then 03 and 04. 05 ships last in practice, so the
+documentation describes what was built rather than what was intended.
+
 ## Definition of done
 
-Nothing is left to decide, and **nothing is left to measure**: the placement rule stands on its own and
-the verification happens in flight, on the mission that reported the issue. Done looks like:
+Nothing is left to measure, and what is left to settle is two implementation details a ticket can close
+on its own. The verification happens in flight, on the mission that reported the issue. Done looks like:
 
 - A C-130 at Ramstein on GermanyCW v6 reads something other than *"Aucune logistique à portée"*, parked
   where a C-130 actually parks — not at the airbase reference point. If a field turns out too spread for
@@ -298,5 +329,9 @@ the verification happens in flight, on the mission that reported the issue. Done
 - One green transparent circle per active airfield on the F10 map, drawn through `VeafCircleOnMap`,
   visible to the coalition that holds it, erased when the zone deactivates — and **nothing spawned**
   into the simulation to mark it.
+- Every transition is announced to the coalition that gains the point and to the one that loses it, in
+  the player's own language, and **nothing is said on a tick where nothing changed**.
+- The state is evaluated every **30 s**, and that number is a setting beside the 250 m and the 2000 m,
+  not a constant in the loop.
 - The log says how many airfields VEAF registered and which class each one is in.
 - A mission that wants none of it can say so, and says so in `mission.yaml`.

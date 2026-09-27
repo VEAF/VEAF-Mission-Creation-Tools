@@ -1,7 +1,7 @@
 # FEAT-CLEAR-GROUND-AT-AUTHORING — when the tools place a group, they place it somewhere measured clear
 
-Status: 🧑 waiting-human — **two design decisions have to be made before any ticket can be written**, see
-*Decisions to make first*. David asked for the lot on 2026-09-26 evening, after
+Status: ⬜ ready — the five design questions are settled (see *Decided*), tickets 01 to 05 written.
+David asked for the lot on 2026-09-26 evening, after
 [`FIX-PLACEMENT-IGNORES-SCENERY`](../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 11 reached its
 ceiling.
 
@@ -51,25 +51,62 @@ storage, and it ages when ED retouches a map.
 **B is the foundation, A is the gate, and B comes first** — B attacks the cause where A only
 observes, and B is the half that works without DCS.
 
-## Decisions to make first
+## What was learned after this PRD was first written
 
-Neither is obvious, and David left both open on 2026-09-26 rather than guess. **No ticket should be
-written until they are settled.**
+Three things, all from the evening of 2026-09-26 and the morning after. They change the design, so
+they come before the decisions.
 
-1. **Sweep perimeter.** The whole map on a fixed grid, or only around what matters — combat zones,
-   airfields, road axes? The first is exhaustive and answers anywhere; the second is the difference
-   between hours and minutes of sweeping, and leaves holes wherever nobody thought to look. The cost
-   of a sweep has **not been measured**: the probe's throughput was going to be timed on 2026-09-26
-   and DCS disconnected first. Measure it before deciding — the answer may make the question moot.
-2. **Granularity.** Store the clear radius per point, or a plain free/occupied flag? A radius is what
-   lets one catalogue serve a lone Ural and a 15-vehicle S-300 from the same data, and the groups
-   this lot exists for are precisely the large ones. A flag is smaller and simpler and cannot answer
-   the question that matters. Settle it knowing that **a group's footprint moves by up to 38.8 m
-   between draws** ([`FIX-PLACEMENT-IGNORES-SCENERY` ticket 11](../FIX-PLACEMENT-IGNORES-SCENERY/tickets/11-settle-verifies-the-candidate-it-trusts.md)),
-   so whatever is stored has to be read with a margin rather than exactly.
+**1. The probe counts vehicles, not just scenery.** `Disposition.getSimpleZones` answers "is there
+room here", and a tank occupies room: the same points read 12 of 14 blocked with a group standing on
+them and 0 of 14 once it was destroyed
+([`known-limitations.yaml`](../../src/python/veaf-tools/veaf_libs/data/known-limitations.yaml),
+`disposition-getsimplezones-is-a-lottery`). A catalogue swept while units are on the map would
+record those units as permanent obstacles and rot the moment they move or die. **The sweep has to
+happen on an empty map.**
+
+**2. Sweeping with the probe works where the singleton refuses to answer.** `combatZone_Wittstock`'s
+S-300 was on record as having no way out at any clearance; a ring sweep found it a clearing at
+**200 m**. The dead end was a property of the query, not of the terrain. This is the same insight
+that opened [`FIX-PLACEMENT-IGNORES-SCENERY` ticket 12](../FIX-PLACEMENT-IGNORES-SCENERY/tickets/12-settle-sweeps-with-the-probe.md),
+and it is what makes this lot buildable at all.
+
+**3. The probe's throughput is measured: 0.38 ms per call, ~2600/s.** The PRD used to say this was
+unknown. It is not, and it reframes the first decision — see below.
 
 ## Decided
 
-3. **Both distribution modes.** A catalogue per map, versioned in VMCT so everyone benefits without
+Questions 1 and 2 were put to David on 2026-09-27 and answered, along with two more that the three
+findings above raised.
+
+1. **Perimeter: coarse everywhere, fine where it matters.** One pass at a wide spacing (200 m) over
+   the whole map, and a second at a fine spacing (50 m) around the combat zones, airfields and road
+   axes. The catalogue then answers anywhere, precisely where things are actually placed, and
+   placement outside the fine perimeter still works with less precision.
+
+   The throughput measurement is what made this affordable: a 200 m pass over a 500x500 km map is
+   roughly 6 million points, and the fine pass over 25 combat zones roughly 280 000. **Caveat that
+   the first ticket must resolve:** those durations assume *one* probe per point, and decision 2
+   asks for a radius, which costs several. The sweep will cost more than the estimate above — how
+   much is a measurement, not a guess.
+
+2. **Granularity: store the clear radius per point.** Not a free/occupied flag. One catalogue then
+   serves a lone Ural and a 15-vehicle S-300 from the same data — ask for "somewhere that holds
+   150 m" and filter. The large groups are the ones this lot exists for, and a flag cannot answer
+   the only question they raise. Read it with a margin rather than exactly: **a group's footprint
+   moves by up to 38.8 m between draws**
+   ([ticket 11](../FIX-PLACEMENT-IGNORES-SCENERY/tickets/11-settle-verifies-the-candidate-it-trusts.md)).
+
+3. **Sweep from a dedicated empty mission.** A `.miz` holding no units at all, loaded only to sweep,
+   so the probe sees vegetation and buildings and never a vehicle. It is reusable as-is for every
+   map. The alternative — sweeping from whatever mission is at hand — would bake that mission's
+   vehicles into the catalogue, which is exactly the mistake that cost two days this week.
+
+4. **Out of coverage: place anyway, and say so plainly.** When nothing large enough is found, the
+   group goes where it was asked to go and the tool reports it — *"no clear position for 15 vehicles
+   within 1 km, placed as requested"*. The mission still builds and the mission maker knows what
+   they have. This is ADR 0018: an undocumented dependency may improve quality, it must never be
+   what refuses a placement.
+
+5. **Both distribution modes.** A catalogue per map, versioned in VMCT so everyone benefits without
    owning the terrain, **and** generation on demand on the workstation of whoever authors a mission,
    for a map or an area the versioned catalogue does not cover. David, 2026-09-26.

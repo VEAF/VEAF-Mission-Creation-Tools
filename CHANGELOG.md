@@ -77,6 +77,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The pre-computation phase it called for is dropped — the spawn flow was measured not to affect
   the singleton at all.
 
+  **And it no longer asks `Disposition` for a clearing at all.** Even asked for 80 m, the large
+  query returns **zero candidates at every clearance, down to 5 m**, for the places a group most
+  needs moving out of — while the small per-point probe answers those same places, in 0.38 ms
+  rather than 12, and gives the same answer every time. So `settleGroup` now sweeps rings of
+  growing radius around the group, 20 m apart and closest first, and keeps the first offset where
+  every vehicle stands on drivable terrain and passes the probe; the outermost vehicles are tried
+  first, so a bad offset costs one probe. The several draws, the clearance constant and the
+  candidate bound are gone. `SETTLE_MAX_TRANSLATION` now also bounds the sweep and drops from 1000
+  to **300 m**, above the 266 and 278 m translations measured on the previous code, and a new
+  `SETTLE_SWEEP_PROBE_BUDGET` (1000 probes, about 0.4 s) caps what a group with no way out costs in
+  the spawn's frame. How many more groups this clears has not been measured in game yet.
+
 - **The Skynet contacts monitor reports every contact lost in the same beat.** It walked its list
   of tracked contacts while removing from it, so of three contacts leaving IADS cover together the
   second was never reported lost — and stayed tracked for the rest of the mission, so it was never

@@ -88,14 +88,16 @@ limitations:
     17 get candidates in flight, and replaying the identical queries from a quiet frame recovers
     none.
   workaround: |
-    Treat it as a source of *suggestions* and verify every point before acting on it, with the small
-    query above. Draw several times and merge, because one draw misses clearings a second one finds.
-    Never let the radius or the clearance you asked for stand in for a measurement — bound the result
-    yourself, on your own criterion.
+    **Use the small query as a probe, and never use the large one to find a clearing.** To find
+    open ground, sweep the neighbourhood yourself — offsets on rings of growing radius, closest
+    first — and ask the small query about each point you would use. It is 0.38 ms a call against
+    12 ms for the large one, and it gives the same answer every time. This is what
+    `veafUnits.settleGroup` does since FIX-PLACEMENT-IGNORES-SCENERY ticket 12.
 
-    Above all, **ask for little clearance**. It is a coarse filter and nothing more, so ask where
-    candidates are still plentiful — 80 m on this mission — and establish the fit yourself, unit by
-    unit, afterwards. Asking for what you actually need is what makes it go silent.
+    If you do use the large query, treat what it returns as *suggestions*: verify every point with
+    the small query, draw several times and merge, ask for little clearance (21 candidates at 200 m,
+    none at 300 m), and never let the radius or the clearance you asked for stand in for a
+    measurement.
 
     Moving the query out of the spawn flow is **not** required, and was measured to buy nothing.
     Deferring the spawn itself is a trap in its own right — the group name a spawn returns feeds

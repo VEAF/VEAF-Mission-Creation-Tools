@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-IGNORES-SCENERY — ground units are placed without looking at the scenery, and a crowded FARP gives up silently
 
-Status: 🔄 in-progress — tickets 01, 02, 03 and 05 delivered 2026-08-27; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**, which merged 2026-09-26 (PR #1005) and shipped in 6.25.0. **10 was then measured in game the same day and is inert too** — the groups are translated, the formations hold, and the metric does not move; the cause is under the lot, in `Disposition.getSimpleZones`, and is the subject of **ticket 11**. Ticket 04 is still open and no longer blocked: the number DCS alone could give is in — 0 exhaustions out of 4 cases
+Status: 🔄 in-progress — tickets 01, 02, 03 and 05 delivered 2026-08-27; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**, which merged 2026-09-26 (PR #1005) and shipped in 6.25.0. **10 was then measured in game the same day and is inert too** — the groups are translated, the formations hold, and the metric does not move; the cause is under the lot, in `Disposition.getSimpleZones`. **Ticket 11** merged in #1008 (17 → 4 vehicles under trees); **ticket 12**, the sweep with the probe, is implemented 2026-09-28 and waits on its in-game measurement (R16 of `DCS-SESSION-TODO.md`). Ticket 04 is still open and no longer blocked: the number DCS alone could give is in — 0 exhaustions out of 4 cases
 
 Origin: found on 2026-08-27 while studying the 20 `mist.getRandPointInCircle` call sites for
 [`DROP-MIST`](../archive/DROP-MIST.md) ticket 06. Kept out of that campaign
@@ -129,7 +129,7 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 09 | `silent` propagated to `_createDcsUnits`, refused units no longer dropped silently | low | ✅ |
 | 10 | Settle the group by rigid translation, not unit by unit — shipped, and measured inert in game on 2026-09-26; the translation works, the selection does not | medium | ✅ |
 | 11 | `settleGroup` verifies the candidate it trusts, and draws more than once | medium | ✅ |
-| 12 | `settleGroup` sweeps with the probe instead of asking for a clearing | medium | ⬜ |
+| 12 | `settleGroup` sweeps with the probe instead of asking for a clearing | medium | 🧑 |
 
 ### Why this lot needed three rounds on the same defect
 

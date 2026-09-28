@@ -76,6 +76,12 @@ accumulation ; la nouvelle mission suit les règles de ce prompt.
 - Retiens-en **les intentions** : quelles bases, quel soutien, quelles défenses, quelles zones, quel
   esprit. Reprends ce qui est voulu et bon ; corrige ce qui est incohérent (et prouve-le) ; laisse ce
   qui ne sert à rien ; **signale ce que tu ne comprends pas** au lieu de l'effacer ou de le copier.
+- **Une mission convertie (`convert-v5`) n'est pas la source** : lis la v5 d'origine (le dossier
+  `backup_v5/` que laisse la conversion, ou le dépôt v5), puis compare-la à la version convertie. Une
+  conversion perd du contenu sans le dire (des missions scénarisées entières), et le dossier converti
+  peut porter des retouches manuelles faites depuis : signale chaque écart dans un sens ou dans l'autre.
+- **Inventorie les ressources récupérables** : kneeboard (cartes d'approche, plan de fréquences),
+  sons (balises, messages), images. Elles ne se voient que dans les fichiers.
 - Rends un tableau **repris / adapté / écarté / inconnu**, avec la raison de chaque ligne.
 
 ## 4. Conception — règles et quantités
@@ -99,8 +105,19 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   joueurs volent rouge, pour le combat aérien entre joueurs. Pas de zone de combat côté rouge, mais
   des **QRA et CAP bleues** (4.8, 4.9) pour leur donner de l'opposition.
 - **Neutres** : le reste. Jamais un aérodrome neutre avec des slots.
+- **Si le rouge est jouable, écris la règle du combat entre joueurs** : où il est permis, où il est
+  interdit, et dis-le dans le briefing. Deux outils, à proposer à l'utilisateur :
+  - une **arène** dédiée, loin du théâtre : slots en départ en vol pour les deux camps, par type de
+    missile (Fox 1, Fox 3), avec un AWACS de chaque camp ;
+  - une **zone de sanctuaire** (module `SANCTUARY`, `sanctuary_zones`) qui protège les arrières d'un
+    camp : un intrus est prévenu puis détruit, et `protect_from_missiles` détruit les missiles tirés
+    sur les défenseurs. Le polygone est tracé par des unités en activation différée
+    (`polygon_units`), jamais activées.
 - **FARP** : une bonne pratique à généraliser — un FARP bleu près du front et près de chaque zone
   destinée aux hélicoptères (réarmement, CTLD, CSAR). Si le MCP ne sait pas en poser, signale-le.
+  Un FARP est complet avec, à côté, un **dépôt de munitions** (statique `FARP Ammo Dump Coating`) :
+  CTLD le reconnaît comme point logistique (`manage_logistics`, actif par défaut), et le chargement
+  de troupes au FARP est ouvert (`troopPickupAtFARP` dans `ctld-config.yaml`).
 - `set_airbase_coalition` pour chaque aérodrome, avec `dynamic_spawn: false` sur ceux qui ne doivent
   pas offrir de slots. `src/warehouses.yaml` : carburant et munitions illimités, départ moteur chaud.
   `src/dynamic-slot-templates.yaml` : modèles des deux coalitions qui ont des slots.
@@ -116,7 +133,11 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - `silence_atc_on_all_airbases: true`.
 - **Sécurité active par défaut** : la mission tourne sur les serveurs VEAF. Pas de
   `security.disabled: true` dans la configuration de base. Demande à l'utilisateur s'il faut des
-  hachages de mot de passe, ou si le niveau des pilotes du serveur suffit.
+  hachages de mot de passe, ou si le niveau des pilotes du serveur suffit. **Jamais un mot de passe
+  en clair**, même en commentaire à côté de son hachage : les sources se publient.
+- **Aucun mod exigé** : la table `requiredModules` de la mission reste vide, sauf demande explicite.
+  Un seul mod y suffit à interdire le serveur aux joueurs qui ne l'ont pas. Elle se remplit sans
+  bruit quand on pose une unité d'un mod, ou quand on reprend une mission existante.
 - **Deux usages, deux configurations** dans `mission.yaml` :
   - **par défaut** = serveur : sécurité active, logs `info`, toutes les variantes météo ;
   - **profil `LOCAL_TEST`** (`veaf-tools mission build --profile LOCAL_TEST`) : sécurité désactivée,
@@ -142,6 +163,13 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Un nom partout** : nom de groupe = indicatif (familles tanker Texaco 1 / Arco 2 / Shell 3 ;
   AWACS Overlord 1 / Magic 2 / Wizard 3…) = libellé de preset = texte `ASSETS`. Même fréquence
   partout. Déclare-les dans `modules.ASSETS`.
+- **Drones de guidage laser** (option) : un drone en orbite avec la tâche FAC, déclaré dans
+  `modules.ASSETS` avec son code laser et sa fréquence (`jtac`, `freq`, `mod`), pour que les pilotes
+  les trouvent dans le menu. Si le MCP ne sait pas donner la tâche FAC, signale-le.
+- **Groupe aéronaval ami** (option, si la carte a la mer et que les joueurs ont des appareils
+  embarqués) : porte-avions avec TACAN, ICLS et Link 4 dans le texte `ASSETS`, un ravitailleur
+  embarqué, un hélicoptère de sauvetage, module `CARRIER`. Vérifie ce que le MCP sait poser et
+  activer ; ce qu'il ne sait pas faire, signale-le.
 
 ### 4.4 Escortes
 
@@ -156,6 +184,11 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Quelques batteries longue portée**, judicieusement réparties pour couvrir les zones clés sans
   fermer tout le ciel (SA-10, SA-11, Patriot… **selon l'époque et le camp** ; lis dans
   `list_shortcuts` quel alias pose vraiment de la longue portée — le nom d'un alias ne suffit pas).
+- **Aucune défense permanente ne couvre une base adverse qui a des slots.** « Permanente » compte
+  les batteries `#veafInterpreter` **et** les zones de combat activées au démarrage
+  (`active_at_start`). Mesure la distance de chaque batterie moyenne et longue portée à chaque base
+  adverse avec slots, et compare-la à la portée de l'arme — sourcée ou mesurée dans DCS ; sinon, donne
+  la distance en point ouvert. Un pilote qui décolle sous un SA-10 ne s'entraîne pas.
 - **Des radars d'alerte avancée (EWR) derrière les lignes**, des deux côtés.
 - Posés en permanent via `#veafInterpreter["-<alias>, country <pays>, hdg <cap>"]`.
   **Porteur = une unité de la classe générée** (le lanceur de l'alias), pour que l'éditeur montre le
@@ -185,9 +218,20 @@ haut). Tu peux donc écrire un même porteur à chaque niveau avec une valeur cr
 - **vérifie la composition de chaque niveau** pour l'époque de la mission (`list_shortcuts`) avant de
   t'y fier ; si elle ne convient pas, prends des alias explicites.
 
+**Faire varier un site d'une activation à l'autre** avec les balises de tirage, sur les noms
+d'unités : tous les éléments qui portent le même `#spawngroup="<nom>"` forment un ensemble,
+`#spawncount=` dit combien en sortent à coup sûr, `#spawnchance=` la probabilité de chacun. Exemple :
+quatre SA-15 posés, `#spawngroup="SA15" #spawncount=2` → deux d'entre eux, jamais les mêmes. Un
+pilote qui revient ne retrouve pas le site qu'il a appris. Vaut aussi pour les vraies zones (4.7).
+
 Les statiques sont la seule façon d'avoir une cible **vraiment inerte** (un blindé réel tire à la
 mitrailleuse sur un hélicoptère ; aucune balise ne met une unité en « feu interdit »).
 `training: true`, un menu radio par famille.
+
+**En option, une zone hélicoptère hors combat** : navigation ou recherche d'un équipage abattu,
+avec des balises radio sur l'itinéraire (sons joués en boucle, fréquences FM données au briefing) et
+un signal de détresse sur le lieu. `training: true`, `completable: false`. Les sons doivent exister
+dans la mission.
 
 ### 4.7 Vraies zones de combat — au moins 6 de plus que les zones d'entraînement
 
@@ -212,7 +256,8 @@ Règles :
   convois = **un groupe natif** avec une route sur route (points 2+ « On Road »), sa défense
   antiaérienne dans le même groupe.
 - **Portée des SAM des zones actives** : aucun ne doit atteindre une base amie, une piste de
-  ravitailleur ou une zone d'entraînement.
+  ravitailleur ou une zone d'entraînement. Une zone activée au démarrage est une défense permanente :
+  la règle de 4.5 s'y applique.
 - Menus radio par type, `training: false`.
 - **Briefing de chaque zone** : quoi, où (**bullseye cap/distance calculés** depuis les x/y : x vers
   le nord, y vers l'est, cap = atan2(Δy, Δx)), quoi détruire, quelle défense (sans chiffre non sourcé),
@@ -226,6 +271,12 @@ Règles :
 - **Cercle dans le territoire du camp qui défend** (il se déclenche sur sa distance, pas sur une
   frontière).
 - **Réponse graduée** (`groups_by_enemy_count`) : peu d'intrus → une paire légère ; davantage → plus.
+- **Plusieurs variantes par niveau, tirées au hasard** : chaque niveau liste plusieurs groupes
+  (chasseurs de menaces différentes) et `random_pick: 1` en fait sortir un. Les pilotes ne savent
+  pas ce qui décolle.
+- **Délai et hélicoptères, décidés et écrits** : `delay_before_activating` (le temps de réaction
+  entre l'entrée du premier intrus et le décollage) et `react_on_helicopters` (une QRA qui
+  réagit aux hélicoptères ferme la zone aux missions héliportées). Dis les deux dans le briefing.
 - `create_qra`, intercepteurs d'époque avec **emport** (dans chaque groupe : `pylons`, ou
   `loadout_from` un groupe `veafSpawn-*` du même type), `airport_link` sur la base.
 - Si le rouge a des slots : **QRA bleues** sur quelques bases bleues, mêmes règles.
@@ -250,9 +301,25 @@ Règles :
 
 ### 4.11 Modules
 
-`COMBATZONE`, `QRA`, `COMBATMISSION` (CAP), `ASSETS`, `MOVE`, `CTLD`, `CSAR`, `AIEN`, `STTS`,
-et **`SKYNET` avec le réseau de guetteurs** (`spotter_network: true`, vue F10 réglable par menu
-radio). Un son cité dans les réglages CSAR / CTLD doit exister dans la mission.
+`COMBATZONE`, `QRA`, `COMBATMISSION` (CAP, missions scénarisées), `ASSETS`, `MOVE`, `CTLD`, `CSAR`,
+`AIEN`, `STTS`, et **`SKYNET` avec le réseau de guetteurs** (`spotter_network: true`, vue F10 désactivée :
+`spotter_view: "off"`, ni affichage ni interrupteur radio). Selon les options retenues : `SANCTUARY`
+(4.1), `CARRIER` (4.3). Un son cité dans les réglages CSAR / CTLD doit exister dans la mission.
+
+### 4.12 Missions scénarisées (option, 1 à 3)
+
+Des scénarios à déclencher par menu radio, au-delà des CAP (module `COMBATMISSION`). Exemples qui
+ont marché :
+- **défendre une base** : une vague d'attaque (SEAD puis bombardiers) vers une base amie, mission
+  ratée si des bâtiments nommés de la base sont détruits ;
+- **vague de bombardiers chronométrée** : une formation à abattre en un temps donné ;
+- **intercepter un transport VIP escorté** entre deux bases ennemies ;
+- **protéger un avion de soutien** (ELINT, transport) le long de sa route.
+
+`combat_missions:` de `mission.yaml` ne porte que les éléments et leurs groupes : **ni objectifs**
+(temps limité, bâtiments à protéger, taux de pertes), **ni niveau des pilotes**. Une mission qui en a
+besoin s'écrit en Lua (`VeafCombatMission`) dans `src/scripts/mission-script.lua`, et tu le notes
+dans « Retours pour VMCT ».
 
 ## 5. Ordre de construction
 
@@ -261,7 +328,8 @@ radio). Un son cité dans les réglages CSAR / CTLD doit exister dans la mission
    avant de construire.
 3. `mission.yaml` : identité, sécurité et profils, modules.
 4. Aérodromes et FARP (4.1), soutien (4.3-4.4), défense aérienne (4.5).
-5. Zones d'entraînement (4.6), vraies zones (4.7), QRA (4.8), CAP (4.9).
+5. Zones d'entraînement (4.6), vraies zones (4.7), QRA (4.8), CAP (4.9), missions scénarisées
+   (4.12).
 6. Radio, météo, waypoints (4.10) ; date, bullseye, briefing.
 7. `validate_mission`, `build_mission` (et le profil `LOCAL_TEST`), puis la section 8.
 8. `README.md` + `readme.fr.md` : contenu, construction, fichiers, limites connues.
@@ -293,6 +361,13 @@ l'époque ou les camps ; lancer DCS.
   - structure des avions (altitude > 0, carburant, emport), des statiques (`category`), des navires ;
   - routes des convois ;
   - zones, QRA et CAP dans `veaf-config.lua` ;
+  - chaque nom de `modules.ASSETS` (et son escorte `linked`) désigne un groupe qui existe : un nom
+    sans groupe donne un menu vide, sans erreur ;
+  - chaque porteur `#veafInterpreter` est du type du lanceur que génère son alias (sinon l'éditeur
+    montre le cercle de portée d'une autre arme) ;
+  - aucune défense permanente à portée d'une base adverse avec slots (4.5) : le tableau des
+    distances ;
+  - `requiredModules` vide (4.2) ;
   - deux variantes météo **différentes dans les champs que DCS lit** (`clouds.preset`,
     `season.temperature`, `wind.atGround`), et l'heure de l'aube cohérente avec le lever du soleil ;
   - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec.

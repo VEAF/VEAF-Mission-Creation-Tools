@@ -76,6 +76,12 @@ mission follows the rules of this prompt.
 - Keep **its intentions**: which bases, which support, which defenses, which zones, what spirit. Take
   over what is intended and good; fix what is inconsistent (and prove it); leave out what serves
   nothing; **report what you do not understand** instead of deleting or copying it.
+- **A converted mission (`convert-v5`) is not the source**: read the original v5 (the `backup_v5/`
+  folder the conversion leaves behind, or the v5 repository), then compare it with the converted
+  one. A conversion loses content without a word (whole scripted missions), and the converted folder
+  may carry hand edits made since: report every difference, in either direction.
+- **Inventory the reusable resources**: kneeboard (approach charts, frequency plan), sounds
+  (beacons, messages), pictures. They show only in the files.
 - Hand back a **kept / adapted / left out / unknown** table, with the reason for each line.
 
 ## 4. Design — rules and quantities
@@ -98,8 +104,18 @@ why.
   depending on the front, often 2 to 4, spread as for blue): players fly red, for player-versus-player
   air combat. No combat zone on the red side, but **blue QRAs and CAPs** (4.8, 4.9) to oppose them.
 - **Neutral**: the rest. Never a neutral airfield with slots.
+- **If red is playable, write the player-versus-player rule**: where it is allowed, where it is not,
+  and say it in the briefing. Two tools, to offer the user:
+  - a dedicated **arena**, away from the theatre: air-start slots for both sides, by missile type
+    (Fox 1, Fox 3), with an AWACS for each side;
+  - a **sanctuary zone** (`SANCTUARY` module, `sanctuary_zones`) protecting one side's rear: an
+    intruder is warned then destroyed, and `protect_from_missiles` destroys the missiles fired at
+    the defenders. The polygon is drawn by late-activation units (`polygon_units`), never activated.
 - **FARPs**: a good practice to generalise — a blue FARP near the front and near every zone meant
-  for helicopters (rearming, CTLD, CSAR). If the MCP cannot place one, report it.
+  for helicopters (rearming, CTLD, CSAR). If the MCP cannot place one, report it. A FARP is complete
+  with an **ammo dump** next to it (`FARP Ammo Dump Coating` static): CTLD takes it as a logistic
+  point (`manage_logistics`, on by default), and troop pickup at FARPs is open
+  (`troopPickupAtFARP` in `ctld-config.yaml`).
 - `set_airbase_coalition` for every airfield, with `dynamic_spawn: false` on those that must offer no
   slots. `src/warehouses.yaml`: unlimited fuel and weapons, hot start allowed.
   `src/dynamic-slot-templates.yaml`: templates for the coalitions that have slots.
@@ -116,7 +132,11 @@ why.
 - `silence_atc_on_all_airbases: true`.
 - **Security on by default**: the mission runs on the VEAF servers. No `security.disabled: true` in
   the base configuration. Ask the user whether password hashes are needed, or whether the server's
-  pilot levels are enough.
+  pilot levels are enough. **Never a password in clear**, not even in a comment next to its hash:
+  the sources get published.
+- **No required mod**: the mission's `requiredModules` table stays empty unless explicitly asked.
+  A single mod in it locks out of the server every player who does not have it. It fills up
+  silently when a mod unit is placed, or when an existing mission is taken over.
 - **Two uses, two configurations** in `mission.yaml`:
   - **default** = server: security on, `info` logs, all the weather variants;
   - **`LOCAL_TEST` profile** (`veaf-tools mission build --profile LOCAL_TEST`): security off,
@@ -142,6 +162,12 @@ why.
 - **One name everywhere**: group name = callsign (tanker families Texaco 1 / Arco 2 / Shell 3; AWACS
   Overlord 1 / Magic 2 / Wizard 3…) = preset label = `ASSETS` text. Same frequency everywhere. Declare
   them in `modules.ASSETS`.
+- **Laser-designating drones** (option): a drone in orbit with the FAC task, declared in
+  `modules.ASSETS` with its laser code and frequency (`jtac`, `freq`, `mod`), so the pilots find them
+  in the menu. If the MCP cannot give the FAC task, report it.
+- **Friendly carrier group** (option, if the map has sea and the players fly carrier aircraft):
+  carriers with TACAN, ICLS and Link 4 in the `ASSETS` text, a carrier-based tanker, a rescue
+  helicopter, the `CARRIER` module. Check what the MCP can place and switch on; report what it cannot.
 
 ### 4.4 Escorts
 
@@ -156,6 +182,11 @@ why.
 - **A few long-range batteries**, placed with judgement to cover the key areas without closing the
   whole sky (SA-10, SA-11, Patriot… **depending on the era and the side**; read in `list_shortcuts`
   which alias really places long range — an alias's name is not enough).
+- **No permanent defense covers an enemy base that has slots.** "Permanent" counts the
+  `#veafInterpreter` batteries **and** the combat zones activated at start (`active_at_start`).
+  Measure the distance from every medium- and long-range battery to every enemy base with slots, and
+  compare it with the weapon's range — sourced or measured in DCS; otherwise, give the distance as an
+  open point. A pilot taking off under an SA-10 is not training.
 - **Early-warning radars (EWR) behind the lines**, on both sides.
 - Placed permanently through `#veafInterpreter["-<alias>, country <country>, hdg <heading>"]`.
   **Carrier = a unit of the class spawned** (the alias's launcher), so the editor shows the range
@@ -185,8 +216,19 @@ write the same carrier at each level with an increasing value:
 - **check each level's composition** for the mission's era (`list_shortcuts`) before relying on it;
   if it does not fit, use explicit aliases.
 
+**Vary a site from one activation to the next** with the draw tags, on unit names: every element
+carrying the same `#spawngroup="<name>"` forms a set, `#spawncount=` says how many of them are sure to
+come up, `#spawnchance=` the chance of each. Example: four SA-15s placed,
+`#spawngroup="SA15" #spawncount=2` → two of them, never the same ones. A returning pilot does not
+find the site they learnt. Applies to the real zones too (4.7).
+
 Statics are the only way to have a **truly inert** target (a live armoured vehicle fires its machine
 gun at helicopters; no tag sets a unit to weapons hold). `training: true`, one radio menu per family.
+
+**As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
+beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a
+distress signal on the site. `training: true`, `completable: false`. The sounds must exist in the
+mission.
 
 ### 4.7 Real combat zones — at least 6 more than the training zones
 
@@ -211,7 +253,7 @@ Rules:
   convoys = **one native group** with a road route (points 2+ "On Road"), its air defense in the same
   group.
 - **Range of the active zones' SAMs**: none may reach a friendly base, a tanker track or a training
-  zone.
+  zone. A zone activated at start is a permanent defense: the rule of 4.5 applies to it.
 - Radio menus by kind, `training: false`.
 - **Each zone's briefing**: what, where (**bullseye bearing/range computed** from the x/y: x is north,
   y is east, bearing = atan2(Δy, Δx)), what to destroy, what defense (no unsourced figure), which
@@ -224,6 +266,11 @@ Rules:
   briefings which ones are covered.
 - **Circle inside the defending side's territory** (it triggers on its distance, not on a border).
 - **Graded response** (`groups_by_enemy_count`): few intruders → a light pair; more → more.
+- **Several variants per level, drawn at random**: each level lists several groups (fighters of
+  different threats) and `random_pick: 1` sends one of them. The pilots do not know what takes off.
+- **Delay and helicopters, decided and written**: `delay_before_activating` (the reaction time
+  between the first intruder's entry and the take-off) and `react_on_helicopters` (a QRA that reacts
+  to helicopters closes the area to helicopter missions). Say both in the briefing.
 - `create_qra`, era interceptors with a **loadout** (in each group: `pylons`, or `loadout_from` a
   `veafSpawn-*` group of the same type), `airport_link` on the base.
 - If red has slots: **blue QRAs** on a few blue bases, same rules.
@@ -248,9 +295,25 @@ Rules:
 
 ### 4.11 Modules
 
-`COMBATZONE`, `QRA`, `COMBATMISSION` (CAP), `ASSETS`, `MOVE`, `CTLD`, `CSAR`, `AIEN`, `STTS`, and
-**`SKYNET` with the spotter network** (`spotter_network: true`, F10 view switchable from the radio
-menu). A sound named in the CSAR / CTLD settings must exist in the mission.
+`COMBATZONE`, `QRA`, `COMBATMISSION` (CAP, scripted missions), `ASSETS`, `MOVE`, `CTLD`, `CSAR`,
+`AIEN`, `STTS`, and **`SKYNET` with the spotter network** (`spotter_network: true`, F10 view off:
+`spotter_view: "off"`, neither drawn nor offered on the radio menu). Depending on the options kept:
+`SANCTUARY` (4.1), `CARRIER` (4.3). A sound named in the CSAR / CTLD settings must exist in the mission.
+
+### 4.12 Scripted missions (option, 1 to 3)
+
+Scenarios started from the radio menu, beyond the CAPs (`COMBATMISSION` module). Examples that
+worked:
+- **defend a base**: an attack wave (SEAD then bombers) towards a friendly base, failed if named
+  buildings of the base are destroyed;
+- **timed bomber wave**: a formation to shoot down within a set time;
+- **intercept an escorted VIP transport** between two enemy bases;
+- **protect a support aircraft** (ELINT, transport) along its route.
+
+`combat_missions:` in `mission.yaml` carries only the elements and their groups: **no objectives**
+(time limit, buildings to protect, loss rate), **no pilot skill**. A mission that needs them is
+written in Lua (`VeafCombatMission`) in `src/scripts/mission-script.lua`, and you note it in
+"Feedback for VMCT".
 
 ## 5. Build order
 
@@ -259,7 +322,7 @@ menu). A sound named in the CSAR / CTLD settings must exist in the mission.
    user** before building.
 3. `mission.yaml`: identity, security and profiles, modules.
 4. Airfields and FARPs (4.1), support (4.3-4.4), air defense (4.5).
-5. Training zones (4.6), real zones (4.7), QRA (4.8), CAP (4.9).
+5. Training zones (4.6), real zones (4.7), QRA (4.8), CAP (4.9), scripted missions (4.12).
 6. Radio, weather, waypoints (4.10); date, bullseye, briefing.
 7. `validate_mission`, `build_mission` (and the `LOCAL_TEST` profile), then section 8.
 8. `README.md` + `readme.fr.md`: content, building, files, known limitations.
@@ -290,6 +353,12 @@ the sides; running DCS.
   - the structure of aircraft (altitude > 0, fuel, loadout), statics (`category`), ships;
   - the convoys' routes;
   - zones, QRAs and CAPs in `veaf-config.lua`;
+  - every name in `modules.ASSETS` (and its `linked` escort) names a group that exists: a name with
+    no group gives an empty menu, with no error;
+  - every `#veafInterpreter` carrier is of the type of the launcher its alias spawns (otherwise the
+    editor shows the range ring of another weapon);
+  - no permanent defense within reach of an enemy base with slots (4.5): the table of distances;
+  - `requiredModules` empty (4.2);
   - two weather variants **different in the fields DCS reads** (`clouds.preset`,
     `season.temperature`, `wind.atGround`), and a dawn time consistent with sunrise;
   - the `LOCAL_TEST` profile built without security, the default configuration with it.

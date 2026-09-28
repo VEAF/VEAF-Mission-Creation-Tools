@@ -532,4 +532,150 @@ function TestVeafMoveEscortLostByTheTeleport:test_the_warning_names_the_escort()
   luaunit.assertTrue(named, "the warning must name the escort group that did not come back")
 end
 
+-- ============================================================================
+-- FIX-TELEPORT-ESCORT-WAYPOINT — the rewrite follows the waypoint that carries the task
+--
+-- `teleportEscort` rewrites two waypoints: an approach, half-way between the teleport point and the
+-- escorted group's next waypoint, and the point where the Escort task takes over, on that next
+-- waypoint. It used to rewrite the last two, which is right only when the task is on the last one —
+-- the demo mission puts it on waypoint 2 of 3, so the approach landed on the task's waypoint and the
+-- task point on one that carries nothing.
+--
+-- The assertions are relative, so they do not depend on the escort's formation offset: whatever the
+-- offset, the task point sits (M - T) / 2 past the approach, and the approach sits exactly one offset
+-- length from the midpoint.
+-- ============================================================================
+TestVeafMoveTeleportEscortWaypoints = {}
+
+local _TELEPORT = { x = 1000, y = 1000, alt = 6000, speed = 200 }
+local _MOVE = { x = 5000, y = 5000, alt = 6000, speed = 200 }
+local _OFFSET_LENGTH = math.sqrt(100 * 100 + 200 * 200) -- |pos| of the Escort task, as the builders set it
+
+function TestVeafMoveTeleportEscortWaypoints:setUp()
+  dcs_mocks.reset()
+  self._savedGroupSpawn = VeafGroupSpawn
+  self._savedSchedule = veaf.scheduleFunction
+  _runScheduledImmediately()
+  -- A teleport that brings the group back, which is all this suite needs of veafSpawnCore.
+  VeafGroupSpawn = {
+    new = function()
+      local spawn
+      spawn = {
+        forGroup = function()
+          return spawn
+        end,
+        at = function()
+          return spawn
+        end,
+        teleport = function()
+          return {}
+        end,
+      }
+      return spawn
+    end,
+  }
+  dcs_mocks.addGroup("Arco", { _id = 11 })
+  dcs_mocks.addGroup("Arco escort", { _id = 20 })
+end
+
+function TestVeafMoveTeleportEscortWaypoints:tearDown()
+  VeafGroupSpawn = self._savedGroupSpawn
+  veaf.scheduleFunction = self._savedSchedule
+  dcs_mocks.reset()
+end
+
+--- Teleport the escort of a route whose Escort task sits on `taskIndex` of `pointCount`, and return
+--- the route points pushed to its controller.
+local function _teleportedPoints(taskIndex, pointCount)
+  _mission({ ["Arco escort"] = _groupDataWithTaskAt(20, 11, taskIndex, pointCount) })
+  luaunit.assertTrue(veafMove.teleportEscort("Arco", _MOVE, _TELEPORT))
+  local pushed = dcs_mocks.tasksSet[#dcs_mocks.tasksSet]
+  luaunit.assertNotNil(pushed, "the escort's mission was not replaced")
+  return pushed.task.params.route.points
+end
+
+local function _isApproach(point)
+  local dx = point.x - (_TELEPORT.x + _MOVE.x) / 2
+  local dy = point.y - (_TELEPORT.y + _MOVE.y) / 2
+  return math.abs(math.sqrt(dx * dx + dy * dy) - _OFFSET_LENGTH) < 1e-6
+end
+
+local function _assertTaskPointFollowsApproach(approach, taskPoint)
+  luaunit.assertTrue(_isApproach(approach), "the approach must sit one offset from the midpoint")
+  luaunit.assertAlmostEquals(taskPoint.x - approach.x, (_MOVE.x - _TELEPORT.x) / 2, 1e-6)
+  luaunit.assertAlmostEquals(taskPoint.y - approach.y, (_MOVE.y - _TELEPORT.y) / 2, 1e-6)
+end
+
+function TestVeafMoveTeleportEscortWaypoints:test_the_demo_mission_shape_rewrites_the_waypoint_carrying_the_task()
+  -- Three waypoints, the task on the second: the approach is waypoint 1, the task point waypoint 2.
+  local points = _teleportedPoints(2, 3)
+
+  _assertTaskPointFollowsApproach(points[1], points[2])
+  luaunit.assertEquals({ points[3].x, points[3].y }, { 3000, 3000 }, "a waypoint after the task keeps its editor position")
+end
+
+function TestVeafMoveTeleportEscortWaypoints:test_the_rewritten_waypoints_fly_the_move_leg_and_point_at_the_current_group()
+  -- The move leg's altitude and speed, not the teleport's; and the task aimed at the escorted group's
+  -- id as DCS knows it now (#107: a stale id is what makes an escort quit).
+  -- A fresh id, different from the stale 11 the mission stores, or the assertion could not fail.
+  dcs_mocks.removeGroup("Arco")
+  dcs_mocks.addGroup("Arco", { _id = 4242 })
+  _MOVE.alt, _MOVE.speed = 7000, 250
+  local points = _teleportedPoints(2, 3)
+  _MOVE.alt, _MOVE.speed = 6000, 200
+
+  for _, index in ipairs({ 1, 2 }) do
+    luaunit.assertEquals(points[index].alt, 7000)
+    luaunit.assertEquals(points[index].speed, 250)
+  end
+  luaunit.assertEquals(points[2].task.params.tasks[1].params.groupId, 4242, "the task must point at the escorted group's current id")
+end
+
+function TestVeafMoveTeleportEscortWaypoints:test_a_task_on_the_last_waypoint_is_rewritten_as_before()
+  -- The shape the code was written for: the approach and the task point are the same two waypoints.
+  local points = _teleportedPoints(3, 3)
+
+  _assertTaskPointFollowsApproach(points[1], points[2])
+end
+
+function TestVeafMoveTeleportEscortWaypoints:test_waypoints_before_the_approach_are_dropped()
+  -- David, 2026-09-28: the escort must work wherever it appears. An editor waypoint left ahead of the
+  -- approach sends it back to where the editor drew it before it ever reaches its charge.
+  local points = _teleportedPoints(3, 4)
+
+  luaunit.assertEquals(#points, 3, "the route must start at the approach")
+  _assertTaskPointFollowsApproach(points[1], points[2])
+  luaunit.assertEquals({ points[3].x, points[3].y }, { 4000, 4000 })
+end
+
+function TestVeafMoveTeleportEscortWaypoints:test_the_mission_record_is_left_as_the_editor_drew_it()
+  -- The rewrite works on a copy. It used to write into the mission database itself, so an asset
+  -- respawned after a teleport brought its escort back on the teleport's waypoints.
+  _teleportedPoints(2, 3)
+
+  local recorded = veaf.getGroupData("Arco escort").route.points
+  luaunit.assertEquals(#recorded, 3)
+  for index = 1, 3 do
+    luaunit.assertEquals({ recorded[index].x, recorded[index].y }, { index * 1000, index * 1000 })
+  end
+  luaunit.assertEquals(veaf.getGroupRoute("Arco escort")[1].x, 1000, "a respawn must read the editor's route")
+end
+
+function TestVeafMoveTeleportEscortWaypoints:test_a_task_on_the_first_waypoint_is_taken_up_at_the_approach()
+  -- There is no waypoint before it to approach through, so the task's own waypoint is the approach:
+  -- offset from the midpoint as before, and nothing else in the route is touched.
+  local points = _teleportedPoints(1, 3)
+
+  luaunit.assertTrue(_isApproach(points[1]), "the task's waypoint must be placed at the approach")
+  luaunit.assertEquals({ points[2].x, points[2].y }, { 2000, 2000 })
+  luaunit.assertEquals({ points[3].x, points[3].y }, { 3000, 3000 })
+end
+
+function TestVeafMoveTeleportEscortWaypoints:test_a_one_point_route_carrying_the_task_can_be_teleported()
+  -- The old "fewer than two waypoints" refusal was about rewriting the last two; one is now enough.
+  local points = _teleportedPoints(1, 1)
+
+  luaunit.assertTrue(_isApproach(points[1]))
+end
+
 os.exit(luaunit.LuaUnit.run())

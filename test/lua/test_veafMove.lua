@@ -735,9 +735,19 @@ function TestVeafMoveOrbitNeighbours:test_the_neighbours_of_a_mid_route_orbit()
   local points = { _plainPoint(0), _plainPoint(1), _orbitPoint(2), _plainPoint(3), _plainPoint(4) }
   local r = self:_routeOf(points)
   luaunit.assertEquals(r.orbitIndex, 3)
-  luaunit.assertIs(r.point1, points[2])
-  luaunit.assertIs(r.point2, points[3])
-  luaunit.assertIs(r.point3, points[4])
+  luaunit.assertIs(r.point1, r.points[2])
+  luaunit.assertIs(r.point2, r.points[3])
+  luaunit.assertIs(r.point3, r.points[4])
+end
+
+-- The route handed back is a copy: callers overwrite its waypoints, and the mission database's own
+-- record used to be what they overwrote, so a tanker respawned after a move came back on the moved
+-- route (FIX-TELEPORT-ESCORT-WAYPOINT, the same defect on the escort's side).
+function TestVeafMoveOrbitNeighbours:test_the_route_handed_back_is_not_the_mission_record()
+  local points = { _plainPoint(0), _orbitPoint(1), _plainPoint(2) }
+  local r = self:_routeOf(points)
+  r.point2.x = 123456
+  luaunit.assertEquals(points[2].x, _orbitPoint(1).x, "overwriting the route must leave the record alone")
 end
 
 -- point1 is optional: an orbit on the first waypoint has no approach point before it, and refusing
@@ -760,7 +770,7 @@ end
 function TestVeafMoveOrbitNeighbours:test_a_race_track_orbit_keeps_its_leg_end()
   local points = { _plainPoint(0), _orbitPoint(1, "Race-Track"), _plainPoint(2) }
   local r = self:_routeOf(points)
-  luaunit.assertIs(r.point3, points[3])
+  luaunit.assertIs(r.point3, r.points[3])
 end
 
 -- A Circle orbit turns around a single point and gives the next waypoint no orbit role, so handing it

@@ -169,11 +169,16 @@ end
 function VeafMG_Weapon:getCurrentEnergy()
   local _result = nil
   if self:getDcsWeapon() then
-    local _mass = 250 -- let's say the missile weights 250kg
+    -- A flat 250 kg for every weapon, on purpose: the weapon description DCS exposes carries the
+    -- warhead's mass, not the missile's (`veaf_libs/data/dcs-schema/dcs-world-api.lua`), so there is
+    -- nothing better to read. The result compares one weapon with itself over time, not two weapons.
+    local _mass = 250
     local _vector = self:getDcsWeapon():getVelocity()
     local _absVelocity = veaf.vecMag(_vector)
     local _kinetic = (_mass / 2) * _absVelocity * _absVelocity
-    local _alt = self:getDcsWeapon():getPoint().z
+    -- `y`, the altitude of a runtime vec3; `z` is the easting (docs/agents/dcs-coordinates.md), and
+    -- reading it made the potential term scale with how far east the missile flew.
+    local _alt = self:getDcsWeapon():getPoint().y
     local _potential = _mass * 9.81 * _alt
     _result = _kinetic + _potential
   end

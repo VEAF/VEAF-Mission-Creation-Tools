@@ -109,6 +109,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   detected again either. An `OnDetectedAction` or `OnLostAction` that raises is now logged with
   its message instead of being swallowed.
 
+- **A teleported tanker's escort takes up its task on the waypoint that carries it.** The
+  teleport rewrote the last two waypoints of the escort's route, which is right only when the
+  `Escort` task sits on the last one; with the task on waypoint 2 of 3, as in the demo mission, the
+  escort was sent to a waypoint carrying nothing. It now rewrites the task's waypoint and the one
+  before it, drops the editor waypoints ahead of them — the escort used to fly back to those before
+  reaching its charge — and no longer refuses a one-point route.
+
+- **Moving a tanker, its escort or an AFAC no longer rewrites the mission's own record.** These paths edited
+  the waypoints the mission database holds instead of a copy, so an asset respawned after a move or
+  a teleport came back on the moved route rather than the one drawn in the editor.
+
+- **The missile guardian's energy estimate reads the missile's altitude, not its easting.**
+  `VeafMG_Weapon:getCurrentEnergy` took `z` of a runtime position as a height, so its potential
+  term grew with how far east the missile flew. Nothing calls it yet, so no mission behaved
+  differently.
+
 ### Changed
 
 - **The `veaf.lua` logger forwards its values explicitly.** Its five methods relied on the implicit

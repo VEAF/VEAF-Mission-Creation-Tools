@@ -1,6 +1,6 @@
 # FIX-TELEPORT-ESCORT-WAYPOINT — the teleport path still rewrites the wrong waypoints, and may not work at all
 
-Status: ⬜ ready — **finding 1 is answered** (measured in game 2026-09-01: the teleported escort holds formation *and* engages, so the path works and the code comment claiming otherwise is gone). What is left is finding 2, the waypoint arithmetic, and it no longer waits on anything.
+Status: ✅ done — 2026-09-28, finding 2 fixed: `findEscortTask` returns the task's waypoint index and the teleport rewrites that waypoint and the one before it. Finding 1 was answered in game on 2026-09-01.
 
 Origin: two things found while sizing option (b) of
 [`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md) on 2026-08-28, and ruled out
@@ -59,10 +59,25 @@ measurement gates the fix, and both live here.
 
 ## Definition of done
 
-- [ ] Measured in game: does the teleported escort hold formation, and does it engage? Both answers
+- [x] Measured in game: does the teleported escort hold formation, and does it engage? Both answers
       recorded here, with the mission and the date
-- [ ] The repository tells one story — whichever of the two notes is wrong is corrected, in the code
+- [x] The repository tells one story — whichever of the two notes is wrong is corrected, in the code
       comment and in `FIX-ESCORT-RESPAWN-TASK`'s PRD
-- [ ] If the path is kept: the rewrite targets the waypoint that actually carries the task, with a
+- [x] If the path is kept: the rewrite targets the waypoint that actually carries the task, with a
       unit test on the demo mission's shape (3 waypoints, task on wp2)
-- [ ] If the path is not kept: what replaces it, and the ASSETS / MOVE pages updated
+- [ ] ~~If the path is not kept~~ — it is kept (finding 1) what replaces it, and the ASSETS / MOVE pages updated
+
+## Delivered 2026-09-28
+
+- `findEscortTask` also returns the index of the waypoint carrying the task; `teleportEscort` rewrites
+  that waypoint and the one before it (the approach), or only the task's waypoint when it is the first.
+- The route pushed to the escort **starts at the approach**: the editor waypoints ahead of it are
+  dropped. David, 2026-09-28: the escort must work wherever it appears, and those waypoints sent it
+  back to where the editor drew it before it reached its charge. Waypoints after the task are kept.
+- Found by the diff review, fixed here on David's call: `teleportEscort` and `_getTankerRouteData`
+  rewrote the mission database's own record (`getGroupData` returns it, not a copy), so an asset
+  respawned after a move came back on the moved route. Both now work on a copy.
+- `moveAfac`, same defect, fixed on David's call: an editor AFAC now works on a copy of its record. A
+  dynamically spawned AFAC's template (`veafSpawn.AFAC.missionData`) is deliberately **not** copied:
+  it is that AFAC's live state, and `veafSpawn.afacWatchdog` reads the moved orbit back from it to
+  move the AFAC's marker. A test pins each side.

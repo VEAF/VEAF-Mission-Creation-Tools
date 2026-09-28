@@ -273,7 +273,9 @@ end
 --- exception: it turns around a single point and gives the next waypoint no orbit role, so `point3` is
 --- withheld there rather than letting a caller redraw the route. See ticket 01 of FIX-MOVE-ORBIT-SEARCH.
 function veafMove._getTankerRouteData(groupName)
-  local tankerData = veaf.getGroupData(groupName)
+  -- A copy: callers overwrite these waypoints, and `getGroupData` answers the mission database's own
+  -- record, so a tanker respawned after a move used to come back on the moved route.
+  local tankerData = veaf.deepCopy(veaf.getGroupData(groupName))
   if not tankerData then
     return nil, "Cannot find group data for tanker " .. groupName
   end
@@ -640,10 +642,10 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Finds the Escort task of an escort group, in the group data DCS keeps for it.
 --
--- The task lives on the **last** waypoint of the escort's route, which is where a mission maker sets
--- it up in the editor. Returns nil as soon as any link of that chain is missing -- no group data, no
--- route, no task table, no enabled Escort task -- because that is the ordinary case for a group that
--- simply has no escort, not an error to report.
+-- The task may sit on any waypoint of the escort's route; the last one is searched first. Returns nil
+-- as soon as any link of that chain is missing -- no group data, no route, no task table, no enabled
+-- Escort task -- because that is the ordinary case for a group that simply has no escort, not an
+-- error to report.
 --
 -- @param groupName_escort, string, the name of the escort group itself (see EscortGroupNameSuffix)
 -- @return escortData, table, the escort's group data (nil when there is no Escort task to be found)
@@ -651,6 +653,7 @@ end
 -- @return points_escort, table, the route points already walked to find it -- returned rather than
 --         left to the caller to recompute, because two traversals of this structure would be two
 --         things to keep in step, which is the whole reason this lookup was extracted
+-- @return taskIndex, number, the waypoint of `points_escort` that carries the task
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafMove.findEscortTask(groupName_escort)
   local escortData = veaf.getGroupData(groupName_escort)
@@ -685,7 +688,7 @@ function veafMove.findEscortTask(groupName_escort)
             index,
             task.params.groupId
           )
-          return escortData, task, points_escort
+          return escortData, task, points_escort, index
         end
       end
     end
@@ -826,20 +829,47 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
 
   -- Same lookup the respawn path uses (reestablishEscortTask): one implementation of where an Escort
   -- task lives and what a valid one looks like.
-  local EscortData, task_escort, points_escort = veafMove.findEscortTask(groupName_escort)
+  local EscortData, task_escort, points_escort, taskIndex = veafMove.findEscortTask(groupName_escort)
   if not task_escort then
     veaf.loggers.get(veafMove.Id):info(groupName_escort .. " carries no Escort task ; cannot move its escort")
     return false
   end
 
-  if #points_escort < 2 then
-    -- The teleport rewrites the last two waypoints; with a single one there is nothing to rewrite.
-    -- findEscortTask accepts a one-point route on purpose: repairing the task needs no waypoints.
-    veaf.loggers.get(veafMove.Id):info(groupName_escort .. " has fewer than two waypoints ; cannot move its escort")
-    return false
+  -- A copy, because `findEscortTask` hands back the mission database's own record: rewriting it in
+  -- place made a later respawn put the escort back on the teleport's waypoints. The task is taken
+  -- from the copy at the key it holds in the original, so what is edited is what is pushed.
+  local taskKey = nil
+  for key, task in pairs(points_escort[taskIndex].task.params.tasks) do
+    if task == task_escort then
+      taskKey = key
+    end
   end
-  local point1_escort = points_escort[#points_escort - 1] --second to last waypoint
-  local point2_escort = points_escort[#points_escort] --last waypoint where the escort has to be set up in the editor
+  EscortData = veaf.deepCopy(EscortData)
+  points_escort = EscortData.route.points
+  task_escort = points_escort[taskIndex].task.params.tasks[taskKey]
+
+  -- The two waypoints rewritten below are the one that carries the Escort task and the one before it,
+  -- wherever the task sits. They used to be the last two, which is right only when the task is on the
+  -- last waypoint -- the demo mission puts it on waypoint 2 of 3, so the task point landed on a
+  -- waypoint carrying nothing (FIX-TELEPORT-ESCORT-WAYPOINT). With the task on waypoint 1 there is
+  -- nothing before it, and that waypoint is placed at the approach: the escort takes up its charge
+  -- there.
+  --
+  -- The route starts at the approach: the waypoints before it are dropped. They sit where the editor
+  -- drew them, and the escort would fly back to them before reaching its charge -- David, 2026-09-28:
+  -- the escort must work wherever it appears. Waypoints after the task are kept; they only come into
+  -- play once the escorting is over.
+  local firstIndex = math.max(taskIndex - 1, 1)
+  local route = {}
+  for index = firstIndex, #points_escort do
+    table.insert(route, points_escort[index])
+  end
+  EscortData.route.points = route
+  local point2_escort = nil
+  local point1_escort = route[1]
+  if taskIndex > 1 then
+    point2_escort = route[2]
+  end
   veaf.loggers.get(veafMove.Id):trace("Required escort ID : %s", escortedId)
 
   --distances by which the escort is offseted from the escorted group in the map's referential, task_escort provides relative spacing
@@ -862,10 +892,12 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
   point1_escort.speed = movePoint.speed
 
   --Waypoint 1 where the escort tasking will come into play
-  point2_escort.x = 2 * point1_escort.x - teleportPoint.x - escort_offset.x
-  point2_escort.y = 2 * point1_escort.y - teleportPoint.y - escort_offset.z
-  point2_escort.alt = movePoint.alt + task_escort.params.pos.y
-  point2_escort.speed = movePoint.speed
+  if point2_escort then
+    point2_escort.x = 2 * point1_escort.x - teleportPoint.x - escort_offset.x
+    point2_escort.y = 2 * point1_escort.y - teleportPoint.y - escort_offset.z
+    point2_escort.alt = movePoint.alt + task_escort.params.pos.y
+    point2_escort.speed = movePoint.speed
+  end
 
   task_escort.params.groupId = escortedId --assign the new groupID within the old escort mission, only necessary after teleporting as the tanker's ID will have changed
 
@@ -887,10 +919,6 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
   -- the escort just doesn't defend the group" — is wrong, and it had been contradicting
   -- FIX-ESCORT-RESPAWN-TASK's own PRD ("works, escort held for 30 min") for long enough that the
   -- repository told two stories about the same path. It tells one now.
-  --
-  -- What is still open is FIX-TELEPORT-ESCORT-WAYPOINT's second finding: the rewrite below assumes
-  -- the Escort task sits on the LAST waypoint, while `findEscortTask` was taught to search every
-  -- waypoint because the demo mission puts it on waypoint 2 of 3.
 
   --veaf.goRoute(groupName_escort, route_escort)
   --works even worse, sends them to X=0, Z=0
@@ -994,7 +1022,11 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
 
   local coalition = unitGroup:getCoalition()
 
-  local afacData = veaf.getGroupData(groupName)
+  -- A copy of the editor's record, which the waypoints below are rewritten into: rewriting the record
+  -- itself made a later respawn bring the AFAC back on the moved route. A dynamically spawned AFAC's
+  -- template further down is *not* copied, on purpose -- it is that AFAC's live state, and
+  -- `veafSpawn.afacWatchdog` reads the moved orbit back from it to move the AFAC's marker.
+  local afacData = veaf.deepCopy(veaf.getGroupData(groupName))
   local isDynamicallySpawned = false
   if not afacData then
     for number, dynAFACcallsign in pairs(veafSpawn.AFAC.callsigns[coalition]) do

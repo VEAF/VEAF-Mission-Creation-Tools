@@ -401,6 +401,7 @@ class TestConnexionParamiko:
     def fake_paramiko(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
         paramiko = pytest.importorskip("paramiko")
         events: list[str] = []
+        connect_kwargs: dict = {}
 
         class FakeClient:
             def __init__(self) -> None:
@@ -414,6 +415,7 @@ class TestConnexionParamiko:
 
             def connect(self, host, **kwargs) -> None:
                 events.append(f"connect {host}:{kwargs['port']} as {kwargs['username']}")
+                connect_kwargs.update(kwargs)
                 if kwargs.get("password") is not None:
                     raise AssertionError("un mot de passe ne doit jamais etre envoye")
                 # L'hote est inconnu : la politique decide.
@@ -438,7 +440,7 @@ class TestConnexionParamiko:
             nonlocal fail_sftp
             fail_sftp = True
 
-        return SimpleNamespace(events=events, fail_sftp=make_sftp_fail)
+        return SimpleNamespace(events=events, fail_sftp=make_sftp_fail, connect_kwargs=connect_kwargs)
 
     def test_cle_acceptee_puis_sftp(self, fake_paramiko, remote: Path):
         from veaf_logs.remote import _connect
@@ -446,6 +448,15 @@ class TestConnexionParamiko:
         client, sftp = _connect(_server(remote), lambda hostname, fingerprint: True)
         assert sftp == "sftp"
         assert fake_paramiko.events == ["load_host_keys", "connect dcs.veaf.org:22 as veaf", "open_sftp"]
+
+    def test_signatures_sha1_refusees(self, fake_paramiko, remote: Path):
+        # paramiko <= 4.0.0 accepte encore `ssh-rsa` (SHA-1, CVE-2026-44405) et aucune version ne
+        # le corrige : on le coupe a l'appel. Les cles RSA passent par rsa-sha2-256/512.
+        from veaf_logs.remote import _connect
+
+        _connect(_server(remote), lambda hostname, fingerprint: True)
+        disabled = fake_paramiko.connect_kwargs.get("disabled_algorithms")
+        assert disabled == {"pubkeys": ["ssh-rsa"], "keys": ["ssh-rsa"]}
 
     def test_cle_refusee_coupe_la_connexion(self, fake_paramiko, remote: Path):
         import paramiko

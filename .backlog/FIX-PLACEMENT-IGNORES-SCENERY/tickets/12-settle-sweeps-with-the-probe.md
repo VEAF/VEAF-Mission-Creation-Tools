@@ -1,7 +1,8 @@
 # 12 — `settleGroup` sweeps with the probe instead of asking for a clearing
 
-Status: ⬜ ready — designed and **measured on the live mission**, not yet implemented. David's call,
-2026-09-26 evening: *"si la sonde marche mais pas getSimpleZone, pourquoi on n'utilise pas le même
+Status: 🧑 waiting-human — implemented 2026-09-28 (branch `fix/placement-sweep-probe`), 49 Lua
+suites green; what is left is the in-game measurement, item R16 of `DCS-SESSION-TODO.md`. David's
+call, 2026-09-26 evening: *"si la sonde marche mais pas getSimpleZone, pourquoi on n'utilise pas le même
 concept que la sonde en jeu avant de spawner des trucs ?"*
 Type: fix
 
@@ -62,24 +63,45 @@ Run on the live mission, 6.25.0.3, on the 14 groups holding blocked vehicles:
   halo removed entirely** — so it is the wood that is closed, not the criterion that is too strict.
 - Every solution was revalidated independently afterwards: 0 blocked vehicles, 0 without halo.
 
+## What was built, 2026-09-28
+
+Three decisions, two of them David's, taken before the code:
+
+1. **No halo** (David, 2026-09-28). The halo was justified by the layout being redrawn at every
+   spawn, but `settleGroup` runs **after** `placeGroup`, on the layout actually drawn, and runs
+   again on every respawn: what it validates is exactly what spawns. The halo came from the live
+   trial, which looked for one position valid across draws. One probe per vehicle, the acceptance
+   probe's own criterion.
+2. **`SETTLE_MAX_TRANSLATION` = 300 m, `SETTLE_SWEEP_PROBE_BUDGET` = 1000** (David, 2026-09-28).
+   300 rather than the 240 first proposed, because ticket 10 translated groups by 118 to 278 m and
+   ticket 11 moved one by 266 m: a tighter bound would give up on groups the previous code moved.
+   At a 20 m step a full sweep is 761 offsets, so a group with no way out costs about 761 probes,
+   inside the budget; the budget is a safety bound for tuned values, not the operative limit.
+3. **One frame.** Spreading the sweep over frames means deferring the spawn, which empties
+   `veafSkynet.declareSpawn` (ticket 11, *Deferring the spawn was tried*). Not an open choice.
+
+The public name `SETTLE_MAX_TRANSLATION` is kept, since `LUA_API_REFERENCE` documents it as a
+setting; `SETTLE_CLEARANCE_ASKED`, `SETTLE_DRAWS` and `SETTLE_MAX_CANDIDATES_VERIFIED` are gone, and
+`SETTLE_SWEEP_STEP` (20 m) and `SETTLE_SWEEP_PROBE_BUDGET` are new.
+
 ## Definition of done
 
-- [ ] A failing test first: a group whose neighbourhood `getSimpleZones` refuses to describe is still
+- [x] A failing test first: a group whose neighbourhood `getSimpleZones` refuses to describe is still
       moved to a clear spot found by sweeping
-- [ ] A test pinning the halo: an offset clear at the vehicles' own points but not at 40 m around
+- [x] ~~A test pinning the halo~~ — **dropped** with the halo, decision 1 above. Pinned instead: the outermost units are probed first: an offset clear at the vehicles' own points but not at 40 m around
       them is **rejected**
-- [ ] `settleGroup` no longer calls `Disposition.getSimpleZones` with a clearance argument at all;
+- [x] `settleGroup` no longer calls `Disposition.getSimpleZones` with a clearance argument at all;
       `SETTLE_CLEARANCE_ASKED` and `SETTLE_MAX_CANDIDATES_VERIFIED` go with it, or are restated as
       sweep bounds
-- [ ] The sweep is **bounded** — probe budget and maximum radius — and the bound is a measurement
+- [x] The sweep is **bounded** — probe budget and maximum radius — and the bound is a measurement
       rather than a hunch. A 600-probe budget is 0.23 s, against the 36 ms currently spent for
       nothing; decide whether that is spent in one frame or spread over several
-- [ ] The rigid translation is unchanged — inter-unit distances preserved to the metre
+- [x] The rigid translation is unchanged — inter-unit distances preserved to the metre
 - [ ] The sweep's yield is **remeasured** with the corrected criterion — probing before the
       group's units exist — since the figures above were taken with the broken one
 - [ ] Verified **in game** on GermanyCW-v6: blocked vehicles and the cost of one activation of the
       25 zones measured, not estimated
-- [ ] `poetry run test-lua` green, `stylua --check` and `luacheck` clean
-- [ ] `CHANGELOG.md` entry under `[Unreleased]`
-- [ ] `known-limitations.yaml` records that the probe is the usable half of the singleton and the
+- [x] `poetry run test-lua` green (49 suites), `stylua --check` clean; `luacheck` runs in CI
+- [x] `CHANGELOG.md` entry under `[Unreleased]`
+- [x] `known-limitations.yaml` records that the probe is the usable half of the singleton and the
       large query should not be used to find a clearing at all

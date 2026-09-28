@@ -288,6 +288,32 @@ does an object **recreated** by `coalition.addGroup` / `addStaticObject` keep th
 a neutral one proves nothing, since those show anyway. He was asked to try the neutral → red switch
 on one sandbag, which would confirm the coalition reading on its own.
 
+### R16. Does `settleGroup`'s sweep get more vehicles out of the trees than ticket 11 did?
+
+[`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 12.
+`veafUnits.settleGroup` no longer asks `Disposition` to propose a clearing; it sweeps rings of
+growing radius (20 m apart, up to 300 m) with the small per-point probe. The reference is ticket
+11's run on GermanyCW-v6, 2026-09-26 evening: **17 vehicles under trees before `settleGroup`, 4
+after**, 4 of 31 groups translated, formations to 0.0000 m.
+
+**Run**: GermanyCW-v6 rebuilt with this branch, with the DCS bridge injected (see the memory note
+on the bridge). David only launches the mission; the measurement goes through the bridge, the same
+way as ticket 11's: wrap `settleGroup` to probe every unit **before** the spawn (never after — the
+probe counts the group's own vehicles), activate the 25 combat zones once, and record per call the
+translation, the probe count and the elapsed time.
+
+- **Fewer than 4 vehicles under trees after `settleGroup`**, formations unchanged: the sweep does
+  what the large query could not. Record the figures in ticket 12 and close it.
+- **Still about 4**: the vehicles left are in places the sweep cannot reach within 300 m either.
+  Read their `no offset within 300m` lines before touching the bound: raising it only helps if the
+  probe finds ground a little beyond 300 m.
+- **More than 4**, or a formation distance that moves: a regression. Look first at the groups the
+  log says gave up with `no offset within`: ticket 11 accepted translations up to 1000 m and was
+  measured moving one group **266 m**, so a group whose nearest clear ground lies beyond the sweep's
+  radius is the expected shape of a regression here.
+- **Whatever the count**: note the worst per-group time. Above about 0.4 s for one group, the probe
+  cost is not the 0.38 ms measured, and `SETTLE_SWEEP_PROBE_BUDGET` has to be sized again.
+
 ---
 
 ---

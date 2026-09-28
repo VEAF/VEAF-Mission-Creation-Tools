@@ -738,6 +738,23 @@ Training mode is ideal for BFM / CAS training scenarios where pilots need to kno
 
 ---
 
+## Following a zone live in the log {#diagnostics}
+
+When a zone does not behave as expected (the info panel does not show what is on the ground, the
+zone never completes), switch the diagnostics on in `mission.yaml`:
+
+```yaml
+module_settings:
+  veaf.Diagnostics: true
+```
+
+Every zone then writes `DIAG|` lines to `dcs.log`, at `info` level whatever the modules' log levels:
+the activation request and who made it, every element spawned (its group, its live units and their
+types) or failed, the exact content of the info panel group by group, every pass of the completion
+watchdog with its decision, and the deactivation. Filter the log on `DIAG|` to read only that.
+
+It is verbose: keep it for a session you are watching, then set it back to `false`.
+
 ## See Also
 
 - [veafCasMission](veafCasMission.en.md) — generated CAS zones (no pre-placed groups needed)

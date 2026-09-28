@@ -45,6 +45,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`offer_clear_ground_check`) and never launches it. The Saved Games folder is now found where
   Windows keeps it, even moved or redirected to OneDrive (also used by `veaf-tools doctor`).
 
+- **Follow a combat zone live in `dcs.log`.** `module_settings: { veaf.Diagnostics: true }` in
+  `mission.yaml` makes every zone write `DIAG|` lines at `info`, whatever the modules' log levels:
+  the activation request, each element spawned (its group, live units and types) or failed, the info
+  panel's exact content group by group, each pass of the completion watchdog with its decision, and
+  the deactivation. Off by default; meant for a session someone is watching.
+
 ### Fixed
 
 - **`veafUnits.settleGroup` no longer takes `Disposition`'s word for a clearing.**

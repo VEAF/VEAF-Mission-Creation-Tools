@@ -40,6 +40,11 @@ veaf.DEFAULT_GROUND_SPEED_KPH = 30
 
 --- if true, the spawned group names will not contain any information pertaining to their type
 veaf.HideNamesFromSpawnedGroups = true
+
+--- if true, `veaf.diag` writes its `DIAG|` lines at info level, whatever the modules' log levels.
+--- Meant for a watched session: set it with `module_settings: { veaf.Diagnostics: true }` in
+--- mission.yaml, read the log with a filter on `DIAG|`, and switch it back off.
+veaf.Diagnostics = false
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -4620,6 +4625,22 @@ function veaf.loggers.get(loggerId)
     result = veaf.loggers.get("veaf")
   end
   return result
+end
+
+--- Write a diagnostic line, when `veaf.Diagnostics` is on.
+--- At info level and past the module's own level on purpose: the lines exist to be read on a server
+--- that runs at info or below, so obeying a module's `warning` would hide them where they were asked
+--- for. Every line carries `DIAG|`, which is the one filter a watched session needs -- and newlines
+--- are folded into ` / `, because dcs.log writes them as they are and only the first line would carry
+--- the marker: a filter would keep a panel's header and drop the list it shows.
+--- @param loggerId string the module whose logger writes the line
+--- @param text string a format string, as for the logger's own methods
+function veaf.diag(loggerId, text, ...)
+  if not veaf.Diagnostics then
+    return
+  end
+  local line = veaf.Logger.formatText("DIAG|" .. text, ...):gsub("\r?\n", " / ")
+  veaf.loggers.get(loggerId):print(veaf.Logger.LEVEL["info"], line)
 end
 
 if veaf.Development then

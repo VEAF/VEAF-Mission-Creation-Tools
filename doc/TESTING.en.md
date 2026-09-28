@@ -166,6 +166,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafAirbases.lua` | Airbase data lookup |
 | `test_veafCombatZone.lua` | Zone activation, scoring, state machine |
 | `test_veafCombatZone_displacement.lua` | Spawn anchor of a widely spread group: it keeps its shape |
+| `test_veafDiagnostics.lua` | The `veaf.Diagnostics` switch and the combat zones' diagnostic lines |
 | `test_veafUnits.lua` | Unit template lookup, category filtering |
 | `test_veafAssets.lua` | Asset registration, state tracking |
 | `test_veafAssist.lua` | Pilot assistance: checklists, progression, menus |

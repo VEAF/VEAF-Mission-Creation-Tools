@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-PROMPT-FINDINGS — what applying the 28/09 Open Training prompt to a mission found
 
-Status: 🔄 in-progress — opened 2026-09-28; all six tickets done, PR under review.
+Status: ✅ done — opened and closed 2026-09-28, PR #1022.
 
 ## Origin
 

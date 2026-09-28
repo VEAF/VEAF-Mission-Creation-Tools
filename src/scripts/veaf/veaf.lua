@@ -4326,11 +4326,14 @@ function veaf.Logger.formatText(text, ...)
   if type(text) ~= "string" then
     text = veaf.p(text)
   else
-    local args = ...
-    if args and args.n and args.n > 0 then
+    -- the values themselves, counted with select("#", ...) so trailing nils are kept. The methods
+    -- used to pass the implicit `arg` table of Lua 5.0 instead, which only exists when the
+    -- interpreter is built with LUA_COMPAT_VARARG; dcsDataExport.lua moved off it first (VMR-079).
+    local n = select("#", ...)
+    if n > 0 then
       local pArgs = {}
-      for i = 1, args.n do
-        pArgs[i] = veaf.p(args[i])
+      for i = 1, n do
+        pArgs[i] = veaf.p((select(i, ...)))
       end
       -- add a few empty strings for safety
       for i = 1, 20 do
@@ -4398,7 +4401,7 @@ end
 
 function veaf.Logger:error(text, ...)
   if self:getEffectiveLevel() >= 1 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     local mText = text
     if debug and debug.traceback then
       mText = mText .. "\n" .. debug.traceback()
@@ -4409,28 +4412,28 @@ end
 
 function veaf.Logger:warn(text, ...)
   if self:getEffectiveLevel() >= 2 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     self:print(2, text)
   end
 end
 
 function veaf.Logger:info(text, ...)
   if self:getEffectiveLevel() >= 3 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     self:print(3, text)
   end
 end
 
 function veaf.Logger:debug(text, ...)
   if self:getEffectiveLevel() >= 4 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     self:print(4, text)
   end
 end
 
 function veaf.Logger:trace(text, ...)
   if self:getEffectiveLevel() >= 5 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     self:print(5, text)
   end
 end

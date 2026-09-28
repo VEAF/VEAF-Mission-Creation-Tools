@@ -1390,6 +1390,41 @@ function TestVeafLogger:test_errorDoesNotError()
   luaunit.assertTrue(true)
 end
 
+-- formatText takes the values themselves, as its signature says; it used to take the implicit
+-- `arg` table of its callers, and a direct call with plain values raised.
+function TestVeafLogger:test_formatTextTakesTheValuesThemselves()
+  local s = veaf.Logger.formatText("a=%s b=%s", 1, "two")
+  luaunit.assertStrContains(s, "a=1 b=two")
+end
+
+function TestVeafLogger:test_formatTextCountsTrailingNils()
+  local s = veaf.Logger.formatText("a=%s b=%s", 1, nil)
+  luaunit.assertStrContains(s, "a=1 b=[nil]")
+end
+
+-- Every level formats its values. This passed before the methods forwarded `...`, too: the
+-- scripting environment, like the PUC-Rio 5.1 the tests run on, has LUA_COMPAT_VARARG, and the
+-- production dcs.log shows the values formatted (FIX-AUDIT-FINDINGS-AND-DEPENDENCY-ALERTS). It pins
+-- the behaviour the methods must keep, at the level callers use.
+function TestVeafLogger:test_everyLevelFormatsItsValues()
+  local log = veaf.Logger:new("TL", "trace")
+  log:setLevel("trace", true) -- past veaf.BaseLogLevel, which caps a new logger
+  local printed = {}
+  local savedPrint = log.print
+  log.print = function(_, level, text)
+    printed[level] = text
+  end
+  log:error("v=%s", 1)
+  log:warn("v=%s", 2)
+  log:info("v=%s", 3)
+  log:debug("v=%s", 4)
+  log:trace("v=%s", 5)
+  log.print = savedPrint
+  for level = 1, 5 do
+    luaunit.assertStrContains(printed[level], "v=" .. level)
+  end
+end
+
 -- ===========================================================================
 -- veaf.loggers.new / veaf.loggers.get / veaf.loggers.setBaseLevel
 -- ===========================================================================

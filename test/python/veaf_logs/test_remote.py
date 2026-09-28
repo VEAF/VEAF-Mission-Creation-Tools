@@ -449,9 +449,9 @@ class TestConnexionParamiko:
         assert sftp == "sftp"
         assert fake_paramiko.events == ["load_host_keys", "connect dcs.veaf.org:22 as veaf", "open_sftp"]
 
-    def test_signatures_sha1_refusees(self, fake_paramiko, remote: Path):
-        # paramiko <= 4.0.0 accepte encore `ssh-rsa` (SHA-1, CVE-2026-44405) et aucune version ne
-        # le corrige : on le coupe a l'appel. Les cles RSA passent par rsa-sha2-256/512.
+    def test_sha1_signatures_are_refused(self, fake_paramiko, remote: Path):
+        # paramiko <= 4.0.0 still accepts `ssh-rsa` (SHA-1, CVE-2026-44405) and no release fixes
+        # it, so it is disabled at the call site. RSA keys go through rsa-sha2-256/512.
         from veaf_logs.remote import _connect
 
         _connect(_server(remote), lambda hostname, fingerprint: True)

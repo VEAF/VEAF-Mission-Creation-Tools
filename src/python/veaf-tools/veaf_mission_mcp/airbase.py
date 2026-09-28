@@ -5,7 +5,7 @@ An airfield's coalition lives in the **warehouses** table — `warehouses.airpor
 groups). Placing a blue unit near a base therefore never turns the base blue. This module edits the
 durable warehouses side of a mission folder so a later build produces a `.miz` with the base on the
 right side, and turns on its Dynamic Spawn slots at the same time (the build's warehouses injector
-then stocks it — see `src/warehouses.yaml`). See `.backlog/FEAT-MCP-AIRBASES-WAREHOUSES/PRD.md`.
+then stocks it — see `src/warehouses.yaml`). See `.backlog/archive/FEAT-MCP-AIRBASES-WAREHOUSES.md`.
 """
 
 import copy

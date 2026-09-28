@@ -3,7 +3,7 @@
 Each builder orchestrates the wave-1..7 primitives on a mission **folder** (David's model): it
 edits the durable source — the exploded ``src/mission/`` (trigger zones + groups) and
 ``mission.yaml`` (module config) — so a later ``veaf-tools build`` produces the ``.miz``. No build
-is triggered here. See ``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md`` (wave 8).
+is triggered here. See ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`` (wave 8).
 """
 
 import copy

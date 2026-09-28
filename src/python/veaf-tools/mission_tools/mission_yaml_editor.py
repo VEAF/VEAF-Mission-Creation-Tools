@@ -6,7 +6,7 @@ commented **source** file that Mission Makers edit by hand (and the shipped defa
 in lockstep with generated output), so the VMCT MCP actions must not flatten it. This brick
 wraps ``ruamel.yaml`` in round-trip mode so comments, key order, quoting and layout survive,
 and backs the file up before every write — the same safety contract as the editor-parity
-actions (see ``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md``).
+actions (see ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md``).
 """
 
 from pathlib import Path

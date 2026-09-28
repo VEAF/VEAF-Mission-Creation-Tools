@@ -69,7 +69,7 @@ those. The cost is recurring and the benefit is a convenience.
   than an unexamined default.
 - **Nothing in the guided-checklist lot depends on this.** It turned out not to need any editor work at
   all: the cockpit-training actions are native functions callable from the mission scripting environment,
-  so the feature is a runtime module driven by data — see `.backlog/FEAT-ASSIST-CHECKLISTS/`.
+  so the feature is a runtime module driven by data — see `.backlog/archive/FEAT-ASSIST-CHECKLISTS.md`.
 - The four measured facts are kept in the exploration note because they outlive this decision: the
   out-of-mission tick and the `package.path` shadowing trick are usable for other purposes, and the
   environment boundary is the kind of trap that costs a day to rediscover.

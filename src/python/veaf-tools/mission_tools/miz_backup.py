@@ -1,7 +1,7 @@
 """Timestamped backup of a mission file before an in-place mutating write.
 
 Pure safety net for the mission-editing MCP's editor-parity actions (see
-``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md``); git remains the actual long-term undo.
+``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md``); git remains the actual long-term undo.
 
 **Where the copies go.** A file inside a mission folder is backed up to that folder's
 ``.veaf-backups/``, not next to itself. They used to land beside the file — 45 to 51 copies of

@@ -1,7 +1,7 @@
 # DCS cockpit + picture API — facts collected while building guided checklists
 
 Collected against DCS 2.9 on 2026-08-01 (install at `C:\jeux\DCS World`), while building the
-`veafAssist` module (`.backlog/FEAT-ASSIST-CHECKLISTS/`). Sibling note to
+`veafAssist` module (`.backlog/archive/FEAT-ASSIST-CHECKLISTS.md`). Sibling note to
 [DCS hook environment boundaries](DCS-HOOK-ENVIRONMENT-BOUNDARIES.md): same habit, keep the **facts**
 in the repo so the next person does not re-measure them.
 

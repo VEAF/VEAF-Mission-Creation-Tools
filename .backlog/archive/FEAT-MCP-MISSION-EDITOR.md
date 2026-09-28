@@ -413,7 +413,7 @@ No deduplication: calling this twice with identical parameters creates two disti
 Ticket 002's backup collision handling was changed from *raise* to *disambiguate* (`-2`,
 `-3`, ... suffix): calling `add_group` twice in a row can land in the same second, and every
 call must still produce a backup — see the updated `miz_backup.backup_before_write`
-docstring and `.backlog/FEAT-MCP-MISSION-EDITOR/tickets/02-backup-before-write.md`.
+docstring and `.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`.
 
 Also generalized `coalition_placeholder.py`'s `_max_ids`/`_find_or_add_country`/
 `_coerce_country_list` into public `mission_tools.group_insertion` helpers (single source

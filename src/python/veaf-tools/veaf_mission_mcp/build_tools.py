@@ -4,7 +4,7 @@
 `veaf-tools build` (its orchestration lives in the CLI command, and `scaffold_mission` has already
 installed the binary in the folder). Together with scaffold/composites/placement, the MCP can now
 go from an empty folder to a playable mission without leaving the assistant. See
-``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md`` (wave 11).
+``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`` (wave 11).
 """
 
 import os

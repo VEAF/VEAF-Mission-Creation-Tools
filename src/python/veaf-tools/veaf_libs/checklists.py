@@ -3,7 +3,7 @@
 A *checklist* drives the in-game assistance module (``veafAssist``): it names the
 cockpit element to box for each step, and how that step is validated — automatically
 from an animation argument, or by the pilot confirming it. See
-``.backlog/FEAT-ASSIST-CHECKLISTS/PRD.md``.
+``.backlog/archive/FEAT-ASSIST-CHECKLISTS.md``.
 
 The YAML is **design-time only**. DCS has no YAML reader, so the build converts each
 checklist into a Lua table embedded in the ``.miz``; the emission itself lives in

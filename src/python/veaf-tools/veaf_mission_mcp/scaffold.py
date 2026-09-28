@@ -4,7 +4,7 @@ Turns an **empty** folder into a ready mission folder by driving the **real VEAF
 way a maker would on first run — download the updater from the release, run it (it fetches +
 installs the tools and ``published/`` into the folder), then ``veaf-tools prepare`` to lay down the
 default scaffold for the chosen template. This is the "upstream" of the wave-8 composite builders:
-create the folder, then fill it. See ``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md`` (wave 9).
+create the folder, then fill it. See ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`` (wave 9).
 """
 
 import json

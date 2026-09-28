@@ -4,7 +4,7 @@
 zones/groups as reference points) without a running DCS. `resolve_coordinates` converts a position
 between DCS local `x/y` and geographic `lat/lon` for the mission's theatre, reading the theatre from
 the mission so the caller never supplies projection parameters. See
-``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md`` (wave 10).
+``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`` (wave 10).
 """
 
 from pathlib import Path

@@ -3,7 +3,7 @@
 DCS theatres are the real world projected, so a place name geocodes to lat/lon and projects to the
 mission theatre's DCS x/y. Optional bearing + distance handle "10 km north of X". Results are
 approximate (DCS terrain approximates reality) and always surfaced for the caller to sanity-check.
-See ``.backlog/FEAT-GEO-PLACEMENT/PRD.md``.
+See ``.backlog/archive/FEAT-GEO-PLACEMENT.md``.
 """
 
 from pathlib import Path

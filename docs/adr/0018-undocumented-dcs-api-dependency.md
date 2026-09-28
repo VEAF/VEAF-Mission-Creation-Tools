@@ -55,7 +55,7 @@ What the harness measured (Syria, in game):
 - **Cost**: ~43 ms per call.
 
 Not measured: `arg3` (passed 100, meaning unconfirmed) and presence on a WWII map — the current maps
-tested are modern. `.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md` carries the full
+tested are modern. `.backlog/archive/FEAT-SCENERY-AWARE-SPAWN.md` carries the full
 question list; the load-bearing one — does it avoid scenery — is answered.
 
 Coding ahead of the measurement is safe precisely because of condition 2: the assumption is

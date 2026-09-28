@@ -3,7 +3,7 @@
 Starting a VEAF mission otherwise requires a `.miz` created in the DCS Mission Editor for the
 target theatre. This module builds one in Python instead: a generic, theatre-agnostic ``mission``
 skeleton composed with per-theatre constants (theatre name, map centre/zoom, default per-coalition
-bullseye) from ``data/theatre-defaults.yaml``. See ``.backlog/FEAT-BLANK-MISSION-THEATRE/PRD.md``.
+bullseye) from ``data/theatre-defaults.yaml``. See ``.backlog/archive/FEAT-BLANK-MISSION-THEATRE.md``.
 
 The output is the exploded ``src/mission/`` file set a VEAF mission folder expects, ready for
 ``veaf-tools build`` and the MCP composites. Coalitions ship empty (no groups/countries): the maker

@@ -1323,7 +1323,7 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius, surfaces, noRandomFallbac
   -- Tier 1 — every criterion, clearance from buildings and forests included.
   -- Disposition is a native but *undocumented* DCS singleton, found in TUM. Measured in a live
   -- DCS on 2026-08-06: it exists, and the points it returns genuinely avoid buildings and
-  -- forests (.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md). The guard and
+  -- forests (.backlog/archive/FEAT-SCENERY-AWARE-SPAWN.md). The guard and
   -- the pcall stay: a singleton absent on another DCS version or map, or whose signature
   -- changes under us, must degrade to tier 2 and never kill a spawn.
   --

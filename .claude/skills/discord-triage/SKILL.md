@@ -46,8 +46,8 @@ In priority order. A thread can match several; rank it by the highest.
 
 **A reply from the bot is not a thread handled.** Its answers are often exact and still miss the
 point — measured 2026-09-22, it spent two hours refining a correct answer about simplifying Lua while
-the real answer was three lines of `mission.yaml` and no Lua at all (`.backlog/FIX-SUPPORT-ASK-
-ANSWERS-THE-NEED/`). When the last word is the bot's, skim what it actually said before filing the
+the real answer was three lines of `mission.yaml` and no Lua at all (`.backlog/archive/FIX-SUPPORT-ASK-
+ANSWERS-THE-NEED.md`). When the last word is the bot's, skim what it actually said before filing the
 thread under *done*.
 
 **Do not confuse silence with satisfaction.** A user who stops writing may have solved it, or given

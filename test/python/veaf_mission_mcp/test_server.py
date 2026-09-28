@@ -31,7 +31,7 @@ def test_describe_action_returns_the_describe_mission_spec() -> None:
     spec = server.describe_action("describe_mission")
 
     assert spec["name"] == "describe_mission"
-    assert "miz_path" in spec["parameters_schema"]["properties"]
+    assert "mission_path" in spec["parameters_schema"]["properties"]
 
 
 def test_describe_action_raises_a_clear_error_for_an_unknown_name() -> None:
@@ -59,9 +59,9 @@ def test_run_action_raises_a_clear_error_for_an_unknown_name() -> None:
 
 
 def test_a_misnamed_parameter_is_named_to_the_client(tmp_path: Path) -> None:
-    message = _call_error("describe_map", {"miz_path": str(tmp_path)})
+    message = _call_error("describe_map", {"mision_path": str(tmp_path)})
     assert "mission_path" in message
-    assert "miz_path" in message
+    assert "mision_path" in message
 
 
 def test_a_missing_parameter_is_named_to_the_client() -> None:

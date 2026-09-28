@@ -217,12 +217,12 @@ class TestDeadLinks:
                 _STENNIS: {
                     "coalition": "BLUE",
                     "dynamicSpawn": True,
-                    "aircrafts": {"planes": {"Su-33": {"initialAmount": 100, "linkDynTempl": 3872}}},
+                    "aircrafts": {"planes": {"FA-18C_hornet": {"initialAmount": 100, "linkDynTempl": 3872}}},
                 }
             }
         )
         apply_warehouses(mission, {"blue": {"defaults": {}}})
-        assert "linkDynTempl" not in _stock(mission, _STENNIS)["planes"]["Su-33"]
+        assert "linkDynTempl" not in _stock(mission, _STENNIS)["planes"]["FA-18C_hornet"]
 
 
 class TestResult:

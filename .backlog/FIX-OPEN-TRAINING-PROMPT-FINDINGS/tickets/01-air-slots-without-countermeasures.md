@@ -1,6 +1,6 @@
 # 01 — Aircraft built with no chaff, no flare, no callsign, and repeating tail numbers
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/aircraft_payload.py`, `add_air_group.py`,
 `player_slot.py`, `set_unit_properties.py`, the unit data, tests
@@ -40,3 +40,21 @@ per type and fox level, tail numbers 701 onwards.
   numeric callsign.
 - Tail numbers are unique across the mission's aircraft.
 - Tests on each point, and the AI catalogue doc says it.
+
+## Done — 2026-09-28
+
+- **Source of the defaults: the DCS unit database**, not the mission's templates — a mission need not
+  have a template of the type, and the editor's default is what a mission maker placing the aircraft
+  by hand gets. `update-dcs-data --units` now captures `passivCounterm`'s `chaff` / `flare` defaults
+  into `dcsUnits.yaml` (F-14B 140 / 60, FA-18C_hornet 60 / 60, UH-1H 0 / 60; absent on the 42 types
+  with no dispenser, which keep 0). `build_aircraft_payload` reads them; `add_air_group`,
+  `add_player_slot` and `set_unit_properties` take `chaff` / `flare`.
+- **Callsigns and tail numbers**: `veaf_mission_mcp/aircraft_identity.py`, called by `add_air_group`,
+  `add_player_slot` and the composites. The editor's family table is compiled into the game and not in
+  the datamine, so it was measured on 377 distinct missions under `D:\dev\_VEAF`: Russia, USSR,
+  Ukraine, China and Abkhazia carry a number; the family follows the task — Texaco / Arco / Shell for
+  `Refueling` (807 of 807), Overlord / Magic / Wizard / Focus / Darkstar for `AWACS`, Enfield …
+  Pontiac otherwise. A new flight takes the first family nobody uses yet; tail numbers continue after
+  the highest in the mission (3 digits).
+- Tests: `test_aircraft_identity.py`, `test_aircraft_payload.py`, `test_set_unit_properties.py`,
+  `test_dcs_data_units.py`. Documented in `AI_ASSISTANT_CATALOG` (FR/EN).

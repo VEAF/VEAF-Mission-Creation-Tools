@@ -423,6 +423,18 @@ class TestPlainFields:
         set_unit_properties(miz, group_name="Colt 1-1", unit_name="Colt 1-1-1", onboard_num="010")
         assert _unit(miz, "Colt 1-1", "Colt 1-1-1")["onboard_num"] == "010"
 
+    def test_chaff_and_flare_are_written_and_reported(self, miz: Path) -> None:
+        """FIX-OPEN-TRAINING-PROMPT-FINDINGS 01: nothing could reload an empty dispenser."""
+        result = set_unit_properties(miz, group_name="Colt 1-1", unit_name="Colt 1-1-1", chaff=60, flare=30)
+        payload = _unit(miz, "Colt 1-1", "Colt 1-1-1")["payload"]
+        assert (payload["chaff"], payload["flare"]) == (60, 30)
+        assert result["changed"]["chaff"]["to"] == 60
+
+    def test_a_negative_count_is_refused_before_anything_is_written(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="flare must be >= 0"):
+            set_unit_properties(miz, group_name="Colt 1-1", unit_name="Colt 1-1-1", chaff=10, flare=-1)
+        assert _unit(miz, "Colt 1-1", "Colt 1-1-1")["payload"].get("chaff") != 10
+
 
 class TestResultAndBackup:
     """Read-before-write, and the backup every editor-parity action takes."""
@@ -499,3 +511,9 @@ class TestRenameAndMove:
     def test_an_incomplete_position_is_refused(self, miz: Path) -> None:
         with pytest.raises(ValueError, match="position"):
             set_unit_properties(miz, group_name="Ground Convoy", unit_name="Convoy-1", position={"x": 1.0})
+
+
+def test_chaff_on_a_ground_unit_is_refused(miz: Path) -> None:
+    """Review of FIX-OPEN-TRAINING-PROMPT-FINDINGS: it used to invent a payload on a vehicle."""
+    with pytest.raises(ValueError, match="not a plane or helicopter"):
+        set_unit_properties(miz, group_name="Ground Convoy", unit_name="Convoy-1", chaff=60)

@@ -82,6 +82,8 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 37 | [Lister les aérodromes d'un théâtre](#list-airfields) | 🛫 Bases & aérodromes | — | ⭐ |
 | 38 | [Poser un FARP complet](#add-farp) | 🛫 Bases & aérodromes | Recette + construite | ⭐ |
 | 39 | [Régler la météo de la mission](#set-weather) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
+| 40 | [Poser un groupe aéronaval complet](#add-carrier) | 🛫 Bases & aérodromes | Recette + construite | ◽ |
+| 41 | [Embarquer un son dans la mission](#add-sound) | Zones & déclencheurs | Recette + construite | ◽ |
 
 ---
 
@@ -275,6 +277,23 @@ seul objet « FARP » ne suffit pas : personne ne peut s'en servir.
 
 > 💬 *« Pose un FARP bleu à Fulda, sur 127,5 MHz. »*
 
+### Poser un groupe aéronaval complet {#add-carrier}
+
+*Recette + construite · ◽* — Un porte-avions prêt pour les opérations aériennes : le navire (et ses
+escorteurs) en route à un cap et une vitesse, sa fréquence radio, son **TACAN**, son **ICLS**, et sur un
+pont à brins d'arrêt son **Link 4** avec l'**ACLS** ; le ravitailleur embarqué et l'hélicoptère de
+sauvetage que le module `CARRIER` cherche sous les noms exacts `<porte-avions> S3B-Tanker` et
+`<porte-avions> Pedro` ; et l'entrepôt du navire, que le build garnit ensuite. Les places sur le pont se
+posent ensuite comme un [vol au parking](#add-a-flight), en départ **sur le pont**.
+
+> 💬 *« Pose un groupe aéronaval bleu au large de Batoumi, cap 270, TACAN 74X, ICLS 7. »*
+> 💬 *« Mets quatre slots F/A-18C sur le pont du Stennis, moteurs coupés. »*
+
+À savoir : le build ne garnit le pont qu'avec les appareils qui peuvent **décoller et apponter** sur ce
+navire, d'après les données de DCS elles-mêmes — un F-14 sur le Stennis, pas sur le Tarawa ; un Harrier
+et les hélicoptères sur les deux. Une liste d'appareils écrite à la main dans `warehouses.yaml` reste
+respectée telle quelle. Pense à activer le module `CARRIER`.
+
 ## 🕰️ Réglages de la mission
 
 ### Dater la mission et régler son heure de départ {#mission-date}
@@ -381,6 +400,10 @@ règle la radio du groupe.
 > 💬 *« Ajoute un slot A-10C au parking 43 de Kobuleti, départ à froid. »*
 > 💬 *« Mets une place F-16 en vol à 15 000 ft au-dessus de la zone. »*
 
+Comme dans l'éditeur, la place reçoit un **indicatif** (Enfield, Springfield… ; un numéro pour un pays
+de l'Est), un **numéro de flanc** qu'aucun autre appareil de la mission ne porte, et les **leurres**
+(chaff et flare) que l'éditeur donne à ce type — un slot en vol ne peut pas réarmer.
+
 Une chose à savoir : un slot est en compétence **Client** (jouable aussi en solo) et n'est **jamais**
 un template de spawn dynamique — c'est précisément ce réglage-là qui, laissé actif, fait qu'une place
 existe dans le fichier mais n'apparaît pas dans la liste des slots.
@@ -391,7 +414,10 @@ existe dans le fichier mais n'apparaît pas dans la liste des slots.
 parking d'un aérodrome que tu **nommes** — elle choisit elle-même les stands libres, sans que tu aies
 à connaître leur numéro. Elle prend les places les plus proches de la piste, saute celles déjà prises,
 et **refuse** si une place demandée est occupée (en te disant par quel groupe) ou si l'aérodrome n'a
-pas de vraie place avion. Départ moteurs coupés ou chauds au parking, sur la piste, ou en vol.
+pas de vraie place avion. Départ moteurs coupés ou chauds au parking, sur la piste, en vol, ou **sur
+le pont** d'un porte-avions ([groupe aéronaval](#add-carrier)) — un appareil qui ne peut pas utiliser
+ce pont est refusé. Chaque appareil reçoit ses leurres, un indicatif (Texaco pour un ravitailleur,
+Overlord pour un AWACS) et un numéro de flanc unique dans la mission.
 
 > 💬 *« Mets un deux-ship de F-16 au parking de Kobuleti. »*
 > 💬 *« Ajoute quatre Su-25 au parking de Batoumi, moteurs chauds. »*
@@ -405,8 +431,8 @@ préalable (donnée de parking) ; sinon l'IA te le dit au lieu de deviner.
 ### Modifier un appareil ou un véhicule existant {#change-a-unit}
 
 *Mission construite · ⭐* — Changer ce qui est **déjà** dans la mission, unité par unité : son
-**emport** (pylône par pylône), son **niveau d'IA**, sa **livrée**, son **cap**, son **indicatif** et
-son **numéro de flanc**, son **nom**, sa **position**. Tu donnes le cap en degrés, l'IA fait la conversion. Seuls les réglages que
+**emport** (pylône par pylône), ses **leurres** (chaff et flare), son **niveau d'IA**, sa **livrée**,
+son **cap**, son **indicatif** et son **numéro de flanc**, son **nom**, sa **position**. Tu donnes le cap en degrés, l'IA fait la conversion. Seuls les réglages que
 tu demandes changent, et l'IA te dit ce qu'il y avait avant.
 
 > 💬 *« Donne au vol Colt un emport air-sol. »*
@@ -463,7 +489,9 @@ son altitude, sa vitesse, son nom ou son type — et surtout lui donner une **t�
 attaquer un groupe, bombarder un point, engager les cibles d'une zone, se poser, régler une fréquence,
 ou boucler la route sur elle-même. Pour un **vol de soutien** : ravitailler (`tanker`), faire l'AWACS,
 allumer un **TACAN** (canal, mode X/Y, indicatif), activer la liaison de données (EPLRS), avoir du
-carburant illimité, ou **escorter** un autre groupe désigné par son nom.
+carburant illimité, ou **escorter** un autre groupe désigné par son nom. Pour une **balise radio** :
+une unité qui **diffuse un son** en boucle sur sa fréquence, que l'hélicoptère retrouve au
+radiocompas ([embarque le son](#add-sound) d'abord, et règle la fréquence juste avant).
 
 > 💬 *« Ajoute un point de passage après le troisième, à 20 000 pieds. »*
 > 💬 *« Fais orbiter ce ravitailleur en hippodrome à 20 000 pieds, 300 nœuds. »*
@@ -471,6 +499,7 @@ carburant illimité, ou **escorter** un autre groupe désigné par son nom.
 > 💬 *« Boucle la patrouille du dernier point vers le deuxième. »*
 > 💬 *« Fais de Texaco un ravitailleur, TACAN 30Y indicatif TXO, carburant illimité. »*
 > 💬 *« Que les deux F-15 escortent Texaco. »*
+> 💬 *« Fais de ce camion une balise sur 31 MHz FM qui diffuse beacon.ogg en boucle. »*
 
 Trois choses utiles à savoir :
 
@@ -589,6 +618,15 @@ de l'éditeur DCS (Lua en ligne, ou un fichier `.lua` embarqué / chargé depuis
 
 > 💬 *« Fais tourner ce bout de Lua au démarrage de la mission. »*
 > 💬 *« Embarque et charge ce script .lua au lancement. »*
+
+### Embarquer un son dans la mission {#add-sound}
+
+*Recette + construite · ◽* — Copie un son (`.ogg` ou `.wav`) dans la mission et le déclare, comme
+l'éditeur le fait quand tu choisis un fichier. C'est ce qu'il faut avant qu'une unité le
+[diffuse](#change-a-route) — la balise radio d'une zone hélicoptère, un signal de détresse. Embarquer
+deux fois le même fichier réutilise le premier.
+
+> 💬 *« Embarque beacon.ogg et sos.ogg dans la mission. »*
 
 ---
 

@@ -18,6 +18,11 @@ Start types:
 - **parking-cold / parking-hot** — resolved stands at ``airfield``; the headline case.
 - **runway** — ``TakeOff`` from ``airfield``'s runway; no stand needed, anchored at the field.
 - **air** — airborne at ``position``; needs no airfield data at all.
+- **deck-cold / deck-hot** — on the deck of the ship unit named ``carrier``: the first point is linked
+  to it (``linkUnit`` = ``helipadId`` = its unit id, as the 1 817 deck slots of the missions under
+  ``D:\\dev\\_VEAF`` carry it) and each aircraft takes the next deck spot number. An aircraft that
+  cannot both take off from and land on that deck, by DCS's own declaration, is refused
+  (FIX-OPEN-TRAINING-PROMPT-FINDINGS ticket 02).
 """
 
 import math
@@ -30,8 +35,10 @@ from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.dcs_parking import ParkingStand, aircraft_stands_for_airbase, has_theatre, stands_for_airbase
+from veaf_libs.dcs_units_data import get_unit_attributes, get_unit_deck_categories
 from veaf_libs.mission_table import indexed
 
+from veaf_mission_mcp.aircraft_identity import assign_identities
 from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons
 from veaf_mission_mcp.edit_route import _build_orbit
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
@@ -48,8 +55,11 @@ _START_WAYPOINT: dict[str, tuple[str, str]] = {
     "runway": ("TakeOff", "From Runway"),
     "parking-cold": ("TakeOffParking", "From Parking Area"),
     "parking-hot": ("TakeOffParkingHot", "From Parking Area Hot"),
+    "deck-cold": ("TakeOffParking", "From Parking Area"),
+    "deck-hot": ("TakeOffParkingHot", "From Parking Area Hot"),
 }
 _PARKING_MODES = ("parking-cold", "parking-hot")
+_DECK_MODES = ("deck-cold", "deck-hot")
 
 
 def add_air_group(
@@ -75,8 +85,14 @@ def add_air_group(
     fuel_fraction: float | None = None,
     late_activation: bool = False,
     pylons: dict[Any, Any] | None = None,
+    chaff: int | None = None,
+    flare: int | None = None,
+    carrier: str | None = None,
 ) -> dict[str, Any]:
     """Insert an aircraft flight into a mission, resolving its parking, in place, backed up first.
+
+    Each aircraft gets the type's default chaff and flare, a callsign and a tail number no other
+    aircraft of the mission carries (see :mod:`veaf_mission_mcp.aircraft_identity`).
 
     Args:
         target: The mission **folder** (durable) or a **`.miz`** (transient).
@@ -86,7 +102,8 @@ def add_air_group(
         name: The group's name.
         unit_type: The DCS aircraft type (e.g. ``"F-16C_50"``) — the caller's decision.
         count: How many aircraft in the flight (each gets its own stand for a parking start).
-        start: ``"parking-cold"``, ``"parking-hot"``, ``"runway"`` or ``"air"``.
+        start: ``"parking-cold"``, ``"parking-hot"``, ``"runway"``, ``"air"``, ``"deck-cold"`` or
+            ``"deck-hot"``.
         airfield: The airfield **name** (e.g. ``"Incirlik"``) — required for a parking or runway start;
             resolved to its airdrome id, and to free stands for a parking start.
         position: ``{"x", "y"}`` for an air start.
@@ -106,9 +123,13 @@ def add_air_group(
         late_activation: Mark the group late-activation (a QRA interceptor, an on-demand template);
             it used to take a second call to ``set_group_properties``.
         pylons: The loadout, ``{station: {"CLSID": ...}}`` as the mission file stores it.
+        chaff: Chaff count per aircraft; defaults to the type's Mission Editor default.
+        flare: Flare count per aircraft; defaults to the type's Mission Editor default.
+        carrier: The ship **unit** name a deck start takes off from.
 
     Returns:
-        ``{"group_id", "name", "durable", "start", "stands": [...], "airdrome_id"}``.
+        ``{"group_id", "name", "durable", "start", "stands": [...], "airdrome_id"}`` — for a deck
+        start, ``stands`` are the deck spot numbers.
 
     Raises:
         ValueError: unknown start; missing airfield/position; unknown airfield or uncaptured theatre;
@@ -135,7 +156,13 @@ def add_air_group(
 
     airdrome_id: int | None = None
     stands: list[ParkingStand] = []
-    if start in _PARKING_MODES or start == "runway":
+    deck: tuple[dict[str, Any], list[str]] | None = None
+    if start in _DECK_MODES:
+        if parking is not None:
+            raise ValueError("a deck start numbers its spots itself: omit 'parking' and give 'count'")
+        deck = _resolve_deck(content, carrier, unit_type, count)
+        position = {"x": float(deck[0]["x"]), "y": float(deck[0]["y"])}
+    elif start in _PARKING_MODES or start == "runway":
         airdrome_id = _resolve_airfield(content, airfield)
         if start in _PARKING_MODES:
             stands = _select_stands(content, airfield, airdrome_id, count, parking)
@@ -147,7 +174,9 @@ def add_air_group(
 
     # Resolved once for the flight -- every aircraft is the same type -- and before the stands are
     # committed, so a bad explicit value fails without having half-written the mission.
-    payload, fuel_warning = build_aircraft_payload(unit_type, fuel=fuel, fuel_fraction=fuel_fraction)
+    payload, fuel_warning = build_aircraft_payload(
+        unit_type, fuel=fuel, fuel_fraction=fuel_fraction, chaff=chaff, flare=flare
+    )
     if pylons:
         payload["pylons"] = normalize_pylons(pylons)
 
@@ -168,6 +197,9 @@ def add_air_group(
         payload=payload,
         late_activation=late_activation,
     )
+    if deck is not None:
+        _seat_on_deck(group, *deck)
+    assign_identities(content, group, country_id=country_id, task=task)
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
     # sign of it (FIX-MCP-AIRCRAFT-CATEGORY).
@@ -194,7 +226,7 @@ def add_air_group(
         "start": start,
         "category": category,
         "airdrome_id": airdrome_id,
-        "stands": [s.parking for s in stands],
+        "stands": deck[1] if deck is not None else [s.parking for s in stands],
     }
     warnings = [w for w in (category_warning, fuel_warning) if w]
     if warnings:
@@ -313,6 +345,7 @@ def insert_air_group_into_content(
             "id": "ComboTask",
             "params": {"tasks": {number: entry for number, entry in enumerate(first_tasks, start=1)}},
         }
+    assign_identities(content, group, country_id=country_id, task=task)
     category, category_warning = air_category_for_type_verbose(unit_type)
     group_id = insert_group(
         content,
@@ -323,6 +356,79 @@ def insert_air_group_into_content(
         group=group,
     )
     return group_id, [w for w in (category_warning, fuel_warning) if w]
+
+
+def _mission_groups(content: dict[str, Any], category: str) -> list[dict[str, Any]]:
+    """Return every group of one category, both coalitions, every country."""
+    groups: list[dict[str, Any]] = []
+    for coalition in (content.get("coalition") or {}).values():
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            if isinstance(country, dict):
+                groups.extend(g for g in indexed((country.get(category) or {}).get("group")) if isinstance(g, dict))
+    return groups
+
+
+def _resolve_deck(
+    content: dict[str, Any], carrier: str | None, unit_type: str, count: int
+) -> tuple[dict[str, Any], list[str]]:
+    """Find the ship a deck start takes off from, check the aircraft fits it, and pick deck spots.
+
+    Args:
+        content: The parsed mission table.
+        carrier: The ship unit's exact name.
+        unit_type: The aircraft type.
+        count: How many aircraft.
+
+    Returns:
+        ``(ship unit, deck spot numbers)`` — the spots continue after the highest one the mission's
+        other deck groups of that ship already hold.
+
+    Raises:
+        ValueError: No carrier named; no ship unit of that name; or a deck this aircraft cannot both
+            take off from and land on.
+    """
+    if not carrier:
+        raise ValueError("a deck start needs 'carrier', the ship unit's name")
+    ships = [u for g in _mission_groups(content, "ship") for u in indexed(g.get("units")) if isinstance(u, dict)]
+    ship = next((u for u in ships if u.get("name") == carrier), None)
+    if ship is None:
+        raise ValueError(f"no ship unit named {carrier!r} in the mission (a deck start names the ship's UNIT)")
+    attributes = get_unit_attributes(str(ship.get("type", "")))
+    takeoff, landing = get_unit_deck_categories(unit_type) or (frozenset(), frozenset())
+    if not (takeoff & attributes and landing & attributes):
+        raise ValueError(
+            f"a {unit_type} cannot use the deck of a {ship.get('type')}: DCS lets it take off from "
+            f"{sorted(takeoff) or 'no ship'} and land on {sorted(landing) or 'no ship'}"
+        )
+    taken = [
+        int(unit["parking"])
+        for category in ("plane", "helicopter")
+        for group in _mission_groups(content, category)
+        if (indexed((group.get("route") or {}).get("points")) or [{}])[0].get("linkUnit") == ship.get("unitId")
+        for unit in indexed(group.get("units"))
+        if str(unit.get("parking", "")).isdigit()
+    ]
+    first = max(taken, default=0) + 1
+    return ship, [str(first + i) for i in range(count)]
+
+
+def _seat_on_deck(group: dict[str, Any], ship: dict[str, Any], spots: list[str]) -> None:
+    """Link a flight built at its ship's position to the ship's deck, in place.
+
+    Args:
+        group: The flight.
+        ship: The ship unit.
+        spots: One deck spot number per aircraft.
+    """
+    x, y = float(ship["x"]), float(ship["y"])
+    group["route"]["points"][0].update(
+        {"x": x, "y": y, "alt": 0, "linkUnit": ship.get("unitId"), "helipadId": ship.get("unitId")}
+    )
+    group.update({"x": x, "y": y})
+    for unit, spot in zip(group["units"], spots, strict=True):
+        unit.update({"x": x, "y": y, "alt": 0, "parking": spot, "parking_id": spot, "heading": ship.get("heading", 0)})
 
 
 def _resolve_airfield(content: dict[str, Any], airfield: str | None) -> int:
@@ -480,7 +586,6 @@ def _build_air_group(
             "heading": heading_rad,
             "speed": speed_mps,
             "skill": skill,
-            "onboard_num": f"{10 + i:02d}",
             "payload": dict(payload),
         }
         if is_parking:

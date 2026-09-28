@@ -9,10 +9,12 @@ from veaf_libs.clear_ground_check import offer_check
 from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_farp import add_farp
 from veaf_mission_mcp.add_group import add_group
+from veaf_mission_mcp.add_sound import add_sound
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
+from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import create_cap_mission, create_combat_zone, create_qra
 from veaf_mission_mcp.describe_mission import describe_mission
@@ -255,8 +257,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="set_unit_properties",
             description=(
-                "CHANGE a unit that already exists: its loadout, skill, livery, heading, callsign, "
-                "onboard number, name or position. Call describe_units FIRST -- this addresses the unit by its EXACT "
+                "CHANGE a unit that already exists: its loadout, chaff and flare, skill, livery, heading, "
+                "callsign, onboard number, name or position. Call describe_units FIRST -- this addresses the unit by its EXACT "
                 "group name and unit name (a fragment is refused, so an edit cannot land on the wrong "
                 "group), and pylons are keyed BY STATION NUMBER, which is not the position in a list. "
                 "Only the fields you pass change; the result reports each previous value so you can "
@@ -304,6 +306,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "onboard_num": {
                         "type": "string",
                         "description": "Tail number, as text so a leading zero survives.",
+                    },
+                    "chaff": {
+                        "type": "integer",
+                        "description": "Chaff count. Omit to leave it alone.",
+                    },
+                    "flare": {
+                        "type": "integer",
+                        "description": "Flare count. Omit to leave it alone.",
                     },
                     "pylons": {
                         "type": "object",
@@ -418,7 +428,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
                 "Tasks are a CLOSED named set -- orbit, land, attack_group, bombing, "
                 "engage_targets_in_zone, set_frequency, switch_waypoint, and for support flights tanker, "
-                "awacs, set_unlimited_fuel, eplrs, activate_beacon (a TACAN), escort -- each validating its own "
+                "awacs, set_unlimited_fuel, eplrs, activate_beacon (a TACAN), escort, and transmit_message "
+                "(a unit plays a sound on its radio -- a beacon a helicopter homes on; embed the sound with "
+                "add_sound first, and put a set_frequency BEFORE it) -- each validating its own "
                 "parameters, because a made-up task table is one DCS ignores in silence while the flight "
                 "does nothing. Note set_frequency takes MHz here even though DCS stores hertz. Every "
                 "operation guarantees at least one waypoint keeps a locked time, since DCS refuses to save "
@@ -486,6 +498,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "eplrs",
                             "activate_beacon",
                             "escort",
+                            "transmit_message",
                         ],
                         "description": "For 'add_task'. Unknown names are refused rather than guessed.",
                     },
@@ -504,7 +517,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "switch_waypoint: to_index, from_index. tanker, awacs: none. set_unlimited_fuel: "
                         "value (default true). eplrs: value (default true). activate_beacon: channel (1-126), "
                         "mode (X|Y), callsign (1-3 letters/digits), bearing, aa. escort: group_name (the "
-                        "escorted group, exact), engagement_distance_nm.",
+                        "escorted group, exact), engagement_distance_nm. transmit_message: sound (the key "
+                        "add_sound returned, or the file name; refused when the mission does not hold it), "
+                        "loop (default true), duration_s (default 5), subtitle (text).",
                     },
                 },
                 "required": ["miz_path", "group_name", "operation"],
@@ -864,8 +879,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "onboard_num": {
                         "type": "string",
-                        "default": "010",
-                        "description": "Tail number, as text so a leading zero survives.",
+                        "description": "Tail number, as text so a leading zero survives. Omit for one no "
+                        "other aircraft of the mission carries.",
                     },
                     "task": {
                         "type": "string",
@@ -882,6 +897,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "fuel_fraction": {
                         "type": "number",
                         "description": "Fraction of internal capacity, in ]0, 1]. Alternative to 'fuel'.",
+                    },
+                    "chaff": {
+                        "type": "integer",
+                        "description": "Chaff count per aircraft. Omit for the type's Mission Editor default "
+                        "(F-14B 140, F/A-18C 60; 0 for a type with no dispenser).",
+                    },
+                    "flare": {
+                        "type": "integer",
+                        "description": "Flare count per aircraft. Omit for the type's Mission Editor default.",
                     },
                 },
                 "required": [
@@ -910,8 +934,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "unknown airfield, or a theatre with no captured parking data is refused rather than "
                 "guessed. skill defaults to an AI level (a ramp flight is AI unless you ask for "
                 "'Client'). Starts: parking-cold / parking-hot (need 'airfield'), runway (needs "
-                "'airfield'), air (needs 'position'). Target a FOLDER (durable) or .miz (transient); "
-                "backed up first."
+                "'airfield'), air (needs 'position'), deck-cold / deck-hot (need 'carrier'). Each aircraft "
+                "gets its type's default chaff and flare, a callsign and a tail number no other aircraft of "
+                "the mission carries. Target a FOLDER (durable) or .miz (transient); backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -932,9 +957,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "start": {
                         "type": "string",
-                        "enum": ["parking-cold", "parking-hot", "runway", "air"],
+                        "enum": ["parking-cold", "parking-hot", "runway", "air", "deck-cold", "deck-hot"],
                         "default": "parking-cold",
-                        "description": "Parking (needs airfield), runway (needs airfield), or air (needs position).",
+                        "description": "Parking (needs airfield), runway (needs airfield), air (needs position), "
+                        "or on a ship's deck (needs carrier).",
+                    },
+                    "carrier": {
+                        "type": "string",
+                        "description": "For a deck start: the ship UNIT's name (add_carrier_group returns it). Each "
+                        "aircraft takes the next deck spot; an aircraft that cannot use that deck is refused.",
                     },
                     "airfield": {
                         "type": "string",
@@ -971,6 +1002,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "fuel_fraction": {
                         "type": "number",
                         "description": "Fraction of internal capacity, in ]0, 1]. Alternative to 'fuel'.",
+                    },
+                    "chaff": {
+                        "type": "integer",
+                        "description": "Chaff count per aircraft. Omit for the type's Mission Editor default "
+                        "(F-14B 140, F/A-18C 60; 0 for a type with no dispenser).",
+                    },
+                    "flare": {
+                        "type": "integer",
+                        "description": "Flare count per aircraft. Omit for the type's Mission Editor default.",
                     },
                     "late_activation": {
                         "type": "boolean",
@@ -1461,6 +1501,99 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: add_farp(Path(p["target"]), **{key: value for key, value in p.items() if key != "target"}),
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_carrier_group",
+            description=(
+                "Place a CARRIER GROUP ready for flight operations: the carrier (and escorts) steaming on "
+                "a heading, its tower frequency, TACAN, ICLS, and on an arrested-landing deck Link 4 and "
+                "ACLS; the '<carrier> S3B-Tanker' recovery tanker (with its TACAN) and the '<carrier> "
+                "Pedro' rescue helicopter that the CARRIER module (veafCarrierOperations) looks for by "
+                "those exact names; and the ship's warehouse entry the build's warehouses.yaml ('ships:') "
+                "stocks. Then put slots on its deck with add_air_group start 'deck-cold'/'deck-hot' and "
+                "carrier = the returned carrier unit name, and enable the CARRIER module in mission.yaml. "
+                "Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
+                    "country_id": {"type": "integer"},
+                    "country_name": {"type": "string"},
+                    "name": {"type": "string", "description": "The ship group's name, e.g. 'CSG-74 Stennis'."},
+                    "position": {
+                        "type": "object",
+                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                        "required": ["x", "y"],
+                        "description": "The carrier's position, at sea.",
+                    },
+                    "heading_deg": {"type": "number", "default": 0, "description": "Course, true degrees."},
+                    "speed_kt": {"type": "number", "default": 15, "description": "Speed in KNOTS."},
+                    "carrier_type": {
+                        "type": "string",
+                        "enum": list(CARRIER_TYPES),
+                        "default": "Stennis",
+                        "description": "The carrier types the CARRIER module runs operations for.",
+                    },
+                    "carrier_name": {
+                        "type": "string",
+                        "description": "The carrier UNIT's name (the tanker's and Pedro's derive from it); the "
+                        "group's name when omitted.",
+                    },
+                    "escorts": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Escort ship types, e.g. ['TICONDEROG', 'USS_Arleigh_Burke_IIa'].",
+                    },
+                    "tower_mhz": {"type": "number", "default": 127.5, "description": "Carrier radio, MHz AM."},
+                    "tacan_channel": {"type": "integer", "default": 74, "description": "TACAN channel, X mode."},
+                    "tacan_callsign": {"type": "string", "default": "CVN", "description": "1-3 letters/digits."},
+                    "icls_channel": {"type": ["integer", "null"], "default": 1, "description": "1-20, null for none."},
+                    "link4_mhz": {
+                        "type": ["number", "null"],
+                        "default": 336.0,
+                        "description": "Link 4 (with ACLS), MHz; null for none. Only on an arrested-landing deck.",
+                    },
+                    "recovery_tanker": {"type": "boolean", "default": True},
+                    "tanker_tacan_channel": {"type": "integer", "default": 64, "description": "Y mode."},
+                    "tanker_tacan_callsign": {"type": "string", "default": "SHL"},
+                    "tanker_frequency_mhz": {"type": "number", "default": 290.0},
+                    "rescue_helicopter": {"type": "boolean", "default": True},
+                },
+                "required": ["mission_path", "coalition", "country_id", "country_name", "name", "position"],
+            },
+        ),
+        handler=lambda p: add_carrier_group(
+            Path(p["mission_path"]), **{key: value for key, value in p.items() if key != "mission_path"}
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_sound",
+            description=(
+                "EMBED a sound file (.ogg or .wav) in the mission: copied into l10n/DEFAULT and declared "
+                "in mapResource, which is how DCS finds it. Returns the resource key edit_route's "
+                "transmit_message takes -- the radio beacon of a helicopter zone, an SOS. Embedding the "
+                "same file name again reuses its key. Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "sound_path": {"type": "string", "description": "The .ogg or .wav file to embed."},
+                    "resource_name": {
+                        "type": "string",
+                        "description": "The file name inside the mission; the source's own name when omitted.",
+                    },
+                },
+                "required": ["mission_path", "sound_path"],
+            },
+        ),
+        handler=lambda p: add_sound(
+            Path(p["mission_path"]), source_path=p["sound_path"], resource_name=p.get("resource_name")
+        ),
     )
     catalog.register(
         ActionSpec(
@@ -1989,6 +2122,8 @@ def _handle_set_unit_properties(params: dict[str, Any]) -> dict[str, Any]:
         heading_deg=params.get("heading_deg"),
         callsign=params.get("callsign"),
         onboard_num=params.get("onboard_num"),
+        chaff=params.get("chaff"),
+        flare=params.get("flare"),
         pylons=params.get("pylons"),
         pylons_mode=params.get("pylons_mode", "replace"),
         new_name=params.get("new_name"),
@@ -2126,10 +2261,12 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
         parking_id=params.get("parking_id"),
         airdrome_id=params.get("airdrome_id"),
         frequency_mhz=params.get("frequency_mhz", 251.0),
-        onboard_num=params.get("onboard_num", "010"),
+        onboard_num=params.get("onboard_num"),
         task=params.get("task", "Nothing"),
         fuel=params.get("fuel"),
         fuel_fraction=params.get("fuel_fraction"),
+        chaff=params.get("chaff"),
+        flare=params.get("flare"),
     )
 
 
@@ -2160,6 +2297,9 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         fuel_fraction=params.get("fuel_fraction"),
         late_activation=params.get("late_activation", False),
         pylons=params.get("pylons"),
+        chaff=params.get("chaff"),
+        flare=params.get("flare"),
+        carrier=params.get("carrier"),
     )
 
 

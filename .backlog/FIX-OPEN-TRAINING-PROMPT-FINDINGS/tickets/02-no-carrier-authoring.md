@@ -1,6 +1,6 @@
 # 02 — Nothing places a working carrier group
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/` (a new action, or `add_group` / `add_air_group` /
 `edit_route` extended), tests, `doc/mission-maker/AI_ASSISTANT_CATALOG*.md`
@@ -40,3 +40,20 @@ Worked around by copying the Caucasus v5 `CSG-74 Stennis` group (4 ships), its `
   `<carrier unit> S3B-Tanker` groups `veafCarrierOperations` looks for, the ship warehouse.
 - Deck slots can be added to a named carrier (cold or hot start), numbered on the deck.
 - Tested; the prompt's §4.3 no longer needs a "report it".
+
+## Done — 2026-09-28
+
+- `add_carrier_group` (`veaf_mission_mcp/carrier.py`): ships under way, tower frequency on the carrier
+  unit, `ActivateBeacon` / `ActivateICLS` / `ActivateLink4` / `ActivateACLS` (Link 4 and ACLS only on
+  an arrested-landing deck), `<carrier> S3B-Tanker` (Tanker task + TACAN Y) and `<carrier> Pedro`,
+  the ship's warehouse entry.
+- Deck slots: `add_air_group` `start: deck-cold | deck-hot` with `carrier`, linked by `linkUnit` =
+  `helipadId`, spots numbered on; an aircraft that cannot use that deck is refused.
+- **Trap 1 answered by measurement, not in game**: of 218 carrier groups under `D:\dev\_VEAF`, 120
+  keep their ATC tasks on the group's `tasks`, 55 on the first route point, 43 in both. The action
+  writes both, as the copy did: `veafCarrierOperations` reads the group, the editor writes the route.
+  Which of the two DCS runs is still unmeasured, and harmless while both are written.
+- **Trap 2** does not arise: the action allocates fresh ids and names its tasks' units by the id it
+  just allocated; no copy, so no stale `groupId` to remap.
+- The prompt's §4.3 no longer asks the agent to report the carrier group; it names the actions.
+- Tests: `test_carrier.py`.

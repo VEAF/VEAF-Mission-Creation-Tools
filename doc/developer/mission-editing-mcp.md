@@ -41,6 +41,16 @@ elle que le plugin Claude déclare dans son `.mcp.json`.
 
 ## Catalogue d'actions (v1)
 
+!!! note "La mission se nomme `mission_path`, partout (FIX-OPEN-TRAINING-PROMPT-FINDINGS, ticket 05)"
+
+    42 des 47 actions prenaient la mission sous cinq noms : `miz_path` (17), `target` (9),
+    `folder_path` (6), `mission_path` (4) et `mission_yaml_path` (6). Le catalogue publie désormais
+    **`mission_path`** (un dossier de mission ou un `.miz`) pour toutes, et le traduit vers la clé que
+    le gestionnaire lit : les trois anciens noms restent acceptés comme alias, les exemples ci-dessous
+    qui les emploient restent valides. `mission_yaml_path` est gardé, puisqu'il désigne un autre fichier ;
+    un `mission_path` donné à sa place (un dossier) est lu comme `<dossier>/mission.yaml`. Un test du
+    catalogue échoue si une nouvelle action introduit un sixième nom.
+
 !!! note "`miz_path` accepte aussi un **dossier** de mission (lot FIX-MCP-AUTHORING-GAPS, ticket 03)"
 
     Toutes les actions d'édition — `edit_route`, `set_group_properties`, `set_unit_properties`,
@@ -691,6 +701,26 @@ modules) :
   d'entrepôt `warehouses.warehouses[<unitId>]` qui permet de s'y ravitailler. `add_group` en `static`
   ne posait que l'objet (ticket 19). Forme mesurée sur les 372 héliports des missions de
   `D:\dev\_VEAF`. Le `farps:` de `warehouses.yaml` l'approvisionne ensuite au build, comme une base.
+
+### Groupe aéronaval, slots sur le pont, sons (FIX-OPEN-TRAINING-PROMPT-FINDINGS)
+
+- `add_carrier_group(mission_path, coalition, country_id, country_name, name, position, heading_deg,
+  speed_kt, carrier_type="Stennis", carrier_name, escorts, tower_mhz, tacan_channel, tacan_callsign,
+  icls_channel, link4_mhz, recovery_tanker, tanker_*, rescue_helicopter)` — le porte-avions (et ses
+  escorteurs) en route, sa radio sur l'unité (hertz), `ActivateBeacon` (TACAN, `system` 3),
+  `ActivateICLS`, et sur un pont à brins d'arrêt `ActivateLink4` + `ActivateACLS` ; les groupes
+  `<unité> S3B-Tanker` (tâche `Tanker` + TACAN Y) et `<unité> Pedro` que `veafCarrierOperations`
+  cherche par leur nom ; l'entrée `warehouses.warehouses[<unitId>]`. Les tâches ATC sont écrites **au
+  premier point de route et dans le `tasks` du groupe** : sur 218 groupes mesurés, 120 les rangent au
+  groupe, 55 sur la route, 43 aux deux, et `veafCarrierOperations` ne lit que le groupe ; lequel des
+  deux DCS exécute n'a pas été mesuré.
+- `add_air_group(..., start="deck-cold"|"deck-hot", carrier=<unité navire>)` — premier point lié au
+  navire (`linkUnit` = `helipadId` = son `unitId`), places de pont numérotées à la suite ; refusé si
+  l'appareil ne peut pas à la fois décoller de ce pont et y apponter (`TakeOffRWCategories` /
+  `LandRWCategories`, capturés dans `dcsUnits.yaml`).
+- `add_sound(mission_path, sound_path, resource_name)` — copie un `.ogg`/`.wav` dans `l10n/DEFAULT` et
+  le déclare dans `mapResource` sous `MCP_Sound_<nom>` ; `edit_route` `transmit_message` le diffuse
+  (`TransmitMessage` enveloppé, `file` = la clé, `loop`, `duration`, `subtitle` écrit au dictionnaire).
 
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 

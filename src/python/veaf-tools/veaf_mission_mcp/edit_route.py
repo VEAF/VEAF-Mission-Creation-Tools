@@ -39,7 +39,7 @@ from typing import Any
 from veaf_libs.dcs_units_data import get_unit_category
 
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
-from veaf_mission_mcp.mission_table import find_group, indexed
+from veaf_mission_mcp.mission_table import find_group, indexed, listed
 
 #: Metres per foot, and metres per second per knot.
 _M_PER_FT = 0.3048
@@ -110,7 +110,7 @@ def edit_route(
         eta_locked: Whether this waypoint's time is locked.
         task: For ``add_task``, one of ``orbit``, ``land``, ``attack_group``, ``bombing``,
             ``engage_targets_in_zone``, ``set_frequency``, ``switch_waypoint``, ``tanker``, ``awacs``,
-            ``set_unlimited_fuel``, ``eplrs``, ``activate_beacon``, ``escort``.
+            ``set_unlimited_fuel``, ``eplrs``, ``activate_beacon``, ``escort``, ``transmit_message``.
         task_params: That task's parameters; each task validates its own and names what is missing.
         task_position: For ``add_task``, the 1-based place the task takes among the waypoint's tasks,
             the others renumbered after it; appended when omitted. DCS runs them by ``number``, so a
@@ -171,6 +171,7 @@ def edit_route(
             group,
             content,
             position=task_position,
+            mission=mission,
         )
     else:  # clear_tasks
         _clear_tasks(points[_checked_index(index, points) - 1], changed)
@@ -408,6 +409,7 @@ def _add_task(
     content: dict[str, Any] | None = None,
     *,
     position: int | None = None,
+    mission: Any = None,
 ) -> None:
     """Add one task from the named set to a waypoint, at the end or at a given place.
 
@@ -419,15 +421,18 @@ def _add_task(
         group: The group the waypoint belongs to, for the tasks that name it or its unit.
         content: The mission table, for the tasks that name another group.
         position: The 1-based place among the waypoint's tasks; appended when ``None``.
+        mission: The whole mission, for the tasks that read or add a resource (a sound, a subtitle).
 
     Raises:
         ValueError: If the task is unknown, a required parameter is missing, or ``position`` is not
             between 1 and one past the last task.
     """
-    known = sorted({*_TASK_BUILDERS, *_CONTEXT_TASK_BUILDERS})
+    known = sorted({*_TASK_BUILDERS, *_CONTEXT_TASK_BUILDERS, *_RESOURCE_TASK_BUILDERS})
     if task is None:
         raise ValueError(f"task is required for add_task; expected one of {', '.join(known)}")
-    if task in _CONTEXT_TASK_BUILDERS:
+    if task in _RESOURCE_TASK_BUILDERS:
+        entry = _RESOURCE_TASK_BUILDERS[task](params, mission)
+    elif task in _CONTEXT_TASK_BUILDERS:
         entry = _CONTEXT_TASK_BUILDERS[task](params, group or {}, content or {})
     elif task in _TASK_BUILDERS:
         entry = _TASK_BUILDERS[task](params)
@@ -758,6 +763,65 @@ def _build_escort(params: dict[str, Any], group: dict[str, Any], content: dict[s
     }
 
 
+#: Sound files DCS plays from a mission, as the Mission Editor offers them.
+_SOUND_SUFFIXES: tuple[str, ...] = (".ogg", ".wav")
+
+
+def _build_transmit_message(params: dict[str, Any], mission: Any) -> dict[str, Any]:
+    """Build the ``TransmitMessage`` action, wrapped: a unit plays a sound on its radio.
+
+    The shape is that of the 80 transmissions of 55 missions under ``D:\\dev\\_VEAF`` (2026-09-28):
+    ``file`` is a ``mapResource`` key, ``loop`` true for a beacon (59) or false (21), ``duration``
+    5 s (59) or 20 s (21), and ``subtitle`` an optional dictionary key. The unit transmits from its
+    position on the frequency a ``set_frequency`` placed **before** it sets — the pair a helicopter's
+    direction finder homes on.
+
+    Args:
+        params: ``sound`` — a ``mapResource`` key or the sound's file name, as ``add_sound``
+            returned it; optionally ``loop`` (default true), ``duration_s`` (default 5) and
+            ``subtitle`` (the text shown with it).
+        mission: The mission, whose ``mapResource`` must hold the sound, and whose dictionary
+            receives the subtitle.
+
+    Returns:
+        The task entry.
+
+    Raises:
+        ValueError: If the sound is not in the mission — it would transmit silence, and nothing in
+            DCS would say why.
+    """
+    sound = str(_required(params, "sound", "transmit_message"))
+    resources = (mission.map_resource_content if mission is not None else None) or {}
+    sounds = {key: str(value) for key, value in resources.items() if str(value).lower().endswith(_SOUND_SUFFIXES)}
+    # A `VEAF_MapKey…` entry is the build's own and the next build removes it: never reference it.
+    key = (
+        sound
+        if sound in sounds
+        else next((k for k, value in sounds.items() if value == sound and not k.startswith("VEAF_MapKey")), None)
+    )
+    if key is None:
+        raise ValueError(
+            f"no sound {sound!r} in this mission: embed it with add_sound first. Sounds it holds: "
+            f"{listed(sorted(set(sounds.values())))}"
+        )
+    body: dict[str, Any] = {
+        "file": key,
+        "loop": bool(params.get("loop", True)),
+        "duration": int(params.get("duration_s", 5)),
+    }
+    if params.get("subtitle"):
+        if mission.dictionary_content is None:
+            # Neither writer creates a dictionary the mission does not carry, so the text would be lost.
+            raise ValueError("this mission has no l10n/DEFAULT/dictionary to hold a subtitle; omit 'subtitle'")
+        number = 1
+        while f"DictKey_MCP_subtitle_{number}" in mission.dictionary_content:
+            number += 1
+        subtitle_key = f"DictKey_MCP_subtitle_{number}"
+        mission.dictionary_content[subtitle_key] = str(params["subtitle"])
+        body["subtitle"] = subtitle_key
+    return _wrapped({"id": "TransmitMessage", "params": body})
+
+
 #: The named set. Closed on purpose: a generic "write this task table" action lets an agent produce
 #: a plausible table DCS ignores, and the mission maker discovers it an hour into testing.
 _TASK_BUILDERS: dict[str, Any] = {
@@ -779,6 +843,12 @@ _CONTEXT_TASK_BUILDERS: dict[str, Any] = {
     "eplrs": _build_eplrs,
     "activate_beacon": _build_activate_beacon,
     "escort": _build_escort,
+}
+
+#: Tasks that read or add a mission resource — a sound in `mapResource`, a subtitle in the dictionary
+#: (FIX-OPEN-TRAINING-PROMPT-FINDINGS ticket 04: no radio beacon could be built).
+_RESOURCE_TASK_BUILDERS: dict[str, Any] = {
+    "transmit_message": _build_transmit_message,
 }
 
 

@@ -1,6 +1,6 @@
 # 03 — The build opens a carrier's deck to every dynamic template of its side
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix + data
 Files: `src/python/veaf-tools/warehouses_injector/warehouses_injector_worker.py`, the unit data
 (`veaf_libs/data/dcsUnits.yaml`, `update-dcs-data`), tests
@@ -31,3 +31,14 @@ F-14B, AV-8B, UH-1H, AH-64D).
   (catapult / arresting gear / ski-jump / helicopters), the way it already filters an airfield by
   its parking.
 - An explicit `aircrafts:` list is still obeyed. Tested on a catapult carrier and on a LHA.
+
+## Done — 2026-09-28
+
+- `update-dcs-data --units` captures `TakeOffRWCategories` and `LandRWCategories` into
+  `dcsUnits.yaml` (`takeoff_categories` / `landing_categories`).
+- The injector stocks a ship's **default** list only with the templates whose aircraft can both take
+  off from and land on it (one category of each among the ship's attributes), and removes the other
+  types an earlier build left there. An F-14B (catapult take-off) goes on the Stennis, not on the
+  Tarawa; a Su-33 (ski-jump take-off) not on the Stennis. A type the database does not know is kept
+  off a deck. An explicit `aircrafts:` list is obeyed as written.
+- Tests: `test_carrier_deck_filter.py` (a CVN, an LHA, a frigate, a stale stock, an explicit list).

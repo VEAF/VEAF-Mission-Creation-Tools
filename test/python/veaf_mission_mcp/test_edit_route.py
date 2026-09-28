@@ -32,6 +32,7 @@ from typing import Any
 
 import pytest
 from mission_tools.miz_tools import read_miz
+from veaf_mission_mcp.add_sound import add_sound
 from veaf_mission_mcp.edit_route import edit_route
 
 _MISSION_LUA = b"""
@@ -634,3 +635,51 @@ class TestResultAndBackup:
     def test_an_unknown_group_names_what_exists(self, miz: Path) -> None:
         with pytest.raises(ValueError, match="Colt 1-1"):
             edit_route(miz, group_name="Nope", operation="remove", index=1)
+
+
+class TestTransmitMessage:
+    """FIX-OPEN-TRAINING-PROMPT-FINDINGS 04: a radio beacon a helicopter homes on, without a script."""
+
+    @pytest.fixture
+    def sound(self, tmp_path: Path) -> Path:
+        path = tmp_path / "beacon.ogg"
+        path.write_bytes(b"OggS-fake")
+        return path
+
+    def test_a_beacon_task_names_the_sound_by_its_key(self, miz: Path, sound: Path) -> None:
+        add_sound(miz, source_path=str(sound))
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=1,
+            task="set_frequency",
+            task_params={"frequency_mhz": 31, "modulation": "FM"},
+        )
+        edit_route(
+            miz,
+            group_name="Colt 1-1",
+            operation="add_task",
+            index=1,
+            task="transmit_message",
+            task_params={"sound": "beacon.ogg", "subtitle": "Beacon 1"},
+        )
+        tasks = _tasks(_points(miz)[0])
+        assert tasks[0]["params"]["action"]["id"] == "SetFrequency"
+        action = tasks[1]["params"]["action"]
+        assert action["id"] == "TransmitMessage"
+        assert action["params"]["file"] == "MCP_Sound_beacon"
+        assert action["params"]["loop"] is True and action["params"]["duration"] == 5
+        dictionary = read_miz(miz).dictionary_content or {}
+        assert dictionary[action["params"]["subtitle"]] == "Beacon 1"
+
+    def test_a_sound_the_mission_does_not_hold_is_refused(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="add_sound first"):
+            edit_route(
+                miz,
+                group_name="Colt 1-1",
+                operation="add_task",
+                index=1,
+                task="transmit_message",
+                task_params={"sound": "nowhere.ogg"},
+            )

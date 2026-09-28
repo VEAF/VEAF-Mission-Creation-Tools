@@ -171,8 +171,9 @@ def _check_parameters(name: str, schema: dict[str, Any], params: dict[str, Any])
     """Refuse missing required parameters and undeclared ones, naming them.
 
     Only the top level: each handler still validates the values, as it always has. An undeclared
-    parameter is refused because it is nearly always a misspelt one — ``miz_path`` where the action
-    takes ``mission_path`` — and the handler would otherwise fail on the key it did not find.
+    parameter is refused because it is nearly always a misspelt one — ``group`` where the action
+    takes ``group_name`` — and the handler would otherwise fail on the key it did not find. (The
+    mission's former names are not misspellings: :func:`_published_mission_key` translates them first.)
 
     Args:
         name: The action's name, for the message.

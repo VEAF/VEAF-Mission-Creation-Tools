@@ -88,6 +88,7 @@ def create_combat_zone(
             route=spec.get("route"),
             patrol=spec.get("patrol", False),
             warnings=build_warnings,
+            keep_position=spec.get("keep_position", False),
         )
         created.append(group_name)
         warnings += validate_group_name(group_name, expected_combat_zone=zone_name)["warnings"]

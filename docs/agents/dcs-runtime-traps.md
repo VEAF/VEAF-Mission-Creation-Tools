@@ -118,6 +118,30 @@ never pass and it displaced nothing, ever. Ticket 10 assumed the **clearance** w
 wrote it into a comment — "a candidate is scenery-free by construction" — and translated groups
 into the middle of woods; released in 6.25.0, measured inert the same day.
 
+### A grid of scenery probes 50 m apart steps over a copse; 25 m apart it does not {#scenery-probe-grid-steps-over-copses}
+
+Measured **2026-09-28**.
+
+The small `Disposition.getSimpleZones` probe answers "blocked" only where its whole 20 m disc is
+covered, so a wood smaller than the gap between two probes can sit between them unseen. Measured
+on Caucasus, on an empty mission, 12 points compared with rings probed every 20 m:
+
+| probe spacing | worst error on the clear radius |
+|---|---|
+| 25 m | −20 / +10 m |
+| 50 m | **+130 m** — 170 m promised where a copse stood 60 m away |
+| 200 m | **+200 m**, several points |
+
+Costs, same session: **0.15 to 0.17 ms** a probe on an empty Caucasus mission, **190 ms** a call
+across `dcs-serve` whatever it carries. On GermanyCW the same sweep ran at about **0.3 ms** a
+probe (1.45 M cells in 8 min), in line with the 0.38 ms measured there on 2026-09-26.
+
+**What to do:** Sweep at 25 m where groups are placed, and never read a clear radius off a coarser grid. Batch
+thousands of probes per call: the call, not the probe, is what costs.
+
+*What it cost:* The whole-map 200 m pass FEAT-CLEAR-GROUND-AT-AUTHORING first planned would have promised
+clearings in woods; ticket 01 measured it before it was built.
+
 ### A late-activated group is fully visible to the scripting API before it is activated {#late-activated-group-is-visible}
 
 Measured **2026-09-21**.

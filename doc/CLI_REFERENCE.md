@@ -572,6 +572,88 @@ veaf-tools dcs inject-bridge MaMission.miz
 
 **Voir aussi** : [developer/dcs-data.md](developer/dcs-data.md)
 
+### `veaf-tools dcs clear-ground-sweep` {#clear-ground-sweep}
+
+Sonde le terrain dégagé d'un théâtre, pas à pas, et écrit son catalogue. La commande :
+
+1. écrit une mission d'arpentage **vide** dans le dossier `Missions` de votre DCS. Elle doit rester vide :
+   la sonde de DCS compte les véhicules comme des obstacles, et une unité posée sur la carte serait
+   prise pour de la forêt ;
+2. s'assure que `dcs-serve` tourne : c'est le petit serveur local auquel le script dcs-bridge de la mission
+   se connecte, et par lequel passe le balayage. S'il ne répond pas, la commande le lance elle-même (trouvé
+   à côté de `veaf-tools.exe`, dans le `PATH`, ou via `--dcs-serve`), dans un dossier à elle, avec une clé
+   d'accès générée et une écoute limitée à cet ordinateur, et l'arrête à la fin ;
+3. affiche quoi faire : autoriser une fois les scripts de mission à communiquer (`MissionScripting.lua`),
+   ouvrir et lancer la mission, prendre le slot spectateur ;
+4. attend que vous appuyiez sur Entrée, puis que la mission réponde ;
+5. sonde le terrain autour des aérodromes (et, sur demande, des combat zones d'une mission ou de
+   points donnés) en affichant la progression. Un balayage interrompu reprend là où il s'était arrêté ;
+6. écrit le catalogue et indique que DCS peut être fermé.
+
+Les 21 aérodromes du Caucase prennent environ 4 minutes, une combat zone une dizaine de secondes. DCS
+gèle environ 1,5 s à chaque lot, sans conséquence sur une mission que personne ne pilote.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | oui | Nom du théâtre DCS, tel qu'une mission l'écrit. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--zones-from` | `str` | *(aucun)* | Sonder aussi autour des zones de déclenchement `combatZone...` de ce .miz. |
+| `--around` | `str` | *(aucun)* | Sonder aussi autour de ce point, en coordonnées de mission `x,y` (répétable). |
+| `--airfields` | `boolean` | `true` | Sonder autour de chaque aérodrome du théâtre. |
+| `--out` | `str` | `<VEAF home>/clear-ground/<théâtre>.clear-ground.json` | Le catalogue à écrire. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<théâtre>.miz` | Où écrire la mission d'arpentage. |
+| `--bridge-lua` | `str` | *(aucun)* | dcs-bridge.lua local à embarquer (défaut : téléchargement). |
+| `--state-dir` | `str` | `<VEAF home>/clear-ground/sweep-<théâtre>` | Où le balayage garde sa progression. |
+| `--restart` | `boolean` | `false` | Jeter la progression d'un autre plan au lieu de refuser. |
+| `--batch` | `int` | `10000` | Cellules sondées par appel à DCS. |
+| `--wait` | `int` | `900` | Combien de secondes attendre que la mission d'arpentage réponde. |
+| `--api-key` | `str` | *(aucun)* | Jeton Bearer superuser de dcs-serve (par défaut : lu dans dcs-serve.yaml). (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Chemin d'un dcs-serve.yaml / dcs-client.yaml où lire la clé. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à lancer quand aucun ne tourne (par défaut : à côté de veaf-tools, ou dans le PATH). |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```bash
+.\veaf-tools.exe dcs clear-ground-sweep Caucasus --zones-from MaMission.miz
+```
+
+*Alias plat : `veaf-tools clear-ground-sweep`*
+
+### `veaf-tools dcs clear-ground-check` {#clear-ground-check}
+
+Vérifie dans DCS si les véhicules au sol d'une mission construite sont dans les arbres ou les
+bâtiments, **sans les faire apparaître**. Leur position est lue dans le `.miz`, puis sondée sur la mission
+d'arpentage vide : aucun véhicule n'y existe, donc aucun n'est compté comme bloqué par ses voisins — ce
+qui arrive dès qu'on sonde une batterie déjà apparue. Chaque réponse est comparée à ce que le catalogue
+de terrain dégagé prédisait, et un désaccord est signalé comme une question sur le catalogue. Les
+marqueurs de combat zone (`#command`) ne sont pas vérifiés : leur groupe est dessiné au runtime, qui le
+déplace lui-même hors du décor. Même déroulé que `clear-ground-sweep` : `dcs-serve`, mission d'arpentage,
+consignes, attente.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `MISSION` | `str` | oui | Le .miz à vérifier. Il est lu, jamais chargé dans DCS. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<théâtre>.miz` | Où écrire la mission d'arpentage. |
+| `--bridge-lua` | `str` | *(aucun)* | dcs-bridge.lua local à embarquer (défaut : téléchargement). |
+| `--wait` | `int` | `900` | Combien de secondes attendre que la mission d'arpentage réponde. |
+| `--report` | `str` | *(aucun)* | Écrire aussi le rapport en JSON dans ce fichier. |
+| `--api-key` | `str` | *(aucun)* | Jeton Bearer superuser de dcs-serve (par défaut : lu dans dcs-serve.yaml). (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Chemin d'un dcs-serve.yaml / dcs-client.yaml où lire la clé. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à lancer quand aucun ne tourne. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```bash
+.\veaf-tools.exe dcs clear-ground-check build\MaMission.miz
+```
+
+*Alias plat : `veaf-tools clear-ground-check`*
+
 ### `veaf-tools dcs smoke-test` {#smoke-test}
 
 Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle.

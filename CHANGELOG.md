@@ -30,6 +30,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   holding it, and every change is announced to the side that gains or loses it. Opt out with
   `modules.CTLD.manage_airbase_logistics: false`; `airbase_logistics_radius`,
   `airbase_occupation_radius` and `airbase_logistics_tick` tune it. CTLD itself is unchanged.
+- **Groups the MCP places land on clear ground, not in a wood.** `add_group` and `create_combat_zone`
+  now put a stationary vehicle group on ground measured clear of trees and buildings, up to 1 km from
+  the asked position, moving it as one body, and say so in `warnings`. A combat-zone marker is sized
+  from the group the runtime will draw (`-sa10`: 214 m, read from `veaf-units.yaml`). The measurement
+  is a **clear-ground catalogue** per theatre, swept once in DCS: Caucasus (its 21 airfields) and
+  GermanyCW (the 25 combat zones of GermanyCW-v6) ship. `keep_position: true` keeps a position the
+  user gave; a place the catalogue does not cover, or holds nothing large enough, keeps the asked
+  position and says why. Two guided commands go with it: `veaf-tools dcs clear-ground-sweep <theatre>`
+  sweeps a theatre or a mission's zones — it writes an empty survey mission, starts `dcs-serve` with a
+  generated key, tells you what to do in DCS and resumes an interrupted sweep — and
+  `veaf-tools dcs clear-ground-check <mission.miz>` checks a built mission in DCS without spawning it,
+  so vehicles never count each other as obstacles. The MCP offers that check
+  (`offer_clear_ground_check`) and never launches it. The Saved Games folder is now found where
+  Windows keeps it, even moved or redirected to OneDrive (also used by `veaf-tools doctor`).
 
 ### Fixed
 

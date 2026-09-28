@@ -286,6 +286,60 @@ def _collect_machine() -> dict[str, str]:
     }
 
 
+#: ``FOLDERID_SavedGames``, the Windows known folder DCS writes under.
+_SAVED_GAMES_FOLDER_ID = "{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}"
+
+
+def saved_games_dir(home: Path | None = None) -> Path:
+    """Return the user's *Saved Games* folder, wherever Windows keeps it.
+
+    It is a known folder, and a user can move it — Properties > Location, or a OneDrive redirection —
+    so ``<profile>\\Saved Games`` is only the default. Windows is asked first; the default is the
+    answer when it cannot say, off Windows, or when *home* points a test at a fixture.
+
+    Args:
+        home: A home directory to use instead of asking Windows.
+
+    Returns:
+        The folder, which may not exist.
+    """
+    if home is None:
+        located = _windows_known_folder(_SAVED_GAMES_FOLDER_ID)
+        if located is not None:
+            return located
+    return (home or Path.home()) / "Saved Games"
+
+
+def _windows_known_folder(folder_id: str) -> Path | None:
+    """Ask Windows where a known folder is (``SHGetKnownFolderPath``); ``None`` when it cannot say."""
+    if sys.platform != "win32":
+        return None
+    import ctypes  # noqa: PLC0415
+    import uuid  # noqa: PLC0415
+    from ctypes import wintypes  # noqa: PLC0415
+
+    class _Guid(ctypes.Structure):
+        _fields_ = [
+            ("Data1", wintypes.DWORD),
+            ("Data2", wintypes.WORD),
+            ("Data3", wintypes.WORD),
+            ("Data4", ctypes.c_ubyte * 8),
+        ]
+
+    try:
+        value = uuid.UUID(folder_id)
+        guid = _Guid(value.fields[0], value.fields[1], value.fields[2], (ctypes.c_ubyte * 8)(*value.bytes[8:]))
+        path = ctypes.c_wchar_p()
+        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(guid), 0, None, ctypes.byref(path)) != 0:
+            return None
+        try:
+            return Path(path.value) if path.value else None
+        finally:
+            ctypes.windll.ole32.CoTaskMemFree(path)
+    except (OSError, AttributeError, ValueError):
+        return None
+
+
 def find_dcs_write_dirs(home: Path | None = None) -> list[Path]:
     """Return the DCS *Saved Games* folders that hold a log, most recently used first.
 
@@ -301,7 +355,7 @@ def find_dcs_write_dirs(home: Path | None = None) -> list[Path]:
         The matching folders, freshest log first. Empty when DCS is absent — the normal case on a
         workstation without the game.
     """
-    base = (home or Path.home()) / "Saved Games"
+    base = saved_games_dir(home)
     if not base.is_dir():
         return []
     candidates = [

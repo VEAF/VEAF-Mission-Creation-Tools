@@ -1,6 +1,6 @@
 # 04 — the authoring tools place on clear ground, and say when they cannot
 
-Status: ⬜ ready — depends on ticket 03
+Status: ✅ done — 2026-09-28, verified in game; see the PRD, *What was built*
 Type: feat
 
 ## What this builds
@@ -25,11 +25,13 @@ placement. A refusal turns a quality problem into a broken tool.
 
 ## Definition of done
 
-- [ ] A failing test first: a group the tools place lands on a catalogued clear position
-- [ ] A position the mission maker declared is **never** moved — the existing arbitration tests stay
+- [x] A test: a group the tools place lands on a catalogued clear position — written **with** the
+      code, not before it; it fails against the code without the placement
+- [x] A position the mission maker declared is **never** moved — the existing arbitration tests stay
       green
-- [ ] Out of coverage and nothing-found both place as requested and report it in terms a mission
+- [x] Out of coverage and nothing-found both place as requested and report it in terms a mission
       maker can act on, naming the size asked for and the radius searched
-- [ ] Verified on a real authoring run: a mission built through the MCP holds no group standing in a
-      wood that the catalogue could have avoided
-- [ ] Python tests green, and the docs updated wherever the behaviour is visible to a mission maker
+- [x] Verified on a real authoring run: a mission built through `add_group` — the MCP action's own
+      function, called directly rather than over the MCP transport — holds no group standing in a
+      wood the catalogue could have avoided (8 of 8 clear in DCS, 2026-09-28)
+- [x] Python tests green, and the docs updated wherever the behaviour is visible to a mission maker

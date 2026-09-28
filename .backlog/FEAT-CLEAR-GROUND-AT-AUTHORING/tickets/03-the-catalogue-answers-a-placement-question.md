@@ -1,6 +1,6 @@
 # 03 — the catalogue answers "where does a group this size fit, near here?"
 
-Status: ⬜ ready — depends on ticket 02
+Status: ✅ done — 2026-09-28, verified in game; see the PRD, *What was built*
 Type: feat
 
 ## What this builds
@@ -21,11 +21,11 @@ silently returning nothing.
 
 ## Definition of done
 
-- [ ] A query returns candidates ordered by distance, filtered on the required clear radius
-- [ ] The margin applied over the stored radius is justified by the 38.8 m measurement rather than
+- [x] A query returns candidates ordered by distance, filtered on the required clear radius
+- [x] The margin applied over the stored radius is justified by the 38.8 m measurement rather than
       chosen by feel
-- [ ] A query outside the catalogue's coverage is **distinguishable** from a query that searched and
+- [x] A query outside the catalogue's coverage is **distinguishable** from a query that searched and
       found nothing. They are different answers, and ticket 04 acts on them differently
-- [ ] Querying is fast enough to run per group while a mission is being built, measured rather than
+- [x] Querying is fast enough to run per group while a mission is being built, measured rather than
       assumed
-- [ ] Python tests green
+- [x] Python tests green

@@ -1,6 +1,6 @@
 # 05 — the MCP offers to check its own work in DCS
 
-Status: ⬜ ready — depends on ticket 04, and it is the gate rather than the fix
+Status: ✅ done — 2026-09-28, verified in game; see the PRD, *What was built*
 Type: feat
 
 ## What this builds
@@ -23,11 +23,15 @@ report that does not say how it counted is how this went wrong the first time.
 
 ## Definition of done
 
-- [ ] The MCP can launch DCS on a generated mission and read ground unit positions back
-- [ ] The report counts vehicles in scenery with a criterion that does not count their own
+- [x] ~~The MCP can launch DCS on a generated mission and read ground unit positions back~~ —
+      **replaced**: the positions are read from the `.miz` and probed in DCS on the empty survey
+      mission. Reading them back from a spawned mission is the measurement this ticket itself warns
+      against (vehicles block each other), and launching DCS is the user's to do; the MCP offers the
+      command (`offer_clear_ground_check`)
+- [x] The report counts vehicles in scenery with a criterion that does not count their own
       neighbours, and names the criterion it used
-- [ ] The offer is an offer: nothing launches DCS without being asked
-- [ ] A mission built through ticket 04 is verified this way, and the result is compared with what
+- [x] The offer is an offer: nothing launches DCS without being asked
+- [x] A mission built through ticket 04 is verified this way, and the result is compared with what
       the catalogue predicted. A disagreement is a finding about the catalogue, not noise to smooth
       over
-- [ ] Python tests green
+- [x] Python tests green

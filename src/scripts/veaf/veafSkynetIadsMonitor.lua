@@ -475,15 +475,24 @@ function VeafSkynetMonitorTaskContacts:Execute()
     if self:ContactIsToMonitor(sContactName) and not self:ContactIsTracked(sContactName) then
       veaf.loggers.get(veafSkynetMonitor.Id):trace("Monitored contact detected: " .. sContactName)
       self:AddTrackedContact(sContactName)
-      local err, errmsg = pcall(self.OnDetectedAction, sContactName)
+      local ok, errmsg = pcall(self.OnDetectedAction, sContactName)
+      if not ok then
+        veaf.loggers.get(veafSkynetMonitor.Id):error("OnDetectedAction failed for [%s]: %s", sContactName, errmsg)
+      end
     end
   end
 
-  for _, sContactName in pairs(self.TrackedUnits) do
+  -- backwards: removing an element shifts the ones after it, and a forward walk would skip the
+  -- next contact lost in the same beat, leaving it tracked for the rest of the mission
+  for i = #self.TrackedUnits, 1, -1 do
+    local sContactName = self.TrackedUnits[i]
     if not tableContains(currentContacts, sContactName) then
       veaf.loggers.get(veafSkynetMonitor.Id):trace("Monitored contact lost: " .. sContactName)
       self:RemoveTrackedContact(sContactName)
-      local err, errmsg = pcall(self.OnLostAction, sContactName)
+      local ok, errmsg = pcall(self.OnLostAction, sContactName)
+      if not ok then
+        veaf.loggers.get(veafSkynetMonitor.Id):error("OnLostAction failed for [%s]: %s", sContactName, errmsg)
+      end
     end
   end
 end

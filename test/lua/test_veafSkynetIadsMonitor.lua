@@ -401,4 +401,94 @@ function TestVeafSkynetMonitorExecuteTasks:test_execute_runs_all_tasks()
   luaunit.assertEquals(execCount, 2)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafSkynetMonitorTaskContactsExecute
+-- ---------------------------------------------------------------------------
+-- The task is built by hand: `Create` goes through Skynet's `inheritsFrom`, which the tests do
+-- not load. `Execute` and the helpers it calls are plain methods of the table.
+TestVeafSkynetMonitorTaskContactsExecute = {}
+
+local function contactsTask(monitored, detected, lost)
+  local iads = { contacts = {} }
+  function iads:getContacts()
+    local result = {}
+    for _, name in ipairs(self.contacts) do
+      table.insert(result, {
+        getName = function()
+          return name
+        end,
+      })
+    end
+    return result
+  end
+  function iads:getCoalitionString()
+    return "red"
+  end
+  local task = setmetatable({
+    Name = "contacts",
+    Iads = iads,
+    UnitsToMonitor = monitored,
+    TrackedUnits = {},
+    OnDetectedAction = function(name)
+      table.insert(detected, name)
+    end,
+    OnLostAction = function(name)
+      table.insert(lost, name)
+    end,
+  }, { __index = VeafSkynetMonitorTaskContacts })
+  return task, iads
+end
+
+-- the audit's case: three contacts lost in the same beat; iterating with `pairs` while
+-- `table.remove` shifted the sequence skipped the second one, for good
+function TestVeafSkynetMonitorTaskContactsExecute:test_every_contact_lost_in_one_beat_is_reported()
+  local detected, lost = {}, {}
+  local task, iads = contactsTask({ "A", "B", "C" }, detected, lost)
+  iads.contacts = { "A", "B", "C" }
+  task:Execute()
+  luaunit.assertEquals(#detected, 3)
+  iads.contacts = {}
+  task:Execute()
+  table.sort(lost)
+  luaunit.assertEquals(lost, { "A", "B", "C" })
+  luaunit.assertEquals(task.TrackedUnits, {})
+end
+
+function TestVeafSkynetMonitorTaskContactsExecute:test_a_lost_contact_that_returns_is_detected_again()
+  local detected, lost = {}, {}
+  local task, iads = contactsTask({ "A", "B" }, detected, lost)
+  iads.contacts = { "A", "B" }
+  task:Execute()
+  iads.contacts = {}
+  task:Execute()
+  iads.contacts = { "A", "B" }
+  task:Execute()
+  luaunit.assertEquals(#detected, 4)
+  luaunit.assertEquals(#lost, 2)
+end
+
+function TestVeafSkynetMonitorTaskContactsExecute:test_an_action_that_raises_is_logged_and_the_loop_goes_on()
+  local detected, lost = {}, {}
+  local task, iads = contactsTask({ "A", "B" }, detected, lost)
+  iads.contacts = { "A", "B" }
+  task:Execute()
+  task.OnLostAction = function(name)
+    table.insert(lost, name)
+    error("boom " .. name)
+  end
+  local logger = veaf.loggers.get(veafSkynetMonitor.Id)
+  local saved = logger.error
+  local errors = {}
+  logger.error = function(_, text, ...)
+    table.insert(errors, string.format(text, ...))
+  end
+  iads.contacts = {}
+  task:Execute()
+  logger.error = saved
+  luaunit.assertEquals(#lost, 2)
+  luaunit.assertEquals(#errors, 2)
+  luaunit.assertStrContains(errors[1], "boom")
+  luaunit.assertEquals(task.TrackedUnits, {})
+end
+
 os.exit(luaunit.LuaUnit.run())

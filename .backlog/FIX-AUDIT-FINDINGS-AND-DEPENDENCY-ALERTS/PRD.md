@@ -19,7 +19,7 @@ repository's own procedure asks — an unsupervised agent wrote them.
 | Source | Claim | Verdict | Ticket |
 |---|---|---|---|
 | audit #89 | the Skynet monitor forgets one of two contacts lost in the same beat | **real** — `pairs` over `TrackedUnits` while `table.remove` shifts it (`veafSkynetIadsMonitor.lua:482-488`) | 01 |
-| audit #90 | a failing NIOD callback never says why | **real**, both paths — `veaf.p(status)` instead of `retval`, and a format with one `%s` for two values (`veafRemote.lua:96-109`) | 02 |
+| audit #90 | a failing NIOD callback never says why | defects **real, code unreachable** — NIOD left the repository on 2025-09-25, and the only callbacks sit under `local TEST = false`. NIOD is removed instead (David, 2026-09-28) | 02 |
 | audit #88 | the `veaf.lua` logger loses every value under LuaJIT: 727 log lines reach `dcs.log` with raw `%s` | **premise refuted** — see below. The code does lean on `LUA_COMPAT_VARARG`; the consequence does not happen | 03 |
 | Dependabot #59 (high) | `sharp` 0.35.2, libheif vulnerabilities, fixed in 0.35.4 | real, **dev-only**: pulled by `wrangler` → `miniflare` in `poc/doc-chatbot/worker`, used by `wrangler dev`, never in the deployed Worker | 04 |
 | Dependabot #62 (low) | `paramiko` ≤ 4.0.0 accepts SHA-1 (`ssh-rsa`) signatures, no fixed release | real, optional extra `logs` only (`veaf_logs/remote.py`, the remote `dcs.log` tail) | 05 |
@@ -47,25 +47,26 @@ hardening rather than as a live defect.
 | # | Ticket | What it is |
 |---|--------|------------|
 | 01 | [the Skynet monitor reports every lost contact](tickets/01-skynet-monitor-reports-every-lost-contact.md) | audit #89, plus the discarded `pcall` errors in the same two loops |
-| 02 | [a failing NIOD callback says why](tickets/02-niod-callback-says-why.md) | audit #90 |
+| 02 | [NIOD is removed](tickets/02-niod-is-removed.md) | audit #90 — dead code since the NIOD script was deleted |
 | 03 | [the logger forwards its varargs](tickets/03-logger-forwards-its-varargs.md) | audit #88, re-sized as hardening — includes the option of not doing it |
 | 04 | [the chatbot Worker's dependencies are watched](tickets/04-chatbot-worker-dependencies-are-watched.md) | Dependabot #59, and the two directories Dependabot does not watch |
 | 05 | [veaf-logs refuses SHA-1 SSH signatures](tickets/05-veaf-logs-refuses-sha1-ssh-signatures.md) | Dependabot #62, mitigated since no fixed release exists |
 
 ## Definition of done
 
-* Tickets 01 and 02 each ship with the test the audit said was missing, and that test fails
-  before the fix.
+* Ticket 01 ships with the test the audit said was missing, and that test fails before the fix.
+  Ticket 02 ships with tests pinning the absence of the removed entry points.
 * The Lua and Python quality gates pass (§6 of `CLAUDE.md`); `CHANGELOG.md` has one entry per
   user-visible fix under `[Unreleased]`.
 * One branch, one PR. Commit messages reference the findings as `davidp57/security-audits#<n>` —
   a bare `#<n>` would point at this repository's issues.
 * **Left to David, after the merge**: closing the three audit issues (#88 with the production
-  measurement above rather than a fix claim), and dismissing Dependabot #62 as mitigated. The
+  measurement above rather than a fix claim, #90 as *code removed*), and dismissing Dependabot #62 as mitigated. The
   audit repository's `state/` is not touched: its routine marks a finding resolved on its next run.
 
 ## Scope
 
-Nothing here touches what a mission maker configures: no `mission.yaml` key, no default, no
-documentation page changes behaviour. The audit's findings on other repositories (CTLD,
+Nothing here touches what a mission maker configures: no `mission.yaml` key, no default changes.
+The one documentation change is the scripts page's `veafRemote.lua` row, which stops advertising
+NIOD. The audit's findings on other repositories (CTLD,
 VEAF-Servers, …) are not part of this lot.

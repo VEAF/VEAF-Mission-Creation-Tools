@@ -124,8 +124,8 @@ recognise a generated name. Worth pinning before writing the fix.
 The membership test — whichever function compares a group's name to the zone's — and the spawn path
 that names a group created from a zone element. The fix is presumably to register the spawned group
 with its originating zone at creation, rather than to rely on its name afterwards. See
-[`DOC-COMBATZONE-PREFIX-RULE`](../DOC-COMBATZONE-PREFIX-RULE/PRD.md) for what the convention is meant
-to do, and [`FIX-COMBATZONE-SILENT-EXCLUSION`](../FIX-COMBATZONE-SILENT-EXCLUSION/PRD.md) for the
+[`DOC-COMBATZONE-PREFIX-RULE`](../archive/DOC-COMBATZONE-PREFIX-RULE.md) for what the convention is meant
+to do, and [`FIX-COMBATZONE-SILENT-EXCLUSION`](../archive/FIX-COMBATZONE-SILENT-EXCLUSION.md) for the
 last time exclusion bit silently.
 
 ## Also from the same sortie, and it belongs elsewhere

@@ -3,7 +3,7 @@
 Status: 🔄 in-progress — tickets 01, 02, 03 and 05 delivered 2026-08-27; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**, which merged 2026-09-26 (PR #1005) and shipped in 6.25.0. **10 was then measured in game the same day and is inert too** — the groups are translated, the formations hold, and the metric does not move; the cause is under the lot, in `Disposition.getSimpleZones`, and is the subject of **ticket 11**. Ticket 04 is still open and no longer blocked: the number DCS alone could give is in — 0 exhaustions out of 4 cases
 
 Origin: found on 2026-08-27 while studying the 20 `mist.getRandPointInCircle` call sites for
-[`DROP-MIST`](../DROP-MIST/tickets/06-geometry-and-zone-queries.md) ticket 06. Kept out of that campaign
+[`DROP-MIST`](../archive/DROP-MIST.md) ticket 06. Kept out of that campaign
 on purpose — a lot whose job is to remove a dependency must not also move where things spawn, or a
 regression becomes indistinguishable from the port going wrong. David arbitrated the FARP question the
 same day and asked for this lot to be opened.

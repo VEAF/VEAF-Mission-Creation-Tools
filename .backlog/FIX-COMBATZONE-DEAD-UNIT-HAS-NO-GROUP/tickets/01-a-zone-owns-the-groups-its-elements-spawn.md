@@ -7,7 +7,7 @@ Type: fix
 
 Membership in a combat zone is decided by a **name prefix**: a group belongs to the zone whose name
 its own name starts with. That keeps foreign groups out, which is what the convention is for
-([`DOC-COMBATZONE-PREFIX-RULE`](../../DOC-COMBATZONE-PREFIX-RULE/PRD.md)).
+([`DOC-COMBATZONE-PREFIX-RULE`](../../archive/DOC-COMBATZONE-PREFIX-RULE.md)).
 
 But a zone element can *create* a group, through `#command="_spawn armorgroup, defense 3"` and its
 `samgroup` twin — and the spawn gives the new group a **generated name**. `[r]-73rd Steel

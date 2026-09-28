@@ -237,7 +237,7 @@ guard holds.
 ### R15. Does DCS still hide a group it did not place itself?
 
 Settles the open half of [#953](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/953),
-which [`FIX-STATIC-RESPAWN-BY-UNIT-NAME`](.backlog/FIX-STATIC-RESPAWN-BY-UNIT-NAME/PRD.md) states and
+which [`FIX-STATIC-RESPAWN-BY-UNIT-NAME`](.backlog/archive/FIX-STATIC-RESPAWN-BY-UNIT-NAME.md) states and
 deliberately does not answer. Tripack reports QRA aircraft and neutral statics, all `hidden` in the
 Mission Editor, showing on the F10 map of a **remote** server. Everything measurable from a keyboard
 says the framework is not losing the flag: his `.miz` carries `hidden = true` on all of them, the
@@ -720,7 +720,7 @@ was **not** a valid check — see the withdrawal of item 17 below, which is the 
 
 ## 17. ~~A tag on one unit of a group~~ — withdrawn 2026-08-22, the criterion was wrong
 
-[`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY/PRD.md), 6.15.14.
+[`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/archive/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY.md), 6.15.14.
 Closed on unit coverage instead. **Nothing to do in game.**
 
 This check told the tester to activate the zone and watch two M-1 Abrams: *"they stay put"* meant the tag
@@ -745,7 +745,7 @@ The lesson worth keeping is not about alarm states. An in-game check is only wor
 **come out both ways**; this one was written from an assumption about DCS behaviour that was never tested,
 and the assumption was wrong. Two waypoints were even added to the group on 2026-08-21 to make the check
 possible — and that hand-copied waypoint is what later broke the mission for the DCS editor
-([`FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS`](.backlog/FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS/PRD.md)).
+([`FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS`](.backlog/archive/FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS.md)).
 The whole cost came from a check that could never conclude.
 
 ## ✅ 18. The dispersion — verified in game 2026-08-22
@@ -877,7 +877,7 @@ direction « 2 heures » recoupée par un calcul indépendant, et ramassage effe
 Deux défauts trouvés au passage, qu'aucun des 3950 tests ne voyait : l'assertion de dépendance
 s'exécutait au chargement, là où `veaf` ne peut pas encore exister ; et un groupe créé en vol
 n'avait pas de pays, ce qui cassait **tout** téléport de groupe dynamique. Détail complet dans
-`.backlog/REFACTOR-CSAR-WITHOUT-MIST/PRD.md`.
+`.backlog/archive/REFACTOR-CSAR-WITHOUT-MIST.md`.
 
 ## ✅ 24. Skynet sans MiST — vérifié en jeu le 2026-08-31, sans un seul décollage
 
@@ -891,7 +891,7 @@ vol vu immédiatement. Le piège MiST a mordu 31 fois, **31 fois depuis `dcs-bri
 d'observation lui-même) et **zéro depuis Skynet**.
 
 Détail complet, y compris mes deux fausses alertes de méthode, dans
-`.backlog/REFACTOR-SKYNET-WITHOUT-MIST/PRD.md`.
+`.backlog/archive/REFACTOR-SKYNET-WITHOUT-MIST.md`.
 
 
 ---

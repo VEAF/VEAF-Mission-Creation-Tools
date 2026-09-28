@@ -14,7 +14,7 @@ leaves the other two untested.
 
 The field list is enumerated from the generator, not sampled: every expression the
 generator interpolates into a double-quoted Lua string has an entry here or a written
-reason in ``.backlog/FIX-GENERATOR-UNESCAPED-STRINGS/tickets/01-…`` for having none.
+reason in ``.backlog/archive/FIX-GENERATOR-UNESCAPED-STRINGS.md`` (ticket 01) for having none.
 """
 
 from __future__ import annotations

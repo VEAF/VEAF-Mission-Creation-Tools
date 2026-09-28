@@ -1,6 +1,6 @@
 # FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP — a combat zone loses track of what it has lost
 
-Status: 🔄 in-progress — analysed 2026-09-27 from the run's `dcs.log`, two tickets opened.
+Status: 🔄 in-progress — ticket 01 closed as no defect (2026-09-28, the sortie's log read); ticket 03 instruments the log for tonight's watched session on the server; ticket 02 open.
 
 > **The lot's name is now misleading, and is kept only so links do not break.** "A dead unit has no
 > group" was the symptom that started it, and it turned out to be CTLD announcing a perfectly normal
@@ -8,6 +8,12 @@ Status: 🔄 in-progress — analysed 2026-09-27 from the run's `dcs.log`, two t
 > [VEAF/CTLD#212](https://github.com/VEAF/CTLD/issues/212), nothing to fix here. The real defect is
 > **ticket 01: a combat zone disowns the groups its own elements spawn.** Ticket 02 carries David's
 > ruling that a zone's vehicles should start warm.
+>
+> **2026-09-28: ticket 01 is not a defect** — the zone owns every group it spawns, and the sortie's
+> log shows all fifteen vehicles dying, the last after the flight had left. What is left is David's
+> report that the info panel, asked right after activation, listed only *"quelques camions et une
+> Shilka"*, which the code as read cannot produce. [Ticket 03](tickets/03-diagnostics-for-a-watched-session.md)
+> instruments the log so that tonight's session answers it.
 
 Observed by David on 2026-09-26 evening, flying `combatZone_WahnerHeide_Medium` as a two-ship of
 A-10s on GermanyCW-v6.

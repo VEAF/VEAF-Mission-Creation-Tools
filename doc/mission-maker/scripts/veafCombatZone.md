@@ -749,6 +749,24 @@ Le mode entraînement est idéal pour des scénarios d'entraînement BFM / CAS o
 
 ---
 
+## Suivre une zone en direct dans le journal {#diagnostics}
+
+Quand une zone ne se comporte pas comme prévu (le panneau d'infos ne montre pas ce qui est sur le
+terrain, la zone ne se termine pas), activez les diagnostics dans `mission.yaml` :
+
+```yaml
+module_settings:
+  veaf.Diagnostics: true
+```
+
+Chaque zone écrit alors dans `dcs.log`, au niveau `info` et quel que soit le niveau de log des
+modules, des lignes marquées `DIAG|` : la demande d'activation et qui l'a faite, chaque élément
+apparu (son groupe, ses unités vivantes et leurs types) ou raté, le contenu exact du panneau d'infos
+groupe par groupe, chaque passage de la surveillance de fin de zone avec sa décision, et la
+désactivation. Filtrez le journal sur `DIAG|` pour ne lire que cela.
+
+C'est bavard : réservez-le à une session que vous surveillez, puis remettez `false`.
+
 ## Voir aussi
 
 - [veafCasMission](veafCasMission.md) — zones CAS générées (sans groupes pré-placés)

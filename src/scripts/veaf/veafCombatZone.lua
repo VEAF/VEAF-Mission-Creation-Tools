@@ -252,6 +252,25 @@ function veafCombatZone.getGroupNameOfUnit(unit)
   return unit:getGroup():getName(), false
 end
 
+--- One line saying what DCS knows of a group right now, for the `veaf.diag` lines.
+--- @param groupName string a group, or a static, the zone spawned
+--- @return string "name: N alive (types)", "name: static", or "name: not found"
+function veafCombatZone.describeForDiag(groupName)
+  local group = Group.getByName(groupName)
+  if not group then
+    if StaticObject.getByName(groupName) then
+      return string.format("%s: static", tostring(groupName))
+    end
+    return string.format("%s: not found", tostring(groupName))
+  end
+  local units = group:getUnits() or {}
+  local types = {}
+  for _, unit in pairs(units) do
+    table.insert(types, tostring(unit.getTypeName and unit:getTypeName() or "?"))
+  end
+  return string.format("%s: %d alive (%s)", tostring(groupName), #units, table.concat(types, ", "))
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatZoneElement object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1505,10 +1524,21 @@ function VeafCombatZone:getInformation(unitName)
                     nbInfantryB = nbInfantryB + 1
                   end
                 end
+              else
+                veaf.diag(
+                  veafCombatZone.Id,
+                  "zone %s: panel: unit type %s of %s not counted (unknown to veafUnits)",
+                  self.missionEditorZoneName,
+                  typeName,
+                  groupName
+                )
               end
             end
           end
         end
+      end
+      if veaf.Diagnostics then
+        veaf.diag(veafCombatZone.Id, "zone %s: panel sees %s", self.missionEditorZoneName, veafCombatZone.describeForDiag(groupName))
       end
     end
 
@@ -1609,6 +1639,7 @@ function VeafCombatZone:getInformation(unitName)
     message = message .. veaf.t("combatzone.not_active")
   end
 
+  veaf.diag(veafCombatZone.Id, "zone %s: panel text (active=%s): %s", self.missionEditorZoneName, self:isActive(), message)
   return message
 end
 
@@ -1675,6 +1706,13 @@ function VeafCombatZone:spawnElement(zoneElement, now)
     local id =
       veaf.scheduleFunction(VeafCombatZone.spawnElement, { self, zoneElement, true }, timer.getTime() + zoneElement:getSpawnDelay())
     self:addDelayedSpawner(id)
+    veaf.diag(
+      veafCombatZone.Id,
+      "zone %s: element %s delayed by %s s",
+      self:getMissionEditorZoneName(),
+      zoneElement:getName(),
+      zoneElement:getSpawnDelay()
+    )
   else
     -- spawn now
     veaf.loggers.get(veafCombatZone.Id):trace("spawning zoneElement=%s now", zoneElement:getName())
@@ -1762,6 +1800,15 @@ function VeafCombatZone:spawnElement(zoneElement, now)
           .get(veafCombatZone.Id)
           :trace(string.format("[%s]:activate() - VeafGroupSpawn([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
         self:addSpawnedGroup(newGroup.name)
+        if veaf.Diagnostics then
+          veaf.diag(
+            veafCombatZone.Id,
+            "zone %s: element %s -> %s",
+            self:getMissionEditorZoneName(),
+            zoneElement:getName(),
+            veafCombatZone.describeForDiag(newGroup.name)
+          )
+        end
         -- resolveAlarmState, not getAlarmState: the state is decided here, from the group's nature,
         -- unless its unit name stated one. A single default served the convoys of #290 and silenced
         -- every SAM battery in a combat zone (PR #762).
@@ -1786,6 +1833,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         veaf.loggers
           .get(veafCombatZone.Id)
           :trace(string.format("[%s]:activate() - VeafGroupSpawn([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
+        veaf.diag(veafCombatZone.Id, "zone %s: element %s spawn FAILED", self:getMissionEditorZoneName(), zoneElement:getName())
       end
     elseif zoneElement:getVeafCommand() then
       veaf.loggers
@@ -1811,6 +1859,15 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         end
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
         self:addSpawnedGroup(newGroup)
+        if veaf.Diagnostics then
+          veaf.diag(
+            veafCombatZone.Id,
+            "zone %s: command of %s -> %s",
+            self:getMissionEditorZoneName(),
+            zoneElement:getName(),
+            veafCombatZone.describeForDiag(newGroup)
+          )
+        end
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("newGroup = [%s]", newGroup))
         local route = zoneElement:getRoute()
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("got route"))
@@ -1818,6 +1875,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
       end)
       local command = zoneElement:getVeafCommand() .. ", czName " .. self:getMissionEditorZoneName()
+      veaf.diag(veafCombatZone.Id, "zone %s: element %s runs [%s]", self:getMissionEditorZoneName(), zoneElement:getName(), command)
       veafInterpreter.execute(command, position, zoneElement:getCoalition(), nil, spawnedGroups)
     end
   end
@@ -1826,6 +1884,13 @@ end
 -- activate the zone
 function VeafCombatZone:activate()
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:activate()", self:getMissionEditorZoneName()))
+  veaf.diag(
+    veafCombatZone.Id,
+    "zone %s: activating (%s element(s), %s group(s) already registered)",
+    self:getMissionEditorZoneName(),
+    #self:getZoneElements(),
+    #(self:getSpawnedGroups() or {})
+  )
   self:setActive(true)
 
   for _, zoneElementGroup in pairs(self:getZoneElementsGroups()) do
@@ -1877,6 +1942,14 @@ function VeafCombatZone:activate()
               self:spawnElement(zoneElement)
             else
               veaf.loggers.get(veafCombatZone.Id):trace(string.format("chance missed (%d > %d)", chance, spawnChance))
+              veaf.diag(
+                veafCombatZone.Id,
+                "zone %s: element %s not drawn (%s > %s %%)",
+                self:getMissionEditorZoneName(),
+                zoneElement:getName(),
+                chance,
+                spawnChance
+              )
             end
           else
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("already spawned [%s]", zoneElement:getName()))
@@ -1884,6 +1957,16 @@ function VeafCombatZone:activate()
         end
       end
     end
+  end
+
+  if veaf.Diagnostics then
+    veaf.diag(
+      veafCombatZone.Id,
+      "zone %s: activated, %s group(s) registered: %s",
+      self:getMissionEditorZoneName(),
+      #self:getSpawnedGroups(),
+      table.concat(self:getSpawnedGroups(), ", ")
+    )
   end
 
   -- start the completion watchdog
@@ -1913,6 +1996,7 @@ end
 -- desactivate the zone
 function VeafCombatZone:desactivate()
   veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:desactivate()", veaf.p(self.missionEditorZoneName)))
+  veaf.diag(veafCombatZone.Id, "zone %s: deactivated, destroying %s group(s)", self.missionEditorZoneName, #(self:getSpawnedGroups() or {}))
   self:setActive(false)
   self:unscheduleWatchdogFunction()
 
@@ -1950,12 +2034,16 @@ end
 function VeafCombatZone:completionCheck()
   veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:completionCheck()", veaf.p(self.missionEditorZoneName)))
   if not self:isCompletable() then
+    veaf.diag(veafCombatZone.Id, "zone %s: watchdog skipped, the zone is not completable", self.missionEditorZoneName)
     return
   end
   local nbUnitsR = 0
   local nbUnitsB = 0
 
   for _, groupName in pairs(self:getSpawnedGroups()) do
+    if veaf.Diagnostics then
+      veaf.diag(veafCombatZone.Id, "zone %s: watchdog sees %s", self.missionEditorZoneName, veafCombatZone.describeForDiag(groupName))
+    end
     local group = Group.getByName(groupName)
     if group then
       for _, unit in pairs(group:getUnits()) do
@@ -1988,6 +2076,15 @@ function VeafCombatZone:completionCheck()
   if self:getEnemyCoalition() == 2 then
     nbEnemyUnits = nbUnitsB
   end
+  veaf.diag(
+    veafCombatZone.Id,
+    "zone %s: watchdog red=%s blue=%s enemies=%s, %s",
+    self.missionEditorZoneName,
+    nbUnitsR,
+    nbUnitsB,
+    nbEnemyUnits,
+    nbEnemyUnits == 0 and "complete" or "not complete, checking again later"
+  )
 
   if nbEnemyUnits == 0 then
     -- everyone is dead, let's end this mess
@@ -2743,6 +2840,15 @@ end
 function veafCombatZone.ActivateZone(zoneName, silent)
   veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.ActivateZone([%s])", veaf.p(zoneName)))
   local zone = veafCombatZone.GetZone(zoneName)
+  if veaf.Diagnostics then
+    veaf.diag(
+      veafCombatZone.Id,
+      "zone %s: activation requested (silent=%s), %s",
+      zoneName,
+      silent,
+      not zone and "unknown zone" or (zone:isActive() and "already active, ignored" or "activating in 1 s")
+    )
+  end
   if zone then
     if zone:isActive() then
       if not silent then
@@ -2796,6 +2902,7 @@ function veafCombatZone.GetInformationOnZone(parameters)
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.GetInformationOnZone([%s])", veaf.p(parameters)))
   local zoneName, unitName = veaf.safeUnpack(parameters)
   local zone = veafCombatZone.GetZone(zoneName)
+  veaf.diag(veafCombatZone.Id, "zone %s: panel requested by %s", zoneName, unitName or "the activation (everyone)")
   if zone then
     local text = zone:getInformation(unitName)
     if unitName then

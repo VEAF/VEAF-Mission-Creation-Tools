@@ -1,7 +1,61 @@
 # 01 — a zone owns the groups its own elements spawn
 
-Status: ⬜ ready — diagnosed from a run's `dcs.log` on 2026-09-27, cause established, fix not written.
+Status: 🚫 wontfix — **no defect**. The diagnosis below is refuted by the code, and the sortie's own
+log (found 2026-09-28) shows the zone behaving correctly: the last target was still alive when the
+flight left. See the next two sections.
 Type: fix
+
+## 2026-09-28 — the diagnosis does not survive the code
+
+Read before touching anything, and it contradicts both premises below.
+
+1. **A generated name proves nothing about ownership.** `veaf.HideNamesFromSpawnedGroups` is `true`
+   by default (`veaf.lua:42`) and GermanyCW sets it again (`veaf-config.lua:11`), so
+   `veaf.getNameForSpawnedGroup` drops the zone name from **every** group a zone respawns —
+   editor content included (`veafCombatZone.lua:1729`). `-aaa`'s ZSU-23-4 comes back as
+   `[r]-73rd Steel Platoon#…`. "Not one `combatZone_WahnerHeide_*` unit died" is simply what the
+   default naming looks like.
+2. **The zone already owns what it spawns, whatever the name.** Respawned editor groups go through
+   `self:addSpawnedGroup(newGroup.name)` (`:1764`); `#command` groups through the hook registered at
+   `:1800` and fired by `veaf.collectSpawnedGroup` (`veafSpawnCore.lua:469`) — #66, covered by
+   `test_veafCombatZone.lua:1350`. Both `completionCheck` and `getInformation` iterate
+   `getSpawnedGroups()`, never a name prefix. The prefix rule only filters editor content at
+   `initialize()`.
+3. **Medium holds fifteen vehicles, not eight.** `veaf-config.lua:303` adds Easy's elements to
+   Medium: seven one-vehicle `-cible-N` groups (T-72B and the like) plus `-blindes` (5) and `-aaa`
+   (3). Fifteen — the number David destroyed.
+
+## 2026-09-28 — the sortie's log: every target died, the last one after the flight left
+
+The log the 2026-09-27 analysis read was not deleted: it is the live `dcs.log` of the `private1`
+instance on `dcs.veaf.org` (1 266 `no group found` lines, the 1 264 quoted above plus two later
+ones). Read over SFTP, it settles what is left.
+
+- **One activation of Medium, nothing else.** Exactly nine generated groups exist, numbered
+  **#25670 to #25678** in a row — seven one-vehicle `-cible-N`, `-blindes` (5), `-aaa` (3). A second
+  activation, of Medium or of Hard, would have made eighteen or more. The two `#wahnerheide_hard-*`
+  lines the lead above relied on are CTLD registering editor units at mission start
+  (`CTLDVehicleSpawner: INIT-D registered MM vehicle`), not commands executing.
+- **All fifteen vehicles died, and all fifteen are Medium's.**
+
+  | group | units | deaths |
+  |---|---|---|
+  | `[r]-India Division#25673` (`-blindes`) | 5 | 19:37:19 → 19:52:35 |
+  | `[r]-73rd Steel Platoon#25675` (`-aaa`, the ZSU-23-4) | 3 | 19:41:39 → 19:41:40 |
+  | six single-vehicle `-cible-N` | 6 | 19:38:19 → 19:48:45 |
+  | `[r]-Chimera Company#25676` (a `-cible-N`) | 1 | **20:21:56** |
+
+- **The flight had gone before the last one died.** Both A-10Cs (`Ramstein_A-10C II_46-1`,
+  `_48-1`) landed at 19:59:24 and 19:59:41 and left their slots at 20:02:00 and 20:04:00; players 3
+  and 2 disconnected at 20:04:38 and 20:07:03. At that moment Chimera Company was still standing,
+  so the zone was right not to complete. Its watchdog checks every 60 s, so it should have completed
+  by 20:23 — **not confirmed**, that path logs below `info`.
+- **No script error** anywhere in the log, so the watchdog was never killed by a raise (the
+  scheduler logs `error in scheduled function` at error level, and there is none).
+
+What remains is presentation, not ownership: the info panel lists what is **left** (one vehicle),
+which reads like a low tally when a player expects a kill count. And the one target nobody found is
+a single cold vehicle, which is ticket 02.
 
 ## The defect
 

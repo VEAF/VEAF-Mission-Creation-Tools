@@ -120,7 +120,7 @@ For every action requested by the user, execute these steps in order:
 8. **If the user needs to test manually**: stop and wait for explicit approval ("c'est bon", "go", or equivalent) before continuing. Otherwise, proceed directly.
 9. **Commit** all changes (Conventional Commits format in English) and **push** the branch.
 10. **Open a PR** targeting `develop` and report the PR URL to the user.
-11. **Monitor the PR**: wait for Sourcery review and CI. Address any feedback, then merge when approved.
+11. **Review and monitor the PR**: run `pr-code-review` on it and wait for CI (§10). Address any feedback, then merge when both are clean.
 12. **After merge**: switch back to `develop`, pull, and confirm to the user.
 
 ---
@@ -143,29 +143,14 @@ For every action requested by the user, execute these steps in order:
 ## 10. Pull Request Process
 
 After pushing a branch and creating a PR:
-- **Do NOT request a Copilot review.** Sourcery reviews PRs automatically.
-- Request a review only if Sourcery posts a comment stating it cannot review the PR.
-- **One lot per PR stays the rule, but Sourcery stops reviewing past ~150 000 characters of diff.**
-  If a lot is heading over that, split it into sequenced PRs with the shared groundwork first.
-  Measured on PR #759 (172 905 characters), which merged with no third-party review; the two lots
-  after it were split on purpose and were reviewed.
-
-- **There is also a weekly budget: 250 000 diff characters across all PRs.** When it runs out Sourcery
-  answers with a rate-limit comment instead of a review, so a PR opened late in the week gets no
-  third-party review at all. Hit on 2026-08-24: #795 was reviewed and #796, opened 24 minutes later,
-  got the rate-limit message. Twenty PRs had been opened since 18 August, about 12 000 changed lines —
-  on the order of 600 000 characters, so at this cadence the budget covers roughly the first third of
-  the week.
-
-  **What this means in practice, and why it needs saying:** a silent Sourcery is not a misconfiguration
-  to go hunting for, and it is not a CLEAN either. `merge au vert` requires CI green **and** a clean
-  review; when the quota is spent, the second half is unavailable and the merge decision is David's,
-  not a rule's. Say so plainly rather than merging on CI alone or waiting for a review that will not
-  come.
-
-  Sourcery does not review automatically in every case even with budget left — a `@sourcery-ai review`
-  comment on the PR triggers it, and that is worth trying **before** concluding anything about the
-  installation.
+- **Run the `pr-code-review` skill on it.** That is the review `merge au vert` waits for: CI green
+  **and** `pr-code-review` done → merge. The full version by default; the light one when David asks
+  for it.
+- **Sourcery constrains nothing any more** (David, 2026-09-28). One lot stays one PR however large —
+  never split a lot to fit Sourcery's 150 000-character limit or its weekly budget, never wait for
+  it. If it happens to comment, read it like any other opinion; its silence or its refusal says
+  nothing about the PR.
+- **Do NOT request a Copilot review** — there is no subscription any more.
 
 ---
 

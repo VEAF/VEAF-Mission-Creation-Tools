@@ -1,7 +1,7 @@
 # FEAT-CLEAR-GROUND-AT-AUTHORING — when the tools place a group, they place it somewhere measured clear
 
-Status: 🔄 in-progress — tickets 01 to 05 built and verified in game on 2026-09-28 (see *What was
-built*); waiting for its pull requests.
+Status: ✅ done — merged in #1019 on 2026-09-28; tickets 01 to 05 built and verified in game (see *What was
+built*).
 David asked for the lot on 2026-09-26 evening, after
 [`FIX-PLACEMENT-IGNORES-SCENERY`](../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 11 reached its
 ceiling.

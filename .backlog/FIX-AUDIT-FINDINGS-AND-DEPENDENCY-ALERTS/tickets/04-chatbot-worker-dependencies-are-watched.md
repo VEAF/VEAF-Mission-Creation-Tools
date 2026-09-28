@@ -1,6 +1,6 @@
 # 04 — the chatbot Worker's dependencies are watched
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-28
 
 Source: Dependabot alert #59 (high), open on 2026-09-28.
 

@@ -1,6 +1,6 @@
 # 05 — veaf-logs refuses SHA-1 SSH signatures
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-28
 
 Source: Dependabot alert #62 (low), CVE-2026-44405 / GHSA-r374-rxx8-8654, open on 2026-09-28.
 

@@ -1,6 +1,6 @@
 # 04 — No action makes a unit transmit a sound, or embeds the sound
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 Files: `src/python/veaf-tools/veaf_mission_mcp/` (`edit_route` task set or a new action, the
 mission folder writer), tests, AI catalogue doc
@@ -31,3 +31,14 @@ Worked around by copying the v5 groups and their four `.ogg` files, and writing 
 - An action adds a sound to the mission folder (copied into `l10n/DEFAULT`, declared in
   `mapResource`) and returns the key to use.
 - Tested; the prompt's beacon zone can be built without a script.
+
+## Done — 2026-09-28
+
+- `add_sound`: copies a `.ogg` / `.wav` into `l10n/DEFAULT` and declares it in `mapResource` as
+  `MCP_Sound_<stem>` (never `VEAF_MapKey…`, which the build removes); the same file again reuses its
+  key.
+- `edit_route` `transmit_message`: a wrapped `TransmitMessage` whose shape is that of the 80
+  transmissions of 55 missions under `D:\dev\_VEAF` (`file` = the key, `loop`, `duration` 5 or 20 s,
+  `subtitle` as a dictionary key). Refused when the mission does not hold the sound.
+- The prompt's §4.6 names the two actions and the `set_frequency` → `transmit_message` order.
+- Tests: `test_add_sound.py`, `test_edit_route.py::TestTransmitMessage`.

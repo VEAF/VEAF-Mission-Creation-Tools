@@ -13,6 +13,7 @@ from what the tooling actually knows about (see ``veaf-build update-dcs-data``).
 from __future__ import annotations
 
 import functools
+from typing import Any
 
 import yaml
 
@@ -86,3 +87,70 @@ def get_unit_fuel_capacity(unit_type: str) -> float | None:
     if not unit_type:
         return None
     return _fuel_capacities().get(unit_type.strip().lower())
+
+
+@functools.lru_cache(maxsize=1)
+def _entries() -> dict[str, dict[str, Any]]:
+    """Load (and cache) the raw ``{type_lower: entry}`` table from ``dcsUnits.yaml``."""
+    raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcsUnits.yaml"))
+    units = raw.get("units") if isinstance(raw, dict) else None
+    return {
+        str(entry["type"]).strip().lower(): entry
+        for entry in units or []
+        if isinstance(entry, dict) and str(entry.get("type") or "").strip()
+    }
+
+
+def get_unit_countermeasures(unit_type: str) -> tuple[int, int] | None:
+    """Return the ``(chaff, flare)`` load the Mission Editor gives a newly placed aircraft.
+
+    Read from the datamine's ``passivCounterm`` defaults (``F-14B``: 140 / 60, ``UH-1H``: 0 / 60),
+    so an aircraft built by the tooling starts with what the editor would have given it.
+
+    Args:
+        unit_type: The DCS type name, case-insensitive.
+
+    Returns:
+        ``(chaff, flare)``, a missing half read as 0; ``None`` for a type with no dispenser at all
+        (a warbird, a tanker) and for a type the database does not know.
+    """
+    entry = _entries().get((unit_type or "").strip().lower())
+    if entry is None or ("chaff" not in entry and "flare" not in entry):
+        return None
+    return int(entry.get("chaff") or 0), int(entry.get("flare") or 0)
+
+
+def get_unit_deck_categories(unit_type: str) -> tuple[frozenset[str], frozenset[str]] | None:
+    """Return the ship attributes an aircraft can take off from and land on.
+
+    DCS matches these names (``TakeOffRWCategories`` / ``LandRWCategories``) against a ship's own
+    attributes: an F-14B takes off from an ``AircraftCarrier With Catapult`` and lands on any
+    ``AircraftCarrier``; a Su-33 needs ``With Tramplin`` to take off.
+
+    Args:
+        unit_type: The DCS type name, case-insensitive.
+
+    Returns:
+        ``(takeoff, landing)``; ``None`` for a type the database does not know. A known type that
+        can use no deck gets two empty sets.
+    """
+    entry = _entries().get((unit_type or "").strip().lower())
+    if entry is None:
+        return None
+    return (
+        frozenset(entry.get("takeoff_categories") or []),
+        frozenset(entry.get("landing_categories") or []),
+    )
+
+
+def get_unit_attributes(unit_type: str) -> frozenset[str]:
+    """Return a unit type's DCS attributes (``AircraftCarrier With Catapult``, ``Fighters``...).
+
+    Args:
+        unit_type: The DCS type name, case-insensitive.
+
+    Returns:
+        The attributes; empty for a type the database does not know.
+    """
+    entry = _entries().get((unit_type or "").strip().lower())
+    return frozenset(entry.get("attributes") or []) if entry is not None else frozenset()

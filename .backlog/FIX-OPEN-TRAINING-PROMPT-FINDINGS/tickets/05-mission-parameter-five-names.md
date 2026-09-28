@@ -1,6 +1,6 @@
 # 05 — The mission is named by five different parameters across the catalogue
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/catalog.py` and the action schemas, tests, AI
 catalogue doc
@@ -35,3 +35,14 @@ different file.
 - `mission_yaml_path` either kept (it is a different file) or derived from the folder, decided and
   written.
 - A catalogue test that fails when a new action introduces another name.
+
+## Done — 2026-09-28
+
+- **One name: `mission_path`.** The catalogue publishes it for every action that took `miz_path`,
+  `target` or `folder_path`, and translates it back to the handler's own key at `run_action`, so no
+  handler changed; the three former names stay accepted as aliases, and two different values under
+  two names are refused.
+- **`mission_yaml_path` is kept** — it names a different file — but a `mission_path` given in its
+  place is read as the folder's `mission.yaml`, which is the `describe_module` failure the report met.
+- `test_catalog.py::test_no_shipped_action_introduces_another_name_for_the_mission` fails on a sixth
+  name. Developer doc updated (FR/EN).

@@ -44,8 +44,6 @@ class TestFullInternalFuelByDefault:
 
     def test_the_rest_of_the_payload_is_untouched(self) -> None:
         payload, _ = build_aircraft_payload("F-15C")
-        assert payload["flare"] == 0
-        assert payload["chaff"] == 0
         assert payload["gun"] == 100
         assert payload["pylons"] == {}
 
@@ -99,3 +97,27 @@ class TestUnknownType:
         # Unlike the default case, this one the caller asked for and it cannot be honoured.
         with pytest.raises(ValueError, match="fraction"):
             build_aircraft_payload("NoSuchModType", fuel_fraction=0.5)
+
+
+class TestCountermeasures:
+    """FIX-OPEN-TRAINING-PROMPT-FINDINGS 01: every aircraft used to start with an empty dispenser."""
+
+    def test_the_type_default_is_loaded(self) -> None:
+        payload, _ = build_aircraft_payload("F-14B")
+        assert (payload["chaff"], payload["flare"]) == (140, 60)
+
+    def test_an_explicit_count_wins(self) -> None:
+        payload, _ = build_aircraft_payload("F-14B", chaff=0, flare=30)
+        assert (payload["chaff"], payload["flare"]) == (0, 30)
+
+    def test_a_type_with_no_dispenser_carries_none(self) -> None:
+        payload, _ = build_aircraft_payload("KC-135")
+        assert (payload["chaff"], payload["flare"]) == (0, 0)
+
+    def test_an_unknown_type_carries_none(self) -> None:
+        payload, _ = build_aircraft_payload("NoSuchModType")
+        assert (payload["chaff"], payload["flare"]) == (0, 0)
+
+    def test_a_negative_count_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="chaff must be >= 0"):
+            build_aircraft_payload("F-14B", chaff=-1)

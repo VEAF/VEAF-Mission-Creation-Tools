@@ -1,6 +1,6 @@
 # 06 — Measure whether late-activated sanctuary vertices give DCS a position
 
-Status: ⬜ ready
+Status: ✅ done — measured 2026-09-28, nothing to change
 Type: measure (DCS), possibly doc
 Files: none until measured; then `.prompts/new-open-training-mission.*.md` or
 `src/scripts/veaf/veaf.lua` (`veaf.getPolygonFromUnits`)
@@ -28,3 +28,19 @@ The Open Training prompt (§4.1): "Le polygone est tracé par des unités en act
   and the polygon a sanctuary actually builds from them.
 - If it works: nothing to change, the answer written here. If not: the prompt says active units,
   or `getPolygonFromUnits` reads the position from the mission data (`env.mission`) instead.
+
+## Answer — measured in DCS on 2026-09-28
+
+Measured in single-player on `test/veaf-tools/demo-mission/veaf-demo-mission.miz`, through the fiddle
+hook (mission environment), after 30 s of mission time:
+
+- **The sanctuary builds its polygon**: `Kutaisi Sanctuary` holds **16 vertices**, one per
+  `Sanctuary_Kutaisi_Polygon #0xx` group, all 16 `lateActivation = true`.
+- **Raw DCS behaviour**, on the 3 late-activated groups the sanctuary did not consume (19 in the
+  mission): `Group.getByName` finds them, `getUnit(1)` returns the unit, `getPosition()` answers.
+  The never-activated unit reports `isExist() = true`, `isActive() = false`, and its position equals
+  the mission table's exactly (`(-273213, 614091)` on both sides).
+
+So the prompt's rule holds: late-activated vertices give `veaf.getPolygonFromUnits` their position.
+Nothing changed, in the prompt or in `veaf.lua`. Consistent with the known trap that a late-activated
+group answers `isExist()` true (`docs/agents/dcs-runtime-traps.md`).

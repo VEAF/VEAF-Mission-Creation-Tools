@@ -50,6 +50,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the activation request, each element spawned (its group, live units and types) or failed, the info
   panel's exact content group by group, each pass of the completion watchdog with its decision, and
   the deactivation. Off by default; meant for a session someone is watching.
+- **The mission-editing MCP places a working carrier group, deck slots and radio beacons**
+  (FIX-OPEN-TRAINING-PROMPT-FINDINGS 02, 04). `add_carrier_group` writes the carrier and its escorts
+  under way, the tower frequency, TACAN, ICLS and — on an arrested-landing deck — Link 4 and ACLS, the
+  `<carrier> S3B-Tanker` and `<carrier> Pedro` groups the `CARRIER` module looks for, and the ship's
+  warehouse. `add_air_group` takes `start: deck-cold | deck-hot` with `carrier`, and refuses an
+  aircraft that cannot use that deck. `add_sound` embeds an `.ogg`/`.wav` and declares it in
+  `mapResource`; `edit_route` gains `transmit_message`, which plays it on the unit's radio. The Open
+  Training prompt now builds its carrier group and its helicopter beacons with them instead of
+  asking the agent to report what it could not do.
 
 ### Fixed
 
@@ -130,6 +139,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `VeafMG_Weapon:getCurrentEnergy` took `z` of a runtime position as a height, so its potential
   term grew with how far east the missile flew. Nothing calls it yet, so no mission behaved
   differently.
+- **Aircraft built by the MCP carry their countermeasures, a callsign and a unique tail number**
+  (FIX-OPEN-TRAINING-PROMPT-FINDINGS 01). `add_air_group`, `add_player_slot` and the composites wrote
+  `chaff = 0, flare = 0` — an air-start player went into a fight with an empty dispenser — no
+  callsign, and tail numbers restarting at 10 in every group. The chaff and flare now default to what
+  the Mission Editor gives the type (captured from the datamine into `dcsUnits.yaml`), and
+  `add_air_group`, `add_player_slot` and `set_unit_properties` take `chaff` / `flare`. Western
+  aircraft get the next free family for their task (Enfield…, Texaco… for a tanker, Overlord… for an
+  AWACS), Eastern ones a number, as measured on 377 missions.
+- **The build no longer opens a carrier's deck to every dynamic template of its side**
+  (FIX-OPEN-TRAINING-PROMPT-FINDINGS 03). A ship stocked by default now receives only the aircraft
+  that can both take off from and land on its deck, by DCS's own `TakeOffRWCategories` /
+  `LandRWCategories`, now in `dcsUnits.yaml`: 51 types on the GermanyCW-v6 Stennis, B-52H included,
+  become its carrier aircraft and helicopters. An explicit `aircrafts:` list is still obeyed.
 
 ### Changed
 
@@ -137,6 +159,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `arg` table of Lua 5.0, which only exists when the interpreter keeps a compatibility option. DCS
   does — the production `dcs.log` files show every value formatted — so nothing changes in game;
   the logger simply stops depending on it, as `dcsDataExport.lua` already had.
+- **The MCP names the mission `mission_path` in every action** (FIX-OPEN-TRAINING-PROMPT-FINDINGS 05).
+  42 actions used five names for it; `miz_path`, `target` and `folder_path` are still accepted as
+  aliases, and a `mission_path` given where an action takes `mission_yaml_path` is read as the
+  folder's `mission.yaml`.
 
 ### Removed
 

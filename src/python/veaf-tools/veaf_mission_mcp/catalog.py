@@ -1,11 +1,28 @@
 """Registry of MCP actions exposed by the mission-editing server."""
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from veaf_mission_mcp.models import ActionSpec
 
 ActionHandler = Callable[[dict[str, Any]], Any]
+
+#: The one name under which every action takes "the mission folder or `.miz`".
+#:
+#: Until 2026-09-28 the catalogue used five: `miz_path` (17 actions), `target` (9), `folder_path`
+#: (6), `mission_path` (4) — all meaning the same thing — and `mission_yaml_path` (6), which names a
+#: different file. Running actions in batches, an agent lost a retry each time it guessed wrong
+#: (FIX-OPEN-TRAINING-PROMPT-FINDINGS ticket 05). The catalogue now publishes `mission_path` for all
+#: of them and translates it back to the handler's own key, so no handler changed.
+MISSION_PARAMETER = "mission_path"
+
+#: The former names, still accepted so no caller breaks.
+MISSION_PARAMETER_ALIASES: tuple[str, ...] = ("miz_path", "target", "folder_path")
+
+#: Kept under its own name: it names the mission's `mission.yaml`, not the mission. A
+#: `mission_path` given to an action that takes it is read as the folder holding that file.
+MISSION_YAML_PARAMETER = "mission_yaml_path"
 
 
 class ActionNotFoundError(Exception):
@@ -22,6 +39,7 @@ class ActionCatalog:
     def __init__(self) -> None:
         self._specs: dict[str, ActionSpec] = {}
         self._handlers: dict[str, ActionHandler] = {}
+        self._mission_keys: dict[str, str] = {}
 
     def register(self, spec: ActionSpec, handler: ActionHandler) -> None:
         """Register an action under its spec's name.
@@ -30,6 +48,12 @@ class ActionCatalog:
             spec: The action's name, description and parameter JSON Schema.
             handler: Callable invoked by ``run_action`` with the ``params`` dict.
         """
+        properties = (spec.parameters_schema or {}).get("properties") or {}
+        native = next((key for key in (MISSION_PARAMETER, *MISSION_PARAMETER_ALIASES) if key in properties), None)
+        if native is not None:
+            self._mission_keys[spec.name] = native
+            if native != MISSION_PARAMETER:
+                spec = spec.model_copy(update={"parameters_schema": _renamed(spec.parameters_schema, native)})
         self._specs[spec.name] = spec
         self._handlers[spec.name] = handler
 
@@ -78,8 +102,69 @@ class ActionCatalog:
             handler = self._handlers[name]
         except KeyError:
             raise ActionNotFoundError(name) from None
-        _check_parameters(name, self._specs[name].parameters_schema or {}, params)
+        schema = self._specs[name].parameters_schema or {}
+        params = _published_mission_key(name, params, schema)
+        _check_parameters(name, schema, params)
+        native = self._mission_keys.get(name)
+        if native is not None and native != MISSION_PARAMETER and MISSION_PARAMETER in params:
+            params = {native if key == MISSION_PARAMETER else key: value for key, value in params.items()}
         return handler(params)
+
+
+def _renamed(schema: dict[str, Any], native: str) -> dict[str, Any]:
+    """Return a copy of `schema` publishing its `native` mission key as :data:`MISSION_PARAMETER`.
+
+    Args:
+        schema: The action's parameter JSON Schema.
+        native: The key the handler reads.
+
+    Returns:
+        The schema with that property, and its entry in ``required``, renamed in place of order.
+    """
+    renamed = dict(schema)
+    renamed["properties"] = {
+        MISSION_PARAMETER if key == native else key: value for key, value in schema["properties"].items()
+    }
+    if "required" in schema:
+        renamed["required"] = [MISSION_PARAMETER if key == native else key for key in schema["required"]]
+    return renamed
+
+
+def _published_mission_key(name: str, params: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    """Bring whichever mission name the caller used back to the one the schema publishes.
+
+    Args:
+        name: The action's name, for the message.
+        params: The parameters received.
+        schema: The action's published parameter JSON Schema.
+
+    Returns:
+        ``params`` with the mission under the published key; unchanged when the action takes no
+        mission, or when the caller already used the published key alone.
+
+    Raises:
+        ValueError: If the mission is given twice, under two names, with two different values.
+    """
+    properties = schema.get("properties") or {}
+    names = [key for key in (MISSION_PARAMETER, *MISSION_PARAMETER_ALIASES) if key in params]
+    if MISSION_PARAMETER in properties:
+        published = MISSION_PARAMETER
+    elif MISSION_YAML_PARAMETER in properties and MISSION_YAML_PARAMETER not in params and names:
+        published = MISSION_YAML_PARAMETER
+    else:
+        return params
+    names = [key for key in names if key != published]
+    if not names:
+        return params
+    values = {str(params[key]) for key in names} | ({str(params[published])} if published in params else set())
+    if len(values) > 1:
+        raise ValueError(f"{name}: the mission is given twice with different values ({', '.join(sorted(names))})")
+    value = params[names[0]]
+    if published == MISSION_YAML_PARAMETER and Path(str(value)).is_dir():
+        value = str(Path(str(value)) / "mission.yaml")
+    result = {key: item for key, item in params.items() if key not in names}
+    result[published] = value
+    return result
 
 
 def _check_parameters(name: str, schema: dict[str, Any], params: dict[str, Any]) -> None:

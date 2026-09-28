@@ -167,9 +167,11 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   `modules.ASSETS` avec son code laser et sa fréquence (`jtac`, `freq`, `mod`), pour que les pilotes
   les trouvent dans le menu. Si le MCP ne sait pas donner la tâche FAC, signale-le.
 - **Groupe aéronaval ami** (option, si la carte a la mer et que les joueurs ont des appareils
-  embarqués) : porte-avions avec TACAN, ICLS et Link 4 dans le texte `ASSETS`, un ravitailleur
-  embarqué, un hélicoptère de sauvetage, module `CARRIER`. Vérifie ce que le MCP sait poser et
-  activer ; ce qu'il ne sait pas faire, signale-le.
+  embarqués) : `add_carrier_group` pose le porte-avions avec son TACAN, son ICLS et son Link 4, le
+  ravitailleur embarqué et l'hélicoptère de sauvetage que le module `CARRIER` cherche, et l'entrepôt
+  du navire ; les slots sur le pont sont des `add_air_group` en `start: deck-cold` ou `deck-hot`, avec
+  `carrier` = l'unité porte-avions qu'il a rendue. TACAN, ICLS et Link 4 dans le texte `ASSETS`,
+  module `CARRIER` activé.
 
 ### 4.4 Escortes
 
@@ -231,7 +233,9 @@ mitrailleuse sur un hélicoptère ; aucune balise ne met une unité en « feu in
 **En option, une zone hélicoptère hors combat** : navigation ou recherche d'un équipage abattu,
 avec des balises radio sur l'itinéraire (sons joués en boucle, fréquences FM données au briefing) et
 un signal de détresse sur le lieu. `training: true`, `completable: false`. Les sons doivent exister
-dans la mission.
+dans la mission : `add_sound` embarque chacun, puis sur le premier point de chaque unité-balise
+`edit_route` `add_task` `set_frequency` (FM) suivi de `transmit_message` (le son, `loop`, un
+`subtitle`).
 
 ### 4.7 Vraies zones de combat — au moins 6 de plus que les zones d'entraînement
 

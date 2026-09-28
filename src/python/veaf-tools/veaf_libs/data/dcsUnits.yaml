@@ -1,4 +1,4 @@
-# DCS units database (type, kind, category, attributes, fuel capacity).
+# DCS units database (type, kind, category, attributes, fuel, countermeasures, decks).
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
 # Source ref: fe1d8008e6e8dc4c1c4e85558cd1b0b29a02da3f
 # Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).
@@ -137,6 +137,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5029
+  chaff: 240
+  flare: 120
 - type: A-10C
   name: A-10C
   kind: air
@@ -154,6 +156,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5029
+  chaff: 240
+  flare: 120
 - type: A-10C_2
   name: A-10C II
   kind: air
@@ -171,6 +175,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5029
+  chaff: 240
+  flare: 240
 - type: A-20G
   name: A-20G
   kind: air
@@ -200,6 +206,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 70000
+  chaff: 192
+  flare: 192
 - type: A6E
   name: A-6E
   kind: air
@@ -216,6 +224,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7229.8
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: AA8
   name: Firefighter Vehicle AA-7.2/60
   kind: vehicle
@@ -269,6 +283,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1250
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: AH-64A
   name: AH-64A
   kind: air
@@ -282,6 +304,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1157
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: AH-64D
   name: AH-64D
   kind: air
@@ -295,6 +325,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1157
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: AH-64D_BLK_II
   name: AH-64D BLK.II
   kind: air
@@ -311,6 +349,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1140
+  chaff: 30
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Airshow_Cone
   name: Airshow cone
   kind: static
@@ -337,6 +383,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4476
+  chaff: 1080
+  flare: 72
 - type: ALBATROS
   name: Corvette 1124M Grisha [CH]
   kind: naval
@@ -403,6 +451,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 5500
+  chaff: 384
+  flare: 384
 - type: An-30M
   name: An-30M
   kind: air
@@ -416,6 +466,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 5500
+  chaff: 192
+  flare: 192
 - type: APFC fuel
   name: M92 APFC fuel
   kind: static
@@ -575,6 +627,18 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3519.423
+  chaff: 60
+  flare: 120
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
 - type: B-17G
   name: B-17G
   kind: air
@@ -608,6 +672,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 88450
+  chaff: 480
+  flare: 48
 - type: B-52H
   name: B-52H
   kind: air
@@ -626,6 +692,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 141135
+  chaff: 1125
+  flare: 192
 - type: B600
   name: M92 B600
   kind: static
@@ -1166,6 +1234,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 20830
+  chaff: 120
+  flare: 60
 - type: C-130J-30
   name: C-130J-30
   kind: air
@@ -1182,6 +1252,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 19692
+  chaff: 220
+  flare: 200
 - type: C-17A
   name: C-17A
   kind: air
@@ -1196,6 +1268,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 132405
+  chaff: 120
+  flare: 60
 - type: C-47
   name: C-47
   kind: air
@@ -1418,6 +1492,12 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 3600
+  chaff: 120
+  flare: 120
+  takeoff_categories:
+  - AircraftCarrier
+  landing_categories:
+  - AircraftCarrier
 - type: CH-47Fbl1
   name: CH-47F
   kind: air
@@ -1431,6 +1511,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 3054.592
+  chaff: 120
+  flare: 120
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: CH-53E
   name: CH-53E
   kind: air
@@ -1444,6 +1532,12 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 2880
+  chaff: 60
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier
+  landing_categories:
+  - AircraftCarrier
 - type: Challenger2
   name: MBT Challenger II
   kind: vehicle
@@ -1984,6 +2078,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1420
+  chaff: 16
+  flare: 48
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: CHAP_Titan
   name: MRAP ZA-SpN Titan [CH]
   kind: vehicle
@@ -2663,6 +2765,12 @@ units:
   - Air
   - Planes
   fuel_capacity: 5624
+  chaff: 120
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: E-3A
   name: E-3A
   kind: air
@@ -2679,6 +2787,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 65000
+  chaff: 120
+  flare: 60
 - type: Electric locomotive
   name: Rwy. Loco VL80 Electric
   kind: vehicle
@@ -2820,6 +2930,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 30
+  flare: 15
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: F-14A-135-GR
   name: F-14A Late
   kind: air
@@ -2836,6 +2952,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-14A-135-GR-Early
   name: F-14A
   kind: air
@@ -2852,6 +2974,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-14A-95-GR
   name: F-14A Export
   kind: air
@@ -2868,6 +2996,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-14B
   name: F-14B
   kind: air
@@ -2884,6 +3018,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-14BU
   name: F-14B(U)
   kind: air
@@ -2900,6 +3040,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-15C
   name: F-15C
   kind: air
@@ -2917,6 +3063,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 6103
+  chaff: 120
+  flare: 60
 - type: F-15E
   name: F-15E
   kind: air
@@ -2934,6 +3082,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 10246
+  chaff: 120
+  flare: 60
 - type: F-15ESE
   name: F-15E S4+
   kind: air
@@ -2951,6 +3101,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 10245.529841878
+  chaff: 120
+  flare: 60
 - type: F-16A
   name: F-16A
   kind: air
@@ -2966,6 +3118,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3104
+  chaff: 60
+  flare: 30
 - type: F-16A MLU
   name: F-16A MLU
   kind: air
@@ -2981,6 +3135,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3104
+  chaff: 60
+  flare: 30
 - type: F-16C bl.50
   name: F-16C bl.50
   kind: air
@@ -2998,6 +3154,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3104
+  chaff: 90
+  flare: 45
 - type: F-16C bl.52d
   name: F-16C bl.52d
   kind: air
@@ -3015,6 +3173,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3104
+  chaff: 90
+  flare: 45
 - type: F-16C_50
   name: F-16CM bl.50
   kind: air
@@ -3032,6 +3192,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3249
+  chaff: 60
+  flare: 60
 - type: F-4E
   name: F-4E
   kind: air
@@ -3046,6 +3208,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4864
+  chaff: 60
+  flare: 30
 - type: F-4E-45MC
   name: F-4E-45MC
   kind: air
@@ -3061,6 +3225,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5510.5
+  chaff: 120
+  flare: 30
 - type: F-5E
   name: F-5E
   kind: air
@@ -3075,6 +3241,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 1996
+  chaff: 0
+  flare: 0
 - type: F-5E-3
   name: F-5E-3
   kind: air
@@ -3089,6 +3257,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2046
+  chaff: 30
+  flare: 15
 - type: F-5E-3_FC
   name: F-5E FC
   kind: air
@@ -3103,6 +3273,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2046
+  chaff: 30
+  flare: 15
 - type: F-86F Sabre
   name: F-86F
   kind: air
@@ -3146,6 +3318,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4930
+  chaff: 30
+  flare: 15
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: F/A-18C
   name: F/A-18C
   kind: air
@@ -3163,6 +3341,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4900
+  chaff: 30
+  flare: 15
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: F4U-1D
   name: F4U-1D
   kind: air
@@ -3177,6 +3361,15 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 662
+  chaff: 0
+  flare: 0
+  takeoff_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Arresting Gear
 - type: F4U-1D_CW
   name: F4U-1D Mk.IV
   kind: air
@@ -3191,6 +3384,15 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 662
+  chaff: 0
+  flare: 0
+  takeoff_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Arresting Gear
 - type: f_bar_cargo
   name: F-shape barrier
   kind: static
@@ -3217,6 +3419,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4900
+  chaff: 60
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: Falcon_Gyrocopter
   name: Falcon Assault Gyrocopter
   kind: air
@@ -3232,6 +3440,14 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 54
+  takeoff_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
 - type: Farm A
   name: Farm A
   kind: static
@@ -3919,6 +4135,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 25000
+  chaff: 120
+  flare: 120
 - type: HandyWind
   name: Bulker Handy Wind
   kind: naval
@@ -4526,6 +4744,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 87584
+  chaff: 96
+  flare: 96
 - type: IL-78M
   name: IL-78M
   kind: air
@@ -4539,6 +4759,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 112000
+  chaff: 96
+  flare: 96
 - type: IMPROVED_KILO
   name: SSK 636 Improved Kilo
   kind: naval
@@ -4654,6 +4876,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9400
+  chaff: 96
+  flare: 96
 - type: Jagdpanther_G1
   name: SPG Jagdpanther TD
   kind: vehicle
@@ -4713,6 +4937,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2325
+  chaff: 36
+  flare: 32
 - type: JTAC
   name: JTAC
   kind: infantry
@@ -4754,6 +4980,12 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 2616
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Ka-50
   name: Ka-50
   kind: air
@@ -4767,6 +4999,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1450
+  chaff: 0
+  flare: 128
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Ka-50_3
   name: Ka-50 III
   kind: air
@@ -4780,6 +5020,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1450
+  chaff: 0
+  flare: 128
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: KAMAZ Truck
   name: Truck KAMAZ 43101
   kind: vehicle
@@ -4840,6 +5088,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 30000
+  chaff: 120
+  flare: 60
 - type: KC135MPRS
   name: KC-135MPRS
   kind: air
@@ -4856,6 +5106,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 90700
+  chaff: 120
+  flare: 60
 - type: KDO_Mod40
   name: AAA Kdo.G.40
   kind: vehicle
@@ -5028,6 +5280,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 980
+  chaff: 0
+  flare: 0
 - type: L-39ZA
   name: L-39ZA
   kind: air
@@ -5042,6 +5296,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 980
+  chaff: 0
+  flare: 0
 - type: l118
   name: L118 Light Artillery
   kind: static
@@ -5624,6 +5880,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3165
+  chaff: 234
+  flare: 64
 - type: M-60
   name: MBT M60A3 Patton
   kind: vehicle
@@ -6259,6 +6517,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1701
+  chaff: 0
+  flare: 192
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Mi-24V
   name: Mi-24V
   kind: air
@@ -6272,6 +6538,8 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1704
+  chaff: 0
+  flare: 192
 - type: Mi-26
   name: Mi-26
   kind: air
@@ -6285,6 +6553,8 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 9600
+  chaff: 0
+  flare: 192
 - type: Mi-28N
   name: Mi-28N [CH]
   kind: air
@@ -6298,6 +6568,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1500
+  chaff: 64
+  flare: 128
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: Mi-8MT
   name: Mi-8MTV2
   kind: air
@@ -6312,6 +6590,12 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1929
+  chaff: 0
+  flare: 128
+  takeoff_categories:
+  - AircraftCarrier
+  landing_categories:
+  - AircraftCarrier
 - type: MiG-15bis
   name: MiG-15bis
   kind: air
@@ -6368,6 +6652,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2280
+  chaff: 18
+  flare: 40
 - type: MiG-23MLD
   name: MiG-23MLD
   kind: air
@@ -6382,6 +6668,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3800
+  chaff: 60
+  flare: 60
 - type: MiG-25PD
   name: MiG-25PD
   kind: air
@@ -6396,6 +6684,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 15245
+  chaff: 0
+  flare: 0
 - type: MiG-25RBT
   name: MiG-25RBT
   kind: air
@@ -6423,6 +6713,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4500
+  chaff: 60
+  flare: 60
 - type: MiG-29 Fulcrum
   name: MiG-29A  Fulcrum
   kind: air
@@ -6437,6 +6729,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3376
+  chaff: 30
+  flare: 30
 - type: MiG-29A
   name: MiG-29A
   kind: air
@@ -6451,6 +6745,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3376
+  chaff: 30
+  flare: 30
 - type: MiG-29G
   name: MiG-29G
   kind: air
@@ -6465,6 +6761,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3376
+  chaff: 30
+  flare: 30
 - type: MiG-29S
   name: MiG-29S
   kind: air
@@ -6479,6 +6777,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3493
+  chaff: 30
+  flare: 30
 - type: MiG-31
   name: MiG-31
   kind: air
@@ -6517,6 +6817,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3160
+  chaff: 112
+  flare: 16
 - type: Mirage-F1AD
   name: Mirage F1AD
   kind: air
@@ -6532,6 +6834,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1AZ
   name: Mirage F1AZ
   kind: air
@@ -6547,6 +6851,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1B
   name: Mirage F1B
   kind: air
@@ -6561,6 +6867,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 0
+  flare: 0
 - type: Mirage-F1BD
   name: Mirage F1BD
   kind: air
@@ -6575,6 +6883,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 0
+  flare: 0
 - type: Mirage-F1BE
   name: Mirage F1BE
   kind: air
@@ -6589,6 +6899,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 30
+  flare: 15
 - type: Mirage-F1BQ
   name: Mirage F1BQ
   kind: air
@@ -6603,6 +6915,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 0
+  flare: 0
 - type: Mirage-F1C
   name: Mirage F1C
   kind: air
@@ -6617,6 +6931,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1C-200
   name: Mirage F1C-200
   kind: air
@@ -6632,6 +6948,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CE
   name: Mirage F1CE
   kind: air
@@ -6646,6 +6964,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1CG
   name: Mirage F1CG
   kind: air
@@ -6660,6 +6980,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CH
   name: Mirage F1CH
   kind: air
@@ -6674,6 +6996,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1CJ
   name: Mirage F1CJ
   kind: air
@@ -6688,6 +7012,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CK
   name: Mirage F1CK
   kind: air
@@ -6702,6 +7028,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CR
   name: Mirage F1CR
   kind: air
@@ -6717,6 +7045,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CT
   name: Mirage F1CT
   kind: air
@@ -6732,6 +7062,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CZ
   name: Mirage F1CZ
   kind: air
@@ -6746,6 +7078,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1DDA
   name: Mirage F1DDA
   kind: air
@@ -6760,6 +7094,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 0
+  flare: 0
 - type: Mirage-F1ED
   name: Mirage F1ED
   kind: air
@@ -6774,6 +7110,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1EDA
   name: Mirage F1EDA
   kind: air
@@ -6788,6 +7126,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1EE
   name: Mirage F1EE
   kind: air
@@ -6803,6 +7143,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3246
+  chaff: 30
+  flare: 15
 - type: Mirage-F1EH
   name: Mirage F1EH
   kind: air
@@ -6818,6 +7160,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1EQ
   name: Mirage F1EQ
   kind: air
@@ -6833,6 +7177,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1JA
   name: Mirage F1JA
   kind: air
@@ -6847,6 +7193,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1M-CE
   name: Mirage F1M (C.14 1-25/32-51)
   kind: air
@@ -6861,6 +7209,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1M-EE
   name: Mirage F1M (C.14 52-73)
   kind: air
@@ -6876,6 +7226,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3246
+  chaff: 30
+  flare: 15
 - type: MJ-1_01
   name: M92 MJ-1 01
   kind: static
@@ -7169,6 +7521,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 454
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: OH58D
   name: OH-58D(R)
   kind: air
@@ -7182,6 +7542,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 333.69
+  chaff: 0
+  flare: 30
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: Oil Barrel
   name: M92 Oil barrel
   kind: static
@@ -7788,6 +8156,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5510.5
+  chaff: 120
+  flare: 30
 - type: QF_37_AA
   name: QF_37_AA
   kind: vehicle
@@ -8245,6 +8615,12 @@ units:
   - Air
   - Planes
   fuel_capacity: 5962
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: S-3B Tanker
   name: S-3B Tanker
   kind: air
@@ -8262,6 +8638,12 @@ units:
   - Air
   - Planes
   fuel_capacity: 6887
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: S-60_Type59_Artillery
   name: AAA S-60 57mm
   kind: vehicle
@@ -8488,6 +8870,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 416.33
+  chaff: 0
+  flare: 32
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: SA342M
   name: SA342M
   kind: air
@@ -8501,6 +8891,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 416.33
+  chaff: 0
+  flare: 32
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: SA342Minigun
   name: SA342Minigun
   kind: air
@@ -8514,6 +8912,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 416.33
+  chaff: 0
+  flare: 32
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: SA342Mistral
   name: SA342Mistral
   kind: air
@@ -8527,6 +8933,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 416.33
+  chaff: 0
+  flare: 32
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: Sandbag_01
   name: M92 Sandbag 01
   kind: static
@@ -8865,6 +9279,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 2132
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: SH-60B
   name: SH-60B
   kind: air
@@ -8878,6 +9300,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1100
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Shelter
   name: Shelter
   kind: static
@@ -9545,6 +9975,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3770
+  chaff: 64
+  flare: 64
 - type: Su-24M
   name: Su-24M
   kind: air
@@ -9560,6 +9992,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 11700
+  chaff: 96
+  flare: 96
 - type: Su-24MR
   name: Su-24MR
   kind: air
@@ -9574,6 +10008,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 11700
+  chaff: 96
+  flare: 96
 - type: Su-25
   name: Su-25
   kind: air
@@ -9588,6 +10024,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2835
+  chaff: 128
+  flare: 128
 - type: Su-25T
   name: Su-25T
   kind: air
@@ -9602,6 +10040,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3790
+  chaff: 128
+  flare: 128
 - type: Su-25TM
   name: Su-25TM
   kind: air
@@ -9616,6 +10056,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3790
+  chaff: 128
+  flare: 128
 - type: Su-27
   name: Su-27
   kind: air
@@ -9630,6 +10072,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9400
+  chaff: 96
+  flare: 96
 - type: Su-30
   name: Su-30
   kind: air
@@ -9644,6 +10088,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9400
+  chaff: 96
+  flare: 96
 - type: Su-33
   name: Su-33
   kind: air
@@ -9659,6 +10105,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9500
+  chaff: 48
+  flare: 48
+  takeoff_categories:
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: Su-34
   name: Su-34
   kind: air
@@ -9674,6 +10126,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9800
+  chaff: 64
+  flare: 64
 - type: Subsidiary structure 1
   name: Subsidiary structure 1
   kind: static
@@ -10193,6 +10647,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4663
+  chaff: 90
+  flare: 45
 - type: Tornado IDS
   name: Tornado IDS
   kind: air
@@ -10210,6 +10666,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4663
+  chaff: 90
+  flare: 45
 - type: Tower Crane
   name: TowerCrane
   kind: static
@@ -10367,6 +10825,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 87000
+  chaff: 48
+  flare: 48
 - type: Tu-160
   name: Tu-160
   kind: air
@@ -10383,6 +10843,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 171000
+  chaff: 72
+  flare: 72
 - type: Tu-22M3
   name: Tu-22M3
   kind: air
@@ -10397,6 +10859,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 50000
+  chaff: 48
+  flare: 48
 - type: Tu-95MS
   name: Tu-95MS [CH]
   kind: air
@@ -10414,6 +10878,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 87000
+  chaff: 48
+  flare: 48
 - type: TugHarlan
   name: M92 Tug Harlan
   kind: static
@@ -10814,6 +11280,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 631
+  chaff: 0
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: UH-60A
   name: UH-60A
   kind: air
@@ -10827,6 +11301,10 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1100
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
 - type: uh1h_cargo
   name: UH-1H cargo
   kind: static

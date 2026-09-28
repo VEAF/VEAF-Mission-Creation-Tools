@@ -166,8 +166,10 @@ why.
   `modules.ASSETS` with its laser code and frequency (`jtac`, `freq`, `mod`), so the pilots find them
   in the menu. If the MCP cannot give the FAC task, report it.
 - **Friendly carrier group** (option, if the map has sea and the players fly carrier aircraft):
-  carriers with TACAN, ICLS and Link 4 in the `ASSETS` text, a carrier-based tanker, a rescue
-  helicopter, the `CARRIER` module. Check what the MCP can place and switch on; report what it cannot.
+  `add_carrier_group` places the carrier with its TACAN, ICLS and Link 4, the recovery tanker and the
+  rescue helicopter the `CARRIER` module looks for, and the ship's warehouse; deck slots are
+  `add_air_group` with `start: deck-cold` or `deck-hot` and `carrier` = the carrier unit it returned.
+  Put TACAN, ICLS and Link 4 in the `ASSETS` text and switch the `CARRIER` module on.
 
 ### 4.4 Escorts
 
@@ -228,7 +230,8 @@ gun at helicopters; no tag sets a unit to weapons hold). `training: true`, one r
 **As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
 beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a
 distress signal on the site. `training: true`, `completable: false`. The sounds must exist in the
-mission.
+mission: `add_sound` embeds each one, then on each beacon unit's first point `edit_route` `add_task`
+`set_frequency` (FM) followed by `transmit_message` (the sound, `loop`, a `subtitle`).
 
 ### 4.7 Real combat zones — at least 6 more than the training zones
 

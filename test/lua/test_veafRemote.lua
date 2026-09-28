@@ -140,17 +140,6 @@ function TestVeafRemoteUserSlot:test_slot_reassignment()
 end
 
 -- ============================================================================
--- TestVeafRemoteBuildDefaultList
--- ============================================================================
-TestVeafRemoteBuildDefaultList = {}
-
-function TestVeafRemoteBuildDefaultList:test_buildDefaultList_no_crash()
-  -- TEST=false branch → function is essentially a no-op
-  veafRemote.buildDefaultList()
-  luaunit.assertTrue(true)
-end
-
--- ============================================================================
 -- TestVeafRemoteModuleRegistry
 -- ============================================================================
 TestVeafRemoteModuleRegistry = {}
@@ -378,6 +367,13 @@ function TestVeafRemoteNoMarkerCommands:test_addNiodCommand_is_gone_too()
   luaunit.assertNil(veafRemote.addNiodCommand, "it only existed to call executeCommand")
 end
 
+-- NIOD support was removed: the NIOD script left the repository on 2025-09-25, nothing defined the
+-- `niod` global since, and the only callbacks were declared under `local TEST = false`.
+function TestVeafRemoteNoMarkerCommands:test_niod_support_is_gone()
+  luaunit.assertNil(veafRemote.addNiodCallback, "NIOD itself is no longer shipped")
+  luaunit.assertNil(veafRemote.buildDefaultList, "its whole body was a dead `if TEST` block")
+end
+
 function TestVeafRemoteNoMarkerCommands:test_initialize_registers_no_command_handler()
   local registered = 0
   local originalRegister = veafCommands and veafCommands.registerCommandHandler
@@ -387,12 +383,8 @@ function TestVeafRemoteNoMarkerCommands:test_initialize_registers_no_command_han
   veafCommands.registerCommandHandler = function()
     registered = registered + 1
   end
-  local originalBuild = veafRemote.buildDefaultList
-  veafRemote.buildDefaultList = function() end
-
   veafRemote.initialize()
 
-  veafRemote.buildDefaultList = originalBuild
   veafCommands.registerCommandHandler = originalRegister
   luaunit.assertEquals(registered, 0, "a handler here means marker text is being answered again")
 end

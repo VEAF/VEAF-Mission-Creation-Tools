@@ -90,7 +90,7 @@ Modules that are not `initialize()`d consume no resources and create no radio me
 |--------|------|--------------|
 | [veafSkynetIadsHelper](veafSkynetIadsHelper.en.md) | `veafSkynetIadsHelper.lua` | Configures Skynet IADS from VEAF group data |
 | `veafSkynetIadsMonitor.lua` | — | Monitors Skynet IADS health and sends radio alerts |
-| `veafRemote.lua` | — | NIOD / SLMOD remote command integration |
+| `veafRemote.lua` | — | Bridge with the VEAF server hook: player rights and chat commands |
 
 ---
 

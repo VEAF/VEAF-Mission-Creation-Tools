@@ -39,7 +39,14 @@ In `src/scripts/veaf/veafRemote.lua`:
 * `veafRemote.buildDefaultList()` and its *default endpoints list* banner, since its whole body is
   the dead `if TEST` block, and the call to it in `veafRemote.initialize()`.
 
-What stays untouched: `registerRemoteModule` / `executeCommandFromRemote` and the SLMOD side.
+What stays untouched: everything else in the module — the bridge with `VEAF-Server-hook.lua`.
+`registerUser` / `registerUserSlot` / `getRemoteUser*` track who is connected, with what rights and
+in which aircraft (read by `veafSecurity` and `veafEventHandler`), and `registerRemoteModule` /
+`executeCommandFromRemote` hand a chat command to the module that owns it (carrier, air, point,
+secu, alias, atis, missile guardian). It is live: the hook is installed on all six production
+servers, and `public1`'s `dcs.log` shows `REMOTE|I|executeCommandFromRemote` lines on 2026-09-25
+and 26. There is no SLMOD side left to keep either — the bridge went in August 2021 and its
+remains with `SECREV-2` / VMR-130; the comments explaining that absence stay.
 
 Also:
 
@@ -47,7 +54,9 @@ Also:
   that stubs `buildDefaultList` no longer needs to; add `addNiodCallback` and `buildDefaultList` to
   the assertions that pin removed entry points (next to `test_addNiodCommand_is_gone_too`).
 * `doc/mission-maker/scripts/README.md` / `.en.md`, line 93: the `veafRemote.lua` row says
-  *NIOD / SLMOD*; it becomes SLMOD only.
+  *NIOD / SLMOD remote command integration*, and both halves are wrong. It becomes what the module
+  does: *bridge with the VEAF server hook — player rights and chat commands* (FR: *pont avec le
+  hook serveur VEAF : droits des joueurs et commandes du chat*).
 * `CHANGELOG.md`: one entry — NIOD support removed, it had not worked since the script left the
   repository.
 

@@ -1,6 +1,6 @@
 # FIX-AUDIT-FINDINGS-AND-DEPENDENCY-ALERTS — three nightly-audit findings and two Dependabot alerts
 
-Status: 🔄 in-progress — all five tickets done 2026-09-28, PR open
+Status: ✅ done — 2026-09-28, [#1015](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pull/1015)
 
 Origin: David, 2026-09-28 — *"on va prendre en compte les PR dependabot et les tickets d'analyse de
 code et sécu"*. Two sources, gathered into one lot:

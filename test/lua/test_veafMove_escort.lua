@@ -678,4 +678,95 @@ function TestVeafMoveTeleportEscortWaypoints:test_a_one_point_route_carrying_the
   luaunit.assertTrue(_isApproach(points[1]))
 end
 
+-- ============================================================================
+-- moveAfac — the editor's record is left alone, the dynamic template is not
+--
+-- An AFAC placed in the editor is read from the mission database, and rewriting that record in place
+-- made a later respawn bring it back on the moved route. A dynamically spawned AFAC is different: its
+-- data is its own template, `veafSpawn.AFAC.missionData`, and `afacWatchdog` reads the moved orbit
+-- back from it to move the AFAC's marker. That one must keep carrying the move.
+-- ============================================================================
+TestVeafMoveAfacRecord = {}
+
+local function _afacData(groupId)
+  return {
+    groupId = groupId,
+    route = {
+      points = {
+        { x = 1000, y = 1000, alt = 6000, speed = 150, task = { params = { tasks = { { id = "FAC" } } } } },
+        { x = 2000, y = 2000, alt = 6000, speed = 150, task = { params = { tasks = { { id = "Orbit" } } } } },
+      },
+    },
+  }
+end
+
+function TestVeafMoveAfacRecord:setUp()
+  dcs_mocks.reset()
+  self._savedGroupSpawn = VeafGroupSpawn
+  self._savedSchedule = veaf.scheduleFunction
+  self._savedSpawn = veafSpawn
+  _runScheduledImmediately()
+  local teleported = function()
+    local spawn
+    spawn = {
+      forGroup = function()
+        return spawn
+      end,
+      at = function()
+        return spawn
+      end,
+      withGroupData = function()
+        return spawn
+      end,
+      onAnyTerrain = function()
+        return spawn
+      end,
+      teleport = function()
+        return {}
+      end,
+    }
+    return spawn
+  end
+  VeafGroupSpawn = { new = teleported }
+end
+
+function TestVeafMoveAfacRecord:tearDown()
+  VeafGroupSpawn = self._savedGroupSpawn
+  veaf.scheduleFunction = self._savedSchedule
+  veafSpawn = self._savedSpawn
+  dcs_mocks.reset()
+end
+
+function TestVeafMoveAfacRecord:test_an_editor_afac_moved_leaves_the_mission_record_alone()
+  _mission({ ["AFAC Uzi"] = _afacData(30) })
+  dcs_mocks.addGroup("AFAC Uzi", { _id = 30 })
+
+  luaunit.assertTrue(veafMove.moveAfac({ x = 50000, y = 0, z = 60000 }, "AFAC Uzi", 150, 15000))
+
+  local recorded = veaf.getGroupData("AFAC Uzi").route.points
+  luaunit.assertEquals({ recorded[2].x, recorded[2].y }, { 2000, 2000 }, "the editor's orbit must stay where it was drawn")
+  local pushed = dcs_mocks.tasksSet[#dcs_mocks.tasksSet].task.params.route.points
+  luaunit.assertEquals({ pushed[2].x, pushed[2].y }, { 50000, 60000 }, "the AFAC itself must still be sent to the new orbit")
+end
+
+function TestVeafMoveAfacRecord:test_a_dynamic_afac_moved_carries_the_move_in_its_template()
+  _mission({})
+  local template = _afacData(31)
+  veafSpawn = {
+    AFAC = {
+      callsigns = { [coalition.side.BLUE] = { [1] = { name = "Dyn AFAC" } } },
+      missionData = { [coalition.side.BLUE] = { [1] = template } },
+    },
+  }
+  dcs_mocks.addGroup("Dyn AFAC 1", { _id = 31 })
+
+  luaunit.assertTrue(veafMove.moveAfac({ x = 50000, y = 0, z = 60000 }, "Dyn AFAC 1", 150, 15000))
+
+  luaunit.assertEquals(
+    { template.route.points[2].x, template.route.points[2].y },
+    { 50000, 60000 },
+    "afacWatchdog reads the moved orbit from here"
+  )
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -116,7 +116,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   before it, drops the editor waypoints ahead of them — the escort used to fly back to those before
   reaching its charge — and no longer refuses a one-point route.
 
-- **Moving a tanker or its escort no longer rewrites the mission's own record.** Both paths edited
+- **Moving a tanker, its escort or an AFAC no longer rewrites the mission's own record.** These paths edited
   the waypoints the mission database holds instead of a copy, so an asset respawned after a move or
   a teleport came back on the moved route rather than the one drawn in the editor.
 

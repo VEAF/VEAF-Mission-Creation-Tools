@@ -77,6 +77,7 @@ measurement gates the fix, and both live here.
 - Found by the diff review, fixed here on David's call: `teleportEscort` and `_getTankerRouteData`
   rewrote the mission database's own record (`getGroupData` returns it, not a copy), so an asset
   respawned after a move came back on the moved route. Both now work on a copy.
-- **Not done:** `moveAfac` has the same in-place rewrite. Left alone because a dynamically spawned
-  AFAC's data is its own template (`veafSpawn.AFAC.missionData`), and whether anything relies on it
-  carrying the last move has not been checked.
+- `moveAfac`, same defect, fixed on David's call: an editor AFAC now works on a copy of its record. A
+  dynamically spawned AFAC's template (`veafSpawn.AFAC.missionData`) is deliberately **not** copied:
+  it is that AFAC's live state, and `veafSpawn.afacWatchdog` reads the moved orbit back from it to
+  move the AFAC's marker. A test pins each side.

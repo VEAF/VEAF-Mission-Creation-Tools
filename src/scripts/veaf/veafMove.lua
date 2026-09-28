@@ -1022,7 +1022,11 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
 
   local coalition = unitGroup:getCoalition()
 
-  local afacData = veaf.getGroupData(groupName)
+  -- A copy of the editor's record, which the waypoints below are rewritten into: rewriting the record
+  -- itself made a later respawn bring the AFAC back on the moved route. A dynamically spawned AFAC's
+  -- template further down is *not* copied, on purpose -- it is that AFAC's live state, and
+  -- `veafSpawn.afacWatchdog` reads the moved orbit back from it to move the AFAC's marker.
+  local afacData = veaf.deepCopy(veaf.getGroupData(groupName))
   local isDynamicallySpawned = false
   if not afacData then
     for number, dynAFACcallsign in pairs(veafSpawn.AFAC.callsigns[coalition]) do

@@ -533,6 +533,8 @@ The build tells you how many it added.
 | `about` | Show information about VEAF Mission Creation Tools. |
 | `ask` | Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session. |
 | `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json; `--parking` also writes the parking spots to `parking/<theatre>.json`. |
+| `clear-ground-check` | Check in DCS, without spawning them, whether a built mission's ground vehicles stand in scenery, and compare with the clear-ground catalogue. |
+| `clear-ground-sweep` | Probe, step by step, the clear ground around a theatre's airfields and combat zones: writes the survey mission, tells you what to do in DCS, sweeps, then writes the catalogue; resumes an interrupted sweep. |
 | `convert-other` | Adopt a third-party (non-VEAF) .miz mission onto the v6 toolchain. |
 | `doctor` | Collect the versions, paths and recent errors a bug report needs, and produce a redacted block to paste into a report — see [Getting help](../SUPPORT.en.md). |
 | `explore-cockpit` | Explore a live cockpit: name a control to see it, or move one to name it. |

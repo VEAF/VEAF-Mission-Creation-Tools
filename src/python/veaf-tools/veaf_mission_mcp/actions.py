@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from veaf_libs.blank_mission import supported_theatres
+from veaf_libs.clear_ground_check import offer_check
 
 from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_farp import add_farp
@@ -765,6 +766,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "default": False,
                         "description": "Prefix the name with 'veafSpawn-' (spawnable-aircraft template).",
+                    },
+                    "keep_position": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Set it when the USER gave this exact position: the group is then never "
+                        "moved. Otherwise a stationary vehicle group is put on ground measured clear of trees "
+                        "and buildings, up to 1 km away (combat-zone markers included, sized from their "
+                        "#command), and a warning says where it went or why it stayed. Relay that warning.",
                     },
                 },
                 "required": [
@@ -1539,6 +1548,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "default": False,
                                     "description": "Loop the route's last waypoint back to the first.",
                                 },
+                                "keep_position": {
+                                    "type": "boolean",
+                                    "default": False,
+                                    "description": "As add_group's: the position is the mission maker's own, never move it.",
+                                },
                             },
                             "required": ["name", "units"],
                         },
@@ -1906,6 +1920,25 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="offer_clear_ground_check",
+            description=(
+                "Once a mission is built, OFFER the user to check in DCS whether its ground vehicles stand "
+                "in trees or buildings. Launches nothing: returns the command the user runs (it needs DCS), "
+                "what it will do, and how it counts — each vehicle's position is probed on an empty survey "
+                "mission, so vehicles never block each other. Relay the offer and let the user decide."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "miz_path": {"type": "string", "description": "The built .miz to check."},
+                },
+                "required": ["miz_path"],
+            },
+        ),
+        handler=lambda p: offer_check(Path(p["miz_path"])),
+    )
+    catalog.register(
+        ActionSpec(
             name="describe_module",
             description=(
                 "Look a VEAF module up in the canonical module list and point to its doc page; "
@@ -2072,6 +2105,7 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         for_combat_zone=params.get("for_combat_zone"),
         late_activation=params.get("late_activation", False),
         as_spawn_template=params.get("as_spawn_template", False),
+        keep_position=params.get("keep_position", False),
     )
 
 

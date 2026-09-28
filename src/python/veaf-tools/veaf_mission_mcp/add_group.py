@@ -14,6 +14,7 @@ from typing import Any
 from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
+from veaf_libs.clear_ground_placement import occupied_by, place_on_clear_ground, translate_group
 from veaf_libs.dcs_units_data import get_unit_category
 
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
@@ -60,6 +61,7 @@ def add_group(
     for_combat_zone: str | None = None,
     late_activation: bool = False,
     as_spawn_template: bool = False,
+    keep_position: bool = False,
 ) -> dict[str, Any]:
     """Add a group to a mission, in place, backed up first.
 
@@ -95,6 +97,9 @@ def add_group(
             CAP/on-demand templates).
         as_spawn_template: If true, prefix the name with `veafSpawn-` (registers it as a
             spawnable-aircraft template).
+        keep_position: The position is the mission maker's own (they gave it): never move the group.
+            Otherwise a stationary vehicle group is put on ground measured clear, up to 1 km away, and
+            a warning says where it went or why it stayed.
 
     Returns:
         `{"group_id": <int>, "name": <resolved name>, "durable": <bool>, "warnings": [...]}` —
@@ -125,6 +130,7 @@ def add_group(
         patrol=patrol,
         late_activation=late_activation,
         warnings=build_warnings,
+        keep_position=keep_position,
     )
 
     # A folder has no single `.miz` to scan for the combat-zone capture trap, so validate names-only
@@ -156,6 +162,7 @@ def insert_group_into_content(
     patrol: bool = False,
     late_activation: bool = False,
     warnings: list[str] | None = None,
+    keep_position: bool = False,
 ) -> int:
     """Build a group and insert it into `mission_content` in place; return its fresh `groupId`.
 
@@ -175,7 +182,11 @@ def insert_group_into_content(
         route: Optional waypoints; defaults to a stationary point at `position`.
         patrol: Loop the route back to its start.
         late_activation: Mark the group late-activation.
-        warnings: A list the builder appends its warnings to (an unclassified static type).
+        warnings: A list the builder appends its warnings to (an unclassified static type, and what
+            the clear-ground placement did).
+        keep_position: The position is the mission maker's own: never move the group. By default a
+            stationary vehicle group is put on ground the clear-ground catalogue measured clear
+            (:mod:`veaf_libs.clear_ground_placement`).
 
     Returns:
         The fresh ``groupId`` assigned to the inserted group.
@@ -195,6 +206,19 @@ def insert_group_into_content(
         group = _build_group(
             name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
         )
+        # The tools chose this position, so they put it on ground measured clear — unless the caller
+        # says the position is the mission maker's own. Only a stationary group: a route is a path the
+        # caller drew, and moving its start would move the group off it.
+        if category == "vehicle" and route is None and not keep_position:
+            placement = place_on_clear_ground(
+                mission_content.get("theatre"),
+                group["units"],
+                coalition=coalition,
+                occupied=occupied_by(mission_content),
+            )
+            translate_group(group, placement.dx, placement.dy)
+            if placement.message and warnings is not None:
+                warnings.append(placement.message)
     return insert_group(
         mission_content,
         coalition=coalition,

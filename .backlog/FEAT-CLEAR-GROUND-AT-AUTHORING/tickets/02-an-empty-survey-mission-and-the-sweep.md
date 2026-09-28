@@ -1,6 +1,6 @@
 # 02 — an empty survey mission, and the sweep that fills the catalogue
 
-Status: ⬜ ready — depends on ticket 01
+Status: ✅ done — 2026-09-28, verified in game; see the PRD, *What was built*
 Type: feat
 
 ## What this builds
@@ -28,11 +28,11 @@ must stop and continue rather than start over.
 
 ## Definition of done
 
-- [ ] A survey mission can be generated for a map, and holds no units
-- [ ] The sweep produces a catalogue carrying a clear radius per point, at both spacings
-- [ ] The sweep can be interrupted and resumed without losing what it has done
-- [ ] Sweeping the same map twice produces the same catalogue. The small probe is deterministic
+- [x] A survey mission can be generated for a map, and holds no units
+- [x] The sweep produces a catalogue carrying a clear radius per point, at both spacings
+- [x] The sweep can be interrupted and resumed without losing what it has done
+- [x] Sweeping the same map twice produces the same catalogue. The small probe is deterministic
       (12 repetitions, 0/12 against 12/12, identical counts), so this is a real assertion rather
       than a formality
-- [ ] A catalogue is produced for GermanyCW and committed
-- [ ] Python tests green, and `stylua --check` plus `luacheck` clean wherever Lua is touched
+- [x] A catalogue is produced for GermanyCW and committed
+- [x] Python tests green, and `stylua --check` plus `luacheck` clean wherever Lua is touched

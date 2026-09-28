@@ -416,6 +416,21 @@ convention-correct name itself (`veaf_mission_mcp.group_naming.resolve_group_nam
 `add_group` also returns a `warnings` field (see `validate_group_name`): it **still writes**, but
 flags any convention collision for the caller to relay.
 
+**Clear ground (FEAT-CLEAR-GROUND-AT-AUTHORING lot).** When the tool chooses the position, a
+**stationary** vehicle group (no `route`) is put on ground measured clear of trees and buildings, at
+most 1 km from the asked position, translating the group as one body. The measurement comes from the
+theatre's **clear-ground catalogue**, swept once in DCS with `veaf-tools dcs clear-ground-sweep`
+(Caucasus ships; otherwise the one swept on this workstation). The room needed is the extent of the
+units written; for a `#command` **marker**, it is the worst case of the group the runtime will draw
+(computed from `veaf-units.yaml`, spawn radius included: about 214 m for `-sa10`). A `warnings` entry
+always says what happened: moved by N m, nothing large enough within reach, a place the catalogue
+does not cover (with the command that sweeps it), or a group whose size is only known when it spawns
+(`-armor`, `-infantry`…), left to the runtime. The group is **never refused**: failing better, it stays
+where it was asked to go.
+
+- `keep_position: true` — the position is the one **the user** gave: the group is never moved. Same
+  parameter on the groups of `create_combat_zone`.
+
 ### `add_player_slot` (FIX-SCRATCH-MISSION-PLAYABLE lot)
 
 Write. Creates a **player slot** — a flyable aircraft group — which `add_group` (ground) cannot, and
@@ -772,6 +787,19 @@ always returned, with the date they were measured). Each entry: `id`, `kind`, `a
 
 ```json
 {"kind": "dcs"}
+```
+
+### `offer_clear_ground_check` (FEAT-CLEAR-GROUND-AT-AUTHORING lot)
+
+Read-only, and it **launches nothing**. On a built `.miz`, returns what it takes to **offer** the user
+an in-game check: the `veaf-tools dcs clear-ground-check` command to run (it needs DCS), what it will
+do, the number of vehicles and markers, and the counting criterion. The check probes each vehicle's
+position on the **empty** survey mission: no vehicle exists there, so none is counted as blocked by its
+neighbours — the trap that made three published figures wrong. It then compares each answer with what
+the catalogue predicted.
+
+```json
+{"miz_path": "path/to/mission.miz"}
 ```
 
 ### `describe_naming_conventions`

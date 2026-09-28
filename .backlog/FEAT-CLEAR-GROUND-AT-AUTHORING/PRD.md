@@ -1,6 +1,7 @@
 # FEAT-CLEAR-GROUND-AT-AUTHORING — when the tools place a group, they place it somewhere measured clear
 
-Status: ⬜ ready — the five design questions are settled (see *Decided*), tickets 01 to 05 written.
+Status: 🔄 in-progress — tickets 01 to 05 built and verified in game on 2026-09-28 (see *What was
+built*); waiting for its pull requests.
 David asked for the lot on 2026-09-26 evening, after
 [`FIX-PLACEMENT-IGNORES-SCENERY`](../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 11 reached its
 ceiling.
@@ -78,7 +79,15 @@ unknown. It is not, and it reframes the first decision — see below.
 Questions 1 and 2 were put to David on 2026-09-27 and answered, along with two more that the three
 findings above raised.
 
-1. **Perimeter: coarse everywhere, fine where it matters.** One pass at a wide spacing (200 m) over
+1. **Perimeter — revised on 2026-09-28 by ticket 01's measurement: fine where groups are placed,
+   nothing elsewhere.** David chose option *a*: sweep at **25 m** around the airfields and combat
+   zones, answer "not covered" everywhere else and place as requested (decision 4), and sweep a zone
+   on demand when DCS is at hand — about ten seconds a zone on Caucasus. The coarse pass was
+   affordable (7.1 M cells, about 20 min on Caucasus) and **wrong in the dangerous direction**: at
+   200 m it promised clearings of 240 m where a ring probe stopped at 40 m. The original text of the
+   decision follows, for the record.
+
+   *As first decided:* **coarse everywhere, fine where it matters.** One pass at a wide spacing (200 m) over
    the whole map, and a second at a fine spacing (50 m) around the combat zones, airfields and road
    axes. The catalogue then answers anywhere, precisely where things are actually placed, and
    placement outside the fine perimeter still works with less precision.
@@ -110,3 +119,42 @@ findings above raised.
 5. **Both distribution modes.** A catalogue per map, versioned in VMCT so everyone benefits without
    owning the terrain, **and** generation on demand on the workstation of whoever authors a mission,
    for a map or an area the versioned catalogue does not cover. David, 2026-09-26.
+
+## What was built, 2026-09-28
+
+Everything measured in game on David's DCS, the same day.
+
+- **The catalogue** (`veaf_libs/clear_ground_catalogue.py`): one probe per cell on a 25 m grid, the
+  clear radius derived offline by an exact distance transform (1.4 s per million cells), less one
+  spacing for what lies between samples. Stored per theatre under `veaf_libs/data/clear-ground/`,
+  a locally swept one winning over the shipped one. **Deterministic in fact**: two sweeps of the 21
+  Caucasus airfields — one interrupted by a DCS crash, resumed, replayed with a map drawing; the other
+  clean and batched differently — wrote the same 258 038 bytes. Shipped: Caucasus (21 airfields,
+  1.22 M cells, 4 min) and GermanyCW (the 25 combat zones of GermanyCW-v6, 1.45 M cells, 8 min).
+- **The query** answers in **3 ms** for a 1 km search, the catalogue loading in 6 ms, and keeps
+  *not covered* apart from *nothing large enough*.
+- **The footprint of a marker** (`veaf_libs/group_footprint.py`), which the PRD did not foresee: the
+  runtime never reads a unit's real size — the block of `processUnit` that did is commented out — so
+  the worst case of `veafUnits.placeGroup` is computable from `veaf-units.yaml` and the command's
+  `spacing`. `-sa10` needs 214 m. Held to 400 replayed draws of eight real groups at two spacings:
+  no draw exceeds the bound. Groups assembled from dice rolls (`-armor`…) stay unknown and are left
+  to `settleGroup`.
+- **The placement** (`veaf_libs/clear_ground_placement.py`) in `add_group` and `create_combat_zone`:
+  a stationary vehicle group moves up to 1 km as one body; `keep_position` keeps the user's position;
+  every outcome is a `warning`. Wittstock's S-300, the case that opened this lot: moved 408 m onto a
+  clearing that holds 214 m.
+- **The guided sweep**, `veaf-tools dcs clear-ground-sweep`: writes the survey mission where DCS
+  looks (the Saved Games folder asked of Windows, so a moved one is found), starts `dcs-serve` with a
+  generated key and stops its whole process tree, explains the bridge and the `MissionScripting.lua`
+  prerequisite, waits, resumes. David ran it on both theatres.
+- **The check**, `veaf-tools dcs clear-ground-check`, offered by the MCP (`offer_clear_ground_check`)
+  and never launched by it. It probes each vehicle's **declared position on the empty survey mission**,
+  rather than spawning the mission and reading positions back as ticket 05 first wrote: the check has
+  to run where no vehicle exists, and a spawned group is exactly that. Run on a mission built through
+  `add_group` — 8 groups asked into woods, 4 control groups kept there: **the 8 controls' vehicles
+  found in the woods, every vehicle the tools placed found clear, 0 disagreement with the catalogue
+  over 48 vehicles.**
+
+Found and fixed on the way: `dcs-serve.exe` is a PyInstaller one-file build, and stopping it stopped
+the bootloader only — the server kept running with its key, and the next run, finding it, read a key
+from a stray `dcs-serve.yaml` and waited on 401s.

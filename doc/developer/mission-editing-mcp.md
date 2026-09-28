@@ -432,6 +432,21 @@ nom conforme aux conventions VEAF lui-même (`veaf_mission_mcp.group_naming.reso
 `add_group` renvoie aussi un champ `warnings` (voir `validate_group_name` ci-dessous) : il **écrit
 quand même**, mais signale toute collision de convention pour que l'appelant la relaie.
 
+**Terrain dégagé (lot FEAT-CLEAR-GROUND-AT-AUTHORING).** Quand c'est l'outil qui choisit la position,
+un groupe de véhicules **immobile** (sans `route`) est posé sur un terrain mesuré dégagé des arbres et
+des bâtiments, à 1 km au plus de la position demandée, en translatant le groupe d'un bloc. La mesure
+vient du **catalogue de terrain dégagé** du théâtre, balayé une fois dans DCS avec
+`veaf-tools dcs clear-ground-sweep` (le Caucase est livré ; sinon, celui balayé sur le poste). La place
+nécessaire est l'étendue des unités écrites ; pour un **marqueur** `#command`, c'est le pire cas du
+groupe que le runtime dessinera (calculé depuis `veaf-units.yaml`, rayon d'apparition compris : environ
+214 m pour `-sa10`). Un `warnings` dit toujours ce qui s'est passé : déplacé de N m, rien d'assez grand
+dans le rayon cherché, zone non couverte par le catalogue (avec la commande pour la balayer), ou groupe
+dont la taille n'est connue qu'à l'apparition (`-armor`, `-infantry`…), laissé au runtime. Le groupe
+n'est **jamais refusé** : faute de mieux, il reste où il était demandé.
+
+- `keep_position: true` — la position est celle que **l'utilisateur** a donnée : le groupe n'est
+  jamais déplacé. Même paramètre sur les groupes de `create_combat_zone`.
+
 ### `add_player_slot` (lot FIX-SCRATCH-MISSION-PLAYABLE)
 
 Écriture. Crée une **place joueur** — un groupe avion jouable — que `add_group` (terrestre) ne sait
@@ -796,6 +811,19 @@ généré.
 
 ```json
 {"kind": "dcs"}
+```
+
+### `offer_clear_ground_check` (lot FEAT-CLEAR-GROUND-AT-AUTHORING)
+
+Lecture seule, et **ne lance rien**. Sur un `.miz` construit, renvoie de quoi **proposer** à
+l'utilisateur une vérification en jeu : la commande `veaf-tools dcs clear-ground-check` à lancer (elle
+demande DCS), ce qu'elle fera, le nombre de véhicules et de marqueurs, et le critère de comptage. La
+vérification sonde la position de chaque véhicule sur la mission d'arpentage **vide** : aucun véhicule
+n'y existe, donc aucun n'est compté comme bloqué par ses voisins — le piège qui a faussé trois chiffres
+publiés. Elle compare ensuite chaque réponse à ce que le catalogue avait prédit.
+
+```json
+{"miz_path": "chemin/vers/mission.miz"}
 ```
 
 ### `describe_naming_conventions`

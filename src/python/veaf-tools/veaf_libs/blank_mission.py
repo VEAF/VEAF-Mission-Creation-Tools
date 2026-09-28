@@ -54,6 +54,19 @@ def supported_theatres() -> list[str]:
     return sorted(entry["name"] for entry in _theatre_table().values())
 
 
+def canonical_theatre_name(theatre: str) -> str:
+    """Return the exact DCS spelling of a theatre name typed any other way (``caucasus`` → ``Caucasus``).
+
+    Args:
+        theatre: A theatre name, any case, or an alias.
+
+    Returns:
+        The name as DCS writes it in a mission's ``theatre`` member; *theatre* unchanged when unknown.
+    """
+    entry = _theatre_table().get(_resolve_key(theatre))
+    return str(entry["name"]) if entry else theatre
+
+
 def is_theatre_supported(theatre: str) -> bool:
     """Return whether a blank can be generated for `theatre` (case-insensitive, alias-aware)."""
     return _resolve_key(theatre) in _theatre_table()

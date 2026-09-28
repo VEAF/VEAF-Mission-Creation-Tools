@@ -40,6 +40,24 @@ DEFAULT_SERVE_URL = "http://127.0.0.1:8080"
 API_KEY_CONFIG_FILES = ("dcs-serve.yaml", "dcs-client.yaml")
 
 
+class BridgeAuthError(RuntimeError):
+    """``dcs-serve`` refused the key (401/403): retrying with the same key cannot succeed."""
+
+
+class BridgeHttpError(RuntimeError):
+    """``dcs-serve`` — or whatever answers on its port — returned an HTTP error other than 401/403/504.
+
+    Args:
+        code: The HTTP status. 503 is ``dcs-serve`` waiting for a mission; anything else it does not
+            answer while waiting.
+        message: The error message.
+    """
+
+    def __init__(self, code: int, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 def _candidate_config_dirs() -> list[Path]:
     """Return the directories searched for a bridge config, most specific first."""
     dirs = [Path.cwd()]
@@ -320,10 +338,10 @@ def _exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float) -
                 "dcs-serve got no reply from DCS (504) — is the mission started and the bridge connected?"
             ) from exc
         if exc.code in (401, 403):
-            raise RuntimeError(
+            raise BridgeAuthError(
                 f"dcs-serve refused the request (HTTP {exc.code}) — is the API key a superuser?"
             ) from exc
-        raise RuntimeError(f"dcs-serve returned HTTP {exc.code} ({exc.reason})") from exc
+        raise BridgeHttpError(exc.code, f"dcs-serve returned HTTP {exc.code} ({exc.reason})") from exc
     except (urllib.error.URLError, TimeoutError) as exc:
         raise RuntimeError(
             f"cannot reach dcs-serve at {serve_url} (is dcs-serve running and the mission started?): {exc}"

@@ -1,6 +1,6 @@
 # 02 — NIOD is removed
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-28
 
 Source: `davidp57/security-audits#90`, checked against the code and the production logs on
 2026-09-28. Decided by David the same day: *"oui, retire NIOD"*.

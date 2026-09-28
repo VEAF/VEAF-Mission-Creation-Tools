@@ -77,6 +77,36 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The pre-computation phase it called for is dropped — the spawn flow was measured not to affect
   the singleton at all.
 
+- **The Skynet contacts monitor reports every contact lost in the same beat.** It walked its list
+  of tracked contacts while removing from it, so of three contacts leaving IADS cover together the
+  second was never reported lost — and stayed tracked for the rest of the mission, so it was never
+  detected again either. An `OnDetectedAction` or `OnLostAction` that raises is now logged with
+  its message instead of being swallowed.
+
+### Changed
+
+- **The `veaf.lua` logger forwards its values explicitly.** Its five methods relied on the implicit
+  `arg` table of Lua 5.0, which only exists when the interpreter keeps a compatibility option. DCS
+  does — the production `dcs.log` files show every value formatted — so nothing changes in game;
+  the logger simply stops depending on it, as `dcsDataExport.lua` already had.
+
+### Removed
+
+- **NIOD support.** `veafRemote.addNiodCallback` wrapped callbacks for NIOD, a community bridge
+  driven from Node. The NIOD script itself left the repository in September 2025, and the only
+  callbacks were declared behind a switch that was always off, so none of this could run. What
+  `veafRemote` does — bridging the VEAF server hook for player rights and chat commands — is
+  unchanged, and the scripts page now describes it that way.
+
+### Security
+
+- **`sharp` 0.35.5 in the documentation chatbot Worker**, past two libheif advisories. It is only
+  used by the local `wrangler dev` server, never in the deployed Worker. Dependabot now also
+  watches that directory and the support bot's, which it did not before.
+- **`veaf-logs` refuses SHA-1 `ssh-rsa` signatures** when it tails a remote `dcs.log`
+  (CVE-2026-44405: `paramiko` accepts them and no release fixes it). RSA keys still work through
+  `rsa-sha2-256` / `rsa-sha2-512`.
+
 ## [6.25.0] — 2026-09-26
 
 ### Fixed

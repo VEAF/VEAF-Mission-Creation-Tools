@@ -90,7 +90,7 @@ Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune r
 |--------|---------|------|
 | [veafSkynetIadsHelper](veafSkynetIadsHelper.md) | `veafSkynetIadsHelper.lua` | Configure Skynet IADS depuis les données de groupes VEAF |
 | `veafSkynetIadsMonitor.lua` | — | Surveille la santé de Skynet IADS et envoie des alertes radio |
-| `veafRemote.lua` | — | Intégration des commandes distantes NIOD / SLMOD |
+| `veafRemote.lua` | — | Pont avec le hook serveur VEAF : droits des joueurs et commandes du chat |
 
 ---
 

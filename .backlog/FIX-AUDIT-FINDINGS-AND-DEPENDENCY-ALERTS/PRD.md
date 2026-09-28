@@ -1,6 +1,6 @@
 # FIX-AUDIT-FINDINGS-AND-DEPENDENCY-ALERTS — three nightly-audit findings and two Dependabot alerts
 
-Status: ⬜ ready
+Status: 🔄 in-progress — all five tickets done 2026-09-28, PR open
 
 Origin: David, 2026-09-28 — *"on va prendre en compte les PR dependabot et les tickets d'analyse de
 code et sécu"*. Two sources, gathered into one lot:

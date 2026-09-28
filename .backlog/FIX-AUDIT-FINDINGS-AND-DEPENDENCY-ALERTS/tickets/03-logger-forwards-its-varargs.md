@@ -1,6 +1,6 @@
 # 03 — the logger forwards its varargs
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-28
 
 Source: `davidp57/security-audits#88`, **re-sized** after measurement on 2026-09-28.
 

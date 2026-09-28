@@ -1,6 +1,6 @@
 # 01 — the Skynet monitor reports every lost contact
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-28
 
 Source: `davidp57/security-audits#89`, checked against the code on 2026-09-28.
 

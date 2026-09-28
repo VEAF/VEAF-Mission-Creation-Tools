@@ -65,7 +65,7 @@ globals = {
   -- engine from one still parked on ctld.dontInitialize
   "CTLDConfig",
   "AirWaveZone", "ArtilleryUnitHandler", "DcsDataExport", "dcsUnits",
-  "GroundUnitHandler", "sha1", "STTS", "AIEN", "weathermark", "dcsbot", "niod",
+  "GroundUnitHandler", "sha1", "STTS", "AIEN", "weathermark", "dcsbot",
   "SkynetIADSAbstractRadarElement",
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})
   "veaf", "veafAirbase", "veafAirbaseRunway", "veafAirbases",

@@ -19,6 +19,34 @@ updates:
       - dependency-name: "pyinstaller"
         update-types: ["version-update:semver-major"]
 
+  # ── Support bot (its own pyproject.toml / poetry.lock) ─────────────────────
+  # Deployed and holding the Discord token, yet it was outside the root entry's reach.
+  - package-ecosystem: "pip"
+    directory: "/services/support-bot"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      support-bot-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── Documentation chatbot Worker (npm) ─────────────────────────────────────
+  # Unwatched until 2026-09-28: a high-severity alert on sharp could not become a PR.
+  - package-ecosystem: "npm"
+    directory: "/poc/doc-chatbot/worker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      chatbot-worker-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
   # ── GitHub Actions ─────────────────────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"

@@ -104,8 +104,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   used by the local `wrangler dev` server, never in the deployed Worker. Dependabot now also
   watches that directory and the support bot's, which it did not before.
 - **`veaf-logs` refuses SHA-1 `ssh-rsa` signatures** when it tails a remote `dcs.log`
-  (CVE-2026-44405: `paramiko` accepts them and no release fixes it). RSA keys still work through
+  (CVE-2026-44405: `paramiko` 4.0.0 and earlier accept them). RSA keys still work through
   `rsa-sha2-256` / `rsa-sha2-512`.
+- **`paramiko` 5.0.0 for `veaf-logs`**, the first release to fix CVE-2026-44405: it drops SHA-1
+  `ssh-rsa` signatures and SHA-1 key exchange. The `logs` extra now allows `paramiko` up to 5.x;
+  the refusal at the call site stays, since the extra still accepts `>=3.4`. Checked against
+  `dcs.veaf.org` with an Ed25519 key.
 
 ## [6.25.0] — 2026-09-26
 

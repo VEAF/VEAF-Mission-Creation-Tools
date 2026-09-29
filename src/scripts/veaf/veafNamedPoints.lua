@@ -276,11 +276,11 @@ function veafNamedPoints.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pointName=%s",veaf.p(_pointName)))
         veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
         if _action and _action:lower() == "weather" then
-            veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting weather at his position",veaf.p(_pilotName)))
+            veaf.loggers.get(veafNamedPoints.Id):debug(string.format("[%s] is requesting weather at his position",veaf.p(_pilotName)))
             veafNamedPoints.getWeatherAtClosestPoint(_unitName, true)
             return true
         elseif _action and _action:lower() == "atc" then
-            veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting atc at his position",veaf.p(_pilotName)))
+            veaf.loggers.get(veafNamedPoints.Id):debug(string.format("[%s] is requesting atc at his position",veaf.p(_pilotName)))
             veafNamedPoints.getAtcAndWeatherAtClosestPoint(_unitName, true)
             return true
         end

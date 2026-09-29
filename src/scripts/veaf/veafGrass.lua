@@ -195,7 +195,7 @@ function veafGrass.getLandingPlatforms(own)
           if isOwn then
             veaf.loggers
               .get(veafGrass.Id)
-              :info("getLandingPlatforms: [%s] is the FARP being built, not avoiding it", veaf.p(airbase:getName()))
+              :debug("getLandingPlatforms: [%s] is the FARP being built, not avoiding it", veaf.p(airbase:getName()))
             halfX, halfZ = nil, nil
           end
           if not isOwn then
@@ -214,7 +214,7 @@ function veafGrass.getLandingPlatforms(own)
   -- At info, and deliberately: when an escort still lands on a platform, "0 platforms" and "3 platforms"
   -- are completely different bugs and from outside they look the same. Not knowing which cost a
   -- round-trip on 2026-08-24.
-  veaf.loggers.get(veafGrass.Id):info("getLandingPlatforms: %s landing platform(s) to avoid", veaf.p(#platforms))
+  veaf.loggers.get(veafGrass.Id):debug("getLandingPlatforms: %s landing platform(s) to avoid", veaf.p(#platforms))
   return platforms
 end
 
@@ -234,7 +234,7 @@ function veafGrass.isOnLandingPlatform(position, platforms)
     local halfZ = platform.halfZ or veafGrass.PLATFORM_FALLBACK_HALF_EXTENT_METRES
     local dx, dz = math.abs(position.x - platform.x), math.abs(position.y - platform.z)
     if dx <= halfX and dz <= halfZ then
-      veaf.loggers.get(veafGrass.Id):info(
+      veaf.loggers.get(veafGrass.Id):debug(
         "isOnLandingPlatform: refusing a spot %sm/%sm inside [%s] (extents %sm/%sm)",
         veaf.p(math.floor(dx)),
         veaf.p(math.floor(dz)),
@@ -1801,7 +1801,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 
   local windsockBearing, windsockScale = veafGrass.findClearBearing(angle, windsockPositionsAt, farp)
   local windsockPositions = windsockPositionsAt(windsockBearing, windsockScale)
-  veaf.loggers.get(veafGrass.Id):info(
+  veaf.loggers.get(veafGrass.Id):debug(
     "FARP windsock: bearing %s requested, %s used at %sx distance",
     veaf.p(math.floor(angle)),
     veaf.p(math.floor(windsockBearing)),

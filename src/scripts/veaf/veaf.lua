@@ -1172,7 +1172,7 @@ function veaf.silenceAtcOnAllAirbases()
   for _, base in pairs(bases) do
     if base:getDesc() then
       if base:getDesc().category == Airbase.Category.AIRDROME then
-        veaf.loggers.get(veaf.Id):info("silencing ATC at base %s", veaf.p(base:getDesc().displayName))
+        veaf.loggers.get(veaf.Id):debug("silencing ATC at base %s", veaf.p(base:getDesc().displayName))
         base:setRadioSilentMode(true)
       end
     end
@@ -1408,7 +1408,7 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius, surfaces, noRandomFallbac
   -- Tier 3 — nothing acceptable anywhere. The caller reports it and aborts the spawn.
   veaf.loggers
     .get(veaf.Id)
-    :info(string.format("findSpawnPoint: no acceptable spawn point within %sm of %s", tostring(radius), veaf.vecToString(vec3)))
+    :debug(string.format("findSpawnPoint: no acceptable spawn point within %sm of %s", tostring(radius), veaf.vecToString(vec3)))
   return nil
 end
 
@@ -2064,7 +2064,7 @@ function veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)
   if group then
     local controller = group:getController()
     if controller then
-      veaf.loggers.get(veaf.Id):info("Checking if patrol is within " .. maxDist .. "m of it's start point...")
+      veaf.loggers.get(veaf.Id):debug("Checking if patrol is within " .. maxDist .. "m of it's start point...")
 
       local groupUnits = group:getUnits()
 
@@ -2084,7 +2084,7 @@ function veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)
           end
 
           if not firstPass and result then
-            veaf.loggers.get(veaf.Id):info("Lead vehicle in range, setting route !")
+            veaf.loggers.get(veaf.Id):debug("Lead vehicle in range, setting route !")
             veaf.goRoute(group, patrolRoute)
             controller:setSpeed(speed)
             firstPass = "notSeen"
@@ -2505,7 +2505,7 @@ end
 function veaf.getGroupData(groupIdent)
   local groupRecord = veaf.getGroupRecord(groupIdent) or veaf.getGroupRecordById(groupIdent)
   if not groupRecord then
-    veaf.loggers.get(veaf.Id):info("no group data found for %s", veaf.p(groupIdent))
+    veaf.loggers.get(veaf.Id):debug("no group data found for %s", veaf.p(groupIdent))
     return nil
   end
   return groupRecord.missionData
@@ -2569,7 +2569,7 @@ function veaf.getTankerData(tankerGroupName)
                     veaf.loggers.get(veaf.Id):trace("has .params")
                     if task.params.action.params.channel then
                       veaf.loggers.get(veaf.Id):trace("has .channel")
-                      veaf.loggers.get(veaf.Id):info("Found a TACAN task for tanker " .. tankerGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a TACAN task for tanker " .. tankerGroupName)
                       result.tankerTacanTask = task
                       result.tankerTacanChannel = task.params.action.params.channel
                       result.tankerTacanMode = task.params.action.params.modeChannel
@@ -2638,7 +2638,7 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
                     veaf.loggers.get(veaf.Id):trace("programmed task is linked to carrier unit")
 
                     if action.id == "ActivateBeacon" and actionParams.channel then
-                      veaf.loggers.get(veaf.Id):info("Found a programmed TACAN task for carrier group " .. carrierGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a programmed TACAN task for carrier group " .. carrierGroupName)
                       local channel = actionParams.channel
                       local mode = "X"
                       if actionParams.modeChannel and actionParams.modeChannel == "Y" then --should never happen for carriers
@@ -2650,13 +2650,13 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
                       end
                       result.tacan = channel .. mode .. " (" .. callsign .. ")"
                     elseif action.id == "ActivateICLS" and actionParams.channel then
-                      veaf.loggers.get(veaf.Id):info("Found a programmed ICLS task for carrier group " .. carrierGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a programmed ICLS task for carrier group " .. carrierGroupName)
                       result.icls = actionParams.channel
                     elseif action.id == "ActivateLink4" and actionParams.frequency then
-                      veaf.loggers.get(veaf.Id):info("Found a programmed Link4 task for carrier group " .. carrierGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a programmed Link4 task for carrier group " .. carrierGroupName)
                       result.link4 = string.format("%.2f" .. "MHz", actionParams.frequency / 1000000)
                     elseif action.id == "ActivateACLS" then
-                      veaf.loggers.get(veaf.Id):info("Found a programmed ACLS task for carrier group " .. carrierGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a programmed ACLS task for carrier group " .. carrierGroupName)
                       result.acls = true
                     end
                   end
@@ -3231,7 +3231,7 @@ function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
     -- show the message
     trigger.action.outText(message1, 30)
     -- schedule this function after "delay1" seconds
-    veaf.loggers.get(veaf.Id):info(string.format("schedule veaf._endMission after %d seconds", delay1))
+    veaf.loggers.get(veaf.Id):debug(string.format("schedule veaf._endMission after %d seconds", delay1))
     veaf.scheduleFunction(veaf._endMission, { delay2, message2, delay3, message3 }, timer.getTime() + delay1)
   end
 end
@@ -6112,9 +6112,9 @@ function veaf.csar_initialize_replacement(configurationCallback)
 
     if configurationCallback and type(configurationCallback) == "function" then
       -- a configuration callback has been set, call it
-      veaf.loggers.get(csar.Id):info("calling the configuration callback")
+      veaf.loggers.get(csar.Id):debug("calling the configuration callback")
       configurationCallback()
-      veaf.loggers.get(csar.Id):info("done calling the configuration callback")
+      veaf.loggers.get(csar.Id):debug("done calling the configuration callback")
     end
 
     -- Drop the previous event handler before the vanilla initialiser registers a new one.
@@ -6176,7 +6176,7 @@ function veaf.csar_initialize_replacement(configurationCallback)
 end
 
 if csar then
-  veaf.loggers.get(veaf.Id):info(string.format("replacing CSAR.initialize()"))
+  veaf.loggers.get(veaf.Id):debug(string.format("replacing CSAR.initialize()"))
   veaf.csar_initialize = csar.initialize -- used to call the vanilla csar.initialize from the VEAF replacement
   csar.initialize = veaf.csar_initialize_replacement -- replace the csar.initialize with the VEAF wrapper function
 end
@@ -6190,7 +6190,7 @@ if STTS then
   --- configure SRS Text to Speech
   veaf.loggers.get(veaf.Id):trace(string.format("STTS - SERVER_CONFIG=%s", veaf.p(SERVER_CONFIG)))
   if SERVER_CONFIG then
-    veaf.loggers.get(veaf.Id):info(string.format("Setting up STTS"))
+    veaf.loggers.get(veaf.Id):debug(string.format("Setting up STTS"))
     STTS.DIRECTORY = SERVER_CONFIG.SRS_DIRECTORY
     STTS.SRS_PORT = SERVER_CONFIG.SRS_PORT
     STTS.EXECUTABLE = SERVER_CONFIG.SRS_EXECUTABLE

@@ -577,7 +577,7 @@ function veafShortcuts.ExecuteAlias(
       end
 
       local _msg = string.format("running batch alias [%s] : %s", alias:getName(), alias:getDescription())
-      veaf.loggers.get(veafShortcuts.Id):info(_msg)
+      veaf.loggers.get(veafShortcuts.Id):debug(_msg)
       trigger.action.outText(veaf.t("shortcuts.running_batch_alias", alias:getName(), alias:getDescription()), 10)
 
       -- run the batch
@@ -634,7 +634,7 @@ function veafShortcuts.ExecuteBatchAliasesList(aliasBatchList, delay, coalition,
   )
   if aliasBatchList and #aliasBatchList > 0 then -- run a batch
     local _msg = string.format("running batch list [%s]", veaf.p(aliasBatchList))
-    veaf.loggers.get(veafShortcuts.Id):info(_msg)
+    veaf.loggers.get(veafShortcuts.Id):debug(_msg)
     if not silent then
       trigger.action.outText(veaf.t("shortcuts.running_batch_list", veaf.p(aliasBatchList)), 10)
     end
@@ -1791,7 +1791,7 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         local _pos = coord.LLtoLO(_lat, _lon)
         veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pos=%s", veaf.p(_pos)))
         veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coa=%s", veaf.p(_coa)))
-        veaf.loggers.get(veafShortcuts.Id):info(
+        veaf.loggers.get(veafShortcuts.Id):debug(
           string.format(
             "[%s] is running an alias at position [%s] for coalition [%s] : [%s]",
             veaf.p(_pilot.name),
@@ -1803,7 +1803,7 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         veafShortcuts.executeCommand(_pos, _alias, invertedCoalition, _pilot.name)
         return true
       else
-        veaf.loggers.get(veafShortcuts.Id):info(
+        veaf.loggers.get(veafShortcuts.Id):debug(
           string.format(
             "[%s] is running an alias with no specific position for coalition [%s] : [%s]",
             veaf.p(_pilot.name),

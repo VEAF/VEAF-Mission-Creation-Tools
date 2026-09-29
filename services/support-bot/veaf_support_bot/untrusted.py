@@ -27,6 +27,13 @@ mentions. A report that broke out of its fence would let the reporter write head
 into an issue that reads as if a maintainer wrote them — which is a real impersonation problem, not
 a prompt-injection one.
 
+That threat model belongs to **one direction**: a stranger's text going into a public issue. The
+relay runs the other way — a maintainer's comment going into a Discord thread, under a header line
+the comment cannot touch — and the fence there bought little and cost the reporter the formatting
+of every answer. So :func:`veaf_support_bot.relay.render_comment` quotes with a Discord block quote
+and :func:`defuse_mentions` instead of :func:`quote`. The two directions have different threat
+models; a caller embedding a stranger's text keeps using :func:`quote`.
+
 Nothing here tries to *detect* a malicious instruction. Detection would be a guess, and a guess that
 silently dropped a line would corrupt the very evidence the report exists to carry.
 """

@@ -431,7 +431,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
   controller:setTask(mission)
 
   local msg = string.format("Set tanker %s to %d kn (ground) at %d ft", tankerGroupName, speed, alt)
-  veaf.loggers.get(veafMove.Id):info(msg)
+  veaf.loggers.get(veafMove.Id):debug(msg)
   trigger.action.outText(veaf.t("move.tanker_set_params", tankerGroupName, speed, alt), 10)
   return true
 end

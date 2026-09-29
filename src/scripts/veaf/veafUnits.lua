@@ -324,7 +324,7 @@ function veafUnits.findUnit(unitAlias)
     unit = veafUnits.findDcsUnit(unitAlias)
   end
   if not unit then
-    veaf.loggers.get(veafUnits.Id):info("cannot find unit [" .. unitAlias .. "]")
+    veaf.loggers.get(veafUnits.Id):debug("cannot find unit [" .. unitAlias .. "]")
   else
     unit = veafUnits.makeUnitFromDcsStructure(unit, 1)
   end

@@ -1,6 +1,6 @@
 # 02 — a thread has room for more than 1200 characters
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-29, kept in the lot by David: a comment is split across up to `MAX_COMMENT_MESSAGES` (5) messages, fences closed and reopened at each cut; the round budget still counts comments. Past five messages the last one ends on `relay.truncated`, whose wording still fits
 
 **Not asked for.** It is visible in the same screenshot as ticket 01 and it is the same defect the
 `FIX-WHAT-THE-READER-SEES` lot already fixed elsewhere, so it is written down rather than lost —

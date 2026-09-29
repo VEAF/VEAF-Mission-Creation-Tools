@@ -1572,21 +1572,21 @@ function veafCombatMission.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("_missionName=%s", veaf.p(_missionName)))
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
     if _action and _action:lower() == "list" then
-      veaf.loggers.get(veafCombatMission.Id):info(string.format("[%s] is listing air missions)", veaf.p(_pilot.name)))
+      veaf.loggers.get(veafCombatMission.Id):debug(string.format("[%s] is listing air missions)", veaf.p(_pilot.name)))
       veafCombatMission.listAvailableMissions(_unitName)
       return true
     elseif _action and _action:lower() == "start" and _missionName then
       local _silent = _parameters and _parameters:lower() == "silent"
       veaf.loggers
         .get(veafCombatMission.Id)
-        :info(string.format("[%s] is starting air mission [%s] %s)", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
+        :debug(string.format("[%s] is starting air mission [%s] %s)", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
       veafCombatMission.ActivateMission(_missionName, _silent, _unitName)
       return true
     elseif _action and _action:lower() == "stop" then
       local _silent = _parameters and _parameters:lower() == "silent"
       veaf.loggers
         .get(veafCombatMission.Id)
-        :info(string.format("[%s] is stopping air mission [%s] %s)", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
+        :debug(string.format("[%s] is stopping air mission [%s] %s)", veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
       veafCombatMission.DesactivateMission(_missionName, _silent, _unitName)
       return true
     end

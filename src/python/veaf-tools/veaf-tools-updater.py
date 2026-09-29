@@ -504,18 +504,18 @@ class UpdateWorker:
 REM Auto-generated update script for veaf-tools-updater.exe
 REM This script is run after the updater process exits to avoid file locking issues
 
-REM Delayed expansion is needed for !errorlevel! inside the if blocks below, but it also means a
-REM directory name containing ! or % is rewritten as we interpolate it. Windows forbids " in a path,
-REM so no quote can escape the argument and this is a robustness bug rather than the batch injection
-REM SECREV-2 / VMR-036 reported -- but the consequence was real: every rename and delete below is
-REM relative, so a failed cd used to run them against whatever directory the script started in.
-REM Bailing out on a failed cd removes that outcome whatever the cause.
-setlocal enabledelayedexpansion
-cd /d "{current_dir}"
+REM This script lives in the mission folder's {UPDATE_PENDING_DIR}, and cmd resolves %~dp0 itself: the
+REM mission path is never written here. Written, it was garbled -- cmd reads a batch file in the
+REM console code page, not the one Python writes -- and an accented folder aborted the update.
+REM Every rename and delete below is relative, so a failed cd used to run them against whatever
+REM directory the script started in (SECREV-2 / VMR-036): bail out on a failed cd, whatever the cause.
+REM Delayed expansion, needed for !errorlevel! below, starts after the cd: it would eat a ! in the path.
+cd /d "%~dp0.."
 if errorlevel 1 (
-    echo ERROR: cannot enter "{current_dir}" -- aborting the update
+    echo ERROR: cannot enter the mission folder -- aborting the update
     exit /b 1
 )
+setlocal enabledelayedexpansion
 
 REM Wait for the updater process to finish
 timeout /t 2 /nobreak >nul 2>&1
@@ -556,7 +556,8 @@ if exist ".\\{UPDATE_PENDING_DIR}" (
 exit /b 0
 """
 
-            update_script.write_text(script_content)
+            # ASCII by construction (no path inside): reads the same in every console code page.
+            update_script.write_text(script_content, encoding="ascii")
             logger.debug(f"Created update script: {update_script}")
 
             # Launch the script in background

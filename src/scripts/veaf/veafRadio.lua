@@ -523,7 +523,8 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
 
   local parentDcsMenu = parentNode and parentNode.dcsRadioMenu
   local label = node.title
-  if parentNode and parentNode.isRoot then
+  -- `isRoot` marks the page tables built below; the root itself comes in through refreshRadioSubmenu.
+  if parentNode and (parentNode.isRoot or parentNode == self._root) then
     label = veafRadio.toUpperCase(label)
   end
   if coalitionSide then

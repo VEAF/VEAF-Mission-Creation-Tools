@@ -1572,6 +1572,14 @@ function TestVeafRadioFirstLevelCapitals:test_deeper_levels_and_logical_titles_a
   luaunit.assertTrue(contains(titles, "Assistance"))
 end
 
+function TestVeafRadioFirstLevelCapitals:test_a_first_level_menu_refreshed_alone_keeps_its_capitals()
+  local root = { title = "VEAF", subMenus = {}, commands = {}, dcsRadioMenu = { title = "VEAF" } }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local menu = builder:addMenu("Assistance")
+  builder:_buildSubtree(root, menu)
+  luaunit.assertEquals(self.subMenus[1].title, "ASSISTANCE")
+end
+
 function TestVeafRadioFirstLevelCapitals:test_to_upper_case_handles_accented_letters()
   luaunit.assertEquals(veafRadio.toUpperCase("météo à l'aérodrome"), "MÉTÉO À L'AÉRODROME")
   luaunit.assertEquals(veafRadio.toUpperCase("çà où ñ œuvre"), "ÇÀ OÙ Ñ ŒUVRE")

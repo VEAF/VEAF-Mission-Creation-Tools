@@ -449,7 +449,13 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
   if not command.usage then
     command.usage = veafRadio.USAGE_ForAll
   end
-  if command.usage ~= veafRadio.USAGE_ForAll then
+  -- A secured command needs a group: it is the only identity `_proxyMethod` will ever receive
+  -- (see _addDcsCommand). Posted for all, it refused every click while security was on — no
+  -- non-training combat zone could be activated on private1, 2026-09-29. So a secured ForAll
+  -- command goes out once per group, like ForGroup. With security disabled `_proxyMethod` runs
+  -- anything, and posting for all keeps it within reach of a game master, who has no group.
+  local securedForAll = command.usage == veafRadio.USAGE_ForAll and command.isSecured and not veaf.SecurityDisabled
+  if command.usage ~= veafRadio.USAGE_ForAll or securedForAll then
     local alreadyDoneGroups = {}
     for groupId, groupData in pairs(veafRadio.humanGroups) do
       veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
@@ -479,7 +485,10 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
           if humanUnit and humanUnit.spawned and passesFilter then
             veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
             local parameters = command.parameters
-            if parameters == nil then
+            if securedForAll then
+              -- A ForAll method takes its parameters as registered: no unit name appended.
+              parameters = command.parameters
+            elseif parameters == nil then
               parameters = unitName
             else
               parameters = { command.parameters }
@@ -610,6 +619,11 @@ function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, co
     -- and nothing about who clicked. A secured command therefore only makes sense per group —
     -- posting one for a whole coalition would leave `_proxyMethod` unable to say who is asking,
     -- and it refuses in that case (REVIEW-SECURITY-LAYER ticket 01).
+    -- _placeCommandOnMenu posts a secured ForAll command per group for that reason; reaching here
+    -- without one while security is on is a bug, said when the menu is built rather than per click.
+    if groupId == nil and not veaf.SecurityDisabled then
+      veaf.loggers.get(veafRadio.Id):warn("secured command %s posted without a group: it will refuse every click", veaf.p(title))
+    end
     _method = veafRadio._proxyMethod
     _parameters = {
       method = command.method,

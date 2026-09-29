@@ -121,6 +121,10 @@ passe commande par commande (mot-clé `password`). En tchat, les mêmes verbes e
       `_auth elevate` (marqueur) ou `/secu elevate` (tchat) élève le groupe au niveau **du
       demandeur** pendant 2 minutes — un simple `_auth [MOT_DE_PASSE]` n'élève rien. C'est ce qui
       résout le cas de l'instructeur volant avec un élève.
+    - Le groupe étant la seule identité, une commande F10 sécurisée (son libellé commence par `+`)
+      apparaît **dans le menu de chaque groupe de pilotes**. Un game master ou un spectateur, qui
+      n'a pas de groupe, ne la voit pas — sauf quand la sécurité est désactivée : elle est alors
+      montrée à tout le monde.
 
     Prévenez vos pilotes : c'est un changement qui se remarque en pleine mission.
 

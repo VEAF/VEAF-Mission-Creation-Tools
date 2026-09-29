@@ -221,5 +221,44 @@ class TestValidateModulesSemantics(unittest.TestCase):
         mock_log.warning.assert_not_called()
 
 
+class TestUnknownLogLevel(unittest.TestCase):
+    """A misspelled logLevel is ignored by the runtime: say so at build time."""
+
+    def _warnings(self, level: str) -> list[str]:
+        from veaf_libs.yaml_validator import collect_module_issues
+
+        return collect_module_issues({"modules": {"SPAWN": {"logLevel": level}}})[1]
+
+    def test_a_misspelled_level_is_reported(self) -> None:
+        warnings = self._warnings("tarce")
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("tarce", warnings[0])
+
+    def test_known_levels_in_any_case_are_silent(self) -> None:
+        for level in ("trace", "DEBUG", "Info", "warning", "error"):
+            self.assertEqual(self._warnings(level), [], level)
+
+
+class TestUnknownQraKey(unittest.TestCase):
+    """FIX-QRA-COMMANDS-AND-OFFSET: a QRA key the generator does not read did nothing, silently."""
+
+    def _warnings(self, definition: dict) -> list[str]:
+        from veaf_libs.yaml_validator import collect_module_issues
+
+        _, warnings = collect_module_issues({"modules": {"QRA": {"definitions": [definition]}}})
+        return warnings
+
+    def test_a_key_the_generator_does_not_read_is_reported(self) -> None:
+        warnings = self._warnings({"name": "QRA-Nord", "coalition": "RED", "respawn_radius": 5000})
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("respawn_radius", warnings[0])
+        self.assertIn("QRA-Nord", warnings[0])
+
+    def test_every_known_key_is_silent(self) -> None:
+        from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
+
+        self.assertEqual(self._warnings(dict.fromkeys(QRA_DEFINITION_KEYS, None)), [])
+
+
 if __name__ == "__main__":
     unittest.main()

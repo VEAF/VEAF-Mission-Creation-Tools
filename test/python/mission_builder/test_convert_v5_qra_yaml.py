@@ -30,14 +30,14 @@ def test_qra_start_false_yaml_parses() -> None:
     assert len(defs) == 1
     assert defs[0]["name"] == "QRA_X"
     # the disabled flag belongs to the item, not to the sequence
-    assert defs[0]["start"] is False
+    assert defs[0]["active_at_start"] is False  # the key the generator reads
 
 
 def test_qra_start_false_indented_under_item() -> None:
     lines = _emit_qra_definitions(False, [{"name": "Q", "start": False}], indent=4)
-    start_line = next(line for line in lines if "start:" in line)
+    start_line = next(line for line in lines if "active_at_start:" in line)
     # field indent = base(4) + 4 = 8 spaces, aligned with the other QRA fields
-    assert start_line.startswith("        start: false  #"), start_line
+    assert start_line.startswith("        active_at_start: false  #"), start_line
 
 
 def test_multiple_qra_with_start_false_parse() -> None:
@@ -49,7 +49,7 @@ def test_multiple_qra_with_start_false_parse() -> None:
     )
     defs = yaml.safe_load(_doc(lines))["modules"]["QRA"]["definitions"]
     assert [d["name"] for d in defs] == ["A", "B"]
-    assert all(d["start"] is False for d in defs)
+    assert all(d["active_at_start"] is False for d in defs)
 
 
 def test_qra_start_true_emits_no_start_line() -> None:

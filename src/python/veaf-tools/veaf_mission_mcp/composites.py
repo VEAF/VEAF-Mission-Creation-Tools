@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 from mission_tools.mission_yaml_editor import append_to_sequence, load_yaml, save_yaml
+from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
 from veaf_libs.mission_table import indexed
 from veaf_libs.shipped_defaults import shipped_default_file
 
@@ -214,6 +215,12 @@ def create_qra(
         definition["enemy_coalitions"] = [c.upper() for c in enemy_coalitions]
     if qra:
         definition.update(qra)
+        # written anyway, as asked, but said: a key the build does not read does nothing
+        warnings += [
+            {"key": key, "warning": f"'{key}' is not a QRA key the build reads, so it does nothing"}
+            for key in qra
+            if key not in QRA_DEFINITION_KEYS
+        ]
     _append_qra_definition(mission_yaml_path(folder_path), definition)
 
     return {

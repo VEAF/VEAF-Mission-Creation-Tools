@@ -1,6 +1,6 @@
 # FIX-PER-MODULE-LOGLEVEL-INERT — a documented setting that has never done anything
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — fixed 2026-09-29 by route b; R18 of `DCS-SESSION-TODO.md` is the in-game reading.
 
 Found 2026-09-01 while trying to trace one module during the release-gate session. Setting
 `logLevel: trace` under a module changed nothing, and the reason is not the module.
@@ -81,3 +81,22 @@ A mission maker chasing one module's behaviour has to turn **everything** to tra
 session that meant 20 000 log lines to answer one question about the CAP watchdog — and the first
 conclusion drawn from the quiet log was **wrong**, because the absent lines were read as absent
 behaviour rather than as an absent log level.
+
+## Done — 2026-09-29
+
+**Route b, David's call.** `veaf.setConfig(id, "logLevel", …)` applies the level to the module's
+logger through the new `Logger:setModuleLevel`, and `veaf.loggers.new` applies one configured before
+the module loaded. The logger is looked up in `veaf.loggers.dict`, not through `veaf.loggers.get`, which
+falls back to the `veaf` logger for an unknown id and would have set the level of everything.
+
+**Found on the way: `global_log_level` would still have won.** It is emitted as `veaf.ForcedLogLevel`,
+which replaced every logger's level — so a mission with a global level lost every per-module one, while
+the guide says the per-module level "overrides the global default for this module only". The module's
+own level now outranks the forced one; every other module still follows it.
+
+The registry's order and `enable` were already documented as inert in the code (`veaf.lua`,
+`docs/agents/module-initialisation.md`) by `CHORE-INIT-REGISTRY-TELLS-THE-TRUTH`. `veaf.initialize()`'s
+loop now uses the same `setModuleLevel`. Tests (`TestPerModuleLogLevel`, `test_veaf.lua`) go from
+config to a line printed through the mocked `env`: the module traces, another does not, a level set
+before the module loads applies, an unknown id leaves `veaf` alone, and the global level still reaches
+the other modules.

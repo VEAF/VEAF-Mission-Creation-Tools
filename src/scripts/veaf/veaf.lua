@@ -74,11 +74,22 @@ function veaf.getConfig(moduleId)
 end
 
 --- Set a single configuration key for a module.
+---
+--- A `logLevel` is applied to the module's logger here, not stored for later: the loop that used to
+--- apply it lives in veaf.initialize(), which nothing calls (FIX-PER-MODULE-LOGLEVEL-INERT). A module
+--- whose logger does not exist yet gets it from veaf.loggers.new.
 function veaf.setConfig(moduleId, key, value)
   if not veaf.config[moduleId] then
     veaf.config[moduleId] = {}
   end
   veaf.config[moduleId][key] = value
+  if key == "logLevel" then
+    -- the dict, not veaf.loggers.get: that one falls back to the veaf logger for an unknown id
+    local logger = veaf.loggers and veaf.loggers.dict and veaf.loggers.dict[tostring(moduleId):lower()]
+    if logger then
+      logger:setModuleLevel(value)
+    end
+  end
 end
 
 --- Return true if the module is enabled (default: true when no config exists).
@@ -4299,7 +4310,23 @@ function veaf.Logger:getLevel()
   return self.level
 end
 
+--- Give this logger a level of its own, the one a mission sets with `logLevel` under a module.
+---
+--- It outranks veaf.ForcedLogLevel (mission.yaml's `global_log_level`) and the base level: the global
+--- level is the default, and the guide promises the per-module one "overrides it for this module
+--- only". An unknown level name is ignored.
+function veaf.Logger:setModuleLevel(value)
+  if type(value) == "string" then
+    value = veaf.Logger.LEVEL[value:lower()]
+  end
+  self.moduleLevel = value
+  return self
+end
+
 function veaf.Logger:getEffectiveLevel()
+  if self.moduleLevel then
+    return self.moduleLevel
+  end
   local level = self.level
   if veaf.ForcedLogLevel then
     local forced = veaf.ForcedLogLevel
@@ -4613,6 +4640,11 @@ function veaf.loggers.new(loggerId, level)
   end
   local result = veaf.Logger:new(loggerId:upper(), level)
   veaf.loggers.dict[loggerId:lower()] = result
+  -- a per-module logLevel configured before the module loaded (see veaf.setConfig)
+  local cfg = veaf.config and veaf.config[loggerId]
+  if cfg and cfg.logLevel then
+    result:setModuleLevel(cfg.logLevel)
+  end
   return result
 end
 
@@ -6233,7 +6265,7 @@ function veaf.initialize()
     if cfg and cfg.logLevel then
       local moduleLogger = veaf.loggers.get(id)
       if moduleLogger then
-        moduleLogger:setLevel(cfg.logLevel, true)
+        moduleLogger:setModuleLevel(cfg.logLevel)
         veaf.loggers.get(veaf.Id):debug(string.format("Module [%s] log level forced to [%s]", id, cfg.logLevel))
       end
     end

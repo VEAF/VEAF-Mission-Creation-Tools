@@ -6,6 +6,7 @@ from mission_builder.group_validation import (
     collect_declared_groups,
     collect_mission_group_names,
     find_missing_declared_groups,
+    is_veaf_command,
 )
 
 
@@ -84,6 +85,43 @@ class TestCollectDeclaredGroups:
     def test_disabled_module_skipped(self) -> None:
         my = {"modules": {"ASSETS": {"enabled": False, "assets": [{"name": "Arco-1"}]}}}
         assert collect_declared_groups(my) == []
+
+    # FIX-QRA-COMMANDS-AND-OFFSET: veafQraCore and veafAirWaves both deploy an entry starting with
+    # `[` or `-` as a VEAF command, and a group name otherwise. `validate` refused the first form
+    # for QRA and did not look at AIRWAVES at all.
+    def test_a_veaf_command_is_not_a_group(self) -> None:
+        commands = ["[0,0]-spawn shilka, country russia", "-sa6 radius 5000"]
+        my = {
+            "modules": {
+                "QRA": {
+                    "definitions": [
+                        {"simple_groups": [commands[0], "MiG-29 QRA"]},
+                        {"groups_by_enemy_count": [{"enemy_count": 1, "groups": [commands[1]]}]},
+                    ]
+                },
+                "AIRWAVES": {"airwave_zones": [{"waves": [{"groups": commands}]}]},
+            }
+        }
+        declared = [name for _, name in collect_declared_groups(my)]
+        assert declared == ["MiG-29 QRA"]
+
+    def test_airwaves_groups_are_checked_like_qra_ones(self) -> None:
+        my = {
+            "modules": {
+                "AIRWAVES": {
+                    "airwave_zones": [{"waves": [{"groups": "su27-flight"}, {"groups": ["su30-a", "su30-b"]}]}]
+                }
+            }
+        }
+        assert collect_declared_groups(my) == [
+            ("AIRWAVES", "su27-flight"),
+            ("AIRWAVES", "su30-a"),
+            ("AIRWAVES", "su30-b"),
+        ]
+
+    def test_is_veaf_command(self) -> None:
+        assert is_veaf_command("[0,0]-spawn shilka") and is_veaf_command("-sa6")
+        assert not is_veaf_command("Vol QRA MiG-29") and not is_veaf_command("")
 
 
 class TestFindMissingDeclaredGroups:

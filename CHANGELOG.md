@@ -164,6 +164,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   generated from the game's `towns.lua` (`veaf-build update-dcs-data --cities`, into
   `veafCities.lua`) and cover GermanyCW, Sinai, Normandy, Afghanistan and Marianas WWII too; Syria
   goes from 213 to 1 151 towns.
+- **QRA and AIRWAVES settings that were accepted and then ignored** (FIX-QRA-COMMANDS-AND-OFFSET,
+  FIX-PER-MODULE-LOGLEVEL-INERT).
+  - `validate` no longer refuses a VEAF command (`[0,0]-spawn …`, `-sa6`) in a QRA deploy list, which
+    the runtime has always run. AIRWAVES wave groups are now checked too, by the same rule.
+  - `respawn_default_offset` under a QRA reaches the generated Lua.
+  - A QRA that convert-v5 marked `start: false` (its v5 `:start()` was commented out) is no longer
+    armed at mission start. The converter now writes `active_at_start: false`, and the old key is
+    still read.
+  - `validate` warns on a QRA key the build does not read, and so does the MCP's `create_qra` on
+    an extra key it is handed.
+  - An AIRWAVES wave whose `groups` is a YAML list is emitted as a Lua table; it used to become the
+    single group name `"['a', 'b']"`.
+  - `logLevel` under a module now sets that module's log level, and outranks `global_log_level` as the
+    guide says. It had never been applied. `validate` warns on a level name it does not know.
 
 ### Changed
 

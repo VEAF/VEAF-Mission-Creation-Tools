@@ -1172,6 +1172,8 @@
   "yaml.semantic.ctld_number_not_positive": "modules.{module}: `{setting}` must be greater than 0 (got {value}).",
   "yaml.semantic.ctld_settings_removed": "modules.{module}: `settings:` is no longer read — CTLD 2 is configured in ctld-config.yaml, next to mission.yaml (edit it with ctld-tools). Remove the settings: block.",
   "yaml.semantic.removed_section": "mission.yaml: the '{section}:' section no longer exists — move its content under the matching module in the 'modules:' block (SKYNET / CTLD / CSAR / QRA).",
+  "yaml.semantic.unknown_qra_key": "mission.yaml: module '{module}': QRA '{qra}': unrecognized key '{setting}' — the build does not read it, so it does nothing.",
+  "yaml.semantic.unknown_loglevel": "mission.yaml: module '{module}': unknown logLevel '{level}' — it will be ignored. Use error, warning, info, debug or trace.",
   "yaml.semantic.unknown_init_param": "mission.yaml: module '{module}': unrecognized init parameter '{param}' — it will be ignored.",
   "yaml.semantic.unknown_module": "mission.yaml: unknown module '{module}' in 'modules:' — check the spelling against the documented module list.",
   "yaml.semantic.wrong_type": "mission.yaml: module '{module}' must be a boolean, empty, or a mapping (got {type}).",

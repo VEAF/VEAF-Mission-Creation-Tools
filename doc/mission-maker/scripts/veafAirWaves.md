@@ -67,7 +67,7 @@ modules:
         message_end_zone: "Zone libérée !"
         message_end_all: "Toutes les zones libérées !"
         waves:
-          - groups: "su27-flight"       # nom de groupe DCS ou liste séparée par espaces
+          - groups: "su27-flight"       # nom de groupe DCS, liste YAML de noms, ou commande VEAF
             delay: 0                    # secondes après cette vague avant la suivante ; -1 = simultané
             number: "1-2"              # groupes à choisir : entier ou plage "min-max"
             bias: 0                     # décaler la sélection aléatoire vers les entrées plus difficiles
@@ -131,7 +131,7 @@ se lit pas.
 
 | Champ | Type | Défaut | Description |
 |-------|------|--------|-------------|
-| `groups` | string | — | Nom de groupe DCS, liste séparée par espaces, ou commande spawn VEAF |
+| `groups` | string ou string[] | — | Nom de groupe DCS, liste YAML de noms (`["su27-a", "su27-b"]`), ou commande VEAF (`[0,0]-spawn …`, `-sa6`). Une chaîne n'est **pas** découpée sur les espaces : elle désigne un seul groupe. `validate` vérifie que chaque nom qui n'est pas une commande existe dans la mission |
 | `delay` | entier | `0` | Secondes après la vague avant la suivante ; `-1` = simultané |
 | `number` | string \| entier | — | Groupes à choisir : `2` ou plage `"1-3"` |
 | `bias` | entier | `0` | Décaler l'index de début aléatoire vers les entrées plus difficiles |

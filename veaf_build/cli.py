@@ -495,8 +495,14 @@ def update_dcs_data(
     aircraft: str | None = typer.Option(
         None, "--aircraft", help="With --cockpit-controls: index only this module folder, e.g. F-16C."
     ),
+    cities: bool = typer.Option(
+        False,
+        "--cities",
+        help="Merge the towns of --dcs-path's terrains into cities.yaml and render veafCities.lua "
+        "(without --dcs-path: re-render only).",
+    ),
     dcs_path: str | None = typer.Option(
-        None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls)."
+        None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls, --cities)."
     ),
     inject_bridge: str | None = typer.Option(
         None, "--inject-bridge", help="With --airdromes: embed the dcs-bridge into this .miz (makes a bridge mission)."
@@ -519,7 +525,7 @@ def update_dcs_data(
     dump at the pinned ref (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so the
     output is reproducible and CI fails if a committed artifact drifts. With no
     flag, every pure datamine artifact (countries, units) is regenerated; radio
-    (manual overlays) and airdromes / airfield-freqs (install-dependent) are
+    (manual overlays) and airdromes / airfield-freqs / cities (install-dependent) are
     excluded from --all and must be requested explicitly.
     """
     from veaf_build.dcs_data import countries as countries_provider
@@ -528,7 +534,7 @@ def update_dcs_data(
     from veaf_build.dcs_data.datamine import DATAMINE_REF
 
     run_all = all_data or not (
-        countries or units or radio or airdromes or parking or airfield_freqs or cockpit_controls
+        countries or units or radio or airdromes or parking or airfield_freqs or cockpit_controls or cities
     )
     ref_short = DATAMINE_REF[:8]
 
@@ -578,6 +584,16 @@ def update_dcs_data(
         console.print(f"[cyan]Generating airfield ATC-frequency table from {dcs_path}...[/cyan]")
         count = airfield_freqs_provider.generate(Path(dcs_path))
         console.print(f"[green]✓ {count} airfields written across all installed theatres[/green]")
+
+    if cities:
+        from pathlib import Path
+
+        from veaf_build.dcs_data import cities as cities_provider
+
+        replaced = cities_provider.generate([Path(dcs_path)] if dcs_path else [])
+        for theatre, count in sorted(replaced.items()):
+            console.print(f"[green]✓ {theatre}: {count} towns[/green]")
+        console.print("[green]✓ veafCities.lua rendered from cities.yaml[/green]")
 
     if cockpit_controls:
         if not dcs_path:

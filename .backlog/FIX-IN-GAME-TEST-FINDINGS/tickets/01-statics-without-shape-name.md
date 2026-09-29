@@ -1,6 +1,6 @@
 # 01 — Statics placed without a `shape_name`, some of which DCS refuses
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-29
 Type: fix + data
 Files: `src/python/veaf-tools/veaf_mission_mcp/add_group.py` (`_build_static_group`), the unit data
 (`veaf_libs/data/dcsUnits.yaml`, `update-dcs-data`), `validate_mission`, tests
@@ -39,3 +39,17 @@ Worked around in the mission by writing `ComCenter` / `SkladC` on the four stati
   the missions already built are caught.
 - Tests; the four GermanyCW-v6 statics rebuilt through the action carry the shape without the
   mission's workaround.
+
+## Done — 2026-09-29
+
+- The datamine carries `ShapeName` on the statics' files (228 fortifications, 5 warehouses, 24
+  cargos…); `veaf_build/dcs_data/units.py` reads it for kind `static` only, and `dcsUnits.yaml`
+  gains `shape_name` on 278 types (`ComCenter`, `SkladC`, `Tank` → `bak`). One source: the spawner's
+  table and the YAML now come from the same DCS files, and the YAML is CI-guarded.
+- `veaf_libs.dcs_units_data.get_unit_shape_name`; `_build_static_group` writes it, which covers
+  `add_group` and `create_combat_zone` (both go through `insert_group_into_content`).
+- `validate` warns, one line per unit, on a static without its shape
+  (`validate.static_without_shape`, catalogued in `build-messages/missing-references`). Not in
+  the build's end summary, whose header counts missing `mission.yaml` references.
+- A `known-limitations.yaml` entry (`static-without-shape-name-is-refused`, kind `dcs`).
+- Not done here: rebuilding the four GermanyCW-v6 statics through the action. That is R17.

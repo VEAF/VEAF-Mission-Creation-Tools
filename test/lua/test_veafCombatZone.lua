@@ -835,6 +835,53 @@ function TestVeafCombatZoneRegistry:test_AddZone_registers_zone_in_dict_and_list
   luaunit.assertNotNil(veafCombatZone.zonesDict["regzone"])
 end
 
+-- FIX-IN-GAME-TEST-FINDINGS 02: the generated chain ends with `:initialize()` and AddZone initializes
+-- again; on GermanyCW-v6 every zone logged its startup twice and Torgau held 8 elements for 4.
+function TestVeafCombatZoneRegistry:test_AddZone_after_the_chain_initializes_once()
+  local saved = { getTriggerZone = veaf.getTriggerZone, zoneToVec3 = veaf.zoneToVec3 }
+  veaf.getTriggerZone = function()
+    return { radius = 1000 }
+  end
+  veaf.zoneToVec3 = function()
+    return { x = 0, y = 0, z = 0 }
+  end
+  -- One report per initialization: it is the startup line dcs.log showed twice.
+  local reports = 0
+  local z = VeafCombatZone:new():setMissionEditorZoneName("TWICE")
+  z.findUnitsInCombatZone = function()
+    return { {}, {}, {} }
+  end
+  z.reportGroupsExcludedByName = function()
+    reports = reports + 1
+  end
+  z.desactivate = function(self)
+    return self
+  end
+
+  -- restored whatever happens: the stubs would otherwise leak into every later suite test
+  local ok, err = pcall(function()
+    veafCombatZone.AddZone(z:initialize())
+  end)
+  veaf.getTriggerZone, veaf.zoneToVec3 = saved.getTriggerZone, saved.zoneToVec3
+
+  luaunit.assertTrue(ok, tostring(err))
+  luaunit.assertEquals(reports, 1)
+end
+
+-- ...and an operation, which the generated chain and AddZone initialize the same way
+function TestVeafCombatZoneRegistry:test_AddZone_after_the_chain_initializes_an_operation_once()
+  local deactivations = 0
+  local op = VeafCombatOperation:new():setMissionEditorZoneName("OP-TWICE")
+  op.desactivate = function(self)
+    deactivations = deactivations + 1
+    return self
+  end
+
+  veafCombatZone.AddZone(op:initialize())
+
+  luaunit.assertEquals(deactivations, 1)
+end
+
 function TestVeafCombatZoneRegistry:test_ActivateZone_zone_not_found_returns_nil()
   local result = veafCombatZone.ActivateZone("NonExistentZone999", true)
   luaunit.assertNil(result)

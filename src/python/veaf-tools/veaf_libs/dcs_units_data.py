@@ -101,6 +101,24 @@ def _entries() -> dict[str, dict[str, Any]]:
     }
 
 
+def get_unit_shape_name(unit_type: str) -> str | None:
+    """Return the `shape_name` the Mission Editor writes on a static of this type.
+
+    DCS resolves many static types without it, not all: a `.Command Center` or an
+    `.Ammunition depot` placed without one is refused at mission load (measured 2026-09-28).
+
+    Args:
+        unit_type: The DCS type name (e.g. ``".Command Center"``), case-insensitive.
+
+    Returns:
+        The shape (``"ComCenter"``), or ``None`` for a type that is not a static with a shape in
+        the database — air and ground types included, and third-party mods.
+    """
+    entry = _entries().get((unit_type or "").strip().lower())
+    shape = entry.get("shape_name") if entry else None
+    return str(shape) if shape else None
+
+
 def get_unit_countermeasures(unit_type: str) -> tuple[int, int] | None:
     """Return the ``(chaff, flare)`` load the Mission Editor gives a newly placed aircraft.
 

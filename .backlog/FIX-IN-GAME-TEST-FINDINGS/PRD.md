@@ -1,6 +1,7 @@
 # FIX-IN-GAME-TEST-FINDINGS — what the first in-game test of an MCP-built mission found
 
-Status: ⬜ ready — opened 2026-09-28.
+Status: 🧑 waiting-human — opened 2026-09-28; all five tickets fixed 2026-09-29, one PR. What is
+left is the in-game reading: item R17 of `DCS-SESSION-TODO.md`.
 
 ## Origin
 
@@ -39,5 +40,5 @@ in the sanctuary runtime, 04 in `ctld_config.py`, 05 in `veafNamedPoints` and it
 
 ## Definition of Done
 
-- Both tickets closed; the GermanyCW-v6 statics placed by the MCP spawn in DCS without the
+- The five tickets closed; the GermanyCW-v6 statics placed by the MCP spawn in DCS without the
   hand-written `shape_name` the mission now carries.

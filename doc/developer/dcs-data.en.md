@@ -32,9 +32,9 @@ veaf-build update-dcs-data --radio
 veaf-build update-dcs-data --airdromes    # merges the committed runtime dumps
 ```
 
-`--radio`, `--airdromes`, `--airfield-freqs` and `--cockpit-controls` are excluded from
-the no-flag / `--all` run: radio has manual overlays, airdromes merges committed runtime
-dumps, and the last two need a local DCS install path (`--dcs-path`).
+`--radio`, `--airdromes`, `--airfield-freqs`, `--cockpit-controls` and `--cities` are excluded
+from the no-flag / `--all` run: radio has manual overlays, airdromes merges committed runtime
+dumps, and the last three read a local DCS install (`--dcs-path`).
 
 The datamine is cloned at a **pinned** ref
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so generation is reproducible:
@@ -117,6 +117,9 @@ units:
   category: Air Defence     # DCS display category (planes/ships/helicopters derived from the folder)
   description: EWR 1L13
   attributes: [EWR, "Air Defence vehicles", ...]
+- type: .Command Center
+  kind: static
+  shape_name: ComCenter     # statics only: the `shape_name` the editor writes
 naval_statics:              # offshore statics DCS places on water (curated list)
 - offshore WindTurbine
 ```
@@ -140,6 +143,12 @@ The runtime reads `type`, `name`, `description`, `category`, `kind` and
 `naval`/`air`/`infantry`/`vehicle`/`static` flags the rest of the code expects.
 The Lua file is **excluded from `stylua`** (`.styluaignore`) because its
 formatting is deterministic generator output.
+
+`shape_name` is not rendered into the Lua: it is for design time. `add_group` writes it on a
+static, and `validate` reports a static that has none while its type has one. DCS resolves many
+types without it, not all: a `.Command Center` or an `.Ammunition depot` placed without a
+`shape_name` is refused at load ("unknown static shape_name", measured 2026-09-28) and the
+object does not exist.
 
 ### Carried-over units and naval statics
 
@@ -240,6 +249,31 @@ veaf-build update-dcs-data --airfield-freqs --dcs-path "C:/Program Files/Eagle D
 ```
 
 It only covers **installed** theatres.
+
+## The theatres' cities {#cities}
+
+`veafNamedPoints` adds the theatre's cities as hidden named points: a city name then works as
+a convoy's destination, a shortcut's position or a transport mission's start, and the weather
+"at the closest point" knows them. They come from `Mods/terrains/<folder>/Map/towns.lua`,
+filed under the name the terrain declares in its `entry.lua` (`self_ID`) — the one
+`env.mission.theatre` carries, which is not the folder name (`GermanyColdWar` → `GermanyCW`,
+`Sinai` → `SinaiMap`).
+
+Two files, on the units database's model: `veaf_build/dcs_data/cities.yaml`, the source, and
+`src/scripts/veaf/veafCities.lua`, rendered from it (excluded from `stylua`; a test fails if
+it drifts from the YAML).
+
+```bash
+veaf-build update-dcs-data --cities --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
+veaf-build update-dcs-data --cities    # no install: only re-renders the Lua
+```
+
+No install has every map, so the command **merges**: a theatre the install has is replaced, a
+theatre it lacks is kept as it stands. Run it again on each install that brings a map. As of
+2026-09-29 `cities.yaml` covers Afghanistan, Caucasus, Falklands, GermanyCW, MarianaIslands,
+MarianaIslandsWWII, Normandy, PersianGulf, SinaiMap, Syria and TheChannel; Falklands comes from
+the old table typed into `veafNamedPoints.lua`, no reachable install having that map. Kola and
+Iraq have no list yet: a mission on those maps says so at start.
 
 ## The cockpit-control indexes {#cockpit-controls}
 

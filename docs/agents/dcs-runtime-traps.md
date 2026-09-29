@@ -192,6 +192,22 @@ variants already do (since FIX-SCRATCH-MISSION-FINDINGS 02).
 
 *What it cost:* Every solar-time weather variant of every v6 mission started 2 to 4 hours early until 02 fixed it.
 
+### Some static types placed without a `shape_name` are refused at mission load, and the object never exists {#static-without-shape-name-is-refused}
+
+Measured **2026-09-28**.
+
+`dcs.log` at load: `ERROR APP (Main): unknown static shape_name, category Fortification, type:
+.Command Center` (and `category Warehouse, type: .Ammunition depot`). DCS does not create the
+object, and nothing in the mission file, the build or a scripting call says so afterwards.
+Many other types spawn without the field (Warehouse, Bunker, Barracks 2, Fuel tank, Tank, aircraft
+statics): DCS resolves the shape itself for most types, not all.
+
+**What to do:** Write the `shape_name` the Mission Editor writes — the unit database carries it for every static
+(`dcsUnits.yaml`, from the datamine's `ShapeName`). `add_group` writes it, and `validate` reports a
+static that lacks it.
+
+*What it cost:* 4 objectives of GermanyCW-v6, placed by the MCP before it wrote the field, missing in game; a combat zone drew 4 elements from 3.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

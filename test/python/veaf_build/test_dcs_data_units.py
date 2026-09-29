@@ -75,6 +75,20 @@ class TestParseUnitFile:
     def test_no_type_returns_none(self) -> None:
         assert U.parse_unit_file('\tDisplayName = "x"\n', "Planes") is None
 
+    def test_static_shape_name(self) -> None:
+        # DCS refuses a `.Command Center` placed without its shape (measured 2026-09-28).
+        text = '\tShapeName = "ComCenter",\n\ttype = ".Command Center",\n\tcategory = "Fortification",\n'
+        e = U.parse_unit_file(text, "Fortifications")
+        assert e is not None and e.shape_name == "ComCenter"
+
+    def test_shape_name_kept_for_statics_only(self) -> None:
+        e = U.parse_unit_file('\tShapeName = "a10",\n' + _PLANE, "Planes")
+        assert e is not None and e.shape_name is None
+
+    def test_static_without_shape_name(self) -> None:
+        e = U.parse_unit_file(_FORT, "Fortifications")
+        assert e is not None and e.shape_name is None
+
 
 class TestCarriedUnits:
     def test_containers_carried(self) -> None:
@@ -106,6 +120,15 @@ class TestWriteYaml:
         assert data["units"][0]["type"] == "A-10A"
         assert data["naval_statics"] == ["Oil platform"]
         assert "abc123" in out.read_text(encoding="utf-8")
+        assert "shape_name" not in data["units"][0]
+
+    def test_shape_name_written(self, tmp_path: Path) -> None:
+        out = tmp_path / "u.yaml"
+        entries = [
+            U.UnitEntry(".Command Center", "Command Center", "static", "Fortification", "x", shape_name="ComCenter")
+        ]
+        U.write_units_yaml(entries, (), out, ref="abc123")
+        assert yaml.safe_load(out.read_text(encoding="utf-8"))["units"][0]["shape_name"] == "ComCenter"
 
 
 class TestRenderLua:

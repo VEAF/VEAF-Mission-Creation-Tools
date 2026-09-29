@@ -15,8 +15,10 @@ Checks:
      except an AIRWAVES trigger zone with a center/radius fallback → warning)
   5. presets / waypoints configured but no aircraft to apply them to (warning)
   6. ``TUM: true`` requires BLUFOR/REDFOR territory zones          (warning)
+  7. a static with no ``shape_name`` while its type has one        (warning)
+  8. a ``ctld-config.yaml`` ``extractableGroups`` / ``logisticUnits`` name the mission lacks (warning)
 
-Checks 4-6 read the unpacked source mission table (``src/mission/mission``); when it is
+Checks 4-8 read the unpacked source mission table (``src/mission/mission``); when it is
 absent they are skipped (reported once as a warning).
 """
 
@@ -110,6 +112,70 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_has_player_slot(mission, dynamic_slots=dynamic_slots)
     issues += _check_presets_waypoints(folder, yaml_data, mission, dynamic_slots=dynamic_slots)
     issues += _check_tum_zones(yaml_data, mission)
+    issues += _check_static_shapes(mission)
+    issues += _check_ctld_names(folder, yaml_data, mission)
+    return issues
+
+
+def _check_ctld_names(folder: Path, yaml_data: dict, mission: dict) -> list[ValidationIssue]:
+    """Warn on an ``extractableGroups`` / ``logisticUnits`` name the mission does not hold.
+
+    Missions scaffolded before FIX-IN-GAME-TEST-FINDINGS kept CTLD's sample lists (``extract1`` …
+    ``extract25``, ``logistic1`` … ``logistic10``): on GermanyCW-v6 (2026-09-28) CTLD logged 35
+    « not found » warnings at start, burying the ones that mattered.
+
+    Args:
+        folder: The mission folder, holding ``ctld-config.yaml`` when the mission has one.
+        yaml_data: The parsed ``mission.yaml``; a mission that turns CTLD off is not checked.
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per name absent from the mission; nothing when there is no CTLD configuration.
+    """
+    from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME, VEAF_EMPTIED_LISTS
+
+    # Only an explicit opt-out: CTLD also runs when mission.yaml does not name it.
+    modules = yaml_data.get("modules") if isinstance(yaml_data, dict) else None
+    ctld = modules.get("CTLD") if isinstance(modules, dict) else None
+    if ctld is False or (isinstance(ctld, dict) and ctld.get("enabled") is False):
+        return []
+    config_path = folder / CTLD_CONFIG_FILENAME
+    if not config_path.is_file() or not isinstance(mission, dict):
+        return []
+    try:
+        config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return []  # the build reports an unreadable CTLD configuration itself
+    if not isinstance(config, dict):
+        return []
+
+    names: set[str] = set()
+    coalitions = mission.get("coalition") or {}
+    for coalition in coalitions.values() if isinstance(coalitions, dict) else []:
+        for country in indexed(coalition.get("country")) if isinstance(coalition, dict) else []:
+            for category in CATEGORIES:
+                container = country.get(category) if isinstance(country, dict) else None
+                for group in indexed(container.get("group")) if isinstance(container, dict) else []:
+                    if not isinstance(group, dict):
+                        continue
+                    names.add(str(group.get("name")))
+                    names.update(str(u.get("name")) for u in indexed(group.get("units")) if isinstance(u, dict))
+
+    issues: list[ValidationIssue] = []
+    for key in VEAF_EMPTIED_LISTS:
+        for section_name in ("mm_facing", "advanced"):
+            section = config.get(section_name)
+            if not isinstance(section, dict) or key not in section:
+                continue
+            for name in section[key] if isinstance(section[key], list) else []:
+                if str(name) not in names:
+                    issues.append(
+                        ValidationIssue(
+                            WARNING,
+                            t("validate.ctld_name_not_in_mission", name=name, setting=key, file=CTLD_CONFIG_FILENAME),
+                        )
+                    )
+            break
     return issues
 
 
@@ -159,6 +225,57 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
     issues += _check_mission_is_playable(mission)
     issues += _check_waypoint_locks(mission)
 
+    return issues
+
+
+def _check_static_shapes(mission: dict) -> list[ValidationIssue]:
+    """Warn on a static written without the `shape_name` the unit database holds for its type.
+
+    DCS resolves many static types without it, not all: on GermanyCW-v6 (2026-09-28) a `.Command
+    Center` and three `.Ammunition depot` placed by the MCP before it wrote the shape were refused at
+    load, and the combat zones drew from what was left. The Mission Editor always writes it, so only
+    a mission edited by a tool is concerned.
+
+    Kept out of :func:`validate_mission_content`, like :func:`_check_has_player_slot`: the build
+    prints that function's issues under a "missing mission.yaml references" header, and a static's
+    shape is not one.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per static unit missing its shape.
+    """
+    from veaf_libs.dcs_units_data import get_unit_shape_name
+
+    if not isinstance(mission, dict):
+        return []
+    issues: list[ValidationIssue] = []
+    coalitions = mission.get("coalition") or {}
+    for coalition in coalitions.values() if isinstance(coalitions, dict) else []:
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            container = country.get("static") if isinstance(country, dict) else None
+            if not isinstance(container, dict):
+                continue
+            for group in indexed(container.get("group")):
+                for unit in indexed(group.get("units")) if isinstance(group, dict) else []:
+                    if not isinstance(unit, dict) or unit.get("shape_name"):
+                        continue
+                    shape = get_unit_shape_name(str(unit.get("type") or ""))
+                    if shape is not None:
+                        issues.append(
+                            ValidationIssue(
+                                WARNING,
+                                t(
+                                    "validate.static_without_shape",
+                                    unit=unit.get("name"),
+                                    type=unit.get("type"),
+                                    shape=shape,
+                                ),
+                            )
+                        )
     return issues
 
 

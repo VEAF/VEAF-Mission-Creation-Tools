@@ -57,6 +57,11 @@ _ATTRIBUTE_BLOCK_RE = re.compile(r"^\tattribute\s*=\s*\{(.*?)\}", re.MULTILINE |
 # a type carries no fuel load of its own.
 _FUEL_MAX_RE = re.compile(r"^\tM_fuel_max\s*=\s*([0-9.]+)", re.MULTILINE)
 _QUOTED_RE = re.compile(r'"([^"]+)"')
+# The model a static is drawn with, which the Mission Editor writes as the unit's `shape_name`.
+# DCS resolves many static types without it, not all: `.Command Center` and `.Ammunition depot`
+# placed without one are refused at mission load ("unknown static shape_name", measured
+# 2026-09-28). Kept for statics only: an air or ground unit's model is not a mission field.
+_SHAPE_NAME_RE = re.compile(r'^\tShapeName\s*=\s*"([^"]+)"', re.MULTILINE)
 # Default countermeasure load, as the Mission Editor gives a newly placed aircraft: the top-level
 # `passivCounterm` table holds a `chaff` and a `flare` sub-table, each with its `default` count.
 # Absent on the aircraft that carry no dispenser (warbirds, tankers: 42 of them at the pinned ref),
@@ -115,6 +120,8 @@ class UnitEntry:
     """Ship attributes the type can take off from (``TakeOffRWCategories``); empty for none."""
     landing_categories: list[str] = field(default_factory=list)
     """Ship attributes the type can land on (``LandRWCategories``); empty for none."""
+    shape_name: str | None = None
+    """The model a static is drawn with (``ShapeName``), statics only; ``None`` when DCS has none."""
 
 
 # Units present in the old in-DCS export but absent from the datamine (map
@@ -225,10 +232,12 @@ def parse_unit_file(text: str, folder: str) -> UnitEntry | None:
     attributes = [a for a in _QUOTED_RE.findall(attr_block.group(1)) if a != _DROP_ATTR] if attr_block else []
 
     chaff, flare = _parse_countermeasures(text)
+    kind = _derive_kind(attributes)
+    shape_match = _SHAPE_NAME_RE.search(text) if kind == "static" else None
     return UnitEntry(
         type=type_id,
         name=name,
-        kind=_derive_kind(attributes),
+        kind=kind,
         category=category,
         description=name,
         attributes=attributes,
@@ -237,6 +246,7 @@ def parse_unit_file(text: str, folder: str) -> UnitEntry | None:
         flare=flare,
         takeoff_categories=_parse_deck_categories(text, "TakeOffRWCategories"),
         landing_categories=_parse_deck_categories(text, "LandRWCategories"),
+        shape_name=shape_match.group(1) if shape_match else None,
     )
 
 
@@ -297,13 +307,14 @@ def write_units_yaml(
                 **({"flare": e.flare} if e.flare is not None else {}),
                 **({"takeoff_categories": e.takeoff_categories} if e.takeoff_categories else {}),
                 **({"landing_categories": e.landing_categories} if e.landing_categories else {}),
+                **({"shape_name": e.shape_name} if e.shape_name else {}),
             }
             for e in entries
         ],
         "naval_statics": sorted(naval_statics),
     }
     with open(output, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# DCS units database (type, kind, category, attributes, fuel, countermeasures, decks).\n")
+        f.write("# DCS units database (type, kind, category, attributes, fuel, countermeasures, decks, shapes).\n")
         f.write("# Generated from https://github.com/Quaggles/dcs-lua-datamine\n")
         f.write(f"# Source ref: {ref}\n")
         f.write("# Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).\n")

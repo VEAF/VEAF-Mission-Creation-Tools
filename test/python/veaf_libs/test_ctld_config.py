@@ -113,6 +113,33 @@ class TestAgainstTheVendoredEngine(unittest.TestCase):
         self.assertIn("configVersion", parsed)
         self.assertIn("capabilitiesByType", parsed.get("mm_facing", {}))
 
+    def test_a_scaffolded_mission_starts_without_the_sample_names(self) -> None:
+        """FIX-IN-GAME-TEST-FINDINGS 04: `extract1..25` and `logistic1..10` are CTLD's examples.
+
+        No VEAF mission holds them, and GermanyCW-v6 logged 35 « not found » warnings at start.
+        """
+        import yaml
+        from veaf_libs.ctld_config import VEAF_EMPTIED_LISTS, apply_veaf_overrides, merge_veaf_logistics
+
+        vendored = Path(__file__).resolve().parents[3] / "src" / "scripts" / "community" / "CTLD.lua"
+        if not vendored.is_file():  # pragma: no cover - only in a partial checkout
+            self.skipTest("vendored CTLD.lua not present")
+        catalogue = read_default_config(vendored)
+        assert catalogue is not None
+        self.assertTrue(yaml.safe_load(catalogue)["mm_facing"]["extractableGroups"], "the engine's sample list is gone")
+
+        scaffolded = apply_veaf_overrides(catalogue)
+        merged, _ = merge_veaf_logistics(scaffolded)
+        for text in (scaffolded, merged):
+            section = yaml.safe_load(text)["mm_facing"]
+            for key in VEAF_EMPTIED_LISTS:
+                self.assertEqual(section[key], [], key)
+            self.assertTrue(section["logisticUnitTypes"], "the VEAF logistic types must survive")
+            # CTLD's own parser reads `key: []   # note` as the string "[]   # note"
+            for line in text.splitlines():
+                if line.strip().startswith(VEAF_EMPTIED_LISTS):
+                    self.assertNotIn("#", line, line)
+
 
 if __name__ == "__main__":
     unittest.main()

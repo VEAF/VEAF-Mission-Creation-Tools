@@ -26,4 +26,5 @@
 # `git diff` is unaffected — this only changes how GitHub presents them.
 src/scripts/community/*.lua linguist-generated=true
 src/scripts/veaf/dcsUnits.lua linguist-generated=true
+src/scripts/veaf/veafCities.lua linguist-generated=true
 src/python/veaf-tools/veaf_libs/data/dcs-schema/** linguist-generated=true

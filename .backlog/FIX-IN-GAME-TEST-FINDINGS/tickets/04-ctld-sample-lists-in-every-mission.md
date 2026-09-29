@@ -1,6 +1,6 @@
 # 04 — Every scaffolded mission starts with CTLD's sample `extract` and `logistic` names
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-29
 Type: fix (chore)
 Files: `src/python/veaf-tools/veaf_libs/ctld_config.py` (`VEAF_CONFIG_OVERRIDES`,
 `apply_veaf_overrides`, `merge_veaf_logistics`), tests
@@ -35,3 +35,14 @@ Worked around in the mission by emptying both lists, the comment on its own line
 - `validate_mission` warns on an `extractableGroups` / `logisticUnits` name the mission does not
   hold, so existing missions are caught.
 - Tests.
+
+## Done — 2026-09-29
+
+- `ctld_config.VEAF_EMPTIED_LISTS`, applied by `apply_veaf_overrides` only: kept apart from
+  `VEAF_CONFIG_OVERRIDES` because the build **merges** that one into a mission's lists, and a
+  maker's own `extractableGroups` must survive. Tested against the vendored `CTLD.lua`, through the
+  scaffold and the build's merge.
+- The tools write no comment into `ctld-config.yaml`: the `[] # note` read as a string came from
+  the hand-written workaround. The test asserts no `#` on either line.
+- `validate` warns on a name in either list that the mission holds as neither a group nor a unit
+  (`validate.ctld_name_not_in_mission`, catalogued in `build-messages/modules`).

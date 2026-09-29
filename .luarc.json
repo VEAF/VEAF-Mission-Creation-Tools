@@ -39,6 +39,7 @@
     "ArtilleryUnitHandler",
     "DcsDataExport",
     "dcsUnits",
+    "veafCities",
     "GroundUnitHandler",
     "sha1",
     "veaf",

@@ -152,6 +152,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   that can both take off from and land on its deck, by DCS's own `TakeOffRWCategories` /
   `LandRWCategories`, now in `dcsUnits.yaml`: 51 types on the GermanyCW-v6 Stennis, B-52H included,
   become its carrier aircraft and helicopters. An explicit `aircrafts:` list is still obeyed.
+- **What the first in-game test of an MCP-built mission found** (FIX-IN-GAME-TEST-FINDINGS, on
+  GermanyCW-v6). A static placed by `add_group` / `create_combat_zone` now carries the `shape_name`
+  the editor writes: DCS refused a `.Command Center` and three `.Ammunition depot` without it, and
+  four objectives never existed. `dcsUnits.yaml` carries the shape of 278 statics, and `validate`
+  reports a static built before that lacks it. A combat zone is initialized once (it was twice, and
+  Torgau held 8 elements for 4). The sanctuary's weapon check no longer raises on a weapon with no
+  target, or already gone. A scaffolded mission's `ctld-config.yaml` starts with CTLD's sample
+  `extractableGroups` / `logisticUnits` emptied (35 « not found » warnings at start), and `validate`
+  reports a name there that the mission does not hold. The city lists `veafNamedPoints` uses are now
+  generated from the game's `towns.lua` (`veaf-build update-dcs-data --cities`, into
+  `veafCities.lua`) and cover GermanyCW, Sinai, Normandy, Afghanistan and Marianas WWII too; Syria
+  goes from 213 to 1 151 towns.
 
 ### Changed
 

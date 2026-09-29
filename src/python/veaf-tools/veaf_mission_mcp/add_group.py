@@ -15,7 +15,7 @@ from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 from veaf_libs.clear_ground_placement import occupied_by, place_on_clear_ground, translate_group
-from veaf_libs.dcs_units_data import get_unit_category
+from veaf_libs.dcs_units_data import get_unit_category, get_unit_shape_name
 
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
@@ -264,7 +264,8 @@ def _build_static_group(
     """Build a static-object group in the shape the Mission Editor writes.
 
     Measured over the 583 static groups of the missions under `test/`: one unit, a single route
-    point with an empty type and action, `dead = false`, no task; the unit carries a `category`.
+    point with an empty type and action, `dead = false`, no task; the unit carries a `category`,
+    and the `shape_name` the unit database holds for its type.
 
     Args:
         name: The group's name, which the unit takes too unless it names itself.
@@ -300,6 +301,10 @@ def _build_static_group(
         category = _STATIC_CATEGORY.get(known, known)
         if category is not None:
             unit["category"] = category
+    # DCS refuses some static types without their shape ("unknown static shape_name", 2026-09-28).
+    shape_name = get_unit_shape_name(spec["type"])
+    if shape_name is not None:
+        unit["shape_name"] = shape_name
     return {
         "name": name,
         "x": position["x"],

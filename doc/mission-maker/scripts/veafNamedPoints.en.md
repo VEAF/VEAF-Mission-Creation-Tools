@@ -95,7 +95,7 @@ veafNamedPoints.addDataToPoint(point, {
 })
 ```
 
-`addAirbases()` bulk-adds every airbase on the map (called automatically by `initialize()`); there is no per-airbase add function. `addCities()` likewise adds the theatre's cities.
+`addAirbases()` bulk-adds every airbase on the map (called automatically by `initialize()`); there is no per-airbase add function. `addCities()` likewise adds the theatre's cities, as hidden points: a city name then works as a convoy's destination, a shortcut's position or a transport mission's start, and the weather "at the closest point" knows them. The lists come from the game's files (see [The theatres' cities](../../developer/dcs-data.en.md#cities)); a theatre that has none yet (Kola, Iraq) says so in `dcs.log` at start.
 
 ---
 

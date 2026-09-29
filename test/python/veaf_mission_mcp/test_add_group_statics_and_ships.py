@@ -61,6 +61,17 @@ class TestStatic:
             unit = _units(_insert(_content(), "static", [{"type": unit_type}]))[0]
             assert unit.get("category") == category, unit_type
 
+    def test_the_unit_carries_its_shape(self) -> None:
+        """FIX-IN-GAME-TEST-FINDINGS 01: DCS refused these two at load without a `shape_name`."""
+        expected = {".Command Center": "ComCenter", ".Ammunition depot": "SkladC", "Tank": "bak"}
+        for unit_type, shape in expected.items():
+            unit = _units(_insert(_content(), "static", [{"type": unit_type}]))[0]
+            assert unit.get("shape_name") == shape, unit_type
+
+    def test_a_static_with_no_known_shape_gets_none(self) -> None:
+        unit = _units(_insert(_content(), "static", [{"type": "T-55"}]))[0]
+        assert "shape_name" not in unit
+
     def test_the_unit_has_no_vehicle_keys(self) -> None:
         unit = _units(_insert(_content(), "static", [{"type": "T-55"}]))[0]
         for key in ("playerCanDrive", "coldAtStart", "skill"):

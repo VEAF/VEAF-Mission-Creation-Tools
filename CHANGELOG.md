@@ -214,6 +214,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   not read it in: entering "Mission élève" failed and the update was abandoned, and a folder such as
   "Misja Łódź" stopped the script being written at all. The script no longer contains the path, and
   the UTF-8 guard now also catches `Path.read_text()` / `write_text()` calls that name no encoding.
+- **A combat zone's info panel counts its static targets** (FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP).
+  It read groups only, so `combatZone_WahnerHeide_Easy` — five static targets — listed no enemy at
+  all while the zone, which does count statics, waited for all five (GermanyCW, 2026-09-29). They
+  now show as structures, with their type in training mode.
+- **Spawned ground vehicles start warm** (FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP 02): every ground
+  unit the scripts create is submitted with `coldAtStart = false`, as the Mission Editor writes it,
+  so it has an infrared signature from its first second. A unit ticked COLD AT START in the editor
+  keeps it on respawn. Static objects have no engine and stay cold.
 
 ### Changed
 

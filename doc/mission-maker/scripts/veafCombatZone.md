@@ -342,6 +342,10 @@ Un groupe entièrement détruit n'apparaît pas là : il est simplement absent d
 
 Pour les sites dont les attributs DCS ne suffisent pas à décrire la composition, une table de motifs (`veaf.ImportantUnitsByGroupPattern`, dans `veaf.lua`) déclare les ensembles d'unités indispensables et la vie minimale, en pourcentage, qu'il leur faut. Le S-300 y figure déjà.
 
+### Cibles statiques {#static-targets}
+
+Un objet statique de la zone compte comme une cible : la zone l'attend pour se terminer, et le panneau d'infos le compte parmi les ennemis restants, en « structure(s) » — en mode entraînement, avec son type. Mais un statique n'a pas de moteur et reste froid au pod de désignation ; les véhicules, eux, apparaissent moteur chaud (voir [veafSpawn](veafSpawn.md#warm-start)).
+
 ## Tags de nom d'unité et de groupe
 
 Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter des tags spéciaux qui contrôlent la façon dont VEAF les traite à l'activation de la zone. Les tags sont intégrés dans le nom et n'affectent pas DCS lui-même.

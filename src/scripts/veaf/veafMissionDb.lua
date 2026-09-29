@@ -140,6 +140,9 @@ local function unitRecord(unitData, groupData, context)
     alt = unitData.alt,
     heading = unitData.heading,
     skill = unitData.skill,
+    -- The editor's COLD AT START. `veafDcsSpawner.addGroup` defaults a ground unit to warm, so a record
+    -- that dropped this key turned every vehicle the mission maker ticked cold warm on respawn.
+    coldAtStart = unitData.coldAtStart,
     coalition = context.coalition,
     coalitionId = context.coalitionId,
     category = context.category,

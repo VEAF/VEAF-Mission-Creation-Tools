@@ -1,7 +1,33 @@
 # 03 — diagnostics for a watched session
 
-Status: 🧑 waiting-human — built 2026-09-28; the evening session on the server is the measurement.
+Status: ✅ done — measured 2026-09-29 from the `private1` log of the 2026-09-28 evening session; it
+found a real defect, fixed in this lot.
 Type: instrumentation
+
+## 2026-09-29 — what the session measured
+
+`private1_server/Logs/dcs.log`, GermanyCW `_20260928`, 1 743 `DIAG|` lines. Zones activated:
+**WahnerHeide_Hard** (19:34:29), **Borkenberge_Medium** (19:46), **WahnerHeide_Easy** (next day
+11:21:43).
+
+- **The panel right after activation listed everything the zone knew as a group.** Hard, one second
+  after activation: 9 groups registered, the panel sees all of them and writes *"35 véhicule(s)
+  restants"* with the 16 types — `-aaa` (2 Ural-375 ZU-23 + a Shilka), `-blindes` (5), and the two
+  `#command` groups (10 + 17). *"Quelques camions et une Shilka"* is not what this panel said; it is
+  what `-aaa` alone looks like.
+- **But the panel skipped every static.** The five `-cible-N` elements now spawn as **statics**
+  (`panel sees [r]-Swift Hawk#10414 #72: static`). `getInformation` only read `Group.getByName`, so
+  they were not in the text; `completionCheck` reads `StaticObject.getByName` too and waited for
+  them — Hard's first watchdog pass: `enemies=40` = 35 vehicles + 5 statics.
+- **Easy made it plain:** its five elements are all statics, and its panel had no ENEMIES line at
+  all while the watchdog counted `enemies=5`. A zone telling the players there is nothing left, and
+  never completing.
+- **Borkenberge_Medium completed as designed**: panel 13 → 4 → 1 vehicles, watchdog `enemies=0,
+  complete` at 20:45:54, deactivated with its 2 groups destroyed. The completion path works.
+- No `spawn FAILED`, no `not counted`, no delayed spawn anywhere.
+
+Fixed in this lot: the panel counts spawned statics, as the watchdog does (structures, with their
+type in training mode).
 
 ## Why
 
@@ -47,4 +73,4 @@ whether DCS knew it at that instant and what was alive in it.
 - [x] Tests: the switch writes nothing when off, writes past a module's `warning` level when on, and
       each combat zone line appears with the values it claims (`test_veafDiagnostics.lua`)
 - [x] Documented on the combat zone page (`#diagnostics`), in both languages
-- [ ] Measured on the server: the panel content right after activation, recorded here
+- [x] Measured on the server: the panel content right after activation, recorded here

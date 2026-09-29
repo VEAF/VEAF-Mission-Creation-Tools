@@ -243,6 +243,16 @@ _teleport, name "Viper Flight"
 
 ---
 
+## Véhicules chauds à l'apparition {#warm-start}
+
+Tout véhicule sol que les scripts VEAF font apparaître — commande de marqueur, zone de combat, convoi, réapparition d'un groupe de l'éditeur — part **moteur chaud** : il a une signature infrarouge dès sa première seconde et se voit au pod de désignation. C'est l'option **COLD AT START** de l'éditeur, laissée décochée, comme l'éditeur la laisse par défaut.
+
+Pour un véhicule froid, cochez **COLD AT START** sur l'unité dans l'éditeur de mission : une réapparition garde ce choix.
+
+Un **objet statique**, lui, n'a pas de moteur : il reste froid quoi qu'il arrive. Une cible qui doit se voir au pod doit être un groupe, pas un statique.
+
+---
+
 ## Groupes d'avions spawnables (`src/spawnables.yaml`)
 
 > ⚠️ À ne pas confondre avec la commande `_spawn group` (groupes **sol/hélico** de la base `veafUnits`). Ici il s'agit de **groupes d'avions** réels, cachés et en *late activation*, que `veafSpawn` **clone** à la demande en jeu.

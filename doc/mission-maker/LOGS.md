@@ -103,6 +103,11 @@ sa droite dès qu'elle passe en ◐, et laisser le champ vide reprend la valeur
 tant que le jeu tourne, donc un relevé fait un autre jour donne quelques lignes
 d'écart.
 
+Pour donner toute la largeur au journal, le bouton **Panneau des filtres**, au début de la
+barre des profils (ou `Ctrl+B`), masque ce panneau ; un second appui le rend à la largeur
+qu'il avait. Masqués, les filtres **s'appliquent toujours** : la barre d'état continue
+d'indiquer combien de lignes ils cachent. Le panneau reste masqué d'une session à l'autre.
+
 ## Profils
 
 La liste déroulante en haut retient un jeu de filtres complet — états des
@@ -302,6 +307,7 @@ reste utilisable.
 | `Ctrl+0` | taille de police par défaut |
 | `Ctrl`+molette | agrandir / réduire la police |
 | `Ctrl+I` | afficher ou masquer le panneau de détail |
+| `Ctrl+B` | afficher ou masquer le panneau des filtres |
 | `F5` | recharger le catalogue de règles |
 
 ## Ajouter ses propres règles
@@ -343,7 +349,7 @@ doivent rester en ASCII. Le nombre de familles de bruit est plafonné à 64.
 
 | | |
 |---|---|
-| Session (fichiers ouverts, filtres, géométrie, police) | `%APPDATA%\veaf-logs\session.json` |
+| Session (fichiers ouverts, filtres, géométrie, police, panneaux affichés) | `%APPDATA%\veaf-logs\session.json` |
 | Profils | `%APPDATA%\veaf-logs\profiles.json` |
 | Serveurs distants (`servers:`) | `~\veafmct.yaml` |
 | Miroir local d'un journal distant | `%TEMP%\veaf-logs-*.log`, supprimé à la fermeture de l'onglet |

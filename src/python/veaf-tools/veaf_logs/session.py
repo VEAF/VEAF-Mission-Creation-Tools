@@ -2,7 +2,7 @@
 
 Ce qui est conserve : les fichiers ouverts et l'onglet actif, les filtres en
 cours, le profil selectionne, la geometrie de la fenetre, la police et la
-presence du panneau de detail. La session est ecrite dans le repertoire de
+presence des panneaux de detail et des filtres. La session est ecrite dans le repertoire de
 configuration de l'utilisateur, pas dans le depot.
 
 La session retient l'etat *courant*, meme s'il ne correspond a aucun profil
@@ -52,6 +52,7 @@ class Session:
     font_family: str = DEFAULT_FONT_FAMILY
     font_size: int = DEFAULT_FONT_SIZE
     detail_visible: bool = True
+    filters_visible: bool = True
 
     # -- persistance ------------------------------------------------------
 

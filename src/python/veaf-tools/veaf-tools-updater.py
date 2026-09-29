@@ -138,7 +138,7 @@ def load_config() -> dict[str, Any]:
         return {}
 
     try:
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = yaml.safe_load(f)
             if config is None:
                 return {}
@@ -333,7 +333,7 @@ class UpdateWorker:
             return None
 
         try:
-            with open(package_json_path) as f:
+            with open(package_json_path, encoding="utf-8") as f:
                 package_data = json.load(f)
                 return package_data.get("version")
         except (OSError, json.JSONDecodeError) as e:
@@ -346,7 +346,7 @@ class UpdateWorker:
         if not mission_yaml_path.exists():
             return None
         try:
-            with open(mission_yaml_path) as f:
+            with open(mission_yaml_path, encoding="utf-8") as f:
                 config = yaml.safe_load(f)
             if not config:
                 return None

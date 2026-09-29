@@ -76,10 +76,10 @@ Declared per physical radio (1-based index, specs / `.miz` order) in
 
 | Primitive | Effect |
 |---|---|
-| `rotate_last_to_head: true` | **Channel-0 rotation**: the list's last entry moves to the head (slot 1), the rest follows in 2..N. |
+| `rotate_last_to_head: true` | **Channel-0 rotation**: the list's last entry moves to the head (slot 1), the rest follows in 2..N. The kneeboard numbers the slots from **00**, as the selector does (slot 13 = channel 12). |
 | `keyed_groups: {block_size, bases}` | **Key-based mapping** (ADR 0012): several roles share one radio, each channel placed by its **key** (Group = `base + key`, slot = `((Group − min_base) mod block_size) + 1`). Gaps preserved, overflow wraps to slot 1 (the Viggen's Group 100 recycles `primary_2`'s 20th channel). A key beyond the role's share (`block_size / number_of_roles`) is dropped + `WARNING`. |
 | `trailing_specials: [{…}, …]` | **Special channels at the tail.** Each entry is either an **airframe constant** `{freq, mod}` (e.g. the Viggen's E/F/G) or **plan-sourced** `{priority: N}` — the frequency comes from the channel tagged `priority: N` (always AM; slot left empty if absent). Optional `label` = pilot name (Sp1, H…). Maker-overridable via `presets_assignments`. |
-| `reserved_head_slots: [idx, …]` | **Reserved head slot(s)** fed by a list index ("M" / "C" slot). `[20]` = last entry moved to the head; `[1, 20]` = first duplicated at the head then last moved. Mutually exclusive with `rotate_last_to_head`. |
+| `reserved_head_slots: [idx, …]` | **Reserved head slot(s)** fed by a list index ("M" / "C" slot). `[20]` = last entry moved to the head; `[1, 20]` = first duplicated at the head then last moved. An index beyond a shorter list takes the list's **last** entry: the slot exists in the cockpit whatever the list's length. `head_labels: [C, M]` names the head slots on the kneeboard; the presets after them are numbered from 01. Mutually exclusive with `rotate_last_to_head`. |
 | `capacity: <int>` | Radio's **physical capacity**: the excess is truncated at the tail (silent, debug log). |
 
 **Composition order** when several primitives coexist on one radio: base content

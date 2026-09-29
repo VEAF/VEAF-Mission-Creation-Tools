@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from presets_injector.presets_manager import (
+    HardcodedChannel,
     RadioLayoutEntry,
     RadioLayoutRadio,
     get_radio_layout,
@@ -194,6 +195,29 @@ class TestParseReservedHeadSlots(unittest.TestCase):
             parse_radio_layouts(data)
 
 
+class TestLabelsKeepTrailingSpecials(unittest.TestCase):
+    """The pilot numbering of a rotated or reserved-head radio does not rename its trailing specials."""
+
+    @patch("presets_injector.presets_manager.get_radio_layout")
+    @patch("presets_injector.presets_manager.get_radios")
+    def test_rotation_numbers_the_content_and_keeps_the_special_label(self, mock_get_radios, mock_get_layout):
+        mock_get_radios.return_value = _specs(AMBIGUOUS)
+        mock_get_layout.return_value = RadioLayoutEntry(
+            radios={
+                1: RadioLayoutRadio(
+                    role="primary_1",
+                    rotate_last_to_head=True,
+                    trailing_specials=[HardcodedChannel(freq=121.5, mod=0, label="E")],
+                )
+            }
+        )
+        channel_lists = _channel_lists(primary_1=[100.0 + i for i in range(5)])
+        radio = next(iter(pack_preset_for_type(channel_lists, "blue", "SomeType").radios.values()))
+
+        self.assertEqual([radio.display_labels[s] for s in range(1, 6)], ["00", "01", "02", "03", "04"])
+        self.assertEqual(radio.display_labels[6], "E")
+
+
 class TestPrependReservedSlots(unittest.TestCase):
     """The _prepend_reserved_slots primitive end-to-end (OH-58D shape)."""
 
@@ -273,9 +297,12 @@ class TestPrependReservedSlots(unittest.TestCase):
 
     @patch("presets_injector.presets_manager.get_radio_layout")
     @patch("presets_injector.presets_manager.get_radios")
-    def test_reserved_index_beyond_list_length_is_skipped_not_a_crash(self, mock_get_radios, mock_get_layout):
-        # A shorter-than-expected maker list (e.g. 5 entries) with a layout
-        # entry expecting index 20 -> degrades safely instead of raising.
+    def test_reserved_index_beyond_list_length_takes_the_last_entry(self, mock_get_radios, mock_get_layout):
+        # A shorter-than-expected maker list (e.g. 5 entries) with a layout entry expecting index 20: the
+        # reserved "M" slot still exists in the cockpit, so it takes the list's LAST entry (the convention
+        # index 20 stands for). Skipping it put entry #1 on "M" and shifted every preset down by one: the
+        # GermanyCW OH-58D VHF, a 16-entry list, carried Nörvenich on preset 4 where the kneeboard and the
+        # briefing said 5 (2026-09-29, found in the code; the module crashed DCS before a cockpit check).
         mock_get_radios.return_value = _specs(AMBIGUOUS)
         mock_get_layout.return_value = RadioLayoutEntry(
             radios={1: RadioLayoutRadio(role="primary_1", reserved_head_slots=[20])}
@@ -285,9 +312,10 @@ class TestPrependReservedSlots(unittest.TestCase):
         preset = pack_preset_for_type(channel_lists, "blue", "SomeType")
         result = preset.to_dict()
         radio1 = result[1]["channels"]
-        # Index 20 is out of range for a 5-entry list -> skipped entirely, so
-        # the plain list comes through untouched.
-        self.assertEqual(radio1, {slot: freq for slot, freq in enumerate(freqs, start=1)})
+        self.assertEqual(radio1[1], freqs[4])  # "M" = the list's last entry
+        for slot in range(2, 6):
+            self.assertEqual(radio1[slot], freqs[slot - 2])  # preset N = entry #N
+        self.assertEqual(sorted(radio1.keys()), list(range(1, 6)))
 
     @patch("presets_injector.presets_manager.get_radio_layout")
     @patch("presets_injector.presets_manager.get_radios")

@@ -259,7 +259,7 @@ class TestTheDeferredUpdateScriptBailsOnAFailedCd(unittest.TestCase):
 
     def test_the_script_aborts_when_it_cannot_enter_the_target_directory(self) -> None:
         source = _UPDATER_PATH.read_text(encoding="utf-8")
-        cd_index = source.index('cd /d "{current_dir}"')
+        cd_index = source.index('cd /d "%~dp0.."')
         after_cd = source[cd_index : cd_index + 400]
 
         self.assertIn("if errorlevel 1 (", after_cd)

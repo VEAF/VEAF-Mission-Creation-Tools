@@ -53,10 +53,10 @@ All VEAF MCT features are available from **F10 → Other → VEAF**. (The radio 
 graph TD
     F10[F10 Radio Menu] --> Other[Other] --> VEAF[VEAF]
     VEAF --> Res[ASSETS]
-    VEAF --> CAS[CAS Mission]
-    VEAF --> CZ[Combat Zones]
-    VEAF --> Miss[Missions]
-    VEAF --> Assist[Assistance]
+    VEAF --> CAS[CAS MISSION]
+    VEAF --> CZ[COMBAT ZONES]
+    VEAF --> Miss[MISSIONS]
+    VEAF --> Assist[ASSISTANCE]
     VEAF --> Help[Help]
     Assist --> AS1["Cold start — F-16C"]
     Res --> A1["Arco 1-1 — tanker"]
@@ -192,7 +192,7 @@ An asset the mission maker did not make consultable has no submenu at all: its *
 
 ### Carriers
 
-Carrier air operations have their own **CARRIER OPS** menu (not under *Assets*), with a submenu per coalition and then per carrier.
+Carrier air operations have their own **CARRIER OPS** menu (not under *ASSETS*), with a submenu per coalition and then per carrier.
 
 | Action | Menu path |
 |--------|-----------|
@@ -229,15 +229,15 @@ A **combat zone** is an area prepared by the mission maker that you activate on 
 
 | Action | Menu path |
 |--------|-----------|
-| List available zones | `Combat Zones` |
-| Activate a zone | `Combat Zones` → [Zone] → `Activate zone` |
-| Check zone status | `Combat Zones` → [Zone] → `Get info` |
-| Mark the zone with smoke | `Combat Zones` → [Zone] → `Request RED smoke on target` |
-| Deactivate / clean up | `Combat Zones` → [Zone] → `Deactivate zone` |
+| List available zones | `COMBAT ZONES` |
+| Activate a zone | `COMBAT ZONES` → [Zone] → `Activate zone` |
+| Check zone status | `COMBAT ZONES` → [Zone] → `Get info` |
+| Mark the zone with smoke | `COMBAT ZONES` → [Zone] → `Request RED smoke on target` |
+| Deactivate / clean up | `COMBAT ZONES` → [Zone] → `Deactivate zone` |
 
 **You only see your own side's zones.** A combat zone can be played from red as well as from blue,
 and its submenu appears only on the side it belongs to: two pilots on opposing sides therefore see
-different lists under *Combat Zones*, and a zone missing from yours is not a missing zone. A mission
+different lists under *COMBAT ZONES*, and a zone missing from yours is not a missing zone. A mission
 maker who wants the old behaviour — everybody sees everything — declares
 `radio_menu_coalition: ALL` on the zone.
 

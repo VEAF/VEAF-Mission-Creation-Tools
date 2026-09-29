@@ -317,6 +317,23 @@ function veafRadio._proxyMethod(parameters)
   end
 end
 
+--- Upper-cases a UTF-8 menu label, accented letters included.
+--- string.upper only knows ASCII, so "Météo" would come out "MéTéO". The Latin-1 letters à..þ
+--- are encoded C3 A0..C3 BE, 0x20 above their capitals (÷, C3 B7, has none); œ is C5 93.
+--- @param text string
+--- @treturn string
+function veafRadio.toUpperCase(text)
+  local upper = string.upper(text)
+  upper = upper:gsub("\195([\160-\190])", function(byte)
+    if byte == "\183" then
+      return nil
+    end
+    return "\195" .. string.char(byte:byte() - 32)
+  end)
+  upper = upper:gsub("\197\147", "\197\146")
+  return upper
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- RadioMenuBuilder — encapsulates DCS missionCommands tree building
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -424,7 +441,10 @@ end
 --- checklist, a pilot with a session running — instead of showing everyone an item that
 --- answers "nothing for you" (veafAssist). Only per-group / per-unit commands are
 --- filtered: a ForAll command has no unit to decide on.
-function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide)
+---
+--- `label`, when given, is shown instead of `command.title` (the first level's capitals).
+function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide, label)
+  label = label or command.title
   veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
   if not command.usage then
     command.usage = veafRadio.USAGE_ForAll
@@ -465,9 +485,9 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
               parameters = { command.parameters }
               table.insert(parameters, unitName)
             end
-            local _title = command.title
+            local _title = label
             if command.usage == veafRadio.USAGE_ForUnit then
-              _title = callsign .. " - " .. command.title
+              _title = callsign .. " - " .. label
             end
             if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
               self:_addDcsCommand(groupId, _title, dcsMenu, command, parameters, coalitionSide)
@@ -478,7 +498,7 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
       end
     end
   else
-    self:_addDcsCommand(nil, command.title, dcsMenu, command, command.parameters, coalitionSide)
+    self:_addDcsCommand(nil, label, dcsMenu, command, command.parameters, coalitionSide)
   end
 end
 
@@ -502,10 +522,14 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   node.renderedForCoalition = coalitionSide
 
   local parentDcsMenu = parentNode and parentNode.dcsRadioMenu
+  local label = node.title
+  if parentNode and parentNode.isRoot then
+    label = veafRadio.toUpperCase(label)
+  end
   if coalitionSide then
-    node.dcsRadioMenu = missionCommands.addSubMenuForCoalition(coalitionSide, node.title, parentDcsMenu)
+    node.dcsRadioMenu = missionCommands.addSubMenuForCoalition(coalitionSide, label, parentDcsMenu)
   else
-    node.dcsRadioMenu = missionCommands.addSubMenu(node.title, parentDcsMenu)
+    node.dcsRadioMenu = missionCommands.addSubMenu(label, parentDcsMenu)
   end
 
   -- Entries render in alphabetical order, which is the right default when a menu is a
@@ -553,15 +577,19 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
     end
   end
 
+  -- Every entry directly under the VEAF root is shown in capitals, whichever module added it
+  -- and on whichever page it lands; the logical titles are left as written, since modules
+  -- find their entries again by title (delCommand, delSubmenu).
+  local isRoot = node == self._root
   for _, command in ipairs(node.commands) do
     advancePageIfFull()
-    self:_placeCommandOnMenu(command, currentDcsMenu, coalitionSide)
+    self:_placeCommandOnMenu(command, currentDcsMenu, coalitionSide, isRoot and veafRadio.toUpperCase(command.title) or nil)
     placedOnPage = placedOnPage + 1
   end
 
   for _, subMenu in ipairs(node.subMenus) do
     advancePageIfFull()
-    self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide }, subMenu)
+    self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide, isRoot = isRoot }, subMenu)
     placedOnPage = placedOnPage + 1
   end
 end

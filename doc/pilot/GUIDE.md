@@ -52,11 +52,11 @@ Toutes les fonctions de VEAF MCT sont accessibles depuis **F10 → Autre → VEA
 ```mermaid
 graph TD
     F10[Menu radio F10] --> Autre[Autre] --> VEAF[VEAF]
-    VEAF --> Res[ASSETS]
-    VEAF --> CAS[Mission CAS]
-    VEAF --> CZ[Zones de combat]
-    VEAF --> Miss[Missions]
-    VEAF --> Assist[Assistance]
+    VEAF --> Res[MOYENS]
+    VEAF --> CAS[MISSION CAS]
+    VEAF --> CZ[ZONES DE COMBAT]
+    VEAF --> Miss[MISSIONS]
+    VEAF --> Assist[ASSISTANCE]
     VEAF --> Aide[Aide]
     Assist --> AS1["Démarrage à froid — F-16C"]
     Res --> A1["Arco 1-1 — ravitailleur"]
@@ -237,7 +237,7 @@ Une **zone de combat** est une zone préparée par le créateur de la mission, q
 
 **Vous ne voyez que les zones de votre camp.** Une zone de combat peut être jouée depuis le rouge
 comme depuis le bleu, et son sous-menu n'apparaît que dans le camp auquel elle appartient : deux
-pilotes de camps opposés n'ont donc pas la même liste sous *Zones de combat*, et une zone absente de
+pilotes de camps opposés n'ont donc pas la même liste sous *ZONES DE COMBAT*, et une zone absente de
 la vôtre n'est pas une zone manquante. Si le créateur de la mission veut l'ancien comportement — tout
 le monde voit tout — il déclare `radio_menu_coalition: ALL` sur la zone.
 

@@ -1925,9 +1925,10 @@ class RadioPresetsImageGenerator:
                 title_font = ImageFont.truetype(ARIAL, 30)
                 collection_title_font = ImageFont.truetype(ARIAL, 40)
             except Exception:
-                preset_font = cast(FreeTypeFont, ImageFont.load_default())
-                title_font = cast(FreeTypeFont, ImageFont.load_default())
-                collection_title_font = cast(FreeTypeFont, ImageFont.load_default())
+                # Pillow's embedded FreeType font, which has the accented letters; without a size it is 10 px.
+                preset_font = cast(FreeTypeFont, ImageFont.load_default(18))
+                title_font = cast(FreeTypeFont, ImageFont.load_default(30))
+                collection_title_font = cast(FreeTypeFont, ImageFont.load_default(40))
 
             self._cached_fonts = (preset_font, title_font, collection_title_font)
 

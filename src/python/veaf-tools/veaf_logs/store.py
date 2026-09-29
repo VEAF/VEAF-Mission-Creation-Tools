@@ -5,24 +5,34 @@ paralleles decrivant chaque entree — environ 30 octets par entree, contre
 plus de 700 quand on gardait les chaines. Un journal d'un million de lignes
 tient ainsi dans quelques dizaines de mega-octets.
 
-Toute l'indexation travaille sur des octets : les en-tetes DCS et les prefixes
-de scripts sont de l'ASCII, et eviter le decodage divise le temps de lecture.
+Toute l'indexation travaille sur des octets : les en-tetes et les prefixes de
+scripts sont de l'ASCII, et eviter le decodage divise le temps de lecture.
 Seules les lignes reellement affichees sont decodees, a la demande.
 """
 
 from __future__ import annotations
 
+import re
 from array import array
 from bisect import bisect_right
 
 from .buffer import Buffer
-from .parser import LEVELS, Entry
+from .parser import DCS_FORMAT, FORMATS, LEVELS, Entry, HeaderFormat
 
 LEVEL_INDEX = {name: index for index, name in enumerate(LEVELS)}
 UNKNOWN_LEVEL = LEVEL_INDEX["UNKNOWN"]
 
 # Nombre maximal de familles de bruit, impose par le masque binaire 64 bits.
 MAX_NOISE_FAMILIES = 64
+
+# Format d'une entree sans en-tete reconnu (format inconnu).
+NO_FORMAT = 0xFF
+_DCS_FORMAT_INDEX = FORMATS.index(DCS_FORMAT)
+
+# Suites qu'une entree peut porter, borne du tableau `_conts` ("H"). Au-dela,
+# la ligne ouvre une entree : l'async_errors.log de DCSServerBot en empilait
+# 90 000 derriere sa premiere ligne, et l'indexation s'arretait en erreur.
+_MAX_CONTINUATIONS = 0xFFFF
 
 # Taille des blocs d'indexation : borne la memoire copiee a chaque passe.
 _INDEX_CHUNK = 8 << 20
@@ -48,6 +58,7 @@ class LogStore:
         self._noise = array("Q")  # masque des familles de bruit
         self._lineno = array("L")
         self._conts = array("H")  # nombre de lignes de continuation
+        self._format = array("B")  # index dans FORMATS, NO_FORMAT sans en-tete
 
         self.modules: list[str] = [""]
         self._module_index: dict[str, int] = {"": 0}
@@ -81,6 +92,7 @@ class LogStore:
             self._noise,
             self._lineno,
             self._conts,
+            self._format,
         ):
             del tableau[:]
         self.modules = [""]
@@ -136,15 +148,29 @@ class LogStore:
     def _add_line(self, offset: int, line: bytes, raw_length: int) -> None:
         self._lines_seen += 1
         stripped = line.rstrip(b"\r")
-        match = self._matchers.header.match(stripped)
+        found, match = self._matchers.header(stripped)
 
-        if match is None and self._matchers.log_opened.match(stripped) is None and self._offset:
-            # Ligne sans en-tete : suite de l'entree precedente. On etend sa
-            # portee au lieu de creer une entree, pour que la trace de pile
-            # reste solidaire de l'erreur qui la porte.
+        # Ligne sans en-tete apres une entree reconnue : sa suite. On etend sa
+        # portee au lieu de creer une entree, pour que la trace de pile reste
+        # solidaire de l'erreur qui la porte. Apres une ligne que rien n'a
+        # reconnue, en revanche, chaque ligne reste seule : un format inconnu se
+        # lit ligne a ligne au lieu de tenir en une entree.
+        suite = (
+            match is None
+            and bool(self._offset)
+            and self._format[-1] != NO_FORMAT
+            and self._matchers.log_opened.match(stripped) is None
+        )
+        plein = suite and self._conts[-1] >= _MAX_CONTINUATIONS
+        if plein:
+            # Compteur plein : la ligne ouvre une entree qui herite du format,
+            # du niveau et de la source, pour que les suivantes continuent de
+            # s'y rattacher et qu'un filtre sur ERROR garde toute la trace.
+            found = self._format[-1]
+        elif suite:
             self._length[-1] += raw_length
             self._conts[-1] += 1
-            ajout = self._matchers.noise_mask(stripped, stripped) & ~self._noise[-1]
+            ajout = self._matchers.noise_mask(stripped, stripped, self._format[-1]) & ~self._noise[-1]
             if ajout:
                 self._noise[-1] |= ajout
                 self._count_noise(ajout)
@@ -155,31 +181,46 @@ class LogStore:
         self._head.append(len(stripped))
         self._lineno.append(self._lines_seen)
         self._conts.append(0)
+        self._format.append(found)
 
         if match is None:
             opened = self._matchers.log_opened.match(stripped) is not None
+            if opened:
+                # La ligne d'ouverture est ecrite par DCS : ce qui la suit s'y
+                # rattache, comme avant qu'il y ait plusieurs formats.
+                self._format[-1] = _DCS_FORMAT_INDEX
             self._msg_at.append(0)
             # Sans en-tete, la ligne entiere est le message.
             self._max_message = max(self._max_message, len(stripped))
-            self._level.append(LEVEL_INDEX["INFO"] if opened else UNKNOWN_LEVEL)
-            self._source.append(self._matchers.native_source)
-            self._module.append(0)
-            masque = self._matchers.noise_mask(stripped, stripped)
+            if plein:
+                self._level.append(self._level[-1])
+                self._source.append(self._source[-1])
+                self._module.append(self._module[-1])
+            else:
+                self._level.append(LEVEL_INDEX["INFO"] if opened else UNKNOWN_LEVEL)
+                self._source.append(self._matchers.native_source)
+                self._module.append(0)
+            masque = self._matchers.noise_mask(stripped, stripped, found)
             self._noise.append(masque)
             self._tally(self._level[-1], self._source[-1], masque)
             return
 
+        fmt = FORMATS[found]
         message = match.group("message") or b""
         self._msg_at.append(min(match.start("message"), 0xFFFF))
-        # En octets, comme `_msg_at` : les journaux DCS sont de l'ASCII, et une
-        # ligne accentuee ne ferait que reserver la colonne un peu trop large.
+        # En octets, comme `_msg_at` : les journaux sont de l'ASCII pour
+        # l'essentiel, et une ligne accentuee ne ferait que reserver la colonne
+        # un peu trop large.
         self._max_message = max(self._max_message, len(stripped) - self._msg_at[-1])
-        level = match.group("level")
-        source, module, refined = self._matchers.classify(message)
+        level = self._matchers.level_id(fmt, match.groupdict().get("level"))
+        if fmt.scripts:
+            source, module, refined = self._matchers.classify(message)
+        else:
+            source, module, refined = self._matchers.format_source(fmt.id), b"", None
         self._source.append(source)
         self._module.append(self._module_id(module))
-        self._level.append(refined if refined is not None else self._matchers.level_id(level))
-        masque = self._matchers.noise_mask(stripped, message)
+        self._level.append(refined if refined is not None else level)
+        masque = self._matchers.noise_mask(stripped, message, found)
         self._noise.append(masque)
         self._tally(self._level[-1], self._source[-1], masque)
 
@@ -228,11 +269,10 @@ class LogStore:
             continuations=lines[1:],
         )
         entry.source_label = self._matchers.source_label(self._source[index])
-        entry.timestamp = raw[:23] if len(raw) >= 23 and raw[4] == "-" else ""
         entry.noise = self._matchers.noise_names(self._noise[index])
-        # Le sous-systeme est une donnee de la ligne : on la releve toujours,
-        # meme quand la source affichee est celle d'un script.
-        entry.subsystem = self._matchers.subsystem_of(raw)
+        # L'horodatage et le sous-systeme sont des donnees de la ligne : on les
+        # releve toujours, meme quand la source affichee est celle d'un script.
+        entry.timestamp, entry.subsystem = self._matchers.stamp_of(self._format[index], raw)
         if entry.source == "dcs":
             entry.source_label = entry.subsystem or "DCS"
         return entry
@@ -323,18 +363,25 @@ class _Matchers:
     def __init__(self, rules) -> None:
         import re
 
-        from .parser import HEADER_PATTERN, LOG_OPENED_PATTERN
+        from .parser import LOG_OPENED_PATTERN
 
         self.rules = rules
-        self.header = re.compile(HEADER_PATTERN.encode("utf-8"))
+        self._headers = [re.compile(fmt.pattern.encode("utf-8")) for fmt in FORMATS]
+        # Versions texte, pour relever l'horodatage d'une entree affichee.
+        self._headers_text = [re.compile(fmt.pattern) for fmt in FORMATS]
         self.log_opened = re.compile(LOG_OPENED_PATTERN.encode("utf-8"))
 
         self.source_ids: list[str] = [source.id for source in rules.sources] + ["dcs"]
         self.source_labels: list[str] = [source.label for source in rules.sources] + ["DCS"]
         self.native_source = len(self.source_ids) - 1
 
+        self._by_format: dict[str, int] = {}
         self._sources = []
         for position, source in enumerate(rules.sources):
+            for format_id in source.formats:
+                self._by_format.setdefault(format_id, position)
+            if source.pattern is None:
+                continue
             pattern = re.compile(source.pattern.pattern.encode("utf-8"))
             module = (
                 re.compile(source.module_pattern.pattern.encode("utf-8")) if source.module_pattern is not None else None
@@ -344,14 +391,52 @@ class _Matchers:
         if len(rules.noise) > MAX_NOISE_FAMILIES:
             raise ValueError(f"{len(rules.noise)} familles de bruit : le masque en accepte {MAX_NOISE_FAMILIES}")
         self.noise_order = [family.id for family in rules.noise]
-        self._noise = [
-            (1 << bit, re.compile(family.pattern.pattern.encode("utf-8")), family.on_message)
+        familles = [
+            (1 << bit, re.compile(family.pattern.pattern.encode("utf-8")), family.on_message, family.formats)
             for bit, family in enumerate(rules.noise)
         ]
+        # Familles a essayer pour chaque format, calculees une fois : une famille
+        # propre a DCSServerBot n'a rien a trouver dans un dcs.log, et ses motifs
+        # a alternatives y couteraient une recherche par ligne.
+        self._noise_by_format: dict[int, list[tuple[int, re.Pattern[bytes], bool]]] = {
+            position: [
+                (bit, pattern, on_message)
+                for bit, pattern, on_message, formats in familles
+                if not formats or (position != NO_FORMAT and FORMATS[position].id in formats)
+            ]
+            for position in (*range(len(FORMATS)), NO_FORMAT)
+        }
         self._noise_cache: dict[int, tuple[str, ...]] = {0: ()}
-        self._subsystem = re.compile(r"^[\d-]{10} [\d:.]+ +\w+ +([\w:]*)")
 
     # -- classement -------------------------------------------------------
+
+    def header(self, line: bytes) -> tuple[int, re.Match[bytes] | None]:
+        """Reconnait la forme d'en-tete d'une ligne.
+
+        Args:
+            line: La ligne, sans sa fin de ligne.
+
+        Returns:
+            L'index du format dans `FORMATS` et sa correspondance, ou
+            `(NO_FORMAT, None)` quand aucun format ne reconnait la ligne.
+        """
+        for position, pattern in enumerate(self._headers):
+            match = pattern.match(line)
+            if match is not None:
+                return position, match
+        return NO_FORMAT, None
+
+    def format_source(self, format_id: str) -> int:
+        """Donne la source emettrice des lignes d'un format.
+
+        Args:
+            format_id: Identifiant du format (`HeaderFormat.id`).
+
+        Returns:
+            L'index de la source qui declare ce format dans `formats`, la source
+            native a defaut.
+        """
+        return self._by_format.get(format_id, self.native_source)
 
     def classify(self, message: bytes) -> tuple[int, bytes, int | None]:
         """Rend (index de source, nom de module, niveau affine ou None)."""
@@ -382,14 +467,35 @@ class _Matchers:
         name = (source.level_map or {}).get(name, name.upper())
         return LEVEL_INDEX.get(name)
 
-    def level_id(self, level: bytes | None) -> int:
-        if not level:
-            return UNKNOWN_LEVEL
-        return LEVEL_INDEX.get(level.decode("ascii", "replace"), UNKNOWN_LEVEL)
+    @staticmethod
+    def level_id(fmt: HeaderFormat, level: bytes | None) -> int:
+        """Traduit le niveau ecrit dans une ligne en index de `LEVELS`.
 
-    def noise_mask(self, line: bytes, message: bytes) -> int:
+        Args:
+            fmt: Le format de la ligne, qui porte sa table de niveaux.
+            level: Le niveau tel qu'ecrit, ou None quand le format n'en ecrit pas.
+
+        Returns:
+            L'index du niveau, `UNKNOWN` pour un niveau que la table ignore.
+        """
+        if not level:
+            return LEVEL_INDEX.get(fmt.default_level, UNKNOWN_LEVEL)
+        name = level.decode("ascii", "replace")
+        return LEVEL_INDEX.get(fmt.level_map.get(name, name), UNKNOWN_LEVEL)
+
+    def noise_mask(self, line: bytes, message: bytes, found: int) -> int:
+        """Calcule les familles de bruit qui correspondent a une ligne.
+
+        Args:
+            line: La ligne entiere.
+            message: Son message seul, pour les familles `on_message`.
+            found: L'index de son format, qui borne les familles essayees.
+
+        Returns:
+            Le masque binaire des familles qui correspondent.
+        """
         mask = 0
-        for bit, pattern, on_message in self._noise:
+        for bit, pattern, on_message in self._noise_by_format[found]:
             if pattern.search(message if on_message else line):
                 mask |= bit
         return mask
@@ -407,6 +513,23 @@ class _Matchers:
     def source_label(self, index: int) -> str:
         return self.source_labels[index]
 
-    def subsystem_of(self, raw: str) -> str:
-        match = self._subsystem.match(raw)
-        return match.group(1) if match else ""
+    def stamp_of(self, found: int, raw: str) -> tuple[str, str]:
+        """Releve l'horodatage et le sous-systeme d'une ligne d'en-tete.
+
+        Args:
+            found: L'index du format de la ligne, ou `NO_FORMAT`.
+            raw: La ligne decodee.
+
+        Returns:
+            L'horodatage sous la forme « AAAA-MM-JJ HH:MM:SS.mmm » (vide quand la
+            ligne n'en porte pas) et le sous-systeme (vide s'il n'y en a pas).
+        """
+        match = self._headers_text[found].match(raw) if found != NO_FORMAT else None
+        if match is None:
+            # Une ligne qui commence par une date garde son heure meme quand son
+            # en-tete s'ecarte des formats connus.
+            return (raw[:23] if raw[:4].isdigit() and raw[4:5] == "-" else ""), ""
+        groups = match.groupdict()
+        time = (groups.get("time") or "").replace(",", ".")
+        date = groups.get("date")
+        return (f"{date} {time}" if date else time), groups.get("subsystem") or ""

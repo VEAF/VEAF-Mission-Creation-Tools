@@ -3,7 +3,8 @@
 `veaf-logs` ouvre un journal DCS et n'en montre que ce qui compte. Il connaît les
 scripts VEAF, CTLD, CSAR, AIEN et Skynet, sait reconnaître les erreurs d'Eagle
 Dynamics sans conséquence, et suit le fichier en direct pendant que la mission
-tourne.
+tourne. Il lit aussi les autres journaux d'un serveur : DCSServerBot, Real Weather
+et LotAtc (voir [Autres journaux d'un serveur](#other-logs)).
 
 ## Lancer
 
@@ -273,6 +274,51 @@ ne peut pas être renommé — et c'est ce que DCS fait de son `dcs.log` à chaq
 lancement. `veaf-logs` ouvre et referme à chaque lecture : il n'empêche jamais le
 jeu de démarrer.
 
+## Autres journaux d'un serveur {#other-logs}
+
+Un serveur DCS écrit d'autres journaux que `dcs.log`, chacun avec sa propre forme
+de ligne. `veaf-logs` reconnaît celles-ci, avec l'heure, le niveau et l'émetteur
+de chaque ligne :
+
+| Journal | Exemple de ligne | Source affichée |
+|---|---|---|
+| DCSServerBot (`logs\dcssb-*.log`, journal du chat) | `2026-09-29 18:02:44.490 WARNING⇥New update…` | DCSSB |
+| DCSServerBot, performances (`perf-*.log`) | `2026-09-29 18:03:38,541⇥INFO⇥4.80s⇥…` | DCSSB |
+| DCSServerBot, exceptions (`async_errors.log`) | `2026-05-26T00:47:56.023909: Task exception…` | DCSSB, en `ERROR` |
+| Real Weather (`realweather.log`) | `2026-09-29T20:03:44.385+0200⇥WARN⇥…` | Real Weather |
+| LotAtc (`LotAtc_server.log`) | `[2026-09-29 20:05:21 +02:00] [W] [clienthandler] Init` | LotAtc |
+
+La forme est reconnue **ligne par ligne**, pas fichier par fichier : DCSServerBot
+recopie la sortie de Real Weather telle quelle dans son propre journal, et ces
+lignes y apparaissent avec la source Real Weather et leur vrai niveau (`WARN` en
+avertissement, `FATAL` en alerte).
+
+Les préfixes des scripts (VEAF, CTLD…) ne sont cherchés que dans les lignes de
+`dcs.log` : ailleurs, un message qui contient « SRS » ne vient pas du script SRS.
+
+Cinq familles de bruit sont propres à ces journaux, masquées par les profils
+**Lecture** et **Diagnostic** :
+
+| Famille | Ce que c'est | Part du journal |
+|---|---|---|
+| DCSSB : événements de mission | chaque événement de mission relayé du serveur au bot, en JSON | 70 % |
+| DCSSB : interrogations périodiques | état, charge et images par seconde demandés chaque minute | 3,5 % |
+| LotAtc : options au démarrage | la liste des options, recopiée à chaque démarrage | 19 % |
+| LotAtc : camp des aérodromes | le camp de chaque aérodrome, à chaque démarrage de mission | 17 % |
+| LotAtc : connexions des clients | connexion et déconnexion d'un client, y compris les avertissements `Init`, `Finish` et *The remote host closed the connection* d'une déconnexion normale | 33 % |
+
+Mesuré le 2026-09-29 sur les journaux de dcs.veaf.org : sur 4 090 entrées du
+journal DCSServerBot, il en reste 1 084 une fois le bruit écarté ; sur 8 735 entrées
+LotAtc, 2 669.
+
+Un fichier dont aucune ligne n'a de forme connue s'affiche ligne à ligne, au niveau
+`UNKNOWN`. Le panneau des filtres ne liste que les sources et les familles de bruit
+présentes dans le journal ouvert.
+
+Pour suivre l'un de ces journaux à distance, on le déclare comme un `dcs.log` dans
+`logs:` ([Journal d'un serveur distant](#remote)), par exemple
+`dcssb: C:/Users/veaf/VEAF-DCSServerBot/logs/dcssb-dcs-veaf-org.log`.
+
 ## Gros journaux
 
 Le texte n'est pas chargé en mémoire : seul un index compact l'est, et les lignes
@@ -344,6 +390,11 @@ Une famille de bruit à écarter :
 
 Les motifs sont appliqués sur des octets pour que l'indexation reste rapide : ils
 doivent rester en ASCII. Le nombre de familles de bruit est plafonné à 64.
+
+Une famille propre à un autre journal que `dcs.log` précise son format avec
+`"formats": ["dcssb"]` (ou `realweather`, `lotatc`) : elle n'est alors cherchée que
+dans les lignes de ce journal. Les préfixes de sources (`match`) ne s'appliquent,
+eux, qu'aux lignes de `dcs.log`.
 
 ## Où sont rangés les réglages
 

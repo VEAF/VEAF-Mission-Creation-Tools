@@ -2,7 +2,8 @@
 
 `veaf-logs` opens a DCS log and shows only what matters. It knows the VEAF, CTLD,
 CSAR, AIEN and Skynet scripts, recognises Eagle Dynamics' harmless errors, and
-follows the file live while the mission runs.
+follows the file live while the mission runs. It also reads a server's other logs:
+DCSServerBot, Real Weather and LotAtc (see [Other server logs](#other-logs)).
 
 ## Running it
 
@@ -256,6 +257,48 @@ the memory dump, the mission and the dxdiag report: the log is picked for you.
 that is exactly what DCS does to its `dcs.log` on every launch. `veaf-logs` opens
 and closes on each read, so it never keeps the game from starting.
 
+## Other server logs {#other-logs}
+
+A DCS server writes other logs than `dcs.log`, each with its own line shape.
+`veaf-logs` recognises these, with the time, level and emitter of every line:
+
+| Log | Sample line | Source shown |
+|---|---|---|
+| DCSServerBot (`logs\dcssb-*.log`, chat log) | `2026-09-29 18:02:44.490 WARNING⇥New update…` | DCSSB |
+| DCSServerBot, performance (`perf-*.log`) | `2026-09-29 18:03:38,541⇥INFO⇥4.80s⇥…` | DCSSB |
+| DCSServerBot, exceptions (`async_errors.log`) | `2026-05-26T00:47:56.023909: Task exception…` | DCSSB, as `ERROR` |
+| Real Weather (`realweather.log`) | `2026-09-29T20:03:44.385+0200⇥WARN⇥…` | Real Weather |
+| LotAtc (`LotAtc_server.log`) | `[2026-09-29 20:05:21 +02:00] [W] [clienthandler] Init` | LotAtc |
+
+The shape is recognised **line by line**, not file by file: DCSServerBot copies
+Real Weather's output verbatim into its own log, and those lines show there with
+the Real Weather source and their real level (`WARN` as a warning, `FATAL` as an
+alert).
+
+Script prefixes (VEAF, CTLD…) are looked for in `dcs.log` lines only: elsewhere, a
+message containing "SRS" does not come from the SRS script.
+
+Five noise families belong to these logs, hidden by the **Lecture** and
+**Diagnostic** profiles:
+
+| Family | What it is | Share of the log |
+|---|---|---|
+| DCSSB: mission events | every mission event relayed from the server to the bot, as JSON | 70 % |
+| DCSSB: periodic polling | status, load and frame rate requested every minute | 3.5 % |
+| LotAtc: startup options | the option list, copied on every start | 19 % |
+| LotAtc: airfield sides | the side of every airfield, on every mission start | 17 % |
+| LotAtc: client connections | a client connecting and disconnecting, including the `Init`, `Finish` and *The remote host closed the connection* warnings of a normal disconnection | 33 % |
+
+Measured on 2026-09-29 on the dcs.veaf.org logs: of the DCSServerBot log's 4,090
+entries, 1,084 remain once the noise is set aside; of LotAtc's 8,735, 2,669.
+
+A file where no line has a known shape reads line by line, at level `UNKNOWN`. The
+filter panel lists only the sources and noise families present in the open log.
+
+To follow one of these logs remotely, declare it like a `dcs.log` under `logs:`
+([A remote server's log](#remote)), for instance
+`dcssb: C:/Users/veaf/VEAF-DCSServerBot/logs/dcssb-dcs-veaf-org.log`.
+
 ## Large logs
 
 The text is not held in memory: only a compact index is, and lines are decoded as
@@ -326,6 +369,10 @@ A noise family to drop:
 
 Patterns are matched against bytes to keep indexing fast, so they must stay
 ASCII. The number of noise families is capped at 64.
+
+A family that belongs to another log than `dcs.log` names its format with
+`"formats": ["dcssb"]` (or `realweather`, `lotatc`): it is then looked for in that
+log's lines only. Source prefixes (`match`) apply to `dcs.log` lines only.
 
 ## Where the settings live
 

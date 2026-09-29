@@ -1209,6 +1209,157 @@ function TestVeafRadioCoalitionMenus:test_addSubMenu_passes_the_side_through()
   veafRadio.delSubmenu("Scoped", nil)
 end
 
+-------------------------------------------------------------------------------------------------
+-- FIX-SECURED-FORALL-AND-UPDATER-BAT ticket 01 — a secured "for all" command is posted per group
+--
+-- DCS hands a menu callback the argument fixed at registration and nothing about who clicked, so
+-- the group id is the only identity `_proxyMethod` ever gets. A secured command posted for all
+-- carried none, and every click was refused while security was on (private1, 2026-09-29: a
+-- non-training combat zone could not be activated). It is now posted once per human group.
+-------------------------------------------------------------------------------------------------
+
+TestVeafRadioSecuredForAll = {}
+
+function TestVeafRadioSecuredForAll:setUp()
+  TestVeafRadioCoalitionMenus.setUp(self)
+  self.savedSecurityDisabled = veaf.SecurityDisabled
+  self.savedEffective = veafSecurity.getEffectiveGroupLevel
+  self.groupLevels = {}
+  veafSecurity.getEffectiveGroupLevel = function(groupId)
+    return self.groupLevels[groupId] or 0
+  end
+  veaf.SecurityDisabled = false
+end
+
+function TestVeafRadioSecuredForAll:tearDown()
+  veaf.SecurityDisabled = self.savedSecurityDisabled
+  veafSecurity.getEffectiveGroupLevel = self.savedEffective
+  TestVeafRadioCoalitionMenus.tearDown(self)
+end
+
+TestVeafRadioSecuredForAll._addHumanGroup = TestVeafRadioCoalitionMenus._addHumanGroup
+TestVeafRadioSecuredForAll._firstOfKind = TestVeafRadioCoalitionMenus._firstOfKind
+
+function TestVeafRadioSecuredForAll:_callsOfKind(kind)
+  local found = {}
+  for _, call in ipairs(self.calls) do
+    if call.kind == kind then
+      table.insert(found, call)
+    end
+  end
+  return found
+end
+
+--- Build a menu holding one secured ForAll command whose method records what it receives.
+function TestVeafRadioSecuredForAll:_buildSecuredForAll(side)
+  self.received = {}
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local menu = builder:addMenu("Zone", nil, side)
+  builder:addCommand("Activate", menu, function(parameters)
+    table.insert(self.received, parameters)
+  end, "combatZone_Letzlingen", veafRadio.USAGE_ForAll, true)
+  builder:build()
+end
+
+--- Click the entry DCS was given, the way DCS does: the callback with its registered argument.
+--- `addCommandForGroup` takes the group id first, `addCommand` does not.
+local function click(call)
+  local offset = call.kind == "commandForGroup" and 1 or 0
+  local method, parameters = call.args[3 + offset], call.args[4 + offset]
+  method(parameters)
+end
+
+function TestVeafRadioSecuredForAll:test_posted_once_per_human_group()
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  self:_addHumanGroup(2, coalition.side.BLUE, "Pilot2")
+  self:_buildSecuredForAll()
+  local groupIds = {}
+  for _, call in ipairs(self:_callsOfKind("commandForGroup")) do
+    groupIds[call.args[1]] = true
+  end
+  luaunit.assertEquals(groupIds, { [1] = true, [2] = true })
+  luaunit.assertNil(self:_firstOfKind("command"))
+  luaunit.assertNil(self:_firstOfKind("commandForCoalition"))
+end
+
+function TestVeafRadioSecuredForAll:test_authorised_group_runs_it_with_its_parameters_unchanged()
+  -- ForGroup appends the unit name to the parameters; a ForAll method does not expect it.
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  self.groupLevels[1] = veafSecurity.LEVEL_SENIOR_PILOT
+  self:_buildSecuredForAll()
+  local call = self:_firstOfKind("commandForGroup")
+  luaunit.assertEquals(call.args[2], "+Activate")
+  click(call)
+  luaunit.assertEquals(self.received, { "combatZone_Letzlingen" })
+end
+
+function TestVeafRadioSecuredForAll:test_group_below_the_level_is_refused()
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  self.groupLevels[1] = veafSecurity.LEVEL_KNOWN_PILOT
+  self:_buildSecuredForAll()
+  click(self:_firstOfKind("commandForGroup"))
+  luaunit.assertEquals(self.received, {})
+end
+
+function TestVeafRadioSecuredForAll:test_scoped_menu_skips_the_other_coalition()
+  self:_addHumanGroup(1, coalition.side.RED, "RedPilot")
+  self:_addHumanGroup(2, coalition.side.BLUE, "BluePilot")
+  self:_buildSecuredForAll(coalition.side.RED)
+  local groupIds = {}
+  for _, call in ipairs(self:_callsOfKind("commandForGroup")) do
+    table.insert(groupIds, call.args[1])
+  end
+  luaunit.assertEquals(groupIds, { 1 })
+end
+
+function TestVeafRadioSecuredForAll:test_unspawned_group_gets_nothing()
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  veafRadio.humanUnits["Pilot1"].spawned = false
+  self:_buildSecuredForAll()
+  luaunit.assertEquals(#self:_callsOfKind("commandForGroup"), 0)
+end
+
+function TestVeafRadioSecuredForAll:test_security_disabled_keeps_it_for_all()
+  -- A game master or a spectator has no group: with security off they keep the entry.
+  veaf.SecurityDisabled = true
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  self:_buildSecuredForAll()
+  luaunit.assertEquals(#self:_callsOfKind("commandForGroup"), 0)
+  local call = self:_firstOfKind("command")
+  luaunit.assertNotNil(call)
+  click(call)
+  luaunit.assertEquals(self.received, { "combatZone_Letzlingen" })
+end
+
+function TestVeafRadioSecuredForAll:test_a_secured_command_reaching_dcs_without_a_group_is_warned()
+  local logger = veaf.loggers.get(veafRadio.Id)
+  local savedWarn = logger.warn
+  local warnings = {}
+  logger.warn = function(_, fmt, ...)
+    table.insert(warnings, string.format(fmt, ...))
+  end
+  local builder = veafRadio.RadioMenuBuilder:new({ title = "Root", subMenus = {}, commands = {} })
+  local command = { title = "Activate", method = function() end, isSecured = true }
+  builder:_addDcsCommand(nil, "Activate", nil, command, nil, nil)
+  veaf.SecurityDisabled = true
+  builder:_addDcsCommand(nil, "Activate", nil, command, nil, nil)
+  logger.warn = savedWarn
+  luaunit.assertEquals(#warnings, 1)
+  luaunit.assertStrContains(warnings[1], "posted without a group")
+end
+
+function TestVeafRadioSecuredForAll:test_unsecured_forall_is_unchanged()
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local menu = builder:addMenu("Zone", nil)
+  builder:addCommand("Smoke", menu, function() end, nil, veafRadio.USAGE_ForAll)
+  builder:build()
+  luaunit.assertEquals(#self:_callsOfKind("commandForGroup"), 0)
+  luaunit.assertEquals(#self:_callsOfKind("command"), 1)
+end
+
 -- ---------------------------------------------------------------------------
 -- TestVeafRadioShellSafety (SECREV-2, finding VMR-004)
 --

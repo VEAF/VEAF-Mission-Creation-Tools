@@ -320,9 +320,10 @@ written in Lua (`VeafCombatMission`) in `src/scripts/mission-script.lua`, and yo
 
 ### 4.13 Briefing map and F10 drawings
 
-A pilot discovering the mission must see the theatre at a glance. **One picture, two uses**:
-`docs/carte.jpg`, shown at the top of the README, and the mission's briefing picture, which DCS shows
-to every side.
+A pilot discovering the mission must see the theatre at a glance, then be able to read the detail of
+the area they fly to. **A theatre map and zoomed maps, two uses**: `docs/carte.jpg` at the top of the
+README and the zooms in `docs/cartes/`, linked right below it; the same pictures in the mission's
+briefing, the theatre map first.
 
 - **Generated from the mission's data, never drawn by hand**: a script reads `src/mission/`,
   `mission.yaml` and the files of `src/`, converts x/y to lat/lon (`resolve_coordinates`, or
@@ -332,20 +333,35 @@ to every side.
   as in the briefing**, the training zones (one letter per family), the sanctuaries, the front line
   (said to be approximate), the carrier, the bullseye. What falls outside the frame (a distant arena)
   is shown by an arrow on the edge. Plus a legend, a scale in nautical miles and the mission's title.
+- **The zooms**: fewer than ten, one per area of the theatre (a group of bases, a sector of the front,
+  the approaches to a capital, the arena). DCS's briefing panel **fits every picture to its own
+  size**: the theatre map becomes unreadable there, the zoom is what gets read. Every zoom has **a
+  title** naming the area and what it holds ("Front nord : Lübtheen, Ludwigslust, Parchim"). It is
+  declared by the **list of the objects to frame**: the frame follows, radii included (a whole QRA
+  circle), with a margin, never typed coordinates. The tiles come from the OpenStreetMap zoom level
+  nearest the output resolution, so place names stay legible. What it adds: the **name of every
+  combat zone next to its number**, the extent of the rescue area, the arena's circle, the name of the
+  lines crossing the frame (front, sanctuary), a round scale read at the centre. A zoom does not
+  repeat the legend.
 - **Basemap**: OpenStreetMap tiles will do, provided their usage policy is followed. A `User-Agent`
   identifying the tool by its URL, **never any personal data** (no e-mail). The tiles cached locally,
   so they are not downloaded again at every render. The "© OpenStreetMap contributors" credit on the
   picture.
-- **DCS briefing picture**: the same map as a JPEG about 1600 px wide, to keep the `.miz` light. It
-  is copied into `src/mission/l10n/DEFAULT/`, declared in `mapResource`, and referenced by the
-  mission's `pictureFileNameB`, `pictureFileNameR` and `pictureFileNameN`. If the MCP has no action
-  for it, go through a script that loads the table and writes it back, and note it in "Feedback for
-  VMCT".
+- **DCS briefing pictures**: the same maps as JPEGs about 1600 px wide (count about 0.5 MB per picture
+  in the `.miz`). They are copied into `src/mission/l10n/DEFAULT/`, declared in `mapResource`, and
+  listed, theatre map first, in **`pictureFileNameB` and `pictureFileNameN` only; `pictureFileNameR`
+  stays empty**. When DCS does not know the player's side (a `Client` slot, a dynamic slot, a
+  spectator), it shows the red list then the blue one: a picture in both is shown twice
+  (`describe_known_limitations`, `briefing-pictures-red-then-blue`). The price: a red pilot DCS does
+  identify may get no map (in multiplayer, to be confirmed); pay it only if the red classic slots do not need one (the
+  arena), and say so. The script that draws the maps **writes those lists and `mapResource`
+  itself**, and removes the pictures it no longer draws: the mission always lists what was drawn. If
+  the MCP has no action for it, note it in "Feedback for VMCT".
 - **F10 drawings** (`add_map_drawing`, so they survive the build): the front line, the sanctuaries,
   the support race-tracks and the zone labels, each on the **layer of the side that must see it**
   (`Blue`, `Red`, or `Common` for what both share).
-- **Look at the picture** before handing it over: no label may overlap another, and every zone
-  number must match the briefing's.
+- **Look at every picture** before handing it over, zooms included: no label may overlap another,
+  every zone number must match the briefing's, and a dashed line must stay dashed on small circles.
 
 ## 5. Build order
 
@@ -394,7 +410,8 @@ the sides; running DCS.
   - two weather variants **different in the fields DCS reads** (`clouds.preset`,
     `season.temperature`, `wind.atGround`), and a dawn time consistent with sunrise;
   - the `LOCAL_TEST` profile built without security, the default configuration with it;
-  - the briefing picture present in the `.miz` and referenced by the three `pictureFileName*` (4.13).
+  - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
+    `pictureFileNameN`, `pictureFileNameR` empty (4.13).
 - **Reread your briefings**: every range, bearing, altitude and place name recomputed or sourced.
 - List what remains to check in DCS (statics placed on the airfields, convoys following their roads,
   zone nesting, the look of the sky).

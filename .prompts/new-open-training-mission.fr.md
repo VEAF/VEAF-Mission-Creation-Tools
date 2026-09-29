@@ -327,9 +327,10 @@ dans « Retours pour VMCT ».
 
 ### 4.13 Carte du briefing et dessins F10
 
-Un pilote qui découvre la mission doit voir le théâtre d'un coup d'œil. **Une seule image, deux
-usages** : `docs/carte.jpg`, affichée en tête du README, et l'image de briefing de la mission, que
-DCS montre à tous les camps.
+Un pilote qui découvre la mission doit voir le théâtre d'un coup d'œil, puis pouvoir lire le détail
+de la zone où il va. **Une carte générale et des zooms, deux usages** : `docs/carte.jpg` en tête du
+README et les zooms dans `docs/cartes/`, liés juste en dessous ; les mêmes images dans le briefing de
+la mission, la carte générale d'abord.
 
 - **Générée depuis les données de la mission, jamais dessinée à la main** : un script lit
   `src/mission/`, `mission.yaml` et les fichiers de `src/`, convertit les x/y en lat/lon
@@ -340,20 +341,37 @@ DCS montre à tous les camps.
   famille), les sanctuaires, la ligne de front (dite approximative), le porte-avions, le bullseye.
   Ce qui sort du cadre (une arène au loin) est signalé par une flèche en bordure. Plus une légende,
   une échelle en nautiques et le titre de la mission.
+- **Les zooms** : moins de dix, un par zone du théâtre (un groupe de bases, un secteur du front, les
+  abords d'une capitale, l'arène). Le panneau de briefing de DCS **ajuste chaque image à sa taille** :
+  la carte générale y devient illisible, c'est le zoom qui se lit. Chaque zoom porte **un titre** qui
+  nomme la zone et ce qu'elle contient (« Front nord : Lübtheen, Ludwigslust, Parchim »). Il se
+  déclare par la **liste des objets à cadrer** — le cadre en découle, rayons compris (un cercle de
+  QRA entier), avec une marge — jamais par des coordonnées tapées. Les tuiles viennent du niveau de
+  zoom OpenStreetMap le plus proche de la résolution de sortie, pour que les noms de lieux restent
+  lisibles. Ce qui s'y ajoute : le **nom de chaque zone de combat à côté de son numéro**, l'étendue de
+  la zone de sauvetage, le cercle de l'arène, le nom des lignes qui traversent le cadre (front,
+  sanctuaire), une échelle ronde lue au centre. Un zoom ne recopie pas la légende.
 - **Fond de carte** : les tuiles OpenStreetMap conviennent, à condition de suivre leur politique
   d'usage. Un `User-Agent` qui identifie l'outil par son URL, **jamais une donnée personnelle**
   (pas d'e-mail). Les tuiles en cache local, pour ne pas les retélécharger à chaque rendu. La mention
   « © OpenStreetMap contributors » sur l'image.
-- **Image de briefing DCS** : la même carte en JPEG d'environ 1600 px de large, pour garder le
-  `.miz` léger. Elle est copiée dans `src/mission/l10n/DEFAULT/`, déclarée dans `mapResource`, et
-  référencée par `pictureFileNameB`, `pictureFileNameR` et `pictureFileNameN` de la mission. Si le
-  MCP n'a pas d'action pour le faire, passe par un script qui charge la table et la réécrit, et note-le
-  dans « Retours pour VMCT ».
+- **Images de briefing DCS** : les mêmes cartes en JPEG d'environ 1600 px de large (compte
+  environ 0,5 Mo par image dans le `.miz`). Elles sont copiées dans `src/mission/l10n/DEFAULT/`,
+  déclarées dans `mapResource`, et listées, carte générale en tête, dans **`pictureFileNameB` et
+  `pictureFileNameN` seulement ; `pictureFileNameR` reste vide**. Quand DCS ne connaît pas le camp du
+  joueur — slot `Client`, slot dynamique, spectateur — il affiche la liste rouge puis la bleue : une
+  image présente dans les deux s'affiche deux fois (`describe_known_limitations`,
+  `briefing-pictures-red-then-blue`). Le prix : un pilote rouge que DCS identifie peut n'avoir aucune
+  carte (en multijoueur, à confirmer) ; ne le paie que si les slots rouges classiques n'en ont pas besoin
+  (l'arène), et dis-le. Le script qui dessine les cartes **écrit lui-même ces listes et
+  `mapResource`**, et retire les images qu'il ne dessine plus : la mission liste toujours ce qui a été
+  dessiné. Si le MCP n'a pas d'action pour le faire, note-le dans « Retours pour VMCT ».
 - **Dessins F10** (`add_map_drawing`, pour qu'ils survivent au build) : la ligne de front, les
   sanctuaires, les hippodromes de soutien et les étiquettes des zones, chacun sur la **couche du camp
   qui doit le voir** (`Blue`, `Red`, ou `Common` pour ce que les deux partagent).
-- **Relis l'image** avant de la livrer : aucune étiquette ne doit en chevaucher une autre, et chaque
-  numéro de zone doit correspondre à celui du briefing.
+- **Relis chaque image** avant de la livrer, zooms compris : aucune étiquette ne doit en chevaucher
+  une autre, chaque numéro de zone doit correspondre à celui du briefing, et un trait en tirets doit
+  rester en tirets sur les petits cercles.
 
 ## 5. Ordre de construction
 
@@ -406,7 +424,8 @@ l'époque ou les camps ; lancer DCS.
   - deux variantes météo **différentes dans les champs que DCS lit** (`clouds.preset`,
     `season.temperature`, `wind.atGround`), et l'heure de l'aube cohérente avec le lever du soleil ;
   - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec ;
-  - l'image de briefing présente dans le `.miz` et référencée par les trois `pictureFileName*` (4.13).
+  - les images de briefing présentes dans le `.miz`, listées dans `pictureFileNameB` et
+    `pictureFileNameN`, `pictureFileNameR` vide (4.13).
 - **Relis tes briefings** : chaque distance, cap, altitude et nom de lieu recalculé ou sourcé.
 - Liste ce qui reste à vérifier dans DCS (placement des statiques sur les terrains, suivi des routes
   par les convois, imbrication des zones, apparence du ciel).

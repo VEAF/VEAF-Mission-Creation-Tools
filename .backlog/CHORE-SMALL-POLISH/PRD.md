@@ -1,6 +1,6 @@
 # CHORE-SMALL-POLISH — four small things David noted on 2026-09-29
 
-Status: 🔄 in-progress
+Status: ✅ done (PR #1026, merged 2026-09-29)
 
 Noted by David while testing, grouped so they ship together rather than as four lots. None of them
 blocks anything; each is small on its own.

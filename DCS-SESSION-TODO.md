@@ -496,6 +496,19 @@ kilometres from the zone. Never measured. Also worth knowing: `FIX-WAVE-OFFSET-A
 day and **moves any mission using a non-zero `[latDelta,lonDelta]` offset**, so a zone with an offset
 is the interesting one to trigger.
 
+**Since `FIX-QRA-COMMANDS-AND-OFFSET` the QRA half can be built as intended**: `validate` no longer
+refuses a command in a QRA deploy list, and `respawn_default_offset` under a QRA reaches the Lua
+(`:setRespawnDefaultOffset` on the QRA chain). Give the QRA a command and a non-zero offset, and read
+where its element spawns.
+
+### R18. `logLevel: trace` under one module traces that module and no other
+
+[`FIX-PER-MODULE-LOGLEVEL-INERT`](.backlog/FIX-PER-MODULE-LOGLEVEL-INERT/PRD.md). Tested through the
+logger with the DCS mocks; never seen in `dcs.log`. **Run**: any mission with `global_log_level: info`
+and `modules.SPAWN.logLevel: trace`; spawn one group with a marker. `grep "VEAF-SPAWN|T|"` must find
+lines, `grep "|T|"` must find nothing from any other module. None from SPAWN: the logger id differs
+from the config key — compare `veafSpawn.Id` with the `veaf.setConfig` line in `veaf-config.lua`.
+
 ### ✅ R8. Does a teleported escort hold formation — and does it engage? — **both yes, 2026-09-01**
 
 Gates [`FIX-TELEPORT-ESCORT-WAYPOINT`](.backlog/FIX-TELEPORT-ESCORT-WAYPOINT/PRD.md), which cannot be

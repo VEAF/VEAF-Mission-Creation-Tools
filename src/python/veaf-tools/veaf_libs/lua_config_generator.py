@@ -1195,7 +1195,9 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     for wave in zone.get("waves") or []:
         parts = []
         if g := wave.get("groups"):
-            parts.append(f"groups = {_lua_text(g)}")
+            # a list is a Lua table: through _lua_text it became the one group "['a', 'b']"
+            groups_lua = "{" + ", ".join(_lua_text(x) for x in g) + "}" if isinstance(g, list) else _lua_text(g)
+            parts.append(f"groups = {groups_lua}")
         if "delay" in wave:
             parts.append(f"delay = {wave['delay']}")
         if n := wave.get("number"):
@@ -1213,6 +1215,33 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     else:
         lines.append(f"{indent}    :start()")
     return lines
+
+
+#: Every key a QRA definition of ``modules.QRA.definitions`` may carry, each one read below or by the
+#: radio-menu shortcut. `validate` warns on any other key: a key the generator does not read is a
+#: setting that silently does nothing (FIX-QRA-COMMANDS-AND-OFFSET). ``start`` is what convert-v5 wrote
+#: before ``active_at_start`` existed, and is still read for the missions it converted.
+QRA_DEFINITION_KEYS: frozenset[str] = frozenset(
+    {
+        "name",
+        "coalition",
+        "enemy_coalitions",
+        "trigger_zone",
+        "zone_radius",
+        "simple_groups",
+        "groups_by_enemy_count",
+        "delay_before_rearming",
+        "delay_before_activating",
+        "react_on_helicopters",
+        "airport_link",
+        "respawn_default_offset",
+        "active_at_start",
+        "start",
+        "radio_menu",
+        "radio_menu_restrict_to_group",
+        "radio_menu_secured",
+    }
+)
 
 
 def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
@@ -1253,11 +1282,15 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
         lines.append(f"{indent}    :setReactOnHelicopters()")
     if al := qra_def.get("airport_link"):
         lines.append(f"{indent}    :setAirportLink({_lua_text(al)})")
+    # Where a command-driven element spawns, relative to the zone: the same setter as a wave zone's.
+    if ro := qra_def.get("respawn_default_offset"):
+        x, y = _number_pair(ro, "respawn_default_offset")
+        lines.append(f"{indent}    :setRespawnDefaultOffset({x}, {y})")
 
     # `active_at_start: false` declares the QRA without arming it: the builder chain stops
     # before :start(). The QRA is still registered under its name by :setName(), so a
     # `qra.start` radio command (or a script) can arm it later.
-    if qra_def.get("active_at_start", True):
+    if qra_def.get("active_at_start", qra_def.get("start", True)):
         lines.append(f"{indent}    :start()")
     return lines
 

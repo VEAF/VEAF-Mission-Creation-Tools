@@ -68,7 +68,7 @@ modules:
         message_end_zone: "Zone cleared!"
         message_end_all: "All zones cleared!"
         waves:
-          - groups: "su27-flight"       # DCS group name or space-separated list
+          - groups: "su27-flight"       # DCS group name, YAML list of names, or VEAF command
             delay: 0                    # seconds after this wave is cleared before the next; -1 = concurrent
             number: "1-2"              # how many groups to pick: integer or "min-max" range
             bias: 0                     # shift random selection towards harder groups
@@ -130,7 +130,7 @@ now checks the file it generates and refuses to ship one that does not parse.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `groups` | string | — | DCS group name, space-separated list, or VEAF spawn command |
+| `groups` | string or string[] | — | DCS group name, YAML list of names (`["su27-a", "su27-b"]`), or VEAF command (`[0,0]-spawn …`, `-sa6`). A string is **not** split on spaces: it names one group. `validate` checks that every name that is not a command exists in the mission |
 | `delay` | integer | `0` | Seconds after wave cleared before next; `-1` = concurrent |
 | `number` | string \| integer | — | How many groups to pick: `2` or `"1-3"` range |
 | `bias` | integer | `0` | Shift random start index toward harder entries |

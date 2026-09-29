@@ -84,6 +84,25 @@ def test_create_qra_lays_down_both_worlds(tmp_path: Path) -> None:
     assert "MiG-29 North" in definition["simple_groups"]  # referenced by exact name
 
 
+def test_create_qra_warns_on_a_key_the_build_does_not_read(tmp_path: Path) -> None:
+    """FIX-QRA-COMMANDS-AND-OFFSET: an extra key nobody reads did nothing, silently."""
+    result = create_qra(
+        _folder(tmp_path),
+        name="QRA-North",
+        coalition="red",
+        trigger_zone="ZONE-QRA",
+        position={"x": 1.0, "y": 2.0},
+        radius=50000,
+        groups=[{"name": "MiG-29 North", "units": [{"type": "MiG-29S", "count": 2}]}],
+        country_id=0,
+        country_name="Russia",
+        qra={"respawn_radius": 5000, "delay_before_activating": 30},
+    )
+    messages = [w["warning"] for w in result["warnings"] if isinstance(w, dict) and "warning" in w]
+    assert any("respawn_radius" in m for m in messages)
+    assert not any("delay_before_activating" in m for m in messages)
+
+
 def test_create_cap_mission_lays_down_both_worlds(tmp_path: Path) -> None:
     folder = _folder(tmp_path)
     result = create_cap_mission(

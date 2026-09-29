@@ -1,6 +1,6 @@
 # FIX-QRA-COMMANDS-AND-OFFSET — two ways a QRA config is accepted and then ignored
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — fixed 2026-09-29; R7 of `DCS-SESSION-TODO.md` is the in-game reading.
 
 Found 2026-09-01 while preparing the DCS session mission for release-gate item **R7**. Both defects
 sit between `mission.yaml` and the runtime, and both are silent: nothing in the build says the
@@ -44,18 +44,36 @@ the same way rather than fixing this one alone.
 
 ## Definition of done
 
-- [ ] A VEAF command passes `validate` in a QRA deploy list, and a genuinely absent **group** is still
+- [x] A VEAF command passes `validate` in a QRA deploy list, and a genuinely absent **group** is still
       reported — the check keeps its value
-- [ ] The rule is shared with AIRWAVES rather than written twice: today one module collects and the
+- [x] The rule is shared with AIRWAVES rather than written twice: today one module collects and the
       other does not, and that difference is the defect
-- [ ] `respawn_default_offset` reaches the generated Lua for a QRA, with a test asserting the emitted
+- [x] `respawn_default_offset` reaches the generated Lua for a QRA, with a test asserting the emitted
       line and not the setter
-- [ ] **Every QRA key of `mission.yaml` checked against what the generator emits** — enumerate, do not
+- [x] **Every QRA key of `mission.yaml` checked against what the generator emits** — enumerate, do not
       sample; that is what turned #884 from one site into two
-- [ ] Both documented in the QRA reference, both languages
+- [x] Both documented in the QRA reference, both languages
 
 ## Why it is worth doing before the next release
 
 R7 of `DCS-SESSION-TODO.md` was written to exercise a command-driven QRA and had to fall back to an
 editor group, because the build would not produce the mission. The repair shipped in #884 therefore
 still has no in-game check on the QRA side.
+
+## Done — 2026-09-29
+
+- `group_validation.is_veaf_command` is the runtimes' rule (`[` or `-`, in `veafQraCore` and
+  `veafAirWaves` alike). QRA deploy lists skip commands; AIRWAVES wave groups are collected and checked
+  too, by the same rule. The old reason for leaving AIRWAVES out ("patterns/templates") did not hold:
+  a wave takes group names or commands, nothing else.
+- `respawn_default_offset` is emitted on the QRA chain (`:setRespawnDefaultOffset(x, y)`).
+- **The enumeration found a second swallowed key.** convert-v5 wrote `start: false` for a QRA whose v5
+  `:start()` was commented out, and the generator read only `active_at_start`: such a QRA was armed at
+  mission start. The converter now writes `active_at_start: false`; the generator still reads `start`
+  for the missions already converted.
+- `lua_config_generator.QRA_DEFINITION_KEYS` lists every key read; `validate` warns on any other
+  (`yaml.semantic.unknown_qra_key`), and `test_qra_keys_reach_the_lua.py` sweeps the list, checking
+  that each key changes the emitted Lua.
+- **Found beside it:** an AIRWAVES wave whose `groups` is a YAML list went through `str()` and reached
+  the runtime as the single group `"['su27-a', 'su27-b']"`. It is now a Lua table. The AirWaves page
+  said a string could be "space-separated"; the runtime never split it, and the page now says so.

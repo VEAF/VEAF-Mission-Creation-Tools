@@ -4888,4 +4888,73 @@ function TestFindGroupByPartialName:test_it_survives_a_group_with_no_name()
   luaunit.assertNotNil(veaf.findGroupByPartialName("arty-1"))
 end
 
+-- ===========================================================================
+-- FIX-PER-MODULE-LOGLEVEL-INERT: `logLevel` under a module reached veaf.config and nothing else.
+-- The loop that applied it lives in veaf.initialize(), which nothing calls. Measured 2026-09-01:
+-- `logLevel: trace` under SPAWN, zero `VEAF-SPAWN|T|` lines.
+-- ===========================================================================
+TestPerModuleLogLevel = {}
+
+function TestPerModuleLogLevel:setUp()
+  dcs_mocks.logs = {}
+  self._forced = veaf.ForcedLogLevel
+  veaf.ForcedLogLevel = nil
+  veaf.config.LOGLVLA, veaf.config.LOGLVLB, veaf.config.LOGLVLLATE = nil, nil, nil
+  self.a = veaf.loggers.new("LOGLVLA", "info")
+  self.b = veaf.loggers.new("LOGLVLB", "info")
+  self.veafLevel = veaf.loggers.get(veaf.Id):getLevel()
+end
+
+function TestPerModuleLogLevel:tearDown()
+  veaf.ForcedLogLevel = self._forced
+  veaf.loggers.get(veaf.Id):setLevel(self.veafLevel, true)
+end
+
+local function _lines(prefix)
+  local found = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if entry.text:find(prefix, 1, true) then
+      table.insert(found, entry.text)
+    end
+  end
+  return found
+end
+
+function TestPerModuleLogLevel:test_the_module_traces_and_no_other_does()
+  veaf.setConfig("LOGLVLA", "logLevel", "trace")
+  self.a:trace("a trace line")
+  self.b:trace("b trace line")
+  luaunit.assertEquals(#_lines("LOGLVLA|T|"), 1)
+  luaunit.assertEquals(#_lines("LOGLVLB|T|"), 0)
+end
+
+function TestPerModuleLogLevel:test_a_level_set_before_the_module_loads_is_applied_when_it_does()
+  veaf.setConfig("LOGLVLLATE", "logLevel", "trace")
+  veaf.loggers.new("LOGLVLLATE", "info"):trace("late trace line")
+  luaunit.assertEquals(#_lines("LOGLVLLATE|T|"), 1)
+end
+
+-- veaf.loggers.get falls back to the veaf logger for an unknown id: applying through it would have
+-- set the level of everything
+function TestPerModuleLogLevel:test_an_unknown_module_leaves_the_veaf_logger_alone()
+  veaf.setConfig("NOSUCHLOGGER", "logLevel", "trace")
+  luaunit.assertEquals(veaf.loggers.get(veaf.Id):getLevel(), self.veafLevel)
+end
+
+-- global_log_level is the default: the module's own level outranks it, the others follow it
+function TestPerModuleLogLevel:test_the_module_level_outranks_the_global_one()
+  veaf.ForcedLogLevel = "error"
+  veaf.setConfig("LOGLVLA", "logLevel", "trace")
+  self.a:trace("a trace line")
+  self.b:info("b info line")
+  luaunit.assertEquals(#_lines("LOGLVLA|T|"), 1)
+  luaunit.assertEquals(#_lines("LOGLVLB|I|"), 0)
+end
+
+function TestPerModuleLogLevel:test_the_global_level_still_reaches_the_other_modules()
+  veaf.ForcedLogLevel = "trace"
+  self.b:trace("b trace line")
+  luaunit.assertEquals(#_lines("LOGLVLB|T|"), 1)
+end
+
 os.exit(luaunit.LuaUnit.run())

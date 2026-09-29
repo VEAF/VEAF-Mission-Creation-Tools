@@ -91,15 +91,16 @@ modules:
 | `enemy_coalitions` | string[] | *(opposée)* | Non | Coalitions qui déclenchent un scramble |
 | `trigger_zone` | string | — | Non | Nom de la zone de trigger DCS |
 | `zone_radius` | entier | — | Non | Rayon de zone en mètres (sans zone de trigger) |
-| `simple_groups` | string[] | `[]` | Non | Noms de groupes DCS à toujours scrambler |
+| `simple_groups` | string[] | `[]` | Non | Noms de groupes DCS à toujours scrambler, ou commandes VEAF (`[0,0]-spawn shilka, country russia`, `-sa6`) : une entrée qui commence par `[` ou `-` est une commande, `validate` ne la cherche pas dans la mission |
 | `groups_by_enemy_count` | objet[] | `[]` | Non | Règles de scramble proportionnel |
 | `groups_by_enemy_count[].enemy_count` | entier | — | Oui | Nombre d'intrus activant cette règle |
-| `groups_by_enemy_count[].groups` | string[] | — | Oui | Pool de noms de groupes |
+| `groups_by_enemy_count[].groups` | string[] | — | Oui | Pool de noms de groupes ou de commandes VEAF, comme `simple_groups` |
 | `groups_by_enemy_count[].random_pick` | entier | `1` | Non | Combien de groupes choisir dans le pool |
 | `delay_before_rearming` | entier | `0` | Non | Secondes avant réinitialisation après départ des intrus |
 | `delay_before_activating` | entier | `0` | Non | Secondes après le démarrage avant mise en ligne |
 | `react_on_helicopters` | booléen | `false` | Non | Déclencher aussi sur les hélicoptères ennemis |
 | `airport_link` | string | — | Non | Nom de base aérienne DCS liée — QRA hors ligne si détruite |
+| `respawn_default_offset` | [nombre, nombre] | `[0, 0]` | Non | Décalage en mètres `[nord, est]`, par rapport au centre de la zone, où apparaît un élément déployé par une commande VEAF sans position `[x,y]` à elle |
 | `active_at_start` | booléen | `true` | Non | `false` : la QRA est déclarée mais **pas armée** au démarrage — elle attend un `qra.start` (menu radio) ou un appel script |
 | `radio_menu` | booléen | `false` | Non | Générer automatiquement un sous-menu radio F10 de contrôle de cette QRA (voir ci-dessous) |
 | `radio_menu_restrict_to_group` | string | — | Non | Nom d'un groupe DCS ; le sous-menu généré n'apparaît que pour ce groupe |

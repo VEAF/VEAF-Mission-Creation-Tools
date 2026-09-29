@@ -1542,6 +1542,25 @@ function VeafCombatZone:getInformation(unitName)
             end
           end
         end
+      else
+        -- A static element comes back as a static, registered under its own name, which
+        -- `Group.getByName` does not know. The watchdog counts it (completionCheck), so the panel must
+        -- too: on 2026-09-29 combatZone_WahnerHeide_Easy listed no enemy at all while the zone waited
+        -- for its five static targets.
+        local static = StaticObject.getByName(groupName)
+        if static then
+          local coa = static:getCoalition()
+          local typeName = static.getTypeName and static:getTypeName()
+          local byType = (coa == 1 and unitsByTypeR) or (coa == 2 and unitsByTypeB) or nil
+          if coa == 1 then
+            nbStaticsR = nbStaticsR + 1
+          elseif coa == 2 then
+            nbStaticsB = nbStaticsB + 1
+          end
+          if byType and typeName then
+            byType[typeName] = (byType[typeName] or 0) + 1
+          end
+        end
       end
       if veaf.Diagnostics then
         veaf.diag(veafCombatZone.Id, "zone %s: panel sees %s", self.missionEditorZoneName, veafCombatZone.describeForDiag(groupName))

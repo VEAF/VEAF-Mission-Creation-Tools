@@ -1,7 +1,27 @@
 # 02 — spawned ground vehicles start with their engines running
 
-Status: ⬜ ready — David's ruling, 2026-09-27. Not investigated yet.
+Status: 🧑 waiting-human — built 2026-09-29; only the in-game check is left.
 Type: fix
+
+## 2026-09-29 — what was found and built
+
+1. **The lever is `coldAtStart`, per unit.** DCS 2.8.4.39731 (stable, 2023-05-05): *"ME Setting
+   'COLD AT START' now working as intended for FLIR rendering. Not selecting this option will allow
+   units to have infrared signatures at mission start rather than first needing to heat up."*
+2. **The editor already writes it `false`**: all 185 ground units of GermanyCW-v6's `mission` carry
+   `coldAtStart = false`, none `true`. A table built by a script — `veafSpawnCore` for a `#command`
+   group, a convoy, a marker spawn — had **no key at all**, and what DCS does with a missing key is
+   **not established**.
+3. **Built**: `veafDcsSpawner.addGroup`, the single path every group goes through, now writes
+   `coldAtStart = false` on a ground unit that has none, next to the `playerCanDrive` default it
+   already set. A unit the mission maker ticked cold keeps `true`: the mission record
+   (`veafMissionDb`) did not carry the key, so the review of this lot caught a respawn turning such
+   a unit warm; the record now projects it. Aircraft and ships are untouched.
+4. **What this cannot fix — and it may be what was seen.** The Wahner Heide `-cible-N` targets are
+   now **statics** (the 2026-09-28 log), and a static has no engine. They stay cold on a pod whatever
+   the scripts do; only turning them into groups in the mission would change that. And if DCS already
+   read a missing key as warm, the vehicles David found cold went cold by **standing still**, which
+   no mission option is known to prevent — the in-game check tells which.
 
 ## What was asked
 
@@ -27,10 +47,10 @@ it will reach convoys and lone vehicles too.
 
 ## Definition of done
 
-- [ ] A failing test first: **any** spawned ground group comes out with its engines running, not
-      only one spawned into a combat zone
+- [x] A failing test first: **any** spawned ground group comes out with its engines running, not
+      only one spawned into a combat zone (`test_veafDcsSpawner.lua`, `test_a_ground_unit_starts_warm`)
 - [ ] Verified in game: the vehicles of a freshly activated zone are acquirable on a TGP
-- [ ] The choice is documented where a mission maker will meet it, and says what to write to get the
-      other behaviour
-- [ ] `poetry run test-lua` green, `stylua --check` and `luacheck` clean
-- [ ] `CHANGELOG.md` entry under `[Unreleased]`
+- [x] The choice is documented where a mission maker will meet it, and says what to write to get the
+      other behaviour (`veafSpawn` `#warm-start`, combat zone `#static-targets`)
+- [x] `poetry run test-lua` green, `stylua --check` clean (`luacheck` by the CI)
+- [x] `CHANGELOG.md` entry under `[Unreleased]`

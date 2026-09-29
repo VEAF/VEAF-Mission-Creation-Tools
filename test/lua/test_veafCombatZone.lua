@@ -1133,6 +1133,59 @@ function TestVeafCombatZoneGetInformation:test_getInformation_active_training_wi
   dcs_mocks.removeGroup("trainGrp")
 end
 
+-- A zone element placed as a static comes back as a static, registered under its own name, and
+-- `Group.getByName` does not know it. The panel read groups only, so it said nothing of the five static
+-- targets of combatZone_WahnerHeide_Easy (measured 2026-09-29 on private1: "panel sees … static" five
+-- times, no enemy in the text) while the watchdog, which does read statics, waited for all five.
+local function _withStatic(name, coalitionId, typeName, test)
+  local previous = StaticObject.getByName
+  StaticObject.getByName = function(asked)
+    if asked == name then
+      return {
+        getCoalition = function()
+          return coalitionId
+        end,
+        getTypeName = function()
+          return typeName
+        end,
+      }
+    end
+    return nil
+  end
+  local ok, err = pcall(test)
+  StaticObject.getByName = previous
+  if not ok then
+    error(err, 0)
+  end
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_counts_a_spawned_static_the_watchdog_waits_for()
+  _withStatic("[r]-Swift Hawk#10414 #72", 1, "T-72B", function()
+    self.z:addSpawnedGroup("[r]-Swift Hawk#10414 #72")
+    local info = self.z:getInformation(nil)
+    luaunit.assertStrContains(info, "ENEMIES")
+    luaunit.assertStrContains(info, "1 structure(s)")
+  end)
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_training_names_the_type_of_a_spawned_static()
+  self.z:setTraining(true)
+  self.z:setShowZonePositionInfo(false)
+  _withStatic("[r]-Swift Hawk#10414 #72", 1, "T-72B", function()
+    self.z:addSpawnedGroup("[r]-Swift Hawk#10414 #72")
+    luaunit.assertStrContains(self.z:getInformation(nil), "1 T-72B")
+  end)
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_a_blue_static_is_a_friend()
+  _withStatic("blueBunker", 2, "Bunker", function()
+    self.z:addSpawnedGroup("blueBunker")
+    local info = self.z:getInformation(nil)
+    luaunit.assertStrContains(info, "FRIENDS")
+    luaunit.assertNil(info:find("ENEMIES"))
+  end)
+end
+
 -- ============================================================================
 -- TestVeafCombatZoneEnemyCoalition (FEAT-COMBATZONE-RED-SIDE)
 -- ============================================================================

@@ -244,6 +244,16 @@ _teleport, name "Viper Flight"
 
 ---
 
+## Vehicles start warm {#warm-start}
+
+Every ground vehicle the VEAF scripts spawn — marker command, combat zone, convoy, respawn of an editor group — starts **with its engine warm**: it has an infrared signature from its first second and shows on a targeting pod. That is the editor's **COLD AT START** option left unticked, which is the editor's own default.
+
+For a cold vehicle, tick **COLD AT START** on the unit in the Mission Editor: a respawn keeps that choice.
+
+A **static object** has no engine: it stays cold whatever happens. A target meant to show on a pod has to be a group, not a static.
+
+---
+
 ## Spawnable aircraft groups (`src/spawnables.yaml`)
 
 > ⚠️ Not to be confused with the `_spawn group` command (ground/helicopter groups from the `veafUnits` database). This is about real **aircraft groups**, hidden and late-activated, that `veafSpawn` **clones** on demand in-game.

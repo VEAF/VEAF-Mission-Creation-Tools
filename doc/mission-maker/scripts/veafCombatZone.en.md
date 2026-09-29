@@ -337,6 +337,10 @@ A group that has been wiped out does not appear there: it is simply gone from th
 
 For sites whose composition the DCS attributes cannot describe, a pattern table (`veaf.ImportantUnitsByGroupPattern`, in `veaf.lua`) declares the sets of units a site cannot do without and the minimum life, as a percentage, they need. The S-300 is already in it.
 
+### Static targets {#static-targets}
+
+A static object in the zone counts as a target: the zone waits for it before completing, and the info panel counts it among the enemies left, as "structure(s)" — with its type in training mode. But a static has no engine and stays cold on a targeting pod; vehicles spawn warm (see [veafSpawn](veafSpawn.en.md#warm-start)).
+
 ## Unit and Group Name Tags
 
 Unit and group names in the DCS Mission Editor can carry special tags that control how VEAF handles them when the zone activates. Tags are embedded in the name and do not affect DCS itself.

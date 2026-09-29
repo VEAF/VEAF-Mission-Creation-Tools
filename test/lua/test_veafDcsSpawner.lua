@@ -533,6 +533,27 @@ function TestVeafDcsSpawnerAddGroup:test_a_ground_unit_can_be_driven_by_a_player
   luaunit.assertTrue(submittedGroup().units[1].playerCanDrive)
 end
 
+-- David, 2026-09-27: every spawned vehicle starts warm, so it shows on a targeting pod. `coldAtStart`
+-- unticked is what gives a unit an infrared signature at mission start (DCS 2.8.4.39731 notes), and it
+-- is what the editor writes for every ground unit — a table built by a script simply had no key.
+function TestVeafDcsSpawnerAddGroup:test_a_ground_unit_starts_warm()
+  veafDcsSpawner.addGroup(_group())
+
+  luaunit.assertEquals(submittedGroup().units[1].coldAtStart, false)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_a_ground_unit_the_mission_maker_made_cold_stays_cold()
+  veafDcsSpawner.addGroup(_group({ units = { { type = "M-1 Abrams", x = 100, y = 200, coldAtStart = true } } }))
+
+  luaunit.assertTrue(submittedGroup().units[1].coldAtStart)
+end
+
+function TestVeafDcsSpawnerAddGroup:test_an_aircraft_gets_no_coldAtStart()
+  veafDcsSpawner.addGroup(_group({ category = "AIRPLANE", units = { { type = "F-16C_50", x = 100, y = 200 } } }))
+
+  luaunit.assertNil(submittedGroup().units[1].coldAtStart)
+end
+
 function TestVeafDcsSpawnerAddGroup:test_startTime_is_rounded_into_start_time()
   veafDcsSpawner.addGroup(_group({ startTime = 12.7 }))
 
@@ -1227,6 +1248,23 @@ function TestVeafGroupSpawnChain:test_a_respawn_keeps_the_editor_identity()
 
   luaunit.assertEquals(spawned().groupId, 7)
   luaunit.assertEquals(spawned().units[1].unitId, 3)
+end
+
+-- The editor's COLD AT START travels through the mission record, or the warm default of `addGroup`
+-- overrides the mission maker's choice on every respawn.
+function TestVeafGroupSpawnChain:test_a_respawn_keeps_the_editor_cold_at_start()
+  env.mission.coalition.blue.country[1].vehicle.group[1].units[1].coldAtStart = true
+  veafMissionDb.buildSnapshot()
+
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):respawn()
+
+  luaunit.assertTrue(spawned().units[1].coldAtStart)
+end
+
+function TestVeafGroupSpawnChain:test_a_respawn_of_an_editor_unit_left_warm_is_warm()
+  VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):respawn()
+
+  luaunit.assertEquals(spawned().units[1].coldAtStart, false)
 end
 
 -- A new identity includes a new name ------------------------------------------------------------

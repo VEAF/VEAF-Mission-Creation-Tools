@@ -8,6 +8,7 @@ from presets_injector.presets_manager import (
     PresetDefinition,
     RadioDefinition,
     RadioPresetsImageGenerator,
+    _ch_label,
     _radio_max_slot,
     _split_radio_into_columns,
     pack_preset_for_type,
@@ -131,6 +132,66 @@ class TestAjs37DisplayLabels(unittest.TestCase):
         self.assertEqual(labels[40], "139")  # last data slot = Group 139
         self.assertEqual(labels[41], "Sp1")  # FR22 Special 1
         self.assertEqual(labels[47], "H")  # FR24 H
+
+
+class TestRotatedChannelDisplayLabels(unittest.TestCase):
+    """A channel-0 rotation radio shows the number on the selector, not the DCS slot.
+
+    DCS slot 1 of the Mi-24P's R-863 is the selector's channel 0, so the kneeboard must print slot N as channel
+    N-1. It printed the slot: "13 Nörvenich" where the cockpit reads channel 12 (GermanyCW, read in the
+    cockpit on 2026-09-29).
+    """
+
+    def test_mi24p_slots_are_labelled_from_channel_zero(self):
+        channel_collections: dict[str, ChannelCollection] = {"c": ChannelCollection.from_dict("c", {})}
+        data = {"blue": {"primary_1": {str(k).zfill(2): 250.0 + k for k in range(1, 21)}}}
+        channel_lists, _ = parse_channel_lists(data, channel_collections)
+        preset = pack_preset_for_type(channel_lists, "blue", "Mi-24P")
+        radio = next(iter(preset.radios.values()))
+
+        self.assertEqual(radio.display_labels[1], "00")  # the list's 20th entry, on the selector's 0
+        self.assertEqual(radio.display_labels[13], "12")  # the list's 12th entry, on the selector's 12
+        channel_13 = next(c for c in radio.channels if c.number == 13)
+        self.assertEqual(channel_13.freq, 262.0)
+
+
+class TestReservedHeadSlotDisplayLabels(unittest.TestCase):
+    """An OH-58D radio shows its reserved head slots by name, then presets numbered from 1."""
+
+    def _radios(self):
+        channel_collections: dict[str, ChannelCollection] = {"c": ChannelCollection.from_dict("c", {})}
+        data = {
+            "blue": {
+                "primary_1": {str(k).zfill(2): 250.0 + k for k in range(1, 21)},
+                "primary_2": {str(k).zfill(2): 130.0 + k for k in range(1, 17)},  # 16 entries, as GermanyCW
+                "fm_supplement": {str(k).zfill(2): 30.0 + k for k in range(1, 31)},
+            }
+        }
+        channel_lists, _ = parse_channel_lists(data, channel_collections)
+        return pack_preset_for_type(channel_lists, "blue", "OH58D").radios
+
+    def test_uhf_head_slot_is_m_then_presets_from_one(self):
+        radio = self._radios()["radio_1"]
+        self.assertEqual(radio.display_labels[1], "M")
+        self.assertEqual(radio.display_labels[13], "12")
+        self.assertEqual(next(c for c in radio.channels if c.number == 13).freq, 262.0)  # preset 12 = entry #12
+
+    def test_short_vhf_list_keeps_preset_numbers(self):
+        radio = self._radios()["radio_2"]
+        self.assertEqual(radio.display_labels[6], "05")
+        self.assertEqual(next(c for c in radio.channels if c.number == 6).freq, 135.0)  # preset 5 = entry #5
+
+    def test_rows_past_the_last_labelled_slot_carry_no_number(self):
+        # the page draws 32 rows for every radio: past the 20th slot of a labelled radio, printing the DCS slot
+        # ("21" right after "19") would read as one more preset
+        radio = self._radios()["radio_1"]
+        self.assertEqual(_ch_label(radio, 21), "")
+        plain = RadioDefinition(name="r", radio_type="uhf", title="UHF")
+        self.assertEqual(_ch_label(plain, 21), "21")  # a radio without labels keeps plain slot numbers
+
+    def test_fm_head_slots_are_c_then_m(self):
+        radio = self._radios()["radio_3"]
+        self.assertEqual([radio.display_labels[1], radio.display_labels[2], radio.display_labels[3]], ["C", "M", "01"])
 
 
 if __name__ == "__main__":

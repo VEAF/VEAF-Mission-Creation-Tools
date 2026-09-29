@@ -187,6 +187,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Kneeboards drawn without Arial keep their layout** (CHORE-SMALL-POLISH). On a machine without the
   Windows fonts, the channel, radio and page titles all fell back to a 10 px font instead of 18, 30
   and 40 px.
+- **Accented channel names reach the cockpit intact.** `presets.yaml` was read with the locale's
+  code page, cp1252 on a French or English Windows, so "Nörvenich" became "NÃ¶rvenich" in every
+  injected radio and on every kneeboard page (127 channels of the GermanyCW Open Training). The
+  frequencies were right; the names were not. `versions.yaml`, the weather Lua converter and the
+  updater's reads had the same defect and are fixed with it, and a test now fails on any text file
+  veaf-tools opens without naming its encoding.
+- **The kneeboard numbers presets the way the cockpit does** on the Mi-24P and the OH-58D. It printed
+  the DCS slot: "13 Nörvenich" where the Mi-24P's R-863 selector reads channel 12 (checked in the
+  cockpit). The Mi-24P's page now counts from 00; the OH-58D's shows its "M" (and "C" on FM) head
+  slots by name, then presets from 01.
+- **An OH-58D radio whose list is shorter than 20 entries keeps its preset numbers.** Its "M" slot is
+  fed by entry 20; with a shorter list that entry did not exist, the slot was dropped, and every
+  preset moved down by one (a 16-entry VHF list put entry 5 on preset 4). The slot now takes the
+  list's last entry. Found in the code; not yet checked in the cockpit.
 
 ### Changed
 

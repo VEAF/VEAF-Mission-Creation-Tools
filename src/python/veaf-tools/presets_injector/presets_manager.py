@@ -1007,6 +1007,9 @@ class RadioLayoutRadio:
             for the OH-58D FM radios' "C" then "M" slots). The rest of the list
             follows in its original order into the remaining slots. Mutually
             exclusive with ``rotate_last_to_head`` on the same radio.
+        head_labels: What the cockpit shows on each reserved head slot, in the
+            same order (e.g. ``["C", "M"]``): the kneeboard prints them on those
+            slots and numbers the presets that follow from 01.
         capacity: Slot capacity primitive (ADR 0010): the maximum number of
             channel slots this radio physically holds. When the radio's final
             composed channel count (after every other primitive has run,
@@ -1023,6 +1026,7 @@ class RadioLayoutRadio:
     trailing_specials: list[HardcodedChannel] | None = None
     reserved_head_slots: list[int] = field(default_factory=list)
     capacity: int | None = None
+    head_labels: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -1079,6 +1083,7 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                 trailing_specials=_parse_hardcoded_channels(radio_data.get("trailing_specials")),
                 reserved_head_slots=reserved_head_slots,
                 capacity=_parse_capacity(radio_data.get("capacity"), index, unit_type_key),
+                head_labels=[str(label) for label in radio_data.get("head_labels") or []],
             )
         layouts[unit_type_key] = RadioLayoutEntry(radios=radios)
     return layouts
@@ -1292,17 +1297,17 @@ def _prepend_reserved_slots(source: RadioDefinition, reserved_head_slots: list[i
         source: The role's channel list (channels in list order, not necessarily
             already numbered 1..N).
         reserved_head_slots: 1-based list-index(es) filling the leading slot(s),
-            in order. An index that is not a valid 1-based position in the list
-            (<= 0, or beyond the list's actual length) is skipped rather than
-            raising (safe degradation for a shorter-than-expected maker list,
-            mirroring :func:`pack_preset_for_type`'s HF-radio fallback).
+            in order. An index beyond a shorter list takes the list's last entry
+            (the head slot exists in the cockpit whatever the list's length); an
+            index <= 0 is skipped rather than raising. See
+            :func:`_reserved_head_indices`.
 
     Returns:
         A new RadioDefinition with the same radio_type/title, channels renumbered.
     """
     result = RadioDefinition(name=source.name, radio_type=source.radio_type, title=source.title)
     last_position = len(source.channels) - 1
-    valid_indices = [index for index in reserved_head_slots if 1 <= index <= len(source.channels)]
+    valid_indices = _reserved_head_indices(reserved_head_slots, len(source.channels))
     reserved = [source.channels[index - 1] for index in valid_indices]
     # Only the last entry is removed from the tail (rotation semantics); any
     # other reserved index is a duplicate that stays in the tail too.
@@ -1312,6 +1317,31 @@ def _prepend_reserved_slots(source: RadioDefinition, reserved_head_slots: list[i
     for slot, channel in enumerate(ordered, start=1):
         result.add_channel(_clone_channel(channel, slot))
     return result
+
+
+def _reserved_head_indices(reserved_head_slots: list[int], length: int) -> list[int]:
+    """The 1-based list indices that fill the reserved head slots of a *length*-entry list.
+
+    An index beyond the list stands for "the list's last entry" (20 is the last of a full list): the head
+    slot exists in the cockpit whatever the list's length, so it takes the last entry rather than being
+    dropped, which shifted every preset by one (GermanyCW OH-58D VHF, 16 entries, 2026-09-29). Indices
+    below 1 are skipped; a clamp that lands on an index already taken is not repeated.
+
+    Args:
+        reserved_head_slots: The layout's declared indices, in order.
+        length: Number of entries in the channel list.
+
+    Returns:
+        The indices to use, in order.
+    """
+    indices: list[int] = []
+    for index in reserved_head_slots:
+        if index < 1 or length < 1:
+            continue
+        index = min(index, length)
+        if index not in indices:
+            indices.append(index)
+    return indices
 
 
 def _channel_list_for_role(role_lists: dict[str, RadioDefinition], role: str) -> RadioDefinition | None:
@@ -1526,7 +1556,53 @@ def _content_for_radio(
         result.add_channel(channel)
     if layout_radio is not None:
         result.display_labels = _keyed_groups_display_labels(layout_radio, specials_base)
+        # the pilot numbering of the plain-list content; the trailing specials, if any, keep their own labels
+        content_slots = min(specials_base - 1, len(channels))
+        if layout_radio.keyed_groups is None and layout_radio.rotate_last_to_head:
+            result.display_labels = _rotation_display_labels(content_slots)
+        elif layout_radio.keyed_groups is None and layout_radio.reserved_head_slots and base_source is not None:
+            heads = len(_reserved_head_indices(layout_radio.reserved_head_slots, len(base_source.channels)))
+            result.display_labels = _reserved_head_display_labels(layout_radio.head_labels, heads, content_slots)
+        if layout_radio.keyed_groups is None and result.display_labels:
+            for offset, special in enumerate(layout_radio.trailing_specials or []):
+                if special.label:
+                    result.display_labels[specials_base + offset] = special.label
     return result
+
+
+def _reserved_head_display_labels(head_labels: list[str], heads: int, slot_count: int) -> dict[int, str]:
+    """Pilot-facing CH labels for a radio with reserved head slots (the OH-58D's "C"/"M").
+
+    The head slots show their cockpit name; the presets after them are numbered from 01, which is what the
+    pilot selects. Without them the kneeboard printed the DCS slot, one more than the preset (two on FM).
+
+    Args:
+        head_labels: The cockpit names of the head slots, in order (may be shorter than *heads*).
+        heads: Number of head slots actually placed.
+        slot_count: Number of slots the radio carries.
+
+    Returns:
+        Slot -> label.
+    """
+    labels = {slot: f"{slot - heads:02d}" for slot in range(heads + 1, slot_count + 1)}
+    for slot in range(1, heads + 1):
+        labels[slot] = head_labels[slot - 1] if slot <= len(head_labels) else f"{slot:02d}"
+    return labels
+
+
+def _rotation_display_labels(slot_count: int) -> dict[int, str]:
+    """Pilot-facing CH labels for a channel-0 rotation radio: DCS slot ``N`` is the selector's channel ``N-1``.
+
+    Without them the kneeboard printed the DCS slot, one more than the number the pilot dials (the Mi-24P's
+    R-863 reads channel 12 where the kneeboard said 13, GermanyCW, 2026-09-29).
+
+    Args:
+        slot_count: Number of slots the radio carries.
+
+    Returns:
+        Slot -> two-digit channel label, from "00".
+    """
+    return {slot: f"{slot - 1:02d}" for slot in range(1, slot_count + 1)}
 
 
 def _keyed_groups_display_labels(layout_radio: RadioLayoutRadio, specials_base: int) -> dict[int, str]:
@@ -1762,7 +1838,7 @@ class PresetsManager:
 
     def read_yaml(self, yaml_path: Path):
         try:
-            with open(yaml_path) as file:
+            with open(yaml_path, encoding="utf-8") as file:
                 data = yaml.safe_load(file)
 
             self._check_sections(data)
@@ -1876,11 +1952,30 @@ def _split_radio_into_columns(radio: RadioDefinition, num_columns: int) -> list[
         )
         for real_slot in range(first_slot, last_slot + 1):
             local_slot = real_slot - first_slot + 1
-            column.display_labels[local_slot] = radio.display_labels.get(real_slot, f"{real_slot:02d}")
+            column.display_labels[local_slot] = _ch_label(radio, real_slot)
             if real_slot in channel_by_slot:
                 column.add_channel(_clone_channel(channel_by_slot[real_slot], local_slot))
         columns.append(column)
     return columns
+
+
+def _ch_label(radio: RadioDefinition, slot: int) -> str:
+    """The text of a kneeboard row's CH cell: the radio's pilot label for *slot*, else the slot number.
+
+    A radio that carries labels (the AJS-37's Groups, the Mi-24P's channel 0, the OH-58D's "M") gets an empty
+    cell past its labelled slots: the page draws as many rows as its tallest radio, and printing the DCS slot
+    there ("21" right after "19" on the OH-58D) would read as one more preset.
+
+    Args:
+        radio: The radio the row belongs to.
+        slot: The row's 1-based DCS slot.
+
+    Returns:
+        The label, the zero-padded slot number, or "".
+    """
+    if slot in radio.display_labels:
+        return radio.display_labels[slot]
+    return "" if radio.display_labels else f"{slot:02d}"
 
 
 def _resolve_kneeboard_color(color: str) -> tuple[int, int, int] | None:
@@ -1958,7 +2053,7 @@ class RadioPresetsImageGenerator:
                     break
             # ADR 0012: the CH cell shows the type's pilot label when one exists
             # (the AJS-37's Group 100-139 / Sp1-H), else the plain slot number.
-            channel_number = radio_definition.display_labels.get(j + 1, f"{j + 1:02d}")
+            channel_number = _ch_label(radio_definition, j + 1)
             channel_name = channel.title if channel is not None else ""
             channel_frequency = f"{channel.freq:.2f}" if channel is not None else ""
             priority = channel.priority if channel is not None else None

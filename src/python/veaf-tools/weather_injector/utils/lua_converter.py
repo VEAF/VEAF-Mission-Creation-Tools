@@ -30,7 +30,7 @@ class LuaToYamlConverter:
                 return None
 
             # Read Lua file
-            with open(lua_file) as f:
+            with open(lua_file, encoding="utf-8") as f:
                 lua_content = f.read()
 
             # Parse Lua configuration
@@ -47,7 +47,7 @@ class LuaToYamlConverter:
                 output_file = Path(output_file)
 
             # Write YAML file
-            with open(output_file, "w") as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
 
             logger.info(t("weather.lua_converter.converted", path=output_file))

@@ -113,7 +113,7 @@ class WeatherInjectorWorker(BaseWorker):
     def _load_configuration(self) -> MissionConfig | None:
         """Load and parse YAML configuration file."""
         try:
-            with open(self.config_file) as f:
+            with open(self.config_file, encoding="utf-8") as f:
                 config_dict = yaml.safe_load(f)
 
             return MissionConfig.from_dict(config_dict)

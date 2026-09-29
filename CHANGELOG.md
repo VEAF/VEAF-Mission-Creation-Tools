@@ -237,6 +237,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Every first-level entry of the VEAF radio menu is shown in capitals** (CHORE-SMALL-POLISH),
   whichever module adds it, accented letters included. Only the *Assistance* menu and its two
   top-level commands were not already.
+- **The Open Training prompt asks for zoomed briefing maps, listed on the blue side only.** DCS's
+  briefing panel fits a picture to its size, so the theatre map could not be read: the prompt now
+  asks for fewer than ten titled zooms after it, each framed from the objects it must show. And a
+  player whose side DCS does not know (a client or dynamic slot, a spectator) saw the red pictures
+  then the blue ones, so a map in both lists showed twice: the pictures now go in `pictureFileNameB` and
+  `pictureFileNameN`, `pictureFileNameR` empty — a new known DCS trap,
+  `briefing-pictures-red-then-blue`.
 
 ### Removed
 

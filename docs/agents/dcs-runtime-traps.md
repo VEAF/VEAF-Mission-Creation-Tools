@@ -287,6 +287,34 @@ sees the `markToAll` marker only, a **red** one sees both. A game master has no 
 
 *What it cost:* A false bug report against working code, and very nearly a "fix" to a correct drawing path.
 
+### A player whose side the briefing does not know sees the red pictures, then the blue ones {#briefing-pictures-red-then-blue}
+
+Measured **2026-09-29**.
+
+The mission's briefing pictures are three lists, `pictureFileNameR`, `pictureFileNameB` and
+`pictureFileNameN`. DCS's briefing (`MissionEditor/modules/me_autobriefing.lua`) picks the list of
+the player's side, and it knows that side only from a unit whose skill is `Player`. With none —
+a `Client` slot (a test mission flown from one included), a dynamic slot, a spectator — it shows
+**the red list followed by the blue one**. A picture put in both lists, the natural way to "show
+it to everyone", is shown twice: seen on GermanyCW-v6, in a case not written down.
+
+Read in DCS's Lua on 2026-09-29, not observed slot by slot. The in-flight and multiplayer
+briefing takes its pictures from the engine (`DCS.getPlayerBriefing()`,
+`Scripts/UI/BriefingDialog.lua`), whose rule cannot be read: whether a multiplayer pilot in a
+red slot gets the red list is **to be confirmed**.
+
+The panel also fits each picture to its own size: a theatre map 1600 px wide is shrunk until its
+labels cannot be read. The mouse wheel zooms, which few players know.
+
+**What to do:** Put every picture in `pictureFileNameB` and `pictureFileNameN`, and leave `pictureFileNameR`
+empty: whoever DCS cannot place sees each picture once. The cost falls on a red player DCS does
+identify: they may get no picture. Keep that for missions whose red classic slots do not need the map
+(an arena), and say so in the briefing text.
+
+Against the fitted panel, add zoomed maps after the theatre map, one per area, each with a title.
+
+*What it cost:* Found on GermanyCW-v6, whose briefing showed its map twice, too small to read.
+
 <!-- END GENERATED -->
 
 ## For script developers {#script-developers}

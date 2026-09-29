@@ -64,7 +64,7 @@ globals = {
   -- CTLD 2 config singleton: veaf.isCtldReady() reads its isLoaded flag to tell a started
   -- engine from one still parked on ctld.dontInitialize
   "CTLDConfig",
-  "AirWaveZone", "ArtilleryUnitHandler", "DcsDataExport", "dcsUnits",
+  "AirWaveZone", "ArtilleryUnitHandler", "DcsDataExport", "dcsUnits", "veafCities",
   "GroundUnitHandler", "sha1", "STTS", "AIEN", "weathermark", "dcsbot",
   "SkynetIADSAbstractRadarElement",
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})

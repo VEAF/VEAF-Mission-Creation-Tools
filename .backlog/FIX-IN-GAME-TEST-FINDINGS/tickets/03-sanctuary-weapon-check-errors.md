@@ -1,6 +1,6 @@
 # 03 — The sanctuary's weapon check raises on a weapon with no target, or already gone
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-29
 Type: fix
 Files: `src/scripts/veaf/veafSanctuary.lua` (`VeafSanctuaryZone:handleWeapon`), Lua tests
 
@@ -35,3 +35,9 @@ sanctuaries; `dcs.log` watched while several players flew it.
 - `handleWeapon` returns quietly when the weapon no longer exists (`weapon:isExist()`) and when
   `getTarget()` is `nil`.
 - Lua tests for both cases, and for the guided case still reaching the in-zone check.
+
+## Done — 2026-09-29
+
+`handleWeapon` returns when `weapon:isExist()` is false (before `getLauncher`), when `getTarget()`
+is `nil`, and when the target no longer exists — the last one not measured, the same failure one
+step further. Four Lua tests; the two measured errors reproduced word for word before the fix.

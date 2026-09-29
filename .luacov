@@ -6,7 +6,7 @@ return {
     -- dcsUnits is a generated data table (13 600 lines of literals, no logic). A test that merely
     -- `dofile`s it would count every line as covered and inflate the total by ~8 points, which would
     -- then be baked into the ratchet floor and collapse the moment that dofile went away.
-    exclude = { "veaf_loader", "dcsUnits" },
+    exclude = { "veaf_loader", "dcsUnits", "veafCities" },
     statsfile = "luacov.stats.out",
     reportfile = "luacov.report.out",
 }

@@ -1,6 +1,6 @@
 # 02 — Every combat zone is initialized twice
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-29
 Type: fix
 Files: `src/scripts/veaf/veafCombatZone.lua` and/or `src/python/veaf-tools/veaf_libs/lua_config_generator.py`,
 tests (Lua and generator)
@@ -35,3 +35,12 @@ In-game test of GermanyCW-v6, 2026-09-28, with `veaf.Diagnostics = true`.
   of `AddZone` (hand-written `mission-script.lua` in older missions) in mind.
 - A test builds a zone through the generated chain and `AddZone`, and counts one initialization and
   unique elements.
+
+## Done — 2026-09-29
+
+Decided: `VeafCombatZone:initialize()` returns when the zone is already initialized. The generator
+keeps its `:initialize()`: the hand-written `mission-script.lua` of older missions do the same, and
+so does `VeafCombatOperation:initialize()` for its tasking zones, so only a guard in the runtime
+covers every caller. `VeafCombatOperation:initialize()` gets the same guard (it deactivated
+twice). Tests: the generated chain plus `AddZone` reports once, for a zone and for an operation
+(red before: 2 each).

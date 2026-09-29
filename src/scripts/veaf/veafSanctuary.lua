@@ -577,7 +577,8 @@ end
 function VeafSanctuaryZone:handleWeapon(weapon)
   veafSanctuary.recordTraceShooting(string.format("VeafSanctuaryZone[%s]:handleWeapon()", veaf.p(self.name)))
   veafSanctuary.recordTraceShooting(string.format("weapon=%s", veaf.p(veaf.ifnns(weapon, { "getID", "getName", "getTypeName" }))))
-  if not weapon then
+  -- checked 2 s after the shot: a shell or a bomb may be gone, and every call on it would raise
+  if not weapon or not weapon:isExist() then
     return
   end
   if self:isProtectFromMissiles() then
@@ -599,6 +600,11 @@ function VeafSanctuaryZone:handleWeapon(weapon)
       if launcherPlayername and launcherPlayername ~= "" then
         -- check if the target is a human from our coalition
         local target = weapon:getTarget()
+        -- nil for a weapon released with no target object (a CBU-105 on coordinates, a HARM with no
+        -- lock): it threatens no one in particular; and a target destroyed since cannot be protected
+        if not target or not target:isExist() then
+          return
+        end
         local targetUnit = Unit.getByName(target:getName())
         veafSanctuary.recordTraceShooting(
           string.format(

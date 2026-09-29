@@ -100,6 +100,21 @@ vous liriez une chose dans `ctld-tools` pendant qu'une autre tourne en jeu.
 **Pour l'arrêter.** `manage_logistics: false` sous `modules.CTLD` — mais relisez le message
 précédent avant, c'est exactement le chemin qui y mène.
 
+## CTLD : un nom de ctld-config.yaml n'est pas dans la mission {#validate-ctld-name-not-in-mission}
+
+> 'extract1' dans extractableGroups de ctld-config.yaml n'est pas dans la mission : CTLD l'ignorera
+> avec un avertissement « not found » au démarrage. Le retirer (dans ctld-tools), ou le placer dans
+> l'éditeur de mission.
+
+**D'où ça vient, presque toujours.** Le catalogue de CTLD donne des exemples : `extract1` …
+`extract25` et `logistic1` … `logistic10`. Aucune mission VEAF ne les contient, et une mission créée
+avant FIX-IN-GAME-TEST-FINDINGS les a gardés : 35 avertissements au démarrage, qui noient les autres.
+Une mission créée depuis part avec les deux listes vides.
+
+**Les issues.** Vider la liste dans `ctld-tools`, ou n'y laisser que les groupes (`extractableGroups`)
+et les unités (`logisticUnits`) que la mission contient vraiment. Écrire `[]` seul sur sa ligne : le
+lecteur YAML de CTLD lit `extractableGroups: []   # note` comme le texte `"[]   # note"`.
+
 ## Des fichiers son manquent {#builder-community-sounds-missing}
 
 > Des fichiers son requis par un module communautaire activé ne sont fournis ni par les outils ni

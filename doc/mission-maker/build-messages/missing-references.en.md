@@ -144,6 +144,24 @@ tasking order.
 **What it is not.** Not a missing trigger zone — the object being looked for is a YAML entry, not a
 circle on the map.
 
+## A static has no `shape_name` {#validate-static-without-shape}
+
+> Static 'CZ_Wunsdorf-HQ' (.Command Center) has no shape_name: DCS may refuse it at mission load
+> ("unknown static shape_name") and the object will not exist. Write shape_name = "ComCenter" on
+> the unit, as the Mission Editor does.
+
+**In the editor.** The static is in the mission, but DCS does not know which model to draw. It
+works it out for many types, not all: a command centre or an ammunition depot with no
+`shape_name` is not created at all. In a combat zone the objective is missing — without a word in
+game, and the zone draws its elements from what is left.
+
+**Where it comes from.** The editor always writes this field; it is missing on a static placed by
+a tool. The MCP actions write it since FIX-IN-GAME-TEST-FINDINGS; this message catches the missions
+built before.
+
+**The ways out.** Add `shape_name` on the unit with the value given, or place the static again in
+the editor or with `add_group`.
+
 ## Going further {#more}
 
 - [Build messages](README.en.md) — the other families

@@ -314,6 +314,23 @@ translation, the probe count and the elapsed time.
 - **Whatever the count**: note the worst per-group time. Above about 0.4 s for one group, the probe
   cost is not the 0.38 ms measured, and `SETTLE_SWEEP_PROBE_BUDGET` has to be sized again.
 
+### R17. A GermanyCW-v6 start with no shape refused, one initialization per zone, no sanctuary error
+
+[`FIX-IN-GAME-TEST-FINDINGS`](.backlog/FIX-IN-GAME-TEST-FINDINGS/PRD.md). Every one of its five
+findings was read in `dcs.log`, so the check is `dcs.log` too. **Run**: in GermanyCW-v6, delete the
+four hand-written `shape_name` (Wünsdorf's `.Command Center`, Torgau's two and Wittenberg's one
+`.Ammunition depot`) and place those four statics again with `add_group`. Build with this branch, start the mission, activate Torgau, fire one
+unguided weapon at nothing near a sanctuary. Then grep `dcs.log`:
+
+| `grep` | Expected | Otherwise |
+|---|---|---|
+| `unknown static shape_name` | no line | the shape written is not the one DCS wants: compare with the editor's |
+| `DIAG\|zone combatZone_Torgau: deactivated` | **one** line | a second caller of `initialize()` — read who |
+| `combatZone_Torgau: activating` | `4 element(s)` | elements still doubled |
+| `attempt to index local 'target'` / `Weapon doesn't exist` | no line | another path in `handleWeapon` |
+| `no cities in veafNamedPoints` | no line | `veafCities.lua` missing from the bundle |
+| `extract` / `logistic` `not found` | no line (GermanyCW-v6's lists were emptied by hand, and `validate` would name any left) | a name `validate` did not report: its check reads the wrong section |
+
 ---
 
 ---

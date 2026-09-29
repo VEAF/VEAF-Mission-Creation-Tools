@@ -97,6 +97,20 @@ would read one thing in `ctld-tools` while another ran in game.
 **To stop it.** `manage_logistics: false` under `modules.CTLD` — but read the previous message
 first, as that is exactly the path leading to it.
 
+## CTLD: a name in ctld-config.yaml is not in the mission {#validate-ctld-name-not-in-mission}
+
+> 'extract1' in extractableGroups of ctld-config.yaml is not in the mission: CTLD will skip it with
+> a « not found » warning at start. Remove it (in ctld-tools), or place it in the Mission Editor.
+
+**Where it comes from, almost always.** CTLD's catalogue gives examples: `extract1` … `extract25`
+and `logistic1` … `logistic10`. No VEAF mission holds them, and a mission created before
+FIX-IN-GAME-TEST-FINDINGS kept them: 35 warnings at start, burying the others. A mission created
+since starts with both lists empty.
+
+**The ways out.** Empty the list in `ctld-tools`, or keep only the groups (`extractableGroups`) and
+units (`logisticUnits`) the mission actually holds. Write `[]` alone on its line: CTLD's YAML reader
+reads `extractableGroups: []   # note` as the text `"[]   # note"`.
+
 ## Sound files are missing {#builder-community-sounds-missing}
 
 > Sound file(s) required by an enabled community module are shipped by neither the tools nor the

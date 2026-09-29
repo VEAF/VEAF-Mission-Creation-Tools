@@ -1339,6 +1339,12 @@ end
 
 function VeafCombatZone:initialize()
   veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:initialize()", veaf.p(self.missionEditorZoneName)))
+  -- Once only. The generated chain ends with `:initialize()`, `AddZone` initializes again, and so does
+  -- an operation for its tasking zones: a second pass collected every element twice (GermanyCW-v6,
+  -- 2026-09-28: Torgau held 8 elements for 4).
+  if self.initialized then
+    return self
+  end
   -- Raised on **entry**, deliberately. This function has several early returns — no zone name, no
   -- trigger zone — and each leaves the zone half-built; a flag set on the way out would miss them and
   -- report the zone as still configurable. And the precondition the setters state is "before
@@ -2637,6 +2643,11 @@ end
 
 function VeafCombatOperation:initialize()
   veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:initialize()", veaf.p(self.missionEditorZoneName)))
+  -- once only, for the reason VeafCombatZone:initialize gives: the chain and AddZone both call it
+  if self.initialized then
+    return self
+  end
+  self.initialized = true
 
   -- check parameters
   if not self.missionEditorZoneName then

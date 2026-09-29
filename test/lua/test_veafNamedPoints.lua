@@ -19,6 +19,7 @@ dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
+dofile(src .. "/veafCities.lua")
 dofile(src .. "/veafNamedPoints.lua")
 
 -- ============================================================================
@@ -199,6 +200,27 @@ function TestVeafNamedPoints:test_addDataToPoint_empty_data_leaves_point_unchang
   luaunit.assertEquals(pt.x, 1)
   luaunit.assertEquals(pt.y, 0)
   luaunit.assertEquals(pt.z, 2)
+end
+
+-- -----------------------------------------------------------------------
+-- addCities — FIX-IN-GAME-TEST-FINDINGS 05: GermanyCW had no cities (2026-09-28)
+-- -----------------------------------------------------------------------
+function TestVeafNamedPoints:test_addCities_reads_the_generated_list_of_the_theatre()
+  local saved = env.mission.theatre
+  env.mission.theatre = "GermanyCW"
+  veafNamedPoints.addCities()
+  env.mission.theatre = saved
+  local berlin = veafNamedPoints.getPoint("Berlin")
+  luaunit.assertNotNil(berlin)
+  luaunit.assertTrue(berlin.hidden)
+end
+
+function TestVeafNamedPoints:test_addCities_on_a_theatre_without_list_adds_nothing()
+  local saved = env.mission.theatre
+  env.mission.theatre = "NoSuchTheatre"
+  veafNamedPoints.addCities()
+  env.mission.theatre = saved
+  luaunit.assertEquals(next(veafNamedPoints.namedPoints), nil)
 end
 
 -- ============================================================================

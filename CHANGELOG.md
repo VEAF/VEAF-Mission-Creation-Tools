@@ -222,6 +222,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unit the scripts create is submitted with `coldAtStart = false`, as the Mission Editor writes it,
   so it has an infrared signature from its first second. A unit ticked COLD AT START in the editor
   keeps it on respawn. Static objects have no engine and stay cold.
+- **`veaf-logs` reads the other logs of a server** (FIX-LOGS-NON-DCS-FORMATS): it knew only
+  `dcs.log`'s line shape and took every other line for the continuation of the one before, so the
+  production DCSServerBot log — 4 104 lines — showed as a single entry. DCSServerBot (main, chat,
+  performance, `async_errors`), Real Weather and LotAtc lines are now recognised one by one, with
+  their time, level (`WARN`, `FATAL`, `[W]`… mapped) and a source of their own; Real Weather's
+  output copied inside the bot's log is told apart line by line. Five noise families hide the bus
+  traffic and polling of DCSServerBot (74 % of its log) and LotAtc's startup dump, airfield sides
+  and client connections (69 %). A file in no known shape now reads line by line, and the filter
+  panel no longer lists noise families absent from the open log. An entry followed by more than
+  65 535 unheaded lines no longer stops the indexing with an `OverflowError` — DCSServerBot's
+  `async_errors.log` did.
 
 ### Changed
 

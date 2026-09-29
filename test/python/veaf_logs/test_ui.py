@@ -61,6 +61,13 @@ class TestChargement:
     def test_tout_affiche_par_defaut(self, window):
         assert rows(window) == ENTRIES
 
+    def test_seules_les_familles_de_bruit_rencontrees_sont_listees(self, window):
+        """Une famille masquee par defaut mais absente du journal n'a pas de bouton."""
+        rencontrees = set(window.current_tab().model.counts_by_noise())
+        assert "damage_model" in rencontrees
+        assert set(window.side.noise.keys()) == rencontrees
+        assert "dcssb_mission_events" not in window.side.noise.keys()
+
     def test_colonnes_lues_a_la_demande(self, window):
         entry = window.current_tab().model.entry_at(0)
         assert entry.level == "ERROR"

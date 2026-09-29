@@ -325,6 +325,36 @@ ont marché :
 besoin s'écrit en Lua (`VeafCombatMission`) dans `src/scripts/mission-script.lua`, et tu le notes
 dans « Retours pour VMCT ».
 
+### 4.13 Carte du briefing et dessins F10
+
+Un pilote qui découvre la mission doit voir le théâtre d'un coup d'œil. **Une seule image, deux
+usages** : `docs/carte.jpg`, affichée en tête du README, et l'image de briefing de la mission, que
+DCS montre à tous les camps.
+
+- **Générée depuis les données de la mission, jamais dessinée à la main** : un script lit
+  `src/mission/`, `mission.yaml` et les fichiers de `src/`, convertit les x/y en lat/lon
+  (`resolve_coordinates`, ou `veaf_libs.coordinates`), et la redessine à chaque changement.
+- **Ce qu'elle montre** : les bases avec slots (couleur du camp), les FARP, les hippodromes des
+  ravitailleurs et des AWACS, les CAP à la demande, les cercles des QRA à leur rayon réel, les zones
+  de combat **numérotées comme dans le briefing**, les zones d'entraînement (une lettre par
+  famille), les sanctuaires, la ligne de front (dite approximative), le porte-avions, le bullseye.
+  Ce qui sort du cadre (une arène au loin) est signalé par une flèche en bordure. Plus une légende,
+  une échelle en nautiques et le titre de la mission.
+- **Fond de carte** : les tuiles OpenStreetMap conviennent, à condition de suivre leur politique
+  d'usage. Un `User-Agent` qui identifie l'outil par son URL, **jamais une donnée personnelle**
+  (pas d'e-mail). Les tuiles en cache local, pour ne pas les retélécharger à chaque rendu. La mention
+  « © OpenStreetMap contributors » sur l'image.
+- **Image de briefing DCS** : la même carte en JPEG d'environ 1600 px de large, pour garder le
+  `.miz` léger. Elle est copiée dans `src/mission/l10n/DEFAULT/`, déclarée dans `mapResource`, et
+  référencée par `pictureFileNameB`, `pictureFileNameR` et `pictureFileNameN` de la mission. Si le
+  MCP n'a pas d'action pour le faire, passe par un script qui charge la table et la réécrit, et note-le
+  dans « Retours pour VMCT ».
+- **Dessins F10** (`add_map_drawing`, pour qu'ils survivent au build) : la ligne de front, les
+  sanctuaires, les hippodromes de soutien et les étiquettes des zones, chacun sur la **couche du camp
+  qui doit le voir** (`Blue`, `Red`, ou `Common` pour ce que les deux partagent).
+- **Relis l'image** avant de la livrer : aucune étiquette ne doit en chevaucher une autre, et chaque
+  numéro de zone doit correspondre à celui du briefing.
+
 ## 5. Ordre de construction
 
 1. `scaffold_mission` dans le dossier vide.
@@ -334,7 +364,8 @@ dans « Retours pour VMCT ».
 4. Aérodromes et FARP (4.1), soutien (4.3-4.4), défense aérienne (4.5).
 5. Zones d'entraînement (4.6), vraies zones (4.7), QRA (4.8), CAP (4.9), missions scénarisées
    (4.12).
-6. Radio, météo, waypoints (4.10) ; date, bullseye, briefing.
+6. Radio, météo, waypoints (4.10) ; date, bullseye, briefing ; carte du briefing et dessins F10
+   (4.13).
 7. `validate_mission`, `build_mission` (et le profil `LOCAL_TEST`), puis la section 8.
 8. `README.md` + `readme.fr.md` : contenu, construction, fichiers, limites connues.
 
@@ -374,7 +405,8 @@ l'époque ou les camps ; lancer DCS.
   - `requiredModules` vide (4.2) ;
   - deux variantes météo **différentes dans les champs que DCS lit** (`clouds.preset`,
     `season.temperature`, `wind.atGround`), et l'heure de l'aube cohérente avec le lever du soleil ;
-  - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec.
+  - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec ;
+  - l'image de briefing présente dans le `.miz` et référencée par les trois `pictureFileName*` (4.13).
 - **Relis tes briefings** : chaque distance, cap, altitude et nom de lieu recalculé ou sourcé.
 - Liste ce qui reste à vérifier dans DCS (placement des statiques sur les terrains, suivi des routes
   par les convois, imbrication des zones, apparence du ciel).

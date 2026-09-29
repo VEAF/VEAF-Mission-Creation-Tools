@@ -318,6 +318,35 @@ worked:
 written in Lua (`VeafCombatMission`) in `src/scripts/mission-script.lua`, and you note it in
 "Feedback for VMCT".
 
+### 4.13 Briefing map and F10 drawings
+
+A pilot discovering the mission must see the theatre at a glance. **One picture, two uses**:
+`docs/carte.jpg`, shown at the top of the README, and the mission's briefing picture, which DCS shows
+to every side.
+
+- **Generated from the mission's data, never drawn by hand**: a script reads `src/mission/`,
+  `mission.yaml` and the files of `src/`, converts x/y to lat/lon (`resolve_coordinates`, or
+  `veaf_libs.coordinates`), and redraws it at every change.
+- **What it shows**: the bases with slots (side colour), the FARPs, the tankers' and AWACS'
+  race-tracks, the on-demand CAPs, the QRA circles at their real radius, the combat zones **numbered
+  as in the briefing**, the training zones (one letter per family), the sanctuaries, the front line
+  (said to be approximate), the carrier, the bullseye. What falls outside the frame (a distant arena)
+  is shown by an arrow on the edge. Plus a legend, a scale in nautical miles and the mission's title.
+- **Basemap**: OpenStreetMap tiles will do, provided their usage policy is followed. A `User-Agent`
+  identifying the tool by its URL, **never any personal data** (no e-mail). The tiles cached locally,
+  so they are not downloaded again at every render. The "© OpenStreetMap contributors" credit on the
+  picture.
+- **DCS briefing picture**: the same map as a JPEG about 1600 px wide, to keep the `.miz` light. It
+  is copied into `src/mission/l10n/DEFAULT/`, declared in `mapResource`, and referenced by the
+  mission's `pictureFileNameB`, `pictureFileNameR` and `pictureFileNameN`. If the MCP has no action
+  for it, go through a script that loads the table and writes it back, and note it in "Feedback for
+  VMCT".
+- **F10 drawings** (`add_map_drawing`, so they survive the build): the front line, the sanctuaries,
+  the support race-tracks and the zone labels, each on the **layer of the side that must see it**
+  (`Blue`, `Red`, or `Common` for what both share).
+- **Look at the picture** before handing it over: no label may overlap another, and every zone
+  number must match the briefing's.
+
 ## 5. Build order
 
 1. `scaffold_mission` in the empty folder.
@@ -326,7 +355,7 @@ written in Lua (`VeafCombatMission`) in `src/scripts/mission-script.lua`, and yo
 3. `mission.yaml`: identity, security and profiles, modules.
 4. Airfields and FARPs (4.1), support (4.3-4.4), air defense (4.5).
 5. Training zones (4.6), real zones (4.7), QRA (4.8), CAP (4.9), scripted missions (4.12).
-6. Radio, weather, waypoints (4.10); date, bullseye, briefing.
+6. Radio, weather, waypoints (4.10); date, bullseye, briefing; briefing map and F10 drawings (4.13).
 7. `validate_mission`, `build_mission` (and the `LOCAL_TEST` profile), then section 8.
 8. `README.md` + `readme.fr.md`: content, building, files, known limitations.
 
@@ -364,7 +393,8 @@ the sides; running DCS.
   - `requiredModules` empty (4.2);
   - two weather variants **different in the fields DCS reads** (`clouds.preset`,
     `season.temperature`, `wind.atGround`), and a dawn time consistent with sunrise;
-  - the `LOCAL_TEST` profile built without security, the default configuration with it.
+  - the `LOCAL_TEST` profile built without security, the default configuration with it;
+  - the briefing picture present in the `.miz` and referenced by the three `pictureFileName*` (4.13).
 - **Reread your briefings**: every range, bearing, altitude and place name recomputed or sourced.
 - List what remains to check in DCS (statics placed on the airfields, convoys following their roads,
   zone nesting, the look of the sky).

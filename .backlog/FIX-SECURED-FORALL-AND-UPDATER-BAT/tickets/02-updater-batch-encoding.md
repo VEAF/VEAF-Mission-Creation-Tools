@@ -1,6 +1,6 @@
 # 02 — the updater writes its batch file in the wrong encoding
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Measured (2026-09-29, French Windows, ANSI cp1252, OEM cp850)
 

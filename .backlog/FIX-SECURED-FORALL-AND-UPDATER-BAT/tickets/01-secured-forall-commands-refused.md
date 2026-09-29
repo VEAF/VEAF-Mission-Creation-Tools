@@ -1,6 +1,6 @@
 # 01 — secured "for all" radio commands refuse every click
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Measured (2026-09-29)
 

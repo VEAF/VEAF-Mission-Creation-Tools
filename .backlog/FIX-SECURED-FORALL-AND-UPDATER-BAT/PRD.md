@@ -1,6 +1,6 @@
 # FIX-SECURED-FORALL-AND-UPDATER-BAT — two defects from the GermanyCW Open Training of 2026-09-29
 
-Status: 🔄 in-progress
+Status: ✅ done (PR #1028, merged 2026-09-29)
 
 Found on the private1 server session of 2026-09-29 (`VEAF_OpenTraining_GermanyCW_ICAO_ETAR_20260928.miz`,
 security enabled) and grouped in one PR.
@@ -9,8 +9,8 @@ security enabled) and grouped in one PR.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [secured "for all" radio commands refuse every click](tickets/01-secured-forall-commands-refused.md) | 🔄 |
-| 02 | [the updater writes its batch file in the wrong encoding](tickets/02-updater-batch-encoding.md) | 🔄 |
+| 01 | [secured "for all" radio commands refuse every click](tickets/01-secured-forall-commands-refused.md) | ✅ |
+| 02 | [the updater writes its batch file in the wrong encoding](tickets/02-updater-batch-encoding.md) | ✅ |
 
 ## Definition of done
 

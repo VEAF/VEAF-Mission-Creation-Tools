@@ -1182,7 +1182,7 @@ function veafTransportMission.initializeAllLogisticInCTLD()
           -- Neutral at mission start: there is no coalition to register the zone for, and a
           -- coalition-0 zone would serve both sides. Ticket 03 registers the field once ground
           -- troops have held it for two continuous minutes, and computes its point on first need.
-          logger:info("initializeAllLogisticInCTLD: %s is neutral, class B — it will become a logistic zone when captured", airbase.Name)
+          logger:debug("initializeAllLogisticInCTLD: %s is neutral, class B — it will become a logistic zone when captured", airbase.Name)
         else
           local point = veafTransportMission.findAirbaseLogisticsPoint(airbase.DcsAirbase)
           if not point then
@@ -1196,7 +1196,7 @@ function veafTransportMission.initializeAllLogisticInCTLD()
             local coveringZones = zoneManager:getLogisticZonesAtPoint(point, airbaseCoalition)
             if coveringZones and #coveringZones > 0 then
               skippedCount = skippedCount + 1
-              logger:info(
+              logger:debug(
                 "initializeAllLogisticInCTLD: %s (class %s) already has a logistic zone covering its stand, leaving that one in charge",
                 airbase.Name,
                 state.class
@@ -1208,7 +1208,7 @@ function veafTransportMission.initializeAllLogisticInCTLD()
               state.active = true
               state.holder = airbaseCoalition
               drawLogisticCircle(state, airbaseCoalition)
-              logger:info(
+              logger:debug(
                 "initializeAllLogisticInCTLD: registered %s (class %s) at stand %s, r=%dm",
                 state.zoneName,
                 state.class,
@@ -1242,7 +1242,7 @@ function veafTransportMission.initializeAllLogisticInCTLD()
       timer.getTime() + AIRBASE_LOGISTICS_TICK_SECONDS,
       AIRBASE_LOGISTICS_TICK_SECONDS
     )
-    logger:info("initializeAllLogisticInCTLD: airbase logistics tick scheduled every %ss", veaf.p(AIRBASE_LOGISTICS_TICK_SECONDS))
+    logger:debug("initializeAllLogisticInCTLD: airbase logistics tick scheduled every %ss", veaf.p(AIRBASE_LOGISTICS_TICK_SECONDS))
   end
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

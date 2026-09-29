@@ -1,6 +1,6 @@
 # 01 — render the formatting, not the markup
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-29, option b: `render_comment` quotes with `> ` on every line and defuses mentions; `untrusted.quote` is untouched; a line the maintainer quoted GitHub-style (`> …`) is shown in italics, since Discord does not nest quotes (David, 2026-09-29)
 
 `render_comment` wraps the comment body in `untrusted.quote`, a code fence. The reporter therefore
 reads the markup. David wants the formatting.

@@ -1,6 +1,6 @@
 # FIX-RELAY-RENDERS-MARKDOWN — a relayed comment shows its markup instead of its formatting
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — built 2026-09-29 (option b, and ticket 02 kept in the lot); one reading left in a real thread, see *Left to read*
 
 Origin: David, 2026-09-09, from the live thread of
 [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946) right after the relay was
@@ -47,3 +47,15 @@ formatting on every single relayed comment.
   thing worth not re-deriving.
 * `tests/test_intake_hostile.py` and the fence tests keep covering the `/bug` → GitHub direction
   unchanged. Nothing in this lot touches what a stranger can write into an issue.
+
+## Left to read
+
+Two Discord behaviours the unit tests cannot see, to read on the first comment relayed after the
+deploy:
+
+* a fenced code block inside the quotation (its fence lines carry the `> ` prefix too) renders as one code block;
+* a blank line written as `> ` keeps the quotation going rather than ending it.
+
+If either fails, the fix is in `relay._quoted_parts` only; the `/bug` → GitHub direction is not
+involved.
+

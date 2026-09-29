@@ -375,7 +375,7 @@ function veafRadio.RadioMenuBuilder:rebuild()
     self:_removeCoalitionMenus(self._root)
     missionCommands.removeItem(self._root.dcsRadioMenu)
   else
-    veaf.loggers.get(veafRadio.Id):info("RadioMenuBuilder:rebuild() first time — no DCS radio menu yet")
+    veaf.loggers.get(veafRadio.Id):debug("RadioMenuBuilder:rebuild() first time — no DCS radio menu yet")
   end
   self:build()
 end

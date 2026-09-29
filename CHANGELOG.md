@@ -189,6 +189,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   42 actions used five names for it; `miz_path`, `target` and `folder_path` are still accepted as
   aliases, and a `mission_path` given where an action takes `mission_yaml_path` is read as the
   folder's `mission.yaml`.
+- **A default `dcs.log` no longer narrates every action** (CHORE-ACTION-DETAIL-AT-DEBUG). 56 of the
+  217 `info` lines of the VEAF scripts are now `debug`: placement detail, the tasks found on a
+  tanker or a carrier, per-airfield CTLD registration, a spawn's own report, and the lines a module
+  wrote when a pilot ran one of its commands — `veafRemote` already records those. Module loading,
+  settings, refusals and diagnostics stay at `info`; the rule is in the developer guide.
+- **A maintainer's reply relayed to Discord keeps its formatting, and arrives whole**
+  (FIX-RELAY-RENDERS-MARKDOWN). The support bot quoted it in a code block, so the reporter read the
+  raw markdown, asterisks included, and anything past 1 200 characters was cut. It is now a Discord
+  block quote with bold, lists and code rendered, split across up to five messages when it is long.
 
 ### Removed
 

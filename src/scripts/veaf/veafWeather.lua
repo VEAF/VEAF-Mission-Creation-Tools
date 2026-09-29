@@ -1793,15 +1793,15 @@ function veafWeather.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafWeather.Id):trace(string.format("_name=%s", veaf.p(_name)))
     veaf.loggers.get(veafWeather.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
     if _action and _action:lower() == "weather" then
-      veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting weather", veaf.p(_pilotName)))
+      veaf.loggers.get(veafWeather.Id):debug(string.format("[%s] is requesting weather", veaf.p(_pilotName)))
       veafWeather.messageWeatherAtClosestPoint(_unitName, true)
       return true
     elseif _action and _action:lower() == "atc" then
-      veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting atc", veaf.p(_pilotName)))
+      veaf.loggers.get(veafWeather.Id):debug(string.format("[%s] is requesting atc", veaf.p(_pilotName)))
       veafWeather.messageAtcClosestAirbase(_unitName, true)
       return true
     elseif not _action or _action:lower() == "all" then
-      veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting both atc and weather", veaf.p(_pilotName)))
+      veaf.loggers.get(veafWeather.Id):debug(string.format("[%s] is requesting both atc and weather", veaf.p(_pilotName)))
       veafWeather.messageAtcAndWeather(_unitName, true)
       return true
     elseif _action and _action:lower() == "fog" then
@@ -1814,7 +1814,7 @@ function veafWeather.executeCommandFromRemote(parameters)
         -- constant that is not a fog object would otherwise turn this command into a Lua error.
         local fogObject = veafWeather[uName]
         if type(fogObject) == "table" and fogObject.enable then
-          veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting fog [%s]", veaf.p(_pilotName), veaf.p(uName)))
+          veaf.loggers.get(veafWeather.Id):debug(string.format("[%s] is requesting fog [%s]", veaf.p(_pilotName), veaf.p(uName)))
           veafWeather.setAndActivateFog(fogObject)
           return true
         end

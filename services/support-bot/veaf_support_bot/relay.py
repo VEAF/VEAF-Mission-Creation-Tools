@@ -52,10 +52,11 @@ from logging import Logger
 from pathlib import Path
 from typing import Any, Protocol
 
+from veaf_support_bot.answer import DISCORD_MESSAGE_LIMIT
 from veaf_support_bot.github_app import GitHubApp, GitHubError
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.texts import normalize_language, text
-from veaf_support_bot.untrusted import one_line, quote
+from veaf_support_bot.untrusted import defuse_mentions, one_line
 
 #: Version of the persisted document. A file of another version is refused rather than reinterpreted.
 LINKS_VERSION = 1
@@ -73,9 +74,19 @@ DEFAULT_POLL_SECONDS = 600.0
 #: must not turn a thread into a wall; the rest stays one click away on the issue.
 MAX_RELAYED_PER_ROUND = 5
 
-#: Longest relayed comment. Past it the thread shows the beginning and says where the rest is —
-#: never a silent cut.
-MAX_COMMENT_CHARS = 1200
+#: Most messages one comment is split across. A thread has room for more than one message, so a
+#: long answer — usually the one explaining a cause — arrives whole; but GitHub accepts 65 536
+#: characters, and past this ceiling the thread shows the beginning and says where the rest is —
+#: never a silent cut. Counted per comment, apart from `MAX_RELAYED_PER_ROUND`, which counts
+#: comments: one long answer must not use up the round.
+MAX_COMMENT_MESSAGES = 5
+
+#: What starts every line of a relayed body. A Discord block quote ends at the first line without
+#: it — blank lines included — and what follows would read as the bot speaking.
+QUOTE_PREFIX = "> "
+
+#: The line that opens or closes a fenced block inside the quotation.
+_QUOTED_FENCE = QUOTE_PREFIX + "```"
 
 #: Longest author name shown, so a display name cannot push the message over Discord's ceiling.
 MAX_AUTHOR_CHARS = 80
@@ -441,8 +452,14 @@ def _comment_of(item: dict[str, Any]) -> Comment:
     )
 
 
-def render_comment(comment: Comment, issue: int, url: str, lang: str) -> str:
+def render_comment(comment: Comment, issue: int, url: str, lang: str) -> list[str]:
     """Render one maintainer comment as something a non-developer reads.
+
+    The body is a Discord **block quote**, not the fenced block :func:`quote` makes. That fence
+    guards the other direction — a stranger's text embedded in a public issue — and here it only
+    cost the reporter the formatting of every answer. The quotation keeps what the fence also
+    said: these are somebody else's words, under a header line the comment cannot touch. Mentions
+    are defused on the string as well as refused by ``allowed_mentions``: two independent guards.
 
     Args:
         comment: The comment.
@@ -451,21 +468,90 @@ def render_comment(comment: Comment, issue: int, url: str, lang: str) -> str:
         lang: ``"fr"`` or ``"en"``.
 
     Returns:
-        The message. The comment is quoted rather than reflowed — it is somebody else's words, and
-        it can contain a mention, a code block or a stray ``@everyone``.
+        The messages, in order, each within Discord's limit. The header is on the first; past
+        :data:`MAX_COMMENT_MESSAGES` the last one ends on the notice saying where the rest is.
     """
-    body = comment.body if len(comment.body) <= MAX_COMMENT_CHARS else comment.body[:MAX_COMMENT_CHARS]
-    message = text(
+    header = text(
         "relay.comment",
         lang,
         author=one_line(comment.author, MAX_AUTHOR_CHARS),
         issue=issue,
         url=url,
     )
-    parts = [message, quote(body)]
-    if len(comment.body) > MAX_COMMENT_CHARS:
-        parts.append(text("relay.truncated", lang, url=url))
-    return "\n".join(part for part in parts if part)
+    notice = text("relay.truncated", lang, url=url)
+    # Reserved on every part: which part carries the header and which the notice is only known
+    # once the split is done, and a part that fitted exactly would then overflow.
+    room = DISCORD_MESSAGE_LIMIT - len(header) - len(notice) - 2
+    # GitHub stores what a browser sent, and a browser sends `\r\n`.
+    body = comment.body.replace("\r\n", "\n").strip("\n")
+    parts = _quoted_parts(defuse_mentions(body), room)
+    if not parts:
+        return [header]
+    cut = len(parts) > MAX_COMMENT_MESSAGES
+    parts = parts[:MAX_COMMENT_MESSAGES]
+    parts[0] = f"{header}\n{parts[0]}"
+    if cut:
+        parts[-1] = f"{parts[-1]}\n{notice}"
+    return parts
+
+
+def _quoted_parts(body: str, room: int) -> list[str]:
+    """Cut a body into block-quoted parts, on line boundaries, keeping fenced blocks renderable.
+
+    Args:
+        body: The comment body, mentions already defused.
+        room: Longest part.
+
+    Returns:
+        The parts, every line prefixed with :data:`QUOTE_PREFIX`. A part that ends inside a fenced
+        block closes it and the next one reopens it — half a block renders as prose. Empty when the
+        body has nothing to show.
+    """
+    if not body.strip():
+        return []
+    fence_cost = len(_QUOTED_FENCE) + 1
+    # Room for the reopening fence at the top of a part and the closing one at its end.
+    width = max(room - len(QUOTE_PREFIX) - 2 * fence_cost, 1)
+    parts: list[str] = []
+    current: list[str] = []
+    length = 0
+    open_fence = False
+    for raw in body.split("\n"):
+        if not open_fence and raw.lstrip().startswith(">"):
+            # A line the maintainer quoted GitHub-style. Discord does not nest block quotes, so it
+            # would show as a stray `>` inside ours; italics keep it apart from the reply.
+            quoted = raw.lstrip().lstrip(">").strip()
+            raw = f"*{quoted}*" if quoted else ""
+        # Decided on the whole line, never on a chunk of it: a continuation chunk can start with
+        # backticks by accident, and ```x``` on one line opens and closes itself.
+        stripped = raw.lstrip()
+        toggles = stripped.startswith("```") and "```" not in stripped[3:].lstrip("`")
+        # A line longer than a whole message is a paste: cut on the character, never dropped.
+        for chunk in [raw[start : start + width] for start in range(0, max(len(raw), 1), width)]:
+            line = QUOTE_PREFIX + chunk
+            if current and length + 1 + len(line) + fence_cost > room:
+                parts.append(_seal_quoted(current, open_fence))
+                current, length = ([_QUOTED_FENCE], len(_QUOTED_FENCE)) if open_fence else ([], 0)
+            length += len(line) + (1 if current else 0)
+            current.append(line)
+        if toggles:
+            open_fence = not open_fence
+    parts.append(_seal_quoted(current, open_fence))
+    return parts
+
+
+def _seal_quoted(lines: list[str], open_fence: bool) -> str:
+    """Close a quoted part, closing a fenced block it ends inside of.
+
+    Args:
+        lines: The part's lines, already prefixed.
+        open_fence: Whether a fence is open at the end of it.
+
+    Returns:
+        The part.
+    """
+    part = "\n".join(lines)
+    return f"{part}\n{_QUOTED_FENCE}" if open_fence else part
 
 
 def render_closed(issue: int, url: str, lang: str) -> str:
@@ -502,7 +588,7 @@ class Round:
 
     Attributes:
         polled: Links looked at.
-        relayed: Messages posted into threads.
+        relayed: Comments posted into threads — one, however many messages it was split across.
         closed: Closures announced.
         reopened: Reopenings announced.
         dropped: Links given up on because the thread, or the issue, is gone.
@@ -723,8 +809,11 @@ class Relay:
                 # loses the one answer that mattered, and it was promised to him below.
                 await self._post(link, text("relay.more", link.lang, url=url), result)
                 break
-            if not await self._post(link, render_comment(comment, link.issue, url, link.lang), result):
-                return
+            # A split comment moves the cursor only once every part is posted. A failure halfway
+            # posts the first parts again next round: a repeated beginning, rather than a lost end.
+            for message in render_comment(comment, link.issue, url, link.lang):
+                if not await self._post(link, message, result):
+                    return
             link.last_comment_id = comment.identifier
             posted += 1
             result.relayed += 1

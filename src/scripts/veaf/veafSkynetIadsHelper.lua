@@ -484,7 +484,7 @@ function veafSkynet.removeVanishedSites(networkName)
 
   local removed = _sweepSkynetElements(network, network.iads.samSites) + _sweepSkynetElements(network, network.iads.earlyWarningRadars)
   if removed > 0 then
-    veaf.loggers.get(veafSkynet.Id):info("network %s: removed %s despawned element(s)", veaf.lp(networkName), veaf.lp(removed))
+    veaf.loggers.get(veafSkynet.Id):debug("network %s: removed %s despawned element(s)", veaf.lp(networkName), veaf.lp(removed))
     -- The parent/child radar graph is built once, when the network activates, and a removal used to
     -- leave the departed element listed as a **child** of everything that could see it. Measured on
     -- Tripack's log of 2026-09-09 at 10:03:13: three sites destroyed by command and one swept, and the
@@ -1543,7 +1543,7 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
       if addedSite and pointDefense and not forceEwr and not ewrFlag then
         if defended_name then
           local text = string.format("Point Defense added to site : %s", string.format(defended_name))
-          veaf.loggers.get(veafSkynet.Id):info(text)
+          veaf.loggers.get(veafSkynet.Id):debug(text)
           if not silent then
             trigger.action.outText(text, 10)
           end

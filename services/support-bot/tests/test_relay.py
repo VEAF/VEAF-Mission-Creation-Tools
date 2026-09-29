@@ -25,12 +25,14 @@ from pathlib import Path
 from typing import Any, cast
 
 from tests.test_github_app import PEM, credentials
+from veaf_support_bot.answer import DISCORD_MESSAGE_LIMIT
 from veaf_support_bot.config import SupportBotConfig
 from veaf_support_bot.github_app import GitHubApp, Response
 from veaf_support_bot.relay import (
     COMMENT_PAGE_SIZE,
     KEEP_CLOSED_SECONDS,
     LINKS_VERSION,
+    MAX_COMMENT_MESSAGES,
     MAX_COMMENT_PAGES,
     MAX_RELAYED_PER_ROUND,
     Comment,
@@ -354,6 +356,22 @@ class TestOneBadThreadDoesNotStopTheRest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.relayed, MAX_RELAYED_PER_ROUND)
         self.assertIn("more messages", poster.posted[-1][1], "the rest must not be silently dropped")
 
+    async def test_a_long_comment_is_posted_in_order_and_counts_once_against_the_budget(self) -> None:
+        long_body = "\n".join(f"part {index} " + "x" * 90 for index in range(60))
+        comments = (_comment(1, long_body), *(_comment(index) for index in range(2, MAX_RELAYED_PER_ROUND + 1)))
+        poster = _Poster()
+        relay, _ = _relay(_Watcher(IssueState(comments=comments)), poster, links=[_link()])
+
+        result = await relay.run_once()
+
+        self.assertEqual(result.relayed, MAX_RELAYED_PER_ROUND, "a split comment is still one comment")
+        expected = render_comment(
+            comments[0], 901, "https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/901", "en"
+        )
+        self.assertGreater(len(expected), 1)
+        self.assertEqual([content for _, content in poster.posted[: len(expected)]], expected)
+        self.assertNotIn("more messages", poster.posted[-1][1], "nothing is left over this round")
+
 
 class TestTheStore(unittest.TestCase):
     def test_an_unreadable_file_does_not_stop_the_service(self) -> None:
@@ -403,17 +421,113 @@ class TestTheStore(unittest.TestCase):
             self.assertEqual(relay.tracked, 0)
 
 
-class TestTheRenderedMessage(unittest.TestCase):
-    def test_a_long_comment_is_cut_visibly_and_points_at_the_issue(self) -> None:
-        rendered = render_comment(_comment(1, "x" * 5000), 901, "https://example.invalid/901", "en")
+def _quoted_lines(messages: list[str]) -> list[str]:
+    """Return the body lines of rendered messages, the header line of the first one left out.
 
-        self.assertIn("truncated", rendered)
-        self.assertIn("https://example.invalid/901", rendered)
+    Args:
+        messages: What :func:`render_comment` produced.
+
+    Returns:
+        Every line after the header, across every message, in order.
+    """
+    lines = "\n".join(messages).split("\n")
+    return lines[1:]
+
+
+class TestTheRenderedMessage(unittest.TestCase):
+    """The comment reaches the reporter as formatting, inside a quotation it cannot leave."""
+
+    def test_the_formatting_is_sent_as_markdown_not_inside_a_code_block(self) -> None:
+        body = "**Your SAMs were blind.**\n\n- one\n- two\n\nSee `veafSkynet.lua`."
+        messages = render_comment(_comment(1, body), 901, "u", "en")
+
+        self.assertEqual(len(messages), 1)
+        self.assertIn("> **Your SAMs were blind.**", messages[0])
+        self.assertIn("> - one", messages[0])
+        self.assertIn("> See `veafSkynet.lua`.", messages[0])
+        self.assertNotIn("````", messages[0], "the body must no longer be fenced")
+
+    def test_every_line_carries_the_quote_prefix_blank_lines_included(self) -> None:
+        """A line without the prefix ends the quotation, and the rest reads as the bot speaking."""
+        messages = render_comment(_comment(1, "first\n\n\nsecond\n# heading"), 901, "u", "en")
+
+        for line in _quoted_lines(messages):
+            self.assertTrue(line.startswith("> "), f"unquoted line: {line!r}")
+
+    def test_the_header_stays_outside_the_quotation(self) -> None:
+        messages = render_comment(_comment(1, "hello"), 901, "u", "en")
+
+        header = messages[0].split("\n")[0]
+        self.assertFalse(header.startswith(">"))
+        self.assertIn("Zip", header)
 
     def test_a_comment_cannot_ping_the_thread(self) -> None:
-        rendered = render_comment(_comment(1, "@everyone look at this"), 901, "u", "en")
+        """Asserted on the string, independently of `allowed_mentions`: two guards is the point."""
+        body = "@everyone @here <@&123456789> <@42> look at this"
+        rendered = "\n".join(render_comment(_comment(1, body), 901, "u", "en"))
 
-        self.assertNotIn("@everyone", rendered)
+        for mention in ("@everyone", "@here", "<@&123456789>", "<@42>"):
+            self.assertNotIn(mention, rendered)
+
+    def test_a_long_comment_arrives_whole_across_several_messages(self) -> None:
+        body = "\n".join(f"line {index} " + "x" * 90 for index in range(60))
+        messages = render_comment(_comment(1, body), 901, "u", "en")
+
+        self.assertGreater(len(messages), 1)
+        for message in messages:
+            self.assertLessEqual(len(message), DISCORD_MESSAGE_LIMIT)
+        self.assertEqual([line[2:] for line in _quoted_lines(messages)], body.split("\n"))
+        self.assertNotIn("truncated", "\n".join(messages))
+
+    def test_a_split_never_leaves_a_code_block_open(self) -> None:
+        """Each message closes the fence it ends inside of, and the next one reopens it."""
+        code = "\n".join(f"local value{index} = {index} -- " + "y" * 60 for index in range(80))
+        body = f"Try this:\n```lua\n{code}\n```\nThen reload."
+        messages = render_comment(_comment(1, body), 901, "u", "en")
+
+        self.assertGreater(len(messages), 1)
+        for message in messages:
+            self.assertLessEqual(len(message), DISCORD_MESSAGE_LIMIT)
+            fences = [line for line in message.split("\n") if line.startswith("> ```")]
+            self.assertEqual(len(fences) % 2, 0, f"a message ends inside a code block: {message[-80:]!r}")
+
+    def test_a_line_quoted_github_style_is_shown_in_italics(self) -> None:
+        """Discord does not nest quotes: a `> ` line would show a stray `>` inside ours."""
+        body = "> my SAMs never fire\n>\nThey were blind.\n```\n> not a quote in code\n```"
+        lines = _quoted_lines(render_comment(_comment(1, body), 901, "u", "en"))
+
+        self.assertEqual(lines[0], "> *my SAMs never fire*")
+        self.assertEqual(lines[1], "> ")
+        self.assertEqual(lines[2], "> They were blind.")
+        self.assertIn("> > not a quote in code", lines, "code keeps its characters")
+
+    def test_a_code_span_closed_on_its_own_line_opens_no_block(self) -> None:
+        """`print(1)` fenced on one line must not make the splitter reopen a block that is closed."""
+        prose = "\n".join(f"sentence {index} " + "p" * 90 for index in range(40))
+        body = f"```print(1)```\n{prose}"
+        messages = render_comment(_comment(1, body), 901, "u", "en")
+
+        self.assertGreater(len(messages), 1)
+        for message in messages[1:]:
+            self.assertFalse(message.startswith("> ```"), "a block was reopened that was never open")
+
+    def test_a_single_line_longer_than_a_message_is_cut_not_dropped(self) -> None:
+        messages = render_comment(_comment(1, "z" * 4500), 901, "u", "en")
+
+        for message in messages:
+            self.assertLessEqual(len(message), DISCORD_MESSAGE_LIMIT)
+        self.assertEqual("".join(line[2:] for line in _quoted_lines(messages)), "z" * 4500)
+
+    def test_a_huge_comment_is_bounded_and_says_where_the_rest_is(self) -> None:
+        """GitHub allows 65 536 characters: past the ceiling the thread would become a wall."""
+        body = "\n".join("w" * 100 for _ in range(600))
+        messages = render_comment(_comment(1, body), 901, "https://example.invalid/901", "en")
+
+        self.assertEqual(len(messages), MAX_COMMENT_MESSAGES)
+        self.assertIn("truncated", messages[-1])
+        self.assertIn("https://example.invalid/901", messages[-1])
+        for message in messages:
+            self.assertLessEqual(len(message), DISCORD_MESSAGE_LIMIT)
 
 
 class _Transport:

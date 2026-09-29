@@ -268,6 +268,14 @@ veaf.loggers.get(moduleName.Id):trace("Trace: %s", veaf.lp(table))
 
 Log levels: `error` (1) → `warning` (2) → `info` (3) → `debug` (4) → `trace` (5). Default is `info` (3).
 
+**`info` or `debug`?** `info` is read by someone who did not go looking for it: a module loading, a
+version, a mission-wide setting, something refused, something that will not work. `debug` is the
+running commentary of one action ("bearing 25 used at 1.054x", "found 3 candidates", "lead vehicle
+in range"), read by someone who turned the level up because they are chasing something. The test:
+*would a mission maker who is not debugging want this line?* If not, it is `debug`. A command run by
+a pilot is already traced at `info` by `veafRemote`; the module carrying it out does not repeat it at
+that level.
+
 For expensive arguments, use `veaf.lp()` (lazy proxy — only stringified when the level is active).
 
 To increase verbosity for a mission at **build time** (global, baked into the `.miz`), add `global_log_level` in `mission.yaml`:

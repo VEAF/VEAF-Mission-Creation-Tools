@@ -228,7 +228,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
 
   veafNamedPoints.addPoint(_fobName, _namedPoint)
 
-  veaf.loggers.get(veafSpawn.Id):info("Spawned FOB %s", veaf.p(_fobName))
+  veaf.loggers.get(veafSpawn.Id):debug("Spawned FOB %s", veaf.p(_fobName))
   return _fobName
 end
 
@@ -289,7 +289,7 @@ function veafSpawn.spawnBeacon(spawnSpot, radius, name, country, side, silent)
   end
   veaf.loggers
     .get(veafSpawn.Id)
-    :info("Spawned beacon: %.2f kHz / %.2f MHz / %.2f MHz FM", _beacon.vhf / 1000, _beacon.uhf / 1000000, _beacon.fm / 1000000)
+    :debug("Spawned beacon: %.2f kHz / %.2f MHz / %.2f MHz FM", _beacon.vhf / 1000, _beacon.uhf / 1000000, _beacon.fm / 1000000)
 
   -- Deliberately nil. The dispatcher reads this as a *group name* and then runs its own
   -- post-processing on it (alarm state, MFD hiding, platform registration). A beacon is three groups

@@ -1662,7 +1662,7 @@ function VeafCombatZone:destroySpawnedGroup(groupName)
     if group then
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("found static [%s]", group:getName()))
     else
-      veaf.loggers.get(veafCombatZone.Id):info(string.format("cannot find static [%s]", groupName))
+      veaf.loggers.get(veafCombatZone.Id):debug(string.format("cannot find static [%s]", groupName))
     end
   end
   if group then

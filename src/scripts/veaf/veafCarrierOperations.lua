@@ -141,7 +141,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
 
   local text = veafCarrierOperations.getAtcForCarrierOperations(groupName) .. veaf.t("carrier.alignment_delay")
 
-  veaf.loggers.get(veafCarrierOperations.Id):info(text)
+  veaf.loggers.get(veafCarrierOperations.Id):debug(text)
   veaf.outTextForGroup(userUnitName, text, 25)
 
   -- change the menu
@@ -781,7 +781,7 @@ function veafCarrierOperations.stopCarrierOperations(parameters)
   end
 
   local text = "The carrier group " .. groupName .. " has stopped air operations ; it's moving back to its initial position"
-  veaf.loggers.get(veafCarrierOperations.Id):info(text)
+  veaf.loggers.get(veafCarrierOperations.Id):debug(text)
   veaf.outTextForGroup(userUnitName, veaf.t("carrier.stopped", groupName), 5)
   carrier.conductingAirOperations = false
   carrier.stoppedAirOperations = true
@@ -1030,7 +1030,7 @@ function veafCarrierOperations.doOperations()
       veaf.loggers.get(veafCarrierOperations.Id):debug(name .. " is conducting operations ; checking course and ops duration")
       if carrier.airOperationsEndAt < timer.getTime() then
         -- time to stop operations
-        veaf.loggers.get(veafCarrierOperations.Id):info(name .. " has been conducting operations long enough ; stopping ops")
+        veaf.loggers.get(veafCarrierOperations.Id):debug(name .. " has been conducting operations long enough ; stopping ops")
         veafCarrierOperations.stopCarrierOperations(name)
       else
         local remainingTime = veaf.round((carrier.airOperationsEndAt - timer.getTime()) / 60, 1)
@@ -1128,7 +1128,7 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
     end
     veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_groupId=%s", veaf.p(_groupId)))
     if _action and _action:lower() == "list" then
-      veaf.loggers.get(veafCarrierOperations.Id):info(string.format("[%s] is listing carriers)", veaf.p(_pilot.name)))
+      veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("[%s] is listing carriers)", veaf.p(_pilot.name)))
       veafCarrierOperations.listAvailableCarriers(_groupId)
       return true
     elseif _action and _action:lower() == "start" and _carrierName then
@@ -1139,7 +1139,7 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
       local _duration = tonumber(_parameters) or 45
       local _carrier = findCarrier(_carrierName)
       veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_duration=%s", veaf.p(_duration)))
-      veaf.loggers.get(veafCarrierOperations.Id):info(
+      veaf.loggers.get(veafCarrierOperations.Id):debug(
         string.format("[%s] is starting operations on carrier [%s] for %s)", veaf.p(_pilot.name), veaf.p(_carrier), veaf.p(_parameters))
       )
       veafCarrierOperations.startCarrierOperations({ _carrier, _duration })
@@ -1148,14 +1148,14 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
       local _carrier = findCarrier(_carrierName)
       veaf.loggers
         .get(veafCarrierOperations.Id)
-        :info(string.format("[%s] is stopping operations on carrier [%s])", veaf.p(_pilot.name), veaf.p(_carrier)))
+        :debug(string.format("[%s] is stopping operations on carrier [%s])", veaf.p(_pilot.name), veaf.p(_carrier)))
       veafCarrierOperations.stopCarrierOperations(_carrier)
       return true
     elseif _action and _action:lower() == "atc" then
       local _carrier = findCarrier(_carrierName)
       veaf.loggers
         .get(veafCarrierOperations.Id)
-        :info(string.format("[%s] is requesting atc on carrier [%s])", veaf.p(_pilot.name), veaf.p(_carrier)))
+        :debug(string.format("[%s] is requesting atc on carrier [%s])", veaf.p(_pilot.name), veaf.p(_carrier)))
       local text = veafCarrierOperations.getAtcForCarrierOperations(_carrier)
       if _groupId then
         trigger.action.outTextForGroup(_groupId, text or "", 15)

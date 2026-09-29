@@ -121,6 +121,9 @@ An accepted password opens **no session**: secured commands check the password c
       `_auth elevate` (marker) or `/secu elevate` (chat) raises the group to the **requester's**
       level for 2 minutes — a plain `_auth [PASSWORD]` elevates nothing. That is what solves the
       instructor-flying-with-a-student case.
+    - Since the group is the only identity, a secured F10 command (its label starts with `+`) is
+      shown **in each pilot group's own menu**. A game master or a spectator, who has no group,
+      does not see it — except when security is disabled, where it is shown to everyone.
 
     Tell your pilots: this is a change they will notice mid-mission.
 

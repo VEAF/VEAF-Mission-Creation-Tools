@@ -201,6 +201,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   fed by entry 20; with a shorter list that entry did not exist, the slot was dropped, and every
   preset moved down by one (a 16-entry VHF list put entry 5 on preset 4). The slot now takes the
   list's last entry. Found in the code; not yet checked in the cockpit.
+- **Secured radio commands work again when security is on.** Since 6.14.0 a secured F10 command
+  meant for everyone — activating or deactivating a non-training combat zone or combat mission, the
+  fog commands, skipping a CAS or transport mission, cleaning up convoys, disposing of an asset, the
+  CTLD sling-load switch — was posted without a group, and every click answered "Your radio has to
+  be authenticated for '+' commands", whoever clicked
+  (GermanyCW Open Training, 2026-09-29). Such a command is now posted in each pilot group's menu,
+  where the group's level is checked. A game master, who has no group, no longer sees it while
+  security is on; with security disabled it is still shown to everyone.
+- **The updater can replace itself from an accented mission folder.** The script that swaps its
+  executable after it exits wrote the folder's path in the Windows ANSI code page, which `cmd` does
+  not read it in: entering "Mission élève" failed and the update was abandoned, and a folder such as
+  "Misja Łódź" stopped the script being written at all. The script no longer contains the path, and
+  the UTF-8 guard now also catches `Path.read_text()` / `write_text()` calls that name no encoding.
 
 ### Changed
 
